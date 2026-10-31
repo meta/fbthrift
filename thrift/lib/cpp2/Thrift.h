@@ -410,7 +410,7 @@ namespace detail {
 struct apply_indirection_fn {
  private:
   template <typename T>
-  using i = indirection_fn_t<folly::remove_cvref_t<T>>;
+  using i = indirection_fn_t<std::remove_cvref_t<T>>;
 
  public:
   template <typename T>

@@ -645,10 +645,10 @@ template <typename T>
 class optional_boxed_field_ref {
   static_assert(std::is_reference_v<T>, "not a reference");
   static_assert(
-      detail::is_boxed_value_ptr_v<folly::remove_cvref_t<T>>,
+      detail::is_boxed_value_ptr_v<std::remove_cvref_t<T>>,
       "not a boxed_value_ptr");
 
-  using element_type = typename folly::remove_cvref_t<T>::element_type;
+  using element_type = typename std::remove_cvref_t<T>::element_type;
 
   friend struct apache::thrift::detail::field_ref_access;
   friend struct apache::thrift::detail::move_to_unique_ptr_fn;
@@ -899,9 +899,9 @@ template <typename T>
 class intern_boxed_field_ref {
   static_assert(std::is_reference_v<T>, "not a reference");
   static_assert(
-      detail::is_boxed_value_v<folly::remove_cvref_t<T>>, "not a boxed_value");
+      detail::is_boxed_value_v<std::remove_cvref_t<T>>, "not a boxed_value");
 
-  using element_type = typename folly::remove_cvref_t<T>::element_type;
+  using element_type = typename std::remove_cvref_t<T>::element_type;
   using boxed_value_type = std::remove_reference_t<T>;
 
   friend struct apache::thrift::detail::field_ref_access;
@@ -1129,9 +1129,9 @@ template <typename T>
 class terse_intern_boxed_field_ref {
   static_assert(std::is_reference_v<T>, "not a reference");
   static_assert(
-      detail::is_boxed_value_v<folly::remove_cvref_t<T>>, "not a boxed_value");
+      detail::is_boxed_value_v<std::remove_cvref_t<T>>, "not a boxed_value");
 
-  using element_type = typename folly::remove_cvref_t<T>::element_type;
+  using element_type = typename std::remove_cvref_t<T>::element_type;
   using boxed_value_type = std::remove_reference_t<T>;
 
   friend struct apache::thrift::detail::field_ref_access;
@@ -1403,7 +1403,7 @@ struct assign_from_unique_ptr_fn {
   template <typename T>
   FOLLY_ERASE void operator()(
       optional_boxed_field_ref<T> ref,
-      std::unique_ptr<typename folly::remove_cvref_t<T>::element_type> ptr)
+      std::unique_ptr<typename std::remove_cvref_t<T>::element_type> ptr)
       const noexcept {
     ref.reset(std::move(ptr));
   }
@@ -1716,16 +1716,16 @@ class union_field_ref {
   friend struct detail::union_value_unsafe_fn;
 
   using is_cpp_ref_or_boxed = std::bool_constant<
-      detail::is_boxed_value_ptr_v<folly::remove_cvref_t<T>> ||
-      detail::is_shared_or_unique_ptr_v<folly::remove_cvref_t<T>>>;
+      detail::is_boxed_value_ptr_v<std::remove_cvref_t<T>> ||
+      detail::is_shared_or_unique_ptr_v<std::remove_cvref_t<T>>>;
 
   struct element_type_adapter {
-    using element_type = folly::remove_cvref_t<T>;
+    using element_type = std::remove_cvref_t<T>;
   };
 
   using element_type = typename std::conditional_t<
       is_cpp_ref_or_boxed::value,
-      folly::remove_cvref_t<T>,
+      std::remove_cvref_t<T>,
       element_type_adapter>::element_type;
 
   using storage_reference_type = T;
@@ -1777,7 +1777,7 @@ class union_field_ref {
           is_nothrow_union_member_constructible<value_type, Allocator, U>() &&
       std::is_nothrow_assignable_v<value_type, U>) {
     if (has_value() &&
-        !detail::is_shared_or_unique_ptr_v<folly::remove_cvref_t<T>>) {
+        !detail::is_shared_or_unique_ptr_v<std::remove_cvref_t<T>>) {
       get_value() = static_cast<U&&>(other);
     } else {
       emplace(static_cast<U&&>(other));

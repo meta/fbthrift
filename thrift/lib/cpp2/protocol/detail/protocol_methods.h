@@ -348,7 +348,7 @@ struct protocol_methods<type_class::list<ElemClass>, Type, ExpectedTag> {
       !std::is_same<ElemClass, type_class::unknown>(),
       "Unable to serialize unknown list element");
 
-  using elem_type = folly::remove_cvref_t<typename Type::value_type>;
+  using elem_type = std::remove_cvref_t<typename Type::value_type>;
   using elem_methods = protocol_methods<
       ElemClass,
       elem_type,

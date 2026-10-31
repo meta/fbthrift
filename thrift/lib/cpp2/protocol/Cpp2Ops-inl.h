@@ -429,7 +429,7 @@ class Cpp2Ops<
     using KeyType = typename Type::key_type;
     using PairType = typename std::remove_cv<
         typename std::remove_reference<decltype(*value->begin())>::type>::type;
-    using ValueType = folly::remove_cvref_t<typename PairType::second_type>;
+    using ValueType = std::remove_cvref_t<typename PairType::second_type>;
     uint32_t xfer = 0;
     xfer += prot->writeMapBegin(
         Cpp2Ops<KeyType>::thriftType(),
@@ -450,7 +450,7 @@ class Cpp2Ops<
     // call it data_type.
     using PairType = typename std::remove_cv<
         typename std::remove_reference<decltype(*value->begin())>::type>::type;
-    using ValueType = folly::remove_cvref_t<typename PairType::second_type>;
+    using ValueType = std::remove_cvref_t<typename PairType::second_type>;
     value->clear();
     uint32_t size;
     protocol::TType keytype, valuetype;
@@ -469,7 +469,7 @@ class Cpp2Ops<
     using KeyType = typename Type::key_type;
     using PairType = typename std::remove_cv<
         typename std::remove_reference<decltype(*value->begin())>::type>::type;
-    using ValueType = folly::remove_cvref_t<typename PairType::second_type>;
+    using ValueType = std::remove_cvref_t<typename PairType::second_type>;
     uint32_t xfer = 0;
     xfer += prot->serializedSizeMapBegin(
         Cpp2Ops<KeyType>::thriftType(),
@@ -487,7 +487,7 @@ class Cpp2Ops<
     using KeyType = typename Type::key_type;
     using PairType = typename std::remove_cv<
         typename std::remove_reference<decltype(*value->begin())>::type>::type;
-    using ValueType = folly::remove_cvref_t<typename PairType::second_type>;
+    using ValueType = std::remove_cvref_t<typename PairType::second_type>;
     uint32_t xfer = 0;
     xfer += prot->serializedSizeMapBegin(
         Cpp2Ops<KeyType>::thriftType(),
@@ -545,7 +545,7 @@ class Cpp2Ops<
     T,
     std::enable_if_t<folly::is_detected_v<detect_indirection_fn_t, T>>> {
  private:
-  using S = folly::remove_cvref_t<
+  using S = std::remove_cvref_t<
       std::invoke_result_t<detail::apply_indirection_fn, T>>;
 
  public:

@@ -158,7 +158,7 @@ class IndexWriterImpl {
         !fixed_cost_skip_v<
             typename Protocol::ProtocolReader,
             TypeClass,
-            folly::remove_cvref_t<Type>>) {
+            std::remove_cvref_t<Type>>) {
       const auto fieldSize = writtenBytes_ - fieldStart_;
       fieldIdAndSize_.push_back({id, fieldSize});
       if (hasher_.is_initialized()) {

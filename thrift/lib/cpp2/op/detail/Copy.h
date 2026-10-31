@@ -28,7 +28,7 @@ namespace apache::thrift::op::detail {
 template <typename Src, typename Dst>
 void assertSameType() {
   static_assert(
-      std::is_same_v<folly::remove_cvref_t<Src>, folly::remove_cvref_t<Dst>>,
+      std::is_same_v<std::remove_cvref_t<Src>, std::remove_cvref_t<Dst>>,
       "src and dst have different types.");
 }
 

@@ -116,7 +116,7 @@ T* raw_any_cast(const any_ref* operand) noexcept;
 class any_ref final {
   template <typename T>
   using disable_self =
-      std::enable_if_t<!std::is_same_v<folly::remove_cvref_t<T>, any_ref>>;
+      std::enable_if_t<!std::is_same_v<std::remove_cvref_t<T>, any_ref>>;
 
  public:
   any_ref() noexcept {}

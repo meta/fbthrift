@@ -223,9 +223,9 @@ template <typename Type, typename Tag>
 using indirected = adapted<
     ::apache::thrift::IndirectionAdapter<Type>,
     cpp_type<
-        folly::remove_cvref_t<::apache::thrift::adapt_detail::thrift_t<
+        std::remove_cvref_t<::apache::thrift::adapt_detail::thrift_t<
             ::apache::thrift::IndirectionAdapter<Type>,
-            folly::remove_cvref_t<Type>>>,
+            std::remove_cvref_t<Type>>>,
         Tag>>;
 }
 

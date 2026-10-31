@@ -102,7 +102,7 @@ Value* findOp(Object&& patch, PatchOp op) {
 
 template <typename Tag, typename V>
 decltype(auto) argAs(V&& value) {
-  static_assert(std::is_same_v<folly::remove_cvref_t<V>, Value>);
+  static_assert(std::is_same_v<std::remove_cvref_t<V>, Value>);
   using Id = type::field_id_tag<static_cast<FieldId>(type::base_type_v<Tag>)>;
   constexpr auto expected = static_cast<Value::Type>(Id::value);
   if (value.getType() != Value::Type(Id::value)) {
@@ -411,7 +411,7 @@ void ApplyPatch::operator()(
 
 template <class Patch>
 void impl(Patch&& patch, Object& value) {
-  static_assert(std::is_same_v<folly::remove_cvref_t<Patch>, Object>);
+  static_assert(std::is_same_v<std::remove_cvref_t<Patch>, Object>);
   checkOps(
       patch,
       Value::Type::objectValue,

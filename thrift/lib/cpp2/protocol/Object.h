@@ -40,8 +40,8 @@ using detail::asValueStruct;
 // Creates a Object struct for the given structured.
 template <typename T>
 std::enable_if_t<
-    is_thrift_struct_v<folly::remove_cvref_t<T>> ||
-        is_thrift_union_v<folly::remove_cvref_t<T>>,
+    is_thrift_struct_v<std::remove_cvref_t<T>> ||
+        is_thrift_union_v<std::remove_cvref_t<T>>,
     Object>
 asObject(T&& obj) {
   return asValueStruct<type::struct_c>(std::forward<T>(obj)).as_object();

@@ -103,7 +103,7 @@ struct FieldPatchAssigner<type::adapted<Adapter, Tag>> {
   template <typename Patch, typename Val>
   void operator()(Patch& patch, Val&& val) {
     using value_type = typename Patch::value_type;
-    if constexpr (std::is_same_v<value_type, folly::remove_cvref_t<Val>>) {
+    if constexpr (std::is_same_v<value_type, std::remove_cvref_t<Val>>) {
       // Maintain compatibility with legacy AnyPatch
       patch.assign(std::forward<Val>(val));
     } else {
@@ -494,7 +494,7 @@ class BaseEnsurePatch : public BaseClearPatch<Patch, Derived> {
         if constexpr (!apache::thrift::detail::is_shared_ptr_v<
                           op::get_field_ref<T, Id>>) {
           using FieldPatchType =
-              folly::remove_cvref_t<decltype(BaseEnsurePatch{}.patch<Id>())>;
+              std::remove_cvref_t<decltype(BaseEnsurePatch{}.patch<Id>())>;
           v.template patchIfSet<Id>(FieldPatchType{});
           v.template ensure<Id>();
           if constexpr (type::is_optional_or_union_field_v<T, Id>) {

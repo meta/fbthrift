@@ -29,19 +29,19 @@ const size_t kHashValueForNonExistsOptionalField = -3333;
 namespace folly {
 template <class T>
 struct hasher<apache::thrift::field_ref<T>>
-    : private hasher<folly::remove_cvref_t<T>> {
-  using hasher<folly::remove_cvref_t<T>>::hasher;
+    : private hasher<std::remove_cvref_t<T>> {
+  using hasher<std::remove_cvref_t<T>>::hasher;
   size_t operator()(apache::thrift::field_ref<T> obj) const {
-    return hasher<folly::remove_cvref_t<T>>::operator()(*obj);
+    return hasher<std::remove_cvref_t<T>>::operator()(*obj);
   }
 };
 
 template <class T>
 struct hasher<apache::thrift::optional_field_ref<T>>
-    : private hasher<folly::remove_cvref_t<T>> {
-  using hasher<folly::remove_cvref_t<T>>::hasher;
+    : private hasher<std::remove_cvref_t<T>> {
+  using hasher<std::remove_cvref_t<T>>::hasher;
   size_t operator()(apache::thrift::optional_field_ref<T> obj) const {
-    return obj ? hasher<folly::remove_cvref_t<T>>::operator()(*obj)
+    return obj ? hasher<std::remove_cvref_t<T>>::operator()(*obj)
                : apache::thrift::detail::kHashValueForNonExistsOptionalField;
   }
 };
@@ -50,19 +50,19 @@ struct hasher<apache::thrift::optional_field_ref<T>>
 namespace std {
 template <class T>
 struct hash<apache::thrift::field_ref<T>>
-    : private hash<folly::remove_cvref_t<T>> {
-  using hash<folly::remove_cvref_t<T>>::hash;
+    : private hash<std::remove_cvref_t<T>> {
+  using hash<std::remove_cvref_t<T>>::hash;
   size_t operator()(apache::thrift::field_ref<T> obj) const {
-    return hash<folly::remove_cvref_t<T>>::operator()(*obj);
+    return hash<std::remove_cvref_t<T>>::operator()(*obj);
   }
 };
 
 template <class T>
 struct hash<apache::thrift::optional_field_ref<T>>
-    : private hash<folly::remove_cvref_t<T>> {
-  using hash<folly::remove_cvref_t<T>>::hash;
+    : private hash<std::remove_cvref_t<T>> {
+  using hash<std::remove_cvref_t<T>>::hash;
   size_t operator()(apache::thrift::optional_field_ref<T> obj) const {
-    return obj ? hash<folly::remove_cvref_t<T>>::operator()(*obj)
+    return obj ? hash<std::remove_cvref_t<T>>::operator()(*obj)
                : apache::thrift::detail::kHashValueForNonExistsOptionalField;
   }
 };

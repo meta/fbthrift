@@ -379,7 +379,7 @@ struct ForEachFieldIdAdapter {
 /// Calls the given function with each field_id<{id}> in a Thrift struct.
 template <typename T, typename F>
 FOLLY_ALWAYS_INLINE constexpr void for_each_field_id(F&& f) {
-  using Adapter = detail::ForEachFieldIdAdapter<T, folly::remove_cvref_t<F>>;
+  using Adapter = detail::ForEachFieldIdAdapter<T, std::remove_cvref_t<F>>;
   for_each_ordinal<T>(Adapter{f});
 }
 
@@ -508,7 +508,7 @@ inline constexpr detail::GetValueOrNull get_value_or_null;
 ///
 template <typename T, typename Id>
 using get_field_ref =
-    folly::remove_cvref_t<decltype(get<Id>(std::declval<T&>()))>;
+    std::remove_cvref_t<decltype(get<Id>(std::declval<T&>()))>;
 
 // Implementation details.
 namespace detail {
@@ -584,14 +584,14 @@ template <typename Id>
 struct Get<Id, void> {
   template <typename U>
   constexpr decltype(auto) operator()(U&& obj) const {
-    return op::get<Id, folly::remove_cvref_t<U>>(std::forward<U>(obj));
+    return op::get<Id, std::remove_cvref_t<U>>(std::forward<U>(obj));
   }
 };
 template <>
 struct Get<void, void> {
   template <typename Id, typename U>
   constexpr decltype(auto) operator()(Id, U&& obj) const {
-    return op::get<Id, folly::remove_cvref_t<U>>(std::forward<U>(obj));
+    return op::get<Id, std::remove_cvref_t<U>>(std::forward<U>(obj));
   }
 };
 
@@ -706,7 +706,7 @@ inline constexpr detail::InvokeByFieldId<T> invoke_by_field_id{};
 
 template <typename T, typename F>
 constexpr decltype(auto) visit_union_with_tag(T&& t, F&& f) {
-  using Type = folly::remove_cvref_t<T>;
+  using Type = std::remove_cvref_t<T>;
   static_assert(is_thrift_union_v<Type>, "T must be a thrift union");
 
   return invoke_by_field_id<Type>(

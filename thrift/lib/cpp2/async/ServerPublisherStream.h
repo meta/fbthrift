@@ -73,7 +73,7 @@ class ServerPublisherStream : private StreamServerCallback {
     CallOnceFunction(Func&& f)
         : storage_(
               reinterpret_cast<intptr_t>(
-                  new FunctionHolder<folly::remove_cvref_t<Func>>(
+                  new FunctionHolder<std::remove_cvref_t<Func>>(
                       std::forward<Func>(f))) |
               static_cast<intptr_t>(Type::READY)) {}
     ~CallOnceFunction() {

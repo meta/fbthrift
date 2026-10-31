@@ -64,8 +64,7 @@ FieldOrder getFieldOrder(const Protocol& prot) {
 }
 
 template <typename T, typename Tag>
-inline constexpr bool kIsStrongType =
-    std::is_enum_v<folly::remove_cvref_t<T>> &&
+inline constexpr bool kIsStrongType = std::is_enum_v<std::remove_cvref_t<T>> &&
     type::is_a_v<Tag, type::integral_c>;
 
 template <typename T, typename Tag>
@@ -999,7 +998,7 @@ bool decodeStructField(
         }
 
         using FieldTag = op::get_field_tag<T, IdT>;
-        using FieldRef = folly::remove_cvref_t<decltype(op::get<IdT>(value))>;
+        using FieldRef = std::remove_cvref_t<decltype(op::get<IdT>(value))>;
         if constexpr (kIsConstUnionFieldRef<FieldRef>) {
           // A union `shared_ptr<const T>` field can't be decoded in place.
           using FieldValue = type::native_type<ValueTag>;
@@ -1131,7 +1130,7 @@ struct ListDecodeImpl {
       if constexpr (std::is_const_v<std::remove_reference_t<
                         typename ListType::reference>>) {
         list.emplace_back(folly::invocable_to([&] {
-          folly::remove_cvref_t<typename ListType::value_type> elem;
+          std::remove_cvref_t<typename ListType::value_type> elem;
           elementRead(elem);
           return elem;
         }));

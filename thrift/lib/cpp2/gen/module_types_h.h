@@ -130,11 +130,11 @@ FOLLY_ERASE std::enable_if_t<std::is_void_v<Adapter>> assign_struct_field(
 }
 template <typename Adapter, FieldId Id, typename F, typename T, typename S>
 FOLLY_ERASE void assign_struct_field(std::unique_ptr<F>& f, T&& t, S&) {
-  f = std::make_unique<folly::remove_cvref_t<T>>(static_cast<T&&>(t));
+  f = std::make_unique<std::remove_cvref_t<T>>(static_cast<T&&>(t));
 }
 template <typename Adapter, FieldId Id, typename F, typename T, typename S>
 FOLLY_ERASE void assign_struct_field(std::shared_ptr<F>& f, T&& t, S&) {
-  f = std::make_shared<folly::remove_cvref_t<T>>(static_cast<T&&>(t));
+  f = std::make_shared<std::remove_cvref_t<T>>(static_cast<T&&>(t));
 }
 template <typename Adapter, FieldId Id, typename F, typename T, typename S>
 FOLLY_ERASE std::enable_if_t<!std::is_void_v<Adapter>> assign_struct_field(
