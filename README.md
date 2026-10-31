@@ -142,16 +142,17 @@ If you want to invoke `cmake` again to iterate, there is a helpful
 To generate code from `.thrift` files in a CMake project, find the installed
 Thrift, which provides `thrift_generate`:
 
-    find_package(FBThrift CONFIG REQUIRED)
+    find_package(thrift CONFIG REQUIRED)
 
     add_library(example)
     thrift_generate(example if/example.thrift LANGUAGE cpp2)
     target_include_directories(example PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
-    target_link_libraries(example PUBLIC FBThrift::thriftprotocol)
+    target_link_libraries(example PUBLIC thrift::protocol)
 
 `thrift_generate` adds the generated sources to `example`; the comment above it
 in `ThriftGenerate.cmake` describes the other options. Code generated for
-services also needs `thriftcpp2`.
+services also needs `thrift::rpc`. A project that adds Thrift with
+`add_subdirectory()` or FetchContent uses the same `thrift::` names.
 
 ### Python Build (thrift-python)
 

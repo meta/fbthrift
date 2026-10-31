@@ -94,6 +94,7 @@ if (THRIFT_RPC)
   target_link_libraries(
     thrift-cpp INTERFACE thrift_async thrift_concurrency thrift_protocol
                          thrift_transport Folly::folly glog::glog)
+  add_library(FBThrift::thrift-cpp ALIAS thrift-cpp)
 endif () # THRIFT_RPC
 
 if (BUILD_SHARED_LIBS)
@@ -109,5 +110,5 @@ endif ()
 thrift_install_targets(thrift_core thrift_concurrency thrift_runtime)
 
 if (THRIFT_RPC)
-  thrift_install_targets(thrift_transport thrift_async thrift-cpp)
+  thrift_install_targets(thrift_transport thrift_async)
 endif ()

@@ -39,7 +39,7 @@ endif ()
 #     [NAMESPACE <py.namespace>])
 #
 #   <target> - The target to add the generated files to as sources. For cpp2,
-#       it also links FBThrift::protocol publicly, which provides the include
+#       it also links thrift::protocol publicly, which provides the include
 #       directories and runtime the generated code needs.
 #   <file>.thrift - The file to compile, relative to CMAKE_CURRENT_SOURCE_DIR.
 #   LANGUAGE - The generator to use.
@@ -299,8 +299,8 @@ function (thrift_generate)
   if (language STREQUAL "cpp2")
     # Several calls can share a target.
     get_target_property(links ${target} LINK_LIBRARIES)
-    if (NOT "FBThrift::protocol" IN_LIST links)
-      target_link_libraries(${target} PUBLIC FBThrift::protocol)
+    if (NOT "thrift::protocol" IN_LIST links)
+      target_link_libraries(${target} PUBLIC thrift::protocol)
     endif ()
   endif ()
 endfunction ()

@@ -26,7 +26,7 @@ include(GNUInstallDirs)
 
 # Not cached, so the default follows CMAKE_INSTALL_LIBDIR on a reconfigure.
 if (NOT DEFINED THRIFT_INSTALL_CMAKEDIR)
-  set(THRIFT_INSTALL_CMAKEDIR "${CMAKE_INSTALL_LIBDIR}/cmake/fbthrift")
+  set(THRIFT_INSTALL_CMAKEDIR "${CMAKE_INSTALL_LIBDIR}/cmake/thrift")
 endif ()
 
 # Relative RPATHs keep the installation relocatable. Append, so a value from

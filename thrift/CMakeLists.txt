@@ -14,9 +14,9 @@
 
 include(ThriftGenerate)
 
-# The exported and file names of the targets whose names differ from them, as
-# <target>:<name>.
-set(thrift_export_names
+# The library file names, which are also the names an older Thrift installed,
+# of the targets whose names differ from them, as <target>:<name>.
+set(thrift_output_names
     thrift_core:thrift-core
     thrift_concurrency:concurrency
     thrift_runtime:runtime
@@ -34,17 +34,60 @@ set(thrift_export_names
     thrift_VarintUtilsBench:VarintUtilsBench
     thrift_ProtocolBench:ProtocolBench)
 
-# Adds thrift::<name> as an alias of the library target thrift_<name>, for
-# projects that build Thrift from source.
-function (thrift_add_alias target)
-  string(REGEX REPLACE "^thrift_" "" name ${target})
-  add_library(thrift::${name} ALIAS ${target})
+# Sets <out> to the target's thrift:: name: its name without `thrift_`, or
+# `compiler` for the compiler.
+function (thrift_name target out)
+  if (target STREQUAL "thrift")
+    set(${out} compiler PARENT_SCOPE)
+  else ()
+    string(REGEX REPLACE "^thrift_" "" name ${target})
+    set(${out} ${name} PARENT_SCOPE)
+  endif ()
 endfunction ()
 
-# Installs the targets into fbthrift-exports under their exported names.
-# Projects that build fbthrift from source also get the FBThrift:: name
-# FBThriftTargets.cmake gives each one, and the thrift:: alias of each library
-# target named thrift_<name>.
+# Adds the alias thrift::<name> of a target, for projects that build Thrift from
+# source.
+function (thrift_add_alias target)
+  thrift_name(${target} name)
+  get_target_property(type ${target} TYPE)
+  if (type STREQUAL "EXECUTABLE")
+    add_executable(thrift::${name} ALIAS ${target})
+  else ()
+    add_library(thrift::${name} ALIAS ${target})
+  endif ()
+endfunction ()
+
+# Adds the alias FBThrift::<legacy> of a target, the name an older Thrift
+# installed, and records it for FBThriftConfig.cmake, which adds it for an
+# installed Thrift.
+function (thrift_add_legacy_name legacy target)
+  get_target_property(type ${target} TYPE)
+  if (type STREQUAL "EXECUTABLE")
+    add_executable(FBThrift::${legacy} ALIAS ${target})
+  else ()
+    add_library(FBThrift::${legacy} ALIAS ${target})
+  endif ()
+  thrift_name(${target} name)
+  set_property(GLOBAL APPEND PROPERTY THRIFT_LEGACY_NAMES "${legacy}:${name}")
+endfunction ()
+
+# Exports an installed target as thrift::<name>, keeping its legacy library file
+# name, and adds its build-tree names.
+function (thrift_export target)
+  thrift_name(${target} name)
+  set_target_properties(${target} PROPERTIES EXPORT_NAME ${name})
+  set(legacy ${target})
+  foreach (entry IN LISTS thrift_output_names)
+    if (entry MATCHES "^${target}:(.+)$")
+      set(legacy ${CMAKE_MATCH_1})
+      set_target_properties(${target} PROPERTIES OUTPUT_NAME ${legacy})
+    endif ()
+  endforeach ()
+  thrift_add_alias(${target})
+  thrift_add_legacy_name(${legacy} ${target})
+endfunction ()
+
+# Installs the targets into fbthrift-exports and exports them.
 function (thrift_install_targets)
   install(
     TARGETS ${ARGN}
@@ -53,23 +96,7 @@ function (thrift_install_targets)
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
   foreach (target IN LISTS ARGN)
-    set(name ${target})
-    foreach (entry IN LISTS thrift_export_names)
-      if (entry MATCHES "^${target}:(.+)$")
-        set(name ${CMAKE_MATCH_1})
-        set_target_properties(${target} PROPERTIES EXPORT_NAME ${name}
-                                                   OUTPUT_NAME ${name})
-      endif ()
-    endforeach ()
-    get_target_property(type ${target} TYPE)
-    if (type STREQUAL "EXECUTABLE")
-      add_executable(FBThrift::${name} ALIAS ${target})
-    else ()
-      add_library(FBThrift::${name} ALIAS ${target})
-      if (target MATCHES "^thrift_")
-        thrift_add_alias(${target})
-      endif ()
-    endif ()
+    thrift_export(${target})
   endforeach ()
 endfunction ()
 
@@ -81,16 +108,33 @@ add_subdirectory(lib)
 # Install CMake package configuration files for Thrift.
 include(CMakePackageConfigHelpers)
 configure_package_config_file(
-  cmake/FBThriftConfig.cmake.in FBThriftConfig.cmake
+  cmake/thrift-config.cmake.in thrift-config.cmake
   INSTALL_DESTINATION ${THRIFT_INSTALL_CMAKEDIR}
   PATH_VARS CMAKE_INSTALL_INCLUDEDIR)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/FBThriftConfig.cmake
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/thrift-config.cmake
         DESTINATION ${THRIFT_INSTALL_CMAKEDIR})
+# The package config for find_package(FBThrift), which finds the thrift package
+# next to it and adds the names an older Thrift installed.
+set(thrift_legacy_cmakedir "${CMAKE_INSTALL_LIBDIR}/cmake/fbthrift")
+if (IS_ABSOLUTE "${CMAKE_INSTALL_LIBDIR}" OR IS_ABSOLUTE
+                                             "${THRIFT_INSTALL_CMAKEDIR}")
+  # An absolute directory already makes the installation not relocatable.
+  get_filename_component(thrift_config_dir "${THRIFT_INSTALL_CMAKEDIR}"
+                         ABSOLUTE BASE_DIR "${CMAKE_INSTALL_PREFIX}")
+else ()
+  file(RELATIVE_PATH thrift_config_dir "/${thrift_legacy_cmakedir}"
+       "/${THRIFT_INSTALL_CMAKEDIR}")
+  set(thrift_config_dir "\${CMAKE_CURRENT_LIST_DIR}/${thrift_config_dir}")
+endif ()
+get_property(thrift_legacy_names GLOBAL PROPERTY THRIFT_LEGACY_NAMES)
+configure_file(cmake/FBThriftConfig.cmake.in FBThriftConfig.cmake @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/FBThriftConfig.cmake
+        DESTINATION ${thrift_legacy_cmakedir})
 # xxhash, gflags, glog and zstd ship no CMake package config, so
-# FBThriftConfig.cmake resolves them in MODULE mode. Install their Find modules
+# thrift-config.cmake resolves them in MODULE mode. Install their Find modules
 # next to the config (which prepends its own directory to CMAKE_MODULE_PATH) so
-# downstream find_package(FBThrift) can define the imported targets that
-# FBThriftTargets.cmake refers to. FindLibUnwind is here because FindGlog uses
+# downstream find_package(thrift) can define the imported targets that
+# thrift-targets.cmake refers to. FindLibUnwind is here because FindGlog uses
 # it, and FindSodium because fizz's package config looks up Sodium without
 # installing the module.
 install(
@@ -103,12 +147,15 @@ install(
   DESTINATION ${THRIFT_INSTALL_CMAKEDIR})
 install(
   EXPORT fbthrift-exports
-  FILE FBThriftTargets.cmake
-  NAMESPACE FBThrift::
+  FILE thrift-targets.cmake
+  NAMESPACE thrift::
   DESTINATION ${THRIFT_INSTALL_CMAKEDIR})
 
-# For projects that build fbthrift from source: the FBTHRIFT_COMPILER and
-# FBTHRIFT_INCLUDE_DIR that fbcode_builder's add_fbthrift_*_library() read.
+# For projects that build Thrift from source: the THRIFT_INCLUDE_DIR that
+# fbcode_builder's add_fbthrift_*_library() read, and the FBTHRIFT_COMPILER and
+# FBTHRIFT_INCLUDE_DIR that older copies of them read.
+set(THRIFT_INCLUDE_DIR "${PROJECT_SOURCE_DIR}" CACHE INTERNAL
+                                                     "Thrift include directory")
 set(FBTHRIFT_COMPILER FBThrift::thrift CACHE INTERNAL "thrift compiler target")
 set(FBTHRIFT_INCLUDE_DIR "${PROJECT_SOURCE_DIR}"
     CACHE INTERNAL "fbthrift include directory")

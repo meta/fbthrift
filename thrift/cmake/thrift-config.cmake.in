@@ -1,0 +1,119 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
+# CMake package configuration file for Thrift, found with find_package(thrift).
+#
+# Link against thrift::rpc to depend on Thrift, or against thrift::protocol if
+# Thrift is built without RPC. The compiler is thrift::compiler.
+#
+# Variables defined:
+#   THRIFT_INCLUDE_DIR   - The Thrift include directory
+#   THRIFT_COMPILER      - The Thrift compiler target, as used by
+#                          thrift_generate(); THRIFT_COMPILER-NOTFOUND if no
+#                          compiler is installed
+#
+# Also provides thrift_generate() from ThriftGenerate.cmake, unless the project
+# already defines a command with that name.
+
+@PACKAGE_INIT@
+
+# The name find_package() was called with, or thrift when a project includes
+# this file directly.
+set(_thrift_package "${CMAKE_FIND_PACKAGE_NAME}")
+if (NOT _thrift_package)
+  set(_thrift_package thrift)
+endif()
+
+include(CMakeFindDependencyMacro)
+
+set_and_check(THRIFT_INCLUDE_DIR "@PACKAGE_CMAKE_INSTALL_INCLUDEDIR@")
+
+# Finds the packages whose imported targets the exported Thrift targets link
+# against, so a missing one must fail here, with a clear message. The function
+# keeps the lookups' variables and the CMAKE_MODULE_PATH change out of the
+# consumer's scope; imported targets are directory-scoped and remain visible.
+# find_dependency() can't be used in it: it is a macro whose return() would
+# leave the function. Function names are global, hence the prefix.
+function(_thrift_find_deps)
+  set(quiet)
+  if (${_thrift_package}_FIND_QUIETLY)
+    set(quiet QUIET)
+  endif()
+  list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
+  # Xxhash, Gflags, Glog and Zstd ship no package config, so they are found
+  # through the Find modules installed next to this file. FindGlog.cmake looks
+  # up Gflags and LibUnwind, so their modules are installed here too.
+  set(module_deps Xxhash Gflags Glog)
+  # folly's package config also finds Boost, whose Boost::headers async links.
+  set(config_deps folly)
+  set(rpc "@THRIFT_RPC@")
+  if (rpc)
+    # transport links Zstd and ZLIB. async links wangle, whose package config
+    # doesn't find fizz. fizz's looks up Sodium through FindSodium.cmake, which
+    # is installed next to this file.
+    list(APPEND module_deps Zstd ZLIB)
+    list(APPEND config_deps fizz wangle)
+  endif()
+  foreach(dep IN LISTS module_deps)
+    find_package(${dep} MODULE ${quiet})
+    if (NOT ${dep}_FOUND)
+      set(${_thrift_package}_NOT_FOUND_MESSAGE
+          "Could not find required dependency ${dep}" PARENT_SCOPE)
+      return()
+    endif()
+  endforeach()
+  foreach(dep IN LISTS config_deps)
+    find_package(${dep} CONFIG ${quiet})
+    if (NOT ${dep}_FOUND)
+      set(${_thrift_package}_NOT_FOUND_MESSAGE
+          "Could not find required dependency ${dep}" PARENT_SCOPE)
+      return()
+    endif()
+  endforeach()
+endfunction()
+
+unset(${_thrift_package}_NOT_FOUND_MESSAGE)
+_thrift_find_deps()
+if (DEFINED ${_thrift_package}_NOT_FOUND_MESSAGE)
+  set(${_thrift_package}_FOUND FALSE)
+  return()
+endif()
+
+find_dependency(fmt CONFIG)
+# transport, async and thrifttype carry OpenSSL::Crypto in their link interface.
+find_dependency(OpenSSL)
+
+if (NOT TARGET thrift::protocol)
+  include("${CMAKE_CURRENT_LIST_DIR}/thrift-targets.cmake")
+endif()
+
+# Like ThriftGenerate.cmake, keep a value the consumer set beforehand. A
+# libraries-only install exports no compiler; NOTFOUND keeps a consumer's
+# COMMAND from silently receiving an empty argument, and thrift_generate() from
+# running whatever thrift is on PATH.
+if (NOT DEFINED THRIFT_COMPILER)
+  if (TARGET thrift::compiler)
+    set(THRIFT_COMPILER thrift::compiler)
+  else()
+    set(THRIFT_COMPILER "THRIFT_COMPILER-NOTFOUND")
+  endif()
+endif()
+
+# After THRIFT_COMPILER is set: ThriftGenerate.cmake defaults it to the in-tree
+# name `thrift`. The guard keeps a project's own thrift_generate().
+if (NOT COMMAND thrift_generate)
+  include("${THRIFT_INCLUDE_DIR}/thrift/ThriftGenerate.cmake")
+endif()
+
+# Components, checked with find_package(thrift COMPONENTS ...).
+# cpp2 is always built; py is the deprecated predecessor of python.
+set(${_thrift_package}_cpp2_FOUND True)
+set(${_thrift_package}_py_FOUND @THRIFT_PY_DEPRECATED@)
+set(${_thrift_package}_python_FOUND @THRIFT_PYTHON@)
+
+set(${_thrift_package}_FOUND True)
+check_required_components(${_thrift_package})
+
+if (${_thrift_package}_FOUND AND
+    NOT ${_thrift_package}_FIND_QUIETLY)
+  message(STATUS "Found ${_thrift_package}: ${CMAKE_CURRENT_LIST_DIR}")
+endif()

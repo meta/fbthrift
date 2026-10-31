@@ -47,10 +47,9 @@ set(THRIFT_PY_SRCS
 # are available, but does not require them.
 add_fb_python_library(thrift_py SOURCES ${THRIFT_PY_SRCS} NAMESPACE "thrift")
 install_fb_python_library(thrift_py EXPORT fbthrift-exports)
-# The names FBThriftTargets.cmake exports, for projects that build fbthrift from source.
-add_library(FBThrift::thrift_py.py_lib ALIAS thrift_py.py_lib)
+thrift_export(thrift_py.py_lib)
 
 add_fb_python_library(thrift_py_inspect SOURCES "util/inspect.py" NAMESPACE
                       "thrift")
 install_fb_python_library(thrift_py_inspect EXPORT fbthrift-exports)
-add_library(FBThrift::thrift_py_inspect.py_lib ALIAS thrift_py_inspect.py_lib)
+thrift_export(thrift_py_inspect.py_lib)

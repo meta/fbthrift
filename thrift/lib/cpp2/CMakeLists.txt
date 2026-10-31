@@ -220,8 +220,9 @@ add_library(
   pmr/ArenaResource.cpp)
 target_link_libraries(thrift_protocol PUBLIC fmt::fmt Folly::folly glog::glog
                                              thrift_core)
-# The name thrift_generate() links into a cpp2 target, as for installed Thrift.
-add_library(FBThrift::protocol ALIAS thrift_protocol)
+# The name an older Thrift installed for thrift::protocol, which
+# thrift_generate() links.
+thrift_add_legacy_name(protocol thrift_protocol)
 
 if (THRIFT_RPC)
   add_library(
@@ -435,7 +436,9 @@ if (THRIFT_RPC)
   target_link_libraries(
     thrift_rpc
     PUBLIC fmt::fmt
-           thrift-cpp
+           thrift_async
+           thrift_concurrency
+           thrift_transport
            thrift_rpc_metadata
            thrift_annotation
            thrift_metadata
