@@ -370,7 +370,7 @@ PooledRequestChannel::EventBaseProvider PooledRequestChannel::wrapWeakPtr(
   return [executor = std::move(
               executor)]() -> folly::Executor::KeepAlive<folly::EventBase> {
     if (auto ka = executor.lock()) {
-      return {ka->getEventBase()};
+      return ka->getEventBaseKeepAlive();
     }
     return {};
   };

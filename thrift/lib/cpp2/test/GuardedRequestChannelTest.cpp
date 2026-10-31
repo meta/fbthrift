@@ -14,9 +14,12 @@
  * limitations under the License.
  */
 
+#include <stdexcept>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <folly/coro/BlockingWait.h>
+#include <folly/executors/IOExecutor.h>
 #include <folly/io/async/AsyncSocket.h>
 #include <folly/io/async/EventBase.h>
 #include <folly/io/async/ScopedEventBaseThread.h>
@@ -97,6 +100,17 @@ struct CalculatorHandler : apache::thrift::ServiceHandler<Calculator> {
   }
 };
 
+class MockPooledIOExecutor : public folly::IOExecutor {
+ public:
+  MOCK_METHOD(void, add, (folly::Func), (override));
+  MOCK_METHOD(folly::EventBase*, getEventBase, (), (override));
+  MOCK_METHOD(
+      folly::Executor::KeepAlive<folly::EventBase>,
+      getEventBaseKeepAlive,
+      (),
+      (override));
+};
+
 class GuardedRequestChannelTest : public Test {
  private:
   RequestChannel::Ptr createGuardedRequestChannel() {
@@ -123,6 +137,47 @@ class GuardedRequestChannelTest : public Test {
       std::make_shared<folly::ScopedEventBaseThread>()};
   apache::thrift::Client<TestService> testClient{createGuardedRequestChannel()};
 };
+
+TEST_F(GuardedRequestChannelTest, weakExecutorForwardsOwningEventBase) {
+  auto executor = std::make_shared<StrictMock<MockPooledIOExecutor>>();
+  std::weak_ptr<folly::IOExecutor> weakExecutor = executor;
+  bool providerHeldDuringAcquisition = false;
+  EXPECT_CALL(*executor, getEventBase()).Times(0);
+  EXPECT_CALL(*executor, getEventBaseKeepAlive()).WillOnce([&] {
+    executor.reset();
+    providerHeldDuringAcquisition = !weakExecutor.expired();
+    return evbThread->getEventBaseKeepAlive();
+  });
+  Client<TestService> client(
+      PooledRequestChannel::newSyncChannel(
+          weakExecutor, [&](folly::EventBase& evb) {
+            EXPECT_EQ(&evb, evbThread->getEventBase());
+            return RocketClientChannel::newChannel(
+                AsyncSocket::UniquePtr(new AsyncSocket(&evb, serverAddress)));
+          }));
+  EXPECT_CALL(*handler, echoInt(42)).WillOnce(Return(42));
+
+  EXPECT_EQ(client.sync_echoInt(42), 42);
+  EXPECT_TRUE(providerHeldDuringAcquisition);
+  EXPECT_TRUE(weakExecutor.expired());
+}
+
+TEST_F(GuardedRequestChannelTest, expiredWeakExecutorDoesNotCreateChannel) {
+  auto executor = std::make_shared<StrictMock<MockPooledIOExecutor>>();
+  std::weak_ptr<folly::IOExecutor> weakExecutor = executor;
+  bool implCreatorCalled = false;
+  Client<TestService> client(
+      PooledRequestChannel::newSyncChannel(
+          weakExecutor, [&](folly::EventBase& evb) {
+            implCreatorCalled = true;
+            return RocketClientChannel::newChannel(
+                AsyncSocket::UniquePtr(new AsyncSocket(&evb, serverAddress)));
+          }));
+  executor.reset();
+
+  EXPECT_THROW(client.sync_echoInt(42), std::logic_error);
+  EXPECT_FALSE(implCreatorCalled);
+}
 
 TEST_F(GuardedRequestChannelTest, normalSingleRequestSuccess) {
   EXPECT_CALL(*handler, echoInt(_)).WillOnce(Return(1)).WillOnce(Return(2));
