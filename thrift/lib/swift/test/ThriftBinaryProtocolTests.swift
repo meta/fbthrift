@@ -212,6 +212,15 @@ struct ThriftBinaryProtocolTests {
     #expect(try roundTrip(a) == a)
   }
 
+  @Test func byteListUsesBinaryListEncoding() {
+    // Element type byte (0x03), 4-byte big-endian count, then one raw byte per element.
+    let bytes: [Int8] = [-1, 0, 1, 127, -128]
+    let writer = BinaryWriter()
+    writer.writeList(bytes)
+
+    #expect(writer.bytes == [0x03, 0, 0, 0, 5, 0xFF, 0x00, 0x01, 0x7F, 0x80])
+  }
+
   @Test func unknownFieldIsSkipped() {
     // Encode AllTheThings, decode as Point: Point only knows fields 1-3,
     // everything else must be skipped without error.
