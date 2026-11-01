@@ -36,12 +36,12 @@ inline constexpr bool is_optional_or_union_field_v =
 template <typename U, typename R = void>
 using if_optional_or_union_field_ref = std::enable_if_t<
     ::apache::thrift::detail::is_optional_or_union_field_ref_v<
-        folly::remove_cvref_t<U>>,
+        std::remove_cvref_t<U>>,
     R>;
 template <typename U, typename R = void>
 using if_not_optional_or_union_field_ref = std::enable_if_t<
     !::apache::thrift::detail::is_optional_or_union_field_ref_v<
-        folly::remove_cvref_t<U>>,
+        std::remove_cvref_t<U>>,
     R>;
 
 template <typename T, typename Id>

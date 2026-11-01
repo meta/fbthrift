@@ -51,7 +51,7 @@ class TypeErasedRef {
   }
 
   template <class T>
-  const folly::remove_cvref_t<T>& value() const {
+  const std::remove_cvref_t<T>& value() const {
     if (!holds_alternative<T>()) {
       throw std::bad_cast();
     }
@@ -59,21 +59,21 @@ class TypeErasedRef {
   }
 
   template <class T>
-  const folly::remove_cvref_t<T>& value_unchecked() const noexcept {
+  const std::remove_cvref_t<T>& value_unchecked() const noexcept {
     FOLLY_SAFE_DCHECK(
         holds_alternative<T>(),
         "Tried to call value_unchecked() on TypeErasedRef with incompatible type");
-    return *reinterpret_cast<const folly::remove_cvref_t<T>*>(ptr_);
+    return *reinterpret_cast<const std::remove_cvref_t<T>*>(ptr_);
   }
 
   TypeErasedRef(const TypeErasedRef& other) noexcept = default;
   TypeErasedRef& operator=(const TypeErasedRef& other) noexcept = default;
 
   template <class T>
-  static TypeErasedRef of(folly::remove_cvref_t<T>&&) = delete;
+  static TypeErasedRef of(std::remove_cvref_t<T>&&) = delete;
 
   template <class T>
-  static TypeErasedRef of(const folly::remove_cvref_t<T>& object) noexcept {
+  static TypeErasedRef of(const std::remove_cvref_t<T>& object) noexcept {
     return fromTypeInfoUnchecked(
         static_cast<const void*>(std::addressof(object)), typeid(T));
   }

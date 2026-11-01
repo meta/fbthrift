@@ -55,7 +55,7 @@ class ThriftFieldMatcher {
   template <
       typename ThriftStruct,
       typename = std::enable_if_t<
-          is_thrift_class_v<folly::remove_cvref_t<ThriftStruct>>>>
+          is_thrift_class_v<std::remove_cvref_t<ThriftStruct>>>>
   operator testing::Matcher<ThriftStruct>() const {
     return testing::Matcher<ThriftStruct>(
         new Impl<const ThriftStruct&>(matcher_));
@@ -74,7 +74,7 @@ class ThriftFieldMatcher {
   template <typename ThriftStruct>
   class Impl : public testing::MatcherInterface<ThriftStruct> {
    private:
-    using ConstRefThriftStruct = const folly::remove_cvref_t<ThriftStruct>&;
+    using ConstRefThriftStruct = const std::remove_cvref_t<ThriftStruct>&;
     using FieldRef = decltype(Accessor{}(std::declval<ConstRefThriftStruct>()));
     using FieldReferenceType = typename FieldRef::reference_type;
     inline static constexpr bool IsOptionalFieldRef =
@@ -125,8 +125,8 @@ class IsThriftUnionWithMatcher {
 
   template <
       typename ThriftUnion,
-      typename = std::enable_if_t<
-          is_thrift_union_v<folly::remove_cvref_t<ThriftUnion>>>>
+      typename =
+          std::enable_if_t<is_thrift_union_v<std::remove_cvref_t<ThriftUnion>>>>
   operator testing::Matcher<ThriftUnion>() const {
     return testing::Matcher<ThriftUnion>(
         new Impl<const ThriftUnion&>(matcher_));
@@ -138,7 +138,7 @@ class IsThriftUnionWithMatcher {
   template <typename ThriftUnion>
   class Impl : public testing::MatcherInterface<ThriftUnion> {
    private:
-    using ThriftUnionType = folly::remove_cvref_t<ThriftUnion>;
+    using ThriftUnionType = std::remove_cvref_t<ThriftUnion>;
     using ConstRefThriftUnion = const ThriftUnionType&;
     using FieldRef = decltype(Accessor{}(std::declval<ConstRefThriftUnion>()));
     // Unions do not support optional fields, so this is always a concrete

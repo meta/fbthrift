@@ -116,7 +116,7 @@ class AnyRefBase;
 // An abstract base class for all AnyData-based types.
 template <typename I>
 class AnyBase {
-  static_assert(std::is_same_v<folly::remove_cvref_t<I>, IAnyData>);
+  static_assert(std::is_same_v<std::remove_cvref_t<I>, IAnyData>);
 
   using Holder = folly::Poly<IAnyData>;
 

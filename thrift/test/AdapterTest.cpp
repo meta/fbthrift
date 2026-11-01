@@ -1077,7 +1077,7 @@ TEST(AdaptTest, ContainerWithAdaptedElement) {
 
 static_assert(
     std::is_same_v<
-        folly::remove_cvref_t<decltype(basic::adapter_constants::timeout())>,
+        std::remove_cvref_t<decltype(basic::adapter_constants::timeout())>,
         VariableWrapper<std::int32_t>>);
 
 TEST(VariableAdapterTest, Integer) {

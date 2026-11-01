@@ -40,7 +40,7 @@ struct TerseWriteTests : ::testing::Test {};
 
 template <typename T>
 void assign_fields(T& obj) {
-  using enum_type = folly::remove_cvref_t<decltype(*obj.enum_field())>;
+  using enum_type = std::remove_cvref_t<decltype(*obj.enum_field())>;
 
   obj.bool_field() = true;
   obj.byte_field() = 1;
@@ -61,7 +61,7 @@ void assign_fields(T& obj) {
 
 template <typename T>
 void assign_fields_with_intrinsic_default(T& obj) {
-  using enum_type = folly::remove_cvref_t<decltype(*obj.enum_field())>;
+  using enum_type = std::remove_cvref_t<decltype(*obj.enum_field())>;
 
   obj.bool_field() = false;
   obj.byte_field() = 0;
@@ -82,7 +82,7 @@ void assign_fields_with_intrinsic_default(T& obj) {
 
 template <typename T>
 void expect_assigned(const T& obj) {
-  using enum_type = folly::remove_cvref_t<decltype(*obj.enum_field())>;
+  using enum_type = std::remove_cvref_t<decltype(*obj.enum_field())>;
 
   EXPECT_EQ(obj.bool_field(), true);
   EXPECT_EQ(obj.byte_field(), 1);
@@ -103,7 +103,7 @@ void expect_assigned(const T& obj) {
 
 template <typename T>
 void expect_intrinsic_default(const T& obj) {
-  using enum_type = folly::remove_cvref_t<decltype(*obj.enum_field())>;
+  using enum_type = std::remove_cvref_t<decltype(*obj.enum_field())>;
 
   EXPECT_EQ(obj.bool_field(), false);
   EXPECT_EQ(obj.byte_field(), 0);

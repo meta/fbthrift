@@ -607,10 +607,10 @@ TEST(StructTest, small_sorted_vector) {
   using serializer = apache::thrift::BinarySerializer;
   using Type = HasSmallSortedVector;
   EXPECT_TRUE(
-      (std::is_same<folly::remove_cvref_t<decltype(*Type().set_field())>, Set>::
+      (std::is_same<std::remove_cvref_t<decltype(*Type().set_field())>, Set>::
            value));
   EXPECT_TRUE(
-      (std::is_same<folly::remove_cvref_t<decltype(*Type().map_field())>, Map>::
+      (std::is_same<std::remove_cvref_t<decltype(*Type().map_field())>, Map>::
            value));
 
   Type o;

@@ -57,12 +57,12 @@ const T& deref_const(const T& x) {
   return x;
 }
 
-// the folly::remove_cvref_t conversions work around Cython's limitation on
+// the std::remove_cvref_t conversions work around Cython's limitation on
 // const/reference qualifier when custom cpp.type with those are defined
 template <typename T, typename S>
-std::shared_ptr<folly::remove_cvref_t<T>> reference_shared_ptr(
-    const folly::remove_cvref_t<T>& ref, const std::shared_ptr<S>& owner) {
-  using Type = folly::remove_cvref_t<T>;
+std::shared_ptr<std::remove_cvref_t<T>> reference_shared_ptr(
+    const std::remove_cvref_t<T>& ref, const std::shared_ptr<S>& owner) {
+  using Type = std::remove_cvref_t<T>;
   return std::shared_ptr<Type>(owner, const_cast<Type*>(&ref));
 }
 

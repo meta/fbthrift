@@ -330,15 +330,15 @@ TEST(UnionFieldTest, CppRef) {
   CppRef s;
 
   static_assert(std::is_same_v<
-                folly::remove_cvref_t<decltype(s.get_cppref())>,
+                std::remove_cvref_t<decltype(s.get_cppref())>,
                 std::unique_ptr<CppRef>>);
 
   static_assert(std::is_same_v<
-                folly::remove_cvref_t<decltype(s.get_shared_mutable())>,
+                std::remove_cvref_t<decltype(s.get_shared_mutable())>,
                 std::shared_ptr<CppRef>>);
 
   static_assert(std::is_same_v<
-                folly::remove_cvref_t<decltype(s.get_shared_const())>,
+                std::remove_cvref_t<decltype(s.get_shared_const())>,
                 std::shared_ptr<const std::string>>);
 
   s.str() = "foo";

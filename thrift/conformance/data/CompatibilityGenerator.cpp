@@ -393,16 +393,16 @@ template <class TT>
 
     auto get_name = [&](const auto& i) -> std::string_view {
       if constexpr (std::is_same_v<
-                        folly::remove_cvref_t<decltype(i)>,
-                        folly::remove_cvref_t<decltype(s)>>) {
+                        std::remove_cvref_t<decltype(i)>,
+                        std::remove_cvref_t<decltype(s)>>) {
         return "Struct";
       } else if constexpr (std::is_same_v<
-                               folly::remove_cvref_t<decltype(i)>,
-                               folly::remove_cvref_t<decltype(u)>>) {
+                               std::remove_cvref_t<decltype(i)>,
+                               std::remove_cvref_t<decltype(u)>>) {
         return "Union";
       } else if constexpr (std::is_same_v<
-                               folly::remove_cvref_t<decltype(i)>,
-                               folly::remove_cvref_t<decltype(e)>>) {
+                               std::remove_cvref_t<decltype(i)>,
+                               std::remove_cvref_t<decltype(e)>>) {
         return "Exception";
       } else {
         static_assert(sizeof(i) == 0);
