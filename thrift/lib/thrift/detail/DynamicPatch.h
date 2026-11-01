@@ -503,6 +503,8 @@ class DynamicListPatch : public DynamicPatchBase {
       const apache::thrift::op::detail::ListPatch<Patch>& patch);
 
  private:
+  // Visitors are forwarded once per patch operation on purpose.
+  // NOLINTBEGIN(bugprone-use-after-move)
   template <class Self, class Visitor>
   static void customVisitImpl(Self&& self, Visitor&& v) {
     if (auto assign = self.get_ptr(op::PatchOp::Assign)) {
@@ -522,6 +524,7 @@ class DynamicListPatch : public DynamicPatchBase {
       }
     }
   }
+  // NOLINTEND(bugprone-use-after-move)
 
  public:
   FOLLY_FOR_EACH_THIS_OVERLOAD_IN_CLASS_BODY_DELEGATE(
@@ -611,6 +614,8 @@ class DynamicSetPatch : public DynamicPatchBase {
       const apache::thrift::op::detail::SetPatch<Patch>& patch);
 
  private:
+  // Visitors are forwarded once per patch operation on purpose.
+  // NOLINTBEGIN(bugprone-use-after-move)
   template <class Self, class Visitor>
   static void customVisitImpl(Self&& self, Visitor&& v) {
     if (auto assign = self.get_ptr(op::PatchOp::Assign)) {
@@ -634,6 +639,7 @@ class DynamicSetPatch : public DynamicPatchBase {
           folly::forward_like<Self>(add->as_set()));
     }
   }
+  // NOLINTEND(bugprone-use-after-move)
 
  public:
   FOLLY_FOR_EACH_THIS_OVERLOAD_IN_CLASS_BODY_DELEGATE(
@@ -827,7 +833,7 @@ class DynamicPatch {
   template <class Self, class Visitor>
   static void customVisitImpl(Self&& self, detail::Badge badge, Visitor&& v) {
     std::forward<Self>(self).visitPatch([&](auto&& patch) {
-      using PatchType = folly::remove_cvref_t<decltype(patch)>;
+      using PatchType = std::remove_cvref_t<decltype(patch)>;
       if constexpr (requires {
                       std::forward<PatchType>(patch).customVisit(
                           badge, std::forward<Visitor>(v));
@@ -1288,6 +1294,8 @@ class DynamicUnionPatch : public DynamicStructurePatch<true> {
   using DynamicStructurePatch::remove;
 };
 
+// Visitors are forwarded once per patch operation on purpose.
+// NOLINTBEGIN(bugprone-use-after-move)
 template <class Self, class Visitor>
 void DynamicUnknownPatch::customVisitImpl(Self&& self, Visitor&& v) {
   self.encodeSubPatches();
@@ -1321,7 +1329,10 @@ void DynamicUnknownPatch::customVisitImpl(Self&& self, Visitor&& v) {
         folly::forward_like<Self>(remove->as_set()));
   }
 }
+// NOLINTEND(bugprone-use-after-move)
 
+// Visitors are forwarded once per patch operation on purpose.
+// NOLINTBEGIN(bugprone-use-after-move)
 template <class Self, class Visitor>
 void DynamicMapPatch::customVisitImpl(Self&& self, Visitor&& v) {
   if (self.assign_) {
@@ -1345,8 +1356,11 @@ void DynamicMapPatch::customVisitImpl(Self&& self, Visitor&& v) {
     std::forward<Visitor>(v).patchByKey(k, folly::forward_like<Self>(p));
   }
 }
+// NOLINTEND(bugprone-use-after-move)
 
 template <bool IsUnion>
+// Visitors are forwarded once per patch operation on purpose.
+// NOLINTBEGIN(bugprone-use-after-move)
 template <class Self, class Visitor>
 void DynamicStructurePatch<IsUnion>::customVisitImpl(Self&& self, Visitor&& v) {
   if (self.assign_) {
@@ -1376,6 +1390,7 @@ void DynamicStructurePatch<IsUnion>::customVisitImpl(Self&& self, Visitor&& v) {
     }
   }
 }
+// NOLINTEND(bugprone-use-after-move)
 
 namespace detail {
 // Check whether patch will completely overwrite the existing value.
@@ -1434,7 +1449,7 @@ bool patchContainsAssignOrClear(T& patch) {
 
 template <class T>
 DynamicPatch DynamicPatch::fromStaticPatch(T&& t) {
-  using P = folly::remove_cvref_t<T>;
+  using P = std::remove_cvref_t<T>;
   if constexpr (folly::is_one_of_v<
                     P,
                     op::BoolPatch,
@@ -1584,7 +1599,7 @@ DynamicStructurePatch<IsUnion>::fromStaticPatchImpl(const AdaptedPatch& patch) {
   ret.clear_ = *patchStruct.clear();
 
   using FieldPatch =
-      folly::remove_cvref_t<decltype(patchStruct.patchPrior()->toThrift())>;
+      std::remove_cvref_t<decltype(patchStruct.patchPrior()->toThrift())>;
   op::for_each_field_id<FieldPatch>([&](auto id) {
     using Id = decltype(id);
     using Tag = op::get_field_tag<FieldPatch, Id>;
@@ -1601,7 +1616,7 @@ DynamicStructurePatch<IsUnion>::fromStaticPatchImpl(const AdaptedPatch& patch) {
     }
   });
 
-  using Ensure = folly::remove_cvref_t<decltype(*patchStruct.ensure())>;
+  using Ensure = std::remove_cvref_t<decltype(*patchStruct.ensure())>;
   op::for_each_field_id<Ensure>([&](auto id) {
     using Id = decltype(id);
     using Tag = op::get_type_tag<Ensure, Id>;

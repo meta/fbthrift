@@ -1953,7 +1953,7 @@ void DynamicPatch::merge(Other&& other) {
   if (isPatchTypeAmbiguous() && !other.isPatchTypeAmbiguous()) {
     std::visit(
         [&](auto&& other) {
-          using PatchType = folly::remove_cvref_t<decltype(other)>;
+          using PatchType = std::remove_cvref_t<decltype(other)>;
           get<DynamicUnknownPatch>().checkConvertible<PatchType>();
           *patch_ = detail::createPatchFromObject<PatchType>(
               badge, std::move(*this).toObject());
@@ -1963,7 +1963,7 @@ void DynamicPatch::merge(Other&& other) {
   if (!isPatchTypeAmbiguous() && other.isPatchTypeAmbiguous()) {
     return std::visit(
         [&](auto&& patch) {
-          using PatchType = folly::remove_cvref_t<decltype(patch)>;
+          using PatchType = std::remove_cvref_t<decltype(patch)>;
           other.template get<DynamicUnknownPatch>()
               .template checkConvertible<PatchType>();
           auto tmp = DynamicPatch{detail::createPatchFromObject<PatchType>(
@@ -1996,8 +1996,8 @@ void DynamicPatch::merge(Other&& other) {
 
   std::visit(
       [](auto&& l, auto&& r) {
-        using L = folly::remove_cvref_t<decltype(l)>;
-        using R = folly::remove_cvref_t<decltype(r)>;
+        using L = std::remove_cvref_t<decltype(l)>;
+        using R = std::remove_cvref_t<decltype(r)>;
         if constexpr (std::is_same_v<L, R>) {
           if constexpr (requires {
                           l.merge(badge, folly::forward_like<Other>(r));
@@ -2406,7 +2406,7 @@ DynamicPatch::applyToSerializedObjectWithoutExtractingMask(
     } else {
       folly::throw_exception_fmt_format<std::runtime_error>(
           "NotImplemented: Applying {} to Object is not implemented",
-          folly::pretty_name<folly::remove_cvref_t<decltype(patch)>>());
+          folly::pretty_name<std::remove_cvref_t<decltype(patch)>>());
     }
   });
 }
