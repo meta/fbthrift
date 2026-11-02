@@ -537,7 +537,7 @@ class RocketTestServer::RocketTestServerHandler : public RocketServerHandler {
         decoder,
         std::move(encodeFinalResponse),
         std::move(encodeException),
-        folly::getKeepAliveToken(threadManagerThread_.getEventBase()),
+        threadManagerThread_.getEventBaseKeepAlive(),
         10,
         0,
         std::chrono::milliseconds::zero());
