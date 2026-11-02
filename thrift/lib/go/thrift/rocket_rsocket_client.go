@@ -370,6 +370,7 @@ func (r *rsocketClient) RequestSink(
 	if err != nil {
 		channelCancel()
 		close(sinkPayloadChan)
+		<-sendingDoneChan
 		return nil, err
 	}
 
@@ -513,6 +514,7 @@ func (r *rsocketClient) RequestBiDiStream(
 	if err != nil {
 		channelCancel()
 		close(sinkPayloadChan)
+		<-sendingDoneChan
 		return nil, nil, err
 	}
 
