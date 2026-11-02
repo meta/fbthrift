@@ -278,10 +278,6 @@ if (THRIFT_RPC)
   find_package(fizz CONFIG QUIET)
   find_package(wangle CONFIG QUIET)
   find_package(mvfst CONFIG QUIET)
-  if (NOT (fizz_FOUND AND wangle_FOUND AND mvfst_FOUND))
-    set(BUILD_TESTS OFF)
-    set(BUILD_EXAMPLES OFF)
-  endif ()
   if (NOT fizz_FOUND)
     # Not find_package(Sodium): FindSodium defines the target fizz links even
     # when it finds nothing.
