@@ -15,7 +15,6 @@
  */
 
 #include <fizz/experimental/psp/PSP.h>
-#include <folly/io/async/AsyncSocket.h>
 #include <thrift/lib/cpp2/Flags.h>
 #include <thrift/lib/cpp2/security/FizzPeeker.h>
 #include <thrift/lib/cpp2/security/SSLUtil.h>
