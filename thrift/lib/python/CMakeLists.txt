@@ -120,9 +120,11 @@ if (TARGET event_core_static)
   # folly fetched libevent, whose own build has no libevent:: targets.
   set(thrift_python_libevent event_core_static event_extra_static)
 else ()
+  # Like folly, also find a libevent that installed no CMake package config,
+  # such as Homebrew's.
   set(LIBEVENT_STATIC_LINK TRUE)
-  find_package(Libevent REQUIRED CONFIG)
-  set(thrift_python_libevent libevent::core libevent::extra)
+  find_package(LibEvent MODULE REQUIRED)
+  set(thrift_python_libevent ${LIBEVENT_LIB})
 endif ()
 
 # Libiberty: Provides cplus_demangle_v3_callback for folly stack traces, when
@@ -261,14 +263,17 @@ set(mvfst_incs
 )
 
 set(_all_cython_includes
+    # Folly's headers come first: the Python packages staged in the build
+    # directories below have a folly/executor.h, which is <folly/Executor.h>
+    # on a case-insensitive file system.
+    ${folly_incs}
     # Thrift includes. setup.py is outside CMake's target graph, so the source
     # and build roots have to be listed explicitly.
     ${PROJECT_SOURCE_DIR}
     ${PROJECT_BINARY_DIR}
     ${CMAKE_BINARY_DIR}/thrift/lib
     ${CMAKE_BINARY_DIR}/thrift/lib/cybld
-    # Folly includes (including .pxd files)
-    ${folly_incs}
+    # Folly's .pxd files
     ${FOLLY_PYTHON_SITE_PACKAGES}
     # Boost
     ${boost_incs}
@@ -339,8 +344,12 @@ endif ()
 #####################################################################
 # Set default LDFLAGS for setup.py to fix undefined symbol issues
 # --no-as-needed ensures libfolly.so is in NEEDED list even if linker
-# thinks it's not needed
-set(DEFAULT_SETUP_LDFLAGS "-Wl,--no-as-needed")
+# thinks it's not needed. macOS's linker records every library it is given.
+if (APPLE)
+  set(DEFAULT_SETUP_LDFLAGS "")
+else ()
+  set(DEFAULT_SETUP_LDFLAGS "-Wl,--no-as-needed")
+endif ()
 
 # Allow users to override via environment variable (e.g., for custom RPATH)
 if (DEFINED ENV{LDFLAGS})
@@ -591,6 +600,13 @@ target_compile_definitions(thrift_python_cpp
                            PRIVATE THRIFT_NO_HTTP_CLIENT_CHANNEL)
 # Workaround for https://github.com/cython/cython/issues/5973
 target_compile_definitions(thrift_python_cpp PRIVATE __PYX_ENUM_CLASS_DECL=)
+# As for setup.py, folly's headers come before the staged folly/executor.h.
+# An installed folly's include directories would otherwise be system ones,
+# which compilers search after "${_cybld}" whatever their order here.
+set_property(TARGET thrift_python_cpp PROPERTY NO_SYSTEM_FROM_IMPORTED ON)
+target_include_directories(
+  thrift_python_cpp BEFORE
+  PRIVATE "$<TARGET_PROPERTY:Folly::folly,INTERFACE_INCLUDE_DIRECTORIES>")
 target_include_directories(thrift_python_cpp PRIVATE "${_cybld}"
                                                      ${Python3_INCLUDE_DIRS})
 # Link strategy:
@@ -602,29 +618,51 @@ target_include_directories(thrift_python_cpp PRIVATE "${_cybld}"
 # TJSONProtocol.cpp)
 # libevent/libiberty: needed for undefined symbols,
 # --allow-multiple-definition handles duplicates
+set(thrift_python_static_libs
+    thrift_rpc
+    thrift_rpc_metadata
+    thrift_annotation
+    thrift_metadata
+    thrift_frozen
+    thrift_protocol
+    thrift_type_rep
+    thrift_type
+    thrift_any_rep
+    thrift_server_debug_info)
+if (APPLE)
+  # ld64 has neither --whole-archive nor --allow-multiple-definition, but
+  # loads each archive given to -force_load whole. thrift_metadata and
+  # thrift_protocol compile some of thrift_rpc's sources too, so they are left
+  # to supply only the objects that something references.
+  set(whole_archive_begin "")
+  set(whole_archive_end "")
+  set(force_loaded_libs ${thrift_python_static_libs})
+  list(REMOVE_ITEM force_loaded_libs thrift_metadata thrift_protocol)
+  foreach (lib IN LISTS force_loaded_libs)
+    target_link_options(thrift_python_cpp PRIVATE
+                        "LINKER:-force_load,$<TARGET_FILE:${lib}>")
+  endforeach ()
+else ()
+  set(whole_archive_begin "-Wl,--whole-archive"
+                          "-Wl,--allow-multiple-definition")
+  set(whole_archive_end "-Wl,--no-whole-archive")
+endif ()
 target_link_libraries(
   thrift_python_cpp
   PUBLIC # Static libs - embed all symbols
-         "-Wl,--whole-archive"
-         "-Wl,--allow-multiple-definition"
-         thrift_rpc
-         thrift_rpc_metadata
-         thrift_annotation
-         thrift_metadata
-         thrift_frozen
-         thrift_protocol
-         thrift_type_rep
-         thrift_type
-         thrift_any_rep
-         thrift_server_debug_info
+         ${whole_archive_begin}
+         ${thrift_python_static_libs}
          ${thrift_python_libevent}
          ${LIBIBERTY_LIBRARIES}
-         "-Wl,--no-whole-archive"
+         ${whole_archive_end}
          # Shared libs - runtime deps (see manifests/folly, manifests/fmt)
          Folly::folly
          Folly::folly_python_cpp
          fmt::fmt
          glog::glog)
+# The interpreter that loads the extensions provides Python's symbols, which
+# macOS's linker otherwise requires at link time.
+target_link_libraries(thrift_python_cpp PRIVATE Python3::Module)
 install(TARGETS thrift_python_cpp EXPORT thrift)
 install(TARGETS thrift_python_cpp DESTINATION ${py_install_dir})
 
@@ -754,14 +792,20 @@ add_custom_command(
 
 # Run auditwheel repair to make the wheel self-contained
 # This bundles .so dependencies and rewrites RPATH to $ORIGIN
-# LD_LIBRARY_PATH tells auditwheel where to find the libraries to bundle
+# LD_LIBRARY_PATH tells auditwheel where to find the libraries to bundle.
+# delocate does the same for macOS, where DYLD_LIBRARY_PATH tells it.
+if (APPLE)
+  set(repair_wheel "DYLD_LIBRARY_PATH=${library_dirs_str}"
+      ${Python3_EXECUTABLE} -m delocate.cmd.delocate_wheel -w)
+else ()
+  set(repair_wheel "LD_LIBRARY_PATH=${library_dirs_str}"
+      ${Python3_EXECUTABLE} -m auditwheel repair --wheel-dir)
+endif ()
 add_custom_command(
   TARGET thrift_python_and_py3_bindings
   COMMAND ${CMAKE_COMMAND} -E make_directory "${_cybld}/dist_self_contained"
-  COMMAND
-    ${CMAKE_COMMAND} -E env "LD_LIBRARY_PATH=${library_dirs_str}"
-    ${Python3_EXECUTABLE} -m auditwheel repair --wheel-dir
-    "${_cybld}/dist_self_contained" "${_cybld}/dist/*.whl"
+  COMMAND ${CMAKE_COMMAND} -E env ${repair_wheel}
+          "${_cybld}/dist_self_contained" "${_cybld}/dist/*.whl"
   WORKING_DIRECTORY ${_cybld})
 
 # Install the self-contained wheel to the install prefix

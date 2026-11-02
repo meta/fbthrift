@@ -18,6 +18,7 @@
 # created as tree of links to the real source files.
 
 import os
+import shutil
 import sys
 
 import Cython
@@ -31,9 +32,9 @@ Options.fast_fail = True
 # CMake sets CYTHON_INCLUDE_PATH with paths to folly, boost, and build directories
 # This is needed for both --api-only and build_ext phases
 cython_include_path = os.environ.get("CYTHON_INCLUDE_PATH", "")
-include_dirs = ["."]
-if cython_include_path:
-    include_dirs.extend([p for p in cython_include_path.split(":") if p])
+# "." goes last, after folly's headers: see _all_cython_includes in
+# python/CMakeLists.txt.
+include_dirs = [p for p in cython_include_path.split(":") if p] + ["."]
 
 if "--api-only" in sys.argv:
     if include_dirs:
@@ -106,14 +107,20 @@ if "--api-only" in sys.argv:
         cplus=True,
         language_level=3,
     )
-    # Compile streaming modules to generate *_api.h headers
+    # Compile streaming modules to generate *_api.h headers. sink.cpp goes
+    # elsewhere, because on a case-insensitive file system it is the C++ source
+    # Sink.cpp, which Cython won't overwrite. sink_api.h is written next to it.
+    os.makedirs("generated_api", exist_ok=True)
     Cython.Compiler.Main.compile(
         "thrift/python/streaming/sink.pyx",
-        options=compilation_options,
+        options=Options.CompilationOptions(
+            compilation_options, output_file="generated_api/sink.cpp"
+        ),
         full_module_name="thrift.python.streaming.sink",
         cplus=True,
         language_level=3,
     )
+    shutil.copyfile("generated_api/sink_api.h", "thrift/python/streaming/sink_api.h")
     Cython.Compiler.Main.compile(
         "thrift/python/streaming/bidistream.pyx",
         options=compilation_options,
@@ -140,7 +147,7 @@ if "--api-only" in sys.argv:
 
 else:
     python_lib_idx = sys.argv.index("--libpython")
-    python_lib = sys.argv[python_lib_idx + 1][len("lib") : -len(".so")]
+    python_lib = os.path.splitext(sys.argv[python_lib_idx + 1])[0][len("lib") :]
     del sys.argv[python_lib_idx : python_lib_idx + 2]
 
     # Library search paths from CMakeLists (passed via LIBRARY_DIRS env var)
@@ -170,14 +177,27 @@ else:
     # Use $ORIGIN so auditwheel can properly bundle libraries into the wheel.
     # $ORIGIN/.libs is where auditwheel places bundled shared libraries.
     # We also add $ORIGIN for libraries in the same directory as the extension.
-    extra_link_args.append("-Wl,-rpath,$ORIGIN/.libs")
-    extra_link_args.append("-Wl,-rpath,$ORIGIN")
+    origin = "@loader_path" if sys.platform == "darwin" else "$ORIGIN"
+    extra_link_args.append(f"-Wl,-rpath,{origin}/.libs")
+    extra_link_args.append(f"-Wl,-rpath,{origin}")
+    if sys.platform == "darwin":
+        # Room for delocate, macOS's auditwheel, to rewrite the install names.
+        extra_link_args.append("-Wl,-headerpad_max_install_names")
+
+    # cythonize() copies an extension's C++ sources next to the C++ it generates
+    # from the extension's .pyx, where Sink.cpp would be sink.cpp on a
+    # case-insensitive file system.
+    sink_cpp = "thrift/python/streaming/SinkImpl.cpp"
+    if not os.path.lexists(sink_cpp):
+        os.symlink("Sink.cpp", sink_cpp)
 
     common_options = {
         "language": "c++",
         "include_dirs": include_dirs,
         "library_dirs": lib_search_paths,  # Tell linker where to find dynamic libraries
-        "libraries": dynamic_libs + [python_lib],
+        # On macOS, the interpreter that loads an extension provides Python's
+        # symbols, and a linked libpython would be a second, uninitialized one.
+        "libraries": dynamic_libs + ([] if sys.platform == "darwin" else [python_lib]),
         "extra_compile_args": ["-std=c++20", "-fcoroutines"],
         "extra_link_args": extra_link_args,
     }
@@ -331,7 +351,7 @@ else:
             "thrift.python.streaming.sink",
             sources=[
                 "thrift/python/streaming/sink.pyx",
-                "thrift/python/streaming/Sink.cpp",
+                sink_cpp,
             ],
             **common_options,
         ),
