@@ -17,30 +17,50 @@ find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 # Set FOLLY_PYTHON_SITE_PACKAGES for Cython .pxd files
 # (folly.pxd, iobuf.pxd, etc.)
 # These are separate from C++ headers and live in Python site-packages
-#
-# find_file locates a known file, then extract the parent directory.
-# HINTS cover both install locations:
-#   - lib/pythonX.Y/site-packages/ (setup.py install)
-#   - local/lib/pythonX.Y/dist-packages/ (pip --prefix on Debian/Ubuntu)
-set(_folly_py_version "python${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}")
-unset(_folly_pxd_file CACHE)
-find_file(
-  _folly_pxd_file
-  NAMES folly/__init__.pxd
-  HINTS
-    "${FOLLY_PREFIX_DIR}/lib/${_folly_py_version}/site-packages"
-    "${FOLLY_PREFIX_DIR}/lib64/${_folly_py_version}/site-packages"
-    "${FOLLY_PREFIX_DIR}/local/lib/${_folly_py_version}/dist-packages"
-    "${FOLLY_PREFIX_DIR}/local/lib64/${_folly_py_version}/dist-packages"
-    "${FOLLY_PREFIX_DIR}/lib/x86_64-linux-gnu/${_folly_py_version}/site-packages"
-    "${FOLLY_PREFIX_DIR}/lib64/x86_64-linux-gnu/${_folly_py_version}/site-packages"
-    "${FOLLY_PREFIX_DIR}/local/lib/x86_64-linux-gnu/${_folly_py_version}/dist-packages"
-    "${FOLLY_PREFIX_DIR}/local/lib64/x86_64-linux-gnu/${_folly_py_version}/dist-packages"
-  NO_DEFAULT_PATH REQUIRED)
+set(thrift_stage_folly_python "")
+if (TARGET folly_python_bindings)
+  # folly is built in this build, so its Python package is a wheel in folly's
+  # build tree. Unpack it where an install would put it, before anything below
+  # reads it.
+  set(FOLLY_PYTHON_SITE_PACKAGES "${CMAKE_CURRENT_BINARY_DIR}/folly-site-packages")
+  get_target_property(_folly_wheel_dir folly_python_bindings
+                      FOLLY_PYTHON_WHEEL_DIR)
+  add_custom_target(
+    thrift_stage_folly_python
+    COMMAND ${CMAKE_COMMAND} -E rm -rf "${FOLLY_PYTHON_SITE_PACKAGES}"
+    COMMAND
+      ${Python3_EXECUTABLE} -c
+      "import glob, sys, zipfile; zipfile.ZipFile(glob.glob(sys.argv[1] + '/folly-*.whl')[0]).extractall(sys.argv[2])"
+      "${_folly_wheel_dir}" "${FOLLY_PYTHON_SITE_PACKAGES}"
+    COMMENT "Unpacking folly's Python wheel for thrift-python"
+    VERBATIM)
+  add_dependencies(thrift_stage_folly_python folly_python_bindings)
+  set(thrift_stage_folly_python thrift_stage_folly_python)
+else ()
+  # find_file locates a known file, then extract the parent directory.
+  # HINTS cover both install locations:
+  #   - lib/pythonX.Y/site-packages/ (setup.py install)
+  #   - local/lib/pythonX.Y/dist-packages/ (pip --prefix on Debian/Ubuntu)
+  set(_folly_py_version "python${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}")
+  unset(_folly_pxd_file CACHE)
+  find_file(
+    _folly_pxd_file
+    NAMES folly/__init__.pxd
+    HINTS
+      "${FOLLY_PREFIX_DIR}/lib/${_folly_py_version}/site-packages"
+      "${FOLLY_PREFIX_DIR}/lib64/${_folly_py_version}/site-packages"
+      "${FOLLY_PREFIX_DIR}/local/lib/${_folly_py_version}/dist-packages"
+      "${FOLLY_PREFIX_DIR}/local/lib64/${_folly_py_version}/dist-packages"
+      "${FOLLY_PREFIX_DIR}/lib/x86_64-linux-gnu/${_folly_py_version}/site-packages"
+      "${FOLLY_PREFIX_DIR}/lib64/x86_64-linux-gnu/${_folly_py_version}/site-packages"
+      "${FOLLY_PREFIX_DIR}/local/lib/x86_64-linux-gnu/${_folly_py_version}/dist-packages"
+      "${FOLLY_PREFIX_DIR}/local/lib64/x86_64-linux-gnu/${_folly_py_version}/dist-packages"
+    NO_DEFAULT_PATH REQUIRED)
 
-# Extract site-packages directory (two levels up from folly/__init__.pxd)
-get_filename_component(_folly_pkg_dir "${_folly_pxd_file}" DIRECTORY)
-get_filename_component(FOLLY_PYTHON_SITE_PACKAGES "${_folly_pkg_dir}" DIRECTORY)
+  # Extract site-packages directory (two levels up from folly/__init__.pxd)
+  get_filename_component(_folly_pkg_dir "${_folly_pxd_file}" DIRECTORY)
+  get_filename_component(FOLLY_PYTHON_SITE_PACKAGES "${_folly_pkg_dir}" DIRECTORY)
+endif ()
 message(STATUS "FOLLY_PYTHON_SITE_PACKAGES: ${FOLLY_PYTHON_SITE_PACKAGES}")
 
 find_package(Cython 0.28 REQUIRED)
@@ -96,19 +116,27 @@ option(DEBUG_BUILD "Enable debug messages" OFF)
 # =============================================================================
 
 # Libevent: Force static link to embed symbols
-set(LIBEVENT_STATIC_LINK TRUE)
-find_package(Libevent REQUIRED CONFIG)
+if (TARGET event_core_static)
+  # folly fetched libevent, whose own build has no libevent:: targets.
+  set(thrift_python_libevent event_core_static event_extra_static)
+else ()
+  set(LIBEVENT_STATIC_LINK TRUE)
+  find_package(Libevent REQUIRED CONFIG)
+  set(thrift_python_libevent libevent::core libevent::extra)
+endif ()
 
-# Libiberty: Provides cplus_demangle_v3_callback for folly stack traces
-find_package(Libiberty REQUIRED)
+# Libiberty: Provides cplus_demangle_v3_callback for folly stack traces, when
+# folly found it too
+find_package(Libiberty)
 
 # gflags warning:
 # This section adds explicit dependencies that --whole-archive bypasses.
 # A natural assumption: if libevent and libiberty are here, gflags should be too.
-# gflags is different. It's a transitive dependency (glog depends on gflags).
-# setup.py links glog and gflags as shared libraries. A find_package(gflags) call
-# here would embed static gflags symbols into thrift_python_cpp.so. At runtime,
-# glog loads shared gflags, and duplicate symbols conflict. Do not add gflags.
+# gflags is different. thrift_concurrency and thrift_frozen already link it,
+# and so do folly and glog, which setup.py links as shared libraries. All of
+# them must use the same shared gflags: a static copy in thrift_python_cpp.so
+# would register gflags' flags a second time, and gflags exits. Do not add
+# gflags.
 
 function (log_debug msg)
   if (DEBUG_BUILD)
@@ -215,16 +243,22 @@ set(folly_incs
     "$<JOIN:$<TARGET_PROPERTY:Folly::folly,INTERFACE_INCLUDE_DIRECTORIES>,:>")
 set(boost_incs
     "$<JOIN:$<TARGET_PROPERTY:Boost::headers,INTERFACE_INCLUDE_DIRECTORIES>,:>")
-get_target_property(wangle_incs wangle::wangle INTERFACE_INCLUDE_DIRECTORIES)
-get_target_property(glog_include_dirs glog::glog INTERFACE_INCLUDE_DIRECTORIES)
+# Unlike get_target_property(), these include the directories of the targets
+# that each one links, such as the one with the <wangle/wangle-config.h> that a
+# wangle built in this build generates.
+set(wangle_incs
+    "$<JOIN:$<TARGET_PROPERTY:wangle::wangle,INTERFACE_INCLUDE_DIRECTORIES>,:>")
+set(glog_include_dirs
+    "$<JOIN:$<TARGET_PROPERTY:glog::glog,INTERFACE_INCLUDE_DIRECTORIES>,:>")
 
 get_filename_component(python_libname ${Python3_LIBRARIES} NAME)
 
 # Create colon-separated include path for CYTHON_INCLUDE_PATH env var
 # mvfst include directories
 # Derive from cmake targets (found via find_package above) - not hardcoded paths
-get_target_property(mvfst_incs mvfst::mvfst_transport
-                    INTERFACE_INCLUDE_DIRECTORIES)
+set(mvfst_incs
+    "$<JOIN:$<TARGET_PROPERTY:mvfst::mvfst_transport,INTERFACE_INCLUDE_DIRECTORIES>,:>"
+)
 
 set(_all_cython_includes
     # Thrift includes. setup.py is outside CMake's target graph, so the source
@@ -271,6 +305,11 @@ list(APPEND dep_prefixes ${env_prefixes})
 # generator expressions resolve at generate time, so the forward reference is
 # fine.
 set(all_lib_dirs "$<TARGET_FILE_DIR:thrift_python_cpp>")
+# Where the shared libraries that setup.py links by name are, which a build
+# that fetched folly has in its own tree rather than under a prefix.
+list(APPEND all_lib_dirs "$<TARGET_FILE_DIR:Folly::folly>"
+     "$<TARGET_FILE_DIR:Folly::folly_python_cpp>"
+     "$<TARGET_FILE_DIR:fmt::fmt>" "$<TARGET_FILE_DIR:glog::glog>")
 foreach (pkg ${dep_prefixes})
   if (EXISTS "${pkg}/lib")
     list(APPEND all_lib_dirs "${pkg}/lib")
@@ -578,8 +617,7 @@ target_link_libraries(
          thrift_type
          thrift_any_rep
          thrift_server_debug_info
-         libevent::core
-         libevent::extra
+         ${thrift_python_libevent}
          ${LIBIBERTY_LIBRARIES}
          "-Wl,--no-whole-archive"
          # Shared libs - runtime deps (see manifests/folly, manifests/fmt)
@@ -674,6 +712,10 @@ add_custom_target(
           thrift_python_cpp
           thrift_python_types_bindings
   WORKING_DIRECTORY ${_cybld})
+if (thrift_stage_folly_python)
+  add_dependencies(thrift_python_types_bindings thrift_stage_folly_python)
+  add_dependencies(thrift_python_and_py3_bindings thrift_stage_folly_python)
+endif ()
 
 # Copy folly Python bindings into the build directory before wheel creation.
 # Folly doesn't build a wheel yet, so we bundle folly.iobuf, folly.executor,

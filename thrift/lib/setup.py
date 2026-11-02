@@ -147,21 +147,14 @@ else:
     lib_search_paths = os.environ.get("LIBRARY_DIRS", "").split(":")
     lib_search_paths = [p for p in lib_search_paths if p]  # Filter empty strings
 
-    # All C++ dependencies consolidated into libthrift_python_cpp.so
-    # Extensions only need to link to thrift_python_cpp + system libs
+    # All C++ dependencies consolidated into libthrift_python_cpp.so, which
+    # records the shared libraries it needs. Extensions link only it and the
+    # shared libraries that their own code calls into.
     dynamic_libs = [
-        "thrift_python_cpp",  # Contains all thrift/folly/wangle/fizz code
-        "ssl",
-        "crypto",
-        "pthread",
-        "aio",
+        "thrift_python_cpp",  # Contains all thrift/wangle/fizz code
+        "folly",
+        "fmt",
         "glog",
-        "gflags",
-        "event",
-        "lzma",
-        "snappy",
-        "sodium",
-        "unwind",
     ]
 
     extra_link_args = []

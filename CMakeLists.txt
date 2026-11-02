@@ -131,7 +131,10 @@ function (thrift_fetch_gflags)
   # gflags builds a static library even for a shared build, and its `gflags`
   # alias prefers it. Every shared library linking the alias then embeds its
   # own copy, and the second copy to register its flags aborts the process.
-  if (BUILD_SHARED_LIBS)
+  # thrift-python links folly and glog as shared libraries even though thrift's
+  # own are static, and folly turns BUILD_SHARED_LIBS on only after this runs.
+  if (BUILD_SHARED_LIBS OR THRIFT_PYTHON)
+    set(GFLAGS_BUILD_SHARED_LIBS ON)
     set(GFLAGS_BUILD_STATIC_LIBS OFF)
   endif ()
   fb_fetch_from_manifest(gflags gflags OVERRIDE_FIND_PACKAGE)
@@ -168,7 +171,17 @@ endif ()
 find_package(folly CONFIG QUIET)
 if (NOT folly_FOUND)
   thrift_build_local(folly)
+  if (THRIFT_PYTHON)
+    # thrift-python bundles folly's Python package and links folly's
+    # libraries, which folly builds only as shared libraries for Python.
+    set(PYTHON_EXTENSIONS ON)
+  endif ()
   fb_fetch_from_manifest(folly folly)
+  if (THRIFT_PYTHON)
+    # PYTHON_EXTENSIONS forced BUILD_SHARED_LIBS on in the cache. Thrift's own
+    # libraries, and the projects it fetches, stay static, as above.
+    set(BUILD_SHARED_LIBS OFF)
+  endif ()
 endif ()
 
 # Older folly installs export Threads::Threads without declaring it.
@@ -178,6 +191,12 @@ find_package(Threads)
 
 # Find required dependencies for thrift/lib
 find_package(Glog REQUIRED)
+# Thrift links fmt::fmt directly. A folly that this build fetched found fmt in
+# its own directory, where the imported target is invisible here, unless it
+# fetched fmt too.
+if (NOT TARGET fmt::fmt)
+  find_package(fmt CONFIG REQUIRED)
+endif ()
 find_package(OpenSSL REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(Zstd REQUIRED)
