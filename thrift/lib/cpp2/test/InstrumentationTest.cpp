@@ -677,6 +677,27 @@ TEST_P(RequestInstrumentationTestP, requestPayloadTest) {
   }
 }
 
+class RequestInstrumentationTestWithoutDebugPayload
+    : public RequestInstrumentationTest {
+ protected:
+  void SetUp() override {
+    impl_ = std::make_unique<Impl>(
+        [&](auto& ts) { ts.setMaxDebugPayloadMemoryPerRequest(0); });
+  }
+};
+
+TEST_F(
+    RequestInstrumentationTestWithoutDebugPayload,
+    zeroBudgetSnapshotHasNoPayload) {
+  auto client = makeRocketClient();
+  auto task = client->semifuture_sendPayload(0, "InstrumentationTest");
+  auto reqSnapshots = getRequestSnapshots(1);
+  std::move(task).get();
+
+  ASSERT_EQ(reqSnapshots.size(), 1);
+  EXPECT_EQ(reqSnapshots[0].getPayload().computeChainDataLength(), 0);
+}
+
 TEST_F(RequestInstrumentationTest, rocketSnapshotContainsMetadataHeadersTest) {
   std::map<std::string, std::string> originalHeaders = {
       {"header1", "value1"}, {"header2", "value2"}};

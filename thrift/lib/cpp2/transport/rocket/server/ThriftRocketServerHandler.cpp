@@ -179,7 +179,9 @@ ThriftRocketServerHandler::ThriftRocketServerHandler(
                                 .get()),
       resetConnCtxUserDataOnClose_(worker_->getServer()
                                        ->getThriftServerConfig()
-                                       .getResetConnCtxUserDataOnClose()) {
+                                       .getResetConnCtxUserDataOnClose()),
+      keepDebugPayloads_(
+          worker_->getServer()->getMaxDebugPayloadMemoryPerRequest() > 0) {
   connContext_.setTransportType(Cpp2ConnContext::TransportType::ROCKET);
 
   auto* server = worker_->getServer();
@@ -632,7 +634,8 @@ void ThriftRocketServerHandler::handleRequestCommon(
       std::chrono::steady_clock::now()};
   auto wiredPayloadSize = payload.metadataAndDataSize();
 
-  rocket::Payload debugPayload = payload.clone();
+  rocket::Payload debugPayload =
+      keepDebugPayloads_ ? payload.clone() : rocket::Payload();
   auto requestPayloadTry =
       connection.getPayloadSerializer()->unpackAsCompressed<RequestPayload>(
           std::move(payload),
