@@ -211,7 +211,9 @@ function (thrift_fetch_xxhash)
   add_library(Xxhash::xxhash INTERFACE IMPORTED GLOBAL)
   target_link_libraries(Xxhash::xxhash INTERFACE xxhash)
   FetchContent_GetProperties(xxhash SOURCE_DIR source_dir)
-  set(Xxhash_INCLUDE_DIR "${source_dir}" PARENT_SCOPE)
+  # Replace find_package(Xxhash)'s NOTFOUND result in the cache, which is where
+  # FBThriftCppLibrary.cmake finds it in projects built alongside fbthrift.
+  set(Xxhash_INCLUDE_DIR "${source_dir}" CACHE PATH "xxhash's include directory" FORCE)
   set(Xxhash_LIBRARY xxhash PARENT_SCOPE)
   set(Xxhash_FOUND ON PARENT_SCOPE)
 endfunction ()
