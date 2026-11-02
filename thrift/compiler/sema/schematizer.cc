@@ -20,9 +20,9 @@
 #include <string>
 #include <string_view>
 #include <fmt/core.h>
-#include <openssl/evp.h>
-#include <openssl/md5.h>
-#include <openssl/sha.h>
+#include <openssl/evp.h> // @manual
+#include <openssl/md5.h> // @manual
+#include <openssl/sha.h> // @manual
 
 #include <thrift/compiler/ast/t_global_scope.h>
 #include <thrift/compiler/ast/t_program.h>

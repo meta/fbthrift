@@ -22,8 +22,8 @@
 #include <queue>
 #include <stdexcept>
 
-#include <openssl/evp.h>
-#include <openssl/sha.h>
+#include <openssl/evp.h> // @manual
+#include <openssl/sha.h> // @manual
 
 #include <fmt/core.h>
 

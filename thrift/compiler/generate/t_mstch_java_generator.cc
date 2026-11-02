@@ -21,7 +21,7 @@
 
 #include <fmt/core.h>
 
-#include <openssl/evp.h>
+#include <openssl/evp.h> // @manual
 #include <thrift/common/detail/string.h>
 #include <thrift/compiler/ast/t_typedef.h>
 #include <thrift/compiler/ast/uri.h>

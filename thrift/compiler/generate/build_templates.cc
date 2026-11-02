@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
   std::string const at = "@";
   std::string const endl = "\n";
 
-  std::cout << "//  " << at << "generated" << endl;
+  std::cout << "// " << at << "generated" << endl;
 
   std::cout << endl;
 
