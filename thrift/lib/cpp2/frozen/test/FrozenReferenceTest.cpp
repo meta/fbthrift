@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
+#include <numeric>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <folly/Math.h>
 
 #include <thrift/lib/cpp2/frozen/FrozenUtil.h>
 #include <thrift/lib/cpp2/frozen/test/gen-cpp2/Reference_layouts.h>
@@ -48,7 +49,7 @@ void fillTree(std::unique_ptr<Node>& node, int min, int max) {
   if (min >= max) {
     return;
   }
-  int mid = folly::midpoint(min, max);
+  int mid = std::midpoint(min, max);
   node = std::make_unique<Node>();
   *node->id() = mid;
   fillTree(node->left(), min, mid);
