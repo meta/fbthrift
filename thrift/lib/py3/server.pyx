@@ -46,6 +46,7 @@ from thrift.python.server_impl.event_handler cimport (
 from thrift.python.server_impl.async_processor import AsyncProcessorFactory as AsyncProcessorFactory_
 from thrift.python.server_impl.async_processor cimport EmptyAsyncProcessorFactory
 from thrift.python.server_impl.python_async_processor cimport (
+    cPythonAsyncProcessorFactory,
     PythonAsyncProcessorFactory,
 )
 from thrift.python.server_impl.request_context import ( # noqa
@@ -207,6 +208,22 @@ cdef class ThriftServer:
             b"ThriftServer-" + server_input.thrift_version
         )
 
+    def enable_cpu_worker_threads(self, count):
+        """Turns on CPU worker threads for a thrift-python handler and sets how
+        many the server uses.
+
+        Call it before serve(); the last call before serve() wins. A count of
+        one or more gives that many CPU worker threads, and a count below one
+        raises ValueError. A server without a thrift-python handler raises
+        TypeError.
+        """
+        if not isinstance(self.factory, PythonAsyncProcessorFactory):
+            raise TypeError(
+                "Threads need a thrift-python handler. Pass a thrift-python "
+                "ServiceInterface instance or handler factory to the server."
+            )
+        (<PythonAsyncProcessorFactory>self.factory).set_cpu_worker_threads(count)
+
     cdef _use_worker_executor_if_active(self):
         # Zero-worker servers keep the control executor that __init__ hands to
         # ThriftServer, and that path stays exactly as it was. When entering the
@@ -297,6 +314,15 @@ cdef class ThriftServer:
         return self.server.get().getNumIOWorkerThreads()
 
     def get_cpu_worker_threads(self):
+        """Returns the number of CPU worker threads that the server uses: the
+        count from enable_cpu_worker_threads(), or one without a call. A server
+        without a thrift-python handler returns the C++ server's CPU worker
+        setting, as before.
+        """
+        if isinstance(self.factory, PythonAsyncProcessorFactory) and self.factory._cpp_obj:
+            return (
+                <cPythonAsyncProcessorFactory*>self.factory._cpp_obj.get()
+            ).requestedThreadCount()
         return self.server.get().getNumCPUWorkerThreads()
 
     def set_workers_join_timeout(self, timeout):
