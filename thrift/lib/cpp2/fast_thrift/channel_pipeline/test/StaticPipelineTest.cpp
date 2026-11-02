@@ -18,6 +18,7 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticSegmentBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
 
+#include <folly/portability/GMock.h>
 #include <folly/portability/GTest.h>
 
 #include <algorithm>
@@ -29,6 +30,8 @@
 
 namespace apache::thrift::fast_thrift::channel_pipeline::test {
 namespace {
+
+using namespace testing;
 
 static_assert(!std::is_default_constructible_v<detail::ErasedStaticHandler>);
 
@@ -100,6 +103,7 @@ HANDLER_TAG(read_ready_canceller_static);
 HANDLER_TAG(read_ready_target_static);
 HANDLER_TAG(read_ready_reentrant_static);
 HANDLER_TAG(reentrant_close_static);
+HANDLER_TAG(await_before_forward_static);
 
 class TraceHandler {
  public:
@@ -393,6 +397,70 @@ class ReadyHandler {
 
  private:
   int* calls_;
+};
+
+// Head whose every write leaves it blocked until its next onWriteReady(). With
+// staysBlocked set, it stays blocked through that call and becomes ready in
+// the call after it.
+class BlockingStaticHead {
+ public:
+  explicit BlockingStaticHead(std::vector<std::string>* readiness)
+      : readiness_(readiness) {}
+
+  template <typename Context>
+  Result onWrite(Context& ctx, TypeErasedBox&&) noexcept {
+    ctx.awaitWriteReady();
+    return Result::Backpressure;
+  }
+  template <typename Context>
+  void onWriteReady(Context& ctx) noexcept {
+    readiness_->emplace_back("head");
+    if (!std::exchange(staysBlocked, false)) {
+      ctx.cancelAwaitWriteReady();
+    }
+  }
+  void onReadReady() noexcept {}
+  void handlerAdded() noexcept {}
+  void handlerRemoved() noexcept {}
+  void onPipelineActive() noexcept {}
+  void onPipelineInactive() noexcept {}
+
+  bool staysBlocked{false};
+
+ private:
+  std::vector<std::string>* readiness_;
+};
+
+// Waits for write-ready before it forwards a write, so its hook is linked
+// before the head's.
+class AwaitBeforeForwardHandler {
+ public:
+  WriteReadyHook writeReadyHook_;
+
+  explicit AwaitBeforeForwardHandler(std::vector<std::string>* readiness)
+      : readiness_(readiness) {}
+
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineActive(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineInactive(Context&) noexcept {}
+  template <typename Context>
+  Result onWrite(Context& ctx, TypeErasedBox&& msg) noexcept {
+    ctx.awaitWriteReady();
+    return ctx.fireWrite(std::move(msg));
+  }
+  template <typename Context>
+  void onWriteReady(Context& ctx) noexcept {
+    readiness_->emplace_back("handler");
+    ctx.cancelAwaitWriteReady();
+  }
+
+ private:
+  std::vector<std::string>* readiness_;
 };
 
 struct ValueEvent : EventTag<int> {};
@@ -1422,6 +1490,62 @@ TEST(StaticPipelineTest, DispatchesReadyAndTypedEvents) {
   auto publisher = pipeline->bindEvents<Events<ValueEvent>>();
   publisher.fire<ValueEvent>(23);
   EXPECT_EQ(eventValue, 23);
+}
+
+TEST(StaticPipelineTest, HeadReceivesWriteReadyBeforeHandlers) {
+  folly::EventBase eventBase;
+  std::vector<std::string> readiness;
+  BlockingStaticHead head(&readiness);
+  StaticTailHandler tail;
+  TestAllocator allocator;
+
+  auto pipeline = StaticPipelineBuilder<
+                      BlockingStaticHead,
+                      StaticTailHandler,
+                      TestAllocator>()
+                      .setEventBase(&eventBase)
+                      .setHead(&head)
+                      .setTail(&tail)
+                      .setAllocator(&allocator)
+                      .addNextOutbound<AwaitBeforeForwardHandler>(
+                          await_before_forward_static_tag, &readiness)
+                      .build();
+
+  EXPECT_THAT(
+      pipeline->fireWrite(erase_and_box(folly::IOBuf::create(0))),
+      Eq(Result::Backpressure));
+  pipeline->onWriteReady();
+
+  EXPECT_THAT(readiness, ElementsAre("head", "handler"));
+}
+
+TEST(StaticPipelineTest, HandlersWaitWhileHeadStaysBlocked) {
+  folly::EventBase eventBase;
+  std::vector<std::string> readiness;
+  BlockingStaticHead head(&readiness);
+  head.staysBlocked = true;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+
+  auto pipeline = StaticPipelineBuilder<
+                      BlockingStaticHead,
+                      StaticTailHandler,
+                      TestAllocator>()
+                      .setEventBase(&eventBase)
+                      .setHead(&head)
+                      .setTail(&tail)
+                      .setAllocator(&allocator)
+                      .addNextOutbound<AwaitBeforeForwardHandler>(
+                          await_before_forward_static_tag, &readiness)
+                      .build();
+
+  EXPECT_THAT(
+      pipeline->fireWrite(erase_and_box(folly::IOBuf::create(0))),
+      Eq(Result::Backpressure));
+  pipeline->onWriteReady();
+  pipeline->onWriteReady();
+
+  EXPECT_THAT(readiness, ElementsAre("head", "head", "handler"));
 }
 
 // === Owning setters (emplaceHead / emplaceTail / emplaceAllocator) ===

@@ -812,7 +812,15 @@ class StaticPipelineImpl final {
       bool blocked = false;
       writeReadyDispatchPending_ = false;
       const auto generation = ++writeReadyGeneration_;
-      while (true) {
+      // Write capacity originates at the head endpoint. Let it consume the
+      // edge before upstream handlers retry so they observe the updated
+      // transport state.
+      if (headWriteReadyHook_.hook.is_linked()) {
+        headWriteReadyHook_.lastNotifiedGeneration = generation;
+        dispatchHeadWriteReady();
+        blocked = isClosed() || headWriteReadyHook_.hook.is_linked();
+      }
+      while (!blocked) {
         WriteReadyHook* next = nullptr;
         for (auto& hook : writeReadyList_) {
           if (hook.lastNotifiedGeneration != generation) {
@@ -825,11 +833,7 @@ class StaticPipelineImpl final {
         }
         next->lastNotifiedGeneration = generation;
         if (next->handlerIndex == handlerCount()) {
-          if constexpr (requires(HeadHandler& h, EndpointContext& ctx) {
-                          h.onWriteReady(ctx);
-                        }) {
-            headHandler_->onWriteReady(endpointContext_);
-          }
+          dispatchHeadWriteReady();
         } else {
           dispatchWriteReadyTarget(next->handlerIndex);
         }
@@ -1085,6 +1089,14 @@ class StaticPipelineImpl final {
       return nullptr;
     } else {
       return handlerAt<Index>().readReadyHook();
+    }
+  }
+
+  void dispatchHeadWriteReady() noexcept {
+    if constexpr (requires(HeadHandler& h, EndpointContext& ctx) {
+                    h.onWriteReady(ctx);
+                  }) {
+      headHandler_->onWriteReady(endpointContext_);
     }
   }
 
