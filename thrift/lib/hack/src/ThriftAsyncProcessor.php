@@ -455,18 +455,18 @@ abstract class ThriftAsyncProcessor
   ): Awaitable<void> {
 
     $handler_ctx = $this->eventHandler_->getHandlerContext($fname);
-
-    $args_class = $method_metadata->getArgsClass();
-    $args = $this->readHelper($args_class, $input, $fname, $handler_ctx);
-    $this->eventHandler_
-      ->preExec(
-        $handler_ctx,
-        $method_metadata->getServiceName(),
-        $fname,
-        $args,
-      );
     $reply_type = TMessageType::REPLY;
+
     try {
+      $args_class = $method_metadata->getArgsClass();
+      $args = $this->readHelper($args_class, $input, $fname, $handler_ctx);
+      $this->eventHandler_
+        ->preExec(
+          $handler_ctx,
+          $method_metadata->getServiceName(),
+          $fname,
+          $args,
+        );
       await $method_metadata->genExecute($this->handler, $args);
       $result = $method_metadata->getResult();
       if ($result === null) {
