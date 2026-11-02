@@ -65,51 +65,6 @@ cdef extern from *:
     #undef _serialize
     """
 
-cdef extern from *:
-    """
-    // `fbthrift_field_cache_publish` steals `value` and returns a borrowed
-    // reference to the object the slot holds afterwards. A slot is written at
-    // most once: a thread that loses the race to fill it drops its own value
-    // and returns the winner's. Building a value can run Python code, such as
-    // an adapter, so even with the GIL another thread can fill the slot first.
-    #ifdef Py_GIL_DISABLED
-    static inline PyObject* fbthrift_field_cache_get(
-        PyObject* cache, Py_ssize_t index) {
-      return (PyObject*)_Py_atomic_load_ptr_acquire(
-          &((PyTupleObject*)cache)->ob_item[index]);
-    }
-    static inline PyObject* fbthrift_field_cache_publish(
-        PyObject* cache, Py_ssize_t index, PyObject* value) {
-      PyObject* winner = NULL;
-      if (_Py_atomic_compare_exchange_ptr(
-              &((PyTupleObject*)cache)->ob_item[index], &winner, value)) {
-        return value;
-      }
-      Py_DECREF(value);
-      return winner;
-    }
-    #else
-    static inline PyObject* fbthrift_field_cache_get(
-        PyObject* cache, Py_ssize_t index) {
-      return PyTuple_GET_ITEM(cache, index);
-    }
-    static inline PyObject* fbthrift_field_cache_publish(
-        PyObject* cache, Py_ssize_t index, PyObject* value) {
-      PyObject* winner = PyTuple_GET_ITEM(cache, index);
-      if (winner != NULL) {
-        Py_DECREF(value);
-        return winner;
-      }
-      PyTuple_SET_ITEM(cache, index, value);
-      return value;
-    }
-    #endif
-    """
-    PyObject* fbthrift_field_cache_get(object cache, Py_ssize_t index)
-    PyObject* fbthrift_field_cache_publish(
-        object cache, Py_ssize_t index, PyObject* value
-    )
-
 _fbthrift__PY3_STRUCTURED = None
 
 cdef class _fbthrift_UnmatchableType:
@@ -1624,7 +1579,7 @@ cdef class Struct(StructOrUnion):
         return py_value
 
     cdef _fbthrift_get_cached_field_value(self, int16_t index):
-        cdef PyObject* cached_value = fbthrift_field_cache_get(
+        cdef PyObject* cached_value = fieldCacheGet(
             self._fbthrift_field_cache, index
         )
         if cached_value != NULL:
@@ -1633,7 +1588,7 @@ cdef class Struct(StructOrUnion):
         py_value = self._fbthrift_py_value_from_internal_data(index)
 
         Py_INCREF(py_value)
-        return <object>fbthrift_field_cache_publish(
+        return <object>fieldCachePublish(
             self._fbthrift_field_cache, index, <PyObject*>py_value
         )
 

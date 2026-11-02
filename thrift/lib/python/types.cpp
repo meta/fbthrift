@@ -1358,6 +1358,29 @@ PyObject* createStructList(int16_t numFields) {
   return createStructContainer<ListContainer>(numFields);
 }
 
+PyObject* fieldCachePublish(
+    PyObject* cache, Py_ssize_t index, PyObject* value) {
+#ifdef Py_GIL_DISABLED
+  PyObject* winner = nullptr;
+  if (_Py_atomic_compare_exchange_ptr(
+          &reinterpret_cast<PyTupleObject*>(cache)->ob_item[index],
+          &winner,
+          value)) {
+    winner = value;
+  }
+#else
+  PyObject* winner = PyTuple_GET_ITEM(cache, index);
+  if (winner == nullptr) {
+    PyTuple_SET_ITEM(cache, index, value);
+    winner = value;
+  }
+#endif
+  if (winner != value) {
+    Py_DECREF(value);
+  }
+  return winner;
+}
+
 PyObject* createImmutableStructTupleWithDefaultValues(
     const detail::StructInfo& structInfo) {
   return createStructTupleWithDefaultValues(structInfo);

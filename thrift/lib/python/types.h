@@ -108,6 +108,31 @@ PyObject* createStructTupleWithDeprecatedIsset(int16_t numFields);
 PyObject* createStructList(int16_t numFields);
 
 /**
+ * Returns a borrowed reference to the value in slot `index` of the field cache
+ * tuple `cache`, or nullptr if the slot is empty.
+ */
+inline PyObject* fieldCacheGet(PyObject* cache, Py_ssize_t index) {
+#ifdef Py_GIL_DISABLED
+  return static_cast<PyObject*>(_Py_atomic_load_ptr_acquire(
+      &reinterpret_cast<PyTupleObject*>(cache)->ob_item[index]));
+#else
+  return PyTuple_GET_ITEM(cache, index);
+#endif
+}
+
+/**
+ * Stores `value` in slot `index` of the field cache tuple `cache`, unless the
+ * slot is already filled. Steals `value` and returns a borrowed reference to
+ * the object the slot holds afterwards.
+ *
+ * A slot is written at most once: a thread that loses the race to fill it
+ * drops its own value and returns the winner's. Building a value can run
+ * Python code, such as an adapter, so even with the GIL another thread can
+ * fill the slot first.
+ */
+PyObject* fieldCachePublish(PyObject* cache, Py_ssize_t index, PyObject* value);
+
+/**
  * Returns a new "struct tuple" associated with an immutable Thrift struct,
  * all elements initialized with default values.
  *
