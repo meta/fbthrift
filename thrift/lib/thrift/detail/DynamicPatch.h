@@ -53,6 +53,7 @@ class DynamicSetPatch;
 class DynamicMapPatch;
 class DynamicStructPatch;
 class DynamicUnionPatch;
+class DynamicUnknownPatch;
 
 using ValueList = std::vector<Value>;
 using ValueSet = folly::F14VectorSet<Value>;
@@ -213,6 +214,8 @@ class DynamicPatchBase {
   std::uint32_t encode(Protocol&) const;
 
  protected:
+  friend class DynamicUnknownPatch;
+
   ~DynamicPatchBase() = default;
 
   [[nodiscard]] Value& get(op::PatchOp patchOp) {
@@ -234,225 +237,6 @@ class DynamicPatchBase {
 
   Object patch_;
   detail::DynamicPatchOptions options_;
-};
-
-/// DynamicPatch for ambiguous type.
-///
-/// When DynamicPatch is created from serialized blob, there could be an
-/// ambiguity to deduce the exact patch type. It consists of the
-/// following operations: `assign`, `clear`, `patchIfSet`, `removeMulti`. See
-/// DynamicUnknownPatch::Category for all possible scenarios.
-///
-/// If the exact patch type is known, `DynamicPatch::getStoredPatchByTag` can be
-/// used to inform the exact patch type.
-///
-/// Good example:
-///
-/// DynamicPatch dynPatch; // patch with only `patchIfSet`.
-/// EXPECT_TRUE(dynPatch.isPatchTypeAmbiguous());
-/// // Assert Category::StructuredPatch is union patch.
-/// dynPatch.getStoredPatchByTag<type::union_c>();
-///
-///
-/// Bad example:
-///
-/// DynamicPatch dynPatch; // patch with only `removeMulti`.
-/// EXPECT_TRUE(dynPatch.isPatchTypeAmbiguous());
-/// EXPECT_THROW(dynPatch.getStoredPatchByTag<type::union_c>());
-///
-/// For introspection, users should provide a visitor with the following methods
-/// for `customVisit`:
-///
-///     struct Visitor {
-///       // Category::StructuredOrAnyPatch
-///       void assign(const Object&);
-///       // Category::ClearPatch
-///       void clear();
-///       // Category::AssociativeContainerPatch
-///       void removeMulti(const ValueSet&);
-///       // Category::StructuredPatch
-///       void patchIfSet(FieldId, const DynamicPatch&);
-///     }
-class DynamicUnknownPatch : private DynamicPatchBase {
- public:
-  DynamicUnknownPatch();
-  ~DynamicUnknownPatch();
-  DynamicUnknownPatch(const DynamicUnknownPatch&);
-  DynamicUnknownPatch(DynamicUnknownPatch&&) noexcept;
-  DynamicUnknownPatch& operator=(const DynamicUnknownPatch&);
-  DynamicUnknownPatch& operator=(DynamicUnknownPatch&&) noexcept;
-
-  void assign(Object v);
-  void removeMulti(ValueSet v);
-  void patchIfSet(FieldId, const DynamicPatch&);
-
-  void clear() {
-    dropSubPatches();
-    DynamicPatchBase::clear();
-  }
-
-  void fromObject(detail::Badge badge, Object obj) {
-    dropSubPatches();
-    DynamicPatchBase::fromObject(badge, std::move(obj));
-    validateAndGetCategory();
-  }
-
-  [[nodiscard]] Object toObject() const& {
-    encodeSubPatches();
-    return DynamicPatchBase::toObject();
-  }
-
-  [[nodiscard]] Object toObject() && {
-    encodeSubPatches();
-    return std::move(static_cast<DynamicPatchBase&>(*this)).toObject();
-  }
-
-  // Only touches `options_`, so it needs no sub-patch handling.
-  using DynamicPatchBase::doNotConvertStringToBinary;
-
-  [[nodiscard]] bool empty(detail::Badge badge) const {
-    return DynamicPatchBase::empty(badge) && !hasDecodedSubPatches();
-  }
-
-  [[nodiscard]] std::size_t patchedElementCount(detail::Badge badge) const {
-    encodeSubPatches();
-    return DynamicPatchBase::patchedElementCount(badge);
-  }
-
-  template <typename Protocol>
-  std::uint32_t encode(Protocol& prot) const {
-    encodeSubPatches();
-    return DynamicPatchBase::encode(prot);
-  }
-
-  template <class Reader, bool _>
-  void applyAllFieldsInStream(
-      detail::Badge badge,
-      thrift::detail::StructuredDynamicCursorReader<Reader, _>& in,
-      thrift::detail::StructuredDynamicCursorWriter<
-          typename Reader::ProtocolWriter>& out) const;
-
-  template <type::StandardProtocol Protocol>
-  std::unique_ptr<folly::IOBuf> applyToSerializedObject(
-      std::unique_ptr<folly::IOBuf> buf) const;
-
-  /// Checks if it is convertible to the patch type.
-  template <class Patch>
-  void checkConvertible() const {
-    auto category = validateAndGetCategory();
-    switch (category) {
-      case Category::EmptyPatch:
-        // Empty patch is compatible with any patch type.
-        break;
-      case Category::ClearPatch:
-        // Clear patch is compatible with any patch type.
-        break;
-      case Category::StructuredPatch:
-        // Structured patch is compatible with struct or union patch.
-        if constexpr (
-            !std::is_same_v<Patch, DynamicStructPatch> &&
-            !std::is_same_v<Patch, DynamicUnionPatch>) {
-          throwIncompatibleConversion();
-        }
-        break;
-      case Category::StructuredOrAnyPatch:
-        // Structured or any patch is compatible with struct, union, or any
-        // patch.
-        if constexpr (
-            !std::is_same_v<Patch, DynamicStructPatch> &&
-            !std::is_same_v<Patch, DynamicUnionPatch> &&
-            !std::is_same_v<Patch, op::AnyPatch>) {
-          throwIncompatibleConversion();
-        }
-        break;
-      case Category::AssociativeContainerPatch:
-        // Associative container patch is compatible with set or map patch.
-        if constexpr (
-            !std::is_same_v<Patch, DynamicSetPatch> &&
-            !std::is_same_v<Patch, DynamicMapPatch>) {
-          throwIncompatibleConversion();
-        }
-        break;
-    }
-  }
-
-  protocol::ExtractedMasksFromPatch extractMaskFromPatch() const;
-
- private:
-  template <class Self, class Visitor>
-  static void customVisitImpl(Self&&, Visitor&&);
-
- public:
-  FOLLY_FOR_EACH_THIS_OVERLOAD_IN_CLASS_BODY_DELEGATE(
-      customVisit, customVisitImpl);
-
-  void apply(detail::Badge, Value&) const;
-
-  template <folly::uncvref_same_as<DynamicUnknownPatch> Next>
-  void merge(detail::Badge, Next&& other) {
-    std::forward<Next>(other).customVisit(*this);
-  }
-
- private:
-  // The unknown patch can be classified into the following categories
-  enum class Category {
-    // The patch has no operation. It can be any kinds of patch.
-    EmptyPatch,
-
-    // The patch only has `clear` operation. It can be any kinds of patch.
-    ClearPatch,
-
-    // The patch has `patchPrior/patchAfter`. It can be a struct patch or
-    // union patch.
-    StructuredPatch,
-
-    // The patch only has `assign` of Object. It can be a struct, union, or
-    // any patch.
-    StructuredOrAnyPatch,
-
-    // The patch only has `remove` operation. It can be a set or map patch.
-    AssociativeContainerPatch
-  };
-
-  Category validateAndGetCategory() const;
-
-  [[noreturn]] void throwIncompatibleConversion() const;
-  [[noreturn]] void throwIncompatibleCategory(std::string_view method) const;
-
-  bool isOneOfCategory(std::initializer_list<Category> c) const {
-    return std::find(c.begin(), c.end(), validateAndGetCategory()) != c.end();
-  }
-
-  // Decoded `patchPrior`/`patchAfter` sub-patches. Definition is in the .cpp
-  // because the maps hold DynamicPatch, which is incomplete here.
-  struct SubPatches;
-
-  // Moves the `patchPrior`/`patchAfter` ops out of `patch_` into `subPatches_`,
-  // decoding each sub-patch once. No-op once decoded.
-  //
-  // Why: holding the sub-patches as a serialized Object makes every
-  // `patchIfSet` decode the accumulated patch, merge, and re-encode it, so
-  // folding N sub-patches in costs O(N^2). Decoded, each fold is a merge into
-  // one map entry, the same representation DynamicStructurePatch uses.
-  //
-  // Decoding is deferred to the first mutation so that a patch which is only
-  // ever read keeps its Object byte-for-byte: `encodeSubPatches` would
-  // otherwise renormalize sub-patches that nothing asked to change.
-  void decodeSubPatches();
-
-  // Puts the decoded sub-patches back into `patch_`, restoring it as the whole
-  // patch. Every reader calls this before touching `patch_`.
-  void encodeSubPatches() const;
-
-  // Discards decoded sub-patches without writing them back. For the mutators
-  // that replace the whole patch (`assign`, `clear`, `fromObject`).
-  void dropSubPatches();
-
-  bool hasDecodedSubPatches() const;
-
-  // Mutable so the readers above can restore `patch_` from a const context:
-  // this is a representation change, not a value change.
-  mutable std::unique_ptr<SubPatches> subPatches_;
 };
 
 /// DynamicPatch for a Thrift list.
@@ -1050,6 +834,227 @@ extern template DynamicPatch& DynamicMapPatch::patchByKeyImpl(
 extern template DynamicPatch& DynamicMapPatch::patchByKeyImpl(
     Value k, DynamicPatch&& p);
 
+/// DynamicPatch for ambiguous type.
+///
+/// When DynamicPatch is created from serialized blob, there could be an
+/// ambiguity to deduce the exact patch type. It consists of the
+/// following operations: `assign`, `clear`, `patchIfSet`, `removeMulti`. See
+/// DynamicUnknownPatch::Category for all possible scenarios.
+///
+/// If the exact patch type is known, `DynamicPatch::getStoredPatchByTag` can be
+/// used to inform the exact patch type.
+///
+/// Good example:
+///
+/// DynamicPatch dynPatch; // patch with only `patchIfSet`.
+/// EXPECT_TRUE(dynPatch.isPatchTypeAmbiguous());
+/// // Assert Category::StructuredPatch is union patch.
+/// dynPatch.getStoredPatchByTag<type::union_c>();
+///
+///
+/// Bad example:
+///
+/// DynamicPatch dynPatch; // patch with only `removeMulti`.
+/// EXPECT_TRUE(dynPatch.isPatchTypeAmbiguous());
+/// EXPECT_THROW(dynPatch.getStoredPatchByTag<type::union_c>());
+///
+/// For introspection, users should provide a visitor with the following methods
+/// for `customVisit`:
+///
+///     struct Visitor {
+///       // Category::StructuredOrAnyPatch
+///       void assign(const Object&);
+///       // Category::ClearPatch
+///       void clear();
+///       // Category::AssociativeContainerPatch
+///       void removeMulti(const ValueSet&);
+///       // Category::StructuredPatch
+///       void patchIfSet(FieldId, const DynamicPatch&);
+///     }
+class DynamicUnknownPatch {
+ public:
+  DynamicUnknownPatch();
+  ~DynamicUnknownPatch();
+  DynamicUnknownPatch(const DynamicUnknownPatch&);
+  DynamicUnknownPatch(DynamicUnknownPatch&&) noexcept;
+  DynamicUnknownPatch& operator=(const DynamicUnknownPatch&);
+  DynamicUnknownPatch& operator=(DynamicUnknownPatch&&) noexcept;
+
+  void assign(Object v);
+  void removeMulti(ValueSet v);
+  void patchIfSet(FieldId, const DynamicPatch&);
+
+  void clear() {
+    dropSubPatches();
+    base_.clear();
+  }
+
+  void fromObject(detail::Badge badge, Object obj) {
+    dropSubPatches();
+    base_.fromObject(badge, std::move(obj));
+    validateAndGetCategory();
+  }
+
+  [[nodiscard]] Object toObject() const& {
+    encodeSubPatches();
+    return base_.toObject();
+  }
+
+  [[nodiscard]] Object toObject() && {
+    encodeSubPatches();
+    return std::move(base_).toObject();
+  }
+
+  void doNotConvertStringToBinary(detail::Badge badge) {
+    base_.doNotConvertStringToBinary(badge);
+  }
+
+  [[nodiscard]] bool empty(detail::Badge badge) const {
+    return base_.empty(badge) && !hasDecodedSubPatches();
+  }
+
+  [[nodiscard]] std::size_t patchedElementCount(detail::Badge badge) const {
+    encodeSubPatches();
+    return base_.patchedElementCount(badge);
+  }
+
+  template <typename Protocol>
+  std::uint32_t encode(Protocol& prot) const {
+    encodeSubPatches();
+    return base_.encode(prot);
+  }
+
+  template <class Reader, bool _>
+  void applyAllFieldsInStream(
+      detail::Badge badge,
+      thrift::detail::StructuredDynamicCursorReader<Reader, _>& in,
+      thrift::detail::StructuredDynamicCursorWriter<
+          typename Reader::ProtocolWriter>& out) const;
+
+  template <type::StandardProtocol Protocol>
+  std::unique_ptr<folly::IOBuf> applyToSerializedObject(
+      std::unique_ptr<folly::IOBuf> buf) const;
+
+  /// Checks if it is convertible to the patch type.
+  template <class Patch>
+  void checkConvertible() const {
+    auto category = validateAndGetCategory();
+    switch (category) {
+      case Category::EmptyPatch:
+        // Empty patch is compatible with any patch type.
+        break;
+      case Category::ClearPatch:
+        // Clear patch is compatible with any patch type.
+        break;
+      case Category::StructuredPatch:
+        // Structured patch is compatible with struct or union patch.
+        if constexpr (
+            !std::is_same_v<Patch, DynamicStructPatch> &&
+            !std::is_same_v<Patch, DynamicUnionPatch>) {
+          throwIncompatibleConversion();
+        }
+        break;
+      case Category::StructuredOrAnyPatch:
+        // Structured or any patch is compatible with struct, union, or any
+        // patch.
+        if constexpr (
+            !std::is_same_v<Patch, DynamicStructPatch> &&
+            !std::is_same_v<Patch, DynamicUnionPatch> &&
+            !std::is_same_v<Patch, op::AnyPatch>) {
+          throwIncompatibleConversion();
+        }
+        break;
+      case Category::AssociativeContainerPatch:
+        // Associative container patch is compatible with set or map patch.
+        if constexpr (
+            !std::is_same_v<Patch, DynamicSetPatch> &&
+            !std::is_same_v<Patch, DynamicMapPatch>) {
+          throwIncompatibleConversion();
+        }
+        break;
+    }
+  }
+
+  protocol::ExtractedMasksFromPatch extractMaskFromPatch() const;
+
+ private:
+  template <class Self, class Visitor>
+  static void customVisitImpl(Self&&, Visitor&&);
+
+ public:
+  FOLLY_FOR_EACH_THIS_OVERLOAD_IN_CLASS_BODY_DELEGATE(
+      customVisit, customVisitImpl);
+
+  void apply(detail::Badge, Value&) const;
+
+  template <folly::uncvref_same_as<DynamicUnknownPatch> Next>
+  void merge(detail::Badge, Next&& other) {
+    std::forward<Next>(other).customVisit(*this);
+  }
+
+ private:
+  // The unknown patch can be classified into the following categories
+  enum class Category {
+    // The patch has no operation. It can be any kinds of patch.
+    EmptyPatch,
+
+    // The patch only has `clear` operation. It can be any kinds of patch.
+    ClearPatch,
+
+    // The patch has `patchPrior/patchAfter`. It can be a struct patch or
+    // union patch.
+    StructuredPatch,
+
+    // The patch only has `assign` of Object. It can be a struct, union, or
+    // any patch.
+    StructuredOrAnyPatch,
+
+    // The patch only has `remove` operation. It can be a set or map patch.
+    AssociativeContainerPatch
+  };
+
+  Category validateAndGetCategory() const;
+
+  [[noreturn]] void throwIncompatibleConversion() const;
+  [[noreturn]] void throwIncompatibleCategory(std::string_view method) const;
+
+  bool isOneOfCategory(std::initializer_list<Category> c) const {
+    return std::find(c.begin(), c.end(), validateAndGetCategory()) != c.end();
+  }
+
+  // Decoded `patchPrior`/`patchAfter` sub-patches. Definition is in the .cpp
+  // because the maps hold DynamicPatch, which is incomplete here.
+  struct SubPatches;
+
+  // Moves the `patchPrior`/`patchAfter` ops out of `patch_` into `subPatches_`,
+  // decoding each sub-patch once. No-op once decoded.
+  //
+  // Why: holding the sub-patches as a serialized Object makes every
+  // `patchIfSet` decode the accumulated patch, merge, and re-encode it, so
+  // folding N sub-patches in costs O(N^2). Decoded, each fold is a merge into
+  // one map entry, the same representation DynamicStructurePatch uses.
+  //
+  // Decoding is deferred to the first mutation so that a patch which is only
+  // ever read keeps its Object byte-for-byte: `encodeSubPatches` would
+  // otherwise renormalize sub-patches that nothing asked to change.
+  void decodeSubPatches();
+
+  // Puts the decoded sub-patches back into `patch_`, restoring it as the whole
+  // patch. Every reader calls this before touching `patch_`.
+  void encodeSubPatches() const;
+
+  // Discards decoded sub-patches without writing them back. For the mutators
+  // that replace the whole patch (`assign`, `clear`, `fromObject`).
+  void dropSubPatches();
+
+  bool hasDecodedSubPatches() const;
+
+  // Mutable so the readers above can restore `patch_` from a const context:
+  // this is a representation change, not a value change.
+  mutable DynamicPatchBase base_;
+  mutable std::unique_ptr<SubPatches> subPatches_;
+};
+
 class DynamicStructPatch;
 class DynamicUnionPatch;
 
@@ -1302,19 +1307,19 @@ void DynamicUnknownPatch::customVisitImpl(Self&& self, Visitor&& v) {
   // We don't need to check EnsureStruct and EnsureUnion fields since they won't
   // exists -- otherwise we are able to identify the exact patch type and it
   // should not be unknown patch.
-  if (auto assign = self.get_ptr(op::PatchOp::Assign)) {
+  if (auto assign = self.base_.get_ptr(op::PatchOp::Assign)) {
     std::forward<Visitor>(v).assign(
         folly::forward_like<Self>(assign->as_object()));
     return;
   }
 
-  if (auto clear = self.get_ptr(op::PatchOp::Clear);
+  if (auto clear = self.base_.get_ptr(op::PatchOp::Clear);
       clear && clear->as_bool()) {
     std::forward<Visitor>(v).clear();
   }
 
   for (auto op : {op::PatchOp::PatchPrior, op::PatchOp::PatchAfter}) {
-    if (auto subPatch = self.get_ptr(op)) {
+    if (auto subPatch = self.base_.get_ptr(op)) {
       for (auto& [fieldId, fieldPatch] : subPatch->as_object()) {
         std::forward<Visitor>(v).patchIfSet(
             static_cast<FieldId>(fieldId),
@@ -1324,7 +1329,7 @@ void DynamicUnknownPatch::customVisitImpl(Self&& self, Visitor&& v) {
     }
   }
 
-  if (auto remove = self.get_ptr(op::PatchOp::Remove)) {
+  if (auto remove = self.base_.get_ptr(op::PatchOp::Remove)) {
     std::forward<Visitor>(v).removeMulti(
         folly::forward_like<Self>(remove->as_set()));
   }
@@ -1725,25 +1730,26 @@ void DynamicUnknownPatch::applyAllFieldsInStream(
     thrift::detail::StructuredDynamicCursorWriter<
         typename Reader::ProtocolWriter>& out) const {
   encodeSubPatches();
-  if (auto assign = get_ptr(op::PatchOp::Assign)) {
+  if (auto assign = base_.get_ptr(op::PatchOp::Assign)) {
     for (const auto& [id, value] : assign->as_object()) {
       out.writeValue(id, value);
     }
     return;
   }
 
-  if (auto clear = get_ptr(op::PatchOp::Clear); clear && clear->as_bool()) {
+  if (auto clear = base_.get_ptr(op::PatchOp::Clear);
+      clear && clear->as_bool()) {
     return;
   }
 
-  if (get_ptr(op::PatchOp::Remove)) {
+  if (base_.get_ptr(op::PatchOp::Remove)) {
     // If Remove operation exists in Unknown Patch, it would be either a set or
     // a map patch, which can not be applied on structured.
     throw std::runtime_error("Trying to apply set/map patch to struct/union");
   }
 
-  auto patchPrior = get_ptr(op::PatchOp::PatchPrior);
-  auto patchAfter = get_ptr(op::PatchOp::PatchAfter);
+  auto patchPrior = base_.get_ptr(op::PatchOp::PatchPrior);
+  auto patchAfter = base_.get_ptr(op::PatchOp::PatchAfter);
 
   while (in.fieldType() != protocol::TType::T_STOP) {
     auto id = in.fieldId();

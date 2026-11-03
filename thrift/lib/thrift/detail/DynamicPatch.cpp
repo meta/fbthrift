@@ -2091,12 +2091,12 @@ auto DynamicUnknownPatch::validateAndGetCategory() const -> Category {
           "Unclassified unknown patch. "
           "Either there is a bug in the Unknown Patch implementation "
           "or the input is incorrect. Patch content: " +
-          debugStringViaEncode(patch_));
+          debugStringViaEncode(base_.patch_));
     }
   };
 
   auto onlyHasOps = [&](folly::F14FastSet<op::PatchOp> ops) {
-    for (const auto& [k, _] : patch_) {
+    for (const auto& [k, _] : base_.patch_) {
       if (!ops.contains(static_cast<op::PatchOp>(k))) {
         return false;
       }
@@ -2104,11 +2104,11 @@ auto DynamicUnknownPatch::validateAndGetCategory() const -> Category {
     return true;
   };
 
-  if (patch_.empty() && !hasDecodedSubPatches()) {
+  if (base_.patch_.empty() && !hasDecodedSubPatches()) {
     return Category::EmptyPatch;
   }
 
-  if (auto assign = get_ptr(op::PatchOp::Assign)) {
+  if (auto assign = base_.get_ptr(op::PatchOp::Assign)) {
     throwExceptionIf(!assign->is_object(), "assign_is_not_object");
     return Category::StructuredOrAnyPatch;
   }
@@ -2126,7 +2126,7 @@ auto DynamicUnknownPatch::validateAndGetCategory() const -> Category {
   if (!hasDecodedSubPatches() &&
       onlyHasOps({op::PatchOp::Clear, op::PatchOp::Remove})) {
     throwExceptionIf(
-        !get_ptr(op::PatchOp::Remove)->is_set(), "remove_is_not_set");
+        !base_.get_ptr(op::PatchOp::Remove)->is_set(), "remove_is_not_set");
     return Category::AssociativeContainerPatch;
   }
 
@@ -2146,13 +2146,13 @@ void DynamicUnknownPatch::throwIncompatibleCategory(
   folly::throw_exception<std::runtime_error>(fmt::format(
       "Modifying thrift patch in an incompatible way. operation: {}, patch content: {}",
       method,
-      debugStringViaEncode(patch_)));
+      debugStringViaEncode(base_.patch_)));
 }
 void DynamicUnknownPatch::throwIncompatibleConversion() const {
   encodeSubPatches();
   folly::throw_exception<std::runtime_error>(fmt::format(
       "Converting thrift patch in an incompatible way. patch content: {}",
-      debugStringViaEncode(patch_)));
+      debugStringViaEncode(base_.patch_)));
 }
 void DynamicUnknownPatch::removeMulti(ValueSet v) {
   if (!isOneOfCategory(
@@ -2162,7 +2162,7 @@ void DynamicUnknownPatch::removeMulti(ValueSet v) {
     throwIncompatibleCategory("remove");
   }
 
-  auto& s = get(op::PatchOp::Remove).ensure_set();
+  auto& s = base_.get(op::PatchOp::Remove).ensure_set();
   v.eraseInto(v.begin(), v.end(), [&](auto&& k) { s.insert(std::move(k)); });
 }
 void DynamicUnknownPatch::assign(Object v) {
@@ -2175,8 +2175,8 @@ void DynamicUnknownPatch::assign(Object v) {
   }
 
   dropSubPatches();
-  patch_.members()->clear();
-  get(op::PatchOp::Assign).emplace_object(std::move(v));
+  base_.patch_.members()->clear();
+  base_.get(op::PatchOp::Assign).emplace_object(std::move(v));
 }
 
 struct DynamicUnknownPatch::SubPatches {
@@ -2194,14 +2194,14 @@ DynamicUnknownPatch& DynamicUnknownPatch::operator=(
 // Copies restore `other` first and keep nothing decoded: the decoded maps are a
 // representation of `patch_`, so the copy is complete without them.
 DynamicUnknownPatch::DynamicUnknownPatch(const DynamicUnknownPatch& other)
-    : DynamicPatchBase((other.encodeSubPatches(), other)) {}
+    : base_((other.encodeSubPatches(), other.base_)) {}
 
 DynamicUnknownPatch& DynamicUnknownPatch::operator=(
     const DynamicUnknownPatch& other) {
   if (this != &other) {
     other.encodeSubPatches();
     dropSubPatches();
-    DynamicPatchBase::operator=(other);
+    base_ = other.base_;
   }
   return *this;
 }
@@ -2217,13 +2217,13 @@ void DynamicUnknownPatch::decodeSubPatches() {
   }
   subPatches_ = std::make_unique<SubPatches>();
   auto decodeInto = [&](op::PatchOp patchOp, auto& target) {
-    if (auto* ops = get_ptr(patchOp)) {
+    if (auto* ops = base_.get_ptr(patchOp)) {
       for (auto& [fieldId, fieldPatch] : ops->as_object()) {
         target.emplace(
             static_cast<FieldId>(fieldId),
             DynamicPatch::fromObject(std::move(fieldPatch.as_object())));
       }
-      patch_.erase(static_cast<FieldId>(patchOp));
+      base_.patch_.erase(static_cast<FieldId>(patchOp));
     }
   };
   decodeInto(op::PatchOp::PatchPrior, subPatches_->prior);
@@ -2235,19 +2235,11 @@ void DynamicUnknownPatch::encodeSubPatches() const {
     return;
   }
   auto decoded = std::move(subPatches_);
-  // Restoring `patch_` from the decoded maps does not change the value this
-  // patch represents, only which of the two places holds it, which is why the
-  // readers may do it. `patch_` lives in DynamicPatchBase and is not mutable;
-  // casting here keeps that base shared with every other patch type. Sound
-  // because a patch is only ever reached through the non-const object that owns
-  // it -- DynamicPatch holds its alternatives in a heap-allocated variant --
-  // never through a const-constructed one.
-  auto& self = const_cast<DynamicUnknownPatch&>(*this);
   auto encodeFrom = [&](op::PatchOp patchOp, auto& source) {
     if (source.empty()) {
       return;
     }
-    auto& ops = self.get(patchOp).ensure_object();
+    auto& ops = base_.get(patchOp).ensure_object();
     for (auto& [fieldId, fieldPatch] : source) {
       ops[fieldId].emplace_object(std::move(fieldPatch).toObject());
     }
@@ -2268,7 +2260,7 @@ void DynamicUnknownPatch::patchIfSet(FieldId id, const DynamicPatch& p) {
            Category::StructuredPatch})) {
     throwIncompatibleCategory("patchIfSet");
   }
-  if (auto assign = get_ptr(op::PatchOp::Assign)) {
+  if (auto assign = base_.get_ptr(op::PatchOp::Assign)) {
     if (assign->as_object().contains(id)) {
       p.apply(assign->as_object().at(id));
     }
