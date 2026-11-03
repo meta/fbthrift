@@ -17,11 +17,11 @@
 #include <thrift/lib/cpp2/fast_thrift/frame/write/handler/YieldingSrptFrameFragmentationHandlerState.h>
 
 #include <algorithm>
-#include <limits>
 #include <memory>
 #include <utility>
 
 #include <glog/logging.h>
+#include <folly/logging/xlog.h>
 
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 
@@ -29,7 +29,8 @@ namespace apache::thrift::fast_thrift::frame::write::handler {
 
 namespace {
 
-// A frame sends all its metadata with its first fragment.
+// A frame sends all its metadata with its first fragment. enqueue() refuses
+// metadata above kMaxStreamQuantum, so that fragment fits in one frame.
 size_t unsentMetadataSize(const PendingFrame& frame) noexcept {
   return !frame.firstEmitted && frame.originalFrame.metadata != nullptr
       ? frame.originalFrame.metadata->computeChainDataLength()
@@ -77,12 +78,11 @@ void YieldingSrptFrameFragmentationHandlerState::detach() noexcept {
 void YieldingSrptFrameFragmentationHandlerState::clearPending() noexcept {
   cancelLoopCallbackIfScheduled();
   streams_.clear();
-  pinnedLarge_.reset();
+  pinned_.reset();
   deferredArrivals_.clear();
   passActive_ = false;
-  smallPhase_ = false;
   remainingCallbackBudget_ = 0;
-  remainingLargeTurns_ = 0;
+  remainingTurns_ = 0;
 }
 
 YieldingSrptFrameFragmentationHandlerState::WriteDisposition
@@ -95,12 +95,25 @@ YieldingSrptFrameFragmentationHandlerState::prepareWrite(
   if (!frame.canFragment()) {
     return WriteDisposition::PassThrough;
   }
+  // With a bad config, enqueue() refuses every data frame.
+  if (configValid_ && !hasPendingStream(frame.streamId) &&
+      fitsInStreamQuantum(frame, streamQuantum_)) {
+    return WriteDisposition::PassThrough;
+  }
   return WriteDisposition::Defer;
 }
 
 bool YieldingSrptFrameFragmentationHandlerState::enqueue(
     ComposedFrame&& frame) {
-  if (!configValid_) {
+  if (!configValid_ || !metadataFitsInMaxStreamQuantum(frame)) {
+    XLOGF_EVERY_MS(
+        ERR,
+        60'000,
+        "YieldingSrptFrameFragmentationHandler refused a data frame with {} "
+        "metadata bytes. The limit is {} bytes, and the config is {}.",
+        frame.metadata ? frame.metadata->computeChainDataLength() : 0,
+        kMaxStreamQuantum,
+        configValid_ ? "valid" : "invalid");
     return false;
   }
   if (passActive_) {
@@ -115,45 +128,26 @@ bool YieldingSrptFrameFragmentationHandlerState::enqueue(
 void YieldingSrptFrameFragmentationHandlerState::startPass() noexcept {
   DCHECK(!passActive_);
   passActive_ = true;
-  smallPhase_ = true;
   remainingCallbackBudget_ = callbackBudget_;
-  remainingLargeTurns_ = largeStreamCount();
+  remainingTurns_ = streams_.size() + (pinned_.has_value() ? 1 : 0);
 }
 
 std::optional<YieldingSrptFrameFragmentationHandlerState::ScheduledFragment>
 YieldingSrptFrameFragmentationHandlerState::nextFragment() noexcept {
-  if (remainingCallbackBudget_ == 0) {
-    return std::nullopt;
+  if (remainingCallbackBudget_ != 0 && remainingTurns_ != 0 &&
+      (pinned_.has_value() || !streams_.empty())) {
+    --remainingTurns_;
+    ScheduledFragment scheduled = takePinnedFragment();
+    spendCallbackBudget(scheduled.fragment.payloadBytes);
+    return scheduled;
   }
-
-  if (smallPhase_) {
-    if (!streams_.empty() && streams_.peekMin().singleQuantum) {
-      ScheduledFragment scheduled = takeSmallFragment();
-      spendCallbackBudget(scheduled.fragment.payloadBytes);
-      return scheduled;
-    }
-    smallPhase_ = false;
-  }
-
-  if (remainingLargeTurns_ == 0) {
-    return std::nullopt;
-  }
-  if (!pinnedLarge_.has_value()) {
-    if (streams_.empty()) {
-      return std::nullopt;
-    }
-    DCHECK(!streams_.peekMin().singleQuantum);
-  }
-
-  --remainingLargeTurns_;
-  ScheduledFragment scheduled = takeLargeFragment();
-  spendCallbackBudget(scheduled.fragment.payloadBytes);
-  return scheduled;
+  // A frame that takeDeferredArrival() queues waits for the next pass.
+  remainingTurns_ = 0;
+  return takeDeferredArrival();
 }
 
 bool YieldingSrptFrameFragmentationHandlerState::finishPass() noexcept {
   passActive_ = false;
-  mergeDeferredArrivals();
   if (!hasPendingWrites()) {
     return true;
   }
@@ -167,8 +161,7 @@ void YieldingSrptFrameFragmentationHandlerState::stopAfterError() noexcept {
 
 bool YieldingSrptFrameFragmentationHandlerState::hasPendingStream(
     uint32_t streamId) const noexcept {
-  if (streams_.contains(streamId) ||
-      (pinnedLarge_.has_value() && pinnedLarge_->stream.streamId == streamId)) {
+  if (hasQueuedStream(streamId)) {
     return true;
   }
   for (const ComposedFrame& frame : deferredArrivals_) {
@@ -181,7 +174,7 @@ bool YieldingSrptFrameFragmentationHandlerState::hasPendingStream(
 
 bool YieldingSrptFrameFragmentationHandlerState::hasPendingWrites()
     const noexcept {
-  return !streams_.empty() || pinnedLarge_.has_value() ||
+  return !streams_.empty() || pinned_.has_value() ||
       !std::all_of(
           deferredArrivals_.begin(), deferredArrivals_.end(), isRemovedArrival);
 }
@@ -216,8 +209,8 @@ void YieldingSrptFrameFragmentationHandlerState::
 void YieldingSrptFrameFragmentationHandlerState::removeStream(
     uint32_t streamId) noexcept {
   streams_.erase(streamId);
-  if (pinnedLarge_.has_value() && pinnedLarge_->stream.streamId == streamId) {
-    pinnedLarge_.reset();
+  if (pinned_.has_value() && pinned_->streamId == streamId) {
+    pinned_.reset();
   }
   for (ComposedFrame& frame : deferredArrivals_) {
     if (frame.streamId == streamId) {
@@ -226,13 +219,36 @@ void YieldingSrptFrameFragmentationHandlerState::removeStream(
   }
 }
 
-void YieldingSrptFrameFragmentationHandlerState::mergeDeferredArrivals() {
-  for (ComposedFrame& frame : deferredArrivals_) {
-    if (!isRemovedArrival(frame)) {
-      enqueueNow(std::move(frame));
+bool YieldingSrptFrameFragmentationHandlerState::hasQueuedStream(
+    uint32_t streamId) const noexcept {
+  return streams_.contains(streamId) ||
+      (pinned_.has_value() && pinned_->streamId == streamId);
+}
+
+std::optional<YieldingSrptFrameFragmentationHandlerState::ScheduledFragment>
+YieldingSrptFrameFragmentationHandlerState::takeDeferredArrival() {
+  while (!deferredArrivals_.empty()) {
+    ComposedFrame frame = std::move(deferredArrivals_.front());
+    deferredArrivals_.pop_front();
+    if (isRemovedArrival(frame)) {
+      continue;
     }
+    if (!hasQueuedStream(frame.streamId) &&
+        fitsInStreamQuantum(frame, streamQuantum_)) {
+      const uint32_t streamId = frame.streamId;
+      const size_t payloadBytes =
+          frame.data ? frame.data->computeChainDataLength() : 0;
+      return ScheduledFragment{
+          streamId,
+          PerStreamState::Fragment{
+              .outFrame = std::move(frame),
+              .payloadBytes = payloadBytes,
+              .currentFrameDone = true,
+          }};
+    }
+    enqueueNow(std::move(frame));
   }
-  deferredArrivals_.clear();
+  return std::nullopt;
 }
 
 void YieldingSrptFrameFragmentationHandlerState::enqueueNow(
@@ -241,87 +257,47 @@ void YieldingSrptFrameFragmentationHandlerState::enqueueNow(
   std::unique_ptr<folly::IOBuf> data = std::move(frame.data);
   const bool originalComplete = frame.isComplete();
 
-  if (pinnedLarge_.has_value() && pinnedLarge_->stream.streamId == streamId) {
-    pinnedLarge_->stream.enqueue(
-        std::move(frame), std::move(data), originalComplete);
+  if (pinned_.has_value() && pinned_->streamId == streamId) {
+    pinned_->enqueue(std::move(frame), std::move(data), originalComplete);
     return;
   }
 
-  if (StreamState* state = streams_.find(streamId)) {
-    state->stream.enqueue(std::move(frame), std::move(data), originalComplete);
-    updatePriority(*state);
-    streams_.update(streamId);
+  // The frame queues behind the front frame, so the heap key does not change.
+  if (PerStreamState* stream = streams_.find(streamId)) {
+    stream->enqueue(std::move(frame), std::move(data), originalComplete);
     return;
   }
 
-  StreamState state;
-  state.stream.streamId = streamId;
-  state.stream.enqueue(std::move(frame), std::move(data), originalComplete);
-  updatePriority(state);
-  streams_.insert(streamId, std::move(state));
+  PerStreamState stream;
+  stream.streamId = streamId;
+  stream.enqueue(std::move(frame), std::move(data), originalComplete);
+  streams_.insert(streamId, std::move(stream));
 }
 
-void YieldingSrptFrameFragmentationHandlerState::updatePriority(
-    StreamState& state) const noexcept {
-  CHECK(!state.stream.frames.empty());
-  const size_t metadataSize = unsentMetadataSize(state.stream.frames.front());
-  state.singleQuantum = state.stream.frames.size() == 1 &&
-      metadataSize <= streamQuantum_ &&
-      state.stream.remaining() <= streamQuantum_ - metadataSize;
-  if (state.singleQuantum) {
-    state.priority = state.stream.remaining();
-  } else {
-    const size_t largeOffset = streamQuantum_ + 1;
-    const size_t remaining = state.stream.remaining();
-    state.priority =
-        remaining > std::numeric_limits<size_t>::max() - largeOffset
-        ? std::numeric_limits<size_t>::max()
-        : largeOffset + remaining;
+YieldingSrptFrameFragmentationHandlerState::ScheduledFragment
+YieldingSrptFrameFragmentationHandlerState::takePinnedFragment() noexcept {
+  if (!pinned_.has_value()) {
+    pinned_.emplace(streams_.extractMin());
   }
-}
-
-size_t YieldingSrptFrameFragmentationHandlerState::largeStreamCount() noexcept {
-  size_t count = pinnedLarge_.has_value() ? 1 : 0;
-  streams_.forEach([&](uint32_t, StreamState& state) {
-    if (!state.singleQuantum) {
-      ++count;
+  const uint32_t streamId = pinned_->streamId;
+  PerStreamState::Fragment fragment = takeFragment(*pinned_);
+  if (fragment.currentFrameDone) {
+    if (pinned_->hasMore()) {
+      streams_.insert(streamId, std::move(*pinned_));
     }
-  });
-  return count;
-}
-
-YieldingSrptFrameFragmentationHandlerState::ScheduledFragment
-YieldingSrptFrameFragmentationHandlerState::takeSmallFragment() noexcept {
-  StreamState state = streams_.extractMin();
-  const uint32_t streamId = state.stream.streamId;
-  DCHECK(state.singleQuantum);
-  PerStreamState::Fragment fragment = takeFragment(state);
-  DCHECK(fragment.currentFrameDone);
-  DCHECK(!state.stream.hasMore());
-  return ScheduledFragment{streamId, std::move(fragment)};
-}
-
-YieldingSrptFrameFragmentationHandlerState::ScheduledFragment
-YieldingSrptFrameFragmentationHandlerState::takeLargeFragment() noexcept {
-  if (!pinnedLarge_.has_value()) {
-    pinnedLarge_.emplace(streams_.extractMin());
-  }
-  const uint32_t streamId = pinnedLarge_->stream.streamId;
-  PerStreamState::Fragment fragment = takeFragment(*pinnedLarge_);
-  if (!pinnedLarge_->stream.hasMore()) {
-    pinnedLarge_.reset();
+    pinned_.reset();
   }
   return ScheduledFragment{streamId, std::move(fragment)};
 }
 
 PerStreamState::Fragment
 YieldingSrptFrameFragmentationHandlerState::takeFragment(
-    StreamState& state) noexcept {
-  CHECK(!state.stream.frames.empty());
-  const size_t metadataSize = unsentMetadataSize(state.stream.frames.front());
+    PerStreamState& stream) noexcept {
+  CHECK(!stream.frames.empty());
+  const size_t metadataSize = unsentMetadataSize(stream.frames.front());
   const size_t dataLimit =
       metadataSize >= streamQuantum_ ? 0 : streamQuantum_ - metadataSize;
-  return state.stream.nextFragment(dataLimit);
+  return stream.nextFragment(dataLimit);
 }
 
 void YieldingSrptFrameFragmentationHandlerState::spendCallbackBudget(

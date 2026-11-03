@@ -36,7 +36,8 @@ namespace apache::thrift::fast_thrift::frame::write {
 /**
  * One logical frame awaiting fragmentation. Its data stays in
  * `originalFrame.data` until `nextFragment()` emits this frame's first
- * fragment.
+ * fragment. `dataSize` is the size of that data at `enqueue()`, and emitted
+ * fragments do not change it.
  *
  * `originalComplete` records whether the original frame carried COMPLETE.
  * Only the original frame's last emitted fragment carries that flag. If the
@@ -46,6 +47,7 @@ namespace apache::thrift::fast_thrift::frame::write {
  */
 struct PendingFrame {
   ComposedFrame originalFrame{};
+  size_t dataSize{0};
   bool firstEmitted{false};
   bool originalComplete{false};
 
@@ -89,6 +91,7 @@ struct PerStreamState {
     pf.originalFrame = std::move(originalFrame);
     pf.originalComplete = originalComplete;
     pf.originalFrame.data = std::move(data);
+    pf.dataSize = size;
     totalRemaining += size;
     frames.push_back(std::move(pf));
   }

@@ -37,20 +37,30 @@
 namespace apache::thrift::fast_thrift::frame::write::handler {
 
 /**
- * Defers fragmentable data and sends it in bounded yielding SRPT passes.
+ * Sends a fragmentable data frame downstream at once when its metadata plus
+ * data fits in `streamQuantum` and its stream has nothing deferred. Defers
+ * other fragmentable data and sends it in bounded yielding SRPT passes.
  *
- * A pass sends every visible one-quantum request before Large work. It then
- * gives at most K turns to Large requests, where K is the number of Large
- * requests visible at pass start. One active Large request stays pinned until
- * it completes. A callback starts no new turn after its data budget reaches
- * zero, but the turn that crosses the budget completes. Backpressure does not
- * stop a pass or delay the next one. After downstream returns Backpressure,
- * `onWrite()` returns Backpressure for each accepted frame until write-ready.
+ * A pass gives at most K turns, where K is the number of streams with deferred
+ * frames at pass start. Each turn sends one fragment of the pinned stream.
+ * When no stream is pinned, the stream whose front frame has the fewest data
+ * bytes becomes pinned. It stays pinned until the last fragment of that frame,
+ * and then competes again with its next frame. Frames behind the front frame
+ * do not count. So a new frame does not change when its stream is pinned, and
+ * it does not extend a pin. A callback starts no new turn after its data
+ * budget reaches zero, but the turn that crosses the budget completes.
+ * Backpressure does not stop a pass or delay the next one. After downstream
+ * returns Backpressure, `onWrite()` returns Backpressure for each accepted
+ * frame until write-ready. If downstream took one of those frames without
+ * Backpressure, or the handler deferred it, the handler asks for another
+ * write-ready round. A writer above that already ran in the round can then
+ * write.
  *
- * If single-quantum requests consume every pass budget, a pinned Large request
- * makes no progress. This experimental handler has no starvation prevention.
- * Frames that cannot fragment pass through inline. `CANCEL` and `ERROR` first
- * drop the deferred frames of their stream.
+ * A frame deferred during a pass waits until the pass ends. It then goes
+ * downstream at once if it fits in `streamQuantum` and its stream has nothing
+ * deferred, and otherwise waits for the next pass. Frames that cannot fragment
+ * pass through inline. `CANCEL` and `ERROR` first drop the deferred frames of
+ * their stream.
  */
 template <FragmentCompletionTracker Tracker = NoOpFragmentCompletionTracker>
 class YieldingSrptFrameFragmentationHandlerT
@@ -80,7 +90,11 @@ class YieldingSrptFrameFragmentationHandlerT
     state_.detach();
   }
 
-  /** Returns Error and drops a data frame when the config is invalid. */
+  /**
+   * Returns Error and drops a data frame when the config is invalid or when
+   * the frame's metadata alone is above `kMaxStreamQuantum`. Logs the cause,
+   * at most once a minute.
+   */
   template <typename Context>
   [[nodiscard]] channel_pipeline::Result onWrite(
       Context& ctx, channel_pipeline::TypeErasedBox&& msg) noexcept {
@@ -94,13 +108,22 @@ class YieldingSrptFrameFragmentationHandlerT
     if (!state_.enqueue(msg.take<ComposedFrame>())) {
       return channel_pipeline::Result::Error;
     }
-    return this->backpressured_ ? channel_pipeline::Result::Backpressure
-                                : channel_pipeline::Result::Success;
+    return acceptedResult();
   }
 
   template <typename Context>
   void onWriteReady(Context& ctx) noexcept {
+    const bool blockedWriterAbove = this->blockedWriterAbove_;
     cancelAwaitWriteReady(ctx);
+    // A round wakes each handler once. A writer above may have run earlier in
+    // this round and got Backpressure only from this handler. That writer needs
+    // another round now. A writer that got Backpressure from downstream waits
+    // for the next write-ready of downstream. If it got a round here too, a
+    // writer that writes in every round would keep getting rounds while the
+    // transport stays full.
+    if (blockedWriterAbove) {
+      ctx.pipeline()->onWriteReady();
+    }
   }
 
   template <typename Context>
@@ -148,6 +171,15 @@ class YieldingSrptFrameFragmentationHandlerT
       ctx.cancelAwaitWriteReady();
       this->backpressured_ = false;
     }
+    this->blockedWriterAbove_ = false;
+  }
+
+  channel_pipeline::Result acceptedResult() noexcept {
+    if (!this->backpressured_) {
+      return channel_pipeline::Result::Success;
+    }
+    this->blockedWriterAbove_ = true;
+    return channel_pipeline::Result::Backpressure;
   }
 
   template <typename Context>
@@ -163,15 +195,16 @@ class YieldingSrptFrameFragmentationHandlerT
     }
     if (result == channel_pipeline::Result::Backpressure) {
       awaitWriteReady(ctx);
+      return result;
     }
-    return this->backpressured_ ? channel_pipeline::Result::Backpressure
-                                : channel_pipeline::Result::Success;
+    return acceptedResult();
   }
 
   template <typename Context>
   void flushAndPropagateErrors(Context& ctx) noexcept {
     if (flushOnePass(ctx) == channel_pipeline::Result::Error) {
       state_.stopAfterError();
+      cancelAwaitWriteReady(ctx);
       ctx.fireException(
           folly::make_exception_wrapper<std::runtime_error>(
               "YieldingSrptFrameFragmentationHandler: downstream write "
@@ -204,6 +237,9 @@ class YieldingSrptFrameFragmentationHandlerT
   }
 
   bool backpressured_{false};
+  // Set when onWrite() answers Backpressure for a frame that downstream took or
+  // the handler deferred. The writer above then waits for this handler alone.
+  bool blockedWriterAbove_{false};
   [[no_unique_address]] Tracker tracker_{};
   YieldingSrptFrameFragmentationHandlerState state_;
 };

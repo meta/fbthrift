@@ -61,23 +61,36 @@ class YieldingSrptFrameFragmentationHandlerState final
 
   /**
    * For `CANCEL` and `ERROR`, removes the queued frames of the stream first.
-   * Returns `Defer` for fragmentable data frames and `PassThrough` for all
-   * other frames.
+   * Returns `PassThrough` for a frame that cannot be fragmented. It also
+   * returns `PassThrough` for a data frame whose metadata plus data fits in
+   * `streamQuantum` while its stream has nothing deferred. Returns `Defer` for
+   * every other data frame, and for every data frame if the config holds a
+   * bad value.
    */
   [[nodiscard]] WriteDisposition prepareWrite(
       const ComposedFrame& frame) noexcept;
-  /** Returns false and drops the frame when the config holds a bad value. */
+  /**
+   * Returns false and drops the frame when the config holds a bad value or
+   * when its metadata alone is above `kMaxStreamQuantum`. Logs the metadata
+   * size, the limit and whether the config is valid, at most once a minute.
+   */
   [[nodiscard]] bool enqueue(ComposedFrame&& frame);
 
-  /** Starts one pass and snapshots its number of Large turns. */
+  /** Starts one pass and snapshots its number of turns. */
   void startPass() noexcept;
   /**
-   * Returns the next Small or pinned Large fragment for this pass, or nullopt
-   * when the pass is over. A write that fails inside the pass can close the
-   * pipeline, and `clearPending()` then ends the pass early.
+   * While the pass has turns and budget left, returns the next fragment of the
+   * pinned stream. After that, it takes the frames that arrived during the
+   * pass in arrival order. It returns each one that fits in `streamQuantum`
+   * while its stream has nothing queued, and queues the rest for the next
+   * pass. Returns nullopt when the pass is over. A write that fails inside the
+   * pass can close the pipeline, and `clearPending()` then ends the pass early.
    */
   [[nodiscard]] std::optional<ScheduledFragment> nextFragment() noexcept;
-  /** Schedules another pass when work remains. */
+  /**
+   * Returns true when no work remains. Otherwise schedules another pass and
+   * returns false.
+   */
   [[nodiscard]] bool finishPass() noexcept;
   void stopAfterError() noexcept;
 
@@ -86,15 +99,12 @@ class YieldingSrptFrameFragmentationHandlerState final
   [[nodiscard]] bool isScheduled() const noexcept;
 
  private:
-  struct StreamState {
-    PerStreamState stream;
-    size_t priority{0};
-    bool singleQuantum{false};
-  };
-
+  // A stream in the heap has sent no fragment of its front frame, because a
+  // pin lasts until the last fragment of that frame. So the front frame's
+  // `dataSize` is all its unsent data.
   struct PriorityFn {
-    size_t operator()(const StreamState& state) const noexcept {
-      return state.priority;
+    size_t operator()(const PerStreamState& stream) const noexcept {
+      return stream.frames.front().dataSize;
     }
   };
 
@@ -102,14 +112,12 @@ class YieldingSrptFrameFragmentationHandlerState final
   void scheduleFlushIfNeeded() noexcept;
   void cancelLoopCallbackIfScheduled() noexcept;
   void removeStream(uint32_t streamId) noexcept;
-  void mergeDeferredArrivals();
+  [[nodiscard]] bool hasQueuedStream(uint32_t streamId) const noexcept;
+  [[nodiscard]] std::optional<ScheduledFragment> takeDeferredArrival();
   void enqueueNow(ComposedFrame&& frame);
-  void updatePriority(StreamState& state) const noexcept;
-  [[nodiscard]] size_t largeStreamCount() noexcept;
-  [[nodiscard]] ScheduledFragment takeSmallFragment() noexcept;
-  [[nodiscard]] ScheduledFragment takeLargeFragment() noexcept;
+  [[nodiscard]] ScheduledFragment takePinnedFragment() noexcept;
   [[nodiscard]] PerStreamState::Fragment takeFragment(
-      StreamState& state) noexcept;
+      PerStreamState& stream) noexcept;
   void spendCallbackBudget(size_t dataBytes) noexcept;
 
   const size_t streamQuantum_;
@@ -121,11 +129,10 @@ class YieldingSrptFrameFragmentationHandlerState final
   FlushTrampoline flushTrampoline_{nullptr};
   bool isScheduled_{false};
   bool passActive_{false};
-  bool smallPhase_{false};
   size_t remainingCallbackBudget_{0};
-  size_t remainingLargeTurns_{0};
-  SrptHeap<StreamState, PriorityFn> streams_;
-  std::optional<StreamState> pinnedLarge_;
+  size_t remainingTurns_{0};
+  SrptHeap<PerStreamState, PriorityFn> streams_;
+  std::optional<PerStreamState> pinned_;
   std::deque<ComposedFrame> deferredArrivals_;
 };
 

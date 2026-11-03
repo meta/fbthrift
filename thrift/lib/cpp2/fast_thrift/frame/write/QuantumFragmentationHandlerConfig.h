@@ -18,10 +18,14 @@
 
 #include <cstddef>
 
+#include <thrift/lib/cpp2/fast_thrift/frame/write/ComposedFrame.h>
+
 namespace apache::thrift::fast_thrift::frame::write {
 
 /**
- * This is the largest `streamQuantum` that a handler accepts.
+ * This is the largest `streamQuantum` that a handler accepts. A handler also
+ * refuses a data frame whose metadata alone is above this limit, because the
+ * first fragment carries all metadata.
  *
  * Rocket's `kMaxFragmentedPayloadSize` has the same value. Both limits count
  * metadata plus data. RSocket stores the frame length in three bytes. The 512
@@ -39,8 +43,10 @@ inline constexpr size_t kMaxStreamQuantum = 0xffffff - 512;
  * no data. The frame header is outside this count.
  *
  * `callbackBudget` counts data only. Metadata is outside this count. After a
- * callback has sent this many data bytes, it starts no new fragment. The
- * fragment that crosses the budget is still sent whole.
+ * callback has sent this many data bytes, it takes no new fragment from a
+ * queued stream. The fragment that crosses the budget is still sent whole. A
+ * frame that fits in one quantum while its stream has nothing queued goes out
+ * whole. Its data does not count, even when it goes out during a callback.
  */
 struct QuantumFragmentationHandlerConfig {
   // The mixed-payload benchmark uses 64 KiB fragments.
@@ -50,14 +56,28 @@ struct QuantumFragmentationHandlerConfig {
   size_t callbackBudget{16 * 1024 * 1024};
 
   /**
-   * Returns false for a `streamQuantum` of 0 or above `kMaxStreamQuantum`, or
-   * for a `callbackBudget` of 0. With such a config, the handler returns Error
-   * and drops each data frame that it would otherwise queue.
+   * With an invalid config, the handler returns Error and drops every data
+   * frame that it could fragment.
    */
   [[nodiscard]] constexpr bool isValid() const noexcept {
     return streamQuantum != 0 && streamQuantum <= kMaxStreamQuantum &&
         callbackBudget != 0;
   }
 };
+
+[[nodiscard]] inline bool fitsInStreamQuantum(
+    const ComposedFrame& frame, size_t streamQuantum) noexcept {
+  const size_t metadataSize =
+      frame.metadata ? frame.metadata->computeChainDataLength() : 0;
+  const size_t dataSize = frame.data ? frame.data->computeChainDataLength() : 0;
+  return metadataSize <= streamQuantum &&
+      dataSize <= streamQuantum - metadataSize;
+}
+
+[[nodiscard]] inline bool metadataFitsInMaxStreamQuantum(
+    const ComposedFrame& frame) noexcept {
+  return frame.metadata == nullptr ||
+      frame.metadata->computeChainDataLength() <= kMaxStreamQuantum;
+}
 
 } // namespace apache::thrift::fast_thrift::frame::write

@@ -18,7 +18,10 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
+#include <deque>
 #include <functional>
 #include <memory>
 #include <set>
@@ -31,6 +34,9 @@
 #include <folly/ExceptionWrapper.h>
 #include <folly/io/IOBuf.h>
 #include <folly/io/async/EventBase.h>
+#include <folly/logging/LogCategory.h>
+#include <folly/logging/LoggerDB.h>
+#include <folly/logging/test/TestLogHandler.h>
 #include <folly/portability/GMock.h>
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Event.h>
@@ -51,12 +57,18 @@ namespace cp = channel_pipeline;
 using cp::test::TestAllocator;
 
 HANDLER_TAG(yielding_srpt_test);
+HANDLER_TAG(queueing_writer_test);
 
 class PipelineHeadHandler {
  public:
   template <typename Context>
   cp::Result onWrite(Context&, cp::TypeErasedBox&&) noexcept {
     ++writeCount_;
+    if (!nextWriteResults_.empty()) {
+      const cp::Result result = nextWriteResults_.front();
+      nextWriteResults_.pop_front();
+      return result;
+    }
     return writeResult_;
   }
 
@@ -68,10 +80,16 @@ class PipelineHeadHandler {
   void onReadReady() noexcept {}
 
   void setWriteResult(cp::Result result) noexcept { writeResult_ = result; }
+  // The next writes return these results in order, and later writes return
+  // the result of setWriteResult().
+  void setNextWriteResults(std::deque<cp::Result> results) {
+    nextWriteResults_ = std::move(results);
+  }
   [[nodiscard]] size_t writeCount() const noexcept { return writeCount_; }
 
  private:
   cp::Result writeResult_{cp::Result::Success};
+  std::deque<cp::Result> nextWriteResults_;
   size_t writeCount_{0};
 };
 
@@ -87,7 +105,66 @@ class PipelineTailHandler {
   void handlerRemoved() noexcept {}
   void onPipelineActive() noexcept {}
   void onPipelineInactive() noexcept {}
-  void onWriteReady() noexcept {}
+  void onWriteReady() noexcept {
+    ++writeReadyCount_;
+    if (onWriteReady_) {
+      onWriteReady_();
+    }
+  }
+
+  void setOnWriteReady(std::function<void()> onWriteReady) {
+    onWriteReady_ = std::move(onWriteReady);
+  }
+  [[nodiscard]] size_t writeReadyCount() const noexcept {
+    return writeReadyCount_;
+  }
+
+ private:
+  std::function<void()> onWriteReady_;
+  size_t writeReadyCount_{0};
+};
+
+// Handles Backpressure as Backpressure.h asks: it queues the frames that
+// arrive after Backpressure and sends them from onWriteReady(), and it stays
+// registered for write-ready until it has sent them all.
+class QueueingWriter {
+ public:
+  cp::WriteReadyHook writeReadyHook_;
+
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineInactive(Context&) noexcept {}
+
+  template <typename Context>
+  cp::Result onWrite(Context& ctx, cp::TypeErasedBox&& msg) noexcept {
+    if (ctx.isAwaitingWriteReady()) {
+      queued_.push_back(std::move(msg));
+      return cp::Result::Backpressure;
+    }
+    const cp::Result result = ctx.fireWrite(std::move(msg));
+    if (result == cp::Result::Backpressure) {
+      ctx.awaitWriteReady();
+    }
+    return result;
+  }
+
+  template <typename Context>
+  void onWriteReady(Context& ctx) noexcept {
+    while (!queued_.empty()) {
+      cp::TypeErasedBox msg = std::move(queued_.front());
+      queued_.pop_front();
+      if (ctx.fireWrite(std::move(msg)) == cp::Result::Backpressure) {
+        return;
+      }
+    }
+    ctx.cancelAwaitWriteReady();
+  }
+
+ private:
+  std::deque<cp::TypeErasedBox> queued_;
 };
 
 constexpr size_t kQuantum = 100;
@@ -213,6 +290,13 @@ class TestContext {
   void awaitWriteReady() noexcept { awaitingWriteReady_ = true; }
   void cancelAwaitWriteReady() noexcept { awaitingWriteReady_ = false; }
 
+  // Takes the handler's request for another write-ready round. These tests run
+  // no rounds.
+  struct NoPipeline {
+    void onWriteReady() noexcept {}
+  };
+  NoPipeline* pipeline() noexcept { return &pipeline_; }
+
   void setResults(std::vector<channel_pipeline::Result> results) {
     results_ = std::move(results);
   }
@@ -254,6 +338,7 @@ class TestContext {
   std::vector<TestFrameWriteCompleteEvent> completed_;
   size_t writeAttemptCount_{0};
   bool awaitingWriteReady_{false};
+  NoPipeline pipeline_;
   size_t fireExceptionCount_{0};
   folly::exception_wrapper lastException_;
 };
@@ -352,6 +437,148 @@ TEST_F(
 
 TEST_F(
     YieldingSrptFrameFragmentationHandlerTest,
+    RefusesMetadataAboveTheLargestStreamQuantum) {
+  Handler handler({.streamQuantum = kQuantum, .callbackBudget = kBudget});
+  handler.handlerAdded(context_);
+
+  const channel_pipeline::Result tooLarge = handler.onWrite(
+      context_,
+      makeFrame(
+          FrameType::PAYLOAD, 1, 0, /*complete=*/false, kMaxStreamQuantum + 1));
+  const channel_pipeline::Result largest = handler.onWrite(
+      context_,
+      makeFrame(
+          FrameType::PAYLOAD, 3, 0, /*complete=*/false, kMaxStreamQuantum));
+  runLoop();
+
+  EXPECT_THAT(
+      std::tuple(tooLarge, largest, streamIds(context_.written())),
+      Eq(std::tuple(
+          channel_pipeline::Result::Error,
+          channel_pipeline::Result::Success,
+          std::vector<uint32_t>{3})));
+}
+
+TEST_F(
+    YieldingSrptFrameFragmentationHandlerTest,
+    RefusalLogsTheMetadataSizeAndTheLimit) {
+  // The refusal logs at most once a minute in a process. A threadsafe death
+  // test runs the refusal in a new process, so refusals of earlier tests in
+  // this binary cannot hide the log line.
+  GTEST_FLAG_SET(death_test_style, "threadsafe");
+  EXPECT_EXIT(
+      {
+        const auto logs = std::make_shared<folly::TestLogHandler>();
+        folly::LoggerDB::get().getCategory("")->addHandler(logs);
+        Handler handler({.streamQuantum = kQuantum, .callbackBudget = kBudget});
+        handler.handlerAdded(context_);
+        const channel_pipeline::Result result = handler.onWrite(
+            context_,
+            makeFrame(
+                FrameType::PAYLOAD,
+                1,
+                0,
+                /*complete=*/false,
+                kMaxStreamQuantum + 1));
+        for (const std::string& message : logs->getMessageValues()) {
+          std::fputs(message.c_str(), stderr);
+        }
+        std::_Exit(result == channel_pipeline::Result::Error ? 0 : 1);
+      },
+      ExitedWithCode(0),
+      HasSubstr(
+          "YieldingSrptFrameFragmentationHandler refused a data frame with "
+          "16776704 metadata bytes. The limit is 16776703 bytes, and the "
+          "config is valid."));
+}
+
+TEST_F(
+    YieldingSrptFrameFragmentationHandlerTest,
+    SendsAFrameThatFitsInOneQuantumAtOnce) {
+  Handler handler({.streamQuantum = kQuantum, .callbackBudget = kBudget});
+  handler.handlerAdded(context_);
+  constexpr std::array<FrameType, 5> kDataFrameTypes{
+      FrameType::REQUEST_RESPONSE,
+      FrameType::REQUEST_FNF,
+      FrameType::REQUEST_STREAM,
+      FrameType::REQUEST_CHANNEL,
+      FrameType::PAYLOAD,
+  };
+
+  uint32_t streamId = 1;
+  for (const FrameType frameType : kDataFrameTypes) {
+    EXPECT_THAT(
+        handler.onWrite(context_, makeFrame(frameType, streamId)),
+        Eq(channel_pipeline::Result::Success));
+    streamId += 2;
+  }
+  EXPECT_THAT(
+      handler.onWrite(
+          context_,
+          makeFrame(
+              FrameType::PAYLOAD,
+              streamId,
+              kQuantum / 2,
+              /*complete=*/false,
+              kQuantum / 2)),
+      Eq(channel_pipeline::Result::Success));
+
+  ASSERT_THAT(context_.written(), SizeIs(kDataFrameTypes.size() + 1));
+  for (size_t index = 0; index < kDataFrameTypes.size(); ++index) {
+    EXPECT_THAT(
+        context_.written()[index].frameType, Eq(kDataFrameTypes[index]));
+  }
+  EXPECT_THAT(
+      std::tuple(
+          context_.written().back().metadataSize,
+          context_.written().back().dataSize,
+          context_.written().back().follows),
+      Eq(std::tuple(kQuantum / 2, kQuantum / 2, false)));
+  const std::vector<RecordingTracker::FragmentCall> expectedFragments{
+      {.streamId = 1, .isLastFragment = true},
+      {.streamId = 3, .isLastFragment = true},
+      {.streamId = 5, .isLastFragment = true},
+      {.streamId = 7, .isLastFragment = true},
+      {.streamId = 9, .isLastFragment = true},
+      {.streamId = 11, .isLastFragment = true}};
+  EXPECT_THAT(handler.tracker().fragments, Eq(expectedFragments));
+  EXPECT_THAT(
+      std::tuple(handler.hasPendingWrites(), handler.isScheduled()),
+      Eq(std::tuple(false, false)));
+}
+
+TEST_F(
+    YieldingSrptFrameFragmentationHandlerTest,
+    AFrameThatFitsWaitsBehindTheDeferredFramesOfItsStream) {
+  Handler handler({.streamQuantum = kQuantum, .callbackBudget = kBudget});
+  handler.handlerAdded(context_);
+  (void)handler.onWrite(context_, makeFrame(FrameType::PAYLOAD, 1, 150));
+  (void)handler.onWrite(context_, makeFrame(FrameType::PAYLOAD, 1, 10));
+  (void)handler.onWrite(context_, makeFrame(FrameType::PAYLOAD, 3, 30));
+  // Runs during the first pass, while stream 1 is pinned and stream 5 has
+  // only a deferred arrival.
+  context_.setReentrantWrite([&] {
+    (void)handler.onWrite(context_, makeFrame(FrameType::PAYLOAD, 1, 20));
+    (void)handler.onWrite(context_, makeFrame(FrameType::PAYLOAD, 5, 150));
+    (void)handler.onWrite(context_, makeFrame(FrameType::PAYLOAD, 5, 40));
+  });
+
+  EXPECT_THAT(streamIds(context_.written()), ElementsAre(3));
+
+  for (int pass = 0; pass < 5; ++pass) {
+    runLoop();
+  }
+
+  EXPECT_THAT(
+      streamIds(context_.written()), ElementsAre(3, 1, 1, 1, 1, 5, 5, 5));
+  EXPECT_THAT(
+      dataSizes(context_.written()),
+      ElementsAre(30, 100, 50, 10, 20, 100, 50, 40));
+  EXPECT_THAT(handler.hasPendingWrites(), IsFalse());
+}
+
+TEST_F(
+    YieldingSrptFrameFragmentationHandlerTest,
     LoneLargeRequestSendsOneQuantumAndYields) {
   Handler handler({.streamQuantum = kQuantum, .callbackBudget = kBudget});
   handler.handlerAdded(context_);
@@ -405,21 +632,120 @@ TEST_F(
 
 TEST_F(
     YieldingSrptFrameFragmentationHandlerTest,
-    VisibleSingleQuantumRequestsRunFirstInRemainingByteOrder) {
+    TheSmallestFrontFrameGoesFirstWhateverQueuesBehindIt) {
   Handler handler({.streamQuantum = kQuantum, .callbackBudget = kBudget});
   handler.handlerAdded(context_);
-  (void)handler.onWrite(
-      context_, makeFrame(FrameType::REQUEST_RESPONSE, 1, 250));
-  (void)handler.onWrite(
-      context_, makeFrame(FrameType::REQUEST_RESPONSE, 3, 50));
-  (void)handler.onWrite(
-      context_, makeFrame(FrameType::REQUEST_RESPONSE, 5, 20));
-  (void)handler.onWrite(
-      context_, makeFrame(FrameType::REQUEST_RESPONSE, 7, 70));
+  (void)handler.onWrite(context_, makeFrame(FrameType::PAYLOAD, 1, 150));
+  (void)handler.onWrite(context_, makeFrame(FrameType::PAYLOAD, 1, 500));
+  (void)handler.onWrite(context_, makeFrame(FrameType::PAYLOAD, 1, 500));
+  (void)handler.onWrite(context_, makeFrame(FrameType::PAYLOAD, 3, 300));
 
   runLoop();
 
-  EXPECT_THAT(streamIds(context_.written()), ElementsAre(5, 3, 7, 1));
+  EXPECT_THAT(
+      std::tuple(streamIds(context_.written()), dataSizes(context_.written())),
+      Eq(std::tuple(
+          std::vector<uint32_t>{1, 1}, std::vector<size_t>{100, 50})));
+}
+
+TEST_F(
+    YieldingSrptFrameFragmentationHandlerTest,
+    AnotherStreamGoesOutWhenThePinnedStreamFinishesAFrame) {
+  constexpr size_t kStreamQuantum = 64 * 1024;
+  Handler handler({.streamQuantum = kStreamQuantum});
+  handler.handlerAdded(context_);
+  (void)handler.onWrite(
+      context_, makeFrame(FrameType::PAYLOAD, 1, 16 * kStreamQuantum));
+  (void)handler.onWrite(
+      context_, makeFrame(FrameType::PAYLOAD, 1, 16 * kStreamQuantum));
+  runLoop();
+  // Stream 1 is pinned in its first frame. Stream 3 needs 5 fragments.
+  (void)handler.onWrite(context_, makeFrame(FrameType::PAYLOAD, 3, 300 * 1024));
+
+  while (handler.isScheduled()) {
+    runLoop();
+  }
+
+  std::vector<uint32_t> expected(16, 1);
+  expected.insert(expected.end(), 5, 3);
+  expected.insert(expected.end(), 16, 1);
+  EXPECT_THAT(streamIds(context_.written()), Eq(expected));
+}
+
+TEST_F(
+    YieldingSrptFrameFragmentationHandlerTest,
+    AFrameForThePinnedStreamJoinsItsQueueButNotThePin) {
+  Handler handler({.streamQuantum = kQuantum, .callbackBudget = kBudget});
+  handler.handlerAdded(context_);
+  (void)handler.onWrite(context_, makeFrame(FrameType::PAYLOAD, 1, 250));
+  (void)handler.onWrite(context_, makeFrame(FrameType::PAYLOAD, 3, 400));
+  runLoop();
+  // Arrives while stream 1 is pinned. The next pass still has one turn for
+  // each of the two streams.
+  (void)handler.onWrite(context_, makeFrame(FrameType::PAYLOAD, 1, 500));
+
+  runLoop();
+
+  EXPECT_THAT(
+      std::tuple(streamIds(context_.written()), dataSizes(context_.written())),
+      Eq(std::tuple(
+          std::vector<uint32_t>{1, 1, 1, 3},
+          std::vector<size_t>{100, 100, 50, 100})));
+}
+
+TEST_F(
+    YieldingSrptFrameFragmentationHandlerTest,
+    DeferredFramesThatFitLeaveAtPassEndInArrivalOrder) {
+  Handler handler({.streamQuantum = kQuantum, .callbackBudget = kBudget});
+  handler.handlerAdded(context_);
+  (void)handler.onWrite(context_, makeFrame(FrameType::PAYLOAD, 1, 101));
+  (void)handler.onWrite(context_, makeFrame(FrameType::PAYLOAD, 3, 102));
+  (void)handler.onWrite(context_, makeFrame(FrameType::PAYLOAD, 5, 300));
+  (void)handler.onWrite(context_, makeFrame(FrameType::PAYLOAD, 7, 400));
+  // Streams 1 and 3 still have deferred data here, so these frames wait. Both
+  // streams finish in this pass, so the frames go out when the pass ends.
+  context_.setReentrantWrite([&] {
+    (void)handler.onWrite(context_, makeFrame(FrameType::PAYLOAD, 1, 70, true));
+    (void)handler.onWrite(context_, makeFrame(FrameType::PAYLOAD, 3, 20, true));
+  });
+
+  runLoop();
+
+  EXPECT_THAT(streamIds(context_.written()), ElementsAre(1, 1, 3, 3, 1, 3));
+
+  runLoop();
+
+  EXPECT_THAT(
+      streamIds(context_.written()), ElementsAre(1, 1, 3, 3, 1, 3, 5, 5));
+  EXPECT_THAT(
+      dataSizes(context_.written()),
+      ElementsAre(100, 1, 100, 2, 70, 20, 100, 100));
+}
+
+TEST_F(
+    YieldingSrptFrameFragmentationHandlerTest,
+    AFrameQueuedAtPassEndWaitsForTheNextPass) {
+  Handler handler({.streamQuantum = kQuantum, .callbackBudget = kBudget});
+  handler.handlerAdded(context_);
+  (void)handler.onWrite(context_, makeFrame(FrameType::PAYLOAD, 1, 150));
+  (void)handler.onWrite(context_, makeFrame(FrameType::PAYLOAD, 3, 160));
+  (void)handler.onWrite(context_, makeFrame(FrameType::PAYLOAD, 7, 170));
+  // The cancels leave this pass with a spare turn. Stream 5 must not take it
+  // after the frame of stream 1 goes out at the end of the pass.
+  context_.setReentrantWrite([&] {
+    (void)handler.onWrite(context_, makeFrame(FrameType::CANCEL, 3));
+    (void)handler.onWrite(context_, makeFrame(FrameType::CANCEL, 7));
+    (void)handler.onWrite(context_, makeFrame(FrameType::PAYLOAD, 5, 150));
+    (void)handler.onWrite(context_, makeFrame(FrameType::PAYLOAD, 1, 10));
+  });
+
+  runLoop();
+
+  EXPECT_THAT(streamIds(context_.written()), ElementsAre(1, 3, 7, 1, 1));
+  EXPECT_THAT(dataSizes(context_.written()), ElementsAre(100, 0, 0, 50, 10));
+  EXPECT_THAT(
+      std::tuple(handler.hasPendingStream(5), handler.isScheduled()),
+      Eq(std::tuple(true, true)));
 }
 
 TEST_F(
@@ -444,11 +770,11 @@ TEST_F(
   Handler handler({.streamQuantum = kQuantum, .callbackBudget = kBudget});
   handler.handlerAdded(context_);
   (void)handler.onWrite(
-      context_, makeFrame(FrameType::REQUEST_RESPONSE, 1, 300));
+      context_, makeFrame(FrameType::REQUEST_RESPONSE, 1, 200));
   context_.setReentrantWrite([&] {
     EXPECT_THAT(
         handler.onWrite(
-            context_, makeFrame(FrameType::REQUEST_RESPONSE, 3, 50)),
+            context_, makeFrame(FrameType::REQUEST_RESPONSE, 3, 150)),
         Eq(channel_pipeline::Result::Success));
   });
 
@@ -456,7 +782,7 @@ TEST_F(
 
   EXPECT_THAT(streamIds(context_.written()), ElementsAre(1));
   runLoop();
-  EXPECT_THAT(streamIds(context_.written()), ElementsAre(1, 3, 1));
+  EXPECT_THAT(streamIds(context_.written()), ElementsAre(1, 1, 3));
 }
 
 TEST_F(
@@ -465,19 +791,21 @@ TEST_F(
   Handler handler({.streamQuantum = kQuantum, .callbackBudget = kBudget});
   handler.handlerAdded(context_);
   (void)handler.onWrite(
-      context_, makeFrame(FrameType::REQUEST_RESPONSE, 1, 300));
+      context_, makeFrame(FrameType::REQUEST_RESPONSE, 1, 200));
   context_.setReentrantWrite([&] {
     (void)handler.onWrite(
-        context_, makeFrame(FrameType::REQUEST_RESPONSE, 3, 50));
+        context_, makeFrame(FrameType::REQUEST_RESPONSE, 3, 150));
     (void)handler.onWrite(
-        context_, makeFrame(FrameType::REQUEST_RESPONSE, 5, 50));
+        context_, makeFrame(FrameType::REQUEST_RESPONSE, 5, 150));
     (void)handler.onWrite(context_, makeFrame(FrameType::CANCEL, 3));
   });
 
   runLoop();
   runLoop();
+  runLoop();
 
-  EXPECT_THAT(streamIds(context_.written()), ElementsAre(1, 3, 5, 1));
+  EXPECT_THAT(streamIds(context_.written()), ElementsAre(1, 3, 1, 5, 5));
+  EXPECT_THAT(dataSizes(context_.written()), ElementsAre(100, 0, 100, 100, 50));
 }
 
 TEST_F(
@@ -520,17 +848,17 @@ TEST_F(
   Handler handler({.streamQuantum = kQuantum, .callbackBudget = 150});
   handler.handlerAdded(context_);
   (void)handler.onWrite(
-      context_, makeFrame(FrameType::REQUEST_RESPONSE, 1, 100));
+      context_, makeFrame(FrameType::REQUEST_RESPONSE, 1, 250));
   (void)handler.onWrite(
-      context_, makeFrame(FrameType::REQUEST_RESPONSE, 3, 80));
+      context_, makeFrame(FrameType::REQUEST_RESPONSE, 3, 260));
   (void)handler.onWrite(
       context_, makeFrame(FrameType::REQUEST_RESPONSE, 5, 300));
 
   runLoop();
 
-  EXPECT_THAT(streamIds(context_.written()), ElementsAre(3, 1));
-  EXPECT_THAT(dataSizes(context_.written()), ElementsAre(80, 100));
-  EXPECT_THAT(handler.hasPendingStream(5), IsTrue());
+  EXPECT_THAT(streamIds(context_.written()), ElementsAre(1, 1));
+  EXPECT_THAT(dataSizes(context_.written()), ElementsAre(100, 100));
+  EXPECT_THAT(handler.hasPendingStream(3), IsTrue());
 }
 
 TEST_F(
@@ -568,20 +896,19 @@ TEST_F(
   handler.handlerAdded(context_);
   context_.setResults({channel_pipeline::Result::Backpressure});
   (void)handler.onWrite(
-      context_, makeFrame(FrameType::REQUEST_RESPONSE, 1, 20));
+      context_, makeFrame(FrameType::REQUEST_RESPONSE, 1, 150));
   (void)handler.onWrite(
-      context_, makeFrame(FrameType::REQUEST_RESPONSE, 3, 50));
+      context_, makeFrame(FrameType::REQUEST_RESPONSE, 3, 300));
 
   runLoop();
 
-  EXPECT_THAT(streamIds(context_.written()), ElementsAre(1, 3));
+  EXPECT_THAT(streamIds(context_.written()), ElementsAre(1, 1));
   EXPECT_THAT(
       std::tuple(
           context_.awaitingWriteReady(),
           handler.isBackpressured(),
-          handler.hasPendingWrites(),
-          handler.tracker().flushCount),
-      Eq(std::tuple(true, true, false, size_t{1})));
+          handler.isScheduled()),
+      Eq(std::tuple(true, true, true)));
 }
 
 TEST_F(
@@ -591,17 +918,17 @@ TEST_F(
   handler.handlerAdded(context_);
   context_.setResults({channel_pipeline::Result::Backpressure});
   EXPECT_THAT(
-      handler.onWrite(context_, makeFrame(FrameType::REQUEST_RESPONSE, 1, 250)),
+      handler.onWrite(context_, makeFrame(FrameType::REQUEST_RESPONSE, 1, 200)),
       Eq(channel_pipeline::Result::Success));
   runLoop();
 
   EXPECT_THAT(
-      handler.onWrite(context_, makeFrame(FrameType::REQUEST_RESPONSE, 3, 50)),
+      handler.onWrite(context_, makeFrame(FrameType::REQUEST_RESPONSE, 3, 150)),
       Eq(channel_pipeline::Result::Backpressure));
   EXPECT_THAT(context_.written(), SizeIs(1));
 
   runLoop();
-  EXPECT_THAT(streamIds(context_.written()), ElementsAre(1, 3, 1));
+  EXPECT_THAT(streamIds(context_.written()), ElementsAre(1, 1, 3));
 }
 
 TEST_F(
@@ -716,7 +1043,7 @@ TEST_F(
   (void)handler.onWrite(
       context_, makeFrame(FrameType::REQUEST_RESPONSE, 1, 250));
   (void)handler.onWrite(
-      context_, makeFrame(FrameType::REQUEST_RESPONSE, 3, 50));
+      context_, makeFrame(FrameType::REQUEST_RESPONSE, 3, 150));
 
   runLoop();
 
@@ -785,13 +1112,14 @@ TEST_F(
         TestBatchWriteCompleteEvent{
             .status = transport::WriteCompletionStatus::Success,
             .frameCount = 1,
-            .bytes = 20,
+            .bytes = 100,
             .quiesced = true,
         });
   });
   (void)handler.onWrite(
-      context_, makeFrame(FrameType::REQUEST_RESPONSE, 1, 20));
+      context_, makeFrame(FrameType::REQUEST_RESPONSE, 1, 150));
 
+  runLoop();
   runLoop();
 
   const std::vector<TestFrameWriteCompleteEvent> expected{{
@@ -838,17 +1166,26 @@ TEST_F(
       {.streamQuantum = kQuantum, .callbackBudget = kBudget});
   handler.handlerAdded(context_);
   (void)handler.onWrite(
-      context_, makeFrame(FrameType::REQUEST_RESPONSE, 1, 20));
+      context_, makeFrame(FrameType::REQUEST_RESPONSE, 1, 150));
+  runLoop();
+  handler.on<TestBatchWriteCompleteEvent>(
+      context_,
+      TestBatchWriteCompleteEvent{
+          .status = transport::WriteCompletionStatus::Success,
+          .frameCount = 1,
+          .bytes = 100,
+          .quiesced = true,
+      });
   context_.setReentrantWrite([&] {
     (void)handler.onWrite(
-        context_, makeFrame(FrameType::REQUEST_RESPONSE, 3, 50));
+        context_, makeFrame(FrameType::REQUEST_RESPONSE, 3, 150));
     (void)handler.onWrite(context_, makeFrame(FrameType::CANCEL, 3));
     handler.on<TestBatchWriteCompleteEvent>(
         context_,
         TestBatchWriteCompleteEvent{
             .status = transport::WriteCompletionStatus::Success,
             .frameCount = 2,
-            .bytes = 20,
+            .bytes = 50,
             .quiesced = true,
         });
   });
@@ -880,7 +1217,7 @@ TEST_F(
       [&] { recordsDuringWrite = handler.tracker().fragments.size(); });
   context_.setResults({channel_pipeline::Result::Error});
   (void)handler.onWrite(
-      context_, makeFrame(FrameType::REQUEST_RESPONSE, 1, 20));
+      context_, makeFrame(FrameType::REQUEST_RESPONSE, 1, 150));
 
   runLoop();
 
@@ -978,6 +1315,29 @@ TEST_F(
 
 TEST_F(
     YieldingSrptFrameFragmentationHandlerTest,
+    DownstreamErrorCancelsWriteReadyHook) {
+  Handler handler({.streamQuantum = kQuantum, .callbackBudget = kBudget});
+  handler.handlerAdded(context_);
+  context_.setResults(
+      {channel_pipeline::Result::Backpressure,
+       channel_pipeline::Result::Error});
+  (void)handler.onWrite(
+      context_, makeFrame(FrameType::REQUEST_RESPONSE, 1, 250));
+  (void)handler.onWrite(
+      context_, makeFrame(FrameType::REQUEST_RESPONSE, 3, 150));
+
+  runLoop();
+
+  EXPECT_THAT(
+      std::tuple(
+          context_.fireExceptionCount(),
+          context_.awaitingWriteReady(),
+          handler.isBackpressured()),
+      Eq(std::tuple(size_t{1}, false, false)));
+}
+
+TEST_F(
+    YieldingSrptFrameFragmentationHandlerTest,
     PipelineInactiveDuringAPassEndsThePass) {
   Handler handler({.streamQuantum = kQuantum, .callbackBudget = kBudget});
   handler.handlerAdded(context_);
@@ -986,9 +1346,9 @@ TEST_F(
   context_.setWriteAttemptObserver(
       [&] { handler.onPipelineInactive(context_); });
   (void)handler.onWrite(
-      context_, makeFrame(FrameType::REQUEST_RESPONSE, 1, 20));
+      context_, makeFrame(FrameType::REQUEST_RESPONSE, 1, 150));
   (void)handler.onWrite(
-      context_, makeFrame(FrameType::REQUEST_RESPONSE, 3, 20));
+      context_, makeFrame(FrameType::REQUEST_RESPONSE, 3, 160));
 
   runLoop();
 
@@ -1048,7 +1408,7 @@ class YieldingSrptFrameFragmentationHandlerPipelineTest : public Test {
     EXPECT_THAT(transport_.writeCount(), Eq(1));
     EXPECT_THAT(pipeline->hasPendingWriteReady(), IsTrue());
     EXPECT_THAT(
-        pipeline->fireWrite(makeFrame(FrameType::REQUEST_RESPONSE, 3, 50)),
+        pipeline->fireWrite(makeFrame(FrameType::REQUEST_RESPONSE, 3, 150)),
         Eq(cp::Result::Backpressure));
     EXPECT_THAT(transport_.writeCount(), Eq(1));
 
@@ -1058,6 +1418,71 @@ class YieldingSrptFrameFragmentationHandlerPipelineTest : public Test {
     EXPECT_THAT(transport_.writeCount(), Eq(1));
     eventBase_.loopOnce(EVLOOP_NONBLOCK);
     EXPECT_THAT(transport_.writeCount(), Eq(3));
+  }
+
+  cp::PipelineImpl::Ptr buildDynamicPipelineWithWriterAbove() {
+    return cp::PipelineBuilder<
+               PipelineHeadHandler,
+               PipelineTailHandler,
+               TestAllocator>()
+        .setEventBase(&eventBase_)
+        .setHead(&transport_)
+        .setTail(&app_)
+        .setAllocator(&allocator_)
+        .addNextOutbound<Handler>(
+            yielding_srpt_test_tag,
+            std::make_unique<Handler>(QuantumFragmentationHandlerConfig{
+                .streamQuantum = kQuantum,
+                .callbackBudget = kBudget,
+            }))
+        .addNextOutbound<QueueingWriter>(
+            queueing_writer_test_tag, std::make_unique<QueueingWriter>())
+        .build();
+  }
+
+  auto buildStaticPipelineWithWriterAbove() {
+    return cp::StaticPipelineBuilder<
+               PipelineHeadHandler,
+               PipelineTailHandler,
+               TestAllocator>()
+        .setEventBase(&eventBase_)
+        .setHead(&transport_)
+        .setTail(&app_)
+        .setAllocator(&allocator_)
+        .addNextOutbound<Handler>(
+            yielding_srpt_test_tag,
+            QuantumFragmentationHandlerConfig{
+                .streamQuantum = kQuantum,
+                .callbackBudget = kBudget,
+            })
+        .addNextOutbound<QueueingWriter>(queueing_writer_test_tag)
+        .build();
+  }
+
+  // A write-ready pass wakes each registered handler once, in the order they
+  // registered. Here the writer above runs first while the fragmenter is still
+  // blocked, so it gets Backpressure and keeps its last frame. Then the
+  // fragmenter clears its block, and the writer must still get to send it.
+  void verifyWriterAboveSendsItsQueueAfterTheBlockClears(auto pipeline) {
+    transport_.setWriteResult(cp::Result::Backpressure);
+    for (const uint32_t streamId : {1, 3, 5, 7}) {
+      EXPECT_THAT(
+          pipeline->fireWrite(
+              makeFrame(FrameType::REQUEST_RESPONSE, streamId, 50)),
+          Eq(cp::Result::Backpressure));
+    }
+    EXPECT_THAT(transport_.writeCount(), Eq(1));
+
+    // The first write of the next pass fills the transport again. The
+    // fragmenter then registers again, behind the writer.
+    transport_.setWriteResult(cp::Result::Success);
+    transport_.setNextWriteResults({cp::Result::Backpressure});
+    pipeline->onWriteReady();
+    pipeline->onWriteReady();
+
+    EXPECT_THAT(
+        std::tuple(transport_.writeCount(), pipeline->hasPendingWriteReady()),
+        Eq(std::tuple(size_t{4}, false)));
   }
 
   folly::EventBase eventBase_;
@@ -1079,8 +1504,105 @@ TEST_F(
 }
 
 TEST_F(
+    YieldingSrptFrameFragmentationHandlerPipelineTest,
+    DynamicPipelineLetsTheWriterAboveSendAfterTheBlockClears) {
+  verifyWriterAboveSendsItsQueueAfterTheBlockClears(
+      buildDynamicPipelineWithWriterAbove());
+}
+
+TEST_F(
+    YieldingSrptFrameFragmentationHandlerPipelineTest,
+    StaticPipelineLetsTheWriterAboveSendAfterTheBlockClears) {
+  verifyWriterAboveSendsItsQueueAfterTheBlockClears(
+      buildStaticPipelineWithWriterAbove());
+}
+
+TEST_F(
+    YieldingSrptFrameFragmentationHandlerPipelineTest,
+    TheWriterAboveSendsAfterAFrameQueuedWhileBlocked) {
+  auto pipeline = buildDynamicPipelineWithWriterAbove();
+  transport_.setWriteResult(cp::Result::Backpressure);
+  (void)pipeline->fireWrite(makeFrame(FrameType::REQUEST_RESPONSE, 1, 50));
+  for (const uint32_t streamId : {3, 5, 7}) {
+    (void)pipeline->fireWrite(makeFrame(
+        FrameType::REQUEST_RESPONSE, streamId, streamId == 5 ? 250 : 50));
+  }
+
+  // Stream 3 fills the transport again. In the next pass the writer above
+  // sends stream 5, which the fragmenter queues because it does not fit in
+  // one quantum.
+  transport_.setWriteResult(cp::Result::Success);
+  transport_.setNextWriteResults({cp::Result::Backpressure});
+  pipeline->onWriteReady();
+  pipeline->onWriteReady();
+
+  EXPECT_THAT(
+      std::tuple(transport_.writeCount(), pipeline->hasPendingWriteReady()),
+      Eq(std::tuple(size_t{3}, false)));
+}
+
+TEST_F(
+    YieldingSrptFrameFragmentationHandlerPipelineTest,
+    AFullTransportGetsOneWriteReadyRound) {
+  auto pipeline = buildDynamicPipeline();
+  transport_.setWriteResult(cp::Result::Backpressure);
+  EXPECT_THAT(
+      pipeline->fireWrite(makeFrame(FrameType::REQUEST_RESPONSE, 1, 50)),
+      Eq(cp::Result::Backpressure));
+  // The application writes one more reply each time it hears write-ready, and
+  // the transport stays full. The cap only keeps a failing run finite.
+  uint32_t nextStreamId = 3;
+  app_.setOnWriteReady([&] {
+    if (nextStreamId <= 21) {
+      (void)pipeline->fireWrite(
+          makeFrame(FrameType::REQUEST_RESPONSE, nextStreamId, 50));
+      nextStreamId += 2;
+    }
+  });
+
+  pipeline->onWriteReady();
+
+  EXPECT_THAT(
+      std::tuple(app_.writeReadyCount(), transport_.writeCount()),
+      Eq(std::tuple(size_t{1}, size_t{2})));
+}
+
+TEST_F(
+    YieldingSrptFrameFragmentationHandlerPipelineTest,
+    TwoWritesPerWakeGetOneRoundPerWriteReady) {
+  auto pipeline = buildDynamicPipeline();
+  transport_.setWriteResult(cp::Result::Backpressure);
+  EXPECT_THAT(
+      pipeline->fireWrite(makeFrame(FrameType::REQUEST_RESPONSE, 1, 50)),
+      Eq(cp::Result::Backpressure));
+  // The application writes two more replies each time it hears write-ready,
+  // and the transport stays full. So the second reply reaches the handler
+  // after the first one blocked it again. The cap only keeps a failing run
+  // finite.
+  uint32_t nextStreamId = 3;
+  const auto writeReply = [&] {
+    if (nextStreamId <= 41) {
+      (void)pipeline->fireWrite(
+          makeFrame(FrameType::REQUEST_RESPONSE, nextStreamId, 50));
+      nextStreamId += 2;
+    }
+  };
+  app_.setOnWriteReady([&] {
+    writeReply();
+    writeReply();
+  });
+
+  pipeline->onWriteReady();
+  pipeline->onWriteReady();
+
+  EXPECT_THAT(
+      std::tuple(app_.writeReadyCount(), transport_.writeCount()),
+      Eq(std::tuple(size_t{2}, size_t{5})));
+}
+
+TEST_F(
     YieldingSrptFrameFragmentationHandlerTest,
-    SustainedSingleQuantumTrafficCanStarvePinnedLargeRequest) {
+    SustainedSingleQuantumTrafficLeavesTheBudgetToThePinnedLargeRequest) {
   Handler handler({.streamQuantum = kQuantum, .callbackBudget = kQuantum});
   handler.handlerAdded(context_);
   (void)handler.onWrite(
@@ -1093,8 +1615,8 @@ TEST_F(
     runLoop();
   }
 
-  EXPECT_THAT(streamIds(context_.written()), ElementsAre(3, 5, 7));
-  EXPECT_THAT(handler.hasPendingStream(1), IsTrue());
+  EXPECT_THAT(streamIds(context_.written()), ElementsAre(3, 1, 5, 1, 7, 1));
+  EXPECT_THAT(handler.hasPendingStream(1), IsFalse());
 }
 
 } // namespace
