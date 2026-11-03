@@ -495,7 +495,75 @@ TEST(FastHandlerCallbackTest, CancellationCallbackCanAcknowledgeReentrantly) {
   rec->resetPipeline();
 }
 
-TEST(FastHandlerCallbackTest, CpuCancellationRacingResultCompletesOnce) {
+TEST(
+    FastHandlerCallbackTest,
+    CancellationRacingResultCompletesOnceWithOrWithoutExecutor) {
+  folly::EventBase evb;
+  channel_pipeline::test::MockHeadHandler head;
+  channel_pipeline::test::TestAllocator allocator;
+  auto rec = makeRecorder();
+  auto capture = std::make_unique<CompletionCaptureHandler>();
+  auto* capturePtr = capture.get();
+  auto pipeline = channel_pipeline::PipelineBuilder<
+                      channel_pipeline::test::MockHeadHandler,
+                      RecordingAdapter,
+                      channel_pipeline::test::TestAllocator>()
+                      .setEventBase(&evb)
+                      .setHead(&head)
+                      .setTail(rec.get())
+                      .setAllocator(&allocator)
+                      .addNextDuplex<CompletionCaptureHandler>(
+                          completion_capture_handler_tag, std::move(capture))
+                      .build();
+  rec->setPipeline(pipeline.get());
+
+  constexpr int kIterationsPerMode = 100;
+  for (const bool useExecutor : {false, true}) {
+    for (int i = 0; i < kIterationsPerMode; ++i) {
+      folly::ManualExecutor executor;
+      auto* const executorPtr = useExecutor ? &executor : nullptr;
+      auto requestContext = makeThriftRequestContext(evb);
+      requestContext->enableCancellation();
+      auto cb = makeFastHandlerCallback<FastHandlerCallback<int>>(
+          &onResult,
+          &onException,
+          rec.get(),
+          kStreamId,
+          evb,
+          executorPtr,
+          std::move(requestContext));
+      cb->markHandlerStarted();
+
+      std::atomic<bool> start{false};
+      std::thread response([&] {
+        std::optional<detail::HandlerExecutorScope> scope;
+        if (executorPtr != nullptr) {
+          scope.emplace(executorPtr);
+        }
+        while (!start.load(std::memory_order_acquire)) {
+        }
+        cb->result(123);
+      });
+      std::thread cancellation([&] {
+        while (!start.load(std::memory_order_acquire)) {
+        }
+        cb->cancelled();
+      });
+
+      start.store(true, std::memory_order_release);
+      response.join();
+      cancellation.join();
+      evb.loopOnce(EVLOOP_NONBLOCK);
+      cb.reset();
+    }
+  }
+
+  EXPECT_EQ(rec->resultCount + capturePtr->count, 2 * kIterationsPerMode);
+  EXPECT_EQ(rec->exceptionCount, 0);
+  rec->resetPipeline();
+}
+
+TEST(FastHandlerCallbackTest, CancellationRacingVoidCompletionCompletesOnce) {
   folly::EventBase evb;
   channel_pipeline::test::MockHeadHandler head;
   channel_pipeline::test::TestAllocator allocator;
@@ -517,25 +585,22 @@ TEST(FastHandlerCallbackTest, CpuCancellationRacingResultCompletesOnce) {
 
   constexpr int kIterations = 100;
   for (int i = 0; i < kIterations; ++i) {
-    folly::ManualExecutor executor;
     auto requestContext = makeThriftRequestContext(evb);
     requestContext->enableCancellation();
-    auto cb = makeFastHandlerCallback<FastHandlerCallback<int>>(
-        &onResult,
+    auto cb = makeFastHandlerCallback<FastHandlerCallback<void>>(
+        &onDone,
         &onException,
         rec.get(),
         kStreamId,
         evb,
-        &executor,
+        nullptr,
         std::move(requestContext));
-    cb->markHandlerStarted();
 
     std::atomic<bool> start{false};
     std::thread response([&] {
-      detail::HandlerExecutorScope scope(&executor);
       while (!start.load(std::memory_order_acquire)) {
       }
-      cb->result(123);
+      cb->done();
     });
     std::thread cancellation([&] {
       while (!start.load(std::memory_order_acquire)) {
@@ -550,7 +615,7 @@ TEST(FastHandlerCallbackTest, CpuCancellationRacingResultCompletesOnce) {
     cb.reset();
   }
 
-  EXPECT_EQ(rec->resultCount + capturePtr->count, kIterations);
+  EXPECT_EQ(rec->doneCount + capturePtr->count, kIterations);
   EXPECT_EQ(rec->exceptionCount, 0);
   rec->resetPipeline();
 }

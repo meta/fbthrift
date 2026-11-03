@@ -295,10 +295,9 @@ void completeOnHandlerExecutor(
  *
  * Move-only on purpose. A request has exactly one owner at any instant and
  * ownership is handed along a chain — dispatcher, then CPU pool task, then
- * handler, then possibly a continuation — with each hand-off carrying the
- * happens-before edge of whatever moved it (the executor queue, a future's
- * fulfilment, an EventBase notification queue). Two threads never hold the
- * callback at once, so nothing here needs to be atomic.
+ * handler, then possibly a continuation. A cancellation callback may borrow
+ * the pointer concurrently, but CancellationSlot chooses one winner; only
+ * that winner touches or moves the callback's other fields.
  *
  * Making the handle uncopyable is what enforces that: a second simultaneous
  * owner would reintroduce the "who destroys it?" question that a reference
@@ -473,9 +472,10 @@ inline void writeExceptionCascade(
  * passed hand to hand — dispatcher, then CPU pool task, then handler, then
  * possibly a continuation. Each hand-off travels through something that
  * already synchronizes (an executor queue, a future, an EventBase queue), so
- * the new owner sees everything the previous one wrote and no two threads
- * ever touch the callback at once. That is why there is no reference count
- * here, atomic or otherwise, and no vtable.
+ * the new owner sees everything the previous one wrote. Cancellation may
+ * concurrently borrow the callback; its slot atomically arbitrates with
+ * completion, and only the winner touches or moves the remaining fields.
+ * Ownership itself therefore needs neither a reference count nor a vtable.
  *
  * The one placement requirement is that *destruction* lands on the adapter's
  * EventBase, because it releases two counts that are deliberately non-atomic
@@ -525,7 +525,7 @@ class FastHandlerCallback {
                 ? server::captureFollyRequestContext(*requestContext_)
                 : nullptr),
         cancellationSlot_(
-            executor != nullptr && requestContext_ != nullptr &&
+            requestContext_ != nullptr &&
                 requestContext_->isCancellationEnabled(),
             executor == nullptr ? detail::HandlerState::Running
                                 : detail::HandlerState::AwaitingDispatch) {}
@@ -552,10 +552,9 @@ class FastHandlerCallback {
   FastHandlerCallback(FastHandlerCallback&&) = delete;
   FastHandlerCallback& operator=(FastHandlerCallback&&) = delete;
 
-  // Callable from any thread when the request uses a CPU executor.
-  // Completion returns to that executor for response serialization, then the
-  // adapter's writeResponse handles the EventBase hop. Without an executor,
-  // completion must stay on the EventBase.
+  // Callable from any thread. When configured, completion returns to the CPU
+  // executor for response serialization; the adapter's writeResponse then
+  // handles the EventBase hop.
   //
   // Safe even after the connection has been force-closed: the donated guard
   // keeps the adapter alive, and writeResponse drops the write because
@@ -871,7 +870,7 @@ class FastHandlerCallback<void> {
                 ? server::captureFollyRequestContext(*requestContext_)
                 : nullptr),
         cancellationSlot_(
-            executor != nullptr && requestContext_ != nullptr &&
+            requestContext_ != nullptr &&
                 requestContext_->isCancellationEnabled(),
             executor == nullptr ? detail::HandlerState::Running
                                 : detail::HandlerState::AwaitingDispatch) {}
