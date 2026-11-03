@@ -648,8 +648,9 @@ TEST(FollyDynamic, ListFromEmptyObject) {
   auto obj = from_dynamic<global_structC>(
       folly::dynamic::object("j3", folly::dynamic::object),
       dynamic_format::PORTABLE);
-  // @lint-ignore CLANGTIDY clang-diagnostic-deprecated-declarations
-  EXPECT_TRUE(obj.j3().is_set());
+  EXPECT_TRUE(
+      apache::thrift::is_non_optional_field_set_manually_or_by_serializer(
+          obj.j3()));
   EXPECT_EQ(0, obj.j3()->size());
 }
 
@@ -662,8 +663,9 @@ TEST(FollyDynamic, SetFromEmptyObject) {
   auto obj = from_dynamic<global_structC>(
       folly::dynamic::object("k3", folly::dynamic::object),
       dynamic_format::PORTABLE);
-  // @lint-ignore CLANGTIDY clang-diagnostic-deprecated-declarations
-  EXPECT_TRUE(obj.k3().is_set());
+  EXPECT_TRUE(
+      apache::thrift::is_non_optional_field_set_manually_or_by_serializer(
+          obj.k3()));
   EXPECT_EQ(0, obj.k3()->size());
 }
 
@@ -676,8 +678,9 @@ TEST(FollyDynamic, MapFromEmptyArray) {
   auto obj = from_dynamic<global_structC>(
       folly::dynamic::object("l3", folly::dynamic::array),
       dynamic_format::PORTABLE);
-  // @lint-ignore CLANGTIDY clang-diagnostic-deprecated-declarations
-  EXPECT_TRUE(obj.l3().is_set());
+  EXPECT_TRUE(
+      apache::thrift::is_non_optional_field_set_manually_or_by_serializer(
+          obj.l3()));
   EXPECT_EQ(0, obj.l3()->size());
 }
 
@@ -727,8 +730,9 @@ class FollyDynamicEnum : public ::testing::Test {
 TEST_F(FollyDynamicEnum, FromStringStrict) {
   folly::dynamic dyn = folly::dynamic::object(member_name_s, "field0");
   auto obj = from_dynamic<type>(dyn, dynamic_format::PORTABLE);
-  // @lint-ignore CLANGTIDY clang-diagnostic-deprecated-declarations
-  EXPECT_TRUE(obj.e().is_set());
+  EXPECT_TRUE(
+      apache::thrift::is_non_optional_field_set_manually_or_by_serializer(
+          obj.e()));
   EXPECT_EQ(global_enum1::field0, obj.e());
   EXPECT_THROW(
       from_dynamic<type>(dyn, dynamic_format::JSON_1), folly::ConversionError);
@@ -737,8 +741,9 @@ TEST_F(FollyDynamicEnum, FromStringStrict) {
 TEST_F(FollyDynamicEnum, FromIntegerStrict) {
   folly::dynamic dyn = folly::dynamic::object(member_name_s, 0);
   auto obj = from_dynamic<type>(dyn, dynamic_format::JSON_1);
-  // @lint-ignore CLANGTIDY clang-diagnostic-deprecated-declarations
-  EXPECT_TRUE(obj.e().is_set());
+  EXPECT_TRUE(
+      apache::thrift::is_non_optional_field_set_manually_or_by_serializer(
+          obj.e()));
   EXPECT_EQ(global_enum1::field0, obj.e());
   EXPECT_THROW(
       from_dynamic<type>(dyn, dynamic_format::PORTABLE), std::invalid_argument);
@@ -748,13 +753,15 @@ TEST_F(FollyDynamicEnum, FromStringLenient) {
   folly::dynamic dyn = folly::dynamic::object(member_name_s, "field0");
   auto obj1 = from_dynamic<type>(
       dyn, dynamic_format::PORTABLE, format_adherence::LENIENT);
-  // @lint-ignore CLANGTIDY clang-diagnostic-deprecated-declarations
-  EXPECT_TRUE(obj1.e().is_set());
+  EXPECT_TRUE(
+      apache::thrift::is_non_optional_field_set_manually_or_by_serializer(
+          obj1.e()));
   EXPECT_EQ(global_enum1::field0, obj1.e());
   auto obj2 = from_dynamic<type>(
       dyn, dynamic_format::JSON_1, format_adherence::LENIENT);
-  // @lint-ignore CLANGTIDY clang-diagnostic-deprecated-declarations
-  EXPECT_TRUE(obj2.e().is_set());
+  EXPECT_TRUE(
+      apache::thrift::is_non_optional_field_set_manually_or_by_serializer(
+          obj2.e()));
   EXPECT_EQ(global_enum1::field0, obj2.e());
 }
 
@@ -762,13 +769,15 @@ TEST_F(FollyDynamicEnum, FromIntegerLenient) {
   folly::dynamic dyn = folly::dynamic::object(member_name_s, 0);
   auto obj1 = from_dynamic<type>(
       dyn, dynamic_format::PORTABLE, format_adherence::LENIENT);
-  // @lint-ignore CLANGTIDY clang-diagnostic-deprecated-declarations
-  EXPECT_TRUE(obj1.e().is_set());
+  EXPECT_TRUE(
+      apache::thrift::is_non_optional_field_set_manually_or_by_serializer(
+          obj1.e()));
   EXPECT_EQ(global_enum1::field0, obj1.e());
   auto obj2 = from_dynamic<type>(
       dyn, dynamic_format::JSON_1, format_adherence::LENIENT);
-  // @lint-ignore CLANGTIDY clang-diagnostic-deprecated-declarations
-  EXPECT_TRUE(obj2.e().is_set());
+  EXPECT_TRUE(
+      apache::thrift::is_non_optional_field_set_manually_or_by_serializer(
+          obj2.e()));
   EXPECT_EQ(global_enum1::field0, obj2.e());
 }
 
