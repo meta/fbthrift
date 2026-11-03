@@ -1247,8 +1247,8 @@ DynamicListPatch DiffVisitorBase::diffList(
     return patch;
   }
 
-  auto it = std::search(dst.begin(), dst.end(), src.begin(), src.end());
-  if (it != dst.begin()) {
+  if (src.size() > dst.size() ||
+      !std::equal(src.begin(), src.end(), dst.begin())) {
     patch.assign(dst);
     return patch;
   }

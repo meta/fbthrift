@@ -145,6 +145,19 @@ TEST(DynamicPatchTest, List) {
   testOneWay<type::list<type::i32_t>, DynamicListPatch>({1}, {1});
 }
 
+TEST(DynamicPatchTest, ListDiffAppendsOnlyWhenSrcIsPrefix) {
+  using Tag = type::list<type::i32_t>;
+  auto isAssign = [](std::vector<int32_t> src, std::vector<int32_t> dst) {
+    return DiffVisitorBase{}
+        .diff(badge, asValueStruct<Tag>(src), asValueStruct<Tag>(dst))
+        .toObject()
+        .contains(static_cast<FieldId>(op::PatchOp::Assign));
+  };
+  EXPECT_FALSE(isAssign({1, 2}, {1, 2, 3}));
+  EXPECT_TRUE(isAssign({2, 3}, {1, 2, 3}));
+  EXPECT_TRUE(isAssign({1, 2, 3}, {1, 2}));
+}
+
 TEST(DynamicPatchTest, Set) {
   testOneWay<type::set<type::i32_t>, DynamicSetPatch>({}, {});
   testOneWay<type::set<type::i32_t>, DynamicSetPatch>({}, {1});
