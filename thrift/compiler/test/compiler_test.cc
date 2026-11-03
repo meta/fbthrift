@@ -3404,6 +3404,7 @@ TEST(CompilerTest, cpp_arena_annotation_scopes) {
 
     @cpp.Arena
     typedef string PmrString
+      # expected-error@-2: `@cpp.Arena` is not supported on typedef `PmrString`.
 
     struct Foo {
       @cpp.Arena
@@ -3438,10 +3439,6 @@ TEST(CompilerTest, cpp_arena_adapted) {
     @cpp.Adapter{}
       # expected-error@-1: key `name` not found.
     typedef string Nameless
-
-    @cpp.Arena
-    typedef AdaptedString ArenaAdaptedString
-      # expected-error@-2: `@cpp.Arena` is not supported on typedef `ArenaAdaptedString`, which is adapted by `::my::Adapter`.
 
     struct Foo {
       @cpp.Arena

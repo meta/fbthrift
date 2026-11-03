@@ -1429,13 +1429,8 @@ void validate_cpp_arena_field(sema_context& ctx, const t_field& field) {
 }
 
 void validate_cpp_arena_typedef(sema_context& ctx, const t_typedef& node) {
-  if (!node.has_structured_annotation(kCppArenaUri)) {
-    return;
-  }
-  if (const t_const* adapter =
-          t_typedef::get_first_structured_annotation_or_null(
-              &node, kCppAdapterUri)) {
-    report_cpp_arena_on_adapted(ctx, "typedef", node.name(), *adapter);
+  if (node.has_structured_annotation(kCppArenaUri)) {
+    ctx.error("`@cpp.Arena` is not supported on typedef `{}`.", node.name());
   }
 }
 
