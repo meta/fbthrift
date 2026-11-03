@@ -17,6 +17,11 @@
 #include <thrift/lib/cpp2/util/ManagedStringView.h>
 
 #include <gtest/gtest.h>
+#include <folly/io/IOBufQueue.h>
+#include <thrift/lib/cpp2/StringTypeAdapter.h>
+#include <thrift/lib/cpp2/op/Encode.h>
+#include <thrift/lib/cpp2/protocol/BinaryProtocol.h>
+#include <thrift/lib/cpp2/protocol/CompactProtocol.h>
 
 using namespace apache::thrift;
 
@@ -53,6 +58,48 @@ TEST(ManagedStringViewTest, Basic) {
     s = ManagedStringView(s5);
   }
   EXPECT_EQ(s.str(), "qux");
+}
+
+TEST(ManagedStringViewTest, AdapterConversionOwnsStorage) {
+  using Adapter = StringTypeAdapter<ManagedStringViewWithConversions>;
+  const std::string expected(256, 'x');
+  ManagedStringViewWithConversions adapted;
+  {
+    auto source = expected;
+    const auto* storage = source.data();
+    adapted = Adapter::fromThrift(std::move(source));
+    EXPECT_EQ(adapted.data(), storage);
+  }
+  EXPECT_EQ(adapted.view(), expected);
+}
+
+template <typename Reader, typename Writer>
+void testAdaptedFragmentedString() {
+  using Adapter = StringTypeAdapter<ManagedStringViewWithConversions>;
+  using Tag = type::adapted<Adapter, type::string_t>;
+  const std::string expected(256, 'x');
+  auto adapted = ManagedStringViewWithConversions(
+      ManagedStringView::from_static(std::string_view("static")));
+  {
+    folly::IOBufQueue queue;
+    Writer writer;
+    writer.setOutput(&queue);
+    writer.writeString(expected);
+    auto contiguous = queue.move()->cloneCoalesced();
+    auto encoded = folly::IOBuf::copyBuffer(contiguous->data(), 6);
+    encoded->appendChain(
+        folly::IOBuf::copyBuffer(
+            contiguous->data() + 6, contiguous->length() - 6));
+    Reader reader;
+    reader.setInput(encoded.get());
+    op::decode<Tag>(reader, adapted);
+  }
+  EXPECT_EQ(adapted.view(), expected);
+}
+
+TEST(ManagedStringViewTest, AdapterDecodeFragmentedStaticView) {
+  testAdaptedFragmentedString<BinaryProtocolReader, BinaryProtocolWriter>();
+  testAdaptedFragmentedString<CompactProtocolReader, CompactProtocolWriter>();
 }
 
 TEST(ManagedStringViewTest, Conversions) {
