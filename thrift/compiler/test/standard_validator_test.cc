@@ -431,7 +431,7 @@ TEST(StandardValidatorTest, CppTypeNonIntegerSkipped) {
     include "thrift/annotation/cpp.thrift"
 
     struct S {
-      @cpp.Type{name = "folly::fbstring"}
+      @cpp.Type{name = "folly::IOBuf"}
       1: string field1;
 
       @cpp.Type{name = "std::deque<int>"}
