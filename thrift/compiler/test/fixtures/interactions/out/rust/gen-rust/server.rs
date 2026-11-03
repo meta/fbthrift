@@ -152,6 +152,21 @@ pub trait MyInteraction: ::std::marker::Send + ::std::marker::Sync + 'static {
             ),
         ))
     }
+    async fn firstAndStream(
+        &self,
+    ) -> ::std::result::Result<
+(
+    ::std::primitive::i32,
+    ::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::services::my_interaction::FirstAndStreamStreamExn>>
+)
+, crate::services::my_interaction::FirstAndStreamExn> {
+        ::std::result::Result::Err(crate::services::my_interaction::FirstAndStreamExn::ApplicationException(
+            ::fbthrift::ApplicationException::unimplemented_method(
+                "MyInteraction",
+                "firstAndStream",
+            ),
+        ))
+    }
     async fn encode(
         &self,
     ) -> ::std::result::Result<crate::services::my_interaction::EncodeSinkResult, crate::services::my_interaction::EncodeExn> {
@@ -224,6 +239,17 @@ where
             query,
         ).await
     }
+    async fn firstAndStream(
+        &self,
+    ) -> ::std::result::Result<
+(
+    ::std::primitive::i32,
+    ::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::services::my_interaction::FirstAndStreamStreamExn>>
+)
+, crate::services::my_interaction::FirstAndStreamExn> {
+        (**self).firstAndStream(
+        ).await
+    }
     async fn encode(
         &self,
     ) -> ::std::result::Result<crate::services::my_interaction::EncodeSinkResult, crate::services::my_interaction::EncodeExn> {
@@ -292,6 +318,17 @@ where
 , crate::services::my_interaction::StreamWithArgExn> {
         (**self).streamWithArg(
             query,
+        ).await
+    }
+    async fn firstAndStream(
+        &self,
+    ) -> ::std::result::Result<
+(
+    ::std::primitive::i32,
+    ::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::services::my_interaction::FirstAndStreamStreamExn>>
+)
+, crate::services::my_interaction::FirstAndStreamExn> {
+        (**self).firstAndStream(
         ).await
     }
     async fn encode(
@@ -485,6 +522,31 @@ impl<P: ::fbthrift::ProtocolReader> ::fbthrift::Deserialize<P> for self::Args_My
         p.read_struct_end()?;
         ::std::result::Result::Ok(Self {
             query: field_query.unwrap_or_default(),
+        })
+    }
+}
+
+
+struct Args_MyInteraction_firstAndStream {
+}
+
+impl<P: ::fbthrift::ProtocolReader> ::fbthrift::Deserialize<P> for self::Args_MyInteraction_firstAndStream {
+    #[inline]
+    #[::tracing::instrument(skip_all, level = "trace", name = "deserialize_args", fields(method = "MyInteraction.firstAndStream"))]
+    fn rs_thrift_read(p: &mut P) -> ::anyhow::Result<Self> {
+        static ARGS: &[::fbthrift::Field] = &[
+        ];
+        let _ = p.read_struct_begin(|_| ())?;
+        loop {
+            let (_, fty, fid) = p.read_field_begin(|_| (), ARGS)?;
+            match (fty, fid as ::std::primitive::i32) {
+                (::fbthrift::TType::Stop, _) => break,
+                (fty, _) => p.skip(fty)?,
+            }
+            p.read_field_end()?;
+        }
+        p.read_struct_end()?;
+        ::std::result::Result::Ok(Self {
         })
     }
 }
@@ -1537,6 +1599,109 @@ pub mod my_service {
             ::std::result::Result::Ok(())
         }
 
+        #[::tracing::instrument(skip_all, name = "handler", fields(method = "MyInteraction.firstAndStream"))]
+        async fn handle_firstAndStream(
+            &self,
+            mut p: P::Deserializer,
+            req: ::fbthrift::ProtocolDecoded<P>,
+            req_ctxt: &R,
+            reply_state: ::std::sync::Arc<RS>,
+            _seqid: ::std::primitive::u32,
+        ) -> ::anyhow::Result<()> {
+            use ::futures::FutureExt as _;
+            use ::fbthrift::ExceptionInfo;
+            use ::fbthrift::ProtocolReader as _;
+
+            const SERVICE_NAME: &::std::ffi::CStr = c"MyService";
+            const METHOD_NAME: &::std::ffi::CStr = c"MyInteraction.firstAndStream";
+            const SERVICE_METHOD_NAME: &::std::ffi::CStr = c"MyService.MyInteraction.firstAndStream";
+            let mut ctx_stack = req_ctxt.get_context_stack(SERVICE_NAME, SERVICE_METHOD_NAME)?;
+            ::fbthrift::ContextStack::pre_read(&mut ctx_stack)?;
+            let _args: self::Args_MyInteraction_firstAndStream = ::fbthrift::Deserialize::rs_thrift_read(&mut p)?;
+            let bytes_read = ::fbthrift::help::buf_len(&req)?;
+            ::fbthrift::ContextStack::on_read_data(&mut ctx_stack, ::fbthrift::SerializedMessage {
+                protocol: P::PROTOCOL_ID,
+                method_name: METHOD_NAME,
+                buffer: req,
+            })?;
+            ::fbthrift::ContextStack::post_read(&mut ctx_stack, bytes_read)?;
+            p.read_message_end()?;
+            // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
+            ::std::mem::drop(p);
+
+            let res = ::std::panic::AssertUnwindSafe(
+                self.service.firstAndStream(
+                )
+            )
+            .catch_unwind()
+            .await;
+
+            // nested results - panic catch on the outside, method on the inside
+            let res = match res {
+                ::std::result::Result::Ok(::std::result::Result::Ok(res)) => {
+                    ::tracing::trace!(method = "MyInteraction.firstAndStream", "success");
+                    ::std::result::Result::Ok(res)
+                }
+                ::std::result::Result::Ok(::std::result::Result::Err(exn)) => {
+                    ::std::result::Result::Err(exn)
+                }
+                ::std::result::Result::Err(exn) => {
+                    let aexn = ::fbthrift::ApplicationException::handler_panic("MyInteraction.firstAndStream", exn);
+                    ::tracing::error!(method = "MyInteraction.firstAndStream", panic = ?aexn, error = aexn.exn_value());
+                    ::std::result::Result::Err(crate::services::my_interaction::FirstAndStreamExn::ApplicationException(aexn))
+                }
+            };
+
+            use ::futures::StreamExt as _;
+
+            let (response, stream) = match res {
+                ::std::result::Result::Ok(res) => {
+                    let (response, stream) = res;
+                    let response = ::std::result::Result::Ok(response);
+
+                    let stream = ::std::panic::AssertUnwindSafe(stream)
+                        .catch_unwind()
+                        .map(|item| {
+                            match item {
+                                ::std::result::Result::Ok(::std::result::Result::Ok(success)) => {
+                                    let payload = ::fbthrift::help::serialize_stream_item::<P, crate::services::my_interaction::FirstAndStreamStreamExn>(
+                                        ::std::result::Result::Ok(success),
+                                        "firstAndStream",
+                                    );
+                                    ::fbthrift::SerializedStreamElement::Success(payload)
+                                }
+                                ::std::result::Result::Ok(::std::result::Result::Err(crate::services::my_interaction::FirstAndStreamStreamExn::ApplicationException(aexn))) => {
+                                    tracing::info!(?aexn, method="MyInteraction.firstAndStream", "Streaming ApplicationException");
+                                    ::fbthrift::SerializedStreamElement::ApplicationException(aexn)
+                                }
+                                ::std::result::Result::Err(exn) => {
+                                    tracing::error!(?exn, method="MyInteraction.firstAndStream", "Streaming unwind");
+                                    let aexn = ::fbthrift::ApplicationException::handler_panic("MyInteraction.firstAndStream", exn);
+                                    ::fbthrift::SerializedStreamElement::ApplicationException(aexn)
+                                }
+                            }
+                        })
+                        .boxed();
+                    (response, ::std::option::Option::Some(stream))
+                },
+                ::std::result::Result::Err(exn) => (::std::result::Result::Err(exn), ::std::option::Option::None),
+            };
+
+            let response = ::fbthrift::help::serialize_result_envelope::<P, R, crate::services::my_interaction::FirstAndStreamExn>(
+                "firstAndStream",
+                METHOD_NAME,
+                _seqid,
+                req_ctxt,
+                &mut ctx_stack,
+                response,
+            )?;
+
+            reply_state.set_stream_method_name("MyInteraction.firstAndStream");
+            reply_state.set_stream_context_stack(ctx_stack);
+            let _ = reply_state.send_stream_reply(response, stream, P::PROTOCOL_ID);
+            ::std::result::Result::Ok(())
+        }
+
         #[::tracing::instrument(skip_all, name = "handler", fields(method = "MyInteraction.encode"))]
         async fn handle_encode(
             &self,
@@ -1702,7 +1867,8 @@ pub mod my_service {
                 b"MyInteraction.failstreaminit" => ::std::result::Result::Ok(4usize),
                 b"MyInteraction.frobnicateWithArg" => ::std::result::Result::Ok(5usize),
                 b"MyInteraction.streamWithArg" => ::std::result::Result::Ok(6usize),
-                b"MyInteraction.encode" => ::std::result::Result::Ok(7usize),
+                b"MyInteraction.firstAndStream" => ::std::result::Result::Ok(7usize),
+                b"MyInteraction.encode" => ::std::result::Result::Ok(8usize),
                 _ => ::std::result::Result::Err(::fbthrift::ApplicationException::unknown_method()),
             }
         }
@@ -1740,6 +1906,9 @@ pub mod my_service {
                     self.handle_streamWithArg(_p, _req, _req_ctxt, _reply_state, _seqid).await
                 }
                 7usize => {
+                    self.handle_firstAndStream(_p, _req, _req_ctxt, _reply_state, _seqid).await
+                }
+                8usize => {
                     self.handle_encode(_p, _req, _req_ctxt, _reply_state, _seqid).await
                 }
                 bad => panic!(
@@ -3578,6 +3747,13 @@ where
             },
             ::fbthrift::processor::MethodMetadata{
               interaction_type: ::fbthrift::processor::InteractionType::InteractionV1,
+              rpc_kind: ::fbthrift::processor::RpcKind::SINGLE_REQUEST_STREAMING_RESPONSE,
+              name: "MyInteraction.firstAndStream",
+              starts_interaction: false,
+              interaction_name: Some("MyInteraction"),
+            },
+            ::fbthrift::processor::MethodMetadata{
+              interaction_type: ::fbthrift::processor::InteractionType::InteractionV1,
               rpc_kind: ::fbthrift::processor::RpcKind::SINK,
               name: "MyInteraction.encode",
               starts_interaction: false,
@@ -4321,6 +4497,109 @@ pub mod factories {
             ::std::result::Result::Ok(())
         }
 
+        #[::tracing::instrument(skip_all, name = "handler", fields(method = "MyInteraction.firstAndStream"))]
+        async fn handle_firstAndStream(
+            &self,
+            mut p: P::Deserializer,
+            req: ::fbthrift::ProtocolDecoded<P>,
+            req_ctxt: &R,
+            reply_state: ::std::sync::Arc<RS>,
+            _seqid: ::std::primitive::u32,
+        ) -> ::anyhow::Result<()> {
+            use ::futures::FutureExt as _;
+            use ::fbthrift::ExceptionInfo;
+            use ::fbthrift::ProtocolReader as _;
+
+            const SERVICE_NAME: &::std::ffi::CStr = c"Factories";
+            const METHOD_NAME: &::std::ffi::CStr = c"MyInteraction.firstAndStream";
+            const SERVICE_METHOD_NAME: &::std::ffi::CStr = c"Factories.MyInteraction.firstAndStream";
+            let mut ctx_stack = req_ctxt.get_context_stack(SERVICE_NAME, SERVICE_METHOD_NAME)?;
+            ::fbthrift::ContextStack::pre_read(&mut ctx_stack)?;
+            let _args: self::Args_MyInteraction_firstAndStream = ::fbthrift::Deserialize::rs_thrift_read(&mut p)?;
+            let bytes_read = ::fbthrift::help::buf_len(&req)?;
+            ::fbthrift::ContextStack::on_read_data(&mut ctx_stack, ::fbthrift::SerializedMessage {
+                protocol: P::PROTOCOL_ID,
+                method_name: METHOD_NAME,
+                buffer: req,
+            })?;
+            ::fbthrift::ContextStack::post_read(&mut ctx_stack, bytes_read)?;
+            p.read_message_end()?;
+            // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
+            ::std::mem::drop(p);
+
+            let res = ::std::panic::AssertUnwindSafe(
+                self.service.firstAndStream(
+                )
+            )
+            .catch_unwind()
+            .await;
+
+            // nested results - panic catch on the outside, method on the inside
+            let res = match res {
+                ::std::result::Result::Ok(::std::result::Result::Ok(res)) => {
+                    ::tracing::trace!(method = "MyInteraction.firstAndStream", "success");
+                    ::std::result::Result::Ok(res)
+                }
+                ::std::result::Result::Ok(::std::result::Result::Err(exn)) => {
+                    ::std::result::Result::Err(exn)
+                }
+                ::std::result::Result::Err(exn) => {
+                    let aexn = ::fbthrift::ApplicationException::handler_panic("MyInteraction.firstAndStream", exn);
+                    ::tracing::error!(method = "MyInteraction.firstAndStream", panic = ?aexn, error = aexn.exn_value());
+                    ::std::result::Result::Err(crate::services::my_interaction::FirstAndStreamExn::ApplicationException(aexn))
+                }
+            };
+
+            use ::futures::StreamExt as _;
+
+            let (response, stream) = match res {
+                ::std::result::Result::Ok(res) => {
+                    let (response, stream) = res;
+                    let response = ::std::result::Result::Ok(response);
+
+                    let stream = ::std::panic::AssertUnwindSafe(stream)
+                        .catch_unwind()
+                        .map(|item| {
+                            match item {
+                                ::std::result::Result::Ok(::std::result::Result::Ok(success)) => {
+                                    let payload = ::fbthrift::help::serialize_stream_item::<P, crate::services::my_interaction::FirstAndStreamStreamExn>(
+                                        ::std::result::Result::Ok(success),
+                                        "firstAndStream",
+                                    );
+                                    ::fbthrift::SerializedStreamElement::Success(payload)
+                                }
+                                ::std::result::Result::Ok(::std::result::Result::Err(crate::services::my_interaction::FirstAndStreamStreamExn::ApplicationException(aexn))) => {
+                                    tracing::info!(?aexn, method="MyInteraction.firstAndStream", "Streaming ApplicationException");
+                                    ::fbthrift::SerializedStreamElement::ApplicationException(aexn)
+                                }
+                                ::std::result::Result::Err(exn) => {
+                                    tracing::error!(?exn, method="MyInteraction.firstAndStream", "Streaming unwind");
+                                    let aexn = ::fbthrift::ApplicationException::handler_panic("MyInteraction.firstAndStream", exn);
+                                    ::fbthrift::SerializedStreamElement::ApplicationException(aexn)
+                                }
+                            }
+                        })
+                        .boxed();
+                    (response, ::std::option::Option::Some(stream))
+                },
+                ::std::result::Result::Err(exn) => (::std::result::Result::Err(exn), ::std::option::Option::None),
+            };
+
+            let response = ::fbthrift::help::serialize_result_envelope::<P, R, crate::services::my_interaction::FirstAndStreamExn>(
+                "firstAndStream",
+                METHOD_NAME,
+                _seqid,
+                req_ctxt,
+                &mut ctx_stack,
+                response,
+            )?;
+
+            reply_state.set_stream_method_name("MyInteraction.firstAndStream");
+            reply_state.set_stream_context_stack(ctx_stack);
+            let _ = reply_state.send_stream_reply(response, stream, P::PROTOCOL_ID);
+            ::std::result::Result::Ok(())
+        }
+
         #[::tracing::instrument(skip_all, name = "handler", fields(method = "MyInteraction.encode"))]
         async fn handle_encode(
             &self,
@@ -4486,7 +4765,8 @@ pub mod factories {
                 b"MyInteraction.failstreaminit" => ::std::result::Result::Ok(4usize),
                 b"MyInteraction.frobnicateWithArg" => ::std::result::Result::Ok(5usize),
                 b"MyInteraction.streamWithArg" => ::std::result::Result::Ok(6usize),
-                b"MyInteraction.encode" => ::std::result::Result::Ok(7usize),
+                b"MyInteraction.firstAndStream" => ::std::result::Result::Ok(7usize),
+                b"MyInteraction.encode" => ::std::result::Result::Ok(8usize),
                 _ => ::std::result::Result::Err(::fbthrift::ApplicationException::unknown_method()),
             }
         }
@@ -4524,6 +4804,9 @@ pub mod factories {
                     self.handle_streamWithArg(_p, _req, _req_ctxt, _reply_state, _seqid).await
                 }
                 7usize => {
+                    self.handle_firstAndStream(_p, _req, _req_ctxt, _reply_state, _seqid).await
+                }
+                8usize => {
                     self.handle_encode(_p, _req, _req_ctxt, _reply_state, _seqid).await
                 }
                 bad => panic!(
@@ -7474,6 +7757,13 @@ where
             },
             ::fbthrift::processor::MethodMetadata{
               interaction_type: ::fbthrift::processor::InteractionType::InteractionV1,
+              rpc_kind: ::fbthrift::processor::RpcKind::SINGLE_REQUEST_STREAMING_RESPONSE,
+              name: "MyInteraction.firstAndStream",
+              starts_interaction: false,
+              interaction_name: Some("MyInteraction"),
+            },
+            ::fbthrift::processor::MethodMetadata{
+              interaction_type: ::fbthrift::processor::InteractionType::InteractionV1,
               rpc_kind: ::fbthrift::processor::RpcKind::SINK,
               name: "MyInteraction.encode",
               starts_interaction: false,
@@ -8217,6 +8507,109 @@ pub mod perform {
             ::std::result::Result::Ok(())
         }
 
+        #[::tracing::instrument(skip_all, name = "handler", fields(method = "MyInteraction.firstAndStream"))]
+        async fn handle_firstAndStream(
+            &self,
+            mut p: P::Deserializer,
+            req: ::fbthrift::ProtocolDecoded<P>,
+            req_ctxt: &R,
+            reply_state: ::std::sync::Arc<RS>,
+            _seqid: ::std::primitive::u32,
+        ) -> ::anyhow::Result<()> {
+            use ::futures::FutureExt as _;
+            use ::fbthrift::ExceptionInfo;
+            use ::fbthrift::ProtocolReader as _;
+
+            const SERVICE_NAME: &::std::ffi::CStr = c"Perform";
+            const METHOD_NAME: &::std::ffi::CStr = c"MyInteraction.firstAndStream";
+            const SERVICE_METHOD_NAME: &::std::ffi::CStr = c"Perform.MyInteraction.firstAndStream";
+            let mut ctx_stack = req_ctxt.get_context_stack(SERVICE_NAME, SERVICE_METHOD_NAME)?;
+            ::fbthrift::ContextStack::pre_read(&mut ctx_stack)?;
+            let _args: self::Args_MyInteraction_firstAndStream = ::fbthrift::Deserialize::rs_thrift_read(&mut p)?;
+            let bytes_read = ::fbthrift::help::buf_len(&req)?;
+            ::fbthrift::ContextStack::on_read_data(&mut ctx_stack, ::fbthrift::SerializedMessage {
+                protocol: P::PROTOCOL_ID,
+                method_name: METHOD_NAME,
+                buffer: req,
+            })?;
+            ::fbthrift::ContextStack::post_read(&mut ctx_stack, bytes_read)?;
+            p.read_message_end()?;
+            // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
+            ::std::mem::drop(p);
+
+            let res = ::std::panic::AssertUnwindSafe(
+                self.service.firstAndStream(
+                )
+            )
+            .catch_unwind()
+            .await;
+
+            // nested results - panic catch on the outside, method on the inside
+            let res = match res {
+                ::std::result::Result::Ok(::std::result::Result::Ok(res)) => {
+                    ::tracing::trace!(method = "MyInteraction.firstAndStream", "success");
+                    ::std::result::Result::Ok(res)
+                }
+                ::std::result::Result::Ok(::std::result::Result::Err(exn)) => {
+                    ::std::result::Result::Err(exn)
+                }
+                ::std::result::Result::Err(exn) => {
+                    let aexn = ::fbthrift::ApplicationException::handler_panic("MyInteraction.firstAndStream", exn);
+                    ::tracing::error!(method = "MyInteraction.firstAndStream", panic = ?aexn, error = aexn.exn_value());
+                    ::std::result::Result::Err(crate::services::my_interaction::FirstAndStreamExn::ApplicationException(aexn))
+                }
+            };
+
+            use ::futures::StreamExt as _;
+
+            let (response, stream) = match res {
+                ::std::result::Result::Ok(res) => {
+                    let (response, stream) = res;
+                    let response = ::std::result::Result::Ok(response);
+
+                    let stream = ::std::panic::AssertUnwindSafe(stream)
+                        .catch_unwind()
+                        .map(|item| {
+                            match item {
+                                ::std::result::Result::Ok(::std::result::Result::Ok(success)) => {
+                                    let payload = ::fbthrift::help::serialize_stream_item::<P, crate::services::my_interaction::FirstAndStreamStreamExn>(
+                                        ::std::result::Result::Ok(success),
+                                        "firstAndStream",
+                                    );
+                                    ::fbthrift::SerializedStreamElement::Success(payload)
+                                }
+                                ::std::result::Result::Ok(::std::result::Result::Err(crate::services::my_interaction::FirstAndStreamStreamExn::ApplicationException(aexn))) => {
+                                    tracing::info!(?aexn, method="MyInteraction.firstAndStream", "Streaming ApplicationException");
+                                    ::fbthrift::SerializedStreamElement::ApplicationException(aexn)
+                                }
+                                ::std::result::Result::Err(exn) => {
+                                    tracing::error!(?exn, method="MyInteraction.firstAndStream", "Streaming unwind");
+                                    let aexn = ::fbthrift::ApplicationException::handler_panic("MyInteraction.firstAndStream", exn);
+                                    ::fbthrift::SerializedStreamElement::ApplicationException(aexn)
+                                }
+                            }
+                        })
+                        .boxed();
+                    (response, ::std::option::Option::Some(stream))
+                },
+                ::std::result::Result::Err(exn) => (::std::result::Result::Err(exn), ::std::option::Option::None),
+            };
+
+            let response = ::fbthrift::help::serialize_result_envelope::<P, R, crate::services::my_interaction::FirstAndStreamExn>(
+                "firstAndStream",
+                METHOD_NAME,
+                _seqid,
+                req_ctxt,
+                &mut ctx_stack,
+                response,
+            )?;
+
+            reply_state.set_stream_method_name("MyInteraction.firstAndStream");
+            reply_state.set_stream_context_stack(ctx_stack);
+            let _ = reply_state.send_stream_reply(response, stream, P::PROTOCOL_ID);
+            ::std::result::Result::Ok(())
+        }
+
         #[::tracing::instrument(skip_all, name = "handler", fields(method = "MyInteraction.encode"))]
         async fn handle_encode(
             &self,
@@ -8382,7 +8775,8 @@ pub mod perform {
                 b"MyInteraction.failstreaminit" => ::std::result::Result::Ok(4usize),
                 b"MyInteraction.frobnicateWithArg" => ::std::result::Result::Ok(5usize),
                 b"MyInteraction.streamWithArg" => ::std::result::Result::Ok(6usize),
-                b"MyInteraction.encode" => ::std::result::Result::Ok(7usize),
+                b"MyInteraction.firstAndStream" => ::std::result::Result::Ok(7usize),
+                b"MyInteraction.encode" => ::std::result::Result::Ok(8usize),
                 _ => ::std::result::Result::Err(::fbthrift::ApplicationException::unknown_method()),
             }
         }
@@ -8420,6 +8814,9 @@ pub mod perform {
                     self.handle_streamWithArg(_p, _req, _req_ctxt, _reply_state, _seqid).await
                 }
                 7usize => {
+                    self.handle_firstAndStream(_p, _req, _req_ctxt, _reply_state, _seqid).await
+                }
+                8usize => {
                     self.handle_encode(_p, _req, _req_ctxt, _reply_state, _seqid).await
                 }
                 bad => panic!(
@@ -9814,6 +10211,13 @@ where
             },
             ::fbthrift::processor::MethodMetadata{
               interaction_type: ::fbthrift::processor::InteractionType::InteractionV1,
+              rpc_kind: ::fbthrift::processor::RpcKind::SINGLE_REQUEST_STREAMING_RESPONSE,
+              name: "MyInteraction.firstAndStream",
+              starts_interaction: false,
+              interaction_name: Some("MyInteraction"),
+            },
+            ::fbthrift::processor::MethodMetadata{
+              interaction_type: ::fbthrift::processor::InteractionType::InteractionV1,
               rpc_kind: ::fbthrift::processor::RpcKind::SINK,
               name: "MyInteraction.encode",
               starts_interaction: false,
@@ -10557,6 +10961,109 @@ pub mod interact_with_shared {
             ::std::result::Result::Ok(())
         }
 
+        #[::tracing::instrument(skip_all, name = "handler", fields(method = "MyInteraction.firstAndStream"))]
+        async fn handle_firstAndStream(
+            &self,
+            mut p: P::Deserializer,
+            req: ::fbthrift::ProtocolDecoded<P>,
+            req_ctxt: &R,
+            reply_state: ::std::sync::Arc<RS>,
+            _seqid: ::std::primitive::u32,
+        ) -> ::anyhow::Result<()> {
+            use ::futures::FutureExt as _;
+            use ::fbthrift::ExceptionInfo;
+            use ::fbthrift::ProtocolReader as _;
+
+            const SERVICE_NAME: &::std::ffi::CStr = c"InteractWithShared";
+            const METHOD_NAME: &::std::ffi::CStr = c"MyInteraction.firstAndStream";
+            const SERVICE_METHOD_NAME: &::std::ffi::CStr = c"InteractWithShared.MyInteraction.firstAndStream";
+            let mut ctx_stack = req_ctxt.get_context_stack(SERVICE_NAME, SERVICE_METHOD_NAME)?;
+            ::fbthrift::ContextStack::pre_read(&mut ctx_stack)?;
+            let _args: self::Args_MyInteraction_firstAndStream = ::fbthrift::Deserialize::rs_thrift_read(&mut p)?;
+            let bytes_read = ::fbthrift::help::buf_len(&req)?;
+            ::fbthrift::ContextStack::on_read_data(&mut ctx_stack, ::fbthrift::SerializedMessage {
+                protocol: P::PROTOCOL_ID,
+                method_name: METHOD_NAME,
+                buffer: req,
+            })?;
+            ::fbthrift::ContextStack::post_read(&mut ctx_stack, bytes_read)?;
+            p.read_message_end()?;
+            // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
+            ::std::mem::drop(p);
+
+            let res = ::std::panic::AssertUnwindSafe(
+                self.service.firstAndStream(
+                )
+            )
+            .catch_unwind()
+            .await;
+
+            // nested results - panic catch on the outside, method on the inside
+            let res = match res {
+                ::std::result::Result::Ok(::std::result::Result::Ok(res)) => {
+                    ::tracing::trace!(method = "MyInteraction.firstAndStream", "success");
+                    ::std::result::Result::Ok(res)
+                }
+                ::std::result::Result::Ok(::std::result::Result::Err(exn)) => {
+                    ::std::result::Result::Err(exn)
+                }
+                ::std::result::Result::Err(exn) => {
+                    let aexn = ::fbthrift::ApplicationException::handler_panic("MyInteraction.firstAndStream", exn);
+                    ::tracing::error!(method = "MyInteraction.firstAndStream", panic = ?aexn, error = aexn.exn_value());
+                    ::std::result::Result::Err(crate::services::my_interaction::FirstAndStreamExn::ApplicationException(aexn))
+                }
+            };
+
+            use ::futures::StreamExt as _;
+
+            let (response, stream) = match res {
+                ::std::result::Result::Ok(res) => {
+                    let (response, stream) = res;
+                    let response = ::std::result::Result::Ok(response);
+
+                    let stream = ::std::panic::AssertUnwindSafe(stream)
+                        .catch_unwind()
+                        .map(|item| {
+                            match item {
+                                ::std::result::Result::Ok(::std::result::Result::Ok(success)) => {
+                                    let payload = ::fbthrift::help::serialize_stream_item::<P, crate::services::my_interaction::FirstAndStreamStreamExn>(
+                                        ::std::result::Result::Ok(success),
+                                        "firstAndStream",
+                                    );
+                                    ::fbthrift::SerializedStreamElement::Success(payload)
+                                }
+                                ::std::result::Result::Ok(::std::result::Result::Err(crate::services::my_interaction::FirstAndStreamStreamExn::ApplicationException(aexn))) => {
+                                    tracing::info!(?aexn, method="MyInteraction.firstAndStream", "Streaming ApplicationException");
+                                    ::fbthrift::SerializedStreamElement::ApplicationException(aexn)
+                                }
+                                ::std::result::Result::Err(exn) => {
+                                    tracing::error!(?exn, method="MyInteraction.firstAndStream", "Streaming unwind");
+                                    let aexn = ::fbthrift::ApplicationException::handler_panic("MyInteraction.firstAndStream", exn);
+                                    ::fbthrift::SerializedStreamElement::ApplicationException(aexn)
+                                }
+                            }
+                        })
+                        .boxed();
+                    (response, ::std::option::Option::Some(stream))
+                },
+                ::std::result::Result::Err(exn) => (::std::result::Result::Err(exn), ::std::option::Option::None),
+            };
+
+            let response = ::fbthrift::help::serialize_result_envelope::<P, R, crate::services::my_interaction::FirstAndStreamExn>(
+                "firstAndStream",
+                METHOD_NAME,
+                _seqid,
+                req_ctxt,
+                &mut ctx_stack,
+                response,
+            )?;
+
+            reply_state.set_stream_method_name("MyInteraction.firstAndStream");
+            reply_state.set_stream_context_stack(ctx_stack);
+            let _ = reply_state.send_stream_reply(response, stream, P::PROTOCOL_ID);
+            ::std::result::Result::Ok(())
+        }
+
         #[::tracing::instrument(skip_all, name = "handler", fields(method = "MyInteraction.encode"))]
         async fn handle_encode(
             &self,
@@ -10722,7 +11229,8 @@ pub mod interact_with_shared {
                 b"MyInteraction.failstreaminit" => ::std::result::Result::Ok(4usize),
                 b"MyInteraction.frobnicateWithArg" => ::std::result::Result::Ok(5usize),
                 b"MyInteraction.streamWithArg" => ::std::result::Result::Ok(6usize),
-                b"MyInteraction.encode" => ::std::result::Result::Ok(7usize),
+                b"MyInteraction.firstAndStream" => ::std::result::Result::Ok(7usize),
+                b"MyInteraction.encode" => ::std::result::Result::Ok(8usize),
                 _ => ::std::result::Result::Err(::fbthrift::ApplicationException::unknown_method()),
             }
         }
@@ -10760,6 +11268,9 @@ pub mod interact_with_shared {
                     self.handle_streamWithArg(_p, _req, _req_ctxt, _reply_state, _seqid).await
                 }
                 7usize => {
+                    self.handle_firstAndStream(_p, _req, _req_ctxt, _reply_state, _seqid).await
+                }
+                8usize => {
                     self.handle_encode(_p, _req, _req_ctxt, _reply_state, _seqid).await
                 }
                 bad => panic!(
@@ -11688,6 +12199,13 @@ where
               interaction_type: ::fbthrift::processor::InteractionType::InteractionV1,
               rpc_kind: ::fbthrift::processor::RpcKind::SINGLE_REQUEST_STREAMING_RESPONSE,
               name: "MyInteraction.streamWithArg",
+              starts_interaction: false,
+              interaction_name: Some("MyInteraction"),
+            },
+            ::fbthrift::processor::MethodMetadata{
+              interaction_type: ::fbthrift::processor::InteractionType::InteractionV1,
+              rpc_kind: ::fbthrift::processor::RpcKind::SINGLE_REQUEST_STREAMING_RESPONSE,
+              name: "MyInteraction.firstAndStream",
               starts_interaction: false,
               interaction_name: Some("MyInteraction"),
             },

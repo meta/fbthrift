@@ -1144,6 +1144,202 @@ pub mod my_interaction {
         }
     }
 
+    #[derive(Clone, Debug)]
+    pub enum FirstAndStreamStreamExn {
+        ApplicationException(::fbthrift::ApplicationException),
+    }
+
+    impl ::fbthrift::ExceptionInfo for FirstAndStreamStreamExn {
+        fn exn_name(&self) -> &'static ::std::primitive::str {
+            match self {
+                Self::ApplicationException(aexn) => aexn.exn_name(),
+            }
+        }
+
+        fn exn_value(&self) -> String {
+            match self {
+                Self::ApplicationException(aexn) => aexn.exn_value(),
+            }
+        }
+
+        fn exn_is_declared(&self) -> bool {
+            match self {
+                Self::ApplicationException(aexn) => aexn.exn_is_declared(),
+            }
+        }
+
+        fn exn_blame(&self) -> ::fbthrift::ExceptionBlame {
+            match self {
+                Self::ApplicationException(aexn) => aexn.exn_blame(),
+            }
+        }
+
+        fn exn_kind(&self) -> ::fbthrift::ExceptionKind {
+            match self {
+                Self::ApplicationException(aexn) => aexn.exn_kind(),
+            }
+        }
+
+        fn exn_safety(&self) -> ::fbthrift::ExceptionSafety {
+            match self {
+                Self::ApplicationException(aexn) => aexn.exn_safety(),
+            }
+        }
+    }
+
+    impl ::fbthrift::ResultInfo for FirstAndStreamStreamExn {
+        fn result_type(&self) -> ::fbthrift::ResultType {
+            match self {
+                Self::ApplicationException(_aexn) => ::fbthrift::ResultType::Exception,
+            }
+        }
+    }
+
+    impl ::std::convert::From<::fbthrift::ApplicationException> for FirstAndStreamStreamExn {
+        fn from(exn: ::fbthrift::ApplicationException) -> Self {
+            Self::ApplicationException(exn)
+        }
+    }
+
+    impl ::fbthrift::help::SerializeExn for FirstAndStreamStreamExn {
+        type Success = ::std::primitive::i32;
+
+        fn write_result<P>(
+            res: ::std::result::Result<&Self::Success, &Self>,
+            p: &mut P,
+            function_name: &'static ::std::primitive::str,
+        )
+        where
+            P: ::fbthrift::ProtocolWriter,
+        {
+            if let ::std::result::Result::Err(Self::ApplicationException(aexn)) = res {
+                ::fbthrift::Serialize::rs_thrift_write(aexn, p);
+                return;
+            }
+            p.write_struct_begin(function_name);
+            match res {
+                ::std::result::Result::Ok(success) => {
+                    p.write_field_begin(
+                        "Success",
+                        ::fbthrift::TType::I32,
+                        0i16,
+                    );
+                    ::fbthrift::Serialize::rs_thrift_write(success, p);
+                    p.write_field_end();
+                }
+                ::std::result::Result::Err(Self::ApplicationException(_)) => unreachable!(),
+            }
+            p.write_field_stop();
+            p.write_struct_end();
+        }
+    }
+
+    #[derive(Clone, Debug)]
+    pub enum FirstAndStreamExn {
+        ApplicationException(::fbthrift::ApplicationException),
+    }
+
+    impl ::std::convert::From<FirstAndStreamExn> for ::fbthrift::NonthrowingFunctionError {
+        fn from(err: FirstAndStreamExn) -> Self {
+            match err {
+                FirstAndStreamExn::ApplicationException(aexn) => ::fbthrift::NonthrowingFunctionError::ApplicationException(aexn),
+            }
+        }
+    }
+
+    impl ::std::convert::From<::fbthrift::NonthrowingFunctionError> for FirstAndStreamExn {
+        fn from(err: ::fbthrift::NonthrowingFunctionError) -> Self {
+            match err {
+                ::fbthrift::NonthrowingFunctionError::ApplicationException(aexn) => FirstAndStreamExn::ApplicationException(aexn),
+                ::fbthrift::NonthrowingFunctionError::ThriftError(err) => FirstAndStreamExn::ApplicationException(::fbthrift::ApplicationException {
+                    message: err.to_string(),
+                    type_: ::fbthrift::ApplicationExceptionErrorCode::InternalError,
+                }),
+            }
+        }
+    }
+
+    impl ::std::convert::From<::fbthrift::ApplicationException> for FirstAndStreamExn {
+        fn from(exn: ::fbthrift::ApplicationException) -> Self {
+            Self::ApplicationException(exn)
+        }
+    }
+
+    impl ::fbthrift::ExceptionInfo for FirstAndStreamExn {
+        fn exn_name(&self) -> &'static ::std::primitive::str {
+            match self {
+                Self::ApplicationException(aexn) => aexn.exn_name(),
+            }
+        }
+
+        fn exn_value(&self) -> String {
+            match self {
+                Self::ApplicationException(aexn) => aexn.exn_value(),
+            }
+        }
+
+        fn exn_is_declared(&self) -> bool {
+            match self {
+                Self::ApplicationException(aexn) => aexn.exn_is_declared(),
+            }
+        }
+
+        fn exn_blame(&self) -> ::fbthrift::ExceptionBlame {
+            match self {
+                Self::ApplicationException(aexn) => aexn.exn_blame(),
+            }
+        }
+
+        fn exn_kind(&self) -> ::fbthrift::ExceptionKind {
+            match self {
+                Self::ApplicationException(aexn) => aexn.exn_kind(),
+            }
+        }
+
+        fn exn_safety(&self) -> ::fbthrift::ExceptionSafety {
+            match self {
+                Self::ApplicationException(aexn) => aexn.exn_safety(),
+            }
+        }
+    }
+
+    impl ::fbthrift::ResultInfo for FirstAndStreamExn {
+        fn result_type(&self) -> ::fbthrift::ResultType {
+            match self {
+                Self::ApplicationException(_aexn) => ::fbthrift::ResultType::Exception,
+            }
+        }
+    }
+
+    impl ::fbthrift::help::SerializeExn for FirstAndStreamExn {
+        type Success = ::std::primitive::i32;
+
+        fn write_result<P>(
+            res: ::std::result::Result<&Self::Success, &Self>,
+            p: &mut P,
+            function_name: &'static ::std::primitive::str,
+        )
+        where
+            P: ::fbthrift::ProtocolWriter,
+        {
+            if let ::std::result::Result::Err(Self::ApplicationException(aexn)) = res {
+                ::fbthrift::Serialize::rs_thrift_write(aexn, p);
+                return;
+            }
+            p.write_struct_begin(function_name);
+            match res {
+                ::std::result::Result::Ok(_success) => {
+                    p.write_field_begin("Success", ::fbthrift::TType::I32, 0i16);
+                    ::fbthrift::Serialize::rs_thrift_write(_success, p);
+                    p.write_field_end();
+                }
+                ::std::result::Result::Err(Self::ApplicationException(_aexn)) => unreachable!(),
+            }
+            p.write_field_stop();
+            p.write_struct_end();
+        }
+    }
+
     pub struct EncodeSinkResult {
         pub initial_response: ::std::collections::BTreeSet<::std::primitive::i32>,
         pub stream_handler: ::std::boxed::Box<dyn ::std::ops::FnOnce(

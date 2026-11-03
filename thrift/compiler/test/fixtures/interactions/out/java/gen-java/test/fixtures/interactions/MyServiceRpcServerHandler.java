@@ -22,8 +22,7 @@ public class MyServiceRpcServerHandler
   private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _interactReaders;
   private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _interactFastReaders;
   private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _serializeReaders;
-  private final com.facebook.thrift.server.generated.SingleRequestStreamResponseDelegate<com.facebook.thrift.model.StreamResponse<Integer,Integer>> _delegate_serialize;
-  private final com.facebook.thrift.server.generated.StreamWithFirstResponseHandler<Integer,Integer> _handler_serialize;
+  private final com.facebook.thrift.server.generated.StreamMethod<Integer,Integer> _method_serialize;
 
   private final java.util.List<com.facebook.swift.service.ThriftEventHandler> _eventHandlers;
 
@@ -53,18 +52,16 @@ public class MyServiceRpcServerHandler
 
     _methodMap.put("serialize", this);
     _serializeReaders = _create_serialize_request_readers();
-    _delegate_serialize = (java.util.List<Object> _list) -> {
-        java.util.Iterator _iterator = _list.iterator();
+    _method_serialize =
+    new com.facebook.thrift.server.generated.StreamMethod<>(
+      _serializeReaders,
+      _args -> {
+        java.util.Iterator _iterator = _args.iterator();
 
         return _delegate.serialize();
-    };
-
-    _handler_serialize =
-    new com.facebook.thrift.server.generated.StreamWithFirstResponseHandler<>(
-      _delegate_serialize,
+      },
       _first_ResponseWriterFactory_serialize,
       _ResponseWriterFactory_serialize,
-      _serializeReaders,
       "serialize",
       new Class[]{  },
       new Integer[]{  },
@@ -434,7 +431,7 @@ public class MyServiceRpcServerHandler
     try {
       switch(_name) {
         case "serialize":
-          _result = _handler_serialize.handleStream(_payload, _chain);
+          _result = com.facebook.thrift.server.generated.ServerStreams.handleStream(_payload, _chain, _method_serialize);
           break;
         default: {
             _chain.preRead();

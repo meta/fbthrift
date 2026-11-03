@@ -40,7 +40,7 @@ public class FactoriesAsyncReactiveWrapper
     }
 
     @java.lang.Override
-    public reactor.core.publisher.Flux<com.facebook.thrift.model.StreamResponse<Integer,Integer>> serialize() {
+    public reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer,Integer>> serialize() {
         throw new UnsupportedOperationException();
     }
 
@@ -50,7 +50,7 @@ public class FactoriesAsyncReactiveWrapper
     }
 
     @java.lang.Override
-    public reactor.core.publisher.Flux<com.facebook.thrift.model.StreamResponse<Integer,Integer>> interactWithStreamAndInitialResponse() {
+    public reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer,Integer>> interactWithStreamAndInitialResponse() {
         throw new UnsupportedOperationException();
     }
 
@@ -125,6 +125,11 @@ public class FactoriesAsyncReactiveWrapper
 
         @java.lang.Override
         public reactor.core.publisher.Flux<Integer> streamWithArg(final String query) {
+            throw new UnsupportedOperationException();
+        }
+
+        @java.lang.Override
+        public reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer,Integer>> firstAndStream() {
             throw new UnsupportedOperationException();
         }
 

@@ -19,7 +19,12 @@ package com.facebook.thrift.util;
 import com.facebook.swift.service.ContextChain;
 import com.facebook.thrift.payload.ServerRequestPayload;
 import com.facebook.thrift.payload.ServerResponsePayload;
+import com.facebook.thrift.payload.ThriftSerializable;
 import com.facebook.thrift.payload.Writer;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.thrift.ErrorBlame;
 import org.apache.thrift.ErrorClassification;
 import org.apache.thrift.ErrorKind;
@@ -35,12 +40,14 @@ import org.apache.thrift.PayloadMetadata;
 import org.apache.thrift.PayloadResponseMetadata;
 import org.apache.thrift.RequestRpcMetadata;
 import org.apache.thrift.ResponseRpcMetadata;
+import org.apache.thrift.StreamPayloadMetadata;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TBaseException;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TField;
 import org.apache.thrift.protocol.TStruct;
 import org.apache.thrift.protocol.TType;
+import reactor.core.Exceptions;
 
 public final class RpcPayloadUtil {
   public static final TStruct TSTRUCT = new TStruct();
@@ -126,14 +133,7 @@ public final class RpcPayloadUtil {
                 PayloadMetadata.fromExceptionMetadata(
                     new PayloadExceptionMetadataBase.Builder()
                         .setWhatUtf8(applicationException.getMessage())
-                        .setMetadata(
-                            PayloadExceptionMetadata.fromAppUnknownException(
-                                new PayloadAppUnknownExceptionMetdata.Builder()
-                                    .setErrorClassification(
-                                        new ErrorClassification.Builder()
-                                            .setBlame(ErrorBlame.SERVER)
-                                            .build())
-                                    .build()))
+                        .setMetadata(serverBlamedAppUnknownException())
                         .build()))
             .setOtherMetadata(requestRpcMetadata.getOtherMetadata())
             .build(),
@@ -199,6 +199,220 @@ public final class RpcPayloadUtil {
     }
   }
 
+  /**
+   * Converts request {@code otherMetadata} (string values) to the byte-valued map that {@link
+   * StreamPayloadMetadata} carries, encoding each value as UTF-8.
+   *
+   * @return an empty immutable map when {@code otherMetadata} is null or empty
+   */
+  public static Map<String, byte[]> convertOtherData(Map<String, String> otherMetadata) {
+    if (otherMetadata == null || otherMetadata.isEmpty()) {
+      return Collections.emptyMap();
+    }
+    Map<String, byte[]> converted = new HashMap<>(otherMetadata.size());
+    for (Map.Entry<String, String> entry : otherMetadata.entrySet()) {
+      converted.put(entry.getKey(), entry.getValue().getBytes(StandardCharsets.UTF_8));
+    }
+    return converted;
+  }
+
+  /**
+   * Exception metadata for a declared (IDL {@code throws}) exception: the exception class name, its
+   * message, and the error classification from {@link #errorClassificationFor(Throwable)}.
+   */
+  public static PayloadExceptionMetadataBase declaredExceptionMetadata(Throwable t) {
+    return new PayloadExceptionMetadataBase.Builder()
+        .setNameUtf8(t.getClass().getName())
+        .setWhatUtf8(t.getMessage())
+        .setMetadata(
+            PayloadExceptionMetadata.fromDeclaredException(
+                new PayloadDeclaredExceptionMetadata.Builder()
+                    .setErrorClassification(errorClassificationFor(t))
+                    .build()))
+        .build();
+  }
+
+  /**
+   * Exception metadata for an undeclared exception: {@code appUnknown} with server blame, as the
+   * C++ server sends for an exception that the IDL does not declare.
+   *
+   * @param name the class name of the original exception
+   * @param what the message of the original exception; can be null
+   */
+  public static PayloadExceptionMetadataBase undeclaredExceptionMetadata(String name, String what) {
+    return new PayloadExceptionMetadataBase.Builder()
+        .setNameUtf8(name)
+        .setWhatUtf8(what)
+        .setMetadata(serverBlamedAppUnknownException())
+        .build();
+  }
+
+  /**
+   * First-response (RPC-level) metadata for a declared exception. It passes the request {@code
+   * otherMetadata} through unchanged.
+   */
+  public static ResponseRpcMetadata declaredExceptionResponseMetadata(
+      ServerRequestPayload requestPayload, Throwable t) {
+    return exceptionResponseMetadata(requestPayload, declaredExceptionMetadata(t));
+  }
+
+  /**
+   * First-response (RPC-level) metadata for an undeclared exception. It passes the request {@code
+   * otherMetadata} through unchanged.
+   */
+  public static ResponseRpcMetadata undeclaredExceptionResponseMetadata(
+      ServerRequestPayload requestPayload, String name, String what) {
+    return exceptionResponseMetadata(requestPayload, undeclaredExceptionMetadata(name, what));
+  }
+
+  /**
+   * Stream-scope metadata for a declared exception that ends a stream, sink, or bidi download. The
+   * request {@code otherMetadata} goes through {@link #convertOtherData(Map)}.
+   */
+  public static StreamPayloadMetadata declaredExceptionStreamMetadata(
+      ServerRequestPayload requestPayload, Throwable t) {
+    return streamMetadata(
+        requestPayload, PayloadMetadata.fromExceptionMetadata(declaredExceptionMetadata(t)));
+  }
+
+  /**
+   * Stream-scope metadata for an undeclared exception that ends a stream, sink, or bidi download.
+   * The request {@code otherMetadata} goes through {@link #convertOtherData(Map)}.
+   */
+  public static StreamPayloadMetadata undeclaredExceptionStreamMetadata(
+      ServerRequestPayload requestPayload, String name, String what) {
+    return streamMetadata(
+        requestPayload,
+        PayloadMetadata.fromExceptionMetadata(undeclaredExceptionMetadata(name, what)));
+  }
+
+  /**
+   * Stream-scope metadata for a successful stream element or sink final response. The request
+   * {@code otherMetadata} goes through {@link #convertOtherData(Map)}.
+   */
+  public static StreamPayloadMetadata streamPayloadMetadata(ServerRequestPayload requestPayload) {
+    return streamMetadata(
+        requestPayload,
+        PayloadMetadata.fromResponseMetadata(PayloadResponseMetadata.defaultInstance()));
+  }
+
+  /**
+   * Metadata for a successful first response of a stream or sink. It carries no {@code
+   * otherMetadata}.
+   */
+  public static ResponseRpcMetadata streamFirstResponseMetadata() {
+    return new ResponseRpcMetadata.Builder()
+        .setPayloadMetadata(
+            PayloadMetadata.fromResponseMetadata(new PayloadResponseMetadata.Builder().build()))
+        .build();
+  }
+
+  /**
+   * Writes a declared exception as the response struct, with the exception in field {@code
+   * fieldId}. Fires {@code declaredUserException} before and {@code postWriteException} after the
+   * write. The caller fires {@code preWriteException}.
+   *
+   * @param t the declared exception; must be {@link ThriftSerializable}
+   * @param fieldId the IDL field id of the exception in the {@code throws} clause
+   */
+  public static Writer declaredExceptionWriter(Throwable t, ContextChain chain, int fieldId) {
+    return protocol -> {
+      try {
+        chain.declaredUserException(t);
+        protocol.writeStructBegin(TSTRUCT);
+        protocol.writeFieldBegin(new TField(RESPONSE_FIELD_NAME, TType.STRUCT, (short) fieldId));
+        ((ThriftSerializable) t).write0(protocol);
+        protocol.writeFieldEnd();
+        protocol.writeFieldStop();
+        protocol.writeStructEnd();
+        chain.postWriteException(t);
+      } catch (Throwable e) {
+        throw Exceptions.propagate(e);
+      }
+    };
+  }
+
+  /**
+   * Writes a {@link TApplicationException} as the response body. Fires {@code
+   * undeclaredUserException} before and {@code postWriteException} after the write. The caller
+   * fires {@code preWriteException}.
+   */
+  public static Writer undeclaredExceptionWriter(TApplicationException t, ContextChain chain) {
+    return protocol -> {
+      try {
+        chain.undeclaredUserException(t);
+        t.write(protocol);
+        chain.postWriteException(t);
+      } catch (Throwable e) {
+        throw Exceptions.propagate(e);
+      }
+    };
+  }
+
+  /**
+   * Wraps {@code writer} so that it fires {@code preWriteException(t)} at write time, before {@code
+   * writer} runs. For callers that fire the hook when the payload is written, not when it is built.
+   */
+  public static Writer withPreWriteException(Throwable t, ContextChain chain, Writer writer) {
+    return protocol -> {
+      try {
+        chain.preWriteException(t);
+      } catch (Throwable e) {
+        throw Exceptions.propagate(e);
+      }
+      writer.write(protocol);
+    };
+  }
+
+  /** Writes response metadata in the protocol that the caller supplies (compact on Rocket). */
+  public static Writer metadataWriter(ResponseRpcMetadata metadata) {
+    return protocol -> {
+      try {
+        metadata.write0(protocol);
+      } catch (Throwable t) {
+        throw Exceptions.propagate(t);
+      }
+    };
+  }
+
+  /**
+   * Writes stream payload metadata in the protocol that the caller supplies (compact on Rocket).
+   */
+  public static Writer metadataWriter(StreamPayloadMetadata metadata) {
+    return protocol -> {
+      try {
+        metadata.write0(protocol);
+      } catch (Throwable t) {
+        throw Exceptions.propagate(t);
+      }
+    };
+  }
+
+  private static PayloadExceptionMetadata serverBlamedAppUnknownException() {
+    return PayloadExceptionMetadata.fromAppUnknownException(
+        new PayloadAppUnknownExceptionMetdata.Builder()
+            .setErrorClassification(
+                new ErrorClassification.Builder().setBlame(ErrorBlame.SERVER).build())
+            .build());
+  }
+
+  private static ResponseRpcMetadata exceptionResponseMetadata(
+      ServerRequestPayload requestPayload, PayloadExceptionMetadataBase base) {
+    return new ResponseRpcMetadata.Builder()
+        .setOtherMetadata(requestPayload.getRequestRpcMetadata().getOtherMetadata())
+        .setPayloadMetadata(PayloadMetadata.fromExceptionMetadata(base))
+        .build();
+  }
+
+  private static StreamPayloadMetadata streamMetadata(
+      ServerRequestPayload requestPayload, PayloadMetadata payloadMetadata) {
+    return new StreamPayloadMetadata.Builder()
+        .setOtherMetadata(
+            convertOtherData(requestPayload.getRequestRpcMetadata().getOtherMetadata()))
+        .setPayloadMetadata(payloadMetadata)
+        .build();
+  }
+
   public static PayloadExceptionMetadata createDeclaredPayloadException() {
     return createDeclaredPayloadException((Throwable) null);
   }
@@ -236,35 +450,7 @@ public final class RpcPayloadUtil {
 
   public static ServerResponsePayload createServerResponsePayload(
       final ServerRequestPayload payload, final Writer writer, final Throwable t) {
-    return createServerResponsePayload(
-        payload,
-        writer,
-        t == null ? null : t.getClass().getName(),
-        t == null ? null : t.getMessage(),
-        errorClassificationFor(t));
-  }
-
-  private static ServerResponsePayload createServerResponsePayload(
-      final ServerRequestPayload payload,
-      final Writer writer,
-      String name,
-      String what,
-      ErrorClassification errorClassification) {
-
-    PayloadExceptionMetadataBase base = null;
-    if (name != null || what != null) {
-      base =
-          new PayloadExceptionMetadataBase.Builder()
-              .setNameUtf8(name)
-              .setWhatUtf8(what)
-              .setMetadata(
-                  PayloadExceptionMetadata.fromDeclaredException(
-                      new PayloadDeclaredExceptionMetadata.Builder()
-                          .setErrorClassification(errorClassification)
-                          .build()))
-              .build();
-    }
-
+    PayloadExceptionMetadataBase base = t == null ? null : declaredExceptionMetadata(t);
     return ServerResponsePayload.create(
         writer, createResponseRpcMetadata(payload.getRequestRpcMetadata(), base), null, false);
   }

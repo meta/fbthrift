@@ -1368,6 +1368,67 @@ var (
                 "success": 0,
             },
         }
+    premadeStructSpec_reqMyInteractionFirstAndStream =
+        &thrift.StructSpec{
+            Name:                 "reqMyInteractionFirstAndStream",
+            ScopedName:           "module.reqMyInteractionFirstAndStream",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+            },
+            FieldSpecNameToIndex: map[string]int{
+            },
+        }
+    premadeStructSpec_respMyInteractionFirstAndStream =
+        &thrift.StructSpec{
+            Name:                 "respMyInteractionFirstAndStream",
+            ScopedName:           "module.respMyInteractionFirstAndStream",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+                {
+                    ID:                   0,
+                    WireType:             thrift.I32,
+                    Name:                 "success",
+                    ReflectIndex:         0,
+                    IsOptional:           true,
+                    ValueTypeSpec:        premadeCodecTypeSpec_i32,
+                    MustBeSetToSerialize: true,
+                },
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+                0: 0,
+            },
+            FieldSpecNameToIndex: map[string]int{
+                "success": 0,
+            },
+        }
+    premadeStructSpec_streamMyInteractionFirstAndStream =
+        &thrift.StructSpec{
+            Name:                 "streamMyInteractionFirstAndStream",
+            ScopedName:           "module.streamMyInteractionFirstAndStream",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+                {
+                    ID:                   0,
+                    WireType:             thrift.I32,
+                    Name:                 "success",
+                    ReflectIndex:         0,
+                    IsOptional:           true,
+                    ValueTypeSpec:        premadeCodecTypeSpec_i32,
+                    MustBeSetToSerialize: true,
+                },
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+                0: 0,
+            },
+            FieldSpecNameToIndex: map[string]int{
+                "success": 0,
+            },
+        }
     premadeStructSpec_reqMyInteractionEncode =
         &thrift.StructSpec{
             Name:                 "reqMyInteractionEncode",

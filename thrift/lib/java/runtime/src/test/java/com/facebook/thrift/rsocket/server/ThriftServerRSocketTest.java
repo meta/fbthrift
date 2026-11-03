@@ -20,6 +20,7 @@ import static com.facebook.thrift.rsocket.util.RocketErrorUtil.decodeRocketError
 import static com.facebook.thrift.rsocket.util.RocketErrorUtil.isRocketError;
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.facebook.thrift.model.ResponseAndStream;
 import com.facebook.thrift.payload.ServerRequestPayload;
 import com.facebook.thrift.payload.ServerResponsePayload;
 import com.facebook.thrift.protocol.ProtocolUtil;
@@ -71,6 +72,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -397,9 +399,17 @@ public class ThriftServerRSocketTest {
         .verifyComplete();
   }
 
-  @ParameterizedTest
-  @MethodSource("data")
-  public void testStreamBasic(ProtocolId protocolId) {
+  @Test
+  public void testStreamBasicCompact() {
+    checkStreamBasic(ProtocolId.COMPACT);
+  }
+
+  @Test
+  public void testStreamBasicBinary() {
+    checkStreamBasic(ProtocolId.BINARY);
+  }
+
+  private void checkStreamBasic(ProtocolId protocolId) {
     this.protocolId = protocolId;
     RequestRpcMetadata requestMetadata =
         createRequestRpcMetadata("streamResponse", RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE);
@@ -427,9 +437,17 @@ public class ThriftServerRSocketTest {
     steps.verifyComplete();
   }
 
-  @ParameterizedTest
-  @MethodSource("data")
-  public void testNullStream(ProtocolId protocolId) {
+  @Test
+  public void testNullStreamCompact() {
+    checkNullStream(ProtocolId.COMPACT);
+  }
+
+  @Test
+  public void testNullStreamBinary() {
+    checkNullStream(ProtocolId.BINARY);
+  }
+
+  private void checkNullStream(ProtocolId protocolId) {
     this.protocolId = protocolId;
     RequestRpcMetadata requestMetadata =
         createRequestRpcMetadata("streamResponseNull", RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE);
@@ -452,9 +470,17 @@ public class ThriftServerRSocketTest {
         .verifyComplete();
   }
 
-  @ParameterizedTest
-  @MethodSource("data")
-  public void testEmptyStream(ProtocolId protocolId) {
+  @Test
+  public void testEmptyStreamCompact() {
+    checkEmptyStream(ProtocolId.COMPACT);
+  }
+
+  @Test
+  public void testEmptyStreamBinary() {
+    checkEmptyStream(ProtocolId.BINARY);
+  }
+
+  private void checkEmptyStream(ProtocolId protocolId) {
     this.protocolId = protocolId;
     RequestRpcMetadata requestMetadata =
         createRequestRpcMetadata("streamResponseEmpty", RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE);
@@ -469,9 +495,17 @@ public class ThriftServerRSocketTest {
         .verifyComplete();
   }
 
-  @ParameterizedTest
-  @MethodSource("data")
-  public void testStreamInitialResponse(ProtocolId protocolId) {
+  @Test
+  public void testStreamInitialResponseCompact() {
+    checkStreamInitialResponse(ProtocolId.COMPACT);
+  }
+
+  @Test
+  public void testStreamInitialResponseBinary() {
+    checkStreamInitialResponse(ProtocolId.BINARY);
+  }
+
+  private void checkStreamInitialResponse(ProtocolId protocolId) {
     this.protocolId = protocolId;
     RequestRpcMetadata requestMetadata =
         createRequestRpcMetadata(
@@ -549,9 +583,17 @@ public class ThriftServerRSocketTest {
         .verifyComplete();
   }
 
-  @ParameterizedTest
-  @MethodSource("data")
-  public void testStreamDeclaredException(ProtocolId protocolId) {
+  @Test
+  public void testStreamDeclaredExceptionCompact() {
+    checkStreamDeclaredException(ProtocolId.COMPACT);
+  }
+
+  @Test
+  public void testStreamDeclaredExceptionBinary() {
+    checkStreamDeclaredException(ProtocolId.BINARY);
+  }
+
+  private void checkStreamDeclaredException(ProtocolId protocolId) {
     this.protocolId = protocolId;
     checkDeclaredException(
         "streamDeclaredException",
@@ -560,9 +602,17 @@ public class ThriftServerRSocketTest {
         (protocol, payload) -> assertDataIsTestException(protocol, payload, 1));
   }
 
-  @ParameterizedTest
-  @MethodSource("data")
-  public void testStreamDeclaredMessageFieldException(ProtocolId protocolId) {
+  @Test
+  public void testStreamDeclaredMessageFieldExceptionCompact() {
+    checkStreamDeclaredMessageFieldException(ProtocolId.COMPACT);
+  }
+
+  @Test
+  public void testStreamDeclaredMessageFieldExceptionBinary() {
+    checkStreamDeclaredMessageFieldException(ProtocolId.BINARY);
+  }
+
+  private void checkStreamDeclaredMessageFieldException(ProtocolId protocolId) {
     this.protocolId = protocolId;
     checkDeclaredException(
         "streamDeclaredMessageFieldException",
@@ -571,9 +621,17 @@ public class ThriftServerRSocketTest {
         (protocol, payload) -> assertDataIsMessageException(protocol, payload, 18));
   }
 
-  @ParameterizedTest
-  @MethodSource("data")
-  public void testStreamDeclaredAnnotatedMessageException(ProtocolId protocolId) {
+  @Test
+  public void testStreamDeclaredAnnotatedMessageExceptionCompact() {
+    checkStreamDeclaredAnnotatedMessageException(ProtocolId.COMPACT);
+  }
+
+  @Test
+  public void testStreamDeclaredAnnotatedMessageExceptionBinary() {
+    checkStreamDeclaredAnnotatedMessageException(ProtocolId.BINARY);
+  }
+
+  private void checkStreamDeclaredAnnotatedMessageException(ProtocolId protocolId) {
     this.protocolId = protocolId;
     checkDeclaredException(
         "streamDeclaredAnnotatedMessageException",
@@ -582,25 +640,41 @@ public class ThriftServerRSocketTest {
         (protocol, payload) -> assertDataIsAnnotatedMessageException(protocol, payload, 19));
   }
 
-  @ParameterizedTest
-  @MethodSource("data")
-  public void testStreamDeclaredException2SyncThrowIsUndeclared(ProtocolId protocolId) {
+  @Test
+  public void testStreamDeclaredException2SyncThrowIsUndeclaredCompact() {
+    checkStreamDeclaredException2SyncThrowIsUndeclared(ProtocolId.COMPACT);
+  }
+
+  @Test
+  public void testStreamDeclaredException2SyncThrowIsUndeclaredBinary() {
+    checkStreamDeclaredException2SyncThrowIsUndeclared(ProtocolId.BINARY);
+  }
+
+  private void checkStreamDeclaredException2SyncThrowIsUndeclared(ProtocolId protocolId) {
     this.protocolId = protocolId;
     // TestException is only declared at stream level, not function level.
-    // A sync throw happens before firstResponseProcessed=true, so it is checked
-    // against functionExceptions (empty) and treated as undeclared.
+    // A sync throw is a response-phase failure, so it is checked against the
+    // function exception table (empty here) and treated as undeclared.
     checkUndeclaredExceptionNoStream(
         "streamDeclaredException2", TestException.class.getName(), TestException.class.getName());
   }
 
-  @ParameterizedTest
-  @MethodSource("data")
-  public void testFunctionOnlyExceptionInStreamIsUndeclared(ProtocolId protocolId) {
+  @Test
+  public void testFunctionOnlyExceptionInStreamIsUndeclaredCompact() {
+    checkFunctionOnlyExceptionInStreamIsUndeclared(ProtocolId.COMPACT);
+  }
+
+  @Test
+  public void testFunctionOnlyExceptionInStreamIsUndeclaredBinary() {
+    checkFunctionOnlyExceptionInStreamIsUndeclared(ProtocolId.BINARY);
+  }
+
+  private void checkFunctionOnlyExceptionInStreamIsUndeclared(ProtocolId protocolId) {
     this.protocolId = protocolId;
     // TestFunctionException is declared at function level only (throws clause),
-    // not at stream level (stream<T throws>). When thrown during the stream
-    // (firstResponseProcessed=true), it is checked against streamExceptions
-    // which does not contain TestFunctionException, so it is treated as undeclared.
+    // not at stream level (stream<T throws>). Thrown during the stream phase, it is
+    // checked against the stream exception table which does not contain
+    // TestFunctionException, so it is treated as undeclared.
     checkUndeclaredException(
         "streamDeclaredAndFunctionException",
         TestFunctionException.class.getName(),
@@ -640,39 +714,168 @@ public class ThriftServerRSocketTest {
     checkUndeclaredException(funcName, IllegalArgumentException.class.getName(), "exc");
   }
 
-  @ParameterizedTest
-  @MethodSource("data")
-  public void testStreamUndeclaredException(ProtocolId protocolId) {
+  @Test
+  public void testStreamUndeclaredExceptionCompact() {
+    checkStreamUndeclaredException(ProtocolId.COMPACT);
+  }
+
+  @Test
+  public void testStreamUndeclaredExceptionBinary() {
+    checkStreamUndeclaredException(ProtocolId.BINARY);
+  }
+
+  private void checkStreamUndeclaredException(ProtocolId protocolId) {
     this.protocolId = protocolId;
     checkUndeclaredException("streamUndeclaredException");
   }
 
-  @ParameterizedTest
-  @MethodSource("data")
-  public void testStreamUndeclaredException2(ProtocolId protocolId) {
+  @Test
+  public void testStreamUndeclaredException2Compact() {
+    checkStreamUndeclaredException2(ProtocolId.COMPACT);
+  }
+
+  @Test
+  public void testStreamUndeclaredException2Binary() {
+    checkStreamUndeclaredException2(ProtocolId.BINARY);
+  }
+
+  private void checkStreamUndeclaredException2(ProtocolId protocolId) {
     this.protocolId = protocolId;
     checkUndeclaredExceptionNoStream(
         "streamUndeclaredException2", IllegalArgumentException.class.getName(), "exc");
   }
 
-  @ParameterizedTest
-  @MethodSource("data")
-  public void testUndeclaredFunctionException(ProtocolId protocolId) {
+  @Test
+  public void testUndeclaredFunctionExceptionCompact() {
+    checkUndeclaredFunctionException(ProtocolId.COMPACT);
+  }
+
+  @Test
+  public void testUndeclaredFunctionExceptionBinary() {
+    checkUndeclaredFunctionException(ProtocolId.BINARY);
+  }
+
+  private void checkUndeclaredFunctionException(ProtocolId protocolId) {
     this.protocolId = protocolId;
     checkUndeclaredException("streamUndeclaredAndFunctionException");
   }
 
-  @ParameterizedTest
-  @MethodSource("data")
-  public void testInitialResponseStreamOnlyExceptionIsUndeclared(ProtocolId protocolId) {
+  @Test
+  public void testInitialResponseStreamOnlyExceptionIsUndeclaredCompact() {
+    checkInitialResponseStreamOnlyExceptionIsUndeclared(ProtocolId.COMPACT);
+  }
+
+  @Test
+  public void testInitialResponseStreamOnlyExceptionIsUndeclaredBinary() {
+    checkInitialResponseStreamOnlyExceptionIsUndeclared(ProtocolId.BINARY);
+  }
+
+  private void checkInitialResponseStreamOnlyExceptionIsUndeclared(ProtocolId protocolId) {
     this.protocolId = protocolId;
     // TestException is only declared at stream level (stream<T throws (11: TestException)>),
-    // not at function level. When thrown before the stream starts (firstResponseProcessed=false),
-    // it is correctly treated as undeclared, matching C++ behavior.
+    // not at function level. Thrown in the response phase, it has no function-level
+    // declaration, so it is correctly treated as undeclared, matching C++ behavior.
     checkUndeclaredExceptionNoStream(
         "streamInitialResponseDeclaredException",
         TestException.class.getName(),
         TestException.class.getName());
+  }
+
+  @Test
+  public void testUnconsumedForwardedHolderIsDisposedCompact() {
+    checkUnconsumedForwardedHolderIsDisposed(ProtocolId.COMPACT);
+  }
+
+  @Test
+  public void testUnconsumedForwardedHolderIsDisposedBinary() {
+    checkUnconsumedForwardedHolderIsDisposed(ProtocolId.BINARY);
+  }
+
+  private void checkUnconsumedForwardedHolderIsDisposed(ProtocolId protocolId) {
+    this.protocolId = protocolId;
+    // The downstream takes only the first payload, then cancels before requesting any stream
+    // elements: concat's internal subscription is torn down, and the framework must dispose
+    // the forwarded (handle-carrying) holder instead of leaving the backend stream pinned.
+    TestServiceHandler.forwardedHolderDisposed.set(false);
+    RequestRpcMetadata requestMetadata =
+        createRequestRpcMetadata(
+            "streamForwardedHolder", RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE);
+    Payload request = createPayload(requestMetadata, 0, "foo");
+
+    StepVerifier.create(rocket.requestStream(request), 1)
+        .assertNext(
+            response -> {
+              assertRpcMetadataIsDefault(response);
+              InitialTestResponse initialResponse =
+                  getInitialTestResponse(requestMetadata.getProtocol(), response);
+              assertEquals(100, initialResponse.getIntField());
+            })
+        .thenCancel()
+        .verify();
+    assertTrue(TestServiceHandler.forwardedHolderDisposed.get());
+  }
+
+  @Test
+  public void testStreamFirstPayloadTakesOneCreditCompact() {
+    checkStreamFirstPayloadTakesOneCredit(ProtocolId.COMPACT);
+  }
+
+  @Test
+  public void testStreamFirstPayloadTakesOneCreditBinary() {
+    checkStreamFirstPayloadTakesOneCredit(ProtocolId.BINARY);
+  }
+
+  private void checkStreamFirstPayloadTakesOneCredit(ProtocolId protocolId) {
+    this.protocolId = protocolId;
+    // The first payload consumes exactly one downstream credit; the rest forwards to the
+    // user's Flux. With an initial request of 1 only the empty first response arrives.
+    RequestRpcMetadata requestMetadata =
+        createRequestRpcMetadata("streamResponse", RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE);
+    Payload request = createPayload(requestMetadata, 0, "foo");
+
+    StepVerifier.create(rocket.requestStream(request), 1)
+        .assertNext(
+            response -> {
+              assertRpcMetadataIsDefault(response);
+              assertDataIsEmpty(response);
+            })
+        .expectNoEvent(java.time.Duration.ofSeconds(2))
+        .thenRequest(10)
+        .expectNextCount(10)
+        .verifyComplete();
+  }
+
+  @Test
+  public void testStreamInitialResponseTakesOneCreditCompact() {
+    checkStreamInitialResponseTakesOneCredit(ProtocolId.COMPACT);
+  }
+
+  @Test
+  public void testStreamInitialResponseTakesOneCreditBinary() {
+    checkStreamInitialResponseTakesOneCredit(ProtocolId.BINARY);
+  }
+
+  private void checkStreamInitialResponseTakesOneCredit(ProtocolId protocolId) {
+    this.protocolId = protocolId;
+    // Same credit rule for first-response streams: one credit delivers only the first
+    // response; the 10 elements need forwarded demand.
+    RequestRpcMetadata requestMetadata =
+        createRequestRpcMetadata(
+            "streamInitialResponse", RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE);
+    Payload request = createPayload(requestMetadata, 0, "foo");
+
+    StepVerifier.create(rocket.requestStream(request), 1)
+        .assertNext(
+            response -> {
+              assertRpcMetadataIsDefault(response);
+              InitialTestResponse initialResponse =
+                  getInitialTestResponse(requestMetadata.getProtocol(), response);
+              assertEquals(100, initialResponse.getIntField());
+            })
+        .expectNoEvent(java.time.Duration.ofSeconds(2))
+        .thenRequest(10)
+        .expectNextCount(10)
+        .verifyComplete();
   }
 
   private void assertRpcMedatadataHasDeclaredException(
@@ -719,9 +922,17 @@ public class ThriftServerRSocketTest {
     assertEquals(expectedWhat, expMetadata.getWhatUtf8());
   }
 
-  @ParameterizedTest
-  @MethodSource("data")
-  public void testStreamDeclaredExceptionFluxError(ProtocolId protocolId) {
+  @Test
+  public void testStreamDeclaredExceptionFluxErrorCompact() {
+    checkStreamDeclaredExceptionFluxError(ProtocolId.COMPACT);
+  }
+
+  @Test
+  public void testStreamDeclaredExceptionFluxErrorBinary() {
+    checkStreamDeclaredExceptionFluxError(ProtocolId.BINARY);
+  }
+
+  private void checkStreamDeclaredExceptionFluxError(ProtocolId protocolId) {
     this.protocolId = protocolId;
     RequestRpcMetadata requestMetadata =
         createRequestRpcMetadata(
@@ -739,9 +950,17 @@ public class ThriftServerRSocketTest {
         .verifyComplete();
   }
 
-  @ParameterizedTest
-  @MethodSource("data")
-  public void testStreamMultiInput(ProtocolId protocolId) {
+  @Test
+  public void testStreamMultiInputCompact() {
+    checkStreamMultiInput(ProtocolId.COMPACT);
+  }
+
+  @Test
+  public void testStreamMultiInputBinary() {
+    checkStreamMultiInput(ProtocolId.BINARY);
+  }
+
+  private void checkStreamMultiInput(ProtocolId protocolId) {
     this.protocolId = protocolId;
     RequestRpcMetadata requestMetadata =
         createRequestRpcMetadata(
@@ -772,13 +991,21 @@ public class ThriftServerRSocketTest {
         .verifyComplete();
   }
 
-  @ParameterizedTest
-  @MethodSource("data")
-  public void testStreamDeclaredExceptionAfterFirstResponse(ProtocolId protocolId) {
+  @Test
+  public void testStreamDeclaredExceptionAfterFirstResponseCompact() {
+    checkStreamDeclaredExceptionAfterFirstResponse(ProtocolId.COMPACT);
+  }
+
+  @Test
+  public void testStreamDeclaredExceptionAfterFirstResponseBinary() {
+    checkStreamDeclaredExceptionAfterFirstResponse(ProtocolId.BINARY);
+  }
+
+  private void checkStreamDeclaredExceptionAfterFirstResponse(ProtocolId protocolId) {
     this.protocolId = protocolId;
     // Stream-declared exception thrown AFTER the first response is sent.
-    // firstResponseProcessed=true, so isKnownException checks streamExceptions,
-    // finds TestException, and treats it as a declared stream exception.
+    // Thrown in the stream phase, it is checked against the stream exception table,
+    // which declares TestException.
     RequestRpcMetadata requestMetadata =
         createRequestRpcMetadata(
             "streamInitialResponseDeclaredExceptionAfterFirst",
@@ -802,14 +1029,232 @@ public class ThriftServerRSocketTest {
         .verifyComplete();
   }
 
-  @ParameterizedTest
-  @MethodSource("data")
-  public void testFunctionDeclaredExceptionBeforeStream(ProtocolId protocolId) {
+  @Test
+  public void testStreamEmptyFirstResponseCompact() {
+    checkStreamEmptyFirstResponse(ProtocolId.COMPACT);
+  }
+
+  @Test
+  public void testStreamEmptyFirstResponseBinary() {
+    checkStreamEmptyFirstResponse(ProtocolId.BINARY);
+  }
+
+  // A first-response stream with no elements emits exactly the first payload, then completes:
+  // no trailing empty payload follows onComplete.
+  private void checkStreamEmptyFirstResponse(ProtocolId protocolId) {
+    this.protocolId = protocolId;
+    TestService.Reactive service =
+        new TestServiceHandler() {
+          @Override
+          public Mono<ResponseAndStream<InitialTestResponse, TestResponse>> streamInitialResponse(
+              TestRequest request) {
+            return super.streamInitialResponse(request)
+                .map(
+                    ras ->
+                        ResponseAndStream.of(
+                            ras.getFirstResponse(), Flux.<TestResponse>empty(), ras::dispose));
+          }
+        };
+    RequestRpcMetadata requestMetadata =
+        createRequestRpcMetadata(
+            "streamInitialResponse", RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE);
+    Payload request = createPayload(requestMetadata, 0, "foo");
+
+    StepVerifier.create(rocketFor(service).requestStream(request))
+        .assertNext(
+            response -> {
+              assertRpcMetadataIsDefault(response);
+              InitialTestResponse initialResponse =
+                  getInitialTestResponse(requestMetadata.getProtocol(), response);
+              assertEquals(100, initialResponse.getIntField());
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  public void testStreamErrorAfterElementsFirstResponseCompact() {
+    checkStreamErrorAfterElementsFirstResponse(ProtocolId.COMPACT);
+  }
+
+  @Test
+  public void testStreamErrorAfterElementsFirstResponseBinary() {
+    checkStreamErrorAfterElementsFirstResponse(ProtocolId.BINARY);
+  }
+
+  // A stream-declared exception after elements on a first-response stream: the first payload
+  // and the elements flow, then one declared error frame, then completion with nothing after.
+  private void checkStreamErrorAfterElementsFirstResponse(ProtocolId protocolId) {
+    this.protocolId = protocolId;
+    TestService.Reactive service =
+        new TestServiceHandler() {
+          @Override
+          public Mono<ResponseAndStream<InitialTestResponse, TestResponse>>
+              streamInitialResponseDeclaredExceptionAfterFirst(TestRequest request) {
+            return Mono.just(
+                ResponseAndStream.of(
+                    new InitialTestResponse.Builder().setIntField(100).build(),
+                    Flux.range(0, 4)
+                        .map(
+                            i ->
+                                new TestResponse.Builder()
+                                    .setIntField(i)
+                                    .setStrField("foo" + i)
+                                    .build())
+                        .concatWith(Flux.<TestResponse>error(new TestException("exc"))),
+                    () -> {}));
+          }
+        };
+    RequestRpcMetadata requestMetadata =
+        createRequestRpcMetadata(
+            "streamInitialResponseDeclaredExceptionAfterFirst",
+            RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE);
+    Payload request = createPayload(requestMetadata, 0, "foo");
+
+    StepVerifier.Step<Payload> steps =
+        StepVerifier.create(rocketFor(service).requestStream(request))
+            .assertNext(
+                response -> {
+                  assertRpcMetadataIsDefault(response);
+                  InitialTestResponse initialResponse =
+                      getInitialTestResponse(requestMetadata.getProtocol(), response);
+                  assertEquals(100, initialResponse.getIntField());
+                });
+
+    final AtomicInteger counter = new AtomicInteger();
+    for (int i = 0; i < 4; i++) {
+      steps.assertNext(
+          response -> {
+            assertStreamMetadataIsDefault(response);
+            TestResponse result = getTestResponse(requestMetadata, response);
+            assertEquals(counter.get(), result.getIntField());
+            assertEquals("foo" + counter.getAndIncrement(), result.getStrField());
+          });
+    }
+    steps
+        .assertNext(
+            response -> {
+              assertStreamMedatadataHasDeclaredException(
+                  response, TestException.class.getName(), TestException.class.getName());
+              assertDataIsTestException(requestMetadata.getProtocol(), response, 14);
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  public void testStreamUndeclaredErrorAfterElementsCompact() {
+    checkStreamUndeclaredErrorAfterElements(ProtocolId.COMPACT, false);
+  }
+
+  @Test
+  public void testStreamUndeclaredErrorAfterElementsBinary() {
+    checkStreamUndeclaredErrorAfterElements(ProtocolId.BINARY, false);
+  }
+
+  @Test
+  public void testStreamUndeclaredErrorAfterElementsFirstResponseCompact() {
+    checkStreamUndeclaredErrorAfterElements(ProtocolId.COMPACT, true);
+  }
+
+  @Test
+  public void testStreamUndeclaredErrorAfterElementsFirstResponseBinary() {
+    checkStreamUndeclaredErrorAfterElements(ProtocolId.BINARY, true);
+  }
+
+  // An undeclared failure after elements: the payloads flow, then one undeclared error frame
+  // in stream metadata, then completion with nothing after. Plain and first-response alike.
+  private void checkStreamUndeclaredErrorAfterElements(
+      ProtocolId protocolId, boolean firstResponse) {
+    this.protocolId = protocolId;
+    Flux<TestResponse> elements =
+        Flux.range(0, 4)
+            .map(i -> new TestResponse.Builder().setIntField(i).setStrField("foo" + i).build())
+            .concatWith(Flux.<TestResponse>error(new IllegalArgumentException("exc")));
+    TestService.Reactive service =
+        new TestServiceHandler() {
+          @Override
+          public Flux<TestResponse> streamResponse(TestRequest request) {
+            return firstResponse ? super.streamResponse(request) : elements;
+          }
+
+          @Override
+          public Mono<ResponseAndStream<InitialTestResponse, TestResponse>> streamInitialResponse(
+              TestRequest request) {
+            return firstResponse
+                ? super.streamInitialResponse(request)
+                    .map(
+                        ras -> ResponseAndStream.of(ras.getFirstResponse(), elements, ras::dispose))
+                : super.streamInitialResponse(request);
+          }
+        };
+    String method = firstResponse ? "streamInitialResponse" : "streamResponse";
+    RequestRpcMetadata requestMetadata =
+        createRequestRpcMetadata(method, RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE);
+    Payload request = createPayload(requestMetadata, 0, "foo");
+
+    StepVerifier.Step<Payload> steps =
+        StepVerifier.create(rocketFor(service).requestStream(request))
+            .assertNext(
+                response -> {
+                  assertRpcMetadataIsDefault(response);
+                  if (firstResponse) {
+                    InitialTestResponse initialResponse =
+                        getInitialTestResponse(requestMetadata.getProtocol(), response);
+                    assertEquals(100, initialResponse.getIntField());
+                  } else {
+                    assertDataIsEmpty(response);
+                  }
+                });
+
+    final AtomicInteger counter = new AtomicInteger();
+    for (int i = 0; i < 4; i++) {
+      steps.assertNext(
+          response -> {
+            assertStreamMetadataIsDefault(response);
+            TestResponse result = getTestResponse(requestMetadata, response);
+            assertEquals(counter.get(), result.getIntField());
+            assertEquals("foo" + counter.getAndIncrement(), result.getStrField());
+          });
+    }
+    steps
+        .assertNext(
+            response -> {
+              StreamPayloadMetadata streamMetadata = getStreamMetadata(response);
+              PayloadExceptionMetadataBase expMetadata =
+                  streamMetadata.getPayloadMetadata().getExceptionMetadata();
+              assertEquals(
+                  ErrorBlame.SERVER,
+                  expMetadata
+                      .getMetadata()
+                      .getAppUnknownException()
+                      .getErrorClassification()
+                      .getBlame());
+              assertEquals(IllegalArgumentException.class.getName(), expMetadata.getNameUtf8());
+              assertEquals("exc", expMetadata.getWhatUtf8());
+            })
+        .verifyComplete();
+  }
+
+  private ThriftServerRSocket rocketFor(TestService.Reactive service) {
+    return new ThriftServerRSocket(
+        TestService.Reactive.serverHandlerBuilder(service).build(), alloc);
+  }
+
+  @Test
+  public void testFunctionDeclaredExceptionBeforeStreamCompact() {
+    checkFunctionDeclaredExceptionBeforeStream(ProtocolId.COMPACT);
+  }
+
+  @Test
+  public void testFunctionDeclaredExceptionBeforeStreamBinary() {
+    checkFunctionDeclaredExceptionBeforeStream(ProtocolId.BINARY);
+  }
+
+  private void checkFunctionDeclaredExceptionBeforeStream(ProtocolId protocolId) {
     this.protocolId = protocolId;
     // TestFunctionException is declared at function level for this method.
-    // When thrown via Flux.error() before firstResponseProcessed=true
-    // (StreamWithFirstResponseHandler), it is checked against functionExceptions,
-    // found, and treated as a declared function exception.
+    // An outer-Mono error is a response-phase failure, so it is checked against the
+    // function exception table, found, and encoded as a declared initial error:
+    // exactly one frame, no stream frames follow.
     RequestRpcMetadata requestMetadata =
         createRequestRpcMetadata(
             "streamInitialResponseDeclaredAndFunctionException",
@@ -828,13 +1273,21 @@ public class ThriftServerRSocketTest {
         .verifyComplete();
   }
 
-  @ParameterizedTest
-  @MethodSource("data")
-  public void testFunctionDeclaredExceptionSyncThrow(ProtocolId protocolId) {
+  @Test
+  public void testFunctionDeclaredExceptionSyncThrowCompact() {
+    checkFunctionDeclaredExceptionSyncThrow(ProtocolId.COMPACT);
+  }
+
+  @Test
+  public void testFunctionDeclaredExceptionSyncThrowBinary() {
+    checkFunctionDeclaredExceptionSyncThrow(ProtocolId.BINARY);
+  }
+
+  private void checkFunctionDeclaredExceptionSyncThrow(ProtocolId protocolId) {
     this.protocolId = protocolId;
-    // TestFunctionException is declared at function level. Thrown synchronously
-    // (before firstResponseProcessed=true), checked against functionExceptions,
-    // found, and treated as a declared function exception.
+    // TestFunctionException is declared at function level. A synchronous throw is a
+    // response-phase failure, so it is checked against the function exception table,
+    // found, and encoded as a declared initial error.
     RequestRpcMetadata requestMetadata =
         createRequestRpcMetadata(
             "streamFunctionExceptionSyncThrow", RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE);
@@ -852,9 +1305,17 @@ public class ThriftServerRSocketTest {
         .verifyComplete();
   }
 
-  @ParameterizedTest
-  @MethodSource("data")
-  public void testInvalidFirstResponseDoesNotEstablishStream(ProtocolId protocolId) {
+  @Test
+  public void testInvalidFirstResponseDoesNotEstablishStreamCompact() {
+    checkInvalidFirstResponseDoesNotEstablishStream(ProtocolId.COMPACT);
+  }
+
+  @Test
+  public void testInvalidFirstResponseDoesNotEstablishStreamBinary() {
+    checkInvalidFirstResponseDoesNotEstablishStream(ProtocolId.BINARY);
+  }
+
+  private void checkInvalidFirstResponseDoesNotEstablishStream(ProtocolId protocolId) {
     this.protocolId = protocolId;
     // A malformed first response must be treated as a pre-stream failure.
     // The server should send an undeclared exception in ResponseRpcMetadata

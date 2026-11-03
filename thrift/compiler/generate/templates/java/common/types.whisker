@@ -308,17 +308,31 @@ Map<{{#partial adapted_inner_boxed_type type=type.key_type}}, {{#partial adapted
 {{/if type.java_type?}}
 {{/let partial}}
 
-{{! Resolves the stream return type. For streams with a first response, produces
-    StreamResponse<FirstResponseType, ElemType>. For streams without a first
-    response, produces just the element type. }}
+{{! Resolves the full reactive return type for a stream method. For streams with a
+    first response, produces Mono<ResponseAndStream<FirstResponseType, ElemType>>. For
+    streams without a first response, produces Flux<ElemType>. }}
 {{#let export partial stream_return_type |function| captures |boxed_type|}}
   {{#pragma ignore-newlines}}
   {{#if function.stream_has_first_response?}}
-com.facebook.thrift.model.StreamResponse<
+reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<
 {{#partial boxed_type type=function.return_type field_hasAdapter=false}},
-{{#partial boxed_type type=function.stream.elem_type field_hasAdapter=false}}>
+{{#partial boxed_type type=function.stream.elem_type field_hasAdapter=false}}>>
   {{#else}}
-{{#partial boxed_type type=function.stream.elem_type field_hasAdapter=false}}
+reactor.core.publisher.Flux<{{#partial boxed_type type=function.stream.elem_type field_hasAdapter=false}}>
+  {{/if function.stream_has_first_response?}}
+{{/let partial}}
+
+{{! Resolves the full reactive wrapper return type for a stream method. For streams with
+    a first response, produces Mono<ResponseWrapper<ResponseAndStream<First, Elem>>>.
+    For streams without a first response, produces Flux<ResponseWrapper<Elem>>. }}
+{{#let export partial stream_wrapper_return_type |function| captures |boxed_type|}}
+  {{#pragma ignore-newlines}}
+  {{#if function.stream_has_first_response?}}
+reactor.core.publisher.Mono<com.facebook.thrift.client.ResponseWrapper<com.facebook.thrift.model.ResponseAndStream<
+{{#partial boxed_type type=function.return_type field_hasAdapter=false}},
+com.facebook.thrift.client.ResponseWrapper<{{#partial boxed_type type=function.stream.elem_type field_hasAdapter=false}}>>>>
+  {{#else}}
+reactor.core.publisher.Flux<com.facebook.thrift.client.ResponseWrapper<{{#partial boxed_type type=function.stream.elem_type field_hasAdapter=false}}>>
   {{/if function.stream_has_first_response?}}
 {{/let partial}}
 

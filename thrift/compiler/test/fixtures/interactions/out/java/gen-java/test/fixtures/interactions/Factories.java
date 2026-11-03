@@ -293,13 +293,13 @@ public interface Factories extends java.io.Closeable, com.facebook.thrift.util.B
             throw new UnsupportedOperationException();
         }
 
-        reactor.core.publisher.Flux<com.facebook.thrift.model.StreamResponse<Integer,Integer>> serialize();
+        reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer,Integer>> serialize();
 
-        default reactor.core.publisher.Flux<com.facebook.thrift.model.StreamResponse<Integer,Integer>> serialize(RpcOptions rpcOptions) {
+        default reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer,Integer>> serialize(RpcOptions rpcOptions) {
             throw new UnsupportedOperationException();
         }
 
-        default reactor.core.publisher.Flux<ResponseWrapper<com.facebook.thrift.model.StreamResponse<Integer,Integer>>> serializeWrapper(RpcOptions rpcOptions) {
+        default reactor.core.publisher.Mono<com.facebook.thrift.client.ResponseWrapper<com.facebook.thrift.model.ResponseAndStream<Integer,com.facebook.thrift.client.ResponseWrapper<Integer>>>> serializeWrapper(RpcOptions rpcOptions) {
             throw new UnsupportedOperationException();
         }
 
@@ -309,17 +309,17 @@ public interface Factories extends java.io.Closeable, com.facebook.thrift.util.B
             throw new UnsupportedOperationException();
         }
 
-        default reactor.core.publisher.Flux<ResponseWrapper<Integer>> interactWithStreamWrapper(RpcOptions rpcOptions) {
+        default reactor.core.publisher.Flux<com.facebook.thrift.client.ResponseWrapper<Integer>> interactWithStreamWrapper(RpcOptions rpcOptions) {
             throw new UnsupportedOperationException();
         }
 
-        reactor.core.publisher.Flux<com.facebook.thrift.model.StreamResponse<Integer,Integer>> interactWithStreamAndInitialResponse();
+        reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer,Integer>> interactWithStreamAndInitialResponse();
 
-        default reactor.core.publisher.Flux<com.facebook.thrift.model.StreamResponse<Integer,Integer>> interactWithStreamAndInitialResponse(RpcOptions rpcOptions) {
+        default reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer,Integer>> interactWithStreamAndInitialResponse(RpcOptions rpcOptions) {
             throw new UnsupportedOperationException();
         }
 
-        default reactor.core.publisher.Flux<ResponseWrapper<com.facebook.thrift.model.StreamResponse<Integer,Integer>>> interactWithStreamAndInitialResponseWrapper(RpcOptions rpcOptions) {
+        default reactor.core.publisher.Mono<com.facebook.thrift.client.ResponseWrapper<com.facebook.thrift.model.ResponseAndStream<Integer,com.facebook.thrift.client.ResponseWrapper<Integer>>>> interactWithStreamAndInitialResponseWrapper(RpcOptions rpcOptions) {
             throw new UnsupportedOperationException();
         }
 
@@ -379,7 +379,7 @@ public interface Factories extends java.io.Closeable, com.facebook.thrift.util.B
                 throw new UnsupportedOperationException();
             }
 
-            default reactor.core.publisher.Flux<ResponseWrapper<Boolean>> truthifyWrapper(RpcOptions rpcOptions) {
+            default reactor.core.publisher.Flux<com.facebook.thrift.client.ResponseWrapper<Boolean>> truthifyWrapper(RpcOptions rpcOptions) {
                 throw new UnsupportedOperationException();
             }
 
@@ -389,7 +389,7 @@ public interface Factories extends java.io.Closeable, com.facebook.thrift.util.B
                 throw new UnsupportedOperationException();
             }
 
-            default reactor.core.publisher.Flux<ResponseWrapper<Integer>> failstreamWrapper(RpcOptions rpcOptions) {
+            default reactor.core.publisher.Flux<com.facebook.thrift.client.ResponseWrapper<Integer>> failstreamWrapper(RpcOptions rpcOptions) {
                 throw new UnsupportedOperationException();
             }
 
@@ -399,7 +399,7 @@ public interface Factories extends java.io.Closeable, com.facebook.thrift.util.B
                 throw new UnsupportedOperationException();
             }
 
-            default reactor.core.publisher.Flux<ResponseWrapper<Integer>> failstreaminitWrapper(RpcOptions rpcOptions) {
+            default reactor.core.publisher.Flux<com.facebook.thrift.client.ResponseWrapper<Integer>> failstreaminitWrapper(RpcOptions rpcOptions) {
                 throw new UnsupportedOperationException();
             }
 
@@ -409,7 +409,17 @@ public interface Factories extends java.io.Closeable, com.facebook.thrift.util.B
                 throw new UnsupportedOperationException();
             }
 
-            default reactor.core.publisher.Flux<ResponseWrapper<Integer>> streamWithArgWrapper(final String query, RpcOptions rpcOptions) {
+            default reactor.core.publisher.Flux<com.facebook.thrift.client.ResponseWrapper<Integer>> streamWithArgWrapper(final String query, RpcOptions rpcOptions) {
+                throw new UnsupportedOperationException();
+            }
+
+            reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer,Integer>> firstAndStream();
+
+            default reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer,Integer>> firstAndStream(RpcOptions rpcOptions) {
+                throw new UnsupportedOperationException();
+            }
+
+            default reactor.core.publisher.Mono<com.facebook.thrift.client.ResponseWrapper<com.facebook.thrift.model.ResponseAndStream<Integer,com.facebook.thrift.client.ResponseWrapper<Integer>>>> firstAndStreamWrapper(RpcOptions rpcOptions) {
                 throw new UnsupportedOperationException();
             }
 
@@ -442,7 +452,7 @@ public interface Factories extends java.io.Closeable, com.facebook.thrift.util.B
                 throw new UnsupportedOperationException();
             }
 
-            default reactor.core.publisher.Flux<ResponseWrapper<Boolean>> truthifyWrapper(RpcOptions rpcOptions) {
+            default reactor.core.publisher.Flux<com.facebook.thrift.client.ResponseWrapper<Boolean>> truthifyWrapper(RpcOptions rpcOptions) {
                 throw new UnsupportedOperationException();
             }
 

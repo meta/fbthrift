@@ -46,6 +46,10 @@ pub trait MyInteraction: ::std::marker::Send {
         arg_query: &::std::primitive::str,
     ) -> ::futures::future::BoxFuture<'static, ::std::result::Result<::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::my_interaction::StreamWithArgStreamError>>, crate::errors::my_interaction::StreamWithArgError>>;
 
+    fn firstAndStream(
+        &self,
+    ) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(::std::primitive::i32, ::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::my_interaction::FirstAndStreamStreamError>>), crate::errors::my_interaction::FirstAndStreamError>>;
+
     fn encode(
         &self,
     ) -> ::futures::future::BoxFuture<'static, ::std::result::Result<::fbthrift::SinkResult<
@@ -91,6 +95,10 @@ where
         arg_query: &::std::primitive::str,
         rpc_options: T::RpcOptions,
     ) -> ::futures::future::BoxFuture<'static, ::std::result::Result<::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::my_interaction::StreamWithArgStreamError>>, crate::errors::my_interaction::StreamWithArgError>>;
+    fn firstAndStream_with_rpc_opts(
+        &self,
+        rpc_options: T::RpcOptions,
+    ) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(::std::primitive::i32, ::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::my_interaction::FirstAndStreamStreamError>>), crate::errors::my_interaction::FirstAndStreamError>>;
     fn encode_with_rpc_opts(
         &self,
         rpc_options: T::RpcOptions,
@@ -155,6 +163,12 @@ where
     ) -> ::futures::future::BoxFuture<'static, ::std::result::Result<::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::my_interaction::StreamWithArgStreamError>>, crate::errors::my_interaction::StreamWithArgError>> {
         self.as_ref().streamWithArg(
             arg_query,
+        )
+    }
+    fn firstAndStream(
+        &self,
+    ) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(::std::primitive::i32, ::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::my_interaction::FirstAndStreamStreamError>>), crate::errors::my_interaction::FirstAndStreamError>> {
+        self.as_ref().firstAndStream(
         )
     }
     fn encode(
@@ -238,6 +252,14 @@ where
             rpc_options,
         )
     }
+    fn firstAndStream_with_rpc_opts(
+        &self,
+        rpc_options: T::RpcOptions,
+    ) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(::std::primitive::i32, ::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::my_interaction::FirstAndStreamStreamError>>), crate::errors::my_interaction::FirstAndStreamError>> {
+        <Self as ::std::convert::AsRef<dyn MyInteractionExt<T>>>::as_ref(self).firstAndStream_with_rpc_opts(
+            rpc_options,
+        )
+    }
     fn encode_with_rpc_opts(
         &self,
         rpc_options: T::RpcOptions,
@@ -274,6 +296,7 @@ pub struct MyInteractionNames {
     pub method_failstreaminit: &'static ::std::ffi::CStr,
     pub method_frobnicateWithArg: &'static ::std::ffi::CStr,
     pub method_streamWithArg: &'static ::std::ffi::CStr,
+    pub method_firstAndStream: &'static ::std::ffi::CStr,
     pub method_encode: &'static ::std::ffi::CStr,
 }
 
@@ -719,6 +742,76 @@ where
         .boxed()
     }
 
+    fn _firstAndStream_impl(
+        &self,
+        rpc_options: T::RpcOptions,
+    ) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(::std::primitive::i32, ::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::my_interaction::FirstAndStreamStreamError>>), crate::errors::my_interaction::FirstAndStreamError>> {
+        use ::tracing::Instrument as _;
+        use ::futures::FutureExt as _;
+        use ::futures::StreamExt as _;
+        use ::fbthrift::Deserialize as _;
+
+        let service_name = self.names.service;
+        let service_method_name = self.names.method_firstAndStream;
+
+        let args = self::Args_MyInteraction_firstAndStream {
+            _phantom: ::std::marker::PhantomData,
+        };
+
+        let transport = self.transport();
+
+        // need to do call setup outside of async block because T: Transport isn't Send
+        let request_env = match ::fbthrift::help::serialize_request_envelope::<P, _>("MyInteraction.firstAndStream", &args) {
+            ::std::result::Result::Ok(res) => res,
+            ::std::result::Result::Err(err) => return ::futures::future::err(err.into()).boxed(),
+        };
+
+        let call_stream = transport
+            .call_stream(service_name, service_method_name, request_env, rpc_options)
+            .instrument(::tracing::trace_span!("call_stream", method = "MyInteraction.firstAndStream"));
+
+        async move {
+            let (initial, stream) = call_stream.await?;
+
+            let new_stream = stream.then(|item_res| {
+                async move {
+                    match item_res {
+                        ::std::result::Result::Err(err) =>
+                            ::std::result::Result::Err(crate::errors::my_interaction::FirstAndStreamStreamError::from(err)),
+                        ::std::result::Result::Ok(item_enc) => {
+                            S::spawn(move || {
+                                match item_enc {
+                                    ::fbthrift::ClientStreamElement::Reply(payload) => {
+                                        let mut de = P::deserializer(payload);
+                                        <crate::errors::my_interaction::FirstAndStreamStreamReader as ::fbthrift::help::DeserializeExn>::read_result(&mut de)
+                                    }
+                                    ::fbthrift::ClientStreamElement::ApplicationEx(payload) => {
+                                        let mut de = P::deserializer(payload);
+                                        let aexn = ::fbthrift::ApplicationException::rs_thrift_read(&mut de)?;
+                                        ::std::result::Result::Ok(::std::result::Result::Err(crate::errors::my_interaction::FirstAndStreamStreamError::ApplicationException(aexn)))
+                                    }
+                                    ::fbthrift::ClientStreamElement::DeclaredEx(payload) => {
+                                        let mut de = P::deserializer(payload);
+                                        <crate::errors::my_interaction::FirstAndStreamStreamReader as ::fbthrift::help::DeserializeExn>::read_result(&mut de)
+                                    }
+                                }
+                            }).await.map_err(::anyhow::Error::from)??
+                        }
+                    }
+                }
+            })
+            .boxed();
+
+            let de = P::deserializer(initial);
+            let res = ::fbthrift::help::async_deserialize_response_envelope::<P, crate::errors::my_interaction::FirstAndStreamReader, S>(de)
+                .await??
+                .map(move |initial| (initial, new_stream));
+            res
+        }
+        .instrument(::tracing::info_span!("stream", method = "MyInteraction.firstAndStream"))
+        .boxed()
+    }
+
     fn _encode_impl(
         &self,
         rpc_options: T::RpcOptions,
@@ -934,6 +1027,20 @@ impl<'a, P: ::fbthrift::ProtocolWriter> ::fbthrift::Serialize<P> for self::Args_
     }
 }
 
+struct Args_MyInteraction_firstAndStream<'a> {
+    _phantom: ::std::marker::PhantomData<&'a ()>,
+}
+
+impl<'a, P: ::fbthrift::ProtocolWriter> ::fbthrift::Serialize<P> for self::Args_MyInteraction_firstAndStream<'a> {
+    #[inline]
+    #[::tracing::instrument(skip_all, level = "trace", name = "serialize_args", fields(method = "MyInteraction.firstAndStream"))]
+    fn rs_thrift_write(&self, p: &mut P) {
+        p.write_struct_begin("args");
+        p.write_field_stop();
+        p.write_struct_end();
+    }
+}
+
 struct Args_MyInteraction_encode<'a> {
     _phantom: ::std::marker::PhantomData<&'a ()>,
 }
@@ -1014,6 +1121,14 @@ where
         let rpc_options = T::RpcOptions::default();
         self._streamWithArg_impl(
             arg_query,
+            rpc_options,
+        )
+    }
+    fn firstAndStream(
+        &self,
+    ) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(::std::primitive::i32, ::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::my_interaction::FirstAndStreamStreamError>>), crate::errors::my_interaction::FirstAndStreamError>> {
+        let rpc_options = T::RpcOptions::default();
+        self._firstAndStream_impl(
             rpc_options,
         )
     }
@@ -1099,6 +1214,14 @@ where
     ) -> ::futures::future::BoxFuture<'static, ::std::result::Result<::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::my_interaction::StreamWithArgStreamError>>, crate::errors::my_interaction::StreamWithArgError>> {
         self._streamWithArg_impl(
             arg_query,
+            rpc_options,
+        )
+    }
+    fn firstAndStream_with_rpc_opts(
+        &self,
+        rpc_options: T::RpcOptions,
+    ) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(::std::primitive::i32, ::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::my_interaction::FirstAndStreamStreamError>>), crate::errors::my_interaction::FirstAndStreamError>> {
+        self._firstAndStream_impl(
             rpc_options,
         )
     }
@@ -2347,6 +2470,7 @@ where
         method_failstreaminit: c"MyService.MyInteraction.failstreaminit",
         method_frobnicateWithArg: c"MyService.MyInteraction.frobnicateWithArg",
         method_streamWithArg: c"MyService.MyInteraction.streamWithArg",
+        method_firstAndStream: c"MyService.MyInteraction.firstAndStream",
         method_encode: c"MyService.MyInteraction.encode",
     };
     const NAMES_MyInteractionFast: crate::client::MyInteractionFastNames = crate::client::MyInteractionFastNames {
@@ -3233,6 +3357,7 @@ where
         method_failstreaminit: c"Factories.MyInteraction.failstreaminit",
         method_frobnicateWithArg: c"Factories.MyInteraction.frobnicateWithArg",
         method_streamWithArg: c"Factories.MyInteraction.streamWithArg",
+        method_firstAndStream: c"Factories.MyInteraction.firstAndStream",
         method_encode: c"Factories.MyInteraction.encode",
     };
     const NAMES_MyInteractionFast: crate::client::MyInteractionFastNames = crate::client::MyInteractionFastNames {
@@ -4650,6 +4775,7 @@ where
         method_failstreaminit: c"Perform.MyInteraction.failstreaminit",
         method_frobnicateWithArg: c"Perform.MyInteraction.frobnicateWithArg",
         method_streamWithArg: c"Perform.MyInteraction.streamWithArg",
+        method_firstAndStream: c"Perform.MyInteraction.firstAndStream",
         method_encode: c"Perform.MyInteraction.encode",
     };
     const NAMES_MyInteractionFast: crate::client::MyInteractionFastNames = crate::client::MyInteractionFastNames {
@@ -5022,6 +5148,7 @@ where
         method_failstreaminit: c"InteractWithShared.MyInteraction.failstreaminit",
         method_frobnicateWithArg: c"InteractWithShared.MyInteraction.frobnicateWithArg",
         method_streamWithArg: c"InteractWithShared.MyInteraction.streamWithArg",
+        method_firstAndStream: c"InteractWithShared.MyInteraction.firstAndStream",
         method_encode: c"InteractWithShared.MyInteraction.encode",
     };
     const NAMES_SharedInteraction: shared__clients::SharedInteractionNames = shared__clients::SharedInteractionNames {

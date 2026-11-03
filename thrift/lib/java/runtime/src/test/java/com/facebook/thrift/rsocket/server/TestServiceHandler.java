@@ -18,7 +18,7 @@ package com.facebook.thrift.rsocket.server;
 
 import com.facebook.thrift.client.ResponseWrapper;
 import com.facebook.thrift.client.RpcOptions;
-import com.facebook.thrift.model.StreamResponse;
+import com.facebook.thrift.model.ResponseAndStream;
 import com.facebook.thrift.test.rocket.InitialTestResponse;
 import com.facebook.thrift.test.rocket.TestAnnotatedMessageException;
 import com.facebook.thrift.test.rocket.TestClientException;
@@ -30,8 +30,7 @@ import com.facebook.thrift.test.rocket.TestRequest2;
 import com.facebook.thrift.test.rocket.TestResponse;
 import com.facebook.thrift.test.rocket.TestServerException;
 import com.facebook.thrift.test.rocket.TestService;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
+import java.util.concurrent.atomic.AtomicBoolean;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -115,22 +114,18 @@ public class TestServiceHandler implements TestService.Reactive {
   }
 
   @Override
-  public Flux<StreamResponse<InitialTestResponse, TestResponse>> streamInitialResponse(
+  public Mono<ResponseAndStream<InitialTestResponse, TestResponse>> streamInitialResponse(
       TestRequest testRequest) {
-    return Flux.range(-1, 11)
-        .map(
-            i -> {
-              if (i == -1) {
-                return StreamResponse.fromFirstResponse(
-                    new InitialTestResponse.Builder().setIntField(100).build());
-              } else {
-                return StreamResponse.fromData(
-                    new TestResponse.Builder()
-                        .setIntField(testRequest.getIntField() + i)
-                        .setStrField(testRequest.getStrField() + i)
-                        .build());
-              }
-            });
+    return Mono.just(
+        ResponseAndStream.of(
+            new InitialTestResponse.Builder().setIntField(100).build(),
+            Flux.range(0, 10)
+                .map(
+                    i ->
+                        new TestResponse.Builder()
+                            .setIntField(testRequest.getIntField() + i)
+                            .setStrField(testRequest.getStrField() + i)
+                            .build())));
   }
 
   @Override
@@ -174,15 +169,15 @@ public class TestServiceHandler implements TestService.Reactive {
   }
 
   @Override
-  public Flux<StreamResponse<InitialTestResponse, TestResponse>>
+  public Mono<ResponseAndStream<InitialTestResponse, TestResponse>>
       streamInitialResponseDeclaredAndFunctionException(TestRequest testRequest) {
-    return Flux.error(new TestFunctionException("exc"));
+    return Mono.error(new TestFunctionException("exc"));
   }
 
   @Override
-  public Flux<StreamResponse<InitialTestResponse, TestResponse>>
+  public Mono<ResponseAndStream<InitialTestResponse, TestResponse>>
       streamInitialResponseDeclaredException(TestRequest testRequest) {
-    return Flux.error(new TestException("exc"));
+    return Mono.error(new TestException("exc"));
   }
 
   @Override
@@ -203,13 +198,12 @@ public class TestServiceHandler implements TestService.Reactive {
   public void dispose() {}
 
   @Override
-  public Flux<StreamResponse<InitialTestResponse, TestResponse>>
+  public Mono<ResponseAndStream<InitialTestResponse, TestResponse>>
       streamInitialResponseDeclaredExceptionAfterFirst(TestRequest testRequest) {
-    Flux<StreamResponse<InitialTestResponse, TestResponse>> first =
-        Flux.just(
-            StreamResponse.fromFirstResponse(
-                new InitialTestResponse.Builder().setIntField(100).build()));
-    return first.concatWith(Flux.error(new TestException("exc")));
+    return Mono.just(
+        ResponseAndStream.of(
+            new InitialTestResponse.Builder().setIntField(100).build(),
+            Flux.<TestResponse>error(new TestException("exc"))));
   }
 
   @Override
@@ -218,9 +212,27 @@ public class TestServiceHandler implements TestService.Reactive {
   }
 
   @Override
-  public Flux<StreamResponse<InitialTestResponse, TestResponse>>
+  public Mono<ResponseAndStream<InitialTestResponse, TestResponse>>
       streamInitialResponseInvalidFirstResponse(TestRequest testRequest) {
-    return Flux.just(createInvalidFirstResponse());
+    // An empty outer Mono must fail exactly like a null first response.
+    return Mono.empty();
+  }
+
+  public static final AtomicBoolean forwardedHolderDisposed = new AtomicBoolean(false);
+
+  @Override
+  public Mono<ResponseAndStream<InitialTestResponse, TestResponse>> streamForwardedHolder(
+      TestRequest testRequest) {
+    // A forwarded backend holder: carries a dispose handle like a client-bridge holder, so the
+    // test can observe the server framework disposing it when the stream goes unconsumed.
+    Flux<TestResponse> backend =
+        Flux.range(0, 10)
+            .map(i -> new TestResponse.Builder().setIntField(i).setStrField("foo").build());
+    return Mono.just(
+        ResponseAndStream.of(
+            new InitialTestResponse.Builder().setIntField(100).build(),
+            backend,
+            () -> forwardedHolderDisposed.set(true)));
   }
 
   @Override
@@ -255,21 +267,5 @@ public class TestServiceHandler implements TestService.Reactive {
       @Override
       public void dispose() {}
     };
-  }
-
-  @SuppressWarnings("unchecked")
-  private static StreamResponse<InitialTestResponse, TestResponse> createInvalidFirstResponse() {
-    try {
-      Constructor<StreamResponse> constructor = StreamResponse.class.getDeclaredConstructor();
-      constructor.setAccessible(true);
-      StreamResponse<InitialTestResponse, TestResponse> response = constructor.newInstance();
-
-      Field isFirstResponseField = StreamResponse.class.getDeclaredField("isFirstResponse");
-      isFirstResponseField.setAccessible(true);
-      isFirstResponseField.setBoolean(response, true);
-      return response;
-    } catch (ReflectiveOperationException e) {
-      throw new AssertionError("Failed to create invalid first response", e);
-    }
   }
 }

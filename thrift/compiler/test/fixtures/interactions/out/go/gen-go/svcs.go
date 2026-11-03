@@ -39,6 +39,7 @@ type MyInteraction interface {
     Failstreaminit(ctx context.Context) (func(context.Context, chan<- int32) error, error)
     FrobnicateWithArg(ctx context.Context, arg int32) (int32, error)
     StreamWithArg(ctx context.Context, query string) (func(context.Context, chan<- int32) error, error)
+    FirstAndStream(ctx context.Context) (int32, func(context.Context, chan<- int32) error, error)
     Encode(ctx context.Context) ([]int32, func(context.Context, iter.Seq2[string, error]) ([]byte, error), error)
 }
 
@@ -51,6 +52,7 @@ type MyInteractionClient interface {
     Failstreaminit(ctx context.Context) (thrift.StreamingHandle[int32], error)
     FrobnicateWithArg(ctx context.Context, arg int32) (int32, error)
     StreamWithArg(ctx context.Context, query string) (thrift.StreamingHandle[int32], error)
+    FirstAndStream(ctx context.Context) (int32, thrift.StreamingHandle[int32], error)
     Encode(ctx context.Context) ([]int32, func(iter.Seq2[string, error]) ([]byte, error), error)
 }
 
@@ -240,6 +242,38 @@ func (c *myInteractionClientImpl) StreamWithArg(ctx context.Context, query strin
     return fbthriftHandle, nil
 }
 
+func (c *myInteractionClientImpl) FirstAndStream(ctx context.Context) (int32, thrift.StreamingHandle[int32], error) {
+    var fbthriftRespZero int32
+    fbthriftReq := &reqMyInteractionFirstAndStream{
+    }
+    fbthriftResp := newRespMyInteractionFirstAndStream()
+
+    fbthriftChannel := c.ch
+
+    fbthriftNewStreamElemFn := func() thrift.ReadableResult {
+        return newStreamMyInteractionFirstAndStream()
+    }
+
+    fbthriftRawHandle, fbthriftErr := fbthriftChannel.SendRequestStream(
+        ctx,
+        "MyInteraction.firstAndStream",
+        fbthriftReq,
+        fbthriftResp,
+        fbthriftNewStreamElemFn,
+    )
+    if fbthriftErr != nil {
+        return fbthriftRespZero, nil, fbthriftErr
+    }
+    fbthriftHandle := thrift.AdaptStreamingHandle(fbthriftRawHandle, func(elem thrift.ReadableStruct) (int32, error) {
+        fbthriftRes, ok := elem.(*streamMyInteractionFirstAndStream)
+        if !ok {
+            return 0, fmt.Errorf("thrift: unexpected stream element type %T", elem)
+        }
+        return fbthriftRes.GetSuccess(), nil
+    })
+    return fbthriftResp.GetSuccess(), fbthriftHandle, nil
+}
+
 func (c *myInteractionClientImpl) Encode(ctx context.Context) ([]int32, func(iter.Seq2[string, error]) ([]byte, error), error) {
     var fbthriftFirstRespZero []int32
     fbthriftReq := &reqMyInteractionEncode{
@@ -303,6 +337,7 @@ func NewMyInteractionProcessor(handler MyInteraction) *MyInteractionProcessor {
     p.AddToProcessorFunctionMap("MyInteraction.failstreaminit", &procFuncMyInteractionFailstreaminit{handler: handler})
     p.AddToProcessorFunctionMap("MyInteraction.frobnicateWithArg", &procFuncMyInteractionFrobnicateWithArg{handler: handler})
     p.AddToProcessorFunctionMap("MyInteraction.streamWithArg", &procFuncMyInteractionStreamWithArg{handler: handler})
+    p.AddToProcessorFunctionMap("MyInteraction.firstAndStream", &procFuncMyInteractionFirstAndStream{handler: handler})
     p.AddToProcessorFunctionMap("MyInteraction.encode", &procFuncMyInteractionEncode{handler: handler})
     p.AddToFunctionServiceMap("MyInteraction.frobnicate", "MyInteraction")
     p.AddToFunctionServiceMap("MyInteraction.ping", "MyInteraction")
@@ -311,6 +346,7 @@ func NewMyInteractionProcessor(handler MyInteraction) *MyInteractionProcessor {
     p.AddToFunctionServiceMap("MyInteraction.failstreaminit", "MyInteraction")
     p.AddToFunctionServiceMap("MyInteraction.frobnicateWithArg", "MyInteraction")
     p.AddToFunctionServiceMap("MyInteraction.streamWithArg", "MyInteraction")
+    p.AddToFunctionServiceMap("MyInteraction.firstAndStream", "MyInteraction")
     p.AddToFunctionServiceMap("MyInteraction.encode", "MyInteraction")
 
     return p
@@ -641,6 +677,61 @@ func (p *procFuncMyInteractionStreamWithArg) RunStreamContext(
         defer senderWg.Done()
         for elem := range fbthriftElemChan {
             streamWrapStruct := newStreamMyInteractionStreamWithArg()
+            streamWrapStruct.Success = &elem
+            onStreamNext(streamWrapStruct, nil)
+        }
+    }()
+
+    streamErr := elemProducerFunc(ctx, fbthriftElemChan)
+    // Stream is complete. Close the channel and wait for the sender goroutine to finish.
+    close(fbthriftElemChan)
+    senderWg.Wait()
+    if streamErr != nil {
+        onStreamNext(nil, streamErr)
+    }
+    onStreamComplete()
+}
+
+type procFuncMyInteractionFirstAndStream struct {
+    handler MyInteraction
+}
+// Compile time interface enforcer
+var _ thrift.ProcessorFunction = (*procFuncMyInteractionFirstAndStream)(nil)
+
+func (p *procFuncMyInteractionFirstAndStream) NewReqArgs() thrift.ReadableStruct {
+    return newReqMyInteractionFirstAndStream()
+}
+
+func (p *procFuncMyInteractionFirstAndStream) RunContext(ctx context.Context, reqStruct thrift.ReadableStruct) (thrift.WritableResult, error) {
+    return nil, errors.New("not supported")
+}
+
+func (p *procFuncMyInteractionFirstAndStream) RunStreamContext(
+    ctx context.Context,
+    reqStruct thrift.ReadableStruct,
+    onFirstResponse func(thrift.WritableResult, error),
+    onStreamNext func(thrift.WritableResult, error),
+    onStreamComplete func(),
+) {
+    firstResponse := newRespMyInteractionFirstAndStream()
+    retval, elemProducerFunc, initialErr := p.handler.FirstAndStream(ctx)
+    if initialErr != nil {
+        onFirstResponse(nil, initialErr)
+        onStreamComplete()
+        return
+    }
+
+    firstResponse.Success = &retval
+    onFirstResponse(firstResponse, nil)
+
+    fbthriftElemChan := make(chan int32, thrift.DefaultStreamBufferSize)
+    var senderWg sync.WaitGroup
+    senderWg.Add(1)
+    // Sender goroutine (receives elements on the channel and sends them out via onStreamNext)
+    go func() {
+        defer senderWg.Done()
+        for elem := range fbthriftElemChan {
+            streamWrapStruct := newStreamMyInteractionFirstAndStream()
             streamWrapStruct.Success = &elem
             onStreamNext(streamWrapStruct, nil)
         }
