@@ -16,8 +16,9 @@
 
 #pragma once
 
+#include <algorithm>
+#include <array>
 #include <type_traits>
-#include <unordered_set>
 
 #include <folly/Range.h>
 #include <folly/lang/Exception.h>
@@ -50,16 +51,21 @@ using FieldPath = std::vector<FieldId>;
 // fields not in the Struct.
 template <typename T>
 bool validate_mask(MaskRef ref) {
-  // Get the field ids in the thrift struct type.
-  std::unordered_set<FieldId> ids;
-  ids.reserve(op::num_fields<T>);
-  op::for_each_ordinal<T>(
-      [&](auto ord) { ids.insert(op::get_field_id<T, decltype(ord)>()); });
+  // The schema is immutable, even when the input mask is mutable. Build its
+  // lookup table at compile time instead of allocating a set per validation.
+  static constexpr auto ids = [] {
+    std::array<FieldId, op::num_fields<T>> result{};
+    size_t i = 0;
+    op::for_each_ordinal<T>(
+        [&](auto ord) { result[i++] = op::get_field_id<T, decltype(ord)>(); });
+    std::sort(result.begin(), result.end());
+    return result;
+  }();
   const FieldIdToMask& map = ref.mask.includes() ? ref.mask.includes().value()
                                                  : ref.mask.excludes().value();
   for (auto& [id, _] : map) {
     // Mask contains a field not in the struct.
-    if (ids.find(FieldId{id}) == ids.end()) {
+    if (!std::binary_search(ids.begin(), ids.end(), FieldId{id})) {
       return false;
     }
   }
