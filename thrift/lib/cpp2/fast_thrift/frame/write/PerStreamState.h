@@ -69,6 +69,10 @@ struct PendingFrame {
  */
 struct PerStreamState {
   uint32_t streamId{0};
+  // Marks a stream that no later frame may join, because its first frame is
+  // complete or a REQUEST_RESPONSE. Only an owner that applies this rule sets
+  // the flag. This struct neither sets nor checks it.
+  bool oneFrameStream{false};
   std::deque<PendingFrame> frames;
   // Holds the unsent data from the front frame after its first fragment. The
   // front frame leaves `frames` only after this queue is empty.

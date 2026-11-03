@@ -289,6 +289,7 @@ if (THRIFT_RPC)
     fast_thrift/common/allocator/EvbAllocator.cpp
     fast_thrift/channel_pipeline/PipelineImpl.cpp
     fast_thrift/channel_pipeline/detail/ContextImpl.cpp
+    fast_thrift/frame/write/FifoStreamQueue.cpp
     fast_thrift/frame/write/FrameWriter.cpp
     fast_thrift/frame/write/handler/YieldingSrptFrameFragmentationHandlerState.cpp
     fast_thrift/thrift/FastThriftAdapterBase.cpp
