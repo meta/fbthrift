@@ -169,6 +169,9 @@ inline constexpr auto kJavaUseIntrinsicDefaultUri =
     "facebook.com/thrift/annotation/java/UseIntrinsicDefault";
 inline constexpr auto kJavaBinaryStringUri =
     "facebook.com/thrift/annotation/java/BinaryString";
+inline constexpr auto kJavaOpenEnumUri =
+    "facebook.com/thrift/annotation/java/OpenEnum";
+inline constexpr auto kJavaUtf8Uri = "facebook.com/thrift/annotation/java/Utf8";
 
 // Python:
 inline constexpr auto kPythonAdapterUri =

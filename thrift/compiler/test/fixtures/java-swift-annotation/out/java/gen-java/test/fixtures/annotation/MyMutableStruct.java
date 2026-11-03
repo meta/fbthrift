@@ -28,6 +28,8 @@ public final class MyMutableStruct implements com.facebook.thrift.payload.Thrift
     public MyMutableStruct() {
       this.intField = 0L;
       this.stringField = null;
+      this.stringList = null;
+      this.stringMap = null;
     }
 
     public static Builder builder() {
@@ -41,6 +43,8 @@ public final class MyMutableStruct implements com.facebook.thrift.payload.Thrift
     public static class Builder {
         private long intField = 0L;
         private String stringField = null;
+        private List<String> stringList = null;
+        private Map<String, String> stringMap = null;
 
         @com.facebook.swift.codec.ThriftField(value=1, name="intField", requiredness=Requiredness.NONE)    public Builder setIntField(long intField) {
             this.intField = intField;
@@ -56,10 +60,26 @@ public final class MyMutableStruct implements com.facebook.thrift.payload.Thrift
 
         public String getStringField() { return stringField; }
 
+        @com.facebook.swift.codec.ThriftField(value=3, name="stringList", requiredness=Requiredness.NONE)    public Builder setStringList(List<String> stringList) {
+            this.stringList = stringList;
+            return this;
+        }
+
+        public List<String> getStringList() { return stringList; }
+
+        @com.facebook.swift.codec.ThriftField(value=4, name="stringMap", requiredness=Requiredness.NONE)    public Builder setStringMap(Map<String, String> stringMap) {
+            this.stringMap = stringMap;
+            return this;
+        }
+
+        public Map<String, String> getStringMap() { return stringMap; }
+
         public Builder() { }
         public Builder(MyMutableStruct other) {
             this.intField = other.intField;
             this.stringField = other.stringField;
+            this.stringList = other.stringList;
+            this.stringMap = other.stringMap;
         }
 
         @ThriftConstructor
@@ -67,6 +87,8 @@ public final class MyMutableStruct implements com.facebook.thrift.payload.Thrift
             MyMutableStruct result = new MyMutableStruct();
                 result.intField = this.intField;
                 result.stringField = this.stringField;
+                result.stringList = this.stringList;
+                result.stringMap = this.stringMap;
             return result;
         }
     }
@@ -82,6 +104,12 @@ public final class MyMutableStruct implements com.facebook.thrift.payload.Thrift
     private String stringField;
     public static final int _STRINGFIELD = 2;
     private static final TField STRING_FIELD_FIELD_DESC = new TField("stringField", TType.STRING, (short)2);
+    private List<String> stringList;
+    public static final int _STRINGLIST = 3;
+    private static final TField STRING_LIST_FIELD_DESC = new TField("stringList", TType.LIST, (short)3);
+    private Map<String, String> stringMap;
+    public static final int _STRINGMAP = 4;
+    private static final TField STRING_MAP_FIELD_DESC = new TField("stringMap", TType.MAP, (short)4);
     static {
         NAMES_TO_IDS.put("intField", 1);
         THRIFT_NAMES_TO_IDS.put("intField", 1);
@@ -89,6 +117,12 @@ public final class MyMutableStruct implements com.facebook.thrift.payload.Thrift
         NAMES_TO_IDS.put("stringField", 2);
         THRIFT_NAMES_TO_IDS.put("stringField", 2);
         FIELD_METADATA.put(2, STRING_FIELD_FIELD_DESC);
+        NAMES_TO_IDS.put("stringList", 3);
+        THRIFT_NAMES_TO_IDS.put("stringList", 3);
+        FIELD_METADATA.put(3, STRING_LIST_FIELD_DESC);
+        NAMES_TO_IDS.put("stringMap", 4);
+        THRIFT_NAMES_TO_IDS.put("stringMap", 4);
+        FIELD_METADATA.put(4, STRING_MAP_FIELD_DESC);
     }
 
     @com.facebook.swift.codec.ThriftField(value=1, name="intField", requiredness=Requiredness.NONE)
@@ -108,12 +142,32 @@ public final class MyMutableStruct implements com.facebook.thrift.payload.Thrift
         this.stringField = stringField;
         return this;
     }
+    @Nullable
+    @com.facebook.swift.codec.ThriftField(value=3, name="stringList", requiredness=Requiredness.NONE)
+    public List<String> getStringList() { return stringList; }
+
+    @com.facebook.swift.codec.ThriftField
+    public MyMutableStruct setStringList(List<String> stringList) {
+        this.stringList = stringList;
+        return this;
+    }
+    @Nullable
+    @com.facebook.swift.codec.ThriftField(value=4, name="stringMap", requiredness=Requiredness.NONE)
+    public Map<String, String> getStringMap() { return stringMap; }
+
+    @com.facebook.swift.codec.ThriftField
+    public MyMutableStruct setStringMap(Map<String, String> stringMap) {
+        this.stringMap = stringMap;
+        return this;
+    }
 
     @java.lang.Override
     public String toString() {
         ToStringHelper helper = toStringHelper(this);
         helper.add("intField", intField);
         helper.add("stringField", stringField);
+        helper.add("stringList", stringList);
+        helper.add("stringMap", stringMap);
         return helper.toString();
     }
 
@@ -131,6 +185,8 @@ public final class MyMutableStruct implements com.facebook.thrift.payload.Thrift
         return
             Objects.equals(intField, other.intField) &&
             Objects.equals(stringField, other.stringField) &&
+            Objects.equals(stringList, other.stringList) &&
+            Objects.equals(stringMap, other.stringMap) &&
             true;
     }
 
@@ -139,6 +195,8 @@ public final class MyMutableStruct implements com.facebook.thrift.payload.Thrift
         int _hashCode = 1;
         _hashCode = 31 * _hashCode + Long.hashCode(intField);
         _hashCode = 31 * _hashCode + Objects.hashCode(stringField);
+        _hashCode = 31 * _hashCode + Objects.hashCode(stringList);
+        _hashCode = 31 * _hashCode + Objects.hashCode(stringMap);
         return _hashCode;
     }
 
@@ -166,8 +224,55 @@ public final class MyMutableStruct implements com.facebook.thrift.payload.Thrift
             case _STRINGFIELD:
                 if (__field.type == TType.STRING) {
                     String _fbthriftVar0;
-                    _fbthriftVar0 = oprot.readString();
+                    _fbthriftVar0 = oprot.readString(com.facebook.thrift.compatibility.Utf8CodingErrorAction.REPORT);
                     builder.setStringField(_fbthriftVar0);
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
+                }
+                break;
+            case _STRINGLIST:
+                if (__field.type == TType.LIST) {
+                    List<String> _fbthriftVar0;
+                    {
+                        TList _list0 = oprot.readListBegin();
+                        _fbthriftVar0 = new ArrayList<String>(Math.max(0, _list0.size));
+                        for (int _i0 = 0; (_list0.size < 0) ? oprot.peekList() : (_i0 < _list0.size); _i0++) {
+                            String _fbthriftVar1;
+                            _fbthriftVar1 = oprot.readString(com.facebook.thrift.compatibility.Utf8CodingErrorAction.REPORT);
+                            _fbthriftVar0.add(_fbthriftVar1);
+                        }
+                        oprot.readListEnd();
+                    }
+                    builder.setStringList(_fbthriftVar0);
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
+                }
+                break;
+            case _STRINGMAP:
+                if (__field.type == TType.MAP) {
+                    Map<String, String> _fbthriftVar0;
+                    {
+                        TMap _map0 = oprot.readMapBegin();
+                        _fbthriftVar0 = new HashMap<String, String>(Math.max(0, _map0.size));
+                        for (int _i0 = 0; (_map0.size < 0) ? oprot.peekMap() : (_i0 < _map0.size); _i0++) {
+                            String _fbthriftKey1;
+                            String _fbthriftValue1;
+
+                            {
+                                String _fbthriftVar1;
+                                _fbthriftVar1 = oprot.readString(com.facebook.thrift.compatibility.Utf8CodingErrorAction.REPORT);
+                                _fbthriftKey1 = _fbthriftVar1;
+                            }
+                            {
+                                String _fbthriftVar1;
+                                _fbthriftVar1 = oprot.readString(com.facebook.thrift.compatibility.Utf8CodingErrorAction.REPORT);
+                                _fbthriftValue1 = _fbthriftVar1;
+                            }
+                            _fbthriftVar0.put(_fbthriftKey1, _fbthriftValue1);
+                        }
+                        oprot.readMapEnd();
+                    }
+                    builder.setStringMap(_fbthriftVar0);
                 } else {
                     TProtocolUtil.skip(oprot, __field.type);
                 }
@@ -195,6 +300,37 @@ public final class MyMutableStruct implements com.facebook.thrift.payload.Thrift
             if (_fbthriftVar0 != null) {
                 oprot.writeFieldBegin(STRING_FIELD_FIELD_DESC);
                 oprot.writeString(_fbthriftVar0);
+                oprot.writeFieldEnd();
+            }
+        }
+        {
+            List<String> _fbthriftVar0 = this.stringList;
+            if (_fbthriftVar0 != null) {
+                oprot.writeFieldBegin(STRING_LIST_FIELD_DESC);
+                oprot.writeListBegin(new TList(TType.STRING, _fbthriftVar0.size()));
+                for (String _fbthriftVar1 : _fbthriftVar0) {
+                    oprot.writeString(_fbthriftVar1);
+                }
+                oprot.writeListEnd();
+                oprot.writeFieldEnd();
+            }
+        }
+        {
+            Map<String, String> _fbthriftVar0 = this.stringMap;
+            if (_fbthriftVar0 != null) {
+                oprot.writeFieldBegin(STRING_MAP_FIELD_DESC);
+                oprot.writeMapBegin(new TMap(TType.STRING, TType.STRING, _fbthriftVar0.size()));
+                for (Map.Entry<String, String> _fbthriftVar1 : _fbthriftVar0.entrySet()) {
+                    {
+                        String _fbthriftVar2 = _fbthriftVar1.getKey();
+                        oprot.writeString(_fbthriftVar2);
+                    }
+                    {
+                        String _fbthriftVar2 = _fbthriftVar1.getValue();
+                        oprot.writeString(_fbthriftVar2);
+                    }
+                }
+                oprot.writeMapEnd();
                 oprot.writeFieldEnd();
             }
         }

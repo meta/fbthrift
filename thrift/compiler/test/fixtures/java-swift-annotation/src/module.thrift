@@ -16,7 +16,6 @@
 
 namespace java.swift test.fixtures.annotation
 
-include "thrift/annotation/compat.thrift"
 include "thrift/annotation/java.thrift"
 include "thrift/annotation/thrift.thrift"
 
@@ -52,7 +51,12 @@ struct MyStruct {
 @java.Annotation{java_annotation = "@com.foo.Enabled"}
 struct MyMutableStruct {
   1: i64 intField;
+  @java.Utf8
   2: string stringField;
+  @java.Utf8
+  3: list<string> stringList;
+  @java.Utf8
+  4: map<string, string> stringMap;
 }
 
 struct MyMapping {
@@ -69,6 +73,7 @@ struct BinaryMapping {
 
 struct BinaryStringStruct {
   1: binary_string binaryStringField;
+  @java.Utf8
   2: binary binaryField;
 }
 
@@ -118,14 +123,13 @@ const MyStruct MY_CONSTANT = {
   "detailMap": {},
 };
 
-@compat.Enums{type = compat.EnumType.Legacy}
 enum TestEnumLegacy {
   ONE = 1,
   TWO = 2,
   THREE = 3,
 }
 
-@compat.Enums{type = compat.EnumType.Open}
+@java.OpenEnum
 enum TestEnumOpen {
   ZERO = 0,
   ONE = 1,

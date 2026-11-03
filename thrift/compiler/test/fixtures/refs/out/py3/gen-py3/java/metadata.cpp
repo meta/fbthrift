@@ -21,6 +21,8 @@ namespace facebook::thrift::annotation::java {
   ::apache::thrift::detail::md::StructMetadata<Recursive>::gen(metadata);
   ::apache::thrift::detail::md::StructMetadata<FieldUseUnmangledName>::gen(metadata);
   ::apache::thrift::detail::md::StructMetadata<UseIntrinsicDefault>::gen(metadata);
+  ::apache::thrift::detail::md::StructMetadata<OpenEnum>::gen(metadata);
+  ::apache::thrift::detail::md::StructMetadata<Utf8>::gen(metadata);
   return metadata;
 }
 } // namespace facebook::thrift::annotation::java

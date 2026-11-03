@@ -409,12 +409,16 @@ class t_mstch_java_generator : public t_whisker_generator {
     auto base = t_whisker_generator::make_prototype_for_enum(proto);
     auto def = whisker::dsl::prototype_builder<h_enum>::extends(base);
     def.property("java_enums_compat?", [](const t_enum& self) {
-      return self.has_structured_annotation(kEnumsUri) ||
+      return self.has_structured_annotation(kJavaOpenEnumUri) ||
+          self.has_structured_annotation(kEnumsUri) ||
           self.program()->has_structured_annotation(kEnumsUri);
     });
     def.property("java_enum_type_open?", [&](const t_enum& self) {
       constexpr auto kEnumType = "type";
       constexpr int kOpenEnum = 1;
+      if (self.has_structured_annotation(kJavaOpenEnumUri)) {
+        return true;
+      }
       if (const t_const* annotation =
               self.find_structured_annotation_or_null(kEnumsUri)) {
         return is_annotation_map_field_equal(annotation, kEnumType, kOpenEnum);
@@ -604,7 +608,8 @@ class t_mstch_java_generator : public t_whisker_generator {
       return java_constant_name(get_java_swift_name(&self)) + "_FIELD_DESC";
     });
     def.property("java_strings_compat?", [this](const t_field& self) {
-      if (self.has_structured_annotation(kStringsUri) ||
+      if (self.has_structured_annotation(kJavaUtf8Uri) ||
+          self.has_structured_annotation(kStringsUri) ||
           t_typedef::get_first_structured_annotation_or_null(
               &self.type().deref(), kStringsUri) != nullptr) {
         return true;
@@ -619,6 +624,9 @@ class t_mstch_java_generator : public t_whisker_generator {
           constexpr auto kOnInvalidUtf8 = "onInvalidUtf8";
           constexpr int kActionReport = 1;
 
+          if (self.has_structured_annotation(kJavaUtf8Uri)) {
+            return true;
+          }
           if (const t_const* annotation =
                   self.find_structured_annotation_or_null(kStringsUri)) {
             return is_annotation_map_field_equal(

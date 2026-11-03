@@ -241,7 +241,7 @@ After you add an enumerator, a reader with the old definition can get a value th
 
 * C++ keeps the number, and the value has no name. `apache::thrift::util::enumName()` returns `nullptr` for it, and `enumNameOrThrow()` throws.
 * thrift-python and thrift-py3 return a `BadEnum`, which is not a member of the enum class.
-* Java returns `null`. An enum with `@java.UseIntrinsicDefault` returns its member with value 0 instead. An enum with `@compat.Enums{type = compat.EnumType.Open}` returns `UNRECOGNIZED`, which keeps the number.
+* Java returns `null`. An enum with `@java.UseIntrinsicDefault` returns its member with value 0 instead. An enum with `@java.OpenEnum` returns `UNRECOGNIZED`, which keeps the number.
 * Hack keeps the number from Binary and Compact, and `readFromJson()` sets the field to `null`.
 * thrift-py-deprecated keeps the number. Its `readFromJson()` raises `TProtocolException` if the caller passes `relax_enum_validation=False` or `wrap_enum_constants=True`.
 
