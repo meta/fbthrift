@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This CMakeLists.txt takes care of building a selection of benchmarks and tests
-# in this folder. Currently, it only builds ProtocolBench with its dependencies.
+# Build the protocol and field-mask benchmarks.
 
 add_executable(thrift_ProtocolBench ProtocolBench.cpp
                                     ../../thrift/detail/protocol.cpp)
@@ -32,3 +31,17 @@ target_link_libraries(
                                Folly::folly benchmark::benchmark)
 
 thrift_install_targets(thrift_ProtocolBench)
+
+add_executable(
+  thrift_FieldMaskBenchmark
+  FieldMaskBenchmark.cpp
+  ../protocol/FieldMask.cpp
+  ../protocol/FieldMaskRef.cpp
+  ../protocol/detail/FieldMask.cpp
+  ../protocol/detail/FieldMaskUtil.cpp
+  ../protocol/detail/Object.cpp)
+thrift_generate(thrift_FieldMaskBenchmark FieldMaskBenchmark.thrift LANGUAGE cpp2
+                OPTIONS no_metadata)
+target_link_libraries(
+  thrift_FieldMaskBenchmark PRIVATE thrift_type thrift_metadata thrift_protocol
+                                   Folly::folly benchmark::benchmark)
