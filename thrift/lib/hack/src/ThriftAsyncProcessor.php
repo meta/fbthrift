@@ -102,7 +102,7 @@ abstract class ThriftServiceMethod<
     parent::__construct($service_name);
   }
 
-  abstract protected function getSuccessResponse(): TRet;
+  abstract protected function getSuccessResponse(): ?TRet;
 
   public async function genExecute(
     TThriftIf $handler,
@@ -184,9 +184,8 @@ final class ThriftServiceStreamingResponseMethod<
   }
 
   <<__Override>>
-  protected function getSuccessResponse(): TRet {
-    $res_and_stream = $this->result as nonnull;
-    return $res_and_stream->response as nonnull;
+  protected function getSuccessResponse(): ?TRet {
+    return $this->result?->response;
   }
 
   public function getStreamPayloadClass()[]: class<TStreamPayloadStruct> {
@@ -236,9 +235,8 @@ final class ThriftServiceSinkResponseMethod<
   }
 
   <<__Override>>
-  protected function getSuccessResponse(): TRet {
-    $res_and_sink = $this->result as nonnull;
-    return $res_and_sink->response as nonnull;
+  protected function getSuccessResponse(): ?TRet {
+    return $this->result?->response;
   }
 
   public function getSink()[]: (function(
@@ -309,9 +307,8 @@ final class ThriftServiceBiDiStreamingResponseMethod<
   }
 
   <<__Override>>
-  protected function getSuccessResponse(): TRet {
-    $res_and_sink = $this->result as nonnull;
-    return $res_and_sink->response as nonnull;
+  protected function getSuccessResponse(): ?TRet {
+    return $this->result?->response;
   }
 
   public function getBiDiStream()[]: (function(
