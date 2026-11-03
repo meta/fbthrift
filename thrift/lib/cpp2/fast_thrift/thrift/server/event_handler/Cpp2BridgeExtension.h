@@ -17,6 +17,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 
 #include <folly/ExceptionWrapper.h>
 
@@ -38,6 +39,7 @@ struct Cpp2BridgeRequestState {
   apache::thrift::Cpp2RequestContext* context{nullptr};
   std::unique_ptr<Cpp2BridgeRequestException> exception;
   void* owner{nullptr};
+  const std::shared_ptr<folly::RequestContext>* ambientContext{nullptr};
 };
 
 struct Cpp2BridgeExtension {
@@ -59,6 +61,38 @@ tryGetCpp2RequestContext(const Request& request) noexcept {
   const auto* state = request.template tryState<Cpp2BridgeExtension>();
   return state == nullptr ? nullptr : state->context;
 }
+
+inline std::shared_ptr<folly::RequestContext> captureFollyRequestContext(
+    const ThriftRequestContext& request) {
+  const auto* state = request.tryState<Cpp2BridgeExtension>();
+  return state && state->ambientContext
+      ? *state->ambientContext
+      : request.getFollyRequestContext().capture();
+}
+
+// Native EVB activations pin locally. CPU activations retain the context
+// captured before dispatch; bridge activations retain the effective child.
+class RequestContextScopeGuard {
+ public:
+  explicit RequestContextScopeGuard(
+      const ThriftRequestContext* request,
+      const std::shared_ptr<folly::RequestContext>& cpuContext = {}) {
+    if (cpuContext) {
+      shared_.emplace(cpuContext);
+    } else if (request) {
+      const auto* state = request->tryState<Cpp2BridgeExtension>();
+      if (state && state->ambientContext) {
+        shared_.emplace(*state->ambientContext);
+      } else {
+        local_.emplace(request->getFollyRequestContext());
+      }
+    }
+  }
+
+ private:
+  std::optional<folly::BorrowedRequestContextScopeGuard> local_;
+  std::optional<folly::RequestContextScopeGuard> shared_;
+};
 
 inline void recordCpp2BridgeException(
     ThriftRequestContext* requestContext,

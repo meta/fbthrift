@@ -24,6 +24,9 @@
 
 #include <thrift/lib/cpp2/gen/service_tcc.h>
   {{#if service.is_fast_server?}}
+#include <optional>
+
+#include <folly/io/async/Request.h>
 #include <thrift/lib/cpp2/gen/fast_service_tcc.h>
   {{/if service.is_fast_server?}}
 

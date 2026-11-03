@@ -166,6 +166,11 @@ class ExtensionSlots {
 
   ExtensionSlots() = default;
   ~ExtensionSlots() {
+    clearAllOwned([]() noexcept {});
+  }
+
+  template <typename BeforeDelete>
+  void clearAllOwned(BeforeDelete&& beforeDelete) noexcept {
     if (layout_ == nullptr) {
       return;
     }
@@ -173,9 +178,25 @@ class ExtensionSlots {
     for (std::size_t i = 0; i < layout_->entryCount(); ++i) {
       const auto& entry = entries[i];
       if (entry.deleter != nullptr && slots_[entry.index] != nullptr) {
-        entry.deleter(slots_[entry.index]);
+        void* state = std::exchange(slots_[entry.index], nullptr);
+        beforeDelete();
+        entry.deleter(state);
       }
     }
+  }
+
+  bool hasOwnedState() const noexcept {
+    if (layout_ == nullptr) {
+      return false;
+    }
+    const auto* entries = layout_->entries();
+    for (std::size_t i = 0; i < layout_->entryCount(); ++i) {
+      const auto& entry = entries[i];
+      if (entry.deleter != nullptr && slots_[entry.index] != nullptr) {
+        return true;
+      }
+    }
+    return false;
   }
 
   // Rejected rather than bound: a layout that dies at the end of the install

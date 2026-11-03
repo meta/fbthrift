@@ -18,6 +18,7 @@
 
 #include <folly/io/IOBuf.h>
 #include <folly/io/async/EventBase.h>
+#include <folly/io/async/Request.h>
 #include <folly/io/async/ScopedEventBaseThread.h>
 #include <folly/io/async/test/MockAsyncTransport.h>
 
@@ -30,6 +31,7 @@
 #include <thrift/lib/cpp2/fast_thrift/rocket/server/MetadataProtocol.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/common/ThriftRequestPayloads.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/common/ThriftResponsePayloads.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/adapter/MetadataAppAdapter.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/adapter/ThriftServerAppAdapter.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/adapter/ThriftServerCompositeAppAdapter.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/adapter/util/ThriftServerCompositeRoutingTable.h>
@@ -393,6 +395,47 @@ TEST_F(ThriftServerCompositeAppAdapterTest, UserWinsOnMethodNameConflict) {
   EXPECT_TRUE(monitoringChild->dispatchedTo.empty());
 }
 
+TEST_F(
+    ThriftServerCompositeAppAdapterTest,
+    SharedRoutingTableUnknownMethodPreservesRequestContext) {
+  using Table = ThriftServerMethodDispatchTable;
+  auto childTable =
+      std::make_shared<const Table>(std::initializer_list<Table::Method>{
+          SharedTableChildAdapter::method("knownMethod")});
+  auto routes = ThriftServerCompositeRoutingTable::create({childTable});
+  SharedTableChildAdapter::Ptr child{
+      new SharedTableChildAdapter("child", childTable)};
+  ThriftServerCompositeAppAdapter::Ptr composite{
+      new ThriftServerCompositeAppAdapter(std::move(routes))};
+  composite->addChild(child.get());
+
+  ThriftRequestContext* capturedRequestContext = nullptr;
+  folly::RequestContext* capturedFollyContext = nullptr;
+  auto built = buildPipeline(
+      composite.get(),
+      [&](apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
+          TypeErasedBox&& box) {
+        auto& response = box.get<ThriftServerResponseMessage>();
+        capturedRequestContext = response.requestContext.get();
+        capturedFollyContext = folly::RequestContext::try_get();
+        return Result::Success;
+      });
+
+  auto request = makeRequestMessage(1, "unknownMethod");
+  request.requestContext = makeThriftRequestContext(requestMetadataEventBase());
+  auto* const requestContext = request.requestContext.get();
+  auto* const requestFollyContext =
+      request.requestContext->getFollyRequestContext().get();
+  EXPECT_EQ(
+      composite->onRead(
+          channel_pipeline::test::inertEndpointContext(),
+          erase_and_box(std::move(request))),
+      Result::Success);
+
+  EXPECT_EQ(capturedRequestContext, requestContext);
+  EXPECT_EQ(capturedFollyContext, requestFollyContext);
+}
+
 TEST_F(ThriftServerCompositeAppAdapterTest, UnknownMethodEmitsFrameworkError) {
   TestChildAdapter::Ptr userChild{new TestChildAdapter("user")};
   TestChildAdapter::Ptr monitoringChild{new TestChildAdapter("monitoring")};
@@ -407,12 +450,16 @@ TEST_F(ThriftServerCompositeAppAdapterTest, UnknownMethodEmitsFrameworkError) {
 
   apache::thrift::ResponseRpcErrorCode capturedRpcErrorCode{};
   bool writeCalled = false;
+  ThriftRequestContext* capturedRequestContext = nullptr;
+  folly::RequestContext* capturedFollyContext = nullptr;
   auto built = buildPipeline(
       composite.get(),
       [&](apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
           TypeErasedBox&& box) {
         writeCalled = true;
         auto& resp = box.get<ThriftServerResponseMessage>();
+        capturedRequestContext = resp.requestContext.get();
+        capturedFollyContext = folly::RequestContext::try_get();
         if (auto& d = payloadData(resp); d) {
           auto rpcError = deserializeResponseRpcError(*d);
           capturedRpcErrorCode = *rpcError.code();
@@ -422,6 +469,10 @@ TEST_F(ThriftServerCompositeAppAdapterTest, UnknownMethodEmitsFrameworkError) {
       });
 
   auto msg = makeRequestMessage(1, "neitherChildHasThis");
+  msg.requestContext = makeThriftRequestContext(requestMetadataEventBase());
+  auto* const requestContext = msg.requestContext.get();
+  auto* const requestFollyContext =
+      msg.requestContext->getFollyRequestContext().get();
   EXPECT_EQ(
       composite->onRead(
           channel_pipeline::test::inertEndpointContext(),
@@ -434,6 +485,8 @@ TEST_F(ThriftServerCompositeAppAdapterTest, UnknownMethodEmitsFrameworkError) {
       apache::thrift::ResponseRpcErrorCode::UNKNOWN_METHOD);
   EXPECT_EQ(userChild->dispatchedTo, "");
   EXPECT_EQ(monitoringChild->dispatchedTo, "");
+  EXPECT_EQ(capturedRequestContext, requestContext);
+  EXPECT_EQ(capturedFollyContext, requestFollyContext);
 }
 
 TEST_F(
@@ -446,11 +499,15 @@ TEST_F(
   composite->addChild(child.get());
 
   apache::thrift::ResponseRpcErrorCode capturedRpcErrorCode{};
+  ThriftRequestContext* capturedRequestContext = nullptr;
+  folly::RequestContext* capturedFollyContext = nullptr;
   auto built = buildPipeline(
       composite.get(),
       [&](apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
           TypeErasedBox&& box) {
         auto& response = box.get<ThriftServerResponseMessage>();
+        capturedRequestContext = response.requestContext.get();
+        capturedFollyContext = folly::RequestContext::try_get();
         auto rpcError = deserializeResponseRpcError(*payloadData(response));
         capturedRpcErrorCode = *rpcError.code();
         return Result::Success;
@@ -461,6 +518,10 @@ TEST_F(
       "unknownMethod",
       apache::thrift::ProtocolId::BINARY,
       apache::thrift::RpcKind::SINGLE_REQUEST_NO_RESPONSE);
+  msg.requestContext = makeThriftRequestContext(requestMetadataEventBase());
+  auto* const requestContext = msg.requestContext.get();
+  auto* const requestFollyContext =
+      msg.requestContext->getFollyRequestContext().get();
   EXPECT_EQ(
       composite->onRead(
           channel_pipeline::test::inertEndpointContext(),
@@ -470,6 +531,8 @@ TEST_F(
       capturedRpcErrorCode,
       apache::thrift::ResponseRpcErrorCode::WRONG_RPC_KIND);
   EXPECT_EQ(child->dispatchedTo, "");
+  EXPECT_EQ(capturedRequestContext, requestContext);
+  EXPECT_EQ(capturedFollyContext, requestFollyContext);
 }
 
 TEST_F(
@@ -482,11 +545,15 @@ TEST_F(
   composite->addChild(child.get());
 
   apache::thrift::ResponseRpcErrorCode capturedRpcErrorCode{};
+  ThriftRequestContext* capturedRequestContext = nullptr;
+  folly::RequestContext* capturedFollyContext = nullptr;
   auto built = buildPipeline(
       composite.get(),
       [&](apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
           TypeErasedBox&& box) {
         auto& response = box.get<ThriftServerResponseMessage>();
+        capturedRequestContext = response.requestContext.get();
+        capturedFollyContext = folly::RequestContext::try_get();
         auto rpcError = deserializeResponseRpcError(*payloadData(response));
         capturedRpcErrorCode = *rpcError.code();
         return Result::Success;
@@ -494,6 +561,10 @@ TEST_F(
 
   ThriftServerRequestMessage msg;
   msg.streamId = 1;
+  msg.requestContext = makeThriftRequestContext(requestMetadataEventBase());
+  auto* const requestContext = msg.requestContext.get();
+  auto* const requestFollyContext =
+      msg.requestContext->getFollyRequestContext().get();
   EXPECT_EQ(
       composite->onRead(
           channel_pipeline::test::inertEndpointContext(),
@@ -503,6 +574,96 @@ TEST_F(
       capturedRpcErrorCode,
       apache::thrift::ResponseRpcErrorCode::UNKNOWN_METHOD);
   EXPECT_EQ(child->dispatchedTo, "");
+  EXPECT_EQ(capturedRequestContext, requestContext);
+  EXPECT_EQ(capturedFollyContext, requestFollyContext);
+}
+
+TEST_F(
+    ThriftServerCompositeAppAdapterTest,
+    MetadataResponsesRetainOriginatingRequestContexts) {
+  auto metadataResponse = std::make_shared<
+      apache::thrift::metadata::ThriftServiceMetadataResponse>();
+  MetadataAppAdapter::Ptr metadataChild{
+      new MetadataAppAdapter(std::move(metadataResponse))};
+  auto routes = ThriftServerCompositeRoutingTable::create(
+      {MetadataAppAdapter::methodDispatchTable()});
+  ThriftServerCompositeAppAdapter::Ptr composite{
+      new ThriftServerCompositeAppAdapter(std::move(routes))};
+  composite->addChild(metadataChild.get());
+
+  std::vector<ThriftRequestContext*> capturedRequestContexts;
+  std::vector<folly::RequestContext*> capturedFollyContexts;
+  std::vector<bool> capturedErrors;
+  auto built = buildPipeline(
+      composite.get(),
+      [&](apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
+          TypeErasedBox&& box) {
+        auto& response = box.get<ThriftServerResponseMessage>();
+        capturedRequestContexts.push_back(response.requestContext.get());
+        capturedFollyContexts.push_back(folly::RequestContext::try_get());
+        capturedErrors.push_back(response.payload.is<ThriftErrorPayload>());
+        return Result::Success;
+      });
+
+  auto success = makeRequestMessage(1, "getThriftServiceMetadata");
+  ThriftRequestContext* successRequestContext{nullptr};
+  folly::RequestContext* successFollyContext{nullptr};
+  evb_->runInEventBaseThreadAndWait([&] {
+    success.requestContext = makeThriftRequestContext(*evb_);
+    successRequestContext = success.requestContext.get();
+    successFollyContext =
+        success.requestContext->getFollyRequestContext().get();
+    EXPECT_EQ(
+        composite->onRead(
+            channel_pipeline::test::inertEndpointContext(),
+            erase_and_box(std::move(success))),
+        Result::Success);
+  });
+
+  auto compact = makeRequestMessage(
+      3, "getThriftServiceMetadata", apache::thrift::ProtocolId::COMPACT);
+  ThriftRequestContext* compactRequestContext{nullptr};
+  folly::RequestContext* compactFollyContext{nullptr};
+  evb_->runInEventBaseThreadAndWait([&] {
+    compact.requestContext = makeThriftRequestContext(*evb_);
+    compactRequestContext = compact.requestContext.get();
+    compactFollyContext =
+        compact.requestContext->getFollyRequestContext().get();
+    EXPECT_EQ(
+        composite->onRead(
+            channel_pipeline::test::inertEndpointContext(),
+            erase_and_box(std::move(compact))),
+        Result::Success);
+  });
+
+  auto failure = makeRequestMessage(
+      5,
+      "getThriftServiceMetadata",
+      static_cast<apache::thrift::ProtocolId>(999));
+  ThriftRequestContext* failureRequestContext{nullptr};
+  folly::RequestContext* failureFollyContext{nullptr};
+  evb_->runInEventBaseThreadAndWait([&] {
+    failure.requestContext = makeThriftRequestContext(*evb_);
+    failureRequestContext = failure.requestContext.get();
+    failureFollyContext =
+        failure.requestContext->getFollyRequestContext().get();
+    EXPECT_EQ(
+        composite->onRead(
+            channel_pipeline::test::inertEndpointContext(),
+            erase_and_box(std::move(failure))),
+        Result::Success);
+  });
+
+  ASSERT_EQ(capturedRequestContexts.size(), 3);
+  EXPECT_EQ(capturedRequestContexts[0], successRequestContext);
+  EXPECT_EQ(capturedFollyContexts[0], successFollyContext);
+  EXPECT_FALSE(capturedErrors[0]);
+  EXPECT_EQ(capturedRequestContexts[1], compactRequestContext);
+  EXPECT_EQ(capturedFollyContexts[1], compactFollyContext);
+  EXPECT_FALSE(capturedErrors[1]);
+  EXPECT_EQ(capturedRequestContexts[2], failureRequestContext);
+  EXPECT_EQ(capturedFollyContexts[2], failureFollyContext);
+  EXPECT_TRUE(capturedErrors[2]);
 }
 
 // =============================================================================

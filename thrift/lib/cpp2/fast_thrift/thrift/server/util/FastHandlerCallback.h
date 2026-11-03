@@ -21,6 +21,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <thread>
 #include <type_traits>
 #include <utility>
 
@@ -30,6 +31,7 @@
 #include <folly/Portability.h>
 #include <folly/io/async/DelayedDestruction.h>
 #include <folly/io/async/EventBase.h>
+#include <folly/io/async/Request.h>
 #include <thrift/lib/cpp/TApplicationException.h>
 #include <thrift/lib/cpp2/GeneratedCodeHelper.h>
 #include <thrift/lib/cpp2/TrustedServerException.h>
@@ -199,19 +201,23 @@ void completeOnHandlerExecutorNothrow(
     ThriftServerAppAdapter* handler,
     uint32_t streamId,
     ThriftRequestContextPtr& requestContext,
+    const std::shared_ptr<folly::RequestContext>& cpuContext,
     folly::DelayedDestruction::DestructorGuard& adapterGuard,
     const folly::Executor::KeepAlive<folly::EventBase>& evb,
     folly::Executor* executor,
     F&& fn) {
   static_assert(std::is_nothrow_move_constructible_v<std::decay_t<F>>);
-  assert(!isOnHandlerExecutor(executor));
+  assert(executor == nullptr || !isOnHandlerExecutor(executor));
 
   auto makeTask = [&]() noexcept {
     return [handler,
             streamId,
             requestContext = std::move(requestContext),
+            cpuContext,
             adapterGuard = std::move(adapterGuard),
             fn = static_cast<F&&>(fn)]() mutable noexcept {
+      server::RequestContextScopeGuard requestContextGuard(
+          requestContext.get(), cpuContext);
       fn(handler, streamId, std::move(requestContext), std::move(adapterGuard));
     };
   };
@@ -224,7 +230,12 @@ void completeOnHandlerExecutorNothrow(
     return;
   }
   task.emplace(makeTask());
-  runOnHandlerExecutor(executor, std::move(task));
+  if (executor != nullptr) {
+    runOnHandlerExecutor(executor, std::move(task));
+  } else {
+    evb->runInEventBaseThread(
+        [task = std::move(task)]() mutable noexcept { task.run(nullptr); });
+  }
 }
 
 template <typename F>
@@ -233,6 +244,7 @@ void completeOnHandlerExecutor(
     ThriftServerAppAdapter* handler,
     uint32_t streamId,
     ThriftRequestContextPtr& requestContext,
+    const std::shared_ptr<folly::RequestContext>& cpuContext,
     folly::DelayedDestruction::DestructorGuard& adapterGuard,
     const folly::Executor::KeepAlive<folly::EventBase>& evb,
     folly::Executor* executor,
@@ -244,6 +256,7 @@ void completeOnHandlerExecutor(
         handler,
         streamId,
         requestContext,
+        cpuContext,
         adapterGuard,
         evb,
         executor,
@@ -258,6 +271,7 @@ void completeOnHandlerExecutor(
         handler,
         streamId,
         requestContext,
+        cpuContext,
         adapterGuard,
         evb,
         executor,
@@ -506,6 +520,10 @@ class FastHandlerCallback {
         evb_(folly::getKeepAliveToken(&evb)),
         executor_(executor),
         requestContext_(std::move(requestContext)),
+        cpuRequestContext_(
+            executor && requestContext_
+                ? server::captureFollyRequestContext(*requestContext_)
+                : nullptr),
         cancellationSlot_(
             executor != nullptr && requestContext_ != nullptr &&
                 requestContext_->isCancellationEnabled(),
@@ -646,6 +664,11 @@ class FastHandlerCallback {
     return requestContext_.get();
   }
 
+  const std::shared_ptr<folly::RequestContext>& cpuRequestContext()
+      const noexcept {
+    return cpuRequestContext_;
+  }
+
   folly::CancellationToken getCancellationToken() const noexcept {
     return requestContext_ == nullptr ? folly::CancellationToken{}
                                       : requestContext_->getCancellationToken();
@@ -669,7 +692,7 @@ class FastHandlerCallback {
 
   // Called by CallbackPtr when the sole owner lets go.
   void destroyOnEventBase() noexcept {
-    if (!evb_ || evb_->isInEventBaseThread()) {
+    if (!evb_ || thread_ == std::this_thread::get_id()) {
       delete this;
       return;
     }
@@ -721,12 +744,15 @@ class FastHandlerCallback {
   template <typename F>
   bool tryCompleteInline(F&& fn) noexcept {
     static_assert(std::is_nothrow_invocable_v<F&>);
-    if (!detail::isOnHandlerExecutor(executor_)) {
+    if (!detail::isOnHandlerExecutor(executor_) ||
+        (executor_ == nullptr && thread_ != std::this_thread::get_id())) {
       return false;
     }
     if (!cancellationSlot_.tryComplete()) {
       return true;
     }
+    server::RequestContextScopeGuard requestContextGuard(
+        requestContext_.get(), cpuRequestContext_);
     fn();
     return true;
   }
@@ -738,6 +764,7 @@ class FastHandlerCallback {
         handler_,
         streamId_,
         requestContext_,
+        cpuRequestContext_,
         adapterGuard_,
         evb_,
         executor_,
@@ -749,6 +776,8 @@ class FastHandlerCallback {
     if (!cancellationSlot_.tryComplete()) {
       return;
     }
+    server::RequestContextScopeGuard requestContextGuard(
+        requestContext_.get(), cpuRequestContext_);
     exceptionFn_(
         handler_,
         streamId_,
@@ -799,7 +828,9 @@ class FastHandlerCallback {
   folly::Executor::KeepAlive<folly::EventBase> evb_;
   // Non-owning; see getHandlerExecutor().
   folly::Executor* executor_{nullptr};
+  const std::thread::id thread_ = std::this_thread::get_id();
   ThriftRequestContextPtr requestContext_;
+  std::shared_ptr<folly::RequestContext> cpuRequestContext_;
   detail::CancellationSlot cancellationSlot_;
 };
 
@@ -835,6 +866,10 @@ class FastHandlerCallback<void> {
         evb_(folly::getKeepAliveToken(&evb)),
         executor_(executor),
         requestContext_(std::move(requestContext)),
+        cpuRequestContext_(
+            executor && requestContext_
+                ? server::captureFollyRequestContext(*requestContext_)
+                : nullptr),
         cancellationSlot_(
             executor != nullptr && requestContext_ != nullptr &&
                 requestContext_->isCancellationEnabled(),
@@ -961,6 +996,11 @@ class FastHandlerCallback<void> {
     return requestContext_.get();
   }
 
+  const std::shared_ptr<folly::RequestContext>& cpuRequestContext()
+      const noexcept {
+    return cpuRequestContext_;
+  }
+
   folly::CancellationToken getCancellationToken() const noexcept {
     return requestContext_ == nullptr ? folly::CancellationToken{}
                                       : requestContext_->getCancellationToken();
@@ -984,7 +1024,7 @@ class FastHandlerCallback<void> {
 
   // See FastHandlerCallback<T>::destroyOnEventBase.
   void destroyOnEventBase() noexcept {
-    if (!evb_ || evb_->isInEventBaseThread()) {
+    if (!evb_ || thread_ == std::this_thread::get_id()) {
       delete this;
       return;
     }
@@ -1025,12 +1065,15 @@ class FastHandlerCallback<void> {
   template <typename F>
   bool tryCompleteInline(F&& fn) noexcept {
     static_assert(std::is_nothrow_invocable_v<F&>);
-    if (!detail::isOnHandlerExecutor(executor_)) {
+    if (!detail::isOnHandlerExecutor(executor_) ||
+        (executor_ == nullptr && thread_ != std::this_thread::get_id())) {
       return false;
     }
     if (!cancellationSlot_.tryComplete()) {
       return true;
     }
+    server::RequestContextScopeGuard requestContextGuard(
+        requestContext_.get(), cpuRequestContext_);
     fn();
     return true;
   }
@@ -1042,6 +1085,7 @@ class FastHandlerCallback<void> {
         handler_,
         streamId_,
         requestContext_,
+        cpuRequestContext_,
         adapterGuard_,
         evb_,
         executor_,
@@ -1053,6 +1097,8 @@ class FastHandlerCallback<void> {
     if (!cancellationSlot_.tryComplete()) {
       return;
     }
+    server::RequestContextScopeGuard requestContextGuard(
+        requestContext_.get(), cpuRequestContext_);
     exceptionFn_(
         handler_,
         streamId_,
@@ -1097,7 +1143,9 @@ class FastHandlerCallback<void> {
   folly::Executor::KeepAlive<folly::EventBase> evb_;
   // Non-owning; see getHandlerExecutor().
   folly::Executor* executor_{nullptr};
+  const std::thread::id thread_ = std::this_thread::get_id();
   ThriftRequestContextPtr requestContext_;
+  std::shared_ptr<folly::RequestContext> cpuRequestContext_;
   detail::CancellationSlot cancellationSlot_;
 };
 

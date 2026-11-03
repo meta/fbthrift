@@ -304,24 +304,28 @@ TEST(Cpp2ContextAdapterTest, WriteHeadersAreHandedBack) {
   EXPECT_TRUE(requestAdapter.takeWriteHeaders().empty());
 }
 
-// fast_thrift installs no ambient context, so each request brings its own
-// rather than sharing the process-global default.
-TEST(Cpp2ContextAdapterTest, EachRequestOwnsADistinctAmbientContext) {
+TEST(Cpp2ContextAdapterTest, AdapterUsesTheNativeRequestAmbientContext) {
   auto conn = makeConnContext(nullptr);
   Cpp2ConnContextAdapter connAdapter(conn, /*resolver=*/nullptr);
-  ThriftRequestContext request;
-  request.installExtensions(bridgeLayout());
-  request.setConnectionContext(conn);
+  ThriftRequestContext firstRequest;
+  firstRequest.installExtensions(bridgeLayout());
+  firstRequest.setConnectionContext(conn);
+  ThriftRequestContext secondRequest;
+  secondRequest.installExtensions(bridgeLayout());
+  secondRequest.setConnectionContext(conn);
 
   transport::THeader firstHeader;
   transport::THeader secondHeader;
   Cpp2RequestContext firstCpp2(&connAdapter.get(), &firstHeader, "ping");
   Cpp2RequestContext secondCpp2(&connAdapter.get(), &secondHeader, "ping");
-  Cpp2RequestContextAdapter first(firstCpp2, firstHeader, request);
-  Cpp2RequestContextAdapter second(secondCpp2, secondHeader, request);
+  Cpp2RequestContextAdapter first(firstCpp2, firstHeader, firstRequest);
+  Cpp2RequestContextAdapter second(secondCpp2, secondHeader, secondRequest);
 
-  ASSERT_NE(first.ambientContext(), nullptr);
-  ASSERT_NE(second.ambientContext(), nullptr);
+  EXPECT_EQ(
+      first.ambientContext(), firstRequest.getFollyRequestContext().capture());
+  EXPECT_EQ(
+      second.ambientContext(),
+      secondRequest.getFollyRequestContext().capture());
   EXPECT_NE(first.ambientContext(), second.ambientContext());
   EXPECT_NE(first.ambientContext().get(), folly::RequestContext::try_get());
 }

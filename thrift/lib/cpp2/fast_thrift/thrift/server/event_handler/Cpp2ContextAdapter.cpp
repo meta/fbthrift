@@ -119,7 +119,7 @@ Cpp2RequestContextAdapter::Cpp2RequestContextAdapter(
     : header_(header),
       requestContext_(requestContext),
       cpp2RequestContext_(&cpp2RequestContext),
-      ambientContext_(std::make_shared<folly::RequestContext>()) {
+      ambientContext_(requestContext.getFollyRequestContext().capture()) {
   apache::thrift::detail::Cpp2RequestContextUnsafeAPI(*cpp2RequestContext_)
       .setBorrowedMethodName(requestContext_.getMethodName());
 
@@ -137,9 +137,7 @@ void Cpp2RequestContextAdapter::captureAmbientContext() noexcept {
   auto* const current = folly::RequestContext::try_get();
   if (FOLLY_UNLIKELY(current == nullptr)) {
     folly::RequestContext::setContext(ambientContext_);
-    return;
-  }
-  if (FOLLY_UNLIKELY(current != ambientContext_.get())) {
+  } else if (FOLLY_UNLIKELY(current != ambientContext_.get())) {
     ambientContext_ = folly::RequestContext::saveContext();
   }
 }

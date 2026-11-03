@@ -19,8 +19,8 @@
 #include <concepts>
 #include <cstdint>
 #include <utility>
-#include <vector>
 
+#include <folly/CancellationToken.h>
 #include <folly/ExceptionWrapper.h>
 #include <folly/Likely.h>
 #include <folly/container/F14Map.h>
@@ -66,7 +66,8 @@ class ThriftServerRequestLifecycleHandler {
     if (FOLLY_UNLIKELY(!inserted)) {
       return channel_pipeline::Result::Error;
     }
-    it->second = request.requestContext->enableCancellation();
+    request.requestContext->enableCancellation();
+    it->second = request.requestContext->getCancellationSource();
     auto result = ctx.fireRead(std::move(msg));
     if (FOLLY_UNLIKELY(result == channel_pipeline::Result::Error)) {
       auto requestIt = requests_.find(streamId);
@@ -106,17 +107,11 @@ class ThriftServerRequestLifecycleHandler {
   }
 
   void onPipelineInactive(Context&) noexcept {
-    std::vector<uint32_t> streamIds;
-    streamIds.reserve(requests_.size());
-    for (const auto& [streamId, _] : requests_) {
-      streamIds.push_back(streamId);
-    }
-    for (const auto streamId : streamIds) {
-      auto it = requests_.find(streamId);
-      if (it != requests_.end()) {
-        auto source = it->second;
-        source.requestCancellation();
-      }
+    while (!requests_.empty()) {
+      auto it = requests_.begin();
+      auto source = std::move(it->second);
+      requests_.erase(it);
+      source.requestCancellation();
     }
   }
 

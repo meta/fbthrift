@@ -151,6 +151,9 @@ template <typename ProtocolReader, typename ProtocolWriter>
 void {{interface.cpp_name}}AppAdapter::process_{{function.cpp_name}}_run(
     ::apache::thrift::fast_thrift::thrift::FastHandlerCallbackPtr<{{#partial server.return_type function=function service=interface}}> callback,
     std::unique_ptr<folly::IOBuf> data) noexcept {
+  ::apache::thrift::fast_thrift::thrift::server::RequestContextScopeGuard
+      requestContextGuard(callback->requestContext(), callback->cpuRequestContext());
+
   // Local args storage. Storage form must match the handler virtual's
   // parameter type so the dispatcher passes a compatible argument:
   //   - stack_arguments (the mstch_cpp2:stack_arguments compiler option, or
@@ -313,6 +316,9 @@ void {{interface.cpp_name}}AppAdapter::process_{{function.cpp_name}}_run(
     ::apache::thrift::fast_thrift::thrift::FastHandlerCallbackPtr<
         {{#partial server.fast_stream_return_type function=function}}> callback,
     std::unique_ptr<folly::IOBuf> data) noexcept {
+  ::apache::thrift::fast_thrift::thrift::server::RequestContextScopeGuard
+      requestContextGuard(callback->requestContext(), callback->cpuRequestContext());
+
   struct ArgsState {
     {{#each function.params.fields as |param|}}
       {{#if (not param.type.resolves_to_complex_return?)}}

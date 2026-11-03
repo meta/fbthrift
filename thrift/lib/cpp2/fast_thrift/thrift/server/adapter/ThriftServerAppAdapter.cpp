@@ -17,9 +17,12 @@
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/adapter/ThriftServerAppAdapter.h>
 
 #include <algorithm>
+#include <optional>
 #include <utility>
 
+#include <folly/io/async/Request.h>
 #include <folly/logging/xlog.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/event_handler/Cpp2BridgeExtension.h>
 
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/Event.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/ServerAppAdapter.h>
@@ -218,13 +221,17 @@ void ThriftServerAppAdapter::acknowledgeCancellation(
 
 void ThriftServerAppAdapter::acknowledgeCancellationOnEventBase(
     uint32_t streamId, ThriftRequestContextPtr requestContext) noexcept {
-  if (requestContext == nullptr || !requestContext->tryComplete() ||
-      !pipelineActive_) {
-    return;
+  std::optional<server::RequestContextScopeGuard> requestContextGuard;
+  if (requestContext != nullptr) {
+    requestContextGuard.emplace(requestContext.get());
   }
-  pipeline_.bindEvents<PublishedEvents>()
-      .template fire<ThriftServerRequestCompletedEvent>(
-          ThriftServerRequestCompletedEvent{.streamId = streamId});
+  if (requestContext != nullptr && requestContext->tryComplete() &&
+      pipelineActive_) {
+    pipeline_.bindEvents<PublishedEvents>()
+        .template fire<ThriftServerRequestCompletedEvent>(
+            ThriftServerRequestCompletedEvent{.streamId = streamId});
+  }
+  requestContext.reset();
 }
 
 void ThriftServerAppAdapter::writeResponse(
@@ -237,14 +244,20 @@ void ThriftServerAppAdapter::writeResponse(
 
 void ThriftServerAppAdapter::writeResponseOnEventBase(
     ThriftServerResponseMessage&& message) noexcept {
+  std::optional<server::RequestContextScopeGuard> requestContextGuard;
+  if (message.requestContext != nullptr) {
+    requestContextGuard.emplace(message.requestContext.get());
+  }
   // Straggler after force-close (or any post-ConnectionClosed write):
   // the pipeline may already be gone. Drop silently — pipeline_ may
   // be dangling, do NOT dereference.
   if (FOLLY_UNLIKELY(!pipelineActive_)) {
+    message.requestContext.reset();
     return;
   }
   if (FOLLY_UNLIKELY(!pipeline_)) {
     handleMissingPipeline();
+    message.requestContext.reset();
     return;
   }
   const auto result =

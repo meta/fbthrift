@@ -35,6 +35,7 @@
 #include <folly/io/IOBuf.h>
 #include <folly/io/IOBufQueue.h>
 #include <folly/io/async/EventBase.h>
+#include <folly/io/async/Request.h>
 #include <folly/io/async/test/MockAsyncTransport.h>
 
 #include <thrift/lib/cpp/TApplicationException.h>
@@ -103,6 +104,15 @@ uint32_t payloadErrorCode(const ThriftServerResponseMessage& msg) {
   return 0;
 }
 
+apache::thrift::ResponseRpcError payloadRpcError(
+    const ThriftServerResponseMessage& msg) {
+  apache::thrift::ResponseRpcError error;
+  apache::thrift::CompactProtocolReader reader;
+  reader.setInput(payloadData(msg).get());
+  error.read(&reader);
+  return error;
+}
+
 HANDLER_TAG(test_handler);
 HANDLER_TAG(completion_recorder_handler);
 HANDLER_TAG(request_lifecycle_handler);
@@ -137,6 +147,25 @@ ThriftServerRequestMessage makeRequest(
           .data = std::move(data),
           .metadata = ft::makeServerRequestMetadata(
               requestMetadataEventBase(), std::move(*metadata))}};
+  return msg;
+}
+
+ThriftServerRequestMessage makeStreamRequest(
+    uint32_t streamId,
+    const std::string& methodName,
+    apache::thrift::ProtocolId protocolId) {
+  auto metadata = std::make_unique<apache::thrift::RequestRpcMetadata>();
+  metadata->name() = methodName;
+  metadata->kind() = apache::thrift::RpcKind::SINGLE_REQUEST_STREAMING_RESPONSE;
+  metadata->protocol() = protocolId;
+
+  ThriftServerRequestMessage msg;
+  msg.streamId = streamId;
+  msg.payload =
+      ft::ThriftServerInboundPayloadVariant{ft::ThriftRequestStreamPayload{
+          .data = folly::IOBuf::copyBuffer("unused"),
+          .metadata = std::move(metadata),
+          .initialRequestN = 1}};
   return msg;
 }
 
@@ -218,6 +247,29 @@ class TestHandler
     response->message() = "ok";
     cb->result(std::move(response));
   }
+};
+
+struct RequestContextMarker : folly::RequestData {
+  bool hasCallback() override { return false; }
+};
+
+const folly::RequestToken& requestContextMarkerToken() {
+  static const folly::RequestToken token{
+      "fast_thrift_generated_dispatch_test_marker"};
+  return token;
+}
+
+class RequestContextObservingHandler : public TestHandler {
+ public:
+  void async_tm_ping(ft::FastHandlerCallbackPtr<void> cb) override {
+    observedContext = folly::RequestContext::try_get();
+    sawMarker = observedContext != nullptr &&
+        observedContext->getContextData(requestContextMarkerToken()) != nullptr;
+    cb->done();
+  }
+
+  folly::RequestContext* observedContext{nullptr};
+  bool sawMarker{false};
 };
 
 class CompletionRecorderHandler {
@@ -321,6 +373,7 @@ class FastThriftServerIntegrationTest : public ::testing::Test {
     mockHandler_ = handlerPtr.get();
     mockHandler_->setOnWrite(
         [this](cp::detail::ContextImpl&, TypeErasedBox&& box) {
+          capturedFollyContext_ = folly::RequestContext::try_get();
           captured_ = std::move(box.get<ThriftServerResponseMessage>());
           captureCount_++;
           return Result::Success;
@@ -346,6 +399,7 @@ class FastThriftServerIntegrationTest : public ::testing::Test {
 
   ThriftServerResponseMessage drive(ThriftServerRequestMessage&& msg) {
     captureCount_ = 0;
+    capturedFollyContext_ = nullptr;
     auto result = adapter_->onRead(
         apache::thrift::fast_thrift::channel_pipeline::test::
             inertEndpointContext(),
@@ -370,6 +424,7 @@ class FastThriftServerIntegrationTest : public ::testing::Test {
   PipelineImpl::Ptr pipeline_;
   MockHandler* mockHandler_{nullptr};
   ThriftServerResponseMessage captured_;
+  folly::RequestContext* capturedFollyContext_{nullptr};
   int captureCount_{0};
 };
 
@@ -392,6 +447,45 @@ TEST_F(FastThriftServerIntegrationTest, PingSucceeds) {
   EXPECT_EQ(
       meta->payloadMetadata()->getType(),
       apache::thrift::PayloadMetadata::Type::responseMetadata);
+}
+
+TEST_F(
+    FastThriftServerIntegrationTest,
+    GeneratedDispatchRestoresTheRequestFollyContext) {
+  auto handler = std::make_shared<RequestContextObservingHandler>();
+  rebuildPipelineWith(handler);
+  folly::ManualExecutor executor;
+  adapter_->setCPUExecutor(folly::getKeepAliveToken(&executor));
+
+  FastThriftServer_ping_pargs pargs;
+  auto request = makeRequest(
+      30,
+      "ping",
+      apache::thrift::ProtocolId::BINARY,
+      serializePargs<apache::thrift::BinaryProtocolWriter>(pargs));
+  request.requestContext = ft::makeThriftRequestContext(evb_);
+  const auto requestFollyContext =
+      request.requestContext->getFollyRequestContext().capture();
+  requestFollyContext->setContextData(
+      requestContextMarkerToken(), std::make_unique<RequestContextMarker>());
+
+  ASSERT_EQ(
+      adapter_->onRead(
+          cp::test::inertEndpointContext(), erase_and_box(std::move(request))),
+      Result::Success);
+  EXPECT_EQ(captureCount_, 0);
+  {
+    folly::RequestContextScopeGuard unrelatedExecutorContext;
+    EXPECT_EQ(executor.drain(), 1);
+  }
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+
+  EXPECT_EQ(handler->observedContext, requestFollyContext.get());
+  EXPECT_TRUE(handler->sawMarker);
+  EXPECT_EQ(captureCount_, 1);
+
+  adapter_->setCPUExecutor({});
+  executor.drain();
 }
 
 TEST(FastThriftServerGeneratedDispatchTest, CancelledQueuedWorkIsNotRun) {
@@ -595,6 +689,38 @@ TEST_F(FastThriftServerIntegrationTest, ParseErrorReturnsAppException) {
   EXPECT_EQ(
       exBase.metadata()->getType(),
       apache::thrift::PayloadExceptionMetadata::Type::appUnknownException);
+}
+
+TEST_F(
+    FastThriftServerIntegrationTest,
+    InvalidProtocolResponsesRetainUnaryAndStreamRequestContexts) {
+  auto expectRetainedContext = [&](ThriftServerRequestMessage request) {
+    request.requestContext = ft::makeThriftRequestContext(evb_);
+    auto* const requestContext = request.requestContext.get();
+    auto* const requestFollyContext =
+        request.requestContext->getFollyRequestContext().get();
+    folly::RequestContextScopeGuard callerGuard;
+    auto* const callerContext = folly::RequestContext::try_get();
+
+    auto response = drive(std::move(request));
+
+    ASSERT_TRUE(response.payload.is<ThriftErrorPayload>());
+    EXPECT_EQ(response.requestContext.get(), requestContext);
+    EXPECT_EQ(capturedFollyContext_, requestFollyContext);
+    const auto error = payloadRpcError(response);
+    EXPECT_EQ(
+        *error.code(),
+        apache::thrift::ResponseRpcErrorCode::REQUEST_PARSING_FAILURE);
+    EXPECT_EQ(folly::RequestContext::try_get(), callerContext);
+  };
+
+  expectRetainedContext(makeRequest(
+      70,
+      "ping",
+      static_cast<apache::thrift::ProtocolId>(999),
+      folly::IOBuf::copyBuffer("unused")));
+  expectRetainedContext(makeStreamRequest(
+      71, "streamEchoes", static_cast<apache::thrift::ProtocolId>(999)));
 }
 
 // ---------------------------------------------------------------------------

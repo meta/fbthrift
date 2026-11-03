@@ -241,6 +241,7 @@ void expectParsingFailure(
   EXPECT_TRUE(ctx.forwarded.empty());
   ASSERT_EQ(ctx.written.size(), 1);
   const auto& response = ctx.written.front().get<ThriftServerResponseMessage>();
+  EXPECT_NE(response.requestContext, nullptr);
   ASSERT_TRUE(response.payload.is<ThriftErrorPayload>());
   const auto& errorPayload = response.payload.get<ThriftErrorPayload>();
   EXPECT_EQ(errorPayload.streamId, kStreamId);
@@ -371,16 +372,19 @@ TEST(ThriftServerCompressionHandlerTest, MissingMetadataPassesThrough) {
 TEST(ThriftServerCompressionHandlerTest, MissingCompressedDataIsRejected) {
   ThriftServerCompressionHandler<FakeContext> handler;
   FakeContext ctx;
+  auto request = makeRequest(
+      makeMetadata(apache::thrift::CompressionAlgorithm::ZLIB), nullptr);
+  auto* const requestContext = request.requestContext.get();
 
   EXPECT_EQ(
-      handler.onRead(
-          ctx,
-          erase_and_box(makeRequest(
-              makeMetadata(apache::thrift::CompressionAlgorithm::ZLIB),
-              nullptr))),
-      Result::Success);
+      handler.onRead(ctx, erase_and_box(std::move(request))), Result::Success);
 
   expectParsingFailure(ctx, "missing request data");
+  EXPECT_EQ(
+      ctx.written.front()
+          .get<ThriftServerResponseMessage>()
+          .requestContext.get(),
+      requestContext);
 }
 
 TEST(ThriftServerCompressionHandlerTest, NoCompressionPassesThrough) {
@@ -575,6 +579,35 @@ TEST(ThriftServerCompressionHandlerTest, CustomResponsePreferenceFallsBack) {
   const auto& payload = writtenResponsePayload(ctx);
   EXPECT_FALSE(payload.metadata->compression().has_value());
   EXPECT_EQ(payload.data->to<std::string>(), kRequestBody);
+}
+
+TEST(
+    ThriftServerCompressionHandlerTest,
+    InvalidResponsePreferencePreservesRequestContextOnError) {
+  ThriftServerCompressionHandler<FakeContext> handler;
+  FakeContext ctx;
+  auto config =
+      makeCompressionConfig(apache::thrift::CompressionAlgorithm::ZLIB);
+  config.codecConfig()->zlibConfig()->levelPreset() =
+      static_cast<apache::thrift::ZlibCompressionLevelPreset>(127);
+
+  ASSERT_EQ(
+      handler.onRead(
+          ctx,
+          erase_and_box(
+              makeRequest(makeMetadata(std::nullopt, std::move(config))))),
+      Result::Success);
+  auto response = makeResponseForForwardedRequest(ctx);
+  auto* const requestContext = response.requestContext.get();
+
+  EXPECT_EQ(
+      handler.onWrite(ctx, erase_and_box(std::move(response))),
+      Result::Success);
+
+  ASSERT_EQ(ctx.written.size(), 1);
+  const auto& error = ctx.written.front().get<ThriftServerResponseMessage>();
+  EXPECT_TRUE(error.payload.is<ThriftErrorPayload>());
+  EXPECT_EQ(error.requestContext.get(), requestContext);
 }
 
 TEST(ThriftServerCompressionHandlerTest, AdvertisesAvailableStandardCodecs) {

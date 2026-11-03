@@ -25,6 +25,7 @@
 #include <folly/executors/ManualExecutor.h>
 #include <folly/io/async/DelayedDestruction.h>
 #include <folly/io/async/EventBase.h>
+#include <folly/io/async/Request.h>
 #include <folly/io/async/ScopedEventBaseThread.h>
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
@@ -58,6 +59,7 @@ class RecordingAdapter : public ThriftServerAppAdapter {
   // Recorded rather than kept alive: the thunks own the context and drop it,
   // so only its identity survives the call.
   const ThriftRequestContext* lastRequestContext{nullptr};
+  folly::RequestContext* lastFollyRequestContext{nullptr};
   void markPipelineClosed() {
     pipelineActive_ = false;
     pipeline_.reset();
@@ -93,6 +95,7 @@ void onResult(
   r.lastStreamId = streamId;
   r.lastValue = value;
   r.lastRequestContext = requestContext.get();
+  r.lastFollyRequestContext = folly::RequestContext::try_get();
   if (auto* callback = std::exchange(r.reentrantCallback, nullptr)) {
     callback->result(456);
   }
@@ -111,6 +114,7 @@ void onException(
   r.lastStreamId = streamId;
   r.lastExceptionMessage = ew.what().toStdString();
   r.lastRequestContext = requestContext.get();
+  r.lastFollyRequestContext = folly::RequestContext::try_get();
 }
 
 struct ThrowingMoveValue {
@@ -142,6 +146,7 @@ void onThrowingMoveResult(
   r.lastStreamId = streamId;
   r.lastValue = value.value;
   r.lastRequestContext = requestContext.get();
+  r.lastFollyRequestContext = folly::RequestContext::try_get();
 }
 
 void onDone(
@@ -153,6 +158,7 @@ void onDone(
   r.doneCount++;
   r.lastStreamId = streamId;
   r.lastRequestContext = requestContext.get();
+  r.lastFollyRequestContext = folly::RequestContext::try_get();
 }
 
 using RecordingAdapterPtr =
@@ -307,8 +313,19 @@ TEST(FastHandlerCallbackTest, DroppedDispatchTaskCompletesWithError) {
   auto rec = makeRecorder();
   folly::EventBase evb;
   DroppingExecutor executor;
+  folly::RequestContextScopeGuard callerGuard;
+  auto* const callerContext = folly::RequestContext::try_get();
+  auto requestContext = makeThriftRequestContext(evb);
+  auto* const requestFollyContext =
+      requestContext->getFollyRequestContext().get();
   auto cb = makeFastHandlerCallback<FastHandlerCallback<int>>(
-      &onResult, &onException, rec.get(), kStreamId, evb, &executor, nullptr);
+      &onResult,
+      &onException,
+      rec.get(),
+      kStreamId,
+      evb,
+      &executor,
+      std::move(requestContext));
 
   executor.add([cb = std::move(cb)]() mutable {
     cb->markHandlerStarted();
@@ -317,6 +334,8 @@ TEST(FastHandlerCallbackTest, DroppedDispatchTaskCompletesWithError) {
 
   EXPECT_EQ(rec->resultCount, 0);
   EXPECT_EQ(rec->exceptionCount, 1);
+  EXPECT_EQ(rec->lastFollyRequestContext, requestFollyContext);
+  EXPECT_EQ(folly::RequestContext::try_get(), callerContext);
   EXPECT_NE(
       rec->lastExceptionMessage.find(detail::kHandlerExecutorUnavailable),
       std::string::npos);
@@ -630,9 +649,20 @@ TEST(FastHandlerCallbackTest, ResultRunsOnConfiguredExecutor) {
   auto rec = makeRecorder();
   folly::EventBase evb;
   folly::ManualExecutor executor;
+  folly::RequestContextScopeGuard callerGuard;
+  auto* const callerContext = folly::RequestContext::try_get();
+  auto requestContext = makeThriftRequestContext(evb);
+  auto* const requestFollyContext =
+      requestContext->getFollyRequestContext().get();
   {
     auto cb = makeFastHandlerCallback<FastHandlerCallback<int>>(
-        &onResult, &onException, rec.get(), kStreamId, evb, &executor, nullptr);
+        &onResult,
+        &onException,
+        rec.get(),
+        kStreamId,
+        evb,
+        &executor,
+        std::move(requestContext));
     cb->result(123);
   }
 
@@ -640,6 +670,8 @@ TEST(FastHandlerCallbackTest, ResultRunsOnConfiguredExecutor) {
   EXPECT_EQ(executor.drain(), 1);
   EXPECT_EQ(rec->resultCount, 1);
   EXPECT_EQ(rec->lastValue, 123);
+  EXPECT_EQ(rec->lastFollyRequestContext, requestFollyContext);
+  EXPECT_EQ(folly::RequestContext::try_get(), callerContext);
 }
 
 TEST(FastHandlerCallbackTest, ThrowingMoveResultRunsOnConfiguredExecutor) {
@@ -692,8 +724,19 @@ TEST(FastHandlerCallbackTest, ResultAlreadyOnConfiguredExecutorRunsInline) {
   auto rec = makeRecorder();
   folly::EventBase evb;
   folly::ManualExecutor executor;
+  folly::RequestContextScopeGuard callerGuard;
+  auto* const callerContext = folly::RequestContext::try_get();
+  auto requestContext = makeThriftRequestContext(evb);
+  auto* const requestFollyContext =
+      requestContext->getFollyRequestContext().get();
   auto cb = makeFastHandlerCallback<FastHandlerCallback<int>>(
-      &onResult, &onException, rec.get(), kStreamId, evb, &executor, nullptr);
+      &onResult,
+      &onException,
+      rec.get(),
+      kStreamId,
+      evb,
+      &executor,
+      std::move(requestContext));
 
   {
     detail::HandlerExecutorScope scope(&executor);
@@ -701,6 +744,8 @@ TEST(FastHandlerCallbackTest, ResultAlreadyOnConfiguredExecutorRunsInline) {
   }
 
   EXPECT_EQ(rec->resultCount, 1);
+  EXPECT_EQ(rec->lastFollyRequestContext, requestFollyContext);
+  EXPECT_EQ(folly::RequestContext::try_get(), callerContext);
   EXPECT_EQ(executor.drain(), 0);
 }
 
@@ -776,15 +821,28 @@ TEST(FastHandlerCallbackTest, DestructorErrorRunsOnConfiguredExecutor) {
   auto rec = makeRecorder();
   folly::EventBase evb;
   folly::ManualExecutor executor;
+  folly::RequestContextScopeGuard callerGuard;
+  auto* const callerContext = folly::RequestContext::try_get();
+  auto requestContext = makeThriftRequestContext(evb);
+  auto* const requestFollyContext =
+      requestContext->getFollyRequestContext().get();
   {
     auto cb = makeFastHandlerCallback<FastHandlerCallback<int>>(
-        &onResult, &onException, rec.get(), kStreamId, evb, &executor, nullptr);
+        &onResult,
+        &onException,
+        rec.get(),
+        kStreamId,
+        evb,
+        &executor,
+        std::move(requestContext));
     cb->markHandlerStarted();
   }
 
   EXPECT_EQ(rec->exceptionCount, 0);
   EXPECT_EQ(executor.drain(), 1);
   EXPECT_EQ(rec->exceptionCount, 1);
+  EXPECT_EQ(rec->lastFollyRequestContext, requestFollyContext);
+  EXPECT_EQ(folly::RequestContext::try_get(), callerContext);
   EXPECT_NE(rec->lastExceptionMessage.find("not completed"), std::string::npos);
 }
 
@@ -805,15 +863,28 @@ TEST(FastHandlerCallbackTest, VoidDoneRunsOnConfiguredExecutor) {
   auto rec = makeRecorder();
   folly::EventBase evb;
   folly::ManualExecutor executor;
+  folly::RequestContextScopeGuard callerGuard;
+  auto* const callerContext = folly::RequestContext::try_get();
+  auto requestContext = makeThriftRequestContext(evb);
+  auto* const requestFollyContext =
+      requestContext->getFollyRequestContext().get();
   {
     auto cb = makeFastHandlerCallback<FastHandlerCallback<void>>(
-        &onDone, &onException, rec.get(), kStreamId, evb, &executor, nullptr);
+        &onDone,
+        &onException,
+        rec.get(),
+        kStreamId,
+        evb,
+        &executor,
+        std::move(requestContext));
     cb->done();
   }
 
   EXPECT_EQ(rec->doneCount, 0);
   EXPECT_EQ(executor.drain(), 1);
   EXPECT_EQ(rec->doneCount, 1);
+  EXPECT_EQ(rec->lastFollyRequestContext, requestFollyContext);
+  EXPECT_EQ(folly::RequestContext::try_get(), callerContext);
 }
 
 TEST(FastHandlerCallbackTest, VoidExceptionRunsOnConfiguredExecutor) {
@@ -939,13 +1010,17 @@ TEST(
     FastHandlerCallbackTest,
     OffThreadCallbackDropDestroysRequestContextOnEventBase) {
   auto rec = makeRecorder();
+  folly::RequestContextScopeGuard callerGuard;
+  auto* const callerContext = folly::RequestContext::try_get();
   folly::ScopedEventBaseThread evbThread;
   auto* evb = evbThread.getEventBase();
   FastHandlerCallbackPtr<int> cb;
   const ThriftRequestContext* requestContextPtr{nullptr};
+  folly::RequestContext* requestFollyContext{nullptr};
   evb->runInEventBaseThreadAndWait([&] {
     auto requestContext = makeThriftRequestContext(*evb);
     requestContextPtr = requestContext.get();
+    requestFollyContext = requestContext->getFollyRequestContext().get();
     cb = makeFastHandlerCallback<FastHandlerCallback<int>>(
         &onResult,
         &onException,
@@ -962,6 +1037,8 @@ TEST(
 
   EXPECT_EQ(rec->exceptionCount, 1);
   EXPECT_EQ(rec->lastRequestContext, requestContextPtr);
+  EXPECT_EQ(rec->lastFollyRequestContext, requestFollyContext);
+  EXPECT_EQ(folly::RequestContext::try_get(), callerContext);
 }
 
 // =============================================================================

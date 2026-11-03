@@ -18,6 +18,7 @@
 
 #include <folly/io/IOBuf.h>
 #include <folly/io/async/EventBase.h>
+#include <folly/io/async/Request.h>
 #include <folly/io/async/ScopedEventBaseThread.h>
 #include <folly/io/async/test/MockAsyncTransport.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
@@ -194,6 +195,29 @@ ThriftServerRequestMessage makeSinkRequestMessage(
       streamId, methodName, apache::thrift::RpcKind::SINK, "payload");
 }
 
+struct DestructionObserverExtension {
+  EXTENSION_ID(adapter_drop_test);
+
+  struct RequestState {
+    ~RequestState() { *observed = folly::RequestContext::try_get(); }
+
+    folly::RequestContext** observed;
+  };
+};
+
+const ExtensionLayout& destructionObserverLayout() {
+  static const ExtensionLayout layout = [] {
+    ExtensionLayoutBuilder builder;
+    builder.add(
+        DestructionObserverExtension::kId, +[](void* state) noexcept {
+          delete static_cast<DestructionObserverExtension::RequestState*>(
+              state);
+        });
+    return std::move(builder).build();
+  }();
+  return layout;
+}
+
 } // namespace
 
 class ThriftServerAppAdapterTest : public ::testing::Test {
@@ -318,6 +342,8 @@ TEST_F(ThriftServerAppAdapterTest, OnReadUnknownMethodSendsErrorResponse) {
   bool writeCalled = false;
   uint32_t capturedErrorCode = 0;
   apache::thrift::ResponseRpcErrorCode capturedRpcErrorCode{};
+  ThriftRequestContext* capturedRequestContext = nullptr;
+  folly::RequestContext* capturedFollyContext = nullptr;
 
   auto built = buildPipeline(
       adapter.get(),
@@ -325,6 +351,8 @@ TEST_F(ThriftServerAppAdapterTest, OnReadUnknownMethodSendsErrorResponse) {
           TypeErasedBox&& box) {
         writeCalled = true;
         auto& resp = box.get<ThriftServerResponseMessage>();
+        capturedRequestContext = resp.requestContext.get();
+        capturedFollyContext = folly::RequestContext::try_get();
         capturedErrorCode = payloadErrorCode(resp);
         if (auto& d = payloadData(resp); d) {
           auto rpcError = deserializeResponseRpcError(*d);
@@ -334,6 +362,10 @@ TEST_F(ThriftServerAppAdapterTest, OnReadUnknownMethodSendsErrorResponse) {
       });
 
   auto msg = makeRequestMessage(1, "nonExistentMethod");
+  msg.requestContext = makeThriftRequestContext(requestMetadataEventBase());
+  auto* const requestContext = msg.requestContext.get();
+  auto* const requestFollyContext =
+      msg.requestContext->getFollyRequestContext().get();
   auto result = adapter->onRead(
       channel_pipeline::test::inertEndpointContext(),
       erase_and_box(std::move(msg)));
@@ -344,17 +376,23 @@ TEST_F(ThriftServerAppAdapterTest, OnReadUnknownMethodSendsErrorResponse) {
   EXPECT_EQ(
       capturedRpcErrorCode,
       apache::thrift::ResponseRpcErrorCode::UNKNOWN_METHOD);
+  EXPECT_EQ(capturedRequestContext, requestContext);
+  EXPECT_EQ(capturedFollyContext, requestFollyContext);
 }
 
 TEST_F(ThriftServerAppAdapterTest, OnReadMissingMetadataSendsErrorResponse) {
   TestServerAppAdapter::Ptr adapter{new TestServerAppAdapter()};
 
   apache::thrift::ResponseRpcErrorCode capturedRpcErrorCode{};
+  ThriftRequestContext* capturedRequestContext = nullptr;
+  folly::RequestContext* capturedFollyContext = nullptr;
   auto built = buildPipeline(
       adapter.get(),
       [&](apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
           TypeErasedBox&& box) {
         auto& response = box.get<ThriftServerResponseMessage>();
+        capturedRequestContext = response.requestContext.get();
+        capturedFollyContext = folly::RequestContext::try_get();
         auto rpcError = deserializeResponseRpcError(*payloadData(response));
         capturedRpcErrorCode = *rpcError.code();
         return Result::Success;
@@ -362,6 +400,10 @@ TEST_F(ThriftServerAppAdapterTest, OnReadMissingMetadataSendsErrorResponse) {
 
   ThriftServerRequestMessage msg;
   msg.streamId = 1;
+  msg.requestContext = makeThriftRequestContext(requestMetadataEventBase());
+  auto* const requestContext = msg.requestContext.get();
+  auto* const requestFollyContext =
+      msg.requestContext->getFollyRequestContext().get();
   EXPECT_EQ(
       adapter->onRead(
           channel_pipeline::test::inertEndpointContext(),
@@ -370,6 +412,8 @@ TEST_F(ThriftServerAppAdapterTest, OnReadMissingMetadataSendsErrorResponse) {
   EXPECT_EQ(
       capturedRpcErrorCode,
       apache::thrift::ResponseRpcErrorCode::UNKNOWN_METHOD);
+  EXPECT_EQ(capturedRequestContext, requestContext);
+  EXPECT_EQ(capturedFollyContext, requestFollyContext);
 }
 
 TEST_F(ThriftServerAppAdapterTest, OnReadPassesProtocolId) {
@@ -601,6 +645,38 @@ TEST_F(ThriftServerAppAdapterTest, WriteResponseFiresWrite) {
   EXPECT_EQ(capturedStreamId, 42u);
 }
 
+TEST_F(ThriftServerAppAdapterTest, WriteResponseUsesTheRequestsFollyContext) {
+  TestServerAppAdapter::Ptr adapter{new TestServerAppAdapter()};
+
+  std::shared_ptr<folly::RequestContext> observedContext;
+  auto built = buildPipeline(
+      adapter.get(),
+      [&](apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
+          TypeErasedBox&&) {
+        observedContext = folly::RequestContext::saveContext();
+        return Result::Success;
+      });
+
+  std::shared_ptr<folly::RequestContext> requestFollyContext;
+  evb_->runInEventBaseThreadAndWait([&] {
+    folly::RequestContextScopeGuard callerGuard;
+    auto* const callerContext = folly::RequestContext::try_get();
+    auto requestContext = makeThriftRequestContext(*evb_);
+    requestFollyContext = requestContext->getFollyRequestContext().capture();
+    auto message = makeResponseMessage(
+        /*streamId=*/42,
+        folly::IOBuf::copyBuffer("response"),
+        std::make_unique<apache::thrift::ResponseRpcMetadata>());
+    message.requestContext = std::move(requestContext);
+
+    adapter->writeResponse(std::move(message));
+
+    EXPECT_EQ(folly::RequestContext::try_get(), callerContext);
+  });
+
+  EXPECT_EQ(observedContext, requestFollyContext);
+}
+
 // Handler-set response headers are merged onto the outgoing metadata further
 // down the write path, by the handler that created the context — so what the
 // adapter owes is the context itself, still carrying its headers, on every
@@ -649,6 +725,32 @@ TEST_F(ThriftServerAppAdapterTest, SetPipelineStoresPipeline) {
   EXPECT_NE(adapter->pipeline(), nullptr);
 }
 
+TEST_F(
+    ThriftServerAppAdapterTest,
+    DroppedResponseDestroysRequestStateUnderRequestContext) {
+  TestServerAppAdapter::Ptr adapter{new TestServerAppAdapter()};
+  auto built = buildPipeline(adapter.get());
+  folly::RequestContext* observedContext = nullptr;
+  folly::RequestContext* requestFollyContext = nullptr;
+
+  evb_->runInEventBaseThreadAndWait([&] {
+    adapter->on<ThriftServerConnectionClosedEvent>();
+    auto requestContext = makeThriftRequestContext(*evb_);
+    requestFollyContext = requestContext->getFollyRequestContext().get();
+    requestContext->installExtensions(destructionObserverLayout());
+    requestContext->adoptState<DestructionObserverExtension>(
+        new DestructionObserverExtension::RequestState{&observedContext});
+    auto response = makeResponseMessage(
+        /*streamId=*/1,
+        folly::IOBuf::copyBuffer("response"),
+        std::make_unique<apache::thrift::ResponseRpcMetadata>());
+    response.requestContext = std::move(requestContext);
+    adapter->writeResponse(std::move(response));
+  });
+
+  EXPECT_EQ(observedContext, requestFollyContext);
+}
+
 // =============================================================================
 // Close Callback Tests
 // =============================================================================
@@ -682,6 +784,8 @@ TEST_F(
   bool writeCalled = false;
   uint32_t capturedErrorCode = 0;
   apache::thrift::ResponseRpcErrorCode capturedRpcErrorCode{};
+  ThriftRequestContext* capturedRequestContext = nullptr;
+  folly::RequestContext* capturedFollyContext = nullptr;
 
   auto built = buildPipeline(
       adapter.get(),
@@ -689,6 +793,8 @@ TEST_F(
           TypeErasedBox&& box) {
         writeCalled = true;
         auto& resp = box.get<ThriftServerResponseMessage>();
+        capturedRequestContext = resp.requestContext.get();
+        capturedFollyContext = folly::RequestContext::try_get();
         capturedErrorCode = payloadErrorCode(resp);
         if (auto& d = payloadData(resp); d) {
           auto rpcError = deserializeResponseRpcError(*d);
@@ -699,6 +805,10 @@ TEST_F(
 
   // FNF is not a supported RPC kind, so it should trigger an error response.
   auto msg = makeFnfRequestMessage(1, "testMethod");
+  msg.requestContext = makeThriftRequestContext(requestMetadataEventBase());
+  auto* const requestContext = msg.requestContext.get();
+  auto* const requestFollyContext =
+      msg.requestContext->getFollyRequestContext().get();
   auto result = adapter->onRead(
       channel_pipeline::test::inertEndpointContext(),
       erase_and_box(std::move(msg)));
@@ -710,6 +820,8 @@ TEST_F(
   EXPECT_EQ(
       capturedRpcErrorCode,
       apache::thrift::ResponseRpcErrorCode::WRONG_RPC_KIND);
+  EXPECT_EQ(capturedRequestContext, requestContext);
+  EXPECT_EQ(capturedFollyContext, requestFollyContext);
 }
 
 // =============================================================================

@@ -20,6 +20,7 @@
 
 #include <folly/CancellationToken.h>
 #include <folly/io/async/EventBase.h>
+#include <folly/io/async/Request.h>
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
@@ -36,7 +37,11 @@ using channel_pipeline::TypeErasedBox;
 class FakeContext {
  public:
   Result fireRead(TypeErasedBox&& msg) noexcept {
-    reads.push_back(std::move(msg));
+    if (retainReads) {
+      reads.push_back(std::move(msg));
+    } else {
+      auto consumed = std::move(msg);
+    }
     return readResult;
   }
 
@@ -55,6 +60,7 @@ class FakeContext {
   std::vector<TypeErasedBox> writes;
   std::vector<ThriftServerRequestCompletedEvent> completions;
   Result readResult{Result::Success};
+  bool retainReads{true};
 };
 
 ThriftServerRequestMessage makeRequest(
@@ -118,6 +124,8 @@ TEST(ThriftServerRequestLifecycleHandlerTest, CancellationWinsRace) {
       ctx, ThriftServerRequestCancellationEvent{.streamId = 3});
   EXPECT_TRUE(token.isCancellationRequested());
 
+  EXPECT_FALSE(requestContext->requestCancellation());
+
   EXPECT_EQ(
       handler.onWrite(ctx, erase_and_box(makeResponseFor(ctx, 3))),
       Result::Success);
@@ -136,16 +144,24 @@ TEST(
   auto request = makeRequest(evb, 5);
   auto* requestContext = request.requestContext.get();
   int cancellationCallbacks = 0;
+  folly::RequestContext* callbackContext = nullptr;
+  folly::RequestContextScopeGuard callerGuard;
+  auto* const callerContext = folly::RequestContext::try_get();
 
   ASSERT_EQ(
       handler.onRead(ctx, erase_and_box(std::move(request))), Result::Success);
   folly::CancellationCallback cancellationCallback(
-      requestContext->getCancellationToken(), [&] { ++cancellationCallbacks; });
+      requestContext->getCancellationToken(), [&] {
+        ++cancellationCallbacks;
+        callbackContext = folly::RequestContext::try_get();
+      });
   const auto event = ThriftServerRequestCancellationEvent{.streamId = 5};
   handler.on<ThriftServerRequestCancellationEvent>(ctx, event);
   handler.on<ThriftServerRequestCancellationEvent>(ctx, event);
 
   EXPECT_EQ(cancellationCallbacks, 1);
+  EXPECT_EQ(callbackContext, callerContext);
+  EXPECT_EQ(folly::RequestContext::try_get(), callerContext);
   EXPECT_EQ(handler.requestCount(), 1);
 }
 
@@ -170,6 +186,41 @@ TEST(
 
 TEST(
     ThriftServerRequestLifecycleHandlerTest,
+    CancellationCallbackCanCompleteAndDestroyRequest) {
+  folly::EventBase evb;
+  for (bool inactive : {false, true}) {
+    FakeContext ctx;
+    ThriftServerRequestLifecycleHandler<FakeContext> handler;
+    auto request = makeRequest(evb, 5);
+    request.requestContext->enableCancellation();
+    auto token = request.requestContext->getCancellationToken();
+    int cancellationCallbacks = 0;
+    folly::CancellationCallback cancellationCallback(token, [&] {
+      ++cancellationCallbacks;
+      handler.on<ThriftServerRequestCompletedEvent>(
+          ctx, ThriftServerRequestCompletedEvent{.streamId = 5});
+      ctx.reads.clear();
+    });
+
+    ASSERT_EQ(
+        handler.onRead(ctx, erase_and_box(std::move(request))),
+        Result::Success);
+    if (inactive) {
+      handler.onPipelineInactive(ctx);
+    } else {
+      handler.on<ThriftServerRequestCancellationEvent>(
+          ctx, ThriftServerRequestCancellationEvent{.streamId = 5});
+    }
+
+    EXPECT_TRUE(token.isCancellationRequested());
+    EXPECT_EQ(cancellationCallbacks, 1);
+    EXPECT_EQ(handler.requestCount(), 0u);
+    EXPECT_TRUE(ctx.reads.empty());
+  }
+}
+
+TEST(
+    ThriftServerRequestLifecycleHandlerTest,
     DownstreamReadFailureCancelsAndForgetsRequest) {
   folly::EventBase evb;
   FakeContext ctx;
@@ -177,11 +228,48 @@ TEST(
   ThriftServerRequestLifecycleHandler<FakeContext> handler;
   auto request = makeRequest(evb, 6);
   auto* requestContext = request.requestContext.get();
+  requestContext->enableCancellation();
+  folly::RequestContextScopeGuard callerGuard;
+  auto* const callerContext = folly::RequestContext::try_get();
+  folly::RequestContext* callbackContext = nullptr;
+  folly::CancellationCallback cancellationCallback(
+      requestContext->getCancellationToken(),
+      [&] { callbackContext = folly::RequestContext::try_get(); });
 
   EXPECT_EQ(
       handler.onRead(ctx, erase_and_box(std::move(request))), Result::Error);
   EXPECT_TRUE(requestContext->getCancellationToken().isCancellationRequested());
+  EXPECT_EQ(callbackContext, callerContext);
+  EXPECT_EQ(folly::RequestContext::try_get(), callerContext);
   EXPECT_EQ(handler.requestCount(), 0u);
+}
+
+TEST(
+    ThriftServerRequestLifecycleHandlerTest,
+    DownstreamReadFailureDestroysRequestBeforeCancellation) {
+  folly::EventBase evb;
+  FakeContext ctx;
+  ctx.readResult = Result::Error;
+  ctx.retainReads = false;
+  ThriftServerRequestLifecycleHandler<FakeContext> handler;
+  auto request = makeRequest(evb, 6);
+  request.requestContext->enableCancellation();
+  auto token = request.requestContext->getCancellationToken();
+  int cancellationCallbacks = 0;
+  folly::CancellationCallback cancellationCallback(
+      token, [&] { ++cancellationCallbacks; });
+
+  EXPECT_EQ(
+      handler.onRead(ctx, erase_and_box(std::move(request))), Result::Error);
+  EXPECT_TRUE(ctx.reads.empty());
+  EXPECT_TRUE(token.isCancellationRequested());
+  EXPECT_EQ(cancellationCallbacks, 1);
+  EXPECT_EQ(handler.requestCount(), 0u);
+
+  handler.on<ThriftServerRequestCancellationEvent>(
+      ctx, ThriftServerRequestCancellationEvent{.streamId = 6});
+  handler.onPipelineInactive(ctx);
+  EXPECT_EQ(cancellationCallbacks, 1);
 }
 
 TEST(ThriftServerRequestLifecycleHandlerTest, ConnectionFailureCancelsAll) {
@@ -203,7 +291,12 @@ TEST(ThriftServerRequestLifecycleHandlerTest, ConnectionFailureCancelsAll) {
 
   EXPECT_TRUE(firstToken.isCancellationRequested());
   EXPECT_TRUE(secondToken.isCancellationRequested());
-  EXPECT_EQ(handler.requestCount(), 2);
+  EXPECT_EQ(handler.requestCount(), 0);
+
+  ctx.reads.clear();
+  handler.on<ThriftServerRequestCancellationEvent>(
+      ctx, ThriftServerRequestCancellationEvent{.streamId = 7});
+  EXPECT_EQ(handler.requestCount(), 0);
 }
 
 TEST(

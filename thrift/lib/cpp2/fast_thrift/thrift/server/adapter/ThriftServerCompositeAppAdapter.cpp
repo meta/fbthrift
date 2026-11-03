@@ -16,11 +16,14 @@
 
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/adapter/ThriftServerCompositeAppAdapter.h>
 
+#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
 
+#include <folly/io/async/Request.h>
 #include <folly/logging/xlog.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/event_handler/Cpp2BridgeExtension.h>
 
 #include <thrift/lib/cpp2/fast_thrift/thrift/common/ThriftResponsePayloads.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/Event.h>
@@ -193,8 +196,13 @@ channel_pipeline::Result ThriftServerCompositeAppAdapter::writeFrameworkError(
     ThriftServerResponseMessage&& message,
     ThriftRequestContextPtr requestContext) noexcept {
   message.requestContext = std::move(requestContext);
+  std::optional<server::RequestContextScopeGuard> requestContextGuard;
+  if (message.requestContext != nullptr) {
+    requestContextGuard.emplace(message.requestContext.get());
+  }
   if (FOLLY_UNLIKELY(!pipeline_)) {
     XLOG(ERR) << "Pipeline not set, cannot send framework error";
+    message.requestContext.reset();
     return channel_pipeline::Result::Error;
   }
   auto result =

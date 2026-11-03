@@ -21,6 +21,8 @@
 #include <boost/intrusive_ptr.hpp>
 
 #include <folly/ExceptionWrapper.h>
+#include <folly/io/async/Request.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/event_handler/Cpp2BridgeExtension.h>
 
 #include <folly/lang/Hint.h>
 
@@ -116,6 +118,7 @@ class ThriftServerRequestContextHandler {
             std::move(*metadata->otherMetadata()));
       }
     }
+    server::RequestContextScopeGuard guard(request.requestContext.get());
     return ctx.fireRead(std::move(msg));
   }
 
@@ -130,7 +133,18 @@ class ThriftServerRequestContextHandler {
   // OutboundHandler
   channel_pipeline::Result onWrite(
       Context& ctx, channel_pipeline::TypeErasedBox&& msg) noexcept {
-    attachResponseHeaders(msg.template get<ThriftServerResponseMessage>());
+    auto& response = msg.template get<ThriftServerResponseMessage>();
+    if (response.requestContext == nullptr) {
+      attachResponseHeaders(response);
+      return ctx.fireWrite(std::move(msg));
+    }
+    if (folly::RequestContext::try_get() ==
+        response.requestContext->getFollyRequestContext().get()) {
+      attachResponseHeaders(response);
+      return ctx.fireWrite(std::move(msg));
+    }
+    server::RequestContextScopeGuard guard(response.requestContext.get());
+    attachResponseHeaders(response);
     return ctx.fireWrite(std::move(msg));
   }
 

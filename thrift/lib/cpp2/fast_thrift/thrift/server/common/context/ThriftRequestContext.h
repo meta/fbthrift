@@ -21,17 +21,20 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <utility>
 
 #include <boost/intrusive_ptr.hpp>
 
 #include <folly/CancellationToken.h>
 #include <folly/container/F14Map.h>
+#include <folly/io/async/Request.h>
 
 #include <folly/CppAttributes.h>
 
 #include <thrift/lib/cpp2/fast_thrift/common/allocator/EvbAllocator.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/MethodMetadata.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/ExtensionSlots.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/ThriftConnContext.h>
 #include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
 
@@ -39,17 +42,46 @@ namespace apache::thrift::fast_thrift::thrift {
 
 // Per-request context. Lives for the duration of one in-flight RPC.
 //
-// Default-constructed empty. The first pipeline handler that needs request
-// state creates the object; subsequent handlers populate their fields as the
-// request traverses the chain.
+// Construction also creates the request's folly::RequestContext. The first
+// pipeline handler that needs request state creates this object; subsequent
+// handlers populate its fields as the request traverses the chain.
 class ThriftRequestContext {
  public:
+  struct Deleter {
+    void operator()(ThriftRequestContext* context) const noexcept {
+      auto* evb = context->eventBase_;
+      if (evb == nullptr || context->thread_ == std::this_thread::get_id()) {
+        delete context;
+      } else {
+        evb->runInEventBaseThread(
+            [context, keepAlive = folly::getKeepAliveToken(evb)] {
+              delete context;
+            });
+      }
+    }
+  };
+
   // Same type as RequestRpcMetadata.otherMetadata, so headers move in with no
   // copy. F14's default hasher/equal are transparent, enabling find() by
   // string_view without building a std::string.
   using HeaderMap = folly::F14NodeMap<std::string, std::string>;
 
-  ThriftRequestContext() = default;
+  explicit ThriftRequestContext(folly::EventBase* eventBase = nullptr)
+      : eventBase_(eventBase) {
+    folly::LocalRequestContextScopeGuard guard;
+    follyRequestContext_ = folly::RequestContext::saveContextLocal();
+  }
+
+  ~ThriftRequestContext() {
+    if (!extensionSlots_.hasOwnedState()) {
+      return;
+    }
+    std::optional<folly::BorrowedRequestContextScopeGuard> guard;
+    extensionSlots_.clearAllOwned([&] {
+      guard.reset();
+      guard.emplace(follyRequestContext_);
+    });
+  }
 
   ThriftRequestContext(const ThriftRequestContext&) = delete;
   ThriftRequestContext& operator=(const ThriftRequestContext&) = delete;
@@ -67,11 +99,14 @@ class ThriftRequestContext {
     return connContext_.get();
   }
 
-  folly::CancellationSource enableCancellation() {
+  const folly::RequestContextHandle& getFollyRequestContext() const noexcept {
+    return follyRequestContext_;
+  }
+
+  void enableCancellation() {
     if (!cancellationSource_.canBeCancelled()) {
       cancellationSource_ = folly::CancellationSource{};
     }
-    return cancellationSource_;
   }
 
   bool isCancellationEnabled() const noexcept {
@@ -101,8 +136,7 @@ class ThriftRequestContext {
       // context. Keep the shared cancellation state alive independently until
       // notification has fully unwound.
       auto source = cancellationSource_;
-      source.requestCancellation();
-      return true;
+      return !source.requestCancellation();
     }
     return false;
   }
@@ -116,7 +150,7 @@ class ThriftRequestContext {
   }
 
   bool isCancellationRequested() const noexcept {
-    return cancellationSource_.getToken().isCancellationRequested();
+    return cancellationSource_.isCancellationRequested();
   }
 
   // Invoked method name (RequestRpcMetadata.name), stamped by
@@ -258,6 +292,11 @@ class ThriftRequestContext {
     Completed,
   };
 
+  // Declared before extension storage so request-owned extension state is
+  // destroyed before the ambient data it may reference.
+  folly::RequestContextHandle follyRequestContext_;
+  folly::EventBase* eventBase_;
+  const std::thread::id thread_ = std::this_thread::get_id();
   boost::intrusive_ptr<ThriftConnContext> connContext_;
   folly::CancellationSource cancellationSource_{
       folly::CancellationSource::invalid()};
@@ -272,10 +311,11 @@ class ThriftRequestContext {
   CompletionState completionState_{CompletionState::Active};
 };
 
-using ThriftRequestContextPtr = std::unique_ptr<ThriftRequestContext>;
+using ThriftRequestContextPtr =
+    std::unique_ptr<ThriftRequestContext, ThriftRequestContext::Deleter>;
 
-inline ThriftRequestContextPtr makeThriftRequestContext(folly::EventBase&) {
-  return std::make_unique<ThriftRequestContext>();
+inline ThriftRequestContextPtr makeThriftRequestContext(folly::EventBase& evb) {
+  return ThriftRequestContextPtr(new ThriftRequestContext(&evb));
 }
 
 } // namespace apache::thrift::fast_thrift::thrift

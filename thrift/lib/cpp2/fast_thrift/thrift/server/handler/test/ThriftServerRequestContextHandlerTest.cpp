@@ -24,6 +24,7 @@
 
 #include <folly/ExceptionWrapper.h>
 #include <folly/io/IOBuf.h>
+#include <folly/io/async/Request.h>
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
@@ -47,11 +48,13 @@ class FakeContext {
   folly::EventBase* eventBase() noexcept { return &eventBase_; }
 
   Result fireRead(TypeErasedBox&& msg) noexcept {
+    forwardedRequestContexts.push_back(folly::RequestContext::saveContext());
     forwarded.push_back(std::move(msg));
     return Result::Success;
   }
 
   Result fireWrite(TypeErasedBox&& msg) noexcept {
+    writtenRequestContexts.push_back(folly::RequestContext::saveContext());
     written.push_back(std::move(msg));
     return Result::Success;
   }
@@ -63,6 +66,8 @@ class FakeContext {
   folly::EventBase eventBase_;
   std::vector<TypeErasedBox> forwarded;
   std::vector<TypeErasedBox> written;
+  std::vector<std::shared_ptr<folly::RequestContext>> forwardedRequestContexts;
+  std::vector<std::shared_ptr<folly::RequestContext>> writtenRequestContexts;
   folly::exception_wrapper exception;
 };
 
@@ -259,19 +264,33 @@ TEST(ThriftServerRequestContextHandlerTest, DisabledHeadersStayInMetadata) {
 TEST(ThriftServerRequestContextHandlerTest, EachRequestGetsItsOwnContext) {
   ThriftServerRequestContextHandler<FakeContext> handler{nullptr};
   FakeContext ctx;
+  folly::RequestContextScopeGuard callerGuard;
+  auto* const callerContext = folly::RequestContext::try_get();
 
   for (uint32_t sid = 1; sid <= 3; ++sid) {
     EXPECT_EQ(
         handler.onRead(ctx, erase_and_box(makeRequest(sid))), Result::Success);
+    EXPECT_EQ(folly::RequestContext::try_get(), callerContext);
   }
 
   std::set<ThriftRequestContext*> distinct;
-  for (auto& box : ctx.forwarded) {
+  std::set<folly::RequestContext*> distinctFollyContexts;
+  ASSERT_EQ(ctx.forwarded.size(), ctx.forwardedRequestContexts.size());
+  for (size_t i = 0; i < ctx.forwarded.size(); ++i) {
+    auto& box = ctx.forwarded[i];
     auto& m = box.get<ThriftServerRequestMessage>();
     ASSERT_NE(m.requestContext, nullptr);
     distinct.insert(m.requestContext.get());
+    ASSERT_NE(ctx.forwardedRequestContexts[i], nullptr);
+    EXPECT_EQ(
+        ctx.forwardedRequestContexts[i],
+        m.requestContext->getFollyRequestContext().capture());
+    EXPECT_NE(ctx.forwardedRequestContexts[i].get(), callerContext);
+    distinctFollyContexts.insert(ctx.forwardedRequestContexts[i].get());
   }
   EXPECT_EQ(distinct.size(), 3) << "each request must get its own context";
+  EXPECT_EQ(distinctFollyContexts.size(), 3)
+      << "each request must get its own folly context";
 }
 
 TEST(
@@ -347,7 +366,11 @@ TEST(
 TEST(ThriftServerRequestContextHandlerTest, DrainsResponseHeadersOnWrite) {
   ThriftServerRequestContextHandler<FakeContext> handler{nullptr};
   FakeContext ctx;
+  folly::RequestContextScopeGuard callerGuard;
+  auto* const callerContext = folly::RequestContext::try_get();
   auto requestContext = makeThriftRequestContext(*ctx.eventBase());
+  const auto requestFollyContext =
+      requestContext->getFollyRequestContext().capture();
   requestContext->setResponseHeader("shard", "42");
 
   EXPECT_EQ(
@@ -355,8 +378,11 @@ TEST(ThriftServerRequestContextHandlerTest, DrainsResponseHeadersOnWrite) {
           ctx,
           erase_and_box(makeResponseWithHeaders(std::move(requestContext)))),
       Result::Success);
+  EXPECT_EQ(folly::RequestContext::try_get(), callerContext);
 
   ASSERT_EQ(ctx.written.size(), 1);
+  ASSERT_EQ(ctx.writtenRequestContexts.size(), 1);
+  EXPECT_EQ(ctx.writtenRequestContexts.front(), requestFollyContext);
   const ThriftRequestContext::HeaderMap expected{{"shard", "42"}};
   const auto& metadata = writtenMetadata(ctx.written.front());
   ASSERT_TRUE(metadata.otherMetadata().has_value());

@@ -134,6 +134,7 @@ struct TProcessorEventHandlerBridgeRequestState {
         folly::RequestContext::setContext(ambient);
       }
     });
+    published.ambientContext = nullptr;
     context.reset();
     cpp2Request.reset();
     published.context = nullptr;
@@ -349,6 +350,7 @@ class TProcessorEventHandlerBridge {
     state->context.emplace(
         *state->cpp2Request, state->header, *request.requestContext);
     state->published.context = &state->context->get();
+    state->published.ambientContext = &state->context->ambientContext();
     request.requestContext->adoptState<Cpp2BridgeExtension>(
         &ownedState.release()->published);
 

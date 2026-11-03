@@ -43,6 +43,7 @@
 #include <folly/Synchronized.h>
 #include <folly/futures/Future.h>
 #include <folly/io/async/AsyncSocket.h>
+#include <folly/io/async/Request.h>
 #include <folly/io/async/ScopedEventBaseThread.h>
 #include <folly/synchronization/Baton.h>
 
@@ -84,6 +85,29 @@ using ::apache::thrift::fast_thrift::thrift::test::integration::
     PermissionDeniedException;
 
 namespace {
+
+struct FollyContextMarker : folly::RequestData {
+  bool hasCallback() override { return false; }
+};
+
+const folly::RequestToken& follyContextMarkerToken() {
+  static const folly::RequestToken token{"fast_thrift_server_test_marker"};
+  return token;
+}
+
+bool hasFollyContextMarker() {
+  auto* context = folly::RequestContext::try_get();
+  return context != nullptr &&
+      context->getContextData(follyContextMarkerToken()) != nullptr;
+}
+
+struct FollyContextObservations {
+  std::atomic<folly::RequestContext*> request{nullptr};
+  std::atomic<folly::RequestContext*> application{nullptr};
+  std::atomic<folly::RequestContext*> response{nullptr};
+  std::atomic<bool> applicationSawMarker{false};
+  std::atomic<bool> responseSawMarker{false};
+};
 
 // User-implemented FastServiceHandler. Test sets flags to control behavior;
 // methods call cb->result()/done()/exception() synchronously.
@@ -146,6 +170,26 @@ class TestHandler : public FastServiceHandler<integration::FastThriftServer> {
     resp->message() = "ok";
     cb->result(std::move(resp));
   }
+};
+
+class FollyContextObservingHandler : public TestHandler {
+ public:
+  explicit FollyContextObservingHandler(FollyContextObservations& observations)
+      : observations_(observations) {}
+
+  void async_tm_add(
+      ftt::FastHandlerCallbackPtr<int64_t> cb, int64_t a, int64_t b) override {
+    observations_.application.store(
+        folly::RequestContext::try_get(), std::memory_order_relaxed);
+    observations_.applicationSawMarker.store(
+        hasFollyContextMarker(), std::memory_order_relaxed);
+
+    folly::RequestContextScopeGuard unrelatedCompletionContext;
+    cb->result(a + b);
+  }
+
+ private:
+  FollyContextObservations& observations_;
 };
 
 // Handler that retains the ping callback instead of completing it. Tests
@@ -2079,6 +2123,38 @@ struct HeaderReadingExtension {
   }
 };
 
+struct FollyContextObservingExtension {
+  explicit FollyContextObservingExtension(
+      FollyContextObservations* observations) noexcept
+      : observations_(observations) {}
+
+  ftt::RequestVerdict onRequest(
+      const ftt::ThriftRequestView& /*request*/) noexcept {
+    auto* context = folly::RequestContext::try_get();
+    observations_->request.store(context, std::memory_order_relaxed);
+    if (context != nullptr) {
+      context->setContextData(
+          follyContextMarkerToken(), std::make_unique<FollyContextMarker>());
+    }
+    sawRequest_ = true;
+    return ftt::RequestVerdict::proceed();
+  }
+
+  void onResponse(const ftt::ThriftResponseView& /*response*/) noexcept {
+    if (!sawRequest_) {
+      return;
+    }
+    observations_->response.store(
+        folly::RequestContext::try_get(), std::memory_order_relaxed);
+    observations_->responseSawMarker.store(
+        hasFollyContextMarker(), std::memory_order_relaxed);
+  }
+
+ private:
+  FollyContextObservations* observations_{nullptr};
+  bool sawRequest_{false};
+};
+
 // Drives one `add(7, 35)` RPC carrying a custom request header.
 int64_t addRoundTripWithHeader(
     const folly::SocketAddress& addr,
@@ -2139,6 +2215,36 @@ TEST(FastThriftServerExtensionTest, ExtensionReadsRequestHeaderWithHeadersOn) {
       42);
   EXPECT_TRUE(ran.load());
   EXPECT_EQ(seen, "abc");
+}
+
+TEST(
+    FastThriftServerExtensionTest,
+    FollyRequestContextSpansExtensionsAndApplication) {
+  THRIFT_FLAG_SET_MOCK(rocket_client_binary_rpc_metadata_encoding, true);
+
+  FollyContextObservations observations;
+  auto handler = std::make_shared<FollyContextObservingHandler>(observations);
+  auto config = makeLoopbackConfig();
+  config.numCPUThreads = 1;
+  ftt::FastThriftServer server(std::move(config));
+  server.setInterface(handler);
+  server.addModule(
+      ftt::FastServerModule("folly_request_context")
+          .addThriftExtension<FollyContextObservingExtension>(&observations));
+  server.start();
+
+  EXPECT_EQ(addRoundTrip(server.getAddress()), 42);
+
+  auto* const requestContext =
+      observations.request.load(std::memory_order_relaxed);
+  ASSERT_NE(requestContext, nullptr);
+  EXPECT_EQ(
+      observations.application.load(std::memory_order_relaxed), requestContext);
+  EXPECT_EQ(
+      observations.response.load(std::memory_order_relaxed), requestContext);
+  EXPECT_TRUE(
+      observations.applicationSawMarker.load(std::memory_order_relaxed));
+  EXPECT_TRUE(observations.responseSawMarker.load(std::memory_order_relaxed));
 }
 
 // With the header handler off there is nowhere for the extension to read
@@ -2555,12 +2661,14 @@ TEST(FastThriftServerExtensionTest, ModifierRejectionShortCircuitsService) {
 
   auto handler = std::make_shared<TestHandler>();
   std::atomic<int> rejections{0};
+  FollyContextObservations observations;
 
   ftt::FastThriftServer server(makeHeadersConfig());
   server.setInterface(handler);
   server.addModule(
-      ftt::FastServerModule("reject").addThriftExtension<RejectingExtension>(
-          &rejections));
+      ftt::FastServerModule("reject")
+          .addThriftExtension<FollyContextObservingExtension>(&observations)
+          .addThriftExtension<RejectingExtension>(&rejections));
   server.start();
 
   const auto observation = addRoundTripObservingRejection(server.getAddress());
@@ -2574,6 +2682,13 @@ TEST(FastThriftServerExtensionTest, ModifierRejectionShortCircuitsService) {
       kAppClientErrorCode);
   EXPECT_EQ(observation.headers.at("x-rejected-by-extension"), "add");
   EXPECT_GE(rejections.load(), 1);
+  auto* const requestContext =
+      observations.request.load(std::memory_order_relaxed);
+  ASSERT_NE(requestContext, nullptr);
+  EXPECT_EQ(observations.application.load(std::memory_order_relaxed), nullptr);
+  EXPECT_EQ(
+      observations.response.load(std::memory_order_relaxed), requestContext);
+  EXPECT_TRUE(observations.responseSawMarker.load(std::memory_order_relaxed));
 }
 
 TEST(FastThriftServerExtensionTest, ResponseViewClassifiesApplicationErrors) {

@@ -188,6 +188,7 @@ TEST_F(ThriftServerChecksumHandlerTest, InboundMismatchDropsAndEmitsError) {
           /*checksum=*/0xdeadbeef,
           /*salt=*/0),
       folly::IOBuf::copyBuffer("request payload"));
+  auto* const requestContext = request.requestContext.get();
 
   auto result = callOnRead(erase_and_box(std::move(request)));
 
@@ -196,9 +197,10 @@ TEST_F(ThriftServerChecksumHandlerTest, InboundMismatchDropsAndEmitsError) {
   // toward head.
   EXPECT_TRUE(ctx_.readMessages().empty());
   ASSERT_EQ(ctx_.writeMessages().size(), 1);
-  EXPECT_TRUE(ctx_.writeMessages()[0]
-                  .get<ThriftServerResponseMessage>()
-                  .payload.is<ThriftErrorPayload>());
+  const auto& response =
+      ctx_.writeMessages()[0].get<ThriftServerResponseMessage>();
+  EXPECT_TRUE(response.payload.is<ThriftErrorPayload>());
+  EXPECT_EQ(response.requestContext.get(), requestContext);
 }
 
 TEST_F(ThriftServerChecksumHandlerTest, InboundCRC32IsUnsupportedEmitsError) {
