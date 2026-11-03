@@ -1267,9 +1267,10 @@ struct Decode<type::map<Key, Value>> {
     map.clear();
     if (prot.kOmitsContainerSizes()) {
       while (prot.peekMap()) {
-        typename MapType::key_type key;
-        Decode<Key>{}(prot, key);
-        Decode<Value>{}(prot, map[key]);
+        deserialize_key_val_into_map(
+            map,
+            [&prot](auto& key) { Decode<Key>{}(prot, key); },
+            [&prot](auto& value) { Decode<Value>{}(prot, value); });
       }
     } else if (
         typeTagToTType<Key> == keyType && typeTagToTType<Value> == valueType) {
