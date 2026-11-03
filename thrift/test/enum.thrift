@@ -95,6 +95,12 @@ enum MyEnum5 {
 // ME5_B = 0x100000000,
 }
 
+enum MyEnum6 {
+  ME6_MIN = -2147483648,
+  ME6_0 = 0,
+  ME6_MAX = 0x7fffffff,
+}
+
 struct MyStruct {
   1: MyEnum2 me2_2 = MyEnum2.ME2_2;
   2: MyEnum3 me3_n2 = ME3_N2;
