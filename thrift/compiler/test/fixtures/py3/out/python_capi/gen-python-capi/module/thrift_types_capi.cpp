@@ -40,6 +40,9 @@ bool ensure_module_imported() {
   static constexpr std::int16_t _fbthrift__HiddenException__tuple_pos[1] = {
     0
   };
+  static constexpr std::int16_t _fbthrift__ComplexStruct__tuple_pos[9] = {
+    0, 1, 2, 3, 4, 5, 6, 7, 8
+  };
   static constexpr std::int16_t _fbthrift__BinaryUnionStruct__tuple_pos[1] = {
     0
   };
@@ -957,37 +960,66 @@ PyObject* Constructor<::apache::thrift::python::capi::ComposedStruct<
 
 ExtractorResult<::py3::simple::ComplexStruct>
 Extractor<::apache::thrift::python::capi::PythonNamespaced<::py3::simple::ComplexStruct, ::module::NamespaceTag>>::operator()(PyObject* obj) {
-  if (!ensure_module_imported()) {
-    DCHECK(PyErr_Occurred() != nullptr);
-    return extractorError<::py3::simple::ComplexStruct>(
-      "Module module import error");
+  int tCheckResult = typeCheck(obj);
+  if (tCheckResult != 1) {
+      if (tCheckResult == 0) {
+        PyErr_SetString(PyExc_TypeError, "Not a ComplexStruct");
+      }
+      return extractorError<::py3::simple::ComplexStruct>(
+          "Marshal error: ComplexStruct");
   }
-  std::unique_ptr<folly::IOBuf> val(
-      extract__module__ComplexStruct(obj));
-  if (!val) {
-    CHECK(PyErr_Occurred());
-    return extractorError<::py3::simple::ComplexStruct>(
-        "Thrift serialize error: ComplexStruct");
-  }
-  return detail::deserialize_iobuf<::py3::simple::ComplexStruct>(std::move(val));
+  StrongRef fbThriftData(getThriftStructFieldData(obj));
+  return Extractor<::apache::thrift::python::capi::ComposedStruct<
+      ::py3::simple::ComplexStruct, ::module::NamespaceTag>>{}(*fbThriftData);
 }
-
 
 ExtractorResult<::py3::simple::ComplexStruct>
 Extractor<::apache::thrift::python::capi::ComposedStruct<
-    ::py3::simple::ComplexStruct, ::module::NamespaceTag>>::operator()(PyObject* fbthrift_data) {
-  if (!ensure_module_imported()) {
-    DCHECK(PyErr_Occurred() != nullptr);
-    return extractorError<::py3::simple::ComplexStruct>(
-      "Module module import error");
+    ::py3::simple::ComplexStruct, ::module::NamespaceTag>>::operator()(PyObject* fbThriftData) {
+  ::py3::simple::ComplexStruct cpp;
+  std::optional<std::string_view> error;
+  Extractor<::apache::thrift::python::capi::ComposedStruct<::py3::simple::SimpleStruct, ::module::NamespaceTag>>{}.extractInto(
+      cpp.structOne_ref(),
+      PyTuple_GET_ITEM(fbThriftData, _fbthrift__ComplexStruct__tuple_pos[0]),
+      error);
+  Extractor<::apache::thrift::python::capi::ComposedStruct<::py3::simple::SimpleStruct, ::module::NamespaceTag>>{}.extractInto(
+      cpp.structTwo_ref(),
+      PyTuple_GET_ITEM(fbThriftData, _fbthrift__ComplexStruct__tuple_pos[1]),
+      error);
+  Extractor<int32_t>{}.extractInto(
+      cpp.an_integer_ref(),
+      PyTuple_GET_ITEM(fbThriftData, _fbthrift__ComplexStruct__tuple_pos[2]),
+      error);
+  Extractor<::apache::thrift::python::capi::FallibleString>{}.extractInto(
+      cpp.name_ref(),
+      PyTuple_GET_ITEM(fbThriftData, _fbthrift__ComplexStruct__tuple_pos[3]),
+      error);
+  Extractor<::apache::thrift::python::capi::ComposedEnum<::py3::simple::AnEnum>>{}.extractInto(
+      cpp.an_enum_ref(),
+      PyTuple_GET_ITEM(fbThriftData, _fbthrift__ComplexStruct__tuple_pos[4]),
+      error);
+  Extractor<Bytes>{}.extractInto(
+      cpp.some_bytes_ref(),
+      PyTuple_GET_ITEM(fbThriftData, _fbthrift__ComplexStruct__tuple_pos[5]),
+      error);
+  Extractor<::apache::thrift::python::capi::FallibleString>{}.extractInto(
+      cpp.from_ref(),
+      PyTuple_GET_ITEM(fbThriftData, _fbthrift__ComplexStruct__tuple_pos[6]),
+      error);
+  Extractor<::apache::thrift::python::capi::FallibleString>{}.extractInto(
+      cpp.cdef_ref(),
+      PyTuple_GET_ITEM(fbThriftData, _fbthrift__ComplexStruct__tuple_pos[7]),
+      error);
+  Extractor<folly::IOBuf>{}.extractInto(
+      cpp.bytes_with_cpp_type_ref(),
+      PyTuple_GET_ITEM(fbThriftData, _fbthrift__ComplexStruct__tuple_pos[8]),
+      error);
+  if (error) {
+    return folly::makeUnexpected(*error);
   }
-  auto obj = StrongRef(init__module__ComplexStruct(fbthrift_data));
-  if (!obj) {
-      return extractorError<::py3::simple::ComplexStruct>(
-          "Init from fbthrift error: ComplexStruct");
-  }
-  return Extractor<::apache::thrift::python::capi::PythonNamespaced<::py3::simple::ComplexStruct, ::module::NamespaceTag>>{}(*obj);
+  return cpp;
 }
+
 
 int Extractor<::apache::thrift::python::capi::PythonNamespaced<::py3::simple::ComplexStruct, ::module::NamespaceTag>>::typeCheck(PyObject* obj) {
   if (!ensure_module_imported()) {
@@ -1010,31 +1042,112 @@ PyObject* Constructor<::apache::thrift::python::capi::PythonNamespaced<::py3::si
     DCHECK(PyErr_Occurred() != nullptr);
     return nullptr;
   }
-  ::std::unique_ptr<::folly::IOBuf> serialized;
-  try {
-    serialized = detail::serialize_to_iobuf(val);
-  } catch (const apache::thrift::TProtocolException& e) {
-    detail::handle_protocol_error(e);
+  Constructor<::apache::thrift::python::capi::ComposedStruct<
+        ::py3::simple::ComplexStruct, ::module::NamespaceTag>> ctor;
+  StrongRef fbthrift_data(ctor(val));
+  if (!fbthrift_data) {
     return nullptr;
   }
-  DCHECK(serialized);
-  auto ptr = construct__module__ComplexStruct(std::move(serialized));
-  if (!ptr) {
-    CHECK(PyErr_Occurred());
-  }
-  return ptr;
+  return init__module__ComplexStruct(*fbthrift_data);
 }
-
 
 PyObject* Constructor<::apache::thrift::python::capi::ComposedStruct<
         ::py3::simple::ComplexStruct, ::module::NamespaceTag>>::operator()(
-    const ::py3::simple::ComplexStruct& val) {
-  auto obj = StrongRef(Constructor<::apache::thrift::python::capi::PythonNamespaced<::py3::simple::ComplexStruct, ::module::NamespaceTag>>{}(val));
-  if (!obj) {
+    [[maybe_unused]] const ::py3::simple::ComplexStruct& val) {
+  StrongRef fbthrift_data(createStructTuple(9));
+  StrongRef _fbthrift__structOne(
+    Constructor<::apache::thrift::python::capi::ComposedStruct<::py3::simple::SimpleStruct, ::module::NamespaceTag>>{}
+    .constructFrom(val.structOne_ref()));
+  if (!_fbthrift__structOne ||
+      setStructField(
+          *fbthrift_data,
+          _fbthrift__ComplexStruct__tuple_pos[0],
+          *_fbthrift__structOne) == -1) {
     return nullptr;
   }
-  return getThriftStructFieldData(*obj);
+  StrongRef _fbthrift__structTwo(
+    Constructor<::apache::thrift::python::capi::ComposedStruct<::py3::simple::SimpleStruct, ::module::NamespaceTag>>{}
+    .constructFrom(val.structTwo_ref()));
+  if (!_fbthrift__structTwo ||
+      setStructField(
+          *fbthrift_data,
+          _fbthrift__ComplexStruct__tuple_pos[1],
+          *_fbthrift__structTwo) == -1) {
+    return nullptr;
+  }
+  StrongRef _fbthrift__an_integer(
+    Constructor<int32_t>{}
+    .constructFrom(val.an_integer_ref()));
+  if (!_fbthrift__an_integer ||
+      setStructField(
+          *fbthrift_data,
+          _fbthrift__ComplexStruct__tuple_pos[2],
+          *_fbthrift__an_integer) == -1) {
+    return nullptr;
+  }
+  StrongRef _fbthrift__name(
+    Constructor<::apache::thrift::python::capi::FallibleString>{}
+    .constructFrom(val.name_ref()));
+  if (!_fbthrift__name ||
+      setStructField(
+          *fbthrift_data,
+          _fbthrift__ComplexStruct__tuple_pos[3],
+          *_fbthrift__name) == -1) {
+    return nullptr;
+  }
+  StrongRef _fbthrift__an_enum(
+    Constructor<::apache::thrift::python::capi::ComposedEnum<::py3::simple::AnEnum>>{}
+    .constructFrom(val.an_enum_ref()));
+  if (!_fbthrift__an_enum ||
+      setStructField(
+          *fbthrift_data,
+          _fbthrift__ComplexStruct__tuple_pos[4],
+          *_fbthrift__an_enum) == -1) {
+    return nullptr;
+  }
+  StrongRef _fbthrift__some_bytes(
+    Constructor<Bytes>{}
+    .constructFrom(val.some_bytes_ref()));
+  if (!_fbthrift__some_bytes ||
+      setStructField(
+          *fbthrift_data,
+          _fbthrift__ComplexStruct__tuple_pos[5],
+          *_fbthrift__some_bytes) == -1) {
+    return nullptr;
+  }
+  StrongRef _fbthrift__from(
+    Constructor<::apache::thrift::python::capi::FallibleString>{}
+    .constructFrom(val.from_ref()));
+  if (!_fbthrift__from ||
+      setStructField(
+          *fbthrift_data,
+          _fbthrift__ComplexStruct__tuple_pos[6],
+          *_fbthrift__from) == -1) {
+    return nullptr;
+  }
+  StrongRef _fbthrift__cdef(
+    Constructor<::apache::thrift::python::capi::FallibleString>{}
+    .constructFrom(val.cdef_ref()));
+  if (!_fbthrift__cdef ||
+      setStructField(
+          *fbthrift_data,
+          _fbthrift__ComplexStruct__tuple_pos[7],
+          *_fbthrift__cdef) == -1) {
+    return nullptr;
+  }
+  StrongRef _fbthrift__bytes_with_cpp_type(
+    Constructor<folly::IOBuf>{}
+    .constructFrom(val.bytes_with_cpp_type_ref()));
+  if (!_fbthrift__bytes_with_cpp_type ||
+      setStructField(
+          *fbthrift_data,
+          _fbthrift__ComplexStruct__tuple_pos[8],
+          *_fbthrift__bytes_with_cpp_type) == -1) {
+    return nullptr;
+  }
+  return std::move(fbthrift_data).release();
 }
+
 
 ExtractorResult<::py3::simple::BinaryUnion>
 Extractor<::apache::thrift::python::capi::PythonNamespaced<::py3::simple::BinaryUnion, ::module::NamespaceTag>>::operator()(PyObject* obj) {

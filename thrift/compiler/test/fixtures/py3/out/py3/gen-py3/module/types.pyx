@@ -974,7 +974,9 @@ cdef class ComplexStruct(thrift.py3.types.Struct):
         return self.cdef__impl()
 
     cdef inline bytes_with_cpp_type_impl(self):
-        return (<const char*>deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).bytes_with_cpp_type_ref().value().data())[:deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).bytes_with_cpp_type_ref().value().size()]
+        if self.__fbthrift_cached_bytes_with_cpp_type is None:
+            self.__fbthrift_cached_bytes_with_cpp_type = _fbthrift_iobuf.IOBuf.create(ptr_address(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).bytes_with_cpp_type_ref().ref()), self)
+        return self.__fbthrift_cached_bytes_with_cpp_type
 
     @property
     def bytes_with_cpp_type(self):
@@ -1353,7 +1355,9 @@ cdef class CustomFields(thrift.py3.types.Struct):
         return self.string_field_impl()
 
     cdef inline binary_field_impl(self):
-        return (<const char*>deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).binary_field_ref().value().data())[:deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).binary_field_ref().value().size()]
+        if self.__fbthrift_cached_binary_field is None:
+            self.__fbthrift_cached_binary_field = _fbthrift_iobuf.IOBuf.create(ptr_address(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).binary_field_ref().ref()), self)
+        return self.__fbthrift_cached_binary_field
 
     @property
     def binary_field(self):
@@ -1527,7 +1531,11 @@ cdef class CustomTypedefFields(thrift.py3.types.Struct):
         return self.string_field_impl()
 
     cdef inline binary_field_impl(self):
-        return (<const char*>deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).binary_field_ref().value().data())[:deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).binary_field_ref().value().size()]
+        if self.__fbthrift_cached_binary_field is None:
+            if not deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).binary_field_ref().value():
+                return None
+            self.__fbthrift_cached_binary_field = _fbthrift_iobuf.IOBuf.create(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).binary_field_ref().value().get(), self)
+        return self.__fbthrift_cached_binary_field
 
     @property
     def binary_field(self):
@@ -2552,12 +2560,12 @@ IOBufPtr = _fbthrift_iobuf.IOBuf
 IOBuf = _fbthrift_iobuf.IOBuf
 DeferredTruncationFloat = float
 AdaptedTypeDef = SimpleStruct
-foo_bar = bytes
+CustomBuffer = _fbthrift_iobuf.IOBuf
 CustomBool = bool
 CustomInteger = int
 CustomDouble = float
 CustomString = str
-CustomBinary = bytes
+CustomBinary = _fbthrift_iobuf.IOBuf
 CustomList = _MyType__List__i32
 CustomSet = _MyType__Set__i32
 CustomMap = _MyType__Map__i32_i32

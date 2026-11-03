@@ -216,7 +216,7 @@ inline void reset_field<::py3::simple::CustomTypedefFields>(
       obj.string_field_ref().copy_from(default_inst<::py3::simple::CustomTypedefFields>().string_field_ref());
       return;
     case 4:
-      obj.binary_field_ref().copy_from(default_inst<::py3::simple::CustomTypedefFields>().binary_field_ref());
+      obj.binary_field_ref()->reset();
       return;
     case 5:
       obj.list_field_ref().copy_from(default_inst<::py3::simple::CustomTypedefFields>().list_field_ref());

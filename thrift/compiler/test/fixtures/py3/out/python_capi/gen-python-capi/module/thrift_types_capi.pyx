@@ -88,16 +88,6 @@ cdef api object init__module__HiddenException(object data):
 cdef api int can_extract__module__ComplexStruct(object __obj) except -1:
     return 1 if isinstance(__obj, __thrift_types.ComplexStruct) else 0
 
-cdef api __cIOBuf* extract__module__ComplexStruct(object __obj) except NULL:
-    cdef __IOBuf __buf = __serialize_iobuf(__obj, protocol=__Protocol.BINARY)
-    return __buf._ours.release()
-
-cdef api object construct__module__ComplexStruct(__unique_ptr[__cIOBuf] __s):
-    return __deserialize(
-        __thrift_types.ComplexStruct,
-        __IOBuf_from_unique_ptr(__move(__s)),
-        protocol=__Protocol.BINARY
-    )
 
 cdef api object init__module__ComplexStruct(object data):
     return __thrift_types.ComplexStruct._fbthrift_from_internal_data(data)

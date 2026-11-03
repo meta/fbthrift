@@ -1808,7 +1808,7 @@ _readField_cdef:
   }
 _readField_bytes_with_cpp_type:
   {
-    ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, ::py3::simple::foo_bar, ::apache::thrift::type::cpp_type<::py3::simple::foo_bar, ::apache::thrift::type::binary_t>>::read(*iprot, this->__fbthrift_field_bytes_with_cpp_type);
+    ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, ::py3::simple::CustomBuffer, ::apache::thrift::type::cpp_type<::py3::simple::CustomBuffer, ::apache::thrift::type::binary_t>>::read(*iprot, this->__fbthrift_field_bytes_with_cpp_type);
   }
  this->__isset.set(8, true);
 
@@ -1958,7 +1958,7 @@ uint32_t ComplexStruct::serializedSize(Protocol_ const* prot_) const {
   }
   {
     xfer += prot_->serializedFieldSize("bytes_with_cpp_type", apache::thrift::protocol::TType::T_STRING, 9);
-    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, ::py3::simple::foo_bar, ::apache::thrift::type::cpp_type<::py3::simple::foo_bar, ::apache::thrift::type::binary_t>>::serializedSize<false>(*prot_, this->__fbthrift_field_bytes_with_cpp_type);
+    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, ::py3::simple::CustomBuffer, ::apache::thrift::type::cpp_type<::py3::simple::CustomBuffer, ::apache::thrift::type::binary_t>>::serializedSize<false>(*prot_, this->__fbthrift_field_bytes_with_cpp_type);
   }
   xfer += prot_->serializedSizeStop();
   return xfer;
@@ -2002,7 +2002,7 @@ uint32_t ComplexStruct::serializedSizeZC(Protocol_ const* prot_) const {
   }
   {
     xfer += prot_->serializedFieldSize("bytes_with_cpp_type", apache::thrift::protocol::TType::T_STRING, 9);
-    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, ::py3::simple::foo_bar, ::apache::thrift::type::cpp_type<::py3::simple::foo_bar, ::apache::thrift::type::binary_t>>::serializedSize<true>(*prot_, this->__fbthrift_field_bytes_with_cpp_type);
+    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, ::py3::simple::CustomBuffer, ::apache::thrift::type::cpp_type<::py3::simple::CustomBuffer, ::apache::thrift::type::binary_t>>::serializedSize<true>(*prot_, this->__fbthrift_field_bytes_with_cpp_type);
   }
   xfer += prot_->serializedSizeStop();
   return xfer;
@@ -2081,7 +2081,7 @@ uint32_t ComplexStruct::write(Protocol_* prot_) const {
     constexpr int16_t kPrevFieldId = 8;
     xfer += ::apache::thrift::detail::writeFieldBegin<apache::thrift::protocol::TType::T_STRING, 9, kPrevFieldId>(*prot_, "bytes_with_cpp_type", previousFieldHasValue);
     previousFieldHasValue = true;
-    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, ::py3::simple::foo_bar, ::apache::thrift::type::cpp_type<::py3::simple::foo_bar, ::apache::thrift::type::binary_t>>::write(*prot_, this->__fbthrift_field_bytes_with_cpp_type);
+    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, ::py3::simple::CustomBuffer, ::apache::thrift::type::cpp_type<::py3::simple::CustomBuffer, ::apache::thrift::type::binary_t>>::write(*prot_, this->__fbthrift_field_bytes_with_cpp_type);
     xfer += prot_->writeFieldEnd();
   }
   xfer += prot_->writeFieldStop();
@@ -2396,7 +2396,7 @@ _readField_double_field:
   }
 _readField_string_field:
   {
-    ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, ::MyType, ::apache::thrift::type::cpp_type<::MyType, ::apache::thrift::type::string_t>>::read(*iprot, this->__fbthrift_field_string_field);
+    ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, std::pmr::string, ::apache::thrift::type::cpp_type<std::pmr::string, ::apache::thrift::type::string_t>>::read(*iprot, this->__fbthrift_field_string_field);
   }
  this->__isset.set(3, true);
 
@@ -2409,7 +2409,7 @@ _readField_string_field:
   }
 _readField_binary_field:
   {
-    ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, ::MyType, ::apache::thrift::type::cpp_type<::MyType, ::apache::thrift::type::binary_t>>::read(*iprot, this->__fbthrift_field_binary_field);
+    ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, folly::IOBuf, ::apache::thrift::type::cpp_type<folly::IOBuf, ::apache::thrift::type::binary_t>>::read(*iprot, this->__fbthrift_field_binary_field);
   }
  this->__isset.set(4, true);
 
@@ -2602,11 +2602,11 @@ uint32_t CustomFields::serializedSize(Protocol_ const* prot_) const {
   }
   {
     xfer += prot_->serializedFieldSize("string_field", apache::thrift::protocol::TType::T_STRING, 4);
-    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, ::MyType, ::apache::thrift::type::cpp_type<::MyType, ::apache::thrift::type::string_t>>::serializedSize<false>(*prot_, this->__fbthrift_field_string_field);
+    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, std::pmr::string, ::apache::thrift::type::cpp_type<std::pmr::string, ::apache::thrift::type::string_t>>::serializedSize<false>(*prot_, this->__fbthrift_field_string_field);
   }
   {
     xfer += prot_->serializedFieldSize("binary_field", apache::thrift::protocol::TType::T_STRING, 5);
-    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, ::MyType, ::apache::thrift::type::cpp_type<::MyType, ::apache::thrift::type::binary_t>>::serializedSize<false>(*prot_, this->__fbthrift_field_binary_field);
+    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, folly::IOBuf, ::apache::thrift::type::cpp_type<folly::IOBuf, ::apache::thrift::type::binary_t>>::serializedSize<false>(*prot_, this->__fbthrift_field_binary_field);
   }
   {
     xfer += prot_->serializedFieldSize("list_field", apache::thrift::protocol::TType::T_LIST, 6);
@@ -2646,11 +2646,11 @@ uint32_t CustomFields::serializedSizeZC(Protocol_ const* prot_) const {
   }
   {
     xfer += prot_->serializedFieldSize("string_field", apache::thrift::protocol::TType::T_STRING, 4);
-    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, ::MyType, ::apache::thrift::type::cpp_type<::MyType, ::apache::thrift::type::string_t>>::serializedSize<false>(*prot_, this->__fbthrift_field_string_field);
+    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, std::pmr::string, ::apache::thrift::type::cpp_type<std::pmr::string, ::apache::thrift::type::string_t>>::serializedSize<false>(*prot_, this->__fbthrift_field_string_field);
   }
   {
     xfer += prot_->serializedFieldSize("binary_field", apache::thrift::protocol::TType::T_STRING, 5);
-    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, ::MyType, ::apache::thrift::type::cpp_type<::MyType, ::apache::thrift::type::binary_t>>::serializedSize<true>(*prot_, this->__fbthrift_field_binary_field);
+    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, folly::IOBuf, ::apache::thrift::type::cpp_type<folly::IOBuf, ::apache::thrift::type::binary_t>>::serializedSize<true>(*prot_, this->__fbthrift_field_binary_field);
   }
   {
     xfer += prot_->serializedFieldSize("list_field", apache::thrift::protocol::TType::T_LIST, 6);
@@ -2710,14 +2710,14 @@ uint32_t CustomFields::write(Protocol_* prot_) const {
     constexpr int16_t kPrevFieldId = 3;
     xfer += ::apache::thrift::detail::writeFieldBegin<apache::thrift::protocol::TType::T_STRING, 4, kPrevFieldId>(*prot_, "string_field", previousFieldHasValue);
     previousFieldHasValue = true;
-    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, ::MyType, ::apache::thrift::type::cpp_type<::MyType, ::apache::thrift::type::string_t>>::write(*prot_, this->__fbthrift_field_string_field);
+    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, std::pmr::string, ::apache::thrift::type::cpp_type<std::pmr::string, ::apache::thrift::type::string_t>>::write(*prot_, this->__fbthrift_field_string_field);
     xfer += prot_->writeFieldEnd();
   }
   {
     constexpr int16_t kPrevFieldId = 4;
     xfer += ::apache::thrift::detail::writeFieldBegin<apache::thrift::protocol::TType::T_STRING, 5, kPrevFieldId>(*prot_, "binary_field", previousFieldHasValue);
     previousFieldHasValue = true;
-    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, ::MyType, ::apache::thrift::type::cpp_type<::MyType, ::apache::thrift::type::binary_t>>::write(*prot_, this->__fbthrift_field_binary_field);
+    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, folly::IOBuf, ::apache::thrift::type::cpp_type<folly::IOBuf, ::apache::thrift::type::binary_t>>::write(*prot_, this->__fbthrift_field_binary_field);
     xfer += prot_->writeFieldEnd();
   }
   {

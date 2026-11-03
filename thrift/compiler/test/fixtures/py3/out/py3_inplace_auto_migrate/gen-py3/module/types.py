@@ -44,7 +44,7 @@ from module.thrift_types import (
     AdaptedTypeDef,
     HiddenTypeDef,
     ImplicitlyHiddenTypeDef,
-    foo_bar,
+    CustomBuffer,
     CustomBool,
     CustomInteger,
     CustomDouble,

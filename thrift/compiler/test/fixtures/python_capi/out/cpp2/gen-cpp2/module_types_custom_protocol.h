@@ -1226,9 +1226,9 @@ _readField_empty_struct:
           apache::thrift::protocol::TType::T_STRING))) {
     goto _advance_failure;
   }
-_readField_fbstring:
+_readField_custom_iobuf:
   {
-    ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, folly::fbstring, ::apache::thrift::type::cpp_type<folly::fbstring, ::apache::thrift::type::binary_t>>::read(*iprot, this->__fbthrift_field_fbstring);
+    ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, folly::IOBuf, ::apache::thrift::type::cpp_type<folly::IOBuf, ::apache::thrift::type::binary_t>>::read(*iprot, this->__fbthrift_field_custom_iobuf);
   }
  this->__isset.set(10, true);
 
@@ -1239,9 +1239,9 @@ _readField_fbstring:
           apache::thrift::protocol::TType::T_STRING))) {
     goto _advance_failure;
   }
-_readField_managed_string_view:
+_readField_pmr_string:
   {
-    ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, ::apache::thrift::ManagedStringViewWithConversions, ::apache::thrift::type::cpp_type<::apache::thrift::ManagedStringViewWithConversions, ::apache::thrift::type::string_t>>::read(*iprot, this->__fbthrift_field_managed_string_view);
+    ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, ::std::pmr::string, ::apache::thrift::type::cpp_type<::std::pmr::string, ::apache::thrift::type::string_t>>::read(*iprot, this->__fbthrift_field_pmr_string);
   }
  this->__isset.set(11, true);
 
@@ -1392,7 +1392,7 @@ _loop:
     case 20:
     {
       if (LIKELY(_readState.isCompatibleWithType(iprot, apache::thrift::protocol::TType::T_STRING))) {
-        goto _readField_fbstring;
+        goto _readField_custom_iobuf;
       } else {
         goto _skip;
       }
@@ -1400,7 +1400,7 @@ _loop:
     case 21:
     {
       if (LIKELY(_readState.isCompatibleWithType(iprot, apache::thrift::protocol::TType::T_STRING))) {
-        goto _readField_managed_string_view;
+        goto _readField_pmr_string;
       } else {
         goto _skip;
       }
@@ -1481,12 +1481,12 @@ uint32_t PrimitiveStruct::serializedSize(Protocol_ const* prot_) const {
     xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::structure, ::test::fixtures::python_capi::VapidStruct, ::apache::thrift::type::struct_t<::test::fixtures::python_capi::VapidStruct>>::serializedSize<false>(*prot_, this->__fbthrift_field_empty_struct);
   }
   {
-    xfer += prot_->serializedFieldSize("fbstring", apache::thrift::protocol::TType::T_STRING, 20);
-    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, folly::fbstring, ::apache::thrift::type::cpp_type<folly::fbstring, ::apache::thrift::type::binary_t>>::serializedSize<false>(*prot_, this->__fbthrift_field_fbstring);
+    xfer += prot_->serializedFieldSize("custom_iobuf", apache::thrift::protocol::TType::T_STRING, 20);
+    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, folly::IOBuf, ::apache::thrift::type::cpp_type<folly::IOBuf, ::apache::thrift::type::binary_t>>::serializedSize<false>(*prot_, this->__fbthrift_field_custom_iobuf);
   }
   {
-    xfer += prot_->serializedFieldSize("managed_string_view", apache::thrift::protocol::TType::T_STRING, 21);
-    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, ::apache::thrift::ManagedStringViewWithConversions, ::apache::thrift::type::cpp_type<::apache::thrift::ManagedStringViewWithConversions, ::apache::thrift::type::string_t>>::serializedSize<false>(*prot_, this->__fbthrift_field_managed_string_view);
+    xfer += prot_->serializedFieldSize("pmr_string", apache::thrift::protocol::TType::T_STRING, 21);
+    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, ::std::pmr::string, ::apache::thrift::type::cpp_type<::std::pmr::string, ::apache::thrift::type::string_t>>::serializedSize<false>(*prot_, this->__fbthrift_field_pmr_string);
   }
   {
     xfer += prot_->serializedFieldSize("some_error", apache::thrift::protocol::TType::T_STRUCT, 22);
@@ -1553,12 +1553,12 @@ uint32_t PrimitiveStruct::serializedSizeZC(Protocol_ const* prot_) const {
     xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::structure, ::test::fixtures::python_capi::VapidStruct, ::apache::thrift::type::struct_t<::test::fixtures::python_capi::VapidStruct>>::serializedSize<true>(*prot_, this->__fbthrift_field_empty_struct);
   }
   {
-    xfer += prot_->serializedFieldSize("fbstring", apache::thrift::protocol::TType::T_STRING, 20);
-    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, folly::fbstring, ::apache::thrift::type::cpp_type<folly::fbstring, ::apache::thrift::type::binary_t>>::serializedSize<true>(*prot_, this->__fbthrift_field_fbstring);
+    xfer += prot_->serializedFieldSize("custom_iobuf", apache::thrift::protocol::TType::T_STRING, 20);
+    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, folly::IOBuf, ::apache::thrift::type::cpp_type<folly::IOBuf, ::apache::thrift::type::binary_t>>::serializedSize<true>(*prot_, this->__fbthrift_field_custom_iobuf);
   }
   {
-    xfer += prot_->serializedFieldSize("managed_string_view", apache::thrift::protocol::TType::T_STRING, 21);
-    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, ::apache::thrift::ManagedStringViewWithConversions, ::apache::thrift::type::cpp_type<::apache::thrift::ManagedStringViewWithConversions, ::apache::thrift::type::string_t>>::serializedSize<false>(*prot_, this->__fbthrift_field_managed_string_view);
+    xfer += prot_->serializedFieldSize("pmr_string", apache::thrift::protocol::TType::T_STRING, 21);
+    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, ::std::pmr::string, ::apache::thrift::type::cpp_type<::std::pmr::string, ::apache::thrift::type::string_t>>::serializedSize<false>(*prot_, this->__fbthrift_field_pmr_string);
   }
   {
     xfer += prot_->serializedFieldSize("some_error", apache::thrift::protocol::TType::T_STRUCT, 22);
@@ -1682,16 +1682,16 @@ uint32_t PrimitiveStruct::write(Protocol_* prot_) const {
   }
   {
     constexpr int16_t kPrevFieldId = 19;
-    xfer += ::apache::thrift::detail::writeFieldBegin<apache::thrift::protocol::TType::T_STRING, 20, kPrevFieldId>(*prot_, "fbstring", previousFieldHasValue);
+    xfer += ::apache::thrift::detail::writeFieldBegin<apache::thrift::protocol::TType::T_STRING, 20, kPrevFieldId>(*prot_, "custom_iobuf", previousFieldHasValue);
     previousFieldHasValue = true;
-    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, folly::fbstring, ::apache::thrift::type::cpp_type<folly::fbstring, ::apache::thrift::type::binary_t>>::write(*prot_, this->__fbthrift_field_fbstring);
+    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, folly::IOBuf, ::apache::thrift::type::cpp_type<folly::IOBuf, ::apache::thrift::type::binary_t>>::write(*prot_, this->__fbthrift_field_custom_iobuf);
     xfer += prot_->writeFieldEnd();
   }
   {
     constexpr int16_t kPrevFieldId = 20;
-    xfer += ::apache::thrift::detail::writeFieldBegin<apache::thrift::protocol::TType::T_STRING, 21, kPrevFieldId>(*prot_, "managed_string_view", previousFieldHasValue);
+    xfer += ::apache::thrift::detail::writeFieldBegin<apache::thrift::protocol::TType::T_STRING, 21, kPrevFieldId>(*prot_, "pmr_string", previousFieldHasValue);
     previousFieldHasValue = true;
-    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, ::apache::thrift::ManagedStringViewWithConversions, ::apache::thrift::type::cpp_type<::apache::thrift::ManagedStringViewWithConversions, ::apache::thrift::type::string_t>>::write(*prot_, this->__fbthrift_field_managed_string_view);
+    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, ::std::pmr::string, ::apache::thrift::type::cpp_type<::std::pmr::string, ::apache::thrift::type::string_t>>::write(*prot_, this->__fbthrift_field_pmr_string);
     xfer += prot_->writeFieldEnd();
   }
   {

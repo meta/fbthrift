@@ -18,6 +18,8 @@ include "thrift/annotation/cpp.thrift"
 include "thrift/annotation/python.thrift"
 include "thrift/annotation/thrift.thrift"
 
+cpp_include "<memory_resource>"
+
 @thrift.AllowLegacyMissingUris
 package;
 
@@ -132,8 +134,8 @@ safe exception HiddenException {
 
 typedef AdaptedUnion ImplicitlyHiddenTypeDef
 
-@cpp.Type{name = "foo::Bar"}
-typedef binary foo_bar
+@cpp.Type{name = "folly::IOBuf"}
+typedef binary CustomBuffer
 
 struct ComplexStruct {
   1: SimpleStruct structOne;
@@ -145,7 +147,7 @@ struct ComplexStruct {
   @python.Name{name = "sender"}
   7: string from;
   8: string cdef;
-  9: foo_bar bytes_with_cpp_type;
+  9: CustomBuffer bytes_with_cpp_type;
 }
 
 @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.noncomparable": "1"}}
@@ -262,9 +264,9 @@ typedef bool CustomBool
 typedef i64 CustomInteger
 @cpp.Type{name = "::MyType"}
 typedef double CustomDouble
-@cpp.Type{name = "::MyType"}
+@cpp.Type{name = "::std::pmr::string"}
 typedef string CustomString
-@cpp.Type{name = "::MyType"}
+@cpp.Type{name = "std::unique_ptr<folly::IOBuf>"}
 typedef binary CustomBinary
 @cpp.Type{template = "::MyType"}
 typedef list<i32> CustomList
@@ -305,9 +307,9 @@ struct CustomFields {
   2: i64 integer_field;
   @cpp.Type{name = "::MyType"}
   3: double double_field;
-  @cpp.Type{name = "::MyType"}
+  @cpp.Type{name = "std::pmr::string"}
   4: string string_field;
-  @cpp.Type{name = "::MyType"}
+  @cpp.Type{name = "folly::IOBuf"}
   5: binary binary_field;
   @cpp.Type{template = "::MyType"}
   6: list<i32> list_field;

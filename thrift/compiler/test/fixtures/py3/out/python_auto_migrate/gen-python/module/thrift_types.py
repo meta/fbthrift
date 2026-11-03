@@ -58,7 +58,7 @@ class SimpleException(metaclass=_fbthrift_python_exceptions.GeneratedErrorMeta):
 
     @staticmethod
     def __get_thrift_definition_key__() -> bytes:
-        return b"\xd1\xc8\x74\xe6\xca\xb6\xb4\xe6\x7e\x14\xc1\x32\x4f\x76\x51\x7b"
+        return b"\xcd\x02\xe8\xab\x4a\x36\xa8\xb7\xdc\x50\xe2\xa1\x8a\x0b\x8d\x43"
 
     @classmethod
     def _fbthrift_auto_migrate_enabled(cls):
@@ -123,7 +123,7 @@ class OptionalRefStruct(metaclass=_fbthrift_python_types.StructMeta):
 
     @staticmethod
     def __get_thrift_definition_key__() -> bytes:
-        return b"\xe0\xc7\xd9\x3e\xdd\x2e\x40\x88\x36\x72\xa9\x7c\x90\xfa\x36\xdf"
+        return b"\x8a\x57\x45\x62\x7b\xd5\xc1\xcc\x81\xe9\x72\x0f\x3d\x24\xae\x76"
 
     @classmethod
     def _fbthrift_auto_migrate_enabled(cls):
@@ -311,7 +311,7 @@ class SimpleStruct(metaclass=_fbthrift_python_types.StructMeta):
 
     @staticmethod
     def __get_thrift_definition_key__() -> bytes:
-        return b"\xe0\x41\xff\xba\x6d\xcc\xbf\xf5\x8a\x7e\x05\x22\xe6\x74\xce\xdf"
+        return b"\x4a\x1f\x60\x95\xcd\x3b\xb1\x4b\xf5\xb9\xd6\x4d\x76\x72\xdd\xca"
 
     @classmethod
     def _fbthrift_auto_migrate_enabled(cls):
@@ -411,7 +411,7 @@ class Float32Struct(metaclass=_fbthrift_python_types.StructMeta):
 
     @staticmethod
     def __get_thrift_definition_key__() -> bytes:
-        return b"\x4c\xb9\x01\xd7\x4a\x6f\x55\x6a\x02\x5b\xee\xcf\x6a\x3a\xdc\xc5"
+        return b"\x34\xe1\x71\x8d\xd4\x58\x26\x4e\xa8\xbc\xac\x26\x92\x22\x23\xae"
 
     @classmethod
     def _fbthrift_auto_migrate_enabled(cls):
@@ -500,7 +500,7 @@ class IssetInspectionStruct(metaclass=_fbthrift_python_types.StructMeta):
 
     @staticmethod
     def __get_thrift_definition_key__() -> bytes:
-        return b"\x3f\x8c\x94\x74\xea\xe0\x62\xc1\xb2\xb4\xc9\x02\x77\x4e\x38\x19"
+        return b"\x96\xab\x82\x20\xd1\xa6\x71\x76\x25\x6a\xa1\xb3\x57\xe5\xeb\xb9"
 
     @classmethod
     def _fbthrift_auto_migrate_enabled(cls):
@@ -589,7 +589,7 @@ class HiddenTypeFieldsStruct(metaclass=_fbthrift_python_types.StructMeta):
 
     @staticmethod
     def __get_thrift_definition_key__() -> bytes:
-        return b"\xc6\x1a\x4a\xdd\x33\x01\xb1\x71\xc6\x21\x08\x24\x17\xf4\x7d\x8a"
+        return b"\xd3\x21\x4b\xb2\xab\x67\x2f\x3c\xe9\x3d\x01\xd8\xbb\x9f\x1b\xac"
 
     @classmethod
     def _fbthrift_auto_migrate_enabled(cls):
@@ -658,7 +658,7 @@ class AdaptedUnion(metaclass=_fbthrift_python_types.UnionMeta):
 
     @staticmethod
     def __get_thrift_definition_key__() -> bytes:
-        return b"\x5f\x9a\x83\xc2\x8e\x29\x7a\x7d\x08\x5c\x5d\x8f\xd4\xc4\x1a\x8f"
+        return b"\x9c\x9f\x91\xce\xd8\xe9\x96\x05\x09\xa7\x00\xd4\xd3\x32\x1f\x8b"
 
     @classmethod
     def _fbthrift_auto_migrate_enabled(cls):
@@ -728,7 +728,7 @@ class HiddenException(metaclass=_fbthrift_python_exceptions.GeneratedErrorMeta):
 
     @staticmethod
     def __get_thrift_definition_key__() -> bytes:
-        return b"\x9f\xc9\x7c\x34\x9a\x69\x0b\x96\xd0\x00\x7e\xde\x1b\x85\xda\x57"
+        return b"\x39\x49\xb7\xf4\xfd\x30\xef\x63\x16\x69\x81\xd8\x79\xaf\xe2\x3d"
 
     @classmethod
     def _fbthrift_auto_migrate_enabled(cls):
@@ -863,7 +863,7 @@ class ComplexStruct(metaclass=_fbthrift_python_types.StructMeta):
             _fbthrift_python_types.FieldQualifier.Unqualified, # qualifier
             "bytes_with_cpp_type",  # name
             "bytes_with_cpp_type",  # python name (from @python.Name annotation)
-            _fbthrift_python_types.typeinfo_binary,  # typeinfo
+            _fbthrift_python_types.typeinfo_iobuf,  # typeinfo
             None,  # default value
             None,  # adapter info
             True, # field type is primitive
@@ -881,7 +881,7 @@ class ComplexStruct(metaclass=_fbthrift_python_types.StructMeta):
 
     @staticmethod
     def __get_thrift_definition_key__() -> bytes:
-        return b"\x0c\x9c\x2b\x04\xb2\x34\x85\xa2\x03\xb7\x5f\x31\xa1\x5f\x16\x8c"
+        return b"\x3a\x4b\xa7\xda\xf6\xad\x07\xad\x1e\x59\x25\x91\xca\xaa\x8a\x46"
 
     @classmethod
     def _fbthrift_auto_migrate_enabled(cls):
@@ -950,7 +950,7 @@ class BinaryUnion(metaclass=_fbthrift_python_types.UnionMeta):
 
     @staticmethod
     def __get_thrift_definition_key__() -> bytes:
-        return b"\xe5\x14\x48\x08\x6a\x74\x6a\xb4\x4c\x6b\x85\x7b\x28\xa9\xb5\x92"
+        return b"\xd4\x2c\x4a\xd3\xa3\x2e\x8c\x08\x32\xaa\x2f\xaa\x9c\x64\x6e\x08"
 
     @classmethod
     def _fbthrift_auto_migrate_enabled(cls):
@@ -1017,7 +1017,7 @@ class BinaryUnionStruct(metaclass=_fbthrift_python_types.StructMeta):
 
     @staticmethod
     def __get_thrift_definition_key__() -> bytes:
-        return b"\xf9\x2a\x23\xa3\x2a\x1d\x1a\xc8\x39\x28\x6e\x19\x50\x6e\xd5\xa3"
+        return b"\x48\x94\x72\x98\x1b\x82\xdf\xdf\x64\x08\x16\x80\xd2\x33\x13\x56"
 
     @classmethod
     def _fbthrift_auto_migrate_enabled(cls):
@@ -1110,7 +1110,7 @@ class CustomFields(metaclass=_fbthrift_python_types.StructMeta):
             _fbthrift_python_types.FieldQualifier.Unqualified, # qualifier
             "binary_field",  # name
             "binary_field",  # python name (from @python.Name annotation)
-            _fbthrift_python_types.typeinfo_binary,  # typeinfo
+            _fbthrift_python_types.typeinfo_iobuf,  # typeinfo
             None,  # default value
             None,  # adapter info
             True, # field type is primitive
@@ -1172,7 +1172,7 @@ class CustomFields(metaclass=_fbthrift_python_types.StructMeta):
 
     @staticmethod
     def __get_thrift_definition_key__() -> bytes:
-        return b"\x3c\x65\x40\x7f\x60\x39\x9a\x31\x3e\x84\x45\x98\x31\x6f\x12\x95"
+        return b"\x8a\x95\x45\x16\xd3\x62\x2e\x10\xfe\x82\x2f\xae\xfc\x77\x93\x30"
 
     @classmethod
     def _fbthrift_auto_migrate_enabled(cls):
@@ -1265,7 +1265,7 @@ class CustomTypedefFields(metaclass=_fbthrift_python_types.StructMeta):
             _fbthrift_python_types.FieldQualifier.Unqualified, # qualifier
             "binary_field",  # name
             "binary_field",  # python name (from @python.Name annotation)
-            _fbthrift_python_types.typeinfo_binary,  # typeinfo
+            _fbthrift_python_types.typeinfo_iobuf,  # typeinfo
             None,  # default value
             None,  # adapter info
             True, # field type is primitive
@@ -1327,7 +1327,7 @@ class CustomTypedefFields(metaclass=_fbthrift_python_types.StructMeta):
 
     @staticmethod
     def __get_thrift_definition_key__() -> bytes:
-        return b"\xb9\x2b\x38\x37\x33\x3e\x4a\x68\x96\xf1\x67\xce\x65\x44\x9c\xc1"
+        return b"\xde\x8f\x54\x60\x86\xc8\x28\xfe\x22\x9d\x69\x13\x08\x12\x83\x9a"
 
     @classmethod
     def _fbthrift_auto_migrate_enabled(cls):
@@ -1482,7 +1482,7 @@ class AdaptedTypedefFields(metaclass=_fbthrift_python_types.StructMeta):
 
     @staticmethod
     def __get_thrift_definition_key__() -> bytes:
-        return b"\x8c\xff\x85\x33\x31\x37\x7d\x2a\x45\x59\x0d\x49\x00\x98\xca\x94"
+        return b"\x01\x06\xee\xa1\xe6\x55\x98\xf4\x65\xc4\xfc\x67\xde\x28\xe4\x5f"
 
     @classmethod
     def _fbthrift_auto_migrate_enabled(cls):
@@ -1647,12 +1647,12 @@ DeferredTruncationFloat = float
 AdaptedTypeDef = _fbthrift_SimpleStruct
 HiddenTypeDef = _fbthrift_SimpleStruct
 ImplicitlyHiddenTypeDef = _fbthrift_AdaptedUnion
-foo_bar = bytes
+CustomBuffer = _fbthrift_iobuf.IOBuf
 CustomBool = bool
 CustomInteger = int
 CustomDouble = float
 CustomString = str
-CustomBinary = bytes
+CustomBinary = _fbthrift_iobuf.IOBuf
 if _fbthrift_python_container_typedefs is not None:
     class CustomList(_fbthrift_python_container_typedefs._ListTypedefBase):
         __slots__ = ()

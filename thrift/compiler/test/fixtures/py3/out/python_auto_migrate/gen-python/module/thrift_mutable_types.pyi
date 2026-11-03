@@ -380,9 +380,9 @@ class ComplexStruct(_fbthrift_python_mutable_types.MutableStruct, _fbthrift_pyth
     def cdef_(self, value: builtins.str) -> None: ...
 
     @property
-    def bytes_with_cpp_type(self) -> builtins.bytes: ...
+    def bytes_with_cpp_type(self) -> _fbthrift_iobuf.IOBuf: ...
     @bytes_with_cpp_type.setter
-    def bytes_with_cpp_type(self, value: builtins.bytes) -> None: ...
+    def bytes_with_cpp_type(self, value: _fbthrift_iobuf.IOBuf) -> None: ...
 
     def __init__(
         self, *,
@@ -394,7 +394,7 @@ class ComplexStruct(_fbthrift_python_mutable_types.MutableStruct, _fbthrift_pyth
         some_bytes: _typing.Optional[builtins.bytes]=...,
         sender: _typing.Optional[builtins.str]=...,
         cdef_: _typing.Optional[builtins.str]=...,
-        bytes_with_cpp_type: _typing.Optional[builtins.bytes]=...
+        bytes_with_cpp_type: _typing.Optional[_fbthrift_iobuf.IOBuf]=...
     ) -> None: ...
 
     def __call__(
@@ -407,9 +407,9 @@ class ComplexStruct(_fbthrift_python_mutable_types.MutableStruct, _fbthrift_pyth
         some_bytes: _typing.Optional[builtins.bytes]=...,
         sender: _typing.Optional[builtins.str]=...,
         cdef_: _typing.Optional[builtins.str]=...,
-        bytes_with_cpp_type: _typing.Optional[builtins.bytes]=...
+        bytes_with_cpp_type: _typing.Optional[_fbthrift_iobuf.IOBuf]=...
     ) -> _typing.Self: ...
-    def __iter__(self) -> _typing.Iterator[_typing.Tuple[builtins.str, _typing.Union[_fbthrift_SimpleStruct, _fbthrift_SimpleStruct, builtins.int, builtins.str, _fbthrift_AnEnum, builtins.bytes, builtins.str, builtins.str, builtins.bytes]]]: ...
+    def __iter__(self) -> _typing.Iterator[_typing.Tuple[builtins.str, _typing.Union[_fbthrift_SimpleStruct, _fbthrift_SimpleStruct, builtins.int, builtins.str, _fbthrift_AnEnum, builtins.bytes, builtins.str, builtins.str, _fbthrift_iobuf.IOBuf]]]: ...
     def _to_python(self) -> "module.thrift_types.ComplexStruct": ...  # type: ignore
     def _to_mutable_python(self) -> _typing.Self: ...
     def _to_py3(self) -> "module.types.ComplexStruct": ...  # type: ignore
@@ -490,9 +490,9 @@ class CustomFields(_fbthrift_python_mutable_types.MutableStruct, _fbthrift_pytho
     def string_field(self, value: builtins.str) -> None: ...
 
     @property
-    def binary_field(self) -> builtins.bytes: ...
+    def binary_field(self) -> _fbthrift_iobuf.IOBuf: ...
     @binary_field.setter
-    def binary_field(self, value: builtins.bytes) -> None: ...
+    def binary_field(self, value: _fbthrift_iobuf.IOBuf) -> None: ...
 
     @property
     def list_field(self) -> _fbthrift_python_mutable_containers.MutableList[builtins.int]: ...
@@ -520,7 +520,7 @@ class CustomFields(_fbthrift_python_mutable_types.MutableStruct, _fbthrift_pytho
         integer_field: _typing.Optional[builtins.int]=...,
         double_field: _typing.Optional[builtins.float]=...,
         string_field: _typing.Optional[builtins.str]=...,
-        binary_field: _typing.Optional[builtins.bytes]=...,
+        binary_field: _typing.Optional[_fbthrift_iobuf.IOBuf]=...,
         list_field: _typing.Optional[_fbthrift_python_mutable_containers.MutableList[builtins.int] | _fbthrift_python_mutable_types._ThriftListWrapper]=...,
         set_field: _typing.Optional[_fbthrift_python_mutable_containers.MutableSet[builtins.int] | _fbthrift_python_mutable_types._ThriftSetWrapper]=...,
         map_field: _typing.Optional[_fbthrift_python_mutable_containers.MutableMap[builtins.int, builtins.int] | _fbthrift_python_mutable_types._ThriftMapWrapper]=...,
@@ -533,13 +533,13 @@ class CustomFields(_fbthrift_python_mutable_types.MutableStruct, _fbthrift_pytho
         integer_field: _typing.Optional[builtins.int]=...,
         double_field: _typing.Optional[builtins.float]=...,
         string_field: _typing.Optional[builtins.str]=...,
-        binary_field: _typing.Optional[builtins.bytes]=...,
+        binary_field: _typing.Optional[_fbthrift_iobuf.IOBuf]=...,
         list_field: _typing.Optional[_fbthrift_python_mutable_containers.MutableList[builtins.int] | _fbthrift_python_mutable_types._ThriftListWrapper]=...,
         set_field: _typing.Optional[_fbthrift_python_mutable_containers.MutableSet[builtins.int] | _fbthrift_python_mutable_types._ThriftSetWrapper]=...,
         map_field: _typing.Optional[_fbthrift_python_mutable_containers.MutableMap[builtins.int, builtins.int] | _fbthrift_python_mutable_types._ThriftMapWrapper]=...,
         struct_field: _typing.Optional[_fbthrift_SimpleStruct]=...
     ) -> _typing.Self: ...
-    def __iter__(self) -> _typing.Iterator[_typing.Tuple[builtins.str, _typing.Union[builtins.bool, builtins.int, builtins.float, builtins.str, builtins.bytes, _fbthrift_python_mutable_containers.MutableList[builtins.int], _fbthrift_python_mutable_containers.MutableSet[builtins.int], _fbthrift_python_mutable_containers.MutableMap[builtins.int, builtins.int], _fbthrift_SimpleStruct]]]: ...
+    def __iter__(self) -> _typing.Iterator[_typing.Tuple[builtins.str, _typing.Union[builtins.bool, builtins.int, builtins.float, builtins.str, _fbthrift_iobuf.IOBuf, _fbthrift_python_mutable_containers.MutableList[builtins.int], _fbthrift_python_mutable_containers.MutableSet[builtins.int], _fbthrift_python_mutable_containers.MutableMap[builtins.int, builtins.int], _fbthrift_SimpleStruct]]]: ...
     def _to_python(self) -> "module.thrift_types.CustomFields": ...  # type: ignore
     def _to_mutable_python(self) -> _typing.Self: ...
     def _to_py3(self) -> "module.types.CustomFields": ...  # type: ignore
@@ -569,9 +569,9 @@ class CustomTypedefFields(_fbthrift_python_mutable_types.MutableStruct, _fbthrif
     def string_field(self, value: builtins.str) -> None: ...
 
     @property
-    def binary_field(self) -> builtins.bytes: ...
+    def binary_field(self) -> _fbthrift_iobuf.IOBuf: ...
     @binary_field.setter
-    def binary_field(self, value: builtins.bytes) -> None: ...
+    def binary_field(self, value: _fbthrift_iobuf.IOBuf) -> None: ...
 
     @property
     def list_field(self) -> _fbthrift_python_mutable_containers.MutableList[builtins.int]: ...
@@ -599,7 +599,7 @@ class CustomTypedefFields(_fbthrift_python_mutable_types.MutableStruct, _fbthrif
         integer_field: _typing.Optional[builtins.int]=...,
         double_field: _typing.Optional[builtins.float]=...,
         string_field: _typing.Optional[builtins.str]=...,
-        binary_field: _typing.Optional[builtins.bytes]=...,
+        binary_field: _typing.Optional[_fbthrift_iobuf.IOBuf]=...,
         list_field: _typing.Optional[_fbthrift_python_mutable_containers.MutableList[builtins.int] | _fbthrift_python_mutable_types._ThriftListWrapper]=...,
         set_field: _typing.Optional[_fbthrift_python_mutable_containers.MutableSet[builtins.int] | _fbthrift_python_mutable_types._ThriftSetWrapper]=...,
         map_field: _typing.Optional[_fbthrift_python_mutable_containers.MutableMap[builtins.int, builtins.int] | _fbthrift_python_mutable_types._ThriftMapWrapper]=...,
@@ -612,13 +612,13 @@ class CustomTypedefFields(_fbthrift_python_mutable_types.MutableStruct, _fbthrif
         integer_field: _typing.Optional[builtins.int]=...,
         double_field: _typing.Optional[builtins.float]=...,
         string_field: _typing.Optional[builtins.str]=...,
-        binary_field: _typing.Optional[builtins.bytes]=...,
+        binary_field: _typing.Optional[_fbthrift_iobuf.IOBuf]=...,
         list_field: _typing.Optional[_fbthrift_python_mutable_containers.MutableList[builtins.int] | _fbthrift_python_mutable_types._ThriftListWrapper]=...,
         set_field: _typing.Optional[_fbthrift_python_mutable_containers.MutableSet[builtins.int] | _fbthrift_python_mutable_types._ThriftSetWrapper]=...,
         map_field: _typing.Optional[_fbthrift_python_mutable_containers.MutableMap[builtins.int, builtins.int] | _fbthrift_python_mutable_types._ThriftMapWrapper]=...,
         struct_field: _typing.Optional[_fbthrift_SimpleStruct]=...
     ) -> _typing.Self: ...
-    def __iter__(self) -> _typing.Iterator[_typing.Tuple[builtins.str, _typing.Union[builtins.bool, builtins.int, builtins.float, builtins.str, builtins.bytes, _fbthrift_python_mutable_containers.MutableList[builtins.int], _fbthrift_python_mutable_containers.MutableSet[builtins.int], _fbthrift_python_mutable_containers.MutableMap[builtins.int, builtins.int], _fbthrift_SimpleStruct]]]: ...
+    def __iter__(self) -> _typing.Iterator[_typing.Tuple[builtins.str, _typing.Union[builtins.bool, builtins.int, builtins.float, builtins.str, _fbthrift_iobuf.IOBuf, _fbthrift_python_mutable_containers.MutableList[builtins.int], _fbthrift_python_mutable_containers.MutableSet[builtins.int], _fbthrift_python_mutable_containers.MutableMap[builtins.int, builtins.int], _fbthrift_SimpleStruct]]]: ...
     def _to_python(self) -> "module.thrift_types.CustomTypedefFields": ...  # type: ignore
     def _to_mutable_python(self) -> _typing.Self: ...
     def _to_py3(self) -> "module.types.CustomTypedefFields": ...  # type: ignore
@@ -710,12 +710,12 @@ DeferredTruncationFloat = builtins.float
 AdaptedTypeDef = _fbthrift_SimpleStruct
 HiddenTypeDef = _fbthrift_SimpleStruct
 ImplicitlyHiddenTypeDef = _fbthrift_AdaptedUnion
-foo_bar = builtins.bytes
+CustomBuffer = _fbthrift_iobuf.IOBuf
 CustomBool = builtins.bool
 CustomInteger = builtins.int
 CustomDouble = builtins.float
 CustomString = builtins.str
-CustomBinary = builtins.bytes
+CustomBinary = _fbthrift_iobuf.IOBuf
 class CustomList(_fbthrift_python_mutable_containers.MutableList[builtins.int]):
     def __init__(
         self,

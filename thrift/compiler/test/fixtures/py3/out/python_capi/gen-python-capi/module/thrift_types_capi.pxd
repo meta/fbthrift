@@ -58,9 +58,6 @@ cdef api object init__module__HiddenException(object data)
 
 cdef api int can_extract__module__ComplexStruct(object) except -1
 
-cdef api __cIOBuf* extract__module__ComplexStruct(object) except NULL
-
-cdef api object construct__module__ComplexStruct(__unique_ptr[__cIOBuf])
 
 cdef api object init__module__ComplexStruct(object data)
 

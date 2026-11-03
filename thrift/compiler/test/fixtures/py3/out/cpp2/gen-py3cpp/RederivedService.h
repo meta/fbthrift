@@ -15,6 +15,7 @@
 #else
 #include "thrift/compiler/test/fixtures/py3/gen-py3cpp/module_handlers.h"
 #endif
+#include <memory_resource>
 
 namespace folly {
   class IOBuf;
@@ -162,8 +163,8 @@ class ServiceHandler<::py3::simple::RederivedService> : virtual public ::py3::si
 namespace detail {
 template <> struct TSchemaAssociation<::py3::simple::RederivedService, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = 5777011531022044677;
-  static constexpr ::std::string_view definitionKey = {"\xee\x17\x37\x82\x48\x7a\x2a\x84\x39\x27\xaa\xd0\xa5\x53\xbb\x29", 16};
+  static constexpr int64_t programId = -3933524931714203253;
+  static constexpr ::std::string_view definitionKey = {"\x53\xbd\x09\xe3\x8a\x09\x6f\xc8\xb8\x1b\x85\x5e\x65\x31\xf2\x7f", 16};
 };
 }
 } // namespace apache::thrift

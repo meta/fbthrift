@@ -147,6 +147,7 @@ cdef class ComplexStruct(thrift.py3.types.Struct):
     cdef SimpleStruct __fbthrift_cached_structOne
     cdef SimpleStruct __fbthrift_cached_structTwo
     cdef object __fbthrift_cached_an_enum
+    cdef _fbthrift_iobuf.IOBuf __fbthrift_cached_bytes_with_cpp_type
 
     @staticmethod
     cdef _create_FBTHRIFT_ONLY_DO_NOT_USE(shared_ptr[_module_cbindings.cComplexStruct])
@@ -194,6 +195,7 @@ cdef class CustomFields(thrift.py3.types.Struct):
     cdef inline object set_field_impl(self)
     cdef inline object map_field_impl(self)
     cdef inline object struct_field_impl(self)
+    cdef _fbthrift_iobuf.IOBuf __fbthrift_cached_binary_field
     cdef object __fbthrift_cached_list_field
     cdef object __fbthrift_cached_set_field
     cdef object __fbthrift_cached_map_field
@@ -216,6 +218,7 @@ cdef class CustomTypedefFields(thrift.py3.types.Struct):
     cdef inline object set_field_impl(self)
     cdef inline object map_field_impl(self)
     cdef inline object struct_field_impl(self)
+    cdef _fbthrift_iobuf.IOBuf __fbthrift_cached_binary_field
     cdef object __fbthrift_cached_list_field
     cdef object __fbthrift_cached_set_field
     cdef object __fbthrift_cached_map_field

@@ -792,7 +792,7 @@ def get_reflection__CustomFields():
             qualifier=_Qualifier.UNQUALIFIED,
             default="",
             structured_annotations={
-                "cpp.Type": _ConstantSpec(value=  _ConstantStructSpec(struct_type=_fbthrift__facebook__thrift__annotation__cpp__thrift_types.Type, fields={  "name": _ConstantSpec(value=  "::MyType", thrift_type=_ThriftType.STRING),}), thrift_type=_ThriftType.STRUCT),
+                "cpp.Type": _ConstantSpec(value=  _ConstantStructSpec(struct_type=_fbthrift__facebook__thrift__annotation__cpp__thrift_types.Type, fields={  "name": _ConstantSpec(value=  "std::pmr::string", thrift_type=_ThriftType.STRING),}), thrift_type=_ThriftType.STRUCT),
             },
         ),
     )
@@ -806,7 +806,7 @@ def get_reflection__CustomFields():
             qualifier=_Qualifier.UNQUALIFIED,
             default=b"",
             structured_annotations={
-                "cpp.Type": _ConstantSpec(value=  _ConstantStructSpec(struct_type=_fbthrift__facebook__thrift__annotation__cpp__thrift_types.Type, fields={  "name": _ConstantSpec(value=  "::MyType", thrift_type=_ThriftType.STRING),}), thrift_type=_ThriftType.STRUCT),
+                "cpp.Type": _ConstantSpec(value=  _ConstantStructSpec(struct_type=_fbthrift__facebook__thrift__annotation__cpp__thrift_types.Type, fields={  "name": _ConstantSpec(value=  "folly::IOBuf", thrift_type=_ThriftType.STRING),}), thrift_type=_ThriftType.STRUCT),
             },
         ),
     )

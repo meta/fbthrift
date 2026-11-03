@@ -503,28 +503,28 @@ def get_reflection__PrimitiveStruct():
     spec.add_field(
         _FieldSpec(
             id=20,
-            name="fbstring",
-            py_name="fbstring",
+            name="custom_iobuf",
+            py_name="custom_iobuf",
             type=bytes,
             thrift_type=_ThriftType.BINARY,
             qualifier=_Qualifier.UNQUALIFIED,
             default=b"",
             structured_annotations={
-                "cpp.Type": _ConstantSpec(value=  _ConstantStructSpec(struct_type=_fbthrift__facebook__thrift__annotation__cpp__thrift_types.Type, fields={  "name": _ConstantSpec(value=  "folly::fbstring", thrift_type=_ThriftType.STRING),}), thrift_type=_ThriftType.STRUCT),
+                "cpp.Type": _ConstantSpec(value=  _ConstantStructSpec(struct_type=_fbthrift__facebook__thrift__annotation__cpp__thrift_types.Type, fields={  "name": _ConstantSpec(value=  "folly::IOBuf", thrift_type=_ThriftType.STRING),}), thrift_type=_ThriftType.STRUCT),
             },
         ),
     )
     spec.add_field(
         _FieldSpec(
             id=21,
-            name="managed_string_view",
-            py_name="managed_string_view",
+            name="pmr_string",
+            py_name="pmr_string",
             type=str,
             thrift_type=_ThriftType.STRING,
             qualifier=_Qualifier.UNQUALIFIED,
             default="",
             structured_annotations={
-                "cpp.Type": _ConstantSpec(value=  _ConstantStructSpec(struct_type=_fbthrift__facebook__thrift__annotation__cpp__thrift_types.Type, fields={  "name": _ConstantSpec(value=  "::apache::thrift::ManagedStringViewWithConversions", thrift_type=_ThriftType.STRING),}), thrift_type=_ThriftType.STRUCT),
+                "cpp.Type": _ConstantSpec(value=  _ConstantStructSpec(struct_type=_fbthrift__facebook__thrift__annotation__cpp__thrift_types.Type, fields={  "name": _ConstantSpec(value=  "::std::pmr::string", thrift_type=_ThriftType.STRING),}), thrift_type=_ThriftType.STRUCT),
             },
         ),
     )

@@ -515,8 +515,8 @@ class PrimitiveStructPatch(
             19,
             _fbthrift_python_types.StructTypeInfo(_fbthrift__test__fixtures__python_capi__module__thrift_types.EmptyStruct))
     @property
-    def fbstring(self) -> UnqualifiedFieldPatch[
-            builtins.bytes,
+    def custom_iobuf(self) -> UnqualifiedFieldPatch[
+            _fbthrift_iobuf.IOBuf,
             BinaryPatch]:
 
         def cast_dynamic_patch_to_typed_field_patch(patch: DynamicPatch, type_info) -> BinaryPatch:
@@ -526,9 +526,9 @@ class PrimitiveStructPatch(
             cast_dynamic_patch_to_typed_field_patch,
             self._patch,
             20,
-            _fbthrift_python_types.typeinfo_binary)
+            _fbthrift_python_types.typeinfo_iobuf)
     @property
-    def managed_string_view(self) -> UnqualifiedFieldPatch[
+    def pmr_string(self) -> UnqualifiedFieldPatch[
             builtins.str,
             StringPatch]:
 

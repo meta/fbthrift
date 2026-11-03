@@ -17,11 +17,10 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <folly/container/F14Set.h>
-#include <folly/FBString.h>
+#include <memory_resource>
 #include <folly/container/F14Map.h>
 #include <folly/small_vector.h>
 #include "thrift/test/python_capi/adapter.h"
-#include "thrift/lib/cpp2/util/ManagedStringView.h"
 
 namespace apache::thrift {
 namespace ident {
@@ -51,8 +50,8 @@ struct buffy;
 struct pointbuffy;
 struct patched_struct;
 struct empty_struct;
-struct fbstring;
-struct managed_string_view;
+struct custom_iobuf;
+struct pmr_string;
 struct some_error;
 struct adapted_int;
 struct list_adapted_int;
@@ -210,13 +209,13 @@ APACHE_THRIFT_DEFINE_ACCESSOR(patched_struct);
 #define APACHE_THRIFT_ACCESSOR_empty_struct
 APACHE_THRIFT_DEFINE_ACCESSOR(empty_struct);
 #endif
-#ifndef APACHE_THRIFT_ACCESSOR_fbstring
-#define APACHE_THRIFT_ACCESSOR_fbstring
-APACHE_THRIFT_DEFINE_ACCESSOR(fbstring);
+#ifndef APACHE_THRIFT_ACCESSOR_custom_iobuf
+#define APACHE_THRIFT_ACCESSOR_custom_iobuf
+APACHE_THRIFT_DEFINE_ACCESSOR(custom_iobuf);
 #endif
-#ifndef APACHE_THRIFT_ACCESSOR_managed_string_view
-#define APACHE_THRIFT_ACCESSOR_managed_string_view
-APACHE_THRIFT_DEFINE_ACCESSOR(managed_string_view);
+#ifndef APACHE_THRIFT_ACCESSOR_pmr_string
+#define APACHE_THRIFT_ACCESSOR_pmr_string
+APACHE_THRIFT_DEFINE_ACCESSOR(pmr_string);
 #endif
 #ifndef APACHE_THRIFT_ACCESSOR_some_error
 #define APACHE_THRIFT_ACCESSOR_some_error
@@ -1803,8 +1802,8 @@ class PrimitiveStruct final  {
     ::apache::thrift::ident::pointbuffy,
     ::apache::thrift::ident::patched_struct,
     ::apache::thrift::ident::empty_struct,
-    ::apache::thrift::ident::fbstring,
-    ::apache::thrift::ident::managed_string_view,
+    ::apache::thrift::ident::custom_iobuf,
+    ::apache::thrift::ident::pmr_string,
     ::apache::thrift::ident::some_error
   >;
 
@@ -1822,8 +1821,8 @@ class PrimitiveStruct final  {
     ::apache::thrift::type::cpp_type<::test::fixtures::python_capi::IOBufPtr, ::apache::thrift::type::binary_t>,
     ::apache::thrift::type::struct_t<::test::fixtures::python_capi::MyStruct>,
     ::apache::thrift::type::struct_t<::test::fixtures::python_capi::VapidStruct>,
-    ::apache::thrift::type::cpp_type<folly::fbstring, ::apache::thrift::type::binary_t>,
-    ::apache::thrift::type::cpp_type<::apache::thrift::ManagedStringViewWithConversions, ::apache::thrift::type::string_t>,
+    ::apache::thrift::type::cpp_type<folly::IOBuf, ::apache::thrift::type::binary_t>,
+    ::apache::thrift::type::cpp_type<::std::pmr::string, ::apache::thrift::type::string_t>,
     ::apache::thrift::type::exception_t<::test::fixtures::python_capi::SomeError>
   >;
   void __fbthrift_clear();
@@ -1841,7 +1840,7 @@ class PrimitiveStruct final  {
 
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
-  PrimitiveStruct(apache::thrift::FragileConstructor, bool booly__arg, ::test::fixtures::python_capi::signed_byte charry__arg, uint16_t shortay__arg, ::std::int32_t inty__arg, uint64_t longy__arg, float floaty__arg, ::apache::thrift::detail::boxed_value_ptr<double> dubby__arg, ::std::unique_ptr<::std::string> stringy__arg, ::std::shared_ptr<const ::std::string> bytey__arg, ::test::fixtures::python_capi::IOBuf buffy__arg, ::test::fixtures::python_capi::IOBufPtr pointbuffy__arg, ::test::fixtures::python_capi::MyStruct patched_struct__arg, ::test::fixtures::python_capi::VapidStruct empty_struct__arg, folly::fbstring fbstring__arg, ::apache::thrift::ManagedStringViewWithConversions managed_string_view__arg, ::test::fixtures::python_capi::SomeError some_error__arg);
+  PrimitiveStruct(apache::thrift::FragileConstructor, bool booly__arg, ::test::fixtures::python_capi::signed_byte charry__arg, uint16_t shortay__arg, ::std::int32_t inty__arg, uint64_t longy__arg, float floaty__arg, ::apache::thrift::detail::boxed_value_ptr<double> dubby__arg, ::std::unique_ptr<::std::string> stringy__arg, ::std::shared_ptr<const ::std::string> bytey__arg, ::test::fixtures::python_capi::IOBuf buffy__arg, ::test::fixtures::python_capi::IOBufPtr pointbuffy__arg, ::test::fixtures::python_capi::MyStruct patched_struct__arg, ::test::fixtures::python_capi::VapidStruct empty_struct__arg, folly::IOBuf custom_iobuf__arg, ::std::pmr::string pmr_string__arg, ::test::fixtures::python_capi::SomeError some_error__arg);
 
   PrimitiveStruct(PrimitiveStruct&&) noexcept;
   PrimitiveStruct(const PrimitiveStruct& src);
@@ -1879,9 +1878,9 @@ class PrimitiveStruct final  {
  private:
   ::test::fixtures::python_capi::VapidStruct __fbthrift_field_empty_struct;
  private:
-  folly::fbstring __fbthrift_field_fbstring;
+  folly::IOBuf __fbthrift_field_custom_iobuf;
  private:
-  ::apache::thrift::ManagedStringViewWithConversions __fbthrift_field_managed_string_view;
+  ::std::pmr::string __fbthrift_field_pmr_string;
  private:
   ::test::fixtures::python_capi::SomeError __fbthrift_field_some_error;
  private:
@@ -2366,76 +2365,76 @@ class PrimitiveStruct final  {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_empty_struct), __isset.at(9), __isset.bit(9)};
   }
 
-  /** Glean { "field": "fbstring" } */
-  template <typename..., typename fbthrift_T = folly::fbstring>
-  FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> fbstring_ref() const& {
-    return {this->__fbthrift_field_fbstring, __isset.at(10), __isset.bit(10)};
+  /** Glean { "field": "custom_iobuf" } */
+  template <typename..., typename fbthrift_T = folly::IOBuf>
+  FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> custom_iobuf_ref() const& {
+    return {this->__fbthrift_field_custom_iobuf, __isset.at(10), __isset.bit(10)};
   }
 
-  /** Glean { "field": "fbstring" } */
-  template <typename..., typename fbthrift_T = folly::fbstring>
-  FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> fbstring_ref() & {
-    return {this->__fbthrift_field_fbstring, __isset.at(10), __isset.bit(10)};
+  /** Glean { "field": "custom_iobuf" } */
+  template <typename..., typename fbthrift_T = folly::IOBuf>
+  FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> custom_iobuf_ref() & {
+    return {this->__fbthrift_field_custom_iobuf, __isset.at(10), __isset.bit(10)};
   }
 
-  /** Glean { "field": "fbstring" } */
-  template <typename..., typename fbthrift_T = folly::fbstring>
-  FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> fbstring_ref() && {
-    return {static_cast<fbthrift_T&&>(this->__fbthrift_field_fbstring), __isset.at(10), __isset.bit(10)};
+  /** Glean { "field": "custom_iobuf" } */
+  template <typename..., typename fbthrift_T = folly::IOBuf>
+  FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> custom_iobuf_ref() && {
+    return {static_cast<fbthrift_T&&>(this->__fbthrift_field_custom_iobuf), __isset.at(10), __isset.bit(10)};
   }
 
-  /** Glean { "field": "fbstring" } */
-  template <typename..., typename fbthrift_T = folly::fbstring>
-  FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> fbstring() const& {
-    return {this->__fbthrift_field_fbstring, __isset.at(10), __isset.bit(10)};
+  /** Glean { "field": "custom_iobuf" } */
+  template <typename..., typename fbthrift_T = folly::IOBuf>
+  FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> custom_iobuf() const& {
+    return {this->__fbthrift_field_custom_iobuf, __isset.at(10), __isset.bit(10)};
   }
 
-  /** Glean { "field": "fbstring" } */
-  template <typename..., typename fbthrift_T = folly::fbstring>
-  FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> fbstring() & {
-    return {this->__fbthrift_field_fbstring, __isset.at(10), __isset.bit(10)};
+  /** Glean { "field": "custom_iobuf" } */
+  template <typename..., typename fbthrift_T = folly::IOBuf>
+  FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> custom_iobuf() & {
+    return {this->__fbthrift_field_custom_iobuf, __isset.at(10), __isset.bit(10)};
   }
 
-  /** Glean { "field": "fbstring" } */
-  template <typename..., typename fbthrift_T = folly::fbstring>
-  FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> fbstring() && {
-    return {static_cast<fbthrift_T&&>(this->__fbthrift_field_fbstring), __isset.at(10), __isset.bit(10)};
+  /** Glean { "field": "custom_iobuf" } */
+  template <typename..., typename fbthrift_T = folly::IOBuf>
+  FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> custom_iobuf() && {
+    return {static_cast<fbthrift_T&&>(this->__fbthrift_field_custom_iobuf), __isset.at(10), __isset.bit(10)};
   }
 
-  /** Glean { "field": "managed_string_view" } */
-  template <typename..., typename fbthrift_T = ::apache::thrift::ManagedStringViewWithConversions>
-  FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> managed_string_view_ref() const& {
-    return {this->__fbthrift_field_managed_string_view, __isset.at(11), __isset.bit(11)};
+  /** Glean { "field": "pmr_string" } */
+  template <typename..., typename fbthrift_T = ::std::pmr::string>
+  FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> pmr_string_ref() const& {
+    return {this->__fbthrift_field_pmr_string, __isset.at(11), __isset.bit(11)};
   }
 
-  /** Glean { "field": "managed_string_view" } */
-  template <typename..., typename fbthrift_T = ::apache::thrift::ManagedStringViewWithConversions>
-  FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> managed_string_view_ref() & {
-    return {this->__fbthrift_field_managed_string_view, __isset.at(11), __isset.bit(11)};
+  /** Glean { "field": "pmr_string" } */
+  template <typename..., typename fbthrift_T = ::std::pmr::string>
+  FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> pmr_string_ref() & {
+    return {this->__fbthrift_field_pmr_string, __isset.at(11), __isset.bit(11)};
   }
 
-  /** Glean { "field": "managed_string_view" } */
-  template <typename..., typename fbthrift_T = ::apache::thrift::ManagedStringViewWithConversions>
-  FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> managed_string_view_ref() && {
-    return {static_cast<fbthrift_T&&>(this->__fbthrift_field_managed_string_view), __isset.at(11), __isset.bit(11)};
+  /** Glean { "field": "pmr_string" } */
+  template <typename..., typename fbthrift_T = ::std::pmr::string>
+  FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> pmr_string_ref() && {
+    return {static_cast<fbthrift_T&&>(this->__fbthrift_field_pmr_string), __isset.at(11), __isset.bit(11)};
   }
 
-  /** Glean { "field": "managed_string_view" } */
-  template <typename..., typename fbthrift_T = ::apache::thrift::ManagedStringViewWithConversions>
-  FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> managed_string_view() const& {
-    return {this->__fbthrift_field_managed_string_view, __isset.at(11), __isset.bit(11)};
+  /** Glean { "field": "pmr_string" } */
+  template <typename..., typename fbthrift_T = ::std::pmr::string>
+  FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> pmr_string() const& {
+    return {this->__fbthrift_field_pmr_string, __isset.at(11), __isset.bit(11)};
   }
 
-  /** Glean { "field": "managed_string_view" } */
-  template <typename..., typename fbthrift_T = ::apache::thrift::ManagedStringViewWithConversions>
-  FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> managed_string_view() & {
-    return {this->__fbthrift_field_managed_string_view, __isset.at(11), __isset.bit(11)};
+  /** Glean { "field": "pmr_string" } */
+  template <typename..., typename fbthrift_T = ::std::pmr::string>
+  FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> pmr_string() & {
+    return {this->__fbthrift_field_pmr_string, __isset.at(11), __isset.bit(11)};
   }
 
-  /** Glean { "field": "managed_string_view" } */
-  template <typename..., typename fbthrift_T = ::apache::thrift::ManagedStringViewWithConversions>
-  FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> managed_string_view() && {
-    return {static_cast<fbthrift_T&&>(this->__fbthrift_field_managed_string_view), __isset.at(11), __isset.bit(11)};
+  /** Glean { "field": "pmr_string" } */
+  template <typename..., typename fbthrift_T = ::std::pmr::string>
+  FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> pmr_string() && {
+    return {static_cast<fbthrift_T&&>(this->__fbthrift_field_pmr_string), __isset.at(11), __isset.bit(11)};
   }
 
   /** Glean { "field": "some_error" } */
@@ -2600,44 +2599,44 @@ class PrimitiveStruct final  {
     return __fbthrift_field_empty_struct;
   }
 
-  /** Glean { "field": "fbstring" } */
-  [[deprecated("Use `FOO.fbstring().value()` instead of `FOO.get_fbstring()`")]]
-  const folly::fbstring& get_fbstring() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
-    return __fbthrift_field_fbstring;
+  /** Glean { "field": "custom_iobuf" } */
+  [[deprecated("Use `FOO.custom_iobuf().value()` instead of `FOO.get_custom_iobuf()`")]]
+  const folly::IOBuf& get_custom_iobuf() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
+    return __fbthrift_field_custom_iobuf;
   }
 
-  /** Glean { "field": "fbstring" } */
-  [[deprecated("Use `FOO.fbstring().value()` instead of `FOO.get_fbstring()`")]]
-  folly::fbstring get_fbstring() && {
-    return static_cast<folly::fbstring&&>(__fbthrift_field_fbstring);
+  /** Glean { "field": "custom_iobuf" } */
+  [[deprecated("Use `FOO.custom_iobuf().value()` instead of `FOO.get_custom_iobuf()`")]]
+  folly::IOBuf get_custom_iobuf() && {
+    return static_cast<folly::IOBuf&&>(__fbthrift_field_custom_iobuf);
   }
 
-  /** Glean { "field": "fbstring" } */
-  template <typename T_PrimitiveStruct_fbstring_struct_setter = folly::fbstring>
-  [[deprecated("Use `FOO.fbstring() = BAR` instead of `FOO.set_fbstring(BAR)`")]]
-  folly::fbstring& set_fbstring(T_PrimitiveStruct_fbstring_struct_setter&& fbstring_) {
-    fbstring_ref() = std::forward<T_PrimitiveStruct_fbstring_struct_setter>(fbstring_);
-    return __fbthrift_field_fbstring;
+  /** Glean { "field": "custom_iobuf" } */
+  template <typename T_PrimitiveStruct_custom_iobuf_struct_setter = folly::IOBuf>
+  [[deprecated("Use `FOO.custom_iobuf() = BAR` instead of `FOO.set_custom_iobuf(BAR)`")]]
+  folly::IOBuf& set_custom_iobuf(T_PrimitiveStruct_custom_iobuf_struct_setter&& custom_iobuf_) {
+    custom_iobuf_ref() = std::forward<T_PrimitiveStruct_custom_iobuf_struct_setter>(custom_iobuf_);
+    return __fbthrift_field_custom_iobuf;
   }
 
-  /** Glean { "field": "managed_string_view" } */
-  [[deprecated("Use `FOO.managed_string_view().value()` instead of `FOO.get_managed_string_view()`")]]
-  const ::apache::thrift::ManagedStringViewWithConversions& get_managed_string_view() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
-    return __fbthrift_field_managed_string_view;
+  /** Glean { "field": "pmr_string" } */
+  [[deprecated("Use `FOO.pmr_string().value()` instead of `FOO.get_pmr_string()`")]]
+  const ::std::pmr::string& get_pmr_string() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
+    return __fbthrift_field_pmr_string;
   }
 
-  /** Glean { "field": "managed_string_view" } */
-  [[deprecated("Use `FOO.managed_string_view().value()` instead of `FOO.get_managed_string_view()`")]]
-  ::apache::thrift::ManagedStringViewWithConversions get_managed_string_view() && {
-    return static_cast<::apache::thrift::ManagedStringViewWithConversions&&>(__fbthrift_field_managed_string_view);
+  /** Glean { "field": "pmr_string" } */
+  [[deprecated("Use `FOO.pmr_string().value()` instead of `FOO.get_pmr_string()`")]]
+  ::std::pmr::string get_pmr_string() && {
+    return static_cast<::std::pmr::string&&>(__fbthrift_field_pmr_string);
   }
 
-  /** Glean { "field": "managed_string_view" } */
-  template <typename T_PrimitiveStruct_managed_string_view_struct_setter = ::apache::thrift::ManagedStringViewWithConversions>
-  [[deprecated("Use `FOO.managed_string_view() = BAR` instead of `FOO.set_managed_string_view(BAR)`")]]
-  ::apache::thrift::ManagedStringViewWithConversions& set_managed_string_view(T_PrimitiveStruct_managed_string_view_struct_setter&& managed_string_view_) {
-    managed_string_view_ref() = std::forward<T_PrimitiveStruct_managed_string_view_struct_setter>(managed_string_view_);
-    return __fbthrift_field_managed_string_view;
+  /** Glean { "field": "pmr_string" } */
+  template <typename T_PrimitiveStruct_pmr_string_struct_setter = ::std::pmr::string>
+  [[deprecated("Use `FOO.pmr_string() = BAR` instead of `FOO.set_pmr_string(BAR)`")]]
+  ::std::pmr::string& set_pmr_string(T_PrimitiveStruct_pmr_string_struct_setter&& pmr_string_) {
+    pmr_string_ref() = std::forward<T_PrimitiveStruct_pmr_string_struct_setter>(pmr_string_);
+    return __fbthrift_field_pmr_string;
   }
 
   /** Glean { "field": "some_error" } */
@@ -6233,82 +6232,82 @@ template <> struct TEnumTraits<::test::fixtures::python_capi::SomeBinary::Type> 
 namespace apache::thrift::detail {
 template <> struct TSchemaAssociation<::test::fixtures::python_capi::MyStruct, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = 1336288575876310534;
-  static constexpr ::std::string_view definitionKey = {"\xc6\x03\x2d\x5d\x92\xc7\x4b\xda\x85\x16\x1d\x81\x2c\x45\x27\x90", 16};
+  static constexpr int64_t programId = 7234769459848524318;
+  static constexpr ::std::string_view definitionKey = {"\x30\x00\x26\x2f\x26\x9d\x12\xdc\x8a\x34\x8f\x4e\x71\x4c\xdf\xf4", 16};
 };
 template <> struct TSchemaAssociation<::test::fixtures::python_capi::MyDataItem, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = 1336288575876310534;
-  static constexpr ::std::string_view definitionKey = {"\x66\xf7\xba\x55\xb7\x6b\x61\xd8\xc7\xf2\x4f\x2c\x75\x6c\x1e\xa0", 16};
+  static constexpr int64_t programId = 7234769459848524318;
+  static constexpr ::std::string_view definitionKey = {"\xe8\x55\x12\xf2\x45\xd1\xdb\xfe\x8a\xb1\xb0\x3b\x75\xbc\x25\x7e", 16};
 };
 template <> struct TSchemaAssociation<::test::fixtures::python_capi::TransitiveDoubler, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = 1336288575876310534;
-  static constexpr ::std::string_view definitionKey = {"\xa2\x51\xee\x6d\x66\xda\x1d\x3b\x8a\xc8\x05\xba\x5f\x45\x51\x4d", 16};
+  static constexpr int64_t programId = 7234769459848524318;
+  static constexpr ::std::string_view definitionKey = {"\x84\xdd\x1a\xed\x16\x04\x0c\xe2\x57\xc2\x58\xe8\x2b\x58\xc8\x4a", 16};
 };
 template <> struct TSchemaAssociation<::test::fixtures::python_capi::detail::DoubledPair, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = 1336288575876310534;
-  static constexpr ::std::string_view definitionKey = {"\x85\xb5\xce\xcf\xfe\x64\x1f\xeb\x42\xa0\x8c\x63\x8e\xa7\xb9\x3d", 16};
+  static constexpr int64_t programId = 7234769459848524318;
+  static constexpr ::std::string_view definitionKey = {"\xbb\xd3\x9f\x64\x7f\x89\x4d\xbb\x1d\xb1\x58\xc2\xa3\xea\xaa\xbd", 16};
 };
 template <> struct TSchemaAssociation<::test::fixtures::python_capi::StringPair, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = 1336288575876310534;
-  static constexpr ::std::string_view definitionKey = {"\x81\xe4\xdd\x13\x51\xf7\x49\xc6\xbf\x2b\x6d\xc5\x13\x04\xb7\xaf", 16};
+  static constexpr int64_t programId = 7234769459848524318;
+  static constexpr ::std::string_view definitionKey = {"\x2e\xd1\x2c\x29\xbc\xdf\x0f\x6f\x8d\x7a\x4b\x5d\x08\x76\xac\x54", 16};
 };
 template <> struct TSchemaAssociation<::test::fixtures::python_capi::VapidStruct, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = 1336288575876310534;
-  static constexpr ::std::string_view definitionKey = {"\xfa\x5b\x67\xa3\x4d\xfb\xfb\xb2\x45\x26\xa2\xae\xa6\xc1\xfa\xc7", 16};
+  static constexpr int64_t programId = 7234769459848524318;
+  static constexpr ::std::string_view definitionKey = {"\xea\x5b\x1d\x81\x46\xe8\xac\xa7\x54\xea\xac\x0e\xe9\x12\x36\x1e", 16};
 };
 template <> struct TSchemaAssociation<::test::fixtures::python_capi::PrimitiveStruct, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = 1336288575876310534;
-  static constexpr ::std::string_view definitionKey = {"\x60\x99\x69\x4e\xad\x15\xd9\xd8\xe3\x6d\xe1\xcb\xaa\x1d\x43\xaa", 16};
+  static constexpr int64_t programId = 7234769459848524318;
+  static constexpr ::std::string_view definitionKey = {"\x2a\x89\x1a\xf5\xc4\xd9\x94\x45\x43\x1c\x46\xd0\xa2\x00\x2b\x5e", 16};
 };
 template <> struct TSchemaAssociation<::test::fixtures::python_capi::AdaptedFields, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = 1336288575876310534;
-  static constexpr ::std::string_view definitionKey = {"\xfe\x3a\xce\x35\xc4\xb5\x4e\x77\xc1\x33\x87\xf8\x6b\xdc\xe6\x0c", 16};
+  static constexpr int64_t programId = 7234769459848524318;
+  static constexpr ::std::string_view definitionKey = {"\x6c\x4a\x91\x94\x14\x9c\x15\xf8\xdd\x3d\x02\x66\x0d\x71\x8e\xbc", 16};
 };
 template <> struct TSchemaAssociation<::test::fixtures::python_capi::ListStruct, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = 1336288575876310534;
-  static constexpr ::std::string_view definitionKey = {"\x52\x10\xe9\x93\x24\x89\xfc\x95\x3e\x35\x41\x7e\x73\xbb\xec\x31", 16};
+  static constexpr int64_t programId = 7234769459848524318;
+  static constexpr ::std::string_view definitionKey = {"\x91\x02\xdd\x67\x60\x6f\xcf\xf9\x23\xb0\x0a\xd1\x16\x51\x51\x6e", 16};
 };
 template <> struct TSchemaAssociation<::test::fixtures::python_capi::SetStruct, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = 1336288575876310534;
-  static constexpr ::std::string_view definitionKey = {"\xd0\xa5\x52\x93\x1f\x8c\x7d\xaf\xca\x47\x0f\x8a\x11\x49\x73\xf1", 16};
+  static constexpr int64_t programId = 7234769459848524318;
+  static constexpr ::std::string_view definitionKey = {"\x98\xc7\x95\x75\x27\xb1\x92\x8d\x50\xff\xaf\xb7\x20\x41\x91\x21", 16};
 };
 template <> struct TSchemaAssociation<::test::fixtures::python_capi::MapStruct, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = 1336288575876310534;
-  static constexpr ::std::string_view definitionKey = {"\x5e\xe1\x7f\x46\x45\x71\x49\x78\x97\x29\xd5\xde\x32\x7b\x77\x27", 16};
+  static constexpr int64_t programId = 7234769459848524318;
+  static constexpr ::std::string_view definitionKey = {"\xa3\x8a\x05\x59\xa8\x64\x19\x43\xfb\x33\xcd\x5f\x52\x91\x39\x74", 16};
 };
 template <> struct TSchemaAssociation<::test::fixtures::python_capi::ComposeStruct, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = 1336288575876310534;
-  static constexpr ::std::string_view definitionKey = {"\x19\xf2\xd7\x84\x27\x02\xbc\x6b\xe6\x36\x16\x84\x6f\x1a\x2d\xe1", 16};
+  static constexpr int64_t programId = 7234769459848524318;
+  static constexpr ::std::string_view definitionKey = {"\x40\xbc\xa0\x4f\xd5\x37\xb1\xff\xf9\xd9\x82\xd7\x5d\xaa\xd7\xa4", 16};
 };
 template <> struct TSchemaAssociation<::test::fixtures::python_capi::Shallot, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = 1336288575876310534;
-  static constexpr ::std::string_view definitionKey = {"\xcc\x66\xdc\xe2\x58\x72\xb0\x11\xb3\xdf\x00\x8c\x47\x30\xf9\x70", 16};
+  static constexpr int64_t programId = 7234769459848524318;
+  static constexpr ::std::string_view definitionKey = {"\x5a\xd9\xc7\x44\x5d\xa4\xdb\x5f\xa1\x24\xcc\x7e\x7e\x42\x84\x15", 16};
 };
 template <> struct TSchemaAssociation<::test::fixtures::python_capi::SomeBinary, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = 1336288575876310534;
-  static constexpr ::std::string_view definitionKey = {"\xa0\x83\x97\x54\x4f\xea\xcb\x8c\x0a\xad\x43\x68\x40\x7b\x08\x98", 16};
+  static constexpr int64_t programId = 7234769459848524318;
+  static constexpr ::std::string_view definitionKey = {"\x11\x98\x93\x8f\x17\xbc\xab\x3d\x5f\x87\x12\x77\x93\xdd\x76\x25", 16};
 };
 template <> struct TSchemaAssociation<::test::fixtures::python_capi::MyEnum, true> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = 1336288575876310534;
-  static constexpr ::std::string_view definitionKey = {"\x5a\x44\x7a\x79\xbf\xa3\xed\xed\x3a\x5c\x60\x77\x59\x69\x61\xaf", 16};
+  static constexpr int64_t programId = 7234769459848524318;
+  static constexpr ::std::string_view definitionKey = {"\x3e\xd7\x13\x69\x6c\xff\x5e\xe1\xee\xc5\x4e\xb0\x5b\x2b\xea\xd0", 16};
 };
 template <> struct TSchemaAssociation<::test::fixtures::python_capi::NormalDecentEnum, true> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = 1336288575876310534;
-  static constexpr ::std::string_view definitionKey = {"\x11\xc8\xef\x28\x35\x42\x81\xfb\x84\xee\x28\xeb\xd4\x48\x96\x1d", 16};
+  static constexpr int64_t programId = 7234769459848524318;
+  static constexpr ::std::string_view definitionKey = {"\xaa\x3a\x08\x8f\xe4\x1b\xaa\x69\x1d\x1c\x0e\x31\x62\xcc\x98\xef", 16};
 };
 } // namespace apache::thrift::detail

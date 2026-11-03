@@ -214,7 +214,7 @@ class ComplexStruct(thrift.py3.types.Struct, _typing.Hashable):
     some_bytes: _typing.Final[bytes] = ...
     sender: _typing.Final[str] = ...
     cdef_: _typing.Final[str] = ...
-    bytes_with_cpp_type: _typing.Final[bytes] = ...
+    bytes_with_cpp_type: _typing.Final[_fbthrift_iobuf.IOBuf] = ...
 
     def __init__(
         self, *,
@@ -226,7 +226,7 @@ class ComplexStruct(thrift.py3.types.Struct, _typing.Hashable):
         some_bytes: _typing.Optional[bytes]=None,
         sender: _typing.Optional[str]=None,
         cdef_: _typing.Optional[str]=None,
-        bytes_with_cpp_type: _typing.Optional[bytes]=None
+        bytes_with_cpp_type: _typing.Optional[_fbthrift_iobuf.IOBuf]=None
     ) -> None: ...
 
     def __call__(
@@ -239,7 +239,7 @@ class ComplexStruct(thrift.py3.types.Struct, _typing.Hashable):
         some_bytes: _typing.Union[bytes, None]=None,
         sender: _typing.Union[str, None]=None,
         cdef_: _typing.Union[str, None]=None,
-        bytes_with_cpp_type: _typing.Union[bytes, None]=None
+        bytes_with_cpp_type: _typing.Union[_fbthrift_iobuf.IOBuf, None]=None
     ) -> ComplexStruct: ...
 
     def __reduce__(self) -> _typing.Tuple[_typing.Callable, _typing.Tuple[_typing.Type['ComplexStruct'], bytes]]: ...
@@ -314,7 +314,7 @@ class CustomFields(thrift.py3.types.Struct, _typing.Hashable):
     integer_field: _typing.Final[int] = ...
     double_field: _typing.Final[float] = ...
     string_field: _typing.Final[str] = ...
-    binary_field: _typing.Final[bytes] = ...
+    binary_field: _typing.Final[_fbthrift_iobuf.IOBuf] = ...
     list_field: _typing.Final[_typing.Sequence[int]] = ...
     set_field: _typing.Final[_typing.AbstractSet[int]] = ...
     map_field: _typing.Final[_typing.Mapping[int, int]] = ...
@@ -326,7 +326,7 @@ class CustomFields(thrift.py3.types.Struct, _typing.Hashable):
         integer_field: _typing.Optional[int]=None,
         double_field: _typing.Optional[float]=None,
         string_field: _typing.Optional[str]=None,
-        binary_field: _typing.Optional[bytes]=None,
+        binary_field: _typing.Optional[_fbthrift_iobuf.IOBuf]=None,
         list_field: _typing.Optional[_typing.Sequence[int]]=None,
         set_field: _typing.Optional[_typing.AbstractSet[int]]=None,
         map_field: _typing.Optional[_typing.Mapping[int, int]]=None,
@@ -339,7 +339,7 @@ class CustomFields(thrift.py3.types.Struct, _typing.Hashable):
         integer_field: _typing.Union[int, None]=None,
         double_field: _typing.Union[float, None]=None,
         string_field: _typing.Union[str, None]=None,
-        binary_field: _typing.Union[bytes, None]=None,
+        binary_field: _typing.Union[_fbthrift_iobuf.IOBuf, None]=None,
         list_field: _typing.Union[_typing.Sequence[int], None]=None,
         set_field: _typing.Union[_typing.AbstractSet[int], None]=None,
         map_field: _typing.Union[_typing.Mapping[int, int], None]=None,
@@ -360,7 +360,7 @@ class CustomTypedefFields(thrift.py3.types.Struct, _typing.Hashable):
     integer_field: _typing.Final[int] = ...
     double_field: _typing.Final[float] = ...
     string_field: _typing.Final[str] = ...
-    binary_field: _typing.Final[bytes] = ...
+    binary_field: _typing.Final[_typing.Optional[_fbthrift_iobuf.IOBuf]] = ...
     list_field: _typing.Final[_typing.Sequence[int]] = ...
     set_field: _typing.Final[_typing.AbstractSet[int]] = ...
     map_field: _typing.Final[_typing.Mapping[int, int]] = ...
@@ -372,7 +372,7 @@ class CustomTypedefFields(thrift.py3.types.Struct, _typing.Hashable):
         integer_field: _typing.Optional[int]=None,
         double_field: _typing.Optional[float]=None,
         string_field: _typing.Optional[str]=None,
-        binary_field: _typing.Optional[bytes]=None,
+        binary_field: _typing.Optional[_fbthrift_iobuf.IOBuf]=None,
         list_field: _typing.Optional[_typing.Sequence[int]]=None,
         set_field: _typing.Optional[_typing.AbstractSet[int]]=None,
         map_field: _typing.Optional[_typing.Mapping[int, int]]=None,
@@ -385,7 +385,7 @@ class CustomTypedefFields(thrift.py3.types.Struct, _typing.Hashable):
         integer_field: _typing.Union[int, None]=None,
         double_field: _typing.Union[float, None]=None,
         string_field: _typing.Union[str, None]=None,
-        binary_field: _typing.Union[bytes, None]=None,
+        binary_field: _typing.Union[_fbthrift_iobuf.IOBuf, None]=None,
         list_field: _typing.Union[_typing.Sequence[int], None]=None,
         set_field: _typing.Union[_typing.AbstractSet[int], None]=None,
         map_field: _typing.Union[_typing.Mapping[int, int], None]=None,
@@ -954,12 +954,12 @@ IOBufPtr = _fbthrift_iobuf.IOBuf
 IOBuf = _fbthrift_iobuf.IOBuf
 DeferredTruncationFloat = float
 AdaptedTypeDef = SimpleStruct
-foo_bar = bytes
+CustomBuffer = _fbthrift_iobuf.IOBuf
 CustomBool = bool
 CustomInteger = int
 CustomDouble = float
 CustomString = str
-CustomBinary = bytes
+CustomBinary = _fbthrift_iobuf.IOBuf
 CustomList = _MyType__List__i32
 CustomSet = _MyType__Set__i32
 CustomMap = _MyType__Map__i32_i32

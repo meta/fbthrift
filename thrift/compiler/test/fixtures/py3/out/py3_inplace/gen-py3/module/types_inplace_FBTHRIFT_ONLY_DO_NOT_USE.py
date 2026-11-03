@@ -2739,7 +2739,7 @@ class ComplexStruct(thrift.py3.types.Struct):
         return self._fbthrift__inner.cdef_
 
     @_python__property
-    def bytes_with_cpp_type(self) -> bytes:
+    def bytes_with_cpp_type(self) -> _fbthrift_iobuf.IOBuf:
         return self._fbthrift__inner.bytes_with_cpp_type
 
 
@@ -3102,7 +3102,7 @@ class CustomFields(thrift.py3.types.Struct):
         return self._fbthrift__inner.string_field
 
     @_python__property
-    def binary_field(self) -> bytes:
+    def binary_field(self) -> _fbthrift_iobuf.IOBuf:
         return self._fbthrift__inner.binary_field
 
     @_python__property
@@ -3264,7 +3264,7 @@ class CustomTypedefFields(thrift.py3.types.Struct):
         return self._fbthrift__inner.string_field
 
     @_python__property
-    def binary_field(self) -> bytes:
+    def binary_field(self) -> _typing.Optional[_fbthrift_iobuf.IOBuf]:
         return self._fbthrift__inner.binary_field
 
     @_python__property

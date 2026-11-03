@@ -237,11 +237,11 @@ def _fbthrift_gen_metadata_struct_PrimitiveStruct(metadata_struct: _fbthrift_met
         ]),
         _fbthrift_metadata.ThriftField(id=19, type=_fbthrift_metadata.ThriftType(t_struct=_fbthrift_metadata.ThriftStructType(name="module.EmptyStruct")), name="empty_struct", is_optional=False, structured_annotations=[
         ]),
-        _fbthrift_metadata.ThriftField(id=20, type=_fbthrift_metadata.ThriftType(t_primitive=_fbthrift_metadata.ThriftPrimitiveType.THRIFT_BINARY_TYPE), name="fbstring", is_optional=False, structured_annotations=[
-            _fbthrift_metadata.ThriftConstStruct(type=_fbthrift_metadata.ThriftStructType(name="cpp.Type"), fields= { "name": _fbthrift_metadata.ThriftConstValue(cv_string="folly::fbstring"),  }),
+        _fbthrift_metadata.ThriftField(id=20, type=_fbthrift_metadata.ThriftType(t_primitive=_fbthrift_metadata.ThriftPrimitiveType.THRIFT_BINARY_TYPE), name="custom_iobuf", is_optional=False, structured_annotations=[
+            _fbthrift_metadata.ThriftConstStruct(type=_fbthrift_metadata.ThriftStructType(name="cpp.Type"), fields= { "name": _fbthrift_metadata.ThriftConstValue(cv_string="folly::IOBuf"),  }),
         ]),
-        _fbthrift_metadata.ThriftField(id=21, type=_fbthrift_metadata.ThriftType(t_primitive=_fbthrift_metadata.ThriftPrimitiveType.THRIFT_STRING_TYPE), name="managed_string_view", is_optional=False, structured_annotations=[
-            _fbthrift_metadata.ThriftConstStruct(type=_fbthrift_metadata.ThriftStructType(name="cpp.Type"), fields= { "name": _fbthrift_metadata.ThriftConstValue(cv_string="::apache::thrift::ManagedStringViewWithConversions"),  }),
+        _fbthrift_metadata.ThriftField(id=21, type=_fbthrift_metadata.ThriftType(t_primitive=_fbthrift_metadata.ThriftPrimitiveType.THRIFT_STRING_TYPE), name="pmr_string", is_optional=False, structured_annotations=[
+            _fbthrift_metadata.ThriftConstStruct(type=_fbthrift_metadata.ThriftStructType(name="cpp.Type"), fields= { "name": _fbthrift_metadata.ThriftConstValue(cv_string="::std::pmr::string"),  }),
         ]),
         _fbthrift_metadata.ThriftField(id=22, type=_fbthrift_metadata.ThriftType(t_struct=_fbthrift_metadata.ThriftStructType(name="thrift_dep.SomeError")), name="some_error", is_optional=False, structured_annotations=[
         ]),
@@ -266,8 +266,8 @@ def _fbthrift_gen_metadata_struct_PrimitiveStruct(metadata_struct: _fbthrift_met
     # pointbuffy
     # patched_struct
     new_struct = _fbthrift_gen_metadata_struct_MyStruct(new_struct)    # empty_struct
-    new_struct = _fbthrift_gen_metadata_struct_EmptyStruct(new_struct)    # fbstring
-    # managed_string_view
+    new_struct = _fbthrift_gen_metadata_struct_EmptyStruct(new_struct)    # custom_iobuf
+    # pmr_string
     # some_error
     new_struct = test.fixtures.python_capi.thrift_dep.thrift_metadata._fbthrift_gen_metadata_exception_SomeError(new_struct)
     return new_struct

@@ -34,6 +34,8 @@ from thrift.py3.types cimport (
 from thrift.python.common cimport cThriftMetadata as __fbthrift_cThriftMetadata
 
 
+cdef extern from "<memory_resource>":
+  pass
 cdef extern from * nogil:
     cdef cppclass _std_unordered_map "::std::unordered_map"[T, U]:
         ctypedef T key_type
@@ -189,7 +191,7 @@ cdef extern from * nogil:
         bint empty()
 
 cdef extern from *:
-    ctypedef bstring foo_Bar "foo::Bar"
+    ctypedef string _std_pmr_string "::std::pmr::string"
 cdef extern from *:
     ctypedef string _py3_simple_AdaptedString "::py3::simple::AdaptedString"
 cdef extern from *:
@@ -315,9 +317,7 @@ cdef extern from *:
 cdef extern from *:
     ctypedef double _MyType "::MyType"
 cdef extern from *:
-    ctypedef string _MyType "::MyType"
-cdef extern from *:
-    ctypedef bstring _MyType "::MyType"
+    ctypedef string std_pmr_string "std::pmr::string"
 
 cdef extern from "thrift/lib/cpp2/gen/module_metadata_h.h" namespace "apache::thrift::detail::md":
     cdef cppclass EnumMetadata[T]:
@@ -434,7 +434,7 @@ cdef extern from "thrift/compiler/test/fixtures/py3/gen-cpp2/module_types_custom
         __field_ref[string] some_bytes_ref "some_bytes_ref" ()
         __field_ref[string] sender_ref "from_ref" ()
         __field_ref[string] cdef__ref "cdef_ref" ()
-        __field_ref[foo_Bar] bytes_with_cpp_type_ref "bytes_with_cpp_type_ref" ()
+        __field_ref[_fbthrift_iobuf.cIOBuf] bytes_with_cpp_type_ref "bytes_with_cpp_type_ref" ()
 
     cdef enum class cBinaryUnion__type "::py3::simple::BinaryUnion::Type":
         __EMPTY__,
@@ -462,8 +462,8 @@ cdef extern from "thrift/compiler/test/fixtures/py3/gen-cpp2/module_types_custom
         __field_ref[_MyType] bool_field_ref "bool_field_ref" ()
         __field_ref[_MyType] integer_field_ref "integer_field_ref" ()
         __field_ref[_MyType] double_field_ref "double_field_ref" ()
-        __field_ref[_MyType] string_field_ref "string_field_ref" ()
-        __field_ref[_MyType] binary_field_ref "binary_field_ref" ()
+        __field_ref[std_pmr_string] string_field_ref "string_field_ref" ()
+        __field_ref[_fbthrift_iobuf.cIOBuf] binary_field_ref "binary_field_ref" ()
         __field_ref[_MyType[cint32_t]] list_field_ref "list_field_ref" ()
         __field_ref[_MyType[cint32_t]] set_field_ref "set_field_ref" ()
         __field_ref[_MyType[cint32_t,cint32_t]] map_field_ref "map_field_ref" ()
@@ -478,8 +478,8 @@ cdef extern from "thrift/compiler/test/fixtures/py3/gen-cpp2/module_types_custom
         __field_ref[_MyType] bool_field_ref "bool_field_ref" ()
         __field_ref[_MyType] integer_field_ref "integer_field_ref" ()
         __field_ref[_MyType] double_field_ref "double_field_ref" ()
-        __field_ref[_MyType] string_field_ref "string_field_ref" ()
-        __field_ref[_MyType] binary_field_ref "binary_field_ref" ()
+        __field_ref[_std_pmr_string] string_field_ref "string_field_ref" ()
+        __field_ref[unique_ptr[_fbthrift_iobuf.cIOBuf]] binary_field_ref "binary_field_ref" ()
         __field_ref[_MyType[cint32_t]] list_field_ref "list_field_ref" ()
         __field_ref[_MyType[cint32_t]] set_field_ref "set_field_ref" ()
         __field_ref[_MyType[cint32_t,cint32_t]] map_field_ref "map_field_ref" ()

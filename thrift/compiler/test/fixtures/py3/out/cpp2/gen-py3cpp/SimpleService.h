@@ -10,6 +10,7 @@
 
 #include "thrift/compiler/test/fixtures/py3/gen-py3cpp/SimpleServiceAsyncClient.h"
 #include "thrift/compiler/test/fixtures/py3/gen-py3cpp/module_types.h"
+#include <memory_resource>
 
 namespace folly {
   class IOBuf;
@@ -687,8 +688,8 @@ class ServiceHandler<::py3::simple::SimpleService> : public apache::thrift::Serv
 namespace detail {
 template <> struct TSchemaAssociation<::py3::simple::SimpleService, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = 5777011531022044677;
-  static constexpr ::std::string_view definitionKey = {"\xa2\x7c\xd9\x9e\x28\xe4\x3f\x9f\x7f\xd6\x3f\x35\xa9\xda\xba\xbf", 16};
+  static constexpr int64_t programId = -3933524931714203253;
+  static constexpr ::std::string_view definitionKey = {"\xb6\x7a\xdf\x0d\x17\xe4\xa2\xee\x0f\x23\x9f\x31\xa0\x90\x66\xea", 16};
 };
 }
 } // namespace apache::thrift

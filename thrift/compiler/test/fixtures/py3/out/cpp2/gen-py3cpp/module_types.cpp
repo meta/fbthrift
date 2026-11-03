@@ -1116,7 +1116,7 @@ ComplexStruct& ComplexStruct::operator=([[maybe_unused]] ComplexStruct&& other) 
 }
 
 
-ComplexStruct::ComplexStruct(apache::thrift::FragileConstructor, ::py3::simple::SimpleStruct structOne__arg, ::py3::simple::SimpleStruct structTwo__arg, ::std::int32_t an_integer__arg, ::std::string name__arg, ::py3::simple::AnEnum an_enum__arg, ::std::string some_bytes__arg, ::std::string from__arg, ::std::string cdef__arg, ::py3::simple::foo_bar bytes_with_cpp_type__arg) :
+ComplexStruct::ComplexStruct(apache::thrift::FragileConstructor, ::py3::simple::SimpleStruct structOne__arg, ::py3::simple::SimpleStruct structTwo__arg, ::std::int32_t an_integer__arg, ::std::string name__arg, ::py3::simple::AnEnum an_enum__arg, ::std::string some_bytes__arg, ::std::string from__arg, ::std::string cdef__arg, ::py3::simple::CustomBuffer bytes_with_cpp_type__arg) :
     __fbthrift_field_structOne(std::move(structOne__arg)),
     __fbthrift_field_structTwo(std::move(structTwo__arg)),
     __fbthrift_field_an_integer(std::move(an_integer__arg)),
@@ -1147,7 +1147,7 @@ void ComplexStruct::__fbthrift_clear() {
   this->__fbthrift_field_some_bytes = apache::thrift::StringTraits<::std::string>::fromStringLiteral("");
   this->__fbthrift_field_from = apache::thrift::StringTraits<::std::string>::fromStringLiteral("");
   this->__fbthrift_field_cdef = apache::thrift::StringTraits<::std::string>::fromStringLiteral("");
-  this->__fbthrift_field_bytes_with_cpp_type = apache::thrift::StringTraits<::py3::simple::foo_bar>::fromStringLiteral("");
+  this->__fbthrift_field_bytes_with_cpp_type = apache::thrift::StringTraits<::py3::simple::CustomBuffer>::fromStringLiteral("");
   __isset = {};
 }
 
@@ -1451,7 +1451,7 @@ CustomFields& CustomFields::operator=([[maybe_unused]] CustomFields&& other) noe
 }
 
 
-CustomFields::CustomFields(apache::thrift::FragileConstructor, ::MyType bool_field__arg, ::MyType integer_field__arg, ::MyType double_field__arg, ::MyType string_field__arg, ::MyType binary_field__arg, ::MyType<::std::int32_t> list_field__arg, ::MyType<::std::int32_t> set_field__arg, ::MyType<::std::int32_t, ::std::int32_t> map_field__arg, ::py3::simple::SimpleStruct struct_field__arg) :
+CustomFields::CustomFields(apache::thrift::FragileConstructor, ::MyType bool_field__arg, ::MyType integer_field__arg, ::MyType double_field__arg, std::pmr::string string_field__arg, folly::IOBuf binary_field__arg, ::MyType<::std::int32_t> list_field__arg, ::MyType<::std::int32_t> set_field__arg, ::MyType<::std::int32_t, ::std::int32_t> map_field__arg, ::py3::simple::SimpleStruct struct_field__arg) :
     __fbthrift_field_bool_field(std::move(bool_field__arg)),
     __fbthrift_field_integer_field(std::move(integer_field__arg)),
     __fbthrift_field_double_field(std::move(double_field__arg)),
@@ -1477,8 +1477,8 @@ void CustomFields::__fbthrift_clear() {
   this->__fbthrift_field_bool_field = ::MyType();
   this->__fbthrift_field_integer_field = ::MyType();
   this->__fbthrift_field_double_field = ::MyType();
-  this->__fbthrift_field_string_field = apache::thrift::StringTraits<::MyType>::fromStringLiteral("");
-  this->__fbthrift_field_binary_field = apache::thrift::StringTraits<::MyType>::fromStringLiteral("");
+  this->__fbthrift_field_string_field = apache::thrift::StringTraits<std::pmr::string>::fromStringLiteral("");
+  this->__fbthrift_field_binary_field = apache::thrift::StringTraits<folly::IOBuf>::fromStringLiteral("");
   this->__fbthrift_field_list_field.clear();
   this->__fbthrift_field_set_field.clear();
   this->__fbthrift_field_map_field.clear();
@@ -1588,8 +1588,27 @@ std::string_view CustomTypedefFields::__fbthrift_get_class_name() {
   return apache::thrift::TStructDataStorage<CustomTypedefFields>::name;
 }
 
-CustomTypedefFields::CustomTypedefFields(const CustomTypedefFields&) = default;
-CustomTypedefFields& CustomTypedefFields::operator=(const CustomTypedefFields&) = default;
+CustomTypedefFields::CustomTypedefFields(const CustomTypedefFields& srcObj) :
+    __fbthrift_field_bool_field(srcObj.__fbthrift_field_bool_field),
+    __fbthrift_field_integer_field(srcObj.__fbthrift_field_integer_field),
+    __fbthrift_field_double_field(srcObj.__fbthrift_field_double_field),
+    __fbthrift_field_string_field(srcObj.__fbthrift_field_string_field),
+    __fbthrift_field_binary_field(::apache::thrift::detail::st::copy_field<
+          ::apache::thrift::type_class::binary>(srcObj.__fbthrift_field_binary_field)),
+    __fbthrift_field_list_field(srcObj.__fbthrift_field_list_field),
+    __fbthrift_field_set_field(srcObj.__fbthrift_field_set_field),
+    __fbthrift_field_map_field(srcObj.__fbthrift_field_map_field),
+    __fbthrift_field_struct_field(srcObj.__fbthrift_field_struct_field),
+    __isset(srcObj.__isset) {
+}
+
+static void __fbthrift_swap(CustomTypedefFields& lhs, CustomTypedefFields& rhs) { swap(lhs, rhs); }
+CustomTypedefFields& CustomTypedefFields::operator=(const CustomTypedefFields& other) {
+  CustomTypedefFields tmp(other);
+  __fbthrift_swap(*this, tmp);
+  return *this;
+}
+
 CustomTypedefFields::CustomTypedefFields() :
     __fbthrift_field_bool_field(),
     __fbthrift_field_integer_field(),

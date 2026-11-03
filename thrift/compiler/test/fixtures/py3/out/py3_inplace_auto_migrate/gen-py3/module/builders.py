@@ -116,7 +116,7 @@ class ComplexStruct_Builder(thrift.py3.builder.StructBuilder):
         self.some_bytes: _typing.Optional[bytes] = None
         self.sender: _typing.Optional[str] = None
         self.cdef_: _typing.Optional[str] = None
-        self.bytes_with_cpp_type: _typing.Optional[bytes] = None
+        self.bytes_with_cpp_type: _typing.Optional[_fbthrift_iobuf.IOBuf] = None
 
     def __iter__(self):
         yield "structOne", self.structOne
@@ -158,7 +158,7 @@ class CustomFields_Builder(thrift.py3.builder.StructBuilder):
         self.integer_field: _typing.Optional[int] = None
         self.double_field: _typing.Optional[float] = None
         self.string_field: _typing.Optional[str] = None
-        self.binary_field: _typing.Optional[bytes] = None
+        self.binary_field: _typing.Optional[_fbthrift_iobuf.IOBuf] = None
         self.list_field: _typing.Optional[list] = None
         self.set_field: _typing.Optional[set] = None
         self.map_field: _typing.Optional[dict] = None
@@ -184,7 +184,7 @@ class CustomTypedefFields_Builder(thrift.py3.builder.StructBuilder):
         self.integer_field: _typing.Optional[int] = None
         self.double_field: _typing.Optional[float] = None
         self.string_field: _typing.Optional[str] = None
-        self.binary_field: _typing.Optional[bytes] = None
+        self.binary_field: _typing.Optional[_fbthrift_iobuf.IOBuf] = None
         self.list_field: _typing.Optional[list] = None
         self.set_field: _typing.Optional[set] = None
         self.map_field: _typing.Optional[dict] = None

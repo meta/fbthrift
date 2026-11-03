@@ -611,8 +611,8 @@ PrimitiveStruct::PrimitiveStruct(const PrimitiveStruct& srcObj) :
           ::apache::thrift::type_class::binary>(srcObj.__fbthrift_field_pointbuffy)),
     __fbthrift_field_patched_struct(srcObj.__fbthrift_field_patched_struct),
     __fbthrift_field_empty_struct(srcObj.__fbthrift_field_empty_struct),
-    __fbthrift_field_fbstring(srcObj.__fbthrift_field_fbstring),
-    __fbthrift_field_managed_string_view(srcObj.__fbthrift_field_managed_string_view),
+    __fbthrift_field_custom_iobuf(srcObj.__fbthrift_field_custom_iobuf),
+    __fbthrift_field_pmr_string(srcObj.__fbthrift_field_pmr_string),
     __fbthrift_field_some_error(srcObj.__fbthrift_field_some_error),
     __isset(srcObj.__isset) {
 }
@@ -650,8 +650,8 @@ PrimitiveStruct::PrimitiveStruct([[maybe_unused]] PrimitiveStruct&& other) noexc
     __fbthrift_field_pointbuffy(std::move(other.__fbthrift_field_pointbuffy)),
     __fbthrift_field_patched_struct(std::move(other.__fbthrift_field_patched_struct)),
     __fbthrift_field_empty_struct(std::move(other.__fbthrift_field_empty_struct)),
-    __fbthrift_field_fbstring(std::move(other.__fbthrift_field_fbstring)),
-    __fbthrift_field_managed_string_view(std::move(other.__fbthrift_field_managed_string_view)),
+    __fbthrift_field_custom_iobuf(std::move(other.__fbthrift_field_custom_iobuf)),
+    __fbthrift_field_pmr_string(std::move(other.__fbthrift_field_pmr_string)),
     __fbthrift_field_some_error(std::move(other.__fbthrift_field_some_error)),
     __isset(other.__isset) {
 }
@@ -670,15 +670,15 @@ PrimitiveStruct& PrimitiveStruct::operator=([[maybe_unused]] PrimitiveStruct&& o
     this->__fbthrift_field_pointbuffy = std::move(other.__fbthrift_field_pointbuffy);
     this->__fbthrift_field_patched_struct = std::move(other.__fbthrift_field_patched_struct);
     this->__fbthrift_field_empty_struct = std::move(other.__fbthrift_field_empty_struct);
-    this->__fbthrift_field_fbstring = std::move(other.__fbthrift_field_fbstring);
-    this->__fbthrift_field_managed_string_view = std::move(other.__fbthrift_field_managed_string_view);
+    this->__fbthrift_field_custom_iobuf = std::move(other.__fbthrift_field_custom_iobuf);
+    this->__fbthrift_field_pmr_string = std::move(other.__fbthrift_field_pmr_string);
     this->__fbthrift_field_some_error = std::move(other.__fbthrift_field_some_error);
     __isset = other.__isset;
     return *this;
 }
 
 
-PrimitiveStruct::PrimitiveStruct(apache::thrift::FragileConstructor, bool booly__arg, ::test::fixtures::python_capi::signed_byte charry__arg, uint16_t shortay__arg, ::std::int32_t inty__arg, uint64_t longy__arg, float floaty__arg, ::apache::thrift::detail::boxed_value_ptr<double> dubby__arg, ::std::unique_ptr<::std::string> stringy__arg, ::std::shared_ptr<const ::std::string> bytey__arg, ::test::fixtures::python_capi::IOBuf buffy__arg, ::test::fixtures::python_capi::IOBufPtr pointbuffy__arg, ::test::fixtures::python_capi::MyStruct patched_struct__arg, ::test::fixtures::python_capi::VapidStruct empty_struct__arg, folly::fbstring fbstring__arg, ::apache::thrift::ManagedStringViewWithConversions managed_string_view__arg, ::test::fixtures::python_capi::SomeError some_error__arg) :
+PrimitiveStruct::PrimitiveStruct(apache::thrift::FragileConstructor, bool booly__arg, ::test::fixtures::python_capi::signed_byte charry__arg, uint16_t shortay__arg, ::std::int32_t inty__arg, uint64_t longy__arg, float floaty__arg, ::apache::thrift::detail::boxed_value_ptr<double> dubby__arg, ::std::unique_ptr<::std::string> stringy__arg, ::std::shared_ptr<const ::std::string> bytey__arg, ::test::fixtures::python_capi::IOBuf buffy__arg, ::test::fixtures::python_capi::IOBufPtr pointbuffy__arg, ::test::fixtures::python_capi::MyStruct patched_struct__arg, ::test::fixtures::python_capi::VapidStruct empty_struct__arg, folly::IOBuf custom_iobuf__arg, ::std::pmr::string pmr_string__arg, ::test::fixtures::python_capi::SomeError some_error__arg) :
     __fbthrift_field_booly(std::move(booly__arg)),
     __fbthrift_field_charry(std::move(charry__arg)),
     __fbthrift_field_shortay(std::move(shortay__arg)),
@@ -692,8 +692,8 @@ PrimitiveStruct::PrimitiveStruct(apache::thrift::FragileConstructor, bool booly_
     __fbthrift_field_pointbuffy(std::move(pointbuffy__arg)),
     __fbthrift_field_patched_struct(std::move(patched_struct__arg)),
     __fbthrift_field_empty_struct(std::move(empty_struct__arg)),
-    __fbthrift_field_fbstring(std::move(fbstring__arg)),
-    __fbthrift_field_managed_string_view(std::move(managed_string_view__arg)),
+    __fbthrift_field_custom_iobuf(std::move(custom_iobuf__arg)),
+    __fbthrift_field_pmr_string(std::move(pmr_string__arg)),
     __fbthrift_field_some_error(std::move(some_error__arg)) { 
   __isset.set(folly::index_constant<0>(), true);
   __isset.set(folly::index_constant<1>(), true);
@@ -724,8 +724,8 @@ void PrimitiveStruct::__fbthrift_clear() {
   this->__fbthrift_field_buffy = apache::thrift::StringTraits<::test::fixtures::python_capi::IOBuf>::fromStringLiteral("");
   this->__fbthrift_field_pointbuffy = apache::thrift::StringTraits<::test::fixtures::python_capi::IOBufPtr>::fromStringLiteral("");
   ::apache::thrift::clear(this->__fbthrift_field_patched_struct);
-  this->__fbthrift_field_fbstring = apache::thrift::StringTraits<folly::fbstring>::fromStringLiteral("");
-  this->__fbthrift_field_managed_string_view = apache::thrift::StringTraits<::apache::thrift::ManagedStringViewWithConversions>::fromStringLiteral("");
+  this->__fbthrift_field_custom_iobuf = apache::thrift::StringTraits<folly::IOBuf>::fromStringLiteral("");
+  this->__fbthrift_field_pmr_string = apache::thrift::StringTraits<::std::pmr::string>::fromStringLiteral("");
   ::apache::thrift::clear(this->__fbthrift_field_some_error);
   __isset = {};
 }
@@ -840,8 +840,8 @@ void swap([[maybe_unused]] PrimitiveStruct& a, [[maybe_unused]] PrimitiveStruct&
   swap(a.__fbthrift_field_pointbuffy, b.__fbthrift_field_pointbuffy);
   swap(a.__fbthrift_field_patched_struct, b.__fbthrift_field_patched_struct);
   swap(a.__fbthrift_field_empty_struct, b.__fbthrift_field_empty_struct);
-  swap(a.__fbthrift_field_fbstring, b.__fbthrift_field_fbstring);
-  swap(a.__fbthrift_field_managed_string_view, b.__fbthrift_field_managed_string_view);
+  swap(a.__fbthrift_field_custom_iobuf, b.__fbthrift_field_custom_iobuf);
+  swap(a.__fbthrift_field_pmr_string, b.__fbthrift_field_pmr_string);
   swap(a.__fbthrift_field_some_error, b.__fbthrift_field_some_error);
   swap(a.__isset, b.__isset);
 }

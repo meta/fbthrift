@@ -14,6 +14,7 @@
 #else
 #include "thrift/compiler/test/fixtures/py3/gen-py3cpp/module_clients.h"
 #endif
+#include <memory_resource>
 
 namespace apache { namespace thrift {
   class Cpp2RequestContext;

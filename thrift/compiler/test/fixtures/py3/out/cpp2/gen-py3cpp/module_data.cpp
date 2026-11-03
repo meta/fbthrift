@@ -420,96 +420,96 @@ THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<int, 9> TStructDataStorage<:
 namespace detail {
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::py3::simple::SimpleException, false>::bundle() {
-    return ::py3::simple::module_constants::_fbthrift_schema_502c116129e78e05_includes();
+    return ::py3::simple::module_constants::_fbthrift_schema_c9694fea5208418b_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::py3::simple::OptionalRefStruct, false>::bundle() {
-    return ::py3::simple::module_constants::_fbthrift_schema_502c116129e78e05_includes();
+    return ::py3::simple::module_constants::_fbthrift_schema_c9694fea5208418b_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::py3::simple::SimpleStruct, false>::bundle() {
-    return ::py3::simple::module_constants::_fbthrift_schema_502c116129e78e05_includes();
+    return ::py3::simple::module_constants::_fbthrift_schema_c9694fea5208418b_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::py3::simple::Float32Struct, false>::bundle() {
-    return ::py3::simple::module_constants::_fbthrift_schema_502c116129e78e05_includes();
+    return ::py3::simple::module_constants::_fbthrift_schema_c9694fea5208418b_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::py3::simple::IssetInspectionStruct, false>::bundle() {
-    return ::py3::simple::module_constants::_fbthrift_schema_502c116129e78e05_includes();
+    return ::py3::simple::module_constants::_fbthrift_schema_c9694fea5208418b_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::py3::simple::HiddenTypeFieldsStruct, false>::bundle() {
-    return ::py3::simple::module_constants::_fbthrift_schema_502c116129e78e05_includes();
+    return ::py3::simple::module_constants::_fbthrift_schema_c9694fea5208418b_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::py3::simple::detail::AdaptedUnion, false>::bundle() {
-    return ::py3::simple::module_constants::_fbthrift_schema_502c116129e78e05_includes();
+    return ::py3::simple::module_constants::_fbthrift_schema_c9694fea5208418b_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::py3::simple::HiddenException, false>::bundle() {
-    return ::py3::simple::module_constants::_fbthrift_schema_502c116129e78e05_includes();
+    return ::py3::simple::module_constants::_fbthrift_schema_c9694fea5208418b_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::py3::simple::ComplexStruct, false>::bundle() {
-    return ::py3::simple::module_constants::_fbthrift_schema_502c116129e78e05_includes();
+    return ::py3::simple::module_constants::_fbthrift_schema_c9694fea5208418b_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::py3::simple::BinaryUnion, false>::bundle() {
-    return ::py3::simple::module_constants::_fbthrift_schema_502c116129e78e05_includes();
+    return ::py3::simple::module_constants::_fbthrift_schema_c9694fea5208418b_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::py3::simple::BinaryUnionStruct, false>::bundle() {
-    return ::py3::simple::module_constants::_fbthrift_schema_502c116129e78e05_includes();
+    return ::py3::simple::module_constants::_fbthrift_schema_c9694fea5208418b_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::py3::simple::CustomFields, false>::bundle() {
-    return ::py3::simple::module_constants::_fbthrift_schema_502c116129e78e05_includes();
+    return ::py3::simple::module_constants::_fbthrift_schema_c9694fea5208418b_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::py3::simple::CustomTypedefFields, false>::bundle() {
-    return ::py3::simple::module_constants::_fbthrift_schema_502c116129e78e05_includes();
+    return ::py3::simple::module_constants::_fbthrift_schema_c9694fea5208418b_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::py3::simple::AdaptedTypedefFields, false>::bundle() {
-    return ::py3::simple::module_constants::_fbthrift_schema_502c116129e78e05_includes();
+    return ::py3::simple::module_constants::_fbthrift_schema_c9694fea5208418b_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::py3::simple::AnEnum, true>::bundle() {
-    return ::py3::simple::module_constants::_fbthrift_schema_502c116129e78e05_includes();
+    return ::py3::simple::module_constants::_fbthrift_schema_c9694fea5208418b_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::py3::simple::AnEnumRenamed, true>::bundle() {
-    return ::py3::simple::module_constants::_fbthrift_schema_502c116129e78e05_includes();
+    return ::py3::simple::module_constants::_fbthrift_schema_c9694fea5208418b_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::py3::simple::Flags, true>::bundle() {
-    return ::py3::simple::module_constants::_fbthrift_schema_502c116129e78e05_includes();
+    return ::py3::simple::module_constants::_fbthrift_schema_c9694fea5208418b_includes();
 }
 
 template <> struct TSchemaAssociation<::py3::simple::SimpleService, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = 5777011531022044677;
-  static constexpr ::std::string_view definitionKey = {"\xa2\x7c\xd9\x9e\x28\xe4\x3f\x9f\x7f\xd6\x3f\x35\xa9\xda\xba\xbf", 16};
+  static constexpr int64_t programId = -3933524931714203253;
+  static constexpr ::std::string_view definitionKey = {"\xb6\x7a\xdf\x0d\x17\xe4\xa2\xee\x0f\x23\x9f\x31\xa0\x90\x66\xea", 16};
 };
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::py3::simple::SimpleService, false>::bundle() {
-    return ::py3::simple::module_constants::_fbthrift_schema_502c116129e78e05_includes();
+    return ::py3::simple::module_constants::_fbthrift_schema_c9694fea5208418b_includes();
 }
 template <> struct TSchemaAssociation<::py3::simple::DerivedService, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = 5777011531022044677;
-  static constexpr ::std::string_view definitionKey = {"\x1c\x3f\xf5\x1c\x04\x46\xb7\x26\xf5\xe1\xc5\xd9\x4a\x51\xfe\x36", 16};
+  static constexpr int64_t programId = -3933524931714203253;
+  static constexpr ::std::string_view definitionKey = {"\x47\xa1\x64\xdd\x46\xd6\x6e\xb8\xf0\xd0\xfb\x16\x34\xee\x61\xa0", 16};
 };
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::py3::simple::DerivedService, false>::bundle() {
-    return ::py3::simple::module_constants::_fbthrift_schema_502c116129e78e05_includes();
+    return ::py3::simple::module_constants::_fbthrift_schema_c9694fea5208418b_includes();
 }
 template <> struct TSchemaAssociation<::py3::simple::RederivedService, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = 5777011531022044677;
-  static constexpr ::std::string_view definitionKey = {"\xee\x17\x37\x82\x48\x7a\x2a\x84\x39\x27\xaa\xd0\xa5\x53\xbb\x29", 16};
+  static constexpr int64_t programId = -3933524931714203253;
+  static constexpr ::std::string_view definitionKey = {"\x53\xbd\x09\xe3\x8a\x09\x6f\xc8\xb8\x1b\x85\x5e\x65\x31\xf2\x7f", 16};
 };
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::py3::simple::RederivedService, false>::bundle() {
-    return ::py3::simple::module_constants::_fbthrift_schema_502c116129e78e05_includes();
+    return ::py3::simple::module_constants::_fbthrift_schema_c9694fea5208418b_includes();
 }
 } // namespace detail
 } // namespace apache::thrift
