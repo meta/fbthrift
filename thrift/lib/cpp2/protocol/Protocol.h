@@ -521,13 +521,14 @@ void readStringBody(StrType& str, CursorType& in, size_t size) {
     return;
   }
 
-  if (in.length() < size) {
-    if (!in.canAdvance(size)) {
-      protocol::TProtocolException::throwTruncatedData();
-    }
-    str.reserve(size); // only reserve for multi iter case below
+  const bool fragmented = in.length() < size;
+  if (fragmented && !in.canAdvance(size)) {
+    protocol::TProtocolException::throwTruncatedData();
   }
   str.clear();
+  if (fragmented) {
+    str.reserve(size);
+  }
   size_t size_left = size;
   while (size_left > 0) {
     auto data = in.peekBytes();
