@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-include "thrift/annotation/compat.thrift"
+include "thrift/annotation/java.thrift"
 
-@compat.Enums
 package "test.dev/thrift/lib/java/test/enums/pkg"
 
 namespace java.swift com.facebook.thrift.test.enums.pkg
@@ -25,13 +24,13 @@ struct TestStructOpenPkg {
   1: TestEnumOpenPkg enum_field;
 }
 
+@java.OpenEnum
 enum TestEnumOpenPkg {
   ONE = 1,
   TWO = 2,
   THREE = 3,
 }
 
-@compat.Enums{type = compat.EnumType.Legacy}
 enum TestEnumOverridePkg {
   ONE = 1,
   TWO = 2,

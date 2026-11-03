@@ -16,7 +16,6 @@
 
 include "thrift/annotation/java.thrift"
 include "thrift/lib/thrift/any.thrift"
-include "thrift/annotation/compat.thrift"
 include "thrift/annotation/thrift.thrift"
 
 package "test.dev/thrift/lib/java/test/thrift/any"
@@ -65,7 +64,7 @@ enum TestEnum {
   TWO = 2,
 }
 
-@compat.Enums
+@java.OpenEnum
 enum TestOpenEnum {
   ZERO = 0,
   ONE = 1,

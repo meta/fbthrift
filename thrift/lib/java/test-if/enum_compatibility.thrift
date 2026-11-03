@@ -16,7 +16,6 @@
 
 include "thrift/annotation/thrift.thrift"
 include "thrift/annotation/java.thrift"
-include "thrift/annotation/compat.thrift"
 include "thrift/lib/java/test-common/test_common.thrift"
 
 @thrift.Experimental
@@ -30,7 +29,6 @@ enum TestEnumLegacy1 {
   TWO = 2,
 }
 
-@compat.Enums{type = compat.EnumType.Legacy}
 enum TestEnumLegacy2 {
   ONE = 1,
   TWO = 2,
@@ -38,7 +36,7 @@ enum TestEnumLegacy2 {
 }
 
 // default is open enum in v1
-@compat.Enums
+@java.OpenEnum
 enum TestEnumOpen1 {
   ZERO = 0,
   ONE = 1,
@@ -46,7 +44,7 @@ enum TestEnumOpen1 {
   N = 113,
 }
 
-@compat.Enums{type = compat.EnumType.Open}
+@java.OpenEnum
 enum TestEnumOpen2 {
   ONE = 1,
   TWO = 2,

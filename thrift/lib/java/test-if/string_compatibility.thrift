@@ -16,7 +16,6 @@
 
 include "thrift/annotation/thrift.thrift"
 include "thrift/annotation/java.thrift"
-include "thrift/annotation/compat.thrift"
 
 @thrift.Experimental
 package "test.dev/thrift/lib/java/test/utf8"
@@ -27,7 +26,6 @@ namespace java.swift com.facebook.thrift.test.utf8
 typedef string str
 
 @thrift.AllowLegacyTypedefUri
-@compat.Strings{onInvalidUtf8 = compat.CodingErrorAction.Report}
 typedef string UTF8StringReport
 
 @thrift.AllowLegacyTypedefUri
@@ -35,11 +33,9 @@ typedef string UTF8StringReport
   adapterClassName = "com.facebook.thrift.adapter.test.StringToLongTypeAdapter",
   typeClassName = "java.lang.Long",
 }
-@compat.Strings{onInvalidUtf8 = compat.CodingErrorAction.Report}
 typedef string UTF8AdaptedStringReport
 
 @thrift.AllowLegacyTypedefUri
-@compat.Strings{onInvalidUtf8 = compat.CodingErrorAction.Legacy}
 typedef string UTF8String
 
 @java.BinaryString
@@ -54,7 +50,6 @@ struct TestBinaryStringStruct {
   adapterClassName = "com.facebook.thrift.adapter.test.StringToLongTypeAdapter",
   typeClassName = "java.lang.Long",
 }
-@compat.Strings{onInvalidUtf8 = compat.CodingErrorAction.Legacy}
 typedef string UTF8AdaptedString
 
 struct TestStruct {
@@ -84,30 +79,40 @@ struct TestStructString {
   @thrift.TerseWrite
   7: string terse_str;
   8: map<string, map<string, string>> complex_field;
+  @java.Utf8
   9: UTF8StringReport utf8_str;
+  @java.Utf8
   10: UTF8AdaptedStringReport adapted_utf8_str;
 }
 
-@compat.Utf8
 struct Utf8TestStructReport {
+  @java.Utf8
   1: optional string str_field;
+  @java.Utf8
   2: optional list<string> str_list;
+  @java.Utf8
   3: optional set<string> str_set;
+  @java.Utf8
   4: optional map<i32, string> str_map;
+  @java.Utf8
   5: optional list<list<string>> str_list_of_list;
+  @java.Utf8
   @java.Adapter{
     adapterClassName = "com.facebook.thrift.adapter.test.StringToLongTypeAdapter",
     typeClassName = "java.lang.Long",
   }
   6: string adapted_str;
+  @java.Utf8
   @thrift.TerseWrite
   7: string terse_str;
+  @java.Utf8
   8: map<string, map<string, string>> complex_field;
+  @java.Utf8
   9: UTF8StringReport utf8_str;
+  @java.Utf8
   10: UTF8AdaptedStringReport adapted_utf8_str;
 }
 
-@compat.Strings{onInvalidUtf8 = compat.CodingErrorAction.Legacy}
 struct Utf8TestStructLegacy {
   1: str str_field;
   2: list<str> str_list;
@@ -122,7 +127,7 @@ struct Utf8TestStructLegacy {
   @thrift.TerseWrite
   7: str terse_str;
   8: map<str, map<str, str>> complex_field;
-  @compat.Strings{onInvalidUtf8 = compat.CodingErrorAction.Report}
+  @java.Utf8
   9: UTF8String utf8_str;
   10: UTF8AdaptedString adapted_utf8_str;
 }
@@ -130,7 +135,7 @@ struct Utf8TestStructLegacy {
 struct Utf8TestStructBin {
   1: string_5433 str_field;
   2: list<string_7069> str_list;
-  @compat.Strings{onInvalidUtf8 = compat.CodingErrorAction.Report}
+  @java.Utf8
   3: set<string_7069> str_set;
   4: map<i32, string_7069> str_map;
   5: list<list<string_7069>> str_list_of_list;
@@ -152,23 +157,24 @@ union TestUnion {
 }
 
 union TestUnionCompat {
-  @compat.Strings
+  @java.Utf8
   1: string field1;
-  @compat.Strings
+  @java.Utf8
   2: string field2;
+  @java.Utf8
   3: UTF8StringReport utf8_str;
+  @java.Utf8
   4: UTF8AdaptedStringReport adapted_utf8_str;
 }
 
 struct TestStructCompat {
-  @compat.Strings
+  @java.Utf8
   1: string str_field;
-  @compat.Strings
+  @java.Utf8
   8: map<
     UTF8StringReport,
     map<UTF8String, UTF8AdaptedStringReport>
   > complex_field;
-  @compat.Strings{onInvalidUtf8 = compat.CodingErrorAction.Legacy}
   9: UTF8StringReport utf8_str;
 }
 
@@ -179,7 +185,7 @@ transient exception TestException {
 
 transient exception TestExceptionCompat {
   1: i32 err_code;
-  @compat.Strings
+  @java.Utf8
   2: string err_msg;
 }
 

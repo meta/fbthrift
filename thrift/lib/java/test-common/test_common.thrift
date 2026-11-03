@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-include "thrift/annotation/compat.thrift"
+include "thrift/annotation/java.thrift"
 
 package "test.dev/thrift/lib/java/test/common"
 
@@ -26,14 +26,13 @@ enum TestEnum {
   TWO = 2,
 }
 
-@compat.Enums{type = compat.EnumType.Legacy}
 enum TestEnumLegacy {
   ONE = 1,
   TWO = 2,
   THREE = 3,
 }
 
-@compat.Enums{type = compat.EnumType.Open}
+@java.OpenEnum
 enum TestEnumOpen {
   ZERO = 0,
   ONE = 1,

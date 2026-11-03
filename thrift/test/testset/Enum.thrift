@@ -23,7 +23,7 @@ namespace java.swift org.apache.thrift.test
 namespace go thrift.test.testset.Enum
 namespace csharp Apache.Thrift.Test.Enum
 
-include "thrift/annotation/compat.thrift"
+include "thrift/annotation/java.thrift"
 include "thrift/annotation/thrift.thrift"
 
 enum Standard {
@@ -32,26 +32,26 @@ enum Standard {
   value_2 = 2,
 }
 
-@compat.Enums
+@java.OpenEnum
 enum NoZero {
   value_1 = 1,
   value_2 = 2,
 }
 
-@compat.Enums
+@java.OpenEnum
 enum MissingField {
   value_0 = 0,
   value_1 = 1,
 }
 
-@compat.Enums
+@java.OpenEnum
 enum NameMismatch {
   value_0 = 0,
   value_1 = 1,
   value_3 = 2,
 }
 
-@compat.Enums
+@java.OpenEnum
 enum ValueMismatch {
   value_0 = 0,
   value_1 = 1,
