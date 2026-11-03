@@ -20,11 +20,14 @@
 #include <cstdint>
 #include <limits>
 #include <map>
+#include <memory_resource>
 #include <set>
+#include <string_view>
 #include <vector>
 
 #include <gtest/gtest.h>
 #include <folly/Portability.h>
+#include <folly/ScopeGuard.h>
 #include <folly/io/IOBufQueue.h>
 #include <thrift/lib/cpp2/Adapt.h>
 #include <thrift/lib/cpp2/Adapter.h>
@@ -129,6 +132,65 @@ TEST_F(AdapterTest, StringTypeAdapter) {
       StringTypeAdapter<folly::fbstring>::encode<type::binary_t>(
           protocol, empty),
       2);
+}
+
+TEST_F(AdapterTest, StringTypeAdapterRetainsStorage) {
+  using Adapter = StringTypeAdapter<std::string>;
+  static_assert(!adapt_detail::StringTypeAdapterCompatible<std::string_view>);
+
+  const std::string payload(256, 'x');
+  auto converted = Adapter::fromThrift(payload);
+  EXPECT_EQ(Adapter::toThrift(converted), payload);
+
+  std::string adapted;
+  adapted.reserve(payload.size());
+  const auto* storage = adapted.data();
+
+  folly::IOBufQueue queue;
+  CompactProtocolWriter writer;
+  writer.setOutput(&queue);
+  writer.writeString(payload);
+  auto encoded = queue.move();
+  CompactProtocolReader reader;
+  reader.setInput(encoded.get());
+  op::decode<type::adapted<Adapter, type::string_t>>(reader, adapted);
+  EXPECT_EQ(Adapter::toThrift(adapted), payload);
+  EXPECT_EQ(adapted.data(), storage);
+
+  Adapter::clear(adapted);
+  EXPECT_TRUE(Adapter::isEmpty(adapted));
+  EXPECT_EQ(adapted.data(), storage);
+}
+
+TEST_F(AdapterTest, SimpleJSONNativePmrMapRetainsAllocator) {
+  using StringTag = type::cpp_type<std::pmr::string, type::string_t>;
+  using MapTag = type::map<StringTag, StringTag>;
+  using WireTag = type::map<type::string_t, type::string_t>;
+  const std::string payload(256, 'x');
+  std::pmr::monotonic_buffer_resource resource(std::pmr::new_delete_resource());
+  std::map<std::string, std::string> source;
+  source.emplace(payload, payload);
+
+  folly::IOBufQueue queue;
+  SimpleJSONProtocolWriter writer;
+  writer.setOutput(&queue);
+  op::encode<WireTag>(writer, source);
+  auto encoded = queue.move();
+
+  const auto previous =
+      std::pmr::set_default_resource(std::pmr::null_memory_resource());
+  const auto restoreDefault =
+      folly::makeGuard([&] { std::pmr::set_default_resource(previous); });
+  std::pmr::map<std::pmr::string, std::pmr::string> destination(&resource);
+  SimpleJSONProtocolReader reader;
+  reader.setInput(encoded.get());
+  op::decode<MapTag>(reader, destination);
+  ASSERT_EQ(destination.size(), 1);
+  const auto& [key, value] = *destination.begin();
+  EXPECT_EQ(std::string_view(key.data(), key.size()), payload);
+  EXPECT_EQ(std::string_view(value.data(), value.size()), payload);
+  EXPECT_EQ(key.get_allocator().resource(), &resource);
+  EXPECT_EQ(value.get_allocator().resource(), &resource);
 }
 
 TEST_F(AdapterTest, IsMutableRef) {

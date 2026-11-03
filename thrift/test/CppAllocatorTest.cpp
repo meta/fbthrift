@@ -478,6 +478,23 @@ TEST(CppAllocatorTest, CountingAllocator) {
   EXPECT_NO_ALLOC(alloc, not_aa_child.not_aa_string()->assign(kTooLong));
 }
 
+TEST(CppAllocatorTest, DeserializeCountingStringRetainsAllocator) {
+  using serializer = apache::thrift::CompactSerializer;
+
+  CountingChild source;
+  source.aa_string() = kTooLong;
+
+  ScopedCountingAlloc<> alloc;
+  CountingChild destination(alloc);
+  EXPECT_EQ(destination.aa_string()->get_allocator(), alloc);
+
+  serializer::deserialize(
+      serializer::serialize<std::string>(source), destination);
+
+  EXPECT_EQ(destination.aa_string(), kTooLong);
+  EXPECT_EQ(destination.aa_string()->get_allocator(), alloc);
+}
+
 TEST(CppAllocatorTest, CountingResource) {
   CountingPmrResource res;
   PmrByteAlloc alloc(&res);
