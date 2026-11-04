@@ -148,4 +148,33 @@ TEST(PatchTest, BinaryPatch) {
   test::expectPatch(clearPatch, {makeIOBuf("hi")}, makeIOBuf(""));
 }
 
+TEST(PatchTest, BinaryPatchRepeatedAppendAndPrepend) {
+  BinaryPatch patch;
+  std::string prefix, suffix;
+  for (int i = 0; i < 20; ++i) {
+    auto piece = std::to_string(i);
+    patch.append(*folly::IOBuf::copyBuffer(piece));
+    patch.prepend(*folly::IOBuf::copyBuffer(piece));
+    suffix += piece;
+    prefix.insert(0, piece);
+    // Empty input must not change the patch.
+    patch.append(folly::IOBuf());
+    patch.prepend(folly::IOBuf());
+  }
+  test::expectPatch(
+      patch,
+      {folly::IOBuf::wrapBufferAsValue(folly::StringPiece("hi"))},
+      *folly::IOBuf::copyBuffer(prefix + "hi" + suffix),
+      *folly::IOBuf::copyBuffer(prefix + prefix + "hi" + suffix + suffix));
+
+  BinaryPatch assigned;
+  assigned = folly::IOBuf::wrapBufferAsValue(folly::StringPiece("x"));
+  assigned.append(*folly::IOBuf::copyBuffer("y"));
+  assigned.prepend(*folly::IOBuf::copyBuffer("w"));
+  test::expectPatch(
+      assigned,
+      {folly::IOBuf::wrapBufferAsValue(folly::StringPiece("hi"))},
+      *folly::IOBuf::copyBuffer("wxy"));
+}
+
 } // namespace apache::thrift::op

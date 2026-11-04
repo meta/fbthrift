@@ -19,6 +19,7 @@
 
 #include <folly/Benchmark.h>
 #include <folly/init/Init.h>
+#include <thrift/lib/cpp2/op/Patch.h>
 #include <thrift/lib/cpp2/patch/DynamicPatch.h>
 
 namespace apache::thrift::protocol {
@@ -46,6 +47,48 @@ void diffListNotPrefix(unsigned iters, size_t n) {
   }
 }
 
+const std::string kPiece = "0123456789abcdef";
+
+// Merges `patches` one at a time into the first, as a consumer folding many
+// patches of one value does.
+void fold(std::vector<DynamicPatch> patches) {
+  DynamicPatch merged = std::move(patches.front());
+  for (size_t i = 1; i < patches.size(); ++i) {
+    merged.merge(std::move(patches[i]));
+  }
+  folly::doNotOptimizeAway(merged);
+}
+
+template <class MakePatch>
+void foldPatches(unsigned iters, size_t n, MakePatch makePatch) {
+  while (iters--) {
+    std::vector<DynamicPatch> patches;
+    BENCHMARK_SUSPEND {
+      patches.reserve(n);
+      for (size_t i = 0; i < n; ++i) {
+        patches.push_back(makePatch(i));
+      }
+    }
+    fold(std::move(patches));
+  }
+}
+
+void foldBinaryAppend(unsigned iters, size_t n) {
+  foldPatches(iters, n, [](size_t) {
+    op::BinaryPatch p;
+    p.append(*folly::IOBuf::copyBuffer(kPiece));
+    return DynamicPatch::fromStaticPatch(p);
+  });
+}
+
+void foldBinaryPrepend(unsigned iters, size_t n) {
+  foldPatches(iters, n, [](size_t) {
+    op::BinaryPatch p;
+    p.prepend(*folly::IOBuf::copyBuffer(kPiece));
+    return DynamicPatch::fromStaticPatch(p);
+  });
+}
+
 } // namespace
 
 BENCHMARK_PARAM(diffListNotPrefix, 100)
@@ -53,6 +96,18 @@ BENCHMARK_PARAM(diffListNotPrefix, 200)
 BENCHMARK_PARAM(diffListNotPrefix, 400)
 BENCHMARK_PARAM(diffListNotPrefix, 800)
 BENCHMARK_PARAM(diffListNotPrefix, 1600)
+BENCHMARK_DRAW_LINE();
+BENCHMARK_PARAM(foldBinaryAppend, 100)
+BENCHMARK_PARAM(foldBinaryAppend, 200)
+BENCHMARK_PARAM(foldBinaryAppend, 400)
+BENCHMARK_PARAM(foldBinaryAppend, 800)
+BENCHMARK_PARAM(foldBinaryAppend, 1600)
+BENCHMARK_DRAW_LINE();
+BENCHMARK_PARAM(foldBinaryPrepend, 100)
+BENCHMARK_PARAM(foldBinaryPrepend, 200)
+BENCHMARK_PARAM(foldBinaryPrepend, 400)
+BENCHMARK_PARAM(foldBinaryPrepend, 800)
+BENCHMARK_PARAM(foldBinaryPrepend, 1600)
 BENCHMARK_DRAW_LINE();
 
 } // namespace apache::thrift::protocol
