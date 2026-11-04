@@ -14,6 +14,9 @@ namespace facebook::thrift::annotation {
   ::apache::thrift::metadata::ThriftServiceMetadataResponse response;
   ::apache::thrift::metadata::ThriftMetadata& metadata = *response.metadata();
   ::apache::thrift::detail::md::StructMetadata<InjectMetadataFields>::gen(metadata);
+  ::apache::thrift::detail::md::StructMetadata<CppAllocator>::gen(metadata);
+  ::apache::thrift::detail::md::StructMetadata<CppUseAllocator>::gen(metadata);
+  ::apache::thrift::detail::md::StructMetadata<CppAllocatorVia>::gen(metadata);
   return metadata;
 }
 } // namespace facebook::thrift::annotation

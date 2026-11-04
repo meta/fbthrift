@@ -30,8 +30,65 @@ inline void reset_field<::facebook::thrift::annotation::InjectMetadataFields>(
 }
 
 template<>
+inline void reset_field<::facebook::thrift::annotation::CppAllocator>(
+    ::facebook::thrift::annotation::CppAllocator& obj, uint16_t index) {
+  switch (index) {
+    case 0:
+      obj.name_ref().copy_from(default_inst<::facebook::thrift::annotation::CppAllocator>().name_ref());
+      return;
+  }
+}
+
+template<>
+inline void reset_field<::facebook::thrift::annotation::CppUseAllocator>(
+    ::facebook::thrift::annotation::CppUseAllocator& obj, uint16_t index) {
+  switch (index) {
+  }
+}
+
+template<>
+inline void reset_field<::facebook::thrift::annotation::CppAllocatorVia>(
+    ::facebook::thrift::annotation::CppAllocatorVia& obj, uint16_t index) {
+  switch (index) {
+    case 0:
+      obj.name_ref().copy_from(default_inst<::facebook::thrift::annotation::CppAllocatorVia>().name_ref());
+      return;
+  }
+}
+
+template<>
 inline const std::unordered_map<std::string_view, std::string_view>& PyStructTraits<
     ::facebook::thrift::annotation::InjectMetadataFields>::namesmap() {
+  static const folly::Indestructible<NamesMap> map {
+    {
+    }
+  };
+  return *map;
+}
+
+template<>
+inline const std::unordered_map<std::string_view, std::string_view>& PyStructTraits<
+    ::facebook::thrift::annotation::CppAllocator>::namesmap() {
+  static const folly::Indestructible<NamesMap> map {
+    {
+    }
+  };
+  return *map;
+}
+
+template<>
+inline const std::unordered_map<std::string_view, std::string_view>& PyStructTraits<
+    ::facebook::thrift::annotation::CppUseAllocator>::namesmap() {
+  static const folly::Indestructible<NamesMap> map {
+    {
+    }
+  };
+  return *map;
+}
+
+template<>
+inline const std::unordered_map<std::string_view, std::string_view>& PyStructTraits<
+    ::facebook::thrift::annotation::CppAllocatorVia>::namesmap() {
   static const folly::Indestructible<NamesMap> map {
     {
     }
