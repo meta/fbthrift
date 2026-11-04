@@ -572,17 +572,17 @@ func (hdr *tHeader) Read(buf *bufio.Reader) error {
 		return types.NewTransportExceptionFromError(err)
 	}
 
-	if uint32(hdr.headerLen*4) > MaxHeaderSize {
+	if uint32(hdr.headerLen)*4 > MaxHeaderSize {
 		return types.NewTransportExceptionFromError(
-			fmt.Errorf("invalid header length: %d", int64(hdr.headerLen*4)),
+			fmt.Errorf("invalid header length: %d", int64(hdr.headerLen)*4),
 		)
 	}
 
 	// The length of the payload without the header (fixed is 10)
-	hdr.payloadLen = hdr.length - 10 - uint64(hdr.headerLen*4)
+	hdr.payloadLen = hdr.length - 10 - uint64(hdr.headerLen)*4
 
 	// Limit the reader for the header so we can't overrun
-	limbuf := newLimitedByteReader(buf, int64(hdr.headerLen*4))
+	limbuf := newLimitedByteReader(buf, int64(hdr.headerLen)*4)
 	hdr.clientType = HeaderClientType
 	return hdr.readVarHeader(limbuf)
 }
