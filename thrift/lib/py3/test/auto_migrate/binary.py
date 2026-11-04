@@ -24,6 +24,7 @@ from binary.services import BinaryServiceInterface
 from binary.types import Binaries, BinaryUnion, unicode_bytes, unicode_str
 from folly.iobuf import IOBuf
 from thrift.py3.client import get_client
+from thrift.py3.serializer import deserialize, Protocol, serialize
 from thrift.py3.server import ThriftServer
 
 
@@ -42,6 +43,20 @@ class BinaryTests(unittest.TestCase):
         self.assertEqual(b"".join(val.iobuf_ptr), b"ghijkl")
         self.assertEqual(val.fbstring, b"stuvwx")
         self.assertEqual(val.nonstandard_type, b"yzabcd")
+
+    def test_buffer_bytes_roundtrip_and_repr(self) -> None:
+        for payload in (b"", b"a\x00\x80\xffz"):
+            val = Binaries(nonstandard_type=payload)
+            self.assertIsInstance(val.nonstandard_type, bytes)
+            self.assertEqual(val.nonstandard_type, payload)
+            self.assertIn(f"nonstandard_type={payload!r}", repr(val))
+            for protocol in (Protocol.BINARY, Protocol.COMPACT):
+                with self.subTest(payload=payload, protocol=protocol):
+                    decoded = deserialize(
+                        Binaries, serialize(val, protocol=protocol), protocol=protocol
+                    )
+                    self.assertEqual(decoded.nonstandard_type, payload)
+                    self.assertIsInstance(decoded.nonstandard_type, bytes)
 
     def test_binary_union(self) -> None:
         val = BinaryUnion(iobuf_val=IOBuf(b"mnopqr"))
