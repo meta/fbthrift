@@ -28,8 +28,16 @@
 #include <thrift/lib/cpp2/protocol/Json5Protocol.h>
 #include <thrift/lib/cpp2/protocol/Serializer.h>
 #include <thrift/lib/cpp2/runtime/SchemaRegistry.h>
+#include <thrift/test/json5/gen-cpp2/json5_compatibility_test_constants.h>
+#include <thrift/test/json5/gen-cpp2/json5_compatibility_test_types.h>
+#include <thrift/test/json5/gen-cpp2/json5_negative_test_constants.h>
+#include <thrift/test/json5/gen-cpp2/json5_negative_test_types.h>
+#include <thrift/test/json5/gen-cpp2/json5_test_constants.h>
+#include <thrift/test/json5/gen-cpp2/json5_test_types.h>
+#include <thrift/test/json5/gen-cpp2/json5_test_types_custom_protocol.h>
 
 #include <cstdint>
+#include <exception>
 #include <limits>
 #include <map>
 #include <set>
@@ -42,6 +50,7 @@ namespace apache::thrift::dynamic {
 namespace {
 
 namespace gen = json5_test;
+namespace shared = facebook::thrift::json5;
 using json5::detail::Json5ProtocolReader;
 using json5::detail::Json5ProtocolWriter;
 using json5::detail::JsonWriterOptions;
@@ -68,6 +77,10 @@ T toStatic(const DynamicConstRef& value) {
   writer.setOutput(&queue);
   serializeValue(writer, value);
   return CompactSerializer::deserialize<T>(queue.move().get());
+}
+
+Json5ProtocolWriter::Options basicJsonOptions() {
+  return {.writer = {.indentWidth = 2}};
 }
 
 Json5ProtocolWriter::Options json5Options() {
@@ -120,7 +133,11 @@ DynamicValue fromJson(std::string_view json, const type_system::TypeRef& type) {
   Json5ProtocolReader reader;
   reader.setInput(buf.get());
   auto value = deserializeValue(reader, type);
-  EXPECT_TRUE(reader.getCursor().isAtEnd()) << json;
+  if (!reader.getCursor().isAtEnd()) {
+    throw protocol::TProtocolException(
+        protocol::TProtocolException::INVALID_DATA,
+        "unexpected trailing content after JSON value");
+  }
   return value;
 }
 
@@ -460,6 +477,124 @@ TEST(Json5SerializationTest, SetAndMapOrderDoesNotDependOnInsertionOrder) {
   EXPECT_EQ(toJson(ascendingMap), mapJson);
   EXPECT_EQ(toJson(descendingMap), mapJson);
 }
+
+class Json5SharedTest : public testing::TestWithParam<shared::TestCase> {};
+
+TEST_P(Json5SharedTest, Writes) {
+  const auto value = toDynamic(*GetParam().example());
+  EXPECT_EQ(toJson(value, basicJsonOptions()), *GetParam().json());
+  EXPECT_EQ(toJson(value), *GetParam().json5());
+}
+
+TEST_P(Json5SharedTest, Reads) {
+  for (const auto& json : {*GetParam().json(), *GetParam().json5()}) {
+    EXPECT_EQ(fromJsonViaDynamic<shared::Example>(json), *GetParam().example())
+        << json;
+  }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Shared,
+    Json5SharedTest,
+    testing::ValuesIn(shared::json5_test_constants::testCases()),
+    [](const auto& info) { return *info.param.name(); });
+
+class Json5SharedCompatibilityTest
+    : public testing::TestWithParam<shared::CompatibilityTestCase> {};
+
+TEST_P(Json5SharedCompatibilityTest, Reads) {
+  for (const auto& json : *GetParam().inputs()) {
+    EXPECT_EQ(fromJsonViaDynamic<shared::Example>(json), *GetParam().output())
+        << json;
+  }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Shared,
+    Json5SharedCompatibilityTest,
+    testing::ValuesIn(
+        shared::json5_compatibility_test_constants::compatibilityTestCases()),
+    [](const auto& info) { return *info.param.name(); });
+
+class Json5SharedRoundTripTest
+    : public testing::TestWithParam<shared::RoundTripTestCase> {};
+
+TEST_P(Json5SharedRoundTripTest, WritesReadValue) {
+  for (const auto& json : *GetParam().inputs()) {
+    const auto value = fromJson(json, typeOf<shared::Example>());
+    EXPECT_EQ(toJson(value, basicJsonOptions()), *GetParam().json()) << json;
+    EXPECT_EQ(toJson(value), *GetParam().json5()) << json;
+  }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Shared,
+    Json5SharedRoundTripTest,
+    testing::ValuesIn(
+        shared::json5_compatibility_test_constants::roundTripTestCases()),
+    [](const auto& info) { return *info.param.name(); });
+
+class Json5SharedNegativeTest
+    : public testing::TestWithParam<shared::NegativeTestCase> {};
+
+// Not only TProtocolException: the default validation callbacks reject a union
+// with more than one field with std::runtime_error.
+TEST_P(Json5SharedNegativeTest, Rejects) {
+  EXPECT_THROW(
+      fromJson(*GetParam().json(), typeOf<shared::Example>()), std::exception);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    EnumValidation,
+    Json5SharedNegativeTest,
+    testing::ValuesIn(
+        shared::json5_negative_test_constants::enumValidationNegativeCases()),
+    [](const auto& info) { return *info.param.name(); });
+
+INSTANTIATE_TEST_SUITE_P(
+    TypeValidation,
+    Json5SharedNegativeTest,
+    testing::ValuesIn(
+        shared::json5_negative_test_constants::typeValidationNegativeCases()),
+    [](const auto& info) { return *info.param.name(); });
+
+INSTANTIATE_TEST_SUITE_P(
+    TypeMismatch,
+    Json5SharedNegativeTest,
+    testing::ValuesIn(
+        shared::json5_negative_test_constants::typeMismatchNegativeCases()),
+    [](const auto& info) { return *info.param.name(); });
+
+INSTANTIATE_TEST_SUITE_P(
+    FormatValidation,
+    Json5SharedNegativeTest,
+    testing::ValuesIn(
+        shared::json5_negative_test_constants::formatValidationNegativeCases()),
+    [](const auto& info) { return *info.param.name(); });
+
+INSTANTIATE_TEST_SUITE_P(
+    OverflowValidation,
+    Json5SharedNegativeTest,
+    testing::ValuesIn(
+        shared::json5_negative_test_constants::
+            overflowValidationNegativeCases()),
+    [](const auto& info) { return *info.param.name(); });
+
+class Json5SharedInvalidUtf8Test
+    : public testing::TestWithParam<shared::InvalidUtf8TestCase> {};
+
+TEST_P(Json5SharedInvalidUtf8Test, Rejects) {
+  EXPECT_THROW(
+      fromJson(*GetParam().json(), typeOf<shared::Example>()),
+      protocol::TProtocolException);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    Shared,
+    Json5SharedInvalidUtf8Test,
+    testing::ValuesIn(
+        shared::json5_negative_test_constants::invalidUtf8NegativeCases()),
+    [](const auto& info) { return std::string(*info.param.name()); });
 
 } // namespace
 } // namespace apache::thrift::dynamic
