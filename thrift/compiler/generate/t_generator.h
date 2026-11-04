@@ -28,8 +28,10 @@
 
 namespace apache::thrift::compiler {
 
+class t_named;
 class t_program;
 class t_program_bundle;
+class t_type;
 
 struct docblock_style {
   std::string_view opening;
@@ -54,6 +56,23 @@ struct docblock_style {
 // every line, so a blank line renders as the bare prefix (` *`, `#`).
 std::string apply_docblock_style(
     std::string_view text, const docblock_style& style);
+
+// Returns the name of `type` as written in Thrift IDL, qualifying types defined
+// outside of `program` with the name of their program.
+std::string thrift_type_name(const t_type& type, const t_program& program);
+
+// Returns `node`'s definition as Thrift IDL in `program`, without a body or
+// value, e.g. `1: optional i32 foo` for a field. Empty for a node that is not a
+// definition.
+std::string thrift_definition(const t_named& node, const t_program& program);
+
+// Returns the language-independent text of the docblock that documents `node`
+// in code generated for `program`, to render with apply_docblock_style: its
+// doc comment, followed by its thrift_definition if `with_definition`. Pass
+// `with_definition` when the generated code names or types `node` differently
+// from the IDL, so the docblock shows what it was generated from.
+std::string docblock_text(
+    const t_named& node, const t_program& program, bool with_definition);
 
 class t_generator {
  public:

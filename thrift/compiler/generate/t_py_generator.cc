@@ -2877,7 +2877,8 @@ void t_py_generator::generate_service_remote(const t_service* tservice) {
       if (fn->qualifier() == t_function_qualifier::oneway) {
         f_remote << "None, ";
       } else {
-        f_remote << "'" << thrift_type_name(&fn->return_type().deref())
+        f_remote << "'"
+                 << thrift_type_name(fn->return_type().deref(), *program_)
                  << "', ";
       }
 
@@ -2889,9 +2890,10 @@ void t_py_generator::generate_service_remote(const t_service* tservice) {
         } else {
           f_remote << ", ";
         }
-        f_remote << "('" << thrift_type_name(&it_2.type().deref()) << "', '"
-                 << it_2.name() << "', '"
-                 << thrift_type_name(it_2.type()->get_true_type()) << "')";
+        f_remote << "('" << thrift_type_name(it_2.type().deref(), *program_)
+                 << "', '" << it_2.name() << "', '"
+                 << thrift_type_name(*it_2.type()->get_true_type(), *program_)
+                 << "')";
       }
       f_remote << "]),\n";
     }
