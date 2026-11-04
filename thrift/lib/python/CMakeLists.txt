@@ -677,9 +677,11 @@ file(MAKE_DIRECTORY "${_cybld}/thrift/python/server_impl")
 file(MAKE_DIRECTORY "${_cybld}/thrift/python/server_impl/execution")
 file(MAKE_DIRECTORY "${_cybld}/thrift/python/server_impl/interceptor")
 
-# For cimport during Cython compilation
+# For cimport during Cython compilation, and the pure Python modules that
+# server.pyx imports from thrift.python.server_impl
 file(GLOB ServerImplFiles "${CMAKE_CURRENT_SOURCE_DIR}/server/*.pxd"
-     "${CMAKE_CURRENT_SOURCE_DIR}/server/*.pyx")
+     "${CMAKE_CURRENT_SOURCE_DIR}/server/*.pyx"
+     "${CMAKE_CURRENT_SOURCE_DIR}/server/*.py")
 
 foreach (_src ${ServerImplFiles})
   get_filename_component(_target_file "${_src}" NAME)
