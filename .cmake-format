@@ -15,3 +15,18 @@ parse:
         OUTPUT_DIRECTORY: 1
         INCLUDE_PREFIX: 1
         NAMESPACE: 1
+        FILE_DEPENDS: +
+      flags:
+        - LEGACY_STRICT
+    thrift_add_library:
+      pargs: 2
+      kwargs:
+        LANGUAGE: 1
+        SERVICES: +
+        DEPENDS: +
+        OPTIONS: +
+        INCLUDE_DIRECTORIES: +
+        OUTPUT_DIRECTORY: 1
+        INCLUDE_PREFIX: 1
+      flags:
+        - LEGACY_STRICT

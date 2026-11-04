@@ -11,8 +11,9 @@
 #                          thrift_generate(); THRIFT_COMPILER-NOTFOUND if no
 #                          compiler is installed
 #
-# Also provides thrift_generate() from ThriftGenerate.cmake, unless the project
-# already defines a command with that name.
+# Also provides thrift_generate() and thrift_add_library() from
+# ThriftGenerate.cmake, unless the project already defines a command named
+# thrift_generate().
 
 @PACKAGE_INIT@
 

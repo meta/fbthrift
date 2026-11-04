@@ -104,6 +104,9 @@ add_subdirectory(common)
 add_subdirectory(compiler)
 add_subdirectory(annotation)
 add_subdirectory(lib)
+if (THRIFT_TESTS AND THRIFT_RPC)
+  add_subdirectory(cmake/test)
+endif ()
 
 # Install CMake package configuration files for Thrift.
 include(CMakePackageConfigHelpers)
@@ -156,6 +159,12 @@ install(
 # FBTHRIFT_INCLUDE_DIR that older copies of them read.
 set(THRIFT_INCLUDE_DIR "${PROJECT_SOURCE_DIR}" CACHE INTERNAL
                                                      "Thrift include directory")
+# A cache variable, unlike the one ThriftGenerate.cmake sets, reaches a project
+# that adds Thrift with add_subdirectory(). -DTHRIFT_COMPILER=... is kept.
+if (NOT DEFINED CACHE{THRIFT_COMPILER})
+  set(THRIFT_COMPILER "${THRIFT_COMPILER}"
+      CACHE INTERNAL "Thrift compiler, for thrift_generate()")
+endif ()
 set(FBTHRIFT_COMPILER FBThrift::thrift CACHE INTERNAL "thrift compiler target")
 set(FBTHRIFT_INCLUDE_DIR "${PROJECT_SOURCE_DIR}"
     CACHE INTERNAL "fbthrift include directory")

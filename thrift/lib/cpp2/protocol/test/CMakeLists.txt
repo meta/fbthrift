@@ -27,7 +27,7 @@ foreach (thrift_file Module CompactProtocolTestStructs cursor)
   if ("${thrift_file}" STREQUAL "cursor")
     set(thrift_options "")
   else ()
-    set(thrift_options frozen2 layouts)
+    set(thrift_options frozen2)
   endif ()
   thrift_generate(thrift_protocol_test_fixtures ${thrift_file}.thrift
                   LANGUAGE cpp2 OPTIONS ${thrift_options})
