@@ -1003,6 +1003,12 @@ pub mod my_service {
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
 
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.frobnicate(
                 )
@@ -1069,6 +1075,12 @@ pub mod my_service {
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
 
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.ping(
                 )
@@ -1134,6 +1146,12 @@ pub mod my_service {
             p.read_message_end()?;
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
+
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.truthify(
@@ -1237,6 +1255,12 @@ pub mod my_service {
             p.read_message_end()?;
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
+
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.failstream(
@@ -1355,6 +1379,12 @@ pub mod my_service {
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
 
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.failstreaminit(
                 )
@@ -1458,6 +1488,12 @@ pub mod my_service {
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
 
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.frobnicateWithArg(
                     _args.arg,
@@ -1524,6 +1560,12 @@ pub mod my_service {
             p.read_message_end()?;
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
+
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.streamWithArg(
@@ -1629,6 +1671,12 @@ pub mod my_service {
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
 
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.firstAndStream(
                 )
@@ -1731,6 +1779,12 @@ pub mod my_service {
             p.read_message_end()?;
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
+
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.encode(
@@ -2091,6 +2145,12 @@ pub mod my_service {
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
 
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.frobnicate(
                 )
@@ -2157,6 +2217,12 @@ pub mod my_service {
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
 
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.ping(
                 )
@@ -2222,6 +2288,12 @@ pub mod my_service {
             p.read_message_end()?;
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
+
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.truthify(
@@ -2325,6 +2397,12 @@ pub mod my_service {
             p.read_message_end()?;
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
+
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.encode(
@@ -2664,6 +2742,12 @@ pub mod my_service {
             p.read_message_end()?;
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
+
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.frobnicate(
@@ -3215,6 +3299,12 @@ where
         // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
         ::std::mem::drop(p);
 
+        // After the event handlers and before the service method, where
+        // generated C++ runs the interceptors. Reached only once pre_read and
+        // post_read have both succeeded, so a handler that refused the request
+        // ends it without any interceptor being asked.
+        ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
         let res = ::std::panic::AssertUnwindSafe(
             self.service.foo(
             )
@@ -3280,6 +3370,12 @@ where
         p.read_message_end()?;
         // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
         ::std::mem::drop(p);
+
+        // After the event handlers and before the service method, where
+        // generated C++ runs the interceptors. Reached only once pre_read and
+        // post_read have both succeeded, so a handler that refused the request
+        // ends it without any interceptor being asked.
+        ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
         let res = ::std::panic::AssertUnwindSafe(
             self.service.interact(
@@ -3351,6 +3447,12 @@ where
         // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
         ::std::mem::drop(p);
 
+        // After the event handlers and before the service method, where
+        // generated C++ runs the interceptors. Reached only once pre_read and
+        // post_read have both succeeded, so a handler that refused the request
+        // ends it without any interceptor being asked.
+        ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
         let res = ::std::panic::AssertUnwindSafe(
             self.service.interactFast(
             )
@@ -3419,6 +3521,12 @@ where
         p.read_message_end()?;
         // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
         ::std::mem::drop(p);
+
+        // After the event handlers and before the service method, where
+        // generated C++ runs the interceptors. Reached only once pre_read and
+        // post_read have both succeeded, so a handler that refused the request
+        // ends it without any interceptor being asked.
+        ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
         let res = ::std::panic::AssertUnwindSafe(
             self.service.serialize(
@@ -3901,6 +4009,12 @@ pub mod factories {
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
 
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.frobnicate(
                 )
@@ -3967,6 +4081,12 @@ pub mod factories {
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
 
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.ping(
                 )
@@ -4032,6 +4152,12 @@ pub mod factories {
             p.read_message_end()?;
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
+
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.truthify(
@@ -4135,6 +4261,12 @@ pub mod factories {
             p.read_message_end()?;
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
+
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.failstream(
@@ -4253,6 +4385,12 @@ pub mod factories {
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
 
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.failstreaminit(
                 )
@@ -4356,6 +4494,12 @@ pub mod factories {
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
 
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.frobnicateWithArg(
                     _args.arg,
@@ -4422,6 +4566,12 @@ pub mod factories {
             p.read_message_end()?;
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
+
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.streamWithArg(
@@ -4527,6 +4677,12 @@ pub mod factories {
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
 
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.firstAndStream(
                 )
@@ -4629,6 +4785,12 @@ pub mod factories {
             p.read_message_end()?;
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
+
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.encode(
@@ -4989,6 +5151,12 @@ pub mod factories {
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
 
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.frobnicate(
                 )
@@ -5055,6 +5223,12 @@ pub mod factories {
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
 
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.ping(
                 )
@@ -5120,6 +5294,12 @@ pub mod factories {
             p.read_message_end()?;
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
+
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.truthify(
@@ -5223,6 +5403,12 @@ pub mod factories {
             p.read_message_end()?;
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
+
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.encode(
@@ -5562,6 +5748,12 @@ pub mod factories {
             p.read_message_end()?;
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
+
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.frobnicate(
@@ -6386,6 +6578,12 @@ where
         // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
         ::std::mem::drop(p);
 
+        // After the event handlers and before the service method, where
+        // generated C++ runs the interceptors. Reached only once pre_read and
+        // post_read have both succeeded, so a handler that refused the request
+        // ends it without any interceptor being asked.
+        ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
         let res = ::std::panic::AssertUnwindSafe(
             self.service.foo(
             )
@@ -6451,6 +6649,12 @@ where
         p.read_message_end()?;
         // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
         ::std::mem::drop(p);
+
+        // After the event handlers and before the service method, where
+        // generated C++ runs the interceptors. Reached only once pre_read and
+        // post_read have both succeeded, so a handler that refused the request
+        // ends it without any interceptor being asked.
+        ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
         let res = ::std::panic::AssertUnwindSafe(
             self.service.interact(
@@ -6522,6 +6726,12 @@ where
         // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
         ::std::mem::drop(p);
 
+        // After the event handlers and before the service method, where
+        // generated C++ runs the interceptors. Reached only once pre_read and
+        // post_read have both succeeded, so a handler that refused the request
+        // ends it without any interceptor being asked.
+        ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
         let res = ::std::panic::AssertUnwindSafe(
             self.service.interactFast(
             )
@@ -6590,6 +6800,12 @@ where
         p.read_message_end()?;
         // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
         ::std::mem::drop(p);
+
+        // After the event handlers and before the service method, where
+        // generated C++ runs the interceptors. Reached only once pre_read and
+        // post_read have both succeeded, so a handler that refused the request
+        // ends it without any interceptor being asked.
+        ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
         let res = ::std::panic::AssertUnwindSafe(
             self.service.serialize(
@@ -6697,6 +6913,12 @@ where
         // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
         ::std::mem::drop(p);
 
+        // After the event handlers and before the service method, where
+        // generated C++ runs the interceptors. Reached only once pre_read and
+        // post_read have both succeeded, so a handler that refused the request
+        // ends it without any interceptor being asked.
+        ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
         let res = ::std::panic::AssertUnwindSafe(
             self.service.interactWithStream(
             )
@@ -6803,6 +7025,12 @@ where
         // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
         ::std::mem::drop(p);
 
+        // After the event handlers and before the service method, where
+        // generated C++ runs the interceptors. Reached only once pre_read and
+        // post_read have both succeeded, so a handler that refused the request
+        // ends it without any interceptor being asked.
+        ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
         let res = ::std::panic::AssertUnwindSafe(
             self.service.interactWithStreamAndInitialResponse(
             )
@@ -6908,6 +7136,12 @@ where
         p.read_message_end()?;
         // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
         ::std::mem::drop(p);
+
+        // After the event handlers and before the service method, where
+        // generated C++ runs the interceptors. Reached only once pre_read and
+        // post_read have both succeeded, so a handler that refused the request
+        // ends it without any interceptor being asked.
+        ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
         let res = ::std::panic::AssertUnwindSafe(
             self.service.interactWithSink(
@@ -7048,6 +7282,12 @@ where
         // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
         ::std::mem::drop(p);
 
+        // After the event handlers and before the service method, where
+        // generated C++ runs the interceptors. Reached only once pre_read and
+        // post_read have both succeeded, so a handler that refused the request
+        // ends it without any interceptor being asked.
+        ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
         let res = ::std::panic::AssertUnwindSafe(
             self.service.interactWithSinkAndInitialResponse(
             )
@@ -7187,6 +7427,12 @@ where
         p.read_message_end()?;
         // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
         ::std::mem::drop(p);
+
+        // After the event handlers and before the service method, where
+        // generated C++ runs the interceptors. Reached only once pre_read and
+        // post_read have both succeeded, so a handler that refused the request
+        // ends it without any interceptor being asked.
+        ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
         let res = ::std::panic::AssertUnwindSafe(
             self.service.interactWithBidi(
@@ -7337,6 +7583,12 @@ where
         p.read_message_end()?;
         // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
         ::std::mem::drop(p);
+
+        // After the event handlers and before the service method, where
+        // generated C++ runs the interceptors. Reached only once pre_read and
+        // post_read have both succeeded, so a handler that refused the request
+        // ends it without any interceptor being asked.
+        ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
         let res = ::std::panic::AssertUnwindSafe(
             self.service.interactWithBidiAndInitialResponse(
@@ -7911,6 +8163,12 @@ pub mod perform {
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
 
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.frobnicate(
                 )
@@ -7977,6 +8235,12 @@ pub mod perform {
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
 
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.ping(
                 )
@@ -8042,6 +8306,12 @@ pub mod perform {
             p.read_message_end()?;
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
+
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.truthify(
@@ -8145,6 +8415,12 @@ pub mod perform {
             p.read_message_end()?;
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
+
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.failstream(
@@ -8263,6 +8539,12 @@ pub mod perform {
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
 
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.failstreaminit(
                 )
@@ -8366,6 +8648,12 @@ pub mod perform {
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
 
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.frobnicateWithArg(
                     _args.arg,
@@ -8432,6 +8720,12 @@ pub mod perform {
             p.read_message_end()?;
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
+
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.streamWithArg(
@@ -8537,6 +8831,12 @@ pub mod perform {
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
 
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.firstAndStream(
                 )
@@ -8639,6 +8939,12 @@ pub mod perform {
             p.read_message_end()?;
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
+
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.encode(
@@ -8999,6 +9305,12 @@ pub mod perform {
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
 
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.frobnicate(
                 )
@@ -9065,6 +9377,12 @@ pub mod perform {
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
 
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.ping(
                 )
@@ -9130,6 +9448,12 @@ pub mod perform {
             p.read_message_end()?;
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
+
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.truthify(
@@ -9233,6 +9557,12 @@ pub mod perform {
             p.read_message_end()?;
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
+
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.encode(
@@ -9572,6 +9902,12 @@ pub mod perform {
             p.read_message_end()?;
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
+
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.frobnicate(
@@ -9956,6 +10292,12 @@ where
         p.read_message_end()?;
         // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
         ::std::mem::drop(p);
+
+        // After the event handlers and before the service method, where
+        // generated C++ runs the interceptors. Reached only once pre_read and
+        // post_read have both succeeded, so a handler that refused the request
+        // ends it without any interceptor being asked.
+        ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
         let res = ::std::panic::AssertUnwindSafe(
             self.service.foo(
@@ -10365,6 +10707,12 @@ pub mod interact_with_shared {
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
 
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.frobnicate(
                 )
@@ -10431,6 +10779,12 @@ pub mod interact_with_shared {
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
 
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.ping(
                 )
@@ -10496,6 +10850,12 @@ pub mod interact_with_shared {
             p.read_message_end()?;
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
+
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.truthify(
@@ -10599,6 +10959,12 @@ pub mod interact_with_shared {
             p.read_message_end()?;
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
+
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.failstream(
@@ -10717,6 +11083,12 @@ pub mod interact_with_shared {
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
 
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.failstreaminit(
                 )
@@ -10820,6 +11192,12 @@ pub mod interact_with_shared {
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
 
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.frobnicateWithArg(
                     _args.arg,
@@ -10886,6 +11264,12 @@ pub mod interact_with_shared {
             p.read_message_end()?;
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
+
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.streamWithArg(
@@ -10991,6 +11375,12 @@ pub mod interact_with_shared {
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
 
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.firstAndStream(
                 )
@@ -11093,6 +11483,12 @@ pub mod interact_with_shared {
             p.read_message_end()?;
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
+
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.encode(
@@ -11453,6 +11849,12 @@ pub mod interact_with_shared {
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
 
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.init(
                 )
@@ -11519,6 +11921,12 @@ pub mod interact_with_shared {
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
 
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.do_something(
                 )
@@ -11584,6 +11992,12 @@ pub mod interact_with_shared {
             p.read_message_end()?;
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
+
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.tear_down(
@@ -11943,6 +12357,12 @@ where
         p.read_message_end()?;
         // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
         ::std::mem::drop(p);
+
+        // After the event handlers and before the service method, where
+        // generated C++ runs the interceptors. Reached only once pre_read and
+        // post_read have both succeeded, so a handler that refused the request
+        // ends it without any interceptor being asked.
+        ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
         let res = ::std::panic::AssertUnwindSafe(
             self.service.do_some_similar_things(
@@ -12344,6 +12764,12 @@ pub mod box_service {
             // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
             ::std::mem::drop(p);
 
+            // After the event handlers and before the service method, where
+            // generated C++ runs the interceptors. Reached only once pre_read and
+            // post_read have both succeeded, so a handler that refused the request
+            // ends it without any interceptor being asked.
+            ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
             let res = ::std::panic::AssertUnwindSafe(
                 self.service.getABox(
                 )
@@ -12674,6 +13100,12 @@ where
         p.read_message_end()?;
         // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
         ::std::mem::drop(p);
+
+        // After the event handlers and before the service method, where
+        // generated C++ runs the interceptors. Reached only once pre_read and
+        // post_read have both succeeded, so a handler that refused the request
+        // ends it without any interceptor being asked.
+        ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
         let res = ::std::panic::AssertUnwindSafe(
             self.service.getABoxSession(
