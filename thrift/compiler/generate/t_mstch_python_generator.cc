@@ -1372,6 +1372,21 @@ class t_mstch_python_generator : public t_mstch_python_prototypes_generator {
     return docblock_style::python_style();
   }
 
+  bool docblock_includes_definition(const t_named& node) const override {
+    // Functions, services and interactions keep their Thrift names in Python.
+    if (dynamic_cast<const t_function*>(&node) != nullptr ||
+        dynamic_cast<const t_interface*>(&node) != nullptr) {
+      return false;
+    }
+    if (python::get_py3_name(node) != node.name() ||
+        find_structured_adapter_annotation(node) != nullptr) {
+      return true;
+    }
+    const auto* field = dynamic_cast<const t_field*>(&node);
+    return field != nullptr &&
+        find_structured_adapter_annotation(field->type().deref()) != nullptr;
+  }
+
   std::string template_prefix() const override { return "python"; }
 
   void generate_program() override {

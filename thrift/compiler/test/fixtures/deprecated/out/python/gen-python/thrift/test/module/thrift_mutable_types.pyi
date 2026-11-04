@@ -23,13 +23,16 @@ import thrift.python.mutable_containers as _fbthrift_python_mutable_containers
 
 @_typing.final
 class User(_fbthrift_python_mutable_types.MutableStruct, _fbthrift_python_abstract_types.User):
+    r"""Example struct demonstrating @thrift.Deprecated annotation on fields."""
     @property
     def id(self) -> builtins.int: ...
     @id.setter
     def id(self, value: builtins.int) -> None: ...
 
     @property
-    def name(self) -> builtins.str: ...
+    def name(self) -> builtins.str:
+        r"""@deprecated Use 'full_name' instead"""
+        ...
     @name.setter
     def name(self, value: builtins.str) -> None: ...
 
@@ -39,7 +42,9 @@ class User(_fbthrift_python_mutable_types.MutableStruct, _fbthrift_python_abstra
     def full_name(self, value: builtins.str) -> None: ...
 
     @property
-    def email(self) -> _typing.Optional[builtins.str]: ...
+    def email(self) -> _typing.Optional[builtins.str]:
+        r"""@deprecated This field is no longer used"""
+        ...
     @email.setter
     def email(self, value: _typing.Optional[builtins.str]) -> None: ...
 
@@ -74,6 +79,7 @@ _fbthrift_User = User
 
 @_typing.final
 class ExampleUnion(_fbthrift_python_mutable_types.MutableUnion, _fbthrift_python_abstract_types.ExampleUnion):
+    r"""Example union with deprecated field."""
     @property
     def stringValue(self) -> builtins.str: ...
     @stringValue.setter

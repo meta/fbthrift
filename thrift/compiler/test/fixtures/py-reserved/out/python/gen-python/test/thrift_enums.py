@@ -15,6 +15,7 @@ import typing as _std_python_typing
 
 
 class from_(_fbthrift_python_types.Enum, int):
+    r"""enum from"""
     VALUE = 1
     @staticmethod
     def __get_thrift_name__() -> builtins.str:
@@ -47,7 +48,9 @@ import typing as _std_python_typing
 
 class Mode(_fbthrift_python_types.Enum, int):
     None_ = 0
+    r"""None = 0"""
     for_ = 1
+    r"""for = 1"""
     OK = 2
     @staticmethod
     def __get_thrift_name__() -> builtins.str:

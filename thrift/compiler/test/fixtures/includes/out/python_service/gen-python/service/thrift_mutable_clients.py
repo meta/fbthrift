@@ -33,6 +33,7 @@ import module.thrift_mutable_types as _fbthrift__module__thrift_mutable_types
 import transitive.thrift_mutable_types as _fbthrift__transitive__thrift_mutable_types
 
 class MyService(_fbthrift_python_Client["MyService.Async", "MyService.Sync"]):
+    r"""This is a service-level docblock"""
     annotations = _py_types.MappingProxyType({
     })
     @staticmethod
@@ -89,6 +90,7 @@ class MyService(_fbthrift_python_Client["MyService.Async", "MyService.Sync"]):
             *,
             rpc_options: _typing.Optional[RpcOptions] = None,
         ) -> None:
+            r"""This is a function-level docblock"""
             _fbthrift_resp = await self._send_request(
                 "MyService",
                 "query",
@@ -152,6 +154,7 @@ class MyService(_fbthrift_python_Client["MyService.Async", "MyService.Sync"]):
             *,
             rpc_options: _typing.Optional[RpcOptions] = None,
         ) -> None:
+            r"""This is a function-level docblock"""
             _fbthrift_resp = self._send_request(
                 "MyService",
                 "query",

@@ -102,6 +102,7 @@ class Async({{#if extends_service?}}{{!
         }}{{#else}}{{> types/pep484_return_type}}{{/if function.creates_interaction?}}{{!
         }}{{#if function.returns_tuple?}}]{{/if}}{{!
     }}:
+        {{#partial m_common.docstring node=function}}
         {{#if function.creates_interaction?}}
         _fbthrift_interaction = self.__fbthrift_create{{function.created_interaction.name}}()
         {{/if function.creates_interaction?}}
@@ -236,6 +237,7 @@ class Sync({{#if extends_service?}}{{!
         *,
         rpc_options: _typing.Optional[RpcOptions] = None,
     ) -> {{> types/pep484_return_type}}:
+        {{#partial m_common.docstring node=function}}
         _fbthrift_resp = self._send_request(
             "{{service.name}}",
             "{{function.name}}",

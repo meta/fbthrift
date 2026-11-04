@@ -66,16 +66,24 @@ class {{#partial m_types.unadapted_name type=struct}}({{!
         }}, _fbthrift_python_abstract_types.{{#partial m_types.unadapted_name type=struct}}{{!
         }}{{/if python.enable_abstract_types?}}{{!
         }}):
+    {{#partial m_common.docstring node=struct}}
     {{#if python.generate_immutable_types?}}{{!
     }}{{#each struct.fields_ordered_by_id as |field|}}
     {{field.py_name}}: _typing.Final[{{#partial m_fields.field_type_pyi field=field}}] = ...
+    {{#partial m_common.docstring node=field}}
     {{/each}}{{!
     }}{{/if python.generate_immutable_types?}}{{!
     }}{{#if python.generate_mutable_types?}}{{!
     }}{{#each struct.fields_ordered_by_id as |field|}}{{!
     }}
     @property
+      {{#if (string.empty? (field.docblock))}}
     def {{field.py_name}}(self) -> {{#partial m_fields.field_type_pyi field=field}}: ...
+      {{#else}}
+    def {{field.py_name}}(self) -> {{#partial m_fields.field_type_pyi field=field}}:
+        {{#partial m_common.docstring node=field}}
+        ...
+      {{/if (string.empty? (field.docblock))}}
     @{{field.py_name}}.setter
     def {{field.py_name}}(self, value: {{#partial m_fields.field_type_pyi field=field}}{{#partial m_types.add_wrapper_if_container field=field}}) -> None: ...
 

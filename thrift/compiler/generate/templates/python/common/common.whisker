@@ -126,6 +126,14 @@ An annotation without an explicitly provided value is implicitly assigned the de
 _fbthrift_
 {{/let partial}}
 
+{{! Docstring for a definition, shown by editors on hover, if it has one. }}
+{{#let export partial docstring |node|}}
+  {{#let docblock = (node.docblock)}}
+  {{#if (not (string.empty? docblock))}}
+{{docblock}}
+  {{/if (not (string.empty? docblock))}}
+{{/let partial}}
+
 {{! Import enums into the modules that reference enums. }}
 {{#let export partial import_enums |program| captures |private_alias_prefix|}}
 {{#if (or program.enums? program.has_enum_typedefs?)}}

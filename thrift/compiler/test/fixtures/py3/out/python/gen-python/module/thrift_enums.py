@@ -16,6 +16,7 @@ import typing as _std_python_typing
 
 class AnEnum(_fbthrift_python_types.Enum, int):
     NOTSET = 0
+    r"""None = 0"""
     ONE = 1
     TWO = 2
     THREE = 3
@@ -51,8 +52,11 @@ import typing as _std_python_typing
 
 class AnEnumRenamed(_fbthrift_python_types.Enum, int):
     name_ = 0
+    r"""name = 0"""
     value_ = 1
+    r"""value = 1"""
     renamed_ = 2
+    r"""normal = 2"""
     @staticmethod
     def __get_thrift_name__() -> builtins.str:
         return "module.AnEnumRenamed"

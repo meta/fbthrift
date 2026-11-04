@@ -73,6 +73,7 @@ import {{module_path}}
 {{#each program.services as |service|}}
 
 class {{service.name}}(_fbthrift_python_Client["{{service.name}}.Async", "{{service.name}}.Sync"]):
+    {{#partial m_common.docstring node=service}}
     annotations = _py_types.MappingProxyType({
         {{#each service.unstructured_annotations as |annot|}}
             {{#partial m_common.unstructured_annotation key=annot.key value=annot.value}}
@@ -82,6 +83,7 @@ class {{service.name}}(_fbthrift_python_Client["{{service.name}}.Async", "{{serv
 
   {{#each service.interactions as |interaction|}}
 class {{service.name}}_{{interaction.name}}(_fbthrift_python_Client["{{service.name}}_{{interaction.name}}.Async", "{{service.name}}_{{interaction.name}}.Sync"]):
+    {{#partial m_common.docstring node=interaction}}
     {{#partial client_body.client_body program=program service=interaction parent_service_name=service.name}}
 
   {{/each}}

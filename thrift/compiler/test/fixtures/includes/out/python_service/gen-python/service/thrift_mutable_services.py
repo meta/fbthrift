@@ -30,6 +30,7 @@ class MyServiceInterface(
     _fbthrift_ServiceInterface,
     metaclass=ABCMeta
 ):
+    r"""This is a service-level docblock"""
 
     @staticmethod
     def service_name() -> bytes:
@@ -69,6 +70,7 @@ class MyServiceInterface(
             s: _fbthrift__module__thrift_mutable_types.MyStruct,
             i: _fbthrift__includes__thrift_mutable_types.Included
         ) -> None:
+        r"""This is a function-level docblock"""
         raise NotImplementedError("async def query is not implemented")
 
     async def _fbthrift__handler_query(self, args: _fbthrift_iobuf.IOBuf, protocol: Protocol) -> _fbthrift_iobuf.IOBuf:

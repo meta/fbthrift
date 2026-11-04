@@ -73,6 +73,7 @@ class {{service.name}}Interface(
   {{/if (object.notnull? service.extends)}}
     metaclass=ABCMeta
 ):
+    {{#partial m_common.docstring node=service}}
 
     @staticmethod
     def service_name() -> bytes:
@@ -124,6 +125,7 @@ class {{service.name}}Interface(
             self{{#each function.params.fields as |field|}},
             {{field.py_name}}: {{#partial typehints.field_pep484_type field=field}}{{/each}}
         ) -> {{> services/service_func_return_type }}:
+        {{#partial m_common.docstring node=function}}
         raise NotImplementedError("async def {{function.name}} is not implemented")
 
     {{#if function.stream?}}
@@ -195,6 +197,7 @@ class {{service.name}}Interface(
             self{{#each function.params.fields as |field|}},
             {{field.py_name}}: {{#partial typehints.field_pep484_type field=field}}{{/each}}
         ) -> {{> services/service_func_return_type }}:
+            {{#partial m_common.docstring node=function}}
             raise NotImplementedError("async def {{function.name}} is not implemented")
 
     def _fbthrift__bidi_wrapper_{{function.name}}(
@@ -290,6 +293,7 @@ class {{interaction.name}}Interface(
     _fbthrift_Interaction,
     metaclass=ABCMeta
 ):
+    {{#partial m_common.docstring node=interaction}}
 {{#if (not interaction.has_interface_methods?)}}
     pass
 {{/if (not interaction.has_interface_methods?)}}
@@ -300,6 +304,7 @@ class {{interaction.name}}Interface(
             self{{#each function.params.fields as |field|}},
             {{field.py_name}}: {{#partial typehints.field_pep484_type field=field}}{{/each}}
         ) -> {{> services/service_func_return_type }}:
+        {{#partial m_common.docstring node=function}}
         raise NotImplementedError("async def {{function.name}} is not implemented")
 
     {{#if function.stream?}}
