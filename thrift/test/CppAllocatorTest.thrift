@@ -15,6 +15,7 @@
  */
 
 include "thrift/annotation/cpp.thrift"
+include "thrift/annotation/internal.thrift"
 include "thrift/annotation/thrift.thrift"
 
 @thrift.AllowLegacyMissingUris
@@ -127,6 +128,29 @@ struct NoAllocatorViaPmr {
 struct YesAllocatorViaPmr {
   @cpp.Name{value = "bar"}
   1: AAStructPmr_1852 foo;
+}
+
+@internal.CppUseAllocator
+@cpp.Type{template = "std::pmr::vector"}
+typedef list<i32> StructuredPmrList
+
+@internal.CppAllocator{name = "PmrByteAlloc"}
+struct StructuredAllocatorPmr {
+  1: StructuredPmrList aa_list;
+  @internal.CppUseAllocator
+  @cpp.Type{name = "std::pmr::string"}
+  2: string aa_string;
+  // Uses the unstructured `cpp.use_allocator`.
+  3: list_i32_8699 legacy_aa_list;
+}
+
+@internal.CppAllocator{name = "PmrByteAlloc"}
+@internal.CppAllocatorVia{name = "aa_list"}
+struct StructuredAllocatorViaPmr {
+  1: StructuredPmrList aa_list;
+  @internal.CppUseAllocator
+  @cpp.Type{name = "std::pmr::string"}
+  2: string aa_string;
 }
 
 @thrift.DeprecatedUnvalidatedAnnotations{

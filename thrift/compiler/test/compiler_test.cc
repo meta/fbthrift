@@ -3733,6 +3733,40 @@ TEST(CompilerTest, cpp_alloc_ctor_custom_defaults) {
   )");
 }
 
+TEST(CompilerTest, cpp_allocator_structured_annotations) {
+  check_compile(R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/internal.thrift"
+
+    @internal.CppUseAllocator
+    typedef i32 AllocI32
+
+    @internal.CppAllocator{name = "MyAlloc"}
+    struct Struct {
+      @internal.CppUseAllocator
+      1: i64 integer;
+        # expected-error@-2: `cpp.use_allocator` is not supported on field `integer` of type `i64`, which can't take an allocator.
+      2: AllocI32 typedef_scalar;
+        # expected-error@-1: `cpp.use_allocator` is not supported on field `typedef_scalar` of type `AllocI32`, which can't take an allocator.
+      @internal.CppUseAllocator
+      3: string s;
+    }
+
+    @internal.CppAllocatorVia{name = "s"}
+    struct ViaWithoutAllocator {
+      @internal.CppUseAllocator
+      1: string s;
+    }
+      # expected-error@-5: `@internal.CppAllocatorVia` on `ViaWithoutAllocator` needs `@internal.CppAllocator`.
+
+    @internal.CppAllocator{name = "MyAlloc"}
+    union Union {
+      1: i32 field1;
+    }
+      # expected-error@-4: `cpp.allocator` does not support union `Union`
+  )");
+}
+
 TEST(CompilerTest, base_service_defined_after_use) {
   check_compile(R"(
     package "facebook.com/thrift/test"

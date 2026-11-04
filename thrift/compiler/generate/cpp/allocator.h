@@ -29,20 +29,24 @@ namespace apache::thrift::compiler::cpp2 {
 // template may emit that default on this alone.
 bool alloc_ctor_applies_custom_default(const t_field& field);
 
-// The value of `cpp.allocator`; null if not set.
+// The value of `@internal.CppAllocator` or `cpp.allocator`; null if neither is
+// set.
 const std::string* find_allocator(const t_named& node);
 
 inline bool is_allocator_aware(const t_named& node) {
   return find_allocator(node) != nullptr;
 }
 
-// The value of `cpp.allocator_via`; null if not set.
+// The value of `@internal.CppAllocatorVia` or `cpp.allocator_via`; null if
+// neither is set.
 const std::string* find_allocator_via(const t_named& node);
 
-// Whether `cpp.use_allocator` is set on the type or a typedef it goes through.
+// Whether `@internal.CppUseAllocator` or `cpp.use_allocator` is set on the type
+// or a typedef it goes through.
 bool type_uses_allocator(const t_type& type);
 
-// Whether `cpp.use_allocator` is set on the field or its (typedef) type.
+// Whether `@internal.CppUseAllocator` or `cpp.use_allocator` is set on the
+// field or its (typedef) type.
 bool uses_allocator(const t_field& field);
 
 } // namespace apache::thrift::compiler::cpp2

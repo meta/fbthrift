@@ -120,6 +120,21 @@ TEST(CppAllocatorTest, AllocatorViaPmr) {
   EXPECT_GT(sizeof(s1), sizeof(s2));
 }
 
+TEST(CppAllocatorTest, StructuredAnnotationsPmr) {
+  std::pmr::monotonic_buffer_resource res;
+  PmrByteAlloc alloc(&res);
+
+  StructuredAllocatorPmr s1(alloc);
+  EXPECT_EQ(s1.get_allocator(), alloc);
+  EXPECT_EQ(s1.aa_list()->get_allocator(), alloc);
+  EXPECT_EQ(s1.aa_string()->get_allocator(), alloc);
+  EXPECT_EQ(s1.legacy_aa_list()->get_allocator(), alloc);
+
+  StructuredAllocatorViaPmr s2(alloc);
+  EXPECT_EQ(s2.get_allocator(), alloc);
+  EXPECT_GT(sizeof(s1), sizeof(s2));
+}
+
 TEST(CppAllocatorTest, EmptyAllocatorTakesNoSpace) {
   static_assert(std::is_empty_v<HasEmptyAllocator::allocator_type>);
   EXPECT_EQ(sizeof(HasEmptyAllocator), sizeof(std::int8_t));

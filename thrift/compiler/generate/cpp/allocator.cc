@@ -26,23 +26,37 @@ namespace {
 bool declares_custom_default(const t_field& field) {
   return field.default_value() != nullptr;
 }
+
+const std::string* find_name_annotation(
+    const t_named& node, const char* uri, const char* unstructured_name) {
+  if (const t_const* annotation =
+          node.find_structured_annotation_or_null(uri)) {
+    const t_const_value* name =
+        annotation->get_value_from_structured_annotation_or_null("name");
+    return name != nullptr ? &name->get_string() : nullptr;
+  }
+  return node.find_unstructured_annotation_or_null(unstructured_name);
+}
 } // namespace
 
 const std::string* find_allocator(const t_named& node) {
-  return node.find_unstructured_annotation_or_null("cpp.allocator");
+  return find_name_annotation(node, kCppAllocatorUri, "cpp.allocator");
 }
 
 const std::string* find_allocator_via(const t_named& node) {
-  return node.find_unstructured_annotation_or_null("cpp.allocator_via");
+  return find_name_annotation(node, kCppAllocatorViaUri, "cpp.allocator_via");
 }
 
 bool type_uses_allocator(const t_type& type) {
-  return t_typedef::get_first_unstructured_annotation_or_null(
-             &type, {"cpp.use_allocator"}) != nullptr;
+  return t_typedef::get_first_structured_annotation_or_null(
+             &type, kCppUseAllocatorUri) != nullptr ||
+      t_typedef::get_first_unstructured_annotation_or_null(
+          &type, {"cpp.use_allocator"}) != nullptr;
 }
 
 bool uses_allocator(const t_field& field) {
-  return field.has_unstructured_annotation("cpp.use_allocator") ||
+  return field.has_structured_annotation(kCppUseAllocatorUri) ||
+      field.has_unstructured_annotation("cpp.use_allocator") ||
       type_uses_allocator(field.type().deref());
 }
 
