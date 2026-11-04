@@ -58,6 +58,9 @@ inline std::string get_qualified_name(const t_named& node) {
 bool is_custom_type(const t_field& field);
 bool is_custom_type(const t_type& type);
 
+// Whether field-level `@cpp.Arena` can give the field a PMR C++ type.
+bool is_arena_supported(const t_field& field);
+
 std::unordered_map<const t_type*, std::vector<const t_type*>>
 gen_dependency_graph(
     const t_program* program, const std::vector<const t_type*>& types);

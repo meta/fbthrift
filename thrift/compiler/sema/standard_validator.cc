@@ -1425,6 +1425,10 @@ void validate_cpp_arena_field(sema_context& ctx, const t_field& field) {
   }
   if (adapter != nullptr) {
     report_cpp_arena_on_adapted(ctx, "field", field.name(), *adapter);
+    return;
+  }
+  if (!cpp2::is_arena_supported(field)) {
+    ctx.error("`@cpp.Arena` is not supported on field `{}`.", field.name());
   }
 }
 

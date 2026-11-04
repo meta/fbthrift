@@ -17,6 +17,7 @@
 #include <thrift/compiler/generate/cpp/util.h>
 
 #include <algorithm>
+#include <cassert>
 #include <functional>
 #include <memory>
 #include <queue>
@@ -118,6 +119,38 @@ bool is_custom_type(const t_field& field) {
   return cpp_name_resolver::find_first_adapter(field) ||
       field.has_structured_annotation(kCppTypeUri) ||
       is_custom_type(*field.type());
+}
+
+namespace {
+bool has_adapted_level(const t_type& type) {
+  if (t_typedef::get_first_structured_annotation_or_null(
+          &type, kCppAdapterUri) != nullptr) {
+    return true;
+  }
+  const t_type* true_type = type.get_true_type();
+  assert(true_type != nullptr);
+  if (const auto* list = true_type->try_as<t_list>()) {
+    return has_adapted_level(*list->elem_type());
+  }
+  if (const auto* set = true_type->try_as<t_set>()) {
+    return has_adapted_level(*set->elem_type());
+  }
+  if (const auto* map = true_type->try_as<t_map>()) {
+    return has_adapted_level(*map->key_type()) ||
+        has_adapted_level(*map->val_type());
+  }
+  return false;
+}
+} // namespace
+
+bool is_arena_supported(const t_field& field) {
+  const t_type* type = field.type()->get_true_type();
+  assert(type != nullptr);
+  return (type->is_string_or_binary() || type->is<t_container>()) &&
+      field.default_value() == nullptr && !is_ref(&field) && !is_lazy(&field) &&
+      !is_binary_iobuf(field) &&
+      !field.has_structured_annotation(kCppAdapterUri) &&
+      !has_adapted_level(*field.type());
 }
 
 bool container_supports_incomplete_params(const t_type& type) {

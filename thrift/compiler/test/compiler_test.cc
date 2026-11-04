@@ -3457,6 +3457,46 @@ TEST(CompilerTest, cpp_arena_adapted) {
   )");
 }
 
+TEST(CompilerTest, cpp_arena_unsupported_fields) {
+  check_compile(R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+    include "thrift/annotation/thrift.thrift"
+
+    @cpp.Adapter{name = "::my::Adapter"}
+    typedef string AdaptedString
+    @cpp.Type{template = "std::deque"}
+    typedef list<string> Deque
+
+    struct Foo {
+      @cpp.Arena
+      1: i32 number;
+        # expected-error@-2: `@cpp.Arena` is not supported on field `number`.
+      @cpp.Arena
+      2: string with_default = "default";
+        # expected-error@-2: `@cpp.Arena` is not supported on field `with_default`.
+      @cpp.Arena
+      @thrift.Box
+      3: optional string boxed;
+        # expected-error@-3: `@cpp.Arena` is not supported on field `boxed`.
+      @cpp.Arena
+      @cpp.Lazy
+      4: list<string> lazy;
+        # expected-error@-3: `@cpp.Arena` is not supported on field `lazy`.
+      @cpp.Arena
+      @cpp.Type{name = "::folly::IOBuf"}
+      5: binary iobuf;
+        # expected-error@-3: `@cpp.Arena` is not supported on field `iobuf`.
+      @cpp.Arena
+      6: list<AdaptedString> adapted_elements;
+        # expected-error@-2: `@cpp.Arena` is not supported on field `adapted_elements`.
+      @cpp.Arena
+      @cpp.Type{template = "std::unordered_map"}
+      7: map<string, Deque> custom;
+    }
+  )");
+}
+
 TEST(CompilerTest, cpp_use_allocator_ref_fields) {
   check_compile(R"(
     package "facebook.com/thrift/test"
