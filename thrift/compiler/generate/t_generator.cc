@@ -41,7 +41,82 @@ std::string normalize_documentation(std::string_view doc) {
   }
   return out.str();
 }
+
+std::string replace_all(
+    std::string_view text, std::string_view from, std::string_view to) {
+  if (from.empty()) {
+    return std::string(text);
+  }
+  std::string result;
+  size_t start = 0;
+  for (size_t found; (found = text.find(from, start)) != std::string_view::npos;
+       start = found + from.size()) {
+    result.append(text.substr(start, found - start)).append(to);
+  }
+  result.append(text.substr(start));
+  return result;
+}
+
+std::string escape_delimiters(
+    std::string_view text, const docblock_style& style) {
+  return replace_all(
+      replace_all(text, style.terminator, style.escaped_terminator),
+      style.nested_opener,
+      style.escaped_nested_opener);
+}
 } // namespace
+
+docblock_style docblock_style::c_style() {
+  return {
+      .opening = "/**\n",
+      .line_prefix = " * ",
+      .closing = " */\n",
+      .terminator = "*/",
+      .escaped_terminator = "*\\/",
+      .nested_opener = "/*",
+      .escaped_nested_opener = "/\\*",
+  };
+}
+
+docblock_style docblock_style::python_style() {
+  // Escaping the third quote leaves no run of three unescaped quotes, even
+  // where the text has more than three in a row.
+  return {
+      .opening = "r\"\"\"\n",
+      .line_prefix = "",
+      .closing = "\"\"\"\n",
+      .terminator = R"(""")",
+      .escaped_terminator = R"(""\")",
+  };
+}
+
+docblock_style docblock_style::triple_slash_style() {
+  return {.opening = "", .line_prefix = "/// ", .closing = ""};
+}
+
+docblock_style docblock_style::hash_style() {
+  return {.opening = "", .line_prefix = "# ", .closing = ""};
+}
+
+std::string apply_docblock_style(
+    std::string_view unescaped_text, const docblock_style& style) {
+  const std::string escaped = escape_delimiters(unescaped_text, style);
+  std::string_view text = escaped;
+  std::string result(style.opening);
+  while (!text.empty()) {
+    const size_t newline = text.find('\n');
+    std::string line(style.line_prefix);
+    line.append(text.substr(0, newline));
+    line.erase(line.find_last_not_of(" \t") + 1);
+    result.append(line).push_back('\n');
+    if (newline == std::string_view::npos) {
+      break;
+    }
+    text.remove_prefix(newline + 1);
+  }
+  result.append(style.closing);
+  return result;
+}
 
 void t_generator::process_options(
     const std::map<std::string, std::string>& options,

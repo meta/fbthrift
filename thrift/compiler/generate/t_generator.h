@@ -19,6 +19,7 @@
 #include <filesystem>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_set>
@@ -29,6 +30,30 @@ namespace apache::thrift::compiler {
 
 class t_program;
 class t_program_bundle;
+
+struct docblock_style {
+  std::string_view opening;
+  std::string_view line_prefix;
+  std::string_view closing;
+  // Would end the docblock early if it appeared in the text, so it is replaced
+  // with `escaped_terminator`.
+  std::string_view terminator{};
+  std::string_view escaped_terminator{};
+  // Would start a comment nested in the docblock, which compilers reject under
+  // `-Werror,-Wcomment`, so it is replaced with `escaped_nested_opener`.
+  std::string_view nested_opener{};
+  std::string_view escaped_nested_opener{};
+
+  static docblock_style c_style();
+  static docblock_style python_style();
+  static docblock_style triple_slash_style();
+  static docblock_style hash_style();
+};
+
+// Renders `text` as a docblock in `style`. Trailing whitespace is trimmed from
+// every line, so a blank line renders as the bare prefix (` *`, `#`).
+std::string apply_docblock_style(
+    std::string_view text, const docblock_style& style);
 
 class t_generator {
  public:
@@ -62,6 +87,10 @@ class t_generator {
   // Generate the program. Overridden by subclasses to implement program
   // generation.
   virtual void generate_program() = 0;
+
+  virtual std::optional<docblock_style> get_docblock_style() const {
+    return std::nullopt;
+  }
 
   const t_program* get_program() const { return program_; }
 

@@ -802,6 +802,10 @@ class t_mstch_cpp2_generator : public t_whisker_generator {
  public:
   using t_whisker_generator::t_whisker_generator;
 
+  std::optional<docblock_style> get_docblock_style() const override {
+    return docblock_style::c_style();
+  }
+
   void process_options(
       const std::map<std::string, std::string>& options) override {
     t_whisker_generator::process_options(options);

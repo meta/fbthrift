@@ -1368,6 +1368,10 @@ class t_mstch_python_generator : public t_mstch_python_prototypes_generator {
   using t_mstch_python_prototypes_generator::
       t_mstch_python_prototypes_generator;
 
+  std::optional<docblock_style> get_docblock_style() const override {
+    return docblock_style::python_style();
+  }
+
   std::string template_prefix() const override { return "python"; }
 
   void generate_program() override {
