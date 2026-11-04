@@ -164,7 +164,7 @@ std::partial_ordering stableCompare(
         using T = std::remove_cvref_t<decltype(l)>;
         if constexpr (std::is_arithmetic_v<T>) {
           // Including enums, which are stored as i32
-          return std::partial_order(l, r);
+          return std::weak_order(l, r);
         } else if constexpr (std::is_same_v<T, String>) {
           return l.view() <=> r.view();
         } else if constexpr (std::is_same_v<T, Binary>) {

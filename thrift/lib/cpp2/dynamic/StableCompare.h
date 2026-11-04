@@ -29,7 +29,8 @@ namespace apache::thrift::dynamic::detail {
  * orders static values: struct fields by ascending field id (an unset field
  * orders first), unions by active field (a larger field id orders first) and
  * then by value, lists lexicographically, and sets and maps lexicographically
- * by their sorted elements. NaN is unordered.
+ * by their sorted elements. Floating-point values order -NaN first and NaN
+ * last, with -0.0 equivalent to 0.0.
  */
 std::partial_ordering stableCompare(
     const DynamicConstRef& lhs, const DynamicConstRef& rhs);

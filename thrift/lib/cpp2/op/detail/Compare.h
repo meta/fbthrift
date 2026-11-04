@@ -1031,6 +1031,17 @@ struct StableComparePolicy<type::union_t<T>> {
   }
 };
 
+// The Thrift Object Model's order (-NaN first, NaN last), except that -0.0 and
+// 0.0 are equivalent, as areRecordsEqual requires for lists, sets and fields.
+template <class Tag>
+  requires folly::is_one_of_v<Tag, type::float_t, type::double_t>
+struct StableComparePolicy<Tag> {
+  std::partial_ordering operator()(
+      type::native_type<Tag> lhs, type::native_type<Tag> rhs) const {
+    return std::weak_order(lhs, rhs);
+  }
+};
+
 // StableLessThan compares Thrift values recursively, comparing
 // struct fields by sorted field id order (instead of field declaration order).
 // This matches the behavior of the Thrift Object Model for comparison.
