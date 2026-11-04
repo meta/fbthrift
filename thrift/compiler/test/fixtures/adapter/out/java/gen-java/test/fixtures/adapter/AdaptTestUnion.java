@@ -280,6 +280,8 @@ public final class AdaptTestUnion implements com.facebook.thrift.payload.ThriftS
                     long _fbthriftVar0;
                     _fbthriftVar0 = oprot.readI64();
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _CUSTOM:
@@ -287,6 +289,8 @@ public final class AdaptTestUnion implements com.facebook.thrift.payload.ThriftS
                     byte[] _fbthriftVar0;
                     _fbthriftVar0 = oprot.readBinary().array();
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             default:

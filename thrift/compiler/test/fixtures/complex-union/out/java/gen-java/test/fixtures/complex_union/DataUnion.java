@@ -283,6 +283,8 @@ public final class DataUnion implements com.facebook.thrift.payload.ThriftSerial
                     byte[] _fbthriftVar0;
                     _fbthriftVar0 = oprot.readBinary().array();
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _STRINGDATA:
@@ -290,6 +292,8 @@ public final class DataUnion implements com.facebook.thrift.payload.ThriftSerial
                     String _fbthriftVar0;
                     _fbthriftVar0 = oprot.readString();
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             default:

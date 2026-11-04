@@ -86,6 +86,8 @@ public static {{struct.javaCapitalName}} read0(TProtocol oprot) throws TExceptio
                 {{#else}}
                 res.value = _fbthriftVar0;
                 {{/if field.hasAdapter?}}
+            } else {
+                TProtocolUtil.skip(oprot, __field.type);
             }
             break;
         {{/each}}

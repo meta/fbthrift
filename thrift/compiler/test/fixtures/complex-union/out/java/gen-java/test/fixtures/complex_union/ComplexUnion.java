@@ -499,6 +499,8 @@ public final class ComplexUnion implements com.facebook.thrift.payload.ThriftSer
                     long _fbthriftVar0;
                     _fbthriftVar0 = oprot.readI64();
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _STRINGVALUE:
@@ -506,6 +508,8 @@ public final class ComplexUnion implements com.facebook.thrift.payload.ThriftSer
                     String _fbthriftVar0;
                     _fbthriftVar0 = oprot.readString();
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _INTLISTVALUE:
@@ -522,6 +526,8 @@ public final class ComplexUnion implements com.facebook.thrift.payload.ThriftSer
                         oprot.readListEnd();
                     }
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _STRINGLISTVALUE:
@@ -538,6 +544,8 @@ public final class ComplexUnion implements com.facebook.thrift.payload.ThriftSer
                         oprot.readListEnd();
                     }
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _TYPEDEFVALUE:
@@ -565,6 +573,8 @@ public final class ComplexUnion implements com.facebook.thrift.payload.ThriftSer
                         oprot.readMapEnd();
                     }
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _STRINGREF:
@@ -572,6 +582,8 @@ public final class ComplexUnion implements com.facebook.thrift.payload.ThriftSer
                     String _fbthriftVar0;
                     _fbthriftVar0 = oprot.readString();
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             default:

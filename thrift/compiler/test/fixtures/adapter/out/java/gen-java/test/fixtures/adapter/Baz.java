@@ -476,6 +476,8 @@ public final class Baz implements com.facebook.thrift.payload.ThriftSerializable
                     int _fbthriftVar0;
                     _fbthriftVar0 = oprot.readI32();
                     res.value = _intField_Adapter.fromThrift(_fbthriftVar0);
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _SETFIELD:
@@ -492,6 +494,8 @@ public final class Baz implements com.facebook.thrift.payload.ThriftSerializable
                         oprot.readSetEnd();
                     }
                     res.value = __SetWithAdapter_Adapter.fromThrift(_fbthriftVar0);
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _MAPFIELD:
@@ -528,6 +532,8 @@ public final class Baz implements com.facebook.thrift.payload.ThriftSerializable
                         oprot.readMapEnd();
                     }
                     res.value = _mapField_Adapter.fromThrift(_fbthriftVar0);
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _BINARYFIELD:
@@ -535,6 +541,8 @@ public final class Baz implements com.facebook.thrift.payload.ThriftSerializable
                     io.netty.buffer.ByteBuf _fbthriftVar0;
                     _fbthriftVar0 = org.apache.thrift.protocol.TProtocolUtil.readBinaryAsByteBuf(oprot);
                     res.value = _binaryField_Adapter.fromThrift(_fbthriftVar0);
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _LONGFIELD:
@@ -542,6 +550,8 @@ public final class Baz implements com.facebook.thrift.payload.ThriftSerializable
                     long _fbthriftVar0;
                     _fbthriftVar0 = oprot.readI64();
                     res.value = __MyI64_Adapter.fromThrift(_fbthriftVar0);
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             default:

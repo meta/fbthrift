@@ -277,6 +277,8 @@ public final class UnfortunateUnion implements com.facebook.thrift.payload.Thrif
                     String _fbthriftVar0;
                     _fbthriftVar0 = oprot.readString();
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _ACAMELI32:
@@ -284,6 +286,8 @@ public final class UnfortunateUnion implements com.facebook.thrift.payload.Thrif
                     int _fbthriftVar0;
                     _fbthriftVar0 = oprot.readI32();
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             default:

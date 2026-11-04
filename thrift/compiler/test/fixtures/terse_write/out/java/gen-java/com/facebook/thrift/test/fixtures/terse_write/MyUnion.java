@@ -935,6 +935,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
                     boolean _fbthriftVar0;
                     _fbthriftVar0 = oprot.readBool();
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _BYTE_FIELD:
@@ -942,6 +944,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
                     byte _fbthriftVar0;
                     _fbthriftVar0 = oprot.readByte();
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _SHORT_FIELD:
@@ -949,6 +953,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
                     short _fbthriftVar0;
                     _fbthriftVar0 = oprot.readI16();
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _INT_FIELD:
@@ -956,6 +962,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
                     int _fbthriftVar0;
                     _fbthriftVar0 = oprot.readI32();
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _LONG_FIELD:
@@ -963,6 +971,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
                     long _fbthriftVar0;
                     _fbthriftVar0 = oprot.readI64();
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _FLOAT_FIELD:
@@ -970,6 +980,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
                     float _fbthriftVar0;
                     _fbthriftVar0 = oprot.readFloat();
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _DOUBLE_FIELD:
@@ -977,6 +989,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
                     double _fbthriftVar0;
                     _fbthriftVar0 = oprot.readDouble();
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _STRING_FIELD:
@@ -984,6 +998,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
                     String _fbthriftVar0;
                     _fbthriftVar0 = oprot.readString();
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _BINARY_FIELD:
@@ -991,6 +1007,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
                     byte[] _fbthriftVar0;
                     _fbthriftVar0 = oprot.readBinary().array();
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _ENUM_FIELD:
@@ -998,6 +1016,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
                     com.facebook.thrift.test.fixtures.terse_write.MyEnum _fbthriftVar0;
                     _fbthriftVar0 = com.facebook.thrift.test.fixtures.terse_write.MyEnum.fromInteger(oprot.readI32());
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _LIST_FIELD:
@@ -1014,6 +1034,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
                         oprot.readListEnd();
                     }
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _SET_FIELD:
@@ -1030,6 +1052,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
                         oprot.readSetEnd();
                     }
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _MAP_FIELD:
@@ -1057,6 +1081,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
                         oprot.readMapEnd();
                     }
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _STRUCT_FIELD:
@@ -1064,6 +1090,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
                     com.facebook.thrift.test.fixtures.terse_write.MyStruct _fbthriftVar0;
                     _fbthriftVar0 = com.facebook.thrift.test.fixtures.terse_write.MyStruct.read0(oprot);
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             default:

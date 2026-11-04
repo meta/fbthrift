@@ -331,6 +331,8 @@ public final class ExampleUnion implements com.facebook.thrift.payload.ThriftSer
                     String _fbthriftVar0;
                     _fbthriftVar0 = oprot.readString();
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _INTVALUE:
@@ -338,6 +340,8 @@ public final class ExampleUnion implements com.facebook.thrift.payload.ThriftSer
                     int _fbthriftVar0;
                     _fbthriftVar0 = oprot.readI32();
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _DOUBLEVALUE:
@@ -345,6 +349,8 @@ public final class ExampleUnion implements com.facebook.thrift.payload.ThriftSer
                     double _fbthriftVar0;
                     _fbthriftVar0 = oprot.readDouble();
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             default:

@@ -277,6 +277,8 @@ public final class Union implements com.facebook.thrift.payload.ThriftSerializab
                     long _fbthriftVar0;
                     _fbthriftVar0 = oprot.readI64();
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _STRINGVALUE:
@@ -284,6 +286,8 @@ public final class Union implements com.facebook.thrift.payload.ThriftSerializab
                     String _fbthriftVar0;
                     _fbthriftVar0 = oprot.readString();
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             default:

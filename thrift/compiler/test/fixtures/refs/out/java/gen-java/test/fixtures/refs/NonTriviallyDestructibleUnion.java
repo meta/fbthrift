@@ -221,6 +221,8 @@ public final class NonTriviallyDestructibleUnion implements com.facebook.thrift.
                     int _fbthriftVar0;
                     _fbthriftVar0 = oprot.readI32();
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             default:
