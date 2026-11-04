@@ -32,6 +32,7 @@
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/MethodMetadata.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/ThriftConnContext.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/ThriftRequestContext.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/util/PayloadUtils.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/util/ResponsePayloads.h>
 
 namespace apache::thrift::fast_thrift::thrift {
@@ -95,15 +96,20 @@ class ThriftServerRequestContextHandler {
           .setup->connContext = connContext_.get();
       return ctx.fireRead(std::move(msg));
     }
+    // Established-stream control frames are not RPCs. The mux routes them to
+    // the original stream, which already owns the one request context/FRC for
+    // that RPC; allocating another pair here would be both wrong and hot-path
+    // overhead on every credit update.
+    if (FOLLY_UNLIKELY(isStreamControlRequest(request.payload))) {
+      return ctx.fireRead(std::move(msg));
+    }
     request.requestContext = makeThriftRequestContext(*ctx.eventBase());
     request.requestContext->setConnectionContext(connContext_);
     if (requestExtensionLayout_ != nullptr) {
       request.requestContext->installExtensions(*requestExtensionLayout_);
     }
-    if (request.payload.template is<ThriftServerRequestResponsePayload>()) {
-      auto& metadata =
-          request.payload.template get<ThriftServerRequestResponsePayload>()
-              .metadata;
+    auto populateRequestMetadata = [&](auto& payload) {
+      auto& metadata = payload.metadata;
       if (metadata != nullptr && metadata->name().has_value()) {
         const auto methodName = metadata->name()->view();
         request.requestContext->setMethodMetadata(
@@ -117,6 +123,13 @@ class ThriftServerRequestContextHandler {
         request.requestContext->setHeaders(
             std::move(*metadata->otherMetadata()));
       }
+    };
+    if (request.payload.template is<ThriftServerRequestResponsePayload>()) {
+      populateRequestMetadata(
+          request.payload.template get<ThriftServerRequestResponsePayload>());
+    } else if (request.payload.template is<ThriftRequestStreamPayload>()) {
+      populateRequestMetadata(
+          request.payload.template get<ThriftRequestStreamPayload>());
     }
     server::RequestContextScopeGuard guard(request.requestContext.get());
     return ctx.fireRead(std::move(msg));

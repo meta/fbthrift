@@ -30,6 +30,7 @@
 #include <thrift/lib/cpp/TApplicationException.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
+#include <thrift/lib/cpp2/protocol/CompactProtocol.h>
 
 namespace apache::thrift::fast_thrift::thrift::server {
 
@@ -416,6 +417,27 @@ ThriftServerRequestMessage makeRequest(
   return req;
 }
 
+ThriftServerRequestMessage makeStreamRequest(
+    folly::EventBase& eventBase,
+    const boost::intrusive_ptr<ThriftConnContext>& conn,
+    uint32_t streamId,
+    std::string_view method) {
+  ThriftServerRequestMessage req;
+  req.streamId = streamId;
+  req.requestContext = makeThriftRequestContext(eventBase);
+  req.requestContext->installExtensions(bridgeRequestLayout());
+  req.requestContext->setConnectionContext(conn);
+  auto metadata = std::make_unique<apache::thrift::RequestRpcMetadata>();
+  metadata->name() = std::string(method);
+  metadata->kind() = apache::thrift::RpcKind::SINGLE_REQUEST_STREAMING_RESPONSE;
+  metadata->protocol() = apache::thrift::ProtocolId::BINARY;
+  req.payload = ThriftRequestStreamPayload{
+      .data = folly::IOBuf::copyBuffer("0123456789"),
+      .metadata = std::move(metadata),
+      .initialRequestN = 1};
+  return req;
+}
+
 ThriftServerResponseMessage makeResponse(uint32_t streamId) {
   auto metadata = std::make_unique<apache::thrift::ResponseRpcMetadata>();
   return ThriftServerResponseMessage{
@@ -434,6 +456,15 @@ ThriftServerResponseMessage makeErrorResponse(uint32_t streamId) {
           .metadata = nullptr,
           .streamId = streamId,
           .errorCode = 0}};
+}
+
+apache::thrift::ResponseRpcError deserializeResponseRpcError(
+    const folly::IOBuf& data) {
+  apache::thrift::ResponseRpcError error;
+  apache::thrift::CompactProtocolReader reader;
+  reader.setInput(&data);
+  error.read(&reader);
+  return error;
 }
 
 // The answer to a request that went downstream, carrying that request's
@@ -714,6 +745,12 @@ TEST(
 
   EXPECT_EQ(currentAmbientDepth(), 99);
   ASSERT_NE(ctx.forwardedAmbientContext, nullptr);
+  ASSERT_FALSE(ctx.read.empty());
+  const auto& forwarded = ctx.read.back().get<ThriftServerRequestMessage>();
+  ASSERT_NE(forwarded.requestContext, nullptr);
+  EXPECT_EQ(
+      captureFollyRequestContext(*forwarded.requestContext),
+      ctx.forwardedAmbientContext);
   {
     folly::RequestContextScopeGuard forwardedGuard(ctx.forwardedAmbientContext);
     EXPECT_EQ(currentAmbientDepth(), 3);
@@ -875,6 +912,33 @@ TEST(TProcessorEventHandlerBridgeTest, UnsupportedRpcKindSkipsCallbacks) {
   EXPECT_TRUE(log.calls.empty());
 }
 
+TEST(TProcessorEventHandlerBridgeTest, StreamingRequestIsRefusedFailClosed) {
+  CallLog log;
+  Bridge bridge(makeConfig(&log));
+  FakeContext ctx;
+  auto conn = makeConn();
+  establish(bridge, ctx, conn);
+  log.calls.clear();
+  auto request = makeStreamRequest(*ctx.eventBase(), conn, 1, "ping");
+  auto* const requestContext = request.requestContext.get();
+
+  EXPECT_EQ(
+      bridge.onRead(ctx, erase_and_box(std::move(request))), Result::Success);
+
+  // Only setup was forwarded; the stream request did not reach the app.
+  EXPECT_EQ(ctx.read.size(), 1);
+  ASSERT_EQ(ctx.written.size(), 1);
+  EXPECT_TRUE(log.calls.empty());
+  const auto& response = ctx.written.front().get<ThriftServerResponseMessage>();
+  EXPECT_EQ(response.requestContext.get(), requestContext);
+  ASSERT_TRUE(response.payload.is<ThriftErrorPayload>());
+  const auto& error = response.payload.get<ThriftErrorPayload>();
+  ASSERT_NE(error.data, nullptr);
+  const auto rpcError = deserializeResponseRpcError(*error.data);
+  EXPECT_EQ(
+      *rpcError.code(), apache::thrift::ResponseRpcErrorCode::WRONG_RPC_KIND);
+}
+
 // The write-side callbacks bracket serializing a reply body, so a framework
 // error that carries none does not get them — matching the classic server,
 // where an error sent outside the reply path never reaches them. The handlers'
@@ -1032,6 +1096,63 @@ TEST(TProcessorEventHandlerBridgeTest, RequestWithoutContextIsRefused) {
   EXPECT_EQ(
       std::find(log.calls.begin(), log.calls.end(), "preRead"),
       log.calls.end());
+}
+
+TEST(
+    TProcessorEventHandlerBridgeTest,
+    MissingMethodRegistryResponseRetainsRequestContext) {
+  CallLog log;
+  auto config = makeConfig(&log);
+  config.methodMetadata.reset();
+  Bridge bridge(std::move(config));
+  FakeContext ctx;
+  auto conn = makeConn();
+  establish(bridge, ctx, conn);
+  auto request = makeRequest(*ctx.eventBase(), conn, 5, "ping");
+  auto* const requestContext = request.requestContext.get();
+  auto requestFollyContext =
+      request.requestContext->getFollyRequestContext().capture();
+  folly::RequestContextScopeGuard callerGuard;
+  auto* const callerContext = folly::RequestContext::try_get();
+
+  {
+    folly::RequestContextScopeGuard requestGuard(requestFollyContext);
+    EXPECT_EQ(
+        bridge.onRead(ctx, erase_and_box(std::move(request))), Result::Success);
+  }
+
+  ASSERT_EQ(ctx.written.size(), 1);
+  const auto& response = ctx.written.front().get<ThriftServerResponseMessage>();
+  EXPECT_EQ(response.requestContext.get(), requestContext);
+  EXPECT_EQ(ctx.forwardedWriteAmbientContext, requestFollyContext);
+  EXPECT_EQ(folly::RequestContext::try_get(), callerContext);
+}
+
+TEST(
+    TProcessorEventHandlerBridgeTest,
+    MissingConnectionContextResponseRetainsRequestContext) {
+  CallLog log;
+  Bridge bridge(makeConfig(&log));
+  FakeContext ctx;
+  auto conn = makeConn();
+  auto request = makeRequest(*ctx.eventBase(), conn, 5, "ping");
+  auto* const requestContext = request.requestContext.get();
+  auto requestFollyContext =
+      request.requestContext->getFollyRequestContext().capture();
+  folly::RequestContextScopeGuard callerGuard;
+  auto* const callerContext = folly::RequestContext::try_get();
+
+  {
+    folly::RequestContextScopeGuard requestGuard(requestFollyContext);
+    EXPECT_EQ(
+        bridge.onRead(ctx, erase_and_box(std::move(request))), Result::Success);
+  }
+
+  ASSERT_EQ(ctx.written.size(), 1);
+  const auto& response = ctx.written.front().get<ThriftServerResponseMessage>();
+  EXPECT_EQ(response.requestContext.get(), requestContext);
+  EXPECT_EQ(ctx.forwardedWriteAmbientContext, requestFollyContext);
+  EXPECT_EQ(folly::RequestContext::try_get(), callerContext);
 }
 
 // A handler is promised one connectionDestroyed for the newConnection it was

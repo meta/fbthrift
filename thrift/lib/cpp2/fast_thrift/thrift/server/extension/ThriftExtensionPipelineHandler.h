@@ -43,6 +43,7 @@
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/extension/ThriftConnectionExtension.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/extension/ThriftExtension.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/framework/ThriftPipelineHandler.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/util/PayloadUtils.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/util/ResponsePayloads.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/util/SetupMessages.h>
 
@@ -203,6 +204,9 @@ class ThriftExtensionPipelineHandler {
       }
     }
     const channel_pipeline::Result result = [&]() noexcept {
+      if (FOLLY_UNLIKELY(isStreamControlRequest(request.payload))) {
+        return ctx.fireRead(std::move(msg));
+      }
       if constexpr (!ThriftExtensionHandler<H>) {
         return ctx.fireRead(std::move(msg));
       } else {

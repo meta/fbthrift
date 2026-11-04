@@ -93,6 +93,18 @@ ThriftServerRequestMessage makeRequestWithMetadata(
   return req;
 }
 
+ThriftServerRequestMessage makeStreamRequestWithMetadata(
+    uint32_t streamId,
+    std::unique_ptr<apache::thrift::RequestRpcMetadata> metadata) {
+  ThriftServerRequestMessage req;
+  req.streamId = streamId;
+  req.payload = ThriftServerInboundPayloadVariant{ThriftRequestStreamPayload{
+      .data = folly::IOBuf::copyBuffer("body"),
+      .metadata = std::move(metadata),
+      .initialRequestN = 1}};
+  return req;
+}
+
 // Outbound message as the tail adapter emits it: typed metadata plus the
 // originating context, whose response headers are still on the context.
 ThriftServerResponseMessage makeResponseWithHeaders(
@@ -165,6 +177,65 @@ TEST(ThriftServerRequestContextHandlerTest, ResolvesMethodMetadataOnce) {
   const ThriftRequestView view(forwarded);
   EXPECT_EQ(view.methodName(), "method");
   EXPECT_EQ(view.qualifiedMethodName(), "Service.method");
+}
+
+TEST(
+    ThriftServerRequestContextHandlerTest,
+    StreamRequestsPopulateResolvedMethodAndHeaders) {
+  ThriftServerMethodMetadataRegistry methods;
+  methods.add(
+      ThriftServerMethodMetadata{
+          .serviceName = "Service",
+          .definingServiceName = "Service",
+          .methodName = "stream",
+          .qualifiedMethodName = "Service.stream",
+      });
+  ThriftServerRequestContextHandler<FakeContext> handler{
+      nullptr,
+      &methods,
+      boost::intrusive_ptr<ThriftConnContext>{new ThriftConnContext()},
+      true};
+  FakeContext ctx;
+  auto metadata = std::make_unique<apache::thrift::RequestRpcMetadata>();
+  metadata->name() = "stream";
+  metadata->otherMetadata().ensure()["request-header"] = "value";
+
+  EXPECT_EQ(
+      handler.onRead(
+          ctx,
+          erase_and_box(makeStreamRequestWithMetadata(
+              /*streamId=*/1, std::move(metadata)))),
+      Result::Success);
+
+  const auto& request = ctx.forwarded.front().get<ThriftServerRequestMessage>();
+  ASSERT_NE(request.requestContext, nullptr);
+  EXPECT_EQ(request.requestContext->getMethodName(), "stream");
+  EXPECT_EQ(
+      request.requestContext->getMethodMetadata(), methods.find("stream"));
+  ASSERT_NE(request.requestContext->getHeader("request-header"), nullptr);
+  EXPECT_EQ(*request.requestContext->getHeader("request-header"), "value");
+}
+
+TEST(
+    ThriftServerRequestContextHandlerTest,
+    StreamControlFramesReuseTheOpenStreamsContext) {
+  ThriftServerRequestContextHandler<FakeContext> handler{nullptr};
+  FakeContext ctx;
+  folly::RequestContextScopeGuard callerGuard;
+  auto* const callerContext = folly::RequestContext::try_get();
+  auto request = makeRequest(/*streamId=*/1);
+  request.payload = ThriftRequestNPayload{.streamId = 1, .requestN = 10};
+
+  EXPECT_EQ(
+      handler.onRead(ctx, erase_and_box(std::move(request))), Result::Success);
+
+  ASSERT_EQ(ctx.forwarded.size(), 1u);
+  EXPECT_EQ(
+      ctx.forwarded.front().get<ThriftServerRequestMessage>().requestContext,
+      nullptr);
+  ASSERT_EQ(ctx.forwardedRequestContexts.size(), 1u);
+  EXPECT_EQ(ctx.forwardedRequestContexts.front().get(), callerContext);
+  EXPECT_EQ(folly::RequestContext::try_get(), callerContext);
 }
 
 // A request whose metadata names no method leaves the context without one,

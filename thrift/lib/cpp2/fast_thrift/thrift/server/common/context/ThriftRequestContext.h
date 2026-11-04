@@ -198,9 +198,9 @@ class ThriftRequestContext {
   // The map is the same type as ResponseRpcMetadata.otherMetadata, so it moves
   // onto the outgoing metadata with no copy or rehash.
   //
-  // Only an initial response carries metadata to put these on. A request
-  // answered by a rocket ERROR frame, or by a setup rejection, has nowhere on
-  // the wire for them and drops them.
+  // Only unary and stream initial responses carry metadata to put these on. A
+  // request answered by a rocket ERROR frame, or by a setup rejection, has
+  // nowhere on the wire for them and drops them.
   void setResponseHeader(std::string key, std::string value) {
     writeHeaders_[std::move(key)] = std::move(value);
   }

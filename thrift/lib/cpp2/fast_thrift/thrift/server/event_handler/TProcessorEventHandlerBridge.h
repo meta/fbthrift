@@ -224,8 +224,9 @@ inline void stampWriteHeaders(
  *
  * NOT supported, because fast_thrift has no equivalent: streams, sinks,
  * interactions (`onInteractionTerminate`), and the server-lifecycle callbacks
- * (`preStart` / `preServe` / `postStop`). A handler relying on any of those
- * will not see them.
+ * (`preStart` / `preServe` / `postStop`). When processor handlers are
+ * installed, a stream request is refused rather than dispatched without them;
+ * the other unsupported callbacks are never driven.
  *
  * Requires `enableRequestHeaders` if any handler reads request headers. A
  * request arriving without a context from a manually composed pipeline is
@@ -304,6 +305,23 @@ class TProcessorEventHandlerBridge {
     const auto routing = getServerRequestRoutingMetadata(request);
     if (FOLLY_UNLIKELY(routing.status != ServerRequestRoutingStatus::Ready)) {
       return ctx.fireRead(std::move(msg));
+    }
+
+    // Streams are deliberately outside this bridge's classic-callback
+    // contract. The shared routing helper considers them ready because the
+    // generated app adapters support them, but forwarding one without running
+    // installed processor handlers could bypass authorization. Refuse it with
+    // the same framework error an app adapter uses for an unsupported RPC kind.
+    // Independently require the variant before accessing it below, so a
+    // malformed kind/payload combination also fails closed.
+    if (FOLLY_UNLIKELY(
+            routing.kind !=
+                apache::thrift::RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE ||
+            !request.payload.is<ThriftServerRequestResponsePayload>())) {
+      auto response = makeWrongRpcKindMessage(request.streamId, routing.kind);
+      response.requestContext = std::move(request.requestContext);
+      return ctx.fireWrite(
+          channel_pipeline::erase_and_box(std::move(response)));
     }
 
     const uint32_t streamId = request.streamId;

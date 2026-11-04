@@ -68,6 +68,7 @@ ThriftServerRequestMessage makeRequest(
   ThriftServerRequestMessage request;
   request.streamId = streamId;
   request.requestContext = makeThriftRequestContext(evb);
+  request.payload = ThriftServerRequestResponsePayload{};
   return request;
 }
 
@@ -270,6 +271,26 @@ TEST(
       ctx, ThriftServerRequestCancellationEvent{.streamId = 6});
   handler.onPipelineInactive(ctx);
   EXPECT_EQ(cancellationCallbacks, 1);
+}
+
+TEST(
+    ThriftServerRequestLifecycleHandlerTest,
+    StreamControlMessagesAreNotEnrolledAsRequests) {
+  folly::EventBase evb;
+  FakeContext ctx;
+  ctx.retainReads = false;
+  ThriftServerRequestLifecycleHandler<FakeContext> handler;
+  auto request = makeRequest(evb, 6);
+  request.payload = ThriftRequestNPayload{.streamId = 6, .requestN = 1};
+
+  EXPECT_EQ(
+      handler.onRead(ctx, erase_and_box(std::move(request))), Result::Success);
+  EXPECT_EQ(handler.requestCount(), 0u);
+
+  handler.on<ThriftServerRequestCancellationEvent>(
+      ctx, ThriftServerRequestCancellationEvent{.streamId = 6});
+  handler.onPipelineInactive(ctx);
+  EXPECT_EQ(handler.requestCount(), 0u);
 }
 
 TEST(ThriftServerRequestLifecycleHandlerTest, ConnectionFailureCancelsAll) {
