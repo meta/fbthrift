@@ -393,6 +393,147 @@ const list<CompatibilityTestCase> compatibilityTestCases = [
     inputs = ["{\"floatAsKey\": {\"16777216\": 1}}"],
     output = json5_test.Example{floatAsKey = {16777216.0: 1}},
   },
+  CompatibilityTestCase{
+    name = "IntegerNegativeZero",
+    inputs = [
+      "{\"i64Value\": -0}",
+      "{\"i64Value\": \"-0\"}",
+      "{\"i64Value\": -0x0}",
+    ],
+    output = json5_test.Example{i64Value = 0},
+  },
+  CompatibilityTestCase{
+    name = "CommentAfterValue",
+    inputs = [
+      "{\"i64Value\": 1} // note",
+      "{\"i64Value\": 1} /* note */",
+    ],
+    output = json5_test.Example{i64Value = 1},
+  },
+  // A null member is skipped before its name or id is checked.
+  CompatibilityTestCase{
+    name = "NullMembersAreNotResolved",
+    inputs = ["{\"boolValue (31)\": null, \"NonExist (30)\": null}"],
+    output = json5_test.Example{},
+  },
+  // Field id -32768 stands for "no id".
+  CompatibilityTestCase{
+    name = "FieldIdInt16MinMeansNoId",
+    inputs = ["{\"boolValue (-32768)\": true}"],
+    output = json5_test.Example{boolValue = true},
+  },
+  CompatibilityTestCase{
+    name = "UnionWithOnlyUnknownField",
+    inputs = ["{\"unionValue\": {\"unknown\": 1}}"],
+    output = json5_test.Example{unionValue = json5_test.ExampleUnion{}},
+  },
+  CompatibilityTestCase{
+    name = "SetDuplicateElements",
+    inputs = [
+      "{\"i32SetValue\": [2, 1, 2], \"setValue\": [{\"nested\": \"b\"}, {\"nested\": \"a\"}, {\"nested\": \"b\"}]}",
+    ],
+    output = json5_test.Example{
+      i32SetValue = [1, 2],
+      setValue = [json5_test.Nested{nested = "a"}, json5_test.Nested{nested = "b"}],
+    },
+  },
+  CompatibilityTestCase{
+    name = "MapDuplicateKeyLastWins",
+    inputs = [
+      "{\"i32AsKey\": [{\"key\": 1, \"value\": 2}, {\"key\": 1, \"value\": 3}]}",
+      "{\"i32AsKey\": {\"1\": 2, \"0x1\": 3}}",
+    ],
+    output = json5_test.Example{i32AsKey = {1: 3}},
+  },
+  CompatibilityTestCase{
+    name = "StructKeyDuplicateLastWins",
+    inputs = [
+      "{\"structAsKey\": [{\"key\": {\"nested\": \"k\"}, \"value\": {\"nested\": \"v\"}}, {\"key\": {\"nested\": \"k\"}, \"value\": {\"nested\": \"w\"}}]}",
+    ],
+    output = json5_test.Example{
+      structAsKey = {json5_test.Nested{nested = "k"}: json5_test.Nested{nested = "w"}},
+    },
+  },
+  CompatibilityTestCase{
+    name = "SetAsKeyDuplicateElements",
+    inputs = ["{\"setAsKey\": [{\"key\": [2, 1, 2], \"value\": 3}]}"],
+    output = json5_test.Example{setAsKey = {[1, 2]: 3}},
+  },
+  CompatibilityTestCase{
+    name = "FloatAsKeyFromString",
+    inputs = [
+      "{\"floatAsKey\": [{\"key\": 0.5, \"value\": 1}, {\"key\": \"16777216\", \"value\": 2}]}",
+    ],
+    output = json5_test.Example{floatAsKey = {0.5: 1, 16777216.0: 2}},
+  },
+  // Bare base64 strings: padding is optional, and nonzero trailing bits ("QR")
+  // are ignored.
+  CompatibilityTestCase{
+    name = "BinaryBareBase64OneByte",
+    inputs = [
+      "{\"binaryValue\": \"QQ\"}",
+      "{\"binaryValue\": \"QQ==\"}",
+      "{\"binaryValue\": \"QR\"}",
+    ],
+    output = json5_test.Example{binaryValue = "A"},
+  },
+  CompatibilityTestCase{
+    name = "BinaryBareBase64TwoBytes",
+    inputs = ["{\"binaryValue\": \"QUI\"}", "{\"binaryValue\": \"QUI=\"}"],
+    output = json5_test.Example{binaryValue = "AB"},
+  },
+  CompatibilityTestCase{
+    name = "BinaryBareBase64ThreeBytes",
+    inputs = ["{\"binaryValue\": \"QUJD\"}"],
+    output = json5_test.Example{binaryValue = "ABC"},
+  },
+  CompatibilityTestCase{
+    name = "BinaryBareBase64Empty",
+    inputs = ["{\"binaryValue\": \"\"}"],
+    output = json5_test.Example{binaryValue = ""},
+  },
+  // 1 + 2^-24 is exactly halfway between two binary32 values.
+  CompatibilityTestCase{
+    name = "FloatBinary32MidpointTiesToEven",
+    inputs = ["{\"floatValue\": 1.000000059604644775390625}"],
+    output = json5_test.Example{floatValue = 1.0},
+  },
+  // Above a binary32 midpoint whose exact decimal has 83 significant digits,
+  // but below it rounded to 41 digits.
+  CompatibilityTestCase{
+    name = "FloatJustAboveLongBinary32Midpoint",
+    inputs = ["{\"floatValue\": 7.03853100000000022281692450609677778769437e-26}"],
+    output = json5_test.Example{
+      floatValue = 0.0000000000000000000000000703853130814879132477466099505324860128273323223169199991389177739620208740234375,
+    },
+  },
+  CompatibilityTestCase{
+    name = "FloatJustBelowMidpointAfterFltMax",
+    inputs = ["{\"floatValue\": 340282356779733661637539395458142568447.999999}"],
+    output = json5_test.Example{
+      floatValue = 340282346638528859811704183484516925440.0,
+    },
+  },
+  CompatibilityTestCase{
+    name = "FloatJustAboveHalfSmallestSubnormal",
+    inputs = ["{\"floatValue\": 7.00649232162408535461864791644958065640130970938257885878534141944895541342930300743319094181060791015625000001e-46}"],
+    output = json5_test.Example{
+      floatValue = 0.000000000000000000000000000000000000000000001401298464324817070923729583289916131280261941876515771757068283889791082685860601486638188362121582031250,
+    },
+  },
+  // Exactly halfway between the largest subnormal and DBL_MIN.
+  CompatibilityTestCase{
+    name = "DoubleSubnormalMidpointTiesToEven",
+    inputs = ["{\"doubleValue\": 2.22507385850720113605740979670913197593481954635164564802342610972482222202107694551652952390813508791414915891303962110687008643869459464552765720740782062174337998814106326732925355228688137214901298112245145188984905722230728525513315575501591439747639798341180199932396254828901710708185069063066665599493827577257201576306269066333264756530000924588831643303777979186961204949739037782970490505108060994073026293712895895000358379996720725430436028407889577179615094551674824347103070260914462157228988025818254518032570701886087211312807951223342628836862232150377566662250398253433597456888442390026549819838548794829220689472168983109969836584681402285424333066033985088644580400103493397042756718644338377048603786162277173854562306587467901408672332763671875e-308}"],
+    output = json5_test.Example{doubleValue = 2.2250738585072014e-308},
+  },
+  CompatibilityTestCase{
+    name = "DoubleJustBelowSubnormalMidpoint",
+    inputs = [
+      "{\"doubleValue\": 2.225073858507201136057409796709131975934819546351645648e-308}",
+    ],
+    output = json5_test.Example{doubleValue = 2.225073858507201e-308},
+  },
 ];
 
 // Values that thrift constants cannot express: NaN, the infinities and
@@ -553,6 +694,53 @@ const list<RoundTripTestCase> roundTripTestCases = [
       value: 2,
     },
   ],
+}",
+  },
+  RoundTripTestCase{
+    name = "SignsOfZeroAndNaNInDoubleList",
+    inputs = [
+      "{\"doubleListValue\": [-0.0, -NaN, 0.0, NaN]}",
+      "{\"doubleListValue\": [-0, \"-NaN\", 0, \"NaN\"]}",
+      "{doubleListValue: [\"-0x0\", -NaN, \"0.0\", +NaN]}",
+    ],
+    json = "{
+  \"doubleListValue\": [
+    -0.0,
+    \"-NaN\",
+    0.0,
+    \"NaN\"
+  ]
+}",
+    json5 = "{
+  doubleListValue: [
+    -0.0,
+    -NaN,
+    0.0,
+    NaN,
+  ],
+}",
+  },
+  RoundTripTestCase{
+    name = "FloatNegativeNaN",
+    inputs = ["{\"floatValue\": -NaN}", "{\"floatValue\": \"-NaN\"}"],
+    json = "{
+  \"floatValue\": \"-NaN\"
+}",
+    json5 = "{
+  floatValue: -NaN,
+}",
+  },
+  RoundTripTestCase{
+    name = "FloatOverflowsToInfinity",
+    inputs = [
+      "{\"floatValue\": 1e39}",
+      "{\"floatValue\": 340282356779733661637539395458142568448.000001}",
+    ],
+    json = "{
+  \"floatValue\": \"Infinity\"
+}",
+    json5 = "{
+  floatValue: Infinity,
 }",
   },
 ];

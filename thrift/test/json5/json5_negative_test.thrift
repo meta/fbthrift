@@ -250,6 +250,20 @@ const list<NegativeTestCase> typeValidationNegativeCases = [
     name = "FloatKeyPrecisionLoss",
     json = "{\"floatAsKey\": {\"16777217\": 1}}",
   },
+  NegativeTestCase{name = "BinaryBareBase64OneCharacter", json = "{\"binaryValue\": \"Q\"}"},
+  NegativeTestCase{name = "BinaryBareBase64FiveCharacters", json = "{\"binaryValue\": \"QUJDR\"}"},
+  NegativeTestCase{name = "BinaryBareBase64PartialPadding", json = "{\"binaryValue\": \"QQ=\"}"},
+  NegativeTestCase{name = "BinaryBareBase64PaddingAfterCompleteQuantum", json = "{\"binaryValue\": \"QUJD====\"}"},
+  NegativeTestCase{name = "BinaryBareBase64ThreePaddingCharacters", json = "{\"binaryValue\": \"Q===\"}"},
+  NegativeTestCase{name = "BinaryBareBase64OnlyPadding", json = "{\"binaryValue\": \"====\"}"},
+  NegativeTestCase{name = "BinaryBareBase64PaddingInside", json = "{\"binaryValue\": \"QQ==QQ==\"}"},
+  NegativeTestCase{name = "BinaryBareBase64Space", json = "{\"binaryValue\": \"QQ Q\"}"},
+  NegativeTestCase{name = "BinaryBareBase64OtherCharacter", json = "{\"binaryValue\": \"QQ!Q\"}"},
+  NegativeTestCase{name = "MapGotString", json = "{\"i32AsKey\": \"x\"}"},
+  NegativeTestCase{name = "MapEntryMisnamedValue", json = "{\"i32AsKey\": [{\"key\": 1, \"val\": 2}]}"},
+  NegativeTestCase{name = "StructKeyInObjectForm", json = "{\"structAsKey\": {\"k\": {}}}"},
+  NegativeTestCase{name = "ListKeyInObjectForm", json = "{\"listAsKey\": {k: 1}}"},
+  NegativeTestCase{name = "MapKeyInObjectForm", json = "{\"mapAsKey\": {\"k\": 1}}"},
 ];
 
 const list<NegativeTestCase> typeMismatchNegativeCases = [
@@ -356,6 +370,11 @@ const list<NegativeTestCase> formatValidationNegativeCases = [
     name = "UnionUnknownThenKnownField",
     json = "{\"unionValue\": {\"unknown\": 1, \"intValue\": 2}}",
   },
+  NegativeTestCase{name = "TopLevelList", json = "[]"},
+  NegativeTestCase{name = "EmptyFieldName", json = "{\"\": 1}"},
+  NegativeTestCase{name = "EndOfInputAfterFieldName", json = "{\"i64Value\":"},
+  NegativeTestCase{name = "SkippedValueMissing", json = "{\"unknown\": }"},
+  NegativeTestCase{name = "UnionNullUnknownFieldBetweenFields", json = "{\"unionValue\": {\"intValue\": 1, \"unknown\": null, \"stringValue\": \"a\"}}"},
 ];
 
 const list<NegativeTestCase> overflowValidationNegativeCases = [

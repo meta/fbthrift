@@ -176,4 +176,8 @@ const list<ReaderTestCase> readerTestCases = [
   ReaderTestCase{name = "ValueAfterComma", input = "{\"a\": 1}, {}"},
   ReaderTestCase{name = "ValueAfterCommaInList", input = "[1], 2"},
   ReaderTestCase{name = "ValueAfterCommaAndComment", input = "42 /* comment */ , 43"},
+  ReaderTestCase{name = "LoneSlash", input = "1/2"},
+  ReaderTestCase{name = "SignThenIdentifier", input = "-null"},
+  ReaderTestCase{name = "SignThenInfinityMisspelled", input = "-Inf"},
+  ReaderTestCase{name = "SignedDecimalPointThenExponent", input = "-.e5"},
 ];

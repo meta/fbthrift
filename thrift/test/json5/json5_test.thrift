@@ -1156,6 +1156,233 @@ const list<TestCase> testCases = [
   ],
 }",
   },
+  // More of fmt's layout of the shortest digits: fixed notation for decimal
+  // exponents in [-4, 16), for float as well as double.
+  TestCase{
+    name = "MoreDoubleFormatting",
+    example = Example{doubleListValue = [1.0, 0.1, 0.10000000000000002, 0.3333333333333333, 9.999999999999999e-5, 9999999999999998.0, 9007199254740992.0, 9223372036854775808.0, 1e23, 1e100, 1e-100, -1.5e300, 2.2250738585072014e-308]},
+    json = "{
+  \"doubleListValue\": [
+    1.0,
+    0.1,
+    0.10000000000000002,
+    0.3333333333333333,
+    9.999999999999999e-05,
+    9999999999999998.0,
+    9007199254740992.0,
+    9.223372036854776e+18,
+    1e+23,
+    1e+100,
+    1e-100,
+    -1.5e+300,
+    2.2250738585072014e-308
+  ]
+}",
+    json5 = "{
+  doubleListValue: [
+    1.0,
+    0.1,
+    0.10000000000000002,
+    0.3333333333333333,
+    9.999999999999999e-05,
+    9999999999999998.0,
+    9007199254740992.0,
+    9.223372036854776e+18,
+    1e+23,
+    1e+100,
+    1e-100,
+    -1.5e+300,
+    2.2250738585072014e-308,
+  ],
+}",
+  },
+  TestCase{
+    name = "MoreFloatFormatting",
+    example = Example{floatListValue = [0.3333333432674407958984375, 4194304.0, 10000000.0, 16777215.0, 999999986991104.0, 10000000272564224.0, 0.000000000000000000000000000000000000011754943508222875079687365372222456778186655567720875215087517062784172594547271728515625, 0.0000000000000000000000000703853130814879132477466099505324860128273323223169199991389177739620208740234375]},
+    json = "{
+  \"floatListValue\": [
+    0.33333334,
+    4194304.0,
+    10000000.0,
+    16777215.0,
+    1000000000000000.0,
+    1e+16,
+    1.1754944e-38,
+    7.0385313e-26
+  ]
+}",
+    json5 = "{
+  floatListValue: [
+    0.33333334,
+    4194304.0,
+    10000000.0,
+    16777215.0,
+    1000000000000000.0,
+    1e+16,
+    1.1754944e-38,
+    7.0385313e-26,
+  ],
+}",
+  },
+  // Enum keys are ordered by value, not by name.
+  TestCase{
+    name = "EnumKeysInValueOrder",
+    example = Example{enumAsKey = {Enum.MANY: Enum.ONE, Enum.TWO: Enum.ONE, Enum.NEGATIVE_ONE: Enum.ONE}},
+    json = "{
+  \"enumAsKey\": {
+    \"NEGATIVE_ONE (-1)\": \"ONE (1)\",
+    \"TWO (2)\": \"ONE (1)\",
+    \"MANY (3)\": \"ONE (1)\"
+  }
+}",
+    json5 = "{
+  enumAsKey: {
+    \"NEGATIVE_ONE (-1)\": \"ONE (1)\",
+    \"TWO (2)\": \"ONE (1)\",
+    \"MANY (3)\": \"ONE (1)\",
+  },
+}",
+  },
+  // List keys are ordered element by element, a prefix first.
+  TestCase{
+    name = "ListKeysLexicographic",
+    example = Example{listAsKey = {[1, 3]: 1, [1, 2]: 2, [1]: 3, [2]: 4, []: 5}},
+    json = "{
+  \"listAsKey\": [
+    {
+      \"key\": [],
+      \"value\": 5
+    },
+    {
+      \"key\": [
+        1
+      ],
+      \"value\": 3
+    },
+    {
+      \"key\": [
+        1,
+        2
+      ],
+      \"value\": 2
+    },
+    {
+      \"key\": [
+        1,
+        3
+      ],
+      \"value\": 1
+    },
+    {
+      \"key\": [
+        2
+      ],
+      \"value\": 4
+    }
+  ]
+}",
+    json5 = "{
+  listAsKey: [
+    {
+      key: [],
+      value: 5,
+    },
+    {
+      key: [
+        1,
+      ],
+      value: 3,
+    },
+    {
+      key: [
+        1,
+        2,
+      ],
+      value: 2,
+    },
+    {
+      key: [
+        1,
+        3,
+      ],
+      value: 1,
+    },
+    {
+      key: [
+        2,
+      ],
+      value: 4,
+    },
+  ],
+}",
+  },
+  // Keys are ordered by their bytes, so "10" comes before "9" and "é" last.
+  TestCase{
+    name = "StringKeysInByteOrder",
+    example = Example{stringAsKey = {"é": "e", "a": "a", "B": "B", "9": "9", "10": "10"}},
+    json = "{
+  \"stringAsKey\": {
+    \"10\": \"10\",
+    \"9\": \"9\",
+    \"B\": \"B\",
+    \"a\": \"a\",
+    \"é\": \"e\"
+  }
+}",
+    json5 = "{
+  stringAsKey: {
+    \"10\": \"10\",
+    \"9\": \"9\",
+    B: \"B\",
+    a: \"a\",
+    \"é\": \"e\",
+  },
+}",
+  },
+  // A C1 control is not printable, so the bytes are written as base64url; a
+  // no-break space is.
+  TestCase{
+    name = "BinaryC1Control",
+    example = Example{binaryValue = "\u0080"},
+    json = "{
+  \"binaryValue\": {
+    \"base64url\": \"woA\"
+  }
+}",
+    json5 = "{
+  binaryValue: {
+    base64url: \"woA\",
+  },
+}",
+  },
+  TestCase{
+    name = "BinaryNoBreakSpace",
+    example = Example{binaryValue = "\u00a0"},
+    json = "{
+  \"binaryValue\": {
+    \"utf-8\": \"\u00a0\"
+  }
+}",
+    json5 = "{
+  binaryValue: {
+    \"utf-8\": \"\u00a0\",
+  },
+}",
+  },
+  TestCase{
+    name = "UnionMemberWithEmptyValue",
+    example = Example{unionValue = ExampleUnion{stringValue = ""}},
+    json = "{
+  \"unionValue\": {
+    \"stringValue\": \"\"
+  }
+}",
+    json5 = "{
+  unionValue: {
+    stringValue: \"\",
+  },
+}",
+  },
 ];
 
 // Not final, so the test can derive a class from it.
