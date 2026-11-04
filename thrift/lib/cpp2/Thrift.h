@@ -22,6 +22,7 @@
 #include <thrift/lib/cpp/util/EnumUtils.h>
 #include <thrift/lib/cpp2/TypeClass.h>
 
+#include <functional>
 #include <utility>
 #include <folly/Traits.h>
 #include <folly/Utility.h>
@@ -404,7 +405,7 @@ using detect_indirection_fn_t = typename T::__fbthrift_cpp2_indirection_fn;
 
 template <typename T>
 using indirection_fn_t =
-    folly::detected_or_t<folly::identity_fn, detect_indirection_fn_t, T>;
+    folly::detected_or_t<std::identity, detect_indirection_fn_t, T>;
 
 namespace detail {
 struct apply_indirection_fn {
