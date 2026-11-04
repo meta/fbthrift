@@ -3587,6 +3587,82 @@ TEST(CompilerTest, cpp_allocator_via_on_union) {
   )");
 }
 
+TEST(CompilerTest, cpp_allocator_annotation_spellings) {
+  check_compile(R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/internal.thrift"
+    include "thrift/annotation/thrift.thrift"
+
+    @internal.CppAllocator{name = "MyAlloc"}
+    @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.allocator": "MyAlloc"}}
+    struct Both {
+      @internal.CppUseAllocator
+      @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
+      1: string s;
+        # expected-error@-3: Both `@internal.CppUseAllocator` and `cpp.use_allocator` are set on `s`. Remove `cpp.use_allocator`.
+    }
+      # expected-error@-8: Both `@internal.CppAllocator` and `cpp.allocator` are set on `Both`. Remove `cpp.allocator`.
+
+    @internal.CppAllocator
+    @internal.CppAllocatorVia{name = ""}
+    struct NoName {
+      1: string s;
+    }
+      # expected-error@-5: `@internal.CppAllocator` on `NoName` needs a non-empty name.
+      # expected-error@-6: `@internal.CppAllocatorVia` on `NoName` needs a non-empty name.
+
+    @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.allocator": ""}}
+    struct EmptyUnstructured {
+      1: string s;
+    }
+      # expected-error@-4: `cpp.allocator` on `EmptyUnstructured` needs a non-empty name.
+  )");
+}
+
+TEST(CompilerTest, cpp_allocator_via) {
+  check_compile(R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+    include "thrift/annotation/thrift.thrift"
+
+    @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.allocator_via": "s"}}
+    struct NoAllocator {
+      @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
+      1: string s;
+    }
+      # expected-error@-5: `cpp.allocator_via` on `NoAllocator` needs `cpp.allocator`.
+
+    @thrift.DeprecatedUnvalidatedAnnotations{
+      items = {"cpp.allocator": "MyAlloc", "cpp.allocator_via": "missing"},
+    }
+    struct UnknownField {
+      @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
+      1: string s;
+    }
+      # expected-error@-7: `cpp.allocator_via` on `UnknownField` names no field `missing`.
+
+    @thrift.DeprecatedUnvalidatedAnnotations{
+      items = {"cpp.allocator": "MyAlloc", "cpp.allocator_via": "s"},
+    }
+    struct RefField {
+      @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
+      @cpp.Ref{type = cpp.RefType.Shared}
+      1: optional string s;
+        # expected-error@-3: Optional reference field `s` of `cpp.allocator` type `RefField` is not supported.
+    }
+      # expected-error@-9: `cpp.allocator_via` on `RefField` names reference field `s`.
+
+    @thrift.DeprecatedUnvalidatedAnnotations{
+      items = {"cpp.allocator": "MyAlloc", "cpp.allocator_via": "renamed"},
+    }
+    struct Good {
+      @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
+      @cpp.Name{value = "renamed"}
+      1: string s;
+    }
+  )");
+}
+
 TEST(CompilerTest, cpp_lazy_on_allocator_aware_struct) {
   check_compile(R"(
     package "facebook.com/thrift/test"

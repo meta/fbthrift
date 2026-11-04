@@ -1338,8 +1338,8 @@ class t_mstch_cpp2_generator : public t_whisker_generator {
     });
     def.property("cpp_allocator", [](const t_structured& strct) {
       const std::string* value = cpp2::find_allocator(strct);
-      return value == nullptr || value->empty() ? whisker::make::null
-                                                : whisker::make::string(*value);
+      return value == nullptr ? whisker::make::null
+                              : whisker::make::string(*value);
     });
     def.property("cpp_frozen2_exclude?", [this](const t_structured& strct) {
       // TODO(dokwon): Fix frozen2 compatibility with adapter.
@@ -1348,16 +1348,9 @@ class t_mstch_cpp2_generator : public t_whisker_generator {
           cpp_context_->resolver().is_directly_adapted(strct);
     });
     def.property("cpp_allocator_via", [](const t_structured& strct) {
-      if (const std::string* name = cpp2::find_allocator_via(strct)) {
-        for (const auto& field : strct.fields()) {
-          if (cpp2::get_name(&field) == *name) {
-            return whisker::make::string(mangle_field_name(*name));
-          }
-        }
-        throw std::runtime_error(
-            fmt::format("No cpp.allocator_via field \"{}\"", *name));
-      }
-      return whisker::make::null;
+      const std::string* name = cpp2::find_allocator_via(strct);
+      return name == nullptr ? whisker::make::null
+                             : whisker::make::string(mangle_field_name(*name));
     });
     // Applying a default can allocate, so the allocator-extended constructor
     // that does it cannot be noexcept.
@@ -2937,6 +2930,114 @@ void validate_alloc_ctor_custom_defaults(
   }
 }
 
+// Each structured allocator annotation replaces an unstructured one, so a node
+// can't have both. Names must be non-empty.
+void validate_allocator_annotations(sema_context& ctx, const t_named& node) {
+  struct annotation {
+    const char* uri;
+    const char* structured;
+    const char* unstructured;
+    bool has_name;
+  };
+  static constexpr annotation kAnnotations[] = {
+      {kCppAllocatorUri, "@internal.CppAllocator", "cpp.allocator", true},
+      {kCppAllocatorViaUri,
+       "@internal.CppAllocatorVia",
+       "cpp.allocator_via",
+       true},
+      {kCppUseAllocatorUri,
+       "@internal.CppUseAllocator",
+       "cpp.use_allocator",
+       false},
+  };
+  for (const auto& a : kAnnotations) {
+    const t_const* structured = node.find_structured_annotation_or_null(a.uri);
+    const std::string* unstructured =
+        node.find_unstructured_annotation_or_null(a.unstructured);
+    if (structured != nullptr && unstructured != nullptr) {
+      ctx.report(
+          node,
+          diagnostic_level::error,
+          "Both `{}` and `{}` are set on `{}`. Remove `{}`.",
+          a.structured,
+          a.unstructured,
+          node.name(),
+          a.unstructured);
+      continue;
+    }
+    if (!a.has_name) {
+      continue;
+    }
+    if (structured != nullptr) {
+      const t_const_value* name =
+          structured->get_value_from_structured_annotation_or_null("name");
+      if (name == nullptr || name->get_string().empty()) {
+        ctx.report(
+            node,
+            diagnostic_level::error,
+            "`{}` on `{}` needs a non-empty name.",
+            a.structured,
+            node.name());
+      }
+    } else if (unstructured != nullptr && unstructured->empty()) {
+      ctx.report(
+          node,
+          diagnostic_level::error,
+          "`{}` on `{}` needs a non-empty name.",
+          a.unstructured,
+          node.name());
+    }
+  }
+}
+
+// `get_allocator()` returns the allocator of the `cpp.allocator_via` field, so
+// that field must exist and not be a reference.
+void validate_allocator_via(sema_context& ctx, const t_struct& strct) {
+  const std::string* name = cpp2::find_allocator_via(strct);
+  if (name == nullptr || name->empty()) {
+    return;
+  }
+  const bool structured = strct.has_structured_annotation(kCppAllocatorViaUri);
+  const char* via =
+      structured ? "@internal.CppAllocatorVia" : "cpp.allocator_via";
+  if (!cpp2::is_allocator_aware(strct)) {
+    ctx.report(
+        strct,
+        diagnostic_level::error,
+        "`{}` on `{}` needs `{}`.",
+        via,
+        strct.name(),
+        structured ? "@internal.CppAllocator" : "cpp.allocator");
+    return;
+  }
+  const t_field* field = nullptr;
+  for (const auto& f : strct.fields()) {
+    if (cpp2::get_name(&f) == *name) {
+      field = &f;
+      break;
+    }
+  }
+  if (field == nullptr) {
+    ctx.report(
+        strct,
+        diagnostic_level::error,
+        "`{}` on `{}` names no field `{}`.",
+        via,
+        strct.name(),
+        *name);
+    return;
+  }
+  if (gen::cpp::find_ref_type(*field) != gen::cpp::reference_type::none) {
+    ctx.report(
+        strct,
+        diagnostic_level::error,
+        "`{}` on `{}` names reference field `{}`.",
+        via,
+        strct.name(),
+        *name);
+  }
+}
+
 void validate_lazy_fields(sema_context& ctx, const t_field& field) {
   if (cpp2::is_lazy(&field)) {
     auto t = field.type()->get_true_type();
@@ -2969,6 +3070,8 @@ void t_mstch_cpp2_generator::fill_validator_visitors(
           std::placeholders::_2,
           compiler_options()));
   validator.add_struct_visitor(forbid_deprecated_terse_writes_ref);
+  validator.add_definition_visitor(validate_allocator_annotations);
+  validator.add_struct_visitor(validate_allocator_via);
   validator.add_union_visitor(forbid_allocator_via_on_union);
   validator.add_union_visitor(forbid_allocator_on_union);
   validator.add_field_visitor(forbid_allocator_ignoring_ref_fields);

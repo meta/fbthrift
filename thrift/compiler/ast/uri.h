@@ -30,6 +30,12 @@ inline constexpr auto kExceptionMessageUri =
     "facebook.com/thrift/annotation/ExceptionMessage";
 inline constexpr auto kInjectMetadataFieldsUri =
     "facebook.com/thrift/annotation/InjectMetadataFields";
+inline constexpr auto kCppAllocatorUri =
+    "facebook.com/thrift/annotation/CppAllocator";
+inline constexpr auto kCppUseAllocatorUri =
+    "facebook.com/thrift/annotation/CppUseAllocator";
+inline constexpr auto kCppAllocatorViaUri =
+    "facebook.com/thrift/annotation/CppAllocatorVia";
 inline constexpr auto kMixinUri = "facebook.com/thrift/annotation/Mixin";
 inline constexpr auto kReserveIdsUri =
     "facebook.com/thrift/annotation/ReserveIds";
