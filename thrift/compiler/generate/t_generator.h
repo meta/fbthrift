@@ -45,6 +45,9 @@ struct docblock_style {
   // `-Werror,-Wcomment`, so it is replaced with `escaped_nested_opener`.
   std::string_view nested_opener{};
   std::string_view escaped_nested_opener{};
+  // Delimit a docblock rendered on a single line, e.g. `/** text */`.
+  std::string_view inline_opening;
+  std::string_view inline_closing;
 
   static docblock_style c_style();
   static docblock_style python_style();
@@ -55,6 +58,10 @@ struct docblock_style {
 // Renders `text` as a docblock in `style`. Trailing whitespace is trimmed from
 // every line, so a blank line renders as the bare prefix (` *`, `#`).
 std::string apply_docblock_style(
+    std::string_view text, const docblock_style& style);
+
+// Like apply_docblock_style, but renders a one-line `text` on a single line.
+std::string apply_compact_docblock_style(
     std::string_view text, const docblock_style& style);
 
 // Returns the name of `type` as written in Thrift IDL, qualifying types defined

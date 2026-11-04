@@ -196,6 +196,7 @@ unsigned long Request::read(Protocol_* iprot) {
 
 
 namespace detail {
+/** struct AdaptedRequest */
 /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "name": "AdaptedRequest", "kind": "struct" } */
 class AdaptedRequest final  {
  private:

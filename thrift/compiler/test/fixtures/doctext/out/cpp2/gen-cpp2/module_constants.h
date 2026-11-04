@@ -14,22 +14,36 @@ namespace cpp2 {
 /** Glean {"file": "thrift/compiler/test/fixtures/doctext/src/module.thrift"} */
 namespace module_constants {
 
+  /** Constant foo */
   /** Glean {"constant": "FOO"} */
   constexpr const char* const FOO_ = "foo";
+  /** Constant foo */
   /** Glean {"constant": "FOO"} */
   constexpr const char* FOO() {
     return FOO_;
   }
 
+  /**
+   * Multi-
+   * line
+   * slash comment
+   */
   /** Glean {"constant": "BAR"} */
   constexpr ::std::int32_t const BAR_ = static_cast<::std::int32_t>(123);
+  /**
+   * Multi-
+   * line
+   * slash comment
+   */
   /** Glean {"constant": "BAR"} */
   constexpr ::std::int32_t BAR() {
     return BAR_;
   }
 
+  /** BIFF has your mail */
   /** Glean {"constant": "BIFF"} */
   constexpr ::std::int32_t const BIFF_ = static_cast<::std::int32_t>(0);
+  /** BIFF has your mail */
   /** Glean {"constant": "BIFF"} */
   constexpr ::std::int32_t BIFF() {
     return BIFF_;

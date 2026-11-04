@@ -54,6 +54,7 @@ namespace apache::thrift::detail::qualifier {
 namespace facebook::thrift::compiler::test::fixtures::any {
 
 namespace detail {
+/** struct MyStruct */
 /** Glean {"file": "thrift/compiler/test/fixtures/any/src/module.thrift", "name": "MyStruct", "kind": "struct" } */
 class MyStruct final  {
  private:

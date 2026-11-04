@@ -49,8 +49,10 @@ namespace apache::thrift::detail::qualifier {
 // BEGIN hash_and_equal_to
 // END hash_and_equal_to
 namespace test::fixtures::cpp_allocator_via {
+/** typedef string PmrString */
 /** Glean {"file": "thrift/compiler/test/fixtures/cpp-allocator-via/src/module.thrift", "name": "PmrString", "kind": "typedef" } */
 using PmrString = ::std::pmr::string;
+/** typedef list<PmrString> PmrStringList */
 /** Glean {"file": "thrift/compiler/test/fixtures/cpp-allocator-via/src/module.thrift", "name": "PmrStringList", "kind": "typedef" } */
 using PmrStringList = ::std::pmr::vector<::test::fixtures::cpp_allocator_via::PmrString>;
 
@@ -128,72 +130,84 @@ class AllocatorVia final  {
   bool operator==(const AllocatorVia&) const;
   std::partial_ordering operator<=>(const AllocatorVia&) const;
 
+  /** 1: PmrString aa_string */
   /** Glean { "field": "aa_string" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::cpp_allocator_via::PmrString>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> aa_string_ref() const& {
     return {this->__fbthrift_field_aa_string, __isset.at(0), __isset.bit(0)};
   }
 
+  /** 1: PmrString aa_string */
   /** Glean { "field": "aa_string" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::cpp_allocator_via::PmrString>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> aa_string_ref() & {
     return {this->__fbthrift_field_aa_string, __isset.at(0), __isset.bit(0)};
   }
 
+  /** 1: PmrString aa_string */
   /** Glean { "field": "aa_string" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::cpp_allocator_via::PmrString>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> aa_string_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_aa_string), __isset.at(0), __isset.bit(0)};
   }
 
+  /** 1: PmrString aa_string */
   /** Glean { "field": "aa_string" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::cpp_allocator_via::PmrString>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> aa_string() const& {
     return {this->__fbthrift_field_aa_string, __isset.at(0), __isset.bit(0)};
   }
 
+  /** 1: PmrString aa_string */
   /** Glean { "field": "aa_string" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::cpp_allocator_via::PmrString>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> aa_string() & {
     return {this->__fbthrift_field_aa_string, __isset.at(0), __isset.bit(0)};
   }
 
+  /** 1: PmrString aa_string */
   /** Glean { "field": "aa_string" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::cpp_allocator_via::PmrString>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> aa_string() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_aa_string), __isset.at(0), __isset.bit(0)};
   }
 
+  /** 2: PmrStringList aa_list */
   /** Glean { "field": "aa_list" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::cpp_allocator_via::PmrStringList>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> aa_list_ref() const& {
     return {this->__fbthrift_field_aa_list, __isset.at(1), __isset.bit(1)};
   }
 
+  /** 2: PmrStringList aa_list */
   /** Glean { "field": "aa_list" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::cpp_allocator_via::PmrStringList>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> aa_list_ref() & {
     return {this->__fbthrift_field_aa_list, __isset.at(1), __isset.bit(1)};
   }
 
+  /** 2: PmrStringList aa_list */
   /** Glean { "field": "aa_list" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::cpp_allocator_via::PmrStringList>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> aa_list_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_aa_list), __isset.at(1), __isset.bit(1)};
   }
 
+  /** 2: PmrStringList aa_list */
   /** Glean { "field": "aa_list" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::cpp_allocator_via::PmrStringList>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> aa_list() const& {
     return {this->__fbthrift_field_aa_list, __isset.at(1), __isset.bit(1)};
   }
 
+  /** 2: PmrStringList aa_list */
   /** Glean { "field": "aa_list" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::cpp_allocator_via::PmrStringList>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> aa_list() & {
     return {this->__fbthrift_field_aa_list, __isset.at(1), __isset.bit(1)};
   }
 
+  /** 2: PmrStringList aa_list */
   /** Glean { "field": "aa_list" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::cpp_allocator_via::PmrStringList>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> aa_list() && {

@@ -241,36 +241,42 @@ class A final  {
   bool operator==(const A&) const;
   std::partial_ordering operator<=>(const A&) const;
 
+  /** 1: optional map<i32, B> some_map */
   /** Glean { "field": "some_map" } */
   template <typename..., typename fbthrift_T = std::unordered_map<::std::int32_t, ::apache::thrift::test::B>>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<const fbthrift_T&> some_map_ref() const& {
     return {this->__fbthrift_field_some_map, __isset.at(0), __isset.bit(0)};
   }
 
+  /** 1: optional map<i32, B> some_map */
   /** Glean { "field": "some_map" } */
   template <typename..., typename fbthrift_T = std::unordered_map<::std::int32_t, ::apache::thrift::test::B>>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&> some_map_ref() & {
     return {this->__fbthrift_field_some_map, __isset.at(0), __isset.bit(0)};
   }
 
+  /** 1: optional map<i32, B> some_map */
   /** Glean { "field": "some_map" } */
   template <typename..., typename fbthrift_T = std::unordered_map<::std::int32_t, ::apache::thrift::test::B>>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&&> some_map_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_some_map), __isset.at(0), __isset.bit(0)};
   }
 
+  /** 1: optional map<i32, B> some_map */
   /** Glean { "field": "some_map" } */
   template <typename..., typename fbthrift_T = std::unordered_map<::std::int32_t, ::apache::thrift::test::B>>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<const fbthrift_T&> some_map() const& {
     return {this->__fbthrift_field_some_map, __isset.at(0), __isset.bit(0)};
   }
 
+  /** 1: optional map<i32, B> some_map */
   /** Glean { "field": "some_map" } */
   template <typename..., typename fbthrift_T = std::unordered_map<::std::int32_t, ::apache::thrift::test::B>>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&> some_map() & {
     return {this->__fbthrift_field_some_map, __isset.at(0), __isset.bit(0)};
   }
 
+  /** 1: optional map<i32, B> some_map */
   /** Glean { "field": "some_map" } */
   template <typename..., typename fbthrift_T = std::unordered_map<::std::int32_t, ::apache::thrift::test::B>>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&&> some_map() && {

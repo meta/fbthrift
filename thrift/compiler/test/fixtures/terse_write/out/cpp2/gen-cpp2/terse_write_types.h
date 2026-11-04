@@ -408,6 +408,7 @@ namespace apache::thrift::detail::qualifier {
 // BEGIN hash_and_equal_to
 // END hash_and_equal_to
 namespace facebook::thrift::test::fixtures::terse_write {
+/** typedef i32 MyInteger */
 /** Glean {"file": "thrift/compiler/test/fixtures/terse_write/src/terse_write.thrift", "name": "MyInteger", "kind": "typedef" } */
 using MyInteger = ::apache::thrift::adapt_detail::adapted_t<::my::Adapter, ::std::int32_t>;
 
@@ -3980,108 +3981,126 @@ class AdaptedFields final  {
   bool operator==(const AdaptedFields&) const;
   std::partial_ordering operator<=>(const AdaptedFields&) const;
 
+  /** 1: MyInteger field1 */
   /** Glean { "field": "field1" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::fixtures::terse_write::MyInteger>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<const fbthrift_T&> field1_ref() const& {
     return ::apache::thrift::terse_field_ref<const fbthrift_T&>{this->__fbthrift_field_field1};
   }
 
+  /** 1: MyInteger field1 */
   /** Glean { "field": "field1" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::fixtures::terse_write::MyInteger>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<fbthrift_T&> field1_ref() & {
     return ::apache::thrift::terse_field_ref<fbthrift_T&>{this->__fbthrift_field_field1};
   }
 
+  /** 1: MyInteger field1 */
   /** Glean { "field": "field1" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::fixtures::terse_write::MyInteger>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<fbthrift_T&&> field1_ref() && {
     return ::apache::thrift::terse_field_ref<fbthrift_T&&>{static_cast<fbthrift_T&&>(this->__fbthrift_field_field1)};
   }
 
+  /** 1: MyInteger field1 */
   /** Glean { "field": "field1" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::fixtures::terse_write::MyInteger>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<const fbthrift_T&> field1() const& {
     return ::apache::thrift::terse_field_ref<const fbthrift_T&>{this->__fbthrift_field_field1};
   }
 
+  /** 1: MyInteger field1 */
   /** Glean { "field": "field1" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::fixtures::terse_write::MyInteger>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<fbthrift_T&> field1() & {
     return ::apache::thrift::terse_field_ref<fbthrift_T&>{this->__fbthrift_field_field1};
   }
 
+  /** 1: MyInteger field1 */
   /** Glean { "field": "field1" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::fixtures::terse_write::MyInteger>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<fbthrift_T&&> field1() && {
     return ::apache::thrift::terse_field_ref<fbthrift_T&&>{static_cast<fbthrift_T&&>(this->__fbthrift_field_field1)};
   }
 
+  /** 2: i32 field2 */
   /** Glean { "field": "field2" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter, 2, ::std::int32_t, AdaptedFields>>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<const fbthrift_T&> field2_ref() const& {
     return ::apache::thrift::terse_field_ref<const fbthrift_T&>{this->__fbthrift_field_field2};
   }
 
+  /** 2: i32 field2 */
   /** Glean { "field": "field2" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter, 2, ::std::int32_t, AdaptedFields>>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<fbthrift_T&> field2_ref() & {
     return ::apache::thrift::terse_field_ref<fbthrift_T&>{this->__fbthrift_field_field2};
   }
 
+  /** 2: i32 field2 */
   /** Glean { "field": "field2" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter, 2, ::std::int32_t, AdaptedFields>>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<fbthrift_T&&> field2_ref() && {
     return ::apache::thrift::terse_field_ref<fbthrift_T&&>{static_cast<fbthrift_T&&>(this->__fbthrift_field_field2)};
   }
 
+  /** 2: i32 field2 */
   /** Glean { "field": "field2" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter, 2, ::std::int32_t, AdaptedFields>>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<const fbthrift_T&> field2() const& {
     return ::apache::thrift::terse_field_ref<const fbthrift_T&>{this->__fbthrift_field_field2};
   }
 
+  /** 2: i32 field2 */
   /** Glean { "field": "field2" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter, 2, ::std::int32_t, AdaptedFields>>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<fbthrift_T&> field2() & {
     return ::apache::thrift::terse_field_ref<fbthrift_T&>{this->__fbthrift_field_field2};
   }
 
+  /** 2: i32 field2 */
   /** Glean { "field": "field2" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter, 2, ::std::int32_t, AdaptedFields>>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<fbthrift_T&&> field2() && {
     return ::apache::thrift::terse_field_ref<fbthrift_T&&>{static_cast<fbthrift_T&&>(this->__fbthrift_field_field2)};
   }
 
+  /** 3: MyInteger field3 */
   /** Glean { "field": "field3" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter, 3, ::facebook::thrift::test::fixtures::terse_write::MyInteger, AdaptedFields>>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<const fbthrift_T&> field3_ref() const& {
     return ::apache::thrift::terse_field_ref<const fbthrift_T&>{this->__fbthrift_field_field3};
   }
 
+  /** 3: MyInteger field3 */
   /** Glean { "field": "field3" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter, 3, ::facebook::thrift::test::fixtures::terse_write::MyInteger, AdaptedFields>>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<fbthrift_T&> field3_ref() & {
     return ::apache::thrift::terse_field_ref<fbthrift_T&>{this->__fbthrift_field_field3};
   }
 
+  /** 3: MyInteger field3 */
   /** Glean { "field": "field3" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter, 3, ::facebook::thrift::test::fixtures::terse_write::MyInteger, AdaptedFields>>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<fbthrift_T&&> field3_ref() && {
     return ::apache::thrift::terse_field_ref<fbthrift_T&&>{static_cast<fbthrift_T&&>(this->__fbthrift_field_field3)};
   }
 
+  /** 3: MyInteger field3 */
   /** Glean { "field": "field3" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter, 3, ::facebook::thrift::test::fixtures::terse_write::MyInteger, AdaptedFields>>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<const fbthrift_T&> field3() const& {
     return ::apache::thrift::terse_field_ref<const fbthrift_T&>{this->__fbthrift_field_field3};
   }
 
+  /** 3: MyInteger field3 */
   /** Glean { "field": "field3" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter, 3, ::facebook::thrift::test::fixtures::terse_write::MyInteger, AdaptedFields>>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<fbthrift_T&> field3() & {
     return ::apache::thrift::terse_field_ref<fbthrift_T&>{this->__fbthrift_field_field3};
   }
 
+  /** 3: MyInteger field3 */
   /** Glean { "field": "field3" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter, 3, ::facebook::thrift::test::fixtures::terse_write::MyInteger, AdaptedFields>>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<fbthrift_T&&> field3() && {

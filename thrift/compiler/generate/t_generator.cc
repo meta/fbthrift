@@ -209,6 +209,8 @@ docblock_style docblock_style::c_style() {
       .escaped_terminator = "*\\/",
       .nested_opener = "/*",
       .escaped_nested_opener = "/\\*",
+      .inline_opening = "/** ",
+      .inline_closing = " */\n",
   };
 }
 
@@ -221,15 +223,29 @@ docblock_style docblock_style::python_style() {
       .closing = "\"\"\"\n",
       .terminator = R"(""")",
       .escaped_terminator = R"(""\")",
+      .inline_opening = R"(r""")",
+      .inline_closing = "\"\"\"\n",
   };
 }
 
 docblock_style docblock_style::triple_slash_style() {
-  return {.opening = "", .line_prefix = "/// ", .closing = ""};
+  return {
+      .opening = "",
+      .line_prefix = "/// ",
+      .closing = "",
+      .inline_opening = "/// ",
+      .inline_closing = "\n",
+  };
 }
 
 docblock_style docblock_style::hash_style() {
-  return {.opening = "", .line_prefix = "# ", .closing = ""};
+  return {
+      .opening = "",
+      .line_prefix = "# ",
+      .closing = "",
+      .inline_opening = "# ",
+      .inline_closing = "\n",
+  };
 }
 
 std::string apply_docblock_style(
@@ -250,6 +266,21 @@ std::string apply_docblock_style(
   }
   result.append(style.closing);
   return result;
+}
+
+std::string apply_compact_docblock_style(
+    std::string_view text, const docblock_style& style) {
+  const std::string escaped = escape_delimiters(text, style);
+  const std::string_view line = std::string_view(escaped).substr(
+      0, escaped.find_last_not_of(" \t\n") + 1);
+  // A trailing backslash or delimiter character could run into the closing
+  // delimiter, e.g. `r"""say "hi""""`.
+  if (line.empty() || line.find('\n') != std::string_view::npos ||
+      line.back() == '\\' || style.inline_closing.starts_with(line.back())) {
+    return apply_docblock_style(text, style);
+  }
+  return fmt::format(
+      "{}{}{}", style.inline_opening, line, style.inline_closing);
 }
 
 std::string thrift_type_name(const t_type& type, const t_program& program) {

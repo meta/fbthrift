@@ -75,6 +75,7 @@ namespace apache::thrift::detail::qualifier {
 // END hash_and_equal_to
 namespace apache::thrift::test {
 
+/** Example struct demonstrating @thrift.Deprecated annotation on fields. */
 /** Glean {"file": "thrift/compiler/test/fixtures/deprecated/src/module.thrift", "name": "User", "kind": "struct" } */
 class User final  {
  private:
@@ -190,6 +191,7 @@ class User final  {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_id), __isset.at(0), __isset.bit(0)};
   }
 
+  /** @deprecated Use 'full_name' instead */
   /** Glean { "field": "name" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("Use 'full_name' instead")]]
@@ -197,6 +199,7 @@ class User final  {
     return {this->__fbthrift_field_name, __isset.at(1), __isset.bit(1)};
   }
 
+  /** @deprecated Use 'full_name' instead */
   /** Glean { "field": "name" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("Use 'full_name' instead")]]
@@ -204,6 +207,7 @@ class User final  {
     return {this->__fbthrift_field_name, __isset.at(1), __isset.bit(1)};
   }
 
+  /** @deprecated Use 'full_name' instead */
   /** Glean { "field": "name" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("Use 'full_name' instead")]]
@@ -211,6 +215,7 @@ class User final  {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_name), __isset.at(1), __isset.bit(1)};
   }
 
+  /** @deprecated Use 'full_name' instead */
   /** Glean { "field": "name" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("Use 'full_name' instead")]]
@@ -218,6 +223,7 @@ class User final  {
     return {this->__fbthrift_field_name, __isset.at(1), __isset.bit(1)};
   }
 
+  /** @deprecated Use 'full_name' instead */
   /** Glean { "field": "name" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("Use 'full_name' instead")]]
@@ -225,6 +231,7 @@ class User final  {
     return {this->__fbthrift_field_name, __isset.at(1), __isset.bit(1)};
   }
 
+  /** @deprecated Use 'full_name' instead */
   /** Glean { "field": "name" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("Use 'full_name' instead")]]
@@ -268,6 +275,7 @@ class User final  {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_full_name), __isset.at(2), __isset.bit(2)};
   }
 
+  /** @deprecated This field is no longer used */
   /** Glean { "field": "email" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("This field is no longer used")]]
@@ -275,6 +283,7 @@ class User final  {
     return {this->__fbthrift_field_email, __isset.at(3), __isset.bit(3)};
   }
 
+  /** @deprecated This field is no longer used */
   /** Glean { "field": "email" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("This field is no longer used")]]
@@ -282,6 +291,7 @@ class User final  {
     return {this->__fbthrift_field_email, __isset.at(3), __isset.bit(3)};
   }
 
+  /** @deprecated This field is no longer used */
   /** Glean { "field": "email" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("This field is no longer used")]]
@@ -289,6 +299,7 @@ class User final  {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_email), __isset.at(3), __isset.bit(3)};
   }
 
+  /** @deprecated This field is no longer used */
   /** Glean { "field": "email" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("This field is no longer used")]]
@@ -296,6 +307,7 @@ class User final  {
     return {this->__fbthrift_field_email, __isset.at(3), __isset.bit(3)};
   }
 
+  /** @deprecated This field is no longer used */
   /** Glean { "field": "email" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("This field is no longer used")]]
@@ -303,6 +315,7 @@ class User final  {
     return {this->__fbthrift_field_email, __isset.at(3), __isset.bit(3)};
   }
 
+  /** @deprecated This field is no longer used */
   /** Glean { "field": "email" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("This field is no longer used")]]
@@ -454,6 +467,7 @@ unsigned long User::read(Protocol_* iprot) {
 }
 
 
+/** Example union with deprecated field. */
 /** Glean {"file": "thrift/compiler/test/fixtures/deprecated/src/module.thrift", "name": "ExampleUnion", "kind": "union" } */
 class ExampleUnion final  {
  private:

@@ -44,6 +44,7 @@ namespace apache::thrift::detail::qualifier {
 // BEGIN hash_and_equal_to
 // END hash_and_equal_to
 namespace facebook::thrift::test::iobuf_chain {
+/** typedef binary IOBufChainBinary */
 /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "name": "IOBufChainBinary", "kind": "typedef" } */
 using IOBufChainBinary = ::apache::thrift::IOBufChain;
 
@@ -114,36 +115,42 @@ class Data final  {
   bool operator==(const Data&) const;
   std::partial_ordering operator<=>(const Data&) const;
 
+  /** 1: IOBufChainBinary payload */
   /** Glean { "field": "payload" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::iobuf_chain::IOBufChainBinary>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> payload_ref() const& {
     return {this->__fbthrift_field_payload, __isset.at(0), __isset.bit(0)};
   }
 
+  /** 1: IOBufChainBinary payload */
   /** Glean { "field": "payload" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::iobuf_chain::IOBufChainBinary>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> payload_ref() & {
     return {this->__fbthrift_field_payload, __isset.at(0), __isset.bit(0)};
   }
 
+  /** 1: IOBufChainBinary payload */
   /** Glean { "field": "payload" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::iobuf_chain::IOBufChainBinary>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> payload_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_payload), __isset.at(0), __isset.bit(0)};
   }
 
+  /** 1: IOBufChainBinary payload */
   /** Glean { "field": "payload" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::iobuf_chain::IOBufChainBinary>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> payload() const& {
     return {this->__fbthrift_field_payload, __isset.at(0), __isset.bit(0)};
   }
 
+  /** 1: IOBufChainBinary payload */
   /** Glean { "field": "payload" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::iobuf_chain::IOBufChainBinary>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> payload() & {
     return {this->__fbthrift_field_payload, __isset.at(0), __isset.bit(0)};
   }
 
+  /** 1: IOBufChainBinary payload */
   /** Glean { "field": "payload" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::iobuf_chain::IOBufChainBinary>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> payload() && {

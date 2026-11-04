@@ -755,26 +755,34 @@ class Client<::cpp2::MyService> : public apache::thrift::GeneratedAsyncClient {
   void fbthrift_serialize_and_send_cppDoNothing(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
+  /** void doNothing() */
   /** Glean {"file": "thrift/compiler/test/fixtures/basic-annotations/src/module.thrift", "service": "MyService", "function": "doNothing"} */
   virtual void sync_cppDoNothing();
+  /** void doNothing() */
   /** Glean {"file": "thrift/compiler/test/fixtures/basic-annotations/src/module.thrift", "service": "MyService", "function": "doNothing"} */
   virtual void sync_cppDoNothing(apache::thrift::RpcOptions& rpcOptions);
 
+  /** void doNothing() */
   /** Glean {"file": "thrift/compiler/test/fixtures/basic-annotations/src/module.thrift", "service": "MyService", "function": "doNothing"} */
   virtual folly::Future<folly::Unit> future_cppDoNothing();
+  /** void doNothing() */
   /** Glean {"file": "thrift/compiler/test/fixtures/basic-annotations/src/module.thrift", "service": "MyService", "function": "doNothing"} */
   virtual folly::SemiFuture<folly::Unit> semifuture_cppDoNothing();
+  /** void doNothing() */
   /** Glean {"file": "thrift/compiler/test/fixtures/basic-annotations/src/module.thrift", "service": "MyService", "function": "doNothing"} */
   virtual folly::Future<folly::Unit> future_cppDoNothing(apache::thrift::RpcOptions& rpcOptions);
+  /** void doNothing() */
   /** Glean {"file": "thrift/compiler/test/fixtures/basic-annotations/src/module.thrift", "service": "MyService", "function": "doNothing"} */
   virtual folly::SemiFuture<folly::Unit> semifuture_cppDoNothing(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
+  /** void doNothing() */
   /** Glean {"file": "thrift/compiler/test/fixtures/basic-annotations/src/module.thrift", "service": "MyService", "function": "doNothing"} */
   template <int = 0>
   folly::coro::Task<void> co_cppDoNothing() {
     return co_cppDoNothing<false>(nullptr);
   }
+  /** void doNothing() */
   /** Glean {"file": "thrift/compiler/test/fixtures/basic-annotations/src/module.thrift", "service": "MyService", "function": "doNothing"} */
   template <int = 0>
   folly::coro::Task<void> co_cppDoNothing(apache::thrift::RpcOptions& rpcOptions) {

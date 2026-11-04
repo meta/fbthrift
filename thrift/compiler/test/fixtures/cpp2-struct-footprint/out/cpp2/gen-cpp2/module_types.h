@@ -66,6 +66,7 @@ namespace apache::thrift::detail::qualifier {
 // BEGIN hash_and_equal_to
 // END hash_and_equal_to
 namespace cpp2_struct_footprint {
+/** typedef i32 I32Alias */
 /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "name": "I32Alias", "kind": "typedef" } */
 using I32Alias = SimpleStruct;
 /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "name": "MyInt", "kind": "typedef" } */
@@ -78,8 +79,10 @@ using StructList = ::std::vector<::cpp2_struct_footprint::SimpleStruct>;
 using StructMap = ::std::map<::std::string, ::cpp2_struct_footprint::SimpleStruct>;
 /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "name": "StructSet", "kind": "typedef" } */
 using StructSet = ::std::set<::cpp2_struct_footprint::SimpleStruct>;
+/** typedef binary IOBuf */
 /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "name": "IOBuf", "kind": "typedef" } */
 using IOBuf = folly::IOBuf;
+/** typedef binary IOBufPtr */
 /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "name": "IOBufPtr", "kind": "typedef" } */
 using IOBufPtr = std::unique_ptr<folly::IOBuf>;
 

@@ -135,6 +135,50 @@ TEST(TGeneratorTest, AppliesStyleToEmptyText) {
 )");
 }
 
+TEST(TGeneratorTest, CompactsOneLineDocblock) {
+  EXPECT_EQ(
+      apply_compact_docblock_style("one line", docblock_style::c_style()),
+      R"(/** one line */
+)");
+  EXPECT_EQ(
+      apply_compact_docblock_style("one line", docblock_style::python_style()),
+      R"(r"""one line"""
+)");
+  EXPECT_EQ(
+      apply_compact_docblock_style(
+          R"(first line
+second line)",
+          docblock_style::c_style()),
+      R"(/**
+ * first line
+ * second line
+ */
+)");
+}
+
+TEST(TGeneratorTest, CompactFormEscapesTerminator) {
+  EXPECT_EQ(
+      apply_compact_docblock_style("ends */ early", docblock_style::c_style()),
+      R"(/** ends *\/ early */
+)");
+}
+
+TEST(TGeneratorTest, CompactFormAvoidsRunningIntoClosing) {
+  EXPECT_EQ(
+      apply_compact_docblock_style(
+          R"(say "hi")", docblock_style::python_style()),
+      R"(r"""
+say "hi"
+"""
+)");
+  EXPECT_EQ(
+      apply_compact_docblock_style(R"(path\)", docblock_style::python_style()),
+      R"(r"""
+path\
+"""
+)");
+}
+
 TEST(TGeneratorTest, DocblockTextAddsDefinitionOnRequest) {
   t_program program("path/to/program.thrift", "/root/path/to/program.thrift");
   t_struct tstruct(&program, "Foo");

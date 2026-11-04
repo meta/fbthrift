@@ -60,26 +60,34 @@ class Client<::cpp2::C> : public apache::thrift::GeneratedAsyncClient {
   void fbthrift_serialize_and_send_f(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
+  /** Function doctext. */
   /** Glean {"file": "thrift/compiler/test/fixtures/doctext/src/module.thrift", "service": "C", "function": "f"} */
   virtual void sync_f();
+  /** Function doctext. */
   /** Glean {"file": "thrift/compiler/test/fixtures/doctext/src/module.thrift", "service": "C", "function": "f"} */
   virtual void sync_f(apache::thrift::RpcOptions& rpcOptions);
 
+  /** Function doctext. */
   /** Glean {"file": "thrift/compiler/test/fixtures/doctext/src/module.thrift", "service": "C", "function": "f"} */
   virtual folly::Future<folly::Unit> future_f();
+  /** Function doctext. */
   /** Glean {"file": "thrift/compiler/test/fixtures/doctext/src/module.thrift", "service": "C", "function": "f"} */
   virtual folly::SemiFuture<folly::Unit> semifuture_f();
+  /** Function doctext. */
   /** Glean {"file": "thrift/compiler/test/fixtures/doctext/src/module.thrift", "service": "C", "function": "f"} */
   virtual folly::Future<folly::Unit> future_f(apache::thrift::RpcOptions& rpcOptions);
+  /** Function doctext. */
   /** Glean {"file": "thrift/compiler/test/fixtures/doctext/src/module.thrift", "service": "C", "function": "f"} */
   virtual folly::SemiFuture<folly::Unit> semifuture_f(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
+  /** Function doctext. */
   /** Glean {"file": "thrift/compiler/test/fixtures/doctext/src/module.thrift", "service": "C", "function": "f"} */
   template <int = 0>
   folly::coro::Task<void> co_f() {
     return co_f<false>(nullptr);
   }
+  /** Function doctext. */
   /** Glean {"file": "thrift/compiler/test/fixtures/doctext/src/module.thrift", "service": "C", "function": "f"} */
   template <int = 0>
   folly::coro::Task<void> co_f(apache::thrift::RpcOptions& rpcOptions) {
@@ -183,22 +191,28 @@ class Client<::cpp2::C> : public apache::thrift::GeneratedAsyncClient {
   void fbthrift_serialize_and_send_numbers(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::StreamClientCallback* callback, bool stealRpcOptions = false);
  public:
 
+  /** Streaming function */
   /** Glean {"file": "thrift/compiler/test/fixtures/doctext/src/module.thrift", "service": "C", "function": "numbers"} */
   virtual apache::thrift::ClientBufferedStream<::cpp2::number> sync_numbers();
+  /** Streaming function */
   /** Glean {"file": "thrift/compiler/test/fixtures/doctext/src/module.thrift", "service": "C", "function": "numbers"} */
   virtual apache::thrift::ClientBufferedStream<::cpp2::number> sync_numbers(apache::thrift::RpcOptions& rpcOptions);
 
+  /** Streaming function */
   /** Glean {"file": "thrift/compiler/test/fixtures/doctext/src/module.thrift", "service": "C", "function": "numbers"} */
   virtual folly::SemiFuture<apache::thrift::ClientBufferedStream<::cpp2::number>> semifuture_numbers();
+  /** Streaming function */
   /** Glean {"file": "thrift/compiler/test/fixtures/doctext/src/module.thrift", "service": "C", "function": "numbers"} */
   virtual folly::SemiFuture<apache::thrift::ClientBufferedStream<::cpp2::number>> semifuture_numbers(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
+  /** Streaming function */
   /** Glean {"file": "thrift/compiler/test/fixtures/doctext/src/module.thrift", "service": "C", "function": "numbers"} */
   template <int = 0>
   folly::coro::Task<apache::thrift::ClientBufferedStream<::cpp2::number>> co_numbers() {
     return co_numbers<false>(nullptr);
   }
+  /** Streaming function */
   /** Glean {"file": "thrift/compiler/test/fixtures/doctext/src/module.thrift", "service": "C", "function": "numbers"} */
   template <int = 0>
   folly::coro::Task<apache::thrift::ClientBufferedStream<::cpp2::number>> co_numbers(apache::thrift::RpcOptions& rpcOptions) {

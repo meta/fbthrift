@@ -14,6 +14,7 @@ namespace cpp2 {
 /** Glean {"file": "thrift/compiler/test/fixtures/basic-annotations/src/module.thrift"} */
 namespace module_constants {
 
+  /** const MyStruct myStruct */
   /** Glean {"constant": "myStruct"} */
   ::cpp2::YourStruct const& myStruct();
 

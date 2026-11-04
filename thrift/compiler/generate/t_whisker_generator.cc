@@ -68,6 +68,28 @@ prototype<t_named>::ptr t_whisker_generator::make_prototype_for_named(
   def.property("scoped_name", mem_fn(&t_named::get_scoped_name));
   def.property("doc", mem_fn(&t_named::doc));
   def.property("docs?", mem_fn(&t_named::has_doc));
+  // Renders the docblock documenting a definition in the generator's
+  // docblock_style, without a trailing newline, or an empty string for a
+  // definition with nothing to document.
+  def.function("docblock", [this](const t_named& self, function::context ctx) {
+    ctx.declare_arity(0);
+    ctx.declare_named_arguments({});
+    const std::optional<docblock_style> style = get_docblock_style();
+    if (!style.has_value()) {
+      throw ctx.make_error(
+          "docblock is not available: the generator has no docblock_style");
+    }
+    const std::string text =
+        docblock_text(self, *program_, docblock_includes_definition(self));
+    if (text.empty()) {
+      return std::string();
+    }
+    std::string docblock = apply_compact_docblock_style(text, *style);
+    if (docblock.ends_with('\n')) {
+      docblock.pop_back();
+    }
+    return docblock;
+  });
   def.property("generated?", mem_fn(&t_named::generated));
   def.property("program", mem_fn(&t_named::program, proto.of<t_program>()));
   def.property(

@@ -806,6 +806,22 @@ class t_mstch_cpp2_generator : public t_whisker_generator {
     return docblock_style::c_style();
   }
 
+  bool docblock_includes_definition(const t_named& node) const override {
+    if (cpp2::get_name(&node) != node.name()) {
+      return true;
+    }
+    if (const auto* field = dynamic_cast<const t_field*>(&node)) {
+      return cpp2::is_custom_type(*field);
+    }
+    if (const auto* constant = dynamic_cast<const t_const*>(&node)) {
+      return cpp2::is_custom_type(constant->type_ref().deref());
+    }
+    if (const auto* type = dynamic_cast<const t_type*>(&node)) {
+      return cpp2::is_custom_type(*type);
+    }
+    return false;
+  }
+
   void process_options(
       const std::map<std::string, std::string>& options) override {
     t_whisker_generator::process_options(options);

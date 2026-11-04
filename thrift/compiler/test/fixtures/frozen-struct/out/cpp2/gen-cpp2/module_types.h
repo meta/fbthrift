@@ -755,6 +755,7 @@ unsigned long ModuleB::read(Protocol_* iprot) {
 
 
 namespace detail {
+/** struct DirectlyAdapted */
 /** Glean {"file": "thrift/compiler/test/fixtures/frozen-struct/src/module.thrift", "name": "DirectlyAdapted", "kind": "struct" } */
 class DirectlyAdapted final  {
  private:

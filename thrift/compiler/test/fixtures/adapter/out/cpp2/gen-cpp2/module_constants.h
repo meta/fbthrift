@@ -50,6 +50,7 @@ namespace module_constants {
   /** Glean {"constant": "person_no_transitive"} */
   ::apache::thrift::adapt_detail::adapted_t<::apache::thrift::test::VariableAdapter, ::facebook::thrift::test::fixtures::adapter::Person2> const& person_no_transitive();
 
+  /** const AdaptedBool type_adapted */
   /** Glean {"constant": "type_adapted"} */
   ::facebook::thrift::test::fixtures::adapter::AdaptedBool const& type_adapted();
 

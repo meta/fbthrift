@@ -1034,6 +1034,7 @@ namespace apache::thrift::detail::qualifier {
 namespace test_cpp2::cpp_reflection {
 /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "name": "my_structA", "kind": "typedef" } */
 using my_structA = ::test_cpp2::cpp_reflection::structA;
+/** typedef i32 I32 */
 /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "name": "I32", "kind": "typedef" } */
 using I32 = ::apache::thrift::adapt_detail::adapted_t<::my::Adapter1, ::std::int32_t>;
 
@@ -11504,36 +11505,42 @@ class StructWithFieldAdapter final  {
   bool operator==(const StructWithFieldAdapter&) const;
   std::partial_ordering operator<=>(const StructWithFieldAdapter&) const;
 
+  /** 1: i32 field */
   /** Glean { "field": "field" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter1, 1, ::std::int32_t, StructWithFieldAdapter>>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> field_ref() const& {
     return {this->__fbthrift_field_field, __isset.at(0), __isset.bit(0)};
   }
 
+  /** 1: i32 field */
   /** Glean { "field": "field" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter1, 1, ::std::int32_t, StructWithFieldAdapter>>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> field_ref() & {
     return {this->__fbthrift_field_field, __isset.at(0), __isset.bit(0)};
   }
 
+  /** 1: i32 field */
   /** Glean { "field": "field" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter1, 1, ::std::int32_t, StructWithFieldAdapter>>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> field_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_field), __isset.at(0), __isset.bit(0)};
   }
 
+  /** 1: i32 field */
   /** Glean { "field": "field" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter1, 1, ::std::int32_t, StructWithFieldAdapter>>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> field() const& {
     return {this->__fbthrift_field_field, __isset.at(0), __isset.bit(0)};
   }
 
+  /** 1: i32 field */
   /** Glean { "field": "field" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter1, 1, ::std::int32_t, StructWithFieldAdapter>>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> field() & {
     return {this->__fbthrift_field_field, __isset.at(0), __isset.bit(0)};
   }
 
+  /** 1: i32 field */
   /** Glean { "field": "field" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter1, 1, ::std::int32_t, StructWithFieldAdapter>>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> field() && {
@@ -11632,6 +11639,7 @@ class UnionWithTypedefFieldAdapter final  {
   bool operator==(const UnionWithTypedefFieldAdapter&) const;
   std::partial_ordering operator<=>(const UnionWithTypedefFieldAdapter&) const;
 
+  /** 1: I32 field */
   /** Glean { "field": "field" } */
   template <typename... A> requires (sizeof...(A) == 0)
   ::test_cpp2::cpp_reflection::I32& set_field(::test_cpp2::cpp_reflection::I32 t = ::test_cpp2::cpp_reflection::I32()) {
@@ -11644,6 +11652,7 @@ class UnionWithTypedefFieldAdapter final  {
   }
 
 
+  /** 1: I32 field */
   /** Glean { "field": "field" } */
   ::test_cpp2::cpp_reflection::I32 const& get_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::field) {
@@ -11663,34 +11672,40 @@ class UnionWithTypedefFieldAdapter final  {
     return std::move(value_.field);
   }
 
+  /** 1: I32 field */
   /** Glean { "field": "field" } */
   template <typename..., typename T = ::test_cpp2::cpp_reflection::I32>
   FOLLY_ERASE ::apache::thrift::union_field_ref<const T&> field_ref() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.field, fbthrift_type_, folly::to_underlying(Type::field), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
+  /** 1: I32 field */
   /** Glean { "field": "field" } */
   template <typename..., typename T = ::test_cpp2::cpp_reflection::I32>
   FOLLY_ERASE ::apache::thrift::union_field_ref<T&> field_ref() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.field, fbthrift_type_, folly::to_underlying(Type::field), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
+  /** 1: I32 field */
   /** Glean { "field": "field" } */
   template <typename..., typename T = ::test_cpp2::cpp_reflection::I32>
   FOLLY_ERASE ::apache::thrift::union_field_ref<T&&> field_ref() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {std::move(value_.field), fbthrift_type_, folly::to_underlying(Type::field), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
+  /** 1: I32 field */
   /** Glean { "field": "field" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<const ::test_cpp2::cpp_reflection::I32&> field() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.field, fbthrift_type_, folly::to_underlying(Type::field), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
+  /** 1: I32 field */
   /** Glean { "field": "field" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<::test_cpp2::cpp_reflection::I32&> field() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.field, fbthrift_type_, folly::to_underlying(Type::field), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
+  /** 1: I32 field */
   /** Glean { "field": "field" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<::test_cpp2::cpp_reflection::I32&&> field() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {std::move(value_.field), fbthrift_type_, folly::to_underlying(Type::field), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};

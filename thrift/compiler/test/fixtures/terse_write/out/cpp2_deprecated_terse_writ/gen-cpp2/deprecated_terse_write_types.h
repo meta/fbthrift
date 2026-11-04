@@ -2553,36 +2553,42 @@ class FieldLevelTerseStruct final  {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_union_field), __isset.at(14), __isset.bit(14)};
   }
 
+  /** 30: byte iobuf_ptr_field */
   /** Glean { "field": "iobuf_ptr_field" } */
   template <typename..., typename fbthrift_T = std::unique_ptr<folly::IOBuf>>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> iobuf_ptr_field_ref() const& {
     return {this->__fbthrift_field_iobuf_ptr_field, __isset.at(15), __isset.bit(15)};
   }
 
+  /** 30: byte iobuf_ptr_field */
   /** Glean { "field": "iobuf_ptr_field" } */
   template <typename..., typename fbthrift_T = std::unique_ptr<folly::IOBuf>>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> iobuf_ptr_field_ref() & {
     return {this->__fbthrift_field_iobuf_ptr_field, __isset.at(15), __isset.bit(15)};
   }
 
+  /** 30: byte iobuf_ptr_field */
   /** Glean { "field": "iobuf_ptr_field" } */
   template <typename..., typename fbthrift_T = std::unique_ptr<folly::IOBuf>>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> iobuf_ptr_field_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_iobuf_ptr_field), __isset.at(15), __isset.bit(15)};
   }
 
+  /** 30: byte iobuf_ptr_field */
   /** Glean { "field": "iobuf_ptr_field" } */
   template <typename..., typename fbthrift_T = std::unique_ptr<folly::IOBuf>>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> iobuf_ptr_field() const& {
     return {this->__fbthrift_field_iobuf_ptr_field, __isset.at(15), __isset.bit(15)};
   }
 
+  /** 30: byte iobuf_ptr_field */
   /** Glean { "field": "iobuf_ptr_field" } */
   template <typename..., typename fbthrift_T = std::unique_ptr<folly::IOBuf>>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> iobuf_ptr_field() & {
     return {this->__fbthrift_field_iobuf_ptr_field, __isset.at(15), __isset.bit(15)};
   }
 
+  /** 30: byte iobuf_ptr_field */
   /** Glean { "field": "iobuf_ptr_field" } */
   template <typename..., typename fbthrift_T = std::unique_ptr<folly::IOBuf>>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> iobuf_ptr_field() && {

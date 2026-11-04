@@ -54,8 +54,10 @@ namespace apache::thrift::detail::qualifier {
 // BEGIN hash_and_equal_to
 // END hash_and_equal_to
 namespace test::fixtures::cpp_allocator_union {
+/** typedef string PmrString */
 /** Glean {"file": "thrift/compiler/test/fixtures/cpp-allocator-union/src/module.thrift", "name": "PmrString", "kind": "typedef" } */
 using PmrString = ::std::pmr::string;
+/** typedef list<PmrString> PmrStringList */
 /** Glean {"file": "thrift/compiler/test/fixtures/cpp-allocator-union/src/module.thrift", "name": "PmrStringList", "kind": "typedef" } */
 using PmrStringList = ::std::pmr::vector<::test::fixtures::cpp_allocator_union::PmrString>;
 
@@ -166,6 +168,7 @@ class AllocUnion final  {
   }
 
 
+  /** 1: PmrString aa_string */
   /** Glean { "field": "aa_string" } */
   ::test::fixtures::cpp_allocator_union::PmrString const& get_aa_string() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::aa_string) {
@@ -174,6 +177,7 @@ class AllocUnion final  {
     return value_.aa_string;
   }
 
+  /** 2: PmrStringList aa_list */
   /** Glean { "field": "aa_list" } */
   ::test::fixtures::cpp_allocator_union::PmrStringList const& get_aa_list() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::aa_list) {
@@ -190,6 +194,7 @@ class AllocUnion final  {
     return value_.plain_int;
   }
 
+  /** 4: PmrString aa_shared_string */
   /** Glean { "field": "aa_shared_string" } */
   ::std::shared_ptr<::test::fixtures::cpp_allocator_union::PmrString> const& get_aa_shared_string() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::aa_shared_string) {
@@ -242,66 +247,78 @@ class AllocUnion final  {
     return std::move(value_.aa_shared_string);
   }
 
+  /** 1: PmrString aa_string */
   /** Glean { "field": "aa_string" } */
   template <typename..., typename T = ::test::fixtures::cpp_allocator_union::PmrString>
   FOLLY_ERASE ::apache::thrift::union_field_ref<const T&, allocator_type> aa_string_ref() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.aa_string, fbthrift_type_, folly::to_underlying(Type::aa_string), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>, __fbthrift_alloc};
   }
 
+  /** 1: PmrString aa_string */
   /** Glean { "field": "aa_string" } */
   template <typename..., typename T = ::test::fixtures::cpp_allocator_union::PmrString>
   FOLLY_ERASE ::apache::thrift::union_field_ref<T&, allocator_type> aa_string_ref() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.aa_string, fbthrift_type_, folly::to_underlying(Type::aa_string), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>, __fbthrift_alloc};
   }
 
+  /** 1: PmrString aa_string */
   /** Glean { "field": "aa_string" } */
   template <typename..., typename T = ::test::fixtures::cpp_allocator_union::PmrString>
   FOLLY_ERASE ::apache::thrift::union_field_ref<T&&, allocator_type> aa_string_ref() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {std::move(value_.aa_string), fbthrift_type_, folly::to_underlying(Type::aa_string), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>, __fbthrift_alloc};
   }
 
+  /** 1: PmrString aa_string */
   /** Glean { "field": "aa_string" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<const ::test::fixtures::cpp_allocator_union::PmrString&, allocator_type> aa_string() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.aa_string, fbthrift_type_, folly::to_underlying(Type::aa_string), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>, __fbthrift_alloc};
   }
 
+  /** 1: PmrString aa_string */
   /** Glean { "field": "aa_string" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<::test::fixtures::cpp_allocator_union::PmrString&, allocator_type> aa_string() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.aa_string, fbthrift_type_, folly::to_underlying(Type::aa_string), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>, __fbthrift_alloc};
   }
 
+  /** 1: PmrString aa_string */
   /** Glean { "field": "aa_string" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<::test::fixtures::cpp_allocator_union::PmrString&&, allocator_type> aa_string() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {std::move(value_.aa_string), fbthrift_type_, folly::to_underlying(Type::aa_string), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>, __fbthrift_alloc};
   }
+  /** 2: PmrStringList aa_list */
   /** Glean { "field": "aa_list" } */
   template <typename..., typename T = ::test::fixtures::cpp_allocator_union::PmrStringList>
   FOLLY_ERASE ::apache::thrift::union_field_ref<const T&, allocator_type> aa_list_ref() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.aa_list, fbthrift_type_, folly::to_underlying(Type::aa_list), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>, __fbthrift_alloc};
   }
 
+  /** 2: PmrStringList aa_list */
   /** Glean { "field": "aa_list" } */
   template <typename..., typename T = ::test::fixtures::cpp_allocator_union::PmrStringList>
   FOLLY_ERASE ::apache::thrift::union_field_ref<T&, allocator_type> aa_list_ref() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.aa_list, fbthrift_type_, folly::to_underlying(Type::aa_list), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>, __fbthrift_alloc};
   }
 
+  /** 2: PmrStringList aa_list */
   /** Glean { "field": "aa_list" } */
   template <typename..., typename T = ::test::fixtures::cpp_allocator_union::PmrStringList>
   FOLLY_ERASE ::apache::thrift::union_field_ref<T&&, allocator_type> aa_list_ref() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {std::move(value_.aa_list), fbthrift_type_, folly::to_underlying(Type::aa_list), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>, __fbthrift_alloc};
   }
 
+  /** 2: PmrStringList aa_list */
   /** Glean { "field": "aa_list" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<const ::test::fixtures::cpp_allocator_union::PmrStringList&, allocator_type> aa_list() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.aa_list, fbthrift_type_, folly::to_underlying(Type::aa_list), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>, __fbthrift_alloc};
   }
 
+  /** 2: PmrStringList aa_list */
   /** Glean { "field": "aa_list" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<::test::fixtures::cpp_allocator_union::PmrStringList&, allocator_type> aa_list() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.aa_list, fbthrift_type_, folly::to_underlying(Type::aa_list), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>, __fbthrift_alloc};
   }
 
+  /** 2: PmrStringList aa_list */
   /** Glean { "field": "aa_list" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<::test::fixtures::cpp_allocator_union::PmrStringList&&, allocator_type> aa_list() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {std::move(value_.aa_list), fbthrift_type_, folly::to_underlying(Type::aa_list), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>, __fbthrift_alloc};
@@ -338,34 +355,40 @@ class AllocUnion final  {
   FOLLY_ERASE ::apache::thrift::union_field_ref<::std::int32_t&&> plain_int() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {std::move(value_.plain_int), fbthrift_type_, folly::to_underlying(Type::plain_int), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
+  /** 4: PmrString aa_shared_string */
   /** Glean { "field": "aa_shared_string" } */
   template <typename..., typename T = ::std::shared_ptr<::test::fixtures::cpp_allocator_union::PmrString>>
   FOLLY_ERASE ::apache::thrift::union_field_ref<const T&, allocator_type> aa_shared_string_ref() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.aa_shared_string, fbthrift_type_, folly::to_underlying(Type::aa_shared_string), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>, __fbthrift_alloc};
   }
 
+  /** 4: PmrString aa_shared_string */
   /** Glean { "field": "aa_shared_string" } */
   template <typename..., typename T = ::std::shared_ptr<::test::fixtures::cpp_allocator_union::PmrString>>
   FOLLY_ERASE ::apache::thrift::union_field_ref<T&, allocator_type> aa_shared_string_ref() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.aa_shared_string, fbthrift_type_, folly::to_underlying(Type::aa_shared_string), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>, __fbthrift_alloc};
   }
 
+  /** 4: PmrString aa_shared_string */
   /** Glean { "field": "aa_shared_string" } */
   template <typename..., typename T = ::std::shared_ptr<::test::fixtures::cpp_allocator_union::PmrString>>
   FOLLY_ERASE ::apache::thrift::union_field_ref<T&&, allocator_type> aa_shared_string_ref() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {std::move(value_.aa_shared_string), fbthrift_type_, folly::to_underlying(Type::aa_shared_string), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>, __fbthrift_alloc};
   }
 
+  /** 4: PmrString aa_shared_string */
   /** Glean { "field": "aa_shared_string" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<const ::std::shared_ptr<::test::fixtures::cpp_allocator_union::PmrString>&, allocator_type> aa_shared_string() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.aa_shared_string, fbthrift_type_, folly::to_underlying(Type::aa_shared_string), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>, __fbthrift_alloc};
   }
 
+  /** 4: PmrString aa_shared_string */
   /** Glean { "field": "aa_shared_string" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<::std::shared_ptr<::test::fixtures::cpp_allocator_union::PmrString>&, allocator_type> aa_shared_string() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.aa_shared_string, fbthrift_type_, folly::to_underlying(Type::aa_shared_string), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>, __fbthrift_alloc};
   }
 
+  /** 4: PmrString aa_shared_string */
   /** Glean { "field": "aa_shared_string" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<::std::shared_ptr<::test::fixtures::cpp_allocator_union::PmrString>&&, allocator_type> aa_shared_string() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {std::move(value_.aa_shared_string), fbthrift_type_, folly::to_underlying(Type::aa_shared_string), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>, __fbthrift_alloc};

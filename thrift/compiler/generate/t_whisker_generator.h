@@ -171,6 +171,15 @@ class t_whisker_generator : public t_generator {
   virtual strictness_options strictness() const { return strictness_options(); }
 
   /**
+   * Whether the docblock on code generated for `node` includes its Thrift
+   * definition (see docblock_text), because the generated code names or types
+   * it differently from the IDL.
+   */
+  virtual bool docblock_includes_definition(const t_named&) const {
+    return false;
+  }
+
+  /**
    * Returns the rendered output of a Whisker template source file evaluated
    * with the provided context object.
    *
