@@ -59,10 +59,8 @@ function (thrift_configure_target target visibility)
   target_compile_features(${target} ${visibility} cxx_std_20)
   # GCC 10 needs this even under -std=c++20, and folly keys FOLLY_HAS_COROUTINES
   # off it. Inert from GCC 11 on.
-  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    target_compile_options(${target} ${visibility}
-                           $<$<COMPILE_LANGUAGE:CXX>:-fcoroutines>)
-  endif ()
+  target_compile_options(${target} ${visibility}
+                         $<$<COMPILE_LANG_AND_ID:CXX,GNU>:-fcoroutines>)
   target_include_directories(
     ${target} ${visibility} $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
     $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>)
