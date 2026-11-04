@@ -471,4 +471,12 @@ const list<InvalidUtf8TestCase> invalidUtf8NegativeCases = [
     name = "StringMapKey",
     json = "{\"stringAsKey\": {\"\xe0\x80\x80\": \"x\"}}",
   },
+  InvalidUtf8TestCase{
+    name = "StringValueSplitByLineContinuation",
+    json = "{\"stringValue\": \"\xc3\\\n\xa9\"}",
+  },
+  InvalidUtf8TestCase{
+    name = "StringMapKeySplitByLineContinuation",
+    json = "{\"stringAsKey\": {\"\xc3\\\n\xa9\": \"x\"}}",
+  },
 ];
