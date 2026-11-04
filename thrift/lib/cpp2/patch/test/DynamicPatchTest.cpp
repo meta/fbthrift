@@ -966,13 +966,11 @@ TEST(DynamicPatch, FromStructOrUnionPatch) {
   }
 }
 
-// A patch that is only read must round-trip its Object unchanged: the
-// sub-patches are decoded on mutation, not on construction.
 TEST(DynamicPatch, UnknownPatchUnmutatedObjectRoundTrip) {
   op::I32Patch fieldPatch;
   fieldPatch += 10;
   Object obj;
-  obj[static_cast<FieldId>(op::PatchOp::Clear)].emplace_bool(false);
+  obj[static_cast<FieldId>(op::PatchOp::Clear)].emplace_bool(true);
   obj[static_cast<FieldId>(op::PatchOp::PatchPrior)]
       .emplace_object()[FieldId{2}] =
       asValueStruct<type::infer_tag<op::I32Patch>>(fieldPatch);
@@ -983,6 +981,39 @@ TEST(DynamicPatch, UnknownPatchUnmutatedObjectRoundTrip) {
   DynamicPatch patch = DynamicPatch::fromObject(obj);
   ASSERT_TRUE(patch.isPatchTypeAmbiguous());
   EXPECT_EQ(patch.toObject(), obj);
+}
+
+TEST(DynamicPatch, UnknownPatchEncodeRoundTrip) {
+  op::I32Patch fieldPatch;
+  fieldPatch += 10;
+  Object structured;
+  structured[static_cast<FieldId>(op::PatchOp::Clear)].emplace_bool(true);
+  structured[static_cast<FieldId>(op::PatchOp::PatchPrior)]
+      .emplace_object()[FieldId{2}] =
+      asValueStruct<type::infer_tag<op::I32Patch>>(fieldPatch);
+  structured[static_cast<FieldId>(op::PatchOp::PatchAfter)]
+      .emplace_object()[FieldId{3}] =
+      asValueStruct<type::infer_tag<op::I32Patch>>(fieldPatch);
+
+  Object remove;
+  remove[static_cast<FieldId>(op::PatchOp::Remove)].emplace_set() = {
+      asValueStruct<type::i32_t>(1)};
+
+  Object emptyRemove;
+  emptyRemove[static_cast<FieldId>(op::PatchOp::Remove)].emplace_set();
+
+  Object assign;
+  assign[static_cast<FieldId>(op::PatchOp::Assign)]
+      .emplace_object()[FieldId{1}]
+      .emplace_i32(1);
+
+  for (const auto& obj : {structured, remove, emptyRemove, assign}) {
+    auto patch = DynamicPatch::fromObject(obj);
+    ASSERT_TRUE(patch.isPatchTypeAmbiguous());
+    auto decoded = roundTrip(patch);
+    EXPECT_TRUE(decoded.isPatchTypeAmbiguous());
+    EXPECT_EQ(decoded.toObject(), obj);
+  }
 }
 
 namespace {
