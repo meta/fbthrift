@@ -359,6 +359,10 @@ const list<NegativeTestCase> formatValidationNegativeCases = [
     json = "{\"unionValue\": {\"intValue\": 1, \"stringValue\": \"a\"}}",
   },
   NegativeTestCase{
+    name = "EmptyUnionMultipleFields",
+    json = "{\"emptyUnion\": {\"a\": 1, \"b\": 2}}",
+  },
+  NegativeTestCase{
     name = "UnionDuplicateField",
     json = "{\"unionValue\": {\"intValue\": 1, \"intValue\": 2}}",
   },

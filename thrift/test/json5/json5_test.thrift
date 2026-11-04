@@ -42,6 +42,15 @@ struct Recursive {
   3: optional set<i32> ids;
 }
 
+// Unqualified fields that Hack leaves null unless set.
+@thrift.Sealed
+struct Unqualified {
+  1: Enum enumValue;
+  2: Nested structValue;
+}
+
+union EmptyUnion {}
+
 enum Enum {
   NEGATIVE_ONE = -1,
   DEFAULT = 0,
@@ -95,6 +104,10 @@ struct Example {
   28: optional map<double, i32> doubleAsKey;
   // @lint-ignore THRIFTCHECKS bad-key-type
   29: optional map<float, i32> floatAsKey;
+  34: optional Unqualified unqualifiedValue;
+  // @lint-ignore THRIFTCHECKS bad-key-type
+  35: optional set<Unqualified> unqualifiedSet;
+  36: optional EmptyUnion emptyUnion;
 }
 
 // --
@@ -1381,6 +1394,156 @@ const list<TestCase> testCases = [
   unionValue: {
     stringValue: \"\",
   },
+}",
+  },
+  TestCase{
+    name = "BinaryLoneSurrogate",
+    example = Example{binaryValue = "\xed\xa0\x80"},
+    json = "{
+  \"binaryValue\": {
+    \"base64url\": \"7aCA\"
+  }
+}",
+    json5 = "{
+  binaryValue: {
+    base64url: \"7aCA\",
+  },
+}",
+  },
+  TestCase{
+    name = "BinaryOverlongEncoding",
+    example = Example{binaryValue = "\xc0\x80"},
+    json = "{
+  \"binaryValue\": {
+    \"base64url\": \"wIA\"
+  }
+}",
+    json5 = "{
+  binaryValue: {
+    base64url: \"wIA\",
+  },
+}",
+  },
+  TestCase{
+    name = "BinaryAboveMaxCodePoint",
+    example = Example{binaryValue = "\xf4\x90\x80\x80"},
+    json = "{
+  \"binaryValue\": {
+    \"base64url\": \"9JCAgA\"
+  }
+}",
+    json5 = "{
+  binaryValue: {
+    base64url: \"9JCAgA\",
+  },
+}",
+  },
+  TestCase{
+    name = "BinaryReplacementCharacter",
+    example = Example{binaryValue = "\ufffd"},
+    json = "{
+  \"binaryValue\": {
+    \"utf-8\": \"\ufffd\"
+  }
+}",
+    json5 = "{
+  binaryValue: {
+    \"utf-8\": \"\ufffd\",
+  },
+}",
+  },
+  TestCase{
+    name = "NumericStringKeys",
+    example = Example{binaryAsKey = {"1": 1}, stringAsKey = {"1": "a", "-1": "b", "01": "c"}},
+    json = "{
+  \"binaryAsKey\": [
+    {
+      \"key\": {
+        \"utf-8\": \"1\"
+      },
+      \"value\": 1
+    }
+  ],
+  \"stringAsKey\": {
+    \"-1\": \"b\",
+    \"01\": \"c\",
+    \"1\": \"a\"
+  }
+}",
+    json5 = "{
+  binaryAsKey: [
+    {
+      key: {
+        \"utf-8\": \"1\",
+      },
+      value: 1,
+    },
+  ],
+  stringAsKey: {
+    \"-1\": \"b\",
+    \"01\": \"c\",
+    \"1\": \"a\",
+  },
+}",
+  },
+  TestCase{
+    name = "UnqualifiedFieldsWithDefaultValues",
+    example = Example{unqualifiedValue = Unqualified{}, unqualifiedSet = [Unqualified{enumValue = Enum.ONE}, Unqualified{}, Unqualified{enumValue = Enum.NEGATIVE_ONE}]},
+    json = "{
+  \"unqualifiedValue\": {
+    \"enumValue\": \"DEFAULT (0)\",
+    \"structValue\": {
+      \"nested\": \"\"
+    }
+  },
+  \"unqualifiedSet\": [
+    {
+      \"enumValue\": \"NEGATIVE_ONE (-1)\",
+      \"structValue\": {
+        \"nested\": \"\"
+      }
+    },
+    {
+      \"enumValue\": \"DEFAULT (0)\",
+      \"structValue\": {
+        \"nested\": \"\"
+      }
+    },
+    {
+      \"enumValue\": \"ONE (1)\",
+      \"structValue\": {
+        \"nested\": \"\"
+      }
+    }
+  ]
+}",
+    json5 = "{
+  unqualifiedValue: {
+    enumValue: \"DEFAULT (0)\",
+    structValue: {
+      nested: \"\",
+    },
+  },
+  unqualifiedSet: [
+    {
+      enumValue: \"NEGATIVE_ONE (-1)\",
+      structValue: {
+        nested: \"\",
+      },
+    },
+    {
+      enumValue: \"DEFAULT (0)\",
+      structValue: {
+        nested: \"\",
+      },
+    },
+    {
+      enumValue: \"ONE (1)\",
+      structValue: {
+        nested: \"\",
+      },
+    },
+  ],
 }",
   },
 ];
