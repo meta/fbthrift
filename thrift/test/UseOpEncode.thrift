@@ -25,6 +25,7 @@ package;
 cpp_include "thrift/test/AdapterTest.h"
 
 @thrift.Uri{value = "facebook.com/thrift/test/use_op_encode/Foo"}
+@thrift.Sealed
 struct Foo {
   1: i32 field;
 }
@@ -32,6 +33,7 @@ struct Foo {
 @cpp.Adapter{name = "::apache::thrift::test::TemplatedTestAdapter"}
 typedef Foo AdaptedFoo
 
+@thrift.Sealed
 struct Bar {
   1: list<AdaptedFoo> list_field;
 }
@@ -66,9 +68,7 @@ struct OpEncodeStruct {
   @cpp.Ref{type = cpp.RefType.Shared}
   6: optional list<AdaptedFoo> list_shared_ptr_field;
   7: list<AdaptedFoo> list_cpp_type_field;
-  @thrift.AllowUnsafeNonSealedKeyType
   8: set<AdaptedFoo> set_field;
-  @thrift.AllowUnsafeNonSealedKeyType
   9: map<AdaptedFoo, AdaptedFoo> map_field;
   10: map<i32, list<AdaptedFoo>> nested_field;
   11: Bar bar_field;
@@ -82,7 +82,6 @@ struct OpEncodeStruct {
   @cpp.Adapter{name = "::apache::thrift::test::TemplatedTestAdapter"}
   17: list<AdaptedFoo> inplace_adapted_list_field;
 
-  @thrift.AllowUnsafeNonSealedKeyType
   19: map<AdaptedFoo, map<AdaptedBar, AdaptedI32>> nested_map_field;
 
   20: list<AdaptedSetOfI32> field20;

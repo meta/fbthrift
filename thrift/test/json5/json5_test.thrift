@@ -23,6 +23,7 @@ struct Nested {
   1: string nested;
 }
 
+@thrift.Sealed
 struct OutOfOrderFields {
   3: i32 Three;
   1: i32 One;
@@ -81,7 +82,6 @@ struct Example {
   // @lint-ignore THRIFTCHECKS bad-key-type
   19: optional map<map<map<i32, i32>, i32>, i32> nestedMapAsKey;
   // @lint-ignore THRIFTCHECKS bad-key-type
-  @thrift.AllowUnsafeNonSealedKeyType
   20: optional set<OutOfOrderFields> outOfOrderFieldsInSet;
   // @lint-ignore THRIFTCHECKS bad-key-type
   21: optional map<OutOfOrderFields, i32> outOfOrderFieldsInMap;
