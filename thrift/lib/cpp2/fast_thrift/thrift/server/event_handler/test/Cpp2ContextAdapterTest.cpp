@@ -26,6 +26,9 @@
 #include <folly/io/async/AsyncSocket.h>
 #include <folly/io/async/EventBase.h>
 #include <folly/io/async/ssl/BasicTransportCertificate.h>
+#include <folly/io/async/ssl/OpenSSLUtils.h>
+#include <folly/io/async/test/MockAsyncTransport.h>
+#include <folly/portability/GMock.h>
 
 #include <thrift/lib/cpp2/server/Cpp2Worker.h>
 
@@ -101,6 +104,68 @@ TEST(Cpp2ContextAdapterTest, ResolverSeesTheCertificateAndItsResultIsCached) {
   ASSERT_NE(identities, nullptr);
   EXPECT_EQ(identities->identity, "peer.identity");
   EXPECT_EQ(identities->certSeen, cert.get());
+}
+
+TEST(Cpp2ContextAdapterTest, ResolverReadsTheLiveCertificateAtInvocation) {
+  auto retained = std::make_shared<folly::ssl::BasicTransportCertificate>(
+      "retained", nullptr);
+  const folly::ssl::BasicTransportCertificate first("first", nullptr);
+  const folly::ssl::BasicTransportCertificate second("second", nullptr);
+  testing::NiceMock<folly::test::MockAsyncTransport> transport;
+  EXPECT_CALL(transport, getPeerCertificate())
+      .WillOnce(testing::Return(&first))
+      .WillOnce(testing::Return(&first))
+      .WillOnce(testing::Return(&second));
+  auto conn = makeConnContext(retained);
+  conn->setTransport(&transport);
+
+  Cpp2ConnContextAdapter adapter(conn, &resolveIdentities);
+
+  auto* identities =
+      static_cast<ResolvedIdentities*>(adapter.get().getPeerIdentities());
+  ASSERT_NE(identities, nullptr);
+  EXPECT_EQ(identities->identity, "second");
+  EXPECT_EQ(identities->certSeen, &second);
+}
+
+TEST(Cpp2ContextAdapterTest, CachedX509FallbackSurvivesTransportRemoval) {
+  auto cert = std::make_shared<folly::ssl::BasicTransportCertificate>(
+      "retained", folly::ssl::X509UniquePtr(X509_new()));
+  auto x509 = cert->getX509();
+  ASSERT_NE(x509, nullptr);
+  ASSERT_EQ(
+      X509_NAME_add_entry_by_txt(
+          X509_get_subject_name(x509.get()),
+          "CN",
+          MBSTRING_ASC,
+          reinterpret_cast<const unsigned char*>("retained"),
+          -1,
+          -1,
+          0),
+      1);
+  const auto* expected = x509.get();
+  auto conn = makeConnContext(cert);
+  folly::EventBase evb;
+  auto socket = folly::AsyncSocket::newSocket(&evb);
+  conn->setTransport(socket.get());
+
+  Cpp2ConnContextAdapter adapter(conn, &resolveIdentities);
+
+  EXPECT_EQ(adapter.get().getPeerCertificate(), expected);
+  auto* identities =
+      static_cast<ResolvedIdentities*>(adapter.get().getPeerIdentities());
+  ASSERT_NE(identities, nullptr);
+  EXPECT_EQ(identities->certSeen, cert.get());
+  x509.reset();
+  cert->dropX509();
+  conn->setPeerCertificate(nullptr);
+  adapter.connectionClosed();
+  EXPECT_EQ(adapter.get().getTransport(), nullptr);
+  EXPECT_EQ(adapter.get().getPeerCertificate(), expected);
+  EXPECT_EQ(
+      folly::ssl::OpenSSLUtils::getCommonName(
+          const_cast<X509*>(adapter.get().getPeerCertificate())),
+      "retained");
 }
 
 TEST(Cpp2ContextAdapterTest, NoResolverLeavesIdentitiesUnset) {

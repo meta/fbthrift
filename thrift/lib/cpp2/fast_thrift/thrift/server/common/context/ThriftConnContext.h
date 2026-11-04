@@ -28,6 +28,8 @@
 #include <folly/SocketAddress.h>
 #include <folly/io/async/AsyncTransport.h>
 #include <folly/io/async/AsyncTransportCertificate.h>
+#include <folly/io/async/ssl/OpenSSLTransportCertificate.h>
+#include <folly/io/async/ssl/OpenSSLUtils.h>
 
 #include <folly/CppAttributes.h>
 
@@ -80,6 +82,34 @@ class ThriftConnContext : public boost::intrusive_ref_counter<
   // Peer's TLS leaf certificate, or null if none.
   const folly::AsyncTransportCertificate* getPeerCertificate() const noexcept {
     return peerCertificate_.get();
+  }
+
+  // Live certificate reads require the connection's EventBase and may throw.
+  const folly::AsyncTransportCertificate* FOLLY_NULLABLE
+  getTransportPeerCertificate() const {
+    return transport_ ? transport_->getPeerCertificate() : nullptr;
+  }
+
+  // Borrowed cached X509, or null. Survives transport removal; valid until
+  // setPeerCertificate() replaces it or this context is destroyed.
+  const X509* FOLLY_NULLABLE getCachedPeerCertificate() const noexcept {
+    return cachedPeerCertificate_.get();
+  }
+
+  // Reads the live transport on the connection's EventBase and may throw.
+  // Empty when the transport or an OpenSSL certificate is absent.
+  std::string getPeerCommonName() const {
+    if (!transport_) {
+      return "";
+    }
+    const auto* certificate =
+        dynamic_cast<const folly::OpenSSLTransportCertificate*>(
+            transport_->getPeerCertificate());
+    if (certificate == nullptr) {
+      return "";
+    }
+    return folly::ssl::OpenSSLUtils::getCommonName(
+        certificate->getX509().get());
   }
 
   bool peerCertReceived() const noexcept { return peerCertificate_ != nullptr; }
@@ -169,7 +199,14 @@ class ThriftConnContext : public boost::intrusive_ref_counter<
     securityProtocol_ = std::move(proto);
   }
   void setPeerCertificate(
-      std::shared_ptr<const folly::AsyncTransportCertificate> cert) noexcept {
+      std::shared_ptr<const folly::AsyncTransportCertificate> cert) {
+    auto cached =
+        folly::OpenSSLTransportCertificate::tryExtractX509(cert.get());
+    if (auto live = folly::OpenSSLTransportCertificate::tryExtractX509(
+            getTransportPeerCertificate())) {
+      cached = std::move(live);
+    }
+    cachedPeerCertificate_ = std::move(cached);
     peerCertificate_ = std::move(cert);
   }
   void setTransport(const folly::AsyncTransport* transport) noexcept {
@@ -180,6 +217,7 @@ class ThriftConnContext : public boost::intrusive_ref_counter<
   folly::SocketAddress peerAddress_{};
   std::string securityProtocol_;
   std::shared_ptr<const folly::AsyncTransportCertificate> peerCertificate_;
+  folly::ssl::X509UniquePtr cachedPeerCertificate_;
   const folly::AsyncTransport* transport_{nullptr};
   rocket::TypeErasedPtr userData_{};
   std::optional<apache::thrift::ClientMetadata> clientMetadata_;

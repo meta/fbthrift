@@ -18,6 +18,7 @@
 
 #include <concepts>
 #include <cstdint>
+#include <string>
 #include <string_view>
 #include <utility>
 
@@ -135,9 +136,37 @@ class ThriftConnectionView {
     return connContext_->getSecurityProtocol();
   }
 
-  // Peer's TLS leaf certificate, or null on plaintext.
+  // Retained handshake certificate, including after StopTLS.
   const folly::AsyncTransportCertificate* peerCertificate() const noexcept {
     return connContext_->getPeerCertificate();
+  }
+
+  // Borrowed live transport certificate. Requires the connection's EventBase
+  // and may throw; null when the transport or its certificate is absent.
+  const folly::AsyncTransportCertificate* FOLLY_NULLABLE
+  transportPeerCertificate() const {
+    // @lint-ignore NULLSAFECLANG nullable-dereference
+    return connContext_->getTransportPeerCertificate();
+  }
+
+  // Borrowed cached X509, or null. Survives transport removal; valid until the
+  // context replaces its certificate or is destroyed.
+  const X509* FOLLY_NULLABLE peerX509Certificate() const noexcept {
+    // @lint-ignore NULLSAFECLANG nullable-dereference
+    return connContext_->getCachedPeerCertificate();
+  }
+
+  // Reads the live transport on the connection's EventBase and may throw.
+  // Empty when the transport or an OpenSSL certificate is absent.
+  std::string peerCommonName() const {
+    // @lint-ignore NULLSAFECLANG nullable-dereference
+    return connContext_->getPeerCommonName();
+  }
+
+  // Reflects the retained handshake certificate, including after StopTLS.
+  bool peerCertReceived() const noexcept {
+    // @lint-ignore NULLSAFECLANG nullable-dereference
+    return connContext_->peerCertReceived();
   }
 
   const folly::AsyncTransport* FOLLY_NULLABLE transport() const noexcept {

@@ -48,14 +48,17 @@ apache::thrift::ClientIdentityHook adaptResolver(
   if (resolver == nullptr) {
     return nullptr;
   }
-  // The certificate outlives the connection context's own lifetime by being
-  // shared, and this hook is invoked during construction below, so capturing
-  // the raw pointer is bounded by that call.
-  return [cert = connContext.getPeerCertificate(), resolver](
-             const folly::AsyncTransport* /*transport*/,
+  // Cpp2ConnContext invokes this hook during construction and does not retain
+  // it; the adapter already owns connContext for the duration of that call.
+  return [&connContext, resolver](
+             const folly::AsyncTransport* transport,
              X509* /*x509*/,
              const folly::SocketAddress& peerAddress) {
-    return resolver(cert, peerAddress);
+    const auto* certificate =
+        transport ? transport->getPeerCertificate() : nullptr;
+    return resolver(
+        certificate ? certificate : connContext.getPeerCertificate(),
+        peerAddress);
   };
 }
 
