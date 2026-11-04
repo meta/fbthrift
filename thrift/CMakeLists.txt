@@ -104,9 +104,6 @@ add_subdirectory(common)
 add_subdirectory(compiler)
 add_subdirectory(annotation)
 add_subdirectory(lib)
-if (THRIFT_TESTS AND THRIFT_RPC)
-  add_subdirectory(cmake/test)
-endif ()
 
 # Install CMake package configuration files for Thrift.
 include(CMakePackageConfigHelpers)

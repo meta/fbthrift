@@ -31,72 +31,54 @@ if (NOT DEFINED THRIFT_COMPILER)
 endif ()
 
 # Sets <headers_var> and <sources_var> to the files the mstch_cpp2 generator
-# writes to <gen_dir> for <stem>.thrift with these services and options.
+# writes to <dir> for <stem>.thrift with these services and options.
+# `fast_client_stubs` is assumed, as thrift_generate() always passes it.
 function (
   _thrift_cpp2_files
-  gen_dir
+  dir
   stem
   services
   options
   headers_var
   sources_var)
-  # The compiler tests an option's key, so `no_metadata=0` counts as
-  # no_metadata, and uses the first value of a repeated key.
-  set(keys)
-  set(types_cpp_splits 0)
-  set(client_cpp_splits)
+  # The compiler takes comma-separated options and tests an option's key, so
+  # `no_metadata=0` counts as no_metadata.
+  string(REPLACE "," ";" options "${options}")
+  string(REGEX REPLACE "=[^;]*" "" keys "${options}")
   foreach (option ${options})
-    string(REGEX REPLACE "=.*" "" key "${option}")
-    if (key IN_LIST keys)
-      continue()
-    endif ()
-    list(APPEND keys "${key}")
-    if (option MATCHES "^types_cpp_splits=([0-9]+)$")
-      math(EXPR types_cpp_splits "${CMAKE_MATCH_1}")
-    elseif (option MATCHES "^types_cpp_splits=")
-      message(FATAL_ERROR "thrift_generate: invalid ${option}")
-    elseif (option MATCHES "^client_cpp_splits=")
-      if (NOT option MATCHES "^client_cpp_splits=\\{(.*)\\}$")
-        message(FATAL_ERROR "thrift_generate: invalid ${option}")
-      endif ()
-      string(REPLACE "," ";" client_cpp_splits "${CMAKE_MATCH_1}")
-      foreach (entry ${client_cpp_splits})
-        if (NOT entry MATCHES "^[^:]+:0*[1-9][0-9]*$")
-          message(FATAL_ERROR "thrift_generate: invalid ${option}: each "
-                              "count must be a positive integer")
-        endif ()
-      endforeach ()
+    if (option MATCHES
+        "^(client_cpp_splits|single_file_service|include_prefix)(=|$)"
+        OR (option MATCHES "^types_cpp_splits" AND NOT option MATCHES
+                                                   "^types_cpp_splits=0+$"))
+      message(FATAL_ERROR "${option} is not supported by thrift_generate()")
     endif ()
   endforeach ()
+  set(gen_dir "${dir}/gen-cpp2")
+  if ("py3cpp" IN_LIST keys)
+    set(gen_dir "${dir}/gen-py3cpp")
+  endif ()
   set(p "${gen_dir}/${stem}")
   set(headers
-      ${p}_constants.h
-      ${p}_data.h
-      ${p}_metadata.h
-      ${p}_types.h
-      ${p}_types_fwd.h
-      ${p}_types.tcc
-      ${p}_types_custom_protocol.h
       ${p}_clients.h
       ${p}_clients_fwd.h
-      ${p}_handlers.h)
+      ${p}_constants.h
+      ${p}_data.h
+      ${p}_fast_clients.h
+      ${p}_handlers.h
+      ${p}_metadata.h
+      ${p}_types.h
+      ${p}_types.tcc
+      ${p}_types_custom_protocol.h
+      ${p}_types_fwd.h)
   # _sinit.cpp is empty unless the `any` option is given.
-  set(sources ${p}_constants.cpp ${p}_data.cpp ${p}_sinit.cpp)
-  set(types_kinds types types_binary types_compact types_serialization)
-  if (types_cpp_splits GREATER 0)
-    math(EXPR last "${types_cpp_splits} - 1")
-    string(LENGTH "${last}" width)
-    foreach (i RANGE ${last})
-      _thrift_pad("${i}" ${width} id)
-      foreach (kind ${types_kinds})
-        list(APPEND sources ${p}_${kind}.${id}.split.cpp)
-      endforeach ()
-    endforeach ()
-  else ()
-    foreach (kind ${types_kinds})
-      list(APPEND sources ${p}_${kind}.cpp)
-    endforeach ()
-  endif ()
+  set(sources
+      ${p}_constants.cpp
+      ${p}_data.cpp
+      ${p}_sinit.cpp
+      ${p}_types.cpp
+      ${p}_types_binary.cpp
+      ${p}_types_compact.cpp
+      ${p}_types_serialization.cpp)
   if (NOT "no_metadata" IN_LIST keys)
     list(APPEND sources ${p}_metadata.cpp)
   endif ()
@@ -104,57 +86,42 @@ function (
     list(APPEND headers ${p}_layouts.h)
     list(APPEND sources ${p}_layouts.cpp)
   endif ()
-  # fast_client_stubs, which thrift_generate() always passes, generates the
-  # FastClient files.
-  list(APPEND headers ${p}_fast_clients.h)
-  if ("single_file_service" IN_LIST keys)
-    list(APPEND headers ${p}_handlers-inl.h)
-    list(APPEND sources ${p}_clients.cpp ${p}_handlers.cpp
-         ${p}_fast_clients.cpp)
-  else ()
-    foreach (service ${services})
-      set(s "${gen_dir}/${service}")
-      list(
-        APPEND
-        headers
-        ${s}.h
-        ${s}.tcc
-        ${s}AsyncClient.h
-        ${s}_custom_protocol.h
-        ${s}FastClient.h)
-      list(APPEND sources ${s}.cpp ${s}FastClient.cpp)
-      set(splits 0)
-      foreach (entry ${client_cpp_splits})
-        if (entry MATCHES "^${service}:([0-9]+)$")
-          math(EXPR splits "${CMAKE_MATCH_1}")
-        endif ()
-      endforeach ()
-      if (splits GREATER 0)
-        math(EXPR last "${splits} - 1")
-        string(LENGTH "${last}" width)
-        foreach (i RANGE ${last})
-          _thrift_pad("${i}" ${width} id)
-          list(APPEND sources ${s}.${id}.async_client_split.cpp)
-        endforeach ()
-      else ()
-        list(APPEND sources ${s}AsyncClient.cpp)
-      endif ()
-      # The compiler also writes <service>_processmap_{binary,compact}.cpp,
-      # which only include <service>.h and <service>.tcc and define nothing.
-    endforeach ()
-  endif ()
+  # The compiler also writes <service>_processmap_{binary,compact}.cpp, which
+  # only include <service>.h and <service>.tcc and define nothing.
+  foreach (service ${services})
+    set(s "${gen_dir}/${service}")
+    list(
+      APPEND
+      headers
+      ${s}.h
+      ${s}.tcc
+      ${s}AsyncClient.h
+      ${s}FastClient.h
+      ${s}_custom_protocol.h)
+    list(APPEND sources ${s}.cpp ${s}AsyncClient.cpp ${s}FastClient.cpp)
+  endforeach ()
   set(${headers_var} "${headers}" PARENT_SCOPE)
   set(${sources_var} "${sources}" PARENT_SCOPE)
 endfunction ()
 
-# Sets <out_var> to <number> padded with leading zeros to <width> digits.
-function (_thrift_pad number width out_var)
-  string(LENGTH "${number}" length)
-  while (length LESS width)
-    string(PREPEND number 0)
-    math(EXPR length "${length} + 1")
-  endwhile ()
-  set(${out_var} "${number}" PARENT_SCOPE)
+# Sets <out_var> to the keywords among <keywords> that have an empty string as
+# their value in <args>, the "${ARGV}" of the caller. cmake_parse_arguments()
+# drops such a keyword before CMP0174 (CMake 3.31).
+function (_thrift_empty_keywords out_var keywords args)
+  set(empty)
+  list(LENGTH args length)
+  math(EXPR last "${length} - 2")
+  if (last GREATER_EQUAL 0)
+    foreach (i RANGE ${last})
+      math(EXPR next "${i} + 1")
+      list(GET args ${i} arg)
+      list(GET args ${next} value)
+      if (arg IN_LIST keywords AND "${value}" STREQUAL "")
+        list(APPEND empty "${arg}")
+      endif ()
+    endforeach ()
+  endif ()
+  set(${out_var} "${empty}" PARENT_SCOPE)
 endfunction ()
 
 # Generates code from a .thrift file with the Thrift compiler and adds it to a
@@ -178,9 +145,9 @@ endfunction ()
 #   LANGUAGE - The generator to use.
 #   SERVICES - The services declared in the file.
 #   OPTIONS - Generator options, e.g. `OPTIONS json no_metadata`. For cpp2, the
-#       options that change which files are generated (no_metadata, frozen2,
-#       types_cpp_splits, client_cpp_splits, single_file_service and py3cpp) are
-#       accounted for.
+#       options that change which files are generated (no_metadata, frozen2 and
+#       py3cpp) are accounted for, and types_cpp_splits, client_cpp_splits and
+#       single_file_service are not supported.
 #   INCLUDE_DIRECTORIES - Where the compiler looks for included .thrift files,
 #       relative to CMAKE_CURRENT_SOURCE_DIR. Defaults to PROJECT_SOURCE_DIR. An
 #       entry can be a generator expression that evaluates to a list of
@@ -229,19 +196,7 @@ function (thrift_generate)
   set(one_value_keywords LANGUAGE OUTPUT_DIRECTORY INCLUDE_PREFIX NAMESPACE)
   # Parsed only to be rejected; unparsed, they would join SERVICES or OPTIONS.
   set(removed_keywords TARGET OUT_SOURCES)
-  # Before CMP0174 (CMake 3.31), cmake_parse_arguments() drops a keyword whose
-  # value is an empty string, so find those here.
-  set(empty_keywords)
-  math(EXPR last "${ARGC} - 2")
-  if (last GREATER_EQUAL 2)
-    foreach (i RANGE 2 ${last})
-      math(EXPR next "${i} + 1")
-      if ("${ARGV${i}}" IN_LIST one_value_keywords AND "${ARGV${next}}"
-                                                       STREQUAL "")
-        list(APPEND empty_keywords "${ARGV${i}}")
-      endif ()
-    endforeach ()
-  endif ()
+  _thrift_empty_keywords(empty_keywords "${one_value_keywords}" "${ARGV}")
   cmake_policy(PUSH)
   if (POLICY CMP0174)
     cmake_policy(SET CMP0174 NEW)
@@ -324,6 +279,12 @@ function (thrift_generate)
   else ()
     set(include_prefix "${rel}")
   endif ()
+  if (include_prefix MATCHES "(^|/)\\.\\.(/|$)" OR IS_ABSOLUTE
+                                                   "${include_prefix}")
+    message(
+      FATAL_ERROR "thrift_generate: INCLUDE_PREFIX ${include_prefix} must "
+                  "be a relative path without ..")
+  endif ()
   # COMMAND_EXPAND_LISTS below splits a generator expression's list into
   # separate arguments, so each directory gets its own -I.
   set(include_args)
@@ -350,16 +311,11 @@ function (thrift_generate)
   set(generator "mstch_${language}")
   set(gen_dir "${output_dir}/gen-${language}")
   if ("${language}" STREQUAL "cpp2")
+    _thrift_cpp2_files("${output_dir}" "${stem}" "${services}" "${options}"
+                       headers sources)
     # The FastClient files of an annotated service are generated either way, so
     # list them for every service.
     list(APPEND options fast_client_stubs)
-    foreach (option ${options})
-      if (option MATCHES "^py3cpp(=|$)")
-        set(gen_dir "${output_dir}/gen-py3cpp")
-      endif ()
-    endforeach ()
-    _thrift_cpp2_files("${gen_dir}" "${stem}" "${services}" "${options}"
-                       headers sources)
   elseif ("${language}" STREQUAL "py3")
     set(headers
         ${gen_dir}/${stem}_constants.h ${gen_dir}/${stem}_data.h
@@ -372,9 +328,6 @@ function (thrift_generate)
         ${gen_dir}/${stem}_types_binary.cpp
         ${gen_dir}/${stem}_types_compact.cpp
         ${gen_dir}/${stem}_types_serialization.cpp)
-    if ("layouts" IN_LIST options)
-      list(APPEND sources ${gen_dir}/${stem}_layouts.cpp)
-    endif ()
     if (NOT "no_metadata" IN_LIST options)
       list(APPEND sources ${gen_dir}/${stem}_metadata.cpp)
     endif ()
@@ -463,11 +416,6 @@ function (thrift_generate)
   target_sources(${target} PRIVATE ${headers} ${sources})
   # For thrift_add_library().
   set_property(TARGET ${target} APPEND PROPERTY _THRIFT_HEADERS ${headers})
-  set_property(TARGET ${target} PROPERTY _THRIFT_OUTPUT_DIRECTORY
-                                         "${output_dir}")
-  set_property(TARGET ${target} PROPERTY _THRIFT_INCLUDE_PREFIX
-                                         "${include_prefix}")
-  set_property(TARGET ${target} PROPERTY _THRIFT_GENERATOR "${gen}")
   if (language STREQUAL "cpp2")
     # Several calls can share a target.
     get_target_property(links ${target} LINK_LIBRARIES)
@@ -503,16 +451,19 @@ endfunction ()
 #       <file> includes, other than in the DEPENDS libraries' directories and
 #       THRIFT_INCLUDE_DIR. Can contain generator expressions. Defaults to
 #       PROJECT_SOURCE_DIR.
-#   OUTPUT_DIRECTORY, INCLUDE_PREFIX - As for thrift_generate(), but
-#       OUTPUT_DIRECTORY must end with INCLUDE_PREFIX. The generated code of a
-#       library with an empty INCLUDE_PREFIX can't be included by a library
-#       with a prefix: the compiler gives the included file that prefix.
+#   OUTPUT_DIRECTORY - The include directory of the generated code, relative to
+#       CMAKE_CURRENT_BINARY_DIR. The code goes to
+#       <OUTPUT_DIRECTORY>/<INCLUDE_PREFIX>/gen-cpp2. Defaults to
+#       PROJECT_BINARY_DIR.
+#   INCLUDE_PREFIX - As for thrift_generate(). The generated code of a library
+#       with an empty INCLUDE_PREFIX can't be included by a library with a
+#       prefix: the compiler gives the included file that prefix.
 #   SERVICES, OPTIONS, LEGACY_STRICT - As for thrift_generate().
 #
 # <name> links thrift::protocol, and thrift::rpc if SERVICES is given, publicly.
-# Its include directory, OUTPUT_DIRECTORY without INCLUDE_PREFIX, lets code
-# include the generated headers as <include_prefix>/gen-cpp2/<header>
-# (gen-py3cpp with the py3cpp option).
+# Its include directory, OUTPUT_DIRECTORY, lets code include the generated
+# headers as <include_prefix>/gen-cpp2/<header> (gen-py3cpp with the py3cpp
+# option).
 #
 # Also creates the INTERFACE library <name>.thrift_includes, whose include
 # directories are where the compiler looks for files that <file> includes. It
@@ -536,19 +487,8 @@ function (thrift_add_library)
   endif ()
   set(name "${ARGV0}")
   set(file "${ARGV1}")
-  # An empty INCLUDE_PREFIX is meaningful, and cmake_parse_arguments() drops it
-  # before CMP0174 (CMake 3.31).
-  set(empty_prefix FALSE)
-  math(EXPR last "${ARGC} - 2")
-  if (last GREATER_EQUAL 2)
-    foreach (i RANGE 2 ${last})
-      math(EXPR next "${i} + 1")
-      if ("${ARGV${i}}" STREQUAL "INCLUDE_PREFIX" AND "${ARGV${next}}" STREQUAL
-                                                      "")
-        set(empty_prefix TRUE)
-      endif ()
-    endforeach ()
-  endif ()
+  _thrift_empty_keywords(empty_keywords "INCLUDE_PREFIX;OUTPUT_DIRECTORY"
+                         "${ARGV}")
   cmake_policy(PUSH)
   if (POLICY CMP0174)
     cmake_policy(SET CMP0174 NEW)
@@ -563,11 +503,14 @@ function (thrift_add_library)
   endif ()
   # An empty list of SERVICES, DEPENDS, OPTIONS or INCLUDE_DIRECTORIES is fine.
   foreach (keyword LANGUAGE OUTPUT_DIRECTORY INCLUDE_PREFIX)
-    if (keyword IN_LIST ARG_KEYWORDS_MISSING_VALUES
-        AND NOT (keyword STREQUAL "INCLUDE_PREFIX" AND empty_prefix))
+    if (keyword IN_LIST ARG_KEYWORDS_MISSING_VALUES AND NOT keyword IN_LIST
+                                                        empty_keywords)
       message(FATAL_ERROR "thrift_add_library: ${keyword} requires a value")
     endif ()
   endforeach ()
+  if ("OUTPUT_DIRECTORY" IN_LIST empty_keywords)
+    message(FATAL_ERROR "thrift_add_library: OUTPUT_DIRECTORY requires a value")
+  endif ()
   if (NOT ARG_LANGUAGE STREQUAL "cpp2")
     message(
       FATAL_ERROR
@@ -581,9 +524,6 @@ function (thrift_add_library)
   endif ()
   if (NOT "${ARG_OPTIONS}" STREQUAL "")
     list(APPEND generate_args OPTIONS ${ARG_OPTIONS})
-  endif ()
-  if (DEFINED ARG_OUTPUT_DIRECTORY)
-    list(APPEND generate_args OUTPUT_DIRECTORY "${ARG_OUTPUT_DIRECTORY}")
   endif ()
   if (ARG_LEGACY_STRICT)
     list(APPEND generate_args LEGACY_STRICT)
@@ -601,6 +541,28 @@ function (thrift_add_library)
   endif ()
   get_filename_component(thrift_file "${file}" ABSOLUTE BASE_DIR
                          "${CMAKE_CURRENT_SOURCE_DIR}")
+  if (DEFINED ARG_INCLUDE_PREFIX OR "INCLUDE_PREFIX" IN_LIST empty_keywords)
+    set(include_prefix "${ARG_INCLUDE_PREFIX}")
+  else ()
+    get_filename_component(thrift_dir "${thrift_file}" DIRECTORY)
+    file(RELATIVE_PATH include_prefix "${PROJECT_SOURCE_DIR}" "${thrift_dir}")
+    if (include_prefix MATCHES "^\\.\\.(/|$)" OR IS_ABSOLUTE
+                                                 "${include_prefix}")
+      message(
+        FATAL_ERROR
+          "thrift_add_library: ${file} is outside PROJECT_SOURCE_DIR, "
+          "so INCLUDE_PREFIX is required")
+    endif ()
+  endif ()
+  set(include_root "${PROJECT_BINARY_DIR}")
+  if (DEFINED ARG_OUTPUT_DIRECTORY)
+    get_filename_component(include_root "${ARG_OUTPUT_DIRECTORY}" ABSOLUTE
+                           BASE_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+  endif ()
+  set(output_dir "${include_root}")
+  if (NOT include_prefix STREQUAL "")
+    string(APPEND output_dir "/${include_prefix}")
+  endif ()
 
   set(includes "${name}.thrift_includes")
   add_library(${includes} INTERFACE)
@@ -636,50 +598,15 @@ function (thrift_add_library)
     endif ()
   endforeach ()
   set(file_depends "$<TARGET_PROPERTY:${includes},INTERFACE_SOURCES>")
-  if (empty_prefix)
-    thrift_generate(
-      ${name} "${thrift_file}"
-      LANGUAGE cpp2
-      INCLUDE_DIRECTORIES ${thrift_include_dirs}
-      FILE_DEPENDS ${file_depends} ${generate_args}
-      INCLUDE_PREFIX "")
-  elseif (DEFINED ARG_INCLUDE_PREFIX)
-    thrift_generate(
-      ${name} "${thrift_file}"
-      LANGUAGE cpp2
-      INCLUDE_DIRECTORIES ${thrift_include_dirs}
-      FILE_DEPENDS ${file_depends} ${generate_args}
-      INCLUDE_PREFIX "${ARG_INCLUDE_PREFIX}")
-  else ()
-    thrift_generate(
-      ${name} "${thrift_file}"
-      LANGUAGE cpp2
-      INCLUDE_DIRECTORIES ${thrift_include_dirs}
-      FILE_DEPENDS ${file_depends} ${generate_args})
-  endif ()
+  thrift_generate(
+    ${name} "${thrift_file}"
+    LANGUAGE cpp2
+    INCLUDE_DIRECTORIES ${thrift_include_dirs}
+    FILE_DEPENDS ${file_depends} ${generate_args}
+    OUTPUT_DIRECTORY "${output_dir}"
+    INCLUDE_PREFIX "${include_prefix}")
 
-  get_target_property(output_dir ${name} _THRIFT_OUTPUT_DIRECTORY)
-  get_target_property(include_prefix ${name} _THRIFT_INCLUDE_PREFIX)
   get_target_property(headers ${name} _THRIFT_HEADERS)
-  # The generated code includes <include_prefix>/gen-cpp2/<header>, so the
-  # include directory is OUTPUT_DIRECTORY without INCLUDE_PREFIX.
-  set(include_root "${output_dir}")
-  if (NOT include_prefix STREQUAL "")
-    string(LENGTH "/${include_prefix}" suffix_length)
-    string(LENGTH "${output_dir}" length)
-    math(EXPR start "${length} - ${suffix_length}")
-    set(suffix)
-    if (start GREATER_EQUAL 0)
-      string(SUBSTRING "${output_dir}" ${start} -1 suffix)
-    endif ()
-    if (NOT suffix STREQUAL "/${include_prefix}")
-      message(
-        FATAL_ERROR
-          "thrift_add_library: OUTPUT_DIRECTORY ${output_dir} must end with "
-          "INCLUDE_PREFIX ${include_prefix}")
-    endif ()
-    string(SUBSTRING "${output_dir}" 0 ${start} include_root)
-  endif ()
   target_include_directories(${name} PUBLIC $<BUILD_INTERFACE:${include_root}>)
   target_link_libraries(${name} PUBLIC ${ARG_DEPENDS})
   if (NOT "${ARG_SERVICES}" STREQUAL "")
