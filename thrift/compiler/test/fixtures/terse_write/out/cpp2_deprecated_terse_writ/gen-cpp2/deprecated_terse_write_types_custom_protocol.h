@@ -2180,6 +2180,8 @@ uint32_t CppRefStructFields::serializedSize(Protocol_ const* prot_) const {
     xfer += prot_->serializedFieldSize("primitive_ref_field", apache::thrift::protocol::TType::T_I32, 1);
     if (this->__fbthrift_field_primitive_ref_field) {
       xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::integral, ::std::int32_t, ::apache::thrift::type::i32_t>::serializedSize<false>(*prot_, *this->__fbthrift_field_primitive_ref_field);
+    } else {
+      xfer += prot_->serializedSizeI32(0);
     }
   }
   if (this->__fbthrift_field_struct_ref_field) {
@@ -2203,6 +2205,8 @@ uint32_t CppRefStructFields::serializedSizeZC(Protocol_ const* prot_) const {
     xfer += prot_->serializedFieldSize("primitive_ref_field", apache::thrift::protocol::TType::T_I32, 1);
     if (this->__fbthrift_field_primitive_ref_field) {
       xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::integral, ::std::int32_t, ::apache::thrift::type::i32_t>::serializedSize<false>(*prot_, *this->__fbthrift_field_primitive_ref_field);
+    } else {
+      xfer += prot_->serializedSizeI32(0);
     }
   }
   if (this->__fbthrift_field_struct_ref_field) {
@@ -2237,6 +2241,8 @@ uint32_t CppRefStructFields::write(Protocol_* prot_) const {
     previousFieldHasValue = true;
     if (this->__fbthrift_field_primitive_ref_field) {
       xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::integral, ::std::int32_t, ::apache::thrift::type::i32_t>::write(*prot_, *this->__fbthrift_field_primitive_ref_field);
+    } else {
+      xfer += prot_->writeI32(0);
     }
     xfer += prot_->writeFieldEnd();
   } else {

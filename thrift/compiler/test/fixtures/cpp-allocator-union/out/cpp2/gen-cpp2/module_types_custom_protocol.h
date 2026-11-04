@@ -122,6 +122,8 @@ uint32_t AllocUnion::serializedSize(Protocol_ const* prot_) const {
       xfer += prot_->serializedFieldSize("aa_shared_string", apache::thrift::protocol::TType::T_STRING, 4);
       if (value_.aa_shared_string) {
         xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, ::test::fixtures::cpp_allocator_union::PmrString, ::apache::thrift::type::cpp_type<::test::fixtures::cpp_allocator_union::PmrString, ::apache::thrift::type::string_t>>::serializedSize<false>(*prot_, *value_.aa_shared_string);
+      } else {
+        xfer += prot_->serializedSizeString("");
       }
       break;
     }
@@ -162,6 +164,8 @@ uint32_t AllocUnion::serializedSizeZC(Protocol_ const* prot_) const {
       xfer += prot_->serializedFieldSize("aa_shared_string", apache::thrift::protocol::TType::T_STRING, 4);
       if (value_.aa_shared_string) {
         xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, ::test::fixtures::cpp_allocator_union::PmrString, ::apache::thrift::type::cpp_type<::test::fixtures::cpp_allocator_union::PmrString, ::apache::thrift::type::string_t>>::serializedSize<false>(*prot_, *value_.aa_shared_string);
+      } else {
+        xfer += prot_->serializedSizeString("");
       }
       break;
     }
@@ -209,6 +213,8 @@ uint32_t AllocUnion::write(Protocol_* prot_) const {
       xfer += ::apache::thrift::detail::writeFieldBegin<apache::thrift::protocol::TType::T_STRING, 4, kPrevFieldId>(*prot_, "aa_shared_string", false);
       if (value_.aa_shared_string) {
         xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, ::test::fixtures::cpp_allocator_union::PmrString, ::apache::thrift::type::cpp_type<::test::fixtures::cpp_allocator_union::PmrString, ::apache::thrift::type::string_t>>::write(*prot_, *value_.aa_shared_string);
+      } else {
+        xfer += prot_->writeString("");
       }
       xfer += prot_->writeFieldEnd();
       break;

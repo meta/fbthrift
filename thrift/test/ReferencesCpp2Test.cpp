@@ -645,6 +645,36 @@ TEST(References, NonTriviallyDestructibleUnionSetter) {
   EXPECT_EQ(obj, objd);
 }
 
+// A non-optional `@cpp.Ref` field can hold a null pointer, for example after a
+// move. The writer still writes the field header, so it must write a value too.
+// Without one the reader takes the next bytes as that value.
+template <typename ThriftStruct>
+void serialize_null_non_optional_ref_test() {
+  ThriftStruct obj;
+  obj.def_field().reset();
+
+  EXPECT_EQ(
+      ThriftStruct{},
+      CompactSerializer::deserialize<ThriftStruct>(
+          CompactSerializer::serialize<std::string>(obj)));
+}
+
+TEST(References, serialize_null_base_type_ref) {
+  serialize_null_non_optional_ref_test<ReferringStructWithBaseTypeFields>();
+}
+
+TEST(References, serialize_null_string_ref) {
+  serialize_null_non_optional_ref_test<ReferringStructWithStringFields>();
+}
+
+TEST(References, serialize_null_binary_ref) {
+  serialize_null_non_optional_ref_test<ReferringStructWithBinaryField>();
+}
+
+TEST(References, serialize_null_enum_ref) {
+  serialize_null_non_optional_ref_test<ReferringStructWithEnumField>();
+}
+
 TEST(References, is_cpp_ref_field_optional) {
   using apache::thrift::field_id;
   using apache::thrift::detail::qualifier::is_cpp_ref_field_optional;

@@ -170,6 +170,27 @@ struct ReferringStructWithStringFields {
   13: optional string opt_box_field;
 }
 
+enum RefEnum {
+  Zero = 0,
+  One = 1,
+}
+
+struct ReferringStructWithEnumField {
+  // A ref field that is not optional is what this struct tests, as in the
+  // structs above, so the warning about it is expected here.
+  // @lint-ignore THRIFTCHECKS
+  @cpp.Ref{type = cpp.RefType.Unique}
+  @cpp.AllowLegacyNonOptionalRef
+  1: RefEnum def_field;
+}
+
+struct ReferringStructWithBinaryField {
+  // @lint-ignore THRIFTCHECKS
+  @cpp.Ref{type = cpp.RefType.Unique}
+  @cpp.AllowLegacyNonOptionalRef
+  1: binary def_field;
+}
+
 struct ReferringStructWithListFields {
   @cpp.Ref{type = cpp.RefType.Unique}
   @cpp.AllowLegacyNonOptionalRef

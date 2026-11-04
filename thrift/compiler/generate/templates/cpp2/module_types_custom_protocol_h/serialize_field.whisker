@@ -40,17 +40,19 @@
       {{#else}}
       xfer += {{#partial custom_protocol.protocol_methods field=field}}::write(*prot_, {{#partial custom_protocol.protocol_methods_value field=field struct=struct}});
       {{/if field.use_op_encode?}}
-      {{#if (or field.type.container? field.type.enum?)}}
+      {{#if field.type.container?}}
     } else {
       xfer += prot_->write{{#partial custom_protocol.struct_field_type type=type}}Begin({{#partial custom_protocol.container_struct_type type=type}}, 0);
       xfer += prot_->write{{#partial custom_protocol.struct_field_type type=type}}End();
-      {{/if (or field.type.container? field.type.enum?)}}
-      {{#if field.type.structured?}}
+      {{#else if field.type.structured?}}
     } else {
       xfer += prot_->writeStructBegin("{{field.type.name}}");
       xfer += prot_->writeFieldStop();
       xfer += prot_->writeStructEnd();
-      {{/if field.type.structured?}}
+      {{#else}}
+    } else {
+      xfer += prot_->write{{#partial custom_protocol.struct_field_type type=type}}({{#partial custom_protocol.intrinsic_default type=type}});
+      {{/if field.type.container?}}
     }
     {{#else if field.use_op_encode?}}
     xfer += ::apache::thrift::op::encode<{{field.type_tag}}>(*prot_, {{#if field.cpp_ref?}}*{{/if}}{{#partial fields.member field=field struct=struct}});

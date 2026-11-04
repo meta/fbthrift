@@ -1870,6 +1870,8 @@ uint32_t StructWithFieldAdapter::serializedSize(Protocol_ const* prot_) const {
     xfer += prot_->serializedFieldSize("shared_field", apache::thrift::protocol::TType::T_I32, 2);
     if (this->__fbthrift_field_shared_field) {
       xfer += ::apache::thrift::op::serialized_size<false, ::apache::thrift::type::adapted<::my::Adapter1, ::apache::thrift::type::i32_t>>(*prot_, *this->__fbthrift_field_shared_field);
+    } else {
+      xfer += prot_->serializedSizeI32(0);
     }
   }
   if (this->__fbthrift_field_opt_shared_field) {
@@ -1896,6 +1898,8 @@ uint32_t StructWithFieldAdapter::serializedSizeZC(Protocol_ const* prot_) const 
     xfer += prot_->serializedFieldSize("shared_field", apache::thrift::protocol::TType::T_I32, 2);
     if (this->__fbthrift_field_shared_field) {
       xfer += ::apache::thrift::op::serialized_size<false, ::apache::thrift::type::adapted<::my::Adapter1, ::apache::thrift::type::i32_t>>(*prot_, *this->__fbthrift_field_shared_field);
+    } else {
+      xfer += prot_->serializedSizeI32(0);
     }
   }
   if (this->__fbthrift_field_opt_shared_field) {
@@ -1936,6 +1940,8 @@ uint32_t StructWithFieldAdapter::write(Protocol_* prot_) const {
     previousFieldHasValue = true;
     if (this->__fbthrift_field_shared_field) {
       xfer += ::apache::thrift::op::encode<::apache::thrift::type::adapted<::my::Adapter1, ::apache::thrift::type::i32_t>>(*prot_, *this->__fbthrift_field_shared_field);
+    } else {
+      xfer += prot_->writeI32(0);
     }
     xfer += prot_->writeFieldEnd();
   }

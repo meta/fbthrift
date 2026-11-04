@@ -4163,6 +4163,8 @@ uint32_t SomeBinary::serializedSize(Protocol_ const* prot_) const {
       xfer += prot_->serializedFieldSize("iobufRef", apache::thrift::protocol::TType::T_STRING, 3);
       if (value_.iobufRef) {
         xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, ::test::fixtures::python_capi::IOBuf, ::apache::thrift::type::cpp_type<::test::fixtures::python_capi::IOBuf, ::apache::thrift::type::binary_t>>::serializedSize<false>(*prot_, *value_.iobufRef);
+      } else {
+        xfer += prot_->serializedSizeBinary("");
       }
       break;
     }
@@ -4197,6 +4199,8 @@ uint32_t SomeBinary::serializedSizeZC(Protocol_ const* prot_) const {
       xfer += prot_->serializedFieldSize("iobufRef", apache::thrift::protocol::TType::T_STRING, 3);
       if (value_.iobufRef) {
         xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, ::test::fixtures::python_capi::IOBuf, ::apache::thrift::type::cpp_type<::test::fixtures::python_capi::IOBuf, ::apache::thrift::type::binary_t>>::serializedSize<true>(*prot_, *value_.iobufRef);
+      } else {
+        xfer += prot_->serializedSizeBinary("");
       }
       break;
     }
@@ -4236,6 +4240,8 @@ uint32_t SomeBinary::write(Protocol_* prot_) const {
       xfer += ::apache::thrift::detail::writeFieldBegin<apache::thrift::protocol::TType::T_STRING, 3, kPrevFieldId>(*prot_, "iobufRef", false);
       if (value_.iobufRef) {
         xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, ::test::fixtures::python_capi::IOBuf, ::apache::thrift::type::cpp_type<::test::fixtures::python_capi::IOBuf, ::apache::thrift::type::binary_t>>::write(*prot_, *value_.iobufRef);
+      } else {
+        xfer += prot_->writeBinary("");
       }
       xfer += prot_->writeFieldEnd();
       break;
