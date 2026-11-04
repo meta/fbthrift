@@ -36,6 +36,7 @@
 #include <thrift/compiler/ast/t_struct.h>
 #include <thrift/compiler/ast/t_typedef.h>
 #include <thrift/compiler/ast/uri.h>
+#include <thrift/compiler/generate/cpp/allocator.h>
 #include <thrift/compiler/generate/cpp/name_resolver.h>
 
 namespace apache::thrift::compiler::cpp2 {
@@ -392,12 +393,6 @@ bool field_transitively_refers_to_unique(const t_field* field) {
   return false;
 }
 
-bool uses_allocator(const t_field& field) {
-  return field.has_unstructured_annotation("cpp.use_allocator") ||
-      t_typedef::get_first_unstructured_annotation_or_null(
-          &field.type().deref(), {"cpp.use_allocator"}) != nullptr;
-}
-
 bool is_eligible_for_constexpr::operator()(const t_type* type) {
   enum class eligible { unknown, yes, no };
   auto check = [this](const t_type* t) {
@@ -412,8 +407,9 @@ bool is_eligible_for_constexpr::operator()(const t_type* type) {
     } else if (t->is<t_union>() || t->is<t_exception>()) {
       // Union and exception constructors are not defaulted.
       result = false;
-    } else if (t->has_unstructured_annotation(
-                   {"cpp.virtual", "cpp2.virtual", "cpp.allocator"})) {
+    } else if (
+        t->has_unstructured_annotation({"cpp.virtual", "cpp2.virtual"}) ||
+        is_allocator_aware(*t)) {
       result = false;
     } else {
       return eligible::unknown;

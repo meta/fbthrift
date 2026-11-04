@@ -1,0 +1,66 @@
+/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include <thrift/compiler/generate/cpp/allocator.h>
+
+#include <thrift/compiler/ast/t_const.h>
+#include <thrift/compiler/ast/t_typedef.h>
+#include <thrift/compiler/ast/uri.h>
+
+namespace apache::thrift::compiler::cpp2 {
+
+namespace {
+bool declares_custom_default(const t_field& field) {
+  return field.default_value() != nullptr;
+}
+} // namespace
+
+const std::string* find_allocator(const t_named& node) {
+  return node.find_unstructured_annotation_or_null("cpp.allocator");
+}
+
+const std::string* find_allocator_via(const t_named& node) {
+  return node.find_unstructured_annotation_or_null("cpp.allocator_via");
+}
+
+bool type_uses_allocator(const t_type& type) {
+  return t_typedef::get_first_unstructured_annotation_or_null(
+             &type, {"cpp.use_allocator"}) != nullptr;
+}
+
+bool uses_allocator(const t_field& field) {
+  return field.has_unstructured_annotation("cpp.use_allocator") ||
+      type_uses_allocator(field.type().deref());
+}
+
+bool alloc_ctor_applies_custom_default(const t_field& field) {
+  if (!declares_custom_default(field)) {
+    return false;
+  }
+  const t_const* anno = field.find_structured_annotation_or_null(
+      kCppAllowCustomDefaultInAllocCtorUri);
+  if (anno == nullptr) {
+    return false;
+  }
+  for (const auto& kv : anno->value()->get_map()) {
+    if (kv.first->get_string() == "legacy_ignore_custom_default") {
+      return !kv.second->get_bool();
+    }
+  }
+  return true;
+}
+
+} // namespace apache::thrift::compiler::cpp2

@@ -75,6 +75,7 @@ target_link_libraries(thrift_frontend thrift_compiler_base thrift_ast fmt::fmt
 # The Thrift compiler library.
 add_library(
   thrift_generator_util STATIC
+  generate/cpp/allocator.cc
   generate/cpp/reference_type.cc
   generate/cpp/name_resolver.cc
   generate/cpp/util.cc

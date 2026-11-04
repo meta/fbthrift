@@ -143,34 +143,6 @@ inline bool is_lazy_ref(const t_field* field) {
   return false;
 }
 
-// Whether the field's IDL declaration states a default value.
-inline bool declares_custom_default(const t_field& field) {
-  return field.default_value() != nullptr;
-}
-
-// Whether the allocator-extended constructors must apply this field's default
-// rather than value-initialize it. Implies the field declares a default, so a
-// template may emit that default on this alone.
-inline bool alloc_ctor_applies_custom_default(const t_field& field) {
-  if (!declares_custom_default(field)) {
-    return false;
-  }
-  const t_const* anno = field.find_structured_annotation_or_null(
-      kCppAllowCustomDefaultInAllocCtorUri);
-  if (anno == nullptr) {
-    return false;
-  }
-  for (const auto& kv : anno->value()->get_map()) {
-    if (kv.first->get_string() == "legacy_ignore_custom_default") {
-      return !kv.second->get_bool();
-    }
-  }
-  return true;
-}
-
-// Whether `cpp.use_allocator` is set on the field or its (typedef) type.
-bool uses_allocator(const t_field& field);
-
 bool field_transitively_refers_to_unique(const t_field* field);
 
 /**
