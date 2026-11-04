@@ -24,10 +24,10 @@ pub(crate) use ::::services;
 
 
 
-#[doc = "Detailed overview of service"]
+/// Detailed overview of service
 #[::async_trait::async_trait]
 pub trait C: ::std::marker::Send + ::std::marker::Sync + 'static {
-    #[doc = "Function doctext."]
+    /// Function doctext.
     async fn f(
         &self,
     ) -> ::std::result::Result<(), crate::services::c::FExn> {
@@ -38,7 +38,7 @@ pub trait C: ::std::marker::Send + ::std::marker::Sync + 'static {
             ),
         ))
     }
-    #[doc = "Streaming function"]
+    /// Streaming function
     async fn numbers(
         &self,
     ) -> ::std::result::Result<
@@ -51,7 +51,6 @@ pub trait C: ::std::marker::Send + ::std::marker::Sync + 'static {
             ),
         ))
     }
-    #[doc = ""]
     async fn thing(
         &self,
         _a: ::std::primitive::i32,

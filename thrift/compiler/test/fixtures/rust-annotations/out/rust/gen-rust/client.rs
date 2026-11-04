@@ -16,6 +16,9 @@ pub(crate) use crate as client;
 pub(crate) use ::::services;
 
 
+/// ```thrift
+/// service S1
+/// ```
 pub trait Service1: ::std::marker::Send {
     fn r(
         &self,
@@ -310,6 +313,9 @@ impl ::fbthrift::ClientFactory for make_Service1 {
 }
 
 pub trait S2: ::std::marker::Send {
+    /// ```thrift
+    /// T6 r()
+    /// ```
     fn s(
         &self,
     ) -> ::futures::future::BoxFuture<'static, ::std::result::Result<crate::types::T6, crate::errors::s2_proxy::RError>>;
@@ -319,6 +325,9 @@ pub trait S2Ext<T>: S2
 where
     T: ::fbthrift::Transport,
 {
+    /// ```thrift
+    /// T6 r()
+    /// ```
     fn s_with_rpc_opts(
         &self,
         rpc_options: T::RpcOptions,

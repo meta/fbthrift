@@ -37,6 +37,9 @@ pub trait Foo: ::std::marker::Send + ::std::marker::Sync + 'static {
             ),
         ))
     }
+    /// ```thrift
+    /// void super(1: ThereAreNoPascalCaseKeywords bar)
+    /// ```
     async fn super_(
         &self,
         _bar: crate::types::ThereAreNoPascalCaseKeywords,

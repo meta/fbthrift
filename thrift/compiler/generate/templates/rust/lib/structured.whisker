@@ -15,6 +15,7 @@
   limitations under the License.
 
 }}
+{{#import "lib/docs" as docs}}
 {{#let partial struct_derive_attribute |struct|}}
 {{#pragma ignore-newlines}}
 #[derive(
@@ -30,15 +31,11 @@ Clone, PartialEq
 
 {{#partial struct_derive_attribute struct=structured}}
 
-  {{#if structured.docs?}}
-#[doc = {{structured.docs}}]
-  {{/if structured.docs?}}
+{{#partial docs.docblock node=structured}}
   {{#if structured.union?}}
 pub enum {{structured.rust_name}} {
   {{#each structured.fields as |field|}}
-    {{#if field.docs?}}
-    #[doc = {{field.docs}}]
-    {{/if field.docs?}}
+    {{#partial docs.docblock node=field}}
     {{#if field.deprecated?}}
     #[deprecated(note = "{{field.deprecation_message}}")]
     {{/if field.deprecated?}}
@@ -59,9 +56,7 @@ pub struct {{structured.rust_name}} {
     #[serde(skip_serializing_if = "::std::option::Option::is_none")]
       {{/if (not field.optional?)}}
     {{/if structured.serde?}}
-    {{#if field.docs?}}
-    #[doc = {{field.docs}}]
-    {{/if field.docs?}}
+    {{#partial docs.docblock node=field}}
     {{#if field.deprecated?}}
     #[deprecated(note = "{{field.deprecation_message}}")]
     {{/if field.deprecated?}}

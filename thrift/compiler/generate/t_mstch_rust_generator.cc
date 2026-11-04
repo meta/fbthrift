@@ -987,6 +987,19 @@ class t_mstch_rust_generator : public t_whisker_generator {
   void fill_validator_visitors(ast_validator&) const override;
   void process_options(const std::map<std::string, std::string>& options) final;
 
+  std::optional<docblock_style> get_docblock_style() const override {
+    return docblock_style::triple_slash_style();
+  }
+
+  bool docblock_includes_definition(const t_named& node) const override {
+    const auto* type = dynamic_cast<const t_type*>(&node);
+    const std::string rust_name =
+        type != nullptr ? type_rust_name(type) : named_rust_name(&node);
+    // A raw identifier such as `r#type` keeps the Thrift name.
+    return (rust_name != node.name() && rust_name != "r#" + node.name()) ||
+        node_has_adapter(node) || has_type_annotation(&node);
+  }
+
  private:
   rust_codegen_options options_;
   // NOTE: these two fields are not initialized/used unless splitting is used

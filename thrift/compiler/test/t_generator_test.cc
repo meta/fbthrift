@@ -194,6 +194,19 @@ TEST(TGeneratorTest, DocblockTextAddsDefinitionOnRequest) {
 struct Foo)");
 }
 
+TEST(TGeneratorTest, DocblockTextFencesDefinition) {
+  t_program program("path/to/program.thrift", "/root/path/to/program.thrift");
+  t_struct tstruct(&program, "Foo");
+  tstruct.set_doc("Struct doc.", source_range{});
+  EXPECT_EQ(
+      docblock_text(tstruct, program, true, "thrift"),
+      R"(Struct doc.
+
+```thrift
+struct Foo
+```)");
+}
+
 TEST(TGeneratorTest, ThriftDefinitionOfFunction) {
   t_program program("path/to/program.thrift", "/root/path/to/program.thrift");
   t_program other("path/to/other.thrift", "/root/path/to/other.thrift");

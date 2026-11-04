@@ -355,16 +355,22 @@ std::string thrift_definition(const t_named& node, const t_program& program) {
 }
 
 std::string docblock_text(
-    const t_named& node, const t_program& program, bool with_definition) {
+    const t_named& node,
+    const t_program& program,
+    bool with_definition,
+    std::string_view code_fence) {
   std::string text = node.has_doc() ? node.doc() : "";
   const size_t doc_end = text.find_last_not_of('\n');
   text.erase(doc_end == std::string::npos ? 0 : doc_end + 1);
   if (!with_definition) {
     return text;
   }
-  const std::string definition = thrift_definition(node, program);
+  std::string definition = thrift_definition(node, program);
   if (definition.empty()) {
     return text;
+  }
+  if (!code_fence.empty()) {
+    definition = fmt::format("```{}\n{}\n```", code_fence, definition);
   }
   return text.empty() ? definition : text + "\n\n" + definition;
 }

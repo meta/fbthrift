@@ -8,14 +8,14 @@
 pub(crate) use crate as types;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[doc = "Example struct demonstrating @thrift.Deprecated annotation on fields."]
+/// Example struct demonstrating @thrift.Deprecated annotation on fields.
 pub struct User {
     pub id: ::std::primitive::i64,
-    #[doc = "@deprecated Use 'full_name' instead"]
+    /// @deprecated Use 'full_name' instead
     #[deprecated(note = "Use 'full_name' instead")]
     pub name: ::std::string::String,
     pub full_name: ::std::string::String,
-    #[doc = "@deprecated This field is no longer used"]
+    /// @deprecated This field is no longer used
     #[deprecated(note = "This field is no longer used")]
     pub email: ::std::option::Option<::std::string::String>,
     pub email_address: ::std::option::Option<::std::string::String>,
@@ -28,7 +28,7 @@ pub struct User {
 }
 
 #[derive(Clone, PartialEq, Debug)]
-#[doc = "Example union with deprecated field."]
+/// Example union with deprecated field.
 pub enum ExampleUnion {
     stringValue(::std::string::String),
     #[deprecated(note = "Use stringValue instead")]

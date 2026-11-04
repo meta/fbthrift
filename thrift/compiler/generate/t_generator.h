@@ -77,9 +77,14 @@ std::string thrift_definition(const t_named& node, const t_program& program);
 // in code generated for `program`, to render with apply_docblock_style: its
 // doc comment, followed by its thrift_definition if `with_definition`. Pass
 // `with_definition` when the generated code names or types `node` differently
-// from the IDL, so the docblock shows what it was generated from.
+// from the IDL, so the docblock shows what it was generated from. A
+// `code_fence` encloses the definition in a Markdown code block of that
+// language, for docblocks rendered as Markdown.
 std::string docblock_text(
-    const t_named& node, const t_program& program, bool with_definition);
+    const t_named& node,
+    const t_program& program,
+    bool with_definition,
+    std::string_view code_fence = {});
 
 class t_generator {
  public:

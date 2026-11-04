@@ -25,10 +25,16 @@ pub type list_i32_9187 = ::std::vec::Vec<::std::primitive::i32>;
 
 pub type map_i32_i32_9565 = ::std::collections::BTreeMap<::std::primitive::i32, ::std::primitive::i32>;
 
+/// ```thrift
+/// typedef map<i32, string> map_i32_string_1261
+/// ```
 pub type map_i32_string_1261 = ::sorted_vector_map::SortedVectorMap<::std::primitive::i32, ::std::string::String>;
 
 pub type set_i32_7070 = ::std::collections::BTreeSet<::std::primitive::i32>;
 
+/// ```thrift
+/// typedef set<i32> set_i32_7194
+/// ```
 pub type set_i32_7194 = ::sorted_vector_map::SortedVectorSet<::std::primitive::i32>;
 
 pub type string_5252 = ::std::string::String;

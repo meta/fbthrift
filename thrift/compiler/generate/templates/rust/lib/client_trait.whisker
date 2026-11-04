@@ -15,9 +15,8 @@
   limitations under the License.
 
 }}
-  {{#if interface.docs?}}
-#[doc = {{interface.docs}}]
-  {{/if interface.docs?}}
+{{#import "lib/docs" as docs}}
+{{#partial docs.docblock node=interface}}
 pub trait {{interface.rust_name}}: {{!
     }}{{#if (object.notnull? service_extends)}}{{service_extends.client_package}}::{{service_extends.rust_name}} + {{/if ~}}
     ::std::marker::Send {
@@ -25,9 +24,7 @@ pub trait {{interface.rust_name}}: {{!
     {{#if (not first?)}}
 
     {{/if (not first?)}}
-    {{#if function.docs?}}
-    #[doc = {{function.docs}}]
-    {{/if function.docs?}}
+    {{#partial docs.docblock node=function}}
     {{#if function.starts_interaction?}}
     fn {{function.rust_name}}(
         &self,
@@ -49,9 +46,7 @@ where
     T: ::fbthrift::Transport,
 {
   {{#each interface.functions as |function|}}
-    {{#if function.docs?}}
-    #[doc = {{function.docs}}]
-    {{/if function.docs?}}
+    {{#partial docs.docblock node=function}}
     {{#if (not function.starts_interaction?)}}
     fn {{function.rust_name}}_with_rpc_opts(
         &self,

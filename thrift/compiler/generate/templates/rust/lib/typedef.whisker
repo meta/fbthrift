@@ -15,10 +15,9 @@
   limitations under the License.
 
 }}
+{{#import "lib/docs" as docs}}
 
-  {{#if typedef.docs?}}
-#[doc = {{typedef.docs}}]
-  {{/if typedef.docs?}}
+{{#partial docs.docblock node=typedef}}
   {{#if typedef.newtype?}}
 #[derive(
     {{~ #if (not typedef.has_adapter?)}}Default, {{/if ~}}

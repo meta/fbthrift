@@ -15,6 +15,7 @@
   limitations under the License.
 
 }}
+{{#import "lib/docs" as docs}}
 {{#import "lib/constants" as constants}}
 {{#import "lib/types" as types}}
   {{#let partial lazy_constant |constant| captures |constants types|}}
@@ -34,9 +35,7 @@ pub static {{constant.rust_name}}: ::std::sync::LazyLock<
 //! Thrift constant definitions for `{{program.name}}`.
 
   {{#each program.consts as |constant|}}
-    {{#if constant.docs?}}
-#[doc = {{constant.docs}}]
-    {{/if constant.docs?}}
+{{#partial docs.docblock node=constant}}
     {{#if constant.lazy?}}
 {{#partial lazy_constant constant=constant}}
 

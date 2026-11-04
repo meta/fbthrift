@@ -70,17 +70,23 @@ prototype<t_named>::ptr t_whisker_generator::make_prototype_for_named(
   def.property("docs?", mem_fn(&t_named::has_doc));
   // Renders the docblock documenting a definition in the generator's
   // docblock_style, without a trailing newline, or an empty string for a
-  // definition with nothing to document.
+  // definition with nothing to document. `code_fence` is passed to
+  // docblock_text.
   def.function("docblock", [this](const t_named& self, function::context ctx) {
     ctx.declare_arity(0);
-    ctx.declare_named_arguments({});
+    ctx.declare_named_arguments({"code_fence"});
     const std::optional<docblock_style> style = get_docblock_style();
     if (!style.has_value()) {
       throw ctx.make_error(
           "docblock is not available: the generator has no docblock_style");
     }
-    const std::string text =
-        docblock_text(self, *program_, docblock_includes_definition(self));
+    const auto code_fence =
+        ctx.named_argument<string>("code_fence", function::context::optional);
+    const std::string text = docblock_text(
+        self,
+        *program_,
+        docblock_includes_definition(self),
+        code_fence.value_or(""));
     if (text.empty()) {
       return std::string();
     }

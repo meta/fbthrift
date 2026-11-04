@@ -22,6 +22,9 @@ pub trait Foo: ::std::marker::Send {
         arg_bar: &crate::types::ThereAreNoPascalCaseKeywords,
     ) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(), crate::errors::foo::ReturnError>>;
 
+    /// ```thrift
+    /// void super(1: ThereAreNoPascalCaseKeywords bar)
+    /// ```
     fn super_(
         &self,
         arg_bar: &crate::types::ThereAreNoPascalCaseKeywords,
@@ -37,6 +40,9 @@ where
         arg_bar: &crate::types::ThereAreNoPascalCaseKeywords,
         rpc_options: T::RpcOptions,
     ) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(), crate::errors::foo::ReturnError>>;
+    /// ```thrift
+    /// void super(1: ThereAreNoPascalCaseKeywords bar)
+    /// ```
     fn super__with_rpc_opts(
         &self,
         arg_bar: &crate::types::ThereAreNoPascalCaseKeywords,

@@ -14,17 +14,17 @@ pub use self::consts::*;
 
 pub mod services;
 
-#[doc = "Cool new name for string"]
+/// Cool new name for string
 pub type lanyard = ::std::string::String;
 
-#[doc = "Secret name"]
+/// Secret name
 #[derive(Default, Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct number(pub ::std::primitive::i32);
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[doc = "DefinitionList doctext."]
+/// DefinitionList doctext.
 pub struct A {
-    #[doc = "Field doctext."]
+    /// Field doctext.
     pub useless_field: ::std::primitive::i32,
     // This field forces `..Default::default()` when instantiating this
     // struct, to make code future-proof against new fields added later to
@@ -35,19 +35,19 @@ pub struct A {
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-#[doc = "Union U"]
+/// Union U
 pub enum U {
-    #[doc = "i32 field i"]
+    /// i32 field i
     i(::std::primitive::i32),
-    #[doc = "string s"]
+    /// string s
     s(::std::string::String),
     UnknownField(::std::primitive::i32),
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[doc = "Something amiss"]
+/// Something amiss
 pub struct Bang {
-    #[doc = "All explosions can be explained away"]
+    /// All explosions can be explained away
     pub message: ::std::string::String,
     // This field forces `..Default::default()` when instantiating this
     // struct, to make code future-proof against new fields added later to
@@ -83,12 +83,12 @@ impl ::std::fmt::Display for Bang {
     }
 }
 
-#[doc = "This enum is great"]
+/// This enum is great
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct B(pub ::std::primitive::i32);
 
 impl B {
-    #[doc = "EnumDef doctext."]
+    /// EnumDef doctext.
     pub const HELLO: Self = B(0i32);
 }
 

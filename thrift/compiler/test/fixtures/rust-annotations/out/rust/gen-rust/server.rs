@@ -48,6 +48,9 @@ pub(crate) use ::::services;
 
 
 
+/// ```thrift
+/// service S1
+/// ```
 #[::async_trait::async_trait]
 pub trait Service1: ::std::marker::Send + ::std::marker::Sync + 'static {
     type RequestContext: ::std::marker::Sync;
@@ -413,6 +416,9 @@ where
 
 #[::async_trait::async_trait]
 pub trait S2: ::std::marker::Send + ::std::marker::Sync + 'static {
+    /// ```thrift
+    /// T6 r()
+    /// ```
     async fn s(
         &self,
     ) -> ::std::result::Result<crate::types::T6, crate::services::s2_proxy::RExn> {
