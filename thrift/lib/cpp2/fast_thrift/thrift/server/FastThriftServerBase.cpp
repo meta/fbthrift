@@ -285,19 +285,15 @@ void detail::FastThriftServerBase::addNativeThriftPipelineHandlersImpl(
   }
 }
 
-void detail::FastThriftServerBase::setPeerIdentityResolver(
-    server::PeerIdentityResolver resolver) {
+void detail::FastThriftServerBase::setClientIdentityHook(
+    apache::thrift::ClientIdentityHook hook) {
   std::lock_guard<std::mutex> lock(lifecycleMutex_);
   if (state_ != State::kNotStarted) {
     throw std::logic_error(
-        "FastThriftServer::setPeerIdentityResolver must be called before "
+        "FastThriftServer::setClientIdentityHook must be called before "
         "start()/serve()");
   }
-  if (peerIdentityResolver_ != nullptr && peerIdentityResolver_ != resolver) {
-    throw std::logic_error(
-        "FastThriftServer already has a different peer identity resolver");
-  }
-  peerIdentityResolver_ = resolver;
+  clientIdentityHook_ = std::move(hook);
 }
 
 void detail::FastThriftServerBase::addProcessorEventHandler(
@@ -641,6 +637,7 @@ void detail::FastThriftServerBase::start() {
       !eventHandlers_.processor.empty() || !eventHandlers_.server.empty();
   if (hasClassicEventHandlers) {
     registerExtension<server::Cpp2BridgeExtension>();
+    eventHandlers_.clientIdentityHook = clientIdentityHook_;
     auto handlers = std::make_shared<const server::TProcessorEventHandlers>(
         std::move(eventHandlers_));
     thriftPipelineRegistrations_.insert(
@@ -655,8 +652,7 @@ void detail::FastThriftServerBase::start() {
                     kEventHandlerBridgeName, /*index=*/0),
                 server::TProcessorEventHandlerBridgeConfig{
                     .handlers = std::move(handlers),
-                    .methodMetadata = methodMetadataRegistry_,
-                    .identityResolver = peerIdentityResolver_})));
+                    .methodMetadata = methodMetadataRegistry_})));
   }
 
   // Wire the per-connection factory. The factory carries all per-EVB-handler

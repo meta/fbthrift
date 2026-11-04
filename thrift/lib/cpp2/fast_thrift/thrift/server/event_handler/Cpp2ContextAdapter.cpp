@@ -43,30 +43,11 @@ const Cpp2Worker* dummyWorker() {
   return worker.get();
 }
 
-apache::thrift::ClientIdentityHook adaptResolver(
-    const ThriftConnContext& connContext, PeerIdentityResolver resolver) {
-  if (resolver == nullptr) {
-    return nullptr;
-  }
-  // Cpp2ConnContext invokes this hook during construction and does not retain
-  // it; the adapter already owns connContext for the duration of that call.
-  return [&connContext, resolver](
-             const folly::AsyncTransport* transport,
-             X509* /*x509*/,
-             const folly::SocketAddress& peerAddress) {
-    const auto* certificate =
-        transport ? transport->getPeerCertificate() : nullptr;
-    return resolver(
-        certificate ? certificate : connContext.getPeerCertificate(),
-        peerAddress);
-  };
-}
-
 } // namespace
 
 Cpp2ConnContextAdapter::Cpp2ConnContextAdapter(
     boost::intrusive_ptr<ThriftConnContext> connContext,
-    PeerIdentityResolver resolver)
+    const apache::thrift::ClientIdentityHook& clientIdentityHook)
     : ftConnContext_(std::move(connContext)) {
   // Built into the connection's slot rather than held here, so a consumer
   // written against the classic context reads it there for as long as the
@@ -82,7 +63,7 @@ Cpp2ConnContextAdapter::Cpp2ConnContextAdapter(
       // certificate.
       folly::OpenSSLTransportCertificate::tryExtractX509(
           ftConnContext_->getPeerCertificate()),
-      adaptResolver(*ftConnContext_, resolver),
+      clientIdentityHook,
       dummyWorker(),
       /*numServiceInterceptors=*/0);
 

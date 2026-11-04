@@ -264,8 +264,7 @@ class TProcessorEventHandlerBridgeE2ETest : public ::testing::Test {
                     channel_pipeline::detail::StaticHandlerContext>>(
                 TProcessorEventHandlerBridgeConfig{
                     .handlers = std::move(handlers),
-                    .methodMetadata = server_->getMethodMetadataRegistry(),
-                    .identityResolver = nullptr}));
+                    .methodMetadata = server_->getMethodMetadataRegistry()}));
 
     server_->setInterface(handler_);
     server_->start();

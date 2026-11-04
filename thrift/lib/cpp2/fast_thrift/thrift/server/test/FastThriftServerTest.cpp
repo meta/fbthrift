@@ -1598,12 +1598,12 @@ ftt::FastThriftServerConfig makeHeadersConfig() {
 }
 
 std::unique_ptr<void, void (*)(void*)> resolveFirstPeerIdentity(
-    const folly::AsyncTransportCertificate*, const folly::SocketAddress&) {
+    const folly::AsyncTransport*, X509*, const folly::SocketAddress&) {
   return {nullptr, +[](void*) noexcept {}};
 }
 
 std::unique_ptr<void, void (*)(void*)> resolveSecondPeerIdentity(
-    const folly::AsyncTransportCertificate*, const folly::SocketAddress&) {
+    const folly::AsyncTransport*, X509*, const folly::SocketAddress&) {
   return {nullptr, +[](void*) noexcept {}};
 }
 
@@ -1661,15 +1661,27 @@ struct ClassicContextCheckingExtension {
   }
 };
 
-TEST(FastThriftServerExtensionTest, RejectsConflictingPeerIdentityResolvers) {
+TEST(
+    FastThriftServerExtensionTest, ClientIdentityHookCanBeReplacedBeforeStart) {
   ftt::FastThriftServer server(makeLoopbackConfig());
-
-  server.setPeerIdentityResolver(&resolveFirstPeerIdentity);
-  EXPECT_NO_THROW(server.setPeerIdentityResolver(&resolveFirstPeerIdentity));
-  EXPECT_THROW(
-      server.setPeerIdentityResolver(&resolveSecondPeerIdentity),
-      std::logic_error);
-  EXPECT_EQ(server.getPeerIdentityResolver(), &resolveFirstPeerIdentity);
+  const folly::SocketAddress peer("127.0.0.1", 4321);
+  int calls = 0;
+  server.setClientIdentityHook([&](const folly::AsyncTransport* transport,
+                                   X509* cert,
+                                   const folly::SocketAddress& address) {
+    EXPECT_EQ(transport, nullptr);
+    EXPECT_EQ(cert, nullptr);
+    EXPECT_EQ(address, peer);
+    ++calls;
+    return std::unique_ptr<void, void (*)(void*)>(nullptr, +[](void*) {});
+  });
+  server.getClientIdentityHook()(nullptr, nullptr, peer);
+  EXPECT_EQ(calls, 1);
+  server.setClientIdentityHook(&resolveSecondPeerIdentity);
+  server.getClientIdentityHook()(nullptr, nullptr, peer);
+  EXPECT_EQ(calls, 1);
+  server.setClientIdentityHook(nullptr);
+  EXPECT_FALSE(server.getClientIdentityHook());
 }
 
 TEST(FastThriftServerExtensionTest, RejectsNullClassicEventHandlers) {
@@ -1691,7 +1703,7 @@ TEST(FastThriftServerExtensionTest, RejectsClassicRegistrationAfterStart) {
   server.start();
 
   EXPECT_THROW(
-      server.setPeerIdentityResolver(&resolveFirstPeerIdentity),
+      server.setClientIdentityHook(&resolveFirstPeerIdentity),
       std::logic_error);
   EXPECT_THROW(server.addProcessorEventHandler(eventHandler), std::logic_error);
   EXPECT_THROW(server.addServerEventHandler(eventHandler), std::logic_error);
@@ -1703,6 +1715,7 @@ TEST(FastThriftServerExtensionTest, CoalescesClassicEventHandlers) {
   auto handler = std::make_shared<TestHandler>();
   std::atomic<int> requests{0};
   std::atomic<int> connections{0};
+  std::atomic<int> identityCalls{0};
   std::atomic<bool> connectionReady{false};
   std::atomic<bool> requestReady{false};
   auto first =
@@ -1713,6 +1726,16 @@ TEST(FastThriftServerExtensionTest, CoalescesClassicEventHandlers) {
   auto config = makeLoopbackConfig();
   ftt::FastThriftServer server(std::move(config));
   server.setInterface(handler);
+  server.setClientIdentityHook([&](const folly::AsyncTransport* transport,
+                                   X509* cert,
+                                   const folly::SocketAddress& peer) {
+    EXPECT_NE(transport, nullptr);
+    EXPECT_EQ(cert, nullptr);
+    EXPECT_TRUE(peer.isLoopbackAddress());
+    EXPECT_EQ(connections.load(), 0);
+    identityCalls.fetch_add(1);
+    return std::unique_ptr<void, void (*)(void*)>(nullptr, +[](void*) {});
+  });
   server.addProcessorEventHandler(first);
   server.addServerEventHandler(first);
   server.addProcessorEventHandler(second);
@@ -1726,6 +1749,7 @@ TEST(FastThriftServerExtensionTest, CoalescesClassicEventHandlers) {
   EXPECT_EQ(addRoundTrip(server.getAddress()), 42);
   EXPECT_EQ(requests.load(), 2);
   EXPECT_EQ(connections.load(), 2);
+  EXPECT_EQ(identityCalls.load(), 1);
   EXPECT_TRUE(connectionReady.load());
   EXPECT_TRUE(requestReady.load());
 }

@@ -350,8 +350,7 @@ TProcessorEventHandlerBridgeConfig makeConfig(CallLog* log) {
   methodMetadata->add(kInheritedMethod);
   return TProcessorEventHandlerBridgeConfig{
       .handlers = std::move(handlers),
-      .methodMetadata = std::move(methodMetadata),
-      .identityResolver = nullptr};
+      .methodMetadata = std::move(methodMetadata)};
 }
 
 TProcessorEventHandlerBridgeConfig makeNestedContextConfig(
@@ -368,8 +367,7 @@ TProcessorEventHandlerBridgeConfig makeNestedContextConfig(
   methodMetadata->add(kPingMethod);
   return TProcessorEventHandlerBridgeConfig{
       .handlers = std::move(handlers),
-      .methodMetadata = std::move(methodMetadata),
-      .identityResolver = nullptr};
+      .methodMetadata = std::move(methodMetadata)};
 }
 
 // The slot plan a server that registered the bridge's extension builds at
@@ -1241,9 +1239,7 @@ TEST(TProcessorEventHandlerBridgeTest, NoHandlersForwardsUntouched) {
   CallLog log;
   Bridge bridge(
       TProcessorEventHandlerBridgeConfig{
-          .handlers = nullptr,
-          .methodMetadata = nullptr,
-          .identityResolver = nullptr});
+          .handlers = nullptr, .methodMetadata = nullptr});
   FakeContext ctx;
   auto conn = makeConn();
   establish(bridge, ctx, conn);

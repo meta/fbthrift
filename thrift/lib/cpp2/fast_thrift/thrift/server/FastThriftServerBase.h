@@ -299,7 +299,7 @@ class FastThriftServerBase {
 
   /**
    * Adds a classic server event handler to the same server-owned bridge.
-   * The connection context and identity resolver are shared with processor
+   * The connection context and client identity hook are shared with processor
    * event handlers. Must be called before start()/serve().
    * @throws std::logic_error if called after start()/serve() or with a null
    *     handler.
@@ -309,15 +309,15 @@ class FastThriftServerBase {
           eventHandler);
 
   /**
-   * Sets the resolver used to cache peer identities on the shared Cpp2
-   * connection context. Must be called before start()/serve().
-   * @throws std::logic_error if called after start()/serve() or if a different
-   *     resolver is already installed.
+   * Sets the Classic client identity hook invoked by Cpp2ConnContext.
+   * Must be called before start()/serve().
+   * @throws std::logic_error if called after start()/serve().
    */
-  void setPeerIdentityResolver(server::PeerIdentityResolver resolver);
+  void setClientIdentityHook(apache::thrift::ClientIdentityHook hook);
 
-  server::PeerIdentityResolver getPeerIdentityResolver() const noexcept {
-    return peerIdentityResolver_;
+  const apache::thrift::ClientIdentityHook& getClientIdentityHook()
+      const noexcept {
+    return clientIdentityHook_;
   }
 
   /**
@@ -616,7 +616,7 @@ class FastThriftServerBase {
   // order. Copied into the per-connection factory config at start().
   std::vector<server::ThriftPipelineRegistration> thriftPipelineRegistrations_;
   server::TProcessorEventHandlers eventHandlers_;
-  server::PeerIdentityResolver peerIdentityResolver_{nullptr};
+  apache::thrift::ClientIdentityHook clientIdentityHook_;
   server::RocketServerConnectionBuilder rocketConnectionBuilder_;
   // Consumed into the layouts below at start(); untouched after.
   ExtensionLayoutBuilder connExtensionBuilder_;

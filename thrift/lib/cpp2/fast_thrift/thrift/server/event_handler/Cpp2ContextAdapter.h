@@ -59,20 +59,6 @@ namespace apache::thrift::fast_thrift::thrift::server {
  */
 
 /**
- * Resolves the peer's identities from what the connection proved.
- *
- * `apache::thrift::ClientIdentityHook` takes an `X509*`, which is absent on a
- * resumed TLS session even though the peer's identities are not. This takes
- * the certificate itself so a resolver can read either, and returns the opaque
- * identity object `Cpp2ConnContext::getPeerIdentities` hands back.
- *
- * Null certificate means the connection negotiated no security.
- */
-using PeerIdentityResolver = std::unique_ptr<void, void (*)(void*)> (*)(
-    const folly::AsyncTransportCertificate* cert,
-    const folly::SocketAddress& peerAddress);
-
-/**
  * Owns the `Cpp2ConnContext` for one connection, built from that connection's
  * `ThriftConnContext`. Construct once, when the setup request enters the
  * Thrift pipeline, and keep it for the connection's life: per-connection state
@@ -80,10 +66,10 @@ using PeerIdentityResolver = std::unique_ptr<void, void (*)(void*)> (*)(
  */
 class Cpp2ConnContextAdapter {
  public:
-  // `resolver` may be null, leaving the peer identities unset.
+  // An empty hook leaves the peer identities unset.
   Cpp2ConnContextAdapter(
       boost::intrusive_ptr<ThriftConnContext> connContext,
-      PeerIdentityResolver resolver);
+      const apache::thrift::ClientIdentityHook& clientIdentityHook);
 
   ~Cpp2ConnContextAdapter();
 

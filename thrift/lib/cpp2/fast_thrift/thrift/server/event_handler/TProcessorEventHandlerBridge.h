@@ -63,6 +63,7 @@ struct TProcessorEventHandlers {
       processor;
   std::vector<std::shared_ptr<apache::thrift::server::TServerEventHandler>>
       server;
+  apache::thrift::ClientIdentityHook clientIdentityHook;
 };
 
 struct TProcessorEventHandlerBridgeConfig {
@@ -70,7 +71,6 @@ struct TProcessorEventHandlerBridgeConfig {
   // connection's handler, and one refcount is the whole cost of that copy.
   std::shared_ptr<const TProcessorEventHandlers> handlers;
   std::shared_ptr<const ThriftServerMethodMetadataRegistry> methodMetadata;
-  PeerIdentityResolver identityResolver{nullptr};
 };
 
 struct TProcessorEventHandlerBridgeRequestStateOwner
@@ -249,7 +249,6 @@ class TProcessorEventHandlerBridge {
                 : new TProcessorEventHandlerBridgeRequestStateOwner(
                       std::move(config.handlers))),
         methodMetadataOwner_(std::move(config.methodMetadata)),
-        identityResolver_(config.identityResolver),
         handlers_(
             requestStateOwner_ == nullptr ? nullptr
                                           : requestStateOwner_->handlers.get()),
@@ -283,7 +282,7 @@ class TProcessorEventHandlerBridge {
         }
         requestStateOwner_->context = std::make_unique<Cpp2ConnContextAdapter>(
             boost::intrusive_ptr<ThriftConnContext>(ftConnContext),
-            identityResolver_);
+            handlers_->clientIdentityHook);
         connectionContext_ = requestStateOwner_->context.get();
         for (const auto& handler : handlers_->server) {
           handler->newConnection(&connectionContext_->get());
@@ -522,7 +521,6 @@ class TProcessorEventHandlerBridge {
   const TProcessorEventHandlerBridgeRequestStateOwnerPtr requestStateOwner_;
   const std::shared_ptr<const ThriftServerMethodMetadataRegistry>
       methodMetadataOwner_;
-  const PeerIdentityResolver identityResolver_;
   // Resolved once: the answer cannot change, and reaching it through the
   // shared_ptr on every request is two dependent loads into memory that every
   // connection shares.
