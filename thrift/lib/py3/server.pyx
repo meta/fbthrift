@@ -101,6 +101,14 @@ async def run_server(native_serve, address_future, stop_server, server_kind):
     await native_serve
 
 
+# A closure over self forms a cycle with Cython's coroutine-local scope
+# and keeps the server alive until cyclic garbage collection runs.
+# Keep this callable at module scope and pass the server explicitly.
+def _serve_native(ThriftServer server):
+    with nogil:
+        server.server.get().serve()
+
+
 class SSLPolicy(Enum):
     DISABLED = <int> (SSLPolicy__DISABLED)
     PERMITTED = <int> (SSLPolicy__PERMITTED)
@@ -248,9 +256,6 @@ cdef class ThriftServer:
         # This check is only useful for C++-based Thrift servers.
         # TODO(praihan): remove this after migration of C++ services onto extra interfaces
         self.server.get().setAllowCheckUnimplementedExtraInterfaces(False)
-        def _serve():
-            with nogil:
-                self.server.get().serve()
         ownership_context = (
             self.factory
             if isinstance(self.factory, PythonAsyncProcessorFactory)
@@ -261,7 +266,7 @@ cdef class ThriftServer:
                 if ownership_context is not None:
                     await ownership_stack.enter_async_context(ownership_context)
                 self._use_worker_executor_if_active()
-                native_serve = self.loop.run_in_executor(None, _serve)
+                native_serve = self.loop.run_in_executor(None, _serve_native, self)
                 await run_server(
                     native_serve,
                     self.address_future,

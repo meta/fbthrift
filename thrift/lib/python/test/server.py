@@ -23,13 +23,14 @@ import threading
 from collections.abc import Callable
 from contextlib import contextmanager
 from types import TracebackType
-from typing import Callable, Iterator, Optional, Sequence
+from typing import Iterator, Optional, Sequence
 from unittest import mock
 
 import later.unittest
 from test_thrift.thrift_clients import TestingService
 from test_thrift.thrift_services import TestingServiceInterface
 from test_thrift.thrift_types import Color, easy
+from thrift.py3 import server as server_module
 from thrift.py3.server import SocketAddress
 from thrift.python.client import get_client
 from thrift.python.server import ThriftServer
@@ -508,10 +509,13 @@ class ServicesTests(later.unittest.TestCase):
         # holds that work until after cancellation with no change to loop state.
         def observe_native_serve_submission(
             executor: concurrent.futures.Executor | None,
-            native_serve: Callable[[], None],
+            native_serve: Callable[..., None],
+            *args: object,
         ) -> asyncio.Future[None]:
             self.assertIsNone(executor)
-            native_future = original_run_in_executor(native_executor, native_serve)
+            native_future = original_run_in_executor(
+                native_executor, native_serve, *args
+            )
             native_serve_submitted.set()
             return native_future
 
@@ -559,10 +563,11 @@ class ServicesTests(later.unittest.TestCase):
 
         def start_native_serve(
             _executor: object,
-            operation: Callable[[], None],
+            operation: Callable[..., None],
+            *args: object,
         ) -> asyncio.Future[None]:
-            if getattr(operation, "__name__", None) != "_serve":
-                return real_run_in_executor(None, operation)
+            if operation is not server_module._serve_native:
+                return real_run_in_executor(None, operation, *args)
             native_serve_started.set()
             return native_serve
 
