@@ -577,6 +577,9 @@ function (thrift_add_library)
   endforeach ()
 
   add_library(${name})
+  # CMP0155 is NEW where this function is defined, so CMake would otherwise
+  # scan the generated C++20 sources for modules, which they don't use.
+  set_target_properties(${name} PROPERTIES CXX_SCAN_FOR_MODULES OFF)
   set(thrift_include_dirs
       "$<TARGET_PROPERTY:${includes},INTERFACE_INCLUDE_DIRECTORIES>")
   if (THRIFT_INCLUDE_DIR)
