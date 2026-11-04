@@ -185,6 +185,11 @@ struct OutOfOrderStruct {
   1: i32 field_1;
 }
 
+exception OutOfOrderException {
+  2: i32 field_2;
+  1: i32 field_1;
+}
+
 union OutOfOrderUnion {
   2: i32 field_2;
   1: i32 field_1;

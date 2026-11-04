@@ -549,6 +549,18 @@ TEST(CompareTest, ThriftObjectModelLess_OutOfOrderStruct) {
   EXPECT_TRUE(stable_less<test::OutOfOrderNested>(r, l));
 }
 
+TEST(CompareTest, ThriftObjectModelLess_OutOfOrderException) {
+  test::OutOfOrderException lhs, rhs;
+  lhs.field_1() = 2;
+  lhs.field_2() = 10;
+  rhs.field_1() = 1;
+  rhs.field_2() = 20;
+
+  // stable_less compares field_1 (id=1) first, as for structs: 2 > 1.
+  EXPECT_FALSE(stable_less<test::OutOfOrderException>(lhs, rhs));
+  EXPECT_TRUE(stable_less<test::OutOfOrderException>(rhs, lhs));
+}
+
 TEST(CompareTest, ThriftObjectModelLess_OutOfOrderUnion) {
   // OutOfOrderUnion has field_2 (id=2) and field_1 (id=1).
   test::OutOfOrderUnion empty, lhs, rhs;

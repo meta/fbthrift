@@ -1025,6 +1025,10 @@ struct StableComparePolicy<type::struct_t<T>> {
 };
 
 template <class T>
+struct StableComparePolicy<type::exception_t<T>>
+    : StableComparePolicy<type::struct_t<T>> {};
+
+template <class T>
 struct StableComparePolicy<type::union_t<T>> {
   std::partial_ordering operator()(const T& lhs, const T& rhs) const {
     return compareUnionsByFieldId<T, StableComparePolicy>(lhs, rhs);
