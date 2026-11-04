@@ -201,6 +201,18 @@ TEST(MapTest, Equality) {
   EXPECT_FALSE(map3 == map4);
 }
 
+TEST(MapTest, EmptyMapsAreEqualWhetherOrNotTheyAllocated) {
+  auto map1 = makeMap(makeMapType(
+      type_system::TypeSystem::I32(), type_system::TypeSystem::String()));
+  auto map2 = makeMap(makeMapType(
+      type_system::TypeSystem::I32(), type_system::TypeSystem::String()));
+  map2.insert(DynamicValue::makeI32(1), DynamicValue::makeString("one"));
+  map2.clear();
+
+  EXPECT_TRUE(map1 == map2);
+  EXPECT_TRUE(map2 == map1);
+}
+
 TEST(MapTest, TypeMismatchKey) {
   auto map = makeMap(makeMapType(
       type_system::TypeSystem::I32(), type_system::TypeSystem::String()));

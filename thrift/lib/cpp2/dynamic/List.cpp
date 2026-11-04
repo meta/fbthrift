@@ -220,12 +220,14 @@ List::ConstIterator List::cend() const {
 }
 
 bool operator==(const List& lhs, const List& rhs) {
-  if (!lhs.impl_ && !rhs.impl_) {
-    return type_system::TypeRef(lhs.listType_)
-        .isEqualIdentityTo(type_system::TypeRef(rhs.listType_));
+  if (!type_system::TypeRef(lhs.listType_)
+           .isEqualIdentityTo(type_system::TypeRef(rhs.listType_))) {
+    return false;
   }
   if (!lhs.impl_ || !rhs.impl_) {
-    return false; // One is empty, the other is not
+    // Storage is allocated lazily but kept once the list is emptied, so a
+    // list with storage may still be empty.
+    return lhs.isEmpty() && rhs.isEmpty();
   }
   return lhs.impl_->operator==(*rhs.impl_);
 }
