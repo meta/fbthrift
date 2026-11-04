@@ -460,6 +460,88 @@ TEST(ThriftServerRequestContextHandlerTest, DrainsResponseHeadersOnWrite) {
   EXPECT_EQ(*metadata.otherMetadata(), expected);
 }
 
+TEST(
+    ThriftServerRequestContextHandlerTest,
+    DrainsResponseHeadersWrittenThroughBorrowedMap) {
+  ThriftServerRequestContextHandler<FakeContext> handler{nullptr};
+  FakeContext ctx;
+  auto requestContext = makeThriftRequestContext(*ctx.eventBase());
+  auto* responseHeaders = &requestContext->mutableResponseHeaders();
+  responseHeaders->emplace("shard", "42");
+
+  EXPECT_EQ(
+      handler.onWrite(
+          ctx,
+          erase_and_box(makeResponseWithHeaders(std::move(requestContext)))),
+      Result::Success);
+
+  ASSERT_EQ(ctx.written.size(), 1);
+  const ThriftRequestContext::HeaderMap expected{{"shard", "42"}};
+  EXPECT_EQ(writtenMetadata(ctx.written.front()).otherMetadata(), expected);
+  EXPECT_TRUE(responseHeaders->empty());
+}
+
+TEST(ThriftServerRequestContextHandlerTest, ExtensionViewsBorrowHeaderMaps) {
+  folly::EventBase eventBase;
+  ThriftServerRequestMessage request;
+  request.requestContext = makeThriftRequestContext(eventBase);
+  request.requestContext->setHeaders({{"request", "value"}});
+
+  ThriftRequestMutator view(request);
+
+  const auto requestHeaders = view.requestHeaders();
+  ASSERT_TRUE(requestHeaders.has_value());
+  EXPECT_EQ(&requestHeaders->get(), &request.requestContext->getHeaders());
+  const auto responseHeaders = view.mutableResponseHeaders();
+  ASSERT_TRUE(responseHeaders.has_value());
+  EXPECT_EQ(
+      &responseHeaders->get(),
+      &request.requestContext->mutableResponseHeaders());
+  responseHeaders->get().emplace("shard", "42");
+  const auto* shard = request.requestContext->getResponseHeader("shard");
+  ASSERT_NE(shard, nullptr);
+  EXPECT_EQ(*shard, "42");
+
+  auto response = makeResponseWithHeaders(makeThriftRequestContext(eventBase));
+  response.requestContext->setHeaders({{"response", "value"}});
+  const ThriftResponseView responseView(response);
+  const auto responseRequestHeaders = responseView.requestHeaders();
+  ASSERT_TRUE(responseRequestHeaders.has_value());
+  EXPECT_EQ(
+      &responseRequestHeaders->get(), &response.requestContext->getHeaders());
+
+  request.requestContext->setHeader("request", "updated");
+  response.requestContext->setHeader("response", "updated");
+  EXPECT_EQ(requestHeaders->get().at("request"), "updated");
+  EXPECT_EQ(responseRequestHeaders->get().at("response"), "updated");
+}
+
+TEST(
+    ThriftServerRequestContextHandlerTest,
+    ExtensionViewsPreserveHeaderPresence) {
+  folly::EventBase eventBase;
+  ThriftServerRequestMessage request;
+  ThriftServerResponseMessage response;
+  ThriftRequestMutator requestView(request);
+  const ThriftResponseView responseView(response);
+
+  EXPECT_FALSE(requestView.mutableResponseHeaders().has_value());
+  EXPECT_FALSE(requestView.requestHeaders().has_value());
+  EXPECT_FALSE(responseView.requestHeaders().has_value());
+
+  request.requestContext = makeThriftRequestContext(eventBase);
+  response.requestContext = makeThriftRequestContext(eventBase);
+  const auto requestHeaders = requestView.requestHeaders();
+  const auto responseHeaders = requestView.mutableResponseHeaders();
+  const auto responseRequestHeaders = responseView.requestHeaders();
+  ASSERT_TRUE(responseHeaders.has_value());
+  EXPECT_TRUE(responseHeaders->get().empty());
+  ASSERT_TRUE(requestHeaders.has_value());
+  ASSERT_TRUE(responseRequestHeaders.has_value());
+  EXPECT_TRUE(requestHeaders->get().empty());
+  EXPECT_TRUE(responseRequestHeaders->get().empty());
+}
+
 // A response created before request-context construction still goes out
 // untouched.
 TEST(ThriftServerRequestContextHandlerTest, WriteWithoutContextIsPassThrough) {

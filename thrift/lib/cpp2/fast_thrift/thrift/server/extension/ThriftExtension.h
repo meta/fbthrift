@@ -19,7 +19,9 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -216,6 +218,14 @@ class ThriftRequestView {
         !request_.requestContext->getHeaders().empty();
   }
 
+  std::optional<std::reference_wrapper<const ThriftRequestContext::HeaderMap>>
+  requestHeaders() const noexcept {
+    if (request_.requestContext == nullptr) {
+      return std::nullopt;
+    }
+    return std::cref(request_.requestContext->getHeaders());
+  }
+
   // Rocket stream id correlating this request with its response.
   uint32_t streamId() const noexcept { return request_.streamId; }
 
@@ -279,6 +289,14 @@ class ThriftRequestMutator final : public ThriftRequestView {
   void setResponseHeader(std::string key, std::string value) noexcept {
     request_.requestContext->setResponseHeader(
         std::move(key), std::move(value));
+  }
+
+  std::optional<std::reference_wrapper<ThriftRequestContext::HeaderMap>>
+  mutableResponseHeaders() noexcept {
+    if (request_.requestContext == nullptr) {
+      return std::nullopt;
+    }
+    return std::ref(request_.requestContext->mutableResponseHeaders());
   }
 
  private:
@@ -361,6 +379,14 @@ class ThriftResponseView {
   bool hasRequestHeaders() const noexcept {
     return response_.requestContext != nullptr &&
         !response_.requestContext->getHeaders().empty();
+  }
+
+  std::optional<std::reference_wrapper<const ThriftRequestContext::HeaderMap>>
+  requestHeaders() const noexcept {
+    if (response_.requestContext == nullptr) {
+      return std::nullopt;
+    }
+    return std::cref(response_.requestContext->getHeaders());
   }
 
   template <class Ext>

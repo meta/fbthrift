@@ -205,6 +205,8 @@ class ThriftRequestContext {
     writeHeaders_[std::move(key)] = std::move(value);
   }
 
+  HeaderMap& mutableResponseHeaders() noexcept { return writeHeaders_; }
+
   // Only reports what is still on the context. Once the response has been
   // handed its headers this reads empty, so it answers "what will this
   // response carry", not "what did it carry".
