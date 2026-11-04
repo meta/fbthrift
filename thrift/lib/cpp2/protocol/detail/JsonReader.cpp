@@ -327,6 +327,7 @@ Json5Reader::Token Json5Reader::peekToken() {
 // -- strings and identifiers ----------------------------------------------
 
 std::string Json5Reader::parseString(char quote) {
+  folly::io::Cursor start = cursor();
   std::string result;
   bool hasRawNonAscii = false;
   auto appendRaw = [&](char ch) {
@@ -336,10 +337,10 @@ std::string Json5Reader::parseString(char quote) {
   while (true) {
     char c = readChar();
     if (c == quote) {
-      // Escapes always decode to well-formed UTF-8; only raw bytes need
-      // validation.
+      // Validate the input, not `result`: a line continuation can join
+      // ill-formed input bytes into a well-formed `result`.
       if (hasRawNonAscii) {
-        validateUtf8(result);
+        validateUtf8(start.readFixedString(cursor() - start - 1));
       }
       return result;
     }

@@ -74,6 +74,7 @@ const list<ReaderTestCase> readerTestCases = [
   ReaderTestCase{name = "InvalidUtf8Surrogate", input = "\"\xed\xa0\x80\""},
   ReaderTestCase{name = "InvalidUtf8AboveMaxCodePoint", input = "\"\xf5\x80\x80\x80\""},
   ReaderTestCase{name = "InvalidUtf8LeadByteThenEscape", input = "\"\xc3\\u00A9\""},
+  ReaderTestCase{name = "InvalidUtf8SplitByLineContinuation", input = "\"\xc3\\\n\xa9\""},
   ReaderTestCase{name = "InvalidUtf8EscapedContinuationByte", input = "\"\\\xa0\""},
   ReaderTestCase{name = "InvalidUtf8SingleQuoted", input = "'\x80'"},
   ReaderTestCase{name = "InvalidUtf8ObjectName", input = "{\"\xdf\": 1}"},
