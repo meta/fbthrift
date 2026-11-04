@@ -57,7 +57,8 @@ if (THRIFT_RPC)
   add_dependencies(thrift_transport thrift_rpc_metadata)
   target_link_libraries(
     thrift_transport
-    PUBLIC thrift_concurrency
+    PUBLIC thrift_common
+           thrift_concurrency
            thrift_core
            thrift_rpc_metadata
            Folly::folly
