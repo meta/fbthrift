@@ -18,6 +18,7 @@
 
 #include <cstring>
 #include <string>
+#include <utility>
 
 #include <boost/operators.hpp>
 
@@ -63,6 +64,47 @@ class Buffer : boost::totally_ordered<Buffer> {
 
  private:
   folly::IOBuf buf_;
+};
+
+struct BufferAdapter {
+  using AdaptedType = Buffer;
+
+  static AdaptedType fromThrift(std::string value) {
+    return AdaptedType(std::move(value));
+  }
+
+  static std::string toThrift(const AdaptedType& value) {
+    if (isEmpty(value)) {
+      return {};
+    }
+    return {reinterpret_cast<const char*>(value.data()), value.size()};
+  }
+
+  static bool isEmpty(const AdaptedType& value) { return value.size() == 0; }
+
+  static void clear(AdaptedType& value) { value.clear(); }
+
+  template <typename Tag, typename Protocol>
+  static std::size_t encode(Protocol& protocol, const AdaptedType& value) {
+    return protocol.writeBinary(static_cast<const folly::IOBuf&>(value));
+  }
+
+  template <typename Tag, typename Protocol>
+  static void decode(Protocol& protocol, AdaptedType& value) {
+    protocol.readBinary(value);
+  }
+
+  template <bool ZeroCopy, typename Tag, typename Protocol>
+  static std::size_t serializedSize(
+      Protocol& protocol, const AdaptedType& value) {
+    if constexpr (ZeroCopy) {
+      return protocol.serializedSizeZCBinary(
+          static_cast<const folly::IOBuf&>(value));
+    } else {
+      return protocol.serializedSizeBinary(
+          static_cast<const folly::IOBuf&>(value));
+    }
+  }
 };
 
 } // namespace test

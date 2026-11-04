@@ -15,6 +15,7 @@
  */
 
 include "thrift/annotation/cpp.thrift"
+include "thrift/annotation/python.thrift"
 include "thrift/annotation/thrift.thrift"
 
 @thrift.AllowLegacyMissingUris
@@ -31,7 +32,8 @@ typedef binary IOBuf
 typedef binary IOBufPtr
 @cpp.Type{name = "folly::fbstring"}
 typedef binary fbstring_type
-@cpp.Type{name = "test::Buffer"}
+@cpp.Adapter{name = "::test::BufferAdapter"}
+@python.Py3EnableCppAdapter
 typedef binary Buffer
 
 @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.noncomparable": "1"}}
