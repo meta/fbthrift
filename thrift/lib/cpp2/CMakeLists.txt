@@ -236,6 +236,7 @@ if (THRIFT_RPC)
     async/AsyncProcessorFactory.cpp
     async/AsyncProcessorHelper.cpp
     async/ClientChannel.cpp
+    async/ClientCompressionFlags.cpp
     async/ClientSinkBridge.cpp
     async/ClientStreamBridge.cpp
     async/ClientStreamInterceptorContext.cpp

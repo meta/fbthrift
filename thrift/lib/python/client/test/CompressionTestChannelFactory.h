@@ -19,7 +19,7 @@
 #include <stdexcept>
 #include <utility>
 
-#include <thrift/lib/cpp2/Flags.h>
+#include <thrift/lib/cpp2/async/ClientCompressionFlags.h>
 #include <thrift/lib/cpp2/async/RocketClientChannel.h>
 #include <thrift/lib/python/client/RequestChannel.h>
 

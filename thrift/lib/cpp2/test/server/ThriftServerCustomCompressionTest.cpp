@@ -19,7 +19,7 @@
 #include <folly/io/async/AsyncSocket.h>
 #include <folly/test/TestUtils.h>
 #include <thrift/lib/cpp/transport/TTransportException.h>
-#include <thrift/lib/cpp2/Flags.h>
+#include <thrift/lib/cpp2/async/ClientCompressionFlags.h>
 #include <thrift/lib/cpp2/test/e2e/gen-cpp2/TestBiDiService.h>
 #include <thrift/lib/cpp2/test/server/ThriftServerTestUtils.h>
 #include <thrift/lib/cpp2/test/util/TestHandler.h>

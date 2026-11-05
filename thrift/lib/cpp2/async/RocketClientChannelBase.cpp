@@ -35,6 +35,7 @@
 #include <thrift/lib/cpp/protocol/TProtocolTypes.h>
 #include <thrift/lib/cpp/transport/THeader.h>
 #include <thrift/lib/cpp2/Flags.h>
+#include <thrift/lib/cpp2/async/ClientCompressionFlags.h>
 #include <thrift/lib/cpp2/async/ResponseChannel.h>
 #include <thrift/lib/cpp2/async/RpcTypes.h>
 #include <thrift/lib/cpp2/op/Encode.h>

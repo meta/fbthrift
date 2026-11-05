@@ -39,6 +39,7 @@
 #include <thrift/lib/cpp/transport/TTransportException.h>
 #include <thrift/lib/cpp2/Flags.h>
 #include <thrift/lib/cpp2/IOBufChainCursor.h>
+#include <thrift/lib/cpp2/async/ClientCompressionFlags.h>
 #include <thrift/lib/cpp2/transport/core/TryUtil.h>
 #include <thrift/lib/cpp2/transport/rocket/FdSocket.h>
 #include <thrift/lib/cpp2/transport/rocket/RocketException.h>
@@ -530,7 +531,7 @@ void RocketClient::handleFirstResponse(
     contractViolation(kErrorMsg);
     return;
   }
-  auto firstResponse = THRIFT_FLAG(thrift_client_compress_request_on_cpu)
+  auto firstResponse = apache::thrift::clientCompressRequestOnCpu()
       ? getPayloadSerializer()->unpackAsCompressed<FirstResponsePayload>(
             std::move(fullPayload), encodeMetadataUsingBinary_)
       : getPayloadSerializer()->unpack<FirstResponsePayload>(
