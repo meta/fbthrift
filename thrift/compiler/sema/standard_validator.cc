@@ -1841,54 +1841,12 @@ bool owns_annotations(const t_type_ref& type) {
 
 void validate_custom_cpp_type_annotations(
     sema_context& ctx, const t_named& node) {
-  const bool hasAdapter = node.has_structured_annotation(kCppAdapterUri);
-  bool hasCppType = node.has_unstructured_annotation(
-      {"cpp.type", "cpp2.type", "cpp.template", "cpp2.template"});
-  const bool hasStructuredCppType = node.has_structured_annotation(kCppTypeUri);
-
-  // For user-defined typedefs, unstructured cpp.type/cpp.template is not
-  // supported — only structured @cpp.Type is allowed.
-  if (auto t = dynamic_cast<const t_typedef*>(&node); t && hasCppType) {
-    ctx.warning(
-        "Unstructured annotation cpp.type/cpp.template on typedef `{}` is "
-        "ignored. Use @cpp.Type instead.",
-        node.name());
-  }
-
-  ctx.check(
-      !(hasCppType && hasAdapter),
-      "Definition `{}` cannot have both cpp.type/cpp.template and @cpp.Adapter annotations",
-      node.name());
-
-  // Only source-backed annotations should count as user-provided.
-  auto has_real_annotation = [](const auto& node) {
-    if (!owns_annotations(node.type())) {
-      return false;
-    }
-    std::set<std::string> names{
-        "cpp.type", "cpp2.type", "cpp.template", "cpp2.template"};
-    for (const auto& [k, v] : node.type()->unstructured_annotations()) {
-      if (names.count(k) && v.src_range.begin != source_location{}) {
-        return true;
-      }
-    }
-    return false;
-  };
-
-  bool hasUnnamedCppType = false;
-  if (auto f = dynamic_cast<const t_field*>(&node)) {
-    if (has_real_annotation(*f)) {
-      hasUnnamedCppType = true;
-    }
-  }
-  if (hasAdapter && (hasUnnamedCppType || hasStructuredCppType)) {
+  if (node.has_structured_annotation(kCppAdapterUri) &&
+      node.has_structured_annotation(kCppTypeUri)) {
     // TODO (T169470476): make this an error
     ctx.warning(
-        "At most one of @cpp.Type/@cpp.Adapter/cpp.type/cpp.template can be specified on a definition.");
+        "At most one of @cpp.Type/@cpp.Adapter can be specified on a definition.");
   }
-  ctx.check(
-      hasCppType + hasStructuredCppType + hasUnnamedCppType <= 1,
-      "Duplicate cpp.Type annotation");
 }
 
 void validate_deprecated_annotations(sema_context& ctx, const t_named& node) {

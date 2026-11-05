@@ -934,14 +934,12 @@ TEST(CompilerTest, deprecated_annotations) {
     @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.type": "std::uint64_t"}}
     typedef i64 T
     # expected-error@21: The annotation cpp.type has been removed. Please use @cpp.Type instead.
-    # expected-warning@21: Unstructured annotation cpp.type/cpp.template on typedef `T` is ignored. Use @cpp.Type instead.
 
     @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.template": "std::deque"}}
     typedef list<i64> U
-    # expected-error@26: The annotation cpp.template has been removed. Please use @cpp.Type instead.
-    # expected-warning@26: Unstructured annotation cpp.type/cpp.template on typedef `U` is ignored. Use @cpp.Type instead.
+    # expected-error@25: The annotation cpp.template has been removed. Please use @cpp.Type instead.
 
-    # This should not produce a warning even though the annotation is currently lowered.
+    # This should not produce a warning.
     @cpp.Type{name = "std::uint64_t"}
     typedef i64 T2
   )");
@@ -3505,7 +3503,7 @@ TEST(CompilerTest, cpp_type_on_adapted_typedef) {
     @cpp.Adapter{name = "::my::Adapter"}
     @cpp.Type{template = "std::unordered_set"}
     typedef set<string> AdaptedUnorderedSet
-      # expected-warning@-3: At most one of @cpp.Type/@cpp.Adapter/cpp.type/cpp.template can be specified on a definition.
+      # expected-warning@-3: At most one of @cpp.Type/@cpp.Adapter can be specified on a definition.
       # expected-error@-4: `@cpp.Type` cannot be used on adapted typedef `AdaptedUnorderedSet`.
 
     @cpp.Adapter{name = "::my::Adapter"}
@@ -3523,7 +3521,7 @@ TEST(CompilerTest, cpp_type_on_adapted_typedef) {
     @cpp.Adapter{name = "::my::Adapter"}
     @cpp.Type{name = "::folly::IOBuf"}
     typedef binary AdaptedIOBuf
-      # expected-warning@-3: At most one of @cpp.Type/@cpp.Adapter/cpp.type/cpp.template can be specified on a definition.
+      # expected-warning@-3: At most one of @cpp.Type/@cpp.Adapter can be specified on a definition.
       # expected-error@-4: `@cpp.Type` cannot be used on adapted typedef `AdaptedIOBuf`.
 
     @cpp.Type{name = "::folly::IOBuf"}
