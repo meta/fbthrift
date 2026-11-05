@@ -129,7 +129,7 @@ struct Example {
 struct TestCase {
   1: string name;
   // Unset for values thrift constants cannot express: NaN, the infinities and
-  // negative zero.
+  // negative zero, and floats whose generated Hack constant is rounded twice.
   2: optional Example example;
   // Expected basic JSON output.
   3: string json;
@@ -1426,16 +1426,18 @@ const list<TestCase> testCases = [
   ],
 }",
   },
-  // Keys are ordered by their bytes, so "10" comes before "9" and "é" last.
+  // Keys are ordered by their bytes, a prefix first, so "10" comes before "9"
+  // and "é" last.
   TestCase{
     name = "StringKeysInByteOrder",
-    example = Example{stringAsKey = {"é": "e", "a": "a", "B": "B", "9": "9", "10": "10"}},
+    example = Example{stringAsKey = {"é": "e", "ab": "ab", "a": "a", "B": "B", "9": "9", "10": "10"}},
     json = "{
   \"stringAsKey\": {
     \"10\": \"10\",
     \"9\": \"9\",
     \"B\": \"B\",
     \"a\": \"a\",
+    \"ab\": \"ab\",
     \"é\": \"e\"
   }
 }",
@@ -1445,6 +1447,7 @@ const list<TestCase> testCases = [
     \"9\": \"9\",
     B: \"B\",
     a: \"a\",
+    ab: \"ab\",
     \"é\": \"e\",
   },
 }",
@@ -1777,6 +1780,28 @@ const list<TestCase> testCases = [
       "{\"floatListValue\": [\"1.000000059604644775390625000001\", \"1.000000178813934326171874999999\"]}",
     ],
   },
+  TestCase{
+    name = "FloatNegativeNearBinary32Midpoint",
+    example = Example{
+      floatListValue = [-1.00000011920928955078125, -1.00000011920928955078125],
+    },
+    json = "{
+  \"floatListValue\": [
+    -1.0000001,
+    -1.0000001
+  ]
+}",
+    json5 = "{
+  floatListValue: [
+    -1.0000001,
+    -1.0000001,
+  ],
+}",
+    additionalInputs = [
+      "{\"floatListValue\": [-1.000000059604644775390625000001, -1.000000178813934326171874999999]}",
+      "{\"floatListValue\": [\"-1.000000059604644775390625000001\", \"-1.000000178813934326171874999999\"]}",
+    ],
+  },
   // ── Enum Format Compatibility ─────────────────────────────────────────────
   // Enum should accept "enum-name (enum-value)", "enum-name", "(enum-value)"
   // and raw integer.
@@ -1904,6 +1929,30 @@ const list<TestCase> testCases = [
       "{binaryAsKey: {\"fl9+IQ\": 1}}",
       "{binaryAsKey: {\"fl9+IQ==\": 1}}",
     ],
+  },
+  TestCase{
+    name = "BinaryAsKeyBase64",
+    example = Example{binaryAsKey = {"\xff": 1}},
+    json = "{
+  \"binaryAsKey\": [
+    {
+      \"key\": {
+        \"base64url\": \"_w\"
+      },
+      \"value\": 1
+    }
+  ]
+}",
+    json5 = "{
+  binaryAsKey: [
+    {
+      key: {
+        base64url: \"_w\",
+      },
+      value: 1,
+    },
+  ],
+}",
   },
   // ── Bool as Map Key Compatibility ─────────────────────────────────────────
   // Bool keys in maps are encoded as strings "true" or "false"
@@ -2569,6 +2618,27 @@ const list<TestCase> testCases = [
   floatValue: 7.0385313e-26,
 }",
     additionalInputs = ["{\"floatValue\": 7.03853100000000022281692450609677778769437e-26}"],
+  },
+  // Below the same midpoint. Unset: the generated Hack constant, the shortest
+  // digits, reads as binary64 exactly at the midpoint, which then rounds to
+  // the wrong binary32 neighbour.
+  TestCase{
+    name = "FloatJustBelowLongBinary32Midpoint",
+    json = "{
+  \"floatListValue\": [
+    7.038531e-26,
+    -7.038531e-26
+  ]
+}",
+    json5 = "{
+  floatListValue: [
+    7.038531e-26,
+    -7.038531e-26,
+  ],
+}",
+    additionalInputs = [
+      "{\"floatListValue\": [7.03853100000000022281692450609677778769436e-26, -7.03853100000000022281692450609677778769436e-26]}",
+    ],
   },
   TestCase{
     name = "FloatJustBelowMidpointAfterFltMax",
