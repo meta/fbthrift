@@ -46,9 +46,9 @@ jobs:
       run: "echo BOOST_ROOT=%BOOST_ROOT_1_83_0% >> %GITHUB_ENV%"
       shell: cmd
 
-    # The build fetches the rest, but needs zlib and zstd installed and can't
-    # build libsodium on Windows. vcpkg comes with the image; its bin directory
-    # goes on PATH for the DLLs.
+    # The build fetches the rest, but can't build libsodium on Windows. zlib and
+    # zstd come from vcpkg too, which is faster than fetching them. vcpkg comes
+    # with the image; its bin directory goes on PATH for the DLLs.
     - name: Install dependencies
       run: >
         vcpkg install --triplet x64-windows zlib zstd libsodium &&

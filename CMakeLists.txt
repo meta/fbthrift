@@ -166,6 +166,67 @@ if (NOT LIBGFLAGS_FOUND)
   thrift_localize(thrift_gflags gflags)
 endif ()
 
+# Fetch zlib if it is not installed.
+function (thrift_fetch_zlib)
+  set(ZLIB_BUILD_EXAMPLES OFF)
+  fb_fetch_from_manifest(zlib zlib OVERRIDE_FIND_PACKAGE)
+  # The static library, like the other fetched dependencies. zlib also declares
+  # a shared one, which nothing builds.
+  add_library(ZLIB::ZLIB ALIAS zlibstatic)
+  # Every find_package(ZLIB), folly's and fizz's included, now loads this file
+  # instead of FindZLIB, so it sets the variables they read. zlib generates
+  # zconf.h in its binary directory.
+  FetchContent_GetProperties(zlib SOURCE_DIR source_dir BINARY_DIR binary_dir)
+  file(WRITE "${CMAKE_FIND_PACKAGE_REDIRECTS_DIR}/zlib-extra.cmake"
+       "set(ZLIB_INCLUDE_DIRS \"${source_dir};${binary_dir}\")
+set(ZLIB_LIBRARIES ZLIB::ZLIB)
+set(ZLIB_LIBRARY ZLIB::ZLIB)
+")
+endfunction ()
+
+# Fetch zstd if it is not installed.
+function (thrift_fetch_zstd)
+  set(ZSTD_BUILD_PROGRAMS OFF)
+  set(ZSTD_BUILD_TESTS OFF)
+  set(ZSTD_BUILD_SHARED OFF)
+  # zstd FORCEs CMAKE_BUILD_TYPE to Release when it is unset.
+  set(saved_build_type "${CMAKE_BUILD_TYPE}")
+  fb_fetch_from_manifest(zstd zstd OVERRIDE_FIND_PACKAGE)
+  if (NOT saved_build_type)
+    set(CMAKE_BUILD_TYPE "" CACHE STRING "Choose the type of build." FORCE)
+  endif ()
+  add_library(zstd::zstd ALIAS libzstd_static)
+  # As for zlib, every find_package(Zstd) now loads this file instead of
+  # FindZstd.cmake. thrift-python reads ZSTD_INCLUDE_DIR too.
+  FetchContent_GetProperties(zstd SOURCE_DIR source_dir)
+  set(include_dir "${source_dir}/lib")
+  file(WRITE "${CMAKE_FIND_PACKAGE_REDIRECTS_DIR}/zstd-extra.cmake"
+       "set(ZSTD_FOUND ON)
+set(ZSTD_INCLUDE_DIR \"${include_dir}\")
+set(ZSTD_LIBRARY zstd::zstd)
+")
+  set(ZSTD_INCLUDE_DIR "${include_dir}" PARENT_SCOPE)
+endfunction ()
+
+# Only the RPC transport links zlib and zstd. Before folly, so that a fetched
+# folly, and the fizz fetched below, use the same copies.
+set(thrift_zlib ZLIB::ZLIB)
+set(thrift_zstd zstd::zstd)
+if (THRIFT_RPC)
+  find_package(ZLIB)
+  if (NOT ZLIB_FOUND)
+    thrift_build_local(zlib)
+    thrift_fetch_zlib()
+    thrift_localize(thrift_zlib ZLIB::ZLIB)
+  endif ()
+  find_package(Zstd)
+  if (NOT Zstd_FOUND)
+    thrift_build_local(zstd)
+    thrift_fetch_zstd()
+    thrift_localize(thrift_zstd zstd::zstd)
+  endif ()
+endif ()
+
 find_package(folly CONFIG QUIET)
 if (NOT folly_FOUND)
   thrift_build_local(folly)
@@ -196,8 +257,6 @@ if (NOT TARGET fmt::fmt)
   find_package(fmt CONFIG REQUIRED)
 endif ()
 find_package(OpenSSL REQUIRED)
-find_package(ZLIB REQUIRED)
-find_package(Zstd REQUIRED)
 
 # folly lists here whatever it had to build into its own build tree. Such a
 # dependency is absent from an installed folly, so it must not reach thrift's

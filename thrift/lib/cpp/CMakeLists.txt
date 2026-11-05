@@ -63,9 +63,9 @@ if (THRIFT_RPC)
            thrift_core
            thrift_rpc_metadata
            Folly::folly
-           ZLIB::ZLIB
+           ${thrift_zlib}
            ${thrift_openssl_crypto}
-           zstd::zstd)
+           ${thrift_zstd})
 
   add_library(
     thrift_async

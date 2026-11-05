@@ -32,12 +32,11 @@ jobs:
       with:
         version: "v0.14.0"
 
-    # The build fetches the rest, but not the test dependencies, and needs zstd,
-    # whose headers the image doesn't have.
+    # The build fetches the rest, zstd included, but not the test dependencies.
     - name: Install dependencies
       run: >
         sudo apt-get update &&
-        sudo apt-get install -y libzstd-dev libgtest-dev libbenchmark-dev
+        sudo apt-get install -y libgtest-dev libbenchmark-dev
 
     - name: Configure
       run: >

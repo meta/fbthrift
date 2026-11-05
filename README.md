@@ -80,8 +80,8 @@ two commands are enough:
     cmake -B _build
     cmake --build _build
 
-This needs CMake 3.24 or newer, a C++20 compiler, and zlib and
-[Zstd](https://github.com/facebook/zstd) installed. Everything else, including
+This needs CMake 3.24 or newer and a C++20 compiler. Everything else, including
+zlib, [Zstd](https://github.com/facebook/zstd),
 [Folly](https://github.com/facebook/folly),
 [Fizz](https://github.com/facebookincubator/fizz),
 [Wangle](https://github.com/facebook/wangle),
@@ -106,10 +106,10 @@ installed; neither is fetched:
     cmake --build _build
     (cd _build && ctest)
 
-If configure had to fetch Folly, Fizz, Wangle, mvfst or xxHash, it turns
-install rules off, because an installed Thrift would refer to libraries that
-exist only in the build tree. The configure output lists them; install them
-and reconfigure to get an installable Thrift.
+If configure had to fetch zlib, Zstd, gflags, Folly, Fizz, Wangle, mvfst or
+xxHash, it turns install rules off, because an installed Thrift would refer to
+libraries that exist only in the build tree. The configure output lists them;
+install them and reconfigure to get an installable Thrift.
 
 CMake options:
 
