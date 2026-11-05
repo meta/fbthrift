@@ -146,16 +146,6 @@ class cpp_name_resolver {
 
   const std::string* get_extra_namespace(const t_type& node);
 
-  // Checks whether a t_type could resolve to a scalar.
-  //
-  // A type could resolve to a scalar if t_type is
-  // a scalar, or has an 'cpp.type' and 'cpp.adapter' annotation.
-  // Note, the 'cpp.template' annotation only applies to container
-  // types, so it could never resolve to a scalar.
-  // In C++, scalars sometimes require a special treatment. For
-  // example, they are not initialized by default.
-  static bool can_resolve_to_scalar(const t_type& node);
-
   // Returns the C++ type that should be used to store the field's value.
   //
   // This differs from the type name when @cpp.Ref is applied to the field.

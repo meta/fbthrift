@@ -31,21 +31,6 @@
 #include <thrift/compiler/ast/uri.h>
 
 namespace apache::thrift::compiler {
-namespace {
-
-const t_type* find_first_type(const t_type& node) {
-  const t_type* result = nullptr;
-  t_typedef::find_type_if(&node, [&result](const t_type* type) {
-    if (cpp_name_resolver::find_type(*type)) {
-      result = type;
-      return true;
-    }
-    return false;
-  });
-  return result;
-}
-
-} // namespace
 
 namespace detail {
 
@@ -407,11 +392,6 @@ std::string cpp_name_resolver::gen_unprefixed_namespace(
     const t_program& program) {
   const auto components = gen_namespace_components(program);
   return fmt::format("{}", fmt::join(components, "::"));
-}
-
-bool cpp_name_resolver::can_resolve_to_scalar(const t_type& node) {
-  return is_scalar(*node.get_true_type()) || find_first_adapter(node) ||
-      find_first_type(node);
 }
 
 const std::string& cpp_name_resolver::default_template(
