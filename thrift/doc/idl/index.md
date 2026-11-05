@@ -1185,9 +1185,9 @@ These field kinds are different with respect to the states they may assume, and 
 Do not use in the new code!
 :::
 
-~~Required fields are always _present_ and they get initialized to their default value when the object is initialized (or reinitialized). Generated code must provide a way to change the value of required fields. When serializing an object, required fields are always encoded into the serialized data. The serialized data must provide a value during deserialization into a required field.~~
+`required` is deprecated and the compiler warns about it. For serialization, a required field behaves like an unqualified field: it is always written, and serialized data without it is valid. During deserialization, a missing required field keeps its default value.
 
-Presence of required fields is not being enforced anymore (Java still does, but that is being removed too).
+A few legacy readers still throw if the serialized data does not have a required field: `java_deprecated`, C++ code generated with the `deprecated_enforce_required` option, and Hack `readFromJson()`. See [Compatibility](/features/compatibility.md#caution_required).
 
 ### Optional Fields
 
