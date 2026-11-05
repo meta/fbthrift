@@ -255,7 +255,7 @@ TEST_F(FastThriftChannelServerTest, MultipleRequests) {
 
   clientThread_->getEventBase()->runInEventBaseThread([&] {
     client->semifuture_echo("first")
-        .via(clientThread_->getEventBase())
+        .via(clientThread_->getEventBaseKeepAlive())
         .thenValue([&](std::string r) {
           echo1 = std::move(r);
           baton1.post();
@@ -263,7 +263,7 @@ TEST_F(FastThriftChannelServerTest, MultipleRequests) {
         .thenError([&](const folly::exception_wrapper&) { baton1.post(); });
 
     client->semifuture_echo("second")
-        .via(clientThread_->getEventBase())
+        .via(clientThread_->getEventBaseKeepAlive())
         .thenValue([&](std::string r) {
           echo2 = std::move(r);
           baton2.post();
@@ -271,7 +271,7 @@ TEST_F(FastThriftChannelServerTest, MultipleRequests) {
         .thenError([&](const folly::exception_wrapper&) { baton2.post(); });
 
     client->semifuture_echo("third")
-        .via(clientThread_->getEventBase())
+        .via(clientThread_->getEventBaseKeepAlive())
         .thenValue([&](std::string r) {
           echo3 = std::move(r);
           baton3.post();
@@ -298,7 +298,7 @@ TEST_F(FastThriftChannelServerTest, MultipleClients) {
 
   clientThread_->getEventBase()->runInEventBaseThread([&] {
     client1->semifuture_echo("from client 1")
-        .via(clientThread_->getEventBase())
+        .via(clientThread_->getEventBaseKeepAlive())
         .thenValue([&](std::string r) {
           result1 = std::move(r);
           baton1.post();
@@ -306,7 +306,7 @@ TEST_F(FastThriftChannelServerTest, MultipleClients) {
         .thenError([&](const folly::exception_wrapper&) { baton1.post(); });
 
     client2->semifuture_echo("from client 2")
-        .via(clientThread_->getEventBase())
+        .via(clientThread_->getEventBaseKeepAlive())
         .thenValue([&](std::string r) {
           result2 = std::move(r);
           baton2.post();
