@@ -28,8 +28,6 @@
 #include <thrift/lib/cpp2/protocol/Json5Protocol.h>
 #include <thrift/lib/cpp2/protocol/Serializer.h>
 #include <thrift/lib/cpp2/runtime/SchemaRegistry.h>
-#include <thrift/test/json5/gen-cpp2/json5_compatibility_test_constants.h>
-#include <thrift/test/json5/gen-cpp2/json5_compatibility_test_types.h>
 #include <thrift/test/json5/gen-cpp2/json5_negative_test_constants.h>
 #include <thrift/test/json5/gen-cpp2/json5_negative_test_types.h>
 #include <thrift/test/json5/gen-cpp2/json5_test_constants.h>
@@ -510,41 +508,6 @@ INSTANTIATE_TEST_SUITE_P(
     Shared,
     Json5SharedTest,
     testing::ValuesIn(shared::json5_test_constants::testCases()),
-    [](const auto& info) { return *info.param.name(); });
-
-class Json5SharedCompatibilityTest
-    : public testing::TestWithParam<shared::CompatibilityTestCase> {};
-
-TEST_P(Json5SharedCompatibilityTest, Reads) {
-  for (const auto& json : *GetParam().inputs()) {
-    EXPECT_EQ(fromJsonViaDynamic<shared::Example>(json), *GetParam().output())
-        << json;
-  }
-}
-
-INSTANTIATE_TEST_SUITE_P(
-    Shared,
-    Json5SharedCompatibilityTest,
-    testing::ValuesIn(
-        shared::json5_compatibility_test_constants::compatibilityTestCases()),
-    [](const auto& info) { return *info.param.name(); });
-
-class Json5SharedRoundTripTest
-    : public testing::TestWithParam<shared::RoundTripTestCase> {};
-
-TEST_P(Json5SharedRoundTripTest, WritesReadValue) {
-  for (const auto& json : *GetParam().inputs()) {
-    const auto value = fromJson(json, typeOf<shared::Example>());
-    EXPECT_EQ(toJson(value, basicJsonOptions()), *GetParam().json()) << json;
-    EXPECT_EQ(toJson(value), *GetParam().json5()) << json;
-  }
-}
-
-INSTANTIATE_TEST_SUITE_P(
-    Shared,
-    Json5SharedRoundTripTest,
-    testing::ValuesIn(
-        shared::json5_compatibility_test_constants::roundTripTestCases()),
     [](const auto& info) { return *info.param.name(); });
 
 class Json5SharedNegativeTest

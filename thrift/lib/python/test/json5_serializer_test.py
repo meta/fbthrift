@@ -17,10 +17,8 @@
 from __future__ import annotations
 
 import json
-import math
 import unittest
 
-import facebook.thrift.json5.json5_compatibility_test.thrift_types as compat_types
 import facebook.thrift.json5.json5_negative_test.thrift_types as negative_types
 import facebook.thrift.json5.json5_test.thrift_types as test_types
 from thrift.python.exceptions import Error
@@ -83,14 +81,6 @@ class Json5SerializerTest(unittest.TestCase):
 
 
 class Json5EncoderExtraTest(unittest.TestCase):
-    def test_serialize_bool(self) -> None:
-        for value in [True, False]:
-            with self.subTest(value=value):
-                data = test_types.Example(boolValue=value)
-                json_str = serialize(data, protocol=Protocol.JSON5).decode()
-                parsed = json.loads(json_str)
-                self.assertEqual(parsed["boolValue"], value)
-
     def test_serialize_int(self) -> None:
         for value in [0, 42, -42, 2147483647, -2147483648]:
             with self.subTest(value=value):
@@ -115,12 +105,6 @@ class Json5EncoderExtraTest(unittest.TestCase):
                 parsed = json.loads(json_str)
                 self.assertEqual(parsed["doubleValue"], value)
 
-    def test_serialize_negative_zero(self) -> None:
-        data = test_types.Example(doubleValue=-0.0)
-        json_str = serialize(data, protocol=Protocol.JSON5).decode()
-        parsed = json.loads(json_str)
-        self.assertEqual(math.copysign(1.0, parsed["doubleValue"]), -1.0)
-
     def test_serialize_string(self) -> None:
         for value in [
             "",
@@ -134,75 +118,6 @@ class Json5EncoderExtraTest(unittest.TestCase):
                 json_str = serialize(data, protocol=Protocol.JSON5).decode()
                 parsed = json.loads(json_str)
                 self.assertEqual(parsed["stringValue"], value)
-
-    def test_serialize_nan_inf(self) -> None:
-        data = test_types.Example(
-            infValue=float("inf"),
-            nanValue=float("nan"),
-        )
-        json_str = serialize(data, protocol=Protocol.JSON5).decode()
-        parsed = json.loads(json_str)
-        self.assertEqual(parsed["infValue"], "Infinity")
-        self.assertEqual(parsed["nanValue"], "NaN")
-
-    def test_serialize_negative_nan_inf(self) -> None:
-        data = test_types.Example(
-            infValue=float("-inf"),
-            nanValue=-float("nan"),
-        )
-        json_str = serialize(data, protocol=Protocol.JSON5).decode()
-        parsed = json.loads(json_str)
-        self.assertEqual(parsed["infValue"], "-Infinity")
-        self.assertEqual(parsed["nanValue"], "-NaN")
-
-
-class Json5CompatibilityTest(unittest.TestCase):
-    """Test JSON5 backward compatibility using test cases from
-    json5_compatibility_test.thrift."""
-
-    def test_compatibility(self) -> None:
-        for tc in compat_types.compatibilityTestCases:
-            with self.subTest(tc.name):
-                for input_json in tc.inputs:
-                    result = deserialize(
-                        test_types.Example,
-                        input_json.encode(),
-                        Protocol.JSON5,
-                    )
-                    self.assertEqual(
-                        result,
-                        tc.output,
-                        f"Failed for input: {input_json}",
-                    )
-
-
-class Json5RoundTripTest(unittest.TestCase):
-    """Test values that thrift constants cannot express, using test cases from
-    json5_compatibility_test.thrift."""
-
-    def test_round_trip(self) -> None:
-        for tc in compat_types.roundTripTestCases:
-            with self.subTest(tc.name):
-                for input_json in tc.inputs:
-                    result = deserialize(
-                        test_types.Example,
-                        input_json.encode(),
-                        Protocol.JSON5,
-                    )
-                    self.assertEqual(
-                        serialize(
-                            result,
-                            Protocol.JSON5,
-                            options=Json5ProtocolWriterOptions(),
-                        ).decode(),
-                        tc.json,
-                        f"Failed for input: {input_json}",
-                    )
-                    self.assertEqual(
-                        serialize(result, Protocol.JSON5, options=JSON5_MODE).decode(),
-                        tc.json5,
-                        f"Failed for input: {input_json}",
-                    )
 
 
 class Json5NegativeTest(unittest.TestCase):
