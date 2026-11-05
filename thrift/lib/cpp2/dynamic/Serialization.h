@@ -63,8 +63,7 @@ struct ThrowingValidationCallbacks {
 
   [[noreturn]] void onMultipleUnionFields(
       const type_system::UnionNode&, uint32_t) {
-    throw std::runtime_error(
-        "Union cannot have more than one field during deserialization");
+    protocol::TProtocolException::throwUnionMissingStop();
   }
 };
 

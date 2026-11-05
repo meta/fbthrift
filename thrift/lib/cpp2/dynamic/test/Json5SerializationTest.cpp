@@ -37,7 +37,6 @@
 #include <thrift/test/json5/gen-cpp2/json5_test_types_custom_protocol.h>
 
 #include <cstdint>
-#include <exception>
 #include <limits>
 #include <map>
 #include <set>
@@ -537,11 +536,10 @@ INSTANTIATE_TEST_SUITE_P(
 class Json5SharedNegativeTest
     : public testing::TestWithParam<shared::NegativeTestCase> {};
 
-// Not only TProtocolException: the default validation callbacks reject a union
-// with more than one field with std::runtime_error.
 TEST_P(Json5SharedNegativeTest, Rejects) {
   EXPECT_THROW(
-      fromJson(*GetParam().json(), typeOf<shared::Example>()), std::exception);
+      fromJson(*GetParam().json(), typeOf<shared::Example>()),
+      protocol::TProtocolException);
 }
 
 INSTANTIATE_TEST_SUITE_P(
