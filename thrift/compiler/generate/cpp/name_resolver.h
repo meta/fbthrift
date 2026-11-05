@@ -233,7 +233,7 @@ class cpp_name_resolver {
   static const std::string& default_template(const t_container& ctype);
 
   // If the node has a @cpp.Type override, resolves the type name accounting
-  // for typedef kind and adapters. Returns nullptr if no override applies.
+  // for typedef kind. Returns nullptr if no override applies.
   const std::string* resolve_cpp_type_name(const t_type& node);
 
   // Generating functions.

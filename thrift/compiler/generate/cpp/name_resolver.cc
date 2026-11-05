@@ -232,23 +232,6 @@ const std::string& cpp_name_resolver::get_underlying_type_name(
   // Keep the immediate aliased node here so typedef-local annotations still
   // control the generated using declaration.
   const t_type& type = node.type().deref();
-  const auto* type_name = find_type(node);
-  const auto* tmpl = find_template(node);
-  const bool has_typedef_cpp_type = type_name != nullptr || tmpl != nullptr;
-  auto gen_typedef_cpp_type = [&]() -> std::string {
-    if (type_name != nullptr) {
-      return *type_name;
-    }
-    if (tmpl != nullptr) {
-      if (const auto* container = type.get_true_type()->try_as<t_container>()) {
-        return gen_container_type(
-            *container, &cpp_name_resolver::get_native_type, tmpl);
-      }
-      return *tmpl;
-    }
-    return get_native_type(type);
-  };
-
   if (auto* annotation = find_nontransitive_adapter(node)) {
     if (auto* adapted_type =
             annotation->get_value_from_structured_annotation_or_null(
@@ -258,12 +241,15 @@ const std::string& cpp_name_resolver::get_underlying_type_name(
     const auto& adapter =
         annotation->get_value_from_structured_annotation("name").get_string();
     return detail::get_or_gen(underlying_type_cache_, &node, [&]() {
-      return gen_adapted_type(&adapter, gen_typedef_cpp_type());
+      return gen_adapted_type(&adapter, get_native_type(type));
     });
   }
-  if (has_typedef_cpp_type) {
+  if (const auto* type_name = find_type(node)) {
+    return *type_name;
+  }
+  if (find_template(node)) {
     return detail::get_or_gen(underlying_type_cache_, &node, [&]() {
-      return gen_typedef_cpp_type();
+      return gen_standard_type(node, &cpp_name_resolver::get_native_type);
     });
   }
   return get_native_type(type);
@@ -457,25 +443,12 @@ const std::string& cpp_name_resolver::default_type(
 
 const std::string* cpp_name_resolver::resolve_cpp_type_name(
     const t_type& node) {
-  const t_typedef* td = node.try_as<t_typedef>();
-  if (const auto* type = find_type(node)) {
-    // For non-adapted user-defined typedefs, use the public namespaced typedef
-    // name instead of the raw @cpp.Type value. The raw value is used in the
-    // typedef's using declaration via get_underlying_type_name. References
-    // to the typedef must use the typedef name to ensure the type resolves
-    // correctly at all usage sites.
-    // For adapted typedefs, fall through — the adapter traversal in
-    // gen_standard_type handles them.
-    if (td == nullptr) {
-      return type;
-    }
-    if (find_first_adapter(node) == nullptr) {
-      return &get_namespaced_name(node);
-    }
+  if (!node.is<t_typedef>()) {
+    return find_type(node);
   }
-  // For non-adapted user-defined typedefs with @cpp.Type{template = "..."},
-  // use the typedef name instead of traversing (which would lose the override).
-  if (td && find_template(node) && find_first_adapter(node) == nullptr) {
+  // References use the typedef name; the @cpp.Type value appears only in the
+  // typedef's using declaration.
+  if (find_type(node) || find_template(node)) {
     return &get_namespaced_name(node);
   }
   return nullptr;
@@ -493,24 +466,10 @@ std::string cpp_name_resolver::gen_standard_type(const t_type& node) {
     return std::string(*resolved);
   }
 
-  if (const auto* ttypedef = node.try_as<t_typedef>()) {
-    // Traverse the typedef when an adapter is present, to get the pre-adapter
-    // standard type. Check the typedef itself for @cpp.Type since without
-    // annotation lowering the annotation stays on the typedef, not the
-    // inner type.
-    if (find_first_adapter(node) != nullptr) {
-      if (const auto* type_name = find_type(node)) {
-        return *type_name;
-      }
-      if (const auto* tmpl = find_template(node)) {
-        if (const auto* container =
-                node.get_true_type()->try_as<t_container>()) {
-          return gen_container_type(
-              *container, &cpp_name_resolver::get_standard_type, tmpl);
-        }
-      }
-      return get_standard_type(*ttypedef->type());
-    }
+  // Traverse an adapted typedef to get the pre-adapter standard type.
+  if (const auto* ttypedef = node.try_as<t_typedef>();
+      ttypedef != nullptr && find_first_adapter(node) != nullptr) {
+    return get_standard_type(*ttypedef->type());
   }
 
   if (is_directly_adapted(node)) {
@@ -647,8 +606,6 @@ std::string cpp_name_resolver::gen_type_tag(
   if ((!ignore_cpp_type || type.is<t_typedef>()) &&
       (cpp_name_resolver::find_type(type) ||
        cpp_name_resolver::find_template(type))) {
-    // Use get_standard_type to get the pre-adapter type for adapted typedefs
-    // (e.g., ::folly::IOBuf instead of the adapted typedef name).
     tag = fmt::format(
         "::apache::thrift::type::cpp_type<{}, {}>",
         get_standard_type(type),
