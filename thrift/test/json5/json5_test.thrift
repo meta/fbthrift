@@ -124,11 +124,19 @@ struct Example {
 // be shared between different languages.
 // --
 
+// Every input, `json`, `json5` and each of `additionalInputs`, must decode to
+// `example` and be written back as `json` and `json5`.
 struct TestCase {
   1: string name;
-  2: Example example;
+  // Unset for values thrift constants cannot express: NaN, the infinities and
+  // negative zero.
+  2: optional Example example;
+  // Expected basic JSON output.
   3: string json;
+  // Expected JSON5 output.
   4: string json5;
+  // Other spellings the decoder accepts for the same value.
+  5: list<string> additionalInputs;
 }
 
 const list<TestCase> testCases = [
@@ -175,6 +183,14 @@ const list<TestCase> testCases = [
     json5 = "{
   enumValue: \"NEGATIVE_ONE (-1)\",
 }",
+    additionalInputs = [
+      "{\"enumValue\": \"NEGATIVE_ONE (-1)\"}",
+      "{\"enumValue\": \"NEGATIVE_ONE\"}",
+      "{\"enumValue\": \"(-1)\"}",
+      "{\"enumValue\": \"-1\"}",
+      "{\"enumValue\": -1}",
+      "{\"enumValue\": -0x1}",
+    ],
   },
   TestCase{
     name = "ListValue",
@@ -339,6 +355,15 @@ const list<TestCase> testCases = [
     \"ONE (1)\": \"TWO (2)\",
   },
 }",
+    // Enum as map key should accept "enum-name (enum-value)", "enum-name" and
+    // "(enum-value)"
+    additionalInputs = [
+      "{\"enumAsKey\": {\"ONE (1)\": \"TWO (2)\"}}",
+      "{\"enumAsKey\": {\"ONE\": \"TWO\"}}",
+      "{\"enumAsKey\": {\"(1)\": \"(2)\"}}",
+      "{\"enumAsKey\": {\"1\": \"2\"}}",
+      "{\"enumAsKey\": {\"0x1\": \"TWO (0x2)\"}}",
+    ],
   },
   TestCase{
     name = "ListAsKey",
@@ -391,6 +416,7 @@ const list<TestCase> testCases = [
     },
   ],
 }",
+    additionalInputs = ["{\"setAsKey\": [{\"key\": [2, 1, 2], \"value\": 3}]}"],
   },
   TestCase{
     name = "MapAsKey",
@@ -915,7 +941,14 @@ const list<TestCase> testCases = [
 }",
   },
   // ── Empty struct ────────────────────────────────────────────────────────────
-  TestCase{name = "EmptyStruct",example = Example{},json = "{}",json5 = "{}",},
+  TestCase{
+    name = "EmptyStruct",
+    example = Example{},
+    json = "{}",
+    json5 = "{}",
+    // A null member is skipped before its name or id is checked.
+    additionalInputs = ["{\"boolValue (31)\": null, \"NonExist (30)\": null}"],
+  },
   // ── Empty values ────────────────────────────────────────────────────────────
   TestCase{
     name = "EmptyValues",
@@ -949,6 +982,11 @@ const list<TestCase> testCases = [
     hello: \"world\",
   },
 }",
+    // String-keyed maps should accept both object form and array form.
+    additionalInputs = [
+      "{\"stringAsKey\": {\"hello\": \"world\"}}",
+      "{\"stringAsKey\": [{\"key\": \"hello\", \"value\": \"world\"}]}",
+    ],
   },
   TestCase{
     name = "MultiEntryStringAsKey",
@@ -986,6 +1024,11 @@ const list<TestCase> testCases = [
     },
   ],
 }",
+    // I64-keyed maps should accept both array form and object form with string keys.
+    additionalInputs = [
+      "{\"i64AsKey\": [{\"key\": 42, \"value\": 1}]}",
+      "{\"i64AsKey\": {\"42\": 1}}",
+    ],
   },
   // ── Multiple entries in non-enum maps ───────────────────────────────────────
   TestCase{
@@ -1015,6 +1058,12 @@ const list<TestCase> testCases = [
     },
   ],
 }",
+    // Map should accept both object form {k: v} and array form [{"key": k, "value": v}]
+    additionalInputs = [
+      "{\"i32AsKey\": {\"1\": 2, \"3\": 4}}",
+      "{\"i32AsKey\": {\"0x1\": 2, \"+3\": 4}}",
+      "{\"i32AsKey\": [{\"key\": 1, \"value\": 2}, {\"key\": 3, \"value\": 4}]}",
+    ],
   },
   // ── Set of integers ─────────────────────────────────────────────────────────
   TestCase{
@@ -1593,6 +1642,1180 @@ const list<TestCase> testCases = [
     },
   ],
 }",
+  },
+  // ── Bool Format Compatibility ────────────────────────────────────────────
+  // Bools should accept both true/false bare literals and JSON strings.
+  TestCase{
+    name = "BoolTrue",
+    example = Example{boolValue = true},
+    json = "{
+  \"boolValue\": true
+}",
+    json5 = "{
+  boolValue: true,
+}",
+    additionalInputs = ["{\"boolValue\": true}", "{\"boolValue\": \"true\"}"],
+  },
+  TestCase{
+    name = "BoolFalse",
+    example = Example{boolValue = false},
+    json = "{
+  \"boolValue\": false
+}",
+    json5 = "{
+  boolValue: false,
+}",
+    additionalInputs = ["{\"boolValue\": false}", "{\"boolValue\": \"false\"}"],
+  },
+  // ── Integer Format Compatibility ──────────────────────────────────────────
+  // Integers should accept both JSON numbers and JSON strings, with the same
+  // JSON5 integer syntax.
+  TestCase{
+    name = "Integer42",
+    example = Example{i64Value = 42},
+    json = "{
+  \"i64Value\": 42
+}",
+    json5 = "{
+  i64Value: 42,
+}",
+    additionalInputs = [
+      "{\"i64Value\": 42}",
+      "{\"i64Value\": \"42\"}",
+      "{\"i64Value\": \"+42\"}",
+      "{\"i64Value\": \"0x2A\"}",
+      "{\"i64Value\": \"0x002a\"}",
+    ],
+  },
+  TestCase{
+    name = "IntegerNegative",
+    example = Example{i64Value = -123},
+    json = "{
+  \"i64Value\": -123
+}",
+    json5 = "{
+  i64Value: -123,
+}",
+    additionalInputs = ["{\"i64Value\": \"-123\"}", "{\"i64Value\": \"-0x7B\"}"],
+  },
+  // ── Float Format Compatibility ────────────────────────────────────────────
+  // Floats should accept both JSON numbers and JSON strings.
+  TestCase{
+    name = "Float314",
+    example = Example{floatValue = 3.14},
+    json = "{
+  \"floatValue\": 3.14
+}",
+    json5 = "{
+  floatValue: 3.14,
+}",
+    additionalInputs = ["{\"floatValue\": 3.14}", "{\"floatValue\": \"3.14\"}"],
+  },
+  TestCase{
+    name = "DoublePi",
+    example = Example{doubleValue = 3.14159265358979},
+    json = "{
+  \"doubleValue\": 3.14159265358979
+}",
+    json5 = "{
+  doubleValue: 3.14159265358979,
+}",
+    additionalInputs = [
+      "{\"doubleValue\": 3.14159265358979}",
+      "{\"doubleValue\": \"3.14159265358979\"}",
+    ],
+  },
+  // A double literal just above the point halfway between the largest
+  // subnormal and DBL_MIN rounds up to DBL_MIN.
+  TestCase{
+    name = "DoubleJustAboveSubnormalMidpoint",
+    example = Example{doubleValue = 2.2250738585072014e-308},
+    json = "{
+  \"doubleValue\": 2.2250738585072014e-308
+}",
+    json5 = "{
+  doubleValue: 2.2250738585072014e-308,
+}",
+    additionalInputs = [
+      "{\"doubleValue\": 2.2250738585072012e-308}",
+      "{\"doubleValue\": \"2.2250738585072012e-308\"}",
+    ],
+  },
+  TestCase{
+    name = "FloatFromInteger",
+    example = Example{floatValue = 42.0},
+    json = "{
+  \"floatValue\": 42.0
+}",
+    json5 = "{
+  floatValue: 42.0,
+}",
+    additionalInputs = ["{\"floatValue\": 42}", "{\"floatValue\": \"42\"}"],
+  },
+  // A float literal is rounded to binary32 directly. Each literal is within
+  // 1e-30 of a point halfway between two binary32 values, so rounding it to
+  // binary64 first gives that point, which rounds to the wrong neighbour.
+  TestCase{
+    name = "FloatNearBinary32Midpoint",
+    example = Example{
+      floatListValue = [1.00000011920928955078125, 1.00000011920928955078125],
+    },
+    json = "{
+  \"floatListValue\": [
+    1.0000001,
+    1.0000001
+  ]
+}",
+    json5 = "{
+  floatListValue: [
+    1.0000001,
+    1.0000001,
+  ],
+}",
+    additionalInputs = [
+      "{\"floatListValue\": [1.000000059604644775390625000001, 1.000000178813934326171874999999]}",
+      "{\"floatListValue\": [\"1.000000059604644775390625000001\", \"1.000000178813934326171874999999\"]}",
+    ],
+  },
+  // ── Enum Format Compatibility ─────────────────────────────────────────────
+  // Enum should accept "enum-name (enum-value)", "enum-name", "(enum-value)"
+  // and raw integer.
+  TestCase{
+    name = "EnumOne",
+    example = Example{enumValue = 1},
+    json = "{
+  \"enumValue\": \"ONE (1)\"
+}",
+    json5 = "{
+  enumValue: \"ONE (1)\",
+}",
+    additionalInputs = [
+      "{\"enumValue\": \"ONE (1)\"}",
+      "{\"enumValue\": \"ONE(1)\"}",
+      "{\"enumValue\": \"ONE \\t (1)\"}",
+      "{\"enumValue\": \"ONE\"}",
+      "{\"enumValue\": \"(1)\"}",
+      "{\"enumValue\": \"1\"}",
+      "{\"enumValue\": 1}",
+      "{\"enumValue\": 0x1}",
+      "{\"enumValue\": \"ONE (0x1)\"}",
+      "{\"enumValue\": \"(+1)\"}",
+      "{\"enumValue\": \"0x1\"}",
+      "{\"enumValue\": \"+1\"}",
+    ],
+  },
+  TestCase{
+    name = "EnumTwo",
+    example = Example{enumValue = 2},
+    json = "{
+  \"enumValue\": \"TWO (2)\"
+}",
+    json5 = "{
+  enumValue: \"TWO (2)\",
+}",
+    additionalInputs = [
+      "{\"enumValue\": \"TWO (2)\"}",
+      "{\"enumValue\": \"(2)\"}",
+      "{\"enumValue\": 0x2}",
+    ],
+  },
+  TestCase{
+    name = "EnumUnregistered",
+    example = Example{enumValue = -5},
+    json = "{
+  \"enumValue\": \"(-5)\"
+}",
+    json5 = "{
+  enumValue: \"(-5)\",
+}",
+    additionalInputs = [
+      "{\"enumValue\": \"(-5)\"}",
+      "{\"enumValue\": \"SomeName (-5)\"}",
+      "{\"enumValue\": -5}",
+    ],
+  },
+  TestCase{
+    name = "EnumDefault",
+    example = Example{enumValue = 0},
+    json = "{
+  \"enumValue\": \"DEFAULT (0)\"
+}",
+    json5 = "{
+  enumValue: \"DEFAULT (0)\",
+}",
+    additionalInputs = [
+      "{\"enumValue\": \"DEFAULT (0)\"}",
+      "{\"enumValue\": \"(0)\"}",
+      "{\"enumValue\": 0x0}",
+    ],
+  },
+  // ── Binary Encoding Compatibility ─────────────────────────────────────────
+  // Binary should accept utf-8, base64, and base64url object forms.
+  TestCase{
+    name = "Binary",
+    example = Example{binaryValue = "~_~!"},
+    json = "{
+  \"binaryValue\": {
+    \"utf-8\": \"~_~!\"
+  }
+}",
+    json5 = "{
+  binaryValue: {
+    \"utf-8\": \"~_~!\",
+  },
+}",
+    additionalInputs = [
+      "{binaryValue: {base64url: \"fl9-IQ==\"}}",
+      "{binaryValue: {base64url: \"fl9-IQ\"}}",
+      "{binaryValue: {base64: \"fl9+IQ==\"}}",
+      "{binaryValue: {base64: \"fl9+IQ\"}}",
+      "{binaryValue: \"fl9-IQ==\"}",
+      "{binaryValue: \"fl9-IQ\"}",
+      "{binaryValue: \"fl9+IQ==\"}",
+      "{binaryValue: \"fl9+IQ\"}",
+      "{binaryValue: {\"utf-8\": \"~_~!\"}}",
+    ],
+  },
+  TestCase{
+    name = "BinaryAsKeyAlphabets",
+    example = Example{binaryAsKey = {"~_~!": 1}},
+    json = "{
+  \"binaryAsKey\": [
+    {
+      \"key\": {
+        \"utf-8\": \"~_~!\"
+      },
+      \"value\": 1
+    }
+  ]
+}",
+    json5 = "{
+  binaryAsKey: [
+    {
+      key: {
+        \"utf-8\": \"~_~!\",
+      },
+      value: 1,
+    },
+  ],
+}",
+    additionalInputs = [
+      "{binaryAsKey: {\"fl9-IQ\": 1}}",
+      "{binaryAsKey: {\"fl9+IQ\": 1}}",
+      "{binaryAsKey: {\"fl9+IQ==\": 1}}",
+    ],
+  },
+  // ── Bool as Map Key Compatibility ─────────────────────────────────────────
+  // Bool keys in maps are encoded as strings "true" or "false"
+  TestCase{
+    name = "BoolAsKeyTrue",
+    example = Example{boolAsKey = {1: 42}},
+    json = "{
+  \"boolAsKey\": [
+    {
+      \"key\": true,
+      \"value\": 42
+    }
+  ]
+}",
+    json5 = "{
+  boolAsKey: [
+    {
+      key: true,
+      value: 42,
+    },
+  ],
+}",
+    additionalInputs = ["{\"boolAsKey\": {\"true\": 42}}"],
+  },
+  TestCase{
+    name = "BoolAsKeyFalse",
+    example = Example{boolAsKey = {0: 42}},
+    json = "{
+  \"boolAsKey\": [
+    {
+      \"key\": false,
+      \"value\": 42
+    }
+  ]
+}",
+    json5 = "{
+  boolAsKey: [
+    {
+      key: false,
+      value: 42,
+    },
+  ],
+}",
+    additionalInputs = ["{\"boolAsKey\": {\"false\": 42}}"],
+  },
+  TestCase{
+    name = "BoolAsKeyBoth",
+    example = Example{boolAsKey = {1: 1, 0: 0}},
+    json = "{
+  \"boolAsKey\": [
+    {
+      \"key\": false,
+      \"value\": 0
+    },
+    {
+      \"key\": true,
+      \"value\": 1
+    }
+  ]
+}",
+    json5 = "{
+  boolAsKey: [
+    {
+      key: false,
+      value: 0,
+    },
+    {
+      key: true,
+      value: 1,
+    },
+  ],
+}",
+    additionalInputs = ["{\"boolAsKey\": {\"true\": 1, \"false\": 0}}"],
+  },
+  // ── Field Identifier Format Compatibility ────────────────────────────────────
+  // Accepts: "name", "name (id)", "(id)", "id".
+  TestCase{
+    name = "FieldIdentifierFormats",
+    example = Example{boolValue = true},
+    json = "{
+  \"boolValue\": true
+}",
+    json5 = "{
+  boolValue: true,
+}",
+    additionalInputs = [
+      "{\"boolValue\": true}",
+      "{\"boolValue (30)\": true}",
+      "{\"(30)\": true}",
+      "{\"30\": true}",
+      "{\"boolValue (0x1E)\": true}",
+      "{\"(0x1E)\": true}",
+      "{\"+30\": true}",
+    ],
+  },
+  // ── Unknown Field Skipping Compatibility ────────────────────────────────────
+  // Unknown fields should be silently skipped during deserialization.
+  TestCase{
+    name = "SkipUnknownFields",
+    example = Example{i64Value = 42},
+    json = "{
+  \"i64Value\": 42
+}",
+    json5 = "{
+  i64Value: 42,
+}",
+    additionalInputs = [
+      "{\"i64Value\": 42, \"unknownStr\": \"hello\"}",
+      "{\"i64Value\": 42, \"unknownStr (123)\": \"hello\"}",
+      "{\"unknownNum\": 123, \"i64Value\": 42}",
+      "{\"unknownBool\": true, \"i64Value\": 42}",
+      "{\"unknownNull\": null, \"i64Value\": 42}",
+      "{\"unknownObj\": {\"a\": 1, \"b\": [2, 3]}, \"i64Value\": 42}",
+      "{\"unknownArr\": [1, \"two\", true], \"i64Value\": 42}",
+      "{\"x\": 1, \"y\": \"s\", \"z\": [1], \"w\": {\"a\": 1}, \"i64Value\": 42}",
+    ],
+  },
+  // ── String Line Continuation Compatibility ──────────────────────────────────
+  // A backslash followed by a literal newline (LF, CR, or CRLF) is a line
+  // continuation: the backslash and newline are stripped from the result.
+  TestCase{
+    name = "StringLineContinuation",
+    example = Example{stringValue = "hello, world"},
+    json = "{
+  \"stringValue\": \"hello, world\"
+}",
+    json5 = "{
+  stringValue: \"hello, world\",
+}",
+    additionalInputs = [
+      "{\"stringValue\": \"hello, world\"}",
+      "{\"stringValue\": \"hello, \\\nworld\"}",
+      "{\"stringValue\": \"hello, \\\rworld\"}",
+      "{\"stringValue\": \"hello, \\\r\nworld\"}",
+    ],
+  },
+  // ── Null Field Handling ──────────────────────────────────────────────────────
+  // Null field values should be treated as absent (field not set).
+  TestCase{
+    name = "NullFieldsSkipped",
+    example = Example{boolValue = true},
+    json = "{
+  \"boolValue\": true
+}",
+    json5 = "{
+  boolValue: true,
+}",
+    additionalInputs = [
+      "{\"i64Value\": null, \"boolValue\": true, \"stringValue\": null}",
+    ],
+  },
+  // ── Single-Quoted String Compatibility ──────────────────────────────────────
+  TestCase{
+    name = "SingleQuotedString",
+    example = Example{stringValue = "hello"},
+    json = "{
+  \"stringValue\": \"hello\"
+}",
+    json5 = "{
+  stringValue: \"hello\",
+}",
+    additionalInputs = ["{\"stringValue\": 'hello'}", "{'stringValue': 'hello'}"],
+  },
+  // ── JSON5 Comments Compatibility ────────────────────────────────────────────
+  TestCase{
+    name = "Json5Comments",
+    example = Example{i64Value = 42},
+    json = "{
+  \"i64Value\": 42
+}",
+    json5 = "{
+  i64Value: 42,
+}",
+    additionalInputs = [
+      "{/* comment */\"i64Value\": 42}",
+      "{\"i64Value\": /* inline */ 42}",
+      "{\"i64Value\": 42 // line comment\n}",
+    ],
+  },
+  // ── Double from Integer Compatibility ───────────────────────────────────────
+  TestCase{
+    name = "DoubleFromInteger",
+    example = Example{doubleValue = 42.0},
+    json = "{
+  \"doubleValue\": 42.0
+}",
+    json5 = "{
+  doubleValue: 42.0,
+}",
+    additionalInputs = ["{\"doubleValue\": 42}", "{\"doubleValue\": \"42\"}"],
+  },
+  TestCase{
+    name = "DoubleFromLargestExactIntegerBelow2Pow63",
+    example = Example{doubleValue = 9223372036854774784.0},
+    json = "{
+  \"doubleValue\": 9.223372036854775e+18
+}",
+    json5 = "{
+  doubleValue: 9.223372036854775e+18,
+}",
+    additionalInputs = ["{\"doubleValue\": 9223372036854774784}"],
+  },
+  TestCase{
+    name = "DoubleFromInt64Min",
+    example = Example{doubleValue = -9223372036854775808.0},
+    json = "{
+  \"doubleValue\": -9.223372036854776e+18
+}",
+    json5 = "{
+  doubleValue: -9.223372036854776e+18,
+}",
+    additionalInputs = ["{\"doubleValue\": -9223372036854775808}"],
+  },
+  TestCase{
+    name = "DoubleFromLargeDecimalOrExponent",
+    example = Example{doubleValue = 100000000000000000000.0},
+    json = "{
+  \"doubleValue\": 1e+20
+}",
+    json5 = "{
+  doubleValue: 1e+20,
+}",
+    additionalInputs = [
+      "{\"doubleValue\": 1e20}",
+      "{\"doubleValue\": \"1e20\"}",
+      "{\"doubleValue\": 100000000000000000000.0}",
+      "{\"doubleValue\": \"100000000000000000000.0\"}",
+    ],
+  },
+  // ── Union Compatibility ─────────────────────────────────────────────────────
+  TestCase{
+    name = "UnionEmpty",
+    example = Example{unionValue = ExampleUnion{}},
+    json = "{
+  \"unionValue\": {}
+}",
+    json5 = "{
+  unionValue: {},
+}",
+    additionalInputs = ["{\"unionValue\": {}}"],
+  },
+  // A repeated union field is reset, as in Binary and Compact: an empty object
+  // clears it and a known field replaces it.
+  TestCase{
+    name = "RepeatedUnionFieldEmptyObjectClears",
+    example = Example{unionValue = ExampleUnion{}},
+    json = "{
+  \"unionValue\": {}
+}",
+    json5 = "{
+  unionValue: {},
+}",
+    additionalInputs = [
+      "{\"unionValue\": {\"intValue\": 1}, \"unionValue\": {}}",
+      "{\"unionValue\": {\"intValue\": 1}, \"unionValue\": {\"intValue\": null}}",
+    ],
+  },
+  TestCase{
+    name = "RepeatedUnionFieldOtherMemberReplaces",
+    example = Example{
+      unionValue = ExampleUnion{intValue = 2},
+    },
+    json = "{
+  \"unionValue\": {
+    \"intValue\": 2
+  }
+}",
+    json5 = "{
+  unionValue: {
+    intValue: 2,
+  },
+}",
+    additionalInputs = [
+      "{\"unionValue\": {\"stringValue\": \"a\"}, \"unionValue\": {\"intValue\": 2}}",
+    ],
+  },
+  TestCase{
+    name = "RepeatedUnionFieldSameMemberReplaces",
+    example = Example{
+      unionValue = ExampleUnion{nestedValue = Nested{}},
+    },
+    json = "{
+  \"unionValue\": {
+    \"nestedValue\": {
+      \"nested\": \"\"
+    }
+  }
+}",
+    json5 = "{
+  unionValue: {
+    nestedValue: {
+      nested: \"\",
+    },
+  },
+}",
+    additionalInputs = [
+      "{\"unionValue\": {\"nestedValue\": {\"nested\": \"a\"}}, \"unionValue\": {\"nestedValue\": {}}}",
+    ],
+  },
+  // ── Strings ─────────────────────────────────────────────────────────────
+  TestCase{
+    name = "SurrogatePairEscape",
+    example = Example{stringValue = "😀"},
+    json = "{
+  \"stringValue\": \"😀\"
+}",
+    json5 = "{
+  stringValue: \"😀\",
+}",
+    additionalInputs = [
+      "{\"stringValue\": \"\\ud83d\\ude00\"}",
+      "{\"stringValue\": \"\\uD83D\\uDE00\"}",
+    ],
+  },
+  // ── Floating-Point Keys ─────────────────────────────────────────────────
+  // Keys are decoded with the key type's rules, so integers must convert
+  // exactly.
+  TestCase{
+    name = "DoubleAsKeyFromInteger",
+    example = Example{doubleAsKey = {9007199254740992.0: 1}},
+    json = "{
+  \"doubleAsKey\": [
+    {
+      \"key\": 9007199254740992.0,
+      \"value\": 1
+    }
+  ]
+}",
+    json5 = "{
+  doubleAsKey: [
+    {
+      key: 9007199254740992.0,
+      value: 1,
+    },
+  ],
+}",
+    additionalInputs = [
+      "{\"doubleAsKey\": {\"9007199254740992\": 1}}",
+      "{\"doubleAsKey\": {\"0x20000000000000\": 1}}",
+      "{\"doubleAsKey\": [{\"key\": 9007199254740992, \"value\": 1}]}",
+    ],
+  },
+  TestCase{
+    name = "DoubleAsKeyFromDecimal",
+    example = Example{doubleAsKey = {1.5: 1, 1e20: 2}},
+    json = "{
+  \"doubleAsKey\": [
+    {
+      \"key\": 1.5,
+      \"value\": 1
+    },
+    {
+      \"key\": 1e+20,
+      \"value\": 2
+    }
+  ]
+}",
+    json5 = "{
+  doubleAsKey: [
+    {
+      key: 1.5,
+      value: 1,
+    },
+    {
+      key: 1e+20,
+      value: 2,
+    },
+  ],
+}",
+    additionalInputs = [
+      "{\"doubleAsKey\": {\"1.5\": 1, \"1e20\": 2}}",
+      "{\"doubleAsKey\": [{\"key\": 1.5, \"value\": 1}, {\"key\": \"1e20\", \"value\": 2}]}",
+    ],
+  },
+  TestCase{
+    name = "FloatAsKeyFromInteger",
+    example = Example{floatAsKey = {16777216.0: 1}},
+    json = "{
+  \"floatAsKey\": [
+    {
+      \"key\": 16777216.0,
+      \"value\": 1
+    }
+  ]
+}",
+    json5 = "{
+  floatAsKey: [
+    {
+      key: 16777216.0,
+      value: 1,
+    },
+  ],
+}",
+    additionalInputs = ["{\"floatAsKey\": {\"16777216\": 1}}"],
+  },
+  TestCase{
+    name = "IntegerNegativeZero",
+    example = Example{i64Value = 0},
+    json = "{
+  \"i64Value\": 0
+}",
+    json5 = "{
+  i64Value: 0,
+}",
+    additionalInputs = [
+      "{\"i64Value\": -0}",
+      "{\"i64Value\": \"-0\"}",
+      "{\"i64Value\": -0x0}",
+    ],
+  },
+  TestCase{
+    name = "CommentAfterValue",
+    example = Example{i64Value = 1},
+    json = "{
+  \"i64Value\": 1
+}",
+    json5 = "{
+  i64Value: 1,
+}",
+    additionalInputs = [
+      "{\"i64Value\": 1} // note",
+      "{\"i64Value\": 1} /* note */",
+    ],
+  },
+  // Field id -32768 stands for "no id".
+  TestCase{
+    name = "FieldIdInt16MinMeansNoId",
+    example = Example{boolValue = true},
+    json = "{
+  \"boolValue\": true
+}",
+    json5 = "{
+  boolValue: true,
+}",
+    additionalInputs = ["{\"boolValue (-32768)\": true}"],
+  },
+  TestCase{
+    name = "UnionWithOnlyUnknownField",
+    example = Example{unionValue = ExampleUnion{}},
+    json = "{
+  \"unionValue\": {}
+}",
+    json5 = "{
+  unionValue: {},
+}",
+    additionalInputs = ["{\"unionValue\": {\"unknown\": 1}}"],
+  },
+  TestCase{
+    name = "SetDuplicateElements",
+    example = Example{
+      i32SetValue = [1, 2],
+      setValue = [Nested{nested = "a"}, Nested{nested = "b"}],
+    },
+    json = "{
+  \"setValue\": [
+    {
+      \"nested\": \"a\"
+    },
+    {
+      \"nested\": \"b\"
+    }
+  ],
+  \"i32SetValue\": [
+    1,
+    2
+  ]
+}",
+    json5 = "{
+  setValue: [
+    {
+      nested: \"a\",
+    },
+    {
+      nested: \"b\",
+    },
+  ],
+  i32SetValue: [
+    1,
+    2,
+  ],
+}",
+    additionalInputs = [
+      "{\"i32SetValue\": [2, 1, 2], \"setValue\": [{\"nested\": \"b\"}, {\"nested\": \"a\"}, {\"nested\": \"b\"}]}",
+    ],
+  },
+  TestCase{
+    name = "MapDuplicateKeyLastWins",
+    example = Example{i32AsKey = {1: 3}},
+    json = "{
+  \"i32AsKey\": [
+    {
+      \"key\": 1,
+      \"value\": 3
+    }
+  ]
+}",
+    json5 = "{
+  i32AsKey: [
+    {
+      key: 1,
+      value: 3,
+    },
+  ],
+}",
+    additionalInputs = [
+      "{\"i32AsKey\": [{\"key\": 1, \"value\": 2}, {\"key\": 1, \"value\": 3}]}",
+      "{\"i32AsKey\": {\"1\": 2, \"0x1\": 3}}",
+    ],
+  },
+  TestCase{
+    name = "StructKeyDuplicateLastWins",
+    example = Example{
+      structAsKey = {Nested{nested = "k"}: Nested{nested = "w"}},
+    },
+    json = "{
+  \"structAsKey\": [
+    {
+      \"key\": {
+        \"nested\": \"k\"
+      },
+      \"value\": {
+        \"nested\": \"w\"
+      }
+    }
+  ]
+}",
+    json5 = "{
+  structAsKey: [
+    {
+      key: {
+        nested: \"k\",
+      },
+      value: {
+        nested: \"w\",
+      },
+    },
+  ],
+}",
+    additionalInputs = [
+      "{\"structAsKey\": [{\"key\": {\"nested\": \"k\"}, \"value\": {\"nested\": \"v\"}}, {\"key\": {\"nested\": \"k\"}, \"value\": {\"nested\": \"w\"}}]}",
+    ],
+  },
+  TestCase{
+    name = "FloatAsKeyFromString",
+    example = Example{floatAsKey = {0.5: 1, 16777216.0: 2}},
+    json = "{
+  \"floatAsKey\": [
+    {
+      \"key\": 0.5,
+      \"value\": 1
+    },
+    {
+      \"key\": 16777216.0,
+      \"value\": 2
+    }
+  ]
+}",
+    json5 = "{
+  floatAsKey: [
+    {
+      key: 0.5,
+      value: 1,
+    },
+    {
+      key: 16777216.0,
+      value: 2,
+    },
+  ],
+}",
+    additionalInputs = [
+      "{\"floatAsKey\": [{\"key\": 0.5, \"value\": 1}, {\"key\": \"16777216\", \"value\": 2}]}",
+    ],
+  },
+  // Bare base64 strings: padding is optional, and nonzero trailing bits ("QR")
+  // are ignored.
+  TestCase{
+    name = "BinaryBareBase64OneByte",
+    example = Example{binaryValue = "A"},
+    json = "{
+  \"binaryValue\": {
+    \"utf-8\": \"A\"
+  }
+}",
+    json5 = "{
+  binaryValue: {
+    \"utf-8\": \"A\",
+  },
+}",
+    additionalInputs = [
+      "{\"binaryValue\": \"QQ\"}",
+      "{\"binaryValue\": \"QQ==\"}",
+      "{\"binaryValue\": \"QR\"}",
+    ],
+  },
+  TestCase{
+    name = "BinaryBareBase64TwoBytes",
+    example = Example{binaryValue = "AB"},
+    json = "{
+  \"binaryValue\": {
+    \"utf-8\": \"AB\"
+  }
+}",
+    json5 = "{
+  binaryValue: {
+    \"utf-8\": \"AB\",
+  },
+}",
+    additionalInputs = ["{\"binaryValue\": \"QUI\"}", "{\"binaryValue\": \"QUI=\"}"],
+  },
+  TestCase{
+    name = "BinaryBareBase64ThreeBytes",
+    example = Example{binaryValue = "ABC"},
+    json = "{
+  \"binaryValue\": {
+    \"utf-8\": \"ABC\"
+  }
+}",
+    json5 = "{
+  binaryValue: {
+    \"utf-8\": \"ABC\",
+  },
+}",
+    additionalInputs = ["{\"binaryValue\": \"QUJD\"}"],
+  },
+  TestCase{
+    name = "BinaryBareBase64Empty",
+    example = Example{binaryValue = ""},
+    json = "{
+  \"binaryValue\": {
+    \"utf-8\": \"\"
+  }
+}",
+    json5 = "{
+  binaryValue: {
+    \"utf-8\": \"\",
+  },
+}",
+    additionalInputs = ["{\"binaryValue\": \"\"}"],
+  },
+  // 1 + 2^-24 is exactly halfway between two binary32 values.
+  TestCase{
+    name = "FloatBinary32MidpointTiesToEven",
+    example = Example{floatValue = 1.0},
+    json = "{
+  \"floatValue\": 1.0
+}",
+    json5 = "{
+  floatValue: 1.0,
+}",
+    additionalInputs = ["{\"floatValue\": 1.000000059604644775390625}"],
+  },
+  // Above a binary32 midpoint whose exact decimal has 83 significant digits,
+  // but below it rounded to 41 digits.
+  TestCase{
+    name = "FloatJustAboveLongBinary32Midpoint",
+    example = Example{
+      floatValue = 0.0000000000000000000000000703853130814879132477466099505324860128273323223169199991389177739620208740234375,
+    },
+    json = "{
+  \"floatValue\": 7.0385313e-26
+}",
+    json5 = "{
+  floatValue: 7.0385313e-26,
+}",
+    additionalInputs = ["{\"floatValue\": 7.03853100000000022281692450609677778769437e-26}"],
+  },
+  TestCase{
+    name = "FloatJustBelowMidpointAfterFltMax",
+    example = Example{
+      floatValue = 340282346638528859811704183484516925440.0,
+    },
+    json = "{
+  \"floatValue\": 3.4028235e+38
+}",
+    json5 = "{
+  floatValue: 3.4028235e+38,
+}",
+    additionalInputs = ["{\"floatValue\": 340282356779733661637539395458142568447.999999}"],
+  },
+  TestCase{
+    name = "FloatJustAboveHalfSmallestSubnormal",
+    example = Example{
+      floatValue = 0.000000000000000000000000000000000000000000001401298464324817070923729583289916131280261941876515771757068283889791082685860601486638188362121582031250,
+    },
+    json = "{
+  \"floatValue\": 1e-45
+}",
+    json5 = "{
+  floatValue: 1e-45,
+}",
+    additionalInputs = ["{\"floatValue\": 7.00649232162408535461864791644958065640130970938257885878534141944895541342930300743319094181060791015625000001e-46}"],
+  },
+  // Exactly halfway between the largest subnormal and DBL_MIN.
+  TestCase{
+    name = "DoubleSubnormalMidpointTiesToEven",
+    example = Example{doubleValue = 2.2250738585072014e-308},
+    json = "{
+  \"doubleValue\": 2.2250738585072014e-308
+}",
+    json5 = "{
+  doubleValue: 2.2250738585072014e-308,
+}",
+    additionalInputs = ["{\"doubleValue\": 2.22507385850720113605740979670913197593481954635164564802342610972482222202107694551652952390813508791414915891303962110687008643869459464552765720740782062174337998814106326732925355228688137214901298112245145188984905722230728525513315575501591439747639798341180199932396254828901710708185069063066665599493827577257201576306269066333264756530000924588831643303777979186961204949739037782970490505108060994073026293712895895000358379996720725430436028407889577179615094551674824347103070260914462157228988025818254518032570701886087211312807951223342628836862232150377566662250398253433597456888442390026549819838548794829220689472168983109969836584681402285424333066033985088644580400103493397042756718644338377048603786162277173854562306587467901408672332763671875e-308}"],
+  },
+  TestCase{
+    name = "DoubleJustBelowSubnormalMidpoint",
+    example = Example{doubleValue = 2.225073858507201e-308},
+    json = "{
+  \"doubleValue\": 2.225073858507201e-308
+}",
+    json5 = "{
+  doubleValue: 2.225073858507201e-308,
+}",
+    additionalInputs = [
+      "{\"doubleValue\": 2.225073858507201136057409796709131975934819546351645648e-308}",
+    ],
+  },
+  // ── NaN, Infinity and Negative Zero ────────────────────────────────────────
+  TestCase{
+    name = "Infinity",
+    json = "{
+  \"infValue\": \"Infinity\"
+}",
+    json5 = "{
+  infValue: Infinity,
+}",
+    additionalInputs = [
+      "{\"infValue\": Infinity}",
+      "{\"infValue\": +Infinity}",
+      "{\"infValue\": \"Infinity\"}",
+      "{\"infValue\": \"+Infinity\"}",
+    ],
+  },
+  TestCase{
+    name = "NegativeInfinity",
+    json = "{
+  \"infValue\": \"-Infinity\"
+}",
+    json5 = "{
+  infValue: -Infinity,
+}",
+    additionalInputs = [
+      "{\"infValue\": -Infinity}",
+      "{\"infValue\": \"-Infinity\"}",
+    ],
+  },
+  TestCase{
+    name = "NaN",
+    json = "{
+  \"nanValue\": \"NaN\"
+}",
+    json5 = "{
+  nanValue: NaN,
+}",
+    additionalInputs = [
+      "{\"nanValue\": NaN}",
+      "{\"nanValue\": +NaN}",
+      "{\"nanValue\": \"NaN\"}",
+    ],
+  },
+  TestCase{
+    name = "NegativeNaN",
+    json = "{
+  \"nanValue\": \"-NaN\"
+}",
+    json5 = "{
+  nanValue: -NaN,
+}",
+    additionalInputs = ["{\"nanValue\": -NaN}", "{\"nanValue\": \"-NaN\"}"],
+  },
+  TestCase{
+    name = "FloatSpecialValues",
+    json = "{
+  \"floatListValue\": [
+    \"NaN\",
+    \"-NaN\",
+    \"Infinity\",
+    \"-Infinity\"
+  ]
+}",
+    json5 = "{
+  floatListValue: [
+    NaN,
+    -NaN,
+    Infinity,
+    -Infinity,
+  ],
+}",
+    additionalInputs = [
+      "{\"floatListValue\": [NaN, -NaN, Infinity, -Infinity]}",
+      "{\"floatListValue\": [\"NaN\", \"-NaN\", \"Infinity\", \"-Infinity\"]}",
+    ],
+  },
+  // SimpleJSON writes -0.0 as `-0`.
+  TestCase{
+    name = "NegativeZero",
+    json = "{
+  \"floatValue\": -0.0,
+  \"doubleValue\": -0.0
+}",
+    json5 = "{
+  floatValue: -0.0,
+  doubleValue: -0.0,
+}",
+    additionalInputs = [
+      "{\"floatValue\": -0.0, \"doubleValue\": -0.0}",
+      "{\"floatValue\": -0, \"doubleValue\": -0}",
+      "{\"floatValue\": \"-0\", \"doubleValue\": \"-0\"}",
+      "{\"floatValue\": -0x0, \"doubleValue\": -0x0}",
+      "{\"floatValue\": \"-0x0\", \"doubleValue\": \"-0x0\"}",
+      "{\"floatValue\": \"-0.0\", \"doubleValue\": \"-0.0\"}",
+    ],
+  },
+  TestCase{
+    name = "PositiveZero",
+    json = "{
+  \"floatValue\": 0.0,
+  \"doubleValue\": 0.0
+}",
+    json5 = "{
+  floatValue: 0.0,
+  doubleValue: 0.0,
+}",
+    additionalInputs = [
+      "{\"floatValue\": 0, \"doubleValue\": 0}",
+      "{\"floatValue\": \"0\", \"doubleValue\": \"0\"}",
+      "{\"floatValue\": +0, \"doubleValue\": +0}",
+      "{\"floatValue\": 0.0, \"doubleValue\": 0.0}",
+    ],
+  },
+  TestCase{
+    name = "NegativeZeroKey",
+    json = "{
+  \"doubleAsKey\": [
+    {
+      \"key\": -0.0,
+      \"value\": 1
+    }
+  ],
+  \"floatAsKey\": [
+    {
+      \"key\": -0.0,
+      \"value\": 2
+    }
+  ]
+}",
+    json5 = "{
+  doubleAsKey: [
+    {
+      key: -0.0,
+      value: 1,
+    },
+  ],
+  floatAsKey: [
+    {
+      key: -0.0,
+      value: 2,
+    },
+  ],
+}",
+    additionalInputs = [
+      "{\"doubleAsKey\": {\"-0\": 1}, \"floatAsKey\": {\"-0\": 2}}",
+      "{\"doubleAsKey\": {\"-0x0\": 1}, \"floatAsKey\": {\"-0x0\": 2}}",
+      "{\"doubleAsKey\": [{\"key\": -0, \"value\": 1}], \"floatAsKey\": [{\"key\": -0, \"value\": 2}]}",
+    ],
+  },
+  TestCase{
+    name = "SignsOfZeroAndNaNInDoubleList",
+    json = "{
+  \"doubleListValue\": [
+    -0.0,
+    \"-NaN\",
+    0.0,
+    \"NaN\"
+  ]
+}",
+    json5 = "{
+  doubleListValue: [
+    -0.0,
+    -NaN,
+    0.0,
+    NaN,
+  ],
+}",
+    additionalInputs = [
+      "{\"doubleListValue\": [-0.0, -NaN, 0.0, NaN]}",
+      "{\"doubleListValue\": [-0, \"-NaN\", 0, \"NaN\"]}",
+      "{doubleListValue: [\"-0x0\", -NaN, \"0.0\", +NaN]}",
+    ],
+  },
+  TestCase{
+    name = "FloatNegativeNaN",
+    json = "{
+  \"floatValue\": \"-NaN\"
+}",
+    json5 = "{
+  floatValue: -NaN,
+}",
+    additionalInputs = ["{\"floatValue\": -NaN}", "{\"floatValue\": \"-NaN\"}"],
+  },
+  TestCase{
+    name = "FloatOverflowsToInfinity",
+    json = "{
+  \"floatValue\": \"Infinity\"
+}",
+    json5 = "{
+  floatValue: Infinity,
+}",
+    additionalInputs = [
+      "{\"floatValue\": 1e39}",
+      "{\"floatValue\": 340282356779733661637539395458142568448.000001}",
+    ],
   },
 ];
 

@@ -35,11 +35,12 @@ using namespace facebook::thrift::json5::json5_test_constants;
 class Json5EncoderStructTest : public ::testing::TestWithParam<TestCase> {};
 
 TEST_P(Json5EncoderStructTest, Encode) {
-  EXPECT_EQ(
-      Json5ProtocolUtils::toBasicJson(*GetParam().example()),
-      *GetParam().json());
-  EXPECT_EQ(
-      Json5ProtocolUtils::toJson5(*GetParam().example()), *GetParam().json5());
+  const auto& example = GetParam().example();
+  if (!example) {
+    GTEST_SKIP();
+  }
+  EXPECT_EQ(Json5ProtocolUtils::toBasicJson(*example), *GetParam().json());
+  EXPECT_EQ(Json5ProtocolUtils::toJson5(*example), *GetParam().json5());
 }
 
 INSTANTIATE_TEST_SUITE_P(

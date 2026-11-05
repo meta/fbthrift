@@ -480,15 +480,29 @@ TEST(Json5SerializationTest, SetAndMapOrderDoesNotDependOnInsertionOrder) {
 class Json5SharedTest : public testing::TestWithParam<shared::TestCase> {};
 
 TEST_P(Json5SharedTest, Writes) {
-  const auto value = toDynamic(*GetParam().example());
-  EXPECT_EQ(toJson(value, basicJsonOptions()), *GetParam().json());
-  EXPECT_EQ(toJson(value), *GetParam().json5());
+  const auto& tc = GetParam();
+  if (!tc.example()) {
+    GTEST_SKIP();
+  }
+  const auto value = toDynamic(*tc.example());
+  EXPECT_EQ(toJson(value, basicJsonOptions()), *tc.json());
+  EXPECT_EQ(toJson(value), *tc.json5());
 }
 
 TEST_P(Json5SharedTest, Reads) {
-  for (const auto& json : {*GetParam().json(), *GetParam().json5()}) {
-    EXPECT_EQ(fromJsonViaDynamic<shared::Example>(json), *GetParam().example())
-        << json;
+  const auto& tc = GetParam();
+  std::vector<std::string> inputs = {*tc.json(), *tc.json5()};
+  inputs.insert(
+      inputs.end(),
+      tc.additionalInputs()->begin(),
+      tc.additionalInputs()->end());
+  for (const auto& input : inputs) {
+    const auto value = fromJson(input, typeOf<shared::Example>());
+    EXPECT_EQ(toJson(value, basicJsonOptions()), *tc.json()) << input;
+    EXPECT_EQ(toJson(value), *tc.json5()) << input;
+    if (tc.example()) {
+      EXPECT_EQ(toStatic<shared::Example>(value), *tc.example()) << input;
+    }
   }
 }
 

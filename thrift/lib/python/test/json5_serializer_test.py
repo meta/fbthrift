@@ -39,45 +39,47 @@ from thrift.python.serializer import (
 class Json5SerializerTest(unittest.TestCase):
     """Test JSON5 serialization using test cases from json5_test.thrift."""
 
+    def test_deserialize(self) -> None:
+        for tc in test_types.testCases:
+            with self.subTest(tc.name):
+                for input_json in [tc.json, tc.json5, *tc.additionalInputs]:
+                    result = deserialize(
+                        test_types.Example, input_json.encode(), Protocol.JSON5
+                    )
+                    self.assertEqual(
+                        serialize(
+                            result,
+                            Protocol.JSON5,
+                            options=Json5ProtocolWriterOptions(),
+                        ).decode(),
+                        tc.json,
+                        f"Failed for input: {input_json}",
+                    )
+                    self.assertEqual(
+                        serialize(result, Protocol.JSON5, options=JSON5_MODE).decode(),
+                        tc.json5,
+                        f"Failed for input: {input_json}",
+                    )
+                    if tc.example is not None:
+                        self.assertEqual(
+                            result, tc.example, f"Failed for input: {input_json}"
+                        )
+
     def test_serialize(self) -> None:
         for tc in test_types.testCases:
+            if tc.example is None:
+                continue
             with self.subTest(tc.name):
-                json_str = serialize(tc.example, protocol=Protocol.JSON5).decode()
-                self.assertEqual(json.loads(json_str), json.loads(tc.json))
-
-    def test_serialize_json(self) -> None:
-        for tc in test_types.testCases:
-            with self.subTest(tc.name):
-                json_str = serialize(
-                    tc.example,
-                    Protocol.JSON5,
-                    options=Json5ProtocolWriterOptions(),
-                ).decode()
-                self.assertEqual(json_str, tc.json)
-
-    def test_serialize_json5(self) -> None:
-        for tc in test_types.testCases:
-            with self.subTest(tc.name):
-                json_str = serialize(
-                    tc.example, Protocol.JSON5, options=JSON5_MODE
-                ).decode()
-                self.assertEqual(json_str, tc.json5)
-
-    def test_deserialize_json(self) -> None:
-        for tc in test_types.testCases:
-            with self.subTest(tc.name):
-                result = deserialize(
-                    test_types.Example, tc.json.encode(), Protocol.JSON5
+                self.assertEqual(
+                    serialize(
+                        tc.example, Protocol.JSON5, options=Json5ProtocolWriterOptions()
+                    ).decode(),
+                    tc.json,
                 )
-                self.assertEqual(result, tc.example)
-
-    def test_deserialize_json5(self) -> None:
-        for tc in test_types.testCases:
-            with self.subTest(tc.name):
-                result = deserialize(
-                    test_types.Example, tc.json5.encode(), Protocol.JSON5
+                self.assertEqual(
+                    serialize(tc.example, Protocol.JSON5, options=JSON5_MODE).decode(),
+                    tc.json5,
                 )
-                self.assertEqual(result, tc.example)
 
 
 class Json5EncoderExtraTest(unittest.TestCase):
@@ -298,9 +300,12 @@ class Json5SerializerOptionTest(unittest.TestCase):
         """Default options produces the same output as no options."""
         for tc in test_types.testCases:
             with self.subTest(tc.name):
-                without_options = serialize(tc.example, Protocol.JSON5)
+                example = deserialize(
+                    test_types.Example, tc.json.encode(), Protocol.JSON5
+                )
+                without_options = serialize(example, Protocol.JSON5)
                 with_options = serialize(
-                    tc.example,
+                    example,
                     Protocol.JSON5,
                     options=Json5ProtocolWriterOptions(),
                 )

@@ -30,9 +30,19 @@ using namespace facebook::thrift::json5::json5_test_constants;
 class Json5DecoderTest : public testing::TestWithParam<TestCase> {};
 
 TEST_P(Json5DecoderTest, Decode) {
-  for (const auto& json : {*GetParam().json(), *GetParam().json5()}) {
-    auto out = Json5ProtocolUtils::fromJson5<Example>(json);
-    EXPECT_EQ(out, *GetParam().example()) << json;
+  const auto& tc = GetParam();
+  std::vector<std::string> inputs = {*tc.json(), *tc.json5()};
+  inputs.insert(
+      inputs.end(),
+      tc.additionalInputs()->begin(),
+      tc.additionalInputs()->end());
+  for (const auto& input : inputs) {
+    auto out = Json5ProtocolUtils::fromJson5<Example>(input);
+    EXPECT_EQ(Json5ProtocolUtils::toBasicJson(out), *tc.json()) << input;
+    EXPECT_EQ(Json5ProtocolUtils::toJson5(out), *tc.json5()) << input;
+    if (tc.example()) {
+      EXPECT_EQ(out, *tc.example()) << input;
+    }
   }
 }
 

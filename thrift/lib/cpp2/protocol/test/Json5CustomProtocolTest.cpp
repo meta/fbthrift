@@ -61,48 +61,46 @@ std::string writeExample(
 
 } // namespace
 
-// ── Struct decoding tests driven by thrift test data ─────────────────────────
+// ── Struct tests driven by thrift test data ─────────────────────────────────
 
-class Json5CustomProtocolDecodeTest
-    : public ::testing::TestWithParam<TestCase> {};
+class Json5CustomProtocolTest : public ::testing::TestWithParam<TestCase> {};
 
-TEST_P(Json5CustomProtocolDecodeTest, DecodeJson) {
-  auto out = readExample(*GetParam().json());
-  EXPECT_EQ(out, *GetParam().example()) << *GetParam().json();
+TEST_P(Json5CustomProtocolTest, Decode) {
+  const auto& tc = GetParam();
+  auto json5Options = kJson5Options;
+  json5Options.indentWidth = 2;
+  std::vector<std::string> inputs = {*tc.json(), *tc.json5()};
+  inputs.insert(
+      inputs.end(),
+      tc.additionalInputs()->begin(),
+      tc.additionalInputs()->end());
+  for (const auto& input : inputs) {
+    auto out = readExample(input);
+    EXPECT_EQ(writeExample(out, {.writer = {.indentWidth = 2}}), *tc.json())
+        << input;
+    EXPECT_EQ(writeExample(out, {.writer = json5Options}), *tc.json5())
+        << input;
+    if (tc.example()) {
+      EXPECT_EQ(out, *tc.example()) << input;
+    }
+  }
 }
 
-TEST_P(Json5CustomProtocolDecodeTest, DecodeJson5) {
-  auto out = readExample(*GetParam().json5());
-  EXPECT_EQ(out, *GetParam().example()) << *GetParam().json5();
+TEST_P(Json5CustomProtocolTest, Encode) {
+  const auto& tc = GetParam();
+  if (!tc.example()) {
+    GTEST_SKIP();
+  }
+  auto json5Options = kJson5Options;
+  json5Options.indentWidth = 2;
+  EXPECT_EQ(
+      writeExample(*tc.example(), {.writer = {.indentWidth = 2}}), *tc.json());
+  EXPECT_EQ(writeExample(*tc.example(), {.writer = json5Options}), *tc.json5());
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    Decode,
-    Json5CustomProtocolDecodeTest,
-    ::testing::ValuesIn(testCases()),
-    [](const auto& info) { return *info.param.name(); });
-
-// ── Struct encoding tests driven by thrift test data ─────────────────────────
-
-class Json5CustomProtocolEncodeTest
-    : public ::testing::TestWithParam<TestCase> {};
-
-TEST_P(Json5CustomProtocolEncodeTest, EncodeJson) {
-  auto out =
-      writeExample(*GetParam().example(), {.writer = {.indentWidth = 2}});
-  EXPECT_EQ(out, *GetParam().json());
-}
-
-TEST_P(Json5CustomProtocolEncodeTest, EncodeJson5) {
-  auto opts = kJson5Options;
-  opts.indentWidth = 2;
-  auto out = writeExample(*GetParam().example(), {.writer = opts});
-  EXPECT_EQ(out, *GetParam().json5());
-}
-
-INSTANTIATE_TEST_SUITE_P(
-    Encode,
-    Json5CustomProtocolEncodeTest,
+    Shared,
+    Json5CustomProtocolTest,
     ::testing::ValuesIn(testCases()),
     [](const auto& info) { return *info.param.name(); });
 
