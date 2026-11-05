@@ -107,30 +107,19 @@ PyObject* createStructTupleWithDeprecatedIsset(int16_t numFields);
  */
 PyObject* createStructList(int16_t numFields);
 
-/**
- * Returns a borrowed reference to the value in slot `index` of the field cache
- * tuple `cache`, or nullptr if the slot is empty.
- */
-inline PyObject* fieldCacheGet(PyObject* cache, Py_ssize_t index) {
-#ifdef Py_GIL_DISABLED
-  return static_cast<PyObject*>(_Py_atomic_load_ptr_acquire(
-      &reinterpret_cast<PyTupleObject*>(cache)->ob_item[index]));
-#else
-  return PyTuple_GET_ITEM(cache, index);
-#endif
-}
+// The converter returns a new reference, or nullptr with a Python exception.
+using FieldValueFactory = PyObject* (*)(PyObject*, int16_t);
 
 /**
- * Stores `value` in slot `index` of the field cache tuple `cache`, unless the
- * slot is already filled. Steals `value` and returns a borrowed reference to
- * the object the slot holds afterwards.
+ * Returns a new reference to the cache's value, or nullptr with the converter's
+ * Python exception. The caller must keep `owner` and `cache` alive throughout
+ * the call. Each cache slot changes at most once.
  *
- * A slot is written at most once: a thread that loses the race to fill it
- * drops its own value and returns the winner's. Building a value can run
- * Python code, such as an adapter, so even with the GIL another thread can
- * fill the slot first.
+ * A cache miss calls the converter, which can run Python code. Another call
+ * can fill the slot before conversion finishes, with or without the GIL.
  */
-PyObject* fieldCachePublish(PyObject* cache, Py_ssize_t index, PyObject* value);
+PyObject* FOLLY_NULLABLE fieldCacheGetOrCreate(
+    PyObject* cache, int16_t index, PyObject* owner, FieldValueFactory create);
 
 /**
  * Returns a new "struct tuple" associated with an immutable Thrift struct,

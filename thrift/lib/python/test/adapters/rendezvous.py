@@ -34,13 +34,20 @@ T = typing.TypeVar("T")
 
 class Box(typing.Generic[T]):
     __slots__ = ["value"]
+    on_delete: typing.ClassVar[typing.Callable[[int], None] | None] = None
 
     def __init__(self, value: T) -> None:
         self.value: T = value
 
+    def __del__(self) -> None:
+        on_delete = Box.on_delete
+        if on_delete is not None:
+            on_delete(id(self))
+
 
 class RendezvousAdapter(Adapter[T, Box[T]]):
     barrier: typing.ClassVar[threading.Barrier | None] = None
+    shared_value: typing.ClassVar[Box[typing.Any] | None] = None
 
     @classmethod
     def from_thrift_field(
@@ -54,6 +61,9 @@ class RendezvousAdapter(Adapter[T, Box[T]]):
         barrier = cls.barrier
         if barrier is not None:
             barrier.wait()
+        shared_value = cls.shared_value
+        if shared_value is not None:
+            return shared_value
         return Box(original)
 
     @classmethod

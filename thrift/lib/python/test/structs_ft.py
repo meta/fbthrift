@@ -162,6 +162,112 @@ class FreeThreading_StructTests(unittest.TestCase):
         ]
         self.assertEqual(expected_divergent_indexes, actual_divergent_indexes)
 
+    def test_cached_read_retains_value_after_struct_release(self) -> None:
+        live_boxes_before = count_live_objects(Box)
+        struct = FieldCacheRace(value=Box("cached"))
+        first_value = struct.value
+        barrier = threading.Barrier(2)
+        barrier.abort()
+        RendezvousAdapter.barrier = barrier
+        self.addCleanup(setattr, RendezvousAdapter, "barrier", None)
+
+        cached_value = struct.value
+        self.assertIs(first_value, cached_value)
+        del first_value, struct
+        self.assertEqual("cached", cached_value.value)
+        del cached_value
+        self.assertEqual(live_boxes_before, count_live_objects(Box))
+
+    def test_cache_miss_retains_nested_value_after_struct_release(self) -> None:
+        live_parents_before = count_live_objects(Nested1)
+        live_children_before = count_live_objects(Nested2)
+        expected_live_children = live_children_before + 1
+        expected_leaf_value = 42
+        expected_leaf_name = "cached"
+        struct = Nested1(a=Nested2(b=Nested3(c=easy(val=42, name="cached"))))
+
+        field_value = struct.a
+        del struct
+
+        live_parents_after = count_live_objects(Nested1)
+        live_children_after = count_live_objects(Nested2)
+        self.assertEqual(live_parents_before, live_parents_after)
+        self.assertEqual(expected_live_children, live_children_after)
+
+        actual_leaf_value = field_value.b.c.val
+        actual_leaf_name = field_value.b.c.name
+        self.assertEqual(expected_leaf_value, actual_leaf_value)
+        self.assertEqual(expected_leaf_name, actual_leaf_name)
+
+        del field_value
+        live_children_after_value_release = count_live_objects(Nested2)
+        self.assertEqual(live_children_before, live_children_after_value_release)
+
+    def test_discarded_field_value_destructor_reenters_cache(self) -> None:
+        struct = FieldCacheRace(value=Box("race"))
+        reads: list[Box[str]] = []
+        reentrant_reads: list[Box[str]] = []
+        destroyed_box_ids: list[int] = []
+        expected_destructor_calls = 1
+        expected_destructor_reads = 1
+        expected_cached_value = "race"
+        RendezvousAdapter.barrier = threading.Barrier(2, timeout=30)
+        self.addCleanup(setattr, RendezvousAdapter, "barrier", None)
+        self.addCleanup(setattr, Box, "on_delete", None)
+
+        def reenter(destroyed_box_id: int) -> None:
+            destroyed_box_ids.append(destroyed_box_id)
+            reentrant_reads.append(struct.value)
+
+        def worker() -> None:
+            value = struct.value
+            reads.append(value)
+
+        Box.on_delete = reenter
+        # Each fieldCacheGetOrCreate call observes an empty slot and starts
+        # conversion. The adapter barrier stops both before either creates a
+        # Box, so neither can fill the cache before both have observed it empty.
+        # Both conversions create a Box after the barrier, even if one finishes first.
+        # fieldCacheGetOrCreate caches one Box and releases the other.
+        # The discarded Box's __del__ records its identity and reads the cached Box.
+        try:
+            run_concurrently(worker_func=worker, nthreads=2)
+        finally:
+            Box.on_delete = None
+            RendezvousAdapter.barrier = None
+
+        actual_destructor_calls = len(destroyed_box_ids)
+        actual_destructor_reads = len(reentrant_reads)
+        self.assertEqual(expected_destructor_calls, actual_destructor_calls)
+        self.assertEqual(expected_destructor_reads, actual_destructor_reads)
+
+        cached_box, box_returned_to_other_worker = reads
+        box_read_by_destructor = reentrant_reads[0]
+        self.assertIs(cached_box, box_returned_to_other_worker)
+        self.assertIs(cached_box, box_read_by_destructor)
+
+        cached_box_id = id(cached_box)
+        destroyed_box_id = destroyed_box_ids[0]
+        self.assertNotEqual(cached_box_id, destroyed_box_id)
+
+        actual_cached_value = box_read_by_destructor.value
+        self.assertEqual(expected_cached_value, actual_cached_value)
+
+    def test_failed_field_conversion_leaves_cache_empty(self) -> None:
+        struct = FieldCacheRace(value=Box("retry"))
+        barrier = threading.Barrier(2)
+        barrier.abort()
+        RendezvousAdapter.barrier = barrier
+        self.addCleanup(setattr, RendezvousAdapter, "barrier", None)
+
+        with self.assertRaises(threading.BrokenBarrierError):
+            _ = struct.value
+
+        RendezvousAdapter.barrier = None
+        value = struct.value
+        self.assertEqual("retry", value.value)
+        self.assertIs(value, struct.value)
+
     def test_forced_first_read_race_keeps_one_value(self) -> None:
         # GIVEN
         struct = FieldCacheRace(value=Box("race"))
@@ -185,6 +291,29 @@ class FreeThreading_StructTests(unittest.TestCase):
         actual_live_boxes = count_live_objects(Box)
         self.assertTrue(actual_same_value)
         self.assertEqual(expected_live_boxes, actual_live_boxes)
+
+    def test_forced_first_read_race_frees_shared_value(self) -> None:
+        live_boxes_before = count_live_objects(Box)
+        expected_leaked_boxes = 0
+
+        def race() -> None:
+            struct = FieldCacheRace(value=Box("race"))
+            shared_value = Box("race")
+            RendezvousAdapter.shared_value = shared_value
+            RendezvousAdapter.barrier = threading.Barrier(2, timeout=30)
+
+            def worker() -> None:
+                self.assertIs(struct.value, shared_value)
+
+            try:
+                run_concurrently(worker_func=worker, nthreads=2)
+            finally:
+                RendezvousAdapter.barrier = None
+                RendezvousAdapter.shared_value = None
+
+        race()
+        actual_leaked_boxes = count_live_objects(Box) - live_boxes_before
+        self.assertEqual(expected_leaked_boxes, actual_leaked_boxes)
 
     def test_concurrent_first_reads_free_discarded_field_values(self) -> None:
         # GIVEN

@@ -1579,17 +1579,8 @@ cdef class Struct(StructOrUnion):
         return py_value
 
     cdef _fbthrift_get_cached_field_value(self, int16_t index):
-        cdef PyObject* cached_value = fieldCacheGet(
-            self._fbthrift_field_cache, index
-        )
-        if cached_value != NULL:
-            return <object>cached_value
-
-        py_value = self._fbthrift_py_value_from_internal_data(index)
-
-        Py_INCREF(py_value)
-        return <object>fieldCachePublish(
-            self._fbthrift_field_cache, index, <PyObject*>py_value
+        return fieldCacheGetOrCreate(
+            self._fbthrift_field_cache, index, self, _fbthrift_create_field_value
         )
 
     cdef _fbthrift_fully_populate_cache(self):
@@ -1671,6 +1662,10 @@ cdef class Struct(StructOrUnion):
     @staticmethod
     def __get_thrift_uri__():
         return NotImplementedError()
+
+cdef object _fbthrift_create_field_value(object owner, int16_t index):
+    return (<Struct>owner)._fbthrift_py_value_from_internal_data(index)
+
 
 def _unpickle_union(klass, bytes data):
     cdef IOBuf iobuf = IOBuf(data)
