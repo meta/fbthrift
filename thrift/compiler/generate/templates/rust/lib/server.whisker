@@ -24,6 +24,8 @@
 {{#let export partial server |interface parent_service_name| captures |method_metadata rpc server_arg server_trait types|}}
   {{#let program=interface.program}}
   {{#let service_extends = (if interface.interaction? null interface.extends)}}
+  {{#let extends_fb303 = (if interface.interaction? false interface.extends_fb303?)}}
+  {{#let server_extends = (if extends_fb303 null service_extends)}}
   {{#if (not interface.interaction?)}}
     {{#if (not (array.empty? interface.interactions))}}
 pub mod {{interface.snake}} {
@@ -40,7 +42,7 @@ pub mod {{interface.snake}} {
   {{/if (not interface.interaction?)}}
 /// Processor for {{interface.rust_name}}'s methods.
 #[derive(Clone, Debug)]
-pub struct {{interface.rust_name}}Processor<P, H, R, RS{{#if (object.notnull? service_extends)}}, SS{{/if}}> {
+pub struct {{interface.rust_name}}Processor<P, H, R, RS{{#if (object.notnull? service_extends)}}, SS{{/if}}{{#if extends_fb303}}, const NO_FB303: bool = false{{/if}}> {
     service: H,
     supa: {{#if (object.notnull? service_extends)}}SS{{#else}}::fbthrift::NullServiceProcessor<P, R, RS>{{/if}},
     _phantom: ::std::marker::PhantomData<(P, H, R, RS)>,
@@ -49,7 +51,35 @@ pub struct {{interface.rust_name}}Processor<P, H, R, RS{{#if (object.notnull? se
   {{#if (not interface.interaction?)}}
 {{#partial server_arg.server_arg interface=interface}}
   {{/if (not interface.interaction?)}}
-impl<P, H, R, RS{{#if (object.notnull? service_extends)}}, SS{{/if}}> {{interface.rust_name}}Processor<P, H, R, RS{{#if (object.notnull? service_extends)}}, SS{{/if}}>
+  {{#if extends_fb303}}
+impl<P, H, R, RS, SS> {{interface.rust_name}}Processor<P, H, R, RS, SS, false>
+where
+    P: ::fbthrift::Protocol,
+    P::Frame: ::std::marker::Send + 'static,
+    SS: ::fbthrift::ThriftService<P::Frame>,
+    SS::Handler: {{#partial rpc.super service=interface}},
+{
+    pub fn new(service: H, supa: SS) -> Self {
+        Self {
+            service,
+            supa,
+            _phantom: ::std::marker::PhantomData,
+        }
+    }
+}
+
+impl<P, H, R, RS> {{interface.rust_name}}Processor<P, H, R, RS, ::fbthrift::NullServiceProcessor<P, R, RS>, true> {
+    pub fn new_no_fb303(service: H) -> Self {
+        Self {
+            service,
+            supa: ::fbthrift::NullServiceProcessor::new(),
+            _phantom: ::std::marker::PhantomData,
+        }
+    }
+}
+
+  {{/if extends_fb303}}
+impl<P, H, R, RS{{#if (object.notnull? service_extends)}}, SS{{/if}}{{#if extends_fb303}}, const NO_FB303: bool{{/if}}> {{interface.rust_name}}Processor<P, H, R, RS{{#if (object.notnull? service_extends)}}, SS{{/if}}{{#if extends_fb303}}, NO_FB303{{/if}}>
 where
     P: ::fbthrift::Protocol + ::std::marker::Send + ::std::marker::Sync + 'static,
     P::Frame: ::std::marker::Send + 'static,
@@ -63,9 +93,12 @@ where
     ::fbthrift::ProtocolEncodedFinal<P>: ::std::clone::Clone + ::fbthrift::BufExt,
     {{#if (object.notnull? service_extends)}}
     SS: ::fbthrift::ThriftService<P::Frame>,
+      {{#if (not extends_fb303)}}
     SS::Handler: {{#partial rpc.super service=interface}}
+      {{/if (not extends_fb303)}}
     {{/if (object.notnull? service_extends)}}
 {
+    {{#if (not extends_fb303)}}
     pub fn new(service: H{{#if (object.notnull? service_extends)}}, supa: SS{{/if}}) -> Self {
         Self {
             service,
@@ -73,6 +106,7 @@ where
             _phantom: ::std::marker::PhantomData,
         }
     }
+    {{/if (not extends_fb303)}}
 
     pub fn into_inner(self) -> H {
         self.service
@@ -481,14 +515,16 @@ where
 }
 
 #[::async_trait::async_trait]
-impl<P, H, R, RS{{#if (object.notnull? service_extends)}}, SS{{/if}}> ::fbthrift::ServiceProcessor<P> for {{interface.rust_name}}Processor<P, H, R, RS{{#if (object.notnull? service_extends)}}, SS{{/if}}>
+impl<P, H, R, RS{{#if (object.notnull? service_extends)}}, SS{{/if}}{{#if extends_fb303}}, const NO_FB303: bool{{/if}}> ::fbthrift::ServiceProcessor<P> for {{interface.rust_name}}Processor<P, H, R, RS{{#if (object.notnull? service_extends)}}, SS{{/if}}{{#if extends_fb303}}, NO_FB303{{/if}}>
 where
     P: ::fbthrift::Protocol + ::std::marker::Send + ::std::marker::Sync + 'static,
     P::Deserializer: ::std::marker::Send,
     H: {{interface.rust_name}}{{#if (and (not interface.interaction?) interface.requestContext?)}}<RequestContext = R>{{/if}},
     {{#if (object.notnull? service_extends)}}
     SS: ::fbthrift::ThriftService<P::Frame>,
+      {{#if (not extends_fb303)}}
     SS::Handler: {{#partial rpc.super service=interface}},
+      {{/if (not extends_fb303)}}
     {{/if (object.notnull? service_extends)}}
     P::Frame: ::std::marker::Send + 'static,
     R: ::fbthrift::RequestContext<Name = ::std::ffi::CStr> + ::std::marker::Send + ::std::marker::Sync + 'static,
@@ -585,7 +621,7 @@ where
 }
 
 #[::async_trait::async_trait]
-impl<P, H, R, RS{{#if (object.notnull? service_extends)}}, SS{{/if}}> ::fbthrift::ThriftService<P::Frame> for {{interface.rust_name}}Processor<P, H, R, RS{{#if (object.notnull? service_extends)}}, SS{{/if}}>
+impl<P, H, R, RS{{#if (object.notnull? service_extends)}}, SS{{/if}}{{#if extends_fb303}}, const NO_FB303: bool{{/if}}> ::fbthrift::ThriftService<P::Frame> for {{interface.rust_name}}Processor<P, H, R, RS{{#if (object.notnull? service_extends)}}, SS{{/if}}{{#if extends_fb303}}, NO_FB303{{/if}}>
 where
     P: ::fbthrift::Protocol + ::std::marker::Send + ::std::marker::Sync + 'static,
     P::Deserializer: ::std::marker::Send,
@@ -593,7 +629,9 @@ where
     H: {{interface.rust_name}}{{#if (and (not interface.interaction?) interface.requestContext?)}}<RequestContext = R>{{/if}},
     {{#if (object.notnull? service_extends)}}
     SS: ::fbthrift::ThriftService<P::Frame, RequestContext = R, ReplyState = RS>,
+      {{#if (not extends_fb303)}}
     SS::Handler: {{#partial rpc.super service=interface}},
+      {{/if (not extends_fb303)}}
     P::Frame: ::std::marker::Send + 'static,
     {{/if (object.notnull? service_extends)}}
     R: ::fbthrift::RequestContext<Name = ::std::ffi::CStr> + ::std::marker::Send + ::std::marker::Sync + 'static,
@@ -659,8 +697,16 @@ where
     }
 
     fn get_method_metadata(&self) -> &'static [::fbthrift::processor::MethodMetadata] {
+        {{#if extends_fb303}}
+        // Without an fb303 parent, the C++ layer must keep answering fb303 methods.
+        if NO_FB303 {
+            return &[
+                {{#partial method_metadata.method_metadata interface=interface skip_parent=true}}
+            ];
+        }
+        {{/if extends_fb303}}
         &[
-            {{#partial method_metadata.method_metadata interface=interface}}
+            {{#partial method_metadata.method_metadata interface=interface skip_parent=false}}
         ]
     }
 
@@ -670,27 +716,33 @@ where
     }
 }
 
+  {{#if extends_fb303}}
+/// Processor for {{interface.rust_name}}'s methods without its fb303 parent.
+pub type {{interface.rust_name}}ProcessorNoFb303<P, H, R, RS> =
+    {{interface.rust_name}}Processor<P, H, R, RS, ::fbthrift::NullServiceProcessor<P, R, RS>, true>;
+
+  {{/if extends_fb303}}
   {{#if (not interface.interaction?)}}
 /// Construct a new instance of a {{interface.rust_name}} service.
 ///
 /// This is called when a new instance of a Thrift service Processor
 /// is needed for a particular Thrift protocol.
 #[::tracing::instrument(level="debug", skip_all, fields(proto = ?proto))]
-pub fn make_{{interface.rust_name}}_server<F, H, R, RS{{#if (object.notnull? service_extends)}}, SMAKE, SS{{/if}}>(
+pub fn make_{{interface.rust_name}}_server<F, H, R, RS{{#if (object.notnull? server_extends)}}, SMAKE, SS{{/if}}>(
     proto: ::fbthrift::ProtocolID,
     handler: H,
-    {{#if (object.notnull? service_extends)}}
+    {{#if (object.notnull? server_extends)}}
     supa: SMAKE,
-    {{/if (object.notnull? service_extends)}}
+    {{/if (object.notnull? server_extends)}}
 ) -> ::std::result::Result<::std::boxed::Box<dyn ::fbthrift::ThriftService<F, Handler = H, RequestContext = R, ReplyState = RS> + ::std::marker::Send + 'static>, ::fbthrift::ApplicationException>
 where
     F: ::fbthrift::Framing + ::std::marker::Send + ::std::marker::Sync + 'static,
     H: {{interface.rust_name}}{{#if (and (not interface.interaction?) interface.requestContext?)}}<RequestContext = R>{{/if}},
-    {{#if (object.notnull? service_extends)}}
+    {{#if (object.notnull? server_extends)}}
     SMAKE: ::std::ops::FnOnce(::fbthrift::ProtocolID) -> ::std::result::Result<SS, ::fbthrift::ApplicationException>,
     SS: ::fbthrift::ThriftService<F, RequestContext = R, ReplyState = RS>,
     SS::Handler: {{#partial rpc.super service=interface}},
-    {{/if (object.notnull? service_extends)}}
+    {{/if (object.notnull? server_extends)}}
     R: ::fbthrift::RequestContext<Name = ::std::ffi::CStr> + ::std::marker::Send + ::std::marker::Sync + 'static,
     <R as ::fbthrift::RequestContext>::ContextStack: ::fbthrift::ContextStack<Name = R::Name, Frame = F> + ::std::marker::Send + ::std::marker::Sync + 'static,
     RS: ::fbthrift::ReplyState<F, RequestContext = R> + ::std::marker::Send + ::std::marker::Sync + 'static,
@@ -699,12 +751,20 @@ where
 {
     match proto {
         ::fbthrift::ProtocolID::BinaryProtocol => {
+            {{#if extends_fb303}}
+            ::std::result::Result::Ok(::std::boxed::Box::new({{interface.rust_name}}ProcessorNoFb303::<::fbthrift::BinaryProtocol<F>, H, R, RS>::new_no_fb303(handler)))
+            {{#else}}
             ::std::result::Result::Ok(::std::boxed::Box::new({{interface.rust_name}}Processor::<::fbthrift::BinaryProtocol<F>, H, R, RS
                 {{~ #if (object.notnull? service_extends)}}, SS{{/if}}>::new(handler{{#if (object.notnull? service_extends)}}, supa(proto)?{{/if}})))
+            {{/if extends_fb303}}
         }
         ::fbthrift::ProtocolID::CompactProtocol => {
+            {{#if extends_fb303}}
+            ::std::result::Result::Ok(::std::boxed::Box::new({{interface.rust_name}}ProcessorNoFb303::<::fbthrift::CompactProtocol<F>, H, R, RS>::new_no_fb303(handler)))
+            {{#else}}
             ::std::result::Result::Ok(::std::boxed::Box::new({{interface.rust_name}}Processor::<::fbthrift::CompactProtocol<F>, H, R, RS
                 {{~ #if (object.notnull? service_extends)}}, SS{{/if}}>::new(handler{{#if (object.notnull? service_extends)}}, supa(proto)?{{/if}})))
+            {{/if extends_fb303}}
         }
         bad => {
             ::tracing::error!(method = "{{interface.name}}.", invalid_protocol = ?bad);
@@ -713,11 +773,12 @@ where
     }
 }
     {{!
-      Deliberately a copy of the function above to preserve legacy behavior
-      A service only reaches here by extending fb303, so it always has a parent,
-      so it doesn't have any of the `service_extends` conditionals above.
+      Builds the full processor with the caller's fb303 parent chain. Only
+      direct fb303 extenders reach here, so the parent is always present.
+      This is a temporary function until the migration off of fb303 is
+      complete.
     }}
-    {{#if interface.extends_fb303?}}
+    {{#if extends_fb303}}
 
 /// Construct a new instance of a {{interface.rust_name}} service.
 ///
@@ -755,6 +816,6 @@ where
         }
     }
 }
-    {{/if interface.extends_fb303?}}
+    {{/if extends_fb303}}
   {{/if (not interface.interaction?)}}
 {{/let partial}}

@@ -15,7 +15,7 @@
   limitations under the License.
 
 }}
-{{#let export partial method_metadata |interface|}}
+{{#let export partial method_metadata |interface skip_parent|}}
 // From {{interface.program.name}}.{{interface.name}}:
   {{#if interface.interaction?}}
 // Interaction's method names are never queried directly.
@@ -63,9 +63,9 @@
 },
       {{/each}}
     {{/each}}
-    {{#if (object.notnull? interface.extends)}}
+    {{#if (and (not skip_parent) (object.notnull? interface.extends))}}
 
-{{#partial method_metadata interface=interface.extends}}
-    {{/if (object.notnull? interface.extends)}}
+{{#partial method_metadata interface=interface.extends skip_parent=false}}
+    {{/if(and (not skip_parent) (object.notnull? interface.extends))}}
   {{/if interface.interaction?}}
 {{/let partial}}

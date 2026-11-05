@@ -20,7 +20,6 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <unordered_set>
 #include <variant>
 
 #include <thrift/common/detail/string.h>
@@ -1609,6 +1608,11 @@ class t_mstch_rust_generator : public t_whisker_generator {
     def.property("extends_fb303?", [](const t_service& self) {
       const t_service* parent = self.extends();
       if (parent == nullptr) {
+        return false;
+      }
+      const std::string self_name = self.get_scoped_name();
+      if (self_name == kFb303FacebookService ||
+          self_name == kFb303CoreBaseService) {
         return false;
       }
       const std::string scoped_name = parent->get_scoped_name();
