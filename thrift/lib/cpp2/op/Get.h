@@ -269,8 +269,8 @@ struct GetValueOrNull {
   auto* operator()(terse_field_ref<T&> ref) const {
     return &ref.value();
   }
-  template <typename T>
-  auto* operator()(union_field_ref<T&> ref) const {
+  template <typename T, typename A>
+  auto* operator()(union_field_ref<T&, A> ref) const {
     return ref.has_value() ? &ref.value() : nullptr;
   }
   template <typename T>

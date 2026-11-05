@@ -22,7 +22,10 @@
 #include <vector>
 
 #include <folly/io/IOBuf.h>
+#include <thrift/lib/cpp2/folly_dynamic/folly_dynamic.h>
+#include <thrift/lib/cpp2/op/Clear.h>
 #include <thrift/lib/cpp2/op/Encode.h>
+#include <thrift/lib/cpp2/op/Get.h>
 #include <thrift/lib/cpp2/protocol/Serializer.h>
 #include <thrift/test/gen-cpp2/CppAllocatorUnionTest_types.h>
 
@@ -639,6 +642,47 @@ TEST(CppAllocatorUnionTest, OpDecodeForEveryMemberKind) {
     EXPECT_EQ(dst, sample);
     expectOnResource(dst, &res);
   }
+}
+
+TEST(CppAllocatorUnionTest, OpDecodeConstSharedRefMember) {
+  auto res = makeResource();
+  SharedRefUnionPmr src;
+  src.const_s_ref().emplace(kTooLong);
+  const IOBufChain input{
+      folly::IOBuf::copyBuffer(BinarySerializer::serialize<std::string>(src))};
+  BinaryProtocolChainReader reader;
+  reader.setInput(&input);
+  SharedRefUnionPmr dst{PmrByteAlloc(&res)};
+
+  op::decode<type::union_t<SharedRefUnionPmr>>(reader, dst);
+  EXPECT_EQ(*dst.const_s_ref(), kTooLong);
+}
+
+TEST(CppAllocatorUnionTest, OpGetValueOrNull) {
+  UnionPmr u;
+  EXPECT_EQ(op::get_value_or_null(u.aa_string_ref()), nullptr);
+  u.aa_string_ref() = kTooLong;
+  EXPECT_EQ(op::get_value_or_null(u.aa_string_ref()), &*u.aa_string_ref());
+}
+
+TEST(CppAllocatorUnionTest, OpClearMember) {
+  UnionPmr u;
+  u.not_a_container_ref() = 1;
+  op::clear<ident::aa_string>(u);
+  EXPECT_EQ(u.getType(), UnionPmr::Type::not_a_container);
+
+  u.aa_string_ref() = kTooLong;
+  op::clear<ident::aa_string>(u);
+  EXPECT_EQ(u.getType(), UnionPmr::Type::__EMPTY__);
+}
+
+TEST(CppAllocatorUnionTest, ToDynamic) {
+  UnionPmr u;
+  u.aa_string_ref() = kTooLong;
+  EXPECT_EQ(
+      facebook::thrift::to_dynamic(
+          u, facebook::thrift::dynamic_format::PORTABLE),
+      folly::dynamic(folly::dynamic::object("aa_string", kTooLong)));
 }
 
 namespace {

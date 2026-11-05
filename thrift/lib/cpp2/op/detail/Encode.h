@@ -977,9 +977,9 @@ inline constexpr bool kIsSharedPtrToConst<std::shared_ptr<const U>> = true;
 
 template <typename>
 inline constexpr bool kIsConstUnionFieldRef = false;
-template <typename T>
-inline constexpr bool kIsConstUnionFieldRef<union_field_ref<T>> =
-    std::is_const_v<typename union_field_ref<T>::value_type>;
+template <typename T, typename A>
+inline constexpr bool kIsConstUnionFieldRef<union_field_ref<T, A>> =
+    std::is_const_v<typename union_field_ref<T, A>::value_type>;
 
 template <bool ClearBeforeDecode = false, typename T, typename Protocol>
 bool decodeStructField(
