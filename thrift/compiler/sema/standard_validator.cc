@@ -1946,6 +1946,17 @@ void validate_cpp_type_annotation(sema_context& ctx, const Node& node) {
   }
 }
 
+void validate_cpp_type_template_on_adapted_typedef(
+    sema_context& ctx, const t_typedef& node) {
+  if (cpp_name_resolver::find_template(node) != nullptr &&
+      t_typedef::get_first_structured_annotation_or_null(
+          &node, kCppAdapterUri) != nullptr) {
+    ctx.error(
+        "`@cpp.Type{{template=...}}` cannot be used on adapted typedef `{}`.",
+        node.name());
+  }
+}
+
 template <typename T>
 constexpr int cpp_integer_type_bit_width() {
   return std::numeric_limits<T>::digits + std::numeric_limits<T>::is_signed;
@@ -2627,6 +2638,7 @@ ast_validator standard_validator() {
   validator.add_function_param_visitor(&validate_field_id_value);
 
   validator.add_typedef_visitor(&validate_cpp_type_annotation<t_typedef>);
+  validator.add_typedef_visitor(&validate_cpp_type_template_on_adapted_typedef);
   validator.add_typedef_visitor(&validate_cpp_type_integer_width<t_typedef>);
   validator.add_typedef_visitor(&validate_py3_enable_cpp_adapter);
   validator.add_typedef_visitor(&deprecate_typedef_type_annotations);

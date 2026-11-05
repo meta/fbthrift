@@ -3497,6 +3497,25 @@ TEST(CompilerTest, cpp_arena_unsupported_fields) {
   )");
 }
 
+TEST(CompilerTest, cpp_type_template_on_adapted_typedef) {
+  check_compile(R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+
+    @cpp.Adapter{name = "::my::Adapter"}
+    @cpp.Type{template = "std::unordered_set"}
+    typedef set<string> AdaptedUnorderedSet
+      # expected-warning@-3: At most one of @cpp.Type/@cpp.Adapter/cpp.type/cpp.template can be specified on a definition.
+      # expected-error@-4: `@cpp.Type{template=...}` cannot be used on adapted typedef `AdaptedUnorderedSet`.
+
+    @cpp.Adapter{name = "::my::Adapter"}
+    typedef set<string> AdaptedSet
+    @cpp.Type{template = "std::unordered_set"}
+    typedef AdaptedSet UnorderedAdaptedSet
+      # expected-error@-2: `@cpp.Type{template=...}` cannot be used on adapted typedef `UnorderedAdaptedSet`.
+  )");
+}
+
 TEST(CompilerTest, cpp_use_allocator_ref_fields) {
   check_compile(R"(
     package "facebook.com/thrift/test"
