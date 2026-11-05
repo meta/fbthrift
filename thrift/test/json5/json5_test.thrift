@@ -30,6 +30,12 @@ struct OutOfOrderFields {
   2: i32 Two;
 }
 
+exception OutOfOrderFieldsException {
+  3: i32 Three;
+  1: i32 One;
+  2: i32 Two;
+}
+
 union ExampleUnion {
   1: i64 intValue;
   2: string stringValue;
@@ -108,6 +114,9 @@ struct Example {
   // @lint-ignore THRIFTCHECKS bad-key-type
   35: optional set<Unqualified> unqualifiedSet;
   36: optional EmptyUnion emptyUnion;
+  // @lint-ignore THRIFTCHECKS bad-key-type
+  @thrift.AllowUnsafeNonSealedKeyType
+  37: optional set<OutOfOrderFieldsException> outOfOrderFieldsExceptionInSet;
 }
 
 // --
@@ -668,6 +677,45 @@ const list<TestCase> testCases = [
       One: 1,
       Two: 1,
       Three: 1,
+    },
+  ],
+}",
+  },
+  // Exception fields are ordered by id too, so One decides here; by
+  // declaration order, Three would.
+  TestCase{
+    name = "OutOfOrderFieldsExceptionInSet",
+    example = Example{
+      outOfOrderFieldsExceptionInSet = [
+        OutOfOrderFieldsException{Three = 0, One = 1, Two = 0},
+        OutOfOrderFieldsException{Three = 1, One = 0, Two = 0},
+      ],
+    },
+    json = "{
+  \"outOfOrderFieldsExceptionInSet\": [
+    {
+      \"One\": 0,
+      \"Two\": 0,
+      \"Three\": 1
+    },
+    {
+      \"One\": 1,
+      \"Two\": 0,
+      \"Three\": 0
+    }
+  ]
+}",
+    json5 = "{
+  outOfOrderFieldsExceptionInSet: [
+    {
+      One: 0,
+      Two: 0,
+      Three: 1,
+    },
+    {
+      One: 1,
+      Two: 0,
+      Three: 0,
     },
   ],
 }",

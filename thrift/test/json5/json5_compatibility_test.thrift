@@ -88,10 +88,33 @@ const list<CompatibilityTestCase> compatibilityTestCases = [
     ],
     output = json5_test.Example{doubleValue = 3.14159265358979},
   },
+  // A double literal just above the point halfway between the largest
+  // subnormal and DBL_MIN rounds up to DBL_MIN.
+  CompatibilityTestCase{
+    name = "DoubleJustAboveSubnormalMidpoint",
+    inputs = [
+      "{\"doubleValue\": 2.2250738585072012e-308}",
+      "{\"doubleValue\": \"2.2250738585072012e-308\"}",
+    ],
+    output = json5_test.Example{doubleValue = 2.2250738585072014e-308},
+  },
   CompatibilityTestCase{
     name = "FloatFromInteger",
     inputs = ["{\"floatValue\": 42}", "{\"floatValue\": \"42\"}"],
     output = json5_test.Example{floatValue = 42.0},
+  },
+  // A float literal is rounded to binary32 directly. Each literal is within
+  // 1e-30 of a point halfway between two binary32 values, so rounding it to
+  // binary64 first gives that point, which rounds to the wrong neighbour.
+  CompatibilityTestCase{
+    name = "FloatNearBinary32Midpoint",
+    inputs = [
+      "{\"floatListValue\": [1.000000059604644775390625000001, 1.000000178813934326171874999999]}",
+      "{\"floatListValue\": [\"1.000000059604644775390625000001\", \"1.000000178813934326171874999999\"]}",
+    ],
+    output = json5_test.Example{
+      floatListValue = [1.00000011920928955078125, 1.00000011920928955078125],
+    },
   },
   // ── Enum Format Compatibility ─────────────────────────────────────────────
   // Enum should accept "enum-name (enum-value)", "enum-name", "(enum-value)"
