@@ -57,11 +57,6 @@ class ConstRef final : public detail::BaseRef<ConstRef> {
   template <ConcreteThriftTypeTag Tag, typename T>
   ConstRef(Tag, T&& val) : Base(op::detail::getAnyType<Tag, T>(), &val) {}
 
-  template <typename IdT>
-  ConstRef operator[](IdT&& id) const {
-    return at(std::forward<IdT>(id));
-  }
-
  private:
   friend Base;
   template <typename, typename, typename>
@@ -76,85 +71,14 @@ class ConstRef final : public detail::BaseRef<ConstRef> {
 // runtime metadata associated with the type of the value.
 class Ref final : public detail::BaseRef<Ref, ConstRef> {
   using Base = detail::BaseRef<Ref, ConstRef>;
-  using Base::if_not_index;
 
  public:
   Ref() noexcept = default;
-
-  // Sets the referenced value to it's intrinsic default (e.g. ignoring custom
-  // field defaults).
-  using Base::clear;
-
-  // Assign to the given value.
-  using Base::assign;
-  using Base::operator=;
-
-  // Prepend to a list, string, etc.
-  using Base::prepend;
-  // Append to a list, string, etc.
-  using Base::append;
-
-  // Add to a set, number, etc.
-  using Base::add;
-  using Base::operator+=;
-  using Base::operator++;
-
-  // Put a key-value pair, overwriting any existing entry in a map, struct, etc.
-  //
-  // Returns true if an existing value was replaced.
-  using Base::put;
-
-  // Insert a list element.
-  using Base::insert;
-
-  // Remove a list element or set key.
-  //
-  // Returns true if an existing value was removed.
-  using Base::remove;
-
-  // Add a key-value pair, if not already present, using the given default if
-  // provided.
-  //
-  // Returns a reference to the associated value.
-  using Base::ensure;
 
   // Throws on mismatch or if const.
   template <ConcreteThriftTypeTag Tag>
   native_type<Tag>& mut() {
     return Base::mut<Tag>();
-  }
-
-  // Returns nullptr on mismatch or if const.
-  template <ConcreteThriftTypeTag Tag>
-  native_type<Tag>* tryMut() noexcept {
-    return Base::tryMut<Tag>();
-  }
-
-  using Base::at;
-  using Base::get;
-  Ref operator[](Ordinal ord) & { return at(ord); }
-  Ref operator[](Ordinal ord) && { return at(ord); }
-  Ref operator[](size_t pos) & { return at(pos); }
-  Ref operator[](size_t pos) && { return at(pos); }
-  ConstRef operator[](Ordinal ord) const& { return at(ord); }
-  ConstRef operator[](Ordinal ord) const&& { return at(ord); }
-  ConstRef operator[](size_t pos) const& { return at(pos); }
-  ConstRef operator[](size_t pos) const&& { return at(pos); }
-  template <typename IdT>
-  if_not_index<IdT, Ref> operator[](IdT&& id) & {
-    return ensure(std::forward<IdT>(id));
-  }
-  template <typename IdT>
-  if_not_index<IdT, Ref> operator[](IdT&& id) && {
-    return ensure(std::forward<IdT>(id));
-  }
-  template <typename IdT>
-  if_not_index<IdT> operator[](IdT&& id) const& {
-    return at(std::forward<IdT>(id));
-  }
-  template <typename IdT>
-  if_not_index<IdT> operator[](IdT&& id) const&& {
-    return at(std::forward<IdT>(id));
   }
 
   explicit Ref(detail::Ptr data) noexcept : Base(data) {}
@@ -181,18 +105,8 @@ inline Ref Ptr::operator*() const noexcept {
 // TODO(afuller): Store small values in-situ.
 class Value : public detail::BaseDyn<ConstRef, Ref, Value> {
   using Base = detail::BaseDyn<ConstRef, Ref, Value>;
-  using Dyn = detail::Dyn;
 
  public:
-  template <ThriftTypeTag Tag>
-  static Value create() {
-    return Value{Tag{}, nullptr};
-  }
-  template <typename T>
-    requires(!ThriftTypeTag<T>)
-  static Value create() {
-    return create<infer_tag<T>>();
-  }
   template <ConcreteThriftTypeTag Tag>
   static Value of(const native_type<Tag>& val) {
     return {Tag{}, val};
@@ -201,20 +115,9 @@ class Value : public detail::BaseDyn<ConstRef, Ref, Value> {
   static Value of(native_type<Tag>&& val) {
     return {Tag{}, std::move(val)};
   }
-  template <ConcreteThriftTypeTag Tag>
-  static Value of(std::unique_ptr<native_type<Tag>> val) {
-    if (val == nullptr) {
-      return {};
-    }
-    return Value{Tag{}, std::move(val)};
-  }
   template <typename U>
   static Value of(U&& val) {
     return of<infer_tag<U>>(std::forward<U>(val));
-  }
-  template <typename U>
-  static Value of(std::unique_ptr<U> val) {
-    return of<infer_tag<U>>(std::move(val));
   }
 
   Value() noexcept = default; // A void/null value.
@@ -228,44 +131,8 @@ class Value : public detail::BaseDyn<ConstRef, Ref, Value> {
 
   void reset();
 
-  // Sets the referenced value to it's intrinsic default (e.g. ignoring custom
-  // field defaults).
-  using Base::clear;
-
-  // Assign to the given value.
-  using Base::assign;
-  using Base::operator=;
   Value& operator=(const Value& other) noexcept;
   Value& operator=(Value&& other) noexcept;
-
-  // Prepend to a list, string, etc.
-  using Base::prepend;
-  // Append to a list, string, etc.
-  using Base::append;
-
-  // Add to a set, number, etc.
-  using Base::add;
-  using Base::operator+=;
-  using Base::operator++;
-
-  // Put a key-value pair, overwriting any existing entry in a map, struct, etc.
-  //
-  // Returns true if an existing value was replaced.
-  using Base::put;
-
-  // Insert a list element.
-  using Base::insert;
-
-  // Remove a list element or set key.
-  //
-  // Returns true if an existing value was removed.
-  using Base::remove;
-
-  // Add a key-value pair, if not already present, using the given default if
-  // provided.
-  //
-  // Returns a reference to the associated value.
-  using Base::ensure;
 
   // Throwing type-safe casting functions.
   using Base::as;
@@ -278,70 +145,10 @@ class Value : public detail::BaseDyn<ConstRef, Ref, Value> {
   T& as() & {
     return as<infer_tag<T>>();
   }
-  template <ThriftTypeTag Tag>
-  native_type<Tag>&& as() && {
-    return std::move(type_->as<native_type<Tag>>(ptr_));
-  }
-  template <typename T>
-    requires(!ThriftTypeTag<T>)
-  T&& as() && {
-    return as<infer_tag<T>>();
-  }
-
-  // Non-throwing type-safe casting functions.
-  using Base::tryAs;
-  template <ThriftTypeTag Tag>
-  native_type<Tag>* tryAs() noexcept {
-    return type_->tryAs<native_type<Tag>>(ptr_);
-  }
-  template <typename T>
-    requires(!ThriftTypeTag<T>)
-  T* tryAs() noexcept {
-    return tryAs<infer_tag<T>>();
-  }
-
-  using Base::at;
-  using Base::get;
-  Ref operator[](Ordinal ord) & { return at(ord); }
-  Ref operator[](Ordinal ord) && { return at(ord); }
-  Ref operator[](size_t pos) & { return at(pos); }
-  Ref operator[](size_t pos) && { return at(pos); }
-  ConstRef operator[](Ordinal ord) const& { return at(ord); }
-  ConstRef operator[](Ordinal ord) const&& { return at(ord); }
-  ConstRef operator[](size_t pos) const& { return at(pos); }
-  ConstRef operator[](size_t pos) const&& { return at(pos); }
-  template <typename IdT>
-  if_not_index<IdT, Ref> operator[](IdT&& id) & {
-    return ensure(std::forward<IdT>(id));
-  }
-  template <typename IdT>
-  if_not_index<IdT, Ref> operator[](IdT&& id) && {
-    return ensure(std::forward<IdT>(id));
-  }
-  template <typename IdT>
-  if_not_index<IdT> operator[](IdT&& id) const& {
-    return get(std::forward<IdT>(id));
-  }
-  template <typename IdT>
-  if_not_index<IdT> operator[](IdT&& id) const&& {
-    return get(std::forward<IdT>(id));
-  }
 
  private:
   using Base::Base;
 
-  template <ConcreteThriftTypeTag Tag, typename T = native_type<Tag>>
-  explicit Value(Tag, std::nullptr_t)
-      : Base(
-            op::detail::getAnyType<Tag, T>(),
-            op::detail::getAnyType<Tag, T>()->make(nullptr, false)) {
-    assert(ptr_ != nullptr);
-  }
-  template <ConcreteThriftTypeTag Tag, typename T>
-  Value(Tag, std::unique_ptr<T> val)
-      : Base(op::detail::getAnyType<Tag, T>(), val.release()) {
-    assert(ptr_ != nullptr);
-  }
   template <ConcreteThriftTypeTag Tag, typename T>
   Value(Tag, const T& val)
       : Base(

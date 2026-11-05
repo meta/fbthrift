@@ -86,8 +86,6 @@ TEST(RuntimeTest, Void) {
   Ref ref;
   EXPECT_EQ(ref.type(), Type::get<void_t>());
   EXPECT_TRUE(ref.empty());
-  ref.clear();
-  EXPECT_TRUE(ref.empty());
   EXPECT_THROW(ref.get(FieldId{1}), std::logic_error);
   EXPECT_THROW(ref.get("field1"), std::logic_error);
 
@@ -100,120 +98,44 @@ TEST(RuntimeTest, Int) {
   Ref ref = Ref::to(value);
   EXPECT_EQ(ref.type(), Type::get<i32_t>());
   EXPECT_FALSE(ref.empty());
-  EXPECT_TRUE(ref.add(ref));
+  EXPECT_EQ(ref.as<i32_t>(), Ref::to(1).as<i32_t>());
+  EXPECT_EQ(ref.as<i32_t>(), Value::of(1).as<i32_t>());
+
+  ref.mut<i32_t>() = 2;
   EXPECT_EQ(value, 2);
-  EXPECT_EQ(ref.as<i32_t>(), Ref::to(2).as<i32_t>());
-  EXPECT_EQ(ref.as<i32_t>(), Value::of(2).as<i32_t>());
-
-  EXPECT_EQ((++ref).as<i32_t>(), 3);
-  EXPECT_EQ(value, 3);
-  EXPECT_EQ((ref += -5).as<i32_t>(), -2);
-  EXPECT_EQ(value, -2);
-
-  ref.clear();
-  EXPECT_TRUE(ref.empty());
-  EXPECT_EQ(value, 0);
-  EXPECT_EQ(ref.as<i32_t>(), 0);
-  EXPECT_EQ(ref.as<i32_t>(), Ref::to(0).as<i32_t>());
-  EXPECT_EQ(ref.as<i32_t>(), Value::create<i32_t>().as<i32_t>());
 }
 
 TEST(RuntimeTest, List) {
-  std::vector<std::string> value;
-  std::string elem = "best";
+  std::vector<std::string> value = {"best"};
   auto ref = Ref::to<list<string_t>>(value);
-  EXPECT_TRUE(ref.empty());
-  EXPECT_EQ(ref.size(), 0);
-  ref.append(Ref::to<string_t>(elem));
-  EXPECT_THAT(value, ::testing::ElementsAre("best"));
-  EXPECT_THAT(ref.as<list<string_t>>(), ::testing::ElementsAre("best"));
-  EXPECT_THAT(ref, ::testing::SizeIs(1));
-
   EXPECT_FALSE(ref.empty());
   EXPECT_EQ(ref.size(), 1);
-  EXPECT_THROW(ref[FieldId{1}], std::logic_error);
-  EXPECT_THROW(ref["field1"], std::logic_error);
-  EXPECT_EQ(ref[0].as<string_t>(), "best");
-  EXPECT_EQ(ref[Ordinal{1}].as<string_t>(), "best");
-  EXPECT_THROW(ref[1], std::out_of_range);
-  EXPECT_THROW(ref.add(Ref::to<string_t>(value[0])), std::runtime_error);
-  EXPECT_THROW(ref[Ref::to(0)], std::logic_error);
+  EXPECT_THAT(ref.as<list<string_t>>(), ::testing::ElementsAre("best"));
+  EXPECT_THAT(ref, ::testing::SizeIs(1));
+  EXPECT_EQ(ref.at(0).as<string_t>(), "best");
+  EXPECT_EQ(ref.at(Ordinal{1}).as<string_t>(), "best");
+  EXPECT_THROW(ref.at(1), std::out_of_range);
+  EXPECT_THROW(ref.get(FieldId{1}), std::logic_error);
+  EXPECT_THROW(ref.get("field1"), std::logic_error);
 
-  ref.prepend("the");
-  ref.append("test");
-  EXPECT_THAT(
-      ref.as<list<string_t>>(), ::testing::ElementsAre("the", "best", "test"));
-  EXPECT_THAT(ref, ::testing::SizeIs(3));
-
-  ref.remove(1);
-  EXPECT_THAT(ref.as<list<string_t>>(), ::testing::ElementsAre("the", "test"));
-  EXPECT_THAT(ref, ::testing::SizeIs(2));
-  EXPECT_THROW(ref.remove(20), std::out_of_range);
-  EXPECT_THROW(ref.insert(20, "hi"), std::out_of_range);
-
-  ref.insert(1, "greatest");
-  EXPECT_THAT(
-      ref.as<list<string_t>>(),
-      ::testing::ElementsAre("the", "greatest", "test"));
-  EXPECT_THAT(ref, ::testing::SizeIs(3));
-  EXPECT_THROW(ref.insert(4, "never"), std::out_of_range);
-  ref.insert(3, "ever");
-  EXPECT_THAT(
-      ref.as<list<string_t>>(),
-      ::testing::ElementsAre("the", "greatest", "test", "ever"));
-  EXPECT_THAT(ref, ::testing::SizeIs(4));
-
-  ref.clear();
+  value.clear();
   EXPECT_TRUE(ref.empty());
-  EXPECT_TRUE(value.empty());
-  EXPECT_THAT(ref.as<list<string_t>>(), ::testing::ElementsAre());
   EXPECT_THAT(ref, ::testing::IsEmpty());
-  EXPECT_THAT(ref, ::testing::SizeIs(0));
-
-  EXPECT_THROW(ref[1], std::out_of_range);
-  EXPECT_THROW(ref += "bad", std::runtime_error);
-  EXPECT_THROW(++ref, std::bad_any_cast);
 }
 
 TEST(RuntimeTest, Set) {
   std::set<std::string> value;
   auto ref = Ref::to<set<string_t>>(value);
-
   EXPECT_TRUE(ref.empty());
   EXPECT_EQ(ref.size(), 0);
-  EXPECT_TRUE(ref.add("best"));
-  EXPECT_THAT(value, ::testing::ElementsAre("best"));
-  EXPECT_THAT(ref.as<set<string_t>>(), ::testing::ElementsAre("best"));
-  EXPECT_THAT(ref, ::testing::SizeIs(1));
+  EXPECT_THROW(ref.values().begin(), std::logic_error);
 
+  value.insert("best");
   EXPECT_FALSE(ref.empty());
-  EXPECT_EQ(ref.size(), 1);
+  EXPECT_THAT(ref, ::testing::SizeIs(1));
   EXPECT_THROW(ref.get(FieldId{1}), std::logic_error);
   EXPECT_FALSE(ref.contains("the"));
   EXPECT_TRUE(ref.contains("best"));
-
-  ref.add("the");
-  ref += ("test");
-  EXPECT_THAT(
-      ref.as<set<string_t>>(),
-      ::testing::UnorderedElementsAre("the", "best", "test"));
-  EXPECT_THAT(ref, ::testing::SizeIs(3));
-
-  EXPECT_TRUE(ref.remove("best"));
-  EXPECT_FALSE(ref.remove("best"));
-  EXPECT_THAT(
-      ref.as<set<string_t>>(), ::testing::UnorderedElementsAre("the", "test"));
-  EXPECT_THAT(ref, ::testing::SizeIs(2));
-
-  ref.clear();
-  EXPECT_TRUE(ref.empty());
-  EXPECT_TRUE(value.empty());
-  EXPECT_THAT(ref.as<set<string_t>>(), ::testing::ElementsAre());
-  EXPECT_THAT(ref, ::testing::IsEmpty());
-  EXPECT_THAT(ref, ::testing::SizeIs(0));
-
-  EXPECT_THROW(ref.values().begin(), std::logic_error);
-  EXPECT_THROW(++ref, std::bad_any_cast);
 }
 
 TEST(RuntimeTest, Map) {
@@ -221,130 +143,33 @@ TEST(RuntimeTest, Map) {
   auto ref = Ref::to<map<string_t, i32_t>>(value);
   EXPECT_TRUE(ref.empty());
   EXPECT_EQ(ref.size(), 0);
-  EXPECT_FALSE(ref.put("one", 1));
-  EXPECT_EQ(value["one"], 1);
-  EXPECT_TRUE(ref.contains("one"));
-  EXPECT_EQ(ref.at("one").as<i32_t>(), 1);
-  EXPECT_EQ(ref["one"].as<i32_t>(), 1);
-  EXPECT_FALSE(ref.contains("two"));
-  EXPECT_THROW(ref.at("two"), std::out_of_range);
+  EXPECT_THROW(ref.begin(), std::runtime_error);
 
-  ref["one"] = 2;
-  EXPECT_EQ(value["one"], 2);
-
+  value["one"] = 1;
   EXPECT_FALSE(ref.empty());
   EXPECT_EQ(ref.size(), 1);
-  EXPECT_THROW(ref.put(FieldId{1}, 2), std::logic_error);
-  EXPECT_THROW(ref[FieldId{1}], std::logic_error);
-  EXPECT_EQ(ref["one"].as<i32_t>(), 2);
-  EXPECT_EQ(ref["two"].as<i32_t>(), 0);
-
-  EXPECT_THAT(
-      (ref.as<map<string_t, i32_t>>()),
-      ::testing::UnorderedElementsAre(
-          ::testing::Pair("one", 2), ::testing::Pair("two", 0)));
-
-  ref.clear("two");
-  EXPECT_FALSE(ref.remove("two"));
-  EXPECT_THAT(
-      (ref.as<map<string_t, i32_t>>()),
-      ::testing::UnorderedElementsAre(::testing::Pair("one", 2)));
-
-  ref.clear();
-  EXPECT_TRUE(ref.empty());
-  EXPECT_TRUE(value.empty());
-
-  EXPECT_THROW(ref.begin(), std::runtime_error);
-  EXPECT_THROW(ref += "three", std::logic_error);
-  EXPECT_THROW(++ref, std::logic_error);
+  EXPECT_TRUE(ref.contains("one"));
+  EXPECT_EQ(ref.at("one").as<i32_t>(), 1);
+  EXPECT_FALSE(ref.contains("two"));
+  EXPECT_EQ(ref.get("two"), nullptr);
+  EXPECT_THROW(ref.at("two"), std::out_of_range);
+  EXPECT_THROW(ref.get(FieldId{1}), std::logic_error);
 }
 
-TEST(RuntimeTest, DynMap) {
-  using Tag = type::map<type::string_t, type::string_t>;
-  auto map = Value::create<Tag>();
-  map["hi"] = "bye";
-  EXPECT_EQ(map.size(), 1);
-  EXPECT_TRUE(map["empty"].empty());
-  EXPECT_EQ(map.size(), 2);
-  EXPECT_EQ(map["hi"].as<string_t>(), "bye");
-  EXPECT_EQ(map.get("bye"), nullptr);
-  EXPECT_THROW(map.at("bye"), std::out_of_range);
-}
-
-TEST(RuntimeTest, DynStruct) {
-  Value obj = Value::create<DecodedUri>();
-  obj["scheme"] = "http";
-  DecodedUri& data = obj.as<DecodedUri>();
-  EXPECT_EQ(data.scheme(), "http");
-  data.scheme() = "ftp";
-  EXPECT_EQ(obj["scheme"].as<string_t>(), "ftp");
-
-  obj["domain"] = Value::of<type::list<type::string_t>>({"facebook", "com"});
-
-  EXPECT_EQ(*data.scheme(), "ftp");
-  EXPECT_THAT(*data.domain(), ::testing::ElementsAre("facebook", "com"));
-  EXPECT_TRUE(data.path()->empty());
-  EXPECT_TRUE(data.query()->empty());
-  EXPECT_EQ(*data.fragment(), "");
-}
-
-TEST(RuntimeTest, MapAdd) {
-  std::map<std::string, int> value;
-  auto ref = Ref::to<map<string_t, i32_t>>(value);
-
-  // ensure = add if not present.
-  EXPECT_EQ(ref.ensure("zero").as<i32_t>(), 0);
-  EXPECT_EQ(ref.ensure("one", 1).as<i32_t>(), 1);
-  EXPECT_EQ(ref.ensure("one", 2).as<i32_t>(), 1);
-  EXPECT_EQ(value["zero"], 0);
-  EXPECT_EQ(value["one"], 1);
-}
-
-// TODO(afuller): Add test for ensuring an optional field.
 TEST(RuntimeTest, Struct) {
   DecodedUri actual;
   auto ref = Ref::to(actual);
   EXPECT_TRUE(ref.empty());
   EXPECT_EQ(ref.size(), 5);
-  EXPECT_EQ(*actual.scheme(), "");
-  EXPECT_EQ(ref[FieldId{1}].as<string_t>(), "");
-  EXPECT_EQ(ref.ensure("scheme", "baz").as<string_t>(), "");
+  EXPECT_EQ(ref.get(FieldId{1}).as<string_t>(), "");
 
-  EXPECT_TRUE(ref.put(FieldId{1}, "foo"));
-  EXPECT_EQ(*actual.scheme(), "foo");
-  EXPECT_EQ(ref[FieldId{1}].as<string_t>(), "foo");
-  EXPECT_EQ(ref.ensure(FieldId{1}, "baz").as<string_t>(), "foo");
-  ref.clear(FieldId{1});
-  EXPECT_EQ(*actual.scheme(), "");
-  EXPECT_EQ(ref[FieldId{1}].as<string_t>(), "");
+  actual.scheme() = "foo";
+  EXPECT_EQ(ref.get(FieldId{1}).as<string_t>(), "foo");
+  EXPECT_EQ(ref.get("scheme").as<string_t>(), "foo");
 
-  EXPECT_TRUE(ref.put("scheme", "bar"));
-  EXPECT_EQ(*actual.scheme(), "bar");
-  EXPECT_EQ(ref["scheme"].as<string_t>(), "bar");
-  EXPECT_EQ(ref.ensure("scheme").as<string_t>(), std::string("bar"));
-  ref.clear("scheme");
-  EXPECT_EQ(*actual.scheme(), "");
-  EXPECT_EQ(ref["scheme"].as<string_t>(), "");
-
-  EXPECT_THROW(ref[FieldId{}], std::out_of_range);
-  EXPECT_THROW(ref["bad"], std::out_of_range);
-  EXPECT_THROW(ref.clear(FieldId{}), std::out_of_range);
-  EXPECT_THROW(ref.clear("bad"), std::out_of_range);
-  EXPECT_THROW(ref.ensure(FieldId{}), std::out_of_range);
-  EXPECT_THROW(ref.ensure("bad"), std::out_of_range);
-  EXPECT_THROW(ref.put(FieldId{}, ""), std::out_of_range);
-  EXPECT_THROW(ref.put("bad", ""), std::out_of_range);
-}
-
-TEST(RuntimeTest, ClearRef) {
-  float value = 1.0f;
-  auto ref = Ref::to(value);
-  EXPECT_FALSE(ref.empty());
-  ref.clear();
-  EXPECT_TRUE(ref.empty());
-  EXPECT_EQ(ref.as<float_t>(), 0.0f);
-  value = -0.0f;
-  EXPECT_FALSE(ref.empty());
+  EXPECT_THROW(ref.get(FieldId{}), std::out_of_range);
+  EXPECT_THROW(ref.get("bad"), std::out_of_range);
+  EXPECT_THROW(ref.at("bad"), std::out_of_range);
 }
 
 TEST(RuntimeTest, ConstRef) {
@@ -353,39 +178,12 @@ TEST(RuntimeTest, ConstRef) {
   EXPECT_FALSE(ref.empty());
   EXPECT_EQ(ref.as<i32_t>(), 1);
   // Cannot be modified.
-  EXPECT_THROW(ref.clear(), std::logic_error);
-}
-
-TEST(RuntimeTest, BinaryRef) {
-  std::string data;
-  auto ref = Ref::to<binary_t>(data);
-  ref.assign("the");
-  EXPECT_EQ(data, "the");
-  ref.append(" best");
-  EXPECT_EQ(data, "the best");
-  ref += " test";
-  EXPECT_EQ(data, "the best test");
-  ref.prepend("BinaryRef ");
-  EXPECT_EQ(data, "BinaryRef the best test");
-  EXPECT_THROW(++ref, std::runtime_error);
-}
-
-TEST(RuntimeTest, ClearValue) {
-  Value value;
-  value = Value::of<float_t>(1.0f);
-  EXPECT_FALSE(value.empty());
-  value.clear();
-  EXPECT_TRUE(value.empty());
-  EXPECT_EQ(value.as<float_t>(), 0.0f);
-  value = Value::of<float_t>(-0.0f);
-  EXPECT_FALSE(value.empty());
+  EXPECT_THROW(ref.mut<i32_t>(), std::logic_error);
 }
 
 TEST(RuntimeTest, VoidValue) {
   Value value;
   EXPECT_EQ(value.type(), Type::get<void_t>());
-  EXPECT_TRUE(value.empty());
-  value.clear();
   EXPECT_TRUE(value.empty());
 
   EXPECT_THROW(value.as<string_t>(), std::bad_any_cast);
@@ -396,91 +194,56 @@ TEST(RuntimeTest, IntValue) {
   Value value = Value::of<i32_t>(1);
   EXPECT_EQ(value.type(), Type::get<i32_t>());
   EXPECT_FALSE(value.empty());
-  value.clear();
-  EXPECT_TRUE(value.empty());
+  EXPECT_EQ(value.as<i32_t>(), 1);
 
-  EXPECT_EQ(value.as<i32_t>(), 0);
   value.as<i32_t>() = 2;
-  EXPECT_FALSE(value.empty());
-
   EXPECT_EQ(value.as<i32_t>(), 2);
-  value.assign(3);
-  EXPECT_EQ(value.as<i32_t>(), 3);
-  value = 4;
-  EXPECT_EQ(value.as<i32_t>(), 4);
 }
 
 TEST(RuntimeTest, ListValue) {
   Value value;
-  value = Value::create<list<string_t>>();
+  value = Value::of<list<string_t>>(std::vector<std::string>{});
   EXPECT_TRUE(value.empty());
   EXPECT_THROW(value.at(0), std::out_of_range);
-  EXPECT_THROW(value[Ordinal{1}], std::out_of_range);
+  EXPECT_THROW(value.at(Ordinal{1}), std::out_of_range);
 
   value.as<list<string_t>>().emplace_back("hi");
   EXPECT_FALSE(value.empty());
   Value other(value);
   EXPECT_FALSE(other.empty());
-  value.clear();
+  value.as<list<string_t>>().clear();
   EXPECT_TRUE(value.empty());
-  EXPECT_TRUE(value.as<list<string_t>>().empty());
   value = other;
   EXPECT_FALSE(value.empty());
 }
 
 TEST(RuntimeTest, SetValue) {
   Value value;
-  value = Value::create<set<string_t>>();
+  value = Value::of<set<string_t>>(std::set<std::string>{});
   EXPECT_TRUE(value.empty());
   value.as<set<string_t>>().emplace("hi");
   EXPECT_FALSE(value.empty());
   Value other(value);
   EXPECT_FALSE(other.empty());
-  value.clear();
+  value.as<set<string_t>>().clear();
   EXPECT_TRUE(value.empty());
-  EXPECT_TRUE(value.as<set<string_t>>().empty());
   value = other;
   EXPECT_FALSE(value.empty());
 }
 
 TEST(RuntimeTest, MapValue) {
   Value value;
-  value = Value::create<map<string_t, string_t>>();
+  value =
+      Value::of<map<string_t, string_t>>(std::map<std::string, std::string>{});
   EXPECT_TRUE(value.empty());
   value.as<map<string_t, string_t>>().emplace("hi", "bye");
   EXPECT_FALSE(value.empty());
   Value other(value);
   EXPECT_FALSE(other.empty());
-  value.clear();
+  value.as<map<string_t, string_t>>().clear();
   EXPECT_TRUE(value.empty());
-  EXPECT_TRUE((value.as<map<string_t, string_t>>().empty()));
   value = other;
   EXPECT_FALSE(value.empty());
-}
-
-TEST(RuntimeTest, ListCppType) {
-  using T = std::list<std::string>;
-  using Tag = cpp_type<T, type::list<string_t>>;
-  auto list = Value::create<Tag>();
-  list.append("foo");
-  EXPECT_EQ(list[0].as<string_t>(), "foo");
-}
-
-TEST(RuntimeTest, MapCppType) {
-  using T = std::unordered_map<std::string, int>;
-  using Tag = cpp_type<T, type::map<string_t, i32_t>>;
-
-  auto map = Value::create<Tag>();
-  map.put("foo", 2);
-  Ref value = map["foo"];
-  EXPECT_EQ(value.as<i32_t>(), 2);
-  EXPECT_GT(value.as<i32_t>(), 1);
-  EXPECT_EQ(value.as<i32_t>(), value.as<i32_t>());
-
-  auto otherMap = Value::create<Tag>();
-  EXPECT_NE(map.as<Tag>(), otherMap.as<Tag>());
-  otherMap.put("bar", 2);
-  EXPECT_NE(map.as<Tag>(), otherMap.as<Tag>());
 }
 
 TEST(RuntimeTest, IntInterOp) {
@@ -499,13 +262,6 @@ TEST(RuntimeTest, IntInterOp) {
   EXPECT_NE(static_cast<double>(smallInt.as<byte_t>()), 0.9);
   EXPECT_LT(static_cast<float>(smallInt.as<byte_t>()), 1.5f);
   EXPECT_GT(static_cast<double>(largeInt.as<i64_t>()), 1.5);
-
-  smallInt = 3;
-  EXPECT_EQ(data, 3);
-  smallInt = 500;
-  EXPECT_EQ(data, -12); // TODO(afuller): Clamp or throw.
-  largeInt = 4.5;
-  EXPECT_EQ(largeInt.as<i64_t>(), 4);
 }
 
 TEST(RuntimeTest, FloatInterOp) {
@@ -534,37 +290,10 @@ TEST(RuntimeTest, StringBinaryInterOp) {
   auto binaryByeBuf = folly::IOBuf::wrapBufferAsValue("bye", 3);
   auto binaryBye = ConstRef::to<BTag>(binaryByeBuf);
 
-  // Compare
   EXPECT_EQ(stringHi.as<STag>(), binaryHi.as<BTag>().to<std::string>());
   EXPECT_EQ(binaryBye.as<BTag>().to<std::string>(), stringBye.as<STag>());
   EXPECT_NE(binaryHi.as<BTag>().to<std::string>(), stringBye.as<STag>());
   EXPECT_GT(stringHi.as<STag>(), binaryBye.as<BTag>().to<std::string>());
-
-  // Assign
-  binaryHi = stringBye;
-  EXPECT_EQ(binaryHi.as<BTag>().to<std::string>(), stringBye.as<STag>());
-  EXPECT_EQ(
-      binaryHi.as<BTag>().to<std::string>(),
-      binaryBye.as<BTag>().to<std::string>());
-  binaryHi.assign("hi");
-  EXPECT_EQ(binaryHi.as<BTag>().to<std::string>(), stringHi.as<STag>());
-  stringHi.assign(binaryBye);
-  EXPECT_EQ(stringHi.as<STag>(), stringBye.as<STag>());
-  EXPECT_EQ(stringHi.as<STag>(), binaryBye.as<BTag>().to<std::string>());
-  stringHi = "hi";
-  EXPECT_EQ(stringHi.as<STag>(), binaryHi.as<BTag>().to<std::string>());
-
-  // Append
-  binaryHi += stringBye;
-  EXPECT_EQ(binaryHi.as<BTag>().to<std::string>(), "hibye");
-  stringHi += binaryBye;
-  EXPECT_EQ(stringHi.as<STag>(), "hibye");
-
-  // Prepend
-  binaryHi.prepend(stringBye);
-  EXPECT_EQ(binaryHi.as<BTag>().to<std::string>(), "byehibye");
-  stringHi.prepend(binaryBye);
-  EXPECT_EQ(stringHi.as<STag>(), "byehibye");
 }
 
 } // namespace
