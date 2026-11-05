@@ -292,7 +292,7 @@ TEST_F(ThriftServerBackwardsCompatibilityE2ETest, Ping) {
 
   clientThread_->getEventBase()->runInEventBaseThread([&] {
     client->semifuture_ping()
-        .via(clientThread_->getEventBase())
+        .via(clientThread_->getEventBaseKeepAlive())
         .thenValue([&](auto&&) {
           success = true;
           baton.post();
@@ -317,7 +317,7 @@ TEST_F(ThriftServerBackwardsCompatibilityE2ETest, EchoRequestResponse) {
 
   clientThread_->getEventBase()->runInEventBaseThread([&] {
     client->semifuture_echo("hello world")
-        .via(clientThread_->getEventBase())
+        .via(clientThread_->getEventBaseKeepAlive())
         .thenValue([&](std::string response) {
           result = std::move(response);
           baton.post();
@@ -348,7 +348,7 @@ TEST_F(ThriftServerBackwardsCompatibilityE2ETest, IncompatibleVersionRejected) {
 
   clientThread_->getEventBase()->runInEventBaseThread([&] {
     client->semifuture_ping()
-        .via(clientThread_->getEventBase())
+        .via(clientThread_->getEventBaseKeepAlive())
         .thenValue([&](auto&&) { baton.post(); })
         .thenError([&](const folly::exception_wrapper& ew) {
           LOG(INFO) << "ping rejected as expected: " << folly::exceptionStr(ew);
@@ -370,7 +370,7 @@ TEST_F(ThriftServerBackwardsCompatibilityE2ETest, AddNumbers) {
 
   clientThread_->getEventBase()->runInEventBaseThread([&] {
     client->semifuture_add(17, 25)
-        .via(clientThread_->getEventBase())
+        .via(clientThread_->getEventBaseKeepAlive())
         .thenValue([&](int64_t sum) {
           result = sum;
           baton.post();
@@ -392,7 +392,7 @@ TEST_F(ThriftServerBackwardsCompatibilityE2ETest, MultipleRequests) {
 
   clientThread_->getEventBase()->runInEventBaseThread([&] {
     client->semifuture_echo("first")
-        .via(clientThread_->getEventBase())
+        .via(clientThread_->getEventBaseKeepAlive())
         .thenValue([&](std::string response) {
           echo1 = std::move(response);
           baton1.post();
@@ -400,7 +400,7 @@ TEST_F(ThriftServerBackwardsCompatibilityE2ETest, MultipleRequests) {
         .thenError([&](folly::exception_wrapper) { baton1.post(); });
 
     client->semifuture_echo("second")
-        .via(clientThread_->getEventBase())
+        .via(clientThread_->getEventBaseKeepAlive())
         .thenValue([&](std::string response) {
           echo2 = std::move(response);
           baton2.post();
@@ -408,7 +408,7 @@ TEST_F(ThriftServerBackwardsCompatibilityE2ETest, MultipleRequests) {
         .thenError([&](folly::exception_wrapper) { baton2.post(); });
 
     client->semifuture_echo("third")
-        .via(clientThread_->getEventBase())
+        .via(clientThread_->getEventBaseKeepAlive())
         .thenValue([&](std::string response) {
           echo3 = std::move(response);
           baton3.post();
@@ -437,7 +437,7 @@ TEST_F(ThriftServerBackwardsCompatibilityE2ETest, LargeResponse) {
 
   clientThread_->getEventBase()->runInEventBaseThread([&] {
     client->semifuture_sendResponse(kResponseSize)
-        .via(clientThread_->getEventBase())
+        .via(clientThread_->getEventBaseKeepAlive())
         .thenValue([&](std::string response) {
           result = std::move(response);
           baton.post();
@@ -478,7 +478,7 @@ TEST_F(ThriftServerBackwardsCompatibilityE2ECompactMetadataTest, Ping) {
 
   clientThread_->getEventBase()->runInEventBaseThread([&] {
     client->semifuture_ping()
-        .via(clientThread_->getEventBase())
+        .via(clientThread_->getEventBaseKeepAlive())
         .thenValue([&](auto&&) {
           success = true;
           baton.post();
@@ -505,7 +505,7 @@ TEST_F(
 
   clientThread_->getEventBase()->runInEventBaseThread([&] {
     client->semifuture_echo("hello world")
-        .via(clientThread_->getEventBase())
+        .via(clientThread_->getEventBaseKeepAlive())
         .thenValue([&](std::string response) {
           result = std::move(response);
           baton.post();
