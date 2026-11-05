@@ -1544,32 +1544,44 @@ bool MyUnion::__fbthrift_is_empty() const {
       }
       case Type::myEnum:
       {
-        myEnum_ref().emplace(folly::copy(rhs.value_.myEnum));
+        auto value = std::move(rhs.value_.myEnum);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(myEnum_ref(), std::move(value));
         break;
       }
       case Type::myStruct:
       {
-        myStruct_ref().emplace(std::move(rhs.value_.myStruct));
+        auto value = std::move(rhs.value_.myStruct);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(myStruct_ref(), std::move(value));
         break;
       }
       case Type::myDataItem:
       {
-        myDataItem_ref().emplace(std::move(rhs.value_.myDataItem));
+        auto value = std::move(rhs.value_.myDataItem);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(myDataItem_ref(), std::move(value));
         break;
       }
       case Type::complexNestedStruct:
       {
-        complexNestedStruct_ref().emplace(std::move(rhs.value_.complexNestedStruct));
+        auto value = std::move(rhs.value_.complexNestedStruct);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(complexNestedStruct_ref(), std::move(value));
         break;
       }
       case Type::longValue:
       {
-        longValue_ref().emplace(folly::copy(rhs.value_.longValue));
+        auto value = std::move(rhs.value_.longValue);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(longValue_ref(), std::move(value));
         break;
       }
       case Type::intValue:
       {
-        intValue_ref().emplace(folly::copy(rhs.value_.intValue));
+        auto value = std::move(rhs.value_.intValue);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(intValue_ref(), std::move(value));
         break;
       }
       default:
@@ -1578,7 +1590,6 @@ bool MyUnion::__fbthrift_is_empty() const {
         __fbthrift_clear();
       }
     }
-    apache::thrift::clear(rhs);
     return *this;
   }
 
@@ -1588,7 +1599,7 @@ bool MyUnion::__fbthrift_is_empty() const {
       case Type::__EMPTY__:
         return;
       case Type::myEnum:
-        myEnum_ref().emplace(folly::copy(rhs.value_.myEnum));
+        myEnum_ref().emplace(rhs.value_.myEnum);
         break;
       case Type::myStruct:
         myStruct_ref().emplace(rhs.value_.myStruct);
@@ -1600,45 +1611,19 @@ bool MyUnion::__fbthrift_is_empty() const {
         complexNestedStruct_ref().emplace(rhs.value_.complexNestedStruct);
         break;
       case Type::longValue:
-        longValue_ref().emplace(folly::copy(rhs.value_.longValue));
+        longValue_ref().emplace(rhs.value_.longValue);
         break;
       case Type::intValue:
-        intValue_ref().emplace(folly::copy(rhs.value_.intValue));
+        intValue_ref().emplace(rhs.value_.intValue);
         break;
       default:
         assert(false);
     }
   }
 
-    MyUnion&MyUnion::operator=(const MyUnion& rhs) {
+  MyUnion& MyUnion::operator=(const MyUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::myEnum:
-        myEnum_ref().emplace(folly::copy(rhs.value_.myEnum));
-        break;
-      case Type::myStruct:
-        myStruct_ref().emplace(rhs.value_.myStruct);
-        break;
-      case Type::myDataItem:
-        myDataItem_ref().emplace(rhs.value_.myDataItem);
-        break;
-      case Type::complexNestedStruct:
-        complexNestedStruct_ref().emplace(rhs.value_.complexNestedStruct);
-        break;
-      case Type::longValue:
-        longValue_ref().emplace(folly::copy(rhs.value_.longValue));
-        break;
-      case Type::intValue:
-        intValue_ref().emplace(folly::copy(rhs.value_.intValue));
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = MyUnion(rhs);
   }
 
 
@@ -1745,22 +1730,30 @@ bool MyUnionFloatFieldThrowExp::__fbthrift_is_empty() const {
       }
       case Type::myEnum:
       {
-        myEnum_ref().emplace(folly::copy(rhs.value_.myEnum));
+        auto value = std::move(rhs.value_.myEnum);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(myEnum_ref(), std::move(value));
         break;
       }
       case Type::setFloat:
       {
-        setFloat_ref().emplace(std::move(rhs.value_.setFloat));
+        auto value = std::move(rhs.value_.setFloat);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(setFloat_ref(), std::move(value));
         break;
       }
       case Type::myDataItem:
       {
-        myDataItem_ref().emplace(std::move(rhs.value_.myDataItem));
+        auto value = std::move(rhs.value_.myDataItem);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(myDataItem_ref(), std::move(value));
         break;
       }
       case Type::complexNestedStruct:
       {
-        complexNestedStruct_ref().emplace(std::move(rhs.value_.complexNestedStruct));
+        auto value = std::move(rhs.value_.complexNestedStruct);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(complexNestedStruct_ref(), std::move(value));
         break;
       }
       default:
@@ -1769,7 +1762,6 @@ bool MyUnionFloatFieldThrowExp::__fbthrift_is_empty() const {
         __fbthrift_clear();
       }
     }
-    apache::thrift::clear(rhs);
     return *this;
   }
 
@@ -1779,7 +1771,7 @@ bool MyUnionFloatFieldThrowExp::__fbthrift_is_empty() const {
       case Type::__EMPTY__:
         return;
       case Type::myEnum:
-        myEnum_ref().emplace(folly::copy(rhs.value_.myEnum));
+        myEnum_ref().emplace(rhs.value_.myEnum);
         break;
       case Type::setFloat:
         setFloat_ref().emplace(rhs.value_.setFloat);
@@ -1795,29 +1787,9 @@ bool MyUnionFloatFieldThrowExp::__fbthrift_is_empty() const {
     }
   }
 
-    MyUnionFloatFieldThrowExp&MyUnionFloatFieldThrowExp::operator=(const MyUnionFloatFieldThrowExp& rhs) {
+  MyUnionFloatFieldThrowExp& MyUnionFloatFieldThrowExp::operator=(const MyUnionFloatFieldThrowExp& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::myEnum:
-        myEnum_ref().emplace(folly::copy(rhs.value_.myEnum));
-        break;
-      case Type::setFloat:
-        setFloat_ref().emplace(rhs.value_.setFloat);
-        break;
-      case Type::myDataItem:
-        myDataItem_ref().emplace(rhs.value_.myDataItem);
-        break;
-      case Type::complexNestedStruct:
-        complexNestedStruct_ref().emplace(rhs.value_.complexNestedStruct);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = MyUnionFloatFieldThrowExp(rhs);
   }
 
 

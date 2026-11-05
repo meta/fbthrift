@@ -177,12 +177,16 @@ bool MyUnion::__fbthrift_is_empty() const {
       }
       case Type::anInteger:
       {
-        anInteger_ref().emplace(folly::copy(*rhs.value_.anInteger));
+        auto value = std::move(rhs.value_.anInteger);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(anInteger_ref(), std::move(value));
         break;
       }
       case Type::aString:
       {
-        aString_ref().emplace(std::move(*rhs.value_.aString));
+        auto value = std::move(rhs.value_.aString);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(aString_ref(), std::move(value));
         break;
       }
       default:
@@ -191,7 +195,6 @@ bool MyUnion::__fbthrift_is_empty() const {
         __fbthrift_clear();
       }
     }
-    apache::thrift::clear(rhs);
     return *this;
   }
 
@@ -201,11 +204,11 @@ bool MyUnion::__fbthrift_is_empty() const {
       case Type::__EMPTY__:
         return;
       case Type::anInteger:
-        anInteger_ref().emplace(::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::detail::union_emplace_storage(anInteger_ref(), ::apache::thrift::detail::st::copy_field<
           ::apache::thrift::type_class::integral>(rhs.value_.anInteger));
         break;
       case Type::aString:
-        aString_ref().emplace(::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::detail::union_emplace_storage(aString_ref(), ::apache::thrift::detail::st::copy_field<
           ::apache::thrift::type_class::string>(rhs.value_.aString));
         break;
       default:
@@ -213,25 +216,9 @@ bool MyUnion::__fbthrift_is_empty() const {
     }
   }
 
-    MyUnion&MyUnion::operator=(const MyUnion& rhs) {
+  MyUnion& MyUnion::operator=(const MyUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::anInteger:
-        anInteger_ref().emplace(::apache::thrift::detail::st::copy_field<
-          ::apache::thrift::type_class::integral>(rhs.value_.anInteger));
-        break;
-      case Type::aString:
-        aString_ref().emplace(::apache::thrift::detail::st::copy_field<
-          ::apache::thrift::type_class::string>(rhs.value_.aString));
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = MyUnion(rhs);
   }
 
 
@@ -311,7 +298,9 @@ bool NonTriviallyDestructibleUnion::__fbthrift_is_empty() const {
       }
       case Type::int_field:
       {
-        int_field_ref().emplace(folly::copy(*rhs.value_.int_field));
+        auto value = std::move(rhs.value_.int_field);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(int_field_ref(), std::move(value));
         break;
       }
       default:
@@ -320,7 +309,6 @@ bool NonTriviallyDestructibleUnion::__fbthrift_is_empty() const {
         __fbthrift_clear();
       }
     }
-    apache::thrift::clear(rhs);
     return *this;
   }
 
@@ -330,27 +318,16 @@ bool NonTriviallyDestructibleUnion::__fbthrift_is_empty() const {
       case Type::__EMPTY__:
         return;
       case Type::int_field:
-        int_field_ref().emplace(folly::copy(*rhs.value_.int_field));
+        int_field_ref().emplace(*rhs.value_.int_field);
         break;
       default:
         assert(false);
     }
   }
 
-    NonTriviallyDestructibleUnion&NonTriviallyDestructibleUnion::operator=(const NonTriviallyDestructibleUnion& rhs) {
+  NonTriviallyDestructibleUnion& NonTriviallyDestructibleUnion::operator=(const NonTriviallyDestructibleUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::int_field:
-        int_field_ref().emplace(folly::copy(*rhs.value_.int_field));
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = NonTriviallyDestructibleUnion(rhs);
   }
 
 

@@ -932,7 +932,9 @@ bool AdaptedUnion::__fbthrift_is_empty() const {
       }
       case Type::best:
       {
-        best_ref().emplace(folly::copy(rhs.value_.best));
+        auto value = std::move(rhs.value_.best);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(best_ref(), std::move(value));
         break;
       }
       default:
@@ -941,7 +943,6 @@ bool AdaptedUnion::__fbthrift_is_empty() const {
         __fbthrift_clear();
       }
     }
-    apache::thrift::clear(rhs);
     return *this;
   }
 
@@ -951,27 +952,16 @@ bool AdaptedUnion::__fbthrift_is_empty() const {
       case Type::__EMPTY__:
         return;
       case Type::best:
-        best_ref().emplace(folly::copy(rhs.value_.best));
+        best_ref().emplace(rhs.value_.best);
         break;
       default:
         assert(false);
     }
   }
 
-    AdaptedUnion&AdaptedUnion::operator=(const AdaptedUnion& rhs) {
+  AdaptedUnion& AdaptedUnion::operator=(const AdaptedUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::best:
-        best_ref().emplace(folly::copy(rhs.value_.best));
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = AdaptedUnion(rhs);
   }
 
 
@@ -1282,7 +1272,9 @@ bool BinaryUnion::__fbthrift_is_empty() const {
       }
       case Type::iobuf_val:
       {
-        iobuf_val_ref().emplace(std::move(rhs.value_.iobuf_val));
+        auto value = std::move(rhs.value_.iobuf_val);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(iobuf_val_ref(), std::move(value));
         break;
       }
       default:
@@ -1291,7 +1283,6 @@ bool BinaryUnion::__fbthrift_is_empty() const {
         __fbthrift_clear();
       }
     }
-    apache::thrift::clear(rhs);
     return *this;
   }
 
@@ -1308,20 +1299,9 @@ bool BinaryUnion::__fbthrift_is_empty() const {
     }
   }
 
-    BinaryUnion&BinaryUnion::operator=(const BinaryUnion& rhs) {
+  BinaryUnion& BinaryUnion::operator=(const BinaryUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::iobuf_val:
-        iobuf_val_ref().emplace(rhs.value_.iobuf_val);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = BinaryUnion(rhs);
   }
 
 

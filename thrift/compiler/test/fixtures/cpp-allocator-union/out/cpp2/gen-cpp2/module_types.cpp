@@ -85,32 +85,37 @@ bool AllocUnion::__fbthrift_is_empty() const {
         return;
       case Type::aa_string:
       {
-        aa_string_ref().emplace(std::move(rhs.value_.aa_string));
+        auto value = std::move(rhs.value_.aa_string);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(aa_string_ref(), std::move(value));
         break;
       }
       case Type::aa_list:
       {
-        aa_list_ref().emplace(std::move(rhs.value_.aa_list));
+        auto value = std::move(rhs.value_.aa_list);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(aa_list_ref(), std::move(value));
         break;
       }
       case Type::plain_int:
       {
-        plain_int_ref().emplace(folly::copy(rhs.value_.plain_int));
+        auto value = std::move(rhs.value_.plain_int);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(plain_int_ref(), std::move(value));
         break;
       }
       case Type::aa_shared_string:
       {
-        if (rhs.get_allocator() == get_allocator()) {
-          aa_shared_string_ref().emplace(std::move(rhs.value_.aa_shared_string));
-        } else {
-          aa_shared_string_ref().emplace(*rhs.value_.aa_shared_string);
-        }
+        auto value = rhs.get_allocator() == get_allocator()
+            ? std::move(rhs.value_.aa_shared_string)
+            : std::allocate_shared<::test::fixtures::cpp_allocator_union::PmrString>(get_allocator(), *rhs.value_.aa_shared_string);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(aa_shared_string_ref(), std::move(value));
         break;
       }
       default:
         assert(false);
     }
-    apache::thrift::clear(rhs);
   }
 
   AllocUnion& AllocUnion::operator=(AllocUnion&& rhs) noexcept {
@@ -124,26 +129,32 @@ bool AllocUnion::__fbthrift_is_empty() const {
       }
       case Type::aa_string:
       {
-        aa_string_ref().emplace(std::move(rhs.value_.aa_string));
+        auto value = std::move(rhs.value_.aa_string);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(aa_string_ref(), std::move(value));
         break;
       }
       case Type::aa_list:
       {
-        aa_list_ref().emplace(std::move(rhs.value_.aa_list));
+        auto value = std::move(rhs.value_.aa_list);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(aa_list_ref(), std::move(value));
         break;
       }
       case Type::plain_int:
       {
-        plain_int_ref().emplace(folly::copy(rhs.value_.plain_int));
+        auto value = std::move(rhs.value_.plain_int);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(plain_int_ref(), std::move(value));
         break;
       }
       case Type::aa_shared_string:
       {
-        if (rhs.get_allocator() == get_allocator()) {
-          aa_shared_string_ref().emplace(std::move(rhs.value_.aa_shared_string));
-        } else {
-          aa_shared_string_ref().emplace(*rhs.value_.aa_shared_string);
-        }
+        auto value = rhs.get_allocator() == get_allocator()
+            ? std::move(rhs.value_.aa_shared_string)
+            : std::allocate_shared<::test::fixtures::cpp_allocator_union::PmrString>(get_allocator(), *rhs.value_.aa_shared_string);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(aa_shared_string_ref(), std::move(value));
         break;
       }
       default:
@@ -152,7 +163,6 @@ bool AllocUnion::__fbthrift_is_empty() const {
         __fbthrift_clear();
       }
     }
-    apache::thrift::clear(rhs);
     return *this;
   }
 
@@ -169,7 +179,7 @@ bool AllocUnion::__fbthrift_is_empty() const {
         aa_list_ref().emplace(rhs.value_.aa_list);
         break;
       case Type::plain_int:
-        plain_int_ref().emplace(folly::copy(rhs.value_.plain_int));
+        plain_int_ref().emplace(rhs.value_.plain_int);
         break;
       case Type::aa_shared_string:
         aa_shared_string_ref().emplace(*rhs.value_.aa_shared_string);
@@ -192,7 +202,7 @@ bool AllocUnion::__fbthrift_is_empty() const {
         aa_list_ref().emplace(rhs.value_.aa_list);
         break;
       case Type::plain_int:
-        plain_int_ref().emplace(folly::copy(rhs.value_.plain_int));
+        plain_int_ref().emplace(rhs.value_.plain_int);
         break;
       case Type::aa_shared_string:
         aa_shared_string_ref().emplace(*rhs.value_.aa_shared_string);
@@ -202,31 +212,14 @@ bool AllocUnion::__fbthrift_is_empty() const {
     }
   }
 
-    AllocUnion&AllocUnion::operator=(const AllocUnion& rhs) {
+  AllocUnion& AllocUnion::operator=(const AllocUnion& rhs) {
     if (this == &rhs) { return *this; }
+    allocator_type alloc = __fbthrift_alloc;
+    ::apache::thrift::detail::copy_allocator(alloc, rhs.__fbthrift_alloc);
+    AllocUnion copy(rhs, alloc);
     __fbthrift_clear();
     ::apache::thrift::detail::copy_allocator(__fbthrift_alloc, rhs.__fbthrift_alloc);
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::aa_string:
-        aa_string_ref().emplace(rhs.value_.aa_string);
-        break;
-      case Type::aa_list:
-        aa_list_ref().emplace(rhs.value_.aa_list);
-        break;
-      case Type::plain_int:
-        plain_int_ref().emplace(folly::copy(rhs.value_.plain_int));
-        break;
-      case Type::aa_shared_string:
-        aa_shared_string_ref().emplace(*rhs.value_.aa_shared_string);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = std::move(copy);
   }
 
 

@@ -480,22 +480,30 @@ bool MyUnion::__fbthrift_is_empty() const {
       }
       case Type::myEnum:
       {
-        myEnum_ref().emplace(folly::copy(rhs.value_.myEnum));
+        auto value = std::move(rhs.value_.myEnum);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(myEnum_ref(), std::move(value));
         break;
       }
       case Type::myStruct:
       {
-        myStruct_ref().emplace(std::move(rhs.value_.myStruct));
+        auto value = std::move(rhs.value_.myStruct);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(myStruct_ref(), std::move(value));
         break;
       }
       case Type::myDataItem:
       {
-        myDataItem_ref().emplace(std::move(rhs.value_.myDataItem));
+        auto value = std::move(rhs.value_.myDataItem);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(myDataItem_ref(), std::move(value));
         break;
       }
       case Type::floatSet:
       {
-        floatSet_ref().emplace(std::move(rhs.value_.floatSet));
+        auto value = std::move(rhs.value_.floatSet);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(floatSet_ref(), std::move(value));
         break;
       }
       default:
@@ -504,7 +512,6 @@ bool MyUnion::__fbthrift_is_empty() const {
         __fbthrift_clear();
       }
     }
-    apache::thrift::clear(rhs);
     return *this;
   }
 
@@ -514,7 +521,7 @@ bool MyUnion::__fbthrift_is_empty() const {
       case Type::__EMPTY__:
         return;
       case Type::myEnum:
-        myEnum_ref().emplace(folly::copy(rhs.value_.myEnum));
+        myEnum_ref().emplace(rhs.value_.myEnum);
         break;
       case Type::myStruct:
         myStruct_ref().emplace(rhs.value_.myStruct);
@@ -530,29 +537,9 @@ bool MyUnion::__fbthrift_is_empty() const {
     }
   }
 
-    MyUnion&MyUnion::operator=(const MyUnion& rhs) {
+  MyUnion& MyUnion::operator=(const MyUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::myEnum:
-        myEnum_ref().emplace(folly::copy(rhs.value_.myEnum));
-        break;
-      case Type::myStruct:
-        myStruct_ref().emplace(rhs.value_.myStruct);
-        break;
-      case Type::myDataItem:
-        myDataItem_ref().emplace(rhs.value_.myDataItem);
-        break;
-      case Type::floatSet:
-        floatSet_ref().emplace(rhs.value_.floatSet);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = MyUnion(rhs);
   }
 
 
@@ -939,7 +926,9 @@ bool UnionToBeRenamed::__fbthrift_is_empty() const {
       }
       case Type::reserved_field:
       {
-        reserved_field_ref().emplace(folly::copy(rhs.value_.reserved_field));
+        auto value = std::move(rhs.value_.reserved_field);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(reserved_field_ref(), std::move(value));
         break;
       }
       default:
@@ -948,7 +937,6 @@ bool UnionToBeRenamed::__fbthrift_is_empty() const {
         __fbthrift_clear();
       }
     }
-    apache::thrift::clear(rhs);
     return *this;
   }
 
@@ -958,27 +946,16 @@ bool UnionToBeRenamed::__fbthrift_is_empty() const {
       case Type::__EMPTY__:
         return;
       case Type::reserved_field:
-        reserved_field_ref().emplace(folly::copy(rhs.value_.reserved_field));
+        reserved_field_ref().emplace(rhs.value_.reserved_field);
         break;
       default:
         assert(false);
     }
   }
 
-    UnionToBeRenamed&UnionToBeRenamed::operator=(const UnionToBeRenamed& rhs) {
+  UnionToBeRenamed& UnionToBeRenamed::operator=(const UnionToBeRenamed& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::reserved_field:
-        reserved_field_ref().emplace(folly::copy(rhs.value_.reserved_field));
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = UnionToBeRenamed(rhs);
   }
 
 

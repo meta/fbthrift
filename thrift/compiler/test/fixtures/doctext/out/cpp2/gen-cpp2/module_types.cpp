@@ -168,12 +168,16 @@ bool U::__fbthrift_is_empty() const {
       }
       case Type::i:
       {
-        i_ref().emplace(folly::copy(rhs.value_.i));
+        auto value = std::move(rhs.value_.i);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(i_ref(), std::move(value));
         break;
       }
       case Type::s:
       {
-        s_ref().emplace(std::move(rhs.value_.s));
+        auto value = std::move(rhs.value_.s);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(s_ref(), std::move(value));
         break;
       }
       default:
@@ -182,7 +186,6 @@ bool U::__fbthrift_is_empty() const {
         __fbthrift_clear();
       }
     }
-    apache::thrift::clear(rhs);
     return *this;
   }
 
@@ -192,7 +195,7 @@ bool U::__fbthrift_is_empty() const {
       case Type::__EMPTY__:
         return;
       case Type::i:
-        i_ref().emplace(folly::copy(rhs.value_.i));
+        i_ref().emplace(rhs.value_.i);
         break;
       case Type::s:
         s_ref().emplace(rhs.value_.s);
@@ -202,23 +205,9 @@ bool U::__fbthrift_is_empty() const {
     }
   }
 
-    U&U::operator=(const U& rhs) {
+  U& U::operator=(const U& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::i:
-        i_ref().emplace(folly::copy(rhs.value_.i));
-        break;
-      case Type::s:
-        s_ref().emplace(rhs.value_.s);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = U(rhs);
   }
 
 

@@ -464,12 +464,16 @@ bool TestUnion::__fbthrift_is_empty() const {
       }
       case Type::int_value:
       {
-        int_value_ref().emplace(folly::copy(rhs.value_.int_value));
+        auto value = std::move(rhs.value_.int_value);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(int_value_ref(), std::move(value));
         break;
       }
       case Type::struct_value:
       {
-        struct_value_ref().emplace(std::move(rhs.value_.struct_value));
+        auto value = std::move(rhs.value_.struct_value);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(struct_value_ref(), std::move(value));
         break;
       }
       default:
@@ -478,7 +482,6 @@ bool TestUnion::__fbthrift_is_empty() const {
         __fbthrift_clear();
       }
     }
-    apache::thrift::clear(rhs);
     return *this;
   }
 
@@ -488,7 +491,7 @@ bool TestUnion::__fbthrift_is_empty() const {
       case Type::__EMPTY__:
         return;
       case Type::int_value:
-        int_value_ref().emplace(folly::copy(rhs.value_.int_value));
+        int_value_ref().emplace(rhs.value_.int_value);
         break;
       case Type::struct_value:
         struct_value_ref().emplace(rhs.value_.struct_value);
@@ -498,23 +501,9 @@ bool TestUnion::__fbthrift_is_empty() const {
     }
   }
 
-    TestUnion&TestUnion::operator=(const TestUnion& rhs) {
+  TestUnion& TestUnion::operator=(const TestUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::int_value:
-        int_value_ref().emplace(folly::copy(rhs.value_.int_value));
-        break;
-      case Type::struct_value:
-        struct_value_ref().emplace(rhs.value_.struct_value);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = TestUnion(rhs);
   }
 
 

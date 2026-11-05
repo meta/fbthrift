@@ -71,4 +71,31 @@ union Boxed {
 
   @thrift.Box
   2: Boxed box;
+
+  3: string str;
+}
+
+struct Foo {
+  1: list<Bar> bar;
+}
+
+union Bar {
+  1: Foo foo;
+  2: string str;
+}
+
+union ListOfIncomplete {
+  1: list<HasListOfIncomplete> structs;
+}
+
+struct HasListOfIncomplete {
+  1: ListOfIncomplete u;
+}
+
+union IOBufPtr {
+  @cpp.Type{name = "std::unique_ptr<folly::IOBuf>"}
+  1: binary buf;
+
+  @thrift.Box
+  2: IOBufPtr box;
 }

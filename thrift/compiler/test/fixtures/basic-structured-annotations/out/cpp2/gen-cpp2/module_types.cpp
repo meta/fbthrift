@@ -722,12 +722,16 @@ bool MyUnion::__fbthrift_is_empty() const {
       }
       case Type::first:
       {
-        first_ref().emplace(std::move(rhs.value_.first));
+        auto value = std::move(rhs.value_.first);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(first_ref(), std::move(value));
         break;
       }
       case Type::second:
       {
-        second_ref().emplace(folly::copy(rhs.value_.second));
+        auto value = std::move(rhs.value_.second);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(second_ref(), std::move(value));
         break;
       }
       default:
@@ -736,7 +740,6 @@ bool MyUnion::__fbthrift_is_empty() const {
         __fbthrift_clear();
       }
     }
-    apache::thrift::clear(rhs);
     return *this;
   }
 
@@ -749,30 +752,16 @@ bool MyUnion::__fbthrift_is_empty() const {
         first_ref().emplace(rhs.value_.first);
         break;
       case Type::second:
-        second_ref().emplace(folly::copy(rhs.value_.second));
+        second_ref().emplace(rhs.value_.second);
         break;
       default:
         assert(false);
     }
   }
 
-    MyUnion&MyUnion::operator=(const MyUnion& rhs) {
+  MyUnion& MyUnion::operator=(const MyUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::first:
-        first_ref().emplace(rhs.value_.first);
-        break;
-      case Type::second:
-        second_ref().emplace(folly::copy(rhs.value_.second));
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = MyUnion(rhs);
   }
 
 

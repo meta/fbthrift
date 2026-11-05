@@ -165,12 +165,16 @@ bool NonOrderableUnion::__fbthrift_is_empty() const {
       }
       case Type::int_value:
       {
-        int_value_ref().emplace(folly::copy(rhs.value_.int_value));
+        auto value = std::move(rhs.value_.int_value);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(int_value_ref(), std::move(value));
         break;
       }
       case Type::string_value:
       {
-        string_value_ref().emplace(std::move(rhs.value_.string_value));
+        auto value = std::move(rhs.value_.string_value);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(string_value_ref(), std::move(value));
         break;
       }
       default:
@@ -179,7 +183,6 @@ bool NonOrderableUnion::__fbthrift_is_empty() const {
         __fbthrift_clear();
       }
     }
-    apache::thrift::clear(rhs);
     return *this;
   }
 
@@ -189,7 +192,7 @@ bool NonOrderableUnion::__fbthrift_is_empty() const {
       case Type::__EMPTY__:
         return;
       case Type::int_value:
-        int_value_ref().emplace(folly::copy(rhs.value_.int_value));
+        int_value_ref().emplace(rhs.value_.int_value);
         break;
       case Type::string_value:
         string_value_ref().emplace(rhs.value_.string_value);
@@ -199,23 +202,9 @@ bool NonOrderableUnion::__fbthrift_is_empty() const {
     }
   }
 
-    NonOrderableUnion&NonOrderableUnion::operator=(const NonOrderableUnion& rhs) {
+  NonOrderableUnion& NonOrderableUnion::operator=(const NonOrderableUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::int_value:
-        int_value_ref().emplace(folly::copy(rhs.value_.int_value));
-        break;
-      case Type::string_value:
-        string_value_ref().emplace(rhs.value_.string_value);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = NonOrderableUnion(rhs);
   }
 
 
@@ -376,12 +365,16 @@ bool OrderableUnion::__fbthrift_is_empty() const {
       }
       case Type::int_value:
       {
-        int_value_ref().emplace(folly::copy(rhs.value_.int_value));
+        auto value = std::move(rhs.value_.int_value);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(int_value_ref(), std::move(value));
         break;
       }
       case Type::string_value:
       {
-        string_value_ref().emplace(std::move(rhs.value_.string_value));
+        auto value = std::move(rhs.value_.string_value);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(string_value_ref(), std::move(value));
         break;
       }
       default:
@@ -390,7 +383,6 @@ bool OrderableUnion::__fbthrift_is_empty() const {
         __fbthrift_clear();
       }
     }
-    apache::thrift::clear(rhs);
     return *this;
   }
 
@@ -400,7 +392,7 @@ bool OrderableUnion::__fbthrift_is_empty() const {
       case Type::__EMPTY__:
         return;
       case Type::int_value:
-        int_value_ref().emplace(folly::copy(rhs.value_.int_value));
+        int_value_ref().emplace(rhs.value_.int_value);
         break;
       case Type::string_value:
         string_value_ref().emplace(rhs.value_.string_value);
@@ -410,23 +402,9 @@ bool OrderableUnion::__fbthrift_is_empty() const {
     }
   }
 
-    OrderableUnion&OrderableUnion::operator=(const OrderableUnion& rhs) {
+  OrderableUnion& OrderableUnion::operator=(const OrderableUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::int_value:
-        int_value_ref().emplace(folly::copy(rhs.value_.int_value));
-        break;
-      case Type::string_value:
-        string_value_ref().emplace(rhs.value_.string_value);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = OrderableUnion(rhs);
   }
 
 

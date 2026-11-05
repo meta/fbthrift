@@ -19,6 +19,7 @@
 #include <utility>
 
 #include <gtest/gtest.h>
+#include <folly/io/IOBuf.h>
 #include <thrift/lib/cpp2/BadFieldAccess.h>
 #include <thrift/test/gen-cpp2/UnionFieldRef_types.h>
 using namespace std;
@@ -428,6 +429,126 @@ TEST(UnionFieldTest, CopyAssignFromOwnMember) {
   s.box().emplace().int32() = 42;
   s = *s.box();
   EXPECT_EQ(s.int32(), 42);
+
+  s.box().emplace().str() = std::string(100, 'x');
+  s = *s.box();
+  EXPECT_EQ(s.str(), std::string(100, 'x'));
+}
+
+TEST(UnionFieldTest, MoveAssignFromOwnMember) {
+  Boxed s;
+  s.box().emplace().int32() = 42;
+  s = std::move(*s.box());
+  EXPECT_EQ(s.int32(), 42);
+
+  s.box().emplace().str() = std::string(100, 'x');
+  s = std::move(*s.box());
+  EXPECT_EQ(s.str(), std::string(100, 'x'));
+}
+
+TEST(UnionFieldTest, AssignFromMemberInList) {
+  Bar s;
+  s.foo().emplace().bar()->emplace_back().str() = std::string(100, 'x');
+  s = s.foo()->bar()->at(0);
+  EXPECT_EQ(s.str(), std::string(100, 'x'));
+
+  s.foo().emplace().bar()->emplace_back().str() = std::string(100, 'y');
+  s = std::move(s.foo()->bar()->at(0));
+  EXPECT_EQ(s.str(), std::string(100, 'y'));
+}
+
+TEST(UnionFieldTest, MoveListOfIncomplete) {
+  ListOfIncomplete s;
+  s.structs().emplace().emplace_back();
+  ListOfIncomplete moved;
+  moved = std::move(s);
+  EXPECT_EQ(moved.structs()->size(), 1);
+  // NOLINTNEXTLINE(bugprone-use-after-move)
+  EXPECT_EQ(s.getType(), ListOfIncomplete::Type::__EMPTY__);
+}
+
+TEST(UnionFieldTest, CppRefAssignFromOwnMember) {
+  CppRef s;
+  s.cppref().emplace().cppref().emplace().str() = std::string(100, 'x');
+  s = *s.cppref();
+  EXPECT_EQ(s.cppref()->str(), std::string(100, 'x'));
+
+  s.cppref().emplace().cppref().emplace().str() = std::string(100, 'y');
+  s = std::move(*s.cppref());
+  EXPECT_EQ(s.cppref()->str(), std::string(100, 'y'));
+
+  s.shared_mutable().emplace().shared_mutable().emplace().str() = "z";
+  s = *s.shared_mutable();
+  EXPECT_EQ(s.shared_mutable()->str(), "z");
+
+  s.shared_mutable().emplace().shared_mutable().emplace().str() = "w";
+  s = std::move(*s.shared_mutable());
+  EXPECT_EQ(s.shared_mutable()->str(), "w");
+}
+
+TEST(UnionFieldTest, NullCppRefCopyAndMove) {
+  CppRef s;
+  s.set_cppref(std::unique_ptr<CppRef>());
+  CppRef copy = s;
+  EXPECT_EQ(copy.get_cppref(), nullptr);
+  CppRef moved = std::move(copy);
+  EXPECT_EQ(moved.get_cppref(), nullptr);
+}
+
+TEST(UnionFieldTest, SharedCppRefCopyAndMove) {
+  CppRef s;
+  s.shared_mutable().emplace().str() = "shared";
+  std::shared_ptr<CppRef> shared = s.get_shared_mutable();
+
+  CppRef copy = s;
+  EXPECT_NE(copy.get_shared_mutable(), shared);
+  EXPECT_EQ(copy.shared_mutable()->str(), "shared");
+
+  CppRef moved = std::move(s);
+  EXPECT_EQ(moved.get_shared_mutable(), shared);
+  EXPECT_EQ(shared->str(), "shared");
+}
+
+TEST(UnionFieldTest, IOBufPtrCopyAndMove) {
+  IOBufPtr s;
+  s.buf().emplace(folly::IOBuf::COPY_BUFFER, "buf");
+  IOBufPtr copy = s;
+  EXPECT_EQ(copy.buf()->to<std::string>(), "buf");
+  EXPECT_NE(&*copy.buf(), &*s.buf());
+  IOBufPtr moved = std::move(copy);
+  EXPECT_EQ(moved.buf()->to<std::string>(), "buf");
+
+  copy = s;
+  EXPECT_EQ(copy.buf()->to<std::string>(), "buf");
+  moved = std::move(copy);
+  EXPECT_EQ(moved.buf()->to<std::string>(), "buf");
+}
+
+TEST(UnionFieldTest, IOBufPtrAssignFromOwnMember) {
+  IOBufPtr s;
+  s.box().emplace().buf().emplace(folly::IOBuf::COPY_BUFFER, "copy");
+  s = *s.box();
+  EXPECT_EQ(s.buf()->to<std::string>(), "copy");
+
+  s.box().emplace().buf().emplace(folly::IOBuf::COPY_BUFFER, "move");
+  s = std::move(*s.box());
+  EXPECT_EQ(s.buf()->to<std::string>(), "move");
+}
+
+TEST(UnionFieldTest, NullIOBufPtrCopyAndMove) {
+  IOBufPtr s;
+  s.set_buf(std::unique_ptr<folly::IOBuf>());
+  IOBufPtr copy = s;
+  EXPECT_EQ(copy.getType(), IOBufPtr::Type::buf);
+  EXPECT_EQ(copy.get_buf(), nullptr);
+  IOBufPtr moved = std::move(copy);
+  EXPECT_EQ(moved.getType(), IOBufPtr::Type::buf);
+  EXPECT_EQ(moved.get_buf(), nullptr);
+
+  copy = s;
+  EXPECT_EQ(copy.get_buf(), nullptr);
+  moved = std::move(copy);
+  EXPECT_EQ(moved.get_buf(), nullptr);
 }
 
 TEST(UnionFieldTest, CppMethods) {

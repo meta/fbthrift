@@ -237,22 +237,30 @@ bool union1::__fbthrift_is_empty() const {
       }
       case Type::ui:
       {
-        ui_ref().emplace(folly::copy(rhs.value_.ui));
+        auto value = std::move(rhs.value_.ui);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(ui_ref(), std::move(value));
         break;
       }
       case Type::ud:
       {
-        ud_ref().emplace(folly::copy(rhs.value_.ud));
+        auto value = std::move(rhs.value_.ud);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(ud_ref(), std::move(value));
         break;
       }
       case Type::us:
       {
-        us_ref().emplace(std::move(rhs.value_.us));
+        auto value = std::move(rhs.value_.us);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(us_ref(), std::move(value));
         break;
       }
       case Type::ue:
       {
-        ue_ref().emplace(folly::copy(rhs.value_.ue));
+        auto value = std::move(rhs.value_.ue);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(ue_ref(), std::move(value));
         break;
       }
       default:
@@ -261,7 +269,6 @@ bool union1::__fbthrift_is_empty() const {
         __fbthrift_clear();
       }
     }
-    apache::thrift::clear(rhs);
     return *this;
   }
 
@@ -271,45 +278,25 @@ bool union1::__fbthrift_is_empty() const {
       case Type::__EMPTY__:
         return;
       case Type::ui:
-        ui_ref().emplace(folly::copy(rhs.value_.ui));
+        ui_ref().emplace(rhs.value_.ui);
         break;
       case Type::ud:
-        ud_ref().emplace(folly::copy(rhs.value_.ud));
+        ud_ref().emplace(rhs.value_.ud);
         break;
       case Type::us:
         us_ref().emplace(rhs.value_.us);
         break;
       case Type::ue:
-        ue_ref().emplace(folly::copy(rhs.value_.ue));
+        ue_ref().emplace(rhs.value_.ue);
         break;
       default:
         assert(false);
     }
   }
 
-    union1&union1::operator=(const union1& rhs) {
+  union1& union1::operator=(const union1& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::ui:
-        ui_ref().emplace(folly::copy(rhs.value_.ui));
-        break;
-      case Type::ud:
-        ud_ref().emplace(folly::copy(rhs.value_.ud));
-        break;
-      case Type::us:
-        us_ref().emplace(rhs.value_.us);
-        break;
-      case Type::ue:
-        ue_ref().emplace(folly::copy(rhs.value_.ue));
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = union1(rhs);
   }
 
 
@@ -398,22 +385,30 @@ bool union2::__fbthrift_is_empty() const {
       }
       case Type::ui_2:
       {
-        ui_2_ref().emplace(folly::copy(rhs.value_.ui_2));
+        auto value = std::move(rhs.value_.ui_2);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(ui_2_ref(), std::move(value));
         break;
       }
       case Type::ud_2:
       {
-        ud_2_ref().emplace(folly::copy(rhs.value_.ud_2));
+        auto value = std::move(rhs.value_.ud_2);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(ud_2_ref(), std::move(value));
         break;
       }
       case Type::us_2:
       {
-        us_2_ref().emplace(std::move(rhs.value_.us_2));
+        auto value = std::move(rhs.value_.us_2);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(us_2_ref(), std::move(value));
         break;
       }
       case Type::ue_2:
       {
-        ue_2_ref().emplace(folly::copy(rhs.value_.ue_2));
+        auto value = std::move(rhs.value_.ue_2);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(ue_2_ref(), std::move(value));
         break;
       }
       default:
@@ -422,7 +417,6 @@ bool union2::__fbthrift_is_empty() const {
         __fbthrift_clear();
       }
     }
-    apache::thrift::clear(rhs);
     return *this;
   }
 
@@ -432,45 +426,25 @@ bool union2::__fbthrift_is_empty() const {
       case Type::__EMPTY__:
         return;
       case Type::ui_2:
-        ui_2_ref().emplace(folly::copy(rhs.value_.ui_2));
+        ui_2_ref().emplace(rhs.value_.ui_2);
         break;
       case Type::ud_2:
-        ud_2_ref().emplace(folly::copy(rhs.value_.ud_2));
+        ud_2_ref().emplace(rhs.value_.ud_2);
         break;
       case Type::us_2:
         us_2_ref().emplace(rhs.value_.us_2);
         break;
       case Type::ue_2:
-        ue_2_ref().emplace(folly::copy(rhs.value_.ue_2));
+        ue_2_ref().emplace(rhs.value_.ue_2);
         break;
       default:
         assert(false);
     }
   }
 
-    union2&union2::operator=(const union2& rhs) {
+  union2& union2::operator=(const union2& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::ui_2:
-        ui_2_ref().emplace(folly::copy(rhs.value_.ui_2));
-        break;
-      case Type::ud_2:
-        ud_2_ref().emplace(folly::copy(rhs.value_.ud_2));
-        break;
-      case Type::us_2:
-        us_2_ref().emplace(rhs.value_.us_2);
-        break;
-      case Type::ue_2:
-        ue_2_ref().emplace(folly::copy(rhs.value_.ue_2));
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = union2(rhs);
   }
 
 
@@ -559,22 +533,30 @@ bool union3::__fbthrift_is_empty() const {
       }
       case Type::ui_3:
       {
-        ui_3_ref().emplace(folly::copy(rhs.value_.ui_3));
+        auto value = std::move(rhs.value_.ui_3);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(ui_3_ref(), std::move(value));
         break;
       }
       case Type::ud_3:
       {
-        ud_3_ref().emplace(folly::copy(rhs.value_.ud_3));
+        auto value = std::move(rhs.value_.ud_3);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(ud_3_ref(), std::move(value));
         break;
       }
       case Type::us_3:
       {
-        us_3_ref().emplace(std::move(rhs.value_.us_3));
+        auto value = std::move(rhs.value_.us_3);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(us_3_ref(), std::move(value));
         break;
       }
       case Type::ue_3:
       {
-        ue_3_ref().emplace(folly::copy(rhs.value_.ue_3));
+        auto value = std::move(rhs.value_.ue_3);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(ue_3_ref(), std::move(value));
         break;
       }
       default:
@@ -583,7 +565,6 @@ bool union3::__fbthrift_is_empty() const {
         __fbthrift_clear();
       }
     }
-    apache::thrift::clear(rhs);
     return *this;
   }
 
@@ -593,45 +574,25 @@ bool union3::__fbthrift_is_empty() const {
       case Type::__EMPTY__:
         return;
       case Type::ui_3:
-        ui_3_ref().emplace(folly::copy(rhs.value_.ui_3));
+        ui_3_ref().emplace(rhs.value_.ui_3);
         break;
       case Type::ud_3:
-        ud_3_ref().emplace(folly::copy(rhs.value_.ud_3));
+        ud_3_ref().emplace(rhs.value_.ud_3);
         break;
       case Type::us_3:
         us_3_ref().emplace(rhs.value_.us_3);
         break;
       case Type::ue_3:
-        ue_3_ref().emplace(folly::copy(rhs.value_.ue_3));
+        ue_3_ref().emplace(rhs.value_.ue_3);
         break;
       default:
         assert(false);
     }
   }
 
-    union3&union3::operator=(const union3& rhs) {
+  union3& union3::operator=(const union3& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::ui_3:
-        ui_3_ref().emplace(folly::copy(rhs.value_.ui_3));
-        break;
-      case Type::ud_3:
-        ud_3_ref().emplace(folly::copy(rhs.value_.ud_3));
-        break;
-      case Type::us_3:
-        us_3_ref().emplace(rhs.value_.us_3);
-        break;
-      case Type::ue_3:
-        ue_3_ref().emplace(folly::copy(rhs.value_.ue_3));
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = union3(rhs);
   }
 
 
@@ -803,27 +764,37 @@ bool unionA::__fbthrift_is_empty() const {
       }
       case Type::i:
       {
-        i_ref().emplace(folly::copy(rhs.value_.i));
+        auto value = std::move(rhs.value_.i);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(i_ref(), std::move(value));
         break;
       }
       case Type::d:
       {
-        d_ref().emplace(folly::copy(rhs.value_.d));
+        auto value = std::move(rhs.value_.d);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(d_ref(), std::move(value));
         break;
       }
       case Type::s:
       {
-        s_ref().emplace(std::move(rhs.value_.s));
+        auto value = std::move(rhs.value_.s);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(s_ref(), std::move(value));
         break;
       }
       case Type::e:
       {
-        e_ref().emplace(folly::copy(rhs.value_.e));
+        auto value = std::move(rhs.value_.e);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(e_ref(), std::move(value));
         break;
       }
       case Type::a:
       {
-        a_ref().emplace(std::move(rhs.value_.a));
+        auto value = std::move(rhs.value_.a);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(a_ref(), std::move(value));
         break;
       }
       default:
@@ -832,7 +803,6 @@ bool unionA::__fbthrift_is_empty() const {
         __fbthrift_clear();
       }
     }
-    apache::thrift::clear(rhs);
     return *this;
   }
 
@@ -842,16 +812,16 @@ bool unionA::__fbthrift_is_empty() const {
       case Type::__EMPTY__:
         return;
       case Type::i:
-        i_ref().emplace(folly::copy(rhs.value_.i));
+        i_ref().emplace(rhs.value_.i);
         break;
       case Type::d:
-        d_ref().emplace(folly::copy(rhs.value_.d));
+        d_ref().emplace(rhs.value_.d);
         break;
       case Type::s:
         s_ref().emplace(rhs.value_.s);
         break;
       case Type::e:
-        e_ref().emplace(folly::copy(rhs.value_.e));
+        e_ref().emplace(rhs.value_.e);
         break;
       case Type::a:
         a_ref().emplace(rhs.value_.a);
@@ -861,32 +831,9 @@ bool unionA::__fbthrift_is_empty() const {
     }
   }
 
-    unionA&unionA::operator=(const unionA& rhs) {
+  unionA& unionA::operator=(const unionA& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::i:
-        i_ref().emplace(folly::copy(rhs.value_.i));
-        break;
-      case Type::d:
-        d_ref().emplace(folly::copy(rhs.value_.d));
-        break;
-      case Type::s:
-        s_ref().emplace(rhs.value_.s);
-        break;
-      case Type::e:
-        e_ref().emplace(folly::copy(rhs.value_.e));
-        break;
-      case Type::a:
-        a_ref().emplace(rhs.value_.a);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = unionA(rhs);
   }
 
 
@@ -2919,142 +2866,198 @@ bool union_with_special_names::__fbthrift_is_empty() const {
       }
       case Type::get:
       {
-        get_ref().emplace(folly::copy(rhs.value_.get));
+        auto value = std::move(rhs.value_.get);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(get_ref(), std::move(value));
         break;
       }
       case Type::getter:
       {
-        getter_ref().emplace(folly::copy(rhs.value_.getter));
+        auto value = std::move(rhs.value_.getter);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(getter_ref(), std::move(value));
         break;
       }
       case Type::lists:
       {
-        lists_ref().emplace(folly::copy(rhs.value_.lists));
+        auto value = std::move(rhs.value_.lists);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(lists_ref(), std::move(value));
         break;
       }
       case Type::maps:
       {
-        maps_ref().emplace(folly::copy(rhs.value_.maps));
+        auto value = std::move(rhs.value_.maps);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(maps_ref(), std::move(value));
         break;
       }
       case Type::name:
       {
-        name_ref().emplace(folly::copy(rhs.value_.name));
+        auto value = std::move(rhs.value_.name);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(name_ref(), std::move(value));
         break;
       }
       case Type::name_to_value:
       {
-        name_to_value_ref().emplace(folly::copy(rhs.value_.name_to_value));
+        auto value = std::move(rhs.value_.name_to_value);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(name_to_value_ref(), std::move(value));
         break;
       }
       case Type::names:
       {
-        names_ref().emplace(folly::copy(rhs.value_.names));
+        auto value = std::move(rhs.value_.names);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(names_ref(), std::move(value));
         break;
       }
       case Type::prefix_tree:
       {
-        prefix_tree_ref().emplace(folly::copy(rhs.value_.prefix_tree));
+        auto value = std::move(rhs.value_.prefix_tree);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(prefix_tree_ref(), std::move(value));
         break;
       }
       case Type::sets:
       {
-        sets_ref().emplace(folly::copy(rhs.value_.sets));
+        auto value = std::move(rhs.value_.sets);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(sets_ref(), std::move(value));
         break;
       }
       case Type::setter:
       {
-        setter_ref().emplace(folly::copy(rhs.value_.setter));
+        auto value = std::move(rhs.value_.setter);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(setter_ref(), std::move(value));
         break;
       }
       case Type::str:
       {
-        str_ref().emplace(folly::copy(rhs.value_.str));
+        auto value = std::move(rhs.value_.str);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(str_ref(), std::move(value));
         break;
       }
       case Type::strings:
       {
-        strings_ref().emplace(folly::copy(rhs.value_.strings));
+        auto value = std::move(rhs.value_.strings);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(strings_ref(), std::move(value));
         break;
       }
       case Type::type:
       {
-        type_ref().emplace(folly::copy(rhs.value_.type));
+        auto value = std::move(rhs.value_.type);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(type_ref(), std::move(value));
         break;
       }
       case Type::value:
       {
-        value_ref().emplace(folly::copy(rhs.value_.value));
+        auto value = std::move(rhs.value_.value);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(value_ref(), std::move(value));
         break;
       }
       case Type::value_to_name:
       {
-        value_to_name_ref().emplace(folly::copy(rhs.value_.value_to_name));
+        auto value = std::move(rhs.value_.value_to_name);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(value_to_name_ref(), std::move(value));
         break;
       }
       case Type::values:
       {
-        values_ref().emplace(folly::copy(rhs.value_.values));
+        auto value = std::move(rhs.value_.values);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(values_ref(), std::move(value));
         break;
       }
       case Type::id:
       {
-        id_ref().emplace(folly::copy(rhs.value_.id));
+        auto value = std::move(rhs.value_.id);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(id_ref(), std::move(value));
         break;
       }
       case Type::ids:
       {
-        ids_ref().emplace(folly::copy(rhs.value_.ids));
+        auto value = std::move(rhs.value_.ids);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(ids_ref(), std::move(value));
         break;
       }
       case Type::descriptor:
       {
-        descriptor_ref().emplace(folly::copy(rhs.value_.descriptor));
+        auto value = std::move(rhs.value_.descriptor);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(descriptor_ref(), std::move(value));
         break;
       }
       case Type::descriptors:
       {
-        descriptors_ref().emplace(folly::copy(rhs.value_.descriptors));
+        auto value = std::move(rhs.value_.descriptors);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(descriptors_ref(), std::move(value));
         break;
       }
       case Type::key:
       {
-        key_ref().emplace(folly::copy(rhs.value_.key));
+        auto value = std::move(rhs.value_.key);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(key_ref(), std::move(value));
         break;
       }
       case Type::keys:
       {
-        keys_ref().emplace(folly::copy(rhs.value_.keys));
+        auto value = std::move(rhs.value_.keys);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(keys_ref(), std::move(value));
         break;
       }
       case Type::annotation:
       {
-        annotation_ref().emplace(folly::copy(rhs.value_.annotation));
+        auto value = std::move(rhs.value_.annotation);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(annotation_ref(), std::move(value));
         break;
       }
       case Type::annotations:
       {
-        annotations_ref().emplace(folly::copy(rhs.value_.annotations));
+        auto value = std::move(rhs.value_.annotations);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(annotations_ref(), std::move(value));
         break;
       }
       case Type::member:
       {
-        member_ref().emplace(folly::copy(rhs.value_.member));
+        auto value = std::move(rhs.value_.member);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(member_ref(), std::move(value));
         break;
       }
       case Type::members:
       {
-        members_ref().emplace(folly::copy(rhs.value_.members));
+        auto value = std::move(rhs.value_.members);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(members_ref(), std::move(value));
         break;
       }
       case Type::field:
       {
-        field_ref().emplace(folly::copy(rhs.value_.field));
+        auto value = std::move(rhs.value_.field);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(field_ref(), std::move(value));
         break;
       }
       case Type::fields:
       {
-        fields_ref().emplace(folly::copy(rhs.value_.fields));
+        auto value = std::move(rhs.value_.fields);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(fields_ref(), std::move(value));
         break;
       }
       default:
@@ -3063,7 +3066,6 @@ bool union_with_special_names::__fbthrift_is_empty() const {
         __fbthrift_clear();
       }
     }
-    apache::thrift::clear(rhs);
     return *this;
   }
 
@@ -3073,189 +3075,97 @@ bool union_with_special_names::__fbthrift_is_empty() const {
       case Type::__EMPTY__:
         return;
       case Type::get:
-        get_ref().emplace(folly::copy(rhs.value_.get));
+        get_ref().emplace(rhs.value_.get);
         break;
       case Type::getter:
-        getter_ref().emplace(folly::copy(rhs.value_.getter));
+        getter_ref().emplace(rhs.value_.getter);
         break;
       case Type::lists:
-        lists_ref().emplace(folly::copy(rhs.value_.lists));
+        lists_ref().emplace(rhs.value_.lists);
         break;
       case Type::maps:
-        maps_ref().emplace(folly::copy(rhs.value_.maps));
+        maps_ref().emplace(rhs.value_.maps);
         break;
       case Type::name:
-        name_ref().emplace(folly::copy(rhs.value_.name));
+        name_ref().emplace(rhs.value_.name);
         break;
       case Type::name_to_value:
-        name_to_value_ref().emplace(folly::copy(rhs.value_.name_to_value));
+        name_to_value_ref().emplace(rhs.value_.name_to_value);
         break;
       case Type::names:
-        names_ref().emplace(folly::copy(rhs.value_.names));
+        names_ref().emplace(rhs.value_.names);
         break;
       case Type::prefix_tree:
-        prefix_tree_ref().emplace(folly::copy(rhs.value_.prefix_tree));
+        prefix_tree_ref().emplace(rhs.value_.prefix_tree);
         break;
       case Type::sets:
-        sets_ref().emplace(folly::copy(rhs.value_.sets));
+        sets_ref().emplace(rhs.value_.sets);
         break;
       case Type::setter:
-        setter_ref().emplace(folly::copy(rhs.value_.setter));
+        setter_ref().emplace(rhs.value_.setter);
         break;
       case Type::str:
-        str_ref().emplace(folly::copy(rhs.value_.str));
+        str_ref().emplace(rhs.value_.str);
         break;
       case Type::strings:
-        strings_ref().emplace(folly::copy(rhs.value_.strings));
+        strings_ref().emplace(rhs.value_.strings);
         break;
       case Type::type:
-        type_ref().emplace(folly::copy(rhs.value_.type));
+        type_ref().emplace(rhs.value_.type);
         break;
       case Type::value:
-        value_ref().emplace(folly::copy(rhs.value_.value));
+        value_ref().emplace(rhs.value_.value);
         break;
       case Type::value_to_name:
-        value_to_name_ref().emplace(folly::copy(rhs.value_.value_to_name));
+        value_to_name_ref().emplace(rhs.value_.value_to_name);
         break;
       case Type::values:
-        values_ref().emplace(folly::copy(rhs.value_.values));
+        values_ref().emplace(rhs.value_.values);
         break;
       case Type::id:
-        id_ref().emplace(folly::copy(rhs.value_.id));
+        id_ref().emplace(rhs.value_.id);
         break;
       case Type::ids:
-        ids_ref().emplace(folly::copy(rhs.value_.ids));
+        ids_ref().emplace(rhs.value_.ids);
         break;
       case Type::descriptor:
-        descriptor_ref().emplace(folly::copy(rhs.value_.descriptor));
+        descriptor_ref().emplace(rhs.value_.descriptor);
         break;
       case Type::descriptors:
-        descriptors_ref().emplace(folly::copy(rhs.value_.descriptors));
+        descriptors_ref().emplace(rhs.value_.descriptors);
         break;
       case Type::key:
-        key_ref().emplace(folly::copy(rhs.value_.key));
+        key_ref().emplace(rhs.value_.key);
         break;
       case Type::keys:
-        keys_ref().emplace(folly::copy(rhs.value_.keys));
+        keys_ref().emplace(rhs.value_.keys);
         break;
       case Type::annotation:
-        annotation_ref().emplace(folly::copy(rhs.value_.annotation));
+        annotation_ref().emplace(rhs.value_.annotation);
         break;
       case Type::annotations:
-        annotations_ref().emplace(folly::copy(rhs.value_.annotations));
+        annotations_ref().emplace(rhs.value_.annotations);
         break;
       case Type::member:
-        member_ref().emplace(folly::copy(rhs.value_.member));
+        member_ref().emplace(rhs.value_.member);
         break;
       case Type::members:
-        members_ref().emplace(folly::copy(rhs.value_.members));
+        members_ref().emplace(rhs.value_.members);
         break;
       case Type::field:
-        field_ref().emplace(folly::copy(rhs.value_.field));
+        field_ref().emplace(rhs.value_.field);
         break;
       case Type::fields:
-        fields_ref().emplace(folly::copy(rhs.value_.fields));
+        fields_ref().emplace(rhs.value_.fields);
         break;
       default:
         assert(false);
     }
   }
 
-    union_with_special_names&union_with_special_names::operator=(const union_with_special_names& rhs) {
+  union_with_special_names& union_with_special_names::operator=(const union_with_special_names& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::get:
-        get_ref().emplace(folly::copy(rhs.value_.get));
-        break;
-      case Type::getter:
-        getter_ref().emplace(folly::copy(rhs.value_.getter));
-        break;
-      case Type::lists:
-        lists_ref().emplace(folly::copy(rhs.value_.lists));
-        break;
-      case Type::maps:
-        maps_ref().emplace(folly::copy(rhs.value_.maps));
-        break;
-      case Type::name:
-        name_ref().emplace(folly::copy(rhs.value_.name));
-        break;
-      case Type::name_to_value:
-        name_to_value_ref().emplace(folly::copy(rhs.value_.name_to_value));
-        break;
-      case Type::names:
-        names_ref().emplace(folly::copy(rhs.value_.names));
-        break;
-      case Type::prefix_tree:
-        prefix_tree_ref().emplace(folly::copy(rhs.value_.prefix_tree));
-        break;
-      case Type::sets:
-        sets_ref().emplace(folly::copy(rhs.value_.sets));
-        break;
-      case Type::setter:
-        setter_ref().emplace(folly::copy(rhs.value_.setter));
-        break;
-      case Type::str:
-        str_ref().emplace(folly::copy(rhs.value_.str));
-        break;
-      case Type::strings:
-        strings_ref().emplace(folly::copy(rhs.value_.strings));
-        break;
-      case Type::type:
-        type_ref().emplace(folly::copy(rhs.value_.type));
-        break;
-      case Type::value:
-        value_ref().emplace(folly::copy(rhs.value_.value));
-        break;
-      case Type::value_to_name:
-        value_to_name_ref().emplace(folly::copy(rhs.value_.value_to_name));
-        break;
-      case Type::values:
-        values_ref().emplace(folly::copy(rhs.value_.values));
-        break;
-      case Type::id:
-        id_ref().emplace(folly::copy(rhs.value_.id));
-        break;
-      case Type::ids:
-        ids_ref().emplace(folly::copy(rhs.value_.ids));
-        break;
-      case Type::descriptor:
-        descriptor_ref().emplace(folly::copy(rhs.value_.descriptor));
-        break;
-      case Type::descriptors:
-        descriptors_ref().emplace(folly::copy(rhs.value_.descriptors));
-        break;
-      case Type::key:
-        key_ref().emplace(folly::copy(rhs.value_.key));
-        break;
-      case Type::keys:
-        keys_ref().emplace(folly::copy(rhs.value_.keys));
-        break;
-      case Type::annotation:
-        annotation_ref().emplace(folly::copy(rhs.value_.annotation));
-        break;
-      case Type::annotations:
-        annotations_ref().emplace(folly::copy(rhs.value_.annotations));
-        break;
-      case Type::member:
-        member_ref().emplace(folly::copy(rhs.value_.member));
-        break;
-      case Type::members:
-        members_ref().emplace(folly::copy(rhs.value_.members));
-        break;
-      case Type::field:
-        field_ref().emplace(folly::copy(rhs.value_.field));
-        break;
-      case Type::fields:
-        fields_ref().emplace(folly::copy(rhs.value_.fields));
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = union_with_special_names(rhs);
   }
 
 

@@ -148,7 +148,9 @@ bool MyUnion::__fbthrift_is_empty() const {
       }
       case Type::myString:
       {
-        myString_ref().emplace(std::move(rhs.value_.myString));
+        auto value = std::move(rhs.value_.myString);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(myString_ref(), std::move(value));
         break;
       }
       default:
@@ -157,7 +159,6 @@ bool MyUnion::__fbthrift_is_empty() const {
         __fbthrift_clear();
       }
     }
-    apache::thrift::clear(rhs);
     return *this;
   }
 
@@ -174,20 +175,9 @@ bool MyUnion::__fbthrift_is_empty() const {
     }
   }
 
-    MyUnion&MyUnion::operator=(const MyUnion& rhs) {
+  MyUnion& MyUnion::operator=(const MyUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::myString:
-        myString_ref().emplace(rhs.value_.myString);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = MyUnion(rhs);
   }
 
 

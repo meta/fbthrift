@@ -623,12 +623,16 @@ bool ExampleUnion::__fbthrift_is_empty() const {
       }
       case Type::fieldA:
       {
-        fieldA_ref().emplace(std::move(rhs.value_.fieldA));
+        auto value = std::move(rhs.value_.fieldA);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(fieldA_ref(), std::move(value));
         break;
       }
       case Type::fieldB:
       {
-        fieldB_ref().emplace(std::move(rhs.value_.fieldB));
+        auto value = std::move(rhs.value_.fieldB);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(fieldB_ref(), std::move(value));
         break;
       }
       default:
@@ -637,7 +641,6 @@ bool ExampleUnion::__fbthrift_is_empty() const {
         __fbthrift_clear();
       }
     }
-    apache::thrift::clear(rhs);
     return *this;
   }
 
@@ -657,23 +660,9 @@ bool ExampleUnion::__fbthrift_is_empty() const {
     }
   }
 
-    ExampleUnion&ExampleUnion::operator=(const ExampleUnion& rhs) {
+  ExampleUnion& ExampleUnion::operator=(const ExampleUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::fieldA:
-        fieldA_ref().emplace(rhs.value_.fieldA);
-        break;
-      case Type::fieldB:
-        fieldB_ref().emplace(rhs.value_.fieldB);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = ExampleUnion(rhs);
   }
 
 

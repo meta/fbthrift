@@ -200,7 +200,9 @@ bool ExampleUnion::__fbthrift_is_empty() const {
       }
       case Type::stringValue:
       {
-        stringValue_ref().emplace(std::move(rhs.value_.stringValue));
+        auto value = std::move(rhs.value_.stringValue);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(stringValue_ref(), std::move(value));
         break;
       }
       case Type::intValue:
@@ -208,13 +210,17 @@ bool ExampleUnion::__fbthrift_is_empty() const {
         FOLLY_PUSH_WARNING
         FOLLY_GNU_DISABLE_WARNING("-Wdeprecated-declarations")
         FOLLY_MSVC_DISABLE_WARNING(4996)
-        intValue_ref().emplace(folly::copy(rhs.value_.intValue));
+        auto value = std::move(rhs.value_.intValue);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(intValue_ref(), std::move(value));
         FOLLY_POP_WARNING
         break;
       }
       case Type::doubleValue:
       {
-        doubleValue_ref().emplace(folly::copy(rhs.value_.doubleValue));
+        auto value = std::move(rhs.value_.doubleValue);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(doubleValue_ref(), std::move(value));
         break;
       }
       default:
@@ -223,7 +229,6 @@ bool ExampleUnion::__fbthrift_is_empty() const {
         __fbthrift_clear();
       }
     }
-    apache::thrift::clear(rhs);
     return *this;
   }
 
@@ -239,41 +244,20 @@ bool ExampleUnion::__fbthrift_is_empty() const {
         FOLLY_PUSH_WARNING
         FOLLY_GNU_DISABLE_WARNING("-Wdeprecated-declarations")
         FOLLY_MSVC_DISABLE_WARNING(4996)
-        intValue_ref().emplace(folly::copy(rhs.value_.intValue));
+        intValue_ref().emplace(rhs.value_.intValue);
         FOLLY_POP_WARNING
         break;
       case Type::doubleValue:
-        doubleValue_ref().emplace(folly::copy(rhs.value_.doubleValue));
+        doubleValue_ref().emplace(rhs.value_.doubleValue);
         break;
       default:
         assert(false);
     }
   }
 
-    ExampleUnion&ExampleUnion::operator=(const ExampleUnion& rhs) {
+  ExampleUnion& ExampleUnion::operator=(const ExampleUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::stringValue:
-        stringValue_ref().emplace(rhs.value_.stringValue);
-        break;
-      case Type::intValue:
-        FOLLY_PUSH_WARNING
-        FOLLY_GNU_DISABLE_WARNING("-Wdeprecated-declarations")
-        FOLLY_MSVC_DISABLE_WARNING(4996)
-        intValue_ref().emplace(folly::copy(rhs.value_.intValue));
-        FOLLY_POP_WARNING
-        break;
-      case Type::doubleValue:
-        doubleValue_ref().emplace(folly::copy(rhs.value_.doubleValue));
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = ExampleUnion(rhs);
   }
 
 

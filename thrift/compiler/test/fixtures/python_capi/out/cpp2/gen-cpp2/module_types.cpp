@@ -1824,37 +1824,51 @@ bool Shallot::__fbthrift_is_empty() const {
       }
       case Type::myEnum:
       {
-        myEnum_ref().emplace(folly::copy(rhs.value_.myEnum));
+        auto value = std::move(rhs.value_.myEnum);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(myEnum_ref(), std::move(value));
         break;
       }
       case Type::myStruct:
       {
-        myStruct_ref().emplace(std::move(rhs.value_.myStruct));
+        auto value = std::move(rhs.value_.myStruct);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(myStruct_ref(), std::move(value));
         break;
       }
       case Type::intSet:
       {
-        intSet_ref().emplace(std::move(*rhs.value_.intSet));
+        auto value = std::move(rhs.value_.intSet);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(intSet_ref(), std::move(value));
         break;
       }
       case Type::myString:
       {
-        myString_ref().emplace(std::move(rhs.value_.myString));
+        auto value = std::move(rhs.value_.myString);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(myString_ref(), std::move(value));
         break;
       }
       case Type::doubleList:
       {
-        doubleList_ref().emplace(std::move(*rhs.value_.doubleList));
+        auto value = std::move(rhs.value_.doubleList);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(doubleList_ref(), std::move(value));
         break;
       }
       case Type::strMap:
       {
-        strMap_ref().emplace(std::move(*rhs.value_.strMap));
+        auto value = std::move(rhs.value_.strMap);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(strMap_ref(), std::move(value));
         break;
       }
       case Type::adapted_int:
       {
-        adapted_int_ref().emplace(folly::copy(rhs.value_.adapted_int));
+        auto value = std::move(rhs.value_.adapted_int);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(adapted_int_ref(), std::move(value));
         break;
       }
       default:
@@ -1863,7 +1877,6 @@ bool Shallot::__fbthrift_is_empty() const {
         __fbthrift_clear();
       }
     }
-    apache::thrift::clear(rhs);
     return *this;
   }
 
@@ -1873,7 +1886,7 @@ bool Shallot::__fbthrift_is_empty() const {
       case Type::__EMPTY__:
         return;
       case Type::myEnum:
-        myEnum_ref().emplace(folly::copy(rhs.value_.myEnum));
+        myEnum_ref().emplace(rhs.value_.myEnum);
         break;
       case Type::myStruct:
         myStruct_ref().emplace(rhs.value_.myStruct);
@@ -1888,50 +1901,20 @@ bool Shallot::__fbthrift_is_empty() const {
         doubleList_ref().emplace(*rhs.value_.doubleList);
         break;
       case Type::strMap:
-        strMap_ref().emplace(::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::detail::union_emplace_storage(strMap_ref(), ::apache::thrift::detail::st::copy_field<
           ::apache::thrift::type_class::map<::apache::thrift::type_class::binary, ::apache::thrift::type_class::string>>(rhs.value_.strMap));
         break;
       case Type::adapted_int:
-        adapted_int_ref().emplace(folly::copy(rhs.value_.adapted_int));
+        adapted_int_ref().emplace(rhs.value_.adapted_int);
         break;
       default:
         assert(false);
     }
   }
 
-    Shallot&Shallot::operator=(const Shallot& rhs) {
+  Shallot& Shallot::operator=(const Shallot& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::myEnum:
-        myEnum_ref().emplace(folly::copy(rhs.value_.myEnum));
-        break;
-      case Type::myStruct:
-        myStruct_ref().emplace(rhs.value_.myStruct);
-        break;
-      case Type::intSet:
-        intSet_ref().emplace(*rhs.value_.intSet);
-        break;
-      case Type::myString:
-        myString_ref().emplace(rhs.value_.myString);
-        break;
-      case Type::doubleList:
-        doubleList_ref().emplace(*rhs.value_.doubleList);
-        break;
-      case Type::strMap:
-        strMap_ref().emplace(::apache::thrift::detail::st::copy_field<
-          ::apache::thrift::type_class::map<::apache::thrift::type_class::binary, ::apache::thrift::type_class::string>>(rhs.value_.strMap));
-        break;
-      case Type::adapted_int:
-        adapted_int_ref().emplace(folly::copy(rhs.value_.adapted_int));
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = Shallot(rhs);
   }
 
 
@@ -2068,17 +2051,23 @@ bool SomeBinary::__fbthrift_is_empty() const {
       }
       case Type::iobuf:
       {
-        iobuf_ref().emplace(std::move(rhs.value_.iobuf));
+        auto value = std::move(rhs.value_.iobuf);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(iobuf_ref(), std::move(value));
         break;
       }
       case Type::iobuf_ptr:
       {
-        iobuf_ptr_ref().emplace(std::move(rhs.value_.iobuf_ptr));
+        auto value = std::move(rhs.value_.iobuf_ptr);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(iobuf_ptr_ref(), std::move(value));
         break;
       }
       case Type::iobufRef:
       {
-        iobufRef_ref().emplace(std::move(*rhs.value_.iobufRef));
+        auto value = std::move(rhs.value_.iobufRef);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(iobufRef_ref(), std::move(value));
         break;
       }
       default:
@@ -2087,7 +2076,6 @@ bool SomeBinary::__fbthrift_is_empty() const {
         __fbthrift_clear();
       }
     }
-    apache::thrift::clear(rhs);
     return *this;
   }
 
@@ -2100,11 +2088,11 @@ bool SomeBinary::__fbthrift_is_empty() const {
         iobuf_ref().emplace(rhs.value_.iobuf);
         break;
       case Type::iobuf_ptr:
-        iobuf_ptr_ref().emplace(::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::detail::union_emplace_storage(iobuf_ptr_ref(), ::apache::thrift::detail::st::copy_field<
           ::apache::thrift::type_class::binary>(rhs.value_.iobuf_ptr));
         break;
       case Type::iobufRef:
-        iobufRef_ref().emplace(::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::detail::union_emplace_storage(iobufRef_ref(), ::apache::thrift::detail::st::copy_field<
           ::apache::thrift::type_class::binary>(rhs.value_.iobufRef));
         break;
       default:
@@ -2112,28 +2100,9 @@ bool SomeBinary::__fbthrift_is_empty() const {
     }
   }
 
-    SomeBinary&SomeBinary::operator=(const SomeBinary& rhs) {
+  SomeBinary& SomeBinary::operator=(const SomeBinary& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::iobuf:
-        iobuf_ref().emplace(rhs.value_.iobuf);
-        break;
-      case Type::iobuf_ptr:
-        iobuf_ptr_ref().emplace(::apache::thrift::detail::st::copy_field<
-          ::apache::thrift::type_class::binary>(rhs.value_.iobuf_ptr));
-        break;
-      case Type::iobufRef:
-        iobufRef_ref().emplace(::apache::thrift::detail::st::copy_field<
-          ::apache::thrift::type_class::binary>(rhs.value_.iobufRef));
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = SomeBinary(rhs);
   }
 
 

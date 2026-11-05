@@ -178,7 +178,6 @@ bool YourUnion::__fbthrift_is_empty() const {
         __fbthrift_clear();
       }
     }
-    apache::thrift::clear(rhs);
     return *this;
   }
 
@@ -192,17 +191,9 @@ bool YourUnion::__fbthrift_is_empty() const {
     }
   }
 
-    YourUnion&YourUnion::operator=(const YourUnion& rhs) {
+  YourUnion& YourUnion::operator=(const YourUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = YourUnion(rhs);
   }
 
 

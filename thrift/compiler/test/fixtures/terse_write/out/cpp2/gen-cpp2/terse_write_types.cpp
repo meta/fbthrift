@@ -196,72 +196,100 @@ bool MyUnion::__fbthrift_is_empty() const {
       }
       case Type::bool_field:
       {
-        bool_field_ref().emplace(folly::copy(rhs.value_.bool_field));
+        auto value = std::move(rhs.value_.bool_field);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(bool_field_ref(), std::move(value));
         break;
       }
       case Type::byte_field:
       {
-        byte_field_ref().emplace(folly::copy(rhs.value_.byte_field));
+        auto value = std::move(rhs.value_.byte_field);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(byte_field_ref(), std::move(value));
         break;
       }
       case Type::short_field:
       {
-        short_field_ref().emplace(folly::copy(rhs.value_.short_field));
+        auto value = std::move(rhs.value_.short_field);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(short_field_ref(), std::move(value));
         break;
       }
       case Type::int_field:
       {
-        int_field_ref().emplace(folly::copy(rhs.value_.int_field));
+        auto value = std::move(rhs.value_.int_field);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(int_field_ref(), std::move(value));
         break;
       }
       case Type::long_field:
       {
-        long_field_ref().emplace(folly::copy(rhs.value_.long_field));
+        auto value = std::move(rhs.value_.long_field);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(long_field_ref(), std::move(value));
         break;
       }
       case Type::float_field:
       {
-        float_field_ref().emplace(folly::copy(rhs.value_.float_field));
+        auto value = std::move(rhs.value_.float_field);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(float_field_ref(), std::move(value));
         break;
       }
       case Type::double_field:
       {
-        double_field_ref().emplace(folly::copy(rhs.value_.double_field));
+        auto value = std::move(rhs.value_.double_field);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(double_field_ref(), std::move(value));
         break;
       }
       case Type::string_field:
       {
-        string_field_ref().emplace(std::move(rhs.value_.string_field));
+        auto value = std::move(rhs.value_.string_field);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(string_field_ref(), std::move(value));
         break;
       }
       case Type::binary_field:
       {
-        binary_field_ref().emplace(std::move(rhs.value_.binary_field));
+        auto value = std::move(rhs.value_.binary_field);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(binary_field_ref(), std::move(value));
         break;
       }
       case Type::enum_field:
       {
-        enum_field_ref().emplace(folly::copy(rhs.value_.enum_field));
+        auto value = std::move(rhs.value_.enum_field);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(enum_field_ref(), std::move(value));
         break;
       }
       case Type::list_field:
       {
-        list_field_ref().emplace(std::move(rhs.value_.list_field));
+        auto value = std::move(rhs.value_.list_field);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(list_field_ref(), std::move(value));
         break;
       }
       case Type::set_field:
       {
-        set_field_ref().emplace(std::move(rhs.value_.set_field));
+        auto value = std::move(rhs.value_.set_field);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(set_field_ref(), std::move(value));
         break;
       }
       case Type::map_field:
       {
-        map_field_ref().emplace(std::move(rhs.value_.map_field));
+        auto value = std::move(rhs.value_.map_field);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(map_field_ref(), std::move(value));
         break;
       }
       case Type::struct_field:
       {
-        struct_field_ref().emplace(std::move(rhs.value_.struct_field));
+        auto value = std::move(rhs.value_.struct_field);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(struct_field_ref(), std::move(value));
         break;
       }
       default:
@@ -270,7 +298,6 @@ bool MyUnion::__fbthrift_is_empty() const {
         __fbthrift_clear();
       }
     }
-    apache::thrift::clear(rhs);
     return *this;
   }
 
@@ -280,25 +307,25 @@ bool MyUnion::__fbthrift_is_empty() const {
       case Type::__EMPTY__:
         return;
       case Type::bool_field:
-        bool_field_ref().emplace(folly::copy(rhs.value_.bool_field));
+        bool_field_ref().emplace(rhs.value_.bool_field);
         break;
       case Type::byte_field:
-        byte_field_ref().emplace(folly::copy(rhs.value_.byte_field));
+        byte_field_ref().emplace(rhs.value_.byte_field);
         break;
       case Type::short_field:
-        short_field_ref().emplace(folly::copy(rhs.value_.short_field));
+        short_field_ref().emplace(rhs.value_.short_field);
         break;
       case Type::int_field:
-        int_field_ref().emplace(folly::copy(rhs.value_.int_field));
+        int_field_ref().emplace(rhs.value_.int_field);
         break;
       case Type::long_field:
-        long_field_ref().emplace(folly::copy(rhs.value_.long_field));
+        long_field_ref().emplace(rhs.value_.long_field);
         break;
       case Type::float_field:
-        float_field_ref().emplace(folly::copy(rhs.value_.float_field));
+        float_field_ref().emplace(rhs.value_.float_field);
         break;
       case Type::double_field:
-        double_field_ref().emplace(folly::copy(rhs.value_.double_field));
+        double_field_ref().emplace(rhs.value_.double_field);
         break;
       case Type::string_field:
         string_field_ref().emplace(rhs.value_.string_field);
@@ -307,7 +334,7 @@ bool MyUnion::__fbthrift_is_empty() const {
         binary_field_ref().emplace(rhs.value_.binary_field);
         break;
       case Type::enum_field:
-        enum_field_ref().emplace(folly::copy(rhs.value_.enum_field));
+        enum_field_ref().emplace(rhs.value_.enum_field);
         break;
       case Type::list_field:
         list_field_ref().emplace(rhs.value_.list_field);
@@ -326,59 +353,9 @@ bool MyUnion::__fbthrift_is_empty() const {
     }
   }
 
-    MyUnion&MyUnion::operator=(const MyUnion& rhs) {
+  MyUnion& MyUnion::operator=(const MyUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::bool_field:
-        bool_field_ref().emplace(folly::copy(rhs.value_.bool_field));
-        break;
-      case Type::byte_field:
-        byte_field_ref().emplace(folly::copy(rhs.value_.byte_field));
-        break;
-      case Type::short_field:
-        short_field_ref().emplace(folly::copy(rhs.value_.short_field));
-        break;
-      case Type::int_field:
-        int_field_ref().emplace(folly::copy(rhs.value_.int_field));
-        break;
-      case Type::long_field:
-        long_field_ref().emplace(folly::copy(rhs.value_.long_field));
-        break;
-      case Type::float_field:
-        float_field_ref().emplace(folly::copy(rhs.value_.float_field));
-        break;
-      case Type::double_field:
-        double_field_ref().emplace(folly::copy(rhs.value_.double_field));
-        break;
-      case Type::string_field:
-        string_field_ref().emplace(rhs.value_.string_field);
-        break;
-      case Type::binary_field:
-        binary_field_ref().emplace(rhs.value_.binary_field);
-        break;
-      case Type::enum_field:
-        enum_field_ref().emplace(folly::copy(rhs.value_.enum_field));
-        break;
-      case Type::list_field:
-        list_field_ref().emplace(rhs.value_.list_field);
-        break;
-      case Type::set_field:
-        set_field_ref().emplace(rhs.value_.set_field);
-        break;
-      case Type::map_field:
-        map_field_ref().emplace(rhs.value_.map_field);
-        break;
-      case Type::struct_field:
-        struct_field_ref().emplace(rhs.value_.struct_field);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = MyUnion(rhs);
   }
 
 

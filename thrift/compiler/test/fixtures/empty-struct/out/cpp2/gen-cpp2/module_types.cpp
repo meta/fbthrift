@@ -116,7 +116,6 @@ bool Nada::__fbthrift_is_empty() const {
         __fbthrift_clear();
       }
     }
-    apache::thrift::clear(rhs);
     return *this;
   }
 
@@ -130,17 +129,9 @@ bool Nada::__fbthrift_is_empty() const {
     }
   }
 
-    Nada&Nada::operator=(const Nada& rhs) {
+  Nada& Nada::operator=(const Nada& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = Nada(rhs);
   }
 
 

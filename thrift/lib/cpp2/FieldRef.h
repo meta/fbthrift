@@ -61,6 +61,7 @@ struct alias_isset_fn;
 struct move_to_unique_ptr_fn;
 struct assign_from_unique_ptr_fn;
 struct union_value_unsafe_fn;
+struct union_emplace_storage_fn;
 struct is_non_optional_field_set_manually_or_by_serializer_fn;
 
 // Lets field ref specializations read each other's members. A
@@ -1714,6 +1715,7 @@ class union_field_ref {
   static_assert(std::is_reference_v<T>, "not a reference");
 
   friend struct detail::union_value_unsafe_fn;
+  friend struct detail::union_emplace_storage_fn;
 
   using is_cpp_ref_or_boxed = std::bool_constant<
       detail::is_boxed_value_ptr_v<std::remove_cvref_t<T>> ||
@@ -2002,6 +2004,23 @@ struct union_value_unsafe_fn {
         ref.get_value());
   }
 };
+
+// Makes `ref` the active field holding `value`. Unlike `ref.emplace(value)`,
+// a null pointer is kept, as setters keep it. For union copies and moves.
+struct union_emplace_storage_fn {
+  template <typename T, typename A>
+  void operator()(
+      union_field_ref<T, A> ref, std::remove_reference_t<T>&& value) const {
+    if constexpr (union_field_ref<T, A>::is_cpp_ref_or_boxed::value) {
+      ref.vtable_.reset(ref.owner_);
+      ::new (&ref.storage_value_) std::remove_reference_t<T>(std::move(value));
+      ref.type_ = ref.field_type_;
+    } else {
+      ref.emplace(std::move(value));
+    }
+  }
+};
+inline constexpr union_emplace_storage_fn union_emplace_storage{};
 } // namespace detail
 
 // A reference to a terse field of the possibly const-qualified type

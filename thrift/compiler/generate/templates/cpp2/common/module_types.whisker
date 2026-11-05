@@ -152,25 +152,19 @@ FOLLY_MSVC_DISABLE_WARNING(4996)
 {{/let partial}}
 
 
-{{! Union switch cases that copy `src` into `*this`. Callers supply the
-    __EMPTY__ and default arms. Scalars are copied before `emplace()` clears
-    `*this`, because `src` may live inside `*this`, e.g. `u = u.ref()->u`. }}
+{{! Union switch cases that copy `src` into `*this`, a new union. Callers
+    supply the __EMPTY__ and default arms. }}
 {{#let export partial union_copy_field_cases |struct src| captures |union_push_deprecated_warning|}}
   {{#each struct.fields as |field|}}
-    {{#let scalar? = (and (or field.type.primitive? field.type.enum?) (not field.type.string_or_binary?))}}
 case Type::{{field.cpp_name}}:
     {{#if field.deprecated?}}
   {{#partial union_push_deprecated_warning}}
     {{/if field.deprecated?}}
     {{#if field.transitively_refers_to_unique?}}
-  {{field.cpp_name}}_ref().emplace(::apache::thrift::detail::st::copy_field<
+  ::apache::thrift::detail::union_emplace_storage({{field.cpp_name}}_ref(), ::apache::thrift::detail::st::copy_field<
     {{field.type.type_class}}>({{src}}.value_.{{field.cpp_name}}));
-    {{#else if scalar?}}
-  {{field.cpp_name}}_ref().emplace(folly::copy({{#if field.cpp_ref?}}*{{/if}}{{src}}.value_.{{field.cpp_name}}));
-    {{#else if field.cpp_ref?}}
-  {{field.cpp_name}}_ref().emplace(*{{src}}.value_.{{field.cpp_name}});
     {{#else}}
-  {{field.cpp_name}}_ref().emplace({{src}}.value_.{{field.cpp_name}});
+  {{field.cpp_name}}_ref().emplace({{#if field.cpp_ref?}}*{{/if}}{{src}}.value_.{{field.cpp_name}});
     {{/if field.transitively_refers_to_unique?}}
     {{#if field.deprecated?}}
   FOLLY_POP_WARNING
@@ -181,11 +175,13 @@ case Type::{{field.cpp_name}}:
 
 
 {{! Union switch cases that move `src` into `*this`. Callers supply the
-    __EMPTY__ and default arms. Scalars are copied as in
-    union_copy_field_cases. }}
+    __EMPTY__ and default arms. `src` is emptied before `emplace()` clears
+    `*this`, because `src` may live inside `*this`. A pointer member moves its
+    pointer, and a null pointer stays null. A `cpp.use_allocator` pointer member
+    of a `cpp.allocator` union whose allocator differs copies its pointee with
+    the allocator of `*this` instead. }}
 {{#let export partial union_move_field_cases |struct src| captures |union_push_deprecated_warning|}}
   {{#each struct.fields as |field|}}
-    {{#let scalar? = (and (or field.type.primitive? field.type.enum?) (not field.type.string_or_binary?))}}
     {{#let use_alloc? = (and (object.notnull? struct.cpp_allocator) field.cpp_use_allocator?)}}
 case Type::{{field.cpp_name}}:
 {
@@ -193,16 +189,14 @@ case Type::{{field.cpp_name}}:
   {{#partial union_push_deprecated_warning}}
     {{/if field.deprecated?}}
     {{#if (and use_alloc? field.cpp_ref?)}}
-  if ({{src}}.get_allocator() == get_allocator()) {
-    {{field.cpp_name}}_ref().emplace(std::move({{src}}.value_.{{field.cpp_name}}));
-  } else {
-    {{field.cpp_name}}_ref().emplace(*{{src}}.value_.{{field.cpp_name}});
-  }
-    {{#else if scalar?}}
-  {{field.cpp_name}}_ref().emplace(folly::copy({{#if field.cpp_ref?}}*{{/if}}{{src}}.value_.{{field.cpp_name}}));
+  auto value = {{src}}.get_allocator() == get_allocator()
+      ? std::move({{src}}.value_.{{field.cpp_name}})
+      : std::allocate_shared<{{field.cpp_type}}>(get_allocator(), *{{src}}.value_.{{field.cpp_name}});
     {{#else}}
-  {{field.cpp_name}}_ref().emplace(std::move({{#if field.cpp_ref?}}*{{/if}}{{src}}.value_.{{field.cpp_name}}));
+  auto value = std::move({{src}}.value_.{{field.cpp_name}});
     {{/if (and use_alloc? field.cpp_ref?)}}
+  apache::thrift::clear({{src}});
+  ::apache::thrift::detail::union_emplace_storage({{field.cpp_name}}_ref(), std::move(value));
     {{#if field.deprecated?}}
   FOLLY_POP_WARNING
     {{/if field.deprecated?}}

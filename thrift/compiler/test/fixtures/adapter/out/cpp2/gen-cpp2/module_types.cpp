@@ -542,27 +542,37 @@ bool Baz::__fbthrift_is_empty() const {
       }
       case Type::intField:
       {
-        intField_ref().emplace(folly::copy(rhs.value_.intField));
+        auto value = std::move(rhs.value_.intField);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(intField_ref(), std::move(value));
         break;
       }
       case Type::setField:
       {
-        setField_ref().emplace(std::move(rhs.value_.setField));
+        auto value = std::move(rhs.value_.setField);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(setField_ref(), std::move(value));
         break;
       }
       case Type::mapField:
       {
-        mapField_ref().emplace(std::move(rhs.value_.mapField));
+        auto value = std::move(rhs.value_.mapField);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(mapField_ref(), std::move(value));
         break;
       }
       case Type::binaryField:
       {
-        binaryField_ref().emplace(std::move(rhs.value_.binaryField));
+        auto value = std::move(rhs.value_.binaryField);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(binaryField_ref(), std::move(value));
         break;
       }
       case Type::longField:
       {
-        longField_ref().emplace(folly::copy(rhs.value_.longField));
+        auto value = std::move(rhs.value_.longField);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(longField_ref(), std::move(value));
         break;
       }
       default:
@@ -571,7 +581,6 @@ bool Baz::__fbthrift_is_empty() const {
         __fbthrift_clear();
       }
     }
-    apache::thrift::clear(rhs);
     return *this;
   }
 
@@ -581,7 +590,7 @@ bool Baz::__fbthrift_is_empty() const {
       case Type::__EMPTY__:
         return;
       case Type::intField:
-        intField_ref().emplace(folly::copy(rhs.value_.intField));
+        intField_ref().emplace(rhs.value_.intField);
         break;
       case Type::setField:
         setField_ref().emplace(rhs.value_.setField);
@@ -593,39 +602,16 @@ bool Baz::__fbthrift_is_empty() const {
         binaryField_ref().emplace(rhs.value_.binaryField);
         break;
       case Type::longField:
-        longField_ref().emplace(folly::copy(rhs.value_.longField));
+        longField_ref().emplace(rhs.value_.longField);
         break;
       default:
         assert(false);
     }
   }
 
-    Baz&Baz::operator=(const Baz& rhs) {
+  Baz& Baz::operator=(const Baz& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::intField:
-        intField_ref().emplace(folly::copy(rhs.value_.intField));
-        break;
-      case Type::setField:
-        setField_ref().emplace(rhs.value_.setField);
-        break;
-      case Type::mapField:
-        mapField_ref().emplace(rhs.value_.mapField);
-        break;
-      case Type::binaryField:
-        binaryField_ref().emplace(rhs.value_.binaryField);
-        break;
-      case Type::longField:
-        longField_ref().emplace(folly::copy(rhs.value_.longField));
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = Baz(rhs);
   }
 
 
@@ -2083,12 +2069,16 @@ bool ThriftAdaptTestUnion::__fbthrift_is_empty() const {
       }
       case Type::delay:
       {
-        delay_ref().emplace(folly::copy(rhs.value_.delay));
+        auto value = std::move(rhs.value_.delay);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(delay_ref(), std::move(value));
         break;
       }
       case Type::custom:
       {
-        custom_ref().emplace(std::move(rhs.value_.custom));
+        auto value = std::move(rhs.value_.custom);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(custom_ref(), std::move(value));
         break;
       }
       default:
@@ -2097,7 +2087,6 @@ bool ThriftAdaptTestUnion::__fbthrift_is_empty() const {
         __fbthrift_clear();
       }
     }
-    apache::thrift::clear(rhs);
     return *this;
   }
 
@@ -2107,7 +2096,7 @@ bool ThriftAdaptTestUnion::__fbthrift_is_empty() const {
       case Type::__EMPTY__:
         return;
       case Type::delay:
-        delay_ref().emplace(folly::copy(rhs.value_.delay));
+        delay_ref().emplace(rhs.value_.delay);
         break;
       case Type::custom:
         custom_ref().emplace(rhs.value_.custom);
@@ -2117,23 +2106,9 @@ bool ThriftAdaptTestUnion::__fbthrift_is_empty() const {
     }
   }
 
-    ThriftAdaptTestUnion&ThriftAdaptTestUnion::operator=(const ThriftAdaptTestUnion& rhs) {
+  ThriftAdaptTestUnion& ThriftAdaptTestUnion::operator=(const ThriftAdaptTestUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::delay:
-        delay_ref().emplace(folly::copy(rhs.value_.delay));
-        break;
-      case Type::custom:
-        custom_ref().emplace(rhs.value_.custom);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = ThriftAdaptTestUnion(rhs);
   }
 
 

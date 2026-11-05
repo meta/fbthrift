@@ -190,12 +190,16 @@ bool SerializedUnion::__fbthrift_is_empty() const {
       }
       case Type::s:
       {
-        s_ref().emplace(std::move(rhs.value_.s));
+        auto value = std::move(rhs.value_.s);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(s_ref(), std::move(value));
         break;
       }
       case Type::i:
       {
-        i_ref().emplace(folly::copy(rhs.value_.i));
+        auto value = std::move(rhs.value_.i);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(i_ref(), std::move(value));
         break;
       }
       default:
@@ -204,7 +208,6 @@ bool SerializedUnion::__fbthrift_is_empty() const {
         __fbthrift_clear();
       }
     }
-    apache::thrift::clear(rhs);
     return *this;
   }
 
@@ -217,30 +220,16 @@ bool SerializedUnion::__fbthrift_is_empty() const {
         s_ref().emplace(rhs.value_.s);
         break;
       case Type::i:
-        i_ref().emplace(folly::copy(rhs.value_.i));
+        i_ref().emplace(rhs.value_.i);
         break;
       default:
         assert(false);
     }
   }
 
-    SerializedUnion&SerializedUnion::operator=(const SerializedUnion& rhs) {
+  SerializedUnion& SerializedUnion::operator=(const SerializedUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::s:
-        s_ref().emplace(rhs.value_.s);
-        break;
-      case Type::i:
-        i_ref().emplace(folly::copy(rhs.value_.i));
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = SerializedUnion(rhs);
   }
 
 
@@ -505,12 +494,16 @@ bool MarshalUnion::__fbthrift_is_empty() const {
       }
       case Type::s:
       {
-        s_ref().emplace(std::move(rhs.value_.s));
+        auto value = std::move(rhs.value_.s);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(s_ref(), std::move(value));
         break;
       }
       case Type::i:
       {
-        i_ref().emplace(folly::copy(rhs.value_.i));
+        auto value = std::move(rhs.value_.i);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(i_ref(), std::move(value));
         break;
       }
       default:
@@ -519,7 +512,6 @@ bool MarshalUnion::__fbthrift_is_empty() const {
         __fbthrift_clear();
       }
     }
-    apache::thrift::clear(rhs);
     return *this;
   }
 
@@ -532,30 +524,16 @@ bool MarshalUnion::__fbthrift_is_empty() const {
         s_ref().emplace(rhs.value_.s);
         break;
       case Type::i:
-        i_ref().emplace(folly::copy(rhs.value_.i));
+        i_ref().emplace(rhs.value_.i);
         break;
       default:
         assert(false);
     }
   }
 
-    MarshalUnion&MarshalUnion::operator=(const MarshalUnion& rhs) {
+  MarshalUnion& MarshalUnion::operator=(const MarshalUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::s:
-        s_ref().emplace(rhs.value_.s);
-        break;
-      case Type::i:
-        i_ref().emplace(folly::copy(rhs.value_.i));
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = MarshalUnion(rhs);
   }
 
 
