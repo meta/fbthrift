@@ -28,7 +28,6 @@
 #include <thrift/lib/cpp2/transport/core/RpcMetadataUtil.h>
 #include <thrift/lib/cpp2/type/Any.h>
 #include <thrift/lib/cpp2/type/Protocol.h>
-#include <thrift/lib/cpp2/type/Runtime.h>
 #include <thrift/lib/cpp2/type/TypeRegistry.h>
 
 namespace apache::thrift::fast_thrift::thrift {
