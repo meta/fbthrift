@@ -47,6 +47,8 @@ namespace {
 using namespace testing;
 
 constexpr size_t kStreamQuantum = 64 * 1024;
+constexpr size_t kCallbackBudget = 16 * 1024 * 1024;
+constexpr size_t kFullTurnsPerCallback = kCallbackBudget / kStreamQuantum;
 
 struct TestPublishedEvent : channel_pipeline::EventTag<int> {};
 struct TestSubscribedEvent : channel_pipeline::EventTag<int> {};
@@ -230,6 +232,14 @@ std::vector<std::pair<uint32_t, size_t>> streamDataSizes(
     result.emplace_back(frame.streamId, frame.dataSize);
   }
   return result;
+}
+
+size_t totalDataSize(const std::vector<CapturedFrame>& frames) {
+  size_t total = 0;
+  for (const CapturedFrame& frame : frames) {
+    total += frame.dataSize;
+  }
+  return total;
 }
 
 class FifoFrameFragmentationHandlerTest : public Test {
@@ -457,6 +467,128 @@ TEST_F(FifoFrameFragmentationHandlerTest, UsesAStrict64KiBQuantum) {
   ASSERT_THAT(context_.written(), SizeIs(2));
   EXPECT_THAT(context_.written()[1].dataSize, Eq(1));
   EXPECT_THAT(context_.written()[1].follows, IsFalse());
+}
+
+TEST_F(FifoFrameFragmentationHandlerTest, UsesAStrict16MiBCallbackBudget) {
+  Handler handler;
+  handler.handlerAdded(context_);
+  for (size_t turn = 0; turn <= kFullTurnsPerCallback; ++turn) {
+    (void)handler.onWrite(
+        context_,
+        makeFrame(
+            FrameType::PAYLOAD,
+            static_cast<uint32_t>(2 * turn + 1),
+            2 * kStreamQuantum));
+  }
+
+  runLoop();
+
+  EXPECT_THAT(context_.written(), SizeIs(kFullTurnsPerCallback));
+  EXPECT_THAT(totalDataSize(context_.written()), Eq(kCallbackBudget));
+  EXPECT_THAT(handler.pendingStreamCount(), Eq(kFullTurnsPerCallback / 2 + 1));
+}
+
+TEST_F(
+    FifoFrameFragmentationHandlerTest,
+    FinishesAStartedTurnPastTheCallbackBudget) {
+  const QuantumFragmentationHandlerConfig config{
+      .streamQuantum = 1024, .callbackBudget = 2047};
+  Handler handler(config);
+  handler.handlerAdded(context_);
+  (void)handler.onWrite(context_, makeFrame(FrameType::PAYLOAD, 1, 2048));
+  (void)handler.onWrite(context_, makeFrame(FrameType::PAYLOAD, 3, 2048));
+  (void)handler.onWrite(context_, makeFrame(FrameType::PAYLOAD, 5, 2048));
+
+  runLoop();
+
+  const std::vector<std::pair<uint32_t, size_t>> afterFirstPass{
+      {1, 1024}, {1, 1024}};
+  EXPECT_THAT(streamDataSizes(context_.written()), Eq(afterFirstPass));
+  EXPECT_THAT(handler.pendingStreamCount(), Eq(2));
+
+  runLoop();
+
+  const std::vector<std::pair<uint32_t, size_t>> afterSecondPass{
+      {1, 1024}, {1, 1024}, {3, 1024}, {3, 1024}};
+  EXPECT_THAT(streamDataSizes(context_.written()), Eq(afterSecondPass));
+  EXPECT_THAT(handler.pendingStreamCount(), Eq(1));
+}
+
+TEST_F(
+    FifoFrameFragmentationHandlerTest,
+    SkippedStreamsRunFirstInTheNextCallback) {
+  const QuantumFragmentationHandlerConfig config{
+      .streamQuantum = 1024, .callbackBudget = 3072};
+  Handler handler(config);
+  handler.handlerAdded(context_);
+  for (const uint32_t streamId : {1u, 3u, 5u, 7u, 9u}) {
+    (void)handler.onWrite(
+        context_, makeFrame(FrameType::PAYLOAD, streamId, 2048));
+  }
+
+  runLoop();
+
+  EXPECT_THAT(streamIds(context_.written()), ElementsAre(1, 1, 3));
+
+  runLoop();
+
+  EXPECT_THAT(streamIds(context_.written()), ElementsAre(1, 1, 3, 3, 5, 5));
+}
+
+TEST_F(
+    FifoFrameFragmentationHandlerTest,
+    HoldsZeroDataFramesUntilTheBudgetRefills) {
+  const QuantumFragmentationHandlerConfig config{
+      .streamQuantum = 1024, .callbackBudget = 1024};
+  Handler handler(config);
+  handler.handlerAdded(context_);
+  (void)handler.onWrite(context_, makeFrame(FrameType::PAYLOAD, 1, 1025));
+  // Metadata above the quantum keeps this frame queued, and its only
+  // fragment carries no data.
+  (void)handler.onWrite(
+      context_, makeFrame(FrameType::PAYLOAD, 3, 0, /*complete=*/false, 1025));
+
+  runLoop();
+
+  EXPECT_THAT(streamIds(context_.written()), ElementsAre(1));
+
+  runLoop();
+
+  EXPECT_THAT(streamIds(context_.written()), ElementsAre(1, 1, 3));
+  EXPECT_THAT(context_.written()[2].dataSize, Eq(0));
+}
+
+TEST_F(
+    FifoFrameFragmentationHandlerTest,
+    KeepsPendingCountsAndByteTotalsAcrossCallbacks) {
+  const QuantumFragmentationHandlerConfig config{
+      .streamQuantum = 1024, .callbackBudget = 2048};
+  Handler handler(config);
+  handler.handlerAdded(context_);
+  (void)handler.onWrite(context_, makeFrame(FrameType::PAYLOAD, 1, 3000));
+  (void)handler.onWrite(context_, makeFrame(FrameType::PAYLOAD, 3, 1500));
+
+  runLoop();
+
+  EXPECT_THAT(totalDataSize(context_.written()), Eq(2048));
+  EXPECT_THAT(handler.pendingStreamCount(), Eq(2));
+
+  runLoop();
+
+  EXPECT_THAT(totalDataSize(context_.written()), Eq(4024));
+  EXPECT_THAT(handler.pendingStreamCount(), Eq(1));
+
+  runLoop();
+
+  EXPECT_THAT(totalDataSize(context_.written()), Eq(4500));
+  EXPECT_THAT(handler.pendingStreamCount(), Eq(0));
+
+  runLoop();
+
+  EXPECT_THAT(totalDataSize(context_.written()), Eq(4500));
+  EXPECT_THAT(handler.pendingStreamCount(), Eq(0));
+  EXPECT_THAT(handler.pendingQueueEntryCount(), Eq(0));
+  EXPECT_THAT(handler.tracker().flushCount, Eq(1));
 }
 
 TEST_F(FifoFrameFragmentationHandlerTest, DefersALargeCompleteFrame) {

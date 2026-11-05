@@ -28,6 +28,7 @@ namespace apache::thrift::fast_thrift::frame::write::handler {
 FifoFrameFragmentationHandlerState::FifoFrameFragmentationHandlerState(
     QuantumFragmentationHandlerConfig config) noexcept
     : streamQuantum_(config.streamQuantum),
+      callbackBudget_(config.callbackBudget),
       configValid_(config.isValid()),
       streams_(config.streamQuantum) {}
 
@@ -97,13 +98,27 @@ bool FifoFrameFragmentationHandlerState::enqueue(ComposedFrame&& frame) {
   return false;
 }
 
-size_t FifoFrameFragmentationHandlerState::startPass() const noexcept {
+size_t FifoFrameFragmentationHandlerState::startPass() noexcept {
+  remainingCallbackBudget_ = callbackBudget_;
   return streams_.size();
 }
 
 std::optional<FifoStreamQueue::ScheduledFragment>
 FifoFrameFragmentationHandlerState::nextFragment() noexcept {
-  return streams_.nextFragment();
+  std::optional<FifoStreamQueue::ScheduledFragment> scheduled =
+      streams_.nextFragment();
+  if (scheduled.has_value()) {
+    if (scheduled->fragment.payloadBytes >= remainingCallbackBudget_) {
+      remainingCallbackBudget_ = 0;
+    } else {
+      remainingCallbackBudget_ -= scheduled->fragment.payloadBytes;
+    }
+  }
+  return scheduled;
+}
+
+bool FifoFrameFragmentationHandlerState::hasCallbackBudget() const noexcept {
+  return remainingCallbackBudget_ > 0;
 }
 
 bool FifoFrameFragmentationHandlerState::finishPass() noexcept {

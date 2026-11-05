@@ -46,7 +46,8 @@ namespace apache::thrift::fast_thrift::frame::write::handler {
  *
  * Queued frames wait for an `EventBase` callback. A callback takes as many
  * turns as there are live streams when it starts, and each turn sends one
- * fragment.
+ * fragment. The callback starts no new turn after its budget reaches zero. The
+ * turn that crosses the budget still sends its whole fragment.
  *
  * A frame that cannot be fragmented goes downstream at once. It can reach the
  * peer before a queued data frame of its stream. `CANCEL` and `ERROR` first
@@ -171,7 +172,8 @@ class FifoFrameFragmentationHandlerT : private folly::NonCopyableNonMovable {
   template <typename Context>
   [[nodiscard]] channel_pipeline::Result flushOnePass(Context& ctx) noexcept {
     const size_t startingStreams = state_.startPass();
-    for (size_t turn = 0; turn < startingStreams; ++turn) {
+    for (size_t turn = 0; turn < startingStreams && state_.hasCallbackBudget();
+         ++turn) {
       if (std::optional<FifoStreamQueue::ScheduledFragment> scheduled =
               state_.nextFragment();
           scheduled.has_value()) {

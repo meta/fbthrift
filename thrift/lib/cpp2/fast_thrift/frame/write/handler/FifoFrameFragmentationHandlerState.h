@@ -31,7 +31,8 @@ namespace apache::thrift::fast_thrift::frame::write::handler {
 
 /**
  * Keeps fragmentable frames for FIFO turns in later EventBase callbacks. Each
- * turn returns one fragment.
+ * turn returns one fragment. A callback starts no new turn after its budget
+ * reaches zero.
  */
 // folly::NonCopyableNonMovable deletes copy and move.
 // NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
@@ -74,10 +75,12 @@ class FifoFrameFragmentationHandlerState final
    */
   [[nodiscard]] bool enqueue(ComposedFrame&& frame);
 
-  /** Returns the number of live streams at the start of this pass. */
-  [[nodiscard]] size_t startPass() const noexcept;
+  /** Refills the budget and returns the number of live streams. */
+  [[nodiscard]] size_t startPass() noexcept;
+  /** Takes one fragment and subtracts its payload from the budget. */
   [[nodiscard]] std::optional<FifoStreamQueue::ScheduledFragment>
   nextFragment() noexcept;
+  [[nodiscard]] bool hasCallbackBudget() const noexcept;
   /**
    * Returns true if no live stream remains. Otherwise makes sure that another
    * callback is scheduled and returns false.
@@ -97,12 +100,14 @@ class FifoFrameFragmentationHandlerState final
   void cancelLoopCallbackIfScheduled() noexcept;
 
   const size_t streamQuantum_;
+  const size_t callbackBudget_;
   const bool configValid_;
   folly::EventBase* eventBase_{nullptr};
   void* handler_{nullptr};
   void* context_{nullptr};
   FlushTrampoline flushTrampoline_{nullptr};
   bool isScheduled_{false};
+  size_t remainingCallbackBudget_{0};
   FifoStreamQueue streams_;
 };
 
