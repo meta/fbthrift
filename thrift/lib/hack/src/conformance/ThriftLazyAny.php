@@ -249,7 +249,6 @@ final class ThriftLazyAny implements JsonSerializable {
         return false;
       case TypeStructureKind::OF_FLOAT:
         return 0.0;
-      case TypeStructureKind::OF_CLASS_PTR:
       case TypeStructureKind::OF_STRING:
         return "";
       case TypeStructureKind::OF_CLASS:
