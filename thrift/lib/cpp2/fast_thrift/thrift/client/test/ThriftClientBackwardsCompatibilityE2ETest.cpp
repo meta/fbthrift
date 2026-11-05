@@ -402,7 +402,7 @@ TEST_F(ThriftClientBackwardsCompatibilityE2ETest, Ping) {
 
   folly::coro::blockingWait(
       folly::coro::co_withExecutor(
-          clientThread_->getEventBase(), client->co_ping()));
+          clientThread_->getEventBaseKeepAlive(), client->co_ping()));
 
   // The RPC round-trip must actually invoke the server handler exactly once,
   // not just complete without throwing on the client.
@@ -421,7 +421,8 @@ TEST_F(ThriftClientBackwardsCompatibilityE2ETest, EchoRequestResponse) {
 
   auto result = folly::coro::blockingWait(
       folly::coro::co_withExecutor(
-          clientThread_->getEventBase(), client->co_echo("hello world")));
+          clientThread_->getEventBaseKeepAlive(),
+          client->co_echo("hello world")));
   EXPECT_EQ(result, "hello world");
 
   // Destroy the client in the EventBase thread
@@ -447,7 +448,7 @@ TEST_F(ThriftClientBackwardsCompatibilityE2ETest, EchoWithXXH3_64Checksum) {
 
   auto result = folly::coro::blockingWait(
       folly::coro::co_withExecutor(
-          clientThread_->getEventBase(),
+          clientThread_->getEventBaseKeepAlive(),
           client->co_echo(options, "xxh3 payload")));
   EXPECT_EQ(result, "xxh3 payload");
 
@@ -463,7 +464,7 @@ TEST_F(ThriftClientBackwardsCompatibilityE2ETest, AddNumbers) {
 
   auto result = folly::coro::blockingWait(
       folly::coro::co_withExecutor(
-          clientThread_->getEventBase(), client->co_add(17, 25)));
+          clientThread_->getEventBaseKeepAlive(), client->co_add(17, 25)));
   EXPECT_EQ(result, 42);
 
   // Destroy the client in the EventBase thread
@@ -503,7 +504,7 @@ TEST_F(ThriftClientBackwardsCompatibilityE2ETest, LargeResponse) {
 
   auto result = folly::coro::blockingWait(
       folly::coro::co_withExecutor(
-          clientThread_->getEventBase(),
+          clientThread_->getEventBaseKeepAlive(),
           client->co_sendResponse(kResponseSize)));
   EXPECT_EQ(result.size(), kResponseSize);
   EXPECT_EQ(result, std::string(kResponseSize, 'x'));
@@ -528,7 +529,7 @@ TEST_F(
   try {
     folly::coro::blockingWait(
         folly::coro::co_withExecutor(
-            clientThread_->getEventBase(),
+            clientThread_->getEventBaseKeepAlive(),
             client->co_throwError("server error message")));
     FAIL() << "Expected TApplicationException";
   } catch (const apache::thrift::TApplicationException& ex) {
@@ -552,7 +553,7 @@ TEST_F(
   // Verify connection works first
   folly::coro::blockingWait(
       folly::coro::co_withExecutor(
-          clientThread_->getEventBase(), client->co_ping()));
+          clientThread_->getEventBaseKeepAlive(), client->co_ping()));
 
   // Stop the server
   server_.reset();
@@ -561,7 +562,7 @@ TEST_F(
   EXPECT_THROW(
       folly::coro::blockingWait(
           folly::coro::co_withExecutor(
-              clientThread_->getEventBase(),
+              clientThread_->getEventBaseKeepAlive(),
               client->co_echo("after shutdown"))),
       std::exception);
 
@@ -580,14 +581,15 @@ TEST_F(ThriftClientBackwardsCompatibilityE2ETest, RequestAfterThrowStillWorks) {
   EXPECT_THROW(
       folly::coro::blockingWait(
           folly::coro::co_withExecutor(
-              clientThread_->getEventBase(),
+              clientThread_->getEventBaseKeepAlive(),
               client->co_throwError("first error"))),
       apache::thrift::TApplicationException);
 
   // Connection should still work for subsequent requests
   auto result = folly::coro::blockingWait(
       folly::coro::co_withExecutor(
-          clientThread_->getEventBase(), client->co_echo("still alive")));
+          clientThread_->getEventBaseKeepAlive(),
+          client->co_echo("still alive")));
   EXPECT_EQ(result, "still alive");
 
   // Destroy the client in the EventBase thread
@@ -606,7 +608,7 @@ TEST_F(
   // Verify connection works first
   folly::coro::blockingWait(
       folly::coro::co_withExecutor(
-          clientThread_->getEventBase(), client->co_ping()));
+          clientThread_->getEventBaseKeepAlive(), client->co_ping()));
 
   // Make server reject all requests as overloaded.
   // Server will send ERROR frame with REJECTED +
@@ -623,7 +625,7 @@ TEST_F(
   try {
     folly::coro::blockingWait(
         folly::coro::co_withExecutor(
-            clientThread_->getEventBase(),
+            clientThread_->getEventBaseKeepAlive(),
             client->co_echo("should be rejected")));
     FAIL() << "Expected TApplicationException";
   } catch (const apache::thrift::TApplicationException& ex) {
@@ -662,7 +664,8 @@ TEST_F(
   EXPECT_THROW(
       folly::coro::blockingWait(
           folly::coro::co_withExecutor(
-              clientThread_->getEventBase(), client->co_echo("rejected"))),
+              clientThread_->getEventBaseKeepAlive(),
+              client->co_echo("rejected"))),
       apache::thrift::TApplicationException);
 
   // Unblock the server
@@ -671,7 +674,8 @@ TEST_F(
   // Connection should still work after overload clears
   auto result = folly::coro::blockingWait(
       folly::coro::co_withExecutor(
-          clientThread_->getEventBase(), client->co_echo("recovered")));
+          clientThread_->getEventBaseKeepAlive(),
+          client->co_echo("recovered")));
   EXPECT_EQ(result, "recovered");
 
   // Destroy the client in the EventBase thread
@@ -860,7 +864,8 @@ TEST_F(BackwardsCompatibilityFastClientE2ETest, AsyncAndFastClientsCoexist) {
   EXPECT_EQ(
       folly::coro::blockingWait(
           folly::coro::co_withExecutor(
-              clientThread_->getEventBase(), fastClient->co_echo("fast"))),
+              clientThread_->getEventBaseKeepAlive(),
+              fastClient->co_echo("fast"))),
       "fast");
 
   destroyClientOnEvb(fastClient);
@@ -873,7 +878,7 @@ TEST_F(BackwardsCompatibilityFastClientE2ETest, Ping) {
 
   folly::coro::blockingWait(
       folly::coro::co_withExecutor(
-          clientThread_->getEventBase(), client->co_ping()));
+          clientThread_->getEventBaseKeepAlive(), client->co_ping()));
 
   // The FastClient RPC must actually reach the server handler once, not just
   // return without throwing on the client.
@@ -887,7 +892,8 @@ TEST_F(BackwardsCompatibilityFastClientE2ETest, EchoRequestResponse) {
 
   auto result = folly::coro::blockingWait(
       folly::coro::co_withExecutor(
-          clientThread_->getEventBase(), client->co_echo("hello world")));
+          clientThread_->getEventBaseKeepAlive(),
+          client->co_echo("hello world")));
   EXPECT_EQ(result, "hello world");
 
   destroyClientOnEvb(client);
@@ -898,7 +904,7 @@ TEST_F(BackwardsCompatibilityFastClientE2ETest, AddNumbers) {
 
   auto result = folly::coro::blockingWait(
       folly::coro::co_withExecutor(
-          clientThread_->getEventBase(), client->co_add(17, 25)));
+          clientThread_->getEventBaseKeepAlive(), client->co_add(17, 25)));
   EXPECT_EQ(result, 42);
 
   destroyClientOnEvb(client);
@@ -928,7 +934,7 @@ TEST_F(BackwardsCompatibilityFastClientE2ETest, LargeResponse) {
 
   auto result = folly::coro::blockingWait(
       folly::coro::co_withExecutor(
-          clientThread_->getEventBase(),
+          clientThread_->getEventBaseKeepAlive(),
           client->co_sendResponse(kResponseSize)));
   EXPECT_EQ(result.size(), kResponseSize);
   EXPECT_EQ(result, std::string(kResponseSize, 'x'));
@@ -948,7 +954,7 @@ TEST_F(
   try {
     folly::coro::blockingWait(
         folly::coro::co_withExecutor(
-            clientThread_->getEventBase(),
+            clientThread_->getEventBaseKeepAlive(),
             client->co_throwError("fast client error")));
     FAIL() << "Expected exception";
   } catch (const apache::thrift::TApplicationException& ex) {
@@ -965,14 +971,15 @@ TEST_F(BackwardsCompatibilityFastClientE2ETest, RequestAfterThrowStillWorks) {
   EXPECT_THROW(
       folly::coro::blockingWait(
           folly::coro::co_withExecutor(
-              clientThread_->getEventBase(),
+              clientThread_->getEventBaseKeepAlive(),
               client->co_throwError("first error"))),
       apache::thrift::TApplicationException);
 
   // Connection should still work
   auto result = folly::coro::blockingWait(
       folly::coro::co_withExecutor(
-          clientThread_->getEventBase(), client->co_echo("still alive")));
+          clientThread_->getEventBaseKeepAlive(),
+          client->co_echo("still alive")));
   EXPECT_EQ(result, "still alive");
 
   destroyClientOnEvb(client);
@@ -986,7 +993,7 @@ TEST_F(
   // Verify connection works first
   folly::coro::blockingWait(
       folly::coro::co_withExecutor(
-          clientThread_->getEventBase(), client->co_ping()));
+          clientThread_->getEventBaseKeepAlive(), client->co_ping()));
 
   // Make server reject all requests as overloaded
   server_->getThriftServer().addPreprocessFunc(
@@ -1000,7 +1007,7 @@ TEST_F(
   try {
     folly::coro::blockingWait(
         folly::coro::co_withExecutor(
-            clientThread_->getEventBase(),
+            clientThread_->getEventBaseKeepAlive(),
             client->co_echo("should be rejected")));
     FAIL() << "Expected TApplicationException";
   } catch (const apache::thrift::TApplicationException& ex) {
@@ -1033,7 +1040,8 @@ TEST_F(
   EXPECT_THROW(
       folly::coro::blockingWait(
           folly::coro::co_withExecutor(
-              clientThread_->getEventBase(), client->co_echo("rejected"))),
+              clientThread_->getEventBaseKeepAlive(),
+              client->co_echo("rejected"))),
       apache::thrift::TApplicationException);
 
   // Unblock
@@ -1042,7 +1050,8 @@ TEST_F(
   // Connection should still work
   auto result = folly::coro::blockingWait(
       folly::coro::co_withExecutor(
-          clientThread_->getEventBase(), client->co_echo("recovered")));
+          clientThread_->getEventBaseKeepAlive(),
+          client->co_echo("recovered")));
   EXPECT_EQ(result, "recovered");
 
   destroyClientOnEvb(client);
@@ -1083,13 +1092,13 @@ TEST_F(
   EXPECT_EQ(
       folly::coro::blockingWait(
           folly::coro::co_withExecutor(
-              clientThread_->getEventBase(),
+              clientThread_->getEventBaseKeepAlive(),
               fastClient->co_echo("fast inherited"))),
       "fast inherited");
   EXPECT_EQ(
       folly::coro::blockingWait(
           folly::coro::co_withExecutor(
-              clientThread_->getEventBase(),
+              clientThread_->getEventBaseKeepAlive(),
               fastClient->co_childEcho("fast child"))),
       "child:fast child");
 
@@ -1104,7 +1113,7 @@ TEST_F(
 
   folly::coro::blockingWait(
       folly::coro::co_withExecutor(
-          clientThread_->getEventBase(), client->co_ping()));
+          clientThread_->getEventBaseKeepAlive(), client->co_ping()));
 
   // A FastClient<Child> calling an inherited (parent-defined) method must
   // actually dispatch to the child handler's ping, not silently no-op.
@@ -1119,7 +1128,8 @@ TEST_F(
 
   auto result = folly::coro::blockingWait(
       folly::coro::co_withExecutor(
-          clientThread_->getEventBase(), client->co_echo("inherited")));
+          clientThread_->getEventBaseKeepAlive(),
+          client->co_echo("inherited")));
   EXPECT_EQ(result, "inherited");
 
   destroyClientOnEvb(client);
@@ -1130,7 +1140,7 @@ TEST_F(BackwardsCompatibilityFastChildClientE2ETest, ChildOwnMethod) {
 
   auto result = folly::coro::blockingWait(
       folly::coro::co_withExecutor(
-          clientThread_->getEventBase(), client->co_childEcho("hi")));
+          clientThread_->getEventBaseKeepAlive(), client->co_childEcho("hi")));
   EXPECT_EQ(result, "child:hi");
 
   destroyClientOnEvb(client);
@@ -1163,13 +1173,13 @@ TEST_F(
   EXPECT_EQ(
       folly::coro::blockingWait(
           folly::coro::co_withExecutor(
-              clientThread_->getEventBase(),
+              clientThread_->getEventBaseKeepAlive(),
               fastClient->co_echo("grandparent"))),
       "grandparent");
   EXPECT_EQ(
       folly::coro::blockingWait(
           folly::coro::co_withExecutor(
-              clientThread_->getEventBase(),
+              clientThread_->getEventBaseKeepAlive(),
               fastClient->co_childEcho("parent"))),
       "child:parent");
 
