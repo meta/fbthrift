@@ -30,12 +30,6 @@
 
 namespace apache::thrift::type {
 class Ref;
-template <typename RefT>
-class DynList;
-template <typename RefT>
-class DynSet;
-template <typename RefT>
-class DynMap;
 namespace detail {
 
 const TypeInfo& voidTypeInfo();
@@ -102,8 +96,6 @@ class Cursor {
 
  private:
   friend class Dyn;
-  template <typename, typename, typename>
-  friend class BaseMapIter;
 
   RuntimeType type_;
   void* ptr_ = nullptr;
@@ -167,10 +159,6 @@ class Dyn {
   friend class Iter;
   template <typename, typename>
   friend class BaseIter;
-  template <typename, typename, typename>
-  friend class BaseMapIter;
-  template <typename>
-  friend class type::DynMap;
 
   RuntimeType type_;
   void* ptr_ = nullptr;
@@ -257,8 +245,6 @@ class Dyn {
     type_ = {};
     ptr_ = {};
   }
-
-  Ptr withContext(bool ctxConst, bool ctxRvalue = false) const noexcept;
 
  private:
   friend bool operator==(const Dyn& lhs, std::nullptr_t) {
@@ -396,80 +382,12 @@ class BaseIter : public BaseDerived<Derived> {
   friend class BaseIter;
   template <typename, typename>
   friend class Iter;
-  template <typename>
-  friend class type::DynMap;
 
   friend bool operator==(const BaseIter& lhs, const BaseIter& rhs) noexcept {
     return lhs.next_.ptr_ == rhs.next_.ptr_;
   }
   friend bool operator!=(const BaseIter& lhs, const BaseIter& rhs) noexcept {
     return lhs.next_.ptr_ != rhs.next_.ptr_;
-  }
-};
-
-// A wrapper for a Cursor that support the standard map iterator interface.
-template <typename ConstT, typename RefT, typename Derived>
-class BaseMapIter : public BaseDerived<Derived> {
-  using Base = BaseDerived<Derived>;
-
- public:
-  using value_type = std::pair<ConstT, RefT>;
-  using reference = value_type&;
-  using pointer = value_type*;
-  using difference_type = std::ptrdiff_t;
-  using iterator_category = std::forward_iterator_tag;
-
-  BaseMapIter() = default;
-  BaseMapIter(const BaseMapIter& other) = default;
-  BaseMapIter(BaseMapIter&& other) noexcept = default;
-  explicit BaseMapIter(detail::Cursor cur) : cur_(std::move(cur)) {
-    operator++();
-  }
-  template <typename MutT, typename D>
-  explicit BaseMapIter(BaseMapIter<ConstT, MutT, D>&& other) noexcept
-      : cur_(std::move(other.cur_)), next_(other.next_) {}
-
-  pointer operator->() const { return &next_; }
-  reference operator*() const { return next_; }
-  BaseMapIter& operator++() {
-    next_.first.reset(cur_.next());
-    if (next_.first.has_value()) { // TODO(afuller): Use a single call.
-      next_.second.reset(cur_.type_->get(cur_.ptr_, next_.first));
-    }
-    return *this;
-  }
-  BaseMapIter operator++(int) {
-    BaseMapIter result = *this;
-    operator++();
-    return result;
-  }
-
-  BaseMapIter& operator=(const BaseMapIter& other) {
-    cur_ = other.cur_;
-    next_.reset(other.next_);
-    return *this;
-  }
-  BaseMapIter& operator=(BaseMapIter&& other) noexcept {
-    cur_ = std::move(other.cur_);
-    next_.reset(other.next_);
-    return *this;
-  }
-
- protected:
-  detail::Cursor cur_;
-  mutable value_type next_;
-
- private:
-  template <typename, typename, typename>
-  friend class BaseMapIter;
-
-  friend bool operator==(
-      const BaseMapIter& lhs, const BaseMapIter& rhs) noexcept {
-    return lhs.next_.first.ptr_ == rhs.next_.first.ptr_;
-  }
-  friend bool operator!=(
-      const BaseMapIter& lhs, const BaseMapIter& rhs) noexcept {
-    return lhs.next_.first.ptr_ != rhs.next_.first.ptr_;
   }
 };
 
@@ -500,47 +418,9 @@ class Iter : public BaseIter<RefT, Iter<RefT, MutT>> {
   }
 };
 
-template <typename ConstT, typename MutT, bool Mut = false>
-class MapIter : public BaseMapIter<ConstT, MutT, MapIter<ConstT, MutT>> {
-  using Base = BaseMapIter<ConstT, MutT, MapIter>;
-  using MutItr = MapIter<ConstT, MutT, true>;
-
- public:
-  using Base::Base;
-  using Base::operator=;
-
-  // Implicit conversion from MutT iterator.
-  /*implicit*/ MapIter(const MutItr& other) : Base(other) {}
-  /*implicit*/ MapIter(MutItr&& other) : Base(std::move(other)) {}
-
- private:
-  friend bool operator==(const MapIter& lhs, const MutItr& rhs) noexcept {
-    return lhs.next_.ptr_ == rhs.next_.ptr_;
-  }
-  friend bool operator==(const MutItr& lhs, const MapIter& rhs) noexcept {
-    return lhs.next_.ptr_ == rhs.next_.ptr_;
-  }
-  friend bool operator!=(const MapIter& lhs, const MutItr& rhs) noexcept {
-    return lhs.next_.ptr_ != rhs.next_.ptr_;
-  }
-  friend bool operator!=(const MutItr& lhs, const MapIter& rhs) noexcept {
-    return lhs.next_.ptr_ != rhs.next_.ptr_;
-  }
-};
-
 template <typename MutT>
 class Iter<MutT> : public BaseIter<MutT, Iter<MutT>> {
   using Base = BaseIter<MutT, Iter>;
-
- public:
-  using Base::Base;
-  using Base::operator=;
-};
-
-template <typename ConstT, typename MutT>
-class MapIter<ConstT, MutT, true>
-    : public BaseMapIter<MutT, MutT, MapIter<ConstT, MutT, true>> {
-  using Base = BaseMapIter<MutT, MutT, MapIter>;
 
  public:
   using Base::Base;
@@ -565,9 +445,6 @@ class Iterable {
   Cursor cur_;
 };
 
-// TODO(afuller): Consider adding asMap(), to create type-safe
-// views, with APIs that match c++ standard containers (vs the Thrift 'op' names
-// used in the core API).
 template <typename ConstT, typename MutT, typename Derived>
 class BaseDyn : public Dyn, public BaseDerived<Derived> {
   using Base = Dyn;
@@ -664,39 +541,6 @@ class BaseDyn : public Dyn, public BaseDerived<Derived> {
   iterable values() && { return Base::values(false, true); }
   const_iterable values() const& { return Base::values(true); }
   const_iterable values() const&& { return Base::values(true, true); }
-
-  DynList<MutT> asList() & { return DynList<MutT>{Base::withContext(false)}; }
-  DynList<MutT> asList() && {
-    return DynList<MutT>{Base::withContext(false, true)};
-  }
-  DynList<ConstT> asList() const& {
-    return DynList<ConstT>{Base::withContext(true, false)};
-  }
-  DynList<ConstT> asList() const&& {
-    return DynList<ConstT>{Base::withContext(true, true)};
-  }
-
-  DynSet<MutT> asSet() & { return DynSet<MutT>{Base::withContext(false)}; }
-  DynSet<MutT> asSet() && {
-    return DynSet<MutT>{Base::withContext(false, true)};
-  }
-  DynSet<ConstT> asSet() const& {
-    return DynSet<ConstT>{Base::withContext(true, false)};
-  }
-  DynSet<ConstT> asSet() const&& {
-    return DynSet<ConstT>{Base::withContext(true, true)};
-  }
-
-  DynMap<MutT> asMap() & { return DynMap<MutT>{Base::withContext(false)}; }
-  DynMap<MutT> asMap() && {
-    return DynMap<MutT>{Base::withContext(false, true)};
-  }
-  DynMap<ConstT> asMap() const& {
-    return DynMap<ConstT>{Base::withContext(true, false)};
-  }
-  DynMap<ConstT> asMap() const&& {
-    return DynMap<ConstT>{Base::withContext(true, true)};
-  }
 
  protected:
   using BaseDerived<Derived>::derived;

@@ -426,38 +426,6 @@ TEST(RuntimeTest, ListValue) {
   EXPECT_TRUE(value.as<list<string_t>>().empty());
   value = other;
   EXPECT_FALSE(value.empty());
-
-  DynList<Ref> listVal = value.asList();
-  EXPECT_THAT(listVal, ::testing::Not(::testing::IsEmpty()));
-  EXPECT_THAT(listVal, ::testing::SizeIs(1));
-  EXPECT_THAT(
-      listVal.asRef().as<list<string_t>>(), ::testing::ElementsAre("hi"));
-
-  listVal.push_back("bye");
-  EXPECT_THAT(
-      listVal.asRef().as<list<string_t>>(),
-      ::testing::ElementsAre("hi", "bye"));
-  EXPECT_EQ(listVal.front().as<string_t>(), "hi");
-  EXPECT_EQ(listVal.back().as<string_t>(), "bye");
-  listVal.pop_back();
-  EXPECT_EQ(listVal.front().as<string_t>(), "hi");
-  EXPECT_EQ(listVal.back().as<string_t>(), "hi");
-  listVal.push_front("bye");
-  EXPECT_THAT(
-      listVal.asRef().as<list<string_t>>(),
-      ::testing::ElementsAre("bye", "hi"));
-  listVal.pop_front();
-  EXPECT_THAT(
-      listVal.asRef().as<list<string_t>>(), ::testing::ElementsAre("hi"));
-  listVal.clear();
-  EXPECT_THAT(listVal, ::testing::IsEmpty());
-  EXPECT_THAT(listVal, ::testing::SizeIs(0));
-  EXPECT_THAT(listVal.asRef().as<list<string_t>>(), ::testing::ElementsAre());
-
-  EXPECT_THROW(listVal = Ref::to(0), std::bad_any_cast);
-  EXPECT_THROW(listVal.pop_front(), std::out_of_range);
-  EXPECT_THROW(listVal.pop_back(), std::out_of_range);
-  EXPECT_THROW(Ref::to(0).asList(), std::bad_any_cast);
 }
 
 TEST(RuntimeTest, SetValue) {
@@ -473,25 +441,6 @@ TEST(RuntimeTest, SetValue) {
   EXPECT_TRUE(value.as<set<string_t>>().empty());
   value = other;
   EXPECT_FALSE(value.empty());
-
-  DynSet<Ref> setVal = value.asSet();
-  EXPECT_THAT(setVal, ::testing::Not(::testing::IsEmpty()));
-  EXPECT_THAT(setVal, ::testing::SizeIs(1));
-  EXPECT_THAT(setVal.asRef().as<set<string_t>>(), ::testing::ElementsAre("hi"));
-  EXPECT_TRUE(setVal.contains("hi"));
-  EXPECT_FALSE(setVal.contains("bye"));
-  EXPECT_EQ(setVal.count("hi"), 1);
-  EXPECT_EQ(setVal.count("bye"), 0);
-
-  setVal.insert({"bye"});
-  EXPECT_THAT(
-      setVal.asRef().as<set<string_t>>(), ::testing::ElementsAre("bye", "hi"));
-  EXPECT_EQ(setVal.erase("hi"), 1);
-  EXPECT_EQ(setVal.erase("hi"), 0);
-  EXPECT_THAT(
-      setVal.asRef().as<set<string_t>>(), ::testing::ElementsAre("bye"));
-
-  EXPECT_THROW(setVal = Ref::to(0), std::bad_any_cast);
 }
 
 TEST(RuntimeTest, MapValue) {
@@ -507,37 +456,6 @@ TEST(RuntimeTest, MapValue) {
   EXPECT_TRUE((value.as<map<string_t, string_t>>().empty()));
   value = other;
   EXPECT_FALSE(value.empty());
-
-  DynMap<Ref> mapVal = value.asMap();
-  EXPECT_THAT(mapVal, ::testing::Not(::testing::IsEmpty()));
-  EXPECT_THAT(mapVal, ::testing::SizeIs(1));
-  EXPECT_THAT(
-      (mapVal.asRef().as<map<string_t, string_t>>()),
-      ::testing::UnorderedElementsAre(::testing::Pair("hi", "bye")));
-  EXPECT_TRUE(mapVal.contains("hi"));
-  EXPECT_FALSE(mapVal.contains("bye"));
-  EXPECT_EQ(mapVal["hi"].as<string_t>(), "bye");
-  EXPECT_EQ(mapVal.count("hi"), 1);
-  EXPECT_EQ(mapVal.count("bye"), 0);
-
-  mapVal["oops"];
-  EXPECT_THAT(
-      (mapVal.asRef().as<map<string_t, string_t>>()),
-      ::testing::UnorderedElementsAre(
-          ::testing::Pair("hi", "bye"), ::testing::Pair("oops", "")));
-
-  EXPECT_EQ(mapVal.erase("hi"), 1);
-  EXPECT_EQ(mapVal.erase("hi"), 0);
-  EXPECT_THAT(
-      (mapVal.asRef().as<map<string_t, string_t>>()),
-      ::testing::ElementsAre(::testing::Pair("oops", "")));
-
-  mapVal.clear();
-  EXPECT_THAT(mapVal, ::testing::IsEmpty());
-  EXPECT_THAT(mapVal, ::testing::SizeIs(0));
-  EXPECT_THAT(
-      (mapVal.asRef().as<map<string_t, string_t>>()), ::testing::ElementsAre());
-  EXPECT_THROW(mapVal = Ref::to(0), std::bad_any_cast);
 }
 
 TEST(RuntimeTest, ListCppType) {
