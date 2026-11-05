@@ -24,6 +24,7 @@
 #include <queue>
 #include <string>
 
+#include <boost/intrusive/list.hpp>
 #include <glog/logging.h>
 
 #include <folly/Conv.h>

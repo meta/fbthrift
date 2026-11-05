@@ -27,6 +27,7 @@ add_library(
 thrift_configure_target(thrift_concurrency PUBLIC)
 target_link_libraries(thrift_concurrency PUBLIC Folly::folly ${thrift_gflags}
                                                 glog::glog)
+target_link_libraries(thrift_concurrency PRIVATE Boost::headers)
 
 add_library(thrift_runtime ../cpp2/runtime/Init.cpp)
 thrift_configure_target(thrift_runtime PUBLIC)
