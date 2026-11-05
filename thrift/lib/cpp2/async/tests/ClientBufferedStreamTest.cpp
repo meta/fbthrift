@@ -134,7 +134,7 @@ TEST_F(ClientBufferedStreamTest, RefillByCount) {
 
   // Refills when half of buffer is used, i.e. after 5th payload
   auto task = co_withExecutor(
-                  ebt.getEventBase(),
+                  ebt.getEventBaseKeepAlive(),
                   folly::coro::co_invoke([&]() -> folly::coro::Task<void> {
                     auto gen = std::move(stream).toAsyncGenerator();
                     int i = 0;
@@ -166,7 +166,7 @@ TEST_F(ClientBufferedStreamTest, RefillByCountCustomThreshold) {
       {.chunkSize = 10, .bufferReplenishThreshold = 3});
 
   auto task = co_withExecutor(
-                  ebt.getEventBase(),
+                  ebt.getEventBaseKeepAlive(),
                   folly::coro::co_invoke([&]() -> folly::coro::Task<void> {
                     auto gen = std::move(stream).toAsyncGenerator();
                     int i = 0;
@@ -195,7 +195,7 @@ TEST_F(ClientBufferedStreamTest, RefillByCumulativeSize) {
 
   // Refills after reading 16kB from wire, i.e. after 4th 4kB payload
   auto task = co_withExecutor(
-                  ebt.getEventBase(),
+                  ebt.getEventBaseKeepAlive(),
                   folly::coro::co_invoke([&]() -> folly::coro::Task<void> {
                     auto gen = std::move(stream).toAsyncGenerator();
                     int i = 0;
@@ -225,7 +225,7 @@ TEST_F(ClientBufferedStreamTest, RefillBySizeTarget) {
   // Refills when outstanding payload size (9B max * credits) drops below half
   // of 64B target, i.e. after 3 9B payloads left (7/10 consumed)
   auto task = co_withExecutor(
-                  ebt.getEventBase(),
+                  ebt.getEventBaseKeepAlive(),
                   folly::coro::co_invoke([&]() -> folly::coro::Task<void> {
                     auto gen = std::move(stream).toAsyncGenerator();
                     int i = 0;
@@ -253,7 +253,7 @@ TEST_F(ClientBufferedStreamTest, MaxChunkSize) {
       std::move(firstResponseCb.ptr), decode, {0, 64, 3});
 
   auto task = co_withExecutor(
-                  ebt.getEventBase(),
+                  ebt.getEventBaseKeepAlive(),
                   folly::coro::co_invoke([&]() -> folly::coro::Task<void> {
                     auto gen = std::move(stream).toAsyncGenerator();
                     while (auto val = co_await gen.next()) {
@@ -264,7 +264,7 @@ TEST_F(ClientBufferedStreamTest, MaxChunkSize) {
 
   auto waitForCredits = [&]() {
     co_withExecutor(
-        ebt.getEventBase(),
+        ebt.getEventBaseKeepAlive(),
         folly::coro::co_invoke([&]() -> folly::coro::Task<void> {
           LOG(INFO) << "Waiting for credits...";
           co_await serverCb.requested;

@@ -907,7 +907,7 @@ TYPED_TEST(ScopedServerInterfaceThreadTest, joinRequestsCancel) {
     ScopedEventBaseThread eb;
     while (!stopping) {
       cli->semifuture_add(2000, 0)
-          .via(eb.getEventBase())
+          .via(eb.getEventBaseKeepAlive())
           .thenTry([](folly::Try<int64_t> t) {
             if (t.hasException()) {
               LOG(INFO) << folly::exceptionStr(t.exception());
