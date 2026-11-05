@@ -36,10 +36,14 @@ namespace apache::thrift::fast_thrift::frame::write {
  */
 struct FragmentationHandlerConfig {
   /**
-   * Maximum fragment size in bytes.
+   * Largest data size of one fragment.
    *
-   * Payloads larger than this are fragmented into chunks of this size.
-   * Frames <= this size go through unfragmented.
+   * A frame whose data does not fit in one fragment is split into fragments
+   * with at most this many data bytes. No fragment goes above
+   * `kMaxStreamQuantum` bytes, so a larger value acts as that limit. The first
+   * fragment carries all metadata of the frame, so its metadata counts toward
+   * that limit and its data can stop earlier. A frame goes through unsplit
+   * when its data fits in that first fragment.
    *
    * Default: `0xffffff - 512` (~16 MiB minus 512 bytes) — matches legacy
    * `apache::thrift::rocket::kMaxFragmentedPayloadSize`
@@ -79,11 +83,16 @@ struct FragmentationHandlerConfig {
   size_t maxPendingFrames{128};
 
   /**
-   * Minimum payload size worth fragmenting.
+   * Largest data size that goes downstream at once while other streams have
+   * queued fragments.
    *
-   * Payloads smaller than this are never fragmented, even if they
-   * exceed maxFragmentSize (edge case). Avoids fragmentation overhead
-   * on tiny payloads.
+   * This value applies to a frame that needs no fragmentation while other
+   * streams have queued fragments and its own stream has none. The frame goes
+   * downstream at once if its data is at most this size. A larger frame waits
+   * for the next flush, which sends it before the queued fragments.
+   *
+   * This value does not stop fragmentation. A frame whose data does not fit in
+   * its first fragment is split, however small its data is.
    *
    * Default: 1KB.
    */
