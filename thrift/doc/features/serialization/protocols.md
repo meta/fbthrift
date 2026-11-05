@@ -240,16 +240,12 @@ Rejects:
 
 **Serialization**:
 
-* Finite values: shortest round-trip decimal representation.
-* `-0.0`: always written as `-0.0` (with explicit decimal point, not `-0`).
-* Special values:
-
-| Value | JSON output | JSON5 output |
+| Value `v` of type `T` | JSON output | JSON5 output |
 | :---- | :---- | :---- |
-| NaN | `"NaN"` | `NaN` |
-| \-NaN | `"-NaN"` | `-NaN` |
-| Infinity | `"Infinity"` | `Infinity` |
-| \-Infinity | `"-Infinity"` | `-Infinity` |
+| NaN / -NaN | `"NaN"` / `"-NaN"` | `NaN` / `-NaN` |
+| Infinity / -Infinity | `"Infinity"` / `"-Infinity"` | `Infinity` / `-Infinity` |
+| \|v\| = 0, or T(10⁻⁴) ≤ \|v\| < 10⁷ (float) or 10¹⁶ (double) | Shortest round-trip fixed notation, with at least one digit on each side of `.` (e.g., `-0.0`, `0.5`, `100000.0`) | Same as JSON output |
+| Otherwise | Shortest round-trip scientific notation; the exponent has a sign and at least two digits (e.g., `1e-05`, `1.5e+16`) | Same as JSON output |
 
 **Deserialization**: Accepts
 
