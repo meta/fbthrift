@@ -469,7 +469,7 @@ TEST_F(FastTransportE2ETest, Ping) {
 
   folly::coro::blockingWait(
       folly::coro::co_withExecutor(
-          clientThread_->getEventBase(), client->co_ping()));
+          clientThread_->getEventBaseKeepAlive(), client->co_ping()));
 
   destroyClientOnEvb(client);
 }
@@ -479,7 +479,8 @@ TEST_F(FastTransportE2ETest, EchoRequestResponse) {
 
   auto result = folly::coro::blockingWait(
       folly::coro::co_withExecutor(
-          clientThread_->getEventBase(), client->co_echo("hello world")));
+          clientThread_->getEventBaseKeepAlive(),
+          client->co_echo("hello world")));
   EXPECT_EQ(result, "hello world");
 
   destroyClientOnEvb(client);
@@ -531,7 +532,7 @@ TEST_F(FastTransportE2ETest, LargeResponse) {
 
   auto result = folly::coro::blockingWait(
       folly::coro::co_withExecutor(
-          clientThread_->getEventBase(),
+          clientThread_->getEventBaseKeepAlive(),
           client->co_sendResponse(kResponseSize)));
   EXPECT_EQ(result, std::string(kResponseSize, 'x'));
 
