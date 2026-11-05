@@ -51,7 +51,8 @@ class RequestContext {
   class WriteSuccessCallback {
    public:
     virtual ~WriteSuccessCallback() = default;
-    virtual void onWriteSuccess() noexcept = 0;
+    virtual void onWriteSuccess(
+        std::chrono::steady_clock::time_point writeTime) noexcept = 0;
   };
 
   enum class State : uint8_t {

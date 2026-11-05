@@ -147,16 +147,13 @@ void RequestContext::onErrorFrame(ErrorFrame&& errorFrame) {
 }
 
 void RequestContext::onWriteSuccess() noexcept {
-  // Delegate to the channel callback FIRST so its timeEndSend_ is sampled
-  // before the rocket-side sample below. This preserves the public
-  // invariant firstResponsePayloadFrameLatency <= responseRoundTripLatency.
-  if (writeSuccessCallback_) {
-    writeSuccessCallback_->onWriteSuccess();
-  }
-  // Sample rocket-side timeEndSend_ AFTER the channel callback returns.
-  // The two samples are nanoseconds apart on the same thread; the rocket
-  // value is monotonically >= the channel value.
+  // The channel callback shares this timestamp so both timeEndSend_ values
+  // match, preserving the invariant
+  // firstResponsePayloadFrameLatency <= responseRoundTripLatency.
   timeEndSend_ = std::chrono::steady_clock::now();
+  if (writeSuccessCallback_) {
+    writeSuccessCallback_->onWriteSuccess(timeEndSend_);
+  }
 }
 
 void RequestContext::finalizeRpcTransportStats() noexcept {

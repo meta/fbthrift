@@ -801,7 +801,9 @@ class RocketClientChannelBase::SingleRequestSingleResponseCallback final
         guardedClient_(std::move(guardedClient)),
         skipDecompression_(skipDecompression) {}
 
-  void onWriteSuccess() noexcept override { timeEndSend_ = clock::now(); }
+  void onWriteSuccess(clock::time_point writeTime) noexcept override {
+    timeEndSend_ = writeTime;
+  }
 
   // Note: nominally "private" — this nested class is itself a private
   // implementation detail of RocketClientChannelBase, so this accessor is

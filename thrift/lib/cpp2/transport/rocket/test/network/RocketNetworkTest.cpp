@@ -164,7 +164,9 @@ class RocketNetworkTest : public testing::Test {
 struct OnWriteSuccess : RocketClient::WriteSuccessCallback {
   bool writeSuccess{false};
 
-  void onWriteSuccess() noexcept override { writeSuccess = true; }
+  void onWriteSuccess(std::chrono::steady_clock::time_point) noexcept override {
+    writeSuccess = true;
+  }
 };
 } // namespace
 
