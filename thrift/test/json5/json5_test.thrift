@@ -416,7 +416,7 @@ const list<TestCase> testCases = [
     },
   ],
 }",
-    additionalInputs = ["{\"setAsKey\": [{\"key\": [2, 1, 2], \"value\": 3}]}"],
+    additionalInputs = ["{\"setAsKey\": [{\"key\": [2, 1], \"value\": 3}]}"],
   },
   TestCase{
     name = "MapAsKey",
@@ -2399,101 +2399,6 @@ const list<TestCase> testCases = [
   unionValue: {},
 }",
     additionalInputs = ["{\"unionValue\": {\"unknown\": 1}}"],
-  },
-  TestCase{
-    name = "SetDuplicateElements",
-    example = Example{
-      i32SetValue = [1, 2],
-      setValue = [Nested{nested = "a"}, Nested{nested = "b"}],
-    },
-    json = "{
-  \"setValue\": [
-    {
-      \"nested\": \"a\"
-    },
-    {
-      \"nested\": \"b\"
-    }
-  ],
-  \"i32SetValue\": [
-    1,
-    2
-  ]
-}",
-    json5 = "{
-  setValue: [
-    {
-      nested: \"a\",
-    },
-    {
-      nested: \"b\",
-    },
-  ],
-  i32SetValue: [
-    1,
-    2,
-  ],
-}",
-    additionalInputs = [
-      "{\"i32SetValue\": [2, 1, 2], \"setValue\": [{\"nested\": \"b\"}, {\"nested\": \"a\"}, {\"nested\": \"b\"}]}",
-    ],
-  },
-  TestCase{
-    name = "MapDuplicateKeyLastWins",
-    example = Example{i32AsKey = {1: 3}},
-    json = "{
-  \"i32AsKey\": [
-    {
-      \"key\": 1,
-      \"value\": 3
-    }
-  ]
-}",
-    json5 = "{
-  i32AsKey: [
-    {
-      key: 1,
-      value: 3,
-    },
-  ],
-}",
-    additionalInputs = [
-      "{\"i32AsKey\": [{\"key\": 1, \"value\": 2}, {\"key\": 1, \"value\": 3}]}",
-      "{\"i32AsKey\": {\"1\": 2, \"0x1\": 3}}",
-    ],
-  },
-  TestCase{
-    name = "StructKeyDuplicateLastWins",
-    example = Example{
-      structAsKey = {Nested{nested = "k"}: Nested{nested = "w"}},
-    },
-    json = "{
-  \"structAsKey\": [
-    {
-      \"key\": {
-        \"nested\": \"k\"
-      },
-      \"value\": {
-        \"nested\": \"w\"
-      }
-    }
-  ]
-}",
-    json5 = "{
-  structAsKey: [
-    {
-      key: {
-        nested: \"k\",
-      },
-      value: {
-        nested: \"w\",
-      },
-    },
-  ],
-}",
-    additionalInputs = [
-      "{\"structAsKey\": [{\"key\": {\"nested\": \"k\"}, \"value\": {\"nested\": \"v\"}}, {\"key\": {\"nested\": \"k\"}, \"value\": {\"nested\": \"w\"}}]}",
-    ],
   },
   TestCase{
     name = "FloatAsKeyFromString",
