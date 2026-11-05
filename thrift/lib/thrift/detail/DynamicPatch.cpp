@@ -63,6 +63,19 @@ createArithmeticPatch(const T& src, const T& dst) {
   folly::throw_exception<std::runtime_error>("Not implemented");
 }
 
+op::StringPatch toStringPatch(const op::BinaryPatch& binary) {
+  struct Visitor {
+    void assign(const folly::IOBuf& v) { patch.assign(v.to<std::string>()); }
+    void clear() { patch.clear(); }
+    void prepend(const folly::IOBuf& v) { patch.prepend(v.to<std::string>()); }
+    void append(const folly::IOBuf& v) { patch.append(v.to<std::string>()); }
+    op::StringPatch patch;
+  };
+  Visitor v;
+  binary.customVisit(v);
+  return std::move(v.patch);
+}
+
 Value* get_ptr(Object& obj, op::PatchOp op) {
   return folly::get_ptr(*obj.members(), folly::to_underlying(op));
 }
@@ -1980,8 +1993,7 @@ void DynamicPatch::merge(Other&& other) {
   }
   if (std::holds_alternative<op::BinaryPatch>(*patch_) &&
       std::holds_alternative<op::StringPatch>(*other.patch_)) {
-    *patch_ = detail::createPatchFromObject<op::StringPatch>(
-        badge, std::move(*this).toObject());
+    *patch_ = toStringPatch(std::get<op::BinaryPatch>(*patch_));
     return merge(std::forward<Other>(other));
   }
 

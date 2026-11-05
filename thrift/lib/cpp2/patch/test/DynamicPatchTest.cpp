@@ -1531,6 +1531,33 @@ TEST(DynamicPatch, InvalidGetStoredPatchByTag) {
   }
 }
 
+TEST(DynamicPatch, GetStoredStringPatchFromBinaryPatch) {
+  auto applyAsString = [](const op::BinaryPatch& binary) {
+    DynamicPatch patch = DynamicPatch::fromStaticPatch(binary);
+    std::string value = "hi";
+    patch.getStoredPatchByTag<type::string_t>().apply(value);
+    EXPECT_TRUE(patch.holds_alternative<op::StringPatch>(badge));
+    return value;
+  };
+
+  EXPECT_EQ(applyAsString(op::BinaryPatch{}), "hi");
+
+  op::BinaryPatch assign;
+  assign.assign(std::string("x"));
+  EXPECT_EQ(applyAsString(assign), "x");
+
+  op::BinaryPatch relative;
+  relative.prepend("(");
+  relative.append(")");
+  EXPECT_EQ(applyAsString(relative), "(hi)");
+
+  op::BinaryPatch cleared;
+  cleared.clear();
+  cleared.prepend("<");
+  cleared.append(">");
+  EXPECT_EQ(applyAsString(cleared), "<>");
+}
+
 TEST(DynamicPatch, DynamicSafePatch) {
   MyUnion obj;
   obj.s().emplace("123");

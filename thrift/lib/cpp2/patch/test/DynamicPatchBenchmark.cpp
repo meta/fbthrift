@@ -89,6 +89,21 @@ void foldBinaryPrepend(unsigned iters, size_t n) {
   });
 }
 
+// Converts a BinaryPatch that prepends and appends `len` bytes each into a
+// StringPatch, as `getStoredPatchByTag<type::string_t>()` does.
+void binaryToStringPatch(unsigned iters, size_t len) {
+  while (iters--) {
+    DynamicPatch patch;
+    BENCHMARK_SUSPEND {
+      op::BinaryPatch binary;
+      binary.prepend(std::string(len, 'p'));
+      binary.append(std::string(len, 'a'));
+      patch = DynamicPatch::fromStaticPatch(binary);
+    }
+    folly::doNotOptimizeAway(patch.getStoredPatchByTag<type::string_t>());
+  }
+}
+
 } // namespace
 
 BENCHMARK_PARAM(diffListNotPrefix, 100)
@@ -108,6 +123,11 @@ BENCHMARK_PARAM(foldBinaryPrepend, 200)
 BENCHMARK_PARAM(foldBinaryPrepend, 400)
 BENCHMARK_PARAM(foldBinaryPrepend, 800)
 BENCHMARK_PARAM(foldBinaryPrepend, 1600)
+BENCHMARK_DRAW_LINE();
+BENCHMARK_PARAM(binaryToStringPatch, 16)
+BENCHMARK_PARAM(binaryToStringPatch, 256)
+BENCHMARK_PARAM(binaryToStringPatch, 4096)
+BENCHMARK_PARAM(binaryToStringPatch, 65536)
 BENCHMARK_DRAW_LINE();
 
 } // namespace apache::thrift::protocol
