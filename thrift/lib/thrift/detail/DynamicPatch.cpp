@@ -202,22 +202,20 @@ void convertStringToBinary(ValueList& list) {
 
 void convertStringToBinary(ValueSet& set) {
   ValueSet a;
-  for (auto i : set) {
+  set.eraseInto(set.begin(), set.end(), [&](auto&& i) {
     convertStringToBinary(i);
     a.insert(std::move(i));
-  }
+  });
   set = std::move(a);
 }
 
 void convertStringToBinary(ValueMap& map) {
   ValueMap a;
-  for (const auto& kv : map) {
-    auto k = kv.first;
-    auto v = kv.second;
+  map.eraseInto(map.begin(), map.end(), [&](auto&& k, auto&& v) {
     convertStringToBinary(k);
     convertStringToBinary(v);
     a[std::move(k)] = std::move(v);
-  }
+  });
   map = std::move(a);
 }
 

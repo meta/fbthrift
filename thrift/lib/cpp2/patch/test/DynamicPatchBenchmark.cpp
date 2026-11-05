@@ -21,6 +21,7 @@
 #include <folly/init/Init.h>
 #include <thrift/lib/cpp2/op/Patch.h>
 #include <thrift/lib/cpp2/patch/DynamicPatch.h>
+#include <thrift/lib/cpp2/protocol/Object.h>
 
 namespace apache::thrift::protocol {
 namespace {
@@ -104,6 +105,33 @@ void binaryToStringPatch(unsigned iters, size_t len) {
   }
 }
 
+// A chain of `depth` map patches, each patching one key of the next.
+DynamicPatch makeNestedMapPatch(size_t depth) {
+  DynamicMapPatch leaf;
+  leaf.put(
+      asValueStruct<type::string_t>("key"),
+      asValueStruct<type::string_t>("value"));
+  DynamicPatch patch{std::move(leaf)};
+  for (size_t i = 1; i < depth; ++i) {
+    DynamicMapPatch parent;
+    parent.patchByKey(
+        asValueStruct<type::string_t>("level_" + std::to_string(i)),
+        std::move(patch));
+    patch = DynamicPatch{std::move(parent)};
+  }
+  return patch;
+}
+
+void nestedMapPatchToObject(unsigned iters, size_t depth) {
+  DynamicPatch patch;
+  BENCHMARK_SUSPEND {
+    patch = makeNestedMapPatch(depth);
+  }
+  while (iters--) {
+    folly::doNotOptimizeAway(patch.toObject());
+  }
+}
+
 } // namespace
 
 BENCHMARK_PARAM(diffListNotPrefix, 100)
@@ -128,6 +156,11 @@ BENCHMARK_PARAM(binaryToStringPatch, 16)
 BENCHMARK_PARAM(binaryToStringPatch, 256)
 BENCHMARK_PARAM(binaryToStringPatch, 4096)
 BENCHMARK_PARAM(binaryToStringPatch, 65536)
+BENCHMARK_DRAW_LINE();
+BENCHMARK_PARAM(nestedMapPatchToObject, 25)
+BENCHMARK_PARAM(nestedMapPatchToObject, 50)
+BENCHMARK_PARAM(nestedMapPatchToObject, 100)
+BENCHMARK_PARAM(nestedMapPatchToObject, 200)
 BENCHMARK_DRAW_LINE();
 
 } // namespace apache::thrift::protocol

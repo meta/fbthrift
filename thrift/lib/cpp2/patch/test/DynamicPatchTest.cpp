@@ -735,6 +735,23 @@ TEST_F(StringVsBinaryTest, PatchingStringWithStringApplyPatch) {
   EXPECT_FALSE(stringSetValue.as_set().empty());
 }
 
+TEST(DynamicPatch, ConvertStringToBinaryInNestedContainers) {
+  auto str = [](const char* s) { return asValueStruct<type::string_t>(s); };
+  auto bin = [](const char* s) { return asValueStruct<type::binary_t>(s); };
+  auto build = [](auto leaf) {
+    Value value;
+    auto& outer = value.ensure_map();
+    outer[leaf("set")].ensure_set().insert(leaf("a"));
+    outer[leaf("map")].ensure_map()[leaf("x")] = leaf("y");
+    outer[leaf("list")].ensure_list().push_back(leaf("z"));
+    return value;
+  };
+
+  Value value = build(str);
+  detail::convertStringToBinary(value);
+  EXPECT_EQ(value, build(bin));
+}
+
 TEST(DynamicPatch, Map) {
   ValueMap m;
   m[asValueStruct<type::i32_t>(1)] = asValueStruct<type::i32_t>(10);
