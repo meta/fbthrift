@@ -127,7 +127,7 @@ std::string quoted_rust_doc(const t_named* named_node) {
   }
 
   const auto last = doc.find_last_not_of(whitespace);
-  return quote(doc.substr(first, last - first + 1), true);
+  return quote(doc.substr(first, last - first + 1));
 }
 
 std::string get_type_annotation(const t_named* node) {
@@ -1065,15 +1065,9 @@ class t_mstch_rust_generator : public t_whisker_generator {
     globals["rust_quote"] = whisker::dsl::make_function(
         "rust_quote",
         [](whisker::dsl::function::context ctx) -> whisker::object {
-          ctx.declare_named_arguments({"escape_backslashes"});
+          ctx.declare_named_arguments({});
           ctx.declare_arity(1);
-          std::optional<bool> escape_backslashes = ctx.named_argument<bool>(
-              "escape_backslashes",
-              whisker::dsl::function::context::named_argument_presence::
-                  optional);
-          return whisker::make::string(quote(
-              ctx.argument<whisker::string>(0),
-              escape_backslashes.value_or(false)));
+          return whisker::make::string(quote(ctx.argument<whisker::string>(0)));
         });
     return globals;
   }
