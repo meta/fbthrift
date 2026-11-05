@@ -97,9 +97,6 @@ void ResourcePoolSet::lock() {
   if (!resourcePools_.empty()) {
     calculatePriorityMapping();
   }
-  // Use release semantics to ensure all prior writes to resourcePools_ are
-  // visible to readers that acquire locked_ with acquire semantics.
-  locked_.store(true, std::memory_order_release);
 
   threadManagers_.reserve(resourcePools_.size());
   for (auto& pool : resourcePools_) {
@@ -110,6 +107,11 @@ void ResourcePoolSet::lock() {
       threadManagers_.push_back(nullptr);
     }
   }
+
+  // Use release semantics to ensure all prior writes to resourcePools_,
+  // poolByPriority_ and threadManagers_ are visible to readers that acquire
+  // locked_ with acquire semantics.
+  locked_.store(true, std::memory_order_release);
 }
 
 size_t ResourcePoolSet::numQueued() const {
