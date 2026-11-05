@@ -112,7 +112,7 @@ public final class RpcPayloadUtil {
       final TApplicationException applicationException,
       final RequestRpcMetadata requestRpcMetadata,
       final ContextChain chain) {
-    return ServerResponsePayload.createWithTApplicationException(
+    Writer bodyWriter =
         protocol -> {
           try {
             if (chain != null) {
@@ -127,7 +127,11 @@ public final class RpcPayloadUtil {
           } catch (Exception e) {
             throw new TException(e);
           }
-        },
+        };
+    Map<String, String> inbound =
+        requestRpcMetadata == null ? null : requestRpcMetadata.getOtherMetadata();
+    return ServerResponsePayload.createWithTApplicationException(
+        bodyWriter,
         new ResponseRpcMetadata.Builder()
             .setPayloadMetadata(
                 PayloadMetadata.fromExceptionMetadata(
@@ -135,10 +139,11 @@ public final class RpcPayloadUtil {
                         .setWhatUtf8(applicationException.getMessage())
                         .setMetadata(serverBlamedAppUnknownException())
                         .build()))
-            .setOtherMetadata(requestRpcMetadata.getOtherMetadata())
+            .setOtherMetadata(inbound)
             .build(),
         null,
-        false);
+        false,
+        applicationException);
   }
 
   public static ServerResponsePayload createServerResponsePayload(

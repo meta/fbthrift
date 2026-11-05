@@ -16,6 +16,7 @@
 
 package com.facebook.thrift.legacy.server;
 
+import static com.facebook.thrift.legacy.codec.HeaderTransportCodec.FRAME_NO_REPLY_SEQ_ID;
 import static com.facebook.thrift.util.RpcServerUtils.getThriftSslSession;
 import static com.google.common.base.Strings.nullToEmpty;
 import static java.util.Objects.requireNonNull;
@@ -32,7 +33,9 @@ import com.facebook.thrift.payload.RequestData;
 import com.facebook.thrift.payload.ServerRequestPayload;
 import com.facebook.thrift.payload.ServerResponsePayload;
 import com.facebook.thrift.protocol.TProtocolType;
+import com.facebook.thrift.server.OverloadedException;
 import com.facebook.thrift.server.RpcServerHandler;
+import com.facebook.thrift.util.HeaderOverloadError;
 import com.facebook.thrift.util.MonoTimeoutTransformer;
 import com.facebook.thrift.util.NettyNiftyRequestContext;
 import com.facebook.thrift.util.NettyUtil;
@@ -101,8 +104,7 @@ public class ThriftServerHandler extends ChannelDuplexHandler {
                   frameInfo.getProtocol(),
                   frameInfo.getSequenceId(),
                   frameInfo.isSupportOutOfOrderResponse(),
-                  TApplicationException.PROTOCOL_ERROR,
-                  e.getMessage(),
+                  new TApplicationException(TApplicationException.PROTOCOL_ERROR, e.getMessage()),
                   Collections.emptyMap()));
         } catch (Throwable t) {
           context.close();
@@ -209,23 +211,11 @@ public class ThriftServerHandler extends ChannelDuplexHandler {
                 TimeUnit.MILLISECONDS,
                 Mono.defer(
                     () -> {
-                      String message =
-                          String.format(
-                              "method %s timed out after %s", metadata.getName(), requestTimeout);
-                      log.warn(message);
-                      ThriftFrame exceptionFrame =
-                          encodeApplicationException(
-                              context,
-                              metadata.getName(),
-                              frame.getTransport(),
-                              frame.getProtocol(),
-                              frame.getSequenceId(),
-                              frame.isSupportOutOfOrderResponse(),
-                              TApplicationException.TIMEOUT,
-                              message,
-                              responseHeaders);
-
-                      return NettyUtil.toMono(context.writeAndFlush(exceptionFrame));
+                      log.warn(
+                          "oneway method {} timed out after {}",
+                          metadata.getName(),
+                          requestTimeout);
+                      return Mono.empty();
                     })));
   }
 
@@ -283,8 +273,7 @@ public class ThriftServerHandler extends ChannelDuplexHandler {
                               frame.getProtocol(),
                               frame.getSequenceId(),
                               frame.isSupportOutOfOrderResponse(),
-                              TApplicationException.TIMEOUT,
-                              message,
+                              new TApplicationException(TApplicationException.TIMEOUT, message),
                               responseHeaders);
 
                       return NettyUtil.toMono(context.writeAndFlush(exceptionFrame));
@@ -298,6 +287,9 @@ public class ThriftServerHandler extends ChannelDuplexHandler {
       ThriftFrame frame,
       Map<String, String> responseHeaders) {
     log.error("ThriftServerHandler received uncaught exception", throwable);
+    if (metadata.getKind() == RpcKind.SINGLE_REQUEST_NO_RESPONSE) {
+      return Mono.empty();
+    }
     if (throwable instanceof RejectedExecutionException) {
       ThriftFrame exceptionFrame =
           encodeApplicationException(
@@ -307,8 +299,7 @@ public class ThriftServerHandler extends ChannelDuplexHandler {
               frame.getProtocol(),
               frame.getSequenceId(),
               frame.isSupportOutOfOrderResponse(),
-              TApplicationException.LOADSHEDDING,
-              throwable.getMessage(),
+              OverloadedException.host(throwable.getMessage()),
               responseHeaders);
 
       if (!context.channel().isActive()) {
@@ -335,8 +326,10 @@ public class ThriftServerHandler extends ChannelDuplexHandler {
 
       TMessage message = byteBufTProtocol.readMessageBegin();
 
+      // A C++ Header oneway arrives with the reserved frame sequence above and a T_CALL body;
+      // either sentinel routes to no-response. A bare body seqid -1 keeps the Java-only behavior.
       RpcKind kind =
-          message.seqid == -1
+          message.seqid == -1 || frame.getSequenceId() == FRAME_NO_REPLY_SEQ_ID
               ? RpcKind.SINGLE_REQUEST_NO_RESPONSE
               : RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE;
 
@@ -381,10 +374,11 @@ public class ThriftServerHandler extends ChannelDuplexHandler {
 
     Map<String, String> otherMetadata =
         serverResponsePayload.getResponseRpcMetadata().getOtherMetadata();
-
     if (otherMetadata != null && !otherMetadata.isEmpty()) {
       responseHeaders.putAll(otherMetadata);
     }
+    HeaderOverloadError.stampResponseHeaders(
+        responseHeaders, serverResponsePayload.getApplicationException());
 
     return new ThriftFrame(
         frame.getSequenceId(),
@@ -403,17 +397,16 @@ public class ThriftServerHandler extends ChannelDuplexHandler {
       TProtocolType protocol,
       int sequenceId,
       boolean supportOutOfOrderResponse,
-      int errorCode,
-      String errorMessage,
+      TApplicationException applicationException,
       Map<String, String> responseHeaders) {
-    TApplicationException applicationException = new TApplicationException(errorCode, errorMessage);
-
     ByteBuf buf = context.alloc().buffer();
     TProtocol out = protocol.apply(buf);
 
     out.writeMessageBegin(new TMessage(methodName, TMessageType.EXCEPTION, sequenceId));
     applicationException.write(out);
     out.writeMessageEnd();
+
+    HeaderOverloadError.stampResponseHeaders(responseHeaders, applicationException);
 
     return new ThriftFrame(
         sequenceId,

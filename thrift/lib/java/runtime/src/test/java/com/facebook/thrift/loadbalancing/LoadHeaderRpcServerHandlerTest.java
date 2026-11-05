@@ -17,7 +17,9 @@
 package com.facebook.thrift.loadbalancing;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
@@ -29,12 +31,19 @@ import static org.mockito.MockitoAnnotations.openMocks;
 import com.facebook.nifty.core.RequestContext;
 import com.facebook.thrift.payload.ServerRequestPayload;
 import com.facebook.thrift.payload.ServerResponsePayload;
+import com.facebook.thrift.server.OverloadedException;
 import com.facebook.thrift.server.RpcServerHandler;
 import com.facebook.thrift.util.NettyNiftyRequestContext;
+import com.facebook.thrift.util.RpcPayloadUtil;
 import com.google.common.collect.ImmutableMap;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Function;
 import org.apache.commons.lang3.RandomUtils;
+import org.apache.thrift.RequestRpcMetadata;
 import org.apache.thrift.ResponseRpcMetadata;
+import org.apache.thrift.RpcKind;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -227,5 +236,58 @@ public class LoadHeaderRpcServerHandlerTest {
     verify(counterProvider, times(0)).apply(eq(CUSTOM_COUNTER));
 
     verifyNoInteractions(loadSupplier);
+  }
+
+  @Test
+  public void test_OverloadActualForwardedWithLoadAndNoWireEx() {
+    OverloadedException overload = OverloadedException.host("shed");
+    ServerResponsePayload helperPayload =
+        RpcPayloadUtil.fromTApplicationException(overload, overloadRequestMetadata(), null);
+    when(rpcServerHandler.singleRequestSingleResponse(any(ServerRequestPayload.class)))
+        .thenReturn(Mono.just(helperPayload));
+    when(loadSupplier.getLoad()).thenReturn(42L);
+
+    ServerResponsePayload wrapped =
+        loadHeaderHandler.singleRequestSingleResponse(PAYLOAD_DEFAULT_HEADER).block();
+
+    // The decorator keeps the load signal and the shared metadata gains no wire code.
+    assertEquals("42", wrapped.getResponseRpcMetadata().getOtherMetadata().get("load"));
+    assertFalse(wrapped.getResponseRpcMetadata().getOtherMetadata().containsKey("ex"));
+    assertSame(overload, wrapped.getApplicationException());
+  }
+
+  @Test
+  public void test_OrdinaryMetadataAndLoadPreserved() {
+    Map<String, String> customMetadata = new HashMap<>();
+    customMetadata.put("ex", "1");
+    customMetadata.put("uex", "OrdinaryException");
+    customMetadata.put("k", "v");
+    ServerResponsePayload ordinary =
+        ServerResponsePayload.create(
+            out -> {},
+            new ResponseRpcMetadata.Builder().setOtherMetadata(customMetadata).build(),
+            null,
+            false);
+    when(rpcServerHandler.singleRequestSingleResponse(any(ServerRequestPayload.class)))
+        .thenReturn(Mono.just(ordinary));
+    when(loadSupplier.getLoad()).thenReturn(7L);
+
+    ServerResponsePayload wrapped =
+        loadHeaderHandler.singleRequestSingleResponse(PAYLOAD_DEFAULT_HEADER).block();
+
+    assertEquals("1", wrapped.getResponseRpcMetadata().getOtherMetadata().get("ex"));
+    assertEquals(
+        "OrdinaryException", wrapped.getResponseRpcMetadata().getOtherMetadata().get("uex"));
+    assertEquals("v", wrapped.getResponseRpcMetadata().getOtherMetadata().get("k"));
+    assertEquals("7", wrapped.getResponseRpcMetadata().getOtherMetadata().get("load"));
+    assertNull(wrapped.getApplicationException());
+  }
+
+  private static RequestRpcMetadata overloadRequestMetadata() {
+    return new RequestRpcMetadata.Builder()
+        .setName("method")
+        .setKind(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE)
+        .setOtherMetadata(Collections.emptyMap())
+        .build();
   }
 }

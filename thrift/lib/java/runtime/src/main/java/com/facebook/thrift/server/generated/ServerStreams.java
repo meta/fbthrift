@@ -231,13 +231,13 @@ public final class ServerStreams {
       boolean streamException) {
     Writer knownExceptionWriter = createKnownExceptionWriter(throwable, chain, fieldId);
     if (streamException) {
-      return ServerResponsePayload.createWithTApplicationException(
+      return ServerResponsePayload.create(
           knownExceptionWriter,
           null,
           declaredExceptionStreamMetadata(requestPayload, throwable),
           true);
     }
-    return ServerResponsePayload.createWithTApplicationException(
+    return ServerResponsePayload.create(
         knownExceptionWriter,
         declaredExceptionResponseMetadata(requestPayload, throwable),
         null,
@@ -277,7 +277,8 @@ public final class ServerStreams {
           null,
           undeclaredExceptionStreamMetadata(
               requestPayload, throwable.getClass().getName(), throwable.getMessage()),
-          true);
+          true,
+          exception);
     }
 
     return ServerResponsePayload.createWithTApplicationException(
@@ -285,6 +286,7 @@ public final class ServerStreams {
         undeclaredExceptionResponseMetadata(
             requestPayload, throwable.getClass().getName(), throwable.getMessage()),
         null,
-        false);
+        false,
+        exception);
   }
 }

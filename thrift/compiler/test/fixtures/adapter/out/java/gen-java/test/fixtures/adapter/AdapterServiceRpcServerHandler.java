@@ -125,8 +125,19 @@ public class AdapterServiceRpcServerHandler
               )
             )
             .<com.facebook.thrift.payload.ServerResponsePayload>onErrorResume(_t -> {
+                if (_t instanceof org.apache.thrift.TApplicationException) {
+                // A known application exception keeps its original object, type and subclass.
+                // The payload writer fires its hooks exactly once, so no assembly
+                // preWriteException here: it would fire a second time.
+                org.apache.thrift.TApplicationException _tApplicationException =
+                    (org.apache.thrift.TApplicationException) _t;
+                com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload =
+                    com.facebook.thrift.util.RpcPayloadUtil.fromTApplicationException(_tApplicationException, _payload.getRequestRpcMetadata(),  _chain);
+
+                return reactor.core.publisher.Mono.just(_serverResponsePayload);
+                }
                 _chain.preWriteException(_t);
-                // exception is not of user declared type
+                // exception is neither user declared nor a known application exception
                 String _errorMessage = String.format("Internal error processing count: %s", _t.getMessage() == null ? "<null>" : _t.getMessage());
                 org.apache.thrift.TApplicationException _tApplicationException =
                     new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.INTERNAL_ERROR, _errorMessage);

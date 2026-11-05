@@ -16,6 +16,7 @@
 
 package com.facebook.thrift.transport.unified;
 
+import static com.facebook.thrift.legacy.codec.HeaderTransportCodec.FRAME_NO_REPLY_SEQ_ID;
 import static java.util.Objects.requireNonNull;
 import static org.apache.thrift.RpcKind.SINGLE_REQUEST_NO_RESPONSE;
 import static org.apache.thrift.RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE;
@@ -27,7 +28,9 @@ import com.facebook.thrift.payload.RequestData;
 import com.facebook.thrift.payload.ServerRequestPayload;
 import com.facebook.thrift.payload.ServerResponsePayload;
 import com.facebook.thrift.protocol.TProtocolType;
+import com.facebook.thrift.server.OverloadedException;
 import com.facebook.thrift.server.RpcServerHandler;
+import com.facebook.thrift.util.HeaderOverloadError;
 import com.facebook.thrift.util.MonoTimeoutTransformer;
 import com.facebook.thrift.util.NettyNiftyRequestContext;
 import com.facebook.thrift.util.RpcServerUtils;
@@ -331,8 +334,7 @@ public class ThriftConnectionAcceptor implements Function<Connection, Publisher<
               requestFrame.getProtocol(),
               requestFrame.getSequenceId(),
               requestFrame.isSupportOutOfOrderResponse(),
-              TApplicationException.TIMEOUT,
-              message,
+              new TApplicationException(TApplicationException.TIMEOUT, message),
               responseHeaders);
 
       ByteBuf exceptionBuf = ReactiveHeaderCodec.encodeFrame(out.alloc(), exceptionFrame, false);
@@ -370,8 +372,7 @@ public class ThriftConnectionAcceptor implements Function<Connection, Publisher<
               requestFrame.getProtocol(),
               requestFrame.getSequenceId(),
               requestFrame.isSupportOutOfOrderResponse(),
-              TApplicationException.PROTOCOL_ERROR,
-              errorMessage,
+              new TApplicationException(TApplicationException.PROTOCOL_ERROR, errorMessage),
               responseHeaders);
 
       ByteBuf exceptionBuf = ReactiveHeaderCodec.encodeFrame(out.alloc(), exceptionFrame, false);
@@ -412,8 +413,7 @@ public class ThriftConnectionAcceptor implements Function<Connection, Publisher<
                 requestFrame.getProtocol(),
                 requestFrame.getSequenceId(),
                 requestFrame.isSupportOutOfOrderResponse(),
-                TApplicationException.LOADSHEDDING,
-                throwable.getMessage(),
+                OverloadedException.host(throwable.getMessage()),
                 responseHeaders);
 
         ByteBuf exceptionBuf = ReactiveHeaderCodec.encodeFrame(out.alloc(), exceptionFrame, false);
@@ -443,8 +443,12 @@ public class ThriftConnectionAcceptor implements Function<Connection, Publisher<
 
       TMessage message = byteBufTProtocol.readMessageBegin();
 
+      // A C++ Header oneway arrives with the reserved frame sequence above and a T_CALL body;
+      // either sentinel routes to no-response. A bare body seqid -1 keeps the Java-only behavior.
       RpcKind kind =
-          message.seqid == -1 ? SINGLE_REQUEST_NO_RESPONSE : SINGLE_REQUEST_SINGLE_RESPONSE;
+          message.seqid == -1 || frame.getSequenceId() == FRAME_NO_REPLY_SEQ_ID
+              ? SINGLE_REQUEST_NO_RESPONSE
+              : SINGLE_REQUEST_SINGLE_RESPONSE;
 
       // The frame is the reference to free; byteBufTProtocol reads frame.getMessage() from just
       // past the envelope that was consumed above. Bind the two so the generated handler claims
@@ -498,6 +502,8 @@ public class ThriftConnectionAcceptor implements Function<Connection, Publisher<
       if (otherMetadata != null && !otherMetadata.isEmpty()) {
         responseHeaders.putAll(otherMetadata);
       }
+      HeaderOverloadError.stampResponseHeaders(
+          responseHeaders, serverResponsePayload.getApplicationException());
 
       ByteBuf finalBuf = buf;
       buf = null; // Prevent release in finally

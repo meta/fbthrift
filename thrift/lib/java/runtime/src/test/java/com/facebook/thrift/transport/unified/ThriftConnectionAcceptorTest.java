@@ -17,6 +17,7 @@
 package com.facebook.thrift.transport.unified;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -31,7 +32,9 @@ import com.facebook.thrift.legacy.codec.ThriftFrame;
 import com.facebook.thrift.payload.ServerRequestPayload;
 import com.facebook.thrift.payload.ServerResponsePayload;
 import com.facebook.thrift.protocol.TProtocolType;
+import com.facebook.thrift.server.OverloadedException;
 import com.facebook.thrift.server.RpcServerHandler;
+import com.facebook.thrift.util.RpcPayloadUtil;
 import io.airlift.units.Duration;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
@@ -41,9 +44,14 @@ import io.netty.channel.ChannelPipeline;
 import io.netty.util.ResourceLeakDetector;
 import java.net.InetSocketAddress;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import org.apache.thrift.RequestRpcMetadata;
+import org.apache.thrift.ResponseRpcMetadata;
+import org.apache.thrift.RpcKind;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.protocol.TMessage;
 import org.apache.thrift.protocol.TMessageType;
@@ -602,6 +610,243 @@ public class ThriftConnectionAcceptorTest {
     }
     if (encodedRequest2.refCnt() > 0) {
       encodedRequest2.release();
+    }
+  }
+
+  @Test
+  public void rawRejectionBinaryCarriesHostOverloadCode() {
+    ByteBuf encodedRequest =
+        createEncodedRequest(TProtocolType.TBinary, "testMethod", TMessageType.CALL, 1);
+    when(mockRpcServerHandler.singleRequestSingleResponse(any(ServerRequestPayload.class)))
+        .thenReturn(Mono.error(new RejectedExecutionException("Server overloaded")));
+
+    ArgumentCaptor<Object> responseCaptor = ArgumentCaptor.forClass(Object.class);
+    when(mockOutbound.sendObject(responseCaptor.capture())).thenReturn(mockSendObjectResult);
+
+    drive(encodedRequest);
+
+    verify(mockOutbound).sendObject(any(Object.class));
+    ByteBuf exceptionBuf = (ByteBuf) responseCaptor.getValue();
+    try {
+      ByteBuf copy = exceptionBuf.retainedDuplicate();
+      ThriftFrame decoded = ReactiveHeaderCodec.decodeFrame(allocator, copy);
+      try {
+        assertEquals(1, decoded.getSequenceId());
+        assertEquals("1", decoded.getHeaders().get("ex"));
+        assertFalse(decoded.getHeaders().containsKey("uex"));
+        TProtocol responseProtocol = decoded.getProtocol().apply(decoded.getMessage());
+        TMessage message = responseProtocol.readMessageBegin();
+        assertEquals("testMethod", message.name);
+        assertEquals(TMessageType.EXCEPTION, message.type);
+        TApplicationException appException = TApplicationException.read(responseProtocol);
+        assertEquals(TApplicationException.LOADSHEDDING, appException.getType());
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      } finally {
+        decoded.release();
+      }
+    } finally {
+      exceptionBuf.release();
+    }
+  }
+
+  @Test
+  public void rawRejectionCompactCarriesHostOverloadCode() {
+    ByteBuf encodedRequest =
+        createEncodedRequest(TProtocolType.TCompact, "testMethod", TMessageType.CALL, 4);
+    when(mockRpcServerHandler.singleRequestSingleResponse(any(ServerRequestPayload.class)))
+        .thenReturn(Mono.error(new RejectedExecutionException("queue full")));
+
+    ArgumentCaptor<Object> responseCaptor = ArgumentCaptor.forClass(Object.class);
+    when(mockOutbound.sendObject(responseCaptor.capture())).thenReturn(mockSendObjectResult);
+
+    drive(encodedRequest);
+
+    verify(mockOutbound).sendObject(any(Object.class));
+    ByteBuf exceptionBuf = (ByteBuf) responseCaptor.getValue();
+    try {
+      ByteBuf copy = exceptionBuf.retainedDuplicate();
+      ThriftFrame decoded = ReactiveHeaderCodec.decodeFrame(allocator, copy);
+      try {
+        // Scheduler rejection is undifferentiated: host admission, never proven queue capacity.
+        assertEquals("1", decoded.getHeaders().get("ex"));
+      } finally {
+        decoded.release();
+      }
+    } finally {
+      exceptionBuf.release();
+    }
+  }
+
+  @Test
+  public void typedHostOverloadPayloadCarriesExOnWire() {
+    ByteBuf encodedRequest =
+        createEncodedRequest(TProtocolType.TCompact, "testMethod", TMessageType.CALL, 7);
+    RequestRpcMetadata requestMetadata =
+        new RequestRpcMetadata.Builder()
+            .setName("testMethod")
+            .setKind(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE)
+            .build();
+    ServerResponsePayload payload =
+        RpcPayloadUtil.fromTApplicationException(
+            OverloadedException.host("shed"), requestMetadata, null);
+    when(mockRpcServerHandler.singleRequestSingleResponse(any(ServerRequestPayload.class)))
+        .thenReturn(Mono.just(payload));
+
+    ArgumentCaptor<Object> responseCaptor = ArgumentCaptor.forClass(Object.class);
+    when(mockOutbound.sendObject(responseCaptor.capture())).thenReturn(mockSendObjectResult);
+
+    drive(encodedRequest);
+
+    verify(mockOutbound).sendObject(any(Object.class));
+    ByteBuf exceptionBuf = (ByteBuf) responseCaptor.getValue();
+    try {
+      ByteBuf copy = exceptionBuf.retainedDuplicate();
+      ThriftFrame decoded = ReactiveHeaderCodec.decodeFrame(allocator, copy);
+      try {
+        assertEquals("1", decoded.getHeaders().get("ex"));
+        assertFalse(decoded.getHeaders().containsKey("uex"));
+        assertFalse(decoded.getHeaders().containsKey("anyex"));
+        TProtocol responseProtocol = decoded.getProtocol().apply(decoded.getMessage());
+        TMessage message = responseProtocol.readMessageBegin();
+        assertEquals(TMessageType.EXCEPTION, message.type);
+        TApplicationException appException = TApplicationException.read(responseProtocol);
+        assertEquals(TApplicationException.LOADSHEDDING, appException.getType());
+        assertEquals("shed", appException.getMessage());
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      } finally {
+        decoded.release();
+      }
+    } finally {
+      exceptionBuf.release();
+    }
+  }
+
+  @Test
+  public void ordinaryPayloadMetadataPassesThroughOnWire() {
+    // The real unified encode path keeps a non-overload response's existing headers unchanged.
+    ByteBuf encodedRequest =
+        createEncodedRequest(TProtocolType.TCompact, "testMethod", TMessageType.CALL, 9);
+    Map<String, String> customMetadata = new HashMap<>();
+    customMetadata.put("ex", "1");
+    customMetadata.put("uex", "OrdinaryException");
+    customMetadata.put("k", "v");
+    ServerResponsePayload ordinary =
+        ServerResponsePayload.create(
+            out -> {},
+            new ResponseRpcMetadata.Builder().setOtherMetadata(customMetadata).build(),
+            null,
+            false);
+    when(mockRpcServerHandler.singleRequestSingleResponse(any(ServerRequestPayload.class)))
+        .thenReturn(Mono.just(ordinary));
+
+    ArgumentCaptor<Object> responseCaptor = ArgumentCaptor.forClass(Object.class);
+    when(mockOutbound.sendObject(responseCaptor.capture())).thenReturn(mockSendObjectResult);
+
+    drive(encodedRequest);
+
+    verify(mockOutbound).sendObject(any(Object.class));
+    ByteBuf responseBuf = (ByteBuf) responseCaptor.getValue();
+    try {
+      ByteBuf copy = responseBuf.retainedDuplicate();
+      ThriftFrame decoded = ReactiveHeaderCodec.decodeFrame(allocator, copy);
+      try {
+        assertEquals("1", decoded.getHeaders().get("ex"));
+        assertEquals("OrdinaryException", decoded.getHeaders().get("uex"));
+        assertEquals("v", decoded.getHeaders().get("k"));
+      } finally {
+        decoded.release();
+      }
+    } finally {
+      responseBuf.release();
+    }
+  }
+
+  @Test
+  public void cppStyleOnewayBinaryRoutesNoResponse() {
+    cppStyleOnewayRoutesNoResponse(TProtocolType.TBinary);
+  }
+
+  @Test
+  public void cppStyleOnewayCompactRoutesNoResponse() {
+    cppStyleOnewayRoutesNoResponse(TProtocolType.TCompact);
+  }
+
+  private void cppStyleOnewayRoutesNoResponse(TProtocolType protocol) {
+    ByteBuf encodedRequest = createCppOnewayOverloadRequest(protocol, "testMethod");
+    when(mockRpcServerHandler.singleRequestNoResponse(any(ServerRequestPayload.class)))
+        .thenReturn(Mono.error(new RejectedExecutionException("Server overloaded")));
+
+    drive(encodedRequest);
+
+    verify(mockRpcServerHandler).singleRequestNoResponse(any(ServerRequestPayload.class));
+    verify(mockRpcServerHandler, never())
+        .singleRequestSingleResponse(any(ServerRequestPayload.class));
+    verify(mockOutbound, never()).sendObject(any(Object.class));
+  }
+
+  @Test
+  public void onewayRejectionSendsNoResponse() {
+    ByteBuf encodedRequest =
+        createEncodedRequest(TProtocolType.TCompact, "testMethod", TMessageType.ONEWAY, -1);
+    when(mockRpcServerHandler.singleRequestNoResponse(any(ServerRequestPayload.class)))
+        .thenReturn(Mono.error(new RejectedExecutionException("Server overloaded")));
+
+    drive(encodedRequest);
+
+    verify(mockOutbound, never()).sendObject(any(Object.class));
+  }
+
+  @Test
+  public void ordinaryErrorStillDisposesWithoutResponse() {
+    ByteBuf encodedRequest =
+        createEncodedRequest(TProtocolType.TCompact, "testMethod", TMessageType.CALL, 2);
+    when(mockRpcServerHandler.singleRequestSingleResponse(any(ServerRequestPayload.class)))
+        .thenReturn(Mono.error(new RuntimeException("boom")));
+
+    drive(encodedRequest);
+
+    verify(mockOutbound, never()).sendObject(any(Object.class));
+    verify(mockConnection).dispose();
+  }
+
+  private ByteBuf createCppOnewayOverloadRequest(TProtocolType protocol, String methodName) {
+    // Valid C++ Header oneway: reserved frame sequence -1 with a regular T_CALL body seq 0.
+    ByteBuf requestPayload = Unpooled.buffer();
+    try {
+      protocol
+          .apply(requestPayload)
+          .writeMessageBegin(new TMessage(methodName, TMessageType.CALL, 0));
+      protocol.apply(requestPayload).writeMessageEnd();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+
+    ThriftFrame requestFrame =
+        new ThriftFrame(
+            -1,
+            requestPayload,
+            Collections.emptyMap(),
+            Collections.emptyMap(),
+            LegacyTransportType.HEADER,
+            protocol,
+            false);
+
+    return ReactiveHeaderCodec.encodeFrame(allocator, requestFrame, false);
+  }
+
+  private void drive(ByteBuf encodedRequest) {
+    TestPublisher<ByteBuf> inboundPublisher = TestPublisher.create();
+    when(mockInbound.receive())
+        .thenReturn(ByteBufFlux.fromInbound(inboundPublisher.flux(), allocator));
+    Mono<Void> result = acceptor.apply(mockConnection);
+    StepVerifier.create(result)
+        .then(() -> inboundPublisher.next(encodedRequest.retain()))
+        .thenCancel()
+        .verify();
+    if (encodedRequest.refCnt() > 0) {
+      encodedRequest.release();
     }
   }
 }

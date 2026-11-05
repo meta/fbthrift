@@ -24,8 +24,10 @@ import io.netty.util.internal.StringUtil;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
+import javax.annotation.Nullable;
 import org.apache.thrift.ResponseRpcMetadata;
 import org.apache.thrift.StreamPayloadMetadata;
+import org.apache.thrift.TApplicationException;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -158,6 +160,12 @@ public final class LoadHeaderRpcServerHandler implements RpcServerHandler {
     @Override
     public Writer getDataWriter() {
       return delegate.getDataWriter();
+    }
+
+    @Override
+    @Nullable
+    public TApplicationException getApplicationException() {
+      return delegate.getApplicationException();
     }
 
     @Override

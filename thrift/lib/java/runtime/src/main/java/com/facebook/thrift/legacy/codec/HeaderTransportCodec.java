@@ -42,6 +42,15 @@ public final class HeaderTransportCodec extends ChannelDuplexHandler {
   private static final Logger log = LoggerFactory.getLogger(HeaderTransportCodec.class);
 
   private static final int HEADER_MAGIC = 0x0FFF;
+
+  /**
+   * Reserved frame sequence marking a Header oneway request (C++ {@code
+   * ResponseChannel::ONEWAY_REQUEST_ID}, UINT32_MAX read as -1). A request frame carrying this
+   * sequence gets no response, even with a regular T_CALL body. This is a frame-level signal,
+   * distinct from the legacy body message sequence -1 rule.
+   */
+  public static final int FRAME_NO_REPLY_SEQ_ID = -1;
+
   private static final int ENCODED_INFO_SIZE = 2 * Byte.BYTES;
   private static final int FRAME_HEADER_SIZE =
       Short.BYTES

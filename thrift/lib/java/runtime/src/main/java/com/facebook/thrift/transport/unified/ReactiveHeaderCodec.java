@@ -24,6 +24,7 @@ import com.facebook.thrift.legacy.codec.LegacyTransportType;
 import com.facebook.thrift.legacy.codec.ThriftFrame;
 import com.facebook.thrift.metadata.ClientInfo;
 import com.facebook.thrift.protocol.TProtocolType;
+import com.facebook.thrift.util.HeaderOverloadError;
 import com.google.common.annotations.VisibleForTesting;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
@@ -308,8 +309,7 @@ public class ReactiveHeaderCodec {
    * @param protocol The protocol type
    * @param sequenceId The sequence ID
    * @param supportOutOfOrderResponse Whether out-of-order responses are supported
-   * @param errorCode The TApplicationException error code
-   * @param errorMessage The error message
+   * @param applicationException The actual application exception to encode
    * @param responseHeaders The response headers
    * @return A ThriftFrame containing the encoded exception
    */
@@ -320,20 +320,18 @@ public class ReactiveHeaderCodec {
       TProtocolType protocol,
       int sequenceId,
       boolean supportOutOfOrderResponse,
-      int errorCode,
-      String errorMessage,
+      TApplicationException applicationException,
       Map<String, String> responseHeaders) {
 
     ByteBuf buf = conn.channel().alloc().buffer();
     try {
-      TApplicationException applicationException =
-          new TApplicationException(errorCode, errorMessage);
-
       TProtocol out = protocol.apply(buf);
 
       out.writeMessageBegin(new TMessage(methodName, TMessageType.EXCEPTION, sequenceId));
       applicationException.write(out);
       out.writeMessageEnd();
+
+      HeaderOverloadError.stampResponseHeaders(responseHeaders, applicationException);
 
       return new ThriftFrame(
           sequenceId,
