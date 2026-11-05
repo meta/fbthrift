@@ -28,7 +28,6 @@
 #include <thrift/lib/cpp2/type/AnyValue.h>
 #include <thrift/lib/cpp2/type/NativeType.h>
 #include <thrift/lib/cpp2/type/Protocol.h>
-#include <thrift/lib/cpp2/type/Runtime.h>
 #include <thrift/lib/cpp2/type/detail/TypeRegistry.h>
 
 namespace apache::thrift::type {
@@ -51,13 +50,6 @@ class TypeRegistry {
   AnyData store(AnyConstRef value, const Protocol& protocol) const;
   template <StandardProtocol P>
   AnyData store(AnyConstRef value) const {
-    return store(value, Protocol::get<P>());
-  }
-
-  // Overloads accepting ConstRef (from the Dyn type system).
-  AnyData store(ConstRef value, const Protocol& protocol) const;
-  template <StandardProtocol P>
-  AnyData store(ConstRef value) const {
     return store(value, Protocol::get<P>());
   }
 

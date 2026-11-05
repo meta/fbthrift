@@ -240,11 +240,8 @@ class MultiSerializer : public op::Serializer {
   const type::Protocol& getProtocol() const override {
     return kFollyToStringProtocol;
   }
-  void encode(
-      type::ConstRef value, folly::io::QueueAppender&& appender) const override;
   void encode(type::AnyConstRef value, folly::io::QueueAppender&& appender)
       const override;
-  void decode(folly::io::Cursor& cursor, type::Ref value) const override;
   void decode(folly::io::Cursor& cursor, type::AnyRef value) const override;
   void decode(
       const type::Type& type,

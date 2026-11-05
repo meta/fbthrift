@@ -20,7 +20,6 @@
 #include <thrift/lib/cpp2/op/Testing.h>
 #include <thrift/lib/cpp2/type/Any.h>
 #include <thrift/lib/cpp2/type/AnyValue.h>
-#include <thrift/lib/cpp2/type/Runtime.h>
 #include <thrift/lib/cpp2/type/Tag.h>
 #include <thrift/lib/cpp2/type/UniversalName.h>
 
