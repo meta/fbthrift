@@ -16,6 +16,8 @@
 
 package "facebook.com/thrift/test/cpp2_redirect_to_xplat"
 
+namespace py3 thrift.test.cpp2_redirect_to_xplat
+
 struct Point {
   1: i32 x;
 }
