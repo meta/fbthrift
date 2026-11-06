@@ -331,7 +331,15 @@ class FastThriftServerBase {
   template <class Ext>
   void registerExtension() {
     if constexpr (requires { typename Ext::ConnState; }) {
-      connExtensionBuilder_.add(Ext::kId);
+      if constexpr (requires(typename Ext::ConnState* state) {
+                      Ext::destroyConnState(state);
+                    }) {
+        connExtensionBuilder_.add(Ext::kId, [](void* state) noexcept {
+          Ext::destroyConnState(static_cast<typename Ext::ConnState*>(state));
+        });
+      } else {
+        connExtensionBuilder_.add(Ext::kId);
+      }
     }
     if constexpr (requires { typename Ext::RequestState; }) {
       if constexpr (requires(typename Ext::RequestState* state) {

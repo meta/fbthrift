@@ -62,6 +62,8 @@ class ThriftConnContext : public boost::intrusive_ref_counter<
                               ThriftConnContext,
                               boost::thread_unsafe_counter> {
  public:
+  using PeerIdentitiesPtr = std::unique_ptr<void, void (*)(void*)>;
+
   ThriftConnContext() = default;
 
   ThriftConnContext(const ThriftConnContext&) = delete;
@@ -145,6 +147,11 @@ class ThriftConnContext : public boost::intrusive_ref_counter<
     peerIdentities_ = identities;
   }
 
+  void adoptPeerIdentities(PeerIdentitiesPtr identities) noexcept {
+    ownedPeerIdentities_.emplace(std::move(identities));
+    peerIdentities_ = ownedPeerIdentities_->get();
+  }
+
   // The peer's identities, or null when nothing resolved any. Opaque: only the
   // security layer knows the type behind it.
   void* FOLLY_NULLABLE getPeerIdentities() const noexcept {
@@ -184,9 +191,8 @@ class ThriftConnContext : public boost::intrusive_ref_counter<
     return extensionSlots_.find<typename Ext::ConnState>(Ext::kId);
   }
 
-  // Publishes `Ext`'s state on this context. Non-owning: the extension keeps
-  // it alive while the context can reach it, and clears the slot when it does
-  // not.
+  // Publishes borrowed `Ext` state on this context. The extension keeps it
+  // alive while the context can reach it and clears the slot when it does not.
   template <class Ext>
   void setState(typename Ext::ConnState* FOLLY_NULLABLE state) noexcept {
     extensionSlots_.set(Ext::kId, state);
@@ -194,6 +200,12 @@ class ThriftConnContext : public boost::intrusive_ref_counter<
 
   ReadBackpressureArbiter& readBackpressureArbiter() noexcept {
     return readBackpressureArbiter_;
+  }
+
+  // Transfers ownership of `Ext` state to this connection context.
+  template <class Ext>
+  void adoptState(typename Ext::ConnState* state) noexcept {
+    extensionSlots_.adopt(Ext::kId, state);
   }
 
   void setPeerAddress(folly::SocketAddress addr) noexcept {
@@ -226,6 +238,7 @@ class ThriftConnContext : public boost::intrusive_ref_counter<
   rocket::TypeErasedPtr userData_{};
   std::optional<apache::thrift::ClientMetadata> clientMetadata_;
   void* peerIdentities_{nullptr};
+  std::optional<PeerIdentitiesPtr> ownedPeerIdentities_;
   ExtensionSlots extensionSlots_;
   ReadBackpressureArbiter readBackpressureArbiter_;
 };

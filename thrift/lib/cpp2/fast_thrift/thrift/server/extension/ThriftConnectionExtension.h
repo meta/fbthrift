@@ -250,8 +250,20 @@ class ThriftSetupConnectionMutator final : public ThriftSetupConnectionView {
     setup_.connContext->template setState<Ext>(state);
   }
 
+  template <class Ext>
+  void adoptState(typename Ext::ConnState* state) noexcept {
+    setup_.connContext->template adoptState<Ext>(state);
+  }
+
   void setPeerIdentities(void* FOLLY_NULLABLE identities) noexcept {
     setup_.connContext->setPeerIdentities(identities);
+  }
+
+  void adoptPeerIdentities(
+      ThriftConnContext::PeerIdentitiesPtr identities) noexcept {
+    // Setup views require a connection at construction.
+    // @lint-ignore NULLSAFECLANG nullable-dereference
+    setup_.connContext->adoptPeerIdentities(std::move(identities));
   }
 
  private:
