@@ -674,7 +674,7 @@ TYPED_TEST(ScopedServerInterfaceThreadTest, writeError) {
   auto cli = this->template newRawClient<SimpleServiceAsyncClient>(
       evbThread.getEventBase(), ssit);
   SCOPE_EXIT {
-    folly::via(evbThread.getEventBase(), [cli = std::move(cli)] {});
+    folly::via(evbThread.getEventBaseKeepAlive(), [cli = std::move(cli)] {});
   };
 
   auto future = cli->semifuture_add(2000, 0);
@@ -682,7 +682,7 @@ TYPED_TEST(ScopedServerInterfaceThreadTest, writeError) {
   serviceImpl->waitForRequest();
   serviceImpl.reset();
 
-  folly::via(evbThread.getEventBase(), [&] {
+  folly::via(evbThread.getEventBaseKeepAlive(), [&] {
     dynamic_cast<ClientChannel*>(cli->getChannel())
         ->getTransport()
         ->shutdownWrite();
@@ -823,7 +823,7 @@ TYPED_TEST(ScopedServerInterfaceThreadTest, joinRequestsDetachedConnection) {
   auto cli = this->template newRawClient<SimpleServiceAsyncClient>(
       evbThread.getEventBase(), *ssit);
   SCOPE_EXIT {
-    folly::via(evbThread.getEventBase(), [cli = std::move(cli)] {});
+    folly::via(evbThread.getEventBaseKeepAlive(), [cli = std::move(cli)] {});
   };
 
   folly::stop_watch<std::chrono::milliseconds> timer;
@@ -835,7 +835,7 @@ TYPED_TEST(ScopedServerInterfaceThreadTest, joinRequestsDetachedConnection) {
 
   folly::Baton<> blockBaton;
 
-  folly::via(evbThread.getEventBase(), [&] { blockBaton.wait(); });
+  folly::via(evbThread.getEventBaseKeepAlive(), [&] { blockBaton.wait(); });
 
   ssit.reset();
 
@@ -866,7 +866,7 @@ TYPED_TEST(ScopedServerInterfaceThreadTest, closeConnection) {
   auto cli = this->template newRawClient<SimpleServiceAsyncClient>(
       evbThread.getEventBase(), *ssit);
   SCOPE_EXIT {
-    folly::via(evbThread.getEventBase(), [cli = std::move(cli)] {});
+    folly::via(evbThread.getEventBaseKeepAlive(), [cli = std::move(cli)] {});
   };
 
   auto future = cli->semifuture_add(6000, 666);
@@ -874,7 +874,7 @@ TYPED_TEST(ScopedServerInterfaceThreadTest, closeConnection) {
   serviceImpl->waitForRequest();
   serviceImpl.reset();
 
-  folly::via(evbThread.getEventBase(), [&] {
+  folly::via(evbThread.getEventBaseKeepAlive(), [&] {
     dynamic_cast<ClientChannel*>(cli->getChannel())->getTransport()->closeNow();
   }).get();
 
