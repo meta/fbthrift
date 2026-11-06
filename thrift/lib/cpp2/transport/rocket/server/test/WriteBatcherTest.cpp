@@ -55,11 +55,7 @@ class BatcherOwner : public folly::DelayedDestruction {
   explicit BatcherOwner(bool& destroyed)
       : destroyed_(&destroyed),
         adapter(*this),
-        batcher(
-            adapter,
-            std::chrono::milliseconds::zero(),
-            1024,
-            0) {}
+        batcher(adapter, std::chrono::milliseconds::zero(), 1024, 0) {}
 
   DestructorGuard getDestructorGuard() { return DestructorGuard(this); }
 
@@ -75,8 +71,7 @@ class BatcherOwner : public folly::DelayedDestruction {
 class DestroyFromSendQueuedCallback
     : public apache::thrift::MessageChannel::SendCallback {
  public:
-  DestroyFromSendQueuedCallback(
-      BatcherOwner& owner, int& queued, int& errors)
+  DestroyFromSendQueuedCallback(BatcherOwner& owner, int& queued, int& errors)
       : owner_(&owner), queued_(&queued), errors_(&errors) {}
 
   void sendQueued() override {
