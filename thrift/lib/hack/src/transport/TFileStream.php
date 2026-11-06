@@ -112,8 +112,7 @@ final class TFileStream extends TTransport implements IThriftBufferedTransport {
           'Blocked by a migration of builtins_file to coeffects (T107309662).',
         );
         if (!($this->inStream is resource)) {
-          throw
-            new TException('TPhpStream: Could not open %s', $this->filePath);
+          throw new TException('TPhpStream: Could not open %s');
         }
         break;
       case TFileStreamMode::MODE_W:
@@ -122,8 +121,7 @@ final class TFileStream extends TTransport implements IThriftBufferedTransport {
           'Blocked by a migration of builtins_file to coeffects (T107309662).',
         );
         if (!($this->outStream is resource)) {
-          throw
-            new TException('TPhpStream: Could not open %s', $this->filePath);
+          throw new TException('TPhpStream: Could not open %s');
         }
         break;
     }
