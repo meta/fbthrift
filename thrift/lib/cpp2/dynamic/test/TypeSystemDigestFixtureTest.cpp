@@ -24,6 +24,7 @@
 
 #include <fstream>
 
+#include <fmt/format.h>
 #include <gtest/gtest.h>
 #include <tools/cxx/Resources.h>
 #include <folly/compression/Compression.h>
@@ -52,7 +53,7 @@ std::string toHex(const TypeSystemDigest& d) {
   std::string result;
   result.reserve(d.size() * 2);
   for (auto byte : d) {
-    result += fmt::format("{:02x}", byte);
+    result += fmt::format("{:02x}", fmt::underlying(byte));
   }
   return result;
 }
