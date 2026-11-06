@@ -37,7 +37,7 @@ folly::Try<std::unique_ptr<folly::IOBuf>> decode_stream_exception(
     folly::exception_wrapper ew) {
   using IOBufTry = folly::Try<std::unique_ptr<folly::IOBuf>>;
   IOBufTry ret;
-  std::move(ew).handle(
+  ew.handle(
       [&ret](apache::thrift::detail::EncodedError& err) {
         ret = IOBufTry(std::move(err.encoded));
       },
@@ -90,7 +90,7 @@ folly::Try<std::unique_ptr<folly::IOBuf>> decode_stream_exception(
         ret = IOBufTry(TApplicationException(
             exType, streamRpcError.what_utf8().value_or("")));
       },
-      [](...) {});
+      [&ret, &ew](...) { ret = IOBufTry(ew); });
 
   return ret;
 }
