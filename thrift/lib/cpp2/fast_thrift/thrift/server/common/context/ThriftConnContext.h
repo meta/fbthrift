@@ -171,6 +171,10 @@ class ThriftConnContext : public boost::intrusive_ref_counter<
     extensionSlots_.install(layout);
   }
 
+  const ExtensionSlots& extensionSlots() const noexcept {
+    return extensionSlots_;
+  }
+
   // `Ext`'s per-connection state, or null when `Ext` is not installed on this
   // server. An extension that declares no `ConnState` does not compile here, so
   // asking for a scope an extension does not have is caught at build time

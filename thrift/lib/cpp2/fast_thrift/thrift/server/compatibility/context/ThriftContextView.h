@@ -32,6 +32,8 @@
 #include <folly/io/async/AsyncTransportCertificate.h>
 #include <folly/portability/OpenSSL.h>
 
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/ExtensionSlots.h>
+
 namespace apache::thrift {
 class ClientMetadata;
 class Cpp2ConnContext;
@@ -90,6 +92,11 @@ const folly::F14NodeMap<std::string, std::string>& emptyHeaders();
 
 // Views borrow storage from the context owner and must not outlive it.
 // Transport and live certificate access require the connection's EventBase.
+// For Classic state access, Ext's state alias must match the context's
+// registered internal-fields type, as with Cpp2 getInternalFields<T>().
+// Native lookups borrow extension state, which may be cleared before the
+// context dies. Mutable state follows the source context's capabilities:
+// const Classic contexts deny it; Native extension views permit it.
 template <ThriftContextBackend Backend>
 class ThriftConnectionContextView {
   using ClassicContext =
@@ -121,17 +128,18 @@ class ThriftConnectionContextView {
     std::optional<std::string_view> clientHostname;
     const apache::thrift::ClientMetadata* clientMetadata{};
     std::span<const CachedEkm> cachedEkms;
+    const apache::thrift::fast_thrift::thrift::ExtensionSlots* extensionSlots{};
   };
 
   constexpr ThriftConnectionContextView() = default;
   explicit ThriftConnectionContextView(
       apache::thrift::Cpp2ConnContext* context) noexcept
     requires(Backend == ThriftContextBackend::Classic)
-      : context_(context) {}
+      : context_(ClassicInputs{context, context}) {}
   explicit ThriftConnectionContextView(
       const apache::thrift::Cpp2ConnContext* context) noexcept
     requires(Backend == ThriftContextBackend::Classic)
-      : context_(context) {}
+      : context_(ClassicInputs{context, nullptr}) {}
   explicit ThriftConnectionContextView(
       apache::thrift::Cpp2ConnContext& context) noexcept
     requires(Backend == ThriftContextBackend::Classic)
@@ -156,6 +164,45 @@ class ThriftConnectionContextView {
       return classicContext() != nullptr;
     } else {
       return context_.valid;
+    }
+  }
+
+  const ClassicContext* FOLLY_NULLABLE classicContext() const noexcept
+    requires(Backend == ThriftContextBackend::Classic)
+  {
+    return context_.context;
+  }
+
+  const ClassicContext& requiredClassicContext() const noexcept
+    requires(Backend == ThriftContextBackend::Classic)
+  {
+    return *classicContext();
+  }
+
+  template <class Ext>
+  const typename Ext::ConnState* FOLLY_NULLABLE tryState() const noexcept {
+    using State = typename Ext::ConnState;
+    if constexpr (Backend == ThriftContextBackend::Classic) {
+      return classicContext()
+          ? &classicContext()->template getInternalFields<State>()
+          : nullptr;
+    } else {
+      return nativeInputs().extensionSlots
+          ? nativeInputs().extensionSlots->template find<State>(Ext::kId)
+          : nullptr;
+    }
+  }
+  template <class Ext>
+  typename Ext::ConnState* FOLLY_NULLABLE tryMutableState() const noexcept {
+    using State = typename Ext::ConnState;
+    if constexpr (Backend == ThriftContextBackend::Classic) {
+      return mutableClassicContext()
+          ? &mutableClassicContext()->template getInternalFields<State>()
+          : nullptr;
+    } else {
+      return nativeInputs().extensionSlots
+          ? nativeInputs().extensionSlots->template find<State>(Ext::kId)
+          : nullptr;
     }
   }
 
@@ -269,14 +316,18 @@ class ThriftConnectionContextView {
   }
 
  private:
+  struct ClassicInputs {
+    const ClassicContext* context{};
+    ClassicContext* mutableContext{};
+  };
   using Storage = std::conditional_t<
       Backend == ThriftContextBackend::Classic,
-      const ClassicContext*,
+      ClassicInputs,
       NativeInputs>;
 
-  const ClassicContext* classicContext() const noexcept {
+  ClassicContext* mutableClassicContext() const noexcept {
     if constexpr (Backend == ThriftContextBackend::Classic) {
-      return context_;
+      return context_.mutableContext;
     } else {
       return nullptr;
     }
@@ -308,6 +359,7 @@ class ThriftRequestContextView {
     const HeaderMap* requestHeaders{};
     HeaderMap* responseHeaders{};
     std::string_view methodName;
+    const apache::thrift::fast_thrift::thrift::ExtensionSlots* extensionSlots{};
   };
 
   constexpr ThriftRequestContextView() = default;
@@ -355,6 +407,46 @@ class ThriftRequestContextView {
     }
   }
 
+  const ClassicContext* FOLLY_NULLABLE classicContext() const noexcept
+    requires(Backend == ThriftContextBackend::Classic)
+  {
+    return context_.context;
+  }
+
+  const ClassicContext& requiredClassicContext() const noexcept
+    requires(Backend == ThriftContextBackend::Classic)
+  {
+    return *classicContext();
+  }
+
+  template <class Ext>
+  const typename Ext::RequestState* FOLLY_NULLABLE tryState() const noexcept {
+    using State = typename Ext::RequestState;
+    if constexpr (Backend == ThriftContextBackend::Classic) {
+      return classicContext()
+          ? &classicContext()->template getInternalFields<State>()
+          : nullptr;
+    } else {
+      return nativeInputs().extensionSlots
+          ? nativeInputs().extensionSlots->template find<State>(Ext::kId)
+          : nullptr;
+    }
+  }
+  template <class Ext>
+  typename Ext::RequestState* FOLLY_NULLABLE tryMutableState() const noexcept {
+    using State = typename Ext::RequestState;
+    if constexpr (Backend == ThriftContextBackend::Classic) {
+      return mutableClassicContext()
+          ? &mutableClassicContext()->template getInternalFields<State>()
+          : nullptr;
+    } else {
+      return nativeInputs().extensionSlots
+          ? nativeInputs().extensionSlots->template find<State>(Ext::kId)
+          : nullptr;
+    }
+  }
+
+  // Cpp2 request constness is shallow: its connection remains mutable.
   ThriftConnectionContextView<Backend> connectionContext() const {
     if constexpr (Backend == ThriftContextBackend::Classic) {
       return ThriftConnectionContextView<Backend>(
@@ -489,13 +581,6 @@ class ThriftRequestContextView {
       ClassicInputs,
       NativeInputs>;
 
-  const ClassicContext* classicContext() const noexcept {
-    if constexpr (Backend == ThriftContextBackend::Classic) {
-      return context_.context;
-    } else {
-      return nullptr;
-    }
-  }
   ClassicContext* mutableClassicContext() const noexcept {
     if constexpr (Backend == ThriftContextBackend::Classic) {
       return context_.mutableContext;

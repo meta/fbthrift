@@ -187,6 +187,10 @@ class ThriftConnectionView {
     return connContext_->getPeerIdentities();
   }
 
+  const ExtensionSlots* FOLLY_NULLABLE extensionSlots() const noexcept {
+    return connContext_ == nullptr ? nullptr : &connContext_->extensionSlots();
+  }
+
   // State published on this connection by another installed extension.
   template <class Ext>
   typename Ext::ConnState* tryState() const noexcept {

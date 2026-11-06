@@ -252,6 +252,10 @@ class ThriftRequestContext {
     extensionSlots_.install(layout);
   }
 
+  const ExtensionSlots& extensionSlots() const noexcept {
+    return extensionSlots_;
+  }
+
   // `Ext`'s per-request state, or null when `Ext` is not installed on this
   // server. An extension that declares no `RequestState` does not compile here,
   // so asking for a scope an extension does not have is caught at build time

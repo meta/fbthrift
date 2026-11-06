@@ -16,9 +16,55 @@
 
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/compatibility/context/ClassicThriftContextView.h>
 
+#include <memory>
+#include <type_traits>
+#include <utility>
+
 #include <gtest/gtest.h>
 
+#include <thrift/lib/cpp2/PluggableFunction.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/ExtensionSlots.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/ThriftRequestContext.h>
+
+namespace apache::thrift::fast_thrift::thrift::server::compatibility {
+namespace {
+
+struct ConnectionFields {
+  int value{0};
+  std::shared_ptr<int> lifetime;
+};
+
+struct RequestFields {
+  int value{0};
+  std::shared_ptr<int> lifetime;
+};
+
+struct TestExtension {
+  EXTENSION_ID(thrift_compatibility_context_view_test);
+  using ConnState = ConnectionFields;
+  using RequestState = RequestFields;
+};
+
+} // namespace
+} // namespace apache::thrift::fast_thrift::thrift::server::compatibility
+
+namespace apache::thrift::detail {
+
+THRIFT_PLUGGABLE_FUNC_SET(
+    ConnectionInternalFieldsT, createPerConnectionInternalFields) {
+  using State =
+      fast_thrift::thrift::server::compatibility::TestExtension::ConnState;
+  return ConnectionInternalFieldsT{std::in_place_type<State>};
+}
+
+THRIFT_PLUGGABLE_FUNC_SET(
+    RequestInternalFieldsT, createPerRequestInternalFields) {
+  using State =
+      fast_thrift::thrift::server::compatibility::TestExtension::RequestState;
+  return RequestInternalFieldsT{std::in_place_type<State>};
+}
+
+} // namespace apache::thrift::detail
 
 namespace apache::thrift::fast_thrift::thrift::server::compatibility {
 namespace {
@@ -41,6 +87,28 @@ void checkHeaderAccess(
   EXPECT_EQ(request.header(hashToken, traceKey), &headers.at("trace"));
   EXPECT_EQ(request.header("missing"), nullptr);
   EXPECT_TRUE(request.hasHeaders());
+}
+
+template <class View>
+void copyConnectionState(
+    const View& request,
+    RequestFields& requestFields,
+    ConnectionFields& connectionFields) {
+  static_assert(std::is_same_v<
+                decltype(request.template tryState<TestExtension>()),
+                const RequestFields*>);
+  auto* requestState = request.template tryMutableState<TestExtension>();
+  const auto connection = request.connectionContext();
+  static_assert(std::is_same_v<
+                decltype(connection.template tryState<TestExtension>()),
+                const ConnectionFields*>);
+  const auto* connectionState = connection.template tryState<TestExtension>();
+  ASSERT_EQ(requestState, &requestFields);
+  ASSERT_EQ(connectionState, &connectionFields);
+  EXPECT_EQ(request.template tryState<TestExtension>(), &requestFields);
+  EXPECT_EQ(
+      connection.template tryMutableState<TestExtension>(), &connectionFields);
+  requestState->value = connectionState->value;
 }
 
 TEST(ThriftContextViewTest, SharesHeaderLogicAcrossClassicAndNativeContexts) {
@@ -72,6 +140,92 @@ TEST(ThriftContextViewTest, SharesHeaderLogicAcrossClassicAndNativeContexts) {
   EXPECT_EQ(written.at("status"), "traced");
   EXPECT_FALSE(written.contains("request-only"));
   EXPECT_EQ(native.getHeaders().at("trace"), "trace-id");
+}
+
+TEST(ThriftContextViewTest, SharesStateLogicAcrossClassicAndNativeContexts) {
+  ExtensionLayoutBuilder builder;
+  builder.add(TestExtension::kId);
+  const auto layout = std::move(builder).build();
+  ConnectionFields nativeConnectionFields;
+  RequestFields nativeRequestFields;
+  boost::intrusive_ptr<ThriftConnContext> nativeConnection(
+      new ThriftConnContext);
+  nativeConnection->installExtensions(layout);
+  ThriftRequestContext native;
+  native.installExtensions(layout);
+  native.setConnectionContext(nativeConnection);
+  const ThriftRequestContextView nativeView(&native);
+
+  EXPECT_EQ(nativeView.tryState<TestExtension>(), nullptr);
+  EXPECT_EQ(nativeView.connectionContext().tryState<TestExtension>(), nullptr);
+  nativeConnection->setState<TestExtension>(&nativeConnectionFields);
+  native.setState<TestExtension>(&nativeRequestFields);
+
+  apache::thrift::Cpp2ConnContext classicConnection;
+  apache::thrift::Cpp2RequestContext classic(&classicConnection);
+  const ThriftRequestContextView classicView(&classic);
+  auto& classicConnectionFields =
+      classicConnection.getInternalFields<TestExtension::ConnState>();
+  auto& classicRequestFields =
+      classic.getInternalFields<TestExtension::RequestState>();
+  classicConnectionFields.value = 42;
+  nativeConnectionFields.value = 42;
+
+  copyConnectionState(
+      classicView, classicRequestFields, classicConnectionFields);
+  copyConnectionState(nativeView, nativeRequestFields, nativeConnectionFields);
+
+  EXPECT_EQ(classicRequestFields.value, 42);
+  EXPECT_EQ(nativeRequestFields.value, classicRequestFields.value);
+  native.setState<TestExtension>(nullptr);
+  EXPECT_EQ(nativeView.tryState<TestExtension>(), nullptr);
+  EXPECT_EQ(nativeView.tryMutableState<TestExtension>(), nullptr);
+}
+
+TEST(ThriftContextViewTest, StateLifetimeBelongsToTheContextOwner) {
+  ExtensionLayoutBuilder builder;
+  builder.addOwned<TestExtension::RequestState>(TestExtension::kId);
+  const auto layout = std::move(builder).build();
+  std::weak_ptr<int> classicConnectionLifetime;
+  std::weak_ptr<int> classicRequestLifetime;
+  std::weak_ptr<int> nativeRequestLifetime;
+  {
+    apache::thrift::Cpp2ConnContext classicConnection;
+    apache::thrift::Cpp2RequestContext classic(&classicConnection);
+    auto& connectionFields =
+        classicConnection.getInternalFields<TestExtension::ConnState>();
+    auto& requestFields =
+        classic.getInternalFields<TestExtension::RequestState>();
+    connectionFields.lifetime = std::make_shared<int>(1);
+    requestFields.lifetime = std::make_shared<int>(2);
+    classicConnectionLifetime = connectionFields.lifetime;
+    classicRequestLifetime = requestFields.lifetime;
+    const ThriftRequestContextView classicView(&classic);
+    const auto classicCopy = classicView;
+    EXPECT_EQ(classicCopy.tryState<TestExtension>(), &requestFields);
+    EXPECT_EQ(
+        classicCopy.connectionContext().tryState<TestExtension>(),
+        &connectionFields);
+    {
+      ThriftRequestContext native;
+      native.installExtensions(layout);
+      auto& nativeFields = native.emplaceState<TestExtension>();
+      nativeFields.lifetime = std::make_shared<int>(3);
+      nativeRequestLifetime = nativeFields.lifetime;
+      const ThriftRequestContextView nativeView(&native);
+      const auto nativeCopy = nativeView;
+
+      EXPECT_EQ(nativeCopy.tryState<TestExtension>(), &nativeFields);
+      EXPECT_EQ(classicConnectionLifetime.use_count(), 1);
+      EXPECT_EQ(classicRequestLifetime.use_count(), 1);
+      EXPECT_EQ(nativeRequestLifetime.use_count(), 1);
+    }
+    EXPECT_TRUE(nativeRequestLifetime.expired());
+    EXPECT_FALSE(classicConnectionLifetime.expired());
+    EXPECT_FALSE(classicRequestLifetime.expired());
+  }
+  EXPECT_TRUE(classicConnectionLifetime.expired());
+  EXPECT_TRUE(classicRequestLifetime.expired());
 }
 
 TEST(ThriftContextViewTest, ConnectionAccessUsesTheRequestsOwnConnection) {
@@ -154,10 +308,31 @@ TEST(
   EXPECT_FALSE(nativeView.hasHeaders());
 }
 
-TEST(ThriftContextViewTest, ConstClassicContextRejectsResponseHeaderMutation) {
+TEST(ThriftContextViewTest, ClassicViewsPreserveConstContextCapabilities) {
   apache::thrift::transport::THeader header;
-  apache::thrift::Cpp2RequestContext context(nullptr, &header);
+  apache::thrift::Cpp2ConnContext connection;
+  apache::thrift::Cpp2RequestContext context(&connection, &header);
   const ThriftRequestContextView view(std::as_const(context));
+  const ThriftConnectionContextView connectionView(std::as_const(connection));
+  auto& requestFields =
+      context.getInternalFields<TestExtension::RequestState>();
+  auto& connectionFields =
+      connection.getInternalFields<TestExtension::ConnState>();
+
+  EXPECT_EQ(view.tryState<TestExtension>(), &requestFields);
+  EXPECT_EQ(view.tryMutableState<TestExtension>(), nullptr);
+  EXPECT_EQ(connectionView.tryState<TestExtension>(), &connectionFields);
+  EXPECT_EQ(connectionView.tryMutableState<TestExtension>(), nullptr);
+
+  // Cpp2 constness is shallow: a const request exposes a mutable connection.
+  auto* mutableConnection =
+      view.connectionContext().tryMutableState<TestExtension>();
+  ASSERT_EQ(mutableConnection, &connectionFields);
+  EXPECT_EQ(
+      view.requiredConnectionContext().tryMutableState<TestExtension>(),
+      &connectionFields);
+  mutableConnection->value = 42;
+  EXPECT_EQ(connectionFields.value, 42);
 
   EXPECT_THROW(
       view.setResponseHeader("trace", std::string("id")), std::logic_error);
@@ -180,6 +355,16 @@ TEST(ThriftContextViewTest, EmptyViewsAllowInspectionAndRejectMutation) {
   EXPECT_TRUE(native.headers().empty());
   EXPECT_FALSE(classic.connectionContext());
   EXPECT_FALSE(native.connectionContext());
+  EXPECT_EQ(classic.tryState<TestExtension>(), nullptr);
+  EXPECT_EQ(classic.tryMutableState<TestExtension>(), nullptr);
+  EXPECT_EQ(classic.connectionContext().tryState<TestExtension>(), nullptr);
+  EXPECT_EQ(
+      classic.connectionContext().tryMutableState<TestExtension>(), nullptr);
+  EXPECT_EQ(native.tryState<TestExtension>(), nullptr);
+  EXPECT_EQ(native.tryMutableState<TestExtension>(), nullptr);
+  EXPECT_EQ(native.connectionContext().tryState<TestExtension>(), nullptr);
+  EXPECT_EQ(
+      native.connectionContext().tryMutableState<TestExtension>(), nullptr);
   EXPECT_THROW(
       classic.setResponseHeader("trace", std::string("id")), std::logic_error);
   EXPECT_THROW(

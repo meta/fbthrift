@@ -40,6 +40,7 @@ ThriftConnectionContextView<Backend>::ThriftConnectionContextView(
     return;
   }
   context_.valid = true;
+  context_.extensionSlots = context.extensionSlots();
   context_.peerAddress = &context.peerAddress();
   context_.transport = context.transport();
   context_.peerX509Certificate = context.peerX509Certificate();
@@ -65,6 +66,7 @@ ThriftRequestContextView<Backend>::ThriftRequestContextView(
   }
   context_.valid = true;
   context_.hasHeaderContainer = true;
+  context_.extensionSlots = &context->extensionSlots();
   context_.connection =
       ThriftConnectionContextView<ThriftContextBackend::Native>(
           context->getConnectionContext());
@@ -84,6 +86,7 @@ ThriftRequestContextView<Backend>::ThriftRequestContextView(
 {
   context_.valid = context.requestHeaders().has_value();
   context_.hasHeaderContainer = context_.valid;
+  context_.extensionSlots = context.extensionSlots();
   context_.connection =
       ThriftConnectionContextView<ThriftContextBackend::Native>(
           context.connection());
@@ -102,6 +105,7 @@ ThriftRequestContextView<Backend>::ThriftRequestContextView(
 {
   context_.valid = context.requestHeaders().has_value();
   context_.hasHeaderContainer = context_.valid;
+  context_.extensionSlots = context.extensionSlots();
   context_.connection =
       ThriftConnectionContextView<ThriftContextBackend::Native>(
           context.connection());
@@ -117,6 +121,7 @@ ThriftRequestContextView<Backend>::ThriftRequestContextView(
 {
   context_.valid = context.requestHeaders().has_value();
   context_.hasHeaderContainer = context_.valid;
+  context_.extensionSlots = context.extensionSlots();
   context_.connection =
       ThriftConnectionContextView<ThriftContextBackend::Native>(
           context.connection());

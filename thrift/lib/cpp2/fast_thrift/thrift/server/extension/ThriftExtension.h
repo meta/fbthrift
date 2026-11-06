@@ -229,6 +229,12 @@ class ThriftRequestView {
   // Rocket stream id correlating this request with its response.
   uint32_t streamId() const noexcept { return request_.streamId; }
 
+  const ExtensionSlots* FOLLY_NULLABLE extensionSlots() const noexcept {
+    return request_.requestContext == nullptr
+        ? nullptr
+        : &request_.requestContext->extensionSlots();
+  }
+
   // State published on this request by another installed extension.
   // `Ext`'s per-request state, or null for responses produced without a
   // per-request context, such as framework and connection-level responses.
@@ -387,6 +393,12 @@ class ThriftResponseView {
       return std::nullopt;
     }
     return std::cref(response_.requestContext->getHeaders());
+  }
+
+  const ExtensionSlots* FOLLY_NULLABLE extensionSlots() const noexcept {
+    return response_.requestContext == nullptr
+        ? nullptr
+        : &response_.requestContext->extensionSlots();
   }
 
   template <class Ext>
