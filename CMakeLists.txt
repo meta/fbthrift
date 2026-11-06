@@ -303,51 +303,6 @@ if (NOT Xxhash_FOUND)
   thrift_localize(thrift_xxhash Xxhash::xxhash)
 endif ()
 
-# libsodium ships no CMakeLists.txt, so ExternalProject runs its configure
-# script at build time, as folly does for OpenSSL.
-function (thrift_build_sodium)
-  fb_manifest_value(libsodium download url url)
-  fb_manifest_value(libsodium download sha256 sha)
-  if (WIN32)
-    message(
-      FATAL_ERROR
-        "libsodium is not installed, and building it is not supported on "
-        "Windows. Install libsodium and set sodium_DIR.")
-  endif ()
-  find_program(THRIFT_SODIUM_MAKE NAMES make)
-  if (NOT THRIFT_SODIUM_MAKE)
-    message(FATAL_ERROR "libsodium is not installed, and building it needs "
-                        "make. Install make or libsodium.")
-  endif ()
-  message(STATUS "libsodium not found, building ${url}")
-  set(prefix "${CMAKE_CURRENT_BINARY_DIR}/libsodium")
-  set(lib "${prefix}/lib/libsodium.a")
-  include(ExternalProject)
-  ExternalProject_Add(
-    libsodium
-    URL "${url}"
-    URL_HASH SHA256=${sha}
-    DOWNLOAD_EXTRACT_TIMESTAMP FALSE
-    BUILD_IN_SOURCE ON
-    CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=${prefix}
-                      --libdir=${prefix}/lib --disable-shared --with-pic
-    BUILD_COMMAND ${THRIFT_SODIUM_MAKE} -j
-    INSTALL_COMMAND ${THRIFT_SODIUM_MAKE} install
-    # Without this Ninja has no rule to produce the library.
-    BUILD_BYPRODUCTS "${lib}")
-  file(MAKE_DIRECTORY "${prefix}/include")
-  # The target fizz links. add_dependencies() orders compiling against the
-  # headers; BUILD_BYPRODUCTS only orders linking.
-  add_library(sodium STATIC IMPORTED GLOBAL)
-  set_target_properties(
-    sodium PROPERTIES IMPORTED_LOCATION "${lib}" INTERFACE_INCLUDE_DIRECTORIES
-                                                 "${prefix}/include")
-  add_dependencies(sodium libsodium)
-  # Makes fizz's find_package(Sodium) resolve to this instead of FindSodium.
-  file(WRITE "${CMAKE_FIND_PACKAGE_REDIRECTS_DIR}/sodium-config.cmake"
-       "set(sodium_INCLUDE_DIR \"${prefix}/include\")\n")
-endfunction ()
-
 set(thrift_wangle wangle::wangle)
 set(thrift_mvfst_server mvfst::mvfst_server_async_tran)
 if (THRIFT_RPC)
@@ -355,12 +310,6 @@ if (THRIFT_RPC)
   find_package(wangle CONFIG QUIET)
   find_package(mvfst CONFIG QUIET)
   if (NOT fizz_FOUND)
-    # Not find_package(Sodium): FindSodium defines the target fizz links even
-    # when it finds nothing.
-    find_library(THRIFT_SODIUM_LIBRARY sodium)
-    if (NOT THRIFT_SODIUM_LIBRARY)
-      thrift_build_sodium()
-    endif ()
     thrift_build_local(fizz)
     fb_fetch_from_manifest(fizz fizz)
   endif ()

@@ -86,8 +86,8 @@ zlib, [Zstd](https://github.com/facebook/zstd),
 [Fizz](https://github.com/facebookincubator/fizz),
 [Wangle](https://github.com/facebook/wangle),
 [mvfst](https://github.com/facebook/mvfst) and their dependencies, is used
-as-is if already on the system and fetched otherwise. On Windows, libsodium has
-to be installed too. Alternatively, install the system packages first:
+as-is if already on the system and fetched otherwise. Alternatively, install the
+system packages first:
 
     ./build/fbcode_builder/getdeps.py install-system-deps --recursive fbthrift
 

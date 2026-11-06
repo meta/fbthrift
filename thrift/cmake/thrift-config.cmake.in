@@ -49,8 +49,7 @@ function(_thrift_find_deps)
   set(rpc "@THRIFT_RPC@")
   if (rpc)
     # transport links Zstd and ZLIB. async links wangle, whose package config
-    # doesn't find fizz. fizz's looks up Sodium through FindSodium.cmake, which
-    # is installed next to this file.
+    # doesn't find fizz.
     list(APPEND module_deps Zstd ZLIB)
     list(APPEND config_deps fizz wangle)
   endif()
