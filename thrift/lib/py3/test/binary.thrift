@@ -30,7 +30,8 @@ const binary unicode_bytes = "Saint Barthélemy";
 typedef binary IOBuf
 @cpp.Type{name = "std::unique_ptr<folly::IOBuf>"}
 typedef binary IOBufPtr
-@cpp.Type{name = "folly::fbstring"}
+@python.Py3EnableCppAdapter
+@cpp.Adapter{name = "::apache::thrift::StringTypeAdapter<folly::fbstring>"}
 typedef binary fbstring_type
 @cpp.Adapter{name = "::test::BufferAdapter"}
 @python.Py3EnableCppAdapter
