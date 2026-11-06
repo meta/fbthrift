@@ -35,13 +35,6 @@
 #include <thrift/lib/cpp2/Thrift.h>
 #include <thrift/lib/cpp2/detail/Isset.h>
 
-// The comparison operators below are instantiated with the caller's operand
-// types; a signed/unsigned mismatch there is reported at this header, with the
-// flags of whichever translation unit or header unit compiled it.
-FOLLY_PUSH_WARNING
-FOLLY_GNU_DISABLE_WARNING("-Wsign-compare")
-FOLLY_MSVC_DISABLE_WARNING(4018)
-
 namespace apache::thrift {
 namespace detail {
 
@@ -2184,5 +2177,3 @@ class terse_field_ref {
 #undef THRIFT_FIELD_REF_CONST_ACCESS_DEPRECATED
 
 } // namespace apache::thrift
-
-FOLLY_POP_WARNING
