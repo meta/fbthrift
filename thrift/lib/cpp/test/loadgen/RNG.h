@@ -61,7 +61,7 @@ class RNG {
    * This value is used to pick seeds for new thread-local RNGs.
    * It won't affect thread-local RNGs that have already been created.
    *
-   * Note that that the seed value used for each thread-local RNG depends on
+   * Note that the seed value used for each thread-local RNG depends on
    * the order in which the thread-local RNGs are created.  You may not get
    * consistent results across runs if your threads are not initialized in a
    * consistent order.

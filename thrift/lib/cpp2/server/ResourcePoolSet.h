@@ -111,7 +111,7 @@ class ResourcePoolSet {
   // frequently.
   std::size_t workerCount() const;
 
-  // Returns the number of of idle threads in this ResourcePoolSet.
+  // Returns the number of idle threads in this ResourcePoolSet.
   // This is inteded for reporting statistics and should not be called
   // frequently.
   std::size_t idleWorkerCount() const;

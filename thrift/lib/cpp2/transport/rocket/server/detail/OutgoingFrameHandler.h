@@ -94,7 +94,7 @@ struct WriteBatch {
 
 /**
  * OutgoingFrameHandler receives Frames in batches in the handle method. It then
- * schedules a a job on the event loop to process the frames up to the batch
+ * schedules a job on the event loop to process the frames up to the batch
  * size. If it hits the current batch size it'll process them immediately rather
  * than waiting, and rescheduling if there's frames left. This class is meant to
  * only run on the event base threads and is *NOT* thread-safe. It's shared

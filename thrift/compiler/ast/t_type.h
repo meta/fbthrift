@@ -337,7 +337,7 @@ class t_type_ref final {
    * resolution will be attempted from).
    * `nullptr` if this type ref is empty, or already resolved.
    * E.g. if a node in the program `foo` references a currently unresolved type
-   * `bar.Baz`, this will be a a pointer to the program `foo` (NOT `bar`).
+   * `bar.Baz`, this will be a pointer to the program `foo` (NOT `bar`).
    */
   const t_program* unresolved_program_ = nullptr;
   std::string unresolved_name_;

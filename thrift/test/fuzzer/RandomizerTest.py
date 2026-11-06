@@ -109,7 +109,7 @@ class TestEnumRandomizer(unittest.TestCase, TestRandomizer):
 class TestIntRandomizer(TestRandomizer):
     @classmethod
     def _one_bit_flipped(cls, a, b):
-        """Return true if a and b differ at at most one bit position"""
+        """Return true if a and b differ at most one bit position"""
         diff = a ^ b  # Bits set to 1 where a and b differ
         # If diff has only one `1` bit, subtracting one will clear that bit
         # Otherwise, the most significant 1 will not be cleared

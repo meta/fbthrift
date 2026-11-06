@@ -34,7 +34,7 @@ class schematizer {
   enum class value_id : int64_t {};
 
   struct options {
-    bool double_writes : 1; // Legacy copies of data for backward compatiblity.
+    bool double_writes : 1; // Legacy copies of data for backward compatibility.
 
     bool include_annotations : 1;
     bool include_docs : 1;

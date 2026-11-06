@@ -146,7 +146,7 @@ RocketServerConnection::RocketServerConnection(
     }
   }
 
-  // To prevent a C++ intialization error we need to initialize the the observer
+  // To prevent a C++ initialization error we need to initialize the observer
   // container after the vtable is fully created
   this->initializeObserverContainer();
 }

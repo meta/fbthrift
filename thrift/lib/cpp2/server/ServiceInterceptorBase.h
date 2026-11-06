@@ -342,7 +342,7 @@ class ServiceInterceptorBase {
 
   /**
    * This methods is called by ThriftServer to set the module name for the
-   * interceptor. This method is expected to be called prior to to the
+   * interceptor. This method is expected to be called prior to the
    * the interceptor methods being executed on any request, as it performs
    * various secondary intitialization requiring module name to be known.
    */

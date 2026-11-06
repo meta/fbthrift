@@ -25,7 +25,7 @@ namespace apache::thrift::server {
 
 /**
  * This is the interface that Service Interceptor, Service handlers, and
- * decorators will have access to to read and write from decorator data. put()
+ * decorators will have access to read and write from decorator data. put()
  * is only usable from a non-const interface, whereas get() is usable from
  * both const and non-const interfaces.
  */

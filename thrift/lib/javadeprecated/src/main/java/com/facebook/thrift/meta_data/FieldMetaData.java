@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * This class is used to store meta data about thrift fields. Every field in a a struct should have
+ * This class is used to store meta data about thrift fields. Every field in a struct should have
  * a corresponding instance of this class describing it.
  */
 @SuppressWarnings("serial")

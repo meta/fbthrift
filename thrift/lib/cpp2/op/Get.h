@@ -330,7 +330,7 @@ FOLLY_ALWAYS_INLINE constexpr void for_each_ordinal(F&& f) {
       std::forward<F>(f), std::make_integer_sequence<size_t, num_fields<T>>{});
 }
 
-/// Calls the given function with with ordinal<1> to ordinal<N>, returing the
+/// Calls the given function with ordinal<1> to ordinal<N>, returning the
 /// first 'true' result produced.
 template <
     typename T,
@@ -391,7 +391,7 @@ FOLLY_ALWAYS_INLINE constexpr void for_each_field_id_ascending(F&& f) {
       std::forward<F>(f), std::make_integer_sequence<size_t, num_fields<T>>{});
 }
 
-/// Calls the given function with with each field_id<{id}>, returning the
+/// Calls the given function with each field_id<{id}>, returning the
 /// first 'true' result produced.
 template <typename T, typename F>
 decltype(auto) find_by_field_id(F&& f) {

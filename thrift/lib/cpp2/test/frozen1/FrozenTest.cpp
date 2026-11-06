@@ -80,7 +80,7 @@ TEST(Frozen, Basic) {
     auto* freezeResult = freeze(team, buffer);
     const byte* const frozenLocation =
         static_cast<const byte*>(static_cast<const void*>(freezeResult));
-    // verify that freeze didn't yeild a different address.
+    // verify that freeze didn't yield a different address.
     EXPECT_EQ(freezeLocation - &bytes[0], frozenLocation - &bytes[0]);
 
     std::vector<byte> copy(bytes);

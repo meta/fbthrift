@@ -105,7 +105,7 @@ size_t frozenSize(const T& v) {
 
 /**
  * Returns an upper bound estimate of the number of bytes required to freeze
- * this object with a given layout. Actual bytes required will depend on on
+ * this object with a given layout. Actual bytes required will depend on
  * the alignment of the freeze buffer.
  */
 template <class T>

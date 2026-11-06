@@ -74,7 +74,7 @@ possible native types can therefore be categorized as shown below.:
 
 #### Default Target Types
 
-Default target types are are the ones used by default by the Thrift compiler for
+Default target types are the ones used by default by the Thrift compiler for
 the corresponding target generated language. They are obviously supported by
 Thrift, and are the ones used unless the user explicitly specifies otherwise
 (typically, through annotations).

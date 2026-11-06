@@ -23,7 +23,7 @@ namespace apache::thrift {
 
 /**
  * Service Interceptors are uniquely identified by
- * {moduleName}.{interceptorName} at runtime. Module Name is the the name of
+ * {moduleName}.{interceptorName} at runtime. Module Name is the name of
  * module that installed the interceptor, and Interceptor Name is the result
  * of calling the getName() method on the interceptor.
  */

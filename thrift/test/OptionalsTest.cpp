@@ -154,7 +154,7 @@ TEST(OptionalsTest, EqualityTests) {
   // for each of the fields:
   // * set a required field, expect equal.
   // * set an optional field on one; expect not equal.
-  // * the the optional field on the other one; equal again.
+  // * the optional field on the other one; equal again.
 
   // both completely empty
   EXPECT_EQ(obj1, obj2);

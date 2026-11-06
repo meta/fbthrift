@@ -62,7 +62,7 @@ TEST(Foo, RoundTrip) {
   EXPECT_EQ(CompactSerializer::deserialize<Foo>(s), foo);
   EXPECT_EQ(CompactSerializer::deserialize<Foo2>(s2), foo2);
 
-  // Test backward/forward compatiblity
+  // Test backward/forward compatibility
   EXPECT_EQ(CompactSerializer::deserialize<Foo>(s2), foo);
   EXPECT_EQ(CompactSerializer::deserialize<Foo2>(s), foo2);
 }

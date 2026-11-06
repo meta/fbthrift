@@ -188,7 +188,7 @@ CompressionAlgorithmSelector::toCodecTypeAndLevel(
       // implementation details, folly segmented these negative ZSTD levels into
       // a "ZSTD_FAST" codec type where positive levels are translated to
       // negative levels for the underlying base codec. This magic "7" (-7 for
-      // the underlying base codec) was determined to to be sane by an internal
+      // the underlying base codec) was determined to be sane by an internal
       // customer.
       return {
           folly::compression::CodecType::ZSTD_FAST,

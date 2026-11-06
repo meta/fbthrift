@@ -239,7 +239,7 @@ enum RpcPriority {
  * In practice, this means that this type is safe to use as a map key type or as
  * a set element type, but any change to its schema (including changes that are
  * "typically" considered safe, such as adding a new field) MAY break backwards
- * compatiblity.
+ * compatibility.
  *
  * Note that the tooling and environment in which Thrift IDL definitions live
  * (such as code repositories) may not be explicitly preventing such changes:

@@ -24,7 +24,7 @@ void ensure_fields(MaskRef ref, type::AnyStruct& t) {
         "Cannot ensure Any field (schemaless ensure is unsafe)");
   }
 
-  // backwards compatiblity with field mask
+  // backwards compatibility with field mask
   return ensure_fields<type::AnyStruct>(ref, t);
 }
 

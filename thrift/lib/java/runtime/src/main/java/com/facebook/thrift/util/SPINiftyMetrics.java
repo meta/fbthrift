@@ -22,7 +22,7 @@ import io.airlift.stats.ExponentialDecay;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-/** NiftyMetrics to support backward compatibile in SPI while refactoring to Netty 4 */
+/** NiftyMetrics to support backward compatible in SPI while refactoring to Netty 4 */
 @Deprecated
 public class SPINiftyMetrics implements NiftyMetrics {
   private final AtomicInteger channelCount;

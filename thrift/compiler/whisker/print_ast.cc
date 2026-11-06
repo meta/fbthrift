@@ -46,7 +46,7 @@ std::string to_string(
   resolved_location end = src_manager.resolve_location(loc.end);
   // Format of a source location is:
   //   line:<line>:<column>
-  // If begin and end are on the same line, the the end source location is:
+  // If begin and end are on the same line, the end source location is:
   //   col:<column>
   return fmt::format(
       "<line:{}:{}, {}>",

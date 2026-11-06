@@ -1519,7 +1519,7 @@ Use [`{{#let}}`](#let-statements), [`{{#import}}](#import-statements), `as` capt
 
 ### Derived Evaluation Context
 
-Whisker renders `{{#let partial}}` blocks within a new evaluation context *derived* from the the call site. This context starts with an empty stack but retains access to the same global scope.
+Whisker renders `{{#let partial}}` blocks within a new evaluation context *derived* from the call site. This context starts with an empty stack but retains access to the same global scope.
 
 ## Standalone Tags
 

@@ -113,7 +113,7 @@ bool THttpClient::parseStatusLine(char* status) {
   // code. Skip over it.
   ++code;
 
-  // RFC 2616 requires exactly 1 space between the the status code and reason
+  // RFC 2616 requires exactly 1 space between the status code and reason
   // phrase.
   const char* endCode = strchr(code, ' ');
   if (endCode == nullptr) {

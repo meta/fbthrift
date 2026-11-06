@@ -169,7 +169,7 @@ struct NewType {}
  *
  * "Codegen" errors or bugs resulting from the use of standard types in valid
  * positions in `@rust.Type` annotations should be considered the responsibility
- * of the the Rust Thrift maintainers to address. Less "formal" support should
+ * of the Rust Thrift maintainers to address. Less "formal" support should
  * be expected from the Rust Thrift maintainers when nonstandard types are
  * involved.
  *

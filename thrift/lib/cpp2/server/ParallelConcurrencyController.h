@@ -129,7 +129,7 @@ class ParallelConcurrencyController : public ParallelConcurrencyControllerBase {
   /**
    *
    * @param requestExecutor: If set to RequestExecutor::Serial, the requests
-   * will be executed using a a folly::SerialExecutor. Consider using this if
+   * will be executed using a folly::SerialExecutor. Consider using this if
    * your code uses coroutines.
    */
   ParallelConcurrencyController(

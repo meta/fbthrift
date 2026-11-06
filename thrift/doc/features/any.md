@@ -58,7 +58,7 @@ The `type` field within the `AnyStruct` provides the `name` of the type and any 
 The Type Registry is a crucial component in the deserialization process of user-defined types stored in `AnyStruct`. It maintains a mapping from the universal name (stored in the `type` field) to its native generated type. This mapping allows the deserialization process to correctly interpret the data stored in AnyStruct and convert it back into its original user-defined type. The Thrift generated structs, which have a universal name provided, are registered in the TypeRegistry as part of the initialization code.
 
 :::note
-Type Registry is available in C++, Hack, Python and Java. In C++, you need to add a compiler option `any` in order to generate intialization code to register Thrift types.
+Type Registry is available in C++, Hack, Python and Java. In C++, you need to add a compiler option `any` in order to generate initialization code to register Thrift types.
 :::
 
 ### Protocol

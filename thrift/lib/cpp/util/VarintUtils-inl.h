@@ -346,7 +346,7 @@ inline size_t readContiguousVarintMediumSlowU64BMI2(
   size_t intBytes = (maskShift >> 3) + 1;
 
   uint64_t mask = (1ULL << maskShift) - 1;
-  // You might think it would make more sense to to the pext first and mask
+  // You might think it would make more sense to do the pext first and mask
   // afterwards (avoiding having two pexts in a single dependency chain at 3
   // cycles / pop); this seems not to be borne out in microbenchmarks. The
   // mask you need ends up being more complicated to compute.

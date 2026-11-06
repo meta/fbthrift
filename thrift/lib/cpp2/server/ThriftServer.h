@@ -3375,7 +3375,7 @@ class ThriftServer : public apache::thrift::concurrency::Runnable,
    * then we schedule a task to dump the server's state to disk for
    * investigation.
    *
-   * The implementor of the dumping logic should provide the the task as well
+   * The implementor of the dumping logic should provide the task as well
    * as an appropriate timeout -- we do not want to indefinitely block shutdown
    * in case the task deadlocks.
    */

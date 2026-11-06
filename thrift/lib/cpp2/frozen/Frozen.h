@@ -224,7 +224,7 @@ struct LayoutBase {
   explicit LayoutBase(std::type_index _type) : type(std::move(_type)) {}
 
   /**
-   * Internal: Updates the size of this structure according the the result of a
+   * Internal: Updates the size of this structure according to the result of a
    * layout attempt. Returns true iff another pass of layout will be needed.
    */
   bool resize(FieldPosition after, bool inlined);

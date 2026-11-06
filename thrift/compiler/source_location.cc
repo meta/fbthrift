@@ -295,7 +295,7 @@ source_manager::path_or_error source_manager::find_include_file(
     return source_manager::path_or_error{std::in_place_index<0>, itr->second};
   }
 
-  // Convenience callback to use when the path the the include has been
+  // Convenience callback to use when the path the include has been
   // succcessfully resolved: updates the set of known paths and returns a
   // successful resutl with the resolved path.
   auto new_found_include = [&](std::string path) {

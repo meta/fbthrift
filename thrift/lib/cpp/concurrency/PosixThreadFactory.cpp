@@ -62,7 +62,7 @@ PthreadThread::PthreadThread(
 }
 
 PthreadThread::~PthreadThread() {
-  /* Nothing references this thread, if is is not detached, do a join
+  /* Nothing references this thread, if it is not detached, do a join
      now, otherwise the thread-id and, possibly, other resources will
      be leaked. */
   if (!detached_) {

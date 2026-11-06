@@ -42,7 +42,7 @@
  * be written to disk, mmap'ed back, and used in-place without any
  * deserialization.
  *
- * These types require that the the structure does not change between freeze and
+ * These types require that the structure does not change between freeze and
  * thaw. Any versioning mismatches will lead to undefined behavior.
  *
  * To enable the necessary code generation for these types, enable the 'frozen'

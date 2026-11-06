@@ -56,7 +56,7 @@ DEFINE_string(type, "", "The type to profile.");
 DEFINE_string(
     protocol,
     "Binary",
-    "The protocol used to to serialize/deserialize Protocol.Object/Value with");
+    "The protocol used to serialize/deserialize Protocol.Object/Value with");
 DEFINE_string(impl, "protocol", "The implementation for Object");
 
 template <
