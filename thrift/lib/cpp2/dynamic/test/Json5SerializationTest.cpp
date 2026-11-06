@@ -475,13 +475,17 @@ TEST(Json5SerializationTest, SetAndMapOrderDoesNotDependOnInsertionOrder) {
   EXPECT_EQ(toJson(descendingMap), mapJson);
 }
 
-class Json5SharedTest : public testing::TestWithParam<shared::TestCase> {};
+std::vector<shared::TestCase> testCasesWithExample() {
+  auto cases = shared::json5_test_constants::testCases();
+  std::erase_if(cases, [](const auto& tc) { return !tc.example(); });
+  return cases;
+}
 
-TEST_P(Json5SharedTest, Writes) {
+class Json5SharedTest : public testing::TestWithParam<shared::TestCase> {};
+class Json5SharedWriteTest : public Json5SharedTest {};
+
+TEST_P(Json5SharedWriteTest, Writes) {
   const auto& tc = GetParam();
-  if (!tc.example()) {
-    GTEST_SKIP();
-  }
   const auto value = toDynamic(*tc.example());
   EXPECT_EQ(toJson(value, basicJsonOptions()), *tc.json());
   EXPECT_EQ(toJson(value), *tc.json5());
@@ -508,6 +512,12 @@ INSTANTIATE_TEST_SUITE_P(
     Shared,
     Json5SharedTest,
     testing::ValuesIn(shared::json5_test_constants::testCases()),
+    [](const auto& info) { return *info.param.name(); });
+
+INSTANTIATE_TEST_SUITE_P(
+    Shared,
+    Json5SharedWriteTest,
+    testing::ValuesIn(testCasesWithExample()),
     [](const auto& info) { return *info.param.name(); });
 
 class Json5SharedNegativeTest

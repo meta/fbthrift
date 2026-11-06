@@ -59,11 +59,18 @@ std::string writeExample(
   return queue.moveAsValue().toString();
 }
 
+std::vector<TestCase> testCasesWithExample() {
+  auto cases = testCases();
+  std::erase_if(cases, [](const auto& tc) { return !tc.example(); });
+  return cases;
+}
+
 } // namespace
 
 // ── Struct tests driven by thrift test data ─────────────────────────────────
 
 class Json5CustomProtocolTest : public ::testing::TestWithParam<TestCase> {};
+class Json5CustomProtocolEncodeTest : public Json5CustomProtocolTest {};
 
 TEST_P(Json5CustomProtocolTest, Decode) {
   const auto& tc = GetParam();
@@ -86,11 +93,8 @@ TEST_P(Json5CustomProtocolTest, Decode) {
   }
 }
 
-TEST_P(Json5CustomProtocolTest, Encode) {
+TEST_P(Json5CustomProtocolEncodeTest, Encode) {
   const auto& tc = GetParam();
-  if (!tc.example()) {
-    GTEST_SKIP();
-  }
   auto json5Options = kJson5Options;
   json5Options.indentWidth = 2;
   EXPECT_EQ(
@@ -102,6 +106,12 @@ INSTANTIATE_TEST_SUITE_P(
     Shared,
     Json5CustomProtocolTest,
     ::testing::ValuesIn(testCases()),
+    [](const auto& info) { return *info.param.name(); });
+
+INSTANTIATE_TEST_SUITE_P(
+    Shared,
+    Json5CustomProtocolEncodeTest,
+    ::testing::ValuesIn(testCasesWithExample()),
     [](const auto& info) { return *info.param.name(); });
 
 // ── Tests for mapPrimitiveKeysAsMemberNames option
