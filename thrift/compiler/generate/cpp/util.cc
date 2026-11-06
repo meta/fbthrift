@@ -293,10 +293,6 @@ std::string_view get_type(const t_type* type) {
   return value_or_empty(cpp_name_resolver::find_type(*type));
 }
 
-namespace {
-
-// The C++ type that `cpp.type` or `@cpp.Type{name}` gives a binary type, or
-// empty.
 std::string_view binary_cpp_type(const t_type* type) {
   auto const* resolved_typedef = type->get_true_type();
   if (resolved_typedef == nullptr || !resolved_typedef->is_binary()) {
@@ -317,8 +313,6 @@ std::string_view binary_cpp_type(const t_type* type) {
   return type_str;
 }
 
-// Like `binary_cpp_type(field.type())`, but a field-level `@cpp.Type{name}`
-// comes first.
 std::string_view binary_cpp_type(const t_field& field) {
   if (auto* annot = field.find_structured_annotation_or_null(kCppTypeUri)) {
     if (auto* name =
@@ -330,6 +324,8 @@ std::string_view binary_cpp_type(const t_field& field) {
   }
   return binary_cpp_type(&field.type().deref());
 }
+
+namespace {
 
 bool is_iobuf_unique_ptr(std::string_view type_str) {
   return contains(type_str, "std::unique_ptr") &&

@@ -34,6 +34,7 @@
 #include <thrift/compiler/ast/t_union.h>
 #include <thrift/compiler/ast/uri.h>
 #include <thrift/compiler/generate/common.h>
+#include <thrift/compiler/generate/cpp/util.h>
 #include <thrift/compiler/generate/python/util.h>
 #include <thrift/compiler/generate/t_whisker_generator.h>
 #include <thrift/compiler/generate/templates.h>
@@ -795,7 +796,7 @@ class t_mstch_python_prototypes_generator : public t_whisker_generator {
     // Check if the field's type is IOBuf, considering both type-level and
     // field-level @cpp.Type annotations.
     def.property("is_type_iobuf?", [](const t_field& self) {
-      return is_type_iobuf(self);
+      return is_type_iobuf(cpp2::binary_cpp_type(self));
     });
 
     def.property("py_name", [this](const t_field& self) {
@@ -1246,7 +1247,7 @@ class t_mstch_python_prototypes_generator : public t_whisker_generator {
       return true_type.is_any_int() || true_type.is_byte();
     });
     def.property("iobuf?", [](const t_type& self) {
-      return self.get_true_type()->is_binary() && is_type_iobuf(&self);
+      return is_type_iobuf(cpp2::binary_cpp_type(&self));
     });
     def.property("contains_patch?", [](const t_type& self) {
       return type_contains_patch(self.get_true_type());

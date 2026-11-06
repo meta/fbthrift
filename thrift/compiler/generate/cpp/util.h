@@ -88,6 +88,14 @@ inline std::string get_service_qualified_name(const t_service& service) {
 // TODO(afuller): Replace with type_resolver::get_type_name.
 std::string_view get_type(const t_type* type);
 
+// The C++ type that `cpp.type` or `@cpp.Type{name}` gives a binary type, or
+// empty.
+std::string_view binary_cpp_type(const t_type* type);
+
+// Like `binary_cpp_type(field.type())`, but a field-level `@cpp.Type{name}`
+// comes first.
+std::string_view binary_cpp_type(const t_field& field);
+
 /**
  * Check if the cpp_type names folly::IOBuf, by value or through a pointer, on
  * a binary type.

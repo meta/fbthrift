@@ -19,45 +19,11 @@
 #include <thrift/common/detail/string.h>
 #include <thrift/compiler/ast/ast_visitor.h>
 #include <thrift/compiler/ast/uri.h>
-#include <thrift/compiler/generate/cpp/util.h>
 
 namespace apache::thrift::compiler {
 
 bool is_type_iobuf(std::string_view name) {
   return name == "folly::IOBuf" || name == "std::unique_ptr<folly::IOBuf>";
-}
-
-bool is_type_iobuf(const t_type* type) {
-  // Check unstructured annotations on the type itself.
-  if (is_type_iobuf(cpp2::get_type(type))) {
-    return true;
-  }
-  // Walk typedef chain for structured @cpp.Type{name} annotation, since
-  // without annotation lowering the annotation stays on the typedef
-  // rather than being propagated to the true type.
-  if (auto* annot = t_typedef::get_first_structured_annotation_or_null(
-          type, kCppTypeUri)) {
-    if (auto* name =
-            annot->get_value_from_structured_annotation_or_null("name")) {
-      return is_type_iobuf(name->get_string());
-    }
-  }
-  return false;
-}
-
-bool is_type_iobuf(const t_field& field) {
-  if (!field.type()->get_true_type()->is_binary()) {
-    return false;
-  }
-  // Check field-level @cpp.Type annotation.
-  if (auto* annot = field.find_structured_annotation_or_null(kCppTypeUri)) {
-    if (auto* name =
-            annot->get_value_from_structured_annotation_or_null("name")) {
-      return is_type_iobuf(name->get_string());
-    }
-  }
-  // Fall back to type-level check.
-  return is_type_iobuf(&field.type().deref());
 }
 
 bool is_patch_program(const t_program* prog) {

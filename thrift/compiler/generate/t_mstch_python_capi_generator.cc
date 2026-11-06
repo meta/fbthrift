@@ -484,8 +484,9 @@ class t_mstch_python_capi_generator : public t_whisker_generator {
     def.property("marshal_type", [](const t_field& self) {
       return format_marshal_type(self);
     });
-    def.property(
-        "iobuf?", [](const t_field& self) { return is_type_iobuf(self); });
+    def.property("iobuf?", [](const t_field& self) {
+      return is_type_iobuf(cpp2::binary_cpp_type(self));
+    });
 
     return std::move(def).make();
   }
