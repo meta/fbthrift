@@ -40,9 +40,8 @@ def burn_in_executor(us):
 
 
 class LoadHandler(LoadTest.Iface):
-    def __init__(self, loop=None):
+    def __init__(self):
         super().__init__()
-        self.loop = loop or asyncio.get_event_loop()
         self.pool = ProcessPoolExecutor()
         pickle.DEFAULT_PROTOCOL = pickle.HIGHEST_PROTOCOL
 
@@ -65,11 +64,13 @@ class LoadHandler(LoadTest.Iface):
 
     # pyrefly: ignore [bad-param-name-override]
     async def burn(self, us):
-        return await self.loop.run_in_executor(self.pool, burn_in_executor, us)
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(self.pool, burn_in_executor, us)
 
     # pyrefly: ignore [bad-param-name-override]
     async def onewayBurn(self, us):
-        return await self.loop.run_in_executor(self.pool, burn_in_executor, us)
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(self.pool, burn_in_executor, us)
 
     # pyrefly: ignore [bad-param-name-override]
     def badSleep(self, us):
