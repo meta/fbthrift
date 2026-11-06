@@ -33,6 +33,7 @@
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/Messages.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/ThriftRequestContext.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/extension/ThriftConnectionExtension.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/util/PayloadUtils.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/util/ResponsePayloads.h>
 #include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
 
@@ -128,6 +129,8 @@ class RequestVerdict {
  * base pointer.
  */
 class ThriftRequestView {
+  friend class server::compatibility::detail::NativeContextAccess;
+
  public:
   explicit ThriftRequestView(const ThriftServerRequestMessage& request) noexcept
       : request_(request) {}
@@ -273,6 +276,8 @@ class ThriftRequestView {
  * the duration of the callback.
  */
 class ThriftRequestMutator final : public ThriftRequestView {
+  friend class server::compatibility::detail::NativeContextAccess;
+
  public:
   explicit ThriftRequestMutator(ThriftServerRequestMessage& request) noexcept
       : ThriftRequestView(request), request_(request) {}
@@ -318,6 +323,8 @@ class ThriftRequestMutator final : public ThriftRequestView {
  * destructor rationale.
  */
 class ThriftResponseView {
+  friend class server::compatibility::detail::NativeContextAccess;
+
  public:
   explicit ThriftResponseView(
       const ThriftServerResponseMessage& response) noexcept
@@ -328,6 +335,10 @@ class ThriftResponseView {
   ThriftResponseView(ThriftResponseView&&) = delete;
   ThriftResponseView& operator=(ThriftResponseView&&) = delete;
   ~ThriftResponseView() = default;
+
+  bool isRequestRetiring() const noexcept {
+    return isRequestRetiringResponse(response_.payload);
+  }
 
   // True if this response carries a terminal error frame rather than a normal
   // reply.

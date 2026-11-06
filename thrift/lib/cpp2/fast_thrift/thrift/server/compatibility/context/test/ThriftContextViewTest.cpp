@@ -69,12 +69,35 @@ THRIFT_PLUGGABLE_FUNC_SET(
 namespace apache::thrift::fast_thrift::thrift::server::compatibility {
 namespace {
 
+class HeaderSwitchingRequestContext
+    : public apache::thrift::Cpp2RequestContext {
+ public:
+  using apache::thrift::Cpp2RequestContext::Cpp2RequestContext;
+
+  void setHeaderContainer(apache::thrift::transport::THeader* header) {
+    header_ = header;
+  }
+};
+
 template <class View>
 void stampTraceResponse(const View& request) {
   if (const auto* trace = request.header("trace")) {
     request.setResponseHeader("trace", *trace);
     request.setResponseHeader("status", std::string("traced"));
   }
+}
+
+template <ThriftContextBackend Backend>
+void stampTraceResponse(const ThriftRequestHeaderView<Backend>& header) {
+  if (!header) {
+    return;
+  }
+  const auto trace = header.headers().find("trace");
+  if (trace == header.headers().end()) {
+    return;
+  }
+  header.setResponseHeader("trace", trace->second);
+  header.setResponseHeader("status", std::string("traced"));
 }
 
 template <class View>
@@ -112,11 +135,14 @@ void copyConnectionState(
 }
 
 TEST(ThriftContextViewTest, SharesHeaderLogicAcrossClassicAndNativeContexts) {
+  const ThriftRequestHeaderView<ThriftContextBackend::Classic>::HeaderMap
+      replacementHeaders{
+          {"trace", "captured-trace-id"}, {"request-only", "inbound"}};
   apache::thrift::transport::THeader header;
   header.setReadHeader("trace", "trace-id");
   header.setReadHeader("request-only", "inbound");
-  apache::thrift::Cpp2RequestContext classic(
-      nullptr, &header, "Service.method");
+  apache::thrift::transport::THeader reboundHeader;
+  HeaderSwitchingRequestContext classic(nullptr, &header, "Service.method");
 
   ThriftRequestContext native;
   native.setMethodName("method");
@@ -127,6 +153,8 @@ TEST(ThriftContextViewTest, SharesHeaderLogicAcrossClassicAndNativeContexts) {
 
   const ThriftRequestContextView classicView(&classic);
   const ThriftRequestContextView nativeView(&native);
+  const auto classicHeader = classicView.headerContainer();
+  const auto nativeHeader = nativeView.headerContainer();
 
   EXPECT_EQ(classicView.methodName(), nativeView.methodName());
   checkHeaderAccess(classicView, header.getHeaders());
@@ -140,6 +168,36 @@ TEST(ThriftContextViewTest, SharesHeaderLogicAcrossClassicAndNativeContexts) {
   EXPECT_EQ(written.at("status"), "traced");
   EXPECT_FALSE(written.contains("request-only"));
   EXPECT_EQ(native.getHeaders().at("trace"), "trace-id");
+
+  header.setReadHeader("trace", "updated-trace-id");
+  native.setHeader("trace", "updated-trace-id");
+  checkHeaderAccess(classicView, header.getHeaders());
+  checkHeaderAccess(nativeView, native.getHeaders());
+  stampTraceResponse(classicView);
+  stampTraceResponse(nativeView);
+  EXPECT_EQ(native.extractResponseHeaders(), header.getWriteHeaders());
+
+  header.setReadHeadersView(replacementHeaders);
+  native.setHeaders(replacementHeaders);
+  reboundHeader.setReadHeader("trace", "rebound-id");
+  classic.setHeaderContainer(&reboundHeader);
+  EXPECT_EQ(*classicView.header("trace"), "rebound-id");
+  EXPECT_EQ(&classicHeader.headers(), &replacementHeaders);
+  stampTraceResponse(classicHeader);
+  stampTraceResponse(nativeHeader);
+  const auto captured = native.extractResponseHeaders();
+  EXPECT_EQ(captured, header.getWriteHeaders());
+  EXPECT_EQ(captured.at("trace"), "captured-trace-id");
+  EXPECT_EQ(captured.at("status"), "traced");
+  EXPECT_FALSE(captured.contains("request-only"));
+  EXPECT_TRUE(reboundHeader.getWriteHeaders().empty());
+  const auto rebound = classicView.headerContainer();
+  stampTraceResponse(rebound);
+  EXPECT_EQ(reboundHeader.getWriteHeaders().at("trace"), "rebound-id");
+
+  native.setMethodMetadata(nullptr);
+  native.setMethodName("updated-method");
+  EXPECT_EQ(nativeView.methodName(), "updated-method");
 }
 
 TEST(ThriftContextViewTest, SharesStateLogicAcrossClassicAndNativeContexts) {
@@ -262,12 +320,12 @@ TEST(ThriftContextViewTest, ConnectionAccessUsesTheRequestsOwnConnection) {
       .setClientMetadata(metadata);
   nativeConnection->setClientMetadata(metadata);
   const auto classicMetadata = classicView.connectionContext().clientMetadata();
-  const auto* nativeMetadata =
-      ThriftRequestContextView(&native).connectionContext().clientMetadata();
+  const auto* nativeMetadata = nativeView.connectionContext().clientMetadata();
   ASSERT_TRUE(classicMetadata);
   ASSERT_NE(nativeMetadata, nullptr);
   EXPECT_FALSE(classicMetadata->getHostname());
   EXPECT_FALSE(nativeMetadata->hostname().has_value());
+  EXPECT_FALSE(nativeView.connectionContext().clientHostname());
 
   metadata.hostname() = "client-host";
   apache::thrift::detail::Cpp2ConnContextInternalAPI(classicConnection)
@@ -277,11 +335,25 @@ TEST(ThriftContextViewTest, ConnectionAccessUsesTheRequestsOwnConnection) {
       classicView.connectionContext().clientMetadata()->getHostname(),
       "client-host");
   EXPECT_EQ(
-      ThriftRequestContextView(&native)
-          .connectionContext()
-          .clientMetadata()
-          ->hostname(),
+      nativeView.connectionContext().clientMetadata()->hostname(),
       "client-host");
+  EXPECT_EQ(nativeView.connectionContext().clientHostname(), "client-host");
+
+  metadata.hostname() = "updated-client-host";
+  apache::thrift::detail::Cpp2ConnContextInternalAPI(classicConnection)
+      .setClientMetadata(metadata);
+  nativeConnection->setClientMetadata(metadata);
+  EXPECT_EQ(
+      classicView.connectionContext().clientHostname(), "updated-client-host");
+  EXPECT_EQ(
+      nativeView.connectionContext().clientHostname(), "updated-client-host");
+
+  metadata.hostname().reset();
+  apache::thrift::detail::Cpp2ConnContextInternalAPI(classicConnection)
+      .setClientMetadata(metadata);
+  nativeConnection->setClientMetadata(metadata);
+  EXPECT_FALSE(classicView.connectionContext().clientHostname());
+  EXPECT_FALSE(nativeView.connectionContext().clientHostname());
 }
 
 TEST(
@@ -306,6 +378,19 @@ TEST(
   EXPECT_TRUE(nativeView.hasHeaderContainer());
   EXPECT_NE(nativeView.requestHeaders(), nullptr);
   EXPECT_FALSE(nativeView.hasHeaders());
+
+  const auto missingHeader = missing.headerContainer();
+  const auto emptyHeader = empty.headerContainer();
+  const auto nativeHeader = nativeView.headerContainer();
+  EXPECT_FALSE(missingHeader);
+  EXPECT_TRUE(emptyHeader);
+  EXPECT_TRUE(nativeHeader);
+  stampTraceResponse(missingHeader);
+  stampTraceResponse(emptyHeader);
+  stampTraceResponse(nativeHeader);
+  EXPECT_FALSE(missingHeader.setResponseHeader("trace", std::string("id")));
+  EXPECT_TRUE(header.getWriteHeaders().empty());
+  EXPECT_FALSE(native.hasResponseHeaders());
 }
 
 TEST(ThriftContextViewTest, ClassicViewsPreserveConstContextCapabilities) {
@@ -339,6 +424,31 @@ TEST(ThriftContextViewTest, ClassicViewsPreserveConstContextCapabilities) {
   const std::string id = "id";
   EXPECT_THROW(view.setResponseHeader("trace", id), std::logic_error);
   EXPECT_TRUE(header.getWriteHeaders().empty());
+
+  const auto cachedHeader = view.headerContainer();
+  EXPECT_TRUE(cachedHeader.setResponseHeader("trace", std::string("id")));
+  EXPECT_TRUE(cachedHeader.setResponseHeader("trace", id));
+  EXPECT_EQ(header.getWriteHeaders().at("trace"), id);
+  header.setReadHeader("trace", "cached-id");
+  stampTraceResponse(cachedHeader);
+  EXPECT_EQ(header.getWriteHeaders().at("trace"), "cached-id");
+  const ThriftRequestHeaderView<ThriftContextBackend::Classic> rawMutable(
+      &header);
+  header.setReadHeader("trace", "raw-id");
+  stampTraceResponse(rawMutable);
+  EXPECT_EQ(header.getWriteHeaders().at("trace"), "raw-id");
+
+  const ThriftRequestHeaderView<ThriftContextBackend::Classic> rawConst(
+      &std::as_const(header));
+  EXPECT_THROW(stampTraceResponse(rawConst), std::logic_error);
+  EXPECT_EQ(header.getWriteHeaders().at("trace"), "raw-id");
+  const apache::thrift::transport::THeader immutableHeader;
+  const ThriftRequestHeaderView<ThriftContextBackend::Classic> immutable(
+      &immutableHeader);
+  EXPECT_THROW(
+      immutable.setResponseHeader("trace", std::string("id")),
+      std::logic_error);
+  EXPECT_TRUE(immutableHeader.getWriteHeaders().empty());
 }
 
 TEST(ThriftContextViewTest, EmptyViewsAllowInspectionAndRejectMutation) {
@@ -369,6 +479,16 @@ TEST(ThriftContextViewTest, EmptyViewsAllowInspectionAndRejectMutation) {
       classic.setResponseHeader("trace", std::string("id")), std::logic_error);
   EXPECT_THROW(
       native.setResponseHeader("trace", std::string("id")), std::logic_error);
+
+  const ThriftRequestHeaderView<ThriftContextBackend::Classic> defaultHeader;
+  const auto classicHeader = classic.headerContainer();
+  const auto nativeHeader = native.headerContainer();
+  EXPECT_FALSE(defaultHeader);
+  EXPECT_FALSE(classicHeader);
+  EXPECT_FALSE(nativeHeader);
+  stampTraceResponse(defaultHeader);
+  stampTraceResponse(classicHeader);
+  stampTraceResponse(nativeHeader);
 }
 
 } // namespace

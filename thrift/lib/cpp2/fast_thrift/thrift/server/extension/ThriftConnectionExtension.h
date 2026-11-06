@@ -35,6 +35,10 @@
 
 namespace apache::thrift::fast_thrift::thrift {
 
+namespace server::compatibility::detail {
+class NativeContextAccess;
+}
+
 /**
  * Connection-lifecycle callbacks for FastThriftServer extensions.
  *
@@ -110,6 +114,8 @@ class ConnectionVerdict {
  * before calling any accessor; accessors require a nonempty view.
  */
 class ThriftConnectionView {
+  friend class server::compatibility::detail::NativeContextAccess;
+
  public:
   explicit ThriftConnectionView(const ThriftConnContext& connContext) noexcept
       : ThriftConnectionView(&connContext) {}
