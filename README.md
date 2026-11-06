@@ -98,9 +98,8 @@ The build puts its outputs in `_build`:
 * `_build/lib/libthriftcpp2.a`: Library for clients and servers.
 
 Tests are not built by default. Configure with `-DTHRIFT_TESTS=ON` to build
-them. They need [GTest](https://github.com/google/googletest) and, unless
-`THRIFT_BENCHMARKS` is off, [Google Benchmark](https://github.com/google/benchmark)
-installed; neither is fetched:
+them. They need [GTest](https://github.com/google/googletest) installed; it is
+not fetched:
 
     cmake -B _build -DTHRIFT_TESTS=ON
     cmake --build _build
@@ -117,7 +116,7 @@ CMake options:
   dependencies (Fizz, Wangle, mvfst).
 * `THRIFT_TESTS` (default `OFF`): build the tests.
 * `THRIFT_BENCHMARKS` (default: the value of `THRIFT_TESTS`): build the
-  benchmarks; needs Google Benchmark.
+  benchmarks.
 * `THRIFT_PYTHON` (default `OFF`): build the thrift-python library and
   extensions; requires Cython.
 

@@ -14,7 +14,11 @@
  * limitations under the License.
  */
 
-#include <benchmark/benchmark.h>
+#include <stdexcept>
+#include <string>
+
+#include <folly/Benchmark.h>
+#include <folly/init/Init.h>
 
 #include <thrift/lib/cpp2/op/Get.h>
 #include <thrift/lib/cpp2/protocol/FieldMask.h>
@@ -54,90 +58,97 @@ bool checkFiltered(const T& result, int64_t fields, bool excluded = false) {
 }
 
 template <class T, bool Excluded = false>
-void validate(::benchmark::State& state) {
-  auto mask = makeMask(static_cast<int>(state.range(0)), Excluded);
-  for (auto _ : state) {
-    ::benchmark::DoNotOptimize(mask);
+void validate(size_t iters, int fields) {
+  folly::BenchmarkSuspender susp;
+  auto mask = makeMask(fields, Excluded);
+  susp.dismiss();
+  while (iters--) {
+    folly::doNotOptimizeAway(mask);
     auto valid = protocol::detail::validate_mask<T>(protocol::MaskRef{mask});
-    ::benchmark::DoNotOptimize(valid);
+    folly::doNotOptimizeAway(valid);
   }
+  susp.rehire();
 }
 
 template <class T, bool Excluded = false>
-void filter(::benchmark::State& state) {
-  auto mask = makeMask(static_cast<int>(state.range(0)), Excluded);
+void filter(size_t iters, int fields) {
+  folly::BenchmarkSuspender susp;
+  auto mask = makeMask(fields, Excluded);
   const auto source = makeSource<T>();
-  if (!checkFiltered(
-          protocol::filter(mask, source), state.range(0), Excluded)) {
-    state.SkipWithError("Filtered fields differ from the selected mask");
-    return;
+  if (!checkFiltered(protocol::filter(mask, source), fields, Excluded)) {
+    throw std::logic_error("Filtered fields differ from the selected mask");
   }
-  for (auto _ : state) {
-    ::benchmark::DoNotOptimize(mask);
+  susp.dismiss();
+  while (iters--) {
+    folly::doNotOptimizeAway(mask);
     auto result = protocol::filter(mask, source);
-    ::benchmark::DoNotOptimize(result);
+    folly::doNotOptimizeAway(result);
   }
+  susp.rehire();
 }
 
-template <bool Excluded>
-void filterNestedImpl(::benchmark::State& state) {
+template <bool Excluded = false>
+void filterNested(size_t iters, int fields) {
+  folly::BenchmarkSuspender susp;
   protocol::Mask mask;
   auto& included = mask.includes().emplace();
-  included.emplace(1, makeMask(static_cast<int>(state.range(0)), Excluded));
-  included.emplace(2, makeMask(static_cast<int>(state.range(0)), Excluded));
+  included.emplace(1, makeMask(fields, Excluded));
+  included.emplace(2, makeMask(fields, Excluded));
   Nested source;
   source.left() = makeSource<Medium>();
   source.right() = makeSource<Medium>();
   const auto sample = protocol::filter(mask, source);
-  if (!checkFiltered(*sample.left(), state.range(0), Excluded) ||
-      !checkFiltered(*sample.right(), state.range(0), Excluded)) {
-    state.SkipWithError("Filtered nested fields differ from the selected mask");
-    return;
+  if (!checkFiltered(*sample.left(), fields, Excluded) ||
+      !checkFiltered(*sample.right(), fields, Excluded)) {
+    throw std::logic_error(
+        "Filtered nested fields differ from the selected mask");
   }
-  for (auto _ : state) {
-    ::benchmark::DoNotOptimize(mask);
+  susp.dismiss();
+  while (iters--) {
+    folly::doNotOptimizeAway(mask);
     auto result = protocol::filter(mask, source);
-    ::benchmark::DoNotOptimize(result);
+    folly::doNotOptimizeAway(result);
+  }
+  susp.rehire();
+}
+
+// Registers `name/<fields>` for each number of masked fields.
+void addBenchmarks(
+    std::string_view name,
+    void (*bench)(size_t, int),
+    std::initializer_list<int> fieldCounts) {
+  for (int fields : fieldCounts) {
+    auto fullName = std::string(name) + "/" + std::to_string(fields);
+    folly::addBenchmark(__FILE__, fullName, [=](unsigned iters) {
+      bench(iters, fields);
+      return iters;
+    });
   }
 }
-
-template <class T>
-void validateExcluded(::benchmark::State& state) {
-  validate<T, true>(state);
-}
-
-template <class T>
-void filterExcluded(::benchmark::State& state) {
-  filter<T, true>(state);
-}
-
-void filterNested(::benchmark::State& state) {
-  filterNestedImpl<false>(state);
-}
-
-void filterNestedExcluded(::benchmark::State& state) {
-  filterNestedImpl<true>(state);
-}
-
-BENCHMARK_TEMPLATE(validate, Small)->Arg(0)->Arg(1)->Arg(2);
-BENCHMARK_TEMPLATE(validate, Medium)->Arg(0)->Arg(1)->Arg(8)->Arg(32);
-BENCHMARK_TEMPLATE(validate, Large)->Arg(0)->Arg(1)->Arg(8)->Arg(256);
-
-BENCHMARK_TEMPLATE(filter, Small)->Arg(1)->Arg(2);
-BENCHMARK_TEMPLATE(filter, Medium)->Arg(1)->Arg(8)->Arg(32);
-BENCHMARK_TEMPLATE(filter, Large)->Arg(1)->Arg(8)->Arg(256);
-BENCHMARK(filterNested)->Arg(1)->Arg(8)->Arg(32);
-
-BENCHMARK_TEMPLATE(validateExcluded, Small)->Arg(1)->Arg(2);
-BENCHMARK_TEMPLATE(validateExcluded, Medium)->Arg(1)->Arg(32);
-BENCHMARK_TEMPLATE(validateExcluded, Large)->Arg(1)->Arg(256);
-
-BENCHMARK_TEMPLATE(filterExcluded, Small)->Arg(1)->Arg(2);
-BENCHMARK_TEMPLATE(filterExcluded, Medium)->Arg(1)->Arg(32);
-BENCHMARK_TEMPLATE(filterExcluded, Large)->Arg(1)->Arg(256);
-BENCHMARK(filterNestedExcluded)->Arg(1)->Arg(8)->Arg(32);
 
 } // namespace
 } // namespace apache::thrift::benchmark::field_mask
 
-BENCHMARK_MAIN();
+int main(int argc, char** argv) {
+  folly::Init init(&argc, &argv);
+  using namespace apache::thrift::benchmark::field_mask;
+  addBenchmarks("validate<Small>", validate<Small>, {0, 1, 2});
+  addBenchmarks("validate<Medium>", validate<Medium>, {0, 1, 8, 32});
+  addBenchmarks("validate<Large>", validate<Large>, {0, 1, 8, 256});
+
+  addBenchmarks("filter<Small>", filter<Small>, {1, 2});
+  addBenchmarks("filter<Medium>", filter<Medium>, {1, 8, 32});
+  addBenchmarks("filter<Large>", filter<Large>, {1, 8, 256});
+  addBenchmarks("filterNested", filterNested<>, {1, 8, 32});
+
+  addBenchmarks("validateExcluded<Small>", validate<Small, true>, {1, 2});
+  addBenchmarks("validateExcluded<Medium>", validate<Medium, true>, {1, 32});
+  addBenchmarks("validateExcluded<Large>", validate<Large, true>, {1, 256});
+
+  addBenchmarks("filterExcluded<Small>", filter<Small, true>, {1, 2});
+  addBenchmarks("filterExcluded<Medium>", filter<Medium, true>, {1, 32});
+  addBenchmarks("filterExcluded<Large>", filter<Large, true>, {1, 256});
+  addBenchmarks("filterNestedExcluded", filterNested<true>, {1, 8, 32});
+
+  folly::runBenchmarks();
+}

@@ -24,10 +24,9 @@ foreach (conf_name "protocol" "type" "any" "serialization" "patch_data"
   thrift_generate(thrift_ProtocolBench
                   ../../../conformance/if/${conf_name}.thrift LANGUAGE cpp2)
 endforeach ()
-find_package(benchmark CONFIG REQUIRED)
 target_link_libraries(
   thrift_ProtocolBench PRIVATE thrift_frozen thrift_protocol thrift_type
-                               Folly::folly benchmark::benchmark)
+                               Folly::folly Folly::follybenchmark)
 
 thrift_install_targets(thrift_ProtocolBench)
 
@@ -43,4 +42,4 @@ thrift_generate(thrift_FieldMaskBenchmark FieldMaskBenchmark.thrift LANGUAGE cpp
                 OPTIONS no_metadata)
 target_link_libraries(
   thrift_FieldMaskBenchmark PRIVATE thrift_type thrift_metadata thrift_protocol
-                                   Folly::folly benchmark::benchmark)
+                                   Folly::folly Folly::follybenchmark)

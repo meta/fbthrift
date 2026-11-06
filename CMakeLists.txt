@@ -81,7 +81,7 @@ option(
 option(THRIFT_TESTS "Enable tests (requires GTest)." OFF)
 option(
   THRIFT_BENCHMARKS
-  "Enable benchmarks (requires google/benchmark). Defaults to THRIFT_TESTS."
+  "Enable benchmarks. Defaults to THRIFT_TESTS."
   ${THRIFT_TESTS})
 option(THRIFT_PY_DEPRECATED
        "Enable the deprecated thrift-py library; use thrift-python instead" ON)

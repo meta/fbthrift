@@ -34,7 +34,7 @@ jobs:
 
     # The build fetches the rest, but not the test dependencies.
     - name: Install dependencies
-      run: brew install googletest google-benchmark
+      run: brew install googletest
 
     - name: Configure
       run: >

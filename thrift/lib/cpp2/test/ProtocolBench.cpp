@@ -20,9 +20,10 @@
 #include <thrift/lib/cpp2/protocol/Serializer.h>
 #include <thrift/lib/cpp2/test/Structs.h>
 
-#include <benchmark/benchmark.h>
 #include <glog/logging.h>
+#include <folly/Benchmark.h>
 #include <folly/Optional.h>
+#include <folly/init/Init.h>
 
 using namespace apache::thrift;
 using namespace thrift::benchmark;
@@ -113,7 +114,8 @@ template <
     SerializerMethod kSerializerMethod,
     typename Serializer,
     typename Struct>
-void writeBench(::benchmark::State& state) {
+void writeBench(size_t iters) {
+  folly::BenchmarkSuspender susp;
   auto strct = create<Struct>();
   protocol::Object obj;
   if constexpr (kSerializerMethod == SerializerMethod::Object) {
@@ -123,13 +125,14 @@ void writeBench(::benchmark::State& state) {
   }
 
   folly::IOBufQueue q;
-  for (auto _ : state) {
+  susp.dismiss();
+  while (iters--) {
     if constexpr (kSerializerMethod == SerializerMethod::Object) {
       protocol::serializeObject<GetWriter<Serializer>>(obj, q);
-      ::benchmark::DoNotOptimize(q);
+      folly::doNotOptimizeAway(q);
     } else {
       Serializer::serialize(strct, &q);
-      ::benchmark::DoNotOptimize(q);
+      folly::doNotOptimizeAway(q);
     }
 
     // Reuse the queue across iterations to avoid allocating a new buffer for
@@ -139,13 +142,15 @@ void writeBench(::benchmark::State& state) {
       q.append(q.move()->prev()->unlink());
     }
   }
+  susp.rehire();
 }
 
 template <
     SerializerMethod kSerializerMethod,
     typename Serializer,
     typename Struct>
-void readBench(::benchmark::State& state) {
+void readBench(size_t iters) {
+  folly::BenchmarkSuspender susp;
   auto strct = create<Struct>();
   folly::IOBufQueue q;
   Serializer::serialize(strct, &q);
@@ -153,16 +158,18 @@ void readBench(::benchmark::State& state) {
   // coalesce the IOBuf chain to test fast path
   buf->coalesce();
 
-  for (auto _ : state) {
+  susp.dismiss();
+  while (iters--) {
     if constexpr (kSerializerMethod == SerializerMethod::Object) {
       auto obj = protocol::parseObject<GetReader<Serializer>>(*buf);
-      ::benchmark::DoNotOptimize(obj);
+      folly::doNotOptimizeAway(obj);
     } else {
       Struct data;
       Serializer::deserialize(buf.get(), data);
-      ::benchmark::DoNotOptimize(data);
+      folly::doNotOptimizeAway(data);
     }
   }
+  susp.rehire();
 }
 
 constexpr SerializerMethod getSerializerMethod(std::string_view prefix) {
@@ -174,14 +181,12 @@ constexpr SerializerMethod getSerializerMethod(std::string_view prefix) {
 
 // clang-format off
 #define X1(Prefix, proto, rdwr, bench, benchprefix)                        \
-  static void Prefix##proto##Protocol_##rdwr##_##bench(                    \
-      ::benchmark::State& state) {                                         \
+  BENCHMARK(Prefix##proto##Protocol_##rdwr##_##bench, iters) {             \
     rdwr##Bench<                                                           \
         getSerializerMethod(#Prefix),                                      \
         proto##Serializer,                                                 \
-        benchprefix##bench>(state);                                        \
-  }                                                                        \
-  BENCHMARK(Prefix##proto##Protocol_##rdwr##_##bench);
+        benchprefix##bench>(iters);                                        \
+  }
 
 #define X2(Prefix, proto, bench)  \
   X1(Prefix, proto, write, bench,) \
@@ -274,6 +279,9 @@ X(Object, Compact)
 OpEncodeX(OpEncode, Binary)
 OpEncodeX(OpEncode, Compact)
 
-BENCHMARK_MAIN();
+int main(int argc, char** argv) {
+  folly::Init init(&argc, &argv);
+  folly::runBenchmarks();
+}
 // NOLINTEND(facebook-avoid-non-const-global-variables)
 // clang-format on
