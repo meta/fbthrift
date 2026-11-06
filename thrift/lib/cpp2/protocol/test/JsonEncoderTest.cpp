@@ -17,6 +17,7 @@
 #include <thrift/lib/cpp2/protocol/Json5Protocol.h>
 
 #include <limits>
+#include <vector>
 #include <gtest/gtest.h>
 #include <folly/portability/GFlags.h>
 #include <thrift/lib/cpp/protocol/TProtocolException.h>
@@ -32,21 +33,28 @@ using namespace facebook::thrift::json5::json5_test_constants;
 
 // ── Struct encoding tests driven by thrift test data ─────────────────────────
 
+namespace {
+
+std::vector<TestCase> testCasesWithExample() {
+  auto cases = testCases();
+  std::erase_if(cases, [](const auto& tc) { return !tc.example(); });
+  return cases;
+}
+
+} // namespace
+
 class Json5EncoderStructTest : public ::testing::TestWithParam<TestCase> {};
 
 TEST_P(Json5EncoderStructTest, Encode) {
-  const auto& example = GetParam().example();
-  if (!example) {
-    GTEST_SKIP();
-  }
-  EXPECT_EQ(Json5ProtocolUtils::toBasicJson(*example), *GetParam().json());
-  EXPECT_EQ(Json5ProtocolUtils::toJson5(*example), *GetParam().json5());
+  const auto& example = *GetParam().example();
+  EXPECT_EQ(Json5ProtocolUtils::toBasicJson(example), *GetParam().json());
+  EXPECT_EQ(Json5ProtocolUtils::toJson5(example), *GetParam().json5());
 }
 
 INSTANTIATE_TEST_SUITE_P(
     Encode,
     Json5EncoderStructTest,
-    ::testing::ValuesIn(testCases()),
+    ::testing::ValuesIn(testCasesWithExample()),
     [](const auto& info) { return *info.param.name(); });
 
 // ── Primitive type encoding tests ────────────────────────────────────────────
