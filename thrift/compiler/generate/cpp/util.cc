@@ -92,19 +92,9 @@ bool field_cpp_type_supports_incomplete_params(const t_field& field) {
   if (!annot) {
     return true;
   }
-  const auto& exceptions = get_template_exceptions();
-  if (auto* tmpl =
-          annot->get_value_from_structured_annotation_or_null("template")) {
-    return exceptions.count(tmpl->get_string()) > 0;
-  }
-  if (auto* name =
-          annot->get_value_from_structured_annotation_or_null("name")) {
-    auto cpp_template =
-        name->get_string().substr(0, name->get_string().find('<'));
-    return exceptions.count(cpp_template) > 0;
-  }
-  // Has @cpp.Type but no template or name — assume requires complete types.
-  return false;
+  auto* tmpl = annot->get_value_from_structured_annotation_or_null("template");
+  return tmpl != nullptr &&
+      get_template_exceptions().contains(tmpl->get_string());
 }
 
 } // namespace
@@ -164,25 +154,13 @@ bool container_supports_incomplete_params(const t_type& type) {
     return true;
   }
 
-  const auto& template_exceptions = get_template_exceptions();
   if (auto* annot = t_typedef::get_first_structured_annotation_or_null(
           &type, kCppTypeUri)) {
     if (auto* tmpl =
             annot->get_value_from_structured_annotation_or_null("template")) {
-      if (template_exceptions.count(tmpl->get_string())) {
-        return true;
-      }
-    }
-    if (auto* name =
-            annot->get_value_from_structured_annotation_or_null("name")) {
-      auto cpp_template =
-          name->get_string().substr(0, name->get_string().find('<'));
-      if (template_exceptions.count(cpp_template)) {
-        return true;
-      }
+      return get_template_exceptions().contains(tmpl->get_string());
     }
   }
-
   return false;
 }
 
