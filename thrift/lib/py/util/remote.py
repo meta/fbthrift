@@ -39,6 +39,7 @@ import os
 import pprint
 import sys
 import traceback
+from typing import Any
 from urllib.parse import urlparse
 
 from thrift import Thrift
@@ -473,7 +474,7 @@ def ssl_parsed_bool(arg: bool) -> bool:
 class RemoteTransportClient(RemoteClient):
     """Abstract class for clients with transport manually opened and closed"""
 
-    CMDLINE_OPTIONS = [
+    CMDLINE_OPTIONS: list[tuple[tuple[str, ...], dict[str, Any]]] = [
         (
             ("-f", "--framed"),
             {"action": "store_true", "default": False, "help": "Use framed transport"},
@@ -577,9 +578,18 @@ class RemoteTransportClient(RemoteClient):
         return (parts[0], port)
 
 
+# Client certificate paths come only from the THRIFT_TLS_CL_CERT_PATH /
+# THRIFT_TLS_CL_KEY_PATH environment pair. There is no ambient fallback
+# and no hardcoded identity paths in this file.
+_CLIENT_CERT_ENV_VAR = "THRIFT_TLS_CL_CERT_PATH"
+_CLIENT_KEY_ENV_VAR = "THRIFT_TLS_CL_KEY_PATH"
+
+
 class RemoteHostClient(RemoteTransportClient):
     SELECTOR_OPTIONS = "host"
-    CMDLINE_OPTIONS = list(RemoteTransportClient.CMDLINE_OPTIONS) + [
+    CMDLINE_OPTIONS: list[tuple[tuple[str, ...], dict[str, Any]]] = list(
+        RemoteTransportClient.CMDLINE_OPTIONS
+    ) + [
         (
             ("-h", "--host"),
             {
@@ -587,16 +597,62 @@ class RemoteHostClient(RemoteTransportClient):
                 "metavar": "HOST[:PORT]",
                 "help": "The host and port to connect to",
             },
-        )
+        ),
+        (
+            ("--certfile",),
+            {
+                "action": "store",
+                "metavar": "FILE",
+                "help": (
+                    "Client certificate file (PEM) to present on TLS "
+                    "connections. Defaults to THRIFT_TLS_CL_CERT_PATH / "
+                    "THRIFT_TLS_CL_KEY_PATH when both are set and readable."
+                ),
+            },
+        ),
+        (
+            ("--keyfile",),
+            {
+                "action": "store",
+                "metavar": "FILE",
+                "help": (
+                    "Private key file for --certfile. Defaults to "
+                    "THRIFT_TLS_CL_KEY_PATH when it and "
+                    "THRIFT_TLS_CL_CERT_PATH are both set and readable."
+                ),
+            },
+        ),
     ]
+
+    def _validate_options(self, options):
+        super(RemoteHostClient, self)._validate_options(options)
+        if getattr(options, "keyfile", None) and not getattr(options, "certfile", None):
+            self._exit(error_message="--keyfile requires --certfile")
 
     def _get_client(self, options):
         host, port = self._parse_host_port(options.host, self.default_port)
-        socket = (
-            TSSLSocket.TSSLSocket(host, port)
-            if options.ssl
-            else TSocket.TSocket(host, port)
-        )
+        if options.ssl:
+            certfile = getattr(options, "certfile", None)
+            keyfile = getattr(options, "keyfile", None)
+            if keyfile is not None and certfile is None:
+                raise ValueError("--keyfile requires --certfile")
+            if certfile is None and keyfile is None:
+                env_cert = os.environ.get(_CLIENT_CERT_ENV_VAR)
+                env_key = os.environ.get(_CLIENT_KEY_ENV_VAR)
+                if (
+                    env_cert
+                    and env_key
+                    and os.path.exists(env_cert)
+                    and os.access(env_cert, os.R_OK)
+                    and os.path.exists(env_key)
+                    and os.access(env_key, os.R_OK)
+                ):
+                    certfile, keyfile = env_cert, env_key
+            socket = TSSLSocket.TSSLSocket(
+                host, port, certfile=certfile, keyfile=keyfile
+            )
+        else:
+            socket = TSocket.TSocket(host, port)
         if options.framed:
             transport = TTransport.TFramedTransport(socket)
         else:
