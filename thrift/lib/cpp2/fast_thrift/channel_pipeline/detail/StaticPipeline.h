@@ -25,6 +25,8 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ErasedStaticSegment.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/StaticHandler.h>
 
+#include <glog/logging.h>
+
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -386,7 +388,8 @@ class StaticPipelineImpl final {
       kHasStaticHandlers && !kHasStaticSegments;
   static constexpr std::size_t kStaticHandlerIndex = StaticHandlerConfig::index;
   static_assert(!kHasStaticHandlers || kStaticHandlerIndex <= kHandlerCount);
-  using EndpointContext = StaticContext<Self, kHandlerCount, 0, StateTuple>;
+  using EndpointContext =
+      StaticContext<Self, kHandlerCount, 0, StateTuple, /*IsEndpoint=*/true>;
 
   class Guard {
    public:
@@ -886,8 +889,74 @@ class StaticPipelineImpl final {
     readReadyDispatching_ = false;
   }
 
+  // === Pipeline composition (binding) ===
+
+  /**
+   * Chain `peer` onto this pipeline's tail (`adaptTail`) or head (`adaptHead`),
+   * the compile-time mirror of PipelineImpl::adaptTail/adaptHead. Binding
+   * changes nothing about how this pipeline's handlers or endpoints run — only
+   * where the tail endpoint's `ctx.fireRead` (past the tail) and the head
+   * endpoint's `ctx.fireWrite` (past the head) go. Bound, the message is run
+   * through `TAdapter`'s static conversion (the default ForwardingAdapter
+   * returns it unchanged), fired into `peer`, and `peer`'s Result propagates
+   * back; unbound, it returns Result::Error.
+   *
+   * The PipelineRef overload is non-owning; the PipelineOwner overload
+   * transfers ownership so `peer` is torn down together with this pipeline.
+   * `peer` must share this pipeline's EventBase — crossings are direct,
+   * same-thread calls.
+   */
+  template <SeamReadAdapter TAdapter = ForwardingAdapter>
+  void adaptTail(PipelineRef peer) noexcept {
+    checkBindPeer(peer);
+    boundTailPeer_ = peer;
+    tailConvert_ = &TAdapter::adaptRead;
+  }
+
+  template <SeamReadAdapter TAdapter = ForwardingAdapter>
+  void adaptTail(PipelineOwner peer) noexcept {
+    ownedTailPeer_ = std::move(peer);
+    adaptTail<TAdapter>(ownedTailPeer_.ref());
+  }
+
+  template <SeamWriteAdapter TAdapter = ForwardingAdapter>
+  void adaptHead(PipelineRef peer) noexcept {
+    checkBindPeer(peer);
+    boundHeadPeer_ = peer;
+    headConvert_ = &TAdapter::adaptWrite;
+  }
+
+  template <SeamWriteAdapter TAdapter = ForwardingAdapter>
+  void adaptHead(PipelineOwner peer) noexcept {
+    ownedHeadPeer_ = std::move(peer);
+    adaptHead<TAdapter>(ownedHeadPeer_.ref());
+  }
+
+  // Terminal dispatch for propagation past the tail/head endpoint — where the
+  // endpoint context's fireRead/fireWrite land. Routes to the bound peer, or
+  // returns Error when nothing is bound.
+  Result forwardReadPastTail(TypeErasedBox&& msg) noexcept {
+    if (boundTailPeer_) {
+      return boundTailPeer_.fireRead(tailConvert_(std::move(msg)));
+    }
+    return Result::Error;
+  }
+  Result forwardWritePastHead(TypeErasedBox&& msg) noexcept {
+    if (boundHeadPeer_) {
+      return boundHeadPeer_.fireWrite(headConvert_(std::move(msg)));
+    }
+    return Result::Error;
+  }
+
  private:
   enum class State : std::uint8_t { Inactive, Active, Closing, Closed };
+
+  // Validate a bind peer: non-empty and sharing this pipeline's EventBase.
+  void checkBindPeer(PipelineRef peer) const noexcept {
+    CHECK(peer) << "bind: peer pipeline is empty";
+    CHECK_EQ(peer.eventBase(), eventBase_)
+        << "bind requires the peer to share this pipeline's EventBase";
+  }
 
   ~StaticPipelineImpl() {
     if (state_ != State::Closed) {
@@ -1709,6 +1778,20 @@ class StaticPipelineImpl final {
   bool readReadyDispatching_{false};
   bool readReadyDispatchPending_{false};
   bool destroyPending_{false};
+
+  // Bound peer pipelines (set via adaptTail/adaptHead); see the binding model
+  // on PipelineImpl. boundTailPeer_/boundHeadPeer_ are the targets
+  // forwardReadPastTail/forwardWritePastHead route to, empty until a bind. The
+  // owned*Peer_ members are engaged only by the owning overload and keep an
+  // owned peer alive for this pipeline's lifetime (destroyed with it).
+  // *Convert_ is the seam adapter's static conversion, set alongside the peer
+  // at bind (non-null whenever the peer is bound).
+  PipelineRef boundTailPeer_;
+  PipelineRef boundHeadPeer_;
+  PipelineOwner ownedTailPeer_;
+  PipelineOwner ownedHeadPeer_;
+  TypeErasedBox (*tailConvert_)(TypeErasedBox&&) noexcept {nullptr};
+  TypeErasedBox (*headConvert_)(TypeErasedBox&&) noexcept {nullptr};
 };
 
 } // namespace apache::thrift::fast_thrift::channel_pipeline::detail

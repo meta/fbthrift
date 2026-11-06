@@ -25,6 +25,7 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/EndpointAdapter.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Event.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineStorage.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/HandlerNode.h>
@@ -297,6 +298,65 @@ class alignas(detail::ContextImpl) PipelineImpl
    */
   void close() noexcept;
 
+  // === Pipeline composition (binding) ===
+
+  /**
+   * Chain `peer` onto this pipeline's tail. Binding changes nothing about how
+   * this pipeline's handlers or its tail endpoint run — they execute
+   * identically whether or not a peer is bound. The only effect is where the
+   * tail endpoint's own `ctx.fireRead(...)` goes (propagation past the tail):
+   * bound, the message is run through `TAdapter::adaptRead` (the default
+   * ForwardingAdapter returns it unchanged) and fired into `peer` via fireRead,
+   * and `peer`'s Result propagates back; unbound, it returns Result::Error
+   * (nothing downstream). `adaptHead` is the outbound mirror — it sets where
+   * the head endpoint's `ctx.fireWrite(...)` (past the head) goes.
+   *
+   * `TAdapter` is a stateless seam conversion selected by type; neither
+   * pipeline's type knows the other. Bind records only a function pointer to
+   * its static `adaptRead`/`adaptWrite`, so it allocates nothing and holds no
+   * adapter object.
+   *
+   * The PipelineRef overload is non-owning: the caller keeps `peer` alive for
+   * as long as this pipeline may fire into it. The PipelineOwner overload
+   * transfers ownership to this pipeline, so `peer` is torn down together with
+   * it — this is how a composed chain roots the inner pipeline's lifetime in
+   * the outer one.
+   *
+   * `peer` must share this pipeline's EventBase (crossings are direct, same-
+   * thread calls); binding across EventBases is rejected.
+   */
+  template <SeamReadAdapter TAdapter = ForwardingAdapter>
+  void adaptTail(PipelineRef peer) noexcept {
+    checkBindPeer(peer);
+    boundTailPeer_ = peer;
+    tailConvert_ = &TAdapter::adaptRead;
+  }
+
+  template <SeamReadAdapter TAdapter = ForwardingAdapter>
+  void adaptTail(PipelineOwner peer) noexcept {
+    ownedTailPeer_ = std::move(peer);
+    adaptTail<TAdapter>(ownedTailPeer_.ref());
+  }
+
+  template <SeamWriteAdapter TAdapter = ForwardingAdapter>
+  void adaptHead(PipelineRef peer) noexcept {
+    checkBindPeer(peer);
+    boundHeadPeer_ = peer;
+    headConvert_ = &TAdapter::adaptWrite;
+  }
+
+  template <SeamWriteAdapter TAdapter = ForwardingAdapter>
+  void adaptHead(PipelineOwner peer) noexcept {
+    ownedHeadPeer_ = std::move(peer);
+    adaptHead<TAdapter>(ownedHeadPeer_.ref());
+  }
+
+  // Terminal dispatch for propagation past the tail/head endpoint — where the
+  // tail endpoint's ctx.fireRead and the head endpoint's ctx.fireWrite land.
+  // Routes to the bound peer, or returns Error when nothing is bound.
+  Result forwardReadPastTail(TypeErasedBox&& msg) noexcept;
+  Result forwardWritePastHead(TypeErasedBox&& msg) noexcept;
+
   // === Internal methods (used by ContextImpl) ===
 
   /**
@@ -510,6 +570,9 @@ class alignas(detail::ContextImpl) PipelineImpl
   void callHandlerRemovedImpl() noexcept;
   void propagatePipelineState() noexcept;
 
+  // Validate a bind peer: non-empty and sharing this pipeline's EventBase.
+  void checkBindPeer(PipelineRef peer) const noexcept;
+
   folly::EventBase* eventBase_;
   std::span<detail::HandlerNode> handlers_;
   std::span<detail::ContextImpl> contexts_;
@@ -608,6 +671,23 @@ class alignas(detail::ContextImpl) PipelineImpl
   void (*ownedTailDeleter_)(void*) noexcept {nullptr};
   void* ownedAllocator_{nullptr};
   void (*ownedAllocatorDeleter_)(void*) noexcept {nullptr};
+
+  // Bound peer pipelines (set via adaptTail/adaptHead). boundTailPeer_/
+  // boundHeadPeer_ are the targets that
+  // forwardReadPastTail/forwardWritePastHead route to; empty until a bind. The
+  // owned*Peer_ members are engaged only by the owning bind overload and keep
+  // an owned peer alive for this pipeline's lifetime (destroyed with it,
+  // rooting a composed chain's inner pipeline in the outer one).
+  // *Convert_ is the seam adapter's static message conversion, set alongside
+  // the peer at bind (non-null whenever the peer is bound); the pipeline
+  // applies it and performs the injection itself. The identity default returns
+  // unchanged.
+  PipelineRef boundTailPeer_;
+  PipelineRef boundHeadPeer_;
+  PipelineOwner ownedTailPeer_;
+  PipelineOwner ownedHeadPeer_;
+  TypeErasedBox (*tailConvert_)(TypeErasedBox&&) noexcept {nullptr};
+  TypeErasedBox (*headConvert_)(TypeErasedBox&&) noexcept {nullptr};
 
   // PipelineBuilder needs access to set up the pipeline
   template <

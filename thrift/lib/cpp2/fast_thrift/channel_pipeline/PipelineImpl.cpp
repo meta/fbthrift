@@ -68,6 +68,22 @@ void tailHandlerExceptionFn(
       std::move(e));
 }
 
+// Terminal for a read propagating past the tail endpoint (the tail endpoint's
+// own ctx.fireRead). Routes to a bound peer, else reports no downstream.
+Result tailForwardReadFn(
+    void* pipeline, ContextImpl& /*ctx*/, TypeErasedBox&& msg) noexcept {
+  return static_cast<PipelineImpl*>(pipeline)->forwardReadPastTail(
+      std::move(msg));
+}
+
+// Terminal for a write propagating past the head endpoint (the head endpoint's
+// own ctx.fireWrite). Routes to a bound peer, else reports no downstream.
+Result headForwardWriteFn(
+    void* pipeline, ContextImpl& /*ctx*/, TypeErasedBox&& msg) noexcept {
+  return static_cast<PipelineImpl*>(pipeline)->forwardWritePastHead(
+      std::move(msg));
+}
+
 std::size_t typeEventStartIndex(EventKey key, std::size_t tableSize) noexcept {
   auto value = reinterpret_cast<std::uintptr_t>(key) >> 3;
   value ^= value >> 16;
@@ -184,6 +200,17 @@ void PipelineImpl::initializeStorageViews(
   tailCtx_.prevWriteFn_ = lastWriteFn_ ? lastWriteFn_ : &headHandlerWriteFn;
   tailCtx_.prevHandler_ = lastHandler_ ? lastHandler_ : this;
   tailCtx_.prevCtx_ = lastCtx_ ? lastCtx_ : &headCtx_;
+
+  // Propagation past the endpoints: the tail endpoint's ctx.fireRead and the
+  // head endpoint's ctx.fireWrite route to a bound peer (or report no
+  // downstream). This is the only behavior binding changes; the endpoints
+  // themselves run unchanged.
+  tailCtx_.nextReadFn_ = &tailForwardReadFn;
+  tailCtx_.nextHandler_ = this;
+  tailCtx_.nextCtx_ = &tailCtx_; // unused by terminal function
+  headCtx_.prevWriteFn_ = &headForwardWriteFn;
+  headCtx_.prevHandler_ = this;
+  headCtx_.prevCtx_ = &headCtx_; // unused by terminal function
 }
 
 void PipelineImpl::linkTypeEventLists() noexcept {
@@ -614,6 +641,29 @@ void PipelineImpl::close() noexcept {
   readReadyList_.clear();
 
   callHandlerRemoved();
+}
+
+void PipelineImpl::checkBindPeer(PipelineRef peer) const noexcept {
+  CHECK(peer) << "bind: peer pipeline is empty";
+  // Same-EventBase is a simplification: a crossing is a direct, same-thread
+  // call. Executor hops across the seam will be supported later; until then we
+  // enforce a shared EventBase.
+  CHECK_EQ(peer.eventBase(), eventBase_)
+      << "bind requires the peer to share this pipeline's EventBase";
+}
+
+Result PipelineImpl::forwardReadPastTail(TypeErasedBox&& msg) noexcept {
+  if (boundTailPeer_) {
+    return boundTailPeer_.fireRead(tailConvert_(std::move(msg)));
+  }
+  return Result::Error;
+}
+
+Result PipelineImpl::forwardWritePastHead(TypeErasedBox&& msg) noexcept {
+  if (boundHeadPeer_) {
+    return boundHeadPeer_.fireWrite(headConvert_(std::move(msg)));
+  }
+  return Result::Error;
 }
 
 PIPELINE_HOT_PATH Result

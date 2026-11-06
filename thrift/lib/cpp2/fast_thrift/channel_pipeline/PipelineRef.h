@@ -371,4 +371,43 @@ PipelineEventPublisherRef<EventSet> PipelineRef::bindEvents() const noexcept {
 static_assert(sizeof(PipelineGuard) == 2 * sizeof(void*));
 static_assert(sizeof(PipelineRef) == 2 * sizeof(void*));
 
+/**
+ * The seam-adapter concepts, one per bind direction: a tail bind's adapter
+ * satisfies SeamReadAdapter (it provides a static adaptRead), a head bind's
+ * satisfies SeamWriteAdapter (it provides a static adaptWrite). See
+ * ForwardingAdapter below for what a seam adapter does and the default model.
+ */
+template <typename A>
+concept SeamReadAdapter = requires(TypeErasedBox&& msg) {
+  { A::adaptRead(std::move(msg)) } noexcept -> std::same_as<TypeErasedBox>;
+};
+
+template <typename A>
+concept SeamWriteAdapter = requires(TypeErasedBox&& msg) {
+  { A::adaptWrite(std::move(msg)) } noexcept -> std::same_as<TypeErasedBox>;
+};
+
+/**
+ * A seam adapter is a stateless conversion applied to a message as it crosses
+ * the boundary between two bound pipelines, so neither pipeline's type knows
+ * anything about the other. Its adaptRead/adaptWrite are static (message in,
+ * converted message out); the binding pipeline performs the injection into the
+ * peer and owns backpressure. Being stateless, an adapter needs no storage —
+ * bind records only a function pointer to the static conversion.
+ *
+ * A tail bind forwards reads, so its adapter provides adaptRead; a head bind
+ * forwards writes, so its adapter provides adaptWrite.
+ *
+ * ForwardingAdapter is the default: return the message unchanged, so a bind
+ * with no adapter forwards as-is.
+ */
+struct ForwardingAdapter {
+  static TypeErasedBox adaptRead(TypeErasedBox&& msg) noexcept {
+    return std::move(msg);
+  }
+  static TypeErasedBox adaptWrite(TypeErasedBox&& msg) noexcept {
+    return std::move(msg);
+  }
+};
+
 } // namespace apache::thrift::fast_thrift::channel_pipeline
