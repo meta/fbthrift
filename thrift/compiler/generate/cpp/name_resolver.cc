@@ -84,50 +84,16 @@ std::string cpp_name_resolver::gen_field_native_type(
         annotation->get_value_from_structured_annotation("name").get_string();
     // When the field also has @cpp.Type, use that as the base type for the
     // adapter wrapping instead of resolving from the type node.
-    if (auto* cpp_type_annot =
-            field.find_structured_annotation_or_null(kCppTypeUri)) {
-      if (auto* name =
-              cpp_type_annot->get_value_from_structured_annotation_or_null(
-                  "name")) {
-        return gen_adapted_type(
-            &adapter_on_field,
-            field.id(),
-            name->get_string(),
-            parent,
-            qualify_parent);
-      }
-      if (auto* tmpl =
-              cpp_type_annot->get_value_from_structured_annotation_or_null(
-                  "template")) {
-        return gen_adapted_type(
-            &adapter_on_field,
-            field.id(),
-            gen_container_type(
-                type.get_true_type()->as<t_container>(),
-                &cpp_name_resolver::get_native_type,
-                &tmpl->get_string()),
-            parent,
-            qualify_parent);
-      }
+    if (const auto& cpp_type = get_cpp_type(field)) {
+      return gen_adapted_type(
+          &adapter_on_field, field.id(), *cpp_type, parent, qualify_parent);
     }
     return gen_field_type(
         field.id(), type, parent, &adapter_on_field, qualify_parent);
   }
 
-  // Handle @cpp.Type on field.
-  if (auto* annotation =
-          field.find_structured_annotation_or_null(kCppTypeUri)) {
-    if (auto name =
-            annotation->get_value_from_structured_annotation_or_null("name")) {
-      return name->get_string();
-    } else {
-      auto& tmplate =
-          annotation->get_value_from_structured_annotation("template");
-      return gen_container_type(
-          type.get_true_type()->as<t_container>(),
-          &cpp_name_resolver::get_native_type,
-          &tmplate.get_string());
-    }
+  if (const auto& cpp_type = get_cpp_type(field)) {
+    return *cpp_type;
   }
 
   return get_native_type(type);
@@ -479,26 +445,24 @@ std::string cpp_name_resolver::gen_standard_type(const t_type& node) {
   return gen_standard_type(node, &cpp_name_resolver::get_standard_type);
 }
 
-std::string cpp_name_resolver::gen_standard_type(const t_field& node) {
-  const t_type& type = *node.type();
-  if (auto* annotation = node.find_structured_annotation_or_null(kCppTypeUri)) {
-    if (auto name =
-            annotation->get_value_from_structured_annotation_or_null("name")) {
-      return detail::get_or_gen(field_standard_type_cache_, &node, [&]() {
-        return name->get_string();
-      });
-    } else {
-      auto& tmplate =
-          annotation->get_value_from_structured_annotation("template");
-      return detail::get_or_gen(field_standard_type_cache_, &node, [&]() {
-        return gen_container_type(
-            type.get_true_type()->as<t_container>(),
-            &cpp_name_resolver::get_native_type,
-            &tmplate.get_string());
-      });
-    }
+std::optional<std::string> cpp_name_resolver::gen_cpp_type(
+    const t_field& field) {
+  const t_const* annotation =
+      field.find_structured_annotation_or_null(kCppTypeUri);
+  if (annotation == nullptr) {
+    return std::nullopt;
   }
-  return gen_standard_type(type);
+  if (const t_const_value* name =
+          annotation->get_value_from_structured_annotation_or_null("name")) {
+    return name->get_string();
+  }
+  const t_type* true_type = field.type()->get_true_type();
+  assert(true_type != nullptr);
+  return gen_container_type(
+      true_type->as<t_container>(),
+      &cpp_name_resolver::get_native_type,
+      &annotation->get_value_from_structured_annotation("template")
+           .get_string());
 }
 
 std::string cpp_name_resolver::gen_storage_type(
@@ -631,13 +595,10 @@ std::string cpp_name_resolver::gen_type_tag(
 
   // TODO(dokwon): Remove allowing both @cpp.Type and @cpp.Adapter on a field
   // once @scope.Transitive bug is fixed.
-  if (field.find_structured_annotation_or_null(kCppTypeUri)) {
-    // Use get_standard_type(field) which resolves the field's @cpp.Type
-    // directly, bypassing the adapter and working for both adapted and
-    // non-adapted fields.
+  if (const auto& cpp_type = get_cpp_type(field)) {
     type_tag = fmt::format(
         "::apache::thrift::type::cpp_type<{}, {}>",
-        get_standard_type(field),
+        *cpp_type,
         gen_type_tag(*field.type(), true));
   } else {
     type_tag = gen_type_tag(*field.type());
