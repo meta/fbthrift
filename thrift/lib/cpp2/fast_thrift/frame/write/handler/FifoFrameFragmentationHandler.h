@@ -25,6 +25,7 @@
 #include <folly/ExceptionWrapper.h>
 #include <folly/Utility.h>
 
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Backpressure.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Event.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
@@ -48,6 +49,12 @@ namespace apache::thrift::fast_thrift::frame::write::handler {
  * turns as there are live streams when it starts, and each turn sends one
  * fragment. The callback starts no new turn after its budget reaches zero. The
  * turn that crosses the budget still sends its whole fragment.
+ * Backpressure does not stop a callback or delay the next one. After
+ * downstream returns Backpressure, `onWrite()` returns Backpressure for each
+ * accepted frame until write-ready. If downstream took one of those frames
+ * without Backpressure, or the handler queued it, the handler asks for another
+ * write-ready round. A writer above that already ran in the round can then
+ * write.
  *
  * A frame that cannot be fragmented goes downstream at once. It can reach the
  * peer before a queued data frame of its stream. `CANCEL` and `ERROR` first
@@ -58,6 +65,8 @@ namespace apache::thrift::fast_thrift::frame::write::handler {
 template <FragmentCompletionTracker Tracker = NoOpFragmentCompletionTracker>
 class FifoFrameFragmentationHandlerT : private folly::NonCopyableNonMovable {
  public:
+  channel_pipeline::WriteReadyHook writeReadyHook_;
+
   explicit FifoFrameFragmentationHandlerT(
       QuantumFragmentationHandlerConfig config = {}) noexcept
       : state_(config) {}
@@ -75,7 +84,8 @@ class FifoFrameFragmentationHandlerT : private folly::NonCopyableNonMovable {
   }
 
   template <typename Context>
-  void handlerRemoved(Context& /*ctx*/) noexcept {
+  void handlerRemoved(Context& ctx) noexcept {
+    cancelAwaitWriteReady(ctx);
     state_.detach();
   }
 
@@ -94,17 +104,30 @@ class FifoFrameFragmentationHandlerT : private folly::NonCopyableNonMovable {
       const uint32_t streamId = frame.streamId;
       return passThrough(ctx, std::move(msg), streamId);
     }
-    if (state_.enqueue(msg.take<ComposedFrame>())) {
-      return channel_pipeline::Result::Success;
+    if (!state_.enqueue(msg.take<ComposedFrame>())) {
+      return channel_pipeline::Result::Error;
     }
-    return channel_pipeline::Result::Error;
+    return acceptedResult();
   }
 
   template <typename Context>
-  void onWriteReady(Context& /*ctx*/) noexcept {}
+  void onWriteReady(Context& ctx) noexcept {
+    const bool blockedWriterAbove = blockedWriterAbove_;
+    cancelAwaitWriteReady(ctx);
+    // A round wakes each handler once. A writer above may have run earlier in
+    // this round and got Backpressure only from this handler. That writer needs
+    // another round now. A writer that got Backpressure from downstream waits
+    // for the next write-ready of downstream. If it got a round here too, a
+    // writer that writes in every round would keep getting rounds while the
+    // transport stays full.
+    if (blockedWriterAbove) {
+      ctx.pipeline()->onWriteReady();
+    }
+  }
 
   template <typename Context>
-  void onPipelineInactive(Context& /*ctx*/) noexcept {
+  void onPipelineInactive(Context& ctx) noexcept {
+    cancelAwaitWriteReady(ctx);
     state_.clearPending();
   }
 
@@ -134,6 +157,8 @@ class FifoFrameFragmentationHandlerT : private folly::NonCopyableNonMovable {
     return state_.isScheduled();
   }
 
+  [[nodiscard]] bool isBackpressured() const noexcept { return backpressured_; }
+
   Tracker& tracker() noexcept { return tracker_; }
 
   using PublishedEvents = typename Tracker::PublishedEvents;
@@ -146,21 +171,51 @@ class FifoFrameFragmentationHandlerT : private folly::NonCopyableNonMovable {
 
  private:
   template <typename Context>
+  void awaitWriteReady(Context& ctx) noexcept {
+    backpressured_ = true;
+    ctx.awaitWriteReady();
+  }
+
+  template <typename Context>
+  void cancelAwaitWriteReady(Context& ctx) noexcept {
+    if (backpressured_) {
+      ctx.cancelAwaitWriteReady();
+      backpressured_ = false;
+    }
+    blockedWriterAbove_ = false;
+  }
+
+  channel_pipeline::Result acceptedResult() noexcept {
+    if (!backpressured_) {
+      return channel_pipeline::Result::Success;
+    }
+    blockedWriterAbove_ = true;
+    return channel_pipeline::Result::Backpressure;
+  }
+
+  template <typename Context>
   [[nodiscard]] channel_pipeline::Result passThrough(
       Context& ctx,
       channel_pipeline::TypeErasedBox&& msg,
       uint32_t streamId) noexcept {
+    tracker_.onFragment(streamId, true);
     const channel_pipeline::Result result = ctx.fireWrite(std::move(msg));
-    if (result != channel_pipeline::Result::Error) {
-      tracker_.onFragment(streamId, true);
+    if (result == channel_pipeline::Result::Error) {
+      tracker_.onFragmentAborted();
+      return result;
     }
-    return result;
+    if (result == channel_pipeline::Result::Backpressure) {
+      awaitWriteReady(ctx);
+      return result;
+    }
+    return acceptedResult();
   }
 
   template <typename Context>
   void flushAndPropagateErrors(Context& ctx) noexcept {
     if (flushOnePass(ctx) == channel_pipeline::Result::Error) {
       state_.stopAfterError();
+      cancelAwaitWriteReady(ctx);
       ctx.fireException(
           folly::make_exception_wrapper<std::runtime_error>(
               "FifoFrameFragmentationHandler: downstream write failed"));
@@ -177,19 +232,27 @@ class FifoFrameFragmentationHandlerT : private folly::NonCopyableNonMovable {
       if (std::optional<FifoStreamQueue::ScheduledFragment> scheduled =
               state_.nextFragment();
           scheduled.has_value()) {
-        if (const channel_pipeline::Result result = ctx.fireWrite(
-                channel_pipeline::erase_and_box(
-                    std::move(scheduled->fragment.outFrame)));
-            result == channel_pipeline::Result::Error) {
-          return result;
-        }
         tracker_.onFragment(
             scheduled->streamId, scheduled->fragment.currentFrameDone);
+        const channel_pipeline::Result result = ctx.fireWrite(
+            channel_pipeline::erase_and_box(
+                std::move(scheduled->fragment.outFrame)));
+        if (result == channel_pipeline::Result::Error) {
+          tracker_.onFragmentAborted();
+          return result;
+        }
+        if (result == channel_pipeline::Result::Backpressure) {
+          awaitWriteReady(ctx);
+        }
       }
     }
     return channel_pipeline::Result::Success;
   }
 
+  bool backpressured_{false};
+  // Set when onWrite() answers Backpressure for a frame that downstream took or
+  // the handler queued. The writer above then waits for this handler alone.
+  bool blockedWriterAbove_{false};
   [[no_unique_address]] Tracker tracker_{};
   FifoFrameFragmentationHandlerState state_;
 };

@@ -81,11 +81,9 @@ concept FrameWriteCompleteEventFactory =
 /**
  * Maps downstream batch completions to original frames.
  *
- * `onFragment()` appends {streamId, isLastFragment} to a FIFO. A caller that
- * records after the downstream write calls it only for a non-Error result. A
- * caller that records before the write calls `onFragmentAborted()` if the
- * result is Error. The caller must abort before another `onFragment()` call
- * because the abort removes the newest record.
+ * `onFragment()` appends {streamId, isLastFragment} to a FIFO.
+ * `onFragmentAborted()` removes the newest record, and does nothing when the
+ * FIFO is empty.
  *
  * Each `BatchWriteComplete` pops `frameCount` records from the front and fires
  * FrameWriteComplete{streamId} for each record whose `isLastFragment` is true.

@@ -21,6 +21,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <deque>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -38,13 +39,133 @@
 #include <folly/logging/test/TestLogHandler.h>
 #include <folly/portability/GMock.h>
 
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Event.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/handler/FifoFrameFragmentationHandler.h>
+#include <thrift/lib/cpp2/fast_thrift/transport/WriteCompletion.h>
 
 namespace apache::thrift::fast_thrift::frame::write::handler {
 namespace {
 
 using namespace testing;
+
+namespace cp = channel_pipeline;
+using cp::test::TestAllocator;
+
+HANDLER_TAG(fifo_fragmentation_test);
+HANDLER_TAG(queueing_writer_test);
+
+class PipelineHeadHandler {
+ public:
+  template <typename Context>
+  cp::Result onWrite(Context&, cp::TypeErasedBox&&) noexcept {
+    ++writeCount_;
+    if (!nextWriteResults_.empty()) {
+      const cp::Result result = nextWriteResults_.front();
+      nextWriteResults_.pop_front();
+      return result;
+    }
+    return writeResult_;
+  }
+
+  void onException(folly::exception_wrapper&&) noexcept {}
+  void handlerAdded() noexcept {}
+  void handlerRemoved() noexcept {}
+  void onPipelineActive() noexcept {}
+  void onPipelineInactive() noexcept {}
+  void onReadReady() noexcept {}
+
+  void setWriteResult(cp::Result result) noexcept { writeResult_ = result; }
+  // The next writes return these results in order, and later writes return
+  // the result of setWriteResult().
+  void setNextWriteResults(std::deque<cp::Result> results) {
+    nextWriteResults_ = std::move(results);
+  }
+  [[nodiscard]] size_t writeCount() const noexcept { return writeCount_; }
+
+ private:
+  cp::Result writeResult_{cp::Result::Success};
+  std::deque<cp::Result> nextWriteResults_;
+  size_t writeCount_{0};
+};
+
+class PipelineTailHandler {
+ public:
+  template <typename Context>
+  cp::Result onRead(Context&, cp::TypeErasedBox&&) noexcept {
+    return cp::Result::Success;
+  }
+
+  void onException(folly::exception_wrapper&&) noexcept {}
+  void handlerAdded() noexcept {}
+  void handlerRemoved() noexcept {}
+  void onPipelineActive() noexcept {}
+  void onPipelineInactive() noexcept {}
+  void onWriteReady() noexcept {
+    ++writeReadyCount_;
+    if (onWriteReady_) {
+      onWriteReady_();
+    }
+  }
+
+  void setOnWriteReady(std::function<void()> onWriteReady) {
+    onWriteReady_ = std::move(onWriteReady);
+  }
+  [[nodiscard]] size_t writeReadyCount() const noexcept {
+    return writeReadyCount_;
+  }
+
+ private:
+  std::function<void()> onWriteReady_;
+  size_t writeReadyCount_{0};
+};
+
+// Handles Backpressure as Backpressure.h asks: it queues the frames that
+// arrive after Backpressure and sends them from onWriteReady(), and it stays
+// registered for write-ready until it has sent them all.
+class QueueingWriter {
+ public:
+  cp::WriteReadyHook writeReadyHook_;
+
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineInactive(Context&) noexcept {}
+
+  template <typename Context>
+  cp::Result onWrite(Context& ctx, cp::TypeErasedBox&& msg) noexcept {
+    if (ctx.isAwaitingWriteReady()) {
+      queued_.push_back(std::move(msg));
+      return cp::Result::Backpressure;
+    }
+    const cp::Result result = ctx.fireWrite(std::move(msg));
+    if (result == cp::Result::Backpressure) {
+      ctx.awaitWriteReady();
+    }
+    return result;
+  }
+
+  template <typename Context>
+  void onWriteReady(Context& ctx) noexcept {
+    while (!queued_.empty()) {
+      cp::TypeErasedBox msg = std::move(queued_.front());
+      queued_.pop_front();
+      if (ctx.fireWrite(std::move(msg)) == cp::Result::Backpressure) {
+        return;
+      }
+    }
+    ctx.cancelAwaitWriteReady();
+  }
+
+ private:
+  std::deque<cp::TypeErasedBox> queued_;
+};
 
 constexpr size_t kStreamQuantum = 64 * 1024;
 constexpr size_t kCallbackBudget = 16 * 1024 * 1024;
@@ -68,7 +189,10 @@ struct RecordingTracker {
     fragments.push_back({streamId, isLastFragment});
   }
 
-  [[maybe_unused]] void onFragmentAborted() noexcept {}
+  void onFragmentAborted() noexcept {
+    ++abortCount;
+    fragments.pop_back();
+  }
 
   [[maybe_unused]] void onFlush() noexcept { ++flushCount; }
 
@@ -84,6 +208,7 @@ struct RecordingTracker {
 
   std::vector<FragmentCall> fragments;
   size_t flushCount{0};
+  size_t abortCount{0};
   std::vector<int> subscribedEvents;
   std::vector<bool> pendingStates;
 };
@@ -91,6 +216,45 @@ struct RecordingTracker {
 static_assert(FragmentCompletionTracker<RecordingTracker>);
 
 using Handler = FifoFrameFragmentationHandlerT<RecordingTracker>;
+
+struct TestBatchWriteCompleteEvent
+    : channel_pipeline::EventTag<TestBatchWriteCompleteEvent> {
+  transport::WriteCompletionStatus status;
+  size_t frameCount;
+  size_t bytes;
+  bool quiesced;
+};
+
+struct TestFrameWriteCompleteEvent
+    : channel_pipeline::EventTag<TestFrameWriteCompleteEvent> {
+  uint32_t streamId;
+  transport::WriteCompletionStatus status;
+  bool quiesced;
+
+  bool operator==(const TestFrameWriteCompleteEvent& other) const noexcept {
+    return streamId == other.streamId && status == other.status &&
+        quiesced == other.quiesced;
+  }
+};
+
+struct TestEventFactory {
+  using BatchWriteCompleteEventType = TestBatchWriteCompleteEvent;
+  using FrameWriteCompleteEventType = TestFrameWriteCompleteEvent;
+
+  static TestFrameWriteCompleteEvent makeFrameWriteComplete(
+      transport::WriteCompletionStatus status,
+      uint32_t streamId,
+      bool quiesced) noexcept {
+    return {
+        .streamId = streamId,
+        .status = status,
+        .quiesced = quiesced,
+    };
+  }
+};
+
+using CompletionHandler = FifoFrameFragmentationHandlerT<
+    FragmentCompletionTrackerT<TestEventFactory>>;
 
 struct CapturedFrame {
   FrameType frameType;
@@ -109,11 +273,7 @@ class TestContext {
 
   channel_pipeline::Result fireWrite(
       channel_pipeline::TypeErasedBox&& msg) noexcept {
-    ++writeAttemptCount_;
-    if (errorAttempt_.has_value() && writeAttemptCount_ == *errorAttempt_) {
-      return channel_pipeline::Result::Error;
-    }
-
+    const size_t attempt = ++writeAttemptCount_;
     const ComposedFrame& frame = msg.get<ComposedFrame>();
     const CapturedFrame captured{
         .frameType = frame.frameType,
@@ -123,6 +283,12 @@ class TestContext {
         .complete = frame.complete,
         .next = frame.next,
     };
+    if (writeAttemptObserver_) {
+      writeAttemptObserver_();
+    }
+    if (errorAttempt_.has_value() && attempt == *errorAttempt_) {
+      return channel_pipeline::Result::Error;
+    }
     written_.push_back(captured);
     if (writeObserver_) {
       writeObserver_(captured);
@@ -132,7 +298,7 @@ class TestContext {
         reentrantWrite) {
       reentrantWrite();
     }
-    return result_;
+    return attempt <= results_.size() ? results_[attempt - 1] : result_;
   }
 
   void fireException(folly::exception_wrapper&& exception) noexcept {
@@ -140,7 +306,27 @@ class TestContext {
     lastException_ = std::move(exception);
   }
 
+  template <channel_pipeline::PipelineEvent E>
+  void fireEvent(const typename E::Payload& event) noexcept {
+    static_assert(std::same_as<E, TestFrameWriteCompleteEvent>);
+    completed_.push_back(event);
+  }
+
+  void awaitWriteReady() noexcept { awaitingWriteReady_ = true; }
+  void cancelAwaitWriteReady() noexcept { awaitingWriteReady_ = false; }
+
+  // Takes the handler's request for another write-ready round. These tests run
+  // no rounds.
+  struct NoPipeline {
+    void onWriteReady() noexcept {}
+  };
+  NoPipeline* pipeline() noexcept { return &pipeline_; }
+
   void setResult(channel_pipeline::Result result) noexcept { result_ = result; }
+
+  void setResults(std::vector<channel_pipeline::Result> results) {
+    results_ = std::move(results);
+  }
 
   void setErrorOnAttempt(size_t attempt) noexcept { errorAttempt_ = attempt; }
 
@@ -150,6 +336,10 @@ class TestContext {
 
   void setWriteObserver(std::function<void(const CapturedFrame&)> observer) {
     writeObserver_ = std::move(observer);
+  }
+
+  void setWriteAttemptObserver(std::function<void()> observer) {
+    writeAttemptObserver_ = std::move(observer);
   }
 
   [[nodiscard]] const std::vector<CapturedFrame>& written() const noexcept {
@@ -164,6 +354,15 @@ class TestContext {
     return fireExceptionCount_;
   }
 
+  [[nodiscard]] bool awaitingWriteReady() const noexcept {
+    return awaitingWriteReady_;
+  }
+
+  [[nodiscard]] const std::vector<TestFrameWriteCompleteEvent>& completed()
+      const noexcept {
+    return completed_;
+  }
+
   [[nodiscard]] const folly::exception_wrapper& lastException() const noexcept {
     return lastException_;
   }
@@ -171,12 +370,17 @@ class TestContext {
  private:
   folly::EventBase* const eventBase_;
   channel_pipeline::Result result_{channel_pipeline::Result::Success};
+  std::vector<channel_pipeline::Result> results_;
   std::optional<size_t> errorAttempt_;
   std::function<void()> reentrantWrite_;
   std::function<void(const CapturedFrame&)> writeObserver_;
+  std::function<void()> writeAttemptObserver_;
   std::vector<CapturedFrame> written_;
+  std::vector<TestFrameWriteCompleteEvent> completed_;
   size_t writeAttemptCount_{0};
   size_t fireExceptionCount_{0};
+  bool awaitingWriteReady_{false};
+  NoPipeline pipeline_;
   folly::exception_wrapper lastException_;
 };
 
@@ -865,6 +1069,21 @@ TEST_F(
   EXPECT_THAT(context_.written(), IsEmpty());
 }
 
+TEST_F(FifoFrameFragmentationHandlerTest, HandlerRemovalCancelsWriteReadyHook) {
+  Handler handler;
+  handler.handlerAdded(context_);
+  context_.setResult(channel_pipeline::Result::Backpressure);
+  (void)handler.onWrite(context_, makeFrame(FrameType::REQUEST_RESPONSE, 1, 1));
+  runLoop();
+  EXPECT_THAT(context_.awaitingWriteReady(), IsTrue());
+
+  handler.handlerRemoved(context_);
+
+  EXPECT_THAT(context_.awaitingWriteReady(), IsFalse());
+  EXPECT_THAT(handler.hasPendingWrites(), IsFalse());
+  EXPECT_THAT(handler.isScheduled(), IsFalse());
+}
+
 TEST_F(
     FifoFrameFragmentationHandlerTest,
     PipelineInactiveCancelsCallbackAndClearsWork) {
@@ -880,6 +1099,43 @@ TEST_F(
   EXPECT_THAT(handler.pendingQueueEntryCount(), Eq(0));
   runLoop();
   EXPECT_THAT(context_.written(), IsEmpty());
+}
+
+TEST_F(
+    FifoFrameFragmentationHandlerTest, PipelineInactiveCancelsWriteReadyHook) {
+  Handler handler;
+  handler.handlerAdded(context_);
+  context_.setResult(channel_pipeline::Result::Backpressure);
+  (void)handler.onWrite(context_, makeFrame(FrameType::REQUEST_RESPONSE, 1, 1));
+  runLoop();
+  EXPECT_THAT(context_.awaitingWriteReady(), IsTrue());
+
+  handler.onPipelineInactive(context_);
+
+  EXPECT_THAT(context_.awaitingWriteReady(), IsFalse());
+  EXPECT_THAT(handler.hasPendingWrites(), IsFalse());
+  EXPECT_THAT(handler.isScheduled(), IsFalse());
+}
+
+TEST_F(
+    FifoFrameFragmentationHandlerTest, DownstreamErrorCancelsWriteReadyHook) {
+  Handler handler;
+  handler.handlerAdded(context_);
+  (void)handler.onWrite(
+      context_, makeFrame(FrameType::PAYLOAD, 1, kStreamQuantum + 1));
+  (void)handler.onWrite(
+      context_, makeFrame(FrameType::PAYLOAD, 3, kStreamQuantum + 1));
+  context_.setResults({channel_pipeline::Result::Backpressure});
+  context_.setErrorOnAttempt(2);
+
+  runLoop();
+
+  EXPECT_THAT(
+      std::tuple(
+          context_.fireExceptionCount(),
+          context_.awaitingWriteReady(),
+          handler.isBackpressured()),
+      Eq(std::tuple(size_t{1}, false, false)));
 }
 
 TEST_F(
@@ -907,6 +1163,190 @@ TEST_F(
   EXPECT_THAT(
       std::string(context_.lastException().what()),
       HasSubstr("FifoFrameFragmentationHandler: downstream write failed"));
+}
+
+TEST_F(FifoFrameFragmentationHandlerTest, BackpressureDoesNotStopThePass) {
+  Handler handler;
+  handler.handlerAdded(context_);
+  context_.setResults(
+      {channel_pipeline::Result::Success,
+       channel_pipeline::Result::Backpressure});
+  for (const uint32_t streamId : {1u, 3u, 5u}) {
+    (void)handler.onWrite(
+        context_,
+        makeFrame(FrameType::REQUEST_RESPONSE, streamId, kStreamQuantum + 1));
+  }
+
+  runLoop();
+
+  EXPECT_THAT(streamIds(context_.written()), ElementsAre(1, 1, 3));
+  EXPECT_THAT(handler.tracker().fragments, SizeIs(3));
+  EXPECT_THAT(
+      std::tuple(
+          handler.isBackpressured(),
+          context_.awaitingWriteReady(),
+          handler.isScheduled()),
+      Eq(std::tuple(true, true, true)));
+}
+
+TEST_F(
+    FifoFrameFragmentationHandlerTest,
+    DataQueuedUnderBackpressureReturnsBackpressure) {
+  Handler handler;
+  handler.handlerAdded(context_);
+  context_.setResult(channel_pipeline::Result::Backpressure);
+  (void)handler.onWrite(context_, makeFrame(FrameType::REQUEST_RESPONSE, 1, 1));
+  runLoop();
+
+  EXPECT_THAT(
+      handler.onWrite(
+          context_,
+          makeFrame(FrameType::REQUEST_RESPONSE, 3, kStreamQuantum + 1)),
+      Eq(channel_pipeline::Result::Backpressure));
+  EXPECT_THAT(
+      std::tuple(handler.hasPendingStream(3), handler.isScheduled()),
+      Eq(std::tuple(true, true)));
+  EXPECT_THAT(streamIds(context_.written()), ElementsAre(1));
+
+  runLoop();
+  EXPECT_THAT(streamIds(context_.written()), ElementsAre(1, 3));
+}
+
+TEST_F(
+    FifoFrameFragmentationHandlerTest,
+    PassThroughBackpressureReportsUntilWriteReady) {
+  Handler handler;
+  handler.handlerAdded(context_);
+  context_.setResults({channel_pipeline::Result::Backpressure});
+
+  EXPECT_THAT(
+      handler.onWrite(context_, makeFrame(FrameType::KEEPALIVE, 0)),
+      Eq(channel_pipeline::Result::Backpressure));
+  EXPECT_THAT(
+      std::tuple(handler.isBackpressured(), context_.awaitingWriteReady()),
+      Eq(std::tuple(true, true)));
+  EXPECT_THAT(
+      handler.onWrite(context_, makeFrame(FrameType::KEEPALIVE, 0)),
+      Eq(channel_pipeline::Result::Backpressure));
+}
+
+TEST_F(
+    FifoFrameFragmentationHandlerTest,
+    WriteReadyClearsBackpressureWithoutSending) {
+  Handler handler;
+  handler.handlerAdded(context_);
+  context_.setResult(channel_pipeline::Result::Backpressure);
+  (void)handler.onWrite(
+      context_, makeFrame(FrameType::REQUEST_RESPONSE, 1, kStreamQuantum + 1));
+  runLoop();
+
+  context_.setResult(channel_pipeline::Result::Success);
+  handler.onWriteReady(context_);
+
+  EXPECT_THAT(
+      std::tuple(
+          context_.awaitingWriteReady(),
+          handler.isBackpressured(),
+          context_.written().size()),
+      Eq(std::tuple(false, false, size_t{1})));
+  EXPECT_THAT(
+      handler.onWrite(context_, makeFrame(FrameType::REQUEST_RESPONSE, 3, 1)),
+      Eq(channel_pipeline::Result::Success));
+}
+
+TEST_F(
+    FifoFrameFragmentationHandlerTest,
+    QueuedInlineCompletionSeesTheFragmentRecord) {
+  CompletionHandler handler;
+  handler.handlerAdded(context_);
+  context_.setWriteAttemptObserver([&] {
+    handler.on<TestBatchWriteCompleteEvent>(
+        context_,
+        TestBatchWriteCompleteEvent{
+            .status = transport::WriteCompletionStatus::Success,
+            .frameCount = 1,
+            .bytes = 1,
+            .quiesced = true,
+        });
+  });
+  (void)handler.onWrite(
+      context_, makeFrame(FrameType::REQUEST_RESPONSE, 1, kStreamQuantum + 1));
+
+  runLoop();
+  runLoop();
+
+  const std::vector<TestFrameWriteCompleteEvent> expected{{
+      .streamId = 1,
+      .status = transport::WriteCompletionStatus::Success,
+      .quiesced = true,
+  }};
+  EXPECT_THAT(context_.completed(), Eq(expected));
+}
+
+TEST_F(
+    FifoFrameFragmentationHandlerTest,
+    PassThroughInlineCompletionSeesTheFragmentRecord) {
+  CompletionHandler handler;
+  handler.handlerAdded(context_);
+  context_.setWriteAttemptObserver([&] {
+    handler.on<TestBatchWriteCompleteEvent>(
+        context_,
+        TestBatchWriteCompleteEvent{
+            .status = transport::WriteCompletionStatus::Success,
+            .frameCount = 1,
+            .bytes = 0,
+            .quiesced = true,
+        });
+  });
+
+  EXPECT_THAT(
+      handler.onWrite(context_, makeFrame(FrameType::KEEPALIVE, 0)),
+      Eq(channel_pipeline::Result::Success));
+
+  const std::vector<TestFrameWriteCompleteEvent> expected{{
+      .streamId = 0,
+      .status = transport::WriteCompletionStatus::Success,
+      .quiesced = true,
+  }};
+  EXPECT_THAT(context_.completed(), Eq(expected));
+}
+
+TEST_F(
+    FifoFrameFragmentationHandlerTest,
+    QueuedWriteErrorAbortsTheRecordedFragment) {
+  Handler handler;
+  handler.handlerAdded(context_);
+  size_t recordsDuringWrite = 0;
+  context_.setWriteAttemptObserver(
+      [&] { recordsDuringWrite = handler.tracker().fragments.size(); });
+  context_.setErrorOnAttempt(1);
+  (void)handler.onWrite(
+      context_, makeFrame(FrameType::REQUEST_RESPONSE, 1, kStreamQuantum + 1));
+
+  runLoop();
+
+  EXPECT_THAT(recordsDuringWrite, Eq(1));
+  EXPECT_THAT(handler.tracker().fragments, IsEmpty());
+  EXPECT_THAT(handler.tracker().abortCount, Eq(1));
+}
+
+TEST_F(
+    FifoFrameFragmentationHandlerTest,
+    PassThroughWriteErrorAbortsTheRecordedFragment) {
+  Handler handler;
+  handler.handlerAdded(context_);
+  size_t recordsDuringWrite = 0;
+  context_.setWriteAttemptObserver(
+      [&] { recordsDuringWrite = handler.tracker().fragments.size(); });
+  context_.setErrorOnAttempt(1);
+
+  EXPECT_THAT(
+      handler.onWrite(context_, makeFrame(FrameType::KEEPALIVE, 0)),
+      Eq(channel_pipeline::Result::Error));
+
+  EXPECT_THAT(recordsDuringWrite, Eq(1));
+  EXPECT_THAT(handler.tracker().fragments, IsEmpty());
+  EXPECT_THAT(handler.tracker().abortCount, Eq(1));
 }
 
 TEST_F(
@@ -971,6 +1411,230 @@ TEST_F(
   runLoop();
 
   EXPECT_THAT(order, ElementsAre(1, 0, 1));
+}
+
+class FifoFrameFragmentationHandlerPipelineTest : public Test {
+ protected:
+  cp::PipelineImpl::Ptr buildDynamicPipeline() {
+    return cp::PipelineBuilder<
+               PipelineHeadHandler,
+               PipelineTailHandler,
+               TestAllocator>()
+        .setEventBase(&eventBase_)
+        .setHead(&transport_)
+        .setTail(&app_)
+        .setAllocator(&allocator_)
+        .addNextOutbound<Handler>(
+            fifo_fragmentation_test_tag, std::make_unique<Handler>())
+        .build();
+  }
+
+  auto buildStaticPipeline() {
+    return cp::StaticPipelineBuilder<
+               PipelineHeadHandler,
+               PipelineTailHandler,
+               TestAllocator>()
+        .setEventBase(&eventBase_)
+        .setHead(&transport_)
+        .setTail(&app_)
+        .setAllocator(&allocator_)
+        .addNextOutbound<Handler>(fifo_fragmentation_test_tag)
+        .build();
+  }
+
+  void verifyHookWiring(auto pipeline) {
+    transport_.setWriteResult(cp::Result::Backpressure);
+    EXPECT_THAT(
+        pipeline->fireWrite(makeFrame(FrameType::REQUEST_RESPONSE, 1, 1)),
+        Eq(cp::Result::Backpressure));
+    EXPECT_THAT(transport_.writeCount(), Eq(1));
+    EXPECT_THAT(pipeline->hasPendingWriteReady(), IsTrue());
+
+    EXPECT_THAT(
+        pipeline->fireWrite(
+            makeFrame(FrameType::REQUEST_RESPONSE, 3, kStreamQuantum + 1)),
+        Eq(cp::Result::Backpressure));
+    EXPECT_THAT(transport_.writeCount(), Eq(1));
+
+    transport_.setWriteResult(cp::Result::Success);
+    pipeline->onWriteReady();
+    EXPECT_THAT(pipeline->hasPendingWriteReady(), IsFalse());
+    EXPECT_THAT(transport_.writeCount(), Eq(1));
+    eventBase_.loopOnce(EVLOOP_NONBLOCK);
+    EXPECT_THAT(transport_.writeCount(), Eq(2));
+  }
+
+  cp::PipelineImpl::Ptr buildDynamicPipelineWithWriterAbove() {
+    return cp::PipelineBuilder<
+               PipelineHeadHandler,
+               PipelineTailHandler,
+               TestAllocator>()
+        .setEventBase(&eventBase_)
+        .setHead(&transport_)
+        .setTail(&app_)
+        .setAllocator(&allocator_)
+        .addNextOutbound<Handler>(
+            fifo_fragmentation_test_tag, std::make_unique<Handler>())
+        .addNextOutbound<QueueingWriter>(
+            queueing_writer_test_tag, std::make_unique<QueueingWriter>())
+        .build();
+  }
+
+  auto buildStaticPipelineWithWriterAbove() {
+    return cp::StaticPipelineBuilder<
+               PipelineHeadHandler,
+               PipelineTailHandler,
+               TestAllocator>()
+        .setEventBase(&eventBase_)
+        .setHead(&transport_)
+        .setTail(&app_)
+        .setAllocator(&allocator_)
+        .addNextOutbound<Handler>(fifo_fragmentation_test_tag)
+        .addNextOutbound<QueueingWriter>(queueing_writer_test_tag)
+        .build();
+  }
+
+  // A write-ready pass wakes each registered handler once, in the order they
+  // registered. Here the writer above runs first while the fragmenter is still
+  // blocked, so it gets Backpressure and keeps its last frame. Then the
+  // fragmenter clears its block, and the writer must still get to send it.
+  void verifyWriterAboveSendsItsQueueAfterTheBlockClears(auto pipeline) {
+    transport_.setWriteResult(cp::Result::Backpressure);
+    for (const uint32_t streamId : {1, 3, 5, 7}) {
+      EXPECT_THAT(
+          pipeline->fireWrite(
+              makeFrame(FrameType::REQUEST_RESPONSE, streamId, 50)),
+          Eq(cp::Result::Backpressure));
+    }
+    EXPECT_THAT(transport_.writeCount(), Eq(1));
+
+    // The first write of the next pass fills the transport again. The
+    // fragmenter then registers again, behind the writer.
+    transport_.setWriteResult(cp::Result::Success);
+    transport_.setNextWriteResults({cp::Result::Backpressure});
+    pipeline->onWriteReady();
+    pipeline->onWriteReady();
+
+    EXPECT_THAT(
+        std::tuple(transport_.writeCount(), pipeline->hasPendingWriteReady()),
+        Eq(std::tuple(size_t{4}, false)));
+  }
+
+  folly::EventBase eventBase_;
+  PipelineHeadHandler transport_;
+  PipelineTailHandler app_;
+  TestAllocator allocator_;
+};
+
+TEST_F(
+    FifoFrameFragmentationHandlerPipelineTest,
+    DynamicPipelineWiresWriteReadyHook) {
+  verifyHookWiring(buildDynamicPipeline());
+}
+
+TEST_F(
+    FifoFrameFragmentationHandlerPipelineTest,
+    StaticPipelineWiresWriteReadyHook) {
+  verifyHookWiring(buildStaticPipeline());
+}
+
+TEST_F(
+    FifoFrameFragmentationHandlerPipelineTest,
+    DynamicPipelineLetsTheWriterAboveSendAfterTheBlockClears) {
+  verifyWriterAboveSendsItsQueueAfterTheBlockClears(
+      buildDynamicPipelineWithWriterAbove());
+}
+
+TEST_F(
+    FifoFrameFragmentationHandlerPipelineTest,
+    StaticPipelineLetsTheWriterAboveSendAfterTheBlockClears) {
+  verifyWriterAboveSendsItsQueueAfterTheBlockClears(
+      buildStaticPipelineWithWriterAbove());
+}
+
+TEST_F(
+    FifoFrameFragmentationHandlerPipelineTest,
+    TheWriterAboveSendsAfterAFrameQueuedWhileBlocked) {
+  auto pipeline = buildDynamicPipelineWithWriterAbove();
+  transport_.setWriteResult(cp::Result::Backpressure);
+  (void)pipeline->fireWrite(makeFrame(FrameType::REQUEST_RESPONSE, 1, 50));
+  for (const uint32_t streamId : {3, 5, 7}) {
+    (void)pipeline->fireWrite(makeFrame(
+        FrameType::REQUEST_RESPONSE,
+        streamId,
+        streamId == 5 ? kStreamQuantum + 1 : 50));
+  }
+
+  // Stream 3 fills the transport again. In the next pass the writer above
+  // sends stream 5, which the fragmenter queues because it does not fit in
+  // one quantum.
+  transport_.setWriteResult(cp::Result::Success);
+  transport_.setNextWriteResults({cp::Result::Backpressure});
+  pipeline->onWriteReady();
+  pipeline->onWriteReady();
+
+  EXPECT_THAT(
+      std::tuple(transport_.writeCount(), pipeline->hasPendingWriteReady()),
+      Eq(std::tuple(size_t{3}, false)));
+}
+
+TEST_F(
+    FifoFrameFragmentationHandlerPipelineTest,
+    AFullTransportGetsOneWriteReadyRound) {
+  auto pipeline = buildDynamicPipeline();
+  transport_.setWriteResult(cp::Result::Backpressure);
+  EXPECT_THAT(
+      pipeline->fireWrite(makeFrame(FrameType::REQUEST_RESPONSE, 1, 50)),
+      Eq(cp::Result::Backpressure));
+  // The application writes one more reply each time it hears write-ready, and
+  // the transport stays full. The cap only keeps a failing run finite.
+  uint32_t nextStreamId = 3;
+  app_.setOnWriteReady([&] {
+    if (nextStreamId <= 21) {
+      (void)pipeline->fireWrite(
+          makeFrame(FrameType::REQUEST_RESPONSE, nextStreamId, 50));
+      nextStreamId += 2;
+    }
+  });
+
+  pipeline->onWriteReady();
+
+  EXPECT_THAT(
+      std::tuple(app_.writeReadyCount(), transport_.writeCount()),
+      Eq(std::tuple(size_t{1}, size_t{2})));
+}
+
+TEST_F(
+    FifoFrameFragmentationHandlerPipelineTest,
+    TwoWritesPerWakeGetOneRoundPerWriteReady) {
+  auto pipeline = buildDynamicPipeline();
+  transport_.setWriteResult(cp::Result::Backpressure);
+  EXPECT_THAT(
+      pipeline->fireWrite(makeFrame(FrameType::REQUEST_RESPONSE, 1, 50)),
+      Eq(cp::Result::Backpressure));
+  // The application writes two more replies each time it hears write-ready,
+  // and the transport stays full. So the second reply reaches the handler
+  // after the first one blocked it again. The cap only keeps a failing run
+  // finite.
+  uint32_t nextStreamId = 3;
+  const auto writeReply = [&] {
+    if (nextStreamId <= 41) {
+      (void)pipeline->fireWrite(
+          makeFrame(FrameType::REQUEST_RESPONSE, nextStreamId, 50));
+      nextStreamId += 2;
+    }
+  };
+  app_.setOnWriteReady([&] {
+    writeReply();
+    writeReply();
+  });
+
+  pipeline->onWriteReady();
+  pipeline->onWriteReady();
+
+  EXPECT_THAT(
+      std::tuple(app_.writeReadyCount(), transport_.writeCount()),
+      Eq(std::tuple(size_t{2}, size_t{5})));
 }
 
 } // namespace
