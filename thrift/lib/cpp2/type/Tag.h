@@ -26,6 +26,7 @@
 #pragma once
 
 #include <cstdint>
+#include <type_traits>
 
 namespace apache::thrift::type {
 
@@ -102,6 +103,53 @@ template <
     typename T, // the C++ type to use
     typename Tag> // the thrift type being overridden
 struct cpp_type : Tag {};
+
+namespace detail {
+template <typename T, typename Tag>
+struct CppPmrType {
+  using type = Tag;
+};
+template <typename T, typename U, typename Tag>
+struct CppPmrType<T, cpp_type<U, Tag>>
+    : std::conditional_t<
+          std::is_same_v<T, U>,
+          std::type_identity<cpp_type<U, Tag>>,
+          CppPmrType<T, Tag>> {};
+template <typename T>
+struct CppPmrType<T, string_t> {
+  using type = cpp_type<T, string_t>;
+};
+template <typename T>
+struct CppPmrType<T, binary_t> {
+  using type = cpp_type<T, binary_t>;
+};
+template <typename T, typename VTag>
+struct CppPmrType<T, list<VTag>> {
+  using type = cpp_type<
+      T,
+      list<typename CppPmrType<typename T::value_type, VTag>::type>>;
+};
+template <typename T, typename KTag>
+struct CppPmrType<T, set<KTag>> {
+  using type =
+      cpp_type<T, set<typename CppPmrType<typename T::key_type, KTag>::type>>;
+};
+template <typename T, typename KTag, typename VTag>
+struct CppPmrType<T, map<KTag, VTag>> {
+  using type = cpp_type<
+      T,
+      map<typename CppPmrType<typename T::key_type, KTag>::type,
+          typename CppPmrType<typename T::mapped_type, VTag>::type>>;
+};
+} // namespace detail
+
+// The tag of a C++ type `T` of the thrift type `Tag` whose strings and
+// containers at every level may differ from those of `Tag`, as with
+// `@cpp.Arena`: each string, binary and container level is a `cpp_type` of the
+// corresponding member type of `T` (`value_type`, `key_type`, `mapped_type`).
+// A `cpp_type` level that already names that member type is kept as is.
+template <typename T, typename Tag>
+using cpp_pmr_type = typename detail::CppPmrType<T, Tag>::type;
 
 template <typename T> // the generated C++ type
 struct service_t : service_c {};
