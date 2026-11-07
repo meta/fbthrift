@@ -405,8 +405,6 @@ struct CompactProtocolReader::StructReadState {
   apache::thrift::protocol::TType fieldType;
   // bool boolValue;
 
-  constexpr static bool kAcceptsContext = false;
-
   void readStructBegin(CompactProtocolReader* iprot) {
     iprot->readStructBeginWithState(*this);
   }

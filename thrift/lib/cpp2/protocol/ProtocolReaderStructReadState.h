@@ -32,8 +32,6 @@ struct ProtocolReaderStructReadState {
   int16_t fieldId;
   apache::thrift::protocol::TType fieldType;
 
-  constexpr static bool kAcceptsContext = false;
-
   void readStructBegin(Protocol* iprot) { iprot->readStructBegin(fieldName_); }
 
   void readStructEnd(Protocol* iprot) { iprot->readStructEnd(); }
