@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <memory>
 #include <string>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -104,6 +105,7 @@ HANDLER_TAG(read_ready_target_static);
 HANDLER_TAG(read_ready_reentrant_static);
 HANDLER_TAG(reentrant_close_static);
 HANDLER_TAG(await_before_forward_static);
+HANDLER_TAG(inserted_static);
 
 class TraceHandler {
  public:
@@ -1748,6 +1750,213 @@ TEST(StaticPipelineTest, InlineAllocatorConstructedWithoutHeap) {
     EXPECT_EQ(OwnedStaticAllocator::heapAllocations, 0);
   }
   EXPECT_EQ(OwnedStaticAllocator::destructions, 1);
+}
+
+struct ReplaceSecondHandler {
+  using Tags = std::tuple<decltype(second_static_tag)>;
+
+  template <typename Builder>
+  static auto add(
+      Builder&& builder,
+      decltype(second_static_tag) tag,
+      std::vector<std::string>* trace,
+      const char*) {
+    return std::forward<Builder>(builder).template addNextDuplex<TraceHandler>(
+        tag, trace, "replacement");
+  }
+};
+
+struct InsertBeforeSecondHandler {
+  using Tags = std::tuple<decltype(second_static_tag)>;
+
+  template <typename Builder>
+  static auto add(
+      Builder&& builder,
+      decltype(second_static_tag) tag,
+      std::vector<std::string>* trace,
+      const char* name) {
+    return std::forward<Builder>(builder)
+        .template addNextDuplex<TraceHandler>(
+            inserted_static_tag, trace, "inserted")
+        .template addNextDuplex<TraceHandler>(tag, trace, name);
+  }
+};
+
+template <typename Overrides>
+auto buildTracePipeline(
+    folly::EventBase& eventBase,
+    StaticHeadHandler& head,
+    StaticTailHandler& tail,
+    TestAllocator& allocator,
+    std::vector<std::string>& trace) {
+  return StaticPipelineBuilder<
+             StaticHeadHandler,
+             StaticTailHandler,
+             TestAllocator>()
+      .setEventBase(&eventBase)
+      .setHead(&head)
+      .setTail(&tail)
+      .setAllocator(&allocator)
+      .template withHandlerOverrides<Overrides>()
+      .template addNextDuplex<TraceHandler>(first_static_tag, &trace, "first")
+      .template addNextDuplex<TraceHandler>(second_static_tag, &trace, "second")
+      .build();
+}
+
+TEST(StaticPipelineTest, HandlerOverridesReplaceHandlerWithSameTag) {
+  folly::EventBase eventBase;
+  StaticHeadHandler head;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+  std::vector<std::string> trace;
+
+  auto pipeline = buildTracePipeline<ReplaceSecondHandler>(
+      eventBase, head, tail, allocator, trace);
+  EXPECT_THAT(pipeline->fireRead(TypeErasedBox{1}), Eq(Result::Success));
+
+  EXPECT_THAT(pipeline->handlerCount(), Eq(2));
+  EXPECT_THAT(
+      trace,
+      ElementsAre(
+          "first.added",
+          "replacement.added",
+          "first.read",
+          "replacement.read"));
+}
+
+TEST(StaticPipelineTest, HandlerOverridesInsertHandlerBesideReplacedOne) {
+  folly::EventBase eventBase;
+  StaticHeadHandler head;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+  std::vector<std::string> trace;
+
+  auto pipeline = buildTracePipeline<InsertBeforeSecondHandler>(
+      eventBase, head, tail, allocator, trace);
+  EXPECT_THAT(pipeline->fireRead(TypeErasedBox{1}), Eq(Result::Success));
+
+  EXPECT_THAT(pipeline->handlerCount(), Eq(3));
+  EXPECT_THAT(
+      trace,
+      ElementsAre(
+          "first.added",
+          "inserted.added",
+          "second.added",
+          "first.read",
+          "inserted.read",
+          "second.read"));
+}
+
+struct RenameFirstAndSecondHandlers {
+  using Tags =
+      std::tuple<decltype(first_static_tag), decltype(second_static_tag)>;
+
+  template <typename Builder, typename Tag>
+  static auto add(
+      Builder&& builder,
+      Tag tag,
+      std::vector<std::string>* trace,
+      const char* name) {
+    return std::forward<Builder>(builder).template addNextDuplex<TraceHandler>(
+        tag, trace, std::string(name) + "-replacement");
+  }
+};
+
+TEST(StaticPipelineTest, HandlerOverridesReplaceHandlersAroundAKeptOne) {
+  folly::EventBase eventBase;
+  StaticHeadHandler head;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+  std::vector<std::string> trace;
+
+  auto pipeline =
+      StaticPipelineBuilder<
+          StaticHeadHandler,
+          StaticTailHandler,
+          TestAllocator>()
+          .setEventBase(&eventBase)
+          .setHead(&head)
+          .setTail(&tail)
+          .setAllocator(&allocator)
+          .withHandlerOverrides<RenameFirstAndSecondHandlers>()
+          .addNextDuplex<TraceHandler>(first_static_tag, &trace, "first")
+          .addNextDuplex<TraceHandler>(inserted_static_tag, &trace, "kept")
+          .addNextDuplex<TraceHandler>(second_static_tag, &trace, "second")
+          .build();
+  EXPECT_THAT(pipeline->fireRead(TypeErasedBox{1}), Eq(Result::Success));
+
+  EXPECT_THAT(
+      trace,
+      ElementsAre(
+          "first-replacement.added",
+          "kept.added",
+          "second-replacement.added",
+          "first-replacement.read",
+          "kept.read",
+          "second-replacement.read"));
+}
+
+struct DoubleStatefulHandler {
+  using Tags = std::tuple<decltype(state_static_tag)>;
+
+  template <typename Builder>
+  static auto add(Builder&& builder, decltype(state_static_tag) tag) {
+    return std::forward<Builder>(builder)
+        .template addNextDuplexTemplate<StatefulHandler>(inserted_static_tag)
+        .template addNextDuplexTemplate<StatefulHandler>(tag);
+  }
+};
+
+TEST(StaticPipelineTest, HandlerOverridesReplaceTemplateHandler) {
+  folly::EventBase eventBase;
+  StaticHeadHandler head;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+
+  auto pipeline = StaticPipelineBuilder<
+                      StaticHeadHandler,
+                      StaticTailHandler,
+                      TestAllocator>()
+                      .setEventBase(&eventBase)
+                      .setHead(&head)
+                      .setTail(&tail)
+                      .setAllocator(&allocator)
+                      .addState<PipelineState>()
+                      .withHandlerOverrides<DoubleStatefulHandler>()
+                      .addNextDuplexTemplate<StatefulHandler>(state_static_tag)
+                      .build();
+  EXPECT_THAT(pipeline->fireRead(TypeErasedBox{1}), Eq(Result::Success));
+
+  EXPECT_THAT(pipeline->state<PipelineState>().reads, Eq(2));
+}
+
+TEST(StaticPipelineTest, HandlerOverridesStayOutOfPipelineType) {
+  folly::EventBase eventBase;
+  StaticHeadHandler head;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+  std::vector<std::string> trace;
+
+  auto plain =
+      StaticPipelineBuilder<
+          StaticHeadHandler,
+          StaticTailHandler,
+          TestAllocator>()
+          .setEventBase(&eventBase)
+          .setHead(&head)
+          .setTail(&tail)
+          .setAllocator(&allocator)
+          .addNextDuplex<TraceHandler>(first_static_tag, &trace, "first")
+          .addNextDuplex<TraceHandler>(second_static_tag, &trace, "second")
+          .build();
+  auto withoutOverrides = buildTracePipeline<NoHandlerOverrides>(
+      eventBase, head, tail, allocator, trace);
+  auto replaced = buildTracePipeline<ReplaceSecondHandler>(
+      eventBase, head, tail, allocator, trace);
+
+  EXPECT_THAT(
+      (std::is_same_v<decltype(plain), decltype(withoutOverrides)>), IsTrue());
+  EXPECT_THAT((std::is_same_v<decltype(plain), decltype(replaced)>), IsTrue());
 }
 
 } // namespace

@@ -32,11 +32,30 @@
 
 namespace apache::thrift::fast_thrift::channel_pipeline {
 
+/** Replaces no handler. See StaticPipelineBuilder::withHandlerOverrides(). */
+struct NoHandlerOverrides {
+  using Tags = std::tuple<>;
+};
+
 namespace detail {
 struct StaticPipelineBuilderRebindTag {};
 
 template <HandlerId Id, typename... Entry>
 inline constexpr bool kStaticHandlerIdUnique = ((Entry::Spec::id != Id) && ...);
+
+template <typename Tags, HandlerId Id>
+inline constexpr bool kOverridesHandler = false;
+
+template <typename... Tag, HandlerId Id>
+inline constexpr bool kOverridesHandler<std::tuple<Tag...>, Id> =
+    ((Tag::id == Id) || ...);
+
+template <typename Tags, typename... Entry>
+inline constexpr bool kOverriddenHandlersBuilt = false;
+
+template <typename... Tag, typename... Entry>
+inline constexpr bool kOverriddenHandlersBuilt<std::tuple<Tag...>, Entry...> =
+    (!kStaticHandlerIdUnique<Tag::id, Entry...> && ...);
 } // namespace detail
 
 /** Builder for a pipeline whose handler types, IDs, and order are fixed. */
@@ -46,11 +65,19 @@ template <
     typename Allocator = SimpleBufferAllocator,
     typename StateTuple = std::tuple<>,
     typename StaticHandlerConfig = detail::NoErasedStaticHandlers,
+    typename Overrides = NoHandlerOverrides,
     typename... Entry>
 class StaticPipelineBuilder {
   static_assert(BufferAllocator<Allocator>);
 
-  template <typename, typename, typename, typename, typename, typename...>
+  template <
+      typename,
+      typename,
+      typename,
+      typename,
+      typename,
+      typename,
+      typename...>
   friend class StaticPipelineBuilder;
 
  public:
@@ -161,7 +188,8 @@ class StaticPipelineBuilder {
         TailHandler,
         Allocator,
         NewStateTuple,
-        StaticHandlerConfig>(
+        StaticHandlerConfig,
+        Overrides>(
         detail::StaticPipelineBuilderRebindTag{},
         eventBase_,
         std::move(headSource_),
@@ -173,6 +201,31 @@ class StaticPipelineBuilder {
             std::tuple<T>(T(std::forward<Args>(args)...))),
         std::move(staticHandlers_),
         std::move(staticSegments_));
+  }
+
+  /**
+   * Lets `NewOverrides` replace handlers that later addNext*() calls add, so
+   * that a production pipeline can run with other handlers. It must come
+   * before the first addNext*() call, and does not compile after one. A later
+   * call replaces `NewOverrides` instead of adding to it.
+   *
+   * `NewOverrides::Tags` is a `std::tuple` of `HandlerTag` types. For a handler
+   * with one of those tags, the builder calls
+   * `NewOverrides::add(builder, tag, args...)` with the arguments of that
+   * addNext*() call.
+   *
+   * `add()` must add a handler with `tag`, or build() does not compile. It can
+   * add more handlers around that handler, and the builder does not replace
+   * them again. The handlers that `add()` adds are part of the pipeline type,
+   * and `NewOverrides` itself is not.
+   *
+   * build() also does not compile if a tag in `Tags` appears in no addNext*()
+   * call.
+   */
+  template <typename NewOverrides>
+    requires(sizeof...(Entry) == 0)
+  auto withHandlerOverrides() && {
+    return std::move(*this).template rebindOverrides<NewOverrides>();
   }
 
   template <typename H, HandlerId Id, typename... Args>
@@ -237,6 +290,7 @@ class StaticPipelineBuilder {
         Allocator,
         StateTuple,
         Config,
+        Overrides,
         Entry...>(
         detail::StaticPipelineBuilderRebindTag{},
         eventBase_,
@@ -263,6 +317,7 @@ class StaticPipelineBuilder {
         Allocator,
         StateTuple,
         Config,
+        Overrides,
         Entry...>(
         detail::StaticPipelineBuilderRebindTag{},
         eventBase_,
@@ -276,6 +331,9 @@ class StaticPipelineBuilder {
   }
 
   auto build() && {
+    static_assert(
+        detail::kOverriddenHandlersBuilt<typename Overrides::Tags, Entry...>,
+        "each tag in Overrides::Tags must name a handler of the pipeline");
     validateRequired();
     validateHandlerIds();
     using Impl = detail::StaticPipelineImpl<
@@ -305,30 +363,36 @@ class StaticPipelineBuilder {
       HandlerId Id,
       typename... Args>
   auto addHandler(Args&&... args) && {
-    static_assert(
-        detail::kStaticHandlerIdUnique<Id, Entry...>,
-        "static pipeline handler IDs must be unique");
-    using NewEntry =
-        detail::StaticHandlerFactory<H, Id, Direction, std::decay_t<Args>...>;
-    return StaticPipelineBuilder<
-        HeadHandler,
-        TailHandler,
-        Allocator,
-        StateTuple,
-        StaticHandlerConfig,
-        Entry...,
-        NewEntry>(
-        detail::StaticPipelineBuilderRebindTag{},
-        eventBase_,
-        std::move(headSource_),
-        std::move(tailSource_),
-        std::move(allocatorSource_),
-        std::tuple_cat(
-            std::move(factories_),
-            std::tuple<NewEntry>(NewEntry(std::forward<Args>(args)...))),
-        std::move(stateTuple_),
-        std::move(staticHandlers_),
-        std::move(staticSegments_));
+    if constexpr (detail::kOverridesHandler<typename Overrides::Tags, Id>) {
+      return std::move(*this).template addOverride<Id>(
+          std::forward<Args>(args)...);
+    } else {
+      static_assert(
+          detail::kStaticHandlerIdUnique<Id, Entry...>,
+          "static pipeline handler IDs must be unique");
+      using NewEntry =
+          detail::StaticHandlerFactory<H, Id, Direction, std::decay_t<Args>...>;
+      return StaticPipelineBuilder<
+          HeadHandler,
+          TailHandler,
+          Allocator,
+          StateTuple,
+          StaticHandlerConfig,
+          Overrides,
+          Entry...,
+          NewEntry>(
+          detail::StaticPipelineBuilderRebindTag{},
+          eventBase_,
+          std::move(headSource_),
+          std::move(tailSource_),
+          std::move(allocatorSource_),
+          std::tuple_cat(
+              std::move(factories_),
+              std::tuple<NewEntry>(NewEntry(std::forward<Args>(args)...))),
+          std::move(stateTuple_),
+          std::move(staticHandlers_),
+          std::move(staticSegments_));
+    }
   }
 
   template <
@@ -337,30 +401,68 @@ class StaticPipelineBuilder {
       HandlerId Id,
       typename... Args>
   auto addHandlerTemplate(Args&&... args) && {
-    static_assert(
-        detail::kStaticHandlerIdUnique<Id, Entry...>,
-        "static pipeline handler IDs must be unique");
-    using NewEntry = detail::
-        StaticHandlerTemplateFactory<H, Id, Direction, std::decay_t<Args>...>;
+    if constexpr (detail::kOverridesHandler<typename Overrides::Tags, Id>) {
+      return std::move(*this).template addOverride<Id>(
+          std::forward<Args>(args)...);
+    } else {
+      static_assert(
+          detail::kStaticHandlerIdUnique<Id, Entry...>,
+          "static pipeline handler IDs must be unique");
+      using NewEntry = detail::
+          StaticHandlerTemplateFactory<H, Id, Direction, std::decay_t<Args>...>;
+      return StaticPipelineBuilder<
+          HeadHandler,
+          TailHandler,
+          Allocator,
+          StateTuple,
+          StaticHandlerConfig,
+          Overrides,
+          Entry...,
+          NewEntry>(
+          detail::StaticPipelineBuilderRebindTag{},
+          eventBase_,
+          std::move(headSource_),
+          std::move(tailSource_),
+          std::move(allocatorSource_),
+          std::tuple_cat(
+              std::move(factories_),
+              std::tuple<NewEntry>(NewEntry(std::forward<Args>(args)...))),
+          std::move(stateTuple_),
+          std::move(staticHandlers_),
+          std::move(staticSegments_));
+    }
+  }
+
+  template <typename NewOverrides>
+  auto rebindOverrides() && {
     return StaticPipelineBuilder<
         HeadHandler,
         TailHandler,
         Allocator,
         StateTuple,
         StaticHandlerConfig,
-        Entry...,
-        NewEntry>(
+        NewOverrides,
+        Entry...>(
         detail::StaticPipelineBuilderRebindTag{},
         eventBase_,
         std::move(headSource_),
         std::move(tailSource_),
         std::move(allocatorSource_),
-        std::tuple_cat(
-            std::move(factories_),
-            std::tuple<NewEntry>(NewEntry(std::forward<Args>(args)...))),
+        std::move(factories_),
         std::move(stateTuple_),
         std::move(staticHandlers_),
         std::move(staticSegments_));
+  }
+
+  // The override adds its handlers through a builder without overrides, so its
+  // own addNext*() calls go through unchanged.
+  template <HandlerId Id, typename... Args>
+  auto addOverride(Args&&... args) && {
+    return Overrides::add(
+               std::move(*this).template rebindOverrides<NoHandlerOverrides>(),
+               HandlerTag<Id>{},
+               std::forward<Args>(args)...)
+        .template rebindOverrides<Overrides>();
   }
 
   void validateRequired() const {
