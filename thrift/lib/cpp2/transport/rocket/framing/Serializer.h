@@ -133,7 +133,7 @@ class HeaderSerializer {
   template <class T>
   size_t writeBE(T value) {
     constexpr auto size = sizeof(T);
-    if (FOLLY_LIKELY(canWrite(size))) {
+    if (canWrite(size)) [[likely]] {
       T big_endian_value = folly::Endian::big(value);
       std::memcpy(buf_ + pos_, &big_endian_value, size);
       incrementPosition(size);
@@ -153,7 +153,7 @@ class HeaderSerializer {
   }
 
   size_t writeFrameOrMetadataSize(size_t nbytes) {
-    if (FOLLY_LIKELY(canWrite(kBytesForFrameOrMetadataLength))) {
+    if (canWrite(kBytesForFrameOrMetadataLength)) [[likely]] {
       writeInt24BE(nbytes);
       incrementPosition(kBytesForFrameOrMetadataLength);
       return kBytesForFrameOrMetadataLength;

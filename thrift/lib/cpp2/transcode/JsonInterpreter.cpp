@@ -54,14 +54,13 @@ void writeJsonObjectMapKey(
     int64_t enumValue = 0;
     const auto* enumNames =
         keyOp.enumNames != nullptr ? &keyOp.enumNames->values : nullptr;
-    if (FOLLY_UNLIKELY(
-            !thrift_transcode_parse_json_object_enum_key(
-                key, enumNames, enumValue) ||
-            !intFits(keyOp.valueKind, enumValue))) {
+    if (!thrift_transcode_parse_json_object_enum_key(
+            key, enumNames, enumValue) ||
+        !intFits(keyOp.valueKind, enumValue)) [[unlikely]] {
       detail::setError(c, 1);
       return;
     }
-    if (FOLLY_UNLIKELY(!writeScalarInt(c, keyOp, enumValue))) {
+    if (!writeScalarInt(c, keyOp, enumValue)) [[unlikely]] {
       return;
     }
     return;
@@ -71,18 +70,18 @@ void writeJsonObjectMapKey(
     detail::setError(c, 90);
     return;
   }
-  if (FOLLY_UNLIKELY(!writeScalarBytes(
+  if (!writeScalarBytes(
           c,
           keyOp.writeFn,
           reinterpret_cast<const uint8_t*>(key.data()),
-          key.size()))) {
+          key.size())) [[unlikely]] {
     return;
   }
 }
 
 void writeJsonObjectEnumKey(
     TranscodeCursor* c, const ScalarOp& keyOp, int64_t enumValue) {
-  if (FOLLY_UNLIKELY(!intFits(keyOp.valueKind, enumValue))) {
+  if (!intFits(keyOp.valueKind, enumValue)) [[unlikely]] {
     detail::setError(c, 1);
     return;
   }
@@ -102,7 +101,7 @@ void writeJsonObjectEnumKey(
 void writeJsonObjectMapTargetKey(TranscodeCursor* c, const ScalarOp& keyOp) {
   if (keyOp.valueKind == ValueKind::Enum) {
     int64_t enumValue = 0;
-    if (FOLLY_UNLIKELY(!readScalarInt(c, keyOp, 0, &enumValue))) {
+    if (!readScalarInt(c, keyOp, 0, &enumValue)) [[unlikely]] {
       return;
     }
     writeJsonObjectEnumKey(c, keyOp, enumValue);
@@ -124,12 +123,12 @@ void execJsonObjectMap(TranscodeCursor* c, const MapOp& op) {
   }
 
   thrift_transcode_json_skip_whitespace(c);
-  if (FOLLY_UNLIKELY(!thrift_transcode_json_expect_byte(c, '{'))) {
+  if (!thrift_transcode_json_expect_byte(c, '{')) [[unlikely]] {
     return;
   }
   thrift_transcode_json_skip_whitespace(c);
   if (thrift_transcode_json_peek(c) == '}') {
-    if (FOLLY_UNLIKELY(!thrift_transcode_json_expect_byte(c, '}'))) {
+    if (!thrift_transcode_json_expect_byte(c, '}')) [[unlikely]] {
       return;
     }
     writeMapHeader(c, op.writeFraming, 0, op.writeKeyType, op.writeValueType);
@@ -148,7 +147,7 @@ void execJsonObjectMap(TranscodeCursor* c, const MapOp& op) {
       break;
     }
     if (!first) {
-      if (FOLLY_UNLIKELY(!thrift_transcode_json_expect_byte(c, ','))) {
+      if (!thrift_transcode_json_expect_byte(c, ',')) [[unlikely]] {
         return;
       }
       thrift_transcode_json_skip_whitespace(c);
@@ -156,12 +155,12 @@ void execJsonObjectMap(TranscodeCursor* c, const MapOp& op) {
     first = false;
 
     std::string key;
-    if (FOLLY_UNLIKELY(!thrift_transcode_read_json_object_key(c, key))) {
+    if (!thrift_transcode_read_json_object_key(c, key)) [[unlikely]] {
       return;
     }
 
     thrift_transcode_json_skip_whitespace(c);
-    if (FOLLY_UNLIKELY(!thrift_transcode_json_expect_byte(c, ':'))) {
+    if (!thrift_transcode_json_expect_byte(c, ':')) [[unlikely]] {
       return;
     }
 
@@ -175,7 +174,7 @@ void execJsonObjectMap(TranscodeCursor* c, const MapOp& op) {
     }
     ++count;
   }
-  if (FOLLY_UNLIKELY(!thrift_transcode_json_expect_byte(c, '}'))) {
+  if (!thrift_transcode_json_expect_byte(c, '}')) [[unlikely]] {
     return;
   }
   patchNonEmptyMapHeader(
@@ -183,7 +182,7 @@ void execJsonObjectMap(TranscodeCursor* c, const MapOp& op) {
 }
 
 void execJsonKeyValueArrayEntry(TranscodeCursor* c, const MapOp& op) {
-  if (FOLLY_UNLIKELY(!thrift_transcode_json_expect_byte(c, '{'))) {
+  if (!thrift_transcode_json_expect_byte(c, '{')) [[unlikely]] {
     return;
   }
 
@@ -199,7 +198,7 @@ void execJsonKeyValueArrayEntry(TranscodeCursor* c, const MapOp& op) {
       break;
     }
     if (!first) {
-      if (FOLLY_UNLIKELY(!thrift_transcode_json_expect_byte(c, ','))) {
+      if (!thrift_transcode_json_expect_byte(c, ',')) [[unlikely]] {
         return;
       }
       thrift_transcode_json_skip_whitespace(c);
@@ -207,16 +206,16 @@ void execJsonKeyValueArrayEntry(TranscodeCursor* c, const MapOp& op) {
     first = false;
 
     std::string name;
-    if (FOLLY_UNLIKELY(!thrift_transcode_read_json_object_key(c, name))) {
+    if (!thrift_transcode_read_json_object_key(c, name)) [[unlikely]] {
       return;
     }
     thrift_transcode_json_skip_whitespace(c);
-    if (FOLLY_UNLIKELY(!thrift_transcode_json_expect_byte(c, ':'))) {
+    if (!thrift_transcode_json_expect_byte(c, ':')) [[unlikely]] {
       return;
     }
 
     const uint8_t* valueBegin = c->readPos;
-    if (FOLLY_UNLIKELY(!thrift_transcode_skip_json_value(c))) {
+    if (!thrift_transcode_skip_json_value(c)) [[unlikely]] {
       return;
     }
     const uint8_t* valueFinish = c->readPos;
@@ -232,12 +231,12 @@ void execJsonKeyValueArrayEntry(TranscodeCursor* c, const MapOp& op) {
     }
   }
 
-  if (FOLLY_UNLIKELY(keyStart == nullptr || valueStart == nullptr)) {
+  if (keyStart == nullptr || valueStart == nullptr) [[unlikely]] {
     detail::setError(c, 1);
     return;
   }
 
-  if (FOLLY_UNLIKELY(!thrift_transcode_json_expect_byte(c, '}'))) {
+  if (!thrift_transcode_json_expect_byte(c, '}')) [[unlikely]] {
     return;
   }
   const uint8_t* entryEnd = c->readPos;
@@ -266,12 +265,12 @@ void execJsonKeyValueArrayEntry(TranscodeCursor* c, const MapOp& op) {
 
 void execJsonKeyValueArrayMap(TranscodeCursor* c, const MapOp& op) {
   thrift_transcode_json_skip_whitespace(c);
-  if (FOLLY_UNLIKELY(!thrift_transcode_json_expect_byte(c, '['))) {
+  if (!thrift_transcode_json_expect_byte(c, '[')) [[unlikely]] {
     return;
   }
   thrift_transcode_json_skip_whitespace(c);
   if (thrift_transcode_json_peek(c) == ']') {
-    if (FOLLY_UNLIKELY(!thrift_transcode_json_expect_byte(c, ']'))) {
+    if (!thrift_transcode_json_expect_byte(c, ']')) [[unlikely]] {
       return;
     }
     writeMapHeader(c, op.writeFraming, 0, op.writeKeyType, op.writeValueType);
@@ -290,7 +289,7 @@ void execJsonKeyValueArrayMap(TranscodeCursor* c, const MapOp& op) {
       break;
     }
     if (!first) {
-      if (FOLLY_UNLIKELY(!thrift_transcode_json_expect_byte(c, ','))) {
+      if (!thrift_transcode_json_expect_byte(c, ',')) [[unlikely]] {
         return;
       }
       thrift_transcode_json_skip_whitespace(c);
@@ -303,7 +302,7 @@ void execJsonKeyValueArrayMap(TranscodeCursor* c, const MapOp& op) {
     }
     ++count;
   }
-  if (FOLLY_UNLIKELY(!thrift_transcode_json_expect_byte(c, ']'))) {
+  if (!thrift_transcode_json_expect_byte(c, ']')) [[unlikely]] {
     return;
   }
   patchNonEmptyMapHeader(
@@ -383,18 +382,18 @@ bool readJsonObjectFieldName(
     return false;
   }
   if (!first) {
-    if (FOLLY_UNLIKELY(!thrift_transcode_json_expect_byte(c, ','))) {
+    if (!thrift_transcode_json_expect_byte(c, ',')) [[unlikely]] {
       return false;
     }
     thrift_transcode_json_skip_whitespace(c);
   }
   first = false;
 
-  if (FOLLY_UNLIKELY(!thrift_transcode_read_json_string_token(c, &name))) {
+  if (!thrift_transcode_read_json_string_token(c, &name)) [[unlikely]] {
     return false;
   }
   thrift_transcode_json_skip_whitespace(c);
-  if (FOLLY_UNLIKELY(!thrift_transcode_json_expect_byte(c, ':'))) {
+  if (!thrift_transcode_json_expect_byte(c, ':')) [[unlikely]] {
     return false;
   }
   thrift_transcode_json_skip_whitespace(c);
@@ -413,7 +412,7 @@ TaggedUnionInput scanTaggedUnion(
     TranscodeCursor* c, const StructOp& op, const TaggedUnion& taggedUnion) {
   TaggedUnionInput result{.objectBegin = c->readPos};
   thrift_transcode_json_skip_whitespace(c);
-  if (FOLLY_UNLIKELY(!thrift_transcode_json_expect_byte(c, '{'))) {
+  if (!thrift_transcode_json_expect_byte(c, '{')) [[unlikely]] {
     return {};
   }
 
@@ -432,17 +431,17 @@ TaggedUnionInput scanTaggedUnion(
 
     if (thrift_transcode_json_string_token_equals(
             &name, tag.data(), tag.size())) {
-      if (FOLLY_UNLIKELY(tagSeen)) {
+      if (tagSeen) [[unlikely]] {
         detail::setError(c, kMalformedFieldType);
         return {};
       }
       tagSeen = true;
       TranscodeJsonStringToken value{};
-      if (FOLLY_UNLIKELY(!thrift_transcode_read_json_string_token(c, &value))) {
+      if (!thrift_transcode_read_json_string_token(c, &value)) [[unlikely]] {
         return {};
       }
       result.member = findFieldByName(op, value);
-      if (FOLLY_UNLIKELY(result.member == nullptr)) {
+      if (result.member == nullptr) [[unlikely]] {
         detail::setError(c, kMalformedFieldType);
         return {};
       }
@@ -452,13 +451,13 @@ TaggedUnionInput scanTaggedUnion(
     if (taggedUnion.content.has_value() &&
         thrift_transcode_json_string_token_equals(
             &name, content.data(), content.size())) {
-      if (FOLLY_UNLIKELY(contentSeen)) {
+      if (contentSeen) [[unlikely]] {
         detail::setError(c, kMalformedFieldType);
         return {};
       }
       contentSeen = true;
       result.contentBegin = c->readPos;
-      if (FOLLY_UNLIKELY(!thrift_transcode_skip_json_value(c))) {
+      if (!thrift_transcode_skip_json_value(c)) [[unlikely]] {
         return {};
       }
       result.contentEnd = c->readPos;
@@ -467,20 +466,18 @@ TaggedUnionInput scanTaggedUnion(
 
     // With internal tagging the remaining members are the arm's own fields,
     // which are checked when the arm is read.
-    if (FOLLY_UNLIKELY(
-            taggedUnion.content.has_value() &&
-            op.unknownFieldMode == UnknownFieldMode::Reject)) {
+    if (taggedUnion.content.has_value() &&
+        op.unknownFieldMode == UnknownFieldMode::Reject) [[unlikely]] {
       detail::setError(c, kMalformedFieldType);
       return {};
     }
-    if (FOLLY_UNLIKELY(!thrift_transcode_skip_json_value(c))) {
+    if (!thrift_transcode_skip_json_value(c)) [[unlikely]] {
       return {};
     }
   }
 
-  if (FOLLY_UNLIKELY(
-          !thrift_transcode_json_expect_byte(c, '}') || !tagSeen ||
-          (taggedUnion.content.has_value() && !contentSeen))) {
+  if (!thrift_transcode_json_expect_byte(c, '}') || !tagSeen ||
+      (taggedUnion.content.has_value() && !contentSeen)) [[unlikely]] {
     if (!hasError(c)) {
       detail::setError(c, kMalformedFieldType);
     }
@@ -518,7 +515,7 @@ void execTaggedUnion(
     TranscodeCursor* c,
     const StructOp& op,
     ScalarFieldOverrides fieldOverrides) {
-  if (FOLLY_UNLIKELY(!fieldOverrides.empty())) {
+  if (!fieldOverrides.empty()) [[unlikely]] {
     detail::setError(c, kMalformedFieldType);
     return;
   }
@@ -564,7 +561,7 @@ void execTaggedUnion(
     }
   } else {
     const auto* arm = std::get_if<StructOp>(input.member->command.get());
-    if (FOLLY_UNLIKELY(arm == nullptr)) {
+    if (arm == nullptr) [[unlikely]] {
       detail::setError(c, kMalformedFieldType);
       return;
     }
@@ -598,7 +595,7 @@ void execIdStructToJsonFields(
     ScalarFieldOverrides fieldOverrides,
     bool& wroteJsonField) {
   const uint8_t* savedReadEnd = nullptr;
-  if (FOLLY_UNLIKELY(!enterIdStructRead(c, op, savedReadEnd))) {
+  if (!enterIdStructRead(c, op, savedReadEnd)) [[unlikely]] {
     return;
   }
 
@@ -611,7 +608,7 @@ void execIdStructToJsonFields(
             c, op, readProto, rf, prevRead, match, op.unknownFieldMode)) {
       break;
     }
-    if (FOLLY_UNLIKELY(!noteUnionMember(c, unionStruct, unionMemberSeen))) {
+    if (!noteUnionMember(c, unionStruct, unionMemberSeen)) [[unlikely]] {
       return;
     }
     if (wroteJsonField) {
@@ -634,20 +631,20 @@ void execIdStructToJsonFields(
   for (const auto& override : fieldOverrides) {
     const FieldEntry* field = nullptr;
     const ScalarOp* scalar = nullptr;
-    if (FOLLY_UNLIKELY(
-            !resolveScalarOverrideField(c, op, override, field, scalar))) {
+    if (!resolveScalarOverrideField(c, op, override, field, scalar))
+        [[unlikely]] {
       return;
     }
-    if (FOLLY_UNLIKELY(!noteUnionMember(c, unionStruct, unionMemberSeen))) {
+    if (!noteUnionMember(c, unionStruct, unionMemberSeen)) [[unlikely]] {
       return;
     }
-    if (FOLLY_UNLIKELY(!writeJsonScalarValue(
-            c, *field, *scalar, override.value, wroteJsonField))) {
+    if (!writeJsonScalarValue(
+            c, *field, *scalar, override.value, wroteJsonField)) [[unlikely]] {
       return;
     }
   }
 
-  if (FOLLY_UNLIKELY(!finishUnion(c, unionStruct, unionMemberSeen))) {
+  if (!finishUnion(c, unionStruct, unionMemberSeen)) [[unlikely]] {
     return;
   }
 }
@@ -679,13 +676,13 @@ void execIdStructToTaggedJson(
     FieldProto readProto,
     const Framing& rf,
     ScalarFieldOverrides fieldOverrides) {
-  if (FOLLY_UNLIKELY(!fieldOverrides.empty())) {
+  if (!fieldOverrides.empty()) [[unlikely]] {
     detail::setError(c, kMalformedFieldType);
     return;
   }
 
   const uint8_t* savedReadEnd = nullptr;
-  if (FOLLY_UNLIKELY(!enterIdStructRead(c, op, savedReadEnd))) {
+  if (!enterIdStructRead(c, op, savedReadEnd)) [[unlikely]] {
     return;
   }
 
@@ -700,7 +697,7 @@ void execIdStructToTaggedJson(
             c, op, readProto, rf, prevRead, match, op.unknownFieldMode)) {
       break;
     }
-    if (FOLLY_UNLIKELY(!noteSingleField(c, unionMemberSeen))) {
+    if (!noteSingleField(c, unionMemberSeen)) [[unlikely]] {
       return;
     }
     writeJsonStringField(
@@ -729,7 +726,7 @@ void execIdStructToTaggedJson(
   if (hasError(c)) {
     return;
   }
-  if (FOLLY_UNLIKELY(!finishSingleField(c, unionMemberSeen))) {
+  if (!finishSingleField(c, unionMemberSeen)) [[unlikely]] {
     return;
   }
   thrift_transcode_write_byte_checked(c, '}');
@@ -749,7 +746,7 @@ void validateInputConsumed(TranscodeCursor* c, const TranscodePlan& plan) {
 
 void execJsonBytesScalar(TranscodeCursor* c, const ScalarOp& op) {
   TranscodeJsonStringToken token{};
-  if (FOLLY_UNLIKELY(!thrift_transcode_read_json_string_token(c, &token))) {
+  if (!thrift_transcode_read_json_string_token(c, &token)) [[unlikely]] {
     return;
   }
 
@@ -946,7 +943,7 @@ void execJsonStruct(
   }
 
   thrift_transcode_json_skip_whitespace(c);
-  if (FOLLY_UNLIKELY(!thrift_transcode_json_expect_byte(c, '{'))) {
+  if (!thrift_transcode_json_expect_byte(c, '{')) [[unlikely]] {
     return;
   }
 
@@ -971,12 +968,12 @@ void execJsonStruct(
       const bool ignored = !ignoredMember.empty() &&
           thrift_transcode_json_string_token_equals(
               &name, ignoredMember.data(), ignoredMember.size());
-      if (FOLLY_UNLIKELY(
-              !ignored && op.unknownFieldMode == UnknownFieldMode::Reject)) {
+      if (!ignored && op.unknownFieldMode == UnknownFieldMode::Reject)
+          [[unlikely]] {
         detail::setError(c, kMalformedFieldType);
         return;
       }
-      if (FOLLY_UNLIKELY(!thrift_transcode_skip_json_value(c))) {
+      if (!thrift_transcode_skip_json_value(c)) [[unlikely]] {
         return;
       }
       continue;
@@ -989,7 +986,7 @@ void execJsonStruct(
       continue;
     }
 
-    if (FOLLY_UNLIKELY(!noteUnionMember(c, unionStruct, unionMemberSeen))) {
+    if (!noteUnionMember(c, unionStruct, unionMemberSeen)) [[unlikely]] {
       return;
     }
 
@@ -999,7 +996,7 @@ void execJsonStruct(
     if (const auto* sc = std::get_if<ScalarOp>(fe->command.get());
         sc != nullptr && sc->writeFn == WriteFn::CompactBoolInType) {
       int64_t boolVal = 0;
-      if (FOLLY_UNLIKELY(!readScalarInt(c, *sc, 0, &boolVal))) {
+      if (!readScalarInt(c, *sc, 0, &boolVal)) [[unlikely]] {
         return;
       }
       thrift_transcode_compact_write_bool_field(
@@ -1016,23 +1013,23 @@ void execJsonStruct(
   for (const auto& override : fieldOverrides) {
     const FieldEntry* field = nullptr;
     const ScalarOp* scalar = nullptr;
-    if (FOLLY_UNLIKELY(
-            !resolveScalarOverrideField(c, op, override, field, scalar))) {
+    if (!resolveScalarOverrideField(c, op, override, field, scalar))
+        [[unlikely]] {
       return;
     }
-    if (FOLLY_UNLIKELY(!noteUnionMember(c, unionStruct, unionMemberSeen))) {
+    if (!noteUnionMember(c, unionStruct, unionMemberSeen)) [[unlikely]] {
       return;
     }
-    if (FOLLY_UNLIKELY(!writeFieldFramedScalarValue(
-            c, wf, *field, *scalar, override.value, prevWrite))) {
+    if (!writeFieldFramedScalarValue(
+            c, wf, *field, *scalar, override.value, prevWrite)) [[unlikely]] {
       return;
     }
   }
 
-  if (FOLLY_UNLIKELY(!thrift_transcode_json_expect_byte(c, '}'))) {
+  if (!thrift_transcode_json_expect_byte(c, '}')) [[unlikely]] {
     return;
   }
-  if (FOLLY_UNLIKELY(!finishUnion(c, unionStruct, unionMemberSeen))) {
+  if (!finishUnion(c, unionStruct, unionMemberSeen)) [[unlikely]] {
     return;
   }
   if (!op.writeLengthDelimited) {
@@ -1070,7 +1067,7 @@ void execIdStructToJson(
 
 void execJsonStructFlattened(TranscodeCursor* c, const StructOp& op) {
   thrift_transcode_json_skip_whitespace(c);
-  if (FOLLY_UNLIKELY(!thrift_transcode_json_expect_byte(c, '{'))) {
+  if (!thrift_transcode_json_expect_byte(c, '{')) [[unlikely]] {
     return;
   }
 
@@ -1094,15 +1091,15 @@ void execJsonStructFlattened(TranscodeCursor* c, const StructOp& op) {
       return;
     }
 
-    if (FOLLY_UNLIKELY(!execFlattenedField(c, *field, 0, fieldSeen))) {
+    if (!execFlattenedField(c, *field, 0, fieldSeen)) [[unlikely]] {
       return;
     }
   }
 
-  if (FOLLY_UNLIKELY(!thrift_transcode_json_expect_byte(c, '}'))) {
+  if (!thrift_transcode_json_expect_byte(c, '}')) [[unlikely]] {
     return;
   }
-  if (FOLLY_UNLIKELY(!finishSingleField(c, fieldSeen))) {
+  if (!finishSingleField(c, fieldSeen)) [[unlikely]] {
     return;
   }
 }

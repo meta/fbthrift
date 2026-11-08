@@ -48,7 +48,7 @@ class RequestChannelHandler {
    */
   void handle(RequestChannelFrame&& frame) noexcept {
     auto streamId = frame.streamId();
-    if (FOLLY_UNLIKELY(frame.hasFollows())) {
+    if (frame.hasFollows()) [[unlikely]] {
       // Handle partial REQUEST_CHANNEL frames (hasFollows)
       connection_->emplacePartialRequestChannelFrame(
           streamId, std::move(frame));

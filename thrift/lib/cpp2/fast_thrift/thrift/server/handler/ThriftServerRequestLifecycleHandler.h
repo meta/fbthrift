@@ -68,13 +68,13 @@ class ThriftServerRequestLifecycleHandler {
     const auto streamId = request.streamId;
     auto [it, inserted] =
         requests_.try_emplace(streamId, folly::CancellationSource::invalid());
-    if (FOLLY_UNLIKELY(!inserted)) {
+    if (!inserted) [[unlikely]] {
       return channel_pipeline::Result::Error;
     }
     request.requestContext->enableCancellation();
     it->second = request.requestContext->getCancellationSource();
     auto result = ctx.fireRead(std::move(msg));
-    if (FOLLY_UNLIKELY(result == channel_pipeline::Result::Error)) {
+    if (result == channel_pipeline::Result::Error) [[unlikely]] {
       auto requestIt = requests_.find(streamId);
       if (requestIt != requests_.end()) {
         auto source = std::move(requestIt->second);

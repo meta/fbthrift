@@ -38,7 +38,7 @@ FOLLY_NOINLINE void translate_field_name_or_id(
     int16_t& fid,
     protocol::TType& ftype,
     const translate_field_name_table& table) {
-  if (FOLLY_UNLIKELY(fname.empty())) {
+  if (fname.empty()) [[unlikely]] {
     // Only field ID provided (e.g., "(30)" or "30"). Look up by ID.
     for (size_t i = 0; i < table.size; ++i) {
       if (fid == table.ids[i]) {
@@ -86,7 +86,7 @@ void translate_field_name_or_id(
     int16_t& fid,
     protocol::TType& ftype,
     const translate_field_name_hash_table& table) {
-  if (FOLLY_UNLIKELY(fname.empty())) {
+  if (fname.empty()) [[unlikely]] {
     // Only field ID provided (e.g., "(30)" or "30"). Look up by ID.
     auto it = table.idMap.find(fid);
     if (it != table.idMap.end()) {

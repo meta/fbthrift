@@ -136,7 +136,7 @@ class ThriftServerStreamMuxHandler {
           request.streamId,
           stream::ControlMessage{.payload = stream::RequestN{.n = n}});
       drainPendingRemoval();
-      if (FOLLY_UNLIKELY(!routed)) {
+      if (!routed) [[unlikely]] {
         return fireUnknownStream(ctx, request.streamId);
       }
       return channel_pipeline::Result::Success;

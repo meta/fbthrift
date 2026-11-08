@@ -74,9 +74,8 @@ class ThriftServerCompressionHandler {
   channel_pipeline::Result onRead(
       Context& ctx, channel_pipeline::TypeErasedBox&& msg) noexcept {
     auto& request = msg.get<ThriftServerRequestMessage>();
-    if (FOLLY_UNLIKELY(
-            !request.payload
-                 .template is<ThriftServerRequestResponsePayload>())) {
+    if (!request.payload.template is<ThriftServerRequestResponsePayload>())
+        [[unlikely]] {
       return ctx.fireRead(std::move(msg));
     }
 
@@ -199,7 +198,7 @@ class ThriftServerCompressionHandler {
 
     const auto compression = *payload.metadata->compression();
     const auto codec = codecForAlgorithm(compression);
-    if (FOLLY_UNLIKELY(!codec.has_value())) {
+    if (!codec.has_value()) [[unlikely]] {
       return compression == apache::thrift::CompressionAlgorithm::CUSTOM
           ? "CUSTOM request compression is not supported by FastThriftServer"
           : "Unsupported request compression algorithm";
@@ -209,7 +208,7 @@ class ThriftServerCompressionHandler {
       payload.metadata->compression().reset();
       return std::nullopt;
     }
-    if (FOLLY_UNLIKELY(payload.data == nullptr)) {
+    if (payload.data == nullptr) [[unlikely]] {
       return "Request decompression failed: missing request data";
     }
 
@@ -277,7 +276,7 @@ class ThriftServerCompressionHandler {
       const auto bytesWritten = outputSize - output.size();
       outputBuffer->trimEnd(output.size());
       decompressedSize += bytesWritten;
-      if (FOLLY_UNLIKELY(decompressedSize > maxDecompressedRequestSize_)) {
+      if (decompressedSize > maxDecompressedRequestSize_) [[unlikely]] {
         throw std::runtime_error("decompressed request exceeds size limit");
       }
       if (bytesWritten != 0) {
@@ -390,7 +389,7 @@ class ThriftServerCompressionHandler {
 
     payload.metadata->compression().reset();
     const auto compression = compressionForConfig(config);
-    if (FOLLY_UNLIKELY(!compression.has_value())) {
+    if (!compression.has_value()) [[unlikely]] {
       return writeCompressionFailure(
           ctx,
           payload.streamId,
@@ -409,7 +408,7 @@ class ThriftServerCompressionHandler {
     }
 
     const auto codec = codecForAlgorithm(*compression);
-    if (FOLLY_UNLIKELY(!codec.has_value())) {
+    if (!codec.has_value()) [[unlikely]] {
       return writeCompressionFailure(
           ctx,
           payload.streamId,
@@ -421,7 +420,7 @@ class ThriftServerCompressionHandler {
       auto compressed =
           folly::compression::getCodec(codec->first, codec->second)
               ->compress(payload.data.get());
-      if (FOLLY_UNLIKELY(compressed == nullptr)) {
+      if (compressed == nullptr) [[unlikely]] {
         return writeCompressionFailure(
             ctx,
             payload.streamId,

@@ -232,7 +232,7 @@ class ChecksumPayloadSerializerStrategy final
     ChecksumGenerator<Algo> generator;
     bool ret =
         generator.validateChecksum(*checksum.checksum(), *checksum.salt(), buf);
-    if (FOLLY_LIKELY(ret)) {
+    if (ret) [[likely]] {
       tryRecordChecksumSuccess();
     } else {
       tryRecordChecksumFailure();
@@ -317,7 +317,7 @@ class ChecksumPayloadSerializerStrategy final
         } else if (validatePayloadChecksum(*t)) {
           return t;
         } else {
-          if (FOLLY_LIKELY(t->metadata.checksum().has_value())) {
+          if (t->metadata.checksum().has_value()) [[likely]] {
             validateInvalidChecksum(t->metadata.checksum().value());
           }
           return folly::Try<T>(

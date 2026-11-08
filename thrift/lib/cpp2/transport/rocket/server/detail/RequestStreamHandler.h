@@ -49,7 +49,7 @@ class RequestStreamHandler {
    */
   void handle(RequestStreamFrame&& frame) noexcept {
     auto streamId = frame.streamId();
-    if (FOLLY_UNLIKELY(frame.hasFollows())) {
+    if (frame.hasFollows()) [[unlikely]] {
       // Handle partial REQUEST_STREAM frames (hasFollows)
       connection_->emplacePartialFrame(streamId, std::move(frame));
     } else {

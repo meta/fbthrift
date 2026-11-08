@@ -49,7 +49,7 @@ parseFrameType(folly::IOBuf& frame) {
   constexpr size_t kFlagAndFrameSize = sizeof(uint16_t);
   constexpr size_t kStreamIdSize = sizeof(uint32_t);
   folly::io::Cursor cursor(&frame);
-  if (FOLLY_UNLIKELY(!cursor.canAdvance(kFlagAndFrameSize + kStreamIdSize))) {
+  if (!cursor.canAdvance(kFlagAndFrameSize + kStreamIdSize)) [[unlikely]] {
     throw std::out_of_range(
         "frame to small for RSocket Stream Id and Flag - must be at least as long 40-bits long");
   }
@@ -72,7 +72,7 @@ parseFrameType(const IOBufChain& frame) {
   constexpr size_t kFlagAndFrameSize = sizeof(uint16_t);
   constexpr size_t kStreamIdSize = sizeof(uint32_t);
   io::IOBufChainCursor cursor(frame);
-  if (FOLLY_UNLIKELY(!cursor.canAdvance(kFlagAndFrameSize + kStreamIdSize))) {
+  if (!cursor.canAdvance(kFlagAndFrameSize + kStreamIdSize)) [[unlikely]] {
     throw std::out_of_range(
         "frame to small for RSocket Stream Id and Flag - must be at least as long 40-bits long");
   }
@@ -287,7 +287,7 @@ class IncomingFrameHandler {
 
   bool hasValidSetupFrameState() const noexcept {
     bool valid = true;
-    if (FOLLY_UNLIKELY(receivedSetupFrame_ == false)) {
+    if (receivedSetupFrame_ == false) [[unlikely]] {
       connection_->close(
           folly::make_exception_wrapper<RocketException>(
               ErrorCode::INVALID_SETUP, "First frame must be SETUP frame"));
@@ -338,7 +338,7 @@ class IncomingFrameHandler {
   void handleFrame(FrameBuffer buffer, Handler* handler) {
     using Traits = frame_util::FrameTypeToTraits_t<type>;
 
-    if (FOLLY_UNLIKELY(receivedSetupFrame_ == false)) {
+    if (receivedSetupFrame_ == false) [[unlikely]] {
       XLOG(DBG4) << "Received frame before setup frame for raw frame type "
                  << frame_util::rawFrameType<type>() << std::endl;
       connection_->close(
@@ -352,7 +352,7 @@ class IncomingFrameHandler {
     auto isInvalidStreamId = Traits::isStreamZeroFrame()
         ? stream_util::isStreamIdNonZero(frame)
         : stream_util::isStreamIdZero(frame);
-    if (FOLLY_UNLIKELY(isInvalidStreamId)) {
+    if (isInvalidStreamId) [[unlikely]] {
       XLOG(DBG4) << "Received frame on invalid stream id for raw frame type "
                  << frame_util::rawFrameType<type>() << " and raw stream id "
                  << stream_util::rawStreamId(frame) << std::endl;

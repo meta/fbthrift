@@ -90,8 +90,8 @@ class ThriftServerRequestContextHandler {
     // The setup message carries no request context and is answered further
     // down; nothing here applies to it. Tested positively: a valueless payload
     // is not a setup message and must still be handled.
-    if (FOLLY_UNLIKELY(
-            request.payload.template is<ThriftConnectionSetupPayload>())) {
+    if (request.payload.template is<ThriftConnectionSetupPayload>())
+        [[unlikely]] {
       request.payload.template get<ThriftConnectionSetupPayload>()
           .setup->connContext = connContext_.get();
       return ctx.fireRead(std::move(msg));
@@ -100,7 +100,7 @@ class ThriftServerRequestContextHandler {
     // the original stream, which already owns the one request context/FRC for
     // that RPC; allocating another pair here would be both wrong and hot-path
     // overhead on every credit update.
-    if (FOLLY_UNLIKELY(isStreamControlRequest(request.payload))) {
+    if (isStreamControlRequest(request.payload)) [[unlikely]] {
       return ctx.fireRead(std::move(msg));
     }
     request.requestContext = makeThriftRequestContext(*ctx.eventBase());

@@ -75,7 +75,7 @@ class ThriftServerSetupHandler {
       Context& ctx, channel_pipeline::TypeErasedBox&& msg) noexcept {
     auto& request = msg.get<ThriftServerRequestMessage>();
 
-    if (FOLLY_UNLIKELY(request.payload.is<ThriftConnectionSetupPayload>())) {
+    if (request.payload.is<ThriftConnectionSetupPayload>()) [[unlikely]] {
       return answerSetup(
           ctx, *request.payload.get<ThriftConnectionSetupPayload>().setup);
     }
@@ -105,12 +105,12 @@ class ThriftServerSetupHandler {
 
     // A handler upstream already decided against this connection; its reason
     // is the answer.
-    if (FOLLY_UNLIKELY(setup.reject.has_value())) {
+    if (setup.reject.has_value()) [[unlikely]] {
       return refuseSetup(ctx, setup.reject->code, setup.reject->reason);
     }
 
     const auto negotiatedVersion = negotiateVersion(setup.clientSetup);
-    if (FOLLY_UNLIKELY(!negotiatedVersion.hasValue())) {
+    if (!negotiatedVersion.hasValue()) [[unlikely]] {
       return refuseSetup(
           ctx,
           negotiatedVersion.error(),
@@ -131,7 +131,7 @@ class ThriftServerSetupHandler {
     // throttle request either — the transport reports it for any write still
     // in flight, so relaying it as a read result would pause reads behind
     // every response.
-    if (FOLLY_UNLIKELY(writeResult == channel_pipeline::Result::Error)) {
+    if (writeResult == channel_pipeline::Result::Error) [[unlikely]] {
       XLOG(WARN) << "Failed to deliver the SETUP response";
       return channel_pipeline::Result::Error;
     }

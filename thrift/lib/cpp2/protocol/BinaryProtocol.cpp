@@ -200,7 +200,7 @@ void BinaryProtocolReaderBase<Cursor>::skip(TType type, int depth) {
       int32_t size = 0;
       auto in = getCursor();
       readI32(size);
-      if (FOLLY_UNLIKELY(!in.canAdvance(static_cast<int32_t>(size)))) {
+      if (!in.canAdvance(static_cast<int32_t>(size))) [[unlikely]] {
         protocol::TProtocolException::throwTruncatedData();
       }
       bytesToSkip = size;

@@ -546,7 +546,7 @@ void RefactoredRocketServerConnection::sendPayload(
 
     // Get or create OutgoingFrameHandler for this EventBase
     auto* handler = outgoingFrameHandler_.get(evb_);
-    if (FOLLY_UNLIKELY(handler == nullptr)) {
+    if (handler == nullptr) [[unlikely]] {
       outgoingFrameHandler_.emplace(
           evb_, evb_, cfg_.getOutgoingFrameHandlerBatchLogSize());
       handler = outgoingFrameHandler_.get(evb_);
@@ -586,7 +586,7 @@ void RefactoredRocketServerConnection::sendError(
 
     // Get or create OutgoingFrameHandler for this EventBase
     auto* handler = outgoingFrameHandler_.get(evb_);
-    if (FOLLY_UNLIKELY(handler == nullptr)) {
+    if (handler == nullptr) [[unlikely]] {
       outgoingFrameHandler_.emplace(
           evb_, evb_, cfg_.getOutgoingFrameHandlerBatchLogSize());
       handler = outgoingFrameHandler_.get(evb_);
@@ -618,7 +618,7 @@ void RefactoredRocketServerConnection::sendRequestN(
 
     // Get or create OutgoingFrameHandler for this EventBase
     auto* handler = outgoingFrameHandler_.get(evb_);
-    if (FOLLY_UNLIKELY(handler == nullptr)) {
+    if (handler == nullptr) [[unlikely]] {
       outgoingFrameHandler_.emplace(
           evb_, evb_, cfg_.getOutgoingFrameHandlerBatchLogSize());
       handler = outgoingFrameHandler_.get(evb_);
@@ -643,7 +643,7 @@ void RefactoredRocketServerConnection::sendCancel(StreamId streamId) {
 
     // Get or create OutgoingFrameHandler for this EventBase
     auto* handler = outgoingFrameHandler_.get(evb_);
-    if (FOLLY_UNLIKELY(handler == nullptr)) {
+    if (handler == nullptr) [[unlikely]] {
       outgoingFrameHandler_.emplace(
           evb_, evb_, cfg_.getOutgoingFrameHandlerBatchLogSize());
       handler = outgoingFrameHandler_.get(evb_);

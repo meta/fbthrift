@@ -306,7 +306,7 @@ class PayloadPrefetchHandler {
     // congested. Absorbing congestion here is safe because demand is bounded to
     // free buffer space — a full ring can only mean the producer delivered past
     // its (now-zero) grant, so refuse rather than overflow.
-    if (FOLLY_UNLIKELY(buffer_.full())) {
+    if (buffer_.full()) [[unlikely]] {
       return channel_pipeline::Result::Error;
     }
     buffer_.push(msg.take<DataMessage>());
