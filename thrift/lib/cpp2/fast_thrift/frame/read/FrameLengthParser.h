@@ -139,7 +139,7 @@ class FrameLengthParser {
 
         // Reject before growing: an oversized prefix would otherwise make us
         // allocate exactly the size we are about to refuse.
-        if (FOLLY_UNLIKELY(frameLength_ > maxFrameSize_)) {
+        if (frameLength_ > maxFrameSize_) [[unlikely]] {
           return channel_pipeline::Result::Error;
         }
 

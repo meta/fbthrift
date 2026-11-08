@@ -39,7 +39,7 @@ class PendingConnectionLimitHandler {
   [[nodiscard]] channel_pipeline::Result onWrite(
       Context& ctx, channel_pipeline::TypeErasedBox&& msg) noexcept {
     auto incoming = msg.take<TLSRequestMessage>();
-    if (FOLLY_UNLIKELY(state_.atCapacity())) {
+    if (state_.atCapacity()) [[unlikely]] {
       XLOG_EVERY_MS(WARN, 1000)
           << "Refusing connection from " << incoming.clientAddr.describe()
           << ": already processing " << state_.maxPendingConnections

@@ -29,7 +29,7 @@ void ConnectionListener::connectionAccepted(
     const folly::SocketAddress& clientAddr,
     AcceptInfo) noexcept {
   DCHECK(evb_->isInEventBaseThread());
-  if (FOLLY_UNLIKELY(!pipeline_)) {
+  if (!pipeline_) [[unlikely]] {
     folly::netops::close(fd);
     return;
   }
@@ -55,7 +55,7 @@ void ConnectionListener::connectionAccepted(
               .clientAddr = clientAddr,
               .peerSecurity = nullptr,
           }));
-  if (FOLLY_UNLIKELY(result != channel_pipeline::Result::Success)) {
+  if (result != channel_pipeline::Result::Success) [[unlikely]] {
     XLOG_EVERY_MS(WARN, 1000) << "Connection pipeline rejected connection from "
                               << clientAddr.describe();
   }

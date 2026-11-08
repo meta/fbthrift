@@ -486,7 +486,7 @@ void PipelineImpl::deactivateFromIndex(size_t index) noexcept {
 
 PIPELINE_HOT_PATH Result PipelineImpl::fireRead(TypeErasedBox&& msg) noexcept {
   RETURN_IF_CLOSED(Result::Error);
-  if (FOLLY_UNLIKELY(!firstReadFn_)) {
+  if (!firstReadFn_) [[unlikely]] {
     return fireReadToTailHandler(std::move(msg));
   }
   return firstReadFn_(firstHandler_, *firstCtx_, std::move(msg));
@@ -494,7 +494,7 @@ PIPELINE_HOT_PATH Result PipelineImpl::fireRead(TypeErasedBox&& msg) noexcept {
 
 PIPELINE_HOT_PATH Result PipelineImpl::fireWrite(TypeErasedBox&& msg) noexcept {
   RETURN_IF_CLOSED(Result::Error);
-  if (FOLLY_UNLIKELY(!lastWriteFn_)) {
+  if (!lastWriteFn_) [[unlikely]] {
     return fireWriteToHeadHandler(std::move(msg));
   }
   return lastWriteFn_(lastHandler_, *lastCtx_, std::move(msg));
@@ -503,7 +503,7 @@ PIPELINE_HOT_PATH Result PipelineImpl::fireWrite(TypeErasedBox&& msg) noexcept {
 PIPELINE_HOT_PATH void PipelineImpl::fireException(
     folly::exception_wrapper&& e) noexcept {
   RETURN_IF_CLOSED();
-  if (FOLLY_UNLIKELY(!firstExceptionFn_)) {
+  if (!firstExceptionFn_) [[unlikely]] {
     fireExceptionToTailHandler(std::move(e));
     return;
   }
@@ -512,15 +512,15 @@ PIPELINE_HOT_PATH void PipelineImpl::fireException(
 
 void PipelineImpl::fireTypeEvent(EventKey key, const void* payload) noexcept {
   RETURN_IF_CLOSED();
-  if (FOLLY_UNLIKELY(!typeEventTable_)) {
+  if (!typeEventTable_) [[unlikely]] {
     return;
   }
 
   auto index = typeEventStartIndex(key, typeEventTableSize_);
   while (true) {
     auto& slot = typeEventTable_[index];
-    if (FOLLY_LIKELY(slot.key == key)) {
-      if (FOLLY_UNLIKELY(slot.subscriberCount == 0)) {
+    if (slot.key == key) [[likely]] {
+      if (slot.subscriberCount == 0) [[unlikely]] {
         return;
       }
       DestructorGuard dg(this);
@@ -530,7 +530,7 @@ void PipelineImpl::fireTypeEvent(EventKey key, const void* payload) noexcept {
       }
       return;
     }
-    if (FOLLY_UNLIKELY(slot.key == nullptr)) {
+    if (slot.key == nullptr) [[unlikely]] {
       return;
     }
     index = (index + 1) & (typeEventTableSize_ - 1);
@@ -553,7 +553,7 @@ void PipelineImpl::fireBoundTypeEvent(
     const void* route, const void* payload) noexcept {
   const auto* slot = static_cast<const TypeEventSlot*>(route);
   RETURN_IF_CLOSED();
-  if (FOLLY_UNLIKELY(slot == nullptr || slot->subscriberCount == 0)) {
+  if (slot == nullptr || slot->subscriberCount == 0) [[unlikely]] {
     return;
   }
 
@@ -575,7 +575,7 @@ void PipelineImpl::fireTypeEventFromRoute(
   DCHECK_EQ(typeEventRoutes_[absoluteIndex].key, key);
 
   const auto& route = typeEventRoutes_[absoluteIndex];
-  if (FOLLY_UNLIKELY(route.subscriberCount == 0)) {
+  if (route.subscriberCount == 0) [[unlikely]] {
     return;
   }
   DestructorGuard dg(this);

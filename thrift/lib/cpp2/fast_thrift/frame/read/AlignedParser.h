@@ -186,7 +186,7 @@ channel_pipeline::Result AlignedParser::consume(
   if (step == Step::NeedMore) {
     return channel_pipeline::Result::Success;
   }
-  if (FOLLY_UNLIKELY(step == Step::Bad)) {
+  if (step == Step::Bad) [[unlikely]] {
     state_ = State::Error;
     return channel_pipeline::Result::Error;
   }

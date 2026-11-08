@@ -232,7 +232,7 @@ template <
     class Enum,
     decltype(apache::thrift::TEnumTraits<Enum>::size)* = nullptr>
 std::string* Check_EQImpl(Enum v1, Enum v2, const char* names) {
-  if (FOLLY_LIKELY(v1 == v2)) {
+  if (v1 == v2) [[likely]] {
     return nullptr;
   }
   return apache::thrift::detail::makeCheckErrorMessage(
@@ -246,7 +246,7 @@ template <
     class Enum,
     decltype(apache::thrift::TEnumTraits<Enum>::size)* = nullptr>
 std::string* Check_NEImpl(Enum v1, Enum v2, const char* names) {
-  if (FOLLY_LIKELY(v1 != v2)) {
+  if (v1 != v2) [[likely]] {
     return nullptr;
   }
   return apache::thrift::detail::makeCheckErrorMessage(

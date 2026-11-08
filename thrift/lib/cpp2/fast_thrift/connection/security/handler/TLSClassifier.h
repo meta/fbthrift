@@ -98,7 +98,7 @@ class TLSClassifier {
 
     auto* asyncSocket =
         dynamic_cast<folly::AsyncSocket*>(incoming.transport.get());
-    if (FOLLY_UNLIKELY(asyncSocket == nullptr)) {
+    if (asyncSocket == nullptr) [[unlikely]] {
       return ctx.fireWrite(
           channel_pipeline::erase_and_box(std::move(incoming)));
     }
@@ -200,7 +200,7 @@ class TLSClassifier {
       }
       return;
     }
-    if (FOLLY_UNLIKELY(!ctx_)) {
+    if (!ctx_) [[unlikely]] {
       // Handler already removed from the pipeline: the peek landed after
       // teardown began, so there is nowhere to forward it. The socket dies
       // with this callback.

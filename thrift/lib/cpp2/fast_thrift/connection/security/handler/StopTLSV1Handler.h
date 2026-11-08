@@ -95,7 +95,7 @@ class StopTLSV1Handler {
     // to drive StopTLS against.
     auto* fizzPtr =
         dynamic_cast<fizz::server::AsyncFizzServer*>(incoming.transport.get());
-    if (FOLLY_UNLIKELY(fizzPtr == nullptr)) {
+    if (fizzPtr == nullptr) [[unlikely]] {
       XLOG(DBG3)
           << "StopTLS V1 negotiated but transport is not AsyncFizzServer "
              "for "
@@ -198,7 +198,7 @@ class StopTLSV1Handler {
       }
       return;
     }
-    if (FOLLY_UNLIKELY(!ctx_)) {
+    if (!ctx_) [[unlikely]] {
       // Handler already removed from the pipeline: the downgrade landed after
       // teardown began, so there is nowhere to forward it. The transport dies
       // with this callback.

@@ -59,7 +59,7 @@ class TLSFinalizer {
   channel_pipeline::Result onWrite(
       channel_pipeline::detail::ContextImpl&,
       channel_pipeline::TypeErasedBox&& msg) noexcept {
-    if (FOLLY_UNLIKELY(!pipeline_)) {
+    if (!pipeline_) [[unlikely]] {
       return channel_pipeline::Result::Error;
     }
     auto request = msg.take<TLSRequestMessage>();

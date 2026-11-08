@@ -196,7 +196,7 @@ class RocketClientAppAdapter : public folly::DelayedDestruction {
   template <typename Context>
   channel_pipeline::Result onRead(
       Context&, channel_pipeline::TypeErasedBox&& msg) noexcept {
-    if (FOLLY_UNLIKELY(!onResponse_)) {
+    if (!onResponse_) [[unlikely]] {
       return channel_pipeline::Result::Error;
     }
     return onResponse_(std::move(msg));
@@ -207,7 +207,7 @@ class RocketClientAppAdapter : public folly::DelayedDestruction {
    * Forwards to the registered onError callback.
    */
   void onException(folly::exception_wrapper&& e) noexcept {
-    if (FOLLY_UNLIKELY(!onError_)) {
+    if (!onError_) [[unlikely]] {
       return;
     }
     onError_(std::move(e));
@@ -271,7 +271,7 @@ class RocketClientAppAdapter : public folly::DelayedDestruction {
   template <channel_pipeline::PipelineEvent E>
     requires std::same_as<E, RocketWriteCompleteEvent>
   void on(const RocketWriteCompleteEvent& event) noexcept {
-    if (FOLLY_UNLIKELY(!onWriteComplete_)) {
+    if (!onWriteComplete_) [[unlikely]] {
       return;
     }
     onWriteComplete_(event);

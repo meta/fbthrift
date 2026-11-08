@@ -186,7 +186,7 @@ class FrameWriteCompletionHandlerT {
     bool fifoExhausted = false;
     uint32_t deferredStreamId = 0;
     for (size_t i = 0; i < batch.frameCount; ++i) {
-      if (FOLLY_UNLIKELY(order_.empty())) {
+      if (order_.empty()) [[unlikely]] {
         XLOG(DFATAL) << "FrameWriteCompletionHandler FIFO exhausted before "
                         "frameCount";
         fifoExhausted = true;

@@ -100,9 +100,9 @@ class RocketClientStatsHandler {
       apache::thrift::fast_thrift::channel_pipeline::TypeErasedBox&&
           msg) noexcept {
     auto& response = msg.get<RocketResponseMessage>();
-    if (FOLLY_LIKELY(
-            response.payload
-                .is<apache::thrift::fast_thrift::frame::read::ParsedFrame>())) {
+    if (response.payload
+            .is<apache::thrift::fast_thrift::frame::read::ParsedFrame>())
+        [[likely]] {
       const auto& parsed =
           response.payload
               .get<apache::thrift::fast_thrift::frame::read::ParsedFrame>();
@@ -134,7 +134,7 @@ class RocketClientStatsHandler {
     auto& request = msg.get<RocketRequestMessage>();
     auto& streams = ctx.template state<RocketClientStreamContexts>().streams;
     auto it = streams.find(request.frame.streamId);
-    if (FOLLY_LIKELY(it != streams.end())) {
+    if (it != streams.end()) [[likely]] {
       // Sizes have to be taken here, head-side of the marshal and codec
       // handlers that consume these buffers, and they deliberately exclude the
       // RSocket frame header so they mean the same thing as the legacy

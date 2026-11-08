@@ -99,22 +99,21 @@ class RocketClientKeepAliveHandler {
       start(ctx);
     }
     auto& response = msg.get<RocketResponseMessage>();
-    if (FOLLY_LIKELY(
-            !response.payload.template is<frame::read::ParsedFrame>())) {
+    if (!response.payload.template is<frame::read::ParsedFrame>()) [[likely]] {
       return ctx.fireRead(std::move(msg));
     }
 
     auto& parsed = response.payload.template get<frame::read::ParsedFrame>();
-    if (FOLLY_LIKELY(parsed.type() != frame::FrameType::KEEPALIVE)) {
+    if (parsed.type() != frame::FrameType::KEEPALIVE) [[likely]] {
       return ctx.fireRead(std::move(msg));
     }
-    if (FOLLY_UNLIKELY(!parsed.isConnectionFrame())) {
+    if (!parsed.isConnectionFrame()) [[unlikely]] {
       failRead(ctx, "KEEPALIVE must use stream ID 0");
       return channel_pipeline::Result::Error;
     }
 
     frame::read::KeepAliveView view(parsed);
-    if (FOLLY_UNLIKELY(view.shouldRespond())) {
+    if (view.shouldRespond()) [[unlikely]] {
       XLOG(WARN) << "Ignoring respond-flagged KEEPALIVE from server";
       return channel_pipeline::Result::Success;
     }
@@ -167,7 +166,7 @@ class RocketClientKeepAliveHandler {
     }
 
     const auto now = Clock::now();
-    if (FOLLY_UNLIKELY(now >= lastReply_ + maxLifetime())) {
+    if (now >= lastReply_ + maxLifetime()) [[unlikely]] {
       failTimer(ctx, "Rocket keepalive reply timed out");
       return;
     }
@@ -185,7 +184,7 @@ class RocketClientKeepAliveHandler {
       };
       const auto result =
           ctx.fireWrite(channel_pipeline::erase_and_box(std::move(probe)));
-      if (FOLLY_UNLIKELY(result == channel_pipeline::Result::Error)) {
+      if (result == channel_pipeline::Result::Error) [[unlikely]] {
         failTimer(ctx, "Rocket keepalive write failed");
         return;
       }

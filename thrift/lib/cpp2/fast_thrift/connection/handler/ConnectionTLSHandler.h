@@ -248,7 +248,7 @@ class ConnectionTLSHandler {
       folly::AsyncTransport::UniquePtr transport,
       folly::SocketAddress clientAddr,
       std::shared_ptr<const PeerSecurityInfo> peerSecurity) noexcept {
-    if (FOLLY_UNLIKELY(!outerCtx_)) {
+    if (!outerCtx_) [[unlikely]] {
       return channel_pipeline::Result::Success;
     }
     ConnectionMessage out{

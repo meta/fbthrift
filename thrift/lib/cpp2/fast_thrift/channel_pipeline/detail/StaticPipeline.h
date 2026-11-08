@@ -482,7 +482,7 @@ class StaticPipelineImpl final {
   }
 
   Result fireRead(TypeErasedBox&& msg) noexcept {
-    if (FOLLY_UNLIKELY(isClosed())) {
+    if (isClosed()) [[unlikely]] {
       return Result::Error;
     }
     Guard guard(this);
@@ -490,7 +490,7 @@ class StaticPipelineImpl final {
   }
 
   Result fireWrite(TypeErasedBox&& msg) noexcept {
-    if (FOLLY_UNLIKELY(isClosed())) {
+    if (isClosed()) [[unlikely]] {
       return Result::Error;
     }
     Guard guard(this);
@@ -498,7 +498,7 @@ class StaticPipelineImpl final {
   }
 
   void fireException(folly::exception_wrapper&& e) noexcept {
-    if (FOLLY_UNLIKELY(isClosed())) {
+    if (isClosed()) [[unlikely]] {
       return;
     }
     Guard guard(this);

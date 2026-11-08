@@ -77,7 +77,7 @@ class TLSConnectionAdapter {
   // Drive a transport through the TLS pipeline. Enters as an outbound write at
   // the write-entry handler and flows toward the head.
   channel_pipeline::Result submit(TLSRequestMessage&& msg) noexcept {
-    if (FOLLY_UNLIKELY(!pipeline_)) {
+    if (!pipeline_) [[unlikely]] {
       return channel_pipeline::Result::Error;
     }
     return pipeline_->fireWrite(

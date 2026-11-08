@@ -90,7 +90,7 @@ class FizzHandshakeHandler {
 
     auto* asyncSocket =
         dynamic_cast<folly::AsyncSocket*>(incoming.transport.get());
-    if (FOLLY_UNLIKELY(asyncSocket == nullptr)) {
+    if (asyncSocket == nullptr) [[unlikely]] {
       return ctx.fireWrite(
           channel_pipeline::erase_and_box(std::move(incoming)));
     }
@@ -99,8 +99,7 @@ class FizzHandshakeHandler {
     folly::AsyncSocket::UniquePtr socket(asyncSocket);
     auto clientAddr = std::move(incoming.clientAddr);
 
-    if (FOLLY_UNLIKELY(
-            !incoming.tlsParams || !incoming.tlsParams->fizzContext)) {
+    if (!incoming.tlsParams || !incoming.tlsParams->fizzContext) [[unlikely]] {
       // `socket` dies with this scope, so the connection is gone either way —
       // report that rather than Success, which would tell the caller a
       // connection it no longer has is still on its way. A missing fizz
@@ -206,7 +205,7 @@ class FizzHandshakeHandler {
       }
       return;
     }
-    if (FOLLY_UNLIKELY(!ctx_)) {
+    if (!ctx_) [[unlikely]] {
       // Handler already removed from the pipeline: the handshake landed after
       // teardown began, so there is nowhere to forward it. The transport dies
       // with this callback.

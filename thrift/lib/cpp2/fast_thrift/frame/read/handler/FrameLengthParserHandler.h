@@ -114,7 +114,7 @@ class FrameLengthParserHandler {
         computeFrameLength();
 
         // Reject frames that exceed the maximum allowed size
-        if (FOLLY_UNLIKELY(frameLength_ > maxFrameSize_)) {
+        if (frameLength_ > maxFrameSize_) [[unlikely]] {
           ctx.fireException(
               folly::make_exception_wrapper<std::runtime_error>(
                   "Frame size exceeds maximum allowed size"));

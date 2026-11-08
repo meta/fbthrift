@@ -84,9 +84,9 @@ class RocketClientStreamHandler {
     auto& response = msg.get<RocketResponseMessage>();
 
     // In-process errors are always terminal; clean up and pass through.
-    if (FOLLY_UNLIKELY(
-            !response.payload.is<
-                apache::thrift::fast_thrift::frame::read::ParsedFrame>())) {
+    if (!response.payload
+             .is<apache::thrift::fast_thrift::frame::read::ParsedFrame>())
+        [[unlikely]] {
       auto& err = response.payload.get<RocketResponseError>();
       streams_.erase(err.streamId);
       return ctx.fireRead(std::move(msg));

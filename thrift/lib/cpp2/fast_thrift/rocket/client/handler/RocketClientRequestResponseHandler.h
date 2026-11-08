@@ -105,9 +105,9 @@ class RocketClientRequestResponseHandler {
 
     // In-process per-request errors are already terminal failures; no
     // pattern validation applies. Pass through to the App callback.
-    if (FOLLY_UNLIKELY(
-            !response.payload.is<
-                apache::thrift::fast_thrift::frame::read::ParsedFrame>())) {
+    if (!response.payload
+             .is<apache::thrift::fast_thrift::frame::read::ParsedFrame>())
+        [[unlikely]] {
       return ctx.fireRead(std::move(msg));
     }
     auto& parsed =
@@ -119,10 +119,9 @@ class RocketClientRequestResponseHandler {
     // Hot path: PAYLOAD response. Per spec, RR responses MUST carry NEXT
     // (the response data); a COMPLETE-only PAYLOAD is a peer protocol
     // violation, surfaced to the App as a synthetic ERROR.
-    if (FOLLY_LIKELY(
-            frameType ==
-            apache::thrift::fast_thrift::frame::FrameType::PAYLOAD)) {
-      if (FOLLY_UNLIKELY(!parsed.hasNext())) {
+    if (frameType == apache::thrift::fast_thrift::frame::FrameType::PAYLOAD)
+        [[likely]] {
+      if (!parsed.hasNext()) [[unlikely]] {
         XLOG(ERR) << "RR PAYLOAD response missing NEXT flag: streamId="
                   << parsed.streamId();
         synthesizeStreamError(

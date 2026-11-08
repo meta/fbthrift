@@ -83,7 +83,7 @@ struct alignas(folly::max_align_v) Page {
   FOLLY_ALWAYS_INLINE void* allocate(size_t bytes, size_t alignment) {
     DCHECK(folly::isPowTwo(alignment));
     auto* aligned = folly::align_ceil(ptr, alignment);
-    if (FOLLY_LIKELY(aligned + bytes <= end)) {
+    if (aligned + bytes <= end) [[likely]] {
       ptr = aligned + bytes;
       return aligned;
     }
@@ -316,7 +316,7 @@ FOLLY_ALWAYS_INLINE void* EvbAllocator::allocate(
   DCHECK(folly::isPowTwo(alignment));
   DCHECK_LE(alignment, kMaxObjectAlignment);
   void* result = activePage_->allocate(bytes, alignment);
-  if (FOLLY_LIKELY(result != nullptr)) {
+  if (result != nullptr) [[likely]] {
     return result;
   }
   return allocateSlow(bytes, alignment);
@@ -381,7 +381,7 @@ void evb_shared_ptr<T>::reset() noexcept {
   auto* page = Page::fromObject(ptr_);
   auto* evb = keepAlive_.get();
 
-  if (FOLLY_LIKELY(evb->isInEventBaseThread())) {
+  if (evb->isInEventBaseThread()) [[likely]] {
     // Fast path: destroy inline
     ptr_->~T();
     --page->outstanding;

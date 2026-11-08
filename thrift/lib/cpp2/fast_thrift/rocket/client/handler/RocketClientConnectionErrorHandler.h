@@ -90,9 +90,9 @@ class RocketClientConnectionErrorHandler {
     auto& response = msg.get<RocketResponseMessage>();
 
     // In-process per-request errors are not connection-level ERRORs.
-    if (FOLLY_UNLIKELY(
-            !response.payload.is<
-                apache::thrift::fast_thrift::frame::read::ParsedFrame>())) {
+    if (!response.payload
+             .is<apache::thrift::fast_thrift::frame::read::ParsedFrame>())
+        [[unlikely]] {
       return ctx.fireRead(std::move(msg));
     }
     auto& parsed =
