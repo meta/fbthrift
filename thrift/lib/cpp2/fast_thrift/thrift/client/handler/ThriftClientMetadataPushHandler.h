@@ -86,8 +86,8 @@ class ThriftClientMetadataPushHandler {
     auto& response = msg.get<ThriftResponseMessage>();
 
     // Pass through per-request error variant unchanged — handled at the tail.
-    if (FOLLY_UNLIKELY(
-            !response.payload.is<ThriftClientInboundPayloadVariant>())) {
+    if (!response.payload.is<ThriftClientInboundPayloadVariant>())
+        [[unlikely]] {
       return ctx.fireRead(std::move(msg));
     }
 
@@ -122,7 +122,7 @@ class ThriftClientMetadataPushHandler {
   template <typename Context>
   apache::thrift::fast_thrift::channel_pipeline::Result handleMetadataPush(
       Context& ctx, ThriftMetadataPushPayload& payload) noexcept {
-    if (FOLLY_UNLIKELY(payload.metadata == nullptr)) {
+    if (payload.metadata == nullptr) [[unlikely]] {
       ctx.fireException(
           folly::make_exception_wrapper<
               apache::thrift::transport::TTransportException>(

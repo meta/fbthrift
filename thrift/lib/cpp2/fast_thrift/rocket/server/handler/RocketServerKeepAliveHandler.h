@@ -108,23 +108,21 @@ class RocketServerKeepAliveHandler {
     auto& request = msg.get<RocketRequestMessage>();
     auto& frame = request.frame;
 
-    if (FOLLY_UNLIKELY(
-            enforcePeerLiveness_ &&
-            frame.type() ==
-                apache::thrift::fast_thrift::frame::FrameType::SETUP)) {
+    if (enforcePeerLiveness_ &&
+        frame.type() == apache::thrift::fast_thrift::frame::FrameType::SETUP)
+        [[unlikely]] {
       armFromSetup(frame);
       return ctx.fireRead(std::move(msg));
     }
 
-    if (FOLLY_LIKELY(
-            frame.type() !=
-            apache::thrift::fast_thrift::frame::FrameType::KEEPALIVE)) {
+    if (frame.type() !=
+        apache::thrift::fast_thrift::frame::FrameType::KEEPALIVE) [[likely]] {
       return ctx.fireRead(std::move(msg));
     }
 
     // KEEPALIVE is a connection-level frame; a non-zero stream ID is a peer
     // protocol violation that terminates the connection (stock parity).
-    if (FOLLY_UNLIKELY(!frame.isConnectionFrame())) {
+    if (!frame.isConnectionFrame()) [[unlikely]] {
       XLOG(ERR) << "Received KEEPALIVE with non-zero streamId="
                 << frame.streamId() << "; closing connection";
       return sendConnectionError(ctx, "KEEPALIVE must use stream ID 0");
@@ -225,7 +223,7 @@ class RocketServerKeepAliveHandler {
 
     const auto now = Clock::now();
     const auto deadline = lastProbe_ + Milliseconds{config_.maxLifetimeMs};
-    if (FOLLY_UNLIKELY(now >= deadline)) {
+    if (now >= deadline) [[unlikely]] {
       failTimer(ctx, "Rocket keepalive probe timed out");
       return;
     }

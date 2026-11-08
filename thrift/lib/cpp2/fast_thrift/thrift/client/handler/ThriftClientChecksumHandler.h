@@ -98,7 +98,7 @@ class ThriftClientChecksumHandler {
           msg) noexcept {
     auto& request = msg.get<ThriftRequestMessage>();
 
-    if (FOLLY_LIKELY(request.payload.is<ThriftRequestResponsePayload>())) {
+    if (request.payload.is<ThriftRequestResponsePayload>()) [[likely]] {
       auto& payload = request.payload.get<ThriftRequestResponsePayload>();
       fillChecksum(*payload.metadata, *payload.data);
     }
@@ -122,8 +122,8 @@ class ThriftClientChecksumHandler {
     auto& response = msg.get<ThriftResponseMessage>();
 
     // Pass through the transport-failure variant unchanged.
-    if (FOLLY_UNLIKELY(
-            !response.payload.is<ThriftClientInboundPayloadVariant>())) {
+    if (!response.payload.is<ThriftClientInboundPayloadVariant>())
+        [[unlikely]] {
       return ctx.fireRead(std::move(msg));
     }
 

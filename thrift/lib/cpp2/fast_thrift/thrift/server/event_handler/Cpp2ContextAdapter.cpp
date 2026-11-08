@@ -119,9 +119,9 @@ Cpp2RequestContextAdapter::~Cpp2RequestContextAdapter() {
 
 void Cpp2RequestContextAdapter::captureAmbientContext() noexcept {
   auto* const current = folly::RequestContext::try_get();
-  if (FOLLY_UNLIKELY(current == nullptr)) {
+  if (current == nullptr) [[unlikely]] {
     folly::RequestContext::setContext(ambientContext_);
-  } else if (FOLLY_UNLIKELY(current != ambientContext_.get())) {
+  } else if (current != ambientContext_.get()) [[unlikely]] {
     ambientContext_ = folly::RequestContext::saveContext();
   }
 }

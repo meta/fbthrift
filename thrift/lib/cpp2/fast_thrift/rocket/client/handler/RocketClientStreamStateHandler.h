@@ -131,9 +131,9 @@ class RocketClientStreamStateHandler {
     auto& response = msg.get<RocketResponseMessage>();
 
     // Hot path: parsed wire frame.
-    if (FOLLY_LIKELY(
-            response.payload
-                .is<apache::thrift::fast_thrift::frame::read::ParsedFrame>())) {
+    if (response.payload
+            .is<apache::thrift::fast_thrift::frame::read::ParsedFrame>())
+        [[likely]] {
       auto& parsed =
           response.payload
               .get<apache::thrift::fast_thrift::frame::read::ParsedFrame>();
@@ -248,9 +248,8 @@ class RocketClientStreamStateHandler {
         });
 
     auto result = ctx.fireWrite(std::move(msg));
-    if (FOLLY_UNLIKELY(
-            result ==
-            apache::thrift::fast_thrift::channel_pipeline::Result::Error)) {
+    if (result == apache::thrift::fast_thrift::channel_pipeline::Result::Error)
+        [[unlikely]] {
       // Rollback: this request was queued but never reached the wire.
       // Fail it as an unwritten request — matches legacy
       // RocketClient::failAllScheduledWrites semantics. No-op if the
@@ -348,7 +347,7 @@ class RocketClientStreamStateHandler {
       XCHECK_LE(++iter, maxIter)
           << "generateStreamId collision loop exceeded live-stream bound";
     } while (hitMaxStreamId_ && streams().contains(id));
-    if (FOLLY_UNLIKELY(id == kMaxStreamId)) {
+    if (id == kMaxStreamId) [[unlikely]] {
       nextStreamId_ = 1;
       hitMaxStreamId_ = true;
     }

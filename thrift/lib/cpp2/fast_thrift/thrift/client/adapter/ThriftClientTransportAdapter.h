@@ -189,7 +189,7 @@ class ThriftClientTransportAdapterT {
         .rpcTransportStats = toRpcTransportStats(response.stats),
     };
 
-    if (FOLLY_UNLIKELY(response.payload.is<rocket::RocketResponseError>())) {
+    if (response.payload.is<rocket::RocketResponseError>()) [[unlikely]] {
       thriftMsg.payload = ThriftClientResponseError{
           .ew = std::move(
               response.payload.get<rocket::RocketResponseError>().ew)};
@@ -204,7 +204,7 @@ class ThriftClientTransportAdapterT {
       auto decoded = fromRocketFrame(
           std::move(response.payload.get<frame::read::ParsedFrame>()),
           apache::thrift::RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE);
-      if (FOLLY_UNLIKELY(!decoded.hasValue())) {
+      if (!decoded.hasValue()) [[unlikely]] {
         // Wire-decode failure: surface as a per-request
         // ThriftClientResponseError so the channel fails just this
         // callback. Connection stays Open.
@@ -225,7 +225,7 @@ class ThriftClientTransportAdapterT {
    * path (onDisconnect callback / onPipelineInactive), not from here.
    */
   void onTransportError(folly::exception_wrapper&& ew) noexcept {
-    if (FOLLY_UNLIKELY(!pipeline_)) {
+    if (!pipeline_) [[unlikely]] {
       return;
     }
     pipeline_.fireException(std::move(ew));

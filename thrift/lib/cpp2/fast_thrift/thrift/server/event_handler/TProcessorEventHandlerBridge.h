@@ -272,7 +272,7 @@ class TProcessorEventHandlerBridge {
     // The setup exchange is not a request. Latch the connection context it
     // carries — the only place the pipeline offers one — and publish the
     // classic context before downstream connection extensions run.
-    if (FOLLY_UNLIKELY(request.payload.is<ThriftConnectionSetupPayload>())) {
+    if (request.payload.is<ThriftConnectionSetupPayload>()) [[unlikely]] {
       auto& setup = *request.payload.get<ThriftConnectionSetupPayload>().setup;
       auto* const ftConnContext = setup.connContext;
       if (handlers_ != nullptr && ftConnContext != nullptr &&
@@ -302,7 +302,7 @@ class TProcessorEventHandlerBridge {
     }
 
     const auto routing = getServerRequestRoutingMetadata(request);
-    if (FOLLY_UNLIKELY(routing.status != ServerRequestRoutingStatus::Ready)) {
+    if (routing.status != ServerRequestRoutingStatus::Ready) [[unlikely]] {
       return ctx.fireRead(std::move(msg));
     }
 
@@ -313,10 +313,10 @@ class TProcessorEventHandlerBridge {
     // the same framework error an app adapter uses for an unsupported RPC kind.
     // Independently require the variant before accessing it below, so a
     // malformed kind/payload combination also fails closed.
-    if (FOLLY_UNLIKELY(
-            routing.kind !=
-                apache::thrift::RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE ||
-            !request.payload.is<ThriftServerRequestResponsePayload>())) {
+    if (routing.kind !=
+            apache::thrift::RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE ||
+        !request.payload.is<ThriftServerRequestResponsePayload>())
+        [[unlikely]] {
       auto response = makeWrongRpcKindMessage(request.streamId, routing.kind);
       response.requestContext = std::move(request.requestContext);
       return ctx.fireWrite(
@@ -324,7 +324,7 @@ class TProcessorEventHandlerBridge {
     }
 
     const uint32_t streamId = request.streamId;
-    if (FOLLY_UNLIKELY(methodMetadata_ == nullptr)) {
+    if (methodMetadata_ == nullptr) [[unlikely]] {
       auto response = makeAppErrorMessage(
           streamId,
           "TProcessorEventHandlerBridgeMisconfigured",
@@ -335,16 +335,15 @@ class TProcessorEventHandlerBridge {
           channel_pipeline::erase_and_box(std::move(response)));
     }
     const auto* method = methodMetadata_->find(routing.methodName);
-    if (FOLLY_UNLIKELY(method == nullptr)) {
+    if (method == nullptr) [[unlikely]] {
       return ctx.fireRead(std::move(msg));
     }
 
     // Fail closed. A handler may be the thing authorizing this request, and
     // there is no way to tell from here, so a request the bridge cannot run
     // them for is refused rather than let through.
-    if (FOLLY_UNLIKELY(
-            request.requestContext == nullptr ||
-            connectionContext_ == nullptr)) {
+    if (request.requestContext == nullptr || connectionContext_ == nullptr)
+        [[unlikely]] {
       auto response = makeAppErrorMessage(
           streamId,
           "TProcessorEventHandlerBridgeMisconfigured",

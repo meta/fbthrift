@@ -67,7 +67,7 @@ void ThriftServerTransportAdapter::onSetupComplete(
     rocket::server::RocketSetupCompleteEvent& event) noexcept {
   ThriftServerSetupCompleteEvent thriftEvent;
   eventPublisher_.template fire<ThriftServerSetupCompleteEvent>(&thriftEvent);
-  if (FOLLY_UNLIKELY(thriftEvent.reject.has_value())) {
+  if (thriftEvent.reject.has_value()) [[unlikely]] {
     event.reject = rocket::server::SetupRejection{
         .code = thriftEvent.reject->code,
         .reason = std::move(thriftEvent.reject->reason)};
@@ -76,9 +76,8 @@ void ThriftServerTransportAdapter::onSetupComplete(
 
 channel_pipeline::Result ThriftServerTransportAdapter::onConnectionFrame(
     rocket::server::RocketRequestMessage&& request) noexcept {
-  if (FOLLY_LIKELY(
-          request.frame.type() ==
-          apache::thrift::fast_thrift::frame::FrameType::SETUP)) {
+  if (request.frame.type() ==
+      apache::thrift::fast_thrift::frame::FrameType::SETUP) [[likely]] {
     return onSetupFrame(std::move(request));
   }
   XLOG_EVERY_MS(WARN, 60000)
@@ -96,7 +95,7 @@ channel_pipeline::Result ThriftServerTransportAdapter::onSetupFrame(
 
   auto decoded = fromRocketFrame(
       std::move(request.frame), metadataProtocol_, *pipeline_.eventBase());
-  if (FOLLY_UNLIKELY(!decoded.hasValue())) {
+  if (!decoded.hasValue()) [[unlikely]] {
     return rejectSetup(
         ErrorCode::INVALID_SETUP, "Could not read the client's SETUP metadata");
   }
@@ -115,7 +114,7 @@ channel_pipeline::Result ThriftServerTransportAdapter::rejectSetup(
     std::string_view reason) noexcept {
   const auto writeResult = writeToRocket(
       channel_pipeline::erase_and_box(makeSetupRejectionMessage(code, reason)));
-  if (FOLLY_UNLIKELY(writeResult != channel_pipeline::Result::Success)) {
+  if (writeResult != channel_pipeline::Result::Success) [[unlikely]] {
     XLOG(WARN) << "Failed to write setup rejection "
                << apache::thrift::fast_thrift::frame::toString(code);
   }

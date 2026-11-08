@@ -102,13 +102,12 @@ class RocketServerSetupFrameHandler {
     auto& request = msg.get<RocketRequestMessage>();
     auto& frame = request.frame;
 
-    if (FOLLY_UNLIKELY(!setupComplete_)) {
+    if (!setupComplete_) [[unlikely]] {
       return handleAwaitingSetup(ctx, std::move(msg));
     }
 
-    if (FOLLY_UNLIKELY(
-            frame.type() ==
-            apache::thrift::fast_thrift::frame::FrameType::SETUP)) {
+    if (frame.type() == apache::thrift::fast_thrift::frame::FrameType::SETUP)
+        [[unlikely]] {
       XLOG(ERR) << "Received duplicate SETUP frame after setup complete";
       return sendError(
           ctx,
@@ -235,9 +234,8 @@ class RocketServerSetupFrameHandler {
     // slow down, so the next frame is post-setup traffic.
     msg.get<RocketRequestMessage>().metadataProtocol = params_.metadataProtocol;
     const auto result = ctx.fireRead(std::move(msg));
-    if (FOLLY_UNLIKELY(
-            result ==
-            apache::thrift::fast_thrift::channel_pipeline::Result::Error)) {
+    if (result == apache::thrift::fast_thrift::channel_pipeline::Result::Error)
+        [[unlikely]] {
       return result;
     }
     setupComplete_ = true;
@@ -254,7 +252,7 @@ class RocketServerSetupFrameHandler {
       apache::thrift::fast_thrift::channel_pipeline::Result result) noexcept {
     RocketSetupCompleteEvent event;
     PublishedEvents::template fire<SetupCompleteEvent>(ctx, &event);
-    if (FOLLY_UNLIKELY(event.reject.has_value())) {
+    if (event.reject.has_value()) [[unlikely]] {
       return sendError(ctx, event.reject->code, event.reject->reason.c_str());
     }
     return result;

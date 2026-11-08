@@ -149,20 +149,19 @@ class ThriftServerTransportAdapter {
       channel_pipeline::TypeErasedBox&& msg) noexcept {
     auto request = msg.take<rocket::server::RocketRequestMessage>();
 
-    if (FOLLY_UNLIKELY(request.frame.isConnectionFrame())) {
+    if (request.frame.isConnectionFrame()) [[unlikely]] {
       return onConnectionFrame(std::move(request));
     }
 
     auto decoded = fromRocketFrame(
         std::move(request.frame), metadataProtocol_, *pipeline_.eventBase());
 
-    if (FOLLY_UNLIKELY(!decoded.hasValue())) {
+    if (!decoded.hasValue()) [[unlikely]] {
       return handleDecodeFailure(
           request.streamId, request.streamType, decoded.error());
     }
 
-    if (FOLLY_UNLIKELY(
-            decoded->template is<ThriftRequestCancellationPayload>())) {
+    if (decoded->template is<ThriftRequestCancellationPayload>()) [[unlikely]] {
       eventPublisher_.template fire<ThriftServerRequestCancellationEvent>(
           ThriftServerRequestCancellationEvent{.streamId = request.streamId});
       return channel_pipeline::Result::Success;

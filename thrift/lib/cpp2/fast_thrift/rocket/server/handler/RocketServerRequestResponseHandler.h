@@ -113,9 +113,9 @@ class RocketServerRequestResponseHandler {
     auto frameType = request.frame.type();
 
     // Hot path: the initial REQUEST_RESPONSE frame from the client.
-    if (FOLLY_LIKELY(
-            frameType ==
-            apache::thrift::fast_thrift::frame::FrameType::REQUEST_RESPONSE)) {
+    if (frameType ==
+        apache::thrift::fast_thrift::frame::FrameType::REQUEST_RESPONSE)
+        [[likely]] {
       return ctx.fireRead(std::move(msg));
     }
 
@@ -177,9 +177,9 @@ class RocketServerRequestResponseHandler {
     auto& response = msg.get<RocketResponseMessage>();
 
     // Pattern filter: only act on RR stream responses.
-    if (FOLLY_UNLIKELY(
-            response.streamType !=
-            apache::thrift::fast_thrift::frame::FrameType::REQUEST_RESPONSE)) {
+    if (response.streamType !=
+        apache::thrift::fast_thrift::frame::FrameType::REQUEST_RESPONSE)
+        [[unlikely]] {
       return ctx.fireWrite(std::move(msg));
     }
 

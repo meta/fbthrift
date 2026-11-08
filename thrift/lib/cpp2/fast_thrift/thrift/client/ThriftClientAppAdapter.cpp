@@ -36,7 +36,7 @@ void ThriftClientAppAdapter::sendRequestResponse(
     apache::thrift::RpcKind rpcKind,
     std::unique_ptr<folly::IOBuf> data,
     RequestResponseHandler handler) noexcept {
-  if (FOLLY_UNLIKELY(!pipeline_)) {
+  if (!pipeline_) [[unlikely]] {
     handleMissingPipeline(std::move(handler));
     return;
   }
@@ -68,7 +68,7 @@ ThriftClientAppAdapter::onResponse(
   auto response = msg.take<ThriftResponseMessage>();
   auto ctx = response.requestContext.release_as<
       apache::thrift::fast_thrift::thrift::client::ThriftRequestContext>();
-  if (FOLLY_UNLIKELY(!ctx)) {
+  if (!ctx) [[unlikely]] {
     handleNullContext();
     return apache::thrift::fast_thrift::channel_pipeline::Result::Success;
   }
@@ -79,7 +79,7 @@ ThriftClientAppAdapter::onResponse(
   // Per-request error from below (e.g., rocket in-process serialize
   // failure). Fail just this handler; channel stays Open for subsequent
   // requests.
-  if (FOLLY_UNLIKELY(response.payload.is<ThriftClientResponseError>())) {
+  if (response.payload.is<ThriftClientResponseError>()) [[unlikely]] {
     handleResponseError(
         std::move(handler),
         std::move(response.payload.get<ThriftClientResponseError>().ew));
@@ -154,16 +154,15 @@ void ThriftClientAppAdapter::submitWrite(ThriftRequestMessage msg) noexcept {
 
 void ThriftClientAppAdapter::submitWriteOnEventBase(
     ThriftRequestMessage msg) noexcept {
-  if (FOLLY_UNLIKELY(state_ != State::Open)) {
+  if (state_ != State::Open) [[unlikely]] {
     handleNotOpen(std::move(msg));
     return;
   }
   auto result = pipeline_.fireWrite(
       apache::thrift::fast_thrift::channel_pipeline::erase_and_box(
           std::move(msg)));
-  if (FOLLY_UNLIKELY(
-          result ==
-          apache::thrift::fast_thrift::channel_pipeline::Result::Error)) {
+  if (result == apache::thrift::fast_thrift::channel_pipeline::Result::Error)
+      [[unlikely]] {
     handleWriteError();
   }
 }
@@ -194,7 +193,7 @@ void ThriftClientAppAdapter::handleNotOpen(ThriftRequestMessage msg) noexcept {
   // not-open error directly without ever entering the pipeline.
   auto ctx = msg.requestContext.release_as<
       apache::thrift::fast_thrift::thrift::client::ThriftRequestContext>();
-  if (FOLLY_LIKELY(ctx != nullptr)) {
+  if (ctx != nullptr) [[likely]] {
     ctx->handler(
         folly::makeUnexpected(
             folly::make_exception_wrapper<

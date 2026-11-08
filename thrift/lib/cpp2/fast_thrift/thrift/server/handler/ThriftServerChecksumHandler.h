@@ -73,9 +73,8 @@ class ThriftServerChecksumHandler {
       Context& ctx, channel_pipeline::TypeErasedBox&& msg) noexcept {
     auto& request = msg.get<ThriftServerRequestMessage>();
 
-    if (FOLLY_UNLIKELY(
-            !request.payload
-                 .template is<ThriftServerRequestResponsePayload>())) {
+    if (!request.payload.template is<ThriftServerRequestResponsePayload>())
+        [[unlikely]] {
       return ctx.fireRead(std::move(msg));
     }
 

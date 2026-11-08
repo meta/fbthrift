@@ -111,7 +111,7 @@ class ThriftClientGracefulDrainHandler {
       Context& ctx,
       apache::thrift::fast_thrift::channel_pipeline::TypeErasedBox&&
           msg) noexcept {
-    if (FOLLY_LIKELY(inFlight_ > 0)) {
+    if (inFlight_ > 0) [[likely]] {
       --inFlight_;
     }
     auto result = ctx.fireRead(std::move(msg));
@@ -148,7 +148,7 @@ class ThriftClientGracefulDrainHandler {
       Context& ctx,
       apache::thrift::fast_thrift::channel_pipeline::TypeErasedBox&&
           msg) noexcept {
-    if (FOLLY_LIKELY(state_ == State::Open)) {
+    if (state_ == State::Open) [[likely]] {
       ++inFlight_;
       return ctx.fireWrite(std::move(msg));
     }

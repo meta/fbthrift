@@ -89,8 +89,8 @@ class ThriftMetricsHandler {
       Context& ctx, channel_pipeline::TypeErasedBox&& msg) noexcept {
     DCHECK(stats_ != nullptr);
     if constexpr (Dir == Direction::Server) {
-      if (FOLLY_UNLIKELY(!shouldCount(
-              msg.get<thrift::ThriftServerRequestMessage>().payload))) {
+      if (!shouldCount(msg.get<thrift::ThriftServerRequestMessage>().payload))
+          [[unlikely]] {
         return ctx.fireRead(std::move(msg));
       }
     }
@@ -116,8 +116,8 @@ class ThriftMetricsHandler {
       Context& ctx, channel_pipeline::TypeErasedBox&& msg) noexcept {
     DCHECK(stats_ != nullptr);
     if constexpr (Dir == Direction::Server) {
-      if (FOLLY_UNLIKELY(!shouldCount(
-              msg.get<thrift::ThriftServerResponseMessage>().payload))) {
+      if (!shouldCount(msg.get<thrift::ThriftServerResponseMessage>().payload))
+          [[unlikely]] {
         return ctx.fireWrite(std::move(msg));
       }
     }

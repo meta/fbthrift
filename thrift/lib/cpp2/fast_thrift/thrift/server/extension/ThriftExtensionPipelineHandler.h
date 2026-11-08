@@ -188,7 +188,7 @@ class ThriftExtensionPipelineHandler {
     // Lifecycle messages never reach the request callbacks, whatever H
     // implements: to a request extension the setup exchange is not a request,
     // and handing it one would run onRequest against a connection.
-    if (FOLLY_UNLIKELY(request.payload.is<ThriftConnectionSetupPayload>())) {
+    if (request.payload.is<ThriftConnectionSetupPayload>()) [[unlikely]] {
       auto& setup = *request.payload.get<ThriftConnectionSetupPayload>().setup;
       // The setup message is the only place the connection is offered, so it
       // is latched here for every family that presents it later — not just
@@ -204,7 +204,7 @@ class ThriftExtensionPipelineHandler {
       }
     }
     const channel_pipeline::Result result = [&]() noexcept {
-      if (FOLLY_UNLIKELY(isStreamControlRequest(request.payload))) {
+      if (isStreamControlRequest(request.payload)) [[unlikely]] {
         return ctx.fireRead(std::move(msg));
       }
       if constexpr (!ThriftExtensionHandler<H>) {
@@ -217,8 +217,8 @@ class ThriftExtensionPipelineHandler {
       // Reported upward rather than acted on here: Backpressure travels back
       // to the transport, which is what stops reading the socket. An Error is
       // terminal and is never masked.
-      if (FOLLY_UNLIKELY(
-              bp_.paused_ && result != channel_pipeline::Result::Error)) {
+      if (bp_.paused_ && result != channel_pipeline::Result::Error)
+          [[unlikely]] {
         return channel_pipeline::Result::Backpressure;
       }
     }
@@ -274,7 +274,7 @@ class ThriftExtensionPipelineHandler {
           return handler_.onConnectionAttempted(mutator);
         }
       }();
-      if (FOLLY_UNLIKELY(verdict.isRejected())) {
+      if (verdict.isRejected()) [[unlikely]] {
         return refuse(ctx, "onConnectionAttempted", std::move(verdict));
       }
     }
@@ -348,7 +348,7 @@ class ThriftExtensionPipelineHandler {
                 Success) {
       return;
     }
-    if (FOLLY_UNLIKELY(connContext_ == nullptr)) {
+    if (connContext_ == nullptr) [[unlikely]] {
       return;
     }
     const ThriftConnectionView view(*connContext_);
@@ -415,7 +415,7 @@ class ThriftExtensionPipelineHandler {
     }();
 
     if (!verdict.isRejected()) {
-      if (FOLLY_UNLIKELY(verdict.appliesBackpressure())) {
+      if (verdict.appliesBackpressure()) [[unlikely]] {
         // Latch it before forwarding: onRead reads this on the way back out
         // and reports Backpressure for this very message, so the socket stops
         // being read without a further request having to arrive first.
@@ -440,15 +440,15 @@ class ThriftExtensionPipelineHandler {
       Context& ctx, channel_pipeline::TypeErasedBox&& msg) noexcept {
     if constexpr (HasConnectionAnsweringCallback<H>) {
       auto& outbound = msg.get<ThriftServerResponseMessage>();
-      if (FOLLY_UNLIKELY(
-              outbound.payload.template is<ThriftSetupResponsePayload>())) {
+      if (outbound.payload.template is<ThriftSetupResponsePayload>())
+          [[unlikely]] {
         // The answer is assembled but not yet serialized: this is the one
         // window in which an extension can put something in front of the
         // client.
         auto& setupResponse =
             outbound.payload.template get<ThriftSetupResponsePayload>()
                 .response;
-        if (FOLLY_LIKELY(setupResponse != nullptr)) {
+        if (setupResponse != nullptr) [[likely]] {
           ThriftSetupResponseMutator mutator(*setupResponse);
           handler_.onConnectionAnswering(mutator);
         }

@@ -88,7 +88,7 @@ class ThriftClientRequestTimeoutHandler {
     if (timeout.count() > 0) {
       auto* rc =
           static_cast<ThriftRequestContext*>(request.requestContext.get());
-      if (FOLLY_LIKELY(rc != nullptr)) {
+      if (rc != nullptr) [[likely]] {
         rc->timeout = std::make_unique<Timeout>(rc);
         ctx.eventBase()->timer().scheduleTimeout(rc->timeout.get(), timeout);
       }
@@ -116,7 +116,7 @@ class ThriftClientRequestTimeoutHandler {
         static_cast<ThriftRequestContext*>(response.requestContext.get());
     if (rc != nullptr) {
       rc->timeout.reset();
-      if (FOLLY_UNLIKELY(!rc->handler)) {
+      if (!rc->handler) [[unlikely]] {
         return apache::thrift::fast_thrift::channel_pipeline::Result::Success;
       }
     }

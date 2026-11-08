@@ -92,14 +92,14 @@ channel_pipeline::Result ThriftServerAppAdapter::dispatchRequest(
   DCHECK(request.streamId != 0) << "Invalid stream ID";
 
   const auto routing = getServerRequestRoutingMetadata(request);
-  if (FOLLY_UNLIKELY(
-          routing.status == ServerRequestRoutingStatus::MissingMetadata)) {
+  if (routing.status == ServerRequestRoutingStatus::MissingMetadata)
+      [[unlikely]] {
     handleUnknownMethod(
         request.streamId, {}, std::move(request.requestContext));
     return channel_pipeline::Result::Success;
   }
-  if (FOLLY_UNLIKELY(
-          routing.status == ServerRequestRoutingStatus::UnsupportedRpcKind)) {
+  if (routing.status == ServerRequestRoutingStatus::UnsupportedRpcKind)
+      [[unlikely]] {
     handleWrongRpcKind(
         request.streamId, routing.kind, std::move(request.requestContext));
     return channel_pipeline::Result::Success;
@@ -251,11 +251,11 @@ void ThriftServerAppAdapter::writeResponseOnEventBase(
   // Straggler after force-close (or any post-ConnectionClosed write):
   // the pipeline may already be gone. Drop silently — pipeline_ may
   // be dangling, do NOT dereference.
-  if (FOLLY_UNLIKELY(!pipelineActive_)) {
+  if (!pipelineActive_) [[unlikely]] {
     message.requestContext.reset();
     return;
   }
-  if (FOLLY_UNLIKELY(!pipeline_)) {
+  if (!pipeline_) [[unlikely]] {
     handleMissingPipeline();
     message.requestContext.reset();
     return;
@@ -265,7 +265,7 @@ void ThriftServerAppAdapter::writeResponseOnEventBase(
   // A failed write means the response can't reach the wire — pipeline
   // is in a broken or torn-down state. Tear down immediately rather
   // than wait for a graceful drain. Idempotent at the pipeline level.
-  if (FOLLY_UNLIKELY(result == channel_pipeline::Result::Error)) {
+  if (result == channel_pipeline::Result::Error) [[unlikely]] {
     pipeline_.deactivate();
   }
 }

@@ -53,20 +53,20 @@ channel_pipeline::Result ThriftServerCompositeAppAdapter::onReadImpl(
   DCHECK(request.streamId != 0) << "Invalid stream ID";
 
   const auto routing = getServerRequestRoutingMetadata(request);
-  if (FOLLY_UNLIKELY(
-          routing.status == ServerRequestRoutingStatus::MissingMetadata)) {
+  if (routing.status == ServerRequestRoutingStatus::MissingMetadata)
+      [[unlikely]] {
     return writeUnknownMethodError(
         request.streamId, {}, std::move(request.requestContext));
   }
-  if (FOLLY_UNLIKELY(
-          routing.status == ServerRequestRoutingStatus::UnsupportedRpcKind)) {
+  if (routing.status == ServerRequestRoutingStatus::UnsupportedRpcKind)
+      [[unlikely]] {
     return writeWrongRpcKindError(
         request.streamId, routing.kind, std::move(request.requestContext));
   }
 
   if (routingTable_) {
     const auto* route = routingTable_->find(routing.methodName);
-    if (FOLLY_UNLIKELY(route == nullptr)) {
+    if (route == nullptr) [[unlikely]] {
       return writeUnknownMethodError(
           request.streamId,
           routing.methodName,
@@ -200,21 +200,21 @@ channel_pipeline::Result ThriftServerCompositeAppAdapter::writeFrameworkError(
   if (message.requestContext != nullptr) {
     requestContextGuard.emplace(message.requestContext.get());
   }
-  if (FOLLY_UNLIKELY(!pipeline_)) {
+  if (!pipeline_) [[unlikely]] {
     XLOG(ERR) << "Pipeline not set, cannot send framework error";
     message.requestContext.reset();
     return channel_pipeline::Result::Error;
   }
   auto result =
       pipeline_.fireWrite(channel_pipeline::erase_and_box(std::move(message)));
-  if (FOLLY_UNLIKELY(result == channel_pipeline::Result::Error)) {
+  if (result == channel_pipeline::Result::Error) [[unlikely]] {
     pipeline_.deactivate();
   }
   return result;
 }
 
 void ThriftServerCompositeAppAdapter::close() noexcept {
-  if (FOLLY_UNLIKELY(!pipeline_)) {
+  if (!pipeline_) [[unlikely]] {
     return;
   }
   pipeline_.bindEvents<PublishedEvents>()

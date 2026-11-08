@@ -57,8 +57,8 @@ class ThriftServerBackpressureHandler {
   channel_pipeline::Result onRead(
       Context& ctx, channel_pipeline::TypeErasedBox&& msg) noexcept {
     const auto result = ctx.fireRead(std::move(msg));
-    if (FOLLY_UNLIKELY(
-            backpressured_ && result != channel_pipeline::Result::Error)) {
+    if (backpressured_ && result != channel_pipeline::Result::Error)
+        [[unlikely]] {
       return channel_pipeline::Result::Backpressure;
     }
     return result;
@@ -71,7 +71,7 @@ class ThriftServerBackpressureHandler {
   channel_pipeline::Result onWrite(
       Context& ctx, channel_pipeline::TypeErasedBox&& msg) noexcept {
     const auto result = ctx.fireWrite(std::move(msg));
-    if (FOLLY_UNLIKELY(result == channel_pipeline::Result::Backpressure)) {
+    if (result == channel_pipeline::Result::Backpressure) [[unlikely]] {
       if (!backpressured_) {
         backpressured_ = true;
         arbiter(ctx).acquire();

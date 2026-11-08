@@ -28,7 +28,7 @@ ThriftSetupResponsePayload::toRocketFrame(
     rocket::server::MetadataProtocol) && noexcept {
   DCHECK(response != nullptr);
   auto metadataPush = serializeSetupResponse(std::move(*response));
-  if (FOLLY_UNLIKELY(metadataPush == nullptr)) {
+  if (metadataPush == nullptr) [[unlikely]] {
     // A SetupResponse is a handful of scalars with no client-supplied content,
     // so this is an allocation failure rather than anything a peer can provoke.
     XLOG(FATAL) << "failed to serialize the SETUP response";

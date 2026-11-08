@@ -175,9 +175,8 @@ class RocketServerStreamStateHandler {
     // the connection, not to a stream, so there is no context to look up. They
     // are only reachable from above this handler, so an unknown streamId here
     // still means a stream frame that outlived its stream.
-    if (FOLLY_UNLIKELY(
-            streamId ==
-            apache::thrift::fast_thrift::frame::kConnectionStreamId)) {
+    if (streamId == apache::thrift::fast_thrift::frame::kConnectionStreamId)
+        [[unlikely]] {
       return ctx.fireWrite(std::move(msg));
     }
 
