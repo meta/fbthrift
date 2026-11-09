@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <unordered_map>
 
 #include <thrift/compiler/ast/node_list.h>
 #include <thrift/compiler/ast/t_const.h>
@@ -62,7 +63,7 @@ class t_enum final : public t_type {
   t_enum_value_list values_;
   node_list<t_const> constants_;
   std::map<int32_t, const t_enum_value*> value_map_;
-  std::map<std::string_view, const t_const*> consts_by_name_;
+  std::unordered_map<std::string_view, const t_const*> consts_by_name_;
   int32_t unused_ = default_unused;
 
   /**

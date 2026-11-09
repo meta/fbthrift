@@ -21,9 +21,13 @@
 namespace apache::thrift::compiler {
 
 void t_enum::set_values(t_enum_value_list values) {
+  consts_by_name_.clear();
   values_.clear();
   constants_.clear();
   value_map_.clear();
+  values_.reserve(values.size());
+  constants_.reserve(values.size());
+  consts_by_name_.reserve(values.size());
   unused_ = t_enum::default_unused;
   for (auto& value : values) {
     append_value(std::move(value));
