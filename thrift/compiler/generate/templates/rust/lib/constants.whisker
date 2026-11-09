@@ -60,11 +60,11 @@ list.push(
   {{#let partial insert_set_element |elem| captures |const_value_impl underlying_type|}}
 {{#pragma ignore-newlines}}
 set.insert(
-  {{#if underlying_type.floating_point?}}
+  {{#if underlying_type.true_type.elem_type.floating_point?}}
 ::fbthrift::export::OrderedFloat({{#partial const_value_impl value=elem local_type=elem.type}})
   {{#else}}
 {{#partial const_value_impl value=elem local_type=elem.type}}
-  {{/if underlying_type.floating_point?}}
+  {{/if underlying_type.true_type.elem_type.floating_point?}}
 );
   {{/let partial}}
   {{#let partial set_value captures |types insert_set_element value underlying_type|}}
@@ -86,11 +86,11 @@ set.insert(
   {{#let partial insert_map_element |elem| captures |const_value_impl underlying_type|}}
 {{#pragma ignore-newlines}}
 map.insert(
-  {{#if underlying_type.floating_point?}}
+  {{#if underlying_type.true_type.key_type.floating_point?}}
 ::fbthrift::export::OrderedFloat({{#partial const_value_impl value=elem.key local_type=elem.key.type}})
   {{#else}}
 {{#partial const_value_impl value=elem.key local_type=elem.key.type}}
-  {{/if underlying_type.floating_point?}}
+  {{/if underlying_type.true_type.key_type.floating_point?}}
 , {{#partial const_value_impl value=elem.value local_type=elem.value.type}});
   {{/let partial}}
   {{#let partial map_value captures |types insert_map_element value underlying_type|}}
