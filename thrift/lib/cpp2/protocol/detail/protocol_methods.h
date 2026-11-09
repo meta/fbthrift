@@ -99,8 +99,6 @@ using op::detail::map_supports_in_place_deserialize_v;
 using op::detail::map_try_emplace_is_invocable_v;
 using op::detail::set_emplace_hint_is_invocable_v;
 using op::detail::sorted_unique_constructible_v;
-using op::detail::writeMapValueBegin;
-using op::detail::writeMapValueEnd;
 
 /*
  * Primitive Types Specialization
@@ -376,8 +374,6 @@ struct protocol_methods<type_class::list<ElemClass>, Type, ExpectedTag> {
   }
 };
 
-using op::detail::encodeMapElements;
-
 /*
  * Set Specialization
  */
@@ -507,25 +503,15 @@ struct protocol_methods<
 
   template <typename Protocol, typename U>
   static std::size_t write(Protocol& protocol, const U& out) {
-    std::size_t xfer = 0;
-
-    xfer += protocol.writeMapBegin(
-        key_ttype::value,
-        mapped_ttype::value,
-        checked_container_size(out.size()),
-        std::is_same_v<KeyClass, type_class::string> ||
-            std::is_same_v<KeyClass, type_class::enumeration>);
-
     using KeyTag = type_class::to_type_tag_t<KeyClass, key_type>;
-    encodeMapElements<KeyTag>(
-        protocol, out, [&](const auto& key, const auto& value) {
-          xfer += writeMapValueBegin(protocol);
-          xfer += key_methods::write(protocol, key);
-          xfer += mapped_methods::write(protocol, value);
-          xfer += writeMapValueEnd(protocol);
-        });
-    xfer += protocol.writeMapEnd();
-    return xfer;
+    return op::detail::
+        MapEncodeImpl<key_ttype::value, mapped_ttype::value, KeyTag>{}(
+            protocol,
+            out,
+            [&](const auto& key) { return key_methods::write(protocol, key); },
+            [&](const auto& value) {
+              return mapped_methods::write(protocol, value);
+            });
   }
 
   template <bool ZeroCopy, typename Protocol, typename U>

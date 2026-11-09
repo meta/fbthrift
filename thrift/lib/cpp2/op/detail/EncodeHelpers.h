@@ -466,9 +466,8 @@ void encodeSetElements(
 
 /*
  * Common helper that iterates over a map-like container in the order required
- * by `Protocol`, invoking `writeEntry(key, value)` for each entry. Used by both
- * `protocol_methods<type_class::map<...>, ..., ...>::write` and
- * `op::detail::MapEncode<Key, Value>`.
+ * by `Protocol`, invoking `writeEntry(key, value)` for each entry. Used by
+ * `op::detail::MapEncodeImpl`.
  */
 template <
     typename KeyTag,

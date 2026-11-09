@@ -781,29 +781,50 @@ struct SetEncode {
 template <typename Tag>
 struct Encode<type::set<Tag>> : SetEncode<Tag> {};
 
+template <TType KeyType, TType ValueType, typename KeyTag>
+struct MapEncodeImpl {
+  template <
+      typename Protocol,
+      typename T,
+      typename KeyWrite,
+      typename ValueWrite>
+  std::size_t operator()(
+      Protocol& prot,
+      const T& map,
+      KeyWrite keyWrite,
+      ValueWrite valueWrite) const {
+    std::size_t xfer = 0;
+    // alternativeKeyForm disambiguates string/binary and i32/enum key types.
+    constexpr bool alternativeKeyForm = type::is_a_v<KeyTag, type::enum_c> ||
+        type::is_a_v<KeyTag, type::string_t>;
+    xfer += prot.writeMapBegin(
+        KeyType,
+        ValueType,
+        checked_container_size(map.size()),
+        alternativeKeyForm);
+
+    encodeMapElements<KeyTag>(
+        prot, map, [&](const auto& key, const auto& value) {
+          xfer += writeMapValueBegin(prot);
+          xfer += keyWrite(key);
+          xfer += valueWrite(value);
+          xfer += writeMapValueEnd(prot);
+        });
+
+    xfer += prot.writeMapEnd();
+    return xfer;
+  }
+};
+
 template <typename Key, typename Value>
 struct MapEncode {
   template <typename Protocol, typename T>
   std::size_t operator()(Protocol& prot, const T& map) const {
-    std::size_t xfer = 0;
-    // alternativeKeyForm disambiguates string/binary and i32/enum key types.
-    constexpr bool alternativeKeyForm =
-        type::is_a_v<Key, type::enum_c> || type::is_a_v<Key, type::string_t>;
-    xfer += prot.writeMapBegin(
-        typeTagToTType<Key>,
-        typeTagToTType<Value>,
-        checked_container_size(map.size()),
-        alternativeKeyForm);
-
-    encodeMapElements<Key>(prot, map, [&](const auto& key, const auto& value) {
-      xfer += writeMapValueBegin(prot);
-      xfer += Encode<Key>{}(prot, key);
-      xfer += Encode<Value>{}(prot, value);
-      xfer += writeMapValueEnd(prot);
-    });
-
-    xfer += prot.writeMapEnd();
-    return xfer;
+    return MapEncodeImpl<typeTagToTType<Key>, typeTagToTType<Value>, Key>{}(
+        prot,
+        map,
+        [&](const auto& key) { return Encode<Key>{}(prot, key); },
+        [&](const auto& value) { return Encode<Value>{}(prot, value); });
   }
 };
 

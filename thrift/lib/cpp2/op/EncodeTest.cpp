@@ -64,6 +64,8 @@ struct WideCountProtocol {
   std::size_t writeListEnd() { return 0; }
   std::size_t writeSetBegin(TType, uint32_t) { return 5; }
   std::size_t writeSetEnd() { return 7; }
+  std::size_t writeMapBegin(TType, TType, uint32_t, bool) { return 5; }
+  std::size_t writeMapEnd() { return 7; }
   KeyOrder keyOrder() const { return KeyOrder::Unspecified; }
   std::size_t serializedSizeListBegin(TType, uint32_t) { return 5; }
   std::size_t serializedSizeI64(int64_t) { return kElementBytes; }
@@ -287,6 +289,102 @@ TEST(EncodeTest, SetWriteParity) {
   testSetWriteParity<SimpleJSONProtocolWriter>(ordered);
   testSetWriteParity<SimpleJSONProtocolWriter>(unordered);
   testSetWriteParity<CompactProtocolWriter>(std::set<int32_t>{});
+}
+
+TEST(EncodeTest, MapWideByteCounts) {
+  WideCountProtocol protocol;
+  const std::map<int64_t, int64_t> values{{1, 2}};
+  const auto expected = 2 * WideCountProtocol::kElementBytes + 12;
+  using Tag = type::map<type::i64_t, type::i64_t>;
+  using Methods = apache::thrift::detail::pm::protocol_methods<
+      type_class::map<type_class::integral, type_class::integral>,
+      std::map<int64_t, int64_t>,
+      Tag>;
+  EXPECT_EQ(expected, op::encode<Tag>(protocol, values));
+  EXPECT_EQ(expected, Methods::write(protocol, values));
+}
+
+template <typename Protocol, typename Map>
+void testMapWriteParity(const Map& values) {
+  using Tag = type::map<type::i32_t, type::string_t>;
+  using Methods = apache::thrift::detail::pm::protocol_methods<
+      type_class::map<type_class::integral, type_class::string>,
+      Map,
+      Tag>;
+  for (auto order :
+       {KeyOrder::Unspecified,
+        KeyOrder::NativeAscending,
+        KeyOrder::StableAscending}) {
+    SCOPED_TRACE(static_cast<int>(order));
+    SetOrderingWriter<Protocol> writer;
+    writer.order = order;
+    folly::IOBufQueue opQueue;
+    writer.setOutput(&opQueue);
+    const auto opSize = op::encode<Tag>(writer, values);
+    folly::IOBufQueue methodsQueue;
+    writer.setOutput(&methodsQueue);
+    const auto methodsSize = Methods::write(writer, values);
+    auto opBytes = opQueue.move();
+    auto methodsBytes = methodsQueue.move();
+    EXPECT_EQ(opSize, opBytes->computeChainDataLength());
+    EXPECT_EQ(methodsSize, methodsBytes->computeChainDataLength());
+    EXPECT_TRUE(folly::IOBufEqualTo{}(*opBytes, *methodsBytes));
+  }
+}
+
+TEST(EncodeTest, MapWriteParity) {
+  const std::map<int32_t, std::string, std::greater<int32_t>> ordered{
+      {3, "c"}, {2, "b"}, {1, "a"}};
+  const std::unordered_map<int32_t, std::string> unordered{
+      {3, "c"}, {2, "b"}, {1, "a"}};
+  testMapWriteParity<BinaryProtocolWriter>(ordered);
+  testMapWriteParity<BinaryProtocolWriter>(unordered);
+  testMapWriteParity<CompactProtocolWriter>(ordered);
+  testMapWriteParity<CompactProtocolWriter>(unordered);
+  testMapWriteParity<SimpleJSONProtocolWriter>(ordered);
+  testMapWriteParity<SimpleJSONProtocolWriter>(unordered);
+  testMapWriteParity<CompactProtocolWriter>(std::map<int32_t, std::string>{});
+}
+
+struct MapBeginRecorder : BinaryProtocolWriter {
+  bool alternativeKeyForm = false;
+  uint32_t writeMapBegin(
+      TType keyType, TType valueType, uint32_t size, bool alternative) {
+    alternativeKeyForm = alternative;
+    return BinaryProtocolWriter::writeMapBegin(
+        keyType, valueType, size, alternative);
+  }
+};
+
+template <typename KeyClass, typename KeyTag, typename Key>
+void testMapAlternativeKeyForm(bool expected) {
+  using Map = std::map<Key, int32_t>;
+  using Tag = type::map<KeyTag, type::i32_t>;
+  using Methods = apache::thrift::detail::pm::protocol_methods<
+      type_class::map<KeyClass, type_class::integral>,
+      Map,
+      Tag>;
+  folly::IOBufQueue queue;
+  MapBeginRecorder opWriter;
+  opWriter.setOutput(&queue);
+  op::encode<Tag>(opWriter, Map{});
+  EXPECT_EQ(opWriter.alternativeKeyForm, expected);
+  MapBeginRecorder methodsWriter;
+  methodsWriter.setOutput(&queue);
+  Methods::write(methodsWriter, Map{});
+  EXPECT_EQ(methodsWriter.alternativeKeyForm, expected);
+}
+
+TEST(EncodeTest, MapAlternativeKeyForm) {
+  testMapAlternativeKeyForm<type_class::string, type::string_t, std::string>(
+      true);
+  testMapAlternativeKeyForm<type_class::binary, type::binary_t, std::string>(
+      false);
+  testMapAlternativeKeyForm<
+      type_class::enumeration,
+      type::enum_t<StandardProtocol>,
+      StandardProtocol>(true);
+  testMapAlternativeKeyForm<type_class::integral, type::i32_t, int32_t>(false);
 }
 
 template <
