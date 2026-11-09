@@ -84,6 +84,7 @@ class TestThriftPyDeprecatedWarningE2E(unittest.TestCase):
 
     def __subprocess_environment(self, warning_env_value: str | None) -> dict[str, str]:
         environment = os.environ.copy()
+        environment["PYTHON_COLORS"] = "0"
         if warning_env_value is None:
             environment.pop("THRIFT_PY_DEPRECATED_WARNING", None)
         else:
