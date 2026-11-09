@@ -288,6 +288,11 @@ func readVarString(buf byteReader) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("tHeader: error reading len of kv string: %w", err)
 	}
+	// The string lives inside the header, so it can't be longer than the
+	// header itself. Check before allocating.
+	if strlen > uint64(MaxHeaderSize) {
+		return "", fmt.Errorf("tHeader: kv string length %d exceeds max header size %d", strlen, MaxHeaderSize)
+	}
 
 	strbuf := make([]byte, strlen)
 	_, err = io.ReadFull(buf, strbuf)

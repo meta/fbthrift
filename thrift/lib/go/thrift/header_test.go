@@ -59,3 +59,15 @@ func TestHeaderDeserSer(t *testing.T) {
 	err = hdr.Write(wbuf)
 	require.NoError(t, err)
 }
+
+// Header frame with one info header whose key claims to be 1<<62 bytes long.
+var OversizedInfoHeaderString = MustDecodeHex(
+	"0000001a0fff000000000001000402000101808080808080808040000000",
+)
+
+func TestHeaderOversizedInfoHeaderString(t *testing.T) {
+	buf := bufio.NewReader(bytes.NewBuffer(OversizedInfoHeaderString))
+	hdr := &tHeader{}
+	err := hdr.Read(buf)
+	require.ErrorContains(t, err, "exceeds max header size")
+}
