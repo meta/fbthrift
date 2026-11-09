@@ -26,6 +26,7 @@
  */
 
 #include <folly/Benchmark.h>
+#include <folly/Utility.h>
 #include <folly/init/Init.h>
 #include <folly/io/Cursor.h>
 #include <folly/io/IOBuf.h>
@@ -320,13 +321,34 @@ struct FastThriftChannelBenchFixture {
   }
 };
 
-struct FastClientBenchFixture {
+// folly::NonCopyableNonMovable deletes copy and move.
+// NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
+struct FastClientBenchFixture : private folly::NonCopyableNonMovable {
   folly::EventBase evb;
   BenchAsyncTransport* testTransport{nullptr};
   SimpleBufferAllocator thriftAllocator;
   std::unique_ptr<client::ThriftClientTransportAdapter> transportAdapter;
   PipelineOwner thriftPipeline;
   std::unique_ptr<FastClientType> fastClient;
+
+  // `fastClient` and its app adapter are destroyed first, and the transport
+  // adapter's destructor still reaches the app adapter through the thrift
+  // pipeline. Close the pipeline and detach both adapters first, while all of
+  // them are alive.
+  ~FastClientBenchFixture() {
+    if (thriftPipeline) {
+      thriftPipeline->deactivate();
+      thriftPipeline->close();
+    }
+    if (transportAdapter) {
+      transportAdapter->resetPipeline();
+    }
+    if (fastClient) {
+      fastClient->getAppAdapter()->resetPipeline();
+    }
+    thriftPipeline.reset();
+    transportAdapter.reset();
+  }
 
   void setup() {
     testTransport = new BenchAsyncTransport(&evb);

@@ -29,6 +29,7 @@
  */
 
 #include <folly/Benchmark.h>
+#include <folly/Utility.h>
 #include <folly/init/Init.h>
 #include <folly/io/Cursor.h>
 #include <folly/io/IOBuf.h>
@@ -390,7 +391,9 @@ class BenchAppAdapterClient {
 // ThriftClientTransportAdapter
 // =============================================================================
 
-struct AppAdapterBenchFixture {
+// folly::NonCopyableNonMovable deletes copy and move.
+// NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
+struct AppAdapterBenchFixture : private folly::NonCopyableNonMovable {
   folly::EventBase evb;
   BenchAsyncTransport* testTransport{nullptr};
 
@@ -399,6 +402,23 @@ struct AppAdapterBenchFixture {
   std::unique_ptr<client::ThriftClientTransportAdapter> transportAdapter;
   PipelineOwner thriftPipeline;
   TestAllocator thriftAllocator;
+
+  // `client` is destroyed after the transport adapter and the thrift
+  // pipeline, and its app adapter's destructor still reaches the transport
+  // adapter through that pipeline. Close the pipeline and detach both
+  // adapters first, while all of them are alive.
+  ~AppAdapterBenchFixture() {
+    if (thriftPipeline) {
+      thriftPipeline->deactivate();
+      thriftPipeline->close();
+    }
+    if (transportAdapter) {
+      transportAdapter->resetPipeline();
+    }
+    client.adapter().resetPipeline();
+    thriftPipeline.reset();
+    transportAdapter.reset();
+  }
 
   void setup() {
     testTransport = new BenchAsyncTransport(&evb);
