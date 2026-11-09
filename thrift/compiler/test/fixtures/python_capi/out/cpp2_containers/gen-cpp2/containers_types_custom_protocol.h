@@ -121,7 +121,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -439,7 +438,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -801,7 +799,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -1077,7 +1074,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -1228,7 +1224,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -1356,7 +1351,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -1484,7 +1478,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
