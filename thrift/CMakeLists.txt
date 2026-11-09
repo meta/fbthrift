@@ -137,11 +137,11 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/FBThriftConfig.cmake
 # thrift-targets.cmake refers to. FindLibUnwind is here because FindGlog uses
 # it.
 install(
-  FILES ${PROJECT_SOURCE_DIR}/build/fbcode_builder/CMake/FindXxhash.cmake
-        ${PROJECT_SOURCE_DIR}/build/fbcode_builder/CMake/FindZstd.cmake
-        ${PROJECT_SOURCE_DIR}/build/fbcode_builder/CMake/FindGflags.cmake
-        ${PROJECT_SOURCE_DIR}/build/fbcode_builder/CMake/FindGlog.cmake
-        ${PROJECT_SOURCE_DIR}/build/fbcode_builder/CMake/FindLibUnwind.cmake
+  FILES ${THRIFT_FBCODE_BUILDER_DIR}/CMake/FindXxhash.cmake
+        ${THRIFT_FBCODE_BUILDER_DIR}/CMake/FindZstd.cmake
+        ${THRIFT_FBCODE_BUILDER_DIR}/CMake/FindGflags.cmake
+        ${THRIFT_FBCODE_BUILDER_DIR}/CMake/FindGlog.cmake
+        ${THRIFT_FBCODE_BUILDER_DIR}/CMake/FindLibUnwind.cmake
   DESTINATION ${THRIFT_INSTALL_CMAKEDIR})
 install(
   EXPORT fbthrift-exports

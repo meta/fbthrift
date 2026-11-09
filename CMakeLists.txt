@@ -70,9 +70,16 @@ function (thrift_configure_target target visibility)
   endif ()
 endfunction ()
 
+# The GitHub export puts fbcode_builder in tool/. A complete
+# build/fbcode_builder, as in conda's source layout, takes precedence over a
+# tool/ that an export update created only in part.
+set(THRIFT_FBCODE_BUILDER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build/fbcode_builder")
+if (NOT EXISTS "${THRIFT_FBCODE_BUILDER_DIR}/CMake/FBFetchFromManifest.cmake")
+  set(THRIFT_FBCODE_BUILDER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/tool/fbcode_builder")
+endif ()
 # Prepend, so entries from a parent project or the command line survive.
 list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/thrift/cmake"
-     "${CMAKE_CURRENT_SOURCE_DIR}/build/fbcode_builder/CMake")
+     "${THRIFT_FBCODE_BUILDER_DIR}/CMake")
 
 option(
   THRIFT_RPC
