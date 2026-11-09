@@ -53,8 +53,6 @@ class ThriftRequestHandler : public proxygen::HTTPTransactionHandler {
 
   void onEOM() noexcept override;
 
-  void onUpgrade(proxygen::UpgradeProtocol proto) noexcept override;
-
   void detachTransaction() noexcept override;
 
   void onError(const proxygen::HTTPException& error) noexcept override;

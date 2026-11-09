@@ -44,8 +44,6 @@ void ThriftRequestHandler::onEOM() noexcept {
   channel_->onH2StreamEnd();
 }
 
-void ThriftRequestHandler::onUpgrade(UpgradeProtocol /*prot*/) noexcept {}
-
 void ThriftRequestHandler::detachTransaction() noexcept {
   if (channel_) {
     channel_->onH2StreamClosed(ProxygenError::kErrorNone, "");

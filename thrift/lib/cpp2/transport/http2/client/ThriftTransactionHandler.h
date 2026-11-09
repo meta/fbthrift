@@ -58,11 +58,6 @@ class ThriftTransactionHandler
 
   void onEOM() noexcept override;
 
-  void onUpgrade(proxygen::UpgradeProtocol /*protocol*/) noexcept override {
-    // If code comes here, it is seriously wrong
-    // TODO (geniusye) destroy the channel here
-  }
-
   void onError(const proxygen::HTTPException& error) noexcept override;
 
   void onEgressPaused() noexcept override {
