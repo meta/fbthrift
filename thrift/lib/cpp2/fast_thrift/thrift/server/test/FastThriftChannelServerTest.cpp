@@ -182,7 +182,7 @@ class FastThriftChannelServerTest : public ::testing::Test {
     using T = typename SemiFuture::value_type;
     if constexpr (std::is_void_v<T>) {
       folly::Baton<> baton;
-      auto* evb = clientThread_->getEventBase();
+      auto evb = clientThread_->getEventBaseKeepAlive();
       evb->runInEventBaseThread([&] {
         fn().via(evb)
             .thenValue([&](folly::Unit) { baton.post(); })
@@ -195,7 +195,7 @@ class FastThriftChannelServerTest : public ::testing::Test {
     } else {
       folly::Baton<> baton;
       T result{};
-      auto* evb = clientThread_->getEventBase();
+      auto evb = clientThread_->getEventBaseKeepAlive();
       evb->runInEventBaseThread([&] {
         fn().via(evb)
             .thenValue([&](T val) {
@@ -433,8 +433,8 @@ class FastThriftChannelServerTlsTest : public ::testing::Test {
 };
 
 TEST_F(FastThriftChannelServerTlsTest, RoundTripOverTls) {
-  auto* evb = clientThread_->getEventBase();
-  auto transport = connectFizz(evb, server_->getAddress());
+  auto evb = clientThread_->getEventBaseKeepAlive();
+  auto transport = connectFizz(evb.get(), server_->getAddress());
   ASSERT_NE(transport, nullptr);
 
   std::unique_ptr<apache::thrift::Client<BackwardsCompatibilityTestService>>
@@ -473,11 +473,12 @@ TEST_F(FastThriftChannelServerTlsTest, PlaintextClientFailsToConnect) {
   // A non-TLS client connects but its first frame will not parse as a
   // ClientHello; the server's fizz handshake fails and the connection is
   // dropped. The RPC should error out (not hang or succeed).
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
   std::unique_ptr<apache::thrift::Client<BackwardsCompatibilityTestService>>
       client;
   evb->runInEventBaseThreadAndWait([&] {
-    auto socket = folly::AsyncSocket::newSocket(evb, server_->getAddress());
+    auto socket =
+        folly::AsyncSocket::newSocket(evb.get(), server_->getAddress());
     auto channel =
         apache::thrift::RocketClientChannel::newChannel(std::move(socket));
     client = std::make_unique<

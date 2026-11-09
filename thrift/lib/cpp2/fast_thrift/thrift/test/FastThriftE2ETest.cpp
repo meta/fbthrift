@@ -478,7 +478,7 @@ TEST_P(FastThriftE2ETest, ReuseAppAdapterWithNewClient) {
 
 TEST_P(FastThriftE2ETest, Ping) {
   auto client = createFastClient();
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
 
   // coro
   folly::coro::blockingWait(
@@ -507,7 +507,7 @@ TEST_P(FastThriftE2ETest, Ping) {
 
 TEST_P(FastThriftE2ETest, Echo) {
   auto client = createFastClient();
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
 
   // coro
   auto coroResult = folly::coro::blockingWait(
@@ -542,7 +542,7 @@ TEST_P(FastThriftE2ETest, Echo) {
 
 TEST_P(FastThriftE2ETest, Add) {
   auto client = createFastClient();
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
 
   // coro
   auto coroResult = folly::coro::blockingWait(
@@ -574,7 +574,7 @@ TEST_P(FastThriftE2ETest, Add) {
 
 TEST_P(FastThriftE2ETest, TimeoutCancelsRequestAndKeepsConnectionUsable) {
   auto client = createFastClient();
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
   handler_->parkNextEcho();
 
   apache::thrift::RpcOptions opts;
@@ -596,7 +596,7 @@ TEST_P(FastThriftE2ETest, TimeoutCancelsRequestAndKeepsConnectionUsable) {
 
 TEST_P(FastThriftE2ETest, SendResponse) {
   auto client = createFastClient();
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
   constexpr int64_t kResponseSize = 10000;
 
   // coro
@@ -641,7 +641,7 @@ TEST_P(FastThriftE2ETest, SendResponse) {
 // surfaces as a CHECKSUM_MISMATCH RPC error.
 TEST_P(FastThriftE2ETest, ChecksumRoundTrip) {
   auto client = createFastClient();
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
 
   apache::thrift::RpcOptions opts;
   opts.setChecksum(apache::thrift::RpcOptions::Checksum::XXH3_64);
@@ -665,7 +665,7 @@ std::string stampedReadHeader(const apache::thrift::RpcOptions& opts) {
 // FastClient's projection back into the caller's RpcOptions.
 TEST_P(FastThriftE2ETest, ResponseHeaderReachesClientOnSuccess) {
   auto client = createFastClient();
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
 
   apache::thrift::RpcOptions opts;
   auto result = folly::coro::blockingWait(
@@ -683,7 +683,7 @@ TEST_P(FastThriftE2ETest, ResponseHeaderReachesClientOnSuccess) {
 // exception cascade.
 TEST_P(FastThriftE2ETest, ResponseHeaderReachesClientOnDeclaredException) {
   auto client = createFastClient();
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
 
   apache::thrift::RpcOptions opts;
   bool threw = false;
@@ -706,7 +706,7 @@ TEST_P(FastThriftE2ETest, ResponseHeaderReachesClientOnDeclaredException) {
 // concurrent requests would otherwise race on.
 TEST_P(FastThriftE2ETest, ResponseHeaderWithoutRpcOptionsIsDropped) {
   auto client = createFastClient();
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
 
   auto result = folly::coro::blockingWait(
       folly::coro::co_withExecutor(evb, client->co_echo("hello")));
@@ -725,7 +725,7 @@ TEST_P(FastThriftE2ETest, ConcurrentRequestsOnOneConnection) {
   constexpr int kRequests = 200;
 
   auto client = createFastClient();
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
 
   std::vector<folly::SemiFuture<int64_t>> futures;
   futures.reserve(kRequests);
@@ -752,7 +752,7 @@ TEST_P(FastThriftE2ETest, HandlerCompletesOnForeignThread) {
   handler_->setEchoCompletionExecutor(&completionPool);
 
   auto client = createFastClient();
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
 
   constexpr int kRequests = 50;
   // co_echo takes the message by const reference, so it must outlive the
@@ -781,7 +781,7 @@ TEST_P(FastThriftE2ETest, HandlerCompletesOnForeignThread) {
 // for, and it must hold whether or not a CPU pool is in play.
 TEST_P(FastThriftE2ETest, StragglerCompletesAfterConnectionClosed) {
   auto client = createFastClient();
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
 
   handler_->parkNextEcho();
 
@@ -817,7 +817,7 @@ TEST_P(FastThriftE2ETest, StragglerCompletesAfterConnectionClosed) {
 // makes this an A/B rather than an assertion that the pool exists.
 TEST_P(FastThriftE2ETest, EventBaseMethodsBypassCPUPool) {
   auto client = createFastClient();
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
 
   EXPECT_TRUE(
       folly::coro::blockingWait(
@@ -858,7 +858,7 @@ class FastThriftRejectedDispatchTest : public FastThriftE2ETest {
 
 TEST_P(FastThriftRejectedDispatchTest, RejectedEnqueueReportsOverload) {
   auto client = createFastClient();
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
 
   std::string message;
   try {

@@ -477,7 +477,7 @@ TEST_F(ThriftClientBackwardsCompatibilityE2ETest, MultipleRequests) {
   auto client = std::make_unique<
       apache::thrift::Client<BackwardsCompatibilityTestService>>(
       std::move(channel_));
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
 
   auto [r1, r2, r3] = folly::coro::blockingWait(
       folly::coro::collectAll(
@@ -912,7 +912,7 @@ TEST_F(BackwardsCompatibilityFastClientE2ETest, AddNumbers) {
 
 TEST_F(BackwardsCompatibilityFastClientE2ETest, MultipleRequests) {
   auto client = createFastClient();
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
 
   auto [r1, r2, r3] = folly::coro::blockingWait(
       folly::coro::collectAll(

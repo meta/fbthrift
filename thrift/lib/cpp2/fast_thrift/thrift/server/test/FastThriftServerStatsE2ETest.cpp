@@ -189,7 +189,7 @@ class FastThriftServerStatsE2ETest : public ::testing::Test {
   auto syncCall(Fn&& fn) {
     using SemiFuture = std::invoke_result_t<Fn>;
     using T = typename SemiFuture::value_type;
-    auto* evb = clientThread_->getEventBase();
+    auto evb = clientThread_->getEventBaseKeepAlive();
     folly::Baton<> baton;
     if constexpr (std::is_void_v<T>) {
       evb->runInEventBaseThread([&] {

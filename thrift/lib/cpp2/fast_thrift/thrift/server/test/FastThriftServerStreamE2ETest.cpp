@@ -176,13 +176,13 @@ class FastThriftServerStreamE2ETest : public ::testing::Test {
 } // namespace
 
 TEST_F(FastThriftServerStreamE2ETest, ClientReceivesStreamItems) {
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
   std::vector<std::string> items;
   folly::coro::blockingWait(
       folly::coro::co_withExecutor(
           evb, folly::coro::co_invoke([&]() -> folly::coro::Task<void> {
             auto socket =
-                folly::AsyncSocket::newSocket(evb, server_->getAddress());
+                folly::AsyncSocket::newSocket(evb.get(), server_->getAddress());
             auto channel = apache::thrift::RocketClientChannel::newChannel(
                 std::move(socket));
             apache::thrift::Client<integration::FastThriftServer> client(
@@ -200,14 +200,14 @@ TEST_F(FastThriftServerStreamE2ETest, ClientReceivesStreamItems) {
 TEST_F(
     FastThriftServerStreamE2ETest,
     ClientReceivesInitialResponseAndStreamItems) {
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
   std::string initialResponse;
   std::vector<std::string> items;
   folly::coro::blockingWait(
       folly::coro::co_withExecutor(
           evb, folly::coro::co_invoke([&]() -> folly::coro::Task<void> {
             auto socket =
-                folly::AsyncSocket::newSocket(evb, server_->getAddress());
+                folly::AsyncSocket::newSocket(evb.get(), server_->getAddress());
             auto channel = apache::thrift::RocketClientChannel::newChannel(
                 std::move(socket));
             apache::thrift::Client<integration::FastThriftServer> client(

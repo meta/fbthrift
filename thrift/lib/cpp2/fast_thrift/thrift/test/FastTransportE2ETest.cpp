@@ -488,7 +488,7 @@ TEST_F(FastTransportE2ETest, EchoRequestResponse) {
 
 TEST_F(FastTransportE2ETest, SequentialRequests) {
   auto client = createClient();
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
 
   // First request — completes before the second is sent
   auto result1 = folly::coro::blockingWait(
@@ -510,7 +510,7 @@ TEST_F(FastTransportE2ETest, SequentialRequests) {
 
 TEST_F(FastTransportE2ETest, MultipleRequests) {
   auto client = createClient();
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
 
   auto [r1, r2, r3] = folly::coro::blockingWait(
       folly::coro::collectAll(
