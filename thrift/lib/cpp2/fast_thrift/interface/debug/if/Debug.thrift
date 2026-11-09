@@ -16,6 +16,7 @@
 
 include "thrift/annotation/cpp.thrift"
 include "thrift/lib/thrift/metadata.thrift"
+include "thrift/lib/thrift/schema.thrift"
 
 package "facebook.com/thrift/fast_thrift"
 
@@ -28,12 +29,11 @@ namespace cpp2 apache.thrift.fast_thrift
  * match so debug RPC clients (whose code generates off the legacy IDL) can
  * talk to either stack interchangeably.
  *
- * v1 ships the three methods needed for debug clients' baseline
- * send-request, server-info, and interactive-info flows. Other legacy
- * methods (`dumpRequests`, `dumpThriftServiceSchema`,
- * `dumpThriftServiceMetadataV1`, `getThriftServiceConfiguration`) are not
- * declared here yet and will land as the corresponding fast_thrift
- * subsystems materialize.
+ * v1 ships the methods needed for debug clients' baseline send-request,
+ * server-info, and interactive-info flows. Other legacy methods
+ * (`dumpRequests`, `dumpThriftServiceMetadataV1`,
+ * `getThriftServiceConfiguration`) are not declared here yet and will land as
+ * the corresponding fast_thrift subsystems materialize.
  */
 
 // === Identity ===
@@ -63,6 +63,25 @@ struct DumpMetadataRequest {}
 
 struct DumpMetadataResponse {
   1: list<ServerMetadataInfo> serversMetadataInfo;
+}
+
+// === Schema (wire-compatible with legacy dumpThriftServiceSchema) ===
+
+struct ServiceSchemaInfo {
+  1: list<schema.DefinitionKey> definitions;
+  2: schema.Schema schema;
+  3: optional list<string> orderedServiceNames;
+}
+
+struct ServerSchemaInfo {
+  1: optional ServiceSchemaInfo serviceSchema;
+  2: list<ServerEndpoint> endpoints;
+}
+
+struct DumpSchemaRequest {}
+
+struct DumpSchemaResponse {
+  1: list<ServerSchemaInfo> serversSchemaInfo;
 }
 
 // === Server debug info (partial substructs only) ===
@@ -145,6 +164,8 @@ service Debug {
   ServiceIdentityResponse getServiceIdentity(1: ServiceIdentityRequest req);
 
   DumpMetadataResponse dumpThriftServiceMetadata(1: DumpMetadataRequest req);
+
+  DumpSchemaResponse dumpThriftServiceSchema(1: DumpSchemaRequest req);
 
   ServerDbgInfo getServerDbgInfo(1: ServerDbgInfoRequest req);
 }

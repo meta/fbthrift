@@ -522,6 +522,12 @@ class FastThriftServerBase {
   /// (gating accessors that require the server to be running).
   bool isRunning() const noexcept { return state_ == State::kRunning; }
 
+  /// The bound address if the server is running, else nullopt. Read under the
+  /// lifecycle lock, so a caller that gets an address also sees every
+  /// interface and the metadata response written before start(). Those do not
+  /// change after start(), so they can then be read without the lock.
+  std::optional<folly::SocketAddress> getAddressIfRunning() const;
+
   /**
    * The IO pool backing this server, or nullptr before start() unless the
    * embedder supplied one via setIOThreadPool (start() materializes the
@@ -556,6 +562,19 @@ class FastThriftServerBase {
   getMetadataResponse() const noexcept {
     return metadataResponse_;
   }
+
+  /**
+   * The bundled schema of the user interface and every wired auxiliary
+   * interface, merged; empty if none of them has bundled schema, as for a C++
+   * ThriftServer. The user interface comes first in `getServiceSchemaNodes()`,
+   * the order debug clients use to pick the primary service. Read only once
+   * getAddressIfRunning() returns an address: until start() the setters may
+   * still be writing the interfaces.
+   */
+  ::apache::thrift::schema::DefinitionsSchema getServiceSchema() const;
+  std::vector<
+      folly::not_null<const ::apache::thrift::syntax_graph::ServiceNode*>>
+  getServiceSchemaNodes() const;
 
   /// Snapshot of which auxiliary slots are wired (for debug introspection).
   bool hasMonitoringHandler() const noexcept {
@@ -603,6 +622,8 @@ class FastThriftServerBase {
   };
 
   void rebuildMethodMetadataRegistry();
+  std::vector<folly::not_null<ThriftServerAppAdapterFactory*>> interfaces()
+      const;
 
  protected:
   void addModuleRegistrations(
@@ -680,7 +701,7 @@ class FastThriftServerBase {
   // observes the connectionManager_ assignment from start() with a proper
   // happens-before. Without this, TSAN reports a race when stop() runs on a
   // different thread from serve().
-  std::mutex lifecycleMutex_;
+  mutable std::mutex lifecycleMutex_;
   State state_{State::kNotStarted};
   // Process-wide registration. Mutable nowhere — declared last so it is
   // destroyed first (its destructor blocks until any in-flight

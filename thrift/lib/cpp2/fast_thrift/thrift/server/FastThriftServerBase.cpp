@@ -41,6 +41,7 @@
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/ThriftServerConnectionFactory.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/adapter/MetadataAppAdapter.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/event_handler/TProcessorEventHandlerBridge.h>
+#include <thrift/lib/cpp2/schema/detail/Merge.h>
 
 namespace apache::thrift::fast_thrift::thrift {
 
@@ -754,6 +755,69 @@ folly::SocketAddress detail::FastThriftServerBase::getAddress() const {
          "isRunning() to gate this call when iterating servers via "
          "FastThriftServerRegistry";
   return connectionManager_->getAddress();
+}
+
+std::vector<folly::not_null<ThriftServerAppAdapterFactory*>>
+detail::FastThriftServerBase::interfaces() const {
+  std::vector<folly::not_null<ThriftServerAppAdapterFactory*>> result;
+  for (ThriftServerAppAdapterFactory* factory :
+       {static_cast<ThriftServerAppAdapterFactory*>(handler_.get()),
+        static_cast<ThriftServerAppAdapterFactory*>(
+            auxInterfaces_.monitoringHandler.get()),
+        static_cast<ThriftServerAppAdapterFactory*>(
+            auxInterfaces_.statusHandler.get()),
+        static_cast<ThriftServerAppAdapterFactory*>(
+            auxInterfaces_.debugHandler.get()),
+        static_cast<ThriftServerAppAdapterFactory*>(
+            auxInterfaces_.controlHandler.get()),
+        static_cast<ThriftServerAppAdapterFactory*>(
+            auxInterfaces_.securityHandler.get())}) {
+    if (factory != nullptr) {
+      result.emplace_back(factory);
+    }
+  }
+  return result;
+}
+
+std::optional<folly::SocketAddress>
+detail::FastThriftServerBase::getAddressIfRunning() const {
+  std::lock_guard<std::mutex> lock(lifecycleMutex_);
+  if (state_ != State::kRunning) {
+    return std::nullopt;
+  }
+  return connectionManager_->getAddress();
+}
+
+::apache::thrift::schema::DefinitionsSchema
+detail::FastThriftServerBase::getServiceSchema() const {
+  std::vector<::apache::thrift::type::Schema> schemas;
+  ::apache::thrift::schema::DefinitionsSchema result;
+  for (auto factory : interfaces()) {
+    if (auto schema = factory->getServiceSchema()) {
+      schemas.push_back(std::move(schema->schema));
+      result.definitions.insert(
+          result.definitions.end(),
+          std::make_move_iterator(schema->definitions.begin()),
+          std::make_move_iterator(schema->definitions.end()));
+    }
+  }
+  // As MultiplexAsyncProcessorFactory merges a C++ ThriftServer's schemas.
+  result.schema =
+      // NOLINTNEXTLINE(facebook-hte-DetailCall)
+      ::apache::thrift::schema::detail::mergeSchemas(std::move(schemas));
+  return result;
+}
+
+std::vector<folly::not_null<const ::apache::thrift::syntax_graph::ServiceNode*>>
+detail::FastThriftServerBase::getServiceSchemaNodes() const {
+  std::vector<
+      folly::not_null<const ::apache::thrift::syntax_graph::ServiceNode*>>
+      result;
+  for (auto factory : interfaces()) {
+    auto nodes = factory->getServiceSchemaNodes();
+    result.insert(result.end(), nodes.begin(), nodes.end());
+  }
+  return result;
 }
 
 } // namespace apache::thrift::fast_thrift::thrift
