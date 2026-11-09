@@ -151,7 +151,9 @@ endfunction ()
 #   INCLUDE_DIRECTORIES - Where the compiler looks for included .thrift files,
 #       relative to CMAKE_CURRENT_SOURCE_DIR. Defaults to PROJECT_SOURCE_DIR. An
 #       entry can be a generator expression that evaluates to a list of
-#       directories, such as $<TARGET_PROPERTY:...>.
+#       directories, such as $<TARGET_PROPERTY:...>. The compiler also looks in
+#       THRIFT_INCLUDE_DIR, after these, so files can include Thrift's own
+#       .thrift files, such as thrift/annotation/thrift.thrift.
 #   OUTPUT_DIRECTORY - Where gen-<language> is created, relative to
 #       CMAKE_CURRENT_BINARY_DIR. Defaults to the file's directory under
 #       PROJECT_BINARY_DIR.
@@ -301,6 +303,12 @@ function (thrift_generate)
   endforeach ()
   if (NOT include_args)
     set(include_args "-I" "${PROJECT_SOURCE_DIR}")
+  endif ()
+  if (THRIFT_INCLUDE_DIR)
+    get_filename_component(dir "${THRIFT_INCLUDE_DIR}" ABSOLUTE)
+    if (NOT dir IN_LIST include_args)
+      list(APPEND include_args "-I" "${dir}")
+    endif ()
   endif ()
   set(compiler_flags)
   if (THRIFT_GENERATE_LEGACY_STRICT)
@@ -582,9 +590,6 @@ function (thrift_add_library)
   set_target_properties(${name} PROPERTIES CXX_SCAN_FOR_MODULES OFF)
   set(thrift_include_dirs
       "$<TARGET_PROPERTY:${includes},INTERFACE_INCLUDE_DIRECTORIES>")
-  if (THRIFT_INCLUDE_DIR)
-    list(APPEND thrift_include_dirs "${THRIFT_INCLUDE_DIR}")
-  endif ()
   # Not the DEPENDS libraries of this project: the generated code changes only
   # with the .thrift files, and a dependency on a library would rerun the
   # compiler whenever the library is rebuilt. An imported library carries no
