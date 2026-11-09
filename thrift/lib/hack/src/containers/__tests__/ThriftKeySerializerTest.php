@@ -250,6 +250,35 @@ final class ThriftKeySerializerTest extends WWWTest {
       ->toEqual('42');
   }
 
+  public function testSparseProtocolValueKeysSurviveReset(): void {
+    $key =
+      apache_thrift_protocol_detail_Value::fromShape(shape('i32Value' => 0));
+    $spec = shape(
+      'type' => TType::STRUCT,
+      'class' => apache_thrift_protocol_detail_Value::class,
+    );
+    $map = ThriftMap::forStruct<apache_thrift_protocol_detail_Value, string>();
+    $map->set($key, 'zero');
+    expect(ThriftKeySerializer::serialize($key, TType::STRUCT, $spec))
+      ->toEqual(TCompactSerializer::serialize($key));
+
+    $key->set_boolValue(false);
+    $map->set($key, 'false');
+    expect(ThriftKeySerializer::serialize($key, TType::STRUCT, $spec))
+      ->toEqual(TCompactSerializer::serialize($key));
+    expect(
+      $map->at(
+        apache_thrift_protocol_detail_Value::fromShape(shape('i32Value' => 0)),
+      ),
+    )->toEqual('zero');
+    expect($map->at($key))->toEqual('false');
+
+    $key->reset();
+    expect(ThriftKeySerializer::serialize($key, TType::STRUCT, $spec))
+      ->toEqual("\x00");
+    expect($map->count())->toEqual(2);
+  }
+
   public function testTerseNestedWrappedStructUsesWrappedDefault(): void {
     $spec = shape(
       'type' => TType::STRUCT,

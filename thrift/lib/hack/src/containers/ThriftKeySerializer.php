@@ -132,10 +132,13 @@ abstract final class ThriftKeySerializer {
     $protocol->writeStructBegin($object->getName());
     foreach (Vec\sort(Vec\keys($object::SPEC)) as $field_id) {
       $fspec = $object::SPEC[$field_id];
-      $field_value = ThriftSerializationHelper::unwrapApplyAdapter(
-        ThriftSerializationHelper::readStructField($object, $fspec),
-        $fspec,
-      );
+      $field_value =
+        ThriftSerializationHelper::readStructField($object, $fspec);
+      if ($field_value === null) {
+        continue;
+      }
+      $field_value =
+        ThriftSerializationHelper::unwrapApplyAdapter($field_value, $fspec);
       if (ThriftSerializationHelper::isFieldEmpty($field_value, $fspec)) {
         continue;
       }
