@@ -798,6 +798,13 @@ bool type_transitively_refers_to_struct(const t_type& type) {
   return false;
 }
 
+bool is_frozen2_excluded(const t_structured& strct) {
+  // TODO(dokwon): Fix frozen2 compatibility with adapter.
+  return strct.has_unstructured_annotation("cpp.frozen2_exclude") ||
+      strct.has_structured_annotation(kCppFrozen2ExcludeUri) ||
+      cpp_name_resolver::is_directly_adapted(strct);
+}
+
 class t_mstch_cpp2_generator : public t_whisker_generator {
  public:
   using t_whisker_generator::t_whisker_generator;
@@ -1361,12 +1368,7 @@ class t_mstch_cpp2_generator : public t_whisker_generator {
       return value == nullptr ? whisker::make::null
                               : whisker::make::string(*value);
     });
-    def.property("cpp_frozen2_exclude?", [this](const t_structured& strct) {
-      // TODO(dokwon): Fix frozen2 compatibility with adapter.
-      return strct.has_unstructured_annotation("cpp.frozen2_exclude") ||
-          strct.has_structured_annotation(kCppFrozen2ExcludeUri) ||
-          cpp_context_->resolver().is_directly_adapted(strct);
-    });
+    def.property("cpp_frozen2_exclude?", &is_frozen2_excluded);
     def.property("cpp_allocator_via", [](const t_structured& strct) {
       const std::string* name = cpp2::find_allocator_via(strct);
       return name == nullptr ? whisker::make::null
@@ -2642,6 +2644,38 @@ void validate_struct_annotations(
   }
 
   for (const auto& field : s.fields()) {
+    if (field.has_structured_annotation(kCppArenaUri)) {
+      // Table-based serialization has no type info for PMR strings, and
+      // Frozen has no layouts for PMR types.
+      if (options.contains("tablebased")) {
+        ctx.report(
+            field,
+            "tablebased-arena-rule",
+            diagnostic_level::error,
+            "`@cpp.Arena` on field `{}` is not supported with the "
+            "`tablebased` option.",
+            field.name());
+      }
+      if (options.contains("frozen")) {
+        ctx.report(
+            field,
+            "frozen-arena-rule",
+            diagnostic_level::error,
+            "`@cpp.Arena` on field `{}` is not supported with the `frozen` "
+            "option.",
+            field.name());
+      }
+      if (options.contains("frozen2") && !is_frozen2_excluded(s)) {
+        ctx.report(
+            field,
+            "frozen2-arena-rule",
+            diagnostic_level::error,
+            "`@cpp.Arena` on field `{}` is not supported with the `frozen2` "
+            "option unless `{}` has `@cpp.Frozen2Exclude`.",
+            field.name(),
+            s.name());
+      }
+    }
     if (cpp2::is_mixin(field)) {
       // Mixins cannot be refs
       if (cpp2::is_explicit_ref(&field)) {

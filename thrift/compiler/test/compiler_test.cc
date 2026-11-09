@@ -3465,6 +3465,10 @@ TEST(CompilerTest, cpp_arena_unsupported_fields) {
     typedef string AdaptedString
     @cpp.Type{template = "std::deque"}
     typedef list<string> Deque
+    @cpp.Type{name = "std::unique_ptr<folly::IOBuf>"}
+    typedef binary IOBufPtr
+    @cpp.Type{name = "folly::IOBuf"}
+    typedef binary IOBuf
 
     struct Foo {
       @cpp.Arena
@@ -3491,8 +3495,67 @@ TEST(CompilerTest, cpp_arena_unsupported_fields) {
       @cpp.Arena
       @cpp.Type{template = "std::unordered_map"}
       7: map<string, Deque> custom;
+      @cpp.Arena
+      8: list<IOBufPtr> iobuf_ptrs;
+        # expected-error@-2: `@cpp.Arena` is not supported on field `iobuf_ptrs`.
+      @cpp.Arena
+      9: map<string, IOBuf> iobufs;
     }
   )");
+}
+
+TEST(CompilerTest, cpp_arena_with_tablebased_serialization) {
+  check_compile(
+      R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+
+    struct Foo {
+      @cpp.Arena
+      1: string name;
+        # expected-error@-2: `@cpp.Arena` on field `name` is not supported with the `tablebased` option. [tablebased-arena-rule]
+      2: string plain;
+    }
+  )",
+      {"--gen", "mstch_cpp2:json,tablebased"});
+}
+
+TEST(CompilerTest, cpp_arena_with_frozen) {
+  check_compile(
+      R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+
+    struct Foo {
+      @cpp.Arena
+      1: string name;
+        # expected-error@-2: `@cpp.Arena` on field `name` is not supported with the `frozen` option. [frozen-arena-rule]
+      2: string plain;
+    }
+  )",
+      {"--gen", "mstch_cpp2:frozen"});
+}
+
+TEST(CompilerTest, cpp_arena_with_frozen2) {
+  check_compile(
+      R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+
+    struct Foo {
+      @cpp.Arena
+      1: string name;
+        # expected-error@-2: `@cpp.Arena` on field `name` is not supported with the `frozen2` option unless `Foo` has `@cpp.Frozen2Exclude`. [frozen2-arena-rule]
+      2: string plain;
+    }
+
+    @cpp.Frozen2Exclude
+    struct Excluded {
+      @cpp.Arena
+      1: string name;
+    }
+  )",
+      {"--gen", "mstch_cpp2:frozen2"});
 }
 
 TEST(CompilerTest, cpp_type_on_adapted_typedef) {
