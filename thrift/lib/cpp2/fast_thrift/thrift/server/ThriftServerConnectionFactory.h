@@ -58,8 +58,6 @@
 
 namespace apache::thrift::fast_thrift::thrift::server {
 
-struct DefaultServerFragmenter;
-
 /**
  * Configuration consumed by ThriftServerConnectionFactory. Captured once at
  * construction time; the factory installs the resulting handler / aux
@@ -163,9 +161,7 @@ struct ThriftServerConnectionFactoryConfig {
  */
 namespace detail {
 
-template <
-    ChannelPipelineMode Mode,
-    typename Fragmenter = DefaultServerFragmenter>
+template <ChannelPipelineMode Mode>
 class ThriftServerConnectionFactoryT {
  public:
   explicit ThriftServerConnectionFactoryT(
@@ -195,13 +191,6 @@ class ThriftServerConnectionFactoryT {
       folly::EventBase* evb,
       TransportHandler* transportHandler,
       rocket::server::RocketServerAppAdapter* appAdapter,
-      ServerStatsShard* FOLLY_NULLABLE statsShard);
-
-  template <transport::Parser ParserT>
-  void initializeRocketConnection(
-      folly::AsyncTransport::UniquePtr socket,
-      folly::EventBase* evb,
-      rocket::server::RocketServerConnection& rocketConnection,
       ServerStatsShard* FOLLY_NULLABLE statsShard);
 
   // Hands the configured CPU pool to a user adapter. No-op when no pool is

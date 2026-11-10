@@ -21,44 +21,30 @@
 
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/ThriftServerConnectionFactory.h>
 
-namespace apache::thrift::fast_thrift::thrift::server::test {
-struct RejectingServerFragmenter;
-}
-
 namespace apache::thrift::fast_thrift::thrift {
 
-template <ChannelPipelineMode Mode, typename Fragmenter>
-void detail::FastThriftServerBase::FastThriftServerT<Mode, Fragmenter>::
+template <ChannelPipelineMode Mode>
+void detail::FastThriftServerBase::FastThriftServerT<Mode>::
     installConnectionFactory(
         connection::ConnectionManager& manager,
         server::ThriftServerConnectionFactoryConfig config,
         std::function<void(server::ThriftServerConnection&)> onAccept) {
   manager.setConnectionFactory(
-      server::detail::ThriftServerConnectionFactoryT<Mode, Fragmenter>(
-          std::move(config)),
+      server::detail::ThriftServerConnectionFactoryT<Mode>(std::move(config)),
       std::move(onAccept));
 }
 
 template class detail::FastThriftServerBase::FastThriftServerT<
-    ChannelPipelineMode::Static,
-    server::DefaultServerFragmenter>;
+    ChannelPipelineMode::Static>;
 template class detail::FastThriftServerBase::FastThriftServerT<
-    ChannelPipelineMode::Dynamic,
-    server::DefaultServerFragmenter>;
-// For a test. A test cannot instantiate the server for its own fragmenter,
-// because installConnectionFactory is defined only in this file.
-template class detail::FastThriftServerBase::FastThriftServerT<
-    ChannelPipelineMode::Static,
-    server::test::RejectingServerFragmenter>;
+    ChannelPipelineMode::Dynamic>;
 
 FastThriftServer::FastThriftServer(FastThriftServerConfig config)
     : detail::FastThriftServerBase::FastThriftServerT<
-          ChannelPipelineMode::Static,
-          server::DefaultServerFragmenter>(std::move(config)) {}
+          ChannelPipelineMode::Static>(std::move(config)) {}
 
 DynamicFastThriftServer::DynamicFastThriftServer(FastThriftServerConfig config)
     : detail::FastThriftServerBase::FastThriftServerT<
-          ChannelPipelineMode::Dynamic,
-          server::DefaultServerFragmenter>(std::move(config)) {}
+          ChannelPipelineMode::Dynamic>(std::move(config)) {}
 
 } // namespace apache::thrift::fast_thrift::thrift

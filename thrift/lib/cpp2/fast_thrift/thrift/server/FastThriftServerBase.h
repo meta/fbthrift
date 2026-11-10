@@ -56,13 +56,10 @@ namespace apache::thrift::fast_thrift::thrift {
 
 class FastThriftServer;
 class DynamicFastThriftServer;
-template <typename Fragmenter>
-class FastThriftServerWithFragmenter;
 
 namespace server {
 struct ThriftServerConnectionFactoryConfig;
 struct ThriftServerConnection;
-struct DefaultServerFragmenter;
 } // namespace server
 namespace detail {
 
@@ -70,11 +67,8 @@ class FastThriftServerBase {
  private:
   friend class ::apache::thrift::fast_thrift::thrift::FastThriftServer;
   friend class ::apache::thrift::fast_thrift::thrift::DynamicFastThriftServer;
-  template <typename Fragmenter>
-  friend class ::apache::thrift::fast_thrift::thrift::
-      FastThriftServerWithFragmenter;
 
-  template <ChannelPipelineMode Mode, typename Fragmenter>
+  template <ChannelPipelineMode Mode>
   class FastThriftServerT;
 
  protected:

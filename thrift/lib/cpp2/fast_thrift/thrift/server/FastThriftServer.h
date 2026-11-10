@@ -22,12 +22,11 @@
 #include <utility>
 #include <vector>
 
-#include <thrift/lib/cpp2/fast_thrift/thrift/server/DefaultServerFragmenter.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/FastThriftServerBase.h>
 
 namespace apache::thrift::fast_thrift::thrift::detail {
 
-template <ChannelPipelineMode Mode, typename Fragmenter>
+template <ChannelPipelineMode Mode>
 class FastThriftServerBase::FastThriftServerT : public FastThriftServerBase {
  public:
   static constexpr ChannelPipelineMode kPipelineMode = Mode;
@@ -148,28 +147,14 @@ namespace apache::thrift::fast_thrift::thrift {
  */
 class FastThriftServer final
     : public detail::FastThriftServerBase::FastThriftServerT<
-          ChannelPipelineMode::Static,
-          server::DefaultServerFragmenter> {
+          ChannelPipelineMode::Static> {
  public:
   explicit FastThriftServer(FastThriftServerConfig config);
 };
 
-/** Fixes the server's fragmenter choice in its C++ type. */
-template <typename Fragmenter>
-class FastThriftServerWithFragmenter final
-    : public detail::FastThriftServerBase::
-          FastThriftServerT<ChannelPipelineMode::Static, Fragmenter> {
- public:
-  explicit FastThriftServerWithFragmenter(FastThriftServerConfig config)
-      : detail::FastThriftServerBase::
-            FastThriftServerT<ChannelPipelineMode::Static, Fragmenter>(
-                std::move(config)) {}
-};
-
 class DynamicFastThriftServer final
     : public detail::FastThriftServerBase::FastThriftServerT<
-          ChannelPipelineMode::Dynamic,
-          server::DefaultServerFragmenter> {
+          ChannelPipelineMode::Dynamic> {
  public:
   explicit DynamicFastThriftServer(FastThriftServerConfig config);
 };

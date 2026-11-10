@@ -17,10 +17,17 @@
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/ThriftServerConnectionFactory.h>
 
 #include <memory>
+#include <string>
 #include <utility>
+#include <vector>
 
 #include <gtest/gtest.h>
 #include <folly/io/async/EventBase.h>
+#include <folly/logging/LogCategory.h>
+#include <folly/logging/LogMessage.h>
+#include <folly/logging/LoggerDB.h>
+#include <folly/logging/test/TestLogHandler.h>
+#include <folly/portability/GMock.h>
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/HandlerNode.h>
@@ -29,6 +36,8 @@
 
 namespace apache::thrift::fast_thrift::thrift::server::test {
 namespace {
+
+using namespace testing;
 
 class TestAppAdapterFactory final : public ThriftServerAppAdapterFactory {
  public:
@@ -115,6 +124,34 @@ TEST(ThriftServerConnectionFactoryTest, DefaultBuildsNativeRocketTransport) {
   EXPECT_NE(rocketConnection.transportHandler, nullptr);
   EXPECT_TRUE(rocketConnection.pipeline);
   EXPECT_FALSE(rocketConnection.transportLifecycle);
+}
+
+TEST(ThriftServerConnectionFactoryTest, ZeroCopyWarningUsesFactoryLogCategory) {
+  const auto logs = std::make_shared<folly::TestLogHandler>();
+  folly::LoggerDB::get().getCategory("")->addHandler(logs);
+  folly::EventBase eventBase;
+  ThriftServerConnectionFactoryConfig config = makeConfig();
+  config.zeroCopyThreshold = 1;
+  ThriftServerConnectionFactory factory(std::move(config));
+
+  // TestAsyncTransport refuses MSG_ZEROCOPY.
+  const ThriftServerConnection connection = factory.getConnection(
+      makeTransport(eventBase),
+      folly::SocketAddress("127.0.0.1", 1234),
+      nullptr);
+
+  std::vector<std::string> warningCategories;
+  for (const auto& [message, handlerCategory] : logs->getMessages()) {
+    if (message.getMessage() == "MSG_ZEROCOPY not supported on this socket") {
+      warningCategories.push_back(message.getCategory()->getName());
+    }
+  }
+  // XLOG names the category after the source path, which starts with `xplat/`
+  // in the xplat build.
+  EXPECT_THAT(
+      warningCategories,
+      ElementsAre(
+          EndsWith(".thrift.server.ThriftServerConnectionFactory.cpp")));
 }
 
 TEST(
