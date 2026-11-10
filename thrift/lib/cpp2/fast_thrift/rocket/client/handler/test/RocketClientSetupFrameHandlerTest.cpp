@@ -18,6 +18,8 @@
 
 #include <folly/io/Cursor.h>
 #include <folly/io/IOBuf.h>
+#include <folly/io/async/EventBase.h>
+#include <folly/portability/GMock.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameParser.h>
@@ -31,6 +33,7 @@ namespace apache::thrift::fast_thrift::rocket::client::handler {
 using apache::thrift::fast_thrift::channel_pipeline::erase_and_box;
 using apache::thrift::fast_thrift::channel_pipeline::Result;
 using apache::thrift::fast_thrift::channel_pipeline::TypeErasedBox;
+using namespace testing;
 
 namespace {
 
@@ -58,6 +61,8 @@ class MockContext {
 
   void close() noexcept { closeCalled_ = true; }
 
+  folly::EventBase* eventBase() noexcept { return &eventBase_; }
+
   std::vector<TypeErasedBox>& readMessages() { return readMessages_; }
 
   std::vector<TypeErasedBox>& writeMessages() { return writeMessages_; }
@@ -77,6 +82,7 @@ class MockContext {
   }
 
  private:
+  folly::EventBase eventBase_;
   std::vector<TypeErasedBox> readMessages_;
   std::vector<TypeErasedBox> writeMessages_;
   folly::exception_wrapper exception_;
@@ -155,7 +161,9 @@ TEST_F(ClientSetupFrameHandlerTest, OnConnectClosesOnWriteFailure) {
 
   handler.onPipelineActive(ctx_);
 
-  EXPECT_TRUE(ctx_.closeCalled());
+  EXPECT_THAT(ctx_.closeCalled(), IsFalse());
+  ctx_.eventBase()->loopOnce();
+  EXPECT_THAT(ctx_.closeCalled(), IsTrue());
 }
 
 TEST_F(ClientSetupFrameHandlerTest, OnConnectIsIdempotent) {
@@ -393,11 +401,23 @@ TEST_F(ClientSetupFrameHandlerTest, HandlerAddedIsNoOp) {
   handler.handlerAdded(ctx_);
 }
 
-TEST_F(ClientSetupFrameHandlerTest, HandlerRemovedIsNoOp) {
+TEST_F(ClientSetupFrameHandlerTest, HandlerRemovedWithNothingScheduledIsSafe) {
   RocketClientSetupFrameHandler handler(makeDefaultFactory());
 
   // Should not throw or crash
   handler.handlerRemoved(ctx_);
+}
+
+TEST_F(
+    ClientSetupFrameHandlerTest, HandlerRemovedCancelsCloseAfterSetupFailure) {
+  RocketClientSetupFrameHandler handler(makeDefaultFactory());
+  ctx_.setWriteResult(Result::Error);
+  handler.onPipelineActive(ctx_);
+
+  handler.handlerRemoved(ctx_);
+  ctx_.eventBase()->loopOnce();
+
+  EXPECT_THAT(ctx_.closeCalled(), IsFalse());
 }
 
 // =============================================================================

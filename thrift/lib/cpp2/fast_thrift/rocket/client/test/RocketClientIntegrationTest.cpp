@@ -18,11 +18,14 @@
 
 #include <algorithm>
 #include <cstring>
+#include <string>
+#include <vector>
 
 #include <folly/io/Cursor.h>
 #include <folly/io/IOBuf.h>
 #include <folly/io/IOBufQueue.h>
 #include <folly/io/async/EventBase.h>
+#include <folly/portability/GMock.h>
 #include <thrift/lib/cpp/transport/TTransportException.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
@@ -38,6 +41,7 @@
 #include <thrift/lib/cpp2/fast_thrift/rocket/client/adapter/RocketClientAppAdapter.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/client/handler/RocketClientConnectionErrorHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/client/handler/RocketClientFrameCodecHandler.h>
+#include <thrift/lib/cpp2/fast_thrift/rocket/client/handler/RocketClientKeepAliveHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/client/handler/RocketClientRequestResponseHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/client/handler/RocketClientSetupFrameHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/client/handler/RocketClientStreamStateHandler.h>
@@ -51,6 +55,7 @@ using apache::thrift::fast_thrift::channel_pipeline::Result;
 using apache::thrift::fast_thrift::channel_pipeline::StaticPipelineBuilder;
 using apache::thrift::fast_thrift::channel_pipeline::test::TestAllocator;
 using apache::thrift::fast_thrift::transport::test::TestAsyncTransport;
+using namespace testing;
 
 // Bring message types into scope
 using rocket::kInvalidStreamId;
@@ -61,6 +66,7 @@ using ParsedFrame = apache::thrift::fast_thrift::frame::read::ParsedFrame;
 // Bring handler types into scope
 using rocket::client::handler::RocketClientConnectionErrorHandler;
 using rocket::client::handler::RocketClientFrameCodecHandler;
+using rocket::client::handler::RocketClientKeepAliveHandler;
 using rocket::client::handler::RocketClientRequestResponseHandler;
 using rocket::client::handler::RocketClientSetupFrameHandler;
 using rocket::client::handler::RocketClientStreamStateHandler;
@@ -80,6 +86,7 @@ HANDLER_TAG(rocket_client_connection_error_handler);
 HANDLER_TAG(rocket_client_stream_state_handler);
 HANDLER_TAG(error_injection_inbound_handler);
 HANDLER_TAG(outbound_write_fail_handler);
+HANDLER_TAG(rocket_client_keepalive_handler);
 
 using channel_pipeline::TypeErasedBox;
 
@@ -168,13 +175,10 @@ class RocketClientIntegrationTest : public ::testing::Test {
     testTransport_ = nullptr;
   }
 
-  /**
-   * Set up the rocket-only pipeline with TestAsyncTransport.
-   * No thrift handlers - just the rocket client handlers.
-   * The test treats the adapter as a black box: writes requests to
-   * appAdapter_ and validates responses via callbacks.
-   */
-  void setupPipeline() {
+  // Creates the TestAsyncTransport and its transport handler, and records
+  // what reaches the app adapter: each response and exception, and "connect"
+  // and "disconnect" in lifecycle_.
+  void createTransportAndRecordAppEvents() {
     auto transport =
         folly::AsyncTransport::UniquePtr(new TestAsyncTransport(&evb_));
     testTransport_ = static_cast<TestAsyncTransport*>(transport.get());
@@ -196,41 +200,59 @@ class RocketClientIntegrationTest : public ::testing::Test {
           exceptionReceived_ = true;
           exception_ = std::move(e);
         });
+    appAdapter_->setLifecycleHandlers(
+        [this]() noexcept { lifecycle_.emplace_back("connect"); },
+        [this]() noexcept { lifecycle_.emplace_back("disconnect"); });
+  }
 
-    pipeline_ =
-        StaticPipelineBuilder<
-            apache::thrift::fast_thrift::transport::TransportHandlerT<
-                apache::thrift::fast_thrift::transport::
-                    NoOpWriteCompleteEventFactory,
-                apache::thrift::fast_thrift::frame::read::FrameLengthParser>,
-            rocket::client::RocketClientAppAdapter,
-            TestAllocator>()
-            .setEventBase(&evb_)
-            .setHead(transportHandler_.get())
-            .setTail(appAdapter_.get())
-            .setAllocator(&allocator_)
-            .addState<apache::thrift::fast_thrift::rocket::client::
-                          RocketClientStreamContexts>()
+  // Starts the pipeline: its two ends, the stream contexts, the frame length
+  // encoder and the frame codec. The caller adds the handlers above the codec.
+  auto pipelineBuilderUpToFrameCodec() {
+    return StaticPipelineBuilder<
+               apache::thrift::fast_thrift::transport::TransportHandlerT<
+                   apache::thrift::fast_thrift::transport::
+                       NoOpWriteCompleteEventFactory,
+                   apache::thrift::fast_thrift::frame::read::FrameLengthParser>,
+               rocket::client::RocketClientAppAdapter,
+               TestAllocator>()
+        .setEventBase(&evb_)
+        .setHead(transportHandler_.get())
+        .setTail(appAdapter_.get())
+        .setAllocator(&allocator_)
+        .addState<apache::thrift::fast_thrift::rocket::client::
+                      RocketClientStreamContexts>()
 
-            .addNextOutbound<apache::thrift::fast_thrift::frame::write::
-                                 handler::FrameLengthEncoderHandler>(
-                frame_length_encoder_handler_tag)
-            .addNextDuplex<RocketClientFrameCodecHandler>(
-                rocket_client_frame_codec_handler_tag)
-            .addNextDuplex<RocketClientSetupFrameHandler>(
-                rocket_client_setup_handler_tag,
-                []() {
-                  return std::make_pair(
-                      folly::IOBuf::copyBuffer("setup"),
-                      std::unique_ptr<folly::IOBuf>());
-                })
-            .addNextInbound<RocketClientConnectionErrorHandler>(
-                rocket_client_connection_error_handler_tag)
-            .addNextDuplex<RocketClientStreamStateHandler>(
-                rocket_client_stream_state_handler_tag)
-            .addNextInbound<RocketClientRequestResponseHandler>(
-                rocket_client_request_response_handler_tag)
-            .build();
+        .addNextOutbound<apache::thrift::fast_thrift::frame::write::handler::
+                             FrameLengthEncoderHandler>(
+            frame_length_encoder_handler_tag)
+        .addNextDuplex<RocketClientFrameCodecHandler>(
+            rocket_client_frame_codec_handler_tag);
+  }
+
+  /**
+   * Set up the rocket-only pipeline with TestAsyncTransport.
+   * No thrift handlers - just the rocket client handlers.
+   * The test treats the adapter as a black box: writes requests to
+   * appAdapter_ and validates responses via callbacks.
+   */
+  void setupPipeline() {
+    createTransportAndRecordAppEvents();
+
+    pipeline_ = pipelineBuilderUpToFrameCodec()
+                    .addNextDuplex<RocketClientSetupFrameHandler>(
+                        rocket_client_setup_handler_tag,
+                        []() {
+                          return std::make_pair(
+                              folly::IOBuf::copyBuffer("setup"),
+                              std::unique_ptr<folly::IOBuf>());
+                        })
+                    .addNextInbound<RocketClientConnectionErrorHandler>(
+                        rocket_client_connection_error_handler_tag)
+                    .addNextDuplex<RocketClientStreamStateHandler>(
+                        rocket_client_stream_state_handler_tag)
+                    .addNextInbound<RocketClientRequestResponseHandler>(
+                        rocket_client_request_response_handler_tag)
+                    .build();
 
     appAdapter_->setPipeline(pipeline_.get());
     transportHandler_->setPipeline(pipeline_.get());
@@ -239,6 +261,41 @@ class RocketClientIntegrationTest : public ::testing::Test {
     evb_.loopOnce();
 
     discardSetupFrame();
+  }
+
+  // Like setupPipeline() without the connect, with a keepalive handler right
+  // above the setup handler. The keepalive handler is activated after the
+  // setup handler and starts a timer then. An OutboundWriteFailHandler right
+  // below the setup handler fails every write, SETUP first.
+  void buildKeepAlivePipelineWithFailingWrites() {
+    createTransportAndRecordAppEvents();
+
+    pipeline_ = pipelineBuilderUpToFrameCodec()
+                    .addNextOutbound<OutboundWriteFailHandler>(
+                        outbound_write_fail_handler_tag)
+                    .addNextDuplex<RocketClientSetupFrameHandler>(
+                        rocket_client_setup_handler_tag,
+                        []() {
+                          return std::make_pair(
+                              folly::IOBuf::copyBuffer("setup"),
+                              std::unique_ptr<folly::IOBuf>());
+                        })
+                    .addNextDuplex<RocketClientKeepAliveHandler>(
+                        rocket_client_keepalive_handler_tag,
+                        rocket::RSocketKeepAliveConfig{
+                            .intervalMs = 60000,
+                            .maxLifetimeMs = 600000,
+                        })
+                    .addNextInbound<RocketClientConnectionErrorHandler>(
+                        rocket_client_connection_error_handler_tag)
+                    .addNextDuplex<RocketClientStreamStateHandler>(
+                        rocket_client_stream_state_handler_tag)
+                    .addNextInbound<RocketClientRequestResponseHandler>(
+                        rocket_client_request_response_handler_tag)
+                    .build();
+
+    appAdapter_->setPipeline(pipeline_.get());
+    transportHandler_->setPipeline(pipeline_.get());
   }
 
   /**
@@ -471,6 +528,7 @@ class RocketClientIntegrationTest : public ::testing::Test {
   std::vector<TypeErasedBox> responses_;
   bool exceptionReceived_{false};
   folly::exception_wrapper exception_;
+  std::vector<std::string> lifecycle_;
 };
 
 // =============================================================================
@@ -824,6 +882,17 @@ TEST_F(
   EXPECT_EQ(seenStreamIds, (std::vector<uint32_t>{1u, 3u}));
   // No upstream exception fired in the graceful path.
   EXPECT_FALSE(exceptionReceived_);
+}
+
+TEST_F(RocketClientIntegrationTest, FailedSetupWriteClosesAfterActivation) {
+  buildKeepAlivePipelineWithFailingWrites();
+
+  transportHandler_->onConnect();
+
+  EXPECT_THAT(lifecycle_, ElementsAre("connect"));
+  evb_.loopOnce();
+  EXPECT_THAT(lifecycle_, ElementsAre("connect", "disconnect"));
+  EXPECT_THAT(testTransport_->good(), IsFalse());
 }
 
 // =============================================================================

@@ -17,9 +17,11 @@
 #pragma once
 
 #include <functional>
+#include <optional>
 
 #include <glog/logging.h>
 #include <folly/io/IOBuf.h>
+#include <folly/io/async/EventBase.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
@@ -33,9 +35,9 @@ namespace apache::thrift::fast_thrift::rocket::client::handler {
  * RocketClientSetupFrameHandler - Pipeline handler for client-side SETUP frame
  * handling.
  *
- * This handler sends the RSocket SETUP frame when the connection is
- * established (via onConnect). The setup frame is sent immediately when
- * the pipeline fires the connect event, before any application requests.
+ * This handler sends the RSocket SETUP frame when the pipeline becomes active.
+ * If the SETUP write returns Error, the handler closes the pipeline from an
+ * EventBase loop callback, after the activation returns.
  *
  * The handler supports a factory function that is called at connect time
  * for dynamic metadata creation.
@@ -78,7 +80,11 @@ class RocketClientSetupFrameHandler {
   void handlerAdded(Context& /*ctx*/) noexcept {}
 
   template <typename Context>
-  void handlerRemoved(Context& /*ctx*/) noexcept {}
+  void handlerRemoved(Context& /*ctx*/) noexcept {
+    // The deferred close can itself run this. StackFunctionLoopCallback moves
+    // its function out before it calls it, so the reset is safe there too.
+    deferredClose_.reset();
+  }
 
   // === InboundHandler ===
 
@@ -96,8 +102,12 @@ class RocketClientSetupFrameHandler {
             makeSetupMessage()));
     if (result ==
         apache::thrift::fast_thrift::channel_pipeline::Result::Error) {
-      // If we failed to send the setup frame, we should close the pipeline
-      ctx.close();
+      // If we failed to send the setup frame, we should close the pipeline.
+      // The handlers above this one are still being activated, and close()
+      // removes every handler at once, so the close runs from a loop
+      // callback, after the activation returns.
+      deferredClose_.emplace([&ctx]() noexcept { ctx.close(); });
+      ctx.eventBase()->runInLoop(&*deferredClose_);
       return;
     }
   }
@@ -161,6 +171,9 @@ class RocketClientSetupFrameHandler {
   bool setupSent_{false};
   SetupFactory setupFactory_;
   apache::thrift::fast_thrift::rocket::RSocketKeepAliveConfig keepAliveConfig_;
+  // The close after a failed SETUP write, until it runs. Destroying it, as
+  // handlerRemoved does, takes it off the EventBase queue.
+  std::optional<folly::EventBase::StackFunctionLoopCallback> deferredClose_;
 };
 
 static_assert(
