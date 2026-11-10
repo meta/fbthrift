@@ -21,7 +21,7 @@ import java.util.Map;
 
 /** Helper class that encapsulates field metadata. */
 public class TField {
-  private static final Map<String, Object> EMPTY_METADATA = new HashMap();
+  private static final Map<String, Object> EMPTY_METADATA = new HashMap<>();
 
   public TField() {
     this("", TType.STOP, (short) 0);
