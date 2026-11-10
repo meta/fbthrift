@@ -353,6 +353,8 @@ struct FastClientBenchFixture : private folly::NonCopyableNonMovable {
   void setup() {
     testTransport = new BenchAsyncTransport(&evb);
     auto rocketConnection = createRocketConnection(testTransport, &evb);
+    rocket::client::RocketClientConnection::TransportHandler* const
+        transportHandler = rocketConnection->transportHandler.get();
 
     transportAdapter = std::make_unique<client::ThriftClientTransportAdapter>(
         std::move(rocketConnection));
@@ -374,6 +376,7 @@ struct FastClientBenchFixture : private folly::NonCopyableNonMovable {
                          .build();
     adapter->setPipeline(thriftPipeline.get());
     transportAdapter->setPipeline(thriftPipeline.get());
+    transportHandler->onConnect();
     fastClient = std::make_unique<FastClientType>(std::move(adapter));
 
     // Discard SETUP frame

@@ -14,21 +14,21 @@ connection setup and stream state for outbound requests and inbound responses.
 |---------|---------|
 | `RocketClientFrameCodecHandler` | Duplex codec: parse IOBuf→ParsedFrame (read), extract serialized frame (write) |
 | `RocketClientConnectionErrorHandler` | Intercept connection-level ERROR frames (streamId=0): convert faults to exceptions, relay CONNECTION_CLOSE as event |
-| `RocketClientSetupFrameHandler` | Sends the RSocket SETUP frame on connect |
+| `RocketClientSetupFrameHandler` | Sends the RSocket SETUP frame on connect and refuses writes until it is sent |
 | `RocketClientStreamStateHandler` | Manages stream IDs and request/response correlation |
-| `RocketClientRequestResponseFrameHandler` | Duplex handler for REQUEST_RESPONSE interactions (outbound serialization + inbound response handling) |
+| `RocketClientRequestResponseHandler` | Inbound handler for REQUEST_RESPONSE responses: checks each response and turns a protocol violation into a stream ERROR(INVALID) |
 
 ---
 
 ## Pipeline Architecture
 
 ```
-Outbound: App → RocketClientStreamStateHandler → RocketClientRequestResponseFrameHandler → RocketClientFrameCodecHandler → Transport
-Inbound:  App ← RocketClientSetupFrameHandler ← RocketClientStreamStateHandler ← RocketClientRequestResponseFrameHandler ← RocketClientConnectionErrorHandler ← RocketClientFrameCodecHandler ← Transport
+Outbound: App → RocketClientStreamStateHandler → RocketClientSetupFrameHandler → RocketClientFrameCodecHandler → Transport
+Inbound:  App ← RocketClientRequestResponseHandler ← RocketClientStreamStateHandler ← RocketClientConnectionErrorHandler ← RocketClientSetupFrameHandler ← RocketClientFrameCodecHandler ← Transport
 ```
 
-Note: `RocketClientSetupFrameHandler` is an inbound handler that sends the setup frame on connect.
-All reads pass through unchanged.
+Note: `RocketClientSetupFrameHandler` sends the setup frame on connect and refuses every write
+until it is sent. All reads pass through unchanged.
 
 ---
 
@@ -36,7 +36,7 @@ All reads pass through unchanged.
 
 ## Overview
 
-The `RocketClientSetupFrameHandler` is an **inbound handler** responsible for
+The `RocketClientSetupFrameHandler` is a **duplex handler** responsible for
 sending the RSocket SETUP frame when a client connection is established.
 
 The setup frame is sent immediately via the `onPipelineActive` event, before any
@@ -50,7 +50,13 @@ application requests.
    called (correct RSocket semantics)
 3. **Factory Support**: Accepts a factory function for dynamic metadata
    creation at connection time
-4. **Passthrough**: All frames pass through unchanged
+4. **Passthrough**: All reads, and every write after SETUP, pass through
+   unchanged
+5. **Write Refusal**: Until SETUP is sent, returns `Error` for every write:
+   before the first activation, after a failed SETUP write and after
+   `onPipelineInactive`, because RSocket requires SETUP as the first frame.
+   If the SETUP write returns `Error`, closes the pipeline from an EventBase
+   loop callback, after the activation returns
 
 ## Protocol Constants
 
@@ -369,172 +375,6 @@ Run the unit tests with:
 
 ```bash
 buck2 test fbcode//thrift/lib/cpp2/fast_thrift/rocket/client/test:client_stream_state_handler_test
-```
-
----
-
----
-
-# RocketClientRequestResponseFrameHandler
-
-## Overview
-
-The `RocketClientRequestResponseFrameHandler` is a **duplex handler** that manages both
-outbound request serialization and inbound response handling for REQUEST_RESPONSE
-streams. It tracks which stream IDs belong to request-response interactions to
-properly route inbound frames.
-
----
-
-## Architecture
-
-### Pipeline Position
-
-```
-App <-> RocketClientSetupFrameHandler <-> RocketClientStreamStateHandler <-> RocketClientRequestResponseFrameHandler <-> Transport
-```
-
-The handler receives `StreamRequestMessage` from `RocketClientStreamStateHandler` on the
-outbound path and serializes it into wire-format frames. On the inbound path, it
-checks if frames belong to tracked request-response streams and handles them
-accordingly.
-
-### Key Responsibilities
-
-1. **Outbound Serialization**: Converts `StreamRequestMessage` with
-   `REQUEST_RESPONSE` frame type into wire-format frames
-2. **Stream Tracking**: Maintains a set of stream IDs for active request-response
-   interactions
-3. **Response Routing**: Intercepts inbound frames for tracked streams and validates
-   them before forwarding
-4. **Frame Validation**: Ensures response payloads have proper flags (next or complete)
-
----
-
-## Message Flow
-
-### Outbound (Application → Transport)
-
-```
-┌──────────────────────┐
-│ StreamRequestMessage │
-│ - streamId           │
-│ - frameType          │
-│ - payload            │
-└─────────┬────────────┘
-          │
-          ▼
-┌─────────────────────────────────────────┐
-│ RocketClientRequestResponseFrameHandler       │
-│ 1. Check if REQUEST_RESPONSE frame type │
-│ 2. Track stream ID                      │
-│ 3. Serialize to wire format             │
-└─────────┬───────────────────────────────┘
-          │
-          ▼
-┌─────────────────────┐
-│ std::unique_ptr<    │
-│   folly::IOBuf>     │
-│ (serialized frame)  │
-└─────────────────────┘
-          │
-          ▼
-    [Transport]
-```
-
-### Inbound (Transport → Application)
-
-```
-    [Transport]
-          │
-          ▼
-┌─────────────────────┐
-│ ParsedFrame         │
-│ - streamId          │
-│ - frameType         │
-│ - payload           │
-└─────────┬───────────┘
-          │
-          ▼
-┌──────────────────────────────────────────────┐
-│ RocketClientRequestResponseFrameHandler            │
-│ 1. Check if stream is tracked                │
-│    - If not: forward to next handler         │
-│ 2. Remove from tracking (response received)  │
-│ 3. Validate frame type and flags             │
-│ 4. Forward to next handler                   │
-└─────────┬────────────────────────────────────┘
-          │
-          ▼
-    [Next Handler]
-```
-
----
-
-## Response Frame Validation
-
-The handler validates inbound frames for request-response streams:
-
-| Frame Type | Validation | Action |
-|------------|------------|--------|
-| PAYLOAD | Must have `next` or `complete` flag | Forward if valid, error otherwise |
-| ERROR | Always valid | Forward |
-| Other | Invalid for request-response | Return error |
-
----
-
-## Usage Example
-
-```cpp
-#include <thrift/lib/cpp2/fast_thrift/rocket/client/RocketClientRequestResponseFrameHandler.h>
-#include <thrift/lib/cpp2/fast_thrift/rocket/client/Messages.h>
-
-using namespace apache::thrift::fast_thrift::rocket;
-
-// Create handler
-RocketClientRequestResponseFrameHandler handler;
-
-// The handler is typically added to a channel pipeline after RocketClientStreamStateHandler
-// pipeline.addHandler<RocketClientRequestResponseFrameHandler>();
-
-// Outbound: Handler receives StreamRequestMessage from RocketClientStreamStateHandler
-// and serializes REQUEST_RESPONSE frames to wire format
-
-// Inbound: Handler intercepts responses for tracked streams
-// and forwards them after validation
-```
-
----
-
-## Error Handling
-
-### Write Failures
-
-If `fireWrite` fails when sending a request frame:
-- The stream ID is removed from tracking
-- The error result is propagated to the caller
-
-### Invalid Responses
-
-If an inbound frame has invalid flags or unexpected frame type:
-- An error is logged
-- `Result::Error` is returned
-- The stream is removed from tracking
-
-### Connection Errors
-
-When `onException` is called:
-- All tracked streams are cleared
-- The exception is propagated to the next handler
-
----
-
-## Testing
-
-Run the unit tests with:
-
-```bash
-buck2 test fbcode//thrift/lib/cpp2/fast_thrift/rocket/client/test:client_request_response_frame_handler_test
 ```
 
 ---

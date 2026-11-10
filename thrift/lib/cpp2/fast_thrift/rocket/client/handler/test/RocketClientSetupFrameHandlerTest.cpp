@@ -129,6 +129,21 @@ std::unique_ptr<folly::IOBuf> serializeSetupFrame(RocketRequestMessage& msg) {
   return std::move(msg.frame).serialize();
 }
 
+RocketRequestMessage makeRequest() {
+  return RocketRequestMessage{
+      .frame =
+          apache::thrift::fast_thrift::frame::ComposedFrame{
+              .frameType = apache::thrift::fast_thrift::frame::FrameType::
+                  REQUEST_RESPONSE,
+              .metadata = nullptr,
+              .data = folly::IOBuf::copyBuffer("test data"),
+          },
+      .requestContext = {},
+      .streamType =
+          apache::thrift::fast_thrift::frame::FrameType::REQUEST_RESPONSE,
+  };
+}
+
 } // namespace
 
 class ClientSetupFrameHandlerTest : public ::testing::Test {
@@ -162,6 +177,9 @@ TEST_F(ClientSetupFrameHandlerTest, OnConnectClosesOnWriteFailure) {
   handler.onPipelineActive(ctx_);
 
   EXPECT_THAT(ctx_.closeCalled(), IsFalse());
+  EXPECT_THAT(
+      handler.onWrite(ctx_, erase_and_box(makeRequest())), Eq(Result::Error));
+  EXPECT_THAT(ctx_.writeMessages(), SizeIs(1));
   ctx_.eventBase()->loopOnce();
   EXPECT_THAT(ctx_.closeCalled(), IsTrue());
 }
@@ -481,25 +499,28 @@ TEST_F(ClientSetupFrameHandlerTest, OnDisconnectBeforeConnectIsNoOp) {
 
 TEST_F(ClientSetupFrameHandlerTest, OnWritePassesThrough) {
   RocketClientSetupFrameHandler handler(makeDefaultFactory());
+  handler.onPipelineActive(ctx_);
 
-  auto data = folly::IOBuf::copyBuffer("test data");
-  RocketRequestMessage msg{
-      .frame =
-          apache::thrift::fast_thrift::frame::ComposedFrame{
-              .frameType = apache::thrift::fast_thrift::frame::FrameType::
-                  REQUEST_RESPONSE,
-              .metadata = nullptr,
-              .data = std::move(data),
-          },
-      .requestContext = {},
-      .streamType =
-          apache::thrift::fast_thrift::frame::FrameType::REQUEST_RESPONSE,
-  };
+  const Result result = handler.onWrite(ctx_, erase_and_box(makeRequest()));
 
-  auto result = handler.onWrite(ctx_, erase_and_box(std::move(msg)));
+  EXPECT_THAT(result, Eq(Result::Success));
+  EXPECT_THAT(ctx_.writeMessages(), SizeIs(2));
+}
 
-  EXPECT_EQ(result, Result::Success);
-  EXPECT_EQ(ctx_.writeMessages().size(), 1);
+TEST_F(ClientSetupFrameHandlerTest, WriteBeforeSetupIsSentFails) {
+  RocketClientSetupFrameHandler handler(makeDefaultFactory());
+
+  EXPECT_THAT(
+      handler.onWrite(ctx_, erase_and_box(makeRequest())), Eq(Result::Error));
+  EXPECT_THAT(ctx_.writeMessages(), IsEmpty());
+
+  // After a disconnect, writes fail again until the next SETUP.
+  handler.onPipelineActive(ctx_);
+  handler.onPipelineInactive(ctx_);
+
+  EXPECT_THAT(
+      handler.onWrite(ctx_, erase_and_box(makeRequest())), Eq(Result::Error));
+  EXPECT_THAT(ctx_.writeMessages(), SizeIs(1));
 }
 
 TEST_F(ClientSetupFrameHandlerTest, OnWriteReadyIsNoOp) {

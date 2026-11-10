@@ -36,15 +36,21 @@ namespace apache::thrift::fast_thrift::rocket::client::handler {
  * handling.
  *
  * This handler sends the RSocket SETUP frame when the pipeline becomes active.
+ *
+ * RSocket requires SETUP as the first frame of a connection. So until SETUP is
+ * sent, onWrite returns Error for every write: before the first activation,
+ * after a failed SETUP write, and after the pipeline becomes inactive.
+ *
  * If the SETUP write returns Error, the handler closes the pipeline from an
  * EventBase loop callback, after the activation returns.
  *
  * The handler supports a factory function that is called at connect time
  * for dynamic metadata creation.
  *
- * Pipeline position: (Inbound handler - sends on connect, passes through reads)
- *   App <- RocketClientSetupFrameHandler <- StreamHandler <- FrameHandler <-
- * Transport
+ * Pipeline position: duplex, below RocketClientStreamStateHandler, whose
+ * onWrite rejects SETUP:
+ *   App <-> RocketClientStreamStateHandler <-> RocketClientSetupFrameHandler
+ *       <-> frame codec <-> Transport
  */
 class RocketClientSetupFrameHandler {
  public:
@@ -106,6 +112,7 @@ class RocketClientSetupFrameHandler {
       // The handlers above this one are still being activated, and close()
       // removes every handler at once, so the close runs from a loop
       // callback, after the activation returns.
+      setupSent_ = false;
       deferredClose_.emplace([&ctx]() noexcept { ctx.close(); });
       ctx.eventBase()->runInLoop(&*deferredClose_);
       return;
@@ -128,13 +135,16 @@ class RocketClientSetupFrameHandler {
     ctx.fireException(std::move(e));
   }
 
-  // === OutboundHandler (for disconnect notification) ===
+  // === OutboundHandler ===
 
   template <typename Context>
   apache::thrift::fast_thrift::channel_pipeline::Result onWrite(
       Context& ctx,
       apache::thrift::fast_thrift::channel_pipeline::TypeErasedBox&&
           msg) noexcept {
+    if (!setupSent_) {
+      return apache::thrift::fast_thrift::channel_pipeline::Result::Error;
+    }
     return ctx.fireWrite(std::move(msg));
   }
 

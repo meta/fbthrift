@@ -423,6 +423,8 @@ struct AppAdapterBenchFixture : private folly::NonCopyableNonMovable {
   void setup() {
     testTransport = new BenchAsyncTransport(&evb);
     auto rocketConnection = createRocketConnection(testTransport, &evb);
+    rocket::client::RocketClientConnection::TransportHandler* const
+        transportHandler = rocketConnection->transportHandler.get();
 
     // Create transport adapter (takes ownership of rocket connection)
     transportAdapter = std::make_unique<client::ThriftClientTransportAdapter>(
@@ -447,6 +449,7 @@ struct AppAdapterBenchFixture : private folly::NonCopyableNonMovable {
     transportAdapter->setPipeline(thriftPipeline.get());
 
     // Connect transport and discard SETUP frame
+    transportHandler->onConnect();
     evb.loopOnce();
     testTransport->getWrittenData();
   }

@@ -230,12 +230,12 @@ class RocketClientIntegrationTest : public ::testing::Test {
   }
 
   /**
-   * Set up the rocket-only pipeline with TestAsyncTransport.
-   * No thrift handlers - just the rocket client handlers.
+   * Build the rocket-only pipeline with TestAsyncTransport, without
+   * connecting it. No thrift handlers - just the rocket client handlers.
    * The test treats the adapter as a black box: writes requests to
    * appAdapter_ and validates responses via callbacks.
    */
-  void setupPipeline() {
+  void buildPipeline() {
     createTransportAndRecordAppEvents();
 
     pipeline_ = pipelineBuilderUpToFrameCodec()
@@ -256,6 +256,11 @@ class RocketClientIntegrationTest : public ::testing::Test {
 
     appAdapter_->setPipeline(pipeline_.get());
     transportHandler_->setPipeline(pipeline_.get());
+  }
+
+  // Builds the pipeline, connects it and drops the SETUP frame.
+  void setupPipeline() {
+    buildPipeline();
     transportHandler_->onConnect();
 
     evb_.loopOnce();
@@ -882,6 +887,36 @@ TEST_F(
   EXPECT_EQ(seenStreamIds, (std::vector<uint32_t>{1u, 3u}));
   // No upstream exception fired in the graceful path.
   EXPECT_FALSE(exceptionReceived_);
+}
+
+TEST_F(RocketClientIntegrationTest, RequestBeforeConnectFailsWithNotOpen) {
+  buildPipeline();
+
+  EXPECT_THAT(
+      appAdapter_->write(createRocketRequest(folly::IOBuf::copyBuffer("req"))),
+      Eq(Result::Error));
+  ASSERT_THAT(responses_, SizeIs(1));
+  const apache::thrift::transport::TTransportException* const error =
+      responses_[0]
+          .get<RocketResponseMessage>()
+          .payload.get<rocket::RocketResponseError>()
+          .ew.get_exception<apache::thrift::transport::TTransportException>();
+  ASSERT_THAT(error, NotNull());
+  EXPECT_THAT(
+      error->getType(),
+      Eq(apache::thrift::transport::TTransportException::NOT_OPEN));
+
+  // SETUP still goes out first, and the next request starts at stream 1.
+  transportHandler_->onConnect();
+  evb_.loopOnce();
+  EXPECT_THAT(
+      parseWrittenFrame(getWrittenFrame()).type(),
+      Eq(apache::thrift::fast_thrift::frame::FrameType::SETUP));
+  EXPECT_THAT(
+      appAdapter_->write(createRocketRequest(folly::IOBuf::copyBuffer("req"))),
+      Ne(Result::Error));
+  evb_.loopOnce();
+  EXPECT_THAT(parseWrittenFrame(getWrittenFrame()).streamId(), Eq(1u));
 }
 
 TEST_F(RocketClientIntegrationTest, FailedSetupWriteClosesAfterActivation) {
