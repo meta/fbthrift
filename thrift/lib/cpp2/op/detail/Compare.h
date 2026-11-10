@@ -110,10 +110,6 @@ template <typename Tag>
 inline constexpr bool less_than_comparable_v =
     folly::is_detected_v<less_than_t, Tag>;
 
-// Resolves to R, if the tag can be used with LessThan.
-template <typename Tag, typename R = void>
-using if_less_than_comparable = folly::type_t<R, less_than_t<Tag>>;
-
 // A CompareThreeWay implementation that delegates to native comparisons.
 // Thrift-aware behavior is supplied by concrete CompareThreeWay
 // specializations.
@@ -183,14 +179,6 @@ using compare_three_way_t = decltype(CompareThreeWay<Tag>{}(
 template <typename Tag>
 inline constexpr bool comparable_v =
     folly::is_detected_v<compare_three_way_t, Tag>;
-
-// Resolves to R, if the tag *can* be used with CompareThreeWay.
-template <typename Tag, typename R = std::partial_ordering>
-using if_comparable = folly::type_t<R, compare_three_way_t<Tag>>;
-
-// Resolves to R, if the tag *cannot* be used with CompareThreeWay.
-template <typename Tag, typename R = std::partial_ordering>
-using if_not_comparable = std::enable_if_t<!comparable_v<Tag>, R>;
 
 // Use bit_cast for floating point identical.
 template <typename F, typename I>
