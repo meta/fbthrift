@@ -2621,7 +2621,7 @@ void validate_struct_annotations(
     const t_structured& s,
     const compiler_options_map& options) {
   if (cpp2::packed_isset(s)) {
-    if (options.count("tablebased") != 0) {
+    if (options.contains("tablebased")) {
       ctx.report(
           s,
           "tablebased-isset-bitpacking-rule",
@@ -2633,7 +2633,7 @@ void validate_struct_annotations(
   // Table-based deserialization builds union members without the union's
   // allocator, and has no type info for strings with a custom allocator, such
   // as `std::pmr::string`.
-  if (options.count("tablebased") != 0 && cpp2::is_allocator_aware(s)) {
+  if (options.contains("tablebased") && cpp2::is_allocator_aware(s)) {
     ctx.report(
         s,
         "tablebased-allocator-rule",
@@ -2642,40 +2642,29 @@ void validate_struct_annotations(
         "option.",
         s.name());
   }
+  // Frozen has no layouts for PMR types, thaws `cpp.ref` fields with
+  // `std::make_shared`, and thaws a union member through a setter, which a
+  // `cpp.use_allocator` member doesn't have.
+  if (options.contains("frozen") && cpp2::is_allocator_aware(s)) {
+    ctx.report(
+        s,
+        "frozen-allocator-rule",
+        diagnostic_level::error,
+        "`cpp.allocator` on `{}` is not supported with the `frozen` option.",
+        s.name());
+  }
+  if (options.contains("frozen2") && cpp2::is_allocator_aware(s) &&
+      !is_frozen2_excluded(s)) {
+    ctx.report(
+        s,
+        "frozen2-allocator-rule",
+        diagnostic_level::error,
+        "`cpp.allocator` on `{}` is not supported with the `frozen2` option "
+        "unless it has `@cpp.Frozen2Exclude`.",
+        s.name());
+  }
 
   for (const auto& field : s.fields()) {
-    if (field.has_structured_annotation(kCppArenaUri)) {
-      // Table-based serialization has no type info for PMR strings, and
-      // Frozen has no layouts for PMR types.
-      if (options.contains("tablebased")) {
-        ctx.report(
-            field,
-            "tablebased-arena-rule",
-            diagnostic_level::error,
-            "`@cpp.Arena` on field `{}` is not supported with the "
-            "`tablebased` option.",
-            field.name());
-      }
-      if (options.contains("frozen")) {
-        ctx.report(
-            field,
-            "frozen-arena-rule",
-            diagnostic_level::error,
-            "`@cpp.Arena` on field `{}` is not supported with the `frozen` "
-            "option.",
-            field.name());
-      }
-      if (options.contains("frozen2") && !is_frozen2_excluded(s)) {
-        ctx.report(
-            field,
-            "frozen2-arena-rule",
-            diagnostic_level::error,
-            "`@cpp.Arena` on field `{}` is not supported with the `frozen2` "
-            "option unless `{}` has `@cpp.Frozen2Exclude`.",
-            field.name(),
-            s.name());
-      }
-    }
     if (cpp2::is_mixin(field)) {
       // Mixins cannot be refs
       if (cpp2::is_explicit_ref(&field)) {

@@ -3504,54 +3504,56 @@ TEST(CompilerTest, cpp_arena_unsupported_fields) {
   )");
 }
 
-TEST(CompilerTest, cpp_arena_with_tablebased_serialization) {
+TEST(CompilerTest, cpp_allocator_with_frozen) {
   check_compile(
       R"(
     package "facebook.com/thrift/test"
-    include "thrift/annotation/cpp.thrift"
+    include "thrift/annotation/thrift.thrift"
 
-    struct Foo {
-      @cpp.Arena
-      1: string name;
-        # expected-error@-2: `@cpp.Arena` on field `name` is not supported with the `tablebased` option. [tablebased-arena-rule]
-      2: string plain;
+    @thrift.DeprecatedUnvalidatedAnnotations{
+      items = {"cpp.allocator": "::std::pmr::polymorphic_allocator<char>"},
     }
-  )",
-      {"--gen", "mstch_cpp2:json,tablebased"});
-}
-
-TEST(CompilerTest, cpp_arena_with_frozen) {
-  check_compile(
-      R"(
-    package "facebook.com/thrift/test"
-    include "thrift/annotation/cpp.thrift"
-
-    struct Foo {
-      @cpp.Arena
+    struct PmrStruct {
       1: string name;
-        # expected-error@-2: `@cpp.Arena` on field `name` is not supported with the `frozen` option. [frozen-arena-rule]
-      2: string plain;
+    }
+      # expected-error@-6: `cpp.allocator` on `PmrStruct` is not supported with the `frozen` option.  [frozen-allocator-rule]
+
+    struct Plain {
+      1: string name;
     }
   )",
       {"--gen", "mstch_cpp2:frozen"});
 }
 
-TEST(CompilerTest, cpp_arena_with_frozen2) {
+TEST(CompilerTest, cpp_allocator_with_frozen2) {
   check_compile(
       R"(
     package "facebook.com/thrift/test"
     include "thrift/annotation/cpp.thrift"
+    include "thrift/annotation/thrift.thrift"
 
-    struct Foo {
-      @cpp.Arena
-      1: string name;
-        # expected-error@-2: `@cpp.Arena` on field `name` is not supported with the `frozen2` option unless `Foo` has `@cpp.Frozen2Exclude`. [frozen2-arena-rule]
-      2: string plain;
+    @thrift.DeprecatedUnvalidatedAnnotations{
+      items = {"cpp.allocator": "::std::pmr::polymorphic_allocator<char>"},
     }
+    struct PmrStruct {
+      1: string name;
+    }
+      # expected-error@-6: `cpp.allocator` on `PmrStruct` is not supported with the `frozen2` option unless it has `@cpp.Frozen2Exclude`.  [frozen2-allocator-rule]
 
+    @thrift.DeprecatedUnvalidatedAnnotations{
+      items = {"cpp.allocator": "::std::pmr::polymorphic_allocator<char>"},
+    }
+    @cpp.InternalExperimentalAllowAllocatorOnUnion
+    union PmrUnion {
+      1: i32 id;
+    }
+      # expected-error@-7: `cpp.allocator` on `PmrUnion` is not supported with the `frozen2` option unless it has `@cpp.Frozen2Exclude`.  [frozen2-allocator-rule]
+
+    @thrift.DeprecatedUnvalidatedAnnotations{
+      items = {"cpp.allocator": "::std::pmr::polymorphic_allocator<char>"},
+    }
     @cpp.Frozen2Exclude
     struct Excluded {
-      @cpp.Arena
       1: string name;
     }
   )",
