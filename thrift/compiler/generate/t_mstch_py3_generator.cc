@@ -630,6 +630,20 @@ bool validate_union(sema_context& ctx, const t_union& s) {
 
 } // namespace enum_member_union_field_names_validator
 
+// py3 converts strings and containers as `std::` types, so it can't convert
+// the PMR types of `@cpp.Arena` fields.
+void validate_no_arena_field(sema_context& ctx, const t_field& field) {
+  if (cpp2::is_arena_field(field)) {
+    ctx.report(
+        field,
+        "py3-arena-field-rule",
+        diagnostic_level::error,
+        "`@cpp.Arena` field `{}` is not supported in thrift-py3. Use "
+        "thrift-python or the `auto_migrate` option.",
+        field.name());
+  }
+}
+
 void py3_generator_context::visit_function(const t_function& function) {
   for (const auto& field : function.params().fields()) {
     visit_type(&field.type().deref(), /*from_type_def=*/false);
@@ -694,6 +708,9 @@ class t_mstch_py3_generator : public t_whisker_generator {
         enum_member_union_field_names_validator::validate_enum);
     validator.add_union_visitor(
         enum_member_union_field_names_validator::validate_union);
+    if (!has_compiler_option("auto_migrate")) {
+      validator.add_field_visitor(validate_no_arena_field);
+    }
   }
 
  private:

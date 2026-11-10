@@ -2549,6 +2549,34 @@ TEST(CompilerTest, py3_enum_invalid_value_names) {
       {"--gen", "mstch_py3"});
 }
 
+TEST(CompilerTest, py3_arena_field) {
+  check_compile(
+      R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+    struct Foo {
+      @cpp.Arena
+      1: string name;
+        # expected-error@-2: `@cpp.Arena` field `name` is not supported in thrift-py3. Use thrift-python or the `auto_migrate` option. [py3-arena-field-rule]
+      2: string plain;
+    }
+  )",
+      {"--gen", "mstch_py3"});
+}
+
+TEST(CompilerTest, py3_auto_migrate_arena_field) {
+  check_compile(
+      R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+    struct Foo {
+      @cpp.Arena
+      1: string name;
+    }
+  )",
+      {"--gen", "mstch_py3:auto_migrate"});
+}
+
 TEST(CompilerTest, py3_invalid_field_names) {
   // TODO: The py3 validator should check @python.Name in addition to py3.name.
   check_compile(
