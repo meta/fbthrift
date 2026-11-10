@@ -137,15 +137,6 @@ class FrameLengthParserStrategyBase {
               .pull(copy->writableTail(), frameLength_);
           copy->append(frameLength_);
           frame = std::move(copy);
-        } else if (
-            readBuffer_.empty() &&
-            frame->prev()->tailroom() >= minBufferSize_) {
-          // split() moved the trailing IOBuf and its writable tailroom into
-          // the frame. Return the tailroom to the queue so the next
-          // getReadBuffer() can reuse it rather than allocate.
-          if (auto tail = frame->prev()->maybeSplitTail()) {
-            readBuffer_.append(std::move(tail));
-          }
         }
       }
 
