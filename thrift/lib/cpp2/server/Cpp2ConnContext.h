@@ -725,13 +725,12 @@ class Cpp2RequestContext : public apache::thrift::server::TConnectionContext {
       apache::thrift::detail::ServiceInterceptorRequestStorageContext
           serviceInterceptorsStorage = {},
       DecoratorDataStorage decoratorDataStorage = {})
-      : Cpp2RequestContext(
-            ctx,
-            std::move(serviceInterceptorsStorage),
-            std::move(decoratorDataStorage),
-            detail::createPerRequestInternalFields(),
-            header,
-            std::move(methodName)) {}
+      : TConnectionContext(header),
+        ctx_(ctx),
+        methodName_(std::move(methodName)),
+        serviceInterceptorsStorage_(std::move(serviceInterceptorsStorage)),
+        decoratorDataStorage_(std::move(decoratorDataStorage)),
+        internalFields_(detail::createPerRequestInternalFields()) {}
 
   void setConnectionContext(Cpp2ConnContext* ctx) { ctx_ = ctx; }
 
