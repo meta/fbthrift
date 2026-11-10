@@ -19,12 +19,14 @@
 #include <type_traits>
 
 #include <thrift/conformance/cpp2/Protocol.h>
+#include <thrift/conformance/cpp2/ThriftTypeInfo.h>
 #include <thrift/conformance/if/gen-cpp2/any_types.h>
 #include <thrift/lib/cpp2/Thrift.h>
 #include <thrift/lib/cpp2/op/Encode.h>
 #include <thrift/lib/cpp2/protocol/BinaryProtocol.h>
 #include <thrift/lib/cpp2/protocol/CompactProtocol.h>
 #include <thrift/lib/cpp2/type/Tag.h>
+#include <thrift/lib/cpp2/type/UniversalName.h>
 
 namespace apache::thrift::conformance {
 
@@ -39,6 +41,24 @@ void setProtocol(const Protocol& protocol, Any& any) noexcept;
 
 // Raises std::invalid_argument if invalid.
 void validateAny(const Any& any);
+
+// Returns true iff the any holds a value of type T, identified either by its
+// URI or by a type hash prefix of at least kMinTypeHashBytes. Unlike
+// AnyRegistry::getTypeId, this does not require T to be registered.
+template <typename T>
+bool hasType(const Any& any) {
+  if (any.type().has_value() && !any.type()->empty()) {
+    return *any.type() == uri<T>();
+  }
+  if (!any.typeHashPrefixSha2_256().has_value()) {
+    return false;
+  }
+  const auto& prefix = *any.typeHashPrefixSha2_256();
+  static const auto hash =
+      type::getUniversalHash(type::UniversalHashAlgorithm::Sha2_256, uri<T>());
+  return prefix.size() >= static_cast<size_t>(kMinTypeHashBytes) &&
+      type::matchesUniversalHash(hash, prefix);
+}
 
 // Encode a statically-typed value into a conformance::Any, bypassing the
 // AnyRegistry. The type must have a Thrift URI (i.e. be a generated struct).
