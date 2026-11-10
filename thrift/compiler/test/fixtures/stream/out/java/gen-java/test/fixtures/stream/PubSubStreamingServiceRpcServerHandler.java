@@ -19,23 +19,32 @@ public class PubSubStreamingServiceRpcServerHandler
   private final PubSubStreamingService.Reactive _delegate;
 
   private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _returnstreamReaders;
-  private final com.facebook.thrift.server.generated.StreamMethod<java.lang.Object,Integer> _method_returnstream;
+  private final com.facebook.thrift.server.generated.SingleRequestStreamResponseDelegate<Integer> _delegate_returnstream;
+  private final com.facebook.thrift.server.generated.StreamResponseHandler<Integer> _handler_returnstream;
   private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _streamthrowsReaders;
-  private final com.facebook.thrift.server.generated.StreamMethod<java.lang.Object,Integer> _method_streamthrows;
+  private final com.facebook.thrift.server.generated.SingleRequestStreamResponseDelegate<Integer> _delegate_streamthrows;
+  private final com.facebook.thrift.server.generated.StreamResponseHandler<Integer> _handler_streamthrows;
   private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _servicethrowsReaders;
-  private final com.facebook.thrift.server.generated.StreamMethod<java.lang.Object,Integer> _method_servicethrows;
+  private final com.facebook.thrift.server.generated.SingleRequestStreamResponseDelegate<Integer> _delegate_servicethrows;
+  private final com.facebook.thrift.server.generated.StreamResponseHandler<Integer> _handler_servicethrows;
   private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _servicethrows2Readers;
-  private final com.facebook.thrift.server.generated.StreamMethod<java.lang.Object,Integer> _method_servicethrows2;
+  private final com.facebook.thrift.server.generated.SingleRequestStreamResponseDelegate<Integer> _delegate_servicethrows2;
+  private final com.facebook.thrift.server.generated.StreamResponseHandler<Integer> _handler_servicethrows2;
   private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _boththrowsReaders;
-  private final com.facebook.thrift.server.generated.StreamMethod<java.lang.Object,Integer> _method_boththrows;
+  private final com.facebook.thrift.server.generated.SingleRequestStreamResponseDelegate<Integer> _delegate_boththrows;
+  private final com.facebook.thrift.server.generated.StreamResponseHandler<Integer> _handler_boththrows;
   private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _responseandstreamstreamthrowsReaders;
-  private final com.facebook.thrift.server.generated.StreamMethod<Integer,Integer> _method_responseandstreamstreamthrows;
+  private final com.facebook.thrift.server.generated.SingleRequestStreamResponseDelegate<com.facebook.thrift.model.StreamResponse<Integer,Integer>> _delegate_responseandstreamstreamthrows;
+  private final com.facebook.thrift.server.generated.StreamWithFirstResponseHandler<Integer,Integer> _handler_responseandstreamstreamthrows;
   private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _responseandstreamservicethrowsReaders;
-  private final com.facebook.thrift.server.generated.StreamMethod<Integer,Integer> _method_responseandstreamservicethrows;
+  private final com.facebook.thrift.server.generated.SingleRequestStreamResponseDelegate<com.facebook.thrift.model.StreamResponse<Integer,Integer>> _delegate_responseandstreamservicethrows;
+  private final com.facebook.thrift.server.generated.StreamWithFirstResponseHandler<Integer,Integer> _handler_responseandstreamservicethrows;
   private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _responseandstreamboththrowsReaders;
-  private final com.facebook.thrift.server.generated.StreamMethod<Integer,Integer> _method_responseandstreamboththrows;
+  private final com.facebook.thrift.server.generated.SingleRequestStreamResponseDelegate<com.facebook.thrift.model.StreamResponse<Integer,Integer>> _delegate_responseandstreamboththrows;
+  private final com.facebook.thrift.server.generated.StreamWithFirstResponseHandler<Integer,Integer> _handler_responseandstreamboththrows;
   private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _returnstreamFastReaders;
-  private final com.facebook.thrift.server.generated.StreamMethod<java.lang.Object,Integer> _method_returnstreamFast;
+  private final com.facebook.thrift.server.generated.SingleRequestStreamResponseDelegate<Integer> _delegate_returnstreamFast;
+  private final com.facebook.thrift.server.generated.StreamResponseHandler<Integer> _handler_returnstreamFast;
 
   private final java.util.List<com.facebook.swift.service.ThriftEventHandler> _eventHandlers;
 
@@ -59,18 +68,19 @@ public class PubSubStreamingServiceRpcServerHandler
 
     _methodMap.put("returnstream", this);
     _returnstreamReaders = _create_returnstream_request_readers();
-    _method_returnstream =
-    new com.facebook.thrift.server.generated.StreamMethod<>(
-      _returnstreamReaders,
-      _args -> {
-        java.util.Iterator _iterator = _args.iterator();
+    _delegate_returnstream = (java.util.List<Object> _list) -> {
+        java.util.Iterator _iterator = _list.iterator();
         int i32From = (int) _iterator.next();
         int i32To = (int) _iterator.next();
 
-        return reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.generated.ServerStreams.NO_FIRST_RESPONSE, _delegate.returnstream(i32From, i32To)));
-      },
-      com.facebook.thrift.server.generated.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
+        return _delegate.returnstream(i32From, i32To);
+    };
+
+    _handler_returnstream =
+    new com.facebook.thrift.server.generated.StreamResponseHandler<>(
+      _delegate_returnstream,
       _ResponseWriterFactory_returnstream,
+      _returnstreamReaders,
       "returnstream",
       new Class[]{  },
       new Integer[]{  },
@@ -80,17 +90,18 @@ public class PubSubStreamingServiceRpcServerHandler
 
     _methodMap.put("streamthrows", this);
     _streamthrowsReaders = _create_streamthrows_request_readers();
-    _method_streamthrows =
-    new com.facebook.thrift.server.generated.StreamMethod<>(
-      _streamthrowsReaders,
-      _args -> {
-        java.util.Iterator _iterator = _args.iterator();
+    _delegate_streamthrows = (java.util.List<Object> _list) -> {
+        java.util.Iterator _iterator = _list.iterator();
         int foo = (int) _iterator.next();
 
-        return reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.generated.ServerStreams.NO_FIRST_RESPONSE, _delegate.streamthrows(foo)));
-      },
-      com.facebook.thrift.server.generated.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
+        return _delegate.streamthrows(foo);
+    };
+
+    _handler_streamthrows =
+    new com.facebook.thrift.server.generated.StreamResponseHandler<>(
+      _delegate_streamthrows,
       _ResponseWriterFactory_streamthrows,
+      _streamthrowsReaders,
       "streamthrows",
       new Class[]{  },
       new Integer[]{  },
@@ -100,17 +111,18 @@ public class PubSubStreamingServiceRpcServerHandler
 
     _methodMap.put("servicethrows", this);
     _servicethrowsReaders = _create_servicethrows_request_readers();
-    _method_servicethrows =
-    new com.facebook.thrift.server.generated.StreamMethod<>(
-      _servicethrowsReaders,
-      _args -> {
-        java.util.Iterator _iterator = _args.iterator();
+    _delegate_servicethrows = (java.util.List<Object> _list) -> {
+        java.util.Iterator _iterator = _list.iterator();
         int foo = (int) _iterator.next();
 
-        return reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.generated.ServerStreams.NO_FIRST_RESPONSE, _delegate.servicethrows(foo)));
-      },
-      com.facebook.thrift.server.generated.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
+        return _delegate.servicethrows(foo);
+    };
+
+    _handler_servicethrows =
+    new com.facebook.thrift.server.generated.StreamResponseHandler<>(
+      _delegate_servicethrows,
       _ResponseWriterFactory_servicethrows,
+      _servicethrowsReaders,
       "servicethrows",
       new Class[]{ test.fixtures.stream.FooEx.class },
       new Integer[]{ 1 },
@@ -120,17 +132,18 @@ public class PubSubStreamingServiceRpcServerHandler
 
     _methodMap.put("servicethrows2", this);
     _servicethrows2Readers = _create_servicethrows2_request_readers();
-    _method_servicethrows2 =
-    new com.facebook.thrift.server.generated.StreamMethod<>(
-      _servicethrows2Readers,
-      _args -> {
-        java.util.Iterator _iterator = _args.iterator();
+    _delegate_servicethrows2 = (java.util.List<Object> _list) -> {
+        java.util.Iterator _iterator = _list.iterator();
         int foo = (int) _iterator.next();
 
-        return reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.generated.ServerStreams.NO_FIRST_RESPONSE, _delegate.servicethrows2(foo)));
-      },
-      com.facebook.thrift.server.generated.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
+        return _delegate.servicethrows2(foo);
+    };
+
+    _handler_servicethrows2 =
+    new com.facebook.thrift.server.generated.StreamResponseHandler<>(
+      _delegate_servicethrows2,
       _ResponseWriterFactory_servicethrows2,
+      _servicethrows2Readers,
       "servicethrows2",
       new Class[]{ test.fixtures.stream.FooEx.class,test.fixtures.stream.FooEx2.class },
       new Integer[]{ 1,2 },
@@ -140,17 +153,18 @@ public class PubSubStreamingServiceRpcServerHandler
 
     _methodMap.put("boththrows", this);
     _boththrowsReaders = _create_boththrows_request_readers();
-    _method_boththrows =
-    new com.facebook.thrift.server.generated.StreamMethod<>(
-      _boththrowsReaders,
-      _args -> {
-        java.util.Iterator _iterator = _args.iterator();
+    _delegate_boththrows = (java.util.List<Object> _list) -> {
+        java.util.Iterator _iterator = _list.iterator();
         int foo = (int) _iterator.next();
 
-        return reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.generated.ServerStreams.NO_FIRST_RESPONSE, _delegate.boththrows(foo)));
-      },
-      com.facebook.thrift.server.generated.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
+        return _delegate.boththrows(foo);
+    };
+
+    _handler_boththrows =
+    new com.facebook.thrift.server.generated.StreamResponseHandler<>(
+      _delegate_boththrows,
       _ResponseWriterFactory_boththrows,
+      _boththrowsReaders,
       "boththrows",
       new Class[]{ test.fixtures.stream.FooEx.class },
       new Integer[]{ 1 },
@@ -160,17 +174,19 @@ public class PubSubStreamingServiceRpcServerHandler
 
     _methodMap.put("responseandstreamstreamthrows", this);
     _responseandstreamstreamthrowsReaders = _create_responseandstreamstreamthrows_request_readers();
-    _method_responseandstreamstreamthrows =
-    new com.facebook.thrift.server.generated.StreamMethod<>(
-      _responseandstreamstreamthrowsReaders,
-      _args -> {
-        java.util.Iterator _iterator = _args.iterator();
+    _delegate_responseandstreamstreamthrows = (java.util.List<Object> _list) -> {
+        java.util.Iterator _iterator = _list.iterator();
         int foo = (int) _iterator.next();
 
         return _delegate.responseandstreamstreamthrows(foo);
-      },
+    };
+
+    _handler_responseandstreamstreamthrows =
+    new com.facebook.thrift.server.generated.StreamWithFirstResponseHandler<>(
+      _delegate_responseandstreamstreamthrows,
       _first_ResponseWriterFactory_responseandstreamstreamthrows,
       _ResponseWriterFactory_responseandstreamstreamthrows,
+      _responseandstreamstreamthrowsReaders,
       "responseandstreamstreamthrows",
       new Class[]{  },
       new Integer[]{  },
@@ -180,17 +196,19 @@ public class PubSubStreamingServiceRpcServerHandler
 
     _methodMap.put("responseandstreamservicethrows", this);
     _responseandstreamservicethrowsReaders = _create_responseandstreamservicethrows_request_readers();
-    _method_responseandstreamservicethrows =
-    new com.facebook.thrift.server.generated.StreamMethod<>(
-      _responseandstreamservicethrowsReaders,
-      _args -> {
-        java.util.Iterator _iterator = _args.iterator();
+    _delegate_responseandstreamservicethrows = (java.util.List<Object> _list) -> {
+        java.util.Iterator _iterator = _list.iterator();
         int foo = (int) _iterator.next();
 
         return _delegate.responseandstreamservicethrows(foo);
-      },
+    };
+
+    _handler_responseandstreamservicethrows =
+    new com.facebook.thrift.server.generated.StreamWithFirstResponseHandler<>(
+      _delegate_responseandstreamservicethrows,
       _first_ResponseWriterFactory_responseandstreamservicethrows,
       _ResponseWriterFactory_responseandstreamservicethrows,
+      _responseandstreamservicethrowsReaders,
       "responseandstreamservicethrows",
       new Class[]{ test.fixtures.stream.FooEx.class },
       new Integer[]{ 1 },
@@ -200,17 +218,19 @@ public class PubSubStreamingServiceRpcServerHandler
 
     _methodMap.put("responseandstreamboththrows", this);
     _responseandstreamboththrowsReaders = _create_responseandstreamboththrows_request_readers();
-    _method_responseandstreamboththrows =
-    new com.facebook.thrift.server.generated.StreamMethod<>(
-      _responseandstreamboththrowsReaders,
-      _args -> {
-        java.util.Iterator _iterator = _args.iterator();
+    _delegate_responseandstreamboththrows = (java.util.List<Object> _list) -> {
+        java.util.Iterator _iterator = _list.iterator();
         int foo = (int) _iterator.next();
 
         return _delegate.responseandstreamboththrows(foo);
-      },
+    };
+
+    _handler_responseandstreamboththrows =
+    new com.facebook.thrift.server.generated.StreamWithFirstResponseHandler<>(
+      _delegate_responseandstreamboththrows,
       _first_ResponseWriterFactory_responseandstreamboththrows,
       _ResponseWriterFactory_responseandstreamboththrows,
+      _responseandstreamboththrowsReaders,
       "responseandstreamboththrows",
       new Class[]{ test.fixtures.stream.FooEx.class },
       new Integer[]{ 1 },
@@ -220,18 +240,19 @@ public class PubSubStreamingServiceRpcServerHandler
 
     _methodMap.put("returnstreamFast", this);
     _returnstreamFastReaders = _create_returnstreamFast_request_readers();
-    _method_returnstreamFast =
-    new com.facebook.thrift.server.generated.StreamMethod<>(
-      _returnstreamFastReaders,
-      _args -> {
-        java.util.Iterator _iterator = _args.iterator();
+    _delegate_returnstreamFast = (java.util.List<Object> _list) -> {
+        java.util.Iterator _iterator = _list.iterator();
         int i32From = (int) _iterator.next();
         int i32To = (int) _iterator.next();
 
-        return reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.generated.ServerStreams.NO_FIRST_RESPONSE, _delegate.returnstreamFast(i32From, i32To)));
-      },
-      com.facebook.thrift.server.generated.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
+        return _delegate.returnstreamFast(i32From, i32To);
+    };
+
+    _handler_returnstreamFast =
+    new com.facebook.thrift.server.generated.StreamResponseHandler<>(
+      _delegate_returnstreamFast,
       _ResponseWriterFactory_returnstreamFast,
+      _returnstreamFastReaders,
       "returnstreamFast",
       new Class[]{  },
       new Integer[]{  },
@@ -611,31 +632,31 @@ public class PubSubStreamingServiceRpcServerHandler
     try {
       switch(_name) {
         case "returnstream":
-          _result = com.facebook.thrift.server.generated.ServerStreams.handleStream(_payload, _chain, _method_returnstream);
+          _result = _handler_returnstream.handleStream(_payload, _chain);
           break;
         case "streamthrows":
-          _result = com.facebook.thrift.server.generated.ServerStreams.handleStream(_payload, _chain, _method_streamthrows);
+          _result = _handler_streamthrows.handleStream(_payload, _chain);
           break;
         case "servicethrows":
-          _result = com.facebook.thrift.server.generated.ServerStreams.handleStream(_payload, _chain, _method_servicethrows);
+          _result = _handler_servicethrows.handleStream(_payload, _chain);
           break;
         case "servicethrows2":
-          _result = com.facebook.thrift.server.generated.ServerStreams.handleStream(_payload, _chain, _method_servicethrows2);
+          _result = _handler_servicethrows2.handleStream(_payload, _chain);
           break;
         case "boththrows":
-          _result = com.facebook.thrift.server.generated.ServerStreams.handleStream(_payload, _chain, _method_boththrows);
+          _result = _handler_boththrows.handleStream(_payload, _chain);
           break;
         case "responseandstreamstreamthrows":
-          _result = com.facebook.thrift.server.generated.ServerStreams.handleStream(_payload, _chain, _method_responseandstreamstreamthrows);
+          _result = _handler_responseandstreamstreamthrows.handleStream(_payload, _chain);
           break;
         case "responseandstreamservicethrows":
-          _result = com.facebook.thrift.server.generated.ServerStreams.handleStream(_payload, _chain, _method_responseandstreamservicethrows);
+          _result = _handler_responseandstreamservicethrows.handleStream(_payload, _chain);
           break;
         case "responseandstreamboththrows":
-          _result = com.facebook.thrift.server.generated.ServerStreams.handleStream(_payload, _chain, _method_responseandstreamboththrows);
+          _result = _handler_responseandstreamboththrows.handleStream(_payload, _chain);
           break;
         case "returnstreamFast":
-          _result = com.facebook.thrift.server.generated.ServerStreams.handleStream(_payload, _chain, _method_returnstreamFast);
+          _result = _handler_returnstreamFast.handleStream(_payload, _chain);
           break;
         default: {
             _chain.preRead();
@@ -655,9 +676,7 @@ public class PubSubStreamingServiceRpcServerHandler
     if (com.facebook.thrift.util.resources.RpcResources.isForceExecutionOffEventLoop()) {
       _response = _response.subscribeOn(com.facebook.thrift.util.resources.RpcResources.getOffLoopScheduler());
     }
-    // finishRequest, not done(): a begun stream's terminal and done() already fired together from
-    // the inner terminal site, and this downstream doFinally runs first in the fused fast paths.
-    return _response.doFinally(__ -> _chain.finishRequest());
+    return _response.doFinally(__ -> _chain.done());
   }
 
   @java.lang.Override

@@ -18,8 +18,10 @@ package com.meta.thrift.conformance.rpc.server;
 
 import com.facebook.thrift.client.ResponseWrapper;
 import com.facebook.thrift.client.RpcOptions;
-import com.facebook.thrift.model.ResponseAndStream;
 import com.facebook.thrift.model.StreamResponse;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.apache.thrift.conformance.ClientTestResult;
 import org.apache.thrift.conformance.RPCConformanceService;
 import org.apache.thrift.conformance.Request;
@@ -146,14 +148,20 @@ public class RpcServerReactiveHandler implements RPCConformanceService.Reactive 
   }
 
   @Override
-  public Mono<ResponseAndStream<Response, Response>> streamInitialResponse(Request request) {
+  public Flux<StreamResponse<Response, Response>> streamInitialResponse(Request request) {
     testResult =
         ServerTestResult.fromStreamInitialResponse(
             new StreamInitialResponseServerTestResult.Builder().setRequest(request).build());
-    return Mono.just(
-        ResponseAndStream.of(
-            instruction.getStreamInitialResponse().getInitialResponse(),
-            Flux.fromIterable(instruction.getStreamInitialResponse().getStreamPayloads())));
+    List<StreamResponse<Response, Response>> list = new ArrayList<>();
+    list.add(
+        StreamResponse.fromFirstResponse(
+            instruction.getStreamInitialResponse().getInitialResponse()));
+    list.addAll(
+        instruction.getStreamInitialResponse().getStreamPayloads().stream()
+            .map(StreamResponse::<Response, Response>fromData)
+            .collect(Collectors.toList()));
+
+    return Flux.fromIterable(list);
   }
 
   @Override

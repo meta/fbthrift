@@ -637,9 +637,7 @@ public class RaiserRpcServerHandler
     if (com.facebook.thrift.util.resources.RpcResources.isForceExecutionOffEventLoop()) {
       _response = _response.subscribeOn(com.facebook.thrift.util.resources.RpcResources.getOffLoopScheduler());
     }
-    // finishRequest, not done(): a begun stream's terminal and done() already fired together from
-    // the inner terminal site, and this downstream doFinally runs first in the fused fast paths.
-    return _response.doFinally(__ -> _chain.finishRequest());
+    return _response.doFinally(__ -> _chain.done());
   }
 
   @java.lang.Override

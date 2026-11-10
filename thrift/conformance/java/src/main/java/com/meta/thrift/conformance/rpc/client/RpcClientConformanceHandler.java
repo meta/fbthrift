@@ -23,6 +23,7 @@ import com.facebook.thrift.rsocket.client.RSocketRpcClientFactory;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.stream.Collectors;
 import org.apache.thrift.ProtocolId;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.conformance.ClientInstruction;
@@ -224,18 +225,18 @@ public class RpcClientConformanceHandler {
       StreamInitialResponseClientInstruction instruction) {
     return client
         .streamInitialResponse(instruction.getRequest())
-        .flatMap(
-            responseAndStream ->
-                responseAndStream
-                    .getStream()
-                    .collectList()
-                    .map(
-                        payloads ->
-                            ClientTestResult.fromStreamInitialResponse(
-                                new StreamInitialResponseClientTestResult.Builder()
-                                    .setInitialResponse(responseAndStream.getFirstResponse())
-                                    .setStreamPayloads(payloads)
-                                    .build())));
+        .collectList()
+        .map(
+            r ->
+                ClientTestResult.fromStreamInitialResponse(
+                    new StreamInitialResponseClientTestResult.Builder()
+                        .setInitialResponse(r.get(0).getFirstResponse())
+                        .setStreamPayloads(
+                            r.stream()
+                                .filter(s -> s.isSetData())
+                                .map(s -> s.getData())
+                                .collect(Collectors.toList()))
+                        .build()));
   }
 
   public Mono<ClientTestResult> testStreamDeclaredException(

@@ -94,11 +94,6 @@ public class InteractWithSharedAsyncReactiveWrapper
         }
 
         @java.lang.Override
-        public reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer,Integer>> firstAndStream() {
-            throw new UnsupportedOperationException();
-        }
-
-        @java.lang.Override
         public void dispose() {
             _delegateInteraction.close();
         }

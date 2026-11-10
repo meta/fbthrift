@@ -43,18 +43,6 @@ service PingService {
 
 service ExtendedPing extends PingService {
   void pingExtended(1: PingRequest key);
-  PingResponse, stream<PingResponse> streamWithFirstResponse(
-    1: PingRequest key,
-    2: i32 numberOfPings,
-  ) throws (1: CustomException ex);
-  stream<PingResponse throws (1: CustomException ex)> streamDeclaredExceptionMidStream(
-    1: PingRequest key,
-    2: i32 numberOfPings,
-  );
-  stream<PingResponse> streamUndeclaredExceptionMidStream(
-    1: PingRequest key,
-    2: i32 numberOfPings,
-  );
 }
 
 service PingA {

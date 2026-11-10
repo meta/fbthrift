@@ -47,7 +47,7 @@ public class {{service.javaCapitalName}}AsyncReactiveWrapper {{#if (object.notnu
     {{/each}}
     {{#each service.streaming_functions as |func|}}
     @java.lang.Override
-    public {{#partial types.stream_return_type function=func}} {{func.java_name}}({{#each (array.enumerate func.params.fields with_last=true) as |i field last?|}}final {{#partial types.java_type type=field.type has_adapter_override=field.hasAdapter?}} {{field.javaName}}{{#if (not last?)}}, {{/if (not last?)}}{{/each}}) {
+    public reactor.core.publisher.Flux<{{#partial types.stream_return_type function=func}}> {{func.java_name}}({{#each (array.enumerate func.params.fields with_last=true) as |i field last?|}}final {{#partial types.java_type type=field.type has_adapter_override=field.hasAdapter?}} {{field.javaName}}{{#if (not last?)}}, {{/if (not last?)}}{{/each}}) {
         throw new UnsupportedOperationException();
     }
 
@@ -84,7 +84,7 @@ public class {{service.javaCapitalName}}AsyncReactiveWrapper {{#if (object.notnu
         {{/each}}
         {{#each interaction.streaming_functions as |func|}}
         @java.lang.Override
-        public {{#partial types.stream_return_type function=func}} {{func.java_name}}({{#each (array.enumerate func.params.fields with_last=true) as |i field last?|}}final {{#partial types.java_type type=field.type has_adapter_override=field.hasAdapter?}} {{field.javaName}}{{#if (not last?)}}, {{/if (not last?)}}{{/each}}) {
+        public reactor.core.publisher.Flux<{{#partial types.stream_return_type function=func}}> {{func.java_name}}({{#each (array.enumerate func.params.fields with_last=true) as |i field last?|}}final {{#partial types.java_type type=field.type has_adapter_override=field.hasAdapter?}} {{field.javaName}}{{#if (not last?)}}, {{/if (not last?)}}{{/each}}) {
             throw new UnsupportedOperationException();
         }
 

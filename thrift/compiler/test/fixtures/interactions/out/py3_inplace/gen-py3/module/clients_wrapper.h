@@ -84,8 +84,6 @@ class MyServiceClientWrapper : public ::thrift::py3::ClientWrapper {
         folly::Future<apache::thrift::ClientBufferedStream<int32_t>> streamWithArg(
           apache::thrift::RpcOptions& rpcOptions,
           std::string arg_query);
-        folly::Future<apache::thrift::ResponseAndClientBufferedStream<int32_t,int32_t>> firstAndStream(
-          apache::thrift::RpcOptions& rpcOptions);
     };
 
     class MyInteractionFastInteractionWrapper : public ClientWrapper {
@@ -169,8 +167,6 @@ class PerformClientWrapper : public ::thrift::py3::ClientWrapper {
         folly::Future<apache::thrift::ClientBufferedStream<int32_t>> streamWithArg(
           apache::thrift::RpcOptions& rpcOptions,
           std::string arg_query);
-        folly::Future<apache::thrift::ResponseAndClientBufferedStream<int32_t,int32_t>> firstAndStream(
-          apache::thrift::RpcOptions& rpcOptions);
     };
 
     class MyInteractionFastInteractionWrapper : public ClientWrapper {
@@ -234,8 +230,6 @@ class InteractWithSharedClientWrapper : public ::thrift::py3::ClientWrapper {
         folly::Future<apache::thrift::ClientBufferedStream<int32_t>> streamWithArg(
           apache::thrift::RpcOptions& rpcOptions,
           std::string arg_query);
-        folly::Future<apache::thrift::ResponseAndClientBufferedStream<int32_t,int32_t>> firstAndStream(
-          apache::thrift::RpcOptions& rpcOptions);
     };
 
     class SharedInteractionInteractionWrapper : public ClientWrapper {

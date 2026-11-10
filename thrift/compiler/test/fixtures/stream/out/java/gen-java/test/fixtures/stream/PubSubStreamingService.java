@@ -98,7 +98,7 @@ public interface PubSubStreamingService extends java.io.Closeable, com.facebook.
             throw new UnsupportedOperationException();
         }
 
-        default reactor.core.publisher.Flux<com.facebook.thrift.client.ResponseWrapper<Integer>> returnstreamWrapper(final int i32From, final int i32To, RpcOptions rpcOptions) {
+        default reactor.core.publisher.Flux<ResponseWrapper<Integer>> returnstreamWrapper(final int i32From, final int i32To, RpcOptions rpcOptions) {
             throw new UnsupportedOperationException();
         }
 
@@ -108,7 +108,7 @@ public interface PubSubStreamingService extends java.io.Closeable, com.facebook.
             throw new UnsupportedOperationException();
         }
 
-        default reactor.core.publisher.Flux<com.facebook.thrift.client.ResponseWrapper<Integer>> streamthrowsWrapper(final int foo, RpcOptions rpcOptions) {
+        default reactor.core.publisher.Flux<ResponseWrapper<Integer>> streamthrowsWrapper(final int foo, RpcOptions rpcOptions) {
             throw new UnsupportedOperationException();
         }
 
@@ -118,7 +118,7 @@ public interface PubSubStreamingService extends java.io.Closeable, com.facebook.
             throw new UnsupportedOperationException();
         }
 
-        default reactor.core.publisher.Flux<com.facebook.thrift.client.ResponseWrapper<Integer>> servicethrowsWrapper(final int foo, RpcOptions rpcOptions) {
+        default reactor.core.publisher.Flux<ResponseWrapper<Integer>> servicethrowsWrapper(final int foo, RpcOptions rpcOptions) {
             throw new UnsupportedOperationException();
         }
 
@@ -128,7 +128,7 @@ public interface PubSubStreamingService extends java.io.Closeable, com.facebook.
             throw new UnsupportedOperationException();
         }
 
-        default reactor.core.publisher.Flux<com.facebook.thrift.client.ResponseWrapper<Integer>> servicethrows2Wrapper(final int foo, RpcOptions rpcOptions) {
+        default reactor.core.publisher.Flux<ResponseWrapper<Integer>> servicethrows2Wrapper(final int foo, RpcOptions rpcOptions) {
             throw new UnsupportedOperationException();
         }
 
@@ -138,37 +138,37 @@ public interface PubSubStreamingService extends java.io.Closeable, com.facebook.
             throw new UnsupportedOperationException();
         }
 
-        default reactor.core.publisher.Flux<com.facebook.thrift.client.ResponseWrapper<Integer>> boththrowsWrapper(final int foo, RpcOptions rpcOptions) {
+        default reactor.core.publisher.Flux<ResponseWrapper<Integer>> boththrowsWrapper(final int foo, RpcOptions rpcOptions) {
             throw new UnsupportedOperationException();
         }
 
-        reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer,Integer>> responseandstreamstreamthrows(final int foo);
+        reactor.core.publisher.Flux<com.facebook.thrift.model.StreamResponse<Integer,Integer>> responseandstreamstreamthrows(final int foo);
 
-        default reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer,Integer>> responseandstreamstreamthrows(final int foo, RpcOptions rpcOptions) {
+        default reactor.core.publisher.Flux<com.facebook.thrift.model.StreamResponse<Integer,Integer>> responseandstreamstreamthrows(final int foo, RpcOptions rpcOptions) {
             throw new UnsupportedOperationException();
         }
 
-        default reactor.core.publisher.Mono<com.facebook.thrift.client.ResponseWrapper<com.facebook.thrift.model.ResponseAndStream<Integer,com.facebook.thrift.client.ResponseWrapper<Integer>>>> responseandstreamstreamthrowsWrapper(final int foo, RpcOptions rpcOptions) {
+        default reactor.core.publisher.Flux<ResponseWrapper<com.facebook.thrift.model.StreamResponse<Integer,Integer>>> responseandstreamstreamthrowsWrapper(final int foo, RpcOptions rpcOptions) {
             throw new UnsupportedOperationException();
         }
 
-        reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer,Integer>> responseandstreamservicethrows(final int foo);
+        reactor.core.publisher.Flux<com.facebook.thrift.model.StreamResponse<Integer,Integer>> responseandstreamservicethrows(final int foo);
 
-        default reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer,Integer>> responseandstreamservicethrows(final int foo, RpcOptions rpcOptions) {
+        default reactor.core.publisher.Flux<com.facebook.thrift.model.StreamResponse<Integer,Integer>> responseandstreamservicethrows(final int foo, RpcOptions rpcOptions) {
             throw new UnsupportedOperationException();
         }
 
-        default reactor.core.publisher.Mono<com.facebook.thrift.client.ResponseWrapper<com.facebook.thrift.model.ResponseAndStream<Integer,com.facebook.thrift.client.ResponseWrapper<Integer>>>> responseandstreamservicethrowsWrapper(final int foo, RpcOptions rpcOptions) {
+        default reactor.core.publisher.Flux<ResponseWrapper<com.facebook.thrift.model.StreamResponse<Integer,Integer>>> responseandstreamservicethrowsWrapper(final int foo, RpcOptions rpcOptions) {
             throw new UnsupportedOperationException();
         }
 
-        reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer,Integer>> responseandstreamboththrows(final int foo);
+        reactor.core.publisher.Flux<com.facebook.thrift.model.StreamResponse<Integer,Integer>> responseandstreamboththrows(final int foo);
 
-        default reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer,Integer>> responseandstreamboththrows(final int foo, RpcOptions rpcOptions) {
+        default reactor.core.publisher.Flux<com.facebook.thrift.model.StreamResponse<Integer,Integer>> responseandstreamboththrows(final int foo, RpcOptions rpcOptions) {
             throw new UnsupportedOperationException();
         }
 
-        default reactor.core.publisher.Mono<com.facebook.thrift.client.ResponseWrapper<com.facebook.thrift.model.ResponseAndStream<Integer,com.facebook.thrift.client.ResponseWrapper<Integer>>>> responseandstreamboththrowsWrapper(final int foo, RpcOptions rpcOptions) {
+        default reactor.core.publisher.Flux<ResponseWrapper<com.facebook.thrift.model.StreamResponse<Integer,Integer>>> responseandstreamboththrowsWrapper(final int foo, RpcOptions rpcOptions) {
             throw new UnsupportedOperationException();
         }
 
@@ -178,7 +178,7 @@ public interface PubSubStreamingService extends java.io.Closeable, com.facebook.
             throw new UnsupportedOperationException();
         }
 
-        default reactor.core.publisher.Flux<com.facebook.thrift.client.ResponseWrapper<Integer>> returnstreamFastWrapper(final int i32From, final int i32To, RpcOptions rpcOptions) {
+        default reactor.core.publisher.Flux<ResponseWrapper<Integer>> returnstreamFastWrapper(final int i32From, final int i32To, RpcOptions rpcOptions) {
             throw new UnsupportedOperationException();
         }
 

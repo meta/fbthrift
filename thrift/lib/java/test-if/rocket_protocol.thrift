@@ -163,11 +163,4 @@ service TestService {
   InitialTestResponse, stream<
     TestResponse
   > streamInitialResponseInvalidFirstResponse(1: TestRequest request);
-
-  // Test: a forwarded holder (e.g. `return backend.foo(req)`), carrying a dispose handle
-  // like a client-bridge holder: the server must dispose it when the downstream never
-  // consumes the stream.
-  InitialTestResponse, stream<
-    TestResponse
-  > streamForwardedHolder(1: TestRequest request);
 }

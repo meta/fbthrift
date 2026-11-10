@@ -46,20 +46,15 @@ import io.netty.util.ReferenceCounted;
 import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import java.util.Map;
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import org.apache.thrift.CompressionAlgorithm;
 import org.apache.thrift.RequestRpcMetadata;
 import org.apache.thrift.RpcKind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.Disposable;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Scheduler;
-import reactor.core.scheduler.Schedulers;
 
 public class ThriftServerRSocket implements RSocket {
   private static final Logger LOGGER = LoggerFactory.getLogger(ThriftServerRSocket.class);
@@ -397,50 +392,6 @@ public class ThriftServerRSocket implements RSocket {
     } catch (Throwable t) {
       releaseOnError(requestPayload, data, payload);
       return Mono.error(t);
-    }
-  }
-
-  /**
-   * The scheduler a client CANCEL hops through on its way upstream: the off-loop scheduler with a
-   * common-pool fallback, because {@code cancelOn} has no rejection fallback and a rejected cancel
-   * would never reach upstream.
-   */
-  public static Scheduler cancelScheduler() {
-    return CancelSchedulerHolder.INSTANCE;
-  }
-
-  private static final class CancelSchedulerHolder {
-    static final Scheduler INSTANCE =
-        new CancelScheduler(Schedulers.fromExecutorService(ForkJoinPool.commonPool()));
-  }
-
-  /**
-   * Never rejects: the off-loop scheduler with a common-pool fallback, so a cancel is never lost.
-   */
-  private static final class CancelScheduler implements Scheduler {
-    private final Scheduler fallback;
-
-    CancelScheduler(Scheduler fallback) {
-      this.fallback = fallback;
-    }
-
-    @Override
-    public Disposable schedule(Runnable task) {
-      try {
-        return RpcResources.getOffLoopScheduler().schedule(task);
-      } catch (RejectedExecutionException e) {
-        return fallback.schedule(task);
-      }
-    }
-
-    @Override
-    public Scheduler.Worker createWorker() {
-      return RpcResources.getOffLoopScheduler().createWorker();
-    }
-
-    @Override
-    public boolean isDisposed() {
-      return false;
     }
   }
 }

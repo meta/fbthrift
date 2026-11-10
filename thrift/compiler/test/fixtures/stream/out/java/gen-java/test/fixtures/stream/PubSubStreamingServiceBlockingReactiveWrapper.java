@@ -50,17 +50,17 @@ public class PubSubStreamingServiceBlockingReactiveWrapper
     }
 
     @java.lang.Override
-    public reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer,Integer>> responseandstreamstreamthrows(final int foo) {
+    public reactor.core.publisher.Flux<com.facebook.thrift.model.StreamResponse<Integer,Integer>> responseandstreamstreamthrows(final int foo) {
         throw new UnsupportedOperationException();
     }
 
     @java.lang.Override
-    public reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer,Integer>> responseandstreamservicethrows(final int foo) {
+    public reactor.core.publisher.Flux<com.facebook.thrift.model.StreamResponse<Integer,Integer>> responseandstreamservicethrows(final int foo) {
         throw new UnsupportedOperationException();
     }
 
     @java.lang.Override
-    public reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer,Integer>> responseandstreamboththrows(final int foo) {
+    public reactor.core.publisher.Flux<com.facebook.thrift.model.StreamResponse<Integer,Integer>> responseandstreamboththrows(final int foo) {
         throw new UnsupportedOperationException();
     }
 
