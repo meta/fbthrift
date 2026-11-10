@@ -18,6 +18,7 @@ package thrift
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"iter"
 	"math"
@@ -32,6 +33,7 @@ import (
 	"github.com/facebook/fbthrift/thrift/lib/thrift/rpcmetadata"
 	"github.com/jjeffcaii/reactor-go/scheduler"
 	rsocket "github.com/rsocket/rsocket-go"
+	"github.com/rsocket/rsocket-go/core"
 	"github.com/rsocket/rsocket-go/core/transport"
 	"github.com/rsocket/rsocket-go/payload"
 	"github.com/rsocket/rsocket-go/rx/flux"
@@ -330,6 +332,9 @@ func (r *rsocketClient) RequestSink(
 	if err != nil {
 		return nil, err
 	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 
 	// Create a flux that yields the initial request payload and then waits for sink items
 	sinkPayloadChan := make(chan payload.Payload, types.DefaultStreamBufferSize)
@@ -364,6 +369,7 @@ func (r *rsocketClient) RequestSink(
 	if err != nil {
 		channelCancel()
 		close(sinkPayloadChan)
+		waitForRequestChannelError(err, sendingDoneChan)
 		return nil, decodeResponseError(err)
 	}
 	err = r.processResponsePayload(ctx, firstPayload, firstResponse)
@@ -474,6 +480,9 @@ func (r *rsocketClient) RequestBiDiStream(
 	if err != nil {
 		return nil, nil, err
 	}
+	if err := ctx.Err(); err != nil {
+		return nil, nil, err
+	}
 
 	// Create a flux for sending sink items to the server
 	sinkPayloadChan := make(chan payload.Payload, types.DefaultStreamBufferSize)
@@ -508,6 +517,7 @@ func (r *rsocketClient) RequestBiDiStream(
 	if err != nil {
 		channelCancel()
 		close(sinkPayloadChan)
+		waitForRequestChannelError(err, sendingDoneChan)
 		return nil, nil, decodeResponseError(err)
 	}
 	err = r.processResponsePayload(ctx, firstPayload, firstResponse)
@@ -642,7 +652,20 @@ func recvStreamNext(ctx context.Context, streamPayloadChan <-chan payload.Payloa
 	}
 
 	// (nil, nil) indicates completion - i.e. both channels confirmed closed.
-	return nil, nil
+	return nil, ctx.Err()
+}
+
+// A per-request ERROR frame proves the initial request reached the peer, so
+// rsocket-go has scheduled the sending flux. Join its completion before a caller
+// can close the connection. Cancellation and connection errors may precede
+// subscription and must not wait for a sender that never started.
+func waitForRequestChannelError(err error, sendingDone <-chan struct{}) {
+	if frame, ok := errors.AsType[core.CustomError](err); ok {
+		switch frame.ErrorCode() {
+		case core.ErrorCodeInvalid, core.ErrorCodeRejected, core.ErrorCodeCanceled, core.ErrorCodeApplicationError:
+			<-sendingDone
+		}
+	}
 }
 
 func encodeRequest(protoID rpcmetadata.ProtocolId, request WritableStruct) ([]byte, error) {
