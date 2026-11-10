@@ -101,7 +101,7 @@ class Child final  {
   explicit Child(const allocator_type& alloc) noexcept;
   explicit Child(const Child& other, const allocator_type& alloc);
   explicit Child(Child&& other, const allocator_type& alloc);
-  Child& operator=(Child&&);
+  Child& operator=(Child&&) noexcept;
   Child& operator=(const Child&);
  private:
   ::std::int32_t __fbthrift_field_value;
@@ -234,7 +234,7 @@ class FieldUseAllocatorRef final  {
   explicit FieldUseAllocatorRef(const allocator_type& alloc) noexcept;
   explicit FieldUseAllocatorRef(const FieldUseAllocatorRef& other, const allocator_type& alloc);
   explicit FieldUseAllocatorRef(FieldUseAllocatorRef&& other, const allocator_type& alloc);
-  FieldUseAllocatorRef& operator=(FieldUseAllocatorRef&&);
+  FieldUseAllocatorRef& operator=(FieldUseAllocatorRef&&) noexcept;
   FieldUseAllocatorRef& operator=(const FieldUseAllocatorRef&);
 
   ~FieldUseAllocatorRef();

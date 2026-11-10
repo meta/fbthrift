@@ -74,7 +74,7 @@ Child::Child([[maybe_unused]] Child&& other) noexcept :
     __isset(other.__isset) {
 }
 
-Child& Child::operator=([[maybe_unused]] Child&& other) {
+Child& Child::operator=([[maybe_unused]] Child&& other) noexcept {
     this->__fbthrift_field_value = std::move(other.__fbthrift_field_value);
     __isset = other.__isset;
   ::apache::thrift::detail::move_allocator(__fbthrift_alloc, other.__fbthrift_alloc);
@@ -112,7 +112,7 @@ std::partial_ordering Child::operator<=>([[maybe_unused]] const Child& rhs) cons
 
 void swap([[maybe_unused]] Child& a, [[maybe_unused]] Child& b) {
   using ::std::swap;
-  ::apache::thrift::detail::swap_field(a.__fbthrift_field_value, b.__fbthrift_field_value);
+  swap(a.__fbthrift_field_value, b.__fbthrift_field_value);
   swap(a.__isset, b.__isset);
   ::apache::thrift::detail::swap_allocators(a.__fbthrift_alloc, b.__fbthrift_alloc);
 }
@@ -178,7 +178,7 @@ FieldUseAllocatorRef::FieldUseAllocatorRef([[maybe_unused]] FieldUseAllocatorRef
     __fbthrift_field_child(std::move(other.__fbthrift_field_child)) {
 }
 
-FieldUseAllocatorRef& FieldUseAllocatorRef::operator=([[maybe_unused]] FieldUseAllocatorRef&& other) {
+FieldUseAllocatorRef& FieldUseAllocatorRef::operator=([[maybe_unused]] FieldUseAllocatorRef&& other) noexcept {
     this->__fbthrift_field_child = std::move(other.__fbthrift_field_child);
   ::apache::thrift::detail::move_allocator(__fbthrift_alloc, other.__fbthrift_alloc);
     return *this;
@@ -205,7 +205,7 @@ std::partial_ordering FieldUseAllocatorRef::operator<=>([[maybe_unused]] const F
 
 void swap([[maybe_unused]] FieldUseAllocatorRef& a, [[maybe_unused]] FieldUseAllocatorRef& b) {
   using ::std::swap;
-  ::apache::thrift::detail::swap_field(a.__fbthrift_field_child, b.__fbthrift_field_child);
+  swap(a.__fbthrift_field_child, b.__fbthrift_field_child);
   ::apache::thrift::detail::swap_allocators(a.__fbthrift_alloc, b.__fbthrift_alloc);
 }
 
