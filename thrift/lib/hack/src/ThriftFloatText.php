@@ -34,8 +34,16 @@ abstract final class ThriftFloatText {
    *
    * The form is the one Python's `repr()` picks: positional from 1e-4 up to
    * 1e16, scientific outside it.
+   *
+   * A `float` candidate is checked as HHVM reads it (to a double, then to
+   * binary32), or with `$read_as_double = false` as C++ does (straight to
+   * binary32). They differ for e.g. `7.038531e-26`.
    */
-  public static function renderFloat(float $value, bool $single)[]: string {
+  public static function renderFloat(
+    float $value,
+    bool $single,
+    bool $read_as_double = true,
+  )[]: string {
     if (Math\is_nan($value) || !PHP\is_finite($value)) {
       return Str\format('%g', $value);
     }
@@ -48,9 +56,20 @@ abstract final class ThriftFloatText {
     $digits = Str\replace(Str\slice($body, 0, $e), '.', '');
     $exponent = (int)Str\slice($body, $e + 1);
     $target = $single ? self::toBinary32($value) : $value;
-    $reads_back = (string $candidate)[] ==> {
+    $reads_back = (string $candidate, string $digits, int $exponent)[] ==> {
       $parsed = (float)$candidate;
-      return ($single ? self::toBinary32($parsed) : $parsed) === $target;
+      if (!$single) {
+        return $parsed === $target;
+      }
+      if ($read_as_double) {
+        return self::toBinary32($parsed) === $target;
+      }
+      return self::decimalToFloat32(
+        $digits,
+        $exponent - Str\length($digits) + 1,
+        Math\abs($parsed),
+      ) ===
+        Math\abs($target);
     };
     for ($length = 1; $length <= 17; $length++) {
       // The two `$length`-digit neighbours of the value. Either can be the
@@ -58,16 +77,13 @@ abstract final class ThriftFloatText {
       // twice as dense on one side.
       $kept = Str\slice($digits, 0, $length);
       $dropped = Str\slice($digits, $length);
-      $down = self::formatDecimal(
-        $sign,
-        Str\trim_right($kept, '0') |> $$ === '' ? '0' : $$,
-        $exponent,
-      );
+      $down_digits = Str\trim_right($kept, '0') |> $$ === '' ? '0' : $$;
+      $down = self::formatDecimal($sign, $down_digits, $exponent);
       $up_exponent = $exponent;
       $up_digits = self::incrementDigits($kept, inout $up_exponent);
       $up = self::formatDecimal($sign, $up_digits, $up_exponent);
-      $down_reads_back = $reads_back($down);
-      $up_reads_back = $reads_back($up);
+      $down_reads_back = $reads_back($down, $down_digits, $exponent);
+      $up_reads_back = $reads_back($up, $up_digits, $up_exponent);
       if ($down_reads_back && $up_reads_back) {
         // Both are shortest; take the nearer, and on a tie the even one.
         $half = Str\pad_right('5', Str\length($dropped), '0');
@@ -141,7 +157,79 @@ abstract final class ThriftFloatText {
   }
 
   /** The binary32 value nearest `$value`, widened back to a double. */
-  private static function toBinary32(float $value)[]: float {
+  public static function toBinary32(float $value)[]: float {
     return PHP\unpack('G', PHP\pack('G', $value))[1] as float;
+  }
+
+  public static function bits(float $value)[]: int {
+    return PHP\unpack('J', PHP\pack('E', $value))[1] as int;
+  }
+
+  // No HHVM arithmetic sets a NaN's sign bit: unary minus is `0 - x`, and
+  // `NAN * -1.0` stays positive.
+  public static function negativeNaN()[]: float {
+    return PHP\unpack('E', "\xff\xf8\0\0\0\0\0\0")[1] as float;
+  }
+
+  /**
+   * The positive decimal `$digits * 10 ** $scale` rounded to binary32, as C++
+   * reads it, given `$back = (float)$text`. Rounding `$back` to binary32 rounds
+   * twice, which is wrong when `$back` lies exactly halfway between two
+   * binary32 values: C++ reads `7.038531e-26` as 0x15ae43fd, but `$back` is
+   * halfway between 0x15ae43fd and 0x15ae43fe and rounds to the even one. Then
+   * the digits decide, as in Clinger's "How to Read Floating Point Numbers
+   * Accurately" (https://doi.org/10.1145/989393.989430).
+   */
+  public static function decimalToFloat32(
+    string $digits,
+    int $scale,
+    float $back,
+  )[]: float {
+    // `$back` is `$mantissa * 2 ** $exponent`; binary32 values near it are
+    // multiples of `2 ** ($exponent + $shift)`.
+    $bits = self::bits($back);
+    $mantissa = ($bits & 0xFFFFFFFFFFFFF) | (1 << 52);
+    $exponent = ($bits >> 52) - 1075;
+    $shift = Math\maxva(29, -149 - $exponent);
+    if (
+      $shift > 53 || ($mantissa & ((1 << $shift) - 1)) !== 1 << ($shift - 1)
+    ) {
+      return self::toBinary32($back);
+    }
+    $cmp = self::compareDecimal($digits, $scale, $mantissa, $exponent);
+    $half = 2.0 ** ($exponent + $shift - 1);
+    return self::toBinary32(
+      $cmp === 0 ? $back : ($cmp < 0 ? $back - $half : $back + $half),
+    );
+  }
+
+  /**
+   * The sign of `$digits * 10 ** $scale - $mantissa * 2 ** $exponent`, for
+   * `$digits` without leading zeros and a positive `$mantissa`.
+   */
+  public static function compareDecimal(
+    string $digits,
+    int $scale,
+    int $mantissa,
+    int $exponent,
+  )[]: int {
+    // 2 ** -n is 5 ** n * 10 ** -n.
+    $value = (string)$mantissa;
+    for ($n = Math\abs($exponent); $n > 0; $n--) {
+      $product = '';
+      $carry = 0;
+      for ($i = Str\length($value) - 1; $i >= 0; $i--) {
+        $carry += (int)$value[$i] * ($exponent >= 0 ? 2 : 5);
+        $product = (string)($carry % 10).$product;
+        $carry = Math\int_div($carry, 10);
+      }
+      $value = ($carry > 0 ? (string)$carry : '').$product;
+    }
+    $value_scale = Math\minva($exponent, 0);
+    $unit = Math\minva($scale, $value_scale);
+    $digits .= Str\repeat('0', $scale - $unit);
+    $value .= Str\repeat('0', $value_scale - $unit);
+    $order = Str\length($digits) <=> Str\length($value);
+    return $order !== 0 ? $order : Str\compare($digits, $value) <=> 0;
   }
 }
