@@ -252,10 +252,17 @@ class {{service.name}}Interface(
             {{> services/get_handler_result }}
         {{#each (array.enumerate function.exceptions) as |index field|}}
         except {{field.type.module_mangle}}.{{#partial m_types.unadapted_name type=field.type}} as e:
-            return_struct = {{#partial m_functions.return_type service=service function=function}}({{#partial m_fields.exception_field_name field=field index=index}}=e)
-            buf = serialize_iobuf(return_struct, protocol)
-            exp = PythonUserException('{{field.type.py3_namespace}}{{#partial m_types.unadapted_name type=field.type}}', str(e), buf)
-            raise exp
+            buf = serialize_iobuf(
+                {{#partial m_functions.return_type service=service function=function}}(
+                    {{#partial m_fields.exception_field_name field=field index=index}}=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "{{field.type.py3_namespace}}{{#partial m_types.unadapted_name type=field.type}}",
+                str(e),
+                buf,
+            )
         {{/each}}
         {{#else}}
         {{> services/get_handler_result }}
@@ -327,10 +334,17 @@ class {{interaction.name}}Interface(
             {{> services/get_handler_result }}
         {{#each (array.enumerate function.exceptions) as |index field|}}
         except {{field.type.module_mangle}}.{{#partial m_types.unadapted_name type=field.type}} as e:
-            return_struct = {{#partial m_functions.return_type service=service function=function}}({{#partial m_fields.exception_field_name field=field index=index}}=e)
-            buf = serialize_iobuf(return_struct, protocol)
-            exp = PythonUserException('{{field.type.py3_namespace}}{{#partial m_types.unadapted_name type=field.type}}', str(e), buf)
-            raise exp
+            buf = serialize_iobuf(
+                {{#partial m_functions.return_type service=service function=function}}(
+                    {{#partial m_fields.exception_field_name field=field index=index}}=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "{{field.type.py3_namespace}}{{#partial m_types.unadapted_name type=field.type}}",
+                str(e),
+                buf,
+            )
         {{/each}}
         {{#else}}
         {{> services/get_handler_result }}

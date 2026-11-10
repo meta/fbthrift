@@ -241,10 +241,17 @@ class SimpleServiceInterface(
             value = await self.expected_exception()
             return_struct = _fbthrift__module__thrift_mutable_types._fbthrift_SimpleService_expected_exception_result()
         except _fbthrift__module__thrift_mutable_types.SimpleException as e:
-            return_struct = _fbthrift__module__thrift_mutable_types._fbthrift_SimpleService_expected_exception_result(_ex0__se=e)
-            buf = serialize_iobuf(return_struct, protocol)
-            exp = PythonUserException('SimpleException', str(e), buf)
-            raise exp
+            buf = serialize_iobuf(
+                _fbthrift__module__thrift_mutable_types._fbthrift_SimpleService_expected_exception_result(
+                    _ex0__se=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "SimpleException",
+                str(e),
+                buf,
+            )
         return serialize_iobuf(return_struct, protocol)
 
 

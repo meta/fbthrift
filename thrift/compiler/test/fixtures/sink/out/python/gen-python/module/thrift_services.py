@@ -187,10 +187,17 @@ class SinkServiceInterface(
             return_struct = _fbthrift__module__thrift_types._fbthrift_SinkService_methodThrow_result()
             return_sink_callback = self._fbthrift__sink_wrapper_methodThrow(sink_callback, protocol)
         except _fbthrift__module__thrift_types.InitialException as e:
-            return_struct = _fbthrift__module__thrift_types._fbthrift_SinkService_methodThrow_result(_ex0__ex=e)
-            buf = serialize_iobuf(return_struct, protocol)
-            exp = PythonUserException('InitialException', str(e), buf)
-            raise exp
+            buf = serialize_iobuf(
+                _fbthrift__module__thrift_types._fbthrift_SinkService_methodThrow_result(
+                    _ex0__ex=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "InitialException",
+                str(e),
+                buf,
+            )
         return (serialize_iobuf(return_struct, protocol), return_sink_callback)
 
 

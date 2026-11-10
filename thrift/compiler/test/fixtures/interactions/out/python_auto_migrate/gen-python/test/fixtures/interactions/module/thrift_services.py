@@ -163,10 +163,17 @@ class MyInteractionInterface(
             value = await self.frobnicate()
             return_struct = _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_frobnicate_result(success=value)
         except _fbthrift__test__fixtures__interactions__module__thrift_types.CustomException as e:
-            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_frobnicate_result(_ex0__ex=e)
-            buf = serialize_iobuf(return_struct, protocol)
-            exp = PythonUserException('test.fixtures.interactions.CustomException', str(e), buf)
-            raise exp
+            buf = serialize_iobuf(
+                _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_frobnicate_result(
+                    _ex0__ex=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "test.fixtures.interactions.CustomException",
+                str(e),
+                buf,
+            )
         return serialize_iobuf(return_struct, protocol)
 
     async def ping(
@@ -249,10 +256,17 @@ class MyInteractionInterface(
             return_struct = _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_failstreaminit_result()
             return_stream = self._fbthrift__stream_wrapper_failstreaminit(stream, protocol)
         except _fbthrift__test__fixtures__interactions__module__thrift_types.CustomException as e:
-            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_failstreaminit_result(_ex0__boom=e)
-            buf = serialize_iobuf(return_struct, protocol)
-            exp = PythonUserException('test.fixtures.interactions.CustomException', str(e), buf)
-            raise exp
+            buf = serialize_iobuf(
+                _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_failstreaminit_result(
+                    _ex0__boom=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "test.fixtures.interactions.CustomException",
+                str(e),
+                buf,
+            )
         return (serialize_iobuf(return_struct, protocol), return_stream)
 
     async def frobnicateWithArg(
@@ -267,10 +281,17 @@ class MyInteractionInterface(
             value = await self.frobnicateWithArg(args_struct.arg,)
             return_struct = _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_frobnicateWithArg_result(success=value)
         except _fbthrift__test__fixtures__interactions__module__thrift_types.CustomException as e:
-            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_frobnicateWithArg_result(_ex0__ex=e)
-            buf = serialize_iobuf(return_struct, protocol)
-            exp = PythonUserException('test.fixtures.interactions.CustomException', str(e), buf)
-            raise exp
+            buf = serialize_iobuf(
+                _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_frobnicateWithArg_result(
+                    _ex0__ex=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "test.fixtures.interactions.CustomException",
+                str(e),
+                buf,
+            )
         return serialize_iobuf(return_struct, protocol)
 
     def streamWithArg(
@@ -297,10 +318,17 @@ class MyInteractionInterface(
             return_struct = _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_streamWithArg_result()
             return_stream = self._fbthrift__stream_wrapper_streamWithArg(stream, protocol)
         except _fbthrift__test__fixtures__interactions__module__thrift_types.CustomException as e:
-            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_streamWithArg_result(_ex0__boom=e)
-            buf = serialize_iobuf(return_struct, protocol)
-            exp = PythonUserException('test.fixtures.interactions.CustomException', str(e), buf)
-            raise exp
+            buf = serialize_iobuf(
+                _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_streamWithArg_result(
+                    _ex0__boom=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "test.fixtures.interactions.CustomException",
+                str(e),
+                buf,
+            )
         return (serialize_iobuf(return_struct, protocol), return_stream)
 
     async def firstAndStream(
@@ -751,10 +779,17 @@ class MyInteractionInterface(
             value = await self.frobnicate()
             return_struct = _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_frobnicate_result(success=value)
         except _fbthrift__test__fixtures__interactions__module__thrift_types.CustomException as e:
-            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_frobnicate_result(_ex0__ex=e)
-            buf = serialize_iobuf(return_struct, protocol)
-            exp = PythonUserException('test.fixtures.interactions.CustomException', str(e), buf)
-            raise exp
+            buf = serialize_iobuf(
+                _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_frobnicate_result(
+                    _ex0__ex=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "test.fixtures.interactions.CustomException",
+                str(e),
+                buf,
+            )
         return serialize_iobuf(return_struct, protocol)
 
     async def ping(
@@ -837,10 +872,17 @@ class MyInteractionInterface(
             return_struct = _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_failstreaminit_result()
             return_stream = self._fbthrift__stream_wrapper_failstreaminit(stream, protocol)
         except _fbthrift__test__fixtures__interactions__module__thrift_types.CustomException as e:
-            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_failstreaminit_result(_ex0__boom=e)
-            buf = serialize_iobuf(return_struct, protocol)
-            exp = PythonUserException('test.fixtures.interactions.CustomException', str(e), buf)
-            raise exp
+            buf = serialize_iobuf(
+                _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_failstreaminit_result(
+                    _ex0__boom=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "test.fixtures.interactions.CustomException",
+                str(e),
+                buf,
+            )
         return (serialize_iobuf(return_struct, protocol), return_stream)
 
     async def frobnicateWithArg(
@@ -855,10 +897,17 @@ class MyInteractionInterface(
             value = await self.frobnicateWithArg(args_struct.arg,)
             return_struct = _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_frobnicateWithArg_result(success=value)
         except _fbthrift__test__fixtures__interactions__module__thrift_types.CustomException as e:
-            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_frobnicateWithArg_result(_ex0__ex=e)
-            buf = serialize_iobuf(return_struct, protocol)
-            exp = PythonUserException('test.fixtures.interactions.CustomException', str(e), buf)
-            raise exp
+            buf = serialize_iobuf(
+                _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_frobnicateWithArg_result(
+                    _ex0__ex=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "test.fixtures.interactions.CustomException",
+                str(e),
+                buf,
+            )
         return serialize_iobuf(return_struct, protocol)
 
     def streamWithArg(
@@ -885,10 +934,17 @@ class MyInteractionInterface(
             return_struct = _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_streamWithArg_result()
             return_stream = self._fbthrift__stream_wrapper_streamWithArg(stream, protocol)
         except _fbthrift__test__fixtures__interactions__module__thrift_types.CustomException as e:
-            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_streamWithArg_result(_ex0__boom=e)
-            buf = serialize_iobuf(return_struct, protocol)
-            exp = PythonUserException('test.fixtures.interactions.CustomException', str(e), buf)
-            raise exp
+            buf = serialize_iobuf(
+                _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_streamWithArg_result(
+                    _ex0__boom=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "test.fixtures.interactions.CustomException",
+                str(e),
+                buf,
+            )
         return (serialize_iobuf(return_struct, protocol), return_stream)
 
     async def firstAndStream(
@@ -1063,10 +1119,17 @@ class MyInteractionInterface(
             value = await self.frobnicate()
             return_struct = _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_frobnicate_result(success=value)
         except _fbthrift__test__fixtures__interactions__module__thrift_types.CustomException as e:
-            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_frobnicate_result(_ex0__ex=e)
-            buf = serialize_iobuf(return_struct, protocol)
-            exp = PythonUserException('test.fixtures.interactions.CustomException', str(e), buf)
-            raise exp
+            buf = serialize_iobuf(
+                _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_frobnicate_result(
+                    _ex0__ex=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "test.fixtures.interactions.CustomException",
+                str(e),
+                buf,
+            )
         return serialize_iobuf(return_struct, protocol)
 
     async def ping(
@@ -1149,10 +1212,17 @@ class MyInteractionInterface(
             return_struct = _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_failstreaminit_result()
             return_stream = self._fbthrift__stream_wrapper_failstreaminit(stream, protocol)
         except _fbthrift__test__fixtures__interactions__module__thrift_types.CustomException as e:
-            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_failstreaminit_result(_ex0__boom=e)
-            buf = serialize_iobuf(return_struct, protocol)
-            exp = PythonUserException('test.fixtures.interactions.CustomException', str(e), buf)
-            raise exp
+            buf = serialize_iobuf(
+                _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_failstreaminit_result(
+                    _ex0__boom=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "test.fixtures.interactions.CustomException",
+                str(e),
+                buf,
+            )
         return (serialize_iobuf(return_struct, protocol), return_stream)
 
     async def frobnicateWithArg(
@@ -1167,10 +1237,17 @@ class MyInteractionInterface(
             value = await self.frobnicateWithArg(args_struct.arg,)
             return_struct = _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_frobnicateWithArg_result(success=value)
         except _fbthrift__test__fixtures__interactions__module__thrift_types.CustomException as e:
-            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_frobnicateWithArg_result(_ex0__ex=e)
-            buf = serialize_iobuf(return_struct, protocol)
-            exp = PythonUserException('test.fixtures.interactions.CustomException', str(e), buf)
-            raise exp
+            buf = serialize_iobuf(
+                _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_frobnicateWithArg_result(
+                    _ex0__ex=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "test.fixtures.interactions.CustomException",
+                str(e),
+                buf,
+            )
         return serialize_iobuf(return_struct, protocol)
 
     def streamWithArg(
@@ -1197,10 +1274,17 @@ class MyInteractionInterface(
             return_struct = _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_streamWithArg_result()
             return_stream = self._fbthrift__stream_wrapper_streamWithArg(stream, protocol)
         except _fbthrift__test__fixtures__interactions__module__thrift_types.CustomException as e:
-            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_streamWithArg_result(_ex0__boom=e)
-            buf = serialize_iobuf(return_struct, protocol)
-            exp = PythonUserException('test.fixtures.interactions.CustomException', str(e), buf)
-            raise exp
+            buf = serialize_iobuf(
+                _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_streamWithArg_result(
+                    _ex0__boom=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "test.fixtures.interactions.CustomException",
+                str(e),
+                buf,
+            )
         return (serialize_iobuf(return_struct, protocol), return_stream)
 
     async def firstAndStream(
@@ -1371,10 +1455,17 @@ class MyInteractionInterface(
             value = await self.frobnicate()
             return_struct = _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_frobnicate_result(success=value)
         except _fbthrift__test__fixtures__interactions__module__thrift_types.CustomException as e:
-            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_frobnicate_result(_ex0__ex=e)
-            buf = serialize_iobuf(return_struct, protocol)
-            exp = PythonUserException('test.fixtures.interactions.CustomException', str(e), buf)
-            raise exp
+            buf = serialize_iobuf(
+                _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_frobnicate_result(
+                    _ex0__ex=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "test.fixtures.interactions.CustomException",
+                str(e),
+                buf,
+            )
         return serialize_iobuf(return_struct, protocol)
 
     async def ping(
@@ -1457,10 +1548,17 @@ class MyInteractionInterface(
             return_struct = _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_failstreaminit_result()
             return_stream = self._fbthrift__stream_wrapper_failstreaminit(stream, protocol)
         except _fbthrift__test__fixtures__interactions__module__thrift_types.CustomException as e:
-            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_failstreaminit_result(_ex0__boom=e)
-            buf = serialize_iobuf(return_struct, protocol)
-            exp = PythonUserException('test.fixtures.interactions.CustomException', str(e), buf)
-            raise exp
+            buf = serialize_iobuf(
+                _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_failstreaminit_result(
+                    _ex0__boom=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "test.fixtures.interactions.CustomException",
+                str(e),
+                buf,
+            )
         return (serialize_iobuf(return_struct, protocol), return_stream)
 
     async def frobnicateWithArg(
@@ -1475,10 +1573,17 @@ class MyInteractionInterface(
             value = await self.frobnicateWithArg(args_struct.arg,)
             return_struct = _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_frobnicateWithArg_result(success=value)
         except _fbthrift__test__fixtures__interactions__module__thrift_types.CustomException as e:
-            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_frobnicateWithArg_result(_ex0__ex=e)
-            buf = serialize_iobuf(return_struct, protocol)
-            exp = PythonUserException('test.fixtures.interactions.CustomException', str(e), buf)
-            raise exp
+            buf = serialize_iobuf(
+                _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_frobnicateWithArg_result(
+                    _ex0__ex=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "test.fixtures.interactions.CustomException",
+                str(e),
+                buf,
+            )
         return serialize_iobuf(return_struct, protocol)
 
     def streamWithArg(
@@ -1505,10 +1610,17 @@ class MyInteractionInterface(
             return_struct = _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_streamWithArg_result()
             return_stream = self._fbthrift__stream_wrapper_streamWithArg(stream, protocol)
         except _fbthrift__test__fixtures__interactions__module__thrift_types.CustomException as e:
-            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_streamWithArg_result(_ex0__boom=e)
-            buf = serialize_iobuf(return_struct, protocol)
-            exp = PythonUserException('test.fixtures.interactions.CustomException', str(e), buf)
-            raise exp
+            buf = serialize_iobuf(
+                _fbthrift__test__fixtures__interactions__module__thrift_types._fbthrift_MyInteraction_streamWithArg_result(
+                    _ex0__boom=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "test.fixtures.interactions.CustomException",
+                str(e),
+                buf,
+            )
         return (serialize_iobuf(return_struct, protocol), return_stream)
 
     async def firstAndStream(

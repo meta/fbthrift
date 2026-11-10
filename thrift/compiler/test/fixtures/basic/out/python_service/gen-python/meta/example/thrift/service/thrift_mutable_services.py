@@ -74,10 +74,17 @@ class EchoServiceInterface(
             value = await self.echo(args_struct.request,)
             return_struct = _fbthrift__meta__example__thrift__service__thrift_mutable_types._fbthrift_EchoService_echo_result(success=value)
         except _fbthrift__meta__example__thrift__service__thrift_mutable_types.WhisperException as e:
-            return_struct = _fbthrift__meta__example__thrift__service__thrift_mutable_types._fbthrift_EchoService_echo_result(_ex0__ex=e)
-            buf = serialize_iobuf(return_struct, protocol)
-            exp = PythonUserException('meta.example.thrift.WhisperException', str(e), buf)
-            raise exp
+            buf = serialize_iobuf(
+                _fbthrift__meta__example__thrift__service__thrift_mutable_types._fbthrift_EchoService_echo_result(
+                    _ex0__ex=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "meta.example.thrift.WhisperException",
+                str(e),
+                buf,
+            )
         return serialize_iobuf(return_struct, protocol)
 
 class ExtendedEchoServiceInterface(
@@ -129,10 +136,17 @@ EchoServiceInterface,
             value = await self.echo_2(args_struct.request,)
             return_struct = _fbthrift__meta__example__thrift__service__thrift_mutable_types._fbthrift_ExtendedEchoService_echo_2_result(success=value)
         except _fbthrift__meta__example__thrift__service__thrift_mutable_types.WhisperException as e:
-            return_struct = _fbthrift__meta__example__thrift__service__thrift_mutable_types._fbthrift_ExtendedEchoService_echo_2_result(_ex0__ex=e)
-            buf = serialize_iobuf(return_struct, protocol)
-            exp = PythonUserException('meta.example.thrift.WhisperException', str(e), buf)
-            raise exp
+            buf = serialize_iobuf(
+                _fbthrift__meta__example__thrift__service__thrift_mutable_types._fbthrift_ExtendedEchoService_echo_2_result(
+                    _ex0__ex=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "meta.example.thrift.WhisperException",
+                str(e),
+                buf,
+            )
         return serialize_iobuf(return_struct, protocol)
 
 class ExtendedMyServiceInterface(

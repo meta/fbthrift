@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import asyncio
 import gc
+import traceback
 import unittest
 import weakref
 from typing import Sequence
@@ -200,6 +201,73 @@ class ClientServerTests(unittest.IsolatedAsyncioTestCase):
                     self.assertIsNone(payload_ref())
                 finally:
                     gc.enable()
+
+    async def test_server_releases_declared_exception_payload_without_gc(self) -> None:
+        class Payload:
+            pass
+
+        payload_refs: list[weakref.ref[Payload]] = []
+
+        class RejectingHandler(Handler):
+            async def takes_a_list(self, ints: Sequence[int]) -> None:
+                payload = Payload()
+                payload_refs.append(weakref.ref(payload))
+                raise SimpleError(color=Color.red)
+
+        async with local_server(RejectingHandler()) as sa:
+            ip, port = sa.ip, sa.port
+            assert ip and port
+            async with get_client(TestingService, host=ip, port=port) as client:
+                was_enabled = gc.isenabled()
+                gc.disable()
+                try:
+                    for _ in range(3):
+                        try:
+                            await client.takes_a_list([])
+                        except SimpleError as error:
+                            self.assertEqual(error.color, Color.red)
+                        else:
+                            self.fail("Expected declared exception")
+                    self.assertEqual(len(payload_refs), 3)
+                    self.assertTrue(all(ref() is None for ref in payload_refs))
+                finally:
+                    if was_enabled:
+                        gc.enable()
+                    gc.collect()
+
+    async def test_server_preserves_retained_exception_traceback(self) -> None:
+        saved_errors: list[SimpleError] = []
+
+        class RejectingHandler(Handler):
+            async def takes_a_list(self, ints: Sequence[int]) -> None:
+                try:
+                    raise ValueError("original cause")
+                except ValueError as cause:
+                    error = SimpleError(color=Color.red)
+                    saved_errors.append(error)
+                    raise error from cause
+
+        async with local_server(RejectingHandler()) as sa:
+            ip, port = sa.ip, sa.port
+            assert ip and port
+            async with get_client(TestingService, host=ip, port=port) as client:
+                with self.assertRaises(SimpleError) as raised:
+                    await client.takes_a_list([])
+                self.assertEqual(raised.exception.color, Color.red)
+
+        self.assertEqual(len(saved_errors), 1)
+        error = saved_errors[0]
+        self.assertIsInstance(error.__cause__, ValueError)
+        self.assertIs(error.__cause__, error.__context__)
+        for exception in (error, error.__cause__):
+            assert exception is not None
+            self.assertIn(
+                "takes_a_list",
+                [
+                    frame.f_code.co_name
+                    for frame, _ in traceback.walk_tb(exception.__traceback__)
+                ],
+            )
 
     async def test_no_client_aexit(self) -> None:
         async with default_server() as sa:
