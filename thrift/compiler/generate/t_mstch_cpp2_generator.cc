@@ -1369,6 +1369,9 @@ class t_mstch_cpp2_generator : public t_whisker_generator {
                               : whisker::make::string(*value);
     });
     def.property("cpp_frozen2_exclude?", &is_frozen2_excluded);
+    def.property("holds_arena_fields?", [this](const t_structured& strct) {
+      return holds_arena_fields(strct);
+    });
     def.property("cpp_allocator_via", [](const t_structured& strct) {
       const std::string* name = cpp2::find_allocator_via(strct);
       return name == nullptr ? whisker::make::null
@@ -2176,10 +2179,24 @@ class t_mstch_cpp2_generator : public t_whisker_generator {
 
   std::unordered_map<std::string, int> get_client_name_to_split_count() const;
 
+  // Whether the structured, or a structured it holds by value, has an
+  // `@cpp.Arena` field.
+  bool holds_arena_fields(const t_structured& strct) const {
+    auto holds = [&](const t_field& field) {
+      const auto* s = field.type()->get_true_type()->try_as<t_structured>();
+      return s != nullptr && !cpp2::is_ref(&field) && holds_arena_fields(*s);
+    };
+    return detail::get_or_gen(holds_arena_fields_, &strct, [&] {
+      return cpp2::has_arena_fields(strct) ||
+          std::any_of(strct.fields().begin(), strct.fields().end(), holds);
+    });
+  }
+
   std::unique_ptr<cpp2_generator_context> cpp_context_;
   std::unordered_map<std::string, int32_t> client_name_to_split_count_;
   bool cpp_enable_same_program_const_referencing_ = true;
   mutable cpp2::is_eligible_for_constexpr is_eligible_for_constexpr_;
+  mutable std::unordered_map<const t_structured*, bool> holds_arena_fields_;
 };
 
 bool check_container_needs_op_encode(const t_type& type) {

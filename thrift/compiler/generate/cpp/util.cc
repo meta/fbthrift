@@ -111,6 +111,11 @@ bool is_custom_type(const t_field& field) {
       is_custom_type(*field.type());
 }
 
+bool has_arena_fields(const t_structured& strct) {
+  return std::any_of(
+      strct.fields().begin(), strct.fields().end(), is_arena_field);
+}
+
 namespace {
 // Whether a level of `type` is adapted or is a `std::unique_ptr<folly::IOBuf>`,
 // which `pmr::Rebind` can't map.

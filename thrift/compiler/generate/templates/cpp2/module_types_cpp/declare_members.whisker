@@ -34,7 +34,7 @@
   {{/if (object.notnull? struct.cpp_allocator)}}
   {{#if (not struct.is_eligible_for_constexpr?)}}
 {{struct.cpp_underlying_name}}::{{> module_types_cpp/move_ctor}}
-{{struct.cpp_underlying_name}}& {{struct.cpp_underlying_name}}::operator=([[maybe_unused]] {{struct.cpp_underlying_name}}&& other) noexcept {
+{{struct.cpp_underlying_name}}& {{struct.cpp_underlying_name}}::operator=([[maybe_unused]] {{struct.cpp_underlying_name}}&& other){{#if (not struct.holds_arena_fields?)}} noexcept{{/if}} {
     {{#if struct.lazy_fields?}}
     const auto relaxed = std::memory_order_relaxed;
     __fbthrift_protocol_ = other.__fbthrift_protocol_;

@@ -291,7 +291,7 @@ class {{#if def.exception?}}FOLLY_EXPORT {{/if}}{{def.cpp_underlying_name}} {{!
 {{> module_types_h/alloc_extended_ctors_decl}}
         {{/if (object.notnull? def.cpp_allocator)}}
 
-  {{def.cpp_underlying_name}}& operator=({{def.cpp_underlying_name}}&&) {{#if def.is_eligible_for_constexpr?}}= default{{#else}}noexcept{{/if}};
+  {{def.cpp_underlying_name}}& operator=({{def.cpp_underlying_name}}&&){{#if def.is_eligible_for_constexpr?}} = default{{#else if (not def.holds_arena_fields?)}} noexcept{{/if}};
         {{#if (not def.cpp_noncopyable)}}
           {{#let use_default = (and (not def.nondefault_copy_ctor_and_assignment?) def.is_eligible_for_constexpr?)}}
   {{def.cpp_underlying_name}}& operator=(const {{def.cpp_underlying_name}}&){{#if use_default}} = default{{/if}};

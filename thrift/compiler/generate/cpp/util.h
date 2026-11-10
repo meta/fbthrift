@@ -61,6 +61,14 @@ bool is_custom_type(const t_type& type);
 // Whether field-level `@cpp.Arena` can give the field a PMR C++ type.
 bool is_arena_supported(const t_field& field);
 
+// Whether the field has `@cpp.Arena`.
+inline bool is_arena_field(const t_field& field) {
+  return field.has_structured_annotation(kCppArenaUri);
+}
+
+// Whether the struct has a field for which `is_arena_field` holds.
+bool has_arena_fields(const t_structured& strct);
+
 std::unordered_map<const t_type*, std::vector<const t_type*>>
 gen_dependency_graph(
     const t_program* program, const std::vector<const t_type*>& types);

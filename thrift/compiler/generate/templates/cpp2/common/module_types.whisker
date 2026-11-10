@@ -207,13 +207,16 @@ case Type::{{field.cpp_name}}:
 
 
 {{! A move assignment between unequal allocators that don't propagate copies the
-    member onto the target's allocator, which can throw. }}
+    member onto the target's allocator, which can throw, and so can moving
+    `@cpp.Arena` fields to another memory resource. }}
 {{#let export partial union_move_assign_noexcept |struct|}}
 {{#pragma ignore-newlines}}
-noexcept
-  {{#if (object.notnull? struct.cpp_allocator)}}
+  {{#if (not struct.holds_arena_fields?)}}
+ noexcept
+    {{#if (object.notnull? struct.cpp_allocator)}}
 (::apache::thrift::detail::move_assign_always_steals_v<allocator_type>)
-  {{/if (object.notnull? struct.cpp_allocator)}}
+    {{/if (object.notnull? struct.cpp_allocator)}}
+  {{/if (not struct.holds_arena_fields?)}}
 {{/let partial}}
 
 
