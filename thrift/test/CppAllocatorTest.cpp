@@ -16,9 +16,12 @@
 
 #include <thrift/test/CppAllocatorTest.h>
 
+#include <cstddef>
 #include <cstdint>
 #include <map>
+#include <memory_resource>
 #include <set>
+#include <string_view>
 #include <type_traits>
 #include <vector>
 
@@ -1135,6 +1138,79 @@ TEST(CppAllocatorTest, ResetContainerFieldForRead) {
   detail::reset_container_field_for_read(
       propagating, ScopedPropagatingStatefulAlloc<>(1));
   EXPECT_EQ(propagating.get_allocator().state_, 1);
+}
+
+namespace {
+// Checks that each block is deallocated through the resource that allocated
+// it.
+class BalancedResource : public std::pmr::memory_resource {
+ public:
+  ~BalancedResource() override { EXPECT_TRUE(live_.empty()); }
+
+ private:
+  void* do_allocate(std::size_t bytes, std::size_t alignment) override {
+    void* p = std::pmr::new_delete_resource()->allocate(bytes, alignment);
+    live_.insert(p);
+    return p;
+  }
+  void do_deallocate(
+      void* p, std::size_t bytes, std::size_t alignment) override {
+    EXPECT_EQ(live_.erase(p), 1);
+    std::pmr::new_delete_resource()->deallocate(p, bytes, alignment);
+  }
+  bool do_is_equal(
+      const std::pmr::memory_resource& other) const noexcept override {
+    return this == &other;
+  }
+
+  std::set<void*> live_;
+};
+
+// Too long for the small string optimization, so they allocate.
+constexpr std::string_view kNameA =
+    "a name that is too long to be stored inline";
+constexpr std::string_view kNameB =
+    "b name that is too long to be stored inline, and longer than a";
+
+PmrTypedFields makePmrTypedFields(
+    std::pmr::memory_resource* res, std::string_view name, int32_t id) {
+  auto prev = std::pmr::set_default_resource(res);
+  SCOPE_EXIT {
+    std::pmr::set_default_resource(prev);
+  };
+  PmrTypedFields s;
+  s.name() = name;
+  s.ids()->push_back(id);
+  return s;
+}
+
+void expectResource(const PmrTypedFields& s, std::pmr::memory_resource* res) {
+  EXPECT_EQ(s.name()->get_allocator().resource(), res);
+  EXPECT_EQ(s.ids()->get_allocator().resource(), res);
+}
+} // namespace
+
+TEST(CppAllocatorTest, SwapPmrTypedFieldsOnDifferentResources) {
+  BalancedResource res1, res2;
+  auto a = makePmrTypedFields(&res1, kNameA, 1);
+  auto b = makePmrTypedFields(&res2, kNameB, 2);
+  swap(a, b);
+  EXPECT_EQ(*a.name(), kNameB);
+  EXPECT_EQ(*a.ids(), std::pmr::vector<int32_t>{2});
+  EXPECT_EQ(*b.name(), kNameA);
+  EXPECT_EQ(*b.ids(), std::pmr::vector<int32_t>{1});
+  expectResource(a, &res1);
+  expectResource(b, &res2);
+}
+
+TEST(CppAllocatorTest, CopyAssignPmrTypedFieldsOnDifferentResources) {
+  BalancedResource res1, res2;
+  auto a = makePmrTypedFields(&res1, kNameA, 1);
+  auto b = makePmrTypedFields(&res2, kNameB, 2);
+  a = b;
+  EXPECT_EQ(*a.name(), kNameB);
+  EXPECT_EQ(*a.ids(), std::pmr::vector<int32_t>{2});
+  expectResource(a, &res1);
 }
 
 } // namespace apache::thrift::test

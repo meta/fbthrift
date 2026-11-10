@@ -326,6 +326,38 @@ void adl_swap(T& a, T& b) {
   swap(a, b);
 }
 
+// Swaps `a` and `b`, each keeping its allocator. `swap` is undefined behavior
+// for containers whose allocators compare unequal and don't propagate on swap,
+// such as PMR containers on different memory resources. Those that expose
+// `allocator_type` and `get_allocator()` are swapped by building each value
+// with the other's allocator, through uses-allocator construction, before
+// changing either.
+template <class T>
+void swap_field(T& a, T& b) {
+  if constexpr (requires {
+                  typename T::allocator_type;
+                  a.get_allocator();
+                }) {
+    using traits = std::allocator_traits<typename T::allocator_type>;
+    if constexpr (
+        !traits::propagate_on_container_swap::value &&
+        !traits::is_always_equal::value) {
+      if (a.get_allocator() != b.get_allocator()) {
+        auto newA =
+            std::make_obj_using_allocator<T>(a.get_allocator(), std::move(b));
+        auto newB =
+            std::make_obj_using_allocator<T>(b.get_allocator(), std::move(a));
+        using std::swap;
+        swap(a, newA);
+        swap(b, newB);
+        return;
+      }
+    }
+  }
+  using std::swap;
+  swap(a, b);
+}
+
 } // namespace apache::thrift::detail
 
 // __fbthrift_static_init_* are referenced using extern prototypes to keep them

@@ -112,7 +112,7 @@ std::partial_ordering Child::operator<=>([[maybe_unused]] const Child& rhs) cons
 
 void swap([[maybe_unused]] Child& a, [[maybe_unused]] Child& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_value, b.__fbthrift_field_value);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_value, b.__fbthrift_field_value);
   swap(a.__isset, b.__isset);
   ::apache::thrift::detail::swap_allocators(a.__fbthrift_alloc, b.__fbthrift_alloc);
 }
@@ -205,7 +205,7 @@ std::partial_ordering FieldUseAllocatorRef::operator<=>([[maybe_unused]] const F
 
 void swap([[maybe_unused]] FieldUseAllocatorRef& a, [[maybe_unused]] FieldUseAllocatorRef& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_child, b.__fbthrift_field_child);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_child, b.__fbthrift_field_child);
   ::apache::thrift::detail::swap_allocators(a.__fbthrift_alloc, b.__fbthrift_alloc);
 }
 

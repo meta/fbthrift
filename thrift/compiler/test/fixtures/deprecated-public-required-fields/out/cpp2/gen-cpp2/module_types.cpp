@@ -64,7 +64,7 @@ std::partial_ordering Foo::operator<=>([[maybe_unused]] const Foo& rhs) const {
 
 void swap([[maybe_unused]] Foo& a, [[maybe_unused]] Foo& b) {
   using ::std::swap;
-  swap(a.field, b.field);
+  ::apache::thrift::detail::swap_field(a.field, b.field);
 }
 
 

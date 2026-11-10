@@ -93,8 +93,8 @@ std::partial_ordering Foo::operator<=>([[maybe_unused]] const Foo& rhs) const {
 
 void swap([[maybe_unused]] Foo& a, [[maybe_unused]] Foo& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_foo, b.__fbthrift_field_foo);
-  swap(a.__fbthrift_field_bar, b.__fbthrift_field_bar);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_foo, b.__fbthrift_field_foo);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_bar, b.__fbthrift_field_bar);
 }
 
 static_assert(

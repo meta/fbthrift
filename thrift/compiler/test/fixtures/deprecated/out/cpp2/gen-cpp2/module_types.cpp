@@ -124,11 +124,11 @@ const ::std::string* User::get_email_address() const& [[FOLLY_ATTR_CLANG_LIFETIM
 
 void swap([[maybe_unused]] User& a, [[maybe_unused]] User& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_id, b.__fbthrift_field_id);
-  swap(a.__fbthrift_field_name, b.__fbthrift_field_name);
-  swap(a.__fbthrift_field_full_name, b.__fbthrift_field_full_name);
-  swap(a.__fbthrift_field_email, b.__fbthrift_field_email);
-  swap(a.__fbthrift_field_email_address, b.__fbthrift_field_email_address);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_id, b.__fbthrift_field_id);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_name, b.__fbthrift_field_name);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_full_name, b.__fbthrift_field_full_name);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_email, b.__fbthrift_field_email);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_email_address, b.__fbthrift_field_email_address);
   swap(a.__isset, b.__isset);
 }
 

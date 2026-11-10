@@ -242,11 +242,11 @@ const ::std::string* Internship::get_school() const& [[FOLLY_ATTR_CLANG_LIFETIME
 
 void swap([[maybe_unused]] Internship& a, [[maybe_unused]] Internship& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_weeks, b.__fbthrift_field_weeks);
-  swap(a.__fbthrift_field_title, b.__fbthrift_field_title);
-  swap(a.__fbthrift_field_employer, b.__fbthrift_field_employer);
-  swap(a.__fbthrift_field_compensation, b.__fbthrift_field_compensation);
-  swap(a.__fbthrift_field_school, b.__fbthrift_field_school);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_weeks, b.__fbthrift_field_weeks);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_title, b.__fbthrift_field_title);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_employer, b.__fbthrift_field_employer);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_compensation, b.__fbthrift_field_compensation);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_school, b.__fbthrift_field_school);
   swap(a.__isset, b.__isset);
 }
 
@@ -309,8 +309,8 @@ std::partial_ordering Range::operator<=>([[maybe_unused]] const Range& rhs) cons
 
 void swap([[maybe_unused]] Range& a, [[maybe_unused]] Range& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_min, b.__fbthrift_field_min);
-  swap(a.__fbthrift_field_max, b.__fbthrift_field_max);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_min, b.__fbthrift_field_min);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_max, b.__fbthrift_field_max);
 }
 
 
@@ -389,8 +389,8 @@ std::partial_ordering struct1::operator<=>([[maybe_unused]] const struct1& rhs) 
 
 void swap([[maybe_unused]] struct1& a, [[maybe_unused]] struct1& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_a, b.__fbthrift_field_a);
-  swap(a.__fbthrift_field_b, b.__fbthrift_field_b);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_a, b.__fbthrift_field_a);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_b, b.__fbthrift_field_b);
   swap(a.__isset, b.__isset);
 }
 
@@ -495,10 +495,10 @@ const ::std::vector<::std::int32_t>& struct2::get_d() const& [[FOLLY_ATTR_CLANG_
 
 void swap([[maybe_unused]] struct2& a, [[maybe_unused]] struct2& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_a, b.__fbthrift_field_a);
-  swap(a.__fbthrift_field_b, b.__fbthrift_field_b);
-  swap(a.__fbthrift_field_c, b.__fbthrift_field_c);
-  swap(a.__fbthrift_field_d, b.__fbthrift_field_d);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_a, b.__fbthrift_field_a);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_b, b.__fbthrift_field_b);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_c, b.__fbthrift_field_c);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_d, b.__fbthrift_field_d);
   swap(a.__isset, b.__isset);
 }
 
@@ -596,9 +596,9 @@ const ::cpp2::struct2& struct3::get_c() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]
 
 void swap([[maybe_unused]] struct3& a, [[maybe_unused]] struct3& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_a, b.__fbthrift_field_a);
-  swap(a.__fbthrift_field_b, b.__fbthrift_field_b);
-  swap(a.__fbthrift_field_c, b.__fbthrift_field_c);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_a, b.__fbthrift_field_a);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_b, b.__fbthrift_field_b);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_c, b.__fbthrift_field_c);
   swap(a.__isset, b.__isset);
 }
 
@@ -707,9 +707,9 @@ const ::std::int8_t* struct4::get_c() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] 
 
 void swap([[maybe_unused]] struct4& a, [[maybe_unused]] struct4& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_a, b.__fbthrift_field_a);
-  swap(a.__fbthrift_field_b, b.__fbthrift_field_b);
-  swap(a.__fbthrift_field_c, b.__fbthrift_field_c);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_a, b.__fbthrift_field_a);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_b, b.__fbthrift_field_b);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_c, b.__fbthrift_field_c);
   swap(a.__isset, b.__isset);
 }
 

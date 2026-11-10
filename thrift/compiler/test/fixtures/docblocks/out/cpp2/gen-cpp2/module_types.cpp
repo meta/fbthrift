@@ -87,8 +87,8 @@ std::partial_ordering Escapes::operator<=>([[maybe_unused]] const Escapes& rhs) 
 
 void swap([[maybe_unused]] Escapes& a, [[maybe_unused]] Escapes& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_quotes, b.__fbthrift_field_quotes);
-  swap(a.__fbthrift_field_backslash, b.__fbthrift_field_backslash);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_quotes, b.__fbthrift_field_quotes);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_backslash, b.__fbthrift_field_backslash);
   swap(a.__isset, b.__isset);
 }
 
@@ -142,7 +142,7 @@ std::partial_ordering CppRenamed::operator<=>([[maybe_unused]] const CppRenamed&
 
 void swap([[maybe_unused]] CppRenamed& a, [[maybe_unused]] CppRenamed& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_cpp_field, b.__fbthrift_field_cpp_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_cpp_field, b.__fbthrift_field_cpp_field);
   swap(a.__isset, b.__isset);
 }
 
@@ -206,7 +206,7 @@ std::partial_ordering Retyped::operator<=>([[maybe_unused]] const Retyped& rhs) 
 
 void swap([[maybe_unused]] Retyped& a, [[maybe_unused]] Retyped& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_retyped, b.__fbthrift_field_retyped);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_retyped, b.__fbthrift_field_retyped);
   swap(a.__isset, b.__isset);
 }
 
@@ -260,7 +260,7 @@ std::partial_ordering Undocumented::operator<=>([[maybe_unused]] const Undocumen
 
 void swap([[maybe_unused]] Undocumented& a, [[maybe_unused]] Undocumented& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_plain, b.__fbthrift_field_plain);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_plain, b.__fbthrift_field_plain);
   swap(a.__isset, b.__isset);
 }
 

@@ -465,15 +465,15 @@ std::partial_ordering MyField::operator<=>([[maybe_unused]] const MyField& rhs) 
 
 void swap([[maybe_unused]] MyField& a, [[maybe_unused]] MyField& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_opt_value, b.__fbthrift_field_opt_value);
-  swap(a.__fbthrift_field_value, b.__fbthrift_field_value);
-  swap(a.__fbthrift_field_req_value, b.__fbthrift_field_req_value);
-  swap(a.__fbthrift_field_opt_enum_value, b.__fbthrift_field_opt_enum_value);
-  swap(a.__fbthrift_field_enum_value, b.__fbthrift_field_enum_value);
-  swap(a.__fbthrift_field_req_enum_value, b.__fbthrift_field_req_enum_value);
-  swap(a.__fbthrift_field_opt_str_value, b.__fbthrift_field_opt_str_value);
-  swap(a.__fbthrift_field_str_value, b.__fbthrift_field_str_value);
-  swap(a.__fbthrift_field_req_str_value, b.__fbthrift_field_req_str_value);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_opt_value, b.__fbthrift_field_opt_value);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_value, b.__fbthrift_field_value);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_req_value, b.__fbthrift_field_req_value);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_opt_enum_value, b.__fbthrift_field_opt_enum_value);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_enum_value, b.__fbthrift_field_enum_value);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_req_enum_value, b.__fbthrift_field_req_enum_value);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_opt_str_value, b.__fbthrift_field_opt_str_value);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_str_value, b.__fbthrift_field_str_value);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_req_str_value, b.__fbthrift_field_req_str_value);
 }
 
 
@@ -556,9 +556,9 @@ std::partial_ordering MyStruct::operator<=>([[maybe_unused]] const MyStruct& rhs
 
 void swap([[maybe_unused]] MyStruct& a, [[maybe_unused]] MyStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_opt_ref, b.__fbthrift_field_opt_ref);
-  swap(a.__fbthrift_field_ref, b.__fbthrift_field_ref);
-  swap(a.__fbthrift_field_req_ref, b.__fbthrift_field_req_ref);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_opt_ref, b.__fbthrift_field_opt_ref);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_ref, b.__fbthrift_field_ref);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_req_ref, b.__fbthrift_field_req_ref);
 }
 
 static_assert(
@@ -671,9 +671,9 @@ const ::cpp2::MyField& StructWithUnion::get_f() const& [[FOLLY_ATTR_CLANG_LIFETI
 
 void swap([[maybe_unused]] StructWithUnion& a, [[maybe_unused]] StructWithUnion& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_u, b.__fbthrift_field_u);
-  swap(a.__fbthrift_field_aDouble, b.__fbthrift_field_aDouble);
-  swap(a.__fbthrift_field_f, b.__fbthrift_field_f);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_u, b.__fbthrift_field_u);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_aDouble, b.__fbthrift_field_aDouble);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_f, b.__fbthrift_field_f);
   swap(a.__isset, b.__isset);
 }
 
@@ -762,7 +762,7 @@ const ::std::vector<::cpp2::RecursiveStruct>* RecursiveStruct::get_mes() const& 
 
 void swap([[maybe_unused]] RecursiveStruct& a, [[maybe_unused]] RecursiveStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_mes, b.__fbthrift_field_mes);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_mes, b.__fbthrift_field_mes);
   swap(a.__isset, b.__isset);
 }
 
@@ -872,12 +872,12 @@ std::partial_ordering StructWithContainers::operator<=>([[maybe_unused]] const S
 
 void swap([[maybe_unused]] StructWithContainers& a, [[maybe_unused]] StructWithContainers& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_list_ref, b.__fbthrift_field_list_ref);
-  swap(a.__fbthrift_field_set_ref, b.__fbthrift_field_set_ref);
-  swap(a.__fbthrift_field_map_ref, b.__fbthrift_field_map_ref);
-  swap(a.__fbthrift_field_list_ref_unique, b.__fbthrift_field_list_ref_unique);
-  swap(a.__fbthrift_field_set_ref_shared, b.__fbthrift_field_set_ref_shared);
-  swap(a.__fbthrift_field_list_ref_shared_const, b.__fbthrift_field_list_ref_shared_const);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_list_ref, b.__fbthrift_field_list_ref);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_set_ref, b.__fbthrift_field_set_ref);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_map_ref, b.__fbthrift_field_map_ref);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_list_ref_unique, b.__fbthrift_field_list_ref_unique);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_set_ref_shared, b.__fbthrift_field_set_ref_shared);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_list_ref_shared_const, b.__fbthrift_field_list_ref_shared_const);
 }
 
 
@@ -946,9 +946,9 @@ std::partial_ordering StructWithSharedConst::operator<=>([[maybe_unused]] const 
 
 void swap([[maybe_unused]] StructWithSharedConst& a, [[maybe_unused]] StructWithSharedConst& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_opt_shared_const, b.__fbthrift_field_opt_shared_const);
-  swap(a.__fbthrift_field_shared_const, b.__fbthrift_field_shared_const);
-  swap(a.__fbthrift_field_req_shared_const, b.__fbthrift_field_req_shared_const);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_opt_shared_const, b.__fbthrift_field_opt_shared_const);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_shared_const, b.__fbthrift_field_shared_const);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_req_shared_const, b.__fbthrift_field_req_shared_const);
 }
 
 static_assert(
@@ -1084,9 +1084,9 @@ std::partial_ordering StructWithRef::operator<=>([[maybe_unused]] const StructWi
 
 void swap([[maybe_unused]] StructWithRef& a, [[maybe_unused]] StructWithRef& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_def_field, b.__fbthrift_field_def_field);
-  swap(a.__fbthrift_field_opt_field, b.__fbthrift_field_opt_field);
-  swap(a.__fbthrift_field_req_field, b.__fbthrift_field_req_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_def_field, b.__fbthrift_field_def_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_opt_field, b.__fbthrift_field_opt_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_req_field, b.__fbthrift_field_req_field);
 }
 
 static_assert(
@@ -1180,9 +1180,9 @@ std::partial_ordering StructWithBox::operator<=>([[maybe_unused]] const StructWi
 
 void swap([[maybe_unused]] StructWithBox& a, [[maybe_unused]] StructWithBox& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_a, b.__fbthrift_field_a);
-  swap(a.__fbthrift_field_b, b.__fbthrift_field_b);
-  swap(a.__fbthrift_field_c, b.__fbthrift_field_c);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_a, b.__fbthrift_field_a);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_b, b.__fbthrift_field_b);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_c, b.__fbthrift_field_c);
 }
 
 static_assert(
@@ -1257,8 +1257,8 @@ std::partial_ordering StructWithInternBox::operator<=>([[maybe_unused]] const St
 
 void swap([[maybe_unused]] StructWithInternBox& a, [[maybe_unused]] StructWithInternBox& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
-  swap(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
   swap(a.__isset, b.__isset);
 }
 
@@ -1341,8 +1341,8 @@ std::partial_ordering StructWithTerseInternBox::operator<=>([[maybe_unused]] con
 
 void swap([[maybe_unused]] StructWithTerseInternBox& a, [[maybe_unused]] StructWithTerseInternBox& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
-  swap(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
 }
 
 static_assert(
@@ -1440,8 +1440,8 @@ std::partial_ordering AdaptedStructWithInternBox::operator<=>([[maybe_unused]] c
 
 void swap([[maybe_unused]] AdaptedStructWithInternBox& a, [[maybe_unused]] AdaptedStructWithInternBox& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
-  swap(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
   swap(a.__isset, b.__isset);
 }
 
@@ -1540,8 +1540,8 @@ std::partial_ordering AdaptedStructWithTerseInternBox::operator<=>([[maybe_unuse
 
 void swap([[maybe_unused]] AdaptedStructWithTerseInternBox& a, [[maybe_unused]] AdaptedStructWithTerseInternBox& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
-  swap(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
 }
 
 static_assert(
@@ -1633,9 +1633,9 @@ std::partial_ordering StructWithRefTypeUnique::operator<=>([[maybe_unused]] cons
 
 void swap([[maybe_unused]] StructWithRefTypeUnique& a, [[maybe_unused]] StructWithRefTypeUnique& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_def_field, b.__fbthrift_field_def_field);
-  swap(a.__fbthrift_field_opt_field, b.__fbthrift_field_opt_field);
-  swap(a.__fbthrift_field_req_field, b.__fbthrift_field_req_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_def_field, b.__fbthrift_field_def_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_opt_field, b.__fbthrift_field_opt_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_req_field, b.__fbthrift_field_req_field);
 }
 
 static_assert(
@@ -1719,9 +1719,9 @@ std::partial_ordering StructWithRefTypeShared::operator<=>([[maybe_unused]] cons
 
 void swap([[maybe_unused]] StructWithRefTypeShared& a, [[maybe_unused]] StructWithRefTypeShared& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_def_field, b.__fbthrift_field_def_field);
-  swap(a.__fbthrift_field_opt_field, b.__fbthrift_field_opt_field);
-  swap(a.__fbthrift_field_req_field, b.__fbthrift_field_req_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_def_field, b.__fbthrift_field_def_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_opt_field, b.__fbthrift_field_opt_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_req_field, b.__fbthrift_field_req_field);
 }
 
 static_assert(
@@ -1805,9 +1805,9 @@ std::partial_ordering StructWithRefTypeSharedConst::operator<=>([[maybe_unused]]
 
 void swap([[maybe_unused]] StructWithRefTypeSharedConst& a, [[maybe_unused]] StructWithRefTypeSharedConst& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_def_field, b.__fbthrift_field_def_field);
-  swap(a.__fbthrift_field_opt_field, b.__fbthrift_field_opt_field);
-  swap(a.__fbthrift_field_req_field, b.__fbthrift_field_req_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_def_field, b.__fbthrift_field_def_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_opt_field, b.__fbthrift_field_opt_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_req_field, b.__fbthrift_field_req_field);
 }
 
 static_assert(
@@ -1894,7 +1894,7 @@ std::partial_ordering StructWithRefAndAnnotCppNoexceptMoveCtor::operator<=>([[ma
 
 void swap([[maybe_unused]] StructWithRefAndAnnotCppNoexceptMoveCtor& a, [[maybe_unused]] StructWithRefAndAnnotCppNoexceptMoveCtor& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_def_field, b.__fbthrift_field_def_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_def_field, b.__fbthrift_field_def_field);
 }
 
 static_assert(
@@ -1995,11 +1995,11 @@ std::partial_ordering StructWithString::operator<=>([[maybe_unused]] const Struc
 
 void swap([[maybe_unused]] StructWithString& a, [[maybe_unused]] StructWithString& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_def_unique_string_ref, b.__fbthrift_field_def_unique_string_ref);
-  swap(a.__fbthrift_field_def_shared_string_ref, b.__fbthrift_field_def_shared_string_ref);
-  swap(a.__fbthrift_field_def_shared_string_const_ref, b.__fbthrift_field_def_shared_string_const_ref);
-  swap(a.__fbthrift_field_unique_string_ref, b.__fbthrift_field_unique_string_ref);
-  swap(a.__fbthrift_field_shared_string_ref, b.__fbthrift_field_shared_string_ref);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_def_unique_string_ref, b.__fbthrift_field_def_unique_string_ref);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_def_shared_string_ref, b.__fbthrift_field_def_shared_string_ref);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_def_shared_string_const_ref, b.__fbthrift_field_def_shared_string_const_ref);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_unique_string_ref, b.__fbthrift_field_unique_string_ref);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_shared_string_ref, b.__fbthrift_field_shared_string_ref);
 }
 
 

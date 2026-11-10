@@ -80,7 +80,7 @@ std::partial_ordering Request::operator<=>([[maybe_unused]] const Request& rhs) 
 
 void swap([[maybe_unused]] Request& a, [[maybe_unused]] Request& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_id, b.__fbthrift_field_id);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_id, b.__fbthrift_field_id);
   swap(a.__isset, b.__isset);
 }
 
@@ -145,7 +145,7 @@ std::partial_ordering AdaptedRequest::operator<=>([[maybe_unused]] const Adapted
 
 void swap([[maybe_unused]] AdaptedRequest& a, [[maybe_unused]] AdaptedRequest& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_id, b.__fbthrift_field_id);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_id, b.__fbthrift_field_id);
   swap(a.__isset, b.__isset);
 }
 
@@ -210,7 +210,7 @@ std::partial_ordering Response::operator<=>([[maybe_unused]] const Response& rhs
 
 void swap([[maybe_unused]] Response& a, [[maybe_unused]] Response& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_text, b.__fbthrift_field_text);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_text, b.__fbthrift_field_text);
   swap(a.__isset, b.__isset);
 }
 

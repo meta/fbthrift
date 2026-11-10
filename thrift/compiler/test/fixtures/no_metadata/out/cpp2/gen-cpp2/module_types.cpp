@@ -151,10 +151,10 @@ const ::cpp2::MyDataItem& MyStruct::get_MyDataField() const& [[FOLLY_ATTR_CLANG_
 
 void swap([[maybe_unused]] MyStruct& a, [[maybe_unused]] MyStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_MyIntField, b.__fbthrift_field_MyIntField);
-  swap(a.__fbthrift_field_MyStringField, b.__fbthrift_field_MyStringField);
-  swap(a.__fbthrift_field_MyDataField, b.__fbthrift_field_MyDataField);
-  swap(a.__fbthrift_field_myEnum, b.__fbthrift_field_myEnum);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyIntField, b.__fbthrift_field_MyIntField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyStringField, b.__fbthrift_field_MyStringField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyDataField, b.__fbthrift_field_MyDataField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myEnum, b.__fbthrift_field_myEnum);
   swap(a.__isset, b.__isset);
 }
 

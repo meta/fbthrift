@@ -180,10 +180,10 @@ float& MyStructFloatFieldThrowExp::set_myFloatField(float myFloatField_) {
 
 void swap([[maybe_unused]] MyStructFloatFieldThrowExp& a, [[maybe_unused]] MyStructFloatFieldThrowExp& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_myLongField, b.__fbthrift_field_myLongField);
-  swap(a.__fbthrift_field_MyByteField, b.__fbthrift_field_MyByteField);
-  swap(a.__fbthrift_field_myStringField, b.__fbthrift_field_myStringField);
-  swap(a.__fbthrift_field_myFloatField, b.__fbthrift_field_myFloatField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myLongField, b.__fbthrift_field_myLongField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyByteField, b.__fbthrift_field_MyByteField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myStringField, b.__fbthrift_field_myStringField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myFloatField, b.__fbthrift_field_myFloatField);
   swap(a.__isset, b.__isset);
 }
 
@@ -270,8 +270,8 @@ const ::std::map<::std::int32_t, ::std::vector<::std::vector<::cpp2::floatTypede
 
 void swap([[maybe_unused]] MyStructMapFloatThrowExp& a, [[maybe_unused]] MyStructMapFloatThrowExp& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_myLongField, b.__fbthrift_field_myLongField);
-  swap(a.__fbthrift_field_mapListOfFloats, b.__fbthrift_field_mapListOfFloats);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myLongField, b.__fbthrift_field_myLongField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_mapListOfFloats, b.__fbthrift_field_mapListOfFloats);
   swap(a.__isset, b.__isset);
 }
 
@@ -699,34 +699,34 @@ const ::std::map<::std::vector<::std::int32_t>, ::std::vector<::std::int32_t>>& 
 
 void swap([[maybe_unused]] MyStruct& a, [[maybe_unused]] MyStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_MyIntField, b.__fbthrift_field_MyIntField);
-  swap(a.__fbthrift_field_MyStringField, b.__fbthrift_field_MyStringField);
-  swap(a.__fbthrift_field_MyDataField, b.__fbthrift_field_MyDataField);
-  swap(a.__fbthrift_field_myEnum, b.__fbthrift_field_myEnum);
-  swap(a.__fbthrift_field_MyBoolField, b.__fbthrift_field_MyBoolField);
-  swap(a.__fbthrift_field_MyByteField, b.__fbthrift_field_MyByteField);
-  swap(a.__fbthrift_field_MyShortField, b.__fbthrift_field_MyShortField);
-  swap(a.__fbthrift_field_MyLongField, b.__fbthrift_field_MyLongField);
-  swap(a.__fbthrift_field_MyDoubleField, b.__fbthrift_field_MyDoubleField);
-  swap(a.__fbthrift_field_lDouble, b.__fbthrift_field_lDouble);
-  swap(a.__fbthrift_field_lShort, b.__fbthrift_field_lShort);
-  swap(a.__fbthrift_field_lInteger, b.__fbthrift_field_lInteger);
-  swap(a.__fbthrift_field_lLong, b.__fbthrift_field_lLong);
-  swap(a.__fbthrift_field_lString, b.__fbthrift_field_lString);
-  swap(a.__fbthrift_field_lBool, b.__fbthrift_field_lBool);
-  swap(a.__fbthrift_field_lByte, b.__fbthrift_field_lByte);
-  swap(a.__fbthrift_field_mShortString, b.__fbthrift_field_mShortString);
-  swap(a.__fbthrift_field_mIntegerString, b.__fbthrift_field_mIntegerString);
-  swap(a.__fbthrift_field_mStringMyStruct, b.__fbthrift_field_mStringMyStruct);
-  swap(a.__fbthrift_field_mStringBool, b.__fbthrift_field_mStringBool);
-  swap(a.__fbthrift_field_mIntegerInteger, b.__fbthrift_field_mIntegerInteger);
-  swap(a.__fbthrift_field_mIntegerBool, b.__fbthrift_field_mIntegerBool);
-  swap(a.__fbthrift_field_sShort, b.__fbthrift_field_sShort);
-  swap(a.__fbthrift_field_sMyStruct, b.__fbthrift_field_sMyStruct);
-  swap(a.__fbthrift_field_sLong, b.__fbthrift_field_sLong);
-  swap(a.__fbthrift_field_sString, b.__fbthrift_field_sString);
-  swap(a.__fbthrift_field_sByte, b.__fbthrift_field_sByte);
-  swap(a.__fbthrift_field_mListList, b.__fbthrift_field_mListList);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyIntField, b.__fbthrift_field_MyIntField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyStringField, b.__fbthrift_field_MyStringField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyDataField, b.__fbthrift_field_MyDataField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myEnum, b.__fbthrift_field_myEnum);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyBoolField, b.__fbthrift_field_MyBoolField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyByteField, b.__fbthrift_field_MyByteField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyShortField, b.__fbthrift_field_MyShortField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyLongField, b.__fbthrift_field_MyLongField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyDoubleField, b.__fbthrift_field_MyDoubleField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_lDouble, b.__fbthrift_field_lDouble);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_lShort, b.__fbthrift_field_lShort);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_lInteger, b.__fbthrift_field_lInteger);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_lLong, b.__fbthrift_field_lLong);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_lString, b.__fbthrift_field_lString);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_lBool, b.__fbthrift_field_lBool);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_lByte, b.__fbthrift_field_lByte);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_mShortString, b.__fbthrift_field_mShortString);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_mIntegerString, b.__fbthrift_field_mIntegerString);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_mStringMyStruct, b.__fbthrift_field_mStringMyStruct);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_mStringBool, b.__fbthrift_field_mStringBool);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_mIntegerInteger, b.__fbthrift_field_mIntegerInteger);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_mIntegerBool, b.__fbthrift_field_mIntegerBool);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_sShort, b.__fbthrift_field_sShort);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_sMyStruct, b.__fbthrift_field_sMyStruct);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_sLong, b.__fbthrift_field_sLong);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_sString, b.__fbthrift_field_sString);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_sByte, b.__fbthrift_field_sByte);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_mListList, b.__fbthrift_field_mListList);
   swap(a.__isset, b.__isset);
 }
 
@@ -824,8 +824,8 @@ std::partial_ordering SimpleStruct::operator<=>([[maybe_unused]] const SimpleStr
 
 void swap([[maybe_unused]] SimpleStruct& a, [[maybe_unused]] SimpleStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_age, b.__fbthrift_field_age);
-  swap(a.__fbthrift_field_name, b.__fbthrift_field_name);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_age, b.__fbthrift_field_age);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_name, b.__fbthrift_field_name);
   swap(a.__isset, b.__isset);
 }
 
@@ -1202,28 +1202,28 @@ const ::std::map<::std::string, ::std::map<::std::int32_t, ::cpp2::MyEnum>>& def
 
 void swap([[maybe_unused]] defaultStruct& a, [[maybe_unused]] defaultStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_myLongDFset, b.__fbthrift_field_myLongDFset);
-  swap(a.__fbthrift_field_myLongDF, b.__fbthrift_field_myLongDF);
-  swap(a.__fbthrift_field_portDFset, b.__fbthrift_field_portDFset);
-  swap(a.__fbthrift_field_portNum, b.__fbthrift_field_portNum);
-  swap(a.__fbthrift_field_myBinaryDFset, b.__fbthrift_field_myBinaryDFset);
-  swap(a.__fbthrift_field_myBinary, b.__fbthrift_field_myBinary);
-  swap(a.__fbthrift_field_myByteDFSet, b.__fbthrift_field_myByteDFSet);
-  swap(a.__fbthrift_field_myByte, b.__fbthrift_field_myByte);
-  swap(a.__fbthrift_field_myDoubleDFset, b.__fbthrift_field_myDoubleDFset);
-  swap(a.__fbthrift_field_myDoubleDFZero, b.__fbthrift_field_myDoubleDFZero);
-  swap(a.__fbthrift_field_myDouble, b.__fbthrift_field_myDouble);
-  swap(a.__fbthrift_field_field3, b.__fbthrift_field_field3);
-  swap(a.__fbthrift_field_myList, b.__fbthrift_field_myList);
-  swap(a.__fbthrift_field_mySet, b.__fbthrift_field_mySet);
-  swap(a.__fbthrift_field_simpleStruct, b.__fbthrift_field_simpleStruct);
-  swap(a.__fbthrift_field_listStructDFset, b.__fbthrift_field_listStructDFset);
-  swap(a.__fbthrift_field_myUnion, b.__fbthrift_field_myUnion);
-  swap(a.__fbthrift_field_listUnionDFset, b.__fbthrift_field_listUnionDFset);
-  swap(a.__fbthrift_field_mapNestlistStructDfSet, b.__fbthrift_field_mapNestlistStructDfSet);
-  swap(a.__fbthrift_field_mapJavaTypeDFset, b.__fbthrift_field_mapJavaTypeDFset);
-  swap(a.__fbthrift_field_emptyMap, b.__fbthrift_field_emptyMap);
-  swap(a.__fbthrift_field_enumMapDFset, b.__fbthrift_field_enumMapDFset);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myLongDFset, b.__fbthrift_field_myLongDFset);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myLongDF, b.__fbthrift_field_myLongDF);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_portDFset, b.__fbthrift_field_portDFset);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_portNum, b.__fbthrift_field_portNum);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myBinaryDFset, b.__fbthrift_field_myBinaryDFset);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myBinary, b.__fbthrift_field_myBinary);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myByteDFSet, b.__fbthrift_field_myByteDFSet);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myByte, b.__fbthrift_field_myByte);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myDoubleDFset, b.__fbthrift_field_myDoubleDFset);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myDoubleDFZero, b.__fbthrift_field_myDoubleDFZero);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myDouble, b.__fbthrift_field_myDouble);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field3, b.__fbthrift_field_field3);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myList, b.__fbthrift_field_myList);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_mySet, b.__fbthrift_field_mySet);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_simpleStruct, b.__fbthrift_field_simpleStruct);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_listStructDFset, b.__fbthrift_field_listStructDFset);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myUnion, b.__fbthrift_field_myUnion);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_listUnionDFset, b.__fbthrift_field_listUnionDFset);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_mapNestlistStructDfSet, b.__fbthrift_field_mapNestlistStructDfSet);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_mapJavaTypeDFset, b.__fbthrift_field_mapJavaTypeDFset);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_emptyMap, b.__fbthrift_field_emptyMap);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_enumMapDFset, b.__fbthrift_field_enumMapDFset);
   swap(a.__isset, b.__isset);
 }
 
@@ -1417,15 +1417,15 @@ const ::std::map<::std::int16_t, ::std::vector<::cpp2::listTypedef>>& MyStructTy
 
 void swap([[maybe_unused]] MyStructTypeDef& a, [[maybe_unused]] MyStructTypeDef& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_myLongField, b.__fbthrift_field_myLongField);
-  swap(a.__fbthrift_field_myLongTypeDef, b.__fbthrift_field_myLongTypeDef);
-  swap(a.__fbthrift_field_myStringField, b.__fbthrift_field_myStringField);
-  swap(a.__fbthrift_field_myStringTypedef, b.__fbthrift_field_myStringTypedef);
-  swap(a.__fbthrift_field_myMapField, b.__fbthrift_field_myMapField);
-  swap(a.__fbthrift_field_myMapTypedef, b.__fbthrift_field_myMapTypedef);
-  swap(a.__fbthrift_field_myListField, b.__fbthrift_field_myListField);
-  swap(a.__fbthrift_field_myListTypedef, b.__fbthrift_field_myListTypedef);
-  swap(a.__fbthrift_field_myMapListOfTypeDef, b.__fbthrift_field_myMapListOfTypeDef);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myLongField, b.__fbthrift_field_myLongField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myLongTypeDef, b.__fbthrift_field_myLongTypeDef);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myStringField, b.__fbthrift_field_myStringField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myStringTypedef, b.__fbthrift_field_myStringTypedef);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myMapField, b.__fbthrift_field_myMapField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myMapTypedef, b.__fbthrift_field_myMapTypedef);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myListField, b.__fbthrift_field_myListField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myListTypedef, b.__fbthrift_field_myListTypedef);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myMapListOfTypeDef, b.__fbthrift_field_myMapListOfTypeDef);
   swap(a.__isset, b.__isset);
 }
 
@@ -2108,24 +2108,24 @@ const ::std::map<::std::vector<::std::int32_t>, ::std::set<::std::map<double, ::
 
 void swap([[maybe_unused]] ComplexNestedStruct& a, [[maybe_unused]] ComplexNestedStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_setOfSetOfInt, b.__fbthrift_field_setOfSetOfInt);
-  swap(a.__fbthrift_field_listofListOfListOfListOfEnum, b.__fbthrift_field_listofListOfListOfListOfEnum);
-  swap(a.__fbthrift_field_listOfListOfMyStruct, b.__fbthrift_field_listOfListOfMyStruct);
-  swap(a.__fbthrift_field_setOfListOfListOfLong, b.__fbthrift_field_setOfListOfListOfLong);
-  swap(a.__fbthrift_field_setOfSetOfsetOfLong, b.__fbthrift_field_setOfSetOfsetOfLong);
-  swap(a.__fbthrift_field_mapStructListOfListOfLong, b.__fbthrift_field_mapStructListOfListOfLong);
-  swap(a.__fbthrift_field_mKeyStructValInt, b.__fbthrift_field_mKeyStructValInt);
-  swap(a.__fbthrift_field_listOfMapKeyIntValInt, b.__fbthrift_field_listOfMapKeyIntValInt);
-  swap(a.__fbthrift_field_listOfMapKeyStrValList, b.__fbthrift_field_listOfMapKeyStrValList);
-  swap(a.__fbthrift_field_mapKeySetValLong, b.__fbthrift_field_mapKeySetValLong);
-  swap(a.__fbthrift_field_mapKeyListValLong, b.__fbthrift_field_mapKeyListValLong);
-  swap(a.__fbthrift_field_mapKeyMapValMap, b.__fbthrift_field_mapKeyMapValMap);
-  swap(a.__fbthrift_field_mapKeySetValMap, b.__fbthrift_field_mapKeySetValMap);
-  swap(a.__fbthrift_field_NestedMaps, b.__fbthrift_field_NestedMaps);
-  swap(a.__fbthrift_field_mapKeyIntValList, b.__fbthrift_field_mapKeyIntValList);
-  swap(a.__fbthrift_field_mapKeyIntValSet, b.__fbthrift_field_mapKeyIntValSet);
-  swap(a.__fbthrift_field_mapKeySetValInt, b.__fbthrift_field_mapKeySetValInt);
-  swap(a.__fbthrift_field_mapKeyListValSet, b.__fbthrift_field_mapKeyListValSet);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_setOfSetOfInt, b.__fbthrift_field_setOfSetOfInt);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_listofListOfListOfListOfEnum, b.__fbthrift_field_listofListOfListOfListOfEnum);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_listOfListOfMyStruct, b.__fbthrift_field_listOfListOfMyStruct);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_setOfListOfListOfLong, b.__fbthrift_field_setOfListOfListOfLong);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_setOfSetOfsetOfLong, b.__fbthrift_field_setOfSetOfsetOfLong);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_mapStructListOfListOfLong, b.__fbthrift_field_mapStructListOfListOfLong);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_mKeyStructValInt, b.__fbthrift_field_mKeyStructValInt);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_listOfMapKeyIntValInt, b.__fbthrift_field_listOfMapKeyIntValInt);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_listOfMapKeyStrValList, b.__fbthrift_field_listOfMapKeyStrValList);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_mapKeySetValLong, b.__fbthrift_field_mapKeySetValLong);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_mapKeyListValLong, b.__fbthrift_field_mapKeyListValLong);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_mapKeyMapValMap, b.__fbthrift_field_mapKeyMapValMap);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_mapKeySetValMap, b.__fbthrift_field_mapKeySetValMap);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_NestedMaps, b.__fbthrift_field_NestedMaps);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_mapKeyIntValList, b.__fbthrift_field_mapKeyIntValList);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_mapKeyIntValSet, b.__fbthrift_field_mapKeyIntValSet);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_mapKeySetValInt, b.__fbthrift_field_mapKeySetValInt);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_mapKeyListValSet, b.__fbthrift_field_mapKeyListValSet);
   swap(a.__isset, b.__isset);
 }
 
@@ -2260,10 +2260,10 @@ const ::cpp2::map_i32_FMap_6797& TypeRemapped::get_ioMap() const& [[FOLLY_ATTR_C
 
 void swap([[maybe_unused]] TypeRemapped& a, [[maybe_unused]] TypeRemapped& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_lsMap, b.__fbthrift_field_lsMap);
-  swap(a.__fbthrift_field_ioMap, b.__fbthrift_field_ioMap);
-  swap(a.__fbthrift_field_BigInteger, b.__fbthrift_field_BigInteger);
-  swap(a.__fbthrift_field_binaryTestBuffer, b.__fbthrift_field_binaryTestBuffer);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_lsMap, b.__fbthrift_field_lsMap);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_ioMap, b.__fbthrift_field_ioMap);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_BigInteger, b.__fbthrift_field_BigInteger);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_binaryTestBuffer, b.__fbthrift_field_binaryTestBuffer);
   swap(a.__isset, b.__isset);
 }
 
@@ -2388,8 +2388,8 @@ std::partial_ordering reqXcep::operator<=>([[maybe_unused]] const reqXcep& rhs) 
 
 void swap([[maybe_unused]] reqXcep& a, [[maybe_unused]] reqXcep& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_message, b.__fbthrift_field_message);
-  swap(a.__fbthrift_field_errorCode, b.__fbthrift_field_errorCode);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_message, b.__fbthrift_field_message);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_errorCode, b.__fbthrift_field_errorCode);
 }
 
 
@@ -2484,8 +2484,8 @@ const ::std::int32_t* optXcep::get_errorCode() const& [[FOLLY_ATTR_CLANG_LIFETIM
 
 void swap([[maybe_unused]] optXcep& a, [[maybe_unused]] optXcep& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_message, b.__fbthrift_field_message);
-  swap(a.__fbthrift_field_errorCode, b.__fbthrift_field_errorCode);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_message, b.__fbthrift_field_message);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_errorCode, b.__fbthrift_field_errorCode);
   swap(a.__isset, b.__isset);
 }
 
@@ -2616,12 +2616,12 @@ const ::cpp2::map_i64_string_5732& complexException::get_lsMap() const& [[FOLLY_
 
 void swap([[maybe_unused]] complexException& a, [[maybe_unused]] complexException& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_message, b.__fbthrift_field_message);
-  swap(a.__fbthrift_field_listStrings, b.__fbthrift_field_listStrings);
-  swap(a.__fbthrift_field_errorEnum, b.__fbthrift_field_errorEnum);
-  swap(a.__fbthrift_field_unionError, b.__fbthrift_field_unionError);
-  swap(a.__fbthrift_field_structError, b.__fbthrift_field_structError);
-  swap(a.__fbthrift_field_lsMap, b.__fbthrift_field_lsMap);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_message, b.__fbthrift_field_message);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_listStrings, b.__fbthrift_field_listStrings);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_errorEnum, b.__fbthrift_field_errorEnum);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_unionError, b.__fbthrift_field_unionError);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_structError, b.__fbthrift_field_structError);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_lsMap, b.__fbthrift_field_lsMap);
   swap(a.__isset, b.__isset);
 }
 
@@ -3173,43 +3173,43 @@ const ::std::map<::std::int32_t, ::std::vector<::std::map<::cpp2::MyStruct, ::st
 
 void swap([[maybe_unused]] Containers& a, [[maybe_unused]] Containers& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_struct_list, b.__fbthrift_field_struct_list);
-  swap(a.__fbthrift_field_union_list, b.__fbthrift_field_union_list);
-  swap(a.__fbthrift_field_enum_list, b.__fbthrift_field_enum_list);
-  swap(a.__fbthrift_field_struct_set, b.__fbthrift_field_struct_set);
-  swap(a.__fbthrift_field_union_set, b.__fbthrift_field_union_set);
-  swap(a.__fbthrift_field_enum_set, b.__fbthrift_field_enum_set);
-  swap(a.__fbthrift_field_struct_map, b.__fbthrift_field_struct_map);
-  swap(a.__fbthrift_field_union_map, b.__fbthrift_field_union_map);
-  swap(a.__fbthrift_field_enum_map, b.__fbthrift_field_enum_map);
-  swap(a.__fbthrift_field_struct_map_2, b.__fbthrift_field_struct_map_2);
-  swap(a.__fbthrift_field_union_map_2, b.__fbthrift_field_union_map_2);
-  swap(a.__fbthrift_field_enum_map_2, b.__fbthrift_field_enum_map_2);
-  swap(a.__fbthrift_field_list_map, b.__fbthrift_field_list_map);
-  swap(a.__fbthrift_field_list_map_2, b.__fbthrift_field_list_map_2);
-  swap(a.__fbthrift_field_set_map, b.__fbthrift_field_set_map);
-  swap(a.__fbthrift_field_set_map_2, b.__fbthrift_field_set_map_2);
-  swap(a.__fbthrift_field_map_map, b.__fbthrift_field_map_map);
-  swap(a.__fbthrift_field_map_map_2, b.__fbthrift_field_map_map_2);
-  swap(a.__fbthrift_field_list_list_i32, b.__fbthrift_field_list_list_i32);
-  swap(a.__fbthrift_field_list_list_struct, b.__fbthrift_field_list_list_struct);
-  swap(a.__fbthrift_field_list_set_i32, b.__fbthrift_field_list_set_i32);
-  swap(a.__fbthrift_field_list_set_struct, b.__fbthrift_field_list_set_struct);
-  swap(a.__fbthrift_field_list_map_i32_i32, b.__fbthrift_field_list_map_i32_i32);
-  swap(a.__fbthrift_field_list_map_i32_struct, b.__fbthrift_field_list_map_i32_struct);
-  swap(a.__fbthrift_field_list_map_struct_i32, b.__fbthrift_field_list_map_struct_i32);
-  swap(a.__fbthrift_field_set_list_i32, b.__fbthrift_field_set_list_i32);
-  swap(a.__fbthrift_field_set_list_struct, b.__fbthrift_field_set_list_struct);
-  swap(a.__fbthrift_field_set_set_i32, b.__fbthrift_field_set_set_i32);
-  swap(a.__fbthrift_field_set_set_struct, b.__fbthrift_field_set_set_struct);
-  swap(a.__fbthrift_field_set_map_i32_i32, b.__fbthrift_field_set_map_i32_i32);
-  swap(a.__fbthrift_field_set_map_i32_struct, b.__fbthrift_field_set_map_i32_struct);
-  swap(a.__fbthrift_field_set_map_struct_i32, b.__fbthrift_field_set_map_struct_i32);
-  swap(a.__fbthrift_field_map_i32_map_i32_i32, b.__fbthrift_field_map_i32_map_i32_i32);
-  swap(a.__fbthrift_field_map_i32_map_struct_i32, b.__fbthrift_field_map_i32_map_struct_i32);
-  swap(a.__fbthrift_field_map_i32_map_i32_struct, b.__fbthrift_field_map_i32_map_i32_struct);
-  swap(a.__fbthrift_field_map_i32_map_list_i32_i32, b.__fbthrift_field_map_i32_map_list_i32_i32);
-  swap(a.__fbthrift_field_map_i32_map_list_struct_i32, b.__fbthrift_field_map_i32_map_list_struct_i32);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_struct_list, b.__fbthrift_field_struct_list);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_union_list, b.__fbthrift_field_union_list);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_enum_list, b.__fbthrift_field_enum_list);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_struct_set, b.__fbthrift_field_struct_set);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_union_set, b.__fbthrift_field_union_set);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_enum_set, b.__fbthrift_field_enum_set);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_struct_map, b.__fbthrift_field_struct_map);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_union_map, b.__fbthrift_field_union_map);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_enum_map, b.__fbthrift_field_enum_map);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_struct_map_2, b.__fbthrift_field_struct_map_2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_union_map_2, b.__fbthrift_field_union_map_2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_enum_map_2, b.__fbthrift_field_enum_map_2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_list_map, b.__fbthrift_field_list_map);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_list_map_2, b.__fbthrift_field_list_map_2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_set_map, b.__fbthrift_field_set_map);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_set_map_2, b.__fbthrift_field_set_map_2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_map_map, b.__fbthrift_field_map_map);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_map_map_2, b.__fbthrift_field_map_map_2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_list_list_i32, b.__fbthrift_field_list_list_i32);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_list_list_struct, b.__fbthrift_field_list_list_struct);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_list_set_i32, b.__fbthrift_field_list_set_i32);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_list_set_struct, b.__fbthrift_field_list_set_struct);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_list_map_i32_i32, b.__fbthrift_field_list_map_i32_i32);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_list_map_i32_struct, b.__fbthrift_field_list_map_i32_struct);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_list_map_struct_i32, b.__fbthrift_field_list_map_struct_i32);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_set_list_i32, b.__fbthrift_field_set_list_i32);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_set_list_struct, b.__fbthrift_field_set_list_struct);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_set_set_i32, b.__fbthrift_field_set_set_i32);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_set_set_struct, b.__fbthrift_field_set_set_struct);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_set_map_i32_i32, b.__fbthrift_field_set_map_i32_i32);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_set_map_i32_struct, b.__fbthrift_field_set_map_i32_struct);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_set_map_struct_i32, b.__fbthrift_field_set_map_struct_i32);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_map_i32_map_i32_i32, b.__fbthrift_field_map_i32_map_i32_i32);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_map_i32_map_struct_i32, b.__fbthrift_field_map_i32_map_struct_i32);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_map_i32_map_i32_struct, b.__fbthrift_field_map_i32_map_i32_struct);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_map_i32_map_list_i32_i32, b.__fbthrift_field_map_i32_map_list_i32_i32);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_map_i32_map_list_struct_i32, b.__fbthrift_field_map_i32_map_list_struct_i32);
   swap(a.__isset, b.__isset);
 }
 

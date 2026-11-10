@@ -175,8 +175,8 @@ std::partial_ordering structured_annotation_inline::operator<=>([[maybe_unused]]
 
 void swap([[maybe_unused]] structured_annotation_inline& a, [[maybe_unused]] structured_annotation_inline& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_count, b.__fbthrift_field_count);
-  swap(a.__fbthrift_field_name, b.__fbthrift_field_name);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_count, b.__fbthrift_field_count);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_name, b.__fbthrift_field_name);
   swap(a.__isset, b.__isset);
 }
 
@@ -241,7 +241,7 @@ std::partial_ordering structured_annotation_with_default::operator<=>([[maybe_un
 
 void swap([[maybe_unused]] structured_annotation_with_default& a, [[maybe_unused]] structured_annotation_with_default& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_name, b.__fbthrift_field_name);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_name, b.__fbthrift_field_name);
   swap(a.__isset, b.__isset);
 }
 
@@ -335,9 +335,9 @@ const ::test::fixtures::basic_structured_annotations::structured_annotation_forw
 
 void swap([[maybe_unused]] structured_annotation_recursive& a, [[maybe_unused]] structured_annotation_recursive& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_name, b.__fbthrift_field_name);
-  swap(a.__fbthrift_field_recurse, b.__fbthrift_field_recurse);
-  swap(a.__fbthrift_field_forward, b.__fbthrift_field_forward);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_name, b.__fbthrift_field_name);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_recurse, b.__fbthrift_field_recurse);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_forward, b.__fbthrift_field_forward);
   swap(a.__isset, b.__isset);
 }
 
@@ -403,7 +403,7 @@ std::partial_ordering structured_annotation_forward::operator<=>([[maybe_unused]
 
 void swap([[maybe_unused]] structured_annotation_forward& a, [[maybe_unused]] structured_annotation_forward& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_count, b.__fbthrift_field_count);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_count, b.__fbthrift_field_count);
   swap(a.__isset, b.__isset);
 }
 
@@ -480,8 +480,8 @@ const ::test::fixtures::basic_structured_annotations::structured_annotation_with
 
 void swap([[maybe_unused]] structured_annotation_nested& a, [[maybe_unused]] structured_annotation_nested& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_name, b.__fbthrift_field_name);
-  swap(a.__fbthrift_field_nest, b.__fbthrift_field_nest);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_name, b.__fbthrift_field_name);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_nest, b.__fbthrift_field_nest);
   swap(a.__isset, b.__isset);
 }
 
@@ -586,10 +586,10 @@ std::partial_ordering MyStruct::operator<=>([[maybe_unused]] const MyStruct& rhs
 
 void swap([[maybe_unused]] MyStruct& a, [[maybe_unused]] MyStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_annotated_field, b.__fbthrift_field_annotated_field);
-  swap(a.__fbthrift_field_annotated_type, b.__fbthrift_field_annotated_type);
-  swap(a.__fbthrift_field_annotated_recursive, b.__fbthrift_field_annotated_recursive);
-  swap(a.__fbthrift_field_annotated_nested, b.__fbthrift_field_annotated_nested);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_annotated_field, b.__fbthrift_field_annotated_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_annotated_type, b.__fbthrift_field_annotated_type);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_annotated_recursive, b.__fbthrift_field_annotated_recursive);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_annotated_nested, b.__fbthrift_field_annotated_nested);
   swap(a.__isset, b.__isset);
 }
 
@@ -653,7 +653,7 @@ std::partial_ordering MyException::operator<=>([[maybe_unused]] const MyExceptio
 
 void swap([[maybe_unused]] MyException& a, [[maybe_unused]] MyException& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_context, b.__fbthrift_field_context);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_context, b.__fbthrift_field_context);
   swap(a.__isset, b.__isset);
 }
 

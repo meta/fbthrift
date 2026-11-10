@@ -81,7 +81,7 @@ std::partial_ordering MyStruct::operator<=>([[maybe_unused]] const MyStruct& rhs
 
 void swap([[maybe_unused]] MyStruct& a, [[maybe_unused]] MyStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_myString, b.__fbthrift_field_myString);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myString, b.__fbthrift_field_myString);
   swap(a.__isset, b.__isset);
 }
 
@@ -255,7 +255,7 @@ std::partial_ordering MyException::operator<=>([[maybe_unused]] const MyExceptio
 
 void swap([[maybe_unused]] MyException& a, [[maybe_unused]] MyException& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_myString, b.__fbthrift_field_myString);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myString, b.__fbthrift_field_myString);
   swap(a.__isset, b.__isset);
 }
 

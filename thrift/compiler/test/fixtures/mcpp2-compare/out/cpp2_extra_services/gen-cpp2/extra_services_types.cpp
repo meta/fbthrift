@@ -237,19 +237,19 @@ const ::std::string* containerStruct2::get_opt_fieldE() const& [[FOLLY_ATTR_CLAN
 
 void swap([[maybe_unused]] containerStruct2& a, [[maybe_unused]] containerStruct2& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_fieldA, b.__fbthrift_field_fieldA);
-  swap(a.__fbthrift_field_req_fieldA, b.__fbthrift_field_req_fieldA);
-  swap(a.__fbthrift_field_opt_fieldA, b.__fbthrift_field_opt_fieldA);
-  swap(a.__fbthrift_field_fieldB, b.__fbthrift_field_fieldB);
-  swap(a.__fbthrift_field_req_fieldB, b.__fbthrift_field_req_fieldB);
-  swap(a.__fbthrift_field_opt_fieldB, b.__fbthrift_field_opt_fieldB);
-  swap(a.__fbthrift_field_fieldC, b.__fbthrift_field_fieldC);
-  swap(a.__fbthrift_field_req_fieldC, b.__fbthrift_field_req_fieldC);
-  swap(a.__fbthrift_field_opt_fieldC, b.__fbthrift_field_opt_fieldC);
-  swap(a.__fbthrift_field_fieldD, b.__fbthrift_field_fieldD);
-  swap(a.__fbthrift_field_fieldE, b.__fbthrift_field_fieldE);
-  swap(a.__fbthrift_field_req_fieldE, b.__fbthrift_field_req_fieldE);
-  swap(a.__fbthrift_field_opt_fieldE, b.__fbthrift_field_opt_fieldE);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldA, b.__fbthrift_field_fieldA);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_req_fieldA, b.__fbthrift_field_req_fieldA);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_opt_fieldA, b.__fbthrift_field_opt_fieldA);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldB, b.__fbthrift_field_fieldB);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_req_fieldB, b.__fbthrift_field_req_fieldB);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_opt_fieldB, b.__fbthrift_field_opt_fieldB);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldC, b.__fbthrift_field_fieldC);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_req_fieldC, b.__fbthrift_field_req_fieldC);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_opt_fieldC, b.__fbthrift_field_opt_fieldC);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldD, b.__fbthrift_field_fieldD);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldE, b.__fbthrift_field_fieldE);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_req_fieldE, b.__fbthrift_field_req_fieldE);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_opt_fieldE, b.__fbthrift_field_opt_fieldE);
   swap(a.__isset, b.__isset);
 }
 

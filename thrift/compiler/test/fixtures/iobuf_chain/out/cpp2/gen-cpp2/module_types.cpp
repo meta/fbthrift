@@ -81,8 +81,8 @@ std::partial_ordering Data::operator<=>([[maybe_unused]] const Data& rhs) const 
 
 void swap([[maybe_unused]] Data& a, [[maybe_unused]] Data& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_payload, b.__fbthrift_field_payload);
-  swap(a.__fbthrift_field_text, b.__fbthrift_field_text);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_payload, b.__fbthrift_field_payload);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_text, b.__fbthrift_field_text);
   swap(a.__isset, b.__isset);
 }
 

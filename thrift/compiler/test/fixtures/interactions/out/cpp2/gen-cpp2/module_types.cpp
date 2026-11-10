@@ -78,7 +78,7 @@ std::partial_ordering CustomException::operator<=>([[maybe_unused]] const Custom
 
 void swap([[maybe_unused]] CustomException& a, [[maybe_unused]] CustomException& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_message, b.__fbthrift_field_message);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_message, b.__fbthrift_field_message);
   swap(a.__isset, b.__isset);
 }
 
@@ -142,7 +142,7 @@ std::partial_ordering ShouldBeBoxed::operator<=>([[maybe_unused]] const ShouldBe
 
 void swap([[maybe_unused]] ShouldBeBoxed& a, [[maybe_unused]] ShouldBeBoxed& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_sessionId, b.__fbthrift_field_sessionId);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_sessionId, b.__fbthrift_field_sessionId);
   swap(a.__isset, b.__isset);
 }
 

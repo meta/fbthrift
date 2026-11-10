@@ -77,8 +77,8 @@ const ::cpp2::Foo& Included::get_MyTransitiveField() const& [[FOLLY_ATTR_CLANG_L
 
 void swap([[maybe_unused]] Included& a, [[maybe_unused]] Included& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_MyIntField, b.__fbthrift_field_MyIntField);
-  swap(a.__fbthrift_field_MyTransitiveField, b.__fbthrift_field_MyTransitiveField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyIntField, b.__fbthrift_field_MyIntField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyTransitiveField, b.__fbthrift_field_MyTransitiveField);
   swap(a.__isset, b.__isset);
 }
 

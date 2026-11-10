@@ -93,8 +93,8 @@ const ::module1::Struct& Struct::get_second() const& [[FOLLY_ATTR_CLANG_LIFETIME
 
 void swap([[maybe_unused]] Struct& a, [[maybe_unused]] Struct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_first, b.__fbthrift_field_first);
-  swap(a.__fbthrift_field_second, b.__fbthrift_field_second);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_first, b.__fbthrift_field_first);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_second, b.__fbthrift_field_second);
   swap(a.__isset, b.__isset);
 }
 
@@ -186,8 +186,8 @@ const ::module2::Struct& BigStruct::get_s() const& [[FOLLY_ATTR_CLANG_LIFETIMEBO
 
 void swap([[maybe_unused]] BigStruct& a, [[maybe_unused]] BigStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_s, b.__fbthrift_field_s);
-  swap(a.__fbthrift_field_id, b.__fbthrift_field_id);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_s, b.__fbthrift_field_s);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_id, b.__fbthrift_field_id);
   swap(a.__isset, b.__isset);
 }
 

@@ -91,8 +91,8 @@ std::partial_ordering DoSomethingResult::operator<=>([[maybe_unused]] const DoSo
 
 void swap([[maybe_unused]] DoSomethingResult& a, [[maybe_unused]] DoSomethingResult& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_s_res, b.__fbthrift_field_s_res);
-  swap(a.__fbthrift_field_i_res, b.__fbthrift_field_i_res);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_s_res, b.__fbthrift_field_s_res);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_i_res, b.__fbthrift_field_i_res);
   swap(a.__isset, b.__isset);
 }
 

@@ -91,8 +91,8 @@ std::partial_ordering IncludedB::operator<=>([[maybe_unused]] const IncludedB& r
 
 void swap([[maybe_unused]] IncludedB& a, [[maybe_unused]] IncludedB& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_i32Field, b.__fbthrift_field_i32Field);
-  swap(a.__fbthrift_field_strField, b.__fbthrift_field_strField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_i32Field, b.__fbthrift_field_i32Field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_strField, b.__fbthrift_field_strField);
   swap(a.__isset, b.__isset);
 }
 

@@ -133,9 +133,9 @@ const ::test::fixtures::cpp_allocator_via::PmrStringList& AllocatorVia::get_aa_l
 
 void swap([[maybe_unused]] AllocatorVia& a, [[maybe_unused]] AllocatorVia& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_aa_string, b.__fbthrift_field_aa_string);
-  swap(a.__fbthrift_field_aa_list, b.__fbthrift_field_aa_list);
-  swap(a.__fbthrift_field_plain_int, b.__fbthrift_field_plain_int);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_aa_string, b.__fbthrift_field_aa_string);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_aa_list, b.__fbthrift_field_aa_list);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_plain_int, b.__fbthrift_field_plain_int);
   swap(a.__isset, b.__isset);
 }
 

@@ -118,10 +118,10 @@ const ::std::string* SerializedStruct::get_os() const& [[FOLLY_ATTR_CLANG_LIFETI
 
 void swap([[maybe_unused]] SerializedStruct& a, [[maybe_unused]] SerializedStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_s, b.__fbthrift_field_s);
-  swap(a.__fbthrift_field_i, b.__fbthrift_field_i);
-  swap(a.__fbthrift_field_os, b.__fbthrift_field_os);
-  swap(a.__fbthrift_field_rs, b.__fbthrift_field_rs);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_s, b.__fbthrift_field_s);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_i, b.__fbthrift_field_i);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_os, b.__fbthrift_field_os);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_rs, b.__fbthrift_field_rs);
   swap(a.__isset, b.__isset);
 }
 
@@ -324,9 +324,9 @@ const ::std::string* SerializedError::get_os() const& [[FOLLY_ATTR_CLANG_LIFETIM
 
 void swap([[maybe_unused]] SerializedError& a, [[maybe_unused]] SerializedError& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_msg, b.__fbthrift_field_msg);
-  swap(a.__fbthrift_field_os, b.__fbthrift_field_os);
-  swap(a.__fbthrift_field_rs, b.__fbthrift_field_rs);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_msg, b.__fbthrift_field_msg);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_os, b.__fbthrift_field_os);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_rs, b.__fbthrift_field_rs);
   swap(a.__isset, b.__isset);
 }
 
@@ -422,10 +422,10 @@ const ::std::string* MarshalStruct::get_os() const& [[FOLLY_ATTR_CLANG_LIFETIMEB
 
 void swap([[maybe_unused]] MarshalStruct& a, [[maybe_unused]] MarshalStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_s, b.__fbthrift_field_s);
-  swap(a.__fbthrift_field_i, b.__fbthrift_field_i);
-  swap(a.__fbthrift_field_os, b.__fbthrift_field_os);
-  swap(a.__fbthrift_field_rs, b.__fbthrift_field_rs);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_s, b.__fbthrift_field_s);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_i, b.__fbthrift_field_i);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_os, b.__fbthrift_field_os);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_rs, b.__fbthrift_field_rs);
   swap(a.__isset, b.__isset);
 }
 
@@ -628,9 +628,9 @@ const ::std::string* MarshalError::get_os() const& [[FOLLY_ATTR_CLANG_LIFETIMEBO
 
 void swap([[maybe_unused]] MarshalError& a, [[maybe_unused]] MarshalError& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_msg, b.__fbthrift_field_msg);
-  swap(a.__fbthrift_field_os, b.__fbthrift_field_os);
-  swap(a.__fbthrift_field_rs, b.__fbthrift_field_rs);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_msg, b.__fbthrift_field_msg);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_os, b.__fbthrift_field_os);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_rs, b.__fbthrift_field_rs);
   swap(a.__isset, b.__isset);
 }
 

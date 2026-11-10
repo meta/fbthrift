@@ -253,15 +253,15 @@ const ::std::set<float>& MyStruct::get_floatSet() const& [[FOLLY_ATTR_CLANG_LIFE
 
 void swap([[maybe_unused]] MyStruct& a, [[maybe_unused]] MyStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_MyIntField, b.__fbthrift_field_MyIntField);
-  swap(a.__fbthrift_field_MyStringField, b.__fbthrift_field_MyStringField);
-  swap(a.__fbthrift_field_MyDataField, b.__fbthrift_field_MyDataField);
-  swap(a.__fbthrift_field_myEnum, b.__fbthrift_field_myEnum);
-  swap(a.__fbthrift_field_oneway, b.__fbthrift_field_oneway);
-  swap(a.__fbthrift_field_readonly, b.__fbthrift_field_readonly);
-  swap(a.__fbthrift_field_idempotent, b.__fbthrift_field_idempotent);
-  swap(a.__fbthrift_field_floatSet, b.__fbthrift_field_floatSet);
-  swap(a.__fbthrift_field_no_hack_codegen_field, b.__fbthrift_field_no_hack_codegen_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyIntField, b.__fbthrift_field_MyIntField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyStringField, b.__fbthrift_field_MyStringField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyDataField, b.__fbthrift_field_MyDataField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myEnum, b.__fbthrift_field_myEnum);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_oneway, b.__fbthrift_field_oneway);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_readonly, b.__fbthrift_field_readonly);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_idempotent, b.__fbthrift_field_idempotent);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_floatSet, b.__fbthrift_field_floatSet);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_no_hack_codegen_field, b.__fbthrift_field_no_hack_codegen_field);
   swap(a.__isset, b.__isset);
 }
 
@@ -365,9 +365,9 @@ const ::std::map<::std::string, ::std::int64_t>& Containers::get_StringToI64Map(
 
 void swap([[maybe_unused]] Containers& a, [[maybe_unused]] Containers& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_I32List, b.__fbthrift_field_I32List);
-  swap(a.__fbthrift_field_StringSet, b.__fbthrift_field_StringSet);
-  swap(a.__fbthrift_field_StringToI64Map, b.__fbthrift_field_StringToI64Map);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_I32List, b.__fbthrift_field_I32List);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_StringSet, b.__fbthrift_field_StringSet);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_StringToI64Map, b.__fbthrift_field_StringToI64Map);
   swap(a.__isset, b.__isset);
 }
 
@@ -670,10 +670,10 @@ const ::test::fixtures::basic::MyUnion& MyException::get_myUnion() const& [[FOLL
 
 void swap([[maybe_unused]] MyException& a, [[maybe_unused]] MyException& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_MyIntField, b.__fbthrift_field_MyIntField);
-  swap(a.__fbthrift_field_MyStringField, b.__fbthrift_field_MyStringField);
-  swap(a.__fbthrift_field_myStruct, b.__fbthrift_field_myStruct);
-  swap(a.__fbthrift_field_myUnion, b.__fbthrift_field_myUnion);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyIntField, b.__fbthrift_field_MyIntField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyStringField, b.__fbthrift_field_MyStringField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myStruct, b.__fbthrift_field_myStruct);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myUnion, b.__fbthrift_field_myUnion);
   swap(a.__isset, b.__isset);
 }
 
@@ -794,10 +794,10 @@ const ::test::fixtures::basic::MyUnion& MyExceptionWithMessage::get_myUnion() co
 
 void swap([[maybe_unused]] MyExceptionWithMessage& a, [[maybe_unused]] MyExceptionWithMessage& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_MyIntField, b.__fbthrift_field_MyIntField);
-  swap(a.__fbthrift_field_MyStringField, b.__fbthrift_field_MyStringField);
-  swap(a.__fbthrift_field_myStruct, b.__fbthrift_field_myStruct);
-  swap(a.__fbthrift_field_myUnion, b.__fbthrift_field_myUnion);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyIntField, b.__fbthrift_field_MyIntField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyStringField, b.__fbthrift_field_MyStringField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myStruct, b.__fbthrift_field_myStruct);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myUnion, b.__fbthrift_field_myUnion);
   swap(a.__isset, b.__isset);
 }
 
@@ -863,7 +863,7 @@ std::partial_ordering ReservedKeyword::operator<=>([[maybe_unused]] const Reserv
 
 void swap([[maybe_unused]] ReservedKeyword& a, [[maybe_unused]] ReservedKeyword& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_reserved_field, b.__fbthrift_field_reserved_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_reserved_field, b.__fbthrift_field_reserved_field);
   swap(a.__isset, b.__isset);
 }
 

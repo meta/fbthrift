@@ -84,7 +84,7 @@ std::partial_ordering Fields::operator<=>([[maybe_unused]] const Fields& rhs) co
 
 void swap([[maybe_unused]] Fields& a, [[maybe_unused]] Fields& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_injected_field, b.__fbthrift_field_injected_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_injected_field, b.__fbthrift_field_injected_field);
   swap(a.__isset, b.__isset);
 }
 
@@ -148,7 +148,7 @@ std::partial_ordering FieldsInjectedToEmptyStruct::operator<=>([[maybe_unused]] 
 
 void swap([[maybe_unused]] FieldsInjectedToEmptyStruct& a, [[maybe_unused]] FieldsInjectedToEmptyStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_injected_field, b.__fbthrift_field_injected_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_injected_field, b.__fbthrift_field_injected_field);
   swap(a.__isset, b.__isset);
 }
 
@@ -217,8 +217,8 @@ std::partial_ordering FieldsInjectedToStruct::operator<=>([[maybe_unused]] const
 
 void swap([[maybe_unused]] FieldsInjectedToStruct& a, [[maybe_unused]] FieldsInjectedToStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_string_field, b.__fbthrift_field_string_field);
-  swap(a.__fbthrift_field_injected_field, b.__fbthrift_field_injected_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_string_field, b.__fbthrift_field_string_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_injected_field, b.__fbthrift_field_injected_field);
   swap(a.__isset, b.__isset);
 }
 
@@ -295,10 +295,10 @@ std::partial_ordering FieldsInjectedWithIncludedStruct::operator<=>([[maybe_unus
 
 void swap([[maybe_unused]] FieldsInjectedWithIncludedStruct& a, [[maybe_unused]] FieldsInjectedWithIncludedStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_string_field, b.__fbthrift_field_string_field);
-  swap(a.__fbthrift_field_injected_field, b.__fbthrift_field_injected_field);
-  swap(a.__fbthrift_field_injected_structured_annotation_field, b.__fbthrift_field_injected_structured_annotation_field);
-  swap(a.__fbthrift_field_injected_unstructured_annotation_field, b.__fbthrift_field_injected_unstructured_annotation_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_string_field, b.__fbthrift_field_string_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_injected_field, b.__fbthrift_field_injected_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_injected_structured_annotation_field, b.__fbthrift_field_injected_structured_annotation_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_injected_unstructured_annotation_field, b.__fbthrift_field_injected_unstructured_annotation_field);
   swap(a.__isset, b.__isset);
 }
 
@@ -374,8 +374,8 @@ const ::cpp2::InjectedField& FieldsInjectedWithFieldsWithIncludedStruct::get_inj
 
 void swap([[maybe_unused]] FieldsInjectedWithFieldsWithIncludedStruct& a, [[maybe_unused]] FieldsInjectedWithFieldsWithIncludedStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_string_field, b.__fbthrift_field_string_field);
-  swap(a.__fbthrift_field_injected_field, b.__fbthrift_field_injected_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_string_field, b.__fbthrift_field_string_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_injected_field, b.__fbthrift_field_injected_field);
   swap(a.__isset, b.__isset);
 }
 

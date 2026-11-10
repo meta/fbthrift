@@ -269,7 +269,7 @@ std::partial_ordering decorated_struct::operator<=>([[maybe_unused]] const decor
 
 void swap([[maybe_unused]] decorated_struct& a, [[maybe_unused]] decorated_struct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_field, b.__fbthrift_field_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field, b.__fbthrift_field_field);
   swap(a.__isset, b.__isset);
 }
 
@@ -432,14 +432,14 @@ const ::apache::thrift::fixtures::types::SomeMap& ContainerStruct::get_fieldH() 
 
 void swap([[maybe_unused]] ContainerStruct& a, [[maybe_unused]] ContainerStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_fieldA, b.__fbthrift_field_fieldA);
-  swap(a.__fbthrift_field_fieldB, b.__fbthrift_field_fieldB);
-  swap(a.__fbthrift_field_fieldC, b.__fbthrift_field_fieldC);
-  swap(a.__fbthrift_field_fieldD, b.__fbthrift_field_fieldD);
-  swap(a.__fbthrift_field_fieldE, b.__fbthrift_field_fieldE);
-  swap(a.__fbthrift_field_fieldF, b.__fbthrift_field_fieldF);
-  swap(a.__fbthrift_field_fieldG, b.__fbthrift_field_fieldG);
-  swap(a.__fbthrift_field_fieldH, b.__fbthrift_field_fieldH);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldA, b.__fbthrift_field_fieldA);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldB, b.__fbthrift_field_fieldB);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldC, b.__fbthrift_field_fieldC);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldD, b.__fbthrift_field_fieldD);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldE, b.__fbthrift_field_fieldE);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldF, b.__fbthrift_field_fieldF);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldG, b.__fbthrift_field_fieldG);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldH, b.__fbthrift_field_fieldH);
   swap(a.__isset, b.__isset);
 }
 
@@ -511,7 +511,7 @@ std::list<::std::int32_t> CppTypeStruct::get_fieldA() && {
 
 void swap([[maybe_unused]] CppTypeStruct& a, [[maybe_unused]] CppTypeStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_fieldA, b.__fbthrift_field_fieldA);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldA, b.__fbthrift_field_fieldA);
   swap(a.__isset, b.__isset);
 }
 
@@ -578,7 +578,7 @@ std::partial_ordering VirtualStruct::operator<=>([[maybe_unused]] const VirtualS
 
 void swap([[maybe_unused]] VirtualStruct& a, [[maybe_unused]] VirtualStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_MyIntField, b.__fbthrift_field_MyIntField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyIntField, b.__fbthrift_field_MyIntField);
   swap(a.__isset, b.__isset);
 }
 
@@ -644,8 +644,8 @@ std::partial_ordering MyStructWithForwardRefEnum::operator<=>([[maybe_unused]] c
 
 void swap([[maybe_unused]] MyStructWithForwardRefEnum& a, [[maybe_unused]] MyStructWithForwardRefEnum& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_a, b.__fbthrift_field_a);
-  swap(a.__fbthrift_field_b, b.__fbthrift_field_b);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_a, b.__fbthrift_field_a);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_b, b.__fbthrift_field_b);
   swap(a.__isset, b.__isset);
 }
 
@@ -711,8 +711,8 @@ bool& TrivialNumeric::set_b(bool b_) {
 
 void swap([[maybe_unused]] TrivialNumeric& a, [[maybe_unused]] TrivialNumeric& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_a, b.__fbthrift_field_a);
-  swap(a.__fbthrift_field_b, b.__fbthrift_field_b);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_a, b.__fbthrift_field_a);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_b, b.__fbthrift_field_b);
   swap(a.__isset, b.__isset);
 }
 
@@ -777,8 +777,8 @@ const ::apache::thrift::fixtures::types::TrivialNumeric& TrivialNestedWithDefaul
 
 void swap([[maybe_unused]] TrivialNestedWithDefault& a, [[maybe_unused]] TrivialNestedWithDefault& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_z, b.__fbthrift_field_z);
-  swap(a.__fbthrift_field_n, b.__fbthrift_field_n);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_z, b.__fbthrift_field_z);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_n, b.__fbthrift_field_n);
   swap(a.__isset, b.__isset);
 }
 
@@ -861,8 +861,8 @@ const ::std::map<::std::string, ::std::int32_t>& ComplexString::get_b() const& [
 
 void swap([[maybe_unused]] ComplexString& a, [[maybe_unused]] ComplexString& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_a, b.__fbthrift_field_a);
-  swap(a.__fbthrift_field_b, b.__fbthrift_field_b);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_a, b.__fbthrift_field_a);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_b, b.__fbthrift_field_b);
   swap(a.__isset, b.__isset);
 }
 
@@ -941,8 +941,8 @@ const ::apache::thrift::fixtures::types::ComplexString& ComplexNestedWithDefault
 
 void swap([[maybe_unused]] ComplexNestedWithDefault& a, [[maybe_unused]] ComplexNestedWithDefault& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_z, b.__fbthrift_field_z);
-  swap(a.__fbthrift_field_n, b.__fbthrift_field_n);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_z, b.__fbthrift_field_z);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_n, b.__fbthrift_field_n);
   swap(a.__isset, b.__isset);
 }
 
@@ -1063,11 +1063,11 @@ std::partial_ordering MinPadding::operator<=>([[maybe_unused]] const MinPadding&
 
 void swap([[maybe_unused]] MinPadding& a, [[maybe_unused]] MinPadding& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_big, b.__fbthrift_field_big);
-  swap(a.__fbthrift_field_biggish, b.__fbthrift_field_biggish);
-  swap(a.__fbthrift_field_medium, b.__fbthrift_field_medium);
-  swap(a.__fbthrift_field_small, b.__fbthrift_field_small);
-  swap(a.__fbthrift_field_tiny, b.__fbthrift_field_tiny);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_big, b.__fbthrift_field_big);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_biggish, b.__fbthrift_field_biggish);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_medium, b.__fbthrift_field_medium);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_small, b.__fbthrift_field_small);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_tiny, b.__fbthrift_field_tiny);
 }
 
 
@@ -1167,11 +1167,11 @@ std::partial_ordering MinPaddingWithCustomType::operator<=>([[maybe_unused]] con
 
 void swap([[maybe_unused]] MinPaddingWithCustomType& a, [[maybe_unused]] MinPaddingWithCustomType& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_medium, b.__fbthrift_field_medium);
-  swap(a.__fbthrift_field_big, b.__fbthrift_field_big);
-  swap(a.__fbthrift_field_biggish, b.__fbthrift_field_biggish);
-  swap(a.__fbthrift_field_small, b.__fbthrift_field_small);
-  swap(a.__fbthrift_field_tiny, b.__fbthrift_field_tiny);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_medium, b.__fbthrift_field_medium);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_big, b.__fbthrift_field_big);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_biggish, b.__fbthrift_field_biggish);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_small, b.__fbthrift_field_small);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_tiny, b.__fbthrift_field_tiny);
 }
 
 
@@ -1270,10 +1270,10 @@ const ::apache::thrift::fixtures::types::MyDataItem& MyStruct::get_data() const&
 
 void swap([[maybe_unused]] MyStruct& a, [[maybe_unused]] MyStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_MyIntField, b.__fbthrift_field_MyIntField);
-  swap(a.__fbthrift_field_MyStringField, b.__fbthrift_field_MyStringField);
-  swap(a.__fbthrift_field_majorVer, b.__fbthrift_field_majorVer);
-  swap(a.__fbthrift_field_data, b.__fbthrift_field_data);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyIntField, b.__fbthrift_field_MyIntField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyStringField, b.__fbthrift_field_MyStringField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_majorVer, b.__fbthrift_field_majorVer);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_data, b.__fbthrift_field_data);
   swap(a.__isset, b.__isset);
 }
 
@@ -1365,7 +1365,7 @@ std::partial_ordering Renamed::operator<=>([[maybe_unused]] const Renamed& rhs) 
 
 void swap([[maybe_unused]] Renamed& a, [[maybe_unused]] Renamed& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_bar, b.__fbthrift_field_bar);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_bar, b.__fbthrift_field_bar);
   swap(a.__isset, b.__isset);
 }
 
@@ -1442,8 +1442,8 @@ const ::apache::thrift::fixtures::types::SomeListOfTypeMap_2468& AnnotatedTypes:
 
 void swap([[maybe_unused]] AnnotatedTypes& a, [[maybe_unused]] AnnotatedTypes& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_binary_field, b.__fbthrift_field_binary_field);
-  swap(a.__fbthrift_field_list_field, b.__fbthrift_field_list_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_binary_field, b.__fbthrift_field_binary_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_list_field, b.__fbthrift_field_list_field);
   swap(a.__isset, b.__isset);
 }
 
@@ -1537,8 +1537,8 @@ const ::apache::thrift::fixtures::types::ForwardUsageStruct* ForwardUsageRoot::g
 
 void swap([[maybe_unused]] ForwardUsageRoot& a, [[maybe_unused]] ForwardUsageRoot& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_ForwardUsageStruct, b.__fbthrift_field_ForwardUsageStruct);
-  swap(a.__fbthrift_field_ForwardUsageByRef, b.__fbthrift_field_ForwardUsageByRef);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_ForwardUsageStruct, b.__fbthrift_field_ForwardUsageStruct);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_ForwardUsageByRef, b.__fbthrift_field_ForwardUsageByRef);
   swap(a.__isset, b.__isset);
 }
 
@@ -1623,7 +1623,7 @@ std::partial_ordering ForwardUsageStruct::operator<=>([[maybe_unused]] const For
 
 void swap([[maybe_unused]] ForwardUsageStruct& a, [[maybe_unused]] ForwardUsageStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_foo, b.__fbthrift_field_foo);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_foo, b.__fbthrift_field_foo);
 }
 
 static_assert(
@@ -1701,7 +1701,7 @@ std::partial_ordering ForwardUsageByRef::operator<=>([[maybe_unused]] const Forw
 
 void swap([[maybe_unused]] ForwardUsageByRef& a, [[maybe_unused]] ForwardUsageByRef& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_foo, b.__fbthrift_field_foo);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_foo, b.__fbthrift_field_foo);
 }
 
 static_assert(
@@ -1783,7 +1783,7 @@ const ::std::map<::std::int32_t, ::apache::thrift::fixtures::types::IncompleteMa
 
 void swap([[maybe_unused]] IncompleteMap& a, [[maybe_unused]] IncompleteMap& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_field, b.__fbthrift_field_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field, b.__fbthrift_field_field);
   swap(a.__isset, b.__isset);
 }
 
@@ -1904,7 +1904,7 @@ std::unordered_map<::std::int32_t, ::apache::thrift::fixtures::types::CompleteMa
 
 void swap([[maybe_unused]] CompleteMap& a, [[maybe_unused]] CompleteMap& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_field, b.__fbthrift_field_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field, b.__fbthrift_field_field);
   swap(a.__isset, b.__isset);
 }
 
@@ -2025,7 +2025,7 @@ const ::std::list<::apache::thrift::fixtures::types::IncompleteListDep>* Incompl
 
 void swap([[maybe_unused]] IncompleteList& a, [[maybe_unused]] IncompleteList& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_field, b.__fbthrift_field_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field, b.__fbthrift_field_field);
   swap(a.__isset, b.__isset);
 }
 
@@ -2146,7 +2146,7 @@ folly::small_vector<::apache::thrift::fixtures::types::CompleteListDep>* Complet
 
 void swap([[maybe_unused]] CompleteList& a, [[maybe_unused]] CompleteList& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_field, b.__fbthrift_field_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field, b.__fbthrift_field_field);
   swap(a.__isset, b.__isset);
 }
 
@@ -2267,7 +2267,7 @@ const ::std::vector<::apache::thrift::fixtures::types::AdaptedListDep>* AdaptedL
 
 void swap([[maybe_unused]] AdaptedList& a, [[maybe_unused]] AdaptedList& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_field, b.__fbthrift_field_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field, b.__fbthrift_field_field);
   swap(a.__isset, b.__isset);
 }
 
@@ -2340,7 +2340,7 @@ const ::apache::thrift::fixtures::types::AdaptedList& AdaptedListDep::get_field(
 
 void swap([[maybe_unused]] AdaptedListDep& a, [[maybe_unused]] AdaptedListDep& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_field, b.__fbthrift_field_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field, b.__fbthrift_field_field);
   swap(a.__isset, b.__isset);
 }
 
@@ -2424,7 +2424,7 @@ const ::std::vector<::apache::thrift::fixtures::types::DependentAdaptedListDep>*
 
 void swap([[maybe_unused]] DependentAdaptedList& a, [[maybe_unused]] DependentAdaptedList& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_field, b.__fbthrift_field_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field, b.__fbthrift_field_field);
   swap(a.__isset, b.__isset);
 }
 
@@ -2494,7 +2494,7 @@ std::partial_ordering DependentAdaptedListDep::operator<=>([[maybe_unused]] cons
 
 void swap([[maybe_unused]] DependentAdaptedListDep& a, [[maybe_unused]] DependentAdaptedListDep& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_field, b.__fbthrift_field_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field, b.__fbthrift_field_field);
 }
 
 
@@ -2684,13 +2684,13 @@ const ::apache::thrift::fixtures::types::map_i32_i32_9565& AllocatorAware::get_a
 
 void swap([[maybe_unused]] AllocatorAware& a, [[maybe_unused]] AllocatorAware& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_aa_list, b.__fbthrift_field_aa_list);
-  swap(a.__fbthrift_field_aa_set, b.__fbthrift_field_aa_set);
-  swap(a.__fbthrift_field_aa_map, b.__fbthrift_field_aa_map);
-  swap(a.__fbthrift_field_aa_string, b.__fbthrift_field_aa_string);
-  swap(a.__fbthrift_field_not_a_container, b.__fbthrift_field_not_a_container);
-  swap(a.__fbthrift_field_aa_unique, b.__fbthrift_field_aa_unique);
-  swap(a.__fbthrift_field_aa_shared, b.__fbthrift_field_aa_shared);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_aa_list, b.__fbthrift_field_aa_list);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_aa_set, b.__fbthrift_field_aa_set);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_aa_map, b.__fbthrift_field_aa_map);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_aa_string, b.__fbthrift_field_aa_string);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_not_a_container, b.__fbthrift_field_not_a_container);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_aa_unique, b.__fbthrift_field_aa_unique);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_aa_shared, b.__fbthrift_field_aa_shared);
   swap(a.__isset, b.__isset);
   ::apache::thrift::detail::swap_allocators(a.__fbthrift_alloc, b.__fbthrift_alloc);
 }
@@ -2806,8 +2806,8 @@ std::partial_ordering AllocatorAware2::operator<=>([[maybe_unused]] const Alloca
 
 void swap([[maybe_unused]] AllocatorAware2& a, [[maybe_unused]] AllocatorAware2& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_not_a_container, b.__fbthrift_field_not_a_container);
-  swap(a.__fbthrift_field_box_field, b.__fbthrift_field_box_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_not_a_container, b.__fbthrift_field_not_a_container);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_box_field, b.__fbthrift_field_box_field);
   swap(a.__isset, b.__isset);
   ::apache::thrift::detail::swap_allocators(a.__fbthrift_alloc, b.__fbthrift_alloc);
 }
@@ -2903,9 +2903,9 @@ std::partial_ordering TypedefStruct::operator<=>([[maybe_unused]] const TypedefS
 
 void swap([[maybe_unused]] TypedefStruct& a, [[maybe_unused]] TypedefStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_i32_field, b.__fbthrift_field_i32_field);
-  swap(a.__fbthrift_field_IntTypedef_field, b.__fbthrift_field_IntTypedef_field);
-  swap(a.__fbthrift_field_UintTypedef_field, b.__fbthrift_field_UintTypedef_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_i32_field, b.__fbthrift_field_i32_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_IntTypedef_field, b.__fbthrift_field_IntTypedef_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_UintTypedef_field, b.__fbthrift_field_UintTypedef_field);
   swap(a.__isset, b.__isset);
 }
 
@@ -2959,7 +2959,7 @@ std::partial_ordering StructWithDoubleUnderscores::operator<=>([[maybe_unused]] 
 
 void swap([[maybe_unused]] StructWithDoubleUnderscores& a, [[maybe_unused]] StructWithDoubleUnderscores& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field___field, b.__fbthrift_field___field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field___field, b.__fbthrift_field___field);
   swap(a.__isset, b.__isset);
 }
 

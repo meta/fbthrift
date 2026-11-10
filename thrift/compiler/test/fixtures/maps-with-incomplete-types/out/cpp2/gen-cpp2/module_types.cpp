@@ -87,7 +87,7 @@ std::unordered_map<::std::int32_t, ::apache::thrift::test::B>* A::get_some_map()
 
 void swap([[maybe_unused]] A& a, [[maybe_unused]] A& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_some_map, b.__fbthrift_field_some_map);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_some_map, b.__fbthrift_field_some_map);
   swap(a.__isset, b.__isset);
 }
 
@@ -156,7 +156,7 @@ const ::std::int32_t* B::get_field() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
 
 void swap([[maybe_unused]] B& a, [[maybe_unused]] B& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_field, b.__fbthrift_field_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field, b.__fbthrift_field_field);
   swap(a.__isset, b.__isset);
 }
 

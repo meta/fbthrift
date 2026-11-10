@@ -231,14 +231,14 @@ const ::facebook::thrift::compiler::test::fixtures::default_values_rectification
 
 void swap([[maybe_unused]] TestStruct& a, [[maybe_unused]] TestStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_unqualified_int_field, b.__fbthrift_field_unqualified_int_field);
-  swap(a.__fbthrift_field_unqualified_bool_field, b.__fbthrift_field_unqualified_bool_field);
-  swap(a.__fbthrift_field_unqualified_list_field, b.__fbthrift_field_unqualified_list_field);
-  swap(a.__fbthrift_field_unqualified_struct_field, b.__fbthrift_field_unqualified_struct_field);
-  swap(a.__fbthrift_field_optional_int_field, b.__fbthrift_field_optional_int_field);
-  swap(a.__fbthrift_field_optional_bool_field, b.__fbthrift_field_optional_bool_field);
-  swap(a.__fbthrift_field_optional_list_field, b.__fbthrift_field_optional_list_field);
-  swap(a.__fbthrift_field_optional_struct_field, b.__fbthrift_field_optional_struct_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_unqualified_int_field, b.__fbthrift_field_unqualified_int_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_unqualified_bool_field, b.__fbthrift_field_unqualified_bool_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_unqualified_list_field, b.__fbthrift_field_unqualified_list_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_unqualified_struct_field, b.__fbthrift_field_unqualified_struct_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_optional_int_field, b.__fbthrift_field_optional_int_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_optional_bool_field, b.__fbthrift_field_optional_bool_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_optional_list_field, b.__fbthrift_field_optional_list_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_optional_struct_field, b.__fbthrift_field_optional_struct_field);
   swap(a.__isset, b.__isset);
 }
 

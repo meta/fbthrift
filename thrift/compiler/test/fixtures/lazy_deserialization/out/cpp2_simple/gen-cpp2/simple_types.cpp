@@ -141,10 +141,10 @@ const ::std::vector<::std::int32_t>& Foo::get_field4() const& [[FOLLY_ATTR_CLANG
 
 void swap([[maybe_unused]] Foo& a, [[maybe_unused]] Foo& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
-  swap(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
-  swap(a.__fbthrift_field_field3, b.__fbthrift_field_field3);
-  swap(a.__fbthrift_field_field4, b.__fbthrift_field_field4);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field3, b.__fbthrift_field_field3);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field4, b.__fbthrift_field_field4);
   swap(a.__isset, b.__isset);
 }
 
@@ -299,11 +299,11 @@ void swap([[maybe_unused]] LazyFoo& a, [[maybe_unused]] LazyFoo& b) {
   const auto relaxed = std::memory_order_relaxed;
   swap(a.__fbthrift_protocol_, b.__fbthrift_protocol_);
   swap(a.__fbthrift_serializedData_, b.__fbthrift_serializedData_);
-  swap(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
-  swap(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
-  swap(a.__fbthrift_field_field3, b.__fbthrift_field_field3);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field3, b.__fbthrift_field_field3);
   a.__fbthrift_isDeserialized_.field3.store(b.__fbthrift_isDeserialized_.field3.exchange(a.__fbthrift_isDeserialized_.field3.load(relaxed), relaxed), relaxed);
-  swap(a.__fbthrift_field_field4, b.__fbthrift_field_field4);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field4, b.__fbthrift_field_field4);
   a.__fbthrift_isDeserialized_.field4.store(b.__fbthrift_isDeserialized_.field4.exchange(a.__fbthrift_isDeserialized_.field4.load(relaxed), relaxed), relaxed);
   swap(a.__isset, b.__isset);
 }
@@ -420,10 +420,10 @@ const ::std::vector<::std::int32_t>* OptionalFoo::get_field4() const& [[FOLLY_AT
 
 void swap([[maybe_unused]] OptionalFoo& a, [[maybe_unused]] OptionalFoo& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
-  swap(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
-  swap(a.__fbthrift_field_field3, b.__fbthrift_field_field3);
-  swap(a.__fbthrift_field_field4, b.__fbthrift_field_field4);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field3, b.__fbthrift_field_field3);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field4, b.__fbthrift_field_field4);
   swap(a.__isset, b.__isset);
 }
 
@@ -581,11 +581,11 @@ void swap([[maybe_unused]] OptionalLazyFoo& a, [[maybe_unused]] OptionalLazyFoo&
   const auto relaxed = std::memory_order_relaxed;
   swap(a.__fbthrift_protocol_, b.__fbthrift_protocol_);
   swap(a.__fbthrift_serializedData_, b.__fbthrift_serializedData_);
-  swap(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
-  swap(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
-  swap(a.__fbthrift_field_field3, b.__fbthrift_field_field3);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field3, b.__fbthrift_field_field3);
   a.__fbthrift_isDeserialized_.field3.store(b.__fbthrift_isDeserialized_.field3.exchange(a.__fbthrift_isDeserialized_.field3.load(relaxed), relaxed), relaxed);
-  swap(a.__fbthrift_field_field4, b.__fbthrift_field_field4);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field4, b.__fbthrift_field_field4);
   a.__fbthrift_isDeserialized_.field4.store(b.__fbthrift_isDeserialized_.field4.exchange(a.__fbthrift_isDeserialized_.field4.load(relaxed), relaxed), relaxed);
   swap(a.__isset, b.__isset);
 }
@@ -719,10 +719,10 @@ void swap([[maybe_unused]] TerseLazyFooNoChecksum& a, [[maybe_unused]] TerseLazy
   const auto relaxed = std::memory_order_relaxed;
   swap(a.__fbthrift_protocol_, b.__fbthrift_protocol_);
   swap(a.__fbthrift_serializedData_, b.__fbthrift_serializedData_);
-  swap(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
-  swap(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
   a.__fbthrift_isDeserialized_.field2.store(b.__fbthrift_isDeserialized_.field2.exchange(a.__fbthrift_isDeserialized_.field2.load(relaxed), relaxed), relaxed);
-  swap(a.__fbthrift_field_field3, b.__fbthrift_field_field3);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field3, b.__fbthrift_field_field3);
   a.__fbthrift_isDeserialized_.field3.store(b.__fbthrift_isDeserialized_.field3.exchange(a.__fbthrift_isDeserialized_.field3.load(relaxed), relaxed), relaxed);
 }
 
@@ -865,11 +865,11 @@ void swap([[maybe_unused]] OptionalBoxedLazyFoo& a, [[maybe_unused]] OptionalBox
   const auto relaxed = std::memory_order_relaxed;
   swap(a.__fbthrift_protocol_, b.__fbthrift_protocol_);
   swap(a.__fbthrift_serializedData_, b.__fbthrift_serializedData_);
-  swap(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
-  swap(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
-  swap(a.__fbthrift_field_field3, b.__fbthrift_field_field3);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field3, b.__fbthrift_field_field3);
   a.__fbthrift_isDeserialized_.field3.store(b.__fbthrift_isDeserialized_.field3.exchange(a.__fbthrift_isDeserialized_.field3.load(relaxed), relaxed), relaxed);
-  swap(a.__fbthrift_field_field4, b.__fbthrift_field_field4);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field4, b.__fbthrift_field_field4);
   a.__fbthrift_isDeserialized_.field4.store(b.__fbthrift_isDeserialized_.field4.exchange(a.__fbthrift_isDeserialized_.field4.load(relaxed), relaxed), relaxed);
 }
 
@@ -1031,13 +1031,13 @@ void swap([[maybe_unused]] LazyCppRef& a, [[maybe_unused]] LazyCppRef& b) {
   const auto relaxed = std::memory_order_relaxed;
   swap(a.__fbthrift_protocol_, b.__fbthrift_protocol_);
   swap(a.__fbthrift_serializedData_, b.__fbthrift_serializedData_);
-  swap(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
   a.__fbthrift_isDeserialized_.field1.store(b.__fbthrift_isDeserialized_.field1.exchange(a.__fbthrift_isDeserialized_.field1.load(relaxed), relaxed), relaxed);
-  swap(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
   a.__fbthrift_isDeserialized_.field2.store(b.__fbthrift_isDeserialized_.field2.exchange(a.__fbthrift_isDeserialized_.field2.load(relaxed), relaxed), relaxed);
-  swap(a.__fbthrift_field_field3, b.__fbthrift_field_field3);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field3, b.__fbthrift_field_field3);
   a.__fbthrift_isDeserialized_.field3.store(b.__fbthrift_isDeserialized_.field3.exchange(a.__fbthrift_isDeserialized_.field3.load(relaxed), relaxed), relaxed);
-  swap(a.__fbthrift_field_field4, b.__fbthrift_field_field4);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field4, b.__fbthrift_field_field4);
   a.__fbthrift_isDeserialized_.field4.store(b.__fbthrift_isDeserialized_.field4.exchange(a.__fbthrift_isDeserialized_.field4.load(relaxed), relaxed), relaxed);
 }
 
@@ -1176,12 +1176,12 @@ const ::std::map<::std::int16_t, ::std::int64_t>& IndexedFoo::get_field_id_to_si
 
 void swap([[maybe_unused]] IndexedFoo& a, [[maybe_unused]] IndexedFoo& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_serialized_data_size, b.__fbthrift_field_serialized_data_size);
-  swap(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
-  swap(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
-  swap(a.__fbthrift_field_field3, b.__fbthrift_field_field3);
-  swap(a.__fbthrift_field_field4, b.__fbthrift_field_field4);
-  swap(a.__fbthrift_field_field_id_to_size, b.__fbthrift_field_field_id_to_size);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_serialized_data_size, b.__fbthrift_field_serialized_data_size);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field3, b.__fbthrift_field_field3);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field4, b.__fbthrift_field_field4);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field_id_to_size, b.__fbthrift_field_field_id_to_size);
   swap(a.__isset, b.__isset);
 }
 
@@ -1320,12 +1320,12 @@ const ::std::map<::std::int16_t, ::std::int64_t>& OptionalIndexedFoo::get_field_
 
 void swap([[maybe_unused]] OptionalIndexedFoo& a, [[maybe_unused]] OptionalIndexedFoo& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_serialized_data_size, b.__fbthrift_field_serialized_data_size);
-  swap(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
-  swap(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
-  swap(a.__fbthrift_field_field3, b.__fbthrift_field_field3);
-  swap(a.__fbthrift_field_field4, b.__fbthrift_field_field4);
-  swap(a.__fbthrift_field_field_id_to_size, b.__fbthrift_field_field_id_to_size);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_serialized_data_size, b.__fbthrift_field_serialized_data_size);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field3, b.__fbthrift_field_field3);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field4, b.__fbthrift_field_field4);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field_id_to_size, b.__fbthrift_field_field_id_to_size);
   swap(a.__isset, b.__isset);
 }
 

@@ -95,8 +95,8 @@ bool NonOrderableStruct::operator==([[maybe_unused]] const NonOrderableStruct& r
 
 void swap([[maybe_unused]] NonOrderableStruct& a, [[maybe_unused]] NonOrderableStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
-  swap(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
   swap(a.__isset, b.__isset);
 }
 
@@ -295,8 +295,8 @@ std::partial_ordering OrderableStruct::operator<=>([[maybe_unused]] const Ordera
 
 void swap([[maybe_unused]] OrderableStruct& a, [[maybe_unused]] OrderableStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
-  swap(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
   swap(a.__isset, b.__isset);
 }
 

@@ -120,8 +120,8 @@ std::partial_ordering CustomException::operator<=>([[maybe_unused]] const Custom
 
 void swap([[maybe_unused]] CustomException& a, [[maybe_unused]] CustomException& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_name, b.__fbthrift_field_name);
-  swap(a.__fbthrift_field_result, b.__fbthrift_field_result);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_name, b.__fbthrift_field_name);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_result, b.__fbthrift_field_result);
   swap(a.__isset, b.__isset);
 }
 

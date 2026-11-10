@@ -66,7 +66,7 @@ std::partial_ordering ReflectionStruct::operator<=>([[maybe_unused]] const Refle
 
 void swap([[maybe_unused]] ReflectionStruct& a, [[maybe_unused]] ReflectionStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_fieldA, b.__fbthrift_field_fieldA);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldA, b.__fbthrift_field_fieldA);
   swap(a.__isset, b.__isset);
 }
 

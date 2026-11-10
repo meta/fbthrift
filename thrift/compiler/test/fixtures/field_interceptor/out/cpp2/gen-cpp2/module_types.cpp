@@ -99,12 +99,12 @@ std::partial_ordering InterceptedFields::operator<=>([[maybe_unused]] const Inte
 
 void swap([[maybe_unused]] InterceptedFields& a, [[maybe_unused]] InterceptedFields& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_access_field, b.__fbthrift_field_access_field);
-  swap(a.__fbthrift_field_access_shared_field, b.__fbthrift_field_access_shared_field);
-  swap(a.__fbthrift_field_access_optional_shared_field, b.__fbthrift_field_access_optional_shared_field);
-  swap(a.__fbthrift_field_access_shared_const_field, b.__fbthrift_field_access_shared_const_field);
-  swap(a.__fbthrift_field_access_optional_shared_const_field, b.__fbthrift_field_access_optional_shared_const_field);
-  swap(a.__fbthrift_field_access_optional_boxed_field, b.__fbthrift_field_access_optional_boxed_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_access_field, b.__fbthrift_field_access_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_access_shared_field, b.__fbthrift_field_access_shared_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_access_optional_shared_field, b.__fbthrift_field_access_optional_shared_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_access_shared_const_field, b.__fbthrift_field_access_shared_const_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_access_optional_shared_const_field, b.__fbthrift_field_access_optional_shared_const_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_access_optional_boxed_field, b.__fbthrift_field_access_optional_boxed_field);
   swap(a.__isset, b.__isset);
 }
 

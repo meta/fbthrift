@@ -113,7 +113,7 @@ std::partial_ordering MyStructNestedAnnotation::operator<=>([[maybe_unused]] con
 
 void swap([[maybe_unused]] MyStructNestedAnnotation& a, [[maybe_unused]] MyStructNestedAnnotation& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_name, b.__fbthrift_field_name);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_name, b.__fbthrift_field_name);
   swap(a.__isset, b.__isset);
 }
 
@@ -415,15 +415,15 @@ const ::cpp2::list_string_6884& YourStruct::get_cpp_type_annotation() const& [[F
 
 void swap([[maybe_unused]] YourStruct& a, [[maybe_unused]] YourStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_majorVer, b.__fbthrift_field_majorVer);
-  swap(a.__fbthrift_field_abstract, b.__fbthrift_field_abstract);
-  swap(a.__fbthrift_field_annotation_with_quote, b.__fbthrift_field_annotation_with_quote);
-  swap(a.__fbthrift_field_class_, b.__fbthrift_field_class_);
-  swap(a.__fbthrift_field_annotation_with_trailing_comma, b.__fbthrift_field_annotation_with_trailing_comma);
-  swap(a.__fbthrift_field_empty_annotations, b.__fbthrift_field_empty_annotations);
-  swap(a.__fbthrift_field_my_enum, b.__fbthrift_field_my_enum);
-  swap(a.__fbthrift_field_cpp_type_annotation, b.__fbthrift_field_cpp_type_annotation);
-  swap(a.__fbthrift_field_my_union, b.__fbthrift_field_my_union);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_majorVer, b.__fbthrift_field_majorVer);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_abstract, b.__fbthrift_field_abstract);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_annotation_with_quote, b.__fbthrift_field_annotation_with_quote);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_class_, b.__fbthrift_field_class_);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_annotation_with_trailing_comma, b.__fbthrift_field_annotation_with_trailing_comma);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_empty_annotations, b.__fbthrift_field_empty_annotations);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_my_enum, b.__fbthrift_field_my_enum);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_cpp_type_annotation, b.__fbthrift_field_cpp_type_annotation);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_my_union, b.__fbthrift_field_my_union);
   swap(a.__isset, b.__isset);
 }
 
@@ -509,8 +509,8 @@ std::partial_ordering SecretStruct::operator<=>([[maybe_unused]] const SecretStr
 
 void swap([[maybe_unused]] SecretStruct& a, [[maybe_unused]] SecretStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_id, b.__fbthrift_field_id);
-  swap(a.__fbthrift_field_password, b.__fbthrift_field_password);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_id, b.__fbthrift_field_id);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_password, b.__fbthrift_field_password);
   swap(a.__isset, b.__isset);
 }
 

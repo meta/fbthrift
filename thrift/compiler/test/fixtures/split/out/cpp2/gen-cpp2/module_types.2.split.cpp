@@ -163,13 +163,13 @@ bool& MyStruct::set_idempotent(bool idempotent_) {
 
 void swap([[maybe_unused]] MyStruct& a, [[maybe_unused]] MyStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_MyIntField, b.__fbthrift_field_MyIntField);
-  swap(a.__fbthrift_field_MyStringField, b.__fbthrift_field_MyStringField);
-  swap(a.__fbthrift_field_MyDataField, b.__fbthrift_field_MyDataField);
-  swap(a.__fbthrift_field_myEnum, b.__fbthrift_field_myEnum);
-  swap(a.__fbthrift_field_oneway, b.__fbthrift_field_oneway);
-  swap(a.__fbthrift_field_readonly, b.__fbthrift_field_readonly);
-  swap(a.__fbthrift_field_idempotent, b.__fbthrift_field_idempotent);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyIntField, b.__fbthrift_field_MyIntField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyStringField, b.__fbthrift_field_MyStringField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyDataField, b.__fbthrift_field_MyDataField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myEnum, b.__fbthrift_field_myEnum);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_oneway, b.__fbthrift_field_oneway);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_readonly, b.__fbthrift_field_readonly);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_idempotent, b.__fbthrift_field_idempotent);
   swap(a.__isset, b.__isset);
 }
 

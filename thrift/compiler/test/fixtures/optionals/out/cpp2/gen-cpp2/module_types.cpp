@@ -135,10 +135,10 @@ double& Color::set_alpha(double alpha_) {
 
 void swap([[maybe_unused]] Color& a, [[maybe_unused]] Color& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_red, b.__fbthrift_field_red);
-  swap(a.__fbthrift_field_green, b.__fbthrift_field_green);
-  swap(a.__fbthrift_field_blue, b.__fbthrift_field_blue);
-  swap(a.__fbthrift_field_alpha, b.__fbthrift_field_alpha);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_red, b.__fbthrift_field_red);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_green, b.__fbthrift_field_green);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_blue, b.__fbthrift_field_blue);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_alpha, b.__fbthrift_field_alpha);
   swap(a.__isset, b.__isset);
 }
 
@@ -268,11 +268,11 @@ bool& Vehicle::set_hasAC(bool hasAC_) {
 
 void swap([[maybe_unused]] Vehicle& a, [[maybe_unused]] Vehicle& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_color, b.__fbthrift_field_color);
-  swap(a.__fbthrift_field_licensePlate, b.__fbthrift_field_licensePlate);
-  swap(a.__fbthrift_field_description, b.__fbthrift_field_description);
-  swap(a.__fbthrift_field_name, b.__fbthrift_field_name);
-  swap(a.__fbthrift_field_hasAC, b.__fbthrift_field_hasAC);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_color, b.__fbthrift_field_color);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_licensePlate, b.__fbthrift_field_licensePlate);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_description, b.__fbthrift_field_description);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_name, b.__fbthrift_field_name);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_hasAC, b.__fbthrift_field_hasAC);
   swap(a.__isset, b.__isset);
 }
 
@@ -479,16 +479,16 @@ const ::std::vector<::cpp2::Vehicle>* Person::get_vehicles() const& [[FOLLY_ATTR
 
 void swap([[maybe_unused]] Person& a, [[maybe_unused]] Person& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_id, b.__fbthrift_field_id);
-  swap(a.__fbthrift_field_name, b.__fbthrift_field_name);
-  swap(a.__fbthrift_field_age, b.__fbthrift_field_age);
-  swap(a.__fbthrift_field_address, b.__fbthrift_field_address);
-  swap(a.__fbthrift_field_favoriteColor, b.__fbthrift_field_favoriteColor);
-  swap(a.__fbthrift_field_friends, b.__fbthrift_field_friends);
-  swap(a.__fbthrift_field_bestFriend, b.__fbthrift_field_bestFriend);
-  swap(a.__fbthrift_field_petNames, b.__fbthrift_field_petNames);
-  swap(a.__fbthrift_field_afraidOfAnimal, b.__fbthrift_field_afraidOfAnimal);
-  swap(a.__fbthrift_field_vehicles, b.__fbthrift_field_vehicles);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_id, b.__fbthrift_field_id);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_name, b.__fbthrift_field_name);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_age, b.__fbthrift_field_age);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_address, b.__fbthrift_field_address);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_favoriteColor, b.__fbthrift_field_favoriteColor);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_friends, b.__fbthrift_field_friends);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_bestFriend, b.__fbthrift_field_bestFriend);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_petNames, b.__fbthrift_field_petNames);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_afraidOfAnimal, b.__fbthrift_field_afraidOfAnimal);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_vehicles, b.__fbthrift_field_vehicles);
   swap(a.__isset, b.__isset);
 }
 

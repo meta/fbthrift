@@ -80,7 +80,7 @@ std::partial_ordering BiDiSinkException::operator<=>([[maybe_unused]] const BiDi
 
 void swap([[maybe_unused]] BiDiSinkException& a, [[maybe_unused]] BiDiSinkException& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_message, b.__fbthrift_field_message);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_message, b.__fbthrift_field_message);
   swap(a.__isset, b.__isset);
 }
 
@@ -144,7 +144,7 @@ std::partial_ordering BiDiStreamException::operator<=>([[maybe_unused]] const Bi
 
 void swap([[maybe_unused]] BiDiStreamException& a, [[maybe_unused]] BiDiStreamException& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_message, b.__fbthrift_field_message);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_message, b.__fbthrift_field_message);
   swap(a.__isset, b.__isset);
 }
 
@@ -208,7 +208,7 @@ std::partial_ordering BiDiMethodException::operator<=>([[maybe_unused]] const Bi
 
 void swap([[maybe_unused]] BiDiMethodException& a, [[maybe_unused]] BiDiMethodException& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_message, b.__fbthrift_field_message);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_message, b.__fbthrift_field_message);
   swap(a.__isset, b.__isset);
 }
 

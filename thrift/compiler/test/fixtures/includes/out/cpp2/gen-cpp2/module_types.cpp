@@ -105,9 +105,9 @@ const ::cpp2::Included& MyStruct::get_MyOtherIncludedField() const& [[FOLLY_ATTR
 
 void swap([[maybe_unused]] MyStruct& a, [[maybe_unused]] MyStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_MyIncludedField, b.__fbthrift_field_MyIncludedField);
-  swap(a.__fbthrift_field_MyOtherIncludedField, b.__fbthrift_field_MyOtherIncludedField);
-  swap(a.__fbthrift_field_MyIncludedInt, b.__fbthrift_field_MyIncludedInt);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyIncludedField, b.__fbthrift_field_MyIncludedField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyOtherIncludedField, b.__fbthrift_field_MyOtherIncludedField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyIncludedInt, b.__fbthrift_field_MyIncludedInt);
   swap(a.__isset, b.__isset);
 }
 

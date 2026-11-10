@@ -211,7 +211,7 @@ std::partial_ordering SomeStruct::operator<=>([[maybe_unused]] const SomeStruct&
 
 void swap([[maybe_unused]] SomeStruct& a, [[maybe_unused]] SomeStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_fieldA, b.__fbthrift_field_fieldA);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldA, b.__fbthrift_field_fieldA);
   swap(a.__isset, b.__isset);
 }
 

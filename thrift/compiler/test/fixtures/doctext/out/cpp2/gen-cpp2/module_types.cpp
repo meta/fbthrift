@@ -99,7 +99,7 @@ std::partial_ordering A::operator<=>([[maybe_unused]] const A& rhs) const {
 
 void swap([[maybe_unused]] A& a, [[maybe_unused]] A& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_useless_field, b.__fbthrift_field_useless_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_useless_field, b.__fbthrift_field_useless_field);
   swap(a.__isset, b.__isset);
 }
 
@@ -285,7 +285,7 @@ std::partial_ordering Bang::operator<=>([[maybe_unused]] const Bang& rhs) const 
 
 void swap([[maybe_unused]] Bang& a, [[maybe_unused]] Bang& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_message, b.__fbthrift_field_message);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_message, b.__fbthrift_field_message);
   swap(a.__isset, b.__isset);
 }
 

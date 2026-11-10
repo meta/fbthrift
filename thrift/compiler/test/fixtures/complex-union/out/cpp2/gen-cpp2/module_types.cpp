@@ -537,9 +537,9 @@ const ::cpp2::containerTypedef& Val::get_typedefValue() const& [[FOLLY_ATTR_CLAN
 
 void swap([[maybe_unused]] Val& a, [[maybe_unused]] Val& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_strVal, b.__fbthrift_field_strVal);
-  swap(a.__fbthrift_field_intVal, b.__fbthrift_field_intVal);
-  swap(a.__fbthrift_field_typedefValue, b.__fbthrift_field_typedefValue);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_strVal, b.__fbthrift_field_strVal);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_intVal, b.__fbthrift_field_intVal);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_typedefValue, b.__fbthrift_field_typedefValue);
   swap(a.__isset, b.__isset);
 }
 
@@ -849,7 +849,7 @@ std::partial_ordering NonCopyableStruct::operator<=>([[maybe_unused]] const NonC
 
 void swap([[maybe_unused]] NonCopyableStruct& a, [[maybe_unused]] NonCopyableStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_num, b.__fbthrift_field_num);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_num, b.__fbthrift_field_num);
   swap(a.__isset, b.__isset);
 }
 

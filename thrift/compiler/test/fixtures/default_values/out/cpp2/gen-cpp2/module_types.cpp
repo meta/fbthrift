@@ -74,7 +74,7 @@ std::partial_ordering TrivialStruct::operator<=>([[maybe_unused]] const TrivialS
 
 void swap([[maybe_unused]] TrivialStruct& a, [[maybe_unused]] TrivialStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_int_value, b.__fbthrift_field_int_value);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_int_value, b.__fbthrift_field_int_value);
   swap(a.__isset, b.__isset);
 }
 
@@ -140,8 +140,8 @@ std::partial_ordering TrivialStructWithDefault::operator<=>([[maybe_unused]] con
 
 void swap([[maybe_unused]] TrivialStructWithDefault& a, [[maybe_unused]] TrivialStructWithDefault& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_int_value_1, b.__fbthrift_field_int_value_1);
-  swap(a.__fbthrift_field_int_value_2, b.__fbthrift_field_int_value_2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_int_value_1, b.__fbthrift_field_int_value_1);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_int_value_2, b.__fbthrift_field_int_value_2);
   swap(a.__isset, b.__isset);
 }
 
@@ -254,12 +254,12 @@ const ::facebook::thrift::compiler::test::fixtures::default_values::TrivialStruc
 
 void swap([[maybe_unused]] StructWithNoCustomDefaultValues& a, [[maybe_unused]] StructWithNoCustomDefaultValues& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_unqualified_integer, b.__fbthrift_field_unqualified_integer);
-  swap(a.__fbthrift_field_optional_integer, b.__fbthrift_field_optional_integer);
-  swap(a.__fbthrift_field_required_integer, b.__fbthrift_field_required_integer);
-  swap(a.__fbthrift_field_unqualified_struct, b.__fbthrift_field_unqualified_struct);
-  swap(a.__fbthrift_field_optional_struct, b.__fbthrift_field_optional_struct);
-  swap(a.__fbthrift_field_required_struct, b.__fbthrift_field_required_struct);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_unqualified_integer, b.__fbthrift_field_unqualified_integer);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_optional_integer, b.__fbthrift_field_optional_integer);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_required_integer, b.__fbthrift_field_required_integer);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_unqualified_struct, b.__fbthrift_field_unqualified_struct);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_optional_struct, b.__fbthrift_field_optional_struct);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_required_struct, b.__fbthrift_field_required_struct);
   swap(a.__isset, b.__isset);
 }
 
@@ -412,14 +412,14 @@ const ::facebook::thrift::compiler::test::fixtures::default_values::TrivialStruc
 
 void swap([[maybe_unused]] StructWithCustomDefaultValues& a, [[maybe_unused]] StructWithCustomDefaultValues& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_unqualified_integer, b.__fbthrift_field_unqualified_integer);
-  swap(a.__fbthrift_field_optional_integer, b.__fbthrift_field_optional_integer);
-  swap(a.__fbthrift_field_required_integer, b.__fbthrift_field_required_integer);
-  swap(a.__fbthrift_field_unqualified_struct, b.__fbthrift_field_unqualified_struct);
-  swap(a.__fbthrift_field_optional_struct, b.__fbthrift_field_optional_struct);
-  swap(a.__fbthrift_field_required_struct, b.__fbthrift_field_required_struct);
-  swap(a.__fbthrift_field_struct_with_default_unspecified, b.__fbthrift_field_struct_with_default_unspecified);
-  swap(a.__fbthrift_field_struct_with_default_specified, b.__fbthrift_field_struct_with_default_specified);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_unqualified_integer, b.__fbthrift_field_unqualified_integer);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_optional_integer, b.__fbthrift_field_optional_integer);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_required_integer, b.__fbthrift_field_required_integer);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_unqualified_struct, b.__fbthrift_field_unqualified_struct);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_optional_struct, b.__fbthrift_field_optional_struct);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_required_struct, b.__fbthrift_field_required_struct);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_struct_with_default_unspecified, b.__fbthrift_field_struct_with_default_unspecified);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_struct_with_default_specified, b.__fbthrift_field_struct_with_default_specified);
   swap(a.__isset, b.__isset);
 }
 
@@ -586,12 +586,12 @@ const ::std::map<::std::int32_t, ::std::int32_t>& StructWithCollectionDefaultVal
 
 void swap([[maybe_unused]] StructWithCollectionDefaultValues& a, [[maybe_unused]] StructWithCollectionDefaultValues& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_list_with_list_value, b.__fbthrift_field_list_with_list_value);
-  swap(a.__fbthrift_field_set_with_list_value, b.__fbthrift_field_set_with_list_value);
-  swap(a.__fbthrift_field_map_with_map_value, b.__fbthrift_field_map_with_map_value);
-  swap(a.__fbthrift_field_list_with_map_value, b.__fbthrift_field_list_with_map_value);
-  swap(a.__fbthrift_field_set_with_map_value, b.__fbthrift_field_set_with_map_value);
-  swap(a.__fbthrift_field_map_with_list_value, b.__fbthrift_field_map_with_list_value);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_list_with_list_value, b.__fbthrift_field_list_with_list_value);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_set_with_list_value, b.__fbthrift_field_set_with_list_value);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_map_with_map_value, b.__fbthrift_field_map_with_map_value);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_list_with_map_value, b.__fbthrift_field_list_with_map_value);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_set_with_map_value, b.__fbthrift_field_set_with_map_value);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_map_with_list_value, b.__fbthrift_field_map_with_list_value);
   swap(a.__isset, b.__isset);
 }
 

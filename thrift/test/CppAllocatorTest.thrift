@@ -644,3 +644,15 @@ struct CopyPropagatingParent {
   @cpp.AllowLegacyNonOptionalRef
   2: CopyPropagatingChildAA c;
 }
+
+// PMR fields without `cpp.allocator`. The IOBuf pointer makes copy assignment
+// copy and swap.
+struct PmrTypedFields {
+  @cpp.Type{name = "std::pmr::string"}
+  1: string name;
+  @cpp.Type{template = "std::pmr::vector"}
+  2: list<i32> ids;
+  3: i32 count;
+  @cpp.Type{name = "std::unique_ptr<folly::IOBuf>"}
+  4: binary iobuf;
+}
