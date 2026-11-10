@@ -6,5 +6,3 @@ shared by several Facebook projects.  Its files are in `./fbcode_builder`
 repo).
 
 Start with the READMEs in the `fbcode_builder` directory.
-
-`./fbcode_builder_config.py` contains the project-specific configuration.

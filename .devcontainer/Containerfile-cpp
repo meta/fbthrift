@@ -27,8 +27,8 @@ RUN apt update \
     && apt clean \
     && rm -rf /var/lib/apt/lists/*
 
-COPY build/fbcode_builder /tmp/fbcode_builder
-COPY build/deps /tmp/deps
+COPY tool/fbcode_builder /tmp/fbcode_builder
+COPY tool/deps /tmp/deps
 
 RUN apt-get update \
     && python3 /tmp/fbcode_builder/getdeps.py --allow-system-packages \

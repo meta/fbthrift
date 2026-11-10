@@ -69,7 +69,7 @@ jobs:
     # CMP0141 enables the setting; Thrift's cmake_minimum_required predates it.
     - name: Configure
       run: >
-        cmake -B _build -G Ninja
+        cmake -B build -G Ninja
         -DCMAKE_BUILD_TYPE=RelWithDebInfo
         -DCMAKE_PREFIX_PATH=%VCPKG_INSTALLATION_ROOT%/installed/x64-windows
         -DCMAKE_C_COMPILER_LAUNCHER=sccache
@@ -81,7 +81,7 @@ jobs:
     # A bare -j leaves it to Ninja, which runs cores + 2 jobs. getdeps budgets
     # 3 GB per Thrift compile, so this 4-vCPU, 16 GB runner fits four.
     - name: Build
-      run: cmake --build _build -j 4
+      run: cmake --build build -j 4
 
     - name: Show sccache stats
       if: always()
