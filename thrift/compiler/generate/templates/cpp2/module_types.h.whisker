@@ -26,6 +26,9 @@
 
 #include <compare>
 #include <thrift/lib/cpp2/gen/module_types_h.h>
+{{#if program.arena_fields?}}
+#include <thrift/lib/cpp2/pmr/Rebind.h>
+{{/if program.arena_fields?}}
 {{#if (has_compiler_option? "frozen")}}
 #include <thrift/lib/cpp/Frozen.h>
 {{/if (has_compiler_option? "frozen")}}

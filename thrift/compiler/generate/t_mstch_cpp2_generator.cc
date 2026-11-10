@@ -1123,6 +1123,14 @@ class t_mstch_cpp2_generator : public t_whisker_generator {
           return cpp_context_->field_default_const_ref_programs().contains(
               &program);
         });
+    def.property("arena_fields?", [](const t_program& self) {
+      return std::any_of(
+          self.structured_definitions().begin(),
+          self.structured_definitions().end(),
+          [](const t_structured* strct) {
+            return cpp2::has_arena_fields(*strct);
+          });
+    });
     def.property("frozen_packed?", [this](const t_program&) {
       return get_compiler_option("frozen") == "packed";
     });

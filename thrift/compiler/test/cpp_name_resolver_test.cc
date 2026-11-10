@@ -49,6 +49,15 @@ struct ref_builder : gen::base_thrift_annotation_builder {
     return make_inst(std::move(map));
   }
 };
+
+struct arena_builder : gen::base_thrift_annotation_builder {
+  explicit arena_builder(t_program& p)
+      : base_thrift_annotation_builder(p, "cpp", "Arena") {}
+
+  std::unique_ptr<t_const> make() {
+    return make_inst(t_const_value::make_map());
+  }
+};
 } // namespace
 
 class CppNameResolverTest : public ::testing::Test {
@@ -698,4 +707,74 @@ TEST_F(CppNameResolverTest, has_reference_type_false) {
     field.add_structured_annotation(
         ref_builder(program_, "cpp").make((int)RefType::SharedMutable));
   }
+}
+
+TEST_F(CppNameResolverTest, arena_fields) {
+  arena_builder arena(program_);
+  t_set ints(t_primitive_type::t_i32());
+  t_map groups(t_primitive_type::t_string(), ints);
+  t_struct elem(&program_, "Elem");
+  t_list elems(elem);
+  t_struct strct(&program_, "Arenas");
+  t_field& str = strct.create_field(t_primitive_type::t_string(), "str", 1);
+  t_field& map = strct.create_field(groups, "groups", 2);
+  t_field& list = strct.create_field(elems, "elems", 3);
+  for (t_field* field : {&str, &map, &list}) {
+    field->add_structured_annotation(arena.make());
+  }
+
+  const std::string rebound_str =
+      "::apache::thrift::pmr::Rebind<::std::string>::type";
+  EXPECT_EQ(resolver_.get_native_type(str, strct), rebound_str);
+  EXPECT_EQ(resolver_.get_standard_type(str), rebound_str);
+  EXPECT_EQ(
+      resolver_.get_type_tag(str, strct),
+      "::apache::thrift::type::cpp_pmr_type<" + rebound_str +
+          ", ::apache::thrift::type::string_t>");
+
+  const std::string rebound_map =
+      "::apache::thrift::pmr::Rebind<::std::map<::std::string, "
+      "::std::set<::std::int32_t>>>::type";
+  EXPECT_EQ(resolver_.get_native_type(map, strct), rebound_map);
+  EXPECT_EQ(resolver_.get_standard_type(map), rebound_map);
+  EXPECT_EQ(
+      resolver_.get_type_tag(map, strct),
+      "::apache::thrift::type::cpp_pmr_type<" + rebound_map +
+          ", ::apache::thrift::type::map<::apache::thrift::type::string_t, "
+          "::apache::thrift::type::set<::apache::thrift::type::i32_t>>>");
+
+  const std::string rebound_list =
+      "::apache::thrift::pmr::Rebind<::std::vector<::path::to::Elem>>::type";
+  EXPECT_EQ(resolver_.get_native_type(list, strct), rebound_list);
+  EXPECT_EQ(resolver_.get_standard_type(list), rebound_list);
+  EXPECT_EQ(
+      resolver_.get_type_tag(list, strct),
+      "::apache::thrift::type::cpp_pmr_type<" + rebound_list +
+          ", ::apache::thrift::type::list<"
+          "::apache::thrift::type::struct_t<::path::to::Elem>>>");
+}
+
+TEST_F(CppNameResolverTest, arena_custom_types) {
+  t_list strings(t_primitive_type::t_string());
+  t_typedef deque(&program_, "Deque", strings);
+  deque.add_structured_annotation(
+      gen::type_builder(program_, "cpp").make_template("std::deque"));
+  t_map tmap(t_primitive_type::t_string(), deque);
+  t_struct strct(&program_, "Arenas");
+  t_field& field = strct.create_field(tmap, "custom", 1);
+  field.add_structured_annotation(
+      gen::type_builder(program_, "cpp").make_template("std::unordered_map"));
+  field.add_structured_annotation(arena_builder(program_).make());
+
+  const std::string rebound =
+      "::apache::thrift::pmr::Rebind<std::unordered_map<::std::string, "
+      "::path::to::Deque>>::type";
+  EXPECT_EQ(resolver_.get_native_type(field, strct), rebound);
+  EXPECT_EQ(resolver_.get_standard_type(field), rebound);
+  EXPECT_EQ(
+      resolver_.get_type_tag(field, strct),
+      "::apache::thrift::type::cpp_pmr_type<" + rebound +
+          ", ::apache::thrift::type::map<::apache::thrift::type::string_t, "
+          "::apache::thrift::type::cpp_type<::path::to::Deque, "
+          "::apache::thrift::type::list<::apache::thrift::type::string_t>>>>");
 }

@@ -212,7 +212,8 @@ class cpp_name_resolver {
   // Sinks are not reused, so are sufficient for use as keys
   std::unordered_map<const t_sink*, std::string> bidi_cache_;
 
-  // The C++ type that `@cpp.Type` on `field` gives it; nullopt if it has none.
+  // The C++ type that `@cpp.Type` and `@cpp.Arena` on `field` give it; nullopt
+  // if neither applies.
   const std::optional<std::string>& get_cpp_type(const t_field& field) {
     return detail::get_or_gen(
         field_cpp_type_cache_, &field, [&]() { return gen_cpp_type(field); });

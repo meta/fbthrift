@@ -1,0 +1,2 @@
+cpp2: mstch_cpp2 src/module.thrift
+python_capi: mstch_python_capi src/module.thrift

@@ -554,8 +554,11 @@ class t_mstch_python_capi_generator : public t_whisker_generator {
         }
       }
 
+      // The marshaling extractors build `std::` strings and containers, which
+      // `@cpp.Arena` fields can't be assigned from.
       if (force_serialize || self.generated() ||
-          has_compiler_option("serialize_python_capi")) {
+          has_compiler_option("serialize_python_capi") ||
+          cpp2::has_arena_fields(self)) {
         return false;
       }
       if (marshal_override != nullptr ||

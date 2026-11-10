@@ -29,6 +29,7 @@
 #include <thrift/compiler/ast/t_struct.h>
 #include <thrift/compiler/ast/t_typedef.h>
 #include <thrift/compiler/ast/uri.h>
+#include <thrift/compiler/generate/cpp/util.h>
 
 namespace apache::thrift::compiler {
 
@@ -447,22 +448,28 @@ std::string cpp_name_resolver::gen_standard_type(const t_type& node) {
 
 std::optional<std::string> cpp_name_resolver::gen_cpp_type(
     const t_field& field) {
-  const t_const* annotation =
-      field.find_structured_annotation_or_null(kCppTypeUri);
-  if (annotation == nullptr) {
-    return std::nullopt;
+  std::optional<std::string> cpp_type;
+  if (const t_const* annotation =
+          field.find_structured_annotation_or_null(kCppTypeUri)) {
+    if (const t_const_value* name =
+            annotation->get_value_from_structured_annotation_or_null("name")) {
+      cpp_type = name->get_string();
+    } else {
+      const t_type* true_type = field.type()->get_true_type();
+      assert(true_type != nullptr);
+      cpp_type = gen_container_type(
+          true_type->as<t_container>(),
+          &cpp_name_resolver::get_native_type,
+          &annotation->get_value_from_structured_annotation("template")
+               .get_string());
+    }
   }
-  if (const t_const_value* name =
-          annotation->get_value_from_structured_annotation_or_null("name")) {
-    return name->get_string();
+  if (!cpp2::is_arena_field(field)) {
+    return cpp_type;
   }
-  const t_type* true_type = field.type()->get_true_type();
-  assert(true_type != nullptr);
-  return gen_container_type(
-      true_type->as<t_container>(),
-      &cpp_name_resolver::get_native_type,
-      &annotation->get_value_from_structured_annotation("template")
-           .get_string());
+  return fmt::format(
+      "::apache::thrift::pmr::Rebind<{}>::type",
+      cpp_type.value_or(get_native_type(*field.type())));
 }
 
 std::string cpp_name_resolver::gen_storage_type(
@@ -597,7 +604,8 @@ std::string cpp_name_resolver::gen_type_tag(
   // once @scope.Transitive bug is fixed.
   if (const auto& cpp_type = get_cpp_type(field)) {
     type_tag = fmt::format(
-        "::apache::thrift::type::cpp_type<{}, {}>",
+        "::apache::thrift::type::{}<{}, {}>",
+        cpp2::is_arena_field(field) ? "cpp_pmr_type" : "cpp_type",
         *cpp_type,
         gen_type_tag(*field.type(), true));
   } else {

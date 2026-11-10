@@ -928,10 +928,10 @@
             "value" : {}
           }
         },
-        "docstring" : "Gives a string, binary or container field or typedef a PMR allocator-aware\nC++ type, such as `std::pmr::string` or `std::pmr::vector`, that can allocate\nfrom a `std::pmr::memory_resource` such as an arena. On a field, the field\nalso allocates from its struct's memory resource. On a struct or union, it\napplies to every field it could annotate. Other languages ignore it.\n",
+        "docstring" : "Gives a string, binary or container field a PMR allocator-aware C++ type,\nsuch as `std::pmr::string` or `std::pmr::vector`, that can allocate from a\n`std::pmr::memory_resource` such as an arena. The field doesn't use its\nstruct's memory resource yet: it allocates from the default resource. On a\nstruct or union it does nothing yet, and on a typedef it is an error.\n\nThe py3 generator rejects fields with it unless `auto_migrate` is set. Other\nlanguages ignore it.\n",
         "is_exception" : false,
         "is_union" : false,
-        "lineno" : 550
+        "lineno" : 553
       }
   },
   "source_path" : "thrift/annotation/cpp",

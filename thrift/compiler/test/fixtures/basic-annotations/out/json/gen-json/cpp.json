@@ -906,7 +906,7 @@
       }
     },
     "Arena" : {
-      "lineno" : 550,
+      "lineno" : 553,
       "is_exception" : false,
       "is_union" : false,
       "structured_annotations" : {
@@ -921,11 +921,11 @@
       },
       "source_range" : {
         "begin" : {
-          "line" : 550,
+          "line" : 553,
           "column" : 1
         },
         "end" : {
-          "line" : 555,
+          "line" : 558,
           "column" : 16
         }
       }
