@@ -37,16 +37,6 @@ size_t indexFor(uint32_t position, uint32_t frontPosition) noexcept {
   return static_cast<size_t>(position - frontPosition);
 }
 
-size_t nextFragmentDataLimit(
-    const PendingFrame& frame, size_t quantum) noexcept {
-  if (frame.firstEmitted || frame.originalFrame.metadata == nullptr) {
-    return quantum;
-  }
-  const size_t metadataSize =
-      frame.originalFrame.metadata->computeChainDataLength();
-  return metadataSize >= quantum ? 0 : quantum - metadataSize;
-}
-
 } // namespace
 
 FifoStreamQueue::FifoStreamQueue(size_t quantum) : quantum_(quantum) {}

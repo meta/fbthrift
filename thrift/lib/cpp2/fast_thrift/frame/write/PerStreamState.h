@@ -59,6 +59,16 @@ struct PendingFrame {
   PendingFrame& operator=(const PendingFrame&) = delete;
 };
 
+inline size_t nextFragmentDataLimit(
+    const PendingFrame& frame, size_t quantum) noexcept {
+  if (frame.firstEmitted || frame.originalFrame.metadata == nullptr) {
+    return quantum;
+  }
+  const size_t metadataSize =
+      frame.originalFrame.metadata->computeChainDataLength();
+  return metadataSize >= quantum ? 0 : quantum - metadataSize;
+}
+
 /**
  * Per-stream fragmentation state. Owns a FIFO of `PendingFrame`s;
  * SRPT scheduling reads `remaining()` (sum across the FIFO, cached).
