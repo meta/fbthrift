@@ -1080,7 +1080,7 @@ func (s *rocketServerSocket) preprocessRequest(msg payload.Payload) (
 
 	pfunc, exists := processor.ProcessorFunctionMap()[rpcFuncName]
 	if !exists {
-		return nil, nil, nil, nil, fmt.Errorf("no such function: %q", rpcFuncName)
+		return nil, nil, nil, nil, newUnknownMethodError(rpcFuncName)
 	}
 
 	argStruct := pfunc.NewReqArgs()

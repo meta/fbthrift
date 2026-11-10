@@ -21,6 +21,7 @@ import (
 	"crypto/rand"
 	"crypto/tls"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"math"
 	"net"
@@ -798,9 +799,11 @@ func TestProcessorScenarios(t *testing.T) {
 
 	t.Run("no_such_function", func(t *testing.T) {
 		client := dummyif.NewDummyTwoChannelClient(channel)
-		err := client.PingTwo(context.Background())
-		require.Error(t, err)
-		require.ErrorContains(t, err, "no such function")
+		err := client.PingTwo(t.Context())
+		appEx, ok := errors.AsType[*types.ApplicationException](err)
+		require.True(t, ok)
+		require.EqualValues(t, types.UNKNOWN_METHOD, appEx.TypeID())
+		require.EqualError(t, appEx, "Method name PingTwo not found")
 	})
 	t.Run("regular_void_call", func(t *testing.T) {
 		client := dummyif.NewDummyChannelClient(channel)

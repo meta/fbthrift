@@ -198,7 +198,7 @@ func (r *rsocketClient) RequestResponse(
 	mono := r.client.RequestResponse(reqPayload)
 	val, err := mono.Block(ctx)
 	if err != nil {
-		return err
+		return decodeResponseError(err)
 	}
 	return r.processResponsePayload(ctx, val, response)
 }
@@ -247,7 +247,7 @@ func (r *rsocketClient) RequestStream(
 	firstPayload, err := recvStreamNext(ctx, streamPayloadChan, streamErrChan)
 	if err != nil {
 		streamCancel()
-		return nil, err
+		return nil, decodeResponseError(err)
 	}
 	err = r.processResponsePayload(ctx, firstPayload, response)
 	if err != nil {
@@ -364,7 +364,7 @@ func (r *rsocketClient) RequestSink(
 	if err != nil {
 		channelCancel()
 		close(sinkPayloadChan)
-		return nil, err
+		return nil, decodeResponseError(err)
 	}
 	err = r.processResponsePayload(ctx, firstPayload, firstResponse)
 	if err != nil {
@@ -508,7 +508,7 @@ func (r *rsocketClient) RequestBiDiStream(
 	if err != nil {
 		channelCancel()
 		close(sinkPayloadChan)
-		return nil, nil, err
+		return nil, nil, decodeResponseError(err)
 	}
 	err = r.processResponsePayload(ctx, firstPayload, firstResponse)
 	if err != nil {
