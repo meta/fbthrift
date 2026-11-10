@@ -118,7 +118,7 @@ bool AllocUnion::__fbthrift_is_empty() const {
     }
   }
 
-  AllocUnion& AllocUnion::operator=(AllocUnion&& rhs) noexcept {
+  AllocUnion& AllocUnion::operator=(AllocUnion&& rhs) noexcept(::apache::thrift::detail::move_assign_always_steals_v<allocator_type>) {
     if (this == &rhs) { return *this; }
     ::apache::thrift::detail::move_allocator(__fbthrift_alloc, rhs.__fbthrift_alloc);
     switch (rhs.getType()) {

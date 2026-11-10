@@ -547,14 +547,19 @@ void swap_allocators(Alloc& a, Alloc& b) {
   swap_allocators_impl(pocs{}, a, b);
 }
 
-// Whether move assignment may take over the source's memory: the allocator
-// propagates on move assignment, all instances compare equal, or `dst` equals
-// `src`.
+// Whether move assignment always takes over the source's memory: the allocator
+// propagates on move assignment or all instances compare equal.
+template <typename Alloc>
+inline constexpr bool move_assign_always_steals_v =
+    std::allocator_traits<
+        Alloc>::propagate_on_container_move_assignment::value ||
+    std::allocator_traits<Alloc>::is_always_equal::value;
+
+// Whether move assignment may take over the source's memory: it always does, or
+// `dst` equals `src`.
 template <typename Alloc>
 bool move_assign_can_steal(const Alloc& dst, const Alloc& src) {
-  using traits = std::allocator_traits<Alloc>;
-  return traits::propagate_on_container_move_assignment::value ||
-      traits::is_always_equal::value || dst == src;
+  return move_assign_always_steals_v<Alloc> || dst == src;
 }
 
 // Whether copy assignment replaces `dst` with `src`: the allocator propagates

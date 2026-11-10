@@ -206,6 +206,17 @@ case Type::{{field.cpp_name}}:
 {{/let partial}}
 
 
+{{! A move assignment between unequal allocators that don't propagate copies the
+    member onto the target's allocator, which can throw. }}
+{{#let export partial union_move_assign_noexcept |struct|}}
+{{#pragma ignore-newlines}}
+noexcept
+  {{#if (object.notnull? struct.cpp_allocator)}}
+(::apache::thrift::detail::move_assign_always_steals_v<allocator_type>)
+  {{/if (object.notnull? struct.cpp_allocator)}}
+{{/let partial}}
+
+
 {{#let export partial union_eq_overload |struct|}}
 bool {{struct.cpp_underlying_name}}::operator==(const {{struct.cpp_underlying_name}}& rhs) const {
   return ::apache::thrift::op::detail::UnionEquality{}(*this, rhs);

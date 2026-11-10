@@ -31,7 +31,7 @@
   }
 
   {{/if (object.notnull? struct.cpp_allocator)}}
-  {{struct.cpp_underlying_name}}& {{struct.cpp_underlying_name}}::operator=({{struct.cpp_underlying_name}}&& rhs) noexcept {
+  {{struct.cpp_underlying_name}}& {{struct.cpp_underlying_name}}::operator=({{struct.cpp_underlying_name}}&& rhs) {{#partial module_types.union_move_assign_noexcept struct=struct}} {
     if (this == &rhs) { return *this; }
   {{#if (object.notnull? struct.cpp_allocator)}}
     ::apache::thrift::detail::move_allocator(__fbthrift_alloc, rhs.__fbthrift_alloc);

@@ -131,7 +131,7 @@ class AllocUnion final  {
 
   AllocUnion(const AllocUnion& rhs);
 
-  AllocUnion& operator=(AllocUnion&& rhs) noexcept;
+  AllocUnion& operator=(AllocUnion&& rhs) noexcept(::apache::thrift::detail::move_assign_always_steals_v<allocator_type>);
 
   AllocUnion& operator=(const AllocUnion& rhs);
 

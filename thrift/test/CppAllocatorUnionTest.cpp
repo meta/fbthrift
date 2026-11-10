@@ -36,6 +36,10 @@ namespace apache::thrift::test {
 static_assert(
     std::uses_allocator_v<UnionPmr, std::pmr::polymorphic_allocator<UnionPmr>>);
 static_assert(std::is_nothrow_move_constructible_v<UnionPmr>);
+// Move assignment copies the member if the allocators differ and don't
+// propagate.
+static_assert(!std::is_nothrow_move_assignable_v<UnionPmr>);
+static_assert(std::is_nothrow_move_assignable_v<PropagatingUnion>);
 static_assert(std::is_nothrow_constructible_v<UnionPmr, const PmrByteAlloc&>);
 static_assert(
     std::is_constructible_v<UnionPmr, const UnionPmr&, const PmrByteAlloc&>);
@@ -839,6 +843,21 @@ TYPED_TEST(
   TypeParam::deserialize(bytes, dst);
   EXPECT_EQ(*dst.shared_s_ref(), kTooLong);
   EXPECT_EQ(resourceOf(*dst.shared_s_ref()), &res);
+}
+
+TYPED_TEST(
+    CppAllocatorUnionDeserializeTest,
+    FieldUseAllocatorSharedRefMemberLandsOnUnionAllocator) {
+  auto res = makeResource();
+  SharedRefUnionPmr src;
+  src.field_aa_s_ref().emplace(kTooLong);
+  const auto bytes = TypeParam::template serialize<std::string>(src);
+  DefaultResourceGuard guard(std::pmr::null_memory_resource());
+  SharedRefUnionPmr dst{PmrByteAlloc(&res)};
+
+  TypeParam::deserialize(bytes, dst);
+  EXPECT_EQ(*dst.field_aa_s_ref(), kTooLong);
+  EXPECT_EQ(resourceOf(*dst.field_aa_s_ref()), &res);
 }
 
 } // namespace

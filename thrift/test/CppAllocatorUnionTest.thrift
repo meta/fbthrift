@@ -205,4 +205,8 @@ union SharedRefUnionPmr {
   1: UPmrString shared_s;
   @cpp.Ref{type = cpp.RefType.Shared}
   2: UPmrString const_s;
+  // `cpp.use_allocator` on the field rather than its typedef.
+  @cpp.Ref{type = cpp.RefType.SharedMutable}
+  @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
+  3: NotAAPmrString field_aa_s;
 }

@@ -19,7 +19,11 @@
 _readState.beforeSubobject(iprot);
   {{/if (or field.type.container? field.type.structured?)}}
   {{#if field.cpp_ref?}}
-auto ptr = ::apache::thrift::detail::make_mutable_smart_ptr<{{field.cpp_storage_type}}>({{#if (and (object.notnull? struct.cpp_allocator) field.type.cpp_use_allocator?)}}this->get_allocator(){{/if}});
+    {{! Like its union_field_ref, a union pointer member takes the allocator
+        when the field has `cpp.use_allocator`; a struct's only when its type
+        does. }}
+    {{#let ref_use_alloc? = (and (object.notnull? struct.cpp_allocator) (or field.type.cpp_use_allocator? (and struct.union? field.cpp_use_allocator?)))}}
+auto ptr = ::apache::thrift::detail::make_mutable_smart_ptr<{{field.cpp_storage_type}}>({{#if ref_use_alloc?}}this->get_allocator(){{/if}});
   {{/if field.cpp_ref?}}
   {{#if field.use_op_encode?}}
 ::apache::thrift::op::decode<{{#partial fields.tag field=field struct=struct}}>(*iprot, {{#partial custom_protocol.member_or_ptr field=field struct=struct}}{{#if (object.notnull? field.cpp_adapter)}}, *this{{/if}});
