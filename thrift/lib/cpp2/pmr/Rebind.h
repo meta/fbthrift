@@ -84,16 +84,6 @@ namespace detail {
 template <class T>
 using rebind_t = typename Rebind<T>::type;
 
-// Base of the specializations Thrift ships. side_effect_free_dtor says that
-// destroying the container or string itself, apart from its elements, only
-// frees memory through its allocator. Thrift trusts its own specializations,
-// so they bypass the check that user specializations setting
-// side_effect_free_dtor are subject to.
-struct ShippedRebind {
-  static constexpr bool side_effect_free_dtor = true;
-  static constexpr bool bypass_constexpr_dtor_check_internal_do_not_use = true;
-};
-
 // The comparator, hasher or key-equality functor F of a container with key
 // type K, for the rebound key type.
 template <class F, class K>
@@ -144,39 +134,39 @@ struct Rebind<C<Ts...>> {
 };
 
 template <class C, class Traits, class A>
-struct Rebind<std::basic_string<C, Traits, A>> : detail::ShippedRebind {
+struct Rebind<std::basic_string<C, Traits, A>> {
   using type = std::basic_string<C, Traits, std::pmr::polymorphic_allocator<C>>;
 };
 
 template <class T, class A>
-struct Rebind<std::vector<T, A>> : detail::ShippedRebind {
+struct Rebind<std::vector<T, A>> {
   using type = std::pmr::vector<detail::rebind_t<T>>;
 };
 
 template <class T, class A>
-struct Rebind<std::deque<T, A>> : detail::ShippedRebind {
+struct Rebind<std::deque<T, A>> {
   using type = std::pmr::deque<detail::rebind_t<T>>;
 };
 
 template <class T, class A>
-struct Rebind<std::list<T, A>> : detail::ShippedRebind {
+struct Rebind<std::list<T, A>> {
   using type = std::pmr::list<detail::rebind_t<T>>;
 };
 
 template <class K, class C, class A>
-struct Rebind<std::set<K, C, A>> : detail::ShippedRebind {
+struct Rebind<std::set<K, C, A>> {
   using type =
       std::pmr::set<detail::rebind_t<K>, detail::rebind_key_functor_t<C, K>>;
 };
 
 template <class K, class C, class A>
-struct Rebind<std::multiset<K, C, A>> : detail::ShippedRebind {
+struct Rebind<std::multiset<K, C, A>> {
   using type = std::pmr::
       multiset<detail::rebind_t<K>, detail::rebind_key_functor_t<C, K>>;
 };
 
 template <class K, class V, class C, class A>
-struct Rebind<std::map<K, V, C, A>> : detail::ShippedRebind {
+struct Rebind<std::map<K, V, C, A>> {
   using type = std::pmr::map<
       detail::rebind_t<K>,
       detail::rebind_t<V>,
@@ -184,7 +174,7 @@ struct Rebind<std::map<K, V, C, A>> : detail::ShippedRebind {
 };
 
 template <class K, class V, class C, class A>
-struct Rebind<std::multimap<K, V, C, A>> : detail::ShippedRebind {
+struct Rebind<std::multimap<K, V, C, A>> {
   using type = std::pmr::multimap<
       detail::rebind_t<K>,
       detail::rebind_t<V>,
@@ -192,7 +182,7 @@ struct Rebind<std::multimap<K, V, C, A>> : detail::ShippedRebind {
 };
 
 template <class K, class H, class E, class A>
-struct Rebind<std::unordered_set<K, H, E, A>> : detail::ShippedRebind {
+struct Rebind<std::unordered_set<K, H, E, A>> {
   using type = std::pmr::unordered_set<
       detail::rebind_t<K>,
       detail::rebind_key_functor_t<H, K>,
@@ -200,7 +190,7 @@ struct Rebind<std::unordered_set<K, H, E, A>> : detail::ShippedRebind {
 };
 
 template <class K, class H, class E, class A>
-struct Rebind<std::unordered_multiset<K, H, E, A>> : detail::ShippedRebind {
+struct Rebind<std::unordered_multiset<K, H, E, A>> {
   using type = std::pmr::unordered_multiset<
       detail::rebind_t<K>,
       detail::rebind_key_functor_t<H, K>,
@@ -208,7 +198,7 @@ struct Rebind<std::unordered_multiset<K, H, E, A>> : detail::ShippedRebind {
 };
 
 template <class K, class V, class H, class E, class A>
-struct Rebind<std::unordered_map<K, V, H, E, A>> : detail::ShippedRebind {
+struct Rebind<std::unordered_map<K, V, H, E, A>> {
   using type = std::pmr::unordered_map<
       detail::rebind_t<K>,
       detail::rebind_t<V>,
@@ -217,7 +207,7 @@ struct Rebind<std::unordered_map<K, V, H, E, A>> : detail::ShippedRebind {
 };
 
 template <class K, class V, class H, class E, class A>
-struct Rebind<std::unordered_multimap<K, V, H, E, A>> : detail::ShippedRebind {
+struct Rebind<std::unordered_multimap<K, V, H, E, A>> {
   using type = std::pmr::unordered_multimap<
       detail::rebind_t<K>,
       detail::rebind_t<V>,
@@ -226,8 +216,7 @@ struct Rebind<std::unordered_multimap<K, V, H, E, A>> : detail::ShippedRebind {
 };
 
 template <class C, class Traits, class A, class Storage>
-struct Rebind<folly::basic_fbstring<C, Traits, A, Storage>>
-    : detail::ShippedRebind {
+struct Rebind<folly::basic_fbstring<C, Traits, A, Storage>> {
   using type = std::basic_string<C, Traits, std::pmr::polymorphic_allocator<C>>;
 };
 
@@ -236,7 +225,7 @@ struct Rebind<folly::basic_fbstring<C, Traits, A, Storage>>
 // copies every nested string and container, and on an arena the memory of the
 // old copies is not reclaimed until the resource is released.
 template <class T, class A>
-struct Rebind<folly::fbvector<T, A>> : detail::ShippedRebind {
+struct Rebind<folly::fbvector<T, A>> {
   using type = folly::fbvector<
       detail::rebind_t<T>,
       std::pmr::polymorphic_allocator<detail::rebind_t<T>>>;
@@ -245,7 +234,7 @@ struct Rebind<folly::fbvector<T, A>> : detail::ShippedRebind {
 namespace detail {
 
 template <template <class...> class Set, class K, class H, class E>
-struct RebindF14Set : ShippedRebind {
+struct RebindF14Set {
   using type =
       Set<rebind_t<K>,
           rebind_key_functor_t<H, K>,
@@ -254,7 +243,7 @@ struct RebindF14Set : ShippedRebind {
 };
 
 template <template <class...> class Map, class K, class V, class H, class E>
-struct RebindF14Map : ShippedRebind {
+struct RebindF14Map {
   using type =
       Map<rebind_t<K>,
           rebind_t<V>,
@@ -299,8 +288,7 @@ struct Rebind<folly::F14FastMap<K, V, H, E, A>>
     : detail::RebindF14Map<folly::F14FastMap, K, V, H, E> {};
 
 template <class K, class C, class A, class G, class Container>
-struct Rebind<folly::sorted_vector_set<K, C, A, G, Container>>
-    : detail::ShippedRebind {
+struct Rebind<folly::sorted_vector_set<K, C, A, G, Container>> {
   using type = folly::sorted_vector_set<
       detail::rebind_t<K>,
       detail::rebind_key_functor_t<C, K>,
@@ -310,8 +298,7 @@ struct Rebind<folly::sorted_vector_set<K, C, A, G, Container>>
 };
 
 template <class K, class V, class C, class A, class G, class Container>
-struct Rebind<folly::sorted_vector_map<K, V, C, A, G, Container>>
-    : detail::ShippedRebind {
+struct Rebind<folly::sorted_vector_map<K, V, C, A, G, Container>> {
   using type = folly::sorted_vector_map<
       detail::rebind_t<K>,
       detail::rebind_t<V>,
@@ -321,5 +308,116 @@ struct Rebind<folly::sorted_vector_map<K, V, C, A, G, Container>>
       G,
       std::pmr::vector<std::pair<detail::rebind_t<K>, detail::rebind_t<V>>>>;
 };
+
+/**
+ * Whether destroying a T, apart from destroying its elements, only frees
+ * memory through its allocator. T is a type that Rebind maps to, such as
+ * std::pmr::vector<std::pmr::string>. Specialize it for such a type so that
+ * Thrift may skip destroying it on an arena.
+ */
+template <class T>
+struct SideEffectFreeDtor : std::false_type {};
+
+namespace detail {
+
+// Base of the specializations Thrift ships. Thrift trusts them, so they bypass
+// the check that user specializations are subject to.
+struct ShippedSideEffectFreeDtor : std::true_type {
+  static constexpr bool bypass_constexpr_dtor_check_internal_do_not_use = true;
+};
+
+} // namespace detail
+
+template <class C, class Traits, class A>
+struct SideEffectFreeDtor<std::basic_string<C, Traits, A>>
+    : detail::ShippedSideEffectFreeDtor {};
+
+template <class T, class A>
+struct SideEffectFreeDtor<std::vector<T, A>>
+    : detail::ShippedSideEffectFreeDtor {};
+
+template <class T, class A>
+struct SideEffectFreeDtor<std::deque<T, A>>
+    : detail::ShippedSideEffectFreeDtor {};
+
+template <class T, class A>
+struct SideEffectFreeDtor<std::list<T, A>> : detail::ShippedSideEffectFreeDtor {
+};
+
+template <class K, class C, class A>
+struct SideEffectFreeDtor<std::set<K, C, A>>
+    : detail::ShippedSideEffectFreeDtor {};
+
+template <class K, class C, class A>
+struct SideEffectFreeDtor<std::multiset<K, C, A>>
+    : detail::ShippedSideEffectFreeDtor {};
+
+template <class K, class V, class C, class A>
+struct SideEffectFreeDtor<std::map<K, V, C, A>>
+    : detail::ShippedSideEffectFreeDtor {};
+
+template <class K, class V, class C, class A>
+struct SideEffectFreeDtor<std::multimap<K, V, C, A>>
+    : detail::ShippedSideEffectFreeDtor {};
+
+template <class K, class H, class E, class A>
+struct SideEffectFreeDtor<std::unordered_set<K, H, E, A>>
+    : detail::ShippedSideEffectFreeDtor {};
+
+template <class K, class H, class E, class A>
+struct SideEffectFreeDtor<std::unordered_multiset<K, H, E, A>>
+    : detail::ShippedSideEffectFreeDtor {};
+
+template <class K, class V, class H, class E, class A>
+struct SideEffectFreeDtor<std::unordered_map<K, V, H, E, A>>
+    : detail::ShippedSideEffectFreeDtor {};
+
+template <class K, class V, class H, class E, class A>
+struct SideEffectFreeDtor<std::unordered_multimap<K, V, H, E, A>>
+    : detail::ShippedSideEffectFreeDtor {};
+
+template <class T, class A>
+struct SideEffectFreeDtor<folly::fbvector<T, A>>
+    : detail::ShippedSideEffectFreeDtor {};
+
+template <class K, class H, class E, class A>
+struct SideEffectFreeDtor<folly::F14NodeSet<K, H, E, A>>
+    : detail::ShippedSideEffectFreeDtor {};
+
+template <class K, class H, class E, class A>
+struct SideEffectFreeDtor<folly::F14ValueSet<K, H, E, A>>
+    : detail::ShippedSideEffectFreeDtor {};
+
+template <class K, class H, class E, class A>
+struct SideEffectFreeDtor<folly::F14VectorSet<K, H, E, A>>
+    : detail::ShippedSideEffectFreeDtor {};
+
+template <class K, class H, class E, class A>
+struct SideEffectFreeDtor<folly::F14FastSet<K, H, E, A>>
+    : detail::ShippedSideEffectFreeDtor {};
+
+template <class K, class V, class H, class E, class A>
+struct SideEffectFreeDtor<folly::F14NodeMap<K, V, H, E, A>>
+    : detail::ShippedSideEffectFreeDtor {};
+
+template <class K, class V, class H, class E, class A>
+struct SideEffectFreeDtor<folly::F14ValueMap<K, V, H, E, A>>
+    : detail::ShippedSideEffectFreeDtor {};
+
+template <class K, class V, class H, class E, class A>
+struct SideEffectFreeDtor<folly::F14VectorMap<K, V, H, E, A>>
+    : detail::ShippedSideEffectFreeDtor {};
+
+template <class K, class V, class H, class E, class A>
+struct SideEffectFreeDtor<folly::F14FastMap<K, V, H, E, A>>
+    : detail::ShippedSideEffectFreeDtor {};
+
+template <class K, class C, class A, class G, class Container>
+struct SideEffectFreeDtor<folly::sorted_vector_set<K, C, A, G, Container>>
+    : detail::ShippedSideEffectFreeDtor {};
+
+template <class K, class V, class C, class A, class G, class Container>
+struct SideEffectFreeDtor<folly::sorted_vector_map<K, V, C, A, G, Container>>
+    : detail::ShippedSideEffectFreeDtor {};
 
 } // namespace apache::thrift::pmr

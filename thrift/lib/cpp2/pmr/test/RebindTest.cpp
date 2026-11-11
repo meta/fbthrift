@@ -81,11 +81,12 @@ template <class T, class Expected>
 constexpr bool kRebindsTo = std::is_same_v<typename Rebind<T>::type, Expected>;
 
 template <class T>
-constexpr bool kHasDtorTraits = requires { Rebind<T>::side_effect_free_dtor; };
+using SideEffectFreeDtor =
+    apache::thrift::pmr::SideEffectFreeDtor<typename Rebind<T>::type>;
 
 template <class T>
-constexpr bool kTrusted = Rebind<T>::side_effect_free_dtor &&
-    Rebind<T>::bypass_constexpr_dtor_check_internal_do_not_use;
+constexpr bool kTrusted = SideEffectFreeDtor<T>::value &&
+    SideEffectFreeDtor<T>::bypass_constexpr_dtor_check_internal_do_not_use;
 
 enum class Color { Red };
 struct Struct {
@@ -409,9 +410,9 @@ static_assert(kTrusted<folly::F14VectorMap<int, int>>);
 static_assert(kTrusted<folly::F14FastMap<int, int>>);
 static_assert(kTrusted<folly::sorted_vector_set<int>>);
 static_assert(kTrusted<folly::sorted_vector_map<int, int>>);
-static_assert(!kHasDtorTraits<int>);
-static_assert(!kHasDtorTraits<Struct>);
-static_assert(!kHasDtorTraits<UserVector<int>>);
+static_assert(!SideEffectFreeDtor<int>::value);
+static_assert(!SideEffectFreeDtor<Struct>::value);
+static_assert(!SideEffectFreeDtor<UserVector<int>>::value);
 
 class DefaultResourceGuard {
  public:
