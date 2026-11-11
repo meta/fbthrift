@@ -127,8 +127,10 @@ public class MyServiceRpcServerHandler
           _chain.postRead(_data);
 
           reactor.core.publisher.Mono<Void> _delegateResponse =
-            _delegate
-              .ping();
+            com.facebook.nifty.core.RequestContextScope.get(
+              com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+              () -> _delegate
+                .ping());
 
           reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
             _delegateResponse.map(_response ->
@@ -242,8 +244,10 @@ public class MyServiceRpcServerHandler
           _chain.postRead(_data);
 
           reactor.core.publisher.Mono<String> _delegateResponse =
-            _delegate
-              .getRandomData();
+            com.facebook.nifty.core.RequestContextScope.get(
+              com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+              () -> _delegate
+                .getRandomData());
 
           reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
             _delegateResponse.map(_response ->
@@ -354,8 +358,10 @@ public class MyServiceRpcServerHandler
           _chain.postRead(_data);
 
           reactor.core.publisher.Mono<Void> _delegateResponse =
-            _delegate
-              .sink(sink);
+            com.facebook.nifty.core.RequestContextScope.get(
+              com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+              () -> _delegate
+                .sink(sink));
 
           reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
             _delegateResponse.map(_response ->
@@ -469,8 +475,10 @@ public class MyServiceRpcServerHandler
           _chain.postRead(_data);
 
           reactor.core.publisher.Mono<Void> _delegateResponse =
-            _delegate
-              .putDataById(id, data);
+            com.facebook.nifty.core.RequestContextScope.get(
+              com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+              () -> _delegate
+                .putDataById(id, data));
 
           reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
             _delegateResponse.map(_response ->
@@ -586,8 +594,10 @@ public class MyServiceRpcServerHandler
           _chain.postRead(_data);
 
           reactor.core.publisher.Mono<Boolean> _delegateResponse =
-            _delegate
-              .hasDataById(id);
+            com.facebook.nifty.core.RequestContextScope.get(
+              com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+              () -> _delegate
+                .hasDataById(id));
 
           reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
             _delegateResponse.map(_response ->
@@ -702,8 +712,10 @@ public class MyServiceRpcServerHandler
           _chain.postRead(_data);
 
           reactor.core.publisher.Mono<String> _delegateResponse =
-            _delegate
-              .getDataById(id);
+            com.facebook.nifty.core.RequestContextScope.get(
+              com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+              () -> _delegate
+                .getDataById(id));
 
           reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
             _delegateResponse.map(_response ->
@@ -814,8 +826,10 @@ public class MyServiceRpcServerHandler
           _chain.postRead(_data);
 
           reactor.core.publisher.Mono<Void> _delegateResponse =
-            _delegate
-              .deleteDataById(id);
+            com.facebook.nifty.core.RequestContextScope.get(
+              com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+              () -> _delegate
+                .deleteDataById(id));
 
           reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
             _delegateResponse.map(_response ->
@@ -933,8 +947,10 @@ public class MyServiceRpcServerHandler
           _chain.postRead(_data);
 
           reactor.core.publisher.Mono<Set<Float>> _delegateResponse =
-            _delegate
-              .invalidReturnForHack();
+            com.facebook.nifty.core.RequestContextScope.get(
+              com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+              () -> _delegate
+                .invalidReturnForHack());
 
           reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
             _delegateResponse.map(_response ->
@@ -1043,8 +1059,10 @@ public class MyServiceRpcServerHandler
           _chain.postRead(_data);
 
           reactor.core.publisher.Mono<Void> _delegateResponse =
-            _delegate
-              .rpcSkippedCodegen();
+            com.facebook.nifty.core.RequestContextScope.get(
+              com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+              () -> _delegate
+                .rpcSkippedCodegen());
 
           reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
             _delegateResponse.map(_response ->
@@ -1135,7 +1153,10 @@ public class MyServiceRpcServerHandler
 
     _chain.postRead(_data);
 
-    reactor.core.publisher.Mono<Void> _internalResponse = _delegate.lobDataById(id, data);
+    reactor.core.publisher.Mono<Void> _internalResponse =
+      com.facebook.nifty.core.RequestContextScope.get(
+        com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+        () -> _delegate.lobDataById(id, data));
 
     return _internalResponse;
   }

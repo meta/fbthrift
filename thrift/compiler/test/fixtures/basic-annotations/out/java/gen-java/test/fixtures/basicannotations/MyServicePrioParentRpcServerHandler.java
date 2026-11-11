@@ -103,8 +103,10 @@ public class MyServicePrioParentRpcServerHandler
           _chain.postRead(_data);
 
           reactor.core.publisher.Mono<Void> _delegateResponse =
-            _delegate
-              .ping();
+            com.facebook.nifty.core.RequestContextScope.get(
+              com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+              () -> _delegate
+                .ping());
 
           reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
             _delegateResponse.map(_response ->
@@ -214,8 +216,10 @@ public class MyServicePrioParentRpcServerHandler
           _chain.postRead(_data);
 
           reactor.core.publisher.Mono<Void> _delegateResponse =
-            _delegate
-              .pong();
+            com.facebook.nifty.core.RequestContextScope.get(
+              com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+              () -> _delegate
+                .pong());
 
           reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
             _delegateResponse.map(_response ->

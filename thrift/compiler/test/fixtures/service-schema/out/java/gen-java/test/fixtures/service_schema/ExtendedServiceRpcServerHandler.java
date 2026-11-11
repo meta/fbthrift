@@ -108,8 +108,10 @@ public class ExtendedServiceRpcServerHandler  extends com.facebook.thrift.test.f
           _chain.postRead(_data);
 
           reactor.core.publisher.Mono<Long> _delegateResponse =
-            _delegate
-              .init(param0, param1);
+            com.facebook.nifty.core.RequestContextScope.get(
+              com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+              () -> _delegate
+                .init(param0, param1));
 
           reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
             _delegateResponse.map(_response ->

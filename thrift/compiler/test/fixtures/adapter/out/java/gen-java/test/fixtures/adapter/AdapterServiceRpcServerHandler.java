@@ -104,8 +104,10 @@ public class AdapterServiceRpcServerHandler
           _chain.postRead(_data);
 
           reactor.core.publisher.Mono<test.fixtures.adapter.CountingStruct> _delegateResponse =
-            _delegate
-              .count();
+            com.facebook.nifty.core.RequestContextScope.get(
+              com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+              () -> _delegate
+                .count());
 
           reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
             _delegateResponse.map(_response ->

@@ -100,8 +100,10 @@ public class MyRootRpcServerHandler
           _chain.postRead(_data);
 
           reactor.core.publisher.Mono<Void> _delegateResponse =
-            _delegate
-              .doRoot();
+            com.facebook.nifty.core.RequestContextScope.get(
+              com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+              () -> _delegate
+                .doRoot());
 
           reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
             _delegateResponse.map(_response ->

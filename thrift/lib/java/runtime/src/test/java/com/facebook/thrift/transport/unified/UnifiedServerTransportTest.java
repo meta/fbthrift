@@ -20,7 +20,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -29,6 +28,7 @@ import com.facebook.nifty.core.RequestContext;
 import com.facebook.nifty.core.RequestContexts;
 import com.facebook.swift.service.ThriftServerConfig;
 import com.facebook.thrift.client.RpcClientFactory;
+import com.facebook.thrift.client.RpcOptions;
 import com.facebook.thrift.client.ThriftClientConfig;
 import com.facebook.thrift.rsocket.server.TestServiceHandler;
 import com.facebook.thrift.server.RpcServerHandler;
@@ -42,7 +42,9 @@ import io.airlift.units.Duration;
 import io.netty.handler.ssl.ClientAuth;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.Collections;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.thrift.ProtocolId;
@@ -343,6 +345,84 @@ public class UnifiedServerTransportTest {
         Optional.empty(),
         staticReadInPipeline.get(),
         "no request should be left on the thread that runs the stream");
+  }
+
+  @Test
+  public void testStreamingHandlerBodyRejectsAStaticRead() throws Exception {
+    AtomicReference<Throwable> assemblyTimeRead = new AtomicReference<>();
+    startWith(
+        new TestServiceHandler() {
+          @Override
+          public Flux<TestResponse> streamResponse(TestRequest testRequest) {
+            assemblyTimeRead.set(readAtAssembly());
+            return super.streamResponse(testRequest);
+          }
+        });
+    client =
+        TestService.Reactive.clientBuilder()
+            .setProtocolId(ProtocolId.COMPACT)
+            .build(createRSocketClientFactory(), serverAddress);
+
+    StepVerifier.create(
+            client.streamResponse(
+                new TestRequest.Builder().setIntField(0).setStrField("stream").build()))
+        .expectNextCount(10)
+        .verifyComplete();
+
+    assertRejectedWithTheReplacementNamed(assemblyTimeRead.get());
+  }
+
+  @Test
+  public void testOnewayHandlerBodyRejectsAStaticRead() throws Exception {
+    AtomicReference<Throwable> assemblyTimeRead = new AtomicReference<>();
+    CountDownLatch handlerCalled = new CountDownLatch(1);
+    startWith(
+        new TestServiceHandler() {
+          @Override
+          public Mono<Void> requestFireAndForget(TestRequest testRequest) {
+            assemblyTimeRead.set(readAtAssembly());
+            handlerCalled.countDown();
+            return Mono.empty();
+          }
+        });
+    client =
+        TestService.Reactive.clientBuilder()
+            .setProtocolId(ProtocolId.COMPACT)
+            .build(createRSocketClientFactory(), serverAddress);
+
+    client
+        .requestFireAndForget(
+            new TestRequest.Builder().setIntField(0).setStrField("oneway").build())
+        .block();
+
+    assertTrue(handlerCalled.await(10, TimeUnit.SECONDS), "the oneway handler should run");
+    assertRejectedWithTheReplacementNamed(assemblyTimeRead.get());
+  }
+
+  private void startWith(TestService.Reactive handler) {
+    rpcServerHandler = TestService.Reactive.serverHandlerBuilder(handler).build();
+    transport =
+        UnifiedServerTransport.createNewInstance(
+                serverAddress, rpcServerHandler, serverConfig, new SPINiftyMetrics())
+            .block();
+    assertNotNull(transport);
+  }
+
+  /** A static read at assembly time; answers the exception it throws, or null if it did not. */
+  private static Throwable readAtAssembly() {
+    try {
+      RequestContexts.getCurrentContext();
+      return null;
+    } catch (IllegalStateException expected) {
+      return expected;
+    }
+  }
+
+  private static void assertRejectedWithTheReplacementNamed(Throwable thrown) {
+    assertNotNull(thrown, "a static read in the handler body should be rejected");
+    assertTrue(
+        thrown.getMessage().contains("RequestContexts.currentContext()"),
+        "the error should name the replacement: " + thrown.getMessage());
   }
 
   /**
@@ -1322,13 +1402,13 @@ public class UnifiedServerTransportTest {
   }
 
   /**
-   * The dispatcher binds the request for the handler call and unwinds it before the returned
-   * publisher is subscribed, so nothing is left on the thread that runs the pipeline. Code in the
-   * pipeline reads the request through the Reactor context instead.
+   * A reactive handler body runs at assembly time, so a static read there is rejected rather than
+   * answered. Nothing is left on the thread that runs the pipeline either; code in the pipeline
+   * reads the request through the Reactor context.
    */
   @Test
   public void testReactiveHandlerLeavesNoContextOnThePipelineThread() throws Exception {
-    AtomicReference<RequestContext> duringHandlerCall = new AtomicReference<>();
+    AtomicReference<Throwable> assemblyTimeRead = new AtomicReference<>();
     AtomicReference<Optional<RequestContext>> staticReadInPipeline = new AtomicReference<>();
     AtomicReference<RequestContext> reactorReadInPipeline = new AtomicReference<>();
 
@@ -1336,7 +1416,7 @@ public class UnifiedServerTransportTest {
         new TestServiceHandler() {
           @Override
           public Mono<TestResponse> requestResponse(TestRequest testRequest) {
-            duringHandlerCall.set(RequestContexts.getCurrentContext());
+            assemblyTimeRead.set(readAtAssembly());
             return Mono.fromCallable(() -> Optional.ofNullable(RequestContexts.getCurrentContext()))
                 .doOnNext(staticReadInPipeline::set)
                 .then(RequestContexts.currentContext())
@@ -1356,21 +1436,25 @@ public class UnifiedServerTransportTest {
             .setProtocolId(ProtocolId.COMPACT)
             .build(createHeaderClientFactory(), transport.getAddress());
 
+    String marker = "request-" + System.nanoTime();
     StepVerifier.create(
             client.requestResponse(
-                new TestRequest.Builder().setIntField(7).setStrField("leak-test").build()))
+                new TestRequest.Builder().setIntField(7).setStrField("leak-test").build(),
+                new RpcOptions.Builder()
+                    .setRequestHeaders(Collections.singletonMap("marker", marker))
+                    .build()))
         .expectNextCount(1)
         .verifyComplete();
 
-    assertNotNull(duringHandlerCall.get(), "the handler call should see its request");
+    assertRejectedWithTheReplacementNamed(assemblyTimeRead.get());
     assertEquals(
         Optional.empty(),
         staticReadInPipeline.get(),
         "no request should be left on the thread that runs the pipeline");
-    assertSame(
-        duringHandlerCall.get(),
-        reactorReadInPipeline.get(),
-        "the pipeline should read the same request through the Reactor context");
+    assertEquals(
+        marker,
+        reactorReadInPipeline.get().getRequestHeader().get("marker"),
+        "the pipeline should read its own request from the Reactor context");
   }
 
   /**

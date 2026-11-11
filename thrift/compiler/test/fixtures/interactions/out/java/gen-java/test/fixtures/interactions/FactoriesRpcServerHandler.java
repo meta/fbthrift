@@ -62,7 +62,9 @@ public class FactoriesRpcServerHandler
       _args -> {
         java.util.Iterator _iterator = _args.iterator();
 
-        return _delegate.serialize();
+        return com.facebook.nifty.core.RequestContextScope.get(
+            com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+            () -> _delegate.serialize());
       },
       _first_ResponseWriterFactory_serialize,
       _ResponseWriterFactory_serialize,
@@ -100,7 +102,9 @@ public class FactoriesRpcServerHandler
       _args -> {
         java.util.Iterator _iterator = _args.iterator();
 
-        return _delegate.interactWithStreamAndInitialResponse();
+        return com.facebook.nifty.core.RequestContextScope.get(
+            com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+            () -> _delegate.interactWithStreamAndInitialResponse());
       },
       _first_ResponseWriterFactory_interactWithStreamAndInitialResponse,
       _ResponseWriterFactory_interactWithStreamAndInitialResponse,
@@ -298,8 +302,10 @@ public class FactoriesRpcServerHandler
           _chain.postRead(_data);
 
           reactor.core.publisher.Mono<Void> _delegateResponse =
-            _delegate
-              .foo();
+            com.facebook.nifty.core.RequestContextScope.get(
+              com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+              () -> _delegate
+                .foo());
 
           reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
             _delegateResponse.map(_response ->
@@ -411,8 +417,10 @@ public class FactoriesRpcServerHandler
           _chain.postRead(_data);
 
           reactor.core.publisher.Mono<Void> _delegateResponse =
-            _delegate
-              .interact(arg);
+            com.facebook.nifty.core.RequestContextScope.get(
+              com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+              () -> _delegate
+                .interact(arg));
 
           reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
             _delegateResponse.map(_response ->
@@ -526,8 +534,10 @@ public class FactoriesRpcServerHandler
           _chain.postRead(_data);
 
           reactor.core.publisher.Mono<Integer> _delegateResponse =
-            _delegate
-              .interactFast();
+            com.facebook.nifty.core.RequestContextScope.get(
+              com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+              () -> _delegate
+                .interactFast());
 
           reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
             _delegateResponse.map(_response ->

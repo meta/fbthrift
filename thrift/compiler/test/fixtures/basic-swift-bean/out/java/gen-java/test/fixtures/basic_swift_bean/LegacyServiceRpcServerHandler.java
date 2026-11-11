@@ -123,8 +123,10 @@ public class LegacyServiceRpcServerHandler
           _chain.postRead(_data);
 
           reactor.core.publisher.Mono<Map<String, List<Integer>>> _delegateResponse =
-            _delegate
-              .getPoints(key, legacyStuff);
+            com.facebook.nifty.core.RequestContextScope.get(
+              com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+              () -> _delegate
+                .getPoints(key, legacyStuff));
 
           reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
             _delegateResponse.map(_response ->

@@ -73,6 +73,8 @@ interaction TestSession {
 service TestService {
   performs TestSession;
   void requestResponseVoid(1: TestRequest request);
+  // @lint-ignore THRIFTCHECKS avoid-oneway-method test-only: exercises the oneway dispatch path
+  oneway void requestFireAndForget(1: TestRequest request);
   TestResponse requestResponse(1: TestRequest request);
 
   TestResponse requestResponseDeclaredException(1: TestRequest request) throws (

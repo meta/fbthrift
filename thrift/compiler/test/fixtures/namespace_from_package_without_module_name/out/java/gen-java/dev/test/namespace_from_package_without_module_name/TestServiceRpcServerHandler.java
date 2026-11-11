@@ -106,8 +106,10 @@ public class TestServiceRpcServerHandler
           _chain.postRead(_data);
 
           reactor.core.publisher.Mono<Long> _delegateResponse =
-            _delegate
-              .init(int1);
+            com.facebook.nifty.core.RequestContextScope.get(
+              com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+              () -> _delegate
+                .init(int1));
 
           reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
             _delegateResponse.map(_response ->

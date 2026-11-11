@@ -58,6 +58,11 @@ public class TestServiceHandler implements TestService.Reactive {
   }
 
   @Override
+  public Mono<Void> requestFireAndForget(TestRequest testRequest) {
+    return Mono.empty();
+  }
+
+  @Override
   public Mono<TestResponse> requestResponse(TestRequest testRequest) {
     return Mono.just(
         new TestResponse.Builder()

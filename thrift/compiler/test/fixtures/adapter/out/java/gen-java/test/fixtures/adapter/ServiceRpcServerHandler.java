@@ -110,8 +110,10 @@ public class ServiceRpcServerHandler
           _chain.postRead(_data);
 
           reactor.core.publisher.Mono<com.facebook.thrift.my.AdaptedI32_1> _delegateResponse =
-            _delegate
-              .func(arg1, arg2, arg3);
+            com.facebook.nifty.core.RequestContextScope.get(
+              com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+              () -> _delegate
+                .func(arg1, arg2, arg3));
 
           reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
             _delegateResponse.map(_response ->

@@ -109,8 +109,10 @@ public class DbMixedStackArgumentsRpcServerHandler
           _chain.postRead(_data);
 
           reactor.core.publisher.Mono<byte[]> _delegateResponse =
-            _delegate
-              .getDataByKey0(key);
+            com.facebook.nifty.core.RequestContextScope.get(
+              com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+              () -> _delegate
+                .getDataByKey0(key));
 
           reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
             _delegateResponse.map(_response ->
@@ -225,8 +227,10 @@ public class DbMixedStackArgumentsRpcServerHandler
           _chain.postRead(_data);
 
           reactor.core.publisher.Mono<byte[]> _delegateResponse =
-            _delegate
-              .getDataByKey1(key);
+            com.facebook.nifty.core.RequestContextScope.get(
+              com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+              () -> _delegate
+                .getDataByKey1(key));
 
           reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
             _delegateResponse.map(_response ->

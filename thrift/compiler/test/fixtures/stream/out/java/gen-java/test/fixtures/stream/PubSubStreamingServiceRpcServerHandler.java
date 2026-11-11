@@ -167,7 +167,9 @@ public class PubSubStreamingServiceRpcServerHandler
         java.util.Iterator _iterator = _args.iterator();
         int foo = (int) _iterator.next();
 
-        return _delegate.responseandstreamstreamthrows(foo);
+        return com.facebook.nifty.core.RequestContextScope.get(
+            com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+            () -> _delegate.responseandstreamstreamthrows(foo));
       },
       _first_ResponseWriterFactory_responseandstreamstreamthrows,
       _ResponseWriterFactory_responseandstreamstreamthrows,
@@ -187,7 +189,9 @@ public class PubSubStreamingServiceRpcServerHandler
         java.util.Iterator _iterator = _args.iterator();
         int foo = (int) _iterator.next();
 
-        return _delegate.responseandstreamservicethrows(foo);
+        return com.facebook.nifty.core.RequestContextScope.get(
+            com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+            () -> _delegate.responseandstreamservicethrows(foo));
       },
       _first_ResponseWriterFactory_responseandstreamservicethrows,
       _ResponseWriterFactory_responseandstreamservicethrows,
@@ -207,7 +211,9 @@ public class PubSubStreamingServiceRpcServerHandler
         java.util.Iterator _iterator = _args.iterator();
         int foo = (int) _iterator.next();
 
-        return _delegate.responseandstreamboththrows(foo);
+        return com.facebook.nifty.core.RequestContextScope.get(
+            com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+            () -> _delegate.responseandstreamboththrows(foo));
       },
       _first_ResponseWriterFactory_responseandstreamboththrows,
       _ResponseWriterFactory_responseandstreamboththrows,

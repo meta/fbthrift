@@ -104,8 +104,10 @@ public class BadServiceRpcServerHandler
           _chain.postRead(_data);
 
           reactor.core.publisher.Mono<Integer> _delegateResponse =
-            _delegate
-              .bar();
+            com.facebook.nifty.core.RequestContextScope.get(
+              com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+              () -> _delegate
+                .bar());
 
           reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
             _delegateResponse.map(_response ->

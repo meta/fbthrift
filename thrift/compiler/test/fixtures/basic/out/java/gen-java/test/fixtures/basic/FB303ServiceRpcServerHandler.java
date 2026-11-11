@@ -106,8 +106,10 @@ public class FB303ServiceRpcServerHandler
           _chain.postRead(_data);
 
           reactor.core.publisher.Mono<test.fixtures.basic.ReservedKeyword> _delegateResponse =
-            _delegate
-              .simpleRpc(intParameter);
+            com.facebook.nifty.core.RequestContextScope.get(
+              com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+              () -> _delegate
+                .simpleRpc(intParameter));
 
           reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
             _delegateResponse.map(_response ->

@@ -106,8 +106,10 @@ public class BoxServiceRpcServerHandler
           _chain.postRead(_data);
 
           reactor.core.publisher.Mono<test.fixtures.interactions.ShouldBeBoxed> _delegateResponse =
-            _delegate
-              .getABoxSession(req);
+            com.facebook.nifty.core.RequestContextScope.get(
+              com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+              () -> _delegate
+                .getABoxSession(req));
 
           reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
             _delegateResponse.map(_response ->

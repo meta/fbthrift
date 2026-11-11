@@ -104,8 +104,10 @@ public class InteractWithSharedRpcServerHandler
           _chain.postRead(_data);
 
           reactor.core.publisher.Mono<test.fixtures.another_interactions.DoSomethingResult> _delegateResponse =
-            _delegate
-              .doSomeSimilarThings();
+            com.facebook.nifty.core.RequestContextScope.get(
+              com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+              () -> _delegate
+                .doSomeSimilarThings());
 
           reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
             _delegateResponse.map(_response ->
