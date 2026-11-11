@@ -41,7 +41,7 @@ THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<int, 4> TStructDataStorage<:
 namespace detail {
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::test::fixtures::cpp_allocator_union::AllocUnion, false>::bundle() {
-    return ::test::fixtures::cpp_allocator_union::module_constants::_fbthrift_schema_406d05063fb2cbf6_includes();
+    return ::test::fixtures::cpp_allocator_union::module_constants::_fbthrift_schema_3b6037986c72f4da_includes();
 }
 
 } // namespace detail

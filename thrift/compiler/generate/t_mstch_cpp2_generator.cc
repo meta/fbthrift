@@ -2816,19 +2816,6 @@ void forbid_allocator_via_on_union(sema_context& ctx, const t_union& node) {
   }
 }
 
-void forbid_allocator_on_union(sema_context& ctx, const t_union& node) {
-  if (!cpp2::is_allocator_aware(node) ||
-      node.has_structured_annotation(
-          kCppInternalExperimentalAllowAllocatorOnUnionUri)) {
-    return;
-  }
-  ctx.report(
-      node,
-      diagnostic_level::error,
-      "`cpp.allocator` does not support union `{}`",
-      node.name());
-}
-
 // `cpp.use_allocator` asks for the value to be built with the `cpp.allocator`
 // allocator, which these reference fields can't hold.
 void forbid_allocator_ignoring_ref_fields(
@@ -3141,7 +3128,6 @@ void t_mstch_cpp2_generator::fill_validator_visitors(
   validator.add_definition_visitor(validate_allocator_annotations);
   validator.add_struct_visitor(validate_allocator_via);
   validator.add_union_visitor(forbid_allocator_via_on_union);
-  validator.add_union_visitor(forbid_allocator_on_union);
   validator.add_field_visitor(forbid_allocator_ignoring_ref_fields);
   validator.add_field_visitor(forbid_optional_ref_fields_on_allocator_aware);
   validator.add_field_visitor(forbid_use_allocator_on_allocator_unaware_fields);

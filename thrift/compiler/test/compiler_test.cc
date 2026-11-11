@@ -3321,11 +3321,10 @@ TEST(CompilerTest, cpp_allocator_with_tablebased_serialization) {
     @thrift.DeprecatedUnvalidatedAnnotations{
       items = {"cpp.allocator": "::std::pmr::polymorphic_allocator<char>"},
     }
-    @cpp.InternalExperimentalAllowAllocatorOnUnion
     union PmrUnion {
       1: i32 id;
     }
-      # expected-error@-7: `cpp.allocator` on `PmrUnion` is not supported with the `tablebased` option.  [tablebased-allocator-rule]
+      # expected-error@-6: `cpp.allocator` on `PmrUnion` is not supported with the `tablebased` option.  [tablebased-allocator-rule]
 
     struct Plain {
       1: string name;
@@ -3381,28 +3380,24 @@ TEST(CompilerTest, cpp_allocator_on_union) {
   check_compile(R"(
     package "facebook.com/thrift/test"
     include "thrift/annotation/cpp.thrift"
+    include "thrift/annotation/internal.thrift"
     include "thrift/annotation/thrift.thrift"
 
     @thrift.DeprecatedUnvalidatedAnnotations{
       items = {"cpp.allocator": "MyAlloc"},
     }
-    union Bad {
+    union Allocated {
       1: i32 field1;
     }
-      # expected-error@-6: `cpp.allocator` does not support union `Bad`
 
-    @thrift.DeprecatedUnvalidatedAnnotations{
-      items = {"cpp.allocator": "MyAlloc"},
-    }
-    @cpp.InternalExperimentalAllowAllocatorOnUnion
-    union Allowed {
+    @internal.CppAllocator{name = "MyAlloc"}
+    union StructuredAllocated {
       1: i32 field1;
     }
 
     @thrift.DeprecatedUnvalidatedAnnotations{
       items = {"cpp.allocator": "MyAlloc"},
     }
-    @cpp.InternalExperimentalAllowAllocatorOnUnion
     union Defaulted {
       @thrift.AllowUnsafeUnionFieldCustomDefaultValue
       1: i32 field1 = 8;
@@ -3411,14 +3406,6 @@ TEST(CompilerTest, cpp_allocator_on_union) {
       @thrift.AllowUnsafeUnionFieldCustomDefaultValue
       2: i32 field2 = 8;
         # expected-error@-3: Field `field2` of union `Defaulted` has a default value, which unions don't support.
-    }
-
-    # Structs are unaffected.
-    @thrift.DeprecatedUnvalidatedAnnotations{
-      items = {"cpp.allocator": "MyAlloc"},
-    }
-    struct Good {
-      1: i32 field1;
     }
   )");
 }
@@ -3697,7 +3684,6 @@ TEST(CompilerTest, cpp_use_allocator_ref_fields) {
     @thrift.DeprecatedUnvalidatedAnnotations{
       items = {"cpp.allocator": "MyAlloc"},
     }
-    @cpp.InternalExperimentalAllowAllocatorOnUnion
     union Union {
       @cpp.Ref{type = cpp.RefType.Unique}
       1: AAString unique;
@@ -3732,7 +3718,6 @@ TEST(CompilerTest, cpp_allocator_via_on_union) {
       1: i32 field1;
     }
       # expected-error@-6: `cpp.allocator_via` is not supported on union `Bad`.
-      # expected-error@-7: `cpp.allocator` does not support union `Bad`
   )");
 }
 
@@ -3907,12 +3892,6 @@ TEST(CompilerTest, cpp_allocator_structured_annotations) {
       1: string s;
     }
       # expected-error@-5: `@internal.CppAllocatorVia` on `ViaWithoutAllocator` needs `@internal.CppAllocator`.
-
-    @internal.CppAllocator{name = "MyAlloc"}
-    union Union {
-      1: i32 field1;
-    }
-      # expected-error@-4: `cpp.allocator` does not support union `Union`
   )");
 }
 

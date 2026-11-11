@@ -128,8 +128,6 @@ inline constexpr auto kCppFrozen2ExcludeUri =
     "facebook.com/thrift/annotation/cpp/Frozen2Exclude";
 inline constexpr auto kCppAllowCustomDefaultInAllocCtorUri =
     "facebook.com/thrift/annotation/cpp/AllowCustomDefaultInAllocCtor";
-inline constexpr auto kCppInternalExperimentalAllowAllocatorOnUnionUri =
-    "facebook.com/thrift/annotation/cpp/InternalExperimentalAllowAllocatorOnUnion";
 inline constexpr auto kCppArenaUri = "facebook.com/thrift/annotation/cpp/Arena";
 inline constexpr auto kCppTypeUri = "facebook.com/thrift/annotation/cpp/Type";
 inline constexpr auto kCppNameUri = "facebook.com/thrift/annotation/cpp/Name";

@@ -46,7 +46,6 @@ typedef UStatefulChild UStatefulChildAA
 @thrift.DeprecatedUnvalidatedAnnotations{
   items = {"cpp.allocator": "::ScopedStatefulAlloc<>"},
 }
-@cpp.InternalExperimentalAllowAllocatorOnUnion
 union StatefulUnion {
   1: UStatefulIntList aa_list;
   2: UStatefulIntMap aa_map;
@@ -67,7 +66,6 @@ typedef set<i32> PropagatingIntSet
 @thrift.DeprecatedUnvalidatedAnnotations{
   items = {"cpp.allocator": "::ScopedPropagatingStatefulAlloc<>"},
 }
-@cpp.InternalExperimentalAllowAllocatorOnUnion
 union PropagatingUnion {
   1: PropagatingIntList aa_list;
   2: i32 n;
@@ -77,7 +75,6 @@ union PropagatingUnion {
 @thrift.DeprecatedUnvalidatedAnnotations{
   items = {"cpp.allocator": "::ScopedCountingAlloc<>"},
 }
-@cpp.InternalExperimentalAllowAllocatorOnUnion
 union CountingUnion {
   1: i32 n;
 }
@@ -112,7 +109,6 @@ typedef UnionChildPmr UnionChildPmrAA
 @thrift.DeprecatedUnvalidatedAnnotations{
   items = {"cpp.allocator": "PmrByteAlloc"},
 }
-@cpp.InternalExperimentalAllowAllocatorOnUnion
 union InnerUnionPmr {
   1: UPmrString s;
   2: UPmrIntList l;
@@ -123,7 +119,6 @@ typedef InnerUnionPmr InnerUnionPmrAA
 @thrift.DeprecatedUnvalidatedAnnotations{
   items = {"cpp.allocator": "PmrByteAlloc"},
 }
-@cpp.InternalExperimentalAllowAllocatorOnUnion
 union UnionPmr {
   1: UPmrString aa_string;
   2: UPmrStringList aa_string_list;
@@ -165,7 +160,6 @@ typedef RefChildPmr RefChildPmrAA
 @thrift.DeprecatedUnvalidatedAnnotations{
   items = {"cpp.allocator": "PmrByteAlloc"},
 }
-@cpp.InternalExperimentalAllowAllocatorOnUnion
 union RefChildUnionPmr {
   1: RefChildPmrAA child;
 }
@@ -176,7 +170,6 @@ typedef binary IOBufPtr
 @thrift.DeprecatedUnvalidatedAnnotations{
   items = {"cpp.allocator": "PmrByteAlloc"},
 }
-@cpp.InternalExperimentalAllowAllocatorOnUnion
 union IOBufUnionPmr {
   1: IOBufPtr buf;
   2: list<IOBufPtr> bufs;
@@ -185,7 +178,6 @@ union IOBufUnionPmr {
 @thrift.DeprecatedUnvalidatedAnnotations{
   items = {"cpp.allocator": "PmrByteAlloc", "cpp.noncopyable": "1"},
 }
-@cpp.InternalExperimentalAllowAllocatorOnUnion
 union NoncopyableUnionPmr {
   1: NotAAPmrString s;
 }
@@ -193,13 +185,11 @@ union NoncopyableUnionPmr {
 @thrift.DeprecatedUnvalidatedAnnotations{
   items = {"cpp.allocator": "PmrByteAlloc"},
 }
-@cpp.InternalExperimentalAllowAllocatorOnUnion
 union EmptyUnionPmr {}
 
 @thrift.DeprecatedUnvalidatedAnnotations{
   items = {"cpp.allocator": "PmrByteAlloc"},
 }
-@cpp.InternalExperimentalAllowAllocatorOnUnion
 union SharedRefUnionPmr {
   @cpp.Ref{type = cpp.RefType.SharedMutable}
   1: UPmrString shared_s;

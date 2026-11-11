@@ -186,7 +186,7 @@ struct aa_struct {
 
 ##### cpp.allocator
 
-* Where to use: struct
+* Where to use: struct, union
 * Value: string name of a type conforming to the [C++ named requirement "Allocator"](https://en.cppreference.com/w/cpp/named_req/Allocator)
 
 Declares that this is an allocator-aware structure, using the specified C++ allocator type. When this annotation is present, the Thrift compiler will generate additional code sufficient to meet the [C++ named requirement "AllocatorAwareContainer":](https://en.cppreference.com/w/cpp/named_req/AllocatorAwareContainer)

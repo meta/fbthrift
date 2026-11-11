@@ -458,7 +458,7 @@ template <> struct TEnumTraits<::test::fixtures::cpp_allocator_union::AllocUnion
 namespace apache::thrift::detail {
 template <> struct TSchemaAssociation<::test::fixtures::cpp_allocator_union::AllocUnion, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = 4642372315285474294;
-  static constexpr ::std::string_view definitionKey = {"\x2f\x4e\xfc\x2a\xe7\xcb\x83\x98\x32\xa5\x63\xf3\x11\x2a\xb1\xe8", 16};
+  static constexpr int64_t programId = 4278480773796000986;
+  static constexpr ::std::string_view definitionKey = {"\x6c\xc1\x67\x60\xb0\x18\x4e\x87\x76\xe4\x02\x15\xaa\xc4\x24\xb5", 16};
 };
 } // namespace apache::thrift::detail
