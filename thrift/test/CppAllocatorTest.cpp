@@ -26,6 +26,7 @@
 #include <vector>
 
 #include <folly/ScopeGuard.h>
+#include <thrift/lib/cpp2/op/Encode.h>
 #include <thrift/lib/cpp2/op/Get.h>
 #include <thrift/lib/cpp2/protocol/Serializer.h>
 #include <thrift/test/gen-cpp2/CppAllocatorTest_types.h>
@@ -1049,6 +1050,27 @@ TEST(CppAllocatorTest, ConstSharedRefDeserializesOntoAllocator) {
   std::pmr::monotonic_buffer_resource res(std::pmr::new_delete_resource());
   ConstRefPmr dst{PmrByteAlloc(&res)};
   CompactSerializer::deserialize(bytes, dst);
+
+  EXPECT_EQ(*dst.c_ref()->aa_string(), kTooLong);
+  EXPECT_EQ(dst.c_ref()->get_allocator().resource(), &res);
+  EXPECT_EQ(dst.c_ref()->aa_string()->get_allocator().resource(), &res);
+}
+
+// The chain reader takes op::decode's generic path, which can't decode a
+// `shared_ptr<const T>` in place and builds a new pointee.
+TEST(CppAllocatorTest, OpDecodeConstSharedRefUsesAllocator) {
+  ConstRefPmr src;
+  src.c_ref() = makeConstChild(PmrByteAlloc());
+  const IOBufChain input{
+      folly::IOBuf::copyBuffer(BinarySerializer::serialize<std::string>(src))};
+  BinaryProtocolChainReader reader;
+  reader.setInput(&input);
+  std::pmr::monotonic_buffer_resource res(std::pmr::new_delete_resource());
+  ConstRefPmr dst{PmrByteAlloc(&res)};
+
+  auto prev = set_default_resource(std::pmr::null_memory_resource());
+  auto guard = folly::makeGuard([&] { set_default_resource(prev); });
+  op::decode<type::struct_t<ConstRefPmr>>(reader, dst);
 
   EXPECT_EQ(*dst.c_ref()->aa_string(), kTooLong);
   EXPECT_EQ(dst.c_ref()->get_allocator().resource(), &res);

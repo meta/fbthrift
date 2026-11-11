@@ -595,6 +595,12 @@ template <class Struct, class Id>
 struct is_cpp_ref_field_terse : std::false_type {
   static_assert(sizeof(Struct), "Struct must be a complete type.");
 };
+// Whether a field's value, or a `cpp.ref` field's pointee, takes its struct's
+// or union's allocator, for the field's `cpp.use_allocator`.
+template <class Struct, class Id>
+struct is_field_using_allocator : std::false_type {
+  static_assert(sizeof(Struct), "Struct must be a complete type.");
+};
 // Identify a field has deprecated terse write optimization with custom default
 // value specified in IDL which differs from the intrinsic default value.
 template <class Struct, class Id>

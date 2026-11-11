@@ -1002,6 +1002,19 @@ template <typename T, typename A>
 inline constexpr bool kIsConstUnionFieldRef<union_field_ref<T, A>> =
     std::is_const_v<typename union_field_ref<T, A>::value_type>;
 
+// Makes the value that the `shared_ptr<const T>` field `Id` of `obj` is decoded
+// into, with `obj`'s allocator if the field's pointee takes it.
+template <typename FieldValue, typename Id, typename Obj>
+std::shared_ptr<FieldValue> makeConstRefFieldValue(const Obj& obj) {
+  constexpr bool kUsesAllocator = ::apache::thrift::detail::qualifier::
+      is_field_using_allocator<Obj, op::get_field_id<Obj, Id>>::value;
+  if constexpr (kUsesAllocator) {
+    return std::allocate_shared<FieldValue>(obj.get_allocator());
+  } else {
+    return std::make_shared<FieldValue>();
+  }
+}
+
 template <bool ClearBeforeDecode = false, typename T, typename Protocol>
 bool decodeStructField(
     Protocol& prot, T& value, TType fieldType, int16_t fieldId) {
@@ -1023,13 +1036,14 @@ bool decodeStructField(
         if constexpr (kIsConstUnionFieldRef<FieldRef>) {
           // A union `shared_ptr<const T>` field can't be decoded in place.
           using FieldValue = type::native_type<ValueTag>;
-          auto fieldValue = std::make_shared<FieldValue>();
+          auto fieldValue = makeConstRefFieldValue<FieldValue, IdT>(value);
           Decode<FieldTag>{}(prot, *fieldValue, value);
           op::get<IdT>(value).emplace(
               std::shared_ptr<const FieldValue>(std::move(fieldValue)));
         } else if constexpr (kIsSharedPtrToConst<FieldRef>) {
           // `shared_ptr<const T>` field can't be decoded in place.
-          auto fieldValue = std::make_shared<type::native_type<ValueTag>>();
+          auto fieldValue =
+              makeConstRefFieldValue<type::native_type<ValueTag>, IdT>(value);
           Decode<FieldTag>{}(prot, *fieldValue, value);
           op::get<IdT>(value) = std::move(fieldValue);
         } else {

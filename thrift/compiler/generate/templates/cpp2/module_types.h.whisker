@@ -93,6 +93,10 @@ struct is_cpp_ref_field_optional<{{struct.cpp_fullname}},::apache::thrift::type:
 template<>
 struct is_cpp_ref_field_terse<{{struct.cpp_fullname}},::apache::thrift::type::field_id<{{field.id}}>> : std::true_type{};
       {{/if field.opt_cpp_ref?}}
+      {{#if (and (object.notnull? struct.cpp_allocator) field.cpp_use_allocator?)}}
+template<>
+struct is_field_using_allocator<{{struct.cpp_fullname}},::apache::thrift::type::field_id<{{field.id}}>> : std::true_type{};
+      {{/if (and (object.notnull? struct.cpp_allocator) field.cpp_use_allocator?)}}
       {{#if field.deprecated_terse_writes_with_non_redundant_custom_default?}}
 template<>
 struct is_deprecated_terse_writes_with_custom_default_field<{{struct.cpp_fullname}},::apache::thrift::type::field_id<{{field.id}}>> : std::true_type{};

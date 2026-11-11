@@ -657,9 +657,11 @@ TEST(CppAllocatorUnionTest, OpDecodeConstSharedRefMember) {
   BinaryProtocolChainReader reader;
   reader.setInput(&input);
   SharedRefUnionPmr dst{PmrByteAlloc(&res)};
+  DefaultResourceGuard guard(std::pmr::null_memory_resource());
 
   op::decode<type::union_t<SharedRefUnionPmr>>(reader, dst);
   EXPECT_EQ(*dst.const_s_ref(), kTooLong);
+  EXPECT_EQ(resourceOf(*dst.const_s_ref()), &res);
 }
 
 TEST(CppAllocatorUnionTest, OpGetValueOrNull) {

@@ -556,6 +556,16 @@ struct is_cpp_ref_field_optional<::apache::thrift::fixtures::types::ForwardUsage
 template<>
 struct is_cpp_ref_field_optional<::apache::thrift::fixtures::types::detail::DependentAdaptedListDep,::apache::thrift::type::field_id<1>> : std::true_type{};
 template<>
+struct is_field_using_allocator<::apache::thrift::fixtures::types::AllocatorAware,::apache::thrift::type::field_id<1>> : std::true_type{};
+template<>
+struct is_field_using_allocator<::apache::thrift::fixtures::types::AllocatorAware,::apache::thrift::type::field_id<2>> : std::true_type{};
+template<>
+struct is_field_using_allocator<::apache::thrift::fixtures::types::AllocatorAware,::apache::thrift::type::field_id<3>> : std::true_type{};
+template<>
+struct is_field_using_allocator<::apache::thrift::fixtures::types::AllocatorAware,::apache::thrift::type::field_id<4>> : std::true_type{};
+template<>
+struct is_field_using_allocator<::apache::thrift::fixtures::types::AllocatorAware,::apache::thrift::type::field_id<7>> : std::true_type{};
+template<>
 struct is_cpp_ref_field_optional<::apache::thrift::fixtures::types::AllocatorAware2,::apache::thrift::type::field_id<2>> : std::true_type{};
 } // namespace apache::thrift::detail::qualifier
 
