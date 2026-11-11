@@ -35,7 +35,6 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/BufferAllocator.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
 #include <thrift/lib/cpp2/fast_thrift/common/ServerStats.h>
-#include <thrift/lib/cpp2/fast_thrift/frame/write/FragmentationHandlerConfig.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/IntervalBatchingHandlerConfig.h>
 #include <thrift/lib/cpp2/fast_thrift/interface/control/ControlServerInterface.h>
 #include <thrift/lib/cpp2/fast_thrift/interface/debug/DebugServerInterface.h>
@@ -125,10 +124,6 @@ struct ThriftServerConnectionFactoryConfig {
   // at end of each event loop iteration. Set batchingInterval > 0 to use
   // an HHWheelTimer-driven flush instead.
   frame::write::IntervalBatchingHandlerConfig batchingConfig{};
-
-  // Outbound frame fragmentation. Splits oversized PAYLOAD / REQUEST_*
-  // frames into spec-compliant fragment chains; small frames bypass.
-  frame::write::FragmentationHandlerConfig fragmentationConfig{};
 
   // Per-connection terminal-phase deadlines passed to
   // ThriftServerConnectionCloseHandler. Defaults mirror that handler's

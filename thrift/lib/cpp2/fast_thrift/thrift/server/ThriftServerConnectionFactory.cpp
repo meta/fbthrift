@@ -902,11 +902,13 @@ PipelineOwner detail::ThriftServerConnectionFactoryT<Mode>::buildRocketPipeline(
     // Fragmenter composed with the fragment-completion tracker. It records each
     // frame's streamId on the way down — below this handler the frame is
     // serialized bytes and the stream is no longer recoverable — and fans the
-    // batcher's batch event back out into one completion per original frame. It
-    // is also the only handler that can narrow the batcher's quiescence
-    // verdict, since the frames it is still holding are invisible from below.
+    // batcher's batch event back out into one completion per original frame.
+    //
+    // It holds no frame between writes. While it splits a frame, the fragments
+    // it has not written yet are invisible from below, so it is the only
+    // handler that can narrow the batcher's quiescence verdict.
     builder.template addNextOutbound<ServerFragmentationFrameHandler>(
-        frame_fragmentation_handler_tag, config_.fragmentationConfig);
+        frame_fragmentation_handler_tag);
     builder
         // Restates the fragmenter's frame-layer completion as the rocket
         // layer's own, so nothing above the rocket boundary subscribes to a

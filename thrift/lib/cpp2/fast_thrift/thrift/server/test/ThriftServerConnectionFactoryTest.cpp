@@ -18,6 +18,7 @@
 
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -31,7 +32,11 @@
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/HandlerNode.h>
+#include <thrift/lib/cpp2/fast_thrift/frame/write/handler/FragmentCompletionTracker.h>
+#include <thrift/lib/cpp2/fast_thrift/frame/write/handler/InlineFrameFragmentationHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/common/RocketTransportLifecycle.h>
+#include <thrift/lib/cpp2/fast_thrift/rocket/server/RocketServerEventFactory.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/RocketServerPipeline.h>
 #include <thrift/lib/cpp2/fast_thrift/transport/test/TestAsyncTransport.h>
 
 namespace apache::thrift::fast_thrift::thrift::server::test {
@@ -202,6 +207,15 @@ TEST(
   EXPECT_EQ(counts.transportDisconnected, 1);
   EXPECT_EQ(counts.transportDestroyed, 1);
 }
+
+// Both rocket pipelines build their fragmenter from this alias.
+static_assert(
+    std::is_same_v<
+        ServerFragmentationFrameHandler,
+        frame::write::handler::InlineFrameFragmentationHandlerT<
+            frame::write::handler::FragmentCompletionTrackerT<
+                rocket::server::RocketServerEventFactory>>>,
+    "the rocket pipelines send every frame through the inline fragmenter");
 
 } // namespace
 } // namespace apache::thrift::fast_thrift::thrift::server::test

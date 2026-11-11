@@ -35,8 +35,8 @@
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameLengthParser.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/handler/FrameDefragmentationHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/handler/FragmentCompletionTracker.h>
-#include <thrift/lib/cpp2/fast_thrift/frame/write/handler/FrameFragmentationHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/handler/FrameLengthEncoderHandler.h>
+#include <thrift/lib/cpp2/fast_thrift/frame/write/handler/InlineFrameFragmentationHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/handler/IntervalBatchingFrameHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/handler/WriteCompletionTracker.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/common/RocketStreamContext.h>
@@ -67,7 +67,7 @@ using ServerBatchingFrameHandler =
         frame::write::handler::WriteCompletionTrackerT<
             rocket::server::RocketServerEventFactory>>;
 using ServerFragmentationFrameHandler =
-    frame::write::handler::FrameFragmentationHandlerT<
+    frame::write::handler::InlineFrameFragmentationHandlerT<
         frame::write::handler::FragmentCompletionTrackerT<
             rocket::server::RocketServerEventFactory>>;
 
@@ -159,7 +159,7 @@ channel_pipeline::PipelineOwner buildStaticRocketPipeline(
               frame::read::handler::FrameDefragmentationHandler>(
               frame_defragmentation_handler_tag)
           .template addNextOutbound<ServerFragmentationFrameHandler>(
-              frame_fragmentation_handler_tag, config.fragmentationConfig)
+              frame_fragmentation_handler_tag)
           .template addNextDuplex<
               rocket::server::handler::RocketServerWriteCompletionHandler>(
               server_write_completion_handler_tag)
@@ -267,9 +267,9 @@ buildRocketServerConnection(
  * describes, so FastThriftServer::setRocketConnectionBuilder() can install the
  * production pipeline with other handlers.
  *
- * The connection takes its batching, fragmentation, cancellation, zero copy and
- * frame parser settings from `config`. A rocket connection builder does not
- * get the server's settings, so `config` must repeat them.
+ * The connection takes its batching, cancellation, zero copy and frame parser
+ * settings from `config`. A rocket connection builder does not get the
+ * server's settings, so `config` must repeat them.
  *
  * `allocator` must outlive the connection.
  */
