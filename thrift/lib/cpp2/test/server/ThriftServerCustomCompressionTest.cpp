@@ -15,6 +15,10 @@
  */
 
 #include <gmock/gmock.h>
+#include <folly/coro/AsyncGenerator.h>
+#include <folly/coro/BlockingWait.h>
+#include <folly/coro/Invoke.h>
+#include <folly/coro/Task.h>
 #include <folly/executors/GlobalExecutor.h>
 #include <folly/io/async/AsyncSocket.h>
 #include <folly/test/TestUtils.h>
@@ -24,13 +28,6 @@
 #include <thrift/lib/cpp2/test/server/ThriftServerTestUtils.h>
 #include <thrift/lib/cpp2/test/util/TestHandler.h>
 #include <thrift/lib/cpp2/transport/rocket/compression/CustomCompressorRegistry.h>
-
-#if FOLLY_HAS_COROUTINES
-#include <folly/coro/AsyncGenerator.h>
-#include <folly/coro/BlockingWait.h>
-#include <folly/coro/Invoke.h>
-#include <folly/coro/Task.h>
-#endif
 
 using namespace apache::thrift;
 using namespace apache::thrift::test;

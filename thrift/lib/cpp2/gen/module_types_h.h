@@ -26,6 +26,7 @@
 
 #include <folly/CPortability.h>
 #include <folly/Indestructible.h>
+#include <folly/SharedMutex.h>
 #include <folly/Traits.h>
 #include <folly/Utility.h>
 #include <folly/container/F14Map.h>
@@ -44,11 +45,6 @@
 #include <thrift/lib/cpp2/protocol/TableBasedForwardTypes.h>
 #include <thrift/lib/cpp2/type/Id.h>
 #include <thrift/lib/cpp2/type/Tag.h>
-
-#if !FOLLY_MOBILE
-#include <folly/SharedMutex.h>
-#else
-#endif
 
 #ifdef SWIG
 #error SWIG
