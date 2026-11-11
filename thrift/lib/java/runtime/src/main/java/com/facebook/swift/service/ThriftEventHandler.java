@@ -29,11 +29,9 @@ import org.apache.thrift.TException;
 public interface ThriftEventHandler {
   /**
    * Allocate per-request state; the returned object is passed to every other hook. The current
-   * {@link RequestContext} is the {@code requestContext} argument -- do NOT call {@link
-   * com.facebook.nifty.core.RequestContexts#getCurrentContext()} from this method. {@code
-   * getContext} runs on the caller / I/O thread during admission, where the request-scoped
-   * ThreadLocal is not yet set; only off-loop hooks ({@link #preRead}, {@link #postRead}, {@link
-   * #preWrite}, user handler) see it.
+   * {@link RequestContext} is the {@code requestContext} argument; prefer it. {@link ContextChain}
+   * runs every hook, on every transport, with that request context bound, so {@link
+   * com.facebook.nifty.core.RequestContexts#getCurrentContext()} also answers it inside a hook.
    */
   default Object getContext(String methodName, RequestContext requestContext) {
     return null;
@@ -45,9 +43,9 @@ public interface ThriftEventHandler {
    * {@code LOADSHEDDING}) to reject; doing so frees the request buffer immediately via the
    * transport's {@code doFinally} and never pays queue time, parse CPU, or user-handler dispatch.
    *
-   * <p>The caller-thread ThreadLocal is not set here; if {@code preprocess} needs the {@link
-   * RequestContext}, stash it on the object returned by {@link #getContext} and read it back from
-   * the {@code context} argument.
+   * <p>The request context is bound here, as in every hook. To keep it without a lookup, stash it
+   * on the object returned by {@link #getContext} and read it back from the {@code context}
+   * argument.
    *
    * <p>{@link #done} is guaranteed to fire for every handler whose {@link #getContext} succeeded,
    * regardless of whether this {@code preprocess} (or any other handler's) throws -- the dispatcher

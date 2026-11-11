@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.facebook.nifty.core.RequestContext;
+import com.facebook.nifty.core.RequestContexts;
 import com.facebook.swift.service.ThriftEventHandler;
 import com.facebook.thrift.example.ping.PingRequest;
 import com.facebook.thrift.example.ping.PingResponse;
@@ -41,9 +42,11 @@ import io.netty.channel.embedded.EmbeddedChannel;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import org.apache.thrift.ResponseRpcMetadata;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
@@ -56,6 +59,8 @@ import org.apache.thrift.protocol.TType;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 class ThriftServerHandlerTest {
 
@@ -416,5 +421,82 @@ class ThriftServerHandlerTest {
     TApplicationException exception = TApplicationException.read(in);
     in.readMessageEnd();
     return exception;
+  }
+
+  /**
+   * The dispatch binds the request only while it runs on the event loop. The old code set it on the
+   * event loop and left it there until the pipeline terminated.
+   */
+  @Test
+  void theEventLoopHoldsNoRequestAfterDispatch() {
+    EmbeddedChannel channel =
+        new EmbeddedChannel(
+            new ThriftServerHandler(
+                handlerAnswering(name -> Mono.never()), new Duration(60, TimeUnit.SECONDS)));
+
+    channel.writeInbound(frame("pending", 1));
+
+    assertThat(RequestContexts.getCurrentContext()).isNull();
+    channel.finishAndReleaseAll();
+  }
+
+  /**
+   * Request A is still in flight when request B fails on a worker. The old code restored the event
+   * loop's previous value, request A, from B's doFinally on that worker. The embedded channel
+   * writes on the calling thread, so B's doFinally runs on the worker here.
+   */
+  @Test
+  void aRequestFinishingOnAWorkerLeavesNoOtherRequestThere() {
+    Scheduler worker = Schedulers.newSingle("finishing-worker");
+    try {
+      EmbeddedChannel channel =
+          new EmbeddedChannel(
+              new ThriftServerHandler(
+                  handlerAnswering(
+                      name ->
+                          "pending".equals(name)
+                              ? Mono.never()
+                              : Mono.<ServerResponsePayload>error(
+                                      new IllegalStateException("request B failed"))
+                                  .subscribeOn(worker)),
+                  new Duration(60, TimeUnit.SECONDS)));
+
+      channel.writeInbound(frame("pending", 1));
+      channel.writeInbound(frame("fails", 2));
+
+      // Single thread, so this probe runs after request B has finished on the worker.
+      Optional<RequestContext> leftOnWorker =
+          Mono.fromCallable(() -> Optional.ofNullable(RequestContexts.getCurrentContext()))
+              .subscribeOn(worker)
+              .block();
+      assertThat(leftOnWorker).isEmpty();
+      channel.finishAndReleaseAll();
+    } finally {
+      worker.dispose();
+    }
+  }
+
+  private static RpcServerHandler handlerAnswering(
+      Function<String, Mono<ServerResponsePayload>> byMethodName) {
+    return new RpcServerHandler() {
+      @Override
+      public Mono<ServerResponsePayload> singleRequestSingleResponse(ServerRequestPayload payload) {
+        return byMethodName.apply(payload.getRequestRpcMetadata().getName());
+      }
+    };
+  }
+
+  private static ThriftFrame frame(String methodName, int sequenceId) {
+    ByteBuf message = Unpooled.buffer();
+    TProtocol out = TProtocolType.TCompact.apply(message);
+    out.writeMessageBegin(new TMessage(methodName, TMessageType.CALL, sequenceId));
+    return new ThriftFrame(
+        sequenceId,
+        message,
+        Collections.emptyMap(),
+        Collections.emptyMap(),
+        LegacyTransportType.HEADER,
+        TProtocolType.TCompact,
+        false);
   }
 }
