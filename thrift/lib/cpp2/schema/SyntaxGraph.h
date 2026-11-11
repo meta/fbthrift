@@ -661,18 +661,7 @@ class FieldNode final : folly::MoveOnly,
       folly::not_null_unique_ptr<TypeRef> type,
       std::optional<apache::thrift::type::ValueId> customDefaultId,
       apache::thrift::type::FieldQualifier qualifier,
-      std::optional<apache::thrift::type::SourceRange> sourceRange)
-      : detail::WithResolver(resolver),
-        detail::WithName(name),
-        detail::WithAnnotations(std::move(annotations)),
-        detail::WithDocBlock(docBlock),
-        detail::WithSourceRange(std::move(sourceRange)),
-        parent_(parent),
-        id_(id),
-        presence_(presence),
-        type_(std::move(type)),
-        customDefaultId_(customDefaultId),
-        qualifier_(qualifier) {}
+      std::optional<apache::thrift::type::SourceRange> sourceRange);
   ~FieldNode() noexcept;
 
   FieldNode(FieldNode&&) noexcept;
@@ -1057,13 +1046,7 @@ class FunctionException final
       std::string_view name,
       folly::not_null_unique_ptr<TypeRef> type,
       std::vector<Annotation>&& annotations,
-      std::optional<apache::thrift::type::SourceRange> sourceRange)
-      : detail::WithResolver(resolver),
-        detail::WithName(name),
-        detail::WithAnnotations(std::move(annotations)),
-        detail::WithSourceRange(std::move(sourceRange)),
-        id_(id),
-        type_(std::move(type)) {}
+      std::optional<apache::thrift::type::SourceRange> sourceRange);
 
   void printTo(
       tree_printer::scope& scope, detail::VisitationTracker& visited) const;
@@ -2034,9 +2017,46 @@ inline RpcInterfaceNode::RpcInterfaceNode(
 
 inline RpcInterfaceNode::~RpcInterfaceNode() = default;
 
+inline FieldNode::FieldNode(
+    const detail::Resolver& resolver,
+    const apache::thrift::type::DefinitionKey& parent,
+    std::vector<Annotation>&& annotations,
+    FieldId id,
+    PresenceQualifier presence,
+    std::string_view name,
+    std::optional<std::string_view> docBlock,
+    folly::not_null_unique_ptr<TypeRef> type,
+    std::optional<apache::thrift::type::ValueId> customDefaultId,
+    apache::thrift::type::FieldQualifier qualifier,
+    std::optional<apache::thrift::type::SourceRange> sourceRange)
+    : detail::WithResolver(resolver),
+      detail::WithName(name),
+      detail::WithAnnotations(std::move(annotations)),
+      detail::WithDocBlock(docBlock),
+      detail::WithSourceRange(std::move(sourceRange)),
+      parent_(parent),
+      id_(id),
+      presence_(presence),
+      type_(std::move(type)),
+      customDefaultId_(customDefaultId),
+      qualifier_(qualifier) {}
 inline FieldNode::~FieldNode() noexcept = default;
 inline FieldNode::FieldNode(FieldNode&&) noexcept = default;
 inline FieldNode& FieldNode::operator=(FieldNode&&) noexcept = default;
+
+inline FunctionException::FunctionException(
+    const detail::Resolver& resolver,
+    FieldId id,
+    std::string_view name,
+    folly::not_null_unique_ptr<TypeRef> type,
+    std::vector<Annotation>&& annotations,
+    std::optional<apache::thrift::type::SourceRange> sourceRange)
+    : detail::WithResolver(resolver),
+      detail::WithName(name),
+      detail::WithAnnotations(std::move(annotations)),
+      detail::WithSourceRange(std::move(sourceRange)),
+      id_(id),
+      type_(std::move(type)) {}
 
 namespace detail {
 
