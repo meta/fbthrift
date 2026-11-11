@@ -28,6 +28,7 @@ final class ThriftClientCompletionTest extends WWWTest {
     bool $use_channel,
     THandlerShortCircuitException<T> $completion,
     bool $short_send = false,
+    ?Exception $handoff_failure = null,
   ): shape(
     'client' => ThriftCompletionObservingClient,
     'calls' => Vector<string>,
@@ -70,6 +71,9 @@ final class ThriftClientCompletionTest extends WWWTest {
       ->mockImplementation('genWait', async ($id) ==> {
         $calls[] = 'genWait:'.$id;
         $requests[] = $output->getBuffer();
+        if ($handoff_failure is nonnull) {
+          throw $handoff_failure;
+        }
       })
       ->mockImplementation('genAfter', async ($name, $value) ==> {
         $calls[] = 'genAfter:'.$name;
@@ -88,6 +92,9 @@ final class ThriftClientCompletionTest extends WWWTest {
         ) ==> {
           $calls[] = 'channel';
           $requests[] = $message;
+          if ($handoff_failure is nonnull) {
+            throw $handoff_failure;
+          }
           // preRecv throws before decoding: these are deliberately not RPC bytes.
           return
             tuple('ignored response bytes', dict['reply-header' => 'value']);
@@ -193,6 +200,46 @@ final class ThriftClientCompletionTest extends WWWTest {
       'genOnError',
     ));
     expect($fixture['received']->toVArray())->toEqual(vec[$failure, $failure]);
+    expect(C\count($fixture['requests']))->toEqual(1);
+  }
+
+  <<DataProvider('paths')>>
+  public async function testHandoffExceptionEscapesWithoutReceiveHooks(
+    bool $use_channel,
+  ): Awaitable<void> {
+    $cause = new TestException('original handoff cause');
+    $failure = new TestException('handoff failure');
+    $failure->setPrevious($cause);
+    $fixture = self::fixture(
+      $use_channel,
+      new THandlerShortCircuitException(
+        null,
+        THandlerShortCircuitException::R_SUCCESS,
+      ),
+      false,
+      $failure,
+    );
+    $caught = null;
+    try {
+      await $fixture['client']->sendRequest(
+        example_RequestStruct::fromShape(shape('text' => 'request')),
+      );
+    } catch (Exception $error) {
+      Ope::markClownyControlFlowException(
+        $error,
+        'because the test observes the original handoff exception',
+      );
+      $caught = $error;
+    }
+    expect($caught)->toEqual($failure);
+    expect($caught?->getPrevious())->toEqual($cause);
+    expect($fixture['calls']->toVArray())->toEqual(vec[
+      'genBefore:sendRequest',
+      'preSend:sendRequest:0',
+      'postSend:sendRequest:0',
+      $use_channel ? 'channel' : 'genWait:0',
+    ]);
+    expect($fixture['received']->toVArray())->toEqual(vec[]);
     expect(C\count($fixture['requests']))->toEqual(1);
   }
 
