@@ -20,6 +20,7 @@
 #include <folly/ExceptionWrapper.h>
 #include <folly/io/IOBuf.h>
 #include <folly/io/async/EventBase.h>
+#include <folly/portability/GMock.h>
 
 #include <cstring>
 #include <optional>
@@ -27,6 +28,8 @@
 
 namespace apache::thrift::fast_thrift::frame::write::handler {
 namespace {
+
+using namespace testing;
 
 // ============================================================================
 // Test Utilities
@@ -42,6 +45,11 @@ std::unique_ptr<folly::IOBuf> makePayload(size_t size, char fillChar = 'X') {
 channel_pipeline::TypeErasedBox wrapFrame(std::unique_ptr<folly::IOBuf> buf) {
   return channel_pipeline::TypeErasedBox(std::move(buf));
 }
+
+struct TestFlushWritesEvent : channel_pipeline::EventTag<> {};
+using FlushEventBatcher = IntervalBatchingFrameHandlerT<
+    NoOpWriteCompletionTracker,
+    TestFlushWritesEvent>;
 
 // Drains a flush list the way a caller-owned poller does: move the list out so
 // re-armed callbacks land on a fresh list, then pop-and-run each entry.
@@ -590,6 +598,54 @@ TEST_F(IntervalBatchingFrameHandlerTest, Error_MessageIdentifiesHandler) {
       std::string(ctx_->firedException()->what())
           .find("IntervalBatchingFrameHandler: downstream write failed"),
       std::string::npos);
+}
+
+TEST_F(
+    IntervalBatchingFrameHandlerTest,
+    FlushWritesEventFlushesPendingBatchSynchronously) {
+  FlushEventBatcher handler;
+  handler.handlerAdded(*ctx_);
+  (void)handler.onWrite(*ctx_, wrapFrame(makePayload(100)));
+
+  handler.on<TestFlushWritesEvent>(*ctx_);
+
+  EXPECT_THAT(handler.empty(), IsTrue());
+  EXPECT_THAT(ctx_->writtenBatches(), SizeIs(1));
+  EXPECT_THAT(ctx_->totalBytesWritten(), Eq(100));
+}
+
+TEST_F(
+    IntervalBatchingFrameHandlerTest,
+    FlushWritesEventDropsDownstreamErrorResult) {
+  FlushEventBatcher handler;
+  handler.handlerAdded(*ctx_);
+  ctx_->setErrorAt(0);
+  (void)handler.onWrite(*ctx_, wrapFrame(makePayload(100)));
+
+  handler.on<TestFlushWritesEvent>(*ctx_);
+
+  EXPECT_THAT(handler.empty(), IsTrue());
+  EXPECT_THAT(ctx_->writtenBatches(), SizeIs(1));
+  EXPECT_THAT(ctx_->firedException().has_value(), IsFalse());
+}
+
+TEST_F(
+    IntervalBatchingFrameHandlerTest,
+    FlushWritesEventFlushesWhileAlreadyBackpressured) {
+  FlushEventBatcher handler;
+  handler.handlerAdded(*ctx_);
+  ctx_->setBackpressureAt(0);
+  (void)handler.onWrite(*ctx_, wrapFrame(makePayload(100)));
+  runEventBaseLoop();
+  ASSERT_THAT(handler.isBackpressured(), IsTrue());
+  (void)handler.onWrite(*ctx_, wrapFrame(makePayload(50)));
+
+  handler.on<TestFlushWritesEvent>(*ctx_);
+
+  EXPECT_THAT(handler.empty(), IsTrue());
+  EXPECT_THAT(handler.isBackpressured(), IsTrue());
+  EXPECT_THAT(ctx_->writtenBatches(), SizeIs(2));
+  EXPECT_THAT(ctx_->totalBytesWritten(), Eq(150));
 }
 
 // ============================================================================

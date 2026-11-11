@@ -33,6 +33,7 @@
 #include <folly/logging/test/TestLogHandler.h>
 #include <folly/portability/GMock.h>
 
+#include <array>
 #include <concepts>
 #include <cstdio>
 #include <cstdlib>
@@ -222,6 +223,9 @@ struct RecordingTracker {
 
 using CompletionHandler =
     FrameFragmentationHandlerT<FragmentCompletionTrackerT<TestEventFactory>>;
+
+constexpr size_t kCloseResponseSize = 8 * 1024 * 1024;
+constexpr std::array<size_t, 2> kCloseFragmentSizes{512 * 1024, 1024 * 1024};
 
 // Each 4-byte word holds its own index, so a lost, repeated or reordered chunk
 // changes the bytes that downstream receives.
@@ -1524,6 +1528,73 @@ TEST_F(
   ASSERT_EQ(frags.size(), 3u);
   EXPECT_TRUE(frags[2].isLastFragment);
   EXPECT_EQ(handler.tracker().flushCount, 1u);
+}
+
+TEST(FrameFragmentationHandlerCloseTest, AllSuccessOwnsNoRemainder) {
+  for (const size_t fragmentSize : kCloseFragmentSizes) {
+    folly::EventBase eventBase;
+    MockContext context(&eventBase);
+    FrameFragmentationHandlerT<RecordingTracker> handler(
+        {.maxFragmentSize = fragmentSize});
+    handler.handlerAdded(context);
+
+    EXPECT_THAT(
+        handler.onWrite(context, makePayloadFrame(1, kCloseResponseSize)),
+        Eq(channel_pipeline::Result::Success));
+
+    EXPECT_THAT(context.written(), SizeIs(kCloseResponseSize / fragmentSize));
+    EXPECT_THAT(
+        handler.tracker().fragments, SizeIs(kCloseResponseSize / fragmentSize));
+    EXPECT_THAT(handler.hasPendingWrites(), IsFalse());
+  }
+}
+
+TEST(FrameFragmentationHandlerCloseTest, ErrorBeforeCloseDropsOwnedRemainder) {
+  for (const size_t fragmentSize : kCloseFragmentSizes) {
+    folly::EventBase eventBase;
+    MockContext context(&eventBase);
+    context.setErrorAt(1);
+    FrameFragmentationHandlerT<RecordingTracker> handler(
+        {.maxFragmentSize = fragmentSize});
+    handler.handlerAdded(context);
+
+    EXPECT_THAT(
+        handler.onWrite(context, makePayloadFrame(1, kCloseResponseSize)),
+        Eq(channel_pipeline::Result::Error));
+    EXPECT_THAT(context.written(), SizeIs(1));
+    EXPECT_THAT(handler.tracker().fragments, SizeIs(1));
+    EXPECT_THAT(
+        handler.pendingBytes(), Eq(kCloseResponseSize - 2 * fragmentSize));
+
+    handler.onPipelineInactive(context);
+
+    EXPECT_THAT(handler.hasPendingWrites(), IsFalse());
+    EXPECT_THAT(context.written(), SizeIs(1));
+  }
+}
+
+TEST(FrameFragmentationHandlerCloseTest, BackpressureBeforeCloseKeepsDraining) {
+  for (const size_t fragmentSize : kCloseFragmentSizes) {
+    folly::EventBase eventBase;
+    MockContext context(&eventBase);
+    context.setBackpressureAt(1);
+    FrameFragmentationHandlerT<RecordingTracker> handler(
+        {.maxFragmentSize = fragmentSize});
+    handler.handlerAdded(context);
+
+    EXPECT_THAT(
+        handler.onWrite(context, makePayloadFrame(1, kCloseResponseSize)),
+        Eq(channel_pipeline::Result::Backpressure));
+    EXPECT_THAT(
+        handler.tracker().fragments, SizeIs(kCloseResponseSize / fragmentSize));
+    EXPECT_THAT(handler.pendingBytes(), Eq(size_t{0}));
+    EXPECT_THAT(context.awaitWriteReadyCalled(), IsTrue());
+
+    handler.onPipelineInactive(context);
+
+    EXPECT_THAT(handler.hasPendingWrites(), IsFalse());
+    EXPECT_THAT(context.written(), SizeIs(kCloseResponseSize / fragmentSize));
+  }
 }
 
 // ============================================================================

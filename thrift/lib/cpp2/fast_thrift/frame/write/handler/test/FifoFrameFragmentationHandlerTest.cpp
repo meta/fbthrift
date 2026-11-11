@@ -170,6 +170,8 @@ class QueueingWriter {
 constexpr size_t kStreamQuantum = 64 * 1024;
 constexpr size_t kCallbackBudget = 16 * 1024 * 1024;
 constexpr size_t kFullTurnsPerCallback = kCallbackBudget / kStreamQuantum;
+constexpr size_t kCloseResponseSize = 8 * 1024 * 1024;
+constexpr std::array<size_t, 2> kCloseFragmentSizes{512 * 1024, 1024 * 1024};
 
 struct TestPublishedEvent : channel_pipeline::EventTag<int> {};
 struct TestSubscribedEvent : channel_pipeline::EventTag<int> {};
@@ -1136,6 +1138,98 @@ TEST_F(
           context_.awaitingWriteReady(),
           handler.isBackpressured()),
       Eq(std::tuple(size_t{1}, false, false)));
+}
+
+TEST(
+    FifoFrameFragmentationHandlerCloseTest,
+    PipelineInactiveAfterSuccessDropsRemainder) {
+  for (const size_t fragmentSize : kCloseFragmentSizes) {
+    folly::EventBase eventBase;
+    TestContext context(&eventBase);
+    Handler handler({.streamQuantum = fragmentSize});
+    handler.handlerAdded(context);
+    EXPECT_THAT(
+        handler.onWrite(
+            context,
+            makeFrame(FrameType::PAYLOAD, 1, kCloseResponseSize, true)),
+        Eq(channel_pipeline::Result::Success));
+
+    eventBase.loopOnce(EVLOOP_NONBLOCK);
+
+    EXPECT_THAT(context.written(), SizeIs(1));
+    EXPECT_THAT(context.written()[0].dataSize, Eq(fragmentSize));
+    EXPECT_THAT(handler.tracker().fragments, SizeIs(1));
+    EXPECT_THAT(handler.hasPendingWrites(), IsTrue());
+
+    handler.onPipelineInactive(context);
+    eventBase.loopOnce(EVLOOP_NONBLOCK);
+
+    EXPECT_THAT(context.written(), SizeIs(1));
+    EXPECT_THAT(handler.hasPendingWrites(), IsFalse());
+  }
+}
+
+TEST(
+    FifoFrameFragmentationHandlerCloseTest,
+    ErrorBeforeCloseAbortsRecordAndClearsRemainder) {
+  for (const size_t fragmentSize : kCloseFragmentSizes) {
+    folly::EventBase eventBase;
+    TestContext context(&eventBase);
+    context.setErrorOnAttempt(2);
+    Handler handler({.streamQuantum = fragmentSize});
+    handler.handlerAdded(context);
+    (void)handler.onWrite(
+        context, makeFrame(FrameType::PAYLOAD, 1, kCloseResponseSize, true));
+
+    eventBase.loopOnce(EVLOOP_NONBLOCK);
+    eventBase.loopOnce(EVLOOP_NONBLOCK);
+
+    EXPECT_THAT(context.writeAttemptCount(), Eq(2));
+    EXPECT_THAT(context.written(), SizeIs(1));
+    EXPECT_THAT(handler.tracker().fragments, SizeIs(1));
+    EXPECT_THAT(handler.tracker().abortCount, Eq(1));
+    EXPECT_THAT(handler.hasPendingWrites(), IsFalse());
+    EXPECT_THAT(context.fireExceptionCount(), Eq(1));
+  }
+}
+
+TEST(
+    FifoFrameFragmentationHandlerCloseTest,
+    PipelineInactiveAfterBackpressureCancelsAwaitAndDropsRemainder) {
+  for (const size_t fragmentSize : kCloseFragmentSizes) {
+    folly::EventBase eventBase;
+    TestContext context(&eventBase);
+    context.setResults(
+        {channel_pipeline::Result::Success,
+         channel_pipeline::Result::Backpressure});
+    Handler handler({.streamQuantum = fragmentSize});
+    handler.handlerAdded(context);
+    (void)handler.onWrite(
+        context, makeFrame(FrameType::PAYLOAD, 1, kCloseResponseSize, true));
+
+    eventBase.loopOnce(EVLOOP_NONBLOCK);
+    eventBase.loopOnce(EVLOOP_NONBLOCK);
+
+    EXPECT_THAT(
+        std::tuple(
+            context.written().size(),
+            handler.tracker().fragments.size(),
+            handler.hasPendingWrites(),
+            context.awaitingWriteReady(),
+            handler.isScheduled()),
+        Eq(std::tuple(size_t{2}, size_t{2}, true, true, true)));
+
+    handler.onPipelineInactive(context);
+    eventBase.loopOnce(EVLOOP_NONBLOCK);
+
+    EXPECT_THAT(
+        std::tuple(
+            context.written().size(),
+            handler.hasPendingWrites(),
+            context.awaitingWriteReady(),
+            handler.isScheduled()),
+        Eq(std::tuple(size_t{2}, false, false, false)));
+  }
 }
 
 TEST_F(

@@ -66,10 +66,12 @@ using ServerBatchingFrameHandler =
     frame::write::handler::IntervalBatchingFrameHandlerT<
         frame::write::handler::WriteCompletionTrackerT<
             rocket::server::RocketServerEventFactory>>;
+using ServerFragmentCompletionTracker =
+    frame::write::handler::FragmentCompletionTrackerT<
+        rocket::server::RocketServerEventFactory>;
 using ServerFragmentationFrameHandler =
     frame::write::handler::InlineFrameFragmentationHandlerT<
-        frame::write::handler::FragmentCompletionTrackerT<
-            rocket::server::RocketServerEventFactory>>;
+        ServerFragmentCompletionTracker>;
 
 // Handler overrides name the rocket pipeline handlers by these tags.
 HANDLER_TAG(batching_frame_handler);
