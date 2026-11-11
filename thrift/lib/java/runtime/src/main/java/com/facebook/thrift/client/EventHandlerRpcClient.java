@@ -16,6 +16,9 @@
 
 package com.facebook.thrift.client;
 
+import com.facebook.nifty.core.RequestContext;
+import com.facebook.nifty.core.RequestContextScope;
+import com.facebook.nifty.core.RequestContexts;
 import com.facebook.swift.service.ThriftClientEventHandler;
 import com.facebook.thrift.payload.ClientRequestPayload;
 import com.facebook.thrift.payload.ClientResponsePayload;
@@ -31,6 +34,7 @@ import org.apache.thrift.client.ClientRequestContext;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.context.ContextView;
 
 /** This class wraps an RpcClient and executes ThriftClientEventHandler with the calls. */
 public class EventHandlerRpcClient extends DelegatingRpcClient {
@@ -42,33 +46,56 @@ public class EventHandlerRpcClient extends DelegatingRpcClient {
     this.eventHandlers = eventHandlers;
   }
 
+  /**
+   * The context the event handlers run under. A caller that composed this call into a server
+   * pipeline carries it in the Reactor {@link ContextView}. An imperative caller does not: its
+   * subscription starts a fresh, empty Reactor {@code Context}, and the only trace of the request
+   * is the scope the server opened around the handler that issued this call.
+   *
+   * @return the resolved context, or null when this call belongs to no request
+   */
+  private static RequestContext resolveRequestContext(ContextView contextView) {
+    // tryGetCurrentContext answers null for the assembly sentinel: it describes the reader's
+    // moment, not this request, and throwing would fail an otherwise valid call.
+    return RequestContext.tryContextView(contextView)
+        .orElseGet(RequestContexts::tryGetCurrentContext);
+  }
+
   @Override
   public <T> Mono<ClientResponsePayload<T>> singleRequestSingleResponse(
       ClientRequestPayload<T> payload, RpcOptions options) {
-    final EventHandlerClientRequestPayload<T> requestPayload =
-        new EventHandlerClientRequestPayload<>(payload, eventHandlers);
-    return getDelegate()
-        .singleRequestSingleResponse(requestPayload, options)
-        .doOnNext(
-            clientResponsePayload -> {
-              requestPayload.setResponseHeaders(clientResponsePayload.getHeaders());
-              if (clientResponsePayload.getException() != null) {
-                requestPayload.onError(clientResponsePayload.getException());
-              }
-            })
-        .doOnError(requestPayload::onError)
-        .doFinally(__ -> requestPayload.done());
+    return Mono.deferContextual(
+        contextView -> {
+          final EventHandlerClientRequestPayload<T> requestPayload =
+              new EventHandlerClientRequestPayload<>(
+                  payload, eventHandlers, resolveRequestContext(contextView));
+          return getDelegate()
+              .singleRequestSingleResponse(requestPayload, options)
+              .doOnNext(
+                  clientResponsePayload -> {
+                    requestPayload.setResponseHeaders(clientResponsePayload.getHeaders());
+                    if (clientResponsePayload.getException() != null) {
+                      requestPayload.onError(clientResponsePayload.getException());
+                    }
+                  })
+              .doOnError(requestPayload::onError)
+              .doFinally(__ -> requestPayload.done());
+        });
   }
 
   @Override
   public <T> Mono<Void> singleRequestNoResponse(
       ClientRequestPayload<T> payload, RpcOptions options) {
-    final EventHandlerClientRequestPayload<T> requestPayload =
-        new EventHandlerClientRequestPayload<>(payload, eventHandlers);
-    return getDelegate()
-        .singleRequestNoResponse(requestPayload, options)
-        .doOnError(requestPayload::onError)
-        .doFinally(__ -> requestPayload.done());
+    return Mono.deferContextual(
+        contextView -> {
+          final EventHandlerClientRequestPayload<T> requestPayload =
+              new EventHandlerClientRequestPayload<>(
+                  payload, eventHandlers, resolveRequestContext(contextView));
+          return getDelegate()
+              .singleRequestNoResponse(requestPayload, options)
+              .doOnError(requestPayload::onError)
+              .doFinally(__ -> requestPayload.done());
+        });
   }
 
   @Override
@@ -94,33 +121,57 @@ public class EventHandlerRpcClient extends DelegatingRpcClient {
     private final String methodName;
     private final List<Object> contexts;
     private final List<? extends ThriftClientEventHandler> handlers;
+    private final RequestContext requestContext;
     private final Object[] args = new Object[0];
     private final Map<String, String> requestHeaders = new HashMap<>();
 
     private Map<String, String> responseHeaders;
 
     public EventHandlerClientRequestPayload(
-        ClientRequestPayload<T> delegate, List<? extends ThriftClientEventHandler> handlers) {
+        ClientRequestPayload<T> delegate,
+        List<? extends ThriftClientEventHandler> handlers,
+        RequestContext requestContext) {
       this.delegate = delegate;
       this.methodName = delegate.getRequestRpcMetadata().getName();
       this.handlers = handlers;
+      this.requestContext = requestContext;
       List<Object> contexts = new ArrayList<>();
-      for (ThriftClientEventHandler h : this.handlers) {
-        contexts.add(h.getContext(methodName, this));
-      }
+      withRequestContext(
+          () -> {
+            for (ThriftClientEventHandler h : handlers) {
+              contexts.add(h.getContext(methodName, this));
+            }
+          });
       this.contexts = contexts;
     }
 
+    /**
+     * Binds this call's context for the duration of {@code handlerCalls} and unwinds it on the way
+     * out. The handlers fire on whichever thread writes the payload or terminates the response, so
+     * without this an implementation reading {@link
+     * com.facebook.nifty.core.RequestContexts#getCurrentContext()} would get a different answer per
+     * lifecycle method.
+     */
+    private void withRequestContext(Runnable handlerCalls) {
+      RequestContextScope.run(requestContext, handlerCalls);
+    }
+
     public void done() {
-      for (int i = 0; i < handlers.size(); i++) {
-        handlers.get(i).done(contexts.get(i), methodName);
-      }
+      withRequestContext(
+          () -> {
+            for (int i = 0; i < handlers.size(); i++) {
+              handlers.get(i).done(contexts.get(i), methodName);
+            }
+          });
     }
 
     public void onError(Throwable t) {
-      for (int i = 0; i < handlers.size(); i++) {
-        handlers.get(i).onError(contexts.get(i), methodName, t);
-      }
+      withRequestContext(
+          () -> {
+            for (int i = 0; i < handlers.size(); i++) {
+              handlers.get(i).onError(contexts.get(i), methodName, t);
+            }
+          });
     }
 
     public void setResponseHeaders(Map<String, String> responseHeaders) {
@@ -135,26 +186,38 @@ public class EventHandlerRpcClient extends DelegatingRpcClient {
     @Override
     public Writer getDataWriter() {
       return protocol -> {
-        for (int i = 0; i < handlers.size(); i++) {
-          handlers.get(i).preWrite(contexts.get(i), methodName, args);
-        }
+        withRequestContext(
+            () -> {
+              for (int i = 0; i < handlers.size(); i++) {
+                handlers.get(i).preWrite(contexts.get(i), methodName, args);
+              }
+            });
         delegate.getDataWriter().write(protocol);
-        for (int i = 0; i < handlers.size(); i++) {
-          handlers.get(i).postWrite(contexts.get(i), methodName, args);
-        }
+        withRequestContext(
+            () -> {
+              for (int i = 0; i < handlers.size(); i++) {
+                handlers.get(i).postWrite(contexts.get(i), methodName, args);
+              }
+            });
       };
     }
 
     @Override
     public Reader<T> getResponseReader() {
       return protocol -> {
-        for (int i = 0; i < handlers.size(); i++) {
-          handlers.get(i).preRead(contexts.get(i), methodName);
-        }
+        withRequestContext(
+            () -> {
+              for (int i = 0; i < handlers.size(); i++) {
+                handlers.get(i).preRead(contexts.get(i), methodName);
+              }
+            });
         T read = delegate.getResponseReader().read(protocol);
-        for (int i = 0; i < handlers.size(); i++) {
-          handlers.get(i).postRead(contexts.get(i), methodName, read);
-        }
+        withRequestContext(
+            () -> {
+              for (int i = 0; i < handlers.size(); i++) {
+                handlers.get(i).postRead(contexts.get(i), methodName, read);
+              }
+            });
         return read;
       };
     }
@@ -180,7 +243,12 @@ public class EventHandlerRpcClient extends DelegatingRpcClient {
     @Override
     public RequestRpcMetadata getRequestRpcMetadata() {
       RequestRpcMetadata requestRpcMetadata = delegate.getRequestRpcMetadata();
-      Map<String, String> allHeaders = requestRpcMetadata.getOtherMetadata();
+      // The delegate is shared by every subscription to the same call, so its map must not carry
+      // one subscription's headers into the next.
+      Map<String, String> allHeaders = new HashMap<>();
+      if (requestRpcMetadata.getOtherMetadata() != null) {
+        allHeaders.putAll(requestRpcMetadata.getOtherMetadata());
+      }
       allHeaders.putAll(requestHeaders);
       return new RequestRpcMetadata.Builder(requestRpcMetadata)
           .setOtherMetadata(allHeaders)
