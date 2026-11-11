@@ -19,7 +19,6 @@
 #include <type_traits>
 
 #include <thrift/conformance/cpp2/Protocol.h>
-#include <thrift/conformance/cpp2/ThriftTypeInfo.h>
 #include <thrift/conformance/if/gen-cpp2/any_types.h>
 #include <thrift/lib/cpp2/Thrift.h>
 #include <thrift/lib/cpp2/op/Encode.h>
@@ -42,6 +41,14 @@ void setProtocol(const Protocol& protocol, Any& any) noexcept;
 // Raises std::invalid_argument if invalid.
 void validateAny(const Any& any);
 
+namespace detail {
+// Returns true iff prefix is at least kMinTypeHashBytes long and was derived
+// from hash. Defined in ThriftTypeInfo.cpp because ThriftTypeInfo.h
+// transitively defines the dynamically initialized `type::kNoProtocol`, which
+// would add a static initializer to every TU that includes this header.
+bool matchesTypeHashPrefix(folly::StringPiece hash, folly::StringPiece prefix);
+} // namespace detail
+
 // Returns true iff the any holds a value of type T, identified either by its
 // URI or by a type hash prefix of at least kMinTypeHashBytes. Unlike
 // AnyRegistry::getTypeId, this does not require T to be registered.
@@ -53,11 +60,9 @@ bool hasType(const Any& any) {
   if (!any.typeHashPrefixSha2_256().has_value()) {
     return false;
   }
-  const auto& prefix = *any.typeHashPrefixSha2_256();
   static const auto hash =
       type::getUniversalHash(type::UniversalHashAlgorithm::Sha2_256, uri<T>());
-  return prefix.size() >= static_cast<size_t>(kMinTypeHashBytes) &&
-      type::matchesUniversalHash(hash, prefix);
+  return detail::matchesTypeHashPrefix(hash, *any.typeHashPrefixSha2_256());
 }
 
 // Encode a statically-typed value into a conformance::Any, bypassing the
