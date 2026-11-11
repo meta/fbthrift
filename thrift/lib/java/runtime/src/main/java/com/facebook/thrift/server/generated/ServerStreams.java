@@ -227,9 +227,9 @@ public final class ServerStreams {
 
   private static Writer createKnownExceptionWriter(
       Throwable t, ContextChain chain, final int fieldId) {
-    // No preWriteException here: at this revision the known path fires only the
-    // declared/undeclared classification hooks, matching the parent behavior.
-    return declaredExceptionWriter(t, chain, fieldId);
+    // Same order as the request-response and unknown-exception paths: preWriteException
+    // fires before the declared/undeclared classification hooks.
+    return withPreWriteException(t, chain, declaredExceptionWriter(t, chain, fieldId));
   }
 
   private static Writer createUnknownExceptionWriter(TApplicationException t, ContextChain chain) {
