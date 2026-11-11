@@ -203,13 +203,13 @@ public interface {{service.javaCapitalName}} extends java.io.Closeable, com.face
 
         {{/each}}
         {{#each service.streaming_functions as |func|}}
-        reactor.core.publisher.Flux<{{#partial types.stream_return_type function=func}}> {{func.java_name}}({{#each (array.enumerate func.params.fields with_last=true) as |i field last?|}}final {{#partial types.java_type type=field.type has_adapter_override=field.hasAdapter?}} {{field.javaName}}{{#if (not last?)}}, {{/if (not last?)}}{{/each}});
+        {{#partial types.stream_return_type function=func}} {{func.java_name}}({{#each (array.enumerate func.params.fields with_last=true) as |i field last?|}}final {{#partial types.java_type type=field.type has_adapter_override=field.hasAdapter?}} {{field.javaName}}{{#if (not last?)}}, {{/if (not last?)}}{{/each}});
 
-        default reactor.core.publisher.Flux<{{#partial types.stream_return_type function=func}}> {{func.java_name}}({{#each func.params.fields as |field|}}final {{#partial types.java_type type=field.type has_adapter_override=field.hasAdapter?}} {{field.javaName}}, {{/each}}RpcOptions rpcOptions) {
+        default {{#partial types.stream_return_type function=func}} {{func.java_name}}({{#each func.params.fields as |field|}}final {{#partial types.java_type type=field.type has_adapter_override=field.hasAdapter?}} {{field.javaName}}, {{/each}}RpcOptions rpcOptions) {
             throw new UnsupportedOperationException();
         }
 
-        default reactor.core.publisher.Flux<ResponseWrapper<{{#partial types.stream_return_type function=func}}>> {{func.java_name}}Wrapper({{#each func.params.fields as |field|}}final {{#partial types.java_type type=field.type has_adapter_override=field.hasAdapter?}} {{field.javaName}}, {{/each}}RpcOptions rpcOptions) {
+        default {{#partial types.stream_wrapper_return_type function=func}} {{func.java_name}}Wrapper({{#each func.params.fields as |field|}}final {{#partial types.java_type type=field.type has_adapter_override=field.hasAdapter?}} {{field.javaName}}, {{/each}}RpcOptions rpcOptions) {
             throw new UnsupportedOperationException();
         }
 
@@ -243,13 +243,13 @@ public interface {{service.javaCapitalName}} extends java.io.Closeable, com.face
 
             {{/each}}
             {{#each interaction.streaming_functions as |func|}}
-            reactor.core.publisher.Flux<{{#partial types.stream_return_type function=func}}> {{func.java_name}}({{#each (array.enumerate func.params.fields with_last=true) as |i field last?|}}final {{#partial types.java_type type=field.type has_adapter_override=field.hasAdapter?}} {{field.javaName}}{{#if (not last?)}}, {{/if (not last?)}}{{/each}});
+            {{#partial types.stream_return_type function=func}} {{func.java_name}}({{#each (array.enumerate func.params.fields with_last=true) as |i field last?|}}final {{#partial types.java_type type=field.type has_adapter_override=field.hasAdapter?}} {{field.javaName}}{{#if (not last?)}}, {{/if (not last?)}}{{/each}});
 
-            default reactor.core.publisher.Flux<{{#partial types.stream_return_type function=func}}> {{func.java_name}}({{#each func.params.fields as |field|}}final {{#partial types.java_type type=field.type has_adapter_override=field.hasAdapter?}} {{field.javaName}}, {{/each}}RpcOptions rpcOptions) {
+            default {{#partial types.stream_return_type function=func}} {{func.java_name}}({{#each func.params.fields as |field|}}final {{#partial types.java_type type=field.type has_adapter_override=field.hasAdapter?}} {{field.javaName}}, {{/each}}RpcOptions rpcOptions) {
                 throw new UnsupportedOperationException();
             }
 
-            default reactor.core.publisher.Flux<ResponseWrapper<{{#partial types.stream_return_type function=func}}>> {{func.java_name}}Wrapper({{#each func.params.fields as |field|}}final {{#partial types.java_type type=field.type has_adapter_override=field.hasAdapter?}} {{field.javaName}}, {{/each}}RpcOptions rpcOptions) {
+            default {{#partial types.stream_wrapper_return_type function=func}} {{func.java_name}}Wrapper({{#each func.params.fields as |field|}}final {{#partial types.java_type type=field.type has_adapter_override=field.hasAdapter?}} {{field.javaName}}, {{/each}}RpcOptions rpcOptions) {
                 throw new UnsupportedOperationException();
             }
 

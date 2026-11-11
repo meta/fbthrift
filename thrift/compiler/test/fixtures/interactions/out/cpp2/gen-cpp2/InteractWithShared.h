@@ -127,6 +127,14 @@ class MyInteractionIf : public apache::thrift::Tile, public apache::thrift::Serv
   virtual folly::coro::Task<::apache::thrift::ServerStream<::std::int32_t>> co_streamWithArg(apache::thrift::RequestParams params, std::unique_ptr<::std::string> p_query);
 #endif
   virtual void async_tm_streamWithArg(apache::thrift::HandlerCallbackPtr<::apache::thrift::ServerStream<::std::int32_t>> callback, std::unique_ptr<::std::string> p_query);
+  virtual ::apache::thrift::ResponseAndServerStream<::std::int32_t, ::std::int32_t> sync_firstAndStream();
+  [[deprecated("Use sync_firstAndStream instead")]] virtual ::apache::thrift::ResponseAndServerStream<::std::int32_t, ::std::int32_t> firstAndStream();
+  virtual folly::SemiFuture<::apache::thrift::ResponseAndServerStream<::std::int32_t, ::std::int32_t>> semifuture_firstAndStream();
+#if FOLLY_HAS_COROUTINES
+  virtual folly::coro::Task<::apache::thrift::ResponseAndServerStream<::std::int32_t, ::std::int32_t>> co_firstAndStream();
+  virtual folly::coro::Task<::apache::thrift::ResponseAndServerStream<::std::int32_t, ::std::int32_t>> co_firstAndStream(apache::thrift::RequestParams params);
+#endif
+  virtual void async_tm_firstAndStream(apache::thrift::HandlerCallbackPtr<::apache::thrift::ResponseAndServerStream<::std::int32_t, ::std::int32_t>> callback);
   virtual ::apache::thrift::ResponseAndSinkConsumer<::std::set<::std::int32_t>, ::std::string, ::std::string> sync_encode();
   [[deprecated("Use sync_encode instead")]] virtual ::apache::thrift::ResponseAndSinkConsumer<::std::set<::std::int32_t>, ::std::string, ::std::string> encode();
   virtual folly::SemiFuture<::apache::thrift::ResponseAndSinkConsumer<::std::set<::std::int32_t>, ::std::string, ::std::string>> semifuture_encode();
@@ -143,6 +151,7 @@ class MyInteractionIf : public apache::thrift::Tile, public apache::thrift::Serv
   std::atomic<apache::thrift::detail::si::InvocationType> __fbthrift_invocation_failstreaminit{apache::thrift::detail::si::InvocationType::AsyncTm};
   std::atomic<apache::thrift::detail::si::InvocationType> __fbthrift_invocation_frobnicateWithArg{apache::thrift::detail::si::InvocationType::AsyncTm};
   std::atomic<apache::thrift::detail::si::InvocationType> __fbthrift_invocation_streamWithArg{apache::thrift::detail::si::InvocationType::AsyncTm};
+  std::atomic<apache::thrift::detail::si::InvocationType> __fbthrift_invocation_firstAndStream{apache::thrift::detail::si::InvocationType::AsyncTm};
   std::atomic<apache::thrift::detail::si::InvocationType> __fbthrift_invocation_encode{apache::thrift::detail::si::InvocationType::AsyncTm};
 };
 class SharedInteractionServiceInfoHolder : public apache::thrift::ServiceInfoHolder {
@@ -260,6 +269,11 @@ class SharedInteractionIf : public apache::thrift::Tile, public apache::thrift::
   static void fbthrift_invoke_decorator_after_MyInteraction_streamWithArg(void* iface, apache::thrift::Cpp2RequestContext* ctx) {
     static_cast<ServiceHandler<::cpp2::InteractWithShared>*>(iface)->fbthrift_execute_decorators_after_MyInteraction_streamWithArg(*ctx);
   }
+  virtual void fbthrift_execute_decorators_before_MyInteraction_firstAndStream(apache::thrift::Cpp2RequestContext& /*requestCtx*/) {}
+  virtual void fbthrift_execute_decorators_after_MyInteraction_firstAndStream(apache::thrift::Cpp2RequestContext& /*requestCtx*/, apache::thrift::detail::DecoratorReturnType<::apache::thrift::ResponseAndServerStream<::std::int32_t, ::std::int32_t>>::type /*result*/) {}
+  static void fbthrift_invoke_decorator_after_MyInteraction_firstAndStream(void* iface, apache::thrift::Cpp2RequestContext* ctx, apache::thrift::detail::DecoratorReturnType<::apache::thrift::ResponseAndServerStream<::std::int32_t, ::std::int32_t>>::type result) {
+    static_cast<ServiceHandler<::cpp2::InteractWithShared>*>(iface)->fbthrift_execute_decorators_after_MyInteraction_firstAndStream(*ctx, result);
+  }
   virtual void fbthrift_execute_decorators_before_MyInteraction_encode(apache::thrift::Cpp2RequestContext& /*requestCtx*/) {}
   virtual void fbthrift_execute_decorators_after_MyInteraction_encode(apache::thrift::Cpp2RequestContext& /*requestCtx*/, apache::thrift::detail::DecoratorReturnType<::apache::thrift::ResponseAndSinkConsumer<::std::set<::std::int32_t>, ::std::string, ::std::string>>::type /*result*/) {}
   static void fbthrift_invoke_decorator_after_MyInteraction_encode(void* iface, apache::thrift::Cpp2RequestContext* ctx, apache::thrift::detail::DecoratorReturnType<::apache::thrift::ResponseAndSinkConsumer<::std::set<::std::int32_t>, ::std::string, ::std::string>>::type result) {
@@ -285,8 +299,8 @@ class SharedInteractionIf : public apache::thrift::Tile, public apache::thrift::
 namespace detail {
 template <> struct TSchemaAssociation<::cpp2::InteractWithShared, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = 6123796942301299643;
-  static constexpr ::std::string_view definitionKey = {"\xa7\x40\x5d\x22\x7b\xa9\x0a\x88\x3f\x6e\x41\x8e\x53\xb6\xfe\xb1", 16};
+  static constexpr int64_t programId = 9128126991281441442;
+  static constexpr ::std::string_view definitionKey = {"\xf3\x7c\xb3\xdd\x3e\x03\x42\xb9\x0d\x08\x10\x67\xf6\xe9\x6b\x25", 16};
 };
 }
 } // namespace apache::thrift
@@ -570,6 +584,37 @@ class InteractWithSharedAsyncProcessor : public ::apache::thrift::GeneratedAsync
       apache::thrift::Cpp2RequestContext* reqCtx);
   //
   // End of Method 'streamWithArg'
+  //
+
+  //
+  // Method 'firstAndStream'
+  //
+  template <typename ProtocolIn_, typename ProtocolOut_, typename RequestReader_ = apache::thrift::detail::IOBufRequestReader>
+  void setUpAndProcess_MyInteraction_firstAndStream(
+      apache::thrift::ResponseChannelRequest::UniquePtr req,
+      apache::thrift::SerializedCompressedRequest&& serializedRequest,
+      apache::thrift::Cpp2RequestContext* ctx,
+      folly::EventBase* eb,
+      apache::thrift::concurrency::ThreadManager* tm);
+
+  template <typename ProtocolIn_, typename ProtocolOut_, typename RequestReader_ = apache::thrift::detail::IOBufRequestReader>
+  void executeRequest_MyInteraction_firstAndStream(apache::thrift::ServerRequest&& serverRequest);
+
+  template <class ProtocolIn_, class ProtocolOut_>
+  static apache::thrift::ResponseAndServerStreamFactory return_MyInteraction_firstAndStream(
+      apache::thrift::ContextStack* ctx,
+      folly::Executor::KeepAlive<> executor,
+      ::apache::thrift::ResponseAndServerStream<::std::int32_t, ::std::int32_t>&& _return);
+
+  template <class ProtocolIn_, class ProtocolOut_>
+  static void throw_wrapped_MyInteraction_firstAndStream(
+      apache::thrift::ResponseChannelRequest::UniquePtr req,
+      int32_t protoSeqId,
+      apache::thrift::ContextStack* ctx,
+      folly::exception_wrapper ew,
+      apache::thrift::Cpp2RequestContext* reqCtx);
+  //
+  // End of Method 'firstAndStream'
   //
 
   //

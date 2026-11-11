@@ -22,14 +22,11 @@ public class FactoriesRpcServerHandler
   private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _interactReaders;
   private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _interactFastReaders;
   private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _serializeReaders;
-  private final com.facebook.thrift.server.generated.SingleRequestStreamResponseDelegate<com.facebook.thrift.model.StreamResponse<Integer,Integer>> _delegate_serialize;
-  private final com.facebook.thrift.server.generated.StreamWithFirstResponseHandler<Integer,Integer> _handler_serialize;
+  private final com.facebook.thrift.server.generated.StreamMethod<Integer,Integer> _method_serialize;
   private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _interactWithStreamReaders;
-  private final com.facebook.thrift.server.generated.SingleRequestStreamResponseDelegate<Integer> _delegate_interactWithStream;
-  private final com.facebook.thrift.server.generated.StreamResponseHandler<Integer> _handler_interactWithStream;
+  private final com.facebook.thrift.server.generated.StreamMethod<java.lang.Object,Integer> _method_interactWithStream;
   private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _interactWithStreamAndInitialResponseReaders;
-  private final com.facebook.thrift.server.generated.SingleRequestStreamResponseDelegate<com.facebook.thrift.model.StreamResponse<Integer,Integer>> _delegate_interactWithStreamAndInitialResponse;
-  private final com.facebook.thrift.server.generated.StreamWithFirstResponseHandler<Integer,Integer> _handler_interactWithStreamAndInitialResponse;
+  private final com.facebook.thrift.server.generated.StreamMethod<Integer,Integer> _method_interactWithStreamAndInitialResponse;
 
   private final java.util.List<com.facebook.swift.service.ThriftEventHandler> _eventHandlers;
 
@@ -59,18 +56,16 @@ public class FactoriesRpcServerHandler
 
     _methodMap.put("serialize", this);
     _serializeReaders = _create_serialize_request_readers();
-    _delegate_serialize = (java.util.List<Object> _list) -> {
-        java.util.Iterator _iterator = _list.iterator();
+    _method_serialize =
+    new com.facebook.thrift.server.generated.StreamMethod<>(
+      _serializeReaders,
+      _args -> {
+        java.util.Iterator _iterator = _args.iterator();
 
         return _delegate.serialize();
-    };
-
-    _handler_serialize =
-    new com.facebook.thrift.server.generated.StreamWithFirstResponseHandler<>(
-      _delegate_serialize,
+      },
       _first_ResponseWriterFactory_serialize,
       _ResponseWriterFactory_serialize,
-      _serializeReaders,
       "serialize",
       new Class[]{  },
       new Integer[]{  },
@@ -80,17 +75,16 @@ public class FactoriesRpcServerHandler
 
     _methodMap.put("interactWithStream", this);
     _interactWithStreamReaders = _create_interactWithStream_request_readers();
-    _delegate_interactWithStream = (java.util.List<Object> _list) -> {
-        java.util.Iterator _iterator = _list.iterator();
-
-        return _delegate.interactWithStream();
-    };
-
-    _handler_interactWithStream =
-    new com.facebook.thrift.server.generated.StreamResponseHandler<>(
-      _delegate_interactWithStream,
-      _ResponseWriterFactory_interactWithStream,
+    _method_interactWithStream =
+    new com.facebook.thrift.server.generated.StreamMethod<>(
       _interactWithStreamReaders,
+      _args -> {
+        java.util.Iterator _iterator = _args.iterator();
+
+        return reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.generated.ServerStreams.NO_FIRST_RESPONSE, _delegate.interactWithStream()));
+      },
+      com.facebook.thrift.server.generated.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
+      _ResponseWriterFactory_interactWithStream,
       "interactWithStream",
       new Class[]{  },
       new Integer[]{  },
@@ -100,18 +94,16 @@ public class FactoriesRpcServerHandler
 
     _methodMap.put("interactWithStreamAndInitialResponse", this);
     _interactWithStreamAndInitialResponseReaders = _create_interactWithStreamAndInitialResponse_request_readers();
-    _delegate_interactWithStreamAndInitialResponse = (java.util.List<Object> _list) -> {
-        java.util.Iterator _iterator = _list.iterator();
+    _method_interactWithStreamAndInitialResponse =
+    new com.facebook.thrift.server.generated.StreamMethod<>(
+      _interactWithStreamAndInitialResponseReaders,
+      _args -> {
+        java.util.Iterator _iterator = _args.iterator();
 
         return _delegate.interactWithStreamAndInitialResponse();
-    };
-
-    _handler_interactWithStreamAndInitialResponse =
-    new com.facebook.thrift.server.generated.StreamWithFirstResponseHandler<>(
-      _delegate_interactWithStreamAndInitialResponse,
+      },
       _first_ResponseWriterFactory_interactWithStreamAndInitialResponse,
       _ResponseWriterFactory_interactWithStreamAndInitialResponse,
-      _interactWithStreamAndInitialResponseReaders,
       "interactWithStreamAndInitialResponse",
       new Class[]{  },
       new Integer[]{  },
@@ -593,13 +585,13 @@ public class FactoriesRpcServerHandler
     try {
       switch(_name) {
         case "serialize":
-          _result = _handler_serialize.handleStream(_payload, _chain);
+          _result = com.facebook.thrift.server.generated.ServerStreams.handleStream(_payload, _chain, _method_serialize);
           break;
         case "interactWithStream":
-          _result = _handler_interactWithStream.handleStream(_payload, _chain);
+          _result = com.facebook.thrift.server.generated.ServerStreams.handleStream(_payload, _chain, _method_interactWithStream);
           break;
         case "interactWithStreamAndInitialResponse":
-          _result = _handler_interactWithStreamAndInitialResponse.handleStream(_payload, _chain);
+          _result = com.facebook.thrift.server.generated.ServerStreams.handleStream(_payload, _chain, _method_interactWithStreamAndInitialResponse);
           break;
         default: {
             _chain.preRead();

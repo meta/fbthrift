@@ -260,6 +260,19 @@ cdef void MyService_MyInteraction_streamWithArg_callback(
         except Exception as ex:
             pyfuture.set_exception(ex.with_traceback(None))
 
+cdef void MyService_MyInteraction_firstAndStream_callback(
+    cFollyTry[cResponseAndClientBufferedStream[cint32_t,cint32_t]]&& result,
+    PyObject* userdata
+) noexcept:
+    client, pyfuture, options = <object> userdata  
+    if result.hasException():
+        pyfuture.set_exception(create_py_exception(result.exception(), <__RpcOptions>options))
+    else:
+        try:
+            pyfuture.set_result(_test_fixtures_interactions_module_types.ResponseAndClientBufferedStream__i32_i32._fbthrift_create(result.value(), options))
+        except Exception as ex:
+            pyfuture.set_exception(ex.with_traceback(None))
+
 cdef void MyService_MyInteractionFast_frobnicate_callback(
     cFollyTry[cint32_t]&& result,
     PyObject* userdata
@@ -517,6 +530,19 @@ cdef void Factories_MyInteraction_streamWithArg_callback(
         except Exception as ex:
             pyfuture.set_exception(ex.with_traceback(None))
 
+cdef void Factories_MyInteraction_firstAndStream_callback(
+    cFollyTry[cResponseAndClientBufferedStream[cint32_t,cint32_t]]&& result,
+    PyObject* userdata
+) noexcept:
+    client, pyfuture, options = <object> userdata  
+    if result.hasException():
+        pyfuture.set_exception(create_py_exception(result.exception(), <__RpcOptions>options))
+    else:
+        try:
+            pyfuture.set_result(_test_fixtures_interactions_module_types.ResponseAndClientBufferedStream__i32_i32._fbthrift_create(result.value(), options))
+        except Exception as ex:
+            pyfuture.set_exception(ex.with_traceback(None))
+
 cdef void Factories_MyInteractionFast_frobnicate_callback(
     cFollyTry[cint32_t]&& result,
     PyObject* userdata
@@ -709,6 +735,19 @@ cdef void Perform_MyInteraction_streamWithArg_callback(
         except Exception as ex:
             pyfuture.set_exception(ex.with_traceback(None))
 
+cdef void Perform_MyInteraction_firstAndStream_callback(
+    cFollyTry[cResponseAndClientBufferedStream[cint32_t,cint32_t]]&& result,
+    PyObject* userdata
+) noexcept:
+    client, pyfuture, options = <object> userdata  
+    if result.hasException():
+        pyfuture.set_exception(create_py_exception(result.exception(), <__RpcOptions>options))
+    else:
+        try:
+            pyfuture.set_result(_test_fixtures_interactions_module_types.ResponseAndClientBufferedStream__i32_i32._fbthrift_create(result.value(), options))
+        except Exception as ex:
+            pyfuture.set_exception(ex.with_traceback(None))
+
 cdef void Perform_MyInteractionFast_frobnicate_callback(
     cFollyTry[cint32_t]&& result,
     PyObject* userdata
@@ -898,6 +937,19 @@ cdef void InteractWithShared_MyInteraction_streamWithArg_callback(
     else:
         try:
             pyfuture.set_result(_test_fixtures_interactions_module_types.ClientBufferedStream__i32._fbthrift_create(result.value(), options))
+        except Exception as ex:
+            pyfuture.set_exception(ex.with_traceback(None))
+
+cdef void InteractWithShared_MyInteraction_firstAndStream_callback(
+    cFollyTry[cResponseAndClientBufferedStream[cint32_t,cint32_t]]&& result,
+    PyObject* userdata
+) noexcept:
+    client, pyfuture, options = <object> userdata  
+    if result.hasException():
+        pyfuture.set_exception(create_py_exception(result.exception(), <__RpcOptions>options))
+    else:
+        try:
+            pyfuture.set_result(_test_fixtures_interactions_module_types.ResponseAndClientBufferedStream__i32_i32._fbthrift_create(result.value(), options))
         except Exception as ex:
             pyfuture.set_exception(ex.with_traceback(None))
 
@@ -1289,6 +1341,27 @@ cdef class MyService_MyInteraction(thrift.py3.client.Client):
                 query.encode('UTF-8'),
             ),
             MyService_MyInteraction_streamWithArg_callback,
+            <PyObject *> __userdata
+        )
+        return asyncio_shield(__future)
+
+    @cython.always_allow_keywords(True)
+    def firstAndStream(
+            MyService_MyInteraction self,
+            *,
+            __RpcOptions rpc_options=None
+    ):
+        if rpc_options is None:
+            rpc_options = <__RpcOptions>__RpcOptions.__new__(__RpcOptions)
+        self._check_connect_future()
+        __loop = self._loop
+        __future = __loop.create_future()
+        __userdata = (self, __future, rpc_options)
+        bridgeFutureWith[cResponseAndClientBufferedStream[cint32_t,cint32_t]](
+            self._executor,
+            down_cast_ptr[cMyServiceClientWrapper_MyInteractionInteractionWrapper, cClientWrapper](self._client.get()).firstAndStream(rpc_options._cpp_obj, 
+            ),
+            MyService_MyInteraction_firstAndStream_callback,
             <PyObject *> __userdata
         )
         return asyncio_shield(__future)
@@ -1799,6 +1872,27 @@ cdef class Perform_MyInteraction(thrift.py3.client.Client):
         )
         return asyncio_shield(__future)
 
+    @cython.always_allow_keywords(True)
+    def firstAndStream(
+            Perform_MyInteraction self,
+            *,
+            __RpcOptions rpc_options=None
+    ):
+        if rpc_options is None:
+            rpc_options = <__RpcOptions>__RpcOptions.__new__(__RpcOptions)
+        self._check_connect_future()
+        __loop = self._loop
+        __future = __loop.create_future()
+        __userdata = (self, __future, rpc_options)
+        bridgeFutureWith[cResponseAndClientBufferedStream[cint32_t,cint32_t]](
+            self._executor,
+            down_cast_ptr[cPerformClientWrapper_MyInteractionInteractionWrapper, cClientWrapper](self._client.get()).firstAndStream(rpc_options._cpp_obj, 
+            ),
+            Perform_MyInteraction_firstAndStream_callback,
+            <PyObject *> __userdata
+        )
+        return asyncio_shield(__future)
+
 @cython.auto_pickle(False)
 cdef class Perform_MyInteractionFast(thrift.py3.client.Client):
 
@@ -2125,6 +2219,27 @@ cdef class InteractWithShared_MyInteraction(thrift.py3.client.Client):
                 query.encode('UTF-8'),
             ),
             InteractWithShared_MyInteraction_streamWithArg_callback,
+            <PyObject *> __userdata
+        )
+        return asyncio_shield(__future)
+
+    @cython.always_allow_keywords(True)
+    def firstAndStream(
+            InteractWithShared_MyInteraction self,
+            *,
+            __RpcOptions rpc_options=None
+    ):
+        if rpc_options is None:
+            rpc_options = <__RpcOptions>__RpcOptions.__new__(__RpcOptions)
+        self._check_connect_future()
+        __loop = self._loop
+        __future = __loop.create_future()
+        __userdata = (self, __future, rpc_options)
+        bridgeFutureWith[cResponseAndClientBufferedStream[cint32_t,cint32_t]](
+            self._executor,
+            down_cast_ptr[cInteractWithSharedClientWrapper_MyInteractionInteractionWrapper, cClientWrapper](self._client.get()).firstAndStream(rpc_options._cpp_obj, 
+            ),
+            InteractWithShared_MyInteraction_firstAndStream_callback,
             <PyObject *> __userdata
         )
         return asyncio_shield(__future)

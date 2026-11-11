@@ -38,12 +38,10 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
   {{/each}}
   {{#each service.streaming_functions as |func|}}
   private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _{{func.java_name}}Readers;
-  private final com.facebook.thrift.server.generated.SingleRequestStreamResponseDelegate<{{#partial types.stream_return_type function=func}}> _delegate_{{func.java_name}};
-  {{#if (not func.stream_has_first_response?)}}
-  private final com.facebook.thrift.server.generated.StreamResponseHandler<{{#partial types.boxed_type type=func.stream.elem_type field_hasAdapter=false}}> _handler_{{func.java_name}};
-  {{/if (not func.stream_has_first_response?)}}
   {{#if func.stream_has_first_response?}}
-  private final com.facebook.thrift.server.generated.StreamWithFirstResponseHandler<{{#partial types.boxed_type type=func.return_type field_hasAdapter=false}},{{#partial types.boxed_type type=func.stream.elem_type field_hasAdapter=false}}> _handler_{{func.java_name}};
+  private final com.facebook.thrift.server.generated.StreamMethod<{{#partial types.boxed_type type=func.return_type field_hasAdapter=false}},{{#partial types.boxed_type type=func.stream.elem_type field_hasAdapter=false}}> _method_{{func.java_name}};
+  {{#else}}
+  private final com.facebook.thrift.server.generated.StreamMethod<java.lang.Object,{{#partial types.boxed_type type=func.stream.elem_type field_hasAdapter=false}}> _method_{{func.java_name}};
   {{/if func.stream_has_first_response?}}
   {{/each}}
 
@@ -74,41 +72,33 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
     {{#each service.streaming_functions as |func|}}
     _methodMap.put("{{func.java_name}}", this);
     _{{func.java_name}}Readers = _create_{{func.java_name}}_request_readers();
-    _delegate_{{func.java_name}} = (java.util.List<Object> _list) -> {
-        java.util.Iterator _iterator = _list.iterator();
+    _method_{{func.java_name}} =
+    new com.facebook.thrift.server.generated.StreamMethod<>(
+      _{{func.java_name}}Readers,
+      _args -> {
+        java.util.Iterator _iterator = _args.iterator();
         {{#each func.params.fields as |field|}}
         {{#partial types.java_type type=field.type has_adapter_override=field.hasAdapter?}} {{field.javaName}} = ({{#partial types.java_type type=field.type has_adapter_override=field.hasAdapter?}}) _iterator.next();
         {{/each}}
 
+        {{#if func.stream_has_first_response?}}
         return _delegate.{{func.java_name}}({{#each (array.enumerate func.params.fields with_last=true) as |i field last?|}}{{field.javaName}}{{#if (not last?)}}, {{/if (not last?)}}{{/each}});
-    };
-
-    _handler_{{func.java_name}} =
-    {{#if (not func.stream_has_first_response?)}}
-    new com.facebook.thrift.server.generated.StreamResponseHandler<>(
-      _delegate_{{func.java_name}},
-      _ResponseWriterFactory_{{func.java_name}},
-      _{{func.java_name}}Readers,
-      "{{func.java_name}}",
-      new Class[]{ {{#each (array.enumerate func.exceptions with_last=true) as |i field last?|}}{{#partial types.boxed_type type=field.type field_hasAdapter=field.hasAdapter?}}.class{{#if (not last?)}},{{/if (not last?)}}{{/each}} },
-      new Integer[]{ {{#each (array.enumerate func.exceptions with_last=true) as |i field last?|}}{{field.id}}{{#if (not last?)}},{{/if (not last?)}}{{/each}} },
-      new Class[]{ {{#each (array.enumerate func.stream.exceptions with_last=true) as |i field last?|}}{{#partial types.boxed_type type=field.type field_hasAdapter=field.hasAdapter?}}.class{{#if (not last?)}},{{/if (not last?)}}{{/each}} },
-      new Integer[]{ {{#each (array.enumerate func.stream.exceptions with_last=true) as |i field last?|}}{{field.id}}{{#if (not last?)}},{{/if (not last?)}}{{/each}} }
-    );
-    {{/if (not func.stream_has_first_response?)}}
-    {{#if func.stream_has_first_response?}}
-    new com.facebook.thrift.server.generated.StreamWithFirstResponseHandler<>(
-      _delegate_{{func.java_name}},
+        {{#else}}
+        return reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.generated.ServerStreams.NO_FIRST_RESPONSE, _delegate.{{func.java_name}}({{#each (array.enumerate func.params.fields with_last=true) as |i field last?|}}{{field.javaName}}{{#if (not last?)}}, {{/if (not last?)}}{{/each}})));
+        {{/if func.stream_has_first_response?}}
+      },
+      {{#if func.stream_has_first_response?}}
       _first_ResponseWriterFactory_{{func.java_name}},
+      {{#else}}
+      com.facebook.thrift.server.generated.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
+      {{/if func.stream_has_first_response?}}
       _ResponseWriterFactory_{{func.java_name}},
-      _{{func.java_name}}Readers,
       "{{func.java_name}}",
       new Class[]{ {{#each (array.enumerate func.exceptions with_last=true) as |i field last?|}}{{#partial types.boxed_type type=field.type field_hasAdapter=field.hasAdapter?}}.class{{#if (not last?)}},{{/if (not last?)}}{{/each}} },
       new Integer[]{ {{#each (array.enumerate func.exceptions with_last=true) as |i field last?|}}{{field.id}}{{#if (not last?)}},{{/if (not last?)}}{{/each}} },
       new Class[]{ {{#each (array.enumerate func.stream.exceptions with_last=true) as |i field last?|}}{{#partial types.boxed_type type=field.type field_hasAdapter=field.hasAdapter?}}.class{{#if (not last?)}},{{/if (not last?)}}{{/each}} },
       new Integer[]{ {{#each (array.enumerate func.stream.exceptions with_last=true) as |i field last?|}}{{field.id}}{{#if (not last?)}},{{/if (not last?)}}{{/each}} }
     );
-    {{/if func.stream_has_first_response?}}
 
     {{/each}}
 
@@ -427,7 +417,7 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
       switch(_name) {
         {{#each service.streaming_functions as |func|}}
         case "{{func.name}}":
-          _result = _handler_{{func.java_name}}.handleStream(_payload, _chain);
+          _result = com.facebook.thrift.server.generated.ServerStreams.handleStream(_payload, _chain, _method_{{func.java_name}});
           break;
         {{/each}}
         default: {

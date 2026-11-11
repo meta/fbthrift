@@ -54,7 +54,7 @@ class CustomException(metaclass=_fbthrift_python_exceptions.GeneratedErrorMeta):
 
     @staticmethod
     def __get_thrift_definition_key__() -> bytes:
-        return b"\x65\x21\xca\x44\x45\x45\xa4\x0b\x77\x3e\xcf\x05\x3f\x1b\x26\x2f"
+        return b"\xdf\x34\x71\x92\x60\x7f\xb8\x2f\xe1\x63\x3e\xa9\xfe\x62\x44\x65"
 
     @classmethod
     def _fbthrift_auto_migrate_enabled(cls):
@@ -121,7 +121,7 @@ class ShouldBeBoxed(metaclass=_fbthrift_python_types.StructMeta):
 
     @staticmethod
     def __get_thrift_definition_key__() -> bytes:
-        return b"\xc6\x38\xfd\x02\x47\x9e\xa2\x7c\x03\xcf\xdf\x09\x46\x7a\x44\x3d"
+        return b"\x20\x56\x73\x63\x13\x3a\x86\xc3\x60\xc5\xe1\x72\x94\x88\x3e\x1d"
 
     @classmethod
     def _fbthrift_auto_migrate_enabled(cls):
@@ -519,6 +519,45 @@ class _fbthrift_MyInteraction_streamWithArg_result(metaclass=_fbthrift_python_ty
 
 
 class _fbthrift_MyInteraction_streamWithArg_result_stream_elem(metaclass=_fbthrift_python_types.StructMeta):
+    _fbthrift_disable_field_cache_DO_NOT_USE = True
+    _fbthrift__rpc_kind = _fbthrift__RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE
+    _fbthrift_SPEC = (
+        _fbthrift_python_types.FieldInfo(
+            0,  # id
+            _fbthrift_python_types.FieldQualifier.Optional, # qualifier
+            "success",  # name
+            "success", # name
+            _fbthrift_python_types.typeinfo_i32,  # typeinfo
+            None,  # default value
+            None,  # adapter info
+            True, # field type is primitive
+        ),
+    )
+
+
+class _fbthrift_MyInteraction_firstAndStream_args(metaclass=_fbthrift_python_types.StructMeta):
+    _fbthrift_disable_field_cache_DO_NOT_USE = True
+    _fbthrift_SPEC = (
+    )
+
+
+class _fbthrift_MyInteraction_firstAndStream_result(metaclass=_fbthrift_python_types.StructMeta):
+    _fbthrift_disable_field_cache_DO_NOT_USE = True
+    _fbthrift_SPEC = (
+        _fbthrift_python_types.FieldInfo(
+            0,  # id
+            _fbthrift_python_types.FieldQualifier.Optional, # qualifier
+            "success",  # name
+            "success", # name
+            _fbthrift_python_types.typeinfo_i32,  # typeinfo
+            None,  # default value
+            None,  # adapter info
+            True, # field type is primitive
+        ),
+    )
+
+
+class _fbthrift_MyInteraction_firstAndStream_result_stream_elem(metaclass=_fbthrift_python_types.StructMeta):
     _fbthrift_disable_field_cache_DO_NOT_USE = True
     _fbthrift__rpc_kind = _fbthrift__RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE
     _fbthrift_SPEC = (
@@ -1413,6 +1452,45 @@ class _fbthrift_MyInteraction_streamWithArg_result_stream_elem(metaclass=_fbthri
     )
 
 
+class _fbthrift_MyInteraction_firstAndStream_args(metaclass=_fbthrift_python_types.StructMeta):
+    _fbthrift_disable_field_cache_DO_NOT_USE = True
+    _fbthrift_SPEC = (
+    )
+
+
+class _fbthrift_MyInteraction_firstAndStream_result(metaclass=_fbthrift_python_types.StructMeta):
+    _fbthrift_disable_field_cache_DO_NOT_USE = True
+    _fbthrift_SPEC = (
+        _fbthrift_python_types.FieldInfo(
+            0,  # id
+            _fbthrift_python_types.FieldQualifier.Optional, # qualifier
+            "success",  # name
+            "success", # name
+            _fbthrift_python_types.typeinfo_i32,  # typeinfo
+            None,  # default value
+            None,  # adapter info
+            True, # field type is primitive
+        ),
+    )
+
+
+class _fbthrift_MyInteraction_firstAndStream_result_stream_elem(metaclass=_fbthrift_python_types.StructMeta):
+    _fbthrift_disable_field_cache_DO_NOT_USE = True
+    _fbthrift__rpc_kind = _fbthrift__RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE
+    _fbthrift_SPEC = (
+        _fbthrift_python_types.FieldInfo(
+            0,  # id
+            _fbthrift_python_types.FieldQualifier.Optional, # qualifier
+            "success",  # name
+            "success", # name
+            _fbthrift_python_types.typeinfo_i32,  # typeinfo
+            None,  # default value
+            None,  # adapter info
+            True, # field type is primitive
+        ),
+    )
+
+
 class _fbthrift_MyInteraction_encode_args(metaclass=_fbthrift_python_types.StructMeta):
     _fbthrift_disable_field_cache_DO_NOT_USE = True
     _fbthrift_SPEC = (
@@ -1865,6 +1943,45 @@ class _fbthrift_MyInteraction_streamWithArg_result(metaclass=_fbthrift_python_ty
 
 
 class _fbthrift_MyInteraction_streamWithArg_result_stream_elem(metaclass=_fbthrift_python_types.StructMeta):
+    _fbthrift_disable_field_cache_DO_NOT_USE = True
+    _fbthrift__rpc_kind = _fbthrift__RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE
+    _fbthrift_SPEC = (
+        _fbthrift_python_types.FieldInfo(
+            0,  # id
+            _fbthrift_python_types.FieldQualifier.Optional, # qualifier
+            "success",  # name
+            "success", # name
+            _fbthrift_python_types.typeinfo_i32,  # typeinfo
+            None,  # default value
+            None,  # adapter info
+            True, # field type is primitive
+        ),
+    )
+
+
+class _fbthrift_MyInteraction_firstAndStream_args(metaclass=_fbthrift_python_types.StructMeta):
+    _fbthrift_disable_field_cache_DO_NOT_USE = True
+    _fbthrift_SPEC = (
+    )
+
+
+class _fbthrift_MyInteraction_firstAndStream_result(metaclass=_fbthrift_python_types.StructMeta):
+    _fbthrift_disable_field_cache_DO_NOT_USE = True
+    _fbthrift_SPEC = (
+        _fbthrift_python_types.FieldInfo(
+            0,  # id
+            _fbthrift_python_types.FieldQualifier.Optional, # qualifier
+            "success",  # name
+            "success", # name
+            _fbthrift_python_types.typeinfo_i32,  # typeinfo
+            None,  # default value
+            None,  # adapter info
+            True, # field type is primitive
+        ),
+    )
+
+
+class _fbthrift_MyInteraction_firstAndStream_result_stream_elem(metaclass=_fbthrift_python_types.StructMeta):
     _fbthrift_disable_field_cache_DO_NOT_USE = True
     _fbthrift__rpc_kind = _fbthrift__RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE
     _fbthrift_SPEC = (
@@ -2359,6 +2476,45 @@ class _fbthrift_MyInteraction_streamWithArg_result_stream_elem(metaclass=_fbthri
     )
 
 
+class _fbthrift_MyInteraction_firstAndStream_args(metaclass=_fbthrift_python_types.StructMeta):
+    _fbthrift_disable_field_cache_DO_NOT_USE = True
+    _fbthrift_SPEC = (
+    )
+
+
+class _fbthrift_MyInteraction_firstAndStream_result(metaclass=_fbthrift_python_types.StructMeta):
+    _fbthrift_disable_field_cache_DO_NOT_USE = True
+    _fbthrift_SPEC = (
+        _fbthrift_python_types.FieldInfo(
+            0,  # id
+            _fbthrift_python_types.FieldQualifier.Optional, # qualifier
+            "success",  # name
+            "success", # name
+            _fbthrift_python_types.typeinfo_i32,  # typeinfo
+            None,  # default value
+            None,  # adapter info
+            True, # field type is primitive
+        ),
+    )
+
+
+class _fbthrift_MyInteraction_firstAndStream_result_stream_elem(metaclass=_fbthrift_python_types.StructMeta):
+    _fbthrift_disable_field_cache_DO_NOT_USE = True
+    _fbthrift__rpc_kind = _fbthrift__RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE
+    _fbthrift_SPEC = (
+        _fbthrift_python_types.FieldInfo(
+            0,  # id
+            _fbthrift_python_types.FieldQualifier.Optional, # qualifier
+            "success",  # name
+            "success", # name
+            _fbthrift_python_types.typeinfo_i32,  # typeinfo
+            None,  # default value
+            None,  # adapter info
+            True, # field type is primitive
+        ),
+    )
+
+
 class _fbthrift_MyInteraction_encode_args(metaclass=_fbthrift_python_types.StructMeta):
     _fbthrift_disable_field_cache_DO_NOT_USE = True
     _fbthrift_SPEC = (
@@ -2572,6 +2728,9 @@ _fbthrift_python_types.fill_specs(
     _fbthrift_MyInteraction_streamWithArg_args,
     _fbthrift_MyInteraction_streamWithArg_result,
     _fbthrift_MyInteraction_streamWithArg_result_stream_elem,
+    _fbthrift_MyInteraction_firstAndStream_args,
+    _fbthrift_MyInteraction_firstAndStream_result,
+    _fbthrift_MyInteraction_firstAndStream_result_stream_elem,
     _fbthrift_MyInteraction_encode_args,
     _fbthrift_MyInteraction_encode_result,
     _fbthrift_MyInteraction_encode_result_sink_elem,
@@ -2636,6 +2795,9 @@ _fbthrift_python_types.fill_specs(
     _fbthrift_MyInteraction_streamWithArg_args,
     _fbthrift_MyInteraction_streamWithArg_result,
     _fbthrift_MyInteraction_streamWithArg_result_stream_elem,
+    _fbthrift_MyInteraction_firstAndStream_args,
+    _fbthrift_MyInteraction_firstAndStream_result,
+    _fbthrift_MyInteraction_firstAndStream_result_stream_elem,
     _fbthrift_MyInteraction_encode_args,
     _fbthrift_MyInteraction_encode_result,
     _fbthrift_MyInteraction_encode_result_sink_elem,
@@ -2671,6 +2833,9 @@ _fbthrift_python_types.fill_specs(
     _fbthrift_MyInteraction_streamWithArg_args,
     _fbthrift_MyInteraction_streamWithArg_result,
     _fbthrift_MyInteraction_streamWithArg_result_stream_elem,
+    _fbthrift_MyInteraction_firstAndStream_args,
+    _fbthrift_MyInteraction_firstAndStream_result,
+    _fbthrift_MyInteraction_firstAndStream_result_stream_elem,
     _fbthrift_MyInteraction_encode_args,
     _fbthrift_MyInteraction_encode_result,
     _fbthrift_MyInteraction_encode_result_sink_elem,
@@ -2706,6 +2871,9 @@ _fbthrift_python_types.fill_specs(
     _fbthrift_MyInteraction_streamWithArg_args,
     _fbthrift_MyInteraction_streamWithArg_result,
     _fbthrift_MyInteraction_streamWithArg_result_stream_elem,
+    _fbthrift_MyInteraction_firstAndStream_args,
+    _fbthrift_MyInteraction_firstAndStream_result,
+    _fbthrift_MyInteraction_firstAndStream_result_stream_elem,
     _fbthrift_MyInteraction_encode_args,
     _fbthrift_MyInteraction_encode_result,
     _fbthrift_MyInteraction_encode_result_sink_elem,

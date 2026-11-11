@@ -239,7 +239,7 @@ public interface InteractWithShared extends java.io.Closeable, com.facebook.thri
                 throw new UnsupportedOperationException();
             }
 
-            default reactor.core.publisher.Flux<ResponseWrapper<Boolean>> truthifyWrapper(RpcOptions rpcOptions) {
+            default reactor.core.publisher.Flux<com.facebook.thrift.client.ResponseWrapper<Boolean>> truthifyWrapper(RpcOptions rpcOptions) {
                 throw new UnsupportedOperationException();
             }
 
@@ -249,7 +249,7 @@ public interface InteractWithShared extends java.io.Closeable, com.facebook.thri
                 throw new UnsupportedOperationException();
             }
 
-            default reactor.core.publisher.Flux<ResponseWrapper<Integer>> failstreamWrapper(RpcOptions rpcOptions) {
+            default reactor.core.publisher.Flux<com.facebook.thrift.client.ResponseWrapper<Integer>> failstreamWrapper(RpcOptions rpcOptions) {
                 throw new UnsupportedOperationException();
             }
 
@@ -259,7 +259,7 @@ public interface InteractWithShared extends java.io.Closeable, com.facebook.thri
                 throw new UnsupportedOperationException();
             }
 
-            default reactor.core.publisher.Flux<ResponseWrapper<Integer>> failstreaminitWrapper(RpcOptions rpcOptions) {
+            default reactor.core.publisher.Flux<com.facebook.thrift.client.ResponseWrapper<Integer>> failstreaminitWrapper(RpcOptions rpcOptions) {
                 throw new UnsupportedOperationException();
             }
 
@@ -269,7 +269,17 @@ public interface InteractWithShared extends java.io.Closeable, com.facebook.thri
                 throw new UnsupportedOperationException();
             }
 
-            default reactor.core.publisher.Flux<ResponseWrapper<Integer>> streamWithArgWrapper(final String query, RpcOptions rpcOptions) {
+            default reactor.core.publisher.Flux<com.facebook.thrift.client.ResponseWrapper<Integer>> streamWithArgWrapper(final String query, RpcOptions rpcOptions) {
+                throw new UnsupportedOperationException();
+            }
+
+            reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer,Integer>> firstAndStream();
+
+            default reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer,Integer>> firstAndStream(RpcOptions rpcOptions) {
+                throw new UnsupportedOperationException();
+            }
+
+            default reactor.core.publisher.Mono<com.facebook.thrift.client.ResponseWrapper<com.facebook.thrift.model.ResponseAndStream<Integer,com.facebook.thrift.client.ResponseWrapper<Integer>>>> firstAndStreamWrapper(RpcOptions rpcOptions) {
                 throw new UnsupportedOperationException();
             }
 
