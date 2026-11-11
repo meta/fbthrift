@@ -20,6 +20,7 @@ import asyncio
 import concurrent.futures
 import gc
 import threading
+import weakref
 from collections.abc import Callable
 from contextlib import contextmanager
 from types import TracebackType
@@ -566,7 +567,7 @@ class ServicesTests(later.unittest.TestCase):
             operation: Callable[..., None],
             *args: object,
         ) -> asyncio.Future[None]:
-            if operation is not server_module._serve_native:
+            if operation is not server_module._run_native_serve_impl:
                 return real_run_in_executor(None, operation, *args)
             native_serve_started.set()
             return native_serve
@@ -591,6 +592,48 @@ class ServicesTests(later.unittest.TestCase):
         # THEN
         self.assertTrue(actual_serve_cancelled)
         self.assertIn(expected_log_message, actual_log_messages)
+
+    async def test_native_serve_raises_when_its_owner_died_before_it_started(
+        self,
+    ) -> None:
+        # GIVEN
+        loop = asyncio.get_running_loop()
+        executor_occupied = asyncio.Event()
+        release_executor = threading.Event()
+        native_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        # Cleanups run last-in, first-out: release the blocked worker before
+        # shutdown waits for the executor to drain.
+        self.addCleanup(native_executor.shutdown)
+        self.addCleanup(release_executor.set)
+        loop.set_default_executor(native_executor)
+        expected_served_servers: list[ThriftServer] = []
+        actual_served_servers: list[ThriftServer] = []
+        # pyrefly: ignore [bad-specialization]
+        server = ThriftServer(Handler(), ip="::1", port=0)
+        server_ref = weakref.ref(server)
+
+        def occupy_executor() -> None:
+            loop.call_soon_threadsafe(executor_occupied.set)
+            release_executor.wait()
+
+        native_executor.submit(occupy_executor)
+        await asyncio.wait_for(executor_occupied.wait(), timeout=5.0)
+        native_serve = server_module.run_native_serve(
+            loop, actual_served_servers.append, server
+        )
+
+        # WHEN
+        del server
+        actual_server_died_before_start = server_ref() is None
+        release_executor.set()
+        with self.assertRaisesRegex(
+            RuntimeError, "The serve owner died before its native serve started"
+        ):
+            await asyncio.wait_for(native_serve, timeout=5.0)
+
+        # THEN
+        self.assertTrue(actual_server_died_before_start)
+        self.assertEqual(expected_served_servers, actual_served_servers)
 
     def test_context_entry_failure_releases_factory_resources(self) -> None:
         # GIVEN

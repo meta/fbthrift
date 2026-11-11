@@ -138,6 +138,7 @@ cdef class ServiceInterface(Py3AsyncProcessorFactory):
 
 
 cdef class ThriftServer:
+    cdef object __weakref__
     cdef shared_ptr[cThriftServer] server
     cdef Py3AsyncProcessorFactory factory
     cdef object loop

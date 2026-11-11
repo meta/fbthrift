@@ -17,7 +17,7 @@
 
 import ipaddress
 import os
-from asyncio import Future
+from asyncio import AbstractEventLoop, Future
 from enum import Enum
 from types import TracebackType
 from typing import (
@@ -31,6 +31,7 @@ from typing import (
     TypeVar,
     Union,
 )
+from weakref import ReferenceType
 
 from thrift.py3.common import Headers, Priority
 from thrift.python.server_impl.interceptor.server_module import PythonServerModule
@@ -143,3 +144,11 @@ class ThriftServer:
     def stop_health_polling(self) -> None: ...
 
 def _serve_native(server: ThriftServer) -> None: ...
+def run_native_serve(
+    loop: AbstractEventLoop,
+    native_serve: Callable[[T], None],
+    owner: T,
+) -> Future[None]: ...
+def _run_native_serve_impl(
+    native_serve: Callable[[T], None], owner_ref: ReferenceType[T]
+) -> None: ...

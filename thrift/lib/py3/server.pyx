@@ -31,6 +31,7 @@ import logging
 from contextlib import AsyncExitStack
 from pathlib import Path
 import os
+import weakref
 
 from enum import Enum
 from thrift.python.common import Priority, Headers # noqa
@@ -101,12 +102,34 @@ async def run_server(native_serve, address_future, stop_server, server_kind):
     await native_serve
 
 
-# A closure over self forms a cycle with Cython's coroutine-local scope
-# and keeps the server alive until cyclic garbage collection runs.
-# Keep this callable at module scope and pass the server explicitly.
 def _serve_native(ThriftServer server):
     with nogil:
         server.server.get().serve()
+
+
+def run_native_serve(loop, native_serve, owner):
+    """Run native_serve(owner) on the loop's default executor.
+
+    A pool thread holds a finished call's arguments until after the caller
+    resumes. To let the owner die where its last caller drops it, give the
+    executor only a weak reference to the owner. Pass a module-level
+    native_serve: the executor holds the function too, and a closure or bound
+    method would keep the owner alive. A closure over self also forms a
+    reference cycle with the Cython coroutine.
+    """
+    return loop.run_in_executor(
+        None, _run_native_serve_impl, native_serve, weakref.ref(owner)
+    )
+
+
+def _run_native_serve_impl(native_serve, owner_ref):
+    # The caller awaits this call and holds the owner until it returns, so a dead
+    # reference means the caller broke that rule. The local reference ends when this
+    # call returns, before the caller resumes.
+    owner = owner_ref()
+    if owner is None:
+        raise RuntimeError("The serve owner died before its native serve started")
+    native_serve(owner)
 
 
 class SSLPolicy(Enum):
@@ -266,7 +289,7 @@ cdef class ThriftServer:
                 if ownership_context is not None:
                     await ownership_stack.enter_async_context(ownership_context)
                 self._use_worker_executor_if_active()
-                native_serve = self.loop.run_in_executor(None, _serve_native, self)
+                native_serve = run_native_serve(self.loop, _serve_native, self)
                 await run_server(
                     native_serve,
                     self.address_future,
