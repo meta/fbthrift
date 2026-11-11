@@ -109,7 +109,7 @@ public class InteractWithSharedReactiveClient
 
   @java.lang.Override
   public reactor.core.publisher.Mono<com.facebook.thrift.client.ResponseWrapper<test.fixtures.another_interactions.DoSomethingResult>> doSomeSimilarThingsWrapper( final com.facebook.thrift.client.RpcOptions rpcOptions) {
-    return _clientBinding.acquire()
+    return com.facebook.thrift.util.RequestContextUtil.withCallerContext(_clientBinding.acquire()
       .flatMap(_rpc -> getHeaders(rpcOptions).flatMap(headers -> {
         org.apache.thrift.RequestRpcMetadata _metadata = new org.apache.thrift.RequestRpcMetadata.Builder()
                 .setName("do_some_similar_things")
@@ -129,7 +129,7 @@ public class InteractWithSharedReactiveClient
 
             return _rpc
                 .singleRequestSingleResponse(_crp, rpcOptions).transform(com.facebook.thrift.util.MonoPublishingTransformer.getInstance()).doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());});
-      }));
+      })));
   }
 
   @java.lang.Override
@@ -168,7 +168,7 @@ public class InteractWithSharedReactiveClient
 
     @java.lang.Override
     public reactor.core.publisher.Mono<ResponseWrapper<Integer>> frobnicateWrapper(RpcOptions rpcOptions)  {
-      return _clientBinding.acquire()
+      return com.facebook.thrift.util.RequestContextUtil.withCallerContext(_clientBinding.acquire()
         .contextWrite(ctx -> ctx.put(STICKY_HASH_KEY, interactionId))
         .flatMap(_rpc -> getHeaders(rpcOptions).flatMap(headers -> {
           String interactionName = "MyInteraction.frobnicate";
@@ -203,7 +203,7 @@ public class InteractWithSharedReactiveClient
 
           return _rpc
               .singleRequestSingleResponse(_crp, rpcOptions).doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());});
-        }));
+        })));
     }
 
     private com.facebook.thrift.payload.Writer _createpingWriter() {
@@ -223,7 +223,7 @@ public class InteractWithSharedReactiveClient
 
     @java.lang.Override
     public reactor.core.publisher.Mono<ResponseWrapper<Void>> pingWrapper(RpcOptions rpcOptions)  {
-      return _clientBinding.acquire()
+      return com.facebook.thrift.util.RequestContextUtil.withCallerContext(_clientBinding.acquire()
         .contextWrite(ctx -> ctx.put(STICKY_HASH_KEY, interactionId))
         .flatMap(_rpc -> getHeaders(rpcOptions).flatMap(headers -> {
           String interactionName = "MyInteraction.ping";
@@ -258,7 +258,7 @@ public class InteractWithSharedReactiveClient
 
           return _rpc
               .singleRequestNoResponse(_crp, rpcOptions).thenReturn(ResponseWrapper.create(null, java.util.Collections.emptyMap(), java.util.Collections.emptyMap()));
-        }));
+        })));
     }
 
     private com.facebook.thrift.payload.Writer _createfrobnicateWithArgWriter(final int arg) {
@@ -295,7 +295,7 @@ public class InteractWithSharedReactiveClient
 
     @java.lang.Override
     public reactor.core.publisher.Mono<ResponseWrapper<Integer>> frobnicateWithArgWrapper(final int arg, RpcOptions rpcOptions)  {
-      return _clientBinding.acquire()
+      return com.facebook.thrift.util.RequestContextUtil.withCallerContext(_clientBinding.acquire()
         .contextWrite(ctx -> ctx.put(STICKY_HASH_KEY, interactionId))
         .flatMap(_rpc -> getHeaders(rpcOptions).flatMap(headers -> {
           String interactionName = "MyInteraction.frobnicateWithArg";
@@ -330,7 +330,7 @@ public class InteractWithSharedReactiveClient
 
           return _rpc
               .singleRequestSingleResponse(_crp, rpcOptions).doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());});
-        }));
+        })));
     }
 
     private com.facebook.thrift.payload.Writer _createtruthifyWriter() {
@@ -695,7 +695,7 @@ public class InteractWithSharedReactiveClient
 
     @java.lang.Override
     public reactor.core.publisher.Mono<ResponseWrapper<Integer>> initWrapper(RpcOptions rpcOptions)  {
-      return _clientBinding.acquire()
+      return com.facebook.thrift.util.RequestContextUtil.withCallerContext(_clientBinding.acquire()
         .contextWrite(ctx -> ctx.put(STICKY_HASH_KEY, interactionId))
         .flatMap(_rpc -> getHeaders(rpcOptions).flatMap(headers -> {
           String interactionName = "SharedInteraction.init";
@@ -730,7 +730,7 @@ public class InteractWithSharedReactiveClient
 
           return _rpc
               .singleRequestSingleResponse(_crp, rpcOptions).doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());});
-        }));
+        })));
     }
 
     private com.facebook.thrift.payload.Writer _createdoSomethingWriter() {
@@ -750,7 +750,7 @@ public class InteractWithSharedReactiveClient
 
     @java.lang.Override
     public reactor.core.publisher.Mono<ResponseWrapper<test.fixtures.another_interactions.DoSomethingResult>> doSomethingWrapper(RpcOptions rpcOptions)  {
-      return _clientBinding.acquire()
+      return com.facebook.thrift.util.RequestContextUtil.withCallerContext(_clientBinding.acquire()
         .contextWrite(ctx -> ctx.put(STICKY_HASH_KEY, interactionId))
         .flatMap(_rpc -> getHeaders(rpcOptions).flatMap(headers -> {
           String interactionName = "SharedInteraction.do_something";
@@ -785,7 +785,7 @@ public class InteractWithSharedReactiveClient
 
           return _rpc
               .singleRequestSingleResponse(_crp, rpcOptions).doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());});
-        }));
+        })));
     }
 
     private com.facebook.thrift.payload.Writer _createtearDownWriter() {
@@ -805,7 +805,7 @@ public class InteractWithSharedReactiveClient
 
     @java.lang.Override
     public reactor.core.publisher.Mono<ResponseWrapper<Void>> tearDownWrapper(RpcOptions rpcOptions)  {
-      return _clientBinding.acquire()
+      return com.facebook.thrift.util.RequestContextUtil.withCallerContext(_clientBinding.acquire()
         .contextWrite(ctx -> ctx.put(STICKY_HASH_KEY, interactionId))
         .flatMap(_rpc -> getHeaders(rpcOptions).flatMap(headers -> {
           String interactionName = "SharedInteraction.tear_down";
@@ -840,7 +840,7 @@ public class InteractWithSharedReactiveClient
 
           return _rpc
               .singleRequestSingleResponse(_crp, rpcOptions).doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());});
-        }));
+        })));
     }
 
     @java.lang.Override

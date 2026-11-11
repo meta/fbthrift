@@ -94,7 +94,7 @@ public class ExtendedServiceReactiveClient extends com.facebook.thrift.test.fixt
 
   @java.lang.Override
   public reactor.core.publisher.Mono<com.facebook.thrift.client.ResponseWrapper<Long>> initWrapper(final long param0, final long param1,  final com.facebook.thrift.client.RpcOptions rpcOptions) {
-    return _clientBinding.acquire()
+    return com.facebook.thrift.util.RequestContextUtil.withCallerContext(_clientBinding.acquire()
       .flatMap(_rpc -> getHeaders(rpcOptions).flatMap(headers -> {
         org.apache.thrift.RequestRpcMetadata _metadata = new org.apache.thrift.RequestRpcMetadata.Builder()
                 .setName("init")
@@ -114,7 +114,7 @@ public class ExtendedServiceReactiveClient extends com.facebook.thrift.test.fixt
 
             return _rpc
                 .singleRequestSingleResponse(_crp, rpcOptions).transform(com.facebook.thrift.util.MonoPublishingTransformer.getInstance()).doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());});
-      }));
+      })));
   }
 
   @java.lang.Override

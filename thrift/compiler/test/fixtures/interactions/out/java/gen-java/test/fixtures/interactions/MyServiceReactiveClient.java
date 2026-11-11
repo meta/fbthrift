@@ -116,7 +116,7 @@ public class MyServiceReactiveClient
 
   @java.lang.Override
   public reactor.core.publisher.Mono<com.facebook.thrift.client.ResponseWrapper<Void>> fooWrapper( final com.facebook.thrift.client.RpcOptions rpcOptions) {
-    return _clientBinding.acquire()
+    return com.facebook.thrift.util.RequestContextUtil.withCallerContext(_clientBinding.acquire()
       .flatMap(_rpc -> getHeaders(rpcOptions).flatMap(headers -> {
         org.apache.thrift.RequestRpcMetadata _metadata = new org.apache.thrift.RequestRpcMetadata.Builder()
                 .setName("foo")
@@ -136,7 +136,7 @@ public class MyServiceReactiveClient
 
             return _rpc
                 .singleRequestSingleResponse(_crp, rpcOptions).transform(com.facebook.thrift.util.MonoPublishingTransformer.getInstance()).doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());});
-      }));
+      })));
   }
 
   @java.lang.Override
@@ -173,7 +173,7 @@ public class MyServiceReactiveClient
 
   @java.lang.Override
   public reactor.core.publisher.Mono<com.facebook.thrift.client.ResponseWrapper<Void>> interactWrapper(final int arg,  final com.facebook.thrift.client.RpcOptions rpcOptions) {
-    return _clientBinding.acquire()
+    return com.facebook.thrift.util.RequestContextUtil.withCallerContext(_clientBinding.acquire()
       .flatMap(_rpc -> getHeaders(rpcOptions).flatMap(headers -> {
         org.apache.thrift.RequestRpcMetadata _metadata = new org.apache.thrift.RequestRpcMetadata.Builder()
                 .setName("interact")
@@ -193,7 +193,7 @@ public class MyServiceReactiveClient
 
             return _rpc
                 .singleRequestSingleResponse(_crp, rpcOptions).transform(com.facebook.thrift.util.MonoPublishingTransformer.getInstance()).doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());});
-      }));
+      })));
   }
 
   @java.lang.Override
@@ -214,7 +214,7 @@ public class MyServiceReactiveClient
 
   @java.lang.Override
   public reactor.core.publisher.Mono<com.facebook.thrift.client.ResponseWrapper<Integer>> interactFastWrapper( final com.facebook.thrift.client.RpcOptions rpcOptions) {
-    return _clientBinding.acquire()
+    return com.facebook.thrift.util.RequestContextUtil.withCallerContext(_clientBinding.acquire()
       .flatMap(_rpc -> getHeaders(rpcOptions).flatMap(headers -> {
         org.apache.thrift.RequestRpcMetadata _metadata = new org.apache.thrift.RequestRpcMetadata.Builder()
                 .setName("interactFast")
@@ -234,7 +234,7 @@ public class MyServiceReactiveClient
 
             return _rpc
                 .singleRequestSingleResponse(_crp, rpcOptions).transform(com.facebook.thrift.util.MonoPublishingTransformer.getInstance()).doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());});
-      }));
+      })));
   }
 
   @java.lang.Override
@@ -318,7 +318,7 @@ public class MyServiceReactiveClient
 
     @java.lang.Override
     public reactor.core.publisher.Mono<ResponseWrapper<Integer>> frobnicateWrapper(RpcOptions rpcOptions)  {
-      return _clientBinding.acquire()
+      return com.facebook.thrift.util.RequestContextUtil.withCallerContext(_clientBinding.acquire()
         .contextWrite(ctx -> ctx.put(STICKY_HASH_KEY, interactionId))
         .flatMap(_rpc -> getHeaders(rpcOptions).flatMap(headers -> {
           String interactionName = "MyInteraction.frobnicate";
@@ -353,7 +353,7 @@ public class MyServiceReactiveClient
 
           return _rpc
               .singleRequestSingleResponse(_crp, rpcOptions).doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());});
-        }));
+        })));
     }
 
     private com.facebook.thrift.payload.Writer _createpingWriter() {
@@ -373,7 +373,7 @@ public class MyServiceReactiveClient
 
     @java.lang.Override
     public reactor.core.publisher.Mono<ResponseWrapper<Void>> pingWrapper(RpcOptions rpcOptions)  {
-      return _clientBinding.acquire()
+      return com.facebook.thrift.util.RequestContextUtil.withCallerContext(_clientBinding.acquire()
         .contextWrite(ctx -> ctx.put(STICKY_HASH_KEY, interactionId))
         .flatMap(_rpc -> getHeaders(rpcOptions).flatMap(headers -> {
           String interactionName = "MyInteraction.ping";
@@ -408,7 +408,7 @@ public class MyServiceReactiveClient
 
           return _rpc
               .singleRequestNoResponse(_crp, rpcOptions).thenReturn(ResponseWrapper.create(null, java.util.Collections.emptyMap(), java.util.Collections.emptyMap()));
-        }));
+        })));
     }
 
     private com.facebook.thrift.payload.Writer _createfrobnicateWithArgWriter(final int arg) {
@@ -445,7 +445,7 @@ public class MyServiceReactiveClient
 
     @java.lang.Override
     public reactor.core.publisher.Mono<ResponseWrapper<Integer>> frobnicateWithArgWrapper(final int arg, RpcOptions rpcOptions)  {
-      return _clientBinding.acquire()
+      return com.facebook.thrift.util.RequestContextUtil.withCallerContext(_clientBinding.acquire()
         .contextWrite(ctx -> ctx.put(STICKY_HASH_KEY, interactionId))
         .flatMap(_rpc -> getHeaders(rpcOptions).flatMap(headers -> {
           String interactionName = "MyInteraction.frobnicateWithArg";
@@ -480,7 +480,7 @@ public class MyServiceReactiveClient
 
           return _rpc
               .singleRequestSingleResponse(_crp, rpcOptions).doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());});
-        }));
+        })));
     }
 
     private com.facebook.thrift.payload.Writer _createtruthifyWriter() {
@@ -845,7 +845,7 @@ public class MyServiceReactiveClient
 
     @java.lang.Override
     public reactor.core.publisher.Mono<ResponseWrapper<Integer>> frobnicateWrapper(RpcOptions rpcOptions)  {
-      return _clientBinding.acquire()
+      return com.facebook.thrift.util.RequestContextUtil.withCallerContext(_clientBinding.acquire()
         .contextWrite(ctx -> ctx.put(STICKY_HASH_KEY, interactionId))
         .flatMap(_rpc -> getHeaders(rpcOptions).flatMap(headers -> {
           String interactionName = "MyInteractionFast.frobnicate";
@@ -880,7 +880,7 @@ public class MyServiceReactiveClient
 
           return _rpc
               .singleRequestSingleResponse(_crp, rpcOptions).doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());});
-        }));
+        })));
     }
 
     private com.facebook.thrift.payload.Writer _createpingWriter() {
@@ -900,7 +900,7 @@ public class MyServiceReactiveClient
 
     @java.lang.Override
     public reactor.core.publisher.Mono<ResponseWrapper<Void>> pingWrapper(RpcOptions rpcOptions)  {
-      return _clientBinding.acquire()
+      return com.facebook.thrift.util.RequestContextUtil.withCallerContext(_clientBinding.acquire()
         .contextWrite(ctx -> ctx.put(STICKY_HASH_KEY, interactionId))
         .flatMap(_rpc -> getHeaders(rpcOptions).flatMap(headers -> {
           String interactionName = "MyInteractionFast.ping";
@@ -935,7 +935,7 @@ public class MyServiceReactiveClient
 
           return _rpc
               .singleRequestNoResponse(_crp, rpcOptions).thenReturn(ResponseWrapper.create(null, java.util.Collections.emptyMap(), java.util.Collections.emptyMap()));
-        }));
+        })));
     }
 
     private com.facebook.thrift.payload.Writer _createtruthifyWriter() {
@@ -1042,7 +1042,7 @@ public class MyServiceReactiveClient
 
     @java.lang.Override
     public reactor.core.publisher.Mono<ResponseWrapper<Void>> frobnicateWrapper(RpcOptions rpcOptions)  {
-      return _clientBinding.acquire()
+      return com.facebook.thrift.util.RequestContextUtil.withCallerContext(_clientBinding.acquire()
         .contextWrite(ctx -> ctx.put(STICKY_HASH_KEY, interactionId))
         .flatMap(_rpc -> getHeaders(rpcOptions).flatMap(headers -> {
           String interactionName = "SerialInteraction.frobnicate";
@@ -1077,7 +1077,7 @@ public class MyServiceReactiveClient
 
           return _rpc
               .singleRequestSingleResponse(_crp, rpcOptions).doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());});
-        }));
+        })));
     }
 
     @java.lang.Override
