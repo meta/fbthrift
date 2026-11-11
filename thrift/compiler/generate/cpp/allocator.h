@@ -29,8 +29,8 @@ namespace apache::thrift::compiler::cpp2 {
 // template may emit that default on this alone.
 bool alloc_ctor_applies_custom_default(const t_field& field);
 
-// The value of `@internal.CppAllocator` or `cpp.allocator`; null if neither is
-// set.
+// The value of `@internal.CppAllocator` or `cpp.allocator`, else the PMR
+// allocator if `node` has `@cpp.Arena` fields; null if none applies.
 const std::string* find_allocator(const t_named& node);
 
 inline bool is_allocator_aware(const t_named& node) {
@@ -45,8 +45,8 @@ const std::string* find_allocator_via(const t_named& node);
 // or a typedef it goes through.
 bool type_uses_allocator(const t_type& type);
 
-// Whether `@internal.CppUseAllocator` or `cpp.use_allocator` is set on the
-// field or its (typedef) type.
+// Whether the field has `@cpp.Arena`, or `@internal.CppUseAllocator` or
+// `cpp.use_allocator` is set on the field or its (typedef) type.
 bool uses_allocator(const t_field& field);
 
 } // namespace apache::thrift::compiler::cpp2

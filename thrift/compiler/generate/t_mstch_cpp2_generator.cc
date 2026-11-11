@@ -2663,7 +2663,7 @@ void validate_struct_annotations(
         s,
         "tablebased-allocator-rule",
         diagnostic_level::error,
-        "`cpp.allocator` on `{}` is not supported with the `tablebased` "
+        "Allocator-aware type `{}` is not supported with the `tablebased` "
         "option.",
         s.name());
   }
@@ -2675,7 +2675,7 @@ void validate_struct_annotations(
         s,
         "frozen-allocator-rule",
         diagnostic_level::error,
-        "`cpp.allocator` on `{}` is not supported with the `frozen` option.",
+        "Allocator-aware type `{}` is not supported with the `frozen` option.",
         s.name());
   }
   if (options.contains("frozen2") && cpp2::is_allocator_aware(s) &&
@@ -2684,8 +2684,8 @@ void validate_struct_annotations(
         s,
         "frozen2-allocator-rule",
         diagnostic_level::error,
-        "`cpp.allocator` on `{}` is not supported with the `frozen2` option "
-        "unless it has `@cpp.Frozen2Exclude`.",
+        "Allocator-aware type `{}` is not supported with the `frozen2` "
+        "option unless it has `@cpp.Frozen2Exclude`.",
         s.name());
   }
 
@@ -2830,7 +2830,7 @@ void forbid_allocator_ignoring_ref_fields(
     ctx.report(
         field,
         diagnostic_level::error,
-        "Reference field `{}` of `cpp.allocator` type `{}` doesn't support "
+        "Reference field `{}` of allocator-aware type `{}` doesn't support "
         "`cpp.use_allocator`.",
         field.name(),
         parent.name());
@@ -2852,7 +2852,7 @@ void forbid_optional_ref_fields_on_allocator_aware(
     ctx.report(
         field,
         diagnostic_level::error,
-        "Optional reference field `{}` of `cpp.allocator` type `{}` is not "
+        "Optional reference field `{}` of allocator-aware type `{}` is not "
         "supported.",
         field.name(),
         parent.name());
@@ -2978,8 +2978,8 @@ void validate_alloc_ctor_custom_defaults(
           field,
           diagnostic_level::error,
           "`@cpp.AllowCustomDefaultInAllocCtor` on field `{}` has no effect: "
-          "it applies only to a field of a `cpp.allocator` struct that "
-          "declares a default value.",
+          "it applies only to a field of a `cpp.allocator` or `@cpp.Arena` "
+          "struct that declares a default value.",
           field.name());
     }
   }

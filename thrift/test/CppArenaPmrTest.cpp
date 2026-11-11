@@ -66,6 +66,9 @@ constexpr bool kIsArenaField =
     std::is_same_v<op::get_native_type<Struct, Id>, R<Native>> &&
     std::is_same_v<op::get_type_tag<Struct, Id>, A<Native, Tag>>;
 
+static_assert(std::is_same_v<
+              Strings::allocator_type,
+              std::pmr::polymorphic_allocator<std::byte>>);
 static_assert(kIsArenaField<Strings, ident::name, S, t::string_t>);
 static_assert(kIsArenaField<Strings, ident::data, S, t::binary_t>);
 static_assert(kIsArenaField<Strings, ident::nickname, S, t::string_t>);
@@ -219,6 +222,15 @@ static_assert(std::is_same_v<
 
 // PlainInner has no `@cpp.Arena`, so its members keep their types.
 static_assert(std::is_same_v<op::get_native_type<PlainInner, ident::name>, S>);
+static_assert(std::uses_allocator_v<
+              ArenaInner,
+              std::pmr::polymorphic_allocator<ArenaInner>>);
+static_assert(!std::uses_allocator_v<
+              PlainInner,
+              std::pmr::polymorphic_allocator<PlainInner>>);
+static_assert(std::uses_allocator_v<
+              ArenaUnion,
+              std::pmr::polymorphic_allocator<ArenaUnion>>);
 
 constexpr const char* kLong =
     "This is too long for the small string optimization";
@@ -235,6 +247,12 @@ class ScopedDefaultResource {
 
  private:
   std::pmr::memory_resource* prev_;
+};
+
+class NoDefaultResource : public ScopedDefaultResource {
+ public:
+  NoDefaultResource()
+      : ScopedDefaultResource(std::pmr::null_memory_resource()) {}
 };
 
 class Arena : public std::pmr::monotonic_buffer_resource {
@@ -257,6 +275,7 @@ void fill(Strings& s) {
 }
 
 void expectOn(const Strings& s, std::pmr::memory_resource* r) {
+  EXPECT_EQ(resource(s), r);
   EXPECT_EQ(resource(*s.name()), r);
   EXPECT_EQ(resource(*s.data()), r);
   EXPECT_EQ(resource(*s.nickname()), r);
@@ -279,6 +298,7 @@ void fill(Containers& c) {
 }
 
 void expectOn(const Containers& c, std::pmr::memory_resource* r) {
+  EXPECT_EQ(resource(c), r);
   EXPECT_EQ(resource(*c.names()), r);
   EXPECT_EQ(resource(c.names()->front()), r);
   EXPECT_EQ(resource(*c.tags()), r);
@@ -323,11 +343,13 @@ void expectOn(const StructElements& s, std::pmr::memory_resource* r) {
   EXPECT_EQ(resource(*s.plain_by_name()), r);
   EXPECT_EQ(resource(s.plain_by_name()->begin()->first), r);
   EXPECT_EQ(resource(*s.arenas()), r);
+  EXPECT_EQ(resource(s.arenas()->front()), r);
   EXPECT_EQ(resource(*s.arenas()->front().name()), r);
   EXPECT_EQ(resource(*s.arenas()->front().tags()), r);
   EXPECT_EQ(resource(s.arenas()->front().tags()->front()), r);
   EXPECT_EQ(resource(*s.arena_by_name()), r);
   const ArenaInner& named = s.arena_by_name()->begin()->second;
+  EXPECT_EQ(resource(named), r);
   EXPECT_EQ(resource(*named.name()), r);
   EXPECT_EQ(resource(named.tags()->front()), r);
 }
@@ -339,6 +361,7 @@ void fill(CustomTypes& c) {
 }
 
 void expectOn(const CustomTypes& c, std::pmr::memory_resource* r) {
+  EXPECT_EQ(resource(c), r);
   EXPECT_EQ(resource(*c.by_name()), r);
   EXPECT_EQ(resource(c.by_name()->begin()->first), r);
   EXPECT_EQ(resource(c.by_name()->begin()->second), r);
@@ -353,6 +376,7 @@ void fill(WholeStruct& s) {
 }
 
 void expectOn(const WholeStruct& s, std::pmr::memory_resource* r) {
+  EXPECT_EQ(resource(s), r);
   EXPECT_EQ(resource(*s.name()), r);
   EXPECT_EQ(resource(*s.groups()), r);
   EXPECT_EQ(resource(s.groups()->begin()->first), r);
@@ -364,6 +388,7 @@ void fill(ArenaUnion& u) {
 }
 
 void expectOn(const ArenaUnion& u, std::pmr::memory_resource* r) {
+  EXPECT_EQ(resource(u), r);
   EXPECT_EQ(resource(*u.names()), r);
   EXPECT_EQ(resource(u.names()->front()), r);
 }
@@ -405,9 +430,64 @@ void fill(WholeUnion& u) {
 }
 
 void expectOn(const WholeUnion& u, std::pmr::memory_resource* r) {
+  EXPECT_EQ(resource(u), r);
   EXPECT_EQ(resource(*u.groups()), r);
   EXPECT_EQ(resource(u.groups()->begin()->first), r);
   EXPECT_EQ(resource(u.groups()->begin()->second.front()), r);
+}
+
+void fill(HoldsUnions& h) {
+  fill(h.unions()->emplace_back());
+}
+
+void expectOn(const HoldsUnions& h, std::pmr::memory_resource* r) {
+  EXPECT_EQ(resource(h), r);
+  EXPECT_EQ(resource(*h.unions()), r);
+  expectOn(h.unions()->front(), r);
+}
+
+void fill(ArenaError& e) {
+  e.message() = kLong;
+  e.details()->emplace_back(kOther);
+}
+
+void expectOn(const ArenaError& e, std::pmr::memory_resource* r) {
+  EXPECT_EQ(resource(e), r);
+  EXPECT_EQ(resource(*e.message()), r);
+  EXPECT_EQ(resource(*e.details()), r);
+  EXPECT_EQ(resource(e.details()->front()), r);
+}
+
+TEST(CppArenaPmrTest, AllocatorConstructorPutsEverythingOnTheResource) {
+  Arena arena;
+  NoDefaultResource noDefault;
+  Strings s{&arena};
+  fill(s);
+  expectOn(s, &arena);
+  Containers c{&arena};
+  fill(c);
+  expectOn(c, &arena);
+  StructElements e{&arena};
+  fill(e);
+  expectOn(e, &arena);
+  WholeStruct w{&arena};
+  fill(w);
+  expectOn(w, &arena);
+  ArenaUnion fieldUnion{&arena};
+  fill(fieldUnion);
+  expectOn(fieldUnion, &arena);
+  WholeUnion wholeUnion{&arena};
+  fill(wholeUnion);
+  expectOn(wholeUnion, &arena);
+  HoldsUnions h{&arena};
+  fill(h);
+  expectOn(h, &arena);
+  ArenaError error{&arena};
+  fill(error);
+  expectOn(error, &arena);
+  CustomTypes u{&arena};
+  fill(u);
+  expectOn(u, &arena);
 }
 
 TEST(CppArenaPmrTest, DefaultConstructionUsesTheDefaultResource) {
@@ -461,6 +541,95 @@ TEST(CppArenaPmrTest, SerializationRoundTrips) {
   expectRoundTrip<ArenaUnion>();
   expectRoundTrip<WholeUnion>();
   expectRoundTrip<CustomTypes>();
+}
+
+template <class Serializer, class T>
+void expectDeserializationLandsOnTheResource() {
+  T in;
+  fill(in);
+  const auto buf = Serializer::template serialize<std::string>(in);
+  Arena arena;
+  T out{&arena};
+  {
+    NoDefaultResource noDefault;
+    Serializer::deserialize(buf, out);
+  }
+  EXPECT_EQ(out, in);
+  expectOn(out, &arena);
+}
+
+template <class T>
+void expectDeserializationLandsOnTheResource() {
+  expectDeserializationLandsOnTheResource<BinarySerializer, T>();
+  expectDeserializationLandsOnTheResource<CompactSerializer, T>();
+  expectDeserializationLandsOnTheResource<SimpleJSONSerializer, T>();
+}
+
+TEST(CppArenaPmrTest, DeserializationLandsOnTheResource) {
+  expectDeserializationLandsOnTheResource<Strings>();
+  expectDeserializationLandsOnTheResource<Containers>();
+  expectDeserializationLandsOnTheResource<StructElements>();
+  expectDeserializationLandsOnTheResource<WholeStruct>();
+  expectDeserializationLandsOnTheResource<ArenaUnion>();
+  expectDeserializationLandsOnTheResource<WholeUnion>();
+  expectDeserializationLandsOnTheResource<HoldsUnions>();
+  expectDeserializationLandsOnTheResource<ArenaError>();
+  expectDeserializationLandsOnTheResource<CustomTypes>();
+}
+
+TEST(CppArenaPmrTest, CopyGoesToTheDefaultResource) {
+  Arena arena;
+  Containers src{&arena};
+  fill(src);
+  const Containers copy(src);
+  EXPECT_EQ(copy, src);
+  expectOn(copy, std::pmr::get_default_resource());
+}
+
+TEST(CppArenaPmrTest, MoveConstructionKeepsTheResource) {
+  Arena arena;
+  Containers src{&arena};
+  fill(src);
+  const Containers expected(src);
+  const std::pmr::string* names = src.names()->data();
+
+  NoDefaultResource noDefault;
+  const Containers moved(std::move(src));
+  EXPECT_EQ(moved, expected);
+  expectOn(moved, &arena);
+  EXPECT_EQ(moved.names()->data(), names);
+}
+
+TEST(CppArenaPmrTest, MoveAssignmentAcrossResourcesCopies) {
+  Arena arena;
+  Arena other;
+  Containers src{&arena};
+  fill(src);
+  const Containers expected(src);
+  Containers dst{&other};
+  dst = std::move(src);
+  EXPECT_EQ(dst, expected);
+  expectOn(dst, &other);
+}
+
+TEST(CppArenaPmrTest, UnionCopyAndMove) {
+  Arena arena;
+  ArenaUnion src{&arena};
+  fill(src);
+  const ArenaUnion copy(src);
+  EXPECT_EQ(copy, src);
+  expectOn(copy, std::pmr::get_default_resource());
+
+  Arena other;
+  ArenaUnion assigned{&other};
+  assigned = src;
+  EXPECT_EQ(assigned, src);
+  expectOn(assigned, &other);
+
+  NoDefaultResource noDefault;
+  const ArenaUnion moved(std::move(src));
+  EXPECT_EQ(moved, copy);
+  expectOn(moved, &arena);
 }
 
 TEST(CppArenaPmrTest, OpFunctions) {

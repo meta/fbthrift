@@ -19,6 +19,7 @@
 #include <thrift/compiler/ast/t_const.h>
 #include <thrift/compiler/ast/t_typedef.h>
 #include <thrift/compiler/ast/uri.h>
+#include <thrift/compiler/generate/cpp/util.h>
 
 namespace apache::thrift::compiler::cpp2 {
 
@@ -40,7 +41,15 @@ const std::string* find_name_annotation(
 } // namespace
 
 const std::string* find_allocator(const t_named& node) {
-  return find_name_annotation(node, kCppAllocatorUri, "cpp.allocator");
+  if (const std::string* allocator =
+          find_name_annotation(node, kCppAllocatorUri, "cpp.allocator")) {
+    return allocator;
+  }
+  static const auto& kArenaAllocator =
+      *new std::string("::std::pmr::polymorphic_allocator<::std::byte>");
+  const auto* strct = dynamic_cast<const t_structured*>(&node);
+  return strct != nullptr && has_arena_fields(*strct) ? &kArenaAllocator
+                                                      : nullptr;
 }
 
 const std::string* find_allocator_via(const t_named& node) {
@@ -55,7 +64,8 @@ bool type_uses_allocator(const t_type& type) {
 }
 
 bool uses_allocator(const t_field& field) {
-  return field.has_structured_annotation(kCppUseAllocatorUri) ||
+  return is_arena_field(field) ||
+      field.has_structured_annotation(kCppUseAllocatorUri) ||
       field.has_unstructured_annotation("cpp.use_allocator") ||
       type_uses_allocator(field.type().deref());
 }

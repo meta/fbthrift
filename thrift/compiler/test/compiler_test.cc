@@ -3316,7 +3316,7 @@ TEST(CompilerTest, cpp_allocator_with_tablebased_serialization) {
       @cpp.Type{template = "::std::pmr::vector"}
       1: list<i32> ids;
     }
-      # expected-error@-8: `cpp.allocator` on `PmrStruct` is not supported with the `tablebased` option.  [tablebased-allocator-rule]
+      # expected-error@-8: Allocator-aware type `PmrStruct` is not supported with the `tablebased` option.  [tablebased-allocator-rule]
 
     @thrift.DeprecatedUnvalidatedAnnotations{
       items = {"cpp.allocator": "::std::pmr::polymorphic_allocator<char>"},
@@ -3324,7 +3324,7 @@ TEST(CompilerTest, cpp_allocator_with_tablebased_serialization) {
     union PmrUnion {
       1: i32 id;
     }
-      # expected-error@-6: `cpp.allocator` on `PmrUnion` is not supported with the `tablebased` option.  [tablebased-allocator-rule]
+      # expected-error@-6: Allocator-aware type `PmrUnion` is not supported with the `tablebased` option.  [tablebased-allocator-rule]
 
     struct Plain {
       1: string name;
@@ -3351,10 +3351,10 @@ TEST(CompilerTest, cpp_allocator_optional_ref) {
     struct Bad {
       @cpp.Ref{type = cpp.RefType.SharedMutable}
       1: optional Child shared;
-        # expected-error@-2: Optional reference field `shared` of `cpp.allocator` type `Bad` is not supported.
+        # expected-error@-2: Optional reference field `shared` of allocator-aware type `Bad` is not supported.
       @cpp.Ref{type = cpp.RefType.Shared}
       2: optional Child shared_const;
-        # expected-error@-2: Optional reference field `shared_const` of `cpp.allocator` type `Bad` is not supported.
+        # expected-error@-2: Optional reference field `shared_const` of allocator-aware type `Bad` is not supported.
     }
 
     @thrift.DeprecatedUnvalidatedAnnotations{
@@ -3531,7 +3531,7 @@ TEST(CompilerTest, cpp_allocator_with_frozen) {
     struct PmrStruct {
       1: string name;
     }
-      # expected-error@-6: `cpp.allocator` on `PmrStruct` is not supported with the `frozen` option.  [frozen-allocator-rule]
+      # expected-error@-6: Allocator-aware type `PmrStruct` is not supported with the `frozen` option.  [frozen-allocator-rule]
 
     struct Plain {
       1: string name;
@@ -3553,7 +3553,7 @@ TEST(CompilerTest, cpp_allocator_with_frozen2) {
     struct PmrStruct {
       1: string name;
     }
-      # expected-error@-6: `cpp.allocator` on `PmrStruct` is not supported with the `frozen2` option unless it has `@cpp.Frozen2Exclude`.  [frozen2-allocator-rule]
+      # expected-error@-6: Allocator-aware type `PmrStruct` is not supported with the `frozen2` option unless it has `@cpp.Frozen2Exclude`.  [frozen2-allocator-rule]
 
     @thrift.DeprecatedUnvalidatedAnnotations{
       items = {"cpp.allocator": "::std::pmr::polymorphic_allocator<char>"},
@@ -3562,7 +3562,7 @@ TEST(CompilerTest, cpp_allocator_with_frozen2) {
     union PmrUnion {
       1: i32 id;
     }
-      # expected-error@-7: `cpp.allocator` on `PmrUnion` is not supported with the `frozen2` option unless it has `@cpp.Frozen2Exclude`.  [frozen2-allocator-rule]
+      # expected-error@-7: Allocator-aware type `PmrUnion` is not supported with the `frozen2` option unless it has `@cpp.Frozen2Exclude`.  [frozen2-allocator-rule]
 
     @thrift.DeprecatedUnvalidatedAnnotations{
       items = {"cpp.allocator": "::std::pmr::polymorphic_allocator<char>"},
@@ -3626,11 +3626,62 @@ TEST(CompilerTest, cpp_arena_struct_level) {
       1: string name;
       2: i32 number;
       3: string with_default = "default";
+        # expected-error@-1: Field `with_default` of allocator-aware struct `Whole` declares a custom default that its allocator-taking constructors would drop. Remove the default, or annotate the field with `@cpp.AllowCustomDefaultInAllocCtor` to apply it there too.
       4: AdaptedString adapted;
       @thrift.Box
       5: optional string boxed;
     }
   )");
+}
+
+TEST(CompilerTest, cpp_arena_union) {
+  check_compile(R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+
+    @cpp.Arena
+    union Whole {
+      1: string name;
+      2: i32 number;
+    }
+  )");
+}
+
+TEST(CompilerTest, cpp_arena_allocator_rules) {
+  check_compile(R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+
+    struct Child {}
+
+    struct Arena {
+      @cpp.Arena
+      1: string name;
+      @cpp.Ref{type = cpp.RefType.Shared}
+      2: optional Child shared;
+        # expected-error@-2: Optional reference field `shared` of allocator-aware type `Arena` is not supported.
+      @cpp.Lazy
+      3: list<i32> lazy;
+        # expected-error@-2: `@cpp.Lazy` is not supported on field `lazy` of allocator-aware struct `Arena`: the allocator-extended copy and move constructors drop the field's serialized data.
+      4: i32 version = 1;
+        # expected-error@-1: Field `version` of allocator-aware struct `Arena` declares a custom default that its allocator-taking constructors would drop. Remove the default, or annotate the field with `@cpp.AllowCustomDefaultInAllocCtor` to apply it there too.
+    }
+  )");
+}
+
+TEST(CompilerTest, cpp_arena_with_tablebased_serialization) {
+  check_compile(
+      R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+
+    struct Arena {
+      @cpp.Arena
+      1: string name;
+    }
+      # expected-error@-4: Allocator-aware type `Arena` is not supported with the `tablebased` option.  [tablebased-allocator-rule]
+  )",
+      {"--gen", "mstch_cpp2:json,tablebased"});
 }
 
 TEST(CompilerTest, cpp_use_allocator_ref_fields) {
@@ -3655,30 +3706,30 @@ TEST(CompilerTest, cpp_use_allocator_ref_fields) {
       @cpp.Ref{type = cpp.RefType.Unique}
       1: optional AAString unique;
         # expected-warning@-2: @cpp.Ref{type = cpp.RefType.Unique} is deprecated. Please use @thrift.Box annotation instead in `unique`.
-        # expected-error@-3: Reference field `unique` of `cpp.allocator` type `Struct` doesn't support `cpp.use_allocator`.
-        # expected-error@-4: Optional reference field `unique` of `cpp.allocator` type `Struct` is not supported.
+        # expected-error@-3: Reference field `unique` of allocator-aware type `Struct` doesn't support `cpp.use_allocator`.
+        # expected-error@-4: Optional reference field `unique` of allocator-aware type `Struct` is not supported.
       @cpp.Ref{type = cpp.RefType.Unique}
       @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
       2: optional string field_annotated_unique;
         # expected-warning@-3: @cpp.Ref{type = cpp.RefType.Unique} is deprecated. Please use @thrift.Box annotation instead in `field_annotated_unique`.
-        # expected-error@-4: Reference field `field_annotated_unique` of `cpp.allocator` type `Struct` doesn't support `cpp.use_allocator`.
-        # expected-error@-5: Optional reference field `field_annotated_unique` of `cpp.allocator` type `Struct` is not supported.
+        # expected-error@-4: Reference field `field_annotated_unique` of allocator-aware type `Struct` doesn't support `cpp.use_allocator`.
+        # expected-error@-5: Optional reference field `field_annotated_unique` of allocator-aware type `Struct` is not supported.
       @thrift.InternBox
       3: AAInner intern_boxed;
-        # expected-error@-2: Reference field `intern_boxed` of `cpp.allocator` type `Struct` doesn't support `cpp.use_allocator`.
+        # expected-error@-2: Reference field `intern_boxed` of allocator-aware type `Struct` doesn't support `cpp.use_allocator`.
       @cpp.Ref{type = cpp.RefType.Shared}
       4: optional AAString shared;
-        # expected-error@-2: Optional reference field `shared` of `cpp.allocator` type `Struct` is not supported.
+        # expected-error@-2: Optional reference field `shared` of allocator-aware type `Struct` is not supported.
       @cpp.Ref{type = cpp.RefType.SharedMutable}
       5: optional AAString shared_mutable;
-        # expected-error@-2: Optional reference field `shared_mutable` of `cpp.allocator` type `Struct` is not supported.
+        # expected-error@-2: Optional reference field `shared_mutable` of allocator-aware type `Struct` is not supported.
       @thrift.Box
       6: optional AAString boxed;
-        # expected-error@-2: Reference field `boxed` of `cpp.allocator` type `Struct` doesn't support `cpp.use_allocator`.
+        # expected-error@-2: Reference field `boxed` of allocator-aware type `Struct` doesn't support `cpp.use_allocator`.
       @cpp.Ref{type = cpp.RefType.Unique}
       7: optional string heap_unique;
         # expected-warning@-2: @cpp.Ref{type = cpp.RefType.Unique} is deprecated. Please use @thrift.Box annotation instead in `heap_unique`.
-        # expected-error@-3: Optional reference field `heap_unique` of `cpp.allocator` type `Struct` is not supported.
+        # expected-error@-3: Optional reference field `heap_unique` of allocator-aware type `Struct` is not supported.
     }
 
     @thrift.DeprecatedUnvalidatedAnnotations{
@@ -3687,17 +3738,17 @@ TEST(CompilerTest, cpp_use_allocator_ref_fields) {
     union Union {
       @cpp.Ref{type = cpp.RefType.Unique}
       1: AAString unique;
-        # expected-error@-2: Reference field `unique` of `cpp.allocator` type `Union` doesn't support `cpp.use_allocator`.
+        # expected-error@-2: Reference field `unique` of allocator-aware type `Union` doesn't support `cpp.use_allocator`.
       @cpp.Ref{type = cpp.RefType.Shared}
       2: AAString shared;
       @cpp.Ref{type = cpp.RefType.SharedMutable}
       3: AAString shared_mutable;
       @thrift.Box
       4: AAString boxed;
-        # expected-error@-2: Reference field `boxed` of `cpp.allocator` type `Union` doesn't support `cpp.use_allocator`.
+        # expected-error@-2: Reference field `boxed` of allocator-aware type `Union` doesn't support `cpp.use_allocator`.
       @thrift.InternBox
       5: AAInner intern_boxed;
-        # expected-error@-2: Reference field `intern_boxed` of `cpp.allocator` type `Union` doesn't support `cpp.use_allocator`.
+        # expected-error@-2: Reference field `intern_boxed` of allocator-aware type `Union` doesn't support `cpp.use_allocator`.
       @cpp.Ref{type = cpp.RefType.Unique}
       6: string heap_unique;
       @thrift.Box
@@ -3782,7 +3833,7 @@ TEST(CompilerTest, cpp_allocator_via) {
       @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
       @cpp.Ref{type = cpp.RefType.Shared}
       1: optional string s;
-        # expected-error@-3: Optional reference field `s` of `cpp.allocator` type `RefField` is not supported.
+        # expected-error@-3: Optional reference field `s` of allocator-aware type `RefField` is not supported.
     }
       # expected-error@-9: `cpp.allocator_via` on `RefField` names reference field `s`.
 
@@ -3853,7 +3904,7 @@ TEST(CompilerTest, cpp_alloc_ctor_custom_defaults) {
     struct NotAllocated {
       @cpp.AllowCustomDefaultInAllocCtor
       1: i32 field1 = 8;
-        # expected-error@-2: `@cpp.AllowCustomDefaultInAllocCtor` on field `field1` has no effect: it applies only to a field of a `cpp.allocator` struct that declares a default value.
+        # expected-error@-2: `@cpp.AllowCustomDefaultInAllocCtor` on field `field1` has no effect: it applies only to a field of a `cpp.allocator` or `@cpp.Arena` struct that declares a default value.
     }
 
     @thrift.DeprecatedUnvalidatedAnnotations{
@@ -3862,7 +3913,7 @@ TEST(CompilerTest, cpp_alloc_ctor_custom_defaults) {
     struct AllocatedRedundant {
       @cpp.AllowCustomDefaultInAllocCtor
       1: i32 field1;
-        # expected-error@-2: `@cpp.AllowCustomDefaultInAllocCtor` on field `field1` has no effect: it applies only to a field of a `cpp.allocator` struct that declares a default value.
+        # expected-error@-2: `@cpp.AllowCustomDefaultInAllocCtor` on field `field1` has no effect: it applies only to a field of a `cpp.allocator` or `@cpp.Arena` struct that declares a default value.
     }
   )");
 }

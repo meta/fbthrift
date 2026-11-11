@@ -102,16 +102,76 @@ std::string_view Fields::__fbthrift_get_class_name() {
   return apache::thrift::TStructDataStorage<Fields>::name;
 }
 
-Fields::Fields(const Fields&) = default;
-Fields& Fields::operator=(const Fields&) = default;
+Fields::Fields(const Fields& srcObj) :
+    __fbthrift_alloc(::std::allocator_traits<allocator_type>::select_on_container_copy_construction(srcObj.__fbthrift_alloc)),
+    __fbthrift_field_name(srcObj.__fbthrift_field_name),
+    __fbthrift_field_groups(srcObj.__fbthrift_field_groups),
+    __fbthrift_field_inners(srcObj.__fbthrift_field_inners),
+    __fbthrift_field_id(srcObj.__fbthrift_field_id),
+    __fbthrift_field_custom(srcObj.__fbthrift_field_custom),
+    __isset(srcObj.__isset) {
+}
+
+static void __fbthrift_swap(Fields& lhs, Fields& rhs) { swap(lhs, rhs); }
+Fields& Fields::operator=(const Fields& other) {
+  if (::apache::thrift::detail::copy_assign_changes_allocator(get_allocator(), other.get_allocator())) {
+    this->__fbthrift_field_name = other.__fbthrift_field_name;
+    this->__fbthrift_field_groups = other.__fbthrift_field_groups;
+    this->__fbthrift_field_inners = other.__fbthrift_field_inners;
+    this->__fbthrift_field_id = other.__fbthrift_field_id;
+    this->__fbthrift_field_custom = other.__fbthrift_field_custom;
+    __isset = other.__isset;
+    ::apache::thrift::detail::copy_allocator(__fbthrift_alloc, other.__fbthrift_alloc);
+    return *this;
+  }
+  Fields tmp(other, get_allocator());
+  __fbthrift_swap(*this, tmp);
+  ::apache::thrift::detail::copy_allocator(__fbthrift_alloc, other.__fbthrift_alloc);
+  return *this;
+}
+
 Fields::Fields() :
-    __fbthrift_field_id() {
+    __fbthrift_alloc(allocator_type()),
+    __fbthrift_field_name(__fbthrift_alloc),
+    __fbthrift_field_groups(__fbthrift_alloc),
+    __fbthrift_field_inners(__fbthrift_alloc),
+    __fbthrift_field_id(),
+    __fbthrift_field_custom(__fbthrift_alloc) {
 }
 
 
 Fields::~Fields() {}
 
+Fields::Fields(const allocator_type& alloc) noexcept :
+    __fbthrift_alloc(alloc),
+    __fbthrift_field_name(alloc),
+    __fbthrift_field_groups(alloc),
+    __fbthrift_field_inners(alloc),
+    __fbthrift_field_id(),
+    __fbthrift_field_custom(alloc) {
+}
+
+Fields::Fields(const Fields& other, const allocator_type& alloc) :
+    __fbthrift_alloc(alloc),
+    __fbthrift_field_name(other.__fbthrift_field_name, alloc),
+    __fbthrift_field_groups(other.__fbthrift_field_groups, alloc),
+    __fbthrift_field_inners(other.__fbthrift_field_inners, alloc),
+    __fbthrift_field_id(other.__fbthrift_field_id),
+    __fbthrift_field_custom(other.__fbthrift_field_custom, alloc),
+    __isset(other.__isset) {
+}
+
+Fields::Fields(Fields&& other, const allocator_type& alloc) :
+    __fbthrift_alloc(alloc),
+    __fbthrift_field_name(std::move(other.__fbthrift_field_name), alloc),
+    __fbthrift_field_groups(std::move(other.__fbthrift_field_groups), alloc),
+    __fbthrift_field_inners(std::move(other.__fbthrift_field_inners), alloc),
+    __fbthrift_field_id(std::move(other.__fbthrift_field_id)),
+    __fbthrift_field_custom(std::move(other.__fbthrift_field_custom), alloc),
+    __isset(other.__isset) {
+}
 Fields::Fields([[maybe_unused]] Fields&& other) noexcept :
+    __fbthrift_alloc(std::move(other.__fbthrift_alloc)),
     __fbthrift_field_name(std::move(other.__fbthrift_field_name)),
     __fbthrift_field_groups(std::move(other.__fbthrift_field_groups)),
     __fbthrift_field_inners(std::move(other.__fbthrift_field_inners)),
@@ -127,22 +187,10 @@ Fields& Fields::operator=([[maybe_unused]] Fields&& other) {
     this->__fbthrift_field_id = std::move(other.__fbthrift_field_id);
     this->__fbthrift_field_custom = std::move(other.__fbthrift_field_custom);
     __isset = other.__isset;
+  ::apache::thrift::detail::move_allocator(__fbthrift_alloc, other.__fbthrift_alloc);
     return *this;
 }
 
-
-Fields::Fields(apache::thrift::FragileConstructor, ::apache::thrift::pmr::Rebind<::std::string>::type name__arg, ::apache::thrift::pmr::Rebind<::std::map<::std::string, ::std::set<::std::int32_t>>>::type groups__arg, ::apache::thrift::pmr::Rebind<::std::vector<::test::fixtures::cpp_arena::Inner>>::type inners__arg, ::std::int64_t id__arg, ::apache::thrift::pmr::Rebind<std::unordered_map<::std::string, ::std::string>>::type custom__arg) :
-    __fbthrift_field_name(std::move(name__arg)),
-    __fbthrift_field_groups(std::move(groups__arg)),
-    __fbthrift_field_inners(std::move(inners__arg)),
-    __fbthrift_field_id(std::move(id__arg)),
-    __fbthrift_field_custom(std::move(custom__arg)) { 
-  __isset.set(folly::index_constant<0>(), true);
-  __isset.set(folly::index_constant<1>(), true);
-  __isset.set(folly::index_constant<2>(), true);
-  __isset.set(folly::index_constant<3>(), true);
-  __isset.set(folly::index_constant<4>(), true);
-}
 
 void Fields::__fbthrift_clear() {
   // clear all fields
@@ -204,6 +252,7 @@ void swap([[maybe_unused]] Fields& a, [[maybe_unused]] Fields& b) {
   ::apache::thrift::detail::swap_field(a.__fbthrift_field_id, b.__fbthrift_field_id);
   ::apache::thrift::detail::swap_field(a.__fbthrift_field_custom, b.__fbthrift_field_custom);
   swap(a.__isset, b.__isset);
+  ::apache::thrift::detail::swap_allocators(a.__fbthrift_alloc, b.__fbthrift_alloc);
 }
 
 static_assert(
@@ -226,16 +275,58 @@ std::string_view WholeStruct::__fbthrift_get_class_name() {
   return apache::thrift::TStructDataStorage<WholeStruct>::name;
 }
 
-WholeStruct::WholeStruct(const WholeStruct&) = default;
-WholeStruct& WholeStruct::operator=(const WholeStruct&) = default;
+WholeStruct::WholeStruct(const WholeStruct& srcObj) :
+    __fbthrift_alloc(::std::allocator_traits<allocator_type>::select_on_container_copy_construction(srcObj.__fbthrift_alloc)),
+    __fbthrift_field_names(srcObj.__fbthrift_field_names),
+    __fbthrift_field_id(srcObj.__fbthrift_field_id),
+    __isset(srcObj.__isset) {
+}
+
+static void __fbthrift_swap(WholeStruct& lhs, WholeStruct& rhs) { swap(lhs, rhs); }
+WholeStruct& WholeStruct::operator=(const WholeStruct& other) {
+  if (::apache::thrift::detail::copy_assign_changes_allocator(get_allocator(), other.get_allocator())) {
+    this->__fbthrift_field_names = other.__fbthrift_field_names;
+    this->__fbthrift_field_id = other.__fbthrift_field_id;
+    __isset = other.__isset;
+    ::apache::thrift::detail::copy_allocator(__fbthrift_alloc, other.__fbthrift_alloc);
+    return *this;
+  }
+  WholeStruct tmp(other, get_allocator());
+  __fbthrift_swap(*this, tmp);
+  ::apache::thrift::detail::copy_allocator(__fbthrift_alloc, other.__fbthrift_alloc);
+  return *this;
+}
+
 WholeStruct::WholeStruct() :
+    __fbthrift_alloc(allocator_type()),
+    __fbthrift_field_names(__fbthrift_alloc),
     __fbthrift_field_id() {
 }
 
 
 WholeStruct::~WholeStruct() {}
 
+WholeStruct::WholeStruct(const allocator_type& alloc) noexcept :
+    __fbthrift_alloc(alloc),
+    __fbthrift_field_names(alloc),
+    __fbthrift_field_id() {
+}
+
+WholeStruct::WholeStruct(const WholeStruct& other, const allocator_type& alloc) :
+    __fbthrift_alloc(alloc),
+    __fbthrift_field_names(other.__fbthrift_field_names, alloc),
+    __fbthrift_field_id(other.__fbthrift_field_id),
+    __isset(other.__isset) {
+}
+
+WholeStruct::WholeStruct(WholeStruct&& other, const allocator_type& alloc) :
+    __fbthrift_alloc(alloc),
+    __fbthrift_field_names(std::move(other.__fbthrift_field_names), alloc),
+    __fbthrift_field_id(std::move(other.__fbthrift_field_id)),
+    __isset(other.__isset) {
+}
 WholeStruct::WholeStruct([[maybe_unused]] WholeStruct&& other) noexcept :
+    __fbthrift_alloc(std::move(other.__fbthrift_alloc)),
     __fbthrift_field_names(std::move(other.__fbthrift_field_names)),
     __fbthrift_field_id(std::move(other.__fbthrift_field_id)),
     __isset(other.__isset) {
@@ -245,16 +336,10 @@ WholeStruct& WholeStruct::operator=([[maybe_unused]] WholeStruct&& other) {
     this->__fbthrift_field_names = std::move(other.__fbthrift_field_names);
     this->__fbthrift_field_id = std::move(other.__fbthrift_field_id);
     __isset = other.__isset;
+  ::apache::thrift::detail::move_allocator(__fbthrift_alloc, other.__fbthrift_alloc);
     return *this;
 }
 
-
-WholeStruct::WholeStruct(apache::thrift::FragileConstructor, ::apache::thrift::pmr::Rebind<::std::vector<::std::string>>::type names__arg, ::std::int64_t id__arg) :
-    __fbthrift_field_names(std::move(names__arg)),
-    __fbthrift_field_id(std::move(id__arg)) { 
-  __isset.set(folly::index_constant<0>(), true);
-  __isset.set(folly::index_constant<1>(), true);
-}
 
 void WholeStruct::__fbthrift_clear() {
   // clear all fields
@@ -298,6 +383,7 @@ void swap([[maybe_unused]] WholeStruct& a, [[maybe_unused]] WholeStruct& b) {
   ::apache::thrift::detail::swap_field(a.__fbthrift_field_names, b.__fbthrift_field_names);
   ::apache::thrift::detail::swap_field(a.__fbthrift_field_id, b.__fbthrift_field_id);
   swap(a.__isset, b.__isset);
+  ::apache::thrift::detail::swap_allocators(a.__fbthrift_alloc, b.__fbthrift_alloc);
 }
 
 
@@ -427,8 +513,34 @@ void WholeUnion::__fbthrift_clear() {
 bool WholeUnion::__fbthrift_is_empty() const {
   return getType() == Type::__EMPTY__;
 }
+  WholeUnion::WholeUnion(WholeUnion&& rhs, const allocator_type& alloc)
+      : __fbthrift_alloc(alloc),
+        fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+        return;
+      case Type::names:
+      {
+        auto value = std::move(rhs.value_.names);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(names_ref(), std::move(value));
+        break;
+      }
+      case Type::id:
+      {
+        auto value = std::move(rhs.value_.id);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(id_ref(), std::move(value));
+        break;
+      }
+      default:
+        assert(false);
+    }
+  }
+
   WholeUnion& WholeUnion::operator=(WholeUnion&& rhs) {
     if (this == &rhs) { return *this; }
+    ::apache::thrift::detail::move_allocator(__fbthrift_alloc, rhs.__fbthrift_alloc);
     switch (rhs.getType()) {
       case Type::__EMPTY__:
       {
@@ -459,7 +571,25 @@ bool WholeUnion::__fbthrift_is_empty() const {
   }
 
   WholeUnion::WholeUnion(const WholeUnion& rhs)
-      : fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
+      : __fbthrift_alloc(::std::allocator_traits<allocator_type>::select_on_container_copy_construction(rhs.__fbthrift_alloc)),
+        fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+        return;
+      case Type::names:
+        names_ref().emplace(rhs.value_.names);
+        break;
+      case Type::id:
+        id_ref().emplace(rhs.value_.id);
+        break;
+      default:
+        assert(false);
+    }
+  }
+
+  WholeUnion::WholeUnion(const WholeUnion& rhs, const allocator_type& alloc)
+      : __fbthrift_alloc(alloc),
+        fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
     switch (rhs.getType()) {
       case Type::__EMPTY__:
         return;
@@ -476,7 +606,12 @@ bool WholeUnion::__fbthrift_is_empty() const {
 
   WholeUnion& WholeUnion::operator=(const WholeUnion& rhs) {
     if (this == &rhs) { return *this; }
-    return *this = WholeUnion(rhs);
+    allocator_type alloc = __fbthrift_alloc;
+    ::apache::thrift::detail::copy_allocator(alloc, rhs.__fbthrift_alloc);
+    WholeUnion copy(rhs, alloc);
+    __fbthrift_clear();
+    ::apache::thrift::detail::copy_allocator(__fbthrift_alloc, rhs.__fbthrift_alloc);
+    return *this = std::move(copy);
   }
 
 

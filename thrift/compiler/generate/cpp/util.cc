@@ -144,7 +144,8 @@ bool has_unsupported_arena_level(const t_type& type) {
 bool is_arena_supported(const t_field& field) {
   const t_type* type = field.type()->get_true_type();
   assert(type != nullptr);
-  return (type->is_string_or_binary() || type->is<t_container>()) &&
+  return (type->is_string_or_binary() || type->is<t_container>() ||
+          is_allocator_aware(*type)) &&
       field.default_value() == nullptr && !is_ref(&field) && !is_lazy(&field) &&
       !is_binary_iobuf(field) &&
       !field.has_structured_annotation(kCppAdapterUri) &&

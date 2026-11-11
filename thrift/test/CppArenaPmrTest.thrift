@@ -126,6 +126,18 @@ union WholeUnion {
   3: i64 id;
 }
 
+struct HoldsUnions {
+  @cpp.Arena
+  1: list<ArenaUnion> unions;
+}
+
+exception ArenaError {
+  @cpp.Arena
+  1: string message;
+  @cpp.Arena
+  2: list<string> details;
+}
+
 typedef string Name
 typedef list<Name> Names
 

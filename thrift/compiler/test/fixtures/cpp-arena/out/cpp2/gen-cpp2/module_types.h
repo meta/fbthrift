@@ -88,6 +88,18 @@ namespace apache::thrift::detail::annotation {
 } // namespace apache::thrift::detail::annotation
 
 namespace apache::thrift::detail::qualifier {
+template<>
+struct is_field_using_allocator<::test::fixtures::cpp_arena::Fields,::apache::thrift::type::field_id<1>> : std::true_type{};
+template<>
+struct is_field_using_allocator<::test::fixtures::cpp_arena::Fields,::apache::thrift::type::field_id<2>> : std::true_type{};
+template<>
+struct is_field_using_allocator<::test::fixtures::cpp_arena::Fields,::apache::thrift::type::field_id<3>> : std::true_type{};
+template<>
+struct is_field_using_allocator<::test::fixtures::cpp_arena::Fields,::apache::thrift::type::field_id<5>> : std::true_type{};
+template<>
+struct is_field_using_allocator<::test::fixtures::cpp_arena::WholeStruct,::apache::thrift::type::field_id<1>> : std::true_type{};
+template<>
+struct is_field_using_allocator<::test::fixtures::cpp_arena::WholeUnion,::apache::thrift::type::field_id<1>> : std::true_type{};
 } // namespace apache::thrift::detail::qualifier
 
 // BEGIN hash_and_equal_to
@@ -280,19 +292,24 @@ class Fields final  {
   static constexpr bool __fbthrift_cpp2_is_union =
     false;
 
+ public:
+  using allocator_type = ::std::pmr::polymorphic_allocator<::std::byte>;
+  allocator_type get_allocator() const {
+    return __fbthrift_alloc;
+  }
+ private:
+  [[FOLLY_ATTR_NO_UNIQUE_ADDRESS]] allocator_type __fbthrift_alloc;
 
  public:
 
   Fields();
 
-  // FragileConstructor for use in initialization lists only.
-  [[deprecated("This constructor is deprecated")]]
-  Fields(apache::thrift::FragileConstructor, ::apache::thrift::pmr::Rebind<::std::string>::type name__arg, ::apache::thrift::pmr::Rebind<::std::map<::std::string, ::std::set<::std::int32_t>>>::type groups__arg, ::apache::thrift::pmr::Rebind<::std::vector<::test::fixtures::cpp_arena::Inner>>::type inners__arg, ::std::int64_t id__arg, ::apache::thrift::pmr::Rebind<std::unordered_map<::std::string, ::std::string>>::type custom__arg);
-
   Fields(Fields&&) noexcept;
   Fields(const Fields& src);
 
-
+  explicit Fields(const allocator_type& alloc) noexcept;
+  explicit Fields(const Fields& other, const allocator_type& alloc);
+  explicit Fields(Fields&& other, const allocator_type& alloc);
   Fields& operator=(Fields&&);
   Fields& operator=(const Fields&);
 
@@ -639,19 +656,24 @@ class WholeStruct final  {
   static constexpr bool __fbthrift_cpp2_is_union =
     false;
 
+ public:
+  using allocator_type = ::std::pmr::polymorphic_allocator<::std::byte>;
+  allocator_type get_allocator() const {
+    return __fbthrift_alloc;
+  }
+ private:
+  [[FOLLY_ATTR_NO_UNIQUE_ADDRESS]] allocator_type __fbthrift_alloc;
 
  public:
 
   WholeStruct();
 
-  // FragileConstructor for use in initialization lists only.
-  [[deprecated("This constructor is deprecated")]]
-  WholeStruct(apache::thrift::FragileConstructor, ::apache::thrift::pmr::Rebind<::std::vector<::std::string>>::type names__arg, ::std::int64_t id__arg);
-
   WholeStruct(WholeStruct&&) noexcept;
   WholeStruct(const WholeStruct& src);
 
-
+  explicit WholeStruct(const allocator_type& alloc) noexcept;
+  explicit WholeStruct(const WholeStruct& other, const allocator_type& alloc);
+  explicit WholeStruct(WholeStruct&& other, const allocator_type& alloc);
   WholeStruct& operator=(WholeStruct&&);
   WholeStruct& operator=(const WholeStruct&);
 
@@ -963,6 +985,13 @@ class WholeUnion final  {
   static constexpr bool __fbthrift_cpp2_is_union =
     true;
 
+ public:
+  using allocator_type = ::std::pmr::polymorphic_allocator<::std::byte>;
+  allocator_type get_allocator() const {
+    return __fbthrift_alloc;
+  }
+ private:
+  [[FOLLY_ATTR_NO_UNIQUE_ADDRESS]] allocator_type __fbthrift_alloc;
 
  public:
   enum class Type : int {
@@ -975,7 +1004,8 @@ class WholeUnion final  {
       : fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {}
 
   WholeUnion(WholeUnion&& rhs) noexcept
-      : fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
+      : __fbthrift_alloc(rhs.__fbthrift_alloc),
+        fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
     *this = std::move(rhs);
   }
 
@@ -984,6 +1014,12 @@ class WholeUnion final  {
   WholeUnion& operator=(WholeUnion&& rhs);
 
   WholeUnion& operator=(const WholeUnion& rhs);
+
+  explicit WholeUnion(const allocator_type& alloc) noexcept
+      : __fbthrift_alloc(alloc),
+        fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {}
+  explicit WholeUnion(const WholeUnion& other, const allocator_type& alloc);
+  explicit WholeUnion(WholeUnion&& other, const allocator_type& alloc);
 
   ~WholeUnion();
 
@@ -997,36 +1033,6 @@ class WholeUnion final  {
 
   bool operator==(const WholeUnion&) const;
   std::partial_ordering operator<=>(const WholeUnion&) const;
-
-  /** Glean { "field": "names" } */
-  template <typename... A> requires (sizeof...(A) == 0)
-  ::apache::thrift::pmr::Rebind<::std::vector<::std::string>>::type& set_names(::apache::thrift::pmr::Rebind<::std::vector<::std::string>>::type const &t) {
-    using T0 = ::apache::thrift::pmr::Rebind<::std::vector<::std::string>>::type;
-    using T = folly::type_t<T0, A...>;
-    __fbthrift_clear();
-    ::new (std::addressof(value_.names)) T(t);
-    fbthrift_type_ = folly::to_underlying(Type::names);
-    return value_.names;
-  }
-
-  /** Glean { "field": "names" } */
-  template <typename... A> requires (sizeof...(A) == 0)
-  ::apache::thrift::pmr::Rebind<::std::vector<::std::string>>::type& set_names(::apache::thrift::pmr::Rebind<::std::vector<::std::string>>::type&& t) {
-    using T0 = ::apache::thrift::pmr::Rebind<::std::vector<::std::string>>::type;
-    using T = folly::type_t<T0, A...>;
-    __fbthrift_clear();
-    ::new (std::addressof(value_.names)) T(std::move(t));
-    fbthrift_type_ = folly::to_underlying(Type::names);
-    return value_.names;
-  }
-
-  /** Glean { "field": "names" } */
-  template<typename... T, typename = ::apache::thrift::safe_overload_t<::apache::thrift::pmr::Rebind<::std::vector<::std::string>>::type, T...>> ::apache::thrift::pmr::Rebind<::std::vector<::std::string>>::type& set_names(T&&... t) {
-    __fbthrift_clear();
-    ::new (std::addressof(value_.names)) ::apache::thrift::pmr::Rebind<::std::vector<::std::string>>::type(std::forward<T>(t)...);
-    fbthrift_type_ = folly::to_underlying(Type::names);
-    return value_.names;
-  }
 
   /** Glean { "field": "id" } */
   template <typename... A> requires (sizeof...(A) == 0)
@@ -1080,35 +1086,35 @@ class WholeUnion final  {
 
   /** Glean { "field": "names" } */
   template <typename..., typename T = ::apache::thrift::pmr::Rebind<::std::vector<::std::string>>::type>
-  FOLLY_ERASE ::apache::thrift::union_field_ref<const T&> names_ref() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
-    return {value_.names, fbthrift_type_, folly::to_underlying(Type::names), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
+  FOLLY_ERASE ::apache::thrift::union_field_ref<const T&, allocator_type> names_ref() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
+    return {value_.names, fbthrift_type_, folly::to_underlying(Type::names), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>, __fbthrift_alloc};
   }
 
   /** Glean { "field": "names" } */
   template <typename..., typename T = ::apache::thrift::pmr::Rebind<::std::vector<::std::string>>::type>
-  FOLLY_ERASE ::apache::thrift::union_field_ref<T&> names_ref() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
-    return {value_.names, fbthrift_type_, folly::to_underlying(Type::names), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
+  FOLLY_ERASE ::apache::thrift::union_field_ref<T&, allocator_type> names_ref() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
+    return {value_.names, fbthrift_type_, folly::to_underlying(Type::names), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>, __fbthrift_alloc};
   }
 
   /** Glean { "field": "names" } */
   template <typename..., typename T = ::apache::thrift::pmr::Rebind<::std::vector<::std::string>>::type>
-  FOLLY_ERASE ::apache::thrift::union_field_ref<T&&> names_ref() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
-    return {std::move(value_.names), fbthrift_type_, folly::to_underlying(Type::names), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
+  FOLLY_ERASE ::apache::thrift::union_field_ref<T&&, allocator_type> names_ref() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
+    return {std::move(value_.names), fbthrift_type_, folly::to_underlying(Type::names), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>, __fbthrift_alloc};
   }
 
   /** Glean { "field": "names" } */
-  FOLLY_ERASE ::apache::thrift::union_field_ref<const ::apache::thrift::pmr::Rebind<::std::vector<::std::string>>::type&> names() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
-    return {value_.names, fbthrift_type_, folly::to_underlying(Type::names), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
+  FOLLY_ERASE ::apache::thrift::union_field_ref<const ::apache::thrift::pmr::Rebind<::std::vector<::std::string>>::type&, allocator_type> names() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
+    return {value_.names, fbthrift_type_, folly::to_underlying(Type::names), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>, __fbthrift_alloc};
   }
 
   /** Glean { "field": "names" } */
-  FOLLY_ERASE ::apache::thrift::union_field_ref<::apache::thrift::pmr::Rebind<::std::vector<::std::string>>::type&> names() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
-    return {value_.names, fbthrift_type_, folly::to_underlying(Type::names), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
+  FOLLY_ERASE ::apache::thrift::union_field_ref<::apache::thrift::pmr::Rebind<::std::vector<::std::string>>::type&, allocator_type> names() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
+    return {value_.names, fbthrift_type_, folly::to_underlying(Type::names), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>, __fbthrift_alloc};
   }
 
   /** Glean { "field": "names" } */
-  FOLLY_ERASE ::apache::thrift::union_field_ref<::apache::thrift::pmr::Rebind<::std::vector<::std::string>>::type&&> names() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
-    return {std::move(value_.names), fbthrift_type_, folly::to_underlying(Type::names), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
+  FOLLY_ERASE ::apache::thrift::union_field_ref<::apache::thrift::pmr::Rebind<::std::vector<::std::string>>::type&&, allocator_type> names() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
+    return {std::move(value_.names), fbthrift_type_, folly::to_underlying(Type::names), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>, __fbthrift_alloc};
   }
   /** Glean { "field": "id" } */
   template <typename..., typename T = ::std::int64_t>

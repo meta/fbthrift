@@ -175,7 +175,7 @@ _readField_name:
 _readField_groups:
   {
     _readState.beforeSubobject(iprot);
-    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_groups);
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_groups, this->get_allocator());
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::string, ::apache::thrift::type_class::set<::apache::thrift::type_class::integral>>, ::apache::thrift::pmr::Rebind<::std::map<::std::string, ::std::set<::std::int32_t>>>::type, ::apache::thrift::type::cpp_pmr_type<::apache::thrift::pmr::Rebind<::std::map<::std::string, ::std::set<::std::int32_t>>>::type, ::apache::thrift::type::map<::apache::thrift::type::string_t, ::apache::thrift::type::set<::apache::thrift::type::i32_t>>>>::read(*iprot, this->__fbthrift_field_groups);
     _readState.afterSubobject(iprot);
   }
@@ -191,7 +191,7 @@ _readField_groups:
 _readField_inners:
   {
     _readState.beforeSubobject(iprot);
-    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_inners);
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_inners, this->get_allocator());
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::structure>, ::apache::thrift::pmr::Rebind<::std::vector<::test::fixtures::cpp_arena::Inner>>::type, ::apache::thrift::type::cpp_pmr_type<::apache::thrift::pmr::Rebind<::std::vector<::test::fixtures::cpp_arena::Inner>>::type, ::apache::thrift::type::list<::apache::thrift::type::struct_t<::test::fixtures::cpp_arena::Inner>>>>::read(*iprot, this->__fbthrift_field_inners);
     _readState.afterSubobject(iprot);
   }
@@ -220,7 +220,7 @@ _readField_id:
 _readField_custom:
   {
     _readState.beforeSubobject(iprot);
-    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_custom);
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_custom, this->get_allocator());
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::string, ::apache::thrift::type_class::string>, ::apache::thrift::pmr::Rebind<std::unordered_map<::std::string, ::std::string>>::type, ::apache::thrift::type::cpp_pmr_type<::apache::thrift::pmr::Rebind<std::unordered_map<::std::string, ::std::string>>::type, ::apache::thrift::type::map<::apache::thrift::type::string_t, ::apache::thrift::type::string_t>>>::read(*iprot, this->__fbthrift_field_custom);
     _readState.afterSubobject(iprot);
   }
@@ -439,7 +439,7 @@ void WholeStruct::readNoXfer(Protocol_* iprot) {
 _readField_names:
   {
     _readState.beforeSubobject(iprot);
-    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_names);
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_names, this->get_allocator());
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::string>, ::apache::thrift::pmr::Rebind<::std::vector<::std::string>>::type, ::apache::thrift::type::cpp_pmr_type<::apache::thrift::pmr::Rebind<::std::vector<::std::string>>::type, ::apache::thrift::type::list<::apache::thrift::type::string_t>>>::read(*iprot, this->__fbthrift_field_names);
     _readState.afterSubobject(iprot);
   }
@@ -729,7 +729,7 @@ void WholeUnion::readNoXfer(Protocol_* iprot) {
         if (_readState.isCompatibleWithType(iprot, apache::thrift::protocol::TType::T_LIST)) {
           this->names_ref().emplace();
           _readState.beforeSubobject(iprot);
-          ::apache::thrift::detail::reset_container_field_for_read(value_.names);
+          ::apache::thrift::detail::reset_container_field_for_read(value_.names, this->get_allocator());
           ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::string>, ::apache::thrift::pmr::Rebind<::std::vector<::std::string>>::type, ::apache::thrift::type::cpp_pmr_type<::apache::thrift::pmr::Rebind<::std::vector<::std::string>>::type, ::apache::thrift::type::list<::apache::thrift::type::string_t>>>::read(*iprot, value_.names);
           _readState.afterSubobject(iprot);
         } else {
