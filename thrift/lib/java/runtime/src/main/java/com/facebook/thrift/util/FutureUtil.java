@@ -19,6 +19,7 @@ package com.facebook.thrift.util;
 import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
 
 import com.facebook.nifty.core.RequestContext;
+import com.facebook.nifty.core.RequestContextScope;
 import com.facebook.nifty.core.RequestContexts;
 import com.facebook.thrift.client.ResponseWrapper;
 import com.google.common.util.concurrent.Futures;
@@ -26,7 +27,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.common.util.concurrent.UncheckedExecutionException;
-import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
@@ -103,12 +103,18 @@ public final class FutureUtil {
         .subscribeOn(scheduler);
   }
 
+  /**
+   * Calls {@code futureSupplier} at subscribe time with the request context bound: the one in the
+   * subscriber's Reactor context, else the one bound on the subscribing thread. Only the supplier
+   * call is scoped; the future's completion is not.
+   */
   public static <T> Mono<T> toMono(final Supplier<ListenableFuture<T>> futureSupplier) {
     return Mono.deferContextual(
         contextView -> {
-          Optional<RequestContext> requestContext = RequestContext.tryContextView(contextView);
-          requestContext.ifPresent(RequestContexts::setCurrentContext);
-          return FutureUtil.toMono(futureSupplier.get());
+          RequestContext requestContext =
+              RequestContext.tryContextView(contextView)
+                  .orElseGet(RequestContexts::tryGetCurrentContext);
+          return FutureUtil.toMono(RequestContextScope.get(requestContext, futureSupplier));
         });
   }
 

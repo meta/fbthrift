@@ -52,7 +52,14 @@ public interface RequestContext {
     return contextView.get(REQUEST_CONTEXT_KEY);
   }
 
+  /**
+   * Masks the key for a null {@code requestContext} rather than leaving whatever an enclosing
+   * subscriber context carried: a dispatch with nothing to propagate must read as "no context", or
+   * it answers with the metadata of an unrelated request that shares the subscriber context.
+   */
   static Context toContext(Context context, RequestContext requestContext) {
-    return context.put(REQUEST_CONTEXT_KEY, requestContext);
+    return requestContext == null
+        ? context.delete(REQUEST_CONTEXT_KEY)
+        : context.put(REQUEST_CONTEXT_KEY, requestContext);
   }
 }

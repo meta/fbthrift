@@ -17,6 +17,7 @@
 package com.facebook.thrift.util;
 
 import com.facebook.nifty.core.RequestContext;
+import com.facebook.nifty.core.RequestContextScope;
 import com.facebook.nifty.core.RequestContexts;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -29,6 +30,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -54,6 +56,65 @@ public class FutureUtilTest {
             .contextWrite(context -> RequestContext.toContext(context, mock));
 
     StepVerifier.create(stringMono).expectNext(s).verifyComplete();
+  }
+
+  /** The supplier runs in a scope, so the subscribing thread is left as it was found. */
+  @Test
+  public void testToMonoLeavesNoContextOnTheSubscribingThread() {
+    RequestContext mock = Mockito.mock(RequestContext.class);
+    Mockito.when(mock.getRequestHeader()).thenReturn(ImmutableMap.of("message", "hi"));
+
+    StepVerifier.create(
+            FutureUtil.toMono(this::string)
+                .contextWrite(context -> RequestContext.toContext(context, mock)))
+        .expectNext("hi")
+        .verifyComplete();
+
+    Assertions.assertNull(RequestContexts.getCurrentContext());
+  }
+
+  /** Without a request in the Reactor context, the scope on the subscribing thread is used. */
+  @Test
+  public void testToMonoFallsBackToTheSubscribingThreadsScope() {
+    RequestContext outer = Mockito.mock(RequestContext.class);
+
+    RequestContext seenBySupplier =
+        RequestContextScope.get(
+            outer,
+            () ->
+                FutureUtil.toMono(
+                        () ->
+                            MoreExecutors.newDirectExecutorService()
+                                .submit(RequestContexts::getCurrentContext))
+                    .block());
+
+    Assertions.assertSame(outer, seenBySupplier);
+  }
+
+  /** The supplier is scoped; the thread that completes the future is not, and stays clean. */
+  @Test
+  public void testToMonoScopesTheSupplierButNotTheCompletingThread() throws Exception {
+    ExecutorService completer = Executors.newSingleThreadExecutor();
+    try {
+      RequestContext requestContext = Mockito.mock(RequestContext.class);
+      AtomicReference<RequestContext> inSupplier = new AtomicReference<>();
+
+      Boolean completerSawARequest =
+          FutureUtil.toMono(
+                  () -> {
+                    inSupplier.set(RequestContexts.getCurrentContext());
+                    return MoreExecutors.listeningDecorator(completer)
+                        .submit(() -> RequestContexts.getCurrentContext() != null);
+                  })
+              .contextWrite(context -> RequestContext.toContext(context, requestContext))
+              .block();
+
+      Assertions.assertSame(requestContext, inSupplier.get());
+      Assertions.assertFalse(completerSawARequest);
+      Assertions.assertNull(completer.submit(RequestContexts::getCurrentContext).get());
+    } finally {
+      completer.shutdownNow();
+    }
   }
 
   private ListenableFuture<String> string() {

@@ -28,11 +28,11 @@ public class DbMixedStackArgumentsBlockingReactiveWrapper
     public reactor.core.publisher.Mono<byte[]> getDataByKey0(final String key) {
         reactor.core.publisher.Mono<byte[]> _m = reactor.core.publisher.Mono.create(_sink -> {
             try {
-                reactor.util.context.ContextView _contextView = _sink.contextView();
-                com.facebook.nifty.core.RequestContext
-                    .tryContextView(_contextView)
-                    .ifPresent(com.facebook.nifty.core.RequestContexts::setCurrentContext);
-                _sink.success(_delegate.getDataByKey0(key));
+                com.facebook.nifty.core.RequestContext _requestContext =
+                    com.facebook.nifty.core.RequestContext.tryContextView(_sink.contextView()).orElseGet(com.facebook.nifty.core.RequestContexts::tryGetCurrentContext);
+                _sink.success(com.facebook.nifty.core.RequestContextScope.call(
+                    _requestContext,
+                    () -> _delegate.getDataByKey0(key)));
             } catch (Throwable _e) {
                 _sink.error(_e);
             }
@@ -49,11 +49,11 @@ public class DbMixedStackArgumentsBlockingReactiveWrapper
     public reactor.core.publisher.Mono<byte[]> getDataByKey1(final String key) {
         reactor.core.publisher.Mono<byte[]> _m = reactor.core.publisher.Mono.create(_sink -> {
             try {
-                reactor.util.context.ContextView _contextView = _sink.contextView();
-                com.facebook.nifty.core.RequestContext
-                    .tryContextView(_contextView)
-                    .ifPresent(com.facebook.nifty.core.RequestContexts::setCurrentContext);
-                _sink.success(_delegate.getDataByKey1(key));
+                com.facebook.nifty.core.RequestContext _requestContext =
+                    com.facebook.nifty.core.RequestContext.tryContextView(_sink.contextView()).orElseGet(com.facebook.nifty.core.RequestContexts::tryGetCurrentContext);
+                _sink.success(com.facebook.nifty.core.RequestContextScope.call(
+                    _requestContext,
+                    () -> _delegate.getDataByKey1(key)));
             } catch (Throwable _e) {
                 _sink.error(_e);
             }

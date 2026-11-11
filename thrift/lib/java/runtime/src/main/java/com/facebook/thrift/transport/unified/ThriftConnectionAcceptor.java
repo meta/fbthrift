@@ -196,9 +196,9 @@ public class ThriftConnectionAcceptor implements Function<Connection, Publisher<
   /**
    * Handle oneway (no response) request.
    *
-   * <p>Note: RequestContext ThreadLocal propagation is handled by the generated RpcServerHandler
-   * code, which reads the context from the payload and sets it on the execution thread. The
-   * transport layer does not need to manage the ThreadLocal.
+   * <p>Note: the generated RpcServerHandler carries the RequestContext: it writes it into the
+   * Reactor context of the request pipeline and binds it with a RequestContextScope around the
+   * handler call. The transport layer does not need to bind it.
    *
    * @param serverRequestPayload the parsed request
    * @param metadata the request metadata
@@ -220,9 +220,9 @@ public class ThriftConnectionAcceptor implements Function<Connection, Publisher<
   /**
    * Handle request/response request.
    *
-   * <p>Note: RequestContext ThreadLocal propagation is handled by the generated RpcServerHandler
-   * code, which reads the context from the payload and sets it on the execution thread. The
-   * transport layer does not need to manage the ThreadLocal.
+   * <p>Note: the generated RpcServerHandler carries the RequestContext: it writes it into the
+   * Reactor context of the request pipeline and binds it with a RequestContextScope around the
+   * handler call. The transport layer does not need to bind it.
    *
    * @param conn the connection
    * @param out the outbound channel

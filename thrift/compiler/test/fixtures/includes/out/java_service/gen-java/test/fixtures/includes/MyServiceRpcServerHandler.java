@@ -85,6 +85,8 @@ public class MyServiceRpcServerHandler
     com.facebook.thrift.payload.ServerRequestPayload _payload,
     java.util.List<com.facebook.thrift.payload.FieldReader<?>> _readers,
     com.facebook.swift.service.ContextChain _chain) {
+          final com.facebook.nifty.core.RequestContext _requestContext = _payload.getRequestContext();
+
           _chain.preRead();
           java.util.List<java.lang.Object> _data;
           try {
@@ -109,7 +111,10 @@ public class MyServiceRpcServerHandler
               .query(s, i);
 
           reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
-            _delegateResponse.map(_response -> {
+            _delegateResponse.map(_response ->
+              com.facebook.nifty.core.RequestContextScope.<com.facebook.thrift.payload.ServerResponsePayload>get(
+                _requestContext,
+                () -> {
               _chain.preWrite(_response);
               com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload =
                 com.facebook.thrift.util.RpcPayloadUtil.createServerResponsePayload(
@@ -117,18 +122,23 @@ public class MyServiceRpcServerHandler
                   _create_query_response_writer(_response, _chain, _payload.getMessageSeqId()));
 
                 return _serverResponsePayload;
-            })
+            }))
             .switchIfEmpty(
               reactor.core.publisher.Mono.fromSupplier(
-                () -> {
+                () -> com.facebook.nifty.core.RequestContextScope.<com.facebook.thrift.payload.ServerResponsePayload>get(
+                  _requestContext,
+                  () -> {
                   _chain.preWrite(null);
                   return com.facebook.thrift.util.RpcPayloadUtil.createServerResponsePayload(
                     _payload,
                     _create_query_response_writer(null, _chain, _payload.getMessageSeqId()));
-                }
+                })
               )
             )
-            .<com.facebook.thrift.payload.ServerResponsePayload>onErrorResume(_t -> {
+            .<com.facebook.thrift.payload.ServerResponsePayload>onErrorResume(_t ->
+              com.facebook.nifty.core.RequestContextScope.<reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload>>get(
+                _requestContext,
+                () -> {
                 if (_t instanceof org.apache.thrift.TApplicationException) {
                 // A known application exception keeps its original object, type and subclass.
                 // The payload writer fires its hooks exactly once, so no assembly
@@ -150,7 +160,7 @@ public class MyServiceRpcServerHandler
                     com.facebook.thrift.util.RpcPayloadUtil.fromTApplicationException(_tApplicationException, _payload.getRequestRpcMetadata(),  _chain);
 
                 return reactor.core.publisher.Mono.just(_serverResponsePayload);
-            });
+            }));
 
           return _internalResponse;
   }
@@ -190,6 +200,8 @@ public class MyServiceRpcServerHandler
     com.facebook.thrift.payload.ServerRequestPayload _payload,
     java.util.List<com.facebook.thrift.payload.FieldReader<?>> _readers,
     com.facebook.swift.service.ContextChain _chain) {
+          final com.facebook.nifty.core.RequestContext _requestContext = _payload.getRequestContext();
+
           _chain.preRead();
           java.util.List<java.lang.Object> _data;
           try {
@@ -214,7 +226,10 @@ public class MyServiceRpcServerHandler
               .hasArgDocs(s, i);
 
           reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
-            _delegateResponse.map(_response -> {
+            _delegateResponse.map(_response ->
+              com.facebook.nifty.core.RequestContextScope.<com.facebook.thrift.payload.ServerResponsePayload>get(
+                _requestContext,
+                () -> {
               _chain.preWrite(_response);
               com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload =
                 com.facebook.thrift.util.RpcPayloadUtil.createServerResponsePayload(
@@ -222,18 +237,23 @@ public class MyServiceRpcServerHandler
                   _create_hasArgDocs_response_writer(_response, _chain, _payload.getMessageSeqId()));
 
                 return _serverResponsePayload;
-            })
+            }))
             .switchIfEmpty(
               reactor.core.publisher.Mono.fromSupplier(
-                () -> {
+                () -> com.facebook.nifty.core.RequestContextScope.<com.facebook.thrift.payload.ServerResponsePayload>get(
+                  _requestContext,
+                  () -> {
                   _chain.preWrite(null);
                   return com.facebook.thrift.util.RpcPayloadUtil.createServerResponsePayload(
                     _payload,
                     _create_hasArgDocs_response_writer(null, _chain, _payload.getMessageSeqId()));
-                }
+                })
               )
             )
-            .<com.facebook.thrift.payload.ServerResponsePayload>onErrorResume(_t -> {
+            .<com.facebook.thrift.payload.ServerResponsePayload>onErrorResume(_t ->
+              com.facebook.nifty.core.RequestContextScope.<reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload>>get(
+                _requestContext,
+                () -> {
                 if (_t instanceof org.apache.thrift.TApplicationException) {
                 // A known application exception keeps its original object, type and subclass.
                 // The payload writer fires its hooks exactly once, so no assembly
@@ -255,7 +275,7 @@ public class MyServiceRpcServerHandler
                     com.facebook.thrift.util.RpcPayloadUtil.fromTApplicationException(_tApplicationException, _payload.getRequestRpcMetadata(),  _chain);
 
                 return reactor.core.publisher.Mono.just(_serverResponsePayload);
-            });
+            }));
 
           return _internalResponse;
   }
@@ -284,10 +304,10 @@ public class MyServiceRpcServerHandler
       com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.internalErrorResponse(_t, "preprocess", _payload.getRequestRpcMetadata(), _chain);
       return reactor.core.publisher.Flux.just(_serverResponsePayload).doFinally(__ -> _chain.done());
     }
-    reactor.core.publisher.Flux<com.facebook.thrift.payload.ServerResponsePayload> _response = reactor.core.publisher.Flux.defer(() -> {
-    com.facebook.nifty.core.RequestContext _prevRequestContext = com.facebook.nifty.core.RequestContexts.getCurrentContext();
-    com.facebook.nifty.core.RequestContexts.setCurrentContext(_payload.getRequestContext());
-
+    reactor.core.publisher.Flux<com.facebook.thrift.payload.ServerResponsePayload> _response = reactor.core.publisher.Flux.defer(() ->
+      com.facebook.nifty.core.RequestContextScope.<reactor.core.publisher.Flux<com.facebook.thrift.payload.ServerResponsePayload>>get(
+        _payload.getRequestContext(),
+        () -> {
     reactor.core.publisher.Flux<com.facebook.thrift.payload.ServerResponsePayload> _result;
     try {
       switch(_name) {
@@ -295,23 +315,25 @@ public class MyServiceRpcServerHandler
             _chain.preRead();
             org.apache.thrift.TApplicationException _tApplicationException = new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.UNKNOWN_METHOD, "no method found with name " + _name);
             com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.fromTApplicationException(_tApplicationException, _payload.getRequestRpcMetadata(), _chain);
-            return reactor.core.publisher.Flux.just(_serverResponsePayload).doFinally(__ -> com.facebook.nifty.core.RequestContexts.setCurrentContext(_prevRequestContext));
+            return reactor.core.publisher.Flux.just(_serverResponsePayload);
         }
       }
     } catch (org.apache.thrift.TApplicationException _tApplicationException) {
       com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.fromTApplicationException(_tApplicationException, _payload.getRequestRpcMetadata(), _chain);
-      return reactor.core.publisher.Flux.just(_serverResponsePayload).doFinally(__ -> com.facebook.nifty.core.RequestContexts.setCurrentContext(_prevRequestContext));
+      return reactor.core.publisher.Flux.just(_serverResponsePayload);
     } catch (Throwable _t) {
       _result = reactor.core.publisher.Flux.error(_t);
     }
-    return _result.doFinally(__ -> com.facebook.nifty.core.RequestContexts.setCurrentContext(_prevRequestContext));
-    });
+    return _result;
+    }));
     if (com.facebook.thrift.util.resources.RpcResources.isForceExecutionOffEventLoop()) {
       _response = _response.subscribeOn(com.facebook.thrift.util.resources.RpcResources.getOffLoopScheduler());
     }
     // finishRequest, not done(): a begun stream's terminal and done() already fired together from
     // the inner terminal site, and this downstream doFinally runs first in the fused fast paths.
-    return _response.doFinally(__ -> _chain.finishRequest());
+    return _response
+      .contextWrite(_context -> com.facebook.nifty.core.RequestContext.toContext(_context, _payload.getRequestContext()))
+      .doFinally(__ -> _chain.finishRequest());
   }
 
   @java.lang.Override
@@ -337,10 +359,10 @@ public class MyServiceRpcServerHandler
       com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.internalErrorResponse(_t, "preprocess", _payload.getRequestRpcMetadata(), _chain);
       return reactor.core.publisher.Mono.just(_serverResponsePayload).doFinally(__ -> _chain.done());
     }
-    reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _response = reactor.core.publisher.Mono.defer(() -> {
-    com.facebook.nifty.core.RequestContext _prevRequestContext = com.facebook.nifty.core.RequestContexts.getCurrentContext();
-    com.facebook.nifty.core.RequestContexts.setCurrentContext(_payload.getRequestContext());
-
+    reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _response = reactor.core.publisher.Mono.defer(() ->
+      com.facebook.nifty.core.RequestContextScope.<reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload>>get(
+        _payload.getRequestContext(),
+        () -> {
     reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _result;
     try {
       switch (_name) {
@@ -354,23 +376,25 @@ public class MyServiceRpcServerHandler
             _chain.preRead();
             org.apache.thrift.TApplicationException _tApplicationException = new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.UNKNOWN_METHOD, "no method found with name " + _name);
             com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.fromTApplicationException(_tApplicationException, _payload.getRequestRpcMetadata(), _chain);
-            return reactor.core.publisher.Mono.just(_serverResponsePayload).doFinally(__ -> com.facebook.nifty.core.RequestContexts.setCurrentContext(_prevRequestContext));
+            return reactor.core.publisher.Mono.just(_serverResponsePayload);
         }
       }
     } catch (org.apache.thrift.TApplicationException _tApplicationException) {
       com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.fromTApplicationException(_tApplicationException, _payload.getRequestRpcMetadata(), _chain);
-      return reactor.core.publisher.Mono.just(_serverResponsePayload).doFinally(__ -> com.facebook.nifty.core.RequestContexts.setCurrentContext(_prevRequestContext));
+      return reactor.core.publisher.Mono.just(_serverResponsePayload);
     } catch (Throwable _t) {
       _result = reactor.core.publisher.Mono.error(_t);
     }
 
-    return _result.doFinally(__ -> com.facebook.nifty.core.RequestContexts.setCurrentContext(_prevRequestContext));
-    });
+    return _result;
+    }));
 
     if (com.facebook.thrift.util.resources.RpcResources.isForceExecutionOffEventLoop()) {
       _response = _response.subscribeOn(com.facebook.thrift.util.resources.RpcResources.getOffLoopScheduler());
     }
-    return _response.doFinally(__ -> _chain.done());
+    return _response
+      .contextWrite(_context -> com.facebook.nifty.core.RequestContext.toContext(_context, _payload.getRequestContext()))
+      .doFinally(__ -> _chain.done());
   }
 
   @java.lang.Override
@@ -392,10 +416,10 @@ public class MyServiceRpcServerHandler
       return reactor.core.publisher.Mono.<Void>error(_t).doFinally(__ -> _chain.done());
     }
 
-    reactor.core.publisher.Mono<Void> _response = reactor.core.publisher.Mono.defer(() -> {
-    com.facebook.nifty.core.RequestContext _prevRequestContext = com.facebook.nifty.core.RequestContexts.getCurrentContext();
-    com.facebook.nifty.core.RequestContexts.setCurrentContext(_payload.getRequestContext());
-
+    reactor.core.publisher.Mono<Void> _response = reactor.core.publisher.Mono.defer(() ->
+      com.facebook.nifty.core.RequestContextScope.<reactor.core.publisher.Mono<Void>>get(
+        _payload.getRequestContext(),
+        () -> {
     reactor.core.publisher.Mono<Void> _result;
     try {
       switch (_name) {
@@ -407,13 +431,15 @@ public class MyServiceRpcServerHandler
       _result = reactor.core.publisher.Mono.error(_t);
     }
 
-    return _result.doFinally(__ -> com.facebook.nifty.core.RequestContexts.setCurrentContext(_prevRequestContext));
-    });
+    return _result;
+    }));
 
     if (com.facebook.thrift.util.resources.RpcResources.isForceExecutionOffEventLoop()) {
       _response = _response.subscribeOn(com.facebook.thrift.util.resources.RpcResources.getOffLoopScheduler());
     }
-    return _response.doFinally(__ -> _chain.done());
+    return _response
+      .contextWrite(_context -> com.facebook.nifty.core.RequestContext.toContext(_context, _payload.getRequestContext()))
+      .doFinally(__ -> _chain.done());
   }
 
   public java.util.Map<String, com.facebook.thrift.server.RpcServerHandler> getMethodMap() {

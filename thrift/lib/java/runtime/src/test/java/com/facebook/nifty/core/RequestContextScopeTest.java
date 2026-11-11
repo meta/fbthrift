@@ -17,6 +17,7 @@
 package com.facebook.nifty.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -217,6 +218,17 @@ public class RequestContextScopeTest {
         assembledWithA
             .contextWrite(Context.of(RequestContext.REQUEST_CONTEXT_KEY, requestB))
             .block());
+  }
+
+  @Test
+  public void toContextWithNoRequestRemovesAnInheritedOne() {
+    Context inherited = Context.of(RequestContext.REQUEST_CONTEXT_KEY, requestA);
+
+    assertFalse(
+        RequestContext.toContext(inherited, null).hasKey(RequestContext.REQUEST_CONTEXT_KEY));
+    assertSame(
+        requestB,
+        RequestContext.toContext(inherited, requestB).get(RequestContext.REQUEST_CONTEXT_KEY));
   }
 
   @Test

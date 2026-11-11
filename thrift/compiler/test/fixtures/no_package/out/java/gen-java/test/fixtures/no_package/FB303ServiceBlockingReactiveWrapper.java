@@ -28,11 +28,11 @@ public class FB303ServiceBlockingReactiveWrapper
     public reactor.core.publisher.Mono<test.fixtures.no_package.ReservedKeyword> simpleRpc(final int intParameter) {
         reactor.core.publisher.Mono<test.fixtures.no_package.ReservedKeyword> _m = reactor.core.publisher.Mono.create(_sink -> {
             try {
-                reactor.util.context.ContextView _contextView = _sink.contextView();
-                com.facebook.nifty.core.RequestContext
-                    .tryContextView(_contextView)
-                    .ifPresent(com.facebook.nifty.core.RequestContexts::setCurrentContext);
-                _sink.success(_delegate.simpleRpc(intParameter));
+                com.facebook.nifty.core.RequestContext _requestContext =
+                    com.facebook.nifty.core.RequestContext.tryContextView(_sink.contextView()).orElseGet(com.facebook.nifty.core.RequestContexts::tryGetCurrentContext);
+                _sink.success(com.facebook.nifty.core.RequestContextScope.call(
+                    _requestContext,
+                    () -> _delegate.simpleRpc(intParameter)));
             } catch (Throwable _e) {
                 _sink.error(_e);
             }

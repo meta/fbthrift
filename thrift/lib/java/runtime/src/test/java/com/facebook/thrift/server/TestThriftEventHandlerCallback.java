@@ -16,6 +16,7 @@
 
 package com.facebook.thrift.server;
 
+import com.facebook.nifty.core.RequestContext;
 import com.facebook.nifty.core.RequestContexts;
 import com.facebook.swift.service.ThriftEventHandler;
 import com.facebook.swift.service.ThriftServerConfig;
@@ -33,6 +34,7 @@ import com.google.common.collect.ImmutableList;
 import io.airlift.units.Duration;
 import io.netty.handler.ssl.ClientAuth;
 import java.net.InetSocketAddress;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.apache.thrift.ProtocolId;
@@ -168,6 +170,7 @@ public class TestThriftEventHandlerCallback {
         handler.contextAvailableInPostRead, "RequestContext should be available in postRead()");
     Assertions.assertTrue(
         handler.contextAvailableInPreWrite, "RequestContext should be available in preWrite()");
+    assertLateCallbacksSeeTheirRequest(handler);
   }
 
   @Test
@@ -208,12 +211,54 @@ public class TestThriftEventHandlerCallback {
         handler.contextAvailableInPostRead, "RequestContext should be available in postRead()");
     Assertions.assertTrue(
         handler.contextAvailableInPreWrite, "RequestContext should be available in preWrite()");
+    assertLateCallbacksSeeTheirRequest(handler);
+  }
+
+  /**
+   * postWrite runs while the response is encoded and done when the pipeline terminates, possibly
+   * after the client call returns, so wait for done before asserting.
+   */
+  private static void assertLateCallbacksSeeTheirRequest(
+      RequestContextAssertingEventHandler handler) {
+    try {
+      Assertions.assertTrue(handler.doneCalled.await(10, TimeUnit.SECONDS), "done() should run");
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new AssertionError(e);
+    }
+    Assertions.assertTrue(
+        handler.ownRequestInGetContext, "getContext() should see its own request");
+    Assertions.assertTrue(handler.ownRequestInPostWrite, "postWrite() should see its own request");
+    Assertions.assertTrue(handler.ownRequestInDone, "done() should see its own request");
   }
 
   private static class RequestContextAssertingEventHandler implements ThriftEventHandler {
     volatile boolean contextAvailableInPreRead;
     volatile boolean contextAvailableInPostRead;
     volatile boolean contextAvailableInPreWrite;
+    volatile RequestContext admitted;
+    volatile boolean ownRequestInGetContext;
+    volatile boolean ownRequestInPostWrite;
+    volatile boolean ownRequestInDone;
+    final CountDownLatch doneCalled = new CountDownLatch(1);
+
+    @Override
+    public Object getContext(String methodName, RequestContext requestContext) {
+      admitted = requestContext;
+      ownRequestInGetContext = RequestContexts.getCurrentContext() == requestContext;
+      return null;
+    }
+
+    @Override
+    public void postWrite(Object context, String methodName, Object result) {
+      ownRequestInPostWrite = RequestContexts.getCurrentContext() == admitted;
+    }
+
+    @Override
+    public void done(Object context, String methodName) {
+      ownRequestInDone = RequestContexts.getCurrentContext() == admitted;
+      doneCalled.countDown();
+    }
 
     @Override
     public void preRead(Object context, String methodName) {

@@ -17,6 +17,7 @@
 package com.facebook.swift.service;
 
 import com.facebook.nifty.core.RequestContext;
+import com.facebook.nifty.core.RequestContextScope;
 import com.facebook.thrift.util.NettyUtil;
 import com.facebook.thrift.util.resources.RpcResources;
 import java.util.ArrayList;
@@ -31,12 +32,17 @@ import reactor.core.publisher.SignalType;
  * Per-request fan-out helper that invokes each {@link ThriftEventHandler} at the matching lifecycle
  * point with the per-handler {@code context} returned by {@link ThriftEventHandler#getContext}.
  * First handler that throws short-circuits the rest.
+ *
+ * <p>Every hook runs with the request's context bound, on whichever thread invokes it, so a handler
+ * that reads {@link com.facebook.nifty.core.RequestContexts#getCurrentContext()} sees its request
+ * in every hook and on every transport. The binding unwinds when the hook returns.
  */
 public class ContextChain {
   private static final Logger logger = LoggerFactory.getLogger(ContextChain.class);
 
   private final List<ThriftEventHandler> handlers;
   private final String methodName;
+  private final RequestContext requestContext;
   private final List<Object> contexts;
   private final List<StreamEventHandler> streamHandlers;
   private final List<Object> streamContexts;
@@ -60,15 +66,20 @@ public class ContextChain {
       List<ThriftEventHandler> handlers, String methodName, RequestContext requestContext) {
     this.handlers = handlers;
     this.methodName = methodName;
+    this.requestContext = requestContext;
     this.contexts = handlers.isEmpty() ? Collections.emptyList() : new ArrayList<>(handlers.size());
-    try {
-      for (ThriftEventHandler handler : this.handlers) {
-        this.contexts.add(handler.getContext(methodName, requestContext));
-      }
-    } catch (Throwable t) {
-      unwindPrefix(t);
-      throw t;
-    }
+    RequestContextScope.run(
+        requestContext,
+        () -> {
+          try {
+            for (ThriftEventHandler handler : this.handlers) {
+              this.contexts.add(handler.getContext(methodName, requestContext));
+            }
+          } catch (RuntimeException | Error t) {
+            unwindPrefix(t);
+            throw t;
+          }
+        });
     // Outlined so the constructor keeps the parent shape (this runs once per request).
     this.streamHandlers = collectStreamHandlers(this.handlers);
     this.streamContexts =
@@ -143,69 +154,76 @@ public class ContextChain {
    * pays queue time, parse CPU, or pins the request buffer.
    */
   public void preprocess() throws TException {
-    for (int i = 0; i < handlers.size(); i++) {
-      handlers.get(i).preprocess(contexts.get(i), methodName);
-    }
+    forEachHandler(i -> handlers.get(i).preprocess(contexts.get(i), methodName));
   }
 
   public void preRead() throws TException {
-    for (int i = 0; i < handlers.size(); i++) {
-      handlers.get(i).preRead(contexts.get(i), methodName);
-    }
+    forEachHandler(i -> handlers.get(i).preRead(contexts.get(i), methodName));
   }
 
   public void postRead(Object[] args) throws TException {
-    for (int i = 0; i < handlers.size(); i++) {
-      handlers.get(i).postRead(contexts.get(i), methodName, args);
-    }
+    forEachHandler(i -> handlers.get(i).postRead(contexts.get(i), methodName, args));
   }
 
   public void postRead(List args) throws TException {
-    for (int i = 0; i < handlers.size(); i++) {
-      handlers.get(i).postRead(contexts.get(i), methodName, args);
-    }
+    forEachHandler(i -> handlers.get(i).postRead(contexts.get(i), methodName, args));
   }
 
   public void preWrite(Object result) throws TException {
-    for (int i = 0; i < handlers.size(); i++) {
-      handlers.get(i).preWrite(contexts.get(i), methodName, result);
-    }
+    forEachHandler(i -> handlers.get(i).preWrite(contexts.get(i), methodName, result));
   }
 
   public void preWriteException(Throwable t) throws TException {
-    for (int i = 0; i < handlers.size(); i++) {
-      handlers.get(i).preWriteException(contexts.get(i), methodName, t);
-    }
+    forEachHandler(i -> handlers.get(i).preWriteException(contexts.get(i), methodName, t));
   }
 
   public void postWrite(Object result) throws TException {
-    for (int i = 0; i < handlers.size(); i++) {
-      handlers.get(i).postWrite(contexts.get(i), methodName, result);
-    }
+    forEachHandler(i -> handlers.get(i).postWrite(contexts.get(i), methodName, result));
   }
 
   public void postWriteException(Throwable t) throws TException {
-    for (int i = 0; i < handlers.size(); i++) {
-      handlers.get(i).postWriteException(contexts.get(i), methodName, t);
-    }
+    forEachHandler(i -> handlers.get(i).postWriteException(contexts.get(i), methodName, t));
   }
 
   public void declaredUserException(Throwable t) throws TException {
-    for (int i = 0; i < handlers.size(); i++) {
-      handlers.get(i).declaredUserException(contexts.get(i), methodName, t);
-    }
+    forEachHandler(i -> handlers.get(i).declaredUserException(contexts.get(i), methodName, t));
   }
 
   public void undeclaredUserException(Throwable t) throws TException {
-    for (int i = 0; i < handlers.size(); i++) {
-      handlers.get(i).undeclaredUserException(contexts.get(i), methodName, t);
-    }
+    forEachHandler(i -> handlers.get(i).undeclaredUserException(contexts.get(i), methodName, t));
   }
 
   /** Final hook fired after the request completes, success or failure. Use for cleanup. */
   public void done() {
-    for (int i = 0; i < handlers.size(); i++) {
-      handlers.get(i).done(contexts.get(i), methodName);
+    RequestContextScope.run(
+        requestContext,
+        () -> {
+          for (int i = 0; i < handlers.size(); i++) {
+            handlers.get(i).done(contexts.get(i), methodName);
+          }
+        });
+  }
+
+  @FunctionalInterface
+  private interface Hook {
+    void call(int handlerIndex) throws TException;
+  }
+
+  private void forEachHandler(Hook hook) throws TException {
+    try {
+      RequestContextScope.call(
+          requestContext,
+          () -> {
+            for (int i = 0; i < handlers.size(); i++) {
+              hook.call(i);
+            }
+            return null;
+          });
+    } catch (RuntimeException e) {
+      throw e;
+    } catch (Exception e) {
+      // Unreachable: hooks declare only TException.
+      throw new IllegalStateException(e);
     }
   }
 

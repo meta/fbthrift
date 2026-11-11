@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -41,6 +42,7 @@ import io.airlift.units.Duration;
 import io.netty.handler.ssl.ClientAuth;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.thrift.ProtocolId;
@@ -299,6 +301,48 @@ public class UnifiedServerTransportTest {
     Flux<TestResponse> response = client.streamResponse(request);
 
     StepVerifier.create(response).expectNextCount(10).verifyComplete();
+  }
+
+  /** A streaming handler reads its request from the Reactor context, and nothing leaks. */
+  @Test
+  public void testStreamingHandlerReadsItsRequestFromThePipeline() throws Exception {
+    AtomicReference<RequestContext> reactorRead = new AtomicReference<>();
+    AtomicReference<Optional<RequestContext>> staticReadInPipeline = new AtomicReference<>();
+    TestService.Reactive contextCapturingHandler =
+        new TestServiceHandler() {
+          @Override
+          public Flux<TestResponse> streamResponse(TestRequest testRequest) {
+            return RequestContexts.currentContext()
+                .doOnNext(reactorRead::set)
+                .then(
+                    Mono.fromCallable(
+                        () -> Optional.ofNullable(RequestContexts.getCurrentContext())))
+                .doOnNext(staticReadInPipeline::set)
+                .thenMany(super.streamResponse(testRequest));
+          }
+        };
+    rpcServerHandler = TestService.Reactive.serverHandlerBuilder(contextCapturingHandler).build();
+    transport =
+        UnifiedServerTransport.createNewInstance(
+                serverAddress, rpcServerHandler, serverConfig, new SPINiftyMetrics())
+            .block();
+    assertNotNull(transport);
+    client =
+        TestService.Reactive.clientBuilder()
+            .setProtocolId(ProtocolId.COMPACT)
+            .build(createRSocketClientFactory(), serverAddress);
+
+    StepVerifier.create(
+            client.streamResponse(
+                new TestRequest.Builder().setIntField(0).setStrField("stream").build()))
+        .expectNextCount(10)
+        .verifyComplete();
+
+    assertNotNull(reactorRead.get(), "the streaming pipeline should read its request");
+    assertEquals(
+        Optional.empty(),
+        staticReadInPipeline.get(),
+        "no request should be left on the thread that runs the stream");
   }
 
   /**
@@ -1219,12 +1263,11 @@ public class UnifiedServerTransportTest {
   }
 
   /**
-   * Test that RequestContext is correctly propagated to user service handler code via the generated
-   * RpcServerHandler's ThreadLocal management, without the transport layer needing to set it.
+   * Test that RequestContext is correctly propagated to user service handler code by the generated
+   * RpcServerHandler, without the transport layer needing to set it.
    *
-   * <p>This validates that the generated code (via Mono.defer + setCurrentContext) correctly
-   * provides the RequestContext to user code on the execution thread, for both Header and RSocket
-   * transport paths.
+   * <p>This validates that the generated code correctly provides the RequestContext to user code at
+   * subscribe time, for both Header and RSocket transport paths.
    */
   @Test
   public void testRequestContextPropagationViaHeaderTransport() throws Exception {
@@ -1235,8 +1278,9 @@ public class UnifiedServerTransportTest {
         new TestServiceHandler() {
           @Override
           public Mono<TestResponse> requestResponse(TestRequest testRequest) {
-            capturedContext.set(RequestContexts.getCurrentContext());
-            return super.requestResponse(testRequest);
+            return RequestContexts.currentContext()
+                .doOnNext(capturedContext::set)
+                .flatMap(__ -> super.requestResponse(testRequest));
           }
         };
 
@@ -1268,13 +1312,65 @@ public class UnifiedServerTransportTest {
 
     // Verify the handler saw a valid RequestContext on its execution thread
     RequestContext ctx = capturedContext.get();
-    assertNotNull(ctx, "RequestContext should be available to user handler code via ThreadLocal");
+    assertNotNull(ctx, "RequestContext should be available to user handler code");
     assertNotNull(
         ctx.getConnectionContext(),
         "RequestContext should have a ConnectionContext with connection info");
     assertNotNull(
         ctx.getConnectionContext().getRemoteAddress(),
         "ConnectionContext should have the client's remote address");
+  }
+
+  /**
+   * The dispatcher binds the request for the handler call and unwinds it before the returned
+   * publisher is subscribed, so nothing is left on the thread that runs the pipeline. Code in the
+   * pipeline reads the request through the Reactor context instead.
+   */
+  @Test
+  public void testReactiveHandlerLeavesNoContextOnThePipelineThread() throws Exception {
+    AtomicReference<RequestContext> duringHandlerCall = new AtomicReference<>();
+    AtomicReference<Optional<RequestContext>> staticReadInPipeline = new AtomicReference<>();
+    AtomicReference<RequestContext> reactorReadInPipeline = new AtomicReference<>();
+
+    TestService.Reactive contextCapturingHandler =
+        new TestServiceHandler() {
+          @Override
+          public Mono<TestResponse> requestResponse(TestRequest testRequest) {
+            duringHandlerCall.set(RequestContexts.getCurrentContext());
+            return Mono.fromCallable(() -> Optional.ofNullable(RequestContexts.getCurrentContext()))
+                .doOnNext(staticReadInPipeline::set)
+                .then(RequestContexts.currentContext())
+                .doOnNext(reactorReadInPipeline::set)
+                .then(super.requestResponse(testRequest));
+          }
+        };
+
+    rpcServerHandler = TestService.Reactive.serverHandlerBuilder(contextCapturingHandler).build();
+    transport =
+        UnifiedServerTransport.createNewInstance(
+                serverAddress, rpcServerHandler, serverConfig, new SPINiftyMetrics())
+            .block();
+    assertNotNull(transport);
+    client =
+        TestService.Reactive.clientBuilder()
+            .setProtocolId(ProtocolId.COMPACT)
+            .build(createHeaderClientFactory(), transport.getAddress());
+
+    StepVerifier.create(
+            client.requestResponse(
+                new TestRequest.Builder().setIntField(7).setStrField("leak-test").build()))
+        .expectNextCount(1)
+        .verifyComplete();
+
+    assertNotNull(duringHandlerCall.get(), "the handler call should see its request");
+    assertEquals(
+        Optional.empty(),
+        staticReadInPipeline.get(),
+        "no request should be left on the thread that runs the pipeline");
+    assertSame(
+        duringHandlerCall.get(),
+        reactorReadInPipeline.get(),
+        "the pipeline should read the same request through the Reactor context");
   }
 
   /**
@@ -1289,8 +1385,9 @@ public class UnifiedServerTransportTest {
         new TestServiceHandler() {
           @Override
           public Mono<TestResponse> requestResponse(TestRequest testRequest) {
-            capturedContext.set(RequestContexts.getCurrentContext());
-            return super.requestResponse(testRequest);
+            return RequestContexts.currentContext()
+                .doOnNext(capturedContext::set)
+                .flatMap(__ -> super.requestResponse(testRequest));
           }
         };
 
@@ -1322,7 +1419,7 @@ public class UnifiedServerTransportTest {
         .verifyComplete();
 
     RequestContext ctx = capturedContext.get();
-    assertNotNull(ctx, "RequestContext should be available to user handler code via ThreadLocal");
+    assertNotNull(ctx, "RequestContext should be available to user handler code");
     assertNotNull(
         ctx.getConnectionContext(),
         "RequestContext should have a ConnectionContext with connection info");

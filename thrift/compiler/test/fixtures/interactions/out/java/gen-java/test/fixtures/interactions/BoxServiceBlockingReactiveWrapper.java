@@ -28,11 +28,11 @@ public class BoxServiceBlockingReactiveWrapper
     public reactor.core.publisher.Mono<test.fixtures.interactions.ShouldBeBoxed> getABoxSession(final test.fixtures.interactions.ShouldBeBoxed req) {
         reactor.core.publisher.Mono<test.fixtures.interactions.ShouldBeBoxed> _m = reactor.core.publisher.Mono.create(_sink -> {
             try {
-                reactor.util.context.ContextView _contextView = _sink.contextView();
-                com.facebook.nifty.core.RequestContext
-                    .tryContextView(_contextView)
-                    .ifPresent(com.facebook.nifty.core.RequestContexts::setCurrentContext);
-                _sink.success(_delegate.getABoxSession(req));
+                com.facebook.nifty.core.RequestContext _requestContext =
+                    com.facebook.nifty.core.RequestContext.tryContextView(_sink.contextView()).orElseGet(com.facebook.nifty.core.RequestContexts::tryGetCurrentContext);
+                _sink.success(com.facebook.nifty.core.RequestContextScope.call(
+                    _requestContext,
+                    () -> _delegate.getABoxSession(req)));
             } catch (Throwable _e) {
                 _sink.error(_e);
             }
@@ -56,11 +56,11 @@ public class BoxServiceBlockingReactiveWrapper
         public reactor.core.publisher.Mono<test.fixtures.interactions.ShouldBeBoxed> getABox() {
                 reactor.core.publisher.Mono<test.fixtures.interactions.ShouldBeBoxed> _m = reactor.core.publisher.Mono.create(_sink -> {
                     try {
-                        reactor.util.context.ContextView _contextView = _sink.contextView();
-                        com.facebook.nifty.core.RequestContext
-                            .tryContextView(_contextView)
-                            .ifPresent(com.facebook.nifty.core.RequestContexts::setCurrentContext);
-                        _sink.success(_delegateInteraction.getABox());
+                        com.facebook.nifty.core.RequestContext _requestContext =
+                            com.facebook.nifty.core.RequestContext.tryContextView(_sink.contextView()).orElseGet(com.facebook.nifty.core.RequestContexts::tryGetCurrentContext);
+                        _sink.success(com.facebook.nifty.core.RequestContextScope.call(
+                            _requestContext,
+                            () -> _delegateInteraction.getABox()));
                     } catch (Throwable _e) {
                         _sink.error(_e);
                     }
