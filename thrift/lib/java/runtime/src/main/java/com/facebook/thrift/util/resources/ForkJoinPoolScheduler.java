@@ -161,12 +161,7 @@ public final class ForkJoinPoolScheduler implements ThriftScheduler {
 
   @Override
   public Disposable schedule(Runnable runnable) {
-    // If ContextPropagation is enabled, wrap the runnable with ContextPropRunnable
-    Runnable wrappedTask = runnable;
-    if (ContextPropagationRegistry.isContextPropEnabled()) {
-      wrappedTask = new ContextPropRunnable(runnable);
-    }
-    return new DisposableForkJoinTask(stats, pool.submit(wrappedTask));
+    return new DisposableForkJoinTask(stats, pool.submit(runnable));
   }
 
   @Override
