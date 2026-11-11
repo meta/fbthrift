@@ -2455,74 +2455,6 @@ namespace facebook.thrift.annotation.cpp
     }
 
     /// <summary>
-    /// Auto-generated from InternalExperimentalAllowAllocatorOnUnion
-    /// </summary>
-    public class @InternalExperimentalAllowAllocatorOnUnion : IThriftSerializable
-    {
-        /// <summary>The Thrift URI for this type, used for type registration.</summary>
-        public static readonly string __fbthrift_uri = "facebook.com/thrift/annotation/cpp/InternalExperimentalAllowAllocatorOnUnion";
-        public @InternalExperimentalAllowAllocatorOnUnion()
-        {
-        }
-
-        public void __fbthrift_clear()
-        {
-        }
-
-        public bool __fbthrift_is_empty()
-        {
-            return true;
-        }
-
-        public void __fbthrift_write(IThriftProtocolWriter writer)
-        {
-            writer.WriteFieldStop();
-        }
-
-        public void __fbthrift_read(IThriftProtocolReader reader)
-        {
-            while (true)
-            {
-                var (fieldType, fieldId) = reader.ReadFieldBegin();
-                if (fieldType == ThriftWireType.Stop)
-                {
-                    break;
-                }
-
-                switch (fieldId)
-                {
-                    default:
-                        reader.Skip(fieldType);
-                        break;
-                }
-            }
-        }
-
-        public override bool Equals(object? obj)
-        {
-            if (obj is not @InternalExperimentalAllowAllocatorOnUnion other)
-            {
-                return false;
-            }
-            return true;
-        }
-
-        public override int GetHashCode()
-        {
-            var hashCode = new HashCode();
-            return hashCode.ToHashCode();
-        }
-
-        public override string ToString()
-        {
-            var sb = new System.Text.StringBuilder();
-            sb.Append("InternalExperimentalAllowAllocatorOnUnion(");
-            sb.Append(")");
-            return sb.ToString();
-        }
-    }
-
-    /// <summary>
     /// Auto-generated from Arena
     /// </summary>
     public class @Arena : IThriftSerializable
@@ -2628,7 +2560,6 @@ namespace facebook.thrift.annotation.cpp
             register("facebook.com/thrift/annotation/cpp/DeclareHashSpecialization", () => new @DeclareHashSpecialization());
             register("facebook.com/thrift/annotation/cpp/DeclareEqualToSpecialization", () => new @DeclareEqualToSpecialization());
             register("facebook.com/thrift/annotation/cpp/AllowCustomDefaultInAllocCtor", () => new @AllowCustomDefaultInAllocCtor());
-            register("facebook.com/thrift/annotation/cpp/InternalExperimentalAllowAllocatorOnUnion", () => new @InternalExperimentalAllowAllocatorOnUnion());
             register("facebook.com/thrift/annotation/cpp/Arena", () => new @Arena());
         }
     }

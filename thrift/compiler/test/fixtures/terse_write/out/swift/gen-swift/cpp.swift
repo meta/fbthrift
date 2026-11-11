@@ -1131,36 +1131,6 @@ public struct AllowCustomDefaultInAllocCtor: ThriftSerializable, Hashable {
     }
 }
 
-/// Auto-generated from InternalExperimentalAllowAllocatorOnUnion
-public struct InternalExperimentalAllowAllocatorOnUnion: ThriftSerializable, Hashable {
-
-    public init() {}
-
-    /// Resets every field to its intrinsic (standard) default, per the Object
-    /// Model `clear()` (guide 2.1.22). Unlike `init()`, this ignores custom
-    /// IDL defaults: optional fields become nil, others their type's zero value.
-    public mutating func clear() {
-    }
-
-    public func write<W: ProtocolWriter>(to writer: W) {
-        writer.writeFieldStop()
-    }
-
-    public init<R: ProtocolReader>(from reader: R) throws {
-        self.init()
-        while true {
-            let (fieldType, fieldId) = try reader.readFieldBegin()
-            if fieldType == .stop {
-                break
-            }
-            switch fieldId {
-            default:
-                try reader.skip(fieldType)
-            }
-        }
-    }
-}
-
 /// Auto-generated from Arena
 public struct Arena: ThriftSerializable, Hashable {
 

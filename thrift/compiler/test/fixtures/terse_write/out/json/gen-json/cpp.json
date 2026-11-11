@@ -775,26 +775,8 @@
         }
       }
     },
-    "InternalExperimentalAllowAllocatorOnUnion" : {
-      "lineno" : 539,
-      "is_exception" : false,
-      "is_union" : false,
-      "fields" : {
-
-      },
-      "source_range" : {
-        "begin" : {
-          "line" : 539,
-          "column" : 1
-        },
-        "end" : {
-          "line" : 541,
-          "column" : 52
-        }
-      }
-    },
     "Arena" : {
-      "lineno" : 553,
+      "lineno" : 541,
       "is_exception" : false,
       "is_union" : false,
       "fields" : {
@@ -802,11 +784,11 @@
       },
       "source_range" : {
         "begin" : {
-          "line" : 553,
+          "line" : 541,
           "column" : 1
         },
         "end" : {
-          "line" : 558,
+          "line" : 546,
           "column" : 16
         }
       }

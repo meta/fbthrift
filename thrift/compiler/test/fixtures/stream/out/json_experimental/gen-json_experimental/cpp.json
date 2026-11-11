@@ -859,31 +859,6 @@
         "is_union" : false,
         "lineno" : 526
       },
-      "InternalExperimentalAllowAllocatorOnUnion" : {
-        "name" : "InternalExperimentalAllowAllocatorOnUnion",
-        "structured_annotations": {
-          "scope.Union" : {
-            "type" : {
-            "type" : "struct",
-            "name" : "Union",
-            "path" : "thrift/annotation/scope.thrift"
-          },
-            "value" : {}
-          },
-          "thrift.Experimental" : {
-            "type" : {
-            "type" : "struct",
-            "name" : "Experimental",
-            "path" : "thrift/annotation/thrift.thrift"
-          },
-            "value" : {}
-          }
-        },
-        "docstring" : "Allows the unstructured `cpp.allocator` annotation on this union, which\nunions otherwise reject.\n\nInternal and experimental: Thrift's own unit tests use it while support for\n`cpp.allocator` unions is incomplete. Do not use it elsewhere; it may change\nor go away without notice.\n",
-        "is_exception" : false,
-        "is_union" : false,
-        "lineno" : 539
-      },
       "Arena" : {
         "name" : "Arena",
         "structured_annotations": {
@@ -931,7 +906,7 @@
         "docstring" : "Gives a string, binary or container field a PMR allocator-aware C++ type,\nsuch as `std::pmr::string` or `std::pmr::vector`, that can allocate from a\n`std::pmr::memory_resource` such as an arena. The field doesn't use its\nstruct's memory resource yet: it allocates from the default resource. On a\nstruct or union it does nothing yet, and on a typedef it is an error.\n\nThe py3 generator rejects fields with it unless `auto_migrate` is set. Other\nlanguages ignore it.\n",
         "is_exception" : false,
         "is_union" : false,
-        "lineno" : 553
+        "lineno" : 541
       }
   },
   "source_path" : "thrift/annotation/cpp",

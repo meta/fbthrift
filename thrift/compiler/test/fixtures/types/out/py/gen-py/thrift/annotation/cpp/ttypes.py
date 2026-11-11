@@ -62,7 +62,7 @@ class ThriftEnumWrapper(int):
 all_structs = []
 UTF8STRINGS = bool(0) or sys.version_info.major >= 3
 
-__all__ = ['UTF8STRINGS', 'RefType', 'EnumUnderlyingType', 'Name', 'Type', 'Ref', 'Lazy', 'DisableLazyChecksum', 'Adapter', 'PackIsset', 'MinimizePadding', 'ScopedEnumAsUnionType', 'FieldInterceptor', 'UseOpEncode', 'EnableIOBufChainSupport', 'EnumType', 'Frozen2Exclude', 'Frozen2RequiresCompleteContainerParams', 'ProcessInEbThreadUnsafe', 'UseCursorSerialization', 'GenerateDeprecatedHeaderClientMethods', 'AllowLegacyNonOptionalRef', 'DeprecatedTerseWrite', 'AllowLegacyDeprecatedTerseWritesRef', 'EnableCustomTypeOrdering', 'GenerateServiceMethodDecorator', 'FastClient', 'FastServer', 'NonOrderable', 'DeclareHashSpecialization', 'DeclareEqualToSpecialization', 'AllowCustomDefaultInAllocCtor', 'InternalExperimentalAllowAllocatorOnUnion', 'Arena']
+__all__ = ['UTF8STRINGS', 'RefType', 'EnumUnderlyingType', 'Name', 'Type', 'Ref', 'Lazy', 'DisableLazyChecksum', 'Adapter', 'PackIsset', 'MinimizePadding', 'ScopedEnumAsUnionType', 'FieldInterceptor', 'UseOpEncode', 'EnableIOBufChainSupport', 'EnumType', 'Frozen2Exclude', 'Frozen2RequiresCompleteContainerParams', 'ProcessInEbThreadUnsafe', 'UseCursorSerialization', 'GenerateDeprecatedHeaderClientMethods', 'AllowLegacyNonOptionalRef', 'DeprecatedTerseWrite', 'AllowLegacyDeprecatedTerseWritesRef', 'EnableCustomTypeOrdering', 'GenerateServiceMethodDecorator', 'FastClient', 'FastServer', 'NonOrderable', 'DeclareHashSpecialization', 'DeclareEqualToSpecialization', 'AllowCustomDefaultInAllocCtor', 'Arena']
 warn_thrift_py_deprecated(__name__)
 
 class RefType:
@@ -2940,92 +2940,6 @@ class AllowCustomDefaultInAllocCtor:
   def _to_py_deprecated(self):
     return self
 
-class InternalExperimentalAllowAllocatorOnUnion:
-  r"""
-  Allows the unstructured `cpp.allocator` annotation on this union, which
-  unions otherwise reject.
-  
-  Internal and experimental: Thrift's own unit tests use it while support for
-  `cpp.allocator` unions is incomplete. Do not use it elsewhere; it may change
-  or go away without notice.
-  """
-
-  thrift_spec = None
-  thrift_field_annotations = None
-  thrift_struct_annotations = None
-  @staticmethod
-  def isUnion():
-    return False
-
-  def read(self, iprot):
-    if (isinstance(iprot, TBinaryProtocol.TBinaryProtocolAccelerated) or (isinstance(iprot, THeaderProtocol.THeaderProtocolAccelerate) and iprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_BINARY_PROTOCOL)) and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastproto is not None:
-      fastproto.decode(self, iprot.trans, [self.__class__, self.thrift_spec, False], utf8strings=UTF8STRINGS, protoid=0)
-      return
-    if (isinstance(iprot, TCompactProtocol.TCompactProtocolAccelerated) or (isinstance(iprot, THeaderProtocol.THeaderProtocolAccelerate) and iprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_COMPACT_PROTOCOL)) and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastproto is not None:
-      fastproto.decode(self, iprot.trans, [self.__class__, self.thrift_spec, False], utf8strings=UTF8STRINGS, protoid=2)
-      return
-    iprot.readStructBegin()
-    while True:
-      (fname, ftype, fid) = iprot.readFieldBegin()
-      if ftype == TType.STOP:
-        break
-      else:
-        iprot.skip(ftype)
-      iprot.readFieldEnd()
-    iprot.readStructEnd()
-
-  def write(self, oprot):
-    if (isinstance(oprot, TBinaryProtocol.TBinaryProtocolAccelerated) or (isinstance(oprot, THeaderProtocol.THeaderProtocolAccelerate) and oprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_BINARY_PROTOCOL)) and self.thrift_spec is not None and fastproto is not None:
-      oprot.trans.write(fastproto.encode(self, [self.__class__, self.thrift_spec, False], utf8strings=UTF8STRINGS, protoid=0))
-      return
-    if (isinstance(oprot, TCompactProtocol.TCompactProtocolAccelerated) or (isinstance(oprot, THeaderProtocol.THeaderProtocolAccelerate) and oprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_COMPACT_PROTOCOL)) and self.thrift_spec is not None and fastproto is not None:
-      oprot.trans.write(fastproto.encode(self, [self.__class__, self.thrift_spec, False], utf8strings=UTF8STRINGS, protoid=2))
-      return
-    oprot.writeStructBegin('InternalExperimentalAllowAllocatorOnUnion')
-    oprot.writeFieldStop()
-    oprot.writeStructEnd()
-
-  def __repr__(self):
-    L = []
-    padding = ' ' * 4
-    return "%s(%s)" % (self.__class__.__name__, "\n" + ",\n".join(L) if L else '')
-
-  def __eq__(self, other):
-    if not isinstance(other, self.__class__):
-      return False
-
-    return self.__dict__ == other.__dict__ 
-
-  def __ne__(self, other):
-    return not (self == other)
-
-  def __dir__(self):
-    return (
-    )
-
-  __hash__ = object.__hash__
-
-  def _to_python(self):
-    import importlib
-    import thrift.python.converter
-    python_types = importlib.import_module("facebook.thrift.annotation.cpp.thrift_types")
-    return thrift.python.converter.to_python_struct(python_types.InternalExperimentalAllowAllocatorOnUnion, self)
-
-  def _to_mutable_python(self):
-    import importlib
-    import thrift.python.mutable_converter
-    python_mutable_types = importlib.import_module("facebook.thrift.annotation.cpp.thrift_mutable_types")
-    return thrift.python.mutable_converter.to_mutable_python_struct_or_union(python_mutable_types.InternalExperimentalAllowAllocatorOnUnion, self)
-
-  def _to_py3(self):
-    import importlib
-    import thrift.py3.converter
-    py3_types = importlib.import_module("facebook.thrift.annotation.cpp.types")
-    return thrift.py3.converter.to_py3_struct(py3_types.InternalExperimentalAllowAllocatorOnUnion, self)
-
-  def _to_py_deprecated(self):
-    return self
-
 class Arena:
   r"""
   Gives a string, binary or container field a PMR allocator-aware C++ type,
@@ -3506,15 +3420,6 @@ def AllowCustomDefaultInAllocCtor__setstate__(self, state):
 
 AllowCustomDefaultInAllocCtor.__getstate__ = lambda self: self.__dict__.copy()
 AllowCustomDefaultInAllocCtor.__setstate__ = AllowCustomDefaultInAllocCtor__setstate__
-
-all_structs.append(InternalExperimentalAllowAllocatorOnUnion)
-InternalExperimentalAllowAllocatorOnUnion.thrift_spec = tuple(__EXPAND_THRIFT_SPEC((
-)))
-
-InternalExperimentalAllowAllocatorOnUnion.thrift_struct_annotations = {
-}
-InternalExperimentalAllowAllocatorOnUnion.thrift_field_annotations = {
-}
 
 all_structs.append(Arena)
 Arena.thrift_spec = tuple(__EXPAND_THRIFT_SPEC((

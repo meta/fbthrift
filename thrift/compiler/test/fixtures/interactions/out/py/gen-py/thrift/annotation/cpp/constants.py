@@ -22,6 +22,6 @@ except ImportError:
         pass
 
 
-from .ttypes import UTF8STRINGS, RefType, EnumUnderlyingType, Name, Type, Ref, Lazy, DisableLazyChecksum, Adapter, PackIsset, MinimizePadding, ScopedEnumAsUnionType, FieldInterceptor, UseOpEncode, EnableIOBufChainSupport, EnumType, Frozen2Exclude, Frozen2RequiresCompleteContainerParams, ProcessInEbThreadUnsafe, UseCursorSerialization, GenerateDeprecatedHeaderClientMethods, AllowLegacyNonOptionalRef, DeprecatedTerseWrite, AllowLegacyDeprecatedTerseWritesRef, EnableCustomTypeOrdering, GenerateServiceMethodDecorator, FastClient, FastServer, NonOrderable, DeclareHashSpecialization, DeclareEqualToSpecialization, AllowCustomDefaultInAllocCtor, InternalExperimentalAllowAllocatorOnUnion, Arena
+from .ttypes import UTF8STRINGS, RefType, EnumUnderlyingType, Name, Type, Ref, Lazy, DisableLazyChecksum, Adapter, PackIsset, MinimizePadding, ScopedEnumAsUnionType, FieldInterceptor, UseOpEncode, EnableIOBufChainSupport, EnumType, Frozen2Exclude, Frozen2RequiresCompleteContainerParams, ProcessInEbThreadUnsafe, UseCursorSerialization, GenerateDeprecatedHeaderClientMethods, AllowLegacyNonOptionalRef, DeprecatedTerseWrite, AllowLegacyDeprecatedTerseWritesRef, EnableCustomTypeOrdering, GenerateServiceMethodDecorator, FastClient, FastServer, NonOrderable, DeclareHashSpecialization, DeclareEqualToSpecialization, AllowCustomDefaultInAllocCtor, Arena
 warn_thrift_py_deprecated(__name__)
 

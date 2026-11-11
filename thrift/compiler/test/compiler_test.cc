@@ -3558,11 +3558,10 @@ TEST(CompilerTest, cpp_allocator_with_frozen2) {
     @thrift.DeprecatedUnvalidatedAnnotations{
       items = {"cpp.allocator": "::std::pmr::polymorphic_allocator<char>"},
     }
-    @cpp.InternalExperimentalAllowAllocatorOnUnion
     union PmrUnion {
       1: i32 id;
     }
-      # expected-error@-7: Allocator-aware type `PmrUnion` is not supported with the `frozen2` option unless it has `@cpp.Frozen2Exclude`.  [frozen2-allocator-rule]
+      # expected-error@-6: Allocator-aware type `PmrUnion` is not supported with the `frozen2` option unless it has `@cpp.Frozen2Exclude`.  [frozen2-allocator-rule]
 
     @thrift.DeprecatedUnvalidatedAnnotations{
       items = {"cpp.allocator": "::std::pmr::polymorphic_allocator<char>"},
