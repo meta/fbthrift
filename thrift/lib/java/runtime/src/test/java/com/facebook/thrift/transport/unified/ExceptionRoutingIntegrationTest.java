@@ -18,6 +18,7 @@ package com.facebook.thrift.transport.unified;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -37,10 +38,13 @@ import com.facebook.thrift.example.ping.PingServiceRpcServerHandler;
 import com.facebook.thrift.legacy.server.LegacyServerTransport;
 import com.facebook.thrift.legacy.server.LegacyServerTransportFactory;
 import com.facebook.thrift.payload.ClientRequestPayload;
+import com.facebook.thrift.payload.ClientResponsePayload;
+import com.facebook.thrift.payload.Reader;
 import com.facebook.thrift.payload.ServerRequestPayload;
 import com.facebook.thrift.payload.ServerResponsePayload;
 import com.facebook.thrift.payload.Writer;
 import com.facebook.thrift.protocol.TProtocolType;
+import com.facebook.thrift.server.OverloadedException;
 import com.facebook.thrift.server.RpcServerHandler;
 import com.facebook.thrift.util.RpcServerUtils;
 import com.facebook.thrift.util.SPINiftyMetrics;
@@ -52,9 +56,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.thrift.RequestRpcMetadata;
 import org.apache.thrift.RpcKind;
 import org.apache.thrift.TApplicationException;
@@ -67,17 +75,20 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
 /**
- * End-to-end exception routing over Header transports with an in-process server and a real client:
- * overload rejections carry the explicit {@code ex} code the client can read, ordinary errors keep
- * their shape without it, and oneway calls stay silent.
+ * End-to-end exception routing with an in-process server and a real client: overload rejections
+ * carry the explicit {@code ex} code the client can read on Header transports, and the matching
+ * REJECTED reason code on Rocket; ordinary errors keep their shape without it, and oneway calls
+ * stay silent.
  *
- * <p>Sections cover the unified Header path (ThriftConnectionAcceptor) and the legacy Header path
- * (ThriftServerHandler). A Rocket section is reserved below for the Rocket session's rows; this
- * file asserts no Rocket overload behavior.
+ * <p>Sections cover the unified Header path (ThriftConnectionAcceptor), the legacy Header path
+ * (ThriftServerHandler), and the Rocket path over the unified transport (raw RSocket client).
  */
 public class ExceptionRoutingIntegrationTest {
 
@@ -244,6 +255,62 @@ public class ExceptionRoutingIntegrationTest {
               assertFalse(response.getHeaders().containsKey("ex"));
             })
         .verifyComplete();
+  }
+
+  @Test
+  public void unifiedReactiveSyncThrowStaysInternal() throws Exception {
+    // Same synchronous-throw contract over Header: INTERNAL_ERROR, hooks once, and the
+    // connection serves the next call.
+    List<String> hooks = new ArrayList<>();
+    List<Throwable> hookErrors = new ArrayList<>();
+    RuntimeException boom = new RuntimeException("boom");
+    PingService.Reactive delegate = Mockito.mock(PingService.Reactive.class);
+    Mockito.when(delegate.ping(Mockito.any(PingRequest.class)))
+        .thenThrow(boom)
+        .thenReturn(Mono.just(new PingResponse.Builder().setResponse("ok").build()));
+    SocketAddress address =
+        startUnifiedTransport(
+            new PingServiceRpcServerHandler(
+                delegate, Collections.singletonList(recordingHandler(hooks, hookErrors))));
+    PingService.Reactive client = typedClient(address, TProtocolType.TCompact);
+
+    StepVerifier.create(client.ping(new PingRequest.Builder().setRequest("hello").build()))
+        .expectErrorSatisfies(
+            error -> {
+              assertTrue(error instanceof TApplicationException);
+              assertEquals(
+                  TApplicationException.INTERNAL_ERROR, ((TApplicationException) error).getType());
+              assertTrue(error.getMessage().contains("boom"));
+            })
+        .verify();
+    assertEquals(Arrays.asList("pre", "undeclared", "post"), hooks);
+    assertEquals(3, hookErrors.size());
+    assertSame(hookErrors.get(0), hookErrors.get(1));
+    assertSame(hookErrors.get(1), hookErrors.get(2));
+    assertSame(boom, hookErrors.get(0).getCause());
+
+    StepVerifier.create(client.ping(new PingRequest.Builder().setRequest("hello").build()))
+        .assertNext(response -> assertEquals("ok", response.getResponse()))
+        .verifyComplete();
+  }
+
+  @Test
+  public void unifiedReactiveSyncThrowDeclaredStaysDeclared() throws Exception {
+    PingService.Reactive delegate = Mockito.mock(PingService.Reactive.class);
+    Mockito.when(delegate.pingException(Mockito.any(PingRequest.class)))
+        .thenThrow(new CustomException.Builder().setMessage("custom: sync").build());
+    SocketAddress address =
+        startUnifiedTransport(
+            new PingServiceRpcServerHandler(delegate, Collections.<ThriftEventHandler>emptyList()));
+    PingService.Reactive client = typedClient(address, TProtocolType.TCompact);
+
+    StepVerifier.create(client.pingException(new PingRequest.Builder().setRequest("x").build()))
+        .expectErrorSatisfies(
+            error -> {
+              assertTrue(error instanceof CustomException);
+              assertEquals("custom: sync", error.getMessage());
+            })
+        .verify();
   }
 
   @Test
@@ -423,9 +490,637 @@ public class ExceptionRoutingIntegrationTest {
   }
 
   // -------------------------------------------------------------------------
-  // Rocket path: reserved for the Rocket session's rows. This file asserts no
-  // Rocket overload behavior.
+  // Rocket path (raw RSocket client over the unified transport)
   // -------------------------------------------------------------------------
+
+  @Test
+  public void rocketPreprocessShedBinaryRejectsWithAppOverload() throws Exception {
+    runRocketPreprocessShed(
+        TProtocolType.TBinary,
+        new TApplicationException(TApplicationException.LOADSHEDDING, "shed"),
+        "22");
+  }
+
+  @Test
+  public void rocketPreprocessShedCompactRejectsWithAppOverload() throws Exception {
+    runRocketPreprocessShed(
+        TProtocolType.TCompact,
+        new TApplicationException(TApplicationException.LOADSHEDDING, "shed"),
+        "22");
+  }
+
+  @Test
+  public void rocketHostOverloadRejectsWithOverload() throws Exception {
+    runRocketPreprocessShed(TProtocolType.TCompact, OverloadedException.host("busy"), "1");
+  }
+
+  @Test
+  public void rocketApplicationOverloadRejectsWithAppOverload() throws Exception {
+    runRocketPreprocessShed(TProtocolType.TCompact, OverloadedException.application("busy"), "22");
+  }
+
+  @Test
+  public void rocketQueueOverloadRejectsWithQueueOverloaded() throws Exception {
+    // QUEUE_OVERLOADED reports the queue-overloaded ex code, like the C++ client decodes it.
+    runRocketPreprocessShed(TProtocolType.TCompact, OverloadedException.queue("backed up"), "5");
+  }
+
+  @Test
+  public void rocketHandlerExplicitOverloadRejectsWithReason() throws Exception {
+    PingService.Reactive delegate = Mockito.mock(PingService.Reactive.class);
+    Mockito.when(delegate.ping(Mockito.any(PingRequest.class)))
+        .thenReturn(Mono.error(OverloadedException.host("busy")));
+    SocketAddress address =
+        startUnifiedTransport(
+            new PingServiceRpcServerHandler(delegate, Collections.<ThriftEventHandler>emptyList()));
+    RpcClient raw = rawRocketClient(address);
+
+    StepVerifier.create(
+            raw.singleRequestSingleResponse(
+                pingRawRequest(TProtocolType.TCompact, "ping"), RpcOptions.EMPTY))
+        .assertNext(
+            response -> {
+              assertEquals("1", response.getHeaders().get("ex"));
+              assertFalse(response.getHeaders().containsKey("uex"));
+              assertTrue(response.getException() instanceof TApplicationException);
+              assertEquals(
+                  TApplicationException.LOADSHEDDING,
+                  ((TApplicationException) response.getException()).getType());
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  public void rocketHandlerPlainLoadsheddingRejectsWithAppOverload() throws Exception {
+    // Current landed behavior: any LOADSHEDDING converts, so a handler-body plain LOADSHEDDING
+    // rejects with APP_OVERLOAD like a preprocess shed does.
+    PingService.Reactive delegate = Mockito.mock(PingService.Reactive.class);
+    Mockito.when(delegate.ping(Mockito.any(PingRequest.class)))
+        .thenReturn(
+            Mono.error(new TApplicationException(TApplicationException.LOADSHEDDING, "shed")));
+    SocketAddress address =
+        startUnifiedTransport(
+            new PingServiceRpcServerHandler(delegate, Collections.<ThriftEventHandler>emptyList()));
+    RpcClient raw = rawRocketClient(address);
+
+    StepVerifier.create(
+            raw.singleRequestSingleResponse(
+                pingRawRequest(TProtocolType.TCompact, "ping"), RpcOptions.EMPTY))
+        .assertNext(
+            response -> {
+              assertEquals("22", response.getHeaders().get("ex"));
+              assertFalse(response.getHeaders().containsKey("uex"));
+              assertTrue(response.getException() instanceof TApplicationException);
+              assertEquals(
+                  TApplicationException.LOADSHEDDING,
+                  ((TApplicationException) response.getException()).getType());
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  public void rocketPreprocessShedRejectsStream() throws Exception {
+    List<String> hooks = new ArrayList<>();
+    List<Throwable> hookErrors = new ArrayList<>();
+    TApplicationException shed =
+        new TApplicationException(TApplicationException.LOADSHEDDING, "shed");
+    SocketAddress address =
+        startUnifiedTransport(
+            new PingServiceRpcServerHandler(
+                Mockito.mock(PingService.class),
+                Arrays.asList(
+                    throwingPreprocessHandler(shed), recordingHandler(hooks, hookErrors))));
+    RpcClient raw = rawRocketClient(address);
+
+    StepVerifier.create(
+            raw.singleRequestStreamingResponse(
+                pingRawRequest(
+                    TProtocolType.TCompact,
+                    "streamOfPings",
+                    RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE,
+                    throwingReader()),
+                RpcOptions.EMPTY))
+        .assertNext(
+            response -> {
+              // A stream rejection arrives as a response item carrying the rejection's reason
+              // name.
+              assertTrue(response.getException() instanceof TApplicationException);
+              assertEquals("APP_OVERLOAD", response.getException().getMessage());
+            })
+        .verifyComplete();
+    assertEquals(Arrays.asList("pre", "undeclared", "post"), hooks);
+    assertEquals(3, hookErrors.size());
+    assertSame(shed, hookErrors.get(0));
+    assertSame(shed, hookErrors.get(1));
+    assertSame(shed, hookErrors.get(2));
+  }
+
+  @Test
+  public void rocketMaxActiveRequestsRejectsWithOverload() throws Exception {
+    // A max-active-requests admission limit sheds the excess request with OVERLOAD (ex 1).
+    AtomicInteger actives = new AtomicInteger();
+    ThriftEventHandler maxOneActive =
+        new ThriftEventHandler() {
+          @Override
+          public Object getContext(String methodName, RequestContext requestContext) {
+            return actives.incrementAndGet();
+          }
+
+          @Override
+          public void preprocess(Object context, String methodName) throws TException {
+            if (context instanceof Integer && (Integer) context > 1) {
+              throw OverloadedException.host("too many active requests");
+            }
+          }
+
+          @Override
+          public void done(Object context, String methodName) {
+            actives.decrementAndGet();
+          }
+        };
+    CountDownLatch entered = new CountDownLatch(1);
+    CountDownLatch release = new CountDownLatch(1);
+    PingService.Reactive delegate = Mockito.mock(PingService.Reactive.class);
+    Mockito.when(delegate.ping(Mockito.any(PingRequest.class)))
+        .thenReturn(
+            Mono.fromCallable(
+                () -> {
+                  entered.countDown();
+                  if (!release.await(30, TimeUnit.SECONDS)) {
+                    throw new IllegalStateException("slot holder never released");
+                  }
+                  return new PingResponse.Builder().setResponse("ok").build();
+                }));
+    SocketAddress address =
+        startUnifiedTransport(
+            new PingServiceRpcServerHandler(delegate, Collections.singletonList(maxOneActive)));
+    RpcClient raw = rawRocketClient(address);
+
+    CompletableFuture<ClientResponsePayload<Object>> first =
+        raw.singleRequestSingleResponse(
+                pingRawRequest(
+                    TProtocolType.TCompact,
+                    "ping",
+                    RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE,
+                    PingResponse::read0),
+                RpcOptions.EMPTY)
+            .toFuture();
+    assertTrue(entered.await(30, TimeUnit.SECONDS), "slot never occupied");
+
+    StepVerifier.create(
+            raw.singleRequestSingleResponse(
+                pingRawRequest(TProtocolType.TCompact, "ping"), RpcOptions.EMPTY))
+        .assertNext(
+            response -> {
+              assertEquals("1", response.getHeaders().get("ex"));
+              assertTrue(response.getException() instanceof TApplicationException);
+              assertEquals(
+                  TApplicationException.LOADSHEDDING,
+                  ((TApplicationException) response.getException()).getType());
+            })
+        .verifyComplete();
+
+    release.countDown();
+    assertNull(first.get(30, TimeUnit.SECONDS).getException());
+  }
+
+  @Test
+  public void rocketOrdinaryErrorStaysInternalWithoutEx() throws Exception {
+    PingService.Reactive delegate = Mockito.mock(PingService.Reactive.class);
+    Mockito.when(delegate.ping(Mockito.any(PingRequest.class)))
+        .thenReturn(Mono.error(new RuntimeException("npe")));
+    SocketAddress address =
+        startUnifiedTransport(
+            new PingServiceRpcServerHandler(delegate, Collections.<ThriftEventHandler>emptyList()));
+    RpcClient raw = rawRocketClient(address);
+
+    StepVerifier.create(
+            raw.singleRequestSingleResponse(
+                pingRawRequest(
+                    TProtocolType.TCompact,
+                    "ping",
+                    RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE,
+                    PingResponse::read0),
+                RpcOptions.EMPTY))
+        .assertNext(
+            response -> {
+              assertTrue(response.getException() instanceof TApplicationException);
+              assertTrue(
+                  response.getException().getMessage().contains("npe"),
+                  "got " + response.getException());
+              assertFalse(response.getHeaders().containsKey("ex"));
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  public void rocketDeclaredErrorStaysDeclared() throws Exception {
+    PingService.Reactive delegate = Mockito.mock(PingService.Reactive.class);
+    Mockito.when(delegate.pingException(Mockito.any(PingRequest.class)))
+        .thenReturn(Mono.error(new CustomException.Builder().setMessage("custom: hello").build()));
+    SocketAddress address =
+        startUnifiedTransport(
+            new PingServiceRpcServerHandler(delegate, Collections.<ThriftEventHandler>emptyList()));
+    RpcClient raw = rawRocketClient(address);
+
+    StepVerifier.create(
+            raw.singleRequestSingleResponse(
+                pingRawRequest(
+                    TProtocolType.TCompact,
+                    "pingException",
+                    RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE,
+                    PingResponse::read0),
+                RpcOptions.EMPTY))
+        .assertNext(
+            response -> {
+              // The raw client does not decode declared errors (typed-client scope, covered by
+              // unifiedDeclaredErrorPreserved); the Rocket contract is a normal payload, not a
+              // rejection: no ex, exception present.
+              assertFalse(response.getHeaders().containsKey("ex"));
+              assertTrue(response.getException() instanceof TApplicationException);
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  public void rocketLateStreamErrorStaysInBand() throws Exception {
+    PingService.Reactive delegate = Mockito.mock(PingService.Reactive.class);
+    Mockito.when(delegate.streamOfPings(Mockito.any(PingRequest.class), Mockito.anyInt()))
+        .thenReturn(
+            Flux.concat(
+                Flux.just(new PingResponse.Builder().setResponse("v").build()),
+                Flux.error(OverloadedException.host("late"))));
+    SocketAddress address =
+        startUnifiedTransport(
+            new PingServiceRpcServerHandler(delegate, Collections.<ThriftEventHandler>emptyList()));
+    RpcClient raw = rawRocketClient(address);
+
+    StepVerifier.create(
+            raw.singleRequestStreamingResponse(
+                pingRawRequest(
+                    TProtocolType.TCompact,
+                    "streamOfPings",
+                    RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE,
+                    PingResponse::read0),
+                RpcOptions.EMPTY))
+        .assertNext(first -> assertNull(first.getException(), "value item must carry no error"))
+        .assertNext(
+            second ->
+                assertNull(
+                    second.getException(),
+                    "late error must stay in band as a normal terminal, not a REJECTED item"))
+        .assertNext(
+            third -> {
+              // The late error body arrives in band with its message, wrapped as INTERNAL_ERROR
+              // like any mid-stream error: only the initial error may preserve the overload.
+              assertTrue(third.getException() instanceof TApplicationException);
+              assertTrue(
+                  third.getException().getMessage().contains("late"),
+                  "got " + third.getException().getMessage());
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  public void rocketStreamHandlerErrorStaysInBand() throws Exception {
+    // A handler failure before the first element is a normal INTERNAL_ERROR payload, not an
+    // ERROR frame: the terminal carries no exception, and the error body arrives in band with
+    // its message (a REJECTED frame would surface as a single item with the bare reason name).
+    PingService.Reactive delegate = Mockito.mock(PingService.Reactive.class);
+    Mockito.when(delegate.streamOfPings(Mockito.any(PingRequest.class), Mockito.anyInt()))
+        .thenReturn(Flux.error(new RuntimeException("boom")));
+    SocketAddress address =
+        startUnifiedTransport(
+            new PingServiceRpcServerHandler(delegate, Collections.<ThriftEventHandler>emptyList()));
+    RpcClient raw = rawRocketClient(address);
+
+    StepVerifier.create(
+            raw.singleRequestStreamingResponse(
+                pingRawRequest(
+                    TProtocolType.TCompact,
+                    "streamOfPings",
+                    RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE,
+                    PingResponse::read0),
+                RpcOptions.EMPTY))
+        .assertNext(first -> assertNull(first.getException()))
+        .assertNext(
+            second -> {
+              assertTrue(second.getException() instanceof TApplicationException);
+              assertEquals("boom", second.getException().getMessage());
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  public void rocketReactiveSyncThrowStaysInternal() throws Exception {
+    // A reactive handler that throws synchronously still gets a normal INTERNAL_ERROR payload,
+    // not a raw APPLICATION_ERROR: the generated handler defers the delegate call into the
+    // mapped chain. The exception hooks fire exactly once, and the same connection serves the
+    // next call.
+    List<String> hooks = new ArrayList<>();
+    List<Throwable> hookErrors = new ArrayList<>();
+    RuntimeException boom = new RuntimeException("boom");
+    PingService.Reactive delegate = Mockito.mock(PingService.Reactive.class);
+    Mockito.when(delegate.ping(Mockito.any(PingRequest.class)))
+        .thenThrow(boom)
+        .thenReturn(Mono.just(new PingResponse.Builder().setResponse("ok").build()));
+    SocketAddress address =
+        startUnifiedTransport(
+            new PingServiceRpcServerHandler(
+                delegate, Collections.singletonList(recordingHandler(hooks, hookErrors))));
+    PingService.Reactive client = typedRocketClient(address, TProtocolType.TCompact);
+
+    StepVerifier.create(client.ping(new PingRequest.Builder().setRequest("hello").build()))
+        .expectErrorSatisfies(
+            error -> {
+              // The typed Rocket client decodes in-band errors as UNKNOWN (client scope); the
+              // payload contract is the preserved message, not the type code.
+              assertTrue(error instanceof TApplicationException);
+              assertTrue(error.getMessage().contains("boom"));
+            })
+        .verify();
+    assertEquals(Arrays.asList("pre", "undeclared", "post"), hooks);
+    assertEquals(3, hookErrors.size());
+    assertSame(hookErrors.get(0), hookErrors.get(1));
+    assertSame(hookErrors.get(1), hookErrors.get(2));
+    assertSame(boom, hookErrors.get(0).getCause());
+
+    StepVerifier.create(client.ping(new PingRequest.Builder().setRequest("hello").build()))
+        .assertNext(response -> assertEquals("ok", response.getResponse()))
+        .verifyComplete();
+  }
+
+  @Test
+  public void rocketReactiveSyncThrowDeclaredStaysDeclared() throws Exception {
+    // A synchronously thrown declared exception stays declared over Rocket.
+    PingService.Reactive delegate = Mockito.mock(PingService.Reactive.class);
+    Mockito.when(delegate.pingException(Mockito.any(PingRequest.class)))
+        .thenThrow(new CustomException.Builder().setMessage("custom: sync").build());
+    SocketAddress address =
+        startUnifiedTransport(
+            new PingServiceRpcServerHandler(delegate, Collections.<ThriftEventHandler>emptyList()));
+    PingService.Reactive client = typedRocketClient(address, TProtocolType.TCompact);
+
+    StepVerifier.create(client.pingException(new PingRequest.Builder().setRequest("x").build()))
+        .expectErrorSatisfies(
+            error -> {
+              assertTrue(error instanceof CustomException);
+              assertEquals("custom: sync", error.getMessage());
+            })
+        .verify();
+  }
+
+  @Test
+  public void rocketSchedulerRejectionRejectsWithOverload() throws Exception {
+    // A real scheduler rejection: the off-loop hop itself throws, the delegate never runs, and
+    // the rejection reads as REJECTED OVERLOAD. The typed client sees LOADSHEDDING, and the
+    // next call on the same server and client succeeds.
+    PingService.Reactive delegate = Mockito.mock(PingService.Reactive.class);
+    Mockito.when(delegate.ping(Mockito.any(PingRequest.class)))
+        .thenReturn(Mono.just(new PingResponse.Builder().setResponse("ok").build()));
+    RpcServerHandler handler =
+        new PingServiceRpcServerHandler(delegate, Collections.<ThriftEventHandler>emptyList());
+    SocketAddress address = startUnifiedTransport(sheddingOffLoop(handler));
+
+    PingService.Reactive client = typedRocketClient(address, TProtocolType.TCompact);
+    StepVerifier.create(client.ping(new PingRequest.Builder().setRequest("hello").build()))
+        .expectErrorSatisfies(
+            error -> {
+              assertTrue(error instanceof TApplicationException);
+              assertEquals(
+                  TApplicationException.LOADSHEDDING, ((TApplicationException) error).getType());
+            })
+        .verify();
+    Mockito.verify(delegate, Mockito.never()).ping(Mockito.any(PingRequest.class));
+
+    RpcClient raw = rawRocketClient(address);
+    StepVerifier.create(
+            raw.singleRequestSingleResponse(
+                pingRawRequest(
+                    TProtocolType.TCompact,
+                    "ping",
+                    RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE,
+                    PingResponse::read0),
+                RpcOptions.EMPTY))
+        .assertNext(response -> assertNull(response.getException()))
+        .verifyComplete();
+  }
+
+  @Test
+  public void rocketSchedulerRejectionRejectsStream() throws Exception {
+    // A real scheduler rejection on a stream reads as REJECTED OVERLOAD, and the next call on
+    // the same server succeeds.
+    PingService.Reactive delegate = Mockito.mock(PingService.Reactive.class);
+    Mockito.when(delegate.streamOfPings(Mockito.any(PingRequest.class), Mockito.anyInt()))
+        .thenReturn(Flux.just(new PingResponse.Builder().setResponse("ok").build()));
+    RpcServerHandler handler =
+        new PingServiceRpcServerHandler(delegate, Collections.<ThriftEventHandler>emptyList());
+    SocketAddress address = startUnifiedTransport(sheddingOffLoop(handler));
+    RpcClient raw = rawRocketClient(address);
+
+    StepVerifier.create(
+            raw.singleRequestStreamingResponse(
+                pingRawRequest(
+                    TProtocolType.TCompact,
+                    "streamOfPings",
+                    RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE,
+                    PingResponse::read0),
+                RpcOptions.EMPTY))
+        .assertNext(
+            response -> {
+              // The rejection item carries the rejection's reason name.
+              assertTrue(response.getException() instanceof TApplicationException);
+              assertEquals("OVERLOAD", response.getException().getMessage());
+            })
+        .verifyComplete();
+    Mockito.verify(delegate, Mockito.never())
+        .streamOfPings(Mockito.any(PingRequest.class), Mockito.anyInt());
+
+    StepVerifier.create(
+            raw.singleRequestStreamingResponse(
+                pingRawRequest(
+                    TProtocolType.TCompact,
+                    "streamOfPings",
+                    RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE,
+                    PingResponse::read0),
+                RpcOptions.EMPTY))
+        .assertNext(first -> assertNull(first.getException(), "value item must carry no error"))
+        .assertNext(second -> assertNull(second.getException(), "terminal must carry no error"))
+        .verifyComplete();
+  }
+
+  @Test
+  public void rocketSyncOverloadRejectsStream() throws Exception {
+    // A synchronous explicit overload before the first element converts: the initial error
+    // preserves the overload, and the transport rejects it.
+    PingService.Reactive delegate = Mockito.mock(PingService.Reactive.class);
+    Mockito.when(delegate.streamOfPings(Mockito.any(PingRequest.class), Mockito.anyInt()))
+        .thenThrow(OverloadedException.host("full"));
+    SocketAddress address =
+        startUnifiedTransport(
+            new PingServiceRpcServerHandler(delegate, Collections.<ThriftEventHandler>emptyList()));
+    RpcClient raw = rawRocketClient(address);
+
+    StepVerifier.create(
+            raw.singleRequestStreamingResponse(
+                pingRawRequest(
+                    TProtocolType.TCompact,
+                    "streamOfPings",
+                    RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE,
+                    throwingReader()),
+                RpcOptions.EMPTY))
+        .assertNext(
+            response -> {
+              // The initial error preserved the explicit overload and the transport rejected
+              // it: the item carries the rejection's reason name.
+              assertTrue(response.getException() instanceof TApplicationException);
+              assertEquals("OVERLOAD", response.getException().getMessage());
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  public void rocketThrowingPreReadStaysInternal() throws Exception {
+    // A throwing read hook gets a normal INTERNAL_ERROR payload, not a raw error, and the next
+    // call succeeds.
+    SocketAddress address = startUnifiedTransport(throwingPreReadHandler());
+    throwingPreReadStaysInternal(rawRocketClient(address), false);
+  }
+
+  @Test
+  public void unifiedThrowingPreReadStaysInternal() throws Exception {
+    SocketAddress address = startUnifiedTransport(throwingPreReadHandler());
+    throwingPreReadStaysInternal(rawClient(address), true);
+  }
+
+  private static RpcServerHandler throwingPreReadHandler() {
+    AtomicBoolean armed = new AtomicBoolean(true);
+    ThriftEventHandler throwingPreRead =
+        new ThriftEventHandler() {
+          @Override
+          public void preRead(Object context, String methodName) {
+            if (armed.getAndSet(false)) {
+              throw new RuntimeException("hook");
+            }
+          }
+        };
+    PingService.Reactive delegate = Mockito.mock(PingService.Reactive.class);
+    Mockito.when(delegate.ping(Mockito.any(PingRequest.class)))
+        .thenReturn(Mono.just(new PingResponse.Builder().setResponse("ok").build()));
+    return new PingServiceRpcServerHandler(delegate, Collections.singletonList(throwingPreRead));
+  }
+
+  private static void throwingPreReadStaysInternal(RpcClient raw, boolean exactType)
+      throws Exception {
+    StepVerifier.create(
+            raw.singleRequestSingleResponse(
+                pingRawRequest(
+                    TProtocolType.TCompact,
+                    "ping",
+                    RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE,
+                    PingResponse::read0),
+                RpcOptions.EMPTY))
+        .assertNext(
+            response -> {
+              assertTrue(response.getException() instanceof TApplicationException);
+              if (exactType) {
+                assertEquals(
+                    TApplicationException.INTERNAL_ERROR,
+                    ((TApplicationException) response.getException()).getType());
+              }
+              assertTrue(
+                  response.getException().getMessage().contains("hook"),
+                  "got " + response.getException().getMessage());
+              assertFalse(response.getHeaders().containsKey("ex"));
+            })
+        .verifyComplete();
+
+    StepVerifier.create(
+            raw.singleRequestSingleResponse(
+                pingRawRequest(
+                    TProtocolType.TCompact,
+                    "ping",
+                    RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE,
+                    PingResponse::read0),
+                RpcOptions.EMPTY))
+        .assertNext(response -> assertNull(response.getException()))
+        .verifyComplete();
+  }
+
+  @Test
+  public void rocketOverloadFiresExceptionHooksOnce() throws Exception {
+    List<String> hooks = new ArrayList<>();
+    List<Throwable> hookErrors = new ArrayList<>();
+    TApplicationException shed = OverloadedException.host("busy");
+    SocketAddress address =
+        startUnifiedTransport(
+            new PingServiceRpcServerHandler(
+                Mockito.mock(PingService.class),
+                Arrays.asList(
+                    throwingPreprocessHandler(shed), recordingHandler(hooks, hookErrors))));
+    RpcClient raw = rawRocketClient(address);
+
+    StepVerifier.create(
+            raw.singleRequestSingleResponse(
+                pingRawRequest(TProtocolType.TCompact, "ping"), RpcOptions.EMPTY))
+        .assertNext(
+            response -> {
+              assertEquals("1", response.getHeaders().get("ex"));
+              assertTrue(response.getException() instanceof TApplicationException);
+              assertEquals(
+                  TApplicationException.LOADSHEDDING,
+                  ((TApplicationException) response.getException()).getType());
+            })
+        .verifyComplete();
+    assertEquals(Arrays.asList("pre", "undeclared", "post"), hooks);
+    assertEquals(3, hookErrors.size());
+    assertSame(shed, hookErrors.get(0));
+    assertSame(shed, hookErrors.get(1));
+    assertSame(shed, hookErrors.get(2));
+  }
+
+  private void runRocketPreprocessShed(
+      TProtocolType protocol, TApplicationException shed, String expectedEx) throws Exception {
+    SocketAddress address = startUnifiedTransport(sheddingServerHandler(shed));
+    RpcClient raw = rawRocketClient(address);
+
+    StepVerifier.create(
+            raw.singleRequestSingleResponse(pingRawRequest(protocol, "ping"), RpcOptions.EMPTY))
+        .assertNext(
+            response -> {
+              assertEquals(expectedEx, response.getHeaders().get("ex"));
+              assertFalse(response.getHeaders().containsKey("uex"));
+              assertTrue(response.getException() instanceof TApplicationException);
+              assertEquals(
+                  TApplicationException.LOADSHEDDING,
+                  ((TApplicationException) response.getException()).getType());
+            })
+        .verifyComplete();
+  }
+
+  private static RpcClientFactory rocketClientFactory() {
+    return RpcClientFactory.builder()
+        .setThriftClientConfig(
+            new ThriftClientConfig()
+                .setDisableSSL(false)
+                .setEnableJdkSsl(false)
+                .setCertFile(TestCertificateUtil.getCertFilePath())
+                .setKeyFile(TestCertificateUtil.getKeyFilePath())
+                .setCAFile(TestCertificateUtil.getCAFilePath())
+                .setRequestTimeout(Duration.succinctDuration(30, TimeUnit.SECONDS)))
+        .setDisableRSocket(false)
+        .setDisableLoadBalancing(true)
+        .setDisableReconnectingClient(true)
+        .build();
+  }
+
+  private RpcClient rawRocketClient(SocketAddress address) {
+    RpcClientFactory factory = rocketClientFactory();
+    rawBinding = factory.createRpcClientBinding(address);
+    RpcClient client = rawBinding.acquire().block();
+    assertTrue(client != null);
+    return client;
+  }
 
   private SocketAddress startUnifiedTransport(RpcServerHandler handler) throws Exception {
     ThriftServerConfig serverConfig =
@@ -488,22 +1183,41 @@ public class ExceptionRoutingIntegrationTest {
     return typedClient;
   }
 
+  private PingService.Reactive typedRocketClient(SocketAddress address, TProtocolType protocol) {
+    RpcClientFactory factory = rocketClientFactory();
+    typedClient =
+        PingService.Reactive.clientBuilder()
+            .setProtocolId(protocol.getProtocolId())
+            .build(factory, address);
+    return typedClient;
+  }
+
   private static ClientRequestPayload<Object> pingRawRequest(
       TProtocolType protocol, String method) {
+    return pingRawRequest(
+        protocol, method, RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE, throwingReader());
+  }
+
+  private static ClientRequestPayload<Object> pingRawRequest(
+      TProtocolType protocol, String method, RpcKind kind, Reader<Object> reader) {
     return ClientRequestPayload.create(
         "PingService",
         pingArgsWriter("hello"),
-        in -> {
-          throw new IllegalStateException("unexpected body read");
-        },
+        reader,
         Collections.emptyMap(),
         new RequestRpcMetadata.Builder()
             .setName(method)
-            .setKind(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE)
+            .setKind(kind)
             .setProtocol(protocol.getProtocolId())
             .setOtherMetadata(Collections.emptyMap())
             .build(),
         Collections.emptyMap());
+  }
+
+  private static Reader<Object> throwingReader() {
+    return in -> {
+      throw new IllegalStateException("unexpected body read");
+    };
   }
 
   private static ClientRequestPayload<Object> pingRawOnewayRequest() {
@@ -537,8 +1251,52 @@ public class ExceptionRoutingIntegrationTest {
   }
 
   private static RpcServerHandler sheddingServerHandler(String message) {
+    return sheddingServerHandler(
+        new TApplicationException(TApplicationException.LOADSHEDDING, message));
+  }
+
+  private static RpcServerHandler sheddingServerHandler(TApplicationException shed) {
     return new PingServiceRpcServerHandler(
-        Mockito.mock(PingService.class), Collections.singletonList(sheddingHandler(message)));
+        Mockito.mock(PingService.class),
+        Collections.singletonList(throwingPreprocessHandler(shed)));
+  }
+
+  /**
+   * Runs the handler on a scheduler that rejects one task, then runs the rest on the common pool:
+   * the first subscription throws RejectedExecutionException before the delegate runs, and the next
+   * call on the same server succeeds.
+   */
+  private static RpcServerHandler sheddingOffLoop(RpcServerHandler handler) {
+    AtomicBoolean armed = new AtomicBoolean(true);
+    Scheduler scheduler =
+        Schedulers.fromExecutor(
+            task -> {
+              if (armed.getAndSet(false)) {
+                throw new RejectedExecutionException("full");
+              }
+              ForkJoinPool.commonPool().execute(task);
+            });
+    return new RpcServerHandler() {
+      @Override
+      public Mono<ServerResponsePayload> singleRequestSingleResponse(ServerRequestPayload payload) {
+        return handler.singleRequestSingleResponse(payload).subscribeOn(scheduler);
+      }
+
+      @Override
+      public Flux<ServerResponsePayload> singleRequestStreamingResponse(
+          ServerRequestPayload payload) {
+        return handler.singleRequestStreamingResponse(payload).subscribeOn(scheduler);
+      }
+    };
+  }
+
+  private static ThriftEventHandler throwingPreprocessHandler(TApplicationException shed) {
+    return new ThriftEventHandler() {
+      @Override
+      public void preprocess(Object context, String methodName) throws TException {
+        throw shed;
+      }
+    };
   }
 
   private static ThriftEventHandler sheddingHandler(String message) {

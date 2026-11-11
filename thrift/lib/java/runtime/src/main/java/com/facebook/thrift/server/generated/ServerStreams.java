@@ -255,12 +255,7 @@ public final class ServerStreams {
     return withPreWriteException(t, chain, undeclaredExceptionWriter(t, chain));
   }
 
-  private static ServerResponsePayload unknownErrorPayload(
-      Throwable throwable,
-      String name,
-      ServerRequestPayload requestPayload,
-      ContextChain chain,
-      boolean streamException) {
+  private static TApplicationException internalError(String name, Throwable throwable) {
     String errorMessage =
         String.format(
             "Internal error processing %s: %s",
@@ -268,6 +263,23 @@ public final class ServerStreams {
     TApplicationException exception =
         new TApplicationException(TApplicationException.INTERNAL_ERROR, errorMessage);
     exception.initCause(throwable);
+    return exception;
+  }
+
+  private static ServerResponsePayload unknownErrorPayload(
+      Throwable throwable,
+      String name,
+      ServerRequestPayload requestPayload,
+      ContextChain chain,
+      boolean streamException) {
+    // Only the initial error keeps a known application exception as is, like the
+    // request-response path; mid-stream errors always wrap.
+    TApplicationException exception;
+    if (!streamException && throwable instanceof TApplicationException) {
+      exception = (TApplicationException) throwable;
+    } else {
+      exception = internalError(name, throwable);
+    }
 
     Writer unknownExceptionWriter = createUnknownExceptionWriter(exception, chain);
 

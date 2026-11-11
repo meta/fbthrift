@@ -17,6 +17,7 @@
 package com.facebook.thrift.rsocket.server;
 
 import static com.facebook.thrift.rsocket.util.PayloadUtil.createPayload;
+import static com.facebook.thrift.rsocket.util.RocketErrorUtil.fromApplicationException;
 import static com.facebook.thrift.rsocket.util.RocketErrorUtil.taskExpired;
 
 import com.facebook.nifty.core.ConnectionContext;
@@ -32,6 +33,7 @@ import com.facebook.thrift.payload.Writer;
 import com.facebook.thrift.protocol.ByteBufTProtocol;
 import com.facebook.thrift.protocol.ProtocolUtil;
 import com.facebook.thrift.protocol.TProtocolType;
+import com.facebook.thrift.server.OverloadedException;
 import com.facebook.thrift.server.RpcServerHandler;
 import com.facebook.thrift.util.MonoTimeoutTransformer;
 import com.facebook.thrift.util.NettyNiftyRequestContext;
@@ -45,10 +47,12 @@ import io.netty.util.ReferenceCountUtil;
 import io.netty.util.ReferenceCounted;
 import io.rsocket.Payload;
 import io.rsocket.RSocket;
+import io.rsocket.RSocketErrorException;
 import java.util.Map;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.thrift.CompressionAlgorithm;
 import org.apache.thrift.RequestRpcMetadata;
 import org.apache.thrift.RpcKind;
@@ -140,6 +144,8 @@ public class ThriftServerRSocket implements RSocket {
 
       return response
           .map(responsePayload -> handleResponse(alloc, finalRequestPayload, responsePayload))
+          .onErrorMap(
+              e -> e instanceof RejectedExecutionException, ThriftServerRSocket::rejectedOverload)
           // The generated handler releases the request buffer right after it reads the args; this
           // is the backstop for paths where no method body runs (unsupported RpcKind, unknown
           // method, scheduler rejection, task timeout, or cancellation before the read). It can
@@ -171,9 +177,17 @@ public class ThriftServerRSocket implements RSocket {
           == RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE;
 
       final ServerRequestPayload finalRequestPayload = requestPayload;
+      // Only the first response may become a rejection; later stream errors stay in band.
+      final AtomicBoolean firstResponse = new AtomicBoolean(true);
       return rpcServerHandler
           .singleRequestStreamingResponse(requestPayload)
-          .map(responsePayload -> handleStreamResponse(alloc, finalRequestPayload, responsePayload))
+          .map(
+              responsePayload ->
+                  handleStreamResponse(
+                      alloc, finalRequestPayload, responsePayload, firstResponse.getAndSet(false)))
+          .onErrorMap(
+              e -> e instanceof RejectedExecutionException && firstResponse.get(),
+              ThriftServerRSocket::rejectedOverload)
           // The stream handler reads the args once when the stream is subscribed and releases the
           // request buffer then, so it is freed up front instead of being pinned for the whole
           // stream; this is the idempotent backstop for paths where no method body runs.
@@ -187,16 +201,21 @@ public class ThriftServerRSocket implements RSocket {
   private static Payload handleStreamResponse(
       ByteBufAllocator alloc,
       ServerRequestPayload requestPayload,
-      ServerResponsePayload responsePayload) {
+      ServerResponsePayload responsePayload,
+      boolean firstResponse) {
     ByteBuf data = null;
     ByteBuf metadata = null;
 
     try {
       data = alloc.buffer();
-      metadata = alloc.buffer();
 
-      serializeStreamMetadata(responsePayload, metadata);
       serializeResponse(requestPayload, responsePayload, data);
+      if (firstResponse) {
+        throwIfOverloaded(responsePayload);
+      }
+
+      metadata = alloc.buffer();
+      serializeStreamMetadata(responsePayload, metadata);
 
       return createPayload(alloc, null, data, metadata);
     } catch (Throwable t) {
@@ -208,6 +227,18 @@ public class ThriftServerRSocket implements RSocket {
         metadata.release();
       }
       throw Exceptions.propagate(t);
+    }
+  }
+
+  /**
+   * Throws the REJECTED overload error for a response carrying an overload reason, or returns
+   * normally so the serialized body stays the response.
+   */
+  private static void throwIfOverloaded(ServerResponsePayload responsePayload) {
+    RSocketErrorException rejection =
+        fromApplicationException(responsePayload.getApplicationException());
+    if (rejection != null) {
+      throw rejection;
     }
   }
 
@@ -228,6 +259,16 @@ public class ThriftServerRSocket implements RSocket {
   private static Throwable reportTaskExpired(String methodName, long timeoutMillis) {
     LOGGER.warn("method {} timed out after {}ms", methodName, timeoutMillis);
     return taskExpired(methodName, timeoutMillis);
+  }
+
+  /**
+   * Maps a saturated off-loop scheduler to the overload rejection: when the pool is full the
+   * handler hop throws instead of running, which must read as a REJECTED OVERLOAD like the Header
+   * transports report, not an APPLICATION_ERROR. No exception hooks fire because the handler never
+   * ran.
+   */
+  private static RSocketErrorException rejectedOverload(Throwable e) {
+    return fromApplicationException(OverloadedException.host(e.getMessage()));
   }
 
   /**
@@ -305,9 +346,11 @@ public class ThriftServerRSocket implements RSocket {
 
     try {
       data = alloc.buffer();
-      metadata = alloc.buffer();
 
       serializeResponse(requestPayload, responsePayload, data);
+      throwIfOverloaded(responsePayload);
+
+      metadata = alloc.buffer();
       serializeResponseMetadata(responsePayload, metadata);
 
       return createPayload(

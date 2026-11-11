@@ -298,11 +298,9 @@ public class ThriftServerRSocketReleaseTest {
     ByteBuf meta = createMetadata(metadata);
     Payload payload = PayloadUtil.createPayload(data, meta);
 
-    // Sanity check: client receives a proper Thrift LOADSHEDDING error response, not a connection
-    // drop, when the dispatcher returns Mono.just(errorResponse) from the preprocess catch.
-    StepVerifier.create(sheddingRocket.requestResponse(payload))
-        .assertNext(Payload::release)
-        .verifyComplete();
+    // Sanity check: the shed surfaces as a Rocket ERROR, not a connection drop, when the
+    // dispatcher returns Mono.just(errorResponse) from the preprocess catch.
+    StepVerifier.create(sheddingRocket.requestResponse(payload)).verifyError();
 
     assertEquals(1, handlerInvocations.get(), "preprocess must fire exactly once");
     // The core invariant: even though preprocess sheds BEFORE the Mono.defer is ever subscribed,
@@ -365,12 +363,10 @@ public class ThriftServerRSocketReleaseTest {
     ByteBuf meta = createMetadata(metadata);
     Payload payload = PayloadUtil.createPayload(data, meta);
 
-    // Streaming shed: dispatcher returns Flux.just(errorResponse). The stream emits the error
-    // payload and completes; the transport's doFinally releases the buffer immediately -- not
+    // Streaming shed: the dispatcher returns Flux.just(errorResponse) and the transport turns
+    // it into a Rocket ERROR; the transport's doFinally releases the buffer immediately -- not
     // pinned for any stream lifetime.
-    StepVerifier.create(sheddingRocket.requestStream(payload))
-        .assertNext(Payload::release)
-        .verifyComplete();
+    StepVerifier.create(sheddingRocket.requestStream(payload)).verifyError();
 
     assertEquals(0, data.refCnt(), "request data must be freed on streaming preprocess shed");
     assertEquals(0, meta.refCnt(), "request metadata must be freed on streaming preprocess shed");

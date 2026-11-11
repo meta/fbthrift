@@ -106,10 +106,11 @@ public class MyServiceRpcServerHandler
           _chain.postRead(_data);
 
           reactor.core.publisher.Mono<Void> _delegateResponse =
-            com.facebook.nifty.core.RequestContextScope.get(
-              com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
-              () -> _delegate
-                .ping());
+            reactor.core.publisher.Mono.defer(
+              () -> com.facebook.nifty.core.RequestContextScope.get(
+                com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+                () -> _delegate
+                  .ping()));
 
           reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
             _delegateResponse.map(_response ->
@@ -151,7 +152,6 @@ public class MyServiceRpcServerHandler
 
                 return reactor.core.publisher.Mono.just(_serverResponsePayload);
                 }
-                _chain.preWriteException(_t);
                 // exception is neither user declared nor a known application exception
                 String _errorMessage = String.format("Internal error processing ping: %s", _t.getMessage() == null ? "<null>" : _t.getMessage());
                 org.apache.thrift.TApplicationException _tApplicationException =
@@ -223,10 +223,11 @@ public class MyServiceRpcServerHandler
           _chain.postRead(_data);
 
           reactor.core.publisher.Mono<String> _delegateResponse =
-            com.facebook.nifty.core.RequestContextScope.get(
-              com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
-              () -> _delegate
-                .getRandomData());
+            reactor.core.publisher.Mono.defer(
+              () -> com.facebook.nifty.core.RequestContextScope.get(
+                com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+                () -> _delegate
+                  .getRandomData()));
 
           reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
             _delegateResponse.map(_response ->
@@ -267,7 +268,6 @@ public class MyServiceRpcServerHandler
 
                 return reactor.core.publisher.Mono.just(_serverResponsePayload);
                 }
-                _chain.preWriteException(_t);
                 // exception is neither user declared nor a known application exception
                 String _errorMessage = String.format("Internal error processing getRandomData: %s", _t.getMessage() == null ? "<null>" : _t.getMessage());
                 org.apache.thrift.TApplicationException _tApplicationException =
@@ -337,10 +337,11 @@ public class MyServiceRpcServerHandler
           _chain.postRead(_data);
 
           reactor.core.publisher.Mono<Void> _delegateResponse =
-            com.facebook.nifty.core.RequestContextScope.get(
-              com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
-              () -> _delegate
-                .sink(sink));
+            reactor.core.publisher.Mono.defer(
+              () -> com.facebook.nifty.core.RequestContextScope.get(
+                com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+                () -> _delegate
+                  .sink(sink)));
 
           reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
             _delegateResponse.map(_response ->
@@ -382,7 +383,6 @@ public class MyServiceRpcServerHandler
 
                 return reactor.core.publisher.Mono.just(_serverResponsePayload);
                 }
-                _chain.preWriteException(_t);
                 // exception is neither user declared nor a known application exception
                 String _errorMessage = String.format("Internal error processing sink: %s", _t.getMessage() == null ? "<null>" : _t.getMessage());
                 org.apache.thrift.TApplicationException _tApplicationException =
@@ -409,7 +409,7 @@ public class MyServiceRpcServerHandler
     try {
       _chain = new com.facebook.swift.service.ContextChain(_eventHandlers, _qualifiedMethodName, _payload.getRequestContext());
     } catch (Throwable _t) {
-      com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.internalErrorResponse(_t, "context chain construction", _payload.getRequestRpcMetadata(), null);
+      com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.internalErrorResponse(_t, "during context chain construction", _payload.getRequestRpcMetadata(), null);
       return reactor.core.publisher.Flux.just(_serverResponsePayload);
     }
     try {
@@ -418,7 +418,7 @@ public class MyServiceRpcServerHandler
       com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.fromTApplicationException(_tApplicationException, _payload.getRequestRpcMetadata(), _chain);
       return reactor.core.publisher.Flux.just(_serverResponsePayload).doFinally(__ -> _chain.done());
     } catch (Throwable _t) {
-      com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.internalErrorResponse(_t, "preprocess", _payload.getRequestRpcMetadata(), _chain);
+      com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.internalErrorResponse(_t, "during preprocess", _payload.getRequestRpcMetadata(), _chain);
       return reactor.core.publisher.Flux.just(_serverResponsePayload).doFinally(__ -> _chain.done());
     }
     reactor.core.publisher.Flux<com.facebook.thrift.payload.ServerResponsePayload> _response = reactor.core.publisher.Flux.defer(() ->
@@ -464,7 +464,7 @@ public class MyServiceRpcServerHandler
     try {
       _chain = new com.facebook.swift.service.ContextChain(_eventHandlers, _qualifiedMethodName, _payload.getRequestContext());
     } catch (Throwable _t) {
-      com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.internalErrorResponse(_t, "context chain construction", _payload.getRequestRpcMetadata(), null);
+      com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.internalErrorResponse(_t, "during context chain construction", _payload.getRequestRpcMetadata(), null);
       return reactor.core.publisher.Mono.just(_serverResponsePayload);
     }
     try {
@@ -473,7 +473,7 @@ public class MyServiceRpcServerHandler
       com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.fromTApplicationException(_tApplicationException, _payload.getRequestRpcMetadata(), _chain);
       return reactor.core.publisher.Mono.just(_serverResponsePayload).doFinally(__ -> _chain.done());
     } catch (Throwable _t) {
-      com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.internalErrorResponse(_t, "preprocess", _payload.getRequestRpcMetadata(), _chain);
+      com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.internalErrorResponse(_t, "during preprocess", _payload.getRequestRpcMetadata(), _chain);
       return reactor.core.publisher.Mono.just(_serverResponsePayload).doFinally(__ -> _chain.done());
     }
     reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _response = reactor.core.publisher.Mono.defer(() ->
@@ -503,7 +503,7 @@ public class MyServiceRpcServerHandler
       com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.fromTApplicationException(_tApplicationException, _payload.getRequestRpcMetadata(), _chain);
       return reactor.core.publisher.Mono.just(_serverResponsePayload);
     } catch (Throwable _t) {
-      _result = reactor.core.publisher.Mono.error(_t);
+      _result = reactor.core.publisher.Mono.just(com.facebook.thrift.util.RpcPayloadUtil.internalErrorResponse(_t, "processing " + _name, _payload.getRequestRpcMetadata(), _chain));
     }
 
     return _result;

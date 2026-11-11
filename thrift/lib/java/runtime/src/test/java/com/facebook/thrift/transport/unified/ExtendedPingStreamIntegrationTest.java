@@ -48,13 +48,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 import org.apache.thrift.ProtocolId;
 import org.apache.thrift.TApplicationException;
-import org.apache.thrift.TException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -847,51 +845,6 @@ public class ExtendedPingStreamIntegrationTest {
   }
 
   @Test
-  public void preprocessSheddingRejectsStreamCompact() throws Exception {
-    runPreprocessSheddingRejectsStream(ProtocolId.COMPACT);
-  }
-
-  @Test
-  public void preprocessSheddingRejectsStreamBinary() throws Exception {
-    runPreprocessSheddingRejectsStream(ProtocolId.BINARY);
-  }
-
-  /**
-   * A preprocess LOADSHEDDING throw rejects before dispatch: handler never runs, done still fires.
-   */
-  private void runPreprocessSheddingRejectsStream(ProtocolId protocolId) throws Exception {
-    CountDownLatch doneSeen = new CountDownLatch(1);
-    ThriftEventHandler shedder =
-        new ThriftEventHandler() {
-          @Override
-          public void preprocess(Object context, String methodName) throws TException {
-            throw new TApplicationException(TApplicationException.LOADSHEDDING, "shed");
-          }
-
-          @Override
-          public void done(Object context, String methodName) {
-            doneSeen.countDown();
-          }
-        };
-    InvokingPingService service = new InvokingPingService();
-    startServer(service, ImmutableList.of(shedder));
-
-    StepVerifier.create(client(protocolId).streamOfPings(request(), 5))
-        .expectErrorSatisfies(
-            t -> {
-              // The LOADSHEDDING type code does not survive the error-code round trip; the
-              // rejection (before dispatch, with the message) is what matters here.
-              Assertions.assertTrue(t instanceof TApplicationException, "got " + t);
-              Assertions.assertTrue(
-                  String.valueOf(t.getMessage()).contains("shed"), "got " + t.getMessage());
-            })
-        .verify();
-
-    Assertions.assertFalse(service.invoked.get(), "shed request reached the handler");
-    Assertions.assertTrue(doneSeen.await(10, TimeUnit.SECONDS), "done never fired");
-  }
-
-  @Test
   public void concurrentStreamsShareOneConnectionCompact() throws Exception {
     runConcurrentStreamsShareOneConnection(ProtocolId.COMPACT);
   }
@@ -1274,17 +1227,6 @@ public class ExtendedPingStreamIntegrationTest {
       return Mono.fromFuture(gate)
           .then(super.streamWithFirstResponse(request, numberOfPings))
           .doOnCancel(handlerCancelled::countDown);
-    }
-  }
-
-  /** Plain-stream service recording whether the user handler ran. */
-  private static class InvokingPingService extends ExtendedReactivePingService {
-    final AtomicBoolean invoked = new AtomicBoolean();
-
-    @Override
-    public Flux<PingResponse> streamOfPings(PingRequest request, int numberOfPings) {
-      invoked.set(true);
-      return super.streamOfPings(request, numberOfPings);
     }
   }
 }

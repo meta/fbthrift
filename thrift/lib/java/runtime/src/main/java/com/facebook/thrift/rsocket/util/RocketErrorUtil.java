@@ -17,17 +17,20 @@
 package com.facebook.thrift.rsocket.util;
 
 import com.facebook.thrift.protocol.ProtocolUtil;
+import com.facebook.thrift.server.OverloadedException;
 import com.facebook.thrift.util.resources.RpcResources;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.util.ReferenceCountUtil;
 import io.rsocket.RSocketErrorException;
 import io.rsocket.exceptions.CanceledException;
+import io.rsocket.exceptions.RejectedException;
 import io.rsocket.frame.ErrorFrameCodec;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
+import javax.annotation.Nullable;
 import org.apache.thrift.ResponseRpcError;
 import org.apache.thrift.ResponseRpcErrorCategory;
 import org.apache.thrift.ResponseRpcErrorCode;
@@ -202,6 +205,43 @@ public final class RocketErrorUtil {
             .setCode(ResponseRpcErrorCode.TASK_EXPIRED)
             .build();
     return new CanceledException(encode(error));
+  }
+
+  /**
+   * Returns the REJECTED error for an overload reason, or null so the serialized body stays the
+   * response. Call it after body serialization so exception hooks run once.
+   */
+  @Nullable
+  public static RSocketErrorException fromApplicationException(
+      @Nullable TApplicationException exception) {
+    if (exception == null) {
+      return null;
+    }
+    switch (OverloadedException.rpcErrorCodeOf(exception)) {
+      case OverloadedException.HOST_OVERLOAD:
+        return rejected(ResponseRpcErrorCode.OVERLOAD, exception.getMessage());
+      case OverloadedException.QUEUE_OVERLOAD:
+        return rejected(ResponseRpcErrorCode.QUEUE_OVERLOADED, exception.getMessage());
+      case OverloadedException.APP_OVERLOAD:
+        return rejected(ResponseRpcErrorCode.APP_OVERLOAD, exception.getMessage());
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * Builds the REJECTED ERROR frame for an overload code, with the LOADSHEDDING category. Omits
+   * load: its varint can hold bytes of 0x80 or more, which the UTF-8 frame message cannot carry.
+   */
+  private static RSocketErrorException rejected(ResponseRpcErrorCode code, String message) {
+    ResponseRpcError error =
+        new ResponseRpcError.Builder()
+            .setNameUtf8(code.name())
+            .setWhatUtf8(message == null ? "" : toSafeMessage(message))
+            .setCategory(ResponseRpcErrorCategory.LOADSHEDDING)
+            .setCode(code)
+            .build();
+    return new RejectedException(encode(error));
   }
 
   /**

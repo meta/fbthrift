@@ -18,14 +18,20 @@ package com.facebook.thrift.rsocket.server;
 
 import static com.facebook.thrift.rsocket.util.RocketErrorUtil.decodeRocketError;
 import static com.facebook.thrift.rsocket.util.RocketErrorUtil.isRocketError;
+import static com.facebook.thrift.rsocket.util.RocketErrorUtil.toApplicationException;
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.facebook.swift.service.ThriftEventHandler;
+import com.facebook.thrift.loadbalancing.LoadHeaderRpcServerHandler;
+import com.facebook.thrift.loadbalancing.LoadHeaderSupplier;
 import com.facebook.thrift.model.ResponseAndStream;
+import com.facebook.thrift.payload.DefaultServerResponsePayload;
 import com.facebook.thrift.payload.ServerRequestPayload;
 import com.facebook.thrift.payload.ServerResponsePayload;
 import com.facebook.thrift.protocol.ProtocolUtil;
 import com.facebook.thrift.protocol.TProtocolType;
 import com.facebook.thrift.rsocket.util.PayloadUtil;
+import com.facebook.thrift.server.OverloadedException;
 import com.facebook.thrift.server.RpcServerHandler;
 import com.facebook.thrift.test.rocket.InitialTestResponse;
 import com.facebook.thrift.test.rocket.TestAnnotatedMessageException;
@@ -46,6 +52,8 @@ import io.netty.buffer.ByteBufAllocator;
 import io.rsocket.Payload;
 import io.rsocket.RSocketErrorException;
 import io.rsocket.frame.ErrorFrameCodec;
+import java.util.Collections;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -60,10 +68,13 @@ import org.apache.thrift.PayloadResponseMetadata;
 import org.apache.thrift.ProtocolId;
 import org.apache.thrift.RequestRpcMetadata;
 import org.apache.thrift.ResponseRpcError;
+import org.apache.thrift.ResponseRpcErrorCategory;
 import org.apache.thrift.ResponseRpcErrorCode;
 import org.apache.thrift.ResponseRpcMetadata;
 import org.apache.thrift.RpcKind;
 import org.apache.thrift.StreamPayloadMetadata;
+import org.apache.thrift.TApplicationException;
+import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TField;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.protocol.TStruct;
@@ -74,6 +85,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
 public class ThriftServerRSocketTest {
@@ -1442,5 +1454,294 @@ public class ThriftServerRSocketTest {
         .verifyComplete();
 
     assertTrue(cancelled.get(), "the handler subscription should be cancelled on timeout");
+  }
+
+  /**
+   * A preprocess LOADSHEDDING throw rejects with a REJECTED ERROR frame whose code follows the
+   * reason, like the C++ server sends, instead of a response body whose type decodes as UNKNOWN. A
+   * bare LOADSHEDDING maps to APP_OVERLOAD.
+   */
+  @Test
+  public void testPreprocessShedRequestResponseCompact() {
+    runPreprocessShedRequestResponse(ProtocolId.COMPACT);
+  }
+
+  @Test
+  public void testPreprocessShedRequestResponseBinary() {
+    runPreprocessShedRequestResponse(ProtocolId.BINARY);
+  }
+
+  private void runPreprocessShedRequestResponse(ProtocolId protocolId) {
+    this.protocolId = protocolId;
+    ThriftServerRSocket sheddingRocket =
+        sheddingRocket(new TApplicationException(TApplicationException.LOADSHEDDING, "shed"));
+
+    RequestRpcMetadata requestMetadata =
+        createRequestRpcMetadata("requestResponse", RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE);
+    Payload request = createPayload(requestMetadata, 0, "foo");
+
+    StepVerifier.create(sheddingRocket.requestResponse(request))
+        .expectErrorSatisfies(t -> assertShedError(t, ResponseRpcErrorCode.APP_OVERLOAD))
+        .verify();
+  }
+
+  @Test
+  public void testPreprocessShedStreamCompact() {
+    runPreprocessShedStream(ProtocolId.COMPACT);
+  }
+
+  @Test
+  public void testPreprocessShedStreamBinary() {
+    runPreprocessShedStream(ProtocolId.BINARY);
+  }
+
+  private void runPreprocessShedStream(ProtocolId protocolId) {
+    this.protocolId = protocolId;
+    ThriftServerRSocket sheddingRocket =
+        sheddingRocket(new TApplicationException(TApplicationException.LOADSHEDDING, "shed"));
+
+    RequestRpcMetadata requestMetadata =
+        createRequestRpcMetadata("streamResponse", RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE);
+    Payload request = createPayload(requestMetadata, 0, "foo");
+
+    StepVerifier.create(sheddingRocket.requestStream(request))
+        .expectErrorSatisfies(t -> assertShedError(t, ResponseRpcErrorCode.APP_OVERLOAD))
+        .verify();
+  }
+
+  /**
+   * Only the first stream response may become a rejection: a LOADSHEDDING error after the first
+   * response stays in band with stream metadata, and both responses are freed.
+   */
+  @Test
+  public void testLoadsheddingAfterFirstStreamResponseStaysInBand() {
+    this.protocolId = ProtocolId.COMPACT;
+    RequestRpcMetadata requestMetadata =
+        createRequestRpcMetadata("streamResponse", RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE);
+    TApplicationException lateShed =
+        new TApplicationException(TApplicationException.LOADSHEDDING, "late shed");
+    RpcServerHandler stub =
+        new RpcServerHandler() {
+          @Override
+          public Flux<ServerResponsePayload> singleRequestStreamingResponse(
+              ServerRequestPayload payload) {
+            return Flux.just(
+                RpcPayloadUtil.fromTApplicationException(
+                    new TApplicationException(TApplicationException.INTERNAL_ERROR, "first"),
+                    requestMetadata,
+                    null),
+                new DefaultServerResponsePayload(
+                    lateShed::write,
+                    null,
+                    RpcPayloadUtil.undeclaredExceptionStreamMetadata(
+                        payload, lateShed.getClass().getName(), lateShed.getMessage()),
+                    true,
+                    lateShed));
+          }
+        };
+    Payload request = createPayload(requestMetadata, 0, "foo");
+
+    StepVerifier.create(new ThriftServerRSocket(stub, alloc).requestStream(request))
+        .assertNext(
+            first -> {
+              ByteBuf data = first.data();
+              ByteBuf metadata = first.metadata();
+              first.release();
+              assertEquals(0, data.refCnt(), "first response data must be freed");
+              assertEquals(0, metadata.refCnt(), "first response metadata must be freed");
+            })
+        .assertNext(
+            second -> {
+              ByteBuf data = second.data();
+              ByteBuf metadata = second.metadata();
+              StreamPayloadMetadata streamMetadata = getStreamMetadata(second);
+              PayloadExceptionMetadataBase exceptionMetadata =
+                  streamMetadata.getPayloadMetadata().getExceptionMetadata();
+              assertEquals(lateShed.getClass().getName(), exceptionMetadata.getNameUtf8());
+              assertEquals(lateShed.getMessage(), exceptionMetadata.getWhatUtf8());
+              second.release();
+              assertEquals(0, data.refCnt(), "late error data must be freed");
+              assertEquals(0, metadata.refCnt(), "late error metadata must be freed");
+            })
+        .verifyComplete();
+  }
+
+  /**
+   * The rejection carries no response load, even when the response metadata has one: rsocket-java
+   * writes ERROR frame data from the exception message, so only the code and the ASCII-safe message
+   * survive.
+   */
+  @Test
+  public void testRejectionOmitsResponseLoad() {
+    this.protocolId = ProtocolId.COMPACT;
+    LoadHeaderSupplier fixedLoad =
+        new LoadHeaderSupplier() {
+          @Override
+          public void onRequest() {}
+
+          @Override
+          public void doFinally() {}
+
+          @Override
+          public long getLoad() {
+            return 42;
+          }
+        };
+    RpcServerHandler sheddingHandler =
+        TestService.Reactive.serverHandlerBuilder(new TestServiceHandler())
+            .setEventHandlers(
+                Collections.singletonList(
+                    new ThriftEventHandler() {
+                      @Override
+                      public void preprocess(Object context, String methodName) throws TException {
+                        throw OverloadedException.host("busy");
+                      }
+                    }))
+            .build();
+    ThriftServerRSocket sheddingRocket =
+        new ThriftServerRSocket(
+            new LoadHeaderRpcServerHandler(sheddingHandler, key -> 0L, fixedLoad), alloc);
+
+    RequestRpcMetadata requestMetadata =
+        new RequestRpcMetadata.Builder()
+            .setProtocol(protocolId)
+            .setName("requestResponse")
+            .setKind(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE)
+            .setOtherMetadata(Collections.singletonMap("load", "default"))
+            .build();
+    Payload request = createPayload(requestMetadata, 0, "foo");
+
+    StepVerifier.create(sheddingRocket.requestResponse(request))
+        .expectErrorSatisfies(
+            t -> {
+              assertShedError(t, ResponseRpcErrorCode.OVERLOAD);
+              assertNull(decodeRocketError(t).getLoad(), "rejection must not carry load");
+            })
+        .verify();
+  }
+
+  /**
+   * A saturated off-loop scheduler rejects with RejectedExecutionException instead of running the
+   * handler; the transport reports that as a REJECTED OVERLOAD like the Header transports do, and
+   * the request buffers are freed on the existing error path.
+   */
+  @Test
+  public void testSchedulerSaturationRejectsRequestResponse() {
+    this.protocolId = ProtocolId.COMPACT;
+    RpcServerHandler stuckHandler =
+        new RpcServerHandler() {
+          @Override
+          public Mono<ServerResponsePayload> singleRequestSingleResponse(
+              ServerRequestPayload payload) {
+            return Mono.<ServerResponsePayload>empty()
+                .subscribeOn(
+                    Schedulers.fromExecutor(
+                        task -> {
+                          throw new RejectedExecutionException("thrift offloop scheduler full");
+                        }));
+          }
+        };
+    RequestRpcMetadata requestMetadata =
+        createRequestRpcMetadata("requestResponse", RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE);
+    ByteBuf data = createData(requestMetadata, createTestRequest(0, "foo"));
+    ByteBuf metadata = createMetadata(requestMetadata);
+    Payload request = PayloadUtil.createPayload(data, metadata);
+
+    StepVerifier.create(new ThriftServerRSocket(stuckHandler, alloc).requestResponse(request))
+        .expectErrorSatisfies(t -> assertShedError(t, ResponseRpcErrorCode.OVERLOAD))
+        .verify();
+
+    assertEquals(1, data.refCnt(), "transport released its reference to request data");
+    assertEquals(1, metadata.refCnt(), "transport released its reference to request metadata");
+    data.release();
+    metadata.release();
+  }
+
+  @Test
+  public void testSchedulerSaturationRejectsStream() {
+    this.protocolId = ProtocolId.COMPACT;
+    RpcServerHandler stuckHandler =
+        new RpcServerHandler() {
+          @Override
+          public Flux<ServerResponsePayload> singleRequestStreamingResponse(
+              ServerRequestPayload payload) {
+            return Flux.<ServerResponsePayload>empty()
+                .subscribeOn(
+                    Schedulers.fromExecutor(
+                        task -> {
+                          throw new RejectedExecutionException("thrift offloop scheduler full");
+                        }));
+          }
+        };
+    RequestRpcMetadata requestMetadata =
+        createRequestRpcMetadata("streamResponse", RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE);
+    ByteBuf data = createData(requestMetadata, createTestRequest(0, "foo"));
+    ByteBuf metadata = createMetadata(requestMetadata);
+    Payload request = PayloadUtil.createPayload(data, metadata);
+
+    StepVerifier.create(new ThriftServerRSocket(stuckHandler, alloc).requestStream(request))
+        .expectErrorSatisfies(t -> assertShedError(t, ResponseRpcErrorCode.OVERLOAD))
+        .verify();
+
+    assertEquals(1, data.refCnt(), "transport released its reference to request data");
+    assertEquals(1, metadata.refCnt(), "transport released its reference to request metadata");
+    data.release();
+    metadata.release();
+  }
+
+  /**
+   * The saturation mapping is gated on the first-response flag like the overload conversion: a
+   * rejection after the first response stays as is.
+   */
+  @Test
+  public void testSchedulerSaturationAfterFirstStreamResponseStaysAsIs() {
+    this.protocolId = ProtocolId.COMPACT;
+    RequestRpcMetadata requestMetadata =
+        createRequestRpcMetadata("streamResponse", RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE);
+    RpcServerHandler stub =
+        new RpcServerHandler() {
+          @Override
+          public Flux<ServerResponsePayload> singleRequestStreamingResponse(
+              ServerRequestPayload payload) {
+            return Flux.concat(
+                Flux.just(
+                    RpcPayloadUtil.fromTApplicationException(
+                        new TApplicationException(TApplicationException.INTERNAL_ERROR, "first"),
+                        requestMetadata,
+                        null)),
+                Flux.error(new RejectedExecutionException("thrift offloop scheduler full")));
+          }
+        };
+    Payload request = createPayload(requestMetadata, 0, "foo");
+
+    StepVerifier.create(new ThriftServerRSocket(stub, alloc).requestStream(request))
+        .assertNext(first -> first.release())
+        .expectErrorSatisfies(t -> assertTrue(t instanceof RejectedExecutionException, "got " + t))
+        .verify();
+  }
+
+  private ThriftServerRSocket sheddingRocket(TApplicationException shed) {
+    ThriftEventHandler shedder =
+        new ThriftEventHandler() {
+          @Override
+          public void preprocess(Object context, String methodName) throws TException {
+            throw shed;
+          }
+        };
+    RpcServerHandler sheddingHandler =
+        TestService.Reactive.serverHandlerBuilder(new TestServiceHandler())
+            .setEventHandlers(Collections.singletonList(shedder))
+            .build();
+    return new ThriftServerRSocket(sheddingHandler, alloc);
+  }
+
+  private void assertShedError(Throwable t, ResponseRpcErrorCode expectedCode) {
+    assertTrue(isRocketError(t), "got " + t);
+    assertEquals(ErrorFrameCodec.REJECTED, ((RSocketErrorException) t).errorCode());
+    ResponseRpcError error = decodeRocketError(t);
+    assertNotNull(error);
+    assertEquals(expectedCode, error.getCode());
+    assertEquals(ResponseRpcErrorCategory.LOADSHEDDING, error.getCategory());
+    assertEquals(TApplicationException.LOADSHEDDING, toApplicationException(error).getType());
   }
 }

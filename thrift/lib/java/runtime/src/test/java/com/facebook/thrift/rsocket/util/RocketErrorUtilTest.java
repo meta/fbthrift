@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.facebook.thrift.server.OverloadedException;
 import io.rsocket.RSocketErrorException;
 import io.rsocket.exceptions.CanceledException;
 import io.rsocket.exceptions.RejectedException;
@@ -293,5 +294,76 @@ public class RocketErrorUtilTest {
     TApplicationException decoded = toApplicationException((Throwable) exception);
     assertEquals(TApplicationException.TIMEOUT, decoded.getType());
     assertEquals("Task expired for someMethod after 5000ms", decoded.getMessage());
+  }
+
+  @Test
+  public void testHostOverloadMapsToOverload() {
+    RSocketErrorException rejection =
+        RocketErrorUtil.fromApplicationException(OverloadedException.host("busy"));
+    assertEquals(ErrorFrameCodec.REJECTED, rejection.errorCode());
+    ResponseRpcError error = decodeRocketError(rejection);
+    assertEquals(ResponseRpcErrorCode.OVERLOAD, error.getCode());
+    assertEquals(ResponseRpcErrorCategory.LOADSHEDDING, error.getCategory());
+    assertEquals("OVERLOAD", error.getNameUtf8());
+    assertNull(error.getLoad());
+  }
+
+  @Test
+  public void testApplicationOverloadMapsToAppOverload() {
+    RSocketErrorException rejection =
+        RocketErrorUtil.fromApplicationException(OverloadedException.application("busy"));
+    assertEquals(ErrorFrameCodec.REJECTED, rejection.errorCode());
+    ResponseRpcError error = decodeRocketError(rejection);
+    assertEquals(ResponseRpcErrorCode.APP_OVERLOAD, error.getCode());
+    assertEquals(ResponseRpcErrorCategory.LOADSHEDDING, error.getCategory());
+  }
+
+  @Test
+  public void testQueueOverloadMapsToQueueOverloaded() {
+    RSocketErrorException rejection =
+        RocketErrorUtil.fromApplicationException(OverloadedException.queue("backed up"));
+    assertEquals(ErrorFrameCodec.REJECTED, rejection.errorCode());
+    ResponseRpcError error = decodeRocketError(rejection);
+    assertEquals(ResponseRpcErrorCode.QUEUE_OVERLOADED, error.getCode());
+    assertEquals(ResponseRpcErrorCategory.LOADSHEDDING, error.getCategory());
+  }
+
+  @Test
+  public void testBareLoadsheddingMapsToAppOverload() {
+    RSocketErrorException rejection =
+        RocketErrorUtil.fromApplicationException(
+            new TApplicationException(TApplicationException.LOADSHEDDING, "shed"));
+    ResponseRpcError error = decodeRocketError(rejection);
+    assertEquals(ResponseRpcErrorCode.APP_OVERLOAD, error.getCode());
+  }
+
+  @Test
+  public void testNonOverloadMapsToNull() {
+    assertNull(
+        RocketErrorUtil.fromApplicationException(
+            new TApplicationException(TApplicationException.INTERNAL_ERROR, "boom")));
+    assertNull(RocketErrorUtil.fromApplicationException(null));
+  }
+
+  @Test
+  public void testLongMessageTruncatedToAscii() {
+    StringBuilder message = new StringBuilder();
+    for (int i = 0; i < 300; i++) {
+      message.append('x');
+    }
+    RSocketErrorException rejection =
+        RocketErrorUtil.fromApplicationException(OverloadedException.host(message.toString()));
+    String what = decodeRocketError(rejection).getWhatUtf8();
+    assertEquals(127, what.length());
+    assertTrue(what.chars().allMatch(c -> c < 0x80), "rejection text must stay ASCII");
+  }
+
+  @Test
+  public void testNonAsciiMessageBecomesAscii() {
+    RSocketErrorException rejection =
+        RocketErrorUtil.fromApplicationException(OverloadedException.host("shed t\u00e9"));
+    String what = decodeRocketError(rejection).getWhatUtf8();
+    assertTrue(what.chars().allMatch(c -> c < 0x80), "rejection text must stay ASCII");
+    assertTrue(what.contains("?"), "non-ASCII bytes must degrade visibly, got " + what);
   }
 }

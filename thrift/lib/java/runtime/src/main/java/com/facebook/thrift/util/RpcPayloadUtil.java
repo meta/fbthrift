@@ -90,8 +90,8 @@ public final class RpcPayloadUtil {
    * chain's exception write hooks when {@code chain} is non-null. Mirrors the C++ server's {@code
    * TApplicationException::INTERNAL_ERROR} wrapping pattern.
    *
-   * @param description short description of what failed, e.g. {@code "preprocess"} or {@code "ping
-   *     handler"}; included in the encoded message.
+   * @param description short description of what failed, e.g. {@code "during preprocess"} or {@code
+   *     "processing ping"}; included in the encoded message.
    */
   public static ServerResponsePayload internalErrorResponse(
       final Throwable t,
@@ -100,7 +100,7 @@ public final class RpcPayloadUtil {
       final ContextChain chain) {
     String message =
         String.format(
-            "Internal error during %s: %s",
+            "Internal error %s: %s",
             description, t.getMessage() == null ? "<null>" : t.getMessage());
     TApplicationException tae =
         new TApplicationException(TApplicationException.INTERNAL_ERROR, message);
