@@ -19,6 +19,7 @@
 
 #include <folly/ExceptionWrapper.h>
 #include <folly/io/async/EventBase.h>
+#include <folly/portability/GMock.h>
 #include <folly/portability/GTest.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/TypedContext.h>
@@ -27,6 +28,7 @@
 
 using namespace apache::thrift::fast_thrift::channel_pipeline;
 using namespace apache::thrift::fast_thrift::channel_pipeline::test;
+using namespace testing;
 
 namespace {
 
@@ -37,6 +39,25 @@ HANDLER_TAG(handler_d);
 
 struct CounterState {
   int value{0};
+};
+
+struct StateHead : MockHeadHandler {
+  template <typename Context>
+  Result onWrite(Context& ctx, TypeErasedBox&&) noexcept {
+    observed = &ctx.template state<CounterState>();
+    return Result::Success;
+  }
+  CounterState* observed{nullptr};
+};
+
+struct StateTail : MockTailHandler {
+  template <typename Context>
+  Result onRead(Context& ctx, TypeErasedBox&&) noexcept {
+    observed = &ctx.template state<CounterState>();
+    observed->value = 99;
+    return Result::Success;
+  }
+  CounterState* observed{nullptr};
 };
 
 struct LabelState {
@@ -294,6 +315,25 @@ TEST_F(PipelineStateTest, StateAccessibleFromWritePath) {
   (void)pipeline->fireRead(erase_and_box(folly::IOBuf::create(0)));
   (void)pipeline->fireWrite(erase_and_box(folly::IOBuf::create(0)));
   EXPECT_EQ(seenOnWrite, 99);
+}
+
+TEST_F(PipelineStateTest, EndpointsAccessTheSameState) {
+  StateHead head;
+  StateTail tail;
+  auto pipeline = PipelineBuilder<StateHead, StateTail, TestAllocator>()
+                      .setEventBase(&evb_)
+                      .setHead(&head)
+                      .setTail(&tail)
+                      .setAllocator(&allocator_)
+                      .addState<CounterState>()
+                      .build();
+
+  EXPECT_THAT(pipeline->fireRead(TypeErasedBox{1}), Eq(Result::Success));
+  EXPECT_THAT(pipeline->fireWrite(TypeErasedBox{2}), Eq(Result::Success));
+
+  ASSERT_THAT(head.observed, NotNull());
+  EXPECT_THAT(head.observed, Eq(tail.observed));
+  EXPECT_THAT(head.observed->value, Eq(99));
 }
 
 TEST_F(PipelineStateTest, StateConstructedWithArguments) {

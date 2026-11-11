@@ -533,8 +533,13 @@ class PipelineBuilder {
     pipeline->headOnWriteFn_ = [](void* h,
                                   detail::ContextImpl& ctx,
                                   TypeErasedBox&& msg) noexcept -> Result {
-      return static_cast<HeadHandler*>(h)->onWrite(ctx, std::move(msg));
+      return static_cast<HeadHandler*>(h)->onWrite(
+          detail::contextFor<StateTuple>(ctx), std::move(msg));
     };
+    // In a pipeline with state, onWrite() above gets the typed context, but
+    // onWriteReady() still gets the bare ContextImpl. A head whose
+    // onWriteReady() takes only the typed context fails this check, and the
+    // pipeline never calls it.
     if constexpr (requires(HeadHandler& h, detail::ContextImpl& ctx) {
                     { h.onWriteReady(ctx) } noexcept -> std::same_as<void>;
                   }) {
@@ -596,7 +601,8 @@ class PipelineBuilder {
     pipeline->tailOnReadFn_ = [](void* h,
                                  detail::ContextImpl& ctx,
                                  TypeErasedBox&& msg) noexcept -> Result {
-      return static_cast<TailHandler*>(h)->onRead(ctx, std::move(msg));
+      return static_cast<TailHandler*>(h)->onRead(
+          detail::contextFor<StateTuple>(ctx), std::move(msg));
     };
     pipeline->tailOnExceptionFn_ = [](void* h,
                                       folly::exception_wrapper&& e) noexcept {
