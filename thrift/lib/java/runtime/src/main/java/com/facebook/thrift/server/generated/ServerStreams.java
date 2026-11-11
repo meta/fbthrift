@@ -32,6 +32,7 @@ import com.facebook.thrift.payload.ServerRequestPayload;
 import com.facebook.thrift.payload.ServerResponsePayload;
 import com.facebook.thrift.payload.ThriftSerializable;
 import com.facebook.thrift.payload.Writer;
+import com.facebook.thrift.rsocket.server.ThriftServerRSocket;
 import com.facebook.thrift.util.Writers;
 import com.facebook.thrift.util.resources.RpcResources;
 import java.util.List;
@@ -45,17 +46,11 @@ import reactor.core.publisher.Mono;
  * The untyped shared half of server stream handling: every streaming method is a response phase
  * (read the args, invoke the delegate, write the first payload) followed by a stream phase (write
  * each element, then completion). A plain stream is a first-response stream whose first response is
- * the empty init, written by {@link #EMPTY_FIRST_RESPONSE_WRITER} for the {@link
- * #NO_FIRST_RESPONSE} sentinel.
+ * the empty init.
  *
- * <p>Error scope follows from where the error happens, with no flags: anything before the first
- * payload is emitted encodes as the initial error (checked against the function-declared
- * exceptions), anything after as a stream error (checked against the stream-declared exceptions).
- * An empty invoke {@link Mono} fails like a null first response.
- *
- * <p>Credit behavior is concat's: the first payload consumes one downstream credit and the rest of
- * the demand forwards to the user's {@link Flux}. Generated code owns demand policy; this class
- * never requests.
+ * <p>Anything before the first payload encodes as the initial error, anything after as a stream
+ * error. Credit behavior is concat's: the first payload consumes one downstream credit and the rest
+ * forwards to the user flux. Generated code owns demand policy; this class never requests.
  */
 public final class ServerStreams {
   private static final Logger logger = LoggerFactory.getLogger(ServerStreams.class);
@@ -74,45 +69,56 @@ public final class ServerStreams {
 
   public static <F, E> Flux<ServerResponsePayload> handleStream(
       ServerRequestPayload requestPayload, ContextChain chain, StreamMethod<F, E> method) {
-    return Mono.defer(
-            () -> {
-              final List<Object> data;
-              try {
-                chain.preRead();
-                data = requestPayload.getData(method.readers);
-                chain.postRead(data);
-                return method.invoke.apply(data);
-              } catch (Throwable t) {
-                logger.warn("Can not handle stream", t);
-                return Mono.<ResponseAndStream<F, E>>error(t);
-              } finally {
-                // getData has fully read the request bytes, so the request buffer is released
-                // here, after invoke returns and before the stream starts. This is the streaming
-                // analog of the eager release the generated request-response/oneway handlers do
-                // right after their read -- it keeps the request buffer from being pinned for the
-                // entire stream lifetime. Idempotent, and a no-op for payloads that carry no
-                // owned buffer.
-                requestPayload.releaseRequestData();
-              }
-            })
-        .switchIfEmpty(Mono.error(new NullPointerException("the first response must not be null")))
-        .flatMapMany(
-            responseAndStream ->
-                Flux.concat(
-                        Mono.fromCallable(
-                            () ->
-                                firstPayload(
-                                    requestPayload,
-                                    chain,
-                                    method,
-                                    responseAndStream.getFirstResponse())),
-                        streamPhase(requestPayload, chain, method, responseAndStream.getStream()))
-                    // The downstream may never consume the stream (cancelled before the first
-                    // request, or a throw while building the first payload): dispose the holder
-                    // so a forwarded backend stream is torn down. A no-op after completion or
-                    // once the inner stream took over its own lifecycle.
-                    .doFinally(signal -> responseAndStream.dispose()))
-        .onErrorResume(t -> Mono.just(initialErrorPayload(requestPayload, chain, method, t)));
+    Flux<ServerResponsePayload> response =
+        Mono.defer(
+                () -> {
+                  final List<Object> data;
+                  try {
+                    chain.preRead();
+                    data = requestPayload.getData(method.readers);
+                    chain.postRead(data);
+                    return method.invoke.apply(data);
+                  } catch (Throwable t) {
+                    logger.warn("Can not handle stream", t);
+                    return Mono.<ResponseAndStream<F, E>>error(t);
+                  } finally {
+                    // The request bytes are fully read, so release the buffer before the stream
+                    // starts instead of pinning it for the stream lifetime.
+                    requestPayload.releaseRequestData();
+                  }
+                })
+            .switchIfEmpty(
+                Mono.error(new NullPointerException("the first response must not be null")))
+            .flatMapMany(
+                responseAndStream ->
+                    Flux.concat(
+                            Mono.fromCallable(
+                                () ->
+                                    firstPayload(
+                                        requestPayload,
+                                        chain,
+                                        method,
+                                        responseAndStream.getFirstResponse())),
+                            streamPhase(
+                                requestPayload, chain, method, responseAndStream.getStream()))
+                        // A downstream that never consumes the stream must not pin a forwarded
+                        // backend stream: dispose the holder. A no-op once the inner stream took
+                        // over its own lifecycle.
+                        .doFinally(signal -> responseAndStream.dispose()))
+            .onErrorResume(t -> Mono.just(initialErrorPayload(requestPayload, chain, method, t)));
+    if (chain.hasStreamHandlers()) {
+      response =
+          response
+              .doOnRequest(
+                  n -> {
+                    if (n > 0) {
+                      chain.onStreamCredit(saturateCredits(n));
+                    }
+                  })
+              .doFinally(chain::finishStream);
+    }
+    // Unconditional so user cancel cleanup never moves with registration.
+    return response.cancelOn(ThriftServerRSocket.cancelScheduler());
   }
 
   private static <F, E> Flux<ServerResponsePayload> streamPhase(
@@ -123,9 +129,27 @@ public final class ServerStreams {
     if (RpcResources.isForceExecutionOffEventLoop()) {
       stream = stream.subscribeOn(RpcResources.getOffLoopScheduler());
     }
+    if (chain.hasStreamHandlers()) {
+      return stream
+          .doOnSubscribe(s -> chain.onStreamSubscribe())
+          .map(element -> elementPayload(requestPayload, chain, method, element))
+          .doOnNext(payload -> chain.onStreamNext())
+          .onErrorResume(
+              t -> {
+                // The error encodes as a terminal frame completing normally, so fire the error
+                // hook now: it always precedes the ERROR terminal.
+                chain.handleStreamError(t);
+                return Mono.just(streamErrorPayload(requestPayload, chain, method, t));
+              });
+    }
     return stream
         .map(element -> elementPayload(requestPayload, chain, method, element))
         .onErrorResume(t -> Mono.just(streamErrorPayload(requestPayload, chain, method, t)));
+  }
+
+  /** Unbounded demand saturates. */
+  private static int saturateCredits(long n) {
+    return n >= Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) n;
   }
 
   private static <F, E> ServerResponsePayload firstPayload(
@@ -146,15 +170,10 @@ public final class ServerStreams {
   }
 
   /**
-   * Check if an exception is a known (declared) exception.
+   * Whether an exception is declared. Function-level failures check the throws clause, stream
+   * failures the stream exceptions.
    *
-   * <p>Per Thrift IDL specification: - Function-level exceptions (throws clause): only declared at
-   * initial response level - Stream-level exceptions (stream<T throws>): only declared within the
-   * stream
-   *
-   * @param t the exception to check
-   * @param checkStreamExceptions if true, check stream exceptions; if false, check function
-   *     exceptions
+   * @param checkStreamExceptions true for stream-level, false for function-level
    * @return the field ID if known, -1 if unknown
    */
   private static int isKnownException(
