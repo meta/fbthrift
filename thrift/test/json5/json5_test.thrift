@@ -1185,7 +1185,7 @@ const list<TestCase> testCases = [
   \"floatListValue\": [
     0.1,
     1e-05,
-    16777216.0,
+    1.6777216e+07,
     1234567.0,
     3.4028235e+38,
     1e-45,
@@ -1196,7 +1196,7 @@ const list<TestCase> testCases = [
   floatListValue: [
     0.1,
     1e-05,
-    16777216.0,
+    1.6777216e+07,
     1234567.0,
     3.4028235e+38,
     1e-45,
@@ -1238,7 +1238,7 @@ const list<TestCase> testCases = [
   ],
   \"floatAsKey\": [
     {
-      \"key\": 16777216.0,
+      \"key\": 1.6777216e+07,
       \"value\": 1
     }
   ]
@@ -1260,14 +1260,14 @@ const list<TestCase> testCases = [
   ],
   floatAsKey: [
     {
-      key: 16777216.0,
+      key: 1.6777216e+07,
       value: 1,
     },
   ],
 }",
   },
-  // More of fmt's layout of the shortest digits: fixed notation for decimal
-  // exponents in [-4, 16), for float as well as double.
+  // More of the layout of the shortest digits: fixed notation for decimal
+  // exponents in [-4, 16) for double and [-4, 7) for float.
   TestCase{
     name = "MoreDoubleFormatting",
     example = Example{doubleListValue = [1.0, 0.1, 0.10000000000000002, 0.3333333333333333, 9.999999999999999e-5, 9999999999999998.0, 9007199254740992.0, 9223372036854775808.0, 1e23, 1e100, 1e-100, -1.5e300, 2.2250738585072014e-308]},
@@ -1313,9 +1313,9 @@ const list<TestCase> testCases = [
   \"floatListValue\": [
     0.33333334,
     4194304.0,
-    10000000.0,
-    16777215.0,
-    1000000000000000.0,
+    1e+07,
+    1.6777215e+07,
+    1e+15,
     1e+16,
     1.1754944e-38,
     7.0385313e-26
@@ -1325,9 +1325,9 @@ const list<TestCase> testCases = [
   floatListValue: [
     0.33333334,
     4194304.0,
-    10000000.0,
-    16777215.0,
-    1000000000000000.0,
+    1e+07,
+    1.6777215e+07,
+    1e+15,
     1e+16,
     1.1754944e-38,
     7.0385313e-26,
@@ -2333,7 +2333,7 @@ const list<TestCase> testCases = [
     json = "{
   \"floatAsKey\": [
     {
-      \"key\": 16777216.0,
+      \"key\": 1.6777216e+07,
       \"value\": 1
     }
   ]
@@ -2341,7 +2341,7 @@ const list<TestCase> testCases = [
     json5 = "{
   floatAsKey: [
     {
-      key: 16777216.0,
+      key: 1.6777216e+07,
       value: 1,
     },
   ],
@@ -2410,7 +2410,7 @@ const list<TestCase> testCases = [
       \"value\": 1
     },
     {
-      \"key\": 16777216.0,
+      \"key\": 1.6777216e+07,
       \"value\": 2
     }
   ]
@@ -2422,7 +2422,7 @@ const list<TestCase> testCases = [
       value: 1,
     },
     {
-      key: 16777216.0,
+      key: 1.6777216e+07,
       value: 2,
     },
   ],

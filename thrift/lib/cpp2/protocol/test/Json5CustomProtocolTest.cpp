@@ -21,6 +21,7 @@
 #include <cstdint>
 #include <unordered_map>
 #include <vector>
+#include <fmt/format.h>
 #include <gtest/gtest.h>
 #include <folly/json/dynamic.h>
 #include <folly/json/json.h>
@@ -203,6 +204,19 @@ TEST_F(Json5MapPrimitiveKeysTest, WholeNumberFloatWithoutFraction) {
       (toJsonImpl<type::map<type::float_t, type::float_t>>(
           {{-3, -3}}, options)),
       R"({"-3":-3})");
+}
+
+TEST_F(Json5MapPrimitiveKeysTest, UseSimpleJsonFloatNotation) {
+  Json5ProtocolWriter::Options options{
+      .writer =
+          {.wholeNumberFloatWithoutFraction = true,
+           .useSimpleJsonFloatNotation = true},
+      .mapPrimitiveKeysAsMemberNames = true};
+  // Same as SimpleJSON, which writes float with fmt::format("{}").
+  EXPECT_EQ(
+      (toJsonImpl<type::map<type::float_t, type::float_t>>(
+          {{16777216, 16777216}}, options)),
+      fmt::format(R"({{"{0}":{0}}})", 16777216.f));
 }
 
 TEST_F(Json5MapPrimitiveKeysTest, StringAndEnumKeysUnchanged) {

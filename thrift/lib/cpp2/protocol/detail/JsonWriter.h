@@ -81,6 +81,8 @@ struct JsonWriterOptions {
   // Write whole-number floating-point values without ".0", like SimpleJSON.
   // They then read back as integers in untyped JSON.
   bool wholeNumberFloatWithoutFraction = false;
+  // Make float notation match SimpleJSON.
+  bool useSimpleJsonFloatNotation = false;
   // Number of spaces per indentation level. indentWidth=0 produces the compact
   // output with no extra whitespace or newlines.
   std::size_t indentWidth = 0;

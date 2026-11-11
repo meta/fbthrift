@@ -35,6 +35,7 @@ cdef extern from "<thrift/lib/python/Serializer.h>" namespace "apache::thrift::j
         cbool unquoteObjectName
         cbool allowNanInf
         cbool wholeNumberFloatWithoutFraction
+        cbool useSimpleJsonFloatNotation
         size_t indentWidth
 
 

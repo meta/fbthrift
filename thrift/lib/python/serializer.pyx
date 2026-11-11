@@ -42,6 +42,7 @@ cdef class JsonWriterOptions:
         unquote_object_name=False,
         allow_nan_inf=False,
         whole_number_float_without_fraction=False,
+        use_simple_json_float_notation=False,
         indent_width=2,
     ):
         self._writer_options.listTrailingComma = list_trailing_comma
@@ -50,6 +51,9 @@ cdef class JsonWriterOptions:
         self._writer_options.allowNanInf = allow_nan_inf
         self._writer_options.wholeNumberFloatWithoutFraction = (
             whole_number_float_without_fraction
+        )
+        self._writer_options.useSimpleJsonFloatNotation = (
+            use_simple_json_float_notation
         )
         self._writer_options.indentWidth = indent_width
 

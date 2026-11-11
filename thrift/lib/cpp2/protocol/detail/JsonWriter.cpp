@@ -16,7 +16,10 @@
 
 #include <thrift/lib/cpp2/protocol/detail/JsonWriter.h>
 
+#include <cmath>
 #include <cstring>
+#include <string>
+#include <type_traits>
 #include <fmt/format.h>
 #include <folly/Exception.h>
 #include <folly/json.h>
@@ -149,6 +152,13 @@ std::uint32_t JsonWriter::writeFloatingPoint(T t) {
     out_.value().push(sp);
   } else {
     auto tmp = fmt::format("{}", t);
+    if (std::is_same_v<T, float> && !options_.useSimpleJsonFloatNotation &&
+        std::abs(t) >= 1e7f && tmp.find('e') == std::string::npos) {
+      // fmt prints the shortest digits that read back as the same float, so
+      // whatever comes after those digits is padding zeros.
+      auto digits = tmp.find_last_not_of('0') + 1 - std::signbit(t);
+      tmp = fmt::format("{:.{}e}", t, digits - 1);
+    }
     if (!options_.wholeNumberFloatWithoutFraction &&
         tmp.find_first_of(".eE") == std::string::npos) {
       // The shortest round-trip form of a whole-valued double has no '.', 'e',
