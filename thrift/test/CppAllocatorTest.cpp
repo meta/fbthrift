@@ -1077,6 +1077,24 @@ TEST(CppAllocatorTest, OpDecodeConstSharedRefUsesAllocator) {
   EXPECT_EQ(dst.c_ref()->aa_string()->get_allocator().resource(), &res);
 }
 
+TEST(CppAllocatorTest, FieldUseAllocatorRefPointeeUsesAllocator) {
+  std::pmr::monotonic_buffer_resource res1;
+  std::pmr::monotonic_buffer_resource res2;
+  FieldUseAllocatorRefPmr src{PmrByteAlloc(&res1)};
+  ASSERT_NE(src.c_ref(), nullptr);
+  EXPECT_EQ(src.c_ref()->get_allocator().resource(), &res1);
+  src.c_ref()->aa_string() = kTooLong;
+
+  const FieldUseAllocatorRefPmr copied(src, PmrByteAlloc(&res2));
+  EXPECT_EQ(copied.c_ref()->get_allocator().resource(), &res2);
+
+  const auto bytes = CompactSerializer::serialize<std::string>(src);
+  FieldUseAllocatorRefPmr dst{PmrByteAlloc(&res2)};
+  CompactSerializer::deserialize(bytes, dst);
+  EXPECT_EQ(*dst.c_ref()->aa_string(), kTooLong);
+  EXPECT_EQ(dst.c_ref()->get_allocator().resource(), &res2);
+}
+
 // Other owners may share the pointee, so it is copied rather than moved from.
 TEST(CppAllocatorTest, AllocExtendedMoveCopiesSharedRefPointee) {
   std::pmr::monotonic_buffer_resource res1;

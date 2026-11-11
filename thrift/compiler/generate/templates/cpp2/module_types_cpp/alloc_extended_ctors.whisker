@@ -36,7 +36,7 @@
   {{#each (array.enumerate struct.fields_in_layout_order with_last=true) as |i field last?|}}
     {{field.cpp_storage_name}}({{!
     }}{{#if field.cpp_ref_not_boxed?}}{{!
-}}{{#partial module_types.alloc_smart_ptr_fn field=field}}({{#if (object.notnull? field.default_value)}}{{#partial fields.default_value field=field}}{{#else if field.type.cpp_use_allocator?}}alloc{{/if}}){{/if field.cpp_ref_not_boxed?}}{{!
+}}{{#partial module_types.alloc_smart_ptr_fn field=field}}({{#if (object.notnull? field.default_value)}}{{#partial fields.default_value field=field}}{{#else if field.cpp_use_allocator?}}alloc{{/if}}){{/if field.cpp_ref_not_boxed?}}{{!
 }}{{#if (and (not field.cpp_ref?) field.cpp_use_allocator?)}}{{#if field.cpp_alloc_ctor_applies_default?}}{{#partial fields.default_value field=field}}, {{/if}}alloc{{!
 }}{{#else if (and (not field.cpp_ref?) field.cpp_alloc_ctor_applies_default?)}}{{#partial fields.default_value field=field}}{{!
 }}{{/if (and (not field.cpp_ref?) field.cpp_use_allocator?)}}){{#if (not last?)}},
@@ -52,7 +52,7 @@
   {{/if (object.eq? null struct.cpp_allocator_via)}}
   {{#each (array.enumerate struct.fields_in_layout_order with_last=true) as |i field last?|}}
     {{field.cpp_storage_name}}({{!
-}}{{#if field.cpp_ref_not_boxed?}}other.{{field.cpp_storage_name}} ? {{#partial module_types.alloc_smart_ptr_fn field=field}}({{#if field.type.cpp_use_allocator?}}alloc, {{/if}}*other.{{field.cpp_storage_name}}) : nullptr{{!
+}}{{#if field.cpp_ref_not_boxed?}}other.{{field.cpp_storage_name}} ? {{#partial module_types.alloc_smart_ptr_fn field=field}}({{#if field.cpp_use_allocator?}}alloc, {{/if}}*other.{{field.cpp_storage_name}}) : nullptr{{!
 }}{{#else}}other.{{field.cpp_storage_name}}{{#if (and (not field.cpp_ref?) field.cpp_use_allocator?)}}, alloc{{/if}}{{/if field.cpp_ref_not_boxed?}}{{!
     }}){{#if last?}}{{#if struct.isset_fields?}},{{/if}}{{#else}},{{/if}}
   {{/each}}
@@ -67,7 +67,7 @@
   {{/if (object.eq? null struct.cpp_allocator_via)}}
   {{#each (array.enumerate struct.fields_in_layout_order with_last=true) as |i field last?|}}
     {{field.cpp_storage_name}}({{!
-}}{{#if field.cpp_ref_not_boxed?}}{{#if field.type.cpp_use_allocator?}}!other.{{field.cpp_storage_name}} || alloc == other.get_allocator() ? std::move(other.{{field.cpp_storage_name}}) : {{#partial module_types.alloc_smart_ptr_fn field=field}}(alloc, {{#if field.cpp_ref_shared?}}*other.{{field.cpp_storage_name}}{{#else}}std::move(*other.{{field.cpp_storage_name}}){{/if field.cpp_ref_shared?}}){{#else}}std::move(other.{{field.cpp_storage_name}}){{/if field.type.cpp_use_allocator?}}{{!
+}}{{#if field.cpp_ref_not_boxed?}}{{#if field.cpp_use_allocator?}}!other.{{field.cpp_storage_name}} || alloc == other.get_allocator() ? std::move(other.{{field.cpp_storage_name}}) : {{#partial module_types.alloc_smart_ptr_fn field=field}}(alloc, {{#if field.cpp_ref_shared?}}*other.{{field.cpp_storage_name}}{{#else}}std::move(*other.{{field.cpp_storage_name}}){{/if field.cpp_ref_shared?}}){{#else}}std::move(other.{{field.cpp_storage_name}}){{/if field.cpp_use_allocator?}}{{!
 }}{{#else}}std::move(other.{{field.cpp_storage_name}}){{#if (and (not field.cpp_ref?) field.cpp_use_allocator?)}}, alloc{{/if}}{{/if field.cpp_ref_not_boxed?}}{{!
     }}){{#if last?}}{{#if struct.isset_fields?}},{{/if}}{{#else}},{{/if}}
   {{/each}}

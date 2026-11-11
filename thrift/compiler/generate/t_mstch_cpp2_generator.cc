@@ -1403,7 +1403,7 @@ class t_mstch_cpp2_generator : public t_whisker_generator {
             if (ref_type != gen::cpp::reference_type::none &&
                 ref_type != gen::cpp::reference_type::boxed &&
                 ref_type != gen::cpp::reference_type::boxed_intern &&
-                cpp2::type_uses_allocator(field.type().deref())) {
+                cpp2::uses_allocator(field)) {
               return true;
             }
           }

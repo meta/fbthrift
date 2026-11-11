@@ -162,7 +162,7 @@ void FieldUseAllocatorRef::readNoXfer(Protocol_* iprot) {
 _readField_child:
   {
     _readState.beforeSubobject(iprot);
-    auto ptr = ::apache::thrift::detail::make_mutable_smart_ptr<::std::shared_ptr<::test::fixtures::cpp_allocator_ref::Child>>();
+    auto ptr = ::apache::thrift::detail::make_mutable_smart_ptr<::std::shared_ptr<::test::fixtures::cpp_allocator_ref::Child>>(this->get_allocator());
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::structure, ::test::fixtures::cpp_allocator_ref::Child, ::apache::thrift::type::struct_t<::test::fixtures::cpp_allocator_ref::Child>>::read(*iprot, *ptr);
     this->__fbthrift_field_child = std::move(ptr);
     _readState.afterSubobject(iprot);

@@ -139,7 +139,7 @@ FieldUseAllocatorRef::FieldUseAllocatorRef(const FieldUseAllocatorRef& srcObj) :
 static void __fbthrift_swap(FieldUseAllocatorRef& lhs, FieldUseAllocatorRef& rhs) { swap(lhs, rhs); }
 FieldUseAllocatorRef& FieldUseAllocatorRef::operator=(const FieldUseAllocatorRef& other) {
   if (::apache::thrift::detail::copy_assign_changes_allocator(get_allocator(), other.get_allocator())) {
-    this->__fbthrift_field_child = other.__fbthrift_field_child ? std::make_shared<::test::fixtures::cpp_allocator_ref::Child>(*other.__fbthrift_field_child) : nullptr;
+    this->__fbthrift_field_child = other.__fbthrift_field_child ? std::allocate_shared<::test::fixtures::cpp_allocator_ref::Child>(other.get_allocator(), *other.__fbthrift_field_child) : nullptr;
     ::apache::thrift::detail::copy_allocator(__fbthrift_alloc, other.__fbthrift_alloc);
     return *this;
   }
@@ -151,7 +151,7 @@ FieldUseAllocatorRef& FieldUseAllocatorRef::operator=(const FieldUseAllocatorRef
 
 FieldUseAllocatorRef::FieldUseAllocatorRef() :
     __fbthrift_alloc(allocator_type()),
-    __fbthrift_field_child(std::make_shared<::test::fixtures::cpp_allocator_ref::Child>()) {
+    __fbthrift_field_child(std::allocate_shared<::test::fixtures::cpp_allocator_ref::Child>(__fbthrift_alloc)) {
 }
 
 
@@ -159,18 +159,18 @@ FieldUseAllocatorRef::~FieldUseAllocatorRef() {}
 
 FieldUseAllocatorRef::FieldUseAllocatorRef(const allocator_type& alloc) noexcept :
     __fbthrift_alloc(alloc),
-    __fbthrift_field_child(std::make_shared<::test::fixtures::cpp_allocator_ref::Child>()) {
+    __fbthrift_field_child(std::allocate_shared<::test::fixtures::cpp_allocator_ref::Child>(alloc)) {
 }
 
 FieldUseAllocatorRef::FieldUseAllocatorRef(const FieldUseAllocatorRef& other, const allocator_type& alloc) :
     __fbthrift_alloc(alloc),
-    __fbthrift_field_child(other.__fbthrift_field_child ? std::make_shared<::test::fixtures::cpp_allocator_ref::Child>(*other.__fbthrift_field_child) : nullptr)
+    __fbthrift_field_child(other.__fbthrift_field_child ? std::allocate_shared<::test::fixtures::cpp_allocator_ref::Child>(alloc, *other.__fbthrift_field_child) : nullptr)
  {
 }
 
 FieldUseAllocatorRef::FieldUseAllocatorRef(FieldUseAllocatorRef&& other, const allocator_type& alloc) :
     __fbthrift_alloc(alloc),
-    __fbthrift_field_child(std::move(other.__fbthrift_field_child))
+    __fbthrift_field_child(!other.__fbthrift_field_child || alloc == other.get_allocator() ? std::move(other.__fbthrift_field_child) : std::allocate_shared<::test::fixtures::cpp_allocator_ref::Child>(alloc, *other.__fbthrift_field_child))
  {
 }
 FieldUseAllocatorRef::FieldUseAllocatorRef([[maybe_unused]] FieldUseAllocatorRef&& other) noexcept :
@@ -179,6 +179,11 @@ FieldUseAllocatorRef::FieldUseAllocatorRef([[maybe_unused]] FieldUseAllocatorRef
 }
 
 FieldUseAllocatorRef& FieldUseAllocatorRef::operator=([[maybe_unused]] FieldUseAllocatorRef&& other) noexcept {
+    if (!::apache::thrift::detail::move_assign_can_steal(get_allocator(), other.get_allocator())) {
+      FieldUseAllocatorRef tmp(std::move(other), get_allocator());
+      ::apache::thrift::detail::adl_swap(*this, tmp);
+      return *this;
+    }
     this->__fbthrift_field_child = std::move(other.__fbthrift_field_child);
   ::apache::thrift::detail::move_allocator(__fbthrift_alloc, other.__fbthrift_alloc);
     return *this;
@@ -187,7 +192,7 @@ FieldUseAllocatorRef& FieldUseAllocatorRef::operator=([[maybe_unused]] FieldUseA
 
 void FieldUseAllocatorRef::__fbthrift_clear() {
   // clear all fields
-  if (this->__fbthrift_field_child) this->__fbthrift_field_child = ::apache::thrift::detail::make_mutable_smart_ptr<::std::shared_ptr<::test::fixtures::cpp_allocator_ref::Child>>();
+  if (this->__fbthrift_field_child) this->__fbthrift_field_child = ::apache::thrift::detail::make_mutable_smart_ptr<::std::shared_ptr<::test::fixtures::cpp_allocator_ref::Child>>(this->get_allocator());
 }
 
 bool FieldUseAllocatorRef::__fbthrift_is_empty() const {

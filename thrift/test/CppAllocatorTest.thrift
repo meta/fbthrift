@@ -291,6 +291,18 @@ struct ConstRefPmr {
   1: ChildPmr_7470 c;
 }
 
+// `cpp.use_allocator` on a `cpp.ref` field rather than on its typedef.
+@thrift.DeprecatedUnvalidatedAnnotations{
+  items = {"cpp.allocator": "PmrByteAlloc"},
+}
+struct FieldUseAllocatorRefPmr {
+  // @lint-ignore THRIFTCHECKS thrift-parser
+  @cpp.Ref{type = cpp.RefType.SharedMutable}
+  @cpp.AllowLegacyNonOptionalRef
+  @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
+  1: ChildPmr c;
+}
+
 @thrift.DeprecatedUnvalidatedAnnotations{
   items = {"cpp.allocator": "PmrByteAlloc"},
 }

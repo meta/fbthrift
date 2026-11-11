@@ -39,12 +39,12 @@ class {{struct.cpp_underlying_name}};
 {{#let export partial smart_ptr_constructor |field| captures |fields|}}
 {{#pragma ignore-newlines}}
   {{#if field.cpp_ref_unique?}}
-{{#if field.type.cpp_use_allocator?}}folly::allocate_unique{{#else}}std::make_unique{{/if field.type.cpp_use_allocator?}}
+{{#if field.cpp_use_allocator?}}folly::allocate_unique{{#else}}std::make_unique{{/if field.cpp_use_allocator?}}
   {{#else}}
-{{#if field.type.cpp_use_allocator?}}std::allocate_shared{{#else}}std::make_shared{{/if field.type.cpp_use_allocator?}}
+{{#if field.cpp_use_allocator?}}std::allocate_shared{{#else}}std::make_shared{{/if field.cpp_use_allocator?}}
   {{/if field.cpp_ref_unique?}}
 <{{field.cpp_type}}>(
-{{#if field.type.cpp_use_allocator?}}__fbthrift_alloc{{/if}}
+{{#if field.cpp_use_allocator?}}__fbthrift_alloc{{/if}}
 {{#if (object.notnull? field.default_value)}}{{#partial fields.default_value field=field}}{{/if}}
 )
 {{/let partial}}
@@ -53,9 +53,9 @@ class {{struct.cpp_underlying_name}};
 {{#let export partial alloc_smart_ptr_fn |field|}}
 {{#pragma ignore-newlines}}
   {{#if field.cpp_ref_unique?}}
-{{#if field.type.cpp_use_allocator?}}folly::allocate_unique{{#else}}std::make_unique{{/if}}
+{{#if field.cpp_use_allocator?}}folly::allocate_unique{{#else}}std::make_unique{{/if}}
   {{#else}}
-{{#if field.type.cpp_use_allocator?}}std::allocate_shared{{#else}}std::make_shared{{/if}}
+{{#if field.cpp_use_allocator?}}std::allocate_shared{{#else}}std::make_shared{{/if}}
   {{/if field.cpp_ref_unique?}}
 <{{field.cpp_type}}>
 {{/let partial}}
@@ -257,7 +257,7 @@ static void __fbthrift_swap({{struct.cpp_underlying_name}}& lhs, {{struct.cpp_un
   {{#if (object.notnull? struct.cpp_allocator)}}
   if (::apache::thrift::detail::copy_assign_changes_allocator(get_allocator(), other.get_allocator())) {
     {{#each struct.fields_in_layout_order as |field|}}
-    this->{{field.cpp_storage_name}} = {{#if field.cpp_ref_not_boxed?}}other.{{field.cpp_storage_name}} ? {{#partial alloc_smart_ptr_fn field=field}}({{#if field.type.cpp_use_allocator?}}other.get_allocator(), {{/if}}*other.{{field.cpp_storage_name}}) : nullptr{{#else}}other.{{field.cpp_storage_name}}{{/if field.cpp_ref_not_boxed?}};
+    this->{{field.cpp_storage_name}} = {{#if field.cpp_ref_not_boxed?}}other.{{field.cpp_storage_name}} ? {{#partial alloc_smart_ptr_fn field=field}}({{#if field.cpp_use_allocator?}}other.get_allocator(), {{/if}}*other.{{field.cpp_storage_name}}) : nullptr{{#else}}other.{{field.cpp_storage_name}}{{/if field.cpp_ref_not_boxed?}};
     {{/each}}
     {{#if struct.isset_fields?}}
     __isset = other.__isset;
