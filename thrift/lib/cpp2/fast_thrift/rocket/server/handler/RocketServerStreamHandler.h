@@ -181,7 +181,7 @@ class RocketServerStreamHandler {
     auto n = static_cast<int32_t>(rawN);
 
     if (n <= 0) {
-      return synthesizeError(
+      return synthesizeErrorOnRead(
           ctx, streamId, "REQUEST_STREAM with invalid initialRequestN");
     }
 
@@ -213,7 +213,7 @@ class RocketServerStreamHandler {
 
     auto increment = static_cast<uint64_t>(rawN);
     if (entry.credits > std::numeric_limits<uint64_t>::max() - increment) {
-      return synthesizeError(
+      return synthesizeErrorOnRead(
           ctx, streamId, "REQUEST_N would overflow credit counter");
     }
     entry.credits += increment;
@@ -234,7 +234,7 @@ class RocketServerStreamHandler {
       return apache::thrift::fast_thrift::channel_pipeline::Result::Success;
     }
 
-    return synthesizeError(
+    return synthesizeErrorOnRead(
         ctx, request.frame.streamId(), "non-ignorable EXT on streaming stream");
   }
 
@@ -297,6 +297,19 @@ class RocketServerStreamHandler {
     return ctx.fireWrite(
         apache::thrift::fast_thrift::channel_pipeline::erase_and_box(
             std::move(errorResponse)));
+  }
+
+  // On Backpressure the pipeline accepted the ERROR frame. As a read result,
+  // Backpressure would pause reads on the whole connection.
+  template <typename Context>
+  [[nodiscard]] apache::thrift::fast_thrift::channel_pipeline::Result
+  synthesizeErrorOnRead(
+      Context& ctx, uint32_t streamId, std::string description) noexcept {
+    if (synthesizeError(ctx, streamId, std::move(description)) ==
+        apache::thrift::fast_thrift::channel_pipeline::Result::Error) {
+      return apache::thrift::fast_thrift::channel_pipeline::Result::Error;
+    }
+    return apache::thrift::fast_thrift::channel_pipeline::Result::Success;
   }
 };
 
