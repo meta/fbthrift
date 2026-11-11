@@ -542,6 +542,21 @@ std::unique_ptr<t_field> clone_injected_field(
   return clone;
 }
 
+// `@cpp.Arena` on a struct or union applies to each field that field-level
+// `@cpp.Arena` supports.
+void mutate_structured_arena(
+    sema_context&, mutator_context&, t_structured& node) {
+  const t_const* arena = node.find_structured_annotation_or_null(kCppArenaUri);
+  if (arena == nullptr) {
+    return;
+  }
+  for (t_field& field : node.fields()) {
+    if (!cpp2::is_arena_field(field) && cpp2::is_arena_supported(field)) {
+      field.add_structured_annotation(arena->clone());
+    }
+  }
+}
+
 void mutate_inject_metadata_fields(
     sema_context& ctx, mutator_context&, t_structured& node) {
   // TODO(dokwon): Currently field injection doesn't work for structs used as
@@ -694,6 +709,8 @@ std::vector<ast_mutator> pre_validation_standard_mutators() {
   main.add_struct_visitor(&mutate_terse_write_annotation_structured);
   main.add_exception_visitor(&mutate_terse_write_annotation_structured);
   main.add_struct_visitor(&mutate_inject_metadata_fields);
+  main.add_struct_visitor(&mutate_structured_arena);
+  main.add_union_visitor(&mutate_structured_arena);
   main.add_const_visitor(&match_const_type_with_value);
   main.add_field_visitor(&match_field_type_with_default_value);
   main.add_function_param_visitor(&match_field_type_with_default_value);

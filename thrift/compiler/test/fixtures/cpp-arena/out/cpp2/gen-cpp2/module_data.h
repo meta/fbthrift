@@ -12,6 +12,19 @@
 
 namespace apache { namespace thrift {
 
+template <> struct TEnumDataStorage<::test::fixtures::cpp_arena::WholeUnion::Type> {
+  using type = ::test::fixtures::cpp_arena::WholeUnion::Type;
+  static constexpr const std::size_t size = 2;
+  static constexpr std::array<type, size> values = { {
+      type::names,
+      type::id,
+  }};
+  static constexpr std::array<std::string_view, size> names = { {
+      "names"sv,
+      "id"sv,
+  }};
+};
+
 template <> struct TStructDataStorage<::test::fixtures::cpp_arena::Inner> {
   static constexpr const std::size_t fields_size = 1;
   static const std::string_view name;
@@ -29,6 +42,51 @@ template <> struct TStructDataStorage<::test::fixtures::cpp_arena::Inner> {
 
 template <> struct TStructDataStorage<::test::fixtures::cpp_arena::Fields> {
   static constexpr const std::size_t fields_size = 5;
+  static const std::string_view name;
+  static const std::array<std::string_view, fields_size> fields_names;
+  static const std::array<int16_t, fields_size> fields_ids;
+  static const std::array<protocol::TType, fields_size> fields_types;
+
+ private:
+  // The following fields describe internal storage metadata, and are private to
+  // prevent user logic from accessing them, but they can be inspected by
+  // debuggers.
+  // -1 if the field has no isset.
+  static const std::array<int, fields_size> isset_indexes;
+};
+
+template <> struct TStructDataStorage<::test::fixtures::cpp_arena::WholeStruct> {
+  static constexpr const std::size_t fields_size = 2;
+  static const std::string_view name;
+  static const std::array<std::string_view, fields_size> fields_names;
+  static const std::array<int16_t, fields_size> fields_ids;
+  static const std::array<protocol::TType, fields_size> fields_types;
+
+ private:
+  // The following fields describe internal storage metadata, and are private to
+  // prevent user logic from accessing them, but they can be inspected by
+  // debuggers.
+  // -1 if the field has no isset.
+  static const std::array<int, fields_size> isset_indexes;
+};
+
+template <> struct TStructDataStorage<::test::fixtures::cpp_arena::HoldsWholeStruct> {
+  static constexpr const std::size_t fields_size = 1;
+  static const std::string_view name;
+  static const std::array<std::string_view, fields_size> fields_names;
+  static const std::array<int16_t, fields_size> fields_ids;
+  static const std::array<protocol::TType, fields_size> fields_types;
+
+ private:
+  // The following fields describe internal storage metadata, and are private to
+  // prevent user logic from accessing them, but they can be inspected by
+  // debuggers.
+  // -1 if the field has no isset.
+  static const std::array<int, fields_size> isset_indexes;
+};
+
+template <> struct TStructDataStorage<::test::fixtures::cpp_arena::WholeUnion> {
+  static constexpr const std::size_t fields_size = 2;
   static const std::string_view name;
   static const std::array<std::string_view, fields_size> fields_names;
   static const std::array<int16_t, fields_size> fields_ids;

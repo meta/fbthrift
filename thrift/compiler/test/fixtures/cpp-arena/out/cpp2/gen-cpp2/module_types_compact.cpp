@@ -18,4 +18,19 @@ template uint32_t Fields::write<>(apache::thrift::CompactProtocolWriter*) const;
 template uint32_t Fields::serializedSize<>(apache::thrift::CompactProtocolWriter const*) const;
 template uint32_t Fields::serializedSizeZC<>(apache::thrift::CompactProtocolWriter const*) const;
 
+template void WholeStruct::readNoXfer<>(apache::thrift::CompactProtocolReader*);
+template uint32_t WholeStruct::write<>(apache::thrift::CompactProtocolWriter*) const;
+template uint32_t WholeStruct::serializedSize<>(apache::thrift::CompactProtocolWriter const*) const;
+template uint32_t WholeStruct::serializedSizeZC<>(apache::thrift::CompactProtocolWriter const*) const;
+
+template void HoldsWholeStruct::readNoXfer<>(apache::thrift::CompactProtocolReader*);
+template uint32_t HoldsWholeStruct::write<>(apache::thrift::CompactProtocolWriter*) const;
+template uint32_t HoldsWholeStruct::serializedSize<>(apache::thrift::CompactProtocolWriter const*) const;
+template uint32_t HoldsWholeStruct::serializedSizeZC<>(apache::thrift::CompactProtocolWriter const*) const;
+
+template void WholeUnion::readNoXfer<>(apache::thrift::CompactProtocolReader*);
+template uint32_t WholeUnion::write<>(apache::thrift::CompactProtocolWriter*) const;
+template uint32_t WholeUnion::serializedSize<>(apache::thrift::CompactProtocolWriter const*) const;
+template uint32_t WholeUnion::serializedSizeZC<>(apache::thrift::CompactProtocolWriter const*) const;
+
 } // namespace test::fixtures::cpp_arena

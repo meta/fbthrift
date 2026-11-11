@@ -61,7 +61,8 @@ bool is_custom_type(const t_type& type);
 // Whether field-level `@cpp.Arena` can give the field a PMR C++ type.
 bool is_arena_supported(const t_field& field);
 
-// Whether the field has `@cpp.Arena`.
+// Whether the field has `@cpp.Arena`, written on it or copied by sema from its
+// struct.
 inline bool is_arena_field(const t_field& field) {
   return field.has_structured_annotation(kCppArenaUri);
 }

@@ -36,3 +36,19 @@ struct Fields {
   @cpp.Type{template = "std::unordered_map"}
   5: map<string, string> custom;
 }
+
+@cpp.Arena
+struct WholeStruct {
+  1: list<string> names;
+  2: i64 id;
+}
+
+struct HoldsWholeStruct {
+  1: WholeStruct whole;
+}
+
+@cpp.Arena
+union WholeUnion {
+  1: list<string> names;
+  2: i64 id;
+}

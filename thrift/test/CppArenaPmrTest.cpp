@@ -157,12 +157,32 @@ static_assert(kIsArenaField<
               ident::arena_by_name,
               std::map<S, ArenaInner>,
               t::map<A<S, t::string_t>, t::struct_t<ArenaInner>>>);
+static_assert(kIsArenaField<WholeStruct, ident::name, S, t::string_t>);
+static_assert(kIsArenaField<
+              WholeStruct,
+              ident::groups,
+              std::map<S, std::vector<S>>,
+              t::map<
+                  A<S, t::string_t>,
+                  A<std::vector<S>, t::list<A<S, t::string_t>>>>>);
+static_assert(
+    std::is_same_v<op::get_native_type<WholeStruct, ident::id>, std::int64_t>);
 static_assert(kIsArenaField<ArenaUnion, ident::name, S, t::string_t>);
 static_assert(kIsArenaField<
               ArenaUnion,
               ident::names,
               std::vector<S>,
               t::list<A<S, t::string_t>>>);
+static_assert(kIsArenaField<WholeUnion, ident::name, S, t::string_t>);
+static_assert(kIsArenaField<
+              WholeUnion,
+              ident::groups,
+              std::map<S, std::vector<S>>,
+              t::map<
+                  A<S, t::string_t>,
+                  A<std::vector<S>, t::list<A<S, t::string_t>>>>>);
+static_assert(
+    std::is_same_v<op::get_native_type<WholeUnion, ident::id>, std::int64_t>);
 
 static_assert(kIsArenaField<
               Typedefs,
@@ -326,6 +346,19 @@ void expectOn(const CustomTypes& c, std::pmr::memory_resource* r) {
   EXPECT_EQ(resource(*c.fbstring()), r);
 }
 
+void fill(WholeStruct& s) {
+  s.name() = kLong;
+  const std::pmr::string key(kLong, resource(*s.groups()));
+  (*s.groups())[key].emplace_back(kOther);
+}
+
+void expectOn(const WholeStruct& s, std::pmr::memory_resource* r) {
+  EXPECT_EQ(resource(*s.name()), r);
+  EXPECT_EQ(resource(*s.groups()), r);
+  EXPECT_EQ(resource(s.groups()->begin()->first), r);
+  EXPECT_EQ(resource(s.groups()->begin()->second.front()), r);
+}
+
 void fill(ArenaUnion& u) {
   u.names().emplace().emplace_back(kLong);
 }
@@ -366,6 +399,17 @@ TEST(CppArenaPmrTest, SwapAndMoveAssignmentKeepEachResource) {
   expectOn(a, &arena1);
 }
 
+void fill(WholeUnion& u) {
+  auto& groups = u.groups().emplace();
+  groups[std::pmr::string(kLong, resource(groups))].emplace_back(kOther);
+}
+
+void expectOn(const WholeUnion& u, std::pmr::memory_resource* r) {
+  EXPECT_EQ(resource(*u.groups()), r);
+  EXPECT_EQ(resource(u.groups()->begin()->first), r);
+  EXPECT_EQ(resource(u.groups()->begin()->second.front()), r);
+}
+
 TEST(CppArenaPmrTest, DefaultConstructionUsesTheDefaultResource) {
   Arena arena;
   ScopedDefaultResource defaultResource(&arena);
@@ -378,9 +422,15 @@ TEST(CppArenaPmrTest, DefaultConstructionUsesTheDefaultResource) {
   StructElements e;
   fill(e);
   expectOn(e, &arena);
+  WholeStruct w;
+  fill(w);
+  expectOn(w, &arena);
   ArenaUnion fieldUnion;
   fill(fieldUnion);
   expectOn(fieldUnion, &arena);
+  WholeUnion wholeUnion;
+  fill(wholeUnion);
+  expectOn(wholeUnion, &arena);
   CustomTypes u;
   fill(u);
   expectOn(u, &arena);
@@ -407,7 +457,9 @@ TEST(CppArenaPmrTest, SerializationRoundTrips) {
   expectRoundTrip<Strings>();
   expectRoundTrip<Containers>();
   expectRoundTrip<StructElements>();
+  expectRoundTrip<WholeStruct>();
   expectRoundTrip<ArenaUnion>();
+  expectRoundTrip<WholeUnion>();
   expectRoundTrip<CustomTypes>();
 }
 

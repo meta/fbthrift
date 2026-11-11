@@ -56,14 +56,76 @@ THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<int, 5> TStructDataStorage<:
   4,
 }};
 
+THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::string_view TStructDataStorage<::test::fixtures::cpp_arena::WholeStruct>::name = "WholeStruct";
+THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<std::string_view, 2> TStructDataStorage<::test::fixtures::cpp_arena::WholeStruct>::fields_names = { {
+  "names"sv,
+  "id"sv,
+}};
+THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<int16_t, 2> TStructDataStorage<::test::fixtures::cpp_arena::WholeStruct>::fields_ids = { {
+  1,
+  2,
+}};
+THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<protocol::TType, 2> TStructDataStorage<::test::fixtures::cpp_arena::WholeStruct>::fields_types = { {
+  apache::thrift::protocol::TType::T_LIST,
+  apache::thrift::protocol::TType::T_I64,
+}};
+THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<int, 2> TStructDataStorage<::test::fixtures::cpp_arena::WholeStruct>::isset_indexes = { {
+  0,
+  1,
+}};
+
+THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::string_view TStructDataStorage<::test::fixtures::cpp_arena::HoldsWholeStruct>::name = "HoldsWholeStruct";
+THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<std::string_view, 1> TStructDataStorage<::test::fixtures::cpp_arena::HoldsWholeStruct>::fields_names = { {
+  "whole"sv,
+}};
+THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<int16_t, 1> TStructDataStorage<::test::fixtures::cpp_arena::HoldsWholeStruct>::fields_ids = { {
+  1,
+}};
+THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<protocol::TType, 1> TStructDataStorage<::test::fixtures::cpp_arena::HoldsWholeStruct>::fields_types = { {
+  apache::thrift::protocol::TType::T_STRUCT,
+}};
+THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<int, 1> TStructDataStorage<::test::fixtures::cpp_arena::HoldsWholeStruct>::isset_indexes = { {
+  0,
+}};
+
+THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::string_view TStructDataStorage<::test::fixtures::cpp_arena::WholeUnion>::name = "WholeUnion";
+THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<std::string_view, 2> TStructDataStorage<::test::fixtures::cpp_arena::WholeUnion>::fields_names = { {
+  "names"sv,
+  "id"sv,
+}};
+THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<int16_t, 2> TStructDataStorage<::test::fixtures::cpp_arena::WholeUnion>::fields_ids = { {
+  1,
+  2,
+}};
+THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<protocol::TType, 2> TStructDataStorage<::test::fixtures::cpp_arena::WholeUnion>::fields_types = { {
+  apache::thrift::protocol::TType::T_LIST,
+  apache::thrift::protocol::TType::T_I64,
+}};
+THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<int, 2> TStructDataStorage<::test::fixtures::cpp_arena::WholeUnion>::isset_indexes = { {
+  0,
+  1,
+}};
+
 namespace detail {
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::test::fixtures::cpp_arena::Inner, false>::bundle() {
-    return ::test::fixtures::cpp_arena::module_constants::_fbthrift_schema_cf18e7fdcf90fd66_includes();
+    return ::test::fixtures::cpp_arena::module_constants::_fbthrift_schema_87920987876dede2_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::test::fixtures::cpp_arena::Fields, false>::bundle() {
-    return ::test::fixtures::cpp_arena::module_constants::_fbthrift_schema_cf18e7fdcf90fd66_includes();
+    return ::test::fixtures::cpp_arena::module_constants::_fbthrift_schema_87920987876dede2_includes();
+}
+
+::folly::Range<const ::std::string_view*> TSchemaAssociation<::test::fixtures::cpp_arena::WholeStruct, false>::bundle() {
+    return ::test::fixtures::cpp_arena::module_constants::_fbthrift_schema_87920987876dede2_includes();
+}
+
+::folly::Range<const ::std::string_view*> TSchemaAssociation<::test::fixtures::cpp_arena::HoldsWholeStruct, false>::bundle() {
+    return ::test::fixtures::cpp_arena::module_constants::_fbthrift_schema_87920987876dede2_includes();
+}
+
+::folly::Range<const ::std::string_view*> TSchemaAssociation<::test::fixtures::cpp_arena::WholeUnion, false>::bundle() {
+    return ::test::fixtures::cpp_arena::module_constants::_fbthrift_schema_87920987876dede2_includes();
 }
 
 } // namespace detail

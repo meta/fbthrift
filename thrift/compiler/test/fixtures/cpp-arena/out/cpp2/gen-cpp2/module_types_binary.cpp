@@ -18,4 +18,19 @@ template uint32_t Fields::write<>(apache::thrift::BinaryProtocolWriter*) const;
 template uint32_t Fields::serializedSize<>(apache::thrift::BinaryProtocolWriter const*) const;
 template uint32_t Fields::serializedSizeZC<>(apache::thrift::BinaryProtocolWriter const*) const;
 
+template void WholeStruct::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
+template uint32_t WholeStruct::write<>(apache::thrift::BinaryProtocolWriter*) const;
+template uint32_t WholeStruct::serializedSize<>(apache::thrift::BinaryProtocolWriter const*) const;
+template uint32_t WholeStruct::serializedSizeZC<>(apache::thrift::BinaryProtocolWriter const*) const;
+
+template void HoldsWholeStruct::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
+template uint32_t HoldsWholeStruct::write<>(apache::thrift::BinaryProtocolWriter*) const;
+template uint32_t HoldsWholeStruct::serializedSize<>(apache::thrift::BinaryProtocolWriter const*) const;
+template uint32_t HoldsWholeStruct::serializedSizeZC<>(apache::thrift::BinaryProtocolWriter const*) const;
+
+template void WholeUnion::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
+template uint32_t WholeUnion::write<>(apache::thrift::BinaryProtocolWriter*) const;
+template uint32_t WholeUnion::serializedSize<>(apache::thrift::BinaryProtocolWriter const*) const;
+template uint32_t WholeUnion::serializedSizeZC<>(apache::thrift::BinaryProtocolWriter const*) const;
+
 } // namespace test::fixtures::cpp_arena

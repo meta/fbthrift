@@ -18,6 +18,12 @@ template void TccStructTraits<::test::fixtures::cpp_arena::Inner>::translateFiel
     std::string_view, int16_t&, apache::thrift::protocol::TType&);
 template void TccStructTraits<::test::fixtures::cpp_arena::Fields>::translateFieldName(
     std::string_view, int16_t&, apache::thrift::protocol::TType&);
+template void TccStructTraits<::test::fixtures::cpp_arena::WholeStruct>::translateFieldName(
+    std::string_view, int16_t&, apache::thrift::protocol::TType&);
+template void TccStructTraits<::test::fixtures::cpp_arena::HoldsWholeStruct>::translateFieldName(
+    std::string_view, int16_t&, apache::thrift::protocol::TType&);
+template void TccStructTraits<::test::fixtures::cpp_arena::WholeUnion>::translateFieldName(
+    std::string_view, int16_t&, apache::thrift::protocol::TType&);
 } // namespace apache::thrift::detail
 
 
@@ -206,6 +212,288 @@ static_assert(
         ::apache::thrift::type_class::list<::apache::thrift::type_class::structure>,
         ::apache::thrift::pmr::Rebind<::std::vector<::test::fixtures::cpp_arena::Inner>>::type>,
     "inconsistent use of json option");
+
+} // namespace test::fixtures::cpp_arena
+
+
+namespace test::fixtures::cpp_arena {
+
+std::string_view WholeStruct::__fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord) {
+  if (ord == ::apache::thrift::FieldOrdinal{0}) { return {}; }
+  return apache::thrift::TStructDataStorage<WholeStruct>::fields_names[folly::to_underlying(ord) - 1];
+}
+std::string_view WholeStruct::__fbthrift_get_class_name() {
+  return apache::thrift::TStructDataStorage<WholeStruct>::name;
+}
+
+WholeStruct::WholeStruct(const WholeStruct&) = default;
+WholeStruct& WholeStruct::operator=(const WholeStruct&) = default;
+WholeStruct::WholeStruct() :
+    __fbthrift_field_id() {
+}
+
+
+WholeStruct::~WholeStruct() {}
+
+WholeStruct::WholeStruct([[maybe_unused]] WholeStruct&& other) noexcept :
+    __fbthrift_field_names(std::move(other.__fbthrift_field_names)),
+    __fbthrift_field_id(std::move(other.__fbthrift_field_id)),
+    __isset(other.__isset) {
+}
+
+WholeStruct& WholeStruct::operator=([[maybe_unused]] WholeStruct&& other) {
+    this->__fbthrift_field_names = std::move(other.__fbthrift_field_names);
+    this->__fbthrift_field_id = std::move(other.__fbthrift_field_id);
+    __isset = other.__isset;
+    return *this;
+}
+
+
+WholeStruct::WholeStruct(apache::thrift::FragileConstructor, ::apache::thrift::pmr::Rebind<::std::vector<::std::string>>::type names__arg, ::std::int64_t id__arg) :
+    __fbthrift_field_names(std::move(names__arg)),
+    __fbthrift_field_id(std::move(id__arg)) { 
+  __isset.set(folly::index_constant<0>(), true);
+  __isset.set(folly::index_constant<1>(), true);
+}
+
+void WholeStruct::__fbthrift_clear() {
+  // clear all fields
+  this->__fbthrift_field_names.clear();
+  this->__fbthrift_field_id = ::std::int64_t();
+  __isset = {};
+}
+
+bool WholeStruct::__fbthrift_is_empty() const {
+  return false;
+}
+
+bool WholeStruct::operator==([[maybe_unused]] const WholeStruct& rhs) const {
+  return ::apache::thrift::op::detail::StructEquality{}(*this, rhs);
+}
+
+std::partial_ordering WholeStruct::operator<=>([[maybe_unused]] const WholeStruct& rhs) const {
+  return ::apache::thrift::op::compare<WholeStruct>(*this, rhs);
+}
+
+
+const ::apache::thrift::pmr::Rebind<::std::vector<::std::string>>::type& WholeStruct::get_names() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
+  return __fbthrift_field_names;
+}
+
+::apache::thrift::pmr::Rebind<::std::vector<::std::string>>::type WholeStruct::get_names() && {
+  return static_cast<::apache::thrift::pmr::Rebind<::std::vector<::std::string>>::type&&>(__fbthrift_field_names);
+}
+
+::std::int64_t WholeStruct::get_id() const {
+  return __fbthrift_field_id;
+}
+
+::std::int64_t& WholeStruct::set_id(::std::int64_t id_) {
+  id_ref() = id_;
+  return __fbthrift_field_id;
+}
+
+void swap([[maybe_unused]] WholeStruct& a, [[maybe_unused]] WholeStruct& b) {
+  using ::std::swap;
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_names, b.__fbthrift_field_names);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_id, b.__fbthrift_field_id);
+  swap(a.__isset, b.__isset);
+}
+
+
+} // namespace test::fixtures::cpp_arena
+
+
+namespace test::fixtures::cpp_arena {
+
+std::string_view HoldsWholeStruct::__fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord) {
+  if (ord == ::apache::thrift::FieldOrdinal{0}) { return {}; }
+  return apache::thrift::TStructDataStorage<HoldsWholeStruct>::fields_names[folly::to_underlying(ord) - 1];
+}
+std::string_view HoldsWholeStruct::__fbthrift_get_class_name() {
+  return apache::thrift::TStructDataStorage<HoldsWholeStruct>::name;
+}
+
+HoldsWholeStruct::HoldsWholeStruct(const HoldsWholeStruct&) = default;
+HoldsWholeStruct& HoldsWholeStruct::operator=(const HoldsWholeStruct&) = default;
+HoldsWholeStruct::HoldsWholeStruct([[maybe_unused]] HoldsWholeStruct&& other) noexcept :
+    __fbthrift_field_whole(std::move(other.__fbthrift_field_whole)),
+    __isset(other.__isset) {
+}
+
+HoldsWholeStruct& HoldsWholeStruct::operator=([[maybe_unused]] HoldsWholeStruct&& other) {
+    this->__fbthrift_field_whole = std::move(other.__fbthrift_field_whole);
+    __isset = other.__isset;
+    return *this;
+}
+
+
+HoldsWholeStruct::HoldsWholeStruct(apache::thrift::FragileConstructor, ::test::fixtures::cpp_arena::WholeStruct whole__arg) :
+    __fbthrift_field_whole(std::move(whole__arg)) { 
+  __isset.set(folly::index_constant<0>(), true);
+}
+
+void HoldsWholeStruct::__fbthrift_clear() {
+  // clear all fields
+  ::apache::thrift::clear(this->__fbthrift_field_whole);
+  __isset = {};
+}
+
+bool HoldsWholeStruct::__fbthrift_is_empty() const {
+  return false;
+}
+
+bool HoldsWholeStruct::operator==([[maybe_unused]] const HoldsWholeStruct& rhs) const {
+  return ::apache::thrift::op::detail::StructEquality{}(*this, rhs);
+}
+
+std::partial_ordering HoldsWholeStruct::operator<=>([[maybe_unused]] const HoldsWholeStruct& rhs) const {
+  return ::apache::thrift::op::compare<HoldsWholeStruct>(*this, rhs);
+}
+
+
+const ::test::fixtures::cpp_arena::WholeStruct& HoldsWholeStruct::get_whole() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
+  return __fbthrift_field_whole;
+}
+
+::test::fixtures::cpp_arena::WholeStruct HoldsWholeStruct::get_whole() && {
+  return static_cast<::test::fixtures::cpp_arena::WholeStruct&&>(__fbthrift_field_whole);
+}
+
+void swap([[maybe_unused]] HoldsWholeStruct& a, [[maybe_unused]] HoldsWholeStruct& b) {
+  using ::std::swap;
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_whole, b.__fbthrift_field_whole);
+  swap(a.__isset, b.__isset);
+}
+
+static_assert(
+    ::apache::thrift::detail::st::gen_check_json<
+        HoldsWholeStruct,
+        ::apache::thrift::type_class::structure,
+        ::test::fixtures::cpp_arena::WholeStruct>,
+    "inconsistent use of json option");
+
+} // namespace test::fixtures::cpp_arena
+
+
+namespace apache { namespace thrift {
+
+folly::Range<::test::fixtures::cpp_arena::WholeUnion::Type const*> const TEnumTraits<::test::fixtures::cpp_arena::WholeUnion::Type>::values = folly::range(TEnumDataStorage<::test::fixtures::cpp_arena::WholeUnion::Type>::values);
+folly::Range<std::string_view const*> const TEnumTraits<::test::fixtures::cpp_arena::WholeUnion::Type>::names = folly::range(TEnumDataStorage<::test::fixtures::cpp_arena::WholeUnion::Type>::names);
+
+bool TEnumTraits<::test::fixtures::cpp_arena::WholeUnion::Type>::findName(type value, std::string_view* out) noexcept {
+  return ::apache::thrift::detail::st::enum_find_name(value, out);
+}
+
+bool TEnumTraits<::test::fixtures::cpp_arena::WholeUnion::Type>::findValue(std::string_view name, type* out) noexcept {
+  return ::apache::thrift::detail::st::enum_find_value(name, out);
+}
+}} // apache::thrift
+namespace test::fixtures::cpp_arena {
+
+std::string_view WholeUnion::__fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord) {
+  if (ord == ::apache::thrift::FieldOrdinal{0}) { return {}; }
+  return apache::thrift::TStructDataStorage<WholeUnion>::fields_names[folly::to_underlying(ord) - 1];
+}
+std::string_view WholeUnion::__fbthrift_get_class_name() {
+  return apache::thrift::TStructDataStorage<WholeUnion>::name;
+}
+
+void WholeUnion::__fbthrift_destruct() {
+  switch(getType()) {
+    case Type::__EMPTY__:
+      break;
+    case Type::names:
+      ::std::destroy_at(::std::addressof(value_.names));
+      break;
+    case Type::id:
+      ::std::destroy_at(::std::addressof(value_.id));
+      break;
+    default:
+      assert(false);
+      break;
+  }
+}
+
+void WholeUnion::__fbthrift_clear() {
+  __fbthrift_destruct();
+  fbthrift_type_ = folly::to_underlying(Type::__EMPTY__);
+}
+
+  WholeUnion::~WholeUnion() {
+    __fbthrift_destruct();
+  }
+
+bool WholeUnion::__fbthrift_is_empty() const {
+  return getType() == Type::__EMPTY__;
+}
+  WholeUnion& WholeUnion::operator=(WholeUnion&& rhs) {
+    if (this == &rhs) { return *this; }
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+      {
+        __fbthrift_clear();
+        return *this;
+      }
+      case Type::names:
+      {
+        auto value = std::move(rhs.value_.names);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(names_ref(), std::move(value));
+        break;
+      }
+      case Type::id:
+      {
+        auto value = std::move(rhs.value_.id);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(id_ref(), std::move(value));
+        break;
+      }
+      default:
+      {
+        assert(false);
+        __fbthrift_clear();
+      }
+    }
+    return *this;
+  }
+
+  WholeUnion::WholeUnion(const WholeUnion& rhs)
+      : fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+        return;
+      case Type::names:
+        names_ref().emplace(rhs.value_.names);
+        break;
+      case Type::id:
+        id_ref().emplace(rhs.value_.id);
+        break;
+      default:
+        assert(false);
+    }
+  }
+
+  WholeUnion& WholeUnion::operator=(const WholeUnion& rhs) {
+    if (this == &rhs) { return *this; }
+    return *this = WholeUnion(rhs);
+  }
+
+
+bool WholeUnion::operator==(const WholeUnion& rhs) const {
+  return ::apache::thrift::op::detail::UnionEquality{}(*this, rhs);
+}
+
+std::partial_ordering WholeUnion::operator<=>([[maybe_unused]] const WholeUnion& rhs) const {
+  return ::apache::thrift::op::compare<WholeUnion>(*this, rhs);
+}
+
+void swap(WholeUnion& a, WholeUnion& b) {
+  WholeUnion temp(std::move(a));
+  a = std::move(b);
+  b = std::move(temp);
+}
+
 
 } // namespace test::fixtures::cpp_arena
 

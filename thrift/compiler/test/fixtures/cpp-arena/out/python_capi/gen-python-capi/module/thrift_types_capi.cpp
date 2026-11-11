@@ -25,6 +25,9 @@ bool ensure_module_imported() {
   static constexpr std::int16_t _fbthrift__Inner__tuple_pos[1] = {
     0
   };
+  static constexpr std::int16_t _fbthrift__HoldsWholeStruct__tuple_pos[1] = {
+    0
+  };
 } // namespace
 
 ExtractorResult<::test::fixtures::cpp_arena::Inner>
@@ -185,6 +188,247 @@ PyObject* Constructor<::apache::thrift::python::capi::ComposedStruct<
     return nullptr;
   }
   return getThriftStructFieldData(*obj);
+}
+
+ExtractorResult<::test::fixtures::cpp_arena::WholeStruct>
+Extractor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::WholeStruct, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>::operator()(PyObject* obj) {
+  if (!ensure_module_imported()) {
+    DCHECK(PyErr_Occurred() != nullptr);
+    return extractorError<::test::fixtures::cpp_arena::WholeStruct>(
+      "Module facebook.thrift.test.fixtures.cpp_arena.module import error");
+  }
+  std::unique_ptr<folly::IOBuf> val(
+      extract__facebook__thrift__test__fixtures__cpp_arena__module__WholeStruct(obj));
+  if (!val) {
+    CHECK(PyErr_Occurred());
+    return extractorError<::test::fixtures::cpp_arena::WholeStruct>(
+        "Thrift serialize error: WholeStruct");
+  }
+  return detail::deserialize_iobuf<::test::fixtures::cpp_arena::WholeStruct>(std::move(val));
+}
+
+
+ExtractorResult<::test::fixtures::cpp_arena::WholeStruct>
+Extractor<::apache::thrift::python::capi::ComposedStruct<
+    ::test::fixtures::cpp_arena::WholeStruct, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>::operator()(PyObject* fbthrift_data) {
+  if (!ensure_module_imported()) {
+    DCHECK(PyErr_Occurred() != nullptr);
+    return extractorError<::test::fixtures::cpp_arena::WholeStruct>(
+      "Module facebook.thrift.test.fixtures.cpp_arena.module import error");
+  }
+  auto obj = StrongRef(init__facebook__thrift__test__fixtures__cpp_arena__module__WholeStruct(fbthrift_data));
+  if (!obj) {
+      return extractorError<::test::fixtures::cpp_arena::WholeStruct>(
+          "Init from fbthrift error: WholeStruct");
+  }
+  return Extractor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::WholeStruct, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>{}(*obj);
+}
+
+int Extractor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::WholeStruct, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>::typeCheck(PyObject* obj) {
+  if (!ensure_module_imported()) {
+    ::folly::python::handlePythonError(
+      "Module facebook.thrift.test.fixtures.cpp_arena.module import error");
+  }
+  int result =
+      can_extract__facebook__thrift__test__fixtures__cpp_arena__module__WholeStruct(obj);
+  if (result < 0) {
+    ::folly::python::handlePythonError(
+      "Unexpected type check error: WholeStruct");
+  }
+  return result;
+}
+
+
+PyObject* Constructor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::WholeStruct, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>::operator()(
+    const ::test::fixtures::cpp_arena::WholeStruct& val) {
+  if (!ensure_module_imported()) {
+    DCHECK(PyErr_Occurred() != nullptr);
+    return nullptr;
+  }
+  ::std::unique_ptr<::folly::IOBuf> serialized;
+  try {
+    serialized = detail::serialize_to_iobuf(val);
+  } catch (const apache::thrift::TProtocolException& e) {
+    detail::handle_protocol_error(e);
+    return nullptr;
+  }
+  DCHECK(serialized);
+  auto ptr = construct__facebook__thrift__test__fixtures__cpp_arena__module__WholeStruct(std::move(serialized));
+  if (!ptr) {
+    CHECK(PyErr_Occurred());
+  }
+  return ptr;
+}
+
+
+PyObject* Constructor<::apache::thrift::python::capi::ComposedStruct<
+        ::test::fixtures::cpp_arena::WholeStruct, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>::operator()(
+    const ::test::fixtures::cpp_arena::WholeStruct& val) {
+  auto obj = StrongRef(Constructor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::WholeStruct, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>{}(val));
+  if (!obj) {
+    return nullptr;
+  }
+  return getThriftStructFieldData(*obj);
+}
+
+ExtractorResult<::test::fixtures::cpp_arena::HoldsWholeStruct>
+Extractor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::HoldsWholeStruct, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>::operator()(PyObject* obj) {
+  int tCheckResult = typeCheck(obj);
+  if (tCheckResult != 1) {
+      if (tCheckResult == 0) {
+        PyErr_SetString(PyExc_TypeError, "Not a HoldsWholeStruct");
+      }
+      return extractorError<::test::fixtures::cpp_arena::HoldsWholeStruct>(
+          "Marshal error: HoldsWholeStruct");
+  }
+  StrongRef fbThriftData(getThriftStructFieldData(obj));
+  return Extractor<::apache::thrift::python::capi::ComposedStruct<
+      ::test::fixtures::cpp_arena::HoldsWholeStruct, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>{}(*fbThriftData);
+}
+
+ExtractorResult<::test::fixtures::cpp_arena::HoldsWholeStruct>
+Extractor<::apache::thrift::python::capi::ComposedStruct<
+    ::test::fixtures::cpp_arena::HoldsWholeStruct, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>::operator()(PyObject* fbThriftData) {
+  ::test::fixtures::cpp_arena::HoldsWholeStruct cpp;
+  std::optional<std::string_view> error;
+  Extractor<::apache::thrift::python::capi::ComposedStruct<::test::fixtures::cpp_arena::WholeStruct, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>{}.extractInto(
+      cpp.whole_ref(),
+      PyTuple_GET_ITEM(fbThriftData, _fbthrift__HoldsWholeStruct__tuple_pos[0]),
+      error);
+  if (error) {
+    return folly::makeUnexpected(*error);
+  }
+  return cpp;
+}
+
+
+int Extractor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::HoldsWholeStruct, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>::typeCheck(PyObject* obj) {
+  if (!ensure_module_imported()) {
+    ::folly::python::handlePythonError(
+      "Module facebook.thrift.test.fixtures.cpp_arena.module import error");
+  }
+  int result =
+      can_extract__facebook__thrift__test__fixtures__cpp_arena__module__HoldsWholeStruct(obj);
+  if (result < 0) {
+    ::folly::python::handlePythonError(
+      "Unexpected type check error: HoldsWholeStruct");
+  }
+  return result;
+}
+
+
+PyObject* Constructor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::HoldsWholeStruct, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>::operator()(
+    const ::test::fixtures::cpp_arena::HoldsWholeStruct& val) {
+  if (!ensure_module_imported()) {
+    DCHECK(PyErr_Occurred() != nullptr);
+    return nullptr;
+  }
+  Constructor<::apache::thrift::python::capi::ComposedStruct<
+        ::test::fixtures::cpp_arena::HoldsWholeStruct, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>> ctor;
+  StrongRef fbthrift_data(ctor(val));
+  if (!fbthrift_data) {
+    return nullptr;
+  }
+  return init__facebook__thrift__test__fixtures__cpp_arena__module__HoldsWholeStruct(*fbthrift_data);
+}
+
+PyObject* Constructor<::apache::thrift::python::capi::ComposedStruct<
+        ::test::fixtures::cpp_arena::HoldsWholeStruct, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>::operator()(
+    [[maybe_unused]] const ::test::fixtures::cpp_arena::HoldsWholeStruct& val) {
+  StrongRef fbthrift_data(createStructTuple(1));
+  StrongRef _fbthrift__whole(
+    Constructor<::apache::thrift::python::capi::ComposedStruct<::test::fixtures::cpp_arena::WholeStruct, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>{}
+    .constructFrom(val.whole_ref()));
+  if (!_fbthrift__whole ||
+      setStructField(
+          *fbthrift_data,
+          _fbthrift__HoldsWholeStruct__tuple_pos[0],
+          *_fbthrift__whole) == -1) {
+    return nullptr;
+  }
+  return std::move(fbthrift_data).release();
+}
+
+
+ExtractorResult<::test::fixtures::cpp_arena::WholeUnion>
+Extractor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::WholeUnion, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>::operator()(PyObject* obj) {
+  if (!ensure_module_imported()) {
+    DCHECK(PyErr_Occurred() != nullptr);
+    return extractorError<::test::fixtures::cpp_arena::WholeUnion>(
+      "Module facebook.thrift.test.fixtures.cpp_arena.module import error");
+  }
+  std::unique_ptr<folly::IOBuf> val(
+      extract__facebook__thrift__test__fixtures__cpp_arena__module__WholeUnion(obj));
+  if (!val) {
+    CHECK(PyErr_Occurred());
+    return extractorError<::test::fixtures::cpp_arena::WholeUnion>(
+        "Thrift serialize error: WholeUnion");
+  }
+  return detail::deserialize_iobuf<::test::fixtures::cpp_arena::WholeUnion>(std::move(val));
+}
+
+
+ExtractorResult<::test::fixtures::cpp_arena::WholeUnion>
+Extractor<::apache::thrift::python::capi::ComposedStruct<
+    ::test::fixtures::cpp_arena::WholeUnion, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>::operator()(PyObject* fbthrift_data) {
+  if (!ensure_module_imported()) {
+    DCHECK(PyErr_Occurred() != nullptr);
+    return extractorError<::test::fixtures::cpp_arena::WholeUnion>(
+      "Module facebook.thrift.test.fixtures.cpp_arena.module import error");
+  }
+  auto obj = StrongRef(init__facebook__thrift__test__fixtures__cpp_arena__module__WholeUnion(fbthrift_data));
+  if (!obj) {
+      return extractorError<::test::fixtures::cpp_arena::WholeUnion>(
+          "Init from fbthrift error: WholeUnion");
+  }
+  return Extractor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::WholeUnion, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>{}(*obj);
+}
+
+int Extractor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::WholeUnion, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>::typeCheck(PyObject* obj) {
+  if (!ensure_module_imported()) {
+    ::folly::python::handlePythonError(
+      "Module facebook.thrift.test.fixtures.cpp_arena.module import error");
+  }
+  int result =
+      can_extract__facebook__thrift__test__fixtures__cpp_arena__module__WholeUnion(obj);
+  if (result < 0) {
+    ::folly::python::handlePythonError(
+      "Unexpected type check error: WholeUnion");
+  }
+  return result;
+}
+
+
+PyObject* Constructor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::WholeUnion, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>::operator()(
+    const ::test::fixtures::cpp_arena::WholeUnion& val) {
+  if (!ensure_module_imported()) {
+    DCHECK(PyErr_Occurred() != nullptr);
+    return nullptr;
+  }
+  ::std::unique_ptr<::folly::IOBuf> serialized;
+  try {
+    serialized = detail::serialize_to_iobuf(val);
+  } catch (const apache::thrift::TProtocolException& e) {
+    detail::handle_protocol_error(e);
+    return nullptr;
+  }
+  DCHECK(serialized);
+  auto ptr = construct__facebook__thrift__test__fixtures__cpp_arena__module__WholeUnion(std::move(serialized));
+  if (!ptr) {
+    CHECK(PyErr_Occurred());
+  }
+  return ptr;
+}
+
+
+PyObject* Constructor<::apache::thrift::python::capi::ComposedStruct<
+        ::test::fixtures::cpp_arena::WholeUnion, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>::operator()(
+    const ::test::fixtures::cpp_arena::WholeUnion& val) {
+  auto obj = StrongRef(Constructor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::WholeUnion, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>{}(val));
+  if (!obj) {
+    return nullptr;
+  }
+  return getThriftUnionFieldData(*obj);
 }
 
 } // namespace apache::thrift::python::capi

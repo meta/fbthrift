@@ -95,6 +95,15 @@ struct StructElements {
   4: map<string, ArenaInner> arena_by_name;
 }
 
+// `@cpp.Arena` on the struct applies to its string, binary and container
+// fields.
+@cpp.Arena
+struct WholeStruct {
+  1: string name;
+  2: map<string, list<string>> groups;
+  3: i64 id;
+}
+
 union ArenaUnion {
   @cpp.Arena
   1: string name;
@@ -106,6 +115,15 @@ union ArenaUnion {
 // Holds arena fields only through `ArenaUnion`.
 struct HoldsArenaUnion {
   1: ArenaUnion u;
+}
+
+// `@cpp.Arena` on the union applies to its string, binary and container
+// fields.
+@cpp.Arena
+union WholeUnion {
+  1: string name;
+  2: map<string, list<string>> groups;
+  3: i64 id;
 }
 
 typedef string Name

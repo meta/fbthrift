@@ -3624,6 +3624,28 @@ TEST(CompilerTest, cpp_type_on_adapted_typedef) {
   )");
 }
 
+TEST(CompilerTest, cpp_arena_struct_level) {
+  check_compile(R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+    include "thrift/annotation/thrift.thrift"
+
+    @cpp.Adapter{name = "::my::Adapter"}
+    typedef string AdaptedString
+
+    # Applies only to the fields that field-level `@cpp.Arena` supports.
+    @cpp.Arena
+    struct Whole {
+      1: string name;
+      2: i32 number;
+      3: string with_default = "default";
+      4: AdaptedString adapted;
+      @thrift.Box
+      5: optional string boxed;
+    }
+  )");
+}
+
 TEST(CompilerTest, cpp_use_allocator_ref_fields) {
   check_compile(R"(
     package "facebook.com/thrift/test"

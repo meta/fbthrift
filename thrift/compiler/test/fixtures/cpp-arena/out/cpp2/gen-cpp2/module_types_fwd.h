@@ -10,5 +10,8 @@
 namespace test::fixtures::cpp_arena {
 class Inner;
 class Fields;
+class WholeStruct;
+class HoldsWholeStruct;
+class WholeUnion;
 } // namespace test::fixtures::cpp_arena
 // END forward_declare

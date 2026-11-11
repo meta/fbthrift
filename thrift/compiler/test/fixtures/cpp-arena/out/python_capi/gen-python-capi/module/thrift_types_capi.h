@@ -83,4 +83,97 @@ struct Constructor<::apache::thrift::python::capi::ComposedStruct<
   PyObject* operator()(const ::test::fixtures::cpp_arena::Fields& val);
 };
 
+template <>
+struct Extractor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::WholeStruct, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>
+    : public BaseExtractor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::WholeStruct, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>> {
+  static const bool kUsingMarshal = false;
+  ExtractorResult<::test::fixtures::cpp_arena::WholeStruct> operator()(PyObject* obj);
+  int typeCheck(PyObject* obj);
+};
+
+template <>
+struct Extractor<::apache::thrift::python::capi::ComposedStruct<
+        ::test::fixtures::cpp_arena::WholeStruct, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag >>
+    : public BaseExtractor<::apache::thrift::python::capi::ComposedStruct<
+        ::test::fixtures::cpp_arena::WholeStruct, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>> {
+  ExtractorResult<::test::fixtures::cpp_arena::WholeStruct> operator()(PyObject* obj);
+};
+
+template <>
+struct Constructor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::WholeStruct, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>
+    : public BaseConstructor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::WholeStruct, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>> {
+  static const bool kUsingMarshal = false;
+  PyObject* operator()(const ::test::fixtures::cpp_arena::WholeStruct& val);
+};
+
+template <>
+struct Constructor<::apache::thrift::python::capi::ComposedStruct<
+        ::test::fixtures::cpp_arena::WholeStruct, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>
+    : public BaseConstructor<::apache::thrift::python::capi::ComposedStruct<
+        ::test::fixtures::cpp_arena::WholeStruct, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>> {
+  PyObject* operator()(const ::test::fixtures::cpp_arena::WholeStruct& val);
+};
+
+template <>
+struct Extractor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::HoldsWholeStruct, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>
+    : public BaseExtractor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::HoldsWholeStruct, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>> {
+  static const bool kUsingMarshal = true;
+  ExtractorResult<::test::fixtures::cpp_arena::HoldsWholeStruct> operator()(PyObject* obj);
+  int typeCheck(PyObject* obj);
+};
+
+template <>
+struct Extractor<::apache::thrift::python::capi::ComposedStruct<
+        ::test::fixtures::cpp_arena::HoldsWholeStruct, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag >>
+    : public BaseExtractor<::apache::thrift::python::capi::ComposedStruct<
+        ::test::fixtures::cpp_arena::HoldsWholeStruct, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>> {
+  ExtractorResult<::test::fixtures::cpp_arena::HoldsWholeStruct> operator()(PyObject* obj);
+};
+
+template <>
+struct Constructor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::HoldsWholeStruct, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>
+    : public BaseConstructor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::HoldsWholeStruct, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>> {
+  static const bool kUsingMarshal = true;
+  PyObject* operator()(const ::test::fixtures::cpp_arena::HoldsWholeStruct& val);
+};
+
+template <>
+struct Constructor<::apache::thrift::python::capi::ComposedStruct<
+        ::test::fixtures::cpp_arena::HoldsWholeStruct, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>
+    : public BaseConstructor<::apache::thrift::python::capi::ComposedStruct<
+        ::test::fixtures::cpp_arena::HoldsWholeStruct, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>> {
+  PyObject* operator()(const ::test::fixtures::cpp_arena::HoldsWholeStruct& val);
+};
+
+template <>
+struct Extractor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::WholeUnion, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>
+    : public BaseExtractor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::WholeUnion, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>> {
+  static const bool kUsingMarshal = false;
+  ExtractorResult<::test::fixtures::cpp_arena::WholeUnion> operator()(PyObject* obj);
+  int typeCheck(PyObject* obj);
+};
+
+template <>
+struct Extractor<::apache::thrift::python::capi::ComposedStruct<
+        ::test::fixtures::cpp_arena::WholeUnion, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag >>
+    : public BaseExtractor<::apache::thrift::python::capi::ComposedStruct<
+        ::test::fixtures::cpp_arena::WholeUnion, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>> {
+  ExtractorResult<::test::fixtures::cpp_arena::WholeUnion> operator()(PyObject* obj);
+};
+
+template <>
+struct Constructor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::WholeUnion, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>
+    : public BaseConstructor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::WholeUnion, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>> {
+  static const bool kUsingMarshal = false;
+  PyObject* operator()(const ::test::fixtures::cpp_arena::WholeUnion& val);
+};
+
+template <>
+struct Constructor<::apache::thrift::python::capi::ComposedStruct<
+        ::test::fixtures::cpp_arena::WholeUnion, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>
+    : public BaseConstructor<::apache::thrift::python::capi::ComposedStruct<
+        ::test::fixtures::cpp_arena::WholeUnion, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>> {
+  PyObject* operator()(const ::test::fixtures::cpp_arena::WholeUnion& val);
+};
+
 } // namespace apache::thrift::python::capi
