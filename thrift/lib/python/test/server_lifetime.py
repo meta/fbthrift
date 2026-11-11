@@ -23,6 +23,12 @@ from later.unittest import TestCase
 from thrift.python.server import ThriftServer
 
 
+def count_live_servers(server_id: int) -> int:
+    return sum(
+        id(obj) == server_id and type(obj) is ThriftServer for obj in gc.get_objects()
+    )
+
+
 async def serve_and_stop() -> int:
     server = ThriftServer(None, port=0, ip="::1")
     server.set_io_worker_threads(1)
@@ -50,21 +56,12 @@ class TestServerLifetime(TestCase):
 
             # WHEN
             del unserved_server
-            unserved_retained_count = sum(
-                id(obj) == unserved_id and type(obj) is ThriftServer
-                for obj in gc.get_objects()
-            )
+            unserved_retained_count = count_live_servers(unserved_id)
             served_id = await serve_and_stop()
             await asyncio.get_running_loop().shutdown_default_executor()
-            retained_before_gc = sum(
-                id(obj) == served_id and type(obj) is ThriftServer
-                for obj in gc.get_objects()
-            )
+            retained_before_gc = count_live_servers(served_id)
             gc.collect()
-            retained_after_gc = sum(
-                id(obj) == served_id and type(obj) is ThriftServer
-                for obj in gc.get_objects()
-            )
+            retained_after_gc = count_live_servers(served_id)
             print(
                 json.dumps(
                     {
