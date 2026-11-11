@@ -41,7 +41,6 @@
 #include <thrift/lib/cpp2/op/detail/EncodeHelpers.h>
 #include <thrift/lib/cpp2/protocol/Cpp2Ops.h>
 #include <thrift/lib/cpp2/protocol/Protocol.h>
-#include <thrift/lib/cpp2/protocol/ProtocolReaderWireTypeInfo.h>
 #include <thrift/lib/cpp2/protocol/Traits.h>
 #include <thrift/lib/cpp2/type/detail/TypeClassToTypeTag.h>
 
@@ -84,7 +83,6 @@
 namespace apache::thrift::detail::pm {
 
 using op::detail::checked_container_size;
-using op::detail::deserialize_key_val_into_map;
 using op::detail::deserialize_known_length_map;
 using op::detail::deserialize_known_length_set;
 // NOLINTNEXTLINE(facebook-hte-DetailCall)
@@ -451,54 +449,13 @@ struct protocol_methods<
   using key_ttype = protocol_type<KeyClass, key_type>;
   using mapped_ttype = protocol_type<MappedClass, mapped_type>;
 
- protected:
-  template <typename Protocol, typename U>
-  static void consume_elem(Protocol& protocol, U& out) {
-    deserialize_key_val_into_map(
-        out,
-        [&protocol](auto& key) { key_methods::read(protocol, key); },
-        [&protocol](auto& value) { mapped_methods::read(protocol, value); });
-  }
-
- public:
   template <typename Protocol, typename U>
   static void read(Protocol& protocol, U& out) {
-    std::uint32_t map_size = -1;
-    using WireTypeInfo = ProtocolReaderWireTypeInfo<Protocol>;
-    using WireType = typename WireTypeInfo::WireType;
-
-    WireType rpt_key_type = WireTypeInfo::defaultValue(),
-             rpt_mapped_type = WireTypeInfo::defaultValue();
-
-    protocol.readMapBegin(rpt_key_type, rpt_mapped_type, map_size);
-    out.clear();
-    if (protocol.kOmitsContainerSizes()) {
-      while (protocol.peekMap()) {
-        consume_elem(protocol, out);
-      }
-    } else {
-      // CompactProtocol does not transmit key/mapped types if
-      // the map is empty
-      if (map_size > 0 &&
-          (WireTypeInfo::fromTType(key_ttype::value) != rpt_key_type ||
-           WireTypeInfo::fromTType(mapped_ttype::value) != rpt_mapped_type)) {
-        apache::thrift::skip_n(
-            protocol, map_size, {rpt_key_type, rpt_mapped_type});
-      } else {
-        if (!canReadNElements(
-                protocol, map_size, {rpt_key_type, rpt_mapped_type})) {
-          protocol::TProtocolException::throwTruncatedData();
-        }
-        const auto kreader = [&protocol](auto& key) {
-          key_methods::read(protocol, key);
-        };
-        const auto vreader = [&protocol](auto& value) {
-          mapped_methods::read(protocol, value);
-        };
-        deserialize_known_length_map(out, map_size, kreader, vreader);
-      }
-    }
-    protocol.readMapEnd();
+    op::detail::decode_map<key_ttype::value, mapped_ttype::value>(
+        protocol,
+        out,
+        [&](auto& key) { key_methods::read(protocol, key); },
+        [&](auto& value) { mapped_methods::read(protocol, value); });
   }
 
   template <typename Protocol, typename U>

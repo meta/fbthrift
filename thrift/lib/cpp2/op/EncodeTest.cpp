@@ -1259,6 +1259,139 @@ TEST(DecodeTest, SetUnknownSizeAllocator) {
   }
 }
 
+TEST(DecodeTest, MapReadParity) {
+  using Map = std::map<int32_t, int32_t>;
+  using Tag = type::map<type::i32_t, type::i32_t>;
+  using Methods = apache::thrift::detail::pm::protocol_methods<
+      type_class::map<type_class::integral, type_class::integral>,
+      Map,
+      Tag>;
+  for (auto valueType : {TType::T_I32, TType::T_I64}) {
+    folly::IOBufQueue queue;
+    BinaryProtocolWriter writer;
+    writer.setOutput(&queue);
+    writer.writeMapBegin(TType::T_I32, valueType, 3, false);
+    for (auto [key, value] : std::initializer_list<std::pair<int32_t, int32_t>>{
+             {2, 20}, {1, 10}, {2, 21}}) {
+      writer.writeI32(key);
+      if (valueType == TType::T_I32) {
+        writer.writeI32(value);
+      } else {
+        writer.writeI64(value);
+      }
+    }
+    writer.writeMapEnd();
+    writer.writeI32(42);
+    for (bool useOp : {false, true}) {
+      SCOPED_TRACE(useOp);
+      BinaryProtocolReader reader;
+      reader.setInput(queue.front());
+      Map result{{99, 99}};
+      if (useOp) {
+        op::decode<Tag>(reader, result);
+      } else {
+        Methods::read(reader, result);
+      }
+      EXPECT_EQ(
+          result, valueType == TType::T_I32 ? (Map{{1, 10}, {2, 20}}) : Map{});
+      int32_t next;
+      reader.readI32(next);
+      EXPECT_EQ(next, 42);
+    }
+  }
+}
+
+TEST(DecodeTest, MapCompactEmpty) {
+  using Map = std::map<int32_t, int32_t>;
+  using Tag = type::map<type::i32_t, type::i32_t>;
+  using Methods = apache::thrift::detail::pm::protocol_methods<
+      type_class::map<type_class::integral, type_class::integral>,
+      Map,
+      Tag>;
+  // Compact writes no key and value types for an empty map, so the reader
+  // reports types that don't match the expected ones.
+  folly::IOBufQueue queue;
+  CompactProtocolWriter writer;
+  writer.setOutput(&queue);
+  writer.writeMapBegin(TType::T_I32, TType::T_I32, 0, false);
+  writer.writeMapEnd();
+  writer.writeI32(42);
+  for (bool useOp : {false, true}) {
+    SCOPED_TRACE(useOp);
+    CompactProtocolReader reader;
+    reader.setInput(queue.front());
+    Map result{{99, 99}};
+    if (useOp) {
+      op::decode<Tag>(reader, result);
+    } else {
+      Methods::read(reader, result);
+    }
+    EXPECT_TRUE(result.empty());
+    int32_t next;
+    reader.readI32(next);
+    EXPECT_EQ(next, 42);
+  }
+}
+
+TEST(DecodeTest, MapTruncatedInput) {
+  using Map = std::map<int32_t, int32_t>;
+  using Tag = type::map<type::i32_t, type::i32_t>;
+  using Methods = apache::thrift::detail::pm::protocol_methods<
+      type_class::map<type_class::integral, type_class::integral>,
+      Map,
+      Tag>;
+  folly::IOBufQueue queue;
+  BinaryProtocolWriter writer;
+  writer.setOutput(&queue);
+  writer.writeMapBegin(TType::T_I32, TType::T_I32, 5, false);
+  writer.writeI32(1);
+  writer.writeI32(10);
+  for (bool useOp : {false, true}) {
+    BinaryProtocolReader reader;
+    reader.setInput(queue.front());
+    Map result{{99, 99}};
+    if (useOp) {
+      EXPECT_THROW(op::decode<Tag>(reader, result), TProtocolException);
+    } else {
+      EXPECT_THROW(Methods::read(reader, result), TProtocolException);
+    }
+    EXPECT_TRUE(result.empty());
+  }
+}
+
+TEST(DecodeTest, MapUnknownSizeAllocator) {
+  using Map = std::pmr::map<std::pmr::string, std::pmr::string>;
+  using Tag = type::map<type::string_t, type::string_t>;
+  using Methods = apache::thrift::detail::pm::protocol_methods<
+      type_class::map<type_class::string, type_class::string>,
+      Map,
+      Tag>;
+  struct Reader : SimpleJSONProtocolReader {
+    std::pmr::memory_resource* resource = nullptr;
+    void readString(std::pmr::string& value) {
+      EXPECT_EQ(value.get_allocator().resource(), resource);
+      SimpleJSONProtocolReader::readString(value);
+    }
+  };
+  const auto input = folly::IOBuf::copyBuffer(R"({"a":"one","b":"two"})");
+  for (bool useOp : {false, true}) {
+    std::pmr::monotonic_buffer_resource resource;
+    Map result(&resource);
+    result.emplace("old", "old");
+    Reader reader;
+    reader.resource = &resource;
+    reader.setInput(input.get());
+    if (useOp) {
+      op::decode<Tag>(reader, result);
+    } else {
+      Methods::read(reader, result);
+    }
+    const Map expected({{"a", "one"}, {"b", "two"}}, &resource);
+    EXPECT_EQ(result, expected);
+    EXPECT_EQ(result.get_allocator().resource(), &resource);
+  }
+}
+
 TEST(DecodeTest, DecodeListWithConstReference) {
   using Tag = type::list<type::i32_t>;
   const std::vector<std::int32_t> values{1, 2, 3};

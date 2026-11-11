@@ -1292,35 +1292,48 @@ struct Decode<type::set<Tag>> {
   }
 };
 
+template <
+    TType KeyType,
+    TType ValueType,
+    typename Protocol,
+    typename MapType,
+    typename KeyRead,
+    typename ValueRead>
+void decode_map(
+    Protocol& prot, MapType& map, KeyRead keyRead, ValueRead valueRead) {
+  using WireTypeInfo =
+      apache::thrift::detail::ProtocolReaderWireTypeInfo<Protocol>;
+  auto keyType = WireTypeInfo::defaultValue();
+  auto valueType = WireTypeInfo::defaultValue();
+  uint32_t s = static_cast<uint32_t>(-1);
+  prot.readMapBegin(keyType, valueType, s);
+  map.clear();
+  if (prot.kOmitsContainerSizes()) {
+    while (prot.peekMap()) {
+      deserialize_key_val_into_map(map, keyRead, valueRead);
+    }
+  } else if (
+      WireTypeInfo::fromTType(KeyType) == keyType &&
+      WireTypeInfo::fromTType(ValueType) == valueType) {
+    if (!canReadNElements(prot, s, {keyType, valueType})) {
+      TProtocolException::throwTruncatedData();
+    }
+    deserialize_known_length_map(map, s, keyRead, valueRead);
+  } else {
+    apache::thrift::skip_n(prot, s, {keyType, valueType});
+  }
+  prot.readMapEnd();
+}
+
 template <typename Key, typename Value>
 struct Decode<type::map<Key, Value>> {
   template <typename Protocol, typename MapType>
   void operator()(Protocol& prot, MapType& map) const {
-    TType keyType, valueType;
-    uint32_t s;
-    prot.readMapBegin(keyType, valueType, s);
-    map.clear();
-    if (prot.kOmitsContainerSizes()) {
-      while (prot.peekMap()) {
-        deserialize_key_val_into_map(
-            map,
-            [&prot](auto& key) { Decode<Key>{}(prot, key); },
-            [&prot](auto& value) { Decode<Value>{}(prot, value); });
-      }
-    } else if (
-        typeTagToTType<Key> == keyType && typeTagToTType<Value> == valueType) {
-      if (!canReadNElements(prot, s, {keyType, valueType})) {
-        TProtocolException::throwTruncatedData();
-      }
-      deserialize_known_length_map(
-          map,
-          s,
-          [&prot](auto& key) { Decode<Key>{}(prot, key); },
-          [&prot](auto& value) { Decode<Value>{}(prot, value); });
-    } else {
-      apache::thrift::skip_n(prot, s, {keyType, valueType});
-    }
-    prot.readMapEnd();
+    decode_map<typeTagToTType<Key>, typeTagToTType<Value>>(
+        prot,
+        map,
+        [&](auto& key) { Decode<Key>{}(prot, key); },
+        [&](auto& value) { Decode<Value>{}(prot, value); });
   }
 };
 
