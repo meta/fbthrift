@@ -22,6 +22,8 @@ template void TccStructTraits<::test::fixtures::cpp_arena::WholeStruct>::transla
     std::string_view, int16_t&, apache::thrift::protocol::TType&);
 template void TccStructTraits<::test::fixtures::cpp_arena::HoldsWholeStruct>::translateFieldName(
     std::string_view, int16_t&, apache::thrift::protocol::TType&);
+template void TccStructTraits<::test::fixtures::cpp_arena::ArenaMember>::translateFieldName(
+    std::string_view, int16_t&, apache::thrift::protocol::TType&);
 template void TccStructTraits<::test::fixtures::cpp_arena::WholeUnion>::translateFieldName(
     std::string_view, int16_t&, apache::thrift::protocol::TType&);
 } // namespace apache::thrift::detail
@@ -455,6 +457,133 @@ void swap([[maybe_unused]] HoldsWholeStruct& a, [[maybe_unused]] HoldsWholeStruc
 static_assert(
     ::apache::thrift::detail::st::gen_check_json<
         HoldsWholeStruct,
+        ::apache::thrift::type_class::structure,
+        ::test::fixtures::cpp_arena::WholeStruct>,
+    "inconsistent use of json option");
+
+} // namespace test::fixtures::cpp_arena
+
+
+namespace test::fixtures::cpp_arena {
+
+std::string_view ArenaMember::__fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord) {
+  if (ord == ::apache::thrift::FieldOrdinal{0}) { return {}; }
+  return apache::thrift::TStructDataStorage<ArenaMember>::fields_names[folly::to_underlying(ord) - 1];
+}
+std::string_view ArenaMember::__fbthrift_get_class_name() {
+  return apache::thrift::TStructDataStorage<ArenaMember>::name;
+}
+
+ArenaMember::ArenaMember(const ArenaMember& srcObj) :
+    __fbthrift_alloc(::std::allocator_traits<allocator_type>::select_on_container_copy_construction(srcObj.__fbthrift_alloc)),
+    __fbthrift_field_arena(srcObj.__fbthrift_field_arena),
+    __fbthrift_field_plain(srcObj.__fbthrift_field_plain),
+    __isset(srcObj.__isset) {
+}
+
+static void __fbthrift_swap(ArenaMember& lhs, ArenaMember& rhs) { swap(lhs, rhs); }
+ArenaMember& ArenaMember::operator=(const ArenaMember& other) {
+  if (::apache::thrift::detail::copy_assign_changes_allocator(get_allocator(), other.get_allocator())) {
+    this->__fbthrift_field_arena = other.__fbthrift_field_arena;
+    this->__fbthrift_field_plain = other.__fbthrift_field_plain;
+    __isset = other.__isset;
+    ::apache::thrift::detail::copy_allocator(__fbthrift_alloc, other.__fbthrift_alloc);
+    return *this;
+  }
+  ArenaMember tmp(other, get_allocator());
+  __fbthrift_swap(*this, tmp);
+  ::apache::thrift::detail::copy_allocator(__fbthrift_alloc, other.__fbthrift_alloc);
+  return *this;
+}
+
+ArenaMember::ArenaMember(const allocator_type& alloc) noexcept :
+    __fbthrift_alloc(alloc),
+    __fbthrift_field_arena(alloc),
+    __fbthrift_field_plain() {
+}
+
+ArenaMember::ArenaMember(const ArenaMember& other, const allocator_type& alloc) :
+    __fbthrift_alloc(alloc),
+    __fbthrift_field_arena(other.__fbthrift_field_arena, alloc),
+    __fbthrift_field_plain(other.__fbthrift_field_plain),
+    __isset(other.__isset) {
+}
+
+ArenaMember::ArenaMember(ArenaMember&& other, const allocator_type& alloc) :
+    __fbthrift_alloc(alloc),
+    __fbthrift_field_arena(std::move(other.__fbthrift_field_arena), alloc),
+    __fbthrift_field_plain(std::move(other.__fbthrift_field_plain)),
+    __isset(other.__isset) {
+}
+ArenaMember::ArenaMember([[maybe_unused]] ArenaMember&& other) noexcept :
+    __fbthrift_alloc(std::move(other.__fbthrift_alloc)),
+    __fbthrift_field_arena(std::move(other.__fbthrift_field_arena)),
+    __fbthrift_field_plain(std::move(other.__fbthrift_field_plain)),
+    __isset(other.__isset) {
+}
+
+ArenaMember& ArenaMember::operator=([[maybe_unused]] ArenaMember&& other) {
+    this->__fbthrift_field_arena = std::move(other.__fbthrift_field_arena);
+    this->__fbthrift_field_plain = std::move(other.__fbthrift_field_plain);
+    __isset = other.__isset;
+  ::apache::thrift::detail::move_allocator(__fbthrift_alloc, other.__fbthrift_alloc);
+    return *this;
+}
+
+
+void ArenaMember::__fbthrift_clear() {
+  // clear all fields
+  ::apache::thrift::clear(this->__fbthrift_field_arena);
+  ::apache::thrift::clear(this->__fbthrift_field_plain);
+  __isset = {};
+}
+
+bool ArenaMember::__fbthrift_is_empty() const {
+  return false;
+}
+
+bool ArenaMember::operator==([[maybe_unused]] const ArenaMember& rhs) const {
+  return ::apache::thrift::op::detail::StructEquality{}(*this, rhs);
+}
+
+std::partial_ordering ArenaMember::operator<=>([[maybe_unused]] const ArenaMember& rhs) const {
+  return ::apache::thrift::op::compare<ArenaMember>(*this, rhs);
+}
+
+
+const ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type& ArenaMember::get_arena() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
+  return __fbthrift_field_arena;
+}
+
+::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type ArenaMember::get_arena() && {
+  return static_cast<::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type&&>(__fbthrift_field_arena);
+}
+
+const ::test::fixtures::cpp_arena::WholeStruct& ArenaMember::get_plain() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
+  return __fbthrift_field_plain;
+}
+
+::test::fixtures::cpp_arena::WholeStruct ArenaMember::get_plain() && {
+  return static_cast<::test::fixtures::cpp_arena::WholeStruct&&>(__fbthrift_field_plain);
+}
+
+void swap([[maybe_unused]] ArenaMember& a, [[maybe_unused]] ArenaMember& b) {
+  using ::std::swap;
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_arena, b.__fbthrift_field_arena);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_plain, b.__fbthrift_field_plain);
+  swap(a.__isset, b.__isset);
+  ::apache::thrift::detail::swap_allocators(a.__fbthrift_alloc, b.__fbthrift_alloc);
+}
+
+static_assert(
+    ::apache::thrift::detail::st::gen_check_json<
+        ArenaMember,
+        ::apache::thrift::type_class::structure,
+        ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type>,
+    "inconsistent use of json option");
+static_assert(
+    ::apache::thrift::detail::st::gen_check_json<
+        ArenaMember,
         ::apache::thrift::type_class::structure,
         ::test::fixtures::cpp_arena::WholeStruct>,
     "inconsistent use of json option");

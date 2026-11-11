@@ -47,6 +47,13 @@ struct HoldsWholeStruct {
   1: WholeStruct whole;
 }
 
+// Unlike the structs above, has no string or container field.
+struct ArenaMember {
+  @cpp.Arena
+  1: WholeStruct arena;
+  2: WholeStruct plain;
+}
+
 @cpp.Arena
 union WholeUnion {
   1: list<string> names;

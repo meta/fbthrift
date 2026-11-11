@@ -28,6 +28,11 @@ template uint32_t HoldsWholeStruct::write<>(apache::thrift::BinaryProtocolWriter
 template uint32_t HoldsWholeStruct::serializedSize<>(apache::thrift::BinaryProtocolWriter const*) const;
 template uint32_t HoldsWholeStruct::serializedSizeZC<>(apache::thrift::BinaryProtocolWriter const*) const;
 
+template void ArenaMember::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
+template uint32_t ArenaMember::write<>(apache::thrift::BinaryProtocolWriter*) const;
+template uint32_t ArenaMember::serializedSize<>(apache::thrift::BinaryProtocolWriter const*) const;
+template uint32_t ArenaMember::serializedSizeZC<>(apache::thrift::BinaryProtocolWriter const*) const;
+
 template void WholeUnion::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
 template uint32_t WholeUnion::write<>(apache::thrift::BinaryProtocolWriter*) const;
 template uint32_t WholeUnion::serializedSize<>(apache::thrift::BinaryProtocolWriter const*) const;

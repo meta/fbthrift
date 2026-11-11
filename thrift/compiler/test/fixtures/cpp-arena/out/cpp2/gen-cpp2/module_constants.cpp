@@ -14,13 +14,13 @@ namespace test::fixtures::cpp_arena {
 namespace module_constants {
 
 
-::std::string_view _fbthrift_schema_87920987876dede2() {
+::std::string_view _fbthrift_schema_e6ff7c0afe5345b8() {
   return "";
 }
-::folly::Range<const ::std::string_view*> _fbthrift_schema_87920987876dede2_includes() {
+::folly::Range<const ::std::string_view*> _fbthrift_schema_e6ff7c0afe5345b8_includes() {
   return {};
 }
-::folly::Range<const ::std::string_view*> _fbthrift_schema_87920987876dede2_uris() {
+::folly::Range<const ::std::string_view*> _fbthrift_schema_e6ff7c0afe5345b8_uris() {
   return {};
 }
 

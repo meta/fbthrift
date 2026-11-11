@@ -350,6 +350,87 @@ PyObject* Constructor<::apache::thrift::python::capi::ComposedStruct<
 }
 
 
+ExtractorResult<::test::fixtures::cpp_arena::ArenaMember>
+Extractor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::ArenaMember, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>::operator()(PyObject* obj) {
+  if (!ensure_module_imported()) {
+    DCHECK(PyErr_Occurred() != nullptr);
+    return extractorError<::test::fixtures::cpp_arena::ArenaMember>(
+      "Module facebook.thrift.test.fixtures.cpp_arena.module import error");
+  }
+  std::unique_ptr<folly::IOBuf> val(
+      extract__facebook__thrift__test__fixtures__cpp_arena__module__ArenaMember(obj));
+  if (!val) {
+    CHECK(PyErr_Occurred());
+    return extractorError<::test::fixtures::cpp_arena::ArenaMember>(
+        "Thrift serialize error: ArenaMember");
+  }
+  return detail::deserialize_iobuf<::test::fixtures::cpp_arena::ArenaMember>(std::move(val));
+}
+
+
+ExtractorResult<::test::fixtures::cpp_arena::ArenaMember>
+Extractor<::apache::thrift::python::capi::ComposedStruct<
+    ::test::fixtures::cpp_arena::ArenaMember, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>::operator()(PyObject* fbthrift_data) {
+  if (!ensure_module_imported()) {
+    DCHECK(PyErr_Occurred() != nullptr);
+    return extractorError<::test::fixtures::cpp_arena::ArenaMember>(
+      "Module facebook.thrift.test.fixtures.cpp_arena.module import error");
+  }
+  auto obj = StrongRef(init__facebook__thrift__test__fixtures__cpp_arena__module__ArenaMember(fbthrift_data));
+  if (!obj) {
+      return extractorError<::test::fixtures::cpp_arena::ArenaMember>(
+          "Init from fbthrift error: ArenaMember");
+  }
+  return Extractor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::ArenaMember, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>{}(*obj);
+}
+
+int Extractor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::ArenaMember, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>::typeCheck(PyObject* obj) {
+  if (!ensure_module_imported()) {
+    ::folly::python::handlePythonError(
+      "Module facebook.thrift.test.fixtures.cpp_arena.module import error");
+  }
+  int result =
+      can_extract__facebook__thrift__test__fixtures__cpp_arena__module__ArenaMember(obj);
+  if (result < 0) {
+    ::folly::python::handlePythonError(
+      "Unexpected type check error: ArenaMember");
+  }
+  return result;
+}
+
+
+PyObject* Constructor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::ArenaMember, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>::operator()(
+    const ::test::fixtures::cpp_arena::ArenaMember& val) {
+  if (!ensure_module_imported()) {
+    DCHECK(PyErr_Occurred() != nullptr);
+    return nullptr;
+  }
+  ::std::unique_ptr<::folly::IOBuf> serialized;
+  try {
+    serialized = detail::serialize_to_iobuf(val);
+  } catch (const apache::thrift::TProtocolException& e) {
+    detail::handle_protocol_error(e);
+    return nullptr;
+  }
+  DCHECK(serialized);
+  auto ptr = construct__facebook__thrift__test__fixtures__cpp_arena__module__ArenaMember(std::move(serialized));
+  if (!ptr) {
+    CHECK(PyErr_Occurred());
+  }
+  return ptr;
+}
+
+
+PyObject* Constructor<::apache::thrift::python::capi::ComposedStruct<
+        ::test::fixtures::cpp_arena::ArenaMember, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>::operator()(
+    const ::test::fixtures::cpp_arena::ArenaMember& val) {
+  auto obj = StrongRef(Constructor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::ArenaMember, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>{}(val));
+  if (!obj) {
+    return nullptr;
+  }
+  return getThriftStructFieldData(*obj);
+}
+
 ExtractorResult<::test::fixtures::cpp_arena::WholeUnion>
 Extractor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::WholeUnion, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>::operator()(PyObject* obj) {
   if (!ensure_module_imported()) {

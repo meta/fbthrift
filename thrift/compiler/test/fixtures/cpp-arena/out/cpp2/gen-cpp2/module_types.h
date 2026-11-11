@@ -22,6 +22,8 @@ struct custom;
 struct names;
 struct id;
 struct whole;
+struct arena;
+struct plain;
 struct names;
 struct id;
 } // namespace ident
@@ -62,6 +64,14 @@ APACHE_THRIFT_DEFINE_ACCESSOR(id);
 #define APACHE_THRIFT_ACCESSOR_whole
 APACHE_THRIFT_DEFINE_ACCESSOR(whole);
 #endif
+#ifndef APACHE_THRIFT_ACCESSOR_arena
+#define APACHE_THRIFT_ACCESSOR_arena
+APACHE_THRIFT_DEFINE_ACCESSOR(arena);
+#endif
+#ifndef APACHE_THRIFT_ACCESSOR_plain
+#define APACHE_THRIFT_ACCESSOR_plain
+APACHE_THRIFT_DEFINE_ACCESSOR(plain);
+#endif
 #ifndef APACHE_THRIFT_ACCESSOR_names
 #define APACHE_THRIFT_ACCESSOR_names
 APACHE_THRIFT_DEFINE_ACCESSOR(names);
@@ -81,6 +91,7 @@ class Inner;
 class Fields;
 class WholeStruct;
 class HoldsWholeStruct;
+class ArenaMember;
 class WholeUnion;
 } // namespace test::fixtures::cpp_arena
 // END forward_declare
@@ -98,6 +109,8 @@ template<>
 struct is_field_using_allocator<::test::fixtures::cpp_arena::Fields,::apache::thrift::type::field_id<5>> : std::true_type{};
 template<>
 struct is_field_using_allocator<::test::fixtures::cpp_arena::WholeStruct,::apache::thrift::type::field_id<1>> : std::true_type{};
+template<>
+struct is_field_using_allocator<::test::fixtures::cpp_arena::ArenaMember,::apache::thrift::type::field_id<1>> : std::true_type{};
 template<>
 struct is_field_using_allocator<::test::fixtures::cpp_arena::WholeUnion,::apache::thrift::type::field_id<1>> : std::true_type{};
 } // namespace apache::thrift::detail::qualifier
@@ -947,6 +960,206 @@ unsigned long HoldsWholeStruct::read(Protocol_* iprot) {
 }
 
 
+/** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/module.thrift", "name": "ArenaMember", "kind": "struct" } */
+class ArenaMember final  {
+ private:
+  friend struct ::apache::thrift::detail::st::struct_private_access;
+  template<class> friend struct ::apache::thrift::detail::invoke_reffer;
+
+  //  used by a static_assert in the corresponding source
+  static constexpr bool __fbthrift_cpp2_gen_json = false;
+  static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
+  static constexpr folly::cstring_view __fbthrift_thrift_uri = "facebook.com/thrift/test/fixtures/cpp_arena/ArenaMember";
+  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  static std::string_view __fbthrift_get_class_name();
+  template <class ...>
+  FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
+    return "module";
+  }
+  static constexpr std::size_t __fbthrift_num_fields = 2;
+
+  static constexpr const int16_t __fbthrift_reflection_field_ids[] = {0,1,2};
+
+  using __fbthrift_reflection_idents = folly::tag_t<
+    ::apache::thrift::ident::arena,
+    ::apache::thrift::ident::plain
+  >;
+
+  using __fbthrift_reflection_type_tags = folly::tag_t<
+    ::apache::thrift::type::cpp_pmr_type<::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type, ::apache::thrift::type::struct_t<::test::fixtures::cpp_arena::WholeStruct>>,
+    ::apache::thrift::type::struct_t<::test::fixtures::cpp_arena::WholeStruct>
+  >;
+  void __fbthrift_clear();
+  bool __fbthrift_is_empty() const;
+
+ public:
+  using __fbthrift_cpp2_type = ArenaMember;
+  static constexpr bool __fbthrift_cpp2_is_union =
+    false;
+
+ public:
+  using allocator_type = ::std::pmr::polymorphic_allocator<::std::byte>;
+  allocator_type get_allocator() const {
+    return __fbthrift_alloc;
+  }
+ private:
+  [[FOLLY_ATTR_NO_UNIQUE_ADDRESS]] allocator_type __fbthrift_alloc;
+
+ public:
+
+  ArenaMember() :
+      __fbthrift_alloc(allocator_type()),
+      __fbthrift_field_arena(__fbthrift_alloc),
+      __fbthrift_field_plain() {
+  }
+  ArenaMember(ArenaMember&&) noexcept;
+  ArenaMember(const ArenaMember& src);
+
+  explicit ArenaMember(const allocator_type& alloc) noexcept;
+  explicit ArenaMember(const ArenaMember& other, const allocator_type& alloc);
+  explicit ArenaMember(ArenaMember&& other, const allocator_type& alloc);
+  ArenaMember& operator=(ArenaMember&&);
+  ArenaMember& operator=(const ArenaMember&);
+ private:
+  ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type __fbthrift_field_arena;
+ private:
+  ::test::fixtures::cpp_arena::WholeStruct __fbthrift_field_plain;
+ private:
+  apache::thrift::detail::isset_bitset<2, apache::thrift::detail::IssetBitsetOption::Unpacked> __isset;
+
+ public:
+
+  bool operator==(const ArenaMember&) const;
+  std::partial_ordering operator<=>(const ArenaMember&) const;
+
+  /** Glean { "field": "arena" } */
+  template <typename..., typename fbthrift_T = ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type>
+  FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> arena_ref() const& {
+    return {this->__fbthrift_field_arena, __isset.at(0), __isset.bit(0)};
+  }
+
+  /** Glean { "field": "arena" } */
+  template <typename..., typename fbthrift_T = ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type>
+  FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> arena_ref() & {
+    return {this->__fbthrift_field_arena, __isset.at(0), __isset.bit(0)};
+  }
+
+  /** Glean { "field": "arena" } */
+  template <typename..., typename fbthrift_T = ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type>
+  FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> arena_ref() && {
+    return {static_cast<fbthrift_T&&>(this->__fbthrift_field_arena), __isset.at(0), __isset.bit(0)};
+  }
+
+  /** Glean { "field": "arena" } */
+  template <typename..., typename fbthrift_T = ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type>
+  FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> arena() const& {
+    return {this->__fbthrift_field_arena, __isset.at(0), __isset.bit(0)};
+  }
+
+  /** Glean { "field": "arena" } */
+  template <typename..., typename fbthrift_T = ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type>
+  FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> arena() & {
+    return {this->__fbthrift_field_arena, __isset.at(0), __isset.bit(0)};
+  }
+
+  /** Glean { "field": "arena" } */
+  template <typename..., typename fbthrift_T = ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type>
+  FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> arena() && {
+    return {static_cast<fbthrift_T&&>(this->__fbthrift_field_arena), __isset.at(0), __isset.bit(0)};
+  }
+
+  /** Glean { "field": "plain" } */
+  template <typename..., typename fbthrift_T = ::test::fixtures::cpp_arena::WholeStruct>
+  FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> plain_ref() const& {
+    return {this->__fbthrift_field_plain, __isset.at(1), __isset.bit(1)};
+  }
+
+  /** Glean { "field": "plain" } */
+  template <typename..., typename fbthrift_T = ::test::fixtures::cpp_arena::WholeStruct>
+  FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> plain_ref() & {
+    return {this->__fbthrift_field_plain, __isset.at(1), __isset.bit(1)};
+  }
+
+  /** Glean { "field": "plain" } */
+  template <typename..., typename fbthrift_T = ::test::fixtures::cpp_arena::WholeStruct>
+  FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> plain_ref() && {
+    return {static_cast<fbthrift_T&&>(this->__fbthrift_field_plain), __isset.at(1), __isset.bit(1)};
+  }
+
+  /** Glean { "field": "plain" } */
+  template <typename..., typename fbthrift_T = ::test::fixtures::cpp_arena::WholeStruct>
+  FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> plain() const& {
+    return {this->__fbthrift_field_plain, __isset.at(1), __isset.bit(1)};
+  }
+
+  /** Glean { "field": "plain" } */
+  template <typename..., typename fbthrift_T = ::test::fixtures::cpp_arena::WholeStruct>
+  FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> plain() & {
+    return {this->__fbthrift_field_plain, __isset.at(1), __isset.bit(1)};
+  }
+
+  /** Glean { "field": "plain" } */
+  template <typename..., typename fbthrift_T = ::test::fixtures::cpp_arena::WholeStruct>
+  FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> plain() && {
+    return {static_cast<fbthrift_T&&>(this->__fbthrift_field_plain), __isset.at(1), __isset.bit(1)};
+  }
+
+  /** Glean { "field": "arena" } */
+  [[deprecated("Use `FOO.arena().value()` instead of `FOO.get_arena()`")]]
+  const ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type& get_arena() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]];
+
+  /** Glean { "field": "arena" } */
+  [[deprecated("Use `FOO.arena().value()` instead of `FOO.get_arena()`")]]
+  ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type get_arena() &&;
+
+  /** Glean { "field": "arena" } */
+  template <typename T_ArenaMember_arena_struct_setter = ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type>
+  [[deprecated("Use `FOO.arena() = BAR` instead of `FOO.set_arena(BAR)`")]]
+  ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type& set_arena(T_ArenaMember_arena_struct_setter&& arena_) {
+    arena_ref() = std::forward<T_ArenaMember_arena_struct_setter>(arena_);
+    return __fbthrift_field_arena;
+  }
+
+  /** Glean { "field": "plain" } */
+  [[deprecated("Use `FOO.plain().value()` instead of `FOO.get_plain()`")]]
+  const ::test::fixtures::cpp_arena::WholeStruct& get_plain() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]];
+
+  /** Glean { "field": "plain" } */
+  [[deprecated("Use `FOO.plain().value()` instead of `FOO.get_plain()`")]]
+  ::test::fixtures::cpp_arena::WholeStruct get_plain() &&;
+
+  /** Glean { "field": "plain" } */
+  template <typename T_ArenaMember_plain_struct_setter = ::test::fixtures::cpp_arena::WholeStruct>
+  [[deprecated("Use `FOO.plain() = BAR` instead of `FOO.set_plain(BAR)`")]]
+  ::test::fixtures::cpp_arena::WholeStruct& set_plain(T_ArenaMember_plain_struct_setter&& plain_) {
+    plain_ref() = std::forward<T_ArenaMember_plain_struct_setter>(plain_);
+    return __fbthrift_field_plain;
+  }
+
+  template <class Protocol_>
+  unsigned long read(Protocol_* iprot);
+  template <class Protocol_>
+  uint32_t serializedSize(Protocol_ const* prot_) const;
+  template <class Protocol_>
+  uint32_t serializedSizeZC(Protocol_ const* prot_) const;
+  template <class Protocol_>
+  uint32_t write(Protocol_* prot_) const;
+
+ private:
+  template <class Protocol_>
+  void readNoXfer(Protocol_* iprot);
+
+  friend void swap(ArenaMember& a, ArenaMember& b);
+};
+
+template <class Protocol_>
+unsigned long ArenaMember::read(Protocol_* iprot) {
+  auto _xferStart = iprot->getCursorPosition();
+  readNoXfer(iprot);
+  return iprot->getCursorPosition() - _xferStart;
+}
+
+
 /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/module.thrift", "name": "WholeUnion", "kind": "union" } */
 class WholeUnion final  {
  private:
@@ -1207,27 +1420,32 @@ template <> struct TEnumTraits<::test::fixtures::cpp_arena::WholeUnion::Type> {
 namespace apache::thrift::detail {
 template <> struct TSchemaAssociation<::test::fixtures::cpp_arena::Inner, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = -8677863054292161054;
-  static constexpr ::std::string_view definitionKey = {"\xc7\xa2\xde\x8a\xd1\x7d\xb4\x1f\x94\x5e\x9a\x28\x25\xa7\xdf\x37", 16};
+  static constexpr int64_t programId = -1801584939266521672;
+  static constexpr ::std::string_view definitionKey = {"\x23\xd4\xad\xb1\x16\x24\xc1\x9c\xfd\x6b\x2e\xc7\xa4\x43\xa6\x22", 16};
 };
 template <> struct TSchemaAssociation<::test::fixtures::cpp_arena::Fields, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = -8677863054292161054;
-  static constexpr ::std::string_view definitionKey = {"\x19\xb3\x10\xff\x40\xad\x88\xb3\x70\x2a\xca\x40\x15\xb9\xba\xa9", 16};
+  static constexpr int64_t programId = -1801584939266521672;
+  static constexpr ::std::string_view definitionKey = {"\xb6\x3b\xf2\x04\xf8\x08\xf9\xf2\x80\xae\x35\x65\x62\x6b\x57\x6a", 16};
 };
 template <> struct TSchemaAssociation<::test::fixtures::cpp_arena::WholeStruct, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = -8677863054292161054;
-  static constexpr ::std::string_view definitionKey = {"\x43\x7b\x92\x79\x3a\x5b\x3e\x34\xac\x56\x10\x6b\x15\xd5\x72\xa6", 16};
+  static constexpr int64_t programId = -1801584939266521672;
+  static constexpr ::std::string_view definitionKey = {"\x4b\x75\xf7\xf8\x3f\x72\xe4\x14\x8f\xde\x84\x75\x05\x7a\x87\x95", 16};
 };
 template <> struct TSchemaAssociation<::test::fixtures::cpp_arena::HoldsWholeStruct, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = -8677863054292161054;
-  static constexpr ::std::string_view definitionKey = {"\xd7\x25\xb1\xf6\x27\x1d\x80\xb2\x8e\x8d\x5f\x14\xd7\x60\x37\x9c", 16};
+  static constexpr int64_t programId = -1801584939266521672;
+  static constexpr ::std::string_view definitionKey = {"\x9b\x21\x31\x67\xe8\x18\x38\x16\xbb\x25\x29\xbc\x3e\xf5\xdb\x42", 16};
+};
+template <> struct TSchemaAssociation<::test::fixtures::cpp_arena::ArenaMember, false> {
+  static ::folly::Range<const ::std::string_view*> bundle();
+  static constexpr int64_t programId = -1801584939266521672;
+  static constexpr ::std::string_view definitionKey = {"\x53\x01\xfe\x4f\x36\xe6\x62\x44\xd4\x76\x17\x0c\x98\x1d\x92\xce", 16};
 };
 template <> struct TSchemaAssociation<::test::fixtures::cpp_arena::WholeUnion, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = -8677863054292161054;
-  static constexpr ::std::string_view definitionKey = {"\xa4\x17\xe8\x42\x5f\x5f\x39\xc6\xbc\x13\xdf\xbe\x63\x83\x54\x98", 16};
+  static constexpr int64_t programId = -1801584939266521672;
+  static constexpr ::std::string_view definitionKey = {"\xc1\xb9\xef\xa7\xe6\xaf\xc7\x4c\x4a\xb1\x92\xc3\x5b\xf5\x6f\x3b", 16};
 };
 } // namespace apache::thrift::detail

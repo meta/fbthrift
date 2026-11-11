@@ -146,6 +146,37 @@ struct Constructor<::apache::thrift::python::capi::ComposedStruct<
 };
 
 template <>
+struct Extractor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::ArenaMember, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>
+    : public BaseExtractor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::ArenaMember, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>> {
+  static const bool kUsingMarshal = false;
+  ExtractorResult<::test::fixtures::cpp_arena::ArenaMember> operator()(PyObject* obj);
+  int typeCheck(PyObject* obj);
+};
+
+template <>
+struct Extractor<::apache::thrift::python::capi::ComposedStruct<
+        ::test::fixtures::cpp_arena::ArenaMember, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag >>
+    : public BaseExtractor<::apache::thrift::python::capi::ComposedStruct<
+        ::test::fixtures::cpp_arena::ArenaMember, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>> {
+  ExtractorResult<::test::fixtures::cpp_arena::ArenaMember> operator()(PyObject* obj);
+};
+
+template <>
+struct Constructor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::ArenaMember, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>
+    : public BaseConstructor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::ArenaMember, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>> {
+  static const bool kUsingMarshal = false;
+  PyObject* operator()(const ::test::fixtures::cpp_arena::ArenaMember& val);
+};
+
+template <>
+struct Constructor<::apache::thrift::python::capi::ComposedStruct<
+        ::test::fixtures::cpp_arena::ArenaMember, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>
+    : public BaseConstructor<::apache::thrift::python::capi::ComposedStruct<
+        ::test::fixtures::cpp_arena::ArenaMember, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>> {
+  PyObject* operator()(const ::test::fixtures::cpp_arena::ArenaMember& val);
+};
+
+template <>
 struct Extractor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::WholeUnion, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>>
     : public BaseExtractor<::apache::thrift::python::capi::PythonNamespaced<::test::fixtures::cpp_arena::WholeUnion, ::facebook__thrift__test__fixtures__cpp_arena__module::NamespaceTag>> {
   static const bool kUsingMarshal = false;

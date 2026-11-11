@@ -88,6 +88,24 @@ THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<int, 1> TStructDataStorage<:
   0,
 }};
 
+THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::string_view TStructDataStorage<::test::fixtures::cpp_arena::ArenaMember>::name = "ArenaMember";
+THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<std::string_view, 2> TStructDataStorage<::test::fixtures::cpp_arena::ArenaMember>::fields_names = { {
+  "arena"sv,
+  "plain"sv,
+}};
+THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<int16_t, 2> TStructDataStorage<::test::fixtures::cpp_arena::ArenaMember>::fields_ids = { {
+  1,
+  2,
+}};
+THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<protocol::TType, 2> TStructDataStorage<::test::fixtures::cpp_arena::ArenaMember>::fields_types = { {
+  apache::thrift::protocol::TType::T_STRUCT,
+  apache::thrift::protocol::TType::T_STRUCT,
+}};
+THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<int, 2> TStructDataStorage<::test::fixtures::cpp_arena::ArenaMember>::isset_indexes = { {
+  0,
+  1,
+}};
+
 THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::string_view TStructDataStorage<::test::fixtures::cpp_arena::WholeUnion>::name = "WholeUnion";
 THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<std::string_view, 2> TStructDataStorage<::test::fixtures::cpp_arena::WholeUnion>::fields_names = { {
   "names"sv,
@@ -109,23 +127,27 @@ THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<int, 2> TStructDataStorage<:
 namespace detail {
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::test::fixtures::cpp_arena::Inner, false>::bundle() {
-    return ::test::fixtures::cpp_arena::module_constants::_fbthrift_schema_87920987876dede2_includes();
+    return ::test::fixtures::cpp_arena::module_constants::_fbthrift_schema_e6ff7c0afe5345b8_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::test::fixtures::cpp_arena::Fields, false>::bundle() {
-    return ::test::fixtures::cpp_arena::module_constants::_fbthrift_schema_87920987876dede2_includes();
+    return ::test::fixtures::cpp_arena::module_constants::_fbthrift_schema_e6ff7c0afe5345b8_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::test::fixtures::cpp_arena::WholeStruct, false>::bundle() {
-    return ::test::fixtures::cpp_arena::module_constants::_fbthrift_schema_87920987876dede2_includes();
+    return ::test::fixtures::cpp_arena::module_constants::_fbthrift_schema_e6ff7c0afe5345b8_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::test::fixtures::cpp_arena::HoldsWholeStruct, false>::bundle() {
-    return ::test::fixtures::cpp_arena::module_constants::_fbthrift_schema_87920987876dede2_includes();
+    return ::test::fixtures::cpp_arena::module_constants::_fbthrift_schema_e6ff7c0afe5345b8_includes();
+}
+
+::folly::Range<const ::std::string_view*> TSchemaAssociation<::test::fixtures::cpp_arena::ArenaMember, false>::bundle() {
+    return ::test::fixtures::cpp_arena::module_constants::_fbthrift_schema_e6ff7c0afe5345b8_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::test::fixtures::cpp_arena::WholeUnion, false>::bundle() {
-    return ::test::fixtures::cpp_arena::module_constants::_fbthrift_schema_87920987876dede2_includes();
+    return ::test::fixtures::cpp_arena::module_constants::_fbthrift_schema_e6ff7c0afe5345b8_includes();
 }
 
 } // namespace detail
