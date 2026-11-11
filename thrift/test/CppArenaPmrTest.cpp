@@ -458,6 +458,46 @@ void expectOn(const ArenaError& e, std::pmr::memory_resource* r) {
   EXPECT_EQ(resource(e.details()->front()), r);
 }
 
+void fill(ArenaInner& i) {
+  i.name() = kLong;
+  i.tags()->emplace_back(kOther);
+}
+
+void expectOn(const ArenaInner& i, std::pmr::memory_resource* r) {
+  EXPECT_EQ(resource(i), r);
+  EXPECT_EQ(resource(*i.name()), r);
+  EXPECT_EQ(resource(i.tags()->front()), r);
+}
+
+void fill(Members& m) {
+  fill(*m.inner());
+  fill(*m.either());
+}
+
+void expectOn(const Members& m, std::pmr::memory_resource* r) {
+  EXPECT_EQ(resource(m), r);
+  expectOn(*m.inner(), r);
+  expectOn(*m.either(), r);
+}
+
+void fill(WholeMembers& w) {
+  fill(*w.inner());
+}
+
+void expectOn(const WholeMembers& w, std::pmr::memory_resource* r) {
+  EXPECT_EQ(resource(w), r);
+  expectOn(*w.inner(), r);
+}
+
+void fill(MemberUnion& u) {
+  fill(u.inner().emplace());
+}
+
+void expectOn(const MemberUnion& u, std::pmr::memory_resource* r) {
+  EXPECT_EQ(resource(u), r);
+  expectOn(*u.inner(), r);
+}
+
 TEST(CppArenaPmrTest, AllocatorConstructorPutsEverythingOnTheResource) {
   Arena arena;
   NoDefaultResource noDefault;
@@ -488,6 +528,15 @@ TEST(CppArenaPmrTest, AllocatorConstructorPutsEverythingOnTheResource) {
   CustomTypes u{&arena};
   fill(u);
   expectOn(u, &arena);
+  Members m{&arena};
+  fill(m);
+  expectOn(m, &arena);
+  WholeMembers wholeMembers{&arena};
+  fill(wholeMembers);
+  expectOn(wholeMembers, &arena);
+  MemberUnion memberUnion{&arena};
+  fill(memberUnion);
+  expectOn(memberUnion, &arena);
 }
 
 TEST(CppArenaPmrTest, DefaultConstructionUsesTheDefaultResource) {
@@ -541,6 +590,9 @@ TEST(CppArenaPmrTest, SerializationRoundTrips) {
   expectRoundTrip<ArenaUnion>();
   expectRoundTrip<WholeUnion>();
   expectRoundTrip<CustomTypes>();
+  expectRoundTrip<Members>();
+  expectRoundTrip<WholeMembers>();
+  expectRoundTrip<MemberUnion>();
 }
 
 template <class Serializer, class T>
@@ -575,6 +627,9 @@ TEST(CppArenaPmrTest, DeserializationLandsOnTheResource) {
   expectDeserializationLandsOnTheResource<HoldsUnions>();
   expectDeserializationLandsOnTheResource<ArenaError>();
   expectDeserializationLandsOnTheResource<CustomTypes>();
+  expectDeserializationLandsOnTheResource<Members>();
+  expectDeserializationLandsOnTheResource<WholeMembers>();
+  expectDeserializationLandsOnTheResource<MemberUnion>();
 }
 
 TEST(CppArenaPmrTest, CopyGoesToTheDefaultResource) {

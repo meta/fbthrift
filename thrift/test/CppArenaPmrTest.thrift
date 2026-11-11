@@ -138,6 +138,26 @@ exception ArenaError {
   2: list<string> details;
 }
 
+struct Members {
+  @cpp.Arena
+  1: ArenaInner inner;
+  @cpp.Arena
+  2: ArenaUnion either;
+}
+
+// `@cpp.Arena` on the struct applies to its struct and union fields whose types
+// take an allocator.
+@cpp.Arena
+struct WholeMembers {
+  1: ArenaInner inner;
+}
+
+union MemberUnion {
+  @cpp.Arena
+  1: ArenaInner inner;
+  2: i64 id;
+}
+
 typedef string Name
 typedef list<Name> Names
 

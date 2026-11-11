@@ -3634,6 +3634,53 @@ TEST(CompilerTest, cpp_arena_struct_level) {
   )");
 }
 
+TEST(CompilerTest, cpp_arena_struct_members) {
+  check_compile(R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+
+    struct Plain {
+      1: string name;
+    }
+
+    struct Arena {
+      @cpp.Arena
+      1: string name;
+    }
+
+    union ArenaUnion {
+      @cpp.Arena
+      1: string name;
+    }
+
+    struct Members {
+      @cpp.Arena
+      1: Arena arena;
+      @cpp.Arena
+      2: ArenaUnion arena_union;
+      @cpp.Arena
+      3: WholeLater whole_later;
+      @cpp.Arena
+      4: Plain plain;
+        # expected-error@-2: `@cpp.Arena` is not supported on field `plain`.
+    }
+
+    # Applies to the struct and union fields whose types take an allocator.
+    @cpp.Arena
+    struct Whole {
+      1: string name;
+      2: Arena arena;
+      3: ArenaUnion arena_union;
+      4: Plain plain;
+    }
+
+    @cpp.Arena
+    struct WholeLater {
+      1: string name;
+    }
+  )");
+}
+
 TEST(CompilerTest, cpp_arena_union) {
   check_compile(R"(
     package "facebook.com/thrift/test"
