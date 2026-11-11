@@ -78,10 +78,14 @@ class WorkerCapacityLease final {
 // operation, including close(), takes a share of that ownership through
 // shared_from_this(). In-flight scheduler work and leases share ownership too,
 // so the scheduler stays alive until all of them finish.
-class WorkScheduler final : public std::enable_shared_from_this<WorkScheduler> {
+//
+// A plain folly::Executor, so an executor facade can wrap it: keep-alive tokens
+// on it do not keep it alive, and its destruction never waits for them.
+class WorkScheduler final : public folly::Executor,
+                            public std::enable_shared_from_this<WorkScheduler> {
  public:
   WorkScheduler();
-  ~WorkScheduler() = default;
+  ~WorkScheduler() override = default;
   WorkScheduler(const WorkScheduler&) = delete;
   WorkScheduler& operator=(const WorkScheduler&) = delete;
   WorkScheduler(WorkScheduler&&) = delete;
@@ -104,9 +108,9 @@ class WorkScheduler final : public std::enable_shared_from_this<WorkScheduler> {
   void addAsynchronousWorkWithPriority(
       AsynchronousWork workItem, int8_t priority);
 
-  void add(folly::Func workItem);
-  void addWithPriority(folly::Func workItem, int8_t priority);
-  uint8_t getNumPriorities() const { return 2; }
+  void add(folly::Func workItem) override;
+  void addWithPriority(folly::Func workItem, int8_t priority) override;
+  uint8_t getNumPriorities() const override { return 2; }
 
  private:
   using WorkerRegistry = std::unordered_map<
