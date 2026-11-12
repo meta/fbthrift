@@ -2804,6 +2804,29 @@ void forbid_deprecated_terse_writes_ref(
   }
 }
 
+// A type with `@cpp.Arena` fields takes their PMR allocator, so it can't
+// declare another one.
+void forbid_allocator_on_arena_type(
+    sema_context& ctx, const t_structured& node) {
+  if (!cpp2::has_arena_fields(node)) {
+    return;
+  }
+  const char* annotation = nullptr;
+  if (node.has_structured_annotation(kCppAllocatorUri)) {
+    annotation = "@internal.CppAllocator";
+  } else if (node.has_unstructured_annotation("cpp.allocator")) {
+    annotation = "cpp.allocator";
+  } else {
+    return;
+  }
+  ctx.report(
+      node,
+      diagnostic_level::error,
+      "`{}` is not supported on `{}`, which has `@cpp.Arena` fields.",
+      annotation,
+      node.name());
+}
+
 // A union has no fields to route the allocator through, so `cpp.allocator_via`
 // has nothing to name.
 void forbid_allocator_via_on_union(sema_context& ctx, const t_union& node) {
@@ -3126,6 +3149,7 @@ void t_mstch_cpp2_generator::fill_validator_visitors(
           compiler_options()));
   validator.add_struct_visitor(forbid_deprecated_terse_writes_ref);
   validator.add_definition_visitor(validate_allocator_annotations);
+  validator.add_structured_definition_visitor(forbid_allocator_on_arena_type);
   validator.add_struct_visitor(validate_allocator_via);
   validator.add_union_visitor(forbid_allocator_via_on_union);
   validator.add_field_visitor(forbid_allocator_ignoring_ref_fields);

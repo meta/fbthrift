@@ -3715,6 +3715,29 @@ TEST(CompilerTest, cpp_arena_allocator_rules) {
   )");
 }
 
+TEST(CompilerTest, cpp_arena_with_declared_allocator) {
+  check_compile(R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+    include "thrift/annotation/internal.thrift"
+    include "thrift/annotation/thrift.thrift"
+
+    @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.allocator": "MyAlloc"}}
+    struct Unstructured {
+      @cpp.Arena
+      1: string name;
+    }
+      # expected-error@-5: `cpp.allocator` is not supported on `Unstructured`, which has `@cpp.Arena` fields.
+
+    @internal.CppAllocator{name = "MyAlloc"}
+    @cpp.Arena
+    union Structured {
+      1: string name;
+    }
+      # expected-error@-5: `@internal.CppAllocator` is not supported on `Structured`, which has `@cpp.Arena` fields.
+  )");
+}
+
 TEST(CompilerTest, cpp_arena_with_tablebased_serialization) {
   check_compile(
       R"(
