@@ -494,6 +494,33 @@ void uncompressBufferImpl(
   return {};
 }
 
+// CUSTOM compression is negotiated per connection. A request opting into
+// standard-compressed replies must receive CUSTOM as plaintext, decoded by this
+// connection's payload serializer with the compression marker cleared.
+[[nodiscard]] folly::exception_wrapper decodeCustomCompressedResponse(
+    FirstResponsePayload& firstResponse,
+    rocket::PayloadSerializer& payloadSerializer) {
+  auto compression = firstResponse.metadata.compression();
+  if (!compression || *compression != CompressionAlgorithm::CUSTOM) {
+    return {};
+  }
+  try {
+    if (firstResponse.payloadChain) {
+      firstResponse.payloadChain = payloadSerializer.uncompressBuffer(
+          std::move(*firstResponse.payloadChain), CompressionAlgorithm::CUSTOM);
+    } else {
+      firstResponse.payload = payloadSerializer.uncompressBuffer(
+          std::move(firstResponse.payload), CompressionAlgorithm::CUSTOM);
+    }
+    firstResponse.metadata.compression().reset();
+  } catch (const std::exception& ex) {
+    return folly::make_exception_wrapper<TTransportException>(
+        TTransportException::CORRUPTED_DATA,
+        fmt::format("Response decompression failed: {}", ex.what()));
+  }
+  return {};
+}
+
 class FirstRequestProcessorStream : public StreamClientCallback,
                                     private StreamServerCallback {
  public:
@@ -886,6 +913,16 @@ class RocketClientChannelBase::SingleRequestSingleResponseCallback final
             fdMetadata.fdSeqNum().value_or(folly::SocketFds::kNoSeqNum));
       }
 
+      if (skipDecompression_ &&
+          THRIFT_FLAG(
+              thrift_client_decode_custom_response_when_skipping_decompression)) {
+        if (auto error = decodeCustomCompressedResponse(
+                *response, *guardedClient_.client->getPayloadSerializer())) {
+          cb_.release()->onResponseError(std::move(error));
+          return;
+        }
+      }
+
       // processFirstResponse eagerly deserializes exception payloads
       // (anyException / proxyException) on the IO thread. When decompression
       // was skipped, decompress a compressed exception first response here,
@@ -1246,6 +1283,8 @@ void RocketClientChannelBase::sendThriftRequest(
   }
 
   if constexpr (std::is_same_v<Callback, RequestClientCallback::Ptr>) {
+    const bool skipDecompression = header->getAcceptsCompressedResponse() ||
+        apache::thrift::clientCompressRequestOnCpu();
     header.reset(); // avoid extending lifetime past fiber suspension in send*
     switch (kind) {
       case RpcKind::SINGLE_REQUEST_NO_RESPONSE:
@@ -1264,8 +1303,7 @@ void RocketClientChannelBase::sendThriftRequest(
             requestSerializedSize,
             std::move(requestPayload),
             std::move(clientCallback),
-            /*skipDecompression=*/
-            apache::thrift::clientCompressRequestOnCpu());
+            skipDecompression);
         break;
 
       default:

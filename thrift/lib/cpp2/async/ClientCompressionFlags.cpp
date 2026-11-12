@@ -21,3 +21,6 @@
 // Controls both request compression and response decompression offloading
 // from IO thread to caller/consumer thread.
 THRIFT_FLAG_DEFINE_bool(thrift_client_compress_request_on_cpu, false);
+// Kill switch for forced CUSTOM decoding on compressed unary receive paths.
+THRIFT_FLAG_DEFINE_bool(
+    thrift_client_decode_custom_response_when_skipping_decompression, true);

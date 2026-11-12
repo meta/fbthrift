@@ -32,6 +32,36 @@ using namespace apache::thrift::transport;
 
 namespace apache::thrift::transport {
 
+TEST(THeaderTest, CompressedResponsePermissionIsRequestLocal) {
+  THeader header;
+  EXPECT_FALSE(header.getAcceptsCompressedResponse());
+  header.setAcceptsCompressedResponse(true);
+  auto copied = header.copyOrDfatalIfReceived();
+  EXPECT_TRUE(copied.getAcceptsCompressedResponse());
+  THeader moved(std::move(copied));
+  EXPECT_TRUE(moved.getAcceptsCompressedResponse());
+  moved.setAcceptsCompressedResponse(false);
+  EXPECT_FALSE(moved.getAcceptsCompressedResponse());
+  EXPECT_TRUE(header.getAcceptsCompressedResponse());
+}
+
+TEST(THeaderTest, CompressedResponsePermissionIsNotSerialized) {
+  THeader sender;
+  sender.setAcceptsCompressedResponse(true);
+  // There is no replacement addHeader API; the old enum annotation spills here.
+  // NOLINTNEXTLINE(clang-diagnostic-deprecated-declarations,facebook-hte-Deprecated)
+  auto body = sender.addHeader(IOBuf::copyBuffer("body"));
+  IOBufQueue queue;
+  queue.append(std::move(body));
+  THeader receiver;
+  size_t needed = 0;
+  THeader::StringToStringMap persistentHeaders;
+  auto received = receiver.removeHeader(&queue, needed, persistentHeaders);
+  ASSERT_NE(received, nullptr);
+  EXPECT_EQ(received->to<std::string>(), "body");
+  EXPECT_FALSE(receiver.getAcceptsCompressedResponse());
+}
+
 TEST(THeaderTest, largetransform) {
   THeader header;
   header.setTTransform(TTransform::ZLIB); // ZLib flag

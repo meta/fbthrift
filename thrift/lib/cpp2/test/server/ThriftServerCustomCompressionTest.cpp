@@ -15,15 +15,20 @@
  */
 
 #include <gmock/gmock.h>
+#include <folly/ScopeGuard.h>
 #include <folly/coro/AsyncGenerator.h>
 #include <folly/coro/BlockingWait.h>
 #include <folly/coro/Invoke.h>
 #include <folly/coro/Task.h>
 #include <folly/executors/GlobalExecutor.h>
+#include <folly/futures/Promise.h>
+#include <folly/io/IOBufQueue.h>
 #include <folly/io/async/AsyncSocket.h>
 #include <folly/test/TestUtils.h>
 #include <thrift/lib/cpp/transport/TTransportException.h>
 #include <thrift/lib/cpp2/async/ClientCompressionFlags.h>
+#include <thrift/lib/cpp2/async/RequestCallback.h>
+#include <thrift/lib/cpp2/protocol/CompactProtocol.h>
 #include <thrift/lib/cpp2/test/e2e/gen-cpp2/TestBiDiService.h>
 #include <thrift/lib/cpp2/test/server/ThriftServerTestUtils.h>
 #include <thrift/lib/cpp2/test/util/TestHandler.h>
@@ -357,6 +362,180 @@ TEST_F(RocketCustomCompressionSuccess, _) {
     for (const auto& buf : uncompressHistory) {
       EXPECT_TRUE(buf.starts_with("magic_prefix_final_"));
     }
+  }
+}
+
+namespace {
+
+class CapturingCallback : public RequestClientCallback {
+ public:
+  explicit CapturingCallback(folly::Promise<ClientReceiveState> promise)
+      : promise_(std::move(promise)) {}
+
+  void onResponse(ClientReceiveState&& state) noexcept override {
+    promise_.setValue(std::move(state));
+    delete this;
+  }
+  void onResponseError(folly::exception_wrapper ew) noexcept override {
+    promise_.setException(std::move(ew));
+    delete this;
+  }
+  bool isInlineSafe() const override { return true; }
+
+ private:
+  folly::Promise<ClientReceiveState> promise_;
+};
+
+// Calls sendResponse(size) straight on the channel, bypassing generated client
+// code, which decompresses on its own.
+ClientReceiveState sendRawSendResponse(
+    RequestChannel& channel,
+    folly::EventBase& evb,
+    int64_t size,
+    bool acceptsCompressed,
+    bool flipPolicyAfterSend = false) {
+  folly::IOBufQueue queue;
+  CompactProtocolWriter writer;
+  writer.setOutput(&queue);
+  writer.writeStructBegin("");
+  writer.writeFieldBegin("", protocol::T_I64, 1);
+  writer.writeI64(size);
+  writer.writeFieldEnd();
+  writer.writeFieldStop();
+  writer.writeStructEnd();
+
+  auto header = std::make_shared<transport::THeader>();
+  header->setProtocolId(protocol::T_COMPACT_PROTOCOL);
+  header->setAcceptsCompressedResponse(acceptsCompressed);
+  auto [promise, future] = folly::makePromiseContract<ClientReceiveState>();
+  channel.sendRequestResponse(
+      RpcOptions(),
+      MethodMetadata("sendResponse"),
+      SerializedRequest(queue.move()),
+      header,
+      RequestClientCallback::Ptr(new CapturingCallback(std::move(promise))),
+      nullptr);
+  if (flipPolicyAfterSend) {
+    // The reply must use the request's snapshot, not these later policy values.
+    header->setAcceptsCompressedResponse(!acceptsCompressed);
+    THRIFT_FLAG_SET_MOCK(
+        thrift_client_compress_request_on_cpu, !clientCompressRequestOnCpu());
+  }
+  return std::move(future).via(&evb).getVia(&evb);
+}
+
+// Reads the string result of sendResponse() from an envelope-free body.
+std::string readSendResponseResult(const folly::IOBuf& body) {
+  CompactProtocolReader reader;
+  reader.setInput(&body);
+  std::string name;
+  protocol::TType type;
+  int16_t id;
+  reader.readStructBegin(name);
+  reader.readFieldBegin(name, type, id);
+  EXPECT_EQ(id, 0);
+  EXPECT_EQ(type, protocol::T_STRING);
+  std::string value;
+  reader.readString(value);
+  return value;
+}
+
+} // namespace
+
+TEST_F(
+    RocketCustomCompressionSuccess,
+    CustomDecodeKillSwitchPreservesNormalUnpack) {
+  SCOPE_EXIT {
+    THRIFT_FLAG_UNMOCK(thrift_client_compress_request_on_cpu);
+    THRIFT_FLAG_UNMOCK(
+        thrift_client_decode_custom_response_when_skipping_decompression);
+  };
+  THRIFT_FLAG_SET_MOCK(thrift_client_compress_request_on_cpu, false);
+  folly::EventBase base;
+  ScopedServerInterfaceThread runner(makeFactory());
+  auto client = makeStickyClient(runner, &base);
+  std::string response;
+  // Negotiates custom compression; this first call itself is not compressed.
+  client->sync_sendResponse(response, 64);
+  const auto& compressor =
+      compressorAutoRegistry->getFactory()->getClientCompressor();
+  struct Policy {
+    bool forceDecode;
+    bool accepts;
+    bool cpu;
+    bool decoded;
+  };
+  for (const auto& policy : {
+           Policy{true, true, false, true},
+           Policy{true, false, true, true},
+           Policy{false, true, false, false},
+           Policy{false, false, true, false},
+           Policy{false, false, false, true},
+       }) {
+    SCOPED_TRACE(
+        ::testing::Message()
+        << "forceDecode=" << policy.forceDecode
+        << ", accepts=" << policy.accepts << ", cpu=" << policy.cpu);
+    THRIFT_FLAG_SET_MOCK(
+        thrift_client_decode_custom_response_when_skipping_decompression,
+        policy.forceDecode);
+    THRIFT_FLAG_SET_MOCK(thrift_client_compress_request_on_cpu, policy.cpu);
+    const auto before = compressor->getUncompressHistory().size();
+    auto state =
+        sendRawSendResponse(*client->getChannel(), base, 64, policy.accepts);
+    ASSERT_FALSE(state.isException());
+    ASSERT_TRUE(state.serializedResponse().buffer);
+    ASSERT_EQ(
+        policy.decoded ? CompressionAlgorithm::NONE
+                       : CompressionAlgorithm::CUSTOM,
+        state.header()->getResponseCompressionAlgorithm());
+    EXPECT_EQ(
+        before + (policy.decoded ? 1 : 0),
+        compressor->getUncompressHistory().size());
+    if (policy.decoded) {
+      EXPECT_EQ(
+          "test64", readSendResponseResult(*state.serializedResponse().buffer));
+    } else {
+      EXPECT_TRUE(
+          state.serializedResponse().buffer->to<std::string>().starts_with(
+              "magic_prefix_final_"));
+    }
+  }
+}
+
+TEST_F(HeaderOrRocketTest, CapturesUnaryResponseDecompressionPolicy) {
+  SCOPE_EXIT {
+    THRIFT_FLAG_UNMOCK(thrift_client_compress_request_on_cpu);
+  };
+  folly::EventBase base;
+  ScopedServerInterfaceThread runner(std::make_unique<TestHandler>());
+  auto channel =
+      makeChannel(folly::AsyncSocket::newSocket(&base, runner.getAddress()));
+  struct Policy {
+    bool accepts;
+    bool cpu;
+    CompressionAlgorithm expected;
+  };
+  for (const auto& policy : {
+           Policy{true, false, CompressionAlgorithm::ZSTD},
+           Policy{false, true, CompressionAlgorithm::ZSTD},
+           Policy{false, false, CompressionAlgorithm::NONE},
+       }) {
+    SCOPED_TRACE(
+        ::testing::Message()
+        << "cpu=" << policy.cpu << ", accepts=" << policy.accepts);
+    THRIFT_FLAG_SET_MOCK(thrift_client_compress_request_on_cpu, policy.cpu);
+    auto state = sendRawSendResponse(
+        *channel, base, 64, policy.accepts, /*flipPolicyAfterSend=*/true);
+    ASSERT_FALSE(state.isException());
+    ASSERT_EQ(
+        policy.expected, state.header()->getResponseCompressionAlgorithm());
+    if (policy.expected != CompressionAlgorithm::NONE) {
+      channel->decompressResponse(state);
+    }
+    ASSERT_FALSE(state.isException());
+    EXPECT_EQ(
+        "test64", readSendResponseResult(*state.serializedResponse().buffer));
   }
 }
 

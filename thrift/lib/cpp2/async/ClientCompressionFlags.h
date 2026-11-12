@@ -21,6 +21,8 @@
 #include <thrift/lib/cpp2/Flags.h>
 
 THRIFT_FLAG_DECLARE_bool(thrift_client_compress_request_on_cpu);
+THRIFT_FLAG_DECLARE_bool(
+    thrift_client_decode_custom_response_when_skipping_decompression);
 
 namespace apache::thrift {
 inline bool clientCompressRequestOnCpu() {
