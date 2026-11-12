@@ -20,6 +20,7 @@
 #include <folly/python/import.h>
 #include <thrift/lib/python/server/PythonAsyncProcessor.h>
 #include <thrift/lib/python/server/PythonAsyncProcessorFactory.h>
+#include <thrift/lib/python/server/PythonServiceSchema.h>
 #include <thrift/lib/python/server/python_async_processor_api.h> // @manual
 
 namespace apache::thrift::python {
@@ -55,7 +56,9 @@ std::string getLifecycleFuncName(LifecycleFunc func) {
 }
 
 std::shared_ptr<const PythonAsyncProcessor::PythonMetadata> makeMetadata(
-    const HandlerFunc& function) {
+    std::string_view methodName,
+    const HandlerFunc& function,
+    const PythonServiceSchema& serviceSchema) {
   std::optional<std::string> interactionName;
   if (!function.interactionName.empty()) {
     interactionName = std::string(function.interactionName);
@@ -65,7 +68,8 @@ std::shared_ptr<const PythonAsyncProcessor::PythonMetadata> makeMetadata(
       function.interactionType,
       function.kind,
       interactionName,
-      function.createsInteraction);
+      function.createsInteraction,
+      serviceSchema.function(methodName));
 }
 } // namespace
 
@@ -132,12 +136,21 @@ PythonAsyncProcessorFactory::createMethodMetadata() {
       case apache::thrift::RpcKind::SINGLE_REQUEST_STREAMING_RESPONSE:
       case apache::thrift::RpcKind::SINK:
       case apache::thrift::RpcKind::BIDIRECTIONAL_STREAM:
-        result.emplace(methodName, makeMetadata(function));
+        result.emplace(
+            methodName, makeMetadata(methodName, function, *serviceSchema_));
         break;
     }
   }
 
   return result;
+}
+
+std::vector<folly::not_null<const syntax_graph::ServiceNode*>>
+PythonAsyncProcessorFactory::getServiceSchemaNodes() {
+  if (const auto* service = serviceSchema_->service()) {
+    return {service};
+  }
+  return {};
 }
 
 std::shared_ptr<PythonAsyncProcessorFactory>
@@ -147,7 +160,12 @@ PythonAsyncProcessorFactory::create(
     std::vector<PyObject*> lifecycleFuncs,
     std::shared_ptr<execution::ExecutionSystem> executionSystem,
     folly::Executor::KeepAlive<> controlExecutor,
-    std::string serviceName) {
+    std::string serviceName,
+    std::vector<std::string> schemaBundles,
+    std::string_view serviceDefinitionKey) {
+  auto serviceSchema =
+      std::make_unique<const PythonServiceSchema>(PythonServiceSchema::build(
+          schemaBundles, serviceName, serviceDefinitionKey));
   return std::shared_ptr<PythonAsyncProcessorFactory>(
       new PythonAsyncProcessorFactory(
           python_server,
@@ -155,7 +173,26 @@ PythonAsyncProcessorFactory::create(
           std::move(lifecycleFuncs),
           std::move(executionSystem),
           std::move(controlExecutor),
-          std::move(serviceName)));
+          std::move(serviceName),
+          std::move(serviceSchema)));
 }
+
+PythonAsyncProcessorFactory::PythonAsyncProcessorFactory(
+    PyObject* python_server,
+    FunctionMapType functions,
+    std::vector<PyObject*> lifecycleFuncs,
+    std::shared_ptr<execution::ExecutionSystem> executionSystem,
+    folly::Executor::KeepAlive<> controlExecutor,
+    std::string serviceName,
+    std::unique_ptr<const PythonServiceSchema> serviceSchema)
+    : python_server_(python_server),
+      functions_(std::move(functions)),
+      lifecycleFuncs_(std::move(lifecycleFuncs)),
+      executionSystem_(std::move(executionSystem)),
+      controlExecutor_(std::move(controlExecutor)),
+      serviceName_(std::move(serviceName)),
+      serviceSchema_(std::move(serviceSchema)) {}
+
+PythonAsyncProcessorFactory::~PythonAsyncProcessorFactory() = default;
 
 } // namespace apache::thrift::python
