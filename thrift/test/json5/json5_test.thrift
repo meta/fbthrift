@@ -1875,6 +1875,9 @@ const list<TestCase> testCases = [
       "{\"i64Value\": \"+42\"}",
       "{\"i64Value\": \"0x2A\"}",
       "{\"i64Value\": \"0x002a\"}",
+      "{\"i64Value\": 0X2a}",
+      "{\"i64Value\": +0x2A}",
+      "{\"i64Value\": \"0X2A\"}",
     ],
   },
   TestCase{
@@ -3132,6 +3135,65 @@ const list<TestCase> testCases = [
     additionalInputs = [
       "{\"floatValue\": -1e-50, \"doubleValue\": -1e-400}",
       "{\"floatValue\": \"-0.000000000000000000000000000000000000000000000700649232162408535461864791644958065640130970938257885878534141944895541342930300743319094181060791015625\", \"doubleValue\": -2.4703282292062327e-324}",
+    ],
+  },
+  TestCase{
+    name = "DoubleJson5NumberForms",
+    example = Example{doubleListValue = [0.5, 5.0, -0.5, 16.0, 1000.0]},
+    json = "{
+  \"doubleListValue\": [
+    0.5,
+    5.0,
+    -0.5,
+    16.0,
+    1000.0
+  ]
+}",
+    json5 = "{
+  doubleListValue: [
+    0.5,
+    5.0,
+    -0.5,
+    16.0,
+    1000.0,
+  ],
+}",
+    additionalInputs = [
+      "{\"doubleListValue\": [.5, 5., -.5, 0x10, 1E3]}",
+      "{\"doubleListValue\": [+.5, 5.0e0, \"-.5\", \"0X10\", \"1e+3\"]}",
+    ],
+  },
+  // JSON5 adds `\x` escapes, escaped single quotes, and any other escaped
+  // character as itself.
+  TestCase{
+    name = "Json5StringEscapes",
+    example = Example{stringValue = "A'\""},
+    json = "{
+  \"stringValue\": \"A'\\\"\"
+}",
+    json5 = "{
+  stringValue: \"A'\\\"\",
+}",
+    additionalInputs = [
+      "{\"stringValue\": \"\\x41\\'\\\"\"}",
+      "{\"stringValue\": '\\u0041\\'\"'}",
+      "{\"stringValue\": \"\\A\\'\\\"\"}",
+    ],
+  },
+  // JSON5 whitespace includes \v, \f, U+00A0, U+FEFF, U+2028, U+2029 and the
+  // other Unicode space separators.
+  TestCase{
+    name = "Json5Whitespace",
+    example = Example{i64Value = 42},
+    json = "{
+  \"i64Value\": 42
+}",
+    json5 = "{
+  i64Value: 42,
+}",
+    additionalInputs = [
+      "{\u00a0\"i64Value\":\u000b42\u000c}",
+      "{\u2028\"i64Value\"\u2029:\ufeff42\u3000}",
     ],
   },
 ];
