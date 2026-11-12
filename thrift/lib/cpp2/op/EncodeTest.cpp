@@ -1764,6 +1764,14 @@ TEST(EncodeTest, DeprecatedTerseWrite) {
   emptyRefs.string_list_field() = std::make_shared<std::vector<std::string>>();
   emptyRefs.string_field() = std::make_shared<std::string>();
   expectGenericEncodeMatchesGenerated(emptyRefs);
+
+  // Generated union `write` ignores the annotation and writes the active
+  // member, even when it holds the default.
+  test::DeprecatedTerseUnion terseUnion;
+  terseUnion.int_field() = 0;
+  expectGenericEncodeMatchesGenerated(terseUnion);
+  terseUnion.string_field() = "";
+  expectGenericEncodeMatchesGenerated(terseUnion);
 }
 
 TEST(EncodeTest, keyOrder) {

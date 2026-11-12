@@ -369,14 +369,16 @@ class {{#if def.exception?}}FOLLY_EXPORT {{/if}}{{def.cpp_underlying_name}} {{!
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 {{!}}
-      {{#each def.fields as |field|}}
-        {{#if (and field.deprecated_terse_writes? (not field.type.structured?))}}
+      {{#if (not def.union?)}}
+        {{#each def.fields as |field|}}
+          {{#if (and field.deprecated_terse_writes? (not field.type.structured?))}}
 
   bool __fbthrift_should_write_deprecated_terse_field(::folly::tag_t<::apache::thrift::ident::{{field.cpp_name}}>) const {
     return {{#partial fields.deprecated_terse_has_value field=field struct=def}};
   }
-        {{/if (and field.deprecated_terse_writes? (not field.type.structured?))}}
-      {{/each}}
+          {{/if (and field.deprecated_terse_writes? (not field.type.structured?))}}
+        {{/each}}
+      {{/if (not def.union?)}}
 
   friend void swap({{def.cpp_underlying_name}}& a, {{def.cpp_underlying_name}}& b);
       {{#if (has_compiler_option? "tablebased")}}
