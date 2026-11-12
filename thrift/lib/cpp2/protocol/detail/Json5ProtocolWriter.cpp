@@ -19,7 +19,8 @@
 #include <cmath>
 #include <concepts>
 
-#include <fmt/core.h>
+#include <fmt/compile.h>
+#include <fmt/format.h>
 #include <folly/Exception.h>
 #include <folly/Unicode.h>
 #include <folly/base64.h>
@@ -371,9 +372,12 @@ std::uint32_t Json5ProtocolWriter::writeEnum(
   if (options_.enumAsInteger) {
     return writeI32(value);
   }
-  return writeString(
-      name.empty() ? fmt::format("({})", value)
-                   : fmt::format("{} ({})", name, value));
+  fmt::memory_buffer buf;
+  if (!name.empty()) {
+    fmt::format_to(fmt::appender(buf), FMT_COMPILE("{} "), name);
+  }
+  fmt::format_to(fmt::appender(buf), FMT_COMPILE("({})"), value);
+  return writeString(folly::StringPiece(buf.data(), buf.size()));
 }
 
 } // namespace apache::thrift::json5::detail
