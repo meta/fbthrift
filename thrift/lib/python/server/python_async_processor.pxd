@@ -138,6 +138,8 @@ cdef extern from "thrift/lib/python/server/PythonAsyncProcessorFactory.h" namesp
         size_t requestedThreadCount() noexcept
         void markContextEntered() noexcept
 
+    cdef bint cServesServiceSchema "::apache::thrift::python::PythonAsyncProcessorFactory::servesServiceSchema"()
+
     cdef shared_ptr[cPythonAsyncProcessorFactory] \
         cCreatePythonAsyncProcessorFactory "::apache::thrift::python::PythonAsyncProcessorFactory::create"(
             PyObject* server,

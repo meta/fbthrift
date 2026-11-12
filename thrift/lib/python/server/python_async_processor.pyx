@@ -990,12 +990,24 @@ cdef class PythonAsyncProcessorFactory(AsyncProcessorFactory):
             lifecycle.push_back(<PyObject*>lifecycle_func)
 
         cdef cvector[string] schemaBundles
-        for bundle in collect_schema_bundles(type(controlHandler)):
-            schemaBundles.push_back(<bytes>bundle)
-        # Bundles come only from generated interfaces, which all define this.
         cdef string serviceDefinitionKey
-        if not schemaBundles.empty():
-            serviceDefinitionKey = <bytes>controlHandler.__get_thrift_definition_key__()
+        if cServesServiceSchema():
+            try:
+                for bundle in collect_schema_bundles(type(controlHandler)):
+                    schemaBundles.push_back(<bytes>bundle)
+                # Bundles come only from generated interfaces, which all define
+                # this.
+                if not schemaBundles.empty():
+                    serviceDefinitionKey = <bytes>controlHandler.__get_thrift_definition_key__()
+            except Exception:
+                # The schema only adds to what the server can do (interceptor
+                # arguments, the schema dump); serve without it rather than
+                # fail to start.
+                schemaBundles.clear()
+                logger.exception(
+                    "Cannot collect the schema of Thrift service %s; serving it without one",
+                    controlHandler.service_name().decode(),
+                )
 
         cdef cAsyncioExecutor* controlExecutor = get_executor()
         cdef shared_ptr[cExecutionSystem] executionSystem = makeControlOnlyExecutionSystem(

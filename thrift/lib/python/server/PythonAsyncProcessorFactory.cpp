@@ -153,6 +153,15 @@ PythonAsyncProcessorFactory::getServiceSchemaNodes() {
   return {};
 }
 
+std::optional<schema::DefinitionsSchema>
+PythonAsyncProcessorFactory::getServiceSchema() {
+  return serviceSchema_->definitionsSchema();
+}
+
+bool PythonAsyncProcessorFactory::servesServiceSchema() {
+  return PythonServiceSchema::enabled();
+}
+
 std::shared_ptr<PythonAsyncProcessorFactory>
 PythonAsyncProcessorFactory::create(
     PyObject* python_server,

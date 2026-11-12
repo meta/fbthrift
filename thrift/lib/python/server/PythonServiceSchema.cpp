@@ -86,11 +86,15 @@ std::optional<std::string> programPathOf(
 
 } // namespace
 
+bool PythonServiceSchema::enabled() {
+  return THRIFT_FLAG(python_server_populate_service_schema);
+}
+
 PythonServiceSchema PythonServiceSchema::build(
     std::span<const std::string> schemaBundles,
     std::string_view serviceName,
     std::string_view serviceDefinitionKey) {
-  if (!THRIFT_FLAG(python_server_populate_service_schema)) {
+  if (!enabled()) {
     return {};
   }
 
@@ -107,11 +111,12 @@ PythonServiceSchema PythonServiceSchema::build(
     // `loadBundledSchema` folds in the omnibus bundle, which carries the core
     // Thrift types that generated modules reference without bundling. It is
     // the call generated C++ handlers make for their own bundles.
-    // NOLINTNEXTLINE(facebook-hte-DetailCall)
-    auto schema = schema::detail::loadBundledSchema(folly::range(bundles));
-    programPath = programPathOf(schema, serviceDefinitionKey);
+    self.schema_ = std::make_unique<const type::Schema>(
+        // NOLINTNEXTLINE(facebook-hte-DetailCall)
+        schema::detail::loadBundledSchema(folly::range(bundles)));
+    programPath = programPathOf(*self.schema_, serviceDefinitionKey);
     self.syntaxGraph_ = std::make_unique<syntax_graph::SyntaxGraph>(
-        syntax_graph::SyntaxGraph::fromSchema(std::move(schema)));
+        syntax_graph::SyntaxGraph::fromSchema(self.schema_.get()));
   } catch (const std::exception& ex) {
     // Most likely an incomplete set of bundles, which leaves references
     // unresolved.
@@ -130,6 +135,7 @@ PythonServiceSchema PythonServiceSchema::build(
            self.syntaxGraph_->findProgramByPath(*programPath).definitions()) {
         if (definition->isService() && definition->name() == serviceName) {
           self.serviceNode_ = &definition->asService();
+          self.serviceKey_ = type::DefinitionKey(serviceDefinitionKey);
           // Resolves the base services, which an incomplete set of bundles
           // may leave out.
           indexFunctions(*self.serviceNode_, self.functions_);
@@ -155,6 +161,17 @@ const syntax_graph::FunctionNode* PythonServiceSchema::function(
     std::string_view methodName) const {
   const auto it = functions_.find(std::string(methodName));
   return it == functions_.end() ? nullptr : it->second;
+}
+
+std::optional<schema::DefinitionsSchema>
+PythonServiceSchema::definitionsSchema() const {
+  if (!serviceKey_) {
+    return std::nullopt;
+  }
+  schema::DefinitionsSchema result;
+  result.definitions = {*serviceKey_};
+  result.schema = *schema_;
+  return result;
 }
 
 } // namespace apache::thrift::python
