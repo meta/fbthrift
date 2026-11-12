@@ -112,6 +112,12 @@ size_t Json5ProtocolReader::getCursorPosition() const {
 // ============================================================================
 
 void Json5ProtocolReader::beginReadValue() {
+  // Primitive keys are read as member names before this is reached, so this
+  // is a struct or container key, which a member name cannot hold.
+  if (containerStack_.inObjectMapExpectingKey()) {
+    throwError("struct and container map keys must use the array form");
+  }
+
   auto* map = containerStack_.mapState();
   if (map == nullptr ||
       map->encodedAs != CompoundTypeTracker::MapForm::KeyValueArray) {

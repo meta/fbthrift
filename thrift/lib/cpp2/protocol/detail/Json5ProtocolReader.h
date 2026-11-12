@@ -58,6 +58,8 @@
  * ### Map Fields
  * - Object form: `{"key1": value1, "key2": value2}`
  * - Array form: `[{"key": k1, "value": v1}, {"key": k2, "value": v2}]`
+ * - Struct and container keys must use the array form, since JSON5 member
+ *   names are strings.
  */
 
 #pragma once

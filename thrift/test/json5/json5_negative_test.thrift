@@ -264,6 +264,9 @@ const list<NegativeTestCase> typeValidationNegativeCases = [
   NegativeTestCase{name = "StructKeyInObjectForm", json = "{\"structAsKey\": {\"k\": {}}}"},
   NegativeTestCase{name = "ListKeyInObjectForm", json = "{\"listAsKey\": {k: 1}}"},
   NegativeTestCase{name = "MapKeyInObjectForm", json = "{\"mapAsKey\": {\"k\": 1}}"},
+  NegativeTestCase{name = "StructKeyAsObjectInObjectForm", json = "{\"structAsKey\": {{}, {}}}"},
+  NegativeTestCase{name = "ListKeyAsArrayInObjectForm", json = "{\"listAsKey\": {[1], 2}}"},
+  NegativeTestCase{name = "MapKeyAsObjectInObjectForm", json = "{\"mapAsKey\": {{\"1\": 2}, 3}}"},
 ];
 
 const list<NegativeTestCase> typeMismatchNegativeCases = [
