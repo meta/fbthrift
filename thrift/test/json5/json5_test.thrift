@@ -129,7 +129,10 @@ struct Example {
 struct TestCase {
   1: string name;
   // Unset for values thrift constants cannot express: NaN, the infinities and
-  // negative zero, and floats whose generated Hack constant is rounded twice.
+  // negative zero, floats whose generated Hack constant is rounded twice,
+  // INT64_MIN, which the generated C++ constant spells as an out-of-range
+  // literal, and map keys outside the enum, which thrift-python constants
+  // reject.
   2: optional Example example;
   // Expected basic JSON output.
   3: string json;
@@ -939,6 +942,190 @@ const list<TestCase> testCases = [
     json5 = "{
   i64Value: 9223372036854775807,
 }",
+    additionalInputs = [
+      "{\"i64Value\": \"9223372036854775807\"}",
+      "{\"i64Value\": 0x7FFFFFFFFFFFFFFF}",
+      "{\"i64Value\": \"0x7fffffffffffffff\"}",
+    ],
+  },
+  TestCase{
+    name = "I64Min",
+    json = "{
+  \"i64Value\": -9223372036854775808
+}",
+    json5 = "{
+  i64Value: -9223372036854775808,
+}",
+    additionalInputs = [
+      "{\"i64Value\": \"-9223372036854775808\"}",
+      "{\"i64Value\": -0x8000000000000000}",
+      "{\"i64Value\": \"-0x8000000000000000\"}",
+    ],
+  },
+  TestCase{
+    name = "SmallIntegerMaximums",
+    example = Example{byteValue = 127, i16Value = 32767, i32Value = 2147483647},
+    json = "{
+  \"byteValue\": 127,
+  \"i16Value\": 32767,
+  \"i32Value\": 2147483647
+}",
+    json5 = "{
+  byteValue: 127,
+  i16Value: 32767,
+  i32Value: 2147483647,
+}",
+    additionalInputs = [
+      "{\"byteValue\": \"127\", \"i16Value\": \"32767\", \"i32Value\": \"2147483647\"}",
+      "{\"byteValue\": 0x7F, \"i16Value\": 0x7FFF, \"i32Value\": 0x7FFFFFFF}",
+      "{\"byteValue\": \"+0x7f\", \"i16Value\": \"+0x7fff\", \"i32Value\": \"+0x7fffffff\"}",
+    ],
+  },
+  TestCase{
+    name = "SmallIntegerMinimums",
+    example = Example{byteValue = -128, i16Value = -32768, i32Value = -2147483648},
+    json = "{
+  \"byteValue\": -128,
+  \"i16Value\": -32768,
+  \"i32Value\": -2147483648
+}",
+    json5 = "{
+  byteValue: -128,
+  i16Value: -32768,
+  i32Value: -2147483648,
+}",
+    additionalInputs = [
+      "{\"byteValue\": \"-128\", \"i16Value\": \"-32768\", \"i32Value\": \"-2147483648\"}",
+      "{\"byteValue\": -0x80, \"i16Value\": -0x8000, \"i32Value\": -0x80000000}",
+      "{\"byteValue\": \"-0x80\", \"i16Value\": \"-0x8000\", \"i32Value\": \"-0x80000000\"}",
+    ],
+  },
+  TestCase{
+    name = "I32KeyLimits",
+    example = Example{i32AsKey = {2147483647: -2147483648, -2147483648: 2147483647}},
+    json = "{
+  \"i32AsKey\": [
+    {
+      \"key\": -2147483648,
+      \"value\": 2147483647
+    },
+    {
+      \"key\": 2147483647,
+      \"value\": -2147483648
+    }
+  ]
+}",
+    json5 = "{
+  i32AsKey: [
+    {
+      key: -2147483648,
+      value: 2147483647,
+    },
+    {
+      key: 2147483647,
+      value: -2147483648,
+    },
+  ],
+}",
+    additionalInputs = [
+      "{\"i32AsKey\": {\"2147483647\": -2147483648, \"-0x80000000\": 2147483647}}",
+    ],
+  },
+  TestCase{
+    name = "I64KeyLimits",
+    json = "{
+  \"i64AsKey\": [
+    {
+      \"key\": -9223372036854775808,
+      \"value\": 9223372036854775807
+    },
+    {
+      \"key\": 9223372036854775807,
+      \"value\": -9223372036854775808
+    }
+  ]
+}",
+    json5 = "{
+  i64AsKey: [
+    {
+      key: -9223372036854775808,
+      value: 9223372036854775807,
+    },
+    {
+      key: 9223372036854775807,
+      value: -9223372036854775808,
+    },
+  ],
+}",
+    additionalInputs = [
+      "{\"i64AsKey\": {\"0x7FFFFFFFFFFFFFFF\": -9223372036854775808, \"-9223372036854775808\": 9223372036854775807}}",
+    ],
+  },
+  TestCase{
+    name = "EnumI32Max",
+    example = Example{enumValue = 2147483647},
+    json = "{
+  \"enumValue\": \"(2147483647)\"
+}",
+    json5 = "{
+  enumValue: \"(2147483647)\",
+}",
+    additionalInputs = [
+      "{\"enumValue\": 2147483647}",
+      "{\"enumValue\": \"2147483647\"}",
+      "{\"enumValue\": 0x7FFFFFFF}",
+      "{\"enumValue\": \"SomeName (0x7FFFFFFF)\"}",
+    ],
+  },
+  TestCase{
+    name = "EnumI32Min",
+    example = Example{enumValue = -2147483648},
+    json = "{
+  \"enumValue\": \"(-2147483648)\"
+}",
+    json5 = "{
+  enumValue: \"(-2147483648)\",
+}",
+    additionalInputs = [
+      "{\"enumValue\": -2147483648}",
+      "{\"enumValue\": \"-2147483648\"}",
+      "{\"enumValue\": -0x80000000}",
+      "{\"enumValue\": \"SomeName (-2147483648)\"}",
+    ],
+  },
+  TestCase{
+    name = "EnumKeyI32Limits",
+    json = "{
+  \"enumAsKey\": {
+    \"(-2147483648)\": \"(2147483647)\",
+    \"(2147483647)\": \"(-2147483648)\"
+  }
+}",
+    json5 = "{
+  enumAsKey: {
+    \"(-2147483648)\": \"(2147483647)\",
+    \"(2147483647)\": \"(-2147483648)\",
+  },
+}",
+    additionalInputs = [
+      "{\"enumAsKey\": {\"2147483647\": \"-0x80000000\", \"-2147483648\": \"0x7FFFFFFF\"}}",
+    ],
+  },
+  // Unknown ids are skipped like unknown names, up to the i16 limits.
+  TestCase{
+    name = "UnknownFieldIdsAtI16Limits",
+    example = Example{i64Value = 42},
+    json = "{
+  \"i64Value\": 42
+}",
+    json5 = "{
+  i64Value: 42,
+}",
+    additionalInputs = [
+      "{\"(32767)\": 1, \"i64Value\": 42, \"unknown (-32767)\": 2}",
+      "{\"32767\": [], \"i64Value\": 42}",
+      "{\"(0x7FFF)\": {}, \"i64Value\": 42}",
+    ],
   },
   // ── Empty struct ────────────────────────────────────────────────────────────
   TestCase{
@@ -2778,6 +2965,173 @@ const list<TestCase> testCases = [
     additionalInputs = [
       "{\"floatValue\": 1e39}",
       "{\"floatValue\": 340282356779733661637539395458142568448.000001}",
+      "{\"floatValue\": 3.40282356779733661637539395458142568448e38}",
+      "{\"floatValue\": \"1e39\"}",
+    ],
+  },
+  // -DBL_MAX, -DBL_MIN, the negative largest subnormal and the negative smallest
+  // subnormal.
+  TestCase{
+    name = "DoubleSignedLimits",
+    example = Example{doubleListValue = [-1.7976931348623157e308, -2.2250738585072014e-308, -2.225073858507201e-308, -5e-324]},
+    json = "{
+  \"doubleListValue\": [
+    -1.7976931348623157e+308,
+    -2.2250738585072014e-308,
+    -2.225073858507201e-308,
+    -5e-324
+  ]
+}",
+    json5 = "{
+  doubleListValue: [
+    -1.7976931348623157e+308,
+    -2.2250738585072014e-308,
+    -2.225073858507201e-308,
+    -5e-324,
+  ],
+}",
+  },
+  // -FLT_MAX, -FLT_MIN, the largest subnormal, its negative and the negative
+  // smallest subnormal.
+  TestCase{
+    name = "FloatSignedLimits",
+    example = Example{floatListValue = [-340282346638528859811704183484516925440.0, -0.000000000000000000000000000000000000011754943508222875079687365372222456778186655567720875215087517062784172594547271728515625, 0.00000000000000000000000000000000000001175494210692441075487029444849287348827052428745893333857174530571588870475618904265502351336181163787841796875, -0.00000000000000000000000000000000000001175494210692441075487029444849287348827052428745893333857174530571588870475618904265502351336181163787841796875, -0.000000000000000000000000000000000000000000001401298464324817070923729583289916131280261941876515771757068283889791082685860601486638188362121582031250]},
+    json = "{
+  \"floatListValue\": [
+    -3.4028235e+38,
+    -1.1754944e-38,
+    1.1754942e-38,
+    -1.1754942e-38,
+    -1e-45
+  ]
+}",
+    json5 = "{
+  floatListValue: [
+    -3.4028235e+38,
+    -1.1754944e-38,
+    1.1754942e-38,
+    -1.1754942e-38,
+    -1e-45,
+  ],
+}",
+  },
+  TestCase{
+    name = "NegativeLargestExactIntegers",
+    example = Example{floatValue = -16777216.0, doubleValue = -9007199254740992.0},
+    json = "{
+  \"floatValue\": -1.6777216e+07,
+  \"doubleValue\": -9007199254740992.0
+}",
+    json5 = "{
+  floatValue: -1.6777216e+07,
+  doubleValue: -9007199254740992.0,
+}",
+    additionalInputs = [
+      "{\"floatValue\": -16777216, \"doubleValue\": -9007199254740992}",
+      "{\"floatValue\": \"-16777216\", \"doubleValue\": \"-9007199254740992\"}",
+      "{\"floatValue\": -0x1000000, \"doubleValue\": -0x20000000000000}",
+    ],
+  },
+  // Just below the point halfway between DBL_MAX and 2^1024.
+  TestCase{
+    name = "DoubleJustBelowOverflowThreshold",
+    example = Example{doubleValue = 1.7976931348623157e308},
+    json = "{
+  \"doubleValue\": 1.7976931348623157e+308
+}",
+    json5 = "{
+  doubleValue: 1.7976931348623157e+308,
+}",
+    additionalInputs = [
+      "{\"doubleValue\": 1.7976931348623158e308}",
+    ],
+  },
+  TestCase{
+    name = "DoubleOverflowsToInfinity",
+    json = "{
+  \"doubleValue\": \"Infinity\"
+}",
+    json5 = "{
+  doubleValue: Infinity,
+}",
+    additionalInputs = [
+      "{\"doubleValue\": 1e309}",
+      "{\"doubleValue\": \"1e309\"}",
+      "{\"doubleValue\": 1.7976931348623159e308}",
+    ],
+  },
+  TestCase{
+    name = "NegativeOverflowsToNegativeInfinity",
+    json = "{
+  \"floatValue\": \"-Infinity\",
+  \"doubleValue\": \"-Infinity\"
+}",
+    json5 = "{
+  floatValue: -Infinity,
+  doubleValue: -Infinity,
+}",
+    additionalInputs = [
+      "{\"floatValue\": -1e39, \"doubleValue\": -1e309}",
+      "{\"floatValue\": \"-1e39\", \"doubleValue\": \"-1e309\"}",
+    ],
+  },
+  // Halfway between zero and the smallest subnormal ties to even, which is zero.
+  TestCase{
+    name = "FloatHalfSmallestSubnormalTiesToZero",
+    example = Example{floatValue = 0.0},
+    json = "{
+  \"floatValue\": 0.0
+}",
+    json5 = "{
+  floatValue: 0.0,
+}",
+    additionalInputs = [
+      "{\"floatValue\": 0.000000000000000000000000000000000000000000000700649232162408535461864791644958065640130970938257885878534141944895541342930300743319094181060791015625}",
+      "{\"floatValue\": 1e-50}",
+    ],
+  },
+  // Just below half the smallest subnormal, and far below it.
+  TestCase{
+    name = "DoubleUnderflowsToZero",
+    example = Example{doubleValue = 0.0},
+    json = "{
+  \"doubleValue\": 0.0
+}",
+    json5 = "{
+  doubleValue: 0.0,
+}",
+    additionalInputs = [
+      "{\"doubleValue\": 2.4703282292062327e-324}",
+      "{\"doubleValue\": 1e-400}",
+      "{\"doubleValue\": \"1e-400\"}",
+    ],
+  },
+  TestCase{
+    name = "DoubleJustAboveHalfSmallestSubnormal",
+    example = Example{doubleValue = 5e-324},
+    json = "{
+  \"doubleValue\": 5e-324
+}",
+    json5 = "{
+  doubleValue: 5e-324,
+}",
+    additionalInputs = [
+      "{\"doubleValue\": 2.4703282292062328e-324}",
+    ],
+  },
+  TestCase{
+    name = "NegativeUnderflowsToNegativeZero",
+    json = "{
+  \"floatValue\": -0.0,
+  \"doubleValue\": -0.0
+}",
+    json5 = "{
+  floatValue: -0.0,
+  doubleValue: -0.0,
+}",
+    additionalInputs = [
+      "{\"floatValue\": -1e-50, \"doubleValue\": -1e-400}",
+      "{\"floatValue\": \"-0.000000000000000000000000000000000000000000000700649232162408535461864791644958065640130970938257885878534141944895541342930300743319094181060791015625\", \"doubleValue\": -2.4703282292062327e-324}",
     ],
   },
 ];
