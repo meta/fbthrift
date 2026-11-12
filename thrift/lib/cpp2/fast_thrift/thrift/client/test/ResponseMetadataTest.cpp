@@ -16,15 +16,21 @@
 
 #include <gtest/gtest.h>
 
+#include <initializer_list>
+#include <string>
+
+#include <folly/ExceptionWrapper.h>
 #include <folly/io/IOBuf.h>
 #include <folly/io/IOBufQueue.h>
 #include <thrift/lib/cpp/TApplicationException.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameParser.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/FrameHeaders.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/FrameWriter.h>
+#include <thrift/lib/cpp2/fast_thrift/rocket/server/MetadataProtocol.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/client/ResponseMetadata.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/common/ResponseMetadata.h>
 #include <thrift/lib/cpp2/protocol/BinaryProtocol.h>
+#include <thrift/lib/cpp2/protocol/CompactProtocol.h>
 #include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
 
 namespace apache::thrift::fast_thrift::thrift {
@@ -49,6 +55,17 @@ apache::thrift::fast_thrift::frame::read::ParsedFrame makePayloadFrame(
       std::move(metadata),
       std::move(data));
   return apache::thrift::fast_thrift::frame::read::parseFrame(std::move(raw));
+}
+
+folly::exception_wrapper deserializeMetadata(
+    const apache::thrift::fast_thrift::frame::read::ParsedFrame& frame,
+    apache::thrift::ResponseRpcMetadata& metadata,
+    rocket::server::MetadataProtocol protocol) {
+  if (protocol == rocket::server::MetadataProtocol::BINARY) {
+    return deserializeResponseMetadata(frame, metadata);
+  }
+  return detail::deserializeResponseMetadata<
+      apache::thrift::CompactProtocolReader>(frame, metadata);
 }
 
 } // namespace
@@ -104,6 +121,87 @@ TEST(ResponseMetadataTest, DeserializeSucceedsWithNoMetadata) {
   auto error = deserializeResponseMetadata(frame, result);
 
   EXPECT_FALSE(error);
+}
+
+TEST(ResponseMetadataTest, RejectsMetadataMissingStop) {
+  for (auto protocol :
+       {rocket::server::MetadataProtocol::BINARY,
+        rocket::server::MetadataProtocol::COMPACT}) {
+    SCOPED_TRACE(
+        protocol == rocket::server::MetadataProtocol::BINARY ? "Binary"
+                                                             : "Compact");
+    apache::thrift::ResponseRpcMetadata expected;
+    expected.load() = 17;
+    auto metadata = serializeResponseMetadata(expected, protocol);
+    metadata->coalesce();
+    ASSERT_GT(metadata->length(), 1);
+    metadata->trimEnd(1);
+    auto frame = makePayloadFrame(
+        std::move(metadata), folly::IOBuf::copyBuffer("\0data", 5));
+    frame.buffer->coalesce();
+
+    apache::thrift::ResponseRpcMetadata result;
+    auto error = deserializeMetadata(frame, result, protocol);
+
+    EXPECT_TRUE(error);
+    EXPECT_TRUE(
+        error.is_compatible_with<apache::thrift::TApplicationException>());
+  }
+}
+
+TEST(ResponseMetadataTest, RejectsTrailingMetadataBytes) {
+  for (auto protocol :
+       {rocket::server::MetadataProtocol::BINARY,
+        rocket::server::MetadataProtocol::COMPACT}) {
+    SCOPED_TRACE(
+        protocol == rocket::server::MetadataProtocol::BINARY ? "Binary"
+                                                             : "Compact");
+    apache::thrift::ResponseRpcMetadata expected;
+    expected.load() = 17;
+    auto metadata = serializeResponseMetadata(expected, protocol);
+    metadata->appendChain(folly::IOBuf::copyBuffer("trailing"));
+    auto frame =
+        makePayloadFrame(std::move(metadata), folly::IOBuf::copyBuffer("data"));
+
+    apache::thrift::ResponseRpcMetadata result;
+    auto error = deserializeMetadata(frame, result, protocol);
+
+    EXPECT_TRUE(error);
+    EXPECT_TRUE(
+        error.is_compatible_with<apache::thrift::TApplicationException>());
+  }
+}
+
+TEST(ResponseMetadataTest, DeserializesChainedMetadataWithPayload) {
+  for (auto protocol :
+       {rocket::server::MetadataProtocol::BINARY,
+        rocket::server::MetadataProtocol::COMPACT}) {
+    SCOPED_TRACE(
+        protocol == rocket::server::MetadataProtocol::BINARY ? "Binary"
+                                                             : "Compact");
+    apache::thrift::ResponseRpcMetadata expected;
+    expected.load() = 17;
+    expected.otherMetadata() = {{"key", std::string(32, 'v')}};
+    auto serialized = serializeResponseMetadata(expected, protocol);
+    serialized->coalesce();
+    const auto split = serialized->length() / 2;
+    auto metadata = folly::IOBuf::copyBuffer(serialized->data(), split);
+    metadata->appendChain(
+        folly::IOBuf::copyBuffer(
+            serialized->data() + split, serialized->length() - split));
+    auto frame = makePayloadFrame(
+        std::move(metadata), folly::IOBuf::copyBuffer("response-data"));
+    ASSERT_TRUE(frame.buffer->isChained());
+
+    apache::thrift::ResponseRpcMetadata result;
+    auto error = deserializeMetadata(frame, result, protocol);
+
+    ASSERT_FALSE(error);
+    EXPECT_EQ(result, expected);
+    auto data = std::move(frame).extractData();
+    ASSERT_NE(data, nullptr);
+    EXPECT_EQ(data->moveToFbString(), "response-data");
+  }
 }
 
 // =============================================================================

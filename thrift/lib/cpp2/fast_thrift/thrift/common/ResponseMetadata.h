@@ -18,6 +18,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <stdexcept>
 
 #include <folly/ExceptionWrapper.h>
 #include <folly/io/IOBuf.h>
@@ -57,7 +58,12 @@ inline folly::exception_wrapper deserializeResponseMetadata(
     if (frame.hasMetadata() && frame.metadataSize() > 0) {
       ProtocolReader reader;
       reader.setInput(frame.metadataCursor());
+      const auto start = reader.getCursorPosition();
       metadata.read(&reader);
+      if (reader.getCursorPosition() - start != frame.metadataSize())
+          [[unlikely]] {
+        throw std::out_of_range("metadata size mismatch");
+      }
     }
   } catch (...) {
     return folly::make_exception_wrapper<apache::thrift::TApplicationException>(
