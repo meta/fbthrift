@@ -20,6 +20,7 @@
 #include <cstring>
 #include <string>
 #include <type_traits>
+#include <fmt/compile.h>
 #include <fmt/format.h>
 #include <folly/Exception.h>
 #include <folly/json.h>
@@ -183,7 +184,8 @@ template std::uint32_t JsonWriter::writeFloatingPoint(double);
 std::uint32_t JsonWriter::writeIntegral(std::integral auto t) {
   std::uint32_t n = 0;
   n += beginValue();
-  auto s = fmt::format("{}", t);
+  char buf[24];
+  auto s = std::string_view(buf, fmt::format_to(buf, FMT_COMPILE("{}"), t));
   out_.value().push(folly::StringPiece(s));
   n += s.size();
   n += appendComma();
