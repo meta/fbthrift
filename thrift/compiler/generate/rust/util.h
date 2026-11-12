@@ -65,7 +65,7 @@ std::string mangle_crate_name(const std::string& name);
 std::string mangle_type(const std::string& name);
 std::string snakecase(const std::string& name);
 std::string camelcase(const std::string& name);
-std::string quote(const std::string& data);
+std::string quote(const std::string& data, bool bytes = false);
 
 bool get_annotation_property_bool(
     const t_const* annotation,

@@ -163,7 +163,7 @@ map.insert(
     {{#if (string.empty? value.string_value)}}
 {{#if (string.empty? underlying_type.rust_type)}}::std::vec::Vec{{#else}}<::{{underlying_type.rust_type}}>{{/if}}::new()
     {{#else}}
-{{(rust_quote value.string_value)}}.as_bytes().into()
+{{(rust_quote value.string_value bytes=true)}}.as_slice().into()
     {{/if (string.empty? value.string_value)}}
 {{#else if underlying_type.list?}}{{#if value.empty_container?}}::std::vec::Vec::new(){{#else}}{{#partial list_value}}{{/if}}
   {{#else if underlying_type.set?}}

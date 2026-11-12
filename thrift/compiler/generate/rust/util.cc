@@ -353,9 +353,9 @@ std::string camelcase(const std::string& name) {
   return camel.str();
 }
 
-std::string quote(const std::string& data) {
+std::string quote(const std::string& data, bool bytes) {
   std::ostringstream quoted;
-  quoted << '"';
+  quoted << (bytes ? "b\"" : "\"");
 
   for (auto ch : data) {
     if (ch == '\\' || ch == '"') {
@@ -366,6 +366,8 @@ std::string quote(const std::string& data) {
       quoted << '\\' << 'r';
     } else if (ch == '\n') {
       quoted << '\\' << 'n';
+    } else if (bytes && static_cast<unsigned char>(ch) >= 0x7f) {
+      quoted << fmt::format("\\x{:02x}", static_cast<unsigned char>(ch));
     } else if (ch < '\x7f') {
       quoted << ch;
     } else {

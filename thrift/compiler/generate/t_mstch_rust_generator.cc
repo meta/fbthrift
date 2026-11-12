@@ -1064,9 +1064,14 @@ class t_mstch_rust_generator : public t_whisker_generator {
     globals["rust_quote"] = whisker::dsl::make_function(
         "rust_quote",
         [](whisker::dsl::function::context ctx) -> whisker::object {
-          ctx.declare_named_arguments({});
+          ctx.declare_named_arguments({"bytes"});
           ctx.declare_arity(1);
-          return whisker::make::string(quote(ctx.argument<whisker::string>(0)));
+          auto bytes = ctx.named_argument<bool>(
+              "bytes",
+              whisker::dsl::function::context::named_argument_presence::
+                  optional);
+          return whisker::make::string(
+              quote(ctx.argument<whisker::string>(0), bytes.value_or(false)));
         });
     return globals;
   }
