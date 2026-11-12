@@ -16,8 +16,6 @@
 
 package com.facebook.thrift.server;
 
-import static org.apache.thrift.TApplicationException.UNKNOWN_METHOD;
-
 import com.facebook.thrift.payload.ServerRequestPayload;
 import com.facebook.thrift.payload.ServerResponsePayload;
 import com.facebook.thrift.util.RpcPayloadUtil;
@@ -26,7 +24,6 @@ import com.google.common.base.Preconditions;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.thrift.TApplicationException;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -72,9 +69,7 @@ public class CompositeRpcServerHandler implements RpcServerHandler {
     if (delegate == null) {
       return Mono.just(
           RpcPayloadUtil.fromTApplicationException(
-              new TApplicationException(UNKNOWN_METHOD, "Unknown method : '" + name + "'"),
-              payload.getRequestRpcMetadata(),
-              null));
+              new UnknownMethodException(name), payload.getRequestRpcMetadata(), null));
     }
 
     return delegate.singleRequestSingleResponse(payload);
@@ -86,7 +81,7 @@ public class CompositeRpcServerHandler implements RpcServerHandler {
     final RpcServerHandler delegate = methodMap.get(name);
 
     if (delegate == null) {
-      return Mono.error(new IllegalStateException("no RpcServerHandler found for " + name));
+      return Mono.error(new UnknownMethodException(name));
     }
 
     return delegate.singleRequestNoResponse(payload);
@@ -98,7 +93,7 @@ public class CompositeRpcServerHandler implements RpcServerHandler {
     final RpcServerHandler delegate = methodMap.get(name);
 
     if (delegate == null) {
-      return Flux.error(new IllegalStateException("no RpcServerHandler found for " + name));
+      return Flux.error(new UnknownMethodException(name));
     }
 
     return delegate.singleRequestStreamingResponse(payload);
@@ -111,7 +106,7 @@ public class CompositeRpcServerHandler implements RpcServerHandler {
     final RpcServerHandler delegate = methodMap.get(name);
 
     if (delegate == null) {
-      return Flux.error(new IllegalStateException("no RpcServerHandler found for " + name));
+      return Flux.error(new UnknownMethodException(name));
     }
 
     return delegate.streamingRequestStreamingResponse(initial, payloads);

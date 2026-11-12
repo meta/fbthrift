@@ -21,6 +21,9 @@ import static com.facebook.thrift.rsocket.util.RocketErrorUtil.isRocketError;
 import static com.facebook.thrift.rsocket.util.RocketErrorUtil.toApplicationException;
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.facebook.nifty.core.NiftyConnectionContext;
+import com.facebook.nifty.core.RequestContext;
+import com.facebook.swift.service.ContextChain;
 import com.facebook.swift.service.ThriftEventHandler;
 import com.facebook.thrift.loadbalancing.LoadHeaderRpcServerHandler;
 import com.facebook.thrift.loadbalancing.LoadHeaderSupplier;
@@ -31,6 +34,7 @@ import com.facebook.thrift.payload.ServerResponsePayload;
 import com.facebook.thrift.protocol.ProtocolUtil;
 import com.facebook.thrift.protocol.TProtocolType;
 import com.facebook.thrift.rsocket.util.PayloadUtil;
+import com.facebook.thrift.server.CompositeRpcServerHandler;
 import com.facebook.thrift.server.OverloadedException;
 import com.facebook.thrift.server.RpcServerHandler;
 import com.facebook.thrift.test.rocket.InitialTestResponse;
@@ -44,6 +48,7 @@ import com.facebook.thrift.test.rocket.TestRequest2;
 import com.facebook.thrift.test.rocket.TestResponse;
 import com.facebook.thrift.test.rocket.TestServerException;
 import com.facebook.thrift.test.rocket.TestService;
+import com.facebook.thrift.util.NettyNiftyRequestContext;
 import com.facebook.thrift.util.RpcPayloadUtil;
 import com.facebook.thrift.util.resources.RpcResources;
 import io.airlift.units.Duration;
@@ -51,6 +56,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.rsocket.Payload;
 import io.rsocket.RSocketErrorException;
+import io.rsocket.exceptions.ApplicationErrorException;
 import io.rsocket.frame.ErrorFrameCodec;
 import java.util.Collections;
 import java.util.concurrent.RejectedExecutionException;
@@ -59,6 +65,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
+import org.apache.thrift.CompressionAlgorithm;
 import org.apache.thrift.ErrorBlame;
 import org.apache.thrift.ErrorClassification;
 import org.apache.thrift.ErrorKind;
@@ -1743,5 +1750,389 @@ public class ThriftServerRSocketTest {
     assertEquals(expectedCode, error.getCode());
     assertEquals(ResponseRpcErrorCategory.LOADSHEDDING, error.getCategory());
     assertEquals(TApplicationException.LOADSHEDDING, toApplicationException(error).getType());
+  }
+
+  private void assertServerError(
+      Throwable t,
+      int expectedFrame,
+      ResponseRpcErrorCode expectedCode,
+      ResponseRpcErrorCategory expectedCategory) {
+    assertTrue(isRocketError(t), "got " + t);
+    assertEquals(expectedFrame, ((RSocketErrorException) t).errorCode());
+
+    ResponseRpcError error = decodeRocketError(t);
+    assertNotNull(error);
+    assertEquals(expectedCode, error.getCode());
+    assertEquals(expectedCategory, error.getCategory());
+  }
+
+  private void assertRequestBuffersFreed(ByteBuf data, ByteBuf metadata) {
+    assertEquals(1, data.refCnt(), "transport released its reference to request data");
+    assertEquals(1, metadata.refCnt(), "transport released its reference to request metadata");
+    data.release();
+    metadata.release();
+  }
+
+  @Test
+  public void testBadMetadataRejectsAsInvalid() {
+    this.protocolId = ProtocolId.COMPACT;
+    RequestRpcMetadata requestMetadata =
+        createRequestRpcMetadata("requestResponse", RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE);
+    ByteBuf data = createData(requestMetadata, createTestRequest(0, "foo"));
+
+    ByteBuf metadata = alloc.buffer();
+    metadata.writeByte(0xff);
+    metadata.retain();
+    Payload request = PayloadUtil.createPayload(data, metadata);
+
+    StepVerifier.create(rocket.requestResponse(request))
+        .expectErrorSatisfies(
+            t -> {
+              assertServerError(
+                  t,
+                  ErrorFrameCodec.INVALID,
+                  ResponseRpcErrorCode.REQUEST_PARSING_FAILURE,
+                  ResponseRpcErrorCategory.INVALID_REQUEST);
+              assertEquals("Invalid metadata object", decodeRocketError(t).getWhatUtf8());
+            })
+        .verify();
+
+    assertRequestBuffersFreed(data, metadata);
+  }
+
+  @Test
+  public void testKindMismatchRejectsAsInvalid() {
+    this.protocolId = ProtocolId.COMPACT;
+    RequestRpcMetadata requestMetadata =
+        createRequestRpcMetadata("requestResponse", RpcKind.SINGLE_REQUEST_NO_RESPONSE);
+    ByteBuf data = createData(requestMetadata, createTestRequest(0, "foo"));
+    ByteBuf metadata = createMetadata(requestMetadata);
+    Payload request = PayloadUtil.createPayload(data, metadata);
+
+    StepVerifier.create(rocket.requestResponse(request))
+        .expectErrorSatisfies(
+            t -> {
+              assertServerError(
+                  t,
+                  ErrorFrameCodec.INVALID,
+                  ResponseRpcErrorCode.REQUEST_PARSING_FAILURE,
+                  ResponseRpcErrorCategory.INVALID_REQUEST);
+              assertEquals("Invalid metadata object", decodeRocketError(t).getWhatUtf8());
+            })
+        .verify();
+
+    assertRequestBuffersFreed(data, metadata);
+  }
+
+  @Test
+  public void testUnknownCompressionRejectsAsInvalid() {
+    this.protocolId = ProtocolId.COMPACT;
+    RequestRpcMetadata requestMetadata =
+        new RequestRpcMetadata.Builder()
+            .setProtocol(protocolId)
+            .setName("requestResponse")
+            .setKind(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE)
+            .setCompression(CompressionAlgorithm.CUSTOM)
+            .build();
+
+    ByteBuf data = createData(requestMetadata, createTestRequest(0, "foo"));
+    ByteBuf metadata = createMetadata(requestMetadata);
+    Payload request = PayloadUtil.createPayload(data, metadata);
+
+    StepVerifier.create(rocket.requestResponse(request))
+        .expectErrorSatisfies(
+            t -> {
+              assertServerError(
+                  t,
+                  ErrorFrameCodec.INVALID,
+                  ResponseRpcErrorCode.REQUEST_PARSING_FAILURE,
+                  ResponseRpcErrorCategory.INVALID_REQUEST);
+              assertEquals(
+                  "decompression failure: CUSTOM compression is not supported",
+                  decodeRocketError(t).getWhatUtf8());
+            })
+        .verify();
+
+    assertRequestBuffersFreed(data, metadata);
+  }
+
+  @Test
+  public void testUnknownProtocolRejectsAsInvalid() {
+    this.protocolId = ProtocolId.COMPACT;
+    RequestRpcMetadata requestMetadata =
+        new RequestRpcMetadata.Builder()
+            .setName("requestResponse")
+            .setKind(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE)
+            .build();
+
+    ByteBuf data =
+        createData(
+            createRequestRpcMetadata("requestResponse", RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE),
+            createTestRequest(0, "foo"));
+    ByteBuf metadata = createMetadata(requestMetadata);
+    Payload request = PayloadUtil.createPayload(data, metadata);
+
+    StepVerifier.create(rocket.requestResponse(request))
+        .expectErrorSatisfies(
+            t -> {
+              assertServerError(
+                  t,
+                  ErrorFrameCodec.INVALID,
+                  ResponseRpcErrorCode.REQUEST_PARSING_FAILURE,
+                  ResponseRpcErrorCategory.INVALID_REQUEST);
+              assertEquals("Invalid metadata object", decodeRocketError(t).getWhatUtf8());
+            })
+        .verify();
+
+    assertRequestBuffersFreed(data, metadata);
+  }
+
+  @Test
+  public void testUnknownServiceRejectsAsInvalid() {
+    this.protocolId = ProtocolId.COMPACT;
+    ThriftServerRSocket compositeRocket =
+        new ThriftServerRSocket(
+            new CompositeRpcServerHandler(Collections.singletonList(handler)), alloc);
+
+    RequestRpcMetadata requestMetadata =
+        createRequestRpcMetadata(
+            "NoSuchService.requestResponse", RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE);
+    ByteBuf data = createData(requestMetadata, createTestRequest(0, "foo"));
+    ByteBuf metadata = createMetadata(requestMetadata);
+    Payload request = PayloadUtil.createPayload(data, metadata);
+
+    StepVerifier.create(compositeRocket.requestResponse(request))
+        .expectErrorSatisfies(
+            t -> {
+              assertServerError(
+                  t,
+                  ErrorFrameCodec.INVALID,
+                  ResponseRpcErrorCode.UNKNOWN_METHOD,
+                  ResponseRpcErrorCategory.INVALID_REQUEST);
+              assertEquals(
+                  "Method name NoSuchService.requestResponse not found",
+                  decodeRocketError(t).getWhatUtf8());
+            })
+        .verify();
+
+    assertRequestBuffersFreed(data, metadata);
+  }
+
+  @Test
+  public void testUnknownServiceRejectsStreamAsInvalid() {
+    this.protocolId = ProtocolId.COMPACT;
+    ThriftServerRSocket compositeRocket =
+        new ThriftServerRSocket(
+            new CompositeRpcServerHandler(Collections.singletonList(handler)), alloc);
+
+    RequestRpcMetadata requestMetadata =
+        createRequestRpcMetadata(
+            "NoSuchService.streamResponse", RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE);
+    ByteBuf data = createData(requestMetadata, createTestRequest(0, "foo"));
+    ByteBuf metadata = createMetadata(requestMetadata);
+    Payload request = PayloadUtil.createPayload(data, metadata);
+
+    StepVerifier.create(compositeRocket.requestStream(request))
+        .expectErrorSatisfies(
+            t ->
+                assertServerError(
+                    t,
+                    ErrorFrameCodec.INVALID,
+                    ResponseRpcErrorCode.UNKNOWN_METHOD,
+                    ResponseRpcErrorCategory.INVALID_REQUEST))
+        .verify();
+
+    assertRequestBuffersFreed(data, metadata);
+  }
+
+  @Test
+  public void testResponseSerializationFailureCancelsRequest() {
+    this.protocolId = ProtocolId.COMPACT;
+    RpcServerHandler brokenHandler =
+        new RpcServerHandler() {
+          @Override
+          public Mono<ServerResponsePayload> singleRequestSingleResponse(
+              ServerRequestPayload payload) {
+            return Mono.just(
+                ServerResponsePayload.create(
+                    protocol -> {
+                      throw new IllegalStateException("cannot serialize");
+                    },
+                    new ResponseRpcMetadata.Builder().build(),
+                    null,
+                    false));
+          }
+        };
+
+    RequestRpcMetadata requestMetadata =
+        createRequestRpcMetadata("requestResponse", RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE);
+    ByteBuf data = createData(requestMetadata, createTestRequest(0, "foo"));
+    ByteBuf metadata = createMetadata(requestMetadata);
+    Payload request = PayloadUtil.createPayload(data, metadata);
+
+    StepVerifier.create(new ThriftServerRSocket(brokenHandler, alloc).requestResponse(request))
+        .expectErrorSatisfies(
+            t ->
+                assertServerError(
+                    t,
+                    ErrorFrameCodec.CANCELED,
+                    ResponseRpcErrorCode.UNKNOWN,
+                    ResponseRpcErrorCategory.INTERNAL_ERROR))
+        .verify();
+
+    assertRequestBuffersFreed(data, metadata);
+  }
+
+  @Test
+  public void testFirstResponseSerializationFailureCancelsStream() {
+    this.protocolId = ProtocolId.COMPACT;
+    RpcServerHandler brokenHandler =
+        new RpcServerHandler() {
+          @Override
+          public Flux<ServerResponsePayload> singleRequestStreamingResponse(
+              ServerRequestPayload payload) {
+            return Flux.just(
+                ServerResponsePayload.create(
+                    protocol -> {
+                      throw new IllegalStateException("cannot serialize");
+                    },
+                    new ResponseRpcMetadata.Builder().build(),
+                    null,
+                    false));
+          }
+        };
+
+    RequestRpcMetadata requestMetadata =
+        createRequestRpcMetadata("streamResponse", RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE);
+    ByteBuf data = createData(requestMetadata, createTestRequest(0, "foo"));
+    ByteBuf metadata = createMetadata(requestMetadata);
+    Payload request = PayloadUtil.createPayload(data, metadata);
+
+    StepVerifier.create(new ThriftServerRSocket(brokenHandler, alloc).requestStream(request))
+        .expectErrorSatisfies(
+            t ->
+                assertServerError(
+                    t,
+                    ErrorFrameCodec.CANCELED,
+                    ResponseRpcErrorCode.UNKNOWN,
+                    ResponseRpcErrorCategory.INTERNAL_ERROR))
+        .verify();
+
+    assertRequestBuffersFreed(data, metadata);
+  }
+
+  @Test
+  public void testHookThrowInsideErrorMappingCancelsRequest() {
+    this.protocolId = ProtocolId.COMPACT;
+    ThriftEventHandler throwingHook =
+        new ThriftEventHandler() {
+          @Override
+          public void preWriteException(Object context, String methodName, Throwable t) {
+            throw new IllegalStateException("hook boom");
+          }
+        };
+
+    RequestContext requestContext =
+        new NettyNiftyRequestContext(Collections.emptyMap(), new NiftyConnectionContext());
+    ContextChain chain =
+        new ContextChain(
+            Collections.singletonList(throwingHook), "requestResponse", requestContext);
+
+    RequestRpcMetadata requestMetadata =
+        createRequestRpcMetadata("requestResponse", RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE);
+    ServerResponsePayload errorPayload =
+        RpcPayloadUtil.fromTApplicationException(
+            OverloadedException.host("busy"), requestMetadata, chain);
+
+    RpcServerHandler hookHandler =
+        new RpcServerHandler() {
+          @Override
+          public Mono<ServerResponsePayload> singleRequestSingleResponse(
+              ServerRequestPayload payload) {
+            return Mono.just(errorPayload);
+          }
+        };
+
+    ByteBuf data = createData(requestMetadata, createTestRequest(0, "foo"));
+    ByteBuf metadata = createMetadata(requestMetadata);
+    Payload request = PayloadUtil.createPayload(data, metadata);
+
+    StepVerifier.create(new ThriftServerRSocket(hookHandler, alloc).requestResponse(request))
+        .expectErrorSatisfies(
+            t ->
+                assertServerError(
+                    t,
+                    ErrorFrameCodec.CANCELED,
+                    ResponseRpcErrorCode.UNKNOWN,
+                    ResponseRpcErrorCategory.INTERNAL_ERROR))
+        .verify();
+
+    assertRequestBuffersFreed(data, metadata);
+  }
+
+  @Test
+  public void testApplicationErrorFrameCancelsRequest() {
+    this.protocolId = ProtocolId.COMPACT;
+    RpcServerHandler rawFrameHandler =
+        new RpcServerHandler() {
+          @Override
+          public Mono<ServerResponsePayload> singleRequestSingleResponse(
+              ServerRequestPayload payload) {
+            return Mono.error(new ApplicationErrorException("boom"));
+          }
+        };
+
+    RequestRpcMetadata requestMetadata =
+        createRequestRpcMetadata("requestResponse", RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE);
+    ByteBuf data = createData(requestMetadata, createTestRequest(0, "foo"));
+    ByteBuf metadata = createMetadata(requestMetadata);
+    Payload request = PayloadUtil.createPayload(data, metadata);
+
+    StepVerifier.create(new ThriftServerRSocket(rawFrameHandler, alloc).requestResponse(request))
+        .expectErrorSatisfies(
+            t -> {
+              assertServerError(
+                  t,
+                  ErrorFrameCodec.CANCELED,
+                  ResponseRpcErrorCode.UNKNOWN,
+                  ResponseRpcErrorCategory.INTERNAL_ERROR);
+              assertEquals("boom", decodeRocketError(t).getWhatUtf8());
+            })
+        .verify();
+
+    assertRequestBuffersFreed(data, metadata);
+  }
+
+  @Test
+  public void testApplicationErrorFrameCancelsStream() {
+    this.protocolId = ProtocolId.COMPACT;
+    RpcServerHandler rawFrameHandler =
+        new RpcServerHandler() {
+          @Override
+          public Flux<ServerResponsePayload> singleRequestStreamingResponse(
+              ServerRequestPayload payload) {
+            return Flux.error(new ApplicationErrorException("boom"));
+          }
+        };
+
+    RequestRpcMetadata requestMetadata =
+        createRequestRpcMetadata("streamResponse", RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE);
+    ByteBuf data = createData(requestMetadata, createTestRequest(0, "foo"));
+    ByteBuf metadata = createMetadata(requestMetadata);
+    Payload request = PayloadUtil.createPayload(data, metadata);
+
+    StepVerifier.create(new ThriftServerRSocket(rawFrameHandler, alloc).requestStream(request))
+        .expectErrorSatisfies(
+            t -> {
+              assertServerError(
+                  t,
+                  ErrorFrameCodec.CANCELED,
+                  ResponseRpcErrorCode.UNKNOWN,
+                  ResponseRpcErrorCategory.INTERNAL_ERROR);
+              assertEquals("boom", decodeRocketError(t).getWhatUtf8());
+            })
+        .verify();
+
+    assertRequestBuffersFreed(data, metadata);
   }
 }

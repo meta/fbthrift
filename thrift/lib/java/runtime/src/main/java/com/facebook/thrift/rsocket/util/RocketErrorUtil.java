@@ -24,6 +24,7 @@ import io.netty.buffer.Unpooled;
 import io.netty.util.ReferenceCountUtil;
 import io.rsocket.RSocketErrorException;
 import io.rsocket.exceptions.CanceledException;
+import io.rsocket.exceptions.InvalidException;
 import io.rsocket.exceptions.RejectedException;
 import io.rsocket.frame.ErrorFrameCodec;
 import java.nio.charset.StandardCharsets;
@@ -60,8 +61,6 @@ public final class RocketErrorUtil {
 
   /** Response header that carries the error code string, as {@code kHeaderEx} does in C++. */
   public static final String HEADER_EX = "ex";
-
-  private static final String TASK_EXPIRED_NAME = "TASK_EXPIRED";
 
   /** Keeps the {@code what_utf8} length varint to a single byte. See the class javadoc. */
   private static final int MAX_MESSAGE_LENGTH = 127;
@@ -196,15 +195,60 @@ public final class RocketErrorUtil {
    * server, which reports {@code TASK_EXPIRED} in an ERROR frame with the {@code CANCELED} code.
    */
   public static RSocketErrorException taskExpired(String methodName, long timeoutMillis) {
-    String message = String.format("Task expired for %s after %dms", methodName, timeoutMillis);
+    return serverError(
+        ResponseRpcErrorCode.TASK_EXPIRED,
+        String.format("Task expired for %s after %dms", methodName, timeoutMillis));
+  }
+
+  /**
+   * Builds the ERROR frame for a failure the server detects outside any handler: the frame code
+   * follows the category, so callers classify it without reading the body. Covers request parsing,
+   * unknown methods, and anything that escapes the response pipeline before the first response.
+   */
+  public static RSocketErrorException serverError(ResponseRpcErrorCode code, String message) {
+    ResponseRpcErrorCategory category = categoryFor(code);
     ResponseRpcError error =
         new ResponseRpcError.Builder()
-            .setNameUtf8(TASK_EXPIRED_NAME)
-            .setWhatUtf8(toSafeMessage(message))
-            .setCategory(ResponseRpcErrorCategory.INTERNAL_ERROR)
-            .setCode(ResponseRpcErrorCode.TASK_EXPIRED)
+            .setNameUtf8(code.name())
+            .setWhatUtf8(message == null ? "" : toSafeMessage(message))
+            .setCategory(category)
+            .setCode(code)
             .build();
-    return new CanceledException(encode(error));
+
+    switch (category) {
+      case INVALID_REQUEST:
+        return new InvalidException(encode(error));
+      case LOADSHEDDING:
+      case SHUTDOWN:
+        return new RejectedException(encode(error));
+      default:
+        return new CanceledException(encode(error));
+    }
+  }
+
+  private static ResponseRpcErrorCategory categoryFor(ResponseRpcErrorCode code) {
+    switch (code) {
+      case REQUEST_PARSING_FAILURE:
+      case WRONG_RPC_KIND:
+      case UNKNOWN_METHOD:
+      case CHECKSUM_MISMATCH:
+      case UNKNOWN_INTERACTION_ID:
+      case UNIMPLEMENTED_METHOD:
+        return ResponseRpcErrorCategory.INVALID_REQUEST;
+      case OVERLOAD:
+      case QUEUE_OVERLOADED:
+      case QUEUE_TIMEOUT:
+      case APP_OVERLOAD:
+      case INTERACTION_LOADSHEDDED:
+      case INTERACTION_LOADSHEDDED_OVERLOAD:
+      case INTERACTION_LOADSHEDDED_APP_OVERLOAD:
+      case INTERACTION_LOADSHEDDED_QUEUE_TIMEOUT:
+        return ResponseRpcErrorCategory.LOADSHEDDING;
+      case SHUTDOWN:
+        return ResponseRpcErrorCategory.SHUTDOWN;
+      default:
+        return ResponseRpcErrorCategory.INTERNAL_ERROR;
+    }
   }
 
   /**
@@ -219,29 +263,14 @@ public final class RocketErrorUtil {
     }
     switch (OverloadedException.rpcErrorCodeOf(exception)) {
       case OverloadedException.HOST_OVERLOAD:
-        return rejected(ResponseRpcErrorCode.OVERLOAD, exception.getMessage());
+        return serverError(ResponseRpcErrorCode.OVERLOAD, exception.getMessage());
       case OverloadedException.QUEUE_OVERLOAD:
-        return rejected(ResponseRpcErrorCode.QUEUE_OVERLOADED, exception.getMessage());
+        return serverError(ResponseRpcErrorCode.QUEUE_OVERLOADED, exception.getMessage());
       case OverloadedException.APP_OVERLOAD:
-        return rejected(ResponseRpcErrorCode.APP_OVERLOAD, exception.getMessage());
+        return serverError(ResponseRpcErrorCode.APP_OVERLOAD, exception.getMessage());
       default:
         return null;
     }
-  }
-
-  /**
-   * Builds the REJECTED ERROR frame for an overload code, with the LOADSHEDDING category. Omits
-   * load: its varint can hold bytes of 0x80 or more, which the UTF-8 frame message cannot carry.
-   */
-  private static RSocketErrorException rejected(ResponseRpcErrorCode code, String message) {
-    ResponseRpcError error =
-        new ResponseRpcError.Builder()
-            .setNameUtf8(code.name())
-            .setWhatUtf8(message == null ? "" : toSafeMessage(message))
-            .setCategory(ResponseRpcErrorCategory.LOADSHEDDING)
-            .setCode(code)
-            .build();
-    return new RejectedException(encode(error));
   }
 
   /**
