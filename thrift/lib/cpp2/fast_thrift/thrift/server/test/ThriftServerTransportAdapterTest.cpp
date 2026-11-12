@@ -22,6 +22,7 @@
  * (ThriftServerResponseMessage → RocketResponseMessage).
  */
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <folly/io/IOBuf.h>
@@ -33,7 +34,9 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/ErrorCode.h>
+#include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameParser.h>
+#include <thrift/lib/cpp2/fast_thrift/frame/write/ComposedFrame.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/FrameHeaders.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/FrameWriter.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/server/Messages.h>
@@ -55,6 +58,7 @@ using channel_pipeline::TypeErasedBox;
 using channel_pipeline::test::MockHeadHandler;
 using channel_pipeline::test::MockTailHandler;
 using channel_pipeline::test::TestAllocator;
+using namespace testing;
 
 // =============================================================================
 // Concept static assertions
@@ -178,6 +182,21 @@ TypeErasedBox makeUndecodableSetupRequestBox() {
   rocket::server::RocketRequestMessage request{
       .frame = frame::read::parseFrame(std::move(frameBuf)),
       .streamId = 0,
+  };
+  return erase_and_box(std::move(request));
+}
+
+// A REQUEST_RESPONSE frame whose metadata does not parse as RequestRpcMetadata.
+TypeErasedBox makeUndecodableRocketRequestBox(uint32_t streamId) {
+  frame::ComposedFrame frame{
+      .frameType = frame::FrameType::REQUEST_RESPONSE,
+      .streamId = streamId,
+      .metadata = folly::IOBuf::copyBuffer("\xFF\xFF\xFF\xFF garbage"),
+      .data = folly::IOBuf::copyBuffer("request-data")};
+  rocket::server::RocketRequestMessage request{
+      .frame = frame::read::parseFrame(std::move(frame).serialize()),
+      .streamId = streamId,
+      .streamType = frame::FrameType::REQUEST_RESPONSE,
   };
   return erase_and_box(std::move(request));
 }
@@ -454,6 +473,68 @@ TEST(ThriftServerTransportAdapterTest, UndecodableSetupIsRefusedAtTheBridge) {
       frame.errorCode,
       static_cast<uint32_t>(
           apache::thrift::fast_thrift::frame::ErrorCode::INVALID_SETUP));
+
+  fixture.adapter->resetPipeline();
+}
+
+TEST(
+    ThriftServerTransportAdapterTest,
+    UndecodableRequestWithBackpressuredErrorReturnsSuccess) {
+  AdapterWithRocketPipeline fixture;
+
+  MockTailHandler thriftTail;
+  TestAllocator thriftAllocator;
+
+  auto thriftPipeline = PipelineBuilder<
+                            ThriftServerTransportAdapter,
+                            MockTailHandler,
+                            TestAllocator>()
+                            .setEventBase(&fixture.evb)
+                            .setHead(fixture.adapter.get())
+                            .setTail(&thriftTail)
+                            .setAllocator(&thriftAllocator)
+                            .build();
+  fixture.adapter->setPipeline(thriftPipeline.get());
+  fixture.rocketHead.setOnWriteCallback(
+      [](TypeErasedBox&&) { return Result::Backpressure; });
+
+  const Result result = fixture.appAdapter->onRead(
+      channel_pipeline::test::inertEndpointContext(),
+      makeUndecodableRocketRequestBox(9));
+
+  EXPECT_THAT(result, Eq(Result::Success));
+  EXPECT_THAT(fixture.rocketHead.writeCount(), Eq(1));
+  EXPECT_THAT(thriftTail.readCount(), Eq(0));
+
+  fixture.adapter->resetPipeline();
+}
+
+TEST(
+    ThriftServerTransportAdapterTest,
+    UndecodableRequestWithFailedErrorWriteReturnsError) {
+  AdapterWithRocketPipeline fixture;
+
+  MockTailHandler thriftTail;
+  TestAllocator thriftAllocator;
+
+  auto thriftPipeline = PipelineBuilder<
+                            ThriftServerTransportAdapter,
+                            MockTailHandler,
+                            TestAllocator>()
+                            .setEventBase(&fixture.evb)
+                            .setHead(fixture.adapter.get())
+                            .setTail(&thriftTail)
+                            .setAllocator(&thriftAllocator)
+                            .build();
+  fixture.adapter->setPipeline(thriftPipeline.get());
+  fixture.rocketHead.setOnWriteCallback(
+      [](TypeErasedBox&&) { return Result::Error; });
+
+  const Result result = fixture.appAdapter->onRead(
+      channel_pipeline::test::inertEndpointContext(),
+      makeUndecodableRocketRequestBox(9));
+
+  EXPECT_THAT(result, Eq(Result::Error));
 
   fixture.adapter->resetPipeline();
 }

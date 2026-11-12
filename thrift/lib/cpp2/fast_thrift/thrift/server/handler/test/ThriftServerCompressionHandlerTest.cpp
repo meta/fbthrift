@@ -30,6 +30,7 @@
 
 #include <folly/ExceptionWrapper.h>
 #include <folly/io/IOBuf.h>
+#include <folly/portability/GMock.h>
 
 #include <folly/compression/Compression.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
@@ -48,6 +49,7 @@ namespace {
 using channel_pipeline::erase_and_box;
 using channel_pipeline::Result;
 using channel_pipeline::TypeErasedBox;
+using namespace testing;
 
 constexpr uint32_t kStreamId = 7;
 constexpr std::string_view kRequestBody = "request payload bytes";
@@ -66,7 +68,7 @@ class FakeContext {
 
   Result fireWrite(TypeErasedBox&& msg) noexcept {
     written.push_back(std::move(msg));
-    return Result::Success;
+    return writeResult;
   }
 
   void fireException(folly::exception_wrapper&& e) noexcept {
@@ -76,6 +78,7 @@ class FakeContext {
   std::vector<TypeErasedBox> forwarded;
   std::vector<TypeErasedBox> written;
   folly::exception_wrapper exception;
+  Result writeResult{Result::Success};
 };
 
 std::pair<folly::compression::CodecType, int> testCodecFor(
@@ -385,6 +388,34 @@ TEST(ThriftServerCompressionHandlerTest, MissingCompressedDataIsRejected) {
           .get<ThriftServerResponseMessage>()
           .requestContext.get(),
       requestContext);
+}
+
+TEST(ThriftServerCompressionHandlerTest, BackpressuredRejectionReturnsSuccess) {
+  ThriftServerCompressionHandler<FakeContext> handler;
+  FakeContext ctx;
+  ctx.writeResult = Result::Backpressure;
+
+  EXPECT_THAT(
+      handler.onRead(
+          ctx,
+          erase_and_box(makeRequest(
+              makeMetadata(apache::thrift::CompressionAlgorithm::ZLIB),
+              nullptr))),
+      Eq(Result::Success));
+}
+
+TEST(ThriftServerCompressionHandlerTest, FailedRejectionReturnsError) {
+  ThriftServerCompressionHandler<FakeContext> handler;
+  FakeContext ctx;
+  ctx.writeResult = Result::Error;
+
+  EXPECT_THAT(
+      handler.onRead(
+          ctx,
+          erase_and_box(makeRequest(
+              makeMetadata(apache::thrift::CompressionAlgorithm::ZLIB),
+              nullptr))),
+      Eq(Result::Error));
 }
 
 TEST(ThriftServerCompressionHandlerTest, NoCompressionPassesThrough) {

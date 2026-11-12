@@ -95,8 +95,14 @@ class ThriftServerChecksumHandler {
           apache::thrift::ResponseRpcErrorCode::CHECKSUM_MISMATCH,
           std::move(*error));
       response.requestContext = std::move(request.requestContext);
-      return ctx.fireWrite(
-          channel_pipeline::erase_and_box(std::move(response)));
+      // On Backpressure the pipeline accepted the CHECKSUM_MISMATCH response.
+      // As a read result, Backpressure would pause reads on the whole
+      // connection.
+      if (ctx.fireWrite(channel_pipeline::erase_and_box(std::move(response))) ==
+          channel_pipeline::Result::Error) {
+        return channel_pipeline::Result::Error;
+      }
+      return channel_pipeline::Result::Success;
     }
 
     request.requestContext->setChecksumAlgorithm(checksum.algorithm().value());

@@ -276,8 +276,8 @@ class RocketServerKeepAliveHandler {
       };
       if (ctx.fireWrite(
               apache::thrift::fast_thrift::channel_pipeline::erase_and_box(
-                  std::move(response))) !=
-          apache::thrift::fast_thrift::channel_pipeline::Result::Success) {
+                  std::move(response))) ==
+          apache::thrift::fast_thrift::channel_pipeline::Result::Error) {
         XLOG(WARN) << "Failed to deliver KEEPALIVE CONNECTION_ERROR frame";
       }
     } catch (...) {
@@ -300,6 +300,9 @@ class RocketServerKeepAliveHandler {
 static_assert(
     apache::thrift::fast_thrift::channel_pipeline::DuplexHandler<
         RocketServerKeepAliveHandler,
+        // The concept check needs the pipeline's context type, which has no
+        // public name.
+        // NOLINTNEXTLINE(facebook-hte-DetailCall)
         apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl>,
     "RocketServerKeepAliveHandler must satisfy DuplexHandler concept");
 

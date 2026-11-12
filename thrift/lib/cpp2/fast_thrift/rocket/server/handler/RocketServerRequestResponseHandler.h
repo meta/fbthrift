@@ -157,9 +157,15 @@ class RocketServerRequestResponseHandler {
         .streamType =
             apache::thrift::fast_thrift::frame::FrameType::REQUEST_RESPONSE,
     };
-    return ctx.fireWrite(
-        apache::thrift::fast_thrift::channel_pipeline::erase_and_box(
-            std::move(errorResponse)));
+    // On Backpressure the pipeline accepted the ERROR frame. As a read result,
+    // Backpressure would pause reads on the whole connection.
+    if (ctx.fireWrite(
+            apache::thrift::fast_thrift::channel_pipeline::erase_and_box(
+                std::move(errorResponse))) ==
+        apache::thrift::fast_thrift::channel_pipeline::Result::Error) {
+      return apache::thrift::fast_thrift::channel_pipeline::Result::Error;
+    }
+    return apache::thrift::fast_thrift::channel_pipeline::Result::Success;
   }
 
   template <typename Context>

@@ -198,11 +198,17 @@ channel_pipeline::Result ThriftServerTransportAdapter::handleDecodeFailure(
       .streamId = streamId,
       .errorCode = static_cast<uint32_t>(serialized.errorCode),
   };
-  return rocketConn_->appAdapter->write(
-      rocket::server::RocketResponseMessage{
-          .frame = std::move(errorPayload).toRocketFrame(metadataProtocol_),
-          .streamType = streamType,
-      });
+
+  // On Backpressure the pipeline accepted the REQUEST_PARSING_FAILURE frame. As
+  // a read result, Backpressure would pause reads on the whole connection.
+  if (rocketConn_->appAdapter->write(
+          rocket::server::RocketResponseMessage{
+              .frame = std::move(errorPayload).toRocketFrame(metadataProtocol_),
+              .streamType = streamType,
+          }) == channel_pipeline::Result::Error) {
+    return channel_pipeline::Result::Error;
+  }
+  return channel_pipeline::Result::Success;
 }
 
 } // namespace apache::thrift::fast_thrift::thrift::server

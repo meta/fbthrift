@@ -83,8 +83,17 @@ class ThriftServerCompressionHandler {
     auto& payload =
         request.payload.template get<ThriftServerRequestResponsePayload>();
     if (auto error = decompressRequest(payload)) {
-      return writeParsingFailure(
-          ctx, streamId, std::move(request.requestContext), std::move(*error));
+      // On Backpressure the pipeline accepted the REQUEST_PARSING_FAILURE
+      // response. As a read result, Backpressure would pause reads on the whole
+      // connection.
+      if (writeParsingFailure(
+              ctx,
+              streamId,
+              std::move(request.requestContext),
+              std::move(*error)) == channel_pipeline::Result::Error) {
+        return channel_pipeline::Result::Error;
+      }
+      return channel_pipeline::Result::Success;
     }
 
     if (payload.metadata != nullptr) {
@@ -485,6 +494,8 @@ class ThriftServerCompressionHandler {
   size_t maxDecompressedRequestSize_;
 };
 
+// Concept checks need the pipeline's context type, which has no public name.
+// NOLINTBEGIN(facebook-hte-DetailCall)
 static_assert(
     channel_pipeline::OutboundHandler<
         ThriftServerCompressionHandler<channel_pipeline::detail::ContextImpl>,
@@ -496,5 +507,6 @@ static_assert(
         ThriftServerCompressionHandler<channel_pipeline::detail::ContextImpl>,
         channel_pipeline::detail::ContextImpl>,
     "ThriftServerCompressionHandler must satisfy InboundHandler concept");
+// NOLINTEND(facebook-hte-DetailCall)
 
 } // namespace apache::thrift::fast_thrift::thrift

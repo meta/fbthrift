@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <folly/ExceptionWrapper.h>
@@ -32,6 +33,7 @@ namespace apache::thrift::fast_thrift::thrift {
 using apache::thrift::fast_thrift::channel_pipeline::erase_and_box;
 using apache::thrift::fast_thrift::channel_pipeline::Result;
 using apache::thrift::fast_thrift::channel_pipeline::TypeErasedBox;
+using namespace testing;
 
 namespace {
 
@@ -39,7 +41,7 @@ class MockHandlerContext {
  public:
   Result fireWrite(TypeErasedBox&& msg) noexcept {
     writeMessages_.push_back(std::move(msg));
-    return Result::Success;
+    return writeResult_;
   }
 
   Result fireRead(TypeErasedBox&& msg) noexcept {
@@ -55,7 +57,10 @@ class MockHandlerContext {
   std::vector<TypeErasedBox>& readMessages() { return readMessages_; }
   std::vector<folly::exception_wrapper>& exceptions() { return exceptions_; }
 
+  void setWriteResult(Result result) { writeResult_ = result; }
+
  private:
+  Result writeResult_{Result::Success};
   std::vector<TypeErasedBox> writeMessages_;
   std::vector<TypeErasedBox> readMessages_;
   std::vector<folly::exception_wrapper> exceptions_;
@@ -201,6 +206,39 @@ TEST_F(ThriftServerChecksumHandlerTest, InboundMismatchDropsAndEmitsError) {
       ctx_.writeMessages()[0].get<ThriftServerResponseMessage>();
   EXPECT_TRUE(response.payload.is<ThriftErrorPayload>());
   EXPECT_EQ(response.requestContext.get(), requestContext);
+}
+
+TEST_F(
+    ThriftServerChecksumHandlerTest,
+    InboundMismatchWithBackpressuredErrorReturnsSuccess) {
+  ctx_.setWriteResult(Result::Backpressure);
+  auto request = makeRequest(
+      requestMetadata(
+          apache::thrift::ChecksumAlgorithm::XXH3_64,
+          /*checksum=*/0xdeadbeef,
+          /*salt=*/0),
+      folly::IOBuf::copyBuffer("request payload"));
+
+  const Result result = callOnRead(erase_and_box(std::move(request)));
+
+  EXPECT_THAT(result, Eq(Result::Success));
+  EXPECT_THAT(ctx_.writeMessages(), SizeIs(1));
+}
+
+TEST_F(
+    ThriftServerChecksumHandlerTest,
+    InboundMismatchWithFailedErrorWriteReturnsError) {
+  ctx_.setWriteResult(Result::Error);
+  auto request = makeRequest(
+      requestMetadata(
+          apache::thrift::ChecksumAlgorithm::XXH3_64,
+          /*checksum=*/0xdeadbeef,
+          /*salt=*/0),
+      folly::IOBuf::copyBuffer("request payload"));
+
+  const Result result = callOnRead(erase_and_box(std::move(request)));
+
+  EXPECT_THAT(result, Eq(Result::Error));
 }
 
 TEST_F(ThriftServerChecksumHandlerTest, InboundCRC32IsUnsupportedEmitsError) {

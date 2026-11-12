@@ -309,8 +309,8 @@ class RocketServerSetupFrameHandler {
       auto writeResult = ctx.fireWrite(
           apache::thrift::fast_thrift::channel_pipeline::erase_and_box(
               std::move(response)));
-      if (writeResult !=
-          apache::thrift::fast_thrift::channel_pipeline::Result::Success) {
+      if (writeResult ==
+          apache::thrift::fast_thrift::channel_pipeline::Result::Error) {
         XLOG(WARN) << "Failed to deliver ERROR frame for errorCode="
                    << apache::thrift::fast_thrift::frame::toString(errorCode);
       }
