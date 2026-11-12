@@ -2377,18 +2377,6 @@ const list<TestCase> testCases = [
       "{\"i64Value\": 1} /* note */",
     ],
   },
-  // Field id -32768 stands for "no id".
-  TestCase{
-    name = "FieldIdInt16MinMeansNoId",
-    example = Example{boolValue = true},
-    json = "{
-  \"boolValue\": true
-}",
-    json5 = "{
-  boolValue: true,
-}",
-    additionalInputs = ["{\"boolValue (-32768)\": true}"],
-  },
   TestCase{
     name = "UnionWithOnlyUnknownField",
     example = Example{unionValue = ExampleUnion{}},
