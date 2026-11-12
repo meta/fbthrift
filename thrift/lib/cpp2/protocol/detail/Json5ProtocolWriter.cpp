@@ -226,8 +226,13 @@ std::optional<std::uint32_t> Json5ProtocolWriter::maybeWriteSimpleMapKey(
 
   if constexpr (std::is_same_v<Tag, type::string_t>) {
     return writer_.writeObjectName(value);
+  } else if constexpr (std::is_same_v<Tag, type::bool_t>) {
+    return writer_.writeObjectName(value ? "true" : "false");
+  } else if constexpr (std::is_integral_v<T>) {
+    const auto formatted = fmt::format_int(value);
+    return writer_.writeObjectName({formatted.data(), formatted.size()});
   } else {
-    // For non-string keys, use Json5Protocol to stringify the value.
+    // For floating-point keys, use Json5Protocol to stringify the value.
     return writer_.writeObjectName(toJsonImpl<Tag>(value, options_));
   }
 }
