@@ -1774,6 +1774,32 @@ TEST(EncodeTest, DeprecatedTerseWrite) {
   expectGenericEncodeMatchesGenerated(terseUnion);
 }
 
+template <typename Ident, typename GetRef>
+void expectDeprecatedTerseRefWrittenIffSet(GetRef getRef) {
+  using apache::thrift::detail::st::private_access;
+  using T = test::TerseFieldsWithCustomDefault;
+  static_assert(private_access::is_deprecated_terse_field<T, Ident>);
+  T value;
+  auto& ref = getRef(value);
+  ref.reset();
+  EXPECT_FALSE(
+      (private_access::should_write_deprecated_terse_field<T, Ident>(value)));
+  ref = std::make_unique<
+      typename std::remove_reference_t<decltype(ref)>::element_type>();
+  EXPECT_TRUE(
+      (private_access::should_write_deprecated_terse_field<T, Ident>(value)));
+}
+
+TEST(EncodeTest, DeprecatedTerseWriteStructuredRef) {
+  using T = test::TerseFieldsWithCustomDefault;
+  expectDeprecatedTerseRefWrittenIffSet<ident::cpp_ref_struct_field>(
+      [](T& t) -> auto& { return t.cpp_ref_struct_field(); });
+  expectDeprecatedTerseRefWrittenIffSet<ident::cpp_ref_union_field>(
+      [](T& t) -> auto& { return t.cpp_ref_union_field(); });
+  expectDeprecatedTerseRefWrittenIffSet<ident::cpp_ref_exception_field>(
+      [](T& t) -> auto& { return t.cpp_ref_exception_field(); });
+}
+
 TEST(EncodeTest, keyOrder) {
   struct SortingProtocolWriter : CompactProtocolWriter {
     static constexpr KeyOrder keyOrder() { return KeyOrder::NativeAscending; }

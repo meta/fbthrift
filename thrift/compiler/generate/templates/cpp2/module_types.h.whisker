@@ -371,12 +371,12 @@ class {{#if def.exception?}}FOLLY_EXPORT {{/if}}{{def.cpp_underlying_name}} {{!
 {{!}}
       {{#if (not def.union?)}}
         {{#each def.fields as |field|}}
-          {{#if (and field.deprecated_terse_writes? (not field.type.structured?))}}
+          {{#if (and field.deprecated_terse_writes? (or field.cpp_ref? (not field.type.structured?)))}}
 
   bool __fbthrift_should_write_deprecated_terse_field(::folly::tag_t<::apache::thrift::ident::{{field.cpp_name}}>) const {
-    return {{#partial fields.deprecated_terse_has_value field=field struct=def}};
+    return {{#if field.type.structured?}}static_cast<bool>({{/if}}{{#partial fields.deprecated_terse_has_value field=field struct=def}}{{#if field.type.structured?}}){{/if}};
   }
-          {{/if (and field.deprecated_terse_writes? (not field.type.structured?))}}
+          {{/if (and field.deprecated_terse_writes? (or field.cpp_ref? (not field.type.structured?)))}}
         {{/each}}
       {{/if (not def.union?)}}
 

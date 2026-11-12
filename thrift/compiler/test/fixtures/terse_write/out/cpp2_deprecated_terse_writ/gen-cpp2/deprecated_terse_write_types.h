@@ -3027,6 +3027,10 @@ class CppRefStructFields final  {
     return this->__fbthrift_field_primitive_ref_field;
   }
 
+  bool __fbthrift_should_write_deprecated_terse_field(::folly::tag_t<::apache::thrift::ident::struct_ref_field>) const {
+    return static_cast<bool>(this->__fbthrift_field_struct_ref_field);
+  }
+
   friend void swap(CppRefStructFields& a, CppRefStructFields& b);
 };
 
