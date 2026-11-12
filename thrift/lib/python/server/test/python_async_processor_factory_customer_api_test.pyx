@@ -476,7 +476,9 @@ cdef class PythonAsyncProcessorFactoryCustomerApiCTest:
         expected_context_events = []
         expected_service_events = ["start", "stop"]
         expected_response = 42
-        expected_released_keep_alive_count = 0
+        # Only a free-threaded build has the stop-time fallback, so only there is
+        # the executor released before releaseOwnedResources().
+        expected_executor_released_after_serve = isFreeThreadedBuild()
 
         # WHEN
         try:
@@ -505,7 +507,9 @@ cdef class PythonAsyncProcessorFactoryCustomerApiCTest:
                 )
                 stop_observer.release_callback.set()
             await asyncio.wait_for(serve_task, timeout=5.0)
-            actual_keep_alive_count_after_serve = executor_probe.keep_alive_count()
+            actual_executor_released_after_serve = (
+                executor_probe.keep_alive_count() == 0
+            )
             actual_serve_completed = serve_task.done()
         finally:
             stop_observer.release_callback.set()
@@ -539,13 +543,10 @@ cdef class PythonAsyncProcessorFactoryCustomerApiCTest:
         self.ut.assertIsNotNone(actual_keep_alive_count_before_callback)
         self.ut.assertIsNotNone(actual_keep_alive_count_after_callback)
         self.ut.assertTrue(actual_callback_count_stable)
-        if isFreeThreadedBuild():
-            self.ut.assertEqual(
-                expected_released_keep_alive_count,
-                actual_keep_alive_count_after_serve,
-            )
-        else:
-            self.ut.assertGreater(actual_keep_alive_count_after_serve, 0)
+        self.ut.assertEqual(
+            expected_executor_released_after_serve,
+            actual_executor_released_after_serve,
+        )
         self.ut.assertTrue(actual_serve_completed)
         self.ut.assertEqual(expected_context_events, actual_context_events)
         self.ut.assertEqual(expected_service_events, actual_service_events)
