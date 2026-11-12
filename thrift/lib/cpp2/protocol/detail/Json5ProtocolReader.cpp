@@ -23,6 +23,7 @@
 #include <variant>
 
 #include <folly/Exception.h>
+#include <folly/Range.h>
 #include <folly/String.h>
 #include <folly/base64.h>
 #include <folly/lang/Pretty.h>
@@ -462,9 +463,16 @@ std::string Json5ProtocolReader::readStringValue() {
 }
 
 namespace {
+// Like `s.find_first_of(chars) != npos`, which is a nested loop in libstdc++;
+// `folly::qfind_first_of` uses SSE4.2.
+bool containsAnyOf(std::string_view s, std::string_view chars) {
+  return folly::qfind_first_of(
+             folly::StringPiece(s), folly::StringPiece(chars)) !=
+      std::string_view::npos;
+}
+
 std::string_view bareStringEncoding(std::string_view encoded) {
-  return encoded.find_first_of("-_") == std::string_view::npos ? "base64"
-                                                               : "base64url";
+  return containsAnyOf(encoded, "-_") ? "base64url" : "base64";
 }
 } // namespace
 
@@ -502,8 +510,7 @@ std::string Json5ProtocolReader::decodeBinary(
             "Unsupported encoding type for binary object: {}", encoding));
   }
   // folly::base64URLDecode accepts both alphabets, with or without padding.
-  if (encoded.find_first_of(encoding == "base64" ? "-_" : "+/") !=
-      std::string::npos) {
+  if (containsAnyOf(encoded, encoding == "base64" ? "-_" : "+/")) {
     throwError(fmt::format("invalid character in {} binary value", encoding));
   }
   try {
