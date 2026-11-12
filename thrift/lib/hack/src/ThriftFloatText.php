@@ -33,7 +33,8 @@ abstract final class ThriftFloatText {
    *   1e20                 ->   1e+20
    *
    * The form is the one Python's `repr()` picks: positional from 1e-4 up to
-   * 1e16, scientific outside it.
+   * 1e16, scientific outside it. `$scientific_from_exponent` moves the upper
+   * bound.
    *
    * A `float` candidate is checked as HHVM reads it (to a double, then to
    * binary32), or with `$read_as_double = false` as C++ does (straight to
@@ -43,6 +44,7 @@ abstract final class ThriftFloatText {
     float $value,
     bool $single,
     bool $read_as_double = true,
+    int $scientific_from_exponent = 16,
   )[]: string {
     if (Math\is_nan($value) || !PHP\is_finite($value)) {
       return Str\format('%g', $value);
@@ -78,10 +80,20 @@ abstract final class ThriftFloatText {
       $kept = Str\slice($digits, 0, $length);
       $dropped = Str\slice($digits, $length);
       $down_digits = Str\trim_right($kept, '0') |> $$ === '' ? '0' : $$;
-      $down = self::formatDecimal($sign, $down_digits, $exponent);
+      $down = self::formatDecimal(
+        $sign,
+        $down_digits,
+        $exponent,
+        $scientific_from_exponent,
+      );
       $up_exponent = $exponent;
       $up_digits = self::incrementDigits($kept, inout $up_exponent);
-      $up = self::formatDecimal($sign, $up_digits, $up_exponent);
+      $up = self::formatDecimal(
+        $sign,
+        $up_digits,
+        $up_exponent,
+        $scientific_from_exponent,
+      );
       $down_reads_back = $reads_back($down, $down_digits, $exponent);
       $up_reads_back = $reads_back($up, $up_digits, $up_exponent);
       if ($down_reads_back && $up_reads_back) {
@@ -104,6 +116,7 @@ abstract final class ThriftFloatText {
       $sign,
       Str\trim_right($digits, '0') |> $$ === '' ? '0' : $$,
       $exponent,
+      $scientific_from_exponent,
     );
   }
 
@@ -136,8 +149,9 @@ abstract final class ThriftFloatText {
     string $sign,
     string $digits,
     int $exponent,
+    int $scientific_from_exponent,
   )[]: string {
-    if ($exponent >= -4 && $exponent < 16) {
+    if ($exponent >= -4 && $exponent < $scientific_from_exponent) {
       if ($exponent < 0) {
         return $sign.'0.'.Str\repeat('0', -$exponent - 1).$digits;
       }

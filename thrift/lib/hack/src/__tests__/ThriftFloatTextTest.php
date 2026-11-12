@@ -35,6 +35,29 @@ final class ThriftFloatTextTest extends WWWTest {
     ))->toEqual('7.038531e-26');
   }
 
+  public function testRenderFloatScientificFromExponent(): void {
+    expect(ThriftFloatText::renderFloat(16777216.0, true))
+      ->toEqual('16777216.0');
+    expect(ThriftFloatText::renderFloat(
+      16777216.0,
+      true,
+      /* read_as_double = */ false,
+      /* scientific_from_exponent = */ 7,
+    ))->toEqual('1.6777216e+07');
+    expect(ThriftFloatText::renderFloat(
+      10000000.0,
+      true,
+      /* read_as_double = */ false,
+      /* scientific_from_exponent = */ 7,
+    ))->toEqual('1e+07');
+    expect(ThriftFloatText::renderFloat(
+      1234567.0,
+      true,
+      /* read_as_double = */ false,
+      /* scientific_from_exponent = */ 7,
+    ))->toEqual('1234567.0');
+  }
+
   // `$digits * 10 ** $scale` and the binary32 bits C++ reads it as.
   public static function providerDecimalToFloat32(
   ): dict<string, shape('digits' => string, 'scale' => int, 'bits' => int)> {
