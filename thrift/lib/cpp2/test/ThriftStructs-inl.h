@@ -92,40 +92,43 @@ inline thrift::benchmark::OpBigString create<thrift::benchmark::OpBigString>() {
   return d;
 }
 
+// Deterministic contents (not printable UTF-8), so that protocols that choose
+// an encoding by content, like JSON5, take the same path in every binary.
+inline std::unique_ptr<folly::IOBuf> createBinary(std::size_t size) {
+  auto buf = folly::IOBuf::create(size);
+  for (std::size_t i = 0; i < size; ++i) {
+    buf->writableData()[i] = static_cast<std::uint8_t>(i);
+  }
+  buf->append(size);
+  return buf;
+}
+
 template <>
 inline thrift::benchmark::BigBinary create<thrift::benchmark::BigBinary>() {
-  auto buf = folly::IOBuf::create(10'000);
-  buf->append(10'000);
   thrift::benchmark::BigBinary d;
-  d.bin() = std::move(buf);
+  d.bin() = createBinary(10'000);
   return d;
 }
 
 template <>
 inline thrift::benchmark::OpBigBinary create<thrift::benchmark::OpBigBinary>() {
-  auto buf = folly::IOBuf::create(10'000);
-  buf->append(10'000);
   thrift::benchmark::OpBigBinary d;
-  d.bin() = std::move(buf);
+  d.bin() = createBinary(10'000);
   return d;
 }
 
 template <>
 inline thrift::benchmark::LargeBinary create<thrift::benchmark::LargeBinary>() {
-  auto buf = folly::IOBuf::create(10'000'000);
-  buf->append(10'000'000);
   thrift::benchmark::LargeBinary d;
-  d.bin() = std::move(buf);
+  d.bin() = createBinary(10'000'000);
   return d;
 }
 
 template <>
 inline thrift::benchmark::OpLargeBinary
 create<thrift::benchmark::OpLargeBinary>() {
-  auto buf = folly::IOBuf::create(10'000'000);
-  buf->append(10'000'000);
   thrift::benchmark::OpLargeBinary d;
-  d.bin() = std::move(buf);
+  d.bin() = createBinary(10'000'000);
   return d;
 }
 
