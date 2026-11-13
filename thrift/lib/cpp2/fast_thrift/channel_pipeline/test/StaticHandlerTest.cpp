@@ -137,7 +137,6 @@ struct NonMovableHandler {
   NonMovableHandler& operator=(NonMovableHandler&&) = delete;
 
   int value;
-  WriteReadyHook writeReadyHook_;
 };
 
 TEST(StaticContextTest, CallsTypedPipelineDirectly) {
@@ -197,8 +196,6 @@ TEST(StaticHandlerTest, ConstructsNonMovableHandlerInline) {
 
   EXPECT_EQ(slot.handler().value, 7);
   EXPECT_EQ(slot.context().handlerId(), kHandlerId);
-  EXPECT_EQ(slot.writeReadyHook(), &slot.handler().writeReadyHook_);
-  EXPECT_EQ(slot.readReadyHook(), nullptr);
 }
 
 TEST(StaticHandlerTest, EmptyHandlerAddsOnlyPipelinePointer) {

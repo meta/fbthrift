@@ -38,7 +38,6 @@
 #include <folly/io/IOBuf.h>
 #include <folly/io/IOBufQueue.h>
 #include <folly/io/async/EventBase.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Backpressure.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
@@ -58,8 +57,6 @@ template <
     typename FlushEvent = typename Tracker::FlushWritesEventType>
 class IntervalBatchingFrameHandlerT {
  public:
-  channel_pipeline::WriteReadyHook writeReadyHook_;
-
   explicit IntervalBatchingFrameHandlerT(
       IntervalBatchingHandlerConfig config = {}) noexcept
       : config_(std::move(config)),

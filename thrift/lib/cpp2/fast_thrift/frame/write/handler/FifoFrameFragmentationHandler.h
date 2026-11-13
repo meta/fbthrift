@@ -25,7 +25,6 @@
 #include <folly/ExceptionWrapper.h>
 #include <folly/Utility.h>
 
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Backpressure.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Event.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
@@ -63,8 +62,6 @@ namespace apache::thrift::fast_thrift::frame::write::handler {
 template <FragmentCompletionTracker Tracker = NoOpFragmentCompletionTracker>
 class FifoFrameFragmentationHandlerT : private folly::NonCopyableNonMovable {
  public:
-  channel_pipeline::WriteReadyHook writeReadyHook_;
-
   explicit FifoFrameFragmentationHandlerT(
       QuantumFragmentationHandlerConfig config = {}) noexcept
       : state_(config) {}

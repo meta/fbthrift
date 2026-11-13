@@ -20,7 +20,6 @@
 #include <folly/io/async/DelayedDestruction.h>
 #include <folly/io/async/DelayedDestructionBase.h>
 #include <folly/io/async/EventBase.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Backpressure.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/BufferAllocator.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/EndpointAdapter.h>
@@ -487,20 +486,19 @@ class alignas(detail::ContextImpl) PipelineImpl
   // === Internal: ready registration for ContextImpl ===
 
   /**
-   * Whether the handler at this index has a write ready hook. Index
-   * handlerCount() is the head endpoint, which counts as having one if it
-   * takes onWriteReady().
+   * Whether the handler at this index satisfies OutboundHandler, and so may
+   * wait for write ready. Index handlerCount() is the head endpoint, which may
+   * wait if it has onWriteReady().
    */
-  bool hasWriteReadyHook(size_t index) const noexcept {
+  bool handlesWriteReady(size_t index) const noexcept {
     if (index < handlers_.size()) {
-      return handlers_[index].writeReadyHook_ != nullptr;
+      return handlers_[index].handlesWriteReady;
     }
     return index == handlers_.size() && headOnWriteReadyFn_ != nullptr;
   }
 
-  bool hasReadReadyHook(size_t index) const noexcept {
-    return index < handlers_.size() &&
-        handlers_[index].readReadyHook_ != nullptr;
+  bool handlesReadReady(size_t index) const noexcept {
+    return index < handlers_.size() && handlers_[index].handlesReadReady;
   }
 
  protected:

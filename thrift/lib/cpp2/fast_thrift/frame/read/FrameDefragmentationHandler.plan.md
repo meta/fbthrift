@@ -796,7 +796,7 @@ onWriteReady():
   resumeFlush();
 ```
 
-This integrates with the existing `WriteReadyHook` mechanism in channel_pipeline.
+This integrates with the existing `awaitWriteReady()` and `onWriteReady()` mechanism in channel_pipeline.
 
 ---
 

@@ -16,7 +16,6 @@
 
 #pragma once
 
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Backpressure.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/StaticContext.h>
 
@@ -49,20 +48,6 @@ class StaticHandler {
   const H& handler() const noexcept { return handler_; }
   Context& context() noexcept { return context_; }
   const Context& context() const noexcept { return context_; }
-
-  WriteReadyHook* writeReadyHook() noexcept {
-    if constexpr (requires(H& h) { h.writeReadyHook_; }) {
-      return &handler_.writeReadyHook_;
-    }
-    return nullptr;
-  }
-
-  ReadReadyHook* readReadyHook() noexcept {
-    if constexpr (requires(H& h) { h.readReadyHook_; }) {
-      return &handler_.readReadyHook_;
-    }
-    return nullptr;
-  }
 
  private:
   [[no_unique_address]] H handler_;

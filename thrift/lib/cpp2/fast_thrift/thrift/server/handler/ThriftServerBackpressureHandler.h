@@ -20,7 +20,6 @@
 
 #include <folly/Portability.h>
 
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Backpressure.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/ReadBackpressureArbiter.h>
@@ -40,10 +39,6 @@ class ThriftServerBackpressureHandler {
   explicit ThriftServerBackpressureHandler(
       ReadBackpressureArbiter* arbiter) noexcept
       : arbiter_(arbiter) {}
-
-  // Detected by makeHandlerNode — lets this handler wait for write ready,
-  // so onWriteReady() actually fires.
-  channel_pipeline::WriteReadyHook writeReadyHook_;
 
   void handlerAdded(Context& /*ctx*/) noexcept {}
   void handlerRemoved(Context& /*ctx*/) noexcept {}

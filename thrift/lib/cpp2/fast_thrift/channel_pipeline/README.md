@@ -756,7 +756,7 @@ void resumeRead() noexcept;  // Resume reading from socket
 
 While return values signal backpressure, handlers often need to **buffer messages**
 and **retry when ready**. The explicit backpressure API provides this capability
-through ready hooks and ready callbacks.
+through ready callbacks.
 
 ### The Problem
 
@@ -769,44 +769,39 @@ operation was accepted but should slow down. The handler has several choices:
 
 Option 3 requires a mechanism to notify the handler when it can resume sending.
 
-### Solution: Write Ready Hooks
+### Solution: Write Ready Callbacks
 
-Handlers that need write ready notifications embed a hook member:
-
-```cpp
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Backpressure.h>
-
-class BufferingHandler {
- public:
-  // Embed hook as public member — detected at compile time
-  WriteReadyHook writeReadyHook_;
-
-  // ... handler methods
-};
-```
-
-The pipeline automatically detects this hook via `requires` expressions when
-the handler is added, enabling O(1) registration/unregistration.
+Every outbound handler has `onWriteReady()`, so every outbound handler can ask
+for it with `ctx.awaitWriteReady()`. When a handler is added, the pipeline
+finds out at compile time whether it satisfies `OutboundHandler`. Any other
+handler still builds, and its `ctx.awaitWriteReady()` does nothing and reports
+nothing, also when the handler has `onWriteReady()`. Registration and
+unregistration cost O(1).
 
 [`detail/ContextImpl.h`](detail/ContextImpl.h) documents the context calls that
 register a handler for `onWriteReady()` and unregister it.
 
 ### Read Backpressure
 
-Read backpressure is handled at the transport level via TCP flow control.
-When a handler returns `Result::Backpressure` from `onRead()`, the transport
-adapter should call `pauseRead()` on the socket. There is no handler-to-handler
-read backpressure signaling — this follows the Netty model where read flow is
-controlled by `setAutoRead(false)` at the transport level.
+Read backpressure reaches the socket through TCP flow control. When a handler
+returns `Result::Backpressure` from `onRead()`, the transport adapter should
+call `pauseRead()` on the socket, as Netty does with `setAutoRead(false)`.
+
+Every inbound handler has `onReadReady()`, so every inbound handler can also
+wait with `ctx.awaitReadReady()`, for example after its `ctx.fireRead()`
+returned `Backpressure`. The code that clears the block calls
+`ctx.pipeline()->onReadReady()`. That read-ready pass wakes every waiting
+handler from the tail toward the head, whatever order they armed in, and then
+the head endpoint. So each handler wakes after the handler that it reads into.
+A handler that still waits after its callback does not stop the pass. A handler
+that arms during the pass wakes in it only if it is below the handler that the
+pass woke last. The pass stops early only when the pipeline closes.
 
 ### Complete Example: Write Buffering Handler
 
 ```cpp
 class WriteBufferingHandler {
  public:
-  // Hook for write ready notifications
-  WriteReadyHook writeReadyHook_;
-
   Result onWrite(Context& ctx, TypeErasedBox&& msg) noexcept {
     // Backpressure has not cleared yet, so buffer the message
     if (ctx.isAwaitingWriteReady()) {
@@ -917,7 +912,7 @@ The O(1) operations are achieved through:
 | **Explicit over implicit** | Handlers choose their backpressure strategy |
 | **Zero allocation** | Bit masks inside the pipeline, no heap allocation on register |
 | **O(1) operations** | Hash table lookups, bit set/clear |
-| **Compile-time detection** | Hooks detected via `requires` expressions |
+| **Compile-time detection** | The `OutboundHandler` and `InboundHandler` concepts decide which handlers can wait |
 | **Handler autonomy** | Each handler decides: drop, error, or buffer |
 
 ---

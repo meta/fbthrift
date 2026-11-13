@@ -42,7 +42,6 @@
  * See: FrameFragmentationHandler.md for design documentation.
  */
 
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Backpressure.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
@@ -86,8 +85,6 @@ struct RemainingBytesFn {
 template <FragmentCompletionTracker Tracker = NoOpFragmentCompletionTracker>
 class FrameFragmentationHandlerT : public folly::EventBase::LoopCallback {
  public:
-  channel_pipeline::WriteReadyHook writeReadyHook_;
-
   explicit FrameFragmentationHandlerT(
       FragmentationHandlerConfig config = {}) noexcept
       : config_(config) {}

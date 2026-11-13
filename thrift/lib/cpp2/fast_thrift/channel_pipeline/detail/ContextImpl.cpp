@@ -73,36 +73,36 @@ void ContextImpl::close() noexcept {
 }
 
 void ContextImpl::awaitWriteReady() noexcept {
-  if (!pipeline_->isClosed() && pipeline_->hasWriteReadyHook(handlerIndex_)) {
+  if (!pipeline_->isClosed() && pipeline_->handlesWriteReady(handlerIndex_)) {
     pipeline_->writeReadyWaiters().arm(handlerIndex_);
   }
 }
 
 void ContextImpl::cancelAwaitWriteReady() noexcept {
-  if (pipeline_->hasWriteReadyHook(handlerIndex_)) {
+  if (pipeline_->handlesWriteReady(handlerIndex_)) {
     pipeline_->writeReadyWaiters().cancel(handlerIndex_);
   }
 }
 
 bool ContextImpl::isAwaitingWriteReady() const noexcept {
-  return pipeline_->hasWriteReadyHook(handlerIndex_) &&
+  return pipeline_->handlesWriteReady(handlerIndex_) &&
       pipeline_->writeReadyWaiters().isArmed(handlerIndex_);
 }
 
 void ContextImpl::awaitReadReady() noexcept {
-  if (!pipeline_->isClosed() && pipeline_->hasReadReadyHook(handlerIndex_)) {
+  if (!pipeline_->isClosed() && pipeline_->handlesReadReady(handlerIndex_)) {
     pipeline_->readReadyWaiters().arm(handlerIndex_);
   }
 }
 
 void ContextImpl::cancelAwaitReadReady() noexcept {
-  if (pipeline_->hasReadReadyHook(handlerIndex_)) {
+  if (pipeline_->handlesReadReady(handlerIndex_)) {
     pipeline_->readReadyWaiters().cancel(handlerIndex_);
   }
 }
 
 bool ContextImpl::isAwaitingReadReady() const noexcept {
-  return pipeline_->hasReadReadyHook(handlerIndex_) &&
+  return pipeline_->handlesReadReady(handlerIndex_) &&
       pipeline_->readReadyWaiters().isArmed(handlerIndex_);
 }
 

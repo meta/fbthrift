@@ -744,9 +744,8 @@ TEST_F(BatchingFrameHandlerTest, FlushListUnlinksOnHandlerTeardown) {
 // ============================================================================
 //
 // These tests exercise backpressure through a real PipelineImpl, verifying
-// the hook registration and dispatch chain end-to-end. This catches bugs like
-// writeReadyHook_ naming mismatches that unit tests above cannot detect
-// (they call onWriteReady() directly, bypassing the pipeline machinery).
+// the write-ready registration and dispatch chain end-to-end. The unit tests
+// above call onWriteReady() directly and bypass the pipeline.
 
 namespace apache::thrift::fast_thrift::frame::write::handler {
 
@@ -797,10 +796,9 @@ class BatchingFrameHandlerPipelineTest : public ::testing::Test {
   BatchingFrameHandler* handlerPtr_{nullptr};
 };
 
-// Regression test: if writeReadyHook_ is misnamed, the pipeline's compile-time
-// hook detection silently fails and hasPendingWriteReady() stays false even
-// after backpressure is signaled by ctx.awaitWriteReady().
-TEST_F(BatchingFrameHandlerPipelineTest, HookRegisteredOnBackpressure) {
+// The pipeline records the handler as waiting when it calls
+// ctx.awaitWriteReady() after backpressure.
+TEST_F(BatchingFrameHandlerPipelineTest, AwaitsWriteReadyOnBackpressure) {
   BatchingHandlerConfig config{
       .maxPendingBytes = 100,
       .maxPendingFrames = 10,
@@ -860,7 +858,7 @@ TEST_F(BatchingFrameHandlerPipelineTest, LoopTickBackpressureRegisters) {
   EXPECT_FALSE(pipeline->hasPendingWriteReady());
   EXPECT_FALSE(handlerPtr_->isBackpressured());
 
-  // Loop tick fires doFlush() → encounters backpressure → hook registered
+  // Loop tick fires doFlush() → encounters backpressure → waits for write-ready
   evb_.loopOnce(EVLOOP_NONBLOCK);
   EXPECT_TRUE(pipeline->hasPendingWriteReady());
   EXPECT_TRUE(handlerPtr_->isBackpressured());

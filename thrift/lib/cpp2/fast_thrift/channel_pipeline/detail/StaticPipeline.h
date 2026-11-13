@@ -764,19 +764,19 @@ class StaticPipelineImpl final {
     if (isClosed()) {
       return;
     }
-    if (hasWriteReadyHook<Index>()) {
+    if (handlesWriteReady<Index>()) {
       writeReadyWaiters_.arm(logicalHandlerIndex<Index>());
     }
   }
   template <std::size_t Index>
   void cancelAwaitWriteReady() noexcept {
-    if (hasWriteReadyHook<Index>()) {
+    if (handlesWriteReady<Index>()) {
       writeReadyWaiters_.cancel(logicalHandlerIndex<Index>());
     }
   }
   template <std::size_t Index>
   bool isAwaitingWriteReady() const noexcept {
-    return const_cast<Self*>(this)->template hasWriteReadyHook<Index>() &&
+    return handlesWriteReady<Index>() &&
         writeReadyWaiters_.isArmed(logicalHandlerIndex<Index>());
   }
   template <std::size_t Index>
@@ -784,19 +784,19 @@ class StaticPipelineImpl final {
     if (isClosed()) {
       return;
     }
-    if (hasReadReadyHook<Index>()) {
+    if (handlesReadReady<Index>()) {
       readReadyWaiters_.arm(logicalHandlerIndex<Index>());
     }
   }
   template <std::size_t Index>
   void cancelAwaitReadReady() noexcept {
-    if (hasReadReadyHook<Index>()) {
+    if (handlesReadReady<Index>()) {
       readReadyWaiters_.cancel(logicalHandlerIndex<Index>());
     }
   }
   template <std::size_t Index>
   bool isAwaitingReadReady() const noexcept {
-    return const_cast<Self*>(this)->template hasReadReadyHook<Index>() &&
+    return handlesReadReady<Index>() &&
         readReadyWaiters_.isArmed(logicalHandlerIndex<Index>());
   }
 
@@ -1128,29 +1128,35 @@ class StaticPipelineImpl final {
     }
   }
 
-  // Index kHandlerCount is the head endpoint, which can always wait for write
-  // ready and never for read ready.
+  // Whether the typed handler at Index satisfies OutboundHandler or
+  // InboundHandler, and so may wait for write ready or read ready. Index
+  // kHandlerCount is the head endpoint, which may wait for write ready only if
+  // it has onWriteReady(), and never for read ready.
   template <std::size_t Index>
-  bool hasWriteReadyHook() noexcept {
+  static constexpr bool handlesWriteReady() noexcept {
     if constexpr (Index == kHandlerCount) {
-      return true;
+      return requires(HeadHandler& h, EndpointContext& ctx) {
+        h.onWriteReady(ctx);
+      };
     } else {
-      return handlerAt<Index>().writeReadyHook() != nullptr;
+      using Slot = std::remove_reference_t<
+          decltype(std::declval<Self&>().template handlerAt<Index>())>;
+      return OutboundHandler<typename Slot::Handler, typename Slot::Context>;
     }
   }
   template <std::size_t Index>
-  bool hasReadReadyHook() noexcept {
+  static constexpr bool handlesReadReady() noexcept {
     if constexpr (Index == kHandlerCount) {
       return false;
     } else {
-      return handlerAt<Index>().readReadyHook() != nullptr;
+      using Slot = std::remove_reference_t<
+          decltype(std::declval<Self&>().template handlerAt<Index>())>;
+      return InboundHandler<typename Slot::Handler, typename Slot::Context>;
     }
   }
 
   void dispatchHeadWriteReady() noexcept {
-    if constexpr (requires(HeadHandler& h, EndpointContext& ctx) {
-                    h.onWriteReady(ctx);
-                  }) {
+    if constexpr (handlesWriteReady<kHandlerCount>()) {
       headHandler_->onWriteReady(endpointContext_);
     }
   }
@@ -1432,20 +1438,20 @@ class StaticPipelineImpl final {
       staticHandlers_[index].fireEvent(key, payload);
     }
   }
-  WriteReadyHook* staticWriteReadyHook(std::size_t index) noexcept {
+  bool staticHandlesWriteReady(std::size_t index) noexcept {
     if constexpr (kHasStaticSegments) {
       auto position = staticSegmentPosition(index);
-      return position.segment->writeReadyHook(position.localIndex);
+      return position.segment->handlesWriteReady(position.localIndex);
     } else {
-      return staticHandlers_[index].writeReadyHook();
+      return staticHandlers_[index].handlesWriteReady();
     }
   }
-  ReadReadyHook* staticReadReadyHook(std::size_t index) noexcept {
+  bool staticHandlesReadReady(std::size_t index) noexcept {
     if constexpr (kHasStaticSegments) {
       auto position = staticSegmentPosition(index);
-      return position.segment->readReadyHook(position.localIndex);
+      return position.segment->handlesReadReady(position.localIndex);
     } else {
-      return staticHandlers_[index].readReadyHook();
+      return staticHandlers_[index].handlesReadReady();
     }
   }
 
@@ -1685,31 +1691,33 @@ class StaticPipelineImpl final {
   }
 
   void awaitStaticWriteReady(std::size_t index) noexcept {
-    if (!isClosed() && staticWriteReadyHook(index) != nullptr) {
+    if (!isClosed() && staticHandlesWriteReady(index)) {
       writeReadyWaiters_.arm(kStaticHandlerIndex + index);
     }
   }
   void cancelStaticWriteReady(std::size_t index) noexcept {
-    if (staticWriteReadyHook(index) != nullptr) {
+    if (staticHandlesWriteReady(index)) {
       writeReadyWaiters_.cancel(kStaticHandlerIndex + index);
     }
   }
   bool isAwaitingStaticWriteReady(std::size_t index) const noexcept {
-    return const_cast<Self*>(this)->staticWriteReadyHook(index) != nullptr &&
+    // Safe: only reads, but the segment lookup returns a mutable segment.
+    return const_cast<Self*>(this)->staticHandlesWriteReady(index) &&
         writeReadyWaiters_.isArmed(kStaticHandlerIndex + index);
   }
   void awaitStaticReadReady(std::size_t index) noexcept {
-    if (!isClosed() && staticReadReadyHook(index) != nullptr) {
+    if (!isClosed() && staticHandlesReadReady(index)) {
       readReadyWaiters_.arm(kStaticHandlerIndex + index);
     }
   }
   void cancelStaticReadReady(std::size_t index) noexcept {
-    if (staticReadReadyHook(index) != nullptr) {
+    if (staticHandlesReadReady(index)) {
       readReadyWaiters_.cancel(kStaticHandlerIndex + index);
     }
   }
   bool isAwaitingStaticReadReady(std::size_t index) const noexcept {
-    return const_cast<Self*>(this)->staticReadReadyHook(index) != nullptr &&
+    // Safe: only reads, but the segment lookup returns a mutable segment.
+    return const_cast<Self*>(this)->staticHandlesReadReady(index) &&
         readReadyWaiters_.isArmed(kStaticHandlerIndex + index);
   }
 

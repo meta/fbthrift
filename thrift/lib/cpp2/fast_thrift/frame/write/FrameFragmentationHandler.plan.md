@@ -137,7 +137,6 @@ FrameFragmentationHandler : public folly::EventBase::LoopCallback
   - immediateQueue_: std::deque<Frame>  // Small frames bypass
   - streams_: F14NodeMap<uint32_t, PerStreamState>  // Large frame fragments
   - roundRobinIterator_: iterator (for resume after backpressure)
-  - WriteReadyHook writeReadyHook_  // For backpressure
 ```
 
 ### Core Algorithm: onWrite()
@@ -841,7 +840,7 @@ auto pipeline = PipelineBuilder()
 | **No upstream coupling** | Accepts any `TypeErasedBox` with frame data |
 | **No downstream coupling** | Calls `ctx.fireWrite()` like any other handler |
 | **No EventBase ownership** | Uses `eventBase_` from context, doesn't manage it |
-| **Standard backpressure** | Uses existing `WriteReadyHook` mechanism |
+| **Standard backpressure** | Uses existing `awaitWriteReady()` mechanism |
 | **Standard lifecycle** | Implements `handlerAdded`/`handlerRemoved` |
 
 ### Pipeline Position

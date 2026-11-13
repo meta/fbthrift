@@ -17,7 +17,6 @@
 #pragma once
 
 #include <folly/ExceptionWrapper.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Backpressure.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/StaticHandlerContext.h>
 
@@ -42,20 +41,6 @@ class ErasedStaticHandlerSlot {
   H& handler() noexcept { return handler_; }
   Context& context() noexcept { return context_; }
 
-  WriteReadyHook* writeReadyHook() noexcept {
-    if constexpr (requires(H& handler) { handler.writeReadyHook_; }) {
-      return &handler_.writeReadyHook_;
-    }
-    return nullptr;
-  }
-
-  ReadReadyHook* readReadyHook() noexcept {
-    if constexpr (requires(H& handler) { handler.readReadyHook_; }) {
-      return &handler_.readReadyHook_;
-    }
-    return nullptr;
-  }
-
  private:
   H handler_;
   StaticHandlerContext context_;
@@ -74,8 +59,10 @@ class ErasedStaticHandler {
     void (*handlerAdded)(void*) noexcept;
     void (*handlerRemoved)(void*) noexcept;
     void (*fireEvent)(void*, EventKey, const void*) noexcept;
-    WriteReadyHook* (*writeReadyHook)(void*) noexcept;
-    ReadReadyHook* (*readReadyHook)(void*) noexcept;
+    // A handler may wait for write ready only if it satisfies OutboundHandler,
+    // and for read ready only if it satisfies InboundHandler.
+    bool handlesWriteReady;
+    bool handlesReadReady;
     void (*bindContext)(
         void*, void*, const StaticHandlerContextOps&, std::size_t) noexcept;
     void (*destroy)(void*) noexcept;
@@ -124,12 +111,8 @@ class ErasedStaticHandler {
   void fireEvent(EventKey key, const void* payload) noexcept {
     ops_->fireEvent(owner_, key, payload);
   }
-  WriteReadyHook* writeReadyHook() noexcept {
-    return ops_->writeReadyHook(owner_);
-  }
-  ReadReadyHook* readReadyHook() noexcept {
-    return ops_->readReadyHook(owner_);
-  }
+  bool handlesWriteReady() const noexcept { return ops_->handlesWriteReady; }
+  bool handlesReadReady() const noexcept { return ops_->handlesReadReady; }
 
   template <typename H, typename... Args>
   static ErasedStaticHandler make(HandlerId id, Args&&... args) {
@@ -269,12 +252,8 @@ class ErasedStaticHandler {
             typename H::SubscribedEvents{});
       }
     };
-    ops.writeReadyHook = [](void* p) noexcept -> WriteReadyHook* {
-      return static_cast<Slot*>(p)->writeReadyHook();
-    };
-    ops.readReadyHook = [](void* p) noexcept -> ReadReadyHook* {
-      return static_cast<Slot*>(p)->readReadyHook();
-    };
+    ops.handlesWriteReady = OutboundHandler<H, Context>;
+    ops.handlesReadReady = InboundHandler<H, Context>;
     ops.bindContext = [](void* p,
                          void* pipeline,
                          const StaticHandlerContextOps& contextOps,

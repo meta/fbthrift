@@ -26,7 +26,6 @@
 #include <folly/CPortability.h>
 #include <folly/Likely.h>
 
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Backpressure.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
@@ -173,10 +172,6 @@ class PayloadPrefetchHandler {
     CHECK_GT(capacity_, 0u);
     CHECK_LT(replenishThreshold_, capacity_);
   }
-
-  // Detected by makeHandlerNode — lets this handler wait for write ready,
-  // so onWriteReady() fires when the transport drains.
-  channel_pipeline::WriteReadyHook writeReadyHook_;
 
   // HandlerLifecycle
   void handlerAdded(Context& /*ctx*/) noexcept {}

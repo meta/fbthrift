@@ -516,9 +516,6 @@ class StaticPipelineDriver : public Driver {
 template <int Index>
 class ScriptedHandler {
  public:
-  WriteReadyHook writeReadyHook_;
-  ReadReadyHook readReadyHook_;
-
   explicit ScriptedHandler(StaticPipelineDriver* driver) : driver_(driver) {}
 
   template <typename Context>

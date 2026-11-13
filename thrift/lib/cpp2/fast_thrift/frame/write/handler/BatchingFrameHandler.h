@@ -31,7 +31,6 @@
  * Output: std::unique_ptr<folly::IOBuf> (chained batch of frames)
  */
 
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Backpressure.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/BatchingHandlerConfig.h>
@@ -65,8 +64,6 @@ template <
     typename FlushEvent = typename Tracker::FlushWritesEventType>
 class BatchingFrameHandlerT {
  public:
-  channel_pipeline::WriteReadyHook writeReadyHook_;
-
   explicit BatchingFrameHandlerT(BatchingHandlerConfig config = {}) noexcept
       : config_(config),
         scheduler_(

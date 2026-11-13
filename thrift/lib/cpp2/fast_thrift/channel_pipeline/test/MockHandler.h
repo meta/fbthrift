@@ -17,7 +17,6 @@
 #pragma once
 
 #include <folly/ExceptionWrapper.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Backpressure.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 
@@ -30,16 +29,9 @@ namespace apache::thrift::fast_thrift::channel_pipeline::test {
  *
  * It records all method calls and allows customization of behavior
  * via callbacks. By default, it passes through to the next handler.
- *
- * Includes writeReadyHook_ and readReadyHook_ for explicit ready signaling.
- * Hooks are automatically detected by makeHandlerNode.
  */
 class MockHandler {
  public:
-  // Hooks for explicit ready signaling (detected by makeHandlerNode)
-  WriteReadyHook writeReadyHook_;
-  ReadReadyHook readReadyHook_;
-
   // Recorded call types
   struct ReadCall {
     TypeErasedBox msg;

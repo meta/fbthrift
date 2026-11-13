@@ -124,13 +124,11 @@ class PipelineTailHandler {
   size_t writeReadyCount_{0};
 };
 
-// Handles Backpressure as Backpressure.h asks: it queues the frames that
-// arrive after Backpressure and sends them from onWriteReady(), and it stays
-// registered for write-ready until it has sent them all.
+// Handles Backpressure as ContextImpl::awaitWriteReady() asks: it queues the
+// frames that arrive after Backpressure and sends them from onWriteReady(),
+// and it keeps waiting for write-ready until it has sent them all.
 class QueueingWriter {
  public:
-  cp::WriteReadyHook writeReadyHook_;
-
   template <typename Context>
   void handlerAdded(Context&) noexcept {}
   template <typename Context>
@@ -1063,7 +1061,7 @@ TEST_F(
   EXPECT_THAT(context_.written(), IsEmpty());
 }
 
-TEST_F(FifoFrameFragmentationHandlerTest, HandlerRemovalCancelsWriteReadyHook) {
+TEST_F(FifoFrameFragmentationHandlerTest, HandlerRemovalCancelsWriteReadyWait) {
   Handler handler;
   handler.handlerAdded(context_);
   context_.setResult(channel_pipeline::Result::Backpressure);
@@ -1096,7 +1094,7 @@ TEST_F(
 }
 
 TEST_F(
-    FifoFrameFragmentationHandlerTest, PipelineInactiveCancelsWriteReadyHook) {
+    FifoFrameFragmentationHandlerTest, PipelineInactiveCancelsWriteReadyWait) {
   Handler handler;
   handler.handlerAdded(context_);
   context_.setResult(channel_pipeline::Result::Backpressure);
@@ -1112,7 +1110,7 @@ TEST_F(
 }
 
 TEST_F(
-    FifoFrameFragmentationHandlerTest, DownstreamErrorCancelsWriteReadyHook) {
+    FifoFrameFragmentationHandlerTest, DownstreamErrorCancelsWriteReadyWait) {
   Handler handler;
   handler.handlerAdded(context_);
   (void)handler.onWrite(
@@ -1528,7 +1526,7 @@ class FifoFrameFragmentationHandlerPipelineTest : public Test {
         .build();
   }
 
-  void verifyHookWiring(auto pipeline) {
+  void verifyWriteReadyWiring(auto pipeline) {
     transport_.setWriteResult(cp::Result::Backpressure);
     EXPECT_THAT(
         pipeline->fireWrite(makeFrame(FrameType::REQUEST_RESPONSE, 1, 1)),
@@ -1630,15 +1628,13 @@ class FifoFrameFragmentationHandlerPipelineTest : public Test {
 };
 
 TEST_F(
-    FifoFrameFragmentationHandlerPipelineTest,
-    DynamicPipelineWiresWriteReadyHook) {
-  verifyHookWiring(buildDynamicPipeline());
+    FifoFrameFragmentationHandlerPipelineTest, DynamicPipelineWiresWriteReady) {
+  verifyWriteReadyWiring(buildDynamicPipeline());
 }
 
 TEST_F(
-    FifoFrameFragmentationHandlerPipelineTest,
-    StaticPipelineWiresWriteReadyHook) {
-  verifyHookWiring(buildStaticPipeline());
+    FifoFrameFragmentationHandlerPipelineTest, StaticPipelineWiresWriteReady) {
+  verifyWriteReadyWiring(buildStaticPipeline());
 }
 
 TEST_F(

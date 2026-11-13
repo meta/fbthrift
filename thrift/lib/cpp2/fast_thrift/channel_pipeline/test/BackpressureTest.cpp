@@ -38,6 +38,50 @@ HANDLER_TAG(head);
 HANDLER_TAG(middle);
 HANDLER_TAG(tail);
 
+// An inbound-only handler: it has no onWriteReady(), and it asks for it on
+// each read.
+class InboundAwaitingWriteReady {
+ public:
+  void onPipelineActive(detail::ContextImpl&) noexcept {}
+  Result onRead(detail::ContextImpl& ctx, TypeErasedBox&& msg) noexcept {
+    ctx.awaitWriteReady();
+    return ctx.fireRead(std::move(msg));
+  }
+  void onReadReady(detail::ContextImpl&) noexcept {}
+  void onException(
+      detail::ContextImpl& ctx, folly::exception_wrapper&& e) noexcept {
+    ctx.fireException(std::move(e));
+  }
+  void handlerAdded(detail::ContextImpl&) noexcept {}
+  void handlerRemoved(detail::ContextImpl&) noexcept {}
+};
+
+// An outbound-only handler: it has no onReadReady(), and it asks for it on
+// each write.
+class OutboundAwaitingReadReady {
+ public:
+  Result onWrite(detail::ContextImpl& ctx, TypeErasedBox&& msg) noexcept {
+    ctx.awaitReadReady();
+    return ctx.fireWrite(std::move(msg));
+  }
+  void onWriteReady(detail::ContextImpl&) noexcept {}
+  void onPipelineInactive(detail::ContextImpl&) noexcept {}
+  void handlerAdded(detail::ContextImpl&) noexcept {}
+  void handlerRemoved(detail::ContextImpl&) noexcept {}
+};
+
+// The same handlers with the ready callback that each one asks for. Neither
+// satisfies the handler concept of that direction.
+class InboundWithWriteReadyCallback : public InboundAwaitingWriteReady {
+ public:
+  void onWriteReady(detail::ContextImpl&) noexcept {}
+};
+
+class OutboundWithReadReadyCallback : public OutboundAwaitingReadReady {
+ public:
+  void onReadReady(detail::ContextImpl&) noexcept {}
+};
+
 class BackpressureTest : public ::testing::Test {
  protected:
   void SetUp() override {
@@ -57,6 +101,28 @@ class BackpressureTest : public ::testing::Test {
         .addNextDuplex<MockHandler>(middle_tag, std::move(middle_handler_))
         .addNextDuplex<MockHandler>(tail_tag, std::move(tail_handler_))
         .build();
+  }
+
+  // Sends one read and one write through a pipeline with Inbound on the head
+  // side and Outbound on the tail side. Returns both results and whether the
+  // pipeline then waits for write ready and for read ready.
+  template <typename Inbound, typename Outbound>
+  std::tuple<Result, Result, bool, bool> readAndWriteThrough() {
+    auto pipeline =
+        PipelineBuilder<MockHeadHandler, MockTailHandler, TestAllocator>()
+            .setEventBase(&evb_)
+            .setHead(&app_)
+            .setTail(&transport_)
+            .setAllocator(&allocator_)
+            .addNextInbound<Inbound>(head_tag)
+            .template addNextOutbound<Outbound>(tail_tag)
+            .build();
+    // Braced initialization evaluates the calls from left to right.
+    return std::tuple{
+        pipeline->fireRead(TypeErasedBox(folly::IOBuf::create(64))),
+        pipeline->fireWrite(TypeErasedBox(folly::IOBuf::create(64))),
+        pipeline->hasPendingWriteReady(),
+        pipeline->hasPendingReadReady()};
   }
 
   void createHandlers() {
@@ -416,13 +482,29 @@ TEST_F(BackpressureTest, WriteReadyWakesHandlersFromHeadToTail) {
 
   auto pipeline = buildPipeline();
   // The write reaches the handlers from the tail toward the head, so they arm
-  // their hooks in the order tail, middle, head.
+  // in the order tail, middle, head.
   EXPECT_THAT(
       pipeline->fireWrite(TypeErasedBox(folly::IOBuf::create(64))),
       Eq(Result::Success));
   pipeline->onWriteReady();
 
   EXPECT_THAT(readiness, ElementsAre("head", "middle", "tail"));
+}
+
+TEST_F(BackpressureTest, HandlerWithoutReadyCallbackCannotAwaitIt) {
+  EXPECT_THAT(
+      (readAndWriteThrough<
+          InboundAwaitingWriteReady,
+          OutboundAwaitingReadReady>()),
+      Eq(std::tuple(Result::Success, Result::Success, false, false)));
+}
+
+TEST_F(BackpressureTest, ReadyCallbackAloneCannotAwaitIt) {
+  EXPECT_THAT(
+      (readAndWriteThrough<
+          InboundWithWriteReadyCallback,
+          OutboundWithReadReadyCallback>()),
+      Eq(std::tuple(Result::Success, Result::Success, false, false)));
 }
 
 TEST_F(BackpressureTest, WriteReadyWakesHandlerAboveOneThatStaysArmed) {
@@ -1213,7 +1295,7 @@ TEST_F(BackpressureTest, ReadReadyWakesHandlersFromTailToHead) {
 
   auto pipeline = buildPipeline();
   // The read reaches the handlers from the head toward the tail, so they arm
-  // their hooks in the order head, middle, tail.
+  // in the order head, middle, tail.
   EXPECT_THAT(
       pipeline->fireRead(TypeErasedBox(folly::IOBuf::create(64))),
       Eq(Result::Success));

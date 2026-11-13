@@ -1068,7 +1068,7 @@ StateMachineResult run_state_machine_test() noexcept {
   uint32_t state = rust_handler_phase5_state();
   auto afterRead = pipeline->fireRead(erase_and_box(makeBytes(1, 0xcc)));
   auto afterWrite = pipeline->fireWrite(erase_and_box(makeBytes(1, 0xdd)));
-  bool closeClearedHooks =
+  bool closeClearedWaits =
       !pipeline->hasPendingReadReady() && !pipeline->hasPendingWriteReady();
   ::rust::String finalSeq = rust_handler_phase5_p5_sequence();
 
@@ -1084,7 +1084,7 @@ StateMachineResult run_state_machine_test() noexcept {
       .head_writes = headWrites,
       .removed = removed,
       .inactive = inactive,
-      .closed = closeClearedHooks,
+      .closed = closeClearedWaits,
       .top_level_read_is_error = afterRead == Result::Error,
       .top_level_write_is_error = afterWrite == Result::Error,
   };

@@ -227,6 +227,68 @@ class StaticTeardownHandler {
   void onReadReady(Context&) noexcept {}
 };
 
+// An inbound-only handler: it has no onWriteReady(), and it asks for it on
+// each read. It has onPipelineInactive() because a segment calls both
+// lifecycle callbacks on each handler.
+class InboundAwaitingWriteReady {
+ public:
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineActive(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineInactive(Context&) noexcept {}
+  template <typename Context>
+  Result onRead(Context& ctx, TypeErasedBox&& msg) noexcept {
+    ctx.awaitWriteReady();
+    return ctx.fireRead(std::move(msg));
+  }
+  template <typename Context>
+  void onException(Context& ctx, folly::exception_wrapper&& e) noexcept {
+    ctx.fireException(std::move(e));
+  }
+  template <typename Context>
+  void onReadReady(Context&) noexcept {}
+};
+
+// An outbound-only handler: it has no onReadReady(), and it asks for it on
+// each write. It has onPipelineActive() because a segment calls both
+// lifecycle callbacks on each handler.
+class OutboundAwaitingReadReady {
+ public:
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineActive(Context&) noexcept {}
+  template <typename Context>
+  Result onWrite(Context& ctx, TypeErasedBox&& msg) noexcept {
+    ctx.awaitReadReady();
+    return ctx.fireWrite(std::move(msg));
+  }
+  template <typename Context>
+  void onWriteReady(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineInactive(Context&) noexcept {}
+};
+
+// The same handlers with the ready callback that each one asks for. Neither
+// satisfies the handler concept of that direction.
+class InboundWithWriteReadyCallback : public InboundAwaitingWriteReady {
+ public:
+  template <typename Context>
+  void onWriteReady(Context&) noexcept {}
+};
+
+class OutboundWithReadReadyCallback : public OutboundAwaitingReadReady {
+ public:
+  template <typename Context>
+  void onReadReady(Context&) noexcept {}
+};
+
 // Owned head endpoint with observable lifetime and constructor-argument
 // capture. Non-movable to prove the pipeline constructs it in place (never
 // moves it).
@@ -408,8 +470,6 @@ class StatefulHandler {
 
 class ReadyHandler {
  public:
-  WriteReadyHook writeReadyHook_;
-
   explicit ReadyHandler(int* calls) : calls_(calls) {}
 
   template <typename Context>
@@ -471,8 +531,6 @@ class BlockingStaticHead {
 // and every handler below it. It records its name when it wakes.
 class AwaitBeforeForwardHandler {
  public:
-  WriteReadyHook writeReadyHook_;
-
   explicit AwaitBeforeForwardHandler(
       std::vector<std::string>* readiness, std::string name = "handler")
       : readiness_(readiness), name_(std::move(name)) {}
@@ -505,8 +563,6 @@ class AwaitBeforeForwardHandler {
 // which forwards what it holds.
 class BlockedUntilReadyHandler {
  public:
-  WriteReadyHook writeReadyHook_;
-
   template <typename Context>
   void handlerAdded(Context&) noexcept {}
   template <typename Context>
@@ -543,8 +599,6 @@ class BlockedUntilReadyHandler {
 // one more message and records the result of that write.
 class WriteOnReadyHandler {
  public:
-  WriteReadyHook writeReadyHook_;
-
   explicit WriteOnReadyHandler(std::vector<Result>* results)
       : results_(results) {}
 
@@ -579,8 +633,6 @@ class WriteOnReadyHandler {
 // handler above it. It records its name when it wakes.
 class AwaitBeforeForwardReader {
  public:
-  ReadReadyHook readReadyHook_;
-
   AwaitBeforeForwardReader(
       std::vector<std::string>* readiness, std::string name)
       : readiness_(readiness), name_(std::move(name)) {}
@@ -617,8 +669,6 @@ class AwaitBeforeForwardReader {
 // which forwards what it holds.
 class BlockedUntilReadReadyHandler {
  public:
-  ReadReadyHook readReadyHook_;
-
   template <typename Context>
   void handlerAdded(Context&) noexcept {}
   template <typename Context>
@@ -659,8 +709,6 @@ class BlockedUntilReadReadyHandler {
 // more message and records the result of that read.
 class ReadOnReadyHandler {
  public:
-  ReadReadyHook readReadyHook_;
-
   explicit ReadOnReadyHandler(std::vector<Result>* results)
       : results_(results) {}
 
@@ -700,8 +748,6 @@ class ReadOnReadyHandler {
 // wakes.
 class StaysArmedHandler {
  public:
-  WriteReadyHook writeReadyHook_;
-
   StaysArmedHandler(std::vector<std::string>* readiness, std::string name)
       : readiness_(readiness), name_(std::move(name)) {}
 
@@ -732,8 +778,6 @@ class StaysArmedHandler {
 // one more write-ready pass and cancels. It records its name when it wakes.
 class NestedWriteReadyHandler {
  public:
-  WriteReadyHook writeReadyHook_;
-
   NestedWriteReadyHandler(std::vector<std::string>* readiness, std::string name)
       : readiness_(readiness), name_(std::move(name)) {}
 
@@ -766,8 +810,6 @@ class NestedWriteReadyHandler {
 // first wakes and cancels when it wakes again. It records its name each time.
 class ArmedForOnePassHandler {
  public:
-  WriteReadyHook writeReadyHook_;
-
   ArmedForOnePassHandler(std::vector<std::string>* readiness, std::string name)
       : readiness_(readiness), name_(std::move(name)) {}
 
@@ -804,8 +846,6 @@ class ArmedForOnePassHandler {
 // wakes it again cannot loop forever.
 class ArmsAgainWhenWokenHandler {
  public:
-  WriteReadyHook writeReadyHook_;
-
   explicit ArmsAgainWhenWokenHandler(std::size_t* wakes) : wakes_(wakes) {}
 
   template <typename Context>
@@ -837,8 +877,6 @@ class ArmsAgainWhenWokenHandler {
 // second_static_tag wait for write-ready. It records its name when it wakes.
 class ArmsTheHandlerAboveHandler {
  public:
-  WriteReadyHook writeReadyHook_;
-
   explicit ArmsTheHandlerAboveHandler(std::vector<std::string>* readiness)
       : readiness_(readiness) {}
 
@@ -869,8 +907,6 @@ class ArmsTheHandlerAboveHandler {
 // queued messages until a write returns Backpressure, and records each result.
 class QueuedWriterHandler {
  public:
-  WriteReadyHook writeReadyHook_;
-
   explicit QueuedWriterHandler(std::vector<Result>* results)
       : results_(results) {}
 
@@ -911,8 +947,6 @@ class QueuedWriterHandler {
 // when it wakes.
 class ClosesOnWriteReadyHandler {
  public:
-  WriteReadyHook writeReadyHook_;
-
   template <typename Context>
   void handlerAdded(Context&) noexcept {}
   template <typename Context>
@@ -936,8 +970,6 @@ class ClosesOnWriteReadyHandler {
 // asks for one more write-ready pass and writes one more message.
 class NestedWriteReadyThenWriteHandler {
  public:
-  WriteReadyHook writeReadyHook_;
-
   template <typename Context>
   void handlerAdded(Context&) noexcept {}
   template <typename Context>
@@ -964,8 +996,6 @@ class NestedWriteReadyThenWriteHandler {
 // wakes.
 class StaysArmedReader {
  public:
-  ReadReadyHook readReadyHook_;
-
   StaysArmedReader(std::vector<std::string>* readiness, std::string name)
       : readiness_(readiness), name_(std::move(name)) {}
 
@@ -1002,8 +1032,6 @@ class StaysArmedReader {
 // wakes it again cannot loop forever.
 class ArmsAgainWhenWokenReader {
  public:
-  ReadReadyHook readReadyHook_;
-
   explicit ArmsAgainWhenWokenReader(std::size_t* wakes) : wakes_(wakes) {}
 
   template <typename Context>
@@ -1039,8 +1067,6 @@ class ArmsAgainWhenWokenReader {
 // wait for read-ready. It records its name when it wakes.
 class ArmsTheReaderBelowHandler {
  public:
-  ReadReadyHook readReadyHook_;
-
   explicit ArmsTheReaderBelowHandler(std::vector<std::string>* readiness)
       : readiness_(readiness) {}
 
@@ -1075,8 +1101,6 @@ class ArmsTheReaderBelowHandler {
 // it wakes.
 class ClosesOnReadReadyReader {
  public:
-  ReadReadyHook readReadyHook_;
-
   template <typename Context>
   void handlerAdded(Context&) noexcept {}
   template <typename Context>
@@ -1105,8 +1129,6 @@ class ClosesOnReadReadyReader {
 // result.
 class QueuedReaderHandler {
  public:
-  ReadReadyHook readReadyHook_;
-
   explicit QueuedReaderHandler(std::vector<Result>* results)
       : results_(results) {}
 
@@ -1331,8 +1353,6 @@ class CountingSubscriber {
 
 class ReadReadyCanceller {
  public:
-  ReadReadyHook readReadyHook_;
-
   explicit ReadReadyCanceller(int* calls) : calls_(calls) {}
 
   template <typename Context>
@@ -1367,8 +1387,6 @@ class ReadReadyCanceller {
 
 class ReadReadyTarget {
  public:
-  ReadReadyHook readReadyHook_;
-
   explicit ReadReadyTarget(int* calls) : calls_(calls) {}
 
   template <typename Context>
@@ -1400,8 +1418,6 @@ class ReadReadyTarget {
 
 class ReentrantReadReadyHandler {
  public:
-  ReadReadyHook readReadyHook_;
-
   explicit ReentrantReadReadyHandler(int* calls) : calls_(calls) {}
 
   template <typename Context>
@@ -1663,7 +1679,7 @@ TEST(StaticPipelineTest, ReadReadyWakesHandlersFromTailToHead) {
                       .build();
 
   // The read reaches the handlers from the head toward the tail, so they arm
-  // their hooks in the order first, erased, last.
+  // in the order first, erased, last.
   EXPECT_THAT(pipeline->fireRead(TypeErasedBox{1}), Eq(Result::Success));
   pipeline->onReadReady();
 
@@ -1690,7 +1706,7 @@ TEST(StaticPipelineTest, FreedHandlerLetsHandlerBelowReadInSamePass) {
           .addNextInbound<BlockedUntilReadReadyHandler>(second_static_tag)
           .build();
 
-  // The reader below arms its hook before the blocked handler arms its own.
+  // The reader below arms before the blocked handler does.
   EXPECT_THAT(pipeline->fireRead(TypeErasedBox{1}), Eq(Result::Backpressure));
   pipeline->onReadReady();
 
@@ -2353,6 +2369,170 @@ TEST(StaticPipelineTest, RejectsMoreThan63Handlers) {
 }
 
 template <typename>
+using SegmentInboundAwaitingWriteReady = InboundAwaitingWriteReady;
+template <typename>
+using SegmentOutboundAwaitingReadReady = OutboundAwaitingReadReady;
+template <typename>
+using SegmentInboundWithWriteReadyCallback = InboundWithWriteReadyCallback;
+template <typename>
+using SegmentOutboundWithReadReadyCallback = OutboundWithReadReadyCallback;
+
+// Sends one read through Handler as a typed and an erased handler in one
+// pipeline, and through SegmentHandler inside a segment in another. Returns
+// each result and whether each pipeline then waits for write ready.
+template <typename Handler, template <typename> class SegmentHandler>
+std::tuple<Result, bool, Result, bool> readThroughStaticForms() {
+  folly::EventBase eventBase;
+  StaticHeadHandler head;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+  auto builder = [&] {
+    return StaticPipelineBuilder<
+               StaticHeadHandler,
+               StaticTailHandler,
+               TestAllocator>()
+        .setEventBase(&eventBase)
+        .setHead(&head)
+        .setTail(&tail)
+        .setAllocator(&allocator);
+  };
+  std::vector<detail::ErasedStaticHandler> erasedHandlers;
+  erasedHandlers.push_back(
+      detail::makeErasedStaticHandler<Handler>(first_erased_static_tag.id));
+  auto typedAndErased = builder()
+                            .template addNextInbound<Handler>(first_static_tag)
+                            .addStaticHandlers(std::move(erasedHandlers))
+                            .build();
+  std::vector<detail::ErasedStaticSegment> segments;
+  segments.push_back(
+      StaticSegmentBuilder<>()
+          .addHandler<SegmentHandler>(second_erased_static_tag.id)
+          .build());
+  auto segmented = builder().addStaticSegments(std::move(segments)).build();
+
+  // Braced initialization evaluates the calls from left to right.
+  return std::tuple{
+      typedAndErased->fireRead(TypeErasedBox{1}),
+      typedAndErased->hasPendingWriteReady(),
+      segmented->fireRead(TypeErasedBox{1}),
+      segmented->hasPendingWriteReady()};
+}
+
+// The same as readThroughStaticForms() for the write side: sends one write and
+// returns whether each pipeline then waits for read ready.
+template <typename Handler, template <typename> class SegmentHandler>
+std::tuple<Result, bool, Result, bool> writeThroughStaticForms() {
+  folly::EventBase eventBase;
+  StaticHeadHandler head;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+  auto builder = [&] {
+    return StaticPipelineBuilder<
+               StaticHeadHandler,
+               StaticTailHandler,
+               TestAllocator>()
+        .setEventBase(&eventBase)
+        .setHead(&head)
+        .setTail(&tail)
+        .setAllocator(&allocator);
+  };
+  std::vector<detail::ErasedStaticHandler> erasedHandlers;
+  erasedHandlers.push_back(
+      detail::makeErasedStaticHandler<Handler>(first_erased_static_tag.id));
+  auto typedAndErased = builder()
+                            .template addNextOutbound<Handler>(first_static_tag)
+                            .addStaticHandlers(std::move(erasedHandlers))
+                            .build();
+  std::vector<detail::ErasedStaticSegment> segments;
+  segments.push_back(
+      StaticSegmentBuilder<>()
+          .addHandler<SegmentHandler>(second_erased_static_tag.id)
+          .build());
+  auto segmented = builder().addStaticSegments(std::move(segments)).build();
+
+  // Braced initialization evaluates the calls from left to right.
+  return std::tuple{
+      typedAndErased->fireWrite(erase_and_box(folly::IOBuf::create(0))),
+      typedAndErased->hasPendingReadReady(),
+      segmented->fireWrite(erase_and_box(folly::IOBuf::create(0))),
+      segmented->hasPendingReadReady()};
+}
+
+// A handler without onWriteReady() cannot wait for it, as a typed handler, as
+// an erased one or inside a segment.
+TEST(StaticPipelineTest, InboundOnlyHandlerCannotAwaitWriteReady) {
+  EXPECT_THAT(
+      (readThroughStaticForms<
+          InboundAwaitingWriteReady,
+          SegmentInboundAwaitingWriteReady>()),
+      Eq(std::tuple{Result::Success, false, Result::Success, false}));
+}
+
+// An inbound-only handler with onWriteReady() cannot wait for it either.
+TEST(StaticPipelineTest, InboundOnlyWithWriteReadyCallbackCannotAwaitIt) {
+  EXPECT_THAT(
+      (readThroughStaticForms<
+          InboundWithWriteReadyCallback,
+          SegmentInboundWithWriteReadyCallback>()),
+      Eq(std::tuple{Result::Success, false, Result::Success, false}));
+}
+
+// A handler without onReadReady() cannot wait for it, as a typed handler, as
+// an erased one or inside a segment.
+TEST(StaticPipelineTest, OutboundOnlyHandlerCannotAwaitReadReady) {
+  EXPECT_THAT(
+      (writeThroughStaticForms<
+          OutboundAwaitingReadReady,
+          SegmentOutboundAwaitingReadReady>()),
+      Eq(std::tuple{Result::Success, false, Result::Success, false}));
+}
+
+// An outbound-only handler with onReadReady() cannot wait for it either.
+TEST(StaticPipelineTest, OutboundOnlyWithReadReadyCallbackCannotAwaitIt) {
+  EXPECT_THAT(
+      (writeThroughStaticForms<
+          OutboundWithReadReadyCallback,
+          SegmentOutboundWithReadReadyCallback>()),
+      Eq(std::tuple{Result::Success, false, Result::Success, false}));
+}
+
+// A head that waits on every write but has no onWriteReady().
+class ArmingHeadWithoutWriteReady : public StaticHeadHandler {
+ public:
+  template <typename Context>
+  Result onWrite(Context& ctx, TypeErasedBox&&) noexcept {
+    ctx.awaitWriteReady();
+    return Result::Backpressure;
+  }
+};
+
+TEST(StaticPipelineTest, HeadWithoutWriteReadyCallbackCannotAwaitIt) {
+  folly::EventBase eventBase;
+  ArmingHeadWithoutWriteReady head;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+
+  auto pipeline = StaticPipelineBuilder<
+                      ArmingHeadWithoutWriteReady,
+                      StaticTailHandler,
+                      TestAllocator>()
+                      .setEventBase(&eventBase)
+                      .setHead(&head)
+                      .setTail(&tail)
+                      .setAllocator(&allocator)
+                      .build();
+
+  EXPECT_THAT(
+      pipeline->fireWrite(erase_and_box(folly::IOBuf::create(0))),
+      Eq(Result::Backpressure));
+  pipeline->onWriteReady();
+
+  EXPECT_THAT(
+      std::tuple(pipeline->hasPendingWriteReady(), tail.writeReadyCount()),
+      Eq(std::tuple(false, std::size_t{1})));
+}
+
+template <typename>
 using SegmentWriter = AwaitBeforeForwardHandler;
 
 // A segment handler waits at its place in the pipeline, after the typed
@@ -2401,6 +2581,46 @@ TEST(StaticPipelineTest, WriteReadyWakesSegmentHandlersFromHeadToTail) {
   EXPECT_THAT(
       readiness,
       ElementsAre("first", "segment1-a", "segment1-b", "segment2", "last"));
+}
+
+template <typename>
+using SegmentReader = AwaitBeforeForwardReader;
+
+// Inside a static segment, an outbound handler can wait for write ready, and an
+// inbound handler can wait for read ready.
+TEST(StaticPipelineTest, SegmentHandlersAwaitReady) {
+  folly::EventBase eventBase;
+  std::vector<std::string> readiness;
+  StaticHeadHandler head;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+  std::vector<detail::ErasedStaticSegment> segments;
+  segments.push_back(
+      StaticSegmentBuilder<>()
+          .addHandler<SegmentWriter>(
+              first_erased_static_tag.id, &readiness, "writer")
+          .addHandler<SegmentReader>(
+              second_erased_static_tag.id, &readiness, "reader")
+          .build());
+  auto pipeline = StaticPipelineBuilder<
+                      StaticHeadHandler,
+                      StaticTailHandler,
+                      TestAllocator>()
+                      .setEventBase(&eventBase)
+                      .setHead(&head)
+                      .setTail(&tail)
+                      .setAllocator(&allocator)
+                      .addStaticSegments(std::move(segments))
+                      .build();
+
+  EXPECT_THAT(
+      pipeline->fireWrite(erase_and_box(folly::IOBuf::create(0))),
+      Eq(Result::Success));
+  EXPECT_THAT(pipeline->fireRead(TypeErasedBox{1}), Eq(Result::Success));
+  pipeline->onWriteReady();
+  pipeline->onReadReady();
+
+  EXPECT_THAT(readiness, ElementsAre("writer", "reader"));
 }
 
 TEST(StaticPipelineTest, StaticHandlersDispatchReadyAndEvents) {
@@ -2593,7 +2813,7 @@ TEST(StaticPipelineTest, WriteReadyWakesHandlersFromHeadToTail) {
                       .build();
 
   // The write reaches the handlers from the tail toward the head, so they arm
-  // their hooks in the order last, erased, first.
+  // in the order last, erased, first.
   EXPECT_THAT(
       pipeline->fireWrite(erase_and_box(folly::IOBuf::create(0))),
       Eq(Result::Success));
@@ -2622,7 +2842,7 @@ TEST(StaticPipelineTest, FreedHandlerLetsHandlerAboveWriteInSamePass) {
           .addNextOutbound<WriteOnReadyHandler>(second_static_tag, &results)
           .build();
 
-  // The writer above arms its hook before the blocked handler arms its own.
+  // The writer above arms before the blocked handler does.
   EXPECT_THAT(
       pipeline->fireWrite(erase_and_box(folly::IOBuf::create(0))),
       Eq(Result::Backpressure));

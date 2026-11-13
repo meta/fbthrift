@@ -51,8 +51,8 @@ class ErasedStaticSegment {
     void (*handlerAdded)(void*, std::size_t) noexcept;
     void (*handlerRemoved)(void*, std::size_t) noexcept;
     void (*fireEvent)(void*, std::size_t, EventKey, const void*) noexcept;
-    WriteReadyHook* (*writeReadyHook)(void*, std::size_t) noexcept;
-    ReadReadyHook* (*readReadyHook)(void*, std::size_t) noexcept;
+    bool (*handlesWriteReady)(void*, std::size_t) noexcept;
+    bool (*handlesReadReady)(void*, std::size_t) noexcept;
     void (*destroy)(void*) noexcept;
   };
 
@@ -125,11 +125,11 @@ class ErasedStaticSegment {
       std::size_t index, EventKey key, const void* payload) noexcept {
     ops_->fireEvent(owner_, index, key, payload);
   }
-  WriteReadyHook* writeReadyHook(std::size_t index) noexcept {
-    return ops_->writeReadyHook(owner_, index);
+  bool handlesWriteReady(std::size_t index) noexcept {
+    return ops_->handlesWriteReady(owner_, index);
   }
-  ReadReadyHook* readReadyHook(std::size_t index) noexcept {
-    return ops_->readReadyHook(owner_, index);
+  bool handlesReadReady(std::size_t index) noexcept {
+    return ops_->handlesReadReady(owner_, index);
   }
 
   template <typename Segment, typename... Args>
@@ -217,13 +217,13 @@ class ErasedStaticSegment {
                 const void* payload) noexcept {
               static_cast<Segment*>(p)->fireEvent(i, key, payload);
             },
-        .writeReadyHook =
+        .handlesWriteReady =
             +[](void* p, std::size_t i) noexcept {
-              return static_cast<Segment*>(p)->writeReadyHook(i);
+              return static_cast<Segment*>(p)->handlesWriteReady(i);
             },
-        .readReadyHook =
+        .handlesReadReady =
             +[](void* p, std::size_t i) noexcept {
-              return static_cast<Segment*>(p)->readReadyHook(i);
+              return static_cast<Segment*>(p)->handlesReadReady(i);
             },
         .destroy = +[](void* p) noexcept { delete static_cast<Segment*>(p); },
     };
@@ -289,11 +289,11 @@ class ErasedStaticHandlerSegment {
   void fireEvent(std::size_t, EventKey key, const void* payload) noexcept {
     handler_.fireEvent(key, payload);
   }
-  WriteReadyHook* writeReadyHook(std::size_t) noexcept {
-    return handler_.writeReadyHook();
+  bool handlesWriteReady(std::size_t) noexcept {
+    return handler_.handlesWriteReady();
   }
-  ReadReadyHook* readReadyHook(std::size_t) noexcept {
-    return handler_.readReadyHook();
+  bool handlesReadReady(std::size_t) noexcept {
+    return handler_.handlesReadReady();
   }
 
  private:

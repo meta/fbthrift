@@ -92,8 +92,8 @@ namespace channel_pipeline_rust {
  * `Success=0`, `Backpressure=1`, `Error=2`.
  *
  * When Rust returns `Backpressure`, the shim arms the corresponding readiness
- * hook (`ctx.awaitReadReady()` / `ctx.awaitWriteReady()`) before returning.
- * The hook is one-shot and cancelled by the shim before the next Rust ready
+ * wait (`ctx.awaitReadReady()` / `ctx.awaitWriteReady()`) before returning.
+ * The wait is one-shot and cancelled by the shim before the next Rust ready
  * callback.
  *
  * ## Error and panic containment
@@ -122,9 +122,6 @@ namespace channel_pipeline_rust {
 template <typename Context>
 class RustHandler {
  public:
-  apache::thrift::fast_thrift::channel_pipeline::ReadReadyHook readReadyHook_;
-  apache::thrift::fast_thrift::channel_pipeline::WriteReadyHook writeReadyHook_;
-
   RustHandler() : RustHandler(rust_handler_new_noop()) {}
 
   explicit RustHandler(rust::Box<RustHandlerOpaque> rustHandler)

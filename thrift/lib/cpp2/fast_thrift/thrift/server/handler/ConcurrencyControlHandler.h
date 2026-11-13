@@ -27,7 +27,6 @@
 
 #include <folly/ExceptionWrapper.h>
 #include <folly/logging/xlog.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Backpressure.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Event.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
@@ -48,8 +47,6 @@ class ConcurrencyControlHandler final {
       : maxActive_(maxActive),
         maxOutstanding_(maxOutstanding),
         holder_(holder) {}
-
-  channel_pipeline::ReadReadyHook readReadyHook_;
 
   void handlerAdded(Context& ctx) noexcept {
     state_ = &holder_.stateFor(*ctx.eventBase());

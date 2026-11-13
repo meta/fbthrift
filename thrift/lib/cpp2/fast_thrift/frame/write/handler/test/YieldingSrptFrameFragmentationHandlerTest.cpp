@@ -124,13 +124,11 @@ class PipelineTailHandler {
   size_t writeReadyCount_{0};
 };
 
-// Handles Backpressure as Backpressure.h asks: it queues the frames that
-// arrive after Backpressure and sends them from onWriteReady(), and it stays
-// registered for write-ready until it has sent them all.
+// Handles Backpressure as ContextImpl::awaitWriteReady() asks: it queues the
+// frames that arrive after Backpressure and sends them from onWriteReady(),
+// and it keeps waiting for write-ready until it has sent them all.
 class QueueingWriter {
  public:
-  cp::WriteReadyHook writeReadyHook_;
-
   template <typename Context>
   void handlerAdded(Context&) noexcept {}
   template <typename Context>
@@ -1257,7 +1255,7 @@ TEST_F(
 
 TEST_F(
     YieldingSrptFrameFragmentationHandlerTest,
-    HandlerRemovalCancelsWriteReadyHook) {
+    HandlerRemovalCancelsWriteReadyWait) {
   Handler handler({.streamQuantum = kQuantum, .callbackBudget = kBudget});
   handler.handlerAdded(context_);
   context_.setResults({channel_pipeline::Result::Backpressure});
@@ -1291,7 +1289,7 @@ TEST_F(
 
 TEST_F(
     YieldingSrptFrameFragmentationHandlerTest,
-    PipelineInactiveCancelsWriteReadyHook) {
+    PipelineInactiveCancelsWriteReadyWait) {
   Handler handler({.streamQuantum = kQuantum, .callbackBudget = kBudget});
   handler.handlerAdded(context_);
   context_.setResults({channel_pipeline::Result::Backpressure});
@@ -1309,7 +1307,7 @@ TEST_F(
 
 TEST_F(
     YieldingSrptFrameFragmentationHandlerTest,
-    DownstreamErrorCancelsWriteReadyHook) {
+    DownstreamErrorCancelsWriteReadyWait) {
   Handler handler({.streamQuantum = kQuantum, .callbackBudget = kBudget});
   handler.handlerAdded(context_);
   context_.setResults(
@@ -1486,7 +1484,7 @@ class YieldingSrptFrameFragmentationHandlerPipelineTest : public Test {
         .build();
   }
 
-  void verifyHookWiring(auto pipeline) {
+  void verifyWriteReadyWiring(auto pipeline) {
     transport_.setWriteResult(cp::Result::Backpressure);
     EXPECT_THAT(
         pipeline->fireWrite(makeFrame(FrameType::REQUEST_RESPONSE, 1, 250)),
@@ -1597,14 +1595,14 @@ class YieldingSrptFrameFragmentationHandlerPipelineTest : public Test {
 
 TEST_F(
     YieldingSrptFrameFragmentationHandlerPipelineTest,
-    DynamicPipelineWiresWriteReadyHook) {
-  verifyHookWiring(buildDynamicPipeline());
+    DynamicPipelineWiresWriteReady) {
+  verifyWriteReadyWiring(buildDynamicPipeline());
 }
 
 TEST_F(
     YieldingSrptFrameFragmentationHandlerPipelineTest,
-    StaticPipelineWiresWriteReadyHook) {
-  verifyHookWiring(buildStaticPipeline());
+    StaticPipelineWiresWriteReady) {
+  verifyWriteReadyWiring(buildStaticPipeline());
 }
 
 TEST_F(

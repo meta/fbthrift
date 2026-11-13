@@ -57,10 +57,16 @@ concept HandlerLifecycle = requires(H h, Ctx& ctx) {
  * - Result::Backpressure — slow down, upstream should pause
  * - Result::Error — something went wrong
  *
- * Note: Read backpressure is handled at the transport level via TCP flow
- * control. When a handler returns Result::Backpressure from onRead, the
- * transport adapter should call pauseRead() on the socket. There is no
- * handler-to-handler read backpressure signaling.
+ * Read backpressure reaches the socket through TCP flow control. When a
+ * handler returns Result::Backpressure from onRead, the transport adapter
+ * should call pauseRead() on the socket.
+ *
+ * A handler can also wait with ctx.awaitReadReady(), for example after its
+ * ctx.fireRead() returned Result::Backpressure. The code that clears the
+ * block starts a read-ready pass with ctx.pipeline()->onReadReady().
+ *
+ * The pass wakes every waiting handler from the tail toward the head, so each
+ * handler wakes after the handler that it reads into.
  *
  * onException returns void because exceptions must always be
  * handled/propagated.

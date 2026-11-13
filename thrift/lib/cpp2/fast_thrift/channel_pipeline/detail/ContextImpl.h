@@ -207,19 +207,22 @@ class alignas(64) ContextImpl {
   // === Backpressure / Ready Registration ===
 
   /**
-   * Register this handler to receive onWriteReady() callback.
+   * Asks for an onWriteReady() call when the pipeline can take writes again.
    *
-   * Call this after a fireWrite() that returned Result::Backpressure, or when
-   * the handler waits for a state of its own, such as a full send window.
+   * Call it after a fireWrite() that returned Backpressure. That message was
+   * accepted, so do not resend it. Queue the messages after it and send them
+   * from onWriteReady().
    *
-   * The transport calls onWriteReady() only after it returned Backpressure to
-   * a write. So a handler that waits for its own state must start the pass
-   * itself with ctx.pipeline()->onWriteReady() when that state clears, or it
-   * may never get onWriteReady().
+   * A handler that waits for its own reason, such as a full send window, must
+   * start the pass itself with ctx.pipeline()->onWriteReady() when that reason
+   * clears, or it may never get onWriteReady().
    *
-   * The handler must have a writeReadyHook_ member (detected at compile time).
-   * No-op if the handler doesn't have a writeReadyHook_ or is already
-   * registered.
+   * Does nothing if the handler is not an OutboundHandler, already waits, or
+   * the pipeline is closed.
+   *
+   * The head endpoint may wait if it has onWriteReady(). The tail endpoint
+   * must not call this or cancelAwaitWriteReady(), because its context acts on
+   * the head endpoint's wait.
    */
   void awaitWriteReady() noexcept;
 
@@ -239,10 +242,16 @@ class alignas(64) ContextImpl {
   bool isAwaitingWriteReady() const noexcept;
 
   /**
-   * Register this handler to receive onReadReady() callback.
+   * Asks for an onReadReady() call in a read-ready pass.
    *
-   * Use this when an inbound handler needs to be notified to resume processing
-   * after it returned Result::Backpressure from onRead().
+   * Call this after a fireRead() that returned Backpressure, or after this
+   * handler returned Backpressure from onRead(). The code that clears the
+   * block starts the pass with ctx.pipeline()->onReadReady().
+   *
+   * Only a handler that satisfies InboundHandler can wait. A ready callback
+   * alone is not enough, so this does nothing for an outbound-only handler,
+   * even one that has onReadReady(). It also does nothing if the handler
+   * already waits or the pipeline is closed.
    */
   void awaitReadReady() noexcept;
 

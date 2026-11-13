@@ -128,19 +128,6 @@ class StaticSegmentSlot<Segment, Index, StaticSegmentEntry<H, Args...>> {
   Handler& handler() noexcept { return handler_; }
   Context& context() noexcept { return context_; }
 
-  WriteReadyHook* writeReadyHook() noexcept {
-    if constexpr (requires(Handler& handler) { handler.writeReadyHook_; }) {
-      return &handler_.writeReadyHook_;
-    }
-    return nullptr;
-  }
-  ReadReadyHook* readReadyHook() noexcept {
-    if constexpr (requires(Handler& handler) { handler.readReadyHook_; }) {
-      return &handler_.readReadyHook_;
-    }
-    return nullptr;
-  }
-
  private:
   template <std::size_t... ArgIndex>
   StaticSegmentSlot(
@@ -372,11 +359,11 @@ class TypedStaticSegmentImpl<std::index_sequence<Index...>, IdStorage, Entry...>
       }
     });
   }
-  WriteReadyHook* writeReadyHook(std::size_t index) noexcept {
-    return dispatchHookAt<true, 0>(index);
+  bool handlesWriteReady(std::size_t index) noexcept {
+    return handlesReadyAt<true, 0>(index);
   }
-  ReadReadyHook* readReadyHook(std::size_t index) noexcept {
-    return dispatchHookAt<false, 0>(index);
+  bool handlesReadReady(std::size_t index) noexcept {
+    return handlesReadyAt<false, 0>(index);
   }
 
  private:
@@ -431,18 +418,19 @@ class TypedStaticSegmentImpl<std::index_sequence<Index...>, IdStorage, Entry...>
   }
 
   template <bool Write, std::size_t I>
-  FOLLY_NOINLINE auto dispatchHookAt(std::size_t index) noexcept
-      -> std::conditional_t<Write, WriteReadyHook*, ReadReadyHook*> {
+  FOLLY_NOINLINE bool handlesReadyAt(std::size_t index) noexcept {
     if constexpr (I == kCount) {
-      return nullptr;
+      return false;
     } else if (index == I) {
+      using H = typename Slot<I>::Handler;
+      using Context = typename Slot<I>::Context;
       if constexpr (Write) {
-        return get<I>().writeReadyHook();
+        return OutboundHandler<H, Context>;
       } else {
-        return get<I>().readReadyHook();
+        return InboundHandler<H, Context>;
       }
     } else {
-      return dispatchHookAt<Write, I + 1>(index);
+      return handlesReadyAt<Write, I + 1>(index);
     }
   }
 

@@ -71,15 +71,9 @@ struct PassthroughHandler {
   void handlerRemoved(detail::ContextImpl&) noexcept {}
 };
 
-// Native baseline mirroring the Rust shim's readiness bookkeeping without FFI.
-// onRead/onWrite arm the matching hook and return Backpressure, exactly like
-// the shim does when a Rust handler returns Backpressure.
-// onReadReady/onWriteReady cancel first (matching the shim's
-// cancel-before-callback one-shot contract), then optionally re-arm to mirror a
-// re-arming Rust handler.
+// Arms and cancels the ready waits as the Rust shim does, without FFI, so that
+// a benchmark can compare the two.
 struct NativeReadyHandler {
-  ReadReadyHook readReadyHook_;
-  WriteReadyHook writeReadyHook_;
   bool rearm{false};
 
   Result onRead(detail::ContextImpl& ctx, TypeErasedBox&&) noexcept {
@@ -282,7 +276,7 @@ TypeErasedBox makeBox() {
   return TypeErasedBox{std::move(bytes)};
 }
 
-// Measures one-shot ready dispatch with immediate re-arm: the hook is armed
+// Measures one-shot ready dispatch with immediate re-arm: the wait is armed
 // once, then each onReadReady/onWriteReady delivers exactly one notification
 // and the handler re-arms for the next. Isolates the readiness dispatch +
 // re-arm cost with no message movement.
@@ -306,7 +300,7 @@ double measureReadyRearm(Pipeline& pipeline, uint64_t iterations, bool read) {
 }
 
 // Measures a full Backpressure -> ready -> recovery cycle: each iteration fires
-// data (handler returns Backpressure, arming the hook) then delivers the
+// data (handler returns Backpressure, arming the wait) then delivers the
 // matching readiness notification (recovery).
 template <typename Pipeline>
 double measureBackpressureCycle(

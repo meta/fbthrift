@@ -580,13 +580,11 @@ class PipelineTailHandler {
   size_t writeReadyCount_{0};
 };
 
-// Handles Backpressure as Backpressure.h asks: it queues the frames that
-// arrive after Backpressure and sends them from onWriteReady(), and it stays
-// registered for write-ready until it has sent them all.
+// Handles Backpressure as ContextImpl::awaitWriteReady() asks: it queues the
+// frames that arrive after Backpressure and sends them from onWriteReady(), and
+// it keeps waiting for write-ready until it has sent them all.
 class QueueingWriter {
  public:
-  cp::WriteReadyHook writeReadyHook_;
-
   template <typename Context>
   void handlerAdded(Context&) noexcept {}
   template <typename Context>

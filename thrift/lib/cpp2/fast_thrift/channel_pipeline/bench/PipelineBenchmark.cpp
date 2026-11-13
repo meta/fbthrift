@@ -21,7 +21,6 @@
  * All message allocation happens outside the timing loop.
  */
 
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Backpressure.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/ContextHandle.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
@@ -208,10 +207,8 @@ struct EchoHandler {
 
 // Backpressure handler
 
-// Backpressure handler - has hook for write ready registration
 // Simulates a handler that registers for write ready notifications
 struct BackpressureHandler {
-  WriteReadyHook writeReadyHook_;
   uint64_t write_count{0};
   uint64_t write_ready_count{0};
   bool register_on_write{true};
@@ -247,10 +244,8 @@ struct BackpressureHandler {
   void handlerRemoved(detail::ContextImpl&) noexcept {}
 };
 
-// Read backpressure handler - has hook for read ready registration
 // Simulates a handler that registers for read ready notifications
 struct ReadBackpressureHandler {
-  ReadReadyHook readReadyHook_;
   uint64_t read_count{0};
   uint64_t read_ready_count{0};
   bool register_on_read{true};
