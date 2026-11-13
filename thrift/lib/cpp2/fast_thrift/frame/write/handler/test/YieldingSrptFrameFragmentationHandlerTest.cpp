@@ -292,13 +292,6 @@ class TestContext {
   void awaitWriteReady() noexcept { awaitingWriteReady_ = true; }
   void cancelAwaitWriteReady() noexcept { awaitingWriteReady_ = false; }
 
-  // Takes the handler's request for another write-ready round. These tests run
-  // no rounds.
-  struct NoPipeline {
-    void onWriteReady() noexcept {}
-  };
-  NoPipeline* pipeline() noexcept { return &pipeline_; }
-
   void setResults(std::vector<channel_pipeline::Result> results) {
     results_ = std::move(results);
   }
@@ -340,7 +333,6 @@ class TestContext {
   std::vector<TestFrameWriteCompleteEvent> completed_;
   size_t writeAttemptCount_{0};
   bool awaitingWriteReady_{false};
-  NoPipeline pipeline_;
   size_t fireExceptionCount_{0};
   folly::exception_wrapper lastException_;
 };
@@ -1579,6 +1571,24 @@ class YieldingSrptFrameFragmentationHandlerPipelineTest : public Test {
         Eq(std::tuple(size_t{4}, false)));
   }
 
+  // The transport fills on the first frame. The fragmenter defers the second
+  // frame because it does not fit in one quantum.
+  void verifyTailGetsOneWriteReadyPerDrain(auto pipeline) {
+    transport_.setWriteResult(cp::Result::Backpressure);
+    (void)pipeline->fireWrite(makeFrame(FrameType::REQUEST_RESPONSE, 1, 50));
+    EXPECT_THAT(
+        pipeline->fireWrite(
+            makeFrame(FrameType::REQUEST_RESPONSE, 3, kQuantum + 1)),
+        Eq(cp::Result::Backpressure));
+
+    transport_.setWriteResult(cp::Result::Success);
+    pipeline->onWriteReady();
+
+    EXPECT_THAT(
+        std::tuple(app_.writeReadyCount(), pipeline->hasPendingWriteReady()),
+        Eq(std::tuple(size_t{1}, false)));
+  }
+
   folly::EventBase eventBase_;
   PipelineHeadHandler transport_;
   PipelineTailHandler app_;
@@ -1633,6 +1643,18 @@ TEST_F(
   EXPECT_THAT(
       std::tuple(transport_.writeCount(), pipeline->hasPendingWriteReady()),
       Eq(std::tuple(size_t{3}, false)));
+}
+
+TEST_F(
+    YieldingSrptFrameFragmentationHandlerPipelineTest,
+    DynamicPipelineTailGetsOneWriteReadyPerDrain) {
+  verifyTailGetsOneWriteReadyPerDrain(buildDynamicPipeline());
+}
+
+TEST_F(
+    YieldingSrptFrameFragmentationHandlerPipelineTest,
+    StaticPipelineTailGetsOneWriteReadyPerDrain) {
+  verifyTailGetsOneWriteReadyPerDrain(buildStaticPipeline());
 }
 
 TEST_F(

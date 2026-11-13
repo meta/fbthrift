@@ -317,13 +317,6 @@ class TestContext {
   void awaitWriteReady() noexcept { awaitingWriteReady_ = true; }
   void cancelAwaitWriteReady() noexcept { awaitingWriteReady_ = false; }
 
-  // Takes the handler's request for another write-ready round. These tests run
-  // no rounds.
-  struct NoPipeline {
-    void onWriteReady() noexcept {}
-  };
-  NoPipeline* pipeline() noexcept { return &pipeline_; }
-
   void setResult(channel_pipeline::Result result) noexcept { result_ = result; }
 
   void setResults(std::vector<channel_pipeline::Result> results) {
@@ -382,7 +375,6 @@ class TestContext {
   size_t writeAttemptCount_{0};
   size_t fireExceptionCount_{0};
   bool awaitingWriteReady_{false};
-  NoPipeline pipeline_;
   folly::exception_wrapper lastException_;
 };
 
@@ -1613,6 +1605,24 @@ class FifoFrameFragmentationHandlerPipelineTest : public Test {
         Eq(std::tuple(size_t{4}, false)));
   }
 
+  // The fragmenter blocks on a frame and then queues a frame that does not fit
+  // in one quantum. When the transport drains, the tail gets one write-ready.
+  void verifyTailGetsOneWriteReadyPerDrain(auto pipeline) {
+    transport_.setWriteResult(cp::Result::Backpressure);
+    (void)pipeline->fireWrite(makeFrame(FrameType::REQUEST_RESPONSE, 1, 50));
+    EXPECT_THAT(
+        pipeline->fireWrite(
+            makeFrame(FrameType::REQUEST_RESPONSE, 3, kStreamQuantum + 1)),
+        Eq(cp::Result::Backpressure));
+
+    transport_.setWriteResult(cp::Result::Success);
+    pipeline->onWriteReady();
+
+    EXPECT_THAT(
+        std::tuple(app_.writeReadyCount(), pipeline->hasPendingWriteReady()),
+        Eq(std::tuple(size_t{1}, false)));
+  }
+
   folly::EventBase eventBase_;
   PipelineHeadHandler transport_;
   PipelineTailHandler app_;
@@ -1669,6 +1679,18 @@ TEST_F(
   EXPECT_THAT(
       std::tuple(transport_.writeCount(), pipeline->hasPendingWriteReady()),
       Eq(std::tuple(size_t{3}, false)));
+}
+
+TEST_F(
+    FifoFrameFragmentationHandlerPipelineTest,
+    DynamicPipelineTailGetsOneWriteReadyPerDrain) {
+  verifyTailGetsOneWriteReadyPerDrain(buildDynamicPipeline());
+}
+
+TEST_F(
+    FifoFrameFragmentationHandlerPipelineTest,
+    StaticPipelineTailGetsOneWriteReadyPerDrain) {
+  verifyTailGetsOneWriteReadyPerDrain(buildStaticPipeline());
 }
 
 TEST_F(

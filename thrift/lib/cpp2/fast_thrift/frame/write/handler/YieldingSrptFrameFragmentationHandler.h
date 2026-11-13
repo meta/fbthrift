@@ -49,12 +49,10 @@ namespace apache::thrift::fast_thrift::frame::write::handler {
  * do not count. So a new frame does not change when its stream is pinned, and
  * it does not extend a pin. A callback starts no new turn after its data
  * budget reaches zero, but the turn that crosses the budget completes.
+ *
  * Backpressure does not stop a pass or delay the next one. After downstream
  * returns Backpressure, `onWrite()` returns Backpressure for each accepted
- * frame until write-ready. If downstream took one of those frames without
- * Backpressure, or the handler deferred it, the handler asks for another
- * write-ready round. A writer above that already ran in the round can then
- * write.
+ * frame until write-ready.
  *
  * A frame deferred during a pass waits until the pass ends. It then goes
  * downstream at once if it fits in `streamQuantum` and its stream has nothing
@@ -108,22 +106,13 @@ class YieldingSrptFrameFragmentationHandlerT
     if (!state_.enqueue(msg.take<ComposedFrame>())) {
       return channel_pipeline::Result::Error;
     }
-    return acceptedResult();
+    return this->backpressured_ ? channel_pipeline::Result::Backpressure
+                                : channel_pipeline::Result::Success;
   }
 
   template <typename Context>
   void onWriteReady(Context& ctx) noexcept {
-    const bool blockedWriterAbove = this->blockedWriterAbove_;
     cancelAwaitWriteReady(ctx);
-    // A round wakes each handler once. A writer above may have run earlier in
-    // this round and got Backpressure only from this handler. That writer needs
-    // another round now. A writer that got Backpressure from downstream waits
-    // for the next write-ready of downstream. If it got a round here too, a
-    // writer that writes in every round would keep getting rounds while the
-    // transport stays full.
-    if (blockedWriterAbove) {
-      ctx.pipeline()->onWriteReady();
-    }
   }
 
   template <typename Context>
@@ -171,15 +160,6 @@ class YieldingSrptFrameFragmentationHandlerT
       ctx.cancelAwaitWriteReady();
       this->backpressured_ = false;
     }
-    this->blockedWriterAbove_ = false;
-  }
-
-  channel_pipeline::Result acceptedResult() noexcept {
-    if (!this->backpressured_) {
-      return channel_pipeline::Result::Success;
-    }
-    this->blockedWriterAbove_ = true;
-    return channel_pipeline::Result::Backpressure;
   }
 
   template <typename Context>
@@ -197,7 +177,8 @@ class YieldingSrptFrameFragmentationHandlerT
       awaitWriteReady(ctx);
       return result;
     }
-    return acceptedResult();
+    return this->backpressured_ ? channel_pipeline::Result::Backpressure
+                                : channel_pipeline::Result::Success;
   }
 
   template <typename Context>
@@ -237,9 +218,6 @@ class YieldingSrptFrameFragmentationHandlerT
   }
 
   bool backpressured_{false};
-  // Set when onWrite() answers Backpressure for a frame that downstream took or
-  // the handler deferred. The writer above then waits for this handler alone.
-  bool blockedWriterAbove_{false};
   [[no_unique_address]] Tracker tracker_{};
   YieldingSrptFrameFragmentationHandlerState state_;
 };

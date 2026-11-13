@@ -49,12 +49,10 @@ namespace apache::thrift::fast_thrift::frame::write::handler {
  * turns as there are live streams when it starts, and each turn sends one
  * fragment. The callback starts no new turn after its budget reaches zero. The
  * turn that crosses the budget still sends its whole fragment.
+ *
  * Backpressure does not stop a callback or delay the next one. After
  * downstream returns Backpressure, `onWrite()` returns Backpressure for each
- * accepted frame until write-ready. If downstream took one of those frames
- * without Backpressure, or the handler queued it, the handler asks for another
- * write-ready round. A writer above that already ran in the round can then
- * write.
+ * accepted frame until write-ready.
  *
  * A frame that cannot be fragmented goes downstream at once. It can reach the
  * peer before a queued data frame of its stream. `CANCEL` and `ERROR` first
@@ -107,22 +105,13 @@ class FifoFrameFragmentationHandlerT : private folly::NonCopyableNonMovable {
     if (!state_.enqueue(msg.take<ComposedFrame>())) {
       return channel_pipeline::Result::Error;
     }
-    return acceptedResult();
+    return backpressured_ ? channel_pipeline::Result::Backpressure
+                          : channel_pipeline::Result::Success;
   }
 
   template <typename Context>
   void onWriteReady(Context& ctx) noexcept {
-    const bool blockedWriterAbove = blockedWriterAbove_;
     cancelAwaitWriteReady(ctx);
-    // A round wakes each handler once. A writer above may have run earlier in
-    // this round and got Backpressure only from this handler. That writer needs
-    // another round now. A writer that got Backpressure from downstream waits
-    // for the next write-ready of downstream. If it got a round here too, a
-    // writer that writes in every round would keep getting rounds while the
-    // transport stays full.
-    if (blockedWriterAbove) {
-      ctx.pipeline()->onWriteReady();
-    }
   }
 
   template <typename Context>
@@ -182,15 +171,6 @@ class FifoFrameFragmentationHandlerT : private folly::NonCopyableNonMovable {
       ctx.cancelAwaitWriteReady();
       backpressured_ = false;
     }
-    blockedWriterAbove_ = false;
-  }
-
-  channel_pipeline::Result acceptedResult() noexcept {
-    if (!backpressured_) {
-      return channel_pipeline::Result::Success;
-    }
-    blockedWriterAbove_ = true;
-    return channel_pipeline::Result::Backpressure;
   }
 
   template <typename Context>
@@ -208,7 +188,8 @@ class FifoFrameFragmentationHandlerT : private folly::NonCopyableNonMovable {
       awaitWriteReady(ctx);
       return result;
     }
-    return acceptedResult();
+    return backpressured_ ? channel_pipeline::Result::Backpressure
+                          : channel_pipeline::Result::Success;
   }
 
   template <typename Context>
@@ -250,9 +231,6 @@ class FifoFrameFragmentationHandlerT : private folly::NonCopyableNonMovable {
   }
 
   bool backpressured_{false};
-  // Set when onWrite() answers Backpressure for a frame that downstream took or
-  // the handler queued. The writer above then waits for this handler alone.
-  bool blockedWriterAbove_{false};
   [[no_unique_address]] Tracker tracker_{};
   FifoFrameFragmentationHandlerState state_;
 };

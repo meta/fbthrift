@@ -117,7 +117,6 @@ class FrameFragmentationHandlerT : public folly::EventBase::LoopCallback {
     immediateQueue_.clear();
     streams_.clear();
     resetPending();
-    blockedWriterAbove_ = false;
     eventBase_ = nullptr;
     ctxPtr_ = nullptr;
     flushTrampoline_ = nullptr;
@@ -173,9 +172,6 @@ class FrameFragmentationHandlerT : public folly::EventBase::LoopCallback {
       // semantics by queueing behind them.
       immediateQueue_.push_back(std::move(msg));
     }
-    if (backpressured_) {
-      blockedWriterAbove_ = true;
-    }
 
     incrPending(dataSize, 1);
 
@@ -205,17 +201,6 @@ class FrameFragmentationHandlerT : public folly::EventBase::LoopCallback {
     ctx.cancelAwaitWriteReady();
     backpressured_ = false;
     flushAndPropagateErrors(ctx);
-    // A round wakes each handler once. A writer above may have run earlier in
-    // this round and got Backpressure only from this handler. That writer needs
-    // another round now. A writer that got Backpressure from downstream waits
-    // for the next write-ready of downstream. If it got a round here too, a
-    // writer that writes in every round would keep getting rounds while the
-    // transport stays full. If the flush blocked this handler again, the round
-    // that clears that block asks instead.
-    if (!backpressured_ && blockedWriterAbove_) {
-      blockedWriterAbove_ = false;
-      ctx.pipeline()->onWriteReady();
-    }
   }
 
   void runLoopCallback() noexcept override {
@@ -280,8 +265,6 @@ class FrameFragmentationHandlerT : public folly::EventBase::LoopCallback {
     if (result == channel_pipeline::Result::Backpressure) {
       backpressured_ = true;
       ctx.awaitWriteReady();
-    } else if (result == channel_pipeline::Result::Success && backpressured_) {
-      blockedWriterAbove_ = true;
     }
     if (result != channel_pipeline::Result::Error && backpressured_) {
       return channel_pipeline::Result::Backpressure;
@@ -393,7 +376,6 @@ class FrameFragmentationHandlerT : public folly::EventBase::LoopCallback {
       ctx.cancelAwaitWriteReady();
       backpressured_ = false;
     }
-    blockedWriterAbove_ = false;
   }
 
   template <typename Context>
@@ -506,9 +488,6 @@ class FrameFragmentationHandlerT : public folly::EventBase::LoopCallback {
   SrptHeap<PerStreamState, RemainingBytesFn> streams_;
 
   bool backpressured_{false};
-  // Set when onWrite() answers Backpressure for a frame that downstream or a
-  // queue took. The writer above then waits for this handler alone.
-  bool blockedWriterAbove_{false};
   [[no_unique_address]] Tracker tracker_{};
 };
 

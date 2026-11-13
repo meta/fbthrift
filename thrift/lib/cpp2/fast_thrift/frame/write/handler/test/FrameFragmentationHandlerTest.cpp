@@ -149,13 +149,6 @@ class MockContext {
   void cancelAwaitWriteReady() { awaitWriteReadyCalled_ = false; }
   void deactivate() {}
 
-  // Takes the handler's request for another write-ready round. These tests run
-  // no rounds.
-  struct NoPipeline {
-    void onWriteReady() noexcept {}
-  };
-  NoPipeline* pipeline() noexcept { return &pipeline_; }
-
   void setBackpressureAt(size_t n) { backpressureAt_ = n; }
   void setErrorAt(size_t n) {
     errorEnabled_ = true;
@@ -190,7 +183,6 @@ class MockContext {
   size_t errorAt_{0};
   bool errorEnabled_{false};
   bool awaitWriteReadyCalled_{false};
-  NoPipeline pipeline_;
   size_t fireExceptionCount_{0};
   folly::exception_wrapper lastException_;
 };
@@ -650,6 +642,20 @@ class FrameFragmentationHandlerPipelineTest : public Test {
         .build();
   }
 
+  auto buildStaticPipeline() {
+    return cp::StaticPipelineBuilder<
+               PipelineHeadHandler,
+               PipelineTailHandler,
+               cp::test::TestAllocator>()
+        .setEventBase(&eventBase_)
+        .setHead(&transport_)
+        .setTail(&app_)
+        .setAllocator(&allocator_)
+        .addNextOutbound<FrameFragmentationHandler>(
+            frame_fragmentation_test_tag, kConfig)
+        .build();
+  }
+
   cp::PipelineImpl::Ptr buildDynamicPipelineWithWriterAbove() {
     return cp::PipelineBuilder<
                PipelineHeadHandler,
@@ -704,6 +710,26 @@ class FrameFragmentationHandlerPipelineTest : public Test {
     EXPECT_THAT(
         std::tuple(transport_.writeCount(), pipeline->hasPendingWriteReady()),
         Eq(std::tuple(size_t{4}, false)));
+  }
+
+  // The fragmenter blocks on a frame of three fragments and takes a second
+  // frame while it is blocked. When the transport drains, the flush inside
+  // onWriteReady() sends every queued fragment, and the tail gets one
+  // write-ready.
+  void verifyTailGetsOneWriteReadyPerDrain(auto pipeline) {
+    transport_.setWriteResult(cp::Result::Backpressure);
+    (void)pipeline->fireWrite(makePayloadFrame(1, 3000));
+    eventBase_.loopOnce(EVLOOP_NONBLOCK);
+    EXPECT_THAT(
+        pipeline->fireWrite(makePayloadFrame(3, 3000)),
+        Eq(cp::Result::Backpressure));
+
+    transport_.setWriteResult(cp::Result::Success);
+    pipeline->onWriteReady();
+
+    EXPECT_THAT(
+        std::tuple(app_.writeReadyCount(), pipeline->hasPendingWriteReady()),
+        Eq(std::tuple(size_t{1}, false)));
   }
 
   folly::EventBase eventBase_;
@@ -772,6 +798,18 @@ TEST_F(
           transport_.writeCount(),
           pipeline->hasPendingWriteReady()),
       Eq(std::tuple(size_t{1}, size_t{6}, true)));
+}
+
+TEST_F(
+    FrameFragmentationHandlerPipelineTest,
+    DynamicPipelineTailGetsOneWriteReadyPerDrain) {
+  verifyTailGetsOneWriteReadyPerDrain(buildDynamicPipeline());
+}
+
+TEST_F(
+    FrameFragmentationHandlerPipelineTest,
+    StaticPipelineTailGetsOneWriteReadyPerDrain) {
+  verifyTailGetsOneWriteReadyPerDrain(buildStaticPipeline());
 }
 
 TEST_F(
