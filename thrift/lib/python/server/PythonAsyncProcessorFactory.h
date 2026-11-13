@@ -106,16 +106,6 @@ class PythonAsyncProcessorFactory
   std::vector<folly::not_null<const syntax_graph::ServiceNode*>>
   getServiceSchemaNodes() override;
 
-  std::optional<schema::DefinitionsSchema> getServiceSchema() override;
-
-  /**
-   * Whether `create()` serves the service's schema, so the caller can skip
-   * collecting the schema bundles when it would not. Declared here rather than
-   * read from `PythonServiceSchema`, whose header the Cython extension does not
-   * include.
-   */
-  static bool servesServiceSchema();
-
   /**
    * This factory function is an extension of the python
    * PythonAsyncProcessorFactory.create() in python to handle the C++ side of

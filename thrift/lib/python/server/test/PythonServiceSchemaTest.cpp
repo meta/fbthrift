@@ -192,25 +192,6 @@ TEST(PythonServiceSchemaTest, IsEmptyWhenTheBaseServiceIsMissing) {
 
   EXPECT_EQ(schema.service(), nullptr);
   EXPECT_EQ(schema.function("noop"), nullptr);
-  EXPECT_FALSE(schema.definitionsSchema().has_value());
-}
-
-TEST(
-    PythonServiceSchemaTest, DefinitionsSchemaKeysTheServiceInTheMergedSchema) {
-  const auto schema = buildTestService("TestService");
-
-  auto definitionsSchema = schema.definitionsSchema();
-
-  ASSERT_TRUE(definitionsSchema.has_value());
-  ASSERT_EQ(definitionsSchema->definitions.size(), 1);
-  const auto graph = syntax_graph::SyntaxGraph::fromSchema(
-      std::move(definitionsSchema->schema));
-  const auto& service = syntax_graph::detail::lookUpDefinition(
-                            graph, definitionsSchema->definitions[0])
-                            .asService();
-  EXPECT_EQ(service.definition().name(), "TestService");
-  ASSERT_NE(service.baseService(), nullptr);
-  EXPECT_EQ(service.baseService()->definition().name(), "BaseService");
 }
 
 TEST(PythonServiceSchemaTest, HasNoFunctionForAnUnknownMethod) {
@@ -227,7 +208,6 @@ TEST(PythonServiceSchemaTest, IsEmptyWithoutBundles) {
 
   EXPECT_EQ(schema.service(), nullptr);
   EXPECT_EQ(schema.function("describe"), nullptr);
-  EXPECT_FALSE(schema.definitionsSchema().has_value());
 }
 
 TEST(PythonServiceSchemaTest, IsEmptyForAServiceOutsideTheBundles) {
@@ -236,7 +216,6 @@ TEST(PythonServiceSchemaTest, IsEmptyForAServiceOutsideTheBundles) {
 
   EXPECT_EQ(schema.service(), nullptr);
   EXPECT_EQ(schema.function("describe"), nullptr);
-  EXPECT_FALSE(schema.definitionsSchema().has_value());
 }
 
 // An unreadable bundle must not take the server down at startup.
@@ -247,7 +226,6 @@ TEST(PythonServiceSchemaTest, IsEmptyForUnreadableBundles) {
 
   EXPECT_EQ(schema.service(), nullptr);
   EXPECT_EQ(schema.function("describe"), nullptr);
-  EXPECT_FALSE(schema.definitionsSchema().has_value());
 }
 
 // The kill switch, which has to hold even for a service whose bundles are
@@ -272,7 +250,6 @@ TEST(PythonServiceSchemaTest, DefaultIsEmpty) {
 
   EXPECT_EQ(schema.service(), nullptr);
   EXPECT_EQ(schema.function("describe"), nullptr);
-  EXPECT_FALSE(schema.definitionsSchema().has_value());
 }
 
 } // namespace apache::thrift::python

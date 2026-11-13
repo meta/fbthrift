@@ -17,7 +17,6 @@
 #pragma once
 
 #include <memory>
-#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -25,7 +24,6 @@
 #include <folly/CppAttributes.h>
 #include <folly/container/F14Map.h>
 
-#include <thrift/lib/cpp2/schema/SchemaV1.h>
 #include <thrift/lib/cpp2/schema/SyntaxGraph.h>
 
 namespace apache::thrift::python {
@@ -67,12 +65,6 @@ class PythonServiceSchema {
       std::string_view serviceName,
       std::string_view serviceDefinitionKey);
 
-  /**
-   * Whether the `python_server_populate_service_schema` Thrift flag lets a
-   * thrift-python server serve its schema.
-   */
-  static bool enabled();
-
   PythonServiceSchema() = default;
 
   const syntax_graph::ServiceNode* FOLLY_NULLABLE service() const {
@@ -90,20 +82,9 @@ class PythonServiceSchema {
   const syntax_graph::FunctionNode* FOLLY_NULLABLE
   function(std::string_view methodName) const;
 
-  /**
-   * The merged schema with the service's definition key, in the shape
-   * `AsyncProcessorFactory::getServiceSchema()` returns. A copy, so call it
-   * only off the request path.
-   */
-  std::optional<schema::DefinitionsSchema> definitionsSchema() const;
-
  private:
-  // Declared before `syntaxGraph_`, which borrows it and so must be destroyed
-  // first.
-  std::unique_ptr<const type::Schema> schema_;
   // Owns the nodes that the accessors hand out.
   std::unique_ptr<syntax_graph::SyntaxGraph> syntaxGraph_;
-  std::optional<type::DefinitionKey> serviceKey_;
   const syntax_graph::ServiceNode* serviceNode_{nullptr};
   folly::F14FastMap<std::string, const syntax_graph::FunctionNode*> functions_;
 };

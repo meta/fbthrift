@@ -19,12 +19,10 @@ from __future__ import annotations
 
 import asyncio
 import unittest
-from unittest import mock
 
 from thrift.python.client import ClientType, get_client
 from thrift.python.server import ServiceInterface, ThriftServer
 from thrift.python.server_impl.interceptor.server_module import PythonServerModule
-from thrift.python.server_impl.schema_bundle import collect_schema_bundles
 from thrift.python.test.dynamic_arguments_test import (
     DynamicArgumentsRecorder,
     set_populate_service_schema,
@@ -41,11 +39,6 @@ from thrift.python.test.python_service_schema_test_dep.thrift_mutable_types impo
     Point as MutablePoint,
 )
 from thrift.python.test.python_service_schema_test_dep.thrift_types import Point
-
-
-# Where the server looks up the function, and the logger it reports with.
-_PROCESSOR_MODULE = "thrift.python.server_impl.python_async_processor"
-_COLLECT_SCHEMA_BUNDLES = f"{_PROCESSOR_MODULE}.collect_schema_bundles"
 
 
 class Handler(TestServiceInterface):
@@ -124,13 +117,7 @@ class DynamicArgumentsTest(unittest.IsolatedAsyncioTestCase):
         set_populate_service_schema(False)
         self.addCleanup(unmock_populate_service_schema)
 
-        with mock.patch(
-            _COLLECT_SCHEMA_BUNDLES, wraps=collect_schema_bundles
-        ) as collect:
-            await self._serve(recorder)
-
-        # The kill switch also skips collecting the schema.
-        collect.assert_not_called()
+        await self._serve(recorder)
 
         # No schema is served, so an interceptor sees a null
         # `dynamicArguments` -- exactly what it saw before this change.
@@ -138,22 +125,3 @@ class DynamicArgumentsTest(unittest.IsolatedAsyncioTestCase):
             ["describe:<no schema>", "ping:<no schema>"],
             recorder.records(),
         )
-
-    async def test_serves_without_a_schema_that_cannot_be_collected(self) -> None:
-        recorder = DynamicArgumentsRecorder()
-
-        with (
-            mock.patch(
-                _COLLECT_SCHEMA_BUNDLES,
-                side_effect=RuntimeError("corrupt schema bundle"),
-            ),
-            self.assertLogs(_PROCESSOR_MODULE, "ERROR") as logs,
-        ):
-            await self._serve(recorder)
-
-        # The server starts and serves; interceptors see no schema.
-        self.assertEqual(
-            ["describe:<no schema>", "ping:<no schema>"],
-            recorder.records(),
-        )
-        self.assertIn("corrupt schema bundle", str(logs.records[0].exc_info))
