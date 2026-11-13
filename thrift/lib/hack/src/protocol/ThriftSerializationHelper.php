@@ -789,15 +789,26 @@ abstract final class ThriftSerializationHelper {
         $xfer += $protocol->writeSetEnd();
         break;
       case TType::MAP:
-        $xfer += $protocol->writeMapBegin(
-          Shapes::at($tspec, 'ktype'),
-          Shapes::at($tspec, 'vtype'),
-          PHP\count($object),
-        );
+        $ktype = Shapes::at($tspec, 'ktype');
+        $kspec = Shapes::at($tspec, 'key');
+        if (
+          Shapes::keyExists($kspec, 'enum') ||
+          ($ktype === TType::STRING && !Shapes::idx($kspec, 'is_binary', false))
+        ) {
+          $xfer += $protocol->writeMapBeginWithAlternativeKeyForm(
+            $ktype,
+            Shapes::at($tspec, 'vtype'),
+            PHP\count($object),
+          );
+        } else {
+          $xfer += $protocol->writeMapBegin(
+            $ktype,
+            Shapes::at($tspec, 'vtype'),
+            PHP\count($object),
+          );
+        }
         if ($object !== null) {
-          $ktype = Shapes::at($tspec, 'ktype');
           $vtype = Shapes::at($tspec, 'vtype');
-          $kspec = Shapes::at($tspec, 'key');
           $vspec = Shapes::at($tspec, 'val');
           if (
             Shapes::at($tspec, 'format') === 'object_key' &&

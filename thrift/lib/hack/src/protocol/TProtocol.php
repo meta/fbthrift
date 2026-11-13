@@ -104,6 +104,18 @@ abstract class TProtocol {
     int $size,
   )[this::CReadWriteDefault]: int;
 
+  /**
+   * Begins a map whose keys are strings or enums, which `TType` does not tell
+   * apart from binary and i32 keys.
+   */
+  public function writeMapBeginWithAlternativeKeyForm(
+    TType $key_type,
+    TType $val_type,
+    int $size,
+  )[this::CReadWriteDefault]: int {
+    return $this->writeMapBegin($key_type, $val_type, $size);
+  }
+
   public abstract function writeMapEnd()[write_props]: int;
 
   public abstract function writeListBegin(

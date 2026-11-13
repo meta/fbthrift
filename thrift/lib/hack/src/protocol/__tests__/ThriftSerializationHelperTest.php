@@ -353,6 +353,27 @@ final class ThriftSerializationHelperTest
       tuple('readEnum', $enum, 3),
     ]);
   }
+
+  public function testMapKeyForm(): void {
+    $example = facebook\thrift\json5\Example::fromShape(shape(
+      'enumAsKey' => dict[
+        facebook\thrift\json5\Enum::ONE => facebook\thrift\json5\Enum::ONE,
+      ],
+      'i32AsKey' => dict[1 => 1],
+      'binaryAsKey' => dict['a' => 1],
+      'stringAsKey' => dict['a' => 'b'],
+    ));
+
+    $protocol =
+      new ThriftSerializationHelperTestMapKeyFormProtocol(new TMemoryBuffer());
+    ThriftSerializationHelper::writeStruct($protocol, $example);
+    expect($protocol->calls)->toEqual(vec[
+      tuple('writeMapBeginWithAlternativeKeyForm', TType::I32),
+      tuple('writeMapBegin', TType::I32),
+      tuple('writeMapBegin', TType::STRING),
+      tuple('writeMapBeginWithAlternativeKeyForm', TType::STRING),
+    ]);
+  }
 }
 
 final class ThriftSerializationHelperTestIdOrderProtocol
@@ -378,5 +399,30 @@ final class ThriftSerializationHelperTestEnumProtocol
     $result = parent::readEnum($enum, inout $value);
     $this->calls[] = tuple('readEnum', $enum, $value);
     return $result;
+  }
+}
+
+final class ThriftSerializationHelperTestMapKeyFormProtocol
+  extends TSimpleJSONProtocol {
+  public vec<(string, TType)> $calls = vec[];
+
+  <<__Override>>
+  public function writeMapBegin(
+    TType $key_type,
+    TType $val_type,
+    int $size,
+  )[write_props]: int {
+    $this->calls[] = tuple('writeMapBegin', $key_type);
+    return parent::writeMapBegin($key_type, $val_type, $size);
+  }
+
+  <<__Override>>
+  public function writeMapBeginWithAlternativeKeyForm(
+    TType $key_type,
+    TType $val_type,
+    int $size,
+  )[write_props]: int {
+    $this->calls[] = tuple('writeMapBeginWithAlternativeKeyForm', $key_type);
+    return parent::writeMapBegin($key_type, $val_type, $size);
   }
 }
