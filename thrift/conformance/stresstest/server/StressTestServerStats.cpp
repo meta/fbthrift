@@ -48,7 +48,7 @@ class StressTestServerStats::IoUringStatsTimer : public folly::AsyncTimeout {
   }
 
   void collect() noexcept {
-    auto stats = backend_->getStats();
+    auto stats = backend_->getAndResetStats();
     addCqeCounters(cqe_, toCqeCounters(stats.cqe));
 
     if (backend_->zcBufferPool()) {

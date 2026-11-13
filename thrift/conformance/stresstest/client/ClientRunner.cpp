@@ -205,7 +205,7 @@ class ClientThread : public folly::HHWheelTimer::Callback {
 #if FOLLY_HAS_LIBURING
     if (auto* backend = dynamic_cast<folly::IoUringBackend*>(
             getEventBase()->getBackend())) {
-      cqeCounters_ = toCqeCounters(backend->getStats().cqe);
+      cqeCounters_ = toCqeCounters(backend->getAndResetStats().cqe);
     }
 #endif
   }
