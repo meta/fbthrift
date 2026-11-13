@@ -149,6 +149,16 @@ abstract class TProtocol {
   }
 
   /**
+   * `$enum` is the class name of the enum, for protocols that write names.
+   */
+  public function writeEnum(
+    string $enum,
+    int $value,
+  )[this::CReadWriteDefault]: int {
+    return $this->writeI32($value);
+  }
+
+  /**
    * Reads the message header
    *
    * @param string $name Function name
@@ -251,6 +261,16 @@ abstract class TProtocol {
   public abstract function readString(
     inout string $str,
   )[this::CReadWriteDefault]: int;
+
+  /**
+   * `$enum` is the class name of the enum, for protocols that read names.
+   */
+  public function readEnum(
+    string $enum,
+    inout int $value,
+  )[this::CReadWriteDefault]: int {
+    return $this->readI32(inout $value);
+  }
 
   public function readBinary(inout string $str)[this::CReadWriteDefault]: int {
     return $this->readString(inout $str);

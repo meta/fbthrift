@@ -325,6 +325,34 @@ final class ThriftSerializationHelperTest
     );
     expect($transport->getBuffer())->toEqual('{"a":1,"b":2,"c":3}');
   }
+
+  public function testEnum(): void {
+    $example = facebook\thrift\json5\Example::fromShape(shape(
+      'enumValue' => facebook\thrift\json5\Enum::ONE,
+      'enumAsKey' => dict[
+        facebook\thrift\json5\Enum::TWO => facebook\thrift\json5\Enum::MANY,
+      ],
+    ));
+    $enum = nameof facebook\thrift\json5\Enum;
+
+    $transport = new TMemoryBuffer();
+    $protocol = new ThriftSerializationHelperTestEnumProtocol($transport);
+    ThriftSerializationHelper::writeStruct($protocol, $example);
+    expect($transport->getBuffer())
+      ->toEqual('{"enumValue":1,"enumAsKey":{"2":3}}');
+
+    $result = facebook\thrift\json5\Example::withDefaultValues();
+    ThriftSerializationHelper::readStruct($protocol, $result);
+    expect($result)->toBePHPEqual($example);
+    expect($protocol->calls)->toEqual(vec[
+      tuple('writeEnum', $enum, 1),
+      tuple('writeEnum', $enum, 2),
+      tuple('writeEnum', $enum, 3),
+      tuple('readEnum', $enum, 1),
+      tuple('readEnum', $enum, 2),
+      tuple('readEnum', $enum, 3),
+    ]);
+  }
 }
 
 final class ThriftSerializationHelperTestIdOrderProtocol
@@ -332,5 +360,23 @@ final class ThriftSerializationHelperTestIdOrderProtocol
   <<__Override>>
   public function writesFieldsInIdOrder()[]: bool {
     return true;
+  }
+}
+
+final class ThriftSerializationHelperTestEnumProtocol
+  extends TSimpleJSONProtocol {
+  public vec<(string, string, int)> $calls = vec[];
+
+  <<__Override>>
+  public function writeEnum(string $enum, int $value)[write_props]: int {
+    $this->calls[] = tuple('writeEnum', $enum, $value);
+    return parent::writeEnum($enum, $value);
+  }
+
+  <<__Override>>
+  public function readEnum(string $enum, inout int $value)[write_props]: int {
+    $result = parent::readEnum($enum, inout $value);
+    $this->calls[] = tuple('readEnum', $enum, $value);
+    return $result;
   }
 }

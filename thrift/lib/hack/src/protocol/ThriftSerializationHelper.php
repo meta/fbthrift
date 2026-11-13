@@ -155,14 +155,15 @@ abstract final class ThriftSerializationHelper {
         // Optimization opportunity: Add a TType of enum and encode that to
         // the tspec to avoid this if statement.
         $val = 0;
-        $xfer += $protocol->readI32(inout $val);
-        if (Shapes::keyExists($tspec, 'enum')) {
-          $enum_class = ArgAssert::isEnumname(
-            HH_FIXME::tryClassToClassname($tspec['enum']),
-          );
-          $object = HH\classname_to_class($enum_class) |> $$::coerce($val);
-        } else {
+        $enum = Shapes::idx($tspec, 'enum');
+        if ($enum is null) {
+          $xfer += $protocol->readI32(inout $val);
           $object = $val;
+        } else {
+          $xfer += $protocol->readEnum($enum, inout $val);
+          $enum_class =
+            ArgAssert::isEnumname(HH_FIXME::tryClassToClassname($enum));
+          $object = HH\classname_to_class($enum_class) |> $$::coerce($val);
         }
         break;
       case TType::I64:
@@ -701,7 +702,10 @@ abstract final class ThriftSerializationHelper {
         $xfer += $protocol->writeI16((int)$object);
         break;
       case TType::I32:
-        $xfer += $protocol->writeI32((int)$object);
+        $enum = Shapes::idx($tspec, 'enum');
+        $xfer += $enum is null
+          ? $protocol->writeI32((int)$object)
+          : $protocol->writeEnum($enum, (int)$object);
         break;
       case TType::I64:
         $xfer += $protocol->writeI64((int)$object);
