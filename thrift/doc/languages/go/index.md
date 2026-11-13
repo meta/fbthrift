@@ -24,7 +24,7 @@ Use the generated `New<Type>()` constructors to initialize Thrift-defined field 
 
 ## Serialization and RPC
 
-The `github.com/facebook/fbthrift/thrift/lib/go/thrift/format` package provides Binary and Compact serialization and deserialization, as well as the deprecated JSON and SimpleJSON formats. Go RPC uses Binary or Compact serialization.
+The `github.com/facebook/fbthrift/thrift/lib/go/thrift/format` package provides Binary and Compact serialization and deserialization through `EncodeBinary`/`DecodeBinary` and `EncodeCompact`/`DecodeCompact`, as well as the deprecated JSON (`EncodeCompactJSON`/`DecodeCompactJSON`) and SimpleJSON (`EncodeSimpleJSON`/`DecodeSimpleJSON`) formats. Go RPC uses Binary or Compact serialization.
 
 The runtime supports Rocket clients and servers, including Header-to-Rocket upgrades for interoperability with legacy peers. Use Rocket for streaming and interactions.
 

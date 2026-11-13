@@ -58,7 +58,7 @@ The `type` field within the `AnyStruct` provides the `name` of the type and any 
 The Type Registry is a crucial component in the deserialization process of user-defined types stored in `AnyStruct`. It maintains a mapping from the universal name (stored in the `type` field) to its native generated type. This mapping allows the deserialization process to correctly interpret the data stored in AnyStruct and convert it back into its original user-defined type. The Thrift generated structs, which have a universal name provided, are registered in the TypeRegistry as part of the initialization code.
 
 :::note
-Type Registry is available in C++, Hack, Python and Java. In C++, you need to add a compiler option `any` in order to generate intialization code to register Thrift types.
+Type Registry is available in C++, Hack, Python, Java, and Go. In C++, you need to add a compiler option `any` in order to generate intialization code to register Thrift types.
 :::
 
 ### Protocol
@@ -76,7 +76,8 @@ When utilizing custom protocols, it is necessary to provide a mapping between th
     {label: 'C++', value: 'C++'},
     {label: 'Hack', value: 'Hack'},
     {label: 'Python', value: 'Python'},
-    {label: 'Java', value: 'Java'}
+    {label: 'Java', value: 'Java'},
+    {label: 'Go', value: 'Go'},
   ]}>
   <TabItem value="C++">
 
@@ -151,6 +152,11 @@ Any.registerDeserializer("my-serializer", ThriftTest::myDeserializer);
 ```
 Check [TypeRegistry.java](https://github.com/facebook/fbthrift/blob/main/thrift/lib/java/common/src/main/java/com/facebook/thrift/type/TypeRegistry.java) and [AbstractAny.java](https://github.com/facebook/fbthrift/blob/main/thrift/lib/java/runtime/src/main/java/com/facebook/thrift/any/AbstractAny.java) for details
   </TabItem>
+  <TabItem value="Go">
+
+Go generated packages automatically register named types that have a universal name when the package is imported. The registry supports URI and URI-hash lookup. The experimental `format.DecodeAny` helper uses this registry to decode Binary, Compact, JSON, or SimpleJSON values of primitive, container, and registered named types; it rejects custom protocols, scoped names, and definition keys, and is not a complete Any load/store API: Go has no high-level Any creation or SemiAny promotion/demotion helper.
+
+  </TabItem>
 </Tabs>
 
 
@@ -184,6 +190,7 @@ In addition, we also provide runtime helpers in certain languages as specified b
 | Hack | [ThriftLazyAny](https://www.internalfb.com/code/www/flib/thrift/core/conformance/ThriftLazyAny.php?lines=140) |
 | Python | [AnyRegistry](https://github.com/facebook/fbthrift/blob/main/thrift/lib/python/any/any_registry.py) |
 | Java | [SerializedAny](https://github.com/facebook/fbthrift/blob/main/thrift/lib/java/runtime/src/main/java/com/facebook/thrift/any/SerializedAny.java) and [SerializedSemiAny](https://github.com/facebook/fbthrift/blob/main/thrift/lib/java/runtime/src/main/java/com/facebook/thrift/any/SerializedSemiAny.java)|
+| Go | Experimental [`format.DecodeAny`](https://github.com/facebook/fbthrift/blob/main/thrift/lib/go/thrift/format/serdes_any.go) |
 
 ## Usage Guide
 
@@ -353,6 +360,7 @@ AnyStruct any_struct = new AnyStruct.Builder()
     {label: 'Hack', value: 'Hack'},
     {label: 'Python', value: 'Python'},
     {label: 'Java', value: 'Java'},
+    {label: 'Go', value: 'Go'},
   ]}>
   <TabItem value="C++">
 
@@ -489,6 +497,28 @@ AnyStruct any_struct;
 // Convert AnyStruct to string value using helper class `Any`
 Any<String> received = Any.wrap(any_struct);
 String str = received.get();
+```
+  </TabItem>
+  <TabItem value="Go">
+
+- **Using Thrift provided Helpers**
+
+```go
+import (
+    // Generated package for the stored type; importing it registers the type.
+    _ "your/module/path"
+
+    "github.com/facebook/fbthrift/thrift/lib/go/thrift/format"
+)
+
+// anyStruct is the Any received from RPC.
+value, err := format.DecodeAny(anyStruct)
+if err != nil {
+    return err
+}
+
+// Type-assert the decoded value to its concrete type.
+str := value.(string)
 ```
   </TabItem>
 </Tabs>
