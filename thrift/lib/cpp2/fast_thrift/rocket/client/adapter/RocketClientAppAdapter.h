@@ -34,8 +34,8 @@ namespace apache::thrift::fast_thrift::rocket::client {
 /**
  * RocketClientAppAdapter — standalone rocket client endpoint adapter.
  *
- * Acts as the head endpoint of a rocket-only client pipeline. Decouples the
- * rocket transport layer from any upper-layer protocol (Thrift, SR, etc.).
+ * Acts as the tail endpoint of a Rocket client pipeline, relaying responses
+ * and control events to callbacks provided by its owner.
  *
  * Satisfies TailEndpointHandler (onRead/onException) and
  * RocketClientAppOutboundHandler (write).
@@ -44,7 +44,7 @@ namespace apache::thrift::fast_thrift::rocket::client {
  * via onRead(). The adapter forwards them to the registered onResponse
  * callback.
  *
- * Outbound path (requests): The upper layer calls write() to push
+ * Outbound path (requests): The owner calls write() to push
  * RocketRequestMessages into the pipeline.
  *
  * Usage:
@@ -86,19 +86,20 @@ class RocketClientAppAdapter : public folly::DelayedDestruction {
   // Notification that the transport is about to close: the server sent
   // ERROR(CONNECTION_CLOSE) (graceful drain). NOT a lifecycle/destruction
   // edge — the connection is still live and in-flight work keeps flowing.
-  // An upper pipeline (thrift) installs this to begin draining.
+  // The receiver handles the graceful-close notification.
   using OnCloseFn = folly::Function<void() noexcept>;
 
-  // Cross-pipeline write-ready relay: invoked when the rocket pipeline's
-  // tail receives onWriteReady() from the transport. An upper pipeline
-  // (e.g. thrift) installs this to be told its own pipeline can fire
-  // onWriteReady().
+  // Called when the Rocket transport becomes writable. The receiver can
+  // propagate readiness to pending work.
   using OnWriteReadyFn = folly::Function<void() noexcept>;
 
   // Write-completion relay: invoked once per completed request write with
   // the RocketWriteCompleteEvent (requestContext, status).
   using OnWriteCompleteFn =
       folly::Function<void(const RocketWriteCompleteEvent&) noexcept>;
+
+  using OnMetadataPushFn =
+      folly::Function<channel_pipeline::Result(RocketMetadataPush&) noexcept>;
 
   RocketClientAppAdapter() = default;
 
@@ -157,12 +158,15 @@ class RocketClientAppAdapter : public folly::DelayedDestruction {
     onWriteComplete_ = std::move(fn);
   }
 
+  void setOnMetadataPush(OnMetadataPushFn fn) noexcept {
+    onMetadataPush_ = std::move(fn);
+  }
+
   /**
    * Fire onReadReady() on the rocket pipeline. The pipeline walks any
    * handlers awaiting read-ready notification and then signals the head
-   * (TransportHandler::onReadReady → resumeRead). Used by an upper
-   * pipeline (e.g. thrift) to release inbound backpressure that it had
-   * earlier applied at its own tail.
+   * (TransportHandler::onReadReady → resumeRead). The receiver calls this
+   * when it can accept inbound delivery again.
    */
   void notifyReadReady() noexcept {
     if (pipeline_) {
@@ -235,6 +239,7 @@ class RocketClientAppAdapter : public folly::DelayedDestruction {
     onClose_ = {};
     onWriteReady_ = {};
     onWriteComplete_ = {};
+    onMetadataPush_ = {};
   }
 
   void onPipelineActive() noexcept {
@@ -257,8 +262,8 @@ class RocketClientAppAdapter : public folly::DelayedDestruction {
     }
   }
 
-  using SubscribedEvents =
-      channel_pipeline::Events<ConnectionCloseEvent, RocketWriteCompleteEvent>;
+  using SubscribedEvents = channel_pipeline::
+      Events<ConnectionCloseEvent, RocketWriteCompleteEvent, MetadataPushEvent>;
 
   template <channel_pipeline::PipelineEvent E>
     requires std::same_as<E, ConnectionCloseEvent>
@@ -275,6 +280,15 @@ class RocketClientAppAdapter : public folly::DelayedDestruction {
       return;
     }
     onWriteComplete_(event);
+  }
+
+  template <channel_pipeline::PipelineEvent E>
+    requires std::same_as<E, MetadataPushEvent>
+  void on(RocketMetadataPush* event) noexcept {
+    DestructorGuard guard(this);
+    if (onMetadataPush_) {
+      event->result = onMetadataPush_(*event);
+    }
   }
 
  protected:
@@ -298,6 +312,7 @@ class RocketClientAppAdapter : public folly::DelayedDestruction {
   OnCloseFn onClose_;
   OnWriteReadyFn onWriteReady_;
   OnWriteCompleteFn onWriteComplete_;
+  OnMetadataPushFn onMetadataPush_;
   bool disconnected_{true};
 };
 

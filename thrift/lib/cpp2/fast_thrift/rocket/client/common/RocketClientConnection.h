@@ -31,8 +31,7 @@ namespace apache::thrift::fast_thrift::rocket::client {
  * RocketClientConnectionT — owns the rocket pipeline and its
  * resources for a single client connection.
  *
- * Groups the rocket-layer objects that together form the transport
- * underneath a thrift client pipeline:
+ * Groups the Rocket pipeline and resources for one client connection:
  *
  *   RocketClientAppAdapter → [rocket handlers] → TransportHandler
  *
@@ -157,8 +156,6 @@ struct RocketClientConnectionT {
 
   /**
    * Legacy combined path: disconnect with `e` as the reason, then destroy.
-   * Retained as a shim so the thrift-side bridge can migrate in a
-   * follow-up commit; new callers should use disconnect(ew) + destroy().
    */
   void close(folly::exception_wrapper&& e) noexcept {
     disconnect(std::move(e));
