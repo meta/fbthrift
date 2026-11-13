@@ -70,7 +70,7 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
     {{/each}}
 
     {{#each service.streaming_functions as |func|}}
-    _methodMap.put("{{func.java_name}}", this);
+    _methodMap.put("{{func.name}}", this);
     _{{func.java_name}}Readers = _create_{{func.java_name}}_request_readers();
     _method_{{func.java_name}} =
     new com.facebook.thrift.server.generated.StreamMethod<>(

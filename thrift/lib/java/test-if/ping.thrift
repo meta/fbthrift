@@ -64,3 +64,9 @@ service PingA {
 service PingB {
   PingResponse pingB(1: PingRequest key);
 }
+
+service SnakeCaseStreamService {
+  // Snake-case wire name: the generated handler must register this under the
+  // wire name like every other method kind, since routing looks it up by wire name.
+  stream<PingResponse> get_items(1: PingRequest key);
+}
