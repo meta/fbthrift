@@ -74,7 +74,9 @@ std::string mangle_java_constant_name(const std::string& ref) {
   return res.str();
 }
 
-std::string quote_java_string(const std::string& unescaped) {
+namespace {
+
+std::string quote_java(const std::string& unescaped, bool escape_non_ascii) {
   std::ostringstream quoted;
   quoted << '\"';
   for (unsigned char c : unescaped) {
@@ -91,7 +93,7 @@ std::string quote_java_string(const std::string& unescaped) {
       default: {
         if (c < 0x20) {
           quoted << fmt::format("\\{:03o}", c);
-        } else if (c >= 0xf8) {
+        } else if (c >= 0xf8 || (escape_non_ascii && c >= 0x80)) {
           quoted << fmt::format("\\u{:04x}", c);
         } else {
           quoted << c;
@@ -103,6 +105,16 @@ std::string quote_java_string(const std::string& unescaped) {
   quoted << '\"';
 
   return quoted.str();
+}
+
+} // namespace
+
+std::string quote_java_string(const std::string& unescaped) {
+  return quote_java(unescaped, /*escape_non_ascii=*/false);
+}
+
+std::string quote_java_binary(const std::string& bytes) {
+  return quote_java(bytes, /*escape_non_ascii=*/true);
 }
 
 std::string package_to_path(std::string package) {

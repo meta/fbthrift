@@ -105,9 +105,9 @@
 {{! Other types }}
   {{#else if type.binary?}}
     {{#if field_hasAdapter}}
-io.netty.buffer.Unpooled.wrappedBuffer({{value.quotedString}}.getBytes())
+io.netty.buffer.Unpooled.wrappedBuffer({{value.quotedBinary}}.getBytes(java.nio.charset.StandardCharsets.ISO_8859_1))
     {{#else}}
-{{value.quotedString}}.getBytes()
+{{value.quotedBinary}}.getBytes(java.nio.charset.StandardCharsets.ISO_8859_1)
     {{/if field_hasAdapter}}
   {{#else if type.enum?}}
 {{#partial types.boxed_type type=type.true_type field_hasAdapter=field_hasAdapter}}.
