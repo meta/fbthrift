@@ -144,6 +144,10 @@ abstract class TProtocol {
     return $this->writeString($str);
   }
 
+  public function writesFieldsInIdOrder()[]: bool {
+    return false;
+  }
+
   /**
    * Reads the message header
    *

@@ -307,4 +307,30 @@ final class ThriftSerializationHelperTest
     )
       ->toThrow(nameof TTransportException);
   }
+
+  public function testFieldOrder(): void {
+    $unordered = Unordered::fromShape(shape('a' => 1, 'b' => 2, 'c' => 3));
+
+    $transport = new TMemoryBuffer();
+    ThriftSerializationHelper::writeStruct(
+      new TSimpleJSONProtocol($transport),
+      $unordered,
+    );
+    expect($transport->getBuffer())->toEqual('{"c":3,"a":1,"b":2}');
+
+    $transport = new TMemoryBuffer();
+    ThriftSerializationHelper::writeStruct(
+      new ThriftSerializationHelperTestIdOrderProtocol($transport),
+      $unordered,
+    );
+    expect($transport->getBuffer())->toEqual('{"a":1,"b":2,"c":3}');
+  }
+}
+
+final class ThriftSerializationHelperTestIdOrderProtocol
+  extends TSimpleJSONProtocol {
+  <<__Override>>
+  public function writesFieldsInIdOrder()[]: bool {
+    return true;
+  }
 }

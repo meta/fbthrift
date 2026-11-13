@@ -16,7 +16,7 @@
  *
  */
 
-use namespace FlibSL\{C, Math, Str, Vec}; // @oss-enable
+use namespace FlibSL\{C, Dict, Math, Str, Vec}; // @oss-enable
 
 /**
  * Generic Protocol Reader and Writer
@@ -497,7 +497,11 @@ abstract final class ThriftSerializationHelper {
     IThriftStruct $object,
   )[$protocol::CReadWriteDefault, write_props]: int {
     $xfer = $protocol->writeStructBegin($object->getName());
-    foreach ($object::SPEC as $field_id => $fspec) {
+    $spec = $object::SPEC;
+    if ($protocol->writesFieldsInIdOrder()) {
+      $spec = Dict\sort_by_key($spec);
+    }
+    foreach ($spec as $field_id => $fspec) {
       $field_name = $fspec['var'];
       $field_type = $fspec['type'];
       $field_value = self::readStructField($object, $fspec);
