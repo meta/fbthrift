@@ -2103,9 +2103,17 @@ PreprocessResult ThriftServer::preprocess(
 folly::Optional<OverloadResult> ThriftServer::checkOverload(
     const transport::THeader::StringToStringMap& readHeaders,
     const std::string& method) {
+  folly::Optional<bool> bypassMaxRequestsLimit;
+  const auto methodBypassesLimits = [&] {
+    if (!bypassMaxRequestsLimit.hasValue()) {
+      bypassMaxRequestsLimit =
+          getMethodsBypassMaxRequestsLimit().contains(method);
+    }
+    return *bypassMaxRequestsLimit;
+  };
+
   if (UNLIKELY(
-          isOverloaded_ &&
-          !getMethodsBypassMaxRequestsLimit().contains(method) &&
+          isOverloaded_ && !methodBypassesLimits() &&
           isOverloaded_(readHeaders, method))) {
     return OverloadResult{
         kAppOverloadedErrorCode,
@@ -2118,7 +2126,7 @@ folly::Optional<OverloadResult> ThriftServer::checkOverload(
   // If active request tracking is disabled, skip max requests enforcement here.
   if (!isActiveRequestsTrackingDisabled()) {
     if (auto maxRequests = getMaxRequests(); maxRequests > 0 &&
-        !getMethodsBypassMaxRequestsLimit().contains(method) &&
+        !methodBypassesLimits() &&
         static_cast<uint32_t>(getActiveRequests()) >= maxRequests) {
       LoadShedder loadShedder = LoadShedder::MAX_REQUESTS;
       if (notifyCPUConcurrencyControllerOnRequestLoadShed(
@@ -2135,8 +2143,7 @@ folly::Optional<OverloadResult> ThriftServer::checkOverload(
   }
 
   if (auto maxQps = getMaxQps(); maxQps > 0 &&
-      FLAGS_thrift_server_enforces_qps_limit &&
-      !getMethodsBypassMaxRequestsLimit().contains(method) &&
+      FLAGS_thrift_server_enforces_qps_limit && !methodBypassesLimits() &&
       !qpsTokenBucket_.consume(1.0, maxQps, maxQps)) {
     LoadShedder loadShedder = LoadShedder::MAX_QPS;
     if (notifyCPUConcurrencyControllerOnRequestLoadShed(
