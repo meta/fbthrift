@@ -117,7 +117,8 @@ endif ()
 
 # Create the Thrift compiler binary.
 add_executable(thrift main.cc compiler.cc)
-target_link_libraries(thrift thrift_ast thrift_frontend ${GENERATE_LINKED})
+target_link_libraries(thrift thrift_ast thrift_frontend Folly::folly
+                      ${GENERATE_LINKED})
 # Force thrift_generators linking (compiler will optimize it out otherwise).
 if (MSVC)
   set_target_properties(thrift PROPERTIES LINK_FLAGS
