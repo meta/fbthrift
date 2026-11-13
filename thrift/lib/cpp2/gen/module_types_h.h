@@ -493,6 +493,9 @@ constexpr bool has_struct_annotation() {
       decltype(detail::st::struct_private_access::
                    __fbthrift_cpp2_is_runtime_annotation<Annotation>())::value,
       "Annotation is not annotated with @thrift.RuntimeAnnotation.");
+  static_assert(
+      is_thrift_class_v<Struct>,
+      "Struct is not a Thrift struct, union, or exception.");
   return detail::st::struct_private_access::
       __fbthrift_has_struct_annotation<Struct, Annotation>();
 }
