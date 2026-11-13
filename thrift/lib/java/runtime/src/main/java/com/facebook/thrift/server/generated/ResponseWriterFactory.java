@@ -17,10 +17,10 @@
 package com.facebook.thrift.server.generated;
 
 import com.facebook.swift.service.ContextChain;
-import com.facebook.thrift.payload.ServerRequestPayload;
 import com.facebook.thrift.payload.Writer;
 
 @FunctionalInterface
 public interface ResponseWriterFactory {
-  Writer createResponseWriter(Object o, ContextChain chain, ServerRequestPayload requestPayload);
+  /** Creates the writer for one response value or stream element. */
+  Writer createResponseWriter(Object o, ContextChain chain);
 }

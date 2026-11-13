@@ -269,7 +269,7 @@ public class PubSubStreamingServiceRpcServerHandler
     return _readerList;
   }
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_returnstream = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain, com.facebook.thrift.payload.ServerRequestPayload _requestPayload) -> {
+  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_returnstream = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -299,7 +299,7 @@ public class PubSubStreamingServiceRpcServerHandler
     return _readerList;
   }
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_streamthrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain, com.facebook.thrift.payload.ServerRequestPayload _requestPayload) -> {
+  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_streamthrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -329,7 +329,7 @@ public class PubSubStreamingServiceRpcServerHandler
     return _readerList;
   }
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_servicethrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain, com.facebook.thrift.payload.ServerRequestPayload _requestPayload) -> {
+  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_servicethrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -359,7 +359,7 @@ public class PubSubStreamingServiceRpcServerHandler
     return _readerList;
   }
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_servicethrows2 = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain, com.facebook.thrift.payload.ServerRequestPayload _requestPayload) -> {
+  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_servicethrows2 = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -389,7 +389,7 @@ public class PubSubStreamingServiceRpcServerHandler
     return _readerList;
   }
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_boththrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain, com.facebook.thrift.payload.ServerRequestPayload _requestPayload) -> {
+  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_boththrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -419,7 +419,7 @@ public class PubSubStreamingServiceRpcServerHandler
     return _readerList;
   }
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_responseandstreamstreamthrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain, com.facebook.thrift.payload.ServerRequestPayload _requestPayload) -> {
+  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_responseandstreamstreamthrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -440,7 +440,7 @@ public class PubSubStreamingServiceRpcServerHandler
     };
   };
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _first_ResponseWriterFactory_responseandstreamstreamthrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain, com.facebook.thrift.payload.ServerRequestPayload _requestPayload) -> {
+  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _first_ResponseWriterFactory_responseandstreamstreamthrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -470,7 +470,7 @@ public class PubSubStreamingServiceRpcServerHandler
     return _readerList;
   }
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_responseandstreamservicethrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain, com.facebook.thrift.payload.ServerRequestPayload _requestPayload) -> {
+  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_responseandstreamservicethrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -491,7 +491,7 @@ public class PubSubStreamingServiceRpcServerHandler
     };
   };
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _first_ResponseWriterFactory_responseandstreamservicethrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain, com.facebook.thrift.payload.ServerRequestPayload _requestPayload) -> {
+  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _first_ResponseWriterFactory_responseandstreamservicethrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -521,7 +521,7 @@ public class PubSubStreamingServiceRpcServerHandler
     return _readerList;
   }
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_responseandstreamboththrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain, com.facebook.thrift.payload.ServerRequestPayload _requestPayload) -> {
+  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_responseandstreamboththrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -542,7 +542,7 @@ public class PubSubStreamingServiceRpcServerHandler
     };
   };
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _first_ResponseWriterFactory_responseandstreamboththrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain, com.facebook.thrift.payload.ServerRequestPayload _requestPayload) -> {
+  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _first_ResponseWriterFactory_responseandstreamboththrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -573,7 +573,7 @@ public class PubSubStreamingServiceRpcServerHandler
     return _readerList;
   }
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_returnstreamFast = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain, com.facebook.thrift.payload.ServerRequestPayload _requestPayload) -> {
+  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_returnstreamFast = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);

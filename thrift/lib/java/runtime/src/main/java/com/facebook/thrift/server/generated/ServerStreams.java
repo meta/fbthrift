@@ -63,7 +63,7 @@ public final class ServerStreams {
 
   /** Writes the empty init first response for plain streams. Shared: it is type-free. */
   public static final ResponseWriterFactory EMPTY_FIRST_RESPONSE_WRITER =
-      (o, chain, requestPayload) -> Writers.emptyStruct();
+      (o, chain) -> Writers.emptyStruct();
 
   private ServerStreams() {}
 
@@ -95,10 +95,7 @@ public final class ServerStreams {
                             Mono.fromCallable(
                                 () ->
                                     firstPayload(
-                                        requestPayload,
-                                        chain,
-                                        method,
-                                        responseAndStream.getFirstResponse())),
+                                        chain, method, responseAndStream.getFirstResponse())),
                             streamPhase(
                                 requestPayload, chain, method, responseAndStream.getStream()))
                         // A downstream that never consumes the stream must not pin a forwarded
@@ -153,9 +150,8 @@ public final class ServerStreams {
   }
 
   private static <F, E> ServerResponsePayload firstPayload(
-      ServerRequestPayload requestPayload, ContextChain chain, StreamMethod<F, E> method, F first) {
-    Writer writer =
-        method.firstResponseWriterFactory.createResponseWriter(first, chain, requestPayload);
+      ContextChain chain, StreamMethod<F, E> method, F first) {
+    Writer writer = method.firstResponseWriterFactory.createResponseWriter(first, chain);
     return ServerResponsePayload.create(writer, streamFirstResponseMetadata(), null, true);
   }
 
@@ -164,8 +160,7 @@ public final class ServerStreams {
       ContextChain chain,
       StreamMethod<F, E> method,
       E element) {
-    Writer writer =
-        method.responseWriterFactory.createResponseWriter(element, chain, requestPayload);
+    Writer writer = method.responseWriterFactory.createResponseWriter(element, chain);
     return ServerResponsePayload.create(writer, null, streamPayloadMetadata(requestPayload), true);
   }
 
