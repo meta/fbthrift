@@ -19,25 +19,25 @@ export const Unsupported = () => (<span class="feature-unsupported">✗</span>);
 The following tables document the current level of support for each Thrift
 feature in different languages.
 
-| Thrift feature | C++ | Hack | Java | Python |
-| :------------- | :-: | :--: | :--: | :----: |
-| [Serialization](/features/serialization/index.md) | <Supported/> | <Supported/> | <Supported/> | <Supported/> |
-| [Universal names](/features/universal-name.md) | <Supported/> | <Supported/> | <Supported/> | <Supported/> |
-| [Streaming](/fb/features/streaming/index.md) | <Supported/> | <Partial>Client[^1]</Partial> | <Partial>Client[^1]</Partial> | <Supported/> |
-| [Interactions](/fb/features/interactions/index.md) | <Supported/> | <Partial>Client[^1]</Partial> | <Partial>Client[^1]</Partial> | <Partial>Client[^1]</Partial> |
-| [Adapters](/features/adapters.md) | <Supported/> | <Supported/> | <Supported/> | <Supported/> |
-| [Dynamic values (Any)](/features/any.md) | <Supported/> | <Supported/> | <Supported/> | <Supported/> |
-| [Terse write](/features/terse-write.md) | <Supported/> | <Supported/> | <Supported/> | <Supported/> |
+| Thrift feature | C++ | Hack | Java | Python | Go |
+| :------------- | :-: | :--: | :--: | :----: | :-: |
+| [Serialization](/features/serialization/index.md) | <Supported/> | <Supported/> | <Supported/> | <Supported/> | <Supported/> |
+| [Universal names](/features/universal-name.md) | <Supported/> | <Supported/> | <Supported/> | <Supported/> | <Supported/> |
+| [Streaming](/fb/features/streaming/index.md) | <Supported/> | <Partial>Client[^1]</Partial> | <Partial>Client[^1]</Partial> | <Supported/> | <Supported/> |
+| [Interactions](/fb/features/interactions/index.md) | <Supported/> | <Partial>Client[^1]</Partial> | <Partial>Client[^1]</Partial> | <Partial>Client[^1]</Partial> | <Partial>Factories</Partial> |
+| [Adapters](/features/adapters.md) | <Supported/> | <Supported/> | <Supported/> | <Supported/> | <Unsupported/> |
+| [Dynamic values (Any)](/features/any.md) | <Supported/> | <Supported/> | <Supported/> | <Supported/> | <Partial>Experimental decoding</Partial> |
+| [Terse write](/features/terse-write.md) | <Supported/> | <Supported/> | <Supported/> | <Supported/> | <Unsupported/> |
 
 [^1]: You can write Thrift clients but not servers using this feature. These
 clients can connect to servers written in other languages.
 
 Experimental features:
 
-| Thrift feature | C++ | Hack | Java | Python |
-| :------------- | :-: | :--: | :--: | :----: |
-| [Patch](/fb/features/patch.md) | <Supported/> | <Unsupported/> | <Unsupported/> | <Supported/> |
-| [Deterministic Hashing](/fb/languages/cpp/hash.md) | <Supported/> | <Unsupported/> | <Unsupported/> | <Unsupported/> |
+| Thrift feature | C++ | Hack | Java | Python | Go |
+| :------------- | :-: | :--: | :--: | :----: | :-: |
+| [Patch](/fb/features/patch.md) | <Supported/> | <Unsupported/> | <Unsupported/> | <Supported/> | <Unsupported/> |
+| [Deterministic Hashing](/fb/languages/cpp/hash.md) | <Supported/> | <Unsupported/> | <Unsupported/> | <Unsupported/> | <Unsupported/> |
 
 The level of support of a feature in a given language is defined as follows:
 
