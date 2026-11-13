@@ -356,6 +356,9 @@ void t_json_generator::print_name(const string& name) {
  */
 void t_json_generator::print_const_key(t_const_value* tvalue) {
   switch (tvalue->kind()) {
+    case t_const_value::CV_BOOL:
+      f_out_ << (tvalue->get_bool() ? "\"true\"" : "\"false\"");
+      break;
     case t_const_value::CV_INTEGER:
       f_out_ << "\"" << tvalue->get_integer() << "\"";
       break;

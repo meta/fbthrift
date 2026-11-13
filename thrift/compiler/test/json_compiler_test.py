@@ -346,6 +346,44 @@ class JsonCompilerTest(unittest.TestCase):
             },
         )
 
+    def test_const_map_bool_key(self):
+        obj = gen(
+            "foo.thrift",
+            textwrap.dedent(
+                """\
+            const map<bool, i32> flags = {true: 1, false: 0};
+        """
+            ),
+        )
+        self.assertEqual(
+            obj,
+            {
+                "__fbthrift": {"@" + "generated": 0},
+                "thrift_module": "foo",
+                "constants": {
+                    "flags": {
+                        "lineno": 1,
+                        "value": {"true": 1, "false": 0},
+                        "type_enum": "MAP",
+                        "spec_args": {
+                            "key_type": {"type_enum": "BOOL", "spec_args": None},
+                            "val_type": {"type_enum": "I32", "spec_args": None},
+                        },
+                        "source_range": {
+                            "begin": {
+                                "line": 1,
+                                "column": 1,
+                            },
+                            "end": {
+                                "line": 1,
+                                "column": 50,
+                            },
+                        },
+                    },
+                },
+            },
+        )
+
     def test_struct_field_annotate(self):
         obj = gen(
             "foo.thrift",
