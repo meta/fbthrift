@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+include "thrift/annotation/rust.thrift"
 include "thrift/annotation/thrift.thrift"
 
 package "facebook.com/thrift/json5"
@@ -50,6 +51,7 @@ struct Recursive {
 
 // Unqualified fields that Hack leaves null unless set.
 @thrift.Sealed
+@rust.Ord
 struct Unqualified {
   1: Enum enumValue;
   2: Nested structValue;
