@@ -26,7 +26,7 @@ Use the generated `New<Type>()` constructors to initialize Thrift-defined field 
 
 The `github.com/facebook/fbthrift/thrift/lib/go/thrift/format` package provides Binary and Compact serialization and deserialization through `EncodeBinary`/`DecodeBinary` and `EncodeCompact`/`DecodeCompact`, as well as the deprecated JSON (`EncodeCompactJSON`/`DecodeCompactJSON`) and SimpleJSON (`EncodeSimpleJSON`/`DecodeSimpleJSON`) formats. Go RPC uses Binary or Compact serialization.
 
-The runtime supports Rocket clients and servers, including Header-to-Rocket upgrades for interoperability with legacy peers. Use Rocket for streaming and interactions. Go's Rocket codecs handle ZSTD, ZLIB, and LZ4 compression, but the native client sends requests and sink items uncompressed by default.
+The runtime supports Rocket clients and servers, including Header-to-Rocket upgrades for interoperability with legacy peers. Go's Rocket codecs handle ZSTD, ZLIB, and LZ4 compression, but the native client sends requests and sink items uncompressed by default.
 
 Go supports both clients and servers for:
 
@@ -34,5 +34,11 @@ Go supports both clients and servers for:
 - [Client-to-server streaming (sinks)](https://www.internalfb.com/code/fbsource/xplat/thrift/lib/go/thrift/docs/sink.md).
 - [Bidirectional streaming](https://www.internalfb.com/code/fbsource/xplat/thrift/lib/go/thrift/docs/bidi.md).
 - [Interaction factories](https://www.internalfb.com/code/fbsource/xplat/thrift/lib/go/thrift/docs/interactions.md). Legacy `performs` interaction constructors are not supported.
+
+## Runtime Metadata
+
+With metadata generation enabled (the default), generated Go packages and service processors expose `GetThriftMetadata()`. Generated structured types expose `GetThriftStructMetadata()`. Treat the returned generated metadata as read-only.
+
+Metadata describes types, fields, functions, and services, including structured annotations on supported declaration scopes. It is not a complete IDL AST: field/parameter/throws annotations and defaults, individual enum-value annotations, full qualifiers, and standalone interaction definitions are not exhaustively represented.
 
 See the [feature comparison](/features/index.md) for feature-specific support and limitations.

@@ -271,6 +271,10 @@ Structured annotations are accessible in Python via the [metadata API](https://w
 
 You can view an example for how to use these [here](https://github.com/facebook/fbthrift/tree/main/thrift/lib/py3/test/metadata.py?commit=80443af2713dbfa63ccd487d6d5f7d0850b2f022&lines=192).
 
+### Go
+
+Generated Go metadata exposes structured annotations on supported declaration scopes, including structs, exceptions, enums, services, and functions. It does not currently include field, parameter, throws-field, or individual enum-value annotations. See [Go runtime metadata](/languages/go/index.md#runtime-metadata) for accessors and limitations.
+
 ### Notable annotations that don't exist
 
 - ~~`cpp.coroutine`~~ coroutine stubs are always generated in C++
