@@ -504,15 +504,70 @@ ThriftServerRequestResponse::ThriftServerRequestResponse(
   scheduleTimeouts();
 }
 
+namespace {
+// CUSTOM is connection-local and cannot be forwarded opaquely.
+bool isStandardCompressionAlgorithm(CompressionAlgorithm algorithm) {
+  switch (algorithm) {
+    case CompressionAlgorithm::ZLIB:
+    case CompressionAlgorithm::ZSTD:
+    case CompressionAlgorithm::LZ4:
+    case CompressionAlgorithm::ZLIB_LESS:
+    case CompressionAlgorithm::ZSTD_LESS:
+    case CompressionAlgorithm::LZ4_LESS:
+    case CompressionAlgorithm::ZLIB_MORE:
+    case CompressionAlgorithm::ZSTD_MORE:
+    case CompressionAlgorithm::LZ4_MORE:
+      return true;
+    case CompressionAlgorithm::NONE:
+    case CompressionAlgorithm::CUSTOM:
+      return false;
+  }
+  return false;
+}
+} // namespace
+
+bool ThriftServerRequestResponse::canSendPreCompressedResponse(
+    CompressionAlgorithm algorithm) const {
+  // Pre-compressed replies carry no checksum; see compressResponse() for the
+  // CPU-thread path that computes one before compressing.
+  return isStandardCompressionAlgorithm(algorithm) &&
+      !isReplyChecksumNeeded() && !getTHeader().getChecksum().has_value();
+}
+
+bool ThriftServerRequestResponse::setPreCompressedResponse(
+    CompressionAlgorithm algorithm, PayloadMetadata payloadMetadata) {
+  if (payloadMetadata.getType() == PayloadMetadata::Type::__EMPTY__ ||
+      !canSendPreCompressedResponse(algorithm)) {
+    return false;
+  }
+  cpuProcessedResponseInfo_ = CpuProcessedResponseInfo{
+      .compressionAlgorithm = algorithm,
+      .payloadMetadata = std::move(payloadMetadata),
+      .checksum = std::nullopt,
+  };
+  return true;
+}
+
 void ThriftServerRequestResponse::sendThriftResponse(
     ResponseRpcMetadata&& metadata,
     std::unique_ptr<folly::IOBuf> data,
     apache::thrift::MessageChannel::SendCallbackPtr cb) noexcept {
-  // Pre-compressed path: response was already compressed on CPU thread via
-  // compressResponse(). The envelope was never added (extractPayload skipped
-  // it), so we skip processFirstResponse() (which normally strips the envelope
-  // and sets compression). Set up metadata with the pre-computed values.
-  const bool preCompressed = isResponsePreCompressed();
+  sendResponse(
+      std::move(metadata),
+      std::move(data),
+      std::move(cb),
+      isResponsePreCompressed());
+}
+
+void ThriftServerRequestResponse::sendResponse(
+    ResponseRpcMetadata&& metadata,
+    std::unique_ptr<folly::IOBuf> data,
+    apache::thrift::MessageChannel::SendCallbackPtr cb,
+    bool preCompressed) noexcept {
+  // Pre-compressed path: response was already compressed via compressResponse()
+  // or setPreCompressedResponse(). The envelope was never added, so we skip
+  // processFirstResponse() (which normally strips the envelope and sets
+  // compression). Set up metadata with the pre-computed values.
   std::optional<ResponseRpcError> responseRpcError;
 
   if (preCompressed) {
@@ -611,13 +666,18 @@ void ThriftServerRequestResponse::sendThriftException(
     ResponseRpcMetadata&& metadata,
     std::unique_ptr<folly::IOBuf> data,
     apache::thrift::MessageChannel::SendCallbackPtr cb) noexcept {
-  sendThriftResponse(std::move(metadata), std::move(data), std::move(cb));
+  sendResponse(
+      std::move(metadata),
+      std::move(data),
+      std::move(cb),
+      /*preCompressed=*/false);
 }
 
 void ThriftServerRequestResponse::sendSerializedError(
     ResponseRpcMetadata&& metadata,
     std::unique_ptr<folly::IOBuf> exbuf) noexcept {
-  sendThriftResponse(std::move(metadata), std::move(exbuf), nullptr);
+  sendResponse(
+      std::move(metadata), std::move(exbuf), nullptr, /*preCompressed=*/false);
 }
 
 void ThriftServerRequestResponse::closeConnection(

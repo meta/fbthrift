@@ -134,7 +134,20 @@ class ThriftServerRequestResponse final : public RocketThriftRequest {
 
   void closeConnection(folly::exception_wrapper ew) noexcept override;
 
+  bool setPreCompressedResponse(
+      CompressionAlgorithm algorithm, PayloadMetadata payloadMetadata) override;
+
  private:
+  bool canSendPreCompressedResponse(CompressionAlgorithm algorithm) const;
+
+  // Server-generated errors pass preCompressed=false: they replace a reply
+  // that may already have been marked as pre-compressed.
+  void sendResponse(
+      ResponseRpcMetadata&& metadata,
+      std::unique_ptr<folly::IOBuf> data,
+      apache::thrift::MessageChannel::SendCallbackPtr cb,
+      bool preCompressed) noexcept;
+
   const int32_t version_;
   std::chrono::milliseconds maxResponseWriteTime_;
 };

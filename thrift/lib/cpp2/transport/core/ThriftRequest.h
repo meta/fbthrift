@@ -426,6 +426,10 @@ class ThriftRequestCore : public ResponseChannelRequest {
   std::optional<CompressionAlgorithm> getEligibleCompressionAlgorithm(
       size_t payloadSize) const;
 
+  void resetPreCompressedResponse() override {
+    cpuProcessedResponseInfo_ = CpuProcessedResponseInfo{};
+  }
+
   // Check whether response was pre-compressed on the CPU thread.
   bool isResponsePreCompressed() const {
     return cpuProcessedResponseInfo_.isCompressed();

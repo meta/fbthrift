@@ -466,6 +466,9 @@ void HandlerCallbackBase::callExceptionInEventBaseThread(F&& f, T&& ex) {
   if (!f) {
     return;
   }
+  if (req_) {
+    req_->resetPreCompressedResponse();
+  }
   if (!getEventBase() || getEventBase()->inRunningEventBaseThread()) {
     f(std::exchange(req_, {}), protoSeqId_, ctx_.get(), ex, reqCtx_);
     ctx_.reset();

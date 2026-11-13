@@ -137,6 +137,7 @@ void helper<ProtocolReader, ProtocolWriter>::process_exn(
     int32_t protoSeqId) {
   ProtocolWriter oprot;
   if (req) {
+    req->resetPreCompressedResponse();
     LOG(ERROR) << msg << " in function " << func;
     TApplicationException x(type, msg);
     auto payload = THeader::transform(

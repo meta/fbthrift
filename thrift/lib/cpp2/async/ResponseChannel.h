@@ -32,6 +32,7 @@
 #include <thrift/lib/cpp2/async/StreamCallbacks.h>
 #include <thrift/lib/cpp2/server/RequestsRegistry.h>
 #include <thrift/lib/cpp2/transport/core/RequestStateMachine.h>
+#include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
 
 namespace folly {
 class IOBuf;
@@ -217,6 +218,25 @@ class ResponseChannelRequest {
   virtual bool shouldDispatchCompressionToCpu(size_t /*payloadSize*/) const {
     return false;
   }
+
+  // Lets a proxy forward an already-compressed reply without decompressing
+  // it. On true, the next sendReply() must carry the compressed body without
+  // the message envelope and without crc32c; it is sent as-is with
+  // `algorithm` and `payloadMetadata` in the response metadata. Returns false,
+  // leaving the request unchanged, when the transport or RPC kind does not
+  // support it, `algorithm` is not a standard codec (CUSTOM is negotiated per
+  // connection), or the client requested a response checksum. The client's own
+  // response compression policy is not consulted.
+  virtual bool setPreCompressedResponse(
+      CompressionAlgorithm /*algorithm*/,
+      // Overrides consume metadata.
+      // NOLINTNEXTLINE(performance-unnecessary-value-param)
+      PayloadMetadata /*payloadMetadata*/) {
+    return false;
+  }
+
+  // Discard state for a pre-compressed body before generating a replacement.
+  virtual void resetPreCompressedResponse() {}
 
   virtual ~ResponseChannelRequest() = default;
 
