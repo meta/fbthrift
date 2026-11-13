@@ -52,7 +52,7 @@ final class ThriftTypeInfoCache
   protected static function getDataForKeyImpl(
     this::TKey $classname,
   )[write_props]: this::TKeyReturn {
-    $klass = new ReflectionClass($classname);
+    $klass = Classes::loadAndReflect($classname);
     $params = $klass->getAttributeClass(ThriftTypeInfo::class)?->params
       as nonnull;
 

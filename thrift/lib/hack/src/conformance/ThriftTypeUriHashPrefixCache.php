@@ -81,7 +81,7 @@ final class ThriftTypeUriHashInnerCache
   protected static function getDataForKeyImpl(
     this::TKey $classname,
   )[SBC]: this::TKeyReturn {
-    $klass = new ReflectionClass($classname);
+    $klass = Classes::loadAndReflect($classname);
     $params = $klass->getAttributeClass(ThriftTypeInfo::class)?->params
       as nonnull;
     $all_uris =

@@ -262,7 +262,7 @@ final class ThriftTypeStructAdapter implements IThriftAdapter {
     $type_uri->set_uri(
       ThriftTypeRegistry::getxCanonicalUriForHackType($class_name),
     );
-    $class = new ReflectionClass($class_name);
+    $class = Classes::loadAndReflect($class_name);
     if ($class->isSubclassOf(nameof TException)) {
       $name->set_exceptionType($type_uri);
     } else if ($class->isSubclassOf(nameof IThriftUnion)) {
