@@ -41,8 +41,8 @@ class ThriftServerBackpressureHandler {
       ReadBackpressureArbiter* arbiter) noexcept
       : arbiter_(arbiter) {}
 
-  // Detected by makeHandlerNode — registers this handler in the
-  // pipeline's writeReadyList so onWriteReady() actually fires.
+  // Detected by makeHandlerNode — lets this handler wait for write ready,
+  // so onWriteReady() actually fires.
   channel_pipeline::WriteReadyHook writeReadyHook_;
 
   void handlerAdded(Context& /*ctx*/) noexcept {}

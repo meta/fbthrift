@@ -815,9 +815,9 @@ TEST_F(BatchingFrameHandlerPipelineTest, HookRegisteredOnBackpressure) {
   EXPECT_TRUE(handlerPtr_->isBackpressured());
 }
 
-// Verifies that pipeline->onWriteReady() walks the writeReadyList and
-// dispatches to BatchingFrameHandler::onWriteReady(), which clears backpressure
-// and flushes the data buffered during backpressure.
+// Verifies that pipeline->onWriteReady() reaches
+// BatchingFrameHandler::onWriteReady(), which clears backpressure and flushes
+// the data buffered during backpressure.
 TEST_F(BatchingFrameHandlerPipelineTest, WriteReadyDispatchedThroughPipeline) {
   BatchingHandlerConfig config{
       .maxPendingBytes = 100,

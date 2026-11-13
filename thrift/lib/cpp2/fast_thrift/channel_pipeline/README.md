@@ -756,7 +756,7 @@ void resumeRead() noexcept;  // Resume reading from socket
 
 While return values signal backpressure, handlers often need to **buffer messages**
 and **retry when ready**. The explicit backpressure API provides this capability
-through intrusive list hooks and ready callbacks.
+through ready hooks and ready callbacks.
 
 ### The Problem
 
@@ -872,24 +872,28 @@ class WriteBufferingHandler {
 ┌─────────────────────────────────────────────────────────────────┐
 │                         PipelineImpl                            │
 │                                                                 │
-│  ┌─────────────────┐                                           │
-│  │ write_ready_list│                                           │
-│  │  (IntrusiveList)│                                           │
-│  └────────┬────────┘                                           │
-│           │                                                     │
-│           ▼                                                     │
-│  ┌────────────────┐     ┌────────────────┐                     │
-│  │ Handler A hook │────►│ Handler C hook │────► (end)          │
-│  │ (handlerIndex) │     │ (handlerIndex) │                     │
-│  └────────────────┘     └────────────────┘                     │
+│  write ready waiters: one bit per handler index, plus one bit   │
+│  for the head. Index 0 is A, the handler that writes into the   │
+│  head, and D is next to the tail. The head's bit is the extra   │
+│  index N, the handler count.                                    │
+│                                                                 │
+│    handler:  A       B       C       D       head               │
+│    index:    0       1       2       3       4 (N)              │
+│    armed:    1       0       1       0       0                  │
+│                                                                 │
+│  A and C wait. A pass takes the lowest armed bit, A, and then   │
+│  the lowest armed bit above the last bit it took, C.            │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 
 1. Producer registers with `ctx.awaitWriteReady()`
 2. Transport signals `pipeline.onWriteReady()`
 3. The head endpoint consumes the readiness edge before upstream handlers
-4. If the head re-arms its hook, propagation stops for that pass
-5. Each notified producer unregisters with `ctx.cancelAwaitWriteReady()` when done
+4. If the head waits again after its own callback, or after a handler's callback because that handler's write made it wait, the pass stops there and does not notify the tail
+5. Armed handlers wake from the head toward the tail, whatever order they armed in, so each one runs after the handler it writes into
+6. A woken handler that is still armed after its callback waits for a later pass. Unless the head waits again, the pass goes on to the handlers above it and then the tail
+7. A handler that arms during the pass wakes in the same pass only if it is above the handler that the pass woke last
+8. Each notified producer unregisters with `ctx.cancelAwaitWriteReady()` when done
 ```
 
 ### Performance Characteristics
@@ -898,12 +902,12 @@ class WriteBufferingHandler {
 |-----------|------------|
 | `awaitWriteReady()` | O(1) |
 | `cancelAwaitWriteReady()` | O(1) |
-| `onWriteReady()` notification | O(m) where m = registered handlers |
+| `onWriteReady()` notification | O(m) where m = registered handlers: each wake-up finds the next armed handler toward the tail with one bit scan |
 | Handler lookup by ID (`sendRead`, `sendWrite`) | O(1) average |
 
 The O(1) operations are achieved through:
-- **Intrusive lists**: Hooks are embedded in handlers, no allocation on register
-- **Handler index in hooks**: Each hook stores its handler's index for direct lookup
+- **Bit masks**: Registering or unregistering a handler sets or clears one bit in a 64-bit word inside the pipeline, so registration never allocates. The write mask also has a bit for the head, so a pipeline holds at most 63 handlers
+- **Handler index in contexts**: Each context stores its handler's index, which is the handler's bit
 - **Hash table for IDs**: Handler IDs map to indices via open-addressing hash table
 
 ### Design Principles
@@ -911,8 +915,8 @@ The O(1) operations are achieved through:
 | Principle | Implementation |
 |-----------|----------------|
 | **Explicit over implicit** | Handlers choose their backpressure strategy |
-| **Zero allocation** | Intrusive lists, no heap allocation on register |
-| **O(1) operations** | Hash table lookups, intrusive list link/unlink |
+| **Zero allocation** | Bit masks inside the pipeline, no heap allocation on register |
+| **O(1) operations** | Hash table lookups, bit set/clear |
 | **Compile-time detection** | Hooks detected via `requires` expressions |
 | **Handler autonomy** | Each handler decides: drop, error, or buffer |
 

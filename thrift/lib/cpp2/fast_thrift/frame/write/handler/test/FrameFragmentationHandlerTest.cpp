@@ -682,10 +682,9 @@ class FrameFragmentationHandlerPipelineTest : public Test {
         .build();
   }
 
-  // A write-ready pass wakes each registered handler once, in the order they
-  // registered. Here the writer above runs first while the fragmenter is still
-  // blocked, so it gets Backpressure and keeps its last frame. Then the
-  // fragmenter clears its block, and the writer must still get to send it.
+  // The writer above keeps three frames while the fragmenter is blocked. Each
+  // write-ready pass wakes the fragmenter before the writer, so the writer
+  // sends after the fragmenter has cleared its block.
   void verifyWriterAboveSendsItsQueueAfterTheBlockClears(auto pipeline) {
     transport_.setWriteResult(cp::Result::Backpressure);
     for (const uint32_t streamId : {1, 3, 5, 7}) {
@@ -695,8 +694,8 @@ class FrameFragmentationHandlerPipelineTest : public Test {
     }
     EXPECT_THAT(transport_.writeCount(), Eq(1));
 
-    // The first write of the next pass fills the transport again. The
-    // fragmenter then registers again, behind the writer.
+    // The first write of the next pass fills the transport again, so the
+    // fragmenter blocks again and the writer keeps the rest for one more pass.
     transport_.setWriteResult(cp::Result::Success);
     transport_.setNextWriteResults({cp::Result::Backpressure});
     pipeline->onWriteReady();
@@ -729,7 +728,7 @@ TEST_F(
 
 TEST_F(
     FrameFragmentationHandlerPipelineTest,
-    TheWriterAboveSendsAfterAFrameQueuedWhileBlocked) {
+    TheWriterAboveSendsAFrameThatNeedsFragmentsAfterTheBlockClears) {
   auto pipeline = buildDynamicPipelineWithWriterAbove();
   transport_.setWriteResult(cp::Result::Backpressure);
   (void)pipeline->fireWrite(makePayloadFrame(1, 50));
@@ -740,11 +739,12 @@ TEST_F(
 
   // Stream 3 fills the transport again. In the next pass the writer above
   // sends stream 5, which the fragmenter queues because it needs two
-  // fragments.
+  // fragments. The fragmenter sends them from its flush in the event loop.
   transport_.setWriteResult(cp::Result::Success);
   transport_.setNextWriteResults({cp::Result::Backpressure});
   pipeline->onWriteReady();
   pipeline->onWriteReady();
+  eventBase_.loopOnce(EVLOOP_NONBLOCK);
 
   EXPECT_THAT(
       std::tuple(transport_.writeCount(), pipeline->hasPendingWriteReady()),

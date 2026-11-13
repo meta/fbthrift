@@ -23,6 +23,7 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ErasedStaticHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ErasedStaticSegment.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ReadyWaiters.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/StaticHandler.h>
 
 #include <glog/logging.h>
@@ -30,6 +31,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -662,7 +664,7 @@ class StaticPipelineImpl final {
       headHandler_->onPipelineInactive();
     }
     state_ = State::Closed;
-    writeReadyList_.clear();
+    writeReadyWaiters_.clear();
     readReadyList_.clear();
     callHandlerRemovedImpl();
   }
@@ -674,7 +676,7 @@ class StaticPipelineImpl final {
     return kHandlerCount + staticHandlerCount();
   }
   bool hasPendingWriteReady() const noexcept {
-    return !writeReadyList_.empty();
+    return !writeReadyWaiters_.empty();
   }
   bool hasPendingReadReady() const noexcept { return !readReadyList_.empty(); }
 
@@ -761,22 +763,20 @@ class StaticPipelineImpl final {
     if (isClosed()) {
       return;
     }
-    auto* hook = writeReadyHook<Index>();
-    if (hook != nullptr && !hook->hook.is_linked()) {
-      writeReadyList_.push_back(*hook);
+    if (hasWriteReadyHook<Index>()) {
+      writeReadyWaiters_.arm(logicalHandlerIndex<Index>());
     }
   }
   template <std::size_t Index>
   void cancelAwaitWriteReady() noexcept {
-    auto* hook = writeReadyHook<Index>();
-    if (hook != nullptr && hook->hook.is_linked()) {
-      hook->hook.unlink();
+    if (hasWriteReadyHook<Index>()) {
+      writeReadyWaiters_.cancel(logicalHandlerIndex<Index>());
     }
   }
   template <std::size_t Index>
   bool isAwaitingWriteReady() const noexcept {
-    auto* hook = const_cast<Self*>(this)->template writeReadyHook<Index>();
-    return hook != nullptr && hook->hook.is_linked();
+    return const_cast<Self*>(this)->template hasWriteReadyHook<Index>() &&
+        writeReadyWaiters_.isArmed(logicalHandlerIndex<Index>());
   }
   template <std::size_t Index>
   void awaitReadReady() noexcept {
@@ -801,6 +801,17 @@ class StaticPipelineImpl final {
     return hook != nullptr && hook->hook.is_linked();
   }
 
+  // Wakes the head endpoint, then each waiting handler from the head toward
+  // the tail, then the tail. The pass ends early, without the tail, when the
+  // head endpoint waits again or the pipeline closes.
+  //
+  // Each handler wakes at most once per pass. A handler that arms behind the
+  // walk, also in its own callback, waits for the next pass. So a handler that
+  // waits for a state of its own must start a pass itself when that state
+  // clears.
+  //
+  // While the pipeline is open, a call made during a pass runs as one more pass
+  // after it.
   void onWriteReady() noexcept {
     Guard guard(this);
     if (isClosed()) {
@@ -810,41 +821,39 @@ class StaticPipelineImpl final {
       writeReadyDispatchPending_ = true;
       return;
     }
+
     writeReadyDispatching_ = true;
+    const std::size_t headIndex = handlerCount();
     do {
       bool blocked = false;
       writeReadyDispatchPending_ = false;
-      const auto generation = ++writeReadyGeneration_;
+
       // Write capacity originates at the head endpoint. Let it consume the
       // edge before upstream handlers retry so they observe the updated
       // transport state.
-      if (headWriteReadyHook_.hook.is_linked()) {
-        headWriteReadyHook_.lastNotifiedGeneration = generation;
+      if (writeReadyWaiters_.isArmed(headIndex)) {
         dispatchHeadWriteReady();
-        blocked = isClosed() || headWriteReadyHook_.hook.is_linked();
+        blocked = isClosed() || writeReadyWaiters_.isArmed(headIndex);
       }
+
+      // A callback may arm or cancel any handler, so the walk looks up the next
+      // waiting handler after each one. It never finds the head endpoint,
+      // because the pass stops as soon as the head endpoint waits.
+      std::size_t begin = 0;
       while (!blocked) {
-        WriteReadyHook* next = nullptr;
-        for (auto& hook : writeReadyList_) {
-          if (hook.lastNotifiedGeneration != generation) {
-            next = &hook;
-            break;
-          }
-        }
-        if (next == nullptr) {
+        const std::optional<std::size_t> next =
+            writeReadyWaiters_.lowestArmedFrom(begin);
+        if (!next) {
           break;
         }
-        next->lastNotifiedGeneration = generation;
-        if (next->handlerIndex == handlerCount()) {
-          dispatchHeadWriteReady();
-        } else {
-          dispatchWriteReadyTarget(next->handlerIndex);
-        }
-        if (isClosed() || headWriteReadyHook_.hook.is_linked()) {
+        begin = *next + 1;
+        dispatchWriteReadyTarget(*next);
+        if (isClosed() || writeReadyWaiters_.isArmed(headIndex)) {
           blocked = true;
           break;
         }
       }
+
       if (!blocked) {
         tailHandler_->onWriteReady();
       }
@@ -962,7 +971,7 @@ class StaticPipelineImpl final {
     if (state_ != State::Closed) {
       deactivateImpl();
       state_ = State::Closed;
-      writeReadyList_.clear();
+      writeReadyWaiters_.clear();
       readReadyList_.clear();
       callHandlerRemovedImpl();
     }
@@ -1122,13 +1131,9 @@ class StaticPipelineImpl final {
 
   template <std::size_t... Index>
   void initializeHooks(std::index_sequence<Index...>) noexcept {
-    headWriteReadyHook_.handlerIndex = handlerCount();
     (initializeHook<Index>(), ...);
     for (std::size_t i = 0; i < staticHandlerCount(); ++i) {
       const auto logicalIndex = kStaticHandlerIndex + i;
-      if (auto* hook = staticWriteReadyHook(i)) {
-        hook->handlerIndex = logicalIndex;
-      }
       if (auto* hook = staticReadReadyHook(i)) {
         hook->handlerIndex = logicalIndex;
       }
@@ -1137,19 +1142,18 @@ class StaticPipelineImpl final {
   template <std::size_t Index>
   void initializeHook() noexcept {
     auto& slot = handlerAt<Index>();
-    if (auto* hook = slot.writeReadyHook()) {
-      hook->handlerIndex = logicalHandlerIndex<Index>();
-    }
     if (auto* hook = slot.readReadyHook()) {
       hook->handlerIndex = logicalHandlerIndex<Index>();
     }
   }
+  // Index kHandlerCount is the head endpoint, which can always wait for write
+  // ready and never for read ready.
   template <std::size_t Index>
-  WriteReadyHook* writeReadyHook() noexcept {
+  bool hasWriteReadyHook() noexcept {
     if constexpr (Index == kHandlerCount) {
-      return &headWriteReadyHook_;
+      return true;
     } else {
-      return handlerAt<Index>().writeReadyHook();
+      return handlerAt<Index>().writeReadyHook() != nullptr;
     }
   }
   template <std::size_t Index>
@@ -1699,22 +1703,18 @@ class StaticPipelineImpl final {
   }
 
   void awaitStaticWriteReady(std::size_t index) noexcept {
-    if (!isClosed()) {
-      if (auto* hook = staticWriteReadyHook(index);
-          hook != nullptr && !hook->hook.is_linked()) {
-        writeReadyList_.push_back(*hook);
-      }
+    if (!isClosed() && staticWriteReadyHook(index) != nullptr) {
+      writeReadyWaiters_.arm(kStaticHandlerIndex + index);
     }
   }
   void cancelStaticWriteReady(std::size_t index) noexcept {
-    if (auto* hook = staticWriteReadyHook(index);
-        hook != nullptr && hook->hook.is_linked()) {
-      hook->hook.unlink();
+    if (staticWriteReadyHook(index) != nullptr) {
+      writeReadyWaiters_.cancel(kStaticHandlerIndex + index);
     }
   }
   bool isAwaitingStaticWriteReady(std::size_t index) const noexcept {
-    auto* hook = const_cast<Self*>(this)->staticWriteReadyHook(index);
-    return hook != nullptr && hook->hook.is_linked();
+    return const_cast<Self*>(this)->staticWriteReadyHook(index) != nullptr &&
+        writeReadyWaiters_.isArmed(kStaticHandlerIndex + index);
   }
   void awaitStaticReadReady(std::size_t index) noexcept {
     if (!isClosed()) {
@@ -1767,10 +1767,9 @@ class StaticPipelineImpl final {
       staticSegments_;
   EndpointContext endpointContext_;
   State state_{State::Inactive};
-  WriteReadyList writeReadyList_;
+  // The write set has one more index, handlerCount(), for the head endpoint.
+  ReadyWaiters writeReadyWaiters_;
   ReadReadyList readReadyList_;
-  WriteReadyHook headWriteReadyHook_;
-  std::size_t writeReadyGeneration_{0};
   std::size_t readReadyGeneration_{0};
   std::size_t guardCount_{0};
   bool writeReadyDispatching_{false};

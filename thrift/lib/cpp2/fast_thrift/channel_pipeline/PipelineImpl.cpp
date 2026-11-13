@@ -21,6 +21,7 @@
 #include <functional>
 #include <limits>
 #include <memory>
+#include <optional>
 
 #include <folly/CppAttributes.h>
 
@@ -135,11 +136,7 @@ void PipelineImpl::initializeStorageViews(
   handlerMap_ = handlerMap;
 
   const auto N = handlers_.size();
-  headWriteReadyHook_.handlerIndex = N;
   for (size_t i = 0; i < N; ++i) {
-    if (handlers_[i].writeReadyHook_) {
-      handlers_[i].writeReadyHook_->handlerIndex = i;
-    }
     if (handlers_[i].readReadyHook_) {
       handlers_[i].readReadyHook_->handlerIndex = i;
     }
@@ -636,8 +633,8 @@ void PipelineImpl::close() noexcept {
   deactivate();
   state_ = State::Closed;
 
-  // Clear ready lists - handlers should not receive callbacks after close
-  writeReadyList_.clear();
+  // Clear ready waiters - handlers should not receive callbacks after close
+  writeReadyWaiters_.clear();
   readReadyList_.clear();
 
   callHandlerRemoved();
@@ -765,49 +762,39 @@ PIPELINE_HOT_PATH void PipelineImpl::onWriteReady() noexcept {
   }
   writeReadyDispatching_ = true;
 
+  const size_t headIndex = handlers_.size();
   bool propagationBlocked = false;
   do {
     writeReadyDispatchPending_ = false;
-    // A callback may unlink and re-arm its hook. Mark each hook before
-    // dispatch and restart list inspection after every callback so no iterator
-    // survives arbitrary hook mutation.
-    const auto generation = ++writeReadyGeneration_;
 
     // Write capacity originates at the head endpoint. Let it consume the edge
     // before upstream handlers retry so they observe the updated transport
     // state.
-    if (headWriteReadyHook_.hook.is_linked()) {
-      headWriteReadyHook_.lastNotifiedGeneration = generation;
+    if (writeReadyWaiters_.isArmed(headIndex)) {
       DCHECK(headOnWriteReadyFn_);
       headOnWriteReadyFn_(headHandler_, headCtx_);
-      if (state_ == State::Closed || headWriteReadyHook_.hook.is_linked()) {
+      if (state_ == State::Closed || writeReadyWaiters_.isArmed(headIndex)) {
         propagationBlocked = true;
         break;
       }
     }
 
+    // A callback may arm or cancel any handler, so the walk looks up the next
+    // waiting handler after each one. It never finds the head endpoint, because
+    // the pass stops as soon as the head endpoint waits.
+    size_t begin = 0;
     while (true) {
-      WriteReadyHook* next = nullptr;
-      for (auto& hook : writeReadyList_) {
-        if (hook.lastNotifiedGeneration != generation) {
-          next = &hook;
-          break;
-        }
-      }
-      if (next == nullptr) {
+      const std::optional<size_t> next =
+          writeReadyWaiters_.lowestArmedFrom(begin);
+      if (!next) {
         break;
       }
-      next->lastNotifiedGeneration = generation;
-      const size_t i = next->handlerIndex;
-      if (i == handlers_.size()) {
-        DCHECK(headOnWriteReadyFn_);
-        headOnWriteReadyFn_(headHandler_, headCtx_);
-      } else {
-        DCHECK(handlers_[i].onWriteReadyFn);
-        DCHECK_LT(i, contexts_.size());
-        handlers_[i].onWriteReadyFn(handlers_[i].handlerPtr, contexts_[i]);
-      }
-      if (state_ == State::Closed || headWriteReadyHook_.hook.is_linked()) {
+      const size_t i = *next;
+      begin = i + 1;
+      DCHECK_LT(i, contexts_.size());
+      DCHECK(handlers_[i].onWriteReadyFn);
+      handlers_[i].onWriteReadyFn(handlers_[i].handlerPtr, contexts_[i]);
+      if (state_ == State::Closed || writeReadyWaiters_.isArmed(headIndex)) {
         propagationBlocked = true;
         break;
       }

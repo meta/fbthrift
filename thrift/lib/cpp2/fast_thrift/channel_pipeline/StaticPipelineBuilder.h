@@ -21,6 +21,7 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ReadyWaiters.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/StaticPipeline.h>
 
 #include <cstddef>
@@ -58,7 +59,13 @@ inline constexpr bool kOverriddenHandlersBuilt<std::tuple<Tag...>, Entry...> =
     (!kStaticHandlerIdUnique<Tag::id, Entry...> && ...);
 } // namespace detail
 
-/** Builder for a pipeline whose handler types, IDs, and order are fixed. */
+/**
+ * Builder for a pipeline whose handler types, IDs, and order are fixed.
+ *
+ * A pipeline holds at most 63 handlers. Typed handlers, erased handlers and
+ * the handlers inside each segment all count. build() throws
+ * std::length_error for more.
+ */
 template <
     typename HeadHandler,
     typename TailHandler,
@@ -335,6 +342,7 @@ class StaticPipelineBuilder {
         detail::kOverriddenHandlersBuilt<typename Overrides::Tags, Entry...>,
         "each tag in Overrides::Tags must name a handler of the pipeline");
     validateRequired();
+    validateHandlerCount();
     validateHandlerIds();
     using Impl = detail::StaticPipelineImpl<
         HeadHandler,
@@ -477,6 +485,17 @@ class StaticPipelineBuilder {
     }
     if (!allocatorSource_.present()) {
       throw std::runtime_error("StaticPipelineBuilder: allocator is required");
+    }
+  }
+
+  void validateHandlerCount() const {
+    std::size_t count = sizeof...(Entry) + staticHandlers_.size();
+    for (const auto& segment : staticSegments_) {
+      count += segment.handlerCount();
+    }
+    if (count > detail::kMaxPipelineHandlers) {
+      throw std::length_error(
+          "StaticPipelineBuilder: pipeline handler capacity exceeded");
     }
   }
 

@@ -208,7 +208,7 @@ struct EchoHandler {
 
 // Backpressure handler
 
-// Backpressure handler - has hook for intrusive list registration
+// Backpressure handler - has hook for write ready registration
 // Simulates a handler that registers for write ready notifications
 struct BackpressureHandler {
   WriteReadyHook writeReadyHook_;
@@ -1605,11 +1605,11 @@ BENCHMARK_DRAW_LINE();
 
 // =============================================================================
 // Backpressure Benchmarks
-// Measures overhead of intrusive list registration/unregistration and callbacks
+// Measures overhead of ready registration/unregistration and callbacks
 // =============================================================================
 
 // Measures the overhead of awaitWriteReady + cancelAwaitWriteReady cycle
-// This is pure intrusive list push_back + unlink cost
+// This is pure bit set + clear cost
 BENCHMARK(Backpressure_RegisterUnregister_1Handler, iters) {
   folly::BenchmarkSuspender susp;
   folly::EventBase evb;
@@ -1670,9 +1670,9 @@ BENCHMARK(Pipeline_FireWrite_Backpressure_ResumeWrite, iters) {
   susp.dismiss();
 
   // Measure repeated onWriteReady calls
-  // Handler unlinks then re-registers via the fireWrite call
+  // Handler unregisters then re-registers via the fireWrite call
   for (size_t i = 0; i < iters; ++i) {
-    pipeline->onWriteReady(); // Calls callback, handler unlinks
+    pipeline->onWriteReady(); // Calls callback, handler unregisters
     // Re-register for next iteration (clone is cheap, no heap allocation)
     (void)pipeline->fireWrite(TypeErasedBox(templateBuf->clone()));
   }

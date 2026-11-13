@@ -22,6 +22,7 @@
 
 #include <cstdint>
 #include <folly/io/async/EventBase.h>
+#include <folly/portability/GMock.h>
 #include <folly/portability/GTest.h>
 
 #include <algorithm>
@@ -31,6 +32,8 @@
 #include <vector>
 
 namespace apache::thrift::fast_thrift::channel_pipeline::test {
+
+using namespace testing;
 
 class alignas(64) InlineStorageTestHandler : public MockHandler {
  public:
@@ -607,6 +610,44 @@ TEST_F(PipelineBuilderTest, LargeStorageHasNoInlineLimit) {
           evb_, transport_, app_, allocator_, 17)
           ->handlerCount(),
       17);
+}
+
+TEST_F(PipelineBuilderTest, RejectsMoreThan63Handlers) {
+  EXPECT_THAT(
+      buildPipelineWithHandlers<pipeline_storage::Large>(
+          evb_, transport_, app_, allocator_, 63)
+          ->handlerCount(),
+      Eq(63));
+  EXPECT_THAT(
+      [&] {
+        buildPipelineWithHandlers<pipeline_storage::Large>(
+            evb_, transport_, app_, allocator_, 64);
+      },
+      Throws<std::length_error>());
+}
+
+TEST_F(PipelineBuilderTest, AddErasedHandlerRejectsThe64thHandler) {
+  PipelineBuilder<
+      MockHeadHandler,
+      MockTailHandler,
+      TestAllocator,
+      pipeline_storage::Large>
+      builder;
+  builder.setEventBase(&evb_)
+      .setHead(&transport_)
+      .setTail(&app_)
+      .setAllocator(&allocator_);
+  for (std::size_t i = 0; i < 63; ++i) {
+    builder.addNextDuplex<MockHandler>(static_cast<HandlerId>(i + 1));
+  }
+
+  EXPECT_THAT(
+      [&] {
+        builder.addErasedHandler(
+            detail::makeHandlerNode<MockHandler>(
+                static_cast<HandlerId>(64), std::make_unique<MockHandler>()));
+      },
+      Throws<std::length_error>());
 }
 
 TEST_F(

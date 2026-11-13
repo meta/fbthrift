@@ -1554,10 +1554,9 @@ class YieldingSrptFrameFragmentationHandlerPipelineTest : public Test {
         .build();
   }
 
-  // A write-ready pass wakes each registered handler once, in the order they
-  // registered. Here the writer above runs first while the fragmenter is still
-  // blocked, so it gets Backpressure and keeps its last frame. Then the
-  // fragmenter clears its block, and the writer must still get to send it.
+  // The writer above queues the frames that arrive while the transport is
+  // full. A write-ready pass wakes the fragmenter before the writer, so once
+  // the fragmenter clears its block, the writer must get to send its queue.
   void verifyWriterAboveSendsItsQueueAfterTheBlockClears(auto pipeline) {
     transport_.setWriteResult(cp::Result::Backpressure);
     for (const uint32_t streamId : {1, 3, 5, 7}) {
@@ -1568,8 +1567,8 @@ class YieldingSrptFrameFragmentationHandlerPipelineTest : public Test {
     }
     EXPECT_THAT(transport_.writeCount(), Eq(1));
 
-    // The first write of the next pass fills the transport again. The
-    // fragmenter then registers again, behind the writer.
+    // The first write of the next pass fills the transport again, so the
+    // writer sends the rest of its queue in the pass after it.
     transport_.setWriteResult(cp::Result::Success);
     transport_.setNextWriteResults({cp::Result::Backpressure});
     pipeline->onWriteReady();
@@ -1614,7 +1613,7 @@ TEST_F(
 
 TEST_F(
     YieldingSrptFrameFragmentationHandlerPipelineTest,
-    TheWriterAboveSendsAfterAFrameQueuedWhileBlocked) {
+    TheWriterAboveSendsAFrameLongerThanAQuantumAfterTheBlockClears) {
   auto pipeline = buildDynamicPipelineWithWriterAbove();
   transport_.setWriteResult(cp::Result::Backpressure);
   (void)pipeline->fireWrite(makeFrame(FrameType::REQUEST_RESPONSE, 1, 50));

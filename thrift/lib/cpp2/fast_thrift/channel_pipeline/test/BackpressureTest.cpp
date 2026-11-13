@@ -20,11 +20,19 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockHandler.h>
 
 #include <folly/io/async/EventBase.h>
+#include <folly/portability/GMock.h>
 #include <folly/portability/GTest.h>
 
+#include <deque>
 #include <memory>
+#include <string>
+#include <tuple>
+#include <utility>
+#include <vector>
 
 namespace apache::thrift::fast_thrift::channel_pipeline::test {
+
+using namespace testing;
 
 HANDLER_TAG(head);
 HANDLER_TAG(middle);
@@ -73,6 +81,67 @@ class BackpressureTest : public ::testing::Test {
   MockHandler* tail_ptr_{nullptr};
   PipelineImpl::Ptr pipeline_;
 };
+
+namespace {
+
+// Makes a handler hold every write and answer Backpressure until its first
+// onWriteReady(), which forwards what it holds. Later writes go straight
+// through.
+struct WriteHolder {
+  void install(MockHandler& handler) {
+    handler.setOnWrite([this](detail::ContextImpl& ctx, TypeErasedBox&& msg) {
+      if (!blocked) {
+        return ctx.fireWrite(std::move(msg));
+      }
+      held.push_back(std::move(msg));
+      ctx.awaitWriteReady();
+      return Result::Backpressure;
+    });
+
+    handler.setOnWriteReady([this](detail::ContextImpl& ctx) {
+      blocked = false;
+      ctx.cancelAwaitWriteReady();
+      for (TypeErasedBox& msg : held) {
+        (void)ctx.fireWrite(std::move(msg));
+      }
+      held.clear();
+    });
+  }
+
+  bool blocked{true};
+  std::vector<TypeErasedBox> held;
+};
+
+// Makes a handler queue every write and wait for write-ready. When it wakes, it
+// writes the queued messages until a write returns Backpressure, and records
+// each result.
+struct QueuedWriter {
+  void install(MockHandler& handler) {
+    handler.setOnWrite([this](detail::ContextImpl& ctx, TypeErasedBox&& msg) {
+      queued.push_back(std::move(msg));
+      ctx.awaitWriteReady();
+      return Result::Backpressure;
+    });
+
+    handler.setOnWriteReady([this](detail::ContextImpl& ctx) {
+      ctx.cancelAwaitWriteReady();
+      while (!queued.empty()) {
+        const Result result = ctx.fireWrite(std::move(queued.front()));
+        queued.pop_front();
+        results.push_back(result);
+        if (result == Result::Backpressure) {
+          ctx.awaitWriteReady();
+          break;
+        }
+      }
+    });
+  }
+
+  std::deque<TypeErasedBox> queued;
+  std::vector<Result> results;
+};
+
+} // namespace
 
 // ==================== Explicit Backpressure API Tests ====================
 
@@ -271,6 +340,164 @@ TEST_F(BackpressureTest, HeadEndpointReceivesWriteReadyBeforeHandlers) {
   EXPECT_EQ(readinessOrder, (std::vector<std::string>{"head", "handler"}));
 }
 
+TEST_F(BackpressureTest, WriteReadyWakesHandlersFromHeadToTail) {
+  createHandlers();
+  std::vector<std::string> readiness;
+  for (auto [handler, name] :
+       {std::pair{head_handler_.get(), "head"},
+        std::pair{middle_handler_.get(), "middle"},
+        std::pair{tail_handler_.get(), "tail"}}) {
+    handler->setOnWrite([](detail::ContextImpl& ctx, TypeErasedBox&& msg) {
+      ctx.awaitWriteReady();
+      return ctx.fireWrite(std::move(msg));
+    });
+    handler->setOnWriteReady(
+        [&readiness, label = name](detail::ContextImpl& ctx) {
+          readiness.emplace_back(label);
+          ctx.cancelAwaitWriteReady();
+        });
+  }
+
+  auto pipeline = buildPipeline();
+  // The write reaches the handlers from the tail toward the head, so they arm
+  // their hooks in the order tail, middle, head.
+  EXPECT_THAT(
+      pipeline->fireWrite(TypeErasedBox(folly::IOBuf::create(64))),
+      Eq(Result::Success));
+  pipeline->onWriteReady();
+
+  EXPECT_THAT(readiness, ElementsAre("head", "middle", "tail"));
+}
+
+TEST_F(BackpressureTest, WriteReadyWakesHandlerAboveOneThatStaysArmed) {
+  createHandlers();
+  std::vector<std::string> readiness;
+  for (MockHandler* handler : {head_handler_.get(), middle_handler_.get()}) {
+    handler->setOnWrite([](detail::ContextImpl& ctx, TypeErasedBox&& msg) {
+      ctx.awaitWriteReady();
+      return ctx.fireWrite(std::move(msg));
+    });
+  }
+  head_handler_->setOnWriteReady(
+      [&readiness](detail::ContextImpl&) { readiness.emplace_back("below"); });
+  middle_handler_->setOnWriteReady([&readiness](detail::ContextImpl& ctx) {
+    readiness.emplace_back("above");
+    ctx.cancelAwaitWriteReady();
+  });
+
+  auto pipeline = buildPipeline();
+  EXPECT_THAT(
+      pipeline->fireWrite(TypeErasedBox(folly::IOBuf::create(64))),
+      Eq(Result::Success));
+  pipeline->onWriteReady();
+
+  // The handler below stays armed, and the handler above and the tail still
+  // wake in the same pass.
+  EXPECT_THAT(
+      std::tuple(readiness, transport_.onWriteReadyCount()),
+      Eq(std::tuple(std::vector<std::string>{"below", "above"}, 1)));
+}
+
+TEST_F(BackpressureTest, HandlerArmedBehindThePassWakesInTheNextPass) {
+  createHandlers();
+  WriteHolder below;
+  below.install(*head_handler_);
+  QueuedWriter above;
+  above.install(*middle_handler_);
+  auto pipeline = buildPipeline();
+  // The writer above queues two messages. The handler below does not wait when
+  // the pass starts.
+  EXPECT_THAT(
+      pipeline->fireWrite(TypeErasedBox(folly::IOBuf::create(64))),
+      Eq(Result::Backpressure));
+  EXPECT_THAT(
+      pipeline->fireWrite(TypeErasedBox(folly::IOBuf::create(64))),
+      Eq(Result::Backpressure));
+
+  // The writer wakes and writes into the handler below, which holds the
+  // message and starts to wait behind the pass. The pass does not wake it
+  // again and notifies the tail.
+  pipeline->onWriteReady();
+  const auto afterPass = std::tuple(
+      above.results,
+      app_.writeCount(),
+      pipeline->hasPendingWriteReady(),
+      transport_.onWriteReadyCount());
+  // The next pass wakes the handler below and then the writer.
+  pipeline->onWriteReady();
+
+  EXPECT_THAT(
+      std::tuple(
+          afterPass,
+          above.results,
+          app_.writeCount(),
+          pipeline->hasPendingWriteReady(),
+          transport_.onWriteReadyCount()),
+      Eq(std::tuple(
+          std::tuple(std::vector{Result::Backpressure}, 0, true, 1),
+          std::vector{Result::Backpressure, Result::Success},
+          2,
+          false,
+          2)));
+}
+
+TEST_F(BackpressureTest, HandlerThatArmsAgainInItsCallbackWakesOncePerPass) {
+  createHandlers();
+  head_handler_->setOnWrite([](detail::ContextImpl& ctx, TypeErasedBox&& msg) {
+    ctx.awaitWriteReady();
+    return ctx.fireWrite(std::move(msg));
+  });
+  // The handler arms again in each callback. After 3 wakes it stops, so that a
+  // pass that wakes it again cannot loop forever.
+  int wakes = 0;
+  head_handler_->setOnWriteReady([&wakes](detail::ContextImpl& ctx) {
+    ctx.cancelAwaitWriteReady();
+    if (++wakes < 3) {
+      ctx.awaitWriteReady();
+    }
+  });
+
+  auto pipeline = buildPipeline();
+  EXPECT_THAT(
+      pipeline->fireWrite(TypeErasedBox(folly::IOBuf::create(64))),
+      Eq(Result::Success));
+  pipeline->onWriteReady();
+
+  EXPECT_THAT(
+      std::tuple(
+          wakes,
+          transport_.onWriteReadyCount(),
+          pipeline->hasPendingWriteReady()),
+      Eq(std::tuple(1, 1, true)));
+}
+
+TEST_F(BackpressureTest, HandlerArmedAboveThePassWakesInIt) {
+  createHandlers();
+  std::vector<std::string> readiness;
+  head_handler_->setOnWriteReady([&readiness](detail::ContextImpl& ctx) {
+    readiness.emplace_back("below");
+    ctx.cancelAwaitWriteReady();
+    ctx.pipeline()->context(middle_tag)->awaitWriteReady();
+  });
+  middle_handler_->setOnWriteReady([&readiness](detail::ContextImpl& ctx) {
+    readiness.emplace_back("above");
+    ctx.cancelAwaitWriteReady();
+  });
+  transport_.setOnWriteReadyCallback(
+      [&readiness] { readiness.emplace_back("tail"); });
+  auto pipeline = buildPipeline();
+  pipeline->context(head_tag)->awaitWriteReady();
+
+  // The handler below makes the handler above wait during the pass, and the
+  // pass wakes it before the tail.
+  pipeline->onWriteReady();
+
+  EXPECT_THAT(
+      std::tuple(readiness, pipeline->hasPendingWriteReady()),
+      Eq(std::tuple(
+          std::vector<std::string>{"below", "above", "tail"}, false)));
+}
+
 TEST_F(BackpressureTest, HeadEndpointRearmDefersUpstreamWriteReady) {
   createHandlers();
   bool headStillBackpressured = true;
@@ -388,6 +615,38 @@ TEST_F(BackpressureTest, ReentrantWriteReadyIsCoalesced) {
   EXPECT_EQ(middle_ptr_->writeReadyCount(), 1);
   EXPECT_EQ(transport_.onWriteReadyCount(), 2);
   EXPECT_FALSE(pipeline->hasPendingWriteReady());
+}
+
+TEST_F(BackpressureTest, WriteReadyRequestedDuringAPassThatStopsIsDropped) {
+  createHandlers();
+  app_.setOnWriteWithContextCallback(
+      [](detail::ContextImpl& ctx, TypeErasedBox&&) {
+        ctx.awaitWriteReady();
+        return Result::Backpressure;
+      });
+  app_.setOnWriteReadyCallback(
+      [](detail::ContextImpl& ctx) { ctx.cancelAwaitWriteReady(); });
+
+  // The handler asks for another pass. Its write then makes the head endpoint
+  // wait again, which stops this pass.
+  head_handler_->setOnWriteReady([](detail::ContextImpl& ctx) {
+    ctx.cancelAwaitWriteReady();
+    ctx.pipeline()->onWriteReady();
+    (void)ctx.fireWrite(TypeErasedBox(folly::IOBuf::create(64)));
+  });
+
+  auto pipeline = buildPipeline();
+  pipeline->context(head_tag)->awaitWriteReady();
+
+  pipeline->onWriteReady();
+
+  EXPECT_THAT(
+      std::tuple(
+          head_ptr_->writeReadyCount(),
+          app_.onWriteReadyCount(),
+          transport_.onWriteReadyCount(),
+          pipeline->isHeadWriteBackpressured()),
+      Eq(std::tuple(1, 0, 0, true)));
 }
 
 TEST_F(BackpressureTest, MultipleHandlersCanRegisterForWriteReady) {
@@ -585,6 +844,44 @@ TEST_F(BackpressureTest, ClosedPipelineIgnoresWriteReady) {
   EXPECT_EQ(transport_.onWriteReadyCount(), 0);
 }
 
+TEST_F(BackpressureTest, WriteReadyCallbackThatClosesPipelineSkipsTail) {
+  createHandlers();
+  head_handler_->setOnWriteReady(
+      [](detail::ContextImpl& ctx) { ctx.pipeline()->close(); });
+  auto pipeline = buildPipeline();
+  pipeline->context(head_tag)->awaitWriteReady();
+
+  pipeline->onWriteReady();
+
+  // After close the tail endpoint may be gone, so the pass must not call it.
+  EXPECT_THAT(
+      std::tuple(head_ptr_->writeReadyCount(), transport_.onWriteReadyCount()),
+      Eq(std::tuple(1, 0)));
+}
+
+TEST_F(
+    BackpressureTest,
+    HeadEndpointWriteReadyCallbackThatClosesPipelineSkipsTail) {
+  createHandlers();
+  app_.setOnWriteWithContextCallback(
+      [](detail::ContextImpl& ctx, TypeErasedBox&&) {
+        ctx.awaitWriteReady();
+        return Result::Backpressure;
+      });
+  app_.setOnWriteReadyCallback(
+      [](detail::ContextImpl& ctx) { ctx.pipeline()->close(); });
+  auto pipeline = buildPipeline();
+  EXPECT_THAT(
+      pipeline->fireWrite(TypeErasedBox(folly::IOBuf::create(64))),
+      Eq(Result::Backpressure));
+
+  pipeline->onWriteReady();
+
+  EXPECT_THAT(
+      std::tuple(app_.onWriteReadyCount(), transport_.onWriteReadyCount()),
+      Eq(std::tuple(1, 0)));
+}
+
 TEST_F(BackpressureTest, NoBackpressureDoesNotMarkPending) {
   createHandlers();
 
@@ -620,11 +917,11 @@ TEST_F(BackpressureTest, MultipleWriteReadyCallsAreIdempotent) {
     return Result::Backpressure;
   });
 
-  // Don't cancel on first callback - stay registered
+  // Don't cancel on first callback - stay armed
   int callback_count = 0;
   middle_handler_->setOnWriteReady([&callback_count](detail::ContextImpl&) {
     callback_count++;
-    // Note: Not canceling, so handler stays in list
+    // Note: Not canceling, so handler stays armed
   });
 
   auto pipeline = buildPipeline();
@@ -636,7 +933,7 @@ TEST_F(BackpressureTest, MultipleWriteReadyCallsAreIdempotent) {
   pipeline->onWriteReady();
   EXPECT_EQ(callback_count, 1);
 
-  // Handler is still in list, so second call should also trigger callback
+  // Handler is still armed, so second call should also trigger callback
   pipeline->onWriteReady();
   EXPECT_EQ(callback_count, 2);
 }
@@ -667,10 +964,10 @@ TEST_F(BackpressureTest, AwaitWriteReadyIsIdempotent) {
   EXPECT_EQ(middle_ptr_->writeReadyCount(), 1);
 }
 
-// ==================== Handler Unlink During Callback Tests
+// ==================== Handler Cancel During Callback Tests
 // ====================
 
-TEST_F(BackpressureTest, HandlerCanUnlinkDuringOnWriteReady) {
+TEST_F(BackpressureTest, HandlerCanCancelDuringOnWriteReady) {
   createHandlers();
 
   // Both handlers register
@@ -695,7 +992,7 @@ TEST_F(BackpressureTest, HandlerCanUnlinkDuringOnWriteReady) {
   auto buf = folly::IOBuf::create(64);
   (void)pipeline->fireWrite(TypeErasedBox(std::move(buf)));
 
-  // Should not crash - safe iteration even when handlers unlink themselves
+  // Should not crash - each handler cancels its own wait during the pass
   pipeline->onWriteReady();
 
   EXPECT_EQ(head_ptr_->writeReadyCount(), 1);

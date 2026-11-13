@@ -25,7 +25,9 @@ namespace apache::thrift::fast_thrift::channel_pipeline {
  * can take writes again.
  *
  * Embed it as a public member named `writeReadyHook_`. makeHandlerNode finds
- * it at compile time when the handler is added to the pipeline.
+ * it at compile time when the handler is added to the pipeline. The member
+ * holds no state, because the pipeline records which handlers wait. This
+ * struct will be removed.
  *
  * Result::Backpressure from fireWrite() means the message was accepted, and
  * the transport asks for no more for now. Do not keep that message to resend
@@ -33,9 +35,13 @@ namespace apache::thrift::fast_thrift::channel_pipeline {
  * Queue the messages that come after it instead, and send them from
  * onWriteReady().
  *
- * Call awaitWriteReady() only after a fireWrite() that returned Backpressure.
- * The transport wakes only the handlers it told to stop, so a handler that
- * registers for any other reason never gets onWriteReady().
+ * Call awaitWriteReady() after a fireWrite() that returned Backpressure, or
+ * when the handler waits for a state of its own, such as a full send window.
+ *
+ * The transport starts a write-ready pass only after it returned Backpressure.
+ * So a handler that waits for its own state must call
+ * ctx.pipeline()->onWriteReady() itself when that state clears, or it may
+ * never get onWriteReady().
  *
  * Usage:
  *   class MyHandler {
@@ -67,11 +73,7 @@ namespace apache::thrift::fast_thrift::channel_pipeline {
  *     }
  *   };
  */
-struct WriteReadyHook {
-  folly::IntrusiveListHook hook;
-  size_t handlerIndex{0}; // Set by PipelineImpl during initialization
-  std::size_t lastNotifiedGeneration{0};
-};
+struct WriteReadyHook {};
 
 /**
  * ReadReadyHook provides intrusive list membership for read-ready notification.
@@ -84,13 +86,6 @@ struct ReadReadyHook {
   size_t handlerIndex{0}; // Set by PipelineImpl during initialization
   std::size_t lastNotifiedGeneration{0};
 };
-
-/**
- * List of handlers awaiting write ready notifications.
- * Maintained by PipelineImpl, walked when onWriteReady() is called.
- */
-using WriteReadyList =
-    folly::IntrusiveList<WriteReadyHook, &WriteReadyHook::hook>;
 
 /**
  * List of handlers awaiting read ready notifications.

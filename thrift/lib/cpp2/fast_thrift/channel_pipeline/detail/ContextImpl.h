@@ -83,19 +83,20 @@ class alignas(64) ContextImpl {
   // === Fire methods (propagate to next handler) ===
 
   /**
-   * Propagate pipeline activation to the next inbound handler.
-   * Direction: tail → head (increasing index)
+   * Does nothing. PipelineImpl::activate() notifies every handler from the
+   * head to the tail, so a handler does not pass activation on.
    */
   void activate() noexcept;
 
   /**
    * Fire a read event to the next inbound handler.
-   * Direction: tail → head (increasing index)
+   * Direction: head → tail (increasing index)
    *
    * Uses cached next-handler pointer — no PipelineImpl round-trip.
    *
    * @param msg The message to propagate
-   * @return Result from the next handler (or head endpoint at head)
+   * @return Result from the next handler, or from the tail endpoint for the
+   *         last handler
    */
   FOLLY_ALWAYS_INLINE Result fireRead(TypeErasedBox&& msg) noexcept {
     return nextReadFn_(nextHandler_, *nextCtx_, std::move(msg));
@@ -103,12 +104,13 @@ class alignas(64) ContextImpl {
 
   /**
    * Fire a write event to the next outbound handler.
-   * Direction: head → tail (decreasing index)
+   * Direction: tail → head (decreasing index)
    *
    * Uses cached prev-handler pointer — no PipelineImpl round-trip.
    *
    * @param msg The message to propagate
-   * @return Result from the next handler (or tail endpoint at tail)
+   * @return Result from the next handler, or from the head endpoint for
+   *         handler 0
    */
   FOLLY_ALWAYS_INLINE Result fireWrite(TypeErasedBox&& msg) noexcept {
     return prevWriteFn_(prevHandler_, *prevCtx_, std::move(msg));
@@ -116,7 +118,7 @@ class alignas(64) ContextImpl {
 
   /**
    * Fire an exception event to the next inbound handler.
-   * Direction: tail → head (increasing index)
+   * Direction: head → tail (increasing index)
    *
    * Uses cached next-handler pointer — no PipelineImpl round-trip.
    *
@@ -152,8 +154,9 @@ class alignas(64) ContextImpl {
   }
 
   /**
-   * Propagate pipeline deactivation to the next outbound handler.
-   * Direction: head → tail (decreasing index)
+   * Deactivates this handler and then each handler nearer the head
+   * (decreasing index). From an endpoint's context it deactivates the whole
+   * pipeline.
    */
   void deactivate() noexcept;
 
@@ -206,12 +209,15 @@ class alignas(64) ContextImpl {
   /**
    * Register this handler to receive onWriteReady() callback.
    *
-   * Call this only after a fireWrite() that returned Result::Backpressure.
-   * The transport calls onWriteReady() only after it returned Backpressure
-   * to a write, so a handler that registers for any other reason may never
-   * get onWriteReady(). The handler must have a writeReadyHook_ member
-   * (detected at compile time).
+   * Call this after a fireWrite() that returned Result::Backpressure, or when
+   * the handler waits for a state of its own, such as a full send window.
    *
+   * The transport calls onWriteReady() only after it returned Backpressure to
+   * a write. So a handler that waits for its own state must start the pass
+   * itself with ctx.pipeline()->onWriteReady() when that state clears, or it
+   * may never get onWriteReady().
+   *
+   * The handler must have a writeReadyHook_ member (detected at compile time).
    * No-op if the handler doesn't have a writeReadyHook_ or is already
    * registered.
    */
@@ -220,8 +226,8 @@ class alignas(64) ContextImpl {
   /**
    * Cancel pending await for write ready.
    *
-   * Call this after successfully processing buffered messages to unregister
-   * from the write ready list.
+   * Call this after successfully processing buffered messages to stop waiting
+   * for onWriteReady().
    *
    * No-op if not currently awaiting.
    */

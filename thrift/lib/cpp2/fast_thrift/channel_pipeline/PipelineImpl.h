@@ -29,6 +29,7 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineStorage.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/HandlerNode.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ReadyWaiters.h>
 
 #include <algorithm>
 #include <cstddef>
@@ -434,9 +435,17 @@ class alignas(detail::ContextImpl) PipelineImpl
   // === Backpressure / Ready Notifications ===
 
   /**
-   * Called by tail when it can accept more writes.
-   * Propagates onWriteReady() to all handlers with pending write
-   * backpressure.
+   * Wakes the head endpoint, then each waiting handler from the head toward
+   * the tail, then the tail. The pass ends early, without the tail, when the
+   * head endpoint waits again or the pipeline closes.
+   *
+   * Each handler wakes at most once per pass. A handler that arms behind the
+   * walk, also in its own callback, waits for the next pass. So a handler that
+   * waits for a state of its own must start a pass itself when that state
+   * clears.
+   *
+   * A call made during a pass runs as one more pass after it, unless the pass
+   * ended early.
    */
   void onWriteReady() noexcept;
 
@@ -444,14 +453,14 @@ class alignas(detail::ContextImpl) PipelineImpl
    * Check if any handlers have pending write backpressure.
    */
   bool hasPendingWriteReady() const noexcept {
-    return !writeReadyList_.empty();
+    return !writeReadyWaiters_.empty();
   }
 
   /**
    * Check whether the head endpoint currently owns write backpressure.
    */
   bool isHeadWriteBackpressured() const noexcept {
-    return headWriteReadyHook_.hook.is_linked();
+    return writeReadyWaiters_.isArmed(handlers_.size());
   }
 
   /**
@@ -466,25 +475,19 @@ class alignas(detail::ContextImpl) PipelineImpl
    */
   bool hasPendingReadReady() const noexcept { return !readReadyList_.empty(); }
 
-  // === Internal: Hook accessors for ContextImpl ===
+  // === Internal: ready registration for ContextImpl ===
 
   /**
-   * Get the write ready hook for a handler by index.
-   * Returns nullptr if handler doesn't have a hook.
+   * Whether the handler at this index has a write ready hook. Index
+   * handlerCount() is the head endpoint, which counts as having one if it
+   * takes onWriteReady().
    */
-  WriteReadyHook* handlerWriteReadyHook(size_t index) noexcept {
+  bool hasWriteReadyHook(size_t index) const noexcept {
     if (index < handlers_.size()) {
-      return handlers_[index].writeReadyHook_;
+      return handlers_[index].writeReadyHook_ != nullptr;
     }
-    return index == handlers_.size() && headOnWriteReadyFn_
-        ? &headWriteReadyHook_
-        : nullptr;
+    return index == handlers_.size() && headOnWriteReadyFn_ != nullptr;
   }
-
-  /**
-   * Get the write ready list for registration.
-   */
-  WriteReadyList& writeReadyList() noexcept { return writeReadyList_; }
 
   /**
    * Get the read ready hook for a handler by index.
@@ -522,7 +525,7 @@ class alignas(detail::ContextImpl) PipelineImpl
     }
     if (state_ != State::Closed) {
       state_ = State::Closed;
-      writeReadyList_.clear();
+      writeReadyWaiters_.clear();
       readReadyList_.clear();
       callHandlerRemovedImpl();
     }
@@ -530,6 +533,10 @@ class alignas(detail::ContextImpl) PipelineImpl
   }
 
  private:
+  detail::ReadyWaiters& writeReadyWaiters() noexcept {
+    return writeReadyWaiters_;
+  }
+
   struct TypeEventSlot {
     EventKey key{nullptr};
     TypeEventDispatch* subscribers{nullptr};
@@ -635,12 +642,12 @@ class alignas(detail::ContextImpl) PipelineImpl
 
   State state_{State::Inactive};
 
-  // Intrusive lists tracking handlers awaiting write/read ready notifications.
+  // Handlers awaiting write ready notifications, by handler index, and an
+  // intrusive list of handlers awaiting read ready notifications.
   // Handlers self-register via ctx.awaitWriteReady()/ctx.awaitReadReady().
-  WriteReadyList writeReadyList_;
+  // The write set has one more index, handlerCount(), for the head endpoint.
+  detail::ReadyWaiters writeReadyWaiters_;
   ReadReadyList readReadyList_;
-  WriteReadyHook headWriteReadyHook_;
-  std::size_t writeReadyGeneration_{0};
   std::size_t readReadyGeneration_{0};
   bool writeReadyDispatching_{false};
   bool writeReadyDispatchPending_{false};
@@ -701,7 +708,7 @@ class alignas(detail::ContextImpl) PipelineImpl
   template <std::size_t>
   friend class detail::InlinePipelineImpl;
 
-  // ContextImpl needs access to ready lists for registration
+  // ContextImpl needs access to ready waiters for registration
   friend class detail::ContextImpl;
   template <typename EventSet>
   friend class EventPublisherHandle;

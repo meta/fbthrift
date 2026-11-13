@@ -174,8 +174,8 @@ class PayloadPrefetchHandler {
     CHECK_LT(replenishThreshold_, capacity_);
   }
 
-  // Detected by makeHandlerNode — registers this handler on the pipeline's
-  // writeReadyList so onWriteReady() fires when the transport drains.
+  // Detected by makeHandlerNode — lets this handler wait for write ready,
+  // so onWriteReady() fires when the transport drains.
   channel_pipeline::WriteReadyHook writeReadyHook_;
 
   // HandlerLifecycle

@@ -195,7 +195,12 @@ class MockTailHandler {
   void onPipelineInactive() noexcept { pipelineInactiveCount_++; }
 
   // TailEndpointHandler ready notification
-  void onWriteReady() noexcept { onWriteReadyCount_++; }
+  void onWriteReady() noexcept {
+    onWriteReadyCount_++;
+    if (onWriteReadyCallback_) {
+      onWriteReadyCallback_();
+    }
+  }
 
   // Configuration
   void setReadResult(Result result) { readResult_ = result; }
@@ -204,6 +209,10 @@ class MockTailHandler {
 
   void setOnExceptionCallback(OnExceptionCallback cb) {
     onExceptionCallback_ = std::move(cb);
+  }
+
+  void setOnWriteReadyCallback(std::function<void()> cb) {
+    onWriteReadyCallback_ = std::move(cb);
   }
 
   // Inspection
@@ -229,6 +238,7 @@ class MockTailHandler {
     pipelineActiveCount_ = 0;
     pipelineInactiveCount_ = 0;
     onWriteReadyCount_ = 0;
+    onWriteReadyCallback_ = nullptr;
   }
 
  private:
@@ -238,6 +248,7 @@ class MockTailHandler {
   Result readResult_{Result::Success};
   OnReadCallback onReadCallback_;
   OnExceptionCallback onExceptionCallback_;
+  std::function<void()> onWriteReadyCallback_;
   int handlerAddedCount_{0};
   int handlerRemovedCount_{0};
   int pipelineActiveCount_{0};

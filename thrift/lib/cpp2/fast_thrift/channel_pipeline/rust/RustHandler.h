@@ -89,10 +89,11 @@ namespace channel_pipeline_rust {
  * ## Result and backpressure mapping
  *
  * Rust `HandlerResult` discriminants map directly to C++ `Result`:
- * `Success=0`, `Backpressure=1`, `Error=2`. When Rust returns `Backpressure`,
- * the shim arms the corresponding intrusive readiness hook
- * (`ctx.awaitReadReady()` / `ctx.awaitWriteReady()`) before returning. The
- * hook is one-shot and cancelled by the shim before the next Rust ready
+ * `Success=0`, `Backpressure=1`, `Error=2`.
+ *
+ * When Rust returns `Backpressure`, the shim arms the corresponding readiness
+ * hook (`ctx.awaitReadReady()` / `ctx.awaitWriteReady()`) before returning.
+ * The hook is one-shot and cancelled by the shim before the next Rust ready
  * callback.
  *
  * ## Error and panic containment

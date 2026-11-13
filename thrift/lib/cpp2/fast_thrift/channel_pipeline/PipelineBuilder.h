@@ -25,6 +25,7 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineStorage.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/HandlerNode.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ReadyWaiters.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/TypedContext.h>
 
 #include <cstddef>
@@ -88,6 +89,9 @@ using HandlerStorageT = typename HandlerStorage<Storage>::type;
  *   - addNextInbound<H>:  H must satisfy InboundHandler concept
  *   - addNextOutbound<H>: H must satisfy OutboundHandler concept
  *   - addNextDuplex<H>:   H must satisfy DuplexHandler concept
+ *
+ * A pipeline holds at most 63 handlers. Adding one more throws
+ * std::length_error.
  *
  * Usage:
  *   HANDLER_TAG(codec);
@@ -683,6 +687,9 @@ class PipelineBuilder {
   }
 
   void ensureHandlerCapacity() const {
+    if (handlers_.size() >= detail::kMaxPipelineHandlers) {
+      throw std::length_error("pipeline handler capacity exceeded");
+    }
     if constexpr (pipeline_storage::kIsInline<Storage>) {
       if (handlers_.size() >= Storage::maxHandlers) {
         throw std::length_error("inline pipeline handler capacity exceeded");
