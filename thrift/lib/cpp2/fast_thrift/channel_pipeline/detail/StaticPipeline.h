@@ -457,7 +457,6 @@ class StaticPipelineImpl final {
       allocator_ = ownedAllocator_.construct(allocatorSource);
     }
     bindStaticHandlerContexts();
-    initializeHooks(std::make_index_sequence<kHandlerCount>{});
   }
 
   StaticPipelineImpl(const StaticPipelineImpl&) = delete;
@@ -665,7 +664,7 @@ class StaticPipelineImpl final {
     }
     state_ = State::Closed;
     writeReadyWaiters_.clear();
-    readReadyList_.clear();
+    readReadyWaiters_.clear();
     callHandlerRemovedImpl();
   }
 
@@ -678,7 +677,9 @@ class StaticPipelineImpl final {
   bool hasPendingWriteReady() const noexcept {
     return !writeReadyWaiters_.empty();
   }
-  bool hasPendingReadReady() const noexcept { return !readReadyList_.empty(); }
+  bool hasPendingReadReady() const noexcept {
+    return !readReadyWaiters_.empty();
+  }
 
   folly::EventBase* eventBase() const noexcept { return eventBase_; }
   BytesPtr allocate(std::size_t size) noexcept {
@@ -783,22 +784,20 @@ class StaticPipelineImpl final {
     if (isClosed()) {
       return;
     }
-    auto* hook = readReadyHook<Index>();
-    if (hook != nullptr && !hook->hook.is_linked()) {
-      readReadyList_.push_back(*hook);
+    if (hasReadReadyHook<Index>()) {
+      readReadyWaiters_.arm(logicalHandlerIndex<Index>());
     }
   }
   template <std::size_t Index>
   void cancelAwaitReadReady() noexcept {
-    auto* hook = readReadyHook<Index>();
-    if (hook != nullptr && hook->hook.is_linked()) {
-      hook->hook.unlink();
+    if (hasReadReadyHook<Index>()) {
+      readReadyWaiters_.cancel(logicalHandlerIndex<Index>());
     }
   }
   template <std::size_t Index>
   bool isAwaitingReadReady() const noexcept {
-    auto* hook = const_cast<Self*>(this)->template readReadyHook<Index>();
-    return hook != nullptr && hook->hook.is_linked();
+    return const_cast<Self*>(this)->template hasReadReadyHook<Index>() &&
+        readReadyWaiters_.isArmed(logicalHandlerIndex<Index>());
   }
 
   // Wakes the head endpoint, then each waiting handler from the head toward
@@ -870,27 +869,27 @@ class StaticPipelineImpl final {
       readReadyDispatchPending_ = true;
       return;
     }
+
     readReadyDispatching_ = true;
     do {
       readReadyDispatchPending_ = false;
-      const auto generation = ++readReadyGeneration_;
+
+      // A callback may arm or cancel any handler, so the walk looks up the next
+      // waiting handler after each one.
+      std::size_t end = handlerCount();
       while (true) {
-        ReadReadyHook* next = nullptr;
-        for (auto& hook : readReadyList_) {
-          if (hook.lastNotifiedGeneration != generation) {
-            next = &hook;
-            break;
-          }
-        }
-        if (next == nullptr) {
+        const std::optional<std::size_t> next =
+            readReadyWaiters_.highestArmedBelow(end);
+        if (!next) {
           break;
         }
-        next->lastNotifiedGeneration = generation;
-        dispatchReadReadyTarget(next->handlerIndex);
+        end = *next;
+        dispatchReadReadyTarget(*next);
         if (isClosed()) {
           break;
         }
       }
+
       if (!isClosed()) {
         headHandler_->onReadReady();
       }
@@ -972,7 +971,7 @@ class StaticPipelineImpl final {
       deactivateImpl();
       state_ = State::Closed;
       writeReadyWaiters_.clear();
-      readReadyList_.clear();
+      readReadyWaiters_.clear();
       callHandlerRemovedImpl();
     }
   }
@@ -1129,23 +1128,6 @@ class StaticPipelineImpl final {
     }
   }
 
-  template <std::size_t... Index>
-  void initializeHooks(std::index_sequence<Index...>) noexcept {
-    (initializeHook<Index>(), ...);
-    for (std::size_t i = 0; i < staticHandlerCount(); ++i) {
-      const auto logicalIndex = kStaticHandlerIndex + i;
-      if (auto* hook = staticReadReadyHook(i)) {
-        hook->handlerIndex = logicalIndex;
-      }
-    }
-  }
-  template <std::size_t Index>
-  void initializeHook() noexcept {
-    auto& slot = handlerAt<Index>();
-    if (auto* hook = slot.readReadyHook()) {
-      hook->handlerIndex = logicalHandlerIndex<Index>();
-    }
-  }
   // Index kHandlerCount is the head endpoint, which can always wait for write
   // ready and never for read ready.
   template <std::size_t Index>
@@ -1157,11 +1139,11 @@ class StaticPipelineImpl final {
     }
   }
   template <std::size_t Index>
-  ReadReadyHook* readReadyHook() noexcept {
+  bool hasReadReadyHook() noexcept {
     if constexpr (Index == kHandlerCount) {
-      return nullptr;
+      return false;
     } else {
-      return handlerAt<Index>().readReadyHook();
+      return handlerAt<Index>().readReadyHook() != nullptr;
     }
   }
 
@@ -1717,22 +1699,18 @@ class StaticPipelineImpl final {
         writeReadyWaiters_.isArmed(kStaticHandlerIndex + index);
   }
   void awaitStaticReadReady(std::size_t index) noexcept {
-    if (!isClosed()) {
-      if (auto* hook = staticReadReadyHook(index);
-          hook != nullptr && !hook->hook.is_linked()) {
-        readReadyList_.push_back(*hook);
-      }
+    if (!isClosed() && staticReadReadyHook(index) != nullptr) {
+      readReadyWaiters_.arm(kStaticHandlerIndex + index);
     }
   }
   void cancelStaticReadReady(std::size_t index) noexcept {
-    if (auto* hook = staticReadReadyHook(index);
-        hook != nullptr && hook->hook.is_linked()) {
-      hook->hook.unlink();
+    if (staticReadReadyHook(index) != nullptr) {
+      readReadyWaiters_.cancel(kStaticHandlerIndex + index);
     }
   }
   bool isAwaitingStaticReadReady(std::size_t index) const noexcept {
-    auto* hook = const_cast<Self*>(this)->staticReadReadyHook(index);
-    return hook != nullptr && hook->hook.is_linked();
+    return const_cast<Self*>(this)->staticReadReadyHook(index) != nullptr &&
+        readReadyWaiters_.isArmed(kStaticHandlerIndex + index);
   }
 
   template <HandlerId Id, std::size_t Index>
@@ -1769,8 +1747,7 @@ class StaticPipelineImpl final {
   State state_{State::Inactive};
   // The write set has one more index, handlerCount(), for the head endpoint.
   ReadyWaiters writeReadyWaiters_;
-  ReadReadyList readReadyList_;
-  std::size_t readReadyGeneration_{0};
+  ReadyWaiters readReadyWaiters_;
   std::size_t guardCount_{0};
   bool writeReadyDispatching_{false};
   bool writeReadyDispatchPending_{false};

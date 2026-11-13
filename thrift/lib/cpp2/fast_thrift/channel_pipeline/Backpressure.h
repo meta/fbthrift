@@ -16,8 +16,6 @@
 
 #pragma once
 
-#include <folly/IntrusiveList.h>
-
 namespace apache::thrift::fast_thrift::channel_pipeline {
 
 /**
@@ -76,21 +74,12 @@ namespace apache::thrift::fast_thrift::channel_pipeline {
 struct WriteReadyHook {};
 
 /**
- * ReadReadyHook provides intrusive list membership for read-ready notification.
+ * ReadReadyHook lets a handler get an onReadReady() call when the stage above
+ * it can take reads again.
  *
- * Handlers that want to receive onReadReady() notifications embed this hook
- * as a public member named `readReadyHook_`.
+ * Embed it as a public member named `readReadyHook_`. Like WriteReadyHook, it
+ * holds no state, and it will be removed.
  */
-struct ReadReadyHook {
-  folly::IntrusiveListHook hook;
-  size_t handlerIndex{0}; // Set by PipelineImpl during initialization
-  std::size_t lastNotifiedGeneration{0};
-};
-
-/**
- * List of handlers awaiting read ready notifications.
- * Maintained by PipelineImpl, walked when onReadReady() is called.
- */
-using ReadReadyList = folly::IntrusiveList<ReadReadyHook, &ReadReadyHook::hook>;
+struct ReadReadyHook {};
 
 } // namespace apache::thrift::fast_thrift::channel_pipeline

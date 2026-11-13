@@ -93,7 +93,7 @@ class LocalPipelineContext final {
  * - coalescedCopy: deep copy of whole chain into a single contiguous IOBuf from
  *   the pipeline allocator, cost allocation + memcpy of chainDataLength. Use
  *   only when contiguous needed.
- * - close(): idempotent terminal close, clears ready lists + event lists and
+ * - close(): idempotent terminal close, disarms every handler's ready wait and
  *   fires handlerRemoved reverse; noexcept.
  * - isClosed(): true after close or when owning pipeline pointer null.
  */

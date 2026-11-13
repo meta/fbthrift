@@ -247,7 +247,7 @@ struct BackpressureHandler {
   void handlerRemoved(detail::ContextImpl&) noexcept {}
 };
 
-// Read backpressure handler - has hook for intrusive list registration
+// Read backpressure handler - has hook for read ready registration
 // Simulates a handler that registers for read ready notifications
 struct ReadBackpressureHandler {
   ReadReadyHook readReadyHook_;
@@ -1852,7 +1852,7 @@ BENCHMARK(Pipeline_FireRead_Backpressure_ResumeRead, iters) {
   susp.dismiss();
 
   for (size_t i = 0; i < iters; ++i) {
-    pipeline->onReadReady(); // Calls callback, handler unlinks
+    pipeline->onReadReady(); // Calls callback, handler unregisters
     (void)pipeline->fireRead(TypeErasedBox(static_cast<int>(i))); // Re-register
   }
 

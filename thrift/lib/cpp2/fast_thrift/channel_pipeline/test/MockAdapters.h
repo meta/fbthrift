@@ -46,6 +46,7 @@ class MockHeadHandler {
   using OnWriteWithContextCallback =
       std::function<Result(detail::ContextImpl&, TypeErasedBox&&)>;
   using OnWriteReadyCallback = std::function<void(detail::ContextImpl&)>;
+  using OnReadReadyCallback = std::function<void()>;
   using OnExceptionCallback = std::function<void(folly::exception_wrapper&&)>;
 
   MockHeadHandler() = default;
@@ -88,7 +89,12 @@ class MockHeadHandler {
       onWriteReadyCallback_(ctx);
     }
   }
-  void onReadReady() noexcept { onReadReadyCount_++; }
+  void onReadReady() noexcept {
+    onReadReadyCount_++;
+    if (onReadReadyCallback_) {
+      onReadReadyCallback_();
+    }
+  }
 
   // Configuration
   void setWriteResult(Result result) { writeResult_ = result; }
@@ -101,6 +107,9 @@ class MockHeadHandler {
   }
   void setOnWriteReadyCallback(OnWriteReadyCallback cb) {
     onWriteReadyCallback_ = std::move(cb);
+  }
+  void setOnReadReadyCallback(OnReadReadyCallback cb) {
+    onReadReadyCallback_ = std::move(cb);
   }
 
   void setOnExceptionCallback(OnExceptionCallback cb) {
@@ -131,6 +140,7 @@ class MockHeadHandler {
     onWriteCallback_ = nullptr;
     onWriteWithContextCallback_ = nullptr;
     onWriteReadyCallback_ = nullptr;
+    onReadReadyCallback_ = nullptr;
     onExceptionCallback_ = nullptr;
     handlerAddedCount_ = 0;
     handlerRemovedCount_ = 0;
@@ -150,6 +160,7 @@ class MockHeadHandler {
   OnWriteCallback onWriteCallback_;
   OnWriteWithContextCallback onWriteWithContextCallback_;
   OnWriteReadyCallback onWriteReadyCallback_;
+  OnReadReadyCallback onReadReadyCallback_;
   OnExceptionCallback onExceptionCallback_;
   int handlerAddedCount_{0};
   int handlerRemovedCount_{0};

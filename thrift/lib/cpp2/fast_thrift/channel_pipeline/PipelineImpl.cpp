@@ -136,11 +136,6 @@ void PipelineImpl::initializeStorageViews(
   handlerMap_ = handlerMap;
 
   const auto N = handlers_.size();
-  for (size_t i = 0; i < N; ++i) {
-    if (handlers_[i].readReadyHook_) {
-      handlers_[i].readReadyHook_->handlerIndex = i;
-    }
-  }
 
   // Wire up cached dispatch pointers.
   // Each context caches direct function pointers to the next/prev handler,
@@ -635,7 +630,7 @@ void PipelineImpl::close() noexcept {
 
   // Clear ready waiters - handlers should not receive callbacks after close
   writeReadyWaiters_.clear();
-  readReadyList_.clear();
+  readReadyWaiters_.clear();
 
   callHandlerRemoved();
 }
@@ -817,31 +812,41 @@ void PipelineImpl::onReadReady() noexcept {
   if (state_ == State::Closed) {
     return;
   }
-
-  // A callback may unlink and re-arm its hook. Mark each hook before dispatch
-  // and skip hooks already delivered in this generation, preventing same-pass
-  // reentrant delivery without allocating or changing native linked semantics.
-  const auto generation = ++readReadyGeneration_;
-  auto it = readReadyList_.begin();
-  while (it != readReadyList_.end()) {
-    auto& hook = *it;
-    ++it;
-    if (hook.lastNotifiedGeneration == generation) {
-      continue;
-    }
-    hook.lastNotifiedGeneration = generation;
-    size_t i = hook.handlerIndex;
-    DCHECK(handlers_[i].onReadReadyFn);
-    DCHECK_LT(i, contexts_.size());
-    handlers_[i].onReadReadyFn(handlers_[i].handlerPtr, contexts_[i]);
-    if (state_ == State::Closed) {
-      break;
-    }
+  if (readReadyDispatching_) {
+    readReadyDispatchPending_ = true;
+    return;
   }
+  readReadyDispatching_ = true;
 
-  // Notify the head endpoint that reads can resume.
-  DCHECK(headOnReadReadyFn_);
-  headOnReadReadyFn_(headHandler_);
+  do {
+    readReadyDispatchPending_ = false;
+
+    // A callback may arm or cancel any handler, so the walk looks up the next
+    // waiting handler after each one.
+    size_t end = handlers_.size();
+    while (true) {
+      const std::optional<size_t> next =
+          readReadyWaiters_.highestArmedBelow(end);
+      if (!next) {
+        break;
+      }
+      const size_t i = *next;
+      end = i;
+      DCHECK(handlers_[i].onReadReadyFn);
+      DCHECK_LT(i, contexts_.size());
+      handlers_[i].onReadReadyFn(handlers_[i].handlerPtr, contexts_[i]);
+      if (state_ == State::Closed) {
+        break;
+      }
+    }
+
+    if (state_ != State::Closed) {
+      DCHECK(headOnReadReadyFn_);
+      headOnReadReadyFn_(headHandler_);
+    }
+  } while (readReadyDispatchPending_ && state_ != State::Closed);
+
+  readReadyDispatching_ = false;
 }
 
 } // namespace apache::thrift::fast_thrift::channel_pipeline

@@ -464,16 +464,25 @@ class alignas(detail::ContextImpl) PipelineImpl
   }
 
   /**
-   * Called by head when it can accept more reads.
-   * Propagates onReadReady() to all handlers with pending read
-   * backpressure.
+   * Wakes each waiting handler from the tail toward the head, then tells the
+   * head endpoint that reads can resume. The pass ends early, without the head
+   * endpoint, when the pipeline closes.
+   *
+   * Each handler wakes at most once per pass. A handler that arms behind the
+   * walk, also in its own callback, waits for the next pass. So a handler that
+   * waits for a state of its own must start a pass itself when that state
+   * clears.
+   *
+   * A call made during a pass runs as one more pass after it.
    */
   void onReadReady() noexcept;
 
   /**
    * Check if any handlers have pending read ready notifications.
    */
-  bool hasPendingReadReady() const noexcept { return !readReadyList_.empty(); }
+  bool hasPendingReadReady() const noexcept {
+    return !readReadyWaiters_.empty();
+  }
 
   // === Internal: ready registration for ContextImpl ===
 
@@ -489,18 +498,10 @@ class alignas(detail::ContextImpl) PipelineImpl
     return index == handlers_.size() && headOnWriteReadyFn_ != nullptr;
   }
 
-  /**
-   * Get the read ready hook for a handler by index.
-   * Returns nullptr if handler doesn't have a hook.
-   */
-  ReadReadyHook* handlerReadReadyHook(size_t index) noexcept {
-    return index < handlers_.size() ? handlers_[index].readReadyHook_ : nullptr;
+  bool hasReadReadyHook(size_t index) const noexcept {
+    return index < handlers_.size() &&
+        handlers_[index].readReadyHook_ != nullptr;
   }
-
-  /**
-   * Get the read ready list for registration.
-   */
-  ReadReadyList& readReadyList() noexcept { return readReadyList_; }
 
  protected:
   PipelineImpl(
@@ -526,7 +527,7 @@ class alignas(detail::ContextImpl) PipelineImpl
     if (state_ != State::Closed) {
       state_ = State::Closed;
       writeReadyWaiters_.clear();
-      readReadyList_.clear();
+      readReadyWaiters_.clear();
       callHandlerRemovedImpl();
     }
     delete this;
@@ -535,6 +536,10 @@ class alignas(detail::ContextImpl) PipelineImpl
  private:
   detail::ReadyWaiters& writeReadyWaiters() noexcept {
     return writeReadyWaiters_;
+  }
+
+  detail::ReadyWaiters& readReadyWaiters() noexcept {
+    return readReadyWaiters_;
   }
 
   struct TypeEventSlot {
@@ -642,15 +647,15 @@ class alignas(detail::ContextImpl) PipelineImpl
 
   State state_{State::Inactive};
 
-  // Handlers awaiting write ready notifications, by handler index, and an
-  // intrusive list of handlers awaiting read ready notifications.
+  // Handlers awaiting write/read ready notifications, by handler index.
   // Handlers self-register via ctx.awaitWriteReady()/ctx.awaitReadReady().
   // The write set has one more index, handlerCount(), for the head endpoint.
   detail::ReadyWaiters writeReadyWaiters_;
-  ReadReadyList readReadyList_;
-  std::size_t readReadyGeneration_{0};
+  detail::ReadyWaiters readReadyWaiters_;
   bool writeReadyDispatching_{false};
   bool writeReadyDispatchPending_{false};
+  bool readReadyDispatching_{false};
+  bool readReadyDispatchPending_{false};
 
   // Immutable open-address table built once from process-local type tokens.
   // Subscriber dispatch entries are grouped into contiguous per-event spans.

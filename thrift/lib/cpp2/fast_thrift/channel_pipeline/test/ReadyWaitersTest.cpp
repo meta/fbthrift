@@ -45,6 +45,19 @@ std::vector<std::size_t> armedFromLowest(const ReadyWaiters& waiters) {
   return armed;
 }
 
+// Looks up the armed indexes below end from the highest down, as a read pass
+// does.
+std::vector<std::size_t> armedFromHighestBelow(
+    const ReadyWaiters& waiters, std::size_t end) {
+  std::vector<std::size_t> armed;
+  while (const std::optional<std::size_t> index =
+             waiters.highestArmedBelow(end)) {
+    armed.push_back(*index);
+    end = *index;
+  }
+  return armed;
+}
+
 // Arms the lowest and the highest index and indexes in between, out of order.
 void armOutOfOrder(ReadyWaiters& waiters) {
   for (const std::size_t index : std::array<std::size_t, 5>{32, 63, 0, 31, 1}) {
@@ -60,6 +73,15 @@ TEST(ReadyWaitersTest, FindsArmedIndexesFromTheLowestUp) {
       armedFromLowest(waiters), Eq(std::vector<std::size_t>{0, 1, 31, 32, 63}));
 }
 
+TEST(ReadyWaitersTest, FindsArmedIndexesBelowEndFromTheHighestDown) {
+  ReadyWaiters waiters;
+  armOutOfOrder(waiters);
+
+  EXPECT_THAT(
+      armedFromHighestBelow(waiters, 63),
+      Eq(std::vector<std::size_t>{32, 31, 1, 0}));
+}
+
 TEST(ReadyWaitersTest, DoesNotFindAnIndexBelowBegin) {
   ReadyWaiters waiters;
   waiters.arm(5);
@@ -71,6 +93,19 @@ TEST(ReadyWaitersTest, DoesNotFindAnIndexBelowBegin) {
       std::tuple(first, waiters.lowestArmedFrom(6)),
       Eq(std::tuple(
           std::optional<std::size_t>{5}, std::optional<std::size_t>{})));
+}
+
+TEST(ReadyWaitersTest, DoesNotFindAnIndexAtOrAboveEnd) {
+  ReadyWaiters waiters;
+  waiters.arm(2);
+  const std::optional<std::size_t> first = waiters.highestArmedBelow(63);
+  // The woken handler's callback makes a handler nearer the tail arm.
+  waiters.arm(5);
+
+  EXPECT_THAT(
+      std::tuple(first, waiters.highestArmedBelow(2)),
+      Eq(std::tuple(
+          std::optional<std::size_t>{2}, std::optional<std::size_t>{})));
 }
 
 TEST(ReadyWaitersTest, DoesNotFindACancelledIndex) {

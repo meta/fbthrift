@@ -27,10 +27,12 @@
 namespace apache::thrift::fast_thrift::channel_pipeline::detail {
 
 /**
- * Records which handlers wait for a ready callback, by logical handler index.
+ * Records which handlers wait for a write-ready or a read-ready callback, by
+ * logical handler index.
  *
- * Every index argument must be from 0 to 63, also the begin bound of a scan.
- * A larger value is undefined behavior, and debug builds check it.
+ * Every index argument must be from 0 to 63, also the begin or end bound of a
+ * scan. So a scan below an end bound never finds index 63. A larger value is
+ * undefined behavior, and debug builds check it.
  */
 class ReadyWaiters {
  public:
@@ -63,6 +65,17 @@ class ReadyWaiters {
       return std::nullopt;
     }
     return static_cast<std::size_t>(std::countr_zero(candidates));
+  }
+
+  // Returns the highest armed index below end, or nothing if no such index is
+  // armed.
+  std::optional<std::size_t> highestArmedBelow(std::size_t end) const noexcept {
+    const std::uint64_t candidates = armed_ & (bit(end) - 1);
+    if (candidates == 0) {
+      return std::nullopt;
+    }
+    return kMaxIndexes - 1 -
+        static_cast<std::size_t>(std::countl_zero(candidates));
   }
 
  private:
