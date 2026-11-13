@@ -20,13 +20,13 @@ This namespace corresponds to import path `example.com/project/search` and packa
 
 Without an explicit Go namespace, the default is the lowercase Thrift file name without its extension, not a namespace derived from the Thrift `package` declaration.
 
-Use the generated `New<Type>()` constructors to initialize Thrift-defined field defaults. A Go struct literal does not apply those defaults. Thrift exceptions implement Go's `error` interface and are returned as errors from RPC methods.
+Use the generated `New<Type>()` constructors to initialize Thrift-defined field defaults. A Go struct literal does not apply those defaults. Thrift exceptions implement Go's `error` interface and are returned as errors from RPC methods. A generated exception's `Error()` method returns the struct's `String()` representation rather than the field annotated with `@thrift.ExceptionMessage`. Undeclared handler errors are sent to the client as `*types.ApplicationException`.
 
 ## Serialization and RPC
 
 The `github.com/facebook/fbthrift/thrift/lib/go/thrift/format` package provides Binary and Compact serialization and deserialization through `EncodeBinary`/`DecodeBinary` and `EncodeCompact`/`DecodeCompact`, as well as the deprecated JSON (`EncodeCompactJSON`/`DecodeCompactJSON`) and SimpleJSON (`EncodeSimpleJSON`/`DecodeSimpleJSON`) formats. Go RPC uses Binary or Compact serialization.
 
-The runtime supports Rocket clients and servers, including Header-to-Rocket upgrades for interoperability with legacy peers. Use Rocket for streaming and interactions.
+The runtime supports Rocket clients and servers, including Header-to-Rocket upgrades for interoperability with legacy peers. Use Rocket for streaming and interactions. Go's Rocket codecs handle ZSTD, ZLIB, and LZ4 compression, but the native client sends requests and sink items uncompressed by default.
 
 Go supports both clients and servers for:
 
