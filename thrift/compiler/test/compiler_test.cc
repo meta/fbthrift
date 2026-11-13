@@ -3183,6 +3183,12 @@ TEST(CompilerTest, cpp_deprecated_terse_write) {
       6: Bar field6;
         # expected-warning@-5: Field with @cpp.Ref annotation should be optional: `field6` (in `Foo`).
     }
+
+    union U {
+      @cpp.DeprecatedTerseWrite
+      1: i32 field1;
+        # expected-error@-2: `@cpp.DeprecatedTerseWrite` cannot be applied to union fields (in `U`).
+    }
   )");
 }
 

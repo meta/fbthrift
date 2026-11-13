@@ -729,6 +729,12 @@ void validate_union_field_attributes(sema_context& ctx, const t_union& node) {
           field,
           "`@thrift.TerseWrite` cannot be applied to union fields (in `{}`).",
           node.name());
+    } else if (field.has_structured_annotation(kCppDeprecatedTerseWriteUri)) {
+      ctx.error(
+          field,
+          "`@cpp.DeprecatedTerseWrite` cannot be applied to union fields (in "
+          "`{}`).",
+          node.name());
     }
   }
 }

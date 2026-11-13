@@ -135,13 +135,6 @@ union NestedUnion {
   1: i32 int_field = 42;
 }
 
-union DeprecatedTerseUnion {
-  @cpp.DeprecatedTerseWrite
-  1: i32 int_field;
-  @cpp.DeprecatedTerseWrite
-  2: string string_field;
-}
-
 exception NestedException {
   @cpp.DeprecatedTerseWrite
   1: i32 int_field = 42;
