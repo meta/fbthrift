@@ -570,6 +570,7 @@ class StructuredCursorReader : detail::BaseCursorReader<ProtocolReader> {
   template <typename, typename, bool>
   friend class ContainerCursorReader;
   friend class CursorSerializationWrapper<T>;
+  friend struct detail::CursorAccess;
 };
 
 /**
@@ -759,6 +760,7 @@ class ContainerCursorReader : detail::BaseCursorReader<ProtocolReader> {
   template <typename, typename, bool>
   friend class ContainerCursorReader;
   friend class ContainerCursorIterator<Tag, ProtocolReader, Contiguous>;
+  friend struct detail::CursorAccess;
 };
 
 /**
@@ -1149,6 +1151,7 @@ class StructuredCursorWriter : detail::BaseCursorWriter<ProtocolWriter> {
   friend class ContainerCursorWriter;
   friend class CursorSerializationWrapper<T>;
   friend struct detail::DefaultValueWriter<Tag, ProtocolWriter>;
+  friend struct detail::CursorAccess;
 };
 
 /**
@@ -1251,6 +1254,7 @@ class ContainerCursorWriter
   friend class StructuredCursorWriter;
   template <typename, bool, typename>
   friend class ContainerCursorWriter;
+  friend struct detail::CursorAccess;
 
   void finalize() { Base::finalize(n); }
 

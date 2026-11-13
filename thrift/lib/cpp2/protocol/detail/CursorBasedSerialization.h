@@ -495,18 +495,31 @@ constexpr bool validateCppTypes() {
   return true;
 }
 
+// The cursor classes keep finalize(), abandon() and State private. A concept's
+// requirements are access-checked in the concept's own scope, not in the
+// befriended class that uses it, so they reach those members through this
+// friend.
+struct CursorAccess {
+  template <typename T>
+  static auto finalize(T& t) -> decltype(t.finalize());
+  template <typename T>
+  static auto abandon(T& t) -> decltype(t.abandon());
+  template <typename T>
+  using State = typename T::State;
+};
+
 template <typename T>
 concept CursorReader = requires(T t) {
-  t.finalize();
-  t.abandon();
-  typename T::State;
+  CursorAccess::finalize(t);
+  CursorAccess::abandon(t);
+  typename CursorAccess::State<T>;
 };
 
 template <typename T>
 concept CursorWriter = requires(T t) {
-  t.finalize();
-  t.abandon();
-  typename T::State;
+  CursorAccess::finalize(t);
+  CursorAccess::abandon(t);
+  typename CursorAccess::State<T>;
 };
 
 } // namespace detail
