@@ -18,6 +18,7 @@
 
 #include <deque>
 #include <memory>
+#include <unordered_map>
 #include <utility>
 
 #include <glog/logging.h>
@@ -191,6 +192,9 @@ class ReconnectingRequestChannel : public RequestChannel,
   size_t requestQueueLimit = 1024;
 
   ImplPtr impl_;
+  // Interactions are connection-scoped: each is terminated on the channel that
+  // registered it, even after impl_ has been replaced.
+  std::unordered_map<int64_t, ImplPtr> interactionChannels_;
   ImplCreator implCreator_;
   ImplCreatorWithCallback implCreatorWithCallback_;
   folly::EventBase& evb_;
