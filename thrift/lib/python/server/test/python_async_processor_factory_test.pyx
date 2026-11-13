@@ -68,15 +68,13 @@ cdef cCreateMethodMetadataResult create(bytes function_name, RpcKind rpc_kind):
     cdef shared_ptr[cExecutionSystem] executionSystem = makeControlOnlyExecutionSystem(
         controlExecutor, <cLaunchControlRequest>launchControlTask, cmove(controlMethods)
     )
-    cdef cvector[string] schemaBundles
     cdef shared_ptr[cPythonAsyncProcessorFactory] obj = cCreatePythonAsyncProcessorFactory(
         <PyObject*>server,
         cmove(funcs),
         cmove(lifecycle),
         executionSystem,
         controlExecutor,
-        serviceName,
-        cmove(schemaBundles)
+        serviceName
     )
     return deref(obj).createMethodMetadata()
 

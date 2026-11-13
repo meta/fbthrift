@@ -208,16 +208,14 @@ class PythonAsyncProcessor : public apache::thrift::GeneratedAsyncProcessorBase,
         InteractionType interaction,
         apache::thrift::RpcKind rpcKind,
         const std::optional<std::string>& interactionName = std::nullopt,
-        bool createsInteraction = false,
-        const apache::thrift::syntax_graph::FunctionNode* fnNode = nullptr)
+        bool createsInteraction = false)
         : MethodMetadata(
               executor,
               interaction,
               rpcKind,
               apache::thrift::concurrency::NORMAL,
               interactionName,
-              createsInteraction,
-              fnNode) {}
+              createsInteraction) {}
   };
 
   std::unique_ptr<folly::IOBuf> getPythonMetadata();

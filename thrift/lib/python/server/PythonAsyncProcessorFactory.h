@@ -20,8 +20,6 @@
 #include <memory>
 #include <mutex>
 #include <string>
-#include <string_view>
-#include <vector>
 #include <Python.h>
 #include <glog/logging.h>
 #include <thrift/lib/cpp/protocol/TProtocolTypes.h>
@@ -33,10 +31,6 @@
 #include <thrift/lib/thrift/gen-cpp2/metadata_types.h>
 
 namespace apache::thrift::python {
-
-// Held by pointer so that this header, which the Cython `.pxd` includes, does
-// not pull in `SyntaxGraph.h` and the rest of the schema machinery.
-class PythonServiceSchema;
 
 class PythonAsyncProcessorFactory
     : public apache::thrift::AsyncProcessorFactory,
@@ -77,9 +71,6 @@ class PythonAsyncProcessorFactory
   PythonAsyncProcessorFactory& operator=(const PythonAsyncProcessorFactory&) =
       delete;
 
-  // Outlined because `PythonServiceSchema` is incomplete here.
-  ~PythonAsyncProcessorFactory() override;
-
   std::unique_ptr<apache::thrift::AsyncProcessor> getProcessor() override {
     std::shared_ptr<execution::ExecutionSystem> executionSystem;
     folly::Executor::KeepAlive<> controlExecutor;
@@ -103,18 +94,10 @@ class PythonAsyncProcessorFactory
 
   CreateMethodMetadataResult createMethodMetadata() override;
 
-  std::vector<folly::not_null<const syntax_graph::ServiceNode*>>
-  getServiceSchemaNodes() override;
-
   /**
    * This factory function is an extension of the python
    * PythonAsyncProcessorFactory.create() in python to handle the C++ side of
    * the python PythonAsyncProcessorFactory.create().
-   *
-   * `schemaBundles` are the schema bundles of the service's program and its
-   * transitive includes, and `serviceDefinitionKey` the service's definition
-   * key in them; see `PythonServiceSchema`. Pass no bundles to serve without
-   * schema information.
    *
    * Callers must use this factory to create a PythonAsyncProcessorFactory
    * instance.
@@ -125,9 +108,7 @@ class PythonAsyncProcessorFactory
       std::vector<PyObject*> lifecycleFuncs,
       std::shared_ptr<execution::ExecutionSystem> executionSystem,
       folly::Executor::KeepAlive<> controlExecutor,
-      std::string serviceName,
-      std::vector<std::string> schemaBundles = {},
-      std::string_view serviceDefinitionKey = {});
+      std::string serviceName);
 
  private:
   folly::SemiFuture<folly::Unit> callLifecycle(LifecycleFunc);
@@ -146,17 +127,11 @@ class PythonAsyncProcessorFactory
   bool factoryContextEntered_{false};
   std::size_t requestedThreadCount_{1};
   std::string serviceName_;
-  // Built once, before any request is dispatched, and read-only afterwards.
-  // Never null. Outlives every processor, so the nodes it owns stay valid for
-  // the MethodMetadata and the interceptors that hold them.
-  std::unique_ptr<const PythonServiceSchema> serviceSchema_;
 
   /**
    * Callers must use the create() factory function to create a
    * PythonAsyncProcessorFactory instance. Make the constructor
    * private to enforce this.
-   *
-   * Outlined for the same reason as the destructor.
    */
   PythonAsyncProcessorFactory(
       PyObject* python_server,
@@ -164,8 +139,13 @@ class PythonAsyncProcessorFactory
       std::vector<PyObject*> lifecycleFuncs,
       std::shared_ptr<execution::ExecutionSystem> executionSystem,
       folly::Executor::KeepAlive<> controlExecutor,
-      std::string serviceName,
-      std::unique_ptr<const PythonServiceSchema> serviceSchema);
+      std::string serviceName)
+      : python_server_(python_server),
+        functions_(std::move(functions)),
+        lifecycleFuncs_(std::move(lifecycleFuncs)),
+        executionSystem_(std::move(executionSystem)),
+        controlExecutor_(std::move(controlExecutor)),
+        serviceName_(std::move(serviceName)) {}
 };
 
 } // namespace apache::thrift::python

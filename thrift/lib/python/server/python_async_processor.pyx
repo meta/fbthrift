@@ -20,7 +20,6 @@ import sys
 import traceback
 
 from thrift.python.serializer import serialize_iobuf
-from thrift.python.server_impl.schema_bundle import collect_schema_bundles
 from thrift.python.types import ServiceInterface
 
 cimport cython
@@ -989,14 +988,6 @@ cdef class PythonAsyncProcessorFactory(AsyncProcessorFactory):
         for lifecycle_func in lifecycleFuncs:
             lifecycle.push_back(<PyObject*>lifecycle_func)
 
-        cdef cvector[string] schemaBundles
-        for bundle in collect_schema_bundles(type(controlHandler)):
-            schemaBundles.push_back(<bytes>bundle)
-        # Bundles come only from generated interfaces, which all define this.
-        cdef string serviceDefinitionKey
-        if not schemaBundles.empty():
-            serviceDefinitionKey = <bytes>controlHandler.__get_thrift_definition_key__()
-
         cdef cAsyncioExecutor* controlExecutor = get_executor()
         cdef shared_ptr[cExecutionSystem] executionSystem = makeControlOnlyExecutionSystem(
             controlExecutor, <cLaunchControlRequest>launchControlTask, cmove(controlMethods)
@@ -1020,9 +1011,7 @@ cdef class PythonAsyncProcessorFactory(AsyncProcessorFactory):
                 cmove(lifecycle),
                 executionSystem,
                 controlExecutor,
-                <bytes>controlHandler.service_name(),
-                cmove(schemaBundles),
-                serviceDefinitionKey))
+                <bytes>controlHandler.service_name()))
         return inst
 
     @staticmethod

@@ -146,8 +146,6 @@ cdef extern from "thrift/lib/python/server/PythonAsyncProcessorFactory.h" namesp
             shared_ptr[cExecutionSystem] executionSystem,
             cAsyncioExecutor* controlExecutor,
             string serviceName,
-            cvector[string] schemaBundles,
-            string serviceDefinitionKey,
         ) except +
 
 cdef extern from "thrift/lib/cpp2/async/RpcTypes.h" namespace "::apache::thrift":
