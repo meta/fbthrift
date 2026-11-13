@@ -395,7 +395,7 @@ SinkInitialDeclaredExceptionClientTestResult runSinkInitialDeclaredException(
         SinkInitialDeclaredExceptionClientTestResult result;
         try {
           co_await client.co_sinkInitialDeclaredException(request);
-        } catch (...) {
+        } catch (const UserException&) {
           result.sinkThrew() = true;
         }
         co_return result;
@@ -412,7 +412,7 @@ SinkServerDeclaredExceptionClientTestResult runSinkServerDeclaredException(
           auto sink = co_await client.co_sinkServerDeclaredException(request);
           co_await sink.sink(
               []() -> folly::coro::AsyncGenerator<Request&&> { co_return; }());
-        } catch (...) {
+        } catch (const UserException&) {
           result.sinkThrew() = true;
         }
         co_return result;
