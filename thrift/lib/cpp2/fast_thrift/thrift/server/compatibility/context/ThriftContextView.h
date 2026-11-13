@@ -332,6 +332,12 @@ class ThriftConnectionContextView {
     return *classicContext();
   }
 
+  ClassicContext* FOLLY_NULLABLE mutableClassicContext() const noexcept
+    requires(Backend == ThriftContextBackend::Classic)
+  {
+    return context_.mutableContext;
+  }
+
   template <class Ext>
   const typename Ext::ConnState* FOLLY_NULLABLE tryState() const noexcept {
     using State = typename Ext::ConnState;
@@ -477,13 +483,6 @@ class ThriftConnectionContextView {
     requires(Backend == ThriftContextBackend::Native)
       : context_(context) {}
 
-  ClassicContext* mutableClassicContext() const noexcept {
-    if constexpr (Backend == ThriftContextBackend::Classic) {
-      return context_.mutableContext;
-    } else {
-      return nullptr;
-    }
-  }
   Storage context_{};
 };
 
@@ -546,6 +545,12 @@ class ThriftRequestContextView {
     requires(Backend == ThriftContextBackend::Classic)
   {
     return *classicContext();
+  }
+
+  ClassicContext* FOLLY_NULLABLE mutableClassicContext() const noexcept
+    requires(Backend == ThriftContextBackend::Classic)
+  {
+    return context_.mutableContext;
   }
 
   template <class Ext>
@@ -706,13 +711,6 @@ class ThriftRequestContextView {
       ClassicInputs,
       detail::NativeRequestContextRef>;
 
-  ClassicContext* mutableClassicContext() const noexcept {
-    if constexpr (Backend == ThriftContextBackend::Classic) {
-      return context_.mutableContext;
-    } else {
-      return nullptr;
-    }
-  }
   Storage context_{};
 };
 
