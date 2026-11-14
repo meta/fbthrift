@@ -18,8 +18,8 @@
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/ExecutionDomain.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineFactory.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineInstance.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
 
 #include <tuple>
 #include <type_traits>
@@ -120,7 +120,7 @@ class PipelineSpec {
    * State and execution-domain values are supplied per instance. Both
    * outlive the handler objects during teardown.
    */
-  PipelineOwner build(TaskState taskState, Domain domain) const {
+  PipelineInstance::Ptr build(TaskState taskState, Domain domain) const {
     static_assert(
         sizeof...(Entry) >= 1, "a pipeline needs at least one handler");
     using ImplT =
@@ -129,7 +129,17 @@ class PipelineSpec {
     typename ImplT::Ptr pipeline(
         new ImplT(std::move(taskState), std::move(domain), blueprint));
     pipeline->finishBuild();
-    return PipelineOwner(std::move(pipeline));
+    return PipelineInstance::Ptr(std::move(pipeline));
+  }
+
+  /**
+   * Erase the handler composition into a reusable PipelineFactory (copies the
+   * spec into the factory's create thunk), keeping the state and domain types.
+   */
+  PipelineFactory<TaskState, Domain> factory() const& {
+    static_assert(
+        sizeof...(Entry) >= 1, "a pipeline needs at least one handler");
+    return PipelineFactory<TaskState, Domain>(*this);
   }
 
  private:

@@ -20,13 +20,12 @@
 #include <folly/ExceptionWrapper.h>
 #include <folly/IntrusiveList.h>
 #include <folly/Likely.h>
-#include <folly/io/async/EventBase.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Event.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/ExecutionDomain.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineInstanceRef.h>
 
 #include <concepts>
 #include <cstddef>
@@ -67,12 +66,11 @@ inline constexpr bool kEventSetContains<Events<Evs...>, E> =
  * domain (via taskState() and executionDomain()), directional propagation,
  * lifecycle, events, and readiness.
  *
- * Unlike StaticContext it carries no allocator/eventBase accessors (a
- * PipelineInstance owns neither — a handler reaches any execution infra through
- * ctx.taskState()) and no typed state<T>() (there is one TaskState). There
- * is no endpoint special case: fireRead always propagates toward the tail and
- * fireWrite toward the head, and firing past either end reaches the seam in the
- * owning Impl.
+ * Handlers access resources through ctx.taskState(). Resources stored by
+ * value are instance-owned; pointers and references retain the caller's
+ * ownership contract. There is no endpoint special case: fireRead propagates
+ * toward the tail and fireWrite toward the head, and firing past either end
+ * reaches the seam in the owning Impl.
  */
 template <typename Pipeline, std::size_t Index, HandlerId Id>
 class Context {
@@ -287,14 +285,13 @@ class HandlerStorage<Pipeline, Index, Spec, Rest...>
  *                      fireRead/fireWrite run inside the concrete Impl via the
  *                      handlers' own contexts, never through the handle.
  *
- * The pipeline is a pure unit of work: handlers plus the single TaskState
- * state. It owns no executor or allocator; a handler that needs execution
- * infra takes it, owned outside the pipeline, through the TaskState and
- * reaches it via ctx.taskState().
+ * The instance owns its handlers, TaskState, and execution domain, including
+ * their owned resources. Dependencies held by pointer or reference must outlive
+ * their use by the instance.
  */
 struct PipelineInstance {
-  using Ptr = PipelineOwner;
-  using Ref = PipelineRef;
+  using Ptr = PipelineInstanceOwner;
+  using Ref = PipelineInstanceRef;
 
   /**
    * Uniform static pipeline: an ordered, co-located set of equal handlers with
@@ -304,11 +301,6 @@ struct PipelineInstance {
    * either end hits the seam (Result::Error until bind lands). The single
    * TaskState is stored as a [[no_unique_address]] member (zero bytes when
    * empty) and reached by handlers through ctx.taskState().
-   *
-   * allocate()/eventBase() exist only to satisfy the erased PipelineRefTarget
-   * interface and always return null — the pipeline owns no allocator/executor,
-   * and its Context does not expose them to handlers, so a handler reaching for
-   * execution infra must take it through the TaskState instead.
    *
    * Backpressure readiness is implemented: generation-guarded
    * onWriteReady/onReadReady over per-handler hooks, un-privileged from the
@@ -473,14 +465,6 @@ struct PipelineInstance {
       }
     }
 
-    // === Erased PipelineRefTarget surface ===
-
-    // Required by the erased interface but unbacked: this pipeline owns no
-    // allocator or executor, so these return null and are not exposed to
-    // handlers (a handler reaches execution infra through the TaskState).
-    BytesPtr allocate(std::size_t) noexcept { return {}; }
-    folly::EventBase* eventBase() const noexcept { return nullptr; }
-
     // Backpressure readiness (uniform: any handler embedding a writeReadyHook_
     // / readReadyHook_ member participates; no head/tail privilege). A handler
     // arms from its callback via ctx.awaitWriteReady()/awaitReadReady() after a
@@ -628,7 +612,7 @@ struct PipelineInstance {
       fireEvent<E>(std::forward<Args>(args)...);
     }
 
-    // Erased event entry points (part of the PipelineRef ops surface): an
+    // Erased event entry points (part of the instance handle's ops surface): an
     // external publisher binds each event key once and fires by key.
     BoundEventRoute bindEvent(EventKey key) noexcept {
       return BoundEventRoute{key};
