@@ -27,6 +27,10 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Event.h>
 #include <thrift/lib/cpp2/fast_thrift/transport/WriteCompletion.h>
 
+namespace apache::thrift::fast_thrift::rocket {
+struct RocketResponseMessage;
+}
+
 namespace apache::thrift::fast_thrift::rocket::client {
 
 /**
@@ -105,6 +109,17 @@ struct RocketWriteCompleteEvent
 struct RocketCancelRequestEvent
     : channel_pipeline::EventTag<RocketCancelRequestEvent> {
   void* requestContext;
+};
+
+/**
+ * Requests local stream retirement and transfers its owned request context
+ * into a terminal response. The response is borrowed only for synchronous
+ * event delivery; subscribers must not retain it. No frame is sent to the peer.
+ */
+struct RocketTerminateStreamEvent
+    : channel_pipeline::EventTag<RocketTerminateStreamEvent> {
+  uint32_t streamId;
+  RocketResponseMessage& response;
 };
 
 /**

@@ -16,6 +16,9 @@
 
 #include <gtest/gtest.h>
 
+#include <memory>
+#include <string>
+
 #include <folly/futures/Promise.h>
 #include <folly/io/Cursor.h>
 #include <folly/io/IOBuf.h>
@@ -28,8 +31,10 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
+#include <thrift/lib/cpp2/fast_thrift/frame/ErrorCode.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameParser.h>
+#include <thrift/lib/cpp2/fast_thrift/frame/write/ComposedFrame.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/FrameHeaders.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/FrameWriter.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/handler/FrameLengthEncoderHandler.h>
@@ -45,6 +50,7 @@
 #include <thrift/lib/cpp2/fast_thrift/thrift/client/ThriftClientChannel.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/client/adapter/ThriftClientTransportAdapter.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/client/handler/ThriftClientChecksumHandler.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/client/handler/ThriftClientGracefulDrainHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/client/handler/ThriftClientMetadataPushHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/transport/TransportHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/transport/test/TestAsyncTransport.h>
@@ -77,6 +83,7 @@ HANDLER_TAG(rocket_client_stats_handler);
 HANDLER_TAG(rocket_client_stream_state_handler);
 HANDLER_TAG(thrift_client_metadata_push_handler);
 HANDLER_TAG(thrift_client_checksum_handler);
+HANDLER_TAG(thrift_client_graceful_drain_handler);
 
 namespace {
 
@@ -1221,6 +1228,16 @@ class IntegrationTestClient {
 
 class ThriftClientAppAdapterIntegrationTest : public ::testing::Test {
  protected:
+  struct RecordedRequest {
+    uint32_t streamId{0};
+    int completions{0};
+    bool streamActiveDuringCallback{false};
+    bool drainingDuringCallback{false};
+    std::unique_ptr<folly::IOBuf> data;
+    folly::exception_wrapper error;
+    bool drainClosedDuringCallback{false};
+  };
+
   void SetUp() override { allocator_.reset(); }
 
   void TearDown() override {
@@ -1310,7 +1327,7 @@ class ThriftClientAppAdapterIntegrationTest : public ::testing::Test {
         std::move(connection));
 
     // Build thrift pipeline
-    pipeline_ =
+    auto thriftPipeline =
         StaticPipelineBuilder<
             client::ThriftClientTransportAdapter,
             ThriftClientAppAdapter,
@@ -1323,8 +1340,13 @@ class ThriftClientAppAdapterIntegrationTest : public ::testing::Test {
                 thrift_client_metadata_push_handler_tag)
             .addNextOutbound<client::handler::ThriftClientChecksumHandler>(
                 thrift_client_checksum_handler_tag)
+            .addNextDuplex<client::handler::ThriftClientGracefulDrainHandler>(
+                thrift_client_graceful_drain_handler_tag)
             .build();
 
+    drainHandler_ =
+        &thriftPipeline->handler(thrift_client_graceful_drain_handler_tag);
+    pipeline_ = std::move(thriftPipeline);
     client_.adapter().setPipeline(pipeline_.get());
     transportAdapter_->setPipeline(pipeline_.get());
     transportHandlerPtr->onConnect();
@@ -1382,6 +1404,133 @@ class ThriftClientAppAdapterIntegrationTest : public ::testing::Test {
     return metadata;
   }
 
+  std::shared_ptr<RecordedRequest> sendRecordedRequest() {
+    auto request = std::make_shared<RecordedRequest>();
+    apache::thrift::RpcOptions options;
+    client_.adapter().sendRequestResponse(
+        options,
+        std::string_view{"method"},
+        apache::thrift::RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE,
+        folly::IOBuf::copyBuffer("request"),
+        [this, request](
+            folly::Expected<client::FastResponse, folly::exception_wrapper>&&
+                result,
+            const apache::thrift::RpcTransportStats&) noexcept {
+          ++request->completions;
+          request->streamActiveDuringCallback =
+              streamStateHandler_->hasActiveStream(request->streamId);
+          request->drainingDuringCallback = drainHandler_->isDraining();
+          request->drainClosedDuringCallback = drainHandler_->isClosed();
+          if (result.hasError()) {
+            request->error = std::move(result.error());
+          } else {
+            request->data = std::move(result.value().data);
+          }
+        });
+    evb_.loopOnce(EVLOOP_NONBLOCK);
+
+    auto writtenFrame = getWrittenFrame();
+    EXPECT_NE(writtenFrame, nullptr);
+    if (writtenFrame != nullptr) {
+      auto parsed = parseWrittenFrame(std::move(writtenFrame));
+      EXPECT_TRUE(parsed.isValid());
+      EXPECT_EQ(parsed.type(), frame::FrameType::REQUEST_RESPONSE);
+      request->streamId = parsed.streamId();
+    }
+    return request;
+  }
+
+  void injectGoodResponse(uint32_t streamId) {
+    injectFrame(createPayloadResponse(
+        streamId,
+        serializeResponseMetadata(
+            createBasicResponseMetadata(),
+            rocket::server::MetadataProtocol::BINARY),
+        folly::IOBuf::copyBuffer("response")));
+    evb_.loopOnce(EVLOOP_NONBLOCK);
+  }
+
+  void expectProtocolFailure(const RecordedRequest& request) {
+    ASSERT_EQ(request.completions, 1);
+    auto* error =
+        request.error.get_exception<apache::thrift::TApplicationException>();
+    ASSERT_NE(error, nullptr) << request.error.what().toStdString();
+    EXPECT_EQ(error->getType(), apache::thrift::TApplicationException::UNKNOWN);
+    EXPECT_FALSE(request.streamActiveDuringCallback);
+    EXPECT_FALSE(streamStateHandler_->hasActiveStream(request.streamId));
+    EXPECT_EQ(getWrittenFrame(), nullptr);
+  }
+
+  void verifyLocalProtocolFailure(frame::ComposedFrame malformed) {
+    setupPipeline();
+    auto request = sendRecordedRequest();
+    auto unrelated = sendRecordedRequest();
+    ASSERT_NE(request->streamId, 0u);
+    ASSERT_NE(unrelated->streamId, 0u);
+    ASSERT_EQ(streamStateHandler_->activeStreamCount(), 2);
+
+    malformed.streamId = request->streamId;
+    injectFrame(std::move(malformed).serialize());
+    evb_.loopOnce(EVLOOP_NONBLOCK);
+
+    expectProtocolFailure(*request);
+    EXPECT_EQ(streamStateHandler_->activeStreamCount(), 1);
+    EXPECT_EQ(drainHandler_->inFlight(), 1u);
+    EXPECT_TRUE(streamStateHandler_->hasActiveStream(unrelated->streamId));
+    EXPECT_EQ(unrelated->completions, 0);
+    EXPECT_TRUE(testTransport_->good());
+
+    injectGoodResponse(request->streamId);
+    EXPECT_EQ(request->completions, 1);
+    EXPECT_EQ(unrelated->completions, 0);
+    EXPECT_EQ(streamStateHandler_->activeStreamCount(), 1);
+
+    injectGoodResponse(unrelated->streamId);
+    ASSERT_EQ(unrelated->completions, 1);
+    EXPECT_FALSE(unrelated->error);
+    ASSERT_NE(unrelated->data, nullptr);
+    EXPECT_EQ(unrelated->data->toString(), "response");
+    EXPECT_FALSE(unrelated->streamActiveDuringCallback);
+    EXPECT_EQ(streamStateHandler_->activeStreamCount(), 0);
+    EXPECT_EQ(drainHandler_->inFlight(), 0u);
+    EXPECT_TRUE(testTransport_->good());
+    EXPECT_EQ(getWrittenFrame(), nullptr);
+  }
+
+  void verifyProtocolFailureCompletesDrain(frame::ComposedFrame malformed) {
+    setupPipeline();
+    auto request = sendRecordedRequest();
+    ASSERT_NE(request->streamId, 0u);
+
+    injectFrame(
+        frame::write::serialize(
+            frame::write::ErrorHeader{
+                .streamId = 0,
+                .errorCode =
+                    static_cast<uint32_t>(frame::ErrorCode::CONNECTION_CLOSE)},
+            nullptr,
+            nullptr));
+    evb_.loopOnce(EVLOOP_NONBLOCK);
+    ASSERT_TRUE(drainHandler_->isDraining());
+    EXPECT_FALSE(drainHandler_->isClosed());
+    EXPECT_EQ(drainHandler_->inFlight(), 1u);
+    EXPECT_EQ(request->completions, 0);
+    EXPECT_TRUE(streamStateHandler_->hasActiveStream(request->streamId));
+    EXPECT_TRUE(testTransport_->good());
+    EXPECT_EQ(getWrittenFrame(), nullptr);
+
+    malformed.streamId = request->streamId;
+    injectFrame(std::move(malformed).serialize());
+    evb_.loopOnce(EVLOOP_NONBLOCK);
+
+    expectProtocolFailure(*request);
+    EXPECT_TRUE(request->drainingDuringCallback);
+    EXPECT_FALSE(request->drainClosedDuringCallback);
+    EXPECT_TRUE(drainHandler_->isClosed());
+    EXPECT_EQ(drainHandler_->inFlight(), 0u);
+    EXPECT_EQ(streamStateHandler_->activeStreamCount(), 0);
+  }
+
   folly::EventBase evb_;
   TestAsyncTransport* testTransport_{nullptr};
   std::unique_ptr<client::ThriftClientTransportAdapter> transportAdapter_;
@@ -1392,6 +1541,7 @@ class ThriftClientAppAdapterIntegrationTest : public ::testing::Test {
   // map, which is otherwise invisible from outside the pipeline.
   apache::thrift::fast_thrift::rocket::client::handler::
       RocketClientStreamStateHandler* streamStateHandler_{nullptr};
+  client::handler::ThriftClientGracefulDrainHandler* drainHandler_{nullptr};
 };
 
 // =============================================================================
@@ -1545,6 +1695,90 @@ TEST_F(
 // =============================================================================
 // Error Handling
 // =============================================================================
+
+TEST_F(
+    ThriftClientAppAdapterIntegrationTest,
+    UnexpectedRequestNCompletesOnlyOriginalRequest) {
+  verifyLocalProtocolFailure(
+      frame::ComposedFrame{
+          .frameType = frame::FrameType::REQUEST_N, .requestN = 1});
+}
+
+TEST_F(
+    ThriftClientAppAdapterIntegrationTest,
+    NonIgnorableExtCompletesOnlyOriginalRequest) {
+  verifyLocalProtocolFailure(
+      frame::ComposedFrame{
+          .frameType = frame::FrameType::EXT, .extendedType = 0});
+}
+
+TEST_F(
+    ThriftClientAppAdapterIntegrationTest,
+    PayloadWithoutNextCompletesOnlyOriginalRequest) {
+  verifyLocalProtocolFailure(
+      frame::ComposedFrame{.frameType = frame::FrameType::PAYLOAD});
+}
+
+TEST_F(
+    ThriftClientAppAdapterIntegrationTest,
+    CompleteOnlyPayloadPreservesTerminalRequestContext) {
+  verifyLocalProtocolFailure(
+      frame::ComposedFrame{
+          .frameType = frame::FrameType::PAYLOAD, .complete = true});
+}
+
+TEST_F(
+    ThriftClientAppAdapterIntegrationTest,
+    PeerCancelPreservesTerminalRequestContext) {
+  verifyLocalProtocolFailure(
+      frame::ComposedFrame{.frameType = frame::FrameType::CANCEL});
+}
+
+TEST_F(
+    ThriftClientAppAdapterIntegrationTest,
+    IgnorableExtKeepsOriginalRequestPending) {
+  setupPipeline();
+  auto request = sendRecordedRequest();
+  ASSERT_NE(request->streamId, 0u);
+
+  injectFrame(
+      frame::write::serialize(
+          frame::write::ExtHeader{
+              .streamId = request->streamId, .extendedType = 0, .ignore = true},
+          nullptr,
+          nullptr));
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  EXPECT_EQ(request->completions, 0);
+  EXPECT_TRUE(streamStateHandler_->hasActiveStream(request->streamId));
+  EXPECT_EQ(drainHandler_->inFlight(), 1u);
+  EXPECT_EQ(getWrittenFrame(), nullptr);
+
+  injectGoodResponse(request->streamId);
+  ASSERT_EQ(request->completions, 1);
+  EXPECT_FALSE(request->error);
+  ASSERT_NE(request->data, nullptr);
+  EXPECT_EQ(request->data->toString(), "response");
+  EXPECT_FALSE(request->streamActiveDuringCallback);
+  EXPECT_EQ(streamStateHandler_->activeStreamCount(), 0);
+  EXPECT_EQ(drainHandler_->inFlight(), 0u);
+  EXPECT_EQ(getWrittenFrame(), nullptr);
+}
+
+TEST_F(
+    ThriftClientAppAdapterIntegrationTest,
+    UnexpectedRequestNDeliversFailureBeforeDrainCompletes) {
+  verifyProtocolFailureCompletesDrain(
+      frame::ComposedFrame{
+          .frameType = frame::FrameType::REQUEST_N, .requestN = 1});
+}
+
+TEST_F(
+    ThriftClientAppAdapterIntegrationTest,
+    NonIgnorableExtDeliversFailureBeforeDrainCompletes) {
+  verifyProtocolFailureCompletesDrain(
+      frame::ComposedFrame{
+          .frameType = frame::FrameType::EXT, .extendedType = 0});
+}
 
 TEST_F(ThriftClientAppAdapterIntegrationTest, ErrorFramePropagatesException) {
   setupPipeline();

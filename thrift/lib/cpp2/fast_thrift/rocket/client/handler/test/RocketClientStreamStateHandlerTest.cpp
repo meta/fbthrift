@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <memory>
 #include <utility>
 
 #include <folly/io/IOBuf.h>
@@ -26,6 +27,7 @@
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameParser.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/client/Messages.h>
+#include <thrift/lib/cpp2/fast_thrift/rocket/common/TypeErasedPtr.h>
 
 #define private public
 #define protected public
@@ -480,6 +482,47 @@ TEST_F(ClientStreamStateHandlerTest, ResponseErrorForUnknownStreamIsDropped) {
 
   EXPECT_EQ(result, Result::Success);
   EXPECT_EQ(ctx_.readMessages().size(), 0);
+}
+
+TEST_F(
+    ClientStreamStateHandlerTest,
+    TerminateEventTransfersContextWithoutWritingCancel) {
+  auto owner = std::make_unique<int>(42);
+  const auto* requestContext = owner.get();
+  auto request =
+      makeClientRequest(folly::IOBuf::copyBuffer("request"), nullptr);
+  request.requestContext = from_unique_ptr(std::move(owner));
+  EXPECT_EQ(
+      handler_.onWrite(ctx_, erase_and_box(std::move(request))),
+      Result::Success);
+  ASSERT_EQ(handler_.activeStreamCount(), 1);
+
+  RocketResponseMessage response{
+      .payload = RocketResponseError{.ew = {}, .streamId = 1},
+      .requestContext = {},
+      .streamType = frame::FrameType::REQUEST_RESPONSE,
+  };
+  const RocketTerminateStreamEvent event{
+      .streamId = 1,
+      .response = response,
+  };
+  handler_.on<RocketTerminateStreamEvent>(ctx_, event);
+
+  EXPECT_EQ(handler_.activeStreamCount(), 0);
+  EXPECT_EQ(response.requestContext.get(), requestContext);
+  EXPECT_TRUE(ctx_.readMessages().empty());
+  EXPECT_EQ(ctx_.writeMessages().size(), 1);
+
+  handler_.on<RocketTerminateStreamEvent>(ctx_, event);
+  handler_.on<RocketCancelRequestEvent>(
+      ctx_,
+      RocketCancelRequestEvent{
+          .requestContext = response.requestContext.get()});
+  handler_.onPipelineInactive(ctx_);
+  EXPECT_EQ(response.requestContext.get(), requestContext);
+  EXPECT_TRUE(ctx_.readMessages().empty());
+  EXPECT_EQ(ctx_.writeMessages().size(), 1);
+  EXPECT_EQ(*response.requestContext.release_as<int>(), 42);
 }
 
 TEST_F(ClientStreamStateHandlerTest, CancelEventRetiresStreamAndWritesCancel) {

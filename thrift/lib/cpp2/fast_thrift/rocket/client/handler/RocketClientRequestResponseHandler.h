@@ -30,6 +30,7 @@
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameParser.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/FrameHeaders.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/FrameWriter.h>
+#include <thrift/lib/cpp2/fast_thrift/rocket/client/Event.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/client/Messages.h>
 
 #include <string>
@@ -60,11 +61,9 @@ namespace apache::thrift::fast_thrift::rocket::client::handler {
  *     it upstream so the App's pending callback resolves with a failure.
  *     Result::Error is reserved for connection-fatal events.
  *
- * Inbound-only by design: REQUEST_RESPONSE has no follow-up frames from the
- * requester (no REQUEST_N, no client-side wire CANCEL — RR cancellation is
- * handled by per-request timeout / connection close, never on the wire). All
- * outbound concerns belong upstream (request shaping in App, streamId
- * assignment in StreamStateHandler, serialization in FrameCodecHandler).
+ * Locally generated errors send no frame to the peer. They request terminal
+ * cleanup from StreamStateHandler before forwarding the response. Explicit
+ * request cancellation is owned by StreamStateHandler and can send CANCEL.
  *
  * Pipeline position:
  *   App <- RocketClientRequestResponseHandler <- StreamStateHandler <- ...
@@ -73,6 +72,8 @@ namespace apache::thrift::fast_thrift::rocket::client::handler {
 class RocketClientRequestResponseHandler {
  public:
   RocketClientRequestResponseHandler() = default;
+
+  using PublishedEvents = channel_pipeline::Events<RocketTerminateStreamEvent>;
 
   // === HandlerLifecycle ===
 
@@ -125,7 +126,7 @@ class RocketClientRequestResponseHandler {
         XLOG(ERR) << "RR PAYLOAD response missing NEXT flag: streamId="
                   << parsed.streamId();
         synthesizeStreamError(
-            response, "RR PAYLOAD response missing NEXT flag");
+            ctx, response, "RR PAYLOAD response missing NEXT flag");
       }
       return ctx.fireRead(std::move(msg));
     }
@@ -150,6 +151,7 @@ class RocketClientRequestResponseHandler {
     XLOG(ERR) << "Unexpected frame type for REQUEST_RESPONSE stream: streamId="
               << parsed.streamId() << ", frameType=" << parsed.typeName();
     synthesizeStreamError(
+        ctx,
         response,
         fmt::format(
             "unexpected frame type {} on REQUEST_RESPONSE stream",
@@ -167,12 +169,16 @@ class RocketClientRequestResponseHandler {
   // ERROR(INVALID) frame on the same streamId. Used to convert peer
   // protocol violations into a per-stream failure delivered to the App.
   // Caller must have already verified the variant holds a ParsedFrame.
+  template <typename Context>
   static void synthesizeStreamError(
-      RocketResponseMessage& response, std::string description) noexcept {
-    const uint32_t streamId =
+      Context& ctx,
+      RocketResponseMessage& response,
+      std::string description) noexcept {
+    const auto& parsed =
         response.payload
-            .get<apache::thrift::fast_thrift::frame::read::ParsedFrame>()
-            .streamId();
+            .get<apache::thrift::fast_thrift::frame::read::ParsedFrame>();
+    const uint32_t streamId = parsed.streamId();
+    const bool wasTerminal = parsed.isTerminalFrame();
     auto buf =
         apache::thrift::fast_thrift::frame::ComposedFrame{
             .frameType = apache::thrift::fast_thrift::frame::FrameType::ERROR,
@@ -184,6 +190,14 @@ class RocketClientRequestResponseHandler {
             .serialize();
     response.payload =
         apache::thrift::fast_thrift::frame::read::parseFrame(std::move(buf));
+    if (!wasTerminal) {
+      PublishedEvents::template fire<RocketTerminateStreamEvent>(
+          ctx,
+          RocketTerminateStreamEvent{
+              .streamId = streamId,
+              .response = response,
+          });
+    }
   }
 };
 

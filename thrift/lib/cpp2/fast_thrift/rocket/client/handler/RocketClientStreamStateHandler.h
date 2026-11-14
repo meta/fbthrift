@@ -81,8 +81,10 @@ class RocketClientStreamStateHandler {
   RocketClientStreamStateHandler() = default;
 
   using PublishedEvents = channel_pipeline::Events<RocketWriteCompleteEvent>;
-  using SubscribedEvents = channel_pipeline::
-      Events<FrameWriteCompleteEvent, RocketCancelRequestEvent>;
+  using SubscribedEvents = channel_pipeline::Events<
+      FrameWriteCompleteEvent,
+      RocketCancelRequestEvent,
+      RocketTerminateStreamEvent>;
 
   // === HandlerLifecycle ===
 
@@ -279,6 +281,18 @@ class RocketClientStreamStateHandler {
   void onWriteReady(Context& /*ctx*/) noexcept {}
 
   // === EventSubscriber ===
+
+  template <channel_pipeline::PipelineEvent E, typename Context>
+    requires std::same_as<E, RocketTerminateStreamEvent>
+  void on(Context& /*ctx*/, const RocketTerminateStreamEvent& event) noexcept {
+    auto it = streams().find(event.streamId);
+    if (it == streams().end()) {
+      return;
+    }
+    DCHECK(!event.response.requestContext);
+    event.response.requestContext = std::move(it->second.requestContext);
+    streams().erase(it);
+  }
 
   template <channel_pipeline::PipelineEvent E, typename Context>
     requires std::same_as<E, FrameWriteCompleteEvent>
