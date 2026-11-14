@@ -28,6 +28,7 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
 
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -50,6 +51,14 @@ struct HandlerSpec {
   using Handler = H;
   static constexpr HandlerId id = Id;
 };
+
+// Whether an Events<...> set contains E. A pure type-level predicate, kept
+// local so this pipeline does not depend on the static pipeline's machinery.
+template <typename EventSet, typename E>
+inline constexpr bool kEventSetContains = false;
+template <PipelineEvent E, PipelineEvent... Evs>
+inline constexpr bool kEventSetContains<Events<Evs...>, E> =
+    (std::same_as<E, Evs> || ...);
 
 /**
  * Per-handler context for a PipelineInstance, parameterized on the owning
@@ -90,6 +99,23 @@ class Context {
   FOLLY_ALWAYS_INLINE void fireException(
       folly::exception_wrapper&& e) noexcept {
     pipeline_->template fireExceptionFrom<Index + 1>(std::move(e));
+  }
+
+  // Publish a user event to every subscribing handler in the pipeline.
+  template <PipelineEvent E>
+    requires std::is_void_v<typename E::Payload>
+  void fireEvent() noexcept {
+    pipeline_->template fireEvent<E>();
+  }
+  template <PipelineEvent E>
+    requires(!std::is_void_v<typename E::Payload>)
+  void fireEvent(const typename E::Payload& payload) noexcept {
+    pipeline_->template fireEvent<E>(payload);
+  }
+  template <PipelineEvent E, std::size_t RouteIndex, typename... Args>
+  void firePublishedEvent(Args&&... args) noexcept {
+    pipeline_->template firePublishedEvent<Index, E, RouteIndex>(
+        std::forward<Args>(args)...);
   }
 
   // Application state and resources, including allocators and sockets.
@@ -286,9 +312,10 @@ struct PipelineInstance {
    *
    * Backpressure readiness is implemented: generation-guarded
    * onWriteReady/onReadReady over per-handler hooks, un-privileged from the
-   * endpoints. TODO(diff 3): user events (bindEvent/fireBoundEvent currently
-   * stubbed). TODO(seam): route past-the-end fires to a bound peer once the
-   * bind machinery is rebased in.
+   * endpoints. User events are implemented: fireEvent<E> broadcasts to every
+   * subscribing handler, and external publishers reach them through the erased
+   * handle's bindEvent/fireBoundEvent. TODO(seam): route past-the-end fires to
+   * a bound peer once the bind machinery is rebased in.
    */
   template <typename TaskState, ExecutionDomain Domain, typename... Specs>
   class Impl final {
@@ -571,11 +598,50 @@ struct PipelineInstance {
       readReadyDispatching_ = false;
     }
 
-    // TODO(diff 3): bind/broadcast user events to subscribers.
+    // User events: a typed control-plane broadcast separate from read/write.
+    // fireEvent<E> delivers to every handler that declares SubscribedEvents
+    // containing E and implements on<E>(ctx, payload). Uniform: every
+    // subscriber receives ctx. A publisher reaches this via ctx.fireEvent<E>
+    // or, with a prebound route, firePublishedEvent.
+    template <PipelineEvent E>
+      requires std::is_void_v<typename E::Payload>
+    void fireEvent() noexcept {
+      fireEventImpl<E>(nullptr);
+    }
+    template <PipelineEvent E>
+      requires(!std::is_void_v<typename E::Payload>)
+    void fireEvent(const typename E::Payload& payload) noexcept {
+      fireEventImpl<E>(&payload);
+    }
+    template <
+        std::size_t PublisherIndex,
+        PipelineEvent E,
+        std::size_t RouteIndex,
+        typename... Args>
+    void firePublishedEvent(Args&&... args) noexcept {
+      using Slot =
+          std::remove_reference_t<decltype(handlerAt<PublisherIndex>())>;
+      using PublishedEvents = typename Slot::Handler::PublishedEvents;
+      static_assert(
+          detail::pipeline_instance::kEventSetContains<PublishedEvents, E>);
+      static_assert(RouteIndex == PublishedEvents::template index<E>);
+      fireEvent<E>(std::forward<Args>(args)...);
+    }
+
+    // Erased event entry points (part of the PipelineRef ops surface): an
+    // external publisher binds each event key once and fires by key.
     BoundEventRoute bindEvent(EventKey key) noexcept {
       return BoundEventRoute{key};
     }
-    void fireBoundEvent(BoundEventRoute, const void*) noexcept {}
+    void fireBoundEvent(BoundEventRoute route, const void* payload) noexcept {
+      if (isClosed()) {
+        return;
+      }
+      Guard guard(this);
+      const auto key = static_cast<EventKey>(route.value);
+      dispatchEventByKey(
+          key, payload, std::make_index_sequence<kHandlerCount>{});
+    }
 
     void close() noexcept {
       Guard guard(this);
@@ -772,6 +838,66 @@ struct PipelineInstance {
         }
         dispatchReadReady<Index + 1>(target);
       }
+    }
+
+    // === Event dispatch === (broadcast to subscribers, tail -> head order)
+
+    template <PipelineEvent E>
+    void fireEventImpl(const void* payload) noexcept {
+      if (isClosed()) {
+        return;
+      }
+      Guard guard(this);
+      dispatchEvent<E>(payload, std::make_index_sequence<kHandlerCount>{});
+    }
+    template <PipelineEvent E, std::size_t... Index>
+    void dispatchEvent(
+        const void* payload, std::index_sequence<Index...>) noexcept {
+      (dispatchHandlerEvent<E, kHandlerCount - 1 - Index>(payload), ...);
+    }
+    template <PipelineEvent E, std::size_t Index>
+    void dispatchHandlerEvent(const void* payload) noexcept {
+      auto& slot = handlerAt<Index>();
+      using H = typename std::remove_reference_t<decltype(slot)>::Handler;
+      using Context = typename std::remove_reference_t<decltype(slot)>::Context;
+      if constexpr (requires { typename H::SubscribedEvents; }) {
+        if constexpr (detail::pipeline_instance::
+                          kEventSetContains<typename H::SubscribedEvents, E>) {
+          static_assert(TypeEventSubscriber<H, Context>);
+          if constexpr (std::is_void_v<typename E::Payload>) {
+            slot.handler().template on<E>(slot.context());
+          } else {
+            slot.handler().template on<E>(
+                slot.context(),
+                *static_cast<const typename E::Payload*>(payload));
+          }
+        }
+      }
+    }
+    template <std::size_t... Index>
+    void dispatchEventByKey(
+        EventKey key,
+        const void* payload,
+        std::index_sequence<Index...>) noexcept {
+      (dispatchHandlerEventByKey<kHandlerCount - 1 - Index>(key, payload), ...);
+    }
+    template <std::size_t Index>
+    void dispatchHandlerEventByKey(EventKey key, const void* payload) noexcept {
+      auto& slot = handlerAt<Index>();
+      using H = typename std::remove_reference_t<decltype(slot)>::Handler;
+      if constexpr (requires { typename H::SubscribedEvents; }) {
+        dispatchHandlerEventSetByKey<Index>(
+            key, payload, typename H::SubscribedEvents{});
+      }
+    }
+    template <std::size_t Index, PipelineEvent... Evs>
+    void dispatchHandlerEventSetByKey(
+        EventKey key, const void* payload, Events<Evs...>) noexcept {
+      static_cast<void>(
+          ((key == eventKey<Evs>()
+                ? (dispatchHandlerEvent<Evs, Index>(payload), true)
+                : false) ||
+           ...));
     }
 
     // State and execution resources outlive handler destruction. The ready

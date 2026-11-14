@@ -26,6 +26,7 @@
 #include <folly/portability/GTest.h>
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Event.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
 
 namespace apache::thrift::fast_thrift::channel_pipeline {
@@ -46,7 +47,11 @@ struct Counters {
   int writeReady{0};
   int readArmed{0};
   int readReady{0};
+  int eventSum{0};
 };
+
+// A control-plane event carrying an int payload.
+struct ValueEvent : EventTag<int> {};
 
 // Per-connection state: just a pointer to the test's counters.
 struct EchoTaskState {
@@ -197,6 +202,37 @@ struct ReadBackpressureHandler : CountingBase {
   void onReadReady(C& ctx) noexcept {
     ++ctx.taskState().counters->readReady;
     ctx.cancelAwaitReadReady();
+  }
+};
+
+// Forwards both directions and, on read, publishes a ValueEvent in-pipeline.
+struct EventPublisher : CountingBase {
+  template <typename C>
+  Result onRead(C& ctx, TypeErasedBox&& msg) noexcept {
+    ctx.template fireEvent<ValueEvent>(7);
+    return ctx.fireRead(std::move(msg));
+  }
+  template <typename C>
+  Result onWrite(C& ctx, TypeErasedBox&& msg) noexcept {
+    return ctx.fireWrite(std::move(msg));
+  }
+};
+
+// Subscribes to ValueEvent and accumulates the payload into the shared
+// counters.
+struct EventSubscriber : CountingBase {
+  using SubscribedEvents = Events<ValueEvent>;
+  template <typename C>
+  Result onRead(C& ctx, TypeErasedBox&& msg) noexcept {
+    return ctx.fireRead(std::move(msg));
+  }
+  template <typename C>
+  Result onWrite(C& ctx, TypeErasedBox&& msg) noexcept {
+    return ctx.fireWrite(std::move(msg));
+  }
+  template <PipelineEvent E, typename C>
+  void on(C& ctx, const typename E::Payload& payload) noexcept {
+    ctx.taskState().counters->eventSum += payload;
   }
 };
 
@@ -492,6 +528,35 @@ TEST(PipelineInstanceTest, ReadReadyNotifiesArmedHandler) {
 
   pipeline->onReadReady();
   EXPECT_EQ(counters.readReady, 1);
+}
+
+// An in-pipeline publisher's fireEvent reaches a subscribing handler.
+TEST(PipelineInstanceTest, EventBroadcastsToSubscriber) {
+  Counters counters;
+  auto pipeline =
+      PipelineSpec<EchoTaskState, InlineExecution>{}
+          .add<EventPublisher>(head_tag)
+          .add<EventSubscriber>(mid_tag)
+          .add<TailHandler>(tail_tag)
+          .build(EchoTaskState{.counters = &counters}, InlineExecution{});
+  pipeline->activate();
+  EXPECT_EQ(pipeline->fireRead(TypeErasedBox{}), Result::Success);
+  EXPECT_EQ(counters.eventSum, 7);
+}
+
+// An external publisher reaches the subscriber through the erased handle's
+// bindEvents/fireBoundEvent path.
+TEST(PipelineInstanceTest, ExternalPublisherReachesSubscriber) {
+  Counters counters;
+  auto pipeline =
+      PipelineSpec<EchoTaskState, InlineExecution>{}
+          .add<HeadHandler>(head_tag)
+          .add<EventSubscriber>(mid_tag)
+          .add<TailHandler>(tail_tag)
+          .build(EchoTaskState{.counters = &counters}, InlineExecution{});
+  pipeline->activate();
+  pipeline->bindEvents<Events<ValueEvent>>().fire<ValueEvent>(5);
+  EXPECT_EQ(counters.eventSum, 5);
 }
 
 struct InlineTaskState {
