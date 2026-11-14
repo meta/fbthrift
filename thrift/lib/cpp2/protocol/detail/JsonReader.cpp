@@ -279,6 +279,14 @@ bool Json5Reader::skipUnicodeSpace() {
 }
 
 void Json5Reader::skipWhitespaceAndComments() {
+  // This runs after every token, and in compact JSON nothing follows most of
+  // them, so check the one byte that would have to start whitespace or a
+  // comment (ASCII space, '/', or the lead byte of a Unicode space) before
+  // paying for the loop below.
+  const char c = peekChar();
+  if (!isAsciiSpace(c) && c != '/' && static_cast<unsigned char>(c) < 0x80) {
+    return;
+  }
   do {
     cursor().skipWhile(isAsciiSpace);
     // Loop to handle adjacent comments, e.g. `/*a*//*b*/`.
@@ -538,7 +546,6 @@ Json5Reader::Primitive Json5Reader::readPrimitive(
     throwParseError(fmt::format("expected value, got '{}'", c));
   }
 
-  skipWhitespaceAndComments();
   expectCommaOrEnd();
   return result;
 }
