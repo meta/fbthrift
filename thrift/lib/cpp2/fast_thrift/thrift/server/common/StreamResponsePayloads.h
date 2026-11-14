@@ -69,12 +69,14 @@ struct ThriftServerStreamOpenPayload {
       rocket::server::MetadataProtocol /*metadataProtocol*/) && noexcept {
     DCHECK(false)
         << "ThriftServerStreamOpenPayload reached the transport un-consumed";
+#ifdef NDEBUG
     return {
         .frameType = apache::thrift::fast_thrift::frame::FrameType::ERROR,
         .streamId = initialResponse.streamId,
         .errorCode = static_cast<uint32_t>(
             apache::thrift::fast_thrift::frame::ErrorCode::INVALID),
     };
+#endif
   }
 };
 
