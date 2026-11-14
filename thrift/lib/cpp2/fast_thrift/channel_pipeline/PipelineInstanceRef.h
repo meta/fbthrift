@@ -19,6 +19,7 @@
 #include <folly/ExceptionWrapper.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Event.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineAdapter.h>
 
 #include <array>
 #include <concepts>
@@ -38,6 +39,7 @@ class PipelineInstanceEventPublisherRef;
 template <typename P>
 concept PipelineInstanceRefTarget = requires(
     P& pipeline,
+    detail::pipeline_instance::AdapterStorage adapter,
     TypeErasedBox&& message,
     folly::exception_wrapper&& exception,
     EventKey eventKey,
@@ -46,6 +48,8 @@ concept PipelineInstanceRefTarget = requires(
   typename P::Guard;
   { pipeline.fireRead(std::move(message)) } noexcept -> std::same_as<Result>;
   { pipeline.fireWrite(std::move(message)) } noexcept -> std::same_as<Result>;
+  { pipeline.adaptRead(std::move(adapter)) } noexcept -> std::same_as<bool>;
+  { pipeline.adaptWrite(std::move(adapter)) } noexcept -> std::same_as<bool>;
   {
     pipeline.fireException(std::move(exception))
   } noexcept -> std::same_as<void>;
@@ -97,6 +101,25 @@ class PipelineInstanceRef {
     return ops_->fireWrite(instance_, std::move(message));
   }
 
+  // Registration owns the supplied adapter and requires an inactive, unguarded
+  // instance. Rejection destroys the candidate and leaves the binding intact.
+  // Borrowed resources must outlive their use. Allocation/construction may
+  // throw; message dispatch remains noexcept.
+  template <ReadAdapter A>
+  bool adaptRead(A adapter) const {
+    return ops_->adaptRead(
+        instance_,
+        detail::pipeline_instance::AdapterStorage::forRead(std::move(adapter)));
+  }
+
+  template <WriteAdapter A>
+  bool adaptWrite(A adapter) const {
+    return ops_->adaptWrite(
+        instance_,
+        detail::pipeline_instance::AdapterStorage::forWrite(
+            std::move(adapter)));
+  }
+
   void fireException(folly::exception_wrapper&& exception) const noexcept {
     ops_->fireException(instance_, std::move(exception));
   }
@@ -117,6 +140,10 @@ class PipelineInstanceRef {
   struct Ops {
     Result (*fireRead)(void*, TypeErasedBox&&) noexcept;
     Result (*fireWrite)(void*, TypeErasedBox&&) noexcept;
+    bool (*adaptRead)(
+        void*, detail::pipeline_instance::AdapterStorage) noexcept;
+    bool (*adaptWrite)(
+        void*, detail::pipeline_instance::AdapterStorage) noexcept;
     void (*fireException)(void*, folly::exception_wrapper&&) noexcept;
     void (*activate)(void*) noexcept;
     void (*deactivate)(void*) noexcept;
@@ -143,6 +170,16 @@ class PipelineInstanceRef {
         .fireWrite =
             +[](void* p, TypeErasedBox&& message) noexcept {
               return static_cast<P*>(p)->fireWrite(std::move(message));
+            },
+        .adaptRead =
+            +[](void* p,
+                detail::pipeline_instance::AdapterStorage adapter) noexcept {
+              return static_cast<P*>(p)->adaptRead(std::move(adapter));
+            },
+        .adaptWrite =
+            +[](void* p,
+                detail::pipeline_instance::AdapterStorage adapter) noexcept {
+              return static_cast<P*>(p)->adaptWrite(std::move(adapter));
             },
         .fireException =
             +[](void* p, folly::exception_wrapper&& exception) noexcept {

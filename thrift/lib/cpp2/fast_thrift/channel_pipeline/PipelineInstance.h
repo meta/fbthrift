@@ -25,6 +25,7 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/ExecutionDomain.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineAdapter.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineInstanceRef.h>
 
 #include <concepts>
@@ -298,7 +299,7 @@ struct PipelineInstance {
    * no distinguished endpoints. The first handler added is the logical head,
    * the last the tail, positionally. Reads enter at index 0 and flow toward the
    * tail; writes enter past the tail and flow toward the head; firing past
-   * either end hits the seam (Result::Error until bind lands). The single
+   * either end invokes its adapter (Result::Error if unbound). The single
    * TaskState is stored as a [[no_unique_address]] member (zero bytes when
    * empty) and reached by handlers through ctx.taskState().
    *
@@ -306,8 +307,7 @@ struct PipelineInstance {
    * onWriteReady/onReadReady over per-handler hooks, un-privileged from the
    * endpoints. User events are implemented: fireEvent<E> broadcasts to every
    * subscribing handler, and external publishers reach them through the erased
-   * handle's bindEvent/fireBoundEvent. TODO(seam): route past-the-end fires to
-   * a bound peer once the bind machinery is rebased in.
+   * handle's bindEvent/fireBoundEvent.
    */
   template <typename TaskState, ExecutionDomain Domain, typename... Specs>
   class Impl final {
@@ -399,6 +399,39 @@ struct PipelineInstance {
       }
       Guard guard(this);
       return fireWriteFrom<kHandlerCount>(std::move(msg));
+    }
+
+    template <ReadAdapter A>
+    bool adaptRead(A adapter) {
+      return adaptRead(
+          detail::pipeline_instance::AdapterStorage::forRead(
+              std::move(adapter)));
+    }
+
+    template <WriteAdapter A>
+    bool adaptWrite(A adapter) {
+      return adaptWrite(
+          detail::pipeline_instance::AdapterStorage::forWrite(
+              std::move(adapter)));
+    }
+
+    bool adaptRead(detail::pipeline_instance::AdapterStorage adapter) noexcept {
+      if (state_ != State::Inactive || guardCount_ != 0) {
+        return false;
+      }
+      Guard guard(this);
+      readAdapter_ = std::move(adapter);
+      return true;
+    }
+
+    bool adaptWrite(
+        detail::pipeline_instance::AdapterStorage adapter) noexcept {
+      if (state_ != State::Inactive || guardCount_ != 0) {
+        return false;
+      }
+      Guard guard(this);
+      writeAdapter_ = std::move(adapter);
+      return true;
     }
 
     void fireException(folly::exception_wrapper&& e) noexcept {
@@ -691,9 +724,21 @@ struct PipelineInstance {
     }
     void destroyNow() noexcept { delete this; }
 
-    // Seam: past the ends. Unbound on this base -> Error/drop.
-    Result seamRead(TypeErasedBox&&) noexcept { return Result::Error; }
-    Result seamWrite(TypeErasedBox&&) noexcept { return Result::Error; }
+    Result seamRead(TypeErasedBox&& msg) noexcept {
+      if (isClosed()) {
+        return Result::Error;
+      }
+      Guard guard(this);
+      return readAdapter_.invoke(std::move(msg));
+    }
+
+    Result seamWrite(TypeErasedBox&& msg) noexcept {
+      if (isClosed()) {
+        return Result::Error;
+      }
+      Guard guard(this);
+      return writeAdapter_.invoke(std::move(msg));
+    }
 
     template <std::size_t Index>
     decltype(auto) handlerAt() noexcept {
@@ -884,9 +929,9 @@ struct PipelineInstance {
            ...));
     }
 
-    // State and execution resources outlive handler destruction. The ready
-    // lists are intrusive (hooks live in the slots) and are cleared before
-    // teardown.
+    // State and execution resources outlive adapters, which outlive handlers.
+    // The ready lists are intrusive (hooks live in the slots) and are cleared
+    // before teardown.
     [[no_unique_address]] Domain executionDomain_;
     [[no_unique_address]] TaskState taskState_;
     State state_{State::Inactive};
@@ -900,6 +945,8 @@ struct PipelineInstance {
     std::size_t readReadyGeneration_{0};
     ReadyList writeReadyList_;
     ReadyList readReadyList_;
+    detail::pipeline_instance::AdapterStorage readAdapter_;
+    detail::pipeline_instance::AdapterStorage writeAdapter_;
     detail::pipeline_instance::HandlerStorage<Self, 0, Specs...> handlers_;
   };
 };

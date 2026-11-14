@@ -15,6 +15,7 @@
  */
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/ExecutionDomain.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineAdapter.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineFactory.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineInstance.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineSpec.h>
@@ -24,6 +25,7 @@
 #include <stdexcept>
 #include <string>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include <folly/ExceptionWrapper.h>
@@ -404,8 +406,21 @@ struct ResourceLifetimeHandler : StatelessEcho {
   }
 };
 
+struct AdapterResource {
+  explicit AdapterResource(std::vector<std::string>& lifetime)
+      : lifetime(&lifetime) {}
+  ~AdapterResource() { lifetime->emplace_back("adapter"); }
+  std::vector<std::string>* lifetime;
+};
+
+struct LifetimeReadAdapter {
+  std::unique_ptr<AdapterResource> resource;
+  Result adaptRead(TypeErasedBox&&) noexcept { return Result::Success; }
+};
+
 TEST(
-    PipelineInstanceTest, GuardRetainsOwnedTaskStateThroughHandlerDestruction) {
+    PipelineInstanceTest,
+    GuardRetainsAdaptersAndStateThroughHandlerDestruction) {
   std::vector<std::string> lifetime;
   auto pipeline = PipelineSpec<OwnedTaskState, InlineExecution>{}
                       .add<ResourceLifetimeHandler>(head_tag)
@@ -413,6 +428,8 @@ TEST(
                           {std::unique_ptr<OwnedTaskResource>(
                               new OwnedTaskResource{&lifetime})},
                           InlineExecution{});
+  ASSERT_TRUE(pipeline->adaptRead(
+      LifetimeReadAdapter{std::make_unique<AdapterResource>(lifetime)}));
   auto moved = std::move(pipeline);
   EXPECT_FALSE(pipeline);
   auto ref = moved.ref();
@@ -427,7 +444,8 @@ TEST(
 
   movedGuard.reset();
   EXPECT_EQ(
-      lifetime, (std::vector<std::string>{"removed", "handler", "resource"}));
+      lifetime,
+      (std::vector<std::string>{"removed", "handler", "adapter", "resource"}));
 }
 
 // Outbound-only endpoint: terminates writes, has no onRead. Satisfies
@@ -481,44 +499,37 @@ struct MessageSink {
   }
 };
 
-struct CallbackTaskState {
-  void* sink;
-  Result (*accept)(void*, TypeErasedBox&&) noexcept;
-};
-
-struct CallbackTail : StatelessEcho {
+struct ForwardingHandler : StatelessEcho {
   template <typename C>
   Result onRead(C& ctx, TypeErasedBox&& msg) noexcept {
-    auto& task = ctx.taskState();
-    return task.accept(task.sink, std::move(msg));
+    return ctx.fireRead(std::move(msg));
+  }
+  template <typename C>
+  Result onWrite(C& ctx, TypeErasedBox&& msg) noexcept {
+    return ctx.fireWrite(std::move(msg));
   }
 };
 
-struct EventBaseSink {
+struct EventBaseReadAdapter {
   folly::EventBase* eventBase;
   MessageSink* sink;
 
-  static Result accept(void* owner, TypeErasedBox&& msg) noexcept {
-    auto& self = *static_cast<EventBaseSink*>(owner);
-    self.eventBase->runInLoop(
-        [sink = self.sink, msg = std::move(msg)]() mutable {
-          static_cast<void>(sink->accept(std::move(msg)));
-        });
+  Result adaptRead(TypeErasedBox&& msg) noexcept {
+    eventBase->runInLoop([sink = sink, msg = std::move(msg)]() mutable {
+      static_cast<void>(sink->accept(std::move(msg)));
+    });
     return Result::Success;
   }
 };
 
-TEST(
-    PipelineInstanceTest,
-    InlineTailCanQueueDeliveryThroughExternalEventBaseSink) {
+TEST(PipelineInstanceTest, ReadAdapterCanQueueDeliveryOnExternalEventBase) {
   MessageSink sink;
   folly::EventBase eventBase;
-  EventBaseSink externalSink{&eventBase, &sink};
-  auto factory = PipelineSpec<CallbackTaskState, InlineExecution>{}
-                     .add<CallbackTail>(tail_tag)
+  auto factory = PipelineSpec<StatelessTaskState, InlineExecution>{}
+                     .add<ForwardingHandler>(tail_tag)
                      .factory();
-  auto pipeline = factory.create(
-      {&externalSink, &EventBaseSink::accept}, InlineExecution{});
+  auto pipeline = factory.create({}, InlineExecution{});
+  ASSERT_TRUE(pipeline->adaptRead(EventBaseReadAdapter{&eventBase, &sink}));
   pipeline->activate();
   auto message = std::make_unique<int>(42);
   auto* original = message.get();
@@ -533,31 +544,30 @@ TEST(
   EXPECT_EQ(*sink.messages.front(), 42);
 }
 
-struct ExecutorSink {
+struct ExecutorReadAdapter {
   folly::Executor* executor;
   MessageSink* sink;
 
-  static Result accept(void* owner, TypeErasedBox&& msg) noexcept {
-    auto& self = *static_cast<ExecutorSink*>(owner);
-    self.executor->add([sink = self.sink, msg = std::move(msg)]() mutable {
+  Result adaptRead(TypeErasedBox&& msg) noexcept {
+    executor->add([sink = sink, msg = std::move(msg)]() mutable {
       static_cast<void>(sink->accept(std::move(msg)));
     });
     return Result::Success;
   }
 };
 
-TEST(PipelineInstanceTest, FactoryCanInjectDifferentExternalExecutorSinks) {
+TEST(PipelineInstanceTest, FactoryInstancesCanBindDifferentExecutorAdapters) {
   MessageSink a;
   MessageSink b;
   folly::ManualExecutor executorA;
   folly::ManualExecutor executorB;
-  ExecutorSink sinkA{&executorA, &a};
-  ExecutorSink sinkB{&executorB, &b};
-  auto factory = PipelineSpec<CallbackTaskState, InlineExecution>{}
-                     .add<CallbackTail>(tail_tag)
+  auto factory = PipelineSpec<StatelessTaskState, InlineExecution>{}
+                     .add<ForwardingHandler>(tail_tag)
                      .factory();
-  auto p1 = factory.create({&sinkA, &ExecutorSink::accept}, InlineExecution{});
-  auto p2 = factory.create({&sinkB, &ExecutorSink::accept}, InlineExecution{});
+  auto p1 = factory.create({}, InlineExecution{});
+  auto p2 = factory.create({}, InlineExecution{});
+  ASSERT_TRUE(p1->adaptRead(ExecutorReadAdapter{&executorA, &a}));
+  ASSERT_TRUE(p2->adaptRead(ExecutorReadAdapter{&executorB, &b}));
   p1->activate();
   p2->activate();
   EXPECT_EQ(
@@ -649,47 +659,55 @@ struct CollectingEndpoint : StatelessEcho {
   }
 };
 
-struct ForwardingTaskState {
-  // The destination owner must outlive this context; forwarding is synchronous.
+struct ForwardingReadAdapter {
+  // The destination owner must outlive this adapter's use of the reference.
   PipelineInstance::Ref destination;
-  Result (*sink)(PipelineInstance::Ref, TypeErasedBox&&) noexcept;
-};
+  std::unique_ptr<int> calls;
 
-struct ForwardingTail : StatelessEcho {
-  template <typename C>
-  Result onRead(C& ctx, TypeErasedBox&& msg) noexcept {
-    auto& task = ctx.taskState();
-    return task.sink(task.destination, std::move(msg));
+  Result adaptRead(TypeErasedBox&& msg) noexcept {
+    ++*calls;
+    return destination.fireRead(std::move(msg));
   }
 };
 
-struct ForwardingHead : StatelessEcho {
-  template <typename C>
-  Result onWrite(C& ctx, TypeErasedBox&& msg) noexcept {
-    auto& task = ctx.taskState();
-    return task.sink(task.destination, std::move(msg));
+struct ForwardingWriteAdapter {
+  PipelineInstance::Ref destination;
+  std::unique_ptr<int> calls;
+
+  Result adaptWrite(TypeErasedBox&& msg) noexcept {
+    ++*calls;
+    return destination.fireWrite(std::move(msg));
   }
 };
 
-TEST(PipelineInstanceTest, TailSinkContinuesReadsToAnotherPipeline) {
+static_assert(ReadAdapter<ForwardingReadAdapter>);
+static_assert(!WriteAdapter<ForwardingReadAdapter>);
+static_assert(WriteAdapter<ForwardingWriteAdapter>);
+static_assert(!ReadAdapter<ForwardingWriteAdapter>);
+
+struct ThrowingReadAdapter {
+  Result adaptRead(TypeErasedBox&&);
+};
+struct WrongResultWriteAdapter {
+  void adaptWrite(TypeErasedBox&&) noexcept;
+};
+static_assert(!ReadAdapter<ThrowingReadAdapter>);
+static_assert(!WriteAdapter<WrongResultWriteAdapter>);
+
+TEST(PipelineInstanceTest, ReadAdapterContinuesMessagesToAnotherPipeline) {
   MessageSink reads;
   MessageSink writes;
   auto destination =
       PipelineSpec<SinkTaskState, InlineExecution>{}
           .add<CollectingEndpoint>(tail_tag)
           .build({.reads = &reads, .writes = &writes}, InlineExecution{});
-  auto source = PipelineSpec<ForwardingTaskState, InlineExecution>{}
-                    .add<ForwardingTail>(tail_tag)
-                    .build(
-                        {
-                            .destination = destination.ref(),
-                            .sink =
-                                +[](PipelineInstance::Ref next,
-                                    TypeErasedBox&& msg) noexcept {
-                                  return next.fireRead(std::move(msg));
-                                },
-                        },
-                        InlineExecution{});
+  auto source = PipelineSpec<StatelessTaskState, InlineExecution>{}
+                    .add<ForwardingHandler>(tail_tag)
+                    .build({}, InlineExecution{});
+  auto calls = std::make_unique<int>(0);
+  auto* observedCalls = calls.get();
+  ASSERT_TRUE(source->adaptRead(
+      ForwardingReadAdapter{destination.ref(), std::move(calls)}));
   destination->activate();
   source->activate();
 
@@ -703,28 +721,24 @@ TEST(PipelineInstanceTest, TailSinkContinuesReadsToAnotherPipeline) {
     EXPECT_EQ(*reads.messages.back(), 42);
   }
   EXPECT_EQ(reads.messages.size(), 3);
+  EXPECT_EQ(*observedCalls, 3);
   EXPECT_TRUE(writes.messages.empty());
 }
 
-TEST(PipelineInstanceTest, HeadSinkContinuesWritesToAnotherPipeline) {
+TEST(PipelineInstanceTest, WriteAdapterContinuesMessagesToAnotherPipeline) {
   MessageSink reads;
   MessageSink writes;
   auto destination =
       PipelineSpec<SinkTaskState, InlineExecution>{}
           .add<CollectingEndpoint>(head_tag)
           .build({.reads = &reads, .writes = &writes}, InlineExecution{});
-  auto source = PipelineSpec<ForwardingTaskState, InlineExecution>{}
-                    .add<ForwardingHead>(head_tag)
-                    .build(
-                        {
-                            .destination = destination.ref(),
-                            .sink =
-                                +[](PipelineInstance::Ref next,
-                                    TypeErasedBox&& msg) noexcept {
-                                  return next.fireWrite(std::move(msg));
-                                },
-                        },
-                        InlineExecution{});
+  auto source = PipelineSpec<StatelessTaskState, InlineExecution>{}
+                    .add<ForwardingHandler>(head_tag)
+                    .build({}, InlineExecution{});
+  auto calls = std::make_unique<int>(0);
+  auto* observedCalls = calls.get();
+  ASSERT_TRUE(source->adaptWrite(
+      ForwardingWriteAdapter{destination.ref(), std::move(calls)}));
   destination->activate();
   source->activate();
 
@@ -738,7 +752,312 @@ TEST(PipelineInstanceTest, HeadSinkContinuesWritesToAnotherPipeline) {
     EXPECT_EQ(*writes.messages.back(), 7);
   }
   EXPECT_EQ(writes.messages.size(), 3);
+  EXPECT_EQ(*observedCalls, 3);
   EXPECT_TRUE(reads.messages.empty());
+}
+
+struct AdapterObservation {
+  int reads{0};
+  int writes{0};
+  int destroyed{0};
+  Result result{Result::Success};
+};
+
+struct AdapterState {
+  explicit AdapterState(AdapterObservation& observation)
+      : observation(&observation) {}
+  ~AdapterState() { ++observation->destroyed; }
+  AdapterObservation* observation;
+};
+
+struct CountingAdapter {
+  std::unique_ptr<AdapterState> state;
+
+  Result adaptRead(TypeErasedBox&&) noexcept {
+    ++state->observation->reads;
+    return state->observation->result;
+  }
+  Result adaptWrite(TypeErasedBox&&) noexcept {
+    ++state->observation->writes;
+    return state->observation->result;
+  }
+};
+
+TEST(PipelineInstanceTest, ReadAndWriteAdaptersOwnIndependentMoveOnlyState) {
+  AdapterObservation reads;
+  AdapterObservation writes;
+  auto pipeline = PipelineSpec<StatelessTaskState, InlineExecution>{}
+                      .add<ForwardingHandler>(head_tag)
+                      .build({}, InlineExecution{});
+  EXPECT_EQ(pipeline->fireRead(TypeErasedBox{}), Result::Error);
+  EXPECT_EQ(pipeline->fireWrite(TypeErasedBox{}), Result::Error);
+  ASSERT_TRUE(pipeline->adaptRead(
+      CountingAdapter{std::make_unique<AdapterState>(reads)}));
+  ASSERT_TRUE(pipeline->adaptWrite(
+      CountingAdapter{std::make_unique<AdapterState>(writes)}));
+  pipeline->activate();
+
+  for (auto result : {Result::Success, Result::Backpressure, Result::Error}) {
+    reads.result = result;
+    writes.result = result;
+    EXPECT_EQ(pipeline->fireRead(TypeErasedBox{}), result);
+    EXPECT_EQ(pipeline->fireWrite(TypeErasedBox{}), result);
+  }
+  EXPECT_EQ(reads.reads, 3);
+  EXPECT_EQ(reads.writes, 0);
+  EXPECT_EQ(writes.reads, 0);
+  EXPECT_EQ(writes.writes, 3);
+  EXPECT_EQ(reads.destroyed, 0);
+  EXPECT_EQ(writes.destroyed, 0);
+  pipeline.reset();
+  EXPECT_EQ(reads.destroyed, 1);
+  EXPECT_EQ(writes.destroyed, 1);
+}
+
+TEST(
+    PipelineInstanceTest, InactiveInstanceCanReplaceAdapterAfterGuardsRelease) {
+  AdapterObservation original;
+  AdapterObservation replacement;
+  AdapterObservation rejected;
+  auto pipeline = PipelineSpec<StatelessTaskState, InlineExecution>{}
+                      .add<ForwardingHandler>(head_tag)
+                      .build({}, InlineExecution{});
+  ASSERT_TRUE(pipeline->adaptRead(
+      CountingAdapter{std::make_unique<AdapterState>(original)}));
+  auto guard = pipeline->guard();
+  EXPECT_FALSE(pipeline->adaptRead(
+      CountingAdapter{std::make_unique<AdapterState>(rejected)}));
+  EXPECT_EQ(rejected.destroyed, 1);
+  EXPECT_EQ(original.destroyed, 0);
+  guard.reset();
+
+  ASSERT_TRUE(pipeline->adaptRead(
+      CountingAdapter{std::make_unique<AdapterState>(replacement)}));
+  EXPECT_EQ(original.destroyed, 1);
+  EXPECT_EQ(pipeline->fireRead(TypeErasedBox{}), Result::Success);
+  EXPECT_EQ(original.reads, 0);
+  EXPECT_EQ(replacement.reads, 1);
+  pipeline.reset();
+  EXPECT_EQ(replacement.destroyed, 1);
+}
+
+TEST(PipelineInstanceTest, ActiveAndClosedInstancesRejectAdapters) {
+  AdapterObservation original;
+  AdapterObservation rejected;
+  auto pipeline = PipelineSpec<StatelessTaskState, InlineExecution>{}
+                      .add<ForwardingHandler>(head_tag)
+                      .build({}, InlineExecution{});
+  ASSERT_TRUE(pipeline->adaptRead(
+      CountingAdapter{std::make_unique<AdapterState>(original)}));
+  pipeline->activate();
+  EXPECT_FALSE(pipeline->adaptRead(
+      CountingAdapter{std::make_unique<AdapterState>(rejected)}));
+  EXPECT_FALSE(pipeline->adaptWrite(
+      CountingAdapter{std::make_unique<AdapterState>(rejected)}));
+  EXPECT_EQ(rejected.destroyed, 2);
+  EXPECT_EQ(pipeline->fireRead(TypeErasedBox{}), Result::Success);
+  EXPECT_EQ(original.reads, 1);
+
+  pipeline->close();
+  EXPECT_FALSE(pipeline->adaptRead(
+      CountingAdapter{std::make_unique<AdapterState>(rejected)}));
+  EXPECT_FALSE(pipeline->adaptWrite(
+      CountingAdapter{std::make_unique<AdapterState>(rejected)}));
+  EXPECT_EQ(rejected.destroyed, 4);
+  EXPECT_EQ(pipeline->fireRead(TypeErasedBox{}), Result::Error);
+  EXPECT_EQ(pipeline->fireWrite(TypeErasedBox{}), Result::Error);
+  EXPECT_EQ(original.reads, 1);
+}
+
+struct RebindingReadAdapter {
+  PipelineInstance::Ref pipeline;
+  AdapterObservation* candidate;
+  bool* accepted;
+
+  Result adaptRead(TypeErasedBox&&) noexcept {
+    *accepted = pipeline.adaptRead(
+        CountingAdapter{std::make_unique<AdapterState>(*candidate)});
+    return Result::Backpressure;
+  }
+};
+
+TEST(PipelineInstanceTest, AdapterCannotReplaceItselfDuringDispatch) {
+  AdapterObservation candidate;
+  bool accepted{true};
+  auto pipeline = PipelineSpec<StatelessTaskState, InlineExecution>{}
+                      .add<ForwardingHandler>(head_tag)
+                      .build({}, InlineExecution{});
+  ASSERT_TRUE(pipeline->adaptRead(
+      RebindingReadAdapter{pipeline.ref(), &candidate, &accepted}));
+  // Even an inactive instance is guarded while delivering a message.
+  EXPECT_EQ(pipeline->fireRead(TypeErasedBox{}), Result::Backpressure);
+  EXPECT_FALSE(accepted);
+  EXPECT_EQ(candidate.destroyed, 1);
+  EXPECT_EQ(pipeline->fireRead(TypeErasedBox{}), Result::Backpressure);
+  EXPECT_EQ(candidate.destroyed, 2);
+  EXPECT_EQ(candidate.reads, 0);
+}
+
+struct ReleasingReadAdapter {
+  PipelineInstance::Ptr* owner;
+  std::unique_ptr<AdapterResource> resource;
+
+  Result adaptRead(TypeErasedBox&&) noexcept {
+    owner->reset();
+    resource->lifetime->emplace_back("callback finished");
+    return Result::Backpressure;
+  }
+};
+
+TEST(PipelineInstanceTest, AdapterSurvivesOwnerReleaseInsideCallback) {
+  std::vector<std::string> lifetime;
+  auto pipeline = PipelineSpec<StatelessTaskState, InlineExecution>{}
+                      .add<ForwardingHandler>(head_tag)
+                      .build({}, InlineExecution{});
+  ASSERT_TRUE(pipeline->adaptRead(
+      ReleasingReadAdapter{
+          &pipeline, std::make_unique<AdapterResource>(lifetime)}));
+  auto ref = pipeline.ref();
+  EXPECT_EQ(ref.fireRead(TypeErasedBox{}), Result::Backpressure);
+  EXPECT_FALSE(pipeline);
+  EXPECT_EQ(
+      lifetime, (std::vector<std::string>{"callback finished", "adapter"}));
+}
+
+struct OwningReadAdapter {
+  PipelineInstance::Ptr destination;
+  Result adaptRead(TypeErasedBox&& msg) noexcept {
+    return destination->fireRead(std::move(msg));
+  }
+};
+
+TEST(PipelineInstanceTest, AdapterCanOwnDestinationPipeline) {
+  MessageSink reads;
+  MessageSink writes;
+  auto destination = PipelineSpec<SinkTaskState, InlineExecution>{}
+                         .add<CollectingEndpoint>(head_tag)
+                         .build({&reads, &writes}, InlineExecution{});
+  destination->activate();
+  auto source = PipelineSpec<StatelessTaskState, InlineExecution>{}
+                    .add<ForwardingHandler>(head_tag)
+                    .build({}, InlineExecution{});
+  ASSERT_TRUE(source->adaptRead(OwningReadAdapter{std::move(destination)}));
+  EXPECT_FALSE(destination);
+  EXPECT_EQ(
+      source->fireRead(erase_and_box(std::make_unique<int>(7))),
+      Result::Success);
+  ASSERT_EQ(reads.messages.size(), 1);
+  EXPECT_EQ(*reads.messages.front(), 7);
+  EXPECT_TRUE(writes.messages.empty());
+}
+
+struct RoutedRequest {
+  std::unique_ptr<int> payload;
+  PipelineInstance::Ref replyTo;
+};
+static_assert(sizeof(RoutedRequest) <= 120);
+static_assert(alignof(RoutedRequest) <= 8);
+static_assert(std::is_nothrow_move_constructible_v<RoutedRequest>);
+
+struct SharedApplicationTaskState {
+  std::vector<RoutedRequest> pending;
+};
+struct ReplyPending : EventTag<> {};
+
+struct SharedApplicationHandler : ForwardingHandler {
+  using SubscribedEvents = Events<ReplyPending>;
+
+  template <typename C>
+  Result onRead(C& ctx, TypeErasedBox&& msg) noexcept {
+    ctx.taskState().pending.push_back(msg.template take<RoutedRequest>());
+    return Result::Success;
+  }
+
+  template <typename E, typename C>
+    requires std::same_as<E, ReplyPending>
+  void on(C& ctx) noexcept {
+    auto& pending = ctx.taskState().pending;
+    while (!pending.empty()) {
+      auto reply = std::move(pending.back());
+      pending.pop_back();
+      static_cast<void>(ctx.fireWrite(erase_and_box(std::move(reply))));
+    }
+  }
+};
+
+struct ConnectionReplyState {
+  MessageSink* replies;
+};
+
+struct ConnectionHandler : ForwardingHandler {
+  template <typename C>
+  Result onWrite(C& ctx, TypeErasedBox&& msg) noexcept {
+    return ctx.taskState().replies->accept(std::move(msg));
+  }
+};
+
+struct RequestRouter {
+  PipelineInstance::Ref application;
+  PipelineInstance::Ref replyTo;
+
+  Result adaptRead(TypeErasedBox&& msg) noexcept {
+    return application.fireRead(erase_and_box(
+        RoutedRequest{msg.take<std::unique_ptr<int>>(), replyTo}));
+  }
+};
+
+struct ReplyRouter {
+  std::vector<int>* order;
+
+  Result adaptWrite(TypeErasedBox&& msg) noexcept {
+    auto reply = msg.take<RoutedRequest>();
+    order->push_back(*reply.payload);
+    return reply.replyTo.fireWrite(erase_and_box(std::move(reply.payload)));
+  }
+};
+
+TEST(
+    PipelineInstanceTest,
+    SharedApplicationRoutesOutOfOrderRepliesToConnections) {
+  std::vector<int> order;
+  MessageSink repliesA;
+  MessageSink repliesB;
+  auto application = PipelineSpec<SharedApplicationTaskState, InlineExecution>{}
+                         .add<SharedApplicationHandler>(head_tag)
+                         .build({}, InlineExecution{});
+  ASSERT_TRUE(application->adaptWrite(ReplyRouter{&order}));
+  auto connectionFactory = PipelineSpec<ConnectionReplyState, InlineExecution>{}
+                               .add<ConnectionHandler>(head_tag)
+                               .factory();
+  auto connectionA = connectionFactory.create({&repliesA}, InlineExecution{});
+  auto connectionB = connectionFactory.create({&repliesB}, InlineExecution{});
+  ASSERT_TRUE(connectionA->adaptRead(
+      RequestRouter{application.ref(), connectionA.ref()}));
+  ASSERT_TRUE(connectionB->adaptRead(
+      RequestRouter{application.ref(), connectionB.ref()}));
+  application->activate();
+  connectionA->activate();
+  connectionB->activate();
+
+  auto requestA = std::make_unique<int>(11);
+  auto requestB = std::make_unique<int>(22);
+  auto* originalA = requestA.get();
+  auto* originalB = requestB.get();
+  EXPECT_EQ(
+      connectionA->fireRead(erase_and_box(std::move(requestA))),
+      Result::Success);
+  EXPECT_EQ(
+      connectionB->fireRead(erase_and_box(std::move(requestB))),
+      Result::Success);
+  EXPECT_TRUE(repliesA.messages.empty());
+  EXPECT_TRUE(repliesB.messages.empty());
+
+  application->bindEvents<Events<ReplyPending>>().fire<ReplyPending>();
+  EXPECT_EQ(order, (std::vector<int>{22, 11}));
+  ASSERT_EQ(repliesA.messages.size(), 1);
+  ASSERT_EQ(repliesB.messages.size(), 1);
+  EXPECT_EQ(repliesA.messages.front().get(), originalA);
+  EXPECT_EQ(repliesB.messages.front().get(), originalB);
 }
 
 // Exceptions are delivered only to handlers satisfying the full InboundHandler
