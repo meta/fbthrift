@@ -18,6 +18,7 @@
 
 #include <folly/CPortability.h>
 #include <folly/ExceptionWrapper.h>
+#include <folly/IntrusiveList.h>
 #include <folly/Likely.h>
 #include <folly/io/async/EventBase.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
@@ -31,6 +32,7 @@
 #include <cstdint>
 #include <memory>
 #include <tuple>
+#include <type_traits>
 #include <utility>
 
 namespace apache::thrift::fast_thrift::channel_pipeline {
@@ -105,9 +107,40 @@ class Context {
 
   Pipeline* pipeline() const noexcept { return pipeline_; }
 
+  // Backpressure readiness: a handler arms from its onWrite/onRead after a
+  // Backpressure result and is woken by the pipeline's
+  // onWriteReady/onReadReady.
+  void awaitWriteReady() noexcept {
+    pipeline_->template awaitWriteReady<Index>();
+  }
+  void cancelAwaitWriteReady() noexcept {
+    pipeline_->template cancelAwaitWriteReady<Index>();
+  }
+  bool isAwaitingWriteReady() const noexcept {
+    return pipeline_->template isAwaitingWriteReady<Index>();
+  }
+  void awaitReadReady() noexcept {
+    pipeline_->template awaitReadReady<Index>();
+  }
+  void cancelAwaitReadReady() noexcept {
+    pipeline_->template cancelAwaitReadReady<Index>();
+  }
+  bool isAwaitingReadReady() const noexcept {
+    return pipeline_->template isAwaitingReadReady<Index>();
+  }
+
  private:
   Pipeline* pipeline_;
 };
+
+struct ReadyHook {
+  folly::IntrusiveListHook hook;
+  std::size_t handlerIndex{0};
+  std::size_t lastNotifiedGeneration{0};
+};
+
+using ReadyList = folly::IntrusiveList<ReadyHook, &ReadyHook::hook>;
+struct NoReadyHook {};
 
 /**
  * Inline handler + context storage for one slot. The handler is held with
@@ -140,9 +173,29 @@ class HandlerSlot {
   Context& context() noexcept { return context_; }
   const Context& context() const noexcept { return context_; }
 
+  // Public readiness markers opt into storage owned by the slot.
+  ReadyHook* writeReadyHook() noexcept {
+    if constexpr (requires(Handler& h) { h.writeReadyHook_; }) {
+      return &writeReadyHook_;
+    }
+    return nullptr;
+  }
+  ReadyHook* readReadyHook() noexcept {
+    if constexpr (requires(Handler& h) { h.readReadyHook_; }) {
+      return &readReadyHook_;
+    }
+    return nullptr;
+  }
+
  private:
   [[no_unique_address]] Handler handler_;
   Context context_;
+  [[no_unique_address]] std::conditional_t<requires(Handler& h) {
+    h.writeReadyHook_;
+  }, ReadyHook, NoReadyHook> writeReadyHook_;
+  [[no_unique_address]] std::conditional_t<requires(Handler& h) {
+    h.readReadyHook_;
+  }, ReadyHook, NoReadyHook> readReadyHook_;
 };
 
 /**
@@ -231,13 +284,17 @@ struct PipelineInstance {
    * and its Context does not expose them to handlers, so a handler reaching for
    * execution infra must take it through the TaskState instead.
    *
-   * TODO(diff 2): backpressure readiness (onReadReady/onWriteReady currently
-   * no-op). TODO(diff 3): user events (bindEvent/fireBoundEvent currently
+   * Backpressure readiness is implemented: generation-guarded
+   * onWriteReady/onReadReady over per-handler hooks, un-privileged from the
+   * endpoints. TODO(diff 3): user events (bindEvent/fireBoundEvent currently
    * stubbed). TODO(seam): route past-the-end fires to a bound peer once the
    * bind machinery is rebased in.
    */
   template <typename TaskState, ExecutionDomain Domain, typename... Specs>
   class Impl final {
+    using ReadyHook = detail::pipeline_instance::ReadyHook;
+    using ReadyList = detail::pipeline_instance::ReadyList;
+
    public:
     using Self = Impl;
     static constexpr std::size_t kHandlerCount = sizeof...(Specs);
@@ -279,7 +336,9 @@ struct PipelineInstance {
     Impl(TaskState taskState, Domain domain, FactoryTuple& factories)
         : executionDomain_(std::move(domain)),
           taskState_(std::move(taskState)),
-          handlers_(this, factories) {}
+          handlers_(this, factories) {
+      initializeHooks(std::make_index_sequence<kHandlerCount>{});
+    }
 
     Impl(const Impl&) = delete;
     Impl& operator=(const Impl&) = delete;
@@ -395,9 +454,122 @@ struct PipelineInstance {
     BytesPtr allocate(std::size_t) noexcept { return {}; }
     folly::EventBase* eventBase() const noexcept { return nullptr; }
 
-    // TODO(diff 2): wake armed handlers.
-    void onReadReady() noexcept {}
-    void onWriteReady() noexcept {}
+    // Backpressure readiness (uniform: any handler embedding a writeReadyHook_
+    // / readReadyHook_ member participates; no head/tail privilege). A handler
+    // arms from its callback via ctx.awaitWriteReady()/awaitReadReady() after a
+    // fireWrite/fireRead returned Backpressure, and is woken when the transport
+    // calls onWriteReady()/onReadReady().
+    template <std::size_t Index>
+    void awaitWriteReady() noexcept {
+      if (isClosed()) {
+        return;
+      }
+      auto* hook = writeReadyHook<Index>();
+      if (hook != nullptr && !hook->hook.is_linked()) {
+        writeReadyList_.push_back(*hook);
+      }
+    }
+    template <std::size_t Index>
+    void cancelAwaitWriteReady() noexcept {
+      auto* hook = writeReadyHook<Index>();
+      if (hook != nullptr && hook->hook.is_linked()) {
+        hook->hook.unlink();
+      }
+    }
+    template <std::size_t Index>
+    bool isAwaitingWriteReady() const noexcept {
+      auto* hook = const_cast<Self*>(this)->template writeReadyHook<Index>();
+      return hook != nullptr && hook->hook.is_linked();
+    }
+    template <std::size_t Index>
+    void awaitReadReady() noexcept {
+      if (isClosed()) {
+        return;
+      }
+      auto* hook = readReadyHook<Index>();
+      if (hook != nullptr && !hook->hook.is_linked()) {
+        readReadyList_.push_back(*hook);
+      }
+    }
+    template <std::size_t Index>
+    void cancelAwaitReadReady() noexcept {
+      auto* hook = readReadyHook<Index>();
+      if (hook != nullptr && hook->hook.is_linked()) {
+        hook->hook.unlink();
+      }
+    }
+    template <std::size_t Index>
+    bool isAwaitingReadReady() const noexcept {
+      auto* hook = const_cast<Self*>(this)->template readReadyHook<Index>();
+      return hook != nullptr && hook->hook.is_linked();
+    }
+
+    // Wake armed handlers. Generation-guarded so a handler that re-arms during
+    // dispatch is not re-notified until the next call; the pending flag
+    // coalesces a re-entrant call into another pass. A handler still blocked
+    // re-arms and stops itself, so order affects only how many passes it takes,
+    // not correctness.
+    void onWriteReady() noexcept {
+      Guard guard(this);
+      if (isClosed()) {
+        return;
+      }
+      if (writeReadyDispatching_) {
+        writeReadyDispatchPending_ = true;
+        return;
+      }
+      writeReadyDispatching_ = true;
+      do {
+        writeReadyDispatchPending_ = false;
+        const auto generation = ++writeReadyGeneration_;
+        while (!isClosed()) {
+          ReadyHook* next = nullptr;
+          for (auto& hook : writeReadyList_) {
+            if (hook.lastNotifiedGeneration != generation) {
+              next = &hook;
+              break;
+            }
+          }
+          if (next == nullptr) {
+            break;
+          }
+          next->lastNotifiedGeneration = generation;
+          dispatchWriteReadyTarget(next->handlerIndex);
+        }
+      } while (writeReadyDispatchPending_ && !isClosed());
+      writeReadyDispatching_ = false;
+    }
+
+    void onReadReady() noexcept {
+      Guard guard(this);
+      if (isClosed()) {
+        return;
+      }
+      if (readReadyDispatching_) {
+        readReadyDispatchPending_ = true;
+        return;
+      }
+      readReadyDispatching_ = true;
+      do {
+        readReadyDispatchPending_ = false;
+        const auto generation = ++readReadyGeneration_;
+        while (!isClosed()) {
+          ReadyHook* next = nullptr;
+          for (auto& hook : readReadyList_) {
+            if (hook.lastNotifiedGeneration != generation) {
+              next = &hook;
+              break;
+            }
+          }
+          if (next == nullptr) {
+            break;
+          }
+          next->lastNotifiedGeneration = generation;
+          dispatchReadReadyTarget(next->handlerIndex);
+        }
+      } while (readReadyDispatchPending_ && !isClosed());
+      readReadyDispatching_ = false;
+    }
 
     // TODO(diff 3): bind/broadcast user events to subscribers.
     BoundEventRoute bindEvent(EventKey key) noexcept {
@@ -413,6 +585,11 @@ struct PipelineInstance {
       state_ = State::Closing;
       deactivateFrom<kHandlerCount>();
       state_ = State::Closed;
+      // Cleared after state_ == Closed so any re-arm during teardown is
+      // rejected by the isClosed() guard in await*Ready; the hooks live in the
+      // handlers, which are destroyed after these lists are emptied.
+      writeReadyList_.clear();
+      readReadyList_.clear();
       callHandlerRemovedFrom<kHandlerCount>();
     }
     bool isClosed() const noexcept {
@@ -441,6 +618,8 @@ struct PipelineInstance {
       if (state_ != State::Closed) {
         deactivateImpl();
         state_ = State::Closed;
+        writeReadyList_.clear();
+        readReadyList_.clear();
         callHandlerRemovedFrom<kHandlerCount>();
       }
     }
@@ -531,13 +710,86 @@ struct PipelineInstance {
       }
     }
 
-    // Declaration order controls destruction order: the TaskState outlives
-    // the handlers (destroyed last), handlers destroyed first.
+    // === Readiness plumbing ===
+
+    // Stamp each slot's hook (if any) with its position so a wake can route
+    // back to the right slot by index.
+    template <std::size_t... Index>
+    void initializeHooks(std::index_sequence<Index...>) noexcept {
+      (initializeHook<Index>(), ...);
+    }
+    template <std::size_t Index>
+    void initializeHook() noexcept {
+      auto& slot = handlerAt<Index>();
+      if (auto* hook = slot.writeReadyHook()) {
+        hook->handlerIndex = Index;
+      }
+      if (auto* hook = slot.readReadyHook()) {
+        hook->handlerIndex = Index;
+      }
+    }
+    template <std::size_t Index>
+    ReadyHook* writeReadyHook() noexcept {
+      return handlerAt<Index>().writeReadyHook();
+    }
+    template <std::size_t Index>
+    ReadyHook* readReadyHook() noexcept {
+      return handlerAt<Index>().readReadyHook();
+    }
+
+    void dispatchWriteReadyTarget(std::size_t target) noexcept {
+      dispatchWriteReady<0>(target);
+    }
+    template <std::size_t Index>
+    void dispatchWriteReady(std::size_t target) noexcept {
+      if constexpr (Index < kHandlerCount) {
+        if (target == Index) {
+          auto& slot = handlerAt<Index>();
+          if constexpr (requires {
+                          slot.handler().onWriteReady(slot.context());
+                        }) {
+            slot.handler().onWriteReady(slot.context());
+          }
+          return;
+        }
+        dispatchWriteReady<Index + 1>(target);
+      }
+    }
+    void dispatchReadReadyTarget(std::size_t target) noexcept {
+      dispatchReadReady<0>(target);
+    }
+    template <std::size_t Index>
+    void dispatchReadReady(std::size_t target) noexcept {
+      if constexpr (Index < kHandlerCount) {
+        if (target == Index) {
+          auto& slot = handlerAt<Index>();
+          if constexpr (requires {
+                          slot.handler().onReadReady(slot.context());
+                        }) {
+            slot.handler().onReadReady(slot.context());
+          }
+          return;
+        }
+        dispatchReadReady<Index + 1>(target);
+      }
+    }
+
+    // State and execution resources outlive handler destruction. The ready
+    // lists are intrusive (hooks live in the slots) and are cleared before
+    // teardown.
     [[no_unique_address]] Domain executionDomain_;
     [[no_unique_address]] TaskState taskState_;
     State state_{State::Inactive};
     std::uint32_t guardCount_{0};
     bool destroyPending_{false};
+    bool writeReadyDispatching_{false};
+    bool writeReadyDispatchPending_{false};
+    bool readReadyDispatching_{false};
+    bool readReadyDispatchPending_{false};
+    std::size_t writeReadyGeneration_{0};
+    std::size_t readReadyGeneration_{0};
+    ReadyList writeReadyList_;
+    ReadyList readReadyList_;
     detail::pipeline_instance::HandlerStorage<Self, 0, Specs...> handlers_;
   };
 };

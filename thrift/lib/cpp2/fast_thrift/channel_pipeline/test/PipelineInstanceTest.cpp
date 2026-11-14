@@ -42,6 +42,10 @@ struct Counters {
   int writesAtHead{0};
   int inboundExceptions{0};
   int outboundExceptions{0};
+  int writeArmed{0};
+  int writeReady{0};
+  int readArmed{0};
+  int readReady{0};
 };
 
 // Per-connection state: just a pointer to the test's counters.
@@ -130,6 +134,69 @@ struct OutboundExceptionSpy : CountingBase {
   template <typename C>
   void onException(C& ctx, folly::exception_wrapper&&) noexcept {
     ++ctx.taskState().counters->outboundExceptions;
+  }
+};
+
+struct ReadyMarker {};
+
+// Opts into write-readiness via the writeReadyHook_ member: arms on every write
+// and records each wake, then cancels. (Arming unconditionally is artificial —
+// a real handler arms only after a Backpressure result — but it exercises the
+// arm/notify plumbing.)
+struct WriteBackpressureHandler : CountingBase {
+  ReadyMarker writeReadyHook_;
+  template <typename C>
+  Result onRead(C& ctx, TypeErasedBox&& msg) noexcept {
+    return ctx.fireRead(std::move(msg));
+  }
+  template <typename C>
+  Result onWrite(C& ctx, TypeErasedBox&& msg) noexcept {
+    ctx.awaitWriteReady();
+    ++ctx.taskState().counters->writeArmed;
+    return ctx.fireWrite(std::move(msg));
+  }
+  template <typename C>
+  void onWriteReady(C& ctx) noexcept {
+    ++ctx.taskState().counters->writeReady;
+    ctx.cancelAwaitWriteReady();
+  }
+};
+
+struct DuplexBackpressureHandler : WriteBackpressureHandler {
+  ReadyMarker readReadyHook_;
+
+  template <typename C>
+  Result onRead(C& ctx, TypeErasedBox&& msg) noexcept {
+    ctx.awaitReadReady();
+    ++ctx.taskState().counters->readArmed;
+    return ctx.fireRead(std::move(msg));
+  }
+
+  template <typename C>
+  void onReadReady(C& ctx) noexcept {
+    ++ctx.taskState().counters->readReady;
+    ctx.cancelAwaitReadReady();
+  }
+};
+
+// The read-side mirror: arms read-readiness on every read and records each
+// wake.
+struct ReadBackpressureHandler : CountingBase {
+  ReadyMarker readReadyHook_;
+  template <typename C>
+  Result onRead(C& ctx, TypeErasedBox&& msg) noexcept {
+    ctx.awaitReadReady();
+    ++ctx.taskState().counters->readArmed;
+    return ctx.fireRead(std::move(msg));
+  }
+  template <typename C>
+  Result onWrite(C& ctx, TypeErasedBox&& msg) noexcept {
+    return ctx.fireWrite(std::move(msg));
+  }
+  template <typename C>
+  void onReadReady(C& ctx) noexcept {
+    ++ctx.taskState().counters->readReady;
+    ctx.cancelAwaitReadReady();
   }
 };
 
@@ -349,6 +416,82 @@ TEST(PipelineInstanceTest, ExceptionSkipsOutboundOnlyHandler) {
       folly::make_exception_wrapper<std::runtime_error>("boom"));
   EXPECT_EQ(counters.inboundExceptions, 1);
   EXPECT_EQ(counters.outboundExceptions, 0);
+}
+
+// A handler that armed write-readiness is woken by onWriteReady(), and once it
+// cancels it is not woken again.
+TEST(PipelineInstanceTest, WriteReadyNotifiesArmedHandler) {
+  Counters counters;
+  auto pipeline =
+      PipelineSpec<EchoTaskState, InlineExecution>{}
+          .add<HeadHandler>(head_tag)
+          .add<WriteBackpressureHandler>(mid_tag)
+          .add<TailHandler>(tail_tag)
+          .build(EchoTaskState{.counters = &counters}, InlineExecution{});
+  pipeline->activate();
+
+  EXPECT_EQ(pipeline->fireWrite(TypeErasedBox{}), Result::Success);
+  EXPECT_EQ(counters.writeArmed, 1);
+  EXPECT_EQ(counters.writeReady, 0);
+
+  pipeline->onWriteReady();
+  EXPECT_EQ(counters.writeReady, 1);
+
+  // The woken handler cancelled; a second onWriteReady finds nothing armed.
+  pipeline->onWriteReady();
+  EXPECT_EQ(counters.writeReady, 1);
+}
+
+TEST(PipelineInstanceTest, ReadAndWriteReadinessAreIndependentInOneHandler) {
+  Counters counters;
+  auto pipeline =
+      PipelineSpec<EchoTaskState, InlineExecution>{}
+          .add<HeadHandler>(head_tag)
+          .add<DuplexBackpressureHandler>(mid_tag)
+          .add<TailHandler>(tail_tag)
+          .build(EchoTaskState{.counters = &counters}, InlineExecution{});
+  pipeline->activate();
+
+  EXPECT_EQ(pipeline->fireWrite(TypeErasedBox{}), Result::Success);
+  EXPECT_EQ(pipeline->fireRead(TypeErasedBox{}), Result::Success);
+  EXPECT_EQ(counters.writeArmed, 1);
+  EXPECT_EQ(counters.readArmed, 1);
+
+  pipeline->onWriteReady();
+  EXPECT_EQ(counters.writeReady, 1);
+  EXPECT_EQ(counters.readReady, 0);
+
+  pipeline->onReadReady();
+  EXPECT_EQ(counters.writeReady, 1);
+  EXPECT_EQ(counters.readReady, 1);
+
+  pipeline->onWriteReady();
+  pipeline->onReadReady();
+  EXPECT_EQ(counters.writeReady, 1);
+  EXPECT_EQ(counters.readReady, 1);
+}
+
+// The read-side mirror: a handler that armed read-readiness is woken by
+// onReadReady(), and once it cancels it is not woken again.
+TEST(PipelineInstanceTest, ReadReadyNotifiesArmedHandler) {
+  Counters counters;
+  auto pipeline =
+      PipelineSpec<EchoTaskState, InlineExecution>{}
+          .add<HeadHandler>(head_tag)
+          .add<ReadBackpressureHandler>(mid_tag)
+          .add<TailHandler>(tail_tag)
+          .build(EchoTaskState{.counters = &counters}, InlineExecution{});
+  pipeline->activate();
+
+  EXPECT_EQ(pipeline->fireRead(TypeErasedBox{}), Result::Success);
+  EXPECT_EQ(counters.readArmed, 1);
+  EXPECT_EQ(counters.readReady, 0);
+
+  pipeline->onReadReady();
+  EXPECT_EQ(counters.readReady, 1);
+
+  pipeline->onReadReady();
+  EXPECT_EQ(counters.readReady, 1);
 }
 
 struct InlineTaskState {
