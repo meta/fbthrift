@@ -79,7 +79,7 @@ public final class DefaultStruct implements com.facebook.thrift.payload.ThriftSe
       this.myLongDF = 0L;
       this.portDFset = 3456;
       this.portNum = 0;
-      this.myBinaryDFset = "abc".getBytes();
+      this.myBinaryDFset = "abc".getBytes(java.nio.charset.StandardCharsets.ISO_8859_1);
       this.myBinary = null;
       this.myByteDFSet = (byte)17;
       this.myByte = 0;
@@ -160,7 +160,7 @@ public final class DefaultStruct implements com.facebook.thrift.payload.ThriftSe
         private long myLongDF = 0L;
         private int portDFset = 3456;
         private int portNum = 0;
-        private byte[] myBinaryDFset = "abc".getBytes();
+        private byte[] myBinaryDFset = "abc".getBytes(java.nio.charset.StandardCharsets.ISO_8859_1);
         private byte[] myBinary = null;
         private byte myByteDFSet = (byte)17;
         private byte myByte = 0;

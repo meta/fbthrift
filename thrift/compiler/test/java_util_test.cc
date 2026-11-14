@@ -50,6 +50,15 @@ TEST_F(JavaUtilTest, test_escape_java_string) {
   EXPECT_EQ(java::quote_java_string("\\"), "\"\\\\\"");
 }
 
+TEST_F(JavaUtilTest, test_quote_java_binary) {
+  EXPECT_EQ(java::quote_java_binary("foo"), "\"foo\"");
+  EXPECT_EQ(java::quote_java_binary("\""), "\"\\\"\"");
+  EXPECT_EQ(java::quote_java_binary(std::string("a\0z", 3)), "\"a\\000z\"");
+  EXPECT_EQ(
+      java::quote_java_binary("\x7f\x80\xc3\xa9\xf7\xff"),
+      "\"\x7f\\u0080\\u00c3\\u00a9\\u00f7\\u00ff\"");
+}
+
 TEST_F(JavaUtilTest, test_package_to_path) {
   EXPECT_EQ(java::package_to_path("foo"), "foo");
   EXPECT_EQ(java::package_to_path("foo.bar"), "foo/bar");

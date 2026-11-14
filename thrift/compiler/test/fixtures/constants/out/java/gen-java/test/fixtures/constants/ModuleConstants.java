@@ -49,7 +49,7 @@ public final class ModuleConstants {
 
     public static final double LONG_DOUBLE_VALUE = (double)2.59961000990301e-05;
 
-    public static final byte[] BIN = "a\000z".getBytes();
+    public static final byte[] BIN = "a\000z".getBytes(java.nio.charset.StandardCharsets.ISO_8859_1);
 
     public static final test.fixtures.constants.Company MY_COMPANY = construct_MY_COMPANY();
 

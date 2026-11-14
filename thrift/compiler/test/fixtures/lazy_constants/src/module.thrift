@@ -85,3 +85,5 @@ const string backslash = "\\";
 const string escaped_a = "\x61";
 
 const map<string, i32> char2ascii = {"'": 39, '"': 34, "\\": 92, "\x61": 97};
+
+const binary non_ascii_bytes = "\x80\xc3\xa9\xff";

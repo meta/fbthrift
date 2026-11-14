@@ -400,6 +400,9 @@ class t_mstch_java_generator : public t_whisker_generator {
     def.property("quotedString", [](const t_const_value& self) {
       return java::quote_java_string(self.get_string());
     });
+    def.property("quotedBinary", [](const t_const_value& self) {
+      return java::quote_java_binary(self.get_string());
+    });
 
     return std::move(def).make();
   }

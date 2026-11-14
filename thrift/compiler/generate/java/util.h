@@ -50,6 +50,14 @@ std::string mangle_java_constant_name(const std::string& ref);
 std::string quote_java_string(const std::string& unescaped);
 
 /**
+ * Quotes the bytes of a binary value as a Java string literal with one
+ * character in U+0000-U+00FF per byte, escaping every byte from 0x80 up as
+ * `\u00XX`. Encoding the literal with `StandardCharsets.ISO_8859_1` gives back
+ * the original bytes.
+ */
+std::string quote_java_binary(const std::string& bytes);
+
+/**
  * Converts a java package string to the path containing the source for
  * that package. Example: "foo.bar.baz" -> "foo/bar/baz"
  */
