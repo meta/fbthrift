@@ -39,6 +39,7 @@ import java.util.List;
 import org.apache.thrift.TApplicationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -61,9 +62,24 @@ public final class ServerStreams {
    */
   public static final Object NO_FIRST_RESPONSE = new Object();
 
-  /** Writes the empty init first response for plain streams. Shared: it is type-free. */
+  /**
+   * Writes the empty init first response for plain streams. Shared: it is type-free. The hook fires
+   * after the bytes are written: firing it here (before serialization) would report a write that
+   * never happened when serialization fails.
+   */
   public static final ResponseWriterFactory EMPTY_FIRST_RESPONSE_WRITER =
-      (o, chain) -> Writers.emptyStruct();
+      (o, chain) -> {
+        Writer inner = Writers.emptyStruct();
+
+        return protocol -> {
+          inner.write(protocol);
+          try {
+            chain.postWrite(null);
+          } catch (Throwable t) {
+            throw Exceptions.propagate(t);
+          }
+        };
+      };
 
   private ServerStreams() {}
 
@@ -151,6 +167,11 @@ public final class ServerStreams {
 
   private static <F, E> ServerResponsePayload firstPayload(
       ContextChain chain, StreamMethod<F, E> method, F first) {
+    // The write hooks fire once per stream, on the first response: preWrite here, postWrite in
+    // the first-response writer. A plain stream has no first response value, so both hooks see
+    // null; per-element writers never fire them.
+    chain.preWrite(first == NO_FIRST_RESPONSE ? null : first);
+
     Writer writer = method.firstResponseWriterFactory.createResponseWriter(first, chain);
     return ServerResponsePayload.create(writer, streamFirstResponseMetadata(), null, true);
   }

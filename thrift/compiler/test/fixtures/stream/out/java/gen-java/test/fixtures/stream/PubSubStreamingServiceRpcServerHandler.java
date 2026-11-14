@@ -281,8 +281,6 @@ public class PubSubStreamingServiceRpcServerHandler
 
         oprot.writeFieldStop();
         oprot.writeStructEnd();
-
-        _chain.postWrite(_o);
       } catch (Throwable _e) {
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
@@ -311,8 +309,6 @@ public class PubSubStreamingServiceRpcServerHandler
 
         oprot.writeFieldStop();
         oprot.writeStructEnd();
-
-        _chain.postWrite(_o);
       } catch (Throwable _e) {
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
@@ -341,8 +337,6 @@ public class PubSubStreamingServiceRpcServerHandler
 
         oprot.writeFieldStop();
         oprot.writeStructEnd();
-
-        _chain.postWrite(_o);
       } catch (Throwable _e) {
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
@@ -371,8 +365,6 @@ public class PubSubStreamingServiceRpcServerHandler
 
         oprot.writeFieldStop();
         oprot.writeStructEnd();
-
-        _chain.postWrite(_o);
       } catch (Throwable _e) {
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
@@ -401,8 +393,6 @@ public class PubSubStreamingServiceRpcServerHandler
 
         oprot.writeFieldStop();
         oprot.writeStructEnd();
-
-        _chain.postWrite(_o);
       } catch (Throwable _e) {
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
@@ -431,8 +421,6 @@ public class PubSubStreamingServiceRpcServerHandler
 
         oprot.writeFieldStop();
         oprot.writeStructEnd();
-
-        _chain.postWrite(_o);
       } catch (Throwable _e) {
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
@@ -482,8 +470,6 @@ public class PubSubStreamingServiceRpcServerHandler
 
         oprot.writeFieldStop();
         oprot.writeStructEnd();
-
-        _chain.postWrite(_o);
       } catch (Throwable _e) {
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
@@ -533,8 +519,6 @@ public class PubSubStreamingServiceRpcServerHandler
 
         oprot.writeFieldStop();
         oprot.writeStructEnd();
-
-        _chain.postWrite(_o);
       } catch (Throwable _e) {
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
@@ -585,8 +569,6 @@ public class PubSubStreamingServiceRpcServerHandler
 
         oprot.writeFieldStop();
         oprot.writeStructEnd();
-
-        _chain.postWrite(_o);
       } catch (Throwable _e) {
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);

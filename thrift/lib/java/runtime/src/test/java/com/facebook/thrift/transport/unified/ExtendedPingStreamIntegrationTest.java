@@ -845,6 +845,110 @@ public class ExtendedPingStreamIntegrationTest {
   }
 
   @Test
+  public void streamWriteHooksFireOnceCompact() throws Exception {
+    runStreamWriteHooksFireOnce(ProtocolId.COMPACT, false);
+  }
+
+  @Test
+  public void streamWriteHooksFireOnceBinary() throws Exception {
+    runStreamWriteHooksFireOnce(ProtocolId.BINARY, false);
+  }
+
+  @Test
+  public void firstResponseWriteHooksFireOnceCompact() throws Exception {
+    runStreamWriteHooksFireOnce(ProtocolId.COMPACT, true);
+  }
+
+  @Test
+  public void firstResponseWriteHooksFireOnceBinary() throws Exception {
+    runStreamWriteHooksFireOnce(ProtocolId.BINARY, true);
+  }
+
+  /**
+   * The write hooks fire once per stream, on the first response before any element: exactly one
+   * preWrite and one postWrite for the whole 3-element stream, never one per element. A plain
+   * stream has no first response value, so both hooks see null.
+   */
+  private void runStreamWriteHooksFireOnce(ProtocolId protocolId, boolean firstResponse)
+      throws Exception {
+    RecordingWriteHandler hooks = new RecordingWriteHandler();
+    startServer(new ExtendedReactivePingService(), ImmutableList.of(hooks));
+
+    if (firstResponse) {
+      StepVerifier.create(
+              client(protocolId)
+                  .streamWithFirstResponse(request(), 3)
+                  .flatMapMany(ras -> ras.getStream()))
+          .expectNextCount(3)
+          .verifyComplete();
+    } else {
+      StepVerifier.create(client(protocolId).streamOfPings(request(), 3))
+          .expectNextCount(3)
+          .verifyComplete();
+    }
+
+    Assertions.assertTrue(hooks.doneLatch.await(10, TimeUnit.SECONDS), "done never fired");
+
+    List<String> expected = new ArrayList<>();
+    expected.add("preWrite");
+    expected.add("postWrite");
+    expected.add("element-1");
+    expected.add("element-2");
+    expected.add("element-3");
+    expected.add("terminal-COMPLETE");
+    Assertions.assertEquals(expected, hooks.events());
+
+    if (firstResponse) {
+      Assertions.assertEquals("it_first", ((PingResponse) hooks.preWriteArg).getResponse());
+    } else {
+      Assertions.assertNull(hooks.preWriteArg, "plain stream preWrite sees null");
+    }
+  }
+
+  /** Records write hooks and stream elements in one order, pinning the once-per-stream contract. */
+  private static class RecordingWriteHandler implements StreamEventHandler {
+    final List<String> ordered = Collections.synchronizedList(new ArrayList<>());
+    final CountDownLatch doneLatch = new CountDownLatch(1);
+    volatile Object preWriteArg;
+
+    List<String> events() {
+      return new ArrayList<>(ordered);
+    }
+
+    @Override
+    public Object getContext(String methodName, RequestContext requestContext) {
+      return new Object();
+    }
+
+    @Override
+    public void preWrite(Object context, String methodName, Object result) {
+      ordered.add("preWrite");
+      preWriteArg = result;
+    }
+
+    @Override
+    public void postWrite(Object context, String methodName, Object result) {
+      ordered.add("postWrite");
+    }
+
+    @Override
+    public void onStreamNext(Object context, String methodName, long sequenceNumber) {
+      ordered.add("element-" + sequenceNumber);
+    }
+
+    @Override
+    public void onStreamFinally(
+        Object context, String methodName, StreamEventHandler.StreamOutcome outcome) {
+      ordered.add("terminal-" + outcome);
+    }
+
+    @Override
+    public void done(Object context, String methodName) {
+      doneLatch.countDown();
+    }
+  }
+
+  @Test
   public void concurrentStreamsShareOneConnectionCompact() throws Exception {
     runConcurrentStreamsShareOneConnection(ProtocolId.COMPACT);
   }
