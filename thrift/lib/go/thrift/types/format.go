@@ -185,7 +185,10 @@ func Skip(self Decoder, fieldType Type, maxDepth int) error {
 			if err != nil {
 				return err
 			}
-			self.Skip(valueType)
+			err = Skip(self, valueType, maxDepth-1)
+			if err != nil {
+				return err
+			}
 		}
 		return self.ReadMapEnd()
 	case SET:
