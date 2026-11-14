@@ -63,6 +63,7 @@
 
 #include <concepts>
 #include <cstdint>
+#include <string>
 #include <string_view>
 #include <folly/io/Cursor.h>
 #include <folly/small_vector.h>
@@ -156,6 +157,9 @@ class JsonWriter {
   // Only used for error detection, e.g., rejecting consecutive object name
   // writes.
   bool lastWrittenValueWasObjectName_ = false;
+
+  // Scratch buffer for escaped strings, reused to keep its capacity.
+  std::string escaped_;
 };
 
 } // namespace apache::thrift::json5::detail

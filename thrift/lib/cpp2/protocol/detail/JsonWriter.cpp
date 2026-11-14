@@ -201,10 +201,11 @@ template std::uint32_t JsonWriter::writeIntegral(std::int64_t);
 // -- strings ----------------------------------------------------------
 
 std::uint32_t JsonWriter::writeQuotedString(std::string_view s) {
-  std::string tmp;
-  folly::json::escapeString(s, tmp, {.validate_utf8 = true});
-  out_.value().push(folly::StringPiece(tmp));
-  return static_cast<std::uint32_t>(tmp.size());
+  static const folly::json::serialization_opts kOpts{.validate_utf8 = true};
+  escaped_.clear();
+  folly::json::escapeString(s, escaped_, kOpts);
+  out_.value().push(folly::StringPiece(escaped_));
+  return static_cast<std::uint32_t>(escaped_.size());
 }
 
 std::uint32_t JsonWriter::writeObjectName(std::string_view s) {
