@@ -3327,7 +3327,8 @@ TEST_P(HeaderOrRocket, TaskTimeoutBeforeProcessing) {
           server.setTaskExpireTime(10ms);
           server.setUseClientTimeout(false);
         });
-    auto client = makeClient(runner, folly::getEventBase());
+    auto eventBase = folly::getEventBaseKeepAlive();
+    auto client = makeClient(runner, eventBase.get());
 
     // Make two requests and test that they time out
     for (int i = 0; i < 2; ++i) {

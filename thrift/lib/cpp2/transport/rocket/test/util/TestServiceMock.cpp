@@ -95,7 +95,7 @@ ServerStream<std::string> TestStreamServiceMock::customBuffers(
 ServerStream<int32_t> TestStreamServiceMock::slowRange(
     int32_t from, int32_t to, int32_t millis) {
   auto [stream, streamPublisher] = ServerStream<int32_t>::createPublisher();
-  auto eb = folly::getEventBase();
+  auto eb = folly::getEventBaseKeepAlive().get();
   std::shared_ptr<std::function<void(decltype(streamPublisher), int32_t)>>
       schedule = std::make_shared<
           std::function<void(decltype(streamPublisher), int32_t)>>();
