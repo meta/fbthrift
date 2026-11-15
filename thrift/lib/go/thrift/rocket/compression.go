@@ -56,6 +56,11 @@ func MaybeCompress(data []byte, compression rpcmetadata.CompressionAlgorithm) ([
 	}
 }
 
+// maxDecompressedSize caps the output of MaybeDecompress, so a small crafted
+// payload cannot force a huge allocation. It matches the header transport's
+// MaxFrameSize, the largest message the Go runtime accepts uncompressed.
+const maxDecompressedSize = 0x3FFFFFFF
+
 // MaybeDecompress decompresses data based on the given compression algorithm.
 func MaybeDecompress(data []byte, compression rpcmetadata.CompressionAlgorithm) ([]byte, error) {
 	switch compression {
@@ -103,7 +108,13 @@ func compressZstdWithLevel(data []byte, level zstd.EncoderLevel) ([]byte, error)
 }
 
 func decompressZstd(data []byte) ([]byte, error) {
-	z, err := zstd.NewReader(nil, zstd.WithDecoderConcurrency(1))
+	// DecodeAll allocates the frame's declared content size up front, so it
+	// must be bounded before decoding (the library default is 64 GiB).
+	z, err := zstd.NewReader(
+		nil,
+		zstd.WithDecoderConcurrency(1),
+		zstd.WithDecoderMaxMemory(maxDecompressedSize),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -149,9 +160,12 @@ func decompressZlib(compressedData []byte) ([]byte, error) {
 	defer zlibReader.Close()
 
 	var decompressedBuffer bytes.Buffer
-	_, err = io.Copy(&decompressedBuffer, zlibReader)
+	written, err := io.Copy(&decompressedBuffer, io.LimitReader(zlibReader, maxDecompressedSize+1))
 	if err != nil {
 		return nil, err
+	}
+	if written > maxDecompressedSize {
+		return nil, errors.New("zlib: uncompressed size exceeds limit")
 	}
 	return decompressedBuffer.Bytes(), nil
 }
@@ -201,7 +215,8 @@ func decompressLz4(compressedData []byte) ([]byte, error) {
 	// OOM panics from crafted or corrupted inputs. Allow a small constant on
 	// top of the ratio bound so tiny payloads (where the ratio dominates) are
 	// not rejected for legitimate small expansions.
-	if uncompressedLen > payloadLen*maxLz4DecompressionRatio+maxLz4DecompressionRatio {
+	if uncompressedLen > maxDecompressedSize ||
+		uncompressedLen > payloadLen*maxLz4DecompressionRatio+maxLz4DecompressionRatio {
 		return nil, errors.New("lz4: declared uncompressed size exceeds plausible bound")
 	}
 	dst := make([]byte, uncompressedLen)
