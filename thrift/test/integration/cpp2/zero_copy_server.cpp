@@ -166,7 +166,7 @@ class ServerIOVecQueue : public fizz::AsyncFizzBase::IOVecQueueOps {
         readVecReadSize_(readVecReadSize) {}
   ~ServerIOVecQueue() override = default;
   void allocateBuffers(folly::IOBufIovecBuilder::IoVecVec& iovs) override {
-    if (FOLLY_UNLIKELY(!ioVecQueue_)) {
+    if (!ioVecQueue_) [[unlikely]] {
       ioVecQueue_.reset(new folly::IOBufIovecBuilder(
           folly::IOBufIovecBuilder::Options().setBlockSize(readVecBlockSize_)));
     }

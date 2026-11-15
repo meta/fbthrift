@@ -34,11 +34,11 @@
 // After close(), handlers have been removed and the head/tail raw pointers
 // may dangle (their owning structs can be destroyed without nulling our
 // raw pointers). Refuse all dispatches.
-#define RETURN_IF_CLOSED(...)                      \
-  do {                                             \
-    if (FOLLY_UNLIKELY(state_ == State::Closed)) { \
-      return __VA_ARGS__;                          \
-    }                                              \
+#define RETURN_IF_CLOSED(...)                   \
+  do {                                          \
+    if (state_ == State::Closed) [[unlikely]] { \
+      return __VA_ARGS__;                       \
+    }                                           \
   } while (0)
 
 namespace {

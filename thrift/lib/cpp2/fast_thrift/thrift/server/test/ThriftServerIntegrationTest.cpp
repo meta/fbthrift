@@ -804,7 +804,7 @@ class RocketThriftServerInterfaceHandler {
 
     ThriftServerRequestMessage thriftMsg;
     thriftMsg.streamId = rocketMsg.streamId;
-    if (FOLLY_UNLIKELY(!decoded.hasValue())) {
+    if (!decoded.hasValue()) [[unlikely]] {
       // TODO send an error back (mirrors production transport adapter)
     } else {
       thriftMsg.payload = std::move(decoded.value());
