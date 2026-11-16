@@ -718,7 +718,7 @@ void t_py_generator::generate_json_map_key(
       indent_down();
     }
   } else {
-    throw string("compiler error: invalid key type");
+    throw std::runtime_error("compiler error: invalid key type");
   }
 }
 

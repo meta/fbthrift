@@ -501,47 +501,36 @@ bool generate_code_for_single_program(
     t_program& program,
     t_program_bundle& program_bundle,
     diagnostics_engine& diags) {
-  try {
-    bool all_targets_successful = true;
+  bool all_targets_successful = true;
 
-    std::ofstream genfile_list_out;
-    if (!params.genfile.empty()) {
-      genfile_list_out.open(params.genfile);
-    }
-
-    for (const std::string& target : params.targets) {
-      std::unique_ptr<t_generator> generator =
-          create_generator(target, params, program, program_bundle, diags);
-      if (generator == nullptr) {
-        continue;
-      }
-
-      if (!validate_program(*generator, diags)) {
-        all_targets_successful = false;
-        continue;
-      }
-
-      diags.report(
-          source_location(),
-          diagnostic_level::info,
-          "generating \"{}\"",
-          target);
-      generator->generate_program();
-
-      if (genfile_list_out.is_open()) {
-        for (const std::string& s : generator->get_genfiles()) {
-          genfile_list_out << s << "\n";
-        }
-      }
-    }
-    return all_targets_successful && !diags.has_errors();
-  } catch (const std::string& s) {
-    printf("Error: %s\n", s.c_str());
-    return false;
-  } catch (const char* exc) {
-    printf("Error: %s\n", exc);
-    return false;
+  std::ofstream genfile_list_out;
+  if (!params.genfile.empty()) {
+    genfile_list_out.open(params.genfile);
   }
+
+  for (const std::string& target : params.targets) {
+    std::unique_ptr<t_generator> generator =
+        create_generator(target, params, program, program_bundle, diags);
+    if (generator == nullptr) {
+      continue;
+    }
+
+    if (!validate_program(*generator, diags)) {
+      all_targets_successful = false;
+      continue;
+    }
+
+    diags.report(
+        source_location(), diagnostic_level::info, "generating \"{}\"", target);
+    generator->generate_program();
+
+    if (genfile_list_out.is_open()) {
+      for (const std::string& s : generator->get_genfiles()) {
+        genfile_list_out << s << "\n";
+      }
+    }
+  }
+  return all_targets_successful && !diags.has_errors();
 }
 
 /**
