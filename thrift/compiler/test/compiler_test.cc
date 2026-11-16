@@ -14,15 +14,90 @@
  * limitations under the License.
  */
 
+#include <cstdlib>
 #include <filesystem>
 #include <string>
+#include <vector>
+#include <thrift/compiler/compiler.h>
+#include <thrift/compiler/detail/pluggable_functions.h>
+#include <thrift/compiler/diagnostic.h>
+#include <thrift/compiler/metrics/metrics.h>
+#include <thrift/compiler/sema/sema_context.h>
+#include <thrift/compiler/source_location.h>
 #include <thrift/compiler/test/compiler.h>
 
 #include <fmt/std.h>
 #include <gtest/gtest.h>
 
+using apache::thrift::compiler::compile_with_options;
+using apache::thrift::compiler::diagnostic;
+using apache::thrift::compiler::diagnostic_level;
+using apache::thrift::compiler::diagnostic_params;
+using apache::thrift::compiler::gen_params;
+using apache::thrift::compiler::log_metrics_tag;
+using apache::thrift::compiler::parsing_params;
+using apache::thrift::compiler::sema_params;
+using apache::thrift::compiler::source_manager;
+using apache::thrift::compiler::detail::metrics;
+using apache::thrift::compiler::detail::pluggable_functions;
 using apache::thrift::compiler::test::check_compile;
 using apache::thrift::compiler::test::check_compile_options;
+
+namespace {
+
+std::vector<std::string>& logged_errors() {
+  static std::vector<std::string> errors;
+  return errors;
+}
+
+void capture_logged_errors(metrics& m, const diagnostic_params&) {
+  const auto& errors = m.get(metrics::EventString::ERRORS).get();
+  logged_errors().assign(errors.begin(), errors.end());
+}
+
+// Registered once for the whole binary: pluggable functions can only be set
+// once.
+const bool capture_registered = [] {
+  pluggable_functions().set<log_metrics_tag>(capture_logged_errors);
+  return true;
+}();
+
+} // namespace
+
+TEST(CompilerTest, metrics_include_all_errors) {
+  source_manager smgr;
+  smgr.add_virtual_file("test.thrift", R"(
+    package "facebook.com/thrift/test"
+    struct A {}
+    struct A {}
+    enum A {}
+  )");
+  parsing_params pparams;
+  if (auto* includes = std::getenv("IMPLICIT_INCLUDES")) {
+    pparams.incl_searchpath.emplace_back(includes);
+  }
+  gen_params gparams;
+  gparams.skip_gen = true;
+  logged_errors().clear();
+
+  compile_with_options(
+      pparams,
+      gparams,
+      diagnostic_params{},
+      sema_params{},
+      "test.thrift",
+      smgr);
+
+  const std::vector<std::string> expected{
+      diagnostic(
+          diagnostic_level::error, "redefinition of 'A'", "test.thrift", 4)
+          .str(),
+      diagnostic(
+          diagnostic_level::error, "redefinition of 'A'", "test.thrift", 5)
+          .str(),
+  };
+  EXPECT_EQ(logged_errors(), expected);
+}
 
 // Note: To see a reference on the expected lint message format: see the regex
 // in thrift/compiler/test/compiler.cc

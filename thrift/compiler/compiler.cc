@@ -1260,6 +1260,38 @@ void record_invocation_params(
   metrics.get(detail::metrics::StringValue::INPUT_FILENAME).set(input_filename);
 }
 
+namespace {
+
+void record_errors(
+    const diagnostic_results& results, detail::metrics& metrics) {
+  detail::event<std::string>& errors_metric =
+      metrics.get(detail::metrics::EventString::ERRORS);
+  for (const diagnostic& diag : results.diagnostics()) {
+    if (diag.level() == diagnostic_level::error) {
+      errors_metric.add(diag.str());
+    }
+  }
+}
+
+compile_retcode parse_and_generate(
+    source_manager& source_mgr,
+    sema_context& ctx,
+    const std::string& input_filename,
+    const parsing_params& pparams,
+    const gen_params& gparams) {
+  std::unique_ptr<t_program_bundle> program_bundle =
+      parse_and_mutate(source_mgr, ctx, input_filename, pparams, gparams);
+  if (program_bundle == nullptr) {
+    return compile_retcode::failure;
+  }
+  if (gparams.skip_gen) {
+    return compile_retcode::success;
+  }
+  return generate_code_for_program_bundle(*program_bundle, gparams, ctx);
+}
+
+} // namespace
+
 compile_result compile_with_options(
     const parsing_params& pparams,
     const gen_params& gparams,
@@ -1277,18 +1309,9 @@ compile_result compile_with_options(
   record_invocation_params(
       pparams, gparams, ctx.sema_parameters(), input_filename, ctx.metrics());
 
-  std::unique_ptr<t_program_bundle> program_bundle =
-      parse_and_mutate(source_mgr, ctx, input_filename, pparams, gparams);
-  if (program_bundle == nullptr) {
-    return result;
-  }
-
-  if (gparams.skip_gen) {
-    result.retcode = compile_retcode::success;
-    return result;
-  }
   result.retcode =
-      generate_code_for_program_bundle(*program_bundle, gparams, ctx);
+      parse_and_generate(source_mgr, ctx, input_filename, pparams, gparams);
+  record_errors(result.detail, ctx.metrics());
   auto end = std::chrono::high_resolution_clock::now();
   auto duration =
       std::chrono::duration_cast<std::chrono::milliseconds>(end - start)

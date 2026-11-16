@@ -60,7 +60,13 @@ class metrics {
     return get<detail::value<int>>(to_string(value));
   }
 
-  enum class EventString { PARSING_PARAMS, GEN_PARAMS, SEMA_PARAMS, LAST };
+  enum class EventString {
+    PARSING_PARAMS,
+    GEN_PARAMS,
+    SEMA_PARAMS,
+    ERRORS,
+    LAST
+  };
 
   static std::string_view to_string(EventString value) {
     switch (value) {
@@ -70,6 +76,8 @@ class metrics {
         return "gen_params";
       case EventString::SEMA_PARAMS:
         return "sema_params";
+      case EventString::ERRORS:
+        return "errors";
       case EventString::LAST:
         return "EventStringLast";
     }
