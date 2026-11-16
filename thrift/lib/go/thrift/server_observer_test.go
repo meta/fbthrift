@@ -17,10 +17,35 @@
 package thrift
 
 import (
+	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
+
+func TestNoopServerObserver(t *testing.T) {
+	observer := newNoopServerObserver()
+
+	// All calls should complete without panicking
+	assert.NotNil(t, observer)
+
+	// Test that all methods can be called without panicking
+	observer.ConnDropped()
+	observer.ConnAccepted()
+	observer.ConnTLSAccepted()
+	observer.TaskKilled()
+	observer.TaskTimeout()
+	observer.ServerOverloaded()
+	observer.SentReply()
+	observer.ActiveRequests(10)
+	observer.ProcessTime(200 * time.Millisecond)
+
+	// Test function-level stats
+	observer.ReceivedRequestForFunction("testFunction")
+	observer.UndeclaredExceptionForFunction("testFunction")
+	observer.DeclaredExceptionForFunction("testFunction")
+}
 
 // MockServerObserver is a mock implementation of ServerObserver interface for testing.
 type MockServerObserver struct {
