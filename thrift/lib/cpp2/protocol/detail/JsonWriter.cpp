@@ -217,8 +217,15 @@ std::uint32_t JsonWriter::writeObjectName(std::string_view s) {
   std::uint32_t n = 0;
   lastWrittenValueWasObjectName_ = true;
   n += appendNewlineAndIndent();
-  if (options_.unquoteObjectName && isIdentifier(s, /*allowDollarSign=*/true)) {
+  if (isIdentifier(s, /*allowDollarSign=*/true)) {
+    if (!options_.unquoteObjectName) {
+      out_.value().write('"');
+    }
     out_.value().push(folly::StringPiece(s));
+    if (!options_.unquoteObjectName) {
+      out_.value().write('"');
+      n += 2;
+    }
     n += s.size();
   } else {
     n += writeQuotedString(s);
