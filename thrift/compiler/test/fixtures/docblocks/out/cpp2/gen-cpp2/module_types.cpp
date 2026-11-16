@@ -180,14 +180,14 @@ Retyped& Retyped::operator=([[maybe_unused]] Retyped&& other) noexcept {
 }
 
 
-Retyped::Retyped(apache::thrift::FragileConstructor, folly::fbstring retyped__arg) :
+Retyped::Retyped(apache::thrift::FragileConstructor, std::pmr::string retyped__arg) :
     __fbthrift_field_retyped(std::move(retyped__arg)) { 
   __isset.set(folly::index_constant<0>(), true);
 }
 
 void Retyped::__fbthrift_clear() {
   // clear all fields
-  this->__fbthrift_field_retyped = apache::thrift::StringTraits<folly::fbstring>::fromStringLiteral("");
+  this->__fbthrift_field_retyped = apache::thrift::StringTraits<std::pmr::string>::fromStringLiteral("");
   __isset = {};
 }
 

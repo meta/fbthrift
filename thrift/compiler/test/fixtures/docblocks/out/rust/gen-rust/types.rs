@@ -574,7 +574,7 @@ impl ::fbthrift::metadata::ThriftAnnotations for Retyped {
                 let matches_type = type_id == ::std::any::TypeId::of::<cpp__types::Type>();
                 if matches_type {
                     let mut tmp = ::std::option::Option::Some(cpp__types::Type {
-                        name: "folly::fbstring".to_owned(),
+                        name: "std::pmr::string".to_owned(),
                         template: ::std::default::Default::default(),
                         ..::std::default::Default::default()
                     });

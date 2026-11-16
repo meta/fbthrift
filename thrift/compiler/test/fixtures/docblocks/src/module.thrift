@@ -20,6 +20,8 @@ include "thrift/annotation/rust.thrift"
 
 package "facebook.com/thrift/test/fixtures/docblocks"
 
+cpp_include "<memory_resource>"
+
 /// Matches `src/*/*.thrift` and quotes a /* nested comment */.
 struct Escapes {
   /// Says """hi""" and ends */ early.
@@ -41,7 +43,7 @@ struct Renamed {
 
 struct Retyped {
   /// Stored in a custom type.
-  @cpp.Type{name = "folly::fbstring"}
+  @cpp.Type{name = "std::pmr::string"}
   @python.Adapter{name = "my.Adapter", typeHint = "my.AdaptedString[]"}
   @rust.Type{name = "smol_str::SmolStr"}
   1: string retyped;

@@ -321,7 +321,7 @@ void Retyped::readNoXfer(Protocol_* iprot) {
   }
 _readField_retyped:
   {
-    ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, folly::fbstring, ::apache::thrift::type::cpp_type<folly::fbstring, ::apache::thrift::type::string_t>>::read(*iprot, this->__fbthrift_field_retyped);
+    ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, std::pmr::string, ::apache::thrift::type::cpp_type<std::pmr::string, ::apache::thrift::type::string_t>>::read(*iprot, this->__fbthrift_field_retyped);
   }
  this->__isset.set(0, true);
 
@@ -374,7 +374,7 @@ uint32_t Retyped::serializedSize(Protocol_ const* prot_) const {
   xfer += prot_->serializedStructSize("Retyped");
   {
     xfer += prot_->serializedFieldSize("retyped", apache::thrift::protocol::TType::T_STRING, 1);
-    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, folly::fbstring, ::apache::thrift::type::cpp_type<folly::fbstring, ::apache::thrift::type::string_t>>::serializedSize<false>(*prot_, this->__fbthrift_field_retyped);
+    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, std::pmr::string, ::apache::thrift::type::cpp_type<std::pmr::string, ::apache::thrift::type::string_t>>::serializedSize<false>(*prot_, this->__fbthrift_field_retyped);
   }
   xfer += prot_->serializedSizeStop();
   return xfer;
@@ -386,7 +386,7 @@ uint32_t Retyped::serializedSizeZC(Protocol_ const* prot_) const {
   xfer += prot_->serializedStructSize("Retyped");
   {
     xfer += prot_->serializedFieldSize("retyped", apache::thrift::protocol::TType::T_STRING, 1);
-    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, folly::fbstring, ::apache::thrift::type::cpp_type<folly::fbstring, ::apache::thrift::type::string_t>>::serializedSize<false>(*prot_, this->__fbthrift_field_retyped);
+    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, std::pmr::string, ::apache::thrift::type::cpp_type<std::pmr::string, ::apache::thrift::type::string_t>>::serializedSize<false>(*prot_, this->__fbthrift_field_retyped);
   }
   xfer += prot_->serializedSizeStop();
   return xfer;
@@ -409,7 +409,7 @@ uint32_t Retyped::write(Protocol_* prot_) const {
     constexpr int16_t kPrevFieldId = 0;
     xfer += ::apache::thrift::detail::writeFieldBegin<apache::thrift::protocol::TType::T_STRING, 1, kPrevFieldId>(*prot_, "retyped", previousFieldHasValue);
     previousFieldHasValue = true;
-    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, folly::fbstring, ::apache::thrift::type::cpp_type<folly::fbstring, ::apache::thrift::type::string_t>>::write(*prot_, this->__fbthrift_field_retyped);
+    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, std::pmr::string, ::apache::thrift::type::cpp_type<std::pmr::string, ::apache::thrift::type::string_t>>::write(*prot_, this->__fbthrift_field_retyped);
     xfer += prot_->writeFieldEnd();
   }
   xfer += prot_->writeFieldStop();

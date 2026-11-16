@@ -23,9 +23,9 @@ namespace module_constants {
     return ESCAPED_;
   }
 
-  FOLLY_EXPORT ::std::string_view _fbthrift_schema_8dcd6e367d96d38();
-  FOLLY_EXPORT ::folly::Range<const ::std::string_view*> _fbthrift_schema_8dcd6e367d96d38_includes();
-  FOLLY_EXPORT ::folly::Range<const ::std::string_view*> _fbthrift_schema_8dcd6e367d96d38_uris();
+  FOLLY_EXPORT ::std::string_view _fbthrift_schema_e48847b7042c235e();
+  FOLLY_EXPORT ::folly::Range<const ::std::string_view*> _fbthrift_schema_e48847b7042c235e_includes();
+  FOLLY_EXPORT ::folly::Range<const ::std::string_view*> _fbthrift_schema_e48847b7042c235e_uris();
 
 } // namespace module_constants
 } // namespace facebook::thrift::test::fixtures::docblocks

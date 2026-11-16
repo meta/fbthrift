@@ -9,6 +9,7 @@
 
 #include <compare>
 #include <thrift/lib/cpp2/gen/module_types_h.h>
+#include <memory_resource>
 
 namespace apache::thrift {
 namespace ident {
@@ -455,7 +456,7 @@ class Retyped final  {
   >;
 
   using __fbthrift_reflection_type_tags = folly::tag_t<
-    ::apache::thrift::type::cpp_type<folly::fbstring, ::apache::thrift::type::string_t>
+    ::apache::thrift::type::cpp_type<std::pmr::string, ::apache::thrift::type::string_t>
   >;
   void __fbthrift_clear();
   bool __fbthrift_is_empty() const;
@@ -472,7 +473,7 @@ class Retyped final  {
 
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
-  Retyped(apache::thrift::FragileConstructor, folly::fbstring retyped__arg);
+  Retyped(apache::thrift::FragileConstructor, std::pmr::string retyped__arg);
 
   Retyped(Retyped&&) noexcept;
   Retyped(const Retyped& src);
@@ -484,7 +485,7 @@ class Retyped final  {
   ~Retyped();
 
  private:
-  folly::fbstring __fbthrift_field_retyped;
+  std::pmr::string __fbthrift_field_retyped;
  private:
   apache::thrift::detail::isset_bitset<1, apache::thrift::detail::IssetBitsetOption::Unpacked> __isset;
 
@@ -499,7 +500,7 @@ class Retyped final  {
    * 1: string retyped
    */
   /** Glean { "field": "retyped" } */
-  template <typename..., typename fbthrift_T = folly::fbstring>
+  template <typename..., typename fbthrift_T = std::pmr::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> retyped_ref() const& {
     return {this->__fbthrift_field_retyped, __isset.at(0), __isset.bit(0)};
   }
@@ -510,7 +511,7 @@ class Retyped final  {
    * 1: string retyped
    */
   /** Glean { "field": "retyped" } */
-  template <typename..., typename fbthrift_T = folly::fbstring>
+  template <typename..., typename fbthrift_T = std::pmr::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> retyped_ref() & {
     return {this->__fbthrift_field_retyped, __isset.at(0), __isset.bit(0)};
   }
@@ -521,7 +522,7 @@ class Retyped final  {
    * 1: string retyped
    */
   /** Glean { "field": "retyped" } */
-  template <typename..., typename fbthrift_T = folly::fbstring>
+  template <typename..., typename fbthrift_T = std::pmr::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> retyped_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_retyped), __isset.at(0), __isset.bit(0)};
   }
@@ -532,7 +533,7 @@ class Retyped final  {
    * 1: string retyped
    */
   /** Glean { "field": "retyped" } */
-  template <typename..., typename fbthrift_T = folly::fbstring>
+  template <typename..., typename fbthrift_T = std::pmr::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> retyped() const& {
     return {this->__fbthrift_field_retyped, __isset.at(0), __isset.bit(0)};
   }
@@ -543,7 +544,7 @@ class Retyped final  {
    * 1: string retyped
    */
   /** Glean { "field": "retyped" } */
-  template <typename..., typename fbthrift_T = folly::fbstring>
+  template <typename..., typename fbthrift_T = std::pmr::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> retyped() & {
     return {this->__fbthrift_field_retyped, __isset.at(0), __isset.bit(0)};
   }
@@ -554,27 +555,27 @@ class Retyped final  {
    * 1: string retyped
    */
   /** Glean { "field": "retyped" } */
-  template <typename..., typename fbthrift_T = folly::fbstring>
+  template <typename..., typename fbthrift_T = std::pmr::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> retyped() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_retyped), __isset.at(0), __isset.bit(0)};
   }
 
   /** Glean { "field": "retyped" } */
   [[deprecated("Use `FOO.retyped().value()` instead of `FOO.get_retyped()`")]]
-  const folly::fbstring& get_retyped() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
+  const std::pmr::string& get_retyped() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return __fbthrift_field_retyped;
   }
 
   /** Glean { "field": "retyped" } */
   [[deprecated("Use `FOO.retyped().value()` instead of `FOO.get_retyped()`")]]
-  folly::fbstring get_retyped() && {
-    return static_cast<folly::fbstring&&>(__fbthrift_field_retyped);
+  std::pmr::string get_retyped() && {
+    return static_cast<std::pmr::string&&>(__fbthrift_field_retyped);
   }
 
   /** Glean { "field": "retyped" } */
-  template <typename T_Retyped_retyped_struct_setter = folly::fbstring>
+  template <typename T_Retyped_retyped_struct_setter = std::pmr::string>
   [[deprecated("Use `FOO.retyped() = BAR` instead of `FOO.set_retyped(BAR)`")]]
-  folly::fbstring& set_retyped(T_Retyped_retyped_struct_setter&& retyped_) {
+  std::pmr::string& set_retyped(T_Retyped_retyped_struct_setter&& retyped_) {
     retyped_ref() = std::forward<T_Retyped_retyped_struct_setter>(retyped_);
     return __fbthrift_field_retyped;
   }
@@ -737,22 +738,22 @@ unsigned long Undocumented::read(Protocol_* iprot) {
 namespace apache::thrift::detail {
 template <> struct TSchemaAssociation<::facebook::thrift::test::fixtures::docblocks::Escapes, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = 638621519367990584;
-  static constexpr ::std::string_view definitionKey = {"\xef\x04\x72\x27\x5f\xf4\x2e\xf9\x2d\x19\x62\x67\x51\xe2\x39\xe5", 16};
+  static constexpr int64_t programId = -1979253184854744226;
+  static constexpr ::std::string_view definitionKey = {"\x18\xe1\x95\x8b\x6d\x33\x8d\x71\x5f\xf2\xf8\xd4\x23\x63\xe7\x5a", 16};
 };
 template <> struct TSchemaAssociation<::facebook::thrift::test::fixtures::docblocks::CppRenamed, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = 638621519367990584;
-  static constexpr ::std::string_view definitionKey = {"\xd2\x62\xa4\x4e\x79\xe6\x1e\xdb\x22\xc2\x4a\x7f\xd7\xfc\x5d\x9d", 16};
+  static constexpr int64_t programId = -1979253184854744226;
+  static constexpr ::std::string_view definitionKey = {"\x89\x7f\x31\x53\x2c\x40\x54\x63\xc1\x85\x3c\xf1\xd4\x1d\xd7\xc8", 16};
 };
 template <> struct TSchemaAssociation<::facebook::thrift::test::fixtures::docblocks::Retyped, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = 638621519367990584;
-  static constexpr ::std::string_view definitionKey = {"\x01\x74\x14\x3e\x17\xa9\xd0\x88\xdc\x42\x3b\xd2\xcb\xb2\x04\x99", 16};
+  static constexpr int64_t programId = -1979253184854744226;
+  static constexpr ::std::string_view definitionKey = {"\x00\x06\x1c\x1c\xd3\xe2\x96\xc2\x86\x73\xb4\xdf\xd4\xae\x6d\xe1", 16};
 };
 template <> struct TSchemaAssociation<::facebook::thrift::test::fixtures::docblocks::Undocumented, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = 638621519367990584;
-  static constexpr ::std::string_view definitionKey = {"\x14\xb2\x3a\x1f\x84\xf0\x30\x33\x49\x85\xdc\x42\x79\x44\xc6\x68", 16};
+  static constexpr int64_t programId = -1979253184854744226;
+  static constexpr ::std::string_view definitionKey = {"\xf9\x5e\xe2\x2a\xf1\x86\x6d\x32\x0e\x69\x34\xba\xa7\x5c\xf7\xe1", 16};
 };
 } // namespace apache::thrift::detail

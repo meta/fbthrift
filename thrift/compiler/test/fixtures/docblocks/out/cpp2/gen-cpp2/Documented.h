@@ -10,6 +10,7 @@
 
 #include "thrift/compiler/test/fixtures/docblocks/gen-cpp2/DocumentedAsyncClient.h"
 #include "thrift/compiler/test/fixtures/docblocks/gen-cpp2/module_types.h"
+#include <memory_resource>
 
 namespace folly {
   class IOBuf;
@@ -89,8 +90,8 @@ class ServiceHandler<::facebook::thrift::test::fixtures::docblocks::Documented> 
 namespace detail {
 template <> struct TSchemaAssociation<::facebook::thrift::test::fixtures::docblocks::Documented, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = 638621519367990584;
-  static constexpr ::std::string_view definitionKey = {"\x51\xc8\xd6\x24\x40\xfd\xd3\x13\x94\x01\x7c\x50\xb4\xb7\x2c\x5a", 16};
+  static constexpr int64_t programId = -1979253184854744226;
+  static constexpr ::std::string_view definitionKey = {"\xb8\x13\x40\x54\xff\xca\xbe\xcc\xa0\x0a\x15\x8f\xc7\xa6\x3e\x62", 16};
 };
 }
 } // namespace apache::thrift
