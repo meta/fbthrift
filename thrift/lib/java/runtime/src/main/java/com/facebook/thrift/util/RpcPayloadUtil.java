@@ -103,8 +103,7 @@ public final class RpcPayloadUtil {
             "Internal error %s: %s",
             description, t.getMessage() == null ? "<null>" : t.getMessage());
     TApplicationException tae =
-        new TApplicationException(TApplicationException.INTERNAL_ERROR, message);
-    tae.initCause(t);
+        new TApplicationException(TApplicationException.INTERNAL_ERROR, message, t);
     return fromTApplicationException(tae, requestRpcMetadata, chain);
   }
 

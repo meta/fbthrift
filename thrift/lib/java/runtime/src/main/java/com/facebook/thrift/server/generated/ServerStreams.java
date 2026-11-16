@@ -277,8 +277,7 @@ public final class ServerStreams {
             "Internal error processing %s: %s",
             name, throwable.getMessage() == null ? "<null>" : throwable.getMessage());
     TApplicationException exception =
-        new TApplicationException(TApplicationException.INTERNAL_ERROR, errorMessage);
-    exception.initCause(throwable);
+        new TApplicationException(TApplicationException.INTERNAL_ERROR, errorMessage, throwable);
     return exception;
   }
 

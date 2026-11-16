@@ -223,6 +223,21 @@ public class RpcPayloadUtilTest {
   }
 
   @Test
+  public void internalErrorResponseKeepsCauseIdentity() throws Exception {
+    RuntimeException failure = new RuntimeException("boom");
+
+    ServerResponsePayload response =
+        RpcPayloadUtil.internalErrorResponse(
+            failure,
+            "processing ping",
+            requestMetadata(Collections.<String, String>emptyMap()),
+            null);
+
+    assertSame(failure, response.getApplicationException().getCause());
+    assertEquals(TApplicationException.INTERNAL_ERROR, readBodyType(response));
+  }
+
+  @Test
   public void tapplicationExceptionWriterFiresHooksOnce() throws Exception {
     List<String> hooks = new ArrayList<>();
     ContextChain chain = recordingChain(hooks);
@@ -245,8 +260,7 @@ public class RpcPayloadUtilTest {
     TApplicationException shed =
         new TApplicationException(TApplicationException.LOADSHEDDING, "async-shed");
     TApplicationException wrapped =
-        new TApplicationException(TApplicationException.INTERNAL_ERROR, "Internal error");
-    wrapped.initCause(shed);
+        new TApplicationException(TApplicationException.INTERNAL_ERROR, "Internal error", shed);
 
     ServerResponsePayload sheddingCause =
         RpcPayloadUtil.fromTApplicationException(
@@ -258,8 +272,8 @@ public class RpcPayloadUtilTest {
     assertFalse(sheddingCause.getResponseRpcMetadata().getOtherMetadata().containsKey("ex"));
 
     TApplicationException runtimeCause =
-        new TApplicationException(TApplicationException.INTERNAL_ERROR, "Internal error");
-    runtimeCause.initCause(new RuntimeException("npe"));
+        new TApplicationException(
+            TApplicationException.INTERNAL_ERROR, "Internal error", new RuntimeException("npe"));
 
     ServerResponsePayload runtimeCauseResponse =
         RpcPayloadUtil.fromTApplicationException(
