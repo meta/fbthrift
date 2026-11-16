@@ -16,6 +16,7 @@
 
 package com.facebook.thrift.legacy.server;
 
+import static com.facebook.thrift.util.ThriftProtocolConstants.BIG_FRAME_MAGIC;
 import static com.facebook.thrift.util.ThriftProtocolConstants.HEADER_MAGIC;
 import static java.util.Objects.requireNonNull;
 
@@ -70,6 +71,13 @@ public class ThriftProtocolDetection extends ByteToMessageDecoder {
 
     int magic = in.markReaderIndex().skipBytes(Integer.BYTES).readInt();
     in.resetReaderIndex();
+
+    // A big frame has the high word of its 8-byte length at bytes 4..8, not the header magic.
+    if (in.getInt(in.readerIndex()) == BIG_FRAME_MAGIC) {
+      logger.debug("detected header protocol with a big frame");
+      switchToHeader(context);
+      return;
+    }
 
     // HTTP not supported
     if (magic == HTTP_POST_MAGIC) {
@@ -130,8 +138,7 @@ public class ThriftProtocolDetection extends ByteToMessageDecoder {
     Integer maxFrameLengthBytes = (int) Math.min(maxFrameSize.toBytes(), Integer.MAX_VALUE);
 
     pipeline.addLast(
-        new ThriftHeaderFrameLengthBasedDecoder(maxFrameLengthBytes),
-        new LengthFieldPrepender(Integer.BYTES),
+        new ThriftHeaderFrameCodec(maxFrameLengthBytes),
         new HeaderTransportCodec(true),
         thriftServerHandler);
 

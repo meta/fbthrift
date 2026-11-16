@@ -16,6 +16,7 @@
 
 package com.facebook.thrift.legacy.server;
 
+import static com.facebook.thrift.util.ThriftProtocolConstants.BIG_FRAME_MAGIC;
 import static org.junit.jupiter.api.Assertions.*;
 
 import io.netty.buffer.ByteBuf;
@@ -102,8 +103,7 @@ public class ThriftHeaderFrameLengthBasedDecoderTest {
   public void testBigFrameOverSizedPayloadSucceeds() {
     int frameLength = Integer.MAX_VALUE - 1024;
     ByteBuf buf = Unpooled.buffer(frameLength + 12);
-    // BIG_FRAME_MAGIC
-    buf.writeInt(0x42494746);
+    buf.writeInt(BIG_FRAME_MAGIC);
     buf.writeLong(frameLength);
     for (int i = 0; i < frameLength; i++) {
       buf.writeByte(i % Byte.MAX_VALUE);
@@ -205,7 +205,7 @@ public class ThriftHeaderFrameLengthBasedDecoderTest {
 
     for (int frame = 0; frame < numFrames; frame++) {
       ByteBuf buf = Unpooled.buffer(payloadSize + 12);
-      buf.writeInt(0x42494746); // BIG_FRAME_MAGIC
+      buf.writeInt(BIG_FRAME_MAGIC);
       buf.writeLong(payloadSize);
       for (int i = 0; i < payloadSize; i++) {
         buf.writeByte((byte) ((frame * 256 + i) % 256));
@@ -233,6 +233,31 @@ public class ThriftHeaderFrameLengthBasedDecoderTest {
   }
 
   @Test
+  public void testBigFrameOverOneGibHeaderAcceptedAfterNormalFrame() {
+    EmbeddedChannel channel = new EmbeddedChannel(new ThriftHeaderFrameLengthBasedDecoder());
+
+    ByteBuf normal = Unpooled.buffer(4 + 16);
+    normal.writeInt(16);
+    normal.writeZero(16);
+    channel.writeInbound(normal);
+
+    ByteBuf first = channel.readInbound();
+    assertEquals(16, first.readableBytes());
+    first.release();
+
+    // Only the first bytes of a legal big frame of more than 0x3FFFFFFF bytes have arrived.
+    ByteBuf bigPrefix = Unpooled.buffer(12 + 16);
+    bigPrefix.writeInt(BIG_FRAME_MAGIC);
+    bigPrefix.writeLong(0x40000100L);
+    bigPrefix.writeZero(16);
+    channel.writeInbound(bigPrefix);
+
+    assertNull(channel.readInbound());
+    assertTrue(channel.isActive());
+    channel.finishAndReleaseAll();
+  }
+
+  @Test
   public void testMixedNormalAndBigFrames() {
     // Test alternating between normal and big frames
     EmbeddedChannel channel = new EmbeddedChannel(new ThriftHeaderFrameLengthBasedDecoder());
@@ -246,7 +271,7 @@ public class ThriftHeaderFrameLengthBasedDecoderTest {
       ByteBuf buf = Unpooled.buffer(payloadSize + lengthFieldSize);
 
       if (isBigFrame) {
-        buf.writeInt(0x42494746); // BIG_FRAME_MAGIC
+        buf.writeInt(BIG_FRAME_MAGIC);
         buf.writeLong(payloadSize);
       } else {
         buf.writeInt(payloadSize);
