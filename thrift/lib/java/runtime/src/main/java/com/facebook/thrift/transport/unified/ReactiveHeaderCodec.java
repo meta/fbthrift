@@ -16,6 +16,11 @@
 
 package com.facebook.thrift.transport.unified;
 
+import static com.facebook.thrift.util.ThriftProtocolConstants.HEADER_FLAGS_NONE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.HEADER_FLAG_SUPPORT_OUT_OF_ORDER;
+import static com.facebook.thrift.util.ThriftProtocolConstants.HEADER_MAGIC;
+import static com.facebook.thrift.util.ThriftProtocolConstants.NORMAL_HEADERS;
+import static com.facebook.thrift.util.ThriftProtocolConstants.PERSISTENT_HEADERS;
 import static com.google.common.base.Verify.verify;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -45,7 +50,6 @@ import reactor.netty.Connection;
 public class ReactiveHeaderCodec {
   private static final Logger log = LoggerFactory.getLogger(ReactiveHeaderCodec.class);
 
-  private static final int HEADER_MAGIC = 0x0FFF;
   private static final int ENCODED_INFO_SIZE = 2 * Byte.BYTES;
   private static final int FRAME_HEADER_SIZE =
       Short.BYTES
@@ -55,12 +59,6 @@ public class ReactiveHeaderCodec {
           Integer.BYTES
           + // sequenceId
           Short.BYTES; // header size
-
-  private static final int FLAGS_NONE = 0;
-  private static final int FLAG_SUPPORT_OUT_OF_ORDER = 1;
-
-  private static final int NORMAL_HEADERS = 0x01;
-  private static final int PERSISTENT_HEADERS = 0x02;
 
   /**
    * Encodes the HeaderFrame into a ByteBuf transferring the reference ownership.
@@ -108,7 +106,9 @@ public class ReactiveHeaderCodec {
 
       // flags
       frameHeader.writeShort(
-          frame.isSupportOutOfOrderResponse() ? FLAG_SUPPORT_OUT_OF_ORDER : FLAGS_NONE);
+          frame.isSupportOutOfOrderResponse()
+              ? HEADER_FLAG_SUPPORT_OUT_OF_ORDER
+              : HEADER_FLAGS_NONE);
 
       // seq id
       frameHeader.writeInt(frame.getSequenceId());
@@ -191,10 +191,10 @@ public class ReactiveHeaderCodec {
     short flags = buffer.readShort();
     boolean outOfOrderResponse;
     switch (flags) {
-      case FLAGS_NONE:
+      case HEADER_FLAGS_NONE:
         outOfOrderResponse = false;
         break;
-      case FLAG_SUPPORT_OUT_OF_ORDER:
+      case HEADER_FLAG_SUPPORT_OUT_OF_ORDER:
         outOfOrderResponse = true;
         break;
       default:

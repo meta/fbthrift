@@ -16,8 +16,8 @@
 
 package com.facebook.thrift.legacy.server;
 
-import static com.facebook.thrift.legacy.codec.HeaderTransportCodec.FRAME_NO_REPLY_SEQ_ID;
 import static com.facebook.thrift.util.RpcServerUtils.getThriftSslSession;
+import static com.facebook.thrift.util.ThriftProtocolConstants.FRAME_NO_REPLY_SEQ_ID;
 import static com.google.common.base.Strings.nullToEmpty;
 import static java.util.Objects.requireNonNull;
 import static java.util.regex.Pattern.CASE_INSENSITIVE;

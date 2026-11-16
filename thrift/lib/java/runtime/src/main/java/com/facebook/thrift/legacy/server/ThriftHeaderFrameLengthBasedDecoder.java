@@ -16,6 +16,9 @@
 
 package com.facebook.thrift.legacy.server;
 
+import static com.facebook.thrift.util.ThriftProtocolConstants.BIG_FRAME_MAGIC;
+import static com.facebook.thrift.util.ThriftProtocolConstants.MAX_FRAME_SIZE;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
@@ -53,9 +56,8 @@ import java.util.List;
  * return the frame to next handler.
  */
 public class ThriftHeaderFrameLengthBasedDecoder extends ByteToMessageDecoder {
-  private static final int MAX_FRAME_LENGTH = 0x3FFFFFFF + 4;
+  private static final int MAX_FRAME_LENGTH = MAX_FRAME_SIZE + 4;
   private static final int MAX_BIG_FRAME_LENGTH = Integer.MAX_VALUE;
-  private static final long BIG_FRAME_MAGIC = 0x42494746L;
   private Integer maxFrameLength;
   private int frameLengthInt = -1;
   private boolean discardingTooLongFrame;

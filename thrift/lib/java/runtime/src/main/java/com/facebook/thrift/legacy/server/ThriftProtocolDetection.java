@@ -16,6 +16,7 @@
 
 package com.facebook.thrift.legacy.server;
 
+import static com.facebook.thrift.util.ThriftProtocolConstants.HEADER_MAGIC;
 import static java.util.Objects.requireNonNull;
 
 import com.facebook.thrift.legacy.codec.HeaderTransportCodec;
@@ -43,8 +44,6 @@ public class ThriftProtocolDetection extends ByteToMessageDecoder {
 
   private static final int COMPACT_PROTOCOL_VERSION_MASK = 0xFF1F_0000;
   private static final int COMPACT_PROTOCOL_VERSION_2 = 0x8202_0000;
-
-  private static final int HEADER_MAGIC = 0x0FFF_0000;
 
   private static final int HTTP_POST_MAGIC =
       Ints.fromBytes((byte) 'P', (byte) 'O', (byte) 'S', (byte) 'T');
@@ -80,7 +79,7 @@ public class ThriftProtocolDetection extends ByteToMessageDecoder {
       return;
     }
 
-    if ((magic & HEADER_MAGIC) == HEADER_MAGIC) {
+    if ((magic & (HEADER_MAGIC << 16)) == HEADER_MAGIC << 16) {
       logger.debug("detected header protocol");
       switchToHeader(context);
       return;

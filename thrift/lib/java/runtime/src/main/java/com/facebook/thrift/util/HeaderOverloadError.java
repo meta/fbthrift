@@ -16,6 +16,17 @@
 
 package com.facebook.thrift.util;
 
+import static com.facebook.thrift.util.ThriftProtocolConstants.HEADER_ANYEX;
+import static com.facebook.thrift.util.ThriftProtocolConstants.HEADER_ANYEX_TYPE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.HEADER_EX;
+import static com.facebook.thrift.util.ThriftProtocolConstants.HEADER_PROXIED_ANYEX;
+import static com.facebook.thrift.util.ThriftProtocolConstants.HEADER_PROXIED_ANYEX_TYPE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.HEADER_PROXIED_EX;
+import static com.facebook.thrift.util.ThriftProtocolConstants.HEADER_PROXIED_UEX;
+import static com.facebook.thrift.util.ThriftProtocolConstants.HEADER_PROXIED_UEXW;
+import static com.facebook.thrift.util.ThriftProtocolConstants.HEADER_UEX;
+import static com.facebook.thrift.util.ThriftProtocolConstants.HEADER_UEXW;
+
 import com.facebook.thrift.server.OverloadedException;
 import java.util.Map;
 import javax.annotation.Nullable;
@@ -53,20 +64,20 @@ public final class HeaderOverloadError {
       return;
     }
     stripOutrankingHeaders(responseHeaders);
-    responseHeaders.put("ex", Integer.toString(reason));
+    responseHeaders.put(HEADER_EX, Integer.toString(reason));
   }
 
   // Higher-priority error headers cleared on an actual overload response so nothing overrides ex.
   // "ex" itself is kept (then overwritten with the proven reason) and "exm" is inert without uex.
   private static void stripOutrankingHeaders(Map<String, String> responseHeaders) {
-    responseHeaders.remove("pex");
-    responseHeaders.remove("uex");
-    responseHeaders.remove("puex");
-    responseHeaders.remove("uexw");
-    responseHeaders.remove("puexw");
-    responseHeaders.remove("anyex");
-    responseHeaders.remove("anyext");
-    responseHeaders.remove("panyex");
-    responseHeaders.remove("panyext");
+    responseHeaders.remove(HEADER_PROXIED_EX);
+    responseHeaders.remove(HEADER_UEX);
+    responseHeaders.remove(HEADER_PROXIED_UEX);
+    responseHeaders.remove(HEADER_UEXW);
+    responseHeaders.remove(HEADER_PROXIED_UEXW);
+    responseHeaders.remove(HEADER_ANYEX);
+    responseHeaders.remove(HEADER_ANYEX_TYPE);
+    responseHeaders.remove(HEADER_PROXIED_ANYEX);
+    responseHeaders.remove(HEADER_PROXIED_ANYEX_TYPE);
   }
 }

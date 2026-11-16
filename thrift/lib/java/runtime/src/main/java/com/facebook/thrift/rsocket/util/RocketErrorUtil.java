@@ -16,6 +16,27 @@
 
 package com.facebook.thrift.rsocket.util;
 
+import static com.facebook.thrift.util.ThriftProtocolConstants.APP_OVERLOADED_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.HEADER_EX;
+import static com.facebook.thrift.util.ThriftProtocolConstants.INJECTED_FAILURE_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.INTERACTION_CONSTRUCTOR_ERROR_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.INTERACTION_ID_UNKNOWN_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.INTERACTION_LOADSHEDDED_APP_OVERLOAD_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.INTERACTION_LOADSHEDDED_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.INTERACTION_LOADSHEDDED_OVERLOAD_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.INTERACTION_LOADSHEDDED_QUEUE_TIMEOUT_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.METHOD_UNKNOWN_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.OVERLOADED_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.QUEUE_OVERLOADED_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.REQUEST_PARSING_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.RESPONSE_TOO_BIG_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.SERVER_QUEUE_TIMEOUT_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.TASK_EXPIRED_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.TENANT_QUOTA_EXCEEDED_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.UNIMPLEMENTED_METHOD_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.UNKNOWN_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.WRONG_RPC_KIND_ERROR_CODE;
+
 import com.facebook.thrift.protocol.ProtocolUtil;
 import com.facebook.thrift.server.OverloadedException;
 import com.facebook.thrift.util.resources.RpcResources;
@@ -59,31 +80,8 @@ import org.apache.thrift.TApplicationException;
  */
 public final class RocketErrorUtil {
 
-  /** Response header that carries the error code string, as {@code kHeaderEx} does in C++. */
-  public static final String HEADER_EX = "ex";
-
   /** Keeps the {@code what_utf8} length varint to a single byte. See the class javadoc. */
   private static final int MAX_MESSAGE_LENGTH = 127;
-
-  private static final String UNKNOWN_ERROR_CODE = "0";
-  private static final String OVERLOADED_ERROR_CODE = "1";
-  private static final String TASK_EXPIRED_ERROR_CODE = "2";
-  private static final String QUEUE_OVERLOADED_ERROR_CODE = "5";
-  private static final String INJECTED_FAILURE_ERROR_CODE = "14";
-  private static final String SERVER_QUEUE_TIMEOUT_ERROR_CODE = "15";
-  private static final String RESPONSE_TOO_BIG_ERROR_CODE = "17";
-  private static final String WRONG_RPC_KIND_ERROR_CODE = "21";
-  private static final String APP_OVERLOADED_ERROR_CODE = "22";
-  private static final String METHOD_UNKNOWN_ERROR_CODE = "25";
-  private static final String INTERACTION_ID_UNKNOWN_ERROR_CODE = "26";
-  private static final String INTERACTION_CONSTRUCTOR_ERROR_ERROR_CODE = "27";
-  private static final String REQUEST_PARSING_ERROR_CODE = "28";
-  private static final String UNIMPLEMENTED_METHOD_ERROR_CODE = "31";
-  private static final String TENANT_QUOTA_EXCEEDED_ERROR_CODE = "32";
-  private static final String INTERACTION_LOADSHEDDED_ERROR_CODE = "34";
-  private static final String INTERACTION_LOADSHEDDED_QUEUE_TIMEOUT_ERROR_CODE = "35";
-  private static final String INTERACTION_LOADSHEDDED_OVERLOAD_ERROR_CODE = "36";
-  private static final String INTERACTION_LOADSHEDDED_APP_OVERLOAD_ERROR_CODE = "37";
 
   private static final Mapping UNKNOWN_MAPPING =
       new Mapping(TApplicationException.UNKNOWN, UNKNOWN_ERROR_CODE);
@@ -325,7 +323,7 @@ public final class RocketErrorUtil {
     return mappingFor(code).exceptionType;
   }
 
-  /** Returns the {@link #HEADER_EX} value for an error code, or null when C++ sends none. */
+  /** Returns the {@code ex} value for an error code, or null when C++ sends none. */
   public static String toErrorCodeHeader(ResponseRpcErrorCode code) {
     return mappingFor(code).errorCode;
   }
@@ -337,8 +335,8 @@ public final class RocketErrorUtil {
   }
 
   /**
-   * Builds the response metadata that travels with a decoded {@link ResponseRpcError}: the {@link
-   * #HEADER_EX} header, and the server load when the error reports it.
+   * Builds the response metadata that travels with a decoded {@link ResponseRpcError}: the {@code
+   * ex} header, and the server load when the error reports it.
    */
   public static ResponseRpcMetadata toResponseMetadata(ResponseRpcError error) {
     ResponseRpcMetadata.Builder builder = new ResponseRpcMetadata.Builder();

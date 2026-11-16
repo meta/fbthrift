@@ -16,6 +16,11 @@
 
 package com.facebook.thrift.legacy.codec;
 
+import static com.facebook.thrift.util.ThriftProtocolConstants.HEADER_FLAGS_NONE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.HEADER_FLAG_SUPPORT_OUT_OF_ORDER;
+import static com.facebook.thrift.util.ThriftProtocolConstants.HEADER_MAGIC;
+import static com.facebook.thrift.util.ThriftProtocolConstants.NORMAL_HEADERS;
+import static com.facebook.thrift.util.ThriftProtocolConstants.PERSISTENT_HEADERS;
 import static com.google.common.base.Verify.verify;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -41,16 +46,6 @@ import reactor.core.Exceptions;
 public final class HeaderTransportCodec extends ChannelDuplexHandler {
   private static final Logger log = LoggerFactory.getLogger(HeaderTransportCodec.class);
 
-  private static final int HEADER_MAGIC = 0x0FFF;
-
-  /**
-   * Reserved frame sequence marking a Header oneway request (C++ {@code
-   * ResponseChannel::ONEWAY_REQUEST_ID}, UINT32_MAX read as -1). A request frame carrying this
-   * sequence gets no response, even with a regular T_CALL body. This is a frame-level signal,
-   * distinct from the legacy body message sequence -1 rule.
-   */
-  public static final int FRAME_NO_REPLY_SEQ_ID = -1;
-
   private static final int ENCODED_INFO_SIZE = 2 * Byte.BYTES;
   private static final int FRAME_HEADER_SIZE =
       Short.BYTES
@@ -60,12 +55,6 @@ public final class HeaderTransportCodec extends ChannelDuplexHandler {
           Integer.BYTES
           + // sequenceId
           Short.BYTES; // header size
-
-  private static final int FLAGS_NONE = 0;
-  private static final int FLAG_SUPPORT_OUT_OF_ORDER = 1;
-
-  private static final int NORMAL_HEADERS = 0x01;
-  private static final int PERSISTENT_HEADERS = 0x02;
 
   private static final long LOG_INTERVAL = 30_000_000_000L; // 30 sec
   private static final AtomicLong logTime = new AtomicLong(0);
@@ -168,7 +157,9 @@ public final class HeaderTransportCodec extends ChannelDuplexHandler {
 
       // flags
       frameHeader.writeShort(
-          frame.isSupportOutOfOrderResponse() ? FLAG_SUPPORT_OUT_OF_ORDER : FLAGS_NONE);
+          frame.isSupportOutOfOrderResponse()
+              ? HEADER_FLAG_SUPPORT_OUT_OF_ORDER
+              : HEADER_FLAGS_NONE);
 
       // seq id
       frameHeader.writeInt(frame.getSequenceId());
@@ -249,10 +240,10 @@ public final class HeaderTransportCodec extends ChannelDuplexHandler {
     short flags = buffer.readShort();
     boolean outOfOrderResponse;
     switch (flags) {
-      case FLAGS_NONE:
+      case HEADER_FLAGS_NONE:
         outOfOrderResponse = false;
         break;
-      case FLAG_SUPPORT_OUT_OF_ORDER:
+      case HEADER_FLAG_SUPPORT_OUT_OF_ORDER:
         outOfOrderResponse = true;
         break;
       default:

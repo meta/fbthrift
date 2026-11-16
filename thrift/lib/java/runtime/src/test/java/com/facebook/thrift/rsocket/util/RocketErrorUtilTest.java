@@ -23,6 +23,7 @@ import static com.facebook.thrift.rsocket.util.RocketErrorUtil.toApplicationExce
 import static com.facebook.thrift.rsocket.util.RocketErrorUtil.toApplicationExceptionType;
 import static com.facebook.thrift.rsocket.util.RocketErrorUtil.toErrorCodeHeader;
 import static com.facebook.thrift.rsocket.util.RocketErrorUtil.toResponseMetadata;
+import static com.facebook.thrift.util.ThriftProtocolConstants.HEADER_EX;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -202,7 +203,7 @@ public class RocketErrorUtilTest {
             .build();
 
     ResponseRpcMetadata metadata = toResponseMetadata(error);
-    assertEquals("15", metadata.getOtherMetadata().get(RocketErrorUtil.HEADER_EX));
+    assertEquals("15", metadata.getOtherMetadata().get(HEADER_EX));
     assertEquals(Long.valueOf(42L), metadata.getLoad());
   }
 

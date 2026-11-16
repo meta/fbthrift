@@ -16,7 +16,7 @@
 
 package com.facebook.thrift.transport.unified;
 
-import static com.facebook.thrift.legacy.codec.HeaderTransportCodec.FRAME_NO_REPLY_SEQ_ID;
+import static com.facebook.thrift.util.ThriftProtocolConstants.FRAME_NO_REPLY_SEQ_ID;
 import static java.util.Objects.requireNonNull;
 import static org.apache.thrift.RpcKind.SINGLE_REQUEST_NO_RESPONSE;
 import static org.apache.thrift.RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE;
