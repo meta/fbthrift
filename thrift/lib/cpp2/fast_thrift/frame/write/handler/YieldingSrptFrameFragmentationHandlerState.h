@@ -20,9 +20,9 @@
 #include <cstdint>
 #include <deque>
 #include <optional>
+#include <string_view>
 
 #include <folly/Utility.h>
-#include <folly/io/async/EventBase.h>
 
 #include <thrift/lib/cpp2/fast_thrift/frame/write/ComposedFrame.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/PerStreamState.h>
@@ -32,43 +32,25 @@
 namespace apache::thrift::fast_thrift::frame::write::handler {
 
 /** Keeps yielding SRPT work between EventBase callbacks. */
-// folly::NonCopyableNonMovable deletes copy and move.
-// NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
 class YieldingSrptFrameFragmentationHandlerState final
-    : private folly::EventBase::LoopCallback,
-      private folly::NonCopyableNonMovable {
+    : private folly::NonCopyableNonMovable {
  public:
-  enum class WriteDisposition { PassThrough, Defer };
-
   struct ScheduledFragment {
     uint32_t streamId{0};
     PerStreamState::Fragment fragment;
   };
 
-  using FlushTrampoline = void (*)(void*, void*) noexcept;
+  static constexpr std::string_view kHandlerName =
+      "YieldingSrptFrameFragmentationHandler";
 
   explicit YieldingSrptFrameFragmentationHandlerState(
       QuantumFragmentationHandlerConfig config = {}) noexcept;
-  ~YieldingSrptFrameFragmentationHandlerState() override;
 
-  void attach(
-      folly::EventBase* eventBase,
-      void* handler,
-      void* context,
-      FlushTrampoline flushTrampoline) noexcept;
-  void detach() noexcept;
   void clearPending() noexcept;
-
   /**
-   * For `CANCEL` and `ERROR`, removes the queued frames of the stream first.
-   * Returns `PassThrough` for a frame that cannot be fragmented. It also
-   * returns `PassThrough` for a data frame whose metadata plus data fits in
-   * `streamQuantum` while its stream has nothing deferred. Returns `Defer` for
-   * every other data frame, and for every data frame if the config holds a
-   * bad value.
+   * Drops the deferred frames of the stream and the rest of its pinned frame.
    */
-  [[nodiscard]] WriteDisposition prepareWrite(
-      const ComposedFrame& frame) noexcept;
+  void removeStream(uint32_t streamId) noexcept;
   /**
    * Returns false and drops the frame when the config holds a bad value or
    * when its metadata alone is above `kMaxStreamQuantum`. Logs the metadata
@@ -87,16 +69,21 @@ class YieldingSrptFrameFragmentationHandlerState final
    * pass can close the pipeline, and `clearPending()` then ends the pass early.
    */
   [[nodiscard]] std::optional<ScheduledFragment> nextFragment() noexcept;
-  /**
-   * Returns true when no work remains. Otherwise schedules another pass and
-   * returns false.
-   */
-  [[nodiscard]] bool finishPass() noexcept;
-  void stopAfterError() noexcept;
+  /** Ends the pass. A frame that arrives after this call is queued at once. */
+  void finishPass() noexcept;
 
+  [[nodiscard]] size_t streamQuantum() const noexcept { return streamQuantum_; }
+  [[nodiscard]] bool configValid() const noexcept { return configValid_; }
   [[nodiscard]] bool hasPendingStream(uint32_t streamId) const noexcept;
   [[nodiscard]] bool hasPendingWrites() const noexcept;
-  [[nodiscard]] bool isScheduled() const noexcept;
+  /**
+   * Returns true while deferred work waits for a callback. A frame that
+   * arrives during a pass waits for the end of that pass instead, so this
+   * returns false during a pass.
+   */
+  [[nodiscard]] bool needsFlushCallback() const noexcept {
+    return !passActive_ && hasPendingWrites();
+  }
 
  private:
   // A stream in the heap has sent no fragment of its front frame, because a
@@ -108,10 +95,6 @@ class YieldingSrptFrameFragmentationHandlerState final
     }
   };
 
-  void runLoopCallback() noexcept override;
-  void scheduleFlushIfNeeded() noexcept;
-  void cancelLoopCallbackIfScheduled() noexcept;
-  void removeStream(uint32_t streamId) noexcept;
   [[nodiscard]] bool hasQueuedStream(uint32_t streamId) const noexcept;
   [[nodiscard]] std::optional<ScheduledFragment> takeDeferredArrival();
   void enqueueNow(ComposedFrame&& frame);
@@ -123,11 +106,6 @@ class YieldingSrptFrameFragmentationHandlerState final
   const size_t streamQuantum_;
   const size_t callbackBudget_;
   const bool configValid_;
-  folly::EventBase* eventBase_{nullptr};
-  void* handler_{nullptr};
-  void* context_{nullptr};
-  FlushTrampoline flushTrampoline_{nullptr};
-  bool isScheduled_{false};
   bool passActive_{false};
   size_t remainingCallbackBudget_{0};
   size_t remainingTurns_{0};

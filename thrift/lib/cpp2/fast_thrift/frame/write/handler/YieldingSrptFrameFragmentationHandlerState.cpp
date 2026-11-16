@@ -51,32 +51,7 @@ YieldingSrptFrameFragmentationHandlerState::
       callbackBudget_(config.callbackBudget),
       configValid_(config.isValid()) {}
 
-YieldingSrptFrameFragmentationHandlerState::
-    ~YieldingSrptFrameFragmentationHandlerState() {
-  cancelLoopCallbackIfScheduled();
-}
-
-void YieldingSrptFrameFragmentationHandlerState::attach(
-    folly::EventBase* eventBase,
-    void* handler,
-    void* context,
-    FlushTrampoline flushTrampoline) noexcept {
-  eventBase_ = eventBase;
-  handler_ = handler;
-  context_ = context;
-  flushTrampoline_ = flushTrampoline;
-}
-
-void YieldingSrptFrameFragmentationHandlerState::detach() noexcept {
-  clearPending();
-  eventBase_ = nullptr;
-  handler_ = nullptr;
-  context_ = nullptr;
-  flushTrampoline_ = nullptr;
-}
-
 void YieldingSrptFrameFragmentationHandlerState::clearPending() noexcept {
-  cancelLoopCallbackIfScheduled();
   streams_.clear();
   pinned_.reset();
   deferredArrivals_.clear();
@@ -85,32 +60,15 @@ void YieldingSrptFrameFragmentationHandlerState::clearPending() noexcept {
   remainingTurns_ = 0;
 }
 
-YieldingSrptFrameFragmentationHandlerState::WriteDisposition
-YieldingSrptFrameFragmentationHandlerState::prepareWrite(
-    const ComposedFrame& frame) noexcept {
-  if (isTerminalFrameType(frame.frameType)) {
-    removeStream(frame.streamId);
-    return WriteDisposition::PassThrough;
-  }
-  if (!frame.canFragment()) {
-    return WriteDisposition::PassThrough;
-  }
-  // With a bad config, enqueue() refuses every data frame.
-  if (configValid_ && !hasPendingStream(frame.streamId) &&
-      fitsInStreamQuantum(frame, streamQuantum_)) {
-    return WriteDisposition::PassThrough;
-  }
-  return WriteDisposition::Defer;
-}
-
 bool YieldingSrptFrameFragmentationHandlerState::enqueue(
     ComposedFrame&& frame) {
   if (!configValid_ || !metadataFitsInMaxStreamQuantum(frame)) {
     XLOGF_EVERY_MS(
         ERR,
         60'000,
-        "YieldingSrptFrameFragmentationHandler refused a data frame with {} "
-        "metadata bytes. The limit is {} bytes, and the config is {}.",
+        "{} refused a data frame with {} metadata bytes. The limit is {} "
+        "bytes, and the config is {}.",
+        kHandlerName,
         frame.metadata ? frame.metadata->computeChainDataLength() : 0,
         kMaxStreamQuantum,
         configValid_ ? "valid" : "invalid");
@@ -120,7 +78,6 @@ bool YieldingSrptFrameFragmentationHandlerState::enqueue(
     deferredArrivals_.push_back(std::move(frame));
   } else {
     enqueueNow(std::move(frame));
-    scheduleFlushIfNeeded();
   }
   return true;
 }
@@ -146,17 +103,8 @@ YieldingSrptFrameFragmentationHandlerState::nextFragment() noexcept {
   return takeDeferredArrival();
 }
 
-bool YieldingSrptFrameFragmentationHandlerState::finishPass() noexcept {
+void YieldingSrptFrameFragmentationHandlerState::finishPass() noexcept {
   passActive_ = false;
-  if (!hasPendingWrites()) {
-    return true;
-  }
-  scheduleFlushIfNeeded();
-  return false;
-}
-
-void YieldingSrptFrameFragmentationHandlerState::stopAfterError() noexcept {
-  clearPending();
 }
 
 bool YieldingSrptFrameFragmentationHandlerState::hasPendingStream(
@@ -177,33 +125,6 @@ bool YieldingSrptFrameFragmentationHandlerState::hasPendingWrites()
   return !streams_.empty() || pinned_.has_value() ||
       !std::all_of(
           deferredArrivals_.begin(), deferredArrivals_.end(), isRemovedArrival);
-}
-
-bool YieldingSrptFrameFragmentationHandlerState::isScheduled() const noexcept {
-  return isScheduled_;
-}
-
-void YieldingSrptFrameFragmentationHandlerState::runLoopCallback() noexcept {
-  isScheduled_ = false;
-  if (flushTrampoline_ != nullptr) {
-    flushTrampoline_(handler_, context_);
-  }
-}
-
-void YieldingSrptFrameFragmentationHandlerState::
-    scheduleFlushIfNeeded() noexcept {
-  if (!isScheduled_ && eventBase_ != nullptr && hasPendingWrites()) {
-    eventBase_->runInLoop(this);
-    isScheduled_ = true;
-  }
-}
-
-void YieldingSrptFrameFragmentationHandlerState::
-    cancelLoopCallbackIfScheduled() noexcept {
-  if (isScheduled_) {
-    cancelLoopCallback();
-    isScheduled_ = false;
-  }
 }
 
 void YieldingSrptFrameFragmentationHandlerState::removeStream(

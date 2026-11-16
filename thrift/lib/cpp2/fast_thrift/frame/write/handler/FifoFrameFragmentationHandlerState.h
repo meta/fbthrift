@@ -19,9 +19,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <string_view>
 
 #include <folly/Utility.h>
-#include <folly/io/async/EventBase.h>
 
 #include <thrift/lib/cpp2/fast_thrift/frame/write/ComposedFrame.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/FifoStreamQueue.h>
@@ -34,38 +34,20 @@ namespace apache::thrift::fast_thrift::frame::write::handler {
  * turn returns one fragment. A callback starts no new turn after its budget
  * reaches zero.
  */
-// folly::NonCopyableNonMovable deletes copy and move.
-// NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
 class FifoFrameFragmentationHandlerState final
-    : private folly::EventBase::LoopCallback,
-      private folly::NonCopyableNonMovable {
+    : private folly::NonCopyableNonMovable {
  public:
-  enum class WriteDisposition { PassThrough, Defer };
+  using ScheduledFragment = FifoStreamQueue::ScheduledFragment;
 
-  using FlushTrampoline = void (*)(void*, void*) noexcept;
+  static constexpr std::string_view kHandlerName =
+      "FifoFrameFragmentationHandler";
 
   explicit FifoFrameFragmentationHandlerState(
       QuantumFragmentationHandlerConfig config = {}) noexcept;
-  ~FifoFrameFragmentationHandlerState() override;
 
-  void attach(
-      folly::EventBase* eventBase,
-      void* handler,
-      void* context,
-      FlushTrampoline flushTrampoline) noexcept;
-  void detach() noexcept;
   void clearPending() noexcept;
-
-  /**
-   * For `CANCEL` and `ERROR`, removes the queued frames of the stream first.
-   * Returns `PassThrough` for a frame that cannot be fragmented. It also
-   * returns `PassThrough` for a data frame whose metadata plus data fits in
-   * `streamQuantum` while its stream has nothing queued. Returns `Defer` for
-   * every other data frame, and for every data frame if the config holds a
-   * bad value.
-   */
-  [[nodiscard]] WriteDisposition prepareWrite(
-      const ComposedFrame& frame) noexcept;
+  /** After this call, no turn emits anything that was queued for the stream. */
+  void removeStream(uint32_t streamId) noexcept;
   /**
    * Returns false and drops the frame if the config holds a bad value, if the
    * frame's metadata alone is above `kMaxStreamQuantum`, or if
@@ -75,39 +57,36 @@ class FifoFrameFragmentationHandlerState final
    */
   [[nodiscard]] bool enqueue(ComposedFrame&& frame);
 
-  /** Refills the budget and returns the number of live streams. */
-  [[nodiscard]] size_t startPass() noexcept;
-  /** Takes one fragment and subtracts its payload from the budget. */
-  [[nodiscard]] std::optional<FifoStreamQueue::ScheduledFragment>
-  nextFragment() noexcept;
-  [[nodiscard]] bool hasCallbackBudget() const noexcept;
+  /** Refills the budget and gives the pass one turn per live stream. */
+  void startPass() noexcept;
   /**
-   * Returns true if no live stream remains. Otherwise makes sure that another
-   * callback is scheduled and returns false.
+   * While the pass has turns and budget left, takes one fragment and subtracts
+   * its payload from the budget. Returns nullopt when the pass is over or the
+   * queue is empty.
    */
-  [[nodiscard]] bool finishPass() noexcept;
-  void stopAfterError() noexcept;
+  [[nodiscard]] std::optional<ScheduledFragment> nextFragment() noexcept;
+  /** Does nothing, because startPass() sets the turns and the budget. */
+  void finishPass() noexcept {}
 
+  [[nodiscard]] size_t streamQuantum() const noexcept { return streamQuantum_; }
+  [[nodiscard]] bool configValid() const noexcept { return configValid_; }
   [[nodiscard]] size_t pendingStreamCount() const noexcept;
   [[nodiscard]] size_t pendingQueueEntryCount() const noexcept;
   [[nodiscard]] bool hasPendingStream(uint32_t streamId) const noexcept;
-  [[nodiscard]] bool hasPendingWrites() const noexcept;
-  [[nodiscard]] bool isScheduled() const noexcept;
+  [[nodiscard]] bool hasPendingWrites() const noexcept {
+    return !streams_.empty();
+  }
+  /** Returns true while queued frames wait for a callback. */
+  [[nodiscard]] bool needsFlushCallback() const noexcept {
+    return hasPendingWrites();
+  }
 
  private:
-  void runLoopCallback() noexcept override;
-  void scheduleFlushIfNeeded() noexcept;
-  void cancelLoopCallbackIfScheduled() noexcept;
-
   const size_t streamQuantum_;
   const size_t callbackBudget_;
   const bool configValid_;
-  folly::EventBase* eventBase_{nullptr};
-  void* handler_{nullptr};
-  void* context_{nullptr};
-  FlushTrampoline flushTrampoline_{nullptr};
-  bool isScheduled_{false};
   size_t remainingCallbackBudget_{0};
+  size_t remainingTurns_{0};
   FifoStreamQueue streams_;
 };
 
