@@ -199,10 +199,6 @@ std::size_t lineTerminatorSize(folly::io::Cursor cursor) {
 void Json5Reader::setCursor(folly::io::Cursor c) {
   in_ = std::move(c);
   depth_ = 0;
-  // U+FEFF is whitespace, except as a byte order mark.
-  if (peekCodePoint(cursor()).first == U'\uFEFF') {
-    throwParseError("unexpected byte order mark");
-  }
   skipWhitespaceAndComments();
 }
 

@@ -418,7 +418,6 @@ const list<NegativeTestCase> formatValidationNegativeCases = [
   NegativeTestCase{name = "EndOfInputAfterFieldName", json = "{\"i64Value\":"},
   NegativeTestCase{name = "SkippedValueMissing", json = "{\"unknown\": }"},
   NegativeTestCase{name = "UnionNullUnknownFieldBetweenFields", json = "{\"unionValue\": {\"intValue\": 1, \"unknown\": null, \"stringValue\": \"a\"}}"},
-  NegativeTestCase{name = "Utf8Bom", json = "\uFEFF{}"},
   NegativeTestCase{name = "UnterminatedString", json = "{\"stringValue\": \"abc}"},
   NegativeTestCase{name = "RawNewlineInString", json = "{\"stringValue\": \"a\nb\"}"},
   NegativeTestCase{name = "ShortUnicodeEscape", json = "{\"stringValue\": \"\\u12\"}"},

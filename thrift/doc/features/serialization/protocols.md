@@ -198,7 +198,7 @@ Reversing this is `(x >> 1) ^ -(x & 1)`.
 
 * **Encoding:** Input must be UTF-8 encoded; strings (including object names) that are not well-formed UTF-8 are rejected. The contents of comments are not validated.
 * **Format:** Input must be valid JSON5 data; invalid input is rejected.
-* **Whitespace:** Leading/trailing whitespace are accepted; JSON5 comments (`//`, `/* ... */`) allowed anywhere whitespace is permitted (per JSON5 spec). UTF-8 BOM (byte sequence `EF BB BF` at start of input) is rejected.
+* **Whitespace:** Leading/trailing whitespace are accepted; JSON5 comments (`//`, `/* ... */`) allowed anywhere whitespace is permitted (per JSON5 spec). A UTF-8 BOM (byte sequence `EF BB BF`) at the start of input is whitespace too, as JSON5 lists U+FEFF as whitespace.
 * **Case sensitivity:** All matching is case-sensitive (booleans, enum names, field names).
 * **Null handling:** Struct/union field `null` → treated as absent (a field with value `null` and an absent field are equivalent after deserialization); `null` elsewhere is treated as type mismatch.
 * **Type mismatch:** Rejected (e.g., `true` for integer field). Note: This differs from Binary/Compact protocols, where type-mismatched fields are skipped silently. Since JSON5 input can be created by hand, silently skipping type-mismatched data is error-prone.

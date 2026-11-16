@@ -3182,8 +3182,8 @@ const list<TestCase> testCases = [
       "{\"stringValue\": \"\\A\\'\\\"\"}",
     ],
   },
-  // JSON5 whitespace includes \v, \f, U+00A0, U+FEFF, U+2028, U+2029 and the
-  // other Unicode space separators.
+  // JSON5 whitespace includes \v, \f, U+00A0, U+FEFF (also as a byte order
+  // mark), U+2028, U+2029 and the other Unicode space separators.
   TestCase{
     name = "Json5Whitespace",
     example = Example{i64Value = 42},
@@ -3196,6 +3196,7 @@ const list<TestCase> testCases = [
     additionalInputs = [
       "{\u00a0\"i64Value\":\u000b42\u000c}",
       "{\u2028\"i64Value\"\u2029:\ufeff42\u3000}",
+      "\ufeff{\"i64Value\": 42}",
     ],
   },
 ];

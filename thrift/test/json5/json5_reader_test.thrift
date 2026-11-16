@@ -175,7 +175,7 @@ const list<ReaderTestCase> readerTestCases = [
   ReaderTestCase{name = "CommentsInStringsAndContainers", input = "{\n    // a comment\n    \"/* comment inside string */\" /* inline */: /* before value */ [\n      // first element\n      \"/* multi-line \\n string1 */\",\n      \"// multi-line \\n string2\",\n      \"/* single-line \\\n          string3 */\",\n      \"// single-line \\\n          string4\"\n    ]\n    // trailing\n  }", output = "{\"/* comment inside string */\":[\"/* multi-line \\n string1 */\",\"// multi-line \\n string2\",\"/* single-line           string3 */\",\"// single-line           string4\"]}"},
   ReaderTestCase{name = "UnicodeWhitespace", input = "\u00A0\u1680\u2000\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF42", output = "42"},
   ReaderTestCase{name = "ZeroWidthSpace", input = "\u200B42"},
-  ReaderTestCase{name = "ByteOrderMark", input = "\uFEFF42"},
+  ReaderTestCase{name = "ByteOrderMark", input = "\uFEFF42", output = "42"},
   ReaderTestCase{name = "Latin1NoBreakSpace", input = "\xa042"},
   ReaderTestCase{name = "Latin1SuperscriptTwo", input = "4\xb2"},
   // Top level
