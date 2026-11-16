@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticSegmentBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
@@ -22,6 +23,7 @@
 #include <folly/portability/GTest.h>
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <deque>
 #include <memory>
@@ -3136,6 +3138,130 @@ TEST(StaticPipelineTest, WriteReadyCallbackThatClosesPipelineSkipsTail) {
   EXPECT_THAT(tail.writeReadyCount(), Eq(std::size_t{0}));
 }
 
+template <typename Endpoint, std::size_t Padding, std::size_t Alignment>
+struct alignas(Alignment) PaddedEndpoint : Endpoint {
+  std::array<std::byte, Padding> padding{};
+};
+
+template <typename Head, typename Tail, typename Allocator>
+auto makeBorrowedStoragePipeline(
+    folly::EventBase& eventBase, Head& head, Tail& tail, Allocator& allocator) {
+  return StaticPipelineBuilder<Head, Tail, Allocator>()
+      .setEventBase(&eventBase)
+      .setHead(&head)
+      .setTail(&tail)
+      .setAllocator(&allocator)
+      .template addState<PipelineState>()
+      .template addNextDuplexTemplate<StatefulHandler>(state_static_tag)
+      .build();
+}
+
+template <typename Head, typename Tail, typename Allocator>
+void expectBorrowedStorage(
+    std::size_t expectedSize,
+    std::size_t expectedAlignment,
+    const char* description) {
+  SCOPED_TRACE(description);
+  folly::EventBase eventBase;
+  Head head;
+  Tail tail;
+  Allocator allocator;
+  auto pipeline = makeBorrowedStoragePipeline(eventBase, head, tail, allocator);
+
+  EXPECT_EQ(sizeof(*pipeline), expectedSize);
+  EXPECT_EQ(
+      alignof(typename decltype(pipeline)::element_type), expectedAlignment);
+  EXPECT_EQ(pipeline->fireRead(TypeErasedBox{17}), Result::Success);
+  EXPECT_EQ(pipeline->fireWrite(TypeErasedBox{23}), Result::Success);
+  EXPECT_EQ(pipeline->template state<PipelineState>().reads, 1);
+  EXPECT_EQ(head.writeCount(), 1);
+  EXPECT_EQ(tail.readCount(), 1);
+  auto buffer = pipeline->allocate(7);
+  ASSERT_NE(buffer, nullptr);
+  EXPECT_EQ(allocator.allocationCount(), 1);
+}
+
+TEST(StaticPipelineTest, BorrowedComponentSizeAndAlignmentDoNotGrowPipeline) {
+  folly::EventBase eventBase;
+  StaticHeadHandler head;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+  auto pipeline = makeBorrowedStoragePipeline(eventBase, head, tail, allocator);
+  constexpr auto expectedSize = sizeof(*pipeline);
+  constexpr auto expectedAlignment =
+      alignof(typename decltype(pipeline)::element_type);
+
+  expectBorrowedStorage<
+      PaddedEndpoint<StaticHeadHandler, 4096, alignof(StaticHeadHandler)>,
+      StaticTailHandler,
+      TestAllocator>(expectedSize, expectedAlignment, "large borrowed head");
+  expectBorrowedStorage<
+      StaticHeadHandler,
+      PaddedEndpoint<StaticTailHandler, 4096, alignof(StaticTailHandler)>,
+      TestAllocator>(expectedSize, expectedAlignment, "large borrowed tail");
+  expectBorrowedStorage<
+      StaticHeadHandler,
+      StaticTailHandler,
+      PaddedEndpoint<TestAllocator, 4096, alignof(TestAllocator)>>(
+      expectedSize, expectedAlignment, "large borrowed allocator");
+  expectBorrowedStorage<
+      PaddedEndpoint<StaticHeadHandler, 1, 64>,
+      StaticTailHandler,
+      TestAllocator>(
+      expectedSize, expectedAlignment, "overaligned borrowed head");
+  expectBorrowedStorage<
+      StaticHeadHandler,
+      PaddedEndpoint<StaticTailHandler, 1, 64>,
+      TestAllocator>(
+      expectedSize, expectedAlignment, "overaligned borrowed tail");
+  expectBorrowedStorage<
+      StaticHeadHandler,
+      StaticTailHandler,
+      PaddedEndpoint<TestAllocator, 1, 64>>(
+      expectedSize, expectedAlignment, "overaligned borrowed allocator");
+}
+
+template <typename Tail, typename Allocator>
+auto makeOwnedHeadStoragePipeline(
+    folly::EventBase& eventBase, Tail& tail, Allocator& allocator) {
+  return StaticPipelineBuilder<OwnedStaticHead, Tail, Allocator>()
+      .setEventBase(&eventBase)
+      .emplaceHead(42, std::string("owned"))
+      .setTail(&tail)
+      .setAllocator(&allocator)
+      .template addState<PipelineState>()
+      .template addNextDuplexTemplate<StatefulHandler>(state_static_tag)
+      .build();
+}
+
+TEST(StaticPipelineTest, OwnedHeadDoesNotReserveBorrowedCompanionStorage) {
+  OwnedStaticHead::reset();
+  folly::EventBase eventBase;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+  PaddedEndpoint<StaticTailHandler, 4096, 64> largeTail;
+  PaddedEndpoint<TestAllocator, 4096, 64> largeAllocator;
+  {
+    auto pipeline = makeOwnedHeadStoragePipeline(eventBase, tail, allocator);
+    auto largePipeline =
+        makeOwnedHeadStoragePipeline(eventBase, largeTail, largeAllocator);
+    EXPECT_EQ(sizeof(*pipeline), sizeof(*largePipeline));
+    EXPECT_EQ(
+        alignof(typename decltype(pipeline)::element_type),
+        alignof(typename decltype(largePipeline)::element_type));
+    EXPECT_EQ(largePipeline->fireRead(TypeErasedBox{17}), Result::Success);
+    EXPECT_EQ(largePipeline->fireWrite(TypeErasedBox{23}), Result::Success);
+    EXPECT_EQ(largePipeline->state<PipelineState>().reads, 1);
+    EXPECT_EQ(largeTail.readCount(), 1);
+    auto buffer = largePipeline->allocate(7);
+    ASSERT_NE(buffer, nullptr);
+    EXPECT_EQ(largeAllocator.allocationCount(), 1);
+    EXPECT_EQ(OwnedStaticHead::constructions, 2);
+    EXPECT_EQ(OwnedStaticHead::destructions, 0);
+  }
+  EXPECT_EQ(OwnedStaticHead::destructions, 2);
+}
+
 // === Owning setters (emplaceHead / emplaceTail / emplaceAllocator) ===
 
 TEST(StaticPipelineTest, EmplacedHeadIsOwnedAndDestroyedWithPipeline) {
@@ -3336,6 +3462,69 @@ TEST(StaticPipelineTest, InlineAllocatorConstructedWithoutHeap) {
     EXPECT_EQ(OwnedStaticAllocator::heapAllocations, 0);
   }
   EXPECT_EQ(OwnedStaticAllocator::destructions, 1);
+}
+
+TEST(StaticPipelineTest, ExplicitOwnershipDefersLvalueConstructorArguments) {
+  OwnedStaticHead::reset();
+  OwnedStaticTail::reset();
+  OwnedStaticAllocator::reset();
+  folly::EventBase eventBase;
+  {
+    auto builder = StaticPipelineBuilder<
+                       OwnedStaticHead,
+                       OwnedStaticTail,
+                       OwnedStaticAllocator>()
+                       .withHeadOwnership()
+                       .withTailOwnership()
+                       .withAllocatorOwnership();
+    builder.setEventBase(&eventBase);
+    {
+      std::string name("deferred");
+      builder.emplaceHead(42, name);
+      name = "changed";
+    }
+    builder.emplaceTail();
+    builder.emplaceAllocator();
+    EXPECT_EQ(OwnedStaticHead::constructions, 0);
+    EXPECT_EQ(OwnedStaticTail::constructions, 0);
+
+    auto pipeline = std::move(builder).build();
+    ASSERT_NE(OwnedStaticHead::lastConstructed, nullptr);
+    EXPECT_EQ(OwnedStaticHead::lastConstructed->id(), 42);
+    EXPECT_EQ(OwnedStaticHead::lastConstructed->name(), "deferred");
+    EXPECT_EQ(pipeline->fireRead(TypeErasedBox{17}), Result::Success);
+    EXPECT_EQ(pipeline->fireWrite(TypeErasedBox{23}), Result::Success);
+    EXPECT_EQ(OwnedStaticAllocator::heapAllocations, 0);
+  }
+  EXPECT_EQ(OwnedStaticHead::destructions, 1);
+  EXPECT_EQ(OwnedStaticTail::destructions, 1);
+  EXPECT_EQ(OwnedStaticAllocator::destructions, 1);
+}
+
+TEST(StaticPipelineTest, LvalueSetterDropsDeferredOwnership) {
+  folly::EventBase eventBase;
+  OwnedStaticHead externalHead(7, std::string("caller"));
+  OwnedStaticHead::reset();
+  StaticTailHandler tail;
+  TestAllocator allocator;
+  auto builder =
+      StaticPipelineBuilder<OwnedStaticHead, StaticTailHandler, TestAllocator>()
+          .withHeadOwnership();
+  builder.setEventBase(&eventBase)
+      .setHead(&externalHead)
+      .setTail(&tail)
+      .setAllocator(&allocator);
+  builder.emplaceHead(99, std::string("dropped"));
+  builder.setHead(&externalHead);
+
+  auto pipeline = std::move(builder).build();
+  EXPECT_EQ(OwnedStaticHead::constructions, 0);
+  EXPECT_EQ(pipeline->fireRead(TypeErasedBox{17}), Result::Success);
+  EXPECT_EQ(pipeline->fireWrite(TypeErasedBox{23}), Result::Success);
+  pipeline.reset();
+  EXPECT_EQ(OwnedStaticHead::destructions, 0);
+  EXPECT_EQ(externalHead.id(), 7);
+  EXPECT_EQ(externalHead.name(), "caller");
 }
 
 struct ReplaceSecondHandler {
@@ -3543,6 +3732,77 @@ TEST(StaticPipelineTest, HandlerOverridesStayOutOfPipelineType) {
   EXPECT_THAT(
       (std::is_same_v<decltype(plain), decltype(withoutOverrides)>), IsTrue());
   EXPECT_THAT((std::is_same_v<decltype(plain), decltype(replaced)>), IsTrue());
+}
+
+class ForwardingPolicyTail : public StaticTailHandler {
+ public:
+  template <typename Context>
+  Result onRead(Context& ctx, TypeErasedBox&& msg) noexcept {
+    return ctx.fireRead(std::move(msg));
+  }
+};
+
+TEST(StaticPipelineTest, StoragePoliciesSurviveStateAndHandlerRebinding) {
+  OwnedStaticHead::reset();
+  OwnedStaticAllocator::reset();
+  staticTeardownLog().clear();
+  folly::EventBase eventBase;
+  StaticHeadHandler peerHead;
+  StaticTailHandler peerTail;
+  TestAllocator peerAllocator;
+  auto peer = StaticPipelineBuilder<
+                  StaticHeadHandler,
+                  StaticTailHandler,
+                  TestAllocator>()
+                  .setEventBase(&eventBase)
+                  .setHead(&peerHead)
+                  .setTail(&peerTail)
+                  .setAllocator(&peerAllocator)
+                  .build();
+  ForwardingPolicyTail tail;
+  std::vector<std::string> trace;
+  std::vector<detail::ErasedStaticSegment> segments;
+  segments.push_back(
+      StaticSegmentBuilder<>()
+          .addHandler<SegmentTraceHandler>(
+              first_erased_static_tag.id, &trace, "segment")
+          .build());
+  {
+    auto pipeline =
+        StaticPipelineBuilder<
+            OwnedStaticHead,
+            ForwardingPolicyTail,
+            OwnedStaticAllocator>()
+            .setEventBase(&eventBase)
+            .emplaceHead(42, std::string("owned"))
+            .setTail(&tail)
+            .emplaceAllocator()
+            .withBinding()
+            .addState<PipelineState>()
+            .withHandlerOverrides<DoubleStatefulHandler>()
+            .addNextDuplexTemplate<StatefulHandler>(state_static_tag)
+            .addStaticSegments(std::move(segments))
+            .addNextDuplex<TraceHandler>(second_static_tag, &trace, "after")
+            .build();
+    pipeline->adaptTail(PipelineRef(*peer));
+    trace.clear();
+
+    EXPECT_EQ(pipeline->fireRead(TypeErasedBox{17}), Result::Success);
+    EXPECT_EQ(pipeline->state<PipelineState>().reads, 2);
+    EXPECT_EQ(peerTail.readCount(), 1);
+    EXPECT_THAT(trace, ElementsAre("segment.read", "after.read"));
+    EXPECT_EQ(pipeline->fireWrite(TypeErasedBox{23}), Result::Success);
+    EXPECT_THAT(
+        trace,
+        ElementsAre(
+            "segment.read", "after.read", "after.write", "segment.write"));
+    EXPECT_EQ(OwnedStaticHead::constructions, 1);
+    EXPECT_EQ(OwnedStaticAllocator::heapAllocations, 0);
+  }
+  EXPECT_EQ(OwnedStaticHead::destructions, 1);
+  EXPECT_EQ(OwnedStaticAllocator::destructions, 1);
+  ASSERT_FALSE(staticTeardownLog().empty());
+  EXPECT_EQ(staticTeardownLog().back(), "allocator");
 }
 
 } // namespace

@@ -106,6 +106,19 @@ class PlainStaticTail {
   void onPipelineInactive() noexcept {}
 };
 
+class RecordingStaticTail : public PlainStaticTail {
+ public:
+  template <typename Context>
+  Result onRead(Context&, TypeErasedBox&& msg) noexcept {
+    value_ = msg.get<Ping>().value;
+    return Result::Success;
+  }
+  int value() const noexcept { return value_; }
+
+ private:
+  int value_{0};
+};
+
 // A duplex handler that forwards and counts, to prove handlers run identically
 // whether or not a peer is bound.
 class CountingDuplex {
@@ -209,6 +222,7 @@ TEST(StaticPipelineBindTest, BindTailForwardsPastTailToPeer) {
   PlainStaticHead head;
   ForwardingStaticTail tail;
   auto source = StaticPipelineBuilder<PlainStaticHead, ForwardingStaticTail>()
+                    .withBinding()
                     .setEventBase(&evb)
                     .setHead(&head)
                     .setTail(&tail)
@@ -240,6 +254,7 @@ TEST(StaticPipelineBindTest, HandlersRunRegardlessOfBind) {
   PlainStaticHead head;
   ForwardingStaticTail tail;
   auto source = StaticPipelineBuilder<PlainStaticHead, ForwardingStaticTail>()
+                    .withBinding()
                     .setEventBase(&evb)
                     .setHead(&head)
                     .setTail(&tail)
@@ -300,6 +315,7 @@ TEST(StaticPipelineBindTest, BindHeadForwardsPastHeadToPeer) {
   ForwardingStaticHead head;
   PlainStaticTail tail;
   auto source = StaticPipelineBuilder<ForwardingStaticHead, PlainStaticTail>()
+                    .withBinding()
                     .setEventBase(&evb)
                     .setHead(&head)
                     .setTail(&tail)
@@ -324,6 +340,7 @@ TEST(StaticPipelineBindTest, OwningBindDestroysPeerWithOwner) {
   PlainStaticHead head;
   ForwardingStaticTail tail;
   auto source = StaticPipelineBuilder<PlainStaticHead, ForwardingStaticTail>()
+                    .withBinding()
                     .setEventBase(&evb)
                     .setHead(&head)
                     .setTail(&tail)
@@ -349,6 +366,7 @@ TEST(StaticPipelineBindDeathTest, BindTailRejectsCrossEventBase) {
   PlainStaticHead head;
   ForwardingStaticTail tail;
   auto source = StaticPipelineBuilder<PlainStaticHead, ForwardingStaticTail>()
+                    .withBinding()
                     .setEventBase(&evbSource)
                     .setHead(&head)
                     .setTail(&tail)
@@ -376,6 +394,7 @@ TEST(StaticPipelineBindTest, BindTailAppliesAdapterConversion) {
   PlainStaticHead head;
   ForwardingStaticTail tail;
   auto source = StaticPipelineBuilder<PlainStaticHead, ForwardingStaticTail>()
+                    .withBinding()
                     .setEventBase(&evb)
                     .setHead(&head)
                     .setTail(&tail)
@@ -404,6 +423,7 @@ TEST(StaticPipelineBindTest, BindHeadAppliesAdapterConversion) {
   ForwardingStaticHead head;
   PlainStaticTail tail;
   auto source = StaticPipelineBuilder<ForwardingStaticHead, PlainStaticTail>()
+                    .withBinding()
                     .setEventBase(&evb)
                     .setHead(&head)
                     .setTail(&tail)
@@ -413,6 +433,49 @@ TEST(StaticPipelineBindTest, BindHeadAppliesAdapterConversion) {
 
   EXPECT_EQ(source->fireWrite(erase_and_box(Ping{21})), Result::Success);
   EXPECT_EQ(received, 42);
+}
+
+TEST(StaticPipelineBindTest, BindingStorageIsOptInWithDefaultStaticPeer) {
+  folly::EventBase evb;
+  SimpleBufferAllocator allocator;
+  PlainStaticHead peerHead;
+  RecordingStaticTail peerTail;
+  auto peer = StaticPipelineBuilder<PlainStaticHead, RecordingStaticTail>()
+                  .setEventBase(&evb)
+                  .setHead(&peerHead)
+                  .setTail(&peerTail)
+                  .setAllocator(&allocator)
+                  .build();
+
+  PlainStaticHead head;
+  ForwardingStaticTail unboundTail;
+  ForwardingStaticTail boundTail;
+  auto unbound = StaticPipelineBuilder<PlainStaticHead, ForwardingStaticTail>()
+                     .setEventBase(&evb)
+                     .setHead(&head)
+                     .setTail(&unboundTail)
+                     .setAllocator(&allocator)
+                     .build();
+  auto bound = StaticPipelineBuilder<PlainStaticHead, ForwardingStaticTail>()
+                   .withBinding()
+                   .setEventBase(&evb)
+                   .setHead(&head)
+                   .setTail(&boundTail)
+                   .setAllocator(&allocator)
+                   .build();
+  constexpr auto bindingSize = 2 * sizeof(PipelineRef) +
+      2 * sizeof(PipelineOwner) +
+      2 * sizeof(decltype(&ForwardingAdapter::adaptRead));
+  EXPECT_EQ(sizeof(*bound), sizeof(*unbound) + bindingSize);
+
+  EXPECT_EQ(unbound->fireRead(erase_and_box(Ping{7})), Result::Error);
+  EXPECT_EQ(unboundTail.onReadCount(), 1);
+  EXPECT_EQ(peerTail.value(), 0);
+
+  bound->adaptTail(PipelineRef(*peer));
+  EXPECT_EQ(bound->fireRead(erase_and_box(Ping{42})), Result::Success);
+  EXPECT_EQ(boundTail.onReadCount(), 1);
+  EXPECT_EQ(peerTail.value(), 42);
 }
 
 } // namespace apache::thrift::fast_thrift::channel_pipeline::test

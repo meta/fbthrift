@@ -332,6 +332,20 @@ class StaticEventPublisherHandle<Pipeline, Events<Evs...>> {
   Pipeline* pipeline_;
 };
 
+template <
+    bool OwnHead = false,
+    bool OwnTail = false,
+    bool OwnAllocator = false,
+    bool EnableBinding = false>
+struct StaticPipelinePolicy {
+  static constexpr bool ownHead = OwnHead;
+  static constexpr bool ownTail = OwnTail;
+  static constexpr bool ownAllocator = OwnAllocator;
+  static constexpr bool enableBinding = EnableBinding;
+};
+
+enum class StaticEndpointRole { Head, Tail, Allocator };
+
 /**
  * RAII storage for a pipeline-owned endpoint/allocator, co-located in the
  * StaticPipelineImpl allocation. Constructed in place from an EndpointSource at
@@ -372,12 +386,32 @@ class OwnedEndpointSlot {
   void (*destroy_)(void*) noexcept {nullptr};
 };
 
+template <typename T, bool Enabled, StaticEndpointRole Role>
+struct OptionalOwnedEndpointSlot {};
+
+template <typename T, StaticEndpointRole Role>
+struct OptionalOwnedEndpointSlot<T, true, Role> : OwnedEndpointSlot<T> {};
+
+template <bool Enabled>
+struct StaticPipelineBindingStorage {};
+
+template <>
+struct StaticPipelineBindingStorage<true> {
+  PipelineRef boundTailPeer_;
+  PipelineRef boundHeadPeer_;
+  PipelineOwner ownedTailPeer_;
+  PipelineOwner ownedHeadPeer_;
+  TypeErasedBox (*tailConvert_)(TypeErasedBox&&) noexcept {nullptr};
+  TypeErasedBox (*headConvert_)(TypeErasedBox&&) noexcept {nullptr};
+};
+
 template <
     typename HeadHandler,
     typename TailHandler,
     typename Allocator,
     typename StateTuple,
     typename StaticHandlerConfig,
+    typename Policy = StaticPipelinePolicy<>,
     typename... Specs>
 class StaticPipelineImpl final {
  public:
@@ -447,14 +481,29 @@ class StaticPipelineImpl final {
     static_assert(ValidEndpointPair<HeadHandler, TailHandler, EndpointContext>);
     // Construct any pipeline-owned endpoints in place; external components keep
     // the raw pointer set above.
-    if (headSource.ops) {
-      headHandler_ = ownedHead_.construct(headSource);
+    if constexpr (Policy::ownHead) {
+      if (headSource.ops) {
+        headHandler_ = ownedHead_.construct(headSource);
+      }
+    } else {
+      CHECK(headSource.ops == nullptr)
+          << "static pipeline head ownership is disabled";
     }
-    if (tailSource.ops) {
-      tailHandler_ = ownedTail_.construct(tailSource);
+    if constexpr (Policy::ownTail) {
+      if (tailSource.ops) {
+        tailHandler_ = ownedTail_.construct(tailSource);
+      }
+    } else {
+      CHECK(tailSource.ops == nullptr)
+          << "static pipeline tail ownership is disabled";
     }
-    if (allocatorSource.ops) {
-      allocator_ = ownedAllocator_.construct(allocatorSource);
+    if constexpr (Policy::ownAllocator) {
+      if (allocatorSource.ops) {
+        allocator_ = ownedAllocator_.construct(allocatorSource);
+      }
+    } else {
+      CHECK(allocatorSource.ops == nullptr)
+          << "static pipeline allocator ownership is disabled";
     }
     bindStaticHandlerContexts();
   }
@@ -913,45 +962,56 @@ class StaticPipelineImpl final {
    * transfers ownership so `peer` is torn down together with this pipeline.
    * `peer` must share this pipeline's EventBase — crossings are direct,
    * same-thread calls.
+   * Select this capability with StaticPipelineBuilder::withBinding().
    */
   template <SeamReadAdapter TAdapter = ForwardingAdapter>
+    requires(Policy::enableBinding)
   void adaptTail(PipelineRef peer) noexcept {
     checkBindPeer(peer);
-    boundTailPeer_ = peer;
-    tailConvert_ = &TAdapter::adaptRead;
+    bindings_.boundTailPeer_ = peer;
+    bindings_.tailConvert_ = &TAdapter::adaptRead;
   }
 
   template <SeamReadAdapter TAdapter = ForwardingAdapter>
+    requires(Policy::enableBinding)
   void adaptTail(PipelineOwner peer) noexcept {
-    ownedTailPeer_ = std::move(peer);
-    adaptTail<TAdapter>(ownedTailPeer_.ref());
+    bindings_.ownedTailPeer_ = std::move(peer);
+    adaptTail<TAdapter>(bindings_.ownedTailPeer_.ref());
   }
 
   template <SeamWriteAdapter TAdapter = ForwardingAdapter>
+    requires(Policy::enableBinding)
   void adaptHead(PipelineRef peer) noexcept {
     checkBindPeer(peer);
-    boundHeadPeer_ = peer;
-    headConvert_ = &TAdapter::adaptWrite;
+    bindings_.boundHeadPeer_ = peer;
+    bindings_.headConvert_ = &TAdapter::adaptWrite;
   }
 
   template <SeamWriteAdapter TAdapter = ForwardingAdapter>
+    requires(Policy::enableBinding)
   void adaptHead(PipelineOwner peer) noexcept {
-    ownedHeadPeer_ = std::move(peer);
-    adaptHead<TAdapter>(ownedHeadPeer_.ref());
+    bindings_.ownedHeadPeer_ = std::move(peer);
+    adaptHead<TAdapter>(bindings_.ownedHeadPeer_.ref());
   }
 
   // Terminal dispatch for propagation past the tail/head endpoint — where the
   // endpoint context's fireRead/fireWrite land. Routes to the bound peer, or
   // returns Error when nothing is bound.
   Result forwardReadPastTail(TypeErasedBox&& msg) noexcept {
-    if (boundTailPeer_) {
-      return boundTailPeer_.fireRead(tailConvert_(std::move(msg)));
+    if constexpr (Policy::enableBinding) {
+      if (bindings_.boundTailPeer_) {
+        return bindings_.boundTailPeer_.fireRead(
+            bindings_.tailConvert_(std::move(msg)));
+      }
     }
     return Result::Error;
   }
   Result forwardWritePastHead(TypeErasedBox&& msg) noexcept {
-    if (boundHeadPeer_) {
-      return boundHeadPeer_.fireWrite(headConvert_(std::move(msg)));
+    if constexpr (Policy::enableBinding) {
+      if (bindings_.boundHeadPeer_) {
+        return bindings_.boundHeadPeer_.fireWrite(
+            bindings_.headConvert_(std::move(msg)));
+      }
     }
     return Result::Error;
   }
@@ -1738,9 +1798,18 @@ class StaticPipelineImpl final {
   // Optionally pipeline-owned endpoints/allocator, co-located in this
   // allocation. Declared before handlers_ so they are destroyed after all
   // handlers; the allocator slot is declared first so it is destroyed last.
-  OwnedEndpointSlot<Allocator> ownedAllocator_;
-  OwnedEndpointSlot<TailHandler> ownedTail_;
-  OwnedEndpointSlot<HeadHandler> ownedHead_;
+  [[no_unique_address]] OptionalOwnedEndpointSlot<
+      Allocator,
+      Policy::ownAllocator,
+      StaticEndpointRole::Allocator> ownedAllocator_;
+  [[no_unique_address]] OptionalOwnedEndpointSlot<
+      TailHandler,
+      Policy::ownTail,
+      StaticEndpointRole::Tail> ownedTail_;
+  [[no_unique_address]] OptionalOwnedEndpointSlot<
+      HeadHandler,
+      Policy::ownHead,
+      StaticEndpointRole::Head> ownedHead_;
   folly::EventBase* eventBase_;
   HeadHandler* headHandler_;
   TailHandler* tailHandler_;
@@ -1763,19 +1832,9 @@ class StaticPipelineImpl final {
   bool readReadyDispatchPending_{false};
   bool destroyPending_{false};
 
-  // Bound peer pipelines (set via adaptTail/adaptHead); see the binding model
-  // on PipelineImpl. boundTailPeer_/boundHeadPeer_ are the targets
-  // forwardReadPastTail/forwardWritePastHead route to, empty until a bind. The
-  // owned*Peer_ members are engaged only by the owning overload and keep an
-  // owned peer alive for this pipeline's lifetime (destroyed with it).
-  // *Convert_ is the seam adapter's static conversion, set alongside the peer
-  // at bind (non-null whenever the peer is bound).
-  PipelineRef boundTailPeer_;
-  PipelineRef boundHeadPeer_;
-  PipelineOwner ownedTailPeer_;
-  PipelineOwner ownedHeadPeer_;
-  TypeErasedBox (*tailConvert_)(TypeErasedBox&&) noexcept {nullptr};
-  TypeErasedBox (*headConvert_)(TypeErasedBox&&) noexcept {nullptr};
+  // Declared last so owned peers are destroyed before the local storage.
+  [[no_unique_address]] StaticPipelineBindingStorage<Policy::enableBinding>
+      bindings_;
 };
 
 } // namespace apache::thrift::fast_thrift::channel_pipeline::detail

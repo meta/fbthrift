@@ -62,6 +62,10 @@ inline constexpr bool kOverriddenHandlersBuilt<std::tuple<Tag...>, Entry...> =
 /**
  * Builder for a pipeline whose handler types, IDs, and order are fixed.
  *
+ * Rvalue emplace* calls select owning storage. Before lvalue emplace* calls,
+ * enable the corresponding with*Ownership() capability. withBinding() enables
+ * peer composition; event APIs are available by default.
+ *
  * A pipeline holds at most 63 handlers. Typed handlers, erased handlers and
  * the handlers inside each segment all count. build() throws
  * std::length_error for more.
@@ -73,11 +77,13 @@ template <
     typename StateTuple = std::tuple<>,
     typename StaticHandlerConfig = detail::NoErasedStaticHandlers,
     typename Overrides = NoHandlerOverrides,
+    typename Policy = detail::StaticPipelinePolicy<>,
     typename... Entry>
 class StaticPipelineBuilder {
   static_assert(BufferAllocator<Allocator>);
 
   template <
+      typename,
       typename,
       typename,
       typename,
@@ -132,6 +138,42 @@ class StaticPipelineBuilder {
     return std::move(*this);
   }
 
+  auto withHeadOwnership() && {
+    return std::move(*this)
+        .template rebindPolicy<detail::StaticPipelinePolicy<
+            true,
+            Policy::ownTail,
+            Policy::ownAllocator,
+            Policy::enableBinding>>();
+  }
+
+  auto withTailOwnership() && {
+    return std::move(*this)
+        .template rebindPolicy<detail::StaticPipelinePolicy<
+            Policy::ownHead,
+            true,
+            Policy::ownAllocator,
+            Policy::enableBinding>>();
+  }
+
+  auto withAllocatorOwnership() && {
+    return std::move(*this)
+        .template rebindPolicy<detail::StaticPipelinePolicy<
+            Policy::ownHead,
+            Policy::ownTail,
+            true,
+            Policy::enableBinding>>();
+  }
+
+  auto withBinding() && {
+    return std::move(*this)
+        .template rebindPolicy<detail::StaticPipelinePolicy<
+            Policy::ownHead,
+            Policy::ownTail,
+            Policy::ownAllocator,
+            true>>();
+  }
+
   /**
    * Construct and own the head endpoint in place from `args`. The pipeline owns
    * the object, co-located in the single pipeline allocation and destroyed with
@@ -139,44 +181,47 @@ class StaticPipelineBuilder {
    * decay-copied and the object is constructed at build().
    */
   template <typename... Args>
+    requires(Policy::ownHead)
   StaticPipelineBuilder& emplaceHead(Args&&... args) & {
     detail::prepareOwnedEndpoint<HeadHandler>(
         headSource_, std::forward<Args>(args)...);
     return *this;
   }
   template <typename... Args>
-  StaticPipelineBuilder&& emplaceHead(Args&&... args) && {
-    detail::prepareOwnedEndpoint<HeadHandler>(
-        headSource_, std::forward<Args>(args)...);
-    return std::move(*this);
+  auto emplaceHead(Args&&... args) && {
+    auto builder = std::move(*this).withHeadOwnership();
+    builder.emplaceHead(std::forward<Args>(args)...);
+    return builder;
   }
 
   /** Construct and own the tail endpoint in place. See emplaceHead. */
   template <typename... Args>
+    requires(Policy::ownTail)
   StaticPipelineBuilder& emplaceTail(Args&&... args) & {
     detail::prepareOwnedEndpoint<TailHandler>(
         tailSource_, std::forward<Args>(args)...);
     return *this;
   }
   template <typename... Args>
-  StaticPipelineBuilder&& emplaceTail(Args&&... args) && {
-    detail::prepareOwnedEndpoint<TailHandler>(
-        tailSource_, std::forward<Args>(args)...);
-    return std::move(*this);
+  auto emplaceTail(Args&&... args) && {
+    auto builder = std::move(*this).withTailOwnership();
+    builder.emplaceTail(std::forward<Args>(args)...);
+    return builder;
   }
 
   /** Construct and own the allocator in place. See emplaceHead. */
   template <typename... Args>
+    requires(Policy::ownAllocator)
   StaticPipelineBuilder& emplaceAllocator(Args&&... args) & {
     detail::prepareOwnedEndpoint<Allocator>(
         allocatorSource_, std::forward<Args>(args)...);
     return *this;
   }
   template <typename... Args>
-  StaticPipelineBuilder&& emplaceAllocator(Args&&... args) && {
-    detail::prepareOwnedEndpoint<Allocator>(
-        allocatorSource_, std::forward<Args>(args)...);
-    return std::move(*this);
+  auto emplaceAllocator(Args&&... args) && {
+    auto builder = std::move(*this).withAllocatorOwnership();
+    builder.emplaceAllocator(std::forward<Args>(args)...);
+    return builder;
   }
 
   template <typename T, typename... Args>
@@ -196,7 +241,8 @@ class StaticPipelineBuilder {
         Allocator,
         NewStateTuple,
         StaticHandlerConfig,
-        Overrides>(
+        Overrides,
+        Policy>(
         detail::StaticPipelineBuilderRebindTag{},
         eventBase_,
         std::move(headSource_),
@@ -298,6 +344,7 @@ class StaticPipelineBuilder {
         StateTuple,
         Config,
         Overrides,
+        Policy,
         Entry...>(
         detail::StaticPipelineBuilderRebindTag{},
         eventBase_,
@@ -325,6 +372,7 @@ class StaticPipelineBuilder {
         StateTuple,
         Config,
         Overrides,
+        Policy,
         Entry...>(
         detail::StaticPipelineBuilderRebindTag{},
         eventBase_,
@@ -350,6 +398,7 @@ class StaticPipelineBuilder {
         Allocator,
         StateTuple,
         StaticHandlerConfig,
+        Policy,
         typename Entry::Spec...>;
     typename Impl::Ptr pipeline(new Impl(
         eventBase_,
@@ -387,6 +436,7 @@ class StaticPipelineBuilder {
           StateTuple,
           StaticHandlerConfig,
           Overrides,
+          Policy,
           Entry...,
           NewEntry>(
           detail::StaticPipelineBuilderRebindTag{},
@@ -425,6 +475,7 @@ class StaticPipelineBuilder {
           StateTuple,
           StaticHandlerConfig,
           Overrides,
+          Policy,
           Entry...,
           NewEntry>(
           detail::StaticPipelineBuilderRebindTag{},
@@ -450,6 +501,29 @@ class StaticPipelineBuilder {
         StateTuple,
         StaticHandlerConfig,
         NewOverrides,
+        Policy,
+        Entry...>(
+        detail::StaticPipelineBuilderRebindTag{},
+        eventBase_,
+        std::move(headSource_),
+        std::move(tailSource_),
+        std::move(allocatorSource_),
+        std::move(factories_),
+        std::move(stateTuple_),
+        std::move(staticHandlers_),
+        std::move(staticSegments_));
+  }
+
+  template <typename NewPolicy>
+  auto rebindPolicy() && {
+    return StaticPipelineBuilder<
+        HeadHandler,
+        TailHandler,
+        Allocator,
+        StateTuple,
+        StaticHandlerConfig,
+        Overrides,
+        NewPolicy,
         Entry...>(
         detail::StaticPipelineBuilderRebindTag{},
         eventBase_,
