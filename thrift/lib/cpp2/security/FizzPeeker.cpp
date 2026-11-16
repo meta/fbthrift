@@ -40,7 +40,7 @@ THRIFT_PLUGGABLE_FUNC_REGISTER(
 } // namespace detail
 
 void ThriftFizzAcceptorHandshakeHelper::start(
-    folly::AsyncSSLSocket::UniquePtr sock,
+    folly::AsyncSocket::UniquePtr sock,
     wangle::AcceptorHandshakeHelper::Callback* callback) noexcept {
   callback_ = callback;
 
