@@ -17,6 +17,7 @@
 #include <thrift/lib/cpp2/server/RequestsRegistry.h>
 
 #include <atomic>
+#include <fmt/compile.h>
 #include <fmt/format.h>
 #include <thrift/lib/cpp2/server/Cpp2ConnContext.h>
 
@@ -172,7 +173,7 @@ RequestsRegistry::~RequestsRegistry() {
 }
 
 /* static */ std::string RequestsRegistry::getRequestId(intptr_t rootid) {
-  return fmt::format("{:016x}", static_cast<uintptr_t>(rootid));
+  return fmt::format(FMT_COMPILE("{:016x}"), static_cast<uintptr_t>(rootid));
 }
 
 bool RequestsRegistry::isThriftRootId(intptr_t rootid) noexcept {
