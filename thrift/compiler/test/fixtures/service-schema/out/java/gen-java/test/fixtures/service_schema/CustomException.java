@@ -62,9 +62,25 @@ public final class CustomException extends org.apache.thrift.TBaseException impl
       this.result = test.fixtures.service_schema.Result.SO_SO;
     }
 
+    public CustomException(
+            final String name,
+            final test.fixtures.service_schema.Result result,
+            final java.lang.Throwable cause) {
+        super(cause);
+        this.name = name;
+        this.result = result;
+    }
+
+    public CustomException(final java.lang.Throwable cause) {
+        super(cause);
+        this.name = null;
+        this.result = test.fixtures.service_schema.Result.SO_SO;
+    }
+
     public static class Builder {
         private String name = null;
         private test.fixtures.service_schema.Result result = test.fixtures.service_schema.Result.SO_SO;
+        private java.lang.Throwable cause;
 
         @com.facebook.swift.codec.ThriftField(value=1, name="name", requiredness=Requiredness.NONE)    public Builder setName(String name) {
             this.name = name;
@@ -80,6 +96,11 @@ public final class CustomException extends org.apache.thrift.TBaseException impl
 
         public test.fixtures.service_schema.Result getResult() { return result; }
 
+        public Builder setCause(final java.lang.Throwable cause) {
+            this.cause = cause;
+            return this;
+        }
+
         public Builder() { }
         public Builder(CustomException other) {
             this.name = other.name;
@@ -92,6 +113,9 @@ public final class CustomException extends org.apache.thrift.TBaseException impl
                 this.name,
                 this.result
             );
+            if (cause != null) {
+                result.initCause(cause);
+            }
             return result;
         }
     }

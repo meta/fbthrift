@@ -50,8 +50,21 @@ public final class SinkException1 extends org.apache.thrift.TBaseException imple
       this.reason = null;
     }
 
+    public SinkException1(
+            final String reason,
+            final java.lang.Throwable cause) {
+        super(cause);
+        this.reason = reason;
+    }
+
+    public SinkException1(final java.lang.Throwable cause) {
+        super(cause);
+        this.reason = null;
+    }
+
     public static class Builder {
         private String reason = null;
+        private java.lang.Throwable cause;
 
         @com.facebook.swift.codec.ThriftField(value=1, name="reason", requiredness=Requiredness.NONE)    public Builder setReason(String reason) {
             this.reason = reason;
@@ -59,6 +72,11 @@ public final class SinkException1 extends org.apache.thrift.TBaseException imple
         }
 
         public String getReason() { return reason; }
+
+        public Builder setCause(final java.lang.Throwable cause) {
+            this.cause = cause;
+            return this;
+        }
 
         public Builder() { }
         public Builder(SinkException1 other) {
@@ -70,6 +88,9 @@ public final class SinkException1 extends org.apache.thrift.TBaseException imple
             SinkException1 result = new SinkException1 (
                 this.reason
             );
+            if (cause != null) {
+                result.initCause(cause);
+            }
             return result;
         }
     }

@@ -50,8 +50,21 @@ public final class BiDiStreamException extends org.apache.thrift.TBaseException 
       this.message = null;
     }
 
+    public BiDiStreamException(
+            final String message,
+            final java.lang.Throwable cause) {
+        super(cause);
+        this.message = message;
+    }
+
+    public BiDiStreamException(final java.lang.Throwable cause) {
+        super(cause);
+        this.message = cause == null ? null : cause.toString();
+    }
+
     public static class Builder {
         private String message = null;
+        private java.lang.Throwable cause;
 
         @com.facebook.swift.codec.ThriftField(value=1, name="message", requiredness=Requiredness.NONE)    public Builder setMessage(String message) {
             this.message = message;
@@ -59,6 +72,11 @@ public final class BiDiStreamException extends org.apache.thrift.TBaseException 
         }
 
         public String getMessage() { return message; }
+
+        public Builder setCause(final java.lang.Throwable cause) {
+            this.cause = cause;
+            return this;
+        }
 
         public Builder() { }
         public Builder(BiDiStreamException other) {
@@ -70,6 +88,9 @@ public final class BiDiStreamException extends org.apache.thrift.TBaseException 
             BiDiStreamException result = new BiDiStreamException (
                 this.message
             );
+            if (cause != null) {
+                result.initCause(cause);
+            }
             return result;
         }
     }

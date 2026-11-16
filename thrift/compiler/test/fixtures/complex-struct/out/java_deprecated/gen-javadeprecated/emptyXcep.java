@@ -39,13 +39,27 @@ public class emptyXcep extends Exception implements TBase, java.io.Serializable,
   public emptyXcep() {
   }
 
+  public emptyXcep(java.lang.Throwable cause) {
+    this();
+    initCause(cause);
+  }
+
   public static class Builder {
+    private java.lang.Throwable cause;
 
     public Builder() {
     }
 
+    public Builder setCause(final java.lang.Throwable cause) {
+      this.cause = cause;
+      return this;
+    }
+
     public emptyXcep build() {
       emptyXcep result = new emptyXcep();
+      if (cause != null) {
+        result.initCause(cause);
+      }
       return result;
     }
   }

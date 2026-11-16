@@ -26,6 +26,9 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <thrift/compiler/ast/t_exception.h>
+#include <thrift/compiler/ast/t_primitive_type.h>
+#include <thrift/compiler/generate/java/util.h>
 
 using namespace std;
 
@@ -151,6 +154,11 @@ string t_java_deprecated_generator::java_suppress_warnings_service() {
  * Nothing in Java
  */
 void t_java_deprecated_generator::close_generator() {}
+
+void t_java_deprecated_generator::fill_validator_visitors(
+    ast_validator& validator) const {
+  validator.add_exception_visitor(java::validate_java_exception_cause_field);
+}
 
 /**
  * Generates a typedef. This is not done in Java, since it does
@@ -1049,6 +1057,80 @@ void t_java_deprecated_generator::generate_java_constructor(
   indent(out) << "}" << endl << endl;
 }
 
+void t_java_deprecated_generator::generate_java_exception_cause_constructor(
+    ofstream& out,
+    const t_structured* tstruct,
+    const vector<const t_field*>& all_fields) {
+  indent(out) << "public " << tstruct->name() << "(";
+  if (!all_fields.empty()) {
+    out << endl;
+    indent_up();
+    indent_up();
+    for (const t_field* field : all_fields) {
+      indent(out) << type_name(&field->type().deref()) << " " << field->name()
+                  << "," << endl;
+    }
+    indent(out) << "java.lang.Throwable cause";
+    indent_down();
+    indent_down();
+    out << ") {" << endl;
+  } else {
+    out << "java.lang.Throwable cause) {" << endl;
+  }
+  indent_up();
+  indent(out) << "this(";
+  for (auto it = all_fields.begin(); it != all_fields.end(); ++it) {
+    if (it != all_fields.begin()) {
+      out << ", ";
+    }
+    out << (*it)->name();
+  }
+  out << ");" << endl;
+  indent(out) << "initCause(cause);" << endl;
+  indent_down();
+  indent(out) << "}" << endl << endl;
+}
+
+void t_java_deprecated_generator::
+    generate_java_exception_cause_only_constructor(
+        ofstream& out,
+        const t_structured* tstruct,
+        const vector<const t_field*>& all_fields) {
+  const t_field* message_target =
+      java::java_exception_cause_message_field(*tstruct);
+  indent(out) << "public " << tstruct->name() << "(java.lang.Throwable cause) {"
+              << endl;
+  indent_up();
+  indent(out) << "super(cause);" << endl;
+  if (!generate_immutable_structs_) {
+    construct_constant_fields(out, tstruct);
+    if (message_target != nullptr) {
+      indent(out) << "this." << message_target->name()
+                  << " = cause == null ? null : cause.toString();" << endl;
+      generate_isset_set(out, message_target);
+    }
+  } else {
+    for (const t_field* field : all_fields) {
+      if (field == message_target) {
+        indent(out) << "this." << field->name()
+                    << " = cause == null ? null : cause.toString();" << endl;
+      } else if (field->default_value() != nullptr) {
+        print_const_value(
+            indent(out),
+            "this." + field->name(),
+            field->type()->get_true_type(),
+            field->default_value(),
+            true,
+            true);
+      } else {
+        indent(out) << "this." << field->name() << " = null;" << endl;
+      }
+    }
+  }
+  indent_down();
+  indent(out) << "}" << endl << endl;
+}
+
 /**
  * Generates code for a constructor for a tstruct, using the Builder pattern.
  */
@@ -1067,6 +1149,9 @@ void t_java_deprecated_generator::generate_java_constructor_using_builder(
   for (m_iter = fields.begin(); m_iter != fields.end(); ++m_iter) {
     indent(out) << "private " << type_name(&(*m_iter)->type().deref()) << " "
                 << (*m_iter)->name() << ";" << endl;
+  }
+  if (tstruct->is<t_exception>()) {
+    indent(out) << "private java.lang.Throwable cause;" << endl;
   }
   out << endl;
 
@@ -1113,6 +1198,15 @@ void t_java_deprecated_generator::generate_java_constructor_using_builder(
     indent_down();
     indent(out) << "}" << endl << endl;
   }
+  if (tstruct->is<t_exception>()) {
+    indent(out) << "public Builder setCause(final java.lang.Throwable cause) {"
+                << endl;
+    indent_up();
+    indent(out) << "this.cause = cause;" << endl;
+    indent(out) << "return this;" << endl;
+    indent_down();
+    indent(out) << "}" << endl << endl;
+  }
   // - Define build() method
   indent(out) << "public " << tstruct->name() << " build() {" << endl;
   indent_up();
@@ -1136,11 +1230,23 @@ void t_java_deprecated_generator::generate_java_constructor_using_builder(
         indent(out) << "}" << endl;
       }
     }
+    if (tstruct->is<t_exception>()) {
+      indent(out) << "if (cause != null) {" << endl;
+      indent_up();
+      indent(out) << "result.initCause(cause);" << endl;
+      indent_down();
+      indent(out) << "}" << endl;
+    }
     indent(out) << "return result;" << endl;
   } else {
     // android
 
-    indent(out) << "return new " << tstruct->name() << "(" << endl;
+    if (tstruct->is<t_exception>()) {
+      indent(out) << tstruct->name() << " result = new " << tstruct->name()
+                  << "(" << endl;
+    } else {
+      indent(out) << "return new " << tstruct->name() << "(" << endl;
+    }
     indent_up();
     for (m_iter = fields.begin(); m_iter != fields.end(); ++m_iter) {
       auto isLast = m_iter + 1 == fields.end();
@@ -1149,6 +1255,14 @@ void t_java_deprecated_generator::generate_java_constructor_using_builder(
     }
     indent_down();
     indent(out) << ");" << endl;
+    if (tstruct->is<t_exception>()) {
+      indent(out) << "if (cause != null) {" << endl;
+      indent_up();
+      indent(out) << "result.initCause(cause);" << endl;
+      indent_down();
+      indent(out) << "}" << endl;
+      indent(out) << "return result;" << endl;
+    }
   }
   indent_down();
   indent(out) << "}" << endl;
@@ -1306,6 +1420,28 @@ void t_java_deprecated_generator::generate_java_struct_definition(
         members.size() <= MAX_NUM_JAVA_CONSTRUCTOR_PARAMS) {
       // Constructor for all fields
       generate_java_constructor(out, tstruct, members.copy());
+    }
+  }
+
+  if (params.is_exception) {
+    bool has_all_fields_ctor = false;
+    if (members.size() <= MAX_NUM_JAVA_CONSTRUCTOR_PARAMS) {
+      if (params.gen_immutable) {
+        has_all_fields_ctor = true;
+      } else if (
+          members.empty() || required_members.size() == members.size() ||
+          (non_optional_members.size() == members.size() &&
+           non_optional_members.size() > required_members.size()) ||
+          members.size() > non_optional_members.size()) {
+        has_all_fields_ctor = true;
+      }
+    }
+    if (has_all_fields_ctor && members.size() <= 126) {
+      generate_java_exception_cause_constructor(out, tstruct, members.copy());
+    }
+    if (!members.empty()) {
+      generate_java_exception_cause_only_constructor(
+          out, tstruct, members.copy());
     }
   }
 

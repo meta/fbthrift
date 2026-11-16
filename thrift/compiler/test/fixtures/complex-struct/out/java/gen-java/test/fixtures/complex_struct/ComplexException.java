@@ -95,6 +95,33 @@ public final class ComplexException extends org.apache.thrift.TBaseException imp
       this.lsMap = null;
     }
 
+    public ComplexException(
+            final String message,
+            final List<String> listStrings,
+            final test.fixtures.complex_struct.MyEnum errorEnum,
+            final test.fixtures.complex_struct.MyUnion unionError,
+            final test.fixtures.complex_struct.MyStruct structError,
+            final it.unimi.dsi.fastutil.longs.Long2ObjectArrayMap<String> lsMap,
+            final java.lang.Throwable cause) {
+        super(cause);
+        this.message = message;
+        this.listStrings = listStrings;
+        this.errorEnum = errorEnum;
+        this.unionError = unionError;
+        this.structError = structError;
+        this.lsMap = lsMap;
+    }
+
+    public ComplexException(final java.lang.Throwable cause) {
+        super(cause);
+        this.message = cause == null ? null : cause.toString();
+        this.listStrings = null;
+        this.errorEnum = test.fixtures.complex_struct.MyEnum.fromInteger(0);
+        this.unionError = null;
+        this.structError = null;
+        this.lsMap = null;
+    }
+
     public static class Builder {
         private String message = null;
         private List<String> listStrings = null;
@@ -102,6 +129,7 @@ public final class ComplexException extends org.apache.thrift.TBaseException imp
         private test.fixtures.complex_struct.MyUnion unionError = null;
         private test.fixtures.complex_struct.MyStruct structError = null;
         private it.unimi.dsi.fastutil.longs.Long2ObjectArrayMap<String> lsMap = null;
+        private java.lang.Throwable cause;
 
         @com.facebook.swift.codec.ThriftField(value=1, name="message", requiredness=Requiredness.NONE)    public Builder setMessage(String message) {
             this.message = message;
@@ -145,6 +173,11 @@ public final class ComplexException extends org.apache.thrift.TBaseException imp
 
         public it.unimi.dsi.fastutil.longs.Long2ObjectArrayMap<String> getLsMap() { return lsMap; }
 
+        public Builder setCause(final java.lang.Throwable cause) {
+            this.cause = cause;
+            return this;
+        }
+
         public Builder() { }
         public Builder(ComplexException other) {
             this.message = other.message;
@@ -165,6 +198,9 @@ public final class ComplexException extends org.apache.thrift.TBaseException imp
                 this.structError,
                 this.lsMap
             );
+            if (cause != null) {
+                result.initCause(cause);
+            }
             return result;
         }
     }

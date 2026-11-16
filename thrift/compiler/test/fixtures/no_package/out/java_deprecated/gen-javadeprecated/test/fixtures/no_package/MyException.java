@@ -79,11 +79,26 @@ public class MyException extends Exception implements TBase, java.io.Serializabl
     this.myUnion = myUnion;
   }
 
+  public MyException(
+      long MyIntField,
+      String MyStringField,
+      MyStruct myStruct,
+      MyUnion myUnion,
+      java.lang.Throwable cause) {
+    this(MyIntField, MyStringField, myStruct, myUnion);
+    initCause(cause);
+  }
+
+  public MyException(java.lang.Throwable cause) {
+    super(cause);
+  }
+
   public static class Builder {
     private long MyIntField;
     private String MyStringField;
     private MyStruct myStruct;
     private MyUnion myUnion;
+    private java.lang.Throwable cause;
 
     BitSet __optional_isset = new BitSet(1);
 
@@ -111,6 +126,11 @@ public class MyException extends Exception implements TBase, java.io.Serializabl
       return this;
     }
 
+    public Builder setCause(final java.lang.Throwable cause) {
+      this.cause = cause;
+      return this;
+    }
+
     public MyException build() {
       MyException result = new MyException();
       if (__optional_isset.get(__MYINTFIELD_ISSET_ID)) {
@@ -119,6 +139,9 @@ public class MyException extends Exception implements TBase, java.io.Serializabl
       result.setMyStringField(this.MyStringField);
       result.setMyStruct(this.myStruct);
       result.setMyUnion(this.myUnion);
+      if (cause != null) {
+        result.initCause(cause);
+      }
       return result;
     }
   }

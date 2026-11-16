@@ -37,8 +37,17 @@ public final class MyException extends org.apache.thrift.TBaseException implemen
     ) {
     }
 
+    public MyException(final java.lang.Throwable cause) {
+        super(cause);
+    }
 
     public static class Builder {
+        private java.lang.Throwable cause;
+
+        public Builder setCause(final java.lang.Throwable cause) {
+            this.cause = cause;
+            return this;
+        }
 
         public Builder() { }
         public Builder(MyException other) {
@@ -48,6 +57,9 @@ public final class MyException extends org.apache.thrift.TBaseException implemen
         public MyException build() {
             MyException result = new MyException (
             );
+            if (cause != null) {
+                result.initCause(cause);
+            }
             return result;
         }
     }

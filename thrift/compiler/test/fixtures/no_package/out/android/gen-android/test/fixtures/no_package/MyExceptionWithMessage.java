@@ -51,6 +51,24 @@ public class MyExceptionWithMessage extends Exception implements TBase, java.io.
     this.myUnion = myUnion;
   }
 
+  public MyExceptionWithMessage(
+      Long MyIntField,
+      String MyStringField,
+      MyStruct myStruct,
+      MyUnion myUnion,
+      java.lang.Throwable cause) {
+    this(MyIntField, MyStringField, myStruct, myUnion);
+    initCause(cause);
+  }
+
+  public MyExceptionWithMessage(java.lang.Throwable cause) {
+    super(cause);
+    this.MyIntField = null;
+    this.MyStringField = cause == null ? null : cause.toString();
+    this.myStruct = null;
+    this.myUnion = null;
+  }
+
   /**
    * Performs a deep copy on <i>other</i>.
    */

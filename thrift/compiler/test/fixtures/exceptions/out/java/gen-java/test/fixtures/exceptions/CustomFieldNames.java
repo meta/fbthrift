@@ -60,9 +60,25 @@ public final class CustomFieldNames extends org.apache.thrift.TBaseException imp
       this.internalGreatMessage = null;
     }
 
+    public CustomFieldNames(
+            final String errorMessage,
+            final String internalGreatMessage,
+            final java.lang.Throwable cause) {
+        super(internalGreatMessage, cause);
+        this.errorMessage = errorMessage;
+        this.internalGreatMessage = internalGreatMessage;
+    }
+
+    public CustomFieldNames(final java.lang.Throwable cause) {
+        super(cause);
+        this.errorMessage = null;
+        this.internalGreatMessage = cause == null ? null : cause.toString();
+    }
+
     public static class Builder {
         private String errorMessage = null;
         private String internalGreatMessage = null;
+        private java.lang.Throwable cause;
 
         @com.facebook.swift.codec.ThriftField(value=1, name="error_message", requiredness=Requiredness.NONE)    public Builder setErrorMessage(String errorMessage) {
             this.errorMessage = errorMessage;
@@ -78,6 +94,11 @@ public final class CustomFieldNames extends org.apache.thrift.TBaseException imp
 
         public String getInternalGreatMessage() { return internalGreatMessage; }
 
+        public Builder setCause(final java.lang.Throwable cause) {
+            this.cause = cause;
+            return this;
+        }
+
         public Builder() { }
         public Builder(CustomFieldNames other) {
             this.errorMessage = other.errorMessage;
@@ -90,6 +111,9 @@ public final class CustomFieldNames extends org.apache.thrift.TBaseException imp
                 this.errorMessage,
                 this.internalGreatMessage
             );
+            if (cause != null) {
+                result.initCause(cause);
+            }
             return result;
         }
     }

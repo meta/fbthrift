@@ -54,8 +54,21 @@ public final class TerseException extends org.apache.thrift.TBaseException imple
       this.msg = com.facebook.thrift.util.IntrinsicDefaults.defaultString();
     }
 
+    public TerseException(
+            final String msg,
+            final java.lang.Throwable cause) {
+        super(msg, cause);
+        this.msg = msg;
+    }
+
+    public TerseException(final java.lang.Throwable cause) {
+        super(cause);
+        this.msg = cause == null ? null : cause.toString();
+    }
+
     public static class Builder {
         private String msg = com.facebook.thrift.util.IntrinsicDefaults.defaultString();
+        private java.lang.Throwable cause;
 
         @com.facebook.swift.codec.ThriftField(value=1, name="msg", requiredness=Requiredness.TERSE)    public Builder setMsg(String msg) {
             this.msg = msg;
@@ -63,6 +76,11 @@ public final class TerseException extends org.apache.thrift.TBaseException imple
         }
 
         public String getMsg() { return msg; }
+
+        public Builder setCause(final java.lang.Throwable cause) {
+            this.cause = cause;
+            return this;
+        }
 
         public Builder() { }
         public Builder(TerseException other) {
@@ -74,6 +92,9 @@ public final class TerseException extends org.apache.thrift.TBaseException imple
             TerseException result = new TerseException (
                 this.msg
             );
+            if (cause != null) {
+                result.initCause(cause);
+            }
             return result;
         }
     }

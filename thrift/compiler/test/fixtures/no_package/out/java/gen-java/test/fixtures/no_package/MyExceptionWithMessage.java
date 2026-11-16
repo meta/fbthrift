@@ -78,11 +78,33 @@ public final class MyExceptionWithMessage extends org.apache.thrift.TBaseExcepti
       this.myUnion = null;
     }
 
+    public MyExceptionWithMessage(
+            final long myIntField,
+            final String myStringField,
+            final test.fixtures.no_package.MyStruct myStruct,
+            final test.fixtures.no_package.MyUnion myUnion,
+            final java.lang.Throwable cause) {
+        super(myStringField, cause);
+        this.myIntField = myIntField;
+        this.myStringField = myStringField;
+        this.myStruct = myStruct;
+        this.myUnion = myUnion;
+    }
+
+    public MyExceptionWithMessage(final java.lang.Throwable cause) {
+        super(cause);
+        this.myIntField = 0L;
+        this.myStringField = cause == null ? null : cause.toString();
+        this.myStruct = null;
+        this.myUnion = null;
+    }
+
     public static class Builder {
         private long myIntField = 0L;
         private String myStringField = null;
         private test.fixtures.no_package.MyStruct myStruct = null;
         private test.fixtures.no_package.MyUnion myUnion = null;
+        private java.lang.Throwable cause;
 
         @com.facebook.swift.codec.ThriftField(value=1, name="MyIntField", requiredness=Requiredness.NONE)    public Builder setMyIntField(long myIntField) {
             this.myIntField = myIntField;
@@ -112,6 +134,11 @@ public final class MyExceptionWithMessage extends org.apache.thrift.TBaseExcepti
 
         public test.fixtures.no_package.MyUnion getMyUnion() { return myUnion; }
 
+        public Builder setCause(final java.lang.Throwable cause) {
+            this.cause = cause;
+            return this;
+        }
+
         public Builder() { }
         public Builder(MyExceptionWithMessage other) {
             this.myIntField = other.myIntField;
@@ -128,6 +155,9 @@ public final class MyExceptionWithMessage extends org.apache.thrift.TBaseExcepti
                 this.myStruct,
                 this.myUnion
             );
+            if (cause != null) {
+                result.initCause(cause);
+            }
             return result;
         }
     }

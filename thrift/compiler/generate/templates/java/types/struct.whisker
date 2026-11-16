@@ -82,6 +82,40 @@ protected {{struct.javaCapitalName}}() {
 }
 {{/if struct.fields?}}
 {{/if struct.asBean?}}
+{{#if (and struct.exception? struct.causeCtor?)}}
+{{#if struct.fields?}}
+
+public {{struct.javaCapitalName}}(
+    {{#each struct.fields as |field|}}
+        final {{#partial types.field_type field=field}} {{field.javaName}},
+    {{/each}}
+        final java.lang.Throwable cause) {
+{{#else}}
+public {{struct.javaCapitalName}}(final java.lang.Throwable cause) {
+{{/if struct.fields?}}
+    {{#if (object.notnull? struct.message_field)}}
+    super({{struct.message_field.javaName}}, cause);
+    {{#else}}
+    super(cause);
+    {{/if (object.notnull? struct.message_field)}}
+    {{#each struct.fields as |field|}}
+    this.{{field.javaName}} = {{field.javaName}};
+    {{/each}}
+}
+{{/if (and struct.exception? struct.causeCtor?)}}
+{{#if (and struct.exception? struct.fields?)}}
+
+public {{struct.javaCapitalName}}(final java.lang.Throwable cause) {
+    super(cause);
+    {{#each struct.fields as |field|}}
+      {{#if (and (object.notnull? struct.causeMessageField) (int.eq? field.id struct.causeMessageField.id))}}
+    this.{{field.javaName}} = cause == null ? null : cause.toString();
+      {{#else}}
+    this.{{field.javaName}} = {{#if field.hasWrapper?}}null{{#else}}{{#partial field_helpers.field_value field=field struct=struct}}{{/if field.hasWrapper?}};
+      {{/if (and (object.notnull? struct.causeMessageField) (int.eq? field.id struct.causeMessageField.id))}}
+    {{/each}}
+}
+{{/if (and struct.exception? struct.fields?)}}
 {{/let partial}}
 
 {{#let export partial create_struct |struct|}}
@@ -93,6 +127,11 @@ protected {{struct.javaCapitalName}}() {
     result.{{field.javaName}} = this.{{field.javaName}};
 {{/if field.hasWrapper?}}
 {{/each}}
+  {{#if struct.exception?}}
+if (cause != null) {
+    result.initCause(cause);
+}
+  {{/if struct.exception?}}
 return result;
 {{/let partial}}
 
@@ -104,6 +143,9 @@ public static class Builder {
     private {{#partial types.field_type_no_wrapper field=field}} _{{field.javaName}} = {{#partial field_helpers.field_value_no_wrapper field=field struct=struct}};
     {{/if field.hasWrapper?}}
     {{/each}}
+  {{#if struct.exception?}}
+    private java.lang.Throwable cause;
+  {{/if struct.exception?}}
 
     {{#each struct.fields as |field|}}
     {{#if field.isSensitive?}}
@@ -129,6 +171,13 @@ public static class Builder {
     public {{#partial types.field_type field=field}} {{#partial types.getter_name field=field}}() { return {{field.javaName}}; }
 
     {{/each}}
+  {{#if struct.exception?}}
+    public Builder setCause(final java.lang.Throwable cause) {
+        this.cause = cause;
+        return this;
+    }
+
+  {{/if struct.exception?}}
     public Builder() { }
     public Builder({{struct.javaCapitalName}} other) {
         {{#each struct.fields as |field|}}
@@ -144,6 +193,11 @@ public static class Builder {
             this.{{field.javaName}}{{#if (not last?)}},{{/if (not last?)}}
             {{/each}}
         );
+  {{#if struct.exception?}}
+        if (cause != null) {
+            result.initCause(cause);
+        }
+  {{/if struct.exception?}}
         return result;
         {{#else}}
         {{#partial create_struct struct=struct}}

@@ -109,6 +109,23 @@ public class complexException extends Exception implements TBase, java.io.Serial
     this.lsMap = lsMap;
   }
 
+  public complexException(
+      String message,
+      List<String> listStrings,
+      MyEnum errorEnum,
+      MyUnion unionError,
+      MyStruct structError,
+      Map<Long,String> lsMap,
+      java.lang.Throwable cause) {
+    this(message, listStrings, errorEnum, unionError, structError, lsMap);
+    initCause(cause);
+  }
+
+  public complexException(java.lang.Throwable cause) {
+    super(cause);
+    this.message = cause == null ? null : cause.toString();
+  }
+
   public static class Builder {
     private String message;
     private List<String> listStrings;
@@ -116,6 +133,7 @@ public class complexException extends Exception implements TBase, java.io.Serial
     private MyUnion unionError;
     private MyStruct structError;
     private Map<Long,String> lsMap;
+    private java.lang.Throwable cause;
 
     public Builder() {
     }
@@ -150,6 +168,11 @@ public class complexException extends Exception implements TBase, java.io.Serial
       return this;
     }
 
+    public Builder setCause(final java.lang.Throwable cause) {
+      this.cause = cause;
+      return this;
+    }
+
     public complexException build() {
       complexException result = new complexException();
       result.setMessage(this.message);
@@ -158,6 +181,9 @@ public class complexException extends Exception implements TBase, java.io.Serial
       result.setUnionError(this.unionError);
       result.setStructError(this.structError);
       result.setLsMap(this.lsMap);
+      if (cause != null) {
+        result.initCause(cause);
+      }
       return result;
     }
   }

@@ -60,9 +60,23 @@ public class ComplexFieldNames extends Exception implements TBase, java.io.Seria
     this.internal_error_message = internal_error_message;
   }
 
+  public ComplexFieldNames(
+      String error_message,
+      String internal_error_message,
+      java.lang.Throwable cause) {
+    this(error_message, internal_error_message);
+    initCause(cause);
+  }
+
+  public ComplexFieldNames(java.lang.Throwable cause) {
+    super(cause);
+    this.internal_error_message = cause == null ? null : cause.toString();
+  }
+
   public static class Builder {
     private String error_message;
     private String internal_error_message;
+    private java.lang.Throwable cause;
 
     public Builder() {
     }
@@ -77,10 +91,18 @@ public class ComplexFieldNames extends Exception implements TBase, java.io.Seria
       return this;
     }
 
+    public Builder setCause(final java.lang.Throwable cause) {
+      this.cause = cause;
+      return this;
+    }
+
     public ComplexFieldNames build() {
       ComplexFieldNames result = new ComplexFieldNames();
       result.setError_message(this.error_message);
       result.setInternal_error_message(this.internal_error_message);
+      if (cause != null) {
+        result.initCause(cause);
+      }
       return result;
     }
   }

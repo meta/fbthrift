@@ -37,8 +37,17 @@ public final class FooEx extends org.apache.thrift.TBaseException implements com
     ) {
     }
 
+    public FooEx(final java.lang.Throwable cause) {
+        super(cause);
+    }
 
     public static class Builder {
+        private java.lang.Throwable cause;
+
+        public Builder setCause(final java.lang.Throwable cause) {
+            this.cause = cause;
+            return this;
+        }
 
         public Builder() { }
         public Builder(FooEx other) {
@@ -48,6 +57,9 @@ public final class FooEx extends org.apache.thrift.TBaseException implements com
         public FooEx build() {
             FooEx result = new FooEx (
             );
+            if (cause != null) {
+                result.initCause(cause);
+            }
             return result;
         }
     }

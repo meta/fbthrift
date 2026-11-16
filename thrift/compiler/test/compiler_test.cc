@@ -5235,3 +5235,15 @@ TEST(CompilerTest, ignore_missing_uri_opt_out_with_allow_legacy) {
   )",
       {"--extra-validation", "ignore_missing_uri_opt_out,missing_uris=error"});
 }
+
+TEST(CompilerTest, java_exception_cause_field_name) {
+  check_compile(
+      R"(
+    package "facebook.com/thrift/test"
+
+    exception E {
+      1: string cause; # expected-error: Exception 'E' has field 'cause' with Java name 'Cause', which collides with 'Throwable.getCause()', the generated '(..., Throwable cause)' constructor and 'Builder.setCause'; rename the field.
+    }
+      )",
+      {"--gen", "mstch_java"});
+}

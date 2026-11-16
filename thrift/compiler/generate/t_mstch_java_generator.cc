@@ -304,6 +304,7 @@ class t_mstch_java_generator : public t_whisker_generator {
 
   void fill_validator_visitors(ast_validator& validator) const override {
     validator.add_enum_visitor(validate_java_enum_intrinsic_default);
+    validator.add_exception_visitor(java::validate_java_exception_cause_field);
   }
 
  private:
@@ -836,6 +837,15 @@ class t_mstch_java_generator : public t_whisker_generator {
           self.fields().size() > bigStructThreshold;
     });
 
+    def.property("causeCtor?", [](const t_structured& self) {
+      return self.fields().size() <= 126;
+    });
+    def.property(
+        "causeMessageField",
+        [&proto](const t_structured& self) -> whisker::object {
+          return proto.create_nullable<t_field>(
+              java::java_exception_cause_message_field(self));
+        });
     def.property("javaAnnotations?", [](const t_structured& self) {
       return self.has_structured_annotation(kJavaAnnotationUri);
     });

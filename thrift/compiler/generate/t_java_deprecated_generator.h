@@ -51,6 +51,8 @@ class t_java_deprecated_generator : public t_concat_generator {
   void init_generator() override;
   void close_generator() override;
 
+  void fill_validator_visitors(ast_validator& validator) const override;
+
   void generate_consts(std::vector<t_const*> consts) override;
 
   /**
@@ -89,6 +91,14 @@ class t_java_deprecated_generator : public t_concat_generator {
       std::ofstream& out,
       const t_structured* tstruct,
       const std::vector<const t_field*>& fields);
+  void generate_java_exception_cause_constructor(
+      std::ofstream& out,
+      const t_structured* tstruct,
+      const std::vector<const t_field*>& all_fields);
+  void generate_java_exception_cause_only_constructor(
+      std::ofstream& out,
+      const t_structured* tstruct,
+      const std::vector<const t_field*>& all_fields);
   void generate_java_constructor_using_builder(
       std::ofstream& out,
       const t_structured* tstruct,

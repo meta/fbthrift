@@ -53,8 +53,21 @@ public class Fiery extends Exception implements TBase, java.io.Serializable, Clo
     this.message = message;
   }
 
+  public Fiery(
+      String message,
+      java.lang.Throwable cause) {
+    this(message);
+    initCause(cause);
+  }
+
+  public Fiery(java.lang.Throwable cause) {
+    super(cause);
+    this.message = cause == null ? null : cause.toString();
+  }
+
   public static class Builder {
     private String message;
+    private java.lang.Throwable cause;
 
     public Builder() {
     }
@@ -64,9 +77,17 @@ public class Fiery extends Exception implements TBase, java.io.Serializable, Clo
       return this;
     }
 
+    public Builder setCause(final java.lang.Throwable cause) {
+      this.cause = cause;
+      return this;
+    }
+
     public Fiery build() {
       Fiery result = new Fiery();
       result.setMessage(this.message);
+      if (cause != null) {
+        result.initCause(cause);
+      }
       return result;
     }
   }

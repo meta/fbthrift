@@ -59,9 +59,25 @@ public final class UnfortunateException extends org.apache.thrift.TBaseException
       this.aCamelI32 = 0;
     }
 
+    public UnfortunateException(
+            final String anSnakeString,
+            final int aCamelI32,
+            final java.lang.Throwable cause) {
+        super(cause);
+        this.anSnakeString = anSnakeString;
+        this.aCamelI32 = aCamelI32;
+    }
+
+    public UnfortunateException(final java.lang.Throwable cause) {
+        super(cause);
+        this.anSnakeString = null;
+        this.aCamelI32 = 0;
+    }
+
     public static class Builder {
         private String anSnakeString = null;
         private int aCamelI32 = 0;
+        private java.lang.Throwable cause;
 
         @com.facebook.swift.codec.ThriftField(value=1, name="an_snake_string", requiredness=Requiredness.NONE)    public Builder setAnSnakeString(String anSnakeString) {
             this.anSnakeString = anSnakeString;
@@ -77,6 +93,11 @@ public final class UnfortunateException extends org.apache.thrift.TBaseException
 
         public int getACamelI32() { return aCamelI32; }
 
+        public Builder setCause(final java.lang.Throwable cause) {
+            this.cause = cause;
+            return this;
+        }
+
         public Builder() { }
         public Builder(UnfortunateException other) {
             this.anSnakeString = other.anSnakeString;
@@ -89,6 +110,9 @@ public final class UnfortunateException extends org.apache.thrift.TBaseException
                 this.anSnakeString,
                 this.aCamelI32
             );
+            if (cause != null) {
+                result.initCause(cause);
+            }
             return result;
         }
     }

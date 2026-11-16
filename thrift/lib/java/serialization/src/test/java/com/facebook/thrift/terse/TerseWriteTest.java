@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 import com.facebook.thrift.payload.ThriftSerializable;
 import com.facebook.thrift.protocol.ByteBufTProtocol;
@@ -33,6 +34,7 @@ import com.facebook.thrift.test.terse.StructLevelTerseStruct;
 import com.facebook.thrift.test.terse.TerseException;
 import com.facebook.thrift.test.terse.TerseStructWithPrimitiveTypeAdapter;
 import com.facebook.thrift.test.terse.TerseStructWithStructTypeAdapter;
+import com.facebook.thrift.test.universalname.TestException;
 import com.facebook.thrift.util.IntrinsicDefaults;
 import com.facebook.thrift.util.SerializationProtocol;
 import com.facebook.thrift.util.SerializerUtil;
@@ -214,5 +216,56 @@ public class TerseWriteTest {
     assertEquals(null, st.getOptionalB1());
     assertEquals((Long) 0L, (Long) st.getDoubleAdaptedIntField());
     assertEquals("0", st.getDoubleTypedefAdaptedIntField());
+  }
+
+  @Test
+  public void testTerseExceptionCause() {
+    RuntimeException cause = new RuntimeException("root");
+
+    TerseException ex = new TerseException("msg", 7, "reason", cause);
+
+    assertSame(cause, ex.getCause());
+    assertEquals("msg", ex.getMsg());
+    assertEquals(7, ex.getCode());
+    assertEquals("reason", ex.getReason());
+    assertEquals(TerseException.class.getName(), ex.getMessage());
+  }
+
+  @Test
+  public void testMessageExceptionCause() {
+    RuntimeException cause = new RuntimeException("root");
+
+    TestException ex = new TestException("boom", cause);
+
+    assertSame(cause, ex.getCause());
+    assertEquals("boom", ex.getMessage());
+  }
+
+  @Test
+  public void testTerseExceptionBuilderCause() {
+    RuntimeException cause = new RuntimeException("root");
+
+    TerseException ex =
+        new TerseException.Builder()
+            .setMsg("msg")
+            .setCode(7)
+            .setReason("reason")
+            .setCause(cause)
+            .build();
+
+    assertSame(cause, ex.getCause());
+    assertEquals("msg", ex.getMsg());
+    assertEquals(7, ex.getCode());
+    assertEquals("reason", ex.getReason());
+  }
+
+  @Test
+  public void testExceptionCauseOnlyConstructor() {
+    RuntimeException cause = new RuntimeException("root");
+
+    TestException ex = new TestException(cause);
+
+    assertSame(cause, ex.getCause());
+    assertEquals(cause.toString(), ex.getMessage());
   }
 }

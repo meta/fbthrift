@@ -37,8 +37,17 @@ public final class EmptyXcep extends org.apache.thrift.TBaseException implements
     ) {
     }
 
+    public EmptyXcep(final java.lang.Throwable cause) {
+        super(cause);
+    }
 
     public static class Builder {
+        private java.lang.Throwable cause;
+
+        public Builder setCause(final java.lang.Throwable cause) {
+            this.cause = cause;
+            return this;
+        }
 
         public Builder() { }
         public Builder(EmptyXcep other) {
@@ -48,6 +57,9 @@ public final class EmptyXcep extends org.apache.thrift.TBaseException implements
         public EmptyXcep build() {
             EmptyXcep result = new EmptyXcep (
             );
+            if (cause != null) {
+                result.initCause(cause);
+            }
             return result;
         }
     }

@@ -19,6 +19,12 @@
 #include <cassert>
 #include <cctype>
 #include <thrift/common/detail/string.h>
+#include <thrift/compiler/ast/t_exception.h>
+#include <thrift/compiler/ast/t_field.h>
+#include <thrift/compiler/ast/t_structured.h>
+#include <thrift/compiler/ast/t_typedef.h>
+#include <thrift/compiler/ast/uri.h>
+#include <thrift/compiler/sema/sema_context.h>
 
 namespace apache::thrift::compiler::java {
 
@@ -113,6 +119,54 @@ std::string package_to_path(std::string package) {
   }
   apache::thrift::detail::replace_all(package, ".", "/");
   return package;
+}
+
+void validate_java_exception_cause_field(
+    sema_context& ctx, const t_exception& ex) {
+  for (const t_field& field : ex.fields()) {
+    std::string java_name = field.get_unstructured_annotation(
+        "java.swift.name", mangle_java_name(field.name(), false));
+    if (mangle_java_name(java_name, true) == "Cause") {
+      ctx.error(
+          field,
+          "Exception '{}' has field '{}' with Java name 'Cause', which collides with 'Throwable.getCause()', the generated '(..., Throwable cause)' constructor and 'Builder.setCause'; rename the field.",
+          ex.name(),
+          field.name());
+    }
+  }
+}
+
+const t_field* java_exception_cause_message_field(const t_structured& str) {
+  const auto* ex = dynamic_cast<const t_exception*>(&str);
+  if (ex == nullptr) {
+    return nullptr;
+  }
+  const t_field* target = ex->get_message_field();
+  if (target == nullptr) {
+    target = ex->get_field_by_name("message");
+  }
+  if (target == nullptr) {
+    return nullptr;
+  }
+  if (target->has_structured_annotation(kJavaWrapperUri) ||
+      target->has_structured_annotation(kJavaAdapterUri)) {
+    return nullptr;
+  }
+  const t_type* type = &target->type().deref();
+  if (t_typedef::get_first_structured_annotation_or_null(
+          type, kJavaAdapterUri) != nullptr ||
+      t_typedef::get_first_structured_annotation_or_null(
+          type, kJavaBinaryStringUri) != nullptr ||
+      t_typedef::get_first_unstructured_annotation_or_null(
+          type, {"java.swift.binary_string"}) != nullptr ||
+      t_typedef::get_first_unstructured_annotation_or_null(
+          type, {"java.swift.type"}) != nullptr) {
+    return nullptr;
+  }
+  if (!type->get_true_type()->is_string()) {
+    return nullptr;
+  }
+  return target;
 }
 
 } // namespace apache::thrift::compiler::java

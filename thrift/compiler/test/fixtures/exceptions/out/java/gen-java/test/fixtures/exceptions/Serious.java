@@ -51,8 +51,21 @@ public final class Serious extends org.apache.thrift.TBaseException implements c
       this.sonnet = null;
     }
 
+    public Serious(
+            final String sonnet,
+            final java.lang.Throwable cause) {
+        super(sonnet, cause);
+        this.sonnet = sonnet;
+    }
+
+    public Serious(final java.lang.Throwable cause) {
+        super(cause);
+        this.sonnet = cause == null ? null : cause.toString();
+    }
+
     public static class Builder {
         private String sonnet = null;
+        private java.lang.Throwable cause;
 
         @com.facebook.swift.codec.ThriftField(value=1, name="sonnet", requiredness=Requiredness.OPTIONAL)    public Builder setSonnet(String sonnet) {
             this.sonnet = sonnet;
@@ -60,6 +73,11 @@ public final class Serious extends org.apache.thrift.TBaseException implements c
         }
 
         public String getSonnet() { return sonnet; }
+
+        public Builder setCause(final java.lang.Throwable cause) {
+            this.cause = cause;
+            return this;
+        }
 
         public Builder() { }
         public Builder(Serious other) {
@@ -71,6 +89,9 @@ public final class Serious extends org.apache.thrift.TBaseException implements c
             Serious result = new Serious (
                 this.sonnet
             );
+            if (cause != null) {
+                result.initCause(cause);
+            }
             return result;
         }
     }
