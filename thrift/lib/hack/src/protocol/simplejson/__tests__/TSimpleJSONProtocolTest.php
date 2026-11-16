@@ -330,6 +330,152 @@ final class TSimpleJSONProtocolTest extends WWWTest {
     );
   }
 
+  public static function provideRawUTF8StringEncodings(): dict<string, shape(
+    'val' => string,
+    'simple_json' => string,
+  )> {
+    return dict[
+      'plain string' => shape(
+        'val' => 'asdf',
+        'simple_json' => 'asdf',
+      ),
+      'degree sign' => shape(
+        'val' => "Temperature is 20 \u{00b0}C",
+        'simple_json' => "Temperature is 20 \u{00b0}C",
+      ),
+      'smallest 2-byte sequence' => shape(
+        'val' => "\u{0080}",
+        'simple_json' => "\u{0080}",
+      ),
+      'largest 2-byte sequence' => shape(
+        'val' => "\u{07ff}",
+        'simple_json' => "\u{07ff}",
+      ),
+      'smallest 3-byte sequence' => shape(
+        'val' => "\u{0800}",
+        'simple_json' => "\u{0800}",
+      ),
+      'infinity sign' => shape(
+        'val' => "\u{221e}",
+        'simple_json' => "\u{221e}",
+      ),
+      'last code point before surrogates' => shape(
+        'val' => "\u{d7ff}",
+        'simple_json' => "\u{d7ff}",
+      ),
+      'first code point after surrogates' => shape(
+        'val' => "\u{e000}",
+        'simple_json' => "\u{e000}",
+      ),
+      'largest 3-byte sequence' => shape(
+        'val' => "\u{ffff}",
+        'simple_json' => "\u{ffff}",
+      ),
+      'smallest 4-byte sequence' => shape(
+        'val' => "\u{10000}",
+        'simple_json' => "\u{10000}",
+      ),
+      'emoji' => shape(
+        'val' => "\u{1f60a}",
+        'simple_json' => "\u{1f60a}",
+      ),
+      'largest code point' => shape(
+        'val' => "\u{10ffff}",
+        'simple_json' => "\u{10ffff}",
+      ),
+      'ascii escapes unchanged' => shape(
+        'val' => "\"\\\x08\t\n\x0c\r\x01\x1f\x7f",
+        'simple_json' => '\"\\\\\b\t\n\f\r\u0001\u001f\u007f',
+      ),
+      'lone continuation bytes' => shape(
+        'val' => "\x80\x81",
+        'simple_json' => '\u0080\u0081',
+      ),
+      'overlong 2-byte sequence' => shape(
+        'val' => "\xc0\xaf",
+        'simple_json' => '\u00c0\u00af',
+      ),
+      'overlong 2-byte sequence with C1 lead' => shape(
+        'val' => "\xc1\xbf",
+        'simple_json' => '\u00c1\u00bf',
+      ),
+      'overlong 3-byte sequence' => shape(
+        'val' => "\xe0\x80\xaf",
+        'simple_json' => '\u00e0\u0080\u00af',
+      ),
+      'overlong 4-byte sequence' => shape(
+        'val' => "\xf0\x80\x80\xaf",
+        'simple_json' => '\u00f0\u0080\u0080\u00af',
+      ),
+      'encoded surrogate' => shape(
+        'val' => "\xed\xa0\x80",
+        'simple_json' => '\u00ed\u00a0\u0080',
+      ),
+      'above U+10FFFF' => shape(
+        'val' => "\xf4\x90\x80\x80",
+        'simple_json' => '\u00f4\u0090\u0080\u0080',
+      ),
+      'F5 lead byte' => shape(
+        'val' => "\xf5\x80\x80\x80",
+        'simple_json' => '\u00f5\u0080\u0080\u0080',
+      ),
+      'FF byte' => shape(
+        'val' => "\xff",
+        'simple_json' => '\u00ff',
+      ),
+      'truncated at end of string' => shape(
+        'val' => "\xe2\x88",
+        'simple_json' => '\u00e2\u0088',
+      ),
+      'truncated before ascii' => shape(
+        'val' => "\xe2\x88a",
+        'simple_json' => '\u00e2\u0088a',
+      ),
+      'malformed byte between valid characters' => shape(
+        'val' => "\u{00b0}\xff\u{221e}",
+        'simple_json' => "\u{00b0}".'\u00ff'."\u{221e}",
+      ),
+    ];
+  }
+
+  <<DataProvider('provideRawUTF8StringEncodings')>>
+  public function testRawUTF8Strings(string $val, string $simple_json): void {
+    $obj = TSimpleJSONProtocolTest_StringVal::withDefaultValues();
+    $obj->s = $val;
+    $transport = new TMemoryBuffer();
+    $obj->write((new TSimpleJSONProtocol($transport))->setRawUTF8Strings(true));
+    $serialized = $transport->getBuffer();
+    expect($serialized)->toEqual(
+      "{\"s\":\"$simple_json\"}",
+      'raw UTF-8 serialization of %s',
+      self::octalEncodedString($val),
+    );
+
+    $read = JSONThriftSerializer::deserialize(
+      $serialized,
+      TSimpleJSONProtocolTest_StringVal::withDefaultValues(),
+    );
+    expect($read->s)->toEqual(
+      $val,
+      'round trip of %s, is %s',
+      self::octalEncodedString($val),
+      self::octalEncodedString($read->s),
+    );
+  }
+
+  public function testSerializeWithRawUTF8Strings(): void {
+    $obj = TSimpleJSONProtocolTest_StringVal::withDefaultValues();
+    $obj->s = "Temperature is 20 \u{00b0}C";
+    $serialized = JSONThriftSerializer::serializeWithRawUTF8Strings($obj);
+    expect($serialized)->toEqual("{\"s\":\"Temperature is 20 \u{00b0}C\"}");
+    expect(
+      JSONThriftSerializer::deserialize(
+        $serialized,
+        TSimpleJSONProtocolTest_StringVal::withDefaultValues(),
+      )->s,
+    )->toEqual($obj->s);
+  }
+
   public static function provideFullPrecisionDoubles(
   ): dict<string, shape('value' => float)> {
     return dict[
