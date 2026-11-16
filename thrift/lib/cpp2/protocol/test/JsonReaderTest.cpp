@@ -102,6 +102,26 @@ TEST_F(Json5ReaderTest, MoreFloats) {
 })");
 }
 
+TEST_F(Json5ReaderTest, StringSpanningBuffers) {
+  constexpr std::string_view input = "\"a\\\"b\\u00e9\xc3\xa9\"";
+  auto chain = folly::IOBuf::create(0);
+  for (char c : input) {
+    chain->appendToChain(folly::IOBuf::copyBuffer(&c, 1));
+  }
+  Json5Reader r;
+  r.setCursor(folly::io::Cursor(chain.get()));
+  EXPECT_EQ(std::get<std::string>(r.readPrimitive()), "a\"b\xc3\xa9\xc3\xa9");
+}
+
+TEST_F(Json5ReaderTest, LongStringSpanningBuffers) {
+  const std::string text(40, 'a');
+  auto chain = folly::IOBuf::copyBuffer("\"" + text.substr(0, 20));
+  chain->appendToChain(folly::IOBuf::copyBuffer(text.substr(20) + "\""));
+  Json5Reader r;
+  r.setCursor(folly::io::Cursor(chain.get()));
+  EXPECT_EQ(std::get<std::string>(r.readPrimitive()), text);
+}
+
 TEST_F(Json5ReaderTest, NanInf) {
   auto verify = [&]<class FloatType>(auto fp, FloatType) {
     auto r = reader("[NaN, +NaN, -NaN, Infinity, +Infinity, -Infinity]");

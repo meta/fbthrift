@@ -16,13 +16,16 @@
 
 #include <thrift/lib/cpp2/protocol/detail/JsonReader.h>
 
+#include <algorithm>
 #include <charconv>
 #include <cstdint>
+#include <iterator>
 #include <limits>
 #include <utility>
 
 #include <fmt/core.h>
 #include <folly/Conv.h>
+#include <folly/Range.h>
 #include <folly/String.h>
 #include <folly/Unicode.h>
 #include <thrift/lib/cpp/protocol/TProtocolException.h>
@@ -161,6 +164,28 @@ void decodeUnicodeEscape(folly::io::Cursor& cursor, std::string& out) {
   }
 
   folly::appendCodePointToUtf8(codePoint, out);
+}
+
+// Returns the leading bytes that can be copied into the string as is:
+// everything before the closing `quote`, a backslash, `\n` or `\r`.
+folly::ByteRange findCopyableRange(folly::ByteRange bytes, char quote) {
+  const unsigned char q = quote;
+  auto isSpecial = [q](unsigned char b) {
+    return b == q || b == '\\' || b == '\n' || b == '\r';
+  };
+  // Most strings (member names, enum names) are short, and a plain loop finds
+  // their end faster than the setup of the vectorized search below.
+  constexpr std::size_t kShortSize = 16;
+  const folly::ByteRange prefix = bytes.subpiece(0, kShortSize);
+  const auto end = std::find_if(prefix.begin(), prefix.end(), isSpecial);
+  if (end != prefix.end() || prefix.size() == bytes.size()) {
+    return {bytes.begin(), end};
+  }
+  const unsigned char specials[] = {q, '\\', '\n', '\r'};
+  const std::size_t pos =
+      bytes.subpiece(kShortSize).find_first_of({specials, std::end(specials)});
+  return pos == folly::ByteRange::npos ? bytes
+                                       : bytes.subpiece(0, kShortSize + pos);
 }
 
 char peekNext(folly::io::Cursor& cursor) {
@@ -333,27 +358,37 @@ Json5Reader::Token Json5Reader::peekToken() {
 std::string Json5Reader::parseString(char quote) {
   folly::io::Cursor start = cursor();
   std::string result;
-  bool hasRawNonAscii = false;
+  // OR of every input byte copied as is; bit 7 is set if any was non-ASCII.
+  unsigned char rawBytesOr = 0;
   auto appendRaw = [&](char ch) {
-    hasRawNonAscii |= (static_cast<unsigned char>(ch) & 0x80) != 0;
+    rawBytesOr |= static_cast<unsigned char>(ch);
     result.push_back(ch);
   };
   while (true) {
+    const folly::ByteRange bytes = cursor().peekBytes();
+    const folly::ByteRange copyableRange = findCopyableRange(bytes, quote);
+    for (auto byte : copyableRange) {
+      rawBytesOr |= byte;
+    }
+    result.append(
+        reinterpret_cast<const char*>(copyableRange.data()),
+        copyableRange.size());
+    cursor().skip(copyableRange.size());
+    if (copyableRange.size() == bytes.size() && !copyableRange.empty()) {
+      continue; // The string may continue in the next buffer.
+    }
+
     char c = readChar();
     if (c == quote) {
       // Validate the input, not `result`: a line continuation can join
       // ill-formed input bytes into a well-formed `result`.
-      if (hasRawNonAscii) {
+      if ((rawBytesOr & 0x80) != 0) {
         validateUtf8(start.readFixedString(cursor() - start - 1));
       }
       return result;
     }
     if (c == '\n' || c == '\r') {
       throwParseError("unescaped newline in string");
-    }
-    if (c != '\\') {
-      appendRaw(c);
-      continue;
     }
     if (auto size = lineTerminatorSize(cursor())) {
       // Line continuation
