@@ -19,6 +19,7 @@ package com.facebook.thrift.legacy.codec;
 import static com.facebook.thrift.util.ThriftProtocolConstants.HEADER_FLAGS_NONE;
 import static com.facebook.thrift.util.ThriftProtocolConstants.HEADER_FLAG_SUPPORT_OUT_OF_ORDER;
 import static com.facebook.thrift.util.ThriftProtocolConstants.HEADER_MAGIC;
+import static com.facebook.thrift.util.ThriftProtocolConstants.MAX_FRAME_SIZE;
 import static com.facebook.thrift.util.ThriftProtocolConstants.NORMAL_HEADERS;
 import static com.facebook.thrift.util.ThriftProtocolConstants.PERSISTENT_HEADERS;
 import static com.google.common.base.Verify.verify;
@@ -34,6 +35,7 @@ import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
+import io.netty.handler.codec.TooLongFrameException;
 import io.netty.util.ReferenceCountUtil;
 import java.util.HashMap;
 import java.util.Map;
@@ -64,9 +66,17 @@ public final class HeaderTransportCodec extends ChannelDuplexHandler {
 
   private long time = System.nanoTime() + jitter;
   private final boolean isServer;
+  private final int maxFrameLength;
 
   public HeaderTransportCodec(boolean isServer) {
+    this(isServer, MAX_FRAME_SIZE);
+  }
+
+  /** Tests lower the limit; a real frame above 0x3FFFFFFF bytes does not fit in a test heap. */
+  @VisibleForTesting
+  HeaderTransportCodec(boolean isServer, int maxFrameLength) {
     this.isServer = isServer;
+    this.maxFrameLength = maxFrameLength;
   }
 
   @Override
@@ -95,8 +105,38 @@ public final class HeaderTransportCodec extends ChannelDuplexHandler {
   @Override
   public void write(ChannelHandlerContext context, Object message, ChannelPromise promise) {
     if (message instanceof ThriftFrame) {
+      ThriftFrame frame = (ThriftFrame) message;
       boolean addHeader = !isServer & addHeader();
-      ByteBuf encodedFrame = encodeFrame(context.alloc(), (ThriftFrame) message, addHeader);
+      ByteBuf encodedFrame = encodeFrame(context.alloc(), frame, addHeader);
+
+      if (!isServer && encodedFrame.readableBytes() > maxFrameLength) {
+        TooLongFrameException e =
+            new TooLongFrameException(
+                "THeader request frame of "
+                    + encodedFrame.readableBytes()
+                    + " bytes exceeds "
+                    + maxFrameLength
+                    + " bytes");
+        encodedFrame.release();
+        promise.setFailure(e);
+        return;
+      }
+
+      if (isServer && encodedFrame.readableBytes() > maxFrameLength) {
+        log.warn(
+            "Response frame of {} bytes exceeds {} bytes, sending \"{}\"",
+            encodedFrame.readableBytes(),
+            maxFrameLength,
+            ResponseSizeLimit.MESSAGE);
+        ThriftFrame tooBig;
+        try {
+          tooBig = ResponseSizeLimit.responseTooBig(context.alloc(), frame);
+        } finally {
+          encodedFrame.release();
+        }
+        encodedFrame = encodeFrame(context.alloc(), tooBig, false);
+      }
+
       context.writeAndFlush(encodedFrame, promise);
     } else {
       context.writeAndFlush(message, promise);
