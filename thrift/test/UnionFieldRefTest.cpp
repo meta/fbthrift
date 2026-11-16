@@ -108,6 +108,53 @@ TEST(UnionFieldTest, move_to_optional) {
   EXPECT_EQ(opt->data(), data);
 }
 
+template <typename Ref>
+concept CanMoveToUniquePtr =
+    requires(Ref ref) { apache::thrift::move_to_unique_ptr(ref); };
+
+static_assert(CanMoveToUniquePtr<decltype(std::declval<Boxed&>().box())>);
+static_assert(CanMoveToUniquePtr<decltype(std::declval<Boxed&&>().box())>);
+static_assert(
+    !CanMoveToUniquePtr<decltype(std::declval<const Boxed&>().box())>);
+static_assert(!CanMoveToUniquePtr<decltype(std::declval<Boxed&>().str())>);
+static_assert(!CanMoveToUniquePtr<decltype(std::declval<CppRef&>().cppref())>);
+
+TEST(UnionFieldTest, move_to_unique_ptr) {
+  Boxed s;
+  s.box().emplace().str() = "box";
+  const Boxed* boxed = &*s.box();
+
+  std::unique_ptr<Boxed> ptr = apache::thrift::move_to_unique_ptr(s.box());
+
+  EXPECT_EQ(ptr.get(), boxed);
+  EXPECT_EQ(ptr->str(), "box");
+  EXPECT_EQ(s.getType(), Boxed::Type::__EMPTY__);
+}
+
+TEST(UnionFieldTest, move_to_unique_ptr_from_rvalue) {
+  Boxed s;
+  s.box().emplace().int32() = 42;
+  const Boxed* boxed = &*s.box();
+
+  std::unique_ptr<Boxed> ptr =
+      apache::thrift::move_to_unique_ptr(std::move(s).box());
+
+  EXPECT_EQ(ptr.get(), boxed);
+  EXPECT_EQ(ptr->int32(), 42);
+  // NOLINTNEXTLINE(bugprone-use-after-move)
+  EXPECT_EQ(s.getType(), Boxed::Type::__EMPTY__);
+}
+
+TEST(UnionFieldTest, move_to_unique_ptr_inactive_field) {
+  Boxed s;
+  EXPECT_EQ(apache::thrift::move_to_unique_ptr(s.box()), nullptr);
+  EXPECT_EQ(s.getType(), Boxed::Type::__EMPTY__);
+
+  s.str() = "str";
+  EXPECT_EQ(apache::thrift::move_to_unique_ptr(s.box()), nullptr);
+  EXPECT_EQ(s.str(), "str");
+}
+
 TEST(UnionFieldTest, operator_assign) {
   Basic a;
   a.int64() = 4;

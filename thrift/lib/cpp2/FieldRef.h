@@ -1398,6 +1398,14 @@ struct move_to_unique_ptr_fn {
   FOLLY_ERASE auto operator()(optional_boxed_field_ref<T> ref) const noexcept {
     return ref.release();
   }
+
+  template <typename T>
+    requires(
+        is_boxed_value_ptr_v<std::remove_cvref_t<T>> &&
+        !std::is_const_v<std::remove_reference_t<T>>)
+  FOLLY_ERASE auto operator()(union_field_ref<T> ref) const noexcept {
+    return ref.release();
+  }
 };
 
 struct assign_from_unique_ptr_fn {
@@ -1435,6 +1443,9 @@ constexpr apache::thrift::detail::can_throw_fn can_throw;
 //  move_to_unique_ptr
 //
 //  Transfer ownership of underlying boxed field to std::unique_ptr.
+//
+//  For a boxed union field, the union is left empty. If the field is not the
+//  active one, returns nullptr and leaves the union unchanged.
 //
 //  Example:
 //
@@ -1716,6 +1727,7 @@ class union_field_ref {
 
   friend struct detail::union_value_unsafe_fn;
   friend struct detail::union_emplace_storage_fn;
+  friend struct detail::move_to_unique_ptr_fn;
 
   using is_cpp_ref_or_boxed = std::bool_constant<
       detail::is_boxed_value_ptr_v<std::remove_cvref_t<T>> ||
@@ -1955,6 +1967,19 @@ class union_field_ref {
       apache::thrift::detail::throw_on_nullptr_dereferencing();
     }
     return *storage_value_;
+  }
+
+  // Clears the union rather than leaving this field active with a null box,
+  // which value() would reject.
+  FOLLY_ERASE std::unique_ptr<element_type> release() noexcept
+    requires(detail::is_boxed_value_ptr_v<std::remove_cvref_t<T>>)
+  {
+    if (!has_value()) {
+      return nullptr;
+    }
+    std::unique_ptr<element_type> ptr = storage_value_.release();
+    vtable_.reset(owner_);
+    return ptr;
   }
 
   template <class... Args>
