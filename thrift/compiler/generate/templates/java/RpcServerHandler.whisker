@@ -39,14 +39,14 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
   {{#each service.streaming_functions as |func|}}
   private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _{{func.java_name}}Readers;
   {{#if func.stream_has_first_response?}}
-  private final com.facebook.thrift.server.generated.StreamMethod<{{#partial types.boxed_type type=func.return_type field_hasAdapter=false}},{{#partial types.boxed_type type=func.stream.elem_type field_hasAdapter=false}}> _method_{{func.java_name}};
+  private final com.facebook.thrift.server.stream.StreamMethod<{{#partial types.boxed_type type=func.return_type field_hasAdapter=false}},{{#partial types.boxed_type type=func.stream.elem_type field_hasAdapter=false}}> _method_{{func.java_name}};
   {{#else}}
-  private final com.facebook.thrift.server.generated.StreamMethod<java.lang.Object,{{#partial types.boxed_type type=func.stream.elem_type field_hasAdapter=false}}> _method_{{func.java_name}};
+  private final com.facebook.thrift.server.stream.StreamMethod<java.lang.Object,{{#partial types.boxed_type type=func.stream.elem_type field_hasAdapter=false}}> _method_{{func.java_name}};
   {{/if func.stream_has_first_response?}}
   {{/each}}
   {{#each service.channel_functions as |func|}}
   {{#let stream_type = (if func.bidirectional_stream? func.stream.elem_type func.sink.final_response_type)}}
-  private final com.facebook.thrift.server.generated.{{#if func.bidirectional_stream?}}BidiMethod{{#else}}SinkMethod{{/if}}<{{#if func.sink_has_first_response?}}{{#partial types.boxed_type type=func.return_type field_hasAdapter=false}}{{#else}}java.lang.Object{{/if}},{{#partial types.boxed_type type=stream_type field_hasAdapter=false}},{{#partial types.boxed_type type=func.sink.elem_type field_hasAdapter=false}}> _method_{{func.java_name}};
+  private final com.facebook.thrift.server.{{#if func.bidirectional_stream?}}bidi.BidiMethod{{#else}}sink.SinkMethod{{/if}}<{{#if func.sink_has_first_response?}}{{#partial types.boxed_type type=func.return_type field_hasAdapter=false}}{{#else}}java.lang.Object{{/if}},{{#partial types.boxed_type type=stream_type field_hasAdapter=false}},{{#partial types.boxed_type type=func.sink.elem_type field_hasAdapter=false}}> _method_{{func.java_name}};
   {{/each}}
 
   private final java.util.List<com.facebook.swift.service.ThriftEventHandler> _eventHandlers;
@@ -77,7 +77,7 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
     _methodMap.put("{{func.name}}", this);
     _{{func.java_name}}Readers = _create_{{func.java_name}}_request_readers();
     _method_{{func.java_name}} =
-    new com.facebook.thrift.server.generated.StreamMethod<>(
+    new com.facebook.thrift.server.stream.StreamMethod<>(
       _{{func.java_name}}Readers,
       _args -> {
         java.util.Iterator _iterator = _args.iterator();
@@ -92,13 +92,13 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
         {{#else}}
         return com.facebook.nifty.core.RequestContextScope.get(
             com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
-            () -> reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.generated.ServerStreams.NO_FIRST_RESPONSE, _delegate.{{func.java_name}}({{#each (array.enumerate func.params.fields with_last=true) as |i field last?|}}{{field.javaName}}{{#if (not last?)}}, {{/if (not last?)}}{{/each}}))));
+            () -> reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.stream.ServerStreams.NO_FIRST_RESPONSE, _delegate.{{func.java_name}}({{#each (array.enumerate func.params.fields with_last=true) as |i field last?|}}{{field.javaName}}{{#if (not last?)}}, {{/if (not last?)}}{{/each}}))));
         {{/if func.stream_has_first_response?}}
       },
       {{#if func.stream_has_first_response?}}
       _first_ResponseWriterFactory_{{func.java_name}},
       {{#else}}
-      com.facebook.thrift.server.generated.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
+      com.facebook.thrift.server.stream.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
       {{/if func.stream_has_first_response?}}
       _ResponseWriterFactory_{{func.java_name}},
       "{{func.java_name}}",
@@ -114,7 +114,7 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
     {{#let stream_exceptions = (if func.bidirectional_stream? func.stream.exceptions func.sink.final_response_exceptions)}}
     _methodMap.put("{{func.name}}", this);
     _method_{{func.java_name}} =
-    new com.facebook.thrift.server.generated.{{#if func.bidirectional_stream?}}BidiMethod{{#else}}SinkMethod{{/if}}<{{#if func.sink_has_first_response?}}{{#partial types.boxed_type type=func.return_type field_hasAdapter=false}}{{#else}}java.lang.Object{{/if}},{{#partial types.boxed_type type=stream_type field_hasAdapter=false}},{{#partial types.boxed_type type=func.sink.elem_type field_hasAdapter=false}}>(
+    new com.facebook.thrift.server.{{#if func.bidirectional_stream?}}bidi.BidiMethod{{#else}}sink.SinkMethod{{/if}}<{{#if func.sink_has_first_response?}}{{#partial types.boxed_type type=func.return_type field_hasAdapter=false}}{{#else}}java.lang.Object{{/if}},{{#partial types.boxed_type type=stream_type field_hasAdapter=false}},{{#partial types.boxed_type type=func.sink.elem_type field_hasAdapter=false}}>(
       _create_{{func.java_name}}_request_readers(),
       _create_{{func.java_name}}_sink_readers(),
       (_args, _sinkElements) -> {
@@ -124,19 +124,19 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
         {{/each}}
 
         {{#if func.sink_has_first_response?}}
-        return {{#if (not func.bidirectional_stream?)}}com.facebook.thrift.server.generated.ServerSinks.firstAndFinal({{/if}}com.facebook.nifty.core.RequestContextScope.get(
+        return {{#if (not func.bidirectional_stream?)}}com.facebook.thrift.server.sink.ServerSinks.firstAndFinal({{/if}}com.facebook.nifty.core.RequestContextScope.get(
             com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
             () -> _delegate.{{func.java_name}}({{#each func.params.fields as |field|}}{{field.javaName}}, {{/each}}_sinkElements)){{#if (not func.bidirectional_stream?)}}){{/if}};
         {{#else}}
         return com.facebook.nifty.core.RequestContextScope.get(
             com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
-            () -> reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.generated.ServerStreams.NO_FIRST_RESPONSE, _delegate.{{func.java_name}}({{#each func.params.fields as |field|}}{{field.javaName}}, {{/each}}_sinkElements){{#if (not func.bidirectional_stream?)}}.flux(){{/if}})));
+            () -> reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.stream.ServerStreams.NO_FIRST_RESPONSE, _delegate.{{func.java_name}}({{#each func.params.fields as |field|}}{{field.javaName}}, {{/each}}_sinkElements){{#if (not func.bidirectional_stream?)}}.flux(){{/if}})));
         {{/if func.sink_has_first_response?}}
       },
       {{#if func.sink_has_first_response?}}
       _first_ResponseWriterFactory_{{func.java_name}},
       {{#else}}
-      com.facebook.thrift.server.generated.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
+      com.facebook.thrift.server.stream.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
       {{/if func.sink_has_first_response?}}
       _ResponseWriterFactory_{{func.java_name}},
       "{{func.java_name}}",
@@ -161,7 +161,7 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
     return _readerList;
   }
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_{{func.java_name}} = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+  private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_{{func.java_name}} = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -183,7 +183,7 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
   };
 
   {{#if func.stream_has_first_response?}}
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _first_ResponseWriterFactory_{{func.java_name}} = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+  private final static com.facebook.thrift.server.ResponseWriterFactory _first_ResponseWriterFactory_{{func.java_name}} = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -232,7 +232,7 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
     return _readerList;
   }
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_{{func.java_name}} = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+  private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_{{func.java_name}} = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -252,7 +252,7 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
   };
 
   {{#if func.sink_has_first_response?}}
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _first_ResponseWriterFactory_{{func.java_name}} = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+  private final static com.facebook.thrift.server.ResponseWriterFactory _first_ResponseWriterFactory_{{func.java_name}} = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -543,7 +543,7 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
       switch(_name) {
         {{#each service.streaming_functions as |func|}}
         case "{{func.name}}":
-          _result = com.facebook.thrift.server.generated.ServerStreams.handleStream(_payload, _chain, _method_{{func.java_name}});
+          _result = com.facebook.thrift.server.stream.ServerStreams.handleStream(_payload, _chain, _method_{{func.java_name}});
           break;
         {{/each}}
         default: {
@@ -749,7 +749,7 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
       switch(_name) {
         {{#each service.channel_functions as |func|}}
         case "{{func.name}}":
-          _result = com.facebook.thrift.server.generated.{{#if func.bidirectional_stream?}}ServerBidiStreams.handleBidi{{#else}}ServerSinks.handleSink{{/if}}(_payload, _chain, _method_{{func.java_name}}, _sinkPayloads);
+          _result = com.facebook.thrift.server.{{#if func.bidirectional_stream?}}bidi.ServerBidiStreams.handleBidi{{#else}}sink.ServerSinks.handleSink{{/if}}(_payload, _chain, _method_{{func.java_name}}, _sinkPayloads);
           break;
         {{/each}}
         default: {

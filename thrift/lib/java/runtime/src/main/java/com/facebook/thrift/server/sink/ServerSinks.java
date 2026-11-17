@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.facebook.thrift.server.generated;
+package com.facebook.thrift.server.sink;
 
 import com.facebook.swift.service.ContextChain;
 import com.facebook.swift.service.StreamEventHandler;
@@ -23,6 +23,8 @@ import com.facebook.thrift.model.StreamResponse;
 import com.facebook.thrift.payload.FieldReader;
 import com.facebook.thrift.payload.ServerRequestPayload;
 import com.facebook.thrift.payload.ServerResponsePayload;
+import com.facebook.thrift.server.stream.ServerStreams;
+import com.facebook.thrift.server.stream.StreamMethod;
 import java.util.List;
 import org.reactivestreams.Publisher;
 import reactor.core.Disposable;
@@ -103,9 +105,12 @@ public final class ServerSinks {
   /**
    * Returns the sink element in a sink payload, or throws the declared sink exception that the peer
    * sent in its place.
+   *
+   * <p>Runtime-internal: read by the bidi server package for its client-to-server half.
    */
   @SuppressWarnings("unchecked")
-  static <U> U readSinkElement(ServerRequestPayload sinkPayload, List<FieldReader<?>> sinkReaders) {
+  public static <U> U readSinkElement(
+      ServerRequestPayload sinkPayload, List<FieldReader<?>> sinkReaders) {
     List<Object> fields = sinkPayload.getData(sinkReaders);
     for (int i = 1; i < fields.size(); i++) {
       if (fields.get(i) != null) {

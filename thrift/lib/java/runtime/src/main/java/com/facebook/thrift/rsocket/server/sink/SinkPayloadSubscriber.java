@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.facebook.thrift.rsocket.server;
+package com.facebook.thrift.rsocket.server.sink;
 
 import io.netty.util.ReferenceCountUtil;
 import io.rsocket.Payload;
@@ -38,8 +38,10 @@ import reactor.util.context.Context;
  * without a REQUEST_N, buffers the rest as sink payloads, and gives the reader a bounded credit
  * window that opens after the first response. It also ends the reader with the call, because only
  * the transport sees how the call ends.
+ *
+ * <p>Runtime-internal: used by the RSocket server transport in the parent package.
  */
-final class SinkPayloadSubscriber extends BaseSubscriber<Payload> {
+public final class SinkPayloadSubscriber extends BaseSubscriber<Payload> {
   /**
    * Unread sink payloads one call may hold: it bounds the memory a fast peer fills behind a slow
    * reader.
@@ -66,22 +68,37 @@ final class SinkPayloadSubscriber extends BaseSubscriber<Payload> {
   /**
    * The scheduler runs the decoding of the sink payloads: the off-loop scheduler when execution is
    * forced off the event loop, else {@code Schedulers.immediate()}.
+   *
+   * <p>Runtime-internal: called by the RSocket server transport.
    */
-  SinkPayloadSubscriber(Scheduler scheduler) {
+  public SinkPayloadSubscriber(Scheduler scheduler) {
     this.scheduler = scheduler;
   }
 
-  /** The first payload, which the subscribe call delivers before it returns. */
-  Payload setup() {
+  /**
+   * The first payload, which the subscribe call delivers before it returns.
+   *
+   * <p>Runtime-internal: read by the RSocket server transport.
+   */
+  public Payload setup() {
     return setup;
   }
 
-  /** Counts a response that passed the task timeout on its way to the peer. */
-  void responseSent() {
+  /**
+   * Counts a response that passed the task timeout on its way to the peer.
+   *
+   * <p>Runtime-internal: called by the RSocket server transport.
+   */
+  public void responseSent() {
     responsesSent.incrementAndGet();
   }
 
-  int responsesSent() {
+  /**
+   * Counts a response that passed the task timeout on its way to the peer.
+   *
+   * <p>Runtime-internal: read by the RSocket server transport.
+   */
+  public int responsesSent() {
     return responsesSent.get();
   }
 
@@ -112,13 +129,19 @@ final class SinkPayloadSubscriber extends BaseSubscriber<Payload> {
   /**
    * Returns the sink payloads of a sink call. A reader cancel stays local, because a sink peer
    * rejects a CANCEL before the final response; the end of the call cancels the sink.
+   *
+   * <p>Runtime-internal: read by the RSocket server transport.
    */
-  Flux<Payload> sinkPayloads() {
+  public Flux<Payload> sinkPayloads() {
     return window(buffer.asFlux().doOnRequest(this::request));
   }
 
-  /** Returns the sink payloads of a bidi call: a reader cancel after the first response ends it. */
-  Flux<Payload> bidiSinkPayloads() {
+  /**
+   * Returns the sink payloads of a bidi call: a reader cancel after the first response ends it.
+   *
+   * <p>Runtime-internal: read by the RSocket server transport.
+   */
+  public Flux<Payload> bidiSinkPayloads() {
     return window(buffer.asFlux().doOnRequest(this::request).doOnCancel(this::cancel));
   }
 
@@ -146,8 +169,10 @@ final class SinkPayloadSubscriber extends BaseSubscriber<Payload> {
    * Starts the sink after the responder queued the first response. The responder queues a payload
    * inside onNext, so credit or a cancel after onNext returns follows that payload on any thread.
    * Reactor has no operator that runs after onNext, so a pass-through subscriber does it.
+   *
+   * <p>Runtime-internal: called by the RSocket server transport.
    */
-  Flux<Payload> startSinkAfterFirstResponse(Flux<Payload> responses) {
+  public Flux<Payload> startSinkAfterFirstResponse(Flux<Payload> responses) {
     Function<? super Publisher<Payload>, ? extends Publisher<Payload>> signal =
         Operators.lift((scannable, actual) -> new FirstResponseSignal(actual));
 
@@ -158,8 +183,10 @@ final class SinkPayloadSubscriber extends BaseSubscriber<Payload> {
    * Ends the subscription and releases the sink payloads that no reader took. A normal end of the
    * call completes the reader; any other end fails it, so a handler never takes a cut sink for a
    * whole one.
+   *
+   * <p>Runtime-internal: called by the RSocket server transport.
    */
-  void end(SignalType signal) {
+  public void end(SignalType signal) {
     dispose();
 
     aborted = signal != SignalType.ON_COMPLETE;
@@ -174,8 +201,10 @@ final class SinkPayloadSubscriber extends BaseSubscriber<Payload> {
   /**
    * Ends the sink of a completed bidi call when no reader took it. A reader keeps the sink open
    * until the peer ends it or the reader cancels; a later reader fails.
+   *
+   * <p>Runtime-internal: called by the RSocket server transport.
    */
-  void endIfUnread() {
+  public void endIfUnread() {
     if (buffer.currentSubscriberCount() == 0) {
       end(SignalType.CANCEL);
     }

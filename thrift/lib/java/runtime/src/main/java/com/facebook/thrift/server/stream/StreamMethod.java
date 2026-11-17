@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package com.facebook.thrift.server.generated;
+package com.facebook.thrift.server.stream;
 
 import com.facebook.thrift.model.ResponseAndStream;
 import com.facebook.thrift.payload.FieldReader;
+import com.facebook.thrift.server.ResponseWriterFactory;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;

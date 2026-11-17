@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.facebook.thrift.server.generated;
+package com.facebook.thrift.server.sink;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;

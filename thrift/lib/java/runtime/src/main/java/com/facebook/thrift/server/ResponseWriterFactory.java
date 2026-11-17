@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
-package com.facebook.thrift.rsocket.server;
+package com.facebook.thrift.server;
 
-class HandleRequestStream {}
+import com.facebook.swift.service.ContextChain;
+import com.facebook.thrift.payload.Writer;
+
+@FunctionalInterface
+public interface ResponseWriterFactory {
+  /** Creates the writer for one response value or stream element. */
+  Writer createResponseWriter(Object o, ContextChain chain);
+}

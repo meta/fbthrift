@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.facebook.thrift.server.generated;
+package com.facebook.thrift.server.bidi;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -32,6 +32,7 @@ import com.facebook.thrift.payload.ServerResponsePayload;
 import com.facebook.thrift.payload.Writer;
 import com.facebook.thrift.protocol.ByteBufTProtocol;
 import com.facebook.thrift.protocol.TProtocolType;
+import com.facebook.thrift.server.stream.ServerStreams;
 import com.facebook.thrift.test.rocket.TestException;
 import com.facebook.thrift.test.rocket.TestRequest;
 import com.facebook.thrift.test.rocket.TestResponse;

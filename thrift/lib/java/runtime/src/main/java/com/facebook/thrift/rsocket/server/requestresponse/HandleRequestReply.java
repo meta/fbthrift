@@ -14,6 +14,6 @@
  * limitations under the License.
  */
 
-package com.facebook.thrift.rsocket.server;
+package com.facebook.thrift.rsocket.server.requestresponse;
 
 class HandleRequestReply {}

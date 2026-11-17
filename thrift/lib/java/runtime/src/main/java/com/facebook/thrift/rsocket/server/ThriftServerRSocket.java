@@ -36,6 +36,7 @@ import com.facebook.thrift.payload.Writer;
 import com.facebook.thrift.protocol.ByteBufTProtocol;
 import com.facebook.thrift.protocol.ProtocolUtil;
 import com.facebook.thrift.protocol.TProtocolType;
+import com.facebook.thrift.rsocket.server.sink.SinkPayloadSubscriber;
 import com.facebook.thrift.server.OverloadedException;
 import com.facebook.thrift.server.RpcServerHandler;
 import com.facebook.thrift.server.UnknownMethodException;

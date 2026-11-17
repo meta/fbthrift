@@ -22,7 +22,7 @@ public class MyServiceRpcServerHandler
   private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _interactReaders;
   private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _interactFastReaders;
   private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _serializeReaders;
-  private final com.facebook.thrift.server.generated.StreamMethod<Integer,Integer> _method_serialize;
+  private final com.facebook.thrift.server.stream.StreamMethod<Integer,Integer> _method_serialize;
 
   private final java.util.List<com.facebook.swift.service.ThriftEventHandler> _eventHandlers;
 
@@ -53,7 +53,7 @@ public class MyServiceRpcServerHandler
     _methodMap.put("serialize", this);
     _serializeReaders = _create_serialize_request_readers();
     _method_serialize =
-    new com.facebook.thrift.server.generated.StreamMethod<>(
+    new com.facebook.thrift.server.stream.StreamMethod<>(
       _serializeReaders,
       _args -> {
         java.util.Iterator _iterator = _args.iterator();
@@ -81,7 +81,7 @@ public class MyServiceRpcServerHandler
     return _readerList;
   }
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_serialize = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+  private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_serialize = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -100,7 +100,7 @@ public class MyServiceRpcServerHandler
     };
   };
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _first_ResponseWriterFactory_serialize = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+  private final static com.facebook.thrift.server.ResponseWriterFactory _first_ResponseWriterFactory_serialize = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -500,7 +500,7 @@ public class MyServiceRpcServerHandler
     try {
       switch(_name) {
         case "serialize":
-          _result = com.facebook.thrift.server.generated.ServerStreams.handleStream(_payload, _chain, _method_serialize);
+          _result = com.facebook.thrift.server.stream.ServerStreams.handleStream(_payload, _chain, _method_serialize);
           break;
         default: {
             _chain.preRead();

@@ -18,13 +18,13 @@ public class SinkServiceRpcServerHandler
 
   private final SinkService.Reactive _delegate;
 
-  private final com.facebook.thrift.server.generated.SinkMethod<java.lang.Object,test.fixtures.sink.FinalResponse,test.fixtures.sink.SinkPayload> _method_method;
-  private final com.facebook.thrift.server.generated.SinkMethod<test.fixtures.sink.InitialResponse,test.fixtures.sink.FinalResponse,test.fixtures.sink.SinkPayload> _method_methodAndReponse;
-  private final com.facebook.thrift.server.generated.SinkMethod<java.lang.Object,test.fixtures.sink.FinalResponse,test.fixtures.sink.SinkPayload> _method_methodThrow;
-  private final com.facebook.thrift.server.generated.SinkMethod<java.lang.Object,test.fixtures.sink.FinalResponse,test.fixtures.sink.SinkPayload> _method_methodSinkThrow;
-  private final com.facebook.thrift.server.generated.SinkMethod<java.lang.Object,test.fixtures.sink.FinalResponse,test.fixtures.sink.SinkPayload> _method_methodFinalThrow;
-  private final com.facebook.thrift.server.generated.SinkMethod<java.lang.Object,test.fixtures.sink.FinalResponse,test.fixtures.sink.SinkPayload> _method_methodBothThrow;
-  private final com.facebook.thrift.server.generated.SinkMethod<java.lang.Object,test.fixtures.sink.FinalResponse,test.fixtures.sink.SinkPayload> _method_methodFast;
+  private final com.facebook.thrift.server.sink.SinkMethod<java.lang.Object,test.fixtures.sink.FinalResponse,test.fixtures.sink.SinkPayload> _method_method;
+  private final com.facebook.thrift.server.sink.SinkMethod<test.fixtures.sink.InitialResponse,test.fixtures.sink.FinalResponse,test.fixtures.sink.SinkPayload> _method_methodAndReponse;
+  private final com.facebook.thrift.server.sink.SinkMethod<java.lang.Object,test.fixtures.sink.FinalResponse,test.fixtures.sink.SinkPayload> _method_methodThrow;
+  private final com.facebook.thrift.server.sink.SinkMethod<java.lang.Object,test.fixtures.sink.FinalResponse,test.fixtures.sink.SinkPayload> _method_methodSinkThrow;
+  private final com.facebook.thrift.server.sink.SinkMethod<java.lang.Object,test.fixtures.sink.FinalResponse,test.fixtures.sink.SinkPayload> _method_methodFinalThrow;
+  private final com.facebook.thrift.server.sink.SinkMethod<java.lang.Object,test.fixtures.sink.FinalResponse,test.fixtures.sink.SinkPayload> _method_methodBothThrow;
+  private final com.facebook.thrift.server.sink.SinkMethod<java.lang.Object,test.fixtures.sink.FinalResponse,test.fixtures.sink.SinkPayload> _method_methodFast;
 
   private final java.util.List<com.facebook.swift.service.ThriftEventHandler> _eventHandlers;
 
@@ -48,7 +48,7 @@ public class SinkServiceRpcServerHandler
 
     _methodMap.put("method", this);
     _method_method =
-    new com.facebook.thrift.server.generated.SinkMethod<java.lang.Object,test.fixtures.sink.FinalResponse,test.fixtures.sink.SinkPayload>(
+    new com.facebook.thrift.server.sink.SinkMethod<java.lang.Object,test.fixtures.sink.FinalResponse,test.fixtures.sink.SinkPayload>(
       _create_method_request_readers(),
       _create_method_sink_readers(),
       (_args, _sinkElements) -> {
@@ -56,9 +56,9 @@ public class SinkServiceRpcServerHandler
 
         return com.facebook.nifty.core.RequestContextScope.get(
             com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
-            () -> reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.generated.ServerStreams.NO_FIRST_RESPONSE, _delegate.method(_sinkElements).flux())));
+            () -> reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.stream.ServerStreams.NO_FIRST_RESPONSE, _delegate.method(_sinkElements).flux())));
       },
-      com.facebook.thrift.server.generated.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
+      com.facebook.thrift.server.stream.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
       _ResponseWriterFactory_method,
       "method",
       new Class[]{  },
@@ -69,13 +69,13 @@ public class SinkServiceRpcServerHandler
 
     _methodMap.put("methodAndReponse", this);
     _method_methodAndReponse =
-    new com.facebook.thrift.server.generated.SinkMethod<test.fixtures.sink.InitialResponse,test.fixtures.sink.FinalResponse,test.fixtures.sink.SinkPayload>(
+    new com.facebook.thrift.server.sink.SinkMethod<test.fixtures.sink.InitialResponse,test.fixtures.sink.FinalResponse,test.fixtures.sink.SinkPayload>(
       _create_methodAndReponse_request_readers(),
       _create_methodAndReponse_sink_readers(),
       (_args, _sinkElements) -> {
         java.util.Iterator _iterator = _args.iterator();
 
-        return com.facebook.thrift.server.generated.ServerSinks.firstAndFinal(com.facebook.nifty.core.RequestContextScope.get(
+        return com.facebook.thrift.server.sink.ServerSinks.firstAndFinal(com.facebook.nifty.core.RequestContextScope.get(
             com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
             () -> _delegate.methodAndReponse(_sinkElements)));
       },
@@ -90,7 +90,7 @@ public class SinkServiceRpcServerHandler
 
     _methodMap.put("methodThrow", this);
     _method_methodThrow =
-    new com.facebook.thrift.server.generated.SinkMethod<java.lang.Object,test.fixtures.sink.FinalResponse,test.fixtures.sink.SinkPayload>(
+    new com.facebook.thrift.server.sink.SinkMethod<java.lang.Object,test.fixtures.sink.FinalResponse,test.fixtures.sink.SinkPayload>(
       _create_methodThrow_request_readers(),
       _create_methodThrow_sink_readers(),
       (_args, _sinkElements) -> {
@@ -98,9 +98,9 @@ public class SinkServiceRpcServerHandler
 
         return com.facebook.nifty.core.RequestContextScope.get(
             com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
-            () -> reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.generated.ServerStreams.NO_FIRST_RESPONSE, _delegate.methodThrow(_sinkElements).flux())));
+            () -> reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.stream.ServerStreams.NO_FIRST_RESPONSE, _delegate.methodThrow(_sinkElements).flux())));
       },
-      com.facebook.thrift.server.generated.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
+      com.facebook.thrift.server.stream.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
       _ResponseWriterFactory_methodThrow,
       "methodThrow",
       new Class[]{ test.fixtures.sink.InitialException.class },
@@ -111,7 +111,7 @@ public class SinkServiceRpcServerHandler
 
     _methodMap.put("methodSinkThrow", this);
     _method_methodSinkThrow =
-    new com.facebook.thrift.server.generated.SinkMethod<java.lang.Object,test.fixtures.sink.FinalResponse,test.fixtures.sink.SinkPayload>(
+    new com.facebook.thrift.server.sink.SinkMethod<java.lang.Object,test.fixtures.sink.FinalResponse,test.fixtures.sink.SinkPayload>(
       _create_methodSinkThrow_request_readers(),
       _create_methodSinkThrow_sink_readers(),
       (_args, _sinkElements) -> {
@@ -119,9 +119,9 @@ public class SinkServiceRpcServerHandler
 
         return com.facebook.nifty.core.RequestContextScope.get(
             com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
-            () -> reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.generated.ServerStreams.NO_FIRST_RESPONSE, _delegate.methodSinkThrow(_sinkElements).flux())));
+            () -> reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.stream.ServerStreams.NO_FIRST_RESPONSE, _delegate.methodSinkThrow(_sinkElements).flux())));
       },
-      com.facebook.thrift.server.generated.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
+      com.facebook.thrift.server.stream.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
       _ResponseWriterFactory_methodSinkThrow,
       "methodSinkThrow",
       new Class[]{  },
@@ -132,7 +132,7 @@ public class SinkServiceRpcServerHandler
 
     _methodMap.put("methodFinalThrow", this);
     _method_methodFinalThrow =
-    new com.facebook.thrift.server.generated.SinkMethod<java.lang.Object,test.fixtures.sink.FinalResponse,test.fixtures.sink.SinkPayload>(
+    new com.facebook.thrift.server.sink.SinkMethod<java.lang.Object,test.fixtures.sink.FinalResponse,test.fixtures.sink.SinkPayload>(
       _create_methodFinalThrow_request_readers(),
       _create_methodFinalThrow_sink_readers(),
       (_args, _sinkElements) -> {
@@ -140,9 +140,9 @@ public class SinkServiceRpcServerHandler
 
         return com.facebook.nifty.core.RequestContextScope.get(
             com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
-            () -> reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.generated.ServerStreams.NO_FIRST_RESPONSE, _delegate.methodFinalThrow(_sinkElements).flux())));
+            () -> reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.stream.ServerStreams.NO_FIRST_RESPONSE, _delegate.methodFinalThrow(_sinkElements).flux())));
       },
-      com.facebook.thrift.server.generated.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
+      com.facebook.thrift.server.stream.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
       _ResponseWriterFactory_methodFinalThrow,
       "methodFinalThrow",
       new Class[]{  },
@@ -153,7 +153,7 @@ public class SinkServiceRpcServerHandler
 
     _methodMap.put("methodBothThrow", this);
     _method_methodBothThrow =
-    new com.facebook.thrift.server.generated.SinkMethod<java.lang.Object,test.fixtures.sink.FinalResponse,test.fixtures.sink.SinkPayload>(
+    new com.facebook.thrift.server.sink.SinkMethod<java.lang.Object,test.fixtures.sink.FinalResponse,test.fixtures.sink.SinkPayload>(
       _create_methodBothThrow_request_readers(),
       _create_methodBothThrow_sink_readers(),
       (_args, _sinkElements) -> {
@@ -161,9 +161,9 @@ public class SinkServiceRpcServerHandler
 
         return com.facebook.nifty.core.RequestContextScope.get(
             com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
-            () -> reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.generated.ServerStreams.NO_FIRST_RESPONSE, _delegate.methodBothThrow(_sinkElements).flux())));
+            () -> reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.stream.ServerStreams.NO_FIRST_RESPONSE, _delegate.methodBothThrow(_sinkElements).flux())));
       },
-      com.facebook.thrift.server.generated.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
+      com.facebook.thrift.server.stream.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
       _ResponseWriterFactory_methodBothThrow,
       "methodBothThrow",
       new Class[]{  },
@@ -174,7 +174,7 @@ public class SinkServiceRpcServerHandler
 
     _methodMap.put("methodFast", this);
     _method_methodFast =
-    new com.facebook.thrift.server.generated.SinkMethod<java.lang.Object,test.fixtures.sink.FinalResponse,test.fixtures.sink.SinkPayload>(
+    new com.facebook.thrift.server.sink.SinkMethod<java.lang.Object,test.fixtures.sink.FinalResponse,test.fixtures.sink.SinkPayload>(
       _create_methodFast_request_readers(),
       _create_methodFast_sink_readers(),
       (_args, _sinkElements) -> {
@@ -182,9 +182,9 @@ public class SinkServiceRpcServerHandler
 
         return com.facebook.nifty.core.RequestContextScope.get(
             com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
-            () -> reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.generated.ServerStreams.NO_FIRST_RESPONSE, _delegate.methodFast(_sinkElements).flux())));
+            () -> reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.stream.ServerStreams.NO_FIRST_RESPONSE, _delegate.methodFast(_sinkElements).flux())));
       },
-      com.facebook.thrift.server.generated.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
+      com.facebook.thrift.server.stream.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
       _ResponseWriterFactory_methodFast,
       "methodFast",
       new Class[]{  },
@@ -211,7 +211,7 @@ public class SinkServiceRpcServerHandler
     return _readerList;
   }
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_method = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+  private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_method = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -246,7 +246,7 @@ public class SinkServiceRpcServerHandler
     return _readerList;
   }
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_methodAndReponse = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+  private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_methodAndReponse = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -265,7 +265,7 @@ public class SinkServiceRpcServerHandler
     };
   };
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _first_ResponseWriterFactory_methodAndReponse = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+  private final static com.facebook.thrift.server.ResponseWriterFactory _first_ResponseWriterFactory_methodAndReponse = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -302,7 +302,7 @@ public class SinkServiceRpcServerHandler
     return _readerList;
   }
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_methodThrow = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+  private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_methodThrow = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -338,7 +338,7 @@ public class SinkServiceRpcServerHandler
     return _readerList;
   }
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_methodSinkThrow = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+  private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_methodSinkThrow = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -373,7 +373,7 @@ public class SinkServiceRpcServerHandler
     return _readerList;
   }
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_methodFinalThrow = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+  private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_methodFinalThrow = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -409,7 +409,7 @@ public class SinkServiceRpcServerHandler
     return _readerList;
   }
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_methodBothThrow = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+  private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_methodBothThrow = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -444,7 +444,7 @@ public class SinkServiceRpcServerHandler
     return _readerList;
   }
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_methodFast = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+  private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_methodFast = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -656,25 +656,25 @@ public class SinkServiceRpcServerHandler
     try {
       switch(_name) {
         case "method":
-          _result = com.facebook.thrift.server.generated.ServerSinks.handleSink(_payload, _chain, _method_method, _sinkPayloads);
+          _result = com.facebook.thrift.server.sink.ServerSinks.handleSink(_payload, _chain, _method_method, _sinkPayloads);
           break;
         case "methodAndReponse":
-          _result = com.facebook.thrift.server.generated.ServerSinks.handleSink(_payload, _chain, _method_methodAndReponse, _sinkPayloads);
+          _result = com.facebook.thrift.server.sink.ServerSinks.handleSink(_payload, _chain, _method_methodAndReponse, _sinkPayloads);
           break;
         case "methodThrow":
-          _result = com.facebook.thrift.server.generated.ServerSinks.handleSink(_payload, _chain, _method_methodThrow, _sinkPayloads);
+          _result = com.facebook.thrift.server.sink.ServerSinks.handleSink(_payload, _chain, _method_methodThrow, _sinkPayloads);
           break;
         case "methodSinkThrow":
-          _result = com.facebook.thrift.server.generated.ServerSinks.handleSink(_payload, _chain, _method_methodSinkThrow, _sinkPayloads);
+          _result = com.facebook.thrift.server.sink.ServerSinks.handleSink(_payload, _chain, _method_methodSinkThrow, _sinkPayloads);
           break;
         case "methodFinalThrow":
-          _result = com.facebook.thrift.server.generated.ServerSinks.handleSink(_payload, _chain, _method_methodFinalThrow, _sinkPayloads);
+          _result = com.facebook.thrift.server.sink.ServerSinks.handleSink(_payload, _chain, _method_methodFinalThrow, _sinkPayloads);
           break;
         case "methodBothThrow":
-          _result = com.facebook.thrift.server.generated.ServerSinks.handleSink(_payload, _chain, _method_methodBothThrow, _sinkPayloads);
+          _result = com.facebook.thrift.server.sink.ServerSinks.handleSink(_payload, _chain, _method_methodBothThrow, _sinkPayloads);
           break;
         case "methodFast":
-          _result = com.facebook.thrift.server.generated.ServerSinks.handleSink(_payload, _chain, _method_methodFast, _sinkPayloads);
+          _result = com.facebook.thrift.server.sink.ServerSinks.handleSink(_payload, _chain, _method_methodFast, _sinkPayloads);
           break;
         default: {
             _chain.preRead();

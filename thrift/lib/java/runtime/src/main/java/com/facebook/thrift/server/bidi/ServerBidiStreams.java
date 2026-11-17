@@ -14,11 +14,13 @@
  * limitations under the License.
  */
 
-package com.facebook.thrift.server.generated;
+package com.facebook.thrift.server.bidi;
 
 import com.facebook.swift.service.ContextChain;
 import com.facebook.thrift.payload.ServerRequestPayload;
 import com.facebook.thrift.payload.ServerResponsePayload;
+import com.facebook.thrift.server.sink.ServerSinks;
+import com.facebook.thrift.server.stream.ServerStreams;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 

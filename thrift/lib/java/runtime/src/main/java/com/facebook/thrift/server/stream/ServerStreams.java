@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.facebook.thrift.server.generated;
+package com.facebook.thrift.server.stream;
 
 import static com.facebook.thrift.util.RpcPayloadUtil.declaredExceptionResponseMetadata;
 import static com.facebook.thrift.util.RpcPayloadUtil.declaredExceptionStreamMetadata;
@@ -33,6 +33,7 @@ import com.facebook.thrift.payload.ServerResponsePayload;
 import com.facebook.thrift.payload.ThriftSerializable;
 import com.facebook.thrift.payload.Writer;
 import com.facebook.thrift.rsocket.server.ThriftServerRSocket;
+import com.facebook.thrift.server.ResponseWriterFactory;
 import com.facebook.thrift.util.Writers;
 import com.facebook.thrift.util.resources.RpcResources;
 import java.util.List;
@@ -59,6 +60,8 @@ public final class ServerStreams {
   /**
    * First-response value for plain streams. The {@link #EMPTY_FIRST_RESPONSE_WRITER} ignores it; it
    * exists only because a first response must never be null.
+   *
+   * <p>Runtime-internal: referenced by generated code and sibling server packages.
    */
   public static final Object NO_FIRST_RESPONSE = new Object();
 
@@ -66,6 +69,8 @@ public final class ServerStreams {
    * Writes the empty init first response for plain streams. Shared: it is type-free. The hook fires
    * after the bytes are written: firing it here (before serialization) would report a write that
    * never happened when serialization fails.
+   *
+   * <p>Runtime-internal: referenced by generated code and sibling server packages.
    */
   public static final ResponseWriterFactory EMPTY_FIRST_RESPONSE_WRITER =
       (o, chain) -> {
@@ -92,8 +97,10 @@ public final class ServerStreams {
    * Serves a stream, and fires the stream hooks only when {@code streamHooks} holds. A sink uses
    * this without them: it fires only its sink hooks, and the dispatcher's finishRequest fires
    * done().
+   *
+   * <p>Runtime-internal: called by the sink and bidi server packages.
    */
-  static <F, E> Flux<ServerResponsePayload> handleStream(
+  public static <F, E> Flux<ServerResponsePayload> handleStream(
       ServerRequestPayload requestPayload,
       ContextChain chain,
       StreamMethod<F, E> method,

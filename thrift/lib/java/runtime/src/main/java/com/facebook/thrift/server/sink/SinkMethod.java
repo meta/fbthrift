@@ -14,10 +14,13 @@
  * limitations under the License.
  */
 
-package com.facebook.thrift.server.generated;
+package com.facebook.thrift.server.sink;
 
 import com.facebook.thrift.model.ResponseAndStream;
 import com.facebook.thrift.payload.FieldReader;
+import com.facebook.thrift.server.ResponseWriterFactory;
+import com.facebook.thrift.server.stream.ServerStreams;
+import com.facebook.thrift.server.stream.StreamMethod;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;

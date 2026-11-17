@@ -19,23 +19,23 @@ public class PubSubStreamingServiceRpcServerHandler
   private final PubSubStreamingService.Reactive _delegate;
 
   private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _returnstreamReaders;
-  private final com.facebook.thrift.server.generated.StreamMethod<java.lang.Object,Integer> _method_returnstream;
+  private final com.facebook.thrift.server.stream.StreamMethod<java.lang.Object,Integer> _method_returnstream;
   private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _streamthrowsReaders;
-  private final com.facebook.thrift.server.generated.StreamMethod<java.lang.Object,Integer> _method_streamthrows;
+  private final com.facebook.thrift.server.stream.StreamMethod<java.lang.Object,Integer> _method_streamthrows;
   private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _servicethrowsReaders;
-  private final com.facebook.thrift.server.generated.StreamMethod<java.lang.Object,Integer> _method_servicethrows;
+  private final com.facebook.thrift.server.stream.StreamMethod<java.lang.Object,Integer> _method_servicethrows;
   private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _servicethrows2Readers;
-  private final com.facebook.thrift.server.generated.StreamMethod<java.lang.Object,Integer> _method_servicethrows2;
+  private final com.facebook.thrift.server.stream.StreamMethod<java.lang.Object,Integer> _method_servicethrows2;
   private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _boththrowsReaders;
-  private final com.facebook.thrift.server.generated.StreamMethod<java.lang.Object,Integer> _method_boththrows;
+  private final com.facebook.thrift.server.stream.StreamMethod<java.lang.Object,Integer> _method_boththrows;
   private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _responseandstreamstreamthrowsReaders;
-  private final com.facebook.thrift.server.generated.StreamMethod<Integer,Integer> _method_responseandstreamstreamthrows;
+  private final com.facebook.thrift.server.stream.StreamMethod<Integer,Integer> _method_responseandstreamstreamthrows;
   private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _responseandstreamservicethrowsReaders;
-  private final com.facebook.thrift.server.generated.StreamMethod<Integer,Integer> _method_responseandstreamservicethrows;
+  private final com.facebook.thrift.server.stream.StreamMethod<Integer,Integer> _method_responseandstreamservicethrows;
   private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _responseandstreamboththrowsReaders;
-  private final com.facebook.thrift.server.generated.StreamMethod<Integer,Integer> _method_responseandstreamboththrows;
+  private final com.facebook.thrift.server.stream.StreamMethod<Integer,Integer> _method_responseandstreamboththrows;
   private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _returnstreamFastReaders;
-  private final com.facebook.thrift.server.generated.StreamMethod<java.lang.Object,Integer> _method_returnstreamFast;
+  private final com.facebook.thrift.server.stream.StreamMethod<java.lang.Object,Integer> _method_returnstreamFast;
 
   private final java.util.List<com.facebook.swift.service.ThriftEventHandler> _eventHandlers;
 
@@ -60,7 +60,7 @@ public class PubSubStreamingServiceRpcServerHandler
     _methodMap.put("returnstream", this);
     _returnstreamReaders = _create_returnstream_request_readers();
     _method_returnstream =
-    new com.facebook.thrift.server.generated.StreamMethod<>(
+    new com.facebook.thrift.server.stream.StreamMethod<>(
       _returnstreamReaders,
       _args -> {
         java.util.Iterator _iterator = _args.iterator();
@@ -69,9 +69,9 @@ public class PubSubStreamingServiceRpcServerHandler
 
         return com.facebook.nifty.core.RequestContextScope.get(
             com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
-            () -> reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.generated.ServerStreams.NO_FIRST_RESPONSE, _delegate.returnstream(i32From, i32To))));
+            () -> reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.stream.ServerStreams.NO_FIRST_RESPONSE, _delegate.returnstream(i32From, i32To))));
       },
-      com.facebook.thrift.server.generated.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
+      com.facebook.thrift.server.stream.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
       _ResponseWriterFactory_returnstream,
       "returnstream",
       new Class[]{  },
@@ -83,7 +83,7 @@ public class PubSubStreamingServiceRpcServerHandler
     _methodMap.put("streamthrows", this);
     _streamthrowsReaders = _create_streamthrows_request_readers();
     _method_streamthrows =
-    new com.facebook.thrift.server.generated.StreamMethod<>(
+    new com.facebook.thrift.server.stream.StreamMethod<>(
       _streamthrowsReaders,
       _args -> {
         java.util.Iterator _iterator = _args.iterator();
@@ -91,9 +91,9 @@ public class PubSubStreamingServiceRpcServerHandler
 
         return com.facebook.nifty.core.RequestContextScope.get(
             com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
-            () -> reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.generated.ServerStreams.NO_FIRST_RESPONSE, _delegate.streamthrows(foo))));
+            () -> reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.stream.ServerStreams.NO_FIRST_RESPONSE, _delegate.streamthrows(foo))));
       },
-      com.facebook.thrift.server.generated.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
+      com.facebook.thrift.server.stream.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
       _ResponseWriterFactory_streamthrows,
       "streamthrows",
       new Class[]{  },
@@ -105,7 +105,7 @@ public class PubSubStreamingServiceRpcServerHandler
     _methodMap.put("servicethrows", this);
     _servicethrowsReaders = _create_servicethrows_request_readers();
     _method_servicethrows =
-    new com.facebook.thrift.server.generated.StreamMethod<>(
+    new com.facebook.thrift.server.stream.StreamMethod<>(
       _servicethrowsReaders,
       _args -> {
         java.util.Iterator _iterator = _args.iterator();
@@ -113,9 +113,9 @@ public class PubSubStreamingServiceRpcServerHandler
 
         return com.facebook.nifty.core.RequestContextScope.get(
             com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
-            () -> reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.generated.ServerStreams.NO_FIRST_RESPONSE, _delegate.servicethrows(foo))));
+            () -> reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.stream.ServerStreams.NO_FIRST_RESPONSE, _delegate.servicethrows(foo))));
       },
-      com.facebook.thrift.server.generated.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
+      com.facebook.thrift.server.stream.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
       _ResponseWriterFactory_servicethrows,
       "servicethrows",
       new Class[]{ test.fixtures.stream.FooEx.class },
@@ -127,7 +127,7 @@ public class PubSubStreamingServiceRpcServerHandler
     _methodMap.put("servicethrows2", this);
     _servicethrows2Readers = _create_servicethrows2_request_readers();
     _method_servicethrows2 =
-    new com.facebook.thrift.server.generated.StreamMethod<>(
+    new com.facebook.thrift.server.stream.StreamMethod<>(
       _servicethrows2Readers,
       _args -> {
         java.util.Iterator _iterator = _args.iterator();
@@ -135,9 +135,9 @@ public class PubSubStreamingServiceRpcServerHandler
 
         return com.facebook.nifty.core.RequestContextScope.get(
             com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
-            () -> reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.generated.ServerStreams.NO_FIRST_RESPONSE, _delegate.servicethrows2(foo))));
+            () -> reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.stream.ServerStreams.NO_FIRST_RESPONSE, _delegate.servicethrows2(foo))));
       },
-      com.facebook.thrift.server.generated.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
+      com.facebook.thrift.server.stream.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
       _ResponseWriterFactory_servicethrows2,
       "servicethrows2",
       new Class[]{ test.fixtures.stream.FooEx.class,test.fixtures.stream.FooEx2.class },
@@ -149,7 +149,7 @@ public class PubSubStreamingServiceRpcServerHandler
     _methodMap.put("boththrows", this);
     _boththrowsReaders = _create_boththrows_request_readers();
     _method_boththrows =
-    new com.facebook.thrift.server.generated.StreamMethod<>(
+    new com.facebook.thrift.server.stream.StreamMethod<>(
       _boththrowsReaders,
       _args -> {
         java.util.Iterator _iterator = _args.iterator();
@@ -157,9 +157,9 @@ public class PubSubStreamingServiceRpcServerHandler
 
         return com.facebook.nifty.core.RequestContextScope.get(
             com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
-            () -> reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.generated.ServerStreams.NO_FIRST_RESPONSE, _delegate.boththrows(foo))));
+            () -> reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.stream.ServerStreams.NO_FIRST_RESPONSE, _delegate.boththrows(foo))));
       },
-      com.facebook.thrift.server.generated.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
+      com.facebook.thrift.server.stream.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
       _ResponseWriterFactory_boththrows,
       "boththrows",
       new Class[]{ test.fixtures.stream.FooEx.class },
@@ -171,7 +171,7 @@ public class PubSubStreamingServiceRpcServerHandler
     _methodMap.put("responseandstreamstreamthrows", this);
     _responseandstreamstreamthrowsReaders = _create_responseandstreamstreamthrows_request_readers();
     _method_responseandstreamstreamthrows =
-    new com.facebook.thrift.server.generated.StreamMethod<>(
+    new com.facebook.thrift.server.stream.StreamMethod<>(
       _responseandstreamstreamthrowsReaders,
       _args -> {
         java.util.Iterator _iterator = _args.iterator();
@@ -193,7 +193,7 @@ public class PubSubStreamingServiceRpcServerHandler
     _methodMap.put("responseandstreamservicethrows", this);
     _responseandstreamservicethrowsReaders = _create_responseandstreamservicethrows_request_readers();
     _method_responseandstreamservicethrows =
-    new com.facebook.thrift.server.generated.StreamMethod<>(
+    new com.facebook.thrift.server.stream.StreamMethod<>(
       _responseandstreamservicethrowsReaders,
       _args -> {
         java.util.Iterator _iterator = _args.iterator();
@@ -215,7 +215,7 @@ public class PubSubStreamingServiceRpcServerHandler
     _methodMap.put("responseandstreamboththrows", this);
     _responseandstreamboththrowsReaders = _create_responseandstreamboththrows_request_readers();
     _method_responseandstreamboththrows =
-    new com.facebook.thrift.server.generated.StreamMethod<>(
+    new com.facebook.thrift.server.stream.StreamMethod<>(
       _responseandstreamboththrowsReaders,
       _args -> {
         java.util.Iterator _iterator = _args.iterator();
@@ -237,7 +237,7 @@ public class PubSubStreamingServiceRpcServerHandler
     _methodMap.put("returnstreamFast", this);
     _returnstreamFastReaders = _create_returnstreamFast_request_readers();
     _method_returnstreamFast =
-    new com.facebook.thrift.server.generated.StreamMethod<>(
+    new com.facebook.thrift.server.stream.StreamMethod<>(
       _returnstreamFastReaders,
       _args -> {
         java.util.Iterator _iterator = _args.iterator();
@@ -246,9 +246,9 @@ public class PubSubStreamingServiceRpcServerHandler
 
         return com.facebook.nifty.core.RequestContextScope.get(
             com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
-            () -> reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.generated.ServerStreams.NO_FIRST_RESPONSE, _delegate.returnstreamFast(i32From, i32To))));
+            () -> reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.stream.ServerStreams.NO_FIRST_RESPONSE, _delegate.returnstreamFast(i32From, i32To))));
       },
-      com.facebook.thrift.server.generated.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
+      com.facebook.thrift.server.stream.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
       _ResponseWriterFactory_returnstreamFast,
       "returnstreamFast",
       new Class[]{  },
@@ -269,7 +269,7 @@ public class PubSubStreamingServiceRpcServerHandler
     return _readerList;
   }
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_returnstream = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+  private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_returnstream = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -297,7 +297,7 @@ public class PubSubStreamingServiceRpcServerHandler
     return _readerList;
   }
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_streamthrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+  private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_streamthrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -325,7 +325,7 @@ public class PubSubStreamingServiceRpcServerHandler
     return _readerList;
   }
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_servicethrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+  private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_servicethrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -353,7 +353,7 @@ public class PubSubStreamingServiceRpcServerHandler
     return _readerList;
   }
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_servicethrows2 = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+  private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_servicethrows2 = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -381,7 +381,7 @@ public class PubSubStreamingServiceRpcServerHandler
     return _readerList;
   }
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_boththrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+  private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_boththrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -409,7 +409,7 @@ public class PubSubStreamingServiceRpcServerHandler
     return _readerList;
   }
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_responseandstreamstreamthrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+  private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_responseandstreamstreamthrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -428,7 +428,7 @@ public class PubSubStreamingServiceRpcServerHandler
     };
   };
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _first_ResponseWriterFactory_responseandstreamstreamthrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+  private final static com.facebook.thrift.server.ResponseWriterFactory _first_ResponseWriterFactory_responseandstreamstreamthrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -458,7 +458,7 @@ public class PubSubStreamingServiceRpcServerHandler
     return _readerList;
   }
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_responseandstreamservicethrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+  private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_responseandstreamservicethrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -477,7 +477,7 @@ public class PubSubStreamingServiceRpcServerHandler
     };
   };
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _first_ResponseWriterFactory_responseandstreamservicethrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+  private final static com.facebook.thrift.server.ResponseWriterFactory _first_ResponseWriterFactory_responseandstreamservicethrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -507,7 +507,7 @@ public class PubSubStreamingServiceRpcServerHandler
     return _readerList;
   }
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_responseandstreamboththrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+  private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_responseandstreamboththrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -526,7 +526,7 @@ public class PubSubStreamingServiceRpcServerHandler
     };
   };
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _first_ResponseWriterFactory_responseandstreamboththrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+  private final static com.facebook.thrift.server.ResponseWriterFactory _first_ResponseWriterFactory_responseandstreamboththrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -557,7 +557,7 @@ public class PubSubStreamingServiceRpcServerHandler
     return _readerList;
   }
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_returnstreamFast = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+  private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_returnstreamFast = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -611,31 +611,31 @@ public class PubSubStreamingServiceRpcServerHandler
     try {
       switch(_name) {
         case "returnstream":
-          _result = com.facebook.thrift.server.generated.ServerStreams.handleStream(_payload, _chain, _method_returnstream);
+          _result = com.facebook.thrift.server.stream.ServerStreams.handleStream(_payload, _chain, _method_returnstream);
           break;
         case "streamthrows":
-          _result = com.facebook.thrift.server.generated.ServerStreams.handleStream(_payload, _chain, _method_streamthrows);
+          _result = com.facebook.thrift.server.stream.ServerStreams.handleStream(_payload, _chain, _method_streamthrows);
           break;
         case "servicethrows":
-          _result = com.facebook.thrift.server.generated.ServerStreams.handleStream(_payload, _chain, _method_servicethrows);
+          _result = com.facebook.thrift.server.stream.ServerStreams.handleStream(_payload, _chain, _method_servicethrows);
           break;
         case "servicethrows2":
-          _result = com.facebook.thrift.server.generated.ServerStreams.handleStream(_payload, _chain, _method_servicethrows2);
+          _result = com.facebook.thrift.server.stream.ServerStreams.handleStream(_payload, _chain, _method_servicethrows2);
           break;
         case "boththrows":
-          _result = com.facebook.thrift.server.generated.ServerStreams.handleStream(_payload, _chain, _method_boththrows);
+          _result = com.facebook.thrift.server.stream.ServerStreams.handleStream(_payload, _chain, _method_boththrows);
           break;
         case "responseandstreamstreamthrows":
-          _result = com.facebook.thrift.server.generated.ServerStreams.handleStream(_payload, _chain, _method_responseandstreamstreamthrows);
+          _result = com.facebook.thrift.server.stream.ServerStreams.handleStream(_payload, _chain, _method_responseandstreamstreamthrows);
           break;
         case "responseandstreamservicethrows":
-          _result = com.facebook.thrift.server.generated.ServerStreams.handleStream(_payload, _chain, _method_responseandstreamservicethrows);
+          _result = com.facebook.thrift.server.stream.ServerStreams.handleStream(_payload, _chain, _method_responseandstreamservicethrows);
           break;
         case "responseandstreamboththrows":
-          _result = com.facebook.thrift.server.generated.ServerStreams.handleStream(_payload, _chain, _method_responseandstreamboththrows);
+          _result = com.facebook.thrift.server.stream.ServerStreams.handleStream(_payload, _chain, _method_responseandstreamboththrows);
           break;
         case "returnstreamFast":
-          _result = com.facebook.thrift.server.generated.ServerStreams.handleStream(_payload, _chain, _method_returnstreamFast);
+          _result = com.facebook.thrift.server.stream.ServerStreams.handleStream(_payload, _chain, _method_returnstreamFast);
           break;
         default: {
             _chain.preRead();
