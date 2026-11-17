@@ -219,6 +219,8 @@ constexpr SerializerMethod getSerializerMethod(std::string_view prefix) {
   M(Prefix, proto, BigListBigInt)      \
   M(Prefix, proto, BigListFloat)       \
   M(Prefix, proto, BigListDouble)      \
+  M(Prefix, proto, BigListSmallInt)    \
+  M(Prefix, proto, BigListWideBigInt)  \
   M(Prefix, proto, BigListMixed)       \
   M(Prefix, proto, BigListMixedByte)   \
   M(Prefix, proto, BigListMixedShort)  \

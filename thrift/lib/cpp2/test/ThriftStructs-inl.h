@@ -15,7 +15,9 @@
  */
 
 #pragma once
+#include <random>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include <folly/Random.h>
@@ -167,13 +169,16 @@ create<thrift::benchmark::OpMixedUnion>() {
   return d;
 }
 
-template <class T>
-inline T createList(int size) {
-  std::mt19937 rng;
+// Fills the list with random values of `valueBits` bits.
+template <class T, class Rng = std::mt19937>
+inline T createList(int size, int valueBits = Rng::word_size) {
+  Rng rng;
   T d;
-  d.lst()->resize(size);
-  for (int i = 0; i < size; ++i) {
-    d.lst()->at(i) = rng();
+  auto& list = *d.lst();
+  list.resize(size);
+  using Value = typename std::remove_reference_t<decltype(list)>::value_type;
+  for (auto& value : list) {
+    value = static_cast<Value>(rng() >> (Rng::word_size - valueBits));
   }
   return d;
 }
@@ -258,6 +263,34 @@ template <>
 inline thrift::benchmark::OpBigListDouble
 create<thrift::benchmark::OpBigListDouble>() {
   return createList<thrift::benchmark::OpBigListDouble>(10000);
+}
+
+// One- and two-byte varints in random order.
+template <>
+inline thrift::benchmark::BigListSmallInt
+create<thrift::benchmark::BigListSmallInt>() {
+  return createList<thrift::benchmark::BigListSmallInt>(10000, 7);
+}
+
+template <>
+inline thrift::benchmark::OpBigListSmallInt
+create<thrift::benchmark::OpBigListSmallInt>() {
+  return createList<thrift::benchmark::OpBigListSmallInt>(10000, 7);
+}
+
+// Nine- and ten-byte varints, like hashes.
+template <>
+inline thrift::benchmark::BigListWideBigInt
+create<thrift::benchmark::BigListWideBigInt>() {
+  return createList<thrift::benchmark::BigListWideBigInt, std::mt19937_64>(
+      10000);
+}
+
+template <>
+inline thrift::benchmark::OpBigListWideBigInt
+create<thrift::benchmark::OpBigListWideBigInt>() {
+  return createList<thrift::benchmark::OpBigListWideBigInt, std::mt19937_64>(
+      10000);
 }
 
 template <>

@@ -93,6 +93,14 @@ struct BigListDouble {
   1: list<double> lst;
 }
 
+struct BigListSmallInt {
+  1: list<i32> lst;
+}
+
+struct BigListWideBigInt {
+  1: list<i64> lst;
+}
+
 struct BigListMixed {
   1: list<Mixed> lst;
 }
@@ -596,6 +604,16 @@ struct OpBigListFloat {
 @cpp.UseOpEncode
 struct OpBigListDouble {
   1: list<double> lst;
+}
+
+@cpp.UseOpEncode
+struct OpBigListSmallInt {
+  1: list<i32> lst;
+}
+
+@cpp.UseOpEncode
+struct OpBigListWideBigInt {
+  1: list<i64> lst;
 }
 
 @cpp.UseOpEncode
