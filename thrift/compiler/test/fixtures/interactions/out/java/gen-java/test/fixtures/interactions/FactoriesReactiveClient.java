@@ -540,6 +540,18 @@ public class FactoriesReactiveClient
       return interactWithSinkAndInitialResponse( payloads, com.facebook.thrift.client.RpcOptions.EMPTY);
   }
 
+  @java.lang.Override
+  public reactor.core.publisher.Flux<Integer> interactWithBidi( org.reactivestreams.Publisher<Integer> payloads) {
+      // Bidi calls are not implemented on the Java client yet.
+      throw new UnsupportedOperationException();
+  }
+
+  @java.lang.Override
+  public reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer, Integer>> interactWithBidiAndInitialResponse( org.reactivestreams.Publisher<Integer> payloads) {
+      // Bidi calls are not implemented on the Java client yet.
+      throw new UnsupportedOperationException();
+  }
+
   public class MyInteractionImpl implements MyInteraction {
     private final long interactionId;
 

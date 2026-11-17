@@ -33,6 +33,14 @@ exception CustomException {
   1: string message;
 }
 
+exception SinkException {
+  1: string message;
+}
+
+exception FinalException {
+  1: string message;
+}
+
 service PingService {
   PingResponse ping(1: PingRequest key);
   binary pingBinary(1: PingRequest key);
@@ -55,6 +63,17 @@ service ExtendedPing extends PingService {
     1: PingRequest key,
     2: i32 numberOfPings,
   );
+  sink<
+    PingRequest throws (1: SinkException ex),
+    PingResponse throws (1: FinalException ex)
+  > sinkPings(1: PingRequest key) throws (1: CustomException ex);
+  PingResponse, sink<PingRequest, PingResponse> sinkWithFirstResponse(
+    1: PingRequest key,
+  );
+  sink<PingRequest throws (1: SinkException ex)>, stream<
+    PingResponse throws (1: CustomException ex)
+  > bidiPings(1: PingRequest key);
+  i32, sink<i32>, stream<i64> bidiSums(1: i32 start);
 }
 
 service PingA {

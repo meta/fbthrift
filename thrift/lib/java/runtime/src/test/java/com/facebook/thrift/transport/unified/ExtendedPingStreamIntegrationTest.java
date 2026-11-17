@@ -27,8 +27,10 @@ import com.facebook.thrift.client.RpcOptions;
 import com.facebook.thrift.client.ThriftClientConfig;
 import com.facebook.thrift.example.ping.CustomException;
 import com.facebook.thrift.example.ping.ExtendedPing;
+import com.facebook.thrift.example.ping.FinalException;
 import com.facebook.thrift.example.ping.PingRequest;
 import com.facebook.thrift.example.ping.PingResponse;
+import com.facebook.thrift.example.ping.SinkException;
 import com.facebook.thrift.model.ResponseAndStream;
 import com.facebook.thrift.model.StreamResponse;
 import com.facebook.thrift.payload.ClientRequestPayload;
@@ -93,7 +95,9 @@ import org.apache.thrift.ProtocolId;
 import org.apache.thrift.RequestRpcMetadata;
 import org.apache.thrift.RpcKind;
 import org.apache.thrift.TApplicationException;
+import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TField;
+import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.protocol.TStruct;
 import org.apache.thrift.protocol.TType;
 import org.junit.jupiter.api.AfterAll;
@@ -2251,6 +2255,295 @@ public class ExtendedPingStreamIntegrationTest {
         .getResponse();
   }
 
+  @Test
+  public void generatedClientSinkReadsTheSinkAndEndsTheRequestOnce() throws Exception {
+    SinkHookLog hooks = new SinkHookLog(false);
+    startServer(new ExtendedReactivePingService(), ImmutableList.of(hooks));
+
+    StepVerifier.create(
+            client(ProtocolId.COMPACT)
+                .sinkPings(pingRequest("hello"), Flux.just(pingRequest("a"), pingRequest("b"))))
+        .assertNext(last -> Assertions.assertEquals("hello: a,b", last.getResponse()))
+        .verifyComplete();
+
+    Assertions.assertTrue(hooks.done.await(5, TimeUnit.SECONDS));
+    Assertions.assertEquals(
+        Arrays.asList("subscribe", "next", "next", "finally COMPLETE", "done"), hooks.events);
+  }
+
+  @Test
+  public void generatedClientSinkWithAFirstResponse() throws Exception {
+    startServer(new ExtendedReactivePingService(), Collections.emptyList());
+
+    List<StreamResponse<PingResponse, PingResponse>> responses =
+        client(ProtocolId.COMPACT)
+            .sinkWithFirstResponse(pingRequest("hello"), Flux.just(pingRequest("a")))
+            .collectList()
+            .block();
+
+    Assertions.assertEquals("hello_first", responses.get(0).getFirstResponse().getResponse());
+    Assertions.assertEquals("read 1", responses.get(1).getData().getResponse());
+  }
+
+  @Test
+  public void generatedSinkSendsADeclaredFunctionExceptionThrownBeforeItsSink() throws Exception {
+    startServer(new ExtendedReactivePingService(), Collections.emptyList());
+
+    StepVerifier.create(client(ProtocolId.COMPACT).sinkPings(pingRequest("throw"), Flux.never()))
+        .expectError(CustomException.class)
+        .verify();
+  }
+
+  /**
+   * A sink without a first response maps an error that its final response carries against the
+   * final-response exceptions, so a declared function exception that comes asynchronously is
+   * undeclared there, as for streams.
+   */
+  @Test
+  public void generatedSinkSendsAnAsynchronousFunctionExceptionAsUndeclared() throws Exception {
+    startServer(new ExtendedReactivePingService(), Collections.emptyList());
+
+    StepVerifier.create(
+            client(ProtocolId.COMPACT).sinkPings(pingRequest("asyncThrow"), Flux.empty()))
+        .expectErrorSatisfies(
+            e -> Assertions.assertFalse(e instanceof CustomException, e.toString()))
+        .verify();
+  }
+
+  @Test
+  public void generatedSinkSendsADeclaredFinalException() throws Exception {
+    startServer(new ExtendedReactivePingService(), Collections.emptyList());
+
+    StepVerifier.create(
+            client(ProtocolId.COMPACT).sinkPings(pingRequest("final"), Flux.just(pingRequest("a"))))
+        .expectError(FinalException.class)
+        .verify();
+  }
+
+  @Test
+  public void generatedSinkReaderGetsADeclaredSinkException() throws Exception {
+    startServer(new ExtendedReactivePingService(), Collections.emptyList());
+    RpcClient client = channelClient(serverAddress, new FrameLog());
+
+    StepVerifier.create(
+            client.streamingRequestStreamingResponse(
+                Flux.just(
+                    channelRequest("sinkPings", RpcKind.SINK, pingArgsWriter("hello")),
+                    channelRequest("sinkPings", RpcKind.SINK, sinkPayloadWriter("a")),
+                    channelRequest(
+                        "sinkPings",
+                        RpcKind.SINK,
+                        sinkExceptionWriter(
+                            new SinkException.Builder().setMessage("peer").build()::write0))),
+                RpcOptions.EMPTY))
+        .expectNextCount(1)
+        .assertNext(last -> Assertions.assertEquals("sink exception: peer", finalResponse(last)))
+        .verifyComplete();
+  }
+
+  @Test
+  public void generatedSinkCancelEndsTheSinkWithAnErrorAndTheRequestOnce() throws Exception {
+    SinkHookLog hooks = new SinkHookLog(false);
+    startServer(new ExtendedReactivePingService(), ImmutableList.of(hooks));
+
+    Disposable call =
+        client(ProtocolId.COMPACT)
+            .sinkPings(pingRequest("hello"), Flux.concat(Flux.just(pingRequest("a")), Flux.never()))
+            .subscribe(null, e -> {});
+
+    hooks.events.awaitSize(2);
+    call.dispose();
+
+    Assertions.assertTrue(hooks.done.await(5, TimeUnit.SECONDS));
+    Assertions.assertEquals(
+        Arrays.asList("subscribe", "next", "cancel", "finally ERROR", "done"), hooks.events);
+  }
+
+  @Test
+  public void generatedSinkShedByPreprocessEndsTheRequestOnce() throws Exception {
+    SinkHookLog hooks = new SinkHookLog(true);
+    startServer(new ExtendedReactivePingService(), ImmutableList.of(hooks));
+
+    StepVerifier.create(client(ProtocolId.COMPACT).sinkPings(pingRequest("hello"), Flux.never()))
+        .expectError()
+        .verify();
+
+    Assertions.assertTrue(hooks.done.await(5, TimeUnit.SECONDS));
+    Assertions.assertEquals(Collections.singletonList("done"), hooks.events);
+  }
+
+  @Test
+  public void generatedServiceSendsUnknownMethodForAChannelMethodItDoesNotHave() throws Exception {
+    startServer(new ExtendedReactivePingService(), Collections.emptyList());
+    FrameLog frames = new FrameLog();
+    RpcClient client = channelClient(serverAddress, frames);
+
+    StepVerifier.create(
+            client.streamingRequestStreamingResponse(
+                Flux.just(channelRequest("noSuchMethod", RpcKind.SINK, pingArgsWriter("hello"))),
+                RpcOptions.EMPTY))
+        .assertNext(
+            only -> Assertions.assertTrue(only.getException() instanceof TApplicationException))
+        .verifyComplete();
+
+    Assertions.assertEquals(Collections.singletonList("ERROR"), frames.fromServer);
+  }
+
+  @Test
+  public void generatedBidiAnswersEachSinkElement() throws Exception {
+    startServer(new ExtendedReactivePingService(), Collections.emptyList());
+    FrameLog frames = new FrameLog();
+    RpcClient client = channelClient(serverAddress, frames);
+
+    StepVerifier.create(
+            client.streamingRequestStreamingResponse(
+                Flux.just(
+                    channelRequest("bidiPings", RpcKind.BIDIRECTIONAL_STREAM, pingArgsWriter("k")),
+                    channelRequest(
+                        "bidiPings", RpcKind.BIDIRECTIONAL_STREAM, sinkPayloadWriter("a")),
+                    channelRequest(
+                        "bidiPings",
+                        RpcKind.BIDIRECTIONAL_STREAM,
+                        sinkExceptionWriter(
+                            new SinkException.Builder().setMessage("peer").build()::write0))),
+                RpcOptions.EMPTY))
+        .expectNextCount(1)
+        .assertNext(element -> Assertions.assertEquals("k: a", finalResponse(element)))
+        .assertNext(
+            element -> Assertions.assertEquals("sink exception: peer", finalResponse(element)))
+        .verifyComplete();
+
+    Assertions.assertEquals(
+        Arrays.asList("NEXT", "REQUEST_N", "NEXT", "NEXT", "COMPLETE"), frames.fromServer);
+  }
+
+  @Test
+  public void generatedBidiSendsADeclaredStreamExceptionInBand() throws Exception {
+    startServer(new ExtendedReactivePingService(), Collections.emptyList());
+    FrameLog frames = new FrameLog();
+    RpcClient client = channelClient(serverAddress, frames);
+
+    List<ClientResponsePayload<Object>> items =
+        client
+            .<Object, Object>streamingRequestStreamingResponse(
+                Flux.just(
+                    channelRequest(
+                        "bidiPings", RpcKind.BIDIRECTIONAL_STREAM, pingArgsWriter("streamThrow")),
+                    channelRequest(
+                        "bidiPings", RpcKind.BIDIRECTIONAL_STREAM, sinkPayloadWriter("a"))),
+                RpcOptions.EMPTY)
+            .collectList()
+            .block();
+
+    Assertions.assertEquals("streamThrow: a", finalResponse(items.get(1)));
+    Assertions.assertNotNull(items.get(2).getException());
+    Assertions.assertFalse(frames.fromServer.contains("ERROR"));
+  }
+
+  @Test
+  public void generatedBidiSendsBoxedElementsAfterItsFirstResponse() throws Exception {
+    startServer(new ExtendedReactivePingService(), Collections.emptyList());
+    RpcClient client = channelClient(serverAddress, new FrameLog());
+
+    List<ClientResponsePayload<Object>> items =
+        client
+            .<Object, Object>streamingRequestStreamingResponse(
+                Flux.just(
+                    sumsRequest(i32Field((short) 1, 10)),
+                    sumsRequest(i32Field((short) 0, 1)),
+                    sumsRequest(i32Field((short) 0, 2))),
+                RpcOptions.EMPTY)
+            .collectList()
+            .block();
+
+    Assertions.assertEquals(10, ((StreamResponse<?, ?>) items.get(0).getData()).getFirstResponse());
+    Assertions.assertEquals(11L, ((StreamResponse<?, ?>) items.get(1).getData()).getData());
+    Assertions.assertEquals(13L, ((StreamResponse<?, ?>) items.get(2).getData()).getData());
+  }
+
+  private static ClientRequestPayload<Object> sumsRequest(Writer writer) {
+    return ClientRequestPayload.create(
+        "PingService",
+        writer,
+        TProtocol::readI64,
+        TProtocol::readI32,
+        Collections.emptyMap(),
+        Collections.emptyMap(),
+        new RequestRpcMetadata.Builder()
+            .setName("bidiSums")
+            .setKind(RpcKind.BIDIRECTIONAL_STREAM)
+            .setProtocol(TProtocolType.TCompact.getProtocolId())
+            .setOtherMetadata(Collections.emptyMap())
+            .build(),
+        Collections.emptyMap());
+  }
+
+  private static Writer i32Field(short id, int value) {
+    return out -> {
+      out.writeFieldBegin(new TField("value", TType.I32, id));
+      out.writeI32(value);
+      out.writeFieldEnd();
+    };
+  }
+
+  private static PingRequest pingRequest(String text) {
+    return new PingRequest.Builder().setRequest(text).build();
+  }
+
+  /** Records the sink hooks and done() of a call in call order; it can shed the call instead. */
+  private static final class SinkHookLog implements StreamEventHandler {
+    final Recorded<String> events = new Recorded<>();
+    final CountDownLatch done = new CountDownLatch(1);
+    private final boolean shed;
+
+    SinkHookLog(boolean shed) {
+      this.shed = shed;
+    }
+
+    @Override
+    public Object getContext(String methodName, RequestContext requestContext) {
+      return new Object();
+    }
+
+    @Override
+    public void preprocess(Object context, String methodName) throws TException {
+      if (shed) {
+        throw new TApplicationException(TApplicationException.LOADSHEDDING, "shed");
+      }
+    }
+
+    @Override
+    public void onSinkSubscribe(Object context, String methodName) {
+      events.add("subscribe");
+    }
+
+    @Override
+    public void onSinkNext(Object context, String methodName, long sequenceNumber) {
+      events.add("next");
+    }
+
+    @Override
+    public void onSinkCancel(Object context, String methodName) {
+      events.add("cancel");
+    }
+
+    @Override
+    public void handleSinkError(Object context, String methodName, Throwable error) {
+      events.add("error");
+    }
+
+    @Override
+    public void onSinkFinally(Object context, String methodName, SinkOutcome outcome) {
+      events.add("finally " + outcome);
+    }
+
+    @Override
+    public void done(Object context, String methodName) {
+      events.add("done");
+      done.countDown();
+    }
+  }
+
   /**
    * A generated sink method on the runtime of this commit, as the codegen commit emits it. A null
    * first-response value means no first response.
@@ -2292,9 +2585,14 @@ public class ExtendedPingStreamIntegrationTest {
   }
 
   private static Writer declaredSinkExceptionWriter(String message) {
+    return sinkExceptionWriter(new CustomException.Builder().setMessage(message).build()::write0);
+  }
+
+  /** A sink payload that carries a declared sink exception, at field 1, in place of an element. */
+  private static Writer sinkExceptionWriter(Writer exception) {
     return out -> {
       out.writeFieldBegin(new TField("ex", TType.STRUCT, (short) 1));
-      new CustomException.Builder().setMessage(message).build().write0(out);
+      exception.write(out);
       out.writeFieldEnd();
     };
   }
@@ -2412,6 +2710,11 @@ public class ExtendedPingStreamIntegrationTest {
   }
 
   private static ClientRequestPayload<Object> channelRequest(RpcKind kind, Writer writer) {
+    return channelRequest("channel", kind, writer);
+  }
+
+  private static ClientRequestPayload<Object> channelRequest(
+      String name, RpcKind kind, Writer writer) {
     return ClientRequestPayload.create(
         "PingService",
         writer,
@@ -2420,7 +2723,7 @@ public class ExtendedPingStreamIntegrationTest {
         Collections.emptyMap(),
         Collections.emptyMap(),
         new RequestRpcMetadata.Builder()
-            .setName("channel")
+            .setName(name)
             .setKind(kind)
             .setProtocol(TProtocolType.TCompact.getProtocolId())
             .setOtherMetadata(Collections.emptyMap())

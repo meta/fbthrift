@@ -73,6 +73,24 @@ public class BiDiServiceReactiveClient
   }
 
 
+  @java.lang.Override
+  public reactor.core.publisher.Flux<Short> simple( org.reactivestreams.Publisher<Integer> payloads) {
+      // Bidi calls are not implemented on the Java client yet.
+      throw new UnsupportedOperationException();
+  }
+
+  @java.lang.Override
+  public reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<String, Short>> response( org.reactivestreams.Publisher<Integer> payloads) {
+      // Bidi calls are not implemented on the Java client yet.
+      throw new UnsupportedOperationException();
+  }
+
+  @java.lang.Override
+  public reactor.core.publisher.Flux<Long> canThrow( org.reactivestreams.Publisher<Long> payloads) {
+      // Bidi calls are not implemented on the Java client yet.
+      throw new UnsupportedOperationException();
+  }
+
 
   private reactor.core.publisher.Mono<Map<String, String>> getHeaders(com.facebook.thrift.client.RpcOptions rpcOptions) {
       Map<String, String> requestHeaders = new HashMap<>();

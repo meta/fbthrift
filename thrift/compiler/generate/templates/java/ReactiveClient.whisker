@@ -430,6 +430,18 @@ public class {{service.javaCapitalName}}ReactiveClient {{#if (object.notnull? se
   }
 
   {{/each}}
+  {{#each service.bidi_functions as |func|}}
+  @java.lang.Override
+  {{#if func.sink_has_first_response?}}
+  public reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<{{#partial types.boxed_type type=func.return_type field_hasAdapter=false}}, {{#partial types.boxed_type type=func.stream.elem_type field_hasAdapter=false}}>> {{func.java_name}}({{#each func.params.fields as |field|}}final {{#partial types.java_type type=field.type has_adapter_override=field.hasAdapter?}} {{field.javaName}}, {{/each}} org.reactivestreams.Publisher<{{#partial types.boxed_type type=func.sink.elem_type field_hasAdapter=false}}> payloads) {
+  {{#else}}
+  public reactor.core.publisher.Flux<{{#partial types.boxed_type type=func.stream.elem_type field_hasAdapter=false}}> {{func.java_name}}({{#each func.params.fields as |field|}}final {{#partial types.java_type type=field.type has_adapter_override=field.hasAdapter?}} {{field.javaName}}, {{/each}} org.reactivestreams.Publisher<{{#partial types.boxed_type type=func.sink.elem_type field_hasAdapter=false}}> payloads) {
+  {{/if func.sink_has_first_response?}}
+      // Bidi calls are not implemented on the Java client yet.
+      throw new UnsupportedOperationException();
+  }
+
+  {{/each}}
   {{#each service.interactions as |interaction|}}
   public class {{interaction.name}}Impl implements {{interaction.name}} {
     private final long interactionId;

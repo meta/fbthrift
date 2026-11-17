@@ -103,20 +103,11 @@ java2/ThriftRPCServerTest/InteractionConstructorTest/Success.InteractionConstruc
 java2/ThriftRPCServerTest/InteractionFactoryFunctionPersistsStateTest/Success.InteractionFactoryFunctionPersistsStateTest
 java2/ThriftRPCServerTest/InteractionFactoryFunctionTerminationTest/Success.InteractionFactoryFunctionTerminationTest
 java2/ThriftRPCServerTest/InteractionFactoryFunctionTest/Success.InteractionFactoryFunctionTest
-java2/ThriftRPCServerTest/SinkBasic/Success.SinkBasicTest
-java2/ThriftRPCServerTest/SinkInitialResponse/Success.SinkInitialResponseTest
-java2/ThriftRPCServerTest/SinkDeclaredException/Success.SinkDeclaredExceptionTest
-java2/ThriftRPCServerTest/SinkUndeclaredException/Success.SinkUndeclaredExceptionTest
-java2/ThriftRPCServerTest/SinkSubsequestCredits/Success.SinkSubsequentCreditsTest
+# Java server has no sink chunk timer
 java2/ThriftRPCServerTest/SinkChunkTimeout/Success.SinkChunkTimeoutTest
-java2/ThriftRPCServerTest/SinkFragmentation/Success.SinkFragmentationTest
-# Java server does not implement sink yet
-java2/ThriftRPCServerTest/SinkInitialDeclaredException/Success.SinkInitialDeclaredExceptionTest
-java2/ThriftRPCServerTest/SinkServerDeclaredException/Success.SinkServerDeclaredExceptionTest
 
-# Java does not support BiDi streaming codegen
+# Java client does not implement bidi
 java2/ThriftRPCClientTest/Bidi*
-java2/ThriftRPCServerTest/Bidi*
 
 # All type change tests are failing in Java
 java2/CompatibilityTest/testset.binary/ChangeContainerToSingular/*

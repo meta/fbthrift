@@ -343,6 +343,14 @@ public interface Factories extends java.io.Closeable, com.facebook.thrift.util.B
             throw new UnsupportedOperationException();
         }
 
+        default reactor.core.publisher.Flux<Integer> interactWithBidi( org.reactivestreams.Publisher<Integer> payloads) {
+            throw new UnsupportedOperationException();
+        }
+
+        default reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer, Integer>> interactWithBidiAndInitialResponse( org.reactivestreams.Publisher<Integer> payloads) {
+            throw new UnsupportedOperationException();
+        }
+
         @com.facebook.swift.service.ThriftInteraction("MyInteraction")
         public interface MyInteraction extends reactor.core.Disposable {
             @ThriftMethod(value = "frobnicate",

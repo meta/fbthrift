@@ -18,16 +18,21 @@ package com.facebook.thrift.testservices;
 
 import com.facebook.thrift.example.ping.CustomException;
 import com.facebook.thrift.example.ping.ExtendedPing;
+import com.facebook.thrift.example.ping.FinalException;
 import com.facebook.thrift.example.ping.PingRequest;
 import com.facebook.thrift.example.ping.PingResponse;
+import com.facebook.thrift.example.ping.SinkException;
 import com.facebook.thrift.model.ResponseAndStream;
+import com.facebook.thrift.model.StreamResponse;
+import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
  * {@link ExtendedPing.Reactive} implementation for stream integration tests. Plain streams are
  * inherited from {@link ReactivePingService}; the child-service stream methods exercise
- * first-response, declared mid-stream, and undeclared mid-stream shapes.
+ * first-response, declared mid-stream, and undeclared mid-stream shapes, and the sink and bidi
+ * methods exercise the generated channel dispatch.
  */
 public class ExtendedReactivePingService extends ReactivePingService
     implements ExtendedPing.Reactive {
@@ -82,5 +87,79 @@ public class ExtendedReactivePingService extends ReactivePingService
     return Flux.range(1, numberOfPings)
         .map(i -> new PingResponse.Builder().setResponse("pong " + i).build())
         .concatWith(Flux.error(undeclared));
+  }
+
+  /**
+   * Answers with the sink requests it read. The key selects a failure: "throw" throws the declared
+   * function exception, "asyncThrow" returns it as an error, and "final" fails the final response.
+   * A declared sink exception from the client becomes the final response.
+   */
+  @Override
+  public Mono<PingResponse> sinkPings(PingRequest key, Publisher<PingRequest> payloads) {
+    String name = key.getRequest();
+    if ("throw".equals(name)) {
+      throw new CustomException.Builder().setMessage("custom exception: throw").build();
+    }
+
+    if ("asyncThrow".equals(name)) {
+      return Mono.error(
+          new CustomException.Builder().setMessage("custom exception: asyncThrow").build());
+    }
+
+    return Flux.from(payloads)
+        .map(PingRequest::getRequest)
+        .collectList()
+        .flatMap(
+            requests ->
+                "final".equals(name)
+                    ? Mono.<PingResponse>error(
+                        new FinalException.Builder().setMessage("final exception").build())
+                    : Mono.just(response(name + ": " + String.join(",", requests))))
+        .onErrorResume(
+            SinkException.class, e -> Mono.just(response("sink exception: " + e.getMessage())));
+  }
+
+  @Override
+  public Flux<StreamResponse<PingResponse, PingResponse>> sinkWithFirstResponse(
+      PingRequest key, Publisher<PingRequest> payloads) {
+    return Flux.concat(
+        Mono.just(StreamResponse.fromFirstResponse(response(key.getRequest() + "_first"))),
+        Flux.from(payloads).count().map(n -> StreamResponse.fromData(response("read " + n))));
+  }
+
+  /**
+   * Answers each sink request. The key "streamThrow" ends the stream with the declared stream
+   * exception after the first answer; a declared sink exception becomes the last answer.
+   */
+  @Override
+  public Flux<PingResponse> bidiPings(PingRequest key, Publisher<PingRequest> payloads) {
+    Flux<PingResponse> answers =
+        Flux.from(payloads)
+            .map(request -> response(key.getRequest() + ": " + request.getRequest()))
+            .onErrorResume(
+                SinkException.class, e -> Flux.just(response("sink exception: " + e.getMessage())));
+
+    if ("streamThrow".equals(key.getRequest())) {
+      return answers
+          .take(1)
+          .concatWith(
+              Flux.error(
+                  new CustomException.Builder().setMessage("custom exception: stream").build()));
+    }
+
+    return answers;
+  }
+
+  /** Sends the start as the first response, then the running sum of the sink elements. */
+  @Override
+  public Mono<ResponseAndStream<Integer, Long>> bidiSums(int start, Publisher<Integer> payloads) {
+    Flux<Long> sums =
+        Flux.from(payloads).scan((long) start, (sum, element) -> sum + element).skip(1);
+
+    return Mono.just(ResponseAndStream.of(start, sums));
+  }
+
+  private static PingResponse response(String text) {
+    return new PingResponse.Builder().setResponse(text).build();
   }
 }

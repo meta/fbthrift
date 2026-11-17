@@ -116,6 +116,16 @@ public class FactoriesBlockingReactiveWrapper
         throw new UnsupportedOperationException();
     }
 
+    @java.lang.Override
+    public reactor.core.publisher.Flux<Integer> interactWithBidi( org.reactivestreams.Publisher<Integer> payloads) {
+        throw new UnsupportedOperationException();
+    }
+
+    @java.lang.Override
+    public reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer, Integer>> interactWithBidiAndInitialResponse( org.reactivestreams.Publisher<Integer> payloads) {
+        throw new UnsupportedOperationException();
+    }
+
     public class MyInteractionImpl implements MyInteraction {
         private Factories.MyInteraction _delegateInteraction;
 

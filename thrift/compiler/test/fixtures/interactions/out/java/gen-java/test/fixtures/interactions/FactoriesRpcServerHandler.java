@@ -27,6 +27,10 @@ public class FactoriesRpcServerHandler
   private final com.facebook.thrift.server.generated.StreamMethod<java.lang.Object,Integer> _method_interactWithStream;
   private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _interactWithStreamAndInitialResponseReaders;
   private final com.facebook.thrift.server.generated.StreamMethod<Integer,Integer> _method_interactWithStreamAndInitialResponse;
+  private final com.facebook.thrift.server.generated.SinkMethod<java.lang.Object,Integer,Integer> _method_interactWithSink;
+  private final com.facebook.thrift.server.generated.SinkMethod<Integer,Integer,Integer> _method_interactWithSinkAndInitialResponse;
+  private final com.facebook.thrift.server.generated.BidiMethod<java.lang.Object,Integer,Integer> _method_interactWithBidi;
+  private final com.facebook.thrift.server.generated.BidiMethod<Integer,Integer,Integer> _method_interactWithBidiAndInitialResponse;
 
   private final java.util.List<com.facebook.swift.service.ThriftEventHandler> _eventHandlers;
 
@@ -111,6 +115,90 @@ public class FactoriesRpcServerHandler
       _first_ResponseWriterFactory_interactWithStreamAndInitialResponse,
       _ResponseWriterFactory_interactWithStreamAndInitialResponse,
       "interactWithStreamAndInitialResponse",
+      new Class[]{  },
+      new Integer[]{  },
+      new Class[]{  },
+      new Integer[]{  }
+    );
+
+    _methodMap.put("interactWithSink", this);
+    _method_interactWithSink =
+    new com.facebook.thrift.server.generated.SinkMethod<java.lang.Object,Integer,Integer>(
+      _create_interactWithSink_request_readers(),
+      _create_interactWithSink_sink_readers(),
+      (_args, _sinkElements) -> {
+        java.util.Iterator _iterator = _args.iterator();
+
+        return com.facebook.nifty.core.RequestContextScope.get(
+            com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+            () -> reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.generated.ServerStreams.NO_FIRST_RESPONSE, _delegate.interactWithSink(_sinkElements).flux())));
+      },
+      com.facebook.thrift.server.generated.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
+      _ResponseWriterFactory_interactWithSink,
+      "interactWithSink",
+      new Class[]{  },
+      new Integer[]{  },
+      new Class[]{  },
+      new Integer[]{  }
+    );
+
+    _methodMap.put("interactWithSinkAndInitialResponse", this);
+    _method_interactWithSinkAndInitialResponse =
+    new com.facebook.thrift.server.generated.SinkMethod<Integer,Integer,Integer>(
+      _create_interactWithSinkAndInitialResponse_request_readers(),
+      _create_interactWithSinkAndInitialResponse_sink_readers(),
+      (_args, _sinkElements) -> {
+        java.util.Iterator _iterator = _args.iterator();
+
+        return com.facebook.thrift.server.generated.ServerSinks.firstAndFinal(com.facebook.nifty.core.RequestContextScope.get(
+            com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+            () -> _delegate.interactWithSinkAndInitialResponse(_sinkElements)));
+      },
+      _first_ResponseWriterFactory_interactWithSinkAndInitialResponse,
+      _ResponseWriterFactory_interactWithSinkAndInitialResponse,
+      "interactWithSinkAndInitialResponse",
+      new Class[]{  },
+      new Integer[]{  },
+      new Class[]{  },
+      new Integer[]{  }
+    );
+
+    _methodMap.put("interactWithBidi", this);
+    _method_interactWithBidi =
+    new com.facebook.thrift.server.generated.BidiMethod<java.lang.Object,Integer,Integer>(
+      _create_interactWithBidi_request_readers(),
+      _create_interactWithBidi_sink_readers(),
+      (_args, _sinkElements) -> {
+        java.util.Iterator _iterator = _args.iterator();
+
+        return com.facebook.nifty.core.RequestContextScope.get(
+            com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+            () -> reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.generated.ServerStreams.NO_FIRST_RESPONSE, _delegate.interactWithBidi(_sinkElements))));
+      },
+      com.facebook.thrift.server.generated.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
+      _ResponseWriterFactory_interactWithBidi,
+      "interactWithBidi",
+      new Class[]{  },
+      new Integer[]{  },
+      new Class[]{  },
+      new Integer[]{  }
+    );
+
+    _methodMap.put("interactWithBidiAndInitialResponse", this);
+    _method_interactWithBidiAndInitialResponse =
+    new com.facebook.thrift.server.generated.BidiMethod<Integer,Integer,Integer>(
+      _create_interactWithBidiAndInitialResponse_request_readers(),
+      _create_interactWithBidiAndInitialResponse_sink_readers(),
+      (_args, _sinkElements) -> {
+        java.util.Iterator _iterator = _args.iterator();
+
+        return com.facebook.nifty.core.RequestContextScope.get(
+            com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+            () -> _delegate.interactWithBidiAndInitialResponse(_sinkElements));
+      },
+      _first_ResponseWriterFactory_interactWithBidiAndInitialResponse,
+      _ResponseWriterFactory_interactWithBidiAndInitialResponse,
+      "interactWithBidiAndInitialResponse",
       new Class[]{  },
       new Integer[]{  },
       new Class[]{  },
@@ -222,6 +310,188 @@ public class FactoriesRpcServerHandler
   };
 
   private final static com.facebook.thrift.server.generated.ResponseWriterFactory _first_ResponseWriterFactory_interactWithStreamAndInitialResponse = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+    return oprot -> {
+      try {
+        oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
+
+        int _fbthriftVar0 = (int)_o;
+        oprot.writeFieldBegin(com.facebook.thrift.util.RpcPayloadUtil.I32_FIELD);
+        oprot.writeI32(_fbthriftVar0);
+        oprot.writeFieldEnd();
+
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+
+        _chain.postWrite(_o);
+      } catch (Throwable _e) {
+        com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
+        throw reactor.core.Exceptions.propagate(_e);
+      }
+    };
+  };
+
+
+  private final static java.util.List<com.facebook.thrift.payload.FieldReader<?>> _create_interactWithSink_request_readers() {
+    java.util.List<com.facebook.thrift.payload.FieldReader<?>> _readerList = new java.util.ArrayList<>();
+
+
+    return _readerList;
+  }
+
+  private final static java.util.List<com.facebook.thrift.payload.FieldReader<?>> _create_interactWithSink_sink_readers() {
+    java.util.List<com.facebook.thrift.payload.FieldReader<?>> _readerList = new java.util.ArrayList<>();
+
+    _readerList.add(new com.facebook.thrift.payload.FieldReader<>((short)0, TType.I32, Readers.i32Reader(), () -> null));
+
+    return _readerList;
+  }
+
+  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_interactWithSink = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+    return oprot -> {
+      try {
+        oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
+
+        int _fbthriftVar0 = (int)_o;
+        oprot.writeFieldBegin(com.facebook.thrift.util.RpcPayloadUtil.I32_FIELD);
+        oprot.writeI32(_fbthriftVar0);
+        oprot.writeFieldEnd();
+
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      } catch (Throwable _e) {
+        com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
+        throw reactor.core.Exceptions.propagate(_e);
+      }
+    };
+  };
+
+
+  private final static java.util.List<com.facebook.thrift.payload.FieldReader<?>> _create_interactWithSinkAndInitialResponse_request_readers() {
+    java.util.List<com.facebook.thrift.payload.FieldReader<?>> _readerList = new java.util.ArrayList<>();
+
+
+    return _readerList;
+  }
+
+  private final static java.util.List<com.facebook.thrift.payload.FieldReader<?>> _create_interactWithSinkAndInitialResponse_sink_readers() {
+    java.util.List<com.facebook.thrift.payload.FieldReader<?>> _readerList = new java.util.ArrayList<>();
+
+    _readerList.add(new com.facebook.thrift.payload.FieldReader<>((short)0, TType.I32, Readers.i32Reader(), () -> null));
+
+    return _readerList;
+  }
+
+  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_interactWithSinkAndInitialResponse = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+    return oprot -> {
+      try {
+        oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
+
+        int _fbthriftVar0 = (int)_o;
+        oprot.writeFieldBegin(com.facebook.thrift.util.RpcPayloadUtil.I32_FIELD);
+        oprot.writeI32(_fbthriftVar0);
+        oprot.writeFieldEnd();
+
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      } catch (Throwable _e) {
+        com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
+        throw reactor.core.Exceptions.propagate(_e);
+      }
+    };
+  };
+
+  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _first_ResponseWriterFactory_interactWithSinkAndInitialResponse = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+    return oprot -> {
+      try {
+        oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
+
+        int _fbthriftVar0 = (int)_o;
+        oprot.writeFieldBegin(com.facebook.thrift.util.RpcPayloadUtil.I32_FIELD);
+        oprot.writeI32(_fbthriftVar0);
+        oprot.writeFieldEnd();
+
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+
+        _chain.postWrite(_o);
+      } catch (Throwable _e) {
+        com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
+        throw reactor.core.Exceptions.propagate(_e);
+      }
+    };
+  };
+
+
+  private final static java.util.List<com.facebook.thrift.payload.FieldReader<?>> _create_interactWithBidi_request_readers() {
+    java.util.List<com.facebook.thrift.payload.FieldReader<?>> _readerList = new java.util.ArrayList<>();
+
+
+    return _readerList;
+  }
+
+  private final static java.util.List<com.facebook.thrift.payload.FieldReader<?>> _create_interactWithBidi_sink_readers() {
+    java.util.List<com.facebook.thrift.payload.FieldReader<?>> _readerList = new java.util.ArrayList<>();
+
+    _readerList.add(new com.facebook.thrift.payload.FieldReader<>((short)0, TType.I32, Readers.i32Reader(), () -> null));
+
+    return _readerList;
+  }
+
+  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_interactWithBidi = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+    return oprot -> {
+      try {
+        oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
+
+        int _fbthriftVar0 = (int)_o;
+        oprot.writeFieldBegin(com.facebook.thrift.util.RpcPayloadUtil.I32_FIELD);
+        oprot.writeI32(_fbthriftVar0);
+        oprot.writeFieldEnd();
+
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      } catch (Throwable _e) {
+        com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
+        throw reactor.core.Exceptions.propagate(_e);
+      }
+    };
+  };
+
+
+  private final static java.util.List<com.facebook.thrift.payload.FieldReader<?>> _create_interactWithBidiAndInitialResponse_request_readers() {
+    java.util.List<com.facebook.thrift.payload.FieldReader<?>> _readerList = new java.util.ArrayList<>();
+
+
+    return _readerList;
+  }
+
+  private final static java.util.List<com.facebook.thrift.payload.FieldReader<?>> _create_interactWithBidiAndInitialResponse_sink_readers() {
+    java.util.List<com.facebook.thrift.payload.FieldReader<?>> _readerList = new java.util.ArrayList<>();
+
+    _readerList.add(new com.facebook.thrift.payload.FieldReader<>((short)0, TType.I32, Readers.i32Reader(), () -> null));
+
+    return _readerList;
+  }
+
+  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_interactWithBidiAndInitialResponse = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+    return oprot -> {
+      try {
+        oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
+
+        int _fbthriftVar0 = (int)_o;
+        oprot.writeFieldBegin(com.facebook.thrift.util.RpcPayloadUtil.I32_FIELD);
+        oprot.writeI32(_fbthriftVar0);
+        oprot.writeFieldEnd();
+
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      } catch (Throwable _e) {
+        com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
+        throw reactor.core.Exceptions.propagate(_e);
+      }
+    };
+  };
+
+  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _first_ResponseWriterFactory_interactWithBidiAndInitialResponse = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -761,6 +1031,79 @@ public class FactoriesRpcServerHandler
     return _response
       .contextWrite(_context -> com.facebook.nifty.core.RequestContext.toContext(_context, _payload.getRequestContext()))
       .doFinally(__ -> _chain.done());
+  }
+
+  @java.lang.Override
+  public reactor.core.publisher.Flux<com.facebook.thrift.payload.ServerResponsePayload> streamingRequestStreamingResponse(com.facebook.thrift.payload.ServerRequestPayload _payload, org.reactivestreams.Publisher<com.facebook.thrift.payload.ServerRequestPayload> _sinkPayloads) {
+    final String _name = _payload.getRequestRpcMetadata().getName();
+    final String _qualifiedMethodName = "Factories." + _name;
+
+    // Caller-thread admission gate. ContextChain.getContext() and preprocess() get the request
+    // context via explicit arguments -- no caller-thread ThreadLocal needed. done() is guaranteed
+    // via the outer doFinally below.
+    final com.facebook.swift.service.ContextChain _chain;
+    try {
+      _chain = new com.facebook.swift.service.ContextChain(_eventHandlers, _qualifiedMethodName, _payload.getRequestContext());
+    } catch (Throwable _t) {
+      com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.internalErrorResponse(_t, "during context chain construction", _payload.getRequestRpcMetadata(), null);
+      return reactor.core.publisher.Flux.just(_serverResponsePayload);
+    }
+
+    try {
+      _chain.preprocess();
+    } catch (org.apache.thrift.TApplicationException _tApplicationException) {
+      com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.fromTApplicationException(_tApplicationException, _payload.getRequestRpcMetadata(), _chain);
+      return reactor.core.publisher.Flux.just(_serverResponsePayload).doFinally(__ -> _chain.done());
+    } catch (Throwable _t) {
+      com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.internalErrorResponse(_t, "during preprocess", _payload.getRequestRpcMetadata(), _chain);
+      return reactor.core.publisher.Flux.just(_serverResponsePayload).doFinally(__ -> _chain.done());
+    }
+
+    reactor.core.publisher.Flux<com.facebook.thrift.payload.ServerResponsePayload> _response = reactor.core.publisher.Flux.defer(() ->
+      com.facebook.nifty.core.RequestContextScope.<reactor.core.publisher.Flux<com.facebook.thrift.payload.ServerResponsePayload>>get(
+        _payload.getRequestContext(),
+        () -> {
+    reactor.core.publisher.Flux<com.facebook.thrift.payload.ServerResponsePayload> _result;
+    try {
+      switch(_name) {
+        case "interactWithSink":
+          _result = com.facebook.thrift.server.generated.ServerSinks.handleSink(_payload, _chain, _method_interactWithSink, _sinkPayloads);
+          break;
+        case "interactWithSinkAndInitialResponse":
+          _result = com.facebook.thrift.server.generated.ServerSinks.handleSink(_payload, _chain, _method_interactWithSinkAndInitialResponse, _sinkPayloads);
+          break;
+        case "interactWithBidi":
+          _result = com.facebook.thrift.server.generated.ServerBidiStreams.handleBidi(_payload, _chain, _method_interactWithBidi, _sinkPayloads);
+          break;
+        case "interactWithBidiAndInitialResponse":
+          _result = com.facebook.thrift.server.generated.ServerBidiStreams.handleBidi(_payload, _chain, _method_interactWithBidiAndInitialResponse, _sinkPayloads);
+          break;
+        default: {
+            _chain.preRead();
+            org.apache.thrift.TApplicationException _tApplicationException = new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.UNKNOWN_METHOD, "no method found with name " + _name);
+            com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.fromTApplicationException(_tApplicationException, _payload.getRequestRpcMetadata(), _chain);
+            return reactor.core.publisher.Flux.just(_serverResponsePayload);
+        }
+      }
+    } catch (org.apache.thrift.TApplicationException _tApplicationException) {
+      com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.fromTApplicationException(_tApplicationException, _payload.getRequestRpcMetadata(), _chain);
+      return reactor.core.publisher.Flux.just(_serverResponsePayload);
+    } catch (Throwable _t) {
+      _result = reactor.core.publisher.Flux.error(_t);
+    }
+
+    return _result;
+    }));
+
+    if (com.facebook.thrift.util.resources.RpcResources.isForceExecutionOffEventLoop()) {
+      _response = _response.subscribeOn(com.facebook.thrift.util.resources.RpcResources.getOffLoopScheduler());
+    }
+
+    // finishRequest, not done(): a begun stream's terminal and done() already fired together from
+    // the inner terminal site, and this downstream doFinally runs first in the fused fast paths.
+    return _response
+      .contextWrite(_context -> com.facebook.nifty.core.RequestContext.toContext(_context, _payload.getRequestContext()))
+      .doFinally(__ -> _chain.finishRequest());
   }
 
   public java.util.Map<String, com.facebook.thrift.server.RpcServerHandler> getMethodMap() {

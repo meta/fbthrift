@@ -766,6 +766,26 @@ class t_mstch_java_generator : public t_whisker_generator {
       return whisker::make::array(std::move(funcs));
     });
 
+    def.property("bidi_functions", [&proto](const t_interface& self) {
+      whisker::array::raw funcs;
+      for (const auto& func : self.functions()) {
+        if (func.is_bidirectional_stream()) {
+          funcs.emplace_back(proto.create<t_function>(func));
+        }
+      }
+      return whisker::make::array(std::move(funcs));
+    });
+
+    def.property("channel_functions", [&proto](const t_interface& self) {
+      whisker::array::raw funcs;
+      for (const auto& func : self.functions()) {
+        if (func.sink()) {
+          funcs.emplace_back(proto.create<t_function>(func));
+        }
+      }
+      return whisker::make::array(std::move(funcs));
+    });
+
     return std::move(def).make();
   }
 
