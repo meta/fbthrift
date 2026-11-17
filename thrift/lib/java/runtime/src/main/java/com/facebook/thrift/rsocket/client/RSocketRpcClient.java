@@ -28,6 +28,7 @@ import static com.facebook.thrift.util.RpcClientUtils.getUndeclaredException;
 
 import com.facebook.thrift.client.RpcClient;
 import com.facebook.thrift.client.RpcOptions;
+import com.facebook.thrift.compression.CompressionManager;
 import com.facebook.thrift.payload.ClientRequestPayload;
 import com.facebook.thrift.payload.ClientResponsePayload;
 import com.facebook.thrift.payload.Writer;
@@ -45,7 +46,9 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import org.apache.thrift.ClientPushMetadata;
+import org.apache.thrift.CodecConfig;
 import org.apache.thrift.CompressionAlgorithm;
+import org.apache.thrift.CompressionConfig;
 import org.apache.thrift.ProtocolId;
 import org.apache.thrift.RequestRpcMetadata;
 import org.apache.thrift.ResponseRpcError;
@@ -89,24 +92,53 @@ public final class RSocketRpcClient implements RpcClient {
     return rsocket.isDisposed();
   }
 
-  private boolean hasTimeoutSettings(RpcOptions options) {
+  private static boolean hasTimeoutSettings(RpcOptions options) {
     if (options == null) {
       return false;
     }
     return options.getClientTimeoutMs() != null || options.getQueueTimeoutMs() != null;
   }
 
-  private RequestRpcMetadata createMetadataWithTimeouts(
-      RequestRpcMetadata metadata, RpcOptions options) {
-    int clientTimeoutMs = options.getClientTimeoutMs() == null ? 0 : options.getClientTimeoutMs();
-    int queueTimeoutMs = options.getQueueTimeoutMs() == null ? 0 : options.getQueueTimeoutMs();
+  /**
+   * Returns the request metadata with the timeouts and the compression of the options. The request
+   * is compressed when its data is larger than the size limit of the compression config, as in C++.
+   * For a single response, the metadata also carries the compression config, which the server uses
+   * to compress the response. A streaming call does not carry it, because this client does not
+   * decompress stream payloads.
+   */
+  private static RequestRpcMetadata requestMetadata(
+      RequestRpcMetadata metadata, RpcOptions options, int dataSize, boolean singleResponse) {
+    if (options == null) {
+      return metadata;
+    }
+
+    CompressionConfig compressionConfig = options.getCompressionConfig();
+    if (!hasTimeoutSettings(options) && compressionConfig == null) {
+      return metadata;
+    }
+
     RequestRpcMetadata.Builder builder = new RequestRpcMetadata.Builder(metadata);
-    if (clientTimeoutMs != 0) {
-      builder.setClientTimeoutMs(clientTimeoutMs);
+    if (options.getClientTimeoutMs() != null && options.getClientTimeoutMs() != 0) {
+      builder.setClientTimeoutMs(options.getClientTimeoutMs());
     }
-    if (queueTimeoutMs != 0) {
-      builder.setQueueTimeoutMs(queueTimeoutMs);
+    if (options.getQueueTimeoutMs() != null && options.getQueueTimeoutMs() != 0) {
+      builder.setQueueTimeoutMs(options.getQueueTimeoutMs());
     }
+
+    if (compressionConfig != null) {
+      CompressionAlgorithm compression =
+          CompressionManager.algorithmFor(compressionConfig, dataSize);
+      if (compression != CompressionAlgorithm.NONE) {
+        builder.setCompression(compression);
+      }
+
+      // This client cannot decompress a CUSTOM response, so it does not ask for one.
+      CodecConfig codecConfig = compressionConfig.getCodecConfig();
+      if (singleResponse && codecConfig != null && !codecConfig.isSetCustomConfig()) {
+        builder.setCompressionConfig(compressionConfig);
+      }
+    }
+
     return builder.build();
   }
 
@@ -119,7 +151,7 @@ public final class RSocketRpcClient implements RpcClient {
     return Mono.defer(
         () -> {
           Payload rsocketPayload =
-              clientRequestPayloadToRSocketPayload(payload, protocolType, options);
+              clientRequestPayloadToRSocketPayload(payload, protocolType, options, true);
           try {
             return rsocket
                 .requestResponse(rsocketPayload)
@@ -171,7 +203,7 @@ public final class RSocketRpcClient implements RpcClient {
     return Mono.defer(
         () -> {
           Payload rsocketPayload =
-              clientRequestPayloadToRSocketPayload(payload, protocolType, options);
+              clientRequestPayloadToRSocketPayload(payload, protocolType, options, false);
           try {
             return rsocket.fireAndForget(rsocketPayload);
           } catch (Throwable t) {
@@ -190,7 +222,7 @@ public final class RSocketRpcClient implements RpcClient {
     return Flux.defer(
         () -> {
           Payload rsocketPayload =
-              clientRequestPayloadToRSocketPayload(payload, protocolType, options);
+              clientRequestPayloadToRSocketPayload(payload, protocolType, options, false);
           try {
             return rsocket
                 .requestStream(rsocketPayload)
@@ -228,7 +260,8 @@ public final class RSocketRpcClient implements RpcClient {
                   flux.map(
                           t -> {
                             if (isFirstPayload.compareAndSet(true, false)) {
-                              return clientRequestPayloadToRSocketPayload(t, protocolType, options);
+                              return clientRequestPayloadToRSocketPayload(
+                                  t, protocolType, options, false);
                             } else {
                               return sinkPayloadToRSocketPayload(t, protocolType);
                             }
@@ -274,7 +307,10 @@ public final class RSocketRpcClient implements RpcClient {
   }
 
   private <T> Payload clientRequestPayloadToRSocketPayload(
-      ClientRequestPayload<T> payload, TProtocolType protocolType, RpcOptions options) {
+      ClientRequestPayload<T> payload,
+      TProtocolType protocolType,
+      RpcOptions options,
+      boolean singleResponse) {
     ByteBuf data = null;
     ByteBuf metadata = null;
     try {
@@ -290,15 +326,12 @@ public final class RSocketRpcClient implements RpcClient {
       in.writeFieldStop();
       in.writeStructEnd();
 
-      final ByteBufTProtocol metadataProtocol = TProtocolType.TCompact.apply(metadata);
-      if (hasTimeoutSettings(options)) {
-        createMetadataWithTimeouts(payload.getRequestRpcMetadata(), options)
-            .write0(metadataProtocol);
-      } else {
-        payload.getRequestRpcMetadata().write0(metadataProtocol);
-      }
+      final RequestRpcMetadata requestMetadata =
+          requestMetadata(
+              payload.getRequestRpcMetadata(), options, data.readableBytes(), singleResponse);
+      requestMetadata.write0(TProtocolType.TCompact.apply(metadata));
 
-      return createPayload(alloc, payload.getRequestRpcMetadata().getCompression(), data, metadata);
+      return createPayload(alloc, requestMetadata.getCompression(), data, metadata);
 
     } catch (Throwable t) {
       if (data != null && data.refCnt() > 0) {
@@ -356,6 +389,7 @@ public final class RSocketRpcClient implements RpcClient {
 
   private <T> ClientResponsePayload<T> rsocketPayloadToClientResponsePayload(
       ClientRequestPayload<T> requestPayload, Payload response, TProtocolType protocolType) {
+    ByteBuf data = null;
     try {
       final ResponseRpcMetadata rpcMetadata = decodePayloadMetadata(response);
 
@@ -365,7 +399,10 @@ public final class RSocketRpcClient implements RpcClient {
             undeclaredException.get(), rpcMetadata, null, false);
       }
 
-      final ByteBufTProtocol out = protocolType.apply(response.sliceData());
+      data =
+          CompressionManager.decompress(
+              rpcMetadata.getCompression(), alloc, response.sliceData().retain());
+      final ByteBufTProtocol out = protocolType.apply(data);
 
       return RpcClientUtils.decodeRSocketPayload(
           requestPayload.getResponseReader(),
@@ -375,6 +412,7 @@ public final class RSocketRpcClient implements RpcClient {
     } catch (Exception e) {
       throw Exceptions.propagate(e);
     } finally {
+      ReferenceCountUtil.safeRelease(data);
       if (response.refCnt() > 0) {
         response.release();
       }

@@ -21,6 +21,7 @@ import com.facebook.thrift.compression.zlib.ZlibCompressor;
 import com.facebook.thrift.compression.zstd.ZstdCompressor;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
+import io.netty.util.ReferenceCountUtil;
 import java.util.Collections;
 import java.util.List;
 import javax.annotation.Nullable;
@@ -118,11 +119,15 @@ public final class CompressionManager {
    */
   public static ByteBuf decompressFromTransform(
       int transformId, ByteBufAllocator allocator, ByteBuf data) {
-    CompressionAlgorithm algorithm = fromTTransform(transformId);
-    if (algorithm == CompressionAlgorithm.NONE) {
-      return data;
+    CompressionAlgorithm algorithm;
+    try {
+      algorithm = fromTTransform(transformId);
+    } catch (RuntimeException e) {
+      ReferenceCountUtil.safeRelease(data);
+      throw e;
     }
-    return getCompressor(algorithm).decompress(allocator, data);
+
+    return decompress(algorithm, allocator, data);
   }
 
   /**
@@ -138,7 +143,7 @@ public final class CompressionManager {
     if (algorithm == null || algorithm == CompressionAlgorithm.NONE) {
       return data;
     }
-    return getCompressor(algorithm).decompress(allocator, data);
+    return getCompressorOrRelease(algorithm, data).decompress(allocator, data);
   }
 
   /**
@@ -154,7 +159,18 @@ public final class CompressionManager {
     if (algorithm == null || algorithm == CompressionAlgorithm.NONE) {
       return data;
     }
-    return getCompressor(algorithm).compress(allocator, data);
+    return getCompressorOrRelease(algorithm, data).compress(allocator, data);
+  }
+
+  /** Releases data when no compressor exists, because the caller transferred its ownership. */
+  private static ThriftCompressor getCompressorOrRelease(
+      CompressionAlgorithm algorithm, ByteBuf data) {
+    try {
+      return getCompressor(algorithm);
+    } catch (RuntimeException e) {
+      ReferenceCountUtil.safeRelease(data);
+      throw e;
+    }
   }
 
   /**

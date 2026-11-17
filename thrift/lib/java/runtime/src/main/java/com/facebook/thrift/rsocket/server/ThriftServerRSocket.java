@@ -64,6 +64,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.thrift.CompressionAlgorithm;
 import org.apache.thrift.RequestRpcMetadata;
 import org.apache.thrift.ResponseRpcErrorCode;
+import org.apache.thrift.ResponseRpcMetadata;
 import org.apache.thrift.RpcKind;
 import org.apache.thrift.StreamPayloadMetadata;
 import org.apache.thrift.StreamRpcErrorCode;
@@ -727,11 +728,17 @@ public class ThriftServerRSocket implements RSocket {
       serializeResponse(requestPayload, responsePayload, data);
       throwIfOverloaded(responsePayload);
 
-      metadata = alloc.buffer();
-      serializeResponseMetadata(responsePayload, metadata);
+      ResponseRpcMetadata responseMetadata =
+          withCompression(
+              responsePayload.getResponseRpcMetadata(),
+              CompressionManager.algorithmFor(
+                  requestPayload.getRequestRpcMetadata().getCompressionConfig(),
+                  data.readableBytes()));
 
-      return createPayload(
-          alloc, responsePayload.getResponseRpcMetadata().getCompression(), data, metadata);
+      metadata = alloc.buffer();
+      ProtocolUtil.writeCompact(responseMetadata::write0, metadata);
+
+      return createPayload(alloc, responseMetadata.getCompression(), data, metadata);
 
     } catch (Throwable t) {
       if (data != null && data.refCnt() > 0) {
@@ -745,9 +752,13 @@ public class ThriftServerRSocket implements RSocket {
     }
   }
 
-  private static void serializeResponseMetadata(
-      ServerResponsePayload responsePayload, ByteBuf metadata) {
-    ProtocolUtil.writeCompact(responsePayload.getResponseRpcMetadata()::write0, metadata);
+  private static ResponseRpcMetadata withCompression(
+      ResponseRpcMetadata metadata, CompressionAlgorithm compression) {
+    if (compression == CompressionAlgorithm.NONE) {
+      return metadata;
+    }
+
+    return new ResponseRpcMetadata.Builder(metadata).setCompression(compression).build();
   }
 
   private static void serializeStreamMetadata(

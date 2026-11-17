@@ -301,4 +301,14 @@ class CompressionManagerTest {
         .setCompressionSizeLimit(sizeLimit)
         .build();
   }
+
+  @Test
+  void decompressWithoutACompressorReleasesTheData() {
+    ByteBuf data = Unpooled.buffer().writeZero(8);
+
+    assertThatThrownBy(
+            () -> CompressionManager.decompress(CompressionAlgorithm.CUSTOM, allocator, data))
+        .isInstanceOf(RuntimeException.class);
+    assertThat(data.refCnt()).isZero();
+  }
 }

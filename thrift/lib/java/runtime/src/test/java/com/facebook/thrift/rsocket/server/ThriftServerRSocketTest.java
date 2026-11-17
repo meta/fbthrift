@@ -25,6 +25,7 @@ import com.facebook.nifty.core.NiftyConnectionContext;
 import com.facebook.nifty.core.RequestContext;
 import com.facebook.swift.service.ContextChain;
 import com.facebook.swift.service.ThriftEventHandler;
+import com.facebook.thrift.compression.CompressionManager;
 import com.facebook.thrift.loadbalancing.LoadHeaderRpcServerHandler;
 import com.facebook.thrift.loadbalancing.LoadHeaderSupplier;
 import com.facebook.thrift.model.ResponseAndStream;
@@ -78,7 +79,9 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
+import org.apache.thrift.CodecConfig;
 import org.apache.thrift.CompressionAlgorithm;
+import org.apache.thrift.CompressionConfig;
 import org.apache.thrift.ErrorBlame;
 import org.apache.thrift.ErrorClassification;
 import org.apache.thrift.ErrorKind;
@@ -101,6 +104,7 @@ import org.apache.thrift.StreamRpcError;
 import org.apache.thrift.StreamRpcErrorCode;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
+import org.apache.thrift.ZstdCompressionCodecConfig;
 import org.apache.thrift.protocol.TField;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.protocol.TStruct;
@@ -913,6 +917,68 @@ public class ThriftServerRSocketTest {
               assertEquals("foo", result.getStrField());
             })
         .verifyComplete();
+  }
+
+  @Test
+  public void testResponseUsesTheCompressionConfigOfTheRequest() {
+    this.protocolId = ProtocolId.COMPACT;
+    RequestRpcMetadata requestMetadata =
+        new RequestRpcMetadata.Builder(
+                createRequestRpcMetadata("requestResponse", RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE))
+            .setCompressionConfig(zstdConfig(0L))
+            .build();
+    Payload request = createPayload(requestMetadata, 5, "foo");
+
+    StepVerifier.create(rocket.requestResponse(request))
+        .assertNext(
+            response -> {
+              assertEquals(
+                  CompressionAlgorithm.ZSTD, getResponseMetadata(response).getCompression());
+              ByteBuf data =
+                  CompressionManager.decompress(
+                      CompressionAlgorithm.ZSTD, alloc, response.sliceData().retain());
+              try {
+                TProtocol protocol = TProtocolType.TCompact.apply(data);
+                protocol.readFieldBegin();
+                protocol.readStructBegin();
+                assertEquals("foo", TestResponse.read0(protocol).getStrField());
+              } finally {
+                data.release();
+                response.release();
+              }
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  public void testResponseBelowTheSizeLimitIsNotCompressed() {
+    this.protocolId = ProtocolId.COMPACT;
+    RequestRpcMetadata requestMetadata =
+        new RequestRpcMetadata.Builder(
+                createRequestRpcMetadata("requestResponse", RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE))
+            .setCompressionConfig(zstdConfig(1_000_000L))
+            .build();
+    Payload request = createPayload(requestMetadata, 5, "foo");
+
+    StepVerifier.create(rocket.requestResponse(request))
+        .assertNext(
+            response -> {
+              try {
+                assertEquals(null, getResponseMetadata(response).getCompression());
+                assertEquals("foo", getTestResponse(requestMetadata, response).getStrField());
+              } finally {
+                response.release();
+              }
+            })
+        .verifyComplete();
+  }
+
+  private static CompressionConfig zstdConfig(long sizeLimit) {
+    return new CompressionConfig.Builder()
+        .setCodecConfig(
+            CodecConfig.fromZstdConfig(new ZstdCompressionCodecConfig.Builder().build()))
+        .setCompressionSizeLimit(sizeLimit)
+        .build();
   }
 
   private void checkRequestResponseDeclaredException(

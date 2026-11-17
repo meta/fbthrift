@@ -254,6 +254,41 @@ public class UnifiedServerTransportTest {
         .verifyComplete();
   }
 
+  /**
+   * An RSocket client that compresses its request gets a correct response from a server that
+   * compresses the response with the compression config of the request.
+   */
+  @Test
+  public void testRSocketRoundTripWithCompression() throws Exception {
+    transport =
+        UnifiedServerTransport.createNewInstance(
+                serverAddress, rpcServerHandler, serverConfig, new SPINiftyMetrics())
+            .block();
+    assertNotNull(transport);
+    client =
+        TestService.Reactive.clientBuilder()
+            .setProtocolId(ProtocolId.COMPACT)
+            .build(createRSocketClientFactory(), serverAddress);
+    String text = Strings.repeat("compressible ", 1000);
+    RpcOptions options =
+        new RpcOptions.Builder()
+            .setCompressionConfig(
+                new CompressionConfig.Builder()
+                    .setCodecConfig(
+                        CodecConfig.fromZstdConfig(
+                            new ZstdCompressionCodecConfig.Builder().build()))
+                    .build())
+            .build();
+
+    Mono<TestResponse> response =
+        client.requestResponse(
+            new TestRequest.Builder().setIntField(1).setStrField(text).build(), options);
+
+    StepVerifier.create(response)
+        .assertNext(resp -> assertEquals(text, resp.getStrField()))
+        .verifyComplete();
+  }
+
   private RpcServerHandler neverRespondingHandler() {
     return TestService.Reactive.serverHandlerBuilder(
             new TestServiceHandler() {
