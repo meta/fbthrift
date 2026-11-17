@@ -29,7 +29,6 @@
 #include <vector>
 
 #include <gtest/gtest.h>
-#include <folly/FBString.h>
 
 #include <thrift/lib/cpp2/op/Compare.h>
 #include <thrift/lib/cpp2/op/Get.h>
@@ -206,16 +205,16 @@ static_assert(kIsArenaField<
               t::map<
                   A<S, t::string_t>,
                   A<std::deque<S>, t::list<A<S, t::string_t>>>>>);
-static_assert(
-    kIsArenaField<CustomTypes, ident::fbstring, folly::fbstring, t::string_t>);
+static_assert(kIsArenaField<
+              CustomTypes,
+              ident::pmr_string,
+              std::pmr::string,
+              t::string_t>);
 static_assert(kIsArenaField<
               CustomTypes,
               ident::u32s,
               std::vector<std::uint32_t>,
               t::list<t::cpp_type<std::uint32_t, t::i32_t>>>);
-static_assert(std::is_same_v<
-              op::get_native_type<CustomTypes, ident::fbstring>,
-              std::pmr::string>);
 static_assert(std::is_same_v<
               op::get_native_type<CustomTypes, ident::iobufs>,
               std::pmr::map<std::pmr::string, folly::IOBuf>>);
@@ -357,7 +356,7 @@ void expectOn(const StructElements& s, std::pmr::memory_resource* r) {
 void fill(CustomTypes& c) {
   const std::pmr::string key(kLong, resource(*c.by_name()));
   (*c.by_name())[key].emplace_back(kOther);
-  c.fbstring() = kLong;
+  c.pmr_string() = kLong;
 }
 
 void expectOn(const CustomTypes& c, std::pmr::memory_resource* r) {
@@ -366,7 +365,7 @@ void expectOn(const CustomTypes& c, std::pmr::memory_resource* r) {
   EXPECT_EQ(resource(c.by_name()->begin()->first), r);
   EXPECT_EQ(resource(c.by_name()->begin()->second), r);
   EXPECT_EQ(resource(c.by_name()->begin()->second.front()), r);
-  EXPECT_EQ(resource(*c.fbstring()), r);
+  EXPECT_EQ(resource(*c.pmr_string()), r);
 }
 
 void fill(WholeStruct& s) {

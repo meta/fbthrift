@@ -182,8 +182,8 @@ struct CustomTypes {
   @cpp.Type{template = "std::unordered_map"}
   1: map<string, Deque> by_name;
   @cpp.Arena
-  @cpp.Type{name = "::folly::fbstring"}
-  2: string fbstring;
+  @cpp.Type{name = "::std::pmr::string"}
+  2: string pmr_string;
   @cpp.Arena
   3: list<U32> u32s;
   @cpp.Arena

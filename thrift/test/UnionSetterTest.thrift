@@ -24,7 +24,7 @@ cpp_include "thrift/test/UnionSetterTest.h"
 
 @cpp.Type{template = "::apache::thrift::test::union_setter::ThrowWhenArmedVector"}
 typedef list<i32> ThrowingIntList
-@cpp.Type{name = "::apache::thrift::test::union_setter::ThrowWhenArmedString"}
+@cpp.Adapter{name = "::apache::thrift::StringTypeAdapter<::apache::thrift::test::union_setter::ThrowWhenArmedString>"}
 typedef string ThrowingString
 
 struct ThrowingListHolder {

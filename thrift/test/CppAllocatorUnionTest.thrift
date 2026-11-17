@@ -30,7 +30,7 @@ typedef list<i32> UStatefulIntList
 @cpp.Type{template = "::StatefulAllocMap"}
 typedef map<i32, i32> UStatefulIntMap
 @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
-@cpp.Type{name = "::StatefulAllocString"}
+@cpp.Adapter{name = "::apache::thrift::StringTypeAdapter<::StatefulAllocString>"}
 typedef string UStatefulString
 
 @thrift.DeprecatedUnvalidatedAnnotations{

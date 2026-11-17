@@ -623,10 +623,10 @@ typedef set<i32> set_i32_9206
 @cpp.Type{template = "::StatefulAllocSortedVectorSet"}
 typedef set<i32> set_i32_992
 @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
-@cpp.Type{name = "::CountingString"}
+@cpp.Adapter{name = "::apache::thrift::StringTypeAdapter<::CountingString>"}
 typedef string string_186
 @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
-@cpp.Type{name = "::AlwaysThrowString"}
+@cpp.Adapter{name = "::apache::thrift::StringTypeAdapter<::AlwaysThrowString>"}
 typedef string string_4597
 @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
 @cpp.Type{name = "std::pmr::string"}
@@ -649,7 +649,7 @@ typedef CopyPropagatingChild CopyPropagatingChildAA
 }
 struct CopyPropagatingParent {
   @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
-  @cpp.Type{name = "::CopyPropagatingString"}
+  @cpp.Adapter{name = "::apache::thrift::StringTypeAdapter<::CopyPropagatingString>"}
   1: string s;
   // @lint-ignore THRIFTCHECKS thrift-parser
   @cpp.Ref{type = cpp.RefType.SharedMutable}
