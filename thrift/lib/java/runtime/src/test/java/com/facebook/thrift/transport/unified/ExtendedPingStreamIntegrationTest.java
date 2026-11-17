@@ -17,6 +17,7 @@
 package com.facebook.thrift.transport.unified;
 
 import com.facebook.nifty.core.RequestContext;
+import com.facebook.swift.service.ContextChain;
 import com.facebook.swift.service.StreamEventHandler;
 import com.facebook.swift.service.ThriftEventHandler;
 import com.facebook.swift.service.ThriftServerConfig;
@@ -39,6 +40,9 @@ import com.facebook.thrift.payload.Writer;
 import com.facebook.thrift.protocol.TProtocolType;
 import com.facebook.thrift.rsocket.client.RSocketRpcClientFactory;
 import com.facebook.thrift.server.RpcServerHandler;
+import com.facebook.thrift.server.generated.ServerSinks;
+import com.facebook.thrift.server.generated.ServerStreams;
+import com.facebook.thrift.server.generated.SinkMethod;
 import com.facebook.thrift.testservices.ExtendedReactivePingService;
 import com.facebook.thrift.util.RpcClientUtils;
 import com.facebook.thrift.util.RpcPayloadUtil;
@@ -105,6 +109,7 @@ import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
+import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
@@ -1800,6 +1805,177 @@ public class ExtendedPingStreamIntegrationTest {
 
     read.awaitSize(1);
     Assertions.assertTrue(read.get(0) instanceof Throwable, "read " + read);
+  }
+
+  @Test
+  public void generatedSinkWithAFirstResponseReadsNoneOneOrManyElements() throws Exception {
+    FrameLog frames = new FrameLog();
+    RpcServerHandler counting =
+        sinkHandler(
+            (args, sinkElements) ->
+                ServerSinks.firstAndFinal(
+                    Flux.concat(
+                        Mono.just(StreamResponse.fromFirstResponse(pingResponse("first"))),
+                        sinkElements
+                            .count()
+                            .map(n -> StreamResponse.fromData(pingResponse("read " + n))))),
+            null);
+
+    RpcClient client = channelClient(startChannelServer(counting), frames);
+
+    for (int elements : new int[] {0, 1, 3}) {
+      Flux<ClientRequestPayload<Object>> sink =
+          Flux.range(0, elements)
+              .map(i -> channelRequest(RpcKind.SINK, sinkPayloadWriter("s" + i)));
+
+      List<ClientResponsePayload<Object>> items =
+          client
+              .<Object, Object>streamingRequestStreamingResponse(
+                  Flux.concat(Flux.just(channelRequest(RpcKind.SINK, pingArgsWriter("hi"))), sink),
+                  RpcOptions.EMPTY)
+              .collectList()
+              .block();
+
+      Assertions.assertEquals(2, items.size());
+      Assertions.assertEquals("read " + elements, finalResponse(items.get(1)));
+    }
+  }
+
+  @Test
+  public void generatedSinkSendsADeclaredFinalExceptionInBand() throws Exception {
+    sinkSendsItsFinalErrorInBand(new CustomException.Builder().setMessage("declared").build());
+  }
+
+  @Test
+  public void generatedSinkSendsAnUndeclaredFinalExceptionInBand() throws Exception {
+    sinkSendsItsFinalErrorInBand(new IllegalStateException("undeclared"));
+  }
+
+  private void sinkSendsItsFinalErrorInBand(Throwable finalError) throws Exception {
+    FrameLog frames = new FrameLog();
+    RpcServerHandler failing =
+        sinkHandler(
+            (args, sinkElements) ->
+                Mono.just(
+                    ResponseAndStream.of(
+                        ServerStreams.NO_FIRST_RESPONSE,
+                        sinkElements.then(Mono.<PingResponse>error(finalError)).flux())),
+            null);
+
+    RpcClient client = channelClient(startChannelServer(failing), frames);
+
+    List<ClientResponsePayload<Object>> items =
+        client
+            .<Object, Object>streamingRequestStreamingResponse(
+                Flux.just(channelRequest(RpcKind.SINK, pingArgsWriter("hi"))), RpcOptions.EMPTY)
+            .collectList()
+            .block();
+
+    Assertions.assertNotNull(items.get(1).getException(), "items " + items);
+    Assertions.assertEquals("NEXT_COMPLETE", frames.fromServer.get(frames.fromServer.size() - 1));
+    Assertions.assertFalse(frames.fromServer.contains("ERROR"));
+  }
+
+  @Test
+  public void generatedSinkFinalThatDoesNotSerializeEndsWithAnErrorFrame() throws Exception {
+    FrameLog frames = new FrameLog();
+    RpcServerHandler unwritable =
+        sinkHandler(
+            (args, sinkElements) ->
+                Mono.just(
+                    ResponseAndStream.of(
+                        ServerStreams.NO_FIRST_RESPONSE,
+                        sinkElements.then(Mono.just(pingResponse("unwritable"))).flux())),
+            null);
+
+    RpcClient client = channelClient(startChannelServer(unwritable), frames);
+
+    client
+        .streamingRequestStreamingResponse(
+            Flux.just(channelRequest(RpcKind.SINK, pingArgsWriter("hi"))), RpcOptions.EMPTY)
+        .collectList()
+        .block();
+
+    Assertions.assertEquals("ERROR", frames.fromServer.get(frames.fromServer.size() - 1));
+    Assertions.assertFalse(frames.fromServer.contains("NEXT_COMPLETE"));
+  }
+
+  @Test
+  public void generatedSinkReaderGetsTheDeclaredSinkExceptionOfThePeer() throws Exception {
+    RpcServerHandler reportsItsSinkError =
+        sinkHandler(
+            (args, sinkElements) ->
+                Mono.just(
+                    ResponseAndStream.of(
+                        ServerStreams.NO_FIRST_RESPONSE,
+                        sinkElements
+                            .then(Mono.just(pingResponse("no error")))
+                            .onErrorResume(
+                                CustomException.class,
+                                e -> Mono.just(pingResponse("declared " + e.getMessage())))
+                            .flux())),
+            null);
+
+    RpcClient client = channelClient(startChannelServer(reportsItsSinkError), new FrameLog());
+
+    StepVerifier.create(
+            client.streamingRequestStreamingResponse(
+                Flux.just(
+                    channelRequest(RpcKind.SINK, pingArgsWriter("hi")),
+                    channelRequest(RpcKind.SINK, sinkPayloadWriter("a")),
+                    channelRequest(RpcKind.SINK, declaredSinkExceptionWriter("peer"))),
+                RpcOptions.EMPTY))
+        .expectNextCount(1)
+        .assertNext(last -> Assertions.assertEquals("declared peer", finalResponse(last)))
+        .verifyComplete();
+  }
+
+  /**
+   * A generated sink method on the runtime of this commit, as the codegen commit emits it. A null
+   * first-response value means no first response.
+   */
+  private static RpcServerHandler sinkHandler(
+      BiFunction<List<Object>, Flux<PingRequest>, Mono<ResponseAndStream<Object, PingResponse>>>
+          invoke,
+      Scheduler offLoop) {
+    SinkMethod<Object, PingResponse, PingRequest> method =
+        new SinkMethod<>(
+            Collections.singletonList(
+                new FieldReader<>((short) 1, TType.STRUCT, PingRequest::read0, () -> null)),
+            sinkReaders(),
+            invoke,
+            (response, chain) ->
+                response == ServerStreams.NO_FIRST_RESPONSE
+                    ? Writers.emptyStruct()
+                    : pingResponseWriter((PingResponse) response),
+            (response, chain) -> pingResponseWriter((PingResponse) response),
+            "channel",
+            null,
+            null,
+            new Class[] {CustomException.class},
+            new Integer[] {1});
+
+    return new RpcServerHandler() {
+      @Override
+      public Flux<ServerResponsePayload> streamingRequestStreamingResponse(
+          ServerRequestPayload initial, Publisher<ServerRequestPayload> sinkPayloads) {
+        ContextChain chain =
+            new ContextChain(Collections.emptyList(), "channel", initial.getRequestContext());
+        Flux<ServerResponsePayload> responses =
+            ServerSinks.handleSink(initial, chain, method, sinkPayloads)
+                .doFinally(signal -> chain.finishRequest());
+
+        return offLoop == null ? responses : responses.subscribeOn(offLoop);
+      }
+    };
+  }
+
+  private static Writer declaredSinkExceptionWriter(String message) {
+    return out -> {
+      out.writeFieldBegin(new TField("ex", TType.STRUCT, (short) 1));
+      new CustomException.Builder().setMessage(message).build().write0(out);
+      out.writeFieldEnd();
+    };
   }
 
   private SocketAddress startChannelServer(RpcServerHandler handler) {

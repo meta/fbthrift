@@ -85,6 +85,19 @@ public final class ServerStreams {
 
   public static <F, E> Flux<ServerResponsePayload> handleStream(
       ServerRequestPayload requestPayload, ContextChain chain, StreamMethod<F, E> method) {
+    return handleStream(requestPayload, chain, method, chain.hasStreamHandlers());
+  }
+
+  /**
+   * Serves a stream, and fires the stream hooks only when {@code streamHooks} holds. A sink uses
+   * this without them: it fires only its sink hooks, and the dispatcher's finishRequest fires
+   * done().
+   */
+  static <F, E> Flux<ServerResponsePayload> handleStream(
+      ServerRequestPayload requestPayload,
+      ContextChain chain,
+      StreamMethod<F, E> method,
+      boolean streamHooks) {
     Flux<ServerResponsePayload> response =
         Mono.defer(
                 () -> {
@@ -113,13 +126,17 @@ public final class ServerStreams {
                                     firstPayload(
                                         chain, method, responseAndStream.getFirstResponse())),
                             streamPhase(
-                                requestPayload, chain, method, responseAndStream.getStream()))
+                                requestPayload,
+                                chain,
+                                method,
+                                responseAndStream.getStream(),
+                                streamHooks))
                         // A downstream that never consumes the stream must not pin a forwarded
                         // backend stream: dispose the holder. A no-op once the inner stream took
                         // over its own lifecycle.
                         .doFinally(signal -> responseAndStream.dispose()))
             .onErrorResume(t -> Mono.just(initialErrorPayload(requestPayload, chain, method, t)));
-    if (chain.hasStreamHandlers()) {
+    if (streamHooks) {
       response =
           response
               .doOnRequest(
@@ -138,11 +155,12 @@ public final class ServerStreams {
       ServerRequestPayload requestPayload,
       ContextChain chain,
       StreamMethod<F, E> method,
-      Flux<E> stream) {
+      Flux<E> stream,
+      boolean streamHooks) {
     if (RpcResources.isForceExecutionOffEventLoop()) {
       stream = stream.subscribeOn(RpcResources.getOffLoopScheduler());
     }
-    if (chain.hasStreamHandlers()) {
+    if (streamHooks) {
       return stream
           .doOnSubscribe(s -> chain.onStreamSubscribe())
           .map(element -> elementPayload(requestPayload, chain, method, element))

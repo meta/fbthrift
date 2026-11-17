@@ -75,7 +75,11 @@ public interface StreamEventHandler extends ThriftEventHandler {
   /** Fired once per upload element, with a 1-based per-sink sequence number. */
   default void onSinkNext(Object context, String methodName, long sequenceNumber) {}
 
-  /** Fired once per element fully consumed by the handler. */
+  /**
+   * Fired once per element when the server hands it to the handler, right after {@code onSinkNext}.
+   * A reactive handler can keep an element after it returns from onNext, so the server cannot see
+   * when the handler is done with it.
+   */
   default void onSinkConsumed(Object context, String methodName) {}
 
   /** Fired once when the client cancels a sink before it completes. */
