@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+#include <stdexcept>
+#include <string>
+#include <vector>
+
 #include <gtest/gtest.h>
 #include <folly/CPortability.h>
 
@@ -494,4 +498,18 @@ TEST(CompactProtocolReaderTest, ParsesUpdatedManually) {
       EXPECT_FALSE(reader.getCursor().canAdvance(1));
     }
   }
+}
+
+TEST(
+    CompactProtocolReaderTest,
+    ReadArithmeticVectorThrowsAtEndAfterLongestVarints) {
+  const std::string longestI32Varint = std::string(4, '\xff') + '\x0f';
+  const auto buf =
+      folly::IOBuf::copyBuffer(longestI32Varint + longestI32Varint);
+  CompactProtocolReader reader;
+  reader.setInput(buf.get());
+  std::vector<int32_t> values(3);
+  EXPECT_THROW(
+      reader.readArithmeticVector(values.data(), values.size()),
+      std::out_of_range);
 }

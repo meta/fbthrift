@@ -528,7 +528,10 @@ static inline void readEncodedArithmeticVector(
     size_t consumed = inPtr - currentRange.data();
     c.skipNoAdvance(consumed);
     size_t len = currentRange.size() - consumed;
-    size_t trailingLoopBound = std::min(numElements, i + len);
+    // At least one element, so that readVarintSlow moves on to the next buffer
+    // or throws at the end of the input.
+    size_t trailingLoopBound =
+        std::min(numElements, i + std::max<size_t>(len, 1));
     while (i < trailingLoopBound) {
       if constexpr (sizeof(T) == 2) {
         // Need to finish consuming current input buffer
