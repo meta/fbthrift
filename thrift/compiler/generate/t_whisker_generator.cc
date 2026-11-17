@@ -1082,11 +1082,14 @@ t_whisker_generator::cached_render_state& t_whisker_generator::render_state() {
       }
     }
 
+    auto errors = std::make_unique<whisker::diagnostic_results>();
+    whisker::diagnostics_engine diagnostic_engine(
+        source_resolver->source_manager(),
+        *errors,
+        diagnostic_params::only_errors());
     cached_render_state_ = cached_render_state{
-        whisker::diagnostics_engine(
-            source_resolver->source_manager(),
-            [](const diagnostic& d) { fmt::print(stderr, "{}\n", d); },
-            diagnostic_params::only_errors()),
+        std::move(errors),
+        std::move(diagnostic_engine),
         source_resolver,
         std::move(options),
         std::move(prototypes),
@@ -1100,6 +1103,16 @@ t_whisker_generator::cached_render_state& t_whisker_generator::render_state() {
 std::string t_whisker_generator::render(
     std::string_view template_file, const whisker::object& context) {
   cached_render_state& state = render_state();
+  const std::size_t first_error = state.errors->diagnostics().size();
+  const auto render_error = [&](std::string_view action) {
+    std::string message =
+        fmt::format("Failed to {} template '{}'", action, template_file);
+    const std::vector<diagnostic>& errors = state.errors->diagnostics();
+    for (auto it = errors.begin() + first_error; it != errors.end(); ++it) {
+      message += fmt::format("\n{}", *it);
+    }
+    return std::runtime_error{message};
+  };
   const whisker::ast::root& ast = whisker::visit(
       state.source_resolver->resolve_import(
           template_file, {}, state.diagnostic_engine),
@@ -1111,16 +1124,12 @@ std::string t_whisker_generator::render(
         return *resolved;
       },
       [&](const whisker::source_resolver::parsing_error&)
-          -> const whisker::ast::root& {
-        throw std::runtime_error{
-            fmt::format("Failed to parse template '{}'", template_file)};
-      });
+          -> const whisker::ast::root& { throw render_error("parse"); });
 
   std::ostringstream out;
   if (!whisker::render(
           out, ast, context, state.diagnostic_engine, state.render_options)) {
-    throw std::runtime_error{
-        fmt::format("Failed to render template '{}'", template_file)};
+    throw render_error("render");
   }
   return out.str();
 }

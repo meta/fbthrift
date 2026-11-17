@@ -610,6 +610,10 @@ class t_whisker_generator : public t_generator {
   const whisker_generator_context& context() const noexcept { return context_; }
 
   struct cached_render_state {
+    // Errors reported by Whisker, included in the exception when a template
+    // fails to parse or render. Heap-allocated so `diagnostic_engine` can hold
+    // a stable reference to it.
+    std::unique_ptr<whisker::diagnostic_results> errors;
     whisker::diagnostics_engine diagnostic_engine;
     std::shared_ptr<whisker::source_resolver> source_resolver;
     whisker::render_options render_options;
