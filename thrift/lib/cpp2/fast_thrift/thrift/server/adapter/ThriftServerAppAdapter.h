@@ -334,10 +334,11 @@ ThriftServerAppAdapter::dispatchRequestResponse(
   auto& inbound = request.payload;
   const apache::thrift::RequestRpcMetadata* metadata = nullptr;
   std::unique_ptr<folly::IOBuf> data;
+  ThriftServerRequestResponsePayload* requestResponse = nullptr;
   if (inbound.is<ThriftServerRequestResponsePayload>()) {
-    auto& requestResponse = inbound.get<ThriftServerRequestResponsePayload>();
-    metadata = requestResponse.metadata.get();
-    data = std::move(requestResponse.data);
+    requestResponse = &inbound.get<ThriftServerRequestResponsePayload>();
+    metadata = requestResponse->metadata.get();
+    data = std::move(requestResponse->data);
   } else if (inbound.is<ThriftRequestStreamPayload>()) {
     auto& requestStream = inbound.get<ThriftRequestStreamPayload>();
     metadata = requestStream.metadata.get();
@@ -355,6 +356,11 @@ ThriftServerAppAdapter::dispatchRequestResponse(
       std::move(data),
       protocol,
       std::move(request.requestContext));
+  // Nothing past the process function reads the metadata: the method name and
+  // headers already moved into the request context.
+  if (requestResponse != nullptr) {
+    recycleServerRequestMetadata(requestResponse->metadata);
+  }
   return channel_pipeline::Result::Success;
 }
 

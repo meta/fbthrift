@@ -36,11 +36,14 @@
 #include <folly/init/Init.h>
 #include <folly/io/IOBuf.h>
 #include <folly/io/IOBufQueue.h>
+#include <folly/io/async/EventBase.h>
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/BufferAllocator.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameParser.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/FrameWriter.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/common/PayloadVariants.h>
+#include <thrift/lib/cpp2/op/Clear.h>
 #include <thrift/lib/cpp2/protocol/BinaryProtocol.h>
 #include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
 
@@ -193,6 +196,123 @@ void benchStackOnly(
     doNotOptimizeAway(metadata.protocol());
   }
 }
+
+/**
+ * Server decode path: metadata from makeServerRequestMetadata(), read, consumed
+ * and dropped, with the per-thread recycler off (fresh object each request) or
+ * on (recycleServerRequestMetadata() after use).
+ */
+void benchServerMetadata(
+    size_t iters,
+    const apache::thrift::RequestRpcMetadata& metadataTemplate,
+    uint32_t poolLimit) {
+  using namespace apache::thrift::fast_thrift::thrift;
+  BenchmarkSuspender suspender;
+  folly::EventBase eventBase;
+
+  std::vector<ParsedFrame> frames;
+  frames.reserve(iters);
+  for (size_t i = 0; i < iters; ++i) {
+    frames.push_back(createRequestFrame(metadataTemplate));
+  }
+  setServerRequestMetadataPoolLimit(poolLimit);
+
+  suspender.dismiss();
+
+  for (size_t i = 0; i < iters; ++i) {
+    auto metadata = makeServerRequestMetadata(eventBase);
+    apache::thrift::BinaryProtocolReader reader;
+    reader.setInput(frames[i].metadataCursor());
+    metadata->read(&reader);
+    doNotOptimizeAway(metadata->name());
+    doNotOptimizeAway(metadata->kind());
+    doNotOptimizeAway(metadata->protocol());
+    recycleServerRequestMetadata(metadata);
+  }
+
+  suspender.rehire();
+  setServerRequestMetadataPoolLimit(0);
+}
+
+enum class Clear { SetFields, OpClear };
+
+/**
+ * Recycled-object cost by reset strategy: one object read, consumed and reset
+ * per request, the steady state of the per-thread pool.
+ */
+void benchReset(
+    size_t iters,
+    const apache::thrift::RequestRpcMetadata& metadataTemplate,
+    Clear how) {
+  BenchmarkSuspender suspender;
+  std::vector<ParsedFrame> frames;
+  frames.reserve(iters);
+  for (size_t i = 0; i < iters; ++i) {
+    frames.push_back(createRequestFrame(metadataTemplate));
+  }
+  apache::thrift::RequestRpcMetadata metadata;
+  suspender.dismiss();
+
+  for (size_t i = 0; i < iters; ++i) {
+    apache::thrift::BinaryProtocolReader reader;
+    reader.setInput(frames[i].metadataCursor());
+    metadata.read(&reader);
+    doNotOptimizeAway(metadata.name());
+    doNotOptimizeAway(metadata.kind());
+    doNotOptimizeAway(metadata.protocol());
+    if (how == Clear::SetFields) {
+      apache::thrift::fast_thrift::thrift::detail::clearSetFields(metadata);
+    } else {
+      apache::thrift::op::clear<
+          apache::thrift::type::struct_t<apache::thrift::RequestRpcMetadata>>(
+          metadata);
+    }
+  }
+}
+
+BENCHMARK(ResetSetFields_Minimal, iters) {
+  benchReset(iters, createMinimalMetadata(), Clear::SetFields);
+}
+
+BENCHMARK_RELATIVE(ResetOpClear_Minimal, iters) {
+  benchReset(iters, createMinimalMetadata(), Clear::OpClear);
+}
+
+BENCHMARK(ResetSetFields_Typical, iters) {
+  benchReset(iters, createTypicalMetadata(), Clear::SetFields);
+}
+
+BENCHMARK_RELATIVE(ResetOpClear_Typical, iters) {
+  benchReset(iters, createTypicalMetadata(), Clear::OpClear);
+}
+
+BENCHMARK(ResetSetFields_ManyHeaders, iters) {
+  benchReset(iters, createLargeMetadata(), Clear::SetFields);
+}
+
+BENCHMARK_RELATIVE(ResetOpClear_ManyHeaders, iters) {
+  benchReset(iters, createLargeMetadata(), Clear::OpClear);
+}
+
+BENCHMARK_DRAW_LINE();
+
+BENCHMARK(ServerFresh_Minimal, iters) {
+  benchServerMetadata(iters, createMinimalMetadata(), 0);
+}
+
+BENCHMARK_RELATIVE(ServerRecycled_Minimal, iters) {
+  benchServerMetadata(iters, createMinimalMetadata(), 16);
+}
+
+BENCHMARK(ServerFresh_Typical, iters) {
+  benchServerMetadata(iters, createTypicalMetadata(), 0);
+}
+
+BENCHMARK_RELATIVE(ServerRecycled_Typical, iters) {
+  benchServerMetadata(iters, createTypicalMetadata(), 16);
+}
+
+BENCHMARK_DRAW_LINE();
 
 // =============================================================================
 // Minimal metadata
