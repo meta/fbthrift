@@ -85,7 +85,9 @@ public class RSocketServerTransport implements ServerTransport {
                             .asConnectionAcceptor();
 
                     acceptor
-                        .apply(new TcpDuplexConnection("server", connection))
+                        .apply(
+                            RocketDuplexConnection.wrap(
+                                new TcpDuplexConnection("server", connection)))
                         .then(Mono.<Void>never())
                         .subscribe(connection.disposeSubscriber());
                   })

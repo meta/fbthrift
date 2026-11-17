@@ -22,6 +22,7 @@ import static com.facebook.thrift.metadata.ThriftTransportType.RSOCKET;
 import com.facebook.swift.service.ThriftServerConfig;
 import com.facebook.thrift.legacy.server.ThriftHeaderFrameCodec;
 import com.facebook.thrift.metadata.ThriftTransportType;
+import com.facebook.thrift.rsocket.server.RocketDuplexConnection;
 import com.facebook.thrift.rsocket.server.ThriftSocketAcceptor;
 import com.facebook.thrift.server.RpcServerHandler;
 import com.facebook.thrift.server.ServerTransport;
@@ -192,7 +193,7 @@ public class UnifiedServerTransport implements ServerTransport {
         .fragment(MAX_FRAME_SIZE)
         .payloadDecoder(PayloadDecoder.ZERO_COPY)
         .asConnectionAcceptor()
-        .apply(new TcpDuplexConnection("server", connection))
+        .apply(RocketDuplexConnection.wrap(new TcpDuplexConnection("server", connection)))
         .then(Mono.<Void>never())
         .subscribe(connection.disposeSubscriber());
   }
