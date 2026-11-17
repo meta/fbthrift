@@ -67,23 +67,6 @@ class PythonAsyncProcessorFactoryCustomerApiTest(later.unittest.TestCase):
             self
         ).test_handler_that_returns_true_still_suppresses_the_callers_exception()
 
-    async def test_service_schema_describes_the_python_service(self) -> None:
-        await CTests(self).test_service_schema_describes_the_python_service()
-
-    async def test_service_schema_describes_the_python_service_through_composed_factory(
-        self,
-    ) -> None:
-        await CTests(
-            self
-        ).test_service_schema_describes_the_python_service_through_composed_factory()
-
-    async def test_service_schema_includes_a_base_service_from_another_file(
-        self,
-    ) -> None:
-        await CTests(
-            self
-        ).test_service_schema_includes_a_base_service_from_another_file()
-
     async def test_unary_rpc_round_trips(self) -> None:
         await CTests(self).test_unary_rpc_round_trips()
 

@@ -643,11 +643,6 @@ void PythonAsyncProcessor::executeRequest(
     return;
   }
 
-  // Lets ServiceInterceptors deserialize this method's arguments from the
-  // schema (`RequestInfo::dynamicArguments`). Null when the service's Thrift
-  // library is built without a bundled schema, which interceptors handle.
-  ctx->setFunctionNode(methodMetadata.functionNode);
-
   const char* serviceName = serviceName_.c_str();
   const auto& function = functions_.at(ctx->getMethodName());
   auto ctxStack = apache::thrift::ContextStack::create(

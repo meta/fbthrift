@@ -49,7 +49,6 @@ cdef extern from "thrift/lib/python/server/PythonAsyncProcessorFactory.h":
             shared_ptr[cExecutionSystem] executionSystem,
             cAsyncioExecutor* executor,
             string serviceName,
-            cvector[string] schemaBundles,
         ) except +
 
 cdef class PythonAsyncProcessorFactoryCTest:
