@@ -849,6 +849,12 @@ class StaticPipelineImpl final {
         readReadyWaiters_.isArmed(logicalHandlerIndex<Index>());
   }
 
+  // Whether the head endpoint currently owns write backpressure. Same contract
+  // as PipelineImpl::isHeadWriteBackpressured().
+  bool isHeadWriteBackpressured() const noexcept {
+    return writeReadyWaiters_.isArmed(handlerCount());
+  }
+
   // Wakes the head endpoint, then each waiting handler from the head toward
   // the tail, then the tail. The pass ends early, without the tail, when the
   // head endpoint waits again or the pipeline closes.
