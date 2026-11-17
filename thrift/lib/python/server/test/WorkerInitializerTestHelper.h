@@ -16,11 +16,13 @@
 
 #pragma once
 
+#include <memory>
 #include <string>
 #include <utility>
 
 #include <Python.h>
 #include <folly/futures/Future.h>
+#include <folly/io/async/Request.h>
 #include <thrift/lib/python/server/execution/ExecutionSystem.h>
 #include <thrift/lib/python/server/execution/RequestDispatch.h>
 
@@ -40,6 +42,47 @@ inline void startSelectedFunctionForTest(
             std::move(launchRequest)(selectedFunction);
             return folly::makeSemiFuture();
           }));
+}
+
+// Names the request whose RequestContext carries it. It stands in for the
+// data that ContextProp keeps on a request's RequestContext, such as the
+// request id and the privacy policy zone.
+class RequestLabelForTest : public folly::RequestData {
+ public:
+  explicit RequestLabelForTest(std::string label) : label_(std::move(label)) {}
+
+  bool hasCallback() override { return false; }
+
+  const std::string& label() const { return label_; }
+
+ private:
+  std::string label_;
+};
+
+inline const folly::RequestToken& requestLabelTokenForTest() {
+  static const folly::RequestToken token("thrift_python_test_request_label");
+  return token;
+}
+
+// Starts one request as the server does, under a RequestContext of its own,
+// which here carries `label`.
+inline void startLabeledRequestForTest(
+    execution::ExecutionSystem& executionSystem,
+    std::string method,
+    std::string label) {
+  folly::RequestContextScopeGuard requestContextGuard;
+  folly::RequestContext::get()->setContextData(
+      requestLabelTokenForTest(),
+      std::make_unique<RequestLabelForTest>(std::move(label)));
+  startSelectedFunctionForTest(executionSystem, std::move(method));
+}
+
+// Returns the label on this thread's current RequestContext, or an empty
+// string when that context carries none.
+inline std::string currentRequestLabelForTest() {
+  const auto* const requestLabel = dynamic_cast<const RequestLabelForTest*>(
+      folly::RequestContext::get()->getContextData(requestLabelTokenForTest()));
+  return requestLabel == nullptr ? std::string{} : requestLabel->label();
 }
 
 } // namespace apache::thrift::python::test

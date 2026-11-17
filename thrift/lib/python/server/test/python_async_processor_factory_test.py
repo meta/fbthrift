@@ -13,6 +13,9 @@
 # limitations under the License.
 
 
+import importlib.util
+import sys
+
 from later.unittest import TestCase
 from parameterized import parameterized
 from thrift.python.server import RpcKind
@@ -102,6 +105,23 @@ class PythonAsyncProcessorFactoryTest(TestCase):
 
     async def test_each_worker_serves_requests_with_its_own_handler(self) -> None:
         await CTests(self).test_each_worker_serves_requests_with_its_own_handler()
+
+    async def test_queued_worker_request_runs_under_its_own_request_context(
+        self,
+    ) -> None:
+        if importlib.util.find_spec("folly.request_context") is None:
+            self.skipTest("The OSS folly Python build has no folly.request_context.")
+        # Before 3.14, CPython has no context watcher API. Meta's Linux builds
+        # carry a backport; on other platforms folly cannot move a
+        # RequestContext onto asyncio tasks (folly/python/request_context.h).
+        if sys.version_info < (3, 14) and sys.platform != "linux":
+            self.skipTest(
+                "Before Python 3.14, folly carries a RequestContext into asyncio "
+                "tasks only on Linux."
+            )
+        await CTests(
+            self
+        ).test_queued_worker_request_runs_under_its_own_request_context()
 
     async def test_failed_worker_start_propagates_when_the_worker_handler_does_not_suppress(
         self,

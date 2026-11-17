@@ -38,6 +38,10 @@ cdef extern from "thrift/lib/python/server/test/WorkerInitializerTestHelper.h" n
     void startSelectedFunctionForTest(
         cExecutionSystem& executionSystem, string method
     ) except +
+    void startLabeledRequestForTest(
+        cExecutionSystem& executionSystem, string method, string label
+    ) except +
+    string currentRequestLabelForTest()
 
 
 WORKER_METHOD = b"worker_method"
@@ -130,8 +134,43 @@ async def wait_for_requests(served, count):
     )
 
 
+class RequestLabelRecordingHandler(ServiceInterface):
+    def __init__(self, first_request_started, release_first_request, served):
+        self.labels = []
+        self.released_in_time = False
+        self._first_request_started = first_request_started
+        self._release_first_request = release_first_request
+        self._served = served
+
+    def getFunctionTable(self):
+        return {
+            WORKER_METHOD: FunctionEntry(
+                RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE, self.serve
+            )
+        }
+
+    async def serve(self):
+        # One entry per request, in the order the requests start.
+        labels = [currentRequestLabelForTest()]
+        self.labels.append(labels)
+        if len(self.labels) == 1:
+            self._first_request_started.set()
+            # Blocking, not awaiting, keeps the worker's capacity, so the next
+            # request has to wait in the scheduler's queue.
+            self.released_in_time = self._release_first_request.wait(timeout=10)
+        await asyncio.sleep(0)
+        labels.append(currentRequestLabelForTest())
+        self._served.release()
+
+
 cdef start_request(WorkerSystem worker_system, bytes method):
     startSelectedFunctionForTest(deref(worker_system.executionSystem.get()), method)
+
+
+cdef start_labeled_request(WorkerSystem worker_system, bytes method, bytes label):
+    startLabeledRequestForTest(
+        deref(worker_system.executionSystem.get()), method, label
+    )
 
 
 cdef class PythonAsyncProcessorFactoryCTest:
@@ -235,6 +274,53 @@ cdef class PythonAsyncProcessorFactoryCTest:
         )
         self.ut.assertEqual(expected_worker_thread_count, len(set(creation_threads)))
         self.ut.assertNotIn(forbidden_worker_thread, creation_threads)
+
+    async def test_queued_worker_request_runs_under_its_own_request_context(self):
+        # GIVEN
+        # Services load this module. It runs each asyncio task under the folly
+        # RequestContext that was current when the task was created, so request
+        # code keeps its RequestContext across awaits.
+        from folly import request_context
+        request_context.ensure()
+        first_request_started = threading.Event()
+        release_first_request = threading.Event()
+        served = threading.Semaphore(0)
+        handler = RequestLabelRecordingHandler(
+            first_request_started, release_first_request, served
+        )
+        function_table = handler.getFunctionTable()
+        # Each request sees its own label when it starts and after it awaits.
+        expected_labels = [
+            [b"first request", b"first request"],
+            [b"second request", b"second request"],
+        ]
+        cdef WorkerSystem worker_system = WorkerSystem.create(
+            get_executor(), function_table, {WORKER_METHOD}
+        )
+
+        # WHEN
+        try:
+            worker_system.start(
+                1, functools.partial(SharedWorkerInitializer, funcMap=function_table)
+            )
+            start_labeled_request(worker_system, WORKER_METHOD, b"first request")
+            first_request_started_in_time = await asyncio.to_thread(
+                first_request_started.wait, 10
+            )
+            # The only worker is busy, so this request waits in the queue until
+            # the first request gives the worker's capacity back.
+            start_labeled_request(worker_system, WORKER_METHOD, b"second request")
+            release_first_request.set()
+            served_in_time = await wait_for_requests(served, 2)
+        finally:
+            release_first_request.set()
+            worker_system.close()
+
+        # THEN
+        self.ut.assertTrue(first_request_started_in_time)
+        self.ut.assertTrue(handler.released_in_time)
+        self.ut.assertTrue(served_in_time)
+        self.ut.assertEqual(expected_labels, handler.labels)
 
     async def test_failed_worker_start_propagates_and_the_worker_handler_exits(
         self, exit_result
