@@ -516,8 +516,9 @@ class ast_builder : public parser_actions {
     t_type_ref return_type = ret.type;
     if (return_name.size()) {
       // Handle an interaction or return type name.
-      if (auto interaction_ptr = program_.find<t_interaction>(
-              scope::identifier{return_name, ret.name.range()})) {
+      if (auto interaction_ptr =
+              dynamic_cast<const t_interaction*>(program_.find_type(
+                  scope::identifier{return_name, ret.name.range()}))) {
         interaction = t_type_ref::from_ptr(interaction_ptr, ret.name.range());
       } else if (ret.type) {
         diags_.error(

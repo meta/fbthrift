@@ -109,6 +109,109 @@ TEST(CompilerTest, diagnostic_in_last_line) {
       # expected-error: expected integer)");
 }
 
+TEST(CompilerTest, unqualified_imported_types_are_rejected_in_every_context) {
+  const std::map<std::string, std::string> sources = {
+      {"import/types.thrift", R"(
+        package "example.com/import"
+        struct Record { 1: i64 id; }
+        enum Kind { Value = 1 }
+        typedef i64 Id
+        interaction Session { void ping(); }
+      )"},
+      {"types.thrift", R"(
+        include "import/types.thrift"
+        package "example.com/root"
+        typedef Id Alias # expected-error: Type `Id` not defined.
+        struct Uses {
+          1: Record record; # expected-error: Type `Record` not defined.
+          2: Kind kind; # expected-error: Type `Kind` not defined.
+          3: Id id; # expected-error: Type `Id` not defined.
+        }
+        @Record # expected-error: Type `Record` not defined.
+        struct Annotated {}
+        service Api {
+          Record get(); # expected-error: Type `Record` not defined.
+          Session open(); # expected-error: Type `Session` not defined.
+          void call(
+            1: Record record, # expected-error: Type `Record` not defined.
+            2: Kind kind, # expected-error: Type `Kind` not defined.
+            3: Id id, # expected-error: Type `Id` not defined.
+          );
+        }
+      )"},
+  };
+  for (const bool global : {false, true}) {
+    auto options = check_compile_options();
+    options.use_global_resolution = global;
+    check_compile(sources, "types.thrift", {}, options);
+  }
+}
+
+TEST(CompilerTest, qualified_imported_types_remain_valid_in_every_context) {
+  const std::map<std::string, std::string> sources = {
+      {"import/types.thrift", R"(
+        package "example.com/import"
+        struct Record { 1: i64 id; }
+        enum Kind { Value = 1 }
+        typedef i64 Id
+        interaction Session { void ping(); }
+      )"},
+      {"types.thrift", R"(
+        include "import/types.thrift" as imported
+        package "example.com/root"
+        typedef imported.Id Alias
+        struct Uses {
+          1: imported.Record record;
+          2: imported.Kind kind;
+          3: Alias id;
+        }
+        @imported.Record
+        struct Annotated {}
+        service Api {
+          imported.Record get();
+          imported.Session open();
+          void call(
+            1: imported.Record record,
+            2: imported.Kind kind,
+            3: imported.Id id,
+          );
+        }
+      )"},
+  };
+  for (const bool global : {false, true}) {
+    auto options = check_compile_options();
+    options.use_global_resolution = global;
+    check_compile(sources, "types.thrift", {}, options);
+  }
+}
+
+TEST(CompilerTest, metadata_type_strings_require_local_or_qualified_types) {
+  for (const bool global : {false, true}) {
+    for (const bool qualified : {false, true}) {
+      std::map<std::string, std::string> sources;
+      sources["dep/foo.thrift"] = R"(
+        package "example.com/dep"
+        struct Metadata { 1: i32 value; }
+      )";
+      sources["foo.thrift"] =
+          "include \"dep/foo.thrift\" as api\n"
+          "include \"thrift/annotation/internal.thrift\"\n"
+          "package \"example.com/root\"\n"
+          "@internal.InjectMetadataFields{type=\"" +
+          std::string(qualified ? "api.Metadata" : "Metadata") +
+          "\"}\nstruct S {}";
+      if (!qualified) {
+        sources["foo.thrift"] +=
+            " # expected-error@-1: Can not find expected type `Metadata` specified in "
+            "`@internal.InjectMetadataFields` in the current scope. Please check the include.";
+      }
+      auto options = check_compile_options();
+      options.use_global_resolution = global;
+      check_compile(sources, "foo.thrift", {}, options);
+    }
+  }
+}
+
 TEST(CompilerTest, absolute_line_number) {
   check_compile(R"(
     package "facebook.com/thrift/test"
@@ -4390,6 +4493,59 @@ TEST(CompilerTest, local_vs_global_resolution_sanity) {
   }
 }
 
+TEST(CompilerTest, same_basename_imported_typedef_is_not_self_referential) {
+  const std::map<std::string, std::string> sources = {
+      {"import/foo.thrift", R"(
+        package "example.com/import"
+        struct Name { 1: i64 id; }
+        enum Kind { Value = 1 }
+        typedef i64 Id
+      )"},
+      {"foo.thrift", R"(
+        include "import/foo.thrift"
+        package "example.com/root"
+        typedef foo.Name Name
+        typedef foo.Kind Kind
+        typedef foo.Id Id
+        struct Uses { 1: Name name; 2: Kind kind; 3: Id id; }
+      )"},
+  };
+  for (const bool global : {false, true}) {
+    auto options = check_compile_options();
+    options.use_global_resolution = global;
+    check_compile(sources, "foo.thrift", {}, options);
+  }
+}
+
+TEST(CompilerTest, local_forward_type_resolution) {
+  const std::map<std::string, std::string> sources = {
+      {"annotation/types.thrift", R"(
+        package "example.com/repro/annotation"
+        struct Node { 1: string name; }
+        enum Kind { Remote = 1 }
+      )"},
+      {"root.thrift", R"(
+        include "annotation/types.thrift"
+        package "example.com/repro/root"
+      )"},
+      {"schema/types.thrift", R"(
+        include "root.thrift"
+        package "example.com/repro/schema"
+        typedef Node Alias
+        const Alias DEFAULT = Node{id = 1}
+        const Kind DEFAULT_KIND = Kind.Local
+        struct Link { 1: list<Node> nodes; }
+        struct Node { 1: i64 id; 2: optional Link link; }
+        enum Kind { Local = 2 }
+      )"},
+  };
+  for (const bool global : {false, true}) {
+    auto options = check_compile_options();
+    options.use_global_resolution = global;
+    check_compile(sources, "schema/types.thrift", {}, options);
+  }
+}
+
 TEST(CompilerTest, include_alias_resolution_priority) {
   std::map<std::string, std::string> name_contents_map;
   name_contents_map["foo.thrift"] = R"(
@@ -4752,10 +4908,7 @@ TEST(CompilerTest, bidirectional_streaming) {
       )");
 }
 
-// A thrift program called "<scope>.thrift" can implicitly use any definitions
-// of an included thrift program called "<scope>.thrift", without having to
-// specify the scope name, e.g. "foo.Foo" can be used as "Foo" in "foo.thrift".
-TEST(CompilerTest, implicit_scope_addition_with_direct_include) {
+TEST(CompilerTest, unqualified_type_requires_scope_with_direct_include) {
   std::map<std::string, std::string> name_contents_map;
   name_contents_map["a/foo.thrift"] = R"(
     package "facebook.com/thrift/test"
@@ -4769,13 +4922,13 @@ TEST(CompilerTest, implicit_scope_addition_with_direct_include) {
     include "a/foo.thrift"
 
     struct Bar {
-    1: Foo val; # expected-warning@6#original[Foo]#replacement[foo.Foo]@8: Identifier 'Foo' refers to a definition in another thrift program. Use an explicit scoped identifier. [implicit_scope_usage]
+    1: Foo val; # expected-error: Type `Foo` not defined.
     }
   )";
   check_compile(name_contents_map, "b/foo.thrift");
 }
 
-TEST(CompilerTest, implicit_scope_addition_with_multiple_includes) {
+TEST(CompilerTest, unqualified_type_requires_scope_with_multiple_includes) {
   std::map<std::string, std::string> name_contents_map;
   name_contents_map["a/foo.thrift"] = R"(
     package "facebook.com/thrift/test/a"
@@ -4795,11 +4948,11 @@ TEST(CompilerTest, implicit_scope_addition_with_multiple_includes) {
 
   name_contents_map["main/foo.thrift"] = R"(
     package "facebook.com/thrift/test"
-    include "a/foo.thrift" # expected-warning@3#original[]#replacement[as a_foo]@27: Multiple programs named 'foo', please specify an appropriate include alias to disambiguate. [implicit_scope_usage]
+    include "a/foo.thrift"
     include "b/foo.thrift"
 
     struct Bar {
-      1: Foo val; # expected-warning@7#original[Foo]#replacement[a_foo.Foo]@10: Identifier 'Foo' refers to a definition in another thrift program. Use an explicit scoped identifier. [implicit_scope_usage]
+      1: Foo val; # expected-error: Type `Foo` not defined.
     }
   )";
   check_compile(name_contents_map, "main/foo.thrift");

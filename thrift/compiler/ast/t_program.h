@@ -311,6 +311,15 @@ class t_program : public t_named {
 
   const scope::program_scope& program_scope() const { return program_scope_; }
 
+  // Like find<t_type>, except that an unqualified name resolves only to a type
+  // defined in this program.
+  const t_type* find_type(scope::identifier id) const {
+    if (!id.has_scope()) {
+      return program_scope_.find_by_name<t_type>(id.get_base_name());
+    }
+    return find<t_type>(id);
+  }
+
   // Returns the definition of the identifier or nullptr if there is no such
   // definition.
   template <typename Node = t_named>

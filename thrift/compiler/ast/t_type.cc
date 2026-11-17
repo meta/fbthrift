@@ -41,7 +41,7 @@ bool t_type_ref::resolve() {
     return false;
   }
 
-  const t_type* resolved_type = unresolved_program_->find<t_type>(
+  const t_type* resolved_type = unresolved_program_->find_type(
       scope::identifier{unresolved_name_, range_});
   if (resolved_type == nullptr) {
     return false;

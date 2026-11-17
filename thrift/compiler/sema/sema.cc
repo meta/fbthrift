@@ -78,6 +78,9 @@ class type_ref_resolver {
     const scope::identifier id{
         detail::unresolved_type_ref_info::unresolved_name(ref),
         ref.src_range()};
+    if (!id.has_scope()) {
+      return nullptr; // An unqualified type name never leaves its own program.
+    }
     return dynamic_cast<const t_type*>(bundle_.root_program()->find(id));
   }
 
@@ -584,13 +587,13 @@ void mutate_inject_metadata_fields(
   }
   const scope::identifier id{type_string, loc};
 
-  const t_type* ttype = node.program()->find<t_type>(id);
+  const t_type* ttype = node.program()->find_type(id);
   if (!ttype && annotation->program()) {
     // [TEMPORARY] Allow injected metadata fields to use the scope name
     // of the program they're defined in. e.g.
     // @internal.InjectMetadataFields{type = "Bar"} in foo.thrift should be
     // resolved as foo.Bar, not just Bar.
-    ttype = annotation->program()->find<t_type>(id);
+    ttype = annotation->program()->find_type(id);
   }
   if (!ttype) {
     ctx.error(
