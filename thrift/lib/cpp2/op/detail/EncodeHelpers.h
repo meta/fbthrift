@@ -397,23 +397,19 @@ inline constexpr bool supports_arithmetic_vectors_v =
 
 template <typename ElemType, typename ElemTType>
 inline constexpr bool is_supported_arithmetic_elem_type_v =
-    (std::is_same_v<ElemType, float> || std::is_same_v<ElemType, double> ||
-     std::is_same_v<ElemType, std::int8_t> ||
-     std::is_same_v<ElemType, std::uint8_t> ||
-     std::is_same_v<ElemType, std::int64_t> ||
-     std::is_same_v<ElemType, std::uint64_t> ||
-     std::is_same_v<ElemType, std::int32_t> ||
-     std::is_same_v<ElemType, std::uint32_t> ||
-     std::is_same_v<ElemType, std::int16_t> ||
-     std::is_same_v<ElemType, std::uint16_t>) &&
-    (ElemTType::value == protocol::TType::T_BYTE ||
-     ElemTType::value == protocol::TType::T_FLOAT ||
-     ElemTType::value == protocol::TType::T_DOUBLE ||
-     ElemTType::value == protocol::TType::T_U64 ||
-     ElemTType::value == protocol::TType::T_I64 ||
-     ElemTType::value == protocol::TType::T_I32 ||
-     ElemTType::value == protocol::TType::T_I16 ||
-     ElemTType::value == protocol::TType::T_I08);
+    (ElemTType::value == protocol::TType::T_FLOAT &&
+     std::is_same_v<ElemType, float>) ||
+    (ElemTType::value == protocol::TType::T_DOUBLE &&
+     std::is_same_v<ElemType, double>) ||
+    (ElemTType::value == protocol::TType::T_BYTE &&
+     folly::is_one_of_v<ElemType, std::int8_t, std::uint8_t>) ||
+    (ElemTType::value == protocol::TType::T_I16 &&
+     folly::is_one_of_v<ElemType, std::int16_t, std::uint16_t>) ||
+    (ElemTType::value == protocol::TType::T_I32 &&
+     folly::is_one_of_v<ElemType, std::int32_t, std::uint32_t>) ||
+    ((ElemTType::value == protocol::TType::T_I64 ||
+      ElemTType::value == protocol::TType::T_U64) &&
+     folly::is_one_of_v<ElemType, std::int64_t, std::uint64_t>);
 
 template <typename Protocol, typename ElemTType, typename ContainerType>
 inline constexpr bool should_process_as_arithmetic_vector_v =
