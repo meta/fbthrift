@@ -2379,16 +2379,21 @@ using SegmentInboundWithWriteReadyCallback = InboundWithWriteReadyCallback;
 template <typename>
 using SegmentOutboundWithReadReadyCallback = OutboundWithReadReadyCallback;
 
-// Sends one read through Handler as a typed and an erased handler in one
-// pipeline, and through SegmentHandler inside a segment in another. Returns
-// each result and whether each pipeline then waits for write ready.
-template <typename Handler, template <typename> class SegmentHandler>
-std::tuple<Result, bool, Result, bool> readThroughStaticForms() {
+// Calls use(builder, erased, segment) and returns its result. Every pipeline
+// that builder() starts shares one EventBase, head, tail and allocator, which
+// live until use returns. erased() returns Handler as an erased handler, and
+// segment() returns SegmentHandler inside a segment.
+template <
+    typename Handler,
+    template <typename> class SegmentHandler,
+    typename Use>
+auto withStaticForms(Use use) {
   folly::EventBase eventBase;
   StaticHeadHandler head;
   StaticTailHandler tail;
   TestAllocator allocator;
-  auto builder = [&] {
+
+  const auto builder = [&] {
     return StaticPipelineBuilder<
                StaticHeadHandler,
                StaticTailHandler,
@@ -2398,66 +2403,67 @@ std::tuple<Result, bool, Result, bool> readThroughStaticForms() {
         .setTail(&tail)
         .setAllocator(&allocator);
   };
-  std::vector<detail::ErasedStaticHandler> erasedHandlers;
-  erasedHandlers.push_back(
-      detail::makeErasedStaticHandler<Handler>(first_erased_static_tag.id));
-  auto typedAndErased = builder()
-                            .template addNextInbound<Handler>(first_static_tag)
-                            .addStaticHandlers(std::move(erasedHandlers))
-                            .build();
-  std::vector<detail::ErasedStaticSegment> segments;
-  segments.push_back(
-      StaticSegmentBuilder<>()
-          .addHandler<SegmentHandler>(second_erased_static_tag.id)
-          .build());
-  auto segmented = builder().addStaticSegments(std::move(segments)).build();
+  const auto erased = [] {
+    std::vector<detail::ErasedStaticHandler> erasedHandlers;
+    erasedHandlers.push_back(
+        detail::makeErasedStaticHandler<Handler>(first_erased_static_tag.id));
+    return erasedHandlers;
+  };
+  const auto segment = [] {
+    std::vector<detail::ErasedStaticSegment> segments;
+    segments.push_back(
+        StaticSegmentBuilder<>()
+            .addHandler<SegmentHandler>(second_erased_static_tag.id)
+            .build());
+    return segments;
+  };
 
-  // Braced initialization evaluates the calls from left to right.
-  return std::tuple{
-      typedAndErased->fireRead(TypeErasedBox{1}),
-      typedAndErased->hasPendingWriteReady(),
-      segmented->fireRead(TypeErasedBox{1}),
-      segmented->hasPendingWriteReady()};
+  return use(builder, erased, segment);
+}
+
+// Sends one read through Handler as a typed and an erased handler in one
+// pipeline, and through SegmentHandler inside a segment in another. Returns
+// each result and whether each pipeline then waits for write ready.
+template <typename Handler, template <typename> class SegmentHandler>
+std::tuple<Result, bool, Result, bool> readThroughStaticForms() {
+  return withStaticForms<Handler, SegmentHandler>(
+      [](auto builder, auto erased, auto segment) {
+        const auto typedAndErased =
+            builder()
+                .template addNextInbound<Handler>(first_static_tag)
+                .addStaticHandlers(erased())
+                .build();
+        const auto segmented = builder().addStaticSegments(segment()).build();
+
+        // Braced initialization evaluates the calls from left to right.
+        return std::tuple{
+            typedAndErased->fireRead(TypeErasedBox{1}),
+            typedAndErased->hasPendingWriteReady(),
+            segmented->fireRead(TypeErasedBox{1}),
+            segmented->hasPendingWriteReady()};
+      });
 }
 
 // The same as readThroughStaticForms() for the write side: sends one write and
 // returns whether each pipeline then waits for read ready.
 template <typename Handler, template <typename> class SegmentHandler>
 std::tuple<Result, bool, Result, bool> writeThroughStaticForms() {
-  folly::EventBase eventBase;
-  StaticHeadHandler head;
-  StaticTailHandler tail;
-  TestAllocator allocator;
-  auto builder = [&] {
-    return StaticPipelineBuilder<
-               StaticHeadHandler,
-               StaticTailHandler,
-               TestAllocator>()
-        .setEventBase(&eventBase)
-        .setHead(&head)
-        .setTail(&tail)
-        .setAllocator(&allocator);
-  };
-  std::vector<detail::ErasedStaticHandler> erasedHandlers;
-  erasedHandlers.push_back(
-      detail::makeErasedStaticHandler<Handler>(first_erased_static_tag.id));
-  auto typedAndErased = builder()
-                            .template addNextOutbound<Handler>(first_static_tag)
-                            .addStaticHandlers(std::move(erasedHandlers))
-                            .build();
-  std::vector<detail::ErasedStaticSegment> segments;
-  segments.push_back(
-      StaticSegmentBuilder<>()
-          .addHandler<SegmentHandler>(second_erased_static_tag.id)
-          .build());
-  auto segmented = builder().addStaticSegments(std::move(segments)).build();
+  return withStaticForms<Handler, SegmentHandler>(
+      [](auto builder, auto erased, auto segment) {
+        const auto typedAndErased =
+            builder()
+                .template addNextOutbound<Handler>(first_static_tag)
+                .addStaticHandlers(erased())
+                .build();
+        const auto segmented = builder().addStaticSegments(segment()).build();
 
-  // Braced initialization evaluates the calls from left to right.
-  return std::tuple{
-      typedAndErased->fireWrite(erase_and_box(folly::IOBuf::create(0))),
-      typedAndErased->hasPendingReadReady(),
-      segmented->fireWrite(erase_and_box(folly::IOBuf::create(0))),
-      segmented->hasPendingReadReady()};
+        // Braced initialization evaluates the calls from left to right.
+        return std::tuple{
+            typedAndErased->fireWrite(erase_and_box(folly::IOBuf::create(0))),
+            typedAndErased->hasPendingReadReady(),
+            segmented->fireWrite(erase_and_box(folly::IOBuf::create(0))),
+            segmented->hasPendingReadReady()};
+      });
 }
 
 // A handler without onWriteReady() cannot wait for it, as a typed handler, as
