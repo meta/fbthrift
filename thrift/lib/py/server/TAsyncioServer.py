@@ -102,17 +102,19 @@ async def ThriftAsyncServerFactory(
 
     Use this to initialize multiple servers asynchronously::
 
-        loop = asyncio.get_event_loop()
-        servers = [
-            ThriftAsyncServerFactory(handler1, port=9090, loop=loop),
-            ThriftAsyncServerFactory(handler2, port=9091, loop=loop),
-        ]
-        loop.run_until_complete(asyncio.wait(servers))
-        try:
-            loop.run_forever()   # Servers are initialized now
-        finally:
-            for server in servers:
-                server.close()
+        async def main():
+            servers = await asyncio.gather(
+                ThriftAsyncServerFactory(handler1, port=9090),
+                ThriftAsyncServerFactory(handler2, port=9091),
+            )
+            try:
+                await asyncio.Future()  # Servers are initialized now
+            finally:
+                for server in servers:
+                    server.close()
+                await asyncio.gather(*(server.wait_closed() for server in servers))
+
+        asyncio.run(main())
     """
 
     if loop is None:

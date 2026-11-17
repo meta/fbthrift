@@ -141,9 +141,12 @@ class TestThriftClientProtocol(ThriftHeaderClientProtocol):
         self.THEADER_PROTOCOL_FACTORY = factory
 
 
-class TAsyncioServerTest(unittest.TestCase):
+class TAsyncioServerTest(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
+        self.loop = asyncio.get_running_loop()
+
     def test_THEADER_PROTOCOL_FACTORY_readMessageBegin(self):
-        loop = asyncio.get_event_loop()
+        loop = self.loop
         loop.set_debug(True)
         sock = socket.socket()
         server_loop_runner(loop, sock, AsyncCalculatorHandler())
@@ -177,7 +180,7 @@ class TAsyncioServerTest(unittest.TestCase):
 
     def test_read_error(self):
         """Test the behavior if readMessageBegin() throws an exception"""
-        loop = asyncio.get_event_loop()
+        loop = self.loop
         loop.set_debug(True)
         sock = socket.socket()
         server_loop_runner(loop, sock, AsyncCalculatorHandler())
@@ -221,15 +224,22 @@ class TAsyncioServerTest(unittest.TestCase):
         add_result = loop.run_until_complete(test_server_with_client(sock, loop))
         self.assertEqual(42, add_result)
 
-    def test_default_event_loop(self):
-        loop = asyncio.get_event_loop()
-        loop.set_debug(True)
-        self._test_using_event_loop(loop)
+    async def test_default_event_loop(self):
+        sock = socket.socket()
+        server = await ThriftAsyncServerFactory(
+            AsyncCalculatorHandler(), port=None, sock=sock
+        )
+        try:
+            add_result = await test_server_with_client(sock, self.loop)
+            self.assertEqual(42, add_result)
+        finally:
+            server.close()
+            await server.wait_closed()
 
     def test_custom_event_loop(self):
         loop = asyncio.new_event_loop()
         loop.set_debug(True)
-        self.assertIsNot(loop, asyncio.get_event_loop())
+        self.assertIsNot(loop, self.loop)
         self._test_using_event_loop(loop)
 
     def _start_server_thread(self, server, loop):
@@ -319,7 +329,7 @@ class TAsyncioServerTest(unittest.TestCase):
             )
 
     def test_overflow_failure(self):
-        loop = asyncio.get_event_loop()
+        loop = self.loop
         loop.set_debug(True)
         sock = socket.socket()
         server_loop_runner(loop, sock, AsyncSleepHandler(loop))
@@ -331,7 +341,7 @@ class TAsyncioServerTest(unittest.TestCase):
             loop.run_until_complete(test_overflow(sock, 0xFFFF, loop))
 
     def test_overflow_success(self):
-        loop = asyncio.get_event_loop()
+        loop = self.loop
         loop.set_debug(True)
         sock = socket.socket()
         server_loop_runner(loop, sock, AsyncSleepHandler(loop))
@@ -340,7 +350,7 @@ class TAsyncioServerTest(unittest.TestCase):
         loop.run_until_complete(test_overflow(sock, 0x7F, loop))
 
     def test_timeout(self):
-        loop = asyncio.get_event_loop()
+        loop = self.loop
         loop.set_debug(True)
         sock = socket.socket()
         server_loop_runner(loop, sock, AsyncSleepHandler(loop))
@@ -348,7 +358,7 @@ class TAsyncioServerTest(unittest.TestCase):
             loop.run_until_complete(test_echo_timeout(sock, loop))
 
     def test_custom_protocol_factory(self):
-        loop = asyncio.get_event_loop()
+        loop = self.loop
         sock = socket.socket()
         wrapper_protocol = None
 
