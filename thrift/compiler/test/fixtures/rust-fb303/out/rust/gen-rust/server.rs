@@ -2057,29 +2057,6 @@ where
               starts_interaction: false,
               interaction_name: None,
             },
-
-            // From fb303_core.BaseService:
-            ::fbthrift::processor::MethodMetadata{
-              interaction_type: ::fbthrift::processor::InteractionType::None,
-              rpc_kind: ::fbthrift::processor::RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE,
-              name: "getStatus",
-              starts_interaction: false,
-              interaction_name: None,
-            },
-            ::fbthrift::processor::MethodMetadata{
-              interaction_type: ::fbthrift::processor::InteractionType::None,
-              rpc_kind: ::fbthrift::processor::RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE,
-              name: "getStatusDetails",
-              starts_interaction: false,
-              interaction_name: None,
-            },
-            ::fbthrift::processor::MethodMetadata{
-              interaction_type: ::fbthrift::processor::InteractionType::None,
-              rpc_kind: ::fbthrift::processor::RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE,
-              name: "getName",
-              starts_interaction: false,
-              interaction_name: None,
-            },
         ]
     }
 
