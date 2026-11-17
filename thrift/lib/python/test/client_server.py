@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import asyncio
 import gc
+import threading
 import traceback
 import unittest
 import weakref
@@ -46,6 +47,15 @@ from thrift.python.server import ServiceInterface
 
 
 class Handler(TestingServiceInterface):
+    def __init__(self) -> None:
+        super().__init__()
+        self.request_id_threads: list[int] = []
+        # A getRequestId call whose "hold" header names an event here waits
+        # until the test sets that event.
+        self.release_held_requests: dict[str, threading.Event] = {}
+        self.held_requests_started = threading.Semaphore(0)
+        self.held_requests_released_in_time: dict[str, bool] = {}
+
     async def invert(self, value: bool) -> bool:
         ctx = get_context()
         if "from client" in ctx.read_headers:
@@ -63,6 +73,15 @@ class Handler(TestingServiceInterface):
 
     async def getRequestId(self) -> str:
         ctx = get_context()
+        self.request_id_threads.append(threading.get_ident())
+        hold = ctx.read_headers.get("hold")
+        if hold is not None:
+            self.held_requests_started.release()
+            # Blocking, not awaiting, keeps this thread busy, so requests that
+            # arrive meanwhile wait for another thread.
+            self.held_requests_released_in_time[hold] = self.release_held_requests[
+                hold
+            ].wait(timeout=10)
         return ctx.request_id
 
     async def getRequestTimeout(self) -> float:
