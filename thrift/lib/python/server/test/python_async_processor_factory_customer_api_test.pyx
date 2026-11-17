@@ -22,11 +22,13 @@ from folly.executor cimport get_executor
 from libc.stddef cimport size_t
 from libcpp.map cimport map as cmap
 from libcpp.memory cimport make_shared, shared_ptr, static_pointer_cast
+from libcpp.string cimport string
 from libcpp.utility cimport move as cmove
 from libcpp.vector cimport vector as cvector
 from thrift.python.std_libcpp cimport bytes_to_string_view, string_view
 from testing.base_service_only.thrift_clients import BaseService
 from testing.base_service_only.thrift_services import BaseServiceInterface
+from test_thrift.thrift_services import ExtendServiceWithNoTypesInterface
 from thrift.python.client import get_client
 from thrift.python.server import ThriftServer
 from thrift.py3.server cimport ThriftServer as Py3ThriftServer
@@ -69,6 +71,10 @@ cdef extern from "thrift/lib/python/server/test/PythonAsyncProcessorFactoryLifec
         cForwardingKeepAliveTrackingExecutor& control_executor,
         size_t iteration_count,
     ) except +
+
+
+cdef extern from "thrift/lib/python/server/test/ServiceSchemaTestHelper.h" namespace "apache::thrift::python::test":
+    cvector[string] serviceSchemaLineage(cAsyncProcessorFactory& factory) except + nogil
 
 
 cdef extern from "thrift/lib/cpp2/async/MultiplexAsyncProcessor.h" namespace "apache::thrift":
@@ -119,6 +125,14 @@ class StopRequestedExecutorObserver:
 class Handler(BaseServiceInterface):
     async def theAnswer(self) -> int:
         return 42
+
+
+class ExtendingHandler(ExtendServiceWithNoTypesInterface):
+    async def theAnswer(self) -> int:
+        return 42
+
+    async def do_nothing(self) -> None:
+        pass
 
 
 class ContextHandler(Handler):
@@ -297,6 +311,14 @@ cdef AsyncProcessorFactory compose_processor_factory(
         make_shared[cMultiplexAsyncProcessorFactory](cmove(factories))
     )
     return composed_factory
+
+
+def service_schema_lineage(AsyncProcessorFactory factory):
+    cdef shared_ptr[cAsyncProcessorFactory] cpp_factory = factory._cpp_obj
+    cdef cvector[string] names
+    with nogil:
+        names = serviceSchemaLineage(deref(cpp_factory))
+    return names
 
 
 async def round_trip(AsyncProcessorFactory factory):
@@ -670,6 +692,48 @@ cdef class PythonAsyncProcessorFactoryCustomerApiCTest:
         # THEN
         self.ut.assertEqual(expected_events, handler.events)
         self.ut.assertIs(caller_failure, handler.exit_error)
+
+    async def test_service_schema_describes_the_python_service(self):
+        # GIVEN
+        cdef PythonAsyncProcessorFactory factory = (
+            PythonAsyncProcessorFactory.create(Handler())
+        )
+        expected = [b"BaseService"]
+
+        # WHEN
+        actual = await asyncio.to_thread(service_schema_lineage, factory)
+
+        # THEN
+        self.ut.assertEqual(expected, actual)
+
+    async def test_service_schema_describes_the_python_service_through_composed_factory(
+        self,
+    ):
+        # GIVEN
+        cdef PythonAsyncProcessorFactory factory = (
+            PythonAsyncProcessorFactory.create(Handler())
+        )
+        composed_factory = compose_processor_factory(factory)
+        expected = [b"BaseService"]
+
+        # WHEN
+        actual = await asyncio.to_thread(service_schema_lineage, composed_factory)
+
+        # THEN
+        self.ut.assertEqual(expected, actual)
+
+    async def test_service_schema_includes_a_base_service_from_another_file(self):
+        # GIVEN
+        cdef PythonAsyncProcessorFactory factory = (
+            PythonAsyncProcessorFactory.create(ExtendingHandler())
+        )
+        expected = [b"ExtendServiceWithNoTypes", b"BaseService"]
+
+        # WHEN
+        actual = await asyncio.to_thread(service_schema_lineage, factory)
+
+        # THEN
+        self.ut.assertEqual(expected, actual)
 
     async def test_unary_rpc_round_trips(self):
         # GIVEN

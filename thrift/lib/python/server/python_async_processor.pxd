@@ -138,6 +138,10 @@ cdef extern from "thrift/lib/python/server/PythonAsyncProcessorFactory.h" namesp
         size_t requestedThreadCount() noexcept
         void markContextEntered() noexcept
 
+    cdef bint cNeedsSchemaBundles "::apache::thrift::python::PythonAsyncProcessorFactory::needsSchemaBundles"(
+        string serviceDefinitionKey,
+    )
+
     cdef shared_ptr[cPythonAsyncProcessorFactory] \
         cCreatePythonAsyncProcessorFactory "::apache::thrift::python::PythonAsyncProcessorFactory::create"(
             PyObject* server,
@@ -146,6 +150,8 @@ cdef extern from "thrift/lib/python/server/PythonAsyncProcessorFactory.h" namesp
             shared_ptr[cExecutionSystem] executionSystem,
             cAsyncioExecutor* controlExecutor,
             string serviceName,
+            cvector[string] schemaBundles,
+            string serviceDefinitionKey,
         ) except +
 
 cdef extern from "thrift/lib/cpp2/async/RpcTypes.h" namespace "::apache::thrift":

@@ -20,6 +20,7 @@ import sys
 import traceback
 
 from thrift.python.serializer import serialize_iobuf
+from thrift.python.server_impl.schema_bundle import collect_schema_bundles
 from thrift.python.types import ServiceInterface
 
 cimport cython
@@ -988,6 +989,29 @@ cdef class PythonAsyncProcessorFactory(AsyncProcessorFactory):
         for lifecycle_func in lifecycleFuncs:
             lifecycle.push_back(<PyObject*>lifecycle_func)
 
+        # Generated interfaces define the key; a handler without one has no
+        # bundles either.
+        cdef cvector[string] schemaBundles
+        cdef string serviceDefinitionKey
+        definition_key = getattr(controlHandler, "__get_thrift_definition_key__", None)
+        if definition_key is not None:
+            serviceDefinitionKey = <bytes>definition_key()
+            # The schema is built once per service, so later factories of it,
+            # one per request in some hosts, skip collecting.
+            if cNeedsSchemaBundles(serviceDefinitionKey):
+                try:
+                    for bundle in collect_schema_bundles(type(controlHandler)):
+                        schemaBundles.push_back(<bytes>bundle)
+                except Exception:
+                    # The schema only adds to what the server can do
+                    # (interceptor arguments, the schema dump); serve without
+                    # it rather than fail to start.
+                    schemaBundles.clear()
+                    logger.exception(
+                        "Cannot collect the schema of Thrift service %s; serving it without one",
+                        controlHandler.service_name().decode(),
+                    )
+
         cdef cAsyncioExecutor* controlExecutor = get_executor()
         cdef shared_ptr[cExecutionSystem] executionSystem = makeControlOnlyExecutionSystem(
             controlExecutor, <cLaunchControlRequest>launchControlTask, cmove(controlMethods)
@@ -1011,7 +1035,9 @@ cdef class PythonAsyncProcessorFactory(AsyncProcessorFactory):
                 cmove(lifecycle),
                 executionSystem,
                 controlExecutor,
-                <bytes>controlHandler.service_name()))
+                <bytes>controlHandler.service_name(),
+                cmove(schemaBundles),
+                serviceDefinitionKey))
         return inst
 
     @staticmethod
