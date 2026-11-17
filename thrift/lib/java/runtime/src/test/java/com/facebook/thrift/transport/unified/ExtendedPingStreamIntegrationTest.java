@@ -40,6 +40,8 @@ import com.facebook.thrift.payload.Writer;
 import com.facebook.thrift.protocol.TProtocolType;
 import com.facebook.thrift.rsocket.client.RSocketRpcClientFactory;
 import com.facebook.thrift.server.RpcServerHandler;
+import com.facebook.thrift.server.generated.BidiMethod;
+import com.facebook.thrift.server.generated.ServerBidiStreams;
 import com.facebook.thrift.server.generated.ServerSinks;
 import com.facebook.thrift.server.generated.ServerStreams;
 import com.facebook.thrift.server.generated.SinkMethod;
@@ -1928,6 +1930,325 @@ public class ExtendedPingStreamIntegrationTest {
         .expectNextCount(1)
         .assertNext(last -> Assertions.assertEquals("declared peer", finalResponse(last)))
         .verifyComplete();
+  }
+
+  @Test
+  public void generatedBidiInterleavesAndEndsWithItsOwnComplete() throws Exception {
+    FrameLog frames = new FrameLog();
+    RpcServerHandler echo =
+        bidiHandler(
+            (args, sinkElements) ->
+                Mono.just(
+                    ResponseAndStream.of(
+                        ServerStreams.NO_FIRST_RESPONSE,
+                        sinkElements.map(element -> pingResponse(element.getRequest())))));
+
+    RpcClient client = channelClient(startChannelServer(echo), frames);
+
+    StepVerifier.create(
+            client.streamingRequestStreamingResponse(
+                Flux.just(
+                    channelRequest(RpcKind.BIDIRECTIONAL_STREAM, pingArgsWriter("hello")),
+                    channelRequest(RpcKind.BIDIRECTIONAL_STREAM, sinkPayloadWriter("a")),
+                    channelRequest(RpcKind.BIDIRECTIONAL_STREAM, sinkPayloadWriter("b"))),
+                RpcOptions.EMPTY))
+        .expectNextCount(1)
+        .assertNext(element -> Assertions.assertEquals("a", finalResponse(element)))
+        .assertNext(element -> Assertions.assertEquals("b", finalResponse(element)))
+        .verifyComplete();
+
+    Assertions.assertEquals(
+        Arrays.asList("NEXT", "REQUEST_N", "NEXT", "NEXT", "COMPLETE"), frames.fromServer);
+  }
+
+  @Test
+  public void generatedBidiSendsItsFirstResponseValue() throws Exception {
+    RpcServerHandler withFirst =
+        bidiHandler(
+            (args, sinkElements) ->
+                Mono.just(
+                    ResponseAndStream.of(
+                        pingResponse("first"),
+                        sinkElements.map(element -> pingResponse(element.getRequest())))));
+
+    RpcClient client = channelClient(startChannelServer(withFirst), new FrameLog());
+
+    StepVerifier.create(
+            client.streamingRequestStreamingResponse(
+                Flux.just(
+                    channelRequest(RpcKind.BIDIRECTIONAL_STREAM, pingArgsWriter("hello")),
+                    channelRequest(RpcKind.BIDIRECTIONAL_STREAM, sinkPayloadWriter("a"))),
+                RpcOptions.EMPTY))
+        .assertNext(first -> Assertions.assertEquals("first", firstResponse(first)))
+        .assertNext(element -> Assertions.assertEquals("a", finalResponse(element)))
+        .verifyComplete();
+  }
+
+  @Test
+  public void generatedBidiWithoutSinkOrStreamElementsSendsOnlyItsFirstResponse() throws Exception {
+    bidiWithoutSinkElements(0);
+  }
+
+  @Test
+  public void generatedBidiWithoutSinkElementsSendsItsStream() throws Exception {
+    bidiWithoutSinkElements(3);
+  }
+
+  private void bidiWithoutSinkElements(int streamElements) throws Exception {
+    FrameLog frames = new FrameLog();
+    RpcServerHandler counts =
+        bidiHandler(
+            (args, sinkElements) ->
+                Mono.just(
+                    ResponseAndStream.of(
+                        ServerStreams.NO_FIRST_RESPONSE,
+                        Flux.range(0, streamElements).map(i -> pingResponse("s" + i)))));
+
+    RpcClient client = channelClient(startChannelServer(counts), frames);
+
+    StepVerifier.create(
+            client.streamingRequestStreamingResponse(
+                Flux.just(channelRequest(RpcKind.BIDIRECTIONAL_STREAM, pingArgsWriter("hello"))),
+                RpcOptions.EMPTY))
+        .expectNextCount(1 + streamElements)
+        .verifyComplete();
+
+    List<String> expected = new ArrayList<>(Collections.nCopies(1 + streamElements, "NEXT"));
+    expected.add("COMPLETE");
+    Assertions.assertEquals(expected, frames.fromServer.subList(0, expected.size()));
+    Assertions.assertFalse(frames.fromServer.contains("ERROR"));
+  }
+
+  @Test
+  public void generatedBidiStreamContinuesAfterTheSinkCompletes() throws Exception {
+    FrameLog frames = new FrameLog();
+    RpcServerHandler echoThenMore =
+        bidiHandler(
+            (args, sinkElements) ->
+                Mono.just(
+                    ResponseAndStream.of(
+                        ServerStreams.NO_FIRST_RESPONSE,
+                        sinkElements
+                            .map(element -> pingResponse(element.getRequest()))
+                            .concatWith(Flux.just(pingResponse("after"))))));
+
+    RpcClient client = channelClient(startChannelServer(echoThenMore), frames);
+
+    StepVerifier.create(
+            client.streamingRequestStreamingResponse(
+                Flux.just(
+                    channelRequest(RpcKind.BIDIRECTIONAL_STREAM, pingArgsWriter("hello")),
+                    channelRequest(RpcKind.BIDIRECTIONAL_STREAM, sinkPayloadWriter("a"))),
+                RpcOptions.EMPTY))
+        .expectNextCount(1)
+        .assertNext(element -> Assertions.assertEquals("a", finalResponse(element)))
+        .assertNext(element -> Assertions.assertEquals("after", finalResponse(element)))
+        .verifyComplete();
+
+    Assertions.assertEquals(
+        Arrays.asList("NEXT", "REQUEST_N", "NEXT", "NEXT", "COMPLETE"), frames.fromServer);
+  }
+
+  @Test
+  public void generatedBidiDeclaredSinkErrorEndsTheSinkAndTheStreamContinues() throws Exception {
+    FrameLog frames = new FrameLog();
+    RpcServerHandler reportsItsSinkError =
+        bidiHandler(
+            (args, sinkElements) ->
+                Mono.just(
+                    ResponseAndStream.of(
+                        ServerStreams.NO_FIRST_RESPONSE,
+                        sinkElements
+                            .map(element -> pingResponse(element.getRequest()))
+                            .onErrorResume(
+                                CustomException.class,
+                                e -> Flux.just(pingResponse("declared " + e.getMessage()))))));
+
+    RpcClient client = channelClient(startChannelServer(reportsItsSinkError), frames);
+
+    StepVerifier.create(
+            client.streamingRequestStreamingResponse(
+                Flux.just(
+                    channelRequest(RpcKind.BIDIRECTIONAL_STREAM, pingArgsWriter("hello")),
+                    channelRequest(RpcKind.BIDIRECTIONAL_STREAM, sinkPayloadWriter("a")),
+                    channelRequest(
+                        RpcKind.BIDIRECTIONAL_STREAM, declaredSinkExceptionWriter("peer"))),
+                RpcOptions.EMPTY))
+        .expectNextCount(1)
+        .assertNext(element -> Assertions.assertEquals("a", finalResponse(element)))
+        .assertNext(element -> Assertions.assertEquals("declared peer", finalResponse(element)))
+        .verifyComplete();
+
+    Assertions.assertEquals(
+        Arrays.asList("NEXT", "REQUEST_N", "NEXT", "NEXT", "COMPLETE"), frames.fromServer);
+  }
+
+  @Test
+  public void generatedBidiDeclaredStreamExceptionKeepsTheSinkOpen() throws Exception {
+    bidiStreamExceptionKeepsTheSinkOpen(
+        new CustomException.Builder().setMessage("declared").build());
+  }
+
+  @Test
+  public void generatedBidiUndeclaredStreamExceptionKeepsTheSinkOpen() throws Exception {
+    bidiStreamExceptionKeepsTheSinkOpen(new IllegalStateException("undeclared"));
+  }
+
+  /**
+   * A stream exception travels in band, as a payload before the stream COMPLETE, so it ends only
+   * the stream half: the reader still gets the sink payloads that the peer sends after it.
+   */
+  private void bidiStreamExceptionKeepsTheSinkOpen(Throwable streamError) throws Exception {
+    FrameLog frames = new FrameLog();
+    Recorded<Object> read = new Recorded<>();
+    RpcServerHandler failsItsStream =
+        bidiHandler(
+            (args, sinkElements) -> {
+              sinkElements.subscribe(
+                  element -> read.add(element.getRequest()), read::add, () -> read.add("complete"));
+
+              return Mono.just(
+                  ResponseAndStream.of(
+                      ServerStreams.NO_FIRST_RESPONSE,
+                      Flux.just(pingResponse("a")).concatWith(Flux.error(streamError))));
+            });
+
+    RpcClient client = channelClient(startChannelServer(failsItsStream), frames);
+    frames.holdSink();
+
+    CompletableFuture<List<ClientResponsePayload<Object>>> call =
+        client
+            .<Object, Object>streamingRequestStreamingResponse(
+                Flux.just(
+                    channelRequest(RpcKind.BIDIRECTIONAL_STREAM, pingArgsWriter("hello")),
+                    channelRequest(RpcKind.BIDIRECTIONAL_STREAM, sinkPayloadWriter("s0"))),
+                RpcOptions.EMPTY)
+            .collectList()
+            .toFuture();
+
+    try {
+      frames.awaitHeldSinkFrames(2);
+      frames.await("COMPLETE");
+    } finally {
+      frames.releaseSink();
+    }
+
+    read.awaitSize(2);
+    Assertions.assertEquals(Arrays.asList("s0", "complete"), read);
+    Assertions.assertNotNull(call.get(5, TimeUnit.SECONDS).get(2).getException());
+    Assertions.assertEquals(
+        Arrays.asList("NEXT", "REQUEST_N", "NEXT", "NEXT", "COMPLETE"), frames.fromServer);
+  }
+
+  @Test
+  public void generatedBidiReaderGetsADeclaredSinkErrorAfterTheStreamCompletes() throws Exception {
+    FrameLog frames = new FrameLog();
+    Recorded<Object> read = new Recorded<>();
+    RpcServerHandler readsAfterItsStream =
+        bidiHandler(
+            (args, sinkElements) -> {
+              sinkElements.subscribe(element -> read.add(element.getRequest()), read::add);
+
+              return Mono.just(
+                  ResponseAndStream.of(
+                      ServerStreams.NO_FIRST_RESPONSE, Flux.just(pingResponse("a"))));
+            });
+
+    RpcClient client = channelClient(startChannelServer(readsAfterItsStream), frames);
+    frames.holdSink();
+
+    client
+        .<Object, Object>streamingRequestStreamingResponse(
+            Flux.just(
+                channelRequest(RpcKind.BIDIRECTIONAL_STREAM, pingArgsWriter("hello")),
+                channelRequest(RpcKind.BIDIRECTIONAL_STREAM, sinkPayloadWriter("s0")),
+                channelRequest(RpcKind.BIDIRECTIONAL_STREAM, declaredSinkExceptionWriter("peer"))),
+            RpcOptions.EMPTY)
+        .subscribe();
+
+    try {
+      frames.awaitHeldSinkFrames(2);
+      frames.await("COMPLETE");
+    } finally {
+      frames.releaseSink();
+    }
+
+    read.awaitSize(2);
+    Assertions.assertEquals("s0", read.get(0));
+    Assertions.assertEquals("peer", ((CustomException) read.get(1)).getMessage());
+  }
+
+  @Test
+  public void generatedBidiReadsItsSinkOffTheEventLoop() throws Exception {
+    Assumptions.assumeTrue(RpcResources.isForceExecutionOffEventLoop());
+    List<Thread> threads = new CopyOnWriteArrayList<>();
+    RpcServerHandler echo =
+        bidiHandler(
+            (args, sinkElements) ->
+                Mono.just(
+                    ResponseAndStream.of(
+                        ServerStreams.NO_FIRST_RESPONSE,
+                        sinkElements
+                            .doOnNext(element -> threads.add(Thread.currentThread()))
+                            .map(element -> pingResponse(element.getRequest())))));
+
+    RpcClient client = channelClient(startChannelServer(echo), new FrameLog());
+
+    StepVerifier.create(
+            client.streamingRequestStreamingResponse(
+                Flux.just(
+                    channelRequest(RpcKind.BIDIRECTIONAL_STREAM, pingArgsWriter("hello")),
+                    channelRequest(RpcKind.BIDIRECTIONAL_STREAM, sinkPayloadWriter("a")),
+                    channelRequest(RpcKind.BIDIRECTIONAL_STREAM, sinkPayloadWriter("b"))),
+                RpcOptions.EMPTY))
+        .expectNextCount(3)
+        .verifyComplete();
+
+    Assertions.assertEquals(2, threads.size());
+    for (Thread thread : threads) {
+      for (EventExecutor loop : RpcResources.getEventLoopGroup()) {
+        Assertions.assertFalse(loop.inEventLoop(thread), thread.getName());
+      }
+    }
+  }
+
+  /** A generated bidi method on the runtime of this commit, as the codegen commit emits it. */
+  private static RpcServerHandler bidiHandler(
+      BiFunction<List<Object>, Flux<PingRequest>, Mono<ResponseAndStream<Object, PingResponse>>>
+          invoke) {
+    BidiMethod<Object, PingResponse, PingRequest> method =
+        new BidiMethod<>(
+            Collections.singletonList(
+                new FieldReader<>((short) 1, TType.STRUCT, PingRequest::read0, () -> null)),
+            sinkReaders(),
+            invoke,
+            (response, chain) ->
+                response == ServerStreams.NO_FIRST_RESPONSE
+                    ? Writers.emptyStruct()
+                    : pingResponseWriter((PingResponse) response),
+            (response, chain) -> pingResponseWriter((PingResponse) response),
+            "channel",
+            null,
+            null,
+            new Class[] {CustomException.class},
+            new Integer[] {1});
+
+    return new RpcServerHandler() {
+      @Override
+      public Flux<ServerResponsePayload> streamingRequestStreamingResponse(
+          ServerRequestPayload initial, Publisher<ServerRequestPayload> sinkPayloads) {
+        ContextChain chain =
+            new ContextChain(Collections.emptyList(), "channel", initial.getRequestContext());
+
+        return ServerBidiStreams.handleBidi(initial, chain, method, sinkPayloads)
+            .doFinally(signal -> chain.finishRequest());
+      }
+    };
+  }
+
+  private static String firstResponse(ClientResponsePayload<Object> payload) {
+    return ((PingResponse) ((StreamResponse<?, ?>) payload.getData()).getFirstResponse())
+        .getResponse();
   }
 
   /**
