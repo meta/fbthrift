@@ -18,7 +18,7 @@ endif ()
 
 add_library(thrift_core Thrift.cpp ../cpp2/FieldRef.cpp)
 thrift_configure_target(thrift_core PUBLIC)
-target_link_libraries(thrift_core PUBLIC fmt::fmt Folly::folly)
+target_link_libraries(thrift_core PUBLIC Boost::headers fmt::fmt Folly::folly)
 
 add_library(
   thrift_concurrency

@@ -242,6 +242,9 @@ if (NOT folly_FOUND)
     # libraries, which folly builds only as shared libraries for Python.
     set(PYTHON_EXTENSIONS ON)
   endif ()
+  # Boost is optional in folly, which fetches it on request when it is not
+  # installed. thrift's libraries need it.
+  set(FOLLY_FETCH_BOOST ON)
   fb_fetch_from_manifest(folly folly)
   if (THRIFT_PYTHON)
     # PYTHON_EXTENSIONS forced BUILD_SHARED_LIBS on in the cache. Thrift's own

@@ -44,7 +44,6 @@ function(_thrift_find_deps)
   # through the Find modules installed next to this file. FindGlog.cmake looks
   # up Gflags and LibUnwind, so their modules are installed here too.
   set(module_deps Xxhash Gflags Glog)
-  # folly's package config also finds Boost, whose Boost::headers async links.
   set(config_deps folly)
   set(rpc "@THRIFT_RPC@")
   if (rpc)
@@ -79,6 +78,9 @@ if (DEFINED ${_thrift_package}_NOT_FOUND_MESSAGE)
 endif()
 
 find_dependency(fmt CONFIG)
+# core, concurrency and async link Boost::headers. The same lookup as thrift's
+# build, so a Boost without a package config, found by FindBoost, also works.
+find_dependency(Boost)
 # transport, async and thrifttype carry OpenSSL::Crypto in their link interface.
 find_dependency(OpenSSL)
 
