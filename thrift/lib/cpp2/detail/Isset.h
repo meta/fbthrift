@@ -259,7 +259,12 @@ class isset_bitset {
 
   void set(size_t field_index, bool isset_flag) {
     check(field_index);
-    array_isset[field_index / kBits][field_index % kBits] = isset_flag;
+    if constexpr (kOption == IssetBitsetOption::Unpacked) {
+      // One flag per byte (kBits == 1), so the whole byte can be overwritten.
+      array_isset[field_index].value() = uint8_t(isset_flag);
+    } else {
+      array_isset[field_index / kBits][field_index % kBits] = isset_flag;
+    }
   }
 
   const IntType& at(size_t field_index) const {
