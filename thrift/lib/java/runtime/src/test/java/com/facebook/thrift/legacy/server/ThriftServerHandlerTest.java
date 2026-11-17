@@ -35,6 +35,7 @@ import com.facebook.thrift.payload.ServerRequestPayload;
 import com.facebook.thrift.payload.ServerResponsePayload;
 import com.facebook.thrift.protocol.TProtocolType;
 import com.facebook.thrift.server.RpcServerHandler;
+import com.google.common.primitives.Ints;
 import io.airlift.units.Duration;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -50,6 +51,7 @@ import java.util.function.Function;
 import org.apache.thrift.ResponseRpcMetadata;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
+import org.apache.thrift.TTransform;
 import org.apache.thrift.protocol.TField;
 import org.apache.thrift.protocol.TMessage;
 import org.apache.thrift.protocol.TMessageType;
@@ -310,6 +312,26 @@ class ThriftServerHandlerTest {
     channel.finishAndReleaseAll();
   }
 
+  @Test
+  void responseUsesTheTransformsOfTheRequest() throws Exception {
+    PingService.Reactive delegate = Mockito.mock(PingService.Reactive.class);
+    Mockito.when(delegate.ping(Mockito.any(PingRequest.class)))
+        .thenReturn(Mono.just(new PingResponse.Builder().setResponse("ok").build()));
+    RpcServerHandler handler = new PingServiceRpcServerHandler(delegate, Collections.emptyList());
+    EmbeddedChannel channel =
+        new EmbeddedChannel(new ThriftServerHandler(handler, new Duration(60, TimeUnit.SECONDS)));
+
+    channel.writeInbound(pingFrame(TProtocolType.TCompact, 12, TTransform.ZSTD.getValue()));
+
+    ThriftFrame response = awaitResponse(channel);
+    try {
+      assertThat(response.getTransforms()).containsExactly(TTransform.ZSTD.getValue());
+    } finally {
+      response.release();
+    }
+    channel.finishAndReleaseAll();
+  }
+
   private static RpcServerHandler mockHandler(Mono<ServerResponsePayload> result) {
     return new RpcServerHandler() {
       @Override
@@ -362,7 +384,7 @@ class ThriftServerHandlerTest {
         false);
   }
 
-  private static ThriftFrame pingFrame(TProtocolType protocol, int seqId) {
+  private static ThriftFrame pingFrame(TProtocolType protocol, int seqId, int... transforms) {
     ByteBuf message = Unpooled.buffer();
     TProtocol out = protocol.apply(message);
     out.writeMessageBegin(new TMessage("ping", TMessageType.CALL, seqId));
@@ -385,7 +407,8 @@ class ThriftServerHandlerTest {
         Collections.emptyMap(),
         LegacyTransportType.HEADER,
         protocol,
-        false);
+        false,
+        Ints.asList(transforms));
   }
 
   private static ThriftFrame awaitResponse(EmbeddedChannel channel) throws Exception {

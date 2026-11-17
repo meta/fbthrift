@@ -29,6 +29,7 @@ import com.facebook.thrift.compression.CompressionManager;
 import com.facebook.thrift.metadata.ClientInfo;
 import com.facebook.thrift.protocol.TProtocolType;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.primitives.Ints;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufUtil;
@@ -106,10 +107,13 @@ public final class HeaderTransportCodec extends ChannelDuplexHandler {
   public void write(ChannelHandlerContext context, Object message, ChannelPromise promise) {
     if (message instanceof ThriftFrame) {
       ThriftFrame frame = (ThriftFrame) message;
-      boolean addHeader = !isServer & addHeader();
-      ByteBuf encodedFrame = encodeFrame(context.alloc(), frame, addHeader);
+      if (isServer) {
+        context.writeAndFlush(encodeResponseFrame(context.alloc(), frame), promise);
+        return;
+      }
 
-      if (!isServer && encodedFrame.readableBytes() > maxFrameLength) {
+      ByteBuf encodedFrame = encodeFrame(context.alloc(), frame, addHeader());
+      if (encodedFrame.readableBytes() > maxFrameLength) {
         TooLongFrameException e =
             new TooLongFrameException(
                 "THeader request frame of "
@@ -122,24 +126,35 @@ public final class HeaderTransportCodec extends ChannelDuplexHandler {
         return;
       }
 
-      if (isServer && encodedFrame.readableBytes() > maxFrameLength) {
-        log.warn(
-            "Response frame of {} bytes exceeds {} bytes, sending \"{}\"",
-            encodedFrame.readableBytes(),
-            maxFrameLength,
-            ResponseSizeLimit.MESSAGE);
-        ThriftFrame tooBig;
-        try {
-          tooBig = ResponseSizeLimit.responseTooBig(context.alloc(), frame);
-        } finally {
-          encodedFrame.release();
-        }
-        encodedFrame = encodeFrame(context.alloc(), tooBig, false);
-      }
-
       context.writeAndFlush(encodedFrame, promise);
     } else {
       context.writeAndFlush(message, promise);
+    }
+  }
+
+  private ByteBuf encodeResponseFrame(ByteBufAllocator alloc, ThriftFrame response) {
+    // encodeFrame releases a compressed reply, and responseTooBig still reads its envelope.
+    response.retain();
+    try {
+      ByteBuf encodedFrame = encodeFrame(alloc, response, false);
+      if (encodedFrame.readableBytes() <= maxFrameLength) {
+        return encodedFrame;
+      }
+
+      log.warn(
+          "Response frame of {} bytes exceeds {} bytes, sending \"{}\"",
+          encodedFrame.readableBytes(),
+          maxFrameLength,
+          ResponseSizeLimit.MESSAGE);
+      ThriftFrame tooBig;
+      try {
+        tooBig = ResponseSizeLimit.responseTooBig(alloc, response);
+      } finally {
+        encodedFrame.release();
+      }
+      return encodeFrame(alloc, tooBig, false);
+    } finally {
+      response.release();
     }
   }
 
@@ -161,17 +176,24 @@ public final class HeaderTransportCodec extends ChannelDuplexHandler {
    * @return the encoded frame data; caller is responsible for releasing this buffer
    */
   private static ByteBuf encodeFrame(ByteBufAllocator alloc, ThriftFrame frame, boolean addHeader) {
+    ByteBuf message = null;
     ByteBuf encodedInfo = null;
     ByteBuf encodedHeaders = null;
     ByteBuf frameHeader = null;
     try {
-      encodedInfo = alloc.buffer(ENCODED_INFO_SIZE);
+      message =
+          CompressionManager.compressForTransforms(
+              frame.getTransforms(), alloc, frame.getMessage());
+
+      encodedInfo = alloc.buffer(ENCODED_INFO_SIZE + frame.getTransforms().size());
 
       // protocol id
       encodedInfo.writeByte(frame.getProtocol().getProtocolId().getValue());
 
-      // number of "transforms" -- no transforms are supported
-      encodedInfo.writeByte(0);
+      writeVarInt32(encodedInfo, frame.getTransforms().size());
+      for (int transform : frame.getTransforms()) {
+        writeVarInt32(encodedInfo, transform);
+      }
 
       encodedHeaders = alloc.buffer();
 
@@ -209,8 +231,12 @@ public final class HeaderTransportCodec extends ChannelDuplexHandler {
 
       return alloc
           .compositeBuffer()
-          .addComponents(true, frameHeader, encodedInfo, encodedHeaders, frame.getMessage());
+          .addComponents(true, frameHeader, encodedInfo, encodedHeaders, message);
     } catch (Throwable t) {
+      if (message != null && message != frame.getMessage() && message.refCnt() > 0) {
+        message.release();
+      }
+
       if (encodedInfo != null && encodedInfo.refCnt() > 0) {
         encodedInfo.release();
       }
@@ -337,7 +363,8 @@ public final class HeaderTransportCodec extends ChannelDuplexHandler {
             persistentHeaders,
             LegacyTransportType.HEADER,
             protocolType,
-            outOfOrderResponse);
+            outOfOrderResponse,
+            Ints.asList(transforms));
 
     return frame;
   }

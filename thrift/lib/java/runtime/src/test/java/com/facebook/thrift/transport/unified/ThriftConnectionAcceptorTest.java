@@ -35,6 +35,7 @@ import com.facebook.thrift.protocol.TProtocolType;
 import com.facebook.thrift.server.OverloadedException;
 import com.facebook.thrift.server.RpcServerHandler;
 import com.facebook.thrift.util.RpcPayloadUtil;
+import com.google.common.primitives.Ints;
 import io.airlift.units.Duration;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
@@ -53,6 +54,7 @@ import org.apache.thrift.RequestRpcMetadata;
 import org.apache.thrift.ResponseRpcMetadata;
 import org.apache.thrift.RpcKind;
 import org.apache.thrift.TApplicationException;
+import org.apache.thrift.TTransform;
 import org.apache.thrift.protocol.TMessage;
 import org.apache.thrift.protocol.TMessageType;
 import org.apache.thrift.protocol.TProtocol;
@@ -122,7 +124,7 @@ public class ThriftConnectionAcceptorTest {
 
   /** Helper to create an encoded request ByteBuf ready for the inbound pipeline. */
   private ByteBuf createEncodedRequest(
-      TProtocolType protocol, String methodName, byte messageType, int seqId) {
+      TProtocolType protocol, String methodName, byte messageType, int seqId, int... transforms) {
     ByteBuf requestPayload = Unpooled.buffer();
     try {
       protocol
@@ -141,7 +143,8 @@ public class ThriftConnectionAcceptorTest {
             Collections.emptyMap(),
             LegacyTransportType.HEADER,
             protocol,
-            false);
+            false,
+            Ints.asList(transforms));
 
     return ReactiveHeaderCodec.encodeFrame(allocator, requestFrame, false);
   }
@@ -834,6 +837,28 @@ public class ThriftConnectionAcceptorTest {
             false);
 
     return ReactiveHeaderCodec.encodeFrame(allocator, requestFrame, false);
+  }
+
+  @Test
+  public void testResponseUsesTheTransformsOfTheRequest() {
+    ByteBuf encodedRequest =
+        createEncodedRequest(
+            TProtocolType.TCompact, "testMethod", TMessageType.CALL, 1, TTransform.ZSTD.getValue());
+    ServerResponsePayload mockResponse = createMockResponsePayload();
+    when(mockRpcServerHandler.singleRequestSingleResponse(any(ServerRequestPayload.class)))
+        .thenReturn(Mono.just(mockResponse));
+    ArgumentCaptor<Object> responseCaptor = ArgumentCaptor.forClass(Object.class);
+    when(mockOutbound.sendObject(responseCaptor.capture())).thenReturn(mockSendObjectResult);
+
+    drive(encodedRequest);
+
+    ThriftFrame response =
+        ReactiveHeaderCodec.decodeFrame(allocator, (ByteBuf) responseCaptor.getValue());
+    try {
+      assertEquals(Collections.singletonList(TTransform.ZSTD.getValue()), response.getTransforms());
+    } finally {
+      response.release();
+    }
   }
 
   private void drive(ByteBuf encodedRequest) {

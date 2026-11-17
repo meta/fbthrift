@@ -21,6 +21,7 @@ import com.facebook.thrift.compression.zlib.ZlibCompressor;
 import com.facebook.thrift.compression.zstd.ZstdCompressor;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
+import java.util.List;
 import org.apache.thrift.CompressionAlgorithm;
 import org.apache.thrift.TTransform;
 
@@ -147,5 +148,22 @@ public final class CompressionManager {
       return data;
     }
     return getCompressor(algorithm).compress(allocator, data);
+  }
+
+  /**
+   * Compresses data with each THeader transform in order, as C++ {@code THeader::transform} does.
+   * Takes ownership of the input buffer.
+   *
+   * @param transformIds the TTransform wire IDs, in the order they are applied
+   * @param allocator the allocator for the output buffer
+   * @param data the data to compress; ownership is transferred
+   * @return the compressed data; caller owns and must release
+   */
+  public static ByteBuf compressForTransforms(
+      List<Integer> transformIds, ByteBufAllocator allocator, ByteBuf data) {
+    for (int transformId : transformIds) {
+      data = compress(fromTTransform(transformId), allocator, data);
+    }
+    return data;
   }
 }

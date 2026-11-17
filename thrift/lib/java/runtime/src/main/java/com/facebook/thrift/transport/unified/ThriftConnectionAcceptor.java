@@ -514,7 +514,8 @@ public class ThriftConnectionAcceptor implements Function<Connection, Publisher<
           Collections.emptyMap(),
           requestFrame.getTransport(),
           requestFrame.getProtocol(),
-          requestFrame.isSupportOutOfOrderResponse());
+          requestFrame.isSupportOutOfOrderResponse(),
+          requestFrame.getTransforms());
     } catch (Throwable t) {
       throw new RuntimeException("Failed to encode application response", t);
     } finally {

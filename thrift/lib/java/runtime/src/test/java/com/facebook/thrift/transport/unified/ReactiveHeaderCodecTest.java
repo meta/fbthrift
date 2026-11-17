@@ -21,22 +21,58 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.facebook.thrift.legacy.codec.LegacyTransportType;
 import com.facebook.thrift.legacy.codec.ThriftFrame;
 import com.facebook.thrift.protocol.TProtocolType;
+import com.google.common.base.Strings;
+import com.google.common.primitives.Ints;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.ByteBufUtil;
+import io.netty.buffer.Unpooled;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 import org.apache.thrift.TApplicationException;
+import org.apache.thrift.TTransform;
 import org.apache.thrift.protocol.TMessage;
 import org.apache.thrift.protocol.TMessageType;
 import org.apache.thrift.protocol.TProtocol;
 import org.junit.jupiter.api.Test;
 
 class ReactiveHeaderCodecTest {
+  private static final int BINARY_PROTOCOL_ID = 0;
   private static final int FRAME_SEQUENCE_ID = 7;
   private static final int PROTOCOL_SEQUENCE_ID = 42;
 
   private final ByteBufAllocator allocator = ByteBufAllocator.DEFAULT;
+
+  @Test
+  void encodeFrameCompressesWithItsTransformsAndWritesTheirIds() {
+    byte[] payload = Strings.repeat("compressible payload ", 200).getBytes(StandardCharsets.UTF_8);
+    ThriftFrame frame =
+        new ThriftFrame(
+            1,
+            Unpooled.wrappedBuffer(payload),
+            new HashMap<>(),
+            Collections.emptyMap(),
+            LegacyTransportType.HEADER,
+            TProtocolType.TBinary,
+            false,
+            Collections.singletonList(TTransform.ZLIB.getValue()));
+
+    ByteBuf written = ReactiveHeaderCodec.encodeFrame(allocator, frame, false);
+
+    // After the 10-byte frame header: protocol id, number of transforms, transform ids.
+    assertThat(written.getByte(10)).isEqualTo((byte) BINARY_PROTOCOL_ID);
+    assertThat(written.getByte(11)).isEqualTo((byte) 1);
+    assertThat(written.getByte(12)).isEqualTo((byte) TTransform.ZLIB.getValue());
+    assertThat(written.readableBytes()).isLessThan(payload.length);
+
+    ThriftFrame read = ReactiveHeaderCodec.decodeFrame(allocator, written);
+    assertThat(ByteBufUtil.getBytes(read.getMessage())).isEqualTo(payload);
+    assertThat(read.getTransforms()).containsExactly(TTransform.ZLIB.getValue());
+    read.release();
+  }
 
   @Test
   void encodesResponseWithinLimitUnchanged() throws Exception {
@@ -70,14 +106,31 @@ class ReactiveHeaderCodecTest {
     sent.release();
   }
 
+  @Test
+  void replacesCompressedResponseOverLimitWithResponseTooBig() throws Exception {
+    ThriftFrame response = reply(1024, TTransform.ZSTD.getValue());
+
+    ByteBuf encoded = ReactiveHeaderCodec.encodeResponseFrame(allocator, response, 256);
+    ThriftFrame sent = ReactiveHeaderCodec.decodeFrame(allocator, encoded);
+
+    TProtocol in = TProtocolType.TBinary.apply(sent.getMessage());
+    TMessage message = in.readMessageBegin();
+    assertThat(message.name).isEqualTo("getPartitions");
+    assertThat(TApplicationException.read(in).getMessage()).isEqualTo("Response size too big");
+    assertThat(response.refCnt()).isZero();
+    sent.release();
+  }
+
   /**
    * A response frame as the connection acceptor builds it: a reply envelope, a body and a header.
    */
-  private ThriftFrame reply(int bodyBytes) {
+  private ThriftFrame reply(int bodyBytes, int... transforms) {
     ByteBuf message = allocator.buffer();
     TProtocol out = TProtocolType.TBinary.apply(message);
     out.writeMessageBegin(new TMessage("getPartitions", TMessageType.REPLY, PROTOCOL_SEQUENCE_ID));
-    message.writeZero(bodyBytes);
+    byte[] body = new byte[bodyBytes];
+    new Random(1).nextBytes(body);
+    message.writeBytes(body);
 
     Map<String, String> headers = new HashMap<>();
     headers.put("uex", "MetaException");
@@ -88,6 +141,7 @@ class ReactiveHeaderCodecTest {
         Collections.emptyMap(),
         LegacyTransportType.HEADER,
         TProtocolType.TBinary,
-        true);
+        true,
+        Ints.asList(transforms));
   }
 }

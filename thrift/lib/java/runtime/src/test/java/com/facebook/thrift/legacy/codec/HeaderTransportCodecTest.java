@@ -21,8 +21,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.facebook.thrift.compression.CompressionManager;
 import com.facebook.thrift.protocol.TProtocolType;
+import com.google.common.base.Strings;
+import com.google.common.primitives.Ints;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.TooLongFrameException;
@@ -30,6 +33,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 import org.apache.thrift.CompressionAlgorithm;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TTransform;
@@ -175,12 +179,31 @@ class HeaderTransportCodecTest {
     channel.finishAndReleaseAll();
   }
 
+  @Test
+  void serverReplacesCompressedResponseOverLimitWithResponseTooBig() throws Exception {
+    EmbeddedChannel channel = new EmbeddedChannel(new HeaderTransportCodec(true, 256));
+    ThriftFrame response = reply(1024, TTransform.ZSTD.getValue());
+
+    channel.writeOutbound(response);
+    ThriftFrame sent = HeaderTransportCodec.decodeFrame(allocator, channel.readOutbound());
+
+    TProtocol in = TProtocolType.TBinary.apply(sent.getMessage());
+    TMessage message = in.readMessageBegin();
+    assertThat(message.name).isEqualTo("getPartitions");
+    assertThat(TApplicationException.read(in).getMessage()).isEqualTo("Response size too big");
+    assertThat(response.refCnt()).isZero();
+    sent.release();
+    channel.finishAndReleaseAll();
+  }
+
   /** A response frame as the server handler writes it: a reply envelope, a body and a header. */
-  private ThriftFrame reply(int bodyBytes) {
+  private ThriftFrame reply(int bodyBytes, int... transforms) {
     ByteBuf message = allocator.buffer();
     TProtocol out = TProtocolType.TBinary.apply(message);
     out.writeMessageBegin(new TMessage("getPartitions", TMessageType.REPLY, PROTOCOL_SEQUENCE_ID));
-    message.writeZero(bodyBytes);
+    byte[] body = new byte[bodyBytes];
+    new Random(1).nextBytes(body);
+    message.writeBytes(body);
 
     Map<String, String> headers = new HashMap<>();
     headers.put("uex", "MetaException");
@@ -191,7 +214,29 @@ class HeaderTransportCodecTest {
         Collections.emptyMap(),
         LegacyTransportType.HEADER,
         TProtocolType.TBinary,
-        true);
+        true,
+        Ints.asList(transforms));
+  }
+
+  @Test
+  void encodeFrameCompressesWithItsTransformsAndWritesTheirIds() {
+    EmbeddedChannel channel = new EmbeddedChannel(new HeaderTransportCodec(true));
+    byte[] payload = repeatedPayload();
+
+    channel.writeOutbound(frameWithTransforms(payload, TTransform.ZSTD.getValue()));
+    ByteBuf written = channel.readOutbound();
+
+    // After the 10-byte frame header: protocol id, number of transforms, transform ids.
+    assertThat(written.getByte(10)).isEqualTo((byte) BINARY_PROTOCOL_ID);
+    assertThat(written.getByte(11)).isEqualTo((byte) 1);
+    assertThat(written.getByte(12)).isEqualTo((byte) TTransform.ZSTD.getValue());
+    assertThat(written.readableBytes()).isLessThan(payload.length);
+
+    ThriftFrame read = HeaderTransportCodec.decodeFrame(allocator, written);
+    assertThat(ByteBufUtil.getBytes(read.getMessage())).isEqualTo(payload);
+    assertThat(read.getTransforms()).containsExactly(TTransform.ZSTD.getValue());
+    read.release();
+    channel.finishAndReleaseAll();
   }
 
   /**
@@ -249,5 +294,21 @@ class HeaderTransportCodecTest {
 
   private static void writeVarInt(int value, ByteBuf buffer) {
     writeVarInt(buffer, value);
+  }
+
+  private static byte[] repeatedPayload() {
+    return Strings.repeat("compressible payload ", 200).getBytes(StandardCharsets.UTF_8);
+  }
+
+  private static ThriftFrame frameWithTransforms(byte[] payload, int... transforms) {
+    return new ThriftFrame(
+        1,
+        Unpooled.wrappedBuffer(payload),
+        new HashMap<>(),
+        Collections.emptyMap(),
+        LegacyTransportType.HEADER,
+        TProtocolType.TBinary,
+        false,
+        Ints.asList(transforms));
   }
 }

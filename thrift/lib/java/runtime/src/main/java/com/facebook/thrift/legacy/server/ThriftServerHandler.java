@@ -397,7 +397,8 @@ public class ThriftServerHandler extends ChannelDuplexHandler {
         Collections.emptyMap(),
         frame.getTransport(),
         frame.getProtocol(),
-        frame.isSupportOutOfOrderResponse());
+        frame.isSupportOutOfOrderResponse(),
+        frame.getTransforms());
   }
 
   private static ThriftFrame encodeApplicationException(

@@ -33,6 +33,7 @@ import com.facebook.thrift.metadata.ClientInfo;
 import com.facebook.thrift.protocol.TProtocolType;
 import com.facebook.thrift.util.HeaderOverloadError;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.primitives.Ints;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufUtil;
@@ -74,23 +75,29 @@ public class ReactiveHeaderCodec {
   @VisibleForTesting
   static ByteBuf encodeResponseFrame(
       ByteBufAllocator alloc, ThriftFrame response, int maxFrameLength) {
-    ByteBuf encodedFrame = encodeFrame(alloc, response, false);
-    if (encodedFrame.readableBytes() <= maxFrameLength) {
-      return encodedFrame;
-    }
-
-    log.warn(
-        "Response frame of {} bytes exceeds {} bytes, sending \"{}\"",
-        encodedFrame.readableBytes(),
-        maxFrameLength,
-        ResponseSizeLimit.MESSAGE);
-    ThriftFrame tooBig;
+    // encodeFrame releases a compressed reply, and responseTooBig still reads its envelope.
+    response.retain();
     try {
-      tooBig = ResponseSizeLimit.responseTooBig(alloc, response);
+      ByteBuf encodedFrame = encodeFrame(alloc, response, false);
+      if (encodedFrame.readableBytes() <= maxFrameLength) {
+        return encodedFrame;
+      }
+
+      log.warn(
+          "Response frame of {} bytes exceeds {} bytes, sending \"{}\"",
+          encodedFrame.readableBytes(),
+          maxFrameLength,
+          ResponseSizeLimit.MESSAGE);
+      ThriftFrame tooBig;
+      try {
+        tooBig = ResponseSizeLimit.responseTooBig(alloc, response);
+      } finally {
+        encodedFrame.release();
+      }
+      return encodeFrame(alloc, tooBig, false);
     } finally {
-      encodedFrame.release();
+      response.release();
     }
-    return encodeFrame(alloc, tooBig, false);
   }
 
   /**
@@ -101,18 +108,25 @@ public class ReactiveHeaderCodec {
    */
   static ByteBuf encodeFrame(
       ByteBufAllocator alloc, ThriftFrame frame, boolean addClientMetadataHeader) {
+    ByteBuf message = null;
     ByteBuf encodedInfo = null;
     ByteBuf encodedHeaders = null;
     ByteBuf frameHeader = null;
 
     try {
-      encodedInfo = alloc.buffer(ENCODED_INFO_SIZE);
+      message =
+          CompressionManager.compressForTransforms(
+              frame.getTransforms(), alloc, frame.getMessage());
+
+      encodedInfo = alloc.buffer(ENCODED_INFO_SIZE + frame.getTransforms().size());
 
       // protocol id
       encodedInfo.writeByte(frame.getProtocol().getProtocolId().getValue());
 
-      // number of "transforms" -- no transforms are supported
-      encodedInfo.writeByte(0);
+      writeVarInt32(encodedInfo, frame.getTransforms().size());
+      for (int transform : frame.getTransforms()) {
+        writeVarInt32(encodedInfo, transform);
+      }
 
       encodedHeaders = alloc.buffer();
 
@@ -152,9 +166,10 @@ public class ReactiveHeaderCodec {
       ByteBuf result =
           alloc
               .compositeBuffer()
-              .addComponents(true, frameHeader, encodedInfo, encodedHeaders, frame.getMessage());
+              .addComponents(true, frameHeader, encodedInfo, encodedHeaders, message);
 
       // Success - ownership transferred to composite buffer, null out to prevent release in finally
+      message = null;
       frameHeader = null;
       encodedInfo = null;
       encodedHeaders = null;
@@ -162,6 +177,9 @@ public class ReactiveHeaderCodec {
       return result;
     } catch (Throwable t) {
       // Only release components that weren't successfully added to composite
+      if (message != null && message != frame.getMessage()) {
+        ReferenceCountUtil.safeRelease(message);
+      }
       ReferenceCountUtil.safeRelease(encodedInfo);
       ReferenceCountUtil.safeRelease(encodedHeaders);
       ReferenceCountUtil.safeRelease(frameHeader);
@@ -281,7 +299,8 @@ public class ReactiveHeaderCodec {
             persistentHeaders,
             LegacyTransportType.HEADER,
             protocolType,
-            outOfOrderResponse);
+            outOfOrderResponse,
+            Ints.asList(transforms));
 
     return frame;
   }

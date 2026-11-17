@@ -24,8 +24,11 @@ import com.facebook.thrift.compression.zlib.ZlibCompressor;
 import com.facebook.thrift.compression.zstd.ZstdCompressor;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
 import org.apache.thrift.CompressionAlgorithm;
 import org.apache.thrift.TTransform;
 import org.junit.jupiter.api.Test;
@@ -208,5 +211,22 @@ class CompressionManagerTest {
     assertThat(TTransform.ZLIB_MORE.getValue()).isEqualTo(11);
     assertThat(TTransform.ZSTD_MORE.getValue()).isEqualTo(12);
     assertThat(TTransform.LZ4_MORE.getValue()).isEqualTo(13);
+  }
+
+  @Test
+  void compressForTransformsRoundTripsWithDecompressInReverseOrder() {
+    byte[] original = "compress then decompress".getBytes(StandardCharsets.UTF_8);
+    List<Integer> transforms =
+        Arrays.asList(TTransform.ZLIB.getValue(), TTransform.ZSTD.getValue());
+
+    ByteBuf compressed =
+        CompressionManager.compressForTransforms(
+            transforms, allocator, Unpooled.wrappedBuffer(original));
+    ByteBuf result =
+        CompressionManager.decompressFromTransform(transforms.get(1), allocator, compressed);
+    result = CompressionManager.decompressFromTransform(transforms.get(0), allocator, result);
+
+    assertThat(ByteBufUtil.getBytes(result)).isEqualTo(original);
+    result.release();
   }
 }
