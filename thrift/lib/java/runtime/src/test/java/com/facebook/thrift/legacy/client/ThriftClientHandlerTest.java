@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.facebook.thrift.client.RpcOptions;
 import com.facebook.thrift.legacy.codec.LegacyTransportType;
 import com.facebook.thrift.legacy.codec.ThriftFrame;
 import com.facebook.thrift.payload.ClientRequestPayload;
@@ -28,6 +29,13 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
 import java.util.Collections;
+import java.util.HashMap;
+import org.apache.thrift.CodecConfig;
+import org.apache.thrift.CompressionConfig;
+import org.apache.thrift.ProtocolId;
+import org.apache.thrift.RequestRpcMetadata;
+import org.apache.thrift.TTransform;
+import org.apache.thrift.ZstdCompressionCodecConfig;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Sinks;
 
@@ -100,6 +108,44 @@ class ThriftClientHandlerTest {
 
     assertThat(encodedRequest.refCnt()).isZero();
 
+    channel.finishAndReleaseAll();
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void requestFrameCarriesTheTransformOfItsCompressionConfig() {
+    EmbeddedChannel channel =
+        new EmbeddedChannel(new ThriftClientHandler(LegacyTransportType.HEADER));
+    ClientRequestPayload<?> payload = mock(ClientRequestPayload.class);
+    when(payload.getRequestRpcMetadata())
+        .thenReturn(
+            new RequestRpcMetadata.Builder()
+                .setProtocol(ProtocolId.COMPACT)
+                .setOtherMetadata(new HashMap<>())
+                .build());
+    when(payload.getPersistentHeaders()).thenReturn(Collections.emptyMap());
+    RpcOptions options =
+        new RpcOptions.Builder()
+            .setCompressionConfig(
+                new CompressionConfig.Builder()
+                    .setCodecConfig(
+                        CodecConfig.fromZstdConfig(
+                            new ZstdCompressionCodecConfig.Builder().build()))
+                    .build())
+            .build();
+
+    channel.writeAndFlush(
+        new RequestContext<>(
+            Sinks.one(),
+            (ClientRequestPayload<Object>) payload,
+            Unpooled.buffer().writeZero(8),
+            options,
+            false,
+            4244));
+    ThriftFrame frame = channel.readOutbound();
+
+    assertThat(frame.getTransforms()).containsExactly(TTransform.ZSTD.getValue());
+    frame.release();
     channel.finishAndReleaseAll();
   }
 

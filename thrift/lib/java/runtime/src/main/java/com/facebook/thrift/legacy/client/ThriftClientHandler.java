@@ -24,6 +24,8 @@ import static org.apache.thrift.TApplicationException.WRONG_METHOD_NAME;
 import static org.apache.thrift.protocol.TMessageType.EXCEPTION;
 import static org.apache.thrift.protocol.TMessageType.REPLY;
 
+import com.facebook.thrift.client.RpcOptions;
+import com.facebook.thrift.compression.CompressionManager;
 import com.facebook.thrift.exceptions.MessageTooLargeException;
 import com.facebook.thrift.legacy.codec.FrameInfo;
 import com.facebook.thrift.legacy.codec.LegacyTransportType;
@@ -118,15 +120,20 @@ public final class ThriftClientHandler extends ChannelDuplexHandler {
       final RequestContext<?, ?> requestContext, final int sequenceId) {
 
     ClientRequestPayload<?> requestPayload = requestContext.getPayload();
+    ByteBuf encodedRequest = requestContext.getEncodedRequest();
+    RpcOptions options = requestContext.getOptions();
 
     return new ThriftFrame(
         sequenceId,
-        requestContext.getEncodedRequest(),
+        encodedRequest,
         requestPayload.getRequestRpcMetadata().getOtherMetadata(),
         requestPayload.getPersistentHeaders(),
         transport,
         TProtocolType.fromProtocolId(requestPayload.getRequestRpcMetadata().getProtocol()),
-        true);
+        true,
+        CompressionManager.headerTransformsFor(
+            options == null ? null : options.getCompressionConfig(),
+            encodedRequest.readableBytes()));
   }
 
   @Override

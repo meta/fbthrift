@@ -38,6 +38,7 @@ import com.facebook.thrift.test.rocket.TestResponse;
 import com.facebook.thrift.test.rocket.TestService;
 import com.facebook.thrift.util.RpcServerUtils;
 import com.facebook.thrift.util.SPINiftyMetrics;
+import com.google.common.base.Strings;
 import io.airlift.units.Duration;
 import io.netty.handler.ssl.ClientAuth;
 import java.net.InetSocketAddress;
@@ -47,8 +48,11 @@ import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.thrift.CodecConfig;
+import org.apache.thrift.CompressionConfig;
 import org.apache.thrift.ProtocolId;
 import org.apache.thrift.TApplicationException;
+import org.apache.thrift.ZstdCompressionCodecConfig;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -212,6 +216,41 @@ public class UnifiedServerTransportTest {
               assertEquals(100, resp.getIntField());
               assertEquals("header", resp.getStrField());
             })
+        .verifyComplete();
+  }
+
+  /**
+   * A HEADER client that compresses its request gets a correct response from a server that
+   * compresses the response the same way.
+   */
+  @Test
+  public void testHeaderRoundTripWithCompression() throws Exception {
+    transport =
+        UnifiedServerTransport.createNewInstance(
+                serverAddress, rpcServerHandler, serverConfig, new SPINiftyMetrics())
+            .block();
+    assertNotNull(transport);
+    client =
+        TestService.Reactive.clientBuilder()
+            .setProtocolId(ProtocolId.COMPACT)
+            .build(createHeaderClientFactory(), serverAddress);
+    String text = Strings.repeat("compressible ", 1000);
+    RpcOptions options =
+        new RpcOptions.Builder()
+            .setCompressionConfig(
+                new CompressionConfig.Builder()
+                    .setCodecConfig(
+                        CodecConfig.fromZstdConfig(
+                            new ZstdCompressionCodecConfig.Builder().build()))
+                    .build())
+            .build();
+
+    Mono<TestResponse> response =
+        client.requestResponse(
+            new TestRequest.Builder().setIntField(1).setStrField(text).build(), options);
+
+    StepVerifier.create(response)
+        .assertNext(resp -> assertEquals(text, resp.getStrField()))
         .verifyComplete();
   }
 

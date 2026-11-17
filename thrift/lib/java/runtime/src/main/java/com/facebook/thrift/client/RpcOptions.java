@@ -16,13 +16,13 @@
 
 package com.facebook.thrift.client;
 
-import com.facebook.thrift.model.CompressionAlgorithm;
 import com.facebook.thrift.model.ProtocolId;
 import com.facebook.thrift.model.RpcPriority;
 import com.google.common.base.Preconditions;
 import java.util.HashMap;
 import java.util.Map;
 import javax.annotation.Nonnull;
+import org.apache.thrift.CompressionConfig;
 
 public class RpcOptions {
 
@@ -35,7 +35,7 @@ public class RpcOptions {
   private final RpcPriority priority;
   private final Map<String, String> otherMetadata;
   private final boolean crc32;
-  private final CompressionAlgorithm compressionAlgorithm;
+  private final CompressionConfig compressionConfig;
   private final Map<String, String> requestHeaders;
   private final Long createInteractionId;
   private final Long interactionId;
@@ -48,7 +48,7 @@ public class RpcOptions {
       RpcPriority priority,
       Map<String, String> otherMetadata,
       boolean crc32,
-      CompressionAlgorithm compressionAlgorithm,
+      CompressionConfig compressionConfig,
       Map<String, String> requestHeaders,
       Long createInteractionId,
       Long interactionId) {
@@ -59,7 +59,7 @@ public class RpcOptions {
     this.priority = priority;
     this.otherMetadata = otherMetadata;
     this.crc32 = crc32;
-    this.compressionAlgorithm = compressionAlgorithm;
+    this.compressionConfig = compressionConfig;
     this.requestHeaders = requestHeaders;
     this.createInteractionId = createInteractionId;
     this.interactionId = interactionId;
@@ -73,7 +73,7 @@ public class RpcOptions {
     private RpcPriority priority;
     private Map<String, String> otherMetadata;
     private boolean crc32;
-    private CompressionAlgorithm compressionAlgorithm;
+    private CompressionConfig compressionConfig;
     private Map<String, String> requestHeaders = new HashMap<>();
     private Long createInteractionId = null;
     private Long interactionId = null;
@@ -88,7 +88,7 @@ public class RpcOptions {
       this.priority = rpcOptions.getPriority();
       this.otherMetadata = rpcOptions.getOtherMetadata();
       this.crc32 = rpcOptions.isCrc32();
-      this.compressionAlgorithm = rpcOptions.getCompressionAlgorithm();
+      this.compressionConfig = rpcOptions.getCompressionConfig();
       this.requestHeaders = rpcOptions.getRequestHeaders();
     }
 
@@ -155,12 +155,17 @@ public class RpcOptions {
       return this;
     }
 
-    public CompressionAlgorithm getCompressionAlgorithm() {
-      return compressionAlgorithm;
+    public CompressionConfig getCompressionConfig() {
+      return compressionConfig;
     }
 
-    public Builder setCompressionAlgorithm(CompressionAlgorithm compressionAlgorithm) {
-      this.compressionAlgorithm = compressionAlgorithm;
+    /**
+     * Compresses each request whose payload is larger than {@code compressionSizeLimit} (default 0)
+     * with the codec of the config, as the C++ client does. A HEADER server compresses its response
+     * the same way. A Nifty server reads only zlib at the DEFAULT level.
+     */
+    public Builder setCompressionConfig(CompressionConfig compressionConfig) {
+      this.compressionConfig = compressionConfig;
       return this;
     }
 
@@ -201,7 +206,7 @@ public class RpcOptions {
           priority,
           otherMetadata,
           crc32,
-          compressionAlgorithm,
+          compressionConfig,
           requestHeaders,
           createInteractionId,
           interactionId);
@@ -236,8 +241,8 @@ public class RpcOptions {
     return crc32;
   }
 
-  public CompressionAlgorithm getCompressionAlgorithm() {
-    return compressionAlgorithm;
+  public CompressionConfig getCompressionConfig() {
+    return compressionConfig;
   }
 
   public Map<String, String> getRequestHeaders() {
@@ -261,7 +266,7 @@ public class RpcOptions {
     builder.append(", priority=").append(getPriority());
     builder.append(", otherMetadata=").append(getOtherMetadata());
     builder.append(", crc32?=").append(isCrc32());
-    builder.append(", compressionAlgo=").append(getCompressionAlgorithm());
+    builder.append(", compressionConfig=").append(getCompressionConfig());
     builder.append(", requestHeaders=").append(getRequestHeaders());
     builder.append(", createInteractionId=").append(getCreateInteractionId());
     builder.append(", interactionId=").append(getInteractionId());

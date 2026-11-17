@@ -21,9 +21,16 @@ import com.facebook.thrift.compression.zlib.ZlibCompressor;
 import com.facebook.thrift.compression.zstd.ZstdCompressor;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
+import java.util.Collections;
 import java.util.List;
+import javax.annotation.Nullable;
+import org.apache.thrift.CodecConfig;
 import org.apache.thrift.CompressionAlgorithm;
+import org.apache.thrift.CompressionConfig;
+import org.apache.thrift.Lz4CompressionLevelPreset;
 import org.apache.thrift.TTransform;
+import org.apache.thrift.ZlibCompressionLevelPreset;
+import org.apache.thrift.ZstdCompressionLevelPreset;
 
 /**
  * Central registry that maps THeader transform IDs and CompressionAlgorithm values to {@link
@@ -165,5 +172,124 @@ public final class CompressionManager {
       data = compress(fromTTransform(transformId), allocator, data);
     }
     return data;
+  }
+
+  /**
+   * Returns the algorithm of a codec config. Mirrors C++
+   * CompressionAlgorithmSelector::fromCodecConfig().
+   */
+  public static CompressionAlgorithm fromCodecConfig(CodecConfig codecConfig) {
+    if (codecConfig.isSetZlibConfig()) {
+      return fromZlibLevel(codecConfig.getZlibConfig().getLevelPreset());
+    }
+
+    if (codecConfig.isSetZstdConfig()) {
+      return fromZstdLevel(codecConfig.getZstdConfig().getLevelPreset());
+    }
+
+    if (codecConfig.isSetLz4Config()) {
+      return fromLz4Level(codecConfig.getLz4Config().getLevelPreset());
+    }
+
+    if (codecConfig.isSetCustomConfig()) {
+      return CompressionAlgorithm.CUSTOM;
+    }
+
+    return CompressionAlgorithm.NONE;
+  }
+
+  /**
+   * Returns the algorithm to compress a payload with: the codec of the config when the payload is
+   * larger than its size limit (default 0), else NONE. Mirrors C++
+   * CompressionManager::setCompressionCodec(). CUSTOM gives NONE, because the Java runtime has no
+   * custom compressor.
+   */
+  public static CompressionAlgorithm algorithmFor(
+      @Nullable CompressionConfig compressionConfig, long payloadSize) {
+    if (compressionConfig == null || compressionConfig.getCodecConfig() == null) {
+      return CompressionAlgorithm.NONE;
+    }
+
+    Long sizeLimit = compressionConfig.getCompressionSizeLimit();
+    if (payloadSize <= (sizeLimit == null ? 0 : sizeLimit)) {
+      return CompressionAlgorithm.NONE;
+    }
+
+    CompressionAlgorithm algorithm = fromCodecConfig(compressionConfig.getCodecConfig());
+    return algorithm == CompressionAlgorithm.CUSTOM ? CompressionAlgorithm.NONE : algorithm;
+  }
+
+  /**
+   * Returns the THeader transform IDs to compress a request payload with, as C++
+   * HeaderClientChannel::setRequestHeaderOptions() does. NONE gives no transform.
+   */
+  public static List<Integer> headerTransformsFor(
+      @Nullable CompressionConfig compressionConfig, long payloadSize) {
+    CompressionAlgorithm algorithm = algorithmFor(compressionConfig, payloadSize);
+    if (algorithm == CompressionAlgorithm.NONE) {
+      return Collections.emptyList();
+    }
+
+    return Collections.singletonList(toTTransform(algorithm).getValue());
+  }
+
+  /** Mirrors C++ CompressionAlgorithmSelector::toTTransform(). */
+  public static TTransform toTTransform(CompressionAlgorithm algorithm) {
+    switch (algorithm) {
+      case NONE:
+        return TTransform.NONE;
+      case ZLIB:
+        return TTransform.ZLIB;
+      case ZSTD:
+        return TTransform.ZSTD;
+      case LZ4:
+        return TTransform.LZ4;
+      case CUSTOM:
+        return TTransform.CUSTOM;
+      case ZLIB_LESS:
+        return TTransform.ZLIB_LESS;
+      case ZSTD_LESS:
+        return TTransform.ZSTD_LESS;
+      case LZ4_LESS:
+        return TTransform.LZ4_LESS;
+      case ZLIB_MORE:
+        return TTransform.ZLIB_MORE;
+      case ZSTD_MORE:
+        return TTransform.ZSTD_MORE;
+      case LZ4_MORE:
+        return TTransform.LZ4_MORE;
+      default:
+        throw new IllegalArgumentException("Unknown compression algorithm: " + algorithm);
+    }
+  }
+
+  private static CompressionAlgorithm fromZlibLevel(@Nullable ZlibCompressionLevelPreset level) {
+    if (level == ZlibCompressionLevelPreset.LESS) {
+      return CompressionAlgorithm.ZLIB_LESS;
+    }
+
+    return level == ZlibCompressionLevelPreset.MORE
+        ? CompressionAlgorithm.ZLIB_MORE
+        : CompressionAlgorithm.ZLIB;
+  }
+
+  private static CompressionAlgorithm fromZstdLevel(@Nullable ZstdCompressionLevelPreset level) {
+    if (level == ZstdCompressionLevelPreset.LESS) {
+      return CompressionAlgorithm.ZSTD_LESS;
+    }
+
+    return level == ZstdCompressionLevelPreset.MORE
+        ? CompressionAlgorithm.ZSTD_MORE
+        : CompressionAlgorithm.ZSTD;
+  }
+
+  private static CompressionAlgorithm fromLz4Level(@Nullable Lz4CompressionLevelPreset level) {
+    if (level == Lz4CompressionLevelPreset.LESS) {
+      return CompressionAlgorithm.LZ4_LESS;
+    }
+
+    return level == Lz4CompressionLevelPreset.MORE
+        ? CompressionAlgorithm.LZ4_MORE
+        : CompressionAlgorithm.LZ4;
   }
 }
