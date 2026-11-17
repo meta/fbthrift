@@ -50,27 +50,44 @@ import com.facebook.thrift.test.rocket.TestServerException;
 import com.facebook.thrift.test.rocket.TestService;
 import com.facebook.thrift.util.NettyNiftyRequestContext;
 import com.facebook.thrift.util.RpcPayloadUtil;
+import com.facebook.thrift.util.Writers;
 import com.facebook.thrift.util.resources.RpcResources;
 import io.airlift.units.Duration;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.Unpooled;
+import io.netty.util.ReferenceCountUtil;
 import io.rsocket.Payload;
 import io.rsocket.RSocketErrorException;
 import io.rsocket.exceptions.ApplicationErrorException;
 import io.rsocket.frame.ErrorFrameCodec;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.LockSupport;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 import org.apache.thrift.CompressionAlgorithm;
 import org.apache.thrift.ErrorBlame;
 import org.apache.thrift.ErrorClassification;
 import org.apache.thrift.ErrorKind;
 import org.apache.thrift.ErrorSafety;
+import org.apache.thrift.PayloadAppUnknownExceptionMetdata;
+import org.apache.thrift.PayloadDeclaredExceptionMetadata;
+import org.apache.thrift.PayloadExceptionMetadata;
 import org.apache.thrift.PayloadExceptionMetadataBase;
+import org.apache.thrift.PayloadMetadata;
 import org.apache.thrift.PayloadResponseMetadata;
 import org.apache.thrift.ProtocolId;
 import org.apache.thrift.RequestRpcMetadata;
@@ -80,6 +97,8 @@ import org.apache.thrift.ResponseRpcErrorCode;
 import org.apache.thrift.ResponseRpcMetadata;
 import org.apache.thrift.RpcKind;
 import org.apache.thrift.StreamPayloadMetadata;
+import org.apache.thrift.StreamRpcError;
+import org.apache.thrift.StreamRpcErrorCode;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TField;
@@ -90,8 +109,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.reactivestreams.Publisher;
+import reactor.core.Disposable;
+import reactor.core.publisher.BaseSubscriber;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
@@ -281,6 +305,595 @@ public class ThriftServerRSocketTest {
     assertEquals(
         PayloadResponseMetadata.defaultInstance(),
         streamMetadata.getPayloadMetadata().getResponseMetadata());
+  }
+
+  @Test
+  public void testRequestChannelTakesTheSetupWithoutSinkDemand() {
+    this.protocolId = ProtocolId.COMPACT;
+    RequestRpcMetadata requestMetadata = createRequestRpcMetadata("noSuchSink", RpcKind.SINK);
+
+    List<Long> requests = new CopyOnWriteArrayList<>();
+    Flux<Payload> payloads =
+        Flux.just(createPayload(requestMetadata, 0, "setup")).doOnRequest(requests::add);
+
+    StepVerifier.create(rocket.requestChannel(payloads))
+        .thenConsumeWhile(ReferenceCountUtil::release)
+        .verifyError();
+
+    assertEquals(Collections.singletonList(1L), requests);
+  }
+
+  @Test
+  public void testRequestChannelRejectsNonChannelKind() {
+    this.protocolId = ProtocolId.COMPACT;
+    RequestRpcMetadata requestMetadata =
+        createRequestRpcMetadata("streamResponse", RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE);
+    ByteBuf data = createData(requestMetadata, createTestRequest(0, "foo"));
+    ByteBuf metadata = createMetadata(requestMetadata);
+
+    StepVerifier.create(rocket.requestChannel(Flux.just(PayloadUtil.createPayload(data, metadata))))
+        .verifyErrorSatisfies(e -> assertParsingFailure(e, "Invalid metadata object"));
+
+    assertRequestBuffersFreed(data, metadata);
+  }
+
+  @Test
+  public void testRequestChannelWithoutAMethodNameRejectsAsInvalid() {
+    assertChannelSetupRejected(
+        new RequestRpcMetadata.Builder().setProtocol(ProtocolId.COMPACT).setKind(RpcKind.SINK),
+        "Invalid metadata object");
+  }
+
+  @Test
+  public void testRequestChannelWithoutAProtocolRejectsAsInvalid() {
+    assertChannelSetupRejected(
+        new RequestRpcMetadata.Builder().setName("sink").setKind(RpcKind.SINK),
+        "Invalid metadata object");
+  }
+
+  @Test
+  public void testRequestChannelWithAnUnknownProtocolIdRejectsAsInvalid() {
+    assertChannelSetupRejected(
+        new RequestRpcMetadata.Builder()
+            .setProtocol(ProtocolId.fromInteger(77))
+            .setName("sink")
+            .setKind(RpcKind.SINK),
+        "Invalid metadata object");
+  }
+
+  @Test
+  public void testRequestChannelDecompressionFailureRejectsAsInvalid() {
+    assertChannelSetupRejected(
+        new RequestRpcMetadata.Builder()
+            .setProtocol(ProtocolId.COMPACT)
+            .setName("sink")
+            .setKind(RpcKind.SINK)
+            .setCompression(CompressionAlgorithm.CUSTOM),
+        "decompression failure: CUSTOM compression is not supported");
+  }
+
+  @Test
+  public void testRequestChannelUnknownMethodSendsUnknownMethod() {
+    this.protocolId = ProtocolId.COMPACT;
+    RequestRpcMetadata requestMetadata = createRequestRpcMetadata("noSuchSink", RpcKind.SINK);
+
+    StepVerifier.create(rocket.requestChannel(Flux.just(createPayload(requestMetadata, 0, "foo"))))
+        .verifyErrorSatisfies(
+            t ->
+                assertServerError(
+                    t,
+                    ErrorFrameCodec.INVALID,
+                    ResponseRpcErrorCode.UNKNOWN_METHOD,
+                    ResponseRpcErrorCategory.INVALID_REQUEST));
+  }
+
+  @Test
+  public void testRequestChannelUndeclaredErrorBeforeTheFirstResponseSendsUnknown() {
+    RpcServerHandler failing = channelHandler((initial, sinkPayloads) -> Flux.error(boom()));
+
+    StepVerifier.create(channel(failing, RpcKind.BIDIRECTIONAL_STREAM, Flux.never()))
+        .verifyErrorSatisfies(
+            t -> {
+              assertEquals(ResponseRpcErrorCode.UNKNOWN, decodeRocketError(t).getCode());
+              assertEquals("boom", decodeRocketError(t).getWhatUtf8());
+            });
+  }
+
+  @Test
+  public void testRequestChannelBadSetupReleasesABufferedSinkPayload() {
+    this.protocolId = ProtocolId.COMPACT;
+    RequestRpcMetadata requestMetadata = createRequestRpcMetadata("sink", RpcKind.SINK);
+    ByteBuf data = createData(requestMetadata, createTestRequest(0, "setup"));
+    ByteBuf metadata = alloc.buffer().writeByte(0xff).retain();
+    ByteBuf sinkData = createData(requestMetadata, createTestRequest(1, "sink"));
+    ByteBuf sinkMetadata = createMetadata(requestMetadata);
+
+    Payload badSetup = PayloadUtil.createPayload(data, metadata);
+    Payload sinkPayload = PayloadUtil.createPayload(sinkData, sinkMetadata);
+
+    StepVerifier.create(rocket.requestChannel(withoutCredit(badSetup, sinkPayload)))
+        .verifyErrorSatisfies(e -> assertParsingFailure(e, "Invalid metadata object"));
+
+    assertRequestBuffersFreed(data, metadata);
+    assertRequestBuffersFreed(sinkData, sinkMetadata);
+  }
+
+  @Test
+  public void testRequestChannelReleasesTheSinkPayloadsABidiHandlerNeverReads() {
+    this.protocolId = ProtocolId.COMPACT;
+    RequestRpcMetadata requestMetadata =
+        createRequestRpcMetadata("bidi", RpcKind.BIDIRECTIONAL_STREAM);
+    ByteBuf sinkData = createData(requestMetadata, createTestRequest(1, "sink"));
+    ByteBuf sinkMetadata = createMetadata(requestMetadata);
+
+    RpcServerHandler neverReads =
+        channelHandler((initial, sinkPayloads) -> Flux.just(firstResponse()));
+    Payload sinkPayload = PayloadUtil.createPayload(sinkData, sinkMetadata);
+
+    StepVerifier.create(
+            new ThriftServerRSocket(neverReads, alloc)
+                .requestChannel(
+                    withoutCredit(createPayload(requestMetadata, 0, "setup"), sinkPayload)))
+        .expectNextMatches(ReferenceCountUtil::release)
+        .verifyComplete();
+
+    assertRequestBuffersFreed(sinkData, sinkMetadata);
+  }
+
+  @Test
+  public void testRequestChannelWithoutAResponseEndsWithAnError() {
+    RpcServerHandler empty = channelHandler((initial, sinkPayloads) -> Flux.empty());
+
+    for (RpcKind kind : Arrays.asList(RpcKind.SINK, RpcKind.BIDIRECTIONAL_STREAM)) {
+      StepVerifier.create(channel(empty, kind, Flux.never()))
+          .verifyErrorSatisfies(
+              t ->
+                  assertEquals(
+                      "Call ended without a first response", decodeRocketError(t).getWhatUtf8()));
+    }
+  }
+
+  @Test
+  public void testRequestChannelSinkInitialErrorSendsThePayloadThenAnError() {
+    RpcServerHandler firstOnly =
+        channelHandler((initial, sinkPayloads) -> Flux.just(firstResponse()));
+
+    StepVerifier.create(channel(firstOnly, RpcKind.SINK, Flux.never()))
+        .expectNextMatches(ReferenceCountUtil::release)
+        .verifyErrorSatisfies(t -> assertStreamError(t, "Sink ended without a final response"));
+  }
+
+  @Test
+  public void testRequestChannelErrorAfterTheFirstResponseSendsAStreamError() {
+    RpcServerHandler failsLate =
+        channelHandler(
+            (initial, sinkPayloads) -> Flux.concat(Flux.just(firstResponse()), Flux.error(boom())));
+
+    StepVerifier.create(channel(failsLate, RpcKind.BIDIRECTIONAL_STREAM, Flux.never()))
+        .expectNextMatches(ReferenceCountUtil::release)
+        .verifyErrorSatisfies(t -> assertStreamError(t, "boom"));
+  }
+
+  @Test
+  public void testRequestChannelTimeoutWithAnEarlyReaderSendsNoSinkCredit() {
+    List<Long> requests = new CopyOnWriteArrayList<>();
+    RpcServerHandler readsBeforeItAnswers =
+        channelHandler((initial, sinkPayloads) -> Flux.from(sinkPayloads).thenMany(Flux.never()));
+
+    StepVerifier.create(
+            channel(
+                readsBeforeItAnswers,
+                RpcKind.SINK,
+                Flux.never(),
+                Duration.valueOf("100ms"),
+                payloads -> payloads.doOnRequest(requests::add)))
+        .verifyError(RSocketErrorException.class);
+
+    assertEquals(Collections.singletonList(1L), requests);
+  }
+
+  @Test
+  public void testRequestChannelBidiTimeoutWithAnEarlyReaderSendsTheErrorBeforeAnyCancel() {
+    List<String> events = new CopyOnWriteArrayList<>();
+    RpcServerHandler readsBeforeItAnswers =
+        channelHandler(
+            (initial, sinkPayloads) ->
+                Flux.from(sinkPayloads)
+                    .thenMany(Flux.<ServerResponsePayload>never())
+                    .cancelOn(Schedulers.parallel()));
+
+    StepVerifier.create(
+            channel(
+                readsBeforeItAnswers,
+                RpcKind.BIDIRECTIONAL_STREAM,
+                Flux.never(),
+                Duration.valueOf("100ms"),
+                payloads -> payloads.doOnCancel(() -> events.add("cancel"))))
+        .expectErrorSatisfies(t -> events.add("error"))
+        .verify();
+
+    assertEquals("error", events.get(0));
+  }
+
+  @Test
+  public void testRequestChannelEarlyReaderGetsItsCreditAfterTheFirstResponseIsQueued()
+      throws Exception {
+    List<String> events = new CopyOnWriteArrayList<>();
+    RpcServerHandler readsEarly =
+        channelHandler(
+            (initial, sinkPayloads) -> {
+              Flux.from(sinkPayloads).subscribe();
+
+              return Mono.fromCallable(ThriftServerRSocketTest::firstResponse)
+                  .subscribeOn(Schedulers.parallel())
+                  .concatWith(Flux.never());
+            });
+
+    QueuingResponder responder = new QueuingResponder(events);
+    channel(
+            readsEarly,
+            RpcKind.BIDIRECTIONAL_STREAM,
+            Flux.never(),
+            null,
+            payloads -> payloads.doOnRequest(n -> events.add("request " + n)))
+        .subscribe(responder);
+
+    assertTrue(responder.firstQueued.await(5, TimeUnit.SECONDS));
+    awaitEvent(events, "request 100");
+    responder.dispose();
+
+    assertEquals(
+        Arrays.asList("request 1", "first queued", "request 100"),
+        events.subList(0, 3),
+        "events " + events);
+  }
+
+  @Test
+  public void testRequestChannelBidiReaderCancelBeforeTheFirstResponseSendsNoCancel() {
+    AtomicBoolean cancelled = new AtomicBoolean();
+    RpcServerHandler cancelsEarly =
+        channelHandler(
+            (initial, sinkPayloads) -> {
+              Flux.from(sinkPayloads).subscribe().dispose();
+
+              return Flux.just(firstResponse()).concatWith(Flux.never());
+            });
+
+    Disposable call =
+        channel(
+                cancelsEarly,
+                RpcKind.BIDIRECTIONAL_STREAM,
+                Flux.never(),
+                null,
+                payloads -> payloads.doOnCancel(() -> cancelled.set(true)))
+            .subscribe(ReferenceCountUtil::release);
+
+    assertFalse(cancelled.get());
+    call.dispose();
+  }
+
+  @Test
+  public void testRequestChannelBidiReaderCancelAfterTheFirstResponseEndsOnlyTheSink() {
+    AtomicBoolean cancelled = new AtomicBoolean();
+    RpcServerHandler takesOne =
+        channelHandler(
+            (initial, sinkPayloads) ->
+                Flux.concat(
+                    Flux.just(firstResponse()),
+                    Flux.from(sinkPayloads).take(1).map(element -> streamElement(initial)),
+                    Flux.just(streamElement(initial))));
+
+    StepVerifier.create(
+            channel(
+                takesOne,
+                RpcKind.BIDIRECTIONAL_STREAM,
+                Flux.just(sinkPayload(1)).concatWith(Flux.never()),
+                null,
+                payloads -> payloads.doOnCancel(() -> cancelled.set(true))))
+        .expectNextMatches(ReferenceCountUtil::release)
+        .expectNextMatches(ReferenceCountUtil::release)
+        .expectNextMatches(ReferenceCountUtil::release)
+        .verifyComplete();
+
+    assertTrue(cancelled.get());
+  }
+
+  @Test
+  public void testRequestChannelDeclaredSinkErrorReachesTheReaderAndUndeclaredFailsIt() {
+    List<Object> read = new CopyOnWriteArrayList<>();
+    RpcServerHandler reads =
+        channelHandler(
+            (initial, sinkPayloads) -> {
+              Flux.from(sinkPayloads).subscribe(read::add, read::add, () -> read.add("complete"));
+
+              return Flux.just(firstResponse()).concatWith(Flux.never());
+            });
+
+    Disposable call =
+        channel(
+                reads,
+                RpcKind.BIDIRECTIONAL_STREAM,
+                Flux.just(declaredSinkError(), undeclaredSinkError("peer sink failed"))
+                    .concatWith(Flux.never()))
+            .subscribe(ReferenceCountUtil::release);
+
+    awaitSize(read, 2);
+    call.dispose();
+
+    assertTrue(read.get(0) instanceof ServerRequestPayload, "read " + read);
+    assertTrue(read.get(1) instanceof TApplicationException, "read " + read);
+    assertEquals("peer sink failed", ((TApplicationException) read.get(1)).getMessage());
+  }
+
+  @Test
+  public void testRequestChannelAbortedCallFailsTheReaderSoItNeverCommits() {
+    AtomicBoolean committed = new AtomicBoolean();
+    List<Object> read = new CopyOnWriteArrayList<>();
+    RpcServerHandler commitsAtTheEnd =
+        channelHandler(
+            (initial, sinkPayloads) -> {
+              Flux.from(sinkPayloads)
+                  .doOnNext(read::add)
+                  .then(Mono.fromRunnable(() -> committed.set(true)))
+                  .subscribe(null, read::add);
+
+              return Flux.just(firstResponse()).concatWith(Flux.never());
+            });
+
+    Disposable call =
+        channel(commitsAtTheEnd, RpcKind.SINK, Flux.just(sinkPayload(1)).concatWith(Flux.never()))
+            .subscribe(ReferenceCountUtil::release);
+
+    awaitSize(read, 1);
+    call.dispose();
+    awaitSize(read, 2);
+
+    assertFalse(committed.get());
+    assertTrue(read.get(1) instanceof CancellationException, "read " + read);
+  }
+
+  @Test
+  public void testRequestChannelReaderThatWaitsForTheFirstResponseFailsWhenTheCallFails() {
+    List<Throwable> failures = new CopyOnWriteArrayList<>();
+    RpcServerHandler readsThenFails =
+        channelHandler(
+            (initial, sinkPayloads) -> {
+              Flux.from(sinkPayloads).subscribe(null, failures::add);
+
+              return Flux.error(boom());
+            });
+
+    StepVerifier.create(channel(readsThenFails, RpcKind.BIDIRECTIONAL_STREAM, Flux.never()))
+        .verifyError();
+
+    assertTrue(failures.get(0) instanceof CancellationException, "failures " + failures);
+  }
+
+  @Test
+  public void testRequestChannelBidiSinkStaysOpenAfterTheStreamCompletes() {
+    List<Object> read = new CopyOnWriteArrayList<>();
+    Sinks.Many<Payload> peer = Sinks.many().unicast().onBackpressureBuffer();
+    RpcServerHandler readsAfterItsStream =
+        channelHandler(
+            (initial, sinkPayloads) -> {
+              Flux.from(sinkPayloads).subscribe(read::add, read::add, () -> read.add("complete"));
+
+              return Flux.just(firstResponse());
+            });
+
+    StepVerifier.create(channel(readsAfterItsStream, RpcKind.BIDIRECTIONAL_STREAM, peer.asFlux()))
+        .expectNextMatches(ReferenceCountUtil::release)
+        .verifyComplete();
+
+    peer.tryEmitNext(sinkPayload(1));
+    peer.tryEmitComplete();
+    awaitSize(read, 2);
+
+    assertEquals(2, read.size(), "read " + read);
+    assertTrue(read.get(0) instanceof ServerRequestPayload);
+    assertEquals("complete", read.get(1));
+  }
+
+  @Test
+  public void testRequestChannelLateReaderOfACompletedBidiCallFails() {
+    AtomicReference<Publisher<ServerRequestPayload>> sink = new AtomicReference<>();
+    RpcServerHandler answersWithoutReading =
+        channelHandler(
+            (initial, sinkPayloads) -> {
+              sink.set(sinkPayloads);
+
+              return Flux.just(firstResponse());
+            });
+
+    StepVerifier.create(channel(answersWithoutReading, RpcKind.BIDIRECTIONAL_STREAM, Flux.never()))
+        .expectNextMatches(ReferenceCountUtil::release)
+        .verifyComplete();
+
+    StepVerifier.create(sink.get()).verifyError(CancellationException.class);
+  }
+
+  /** A peer that sends a sink payload right after the setup, without credit for it. */
+  private static Flux<Payload> withoutCredit(Payload setup, Payload sinkPayload) {
+    return Flux.create(
+        peer -> {
+          peer.next(setup);
+          peer.next(sinkPayload);
+        },
+        FluxSink.OverflowStrategy.IGNORE);
+  }
+
+  private void assertChannelSetupRejected(RequestRpcMetadata.Builder setup, String expected) {
+    this.protocolId = ProtocolId.COMPACT;
+    RequestRpcMetadata requestMetadata = setup.build();
+    ByteBuf data =
+        createData(createRequestRpcMetadata("sink", RpcKind.SINK), createTestRequest(0, "foo"));
+    ByteBuf metadata = createMetadata(requestMetadata);
+
+    StepVerifier.create(rocket.requestChannel(Flux.just(PayloadUtil.createPayload(data, metadata))))
+        .verifyErrorSatisfies(e -> assertParsingFailure(e, expected));
+
+    assertRequestBuffersFreed(data, metadata);
+  }
+
+  /** After the first response, the peer reads a StreamRpcError in a CANCELED frame. */
+  private static void assertStreamError(Throwable t, String expected) {
+    assertEquals(ErrorFrameCodec.CANCELED, ((RSocketErrorException) t).errorCode());
+
+    StreamRpcError error =
+        ProtocolUtil.readCompact(
+            StreamRpcError::read0,
+            Unpooled.wrappedBuffer(t.getMessage().getBytes(StandardCharsets.UTF_8)));
+    assertEquals(StreamRpcErrorCode.UNKNOWN, error.getCode());
+    assertEquals(expected, error.getWhatUtf8());
+  }
+
+  private void assertParsingFailure(Throwable t, String expected) {
+    assertServerError(
+        t,
+        ErrorFrameCodec.INVALID,
+        ResponseRpcErrorCode.REQUEST_PARSING_FAILURE,
+        ResponseRpcErrorCategory.INVALID_REQUEST);
+    assertEquals(expected, decodeRocketError(t).getWhatUtf8());
+  }
+
+  /** Opens a channel with a COMPACT setup for the given kind, then the given sink payloads. */
+  private Flux<Payload> channel(RpcServerHandler handler, RpcKind kind, Flux<Payload> sink) {
+    return channel(handler, kind, sink, null, UnaryOperator.identity());
+  }
+
+  /** The peer function sees every payload the transport takes, the setup included. */
+  private Flux<Payload> channel(
+      RpcServerHandler handler,
+      RpcKind kind,
+      Flux<Payload> sink,
+      Duration taskTimeout,
+      UnaryOperator<Flux<Payload>> peer) {
+    this.protocolId = ProtocolId.COMPACT;
+    Payload setup = createPayload(createRequestRpcMetadata("channel", kind), 0, "setup");
+
+    ThriftServerRSocket server =
+        taskTimeout == null
+            ? new ThriftServerRSocket(handler, alloc)
+            : new ThriftServerRSocket(handler, alloc, null, taskTimeout);
+    return server.requestChannel(peer.apply(Flux.concat(Flux.just(setup), sink)));
+  }
+
+  /** A hand-written channel handler, as an application can write one against RpcServerHandler. */
+  private static RpcServerHandler channelHandler(
+      BiFunction<ServerRequestPayload, Publisher<ServerRequestPayload>, Flux<ServerResponsePayload>>
+          serve) {
+    return new RpcServerHandler() {
+      @Override
+      public Flux<ServerResponsePayload> streamingRequestStreamingResponse(
+          ServerRequestPayload initial, Publisher<ServerRequestPayload> sinkPayloads) {
+        return serve.apply(initial, sinkPayloads);
+      }
+    };
+  }
+
+  private static ServerResponsePayload firstResponse() {
+    return ServerResponsePayload.create(
+        Writers.emptyStruct(), RpcPayloadUtil.streamFirstResponseMetadata(), null, true);
+  }
+
+  private static ServerResponsePayload streamElement(ServerRequestPayload request) {
+    return ServerResponsePayload.create(
+        Writers.emptyStruct(), null, RpcPayloadUtil.streamPayloadMetadata(request), true);
+  }
+
+  private Payload sinkPayload(int intField) {
+    return sinkPayload(intField, new StreamPayloadMetadata.Builder().build());
+  }
+
+  private Payload sinkPayload(int intField, StreamPayloadMetadata metadata) {
+    ByteBuf encodedMetadata = alloc.buffer();
+    metadata.write0(TProtocolType.TCompact.apply(encodedMetadata));
+
+    ByteBuf data =
+        createData(
+            new RequestRpcMetadata.Builder().setProtocol(ProtocolId.COMPACT).build(),
+            createTestRequest(intField, "sink"));
+    // The payload owns the buffer: drop the helper's extra reference.
+    data.release();
+
+    return PayloadUtil.createPayload(data, encodedMetadata);
+  }
+
+  /**
+   * A declared sink error stays in the body for the generated reader, so the transport passes it.
+   */
+  private Payload declaredSinkError() {
+    return sinkPayload(
+        2,
+        new StreamPayloadMetadata.Builder()
+            .setPayloadMetadata(
+                PayloadMetadata.fromExceptionMetadata(
+                    new PayloadExceptionMetadataBase.Builder()
+                        .setNameUtf8("TestException")
+                        .setWhatUtf8("declared")
+                        .setMetadata(
+                            PayloadExceptionMetadata.fromDeclaredException(
+                                new PayloadDeclaredExceptionMetadata.Builder().build()))
+                        .build()))
+            .build());
+  }
+
+  private Payload undeclaredSinkError(String what) {
+    return sinkPayload(
+        3,
+        new StreamPayloadMetadata.Builder()
+            .setPayloadMetadata(
+                PayloadMetadata.fromExceptionMetadata(
+                    new PayloadExceptionMetadataBase.Builder()
+                        .setNameUtf8("TApplicationException")
+                        .setWhatUtf8(what)
+                        .setMetadata(
+                            PayloadExceptionMetadata.fromAppUnknownException(
+                                new PayloadAppUnknownExceptionMetdata.Builder().build()))
+                        .build()))
+            .build());
+  }
+
+  private static IllegalStateException boom() {
+    return new IllegalStateException("boom");
+  }
+
+  private static void awaitSize(List<?> list, int size) {
+    for (int i = 0; i < 500 && list.size() < size; i++) {
+      LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(10));
+    }
+
+    assertTrue(list.size() >= size, "list " + list);
+  }
+
+  private static void awaitEvent(List<String> events, String event) {
+    for (int i = 0; i < 500 && !events.contains(event); i++) {
+      LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(10));
+    }
+
+    assertTrue(events.contains(event), "events " + events);
+  }
+
+  /**
+   * Stands in for the responder: it queues each payload inside onNext and takes its time, so a
+   * credit that does not wait for onNext to return would show up before "first queued".
+   */
+  private static final class QueuingResponder extends BaseSubscriber<Payload> {
+    final CountDownLatch firstQueued = new CountDownLatch(1);
+    private final List<String> events;
+
+    QueuingResponder(List<String> events) {
+      this.events = events;
+    }
+
+    @Override
+    protected void hookOnNext(Payload payload) {
+      LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(50));
+      payload.release();
+
+      events.add("first queued");
+      firstQueued.countDown();
+    }
   }
 
   @ParameterizedTest

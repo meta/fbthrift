@@ -20,58 +20,100 @@ import com.facebook.nifty.core.RequestContext;
 import com.facebook.swift.service.StreamEventHandler;
 import com.facebook.swift.service.ThriftEventHandler;
 import com.facebook.swift.service.ThriftServerConfig;
+import com.facebook.thrift.client.RpcClient;
 import com.facebook.thrift.client.RpcClientFactory;
+import com.facebook.thrift.client.RpcOptions;
 import com.facebook.thrift.client.ThriftClientConfig;
 import com.facebook.thrift.example.ping.CustomException;
 import com.facebook.thrift.example.ping.ExtendedPing;
 import com.facebook.thrift.example.ping.PingRequest;
 import com.facebook.thrift.example.ping.PingResponse;
 import com.facebook.thrift.model.ResponseAndStream;
+import com.facebook.thrift.model.StreamResponse;
+import com.facebook.thrift.payload.ClientRequestPayload;
+import com.facebook.thrift.payload.ClientResponsePayload;
+import com.facebook.thrift.payload.FieldReader;
+import com.facebook.thrift.payload.ServerRequestPayload;
+import com.facebook.thrift.payload.ServerResponsePayload;
+import com.facebook.thrift.payload.Writer;
+import com.facebook.thrift.protocol.TProtocolType;
+import com.facebook.thrift.rsocket.client.RSocketRpcClientFactory;
 import com.facebook.thrift.server.RpcServerHandler;
 import com.facebook.thrift.testservices.ExtendedReactivePingService;
+import com.facebook.thrift.util.RpcClientUtils;
+import com.facebook.thrift.util.RpcPayloadUtil;
 import com.facebook.thrift.util.RpcServerUtils;
 import com.facebook.thrift.util.SPINiftyMetrics;
+import com.facebook.thrift.util.Writers;
 import com.facebook.thrift.util.resources.RpcResources;
 import com.google.common.collect.ImmutableList;
 import io.airlift.units.Duration;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.util.ResourceLeakDetector;
 import io.netty.util.ResourceLeakDetectorFactory;
+import io.netty.util.concurrent.EventExecutor;
+import io.rsocket.DuplexConnection;
+import io.rsocket.RSocketErrorException;
+import io.rsocket.frame.ErrorFrameCodec;
+import io.rsocket.frame.FrameHeaderCodec;
+import io.rsocket.frame.FrameType;
+import io.rsocket.frame.RequestChannelFrameCodec;
+import io.rsocket.frame.RequestNFrameCodec;
+import io.rsocket.plugins.DuplexConnectionInterceptor;
 import java.net.BindException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Queue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
 import java.util.stream.Stream;
 import org.apache.thrift.ProtocolId;
+import org.apache.thrift.RequestRpcMetadata;
+import org.apache.thrift.RpcKind;
 import org.apache.thrift.TApplicationException;
+import org.apache.thrift.protocol.TField;
+import org.apache.thrift.protocol.TStruct;
+import org.apache.thrift.protocol.TType;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.reactivestreams.Publisher;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
+import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
 /**
  * Java-to-Java streaming integration tests over the real unified transport (RSocket via ALPN):
  * plain streams (dispatched through the child-to-parent inheritance path), first-response streams,
  * declared/undeclared errors mid-stream and before any element, client cancel, and bounded client
- * demand. Every test runs on COMPACT and BINARY.
+ * demand. Every stream test runs on COMPACT and BINARY. The channel tests check the frames that the
+ * client receives.
  *
  * <p>Dropping the client connection mid-stream drives the server CANCEL terminal hook (then done);
  * {@code connectionDropFiresCancelTerminal} pins it. {@code StreamConnectionCloseTest} covers the
@@ -138,8 +180,15 @@ public class ExtendedPingStreamIntegrationTest {
         + ResourceLeakDetector.getLevel();
   }
 
+  // The server's sink window: unread sink payloads one channel may hold.
+  private static final int SINK_WINDOW = 100;
+
+  // A stream id the client's own calls in these tests never reach, for raw frames.
+  private static final int RAW_STREAM_ID = 101;
+
   private UnifiedServerTransport transport;
   private SocketAddress serverAddress;
+  private RpcClient channelClient;
   private UnifiedServerTransport backendTransport;
   private SocketAddress backendAddress;
   private ThriftServerConfig serverConfig;
@@ -222,6 +271,10 @@ public class ExtendedPingStreamIntegrationTest {
 
   @AfterEach
   public void tearDown() {
+    if (channelClient != null) {
+      channelClient.dispose();
+      channelClient = null;
+    }
     if (transport != null) {
       transport.dispose();
       transport = null;
@@ -232,21 +285,22 @@ public class ExtendedPingStreamIntegrationTest {
     }
   }
 
-  private RpcClientFactory createRSocketClientFactory() {
-    ThriftClientConfig clientConfig =
-        new ThriftClientConfig()
-            .setDisableSSL(false)
-            .setEnableJdkSsl(false)
-            .setCertFile(TestCertificateUtil.getCertFilePath())
-            .setKeyFile(TestCertificateUtil.getKeyFilePath())
-            .setCAFile(TestCertificateUtil.getCAFilePath())
-            .setRequestTimeout(Duration.succinctDuration(30, TimeUnit.SECONDS));
+  private static ThriftClientConfig clientConfig() {
+    return new ThriftClientConfig()
+        .setDisableSSL(false)
+        .setEnableJdkSsl(false)
+        .setCertFile(TestCertificateUtil.getCertFilePath())
+        .setKeyFile(TestCertificateUtil.getKeyFilePath())
+        .setCAFile(TestCertificateUtil.getCAFilePath())
+        .setRequestTimeout(Duration.succinctDuration(30, TimeUnit.SECONDS));
+  }
 
+  private RpcClientFactory createRSocketClientFactory() {
     return RpcClientFactory.builder()
         .setDisableRSocket(false)
         .setDisableLoadBalancing(true)
         .setDisableReconnectingClient(true)
-        .setThriftClientConfig(clientConfig)
+        .setThriftClientConfig(clientConfig())
         .build();
   }
 
@@ -292,8 +346,11 @@ public class ExtendedPingStreamIntegrationTest {
   }
 
   private void startServer(ExtendedPing.Reactive service, List<ThriftEventHandler> handlers) {
-    RpcServerHandler handler =
-        ExtendedPing.Reactive.serverHandlerBuilder(service).setEventHandlers(handlers).build();
+    startServer(
+        ExtendedPing.Reactive.serverHandlerBuilder(service).setEventHandlers(handlers).build());
+  }
+
+  private void startServer(RpcServerHandler handler) {
     // Port allocation races (parallel tests, TIME_WAIT reuse) surface as bind failures: retry
     // on a fresh port rather than flaking.
     for (int attempt = 0; ; attempt++) {
@@ -1155,6 +1212,890 @@ public class ExtendedPingStreamIntegrationTest {
     Assertions.assertEquals(StreamEventHandler.StreamOutcome.CANCEL, hooks.terminalOutcome);
     Assertions.assertTrue(hooks.doneLatch.await(10, TimeUnit.SECONDS), "done never fired");
     subscription.dispose();
+  }
+
+  @Test
+  public void sinkSendsItsFinalAsOneFrameAfterTheFirstResponse() throws Exception {
+    sinkSendsItsFinalAsOneFrame(false);
+  }
+
+  @Test
+  public void sinkSendsItsFinalAsOneFrameOffTheEventLoop() throws Exception {
+    sinkSendsItsFinalAsOneFrame(true);
+  }
+
+  private void sinkSendsItsFinalAsOneFrame(boolean offLoop) throws Exception {
+    FrameLog frames = new FrameLog();
+    RpcClient client = channelClient(startChannelServer(countingSink(offLoop)), frames);
+
+    StepVerifier.create(
+            client.streamingRequestStreamingResponse(
+                Flux.just(
+                    channelRequest(RpcKind.SINK, pingArgsWriter("hello")),
+                    channelRequest(RpcKind.SINK, sinkPayloadWriter("a")),
+                    channelRequest(RpcKind.SINK, sinkPayloadWriter("b"))),
+                RpcOptions.EMPTY))
+        .expectNextCount(1)
+        .assertNext(last -> Assertions.assertEquals("read 2", finalResponse(last)))
+        .verifyComplete();
+
+    Assertions.assertEquals(Arrays.asList("NEXT", "REQUEST_N", "NEXT_COMPLETE"), frames.fromServer);
+  }
+
+  @Test
+  public void emptySinkGetsItsFinal() throws Exception {
+    FrameLog frames = new FrameLog();
+    RpcClient client = channelClient(startChannelServer(countingSink(false)), frames);
+
+    StepVerifier.create(
+            client.streamingRequestStreamingResponse(
+                Flux.just(channelRequest(RpcKind.SINK, pingArgsWriter("hello"))), RpcOptions.EMPTY))
+        .expectNextCount(1)
+        .assertNext(last -> Assertions.assertEquals("read 0", finalResponse(last)))
+        .verifyComplete();
+
+    Assertions.assertEquals("NEXT", frames.fromServer.get(0));
+    Assertions.assertEquals("NEXT_COMPLETE", frames.fromServer.get(frames.fromServer.size() - 1));
+    Assertions.assertFalse(frames.fromServer.contains("COMPLETE"));
+    Assertions.assertFalse(frames.fromServer.contains("CANCEL"));
+  }
+
+  @Test
+  public void sinkThatStopsReadingSendsNoCancelBeforeItsFinal() throws Exception {
+    FrameLog frames = new FrameLog();
+    RpcServerHandler readsOne =
+        channelHandler(
+            (initial, sinkElements) ->
+                Flux.concat(
+                    Flux.just(firstResponse()),
+                    sinkElements.next().map(element -> response(initial, element.getRequest()))));
+
+    RpcClient client = channelClient(startChannelServer(readsOne), frames);
+
+    StepVerifier.create(
+            client.streamingRequestStreamingResponse(
+                Flux.concat(
+                    Flux.just(
+                        channelRequest(RpcKind.SINK, pingArgsWriter("hello")),
+                        channelRequest(RpcKind.SINK, sinkPayloadWriter("a")),
+                        channelRequest(RpcKind.SINK, sinkPayloadWriter("b"))),
+                    Flux.never()),
+                RpcOptions.EMPTY))
+        .expectNextCount(1)
+        .assertNext(last -> Assertions.assertEquals("a", finalResponse(last)))
+        .verifyComplete();
+
+    frames.await("CANCEL");
+    Assertions.assertEquals(
+        Arrays.asList("NEXT", "REQUEST_N", "NEXT_COMPLETE", "CANCEL"), frames.fromServer);
+  }
+
+  @Test
+  public void sinkInitialErrorEndsWithAnErrorFrame() throws Exception {
+    FrameLog frames = new FrameLog();
+    RpcServerHandler firstOnly =
+        channelHandler((initial, sinkElements) -> Flux.just(firstResponse()));
+
+    RpcClient client = channelClient(startChannelServer(firstOnly), frames);
+
+    client
+        .streamingRequestStreamingResponse(
+            Flux.just(channelRequest(RpcKind.SINK, pingArgsWriter("hello"))), RpcOptions.EMPTY)
+        .onErrorResume(e -> Flux.empty())
+        .collectList()
+        .block();
+
+    Assertions.assertEquals(Arrays.asList("NEXT", "ERROR"), frames.fromServer);
+  }
+
+  @Test
+  public void sinkFinalThatDoesNotSerializeEndsWithAnErrorFrame() throws Exception {
+    FrameLog frames = new FrameLog();
+    RpcServerHandler unwritable =
+        channelHandler(
+            (initial, sinkElements) -> Flux.just(firstResponse(), response(initial, "unwritable")));
+
+    RpcClient client = channelClient(startChannelServer(unwritable), frames);
+
+    List<ClientResponsePayload<Object>> items =
+        client
+            .<Object, Object>streamingRequestStreamingResponse(
+                Flux.just(channelRequest(RpcKind.SINK, pingArgsWriter("hello"))), RpcOptions.EMPTY)
+            .collectList()
+            .block();
+
+    Assertions.assertNotNull(items.get(1).getException(), "items " + items);
+    Assertions.assertEquals(Arrays.asList("NEXT", "ERROR"), frames.fromServer);
+  }
+
+  @Test
+  public void channelTaskTimeoutSendsOnlyAnErrorFrame() throws Exception {
+    serverConfig.setTaskExpirationTimeout(Duration.valueOf("100ms"));
+    RpcServerHandler silent = channelHandler((initial, sinkElements) -> Flux.never());
+
+    channelSendsOnlyAnErrorFrame(startChannelServer(silent), RpcKind.SINK);
+  }
+
+  @Test
+  public void channelOverloadSendsOnlyAnErrorFrame() throws Exception {
+    // A full off-loop scheduler rejects the dispatch with this exception.
+    RpcServerHandler overloaded =
+        channelHandler(
+            (initial, sinkElements) -> Flux.error(new RejectedExecutionException("overloaded")));
+
+    channelSendsOnlyAnErrorFrame(startChannelServer(overloaded), RpcKind.BIDIRECTIONAL_STREAM);
+  }
+
+  @Test
+  public void channelBadSetupSendsOnlyAnErrorFrame() throws Exception {
+    channelSendsOnlyAnErrorFrame(
+        startChannelServer(countingSink(false)), RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE);
+  }
+
+  /** The sink stays open while the call fails: rsocket-java ends it without a CANCEL frame. */
+  private void channelSendsOnlyAnErrorFrame(SocketAddress address, RpcKind kind) {
+    FrameLog frames = new FrameLog();
+    RpcClient client = channelClient(address, frames);
+
+    StepVerifier.create(
+            client.streamingRequestStreamingResponse(
+                Flux.concat(Flux.just(channelRequest(kind, pingArgsWriter("hello"))), Flux.never()),
+                RpcOptions.EMPTY))
+        .assertNext(
+            only -> Assertions.assertTrue(only.getException() instanceof TApplicationException))
+        .verifyComplete();
+
+    Assertions.assertEquals(Collections.singletonList("ERROR"), frames.fromServer);
+  }
+
+  @Test
+  public void channelCorruptMetadataSendsOnlyAnErrorFrame() throws Exception {
+    FrameLog frames = new FrameLog();
+    channelClient(startChannelServer(countingSink(false)), frames);
+
+    frames.send(
+        RequestChannelFrameCodec.encode(
+            frames.alloc(),
+            RAW_STREAM_ID,
+            false,
+            false,
+            1,
+            frames.alloc().buffer().writeBytes(new byte[] {(byte) 0xff, (byte) 0xff}),
+            frames.alloc().buffer()));
+
+    frames.await("ERROR");
+    Assertions.assertEquals(Collections.singletonList("ERROR"), frames.fromServer);
+  }
+
+  @Test
+  public void channelSetupWithFragmentedMetadataGetsAnErrorFrame() throws Exception {
+    FrameLog frames = new FrameLog();
+    channelClient(startChannelServer(countingSink(false)), frames);
+
+    frames.send(
+        RequestChannelFrameCodec.encode(
+            frames.alloc(),
+            RAW_STREAM_ID,
+            true,
+            false,
+            1,
+            frames.alloc().buffer().writeByte(0x18),
+            frames.alloc().buffer()));
+
+    frames.await("ERROR");
+    Assertions.assertEquals(Collections.singletonList("ERROR"), frames.fromServer);
+  }
+
+  @Test
+  public void malformedFrameClosesTheConnectionAndEndsTheActiveSink() throws Exception {
+    FrameLog frames = new FrameLog();
+    Recorded<Object> read = new Recorded<>();
+    RpcClient client = channelClient(startChannelServer(recordingReader(read)), frames);
+
+    CompletableFuture<List<ClientResponsePayload<Object>>> call =
+        client
+            .<Object, Object>streamingRequestStreamingResponse(openSink(), RpcOptions.EMPTY)
+            .onErrorResume(e -> Flux.empty())
+            .collectList()
+            .toFuture();
+
+    frames.await("REQUEST_N");
+    frames.send(frames.alloc().buffer().writeInt(RAW_STREAM_ID));
+
+    client.onClose().toFuture().get(5, TimeUnit.SECONDS);
+    call.get(5, TimeUnit.SECONDS);
+    read.awaitSize(1);
+    Assertions.assertTrue(read.get(0) instanceof Throwable, "read " + read);
+  }
+
+  @Test
+  public void sinkReadsItsElementsOffTheEventLoop() throws Exception {
+    Assumptions.assumeTrue(RpcResources.isForceExecutionOffEventLoop());
+    List<Thread> threads = new CopyOnWriteArrayList<>();
+
+    RpcServerHandler sink =
+        channelHandler(
+            (initial, sinkElements) ->
+                Flux.concat(
+                    Flux.just(firstResponse()),
+                    sinkElements
+                        .doOnNext(element -> threads.add(Thread.currentThread()))
+                        .count()
+                        .map(n -> response(initial, "read " + n))));
+
+    RpcClient client = channelClient(startChannelServer(sink), new FrameLog());
+
+    StepVerifier.create(
+            client.streamingRequestStreamingResponse(
+                Flux.just(
+                    channelRequest(RpcKind.SINK, pingArgsWriter("hello")),
+                    channelRequest(RpcKind.SINK, sinkPayloadWriter("a")),
+                    channelRequest(RpcKind.SINK, sinkPayloadWriter("b"))),
+                RpcOptions.EMPTY))
+        .expectNextCount(2)
+        .verifyComplete();
+
+    Assertions.assertEquals(2, threads.size());
+    for (Thread thread : threads) {
+      for (EventExecutor loop : RpcResources.getEventLoopGroup()) {
+        Assertions.assertFalse(loop.inEventLoop(thread), thread.getName());
+      }
+    }
+  }
+
+  @Test
+  public void sinkHoldsABoundedWindowOfPayloadsForASlowReader() throws Exception {
+    Sinks.Empty<Void> release = Sinks.empty();
+    FrameLog frames = new FrameLog();
+
+    RpcServerHandler slowReader =
+        channelHandler(
+            (initial, sinkElements) ->
+                Flux.concat(
+                    Flux.just(firstResponse()),
+                    sinkElements
+                        .delayUntil(element -> release.asMono())
+                        .count()
+                        .map(n -> response(initial, "read " + n))));
+
+    RpcClient client = channelClient(startChannelServer(slowReader), frames);
+    Flux<ClientRequestPayload<Object>> requests =
+        Flux.concat(
+            Flux.just(channelRequest(RpcKind.SINK, pingArgsWriter("hello"))),
+            Flux.range(0, 3 * SINK_WINDOW)
+                .map(i -> channelRequest(RpcKind.SINK, sinkPayloadWriter("s" + i))));
+
+    CompletableFuture<List<ClientResponsePayload<Object>>> call =
+        client
+            .<Object, Object>streamingRequestStreamingResponse(requests, RpcOptions.EMPTY)
+            .collectList()
+            .toFuture();
+
+    try {
+      // The reader holds its first sink element, so once the client filled the window a bounded
+      // server has granted nothing more.
+      frames.awaitSinkPayloadsSent(SINK_WINDOW);
+
+      Assertions.assertEquals(Collections.singletonList((long) SINK_WINDOW), frames.credits);
+      Assertions.assertEquals(SINK_WINDOW, frames.sinkPayloadsSent.get());
+    } finally {
+      release.tryEmitEmpty();
+    }
+
+    Assertions.assertEquals(
+        "read " + 3 * SINK_WINDOW, finalResponse(call.get(10, TimeUnit.SECONDS).get(1)));
+    Assertions.assertTrue(
+        frames.credits.stream().mapToLong(Long::longValue).sum() <= 4 * SINK_WINDOW);
+    Assertions.assertTrue(frames.credits.stream().allMatch(n -> n <= SINK_WINDOW));
+  }
+
+  @Test
+  public void earlyReaderGetsItsCreditOnlyAfterTheFirstResponseOnTheWire() throws Exception {
+    FrameLog frames = new FrameLog();
+    RpcServerHandler readsEarly =
+        channelHandler(
+            (initial, sinkElements) -> {
+              Flux<ServerResponsePayload> echo =
+                  sinkElements.map(element -> response(initial, element.getRequest()));
+
+              return Flux.concat(
+                  Mono.fromCallable(ExtendedPingStreamIntegrationTest::firstResponse)
+                      .subscribeOn(Schedulers.parallel()),
+                  echo);
+            });
+
+    RpcClient client = channelClient(startChannelServer(readsEarly), frames);
+
+    StepVerifier.create(
+            client.streamingRequestStreamingResponse(
+                Flux.just(
+                    channelRequest(RpcKind.BIDIRECTIONAL_STREAM, pingArgsWriter("hello")),
+                    channelRequest(RpcKind.BIDIRECTIONAL_STREAM, sinkPayloadWriter("a"))),
+                RpcOptions.EMPTY))
+        .expectNextCount(1)
+        .assertNext(element -> Assertions.assertEquals("a", finalResponse(element)))
+        .verifyComplete();
+
+    Assertions.assertEquals(Arrays.asList("NEXT", "REQUEST_N"), frames.fromServer.subList(0, 2));
+  }
+
+  @Test
+  public void bidiEarlyReaderWithATaskTimeoutGetsOnlyAnErrorFrame() throws Exception {
+    serverConfig.setTaskExpirationTimeout(Duration.valueOf("100ms"));
+    RpcServerHandler readsBeforeItAnswers =
+        channelHandler(
+            (initial, sinkElements) ->
+                sinkElements
+                    .thenMany(Flux.<ServerResponsePayload>never())
+                    .cancelOn(Schedulers.parallel()));
+
+    channelSendsOnlyAnErrorFrame(
+        startChannelServer(readsBeforeItAnswers), RpcKind.BIDIRECTIONAL_STREAM);
+  }
+
+  @Test
+  public void sinkOutlivesTheTaskTimeoutAfterItsFirstResponse() throws Exception {
+    channelOutlivesTheTaskTimeout(RpcKind.SINK, "read 1");
+  }
+
+  @Test
+  public void bidiOutlivesTheTaskTimeoutAfterItsFirstResponse() throws Exception {
+    channelOutlivesTheTaskTimeout(RpcKind.BIDIRECTIONAL_STREAM, "read 1");
+  }
+
+  private void channelOutlivesTheTaskTimeout(RpcKind kind, String expected) throws Exception {
+    serverConfig.setTaskExpirationTimeout(Duration.valueOf("100ms"));
+    FrameLog frames = new FrameLog();
+    RpcClient client = channelClient(startChannelServer(countingSink(false)), frames);
+    Sinks.Many<ClientRequestPayload<Object>> sink = Sinks.many().unicast().onBackpressureBuffer();
+
+    sink.tryEmitNext(channelRequest(kind, pingArgsWriter("hello")));
+    CompletableFuture<List<ClientResponsePayload<Object>>> call =
+        client
+            .<Object, Object>streamingRequestStreamingResponse(sink.asFlux(), RpcOptions.EMPTY)
+            .collectList()
+            .toFuture();
+
+    frames.await("REQUEST_N");
+    // Idle for longer than the task timeout, which ends at the first response.
+    Thread.sleep(300);
+    sink.tryEmitNext(channelRequest(kind, sinkPayloadWriter("a")));
+    sink.tryEmitComplete();
+
+    Assertions.assertEquals(expected, finalResponse(call.get(10, TimeUnit.SECONDS).get(1)));
+    Assertions.assertFalse(frames.fromServer.contains("ERROR"));
+  }
+
+  @Test
+  public void peerErrorDuringASinkGetsNoServerFrameAndFailsTheReader() throws Exception {
+    FrameLog frames = new FrameLog();
+    Recorded<Object> read = new Recorded<>();
+    RpcClient client = channelClient(startChannelServer(recordingReader(read)), frames);
+
+    Disposable call =
+        client.streamingRequestStreamingResponse(openSink(), RpcOptions.EMPTY).subscribe();
+
+    frames.await("REQUEST_N");
+    frames.send(
+        ErrorFrameCodec.encode(frames.alloc(), 1, new IllegalStateException("sink failed")));
+
+    read.awaitSize(1);
+    call.dispose();
+    Assertions.assertTrue(read.get(0) instanceof Throwable, "read " + read);
+    Assertions.assertEquals(Arrays.asList("NEXT", "REQUEST_N"), frames.fromServer);
+  }
+
+  @Test
+  public void clientCancelDuringASinkGetsNoServerFrameAndFailsTheReader() throws Exception {
+    FrameLog frames = new FrameLog();
+    Recorded<Object> read = new Recorded<>();
+    RpcClient client = channelClient(startChannelServer(recordingReader(read)), frames);
+
+    Disposable call =
+        client.streamingRequestStreamingResponse(openSink(), RpcOptions.EMPTY).subscribe();
+
+    frames.await("REQUEST_N");
+    call.dispose();
+
+    read.awaitSize(1);
+    Assertions.assertTrue(read.get(0) instanceof CancellationException, "read " + read);
+    Assertions.assertEquals(Arrays.asList("NEXT", "REQUEST_N"), frames.fromServer);
+  }
+
+  @Test
+  public void bidiServerErrorAfterTheFirstResponseEndsTheCallAndFailsTheReader() throws Exception {
+    FrameLog frames = new FrameLog();
+    Recorded<Object> read = new Recorded<>();
+    RpcServerHandler unwritable =
+        channelHandler(
+            (initial, sinkElements) -> {
+              sinkElements.subscribe(read::add, read::add);
+
+              return Flux.just(firstResponse(), response(initial, "unwritable"));
+            });
+
+    RpcClient client = channelClient(startChannelServer(unwritable), frames);
+
+    client
+        .streamingRequestStreamingResponse(openBidi(), RpcOptions.EMPTY)
+        .onErrorResume(e -> Flux.empty())
+        .collectList()
+        .toFuture()
+        .get(5, TimeUnit.SECONDS);
+
+    frames.await("CANCEL");
+    read.awaitSize(1);
+    Assertions.assertTrue(read.get(0) instanceof Throwable, "read " + read);
+    Assertions.assertEquals(
+        Arrays.asList("NEXT", "REQUEST_N", "ERROR", "CANCEL"), frames.fromServer);
+  }
+
+  @Test
+  public void bidiReaderCancelAfterTheFirstResponseEndsOnlyTheSink() throws Exception {
+    FrameLog frames = new FrameLog();
+    Sinks.Empty<Void> sinkCancelled = Sinks.empty();
+    RpcServerHandler takesOne =
+        channelHandler(
+            (initial, sinkElements) ->
+                Flux.concat(
+                    Flux.just(firstResponse()),
+                    sinkElements
+                        .doOnCancel(sinkCancelled::tryEmitEmpty)
+                        .take(1)
+                        .map(element -> response(initial, element.getRequest())),
+                    sinkCancelled.asMono().then(Mono.just(response(initial, "after")))));
+
+    RpcClient client = channelClient(startChannelServer(takesOne), frames);
+
+    StepVerifier.create(
+            client.streamingRequestStreamingResponse(
+                Flux.concat(
+                    Flux.just(
+                        channelRequest(RpcKind.BIDIRECTIONAL_STREAM, pingArgsWriter("hello")),
+                        channelRequest(RpcKind.BIDIRECTIONAL_STREAM, sinkPayloadWriter("a"))),
+                    Flux.never()),
+                RpcOptions.EMPTY))
+        .expectNextCount(1)
+        .assertNext(element -> Assertions.assertEquals("a", finalResponse(element)))
+        .assertNext(element -> Assertions.assertEquals("after", finalResponse(element)))
+        .verifyComplete();
+
+    Assertions.assertEquals(
+        Arrays.asList("NEXT", "REQUEST_N", "NEXT", "CANCEL", "NEXT", "COMPLETE"),
+        frames.fromServer);
+  }
+
+  @Test
+  public void bidiSinkStaysOpenAfterTheStreamCompletes() throws Exception {
+    FrameLog frames = new FrameLog();
+    Sinks.Empty<Void> streamEnd = Sinks.empty();
+    Recorded<Object> read = new Recorded<>();
+
+    RpcServerHandler readsAfterItsStream =
+        channelHandler(
+            (initial, sinkElements) -> {
+              sinkElements.subscribe(read::add, read::add, () -> read.add("complete"));
+
+              return Flux.just(firstResponse(), response(initial, "a"))
+                  .concatWith(streamEnd.asMono().then(Mono.empty()));
+            });
+
+    RpcClient client = channelClient(startChannelServer(readsAfterItsStream), frames);
+    frames.holdSink();
+
+    CompletableFuture<List<ClientResponsePayload<Object>>> call =
+        client
+            .<Object, Object>streamingRequestStreamingResponse(
+                Flux.concat(
+                    Flux.just(
+                        channelRequest(RpcKind.BIDIRECTIONAL_STREAM, pingArgsWriter("hello"))),
+                    Flux.range(0, 5)
+                        .map(
+                            i ->
+                                channelRequest(
+                                    RpcKind.BIDIRECTIONAL_STREAM, sinkPayloadWriter("s" + i)))),
+                RpcOptions.EMPTY)
+            .collectList()
+            .toFuture();
+
+    // The server sees the five sink payloads and the sink COMPLETE only after its stream ends.
+    try {
+      frames.awaitHeldSinkFrames(6);
+      streamEnd.tryEmitEmpty();
+      frames.await("COMPLETE");
+    } finally {
+      frames.releaseSink();
+    }
+
+    read.awaitSize(6);
+    Assertions.assertEquals("complete", read.get(5));
+    Assertions.assertEquals(2, call.get(5, TimeUnit.SECONDS).size());
+    Assertions.assertEquals(
+        Arrays.asList("NEXT", "REQUEST_N", "NEXT", "COMPLETE"), frames.fromServer);
+  }
+
+  @Test
+  public void bidiSinkThatNoHandlerReadsEndsWhenTheStreamCompletes() throws Exception {
+    FrameLog frames = new FrameLog();
+    RpcServerHandler ignoresItsSink =
+        channelHandler(
+            (initial, sinkElements) -> Flux.just(firstResponse(), response(initial, "a")));
+
+    RpcClient client = channelClient(startChannelServer(ignoresItsSink), frames);
+
+    StepVerifier.create(client.streamingRequestStreamingResponse(openBidi(), RpcOptions.EMPTY))
+        .expectNextCount(2)
+        .verifyComplete();
+
+    frames.await("CANCEL");
+    Assertions.assertEquals(Arrays.asList("NEXT", "NEXT", "COMPLETE", "CANCEL"), frames.fromServer);
+  }
+
+  @Test
+  public void connectionCloseBeforeTheFirstResponseFailsTheReader() throws Exception {
+    Recorded<Object> read = new Recorded<>();
+    RpcServerHandler neverAnswers =
+        channelHandler(
+            (initial, sinkElements) -> {
+              sinkElements.subscribe(read::add, read::add);
+
+              return Flux.never();
+            });
+
+    connectionCloseFailsTheReader(neverAnswers, read, null);
+  }
+
+  @Test
+  public void connectionCloseDuringASinkFailsTheReader() throws Exception {
+    Recorded<Object> read = new Recorded<>();
+
+    connectionCloseFailsTheReader(recordingReader(read), read, "REQUEST_N");
+  }
+
+  @Test
+  public void connectionCloseAfterTheStreamCompletedFailsAnOpenReader() throws Exception {
+    Recorded<Object> read = new Recorded<>();
+    RpcServerHandler completesItsStream =
+        channelHandler(
+            (initial, sinkElements) -> {
+              sinkElements.subscribe(read::add, read::add);
+
+              return Flux.just(firstResponse());
+            });
+
+    connectionCloseFailsTheReader(completesItsStream, read, "COMPLETE");
+  }
+
+  private void connectionCloseFailsTheReader(
+      RpcServerHandler handler, Recorded<Object> read, String lastFrame) throws Exception {
+    FrameLog frames = new FrameLog();
+    RpcClient client = channelClient(startChannelServer(handler), frames);
+
+    client.streamingRequestStreamingResponse(openBidi(), RpcOptions.EMPTY).subscribe(null, e -> {});
+
+    if (lastFrame != null) {
+      frames.await(lastFrame);
+    }
+    client.dispose();
+
+    read.awaitSize(1);
+    Assertions.assertTrue(read.get(0) instanceof Throwable, "read " + read);
+  }
+
+  private SocketAddress startChannelServer(RpcServerHandler handler) {
+    startServer(handler);
+    return serverAddress;
+  }
+
+  private RpcClient channelClient(SocketAddress address, FrameLog frames) {
+    channelClient =
+        new RSocketRpcClientFactory(
+                clientConfig(),
+                RpcClientUtils.createRSocketConnector()
+                    .interceptors(registry -> registry.forConnection(frames)))
+            .createRpcClient(address)
+            .block();
+
+    return channelClient;
+  }
+
+  /** A hand-written channel handler, as an application can write one against RpcServerHandler. */
+  private static RpcServerHandler channelHandler(
+      BiFunction<ServerRequestPayload, Flux<PingRequest>, Flux<ServerResponsePayload>> serve) {
+    return new RpcServerHandler() {
+      @Override
+      public Flux<ServerResponsePayload> streamingRequestStreamingResponse(
+          ServerRequestPayload initial, Publisher<ServerRequestPayload> sinkPayloads) {
+        Flux<PingRequest> sinkElements =
+            Flux.from(sinkPayloads)
+                .map(payload -> (PingRequest) payload.getData(sinkReaders()).get(0));
+
+        return serve.apply(initial, sinkElements);
+      }
+    };
+  }
+
+  /** A channel that answers with the number of sink elements it read, on or off the loop. */
+  private static RpcServerHandler countingSink(boolean offLoop) {
+    RpcServerHandler counting =
+        channelHandler(
+            (initial, sinkElements) ->
+                Flux.concat(
+                    Flux.just(firstResponse()),
+                    sinkElements.count().map(n -> response(initial, "read " + n))));
+
+    return new RpcServerHandler() {
+      @Override
+      public Flux<ServerResponsePayload> streamingRequestStreamingResponse(
+          ServerRequestPayload initial, Publisher<ServerRequestPayload> sinkPayloads) {
+        Flux<ServerResponsePayload> responses =
+            counting.streamingRequestStreamingResponse(initial, sinkPayloads);
+
+        return offLoop ? responses.subscribeOn(RpcResources.getOffLoopScheduler()) : responses;
+      }
+    };
+  }
+
+  /** A channel whose handler records what its sink reader sees and keeps its stream open. */
+  private static RpcServerHandler recordingReader(Recorded<Object> read) {
+    return channelHandler(
+        (initial, sinkElements) -> {
+          sinkElements.subscribe(read::add, read::add, () -> read.add("complete"));
+
+          return Flux.concat(Flux.just(firstResponse()), Flux.never());
+        });
+  }
+
+  private static ServerResponsePayload firstResponse() {
+    return ServerResponsePayload.create(
+        Writers.emptyStruct(), RpcPayloadUtil.streamFirstResponseMetadata(), null, true);
+  }
+
+  private static ServerResponsePayload response(ServerRequestPayload request, String text) {
+    return ServerResponsePayload.create(
+        pingResponseWriter(pingResponse(text)),
+        null,
+        RpcPayloadUtil.streamPayloadMetadata(request),
+        true);
+  }
+
+  /** A sink setup whose sink stays open, so only frames the test sends end it. */
+  private static Flux<ClientRequestPayload<Object>> openSink() {
+    return Flux.concat(
+        Flux.just(channelRequest(RpcKind.SINK, pingArgsWriter("hello"))), Flux.never());
+  }
+
+  /** A bidi setup whose sink stays open, so only frames the test sends end it. */
+  private static Flux<ClientRequestPayload<Object>> openBidi() {
+    return Flux.concat(
+        Flux.just(channelRequest(RpcKind.BIDIRECTIONAL_STREAM, pingArgsWriter("hello"))),
+        Flux.never());
+  }
+
+  private static List<FieldReader<?>> sinkReaders() {
+    return Arrays.asList(
+        new FieldReader<>((short) 0, TType.STRUCT, PingRequest::read0, () -> null),
+        new FieldReader<>((short) 1, TType.STRUCT, CustomException::read0, () -> null));
+  }
+
+  /** Writes a PingResponse; the response "unwritable" fails, like an element that cannot encode. */
+  private static Writer pingResponseWriter(PingResponse response) {
+    return out -> {
+      if ("unwritable".equals(response.getResponse())) {
+        throw new IllegalStateException("unwritable");
+      }
+
+      out.writeStructBegin(new TStruct("result"));
+      out.writeFieldBegin(new TField("success", TType.STRUCT, (short) 0));
+      response.write0(out);
+      out.writeFieldEnd();
+      out.writeFieldStop();
+      out.writeStructEnd();
+    };
+  }
+
+  private static ClientRequestPayload<Object> channelRequest(RpcKind kind, Writer writer) {
+    return ClientRequestPayload.create(
+        "PingService",
+        writer,
+        PingResponse::read0,
+        PingResponse::read0,
+        Collections.emptyMap(),
+        Collections.emptyMap(),
+        new RequestRpcMetadata.Builder()
+            .setName("channel")
+            .setKind(kind)
+            .setProtocol(TProtocolType.TCompact.getProtocolId())
+            .setOtherMetadata(Collections.emptyMap())
+            .build(),
+        Collections.emptyMap());
+  }
+
+  private static Writer pingArgsWriter(String request) {
+    return out -> {
+      out.writeFieldBegin(new TField("key", TType.STRUCT, (short) 1));
+      new PingRequest.Builder().setRequest(request).build().write0(out);
+      out.writeFieldEnd();
+    };
+  }
+
+  private static Writer sinkPayloadWriter(String request) {
+    return out -> {
+      out.writeFieldBegin(new TField("element", TType.STRUCT, (short) 0));
+      new PingRequest.Builder().setRequest(request).build().write0(out);
+      out.writeFieldEnd();
+    };
+  }
+
+  private static PingResponse pingResponse(String response) {
+    return new PingResponse.Builder().setResponse(response).build();
+  }
+
+  private static String finalResponse(ClientResponsePayload<Object> payload) {
+    return ((PingResponse) ((StreamResponse<?, ?>) payload.getData()).getData()).getResponse();
+  }
+
+  /** A list that a test can wait on, because a handler records into it on another thread. */
+  private static final class Recorded<T> extends CopyOnWriteArrayList<T> {
+    private final Semaphore added = new Semaphore(0);
+
+    @Override
+    public boolean add(T element) {
+      super.add(element);
+      added.release();
+      return true;
+    }
+
+    void awaitSize(int size) throws InterruptedException {
+      Assertions.assertTrue(added.tryAcquire(size, 5, TimeUnit.SECONDS), "recorded " + this);
+      added.release(size);
+    }
+  }
+
+  /**
+   * Records the type of each stream frame the client receives, in arrival order, and sends raw
+   * frames as a peer whose halves end on their own. It can hold the sink frames of the client and
+   * send them later, as a peer that sends on its sink after the server's stream ends.
+   */
+  private static final class FrameLog implements DuplexConnectionInterceptor {
+    final List<String> fromServer = new CopyOnWriteArrayList<>();
+    final List<Long> credits = new CopyOnWriteArrayList<>();
+    final AtomicInteger sinkPayloadsSent = new AtomicInteger();
+    private final BlockingQueue<String> arrivals = new LinkedBlockingQueue<>();
+    private final Queue<ByteBuf> heldSinkFrames = new ConcurrentLinkedQueue<>();
+    private final Semaphore heldSinkFrameCount = new Semaphore(0);
+    private final Semaphore sinkPayloadCount = new Semaphore(0);
+    private volatile boolean holdSink;
+    private volatile DuplexConnection source;
+
+    ByteBufAllocator alloc() {
+      return source.alloc();
+    }
+
+    void send(ByteBuf frame) {
+      source.sendFrame(FrameHeaderCodec.streamId(frame), frame);
+    }
+
+    void holdSink() {
+      holdSink = true;
+    }
+
+    void awaitSinkPayloadsSent(int count) throws InterruptedException {
+      Assertions.assertTrue(sinkPayloadCount.tryAcquire(count, 5, TimeUnit.SECONDS));
+    }
+
+    void awaitHeldSinkFrames(int count) throws InterruptedException {
+      Assertions.assertTrue(heldSinkFrameCount.tryAcquire(count, 5, TimeUnit.SECONDS));
+    }
+
+    void releaseSink() {
+      holdSink = false;
+      for (ByteBuf frame = heldSinkFrames.poll(); frame != null; frame = heldSinkFrames.poll()) {
+        send(frame);
+      }
+    }
+
+    void await(String type) throws InterruptedException {
+      String arrival;
+      do {
+        arrival = arrivals.poll(5, TimeUnit.SECONDS);
+      } while (arrival != null && !arrival.equals(type));
+
+      Assertions.assertEquals(type, arrival);
+    }
+
+    @Override
+    public DuplexConnection apply(Type type, DuplexConnection connection) {
+      if (type != Type.SOURCE) {
+        return connection;
+      }
+
+      source = connection;
+      return new DuplexConnection() {
+        @Override
+        public void sendFrame(int streamId, ByteBuf frame) {
+          FrameType sent = FrameHeaderCodec.frameType(frame);
+          if (streamId != 0 && sent == FrameType.NEXT) {
+            sinkPayloadsSent.incrementAndGet();
+            sinkPayloadCount.release();
+          }
+
+          if (holdSink && (sent == FrameType.NEXT || sent == FrameType.COMPLETE)) {
+            heldSinkFrames.add(frame);
+            heldSinkFrameCount.release();
+            return;
+          }
+          connection.sendFrame(streamId, frame);
+        }
+
+        @Override
+        public Flux<ByteBuf> receive() {
+          return connection
+              .receive()
+              .doOnNext(
+                  frame -> {
+                    if (FrameHeaderCodec.streamId(frame) != 0) {
+                      FrameType arrival = FrameHeaderCodec.frameType(frame);
+                      if (arrival == FrameType.REQUEST_N) {
+                        credits.add(RequestNFrameCodec.requestN(frame));
+                      }
+                      fromServer.add(arrival.name());
+                      arrivals.add(arrival.name());
+                    }
+                  });
+        }
+
+        @Override
+        public void sendErrorAndClose(RSocketErrorException errorException) {
+          connection.sendErrorAndClose(errorException);
+        }
+
+        @Override
+        public ByteBufAllocator alloc() {
+          return connection.alloc();
+        }
+
+        @Override
+        public SocketAddress remoteAddress() {
+          return connection.remoteAddress();
+        }
+
+        @Override
+        public void dispose() {
+          connection.dispose();
+        }
+
+        @Override
+        public Mono<Void> onClose() {
+          return connection.onClose();
+        }
+
+        @Override
+        public boolean isDisposed() {
+          return connection.isDisposed();
+        }
+      };
+    }
   }
 
   private static class RecordingStreamHandler implements StreamEventHandler {

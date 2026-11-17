@@ -40,7 +40,7 @@ public interface RpcServerHandler {
   // TODO: since D29640861, the corresponding RpcKind is Sink
   default Flux<ServerResponsePayload> streamingRequestStreamingResponse(
       ServerRequestPayload initial, Publisher<ServerRequestPayload> payloads) {
-    return Flux.error(new UnsupportedOperationException());
+    return Flux.error(new UnknownMethodException(initial.getRequestRpcMetadata().getName()));
   }
 
   /**

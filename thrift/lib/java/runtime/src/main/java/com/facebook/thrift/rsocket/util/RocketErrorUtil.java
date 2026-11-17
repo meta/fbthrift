@@ -57,6 +57,8 @@ import org.apache.thrift.ResponseRpcError;
 import org.apache.thrift.ResponseRpcErrorCategory;
 import org.apache.thrift.ResponseRpcErrorCode;
 import org.apache.thrift.ResponseRpcMetadata;
+import org.apache.thrift.StreamRpcError;
+import org.apache.thrift.StreamRpcErrorCode;
 import org.apache.thrift.TApplicationException;
 
 /**
@@ -196,6 +198,22 @@ public final class RocketErrorUtil {
     return serverError(
         ResponseRpcErrorCode.TASK_EXPIRED,
         String.format("Task expired for %s after %dms", methodName, timeoutMillis));
+  }
+
+  /**
+   * Returns the error a server sends after the first response of a stream, sink or bidi call, like
+   * a response that does not serialize. A peer reads a {@link StreamRpcError} there, in a frame
+   * with the {@code CANCELED} code.
+   */
+  public static RSocketErrorException streamError(StreamRpcErrorCode code, String message) {
+    StreamRpcError error =
+        new StreamRpcError.Builder()
+            .setNameUtf8(code.name())
+            .setWhatUtf8(message == null ? "" : toSafeMessage(message))
+            .setCode(code)
+            .build();
+
+    return new CanceledException(encode(error));
   }
 
   /**
@@ -362,6 +380,16 @@ public final class RocketErrorUtil {
   }
 
   private static String encode(ResponseRpcError error) {
+    ByteBuf buffer = RpcResources.getByteBufAllocator().buffer();
+    try {
+      ProtocolUtil.writeCompact(error::write0, buffer);
+      return buffer.toString(StandardCharsets.UTF_8);
+    } finally {
+      ReferenceCountUtil.safeRelease(buffer);
+    }
+  }
+
+  private static String encode(StreamRpcError error) {
     ByteBuf buffer = RpcResources.getByteBufAllocator().buffer();
     try {
       ProtocolUtil.writeCompact(error::write0, buffer);
