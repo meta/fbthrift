@@ -408,7 +408,7 @@ class OwnedStaticAllocator {
   }
   static inline std::size_t heapAllocations{0};
   static inline std::size_t destructions{0};
-  static inline OwnedStaticAllocator* lastConstructed{nullptr};
+  [[maybe_unused]] static inline OwnedStaticAllocator* lastConstructed{nullptr};
 };
 
 class DestructionCountingHandler {
