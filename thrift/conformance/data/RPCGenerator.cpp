@@ -1774,6 +1774,47 @@ Test createSinkChunkTimeoutTest() {
   return ret;
 }
 
+Test createSinkChunkDoesNotTimeoutTest() {
+  Test ret;
+  ret.name() = "SinkChunkDoesNotTimeoutTest";
+  ret.tags()->emplace("spec/protocol/interface/#sink-chunk-timeout");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = "SinkChunkDoesNotTimeout/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  auto& clientInstruction =
+      rpcTest.clientInstruction().emplace().sinkChunkTimeout().emplace();
+  clientInstruction.request().emplace().data() = "hello";
+  for (int i = 0; i < 100; i++) {
+    auto& sinkPayload = clientInstruction.sinkPayloads()->emplace_back();
+    sinkPayload.data() = folly::to<std::string>(i);
+  }
+  // Client will go quiet for 2000ms
+  clientInstruction.chunkTimeoutMs() = 2000;
+
+  rpcTest.clientTestResult()
+      .emplace()
+      .sinkChunkTimeout()
+      .emplace()
+      .chunkTimeoutException() = false;
+
+  auto& serverInstruction =
+      rpcTest.serverInstruction().emplace().sinkChunkTimeout().emplace();
+  serverInstruction.finalResponse().emplace().data() = "world";
+  // The server is longer than the default (1000) and longer than the client's
+  // silent time, so we should not see any timeout errors
+  serverInstruction.chunkTimeoutMs() = 3000;
+
+  auto& serverResult =
+      rpcTest.serverTestResult().emplace().sinkChunkTimeout().emplace();
+  serverResult.request().emplace().data() = "hello";
+  serverResult.sinkPayloads().copy_from(clientInstruction.sinkPayloads());
+  serverResult.chunkTimeoutException() = false;
+
+  return ret;
+}
+
 Test createSinkInitialResponseTest() {
   Test ret;
   ret.name() = "SinkInitialResponseTest";
@@ -3297,6 +3338,7 @@ TestSuite createRPCServerTestSuite() {
   addCommonRPCTests(suite);
   // =================== Sink ===================
   suite.tests()->push_back(createSinkChunkTimeoutTest());
+  suite.tests()->push_back(createSinkChunkDoesNotTimeoutTest());
   return suite;
 }
 
