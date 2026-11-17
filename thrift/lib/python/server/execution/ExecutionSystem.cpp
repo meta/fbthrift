@@ -17,6 +17,7 @@
 #include <thrift/lib/python/server/execution/ExecutionSystem.h>
 
 #include <folly/executors/InlineExecutor.h>
+#include <folly/io/async/Request.h>
 
 namespace apache::thrift::python::execution {
 
@@ -83,10 +84,16 @@ void ExecutionSystem::executeOnWorker(
       [method = std::move(method),
        requestDispatch = std::move(requestDispatch),
        launchWorkerRequest = launchWorkerRequest_,
+       requestContext = folly::RequestContext::saveContext(),
        this](
           const WorkerHandle& worker,
           const folly::Executor::KeepAlive<>& workerExecutor,
           std::shared_ptr<WorkerCapacityLease> lease) mutable {
+        // Runs the request under the RequestContext that was current at
+        // hand-off, as a future continuation does on control, and gives the
+        // worker thread its previous context back when the request leaves.
+        folly::RequestContextScopeGuard requestContextGuard{
+            std::move(requestContext)};
         auto* const selectedFunction = getWorkerHandlerFunction(worker, method);
         LaunchRequest launchRequest(
             [lease = std::move(lease),

@@ -31,6 +31,7 @@
 #include <folly/Try.h>
 #include <folly/executors/ManualExecutor.h>
 #include <folly/futures/Future.h>
+#include <folly/io/async/Request.h>
 #include <folly/portability/GTest.h>
 #include <thrift/lib/python/server/execution/WorkScheduler.h>
 
@@ -506,6 +507,67 @@ TEST(
 
   // THEN
   EXPECT_EQ(expected, followUpExecutors);
+}
+
+TEST(ExecutionSystemTest, EachRequestDispatchesUnderItsOwnRequestContext) {
+  // GIVEN
+  folly::ManualExecutor controlExecutor;
+  folly::ManualExecutor workerExecutor;
+  const std::string workerCapableMethod{"worker_capable_method"};
+  const std::string controlMethod{"control_method"};
+  auto* const handlerFunction = reinterpret_cast<PyObject*>(41);
+  auto workScheduler = std::make_shared<WorkScheduler>();
+  const auto worker = workScheduler->registerWorker(
+      folly::Executor::getKeepAliveToken(workerExecutor));
+  auto executionSystem = makeWorkerCapableExecutionSystem(
+      &controlExecutor,
+      [](PyObject*) { return 0; },
+      {{workerCapableMethod, handlerFunction},
+       {controlMethod, handlerFunction}},
+      workScheduler,
+      [](PyObject*, std::shared_ptr<WorkerCapacityLease>) { return 0; },
+      {workerCapableMethod});
+  executionSystem->bindWorkerMethods(
+      worker,
+      {{workerCapableMethod, handlerFunction},
+       {controlMethod, handlerFunction}});
+  workScheduler->makeWorkerCapacityAvailable(worker);
+  const std::map<std::string, std::shared_ptr<folly::RequestContext>>
+      requestContexts{
+          {workerCapableMethod, std::make_shared<folly::RequestContext>()},
+          {controlMethod, std::make_shared<folly::RequestContext>()},
+      };
+  // Executor threads hold whatever context their previous work left behind.
+  const auto leftoverContext = std::make_shared<folly::RequestContext>();
+  std::map<std::string, folly::RequestContext*> dispatchContexts;
+  const auto recordDispatchContext = [&dispatchContexts](std::string method) {
+    return RequestDispatch(
+        folly::Executor::KeepAlive<>{},
+        [&dispatchContexts, method = std::move(method)](
+            PyObject*, const folly::Executor::KeepAlive<>&, LaunchRequest) {
+          dispatchContexts[method] = folly::RequestContext::get();
+          return folly::makeSemiFuture();
+        });
+  };
+  const std::map<std::string, folly::RequestContext*> expected{
+      {workerCapableMethod, requestContexts.at(workerCapableMethod).get()},
+      {controlMethod, requestContexts.at(controlMethod).get()},
+  };
+
+  // WHEN
+  for (const auto& [method, requestContext] : requestContexts) {
+    folly::RequestContextScopeGuard requestContextGuard{requestContext};
+    executionSystem->execute(method, recordDispatchContext(method));
+  }
+  {
+    folly::RequestContextScopeGuard leftoverContextGuard{leftoverContext};
+    controlExecutor.drain();
+    workerExecutor.drain();
+  }
+  workScheduler->close();
+
+  // THEN
+  EXPECT_EQ(expected, dispatchContexts);
 }
 
 } // namespace
