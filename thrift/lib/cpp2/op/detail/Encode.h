@@ -1208,25 +1208,25 @@ struct ListDecodeImpl {
       // resize is more performant than reserve.
       if constexpr (should_resize_without_initialization) {
         folly::resizeWithoutInitialization(list, s);
-        if constexpr (should_process_as_arithmetic_vector_v<
-                          Protocol,
-                          std::integral_constant<TType, ElemType>,
-                          ListType>) {
-          prot.template readArithmeticVector<value_type>(
-              list.data(), list.size());
-        } else {
-          auto outIt = list.begin();
-          const auto outEnd = list.end();
-          try {
+        auto outIt = list.begin();
+        const auto outEnd = list.end();
+        try {
+          if constexpr (should_process_as_arithmetic_vector_v<
+                            Protocol,
+                            std::integral_constant<TType, ElemType>,
+                            ListType>) {
+            prot.template readArithmeticVector<value_type>(
+                list.data(), list.size());
+          } else {
             for (; outIt != outEnd; ++outIt) {
               elementRead(*outIt);
             }
-          } catch (...) {
-            // For behaviour parity, initialize the leftover elements when
-            // exceptions happen
-            std::fill(outIt, outEnd, typename ListType::value_type());
-            throw;
           }
+        } catch (...) {
+          // For behaviour parity, initialize the leftover elements when
+          // exceptions happen
+          std::fill(outIt, outEnd, typename ListType::value_type());
+          throw;
         }
       } else if constexpr (should_resize) {
         list.resize(s);

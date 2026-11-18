@@ -418,9 +418,11 @@ inline constexpr bool should_process_as_arithmetic_vector_v =
         typename ContainerType::value_type,
         ElemTType> &&
     folly::is_contiguous_range_v<ContainerType> &&
-    requires(typename ContainerType::value_type* value, size_t len) {
-      Protocol::writeArithmeticVector(value, len);
-    };
+    (requires(Protocol& prot, ContainerType& list) {
+      prot.writeArithmeticVector(list.data(), list.size());
+    } || requires(Protocol& prot, ContainerType& list) {
+      prot.readArithmeticVector(list.data(), list.size());
+    });
 
 /*
  * Common helper that iterates over a set-like container in the order required

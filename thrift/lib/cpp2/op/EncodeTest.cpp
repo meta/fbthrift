@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -23,11 +24,13 @@
 #include <memory>
 #include <memory_resource>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <type_traits>
 #include <vector>
 #include <gtest/gtest.h>
+#include <folly/container/range_traits.h>
 #include <folly/sorted_vector_types.h>
 #include <thrift/conformance/cpp2/internal/AnyStructSerializer.h>
 #include <thrift/lib/cpp/util/EnumUtils.h>
@@ -232,6 +235,127 @@ TEST(EncodeTest, StandardWritersHaveFixedSerializedSizeForNumbers) {
   expectFixedSerializedSizeForNumbers<CompactV1ProtocolWriter>();
   expectFixedSerializedSizeForNumbers<JSONProtocolWriter>();
   expectFixedSerializedSizeForNumbers<SimpleJSONProtocolWriter>();
+}
+
+struct ArithmeticVectorWriter {
+  static constexpr bool kSupportsArithmeticVectors() { return true; }
+  std::size_t writeListBegin(TType, uint32_t) { return 0; }
+  std::size_t writeListEnd() { return 0; }
+  std::size_t writeI32(int32_t) {
+    ++elementWrites;
+    return 4;
+  }
+  template <typename T>
+    requires std::is_same_v<T, int32_t>
+  std::size_t writeArithmeticVector(const T*, std::size_t n) {
+    bulkWrites += n;
+    return n * sizeof(T);
+  }
+
+  std::size_t elementWrites = 0;
+  std::size_t bulkWrites = 0;
+};
+
+TEST(EncodeTest, ListOfNumbersUsesArithmeticVector) {
+  ArithmeticVectorWriter writer;
+  op::encode<type::list<type::i32_t>>(writer, std::vector<int32_t>{1, 2, 3});
+  EXPECT_EQ(writer.bulkWrites, 3u);
+  EXPECT_EQ(writer.elementWrites, 0u);
+}
+
+TEST(EncodeTest, ListOfUnsupportedElementTypeWritesEachElement) {
+  ArithmeticVectorWriter writer;
+  op::encode<type::list<type::i32_t>>(writer, std::vector<uint32_t>{1, 2, 3});
+  EXPECT_EQ(writer.bulkWrites, 0u);
+  EXPECT_EQ(writer.elementWrites, 3u);
+}
+
+// Contiguous, but `data()` returns the vector, like admarket's
+// `RandomAccessList`.
+struct VectorBackedList {
+  using value_type = int32_t;
+  std::vector<int32_t> values;
+  const std::vector<int32_t>& data() const { return values; }
+  auto begin() const { return values.begin(); }
+  auto end() const { return values.end(); }
+  std::size_t size() const { return values.size(); }
+};
+
+TEST(EncodeTest, ListWhoseDataIsNotAPointerWritesEachElement) {
+  static_assert(folly::is_contiguous_range_v<VectorBackedList>);
+  ArithmeticVectorWriter writer;
+  op::encode<type::list<type::i32_t>>(writer, VectorBackedList{{1, 2, 3}});
+  EXPECT_EQ(writer.bulkWrites, 0u);
+  EXPECT_EQ(writer.elementWrites, 3u);
+}
+
+struct ArithmeticVectorReader {
+  struct Cursor {
+    bool canAdvance(std::size_t) const { return true; }
+  };
+
+  static constexpr bool kSupportsArithmeticVectors() { return true; }
+  static constexpr bool kOmitsContainerSizes() { return false; }
+  bool peekList() { return false; }
+  Cursor getCursor() const { return {}; }
+  void readListBegin(TType& type, uint32_t& size) {
+    type = TType::T_I32;
+    size = 3;
+  }
+  void readListEnd() {}
+  void readI32(int32_t& value) {
+    value = 7;
+    ++elementReads;
+  }
+  // ListDecodeImpl also instantiates its skip path, for a mismatched wire
+  // type; this reader always reports T_I32, so these never run.
+  static constexpr std::size_t fixedSizeInContainer(TType) { return 4; }
+  void skipBytes(std::size_t) {}
+  void skip(TType, int = 0) {}
+  template <typename T>
+    requires std::is_same_v<T, int32_t>
+  void readArithmeticVector(T* values, std::size_t n) {
+    std::fill_n(values, n, 7);
+    bulkReads += n;
+  }
+
+  std::size_t elementReads = 0;
+  std::size_t bulkReads = 0;
+};
+
+TEST(DecodeTest, ListOfNumbersUsesArithmeticVector) {
+  ArithmeticVectorReader reader;
+  std::vector<int32_t> list;
+  op::decode<type::list<type::i32_t>>(reader, list);
+  EXPECT_EQ(list, (std::vector<int32_t>{7, 7, 7}));
+  EXPECT_EQ(reader.bulkReads, 3u);
+  EXPECT_EQ(reader.elementReads, 0u);
+}
+
+// Throws before reading any element.
+struct ThrowingArithmeticVectorReader : ArithmeticVectorReader {
+  template <typename T>
+    requires std::is_same_v<T, int32_t>
+  [[noreturn]] void readArithmeticVector(T*, std::size_t) {
+    throw std::runtime_error("truncated");
+  }
+};
+
+TEST(DecodeTest, FailedBulkReadLeavesNoStaleElements) {
+  ThrowingArithmeticVectorReader reader;
+  std::vector<int32_t> list{42, 42, 42};
+  EXPECT_THROW(
+      op::decode<type::list<type::i32_t>>(reader, list), std::runtime_error);
+  EXPECT_EQ(list, (std::vector<int32_t>{0, 0, 0}));
+}
+
+TEST(DecodeTest, ListOfUnsupportedElementTypeReadsEachElement) {
+  ArithmeticVectorReader reader;
+  std::vector<uint32_t> list;
+  op::decode<type::list<type::i32_t>>(reader, list);
+  EXPECT_EQ(list, (std::vector<uint32_t>{7, 7, 7}));
+  EXPECT_EQ(reader.bulkReads, 0u);
+  EXPECT_EQ(reader.elementReads, 3u);
 }
 
 TEST(EncodeTest, SetWideByteCounts) {
