@@ -17,6 +17,7 @@
 package thrift
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/tls"
@@ -1562,6 +1563,113 @@ func TestPreprocessRequestFrameworkMetadataHeader(t *testing.T) {
 			// The header is consumed, not surfaced to the handler.
 			require.NotContains(t, reqCtx.GetReadHeaders(), frameworkMetadataHeaderKey)
 			require.NotContains(t, metadata.GetOtherMetadata(), frameworkMetadataHeaderKey)
+		})
+	}
+}
+
+func zstdCompressionConfig(sizeLimit *int64) *rpcmetadata.CompressionConfig {
+	return rpcmetadata.NewCompressionConfig().
+		SetCodecConfig(rpcmetadata.NewCodecConfig().SetZstdConfig(rpcmetadata.NewZstdCompressionCodecConfig())).
+		SetCompressionSizeLimit(sizeLimit)
+}
+
+func customCompressionConfig(sizeLimit *int64) *rpcmetadata.CompressionConfig {
+	return rpcmetadata.NewCompressionConfig().
+		SetCodecConfig(rpcmetadata.NewCodecConfig().SetCustomConfig(rpcmetadata.NewCustomCompressionCodecConfig())).
+		SetCompressionSizeLimit(sizeLimit)
+}
+
+func TestResponseCompression(t *testing.T) {
+	tests := []struct {
+		name        string
+		config      *rpcmetadata.CompressionConfig
+		payloadSize int
+		want        rpcmetadata.CompressionAlgorithm
+	}{
+		{"no config", nil, 100, rpcmetadata.CompressionAlgorithm_NONE},
+		{"no codec", rpcmetadata.NewCompressionConfig(), 100, rpcmetadata.CompressionAlgorithm_NONE},
+		{"no limit, empty payload", zstdCompressionConfig(nil), 0, rpcmetadata.CompressionAlgorithm_NONE},
+		{"no limit", zstdCompressionConfig(nil), 1, rpcmetadata.CompressionAlgorithm_ZSTD},
+		{"at limit", zstdCompressionConfig(Pointerize(int64(1024))), 1024, rpcmetadata.CompressionAlgorithm_NONE},
+		{"above limit", zstdCompressionConfig(Pointerize(int64(1024))), 1025, rpcmetadata.CompressionAlgorithm_ZSTD},
+		{"negative limit", zstdCompressionConfig(Pointerize(int64(-1))), 1 << 20, rpcmetadata.CompressionAlgorithm_NONE},
+		{"custom codec, at limit", customCompressionConfig(Pointerize(int64(1024))), 1024, rpcmetadata.CompressionAlgorithm_NONE},
+		{"custom codec, above limit", customCompressionConfig(Pointerize(int64(1024))), 1025, rpcmetadata.CompressionAlgorithm_CUSTOM},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require.Equal(t, tt.want, responseCompression(tt.config, tt.payloadSize))
+		})
+	}
+}
+
+// binaryResult is a response struct whose only field is the given bytes.
+type binaryResult []byte
+
+func (r binaryResult) Write(enc types.Encoder) error {
+	if err := enc.WriteStructBegin("result"); err != nil {
+		return err
+	}
+	if err := enc.WriteFieldBegin("success", types.STRING, 0); err != nil {
+		return err
+	}
+	if err := enc.WriteBinary(r); err != nil {
+		return err
+	}
+	if err := enc.WriteFieldEnd(); err != nil {
+		return err
+	}
+	if err := enc.WriteFieldStop(); err != nil {
+		return err
+	}
+	return enc.WriteStructEnd()
+}
+
+func (r binaryResult) Exception() types.WritableException {
+	return nil
+}
+
+func TestMakeResponsePayloadCompressionSizeLimit(t *testing.T) {
+	socket := newFrameworkMetadataSocket(t, dummyif.NewDummyProcessor(&dummy.DummyHandler{}))
+	metadata := rpcmetadata.NewRequestRpcMetadata().
+		SetName(Pointerize("Echo")).
+		SetProtocol(Pointerize(rpcmetadata.ProtocolId_COMPACT)).
+		SetCompressionConfig(zstdCompressionConfig(Pointerize(int64(1024))))
+
+	tests := []struct {
+		name            string
+		resultSize      int
+		isFirstResponse bool
+		want            rpcmetadata.CompressionAlgorithm
+	}{
+		{"small response", 100, true, rpcmetadata.CompressionAlgorithm_NONE},
+		{"large response", 4096, true, rpcmetadata.CompressionAlgorithm_ZSTD},
+		{"small stream element", 100, false, rpcmetadata.CompressionAlgorithm_NONE},
+		{"large stream element", 4096, false, rpcmetadata.CompressionAlgorithm_ZSTD},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := binaryResult(bytes.Repeat([]byte("a"), tt.resultSize))
+			msg, err := socket.makeResponsePayload(metadata, nil, result, nil, tt.isFirstResponse)
+			require.NoError(t, err)
+
+			var compression rpcmetadata.CompressionAlgorithm
+			if tt.isFirstResponse {
+				responseMetadata := rpcmetadata.NewResponseRpcMetadata()
+				require.NoError(t, rocket.DecodePayloadMetadata(msg, responseMetadata))
+				compression = responseMetadata.GetCompression()
+			} else {
+				streamMetadata := rpcmetadata.NewStreamPayloadMetadata()
+				require.NoError(t, rocket.DecodePayloadMetadata(msg, streamMetadata))
+				compression = streamMetadata.GetCompression()
+			}
+			require.Equal(t, tt.want, compression)
+
+			data, err := rocket.MaybeDecompress(msg.Data(), compression)
+			require.NoError(t, err)
+			want, err := EncodeCompact(result)
+			require.NoError(t, err)
+			require.Equal(t, want, data)
 		})
 	}
 }
