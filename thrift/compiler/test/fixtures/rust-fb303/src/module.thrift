@@ -21,7 +21,9 @@ package "test.dev/fixtures/rust_fb303"
 
 namespace java.swift test.fixtures.rust_fb303
 
-// Only the two services below get `make_<Service>_server_fb303`.
+// Even though the two services below extend fb303, codegen prevents them
+// from inheriting its methods, so they can only be constructed with the
+// 2-arg `make_<Service>_server`, which takes no parent factory.
 
 // The deprecated inheritance is the shape under test.
 // @lint-ignore THRIFTCHECKS facebook-service-deprecated

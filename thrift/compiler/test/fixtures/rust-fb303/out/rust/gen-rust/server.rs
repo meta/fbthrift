@@ -485,43 +485,6 @@ where
     }
 }
 
-/// Construct a new instance of a ExtendsFacebookService service.
-///
-/// Temporary duplicate of `make_ExtendsFacebookService_server` for services that
-/// extend fb303. It holds the 3-argument shape to preserve behavior for legacy services.
-/// It will be removed after the fb303 migration.
-#[::tracing::instrument(level="debug", skip_all, fields(proto = ?proto))]
-pub fn make_ExtendsFacebookService_server_fb303<F, H, R, RS, SMAKE, SS>(
-    proto: ::fbthrift::ProtocolID,
-    handler: H,
-    supa: SMAKE,
-) -> ::std::result::Result<::std::boxed::Box<dyn ::fbthrift::ThriftService<F, Handler = H, RequestContext = R, ReplyState = RS> + ::std::marker::Send + 'static>, ::fbthrift::ApplicationException>
-where
-    F: ::fbthrift::Framing + ::std::marker::Send + ::std::marker::Sync + 'static,
-    H: ExtendsFacebookService,
-    SMAKE: ::std::ops::FnOnce(::fbthrift::ProtocolID) -> ::std::result::Result<SS, ::fbthrift::ApplicationException>,
-    SS: ::fbthrift::ThriftService<F, RequestContext = R, ReplyState = RS>,
-    SS::Handler: fb303__services::FacebookService,
-    R: ::fbthrift::RequestContext<Name = ::std::ffi::CStr> + ::std::marker::Send + ::std::marker::Sync + 'static,
-    <R as ::fbthrift::RequestContext>::ContextStack: ::fbthrift::ContextStack<Name = R::Name, Frame = F> + ::std::marker::Send + ::std::marker::Sync + 'static,
-    RS: ::fbthrift::ReplyState<F, RequestContext = R> + ::std::marker::Send + ::std::marker::Sync + 'static,
-    ::fbthrift::FramingDecoded<F>: ::std::clone::Clone,
-    ::fbthrift::FramingEncodedFinal<F>: ::std::clone::Clone + ::fbthrift::BufExt,
-{
-    match proto {
-        ::fbthrift::ProtocolID::BinaryProtocol => {
-            ::std::result::Result::Ok(::std::boxed::Box::new(ExtendsFacebookServiceProcessor::<::fbthrift::BinaryProtocol<F>, H, R, RS, SS>::new(handler, supa(proto)?)))
-        }
-        ::fbthrift::ProtocolID::CompactProtocol => {
-            ::std::result::Result::Ok(::std::boxed::Box::new(ExtendsFacebookServiceProcessor::<::fbthrift::CompactProtocol<F>, H, R, RS, SS>::new(handler, supa(proto)?)))
-        }
-        bad => {
-            ::tracing::error!(method = "ExtendsFacebookService.", invalid_protocol = ?bad);
-            ::std::result::Result::Err(::fbthrift::ApplicationException::invalid_protocol(bad))
-        }
-    }
-}
-
 
 #[::async_trait::async_trait]
 pub trait ExtendsBaseService: ::std::marker::Send + ::std::marker::Sync + 'static {
@@ -937,43 +900,6 @@ where
         }
         ::fbthrift::ProtocolID::CompactProtocol => {
             ::std::result::Result::Ok(::std::boxed::Box::new(ExtendsBaseServiceProcessorNoFb303::<::fbthrift::CompactProtocol<F>, H, R, RS>::new_no_fb303(handler)))
-        }
-        bad => {
-            ::tracing::error!(method = "ExtendsBaseService.", invalid_protocol = ?bad);
-            ::std::result::Result::Err(::fbthrift::ApplicationException::invalid_protocol(bad))
-        }
-    }
-}
-
-/// Construct a new instance of a ExtendsBaseService service.
-///
-/// Temporary duplicate of `make_ExtendsBaseService_server` for services that
-/// extend fb303. It holds the 3-argument shape to preserve behavior for legacy services.
-/// It will be removed after the fb303 migration.
-#[::tracing::instrument(level="debug", skip_all, fields(proto = ?proto))]
-pub fn make_ExtendsBaseService_server_fb303<F, H, R, RS, SMAKE, SS>(
-    proto: ::fbthrift::ProtocolID,
-    handler: H,
-    supa: SMAKE,
-) -> ::std::result::Result<::std::boxed::Box<dyn ::fbthrift::ThriftService<F, Handler = H, RequestContext = R, ReplyState = RS> + ::std::marker::Send + 'static>, ::fbthrift::ApplicationException>
-where
-    F: ::fbthrift::Framing + ::std::marker::Send + ::std::marker::Sync + 'static,
-    H: ExtendsBaseService,
-    SMAKE: ::std::ops::FnOnce(::fbthrift::ProtocolID) -> ::std::result::Result<SS, ::fbthrift::ApplicationException>,
-    SS: ::fbthrift::ThriftService<F, RequestContext = R, ReplyState = RS>,
-    SS::Handler: fb303_core__services::BaseService,
-    R: ::fbthrift::RequestContext<Name = ::std::ffi::CStr> + ::std::marker::Send + ::std::marker::Sync + 'static,
-    <R as ::fbthrift::RequestContext>::ContextStack: ::fbthrift::ContextStack<Name = R::Name, Frame = F> + ::std::marker::Send + ::std::marker::Sync + 'static,
-    RS: ::fbthrift::ReplyState<F, RequestContext = R> + ::std::marker::Send + ::std::marker::Sync + 'static,
-    ::fbthrift::FramingDecoded<F>: ::std::clone::Clone,
-    ::fbthrift::FramingEncodedFinal<F>: ::std::clone::Clone + ::fbthrift::BufExt,
-{
-    match proto {
-        ::fbthrift::ProtocolID::BinaryProtocol => {
-            ::std::result::Result::Ok(::std::boxed::Box::new(ExtendsBaseServiceProcessor::<::fbthrift::BinaryProtocol<F>, H, R, RS, SS>::new(handler, supa(proto)?)))
-        }
-        ::fbthrift::ProtocolID::CompactProtocol => {
-            ::std::result::Result::Ok(::std::boxed::Box::new(ExtendsBaseServiceProcessor::<::fbthrift::CompactProtocol<F>, H, R, RS, SS>::new(handler, supa(proto)?)))
         }
         bad => {
             ::tracing::error!(method = "ExtendsBaseService.", invalid_protocol = ?bad);

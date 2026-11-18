@@ -772,50 +772,5 @@ where
         }
     }
 }
-    {{!
-      Builds the full processor with the caller's fb303 parent chain. Only
-      direct fb303 extenders reach here, so the parent is always present.
-      This is a temporary function until the migration off of fb303 is
-      complete.
-    }}
-    {{#if extends_fb303}}
-
-/// Construct a new instance of a {{interface.rust_name}} service.
-///
-/// Temporary duplicate of `make_{{interface.rust_name}}_server` for services that
-/// extend fb303. It holds the 3-argument shape to preserve behavior for legacy services.
-/// It will be removed after the fb303 migration.
-#[::tracing::instrument(level="debug", skip_all, fields(proto = ?proto))]
-pub fn make_{{interface.rust_name}}_server_fb303<F, H, R, RS, SMAKE, SS>(
-    proto: ::fbthrift::ProtocolID,
-    handler: H,
-    supa: SMAKE,
-) -> ::std::result::Result<::std::boxed::Box<dyn ::fbthrift::ThriftService<F, Handler = H, RequestContext = R, ReplyState = RS> + ::std::marker::Send + 'static>, ::fbthrift::ApplicationException>
-where
-    F: ::fbthrift::Framing + ::std::marker::Send + ::std::marker::Sync + 'static,
-    H: {{interface.rust_name}}{{#if interface.requestContext?}}<RequestContext = R>{{/if}},
-    SMAKE: ::std::ops::FnOnce(::fbthrift::ProtocolID) -> ::std::result::Result<SS, ::fbthrift::ApplicationException>,
-    SS: ::fbthrift::ThriftService<F, RequestContext = R, ReplyState = RS>,
-    SS::Handler: {{#partial rpc.super service=interface}},
-    R: ::fbthrift::RequestContext<Name = ::std::ffi::CStr> + ::std::marker::Send + ::std::marker::Sync + 'static,
-    <R as ::fbthrift::RequestContext>::ContextStack: ::fbthrift::ContextStack<Name = R::Name, Frame = F> + ::std::marker::Send + ::std::marker::Sync + 'static,
-    RS: ::fbthrift::ReplyState<F, RequestContext = R> + ::std::marker::Send + ::std::marker::Sync + 'static,
-    ::fbthrift::FramingDecoded<F>: ::std::clone::Clone,
-    ::fbthrift::FramingEncodedFinal<F>: ::std::clone::Clone + ::fbthrift::BufExt,
-{
-    match proto {
-        ::fbthrift::ProtocolID::BinaryProtocol => {
-            ::std::result::Result::Ok(::std::boxed::Box::new({{interface.rust_name}}Processor::<::fbthrift::BinaryProtocol<F>, H, R, RS, SS>::new(handler, supa(proto)?)))
-        }
-        ::fbthrift::ProtocolID::CompactProtocol => {
-            ::std::result::Result::Ok(::std::boxed::Box::new({{interface.rust_name}}Processor::<::fbthrift::CompactProtocol<F>, H, R, RS, SS>::new(handler, supa(proto)?)))
-        }
-        bad => {
-            ::tracing::error!(method = "{{interface.name}}.", invalid_protocol = ?bad);
-            ::std::result::Result::Err(::fbthrift::ApplicationException::invalid_protocol(bad))
-        }
-    }
-}
-    {{/if extends_fb303}}
   {{/if (not interface.interaction?)}}
 {{/let partial}}
