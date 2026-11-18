@@ -43,8 +43,10 @@
 #include <thrift/lib/cpp2/protocol/detail/protocol_methods.h>
 #include <thrift/lib/cpp2/type/Tag.h>
 #include <thrift/test/AdapterTest.h>
+#include <thrift/test/gen-cpp2/References_types.h>
 #include <thrift/test/gen-cpp2/SerializationInFieldIdOrder_types.h>
 #include <thrift/test/gen-cpp2/structs_terse_types.h>
+#include <thrift/test/terse_write/gen-cpp2/terse_write_types.h>
 #include <thrift/test/testset/Testset.h>
 
 using namespace ::apache::thrift::conformance;
@@ -1854,40 +1856,122 @@ TEST(EncodeTest, EncodeMethod) {
   EXPECT_EQ(encodeJSONMockStruct(debug, jsonMock), UseStructEncode);
 }
 
+// Expects op::encode of `value`, through a subclass of `Writer` that it does
+// not treat as precompiled, to give the bytes and size that generated write()
+// gives for `expected` with `Writer`.
+template <typename Writer, typename T>
+void expectReflectionEncodeMatchesGenerated(const T& value, const T& expected) {
+  struct ReflectionWriter : Writer {};
+
+  folly::IOBufQueue generatedOutput;
+  Writer generatedWriter;
+  generatedWriter.setOutput(&generatedOutput);
+  auto generatedSize = expected.write(&generatedWriter);
+
+  folly::IOBufQueue reflectionOutput;
+  ReflectionWriter reflectionWriter;
+  reflectionWriter.setOutput(&reflectionOutput);
+  auto reflectionSize = op::encode<type::struct_t<T>>(reflectionWriter, value);
+
+  auto generated = generatedOutput.move();
+  auto reflection = reflectionOutput.move();
+  EXPECT_TRUE(folly::IOBufEqualTo{}(*generated, *reflection));
+  EXPECT_EQ(generatedSize, reflectionSize);
+}
+
+// Expects op::encode of `value` to match generated write() of `expected` with
+// Compact and Binary.
+template <typename T>
+void expectEncodeMatchesGenerated(const T& value, const T& expected) {
+  SCOPED_TRACE(folly::pretty_name<T>());
+  expectReflectionEncodeMatchesGenerated<CompactProtocolWriter>(
+      value, expected);
+  expectReflectionEncodeMatchesGenerated<BinaryProtocolWriter>(value, expected);
+}
+
+template <typename T>
+void expectEncodeMatchesGenerated(const T& value) {
+  expectEncodeMatchesGenerated(value, value);
+}
+
 TEST(EncodeTest, DeprecatedTerseWrite) {
-  auto expectGenericEncodeMatchesGenerated = []<typename T>(const T& value) {
-    SCOPED_TRACE(folly::pretty_name<T>());
-    struct GenericCompactProtocolWriter : CompactProtocolWriter {};
-
-    folly::IOBufQueue generatedOutput;
-    CompactProtocolWriter generatedWriter;
-    generatedWriter.setOutput(&generatedOutput);
-    value.write(&generatedWriter);
-
-    folly::IOBufQueue genericOutput;
-    GenericCompactProtocolWriter genericWriter;
-    genericWriter.setOutput(&genericOutput);
-    op::encode<type::struct_t<T>>(genericWriter, value);
-
-    auto generated = generatedOutput.move();
-    auto generic = genericOutput.move();
-    EXPECT_TRUE(folly::IOBufEqualTo{}(*generated, *generic));
-  };
-
   test::EmptiableTerseFieldsStruct intrinsicDefaults;
   intrinsicDefaults.int_field() = 42;
-  expectGenericEncodeMatchesGenerated(intrinsicDefaults);
+  expectEncodeMatchesGenerated(intrinsicDefaults);
 
   test::TerseFieldsWithCustomDefault customDefaults;
   customDefaults.int_field() = 0;
+  expectEncodeMatchesGenerated(customDefaults);
   customDefaults.cpp_shared_ref_exception_field() =
       std::make_shared<test::NestedException>();
-  expectGenericEncodeMatchesGenerated(customDefaults);
+  expectEncodeMatchesGenerated(customDefaults);
 
   test::RefsWithStringAndContainerTerseWrites emptyRefs;
   emptyRefs.string_list_field() = std::make_shared<std::vector<std::string>>();
   emptyRefs.string_field() = std::make_shared<std::string>();
-  expectGenericEncodeMatchesGenerated(emptyRefs);
+  expectEncodeMatchesGenerated(emptyRefs);
+}
+
+// Sets every non-optional `cpp.ref` field of `value` to null.
+template <typename T>
+void resetNonOptionalCppRefs(T& value) {
+  op::for_each_field_id<T>([&](auto id) {
+    using Id = decltype(id);
+    auto&& field = op::get<Id>(value);
+    if constexpr (apache::thrift::detail::is_shared_or_unique_ptr_v<
+                      std::remove_cvref_t<decltype(field)>>) {
+      if constexpr (!apache::thrift::detail::qualifier::
+                        is_cpp_ref_field_optional<T, op::get_field_id<T, Id>>::
+                            value) {
+        field = nullptr;
+      }
+    }
+  });
+}
+
+// Expects op::encode to match generated code for a default T and for a T whose
+// non-optional `cpp.ref` fields are null, which generated code writes as a
+// struct with no fields, an empty container or the intrinsic default.
+template <typename T>
+void expectNullNonOptionalCppRefsMatchGenerated() {
+  T value;
+  expectEncodeMatchesGenerated(value);
+  resetNonOptionalCppRefs(value);
+  expectEncodeMatchesGenerated(value);
+}
+
+TEST(EncodeTest, NullNonOptionalCppRef) {
+  expectNullNonOptionalCppRefsMatchGenerated<cpp2::RecursiveStruct>();
+  expectNullNonOptionalCppRefsMatchGenerated<cpp2::ReferringStruct>();
+  expectNullNonOptionalCppRefsMatchGenerated<
+      cpp2::ReferringStructWithBaseTypeFields>();
+  expectNullNonOptionalCppRefsMatchGenerated<
+      cpp2::ReferringStructWithStringFields>();
+  expectNullNonOptionalCppRefsMatchGenerated<
+      cpp2::ReferringStructWithEnumField>();
+  expectNullNonOptionalCppRefsMatchGenerated<
+      cpp2::ReferringStructWithBinaryField>();
+  expectNullNonOptionalCppRefsMatchGenerated<
+      cpp2::ReferringStructWithListFields>();
+  expectNullNonOptionalCppRefsMatchGenerated<
+      cpp2::ReferringStructWithSetFields>();
+  expectNullNonOptionalCppRefsMatchGenerated<
+      cpp2::ReferringStructWithMapFields>();
+  expectNullNonOptionalCppRefsMatchGenerated<cpp2::StructWithString>();
+  expectNullNonOptionalCppRefsMatchGenerated<cpp2::TypeAdapterRefStruct>();
+  expectNullNonOptionalCppRefsMatchGenerated<cpp2::FieldAdapterRefStruct>();
+  expectNullNonOptionalCppRefsMatchGenerated<cpp2::StructAdapterRefStruct>();
+  expectNullNonOptionalCppRefsMatchGenerated<cpp2::DoubleAdaptedRefStruct>();
+}
+
+// A null terse ref holds no value, so op::encode skips it like an empty one.
+// Generated write() instead writes the intrinsic default.
+TEST(EncodeTest, NullTerseCppRef) {
+  test::terse_write::CppRefTerseStruct value;
+  value.unique_int_field() = nullptr;
+  value.shared_int_field() = nullptr;
+  value.shared_const_int_field() = nullptr;
+  expectEncodeMatchesGenerated(value, test::terse_write::CppRefTerseStruct{});
 }
 
 template <typename Ident, typename GetRef>

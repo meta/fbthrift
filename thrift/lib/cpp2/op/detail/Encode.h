@@ -620,6 +620,18 @@ struct ShouldWriteField {
         return false;
       }
     }
+    // Generated code writes a non-optional, non-terse `cpp.ref` field even
+    // when it is null; see encodeNullCppRef.
+    if constexpr (apache::thrift::detail::is_shared_or_unique_ptr_v<Field>) {
+      using FieldId = op::get_field_id<T, Id>;
+      if constexpr (
+          !apache::thrift::detail::qualifier::
+              is_cpp_ref_field_optional<T, FieldId>::value &&
+          !apache::thrift::detail::qualifier::
+              is_cpp_ref_field_terse<T, FieldId>::value) {
+        return true;
+      }
+    }
     return ShouldWrite<Tag>{}(field);
   }
 };
@@ -629,6 +641,35 @@ struct ShouldWriteField<Tag, void> : ShouldWrite<Tag> {};
 
 template <typename T, typename Id = void>
 inline constexpr ShouldWriteField<T, Id> should_write{};
+
+// The tag of the thrift type under any `adapted` and `cpp_type` wrappers.
+template <typename Tag>
+struct UnadaptedTag {
+  using type = Tag;
+};
+template <typename Adapter, typename Tag>
+struct UnadaptedTag<type::adapted<Adapter, Tag>> : UnadaptedTag<Tag> {};
+template <typename T, typename Tag>
+struct UnadaptedTag<type::cpp_type<T, Tag>> : UnadaptedTag<Tag> {};
+
+// Writes what generated code writes for a null non-optional `cpp.ref` field
+// of type `Tag`: a struct, union or exception with no fields, an empty
+// container, or the intrinsic default of the thrift type. Neither the field's
+// adapter nor its IDL default applies, and a default-constructed struct is
+// not written because it may hold fields with IDL defaults.
+template <typename Tag, typename Protocol>
+std::size_t encodeNullCppRef(Protocol& prot) {
+  using UTag = typename UnadaptedTag<Tag>::type;
+  if constexpr (type::is_a_v<UTag, type::structured_c>) {
+    std::size_t s = prot.writeStructBegin(
+        op::get_class_name<type::native_type<UTag>>().data());
+    s += prot.writeFieldStop();
+    s += prot.writeStructEnd();
+    return s;
+  } else {
+    return Encode<UTag>{}(prot, type::native_type<UTag>{});
+  }
+}
 
 template <typename T>
 struct StructEncode {
@@ -674,7 +715,13 @@ struct StructEncode {
           op::get_field_name<T, Id>().data(),
           typeTagToTType<TypeTag>,
           folly::to_underlying(Id::value));
-      s += Encode<TypeTag>{}(prot, *field);
+      if constexpr (apache::thrift::detail::is_shared_or_unique_ptr_v<
+                        std::remove_cvref_t<decltype(field)>>) {
+        s += field != nullptr ? Encode<TypeTag>{}(prot, *field)
+                              : encodeNullCppRef<TypeTag>(prot);
+      } else {
+        s += Encode<TypeTag>{}(prot, *field);
+      }
       s += prot.writeFieldEnd();
     }
   };
