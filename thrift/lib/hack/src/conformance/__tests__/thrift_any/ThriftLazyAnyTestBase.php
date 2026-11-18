@@ -84,7 +84,6 @@ abstract class ThriftLazyAnyTestBase<T> extends WWWTest {
           'data' => $serializer::serializeData(
             static::getExampleValue(),
             static::TYPE_SPEC,
-            true,
           ),
         )),
       )),

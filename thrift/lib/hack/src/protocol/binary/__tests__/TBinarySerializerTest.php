@@ -150,7 +150,7 @@ final class TBinarySerializerTest extends WWWTest {
       ->toEqual($expected);
 
     $i64 = shape('type' => TType::I64);
-    $data = TBinarySerializer::serializeData(Math\INT64_MIN, $i64, true);
+    $data = TBinarySerializer::serializeData(Math\INT64_MIN, $i64);
     expect($data)->toEqual("\x80\x00\x00\x00\x00\x00\x00\x00");
     expect(TBinarySerializer::deserializeData($data, $i64))
       ->toEqual(Math\INT64_MIN);

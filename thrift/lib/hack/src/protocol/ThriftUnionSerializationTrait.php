@@ -226,7 +226,6 @@ trait ThriftUnionSerializationTrait implements IThriftStruct {
         $field_type,
         $field_value,
         $field,
-        true,
       );
       $xfer += $protocol->writeFieldEnd();
       $num_field_count++;

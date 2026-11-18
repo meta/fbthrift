@@ -659,23 +659,16 @@ abstract final class ThriftSerializationHelper {
   /**
    * Writes $object as the thrift type described by $tspec.
    *
-   * With $migration_only_apply_adapter, a top-level wrapper and adapter in
-   * $tspec are applied first, so $object is the value Hack code holds and
-   * readStructHelper returns. Without it, $object must already be the thrift
-   * value; passing an adapted value then writes wrong or unreadable bytes.
-   * New callers must pass true: false only exists until existing callers are
-   * migrated, after which the flag is removed.
+   * A top-level wrapper and adapter in $tspec are applied first, so $object is
+   * the value Hack code holds and readStructHelper returns.
    */
   public static function writeStructHelper(
     TProtocol $protocol,
     TType $field_type,
     mixed $object,
     ThriftStructTypes::TGenericSpec $tspec,
-    bool $migration_only_apply_adapter,
   )[$protocol::CReadWriteDefault, write_props]: int {
-    if ($migration_only_apply_adapter) {
-      $object = self::unwrapApplyAdapter($object, $tspec);
-    }
+    $object = self::unwrapApplyAdapter($object, $tspec);
     return self::writeValue($protocol, $field_type, $object, $tspec);
   }
 

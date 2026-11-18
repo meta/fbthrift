@@ -129,11 +129,8 @@ final class ThriftLazyAny implements JsonSerializable {
           'protocol' => apache_thrift_type_rep_ProtocolUnion::fromShape(shape(
             "standard" => $protocol,
           )),
-          'data' => $serializer::serializeData(
-            $value[0],
-            $value[1]->toTypeSpec(),
-            true,
-          ),
+          'data' =>
+            $serializer::serializeData($value[0], $value[1]->toTypeSpec()),
         ));
       },
     );
@@ -153,7 +150,6 @@ final class ThriftLazyAny implements JsonSerializable {
           'data' => TBinarySerializer::serializeData(
             $value[0],
             $value[1]->toTypeSpec(),
-            true,
           ),
         ));
       },

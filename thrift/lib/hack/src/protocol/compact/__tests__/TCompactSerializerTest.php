@@ -73,7 +73,7 @@ final class TCompactSerializerTest extends WWWTest {
       ->toEqual($expected);
 
     $i64 = shape('type' => TType::I64);
-    $data = TCompactSerializer::serializeData(Math\INT64_MIN, $i64, true);
+    $data = TCompactSerializer::serializeData(Math\INT64_MIN, $i64);
     expect(TCompactSerializer::deserializeData($data, $i64))
       ->toEqual(Math\INT64_MIN);
   }
@@ -81,7 +81,7 @@ final class TCompactSerializerTest extends WWWTest {
   public function testTopLevelBoolRoundTrip(): void {
     $bool = shape('type' => TType::BOOL);
     foreach (vec[true, false] as $value) {
-      $data = TCompactSerializer::serializeData($value, $bool, true);
+      $data = TCompactSerializer::serializeData($value, $bool);
       expect(TCompactSerializer::deserializeData($data, $bool))
         ->toEqual($value);
     }
@@ -92,7 +92,7 @@ final class TCompactSerializerTest extends WWWTest {
       'type' => TType::BOOL,
       'adapter' => ThriftKeySerializerBoolToStringAdapter::class,
     );
-    $data = TCompactSerializer::serializeData('true', $spec, true);
+    $data = TCompactSerializer::serializeData('true', $spec);
     expect($data)->toEqual(PHP\chr(TCompactProtocolBase::COMPACT_TRUE));
     expect(TCompactSerializer::deserializeData($data, $spec))->toEqual('true');
   }
