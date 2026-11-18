@@ -134,9 +134,9 @@ struct PrimitiveStruct {
   15: IOBufPtr pointbuffy;
   18: MyStruct patched_struct;
   19: EmptyStruct empty_struct;
-  @cpp.Type{name = "folly::fbstring"}
+  @cpp.Adapter{name = "::apache::thrift::StringTypeAdapter<folly::fbstring>"}
   20: binary fbstring;
-  @cpp.Type{name = "::apache::thrift::ManagedStringViewWithConversions"}
+  @cpp.Adapter{name = "::apache::thrift::StringTypeAdapter<::apache::thrift::ManagedStringViewWithConversions>"}
   21: string managed_string_view;
   22: thrift_dep.SomeError some_error;
 }
