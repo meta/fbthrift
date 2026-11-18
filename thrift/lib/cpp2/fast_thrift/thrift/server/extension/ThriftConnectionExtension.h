@@ -213,6 +213,8 @@ class ThriftConnectionView {
  * receive one, because outside that exchange these fields do not exist.
  */
 class ThriftSetupConnectionView : public ThriftConnectionView {
+  friend class ThriftSetupConnectionMutator;
+
  public:
   explicit ThriftSetupConnectionView(const ConnectionSetupData& setup) noexcept
       : ThriftConnectionView(*setup.connContext), setup_(setup) {}
@@ -249,7 +251,7 @@ class ThriftSetupConnectionView : public ThriftConnectionView {
 class ThriftSetupConnectionMutator final : public ThriftSetupConnectionView {
  public:
   explicit ThriftSetupConnectionMutator(ConnectionSetupData& setup) noexcept
-      : ThriftSetupConnectionView(setup), setup_(setup) {}
+      : ThriftSetupConnectionView(setup) {}
 
   template <class Ext>
   void setState(typename Ext::ConnState* state) noexcept {
@@ -271,9 +273,6 @@ class ThriftSetupConnectionMutator final : public ThriftSetupConnectionView {
     // @lint-ignore NULLSAFECLANG nullable-dereference
     setup_.connContext->adoptPeerIdentities(std::move(identities));
   }
-
- private:
-  ConnectionSetupData& setup_;
 };
 
 /**

@@ -180,7 +180,7 @@ class ThriftRequestContext {
   // injecting a header for the service to read; the bulk setter above is the
   // one the headers handler uses to move the client's map in wholesale.
   void setHeader(std::string key, std::string value) {
-    headers_[std::move(key)] = std::move(value);
+    setHeaderOwned(std::move(key), std::move(value));
   }
 
   const HeaderMap& getHeaders() const noexcept { return headers_; }
@@ -202,7 +202,7 @@ class ThriftRequestContext {
   // request answered by a rocket ERROR frame, or by a setup rejection, has
   // nowhere on the wire for them and drops them.
   void setResponseHeader(std::string key, std::string value) {
-    writeHeaders_[std::move(key)] = std::move(value);
+    setResponseHeaderOwned(std::move(key), std::move(value));
   }
 
   HeaderMap& mutableResponseHeaders() noexcept { return writeHeaders_; }
@@ -292,6 +292,17 @@ class ThriftRequestContext {
   }
 
  private:
+  friend class ThriftRequestMutator;
+  friend class ThriftResponseMutator;
+
+  void setHeaderOwned(std::string&& key, std::string&& value) {
+    headers_[std::move(key)] = std::move(value);
+  }
+
+  void setResponseHeaderOwned(std::string&& key, std::string&& value) {
+    writeHeaders_[std::move(key)] = std::move(value);
+  }
+
   enum class CompletionState : uint8_t {
     Active,
     CancellationRequested,

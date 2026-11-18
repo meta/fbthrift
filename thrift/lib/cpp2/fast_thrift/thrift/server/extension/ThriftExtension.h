@@ -129,6 +129,7 @@ class RequestVerdict {
  * base pointer.
  */
 class ThriftRequestView {
+  friend class ThriftRequestMutator;
   friend class server::compatibility::detail::NativeContextAccess;
 
  public:
@@ -276,11 +277,9 @@ class ThriftRequestView {
  * the duration of the callback.
  */
 class ThriftRequestMutator final : public ThriftRequestView {
-  friend class server::compatibility::detail::NativeContextAccess;
-
  public:
   explicit ThriftRequestMutator(ThriftServerRequestMessage& request) noexcept
-      : ThriftRequestView(request), request_(request) {}
+      : ThriftRequestView(request) {}
 
   // Set (or overwrite) a custom request header seen by downstream extensions
   // and the service.
@@ -289,7 +288,7 @@ class ThriftRequestMutator final : public ThriftRequestView {
   // so an escaping bad_alloc terminates either way. OOM ⇒ terminate is the
   // pipeline-wide contract, not a hazard introduced here.
   void setHeader(std::string key, std::string value) noexcept {
-    request_.requestContext->setHeader(std::move(key), std::move(value));
+    request_.requestContext->setHeaderOwned(std::move(key), std::move(value));
   }
 
   template <class Ext>
@@ -298,8 +297,8 @@ class ThriftRequestMutator final : public ThriftRequestView {
   }
 
   void setResponseHeader(std::string key, std::string value) noexcept {
-    request_.requestContext->setResponseHeader(
-        std::move(key), std::move(value));
+    request_.requestContext->mutableResponseHeaders()[std::move(key)] =
+        std::move(value);
   }
 
   std::optional<std::reference_wrapper<ThriftRequestContext::HeaderMap>>
@@ -309,9 +308,6 @@ class ThriftRequestMutator final : public ThriftRequestView {
     }
     return std::ref(request_.requestContext->mutableResponseHeaders());
   }
-
- private:
-  ThriftServerRequestMessage& request_;
 };
 
 /**
@@ -323,6 +319,7 @@ class ThriftRequestMutator final : public ThriftRequestView {
  * destructor rationale.
  */
 class ThriftResponseView {
+  friend class ThriftResponseMutator;
   friend class server::compatibility::detail::NativeContextAccess;
 
  public:
@@ -440,7 +437,7 @@ class ThriftResponseView {
 class ThriftResponseMutator final : public ThriftResponseView {
  public:
   explicit ThriftResponseMutator(ThriftServerResponseMessage& response) noexcept
-      : ThriftResponseView(response), response_(response) {}
+      : ThriftResponseView(response) {}
 
   // Set (or overwrite) a custom response header, on the same context the
   // service handler writes its own to. Dropped for a response with no
@@ -451,12 +448,9 @@ class ThriftResponseMutator final : public ThriftResponseView {
     if (response_.requestContext == nullptr) {
       return;
     }
-    response_.requestContext->setResponseHeader(
+    response_.requestContext->setResponseHeaderOwned(
         std::move(key), std::move(value));
   }
-
- private:
-  ThriftServerResponseMessage& response_;
 };
 
 // === Concepts ===

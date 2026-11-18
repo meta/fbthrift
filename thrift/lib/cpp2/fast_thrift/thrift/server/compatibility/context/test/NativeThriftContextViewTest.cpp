@@ -19,10 +19,11 @@
 #include <array>
 #include <memory>
 #include <stdexcept>
+#include <string>
 #include <type_traits>
 #include <utility>
 
-#include <boost/intrusive_ptr.hpp>
+#include <boost/smart_ptr/intrusive_ptr.hpp>
 #include <gtest/gtest.h>
 
 #include <folly/io/async/EventBase.h>
@@ -72,11 +73,90 @@ struct OwnedStateExtension {
   using RequestState = LookupState;
 };
 
+template <class View, class Mutator, class Message>
+constexpr bool kPreservesBorrowingContract =
+    !std::is_copy_constructible_v<View> && !std::is_copy_assignable_v<View> &&
+    !std::is_move_constructible_v<View> && !std::is_move_assignable_v<View> &&
+    !std::is_copy_constructible_v<Mutator> &&
+    !std::is_copy_assignable_v<Mutator> &&
+    !std::is_move_constructible_v<Mutator> &&
+    !std::is_move_assignable_v<Mutator> && !std::is_polymorphic_v<View> &&
+    std::is_convertible_v<Mutator&, const View&> &&
+    !std::is_constructible_v<Mutator, const Message&>;
+
+static_assert(kPreservesBorrowingContract<
+              ThriftRequestView,
+              ThriftRequestMutator,
+              ThriftServerRequestMessage>);
+static_assert(kPreservesBorrowingContract<
+              ThriftResponseView,
+              ThriftResponseMutator,
+              ThriftServerResponseMessage>);
+static_assert(kPreservesBorrowingContract<
+              ThriftSetupConnectionView,
+              ThriftSetupConnectionMutator,
+              ConnectionSetupData>);
+static_assert(sizeof(ThriftRequestMutator) == sizeof(ThriftRequestView));
+static_assert(sizeof(ThriftResponseMutator) == sizeof(ThriftResponseView));
+static_assert(
+    sizeof(ThriftSetupConnectionMutator) == sizeof(ThriftSetupConnectionView));
+
+template <class View>
+concept HasHeaderSetter =
+    requires(View& view) { view.setHeader(std::string{}, std::string{}); };
+
+template <class View>
+concept HasConnectionStateSetter =
+    requires(View& view) { view.template setState<StateExtension>(nullptr); };
+
+static_assert(!HasHeaderSetter<ThriftRequestView>);
+static_assert(!HasHeaderSetter<ThriftResponseView>);
+static_assert(!HasConnectionStateSetter<ThriftSetupConnectionView>);
+
 ExtensionLayout borrowedStateLayout() {
   ExtensionLayoutBuilder builder;
   builder.add(StateExtension::kId);
   builder.add(OtherStateExtension::kId);
   return std::move(builder).build();
+}
+
+TEST(
+    NativeThriftContextViewTest,
+    InputHeaderMutatorOwnsArgumentsAndHandlesAliases) {
+  folly::EventBase eventBase;
+  ThriftServerRequestMessage request;
+  request.requestContext = makeThriftRequestContext(eventBase);
+  ThriftRequestMutator write(request);
+  const std::array headers{
+      std::pair{std::string("short-key"), std::string("short-value")},
+      std::pair{std::string(128, 'k'), std::string(256, 'v')}};
+
+  for (auto [key, value] : headers) {
+    const auto expectedKey = key;
+    const auto expectedValue = value;
+    write.setHeader(key, value);
+    EXPECT_EQ(key, expectedKey);
+    EXPECT_EQ(value, expectedValue);
+    key.assign("changed-key");
+    value.assign("changed-value");
+    ASSERT_NE(write.header(expectedKey), nullptr);
+    EXPECT_EQ(*write.header(expectedKey), expectedValue);
+
+    write.setHeader(expectedKey, *write.header(expectedKey));
+    ASSERT_NE(write.header(expectedKey), nullptr);
+    EXPECT_EQ(*write.header(expectedKey), expectedValue);
+    write.setHeader(*write.header(expectedKey), *write.header(expectedKey));
+    ASSERT_NE(write.header(expectedValue), nullptr);
+    EXPECT_EQ(*write.header(expectedValue), expectedValue);
+
+    auto ownedKey = expectedKey;
+    auto ownedValue = expectedValue;
+    ownedValue.front() = 'a';
+    const auto movedValue = ownedValue;
+    write.setHeader(std::move(ownedKey), std::move(ownedValue));
+    ASSERT_NE(write.header(expectedKey), nullptr);
+    EXPECT_EQ(*write.header(expectedKey), movedValue);
+  }
 }
 
 TEST(
@@ -109,6 +189,8 @@ TEST(
   EXPECT_FALSE(request.requestContext->hasResponseHeaders());
 
   ThriftRequestMutator write(request);
+  write.setHeader("native-request", "original");
+  write.setResponseHeader("native-response", "original");
   const ThriftRequestContextView mutator(write);
   EXPECT_TRUE(mutator.setResponseHeader("trace", std::string("response-id")));
   EXPECT_EQ(*request.requestContext->getResponseHeader("trace"), "response-id");
@@ -144,10 +226,19 @@ TEST(
       *request.requestContext->getResponseHeader("header-copy"),
       "replacement-id");
   EXPECT_EQ(*originalContext->getResponseHeader("header-copy"), "id");
+  write.setHeader("native-request", "replacement");
+  EXPECT_EQ(*read.header("native-request"), "replacement");
+  EXPECT_EQ(*originalContext->getHeader("native-request"), "original");
+  write.setResponseHeader("native-response", "replacement");
+  EXPECT_EQ(
+      *request.requestContext->getResponseHeader("native-response"),
+      "replacement");
+  EXPECT_EQ(*originalContext->getResponseHeader("native-response"), "original");
 
   request.requestContext.reset();
   EXPECT_FALSE(view);
   EXPECT_FALSE(mutator);
+  EXPECT_FALSE(write.mutableResponseHeaders().has_value());
   EXPECT_FALSE(view.hasHeaderContainer());
   EXPECT_EQ(view.requestHeaders(), nullptr);
   EXPECT_EQ(view.header("trace"), nullptr);
@@ -167,6 +258,8 @@ TEST(
   response.requestContext = makeThriftRequestContext(eventBase);
   response.requestContext->setHeaders({{"trace", "id"}});
   response.requestContext->setMethodName("method");
+  ThriftResponseMutator write(response);
+  write.setHeader("native-response", "original");
   const ThriftResponseView read(response);
   const ThriftRequestContextView view(read);
   const auto header = view.headerContainer();
@@ -182,6 +275,7 @@ TEST(
   EXPECT_EQ(header.headers().at("trace"), "id");
   EXPECT_THROW(header.setResponseHeader("trace", id), std::logic_error);
 
+  auto originalContext = std::move(response.requestContext);
   response.requestContext = makeThriftRequestContext(eventBase);
   response.requestContext->setHeaders({{"trace", "replacement-id"}});
   ThriftServerMethodMetadata method;
@@ -197,8 +291,11 @@ TEST(
   EXPECT_EQ(header.headers().at("trace"), "replacement-id");
   EXPECT_THROW(header.setResponseHeader("trace", id), std::logic_error);
   EXPECT_FALSE(response.requestContext->hasResponseHeaders());
+  write.setHeader("native-response", "replacement");
+  EXPECT_EQ(*read.header("native-response"), "replacement");
+  EXPECT_EQ(*originalContext->getResponseHeader("native-response"), "original");
 
-  response.requestContext.reset();
+  auto replacementContext = std::move(response.requestContext);
   EXPECT_FALSE(view);
   EXPECT_FALSE(view.hasHeaderContainer());
   EXPECT_EQ(view.requestHeaders(), nullptr);
@@ -208,6 +305,33 @@ TEST(
   EXPECT_FALSE(header);
   EXPECT_TRUE(header.headers().empty());
   EXPECT_THROW(header.setResponseHeader("trace", id), std::logic_error);
+  write.setHeader("native-response", "ignored");
+  EXPECT_EQ(read.header("native-response"), nullptr);
+  EXPECT_EQ(
+      *replacementContext->getResponseHeader("native-response"), "replacement");
+}
+
+TEST(
+    NativeThriftContextViewTest,
+    SetupMutatorPublishesStateThroughBorrowedConnection) {
+  const auto layout = borrowedStateLayout();
+  ThriftConnContext connection;
+  connection.installExtensions(layout);
+  ConnectionSetupData setup{};
+  setup.connContext = &connection;
+  const ThriftSetupConnectionView read(setup);
+  ThriftSetupConnectionMutator write(setup);
+  LookupState state(1);
+
+  write.setState<StateExtension>(&state);
+  write.setPeerIdentities(&state);
+  EXPECT_EQ(read.tryState<StateExtension>(), &state);
+  EXPECT_EQ(read.peerIdentities(), &state);
+
+  write.setState<StateExtension>(nullptr);
+  write.setPeerIdentities(nullptr);
+  EXPECT_EQ(read.tryState<StateExtension>(), nullptr);
+  EXPECT_EQ(read.peerIdentities(), nullptr);
 }
 
 TEST(NativeThriftContextViewTest, ResponseRetirementFollowsCurrentPayload) {
