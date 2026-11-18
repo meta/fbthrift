@@ -17,12 +17,14 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <type_traits>
 #include <typeinfo>
 #include <utility>
 
+#include <folly/CPortability.h>
 #include <folly/Demangle.h>
 #include <folly/ExceptionWrapper.h>
 #include <folly/io/async/EventBase.h>
@@ -81,7 +83,8 @@ template <typename H>
 using ConnectionEventSet = ConcatEvents<
     ConcatEvents<
         EventsIf<
-            ThriftConnectionExtensionHandler<H>,
+            HasConnectionEstablishedCallback<H> ||
+                HasConnectionClosedCallback<H>,
             ThriftServerSetupCompleteEvent>,
         EventsIf<
             HasConnectionClosedCallback<H>,
@@ -92,8 +95,7 @@ using ConnectionEventSet = ConcatEvents<
 /**
  * Per-connection state an admission-control extension needs and nothing else
  * pays for: the resumer's control block, the pipeline to wake, and the latch
- * itself. Empty for every other extension, so the adapter is the same size it
- * was.
+ * itself. Empty for every other extension.
  */
 struct BackpressureStateEnabled {
   std::shared_ptr<backpressure_detail::ResumeControl> resumeControl_;
@@ -108,6 +110,36 @@ using BackpressureState = std::conditional_t<
     ThriftBackpressureExtensionHandler<H>,
     BackpressureStateEnabled,
     BackpressureStateDisabled>;
+
+// Callbacks without a request borrow the connection saved from setup. Its
+// context handler outlives pipeline teardown; request/response callbacks borrow
+// the connection through their message instead.
+template <typename H>
+inline constexpr bool kNeedsConnectionContext =
+    HasConnectionEstablishedCallback<H> || HasConnectionClosedCallback<H> ||
+    ThriftBackpressureExtensionHandler<H>;
+
+struct ConnectionContextStateEnabled {
+  ThriftConnContext* context{nullptr};
+};
+struct ConnectionContextStateDisabled {};
+
+template <typename H>
+using ConnectionContextState = std::conditional_t<
+    kNeedsConnectionContext<H>,
+    ConnectionContextStateEnabled,
+    ConnectionContextStateDisabled>;
+
+struct ConnectionClosedStateEnabled {
+  bool established{false};
+};
+struct ConnectionClosedStateDisabled {};
+
+template <typename H>
+using ConnectionClosedState = std::conditional_t<
+    HasConnectionClosedCallback<H>,
+    ConnectionClosedStateEnabled,
+    ConnectionClosedStateDisabled>;
 
 /**
  * H's demangled type name, for attributing a refusal to the extension that
@@ -179,50 +211,56 @@ class ThriftExtensionPipelineHandler {
   template <typename... Args>
   explicit ThriftExtensionPipelineHandler(
       ExtensionStateStore& store, Args&&... args)
-      : handler_(makeHandler(store, std::forward<Args>(args)...)) {}
+      : ThriftExtensionPipelineHandler(
+            std::bool_constant<HasConnState<H>>{},
+            store,
+            std::forward<Args>(args)...) {}
 
   channel_pipeline::Result onRead(
       Context& ctx, channel_pipeline::TypeErasedBox&& msg) noexcept {
-    auto& request = msg.get<ThriftServerRequestMessage>();
+    bool setupMessage = false;
+    if constexpr (
+        ThriftExtensionHandler<H> || ThriftConnectionExtensionHandler<H> ||
+        ThriftBackpressureExtensionHandler<H>) {
+      auto& request = msg.get<ThriftServerRequestMessage>();
 
-    // Lifecycle messages never reach the request callbacks, whatever H
-    // implements: to a request extension the setup exchange is not a request,
-    // and handing it one would run onRequest against a connection.
-    if (request.payload.is<ThriftConnectionSetupPayload>()) [[unlikely]] {
-      auto& setup = *request.payload.get<ThriftConnectionSetupPayload>().setup;
-      // The setup message is the only place the connection is offered, so it
-      // is latched here for every family that presents it later — not just
-      // connection extensions.
-      connContext_ = setup.connContext;
-      if constexpr (ThriftBackpressureExtensionHandler<H>) {
-        bp_.arbiter_ = &connContext_->readBackpressureArbiter();
-      }
-      if constexpr (ThriftConnectionExtensionHandler<H>) {
-        return onConnectionAttempted(ctx, std::move(msg), setup);
-      } else {
-        return ctx.fireRead(std::move(msg));
+      // Lifecycle messages never reach the request callbacks, whatever H
+      // implements: to a request extension the setup exchange is not a request,
+      // and handing it one would run onRequest against a connection.
+      setupMessage = request.payload.is<ThriftConnectionSetupPayload>();
+      if (setupMessage) [[unlikely]] {
+        if constexpr (
+            ThriftConnectionExtensionHandler<H> ||
+            ThriftBackpressureExtensionHandler<H>) {
+          auto& setup =
+              *request.payload.get<ThriftConnectionSetupPayload>().setup;
+          if constexpr (extension_detail::kNeedsConnectionContext<H>) {
+            connection_.context = setup.connContext;
+          }
+          if constexpr (ThriftBackpressureExtensionHandler<H>) {
+            bp_.arbiter_ = &connection_.context->readBackpressureArbiter();
+          }
+          if constexpr (ThriftConnectionExtensionHandler<H>) {
+            if (const auto result = onConnectionAttempted(ctx, setup)) {
+              return *result;
+            }
+          }
+        }
+      } else if constexpr (ThriftExtensionHandler<H>) {
+        if (!isStreamControlRequest(request.payload)) [[likely]] {
+          if (const auto result = onRequest(ctx, request)) {
+            return applyReadBackpressure(*result);
+          }
+        }
       }
     }
-    const channel_pipeline::Result result = [&]() noexcept {
-      if (isStreamControlRequest(request.payload)) [[unlikely]] {
-        return ctx.fireRead(std::move(msg));
-      }
-      if constexpr (!ThriftExtensionHandler<H>) {
-        return ctx.fireRead(std::move(msg));
-      } else {
-        return onRequest(ctx, std::move(msg));
-      }
-    }();
+    const auto result = ctx.fireRead(std::move(msg));
     if constexpr (ThriftBackpressureExtensionHandler<H>) {
-      // Reported upward rather than acted on here: Backpressure travels back
-      // to the transport, which is what stops reading the socket. An Error is
-      // terminal and is never masked.
-      if (bp_.paused_ && result != channel_pipeline::Result::Error)
-          [[unlikely]] {
-        return channel_pipeline::Result::Backpressure;
+      if (setupMessage) [[unlikely]] {
+        return result;
       }
     }
-    return result;
+    return applyReadBackpressure(result);
   }
 
   using SubscribedEvents = extension_detail::ConnectionEventSet<H>;
@@ -245,8 +283,8 @@ class ThriftExtensionPipelineHandler {
     requires std::same_as<E, ThriftServerConnectionClosedEvent> &&
       HasConnectionClosedCallback<H>
   void on(Context&) noexcept {
-    if (established_ && connContext_ != nullptr) {
-      const ThriftConnectionView view(*connContext_);
+    if (closed_.established && connection_.context != nullptr) {
+      const ThriftConnectionView view(*connection_.context);
       handler_.onConnectionClosed(view);
     }
   }
@@ -255,10 +293,8 @@ class ThriftExtensionPipelineHandler {
   // A refusal stops the message here and answers outbound, exactly as a
   // rejected request does. Forwarding otherwise lets the next extension
   // contribute, and finally lets ThriftServerSetupHandler answer.
-  channel_pipeline::Result onConnectionAttempted(
-      Context& ctx,
-      channel_pipeline::TypeErasedBox&& msg,
-      ConnectionSetupData& setup) noexcept
+  std::optional<channel_pipeline::Result> onConnectionAttempted(
+      Context& ctx, ConnectionSetupData& setup) noexcept
     requires ThriftConnectionExtensionHandler<H>
   {
     if constexpr (HasConnectionAttemptedCallback<H>) {
@@ -278,7 +314,7 @@ class ThriftExtensionPipelineHandler {
         return refuse(ctx, "onConnectionAttempted", std::move(verdict));
       }
     }
-    return ctx.fireRead(std::move(msg));
+    return std::nullopt;
   }
 
   // The setup answer is on the wire. Nothing is forwarded and nothing can be
@@ -288,15 +324,16 @@ class ThriftExtensionPipelineHandler {
   void onSetupComplete(ThriftServerSetupCompleteEvent& event) noexcept
     requires ThriftConnectionExtensionHandler<H>
   {
-    // Latched even when H has no established callback, so an H that only
-    // implements onConnectionClosed can still tell a connection that reached
-    // the established point from one that died during setup.
-    established_ = true;
+    // Closed-only handlers still need to distinguish successful setup from a
+    // connection that died before reaching the established point.
+    if constexpr (HasConnectionClosedCallback<H>) {
+      closed_.established = true;
+    }
     if constexpr (HasConnectionEstablishedCallback<H>) {
-      if (connContext_ == nullptr) {
+      if (connection_.context == nullptr) {
         return;
       }
-      const ThriftConnectionView view(*connContext_);
+      const ThriftConnectionView view(*connection_.context);
       auto verdict = handler_.onConnectionEstablished(view);
       if (FOLLY_UNLIKELY(verdict.isRejected()) && !event.reject.has_value()) {
         event.reject = SetupRejection{
@@ -348,10 +385,10 @@ class ThriftExtensionPipelineHandler {
                 Success) {
       return;
     }
-    if (connContext_ == nullptr) [[unlikely]] {
+    if (connection_.context == nullptr) [[unlikely]] {
       return;
     }
-    const ThriftConnectionView view(*connContext_);
+    const ThriftConnectionView view(*connection_.context);
     handler_.onEgressDrained(view);
   }
 
@@ -393,11 +430,10 @@ class ThriftExtensionPipelineHandler {
     }
   }
 
-  channel_pipeline::Result onRequest(
-      Context& ctx, channel_pipeline::TypeErasedBox&& msg) noexcept
+  FOLLY_ALWAYS_INLINE std::optional<channel_pipeline::Result> onRequest(
+      Context& ctx, ThriftServerRequestMessage& request) noexcept
     requires ThriftExtensionHandler<H>
   {
-    auto& request = msg.get<ThriftServerRequestMessage>();
     // Capture before any potential reject drops the inbound message: the
     // synthesized response must echo this streamId to correlate on the client.
     const uint32_t streamId = request.streamId;
@@ -414,22 +450,43 @@ class ThriftExtensionPipelineHandler {
       }
     }();
 
-    if (!verdict.isRejected()) {
-      if (verdict.appliesBackpressure()) [[unlikely]] {
-        // Latch it before forwarding: onRead reads this on the way back out
-        // and reports Backpressure for this very message, so the socket stops
-        // being read without a further request having to arrive first.
-        if constexpr (ThriftBackpressureExtensionHandler<H>) {
-          bp_.paused_ = true;
-          DCHECK_NOTNULL(bp_.arbiter_)->acquire();
-        } else {
-          DCHECK(false)
-              << "RequestVerdict::backpressure() from an extension that "
-                 "declares no onBackpressureAttached — nothing could resume it";
-        }
-      }
-      return ctx.fireRead(std::move(msg));
+    if (verdict.isRejected()) [[unlikely]] {
+      return rejectRequest(ctx, request, streamId, verdict);
     }
+    if (verdict.appliesBackpressure()) [[unlikely]] {
+      // Latch it before forwarding: onRead reads this on the way back out
+      // and reports Backpressure for this very message, so the socket stops
+      // being read without a further request having to arrive first.
+      if constexpr (ThriftBackpressureExtensionHandler<H>) {
+        bp_.paused_ = true;
+        DCHECK_NOTNULL(bp_.arbiter_)->acquire();
+      } else {
+        DCHECK(false)
+            << "RequestVerdict::backpressure() from an extension that "
+               "declares no onBackpressureAttached — nothing could resume it";
+      }
+    }
+    return std::nullopt;
+  }
+
+  FOLLY_ALWAYS_INLINE channel_pipeline::Result applyReadBackpressure(
+      channel_pipeline::Result result) noexcept {
+    if constexpr (ThriftBackpressureExtensionHandler<H>) {
+      // An accepted message carries the current pause state back to transport.
+      // Downstream errors remain terminal even while reads are paused.
+      if (bp_.paused_ && result != channel_pipeline::Result::Error)
+          [[unlikely]] {
+        return channel_pipeline::Result::Backpressure;
+      }
+    }
+    return result;
+  }
+
+  FOLLY_NOINLINE static channel_pipeline::Result rejectRequest(
+      Context& ctx,
+      ThriftServerRequestMessage& request,
+      uint32_t streamId,
+      const RequestVerdict& verdict) noexcept {
     auto response = makeRejectionMessage(streamId, verdict.cause());
     response.requestContext = std::move(request.requestContext);
     return ctx.fireWrite(channel_pipeline::erase_and_box(std::move(response)));
@@ -508,34 +565,30 @@ class ThriftExtensionPipelineHandler {
   }
 
  private:
-  // Returned as a prvalue so H is built directly into handler_ — H needs no
-  // move constructor, and its shared state is resolved exactly once per
-  // connection, before any callback can run.
+  // Construct H directly: guaranteed elision does not apply to potentially
+  // overlapping handler storage, and H may have no copy or move constructor.
   template <typename... Args>
-  static H makeHandler(ExtensionStateStore& store, Args&&... args) {
-    if constexpr (HasConnState<H>) {
-      static_assert(
-          std::is_default_constructible_v<typename H::ConnState>,
-          "H::ConnState must be default-constructible: the connection's state "
-          "is created by whichever extension names it first, so there is no "
-          "one extension whose arguments could construct it.");
-      return H(
-          store.getOrCreate<typename H::ConnState>(),
-          std::forward<Args>(args)...);
-    } else {
-      return H(std::forward<Args>(args)...);
-    }
+  explicit ThriftExtensionPipelineHandler(
+      std::false_type, ExtensionStateStore&, Args&&... args)
+      : handler_(std::forward<Args>(args)...) {}
+
+  template <typename... Args>
+  explicit ThriftExtensionPipelineHandler(
+      std::true_type, ExtensionStateStore& store, Args&&... args)
+      : handler_(
+            store.getOrCreate<typename H::ConnState>(),
+            std::forward<Args>(args)...) {
+    static_assert(
+        std::is_default_constructible_v<typename H::ConnState>,
+        "H::ConnState must be default-constructible: the connection's state "
+        "is created by whichever extension names it first, so there is no "
+        "one extension whose arguments could construct it.");
   }
 
-  H handler_;
+  [[no_unique_address]] H handler_;
   [[no_unique_address]] extension_detail::BackpressureState<H> bp_;
-  // Latched from the setup messages so the payload-less ConnectionClosed can
-  // still present the connection. Non-owning: the connection-context handler
-  // outlives this pipeline's teardown.
-  ThriftConnContext* connContext_{nullptr};
-  // Whether this connection reached ConnectionEstablished. Gates
-  // onConnectionClosed so it never fires for a connection that died mid-setup.
-  bool established_{false};
+  [[no_unique_address]] extension_detail::ConnectionContextState<H> connection_;
+  [[no_unique_address]] extension_detail::ConnectionClosedState<H> closed_;
 };
 
 /**

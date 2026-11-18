@@ -22,6 +22,7 @@
 #include <atomic>
 #include <chrono>
 #include <cstddef>
+#include <functional>
 #include <future>
 #include <memory>
 #include <set>
@@ -29,11 +30,14 @@
 #include <string>
 #include <string_view>
 #include <thread>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
 #include <pthread.h>
 #include <sched.h>
+
+#include <boost/intrusive_ptr.hpp>
 
 #include <fizz/client/AsyncFizzClient.h>
 #include <fizz/client/FizzClientContext.h>
@@ -43,6 +47,7 @@
 #include <folly/Synchronized.h>
 #include <folly/futures/Future.h>
 #include <folly/io/async/AsyncSocket.h>
+#include <folly/io/async/EventBase.h>
 #include <folly/io/async/Request.h>
 #include <folly/io/async/ScopedEventBaseThread.h>
 #include <folly/synchronization/Baton.h>
@@ -54,6 +59,7 @@
 #include <thrift/lib/cpp2/async/RocketClientChannel.h>
 #include <thrift/lib/cpp2/async/RpcOptions.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/util/ReusePortBpfProgram.h>
 #include <thrift/lib/cpp2/fast_thrift/security/FizzServerCertConfig.h>
 #include <thrift/lib/cpp2/fast_thrift/security/test/TestCert.h>
@@ -1443,6 +1449,66 @@ struct SharedStateExtension {
   StateObservations* observed_{nullptr};
 };
 
+struct ConstructorObservations {
+  std::atomic<const void*> constructed{nullptr};
+  std::atomic<const void*> called{nullptr};
+  std::atomic<const void*> constructorState{nullptr};
+  std::atomic<const void*> callbackState{nullptr};
+};
+
+struct ImmovableExtension {
+  ImmovableExtension() = default;
+  ImmovableExtension(const ImmovableExtension&) = delete;
+  ImmovableExtension& operator=(const ImmovableExtension&) = delete;
+  ImmovableExtension(ImmovableExtension&&) = delete;
+  ImmovableExtension& operator=(ImmovableExtension&&) = delete;
+};
+
+struct EmptyImmovableRequestExtension : ImmovableExtension {
+  explicit EmptyImmovableRequestExtension(ConstructorObservations* observed) {
+    observed->constructed.store(this);
+  }
+
+  ftt::RequestVerdict onRequest(
+      const ftt::ThriftRequestView& request) noexcept {
+    const auto connection = request.connection();
+    if (connection) {
+      if (auto* observed =
+              static_cast<ConstructorObservations*>(connection.userData())) {
+        observed->called.store(this);
+      }
+    }
+    return ftt::RequestVerdict::proceed();
+  }
+};
+
+struct SharedImmovableRequestExtension : ImmovableExtension {
+  using ConnState = SharedCallerState;
+
+  SharedImmovableRequestExtension(
+      SharedCallerState& state, ConstructorObservations* observed)
+      : state_(&state), observed_(observed) {
+    observed_->constructed.store(this);
+    observed_->constructorState.store(state_);
+  }
+
+  ftt::RequestVerdict onRequest(
+      const ftt::ThriftRequestView& /*request*/) noexcept {
+    observed_->called.store(this);
+    observed_->callbackState.store(state_);
+    return ftt::RequestVerdict::proceed();
+  }
+
+  SharedCallerState* state_;
+  ConstructorObservations* observed_;
+};
+
+static_assert(std::is_empty_v<EmptyImmovableRequestExtension>);
+static_assert(!std::is_copy_constructible_v<EmptyImmovableRequestExtension>);
+static_assert(!std::is_move_constructible_v<EmptyImmovableRequestExtension>);
+static_assert(!std::is_copy_constructible_v<SharedImmovableRequestExtension>);
+static_assert(!std::is_move_constructible_v<SharedImmovableRequestExtension>);
+
 // A second extension type naming a different ConnState, to prove the slots do
 // not alias. Ids come from the one counter both state types share, so an id
 // from here can be compared against one from SharedCallerState.
@@ -1763,6 +1829,7 @@ struct ConnectionRecorder {
   std::atomic<int> established{-1};
   std::atomic<int> request{-1};
   std::atomic<int> closed{0};
+  std::atomic<void*> closedUserData{nullptr};
   std::atomic<int> negotiatedVersion{0};
   std::atomic<bool> sawClientSetup{false};
 
@@ -1884,8 +1951,9 @@ struct PolicyContributingExtension {
 struct ClosedOnlyExtension {
   ConnectionRecorder* rec{nullptr};
 
-  void onConnectionClosed(const ftt::ThriftConnectionView& /*conn*/) noexcept {
-    rec->closed.fetch_add(1, std::memory_order_relaxed);
+  void onConnectionClosed(const ftt::ThriftConnectionView& conn) noexcept {
+    rec->closedUserData.store(conn.userData(), std::memory_order_relaxed);
+    rec->closed.fetch_add(1, std::memory_order_release);
   }
 };
 
@@ -1986,6 +2054,108 @@ struct ObservingBackpressureExtension {
 
   BackpressureRecorder* rec{nullptr};
   int requests{0};
+};
+
+struct ForwardingBackpressureExtension : BackpressureExtension {
+  ForwardingBackpressureExtension(
+      BackpressureRecorder& recorder, bool& shouldReject) noexcept
+      : BackpressureExtension(&recorder), shouldReject_(&shouldReject) {}
+
+  ftt::RequestVerdict onRequest(
+      const ftt::ThriftRequestView& request) noexcept {
+    if (*shouldReject_) {
+      return ftt::RequestVerdict::reject<std::runtime_error>(
+          "forwarding test rejection");
+    }
+    return BackpressureExtension::onRequest(request);
+  }
+
+ private:
+  bool* shouldReject_;
+};
+
+class ExtensionForwardingContext {
+ public:
+  explicit ExtensionForwardingContext(folly::EventBase& eventBase)
+      : eventBase_(&eventBase) {}
+
+  cp::Result fireRead(cp::TypeErasedBox&&) noexcept {
+    ++reads;
+    // Nested reads must not invoke the outer read's hook again.
+    auto hook = std::exchange(onFireRead, std::function<void()>{});
+    if (hook) {
+      hook();
+    }
+    return readResult;
+  }
+
+  cp::Result fireWrite(cp::TypeErasedBox&& message) noexcept {
+    ++writes;
+    const auto& response = message.get<ftt::ThriftServerResponseMessage>();
+    responseHasContext = response.requestContext != nullptr;
+    if (response.payload.is<ftt::ThriftInitialResponsePayload>()) {
+      responseStreamId =
+          response.payload.get<ftt::ThriftInitialResponsePayload>().streamId;
+    }
+    return writeResult;
+  }
+
+  void fireException(folly::exception_wrapper&&) noexcept {}
+  cp::PipelineRef pipeline() const noexcept { return {}; }
+  folly::EventBase* eventBase() const noexcept { return eventBase_; }
+
+  int reads{0};
+  int writes{0};
+  bool responseHasContext{false};
+  uint32_t responseStreamId{0};
+  cp::Result readResult{cp::Result::Success};
+  cp::Result writeResult{cp::Result::Success};
+  std::function<void()> onFireRead;
+
+ private:
+  folly::EventBase* eventBase_;
+};
+
+class FastThriftServerForwardingTest : public testing::Test {
+ protected:
+  using Adapter = ftt::server::ThriftExtensionPipelineHandler<
+      ForwardingBackpressureExtension,
+      ExtensionForwardingContext>;
+
+  void SetUp() override {
+    handler_.handlerAdded(context_);
+    auto setup = makeSetup();
+    ASSERT_EQ(handler_.onRead(context_, std::move(setup)), cp::Result::Success);
+    context_.reads = 0;
+  }
+
+  void TearDown() override { handler_.handlerRemoved(context_); }
+
+  cp::TypeErasedBox makeRequest(uint32_t streamId) {
+    ftt::ThriftServerRequestMessage request;
+    request.requestContext = ftt::makeThriftRequestContext(eventBase_);
+    request.requestContext->setConnectionContext(connection_);
+    request.payload = ftt::ThriftServerRequestResponsePayload{};
+    request.streamId = streamId;
+    return cp::erase_and_box(std::move(request));
+  }
+
+  cp::TypeErasedBox makeSetup() {
+    auto setup = std::make_unique<ftt::ConnectionSetupData>();
+    setup->connContext = connection_.get();
+    ftt::ThriftServerRequestMessage request;
+    request.payload = ftt::ThriftConnectionSetupPayload{std::move(setup)};
+    return cp::erase_and_box(std::move(request));
+  }
+
+  folly::EventBase eventBase_;
+  ftt::ExtensionStateStore store_;
+  boost::intrusive_ptr<ftt::ThriftConnContext> connection_{
+      new ftt::ThriftConnContext()};
+  BackpressureRecorder recorder_;
+  bool shouldReject_{false};
+  ExtensionForwardingContext context_{eventBase_};
+  Adapter handler_{store_, recorder_, shouldReject_};
 };
 
 // `count` sequential RPCs over one connection, returning false rather than
@@ -2304,6 +2474,23 @@ struct ResponseHeaderExtension {
   }
 };
 
+struct NoopRequestExtension {
+  ftt::RequestVerdict onRequest(
+      const ftt::ThriftRequestView& /*request*/) noexcept {
+    return ftt::RequestVerdict::proceed();
+  }
+};
+
+template <class H>
+constexpr bool kAdapterUsesOnlyHandlerStorage =
+    sizeof(ftt::server::ThriftExtensionPipelineHandler<H>) == sizeof(H) &&
+    alignof(ftt::server::ThriftExtensionPipelineHandler<H>) == alignof(H);
+
+static_assert(kAdapterUsesOnlyHandlerStorage<RejectingExtension>);
+static_assert(kAdapterUsesOnlyHandlerStorage<NoopRequestExtension>);
+static_assert(kAdapterUsesOnlyHandlerStorage<ResponseHeaderExtension>);
+static_assert(kAdapterUsesOnlyHandlerStorage<EmptyImmovableRequestExtension>);
+
 // Drives one `add(7, 35)` RPC and reports the response header the client saw.
 //
 // Synchronous, on an EventBase nothing else is looping: the blocking form is
@@ -2621,6 +2808,34 @@ TEST(FastThriftServerExtensionTest, DistinctConnStateTypesDoNotAlias) {
   EXPECT_NE(observed.id(0), observed.id(1));
 }
 
+TEST(FastThriftServerExtensionTest, ImmovableExtensionsConstructInPlace) {
+  THRIFT_FLAG_SET_MOCK(rocket_client_binary_rpc_metadata_encoding, true);
+
+  auto handler = std::make_shared<TestHandler>();
+  ConstructorObservations ordinary;
+  ConstructorObservations shared;
+  ftt::FastThriftServer server(makeLoopbackConfig());
+  server.setInterface(handler);
+  server.setOnConnectionAccepted([&](ftt::ThriftConnContext* conn) {
+    conn->setUserData(
+        apache::thrift::fast_thrift::rocket::with_custom_deleter(
+            &ordinary, +[](void*) noexcept {}));
+  });
+  server.addModule(
+      ftt::FastServerModule("immovable")
+          .addThriftExtension<EmptyImmovableRequestExtension>(&ordinary)
+          .addThriftExtension<SharedImmovableRequestExtension>(&shared));
+  server.start();
+
+  EXPECT_EQ(addRoundTrip(server.getAddress()), 42);
+  ASSERT_NE(ordinary.constructed.load(), nullptr);
+  EXPECT_EQ(ordinary.called.load(), ordinary.constructed.load());
+  ASSERT_NE(shared.constructed.load(), nullptr);
+  EXPECT_EQ(shared.called.load(), shared.constructed.load());
+  ASSERT_NE(shared.constructorState.load(), nullptr);
+  EXPECT_EQ(shared.callbackState.load(), shared.constructorState.load());
+}
+
 // The state is per connection, not per server: a second connection gets its own
 // object, so nothing an extension caches can bleed between callers.
 TEST(FastThriftServerExtensionTest, ConnStateIsPerConnection) {
@@ -2801,13 +3016,16 @@ TEST(FastThriftServerConnectionExtensionTest, AttemptedRejectionRefusesSetup) {
   server.setInterface(handler);
   server.addModule(
       ftt::FastServerModule("reject-attempt")
+          .addThriftExtension<ClosedOnlyExtension>(&rec)
           .addThriftExtension<RejectAtAttemptedExtension>(&rec));
   server.start();
 
   EXPECT_TRUE(addRoundTripFails(server.getAddress()));
+  server.stop();
   EXPECT_GE(rec.attempted.load(), 0);
   EXPECT_EQ(rec.established.load(), -1);
   EXPECT_EQ(rec.request.load(), -1);
+  EXPECT_EQ(rec.closed.load(), 0);
 }
 
 // An extension may hook teardown alone, with no request callback. The closed
@@ -2817,9 +3035,15 @@ TEST(FastThriftServerConnectionExtensionTest, ClosedFiresForSettledConnection) {
 
   auto handler = std::make_shared<TestHandler>();
   ConnectionRecorder rec;
+  int marker = 0;
 
   ftt::FastThriftServer server(makeLoopbackConfig());
   server.setInterface(handler);
+  server.setOnConnectionAccepted([&](ftt::ThriftConnContext* conn) {
+    conn->setUserData(
+        apache::thrift::fast_thrift::rocket::with_custom_deleter(
+            &marker, +[](void*) noexcept {}));
+  });
   server.addModule(
       ftt::FastServerModule("closed-only")
           .addThriftExtension<ClosedOnlyExtension>(&rec));
@@ -2829,6 +3053,8 @@ TEST(FastThriftServerConnectionExtensionTest, ClosedFiresForSettledConnection) {
   // close is already in flight by the time we start waiting.
   EXPECT_EQ(addRoundTrip(server.getAddress()), 42);
   EXPECT_TRUE(waitFor(rec.closed, 1));
+  ASSERT_GE(rec.closed.load(std::memory_order_acquire), 1);
+  EXPECT_EQ(rec.closedUserData.load(std::memory_order_relaxed), &marker);
 }
 
 // An extension can contribute to the SETUP response the client receives, not
@@ -3058,6 +3284,92 @@ TEST(
   EXPECT_NO_THROW(server.addModule(
       ftt::FastServerModule("backpressure")
           .addThriftExtension<BackpressureExtension>(&rec)));
+}
+
+TEST_F(
+    FastThriftServerForwardingTest,
+    PauseAndResumeDuringFireReadAffectReturnedResult) {
+  auto nested = makeRequest(3);
+  cp::Result nestedResult = cp::Result::Success;
+  context_.onFireRead = [&] {
+    recorder_.pauseOnce.store(true, std::memory_order_relaxed);
+    nestedResult = handler_.onRead(context_, std::move(nested));
+  };
+  auto outer = makeRequest(1);
+  EXPECT_EQ(
+      handler_.onRead(context_, std::move(outer)), cp::Result::Backpressure);
+  EXPECT_EQ(nestedResult, cp::Result::Backpressure);
+  EXPECT_EQ(context_.reads, 2);
+  EXPECT_EQ(connection_->readBackpressureArbiter().holderCount(), 1u);
+
+  recorder_.resumer.resume();
+  EXPECT_EQ(connection_->readBackpressureArbiter().holderCount(), 0u);
+
+  context_.reads = 0;
+  recorder_.pauseOnce.store(true, std::memory_order_relaxed);
+  context_.onFireRead = [&] { recorder_.resumer.resume(); };
+  auto resumed = makeRequest(5);
+  EXPECT_EQ(handler_.onRead(context_, std::move(resumed)), cp::Result::Success);
+  EXPECT_EQ(context_.reads, 1);
+  EXPECT_EQ(connection_->readBackpressureArbiter().holderCount(), 0u);
+}
+
+TEST_F(
+    FastThriftServerForwardingTest,
+    ErrorsAndRejectionsWhilePausedKeepTheirForwardingContract) {
+  recorder_.pauseOnce.store(true, std::memory_order_relaxed);
+  auto paused = makeRequest(1);
+  EXPECT_EQ(
+      handler_.onRead(context_, std::move(paused)), cp::Result::Backpressure);
+
+  context_.readResult = cp::Result::Error;
+  auto failed = makeRequest(3);
+  EXPECT_EQ(handler_.onRead(context_, std::move(failed)), cp::Result::Error);
+  EXPECT_EQ(context_.reads, 2);
+  EXPECT_EQ(connection_->readBackpressureArbiter().holderCount(), 1u);
+
+  shouldReject_ = true;
+  auto rejected = makeRequest(11);
+  const auto& rejectedRequest = rejected.get<ftt::ThriftServerRequestMessage>();
+  EXPECT_EQ(
+      handler_.onRead(context_, std::move(rejected)), cp::Result::Backpressure);
+  EXPECT_EQ(context_.reads, 2);
+  EXPECT_EQ(context_.writes, 1);
+  EXPECT_TRUE(context_.responseHasContext);
+  EXPECT_EQ(context_.responseStreamId, 11u);
+  EXPECT_EQ(rejectedRequest.requestContext, nullptr);
+
+  context_.writeResult = cp::Result::Error;
+  auto rejectedError = makeRequest(13);
+  EXPECT_EQ(
+      handler_.onRead(context_, std::move(rejectedError)), cp::Result::Error);
+  EXPECT_EQ(context_.reads, 2);
+  EXPECT_EQ(context_.writes, 2);
+  EXPECT_EQ(context_.responseStreamId, 13u);
+  EXPECT_EQ(connection_->readBackpressureArbiter().holderCount(), 1u);
+}
+
+TEST_F(FastThriftServerForwardingTest, SetupWhilePausedBypassesMasking) {
+  recorder_.pauseOnce.store(true, std::memory_order_relaxed);
+  auto paused = makeRequest(1);
+  EXPECT_EQ(
+      handler_.onRead(context_, std::move(paused)), cp::Result::Backpressure);
+
+  recorder_.pauseOnce.store(true, std::memory_order_relaxed);
+  auto setup = makeSetup();
+  EXPECT_EQ(handler_.onRead(context_, std::move(setup)), cp::Result::Success);
+  EXPECT_TRUE(recorder_.pauseOnce.load(std::memory_order_relaxed));
+  EXPECT_EQ(context_.reads, 2);
+  EXPECT_EQ(connection_->readBackpressureArbiter().holderCount(), 1u);
+
+  context_.readResult = cp::Result::Error;
+  auto setupError = makeSetup();
+  EXPECT_EQ(
+      handler_.onRead(context_, std::move(setupError)), cp::Result::Error);
+  EXPECT_TRUE(recorder_.pauseOnce.load(std::memory_order_relaxed));
+  EXPECT_EQ(context_.reads, 3);
+  EXPECT_EQ(context_.writes, 0);
+  EXPECT_EQ(connection_->readBackpressureArbiter().holderCount(), 1u);
 }
 
 // Registering two modules with the same name on the server is rejected.
