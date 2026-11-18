@@ -154,8 +154,6 @@ class NativeRequestContextRef {
     apache::thrift::fast_thrift::thrift::ThriftRequestContext* context{};
     const apache::thrift::fast_thrift::thrift::ThriftServerRequestMessage*
         request;
-    apache::thrift::fast_thrift::thrift::ThriftServerRequestMessage*
-        mutableRequest;
     const apache::thrift::fast_thrift::thrift::ThriftServerResponseMessage*
         response;
   };
@@ -306,11 +304,13 @@ class ThriftConnectionContextView {
       : ThriftConnectionContextView(&context) {}
   explicit ThriftConnectionContextView(
       apache::thrift::fast_thrift::thrift::ThriftConnContext* context) noexcept
-    requires(Backend == ThriftContextBackend::Native);
+    requires(Backend == ThriftContextBackend::Native)
+      : context_(context) {}
   explicit ThriftConnectionContextView(
       const apache::thrift::fast_thrift::thrift::ThriftConnectionView&
           context) noexcept
-    requires(Backend == ThriftContextBackend::Native);
+    requires(Backend == ThriftContextBackend::Native)
+      : context_(context) {}
 
   explicit operator bool() const noexcept {
     if constexpr (Backend == ThriftContextBackend::Classic) {
@@ -513,19 +513,23 @@ class ThriftRequestContextView {
   explicit ThriftRequestContextView(
       apache::thrift::fast_thrift::thrift::ThriftRequestContext*
           context) noexcept
-    requires(Backend == ThriftContextBackend::Native);
+    requires(Backend == ThriftContextBackend::Native)
+      : context_(context) {}
   explicit ThriftRequestContextView(
       apache::thrift::fast_thrift::thrift::ThriftRequestMutator&
           context) noexcept
-    requires(Backend == ThriftContextBackend::Native);
+    requires(Backend == ThriftContextBackend::Native)
+      : context_(context) {}
   explicit ThriftRequestContextView(
       const apache::thrift::fast_thrift::thrift::ThriftRequestView&
           context) noexcept
-    requires(Backend == ThriftContextBackend::Native);
+    requires(Backend == ThriftContextBackend::Native)
+      : context_(context) {}
   explicit ThriftRequestContextView(
       const apache::thrift::fast_thrift::thrift::ThriftResponseView&
           context) noexcept
-    requires(Backend == ThriftContextBackend::Native);
+    requires(Backend == ThriftContextBackend::Native)
+      : context_(context) {}
 
   explicit operator bool() const noexcept {
     if constexpr (Backend == ThriftContextBackend::Classic) {
@@ -755,3 +759,7 @@ ThriftRequestContextView(
     -> ThriftRequestContextView<ThriftContextBackend::Native>;
 
 } // namespace apache::thrift::fast_thrift::thrift::server::compatibility
+
+#define FBTHRIFT_THRIFT_CONTEXT_VIEW_H
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/compatibility/context/ThriftContextView-inl.h>
+#undef FBTHRIFT_THRIFT_CONTEXT_VIEW_H
