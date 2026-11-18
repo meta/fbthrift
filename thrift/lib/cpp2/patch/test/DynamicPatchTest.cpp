@@ -15,6 +15,8 @@
  */
 
 #include <gtest/gtest.h>
+#include <folly/ScopeGuard.h>
+#include <thrift/lib/cpp2/Flags.h>
 #include <thrift/lib/cpp2/patch/DynamicPatch.h>
 #include <thrift/lib/cpp2/patch/detail/PatchBadge.h>
 #include <thrift/lib/cpp2/patch/test/gen-cpp2/gen_patch_DynamicPatchTest_types.h>
@@ -23,6 +25,8 @@
 #include <thrift/lib/cpp2/protocol/Patch.h>
 #include <thrift/lib/cpp2/protocol/Serializer.h>
 #include <thrift/lib/thrift/gen-cpp2/any_patch_types.h>
+
+THRIFT_FLAG_DECLARE_bool(dynamic_patch_reject_unclassified_unknown_patch);
 
 namespace apache::thrift::protocol {
 
@@ -942,6 +946,38 @@ TEST(DynamicPatch, FromSetOrMapPatch) {
   }
 }
 
+TEST(DynamicPatch, UnknownPatchRejectsNonObjectAssign) {
+  Object obj;
+  obj[static_cast<FieldId>(op::PatchOp::Assign)].emplace_i32(1);
+  DynamicUnknownPatch patch;
+  EXPECT_THROW(patch.fromObject(badge, obj), std::runtime_error);
+}
+
+TEST(DynamicPatch, UnknownPatchRejectsNonSetRemove) {
+  Object obj;
+  obj[static_cast<FieldId>(op::PatchOp::Clear)].emplace_bool(true);
+  obj[static_cast<FieldId>(op::PatchOp::Remove)].emplace_list() = {
+      asValueStruct<type::i32_t>(1)};
+  DynamicUnknownPatch patch;
+  EXPECT_THROW(patch.fromObject(badge, obj), std::runtime_error);
+}
+
+TEST(DynamicPatch, UnknownPatchRejectsUnexpectedOperation) {
+  Object obj;
+  obj[FieldId{100}].emplace_bool(true);
+  EXPECT_THROW((void)DynamicPatch::fromObject(obj), std::runtime_error);
+}
+
+TEST(DynamicPatch, UnknownPatchAcceptedWhenRejectionDisabled) {
+  THRIFT_FLAG_SET_MOCK(dynamic_patch_reject_unclassified_unknown_patch, false);
+  SCOPE_EXIT {
+    THRIFT_FLAG_UNMOCK(dynamic_patch_reject_unclassified_unknown_patch);
+  };
+  Object obj;
+  obj[FieldId{100}].emplace_bool(true);
+  EXPECT_NO_THROW((void)DynamicPatch::fromObject(obj));
+}
+
 TEST(DynamicPatch, FromStructOrUnionPatch) {
   op::I32Patch fieldPatch;
   fieldPatch += 10;
@@ -1511,8 +1547,8 @@ TEST(DynamicPatch, MergingIncompatiblePatch) {
     testUnmergeablePatches(p1, p2);
   }
   {
-    test::FooPatch patch;
-    patch.patchIfSet<ident::bar>() = "123";
+    MyUnionPatch patch;
+    patch.patchIfSet<ident::s>() = "123";
 
     op::AnyPatch p1;
     p1.patchIfTypeIs(patch);
@@ -1520,7 +1556,7 @@ TEST(DynamicPatch, MergingIncompatiblePatch) {
     DynamicUnknownPatch p2;
     p2.fromObject(badge, patch.toObject());
 
-    // p1 is AnyPatch, p2 is StructPatch. They are not mergeable.
+    // p1 is AnyPatch, p2 is a struct-or-union patch. They are not mergeable.
     testUnmergeablePatches(p1, p2);
   }
 }

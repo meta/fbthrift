@@ -22,6 +22,7 @@
 #include <folly/ScopeGuard.h>
 #include <folly/portability/GFlags.h>
 #include <thrift/lib/cpp/protocol/TProtocolException.h>
+#include <thrift/lib/cpp2/Flags.h>
 #include <thrift/lib/cpp2/op/Clear.h>
 #include <thrift/lib/cpp2/op/Patch.h>
 #include <thrift/lib/cpp2/protocol/Patch.h>
@@ -33,6 +34,10 @@
 
 #include <thrift/lib/cpp2/patch/detail/PatchBadge.h>
 #include <thrift/lib/cpp2/patch/detail/PatchLogging.h>
+
+// Kill switch for rejecting patches `DynamicUnknownPatch` cannot classify
+// (T293821351). Remove once the rejection has rolled out.
+THRIFT_FLAG_DEFINE_bool(dynamic_patch_reject_unclassified_unknown_patch, true);
 
 namespace apache::thrift::protocol {
 using detail::badge;
@@ -2096,12 +2101,13 @@ auto DynamicUnknownPatch::validateAndGetCategory() const -> Category {
   auto throwExceptionIf = [&](bool b, std::string_view reason) {
     if (b) {
       detail::logUnclassifiedUnknownPatch(reason);
-      // FIXME(T293821351): The exception is never thrown.
-      std::runtime_error(
-          "Unclassified unknown patch. "
-          "Either there is a bug in the Unknown Patch implementation "
-          "or the input is incorrect. Patch content: " +
-          debugStringViaEncode(base_.patch_));
+      if (THRIFT_FLAG(dynamic_patch_reject_unclassified_unknown_patch)) {
+        folly::throw_exception<std::runtime_error>(
+            "Unclassified unknown patch. "
+            "Either there is a bug in the Unknown Patch implementation "
+            "or the input is incorrect. Patch content: " +
+            debugStringViaEncode(base_.patch_));
+      }
     }
   };
 
