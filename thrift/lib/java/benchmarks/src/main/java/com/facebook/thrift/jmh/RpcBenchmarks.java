@@ -19,6 +19,7 @@ package com.facebook.thrift.jmh;
 import java.util.concurrent.TimeUnit;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.runner.Runner;
+import org.openjdk.jmh.runner.options.CommandLineOptions;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.openjdk.jmh.runner.options.TimeValue;
@@ -27,13 +28,15 @@ public class RpcBenchmarks {
   public static void main(String... args) throws Exception {
     Options opt =
         new OptionsBuilder()
+            .parent(new CommandLineOptions(args))
             .include(ReactiveRpcBenchmarks.class.getSimpleName())
+            .include(RocketRoundTripBenchmarks.class.getSimpleName())
             .mode(Mode.Throughput)
-            .forks(1)
-            .warmupIterations(20)
+            .forks(3)
+            .warmupIterations(5)
             .warmupTime(new TimeValue(1000, TimeUnit.MILLISECONDS))
-            .measurementIterations(20)
-            .measurementTime(new TimeValue(2000, TimeUnit.MILLISECONDS))
+            .measurementIterations(10)
+            .measurementTime(new TimeValue(1000, TimeUnit.MILLISECONDS))
             .addProfiler("gc")
             .jvmArgsAppend(
                 "-Dio.netty.leakDetectionLevel=disabled",
