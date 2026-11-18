@@ -144,6 +144,18 @@ abstract final class ThriftUtil {
     );
   }
 
+  public static async function genStructToTConstructorShape<
+    TStructShape as shape(...),
+  >(
+    IThriftStruct with { type TConstructorShape = TStructShape } $thrift_object,
+  )[zoned_shallow]: Awaitable<TStructShape> {
+    $values = await self::genToValueMap($thrift_object);
+    return Pure\TypeAssert::throwsShallow(
+      type_structure($thrift_object, 'TConstructorShape'),
+      $values,
+    );
+  }
+
   public static async function genField(
     IThriftStruct $thrift_object,
     ThriftStructTypes::TFieldSpec $field_spec,

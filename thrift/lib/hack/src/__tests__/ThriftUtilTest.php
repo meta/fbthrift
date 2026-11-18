@@ -107,6 +107,45 @@ final class ThriftUtilTest extends WWWTest {
     expect(await ThriftUtil::genToValueMap($union))->toEqual($expected);
   }
 
+  public async function testGenStructToTConstructorShape(): Awaitable<void> {
+    $shape = shape(
+      'varray' => vec[vec['foo']],
+      'darray' => dict['foo' => dict['bar' => 'baz']],
+      'darraySet' => dict['foo' => true],
+      'subStructVarray' => vec[],
+    );
+    $struct = ThriftMarkLegacyArrays_TestStruct::fromShape($shape);
+    expect(await ThriftUtil::genStructToTConstructorShape($struct))->toEqual(
+      $shape,
+    );
+
+    // Wrapped and adapted fields are unwrapped
+    $shape = shape(
+      'wrapped_field' => 45,
+      'annotated_field' => 3,
+      'adapted_type' => 'hello',
+      'adapted_and_wrapped_type' => 'hi',
+    );
+    $struct = await FieldWrapperTest\MyStruct::genFromShape($shape);
+    expect(await ThriftUtil::genStructToTConstructorShape($struct))->toEqual(
+      $shape,
+    );
+
+    // Union: unset fields are present as null
+    $union = ThriftMarkLegacyArrays_TestUnion::fromShape(shape(
+      'varray' => vec[vec['foo']],
+    ));
+    expect(await ThriftUtil::genStructToTConstructorShape($union))->toEqual(
+      shape(
+        'varray' => vec[vec['foo']],
+        'darray' => null,
+        'darraySet' => null,
+        'subStructVarray' => null,
+        'subUnionVarray' => null,
+      ),
+    );
+  }
+
   public async function testGenSetValue(): Awaitable<void> {
     $struct = ThriftMarkLegacyArrays_TestStruct::withDefaultValues();
     $expected = dict[
