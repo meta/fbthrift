@@ -147,7 +147,7 @@ final class ThriftContextPropState {
         );
 
         $rid = $tfm->request_id;
-        if ($rid !== null && !Str\is_empty($rid)) {
+        if ($rid !== null && $rid !== '') {
           $rid_set = true;
         }
       }

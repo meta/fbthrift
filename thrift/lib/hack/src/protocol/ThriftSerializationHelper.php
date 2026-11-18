@@ -527,7 +527,7 @@ abstract final class ThriftSerializationHelper {
     $field_name = Shapes::idx($fspec, 'var') ?? '';
     $is_wrapped = Shapes::idx($fspec, 'is_wrapped', false);
     $is_union_arm = Shapes::idx($fspec, 'union', false);
-    if (($is_wrapped || $is_union_arm) && !Str\is_empty($field_name)) {
+    if (($is_wrapped || $is_union_arm) && $field_name !== '') {
       $getter_method = 'get_'.$field_name;
       // @lint-ignore DYNAMICALLY_INVOKING_TARGETS_CONSIDERED_HARMFUL
       $field_value = HH\FIXME\UNSAFE_CAST<mixed, dynamic>($struct)->$getter_method();
@@ -567,7 +567,7 @@ abstract final class ThriftSerializationHelper {
       case TType::STRING:
       case TType::UTF8:
       case TType::UTF16:
-        return Str\is_empty((string)$field_value);
+        return ((string)$field_value) === '';
       case TType::LST:
       case TType::SET:
       case TType::MAP:

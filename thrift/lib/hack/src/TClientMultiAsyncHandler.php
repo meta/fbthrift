@@ -154,7 +154,7 @@ final class TClientMultiAsyncHandler extends TClientAsyncHandler {
         async ($result)[zoned_local] ==> await $result($gen),
       );
       foreach ($final_response as $res) {
-        if (!Str\is_empty($res)) {
+        if ($res !== '') {
           return $res;
         }
       }

@@ -25,10 +25,7 @@ abstract final class ThriftUniversalName {
     string $universal_hash,
     string $prefix,
   )[]: bool {
-    if (
-      (Str\length($universal_hash) < Str\length($prefix)) ||
-      Str\is_empty($prefix)
-    ) {
+    if ((Str\length($universal_hash) < Str\length($prefix)) || $prefix === '') {
       return false;
     }
 
