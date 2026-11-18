@@ -132,6 +132,53 @@ struct Types {
   3: i64 ms;
 }
 
+struct FieldLookup12 {
+  1: i64 first;
+  2: string second;
+  16: byte third;
+  23: i16 fourth;
+  38: i32 fifth;
+  39: bool sixth;
+  63: double seventh;
+  101: list<i32> eighth;
+  202: set<i32> ninth;
+  303: map<i32, i32> tenth;
+  404: i32 eleventh;
+  32767: bool last;
+}
+
+struct FieldLookup13 {
+  1: i64 first;
+  2: string second;
+  16: byte third;
+  23: i16 fourth;
+  38: i32 fifth;
+  39: bool sixth;
+  63: double seventh;
+  101: list<i32> eighth;
+  202: set<i32> ninth;
+  303: map<i32, i32> tenth;
+  404: i32 eleventh;
+  505: i32 twelfth;
+  32767: bool last;
+}
+
+struct FieldLookupConcurrent {
+  1: i64 first;
+  2: string second;
+  3: i32 third;
+  4: i32 fourth;
+  5: i32 fifth;
+  6: i32 sixth;
+  7: i32 seventh;
+  8: i32 eighth;
+  9: i32 ninth;
+  10: i32 tenth;
+  11: i32 eleventh;
+  12: i32 twelfth;
+  32767: bool last;
+}
+
 struct Empty {}
 
 struct Recursive {
