@@ -102,12 +102,17 @@ TEST_F(Json5ReaderTest, MoreFloats) {
 })");
 }
 
-TEST_F(Json5ReaderTest, StringSpanningBuffers) {
-  constexpr std::string_view input = "\"a\\\"b\\u00e9\xc3\xa9\"";
+// Returns `input` with each byte in its own buffer.
+std::unique_ptr<folly::IOBuf> splitIntoBytes(std::string_view input) {
   auto chain = folly::IOBuf::create(0);
   for (char c : input) {
     chain->appendToChain(folly::IOBuf::copyBuffer(&c, 1));
   }
+  return chain;
+}
+
+TEST_F(Json5ReaderTest, StringSpanningBuffers) {
+  auto chain = splitIntoBytes("\"a\\\"b\\u00e9\xc3\xa9\"");
   Json5Reader r;
   r.setCursor(folly::io::Cursor(chain.get()));
   EXPECT_EQ(std::get<std::string>(r.readPrimitive()), "a\"b\xc3\xa9\xc3\xa9");
@@ -120,6 +125,21 @@ TEST_F(Json5ReaderTest, LongStringSpanningBuffers) {
   Json5Reader r;
   r.setCursor(folly::io::Cursor(chain.get()));
   EXPECT_EQ(std::get<std::string>(r.readPrimitive()), text);
+}
+
+TEST_F(Json5ReaderTest, NumbersSpanningBuffers) {
+  auto chain = splitIntoBytes("[-12.5e1, 0x1F, 42]");
+  Json5Reader r;
+  r.setCursor(folly::io::Cursor(chain.get()));
+  r.readListBegin();
+  EXPECT_EQ(std::get<double>(r.readPrimitive()), -125.0);
+  EXPECT_EQ(
+      std::get<Json5Reader::Integer>(r.readPrimitive()),
+      (Json5Reader::Integer{.magnitude = 31}));
+  EXPECT_EQ(
+      std::get<Json5Reader::Integer>(r.readPrimitive()),
+      (Json5Reader::Integer{.magnitude = 42}));
+  r.readListEnd();
 }
 
 TEST_F(Json5ReaderTest, NanInf) {

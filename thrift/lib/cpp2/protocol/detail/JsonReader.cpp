@@ -188,6 +188,107 @@ folly::ByteRange findCopyableRange(folly::ByteRange bytes, char quote) {
                                        : bytes.subpiece(0, kShortSize + pos);
 }
 
+bool isNumberPart(char c) {
+  return isIdentifierPart(c) || c == '.' || c == '+' || c == '-';
+}
+
+// Parses the JSON5 number at the start of `input` and removes it from `input`,
+// leaving any trailing characters.
+Json5Reader::Primitive parseNumberPrefix(
+    std::string_view& input, Json5Reader::FloatingPointPrecision precision) {
+  using enum Json5Reader::FloatingPointPrecision;
+  const std::string_view start = input;
+  auto peek = [&] { return input.empty() ? '\0' : input.front(); };
+  auto skipWhile = [&](auto pred) {
+    auto end = std::find_if_not(input.begin(), input.end(), pred);
+    auto skipped = input.substr(0, end - input.begin());
+    input.remove_prefix(skipped.size());
+    return skipped;
+  };
+  auto consumed = [&] { return start.substr(0, start.size() - input.size()); };
+
+  char c = peek();
+  const int8_t sign = (c == '-' ? -1 : 1);
+  if (c == '+' || c == '-') {
+    input.remove_prefix(1);
+    c = peek();
+  }
+
+  // Infinity or NaN
+  if (c == 'I' || c == 'N') {
+    const auto word = skipWhile(isIdentifierPart);
+    if (word == "Infinity") {
+      double d = std::copysign(std::numeric_limits<double>::infinity(), sign);
+      if (precision == Single) {
+        return float(d);
+      }
+      return d;
+    }
+    if (word == "NaN") {
+      double d = std::copysign(std::numeric_limits<double>::quiet_NaN(), sign);
+      if (precision == Single) {
+        return float(d);
+      }
+      return d;
+    }
+    throwParseError(
+        fmt::format("expected 'Infinity' or 'NaN', got '{}'", word));
+  }
+  // Hex literal: 0x...
+  if (c == '0') {
+    input.remove_prefix(1);
+    c = peek();
+    if (c == 'x' || c == 'X') {
+      const auto prefix = consumed();
+      input.remove_prefix(1);
+      const auto digits = skipWhile(isAsciiHexDigit);
+      return makeInteger(
+          sign < 0,
+          parseHexMagnitude(digits),
+          fmt::format("{}x{}", prefix, digits));
+    }
+  } else if (c != '.') {
+    skipWhile(isAsciiDigit);
+    c = peek();
+  }
+
+  bool isFloating = false;
+
+  if (c == '.') {
+    isFloating = true;
+    input.remove_prefix(1);
+    skipWhile(isAsciiDigit);
+    c = peek();
+  }
+
+  if (c == 'e' || c == 'E') {
+    isFloating = true;
+    input.remove_prefix(1);
+    if (peek() == '+' || peek() == '-') {
+      input.remove_prefix(1);
+    }
+    skipWhile(isAsciiDigit);
+  }
+
+  const std::string_view numStr = consumed();
+  if (numStr.empty() || numStr == "+" || numStr == "-") {
+    throwParseError("expected number");
+  }
+
+  if (!isFloating) {
+    std::string_view digits = numStr;
+    if (digits.front() == '+' || digits.front() == '-') {
+      digits.remove_prefix(1);
+    }
+    return makeInteger(
+        sign < 0, parseNumberOrThrow<std::uint64_t>(digits), numStr);
+  }
+  if (precision == Single) {
+    return parseNumberOrThrow<float>(numStr);
+  }
+  return parseNumberOrThrow<double>(numStr);
+}
+
 char peekNext(folly::io::Cursor& cursor) {
   return cursor.isAtEnd() ? '\0' : static_cast<char>(cursor.peek().front());
 }
@@ -457,93 +558,28 @@ std::string Json5Reader::readObjectName() {
 
 Json5Reader::Primitive Json5Reader::parseNumber(
     folly::io::Cursor& cursor, FloatingPointPrecision precision) {
-  std::string numStr;
-  char c = peekNext(cursor);
-
-  const int8_t sign = (c == '-' ? -1 : 1);
-  if (c == '+' || c == '-') {
-    numStr.push_back(readNext(cursor));
-    c = peekNext(cursor);
+  // Parse in place, unless the characters that can make up a number run into
+  // the next buffer.
+  const folly::ByteRange bytes = cursor.peekBytes();
+  std::string_view input(
+      reinterpret_cast<const char*>(bytes.data()), bytes.size());
+  std::string spanning;
+  if (std::all_of(input.begin(), input.end(), isNumberPart)) {
+    spanning = folly::io::Cursor(cursor).readWhile(isNumberPart);
+    input = spanning;
   }
-
-  // Infinity or NaN
-  if (c == 'I' || c == 'N') {
-    std::string word = cursor.readWhile(isIdentifierPart);
-    if (word == "Infinity") {
-      double d = std::copysign(std::numeric_limits<double>::infinity(), sign);
-      if (precision == FloatingPointPrecision::Single) {
-        return float(d);
-      }
-      return d;
-    }
-    if (word == "NaN") {
-      double d = std::copysign(std::numeric_limits<double>::quiet_NaN(), sign);
-      if (precision == FloatingPointPrecision::Single) {
-        return float(d);
-      }
-      return d;
-    }
-    throwParseError(
-        fmt::format("expected 'Infinity' or 'NaN', got '{}'", word));
-  }
-  // Hex literal: 0x...
-  if (c == '0') {
-    numStr.push_back(readNext(cursor));
-    c = peekNext(cursor);
-    if (c == 'x' || c == 'X') {
-      cursor.skip(1);
-      auto digits = cursor.readWhile(isAsciiHexDigit);
-      return makeInteger(
-          sign < 0, parseHexMagnitude(digits), numStr + "x" + digits);
-    }
-  } else if (c != '.') {
-    numStr += cursor.readWhile(isAsciiDigit);
-    c = peekNext(cursor);
-  }
-
-  bool isFloating = false;
-
-  if (c == '.') {
-    isFloating = true;
-    numStr.push_back(readNext(cursor));
-    numStr += cursor.readWhile(isAsciiDigit);
-    c = peekNext(cursor);
-  }
-
-  if (c == 'e' || c == 'E') {
-    isFloating = true;
-    numStr.push_back(readNext(cursor));
-    if (peekNext(cursor) == '+' || peekNext(cursor) == '-') {
-      numStr.push_back(readNext(cursor));
-    }
-    numStr += cursor.readWhile(isAsciiDigit);
-  }
-
-  if (numStr.empty() || numStr == "+" || numStr == "-") {
-    throwParseError("expected number");
-  }
-
-  if (!isFloating) {
-    std::string_view digits = numStr;
-    if (digits.front() == '+' || digits.front() == '-') {
-      digits.remove_prefix(1);
-    }
-    return makeInteger(
-        sign < 0, parseNumberOrThrow<std::uint64_t>(digits), numStr);
-  }
-  if (precision == FloatingPointPrecision::Single) {
-    return parseNumberOrThrow<float>(numStr);
-  }
-  return parseNumberOrThrow<double>(numStr);
+  std::string_view rest = input;
+  auto number = parseNumberPrefix(rest, precision);
+  cursor.skip(input.size() - rest.size());
+  return number;
 }
 
 Json5Reader::Primitive Json5Reader::parseNumber(
     std::string_view str, FloatingPointPrecision precision) {
-  auto buf = folly::IOBuf::wrapBufferAsValue(str.data(), str.size());
-  folly::io::Cursor cursor(&buf);
-  if (isNumberStart(peekNext(cursor))) {
-    auto number = parseNumber(cursor, precision);
-    if (cursor.isAtEnd()) {
+  if (!str.empty() && isNumberStart(str.front())) {
+    std::string_view rest = str;
+    auto number = parseNumberPrefix(rest, precision);
+    if (rest.empty()) {
       return number;
     }
   }
