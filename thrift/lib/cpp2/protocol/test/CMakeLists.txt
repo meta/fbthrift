@@ -36,6 +36,7 @@ endforeach ()
 # Test files to compile.
 set(PROTOCOL_TESTS
     BinaryProtocolTest
+    CompactProtocolArithmeticVectorTest
     CompactProtocolTest
     CompactV1ProtocolTest
     ContainerSkippingTest

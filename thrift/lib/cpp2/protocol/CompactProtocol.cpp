@@ -16,6 +16,8 @@
 
 #include <thrift/lib/cpp2/protocol/CompactProtocol.h>
 
+#include <span>
+
 #include <folly/Conv.h>
 
 #if FOLLY_ARM_FEATURE_NEON_SVE_BRIDGE
@@ -490,6 +492,44 @@ size_t CompactProtocolWriter::writeArithmeticVector<double>(
 
 #endif // FOLLY_ARM_FEATURE_NEON_SVE_BRIDGE
 
+// Room for the longest varint of T. The decoders may read all of it even when
+// the varint is shorter.
+template <typename T>
+using VarintBytes = std::span<const uint8_t, util::detail::kVarintMaxBytes<T>>;
+
+// Returns the number of bytes the varint takes.
+template <typename T>
+static size_t readVarint(T& value, VarintBytes<T> bytes) {
+  return util::detail::readVarintMediumSlowUnrolled(value, bytes.data());
+}
+
+#if THRIFT_UTIL_VARINTUTILS_BMI2_DECODER
+// readVarintMediumSlowUnrolled takes a branch per byte, which is slow for the
+// 9- and 10-byte varints of values such as hashes; those take one branch here.
+static size_t readVarint(int64_t& value, VarintBytes<int64_t> bytes) {
+  const uint64_t firstEightBytes = folly::loadUnaligned<uint64_t>(bytes.data());
+  constexpr uint64_t kContinuationBitMask = 0x8080808080808080;
+  if ((firstEightBytes & kContinuationBitMask) != kContinuationBitMask) {
+    // The varint is at most 8 bytes long.
+    return util::detail::readVarintMediumSlowUnrolled(value, bytes.data());
+  }
+  const uint64_t ninthByte = bytes[8];
+  const uint64_t tenthByte = bytes[9];
+  const uint64_t hasTenthByte = ninthByte >> 7;
+  if (hasTenthByte & (tenthByte >> 7)) {
+    util::detail::throwInvalidVarint();
+  }
+  // Bits 0-55; pext drops the continuation bits.
+  uint64_t result = _pext_u64(firstEightBytes, 0x7f7f7f7f7f7f7f7f);
+  // Bits 56-62; "& 0x7f" drops the continuation bit.
+  result |= (ninthByte & 0x7f) << 56;
+  // Bit 63, if there is a tenth byte.
+  result |= (tenthByte & hasTenthByte) << 63;
+  value = static_cast<int64_t>(result);
+  return 9 + hasTenthByte;
+}
+#endif
+
 // Function used with data types that are decoded from compacted zigzag
 template <class Cursor, typename T>
 static inline void readEncodedArithmeticVector(
@@ -508,8 +548,10 @@ static inline void readEncodedArithmeticVector(
       if constexpr (sizeof(T) == 2) {
         int32_t valueA;
         int32_t valueB;
-        inPtr += util::detail::readVarintMediumSlowUnrolled(valueA, inPtr);
-        inPtr += util::detail::readVarintMediumSlowUnrolled(valueB, inPtr);
+        inPtr +=
+            readVarint(valueA, VarintBytes<int32_t>(inPtr, kMaxVarintBytes));
+        inPtr +=
+            readVarint(valueB, VarintBytes<int32_t>(inPtr, kMaxVarintBytes));
         valueA = util::detail::zigzagToSignedInt(valueA);
         valueB = util::detail::zigzagToSignedInt(valueB);
         outputPtr[i] = (int16_t)valueA;
@@ -517,8 +559,9 @@ static inline void readEncodedArithmeticVector(
       } else {
         T valueA;
         T valueB;
-        inPtr += util::detail::readVarintMediumSlowUnrolled(valueA, inPtr);
-        inPtr += util::detail::readVarintMediumSlowUnrolled(valueB, inPtr);
+        // The loop condition leaves room for two of the longest varints.
+        inPtr += readVarint(valueA, VarintBytes<T>(inPtr, kMaxVarintBytes));
+        inPtr += readVarint(valueB, VarintBytes<T>(inPtr, kMaxVarintBytes));
         valueA = util::detail::zigzagToSignedInt(valueA);
         valueB = util::detail::zigzagToSignedInt(valueB);
         outputPtr[i] = valueA;
