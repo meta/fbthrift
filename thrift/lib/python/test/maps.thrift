@@ -37,7 +37,8 @@ typedef map<string, easy> StrEasyMap
 typedef map<string, string> StrStrMap
 typedef map<string, AtoIValue> StrAtoIValueMap
 typedef map<string, StrI32ListMap> StrStrIntListMapMap
-@cpp.Type{name = "::folly::fbstring"}
+@python.Py3EnableCppAdapter
+@cpp.Adapter{name = "::apache::thrift::StringTypeAdapter<::folly::fbstring>"}
 typedef string FollyFbString
 @cpp.Type{template = "::folly::F14FastMap"}
 typedef map<string, FollyFbString> F14MapFollyString
