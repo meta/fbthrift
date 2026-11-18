@@ -510,3 +510,29 @@ class JsonCompilerTest(unittest.TestCase):
                 },
             },
         )
+
+    def test_experimental_path_of_bundled_annotation(self):
+        write_file(
+            "foo.thrift",
+            textwrap.dedent(
+                """\
+            include "thrift/annotation/cpp.thrift"
+
+            package "test.dev/foo"
+
+            @cpp.Name{value = "Bar"}
+            struct Foo {}
+        """
+            ),
+        )
+        subprocess.check_call(
+            [thrift, "--gen", "json_experimental", "foo.thrift"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        obj = json.loads(read_file(os.path.join("gen-json_experimental", "foo.json")))
+        annotation = obj["structs"]["Foo"]["structured_annotations"]["cpp.Name"]
+        self.assertEqual(
+            annotation["type"],
+            {"type": "struct", "name": "Name", "path": "thrift/annotation/cpp.thrift"},
+        )
