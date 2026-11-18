@@ -21,6 +21,7 @@ import io.rsocket.Payload;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import java.util.function.LongConsumer;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscription;
 import reactor.core.CoreSubscriber;
@@ -64,6 +65,16 @@ public final class SinkPayloadSubscriber extends BaseSubscriber<Payload> {
   private final Scheduler scheduler;
 
   private Payload setup;
+
+  /**
+   * Reactor Context key for the listener that reports each REQUEST_N credit this subscriber sends
+   * the peer, with the n actually requested. A dedicated key object, so no other Context entry can
+   * collide with it. The sink dispatch sets it to the call's sink-credit hook; without it (a bidi
+   * call, or a dispatch with no stream handlers) no credit fires.
+   *
+   * <p>Runtime-internal: set by the sink server package.
+   */
+  public static final Object SINK_CREDIT_LISTENER = new Object();
 
   /**
    * The scheduler runs the decoding of the sink payloads: the off-loop scheduler when execution is
@@ -133,7 +144,7 @@ public final class SinkPayloadSubscriber extends BaseSubscriber<Payload> {
    * <p>Runtime-internal: read by the RSocket server transport.
    */
   public Flux<Payload> sinkPayloads() {
-    return window(buffer.asFlux().doOnRequest(this::request));
+    return window(tapSinkCredit(buffer.asFlux()));
   }
 
   /**
@@ -142,7 +153,29 @@ public final class SinkPayloadSubscriber extends BaseSubscriber<Payload> {
    * <p>Runtime-internal: read by the RSocket server transport.
    */
   public Flux<Payload> bidiSinkPayloads() {
-    return window(buffer.asFlux().doOnRequest(this::request).doOnCancel(this::cancel));
+    return window(tapSinkCredit(buffer.asFlux()).doOnCancel(this::cancel));
+  }
+
+  /**
+   * Reports the reader demand this subscriber forwards to the peer as REQUEST_N, with the n
+   * actually requested, to the listener the sink dispatch put in the Context. The amounts are the
+   * window's own (the initial window after the first response, then each refill), never the
+   * reader's: the prefetch operator between the reader and this tap caps them.
+   */
+  private Flux<Payload> tapSinkCredit(Flux<Payload> sinkPayloads) {
+    return Flux.deferContextual(
+        context -> {
+          LongConsumer credit = context.<LongConsumer>getOrDefault(SINK_CREDIT_LISTENER, null);
+
+          return sinkPayloads.doOnRequest(
+              n -> {
+                request(n);
+
+                if (credit != null) {
+                  credit.accept(n);
+                }
+              });
+        });
   }
 
   /**

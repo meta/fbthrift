@@ -23,15 +23,18 @@ import com.facebook.thrift.model.StreamResponse;
 import com.facebook.thrift.payload.FieldReader;
 import com.facebook.thrift.payload.ServerRequestPayload;
 import com.facebook.thrift.payload.ServerResponsePayload;
+import com.facebook.thrift.rsocket.server.sink.SinkPayloadSubscriber;
 import com.facebook.thrift.server.stream.ServerStreams;
 import com.facebook.thrift.server.stream.StreamMethod;
 import java.util.List;
+import java.util.function.LongConsumer;
 import org.reactivestreams.Publisher;
 import reactor.core.Disposable;
 import reactor.core.Disposables;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.context.Context;
 
 /**
  * Serves generated sink methods. A sink reads its sink elements and answers with one final
@@ -121,8 +124,14 @@ public final class ServerSinks {
     return (U) fields.get(0);
   }
 
-  /** A sink error from the peer ends a sink; the hooks see it before the delegate does. */
+  /**
+   * Attaches the sink hooks: subscribe/next/consumed, a peer sink error before the delegate sees
+   * it, and the credit the transport grants the peer. Only a sink dispatch sets the credit
+   * listener, so a bidi sink half stays hook-free.
+   */
   private static <U> Flux<U> withSinkHooks(Flux<U> sinkElements, ContextChain chain) {
+    LongConsumer credit = n -> chain.onSinkCredit(saturateCredits(n));
+
     return sinkElements
         .doOnSubscribe(s -> chain.onSinkSubscribe())
         .doOnNext(
@@ -134,7 +143,13 @@ public final class ServerSinks {
             t -> {
               chain.handleSinkError(t);
               chain.onSinkFinally(StreamEventHandler.SinkOutcome.ERROR);
-            });
+            })
+        .contextWrite(Context.of(SinkPayloadSubscriber.SINK_CREDIT_LISTENER, credit));
+  }
+
+  /** Unbounded demand saturates. */
+  private static int saturateCredits(long n) {
+    return n >= Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) n;
   }
 
   /**

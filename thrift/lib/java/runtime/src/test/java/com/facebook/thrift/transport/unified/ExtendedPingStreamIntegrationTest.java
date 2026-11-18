@@ -2272,6 +2272,31 @@ public class ExtendedPingStreamIntegrationTest {
   }
 
   @Test
+  public void generatedSinkReportsTheWindowItGrantsAsSinkCredit() throws Exception {
+    SinkHookLog hooks = new SinkHookLog(false);
+    startServer(new ExtendedReactivePingService(), ImmutableList.of(hooks));
+    FrameLog frames = new FrameLog();
+    RpcClient client = channelClient(serverAddress, frames);
+
+    StepVerifier.create(
+            client.streamingRequestStreamingResponse(
+                Flux.just(
+                    channelRequest("sinkPings", RpcKind.SINK, pingArgsWriter("hello")),
+                    channelRequest("sinkPings", RpcKind.SINK, sinkPayloadWriter("a")),
+                    channelRequest("sinkPings", RpcKind.SINK, sinkPayloadWriter("b"))),
+                RpcOptions.EMPTY))
+        .expectNextCount(1)
+        .assertNext(last -> Assertions.assertEquals("hello: a,b", finalResponse(last)))
+        .verifyComplete();
+
+    // Two uploads fit in the one window the server opens, so the hook sees exactly the REQUEST_N
+    // the client saw.
+    Assertions.assertTrue(hooks.done.await(5, TimeUnit.SECONDS));
+    Assertions.assertEquals(Collections.singletonList(100), hooks.credits);
+    Assertions.assertEquals(Collections.singletonList(100L), frames.credits);
+  }
+
+  @Test
   public void generatedClientSinkWithAFirstResponse() throws Exception {
     startServer(new ExtendedReactivePingService(), Collections.emptyList());
 
@@ -2493,6 +2518,7 @@ public class ExtendedPingStreamIntegrationTest {
   /** Records the sink hooks and done() of a call in call order; it can shed the call instead. */
   private static final class SinkHookLog implements StreamEventHandler {
     final Recorded<String> events = new Recorded<>();
+    final List<Integer> credits = new CopyOnWriteArrayList<>();
     final CountDownLatch done = new CountDownLatch(1);
     private final boolean shed;
 
@@ -2525,6 +2551,11 @@ public class ExtendedPingStreamIntegrationTest {
     @Override
     public void onSinkCancel(Object context, String methodName) {
       events.add("cancel");
+    }
+
+    @Override
+    public void onSinkCredit(Object context, String methodName, int credits) {
+      this.credits.add(credits);
     }
 
     @Override

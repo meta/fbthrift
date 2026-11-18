@@ -85,7 +85,11 @@ public interface StreamEventHandler extends ThriftEventHandler {
   /** Fired once when the client cancels a sink before it completes. */
   default void onSinkCancel(Object context, String methodName) {}
 
-  /** Fired when the server grants upload demand. Values saturate at {@link Integer#MAX_VALUE}. */
+  /**
+   * Fired when the server grants upload demand: once for the window it opens after the first
+   * response, then once per refill as the method reads. A bidi sink half fires no sink hooks.
+   * Values saturate at {@link Integer#MAX_VALUE}.
+   */
   default void onSinkCredit(Object context, String methodName, int credits) {}
 
   /** Fired when a sink error is observed, before the error terminal. */

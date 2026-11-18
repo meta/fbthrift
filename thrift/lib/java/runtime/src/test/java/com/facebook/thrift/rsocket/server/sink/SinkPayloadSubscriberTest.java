@@ -41,6 +41,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.LongConsumer;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Subscription;
 import reactor.core.publisher.BaseSubscriber;
@@ -51,6 +52,7 @@ import reactor.core.publisher.SignalType;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
+import reactor.util.context.Context;
 
 public class SinkPayloadSubscriberTest {
   private final Peer peer = new Peer();
@@ -132,6 +134,16 @@ public class SinkPayloadSubscriberTest {
   @Test
   public void creditsStayWithinTheWindowForAnUnboundedReaderOffTheEventLoop() {
     assertCreditsStayWithinTheWindow(RpcResources.getOffLoopScheduler());
+  }
+
+  @Test
+  public void sinkCreditListenerSeesTheWindowItGrantsOnTheEventLoop() {
+    assertSinkCreditListenerSeesTheWindow(Schedulers.immediate());
+  }
+
+  @Test
+  public void sinkCreditListenerSeesTheWindowItGrantsOffTheEventLoop() {
+    assertSinkCreditListenerSeesTheWindow(RpcResources.getOffLoopScheduler());
   }
 
   @Test
@@ -254,6 +266,43 @@ public class SinkPayloadSubscriberTest {
         .verifyComplete();
 
     assertEquals(Long.valueOf(100), peer.credits.get(1));
+  }
+
+  private void assertSinkCreditListenerSeesTheWindow(Scheduler scheduler) {
+    SinkPayloadSubscriber subscriber = subscribe(scheduler);
+    List<Long> fired = new CopyOnWriteArrayList<>();
+
+    StepVerifier.create(
+            subscriber
+                .sinkPayloads()
+                .contextWrite(
+                    Context.of(
+                        SinkPayloadSubscriber.SINK_CREDIT_LISTENER, (LongConsumer) fired::add))
+                .doOnNext(ReferenceCountUtil::release))
+        .expectSubscription()
+        .expectNoEvent(Duration.ofMillis(50))
+        .then(() -> assertTrue(fired.isEmpty(), "credit fired before the first response: " + fired))
+        .then(() -> sendFirstResponse(subscriber))
+        .then(
+            () -> {
+              for (int i = 0; i < 300; i++) {
+                peer.send(payload());
+              }
+              peer.complete();
+            })
+        .expectNextCount(300)
+        .verifyComplete();
+
+    // The tap fires for every grant the peer saw, in order: the initial window, then refills,
+    // never the reader's unbounded demand. A trailing refill can lose to the terminal on another
+    // thread, so the tap may hold one final refill the peer never saw.
+    List<Long> sent = peer.credits.subList(1, peer.credits.size());
+    assertTrue(
+        fired.size() == sent.size() || fired.size() == sent.size() + 1,
+        "fired " + fired + " sent " + sent);
+    assertEquals(sent, fired.subList(0, sent.size()));
+    assertEquals(Long.valueOf(100), fired.get(0));
+    assertTrue(fired.stream().skip(1).allMatch(n -> n == 75), "refills " + fired);
   }
 
   private void assertCreditsStayWithinTheWindow(Scheduler scheduler) {
