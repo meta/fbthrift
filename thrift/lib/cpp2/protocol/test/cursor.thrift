@@ -33,7 +33,7 @@ union Inner {
 @cpp.Adapter{name = "::apache::thrift::CursorSerializationAdapter"}
 typedef Struct StructCursor
 
-@cpp.Type{name = "::apache::thrift::ManagedStringViewWithConversions"}
+@cpp.Adapter{name = "::apache::thrift::StringTypeAdapter<::apache::thrift::ManagedStringViewWithConversions>"}
 typedef string ManagedStringViewField
 
 @cpp.EnableCustomTypeOrdering
