@@ -244,21 +244,21 @@ Rejects:
 | :---- | :---- | :---- |
 | NaN / -NaN | `"NaN"` / `"-NaN"` | `NaN` / `-NaN` |
 | Infinity / -Infinity | `"Infinity"` / `"-Infinity"` | `Infinity` / `-Infinity` |
-| \|v\| = 0, or T(10⁻⁴) ≤ \|v\| < 10⁷ (float) or 10¹⁶ (double) | Shortest round-trip fixed notation, with at least one digit on each side of `.` (e.g., `-0.0`, `0.5`, `100000.0`) | Same as JSON output |
+| \|v\| = 0, or T(10<sup>-4</sup>) ≤ \|v\| < 10<sup>7</sup> (float) or 10<sup>16</sup> (double) | Shortest round-trip fixed notation, with at least one digit on each side of `.` (e.g., `-0.0`, `0.5`, `100000.0`) | Same as JSON output |
 | Otherwise | Shortest round-trip scientific notation; the exponent has a sign and at least two digits (e.g., `1e-05`, `1.5e+16`) | Same as JSON output |
 
 **Deserialization**: Accepts
 
 * JSON5 numeric literals.
 * Special float literals.
-* Integers if and only if converting to the target IEEE 754 type and back to integer yields the original value (e.g., every integer in \[-2²⁴, 2²⁴\] (`±16,777,216`) for float or \[-2⁵³, 2⁵³\] (`±9,007,199,254,740,992`) for double, and larger ones such as `9223372036854774784`, i.e. 2⁶³ − 1024, for double). `-0` is read as `-0.0`.
+* Integers if and only if converting to the target IEEE 754 type and back to integer yields the original value (e.g., every integer in \[-2<sup>24</sup>, 2<sup>24</sup>\] (`±16,777,216`) for float or \[-2<sup>53</sup>, 2<sup>53</sup>\] (`±9,007,199,254,740,992`) for double, and larger ones such as `9223372036854774784`, i.e. 2<sup>63</sup> − 1024, for double). `-0` is read as `-0.0`.
 * Quoted numeric strings and object-form map keys (same rules as above, e.g., `"3.14"`).
 
 Rejects:
 
 * Non-numeric strings (e.g., `"abc"`, `""`).
 * Integers with precision loss (e.g., `9007199254740993` or `9223372036854775807` for double, `123456789` for float).
-* Integers outside the int64 range, even ones without precision loss (e.g., `9223372036854775808`, i.e. 2⁶³); write them with an exponent instead (e.g., `9.223372036854775808e18`).
+* Integers outside the int64 range, even ones without precision loss (e.g., `9223372036854775808`, i.e. 2<sup>63</sup>); write them with an exponent instead (e.g., `9.223372036854775808e18`).
 
 #### STRING
 
