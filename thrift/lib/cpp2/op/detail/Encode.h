@@ -763,7 +763,7 @@ struct Encode<type::enum_t<T>> {
   }
 };
 
-template <TType ElemType, typename ElemCppType>
+template <TType ElemType, typename ElemCppType, bool kMayWriteInBulk = true>
 struct ListEncodeImpl {
   template <typename Protocol, typename ListType, typename ElementWrite>
   std::size_t operator()(
@@ -771,10 +771,12 @@ struct ListEncodeImpl {
     std::size_t xfer = 0;
     xfer += prot.writeListBegin(ElemType, checked_container_size(list.size()));
 
-    if constexpr (should_process_as_arithmetic_vector_v<
-                      Protocol,
-                      std::integral_constant<TType, ElemType>,
-                      ListType>) {
+    if constexpr (
+        kMayWriteInBulk &&
+        should_process_as_arithmetic_vector_v<
+            Protocol,
+            std::integral_constant<TType, ElemType>,
+            ListType>) {
       xfer += prot.template writeArithmeticVector<ElemCppType>(
           list.data(), list.size());
     } else {
@@ -793,10 +795,14 @@ struct ListEncode {
   // noinline limits optimizer work for generated translation units with many
   // list fields.
   FOLLY_NOINLINE std::size_t operator()(Protocol& prot, const T& list) const {
-    return ListEncodeImpl<typeTagToTType<Tag>, type::native_type<Tag>>{}(
-        prot, list, [&](const auto& elem) {
-          return Encode<Tag>{}(prot, elem);
-        });
+    // An adapter must convert each element, so adapted elements are never
+    // written in bulk.
+    return ListEncodeImpl<
+        typeTagToTType<Tag>,
+        type::native_type<Tag>,
+        kIsUnadaptedNumber<Tag>>{}(prot, list, [&](const auto& elem) {
+      return Encode<Tag>{}(prot, elem);
+    });
   }
 };
 
@@ -1204,7 +1210,7 @@ struct Decode<type::enum_t<T>> {
   }
 };
 
-template <TType ElemType>
+template <TType ElemType, bool kMayReadInBulk = true>
 struct ListDecodeImpl {
   template <typename Protocol, typename ListType, typename ElementRead>
   void operator()(
@@ -1259,10 +1265,12 @@ struct ListDecodeImpl {
         auto outIt = list.begin();
         const auto outEnd = list.end();
         try {
-          if constexpr (should_process_as_arithmetic_vector_v<
-                            Protocol,
-                            std::integral_constant<TType, ElemType>,
-                            ListType>) {
+          if constexpr (
+              kMayReadInBulk &&
+              should_process_as_arithmetic_vector_v<
+                  Protocol,
+                  std::integral_constant<TType, ElemType>,
+                  ListType>) {
             prot.template readArithmeticVector<value_type>(
                 list.data(), list.size());
           } else {
@@ -1297,7 +1305,9 @@ template <typename Tag>
 struct Decode<type::list<Tag>> {
   template <typename Protocol, typename ListType>
   void operator()(Protocol& prot, ListType& list) const {
-    ListDecodeImpl<typeTagToTType<Tag>>{}(
+    // An adapter must convert each element, so adapted elements are never
+    // read in bulk.
+    ListDecodeImpl<typeTagToTType<Tag>, kIsUnadaptedNumber<Tag>>{}(
         prot, list, [&](auto&& elem) { Decode<Tag>{}(prot, elem); });
   }
 };

@@ -291,6 +291,20 @@ TEST(EncodeTest, ListWhoseDataIsNotAPointerWritesEachElement) {
   EXPECT_EQ(writer.elementWrites, 3u);
 }
 
+// Stores each value one less than its value on the wire.
+struct OffByOneAdapter {
+  static int32_t fromThrift(int32_t value) { return value - 1; }
+  static int32_t toThrift(int32_t value) { return value + 1; }
+};
+using OffByOneI32 = type::adapted<OffByOneAdapter, type::i32_t>;
+
+TEST(EncodeTest, ListOfAdaptedNumbersWritesEachElement) {
+  ArithmeticVectorWriter writer;
+  op::encode<type::list<OffByOneI32>>(writer, std::vector<int32_t>{1, 2, 3});
+  EXPECT_EQ(writer.bulkWrites, 0u);
+  EXPECT_EQ(writer.elementWrites, 3u);
+}
+
 struct ArithmeticVectorReader {
   struct Cursor {
     bool canAdvance(std::size_t) const { return true; }
@@ -358,6 +372,14 @@ TEST(DecodeTest, ListOfUnsupportedElementTypeReadsEachElement) {
   EXPECT_EQ(list, (std::vector<uint32_t>{7, 7, 7}));
   EXPECT_EQ(reader.bulkReads, 0u);
   EXPECT_EQ(reader.elementReads, 3u);
+}
+
+TEST(DecodeTest, ListOfAdaptedNumbersReadsEachElement) {
+  ArithmeticVectorReader reader;
+  std::vector<int32_t> list;
+  op::decode<type::list<OffByOneI32>>(reader, list);
+  EXPECT_EQ(list, (std::vector<int32_t>{6, 6, 6}));
+  EXPECT_EQ(reader.bulkReads, 0u);
 }
 
 TEST(EncodeTest, SetWideByteCounts) {
