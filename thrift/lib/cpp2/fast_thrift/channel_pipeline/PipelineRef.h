@@ -16,10 +16,12 @@
 
 #pragma once
 
+#include <glog/logging.h>
 #include <folly/ExceptionWrapper.h>
 #include <folly/io/async/EventBase.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Event.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineAdapter.h>
 
 #include <array>
 #include <concepts>
@@ -43,8 +45,7 @@ concept PipelineRefTarget = requires(
     folly::exception_wrapper&& exception,
     EventKey eventKey,
     BoundEventRoute route,
-    const void* payload,
-    std::size_t size) {
+    const void* payload) {
   typename P::Guard;
   { pipeline.fireRead(std::move(message)) } noexcept -> std::same_as<Result>;
   { pipeline.fireWrite(std::move(message)) } noexcept -> std::same_as<Result>;
@@ -56,8 +57,6 @@ concept PipelineRefTarget = requires(
   { pipeline.close() } noexcept -> std::same_as<void>;
   { pipeline.onReadReady() } noexcept -> std::same_as<void>;
   { pipeline.onWriteReady() } noexcept -> std::same_as<void>;
-  { pipeline.allocate(size) } noexcept -> std::same_as<BytesPtr>;
-  { pipeline.eventBase() } noexcept -> std::same_as<folly::EventBase*>;
   { pipeline.bindEvent(eventKey) } noexcept -> std::same_as<BoundEventRoute>;
   { pipeline.fireBoundEvent(route, payload) } noexcept -> std::same_as<void>;
 };
@@ -97,6 +96,21 @@ class PipelineRef {
     return ops_->fireWrite(instance_, std::move(message));
   }
 
+  // Registration requires an inactive, unguarded pipeline with adapter
+  // support. Rejection destroys the candidate and leaves the binding intact.
+  // Borrowed resources must outlive their use by the pipeline.
+  template <ReadAdapter A>
+  bool adaptRead(A adapter) const {
+    return ops_->adaptRead(
+        instance_, detail::AdapterStorage::forRead(std::move(adapter)));
+  }
+
+  template <WriteAdapter A>
+  bool adaptWrite(A adapter) const {
+    return ops_->adaptWrite(
+        instance_, detail::AdapterStorage::forWrite(std::move(adapter)));
+  }
+
   void fireException(folly::exception_wrapper&& exception) const noexcept {
     ops_->fireException(instance_, std::move(exception));
   }
@@ -107,10 +121,12 @@ class PipelineRef {
   void onReadReady() const noexcept { ops_->onReadReady(instance_); }
   void onWriteReady() const noexcept { ops_->onWriteReady(instance_); }
 
+  // Fails with CHECK when the target has no allocation capability.
   BytesPtr allocate(std::size_t size) const noexcept {
     return ops_->allocate(instance_, size);
   }
 
+  // Null when the target's execution domain has no EventBase.
   folly::EventBase* eventBase() const noexcept {
     return ops_->eventBase(instance_);
   }
@@ -125,6 +141,8 @@ class PipelineRef {
   struct Ops {
     Result (*fireRead)(void*, TypeErasedBox&&) noexcept;
     Result (*fireWrite)(void*, TypeErasedBox&&) noexcept;
+    bool (*adaptRead)(void*, detail::AdapterStorage) noexcept;
+    bool (*adaptWrite)(void*, detail::AdapterStorage) noexcept;
     void (*fireException)(void*, folly::exception_wrapper&&) noexcept;
     void (*activate)(void*) noexcept;
     void (*deactivate)(void*) noexcept;
@@ -154,6 +172,28 @@ class PipelineRef {
             +[](void* p, TypeErasedBox&& message) noexcept {
               return static_cast<P*>(p)->fireWrite(std::move(message));
             },
+        .adaptRead =
+            +[](void* p, detail::AdapterStorage adapter) noexcept {
+              if constexpr (requires(P& pipeline) {
+                              {
+                                pipeline.adaptRead(std::move(adapter))
+                              } noexcept -> std::same_as<bool>;
+                            }) {
+                return static_cast<P*>(p)->adaptRead(std::move(adapter));
+              }
+              return false;
+            },
+        .adaptWrite =
+            +[](void* p, detail::AdapterStorage adapter) noexcept {
+              if constexpr (requires(P& pipeline) {
+                              {
+                                pipeline.adaptWrite(std::move(adapter))
+                              } noexcept -> std::same_as<bool>;
+                            }) {
+                return static_cast<P*>(p)->adaptWrite(std::move(adapter));
+              }
+              return false;
+            },
         .fireException =
             +[](void* p, folly::exception_wrapper&& exception) noexcept {
               static_cast<P*>(p)->fireException(std::move(exception));
@@ -168,10 +208,27 @@ class PipelineRef {
             +[](void* p) noexcept { static_cast<P*>(p)->onWriteReady(); },
         .allocate =
             +[](void* p, std::size_t size) noexcept {
-              return static_cast<P*>(p)->allocate(size);
+              if constexpr (requires(P& pipeline) {
+                              {
+                                pipeline.allocate(size)
+                              } noexcept -> std::same_as<BytesPtr>;
+                            }) {
+                return static_cast<P*>(p)->allocate(size);
+              } else {
+                CHECK(false) << "pipeline has no allocation capability";
+                return BytesPtr{};
+              }
             },
-        .eventBase =
-            +[](void* p) noexcept { return static_cast<P*>(p)->eventBase(); },
+        .eventBase = +[](void* p) noexcept -> folly::EventBase* {
+          if constexpr (requires(P& pipeline) {
+                          {
+                            pipeline.eventBase()
+                          } noexcept -> std::same_as<folly::EventBase*>;
+                        }) {
+            return static_cast<P*>(p)->eventBase();
+          }
+          return nullptr;
+        },
         .bindEvent =
             +[](void* p, EventKey key) noexcept {
               return static_cast<P*>(p)->bindEvent(key);

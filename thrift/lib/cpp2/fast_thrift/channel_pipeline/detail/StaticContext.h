@@ -111,15 +111,43 @@ class StaticContext {
 
   Pipeline* pipeline() const noexcept { return pipeline_; }
 
-  BytesPtr allocate(std::size_t size) noexcept {
+  decltype(auto) taskState() noexcept
+    requires requires(Pipeline& p) { p.taskState(); }
+  {
+    return pipeline_->taskState();
+  }
+  decltype(auto) taskState() const noexcept
+    requires requires(const Pipeline& p) { p.taskState(); }
+  {
+    return std::as_const(*pipeline_).taskState();
+  }
+
+  decltype(auto) executionDomain() noexcept
+    requires requires(Pipeline& p) { p.executionDomain(); }
+  {
+    return pipeline_->executionDomain();
+  }
+  decltype(auto) executionDomain() const noexcept
+    requires requires(const Pipeline& p) { p.executionDomain(); }
+  {
+    return std::as_const(*pipeline_).executionDomain();
+  }
+
+  BytesPtr allocate(std::size_t size) noexcept
+    requires requires(Pipeline& p) { p.allocate(size); }
+  {
     return pipeline_->allocate(size);
   }
 
-  BytesPtr copyBuffer(const void* data, std::size_t size) noexcept {
+  BytesPtr copyBuffer(const void* data, std::size_t size) noexcept
+    requires requires(Pipeline& p) { p.copyBuffer(data, size); }
+  {
     return pipeline_->copyBuffer(data, size);
   }
 
-  folly::EventBase* eventBase() const noexcept {
+  folly::EventBase* eventBase() const noexcept
+    requires requires(Pipeline& p) { p.eventBase(); }
+  {
     return pipeline_->eventBase();
   }
 

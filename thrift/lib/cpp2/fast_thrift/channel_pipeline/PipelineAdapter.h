@@ -42,7 +42,7 @@ concept WriteAdapter = std::move_constructible<A> &&
       } noexcept -> std::same_as<Result>;
     };
 
-namespace detail::pipeline_instance {
+namespace detail {
 
 class AdapterStorage {
  public:
@@ -113,5 +113,5 @@ class AdapterStorage {
   const Ops* ops_{nullptr};
 };
 
-} // namespace detail::pipeline_instance
+} // namespace detail
 } // namespace apache::thrift::fast_thrift::channel_pipeline

@@ -19,7 +19,8 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/ExecutionDomain.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineFactory.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineInstance.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/StaticPipeline.h>
 
 #include <tuple>
 #include <type_traits>
@@ -39,7 +40,7 @@ namespace detail {
 template <typename H, HandlerId Id, typename... Args>
 class SpecHandlerFactory {
  public:
-  using Spec = pipeline_instance::HandlerSpec<H, Id>;
+  using Spec = StaticHandlerSpec<H, Id, StaticHandlerDirection::Automatic>;
 
   template <typename... Input>
     requires(sizeof...(Input) == sizeof...(Args))
@@ -75,7 +76,7 @@ struct SpecRebindTag {};
  *       .add<TransportHandler>(transport_tag)   // first = head
  *       .add<FramingHandler>(framing_tag)
  *       .add<RequestHandler>(request_tag);      // last = tail
- *   PipelineInstance::Ptr conn = spec.build(Rocket{.socket = sock},
+ *   PipelineOwner conn = spec.build(Rocket{.socket = sock},
  * InlineExecution{});
  *
  * build() is const and reusable: the blueprint is copied and consumed into a
@@ -120,16 +121,23 @@ class PipelineSpec {
    * State and execution-domain values are supplied per instance. Both
    * outlive the handler objects during teardown.
    */
-  PipelineInstance::Ptr build(TaskState taskState, Domain domain) const {
+  PipelineOwner build(TaskState taskState, Domain domain) const {
     static_assert(
         sizeof...(Entry) >= 1, "a pipeline needs at least one handler");
-    using ImplT =
-        PipelineInstance::Impl<TaskState, Domain, typename Entry::Spec...>;
+    using ImplT = detail::StaticPipelineImpl<
+        detail::NoStaticPipelineEndpoint,
+        detail::NoStaticPipelineEndpoint,
+        detail::NoStaticPipelineEndpoint,
+        std::tuple<>,
+        detail::NoErasedStaticHandlers,
+        detail::SpecPipelinePolicy<TaskState, Domain>,
+        typename Entry::Spec...>;
     auto blueprint = factories_;
-    typename ImplT::Ptr pipeline(
-        new ImplT(std::move(taskState), std::move(domain), blueprint));
+    typename ImplT::Ptr pipeline(new ImplT(
+        typename ImplT::Resources(std::move(taskState), std::move(domain)),
+        blueprint));
     pipeline->finishBuild();
-    return PipelineInstance::Ptr(std::move(pipeline));
+    return PipelineOwner(std::move(pipeline));
   }
 
   /**

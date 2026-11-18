@@ -77,6 +77,8 @@ class ThriftClientAppAdapter : public folly::DelayedDestruction,
 
   void setPipeline(channel_pipeline::PipelineRef pipeline) {
     DCHECK(pipeline);
+    CHECK(pipeline.eventBase() != nullptr)
+        << "ThriftClientAppAdapter requires a pipeline EventBase";
     if (pipeline_) {
       XLOG(FATAL) << "must reset pipeline before setting a new one";
     }

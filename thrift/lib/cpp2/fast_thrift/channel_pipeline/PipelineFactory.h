@@ -18,7 +18,7 @@
 
 #include <folly/Function.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/ExecutionDomain.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineInstance.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
 
 #include <concepts>
 #include <utility>
@@ -46,14 +46,14 @@ class PipelineFactory {
           return spec.build(std::move(taskState), std::move(domain));
         }) {}
 
-  PipelineInstance::Ptr create(TaskState taskState, Domain domain) const {
+  PipelineOwner create(TaskState taskState, Domain domain) const {
     return create_(std::move(taskState), std::move(domain));
   }
 
   explicit operator bool() const noexcept { return static_cast<bool>(create_); }
 
  private:
-  folly::Function<PipelineInstance::Ptr(TaskState, Domain) const> create_;
+  folly::Function<PipelineOwner(TaskState, Domain) const> create_;
 };
 
 } // namespace apache::thrift::fast_thrift::channel_pipeline

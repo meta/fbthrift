@@ -104,6 +104,8 @@ void ThriftServerCompositeAppAdapter::onException(
 
 void ThriftServerCompositeAppAdapter::setPipeline(
     channel_pipeline::PipelineRef pipeline) noexcept {
+  CHECK(pipeline.eventBase() != nullptr)
+      << "ThriftServerCompositeAppAdapter requires a pipeline EventBase";
   pipeline_ = pipeline;
   pipelineGuard_ = pipeline_.guard();
   for (auto& child : children_) {

@@ -55,6 +55,8 @@ void ThriftServerAppAdapter::setCloseCallback(std::function<void()> cb) {
 void ThriftServerAppAdapter::setPipeline(
     channel_pipeline::PipelineRef pipeline) noexcept {
   DCHECK(pipeline);
+  CHECK(pipeline.eventBase() != nullptr)
+      << "ThriftServerAppAdapter requires a pipeline EventBase";
   pipeline_ = pipeline;
   pipelineGuard_ = pipeline_.guard();
   pipelineActive_ = true;

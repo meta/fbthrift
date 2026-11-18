@@ -108,6 +108,8 @@ class ThriftServerTransportAdapter {
 
   void setPipeline(channel_pipeline::PipelineRef pipeline) noexcept {
     DCHECK(pipeline);
+    CHECK(pipeline.eventBase() != nullptr)
+        << "ThriftServerTransportAdapter requires a pipeline EventBase";
     if (pipeline_) {
       XLOG(FATAL) << "must reset pipeline before setting a new one";
     }

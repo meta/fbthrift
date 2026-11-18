@@ -17,10 +17,11 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/ExecutionDomain.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineAdapter.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineFactory.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineInstance.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineSpec.h>
 
 #include <concepts>
+#include <cstddef>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -43,10 +44,11 @@ namespace apache::thrift::fast_thrift::channel_pipeline {
 namespace {
 
 // Observation point owned by the test. The built pipeline is held through the
-// erased PipelineInstance::Ptr, which exposes no typed state accessor, so
+// erased PipelineOwner, which exposes no typed state accessor, so
 // handlers record into counters the test owns (reached via the TaskState)
 // rather than the test reading pipeline internals.
 struct Counters {
+  std::size_t pipelineSize{0};
   int added{0};
   int active{0};
   int readsAtTail{0};
@@ -255,10 +257,10 @@ constexpr bool kHasAllocator = requires(T& value) { value.allocate(0); };
 template <typename T>
 constexpr bool kHasEventBase = requires(T& value) { value.eventBase(); };
 
-static_assert(!kHasAllocator<PipelineInstance::Ref>);
-static_assert(!kHasEventBase<PipelineInstance::Ref>);
+static_assert(kHasAllocator<PipelineRef>);
+static_assert(kHasEventBase<PipelineRef>);
 
-PipelineInstance::Ptr makePipeline(Counters& counters) {
+PipelineOwner makePipeline(Counters& counters) {
   return PipelineSpec<EchoTaskState, InlineExecution>{}
       .add<HeadHandler>(head_tag)
       .add<MiddleHandler>(mid_tag)
@@ -266,27 +268,56 @@ PipelineInstance::Ptr makePipeline(Counters& counters) {
       .build(EchoTaskState{.counters = &counters}, InlineExecution{});
 }
 
-TEST(PipelineInstanceTest, BuildYieldsErasedOwner) {
-  static_assert(std::same_as<PipelineInstance::Ptr, PipelineInstanceOwner>);
+struct PipelineSizeHandler : MiddleHandler {
+  template <typename C>
+  void handlerAdded(C& ctx) noexcept {
+    CountingBase::handlerAdded(ctx);
+    ctx.taskState().counters->pipelineSize = sizeof(*ctx.pipeline());
+  }
+};
+
+TEST(PipelineSpecTest, ThreeHandlerSpecFits128ByteAllocation) {
+  if constexpr (sizeof(void*) != 8) {
+    GTEST_SKIP() << "Allocation budget applies to 64-bit pipelines";
+  }
   Counters counters;
-  PipelineInstance::Ptr pipeline = makePipeline(counters);
+  auto pipeline = PipelineSpec<EchoTaskState, InlineExecution>{}
+                      .add<HeadHandler>(head_tag)
+                      .add<PipelineSizeHandler>(mid_tag)
+                      .add<TailHandler>(tail_tag)
+                      .build({&counters}, InlineExecution{});
+  EXPECT_LE(counters.pipelineSize, 128);
+}
+
+TEST(PipelineSpecTest, BuildYieldsErasedOwner) {
+  Counters counters;
+  PipelineOwner pipeline = makePipeline(counters);
   EXPECT_TRUE(static_cast<bool>(pipeline));
 }
 
-TEST(PipelineInstanceTest, HandlerAddedRunsOverEveryHandler) {
+TEST(PipelineSpecTest, InlinePipelineHasNoResourceCapabilities) {
+  Counters counters;
+  auto pipeline = makePipeline(counters);
+  EXPECT_EQ(pipeline->eventBase(), nullptr);
+  EXPECT_DEATH(
+      static_cast<void>(pipeline->allocate(1)),
+      "pipeline has no allocation capability");
+}
+
+TEST(PipelineSpecTest, HandlerAddedRunsOverEveryHandler) {
   Counters counters;
   auto pipeline = makePipeline(counters);
   EXPECT_EQ(counters.added, 3);
 }
 
-TEST(PipelineInstanceTest, ActivateRunsOverEveryHandler) {
+TEST(PipelineSpecTest, ActivateRunsOverEveryHandler) {
   Counters counters;
   auto pipeline = makePipeline(counters);
   pipeline->activate();
   EXPECT_EQ(counters.active, 3);
 }
 
-TEST(PipelineInstanceTest, ReadFlowsToTail) {
+TEST(PipelineSpecTest, ReadFlowsToTail) {
   Counters counters;
   auto pipeline = makePipeline(counters);
   pipeline->activate();
@@ -295,7 +326,7 @@ TEST(PipelineInstanceTest, ReadFlowsToTail) {
   EXPECT_EQ(counters.writesAtHead, 0);
 }
 
-TEST(PipelineInstanceTest, WriteFlowsToHead) {
+TEST(PipelineSpecTest, WriteFlowsToHead) {
   Counters counters;
   auto pipeline = makePipeline(counters);
   pipeline->activate();
@@ -306,16 +337,16 @@ TEST(PipelineInstanceTest, WriteFlowsToHead) {
 
 // One spec builds more than once: build() is const and reusable, copying the
 // blueprint each time, so two independent pipelines result.
-TEST(PipelineInstanceTest, SpecBuildsMoreThanOnce) {
+TEST(PipelineSpecTest, SpecBuildsMoreThanOnce) {
   auto spec = PipelineSpec<EchoTaskState, InlineExecution>{}
                   .add<HeadHandler>(head_tag)
                   .add<MiddleHandler>(mid_tag)
                   .add<TailHandler>(tail_tag);
   Counters a;
   Counters b;
-  PipelineInstance::Ptr p1 =
+  PipelineOwner p1 =
       spec.build(EchoTaskState{.counters = &a}, InlineExecution{});
-  PipelineInstance::Ptr p2 =
+  PipelineOwner p2 =
       spec.build(EchoTaskState{.counters = &b}, InlineExecution{});
   EXPECT_TRUE(static_cast<bool>(p1));
   EXPECT_TRUE(static_cast<bool>(p2));
@@ -325,9 +356,9 @@ TEST(PipelineInstanceTest, SpecBuildsMoreThanOnce) {
 
 // Firing past the tail (a forwarding tail) crosses the seam, which is unbound
 // on this base and returns Error rather than crashing.
-TEST(PipelineInstanceTest, ForwardPastTailHitsUnboundSeam) {
+TEST(PipelineSpecTest, ForwardPastTailHitsUnboundSeam) {
   Counters counters;
-  PipelineInstance::Ptr pipeline =
+  PipelineOwner pipeline =
       PipelineSpec<EchoTaskState, InlineExecution>{}
           .add<HeadHandler>(head_tag)
           .add<MiddleHandler>(tail_tag) // forwards past the end
@@ -369,11 +400,10 @@ struct StatelessEcho {
   }
 };
 
-TEST(PipelineInstanceTest, StatelessTaskStateBuildsAndRuns) {
-  PipelineInstance::Ptr pipeline =
-      PipelineSpec<StatelessTaskState, InlineExecution>{}
-          .add<StatelessEcho>(head_tag)
-          .build(StatelessTaskState{}, InlineExecution{});
+TEST(PipelineSpecTest, StatelessTaskStateBuildsAndRuns) {
+  PipelineOwner pipeline = PipelineSpec<StatelessTaskState, InlineExecution>{}
+                               .add<StatelessEcho>(head_tag)
+                               .build(StatelessTaskState{}, InlineExecution{});
   pipeline->activate();
   EXPECT_EQ(pipeline->fireRead(TypeErasedBox{}), Result::Success);
 }
@@ -418,9 +448,7 @@ struct LifetimeReadAdapter {
   Result adaptRead(TypeErasedBox&&) noexcept { return Result::Success; }
 };
 
-TEST(
-    PipelineInstanceTest,
-    GuardRetainsAdaptersAndStateThroughHandlerDestruction) {
+TEST(PipelineSpecTest, GuardRetainsAdaptersAndStateThroughHandlerDestruction) {
   std::vector<std::string> lifetime;
   auto pipeline = PipelineSpec<OwnedTaskState, InlineExecution>{}
                       .add<ResourceLifetimeHandler>(head_tag)
@@ -471,9 +499,9 @@ struct ReadOnlyTail : CountingBase {
 // One-direction handlers are each skipped on their opposite path: a read
 // reaches the inbound-only tail past the outbound-only head, and a write
 // reaches the outbound-only head past the inbound-only tail.
-TEST(PipelineInstanceTest, AsymmetricHandlersSkipOppositeDirection) {
+TEST(PipelineSpecTest, AsymmetricHandlersSkipOppositeDirection) {
   Counters counters;
-  PipelineInstance::Ptr pipeline =
+  PipelineOwner pipeline =
       PipelineSpec<EchoTaskState, InlineExecution>{}
           .add<WriteOnlyHead>(head_tag)
           .add<ReadOnlyTail>(tail_tag)
@@ -522,7 +550,7 @@ struct EventBaseReadAdapter {
   }
 };
 
-TEST(PipelineInstanceTest, ReadAdapterCanQueueDeliveryOnExternalEventBase) {
+TEST(PipelineSpecTest, ReadAdapterCanQueueDeliveryOnExternalEventBase) {
   MessageSink sink;
   folly::EventBase eventBase;
   auto factory = PipelineSpec<StatelessTaskState, InlineExecution>{}
@@ -556,7 +584,7 @@ struct ExecutorReadAdapter {
   }
 };
 
-TEST(PipelineInstanceTest, FactoryInstancesCanBindDifferentExecutorAdapters) {
+TEST(PipelineSpecTest, FactoryInstancesCanBindDifferentExecutorAdapters) {
   MessageSink a;
   MessageSink b;
   folly::ManualExecutor executorA;
@@ -611,7 +639,7 @@ struct AllocatingTail : StatelessEcho {
   }
 };
 
-TEST(PipelineInstanceTest, FactoryUsesEachTaskStatesAllocator) {
+TEST(PipelineSpecTest, FactoryUsesEachTaskStatesAllocator) {
   int copiesA{0};
   int copiesB{0};
   BytesPtr receivedA;
@@ -661,7 +689,7 @@ struct CollectingEndpoint : StatelessEcho {
 
 struct ForwardingReadAdapter {
   // The destination owner must outlive this adapter's use of the reference.
-  PipelineInstance::Ref destination;
+  PipelineRef destination;
   std::unique_ptr<int> calls;
 
   Result adaptRead(TypeErasedBox&& msg) noexcept {
@@ -671,7 +699,7 @@ struct ForwardingReadAdapter {
 };
 
 struct ForwardingWriteAdapter {
-  PipelineInstance::Ref destination;
+  PipelineRef destination;
   std::unique_ptr<int> calls;
 
   Result adaptWrite(TypeErasedBox&& msg) noexcept {
@@ -694,7 +722,7 @@ struct WrongResultWriteAdapter {
 static_assert(!ReadAdapter<ThrowingReadAdapter>);
 static_assert(!WriteAdapter<WrongResultWriteAdapter>);
 
-TEST(PipelineInstanceTest, ReadAdapterContinuesMessagesToAnotherPipeline) {
+TEST(PipelineSpecTest, ReadAdapterContinuesMessagesToAnotherPipeline) {
   MessageSink reads;
   MessageSink writes;
   auto destination =
@@ -725,7 +753,7 @@ TEST(PipelineInstanceTest, ReadAdapterContinuesMessagesToAnotherPipeline) {
   EXPECT_TRUE(writes.messages.empty());
 }
 
-TEST(PipelineInstanceTest, WriteAdapterContinuesMessagesToAnotherPipeline) {
+TEST(PipelineSpecTest, WriteAdapterContinuesMessagesToAnotherPipeline) {
   MessageSink reads;
   MessageSink writes;
   auto destination =
@@ -783,7 +811,7 @@ struct CountingAdapter {
   }
 };
 
-TEST(PipelineInstanceTest, ReadAndWriteAdaptersOwnIndependentMoveOnlyState) {
+TEST(PipelineSpecTest, ReadAndWriteAdaptersOwnIndependentMoveOnlyState) {
   AdapterObservation reads;
   AdapterObservation writes;
   auto pipeline = PipelineSpec<StatelessTaskState, InlineExecution>{}
@@ -814,8 +842,7 @@ TEST(PipelineInstanceTest, ReadAndWriteAdaptersOwnIndependentMoveOnlyState) {
   EXPECT_EQ(writes.destroyed, 1);
 }
 
-TEST(
-    PipelineInstanceTest, InactiveInstanceCanReplaceAdapterAfterGuardsRelease) {
+TEST(PipelineSpecTest, InactiveInstanceCanReplaceAdapterAfterGuardsRelease) {
   AdapterObservation original;
   AdapterObservation replacement;
   AdapterObservation rejected;
@@ -841,7 +868,7 @@ TEST(
   EXPECT_EQ(replacement.destroyed, 1);
 }
 
-TEST(PipelineInstanceTest, ActiveAndClosedInstancesRejectAdapters) {
+TEST(PipelineSpecTest, ActiveAndClosedInstancesRejectAdapters) {
   AdapterObservation original;
   AdapterObservation rejected;
   auto pipeline = PipelineSpec<StatelessTaskState, InlineExecution>{}
@@ -870,7 +897,7 @@ TEST(PipelineInstanceTest, ActiveAndClosedInstancesRejectAdapters) {
 }
 
 struct RebindingReadAdapter {
-  PipelineInstance::Ref pipeline;
+  PipelineRef pipeline;
   AdapterObservation* candidate;
   bool* accepted;
 
@@ -881,7 +908,7 @@ struct RebindingReadAdapter {
   }
 };
 
-TEST(PipelineInstanceTest, AdapterCannotReplaceItselfDuringDispatch) {
+TEST(PipelineSpecTest, AdapterCannotReplaceItselfDuringDispatch) {
   AdapterObservation candidate;
   bool accepted{true};
   auto pipeline = PipelineSpec<StatelessTaskState, InlineExecution>{}
@@ -899,7 +926,7 @@ TEST(PipelineInstanceTest, AdapterCannotReplaceItselfDuringDispatch) {
 }
 
 struct ReleasingReadAdapter {
-  PipelineInstance::Ptr* owner;
+  PipelineOwner* owner;
   std::unique_ptr<AdapterResource> resource;
 
   Result adaptRead(TypeErasedBox&&) noexcept {
@@ -909,7 +936,7 @@ struct ReleasingReadAdapter {
   }
 };
 
-TEST(PipelineInstanceTest, AdapterSurvivesOwnerReleaseInsideCallback) {
+TEST(PipelineSpecTest, AdapterSurvivesOwnerReleaseInsideCallback) {
   std::vector<std::string> lifetime;
   auto pipeline = PipelineSpec<StatelessTaskState, InlineExecution>{}
                       .add<ForwardingHandler>(head_tag)
@@ -925,13 +952,13 @@ TEST(PipelineInstanceTest, AdapterSurvivesOwnerReleaseInsideCallback) {
 }
 
 struct OwningReadAdapter {
-  PipelineInstance::Ptr destination;
+  PipelineOwner destination;
   Result adaptRead(TypeErasedBox&& msg) noexcept {
     return destination->fireRead(std::move(msg));
   }
 };
 
-TEST(PipelineInstanceTest, AdapterCanOwnDestinationPipeline) {
+TEST(PipelineSpecTest, AdapterCanOwnDestinationPipeline) {
   MessageSink reads;
   MessageSink writes;
   auto destination = PipelineSpec<SinkTaskState, InlineExecution>{}
@@ -953,7 +980,7 @@ TEST(PipelineInstanceTest, AdapterCanOwnDestinationPipeline) {
 
 struct RoutedRequest {
   std::unique_ptr<int> payload;
-  PipelineInstance::Ref replyTo;
+  PipelineRef replyTo;
 };
 static_assert(sizeof(RoutedRequest) <= 120);
 static_assert(alignof(RoutedRequest) <= 8);
@@ -997,8 +1024,8 @@ struct ConnectionHandler : ForwardingHandler {
 };
 
 struct RequestRouter {
-  PipelineInstance::Ref application;
-  PipelineInstance::Ref replyTo;
+  PipelineRef application;
+  PipelineRef replyTo;
 
   Result adaptRead(TypeErasedBox&& msg) noexcept {
     return application.fireRead(erase_and_box(
@@ -1016,9 +1043,7 @@ struct ReplyRouter {
   }
 };
 
-TEST(
-    PipelineInstanceTest,
-    SharedApplicationRoutesOutOfOrderRepliesToConnections) {
+TEST(PipelineSpecTest, SharedApplicationRoutesOutOfOrderRepliesToConnections) {
   std::vector<int> order;
   MessageSink repliesA;
   MessageSink repliesB;
@@ -1064,7 +1089,7 @@ TEST(
 // concept (consistent with the other pipelines): an outbound-only handler is
 // skipped even though it implements onException, and the exception reaches the
 // first inbound handler.
-TEST(PipelineInstanceTest, ExceptionSkipsOutboundOnlyHandler) {
+TEST(PipelineSpecTest, ExceptionSkipsOutboundOnlyHandler) {
   Counters counters;
   auto pipeline =
       PipelineSpec<EchoTaskState, InlineExecution>{}
@@ -1080,7 +1105,7 @@ TEST(PipelineInstanceTest, ExceptionSkipsOutboundOnlyHandler) {
 
 // A handler that armed write-readiness is woken by onWriteReady(), and once it
 // cancels it is not woken again.
-TEST(PipelineInstanceTest, WriteReadyNotifiesArmedHandler) {
+TEST(PipelineSpecTest, WriteReadyNotifiesArmedHandler) {
   Counters counters;
   auto pipeline =
       PipelineSpec<EchoTaskState, InlineExecution>{}
@@ -1102,7 +1127,7 @@ TEST(PipelineInstanceTest, WriteReadyNotifiesArmedHandler) {
   EXPECT_EQ(counters.writeReady, 1);
 }
 
-TEST(PipelineInstanceTest, ReadAndWriteReadinessAreIndependentInOneHandler) {
+TEST(PipelineSpecTest, ReadAndWriteReadinessAreIndependentInOneHandler) {
   Counters counters;
   auto pipeline =
       PipelineSpec<EchoTaskState, InlineExecution>{}
@@ -1133,7 +1158,7 @@ TEST(PipelineInstanceTest, ReadAndWriteReadinessAreIndependentInOneHandler) {
 
 // The read-side mirror: a handler that armed read-readiness is woken by
 // onReadReady(), and once it cancels it is not woken again.
-TEST(PipelineInstanceTest, ReadReadyNotifiesArmedHandler) {
+TEST(PipelineSpecTest, ReadReadyNotifiesArmedHandler) {
   Counters counters;
   auto pipeline =
       PipelineSpec<EchoTaskState, InlineExecution>{}
@@ -1155,7 +1180,7 @@ TEST(PipelineInstanceTest, ReadReadyNotifiesArmedHandler) {
 }
 
 // An in-pipeline publisher's fireEvent reaches a subscribing handler.
-TEST(PipelineInstanceTest, EventBroadcastsToSubscriber) {
+TEST(PipelineSpecTest, EventBroadcastsToSubscriber) {
   Counters counters;
   auto pipeline =
       PipelineSpec<EchoTaskState, InlineExecution>{}
@@ -1170,7 +1195,7 @@ TEST(PipelineInstanceTest, EventBroadcastsToSubscriber) {
 
 // An erased factory stamps out independent pipelines from one spec; traffic on
 // one does not touch another.
-TEST(PipelineInstanceTest, FactoryStampsIndependentPipelines) {
+TEST(PipelineSpecTest, FactoryStampsIndependentPipelines) {
   PipelineFactory<EchoTaskState, InlineExecution> factory =
       PipelineSpec<EchoTaskState, InlineExecution>{}
           .add<HeadHandler>(head_tag)
@@ -1180,9 +1205,9 @@ TEST(PipelineInstanceTest, FactoryStampsIndependentPipelines) {
   EXPECT_TRUE(static_cast<bool>(factory));
   Counters a;
   Counters b;
-  PipelineInstance::Ptr p1 =
+  PipelineOwner p1 =
       factory.create(EchoTaskState{.counters = &a}, InlineExecution{});
-  PipelineInstance::Ptr p2 =
+  PipelineOwner p2 =
       factory.create(EchoTaskState{.counters = &b}, InlineExecution{});
   p1->activate();
   EXPECT_EQ(p1->fireRead(TypeErasedBox{}), Result::Success);
@@ -1207,7 +1232,7 @@ static_assert(!std::is_copy_constructible_v<
 
 // operator bool() reports whether the factory holds a create thunk: false when
 // default-constructed, true once produced from a spec.
-TEST(PipelineInstanceTest, DefaultFactoryIsEmptyBuiltFactoryIsNot) {
+TEST(PipelineSpecTest, DefaultFactoryIsEmptyBuiltFactoryIsNot) {
   PipelineFactory<EchoTaskState, InlineExecution> empty;
   EXPECT_FALSE(static_cast<bool>(empty));
 
@@ -1222,7 +1247,7 @@ TEST(PipelineInstanceTest, DefaultFactoryIsEmptyBuiltFactoryIsNot) {
 // constructor would shadow the move constructor if unconstrained) uses the real
 // move constructor: the moved-to factory still stamps working pipelines and the
 // moved-from factory is left empty.
-TEST(PipelineInstanceTest, MovedFactoryStillStampsPipelines) {
+TEST(PipelineSpecTest, MovedFactoryStillStampsPipelines) {
   PipelineFactory<EchoTaskState, InlineExecution> factory =
       PipelineSpec<EchoTaskState, InlineExecution>{}
           .add<HeadHandler>(head_tag)
@@ -1234,7 +1259,7 @@ TEST(PipelineInstanceTest, MovedFactoryStillStampsPipelines) {
   EXPECT_FALSE(static_cast<bool>(factory)); // NOLINT(bugprone-use-after-move)
 
   Counters counters;
-  PipelineInstance::Ptr pipeline =
+  PipelineOwner pipeline =
       moved.create(EchoTaskState{.counters = &counters}, InlineExecution{});
   pipeline->activate();
   EXPECT_EQ(pipeline->fireRead(TypeErasedBox{}), Result::Success);
@@ -1243,7 +1268,7 @@ TEST(PipelineInstanceTest, MovedFactoryStillStampsPipelines) {
 
 // An external publisher reaches the subscriber through the erased handle's
 // bindEvents/fireBoundEvent path.
-TEST(PipelineInstanceTest, ExternalPublisherReachesSubscriber) {
+TEST(PipelineSpecTest, ExternalPublisherReachesSubscriber) {
   Counters counters;
   auto pipeline =
       PipelineSpec<EchoTaskState, InlineExecution>{}
@@ -1286,7 +1311,7 @@ struct InlineResultHandler : StatelessEcho {
   }
 };
 
-TEST(PipelineInstanceTest, InlineExecutionReturnsHandlerResultSynchronously) {
+TEST(PipelineSpecTest, InlineExecutionReturnsHandlerResultSynchronously) {
   for (auto result : {Result::Success, Result::Backpressure, Result::Error}) {
     int calls{0};
     const InlineExecution* observedDomain{nullptr};
@@ -1307,7 +1332,7 @@ TEST(PipelineInstanceTest, InlineExecutionReturnsHandlerResultSynchronously) {
   }
 }
 
-TEST(PipelineInstanceTest, FactoryErasesDifferentHandlerCompositions) {
+TEST(PipelineSpecTest, FactoryErasesDifferentHandlerCompositions) {
   PipelineFactory<EchoTaskState, InlineExecution> twoHandlers =
       PipelineSpec<EchoTaskState, InlineExecution>{}
           .add<HeadHandler>(head_tag)
@@ -1332,6 +1357,89 @@ TEST(PipelineInstanceTest, FactoryErasesDifferentHandlerCompositions) {
   EXPECT_EQ(b.readsAtTail, 0);
   EXPECT_EQ(p2->fireRead(TypeErasedBox{}), Result::Success);
   EXPECT_EQ(b.readsAtTail, 1);
+}
+
+template <std::size_t Count>
+auto largeSpec() {
+  if constexpr (Count == 0) {
+    return PipelineSpec<EchoTaskState, InlineExecution>{};
+  } else {
+    return largeSpec<Count - 1>().template add<DuplexBackpressureHandler>(
+        HandlerTag<Count>{});
+  }
+}
+
+TEST(PipelineSpecTest, ReadinessSupportsMoreThan63Handlers) {
+  Counters counters;
+  auto pipeline = largeSpec<64>().add<TailHandler>(tail_tag).build(
+      {&counters}, InlineExecution{});
+  pipeline->activate();
+  EXPECT_EQ(counters.added, 65);
+  EXPECT_EQ(pipeline->fireRead(TypeErasedBox{}), Result::Success);
+  EXPECT_EQ(pipeline->fireWrite(TypeErasedBox{}), Result::Error);
+  EXPECT_EQ(counters.readArmed, 64);
+  EXPECT_EQ(counters.writeArmed, 64);
+  pipeline->onReadReady();
+  pipeline->onWriteReady();
+  EXPECT_EQ(counters.readReady, 64);
+  EXPECT_EQ(counters.writeReady, 64);
+  pipeline->onReadReady();
+  pipeline->onWriteReady();
+  EXPECT_EQ(counters.readReady, 64);
+  EXPECT_EQ(counters.writeReady, 64);
+}
+
+struct ReadyTaskState {
+  std::vector<int>* order;
+  PipelineRef* pipeline;
+};
+
+struct RearmingHandler : ForwardingHandler {
+  ReadyMarker readReadyHook_;
+  int id;
+  bool reenter;
+  bool first{true};
+
+  RearmingHandler(int id, bool reenter) : id(id), reenter(reenter) {}
+
+  template <typename C>
+  Result onRead(C& ctx, TypeErasedBox&& msg) noexcept {
+    ctx.awaitReadReady();
+    return ctx.fireRead(std::move(msg));
+  }
+  template <typename C>
+  void onReadReady(C& ctx) noexcept {
+    ctx.taskState().order->push_back(id);
+    ctx.cancelAwaitReadReady();
+    if (std::exchange(first, false)) {
+      ctx.awaitReadReady();
+      if (reenter) {
+        ctx.taskState().pipeline->onReadReady();
+      }
+    }
+  }
+};
+
+TEST(PipelineSpecTest, RearmingWaiterRunsOncePerPassInRegistrationOrder) {
+  for (bool reenter : {false, true}) {
+    std::vector<int> order;
+    PipelineRef ref;
+    auto pipeline = PipelineSpec<ReadyTaskState, InlineExecution>{}
+                        .add<RearmingHandler>(head_tag, 1, reenter)
+                        .add<RearmingHandler>(tail_tag, 2, false)
+                        .build({&order, &ref}, InlineExecution{});
+    ref = pipeline.ref();
+    pipeline->activate();
+    EXPECT_EQ(pipeline->fireRead(TypeErasedBox{}), Result::Error);
+    pipeline->onReadReady();
+    EXPECT_EQ(
+        order,
+        reenter ? (std::vector<int>{1, 2, 1, 2}) : (std::vector<int>{1, 2}));
+    pipeline->onReadReady();
+    EXPECT_EQ(order, (std::vector<int>{1, 2, 1, 2}));
+    pipeline->onReadReady();
+    EXPECT_EQ(order, (std::vector<int>{1, 2, 1, 2}));
+  }
 }
 
 } // namespace

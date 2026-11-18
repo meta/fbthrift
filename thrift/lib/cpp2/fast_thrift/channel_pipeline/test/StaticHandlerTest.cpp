@@ -206,5 +206,19 @@ TEST(StaticHandlerTest, EmptyHandlerAddsOnlyPipelinePointer) {
   EXPECT_EQ(sizeof(Slot), sizeof(void*));
 }
 
+struct UniformPipeline : FakePipeline {
+  static constexpr bool kUniformHandlers = true;
+};
+
+TEST(
+    StaticHandlerTest,
+    UniformHandlerWithoutReadyMarkersAddsOnlyPipelinePointer) {
+  struct EmptyHandler {};
+  using Slot = detail::
+      StaticHandler<EmptyHandler, kHandlerId, UniformPipeline, kHandlerIndex>;
+
+  EXPECT_EQ(sizeof(Slot), sizeof(void*));
+}
+
 } // namespace
 } // namespace apache::thrift::fast_thrift::channel_pipeline::test
