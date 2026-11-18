@@ -123,7 +123,9 @@ class StaticSegmentSlot<Segment, Index, StaticSegmentEntry<H, Args...>> {
   using Entry = StaticSegmentEntry<H, Args...>;
 
   explicit StaticSegmentSlot(Segment* segment, const Entry& entry)
-      : StaticSegmentSlot(segment, entry, std::index_sequence_for<Args...>{}) {}
+      : StaticSegmentSlot(segment, entry, std::index_sequence_for<Args...>{}) {
+    checkReadyCallbacks<Handler, Context>();
+  }
 
   Handler& handler() noexcept { return handler_; }
   Context& context() noexcept { return context_; }
@@ -317,7 +319,7 @@ class TypedStaticSegmentImpl<std::index_sequence<Index...>, IdStorage, Entry...>
     dispatchVoidAt<0>(index, []<typename S>(S& slot) {
       using H = typename S::Handler;
       using Context = typename S::Context;
-      if constexpr (OutboundHandler<H, Context>) {
+      if constexpr (WriteReadyHandler<H, Context>) {
         slot.handler().onWriteReady(slot.context());
       }
     });
@@ -326,7 +328,7 @@ class TypedStaticSegmentImpl<std::index_sequence<Index...>, IdStorage, Entry...>
     dispatchVoidAt<0>(index, []<typename S>(S& slot) {
       using H = typename S::Handler;
       using Context = typename S::Context;
-      if constexpr (InboundHandler<H, Context>) {
+      if constexpr (ReadReadyHandler<H, Context>) {
         slot.handler().onReadReady(slot.context());
       }
     });
@@ -425,9 +427,9 @@ class TypedStaticSegmentImpl<std::index_sequence<Index...>, IdStorage, Entry...>
       using H = typename Slot<I>::Handler;
       using Context = typename Slot<I>::Context;
       if constexpr (Write) {
-        return OutboundHandler<H, Context>;
+        return WriteReadyHandler<H, Context>;
       } else {
-        return InboundHandler<H, Context>;
+        return ReadReadyHandler<H, Context>;
       }
     } else {
       return handlesReadyAt<Write, I + 1>(index);

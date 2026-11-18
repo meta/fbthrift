@@ -771,12 +771,26 @@ Option 3 requires a mechanism to notify the handler when it can resume sending.
 
 ### Solution: Write Ready Callbacks
 
-Every outbound handler has `onWriteReady()`, so every outbound handler can ask
-for it with `ctx.awaitWriteReady()`. When a handler is added, the pipeline
-finds out at compile time whether it satisfies `OutboundHandler`. Any other
-handler still builds, and its `ctx.awaitWriteReady()` does nothing and reports
-nothing, also when the handler has `onWriteReady()`. Registration and
+Any handler with `onWriteReady()` can ask for it with `ctx.awaitWriteReady()`,
+whatever its direction. Every outbound handler has it. An inbound handler that
+answers a request with `ctx.fireWrite()` can add it, and wait when that write
+returns `Backpressure`. When a handler is added, the pipeline finds out at
+compile time whether it has `onWriteReady()`. A handler without it still
+builds, and its `ctx.awaitWriteReady()` does nothing and reports nothing. A
+handler with `onWriteReady()` in another form than
+`void onWriteReady(Context&) noexcept`, or with `onReadReady()` in another form
+than `void onReadReady(Context&) noexcept`, does not build. Registration and
 unregistration cost O(1).
+
+The build check does not see these forms of a ready callback, so a handler with
+one of them builds even if the pipeline never calls the callback. Its `await`
+call then does nothing:
+
+- an overloaded callback;
+- a callback that is not public;
+- a template whose constraint rejects the context type;
+- a template whose first template parameter is not a type;
+- a callback that two base classes make ambiguous.
 
 [`detail/ContextImpl.h`](detail/ContextImpl.h) documents the context calls that
 register a handler for `onWriteReady()` and unregister it.
@@ -787,9 +801,10 @@ Read backpressure reaches the socket through TCP flow control. When a handler
 returns `Result::Backpressure` from `onRead()`, the transport adapter should
 call `pauseRead()` on the socket, as Netty does with `setAutoRead(false)`.
 
-Every inbound handler has `onReadReady()`, so every inbound handler can also
-wait with `ctx.awaitReadReady()`, for example after its `ctx.fireRead()`
-returned `Backpressure`. The code that clears the block calls
+Any handler with `onReadReady()` can wait with `ctx.awaitReadReady()`, whatever
+its direction, for example after its `ctx.fireRead()` returned `Backpressure`.
+Every inbound handler has it, and an outbound handler can add it. The code that
+clears the block calls
 `ctx.pipeline()->onReadReady()`. That read-ready pass wakes every waiting
 handler from the tail toward the head, whatever order they armed in, and then
 the head endpoint. So each handler wakes after the handler that it reads into.
@@ -912,7 +927,7 @@ The O(1) operations are achieved through:
 | **Explicit over implicit** | Handlers choose their backpressure strategy |
 | **Zero allocation** | Bit masks inside the pipeline, no heap allocation on register |
 | **O(1) operations** | Hash table lookups, bit set/clear |
-| **Compile-time detection** | The `OutboundHandler` and `InboundHandler` concepts decide which handlers can wait |
+| **Compile-time detection** | A handler can wait if it has `onWriteReady()` or `onReadReady()`, whatever its direction |
 | **Handler autonomy** | Each handler decides: drop, error, or buffer |
 
 ---

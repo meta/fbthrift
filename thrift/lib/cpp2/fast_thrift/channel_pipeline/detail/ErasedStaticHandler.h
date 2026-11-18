@@ -59,8 +59,8 @@ class ErasedStaticHandler {
     void (*handlerAdded)(void*) noexcept;
     void (*handlerRemoved)(void*) noexcept;
     void (*fireEvent)(void*, EventKey, const void*) noexcept;
-    // A handler may wait for write ready only if it satisfies OutboundHandler,
-    // and for read ready only if it satisfies InboundHandler.
+    // A handler may wait for write ready if it has onWriteReady(), and for read
+    // ready if it has onReadReady(), whatever its direction.
     bool handlesWriteReady;
     bool handlesReadReady;
     void (*bindContext)(
@@ -175,6 +175,7 @@ class ErasedStaticHandler {
         InboundHandler<H, Context> || OutboundHandler<H, Context> ||
         DuplexHandler<H, Context>);
     static_assert(HandlerLifecycle<H, Context>);
+    checkReadyCallbacks<H, Context>();
     Ops ops{};
     ops.onRead = [](void* p, TypeErasedBox&& msg) noexcept {
       auto& slot = *static_cast<Slot*>(p);
@@ -202,13 +203,13 @@ class ErasedStaticHandler {
     };
     ops.onWriteReady = [](void* p) noexcept {
       auto& slot = *static_cast<Slot*>(p);
-      if constexpr (OutboundHandler<H, Context>) {
+      if constexpr (WriteReadyHandler<H, Context>) {
         slot.handler().onWriteReady(slot.context());
       }
     };
     ops.onReadReady = [](void* p) noexcept {
       auto& slot = *static_cast<Slot*>(p);
-      if constexpr (InboundHandler<H, Context>) {
+      if constexpr (ReadReadyHandler<H, Context>) {
         slot.handler().onReadReady(slot.context());
       }
     };
@@ -252,8 +253,8 @@ class ErasedStaticHandler {
             typename H::SubscribedEvents{});
       }
     };
-    ops.handlesWriteReady = OutboundHandler<H, Context>;
-    ops.handlesReadReady = InboundHandler<H, Context>;
+    ops.handlesWriteReady = WriteReadyHandler<H, Context>;
+    ops.handlesReadReady = ReadReadyHandler<H, Context>;
     ops.bindContext = [](void* p,
                          void* pipeline,
                          const StaticHandlerContextOps& contextOps,

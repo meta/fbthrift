@@ -486,9 +486,9 @@ class alignas(detail::ContextImpl) PipelineImpl
   // === Internal: ready registration for ContextImpl ===
 
   /**
-   * Whether the handler at this index satisfies OutboundHandler, and so may
-   * wait for write ready. Index handlerCount() is the head endpoint, which may
-   * wait if it has onWriteReady().
+   * Whether the handler at this index has onWriteReady(), and so may wait for
+   * write ready, whatever its direction. Index handlerCount() is the head
+   * endpoint, which may wait if it has onWriteReady().
    */
   bool handlesWriteReady(size_t index) const noexcept {
     if (index < handlers_.size()) {

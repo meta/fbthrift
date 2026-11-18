@@ -277,18 +277,86 @@ class OutboundAwaitingReadReady {
   void onPipelineInactive(Context&) noexcept {}
 };
 
-// The same handlers with the ready callback that each one asks for. Neither
-// satisfies the handler concept of that direction.
-class InboundWithWriteReadyCallback : public InboundAwaitingWriteReady {
+// An inbound-only handler that answers each read with a write, as in a
+// request-response pipeline. It has onWriteReady(), and it waits for it when
+// its write gets Backpressure. It has onPipelineInactive() because a segment
+// calls both lifecycle callbacks on each handler.
+class InboundResponder {
  public:
-  template <typename Context>
-  void onWriteReady(Context&) noexcept {}
-};
+  explicit InboundResponder(std::vector<std::string>* events)
+      : events_(events) {}
 
-class OutboundWithReadReadyCallback : public OutboundAwaitingReadReady {
- public:
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineActive(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineInactive(Context&) noexcept {}
+  template <typename Context>
+  Result onRead(Context& ctx, TypeErasedBox&& msg) noexcept {
+    const Result written = ctx.fireWrite(std::move(msg));
+    if (written == Result::Backpressure) {
+      events_->emplace_back("write backpressure");
+      ctx.awaitWriteReady();
+      return Result::Success;
+    }
+    return written;
+  }
+  template <typename Context>
+  void onException(Context& ctx, folly::exception_wrapper&& e) noexcept {
+    ctx.fireException(std::move(e));
+  }
   template <typename Context>
   void onReadReady(Context&) noexcept {}
+  template <typename Context>
+  void onWriteReady(Context& ctx) noexcept {
+    events_->emplace_back("write ready");
+    ctx.cancelAwaitWriteReady();
+  }
+
+ private:
+  std::vector<std::string>* events_;
+};
+
+// The mirror of InboundResponder: an outbound-only handler that answers each
+// write with a read. It has onReadReady(), and it waits for it when its read
+// gets Backpressure. It has onPipelineActive() because a segment calls both
+// lifecycle callbacks on each handler.
+class OutboundResponder {
+ public:
+  explicit OutboundResponder(std::vector<std::string>* events)
+      : events_(events) {}
+
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineActive(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineInactive(Context&) noexcept {}
+  template <typename Context>
+  Result onWrite(Context& ctx, TypeErasedBox&& msg) noexcept {
+    const Result read = ctx.fireRead(std::move(msg));
+    if (read == Result::Backpressure) {
+      events_->emplace_back("read backpressure");
+      ctx.awaitReadReady();
+      return Result::Success;
+    }
+    return read;
+  }
+  template <typename Context>
+  void onWriteReady(Context&) noexcept {}
+  template <typename Context>
+  void onReadReady(Context& ctx) noexcept {
+    events_->emplace_back("read ready");
+    ctx.cancelAwaitReadReady();
+  }
+
+ private:
+  std::vector<std::string>* events_;
 };
 
 // Owned head endpoint with observable lifetime and constructor-argument
@@ -2375,45 +2443,47 @@ using SegmentInboundAwaitingWriteReady = InboundAwaitingWriteReady;
 template <typename>
 using SegmentOutboundAwaitingReadReady = OutboundAwaitingReadReady;
 template <typename>
-using SegmentInboundWithWriteReadyCallback = InboundWithWriteReadyCallback;
+using SegmentInboundResponder = InboundResponder;
 template <typename>
-using SegmentOutboundWithReadReadyCallback = OutboundWithReadReadyCallback;
+using SegmentOutboundResponder = OutboundResponder;
 
 // Calls use(builder, erased, segment) and returns its result. Every pipeline
-// that builder() starts shares one EventBase, head, tail and allocator, which
-// live until use returns. erased() returns Handler as an erased handler, and
-// segment() returns SegmentHandler inside a segment.
+// that builder() starts shares one EventBase, Head, Tail and allocator, which
+// live until use returns.
+//
+// erased(args...) returns Handler, made from args, as an erased handler.
+// segment(args...) returns SegmentHandler, made from args, inside a segment.
 template <
     typename Handler,
     template <typename> class SegmentHandler,
+    typename Head = StaticHeadHandler,
+    typename Tail = StaticTailHandler,
     typename Use>
 auto withStaticForms(Use use) {
   folly::EventBase eventBase;
-  StaticHeadHandler head;
-  StaticTailHandler tail;
+  Head head;
+  Tail tail;
   TestAllocator allocator;
 
   const auto builder = [&] {
-    return StaticPipelineBuilder<
-               StaticHeadHandler,
-               StaticTailHandler,
-               TestAllocator>()
+    return StaticPipelineBuilder<Head, Tail, TestAllocator>()
         .setEventBase(&eventBase)
         .setHead(&head)
         .setTail(&tail)
         .setAllocator(&allocator);
   };
-  const auto erased = [] {
+  const auto erased = [](auto... args) {
     std::vector<detail::ErasedStaticHandler> erasedHandlers;
     erasedHandlers.push_back(
-        detail::makeErasedStaticHandler<Handler>(first_erased_static_tag.id));
+        detail::makeErasedStaticHandler<Handler>(
+            first_erased_static_tag.id, args...));
     return erasedHandlers;
   };
-  const auto segment = [] {
+  const auto segment = [](auto... args) {
     std::vector<detail::ErasedStaticSegment> segments;
     segments.push_back(
         StaticSegmentBuilder<>()
-            .addHandler<SegmentHandler>(second_erased_static_tag.id)
+            .addHandler<SegmentHandler>(second_erased_static_tag.id, args...)
             .build());
     return segments;
   };
@@ -2468,7 +2538,7 @@ std::tuple<Result, bool, Result, bool> writeThroughStaticForms() {
 
 // A handler without onWriteReady() cannot wait for it, as a typed handler, as
 // an erased one or inside a segment.
-TEST(StaticPipelineTest, InboundOnlyHandlerCannotAwaitWriteReady) {
+TEST(StaticPipelineTest, HandlerWithoutWriteReadyCallbackCannotAwaitIt) {
   EXPECT_THAT(
       (readThroughStaticForms<
           InboundAwaitingWriteReady,
@@ -2476,18 +2546,9 @@ TEST(StaticPipelineTest, InboundOnlyHandlerCannotAwaitWriteReady) {
       Eq(std::tuple{Result::Success, false, Result::Success, false}));
 }
 
-// An inbound-only handler with onWriteReady() cannot wait for it either.
-TEST(StaticPipelineTest, InboundOnlyWithWriteReadyCallbackCannotAwaitIt) {
-  EXPECT_THAT(
-      (readThroughStaticForms<
-          InboundWithWriteReadyCallback,
-          SegmentInboundWithWriteReadyCallback>()),
-      Eq(std::tuple{Result::Success, false, Result::Success, false}));
-}
-
 // A handler without onReadReady() cannot wait for it, as a typed handler, as
 // an erased one or inside a segment.
-TEST(StaticPipelineTest, OutboundOnlyHandlerCannotAwaitReadReady) {
+TEST(StaticPipelineTest, HandlerWithoutReadReadyCallbackCannotAwaitIt) {
   EXPECT_THAT(
       (writeThroughStaticForms<
           OutboundAwaitingReadReady,
@@ -2495,13 +2556,102 @@ TEST(StaticPipelineTest, OutboundOnlyHandlerCannotAwaitReadReady) {
       Eq(std::tuple{Result::Success, false, Result::Success, false}));
 }
 
-// An outbound-only handler with onReadReady() cannot wait for it either.
-TEST(StaticPipelineTest, OutboundOnlyWithReadReadyCallbackCannotAwaitIt) {
+// A head endpoint that takes every write and answers Backpressure.
+class BackpressureStaticHead : public StaticHeadHandler {
+ public:
+  template <typename Context>
+  Result onWrite(Context&, TypeErasedBox&&) noexcept {
+    return Result::Backpressure;
+  }
+};
+
+// A tail endpoint that takes every read and answers Backpressure.
+class BackpressureStaticTail : public StaticTailHandler {
+ public:
+  template <typename Context>
+  Result onRead(Context&, TypeErasedBox&&) noexcept {
+    return Result::Backpressure;
+  }
+};
+
+// Builds three pipelines: one with the typed handler that addTyped adds, one
+// with Handler as an erased handler, and one with SegmentHandler inside a
+// segment. Calls send and then wake on each pipeline, and returns the events
+// that each handler records.
+template <
+    typename Head,
+    typename Tail,
+    typename Handler,
+    template <typename> class SegmentHandler,
+    typename AddTyped,
+    typename Send,
+    typename Wake>
+std::array<std::vector<std::string>, 3> sendAndWakeInStaticForms(
+    AddTyped addTyped, Send send, Wake wake) {
+  return withStaticForms<Handler, SegmentHandler, Head, Tail>(
+      [&](auto builder, auto erased, auto segment) {
+        const auto sendAndWake = [&](auto pipeline) {
+          send(*pipeline);
+          wake(*pipeline);
+        };
+        std::array<std::vector<std::string>, 3> events;
+
+        sendAndWake(addTyped(builder(), &events[0]).build());
+        sendAndWake(builder().addStaticHandlers(erased(&events[1])).build());
+        sendAndWake(builder().addStaticSegments(segment(&events[2])).build());
+        return events;
+      });
+}
+
+// The head endpoint takes the write and answers Backpressure, so the handler
+// waits. The write-ready pass that the transport starts when it frees wakes it.
+// This holds for a typed handler, an erased one and one inside a segment.
+TEST(StaticPipelineTest, InboundOnlyHandlerWaitsForWriteReady) {
+  const std::vector<std::string> waitAndWake{
+      "write backpressure", "write ready"};
+
   EXPECT_THAT(
-      (writeThroughStaticForms<
-          OutboundWithReadReadyCallback,
-          SegmentOutboundWithReadReadyCallback>()),
-      Eq(std::tuple{Result::Success, false, Result::Success, false}));
+      (sendAndWakeInStaticForms<
+          BackpressureStaticHead,
+          StaticTailHandler,
+          InboundResponder,
+          SegmentInboundResponder>(
+          [](auto builder, std::vector<std::string>* events) {
+            return std::move(builder).template addNextInbound<InboundResponder>(
+                first_static_tag, events);
+          },
+          [](auto& pipeline) {
+            EXPECT_THAT(
+                pipeline.fireRead(TypeErasedBox{1}), Eq(Result::Success));
+          },
+          [](auto& pipeline) { pipeline.onWriteReady(); })),
+      ElementsAre(waitAndWake, waitAndWake, waitAndWake));
+}
+
+// The tail endpoint takes the read and answers Backpressure, so the handler
+// waits until a read-ready pass. This holds for a typed handler, an erased one
+// and one inside a segment.
+TEST(StaticPipelineTest, OutboundOnlyHandlerWaitsForReadReady) {
+  const std::vector<std::string> waitAndWake{"read backpressure", "read ready"};
+
+  EXPECT_THAT(
+      (sendAndWakeInStaticForms<
+          StaticHeadHandler,
+          BackpressureStaticTail,
+          OutboundResponder,
+          SegmentOutboundResponder>(
+          [](auto builder, std::vector<std::string>* events) {
+            return std::move(builder)
+                .template addNextOutbound<OutboundResponder>(
+                    first_static_tag, events);
+          },
+          [](auto& pipeline) {
+            EXPECT_THAT(
+                pipeline.fireWrite(erase_and_box(folly::IOBuf::create(0))),
+                Eq(Result::Success));
+          },
+          [](auto& pipeline) { pipeline.onReadReady(); })),
+      ElementsAre(waitAndWake, waitAndWake, waitAndWake));
 }
 
 // A head that waits on every write but has no onWriteReady().

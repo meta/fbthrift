@@ -70,16 +70,68 @@ class OutboundAwaitingReadReady {
   void handlerRemoved(detail::ContextImpl&) noexcept {}
 };
 
-// The same handlers with the ready callback that each one asks for. Neither
-// satisfies the handler concept of that direction.
-class InboundWithWriteReadyCallback : public InboundAwaitingWriteReady {
+// An inbound-only handler that answers each read with a write, as in a
+// request-response pipeline. It has onWriteReady(), and it waits for it when
+// its write gets Backpressure.
+class InboundResponder {
  public:
-  void onWriteReady(detail::ContextImpl&) noexcept {}
+  explicit InboundResponder(std::vector<std::string>* events)
+      : events_(events) {}
+
+  void onPipelineActive(detail::ContextImpl&) noexcept {}
+  Result onRead(detail::ContextImpl& ctx, TypeErasedBox&& msg) noexcept {
+    const Result written = ctx.fireWrite(std::move(msg));
+    if (written == Result::Backpressure) {
+      events_->emplace_back("write backpressure");
+      ctx.awaitWriteReady();
+      return Result::Success;
+    }
+    return written;
+  }
+  void onWriteReady(detail::ContextImpl& ctx) noexcept {
+    events_->emplace_back("write ready");
+    ctx.cancelAwaitWriteReady();
+  }
+  void onReadReady(detail::ContextImpl&) noexcept {}
+  void onException(
+      detail::ContextImpl& ctx, folly::exception_wrapper&& e) noexcept {
+    ctx.fireException(std::move(e));
+  }
+  void handlerAdded(detail::ContextImpl&) noexcept {}
+  void handlerRemoved(detail::ContextImpl&) noexcept {}
+
+ private:
+  std::vector<std::string>* events_;
 };
 
-class OutboundWithReadReadyCallback : public OutboundAwaitingReadReady {
+// The mirror of InboundResponder: an outbound-only handler that answers each
+// write with a read. It has onReadReady(), and it waits for it when its read
+// gets Backpressure.
+class OutboundResponder {
  public:
-  void onReadReady(detail::ContextImpl&) noexcept {}
+  explicit OutboundResponder(std::vector<std::string>* events)
+      : events_(events) {}
+
+  Result onWrite(detail::ContextImpl& ctx, TypeErasedBox&& msg) noexcept {
+    const Result read = ctx.fireRead(std::move(msg));
+    if (read == Result::Backpressure) {
+      events_->emplace_back("read backpressure");
+      ctx.awaitReadReady();
+      return Result::Success;
+    }
+    return read;
+  }
+  void onReadReady(detail::ContextImpl& ctx) noexcept {
+    events_->emplace_back("read ready");
+    ctx.cancelAwaitReadReady();
+  }
+  void onWriteReady(detail::ContextImpl&) noexcept {}
+  void onPipelineInactive(detail::ContextImpl&) noexcept {}
+  void handlerAdded(detail::ContextImpl&) noexcept {}
+  void handlerRemoved(detail::ContextImpl&) noexcept {}
+
+ private:
+  std::vector<std::string>* events_;
 };
 
 class BackpressureTest : public ::testing::Test {
@@ -499,13 +551,115 @@ TEST_F(BackpressureTest, HandlerWithoutReadyCallbackCannotAwaitIt) {
       Eq(std::tuple(Result::Success, Result::Success, false, false)));
 }
 
-TEST_F(BackpressureTest, ReadyCallbackAloneCannotAwaitIt) {
+// The head endpoint takes the write and answers Backpressure, so the handler
+// waits. The write-ready pass that the transport starts when it frees wakes it.
+TEST_F(BackpressureTest, InboundOnlyHandlerWaitsForWriteReady) {
+  std::vector<std::string> events;
+  app_.setOnWriteCallback([](TypeErasedBox&&) { return Result::Backpressure; });
+  const PipelineImpl::Ptr pipeline =
+      PipelineBuilder<MockHeadHandler, MockTailHandler, TestAllocator>()
+          .setEventBase(&evb_)
+          .setHead(&app_)
+          .setTail(&transport_)
+          .setAllocator(&allocator_)
+          .addNextInbound<InboundResponder>(head_tag, &events)
+          .build();
+
   EXPECT_THAT(
-      (readAndWriteThrough<
-          InboundWithWriteReadyCallback,
-          OutboundWithReadReadyCallback>()),
-      Eq(std::tuple(Result::Success, Result::Success, false, false)));
+      pipeline->fireRead(TypeErasedBox(folly::IOBuf::create(64))),
+      Eq(Result::Success));
+  pipeline->onWriteReady();
+
+  EXPECT_THAT(events, ElementsAre("write backpressure", "write ready"));
 }
+
+// The tail endpoint takes the read and answers Backpressure, so the handler
+// waits until a read-ready pass.
+TEST_F(BackpressureTest, OutboundOnlyHandlerWaitsForReadReady) {
+  std::vector<std::string> events;
+  transport_.setReadResult(Result::Backpressure);
+  const PipelineImpl::Ptr pipeline =
+      PipelineBuilder<MockHeadHandler, MockTailHandler, TestAllocator>()
+          .setEventBase(&evb_)
+          .setHead(&app_)
+          .setTail(&transport_)
+          .setAllocator(&allocator_)
+          .addNextOutbound<OutboundResponder>(tail_tag, &events)
+          .build();
+
+  EXPECT_THAT(
+      pipeline->fireWrite(TypeErasedBox(folly::IOBuf::create(64))),
+      Eq(Result::Success));
+  pipeline->onReadReady();
+
+  EXPECT_THAT(events, ElementsAre("read backpressure", "read ready"));
+}
+
+// Ready callbacks in forms that the pipeline never calls, so
+// checkReadyCallbacks() fails the build for each of these handlers.
+struct WriteReadyWithoutNoexcept {
+  void onWriteReady(detail::ContextImpl&) {}
+};
+struct WriteReadyReturningResult {
+  Result onWriteReady(detail::ContextImpl&) noexcept { return Result::Success; }
+};
+struct WriteReadyWithWrongParameter {
+  void onWriteReady(int) noexcept {}
+};
+struct WriteReadyWithoutParameter {
+  void onWriteReady() noexcept {}
+};
+struct WriteReadyTemplateWithoutNoexcept {
+  template <typename Context>
+  void onWriteReady(Context&) {}
+};
+struct ReadReadyWithoutNoexcept {
+  void onReadReady(detail::ContextImpl&) {}
+};
+struct ReadReadyTemplateWithoutNoexcept {
+  template <typename Context>
+  void onReadReady(Context&) {}
+};
+static_assert(
+    !ValidWriteReadyCallback<WriteReadyWithoutNoexcept, detail::ContextImpl>);
+static_assert(
+    !ValidWriteReadyCallback<WriteReadyReturningResult, detail::ContextImpl>);
+static_assert(!ValidWriteReadyCallback<
+              WriteReadyWithWrongParameter,
+              detail::ContextImpl>);
+static_assert(
+    !ValidWriteReadyCallback<WriteReadyWithoutParameter, detail::ContextImpl>);
+static_assert(!ValidWriteReadyCallback<
+              WriteReadyTemplateWithoutNoexcept,
+              detail::ContextImpl>);
+static_assert(
+    !ValidReadReadyCallback<ReadReadyWithoutNoexcept, detail::ContextImpl>);
+static_assert(!ValidReadReadyCallback<
+              ReadReadyTemplateWithoutNoexcept,
+              detail::ContextImpl>);
+
+// Handlers that build: with both callbacks in the form that the pipeline calls,
+// as templates, as a const member, and without the callback.
+struct ReadyTemplates {
+  template <typename Context>
+  void onWriteReady(Context&) noexcept {}
+  template <typename Context>
+  void onReadReady(Context&) noexcept {}
+};
+struct ConstWriteReady {
+  void onWriteReady(detail::ContextImpl&) const noexcept {}
+};
+static_assert(
+    ValidWriteReadyCallback<InboundResponder, detail::ContextImpl> &&
+    ValidReadReadyCallback<InboundResponder, detail::ContextImpl>);
+static_assert(
+    ValidWriteReadyCallback<ReadyTemplates, detail::ContextImpl> &&
+    ValidReadReadyCallback<ReadyTemplates, detail::ContextImpl>);
+static_assert(ValidWriteReadyCallback<ConstWriteReady, detail::ContextImpl>);
+static_assert(
+    ValidWriteReadyCallback<InboundAwaitingWriteReady, detail::ContextImpl>);
+static_assert(
+    ValidReadReadyCallback<OutboundAwaitingReadReady, detail::ContextImpl>);
 
 TEST_F(BackpressureTest, WriteReadyWakesHandlerAboveOneThatStaysArmed) {
   createHandlers();

@@ -282,7 +282,9 @@ class StaticHandlerStorage<Pipeline, Index, StateTuple, Spec, Rest...>
   template <typename FactoryTuple>
   StaticHandlerStorage(Pipeline* pipeline, FactoryTuple& factories)
       : Slot(pipeline, std::move(std::get<Index>(factories))),
-        Tail(pipeline, factories) {}
+        Tail(pipeline, factories) {
+    checkReadyCallbacks<H, Context>();
+  }
 
   template <std::size_t Target>
   decltype(auto) get() noexcept {
@@ -1450,10 +1452,10 @@ class StaticPipelineImpl final {
     }
   }
 
-  // Whether the typed handler at Index satisfies OutboundHandler or
-  // InboundHandler, and so may wait for write ready or read ready. Index
-  // kHandlerCount is the head endpoint, which may wait for write ready only if
-  // it has onWriteReady(), and never for read ready.
+  // Whether the typed handler at Index has onWriteReady() or onReadReady(),
+  // and so may wait for write ready or read ready, whatever its direction.
+  // Index kHandlerCount is the head endpoint, which may wait for write ready
+  // only if it has onWriteReady(), and never for read ready.
   template <std::size_t Index>
   static constexpr bool handlesWriteReady() noexcept {
     if constexpr (kUniformHandlers) {
@@ -1472,7 +1474,9 @@ class StaticPipelineImpl final {
       } else {
         using Slot = std::remove_reference_t<
             decltype(std::declval<Self&>().template handlerAt<Index>())>;
-        return OutboundHandler<typename Slot::Handler, typename Slot::Context>;
+        return WriteReadyHandler<
+            typename Slot::Handler,
+            typename Slot::Context>;
       }
     }
   }
@@ -1492,7 +1496,7 @@ class StaticPipelineImpl final {
       } else {
         using Slot = std::remove_reference_t<
             decltype(std::declval<Self&>().template handlerAt<Index>())>;
-        return InboundHandler<typename Slot::Handler, typename Slot::Context>;
+        return ReadReadyHandler<typename Slot::Handler, typename Slot::Context>;
       }
     }
   }
@@ -1522,7 +1526,7 @@ class StaticPipelineImpl final {
         if constexpr (
             (kUniformHandlers && requires(H& h, Context& ctx) {
               h.onWriteReady(ctx);
-            }) || (!kUniformHandlers && OutboundHandler<H, Context>)) {
+            }) || (!kUniformHandlers && WriteReadyHandler<H, Context>)) {
           slot.handler().onWriteReady(slot.context());
         }
         return;
@@ -1546,9 +1550,10 @@ class StaticPipelineImpl final {
         using H = typename std::remove_reference_t<decltype(slot)>::Handler;
         using Context =
             typename std::remove_reference_t<decltype(slot)>::Context;
-        if constexpr ((kUniformHandlers && requires(H& h, Context& ctx) {
-                        h.onReadReady(ctx);
-                      }) || (!kUniformHandlers && InboundHandler<H, Context>)) {
+        if constexpr (
+            (kUniformHandlers && requires(H& h, Context& ctx) {
+              h.onReadReady(ctx);
+            }) || (!kUniformHandlers && ReadReadyHandler<H, Context>)) {
           slot.handler().onReadReady(slot.context());
         }
         return;

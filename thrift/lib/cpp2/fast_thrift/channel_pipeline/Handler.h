@@ -44,6 +44,79 @@ concept HandlerLifecycle = requires(H h, Ctx& ctx) {
 };
 
 /**
+ * A handler with onWriteReady() may wait for write ready with
+ * ctx.awaitWriteReady(), whatever its direction. For example, an inbound
+ * handler that answers each read with ctx.fireWrite() can wait after that
+ * write returned Result::Backpressure.
+ *
+ * A handler with a member onWriteReady in another form, such as one without
+ * noexcept, fails the build through checkReadyCallbacks().
+ */
+template <typename H, typename Ctx>
+concept WriteReadyHandler = requires(H h, Ctx& ctx) {
+  { h.onWriteReady(ctx) } noexcept -> std::same_as<void>;
+};
+
+/**
+ * A handler with onReadReady() may wait for read ready with
+ * ctx.awaitReadReady(), whatever its direction.
+ *
+ * A handler with a member onReadReady in another form, such as one without
+ * noexcept, fails the build through checkReadyCallbacks().
+ */
+template <typename H, typename Ctx>
+concept ReadReadyHandler = requires(H h, Ctx& ctx) {
+  { h.onReadReady(ctx) } noexcept -> std::same_as<void>;
+};
+
+/**
+ * Whether H has no member onWriteReady, or one that satisfies
+ * WriteReadyHandler. The check finds one function, or one function template
+ * that takes Ctx as its first template argument.
+ *
+ * The check does not see these forms, so a handler with one of them builds
+ * even if the pipeline never calls its callback:
+ * - an overload set;
+ * - a member that is not public;
+ * - a template whose constraint rejects Ctx;
+ * - a template whose first template parameter is not a type;
+ * - a member that two base classes make ambiguous.
+ */
+template <typename H, typename Ctx>
+concept ValidWriteReadyCallback =
+    WriteReadyHandler<H, Ctx> ||
+    !(
+        requires { &H::onWriteReady; } ||
+        requires { &H::template onWriteReady<Ctx>; });
+
+/** ValidWriteReadyCallback for onReadReady and ReadReadyHandler. */
+template <typename H, typename Ctx>
+concept ValidReadReadyCallback =
+    ReadReadyHandler<H, Ctx> ||
+    !(
+        requires { &H::onReadReady; } ||
+        requires { &H::template onReadReady<Ctx>; });
+
+/**
+ * Fails the build if handler H has a ready callback that the pipeline would
+ * never call, where Ctx is the context type that H gets. Without this check,
+ * such a handler builds, and its await call does nothing.
+ */
+template <typename H, typename Ctx>
+consteval void checkReadyCallbacks() {
+  static_assert(
+      ValidWriteReadyCallback<H, Ctx>,
+      "handler has onWriteReady() in a form that the pipeline never calls, so "
+      "its awaitWriteReady() would do nothing: declare it as "
+      "void onWriteReady(Ctx&) noexcept");
+  static_assert(
+      ValidReadReadyCallback<H, Ctx>,
+      "handler has onReadReady() in a form that the pipeline never calls, so "
+      "its awaitReadReady() would do nothing: declare it as "
+      "void onReadReady(Ctx&) noexcept");
+}
+
+/**
  * InboundHandler concept - handles data flowing from head to tail.
  *
  * Inbound handlers process:
@@ -73,13 +146,12 @@ concept HandlerLifecycle = requires(H h, Ctx& ctx) {
  */
 template <typename H, typename Ctx>
 concept InboundHandler =
-    HandlerLifecycle<H, Ctx> &&
+    HandlerLifecycle<H, Ctx> && ReadReadyHandler<H, Ctx> &&
     requires(
         H h, Ctx& ctx, TypeErasedBox&& message, folly::exception_wrapper&& e) {
       // Returns Result to propagate backpressure
       { h.onRead(ctx, std::move(message)) } noexcept -> std::same_as<Result>;
       // Notifications — must always be handled
-      { h.onReadReady(ctx) } noexcept -> std::same_as<void>;
       { h.onException(ctx, std::move(e)) } noexcept -> std::same_as<void>;
       { h.onPipelineActive(ctx) } noexcept -> std::same_as<void>;
     };
@@ -98,12 +170,12 @@ concept InboundHandler =
  * - Result::Error — something went wrong
  */
 template <typename H, typename Ctx>
-concept OutboundHandler = HandlerLifecycle<H, Ctx> &&
+concept OutboundHandler =
+    HandlerLifecycle<H, Ctx> && WriteReadyHandler<H, Ctx> &&
     requires(H h, Ctx& ctx, TypeErasedBox&& message) {
       // Returns Result to propagate backpressure
       { h.onWrite(ctx, std::move(message)) } noexcept -> std::same_as<Result>;
       // Notifications — must always be handled
-      { h.onWriteReady(ctx) } noexcept -> std::same_as<void>;
       { h.onPipelineInactive(ctx) } noexcept -> std::same_as<void>;
     };
 

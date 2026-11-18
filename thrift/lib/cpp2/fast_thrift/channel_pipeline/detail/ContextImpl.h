@@ -217,8 +217,9 @@ class alignas(64) ContextImpl {
    * start the pass itself with ctx.pipeline()->onWriteReady() when that reason
    * clears, or it may never get onWriteReady().
    *
-   * Does nothing if the handler is not an OutboundHandler, already waits, or
-   * the pipeline is closed.
+   * Any handler with onWriteReady() can wait, whatever its direction. Does
+   * nothing if the handler has no onWriteReady(), already waits, or the
+   * pipeline is closed.
    *
    * The head endpoint may wait if it has onWriteReady(). The tail endpoint
    * must not call this or cancelAwaitWriteReady(), because its context acts on
@@ -248,10 +249,9 @@ class alignas(64) ContextImpl {
    * handler returned Backpressure from onRead(). The code that clears the
    * block starts the pass with ctx.pipeline()->onReadReady().
    *
-   * Only a handler that satisfies InboundHandler can wait. A ready callback
-   * alone is not enough, so this does nothing for an outbound-only handler,
-   * even one that has onReadReady(). It also does nothing if the handler
-   * already waits or the pipeline is closed.
+   * Any handler with onReadReady() can wait, whatever its direction. Does
+   * nothing if the handler has no onReadReady(), already waits, or the
+   * pipeline is closed.
    */
   void awaitReadReady() noexcept;
 
