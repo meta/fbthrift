@@ -1609,9 +1609,11 @@ class ServiceDescriptorFacade final : public dynamic::ServiceDescriptor {
   std::vector<dynamic::DynamicValue> annotations_;
 };
 
+// Descriptors are built on first lookup, so a service whose types can't be
+// converted (e.g. one without URIs) only fails the lookups that ask for it.
 class ServiceCatalogFacade final : public dynamic::ServiceCatalog {
  public:
-  explicit ServiceCatalogFacade(const SyntaxGraph& graph) {
+  explicit ServiceCatalogFacade(const SyntaxGraph& graph) : graph_(graph) {
     // Ensure the TypeSystemFacade is initialized, so that it can be used to
     // refer to types in the service definitions.
     graph.asTypeSystem();
@@ -1625,43 +1627,61 @@ class ServiceCatalogFacade final : public dynamic::ServiceCatalog {
         // A service is keyed by its URI. One without a URI has no stable
         // identity to look it up by, so it is skipped, the same way URI-less
         // user-defined types are left out of URI indexing.
-        if (svc.uri().empty() || byUri_.contains(svc.uri())) {
+        if (svc.uri().empty() || nodesByUri_.contains(svc.uri())) {
           continue;
         }
-        auto desc = std::make_unique<ServiceDescriptorFacade>(graph, svc);
-        byUri_.emplace(desc->serviceUri(), desc.get());
-        services_.push_back(std::move(desc));
+        nodesByUri_.emplace(svc.uri(), &svc);
+        nodes_.push_back(&svc);
       }
     }
   }
 
   const dynamic::ServiceDescriptor* getService(
       std::string_view uri) const override {
-    auto it = byUri_.find(uri);
-    return it == byUri_.end() ? nullptr : it->second;
+    auto it = nodesByUri_.find(uri);
+    return it == nodesByUri_.end() ? nullptr : &descriptor(*it->second);
   }
 
   std::vector<std::string_view> serviceUris() const override {
     std::vector<std::string_view> uris;
-    uris.reserve(byUri_.size());
-    for (const auto& [uri, _] : byUri_) {
-      uris.push_back(uri);
+    uris.reserve(nodes_.size());
+    for (const ServiceNode* node : nodes_) {
+      uris.push_back(node->uri());
     }
     return uris;
   }
 
   std::vector<const dynamic::ServiceDescriptor*> services() const override {
     std::vector<const dynamic::ServiceDescriptor*> services;
-    services.reserve(services_.size());
-    for (const auto& service : services_) {
-      services.push_back(service.get());
+    services.reserve(nodes_.size());
+    for (const ServiceNode* node : nodes_) {
+      services.push_back(&descriptor(*node));
     }
     return services;
   }
 
  private:
-  std::vector<std::unique_ptr<ServiceDescriptorFacade>> services_;
-  folly::F14FastMap<std::string_view, const ServiceDescriptorFacade*> byUri_;
+  const ServiceDescriptorFacade& descriptor(const ServiceNode& node) const {
+    if (auto built = built_.rlock(); built->contains(&node)) {
+      return *built->at(&node);
+    }
+    auto built = built_.wlock();
+    if (auto it = built->find(&node); it != built->end()) {
+      return *it->second;
+    }
+    auto desc = std::make_unique<ServiceDescriptorFacade>(graph_, node);
+    const ServiceDescriptorFacade& result = *desc;
+    built->emplace(&node, std::move(desc));
+    return result;
+  }
+
+  const SyntaxGraph& graph_;
+  std::vector<const ServiceNode*> nodes_;
+  folly::F14FastMap<std::string_view, const ServiceNode*> nodesByUri_;
+  mutable folly::Synchronized<folly::F14FastMap<
+      const ServiceNode*,
+      std::unique_ptr<ServiceDescriptorFacade>>>
+      built_;
 };
 
 } // namespace

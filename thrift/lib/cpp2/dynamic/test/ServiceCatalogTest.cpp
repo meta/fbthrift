@@ -20,17 +20,18 @@
 
 #include <thrift/lib/cpp2/dynamic/ServiceCatalog.h>
 #include <thrift/lib/cpp2/dynamic/ServiceDescriptor.h>
+#include <thrift/lib/cpp2/dynamic/TypeSystem.h>
 #include <thrift/lib/cpp2/schema/SyntaxGraph.h>
 
 #include <gtest/gtest.h>
+#include <thrift/lib/cpp2/dynamic/test/gen-cpp2/LazyCatalogUsesNoUri.h>
 #include <thrift/lib/cpp2/dynamic/test/gen-cpp2/ServiceDescriptorTestService.h>
 
 namespace apache::thrift::dynamic {
 namespace {
 
-std::shared_ptr<const syntax_graph::SyntaxGraph> buildGraph() {
-  using Service =
-      facebook::thrift::service_descriptor_test::ServiceDescriptorTestService;
+template <typename Service>
+std::shared_ptr<const syntax_graph::SyntaxGraph> buildGraphOf() {
   auto handler = std::make_shared<apache::thrift::ServiceHandler<Service>>();
   auto schema = handler->getServiceSchema();
   if (!schema.has_value()) {
@@ -39,6 +40,11 @@ std::shared_ptr<const syntax_graph::SyntaxGraph> buildGraph() {
   return std::make_shared<syntax_graph::SyntaxGraph>(
       syntax_graph::SyntaxGraph::fromSchema(
           apache::thrift::type::Schema(schema->schema)));
+}
+
+std::shared_ptr<const syntax_graph::SyntaxGraph> buildGraph() {
+  return buildGraphOf<facebook::thrift::service_descriptor_test::
+                          ServiceDescriptorTestService>();
 }
 
 constexpr std::string_view kServiceName = "ServiceDescriptorTestService";
@@ -66,6 +72,22 @@ TEST(ServiceCatalogTest, IndexesServiceByUri) {
 
   ASSERT_FALSE(foundUri.empty());
   EXPECT_EQ(catalog.getServiceOrThrow(foundUri).serviceName(), kServiceName);
+}
+
+TEST(ServiceCatalogTest, BuildsOnlyTheServiceLookedUp) {
+  auto graph = buildGraphOf<
+      facebook::thrift::lazy_service_catalog_test::LazyCatalogUsesNoUri>();
+  const ServiceCatalog& catalog = graph->asServiceCatalog();
+  constexpr std::string_view kClean =
+      "facebook.com/thrift/lazy_service_catalog_test/LazyCatalogClean";
+  constexpr std::string_view kUsesNoUri =
+      "facebook.com/thrift/lazy_service_catalog_test/LazyCatalogUsesNoUri";
+
+  const ServiceDescriptor* clean = catalog.getService(kClean);
+  ASSERT_NE(clean, nullptr);
+  EXPECT_EQ(clean->serviceName(), "LazyCatalogClean");
+  EXPECT_EQ(catalog.getService(kClean), clean);
+  EXPECT_THROW(catalog.getService(kUsesNoUri), type_system::InvalidTypeError);
 }
 
 TEST(ServiceCatalogTest, LookupIsByUriNotName) {
