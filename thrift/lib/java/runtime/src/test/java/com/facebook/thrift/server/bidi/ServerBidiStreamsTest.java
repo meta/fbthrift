@@ -44,6 +44,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import org.apache.thrift.ProtocolId;
 import org.apache.thrift.RequestRpcMetadata;
@@ -202,7 +204,7 @@ public class ServerBidiStreamsTest {
   }
 
   @Test
-  public void streamHooksEndWithTheStreamWhileTheSinkStaysOpen() {
+  public void streamHooksEndWithTheStreamWhileTheSinkStaysOpen() throws InterruptedException {
     HookLog hooks = new HookLog();
     BidiMethod<Object, TestResponse, TestRequest> method =
         method(
@@ -220,6 +222,10 @@ public class ServerBidiStreamsTest {
                 .doFinally(signal -> chain.finishRequest()))
         .expectNextCount(2)
         .verifyComplete();
+
+    // The stream phase runs off the event loop, so the terminal hooks can lag the verifier:
+    // wait for done() before asserting the hook order.
+    await(hooks.done);
 
     // The sink of the call stays open, but the hooks end with the stream and fire no sink hook.
     assertEquals(
@@ -258,6 +264,7 @@ public class ServerBidiStreamsTest {
   /** Records the stream hooks, any sink hook and the end of the request in call order. */
   private static final class HookLog implements StreamEventHandler {
     final List<String> events = new CopyOnWriteArrayList<>();
+    final CountDownLatch done = new CountDownLatch(1);
 
     @Override
     public void onStreamSubscribe(Object context, String methodName) {
@@ -292,7 +299,12 @@ public class ServerBidiStreamsTest {
     @Override
     public void done(Object context, String methodName) {
       events.add("done");
+      done.countDown();
     }
+  }
+
+  private static void await(CountDownLatch latch) throws InterruptedException {
+    assertTrue(latch.await(5, TimeUnit.SECONDS), "timed out waiting for the request to end");
   }
 
   private static List<FieldReader<?>> sinkReaders() {
