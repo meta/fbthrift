@@ -129,6 +129,11 @@ struct ExceptionShapes {
   1: GoldenException ex;
 }
 
+struct CustomDefaultShapes {
+  1: i32 port = 443;
+  2: string name;
+}
+
 struct GoldenStruct {
   1: bool flag;
   2: byte b;

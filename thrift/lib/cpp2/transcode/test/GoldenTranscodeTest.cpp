@@ -614,6 +614,31 @@ TEST(GoldenTranscodeTest, GeneratedFixtureRoundTripSupportedSources) {
       kJsonOutputUnsupported);
 }
 
+TEST(GoldenTranscodeTest, JsonLeavesAnAbsentFieldToItsCustomDefault) {
+  fixture::CustomDefaultShapes expected;
+  expected.name() = "svc";
+  ASSERT_EQ(*expected.port(), 443);
+  expectJsonSourceAcceptedAs("port absent", R"({"name":"svc"})", expected);
+
+  expected.port() = 7;
+  expectJsonSourceAcceptedAs(
+      "port set", R"({"port":7,"name":"svc"})", expected);
+}
+
+TEST(GoldenTranscodeTest, JsonOutputWritesFieldsWithCustomDefaults) {
+  const auto& node = structNode<fixture::CustomDefaultShapes>();
+  auto toJson = makeWireTranscoder(
+      "compact->json",
+      makeCodec(WireProtocol::ThriftCompact, node),
+      makeCodec(WireProtocol::Json, node));
+  fixture::CustomDefaultShapes value;
+  value.name() = "svc";
+
+  auto output = toJson(CompactSerializer::serialize<std::string>(value));
+  ASSERT_TRUE(output.has_value());
+  EXPECT_NE(output->find(R"("port":443)"), std::string::npos) << *output;
+}
+
 TEST(GoldenTranscodeTest, JsonDuplicateKnownFieldsUseLastValue) {
   fixture::PresenceShapes duplicateUnqualified;
   duplicateUnqualified.unqualified_i32() = 2;

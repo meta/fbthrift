@@ -238,7 +238,7 @@ TEST(CodecFactoryStandaloneTest, UnsupportedAnyTypeThrowsForEachProtocol) {
 
 TEST(
     CodecFactoryStandaloneTest,
-    NonThriftCodecsRejectCustomDefaultsDuringConstruction) {
+    ProtobufCodecsRejectCustomDefaultsDuringConstruction) {
   type_system::TypeSystemBuilder builder;
   builder.addType(
       "test.WithDefault",
@@ -256,11 +256,10 @@ TEST(
 
   EXPECT_NO_THROW({ (void)makeCodec(WireProtocol::ThriftCompact, node); });
   EXPECT_NO_THROW({ (void)makeCodec(WireProtocol::ThriftBinary, node); });
+  EXPECT_NO_THROW({ (void)makeCodec(WireProtocol::Json, node); });
   expectInvalidArgumentMessage(
       [&] { (void)makeCodec(WireProtocol::ProtobufBinary, node); },
       "custom defaults");
-  expectInvalidArgumentMessage(
-      [&] { (void)makeCodec(WireProtocol::Json, node); }, "custom defaults");
 }
 
 TEST(
