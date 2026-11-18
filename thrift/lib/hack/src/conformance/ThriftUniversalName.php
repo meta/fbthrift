@@ -53,7 +53,7 @@ abstract final class ThriftUniversalName {
     vec<(string, classname<T>)> $entries,
     string $hash_prefix,
   )[]: ?(string, classname<T>) {
-    $start_idx = C\fb\binary_search(
+    $start_idx = C\binary_search(
       $entries,
       $entry ==> Str\compare($entry[0], $hash_prefix) >= 0,
     );
