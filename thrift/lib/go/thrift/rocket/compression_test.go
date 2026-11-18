@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/facebook/fbthrift/thrift/lib/thrift/rpcmetadata"
+	"github.com/klauspost/compress/zstd"
 	"github.com/stretchr/testify/require"
 )
 
@@ -125,4 +126,26 @@ func TestDecompressLz4RejectsOversizedSizePrefix(t *testing.T) {
 	_, err := decompressLz4(buf[:n])
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "plausible bound")
+}
+
+// A large payload passes the ratio check, but the declared size is still
+// above maxDecompressedSize and must be rejected before allocating.
+func TestDecompressLz4RejectsSizeAboveLimit(t *testing.T) {
+	data := binary.AppendUvarint(nil, maxDecompressedSize+1)
+	data = append(data, make([]byte, (maxDecompressedSize+1)/maxLz4DecompressionRatio)...)
+	_, err := decompressLz4(data)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "plausible bound")
+}
+
+// A zstd frame header declares the content size, which DecodeAll allocates
+// up front. Reject a declared size above maxDecompressedSize.
+func TestDecompressZstdRejectsOversizedFrameContentSize(t *testing.T) {
+	// Magic, descriptor with an 8-byte content size, 1 KiB window, the
+	// declared size, then an empty last raw block.
+	frame := []byte{0x28, 0xb5, 0x2f, 0xfd, 0xc0, 0x00}
+	frame = binary.LittleEndian.AppendUint64(frame, maxDecompressedSize+1)
+	frame = append(frame, 0x01, 0x00, 0x00)
+	_, err := decompressZstd(frame)
+	require.ErrorIs(t, err, zstd.ErrDecoderSizeExceeded)
 }
