@@ -1974,6 +1974,19 @@ TEST(EncodeTest, NullTerseCppRef) {
   expectEncodeMatchesGenerated(value, test::terse_write::CppRefTerseStruct{});
 }
 
+TEST(EncodeTest, EmptyTerseCppRef) {
+  test::terse_write::CppRefTerseStruct value;
+  value.unique_int_field() = std::make_unique<int32_t>(0);
+  value.shared_int_field() = std::make_shared<int32_t>(0);
+  value.shared_const_int_field() = std::make_shared<const int32_t>(0);
+  expectEncodeMatchesGenerated(value);
+
+  value.unique_int_field() = std::make_unique<int32_t>(1);
+  value.shared_int_field() = std::make_shared<int32_t>(2);
+  value.shared_const_int_field() = std::make_shared<const int32_t>(3);
+  expectEncodeMatchesGenerated(value);
+}
+
 template <typename Ident, typename GetRef>
 void expectDeprecatedTerseRefWrittenIffSet(GetRef getRef) {
   using apache::thrift::detail::st::private_access;

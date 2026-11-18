@@ -621,14 +621,15 @@ struct ShouldWriteField {
       }
     }
     // Generated code writes a non-optional, non-terse `cpp.ref` field even
-    // when it is null; see encodeNullCppRef.
+    // when it is null (see encodeNullCppRef), and skips an empty terse one. A
+    // null terse one holds no value, so it is skipped too.
     if constexpr (apache::thrift::detail::is_shared_or_unique_ptr_v<Field>) {
       using FieldId = op::get_field_id<T, Id>;
-      if constexpr (
-          !apache::thrift::detail::qualifier::
-              is_cpp_ref_field_optional<T, FieldId>::value &&
-          !apache::thrift::detail::qualifier::
-              is_cpp_ref_field_terse<T, FieldId>::value) {
+      if constexpr (apache::thrift::detail::qualifier::
+                        is_cpp_ref_field_terse<T, FieldId>::value) {
+        return field != nullptr && !isEmpty<Tag>(*field);
+      } else if constexpr (!apache::thrift::detail::qualifier::
+                               is_cpp_ref_field_optional<T, FieldId>::value) {
         return true;
       }
     }
