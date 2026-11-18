@@ -847,6 +847,7 @@ void ThriftRocketServerHandler::handleRequestCommon(
         auto loadshedRequest = makeActiveRequest(
             std::move(metadata), std::move(debugPayload), std::move(reqCtx));
         if (auto* dropReqCtx = loadshedRequest->getRequestContext()) {
+          dropReqCtx->setWiredRequestBytes(wiredPayloadSize);
           processServiceInterceptorsOnReceived(*serverConfigs_, *dropReqCtx);
           processServiceInterceptorsOnDrop(
               *serverConfigs_,
@@ -862,6 +863,11 @@ void ThriftRocketServerHandler::handleRequestCommon(
   // A request should not be active until the overload checking is done.
   auto request = makeRequest(
       std::move(metadata), std::move(debugPayload), std::move(reqCtx));
+  // Set before the admission checks so that interceptors see the size of
+  // requests that are dropped.
+  if (auto* requestContext = request->getRequestContext()) {
+    requestContext->setWiredRequestBytes(wiredPayloadSize);
+  }
 
   // check if server is overloaded
   const auto& headers = request->getTHeader().getHeaders();
@@ -959,8 +965,6 @@ void ThriftRocketServerHandler::handleRequestCommon(
   if (frameworkMetadataPtr) {
     cpp2ReqCtx->setFrameworkMetadata(std::move(*frameworkMetadataPtr));
   }
-
-  cpp2ReqCtx->setWiredRequestBytes(wiredPayloadSize);
 
   context_utils::checkRequestEncryptionState(*cpp2ReqCtx);
 
