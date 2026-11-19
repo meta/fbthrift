@@ -1174,6 +1174,20 @@ inline constexpr bool kUsePrecompiledPath =
     !std::is_same_v<Protocol, json5::detail::Json5ProtocolReader> &&
     !std::is_same_v<Protocol, BinaryProtocolChainReader>;
 
+// The SimpleJSON reader is only instantiated for types generated with the
+// `json` option; other types decode SimpleJSON generically, as Encode does.
+template <typename T, typename Protocol>
+constexpr bool usePrecompiledRead() {
+  if constexpr (!kUsePrecompiledPath<Protocol>) {
+    return false;
+  } else if constexpr (std::is_same_v<Protocol, SimpleJSONProtocolReader>) {
+    return decltype(apache::thrift::detail::st::struct_private_access::
+                        __fbthrift_cpp2_gen_json<T>())::value;
+  } else {
+    return true;
+  }
+}
+
 // MSVC workaround: keep the constrained precompiled overload in its own base,
 // rather than declaring it in Decode alongside an inherited operator().
 // Inheriting both overloads also avoids a forwarding instantiation for each
@@ -1181,7 +1195,7 @@ inline constexpr bool kUsePrecompiledPath =
 template <typename T>
 struct PrecompiledDecode {
   template <typename Protocol>
-    requires kUsePrecompiledPath<Protocol>
+    requires(usePrecompiledRead<T, Protocol>())
   void operator()(Protocol& prot, T& value) const {
     value.read(&prot);
   }

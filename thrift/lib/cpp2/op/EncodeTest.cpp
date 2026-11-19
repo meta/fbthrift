@@ -1819,6 +1819,30 @@ TEST(DecodeTest, BinaryChainRejectsUnionWithMultipleFields) {
       op::decode<type::union_t<test::testset::union_i32>>(reader, actual),
       protocol::TProtocolException);
 }
+
+TEST(DecodeTest, SimpleJsonWithoutGeneratedJson) {
+  using apache::thrift::detail::st::struct_private_access;
+  static_assert(!decltype(struct_private_access::__fbthrift_cpp2_gen_json<
+                          test::Foo>())::value);
+
+  test::FooUnion expected;
+  auto& foo = expected.foo().ensure();
+  foo.field1() = 1;
+  foo.field2() = 2;
+  foo.field3() = 3;
+
+  SimpleJSONProtocolWriter writer;
+  folly::IOBufQueue queue;
+  writer.setOutput(&queue);
+  op::encode<type::union_t<test::FooUnion>>(writer, expected);
+  auto serialized = queue.move();
+
+  SimpleJSONProtocolReader reader;
+  reader.setInput(serialized.get());
+  test::FooUnion actual;
+  op::decode<type::union_t<test::FooUnion>>(reader, actual);
+  EXPECT_EQ(actual, expected);
+}
 } // namespace
 
 enum { UseWrite, UseStructEncode };
