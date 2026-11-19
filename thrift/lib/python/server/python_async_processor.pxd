@@ -69,6 +69,7 @@ cdef extern from "thrift/lib/python/server/PythonAsyncProcessor.h" namespace "::
         cbool createsInteraction
         cbool returnsInitialResponse
         PyObjPtr factoryObject
+        cbool hideUnexpectedExceptions
 
     HandlerFunc makeHandlerFunc(
         RpcKind kind,

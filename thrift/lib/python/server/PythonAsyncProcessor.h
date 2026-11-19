@@ -91,6 +91,9 @@ struct HandlerFunc {
   // handler instance (i.e. `self.create<InteractionName>`). Borrowed reference,
   // owned by the Python function table that outlives this processor.
   PyObject* factoryObject{nullptr};
+  // Trusted server disposition, snapshotted before serving. Only the existing
+  // generic Python exception wire message changes; diagnostics remain intact.
+  bool hideUnexpectedExceptions{false};
 };
 
 // Install the per-session Tile that a factory-with-initial-response handler
