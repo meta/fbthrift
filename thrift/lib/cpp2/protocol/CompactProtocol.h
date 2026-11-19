@@ -79,7 +79,11 @@ class CompactProtocolWriter : public detail::ProtocolBase {
   static constexpr bool kHasIndexSupport() { return true; }
 
   static constexpr bool kSupportsArithmeticVectors() {
-#if FOLLY_ARM_FEATURE_NEON_SVE_BRIDGE
+    // Measured faster than writing each element only on these. Without the
+    // branch-free encoder (BMI2, not Apple), the bulk writer encodes varints
+    // a byte at a time.
+#if (FOLLY_X64 && THRIFT_UTIL_VARINTUTILS_BRANCH_FREE_ENCODER) || \
+    FOLLY_ARM_FEATURE_NEON_SVE_BRIDGE
     return true;
 #else
     return false;
