@@ -536,3 +536,38 @@ class JsonCompilerTest(unittest.TestCase):
             annotation["type"],
             {"type": "struct", "name": "Name", "path": "thrift/annotation/cpp.thrift"},
         )
+
+    def test_experimental_typedef_container_field(self):
+        write_file(
+            "foo.thrift",
+            textwrap.dedent(
+                """\
+            package "test.dev/foo"
+
+            typedef map<string, i32> Counts
+            typedef list<i64> Ids
+            typedef set<string> Tags
+
+            struct Foo {
+              1: Counts counts;
+              2: Ids ids;
+              3: Tags tags;
+            }
+        """
+            ),
+        )
+        subprocess.check_call(
+            [thrift, "--gen", "json_experimental", "foo.thrift"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        obj = json.loads(read_file(os.path.join("gen-json_experimental", "foo.json")))
+        fields = obj["structs"]["Foo"]["fields"]
+        self.assertEqual(
+            fields["counts"]["type"],
+            {"type": "map", "key_type": "string", "value_type": "i32"},
+        )
+        self.assertEqual(fields["ids"]["type"], {"type": "list", "inner_type": "i64"})
+        self.assertEqual(
+            fields["tags"]["type"], {"type": "set", "inner_type": "string"}
+        )

@@ -35,13 +35,13 @@
 }
 {{~ #else if t.map?}}{
   "type" : "map",
-  "key_type" : {{#partial type t=t.key_type}},
-  "value_type" : {{#partial type t=t.val_type}}
+  "key_type" : {{#partial type t=t.true_type.key_type}},
+  "value_type" : {{#partial type t=t.true_type.val_type}}
 }
 {{~ #else if t.container?}}{
   {{! Non-map container, i.e. list or set }}
   "type" : {{#if t.list?}}"list"{{#else}}"set"{{/if}},
-  "inner_type" : {{#partial type t=t.elem_type}}
+  "inner_type" : {{#partial type t=t.true_type.elem_type}}
 }
 {{~ /if t.void? ~}}
 {{/let partial}}
