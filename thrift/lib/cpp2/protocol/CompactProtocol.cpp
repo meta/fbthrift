@@ -55,6 +55,26 @@ void CompactProtocolReader::readFieldBeginWithStateMediumSlow(
   readFieldBeginWithStateImpl(state, prevFieldId, byte);
 }
 
+// Function used with data types that are just sent as BE/LE bytes
+template <class Cursor, typename T, bool BE>
+static inline size_t writeUnencodedArithmeticVector(
+    Cursor& c, const T* inputPtr, size_t numElements) {
+  size_t len = numElements * sizeof(T);
+  size_t i = 0;
+  while (i < numElements) {
+    c.ensureWithinMaxGrowth(len);
+    uint8_t* outPtr = c.writableData();
+    size_t loopBound = std::min(numElements, (c.length() / sizeof(T)) + i);
+    size_t j = 0;
+    for (; i < loopBound; ++i, ++j) {
+      T value = BE ? folly::Endian::big<T>(inputPtr[i]) : inputPtr[i];
+      folly::storeUnaligned<T>(outPtr + j * sizeof(T), value);
+    }
+    c.append(j * sizeof(T));
+  }
+  return len;
+}
+
 #if FOLLY_ARM_FEATURE_NEON_SVE_BRIDGE
 
 // Compute signedIntToZigzag on Eight 16-bit vars
@@ -311,26 +331,6 @@ static uint64_t writeFourVarint16Sve(Cursor& c, uint32x4_t vec) {
   return totalSize;
 }
 
-// Function used with data types that are just sent as BE/LE bytes
-template <class Cursor, typename T, bool BE>
-static inline size_t writeUnencodedArithmeticVector(
-    Cursor& c, const T* inputPtr, size_t numElements) {
-  size_t len = numElements * sizeof(T);
-  size_t i = 0;
-  while (i < numElements) {
-    c.ensureWithinMaxGrowth(len);
-    uint8_t* outPtr = c.writableData();
-    size_t loopBound = std::min(numElements, (c.length() / sizeof(T)) + i);
-    size_t j = 0;
-    for (; i < loopBound; ++i, ++j) {
-      T value = BE ? folly::Endian::big<T>(inputPtr[i]) : inputPtr[i];
-      folly::storeUnaligned<T>(outPtr + j * sizeof(T), value);
-    }
-    c.append(j * sizeof(T));
-  }
-  return len;
-}
-
 template <typename T>
 constexpr size_t kSimdWriteWidth = sizeof(T) == 2 ? 4 : 2;
 
@@ -465,6 +465,8 @@ size_t CompactProtocolWriter::writeArithmeticVector<uint16_t>(
   return writeEncodedArithmeticVector<QueueAppender, uint16_t>(
       out_, inputPtr, numElements);
 }
+#endif // FOLLY_ARM_FEATURE_NEON_SVE_BRIDGE
+
 template <>
 size_t CompactProtocolWriter::writeArithmeticVector<int8_t>(
     const int8_t* inputPtr, size_t numElements) {
@@ -489,8 +491,6 @@ size_t CompactProtocolWriter::writeArithmeticVector<double>(
   return writeUnencodedArithmeticVector<QueueAppender, double, true>(
       out_, inputPtr, numElements);
 }
-
-#endif // FOLLY_ARM_FEATURE_NEON_SVE_BRIDGE
 
 // Room for the longest varint of T. The decoders may read all of it even when
 // the varint is shorter.
