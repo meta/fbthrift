@@ -290,6 +290,30 @@ rust[client=cpp,*]/ThriftRPCClientTest/RequestResponseUnexpectedErrorCode/Succes
 rust[client=cpp,*]/ThriftRPCClientTest/StreamUnexpectedErrorCode/Success.StreamUnexpectedErrorCodeTest
 rust[client=cpp,*]/ThriftRPCClientTest/SinkUnexpectedErrorCode/Success.SinkUnexpectedErrorCodeTest
 
+# A first response compressed with an algorithm the C++ client doesn't know
+# makes it raise a TApplicationException, but bareclient hands its Rust caller
+# only the text, so `rpc_client.rs` gets a `ThriftError` instead of an
+# `ApplicationException`.
+rust[client=cpp,*]/ThriftRPCClientTest/RequestResponseUnknownCompression/Success.RequestResponseUnknownCompressionTest
+rust[client=cpp,*]/ThriftRPCClientTest/StreamUnknownCompression/Success.StreamUnknownCompressionTest
+rust[client=cpp,*]/ThriftRPCClientTest/SinkUnknownCompression/Success.SinkUnknownCompressionTest
+
+# `rpc_client.rs` reads a stream or a sink only up to its open, so it never
+# sees the chunk or the final response these cases fail on.
+rust[client=cpp,*]/ThriftRPCClientTest/StreamChunkUnknownCompression/Success.StreamChunkUnknownCompressionTest
+rust[client=cpp,*]/ThriftRPCClientTest/SinkFinalResponseUnknownCompression/Success.SinkFinalResponseUnknownCompressionTest
+
+# nativeclient fails a response compressed with an algorithm it doesn't know
+# with a `ThriftError` ("server used unsupported compression") where the C++
+# client raises a PROTOCOL_ERROR TApplicationException.
+rust[client=native,*]/ThriftRPCClientTest/RequestResponseUnknownCompression/Success.RequestResponseUnknownCompressionTest
+rust[client=native,*]/ThriftRPCClientTest/StreamUnknownCompression/Success.StreamUnknownCompressionTest
+rust[client=native,*]/ThriftRPCClientTest/SinkUnknownCompression/Success.SinkUnknownCompressionTest
+rust[client=native,*]/ThriftRPCClientTest/BidiUnknownCompression/Success.BidiUnknownCompressionTest
+rust[client=native,*]/ThriftRPCClientTest/StreamChunkUnknownCompression/Success.StreamChunkUnknownCompressionTest
+rust[client=native,*]/ThriftRPCClientTest/SinkFinalResponseUnknownCompression/Success.SinkFinalResponseUnknownCompressionTest
+rust[client=native,*]/ThriftRPCClientTest/BidiChunkUnknownCompression/Success.BidiChunkUnknownCompressionTest
+
 ###
 # Transport: HTTP
 # Run every client test over HTTP/2

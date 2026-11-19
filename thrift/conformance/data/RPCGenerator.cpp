@@ -34,6 +34,9 @@ const int32_t kRocketErrorFrame = 0x0B;
 const std::string kUndecodableMetadata = "\x1f";
 const std::string kProcessFirstResponseError =
     "apache::thrift::TApplicationException: process first response error";
+const auto kUnknownCompression = static_cast<CompressionAlgorithm>(99);
+const std::string kUnknownCompressionMessage =
+    "Unknown CompressionAlgorithm enum value: 99";
 
 // =================== Request-Response ===================
 Test createRequestResponseBasicTest() {
@@ -2664,6 +2667,153 @@ Test createUndeclaredExceptionFirstResponseTest(
   return ret;
 }
 
+std::string unknownCompressionMetadata() {
+  ResponseRpcMetadata metadata;
+  metadata.payloadMetadata().emplace().responseMetadata().emplace();
+  metadata.compression() = kUnknownCompression;
+  return CompactSerializer::serialize<std::string>(metadata);
+}
+
+std::string unknownCompressionChunkMetadata() {
+  StreamPayloadMetadata metadata;
+  metadata.compression() = kUnknownCompression;
+  return CompactSerializer::serialize<std::string>(metadata);
+}
+
+ServerError withFirstResponse(std::string metadata) {
+  ServerError error;
+  error.firstResponseMetadata() = std::move(metadata);
+  return error;
+}
+
+ServerError withChunk(std::string metadata) {
+  ServerError error;
+  error.chunkMetadata() = std::move(metadata);
+  return error;
+}
+
+std::string unknownCompressionTag(const ServerError& error) {
+  return error.chunkMetadata()
+      ? "spec/compatibility/rocket#stream-responses"
+      : "spec/compatibility/rocket#stream-initial-response";
+}
+
+Test createRequestResponseUnknownCompressionTest() {
+  Test ret;
+  ret.name() = "RequestResponseUnknownCompressionTest";
+  ret.tags()->emplace("spec/compatibility/rocket#request-response");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = "RequestResponseUnknownCompression/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  rpcTest.clientInstruction()
+      .emplace()
+      .requestResponseServerError()
+      .emplace()
+      .request()
+      .emplace()
+      .data() = "hello";
+  auto& clientTestResult = rpcTest.clientTestResult()
+                               .emplace()
+                               .requestResponseServerError()
+                               .emplace();
+  clientTestResult.exceptionType() = TApplicationException::PROTOCOL_ERROR;
+  clientTestResult.exceptionMessage() = kUnknownCompressionMessage;
+  rpcTest.serverInstruction()
+      .emplace()
+      .requestResponseServerError()
+      .emplace()
+      .error() = withFirstResponse(unknownCompressionMetadata());
+  rpcTest.serverTestResult().emplace();
+
+  return ret;
+}
+
+Test createStreamUnknownCompressionTest(
+    const std::string& name, ServerError error) {
+  Test ret;
+  ret.name() = name + "UnknownCompressionTest";
+  ret.tags()->emplace(unknownCompressionTag(error));
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = name + "UnknownCompression/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  rpcTest.clientInstruction()
+      .emplace()
+      .streamServerError()
+      .emplace()
+      .request()
+      .emplace()
+      .data() = "hello";
+  auto& clientTestResult =
+      rpcTest.clientTestResult().emplace().streamServerError().emplace();
+  clientTestResult.exceptionType() = TApplicationException::PROTOCOL_ERROR;
+  clientTestResult.exceptionMessage() = kUnknownCompressionMessage;
+  rpcTest.serverInstruction().emplace().streamServerError().emplace().error() =
+      std::move(error);
+  rpcTest.serverTestResult().emplace();
+
+  return ret;
+}
+
+Test createSinkUnknownCompressionTest(
+    const std::string& name, ServerError error) {
+  Test ret;
+  ret.name() = name + "UnknownCompressionTest";
+  ret.tags()->emplace(unknownCompressionTag(error));
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = name + "UnknownCompression/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  rpcTest.clientInstruction()
+      .emplace()
+      .sinkServerError()
+      .emplace()
+      .request()
+      .emplace()
+      .data() = "hello";
+  auto& clientTestResult =
+      rpcTest.clientTestResult().emplace().sinkServerError().emplace();
+  clientTestResult.exceptionType() = TApplicationException::PROTOCOL_ERROR;
+  clientTestResult.exceptionMessage() = kUnknownCompressionMessage;
+  rpcTest.serverInstruction().emplace().sinkServerError().emplace().error() =
+      std::move(error);
+  rpcTest.serverTestResult().emplace();
+
+  return ret;
+}
+
+Test createBidiUnknownCompressionTest(
+    const std::string& name, ServerError error) {
+  Test ret;
+  ret.name() = name + "UnknownCompressionTest";
+  ret.tags()->emplace(unknownCompressionTag(error));
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = name + "UnknownCompression/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  rpcTest.clientInstruction()
+      .emplace()
+      .bidiServerError()
+      .emplace()
+      .request()
+      .emplace()
+      .data() = "hello";
+  auto& clientTestResult =
+      rpcTest.clientTestResult().emplace().bidiServerError().emplace();
+  clientTestResult.exceptionType() = TApplicationException::PROTOCOL_ERROR;
+  clientTestResult.exceptionMessage() = kUnknownCompressionMessage;
+  rpcTest.serverInstruction().emplace().bidiServerError().emplace().error() =
+      std::move(error);
+  rpcTest.serverTestResult().emplace();
+
+  return ret;
+}
+
 std::string mismatchedChecksumMetadata() {
   ResponseRpcMetadata metadata;
   metadata.payloadMetadata().emplace().responseMetadata().emplace();
@@ -3422,6 +3572,19 @@ TestSuite createRPCClientExtendedTestSuite() {
       "Sink", CallKind::SINK, {neverCalledSinkFrame()}));
   suite.tests()->push_back(createUndeclaredExceptionFirstResponseTest(
       "Bidi", CallKind::BIDI, {neverCalledSinkFrame(), cancelFrame()}));
+  suite.tests()->push_back(createRequestResponseUnknownCompressionTest());
+  suite.tests()->push_back(createStreamUnknownCompressionTest(
+      "Stream", withFirstResponse(unknownCompressionMetadata())));
+  suite.tests()->push_back(createStreamUnknownCompressionTest(
+      "StreamChunk", withChunk(unknownCompressionChunkMetadata())));
+  suite.tests()->push_back(createSinkUnknownCompressionTest(
+      "Sink", withFirstResponse(unknownCompressionMetadata())));
+  suite.tests()->push_back(createSinkUnknownCompressionTest(
+      "SinkFinalResponse", withChunk(unknownCompressionChunkMetadata())));
+  suite.tests()->push_back(createBidiUnknownCompressionTest(
+      "Bidi", withFirstResponse(unknownCompressionMetadata())));
+  suite.tests()->push_back(createBidiUnknownCompressionTest(
+      "BidiChunk", withChunk(unknownCompressionChunkMetadata())));
   return suite;
 }
 
