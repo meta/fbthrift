@@ -1386,7 +1386,7 @@ static bool maybeEmptyDeprecatedTerseField(const Value& value) {
   }
 }
 
-static bool maybeStructOrUnionPatch(const Object& patch) {
+static bool canBeStructOrUnionPatch(const Object& patch) {
   return std::all_of(patch.begin(), patch.end(), [](const auto& field) {
     const auto patchOp = static_cast<op::PatchOp>(field.first);
     return patchOp == op::PatchOp::Assign || patchOp == op::PatchOp::Clear ||
@@ -1491,7 +1491,7 @@ DynamicPatch DiffVisitorBase::diffStructured(
     // `diffField` override added an op union patch doesn't have (e.g.
     // EnsureStruct), which makes it a struct patch.
     auto obj = patch.toObject();
-    if (maybeStructOrUnionPatch(obj)) {
+    if (canBeStructOrUnionPatch(obj)) {
       DynamicUnknownPatch ret;
       ret.fromObject(badge, std::move(obj));
       return DynamicPatch{ret};
