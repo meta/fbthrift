@@ -317,7 +317,7 @@ cdef void _move_python_user_exception(Promise_Py promise, PythonUserException py
     cdef unique_ptr[cPythonUserException] owned = cmove(pyex._cpp_obj)
     promise.error_py(cmove(dereference(owned.get())))
 
-async def serverCallback_coro(object callFunc, str funcName, Promise_Py promise, IOBuf buf, Protocol prot, RpcKind kind, bint hide_unexpected_exceptions=False):
+async def serverCallback_coro(object callFunc, str funcName, Promise_Py promise, IOBuf buf, Protocol prot, RpcKind kind):
     try:
         if kind is RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE:
             val, stream = await callFunc(buf, prot)
@@ -350,7 +350,7 @@ async def serverCallback_coro(object callFunc, str funcName, Promise_Py promise,
         traceback.print_exc()
         promise.error_ta(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN,
-            b"Unexpected server error" if hide_unexpected_exceptions else repr(ex).encode('UTF-8'),
+            repr(ex).encode('UTF-8'),
         ))
     except asyncio.CancelledError as ex:
         print(f"Coroutine was cancelled in service handler {funcName}:", file=sys.stderr)
@@ -440,7 +440,6 @@ cdef int combinedHandler(
             from_unique_ptr(cmove(requestDispatchParameters.serializedRequest.buffer)),
             prot,
             kind,
-            requestDispatchParameters.function.hideUnexpectedExceptions,
         )
         return cmove(requestDispatchParameters.launchRequest)(
             <PyObject*>rpc_coroutine_factory
@@ -954,14 +953,6 @@ cdef class PythonAsyncProcessorFactory(AsyncProcessorFactory):
         cdef set workerCapableMethodNames = set()
 
         for name, entry in funcMap.items():
-            hide_unexpected_exceptions = controlHandler.should_hide_unexpected_exceptions(name)
-            if type(hide_unexpected_exceptions) is not bool:
-                raise TypeError("should_hide_unexpected_exceptions must return a bool")
-            if hide_unexpected_exceptions and (
-                entry.rpc_kind != RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE
-                or entry.interaction
-            ):
-                raise ValueError("Unexpected-exception privacy requires an ordinary unary RPC")
             name_view = bytes_to_string_view(name)
             controlMethods[<bytes>name] = <PyObject*>entry.handler
             if (
@@ -993,7 +984,6 @@ cdef class PythonAsyncProcessorFactory(AsyncProcessorFactory):
                     <bytes>controlHandler.service_name(),
                     name_view,
                 )
-            funcs[name_view].hideUnexpectedExceptions = hide_unexpected_exceptions
 
         for lifecycle_func in lifecycleFuncs:
             lifecycle.push_back(<PyObject*>lifecycle_func)

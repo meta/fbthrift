@@ -3395,18 +3395,6 @@ cdef class ServiceInterface:
     def getFunctionTable(self):
         return {}
 
-    def should_hide_unexpected_exceptions(self, bytes method_name):
-        """Opt an ordinary unary RPC into opaque unexpected-exception messages.
-
-        Called once per function-table key when the processor factory is built.
-        Return an actual bool from trusted server configuration, not request data.
-        True replaces only the generic Exception wire message with
-        "Unexpected server error"; internal tracebacks, declared exceptions and
-        cancellation retain their existing behavior. Interactions, one-way RPCs
-        and streaming RPCs cannot opt in.
-        """
-        return False
-
     async def __aenter__(self):
         # Establish async context managers as a way for end users to async initalize
         # internal structures used by Service Handlers.
