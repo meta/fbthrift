@@ -952,7 +952,7 @@ class Factories(_fbthrift_python_Client["Factories.Async", "Factories.Sync"]):
             self,
             *,
             rpc_options: _typing.Optional[RpcOptions] = None,
-        ) -> Factories_MyInteraction.Async, _typing.AsyncGenerator[builtins.int, None]:
+        ) -> _typing.Tuple[Factories_MyInteraction.Async, _typing.AsyncGenerator[builtins.int, None]]:
             _fbthrift_interaction = self.__fbthrift_createMyInteraction()
             _fbthrift_resp = await self._send_request(
                 "Factories",
@@ -967,7 +967,7 @@ class Factories(_fbthrift_python_Client["Factories.Async", "Factories.Sync"]):
                 rpc_options=rpc_options,
             )
             _fbthrift_resp, _fbthrift_sink_or_stream = _fbthrift_resp
-            return _fbthrift_interaction_fbthrift_sink_or_stream
+            return _fbthrift_interaction, _fbthrift_sink_or_stream
 
         async def interactWithStreamAndInitialResponse(
             self,
@@ -1000,7 +1000,7 @@ class Factories(_fbthrift_python_Client["Factories.Async", "Factories.Sync"]):
             self,
             *,
             rpc_options: _typing.Optional[RpcOptions] = None,
-        ) -> Factories_MyInteraction.Async, _fbthrift_ClientSink[builtins.int, builtins.int]:
+        ) -> _typing.Tuple[Factories_MyInteraction.Async, _fbthrift_ClientSink[builtins.int, builtins.int]]:
             _fbthrift_interaction = self.__fbthrift_createMyInteraction()
             _fbthrift_resp = await self._send_request(
                 "Factories",
@@ -1016,7 +1016,7 @@ class Factories(_fbthrift_python_Client["Factories.Async", "Factories.Sync"]):
             )
             _fbthrift_resp, _fbthrift_sink_or_stream = _fbthrift_resp
             assert isinstance(_fbthrift_sink_or_stream, _fbthrift_ClientSink)
-            return _fbthrift_interaction_fbthrift_sink_or_stream
+            return _fbthrift_interaction, _fbthrift_sink_or_stream
 
         async def interactWithSinkAndInitialResponse(
             self,
@@ -1050,7 +1050,7 @@ class Factories(_fbthrift_python_Client["Factories.Async", "Factories.Sync"]):
             self,
             *,
             rpc_options: _typing.Optional[RpcOptions] = None,
-        ) -> Factories_MyInteraction.Async, _fbthrift_BidirectionalStream[builtins.int, builtins.int]:
+        ) -> _typing.Tuple[Factories_MyInteraction.Async, _fbthrift_BidirectionalStream[builtins.int, builtins.int]]:
             _fbthrift_interaction = self.__fbthrift_createMyInteraction()
             _fbthrift_resp = await self._send_request(
                 "Factories",
@@ -1066,7 +1066,7 @@ class Factories(_fbthrift_python_Client["Factories.Async", "Factories.Sync"]):
             )
             _fbthrift_resp, _fbthrift_sink_or_stream = _fbthrift_resp
             assert isinstance(_fbthrift_sink_or_stream, _fbthrift_BidirectionalStream)
-            return _fbthrift_interaction_fbthrift_sink_or_stream
+            return _fbthrift_interaction, _fbthrift_sink_or_stream
 
         async def interactWithBidiAndInitialResponse(
             self,
