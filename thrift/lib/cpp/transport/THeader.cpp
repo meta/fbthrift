@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <fmt/format.h>
 #include <thrift/lib/cpp/transport/THeader.h>
 
 #include <fmt/core.h>
@@ -363,8 +364,8 @@ unique_ptr<IOBuf> THeader::removeHeader(
           "(probably a local daemon sending HTTP content to all listening ports).";
       throw TTransportException(TTransportException::INVALID_FRAME_SIZE, err);
     } else {
-      std::string err = folly::stringPrintf(
-          "Header transport frame is too large: %u (hex 0x%08x", sz32, sz32);
+      std::string err = fmt::format(
+          "Header transport frame is too large: {} (hex 0x{:08x}", sz32, sz32);
       // does it look like ascii?
       if ( // all bytes 0x7f or less; all are > 0x1F
           ((sz32 & 0x7f7f7f7f) == sz32) && ((sz32 >> 24) & 0xff) >= 0x20 &&
@@ -374,9 +375,9 @@ unique_ptr<IOBuf> THeader::removeHeader(
         uint32_t* asUint32 = reinterpret_cast<uint32_t*>(buffer);
         *asUint32 = folly::Endian::big(sz32);
         buffer[4] = 0;
-        folly::stringAppendf(&err, ", ascii '%s'", buffer);
+        fmt::format_to(std::back_inserter(err), ", ascii '{}'", buffer);
       }
-      folly::stringAppendf(&err, ")");
+      err += ")";
       throw TTransportException(TTransportException::INVALID_FRAME_SIZE, err);
     }
   } else {
@@ -401,14 +402,14 @@ unique_ptr<IOBuf> THeader::removeHeader(
   if (c_.clientType_ == THRIFT_UNKNOWN_CLIENT_TYPE) {
     throw TTransportException(
         TTransportException::BAD_ARGS,
-        folly::stringPrintf(
-            "Could not detect client transport type: magic 0x%08x", magic));
+        fmt::format(
+            "Could not detect client transport type: magic 0x{:08x}", magic));
   }
 
   if (sz < 10) {
     throw TTransportException(
         TTransportException::INVALID_FRAME_SIZE,
-        folly::stringPrintf("Header transport frame is too small: %zu", sz));
+        fmt::format("Header transport frame is too small: {}", sz));
   }
   c_.flags_ = magic & FLAGS_MASK;
   c_.seqId_ = c.readBE<uint32_t>();
@@ -424,8 +425,8 @@ static string getString(RWPrivateCursor& c, size_t sz) {
   if (!c.canAdvance(sz)) {
     throw TTransportException(
         TTransportException::CORRUPTED_DATA,
-        folly::stringPrintf(
-            "String size %zu is larger than available %zu bytes",
+        fmt::format(
+            "String size {} is larger than available {} bytes",
             sz,
             c.totalLength()));
   }
