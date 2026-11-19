@@ -143,7 +143,7 @@ final class TClientMultiAsyncHandler extends TClientAsyncHandler {
   public async function genWaitSink(int $sequence_id)[zoned_local]: Awaitable<
     (function(HH\AsyncGenerator<null, string, void>): Awaitable<string>),
   > {
-    $results = await Vec\fb\map_and_filter_nulls_async(
+    $results = await Vec\map_and_filter_nulls_async(
       $this->handlers,
       async ($handler)[zoned_local] ==>
         await $handler->genWaitSink($sequence_id),

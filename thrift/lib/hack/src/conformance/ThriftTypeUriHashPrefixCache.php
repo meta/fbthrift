@@ -34,7 +34,7 @@ final class ThriftTypeUriHashPrefixCache
 
   <<__Override>>
   protected static function getDataImpl()[SBC]: this::TReturn {
-    return Vec\fb\flat_map_with_key(
+    return Vec\flat_map_with_key(
       ThriftTypeUriHashInnerCache::getData(),
       ($classname, $uri_hashes) ==>
         Vec\map($uri_hashes, $uri_hash ==> tuple($uri_hash, $classname)),
