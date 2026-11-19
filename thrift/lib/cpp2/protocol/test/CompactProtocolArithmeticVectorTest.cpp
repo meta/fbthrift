@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-// CompactProtocol's readArithmeticVector must read lists written one element at
+// CompactProtocol's writeArithmeticVector must write the same bytes as writing
+// each element, and readArithmeticVector must read lists written one element at
 // a time.
 
 #include <algorithm>
@@ -40,6 +41,23 @@ namespace {
 
 class CompactProtocolArithmeticVectorTest : public testing::Test {
  protected:
+  // `maxGrowth` limits the size of each output buffer, so that the bulk path
+  // crosses buffer boundaries.
+  template <typename T>
+  static void expectBulkWriteMatchesEachElement(
+      const std::vector<T>& values, size_t maxGrowth) {
+    const std::string expected = writeEachElement(values);
+    CompactProtocolWriter writer;
+    folly::IOBufQueue queue;
+    writer.setOutput(&queue, maxGrowth);
+    const size_t written =
+        writer.writeArithmeticVector(values.data(), values.size());
+    EXPECT_EQ(written, expected.size());
+    std::string bytes;
+    queue.appendToString(bytes);
+    EXPECT_EQ(bytes, expected);
+  }
+
   // `inputBufferSize` limits the size of each input buffer, so that the bulk
   // path crosses buffer boundaries.
   template <typename T>
@@ -98,8 +116,9 @@ using ElementTypes = testing::Types<
     double>;
 TYPED_TEST_SUITE(CompactProtocolArithmeticVectorTypedTest, ElementTypes);
 
-// Positive and negative values of every varint length, through 7-byte input
-// buffers, so that most elements straddle a buffer boundary.
+// Positive and negative values of every varint length, through 64-byte output
+// buffers and 7-byte input buffers, so that most elements straddle a buffer
+// boundary.
 TYPED_TEST(CompactProtocolArithmeticVectorTypedTest, SmallBuffers) {
   std::vector<TypeParam> values;
   for (int repeat = 0; repeat < 20; ++repeat) {
@@ -109,6 +128,7 @@ TYPED_TEST(CompactProtocolArithmeticVectorTypedTest, SmallBuffers) {
       values.push_back(static_cast<TypeParam>(-magnitude));
     }
   }
+  this->expectBulkWriteMatchesEachElement(values, 64);
   this->expectBulkReadMatchesEachElement(values, 7);
 }
 
@@ -116,11 +136,13 @@ TYPED_TEST(CompactProtocolArithmeticVectorTypedTest, ShortLists) {
   const std::vector<TypeParam> values{1, 0, static_cast<TypeParam>(-1)};
   for (size_t size = 0; size <= values.size(); ++size) {
     const std::vector<TypeParam> prefix(values.begin(), values.begin() + size);
+    this->expectBulkWriteMatchesEachElement(prefix, 1);
     this->expectBulkReadMatchesEachElement(prefix, 7);
   }
 }
 
-// An odd size, so that buffer boundaries fall at every offset within a varint.
+// Odd sizes, so that buffer boundaries fall at every offset within a varint.
+constexpr size_t kMaxGrowth = 4093;
 constexpr size_t kInputBufferSize = 4091;
 
 TEST_F(CompactProtocolArithmeticVectorTest, Every16BitValue) {
@@ -128,7 +150,9 @@ TEST_F(CompactProtocolArithmeticVectorTest, Every16BitValue) {
   std::iota(unsignedValues.begin(), unsignedValues.end(), 0);
   const std::vector<int16_t> signedValues(
       unsignedValues.begin(), unsignedValues.end());
+  expectBulkWriteMatchesEachElement(signedValues, kMaxGrowth);
   expectBulkReadMatchesEachElement(signedValues, kInputBufferSize);
+  expectBulkWriteMatchesEachElement(unsignedValues, kMaxGrowth);
   expectBulkReadMatchesEachElement(unsignedValues, kInputBufferSize);
 }
 
@@ -145,6 +169,7 @@ TEST_P(CompactProtocolEvery32BitValueTest, Shard) {
     for (uint32_t i = 0; i < kChunkSize; ++i) {
       values[i] = static_cast<int32_t>(GetParam() * kShardSize + chunk + i);
     }
+    expectBulkWriteMatchesEachElement(values, kMaxGrowth);
     expectBulkReadMatchesEachElement(values, kInputBufferSize);
   }
 }
@@ -177,7 +202,9 @@ TEST_P(CompactProtocol64BitValuesTest, ZigzagWidth) {
     values.push_back(util::zigzagToI64(topBit | (topBit - 1)));
   }
   const std::vector<uint64_t> unsignedValues(values.begin(), values.end());
+  expectBulkWriteMatchesEachElement(values, kMaxGrowth);
   expectBulkReadMatchesEachElement(values, kInputBufferSize);
+  expectBulkWriteMatchesEachElement(unsignedValues, kMaxGrowth);
   expectBulkReadMatchesEachElement(unsignedValues, kInputBufferSize);
 }
 

@@ -16,6 +16,8 @@
 
 #include <thrift/lib/cpp2/protocol/CompactProtocol.h>
 
+#include <array>
+#include <bit>
 #include <span>
 
 #include <folly/Conv.h>
@@ -24,7 +26,6 @@
 
 #include <arm_neon.h>
 #include <arm_sve.h>
-#include <bit>
 
 #include <arm_neon_sve_bridge.h> // @manual
 
@@ -467,6 +468,128 @@ size_t CompactProtocolWriter::writeArithmeticVector<uint16_t>(
   return writeEncodedArithmeticVector<QueueAppender, uint16_t>(
       out_, inputPtr, numElements);
 }
+#else // FOLLY_ARM_FEATURE_NEON_SVE_BRIDGE
+
+// Like writeI16, zigzag-encodes int16_t in 32 bits: in 16 bits, every element
+// needs an extra zero extension before appendVarint.
+template <typename T>
+static auto toZigzag(T value) {
+  if constexpr (sizeof(T) == 8) {
+    return util::i64ToZigzag(static_cast<int64_t>(value));
+  } else {
+    return util::i32ToZigzag(static_cast<std::make_signed_t<T>>(value));
+  }
+}
+
+#if FOLLY_X64 && THRIFT_UTIL_VARINTUTILS_BRANCH_FREE_ENCODER
+// Both indexed by the number of leading zero bits of the 64-bit value, which
+// fixes how many 7-bit groups its varint needs. Grouping the value's 64 bits
+// by 7 from the bottom (bit 63 on its own):
+//
+//   zeros == 10:
+//     0 0000000 001xxxx xxxxxxx xxxxxxx xxxxxxx xxxxxxx xxxxxxx xxxxxxx xxxxxxx
+//     kVarintSizes[10] == 8
+//     kVarintContinuationBitMasks[10] == 0x0080808080808080
+constexpr auto kVarintSizes = [] {
+  std::array<uint8_t, 65> sizes{};
+  for (int zeros = 0; zeros <= 64; ++zeros) {
+    sizes[zeros] = std::max(1, (64 - zeros + 6) / 7);
+  }
+  return sizes;
+}();
+constexpr auto kVarintContinuationBitMasks = [] {
+  std::array<uint64_t, 65> bits{};
+  for (int zeros = 0; zeros <= 64; ++zeros) {
+    for (int byte = 0; byte < std::min(kVarintSizes[zeros] - 1, 8); ++byte) {
+      bits[zeros] |= uint64_t{0x80} << (8 * byte);
+    }
+  }
+  return bits;
+}();
+#endif
+
+// The most bytes appendVarint stores for a U, whatever the varint's length.
+template <typename U>
+constexpr size_t kAppendVarintBytes =
+    std::max(sizeof(uint64_t), util::detail::kVarintMaxBytes<U>);
+
+// Returns the end of the varint, but may store up to kAppendVarintBytes<U>
+// bytes past p. With BMI2 it has no branches, unlike util::writeVarint, so
+// lists of mixed-length varints cost no mispredictions.
+template <typename U>
+static uint8_t* appendVarint(uint8_t* p, U value) {
+#if FOLLY_X64 && THRIFT_UTIL_VARINTUTILS_BRANCH_FREE_ENCODER
+  const int zeros = std::countl_zero(uint64_t{value});
+  const uint64_t firstEightBytes =
+      _pdep_u64(value, 0x7f7f7f7f7f7f7f7f) | kVarintContinuationBitMasks[zeros];
+  folly::storeUnaligned<uint64_t>(p, firstEightBytes);
+  if constexpr (sizeof(U) == 8) {
+    p[8] = static_cast<uint8_t>(value >> 56);
+    p[9] = static_cast<uint8_t>(value >> 63);
+  }
+  return p + kVarintSizes[zeros];
+#else
+  if constexpr (sizeof(U) == 8) {
+    return p + util::writeVarint64(value, p);
+  } else {
+    return p + util::writeVarint32(value, p);
+  }
+#endif
+}
+
+template <typename T>
+static size_t writeVarintArithmeticVector(
+    QueueAppender& out, const T* inputPtr, size_t numElements) {
+  constexpr size_t kBytesPerElement =
+      kAppendVarintBytes<decltype(toZigzag(T()))>;
+  size_t bytesWritten = 0;
+  size_t i = 0;
+  while (i < numElements) {
+    out.ensure(kBytesPerElement);
+    size_t loopBound =
+        std::min(numElements, i + out.length() / kBytesPerElement);
+    uint8_t* const begin = out.writableData();
+    uint8_t* p = begin;
+    for (; i < loopBound; ++i) {
+      p = appendVarint(p, toZigzag(inputPtr[i]));
+    }
+    out.append(p - begin);
+    bytesWritten += p - begin;
+  }
+  return bytesWritten;
+}
+
+template <>
+size_t CompactProtocolWriter::writeArithmeticVector<int64_t>(
+    const int64_t* inputPtr, size_t numElements) {
+  return writeVarintArithmeticVector(out_, inputPtr, numElements);
+}
+template <>
+size_t CompactProtocolWriter::writeArithmeticVector<uint64_t>(
+    const uint64_t* inputPtr, size_t numElements) {
+  return writeVarintArithmeticVector(out_, inputPtr, numElements);
+}
+template <>
+size_t CompactProtocolWriter::writeArithmeticVector<int32_t>(
+    const int32_t* inputPtr, size_t numElements) {
+  return writeVarintArithmeticVector(out_, inputPtr, numElements);
+}
+template <>
+size_t CompactProtocolWriter::writeArithmeticVector<uint32_t>(
+    const uint32_t* inputPtr, size_t numElements) {
+  return writeVarintArithmeticVector(out_, inputPtr, numElements);
+}
+template <>
+size_t CompactProtocolWriter::writeArithmeticVector<int16_t>(
+    const int16_t* inputPtr, size_t numElements) {
+  return writeVarintArithmeticVector(out_, inputPtr, numElements);
+}
+template <>
+size_t CompactProtocolWriter::writeArithmeticVector<uint16_t>(
+    const uint16_t* inputPtr, size_t numElements) {
+  return writeVarintArithmeticVector(out_, inputPtr, numElements);
+}
+
 #endif // FOLLY_ARM_FEATURE_NEON_SVE_BRIDGE
 
 template <>
