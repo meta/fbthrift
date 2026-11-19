@@ -44,6 +44,7 @@ use anyhow::anyhow;
 use clap::Parser;
 use futures::FutureExt;
 use futures::stream::StreamExt;
+use nativeclient::ThriftErrorExt;
 use rpc::rpc::BidiAbortClientInstruction;
 use rpc::rpc::BidiAbortClientTestResult;
 use rpc::rpc::BidiBasicClientInstruction;
@@ -371,8 +372,11 @@ async fn test(
 
 fn timed_out(error: &anyhow::Error) -> bool {
     matches!(
-        error.downcast_ref::<nativeclient::ThriftError>(),
-        Some(nativeclient::ThriftError::Timeout(_) | nativeclient::ThriftError::StreamTimeout(_))
+        error.thrift_error(),
+        Some(nativeclient::ThriftError::Transport(
+            nativeclient::TransportError::Timeout(_)
+                | nativeclient::TransportError::StreamTimeout { .. }
+        ))
     )
 }
 
@@ -382,9 +386,13 @@ const UNKNOWN: i32 = 0;
 const NOT_OPEN: i32 = 1;
 
 fn transport_exception_type(error: &anyhow::Error) -> Option<i32> {
-    match error.downcast_ref::<nativeclient::ThriftError>()? {
-        nativeclient::ThriftError::Transport(_) => Some(UNKNOWN),
-        nativeclient::ThriftError::ConnectionClosed(_) => Some(NOT_OPEN),
+    match error.thrift_error()? {
+        nativeclient::ThriftError::Transport(nativeclient::TransportError::Http2(
+            nativeclient::Http2Error::Reset { .. },
+        )) => Some(UNKNOWN),
+        nativeclient::ThriftError::Transport(
+            nativeclient::TransportError::Closed(_) | nativeclient::TransportError::Http2(_),
+        ) => Some(NOT_OPEN),
         _ => None,
     }
 }
