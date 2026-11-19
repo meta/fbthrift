@@ -200,6 +200,13 @@ abstract class TProtocol {
     inout ?int $field_id,
   )[this::CReadWriteDefault]: int;
 
+  /**
+   * True if `readFieldBegin()` returns a field's name, its id or both, as JSON5
+   * keys `name`, `(1)` and `name (1)` do. The field is then found by either,
+   * and a name and id of different fields is an error.
+   */
+  const bool USES_FIELD_NAMES = false;
+
   public abstract function readFieldEnd()[write_props]: int;
 
   public abstract function readMapBegin(

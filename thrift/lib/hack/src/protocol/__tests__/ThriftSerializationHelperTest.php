@@ -374,6 +374,37 @@ final class ThriftSerializationHelperTest
       tuple('writeMapBeginWithAlternativeKeyForm', TType::STRING),
     ]);
   }
+
+  public function testFindFieldIdConflict(): void {
+    $example = facebook\thrift\json5\Example::withDefaultValues();
+    expect(
+      () ==> ThriftSerializationHelper::findFieldId($example, 'boolValue', 31),
+    )->toThrow(nameof TProtocolException);
+    expect(
+      () ==> ThriftSerializationHelper::findFieldId($example, 'unknown', 30),
+    )->toThrow(nameof TProtocolException);
+  }
+
+  public function testUsesFieldNames(): void {
+    $transport = new TMemoryBuffer();
+    $transport->write(
+      '{"(30)":true,"stringValue (2)":"a","unionValue":{"(1)":5},"(999)":0,'.
+      '"unknown":0,"unknown (999)":0}',
+    );
+    $result = facebook\thrift\json5\Example::withDefaultValues();
+    ThriftSerializationHelper::readStruct(
+      new ThriftSerializationHelperTestFieldIdProtocol($transport),
+      $result,
+    );
+    expect($result)->toBePHPEqual(facebook\thrift\json5\Example::fromShape(
+      shape(
+        'boolValue' => true,
+        'stringValue' => 'a',
+        'unionValue' =>
+          facebook\thrift\json5\ExampleUnion::fromShape(shape('intValue' => 5)),
+      ),
+    ));
+  }
 }
 
 final class ThriftSerializationHelperTestIdOrderProtocol
@@ -424,5 +455,28 @@ final class ThriftSerializationHelperTestMapKeyFormProtocol
   )[write_props]: int {
     $this->calls[] = tuple('writeMapBeginWithAlternativeKeyForm', $key_type);
     return parent::writeMapBegin($key_type, $val_type, $size);
+  }
+}
+
+// Reads SimpleJSON keys `name`, `(id)` and `name (id)`.
+final class ThriftSerializationHelperTestFieldIdProtocol
+  extends TSimpleJSONProtocol {
+  const bool USES_FIELD_NAMES = true;
+
+  <<__Override>>
+  public function readFieldBegin(
+    inout ?string $name,
+    inout ?TType $field_type,
+    inout ?int $field_id,
+  )[write_props]: int {
+    $result =
+      parent::readFieldBegin(inout $name, inout $field_type, inout $field_id);
+    $match =
+      Regex\first_match($name ?? '', re"/^(?<name>\w*) ?\((?<id>\d+)\)$/");
+    if ($match is nonnull) {
+      $name = $match['name'] === '' ? null : $match['name'];
+      $field_id = (int)$match['id'];
+    }
+    return $result;
   }
 }

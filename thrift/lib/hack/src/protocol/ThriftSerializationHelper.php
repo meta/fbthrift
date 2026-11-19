@@ -52,7 +52,7 @@ abstract final class ThriftSerializationHelper {
         break;
       }
 
-      if ($field_id !== null) {
+      if ($field_id !== null && !$protocol::USES_FIELD_NAMES) {
         // Compact, Binary and JSON:
         // These protocols only encode the field id.
 
@@ -74,13 +74,15 @@ abstract final class ThriftSerializationHelper {
         // This uses the TSPEC to find the field name.
         $field_name = $tspec[$field_id]['var'];
       } else {
-        // SimpleJSON:
-        // This protocol only encodes the field name.
+        // SimpleJSON and JSON5:
+        // These protocols encode the field name; JSON5 can also encode the
+        // field id, with the name or instead of it.
 
         // Versioning:
         // Skip type if there is a mismatch between the tspec and the
         // type that we obtain from the buffer.
-        if (!PHP\array_key_exists($field_name, $object::FIELDMAP)) {
+        $field_id = self::findFieldId($object, $field_name, $field_id);
+        if ($field_id === null) {
           $xfer += $protocol->skip(nullthrows(
             $field_type,
             '$field_type was unexpectedly null in '.__METHOD__,
@@ -89,11 +91,8 @@ abstract final class ThriftSerializationHelper {
           continue;
         }
 
-        // This uses the TFIELDMAP to find the field id.
-        $field_id = $object::FIELDMAP[nullthrows(
-          $field_name,
-          '$field_name was unexpectedly null in '.__METHOD__,
-        )];
+        // This uses the TSPEC to find the field name.
+        $field_name = $tspec[$field_id]['var'];
       }
 
       $tmp = null;
@@ -107,10 +106,10 @@ abstract final class ThriftSerializationHelper {
       );
       $is_field_wrapped = Shapes::idx($tspec[$field_id], 'is_wrapped') ?? false;
 
-      if ($has_type_wrapper && $field_name is nonnull) {
+      if ($has_type_wrapper) {
         $setter_method = "set_".$field_name."_DO_NOT_USE_THRIFT_INTERNAL";
         HH\FIXME\UNSAFE_CAST<mixed, dynamic>($object)->$setter_method($tmp);
-      } else if ($is_field_wrapped && $field_name is nonnull) {
+      } else if ($is_field_wrapped) {
         $getter_method = "get_".$field_name;
         HH\FIXME\UNSAFE_CAST<mixed, HH_FIXME\UNKNOWN_TYPE_FOR_CAST>(
           HH\FIXME\UNSAFE_CAST<mixed, dynamic>($object)->$getter_method(),
@@ -122,6 +121,44 @@ abstract final class ThriftSerializationHelper {
     }
     $xfer += $protocol->readStructEnd();
     return $xfer;
+  }
+
+  /**
+   * The id of the field named by `$name`, `$id` or both; null for an unknown
+   * field. Throws if `$name` and `$id` name different fields.
+   */
+  public static function findFieldId(
+    IThriftStruct $object,
+    ?string $name,
+    ?int $id,
+  )[]: ?int {
+    $id_by_name = idx($object::FIELDMAP, $name);
+    $name_by_id = idx($object::SPEC, $id)['var'] ?? null;
+    if ($name is null && $id is null) {
+      return null;
+    }
+    if ($id is null) {
+      return $id_by_name;
+    }
+    if ($name is null) {
+      return $name_by_id is null ? null : $id;
+    }
+    if ($id_by_name is null && $name_by_id is null) {
+      // Neither is known: a field from a newer schema, skipped like any other.
+      return null;
+    }
+    invariant(
+      ($id_by_name === $id) === ($name_by_id === $name),
+      'FIELDMAP and SPEC disagree on field %s',
+      $name,
+    );
+    if ($id_by_name === $id) {
+      return $id;
+    }
+    throw new TProtocolException(
+      Str\format('Field %s does not have id %d', $name, $id),
+      TProtocolException::INVALID_DATA,
+    );
   }
 
   public static function readStructHelper(
