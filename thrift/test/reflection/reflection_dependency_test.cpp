@@ -17,7 +17,6 @@
 #include <type_traits>
 
 #include <thrift/lib/cpp2/Thrift.h>
-#include <thrift/lib/cpp2/reflection/internal/test_helpers.h>
 #include <thrift/test/reflection/gen-cpp2/reflection_types.h>
 
 #include <gtest/gtest.h>

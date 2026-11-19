@@ -27,7 +27,6 @@
 #include <thrift/lib/cpp2/debug_thrift_data_difference/pretty_print.h>
 #include <thrift/lib/cpp2/folly_dynamic/folly_dynamic.h>
 
-#include <thrift/lib/cpp2/reflection/internal/test_helpers.h>
 #include <thrift/test/gen-cpp2/adapter_types.h>
 #include <thrift/test/reflection/gen-cpp2/compat_types.h>
 #include <thrift/test/reflection/gen-cpp2/global_types.h>
