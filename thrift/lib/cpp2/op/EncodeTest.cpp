@@ -1632,6 +1632,22 @@ TEST(DecodeTest, DecodeCppType) {
   testDecodeCppType<conformance::StandardProtocol::Compact>();
 }
 
+template <typename Tag, typename List>
+constexpr bool kCanDecodeList =
+    std::is_invocable_v<Decode<type::list<Tag>>, BinaryProtocolReader&, List&>;
+
+static_assert(kCanDecodeList<type::i32_t, std::vector<std::int32_t>>);
+static_assert(kCanDecodeList<type::i32_t, std::vector<std::uint32_t>>);
+static_assert(kCanDecodeList<
+              type::cpp_type<std::uint16_t, type::i16_t>,
+              std::vector<std::uint16_t>>);
+static_assert(kCanDecodeList<type::string_t, std::vector<std::string>>);
+// Each element would be narrowed from the tag's 64-bit value.
+static_assert(!kCanDecodeList<
+              type::cpp_type<std::uint64_t, type::i64_t>,
+              std::vector<std::int16_t>>);
+static_assert(!kCanDecodeList<type::double_t, std::vector<float>>);
+
 TEST(DecodeTest, DecodeAdapted) {
   testDecodeAdapted<conformance::StandardProtocol::Binary>();
   testDecodeAdapted<conformance::StandardProtocol::Compact>();

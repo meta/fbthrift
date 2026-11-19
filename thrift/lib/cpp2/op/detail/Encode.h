@@ -1315,9 +1315,20 @@ struct ListDecodeImpl {
   }
 };
 
+// A list's C++ elements can differ from its element tag's native type only in
+// signedness, so that decoding never converts a number to another width.
+template <typename Elem, typename Native>
+inline constexpr bool kIsListElementOf = !std::is_arithmetic_v<Elem> ||
+    !std::is_arithmetic_v<Native> || std::is_same_v<Elem, Native> ||
+    (std::is_integral_v<Elem> && std::is_integral_v<Native> &&
+     sizeof(Elem) == sizeof(Native));
+
 template <typename Tag>
 struct Decode<type::list<Tag>> {
   template <typename Protocol, typename ListType>
+    requires kIsListElementOf<
+        typename ListType::value_type,
+        type::native_type<Tag>>
   void operator()(Protocol& prot, ListType& list) const {
     // An adapter must convert each element, so adapted elements are never
     // read in bulk.
