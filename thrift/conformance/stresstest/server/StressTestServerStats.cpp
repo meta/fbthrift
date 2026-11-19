@@ -211,6 +211,40 @@ void StressTestServerStats::recordConnection(ConnectionMode mode) {
   }
 }
 
+void StressTestServerStats::recordRxTimestampCollect(
+    std::chrono::microseconds collect) {
+  auto state = rxTimestampState_.wlock();
+  state->histogram.addValue(collect.count());
+  ++state->samples;
+}
+
+std::optional<RxTimestampStats>
+StressTestServerStats::snapshotRxTimestampStats() const {
+  auto state = rxTimestampState_.rlock();
+  if (state->samples == 0) {
+    return std::nullopt;
+  }
+
+  RxTimestampStats stats;
+  stats.samples() = state->samples;
+  stats.p50Us() = state->histogram.getPercentileEstimate(.5);
+  stats.p99Us() = state->histogram.getPercentileEstimate(.99);
+  stats.p100Us() = state->histogram.getPercentileEstimate(1.0);
+  return stats;
+}
+
+void StressTestServerStats::logRxTimestampStats() const {
+  const auto stats = snapshotRxTimestampStats();
+  if (!stats) {
+    LOG(INFO) << "Server RX collect latency: 0 samples";
+    return;
+  }
+  LOG(INFO) << "Server RX collect latency: " << *stats->samples()
+            << " samples, P50=" << *stats->p50Us()
+            << "us, P99=" << *stats->p99Us() << "us, P100=" << *stats->p100Us()
+            << "us";
+}
+
 ServerResult StressTestServerStats::publish(ResultMetadata metadata) const {
   auto connectionState = connectionState_.rlock();
   ServerResult result;
@@ -224,6 +258,9 @@ ServerResult StressTestServerStats::publish(ResultMetadata metadata) const {
   result.zcrx() = zcrxCounters_;
   result.providedBuffer() = providedBufferCounters_;
   result.cqe() = cqeCounters_;
+  if (auto rxTimestamps = snapshotRxTimestampStats()) {
+    result.rxTimestamps() = *rxTimestamps;
+  }
   return result;
 }
 
