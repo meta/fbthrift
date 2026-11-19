@@ -477,6 +477,62 @@ TEST(DiffVisitorTest, Union) {
       asValueStruct<type::struct_c>(dst));
 }
 
+class EnsureListFieldDiffVisitor : public DiffVisitorBase {
+ public:
+  void diffField(
+      const Object& src,
+      const Object& dst,
+      FieldId id,
+      DynamicStructPatch& patch) override {
+    patch.ensure(id, asValueStruct<type::list<type::i32_t>>({}));
+    patch.patchIfSet(id).merge(diff(src.at(id), dst.at(id)));
+  }
+};
+
+TEST(DiffVisitorTest, SingleFieldPatchWithEnsure) {
+  Value src, dst;
+  src.emplace_object()[FieldId{1}] =
+      asValueStruct<type::list<type::i32_t>>({1});
+  dst.emplace_object()[FieldId{1}] =
+      asValueStruct<type::list<type::i32_t>>({1, 2});
+
+  const auto patch =
+      EnsureListFieldDiffVisitor{}.diff(src.as_object(), dst.as_object());
+
+  EXPECT_TRUE(patch.holds_alternative<DynamicStructPatch>(badge));
+  patch.apply(src);
+  EXPECT_EQ(src, dst);
+}
+
+class RemoveDeprecatedFieldDiffVisitor : public DiffVisitorBase {
+ public:
+  void diffField(
+      const Object& src,
+      const Object& dst,
+      FieldId id,
+      DynamicStructPatch& patch) override {
+    patch.remove(kDeprecatedField);
+    DiffVisitorBase::diffField(src, dst, id, patch);
+  }
+
+  static constexpr FieldId kDeprecatedField{2};
+};
+
+TEST(DiffVisitorTest, SingleFieldPatchWithRemove) {
+  Value src, dst;
+  src.emplace_object()[FieldId{1}] =
+      asValueStruct<type::list<type::i32_t>>({1});
+  dst.emplace_object()[FieldId{1}] =
+      asValueStruct<type::list<type::i32_t>>({1, 2});
+
+  const auto patch =
+      RemoveDeprecatedFieldDiffVisitor{}.diff(src.as_object(), dst.as_object());
+
+  EXPECT_TRUE(patch.holds_alternative<DynamicStructPatch>(badge));
+  patch.apply(src);
+  EXPECT_EQ(src, dst);
+}
+
 TEST(DynamicPatch, List) {
   DynamicListPatch p;
   p.append(asValueStruct<type::i32_t>(1));
