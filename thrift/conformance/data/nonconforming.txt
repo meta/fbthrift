@@ -303,17 +303,6 @@ rust[client=cpp,*]/ThriftRPCClientTest/SinkUnknownCompression/Success.SinkUnknow
 rust[client=cpp,*]/ThriftRPCClientTest/StreamChunkUnknownCompression/Success.StreamChunkUnknownCompressionTest
 rust[client=cpp,*]/ThriftRPCClientTest/SinkFinalResponseUnknownCompression/Success.SinkFinalResponseUnknownCompressionTest
 
-# nativeclient fails a response compressed with an algorithm it doesn't know
-# with a `ThriftError` ("server used unsupported compression") where the C++
-# client raises a PROTOCOL_ERROR TApplicationException.
-rust[client=native,*]/ThriftRPCClientTest/RequestResponseUnknownCompression/Success.RequestResponseUnknownCompressionTest
-rust[client=native,*]/ThriftRPCClientTest/StreamUnknownCompression/Success.StreamUnknownCompressionTest
-rust[client=native,*]/ThriftRPCClientTest/SinkUnknownCompression/Success.SinkUnknownCompressionTest
-rust[client=native,*]/ThriftRPCClientTest/BidiUnknownCompression/Success.BidiUnknownCompressionTest
-rust[client=native,*]/ThriftRPCClientTest/StreamChunkUnknownCompression/Success.StreamChunkUnknownCompressionTest
-rust[client=native,*]/ThriftRPCClientTest/SinkFinalResponseUnknownCompression/Success.SinkFinalResponseUnknownCompressionTest
-rust[client=native,*]/ThriftRPCClientTest/BidiChunkUnknownCompression/Success.BidiChunkUnknownCompressionTest
-
 ###
 # Transport: HTTP
 # Run every client test over HTTP/2
