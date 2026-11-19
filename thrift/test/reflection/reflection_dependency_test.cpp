@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <type_traits>
+
 #include <thrift/lib/cpp2/Thrift.h>
 #include <thrift/lib/cpp2/reflection/internal/test_helpers.h>
 #include <thrift/test/reflection/gen-cpp2/reflection_types.h>
@@ -24,26 +26,27 @@ namespace test_cpp2::cpp_reflection {
 
 TEST(ReflectionDeps, RecursiveDependencies) {
   using namespace apache::thrift;
-  EXPECT_SAME<
-      type_class::structure,
-      type_class_of_thrift_class_or_t<dep_A_struct, type_class::unknown>>();
+  static_assert(
+      std::is_same_v<
+          type_class::structure,
+          type_class_of_thrift_class_or_t<dep_A_struct, type_class::unknown>>);
 
   using b_type =
       std::decay_t<decltype(std::declval<dep_A_struct>().b())::value_type>;
-  EXPECT_SAME<
-      type_class::structure,
-      type_class_of_thrift_class_or_t<b_type, type_class::unknown>>();
+  static_assert(std::is_same_v<
+                type_class::structure,
+                type_class_of_thrift_class_or_t<b_type, type_class::unknown>>);
 
   using c_type =
       std::decay_t<decltype(std::declval<dep_A_struct>().c())::value_type>;
-  EXPECT_SAME<
-      type_class::structure,
-      type_class_of_thrift_class_or_t<c_type, type_class::unknown>>();
+  static_assert(std::is_same_v<
+                type_class::structure,
+                type_class_of_thrift_class_or_t<c_type, type_class::unknown>>);
 
   using d_type = std::decay_t<decltype(std::declval<c_type>().d())::value_type>;
-  EXPECT_SAME<
-      type_class::structure,
-      type_class_of_thrift_class_or_t<d_type, type_class::unknown>>();
+  static_assert(std::is_same_v<
+                type_class::structure,
+                type_class_of_thrift_class_or_t<d_type, type_class::unknown>>);
 }
 
 } // namespace test_cpp2::cpp_reflection
