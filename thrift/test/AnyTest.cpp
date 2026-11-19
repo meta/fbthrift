@@ -164,7 +164,7 @@ TEST(AnyTest, GetTypeMismatch) {
 TEST(AnyTest, UnsupportedProtocol) {
   SemiAny builder;
   builder.type() = struct_t<test::AnyTestStruct>{};
-  builder.protocol() = StandardProtocol::SimpleJson;
+  builder.protocol() = StandardProtocol::Json;
   builder.data() = folly::IOBuf::wrapBufferAsValue("{}", 2);
   AnyData any(builder);
   test::AnyTestStruct strct;
@@ -193,6 +193,13 @@ TYPED_TEST(AnyTestFixture, BinaryProtocol) {
   EXPECT_EQ(any.protocol(), Protocol::get<StandardProtocol::Binary>());
 
   EXPECT_TRUE(any.contains<TypeParam>());
+  EXPECT_EQ(any.get<TypeParam>(), value);
+}
+
+TYPED_TEST(AnyTestFixture, SimpleJsonProtocol) {
+  const auto& value = tagToValue<TypeParam>;
+  AnyData any = toAnyData<TypeParam, StandardProtocol::SimpleJson>();
+  EXPECT_EQ(any.protocol(), Protocol::get<StandardProtocol::SimpleJson>());
   EXPECT_EQ(any.get<TypeParam>(), value);
 }
 
