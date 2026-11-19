@@ -456,6 +456,66 @@ func TestDecompressLz4RejectsOversizedSizePrefix(t *testing.T) {
 	require.Contains(t, err.Error(), "plausible bound")
 }
 
+var benchmarkPayloadSizes = []int{50, 10 << 10, 20 << 10, 200 << 10}
+
+func BenchmarkMaybeCompress(b *testing.B) {
+	// Run: buck2 run @fbcode//mode/opt fbsource//xplat/thrift/lib/go/thrift/rocket:rocket_test-bench -- -test.bench=BenchmarkMaybe -test.run=^$
+	for _, algo := range []rpcmetadata.CompressionAlgorithm{
+		rpcmetadata.CompressionAlgorithm_ZSTD,
+		rpcmetadata.CompressionAlgorithm_ZSTD_LESS,
+		rpcmetadata.CompressionAlgorithm_ZSTD_MORE,
+	} {
+		for _, size := range benchmarkPayloadSizes {
+			data := compressibleTestPayload(size)
+			b.Run(fmt.Sprintf("%s/%d", algo, size), func(b *testing.B) {
+				b.ReportAllocs()
+				b.SetBytes(int64(size))
+				for b.Loop() {
+					if _, err := MaybeCompress(data, algo); err != nil {
+						b.Fatal(err)
+					}
+				}
+			})
+		}
+	}
+}
+
+// Calls that overlap cannot all use the hot encoder, so most take one from the
+// sync.Pool.
+func BenchmarkMaybeCompressParallel(b *testing.B) {
+	for _, size := range benchmarkPayloadSizes {
+		data := compressibleTestPayload(size)
+		b.Run(fmt.Sprintf("%s/%d", rpcmetadata.CompressionAlgorithm_ZSTD, size), func(b *testing.B) {
+			b.ReportAllocs()
+			b.SetBytes(int64(size))
+			b.RunParallel(func(pb *testing.PB) {
+				for pb.Next() {
+					if _, err := MaybeCompress(data, rpcmetadata.CompressionAlgorithm_ZSTD); err != nil {
+						b.Error(err)
+						return
+					}
+				}
+			})
+		})
+	}
+}
+
+func BenchmarkMaybeDecompress(b *testing.B) {
+	for _, size := range benchmarkPayloadSizes {
+		compressed, err := MaybeCompress(compressibleTestPayload(size), rpcmetadata.CompressionAlgorithm_ZSTD)
+		require.NoError(b, err)
+		b.Run(fmt.Sprintf("%s/%d", rpcmetadata.CompressionAlgorithm_ZSTD, size), func(b *testing.B) {
+			b.ReportAllocs()
+			b.SetBytes(int64(size))
+			for b.Loop() {
+				if _, err := MaybeDecompress(compressed, rpcmetadata.CompressionAlgorithm_ZSTD); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
+
 // compressibleTestPayload returns size bytes of counter-like text that zstd
 // compresses about 3x, similar to serialized telemetry.
 func compressibleTestPayload(size int) []byte {
