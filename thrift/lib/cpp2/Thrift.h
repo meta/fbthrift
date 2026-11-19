@@ -232,14 +232,22 @@ struct struct_private_access {
 using private_access = struct_private_access;
 
 template <typename T, typename = void>
-struct IsThriftClass : std::false_type {};
+struct IsThriftClass : std::false_type {
+  static_assert(
+      !std::is_class_v<T> || requires { sizeof(T); },
+      "T must be a complete type.");
+};
 
 template <typename T>
 struct IsThriftClass<T, std::void_t<typename T::__fbthrift_cpp2_type>>
     : std::true_type {};
 
 template <typename T, typename = void>
-struct IsThriftUnion : std::false_type {};
+struct IsThriftUnion : std::false_type {
+  static_assert(
+      !std::is_class_v<T> || requires { sizeof(T); },
+      "T must be a complete type.");
+};
 
 template <typename T>
 struct IsThriftUnion<T, std::void_t<typename T::__fbthrift_cpp2_type>>
