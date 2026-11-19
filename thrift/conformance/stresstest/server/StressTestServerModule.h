@@ -28,7 +28,9 @@ namespace apache::thrift::stress {
 
 class StressTestServerModule : public ServerModule {
  public:
-  StressTestServerModule(std::shared_ptr<StressTestServerStats> serverStats);
+  StressTestServerModule(
+      std::shared_ptr<StressTestServerStats> serverStats,
+      bool rxTimestampingEnabled);
 
   std::string getName() const final;
   std::vector<std::shared_ptr<ServiceInterceptorBase>> getServiceInterceptors()
@@ -40,6 +42,7 @@ class StressTestServerModule : public ServerModule {
 
  private:
   std::shared_ptr<StressTestServerStats> serverStats_;
+  bool rxTimestampingEnabled_{false};
 };
 
 } // namespace apache::thrift::stress

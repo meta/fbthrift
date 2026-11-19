@@ -23,8 +23,10 @@
 namespace apache::thrift::stress {
 
 StressTestServerModule::StressTestServerModule(
-    std::shared_ptr<StressTestServerStats> serverStats)
-    : serverStats_(std::move(serverStats)) {}
+    std::shared_ptr<StressTestServerStats> serverStats,
+    bool rxTimestampingEnabled)
+    : serverStats_(std::move(serverStats)),
+      rxTimestampingEnabled_(rxTimestampingEnabled) {}
 
 std::string StressTestServerModule::getName() const {
   return "StressTestServerModule";
@@ -32,7 +34,8 @@ std::string StressTestServerModule::getName() const {
 
 std::vector<std::shared_ptr<ServiceInterceptorBase>>
 StressTestServerModule::getServiceInterceptors() {
-  return {std::make_shared<StressTestServiceInterceptor>(serverStats_)};
+  return {std::make_shared<StressTestServiceInterceptor>(
+      serverStats_, rxTimestampingEnabled_)};
 }
 
 void StressTestServerModule::initIoUringStatsLogging(

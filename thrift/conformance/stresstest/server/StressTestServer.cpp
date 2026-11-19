@@ -120,6 +120,11 @@ DEFINE_uint32(
     io_uring_dump_stat_interval,
     0,
     "Dump io_uring stats every N seconds (0 = disabled)");
+DEFINE_bool(
+    server_rx_timestamping,
+    false,
+    "Measure kernel-to-userspace RX collect latency on server sockets. "
+    "Linux kTLS RX currently does not emit software timestamp cmsgs.");
 
 namespace apache::thrift::detail {
 THRIFT_PLUGGABLE_FUNC_SET(
@@ -238,6 +243,12 @@ class StressTestServerStatsHandler
     });
   }
 
+  void postStop() override {
+    if (FLAGS_server_rx_timestamping) {
+      serverStats_->logRxTimestampStats();
+    }
+  }
+
  private:
   ThriftServer& server_;
   std::shared_ptr<folly::IOThreadPoolExecutor> ioThreadPool_;
@@ -312,11 +323,11 @@ std::shared_ptr<ThriftServer> createStressTestServer(
   server->setNumCPUWorkerThreads(numCpuWorkerThreads);
   const bool collectIoUringStats =
       FLAGS_io_uring && (FLAGS_io_uring_dump_stat_interval > 0 || serverStats);
-  if (collectIoUringStats && !serverStats) {
+  if ((collectIoUringStats || FLAGS_server_rx_timestamping) && !serverStats) {
     serverStats = std::make_shared<StressTestServerStats>();
   }
-  auto stressTestServerModule =
-      std::make_unique<StressTestServerModule>(serverStats);
+  auto stressTestServerModule = std::make_unique<StressTestServerModule>(
+      serverStats, FLAGS_server_rx_timestamping);
   if (serverStats) {
     // Defer stats-timer registration until preServe: the IOThreadPoolExecutor
     // has not created its EventBases yet at this point, so getAllEventBases()

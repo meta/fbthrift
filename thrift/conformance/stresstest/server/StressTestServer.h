@@ -16,8 +16,11 @@
 
 #pragma once
 
+#include <folly/portability/GFlags.h>
 #include <thrift/conformance/stresstest/server/StressTestHandler.h>
 #include <thrift/lib/cpp2/server/ThriftServer.h>
+
+DECLARE_bool(server_rx_timestamping);
 
 namespace apache::thrift::stress {
 

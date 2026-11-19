@@ -18,6 +18,10 @@
 
 #include <utility>
 
+#include <glog/logging.h>
+#include <folly/io/async/AsyncSocket.h>
+#include <folly/io/async/AsyncTransport.h>
+#include <thrift/conformance/stresstest/common/RxTimestamping.h>
 #include <thrift/conformance/stresstest/server/StressTestServerStats.h>
 #include <thrift/lib/cpp2/security/SSLUtil.h>
 #include <thrift/lib/cpp2/server/Cpp2ConnContext.h>
@@ -37,11 +41,37 @@ ConnectionMode classifyConnection(
   return protocol.empty() ? ConnectionMode::Plaintext : ConnectionMode::Unknown;
 }
 
+std::unique_ptr<RxTimestampingRegistration> installServerRxTimestamping(
+    const apache::thrift::Cpp2ConnContext& context,
+    std::shared_ptr<StressTestServerStats> serverStats) {
+  auto* transport = const_cast<folly::AsyncTransport*>(context.getTransport());
+  auto* socket = transport == nullptr
+      ? nullptr
+      : transport->getUnderlyingTransport<folly::AsyncSocket>();
+  if (socket == nullptr) {
+    LOG_FIRST_N(WARNING, 10)
+        << "Cannot enable server RX timestamping: no native AsyncSocket";
+    return nullptr;
+  }
+  DCHECK(
+      socket->getEventBase() == nullptr ||
+      socket->getEventBase()->isInEventBaseThread());
+
+  return installRxTimestamping(
+      *socket,
+      [serverStats =
+           std::move(serverStats)](std::chrono::microseconds collect) {
+        serverStats->recordRxTimestampCollect(collect);
+      });
+}
+
 } // namespace
 
 StressTestServiceInterceptor::StressTestServiceInterceptor(
-    std::shared_ptr<StressTestServerStats> serverStats)
-    : serverStats_(std::move(serverStats)) {}
+    std::shared_ptr<StressTestServerStats> serverStats,
+    bool rxTimestampingEnabled)
+    : serverStats_(std::move(serverStats)),
+      rxTimestampingEnabled_(rxTimestampingEnabled) {}
 
 std::string StressTestServiceInterceptor::getName() const {
   return "StressTestServiceInterceptor";
@@ -61,13 +91,21 @@ std::optional<StressTestServiceInterceptor::ConnectionState>
 StressTestServiceInterceptor::onConnectionEstablished(ConnectionInfo info) {
   if (serverStats_ && info.context) {
     serverStats_->recordConnection(classifyConnection(*info.context));
+    if (rxTimestampingEnabled_) {
+      if (auto registration =
+              installServerRxTimestamping(*info.context, serverStats_)) {
+        return registration;
+      }
+    }
   }
   return std::nullopt;
 }
 
 void StressTestServiceInterceptor::onConnectionClosed(
-    ConnectionState*, ConnectionInfo) noexcept {
-  // Do nothing for now
+    ConnectionState* state, ConnectionInfo) noexcept {
+  if (state != nullptr) {
+    state->reset();
+  }
 }
 
 } // namespace apache::thrift::stress
