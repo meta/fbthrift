@@ -1763,6 +1763,115 @@ public class ExtendedPingStreamIntegrationTest {
   }
 
   @Test
+  public void bidiPeerErrorAfterTheStreamCompletesFailsTheReaderWithNoServerFrame()
+      throws Exception {
+    FrameLog frames = new FrameLog();
+    Recorded<Object> read = new Recorded<>();
+    RpcServerHandler completesItsStream =
+        channelHandler(
+            (initial, sinkElements) -> {
+              sinkElements.subscribe(read::add, read::add, () -> read.add("complete"));
+
+              return Flux.just(firstResponse(), response(initial, "a"));
+            });
+
+    RpcClient client = channelClient(startChannelServer(completesItsStream), frames);
+
+    Disposable call =
+        client.streamingRequestStreamingResponse(openBidi(), RpcOptions.EMPTY).subscribe();
+
+    // The stream half ends while the sink stays open; the peer error then fails only the reader.
+    frames.await("COMPLETE");
+    frames.send(
+        ErrorFrameCodec.encode(frames.alloc(), 1, new IllegalStateException("sink failed")));
+
+    read.awaitSize(1);
+    call.dispose();
+
+    Assertions.assertTrue(read.get(0) instanceof Throwable, "read " + read);
+    Assertions.assertEquals(
+        Arrays.asList("NEXT", "REQUEST_N", "NEXT", "COMPLETE"), frames.fromServer);
+
+    // The error was stream-scoped: a following call on the same connection succeeds.
+    StepVerifier.create(
+            client.streamingRequestStreamingResponse(
+                Flux.just(channelRequest(RpcKind.BIDIRECTIONAL_STREAM, pingArgsWriter("hello"))),
+                RpcOptions.EMPTY))
+        .expectNextCount(2)
+        .verifyComplete();
+  }
+
+  @Test
+  public void bidiReaderCancelAfterTheStreamCompletesSendsOnlyCancel() throws Exception {
+    FrameLog frames = new FrameLog();
+    Recorded<Object> read = new Recorded<>();
+    RpcServerHandler takesOne =
+        channelHandler(
+            (initial, sinkElements) -> {
+              sinkElements
+                  .take(1)
+                  .subscribe(
+                      element -> read.add(element.getRequest()),
+                      read::add,
+                      () -> read.add("complete"));
+
+              return Flux.just(firstResponse(), response(initial, "a"));
+            });
+
+    RpcClient client = channelClient(startChannelServer(takesOne), frames);
+    frames.holdSink();
+
+    CompletableFuture<List<ClientResponsePayload<Object>>> call =
+        client
+            .<Object, Object>streamingRequestStreamingResponse(
+                Flux.concat(
+                    Flux.just(
+                        channelRequest(RpcKind.BIDIRECTIONAL_STREAM, pingArgsWriter("hello"))),
+                    Flux.range(0, 3)
+                        .map(
+                            i ->
+                                channelRequest(
+                                    RpcKind.BIDIRECTIONAL_STREAM, sinkPayloadWriter("s" + i)))),
+                RpcOptions.EMPTY)
+            .collectList()
+            .toFuture();
+
+    // The stream ends before any sink payload arrives. The client's sink COMPLETE stays held: on
+    // the wire it would end the responder's inbound first and swallow the reader cancel, and an
+    // open client sink makes the requester fail the stream instead. Releasing only the payloads
+    // lets take(1) read one element and cancel the sink half. Payloads behind the cancel are
+    // dropped, which the suite's PARANOID leak detector polices.
+    try {
+      frames.awaitHeldSinkFrames(4);
+      frames.await("COMPLETE");
+    } finally {
+      frames.releaseSinkPayloads();
+    }
+
+    frames.await("CANCEL");
+    read.awaitSize(2);
+
+    Assertions.assertEquals(Arrays.asList("s0", "complete"), read);
+
+    List<ClientResponsePayload<Object>> items = call.get(5, TimeUnit.SECONDS);
+    Assertions.assertEquals(2, items.size());
+    Assertions.assertEquals("a", finalResponse(items.get(1)));
+    Assertions.assertEquals(
+        Arrays.asList("NEXT", "REQUEST_N", "NEXT", "COMPLETE", "CANCEL"), frames.fromServer);
+
+    // The late sink COMPLETE lands on a removed stream, so the server drops it without a frame.
+    frames.releaseSink();
+
+    // The cancel was sink-scoped: a following call on the same connection succeeds.
+    StepVerifier.create(
+            client.streamingRequestStreamingResponse(
+                Flux.just(channelRequest(RpcKind.BIDIRECTIONAL_STREAM, pingArgsWriter("hello"))),
+                RpcOptions.EMPTY))
+        .expectNextCount(2)
+        .verifyComplete();
+  }
+
+  @Test
   public void connectionCloseBeforeTheFirstResponseFailsTheReader() throws Exception {
     Recorded<Object> read = new Recorded<>();
     RpcServerHandler neverAnswers =
@@ -2844,6 +2953,22 @@ public class ExtendedPingStreamIntegrationTest {
       for (ByteBuf frame = heldSinkFrames.poll(); frame != null; frame = heldSinkFrames.poll()) {
         send(frame);
       }
+    }
+
+    /**
+     * Sends the held sink payloads but keeps a held sink COMPLETE back, so a test can end the
+     * server stream first and cancel the reader before the peer ends its sink.
+     */
+    void releaseSinkPayloads() {
+      Queue<ByteBuf> stillHeld = new ConcurrentLinkedQueue<>();
+      for (ByteBuf frame = heldSinkFrames.poll(); frame != null; frame = heldSinkFrames.poll()) {
+        if (FrameHeaderCodec.frameType(frame) == FrameType.COMPLETE) {
+          stillHeld.add(frame);
+        } else {
+          send(frame);
+        }
+      }
+      heldSinkFrames.addAll(stillHeld);
     }
 
     void await(String type) throws InterruptedException {
