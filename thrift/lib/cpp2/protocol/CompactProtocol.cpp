@@ -63,6 +63,8 @@ static inline size_t writeUnencodedArithmeticVector(
   size_t i = 0;
   while (i < numElements) {
     c.ensureWithinMaxGrowth(len);
+    // The cursor's maximum growth can be smaller than one element.
+    c.ensure(sizeof(T));
     uint8_t* outPtr = c.writableData();
     size_t loopBound = std::min(numElements, (c.length() / sizeof(T)) + i);
     size_t j = 0;
