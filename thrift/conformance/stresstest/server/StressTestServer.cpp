@@ -17,12 +17,14 @@
 #include <thrift/conformance/stresstest/server/StressTestServer.h>
 
 #include <memory>
+#include <optional>
 
 #include <glog/logging.h>
 #include <folly/init/Init.h>
 #include <folly/io/async/EventBase.h>
 #include <folly/io/async/IoUringBackend.h>
 #include <folly/io/async/IoUringBufferPoolSharing.h>
+#include <folly/io/async/TerminateCancellationToken.h>
 #include <folly/memory/IoUringArena.h>
 
 #include <gflags/gflags.h>
@@ -205,26 +207,44 @@ std::shared_ptr<folly::IOThreadPoolExecutor> getIOThreadPool(
   }
 }
 
-class IoUringStatsInitHandler
+class StressTestServerStatsHandler
     : public apache::thrift::server::TServerEventHandler {
  public:
-  IoUringStatsInitHandler(
+  StressTestServerStatsHandler(
+      ThriftServer& server,
       std::shared_ptr<folly::IOThreadPoolExecutor> ioThreadPool,
       std::shared_ptr<StressTestServerStats> serverStats,
+      bool collectIoUringStats,
       uint32_t dumpStatInterval)
-      : ioThreadPool_{std::move(ioThreadPool)},
+      : server_{server},
+        ioThreadPool_{std::move(ioThreadPool)},
         serverStats_{std::move(serverStats)},
+        collectIoUringStats_{collectIoUringStats},
         dumpStatInterval_{dumpStatInterval} {}
 
   void preServe(const folly::SocketAddress* /*address*/) override {
-    auto evbs = ioThreadPool_->getAllEventBases();
-    serverStats_->init(evbs, dumpStatInterval_);
+    if (collectIoUringStats_) {
+      auto evbs = ioThreadPool_->getAllEventBases();
+      serverStats_->init(evbs, dumpStatInterval_);
+    }
+    shutdownCallback_.emplace(folly::getTerminateCancellationToken(), [this] {
+      try {
+        serverStats_->collectFinal();
+      } catch (const std::exception& exception) {
+        LOG(ERROR) << "Failed to collect final stress test statistics: "
+                   << exception.what();
+      }
+      server_.stop();
+    });
   }
 
  private:
+  ThriftServer& server_;
   std::shared_ptr<folly::IOThreadPoolExecutor> ioThreadPool_;
   std::shared_ptr<StressTestServerStats> serverStats_;
+  bool collectIoUringStats_;
   uint32_t dumpStatInterval_;
+  std::optional<folly::CancellationCallback> shutdownCallback_;
 };
 
 std::shared_ptr<ThriftServer> createStressTestServer(
@@ -297,14 +317,16 @@ std::shared_ptr<ThriftServer> createStressTestServer(
   }
   auto stressTestServerModule =
       std::make_unique<StressTestServerModule>(serverStats);
-  if (collectIoUringStats) {
+  if (serverStats) {
     // Defer stats-timer registration until preServe: the IOThreadPoolExecutor
     // has not created its EventBases yet at this point, so getAllEventBases()
     // would return an empty list here.
     server->addServerEventHandler(
-        std::make_shared<IoUringStatsInitHandler>(
+        std::make_shared<StressTestServerStatsHandler>(
+            *server,
             ioThreadPool,
             serverStats,
+            collectIoUringStats,
             static_cast<uint32_t>(FLAGS_io_uring_dump_stat_interval)));
   }
   if (FLAGS_io_uring && FLAGS_io_uring_dump_stat_interval > 0) {
