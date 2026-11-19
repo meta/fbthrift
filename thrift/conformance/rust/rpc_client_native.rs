@@ -375,7 +375,15 @@ fn timed_out(error: &anyhow::Error) -> bool {
         error.thrift_error(),
         Some(nativeclient::ThriftError::Transport(
             nativeclient::TransportError::Timeout(_)
-                | nativeclient::TransportError::StreamTimeout { .. }
+        ))
+    )
+}
+
+fn chunk_timed_out(error: &anyhow::Error) -> bool {
+    matches!(
+        error.thrift_error(),
+        Some(nativeclient::ThriftError::Transport(
+            nativeclient::TransportError::StreamTimeout { .. }
         ))
     )
 }
@@ -903,7 +911,7 @@ async fn stream_chunk_timeout(
                 test_result.streamPayloads.push(r);
             }
             Err(StreamChunkTimeoutStreamError::ThriftError(exn)) => {
-                test_result.chunkTimeoutException |= timed_out(&exn);
+                test_result.chunkTimeoutException |= chunk_timed_out(&exn);
             }
             Err(other) => {
                 return Err(anyhow!(
