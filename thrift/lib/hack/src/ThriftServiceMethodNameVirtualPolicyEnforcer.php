@@ -211,7 +211,7 @@ final class ThriftServiceMethodNameVirtualPolicyEnforcer
   ): Awaitable<void> {
     $thrift_context = $context->get(#ThriftPolicyZones);
     if (
-      ThriftServiceMethodNamePrivacyLibRPCPayloadProvider::isEnabledForCurrentRequest()
+      ThriftServiceMethodNamePrivacyLibRPCPayloadProvider::isEnabledForCurrentResponse()
     ) {
       try {
         $asset_xid = $thrift_context?->getXID() ??
