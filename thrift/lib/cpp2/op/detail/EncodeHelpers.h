@@ -101,13 +101,9 @@ using detect_resize_without_initialization =
 // ([mem.poly.allocator.mem]). An allocator absent from this list leaves the
 // element with a default-constructed one.
 template <typename Alloc>
-inline constexpr bool alloc_propagates_to_elements = false;
-template <typename Outer, typename... Inner>
-inline constexpr bool alloc_propagates_to_elements<
-    std::scoped_allocator_adaptor<Outer, Inner...>> = true;
-template <typename T>
-inline constexpr bool
-    alloc_propagates_to_elements<std::pmr::polymorphic_allocator<T>> = true;
+inline constexpr bool alloc_propagates_to_elements =
+    folly::is_instantiation_of_v<std::scoped_allocator_adaptor, Alloc> ||
+    folly::is_instantiation_of_v<std::pmr::polymorphic_allocator, Alloc>;
 
 template <typename Container>
 typename Container::reference emplace_back_default(Container& c) {
