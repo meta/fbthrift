@@ -237,54 +237,35 @@ std::optional<std::uint32_t> Json5ProtocolWriter::maybeWriteSimpleMapKey(
   }
 }
 
-std::uint32_t Json5ProtocolWriter::writeBool(bool value) {
+template <class Tag, auto Write, class T>
+std::uint32_t Json5ProtocolWriter::writeScalar(T value) {
   std::uint32_t xfer = beginWriteValue();
-  if (auto size = maybeWriteSimpleMapKey<type::bool_t>(value)) {
+  if (auto size = maybeWriteSimpleMapKey<Tag>(value)) {
     xfer += *size;
   } else {
-    xfer += writer_.writeBool(value);
+    xfer += (writer_.*Write)(value);
   }
   return xfer + endWriteValue();
+}
+
+std::uint32_t Json5ProtocolWriter::writeBool(bool value) {
+  return writeScalar<type::bool_t, &JsonWriter::writeBool>(value);
 }
 
 std::uint32_t Json5ProtocolWriter::writeByte(int8_t value) {
-  std::uint32_t xfer = beginWriteValue();
-  if (auto size = maybeWriteSimpleMapKey<type::byte_t>(value)) {
-    xfer += *size;
-  } else {
-    xfer += writer_.writeByte(value);
-  }
-  return xfer + endWriteValue();
+  return writeScalar<type::byte_t, &JsonWriter::writeByte>(value);
 }
 
 std::uint32_t Json5ProtocolWriter::writeI16(int16_t value) {
-  std::uint32_t xfer = beginWriteValue();
-  if (auto size = maybeWriteSimpleMapKey<type::i16_t>(value)) {
-    xfer += *size;
-  } else {
-    xfer += writer_.writeI16(value);
-  }
-  return xfer + endWriteValue();
+  return writeScalar<type::i16_t, &JsonWriter::writeI16>(value);
 }
 
 std::uint32_t Json5ProtocolWriter::writeI32(int32_t value) {
-  std::uint32_t xfer = beginWriteValue();
-  if (auto size = maybeWriteSimpleMapKey<type::i32_t>(value)) {
-    xfer += *size;
-  } else {
-    xfer += writer_.writeI32(value);
-  }
-  return xfer + endWriteValue();
+  return writeScalar<type::i32_t, &JsonWriter::writeI32>(value);
 }
 
 std::uint32_t Json5ProtocolWriter::writeI64(int64_t value) {
-  std::uint32_t xfer = beginWriteValue();
-  if (auto size = maybeWriteSimpleMapKey<type::i64_t>(value)) {
-    xfer += *size;
-  } else {
-    xfer += writer_.writeI64(value);
-  }
-  return xfer + endWriteValue();
+  return writeScalar<type::i64_t, &JsonWriter::writeI64>(value);
 }
 
 std::optional<std::string_view> Json5ProtocolWriter::encodeNanInfAsString(
@@ -305,36 +286,18 @@ std::uint32_t Json5ProtocolWriter::writeFloat(float value) {
   if (auto str = encodeNanInfAsString(value)) {
     return writeString(*str);
   }
-  std::uint32_t xfer = beginWriteValue();
-  if (auto size = maybeWriteSimpleMapKey<type::float_t>(value)) {
-    xfer += *size;
-  } else {
-    xfer += writer_.writeFloat(value);
-  }
-  return xfer + endWriteValue();
+  return writeScalar<type::float_t, &JsonWriter::writeFloat>(value);
 }
 
 std::uint32_t Json5ProtocolWriter::writeDouble(double value) {
   if (auto str = encodeNanInfAsString(value)) {
     return writeString(*str);
   }
-  std::uint32_t xfer = beginWriteValue();
-  if (auto size = maybeWriteSimpleMapKey<type::double_t>(value)) {
-    xfer += *size;
-  } else {
-    xfer += writer_.writeDouble(value);
-  }
-  return xfer + endWriteValue();
+  return writeScalar<type::double_t, &JsonWriter::writeDouble>(value);
 }
 
 std::uint32_t Json5ProtocolWriter::writeString(folly::StringPiece str) {
-  std::uint32_t xfer = beginWriteValue();
-  if (auto size = maybeWriteSimpleMapKey<type::string_t>(str)) {
-    xfer += *size;
-  } else {
-    xfer += writer_.writeString(str);
-  }
-  return xfer + endWriteValue();
+  return writeScalar<type::string_t, &JsonWriter::writeString>(str);
 }
 
 std::uint32_t Json5ProtocolWriter::writeBinary(folly::StringPiece str) {
