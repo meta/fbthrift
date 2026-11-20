@@ -560,7 +560,10 @@ Json5Reader::Primitive Json5Reader::parseNumber(
   std::string_view input(
       reinterpret_cast<const char*>(bytes.data()), bytes.size());
   std::string spanning;
-  if (std::all_of(input.begin(), input.end(), isNumberPart)) {
+  // The number can only run into the next buffer if this one ends in a
+  // character that can be part of it.
+  if ((input.empty() || isNumberPart(input.back())) &&
+      std::all_of(input.begin(), input.end(), isNumberPart)) {
     spanning = folly::io::Cursor(cursor).readWhile(isNumberPart);
     input = spanning;
   }
