@@ -880,6 +880,40 @@ def get_reflection__AdaptedTypedefFields() -> __StructSpec:
         ),
     )
     return spec
+def get_reflection__StringAdaptedUnion() -> __StructSpec:
+    spec: __StructSpec = __StructSpec._fbthrift_create(
+        name="StringAdaptedUnion",
+        kind=__StructType.UNION,
+        annotations={
+        },
+    )
+    spec.add_field(
+        __FieldSpec._fbthrift_create(
+            id=1,
+            name="string_field",
+            py_name="string_field",
+            type=str,
+            kind=__NumberType.NOT_A_NUMBER,
+            qualifier=__Qualifier.UNQUALIFIED,
+            default=None,
+            annotations={
+            },
+        ),
+    )
+    spec.add_field(
+        __FieldSpec._fbthrift_create(
+            id=2,
+            name="binary_field",
+            py_name="binary_field",
+            type=bytes,
+            kind=__NumberType.NOT_A_NUMBER,
+            qualifier=__Qualifier.UNQUALIFIED,
+            default=None,
+            annotations={
+            },
+        ),
+    )
+    return spec
 def get_reflection__List__i16() -> __ListSpec :
     return __ListSpec._fbthrift_create(
         value=int,

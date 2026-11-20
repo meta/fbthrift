@@ -250,6 +250,25 @@ cdef class AdaptedTypedefFields(thrift.py3.types.Struct):
     cdef _create_FBTHRIFT_ONLY_DO_NOT_USE(shared_ptr[_module_cbindings.cAdaptedTypedefFields])
 
 
+
+cdef class StringAdaptedUnion(thrift.py3.types.Union):
+    cdef shared_ptr[_module_cbindings.cStringAdaptedUnion] _cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE
+    cdef int64_t type_int
+    cdef object py_type
+    cdef object py_value
+    cdef _initialize_py(StringAdaptedUnion self)
+
+    @staticmethod
+    cdef unique_ptr[_module_cbindings.cStringAdaptedUnion] _make_instance(
+        _module_cbindings.cStringAdaptedUnion* base_instance,
+        str string_field,
+        bytes binary_field
+    ) except *
+
+    @staticmethod
+    cdef _create_FBTHRIFT_ONLY_DO_NOT_USE(shared_ptr[_module_cbindings.cStringAdaptedUnion])
+
+
 cdef vector[cint16_t] List__i16__make_instance(object items) except *
 cdef object List__i16__from_cpp(const vector[cint16_t]&) except *
 

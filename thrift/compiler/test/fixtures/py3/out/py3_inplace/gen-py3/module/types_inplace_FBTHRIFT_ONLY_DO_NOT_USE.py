@@ -71,6 +71,19 @@ _fbthrift__BinaryUnionType = __BinaryUnionType
 __all__.append("__BinaryUnionType")
 
 
+class __StringAdaptedUnionType(enum.Enum):
+    string_field = 1
+    binary_field = 2
+    EMPTY = 0
+
+    __module__ = _fbthrift__module_name__
+    __slots__ = ()
+
+_fbthrift__StringAdaptedUnionType = __StringAdaptedUnionType
+
+__all__.append("__StringAdaptedUnionType")
+
+
 ### Containers ###
 class List__i16(thrift.py3.types.List):
     __module__ = _fbthrift__module_name__
@@ -3489,6 +3502,141 @@ class AdaptedTypedefFields(thrift.py3.types.Struct):
 
 
 __all__.append("AdaptedTypedefFields")
+
+class StringAdaptedUnion(thrift.py3.types.Union):
+    __module__ = _fbthrift__module_name__
+    __slots__ = (
+        "_fbthrift__inner",
+        "_fbthrift_inner__type",
+        "_fbthrift_inner__value",
+    )
+    _FBTHRIFT__PYTHON_CLASS = _fbthrift_python_types.StringAdaptedUnion
+    _FBTHRIFT__FIELD_NAMES = (
+        "string_field",
+        "binary_field",
+    )
+    Type = _fbthrift__StringAdaptedUnionType
+    _fbthrift__inner : _fbthrift_python_types.StringAdaptedUnion
+    _fbthrift_inner__type: Type
+    _fbthrift_inner__value: str | bytes | None
+
+
+    def __init__(self, *args, **kwargs) -> None:
+        _fbthrift__maybe_str_enum = kwargs.get("string_field", None)
+        if isinstance(_fbthrift__maybe_str_enum, enum.Enum):
+            kwargs["string_field"] = _fbthrift__maybe_str_enum.value
+        try:
+            self._fbthrift__inner = _fbthrift_python_types.StringAdaptedUnion(*args, **kwargs)
+        except TypeError:
+            kwargs = _fbthrift__filter_kwargs(kwargs, self._FBTHRIFT__FIELD_NAMES)
+            self._fbthrift__inner = _fbthrift_python_types.StringAdaptedUnion(*args, **kwargs)
+
+
+    def __new__(_fbthrift__cls, *args, **kwargs) -> StringAdaptedUnion:
+        instance = super().__new__(_fbthrift__cls)
+        instance._fbthrift_inner__type = None
+        instance._fbthrift_inner__value = None
+        return instance
+
+    @staticmethod
+    def from_python(thrift_python_inner: _fbthrift_python_types.StringAdaptedUnion) -> StringAdaptedUnion:
+        inst = StringAdaptedUnion.__new__(StringAdaptedUnion)
+        inst._fbthrift__inner = thrift_python_inner
+        return inst
+
+    def _to_py3(self) -> StringAdaptedUnion:
+        return self
+
+    def _to_python(self) -> _fbthrift_python_types.StringAdaptedUnion:
+        return self._fbthrift__inner
+
+    def _to_py_deprecated(self):
+        py_deprecated_types = _get_py_deprecated_module()
+        return thrift.util.converter.to_py_struct(py_deprecated_types.StringAdaptedUnion, self)
+
+    def _fbthrift__isset(self) -> dict[str, bool]:
+        return thrift.python.types.isset(self._fbthrift__inner)
+
+    @staticmethod
+    def __get_reflection__():
+        return get_types_reflection().get_reflection__StringAdaptedUnion()
+
+    @staticmethod
+    def __get_metadata__():
+        return StringAdaptedUnion._FBTHRIFT__PYTHON_CLASS.__get_metadata__()
+
+    @staticmethod
+    def __get_thrift_name__():
+        return "module.StringAdaptedUnion"
+
+    @_python__property
+    def string_field(self) -> str:
+        return self._fbthrift__inner.string_field
+
+    @_python__property
+    def binary_field(self) -> bytes:
+        return self._fbthrift__inner.binary_field
+
+    @_python__property
+    def type(self) -> _fbthrift_python_types.StringAdaptedUnion.Type:
+        if self._fbthrift_inner__type is None:
+            self._fbthrift_inner__type = self.Type(self._fbthrift__inner.type.value)
+        return self._fbthrift_inner__type
+
+    @_python__property
+    def value(self) -> str | bytes | None:
+        match self._fbthrift__inner.type:
+            case _:
+                return self._fbthrift__inner.value
+
+
+    @staticmethod
+    def fromValue(value) -> StringAdaptedUnion:
+        if value is None:
+            return StringAdaptedUnion()
+        if isinstance(value, str):
+            return StringAdaptedUnion(string_field=value)
+        if isinstance(value, bytes):
+            return StringAdaptedUnion(binary_field=value)
+        raise ValueError(f"Unable to derive correct union field for value: {value}")
+
+    @classmethod
+    def _fbthrift_get_field_name_by_index(cls, idx: int) -> str:
+        return cls._FBTHRIFT__FIELD_NAMES[idx]
+
+    @classmethod
+    def _fbthrift_get_struct_size(cls) -> int:
+        return 2
+
+    def __eq__(self, other):
+        if type(self) == type(other):
+            return self._fbthrift__inner == other._fbthrift__inner
+
+        if type(other) is self._FBTHRIFT__PYTHON_CLASS:
+            return self._fbthrift__inner == other
+
+        return False
+
+
+    def __lt__(self, other):
+        if not isinstance(other, StringAdaptedUnion):
+            return NotImplemented
+        return self._fbthrift__inner < other._fbthrift__inner
+
+    def __le__(self, other):
+        if not isinstance(other, StringAdaptedUnion):
+            return NotImplemented
+        return self._fbthrift__inner <= other._fbthrift__inner
+
+
+    def __hash__(self):
+        return super().__hash__()
+
+    def __copy__(self):
+        return self
+
+
+__all__.append("StringAdaptedUnion")
 
 
 ### Constants

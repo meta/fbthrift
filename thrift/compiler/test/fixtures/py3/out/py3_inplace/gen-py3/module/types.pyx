@@ -67,6 +67,7 @@ BinaryUnionStruct = _fbthrift_types_inplace.BinaryUnionStruct
 CustomFields = _fbthrift_types_inplace.CustomFields
 CustomTypedefFields = _fbthrift_types_inplace.CustomTypedefFields
 AdaptedTypedefFields = _fbthrift_types_inplace.AdaptedTypedefFields
+StringAdaptedUnion = _fbthrift_types_inplace.StringAdaptedUnion
 AnEnum = _fbthrift_types_inplace.AnEnum
 AnEnumRenamed = _fbthrift_types_inplace.AnEnumRenamed
 Flags = _fbthrift_types_inplace.Flags
@@ -143,6 +144,8 @@ AdaptedList = _py3_simple_AdaptedList__List__i32
 AdaptedSet = _py3_simple_AdaptedSet__Set__i32
 AdaptedMap = _py3_simple_AdaptedMap__Map__i32_i32
 AdaptedStruct = SimpleStruct
+StringAdaptedString = str
+StringAdaptedBinary = bytes
 cdef vector[cint16_t] List__i16__make_instance(object items) except *:
     cdef vector[cint16_t] c_inst
     if items is None:

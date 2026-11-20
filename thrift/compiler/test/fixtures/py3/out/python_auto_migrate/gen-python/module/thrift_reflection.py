@@ -1125,3 +1125,41 @@ def get_reflection__AdaptedTypedefFields():
     )
     return spec
 
+
+def get_reflection__StringAdaptedUnion():
+    if not _HAS_REFLECTION:
+        return None
+    spec = _StructSpec(
+        name="StringAdaptedUnion",
+        kind=_StructType.UNION,
+        structured_annotations={
+        },
+    )
+    spec.add_field(
+        _FieldSpec(
+            id=1,
+            name="string_field",
+            py_name="string_field",
+            type=str,
+            thrift_type=_ThriftType.STRING,
+            qualifier=_Qualifier.UNQUALIFIED,
+            default="",
+            structured_annotations={
+            },
+        ),
+    )
+    spec.add_field(
+        _FieldSpec(
+            id=2,
+            name="binary_field",
+            py_name="binary_field",
+            type=bytes,
+            thrift_type=_ThriftType.BINARY,
+            qualifier=_Qualifier.UNQUALIFIED,
+            default=b"",
+            structured_annotations={
+            },
+        ),
+    )
+    return spec
+

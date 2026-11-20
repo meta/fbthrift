@@ -77,6 +77,8 @@ struct list_field;
 struct set_field;
 struct map_field;
 struct struct_field;
+struct string_field;
+struct binary_field;
 } // namespace ident
 namespace detail {
 #ifndef APACHE_THRIFT_ACCESSOR_err_code
@@ -335,6 +337,14 @@ APACHE_THRIFT_DEFINE_ACCESSOR(map_field);
 #define APACHE_THRIFT_ACCESSOR_struct_field
 APACHE_THRIFT_DEFINE_ACCESSOR(struct_field);
 #endif
+#ifndef APACHE_THRIFT_ACCESSOR_string_field
+#define APACHE_THRIFT_ACCESSOR_string_field
+APACHE_THRIFT_DEFINE_ACCESSOR(string_field);
+#endif
+#ifndef APACHE_THRIFT_ACCESSOR_binary_field
+#define APACHE_THRIFT_ACCESSOR_binary_field
+APACHE_THRIFT_DEFINE_ACCESSOR(binary_field);
+#endif
 } // namespace detail
 } // namespace apache::thrift
 
@@ -489,6 +499,7 @@ class BinaryUnionStruct;
 class CustomFields;
 class CustomTypedefFields;
 class AdaptedTypedefFields;
+class StringAdaptedUnion;
 } // namespace py3::simple
 // END forward_declare
 namespace apache::thrift::detail::annotation {
@@ -1428,6 +1439,12 @@ using AdaptedMap = ::apache::thrift::adapt_detail::adapted_t<::MyAdapter, ::std:
 /** typedef SimpleStruct AdaptedStruct */
 /** Glean {"file": "thrift/compiler/test/fixtures/py3/src/module.thrift", "name": "AdaptedStruct", "kind": "typedef" } */
 using AdaptedStruct = ::apache::thrift::adapt_detail::adapted_t<::MyAdapter, ::py3::simple::SimpleStruct>;
+/** typedef string StringAdaptedString */
+/** Glean {"file": "thrift/compiler/test/fixtures/py3/src/module.thrift", "name": "StringAdaptedString", "kind": "typedef" } */
+using StringAdaptedString = ::apache::thrift::adapt_detail::adapted_t<::apache::thrift::StringTypeAdapter<folly::fbstring>, ::std::string>;
+/** typedef binary StringAdaptedBinary */
+/** Glean {"file": "thrift/compiler/test/fixtures/py3/src/module.thrift", "name": "StringAdaptedBinary", "kind": "typedef" } */
+using StringAdaptedBinary = ::apache::thrift::adapt_detail::adapted_t<::apache::thrift::StringTypeAdapter<folly::fbstring>, ::std::string>;
 
 /** Glean {"file": "thrift/compiler/test/fixtures/py3/src/module.thrift", "name": "SimpleException", "kind": "exception" } */
 class FOLLY_EXPORT SimpleException : public virtual apache::thrift::TException {
@@ -5273,6 +5290,291 @@ unsigned long AdaptedTypedefFields::read(Protocol_* iprot) {
 }
 
 
+/** Glean {"file": "thrift/compiler/test/fixtures/py3/src/module.thrift", "name": "StringAdaptedUnion", "kind": "union" } */
+class StringAdaptedUnion final  {
+ private:
+  friend struct ::apache::thrift::detail::st::struct_private_access;
+  template<class> friend struct ::apache::thrift::detail::invoke_reffer;
+
+  //  used by a static_assert in the corresponding source
+  static constexpr bool __fbthrift_cpp2_gen_json = false;
+  static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
+  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  static std::string_view __fbthrift_get_class_name();
+  template <class ...>
+  FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
+    return "module";
+  }
+  static constexpr std::size_t __fbthrift_num_fields = 2;
+
+  static constexpr const int16_t __fbthrift_reflection_field_ids[] = {0,1,2};
+
+  using __fbthrift_reflection_idents = folly::tag_t<
+    ::apache::thrift::ident::string_field,
+    ::apache::thrift::ident::binary_field
+  >;
+
+  using __fbthrift_reflection_type_tags = folly::tag_t<
+    ::apache::thrift::type::adapted<::apache::thrift::StringTypeAdapter<folly::fbstring>, ::apache::thrift::type::string_t>,
+    ::apache::thrift::type::adapted<::apache::thrift::StringTypeAdapter<folly::fbstring>, ::apache::thrift::type::binary_t>
+  >;
+  void __fbthrift_clear();
+  void __fbthrift_destruct();
+  bool __fbthrift_is_empty() const;
+
+ public:
+  using __fbthrift_cpp2_type = StringAdaptedUnion;
+  static constexpr bool __fbthrift_cpp2_is_union =
+    true;
+
+
+ public:
+  enum class Type : int {
+    __EMPTY__ = 0,
+    string_field = 1,
+    binary_field = 2,
+  } ;
+
+  StringAdaptedUnion()
+      : fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {}
+
+  StringAdaptedUnion(StringAdaptedUnion&& rhs) noexcept
+      : fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
+    *this = std::move(rhs);
+  }
+
+  StringAdaptedUnion(const StringAdaptedUnion& rhs);
+
+  StringAdaptedUnion& operator=(StringAdaptedUnion&& rhs) noexcept;
+
+  StringAdaptedUnion& operator=(const StringAdaptedUnion& rhs);
+
+  ~StringAdaptedUnion();
+
+  union storage_type {
+    ::py3::simple::StringAdaptedString string_field;
+    ::py3::simple::StringAdaptedBinary binary_field;
+
+    storage_type() {}
+    ~storage_type() {}
+  } ;
+
+  bool operator==(const StringAdaptedUnion&) const;
+  std::partial_ordering operator<=>(const StringAdaptedUnion&) const;
+
+  /** 1: StringAdaptedString string_field */
+  /** Glean { "field": "string_field" } */
+  template <typename... A> requires (sizeof...(A) == 0)
+  ::py3::simple::StringAdaptedString& set_string_field(::py3::simple::StringAdaptedString const &t) {
+    using T0 = ::py3::simple::StringAdaptedString;
+    using T = folly::type_t<T0, A...>;
+    __fbthrift_clear();
+    ::new (std::addressof(value_.string_field)) T(t);
+    fbthrift_type_ = folly::to_underlying(Type::string_field);
+    return value_.string_field;
+  }
+
+  /** 1: StringAdaptedString string_field */
+  /** Glean { "field": "string_field" } */
+  template <typename... A> requires (sizeof...(A) == 0)
+  ::py3::simple::StringAdaptedString& set_string_field(::py3::simple::StringAdaptedString&& t) {
+    using T0 = ::py3::simple::StringAdaptedString;
+    using T = folly::type_t<T0, A...>;
+    __fbthrift_clear();
+    ::new (std::addressof(value_.string_field)) T(std::move(t));
+    fbthrift_type_ = folly::to_underlying(Type::string_field);
+    return value_.string_field;
+  }
+
+  /** 1: StringAdaptedString string_field */
+  /** Glean { "field": "string_field" } */
+  template<typename... T, typename = ::apache::thrift::safe_overload_t<::py3::simple::StringAdaptedString, T...>> ::py3::simple::StringAdaptedString& set_string_field(T&&... t) {
+    __fbthrift_clear();
+    ::new (std::addressof(value_.string_field)) ::py3::simple::StringAdaptedString(std::forward<T>(t)...);
+    fbthrift_type_ = folly::to_underlying(Type::string_field);
+    return value_.string_field;
+  }
+
+
+  /** 2: StringAdaptedBinary binary_field */
+  /** Glean { "field": "binary_field" } */
+  template <typename... A> requires (sizeof...(A) == 0)
+  ::py3::simple::StringAdaptedBinary& set_binary_field(::py3::simple::StringAdaptedBinary const &t) {
+    using T0 = ::py3::simple::StringAdaptedBinary;
+    using T = folly::type_t<T0, A...>;
+    __fbthrift_clear();
+    ::new (std::addressof(value_.binary_field)) T(t);
+    fbthrift_type_ = folly::to_underlying(Type::binary_field);
+    return value_.binary_field;
+  }
+
+  /** 2: StringAdaptedBinary binary_field */
+  /** Glean { "field": "binary_field" } */
+  template <typename... A> requires (sizeof...(A) == 0)
+  ::py3::simple::StringAdaptedBinary& set_binary_field(::py3::simple::StringAdaptedBinary&& t) {
+    using T0 = ::py3::simple::StringAdaptedBinary;
+    using T = folly::type_t<T0, A...>;
+    __fbthrift_clear();
+    ::new (std::addressof(value_.binary_field)) T(std::move(t));
+    fbthrift_type_ = folly::to_underlying(Type::binary_field);
+    return value_.binary_field;
+  }
+
+  /** 2: StringAdaptedBinary binary_field */
+  /** Glean { "field": "binary_field" } */
+  template<typename... T, typename = ::apache::thrift::safe_overload_t<::py3::simple::StringAdaptedBinary, T...>> ::py3::simple::StringAdaptedBinary& set_binary_field(T&&... t) {
+    __fbthrift_clear();
+    ::new (std::addressof(value_.binary_field)) ::py3::simple::StringAdaptedBinary(std::forward<T>(t)...);
+    fbthrift_type_ = folly::to_underlying(Type::binary_field);
+    return value_.binary_field;
+  }
+
+
+  /** 1: StringAdaptedString string_field */
+  /** Glean { "field": "string_field" } */
+  ::py3::simple::StringAdaptedString const& get_string_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
+    if (getType() != Type::string_field) {
+      ::apache::thrift::detail::throw_on_bad_union_field_access();
+    }
+    return value_.string_field;
+  }
+
+  /** 2: StringAdaptedBinary binary_field */
+  /** Glean { "field": "binary_field" } */
+  ::py3::simple::StringAdaptedBinary const& get_binary_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
+    if (getType() != Type::binary_field) {
+      ::apache::thrift::detail::throw_on_bad_union_field_access();
+    }
+    return value_.binary_field;
+  }
+
+  ::py3::simple::StringAdaptedString& mutable_string_field() {
+    assert(getType() == Type::string_field);
+    return value_.string_field;
+  }
+
+  ::py3::simple::StringAdaptedBinary& mutable_binary_field() {
+    assert(getType() == Type::binary_field);
+    return value_.binary_field;
+  }
+
+  template <typename..., typename T = ::py3::simple::StringAdaptedString>
+  T move_string_field() {
+    assert(getType() == Type::string_field);
+    return std::move(value_.string_field);
+  }
+
+  template <typename..., typename T = ::py3::simple::StringAdaptedBinary>
+  T move_binary_field() {
+    assert(getType() == Type::binary_field);
+    return std::move(value_.binary_field);
+  }
+
+  /** 1: StringAdaptedString string_field */
+  /** Glean { "field": "string_field" } */
+  template <typename..., typename T = ::py3::simple::StringAdaptedString>
+  FOLLY_ERASE ::apache::thrift::union_field_ref<const T&> string_field_ref() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
+    return {value_.string_field, fbthrift_type_, folly::to_underlying(Type::string_field), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
+  }
+
+  /** 1: StringAdaptedString string_field */
+  /** Glean { "field": "string_field" } */
+  template <typename..., typename T = ::py3::simple::StringAdaptedString>
+  FOLLY_ERASE ::apache::thrift::union_field_ref<T&> string_field_ref() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
+    return {value_.string_field, fbthrift_type_, folly::to_underlying(Type::string_field), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
+  }
+
+  /** 1: StringAdaptedString string_field */
+  /** Glean { "field": "string_field" } */
+  template <typename..., typename T = ::py3::simple::StringAdaptedString>
+  FOLLY_ERASE ::apache::thrift::union_field_ref<T&&> string_field_ref() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
+    return {std::move(value_.string_field), fbthrift_type_, folly::to_underlying(Type::string_field), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
+  }
+
+  /** 1: StringAdaptedString string_field */
+  /** Glean { "field": "string_field" } */
+  FOLLY_ERASE ::apache::thrift::union_field_ref<const ::py3::simple::StringAdaptedString&> string_field() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
+    return {value_.string_field, fbthrift_type_, folly::to_underlying(Type::string_field), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
+  }
+
+  /** 1: StringAdaptedString string_field */
+  /** Glean { "field": "string_field" } */
+  FOLLY_ERASE ::apache::thrift::union_field_ref<::py3::simple::StringAdaptedString&> string_field() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
+    return {value_.string_field, fbthrift_type_, folly::to_underlying(Type::string_field), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
+  }
+
+  /** 1: StringAdaptedString string_field */
+  /** Glean { "field": "string_field" } */
+  FOLLY_ERASE ::apache::thrift::union_field_ref<::py3::simple::StringAdaptedString&&> string_field() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
+    return {std::move(value_.string_field), fbthrift_type_, folly::to_underlying(Type::string_field), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
+  }
+  /** 2: StringAdaptedBinary binary_field */
+  /** Glean { "field": "binary_field" } */
+  template <typename..., typename T = ::py3::simple::StringAdaptedBinary>
+  FOLLY_ERASE ::apache::thrift::union_field_ref<const T&> binary_field_ref() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
+    return {value_.binary_field, fbthrift_type_, folly::to_underlying(Type::binary_field), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
+  }
+
+  /** 2: StringAdaptedBinary binary_field */
+  /** Glean { "field": "binary_field" } */
+  template <typename..., typename T = ::py3::simple::StringAdaptedBinary>
+  FOLLY_ERASE ::apache::thrift::union_field_ref<T&> binary_field_ref() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
+    return {value_.binary_field, fbthrift_type_, folly::to_underlying(Type::binary_field), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
+  }
+
+  /** 2: StringAdaptedBinary binary_field */
+  /** Glean { "field": "binary_field" } */
+  template <typename..., typename T = ::py3::simple::StringAdaptedBinary>
+  FOLLY_ERASE ::apache::thrift::union_field_ref<T&&> binary_field_ref() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
+    return {std::move(value_.binary_field), fbthrift_type_, folly::to_underlying(Type::binary_field), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
+  }
+
+  /** 2: StringAdaptedBinary binary_field */
+  /** Glean { "field": "binary_field" } */
+  FOLLY_ERASE ::apache::thrift::union_field_ref<const ::py3::simple::StringAdaptedBinary&> binary_field() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
+    return {value_.binary_field, fbthrift_type_, folly::to_underlying(Type::binary_field), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
+  }
+
+  /** 2: StringAdaptedBinary binary_field */
+  /** Glean { "field": "binary_field" } */
+  FOLLY_ERASE ::apache::thrift::union_field_ref<::py3::simple::StringAdaptedBinary&> binary_field() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
+    return {value_.binary_field, fbthrift_type_, folly::to_underlying(Type::binary_field), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
+  }
+
+  /** 2: StringAdaptedBinary binary_field */
+  /** Glean { "field": "binary_field" } */
+  FOLLY_ERASE ::apache::thrift::union_field_ref<::py3::simple::StringAdaptedBinary&&> binary_field() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
+    return {std::move(value_.binary_field), fbthrift_type_, folly::to_underlying(Type::binary_field), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
+  }
+  Type getType() const { return static_cast<Type>(fbthrift_type_); }
+
+  template <class Protocol_>
+  unsigned long read(Protocol_* iprot);
+  template <class Protocol_>
+  uint32_t serializedSize(Protocol_ const* prot_) const;
+  template <class Protocol_>
+  uint32_t serializedSizeZC(Protocol_ const* prot_) const;
+  template <class Protocol_>
+  uint32_t write(Protocol_* prot_) const;
+ protected:
+  storage_type value_;
+  std::underlying_type_t<Type> fbthrift_type_;
+
+ private:
+  template <class Protocol_>
+  void readNoXfer(Protocol_* iprot);
+
+  friend void swap(StringAdaptedUnion& a, StringAdaptedUnion& b);
+};
+
+template <class Protocol_>
+unsigned long StringAdaptedUnion::read(Protocol_* iprot) {
+  auto _xferStart = iprot->getCursorPosition();
+  readNoXfer(iprot);
+  return iprot->getCursorPosition() - _xferStart;
+}
+
+
 } // namespace py3::simple
 
 namespace apache::thrift {
@@ -5320,92 +5622,119 @@ template <> struct TEnumTraits<::py3::simple::BinaryUnion::Type> {
   static constexpr type min() { return type::iobuf_val; }
   static constexpr type max() { return type::iobuf_val; }
 };
+
+template <> struct TEnumDataStorage<::py3::simple::StringAdaptedUnion::Type>;
+
+template <> struct TEnumTraits<::py3::simple::StringAdaptedUnion::Type> {
+  using type = ::py3::simple::StringAdaptedUnion::Type;
+
+  static constexpr std::size_t const size = 2;
+  static folly::Range<type const*> const values;
+  static folly::Range<std::string_view const*> const names;
+
+  static bool findName(type value, std::string_view* out) noexcept;
+  static bool findValue(std::string_view name, type* out) noexcept;
+
+  static char const* findName(type value) noexcept {
+    std::string_view ret;
+    (void)findName(value, &ret);
+    return ret.data();
+  }
+
+  static constexpr type min() { return type::string_field; }
+  static constexpr type max() { return type::binary_field; }
+};
 } // namespace apache::thrift
 
 namespace apache::thrift::detail {
 template <> struct TSchemaAssociation<::py3::simple::SimpleException, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = -3933524931714203253;
-  static constexpr ::std::string_view definitionKey = {"\xcd\x02\xe8\xab\x4a\x36\xa8\xb7\xdc\x50\xe2\xa1\x8a\x0b\x8d\x43", 16};
+  static constexpr int64_t programId = 1198233678914128272;
+  static constexpr ::std::string_view definitionKey = {"\xa7\x5d\xc4\xa2\x70\x12\xef\x7d\x82\x79\x94\x42\x1a\xbb\xe3\x15", 16};
 };
 template <> struct TSchemaAssociation<::py3::simple::OptionalRefStruct, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = -3933524931714203253;
-  static constexpr ::std::string_view definitionKey = {"\x8a\x57\x45\x62\x7b\xd5\xc1\xcc\x81\xe9\x72\x0f\x3d\x24\xae\x76", 16};
+  static constexpr int64_t programId = 1198233678914128272;
+  static constexpr ::std::string_view definitionKey = {"\x27\xd9\xfb\xe3\xa0\x5c\x28\xc1\x4e\x6e\xe0\x9a\x3d\x54\xe6\xb8", 16};
 };
 template <> struct TSchemaAssociation<::py3::simple::SimpleStruct, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = -3933524931714203253;
-  static constexpr ::std::string_view definitionKey = {"\x4a\x1f\x60\x95\xcd\x3b\xb1\x4b\xf5\xb9\xd6\x4d\x76\x72\xdd\xca", 16};
+  static constexpr int64_t programId = 1198233678914128272;
+  static constexpr ::std::string_view definitionKey = {"\x68\x3a\xf6\x8d\xf6\xdc\x64\x11\xa5\x92\xb9\x39\x76\x6b\xf5\x92", 16};
 };
 template <> struct TSchemaAssociation<::py3::simple::Float32Struct, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = -3933524931714203253;
-  static constexpr ::std::string_view definitionKey = {"\x34\xe1\x71\x8d\xd4\x58\x26\x4e\xa8\xbc\xac\x26\x92\x22\x23\xae", 16};
+  static constexpr int64_t programId = 1198233678914128272;
+  static constexpr ::std::string_view definitionKey = {"\xc1\x5c\x83\x7e\x35\xed\x9d\x83\x21\x1a\x3c\x47\x81\xa1\x63\x38", 16};
 };
 template <> struct TSchemaAssociation<::py3::simple::IssetInspectionStruct, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = -3933524931714203253;
-  static constexpr ::std::string_view definitionKey = {"\x96\xab\x82\x20\xd1\xa6\x71\x76\x25\x6a\xa1\xb3\x57\xe5\xeb\xb9", 16};
+  static constexpr int64_t programId = 1198233678914128272;
+  static constexpr ::std::string_view definitionKey = {"\xb0\xa0\x24\xec\xe5\xf1\xaa\x66\xa1\x07\x4c\xab\x9d\x46\x28\xf7", 16};
 };
 template <> struct TSchemaAssociation<::py3::simple::HiddenTypeFieldsStruct, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = -3933524931714203253;
-  static constexpr ::std::string_view definitionKey = {"\xd3\x21\x4b\xb2\xab\x67\x2f\x3c\xe9\x3d\x01\xd8\xbb\x9f\x1b\xac", 16};
+  static constexpr int64_t programId = 1198233678914128272;
+  static constexpr ::std::string_view definitionKey = {"\x2e\x75\x7e\x22\xdb\x2f\x87\x93\xcc\xcf\xcc\x75\x4b\x67\x13\xba", 16};
 };
 template <> struct TSchemaAssociation<::py3::simple::detail::AdaptedUnion, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = -3933524931714203253;
-  static constexpr ::std::string_view definitionKey = {"\x9c\x9f\x91\xce\xd8\xe9\x96\x05\x09\xa7\x00\xd4\xd3\x32\x1f\x8b", 16};
+  static constexpr int64_t programId = 1198233678914128272;
+  static constexpr ::std::string_view definitionKey = {"\x07\x3b\x50\xb3\x40\xd4\x7f\x7c\xea\xb0\xcb\x2c\x63\x0a\x56\x86", 16};
 };
 template <> struct TSchemaAssociation<::py3::simple::HiddenException, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = -3933524931714203253;
-  static constexpr ::std::string_view definitionKey = {"\x39\x49\xb7\xf4\xfd\x30\xef\x63\x16\x69\x81\xd8\x79\xaf\xe2\x3d", 16};
+  static constexpr int64_t programId = 1198233678914128272;
+  static constexpr ::std::string_view definitionKey = {"\xfc\xc4\xdb\xe2\x68\x0d\x52\xb9\xa4\xb0\x26\xc8\x24\x6b\x9e\x8f", 16};
 };
 template <> struct TSchemaAssociation<::py3::simple::ComplexStruct, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = -3933524931714203253;
-  static constexpr ::std::string_view definitionKey = {"\x3a\x4b\xa7\xda\xf6\xad\x07\xad\x1e\x59\x25\x91\xca\xaa\x8a\x46", 16};
+  static constexpr int64_t programId = 1198233678914128272;
+  static constexpr ::std::string_view definitionKey = {"\xec\x22\x8c\x15\x52\xdb\x55\xd7\x18\xc2\xc5\x3a\xb4\x1a\xe5\x0b", 16};
 };
 template <> struct TSchemaAssociation<::py3::simple::BinaryUnion, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = -3933524931714203253;
-  static constexpr ::std::string_view definitionKey = {"\xd4\x2c\x4a\xd3\xa3\x2e\x8c\x08\x32\xaa\x2f\xaa\x9c\x64\x6e\x08", 16};
+  static constexpr int64_t programId = 1198233678914128272;
+  static constexpr ::std::string_view definitionKey = {"\x99\x87\x6d\x88\x63\x5f\xe0\x9a\x6c\x8e\x3c\xf8\xce\x8f\x4d\xfd", 16};
 };
 template <> struct TSchemaAssociation<::py3::simple::BinaryUnionStruct, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = -3933524931714203253;
-  static constexpr ::std::string_view definitionKey = {"\x48\x94\x72\x98\x1b\x82\xdf\xdf\x64\x08\x16\x80\xd2\x33\x13\x56", 16};
+  static constexpr int64_t programId = 1198233678914128272;
+  static constexpr ::std::string_view definitionKey = {"\x0c\xd2\xce\x28\xf6\x43\x3a\x91\xe9\x1d\xef\xe4\x70\xbf\xeb\x5e", 16};
 };
 template <> struct TSchemaAssociation<::py3::simple::CustomFields, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = -3933524931714203253;
-  static constexpr ::std::string_view definitionKey = {"\x8a\x95\x45\x16\xd3\x62\x2e\x10\xfe\x82\x2f\xae\xfc\x77\x93\x30", 16};
+  static constexpr int64_t programId = 1198233678914128272;
+  static constexpr ::std::string_view definitionKey = {"\x5f\x54\xf5\x94\xba\xf6\x83\x5c\xa9\x5d\x91\x37\xf8\x5d\x40\x76", 16};
 };
 template <> struct TSchemaAssociation<::py3::simple::CustomTypedefFields, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = -3933524931714203253;
-  static constexpr ::std::string_view definitionKey = {"\xde\x8f\x54\x60\x86\xc8\x28\xfe\x22\x9d\x69\x13\x08\x12\x83\x9a", 16};
+  static constexpr int64_t programId = 1198233678914128272;
+  static constexpr ::std::string_view definitionKey = {"\xed\x46\xdd\xe5\x59\x41\x2b\xdb\x20\x49\x12\x6c\x19\x34\x06\x63", 16};
 };
 template <> struct TSchemaAssociation<::py3::simple::AdaptedTypedefFields, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = -3933524931714203253;
-  static constexpr ::std::string_view definitionKey = {"\x01\x06\xee\xa1\xe6\x55\x98\xf4\x65\xc4\xfc\x67\xde\x28\xe4\x5f", 16};
+  static constexpr int64_t programId = 1198233678914128272;
+  static constexpr ::std::string_view definitionKey = {"\x27\x56\xbc\x39\x9d\xeb\xba\xb5\xe9\xa8\x37\x99\xb3\x26\x9a\x4e", 16};
+};
+template <> struct TSchemaAssociation<::py3::simple::StringAdaptedUnion, false> {
+  static ::folly::Range<const ::std::string_view*> bundle();
+  static constexpr int64_t programId = 1198233678914128272;
+  static constexpr ::std::string_view definitionKey = {"\x65\xac\x7e\xc1\xca\xc8\xce\xac\x60\x51\x5b\x2e\xff\x04\x7e\xa6", 16};
 };
 template <> struct TSchemaAssociation<::py3::simple::AnEnum, true> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = -3933524931714203253;
-  static constexpr ::std::string_view definitionKey = {"\x6f\xbd\xa9\xbb\xa3\xb2\x42\x8c\x9a\x5d\xe5\x8b\xf5\xcb\xcb\xa6", 16};
+  static constexpr int64_t programId = 1198233678914128272;
+  static constexpr ::std::string_view definitionKey = {"\x42\x64\x49\x55\x8d\x3d\xf2\xdb\x06\x1d\x01\x97\x49\x04\xa9\xc6", 16};
 };
 template <> struct TSchemaAssociation<::py3::simple::AnEnumRenamed, true> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = -3933524931714203253;
-  static constexpr ::std::string_view definitionKey = {"\x0d\x3b\x46\xf7\xb6\xa6\x9e\x3c\x28\xa1\xc9\xc5\xce\x3b\x9d\x90", 16};
+  static constexpr int64_t programId = 1198233678914128272;
+  static constexpr ::std::string_view definitionKey = {"\xb2\x95\xd6\x68\x0d\xfd\x95\x63\x12\x35\x4d\xe1\x3f\x05\xdb\x7e", 16};
 };
 template <> struct TSchemaAssociation<::py3::simple::Flags, true> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = -3933524931714203253;
-  static constexpr ::std::string_view definitionKey = {"\xb0\xc3\xe6\x68\x7c\x6c\x2f\x26\x25\xfa\xdc\xa5\xa7\xba\x35\x18", 16};
+  static constexpr int64_t programId = 1198233678914128272;
+  static constexpr ::std::string_view definitionKey = {"\xed\xd3\x57\xae\xb6\x2c\x4b\x1a\x87\x22\xbd\x0d\x6d\x65\x8c\x1c", 16};
 };
 } // namespace apache::thrift::detail

@@ -114,4 +114,12 @@ cdef shared_ptr[_fbthrift_cbindings.cAdaptedTypedefFields] AdaptedTypedefFields_
 cdef object AdaptedTypedefFields_from_cpp(const shared_ptr[_fbthrift_cbindings.cAdaptedTypedefFields]& c_struct):
     return _fbthrift_ctypes.AdaptedTypedefFields._create_FBTHRIFT_ONLY_DO_NOT_USE(c_struct)
 
+cdef shared_ptr[_fbthrift_cbindings.cStringAdaptedUnion] StringAdaptedUnion_convert_to_cpp(object inst) except*:
+    return make_shared[_fbthrift_cbindings.cStringAdaptedUnion](deref(
+        (<_fbthrift_ctypes.StringAdaptedUnion?>inst)._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE
+    ))
+
+cdef object StringAdaptedUnion_from_cpp(const shared_ptr[_fbthrift_cbindings.cStringAdaptedUnion]& c_struct):
+    return _fbthrift_ctypes.StringAdaptedUnion._create_FBTHRIFT_ONLY_DO_NOT_USE(c_struct)
+
 

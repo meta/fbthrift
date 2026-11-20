@@ -42,6 +42,8 @@ template void TccStructTraits<::py3::simple::CustomTypedefFields>::translateFiel
     std::string_view, int16_t&, apache::thrift::protocol::TType&);
 template void TccStructTraits<::py3::simple::AdaptedTypedefFields>::translateFieldName(
     std::string_view, int16_t&, apache::thrift::protocol::TType&);
+template void TccStructTraits<::py3::simple::StringAdaptedUnion>::translateFieldName(
+    std::string_view, int16_t&, apache::thrift::protocol::TType&);
 } // namespace apache::thrift::detail
 
 
@@ -1923,6 +1925,128 @@ static_assert(
 
 } // namespace py3::simple
 
+
+namespace apache { namespace thrift {
+
+folly::Range<::py3::simple::StringAdaptedUnion::Type const*> const TEnumTraits<::py3::simple::StringAdaptedUnion::Type>::values = folly::range(TEnumDataStorage<::py3::simple::StringAdaptedUnion::Type>::values);
+folly::Range<std::string_view const*> const TEnumTraits<::py3::simple::StringAdaptedUnion::Type>::names = folly::range(TEnumDataStorage<::py3::simple::StringAdaptedUnion::Type>::names);
+
+bool TEnumTraits<::py3::simple::StringAdaptedUnion::Type>::findName(type value, std::string_view* out) noexcept {
+  return ::apache::thrift::detail::st::enum_find_name(value, out);
+}
+
+bool TEnumTraits<::py3::simple::StringAdaptedUnion::Type>::findValue(std::string_view name, type* out) noexcept {
+  return ::apache::thrift::detail::st::enum_find_value(name, out);
+}
+}} // apache::thrift
+namespace py3::simple {
+
+std::string_view StringAdaptedUnion::__fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord) {
+  if (ord == ::apache::thrift::FieldOrdinal{0}) { return {}; }
+  return apache::thrift::TStructDataStorage<StringAdaptedUnion>::fields_names[folly::to_underlying(ord) - 1];
+}
+std::string_view StringAdaptedUnion::__fbthrift_get_class_name() {
+  return apache::thrift::TStructDataStorage<StringAdaptedUnion>::name;
+}
+
+void StringAdaptedUnion::__fbthrift_destruct() {
+  switch(getType()) {
+    case Type::__EMPTY__:
+      break;
+    case Type::string_field:
+      ::std::destroy_at(::std::addressof(value_.string_field));
+      break;
+    case Type::binary_field:
+      ::std::destroy_at(::std::addressof(value_.binary_field));
+      break;
+    default:
+      assert(false);
+      break;
+  }
+}
+
+void StringAdaptedUnion::__fbthrift_clear() {
+  __fbthrift_destruct();
+  fbthrift_type_ = folly::to_underlying(Type::__EMPTY__);
+}
+
+  StringAdaptedUnion::~StringAdaptedUnion() {
+    __fbthrift_destruct();
+  }
+
+bool StringAdaptedUnion::__fbthrift_is_empty() const {
+  return getType() == Type::__EMPTY__;
+}
+  StringAdaptedUnion& StringAdaptedUnion::operator=(StringAdaptedUnion&& rhs) noexcept {
+    if (this == &rhs) { return *this; }
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+      {
+        __fbthrift_clear();
+        return *this;
+      }
+      case Type::string_field:
+      {
+        auto value = std::move(rhs.value_.string_field);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(string_field_ref(), std::move(value));
+        break;
+      }
+      case Type::binary_field:
+      {
+        auto value = std::move(rhs.value_.binary_field);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(binary_field_ref(), std::move(value));
+        break;
+      }
+      default:
+      {
+        assert(false);
+        __fbthrift_clear();
+      }
+    }
+    return *this;
+  }
+
+  StringAdaptedUnion::StringAdaptedUnion(const StringAdaptedUnion& rhs)
+      : fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+        return;
+      case Type::string_field:
+        string_field_ref().emplace(rhs.value_.string_field);
+        break;
+      case Type::binary_field:
+        binary_field_ref().emplace(rhs.value_.binary_field);
+        break;
+      default:
+        assert(false);
+    }
+  }
+
+  StringAdaptedUnion& StringAdaptedUnion::operator=(const StringAdaptedUnion& rhs) {
+    if (this == &rhs) { return *this; }
+    return *this = StringAdaptedUnion(rhs);
+  }
+
+
+bool StringAdaptedUnion::operator==(const StringAdaptedUnion& rhs) const {
+  return ::apache::thrift::op::detail::UnionEquality{}(*this, rhs);
+}
+
+std::partial_ordering StringAdaptedUnion::operator<=>([[maybe_unused]] const StringAdaptedUnion& rhs) const {
+  return ::apache::thrift::op::compare<StringAdaptedUnion>(*this, rhs);
+}
+
+void swap(StringAdaptedUnion& a, StringAdaptedUnion& b) {
+  StringAdaptedUnion temp(std::move(a));
+  a = std::move(b);
+  b = std::move(temp);
+}
+
+
+} // namespace py3::simple
+
 namespace py3::simple { namespace {
 [[maybe_unused]] FOLLY_ERASE void validateAdapters() {
   ::apache::thrift::adapt_detail::validateFieldAdapter<Adapter, 1, ::py3::simple::SimpleStruct, ::py3::simple::HiddenTypeFieldsStruct>();
@@ -1935,6 +2059,8 @@ namespace py3::simple { namespace {
   ::apache::thrift::adapt_detail::validateFieldAdapter<::MyAdapter, 7, ::std::set<::std::int32_t>, ::py3::simple::AdaptedTypedefFields>();
   ::apache::thrift::adapt_detail::validateFieldAdapter<::MyAdapter, 8, ::std::map<::std::int32_t, ::std::int32_t>, ::py3::simple::AdaptedTypedefFields>();
   ::apache::thrift::adapt_detail::validateFieldAdapter<::MyAdapter, 9, ::py3::simple::SimpleStruct, ::py3::simple::AdaptedTypedefFields>();
+  ::apache::thrift::adapt_detail::validateFieldAdapter<::apache::thrift::StringTypeAdapter<folly::fbstring>, 1, ::std::string, ::py3::simple::StringAdaptedUnion>();
+  ::apache::thrift::adapt_detail::validateFieldAdapter<::apache::thrift::StringTypeAdapter<folly::fbstring>, 2, ::std::string, ::py3::simple::StringAdaptedUnion>();
   ::apache::thrift::adapt_detail::validateAdapter<Adapter, ::py3::simple::detail::AdaptedUnion>();
 }
 }} // namespace py3::simple

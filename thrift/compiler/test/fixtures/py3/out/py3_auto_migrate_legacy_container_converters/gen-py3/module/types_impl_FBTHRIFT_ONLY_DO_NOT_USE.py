@@ -23,3 +23,11 @@ class __BinaryUnionType(enum.Enum):
 
     __module__ = _fbthrift__module_name__
     __slots__ = ()
+
+class __StringAdaptedUnionType(enum.Enum):
+    string_field = 1
+    binary_field = 2
+    EMPTY = 0
+
+    __module__ = _fbthrift__module_name__
+    __slots__ = ()

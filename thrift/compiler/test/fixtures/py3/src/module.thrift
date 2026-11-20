@@ -343,3 +343,15 @@ struct AdaptedTypedefFields {
   8: AdaptedMap map_field;
   9: AdaptedStruct struct_field;
 }
+
+@cpp.Adapter{name = "::apache::thrift::StringTypeAdapter<folly::fbstring>"}
+@python.Py3EnableCppAdapter
+typedef string StringAdaptedString
+@cpp.Adapter{name = "::apache::thrift::StringTypeAdapter<folly::fbstring>"}
+@python.Py3EnableCppAdapter
+typedef binary StringAdaptedBinary
+
+union StringAdaptedUnion {
+  1: StringAdaptedString string_field;
+  2: StringAdaptedBinary binary_field;
+}

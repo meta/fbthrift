@@ -663,7 +663,7 @@ return self.__fbthrift_cached_{{field.py_name}}
 
 {{! Called specifically from types.pyx when initializing the individual
     attributes on a union. }}
-{{#let export partial cython_union_assign_field |field| captures |container_to_cpp cython_cpp_type cython_python_type cpp_obj|}}
+{{#let export partial cython_union_assign_field |field| captures |container_to_cpp cython_cpp_type field_cython_cpp_type cython_python_type cpp_obj|}}
 {{#pragma ignore-newlines}}
   {{#if field.reference?}}
     {{#if field.type.container?}}
@@ -675,6 +675,7 @@ deref(c_inst).set_{{field.py_name}}(deref((<{{#partial cython_python_type type=f
     {{/if field.type.container?}}
 {{#else if field.type.string?}}deref(c_inst).set_{{field.py_name}}({{field.py_name}}.encode('UTF-8'))
 {{#else if field.type_iobuf?}}deref(c_inst).set_{{field.py_name}}(deref((<_fbthrift_iobuf.IOBuf?>{{field.py_name}})._this))
+{{#else if field.type_flexibleBinary?}}deref(c_inst).set_{{field.py_name}}({{#partial field_cython_cpp_type field=field}}(cmove(<string>{{field.py_name}})))
 {{#else if field.type.enum?}}deref(c_inst).set_{{field.py_name}}(<{{#partial cython_cpp_type type=field.type}}><int>{{field.py_name}})
 {{#else if field.type.structured?}}deref(c_inst).set_{{field.py_name}}(deref((<{{#partial cython_python_type type=field.type}}?> {{field.py_name}}).{{#partial cpp_obj}}))
 {{#else if field.type.container?}}deref(c_inst).set_{{field.py_name}}({{#partial container_to_cpp type=field.type}}({{field.py_name}}))
@@ -690,6 +691,7 @@ deref(c_inst).set_{{field.py_name}}(deref((<{{#partial cython_python_type type=f
 {{#if type.bool?}}<bint>(deref(self.{{#partial cpp_obj}}).get_{{field.py_name}}())
 {{#else if type.string?}}bytes(deref(self.{{#partial cpp_obj}}).get_{{field.py_name}}()).decode('UTF-8')
 {{#else if field.type_iobuf?}}_fbthrift_iobuf.from_unique_ptr(deref(self.{{#partial cpp_obj}}).get_{{field.py_name}}().clone())
+{{#else if field.type_flexibleBinary?}}(<const char*>deref(self.{{#partial cpp_obj}}).get_{{field.py_name}}().data())[:deref(self.{{#partial cpp_obj}}).get_{{field.py_name}}().size()]
 {{#else if type.enum?}}translate_cpp_enum_to_python({{#partial python_type type=type}}, <int>deref(self.{{#partial cpp_obj}}).get_{{field.py_name}}())
 {{#else if type.structured?}}{{#partial cython_python_type type=type}}._create_FBTHRIFT_ONLY_DO_NOT_USE(make_shared[{{#partial cython_cpp_type type=type}}](deref(self.{{#partial cpp_obj}}).get_{{field.py_name}}()))
 {{#else if type.container?}}{{#partial container_from_cpp type=type}}(deref(self.{{#partial cpp_obj}}).get_{{field.py_name}}())

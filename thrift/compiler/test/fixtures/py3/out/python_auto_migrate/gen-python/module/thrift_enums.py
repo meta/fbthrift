@@ -31,7 +31,7 @@ class AnEnum(_fbthrift_python_types.Enum, int):
 
     @staticmethod
     def __get_thrift_definition_key__() -> builtins.bytes:
-        return b"\x6f\xbd\xa9\xbb\xa3\xb2\x42\x8c\x9a\x5d\xe5\x8b\xf5\xcb\xcb\xa6"
+        return b"\x42\x64\x49\x55\x8d\x3d\xf2\xdb\x06\x1d\x01\x97\x49\x04\xa9\xc6"
 
     @staticmethod
     def __get_metadata__() -> _fbthrift_metadata.ThriftMetadata:
@@ -67,7 +67,7 @@ class AnEnumRenamed(_fbthrift_python_types.Enum, int):
 
     @staticmethod
     def __get_thrift_definition_key__() -> builtins.bytes:
-        return b"\x0d\x3b\x46\xf7\xb6\xa6\x9e\x3c\x28\xa1\xc9\xc5\xce\x3b\x9d\x90"
+        return b"\xb2\x95\xd6\x68\x0d\xfd\x95\x63\x12\x35\x4d\xe1\x3f\x05\xdb\x7e"
 
     @staticmethod
     def __get_metadata__() -> _fbthrift_metadata.ThriftMetadata:
@@ -101,7 +101,7 @@ class Flags(_fbthrift_python_types.Flag):
 
     @staticmethod
     def __get_thrift_definition_key__() -> builtins.bytes:
-        return b"\xb0\xc3\xe6\x68\x7c\x6c\x2f\x26\x25\xfa\xdc\xa5\xa7\xba\x35\x18"
+        return b"\xed\xd3\x57\xae\xb6\x2c\x4b\x1a\x87\x22\xbd\x0d\x6d\x65\x8c\x1c"
 
     @staticmethod
     def __get_metadata__() -> _fbthrift_metadata.ThriftMetadata:

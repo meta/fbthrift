@@ -469,6 +469,40 @@ class AdaptedTypedefFields(_abc.ABC):
     @_abc.abstractmethod
     def _to_py_deprecated(self) -> "module.ttypes.AdaptedTypedefFields": ...  # type: ignore
 _fbthrift_AdaptedTypedefFields = AdaptedTypedefFields
+class StringAdaptedUnion(_abc.ABC):
+    # pyre-ignore[16]: Module `_fbthrift_builtins` has no attribute `property`.
+    @_fbthrift_builtins.property
+    @_abc.abstractmethod
+    def string_field(self) -> builtins.str: ...
+    # pyre-ignore[16]: Module `_fbthrift_builtins` has no attribute `property`.
+    @_fbthrift_builtins.property
+    @_abc.abstractmethod
+    def binary_field(self) -> builtins.bytes: ...
+    @_abc.abstractmethod
+    def _to_mutable_python(self) -> "module.thrift_mutable_types.StringAdaptedUnion": ...  # type: ignore
+    @_abc.abstractmethod
+    def _to_python(self) -> "module.thrift_types.StringAdaptedUnion": ...  # type: ignore
+    @_abc.abstractmethod
+    def _to_py3(self) -> "module.types.StringAdaptedUnion": ...  # type: ignore
+    @_abc.abstractmethod
+    def _to_py_deprecated(self) -> "module.ttypes.StringAdaptedUnion": ...  # type: ignore
+
+    class FbThriftUnionFieldEnum(_enum.Enum):
+        EMPTY = 0
+        string_field = 1
+        binary_field = 2
+
+    FbThriftUnionFieldEnum.__name__ = "StringAdaptedUnion"
+    # pyre-ignore[16]: Module `_fbthrift_builtins` has no attribute `property`.
+    @_fbthrift_builtins.property
+    @_abc.abstractmethod
+    def fbthrift_current_value(self) -> _typing.Union[None, builtins.str, builtins.bytes]: ...
+    # pyre-ignore[16]: Module `_fbthrift_builtins` has no attribute `property`.
+    @_fbthrift_builtins.property
+    @_abc.abstractmethod
+    def fbthrift_current_field(self) -> FbThriftUnionFieldEnum: ...
+
+_fbthrift_StringAdaptedUnion = StringAdaptedUnion
 
 IOBufPtr = _fbthrift_iobuf.IOBuf
 IOBuf = _fbthrift_iobuf.IOBuf
@@ -495,3 +529,5 @@ AdaptedList = _typing.Sequence[builtins.int]
 AdaptedSet = _typing.AbstractSet[builtins.int]
 AdaptedMap = _typing.Mapping[builtins.int, builtins.int]
 AdaptedStruct = _fbthrift_SimpleStruct
+StringAdaptedString = builtins.str
+StringAdaptedBinary = builtins.bytes

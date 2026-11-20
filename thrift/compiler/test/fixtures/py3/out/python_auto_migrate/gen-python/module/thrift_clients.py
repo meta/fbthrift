@@ -39,7 +39,7 @@ class SimpleService(_fbthrift_python_Client["SimpleService.Async", "SimpleServic
 
     @staticmethod
     def __get_thrift_definition_key__() -> bytes:
-        return b"\xb6\x7a\xdf\x0d\x17\xe4\xa2\xee\x0f\x23\x9f\x31\xa0\x90\x66\xea"
+        return b"\x6f\x4d\xd6\xc3\xf1\x4c\xbb\x9f\xe2\xeb\x19\xad\xc3\x66\x97\xa5"
 
     @staticmethod
     def __get_thrift_unstructured_annotations_DEPRECATED__() -> _typing.Mapping[str, str]:
@@ -70,7 +70,7 @@ class SimpleService(_fbthrift_python_Client["SimpleService.Async", "SimpleServic
 
         @staticmethod
         def __get_thrift_definition_key__() -> bytes:
-            return b"\xb6\x7a\xdf\x0d\x17\xe4\xa2\xee\x0f\x23\x9f\x31\xa0\x90\x66\xea"
+            return b"\x6f\x4d\xd6\xc3\xf1\x4c\xbb\x9f\xe2\xeb\x19\xad\xc3\x66\x97\xa5"
 
         @staticmethod
         def __get_metadata__() -> _fbthrift_metadata.ThriftMetadata:
@@ -1175,7 +1175,7 @@ class SimpleService(_fbthrift_python_Client["SimpleService.Async", "SimpleServic
 
         @staticmethod
         def __get_thrift_definition_key__() -> bytes:
-            return b"\xb6\x7a\xdf\x0d\x17\xe4\xa2\xee\x0f\x23\x9f\x31\xa0\x90\x66\xea"
+            return b"\x6f\x4d\xd6\xc3\xf1\x4c\xbb\x9f\xe2\xeb\x19\xad\xc3\x66\x97\xa5"
 
         @staticmethod
         def __get_metadata__() -> _fbthrift_metadata.ThriftMetadata:
@@ -2153,7 +2153,7 @@ class DerivedService(_fbthrift_python_Client["DerivedService.Async", "DerivedSer
 
     @staticmethod
     def __get_thrift_definition_key__() -> bytes:
-        return b"\x47\xa1\x64\xdd\x46\xd6\x6e\xb8\xf0\xd0\xfb\x16\x34\xee\x61\xa0"
+        return b"\xa4\xb9\x3b\xc2\x72\xc6\x34\xb9\x08\x13\xda\x99\x12\x00\x01\x11"
 
     @staticmethod
     def __get_thrift_unstructured_annotations_DEPRECATED__() -> _typing.Mapping[str, str]:
@@ -2186,7 +2186,7 @@ class DerivedService(_fbthrift_python_Client["DerivedService.Async", "DerivedSer
 
         @staticmethod
         def __get_thrift_definition_key__() -> bytes:
-            return b"\x47\xa1\x64\xdd\x46\xd6\x6e\xb8\xf0\xd0\xfb\x16\x34\xee\x61\xa0"
+            return b"\xa4\xb9\x3b\xc2\x72\xc6\x34\xb9\x08\x13\xda\x99\x12\x00\x01\x11"
 
         @staticmethod
         def __get_metadata__() -> _fbthrift_metadata.ThriftMetadata:
@@ -2233,7 +2233,7 @@ class DerivedService(_fbthrift_python_Client["DerivedService.Async", "DerivedSer
 
         @staticmethod
         def __get_thrift_definition_key__() -> bytes:
-            return b"\x47\xa1\x64\xdd\x46\xd6\x6e\xb8\xf0\xd0\xfb\x16\x34\xee\x61\xa0"
+            return b"\xa4\xb9\x3b\xc2\x72\xc6\x34\xb9\x08\x13\xda\x99\x12\x00\x01\x11"
 
         @staticmethod
         def __get_metadata__() -> _fbthrift_metadata.ThriftMetadata:
@@ -2274,7 +2274,7 @@ class RederivedService(_fbthrift_python_Client["RederivedService.Async", "Rederi
 
     @staticmethod
     def __get_thrift_definition_key__() -> bytes:
-        return b"\x53\xbd\x09\xe3\x8a\x09\x6f\xc8\xb8\x1b\x85\x5e\x65\x31\xf2\x7f"
+        return b"\x58\x3a\xb3\xc3\x5e\x59\x08\xb7\xd7\x6f\xc0\xc8\xf8\xbb\x3a\xd4"
 
     @staticmethod
     def __get_thrift_unstructured_annotations_DEPRECATED__() -> _typing.Mapping[str, str]:
@@ -2305,7 +2305,7 @@ class RederivedService(_fbthrift_python_Client["RederivedService.Async", "Rederi
 
         @staticmethod
         def __get_thrift_definition_key__() -> bytes:
-            return b"\x53\xbd\x09\xe3\x8a\x09\x6f\xc8\xb8\x1b\x85\x5e\x65\x31\xf2\x7f"
+            return b"\x58\x3a\xb3\xc3\x5e\x59\x08\xb7\xd7\x6f\xc0\xc8\xf8\xbb\x3a\xd4"
 
         @staticmethod
         def __get_metadata__() -> _fbthrift_metadata.ThriftMetadata:
@@ -2352,7 +2352,7 @@ class RederivedService(_fbthrift_python_Client["RederivedService.Async", "Rederi
 
         @staticmethod
         def __get_thrift_definition_key__() -> bytes:
-            return b"\x53\xbd\x09\xe3\x8a\x09\x6f\xc8\xb8\x1b\x85\x5e\x65\x31\xf2\x7f"
+            return b"\x58\x3a\xb3\xc3\x5e\x59\x08\xb7\xd7\x6f\xc0\xc8\xf8\xbb\x3a\xd4"
 
         @staticmethod
         def __get_metadata__() -> _fbthrift_metadata.ThriftMetadata:

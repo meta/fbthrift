@@ -19,6 +19,7 @@ from module.thrift_types import (
     CustomFields,
     CustomTypedefFields,
     AdaptedTypedefFields,
+    StringAdaptedUnion,
     AnEnum,
     AnEnumRenamed,
     Flags,
@@ -63,6 +64,8 @@ from module.thrift_types import (
     AdaptedSet,
     AdaptedMap,
     AdaptedStruct,
+    StringAdaptedString,
+    StringAdaptedBinary,
 )
 from module.types_auto_FBTHRIFT_ONLY_DO_NOT_USE import (
     List__i16,

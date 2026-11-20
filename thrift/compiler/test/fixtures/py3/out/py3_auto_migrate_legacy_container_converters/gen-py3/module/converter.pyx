@@ -115,6 +115,14 @@ cdef object AdaptedTypedefFields_from_cpp(const shared_ptr[_fbthrift_cbindings.c
     _py_struct = _module_thrift_converter.AdaptedTypedefFields_from_cpp(deref(const_pointer_cast(c_struct)))
     return _py_struct
 
+cdef shared_ptr[_fbthrift_cbindings.cStringAdaptedUnion] StringAdaptedUnion_convert_to_cpp(object inst) except*:
+    return make_shared[_fbthrift_cbindings.cStringAdaptedUnion](
+        _module_thrift_converter.StringAdaptedUnion_convert_to_cpp(inst)
+    )
+cdef object StringAdaptedUnion_from_cpp(const shared_ptr[_fbthrift_cbindings.cStringAdaptedUnion]& c_struct):
+    _py_struct = _module_thrift_converter.StringAdaptedUnion_from_cpp(deref(const_pointer_cast(c_struct)))
+    return _py_struct
+
 
 cdef vector[cint16_t] List__i16__make_instance(object items) except *:
         cdef vector[cint16_t] c_inst

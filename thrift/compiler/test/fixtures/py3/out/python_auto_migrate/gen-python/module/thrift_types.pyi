@@ -460,6 +460,40 @@ class AdaptedTypedefFields(_fbthrift_python_types.Struct, _fbthrift_python_abstr
     def _to_py_deprecated(self) -> "module.ttypes.AdaptedTypedefFields": ...  # type: ignore
 _fbthrift_AdaptedTypedefFields = AdaptedTypedefFields
 
+@_typing.final
+class StringAdaptedUnion(_fbthrift_python_types.Union, _fbthrift_python_abstract_types.StringAdaptedUnion):
+    string_field: _typing.Final[builtins.str] = ...
+    binary_field: _typing.Final[builtins.bytes] = ...
+    def __init__(
+        self, *,
+        string_field: _typing.Optional[builtins.str]=...,
+        binary_field: _typing.Optional[builtins.bytes]=...
+    ) -> None: ...
+
+
+    class Type(enum.Enum):
+        EMPTY: StringAdaptedUnion.Type = ...
+        string_field: StringAdaptedUnion.Type = ...
+        binary_field: StringAdaptedUnion.Type = ...
+
+    class FbThriftUnionFieldEnum(enum.Enum):
+        EMPTY: StringAdaptedUnion.FbThriftUnionFieldEnum = ...
+        string_field: StringAdaptedUnion.FbThriftUnionFieldEnum = ...
+        binary_field: StringAdaptedUnion.FbThriftUnionFieldEnum = ...
+
+    fbthrift_current_value: _typing.Final[_typing.Union[None, builtins.str, builtins.bytes]]
+    fbthrift_current_field: _typing.Final[FbThriftUnionFieldEnum]
+    @classmethod
+    def fromValue(cls, value: _typing.Union[None, builtins.str, builtins.bytes]) -> StringAdaptedUnion: ...
+    value: _typing.Final[_typing.Union[None, builtins.str, builtins.bytes]]
+    type: _typing.Final[Type]
+    def get_type(self) -> Type: ...
+    def _to_python(self) -> _typing.Self: ...
+    def _to_mutable_python(self) -> "module.thrift_mutable_types.StringAdaptedUnion": ...  # type: ignore
+    def _to_py3(self) -> "module.types.StringAdaptedUnion": ...  # type: ignore
+    def _to_py_deprecated(self) -> "module.ttypes.StringAdaptedUnion": ...  # type: ignore
+_fbthrift_StringAdaptedUnion = StringAdaptedUnion
+
 
 A_BOOL: builtins.bool = ...
 
@@ -530,6 +564,8 @@ class AdaptedMap(_fbthrift_python_types.ImmutableMap[builtins.int, builtins.int]
     def __init__(self, __items: _typing.Mapping[builtins.int, builtins.int] = ...) -> None: ...
 
 AdaptedStruct = _fbthrift_SimpleStruct
+StringAdaptedString = builtins.str
+StringAdaptedBinary = builtins.bytes
 
 
 class _fbthrift_SimpleService_get_five_args(_fbthrift_python_types.Struct):

@@ -227,3 +227,15 @@ class AdaptedTypedefFields_Builder(thrift.py3.builder.StructBuilder):
         yield "map_field", self.map_field
         yield "struct_field", self.struct_field
 
+_fbthrift_struct_type__StringAdaptedUnion = _module_types.StringAdaptedUnion
+class StringAdaptedUnion_Builder(thrift.py3.builder.StructBuilder):
+    _struct_type = _fbthrift_struct_type__StringAdaptedUnion
+
+    def __init__(self):
+        self.string_field: _typing.Optional[str] = None
+        self.binary_field: _typing.Optional[bytes] = None
+
+    def __iter__(self):
+        yield "string_field", self.string_field
+        yield "binary_field", self.binary_field
+

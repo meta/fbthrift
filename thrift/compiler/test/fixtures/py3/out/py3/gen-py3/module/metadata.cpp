@@ -28,6 +28,7 @@ namespace py3::simple {
   ::apache::thrift::detail::md::StructMetadata<CustomFields>::gen(metadata);
   ::apache::thrift::detail::md::StructMetadata<CustomTypedefFields>::gen(metadata);
   ::apache::thrift::detail::md::StructMetadata<AdaptedTypedefFields>::gen(metadata);
+  ::apache::thrift::detail::md::StructMetadata<StringAdaptedUnion>::gen(metadata);
   ::apache::thrift::detail::md::ServiceMetadata<::apache::thrift::ServiceHandler<::py3::simple::SimpleService>>::gen(response);
   ::apache::thrift::detail::md::ServiceMetadata<::apache::thrift::ServiceHandler<::py3::simple::DerivedService>>::gen(response);
   ::apache::thrift::detail::md::ServiceMetadata<::apache::thrift::ServiceHandler<::py3::simple::RederivedService>>::gen(response);

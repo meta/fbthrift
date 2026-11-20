@@ -36,6 +36,8 @@ cdef extern from "thrift/compiler/test/fixtures/py3/gen-cpp2/module_types.h":
         cCustomTypedefFields()
     cdef cppclass cAdaptedTypedefFields "::py3::simple::AdaptedTypedefFields":
         cAdaptedTypedefFields()
+    cdef cppclass cStringAdaptedUnion "::py3::simple::StringAdaptedUnion":
+        cStringAdaptedUnion()
 
 cdef extern from "thrift/compiler/test/fixtures/py3/gen-cpp2/module_types.h":
     cdef cppclass cAnEnum "::py3::simple::AnEnum":
@@ -85,4 +87,7 @@ cdef object CustomTypedefFields_from_cpp(const cCustomTypedefFields& c_struct)
 
 cdef cAdaptedTypedefFields AdaptedTypedefFields_convert_to_cpp(object inst) except*
 cdef object AdaptedTypedefFields_from_cpp(const cAdaptedTypedefFields& c_struct)
+
+cdef cStringAdaptedUnion StringAdaptedUnion_convert_to_cpp(object inst) except*
+cdef object StringAdaptedUnion_from_cpp(const cStringAdaptedUnion& c_struct)
 

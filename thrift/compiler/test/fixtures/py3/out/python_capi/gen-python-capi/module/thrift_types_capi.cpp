@@ -1567,6 +1567,87 @@ PyObject* Constructor<::apache::thrift::python::capi::ComposedStruct<
   return getThriftStructFieldData(*obj);
 }
 
+ExtractorResult<::py3::simple::StringAdaptedUnion>
+Extractor<::apache::thrift::python::capi::PythonNamespaced<::py3::simple::StringAdaptedUnion, ::module::NamespaceTag>>::operator()(PyObject* obj) {
+  if (!ensure_module_imported()) {
+    DCHECK(PyErr_Occurred() != nullptr);
+    return extractorError<::py3::simple::StringAdaptedUnion>(
+      "Module module import error");
+  }
+  std::unique_ptr<folly::IOBuf> val(
+      extract__module__StringAdaptedUnion(obj));
+  if (!val) {
+    CHECK(PyErr_Occurred());
+    return extractorError<::py3::simple::StringAdaptedUnion>(
+        "Thrift serialize error: StringAdaptedUnion");
+  }
+  return detail::deserialize_iobuf<::py3::simple::StringAdaptedUnion>(std::move(val));
+}
+
+
+ExtractorResult<::py3::simple::StringAdaptedUnion>
+Extractor<::apache::thrift::python::capi::ComposedStruct<
+    ::py3::simple::StringAdaptedUnion, ::module::NamespaceTag>>::operator()(PyObject* fbthrift_data) {
+  if (!ensure_module_imported()) {
+    DCHECK(PyErr_Occurred() != nullptr);
+    return extractorError<::py3::simple::StringAdaptedUnion>(
+      "Module module import error");
+  }
+  auto obj = StrongRef(init__module__StringAdaptedUnion(fbthrift_data));
+  if (!obj) {
+      return extractorError<::py3::simple::StringAdaptedUnion>(
+          "Init from fbthrift error: StringAdaptedUnion");
+  }
+  return Extractor<::apache::thrift::python::capi::PythonNamespaced<::py3::simple::StringAdaptedUnion, ::module::NamespaceTag>>{}(*obj);
+}
+
+int Extractor<::apache::thrift::python::capi::PythonNamespaced<::py3::simple::StringAdaptedUnion, ::module::NamespaceTag>>::typeCheck(PyObject* obj) {
+  if (!ensure_module_imported()) {
+    ::folly::python::handlePythonError(
+      "Module module import error");
+  }
+  int result =
+      can_extract__module__StringAdaptedUnion(obj);
+  if (result < 0) {
+    ::folly::python::handlePythonError(
+      "Unexpected type check error: StringAdaptedUnion");
+  }
+  return result;
+}
+
+
+PyObject* Constructor<::apache::thrift::python::capi::PythonNamespaced<::py3::simple::StringAdaptedUnion, ::module::NamespaceTag>>::operator()(
+    const ::py3::simple::StringAdaptedUnion& val) {
+  if (!ensure_module_imported()) {
+    DCHECK(PyErr_Occurred() != nullptr);
+    return nullptr;
+  }
+  ::std::unique_ptr<::folly::IOBuf> serialized;
+  try {
+    serialized = detail::serialize_to_iobuf(val);
+  } catch (const apache::thrift::TProtocolException& e) {
+    detail::handle_protocol_error(e);
+    return nullptr;
+  }
+  DCHECK(serialized);
+  auto ptr = construct__module__StringAdaptedUnion(std::move(serialized));
+  if (!ptr) {
+    CHECK(PyErr_Occurred());
+  }
+  return ptr;
+}
+
+
+PyObject* Constructor<::apache::thrift::python::capi::ComposedStruct<
+        ::py3::simple::StringAdaptedUnion, ::module::NamespaceTag>>::operator()(
+    const ::py3::simple::StringAdaptedUnion& val) {
+  auto obj = StrongRef(Constructor<::apache::thrift::python::capi::PythonNamespaced<::py3::simple::StringAdaptedUnion, ::module::NamespaceTag>>{}(val));
+  if (!obj) {
+    return nullptr;
+  }
+  return getThriftUnionFieldData(*obj);
+}
+
 ExtractorResult<::py3::simple::AnEnum>
 Extractor<::apache::thrift::python::capi::PythonNamespaced<::py3::simple::AnEnum, ::module::NamespaceTag>>::operator()(PyObject* obj) {
   long val = PyLong_AsLong(obj);

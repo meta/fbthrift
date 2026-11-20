@@ -163,8 +163,8 @@ class ServiceHandler<::py3::simple::RederivedService> : virtual public ::py3::si
 namespace detail {
 template <> struct TSchemaAssociation<::py3::simple::RederivedService, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = -3933524931714203253;
-  static constexpr ::std::string_view definitionKey = {"\x53\xbd\x09\xe3\x8a\x09\x6f\xc8\xb8\x1b\x85\x5e\x65\x31\xf2\x7f", 16};
+  static constexpr int64_t programId = 1198233678914128272;
+  static constexpr ::std::string_view definitionKey = {"\x58\x3a\xb3\xc3\x5e\x59\x08\xb7\xd7\x6f\xc0\xc8\xf8\xbb\x3a\xd4", 16};
 };
 }
 } // namespace apache::thrift

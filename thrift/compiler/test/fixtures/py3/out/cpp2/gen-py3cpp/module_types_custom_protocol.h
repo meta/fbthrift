@@ -3596,4 +3596,147 @@ extern template uint32_t AdaptedTypedefFields::serializedSize<>(apache::thrift::
 extern template uint32_t AdaptedTypedefFields::serializedSizeZC<>(apache::thrift::CompactProtocolWriter const*) const;
 
 
+template <class Protocol_>
+void StringAdaptedUnion::readNoXfer(Protocol_* iprot) {
+  apache::thrift::detail::ProtocolReaderStructReadState<Protocol_> _readState;
+  _readState.fieldId = 0;
+
+  _readState.readStructBegin(iprot);
+
+  _readState.readFieldBegin(iprot);
+  if (_readState.atStop()) {
+    apache::thrift::clear(*this);
+  } else {
+    if (iprot->kUsesFieldNames()) {
+      _readState.template fillFieldTraitsFromName<apache::thrift::detail::TccStructTraits<StringAdaptedUnion>>();
+    }
+    switch (_readState.fieldId) {
+      case 1:
+      {
+        if (_readState.isCompatibleWithType(iprot, apache::thrift::protocol::TType::T_STRING)) {
+          this->string_field_ref().emplace();
+          ::apache::thrift::op::decode<::apache::thrift::type::adapted<::apache::thrift::StringTypeAdapter<folly::fbstring>, ::apache::thrift::type::string_t>>(*iprot, value_.string_field);
+        } else {
+          _readState.skip(iprot);
+        }
+        break;
+      }
+      case 2:
+      {
+        if (_readState.isCompatibleWithType(iprot, apache::thrift::protocol::TType::T_STRING)) {
+          this->binary_field_ref().emplace();
+          ::apache::thrift::op::decode<::apache::thrift::type::adapted<::apache::thrift::StringTypeAdapter<folly::fbstring>, ::apache::thrift::type::binary_t>>(*iprot, value_.binary_field);
+        } else {
+          _readState.skip(iprot);
+        }
+        break;
+      }
+      default:
+      {
+        _readState.skip(iprot);
+        break;
+      }
+    }
+    _readState.readFieldEnd(iprot);
+    _readState.readFieldBegin(iprot);
+    if (UNLIKELY(!_readState.atStop())) {
+      using apache::thrift::protocol::TProtocolException;
+      TProtocolException::throwUnionMissingStop();
+    }
+  }
+  _readState.readStructEnd(iprot);
+}
+template <class Protocol_>
+uint32_t StringAdaptedUnion::serializedSize(Protocol_ const* prot_) const {
+  uint32_t xfer = 0;
+  xfer += prot_->serializedStructSize("StringAdaptedUnion");
+  switch(this->getType()) {
+    case StringAdaptedUnion::Type::string_field:
+    {
+      xfer += prot_->serializedFieldSize("string_field", apache::thrift::protocol::TType::T_STRING, 1);
+      xfer += ::apache::thrift::op::serialized_size<false, ::apache::thrift::type::adapted<::apache::thrift::StringTypeAdapter<folly::fbstring>, ::apache::thrift::type::string_t>>(*prot_, value_.string_field);
+      break;
+    }
+    case StringAdaptedUnion::Type::binary_field:
+    {
+      xfer += prot_->serializedFieldSize("binary_field", apache::thrift::protocol::TType::T_STRING, 2);
+      xfer += ::apache::thrift::op::serialized_size<false, ::apache::thrift::type::adapted<::apache::thrift::StringTypeAdapter<folly::fbstring>, ::apache::thrift::type::binary_t>>(*prot_, value_.binary_field);
+      break;
+    }
+    case StringAdaptedUnion::Type::__EMPTY__:
+      break;
+    default:
+      break;
+  }
+  xfer += prot_->serializedSizeStop();
+  return xfer;
+}
+
+template <class Protocol_>
+uint32_t StringAdaptedUnion::serializedSizeZC(Protocol_ const* prot_) const {
+  uint32_t xfer = 0;
+  xfer += prot_->serializedStructSize("StringAdaptedUnion");
+  switch(this->getType()) {
+    case StringAdaptedUnion::Type::string_field:
+    {
+      xfer += prot_->serializedFieldSize("string_field", apache::thrift::protocol::TType::T_STRING, 1);
+      xfer += ::apache::thrift::op::serialized_size<false, ::apache::thrift::type::adapted<::apache::thrift::StringTypeAdapter<folly::fbstring>, ::apache::thrift::type::string_t>>(*prot_, value_.string_field);
+      break;
+    }
+    case StringAdaptedUnion::Type::binary_field:
+    {
+      xfer += prot_->serializedFieldSize("binary_field", apache::thrift::protocol::TType::T_STRING, 2);
+      xfer += ::apache::thrift::op::serialized_size<true, ::apache::thrift::type::adapted<::apache::thrift::StringTypeAdapter<folly::fbstring>, ::apache::thrift::type::binary_t>>(*prot_, value_.binary_field);
+      break;
+    }
+    case StringAdaptedUnion::Type::__EMPTY__:;
+      break;
+    default:
+      break;
+  }
+  xfer += prot_->serializedSizeStop();
+  return xfer;
+}
+
+template <class Protocol_>
+uint32_t StringAdaptedUnion::write(Protocol_* prot_) const {
+  uint32_t xfer = 0;
+  xfer += prot_->writeStructBegin("StringAdaptedUnion");
+  switch(this->getType()) {
+    case StringAdaptedUnion::Type::string_field:
+    {
+      constexpr int16_t kPrevFieldId = 0;
+      xfer += ::apache::thrift::detail::writeFieldBegin<apache::thrift::protocol::TType::T_STRING, 1, kPrevFieldId>(*prot_, "string_field", false);
+      xfer += ::apache::thrift::op::encode<::apache::thrift::type::adapted<::apache::thrift::StringTypeAdapter<folly::fbstring>, ::apache::thrift::type::string_t>>(*prot_, value_.string_field);
+      xfer += prot_->writeFieldEnd();
+      break;
+    }
+    case StringAdaptedUnion::Type::binary_field:
+    {
+      constexpr int16_t kPrevFieldId = 1;
+      xfer += ::apache::thrift::detail::writeFieldBegin<apache::thrift::protocol::TType::T_STRING, 2, kPrevFieldId>(*prot_, "binary_field", false);
+      xfer += ::apache::thrift::op::encode<::apache::thrift::type::adapted<::apache::thrift::StringTypeAdapter<folly::fbstring>, ::apache::thrift::type::binary_t>>(*prot_, value_.binary_field);
+      xfer += prot_->writeFieldEnd();
+      break;
+    }
+    case StringAdaptedUnion::Type::__EMPTY__:;
+      break;
+    default:
+      break;
+  }
+  xfer += prot_->writeFieldStop();
+  xfer += prot_->writeStructEnd();
+  return xfer;
+}
+
+extern template void StringAdaptedUnion::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
+extern template uint32_t StringAdaptedUnion::write<>(apache::thrift::BinaryProtocolWriter*) const;
+extern template uint32_t StringAdaptedUnion::serializedSize<>(apache::thrift::BinaryProtocolWriter const*) const;
+extern template uint32_t StringAdaptedUnion::serializedSizeZC<>(apache::thrift::BinaryProtocolWriter const*) const;
+extern template void StringAdaptedUnion::readNoXfer<>(apache::thrift::CompactProtocolReader*);
+extern template uint32_t StringAdaptedUnion::write<>(apache::thrift::CompactProtocolWriter*) const;
+extern template uint32_t StringAdaptedUnion::serializedSize<>(apache::thrift::CompactProtocolWriter const*) const;
+extern template uint32_t StringAdaptedUnion::serializedSizeZC<>(apache::thrift::CompactProtocolWriter const*) const;
+
+
 } // namespace py3::simple

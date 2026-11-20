@@ -311,6 +311,10 @@ cdef extern from * nogil:
         bint empty()
 
 cdef extern from *:
+    ctypedef string _py3_simple_StringAdaptedString "::py3::simple::StringAdaptedString"
+cdef extern from *:
+    ctypedef bstring _py3_simple_StringAdaptedBinary "::py3::simple::StringAdaptedBinary"
+cdef extern from *:
     ctypedef cbool _MyType "::MyType"
 cdef extern from *:
     ctypedef cint64_t _MyType "::MyType"
@@ -500,6 +504,26 @@ cdef extern from "thrift/compiler/test/fixtures/py3/gen-cpp2/module_types_custom
         __field_ref[_py3_simple_AdaptedSet] set_field_ref "set_field_ref" ()
         __field_ref[_py3_simple_AdaptedMap] map_field_ref "map_field_ref" ()
         __field_ref[cSimpleStruct] struct_field_ref "struct_field_ref" ()
+
+    cdef enum class cStringAdaptedUnion__type "::py3::simple::StringAdaptedUnion::Type":
+        __EMPTY__,
+        string_field,
+        binary_field,
+
+    cdef cppclass cStringAdaptedUnion "::py3::simple::StringAdaptedUnion":
+        cStringAdaptedUnion() except +
+        cStringAdaptedUnion(const cStringAdaptedUnion&) except +
+        bint operator==(cStringAdaptedUnion&)
+        bint operator!=(cStringAdaptedUnion&)
+        bint operator<(cStringAdaptedUnion&)
+        bint operator>(cStringAdaptedUnion&)
+        bint operator<=(cStringAdaptedUnion&)
+        bint operator>=(cStringAdaptedUnion&)
+        cStringAdaptedUnion__type getType() const
+        const _py3_simple_StringAdaptedString& get_string_field "get_string_field" () const
+        _py3_simple_StringAdaptedString& set_string_field "set_string_field" (const _py3_simple_StringAdaptedString&)
+        const _py3_simple_StringAdaptedBinary& get_binary_field "get_binary_field" () const
+        _py3_simple_StringAdaptedBinary& set_binary_field "set_binary_field" (const _py3_simple_StringAdaptedBinary&)
 
 cdef extern from "thrift/compiler/test/fixtures/py3/gen-cpp2/module_constants.h" namespace "::py3::simple":
     cdef cbool cA_BOOL "::py3::simple::module_constants::A_BOOL"

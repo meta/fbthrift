@@ -388,5 +388,15 @@ inline const std::unordered_map<std::string_view, std::string_view>& PyStructTra
   };
   return *map;
 }
+
+template<>
+inline const std::unordered_map<std::string_view, std::string_view>& PyStructTraits<
+    ::py3::simple::StringAdaptedUnion>::namesmap() {
+  static const folly::Indestructible<NamesMap> map {
+    {
+    }
+  };
+  return *map;
+}
 } // namespace py3
 } // namespace thrift
