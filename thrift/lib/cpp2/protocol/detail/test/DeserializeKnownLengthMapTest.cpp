@@ -40,6 +40,23 @@ using TrackedValue = folly::test::Tracked<1>;
 using TransparentTrackedKeyHash = folly::test::TransparentTrackedHash<0>;
 using TransparentTrackedKeyEqual = folly::test::TransparentTrackedEqual<0>;
 
+const folly::test::Counts kDefaultOnly{/* copyConstruct */ 0,
+                                       /* moveConstruct */ 0,
+                                       /* copyConvert */ 0,
+                                       /* moveConvert */ 0,
+                                       /* copyAssign */ 0,
+                                       /* moveAssign */ 0,
+                                       /* defaultConstruct */ 1,
+                                       /* destroyed */ 0};
+const folly::test::Counts kDefaultThenMoved{/* copyConstruct */ 0,
+                                            /* moveConstruct */ 1,
+                                            /* copyConvert */ 0,
+                                            /* moveConvert */ 0,
+                                            /* copyAssign */ 0,
+                                            /* moveAssign */ 0,
+                                            /* defaultConstruct */ 1,
+                                            /* destroyed */ 1};
+
 class DeserializeKnownLengthMapTest : public testing::Test {
  public:
   void SetUp() override { folly::test::resetTracking(); }
@@ -136,26 +153,8 @@ TEST_F(DeserializeKnownLengthMapTest, SortedUniqueConstuctCount) {
       map, 1, deserializeTrackedKey, deserializeTrackedValue);
 
   EXPECT_EQ(map.size(), 1);
-  EXPECT_EQ(
-      TrackedKey::counts(),
-      (folly::test::Counts{/* copyConstruct */ 0,
-                           /* moveConstruct */ 0,
-                           /* copyConvert */ 0,
-                           /* moveConvert */ 0,
-                           /* copyAssign */ 0,
-                           /* moveAssign */ 0,
-                           /* defaultConstruct */ 1,
-                           /* destroyed */ 0}));
-  EXPECT_EQ(
-      TrackedValue::counts(),
-      (folly::test::Counts{/* copyConstruct */ 0,
-                           /* moveConstruct */ 0,
-                           /* copyConvert */ 0,
-                           /* moveConvert */ 0,
-                           /* copyAssign */ 0,
-                           /* moveAssign */ 0,
-                           /* defaultConstruct */ 1,
-                           /* destroyed */ 0}));
+  EXPECT_EQ(TrackedKey::counts(), kDefaultOnly);
+  EXPECT_EQ(TrackedValue::counts(), kDefaultOnly);
 }
 
 TEST_F(DeserializeKnownLengthMapTest, EmplaceHintConstuctCount) {
@@ -170,26 +169,8 @@ TEST_F(DeserializeKnownLengthMapTest, EmplaceHintConstuctCount) {
       map, 1, deserializeTrackedKey, deserializeTrackedValue);
 
   EXPECT_EQ(map.size(), 1);
-  EXPECT_EQ(
-      TrackedKey::counts(),
-      (folly::test::Counts{/* copyConstruct */ 0,
-                           /* moveConstruct */ 1,
-                           /* copyConvert */ 0,
-                           /* moveConvert */ 0,
-                           /* copyAssign */ 0,
-                           /* moveAssign */ 0,
-                           /* defaultConstruct */ 1,
-                           /* destroyed */ 1}));
-  EXPECT_EQ(
-      TrackedValue::counts(),
-      (folly::test::Counts{/* copyConstruct */ 0,
-                           /* moveConstruct */ 0,
-                           /* copyConvert */ 0,
-                           /* moveConvert */ 0,
-                           /* copyAssign */ 0,
-                           /* moveAssign */ 0,
-                           /* defaultConstruct */ 1,
-                           /* destroyed */ 0}));
+  EXPECT_EQ(TrackedKey::counts(), kDefaultThenMoved);
+  EXPECT_EQ(TrackedValue::counts(), kDefaultOnly);
 }
 
 TEST_F(DeserializeKnownLengthMapTest, EmplaceHintConstuctCountVec) {
@@ -205,26 +186,8 @@ TEST_F(DeserializeKnownLengthMapTest, EmplaceHintConstuctCountVec) {
       map, 1, deserializeTrackedKey, deserializeVecOfTrackedValues<Vec>);
 
   EXPECT_EQ(map.size(), 1);
-  EXPECT_EQ(
-      TrackedKey::counts(),
-      (folly::test::Counts{/* copyConstruct */ 0,
-                           /* moveConstruct */ 1,
-                           /* copyConvert */ 0,
-                           /* moveConvert */ 0,
-                           /* copyAssign */ 0,
-                           /* moveAssign */ 0,
-                           /* defaultConstruct */ 1,
-                           /* destroyed */ 1}));
-  EXPECT_EQ(
-      TrackedValue::counts(),
-      (folly::test::Counts{/* copyConstruct */ 0,
-                           /* moveConstruct */ 0,
-                           /* copyConvert */ 0,
-                           /* moveConvert */ 0,
-                           /* copyAssign */ 0,
-                           /* moveAssign */ 0,
-                           /* defaultConstruct */ 1,
-                           /* destroyed */ 0}));
+  EXPECT_EQ(TrackedKey::counts(), kDefaultThenMoved);
+  EXPECT_EQ(TrackedValue::counts(), kDefaultOnly);
 }
 
 TEST_F(
@@ -248,26 +211,8 @@ TEST_F(
       map, 1, deserializeTrackedKey, deserializeTrackedValue);
 
   EXPECT_EQ(map.size(), 1);
-  EXPECT_EQ(
-      TrackedKey::counts(),
-      (folly::test::Counts{/* copyConstruct */ 0,
-                           /* moveConstruct */ 1,
-                           /* copyConvert */ 0,
-                           /* moveConvert */ 0,
-                           /* copyAssign */ 0,
-                           /* moveAssign */ 0,
-                           /* defaultConstruct */ 1,
-                           /* destroyed */ 1}));
-  EXPECT_EQ(
-      TrackedValue::counts(),
-      (folly::test::Counts{/* copyConstruct */ 0,
-                           /* moveConstruct */ 0,
-                           /* copyConvert */ 0,
-                           /* moveConvert */ 0,
-                           /* copyAssign */ 0,
-                           /* moveAssign */ 0,
-                           /* defaultConstruct */ 1,
-                           /* destroyed */ 0}));
+  EXPECT_EQ(TrackedKey::counts(), kDefaultThenMoved);
+  EXPECT_EQ(TrackedValue::counts(), kDefaultOnly);
 }
 
 TEST_F(DeserializeKnownLengthMapTest, EmplaceConstuctCount) {
@@ -288,26 +233,8 @@ TEST_F(DeserializeKnownLengthMapTest, EmplaceConstuctCount) {
       map, 1, deserializeTrackedKey, deserializeTrackedValue);
 
   EXPECT_EQ(map.size(), 1);
-  EXPECT_EQ(
-      TrackedKey::counts(),
-      (folly::test::Counts{/* copyConstruct */ 0,
-                           /* moveConstruct */ 1,
-                           /* copyConvert */ 0,
-                           /* moveConvert */ 0,
-                           /* copyAssign */ 0,
-                           /* moveAssign */ 0,
-                           /* defaultConstruct */ 1,
-                           /* destroyed */ 1}));
-  EXPECT_EQ(
-      TrackedValue::counts(),
-      (folly::test::Counts{/* copyConstruct */ 0,
-                           /* moveConstruct */ 0,
-                           /* copyConvert */ 0,
-                           /* moveConvert */ 0,
-                           /* copyAssign */ 0,
-                           /* moveAssign */ 0,
-                           /* defaultConstruct */ 1,
-                           /* destroyed */ 0}));
+  EXPECT_EQ(TrackedKey::counts(), kDefaultThenMoved);
+  EXPECT_EQ(TrackedValue::counts(), kDefaultOnly);
 }
 
 TEST_F(DeserializeKnownLengthMapTest, EmplaceConstuctCountVec) {
@@ -329,26 +256,8 @@ TEST_F(DeserializeKnownLengthMapTest, EmplaceConstuctCountVec) {
       map, 1, deserializeTrackedKey, deserializeVecOfTrackedValues<Vec>);
 
   EXPECT_EQ(map.size(), 1);
-  EXPECT_EQ(
-      TrackedKey::counts(),
-      (folly::test::Counts{/* copyConstruct */ 0,
-                           /* moveConstruct */ 1,
-                           /* copyConvert */ 0,
-                           /* moveConvert */ 0,
-                           /* copyAssign */ 0,
-                           /* moveAssign */ 0,
-                           /* defaultConstruct */ 1,
-                           /* destroyed */ 1}));
-  EXPECT_EQ(
-      TrackedValue::counts(),
-      (folly::test::Counts{/* copyConstruct */ 0,
-                           /* moveConstruct */ 0,
-                           /* copyConvert */ 0,
-                           /* moveConvert */ 0,
-                           /* copyAssign */ 0,
-                           /* moveAssign */ 0,
-                           /* defaultConstruct */ 1,
-                           /* destroyed */ 0}));
+  EXPECT_EQ(TrackedKey::counts(), kDefaultThenMoved);
+  EXPECT_EQ(TrackedValue::counts(), kDefaultOnly);
 }
 
 #if FOLLY_HAS_MEMORY_RESOURCE
@@ -368,26 +277,8 @@ TEST_F(DeserializeKnownLengthMapTest, EmplaceHintConstuctCountVecAlloc) {
       deserializeTrackedKey,
       deserializeVecOfTrackedValues<std::pmr::vector<TrackedValue>>);
   EXPECT_EQ(map.size(), 1);
-  EXPECT_EQ(
-      TrackedKey::counts(),
-      (folly::test::Counts{/* copyConstruct */ 0,
-                           /* moveConstruct */ 1,
-                           /* copyConvert */ 0,
-                           /* moveConvert */ 0,
-                           /* copyAssign */ 0,
-                           /* moveAssign */ 0,
-                           /* defaultConstruct */ 1,
-                           /* destroyed */ 1}));
-  EXPECT_EQ(
-      TrackedValue::counts(),
-      (folly::test::Counts{/* copyConstruct */ 0,
-                           /* moveConstruct */ 0,
-                           /* copyConvert */ 0,
-                           /* moveConvert */ 0,
-                           /* copyAssign */ 0,
-                           /* moveAssign */ 0,
-                           /* defaultConstruct */ 1,
-                           /* destroyed */ 0}));
+  EXPECT_EQ(TrackedKey::counts(), kDefaultThenMoved);
+  EXPECT_EQ(TrackedValue::counts(), kDefaultOnly);
 }
 
 TEST_F(DeserializeKnownLengthMapTest, SortedUniqueConstuctCountVecAlloc) {
@@ -406,26 +297,8 @@ TEST_F(DeserializeKnownLengthMapTest, SortedUniqueConstuctCountVecAlloc) {
       deserializeVecOfTrackedValues<std::pmr::vector<TrackedValue>>);
   ASSERT_EQ(map.size(), 1);
   EXPECT_EQ(map.begin()->second.get_allocator().resource(), &resource);
-  EXPECT_EQ(
-      TrackedKey::counts(),
-      (folly::test::Counts{/* copyConstruct */ 0,
-                           /* moveConstruct */ 0,
-                           /* copyConvert */ 0,
-                           /* moveConvert */ 0,
-                           /* copyAssign */ 0,
-                           /* moveAssign */ 0,
-                           /* defaultConstruct */ 1,
-                           /* destroyed */ 0}));
-  EXPECT_EQ(
-      TrackedValue::counts(),
-      (folly::test::Counts{/* copyConstruct */ 0,
-                           /* moveConstruct */ 0,
-                           /* copyConvert */ 0,
-                           /* moveConvert */ 0,
-                           /* copyAssign */ 0,
-                           /* moveAssign */ 0,
-                           /* defaultConstruct */ 1,
-                           /* destroyed */ 0}));
+  EXPECT_EQ(TrackedKey::counts(), kDefaultOnly);
+  EXPECT_EQ(TrackedValue::counts(), kDefaultOnly);
 }
 
 TEST_F(DeserializeKnownLengthMapTest, EmplaceConstuctCountVecAlloc) {
@@ -448,26 +321,8 @@ TEST_F(DeserializeKnownLengthMapTest, EmplaceConstuctCountVecAlloc) {
       map, 1, deserializeTrackedKey, deserializeVecOfTrackedValues<Vec>);
 
   EXPECT_EQ(map.size(), 1);
-  EXPECT_EQ(
-      TrackedKey::counts(),
-      (folly::test::Counts{/* copyConstruct */ 0,
-                           /* moveConstruct */ 1,
-                           /* copyConvert */ 0,
-                           /* moveConvert */ 0,
-                           /* copyAssign */ 0,
-                           /* moveAssign */ 0,
-                           /* defaultConstruct */ 1,
-                           /* destroyed */ 1}));
-  EXPECT_EQ(
-      TrackedValue::counts(),
-      (folly::test::Counts{/* copyConstruct */ 0,
-                           /* moveConstruct */ 0,
-                           /* copyConvert */ 0,
-                           /* moveConvert */ 0,
-                           /* copyAssign */ 0,
-                           /* moveAssign */ 0,
-                           /* defaultConstruct */ 1,
-                           /* destroyed */ 0}));
+  EXPECT_EQ(TrackedKey::counts(), kDefaultThenMoved);
+  EXPECT_EQ(TrackedValue::counts(), kDefaultOnly);
 }
 
 class CountingResource : public std::pmr::memory_resource {
