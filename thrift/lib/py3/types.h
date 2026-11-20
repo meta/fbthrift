@@ -19,6 +19,7 @@
 #include <memory>
 #include <string_view>
 #include <unordered_map>
+#include <utility>
 
 #include <Python.h>
 #include <glog/logging.h>
@@ -196,6 +197,25 @@ void assign_shared_const_ptr(
 template <typename T, typename U>
 T* get_union_field_value(apache::thrift::union_field_ref<U&> ref) {
   return &ref.value();
+}
+
+// Accessors of the active member of a union for the generated Cython code.
+// Cython passes the field type it declared as `T`, which for an adapted field
+// is the Thrift type rather than the adapted type, so `T` is unused and the
+// field ref's type is deduced.
+
+// The storage of the active union field: for a `cpp.ref` field, the pointer,
+// which can be null.
+template <typename T, typename FieldRef>
+const auto& get_union_field_storage(FieldRef ref) {
+  return std::as_const(apache::thrift::detail::union_field_storage(ref));
+}
+
+// The value of the active union field, as a const reference: an overload or
+// specialization for `const T&`, e.g. of `std::make_shared`, must still match.
+template <typename T, typename FieldRef>
+const auto& get_union_field_cref(FieldRef ref) {
+  return std::as_const(ref.value());
 }
 
 template <typename T>

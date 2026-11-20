@@ -20,6 +20,7 @@
 #include <folly/container/F14Map-fwd.h>
 #include <folly/container/F14Set-fwd.h>
 #include <folly/json/dynamic.h>
+#include <thrift/lib/cpp2/FieldRef.h>
 #include <thrift/lib/cpp2/Thrift.h>
 #include <thrift/lib/cpp2/protocol/Cpp2Ops.h>
 #include <thrift/lib/cpp2/type/detail/Wrap.h>
@@ -206,7 +207,8 @@ class ValueWrapper : public ::apache::thrift::type::detail::Wrap<Base> {
 
 #define FBTHRIFT_THRIFT_DEPRECATED_METHOD_FROM_TYPE(TYPE)                      \
   [[deprecated("Prefer as_XYZ()")]] decltype(auto) get_##TYPE##Value() const { \
-    return toThrift().get_##TYPE##Value();                                     \
+    return ::apache::thrift::detail::union_field_storage(                      \
+        toThrift().TYPE##Value());                                             \
   }                                                                            \
   [[deprecated("Prefer as_XYZ()")]] decltype(auto) TYPE##Value_ref() {         \
     return toThrift().TYPE##Value_ref();                                       \

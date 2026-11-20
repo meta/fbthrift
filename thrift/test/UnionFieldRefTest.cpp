@@ -377,17 +377,22 @@ TEST(UnionFieldTest, TreeNode) {
 TEST(UnionFieldTest, CppRef) {
   CppRef s;
 
-  static_assert(std::is_same_v<
-                std::remove_cvref_t<decltype(s.get_cppref())>,
-                std::unique_ptr<CppRef>>);
+  static_assert(
+      std::is_same_v<
+          decltype(detail::union_field_storage(std::as_const(s).cppref())),
+          const std::unique_ptr<CppRef>&>);
 
   static_assert(std::is_same_v<
-                std::remove_cvref_t<decltype(s.get_shared_mutable())>,
-                std::shared_ptr<CppRef>>);
+                decltype(detail::union_field_storage(s.shared_mutable())),
+                std::shared_ptr<CppRef>&>);
 
   static_assert(std::is_same_v<
-                std::remove_cvref_t<decltype(s.get_shared_const())>,
-                std::shared_ptr<const std::string>>);
+                decltype(detail::union_field_storage(s.shared_const())),
+                std::shared_ptr<const std::string>&>);
+
+  static_assert(std::is_same_v<
+                decltype(detail::union_field_storage(s.str())),
+                std::string&>);
 
   s.str() = "foo";
 
@@ -433,6 +438,22 @@ TEST(UnionFieldTest, CppRefEmplaceStorage) {
   EXPECT_FALSE(storage);
   EXPECT_EQ(value.shared_const().operator->(), storedValue);
   EXPECT_EQ(value.shared_const(), "shared_const");
+}
+
+TEST(UnionFieldTest, CppRefFieldStorage) {
+  CppRef s;
+  EXPECT_THROW(detail::union_field_storage(s.cppref()), bad_union_field_access);
+
+  s.cppref().emplace().str() = "ref";
+  EXPECT_EQ(
+      detail::union_field_storage(std::as_const(s).cppref()).get(),
+      &*s.cppref());
+  EXPECT_THROW(
+      detail::union_field_storage(s.shared_mutable()), bad_union_field_access);
+
+  detail::union_emplace_storage(s.cppref(), std::unique_ptr<CppRef>());
+  EXPECT_EQ(s.getType(), CppRef::Type::cppref);
+  EXPECT_EQ(detail::union_field_storage(s.cppref()), nullptr);
 }
 
 TEST(UnionFieldTest, CppRefCopyAndMove) {
@@ -537,22 +558,23 @@ TEST(UnionFieldTest, NullCppRefCopyAndMove) {
   CppRef s;
   s.set_cppref(std::unique_ptr<CppRef>());
   CppRef copy = s;
-  EXPECT_EQ(copy.get_cppref(), nullptr);
+  EXPECT_EQ(detail::union_field_storage(copy.cppref()), nullptr);
   CppRef moved = std::move(copy);
-  EXPECT_EQ(moved.get_cppref(), nullptr);
+  EXPECT_EQ(detail::union_field_storage(moved.cppref()), nullptr);
 }
 
 TEST(UnionFieldTest, SharedCppRefCopyAndMove) {
   CppRef s;
   s.shared_mutable().emplace().str() = "shared";
-  std::shared_ptr<CppRef> shared = s.get_shared_mutable();
+  std::shared_ptr<CppRef> shared =
+      detail::union_field_storage(s.shared_mutable());
 
   CppRef copy = s;
-  EXPECT_NE(copy.get_shared_mutable(), shared);
+  EXPECT_NE(detail::union_field_storage(copy.shared_mutable()), shared);
   EXPECT_EQ(copy.shared_mutable()->str(), "shared");
 
   CppRef moved = std::move(s);
-  EXPECT_EQ(moved.get_shared_mutable(), shared);
+  EXPECT_EQ(detail::union_field_storage(moved.shared_mutable()), shared);
   EXPECT_EQ(shared->str(), "shared");
 }
 
@@ -587,15 +609,15 @@ TEST(UnionFieldTest, NullIOBufPtrCopyAndMove) {
   s.set_buf(std::unique_ptr<folly::IOBuf>());
   IOBufPtr copy = s;
   EXPECT_EQ(copy.getType(), IOBufPtr::Type::buf);
-  EXPECT_EQ(copy.get_buf(), nullptr);
+  EXPECT_EQ(detail::union_field_storage(copy.buf()), nullptr);
   IOBufPtr moved = std::move(copy);
   EXPECT_EQ(moved.getType(), IOBufPtr::Type::buf);
-  EXPECT_EQ(moved.get_buf(), nullptr);
+  EXPECT_EQ(detail::union_field_storage(moved.buf()), nullptr);
 
   copy = s;
-  EXPECT_EQ(copy.get_buf(), nullptr);
+  EXPECT_EQ(detail::union_field_storage(copy.buf()), nullptr);
   moved = std::move(copy);
-  EXPECT_EQ(moved.get_buf(), nullptr);
+  EXPECT_EQ(detail::union_field_storage(moved.buf()), nullptr);
 }
 
 TEST(UnionFieldTest, CppMethods) {

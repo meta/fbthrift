@@ -61,6 +61,7 @@ struct alias_isset_fn;
 struct move_to_unique_ptr_fn;
 struct assign_from_unique_ptr_fn;
 struct union_value_unsafe_fn;
+struct union_field_storage_fn;
 struct union_emplace_storage_fn;
 struct is_non_optional_field_set_manually_or_by_serializer_fn;
 
@@ -1726,6 +1727,7 @@ class union_field_ref {
   static_assert(std::is_reference_v<T>, "not a reference");
 
   friend struct detail::union_value_unsafe_fn;
+  friend struct detail::union_field_storage_fn;
   friend struct detail::union_emplace_storage_fn;
   friend struct detail::move_to_unique_ptr_fn;
 
@@ -2029,6 +2031,19 @@ struct union_value_unsafe_fn {
         ref.get_value());
   }
 };
+
+// Returns the storage of the active field. For a `cpp.ref`, `@thrift.Box` or
+// `std::unique_ptr` field that is the pointer, which can be null, rather than
+// the pointee `value()` returns. Throws bad_field_access if the field isn't
+// active.
+struct union_field_storage_fn {
+  template <typename T, typename A>
+  T operator()(union_field_ref<T, A> ref) const {
+    ref.throw_if_unset();
+    return static_cast<T>(ref.storage_value_);
+  }
+};
+inline constexpr union_field_storage_fn union_field_storage{};
 
 // Makes `ref` the active field holding `value`. Unlike `ref.emplace(value)`,
 // a null pointer is kept, as setters keep it. For union copies and moves.

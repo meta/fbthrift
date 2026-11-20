@@ -51,7 +51,7 @@ TEST(FatalVariant, VariantTryGet) {
     EXPECT_EQ(value, *apache::thrift::variant_try_get<TYPE>(c));        \
     ASSERT_EQ(union1::Type::FIELD, u.getType());                        \
     EXPECT_EQ(                                                          \
-        std::addressof(c.get_##FIELD()),                                \
+        std::addressof(c.FIELD().value()),                              \
         apache::thrift::variant_try_get<TYPE>(c));                      \
     ASSERT_EQ(union1::Type::FIELD, u.getType());                        \
     static_assert(std::is_same_v<                                       \
@@ -98,7 +98,7 @@ TEST(FatalVariant, VariantSet) {
     apache::thrift::variant_set(u, __VA_ARGS__(value));                     \
                                                                             \
     ASSERT_EQ(union1::Type::FIELD, u.getType());                            \
-    EXPECT_EQ(expected, u.get_##FIELD());                                   \
+    EXPECT_EQ(expected, u.FIELD().value());                                 \
     static_assert(                                                          \
         std::is_same_v<                                                     \
             void,                                                           \
