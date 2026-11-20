@@ -2613,7 +2613,6 @@ ast_validator standard_validator() {
   validator.add_function_param_visitor(
       &detail::validate_annotation_scopes<
           detail::scope_check_type::function_parameter>);
-  validator.add_function_param_visitor(&validate_cpp_type_annotation<t_field>);
   validator.add_function_param_visitor(&validate_field_id_value);
 
   validator.add_typedef_visitor(&validate_cpp_type_annotation<t_typedef>);

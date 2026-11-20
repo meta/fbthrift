@@ -3857,6 +3857,25 @@ TEST(CompilerTest, cpp_type_on_adapted_typedef) {
   )");
 }
 
+TEST(CompilerTest, cpp_type_on_parameter) {
+  check_compile(R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+
+    @cpp.Type{template = "std::deque"}
+    typedef list<string> Deque
+
+    service Svc {
+      void process(
+        @cpp.Type{template = "std::deque"}
+          # expected-error@-1: `Type` cannot annotate `names`
+        1: list<string> names,
+        2: Deque deque,
+      );
+    }
+  )");
+}
+
 TEST(CompilerTest, cpp_arena_struct_level) {
   check_compile(R"(
     package "facebook.com/thrift/test"
