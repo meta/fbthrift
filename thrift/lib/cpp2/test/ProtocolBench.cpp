@@ -101,6 +101,51 @@ struct Json5OnSimpleJSONSerializer {
   }
 };
 
+// Writes the way RPC writes a request (RequestChannel) or a response
+// (GeneratedAsyncProcessorBase::serializeResponseImpl): size the struct, then
+// write it into one buffer of that size plus transport headroom. Reads with
+// Base, from bytes laid out by receive() the way RPC receives them.
+template <class Base>
+struct RpcSerializer : Base {
+  template <class T>
+  static void serialize(const T& obj, folly::IOBufQueue* out) {
+    GetWriter<Base> writer;
+    const size_t size = Cpp2Ops<T>::serializedSizeZC(&writer, &obj);
+    constexpr size_t kHeadroomBytes = 128;
+    auto buf = folly::IOBuf::create(kHeadroomBytes + size);
+    buf->advance(kHeadroomBytes);
+    out->append(std::move(buf));
+    writer.setOutput(out, size);
+    Cpp2Ops<T>::write(&writer, &obj);
+  }
+
+  // RPC's default rocket frame parser (FrameLengthParserStrategy) reads the
+  // first 4 KB of a frame before it knows the frame's length, then reads the
+  // rest into one buffer sized for it, and nothing coalesces the two before
+  // the payload is deserialized. That first read also holds the frame and
+  // metadata headers, so a bit less than 4 KB of it is payload.
+  static std::unique_ptr<folly::IOBuf> receive(
+      std::unique_ptr<folly::IOBuf> message) {
+    constexpr size_t kFirstReadPayloadBytes = 4000;
+    const folly::ByteRange bytes = message->coalesce();
+    if (bytes.size() <= kFirstReadPayloadBytes) {
+      return message;
+    }
+    auto received =
+        folly::IOBuf::copyBuffer(bytes.subpiece(0, kFirstReadPayloadBytes));
+    received->appendToChain(
+        folly::IOBuf::copyBuffer(bytes.subpiece(kFirstReadPayloadBytes)));
+    return received;
+  }
+};
+using RpcBinarySerializer = RpcSerializer<BinarySerializer>;
+using RpcCompactSerializer = RpcSerializer<CompactSerializer>;
+
+template <class>
+constexpr bool kIsRpcSerializer = false;
+template <class Base>
+constexpr bool kIsRpcSerializer<RpcSerializer<Base>> = true;
+
 enum class SerializerMethod {
   Codegen,
   Object,
@@ -130,6 +175,11 @@ void writeBench(size_t iters) {
     if constexpr (kSerializerMethod == SerializerMethod::Object) {
       protocol::serializeObject<GetWriter<Serializer>>(obj, q);
       folly::doNotOptimizeAway(q);
+    } else if constexpr (kIsRpcSerializer<Serializer>) {
+      // RPC frees the buffer once the message is sent.
+      folly::IOBufQueue rpcQueue(folly::IOBufQueue::cacheChainLength());
+      Serializer::serialize(strct, &rpcQueue);
+      folly::doNotOptimizeAway(rpcQueue);
     } else {
       Serializer::serialize(strct, &q);
       folly::doNotOptimizeAway(q);
@@ -155,8 +205,12 @@ void readBench(size_t iters) {
   folly::IOBufQueue q;
   Serializer::serialize(strct, &q);
   auto buf = q.move();
-  // coalesce the IOBuf chain to test fast path
-  buf->coalesce();
+  if constexpr (kIsRpcSerializer<Serializer>) {
+    buf = Serializer::receive(std::move(buf));
+  } else {
+    // coalesce the IOBuf chain to test fast path
+    buf->coalesce();
+  }
 
   susp.dismiss();
   while (iters--) {
@@ -280,6 +334,10 @@ X(Object, Binary)
 X(Object, Compact)
 OpEncodeX(OpEncode, Binary)
 OpEncodeX(OpEncode, Compact)
+X(, RpcBinary)
+X(, RpcCompact)
+OpEncodeX(OpEncode, RpcBinary)
+OpEncodeX(OpEncode, RpcCompact)
 
 int main(int argc, char** argv) {
   folly::Init init(&argc, &argv);
