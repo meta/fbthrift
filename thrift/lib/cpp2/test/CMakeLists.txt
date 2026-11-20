@@ -30,6 +30,20 @@ target_link_libraries(
 
 thrift_install_targets(thrift_ProtocolBench)
 
+add_executable(thrift_FieldNameCacheBench FieldNameCacheBench.cpp)
+thrift_generate(thrift_FieldNameCacheBench FieldNameCacheBench.thrift
+                LANGUAGE cpp2)
+thrift_generate(thrift_FieldNameCacheBench ProtocolBenchData.thrift LANGUAGE cpp2
+                OPTIONS frozen2)
+foreach (conf_name "protocol" "type" "any" "serialization" "patch_data"
+                   "conformance")
+  thrift_generate(thrift_FieldNameCacheBench
+                  ../../../conformance/if/${conf_name}.thrift LANGUAGE cpp2)
+endforeach ()
+target_link_libraries(
+  thrift_FieldNameCacheBench PRIVATE thrift_frozen thrift_protocol thrift_type
+                                    Folly::folly Folly::follybenchmark)
+
 add_executable(
   thrift_FieldMaskBenchmark
   FieldMaskBenchmark.cpp
