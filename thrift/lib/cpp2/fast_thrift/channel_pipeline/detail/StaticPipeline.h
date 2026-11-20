@@ -442,22 +442,34 @@ struct StaticPipelineEndpointResources {
   StateTuple stateStorage_;
 };
 
-/** State and domain outlive adapters, which outlive the handler slots. */
-template <typename TaskState, ExecutionDomain Domain>
-struct SpecPipelineResources {
-  SpecPipelineResources(TaskState state, Domain domain)
-      : executionDomain_(std::move(domain)), taskState_(std::move(state)) {}
+struct NoSpecAllocator {};
 
+/** Resources outlive adapters and handlers; the allocator is destroyed last. */
+template <
+    typename TaskState,
+    ExecutionDomain Domain,
+    typename Allocator = NoSpecAllocator>
+struct SpecPipelineResources {
+  SpecPipelineResources(
+      TaskState state, Domain domain, Allocator allocator = {})
+      : allocator_(std::move(allocator)),
+        executionDomain_(std::move(domain)),
+        taskState_(std::move(state)) {}
+
+  [[no_unique_address]] Allocator allocator_;
   [[no_unique_address]] Domain executionDomain_;
   [[no_unique_address]] TaskState taskState_;
   AdapterStorage readAdapter_;
   AdapterStorage writeAdapter_;
 };
 
-template <typename TaskState, ExecutionDomain Domain>
+template <
+    typename TaskState,
+    ExecutionDomain Domain,
+    typename Allocator = NoSpecAllocator>
 struct SpecPipelinePolicy : StaticPipelinePolicy<> {
   static constexpr bool uniformHandlers = true;
-  using Resources = SpecPipelineResources<TaskState, Domain>;
+  using Resources = SpecPipelineResources<TaskState, Domain, Allocator>;
 };
 
 struct NoStaticPipelineEndpoint {};
@@ -860,14 +872,26 @@ class StaticPipelineImpl final {
     return resources_.eventBase_;
   }
   BytesPtr allocate(std::size_t size) noexcept
-    requires(!kUniformHandlers)
+    requires(
+        !kUniformHandlers ||
+        requires(Resources& r) { r.allocator_.allocate(size); })
   {
-    return resources_.allocator_->allocate(size);
+    if constexpr (kUniformHandlers) {
+      return resources_.allocator_.allocate(size);
+    } else {
+      return resources_.allocator_->allocate(size);
+    }
   }
   BytesPtr copyBuffer(const void* data, std::size_t size) noexcept
-    requires(!kUniformHandlers)
+    requires(
+        !kUniformHandlers ||
+        requires(Resources& r) { r.allocator_.copyBuffer(data, size); })
   {
-    return resources_.allocator_->copyBuffer(data, size);
+    if constexpr (kUniformHandlers) {
+      return resources_.allocator_.copyBuffer(data, size);
+    } else {
+      return resources_.allocator_->copyBuffer(data, size);
+    }
   }
 
   template <typename T>
