@@ -15,6 +15,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import unittest
 from unittest import mock
 
@@ -386,6 +387,42 @@ class PyDeprecatedToPythonConverterTest(unittest.TestCase):
         self.assertEqual(expected_type, actual.type)
         mock_repr.assert_not_called()
 
+    def test_union_conversion_calls_no_field_getter(self) -> None:
+        # GIVEN
+        source = py_deprecated_types.Union(name="myname")
+        expected = python_types.Union(name_="myname")
+        # -OO strips asserts. The getters reject an inactive field only with an
+        # assert, so under -OO they return the active value for any field. The test
+        # runs with asserts on, so instead of reproducing -OO it checks that the
+        # converter never calls a getter.
+        getter_names = [
+            "get_intField",
+            "get_strField",
+            "get_intList",
+            "get_simpleField",
+            "get_name",
+        ]
+
+        with contextlib.ExitStack() as stack:
+            getters = [
+                stack.enter_context(
+                    mock.patch.object(
+                        py_deprecated_types.Union,
+                        name,
+                        autospec=True,
+                        wraps=getattr(py_deprecated_types.Union, name),
+                    )
+                )
+                for name in getter_names
+            ]
+            # WHEN
+            actual = to_python_struct(python_types.Union, source)
+
+        # THEN
+        self.assertEqual(expected, actual)
+        for getter in getters:
+            getter.assert_not_called()
+
     def test_exception(self) -> None:
         exception = py_deprecated_types.SimpleException(
             message="Test error", code=42
@@ -644,6 +681,44 @@ class PyDeprecatedToMutablePythonConverterTest(unittest.TestCase):
         # THEN
         self.assertEqual(expected_field, actual.fbthrift_current_field)
         mock_repr.assert_not_called()
+
+    def test_union_conversion_calls_no_field_getter(self) -> None:
+        # GIVEN
+        source = py_deprecated_types.Union(name="myname")
+        expected = python_mutable_types.Union(name_="myname")
+        # -OO strips asserts. The getters reject an inactive field only with an
+        # assert, so under -OO they return the active value for any field. The test
+        # runs with asserts on, so instead of reproducing -OO it checks that the
+        # converter never calls a getter.
+        getter_names = [
+            "get_intField",
+            "get_strField",
+            "get_intList",
+            "get_simpleField",
+            "get_name",
+        ]
+
+        with contextlib.ExitStack() as stack:
+            getters = [
+                stack.enter_context(
+                    mock.patch.object(
+                        py_deprecated_types.Union,
+                        name,
+                        autospec=True,
+                        wraps=getattr(py_deprecated_types.Union, name),
+                    )
+                )
+                for name in getter_names
+            ]
+            # WHEN
+            actual = to_mutable_python_struct_or_union(
+                python_mutable_types.Union, source
+            )
+
+        # THEN
+        self.assertEqual(expected, actual)
+        for getter in getters:
+            getter.assert_not_called()
 
     def test_exception(self) -> None:
         exception = py_deprecated_types.SimpleException(
