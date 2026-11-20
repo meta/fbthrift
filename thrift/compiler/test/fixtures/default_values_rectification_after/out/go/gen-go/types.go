@@ -671,6 +671,6 @@ func (x *TestStruct) GetThriftStructMetadata() *metadata.ThriftStruct {
 
 
 func init() {
-    thrift.InternalRegisterType("facebook.com/thrift/compiler/test/fixtures/default_values_rectification_after/EmptyStruct", premadeCodecTypeSpec_module_EmptyStruct)
-    thrift.InternalRegisterType("facebook.com/thrift/compiler/test/fixtures/default_values_rectification_after/TestStruct", premadeCodecTypeSpec_module_TestStruct)
+    thrift.InternalRegisterType("facebook.com/thrift/compiler/test/fixtures/default_values_rectification_after/EmptyStruct", premadeCodecTypeSpec_module_EmptyStruct, reflect.TypeOf((*EmptyStruct)(nil)))
+    thrift.InternalRegisterType("facebook.com/thrift/compiler/test/fixtures/default_values_rectification_after/TestStruct", premadeCodecTypeSpec_module_TestStruct, reflect.TypeOf((*TestStruct)(nil)))
 }

@@ -408,5 +408,5 @@ func (x *respTestServiceInit) setDefaults() *respTestServiceInit {
 
 
 func init() {
-    thrift.InternalRegisterType("test.dev/namespace_from_package_without_module_name/Foo", premadeCodecTypeSpec_module_Foo)
+    thrift.InternalRegisterType("test.dev/namespace_from_package_without_module_name/Foo", premadeCodecTypeSpec_module_Foo, reflect.TypeOf((*Foo)(nil)))
 }

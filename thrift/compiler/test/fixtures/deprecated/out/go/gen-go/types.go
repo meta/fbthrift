@@ -623,6 +623,6 @@ func (x *ExampleUnion) GetThriftStructMetadata() *metadata.ThriftStruct {
 
 
 func init() {
-    thrift.InternalRegisterType("facebook.com/thrift/test/User", premadeCodecTypeSpec_module_User)
-    thrift.InternalRegisterType("facebook.com/thrift/test/ExampleUnion", premadeCodecTypeSpec_module_ExampleUnion)
+    thrift.InternalRegisterType("facebook.com/thrift/test/User", premadeCodecTypeSpec_module_User, reflect.TypeOf((*User)(nil)))
+    thrift.InternalRegisterType("facebook.com/thrift/test/ExampleUnion", premadeCodecTypeSpec_module_ExampleUnion, reflect.TypeOf((*ExampleUnion)(nil)))
 }

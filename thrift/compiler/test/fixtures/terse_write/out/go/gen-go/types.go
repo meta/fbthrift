@@ -4438,15 +4438,15 @@ func (x *TerseException) Error() string {
 
 
 func init() {
-    thrift.InternalRegisterType("facebook.com/thrift/test/fixtures/terse_write/MyStruct", premadeCodecTypeSpec_terse_write_MyStruct)
-    thrift.InternalRegisterType("facebook.com/thrift/test/fixtures/terse_write/MyUnion", premadeCodecTypeSpec_terse_write_MyUnion)
-    thrift.InternalRegisterType("facebook.com/thrift/test/fixtures/terse_write/MyStructWithCustomDefault", premadeCodecTypeSpec_terse_write_MyStructWithCustomDefault)
-    thrift.InternalRegisterType("facebook.com/thrift/test/fixtures/terse_write/StructLevelTerseStruct", premadeCodecTypeSpec_terse_write_StructLevelTerseStruct)
-    thrift.InternalRegisterType("facebook.com/thrift/test/fixtures/terse_write/FieldLevelTerseStruct", premadeCodecTypeSpec_terse_write_FieldLevelTerseStruct)
-    thrift.InternalRegisterType("facebook.com/thrift/test/fixtures/terse_write/AdaptedFields", premadeCodecTypeSpec_terse_write_AdaptedFields)
-    thrift.InternalRegisterType("facebook.com/thrift/test/fixtures/terse_write/TerseException", premadeCodecTypeSpec_terse_write_TerseException)
-    thrift.InternalRegisterType("facebook.com/thrift/test/fixtures/terse_write/MyInteger", premadeCodecTypeSpec_terse_write_MyInteger)
-    thrift.InternalRegisterType("facebook.com/thrift/test/fixtures/terse_write/MyEnum", premadeCodecTypeSpec_terse_write_MyEnum)
+    thrift.InternalRegisterType("facebook.com/thrift/test/fixtures/terse_write/MyStruct", premadeCodecTypeSpec_terse_write_MyStruct, reflect.TypeOf((*MyStruct)(nil)))
+    thrift.InternalRegisterType("facebook.com/thrift/test/fixtures/terse_write/MyUnion", premadeCodecTypeSpec_terse_write_MyUnion, reflect.TypeOf((*MyUnion)(nil)))
+    thrift.InternalRegisterType("facebook.com/thrift/test/fixtures/terse_write/MyStructWithCustomDefault", premadeCodecTypeSpec_terse_write_MyStructWithCustomDefault, reflect.TypeOf((*MyStructWithCustomDefault)(nil)))
+    thrift.InternalRegisterType("facebook.com/thrift/test/fixtures/terse_write/StructLevelTerseStruct", premadeCodecTypeSpec_terse_write_StructLevelTerseStruct, reflect.TypeOf((*StructLevelTerseStruct)(nil)))
+    thrift.InternalRegisterType("facebook.com/thrift/test/fixtures/terse_write/FieldLevelTerseStruct", premadeCodecTypeSpec_terse_write_FieldLevelTerseStruct, reflect.TypeOf((*FieldLevelTerseStruct)(nil)))
+    thrift.InternalRegisterType("facebook.com/thrift/test/fixtures/terse_write/AdaptedFields", premadeCodecTypeSpec_terse_write_AdaptedFields, reflect.TypeOf((*AdaptedFields)(nil)))
+    thrift.InternalRegisterType("facebook.com/thrift/test/fixtures/terse_write/TerseException", premadeCodecTypeSpec_terse_write_TerseException, reflect.TypeOf((*TerseException)(nil)))
+    thrift.InternalRegisterType("facebook.com/thrift/test/fixtures/terse_write/MyInteger", premadeCodecTypeSpec_terse_write_MyInteger, reflect.TypeOf(NewMyInteger()))
+    thrift.InternalRegisterType("facebook.com/thrift/test/fixtures/terse_write/MyEnum", premadeCodecTypeSpec_terse_write_MyEnum, reflect.TypeOf(MyEnum(0)))
     thrift.InternalRegisterError(
         (*TerseException)(nil),
         "TerseException",
