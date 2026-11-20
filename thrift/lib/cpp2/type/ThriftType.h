@@ -154,9 +154,6 @@ struct is_concrete<cpp_type<T, Tag>> : std::bool_constant<is_concrete_v<Tag>> {
 template <typename Tag, typename Context>
 struct is_concrete<field<Tag, Context>>
     : std::bool_constant<is_concrete_v<Tag>> {};
-template <typename Adapter, typename Tag, typename Context>
-struct is_concrete<field<adapted<Adapter, Tag>, Context>>
-    : std::bool_constant<is_concrete_v<Tag>> {};
 
 template <typename VTag>
 struct is_thrift_type_tag<list<VTag>>
