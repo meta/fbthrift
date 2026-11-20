@@ -163,6 +163,13 @@ concept iterates_in_native_ascending_order = is_ordered_container<Container> &&
                        std::less<typename Container::key_type>,
                        std::less<>>;
 
+// For integers, the `StableLessThan<KeyTag>` order is the `std::less` order.
+template <typename KeyTag, typename Container>
+concept iterates_in_stable_ascending_order =
+    iterates_in_native_ascending_order<Container> &&
+    type::is_a_v<KeyTag, type::integral_c> &&
+    std::is_integral_v<typename Container::key_type>;
+
 template <typename T>
 constexpr bool map_emplace_hint_is_invocable_v = std::is_invocable_v<
     emplace_hint_invoker,
@@ -441,7 +448,9 @@ template <typename Tag, typename Protocol, typename Container, typename WriteFn>
 void encodeSetElements(
     Protocol& protocol, const Container& set, WriteFn writeElem) {
   const KeyOrder keyOrder = protocol.keyOrder();
-  const bool shouldSort = keyOrder == KeyOrder::StableAscending ||
+  const bool shouldSort =
+      (keyOrder == KeyOrder::StableAscending &&
+       !iterates_in_stable_ascending_order<Tag, Container>) ||
       (keyOrder == KeyOrder::NativeAscending &&
        !iterates_in_native_ascending_order<Container>);
 
@@ -482,7 +491,9 @@ template <
 void encodeMapElements(
     Protocol& protocol, const Container& map, WriteFn writeEntry) {
   const KeyOrder keyOrder = protocol.keyOrder();
-  const bool shouldSort = keyOrder == KeyOrder::StableAscending ||
+  const bool shouldSort =
+      (keyOrder == KeyOrder::StableAscending &&
+       !iterates_in_stable_ascending_order<KeyTag, Container>) ||
       (keyOrder == KeyOrder::NativeAscending &&
        !iterates_in_native_ascending_order<Container>);
 

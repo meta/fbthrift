@@ -2157,6 +2157,30 @@ TEST(EncodeTest, keyOrder) {
   EXPECT_EQ(readMap, (OrderPreservingMap{{{1, 0}, {2, 0}, {3, 0}}}));
 }
 
+TEST(EncodeTest, stableKeyOrder) {
+  struct StableOrderProtocolWriter : CompactProtocolWriter {
+    static constexpr KeyOrder keyOrder() { return KeyOrder::StableAscending; }
+  };
+  struct OrderPreservingSet : std::vector<int> {
+    void insert(int i) { push_back(i); }
+  };
+  auto writeAndRead = [](const auto& set) {
+    folly::IOBufQueue queue;
+    StableOrderProtocolWriter writer;
+    writer.setOutput(&queue);
+    op::encode<type::set<type::i32_t>>(writer, set);
+    CompactProtocolReader reader;
+    reader.setInput(queue.front());
+    OrderPreservingSet readSet;
+    op::decode<type::set<type::i32_t>>(reader, readSet);
+    return readSet;
+  };
+  const OrderPreservingSet ascending{{1, 2, 3}};
+  EXPECT_EQ(writeAndRead(std::set<int>{3, 1, 2}), ascending);
+  EXPECT_EQ(writeAndRead(std::set<int, std::greater<int>>{3, 1, 2}), ascending);
+  EXPECT_EQ(writeAndRead(std::unordered_set<int>{3, 1, 2}), ascending);
+}
+
 TEST(EncodeTest, SerializeInFieldIdOrder) {
   static_assert(::apache::thrift::detail::st::private_access::
                     has_serialize_in_field_id_order<test::Foo>);
