@@ -2120,8 +2120,7 @@ TEST(EncodeTest, keyOrder) {
     reader.setInput(queue.front());
     op::decode<type::set<type::i32_t>>(reader, readSet);
   }
-  // Does not re-sort if already sorted.
-  EXPECT_EQ(readSet, (OrderPreservingSet{{3, 2, 1}}));
+  EXPECT_EQ(readSet, (OrderPreservingSet{{1, 2, 3}}));
 
   struct OrderPreservingMap : std::vector<std::pair<int, int>> {
     using key_type = int;
@@ -2139,6 +2138,18 @@ TEST(EncodeTest, keyOrder) {
     SortingProtocolWriter writer;
     writer.setOutput(&queue);
     op::encode<type::map<type::i32_t, type::i32_t>>(writer, reversedMap);
+    CompactProtocolReader reader;
+    reader.setInput(queue.front());
+    op::decode<type::map<type::i32_t, type::i32_t>>(reader, readMap);
+  }
+  EXPECT_EQ(readMap, (OrderPreservingMap{{{1, 0}, {2, 0}, {3, 0}}}));
+
+  std::map<int, int, std::greater<>> orderedMap{{3, 0}, {2, 0}, {1, 0}};
+  {
+    folly::IOBufQueue queue;
+    SortingProtocolWriter writer;
+    writer.setOutput(&queue);
+    op::encode<type::map<type::i32_t, type::i32_t>>(writer, orderedMap);
     CompactProtocolReader reader;
     reader.setInput(queue.front());
     op::decode<type::map<type::i32_t, type::i32_t>>(reader, readMap);

@@ -17,6 +17,7 @@
 #pragma once
 
 #include <algorithm>
+#include <functional>
 #include <limits>
 #include <memory_resource>
 #include <scoped_allocator>
@@ -155,6 +156,12 @@ FOLLY_CREATE_MEMBER_INVOKER(try_emplace_invoker, try_emplace);
 
 template <typename Container>
 concept is_ordered_container = requires { typename Container::key_compare; };
+
+template <typename Container>
+concept iterates_in_native_ascending_order = is_ordered_container<Container> &&
+    folly::is_one_of_v<typename Container::key_compare,
+                       std::less<typename Container::key_type>,
+                       std::less<>>;
 
 template <typename T>
 constexpr bool map_emplace_hint_is_invocable_v = std::is_invocable_v<
@@ -436,7 +443,7 @@ void encodeSetElements(
   const KeyOrder keyOrder = protocol.keyOrder();
   const bool shouldSort = keyOrder == KeyOrder::StableAscending ||
       (keyOrder == KeyOrder::NativeAscending &&
-       !is_ordered_container<Container>);
+       !iterates_in_native_ascending_order<Container>);
 
   if (shouldSort) {
     std::vector<typename Container::const_iterator> iters;
@@ -477,7 +484,7 @@ void encodeMapElements(
   const KeyOrder keyOrder = protocol.keyOrder();
   const bool shouldSort = keyOrder == KeyOrder::StableAscending ||
       (keyOrder == KeyOrder::NativeAscending &&
-       !is_ordered_container<Container>);
+       !iterates_in_native_ascending_order<Container>);
 
   if (shouldSort) {
     std::vector<typename Container::const_iterator> iters;
