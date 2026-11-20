@@ -884,7 +884,7 @@
       }
     },
     "Arena" : {
-      "lineno" : 541,
+      "lineno" : 542,
       "is_exception" : false,
       "is_union" : false,
       "structured_annotations" : {
@@ -892,6 +892,7 @@
         "scope.Struct" : {  },
         "scope.Union" : {  },
         "scope.Typedef" : {  },
+        "scope.Function" : {  },
         "thrift.Experimental" : {  }
       },
       "fields" : {
@@ -899,11 +900,11 @@
       },
       "source_range" : {
         "begin" : {
-          "line" : 541,
+          "line" : 542,
           "column" : 1
         },
         "end" : {
-          "line" : 546,
+          "line" : 548,
           "column" : 16
         }
       }

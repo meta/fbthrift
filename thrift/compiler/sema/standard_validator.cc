@@ -1444,6 +1444,21 @@ void validate_cpp_arena_typedef(sema_context& ctx, const t_typedef& node) {
   }
 }
 
+void validate_cpp_arena_function(sema_context& ctx, const t_function& node) {
+  if (!node.has_structured_annotation(kCppArenaUri)) {
+    return;
+  }
+  const auto* service = dynamic_cast<const t_service*>(ctx.parent());
+  if (service == nullptr ||
+      service->has_structured_annotation(kCppFastServerUri) ||
+      service->has_structured_annotation(kCppFastClientUri) ||
+      node.qualifier() == t_function_qualifier::oneway ||
+      node.sink_or_stream() != nullptr || node.interaction() ||
+      node.has_structured_annotation(kCppProcessInEbThreadUri)) {
+    ctx.error("`@cpp.Arena` is not supported on function `{}`.", node.name());
+  }
+}
+
 // Compiler counterpart of cpp.EnumUnderlyingType that avoids dependency on
 // generated code (see cpp.thrift and t_mstch_cpp2_generator.cc).
 enum class enum_underlying_type {
@@ -2556,6 +2571,7 @@ ast_validator standard_validator() {
   validator.add_field_visitor(&validate_field_id_value);
   validator.add_field_visitor(&validate_cpp_arena_field);
   validator.add_typedef_visitor(&validate_cpp_arena_typedef);
+  validator.add_function_visitor(&validate_cpp_arena_function);
   validator.add_field_visitor(&validate_mixin_field_attributes);
   validator.add_field_visitor(&validate_boxed_field_attributes);
   validator.add_field_visitor(&validate_field_default_value);

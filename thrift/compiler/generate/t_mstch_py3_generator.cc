@@ -644,6 +644,21 @@ void validate_no_arena_field(sema_context& ctx, const t_field& field) {
   }
 }
 
+// py3 generates C++ service and client wrappers even with `auto_migrate`, and
+// they pass `std::` strings and containers, not the PMR types of `@cpp.Arena`
+// functions.
+void validate_no_arena_function(sema_context& ctx, const t_function& function) {
+  if (function.has_structured_annotation(kCppArenaUri)) {
+    ctx.report(
+        function,
+        "py3-arena-function-rule",
+        diagnostic_level::error,
+        "`@cpp.Arena` function `{}` is not supported in thrift-py3. Use "
+        "thrift-python.",
+        function.name());
+  }
+}
+
 void py3_generator_context::visit_function(const t_function& function) {
   for (const auto& field : function.params().fields()) {
     visit_type(&field.type().deref(), /*from_type_def=*/false);
@@ -711,6 +726,7 @@ class t_mstch_py3_generator : public t_whisker_generator {
     if (!has_compiler_option("auto_migrate")) {
       validator.add_field_visitor(validate_no_arena_field);
     }
+    validator.add_function_visitor(validate_no_arena_function);
   }
 
  private:

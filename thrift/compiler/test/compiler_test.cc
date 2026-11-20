@@ -2755,6 +2755,20 @@ TEST(CompilerTest, py3_auto_migrate_arena_field) {
       {"--gen", "mstch_py3:auto_migrate"});
 }
 
+TEST(CompilerTest, py3_arena_function) {
+  check_compile(
+      R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+    service Svc {
+      @cpp.Arena
+      string process(1: string key);
+        # expected-error@-2: `@cpp.Arena` function `process` is not supported in thrift-py3. Use thrift-python. [py3-arena-function-rule]
+    }
+  )",
+      {"--gen", "mstch_py3:auto_migrate"});
+}
+
 TEST(CompilerTest, py3_invalid_field_names) {
   // TODO: The py3 validator should check @python.Name in addition to py3.name.
   check_compile(
@@ -3616,12 +3630,58 @@ TEST(CompilerTest, cpp_arena_annotation_scopes) {
 
     service Svc {
       @cpp.Arena
-        # expected-error@-1: `Arena` cannot annotate `arenaFunction`
       void arenaFunction(
         @cpp.Arena
           # expected-error@-1: `Arena` cannot annotate `param`
         1: string param
       );
+    }
+  )");
+}
+
+TEST(CompilerTest, cpp_arena_function) {
+  check_compile(R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+
+    interaction Inter {
+      @cpp.Arena
+      string in_interaction(1: string key);
+        # expected-error@-2: `@cpp.Arena` is not supported on function `in_interaction`.
+    }
+
+    service Svc {
+      @cpp.Arena
+      void param_only(1: i64 id, 2: string key);
+      @cpp.Arena
+      list<string> return_only(1: i64 id);
+      @cpp.Arena
+      oneway void one_way(1: string key);
+        # expected-error@-2: `@cpp.Arena` is not supported on function `one_way`.
+      @cpp.Arena
+      stream<string> streaming(1: string key);
+        # expected-error@-2: `@cpp.Arena` is not supported on function `streaming`.
+      @cpp.Arena
+      Inter, string create_interaction(1: string key);
+        # expected-error@-2: `@cpp.Arena` is not supported on function `create_interaction`.
+      @cpp.Arena
+      @cpp.ProcessInEbThreadUnsafe
+      string event_base(1: string key);
+        # expected-error@-3: `@cpp.Arena` is not supported on function `event_base`.
+    }
+
+    @cpp.FastServer
+    service FastServer {
+      @cpp.Arena
+      string fast_server(1: string key);
+        # expected-error@-2: `@cpp.Arena` is not supported on function `fast_server`.
+    }
+
+    @cpp.FastClient
+    service FastClient {
+      @cpp.Arena
+      string fast_client(1: string key);
+        # expected-error@-2: `@cpp.Arena` is not supported on function `fast_client`.
     }
   )");
 }

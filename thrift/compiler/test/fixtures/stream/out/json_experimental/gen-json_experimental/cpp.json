@@ -894,6 +894,14 @@
           },
             "value" : {}
           },
+          "scope.Function" : {
+            "type" : {
+            "type" : "struct",
+            "name" : "Function",
+            "path" : "thrift/annotation/scope.thrift"
+          },
+            "value" : {}
+          },
           "thrift.Experimental" : {
             "type" : {
             "type" : "struct",
@@ -903,10 +911,10 @@
             "value" : {}
           }
         },
-        "docstring" : "Gives a string, binary or container field a PMR allocator-aware C++ type,\nsuch as `std::pmr::string` or `std::pmr::vector`, that can allocate from a\n`std::pmr::memory_resource` such as an arena. The field doesn't use its\nstruct's memory resource yet: it allocates from the default resource. On a\nstruct or union it does nothing yet, and on a typedef it is an error.\n\nThe py3 generator rejects fields with it unless `auto_migrate` is set. Other\nlanguages ignore it.\n",
+        "docstring" : "Gives a string, binary or container field a PMR allocator-aware C++ type,\nsuch as `std::pmr::string` or `std::pmr::vector`, that can allocate from a\n`std::pmr::memory_resource` such as an arena. The field doesn't use its\nstruct's memory resource yet: it allocates from the default resource. On a\nstruct or union it does nothing yet, and on a typedef it is an error. On a\nrequest-response function it does nothing yet; other functions reject it.\n\nThe py3 generator rejects fields with it unless `auto_migrate` is set, and\nalways rejects functions with it. Other languages ignore it.\n",
         "is_exception" : false,
         "is_union" : false,
-        "lineno" : 541
+        "lineno" : 542
       }
   },
   "source_path" : "thrift/annotation/cpp",
