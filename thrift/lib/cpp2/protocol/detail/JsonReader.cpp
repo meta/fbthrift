@@ -217,22 +217,18 @@ Json5Reader::Primitive parseNumberPrefix(
   // Infinity or NaN
   if (c == 'I' || c == 'N') {
     const auto word = skipWhile(isIdentifierPart);
-    if (word == "Infinity") {
-      double d = std::copysign(std::numeric_limits<double>::infinity(), sign);
-      if (precision == Single) {
-        return float(d);
-      }
-      return d;
+    if (word != "Infinity" && word != "NaN") {
+      throwParseError(
+          fmt::format("expected 'Infinity' or 'NaN', got '{}'", word));
     }
-    if (word == "NaN") {
-      double d = std::copysign(std::numeric_limits<double>::quiet_NaN(), sign);
-      if (precision == Single) {
-        return float(d);
-      }
-      return d;
+    const double d = std::copysign(
+        word == "NaN" ? std::numeric_limits<double>::quiet_NaN()
+                      : std::numeric_limits<double>::infinity(),
+        sign);
+    if (precision == Single) {
+      return float(d);
     }
-    throwParseError(
-        fmt::format("expected 'Infinity' or 'NaN', got '{}'", word));
+    return d;
   }
   // Hex literal: 0x...
   if (c == '0') {
