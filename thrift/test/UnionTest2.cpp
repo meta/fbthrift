@@ -132,7 +132,7 @@ TEST_F(UnionTestFixture, ChangeType) {
 
   u.set_ref_field(OneOfEach());
   EXPECT_EQ(TestUnion::Type::ref_field, u.getType());
-  EXPECT_EQ(OneOfEach(), *u.get_ref_field());
+  EXPECT_EQ(OneOfEach(), *u.ref_field());
 }
 
 TEST_F(UnionTestFixture, SerdeTest) {
@@ -239,8 +239,8 @@ TEST(CppRefContainers, Simple) {
   v.set_values({v1, v2});
 
   EXPECT_EQ(v.getType(), CppRefContainers::Type::values);
-  EXPECT_EQ((*v.get_values())[0].data().as_const().value(), "v1");
-  EXPECT_EQ((*v.get_values())[1].data().as_const().value(), "v2");
+  EXPECT_EQ((*v.values())[0].data().as_const().value(), "v1");
+  EXPECT_EQ((*v.values())[1].data().as_const().value(), "v2");
 }
 
 TEST(Empty, Simple) {

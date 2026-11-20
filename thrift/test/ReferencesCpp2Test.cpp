@@ -444,12 +444,11 @@ TEST(References, string_ref) {
 TEST(References, CppRefUnionLessThan) {
   auto check = [](ReferringUnionWithCppRef& smallerAddress,
                   ReferringUnionWithCppRef& largerAddress) {
-    *smallerAddress.get_box_string() = "2";
-    *largerAddress.get_box_string() = "1";
+    *smallerAddress.box_string() = "2";
+    *largerAddress.box_string() = "1";
 
     EXPECT_LT(smallerAddress.get_box_string(), largerAddress.get_box_string());
-    EXPECT_GT(
-        *smallerAddress.get_box_string(), *largerAddress.get_box_string());
+    EXPECT_GT(*smallerAddress.box_string(), *largerAddress.box_string());
     EXPECT_GT(smallerAddress, largerAddress);
   };
 
@@ -473,13 +472,13 @@ TEST(References, CppRefUnionSetterGetter) {
 
   EXPECT_THROW(a.get_box_string(), bad_field_access);
   EXPECT_THROW(a.get_box_self(), bad_field_access);
-  EXPECT_EQ(a.get_box_plain()->field(), 42);
+  EXPECT_EQ(a.box_plain()->field(), 42);
 
   a.set_box_string("foo");
 
   EXPECT_THROW(a.get_box_plain(), bad_field_access);
   EXPECT_THROW(a.get_box_self(), bad_field_access);
-  EXPECT_EQ(*a.get_box_string(), "foo");
+  EXPECT_EQ(*a.box_string(), "foo");
 
   ReferringUnionWithCppRef b;
 
@@ -487,9 +486,9 @@ TEST(References, CppRefUnionSetterGetter) {
 
   EXPECT_THROW(b.get_box_string(), bad_field_access);
   EXPECT_THROW(b.get_box_plain(), bad_field_access);
-  EXPECT_THROW(b.get_box_self()->get_box_plain(), bad_field_access);
-  EXPECT_THROW(b.get_box_self()->get_box_self(), bad_field_access);
-  EXPECT_EQ(*b.get_box_self()->get_box_string(), "foo");
+  EXPECT_THROW(b.box_self()->get_box_plain(), bad_field_access);
+  EXPECT_THROW(b.box_self()->get_box_self(), bad_field_access);
+  EXPECT_EQ(*b.box_self()->get_box_string(), "foo");
 }
 
 TEST(References, UnionFieldRef) {
