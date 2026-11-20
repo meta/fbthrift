@@ -29,8 +29,10 @@
 #include <folly/io/async/test/TestSSLServer.h>
 #include <folly/lang/Bits.h>
 #include <folly/testing/TestUtil.h>
+#include <thrift/lib/cpp/TApplicationException.h>
 #include <thrift/lib/cpp2/SerializationSwitch.h>
 #include <thrift/lib/cpp2/async/Cpp2Channel.h>
+#include <thrift/lib/cpp2/async/HeaderChannelTrait.h>
 #include <thrift/lib/cpp2/async/HeaderClientChannel.h>
 #include <thrift/lib/cpp2/async/HeaderServerChannel.h>
 #include <thrift/lib/cpp2/async/MessageChannel.h>
@@ -46,6 +48,43 @@ using folly::IOBufQueue;
 using folly::test::find_resource;
 using std::make_unique;
 using std::unique_ptr;
+
+TEST(HeaderChannelTrait, RejectsUnknownClientType) {
+  EXPECT_FALSE(
+      HeaderChannelTrait::isSupportedClient(THRIFT_UNKNOWN_CLIENT_TYPE));
+  EXPECT_THROW(
+      HeaderChannelTrait::checkSupportedClient(THRIFT_UNKNOWN_CLIENT_TYPE),
+      TApplicationException);
+}
+
+TEST(HeaderChannelTrait, RejectsOutOfRangeRepresentableClientType) {
+  // CLIENT_TYPE has no fixed underlying type. 15 is within its current
+  // representable range (0..15), but outside the supported-client bitset.
+  const auto clientType = static_cast<CLIENT_TYPE>(15);
+  EXPECT_FALSE(HeaderChannelTrait::isSupportedClient(clientType));
+  EXPECT_THROW(
+      HeaderChannelTrait::checkSupportedClient(clientType),
+      TApplicationException);
+}
+
+TEST(HeaderChannelTrait, PreservesSupportedClientTypes) {
+  const CLIENT_TYPE supportedTypes[] = {
+      THRIFT_UNFRAMED_DEPRECATED,
+      THRIFT_UNFRAMED_COMPACT_DEPRECATED,
+      THRIFT_FRAMED_DEPRECATED,
+      THRIFT_HTTP_SERVER_TYPE,
+      THRIFT_HTTP_CLIENT_TYPE,
+      THRIFT_HEADER_CLIENT_TYPE,
+      THRIFT_FRAMED_COMPACT,
+  };
+  for (auto clientType : supportedTypes) {
+    EXPECT_TRUE(HeaderChannelTrait::isSupportedClient(clientType));
+    EXPECT_NO_THROW(HeaderChannelTrait::checkSupportedClient(clientType));
+  }
+  EXPECT_FALSE(HeaderChannelTrait::isSupportedClient(THRIFT_ROCKET_CLIENT_TYPE));
+  EXPECT_FALSE(HeaderChannelTrait::isSupportedClient(THRIFT_HTTP_GET_CLIENT_TYPE));
+  EXPECT_FALSE(HeaderChannelTrait::isSupportedClient(THRIFT_HTTP2_CLIENT_TYPE));
+}
 
 unique_ptr<IOBuf> makeTestBufImpl(size_t len) {
   unique_ptr<IOBuf> buf = IOBuf::create(len);
