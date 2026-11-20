@@ -21,20 +21,21 @@
 namespace apache::thrift::json5::detail {
 
 void CompoundTypeTracker::beginList() {
-  containerStack_.push_back(List{});
+  containerStack_.emplace_back(std::in_place_type<List>);
 }
 
 void CompoundTypeTracker::beginSet() {
-  containerStack_.push_back(Set{});
+  containerStack_.emplace_back(std::in_place_type<Set>);
 }
 
 void CompoundTypeTracker::beginMap(MapForm form) {
-  containerStack_.push_back(
+  containerStack_.emplace_back(
+      std::in_place_type<Map>,
       Map{.expectingToken = MapToken::Key, .encodedAs = form});
 }
 
 void CompoundTypeTracker::beginStruct() {
-  containerStack_.push_back(Struct{});
+  containerStack_.emplace_back(std::in_place_type<Struct>);
 }
 
 template <class Type, class Stack>
