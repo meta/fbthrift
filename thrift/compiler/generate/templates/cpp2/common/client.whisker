@@ -16,9 +16,9 @@
 
 }}
 
-{{#let export partial param_type |type|}}
+{{#let export partial param_type |field|}}
 {{#pragma ignore-newlines}}
-{{#if type.resolves_to_complex_return?}}const {{type.cpp_type}}&{{#else}}{{type.cpp_type}}{{/if}}
+{{#if field.type.resolves_to_complex_return?}}const {{field.type.cpp_type}}&{{#else}}{{field.type.cpp_type}}{{/if}}
 {{/let partial}}
 
 {{#let export partial return_type_no_handle |function|}}
@@ -70,7 +70,7 @@ apache::thrift::Client<{{service.qualified_name}}>::{{function.created_interacti
 {{#let export partial function_param_list |function| captures |param_type|}}
 {{#pragma ignore-newlines}}
   {{#each (array.enumerate function.params.fields with_first=true) as |i field is_first?|}}
-{{#if (not is_first?)}}, {{/if}}{{#partial param_type type=field.type}} p_{{field.cpp_name}}
+{{#if (not is_first?)}}, {{/if}}{{#partial param_type field=field}} p_{{field.cpp_name}}
   {{/each}}
 {{/let partial}}
 

@@ -17,6 +17,7 @@
 #include <thrift/compiler/generate/cpp/name_resolver.h>
 
 #include <stdexcept>
+#include <string_view>
 #include <typeinfo>
 
 #include <fmt/ranges.h>
@@ -49,6 +50,14 @@ std::string gen_template_type(
 }
 
 } // namespace detail
+
+namespace {
+
+std::string gen_rebound_type(std::string_view type) {
+  return fmt::format("::apache::thrift::pmr::Rebind<{}>::type", type);
+}
+
+} // namespace
 
 const std::string& cpp_name_resolver::get_native_type(
     const t_field& field, const t_structured& parent) {
@@ -467,9 +476,7 @@ std::optional<std::string> cpp_name_resolver::gen_cpp_type(
   if (!cpp2::is_arena_field(field)) {
     return cpp_type;
   }
-  return fmt::format(
-      "::apache::thrift::pmr::Rebind<{}>::type",
-      cpp_type.value_or(get_native_type(*field.type())));
+  return gen_rebound_type(cpp_type.value_or(get_native_type(*field.type())));
 }
 
 std::string cpp_name_resolver::gen_storage_type(

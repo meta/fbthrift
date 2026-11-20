@@ -547,17 +547,21 @@ std::unique_ptr<t_field> clone_injected_field(
 
 // `@cpp.Arena` on a struct or union applies to each field that field-level
 // `@cpp.Arena` supports.
-void mutate_structured_arena(
-    sema_context&, mutator_context&, t_structured& node) {
+void apply_arena(const t_named& node, t_structured& fields) {
   const t_const* arena = node.find_structured_annotation_or_null(kCppArenaUri);
   if (arena == nullptr) {
     return;
   }
-  for (t_field& field : node.fields()) {
+  for (t_field& field : fields.fields()) {
     if (!cpp2::is_arena_field(field) && cpp2::is_arena_supported(field)) {
       field.add_structured_annotation(arena->clone());
     }
   }
+}
+
+void mutate_structured_arena(
+    sema_context&, mutator_context&, t_structured& node) {
+  apply_arena(node, node);
 }
 
 void mutate_inject_metadata_fields(

@@ -94,7 +94,7 @@ class FastServiceHandler<{{service.qualified_name}}>
     {{#if function.event_based?}}
   virtual void async_eb_{{function.cpp_name}}(
       ::apache::thrift::fast_thrift::thrift::FastHandlerCallbackPtr<{{#partial server.return_type function=function service=service}}> callback{{#each function.params.fields as |field|}},
-      {{#partial server.param_type type=field.type function=function}} /*p_{{field.cpp_name}}*/{{/each}}) {
+      {{#partial server.param_type field=field function=function}} /*p_{{field.cpp_name}}*/{{/each}}) {
     callback->exception(
         folly::make_exception_wrapper<::apache::thrift::TApplicationException>(
             ::apache::thrift::TApplicationException::UNKNOWN_METHOD,
@@ -124,7 +124,7 @@ class FastServiceHandler<{{service.qualified_name}}>
   virtual void async_{{#if function.event_based?}}eb{{#else}}tm{{/if}}_{{function.cpp_name}}(
       ::apache::thrift::fast_thrift::thrift::FastHandlerCallbackPtr<
           {{#partial server.fast_stream_return_type function=function}}> callback{{#each function.params.fields as |field|}},
-      {{#partial server.param_type type=field.type function=function}} /*p_{{field.cpp_name}}*/{{/each}}) {
+      {{#partial server.param_type field=field function=function}} /*p_{{field.cpp_name}}*/{{/each}}) {
     callback->exception(
         folly::make_exception_wrapper<::apache::thrift::TApplicationException>(
             ::apache::thrift::TApplicationException::UNKNOWN_METHOD,

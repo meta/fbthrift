@@ -3759,6 +3759,9 @@ TEST(CompilerTest, cpp_arena_unsupported_fields) {
         # expected-error@-2: `@cpp.Arena` is not supported on field `iobuf_ptrs`.
       @cpp.Arena
       9: map<string, IOBuf> iobufs;
+      @cpp.Arena
+      @cpp.Type{name = "std::string"}
+      10: IOBuf overridden;
     }
   )");
 }

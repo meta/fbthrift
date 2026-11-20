@@ -139,17 +139,23 @@ bool has_unsupported_arena_level(const t_type& type) {
   }
   return false;
 }
+
+// Callers check for `folly::IOBuf` themselves, because a field's own
+// `@cpp.Type` overrides its type's.
+bool is_arena_rebindable(const t_type& type) {
+  const t_type* true_type = type.get_true_type();
+  assert(true_type != nullptr);
+  return (true_type->is_string_or_binary() || true_type->is<t_container>() ||
+          is_allocator_aware(*true_type)) &&
+      !has_unsupported_arena_level(type);
+}
 } // namespace
 
 bool is_arena_supported(const t_field& field) {
-  const t_type* type = field.type()->get_true_type();
-  assert(type != nullptr);
-  return (type->is_string_or_binary() || type->is<t_container>() ||
-          is_allocator_aware(*type)) &&
+  return is_arena_rebindable(*field.type()) &&
       field.default_value() == nullptr && !is_ref(&field) && !is_lazy(&field) &&
       !is_binary_iobuf(field) &&
-      !field.has_structured_annotation(kCppAdapterUri) &&
-      !has_unsupported_arena_level(*field.type());
+      !field.has_structured_annotation(kCppAdapterUri);
 }
 
 bool container_supports_incomplete_params(const t_type& type) {

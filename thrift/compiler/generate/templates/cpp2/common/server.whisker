@@ -16,13 +16,13 @@
 
 }}
 
-{{#let export partial param_type |type function|}}
+{{#let export partial param_type |field function|}}
 {{#pragma ignore-newlines}}
-  {{#if type.resolves_to_complex_return?}}
-{{#if function.stack_arguments?}}const {{type.cpp_type}}&{{#else}}std::unique_ptr<{{type.cpp_type}}>{{/if}}
+  {{#if field.type.resolves_to_complex_return?}}
+{{#if function.stack_arguments?}}const {{field.type.cpp_type}}&{{#else}}std::unique_ptr<{{field.type.cpp_type}}>{{/if}}
   {{#else}}
-{{type.cpp_type}}
-  {{/if type.resolves_to_complex_return?}}
+{{field.type.cpp_type}}
+  {{/if field.type.resolves_to_complex_return?}}
 {{/let partial}}
 
 {{#let export partial return_type |function service|}}
@@ -66,14 +66,14 @@
 {{#let export partial function_param_list |function| captures |param_type|}}
 {{#pragma ignore-newlines}}
   {{#each (array.enumerate function.params.fields with_first=true) as |i field is_first?|}}
-{{#if (not is_first?)}}, {{/if}}{{#partial param_type type=field.type function=function}} p_{{field.cpp_name}}
+{{#if (not is_first?)}}, {{/if}}{{#partial param_type field=field function=function}} p_{{field.cpp_name}}
   {{/each}}
 {{/let partial}}
 
 {{#let export partial function_param_list_commented_out |function| captures |param_type|}}
 {{#pragma ignore-newlines}}
   {{#each (array.enumerate function.params.fields with_first=true) as |i field is_first?|}}
-{{#if (not is_first?)}}, {{/if}}{{#partial param_type type=field.type function=function}} /*{{field.cpp_name}}*/
+{{#if (not is_first?)}}, {{/if}}{{#partial param_type field=field function=function}} /*{{field.cpp_name}}*/
   {{/each}}
 {{/let partial}}
 

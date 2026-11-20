@@ -867,6 +867,12 @@ class t_mstch_cpp2_generator : public t_whisker_generator {
     t_whisker_generator::render_to_file(output, template_name, context);
   }
 
+  const t_structured& get_structured_parent(const t_field& field) const {
+    const t_structured* parent = context().get_field_parent(&field);
+    assert(parent != nullptr);
+    return *parent;
+  }
+
   whisker::object make_rendered_type(
       const prototype_database& proto,
       const t_type* type,
@@ -1768,9 +1774,8 @@ class t_mstch_cpp2_generator : public t_whisker_generator {
       return whisker::make::i64(field_context->isset_index);
     });
     def.property("cpp_type", [this](const t_field& field) {
-      const t_structured* parent = context().get_field_parent(&field);
-      assert(parent != nullptr);
-      return cpp_context_->resolver().get_native_type(field, *parent);
+      return cpp_context_->resolver().get_native_type(
+          field, get_structured_parent(field));
     });
     def.property("cpp_use_allocator?", &cpp2::uses_allocator);
     def.property("cpp_alloc_ctor_applies_default?", [](const t_field& field) {
@@ -1926,9 +1931,8 @@ class t_mstch_cpp2_generator : public t_whisker_generator {
       }
     });
     def.property("type_tag", [this](const t_field& field) {
-      const t_structured* parent = context().get_field_parent(&field);
-      assert(parent != nullptr);
-      return cpp_context_->resolver().get_type_tag(field, *parent);
+      return cpp_context_->resolver().get_type_tag(
+          field, get_structured_parent(field));
     });
     def.property("raw_string_or_binary?", [](const t_field& field) {
       return field.type()->get_true_type()->is_string_or_binary() &&
