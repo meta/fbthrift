@@ -35,7 +35,18 @@ namespace apache::thrift::type {
 //     is_concrete_v<list<byte_t>> -> true
 //     is_concrete_v<list<struct_c>> -> false
 template <typename Tag>
-struct is_concrete : std::false_type {};
+struct is_concrete : std::bool_constant<folly::is_one_of_v<
+                         Tag,
+                         void_t,
+                         bool_t,
+                         byte_t,
+                         i16_t,
+                         i32_t,
+                         i64_t,
+                         float_t,
+                         double_t,
+                         string_t,
+                         binary_t>> {};
 
 template <typename Tag>
 constexpr bool is_concrete_v = is_concrete<Tag>::value;
@@ -50,7 +61,27 @@ constexpr bool is_concrete_v = is_concrete<Tag>::value;
 //     is_thrift_type_tag_v<list<byte_t>> -> true
 //     is_thrift_type_tag_v<list<struct_c>> -> true
 template <typename Tag>
-struct is_thrift_type_tag : is_concrete<Tag> {};
+struct is_thrift_type_tag : std::bool_constant<
+                                is_concrete_v<Tag> ||
+                                folly::is_one_of_v<
+                                    Tag,
+                                    all_c,
+                                    primitive_c,
+                                    number_c,
+                                    integral_c,
+                                    floating_point_c,
+                                    enum_c,
+                                    string_c,
+                                    structured_c,
+                                    struct_except_c,
+                                    struct_c,
+                                    union_c,
+                                    exception_c,
+                                    container_c,
+                                    list_c,
+                                    set_c,
+                                    map_c,
+                                    service_c>> {};
 
 template <typename Tag>
 constexpr bool is_thrift_type_tag_v = is_thrift_type_tag<Tag>::value;
@@ -94,27 +125,6 @@ constexpr bool is_a_v = std::derived_from<Tag, CTag>;
 
 // Implementation details
 
-template <>
-struct is_concrete<void_t> : std::true_type {};
-template <>
-struct is_concrete<bool_t> : std::true_type {};
-template <>
-struct is_concrete<byte_t> : std::true_type {};
-template <>
-struct is_concrete<i16_t> : std::true_type {};
-template <>
-struct is_concrete<i32_t> : std::true_type {};
-template <>
-struct is_concrete<i64_t> : std::true_type {};
-template <>
-struct is_concrete<float_t> : std::true_type {};
-template <>
-struct is_concrete<double_t> : std::true_type {};
-template <>
-struct is_concrete<string_t> : std::true_type {};
-template <>
-struct is_concrete<binary_t> : std::true_type {};
-
 template <typename T>
 struct is_concrete<enum_t<T>> : std::true_type {};
 template <typename T>
@@ -147,41 +157,6 @@ struct is_concrete<field<Tag, Context>>
 template <typename Adapter, typename Tag, typename Context>
 struct is_concrete<field<adapted<Adapter, Tag>, Context>>
     : std::bool_constant<is_concrete_v<Tag>> {};
-
-template <>
-struct is_thrift_type_tag<all_c> : std::true_type {};
-template <>
-struct is_thrift_type_tag<primitive_c> : std::true_type {};
-template <>
-struct is_thrift_type_tag<number_c> : std::true_type {};
-template <>
-struct is_thrift_type_tag<integral_c> : std::true_type {};
-template <>
-struct is_thrift_type_tag<floating_point_c> : std::true_type {};
-template <>
-struct is_thrift_type_tag<enum_c> : std::true_type {};
-template <>
-struct is_thrift_type_tag<string_c> : std::true_type {};
-template <>
-struct is_thrift_type_tag<structured_c> : std::true_type {};
-template <>
-struct is_thrift_type_tag<struct_except_c> : std::true_type {};
-template <>
-struct is_thrift_type_tag<struct_c> : std::true_type {};
-template <>
-struct is_thrift_type_tag<union_c> : std::true_type {};
-template <>
-struct is_thrift_type_tag<exception_c> : std::true_type {};
-template <>
-struct is_thrift_type_tag<container_c> : std::true_type {};
-template <>
-struct is_thrift_type_tag<list_c> : std::true_type {};
-template <>
-struct is_thrift_type_tag<set_c> : std::true_type {};
-template <>
-struct is_thrift_type_tag<map_c> : std::true_type {};
-template <>
-struct is_thrift_type_tag<service_c> : std::true_type {};
 
 template <typename VTag>
 struct is_thrift_type_tag<list<VTag>>
