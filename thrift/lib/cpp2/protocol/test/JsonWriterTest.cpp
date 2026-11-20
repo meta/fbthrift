@@ -27,6 +27,8 @@ enum class JsonFormat { Json, Json5 };
 
 class JsonWriterTest : public ::testing::TestWithParam<JsonFormat> {
  protected:
+  JsonWriterTest() { w.setOutput(appender()); }
+
   bool isJson5() const { return GetParam() == JsonFormat::Json5; }
 
   JsonWriterOptions options() const {
@@ -40,6 +42,16 @@ class JsonWriterTest : public ::testing::TestWithParam<JsonFormat> {
     opts.indentWidth = 0;
     return opts;
   }
+
+  folly::io::QueueAppender appender() {
+    return folly::io::QueueAppender(&queue, 4096);
+  }
+
+  std::string output() { return queue.move()->toString(); }
+
+ public:
+  folly::IOBufQueue queue;
+  JsonWriter w{options()};
 };
 
 INSTANTIATE_TEST_SUITE_P(
@@ -51,25 +63,16 @@ INSTANTIATE_TEST_SUITE_P(
     });
 
 TEST_P(JsonWriterTest, Bool) {
-  folly::IOBufQueue queue;
-  JsonWriter w(options());
-  w.setOutput(folly::io::QueueAppender(&queue, 4096));
   w.writeBool(true);
-  EXPECT_EQ(queue.move()->toString(), "true");
+  EXPECT_EQ(output(), "true");
 }
 
 TEST_P(JsonWriterTest, StringWithEscapes) {
-  folly::IOBufQueue queue;
-  JsonWriter w(options());
-  w.setOutput(folly::io::QueueAppender(&queue, 4096));
   w.writeString("Say \"\nHello\"!");
-  EXPECT_EQ(queue.move()->toString(), "\"Say \\\"\\nHello\\\"!\"");
+  EXPECT_EQ(output(), "\"Say \\\"\\nHello\\\"!\"");
 }
 
 TEST_P(JsonWriterTest, EmptyContainers) {
-  folly::IOBufQueue queue;
-  JsonWriter w(options());
-  w.setOutput(folly::io::QueueAppender(&queue, 4096));
   w.writeObjectBegin();
   w.writeObjectName("empty");
   w.writeString("");
@@ -82,14 +85,14 @@ TEST_P(JsonWriterTest, EmptyContainers) {
   w.writeObjectEnd();
   if (isJson5()) {
     EXPECT_EQ(
-        queue.move()->toString(),
+        output(),
         R"({
   empty: "",
   emptyObj: {},
   emptyList: [],
 })");
   } else {
-    EXPECT_EQ(queue.move()->toString(), R"({
+    EXPECT_EQ(output(), R"({
   "empty": "",
   "emptyObj": {},
   "emptyList": []
@@ -98,10 +101,7 @@ TEST_P(JsonWriterTest, EmptyContainers) {
 }
 
 TEST_P(JsonWriterTest, PrimitiveTypes) {
-  folly::IOBufQueue queue;
   std::size_t size = 0;
-  JsonWriter w(options());
-  w.setOutput(folly::io::QueueAppender(&queue, 4096));
   size += w.writeObjectBegin();
   size += w.writeObjectName("bool");
   size += w.writeBool(false);
@@ -110,16 +110,16 @@ TEST_P(JsonWriterTest, PrimitiveTypes) {
   size += w.writeObjectName("$float");
   size += w.writeDouble(3.14);
   size += w.writeObjectEnd();
-  auto output = queue.move()->toString();
-  EXPECT_EQ(size, output.size());
+  const auto json = output();
+  EXPECT_EQ(size, json.size());
   if (isJson5()) {
-    EXPECT_EQ(output, R"({
+    EXPECT_EQ(json, R"({
   bool: false,
   integer: 42,
   $float: 3.14,
 })");
   } else {
-    EXPECT_EQ(output, R"({
+    EXPECT_EQ(json, R"({
   "bool": false,
   "integer": 42,
   "$float": 3.14
@@ -128,10 +128,7 @@ TEST_P(JsonWriterTest, PrimitiveTypes) {
 }
 
 TEST_P(JsonWriterTest, MoreFloats) {
-  folly::IOBufQueue queue;
   std::size_t size = 0;
-  JsonWriter w(options());
-  w.setOutput(folly::io::QueueAppender(&queue, 4096));
   size += w.writeObjectBegin();
   size += w.writeObjectName("-Zero");
   size += w.writeDouble(-0.0);
@@ -140,11 +137,11 @@ TEST_P(JsonWriterTest, MoreFloats) {
   size += w.writeObjectName("0.10000001");
   size += w.writeFloat(0.10000000894069671630859375F);
   size += w.writeObjectEnd();
-  auto output = queue.move()->toString();
-  EXPECT_EQ(size, output.size());
+  const auto json = output();
+  EXPECT_EQ(size, json.size());
   if (isJson5()) {
     EXPECT_EQ(
-        output,
+        json,
         R"({
   "-Zero": -0.0,
   "0.1": 0.1,
@@ -152,7 +149,7 @@ TEST_P(JsonWriterTest, MoreFloats) {
 })");
   } else {
     EXPECT_EQ(
-        output,
+        json,
         R"({
   "-Zero": -0.0,
   "0.1": 0.1,
@@ -162,10 +159,7 @@ TEST_P(JsonWriterTest, MoreFloats) {
 }
 
 TEST_P(JsonWriterTest, ScientificNotationFloats) {
-  folly::IOBufQueue queue;
   std::size_t size = 0;
-  JsonWriter w(options());
-  w.setOutput(folly::io::QueueAppender(&queue, 4096));
   size += w.writeObjectBegin();
   size += w.writeObjectName("tiny");
   size += w.writeDouble(1e-05);
@@ -176,11 +170,11 @@ TEST_P(JsonWriterTest, ScientificNotationFloats) {
   size += w.writeObjectName("whole");
   size += w.writeDouble(100000.0);
   size += w.writeObjectEnd();
-  auto output = queue.move()->toString();
-  EXPECT_EQ(size, output.size());
+  const auto json = output();
+  EXPECT_EQ(size, json.size());
   if (isJson5()) {
     EXPECT_EQ(
-        output,
+        json,
         R"({
   tiny: 1e-05,
   big: 1e+20,
@@ -189,7 +183,7 @@ TEST_P(JsonWriterTest, ScientificNotationFloats) {
 })");
   } else {
     EXPECT_EQ(
-        output,
+        json,
         R"({
   "tiny": 1e-05,
   "big": 1e+20,
@@ -200,10 +194,7 @@ TEST_P(JsonWriterTest, ScientificNotationFloats) {
 }
 
 TEST_P(JsonWriterTest, Containers) {
-  folly::IOBufQueue queue;
   std::size_t size = 0;
-  JsonWriter w(options());
-  w.setOutput(folly::io::QueueAppender(&queue, 4096));
   size += w.writeObjectBegin();
   size += w.writeObjectName("list");
   size += w.writeListBegin();
@@ -219,10 +210,10 @@ TEST_P(JsonWriterTest, Containers) {
   size += w.writeI32(4);
   size += w.writeObjectEnd();
   size += w.writeObjectEnd();
-  auto output = queue.move()->toString();
-  EXPECT_EQ(output.size(), size);
+  const auto json = output();
+  EXPECT_EQ(json.size(), size);
   if (isJson5()) {
-    EXPECT_EQ(output, R"({
+    EXPECT_EQ(json, R"({
   list: [
     1,
     3,
@@ -234,7 +225,7 @@ TEST_P(JsonWriterTest, Containers) {
   },
 })");
   } else {
-    EXPECT_EQ(output, R"({
+    EXPECT_EQ(json, R"({
   "list": [
     1,
     3,
@@ -249,63 +240,49 @@ TEST_P(JsonWriterTest, Containers) {
 }
 
 TEST_P(JsonWriterTest, CompactList) {
-  folly::IOBufQueue queue;
-  JsonWriter w(compactOptions());
-  w.setOutput(folly::io::QueueAppender(&queue, 4096));
-  w.writeListBegin();
-  w.writeI32(1);
-  w.writeI32(2);
-  w.writeListEnd();
+  JsonWriter compact(compactOptions());
+  compact.setOutput(appender());
+  compact.writeListBegin();
+  compact.writeI32(1);
+  compact.writeI32(2);
+  compact.writeListEnd();
   if (isJson5()) {
-    EXPECT_EQ(queue.move()->toString(), "[1,2,]");
+    EXPECT_EQ(output(), "[1,2,]");
   } else {
-    EXPECT_EQ(queue.move()->toString(), "[1,2]");
+    EXPECT_EQ(output(), "[1,2]");
   }
 }
 
 TEST_P(JsonWriterTest, CompactObject) {
-  folly::IOBufQueue queue;
-  JsonWriter w(compactOptions());
-  w.setOutput(folly::io::QueueAppender(&queue, 4096));
-  w.writeObjectBegin();
-  w.writeObjectName("name");
-  w.writeString("Alice");
-  w.writeObjectEnd();
+  JsonWriter compact(compactOptions());
+  compact.setOutput(appender());
+  compact.writeObjectBegin();
+  compact.writeObjectName("name");
+  compact.writeString("Alice");
+  compact.writeObjectEnd();
   if (isJson5()) {
-    EXPECT_EQ(queue.move()->toString(), "{name:\"Alice\",}");
+    EXPECT_EQ(output(), "{name:\"Alice\",}");
   } else {
-    EXPECT_EQ(queue.move()->toString(), R"({"name":"Alice"})");
+    EXPECT_EQ(output(), R"({"name":"Alice"})");
   }
 }
 
 TEST_P(JsonWriterTest, ListBeginThrowsAsObjectKey) {
-  folly::IOBufQueue queue;
-  JsonWriter w(options());
-  w.setOutput(folly::io::QueueAppender(&queue, 4096));
   w.writeObjectBegin();
   EXPECT_THROW(w.writeListBegin(), std::runtime_error);
 }
 
 TEST_P(JsonWriterTest, ObjectBeginThrowsAsObjectKey) {
-  folly::IOBufQueue queue;
-  JsonWriter w(options());
-  w.setOutput(folly::io::QueueAppender(&queue, 4096));
   w.writeObjectBegin();
   EXPECT_THROW(w.writeObjectBegin(), std::runtime_error);
 }
 
 TEST_P(JsonWriterTest, CloseWrongContainerType) {
-  folly::IOBufQueue queue;
-  JsonWriter w(options());
-  w.setOutput(folly::io::QueueAppender(&queue, 4096));
   w.writeListBegin();
   EXPECT_THROW(w.writeObjectEnd(), std::runtime_error);
 }
 
 TEST_P(JsonWriterTest, CloseObjectAsListThrows) {
-  folly::IOBufQueue queue;
-  JsonWriter w(options());
-  w.setOutput(folly::io::QueueAppender(&queue, 4096));
   w.writeObjectBegin();
   w.writeObjectName("k");
   w.writeI32(1);
@@ -313,78 +290,48 @@ TEST_P(JsonWriterTest, CloseObjectAsListThrows) {
 }
 
 TEST_P(JsonWriterTest, CloseListWhenNoneOpen) {
-  folly::IOBufQueue queue;
-  JsonWriter w(options());
-  w.setOutput(folly::io::QueueAppender(&queue, 4096));
   EXPECT_THROW(w.writeListEnd(), std::runtime_error);
 }
 
 TEST_P(JsonWriterTest, CloseObjectWhenNoneOpen) {
-  folly::IOBufQueue queue;
-  JsonWriter w(options());
-  w.setOutput(folly::io::QueueAppender(&queue, 4096));
   EXPECT_THROW(w.writeObjectEnd(), std::runtime_error);
 }
 
 TEST_P(JsonWriterTest, WriteObjectNameInList) {
-  folly::IOBufQueue queue;
-  JsonWriter w(options());
-  w.setOutput(folly::io::QueueAppender(&queue, 4096));
   w.writeListBegin();
   EXPECT_THROW(w.writeObjectName("k"), std::runtime_error);
 }
 
 TEST_P(JsonWriterTest, InvalidUtf8StringThrows) {
-  folly::IOBufQueue queue;
-  JsonWriter w(options());
-  w.setOutput(folly::io::QueueAppender(&queue, 4096));
   EXPECT_THROW(w.writeString("\x80\x81\x82"), std::runtime_error);
 }
 
 TEST_P(JsonWriterTest, IntegralAsObjectKeyThrows) {
-  folly::IOBufQueue queue;
-  JsonWriter w(options());
-  w.setOutput(folly::io::QueueAppender(&queue, 4096));
   w.writeObjectBegin();
   EXPECT_THROW(w.writeI32(1), std::runtime_error);
 }
 
 TEST_P(JsonWriterTest, BoolAsObjectKeyThrows) {
-  folly::IOBufQueue queue;
-  JsonWriter w(options());
-  w.setOutput(folly::io::QueueAppender(&queue, 4096));
   w.writeObjectBegin();
   EXPECT_THROW(w.writeBool(true), std::runtime_error);
 }
 
 TEST_P(JsonWriterTest, FloatAsObjectKeyThrows) {
-  folly::IOBufQueue queue;
-  JsonWriter w(options());
-  w.setOutput(folly::io::QueueAppender(&queue, 4096));
   w.writeObjectBegin();
   EXPECT_THROW(w.writeFloat(1.0F), std::runtime_error);
 }
 
 TEST_P(JsonWriterTest, DoubleAsObjectKeyThrows) {
-  folly::IOBufQueue queue;
-  JsonWriter w(options());
-  w.setOutput(folly::io::QueueAppender(&queue, 4096));
   w.writeObjectBegin();
   EXPECT_THROW(w.writeDouble(1.0), std::runtime_error);
 }
 
 TEST_P(JsonWriterTest, WriteStringAsObjectKeyThrows) {
-  folly::IOBufQueue queue;
-  JsonWriter w(options());
-  w.setOutput(folly::io::QueueAppender(&queue, 4096));
   w.writeObjectBegin();
   EXPECT_THROW(w.writeString("key"), std::runtime_error);
 }
 
 TEST_P(JsonWriterTest, ConsecutiveObjectNameThrows) {
-  folly::IOBufQueue queue;
-  JsonWriter w(options());
-  w.setOutput(folly::io::QueueAppender(&queue, 4096));
   w.writeObjectBegin();
   w.writeObjectName("a");
   EXPECT_THROW(w.writeObjectName("b"), std::runtime_error);
@@ -392,9 +339,6 @@ TEST_P(JsonWriterTest, ConsecutiveObjectNameThrows) {
 
 TEST_P(JsonWriterTest, NanInf) {
   if (isJson5()) {
-    folly::IOBufQueue queue;
-    JsonWriter w(options());
-    w.setOutput(folly::io::QueueAppender(&queue, 4096));
     w.writeListBegin();
     w.writeFloat(std::numeric_limits<float>::quiet_NaN());
     w.writeFloat(std::numeric_limits<float>::infinity());
@@ -404,7 +348,7 @@ TEST_P(JsonWriterTest, NanInf) {
     w.writeDouble(-std::numeric_limits<double>::infinity());
     w.writeListEnd();
     EXPECT_EQ(
-        queue.move()->toString(),
+        output(),
         R"([
   NaN,
   Infinity,
@@ -414,9 +358,6 @@ TEST_P(JsonWriterTest, NanInf) {
   -Infinity,
 ])");
   } else {
-    folly::IOBufQueue queue;
-    JsonWriter w(options());
-    w.setOutput(folly::io::QueueAppender(&queue, 4096));
     w.writeListBegin();
     EXPECT_THROW(
         w.writeFloat(std::numeric_limits<float>::quiet_NaN()),
@@ -441,8 +382,8 @@ TEST_P(JsonWriterTest, NanInf) {
 }
 
 TEST_P(JsonWriterTest, NoSetOutput) {
-  JsonWriter w(options());
-  EXPECT_THROW(w.writeObjectBegin(), std::exception);
+  JsonWriter writer(options());
+  EXPECT_THROW(writer.writeObjectBegin(), std::exception);
 }
 
 } // namespace
