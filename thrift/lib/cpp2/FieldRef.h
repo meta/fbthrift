@@ -63,6 +63,7 @@ struct assign_from_unique_ptr_fn;
 struct union_value_unsafe_fn;
 struct union_field_storage_fn;
 struct union_emplace_storage_fn;
+struct copy_union_shared_ptr_fn;
 struct is_non_optional_field_set_manually_or_by_serializer_fn;
 
 // Lets field ref specializations read each other's members. A
@@ -1730,6 +1731,7 @@ class union_field_ref {
   friend struct detail::union_field_storage_fn;
   friend struct detail::union_emplace_storage_fn;
   friend struct detail::move_to_unique_ptr_fn;
+  friend struct detail::copy_union_shared_ptr_fn;
 
   using is_cpp_ref_or_boxed = std::bool_constant<
       detail::is_boxed_value_ptr_v<std::remove_cvref_t<T>> ||
@@ -2061,7 +2063,35 @@ struct union_emplace_storage_fn {
   }
 };
 inline constexpr union_emplace_storage_fn union_emplace_storage{};
+
+struct copy_union_shared_ptr_fn {
+  template <typename T, typename A>
+    requires is_shared_ptr_v<std::remove_cvref_t<T>>
+  const std::remove_cvref_t<T>& operator()(union_field_ref<T, A> ref) const {
+    if (!ref.has_value()) {
+      // Matches the exception of the deprecated `get_*()` union getters, which
+      // callers of this function migrate from.
+      throw_on_bad_union_field_access();
+    }
+    return ref.storage_value_;
+  }
+};
 } // namespace detail
+
+//  copy_union_shared_ptr
+//
+//  Returns the `std::shared_ptr` that stores a shared `cpp.ref` union field,
+//  for code that needs the pointer itself rather than the pointee `value()`
+//  returns, e.g. to share ownership. The reference is to the union's storage:
+//  it is valid while the union exists and this field stays active. It is null
+//  if a null pointer was stored with the setter. Throws bad_union_field_access
+//  if the field isn't active.
+//
+//  Example:
+//
+//    std::shared_ptr<const Foo> ptr =
+//        apache::thrift::copy_union_shared_ptr(obj.foo());
+inline constexpr detail::copy_union_shared_ptr_fn copy_union_shared_ptr{};
 
 // A reference to a terse field of the possibly const-qualified type
 // std::remove_reference_t<T> in a Thrift-generated struct. Note, a terse field

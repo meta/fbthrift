@@ -456,6 +456,79 @@ TEST(UnionFieldTest, CppRefFieldStorage) {
   EXPECT_EQ(detail::union_field_storage(s.cppref()), nullptr);
 }
 
+TEST(UnionFieldTest, CopyUnionSharedPtr) {
+  CppRef s;
+  EXPECT_THROW(
+      copy_union_shared_ptr(s.shared_mutable()), bad_union_field_access);
+
+  s.shared_mutable().emplace().str() = "shared";
+  const std::shared_ptr<CppRef>& ref =
+      copy_union_shared_ptr(s.shared_mutable());
+  EXPECT_EQ(&ref, &s.get_shared_mutable());
+  EXPECT_EQ(&copy_union_shared_ptr(std::as_const(s).shared_mutable()), &ref);
+  EXPECT_EQ(ref->str(), "shared");
+  EXPECT_EQ(ref.use_count(), 1);
+  std::shared_ptr<CppRef> copy = copy_union_shared_ptr(s.shared_mutable());
+  EXPECT_EQ(ref.use_count(), 2);
+  EXPECT_EQ(copy, ref);
+  EXPECT_THROW(copy_union_shared_ptr(s.shared_const()), bad_union_field_access);
+}
+
+TEST(UnionFieldTest, CopyUnionSharedPtrConst) {
+  CppRef s;
+  s.shared_const().emplace("shared_const");
+  const std::shared_ptr<const std::string>& ref =
+      copy_union_shared_ptr(std::as_const(s).shared_const());
+  EXPECT_EQ(&ref, &s.get_shared_const());
+  EXPECT_EQ(*ref, "shared_const");
+}
+
+TEST(UnionFieldTest, CopyUnionSharedPtrInactiveMatchesGetter) {
+  CppRef s;
+  s.str() = "foo";
+  std::string getterMessage;
+  try {
+    s.get_shared_const();
+  } catch (const bad_union_field_access& e) {
+    getterMessage = e.what();
+  }
+  EXPECT_FALSE(getterMessage.empty());
+  try {
+    copy_union_shared_ptr(s.shared_const());
+    ADD_FAILURE() << "inactive field did not throw";
+  } catch (const bad_union_field_access& e) {
+    EXPECT_EQ(e.what(), getterMessage);
+  }
+}
+
+TEST(UnionFieldTest, CopyUnionSharedPtrNull) {
+  CppRef s;
+  s.set_shared_mutable(std::shared_ptr<CppRef>());
+  EXPECT_EQ(s.getType(), CppRef::Type::shared_mutable);
+  EXPECT_EQ(s.get_shared_mutable(), nullptr);
+  EXPECT_EQ(copy_union_shared_ptr(s.shared_mutable()), nullptr);
+}
+
+template <typename Ref>
+constexpr bool kCopiesSharedPtr =
+    std::is_invocable_v<decltype(copy_union_shared_ptr), Ref>;
+static_assert(
+    kCopiesSharedPtr<decltype(std::declval<CppRef&>().shared_mutable())>);
+static_assert(
+    kCopiesSharedPtr<decltype(std::declval<const CppRef&>().shared_const())>);
+static_assert(!kCopiesSharedPtr<decltype(std::declval<CppRef&>().cppref())>);
+static_assert(!kCopiesSharedPtr<decltype(std::declval<CppRef&>().box())>);
+static_assert(!kCopiesSharedPtr<decltype(std::declval<CppRef&>().str())>);
+static_assert(!kCopiesSharedPtr<decltype(std::declval<IOBufPtr&>().buf())>);
+static_assert(std::is_same_v<
+              decltype(copy_union_shared_ptr(
+                  std::declval<CppRef&>().shared_mutable())),
+              const std::shared_ptr<CppRef>&>);
+static_assert(
+    std::is_same_v<
+        decltype(copy_union_shared_ptr(std::declval<CppRef&>().shared_const())),
+        const std::shared_ptr<const std::string>&>);
+
 TEST(UnionFieldTest, CppRefCopyAndMove) {
   CppRef s;
   s.cppref().emplace().str() = "ref";
