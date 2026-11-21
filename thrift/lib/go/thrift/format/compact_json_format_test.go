@@ -697,3 +697,18 @@ func TestWriteJSONProtocolMap(t *testing.T) {
 func TestCompactJSONProtocolUnmatchedBeginEnd(t *testing.T) {
 	UnmatchedBeginEndProtocolTest(t, NewCompactJSONFormat)
 }
+
+func TestCompactJSONProtocolBadContainerSize(t *testing.T) {
+	for _, input := range []string{`["i64",-1]`, `["i64",1000000000]`} {
+		p := NewCompactJSONFormat(bytes.NewBufferString(input))
+		if _, _, err := p.ReadListBegin(); err == nil {
+			t.Fatalf("expected error reading list begin from %s", input)
+		}
+	}
+	for _, input := range []string{`["i32","i64",-1,{}]`, `["i32","i64",1000000000,{}]`} {
+		p := NewCompactJSONFormat(bytes.NewBufferString(input))
+		if _, _, _, err := p.ReadMapBegin(); err == nil {
+			t.Fatalf("expected error reading map begin from %s", input)
+		}
+	}
+}
