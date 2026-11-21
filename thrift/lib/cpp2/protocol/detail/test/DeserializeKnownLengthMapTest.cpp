@@ -26,7 +26,7 @@
 #include <gtest/gtest.h>
 #include <folly/container/F14Map.h>
 #include <folly/container/sorted_vector_types.h>
-#include <folly/container/test/TrackingTypes.h>
+#include <folly/container/testing/TrackingTypes.h>
 
 #include <thrift/lib/cpp2/protocol/detail/protocol_methods.h>
 
