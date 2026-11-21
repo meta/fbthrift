@@ -16,6 +16,7 @@
 
 #include <gtest/gtest.h>
 
+#include <functional>
 #include <map>
 #include <set>
 #include <vector>
@@ -447,7 +448,9 @@ TEST(References, CppRefUnionLessThan) {
     *smallerAddress.box_string() = "2";
     *largerAddress.box_string() = "1";
 
-    EXPECT_LT(smallerAddress.get_box_string(), largerAddress.get_box_string());
+    EXPECT_TRUE(
+        std::less<>{}(
+            &*smallerAddress.box_string(), &*largerAddress.box_string()));
     EXPECT_GT(*smallerAddress.box_string(), *largerAddress.box_string());
     EXPECT_GT(smallerAddress, largerAddress);
   };
@@ -456,7 +459,7 @@ TEST(References, CppRefUnionLessThan) {
   ReferringUnionWithCppRef b;
   a.set_box_string("");
   b.set_box_string("");
-  if (a.get_box_string() < b.get_box_string()) {
+  if (std::less<>{}(&*a.box_string(), &*b.box_string())) {
     check(a, b);
   } else {
     check(b, a);
@@ -470,25 +473,25 @@ TEST(References, CppRefUnionSetterGetter) {
 
   a.set_box_plain(p);
 
-  EXPECT_THROW(a.get_box_string(), bad_field_access);
-  EXPECT_THROW(a.get_box_self(), bad_field_access);
+  EXPECT_THROW(a.box_string().value(), bad_field_access);
+  EXPECT_THROW(a.box_self().value(), bad_field_access);
   EXPECT_EQ(a.box_plain()->field(), 42);
 
   a.set_box_string("foo");
 
-  EXPECT_THROW(a.get_box_plain(), bad_field_access);
-  EXPECT_THROW(a.get_box_self(), bad_field_access);
+  EXPECT_THROW(a.box_plain().value(), bad_field_access);
+  EXPECT_THROW(a.box_self().value(), bad_field_access);
   EXPECT_EQ(*a.box_string(), "foo");
 
   ReferringUnionWithCppRef b;
 
   b.set_box_self(a);
 
-  EXPECT_THROW(b.get_box_string(), bad_field_access);
-  EXPECT_THROW(b.get_box_plain(), bad_field_access);
-  EXPECT_THROW(b.box_self()->get_box_plain(), bad_field_access);
-  EXPECT_THROW(b.box_self()->get_box_self(), bad_field_access);
-  EXPECT_EQ(*b.box_self()->get_box_string(), "foo");
+  EXPECT_THROW(b.box_string().value(), bad_field_access);
+  EXPECT_THROW(b.box_plain().value(), bad_field_access);
+  EXPECT_THROW(b.box_self()->box_plain().value(), bad_field_access);
+  EXPECT_THROW(b.box_self()->box_self().value(), bad_field_access);
+  EXPECT_EQ(*b.box_self()->box_string(), "foo");
 }
 
 TEST(References, UnionFieldRef) {
