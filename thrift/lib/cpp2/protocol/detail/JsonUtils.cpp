@@ -31,4 +31,16 @@ bool isIdentifier(std::string_view sv, bool allowDollarSign) {
   return std::all_of(sv.begin(), sv.end(), isIdentifierChar);
 }
 
+bool isAsciiWithNothingToEscape(std::string_view s) {
+  // No early exit (`&=`, not `&&`): it stops clang from vectorizing the loop,
+  // and made writing a 10 KB string 12-20x slower in ProtocolBench. It would
+  // only help strings that need escaping, where escaping costs 9-40x more than
+  // this check (16 B to 10 KB), so it saved at most 2%.
+  bool result = true;
+  for (char c : s) {
+    result &= 32 <= c && c <= 127 && c != '"' && c != '\\';
+  }
+  return result;
+}
+
 } // namespace apache::thrift::json5::detail

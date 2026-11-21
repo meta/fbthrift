@@ -14,11 +14,13 @@
  * limitations under the License.
  */
 
+#include <thrift/lib/cpp2/protocol/detail/JsonUtils.h>
 #include <thrift/lib/cpp2/protocol/detail/JsonWriter.h>
 
 #include <limits>
 #include <gtest/gtest.h>
 #include <folly/io/IOBufQueue.h>
+#include <folly/json/json.h>
 
 namespace apache::thrift::json5::detail {
 namespace {
@@ -70,6 +72,19 @@ TEST_P(JsonWriterTest, Bool) {
 TEST_P(JsonWriterTest, StringWithEscapes) {
   w.writeString("Say \"\nHello\"!");
   EXPECT_EQ(output(), "\"Say \\\"\\nHello\\\"!\"");
+}
+
+// Strings the check accepts skip `folly::json::escapeString`, so it must copy
+// them unchanged.
+TEST(JsonUtilsTest, IsAsciiWithNothingToEscape) {
+  for (int i = 0; i < 256; ++i) {
+    const std::string s(1, static_cast<char>(i));
+    if (isAsciiWithNothingToEscape(s)) {
+      std::string escaped;
+      folly::json::escapeString(s, escaped, {.validate_utf8 = true});
+      EXPECT_EQ('"' + s + '"', escaped) << i;
+    }
+  }
 }
 
 TEST_P(JsonWriterTest, EmptyContainers) {
