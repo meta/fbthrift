@@ -184,14 +184,12 @@ std::optional<std::string> Json5ProtocolReader::tryReadObjectMapKey() {
 
 Json5Reader::Primitive Json5ProtocolReader::readPrimitiveOrMapKey(
     Json5Reader::FloatingPointPrecision precision) {
-  Json5Reader::Primitive primitive;
   if (auto key = tryReadObjectMapKey()) {
-    primitive = std::move(*key);
-  } else {
-    beginReadValue();
-    primitive = reader_.readPrimitive(precision);
-    endReadValue();
+    return std::move(*key);
   }
+  beginReadValue();
+  auto primitive = reader_.readPrimitive(precision);
+  endReadValue();
   return primitive;
 }
 
