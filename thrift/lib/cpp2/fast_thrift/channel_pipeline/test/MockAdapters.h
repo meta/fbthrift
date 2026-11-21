@@ -267,6 +267,28 @@ class MockTailHandler {
   int onWriteReadyCount_{0};
 };
 
+// The context-free observation callbacks can also record static dispatch.
+class StaticMockHeadHandler : public MockHeadHandler {
+ public:
+  template <typename Context>
+  Result onWrite(Context&, TypeErasedBox&& msg) noexcept {
+    return MockHeadHandler::onWrite(inertEndpointContext(), std::move(msg));
+  }
+
+  template <typename Context>
+  void onWriteReady(Context&) noexcept {
+    MockHeadHandler::onWriteReady(inertEndpointContext());
+  }
+};
+
+class StaticMockTailHandler : public MockTailHandler {
+ public:
+  template <typename Context>
+  Result onRead(Context&, TypeErasedBox&& msg) noexcept {
+    return MockTailHandler::onRead(inertEndpointContext(), std::move(msg));
+  }
+};
+
 /**
  * TestAllocator is a simple allocator for testing.
  * Tracks allocations for verification.

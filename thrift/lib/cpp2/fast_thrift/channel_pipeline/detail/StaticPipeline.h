@@ -29,6 +29,7 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/StaticHandler.h>
 
 #include <glog/logging.h>
+#include <folly/CppAttributes.h>
 
 #include <cstddef>
 #include <cstdint>
@@ -423,15 +424,15 @@ struct StaticPipelineEndpointResources {
   // Optionally pipeline-owned endpoints/allocator, co-located in this
   // allocation. Declared before handlers_ so they are destroyed after all
   // handlers; the allocator slot is declared first so it is destroyed last.
-  [[no_unique_address]] OptionalOwnedEndpointSlot<
+  [[FOLLY_ATTR_NO_UNIQUE_ADDRESS]] OptionalOwnedEndpointSlot<
       Allocator,
       Policy::ownAllocator,
       StaticEndpointRole::Allocator> ownedAllocator_;
-  [[no_unique_address]] OptionalOwnedEndpointSlot<
+  [[FOLLY_ATTR_NO_UNIQUE_ADDRESS]] OptionalOwnedEndpointSlot<
       TailHandler,
       Policy::ownTail,
       StaticEndpointRole::Tail> ownedTail_;
-  [[no_unique_address]] OptionalOwnedEndpointSlot<
+  [[FOLLY_ATTR_NO_UNIQUE_ADDRESS]] OptionalOwnedEndpointSlot<
       HeadHandler,
       Policy::ownHead,
       StaticEndpointRole::Head> ownedHead_;
@@ -456,9 +457,9 @@ struct SpecPipelineResources {
         executionDomain_(std::move(domain)),
         taskState_(std::move(state)) {}
 
-  [[no_unique_address]] Allocator allocator_;
-  [[no_unique_address]] Domain executionDomain_;
-  [[no_unique_address]] TaskState taskState_;
+  [[FOLLY_ATTR_NO_UNIQUE_ADDRESS]] Allocator allocator_;
+  [[FOLLY_ATTR_NO_UNIQUE_ADDRESS]] Domain executionDomain_;
+  [[FOLLY_ATTR_NO_UNIQUE_ADDRESS]] TaskState taskState_;
   AdapterStorage readAdapter_;
   AdapterStorage writeAdapter_;
 };
@@ -2115,13 +2116,13 @@ class StaticPipelineImpl final {
     }
   }
 
-  [[no_unique_address]] Resources resources_;
+  [[FOLLY_ATTR_NO_UNIQUE_ADDRESS]] Resources resources_;
   StaticHandlerStorage<Self, 0, StateTuple, Specs...> handlers_;
-  [[no_unique_address]] ErasedStaticHandlerStorage<kHasErasedHandlers>
-      staticHandlers_;
-  [[no_unique_address]] ErasedStaticSegmentStorage<kHasStaticSegments>
-      staticSegments_;
-  [[no_unique_address]] std::conditional_t<
+  [[FOLLY_ATTR_NO_UNIQUE_ADDRESS]] ErasedStaticHandlerStorage<
+      kHasErasedHandlers> staticHandlers_;
+  [[FOLLY_ATTR_NO_UNIQUE_ADDRESS]] ErasedStaticSegmentStorage<
+      kHasStaticSegments> staticSegments_;
+  [[FOLLY_ATTR_NO_UNIQUE_ADDRESS]] std::conditional_t<
       kUniformHandlers,
       NoStaticPipelineEndpointContext,
       EndpointContext> endpointContext_;
@@ -2137,8 +2138,8 @@ class StaticPipelineImpl final {
   Readiness readReadyWaiters_;
 
   // Declared last so owned peers are destroyed before the local storage.
-  [[no_unique_address]] StaticPipelineBindingStorage<Policy::enableBinding>
-      bindings_;
+  [[FOLLY_ATTR_NO_UNIQUE_ADDRESS]]
+  StaticPipelineBindingStorage<Policy::enableBinding> bindings_;
 };
 
 } // namespace apache::thrift::fast_thrift::channel_pipeline::detail

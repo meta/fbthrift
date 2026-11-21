@@ -19,6 +19,7 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/StaticContext.h>
 
+#include <folly/CppAttributes.h>
 #include <folly/IntrusiveList.h>
 
 #include <concepts>
@@ -117,10 +118,10 @@ class StaticHandlerReadyHooks<Handler, true> {
   }
 
  private:
-  [[no_unique_address]] std::conditional_t<requires(Handler& h) {
+  [[FOLLY_ATTR_NO_UNIQUE_ADDRESS]] std::conditional_t<requires(Handler& h) {
     h.writeReadyHook_;
   }, StaticReadyHook, NoStaticReadyHook> writeReadyHook_;
-  [[no_unique_address]] std::conditional_t<requires(Handler& h) {
+  [[FOLLY_ATTR_NO_UNIQUE_ADDRESS]] std::conditional_t<requires(Handler& h) {
     h.readReadyHook_;
   }, StaticReadyHook, NoStaticReadyHook> readReadyHook_;
 };
@@ -166,9 +167,9 @@ class StaticHandler {
   }
 
  private:
-  [[no_unique_address]] H handler_;
+  [[FOLLY_ATTR_NO_UNIQUE_ADDRESS]] H handler_;
   Context context_;
-  [[no_unique_address]] StaticHandlerReadyHooks<
+  [[FOLLY_ATTR_NO_UNIQUE_ADDRESS]] StaticHandlerReadyHooks<
       H,
       kUniformHandlers && (requires(H& h) { h.writeReadyHook_; } ||
                            requires(H& h) { h.readReadyHook_; })> readyHooks_;

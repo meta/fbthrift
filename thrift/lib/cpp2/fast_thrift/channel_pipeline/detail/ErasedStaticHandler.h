@@ -270,7 +270,8 @@ class ErasedStaticHandler {
   const Ops* ops_{nullptr};
 };
 
-static_assert(sizeof(ErasedStaticHandler) == 3 * sizeof(void*));
+static_assert(
+    sizeof(ErasedStaticHandler) == sizeof(HandlerId) + 2 * sizeof(void*));
 
 template <typename H, typename... Args>
 ErasedStaticHandler makeErasedStaticHandler(HandlerId id, Args&&... args) {
