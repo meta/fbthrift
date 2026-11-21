@@ -19,6 +19,7 @@
 #include <array>
 #include <bit>
 #include <span>
+#include <type_traits>
 
 #include <folly/Conv.h>
 
@@ -56,6 +57,16 @@ void CompactProtocolReader::readFieldBeginWithStateMediumSlow(
   readFieldBeginWithStateImpl(state, prevFieldId, byte);
 }
 
+namespace {
+// Floating-point elements are byte-swapped as integers of their width, as the
+// per-element float and double methods and Binary's bulk methods do.
+template <typename T>
+using SwapAs = std::conditional_t<
+    std::is_same_v<T, float>,
+    uint32_t,
+    std::conditional_t<std::is_same_v<T, double>, uint64_t, T>>;
+} // namespace
+
 // Function used with data types that are just sent as BE/LE bytes
 template <class Cursor, typename T, bool BE>
 static inline size_t writeUnencodedArithmeticVector(
@@ -70,8 +81,9 @@ static inline size_t writeUnencodedArithmeticVector(
     size_t loopBound = std::min(numElements, (c.length() / sizeof(T)) + i);
     size_t j = 0;
     for (; i < loopBound; ++i, ++j) {
-      T value = BE ? folly::Endian::big<T>(inputPtr[i]) : inputPtr[i];
-      folly::storeUnaligned<T>(outPtr + j * sizeof(T), value);
+      auto bits = std::bit_cast<SwapAs<T>>(inputPtr[i]);
+      folly::storeUnaligned<SwapAs<T>>(
+          outPtr + j * sizeof(T), BE ? folly::Endian::big(bits) : bits);
     }
     c.append(j * sizeof(T));
   }
@@ -729,10 +741,8 @@ static inline void readUnencodedArithmeticVector(
         std::min(numElements, i + currentRange.size() / sizeof(T));
     size_t j = 0;
     for (; i < loopBound; ++i, ++j) {
-      T value = BE ? folly::Endian::big<T>(
-                         folly::loadUnaligned<T>(inPtr + j * sizeof(T)))
-                   : folly::loadUnaligned<T>(inPtr + j * sizeof(T));
-      outputPtr[i] = value;
+      auto bits = folly::loadUnaligned<SwapAs<T>>(inPtr + j * sizeof(T));
+      outputPtr[i] = std::bit_cast<T>(BE ? folly::Endian::big(bits) : bits);
     }
     c.skipNoAdvance(j * sizeof(T));
     if (i < numElements) {

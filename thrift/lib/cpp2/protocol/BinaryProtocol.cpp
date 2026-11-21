@@ -16,6 +16,7 @@
 
 #include <thrift/lib/cpp2/protocol/BinaryProtocol.h>
 
+#include <bit>
 #include <type_traits>
 #include <folly/Conv.h>
 #include <folly/portability/GFlags.h>
@@ -30,6 +31,17 @@ FOLLY_GFLAGS_DEFINE_int32(
     "Limit on container size when deserializing thrift, 0 is no limit");
 
 namespace apache::thrift {
+
+namespace {
+// Floating-point elements are byte-swapped as integers of their width, as the
+// per-element float and double methods do: a swapped pattern held in a
+// floating-point register can be a signaling NaN, which x87 quiets.
+template <typename T>
+using SwapAs = std::conditional_t<
+    std::is_same_v<T, float>,
+    uint32_t,
+    std::conditional_t<std::is_same_v<T, double>, uint64_t, T>>;
+} // namespace
 
 template <typename Cursor>
 [[noreturn]] void BinaryProtocolReaderBase<Cursor>::throwBadVersionIdentifier(
@@ -68,7 +80,8 @@ void BinaryProtocolReaderBase<Cursor>::readArithmeticVector(
     size_t elementsInBuffer = std::min(numElements, in_.length() / size);
     for (numElements -= elementsInBuffer; elementsInBuffer;
          elementsInBuffer--, inputPtr += size, outputPtr++) {
-      *outputPtr = folly::Endian::big(folly::loadUnaligned<T>(inputPtr));
+      *outputPtr = std::bit_cast<T>(
+          folly::Endian::big(folly::loadUnaligned<SwapAs<T>>(inputPtr)));
     }
 
     in_.skip(inputPtr - in_.data());
@@ -79,7 +92,7 @@ void BinaryProtocolReaderBase<Cursor>::readArithmeticVector(
       // read in the current buffer. readBE to handle elements that straddle
       // buffer boundaries, skip over empty buffers, and throw on underflow.
       numElements--;
-      *outputPtr++ = in_.template readBE<T>();
+      *outputPtr++ = std::bit_cast<T>(in_.template readBE<SwapAs<T>>());
     }
   }
 }
@@ -139,8 +152,9 @@ inline size_t BinaryProtocolWriter::writeArithmeticVector(
     size_t i = 0;
     size_t loopLen = std::min(numElements, out_.length() / sizeof(T));
     for (; i < loopLen; ++i) {
-      folly::storeUnaligned<T>(
-          outPtr + i * sizeof(T), folly::Endian::big<T>(inputPtr[i]));
+      folly::storeUnaligned<SwapAs<T>>(
+          outPtr + i * sizeof(T),
+          folly::Endian::big(std::bit_cast<SwapAs<T>>(inputPtr[i])));
     }
     out_.append(i * sizeof(T));
     numElements -= i;

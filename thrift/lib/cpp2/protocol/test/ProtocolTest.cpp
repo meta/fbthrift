@@ -17,8 +17,12 @@
 #include <thrift/lib/cpp2/protocol/Protocol.h>
 
 #include <algorithm>
+#include <bit>
 #include <memory>
 #include <random>
+#include <string>
+#include <type_traits>
+#include <vector>
 #include <gtest/gtest.h>
 #include <folly/String.h>
 #include <thrift/lib/cpp2/protocol/BinaryProtocol.h>
@@ -575,6 +579,72 @@ void runReadBinaryIOBufTest(folly::tag_t<Writer, Reader>, size_t chunkSize) {
   }
 }
 
+// Elements that are signaling NaNs, or whose byte-swapped forms are: bulk
+// writes must match writeFloat/writeDouble, and bulk reads must return the
+// same bits.
+template <typename ProtocolWriter, typename ProtocolReader, typename T>
+void runSignalingNanListTest(folly::tag_t<ProtocolWriter, ProtocolReader>, T) {
+  using U = std::conditional_t<std::is_same_v<T, float>, uint32_t, uint64_t>;
+  using Methods = ::apache::thrift::detail::pm::protocol_methods<
+      ::apache::thrift::type_class::list<
+          ::apache::thrift::type_class::floating_point>,
+      std::vector<T>,
+      ::apache::thrift::type::list<::apache::thrift::type::infer_tag<T>>>;
+  U signalingNan;
+  U swappedSignalingNan;
+  if constexpr (std::is_same_v<T, float>) {
+    signalingNan = 0x7f800001;
+    swappedSignalingNan = 0x0100807f;
+  } else {
+    signalingNan = 0x7ff0000000000001;
+    swappedSignalingNan = 0x010000000000f07f;
+  }
+  std::vector<T> list(100);
+  for (size_t i = 0; i < list.size(); ++i) {
+    list[i] = std::bit_cast<T>(i % 2 ? signalingNan : swappedSignalingNan);
+  }
+
+  folly::IOBufQueue bulk;
+  ProtocolWriter bulkWriter;
+  bulkWriter.setOutput(&bulk);
+  Methods::write(bulkWriter, list);
+
+  folly::IOBufQueue scalar;
+  ProtocolWriter scalarWriter;
+  scalarWriter.setOutput(&scalar);
+  scalarWriter.writeListBegin(
+      std::is_same_v<T, float> ? TType::T_FLOAT : TType::T_DOUBLE,
+      static_cast<uint32_t>(list.size()));
+  for (T value : list) {
+    if constexpr (std::is_same_v<T, float>) {
+      scalarWriter.writeFloat(value);
+    } else {
+      scalarWriter.writeDouble(value);
+    }
+  }
+  scalarWriter.writeListEnd();
+
+  std::string bulkWire;
+  std::string scalarWire;
+  bulk.appendToString(bulkWire);
+  scalar.appendToString(scalarWire);
+  EXPECT_EQ(bulkWire, scalarWire);
+
+  // Chunks of 3 and 5 bytes split elements across buffers.
+  for (size_t chunkSize : {size_t(3), size_t(5), kUnchunked}) {
+    SCOPED_TRACE(chunkSize);
+    auto chain = makeChain(bulkWire, chunkSize, ChunkOwnership::AllUnmanaged);
+    ProtocolReader reader;
+    reader.setInput(chain.get());
+    std::vector<T> decoded;
+    Methods::read(reader, decoded);
+    ASSERT_EQ(decoded.size(), list.size());
+    for (size_t i = 0; i < list.size(); ++i) {
+      EXPECT_EQ(std::bit_cast<U>(decoded[i]), std::bit_cast<U>(list[i])) << i;
+    }
+  }
+}
+
 } // namespace
 
 TEST_F(ProtocolTest, read_binary_iobuf_binary) {
@@ -585,4 +655,14 @@ TEST_F(ProtocolTest, read_binary_iobuf_binary) {
 TEST_F(ProtocolTest, read_binary_iobuf_compact) {
   runReadBinaryIOBufTest(CompactProtocol{}, kUnchunked);
   runReadBinaryIOBufTest(CompactProtocol{}, 100);
+}
+
+TEST_F(ProtocolTest, signaling_nan_list_binary) {
+  runSignalingNanListTest(BinaryProtocol{}, float{});
+  runSignalingNanListTest(BinaryProtocol{}, double{});
+}
+
+TEST_F(ProtocolTest, signaling_nan_list_compact) {
+  runSignalingNanListTest(CompactProtocol{}, float{});
+  runSignalingNanListTest(CompactProtocol{}, double{});
 }
