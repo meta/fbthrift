@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from libc.stdint cimport uint16_t, int32_t, uint32_t, int64_t
+from libc.stdint cimport uint16_t, int32_t, uint32_t, int64_t, uint64_t
 from libcpp cimport bool as cbool
 from libcpp.memory cimport shared_ptr, unique_ptr
 from libcpp.string cimport string
@@ -63,6 +63,7 @@ cdef extern from "thrift/lib/cpp2/server/ThriftServer.h" \
         int32_t getActiveRequests()
         uint32_t getMaxRequests()
         void setMaxRequests(uint32_t maxRequests)
+        void setMaxDebugPayloadMemoryPerRequest(uint64_t limit)
         uint32_t getMaxConnections()
         void setMaxConnections(uint32_t maxConnections)
         int getListenBacklog()

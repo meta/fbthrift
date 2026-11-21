@@ -323,6 +323,19 @@ cdef class ThriftServer:
     def set_max_requests(self, max_requests):
         self.server.get().setMaxRequests(max_requests)
 
+    def set_max_debug_payload_memory_per_request(self, size):
+        """Set the per-request debug payload byte budget before serving.
+
+        Zero disables debug payload retention without disabling requests.
+        """
+        cdef uint64_t limit
+        if not isinstance(size, int) or isinstance(size, bool):
+            raise TypeError("size must be an integer")
+        if size < 0:
+            raise ValueError("size must be nonnegative")
+        limit = size
+        self.server.get().setMaxDebugPayloadMemoryPerRequest(limit)
+
     def get_max_connections(self):
         return self.server.get().getMaxConnections()
 
