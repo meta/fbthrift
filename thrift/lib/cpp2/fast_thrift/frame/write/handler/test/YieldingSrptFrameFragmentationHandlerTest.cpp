@@ -42,7 +42,6 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Event.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/handler/YieldingSrptFrameFragmentationHandler.h>
@@ -1448,24 +1447,6 @@ TEST(
 
 class YieldingSrptFrameFragmentationHandlerPipelineTest : public Test {
  protected:
-  cp::PipelineImpl::Ptr buildDynamicPipeline() {
-    return cp::PipelineBuilder<
-               PipelineHeadHandler,
-               PipelineTailHandler,
-               TestAllocator>()
-        .setEventBase(&eventBase_)
-        .setHead(&transport_)
-        .setTail(&app_)
-        .setAllocator(&allocator_)
-        .addNextOutbound<Handler>(
-            yielding_srpt_test_tag,
-            std::make_unique<Handler>(QuantumFragmentationHandlerConfig{
-                .streamQuantum = kQuantum,
-                .callbackBudget = kBudget,
-            }))
-        .build();
-  }
-
   auto buildStaticPipeline() {
     return cp::StaticPipelineBuilder<
                PipelineHeadHandler,
@@ -1503,26 +1484,6 @@ class YieldingSrptFrameFragmentationHandlerPipelineTest : public Test {
     EXPECT_THAT(transport_.writeCount(), Eq(1));
     eventBase_.loopOnce(EVLOOP_NONBLOCK);
     EXPECT_THAT(transport_.writeCount(), Eq(3));
-  }
-
-  cp::PipelineImpl::Ptr buildDynamicPipelineWithWriterAbove() {
-    return cp::PipelineBuilder<
-               PipelineHeadHandler,
-               PipelineTailHandler,
-               TestAllocator>()
-        .setEventBase(&eventBase_)
-        .setHead(&transport_)
-        .setTail(&app_)
-        .setAllocator(&allocator_)
-        .addNextOutbound<Handler>(
-            yielding_srpt_test_tag,
-            std::make_unique<Handler>(QuantumFragmentationHandlerConfig{
-                .streamQuantum = kQuantum,
-                .callbackBudget = kBudget,
-            }))
-        .addNextOutbound<QueueingWriter>(
-            queueing_writer_test_tag, std::make_unique<QueueingWriter>())
-        .build();
   }
 
   auto buildStaticPipelineWithWriterAbove() {
@@ -1595,21 +1556,8 @@ class YieldingSrptFrameFragmentationHandlerPipelineTest : public Test {
 
 TEST_F(
     YieldingSrptFrameFragmentationHandlerPipelineTest,
-    DynamicPipelineWiresWriteReady) {
-  verifyWriteReadyWiring(buildDynamicPipeline());
-}
-
-TEST_F(
-    YieldingSrptFrameFragmentationHandlerPipelineTest,
     StaticPipelineWiresWriteReady) {
   verifyWriteReadyWiring(buildStaticPipeline());
-}
-
-TEST_F(
-    YieldingSrptFrameFragmentationHandlerPipelineTest,
-    DynamicPipelineLetsTheWriterAboveSendAfterTheBlockClears) {
-  verifyWriterAboveSendsItsQueueAfterTheBlockClears(
-      buildDynamicPipelineWithWriterAbove());
 }
 
 TEST_F(
@@ -1622,7 +1570,7 @@ TEST_F(
 TEST_F(
     YieldingSrptFrameFragmentationHandlerPipelineTest,
     TheWriterAboveSendsAFrameLongerThanAQuantumAfterTheBlockClears) {
-  auto pipeline = buildDynamicPipelineWithWriterAbove();
+  auto pipeline = buildStaticPipelineWithWriterAbove();
   transport_.setWriteResult(cp::Result::Backpressure);
   (void)pipeline->fireWrite(makeFrame(FrameType::REQUEST_RESPONSE, 1, 50));
   for (const uint32_t streamId : {3, 5, 7}) {
@@ -1645,12 +1593,6 @@ TEST_F(
 
 TEST_F(
     YieldingSrptFrameFragmentationHandlerPipelineTest,
-    DynamicPipelineTailGetsOneWriteReadyPerDrain) {
-  verifyTailGetsOneWriteReadyPerDrain(buildDynamicPipeline());
-}
-
-TEST_F(
-    YieldingSrptFrameFragmentationHandlerPipelineTest,
     StaticPipelineTailGetsOneWriteReadyPerDrain) {
   verifyTailGetsOneWriteReadyPerDrain(buildStaticPipeline());
 }
@@ -1658,7 +1600,7 @@ TEST_F(
 TEST_F(
     YieldingSrptFrameFragmentationHandlerPipelineTest,
     AFullTransportGetsOneWriteReadyRound) {
-  auto pipeline = buildDynamicPipeline();
+  auto pipeline = buildStaticPipeline();
   transport_.setWriteResult(cp::Result::Backpressure);
   EXPECT_THAT(
       pipeline->fireWrite(makeFrame(FrameType::REQUEST_RESPONSE, 1, 50)),
@@ -1684,7 +1626,7 @@ TEST_F(
 TEST_F(
     YieldingSrptFrameFragmentationHandlerPipelineTest,
     TwoWritesPerWakeGetOneRoundPerWriteReady) {
-  auto pipeline = buildDynamicPipeline();
+  auto pipeline = buildStaticPipeline();
   transport_.setWriteResult(cp::Result::Backpressure);
   EXPECT_THAT(
       pipeline->fireWrite(makeFrame(FrameType::REQUEST_RESPONSE, 1, 50)),

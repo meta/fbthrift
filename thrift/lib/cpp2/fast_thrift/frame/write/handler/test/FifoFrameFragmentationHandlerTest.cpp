@@ -42,7 +42,6 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Event.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/handler/FifoFrameFragmentationHandler.h>
@@ -1499,20 +1498,6 @@ TEST_F(
 
 class FifoFrameFragmentationHandlerPipelineTest : public Test {
  protected:
-  cp::PipelineImpl::Ptr buildDynamicPipeline() {
-    return cp::PipelineBuilder<
-               PipelineHeadHandler,
-               PipelineTailHandler,
-               TestAllocator>()
-        .setEventBase(&eventBase_)
-        .setHead(&transport_)
-        .setTail(&app_)
-        .setAllocator(&allocator_)
-        .addNextOutbound<Handler>(
-            fifo_fragmentation_test_tag, std::make_unique<Handler>())
-        .build();
-  }
-
   auto buildStaticPipeline() {
     return cp::StaticPipelineBuilder<
                PipelineHeadHandler,
@@ -1546,22 +1531,6 @@ class FifoFrameFragmentationHandlerPipelineTest : public Test {
     EXPECT_THAT(transport_.writeCount(), Eq(1));
     eventBase_.loopOnce(EVLOOP_NONBLOCK);
     EXPECT_THAT(transport_.writeCount(), Eq(2));
-  }
-
-  cp::PipelineImpl::Ptr buildDynamicPipelineWithWriterAbove() {
-    return cp::PipelineBuilder<
-               PipelineHeadHandler,
-               PipelineTailHandler,
-               TestAllocator>()
-        .setEventBase(&eventBase_)
-        .setHead(&transport_)
-        .setTail(&app_)
-        .setAllocator(&allocator_)
-        .addNextOutbound<Handler>(
-            fifo_fragmentation_test_tag, std::make_unique<Handler>())
-        .addNextOutbound<QueueingWriter>(
-            queueing_writer_test_tag, std::make_unique<QueueingWriter>())
-        .build();
   }
 
   auto buildStaticPipelineWithWriterAbove() {
@@ -1628,20 +1597,8 @@ class FifoFrameFragmentationHandlerPipelineTest : public Test {
 };
 
 TEST_F(
-    FifoFrameFragmentationHandlerPipelineTest, DynamicPipelineWiresWriteReady) {
-  verifyWriteReadyWiring(buildDynamicPipeline());
-}
-
-TEST_F(
     FifoFrameFragmentationHandlerPipelineTest, StaticPipelineWiresWriteReady) {
   verifyWriteReadyWiring(buildStaticPipeline());
-}
-
-TEST_F(
-    FifoFrameFragmentationHandlerPipelineTest,
-    DynamicPipelineLetsTheWriterAboveSendAfterTheBlockClears) {
-  verifyWriterAboveSendsItsQueueAfterTheBlockClears(
-      buildDynamicPipelineWithWriterAbove());
 }
 
 TEST_F(
@@ -1654,7 +1611,7 @@ TEST_F(
 TEST_F(
     FifoFrameFragmentationHandlerPipelineTest,
     TheWriterAboveSendsAfterAFrameQueuedWhileBlocked) {
-  auto pipeline = buildDynamicPipelineWithWriterAbove();
+  auto pipeline = buildStaticPipelineWithWriterAbove();
   transport_.setWriteResult(cp::Result::Backpressure);
   (void)pipeline->fireWrite(makeFrame(FrameType::REQUEST_RESPONSE, 1, 50));
   for (const uint32_t streamId : {3, 5, 7}) {
@@ -1679,12 +1636,6 @@ TEST_F(
 
 TEST_F(
     FifoFrameFragmentationHandlerPipelineTest,
-    DynamicPipelineTailGetsOneWriteReadyPerDrain) {
-  verifyTailGetsOneWriteReadyPerDrain(buildDynamicPipeline());
-}
-
-TEST_F(
-    FifoFrameFragmentationHandlerPipelineTest,
     StaticPipelineTailGetsOneWriteReadyPerDrain) {
   verifyTailGetsOneWriteReadyPerDrain(buildStaticPipeline());
 }
@@ -1692,7 +1643,7 @@ TEST_F(
 TEST_F(
     FifoFrameFragmentationHandlerPipelineTest,
     AFullTransportGetsOneWriteReadyRound) {
-  auto pipeline = buildDynamicPipeline();
+  auto pipeline = buildStaticPipeline();
   transport_.setWriteResult(cp::Result::Backpressure);
   EXPECT_THAT(
       pipeline->fireWrite(makeFrame(FrameType::REQUEST_RESPONSE, 1, 50)),
@@ -1718,7 +1669,7 @@ TEST_F(
 TEST_F(
     FifoFrameFragmentationHandlerPipelineTest,
     TwoWritesPerWakeGetOneRoundPerWriteReady) {
-  auto pipeline = buildDynamicPipeline();
+  auto pipeline = buildStaticPipeline();
   transport_.setWriteResult(cp::Result::Backpressure);
   EXPECT_THAT(
       pipeline->fireWrite(makeFrame(FrameType::REQUEST_RESPONSE, 1, 50)),

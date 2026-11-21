@@ -55,8 +55,7 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Event.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/handler/FrameWriteCompletionHandler.h>
@@ -181,12 +180,40 @@ struct FixtureT {
           apache::thrift::fast_thrift::transport::test::PassthroughParser>;
   using Batcher = LoopBatchingFrameHandlerT<Tracker>;
 
+  static auto buildPipeline(
+      folly::EventBase& evb,
+      TransportHandler& transport,
+      RocketClientAppAdapter& app,
+      SimpleBufferAllocator& allocator) {
+    auto builder = StaticPipelineBuilder<
+                       TransportHandler,
+                       RocketClientAppAdapter,
+                       SimpleBufferAllocator>()
+                       .setEventBase(&evb)
+                       .setHead(&transport)
+                       .setTail(&app)
+                       .setAllocator(&allocator)
+                       .template addNextOutbound<Batcher>(batching_tag)
+                       .template addNextDuplex<BenchSerializer>(serializer_tag);
+    if constexpr (WithHandler) {
+      return std::move(builder)
+          .template addNextDuplex<BenchWriteCompleteSubscriber>(subscriber_tag)
+          .template addNextDuplex<
+              FrameWriteCompletionHandlerT<RocketClientEventFactory>>(
+              handler_tag)
+          .build();
+    } else {
+      return std::move(builder).build();
+    }
+  }
+
   folly::EventBase evb;
   BenchAsyncTransport* testTransport{nullptr};
   RocketClientAppAdapter::Ptr appAdapter{new RocketClientAppAdapter()};
   typename TransportHandler::Ptr transportHandler;
-  PipelineImpl::Ptr pipeline;
   SimpleBufferAllocator allocator;
+  decltype(buildPipeline(
+      evb, *transportHandler, *appAdapter, allocator)) pipeline;
 
   FixtureT() = default;
   FixtureT(const FixtureT&) = delete;
@@ -207,40 +234,7 @@ struct FixtureT {
     testTransport = static_cast<BenchAsyncTransport*>(transport.get());
     transportHandler = TransportHandler::create(std::move(transport));
 
-    // PipelineBuilder is move/copy-deleted, so the whole chain must be a single
-    // expression — branch on whether the handler is wired in.
-    if constexpr (WithHandler) {
-      pipeline =
-          PipelineBuilder<
-              TransportHandler,
-              RocketClientAppAdapter,
-              SimpleBufferAllocator>()
-              .setEventBase(&evb)
-              .setHead(transportHandler.get())
-              .setTail(appAdapter.get())
-              .setAllocator(&allocator)
-              .template addNextOutbound<Batcher>(batching_tag)
-              .template addNextDuplex<BenchSerializer>(serializer_tag)
-              .template addNextDuplex<BenchWriteCompleteSubscriber>(
-                  subscriber_tag)
-              .template addNextDuplex<
-                  FrameWriteCompletionHandlerT<RocketClientEventFactory>>(
-                  handler_tag)
-              .build();
-    } else {
-      pipeline = PipelineBuilder<
-                     TransportHandler,
-                     RocketClientAppAdapter,
-                     SimpleBufferAllocator>()
-                     .setEventBase(&evb)
-                     .setHead(transportHandler.get())
-                     .setTail(appAdapter.get())
-                     .setAllocator(&allocator)
-                     .template addNextOutbound<Batcher>(batching_tag)
-                     .template addNextDuplex<BenchSerializer>(serializer_tag)
-                     .build();
-    }
-
+    pipeline = buildPipeline(evb, *transportHandler, *appAdapter, allocator);
     transportHandler->setPipeline(pipeline.get());
     transportHandler->onConnect();
   }

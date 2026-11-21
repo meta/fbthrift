@@ -17,7 +17,7 @@
 #include <thrift/lib/cpp2/fast_thrift/frame/write/handler/BatchingFrameHandler.h>
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
 
 #include <gtest/gtest.h>
@@ -743,15 +743,15 @@ TEST_F(BatchingFrameHandlerTest, FlushListUnlinksOnHandlerTeardown) {
 // Pipeline Integration Tests
 // ============================================================================
 //
-// These tests exercise backpressure through a real PipelineImpl, verifying
+// These tests exercise backpressure through a static pipeline, verifying
 // the write-ready registration and dispatch chain end-to-end. The unit tests
 // above call onWriteReady() directly and bypass the pipeline.
 
 namespace apache::thrift::fast_thrift::frame::write::handler {
 
 namespace cp = apache::thrift::fast_thrift::channel_pipeline;
-using cp::test::MockHeadHandler;
-using cp::test::MockTailHandler;
+using cp::test::StaticMockHeadHandler;
+using cp::test::StaticMockTailHandler;
 using cp::test::TestAllocator;
 
 HANDLER_TAG(batching);
@@ -765,18 +765,20 @@ class BatchingFrameHandlerPipelineTest : public ::testing::Test {
     handlerPtr_ = nullptr;
   }
 
-  cp::PipelineImpl::Ptr buildPipeline(BatchingHandlerConfig config = {}) {
-    auto handler = std::make_unique<BatchingFrameHandler>(config);
-    handlerPtr_ = handler.get();
-    return cp::
-        PipelineBuilder<MockHeadHandler, MockTailHandler, TestAllocator>()
+  auto buildPipeline(BatchingHandlerConfig config = {}) {
+    auto pipeline =
+        cp::StaticPipelineBuilder<
+            StaticMockHeadHandler,
+            StaticMockTailHandler,
+            TestAllocator>()
             .setEventBase(&evb_)
             .setHead(&transport_)
             .setTail(&app_)
             .setAllocator(&allocator_)
-            .addNextOutbound<BatchingFrameHandler>(
-                batching_tag, std::move(handler))
+            .addNextOutbound<BatchingFrameHandler>(batching_tag, config)
             .build();
+    handlerPtr_ = &pipeline->handler(batching_tag);
+    return pipeline;
   }
 
   static cp::TypeErasedBox wrapFrame(std::unique_ptr<folly::IOBuf> buf) {
@@ -790,8 +792,8 @@ class BatchingFrameHandlerPipelineTest : public ::testing::Test {
   }
 
   folly::EventBase evb_;
-  MockHeadHandler transport_;
-  MockTailHandler app_;
+  StaticMockHeadHandler transport_;
+  StaticMockTailHandler app_;
   TestAllocator allocator_;
   BatchingFrameHandler* handlerPtr_{nullptr};
 };

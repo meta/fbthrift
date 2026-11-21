@@ -40,7 +40,6 @@
 #include <folly/io/async/EventBase.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/IntervalBatchingHandlerConfig.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/handler/WriteCompletionTracker.h>
@@ -302,11 +301,5 @@ class IntervalBatchingFrameHandlerT {
 // don't opt into per-write tracking.
 using IntervalBatchingFrameHandler =
     IntervalBatchingFrameHandlerT<NoOpWriteCompletionTracker>;
-
-static_assert(
-    apache::thrift::fast_thrift::channel_pipeline::OutboundHandler<
-        IntervalBatchingFrameHandler,
-        apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl>,
-    "IntervalBatchingFrameHandler must satisfy OutboundHandler concept");
 
 } // namespace apache::thrift::fast_thrift::frame::write::handler

@@ -19,7 +19,6 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameParser.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/ParsedFrame.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/ComposedFrame.h>
@@ -120,11 +119,5 @@ class FrameCodecHandler {
   template <typename Context>
   void onWriteReady(Context& /*ctx*/) noexcept {}
 };
-
-static_assert(
-    apache::thrift::fast_thrift::channel_pipeline::DuplexHandler<
-        FrameCodecHandler,
-        apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl>,
-    "FrameCodecHandler must satisfy DuplexHandler concept");
 
 } // namespace apache::thrift::fast_thrift::frame::handler
