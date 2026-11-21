@@ -20,7 +20,7 @@
 #include <folly/io/IOBuf.h>
 #include <folly/synchronization/Baton.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
 
 #include <mutex>
 #include <vector>
@@ -65,8 +65,8 @@ class TestServerAppAdapter {
     lastException_ = std::move(ew);
   }
 
-  Result onRead(
-      channel_pipeline::detail::ContextImpl&, TypeErasedBox&& msg) noexcept {
+  template <typename Context>
+  Result onRead(Context&, TypeErasedBox&& msg) noexcept {
     std::lock_guard lock(messagesMutex_);
     messageCount_++;
     messages_.push_back(std::move(msg));
@@ -79,7 +79,7 @@ class TestServerAppAdapter {
       auto& bytes = messages_.back().get<BytesPtr>();
       auto response = bytes->clone();
       auto responseBox = TypeErasedBox(std::move(response));
-      (void)pipeline_->fireWrite(std::move(responseBox));
+      (void)pipeline_.fireWrite(std::move(responseBox));
     }
 
     return onReadResult_;
@@ -91,7 +91,7 @@ class TestServerAppAdapter {
    * Set the pipeline reference for echo-back functionality.
    */
   void setPipeline(
-      apache::thrift::fast_thrift::channel_pipeline::PipelineImpl* pipeline) {
+      apache::thrift::fast_thrift::channel_pipeline::PipelineRef pipeline) {
     pipeline_ = pipeline;
   }
 
@@ -164,8 +164,7 @@ class TestServerAppAdapter {
   folly::exception_wrapper lastException_;
 
   // Echo configuration
-  apache::thrift::fast_thrift::channel_pipeline::PipelineImpl* pipeline_{
-      nullptr};
+  apache::thrift::fast_thrift::channel_pipeline::PipelineRef pipeline_;
   bool echoEnabled_{false};
 };
 

@@ -19,6 +19,7 @@
 #include <array>
 #include <cstdint>
 #include <cstring>
+#include <functional>
 #include <memory>
 
 #include <folly/io/IOBuf.h>
@@ -33,9 +34,9 @@
 #endif
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockHandler.h>
 
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameLengthParser.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/FrameLength.h>
@@ -46,7 +47,7 @@ namespace apache::thrift::fast_thrift::transport {
 
 using namespace apache::thrift::fast_thrift::channel_pipeline;
 using namespace apache::thrift::fast_thrift::channel_pipeline::test;
-using MockAppHandler = MockTailHandler; // App receives reads (Tail)
+using MockAppHandler = StaticMockTailHandler;
 using namespace testing;
 
 // These tests exercise the transport itself, not any wire protocol, so they
@@ -103,6 +104,59 @@ class BufferCallbackSocket : public folly::AsyncSocket {
 };
 } // namespace
 
+class TransportExceptionObserver {
+ public:
+  template <typename Context>
+  Result onRead(Context& ctx, TypeErasedBox&& msg) noexcept {
+    return ctx.fireRead(std::move(msg));
+  }
+  template <typename Context>
+  Result onWrite(Context& ctx, TypeErasedBox&& msg) noexcept {
+    return ctx.fireWrite(std::move(msg));
+  }
+  template <typename Context>
+  void onException(Context& ctx, folly::exception_wrapper&& error) noexcept {
+    ++exceptions_;
+    if (onException_) {
+      onException_(error);
+    } else {
+      ctx.fireException(std::move(error));
+    }
+  }
+
+  void setOnException(
+      std::function<void(const folly::exception_wrapper&)> callback) {
+    onException_ = std::move(callback);
+  }
+
+  template <typename Context>
+  void onPipelineActive(Context&) noexcept {
+    ++activated_;
+  }
+  template <typename Context>
+  void onPipelineInactive(Context&) noexcept {
+    ++deactivated_;
+  }
+  template <typename Context>
+  void onReadReady(Context&) noexcept {}
+  template <typename Context>
+  void onWriteReady(Context&) noexcept {}
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+
+  int exceptionCount() const { return exceptions_; }
+  int pipelineActivatedCount() const { return activated_; }
+  int pipelineDeactivatedCount() const { return deactivated_; }
+
+ private:
+  std::function<void(const folly::exception_wrapper&)> onException_;
+  int exceptions_{0};
+  int activated_{0};
+  int deactivated_{0};
+};
+
 HANDLER_TAG(exception_handler);
 
 class TransportHandlerTest : public ::testing::Test {
@@ -112,18 +166,17 @@ class TransportHandlerTest : public ::testing::Test {
   /**
    * Creates a TransportHandler and Pipeline.
    */
-  std::pair<TransportHandler::Ptr, PipelineImpl::Ptr>
-  createHandlerAndPipeline() {
+  std::pair<TransportHandler::Ptr, PipelineOwner> createHandlerAndPipeline() {
     return createHandlerAndPipeline(nullptr);
   }
 
-  std::pair<TransportHandler::Ptr, PipelineImpl::Ptr> createHandlerAndPipeline(
+  std::pair<TransportHandler::Ptr, PipelineOwner> createHandlerAndPipeline(
       folly::AsyncTransport* wrappedTransport) {
     return createHandlerAndPipeline<TransportHandler>(wrappedTransport);
   }
 
   template <typename Handler>
-  std::pair<typename Handler::Ptr, PipelineImpl::Ptr> createHandlerAndPipeline(
+  std::pair<typename Handler::Ptr, PipelineOwner> createHandlerAndPipeline(
       folly::AsyncTransport* wrappedTransport) {
     auto socket = folly::AsyncTransport::UniquePtr(
         new NiceMock<folly::test::MockAsyncTransport>());
@@ -139,7 +192,7 @@ class TransportHandlerTest : public ::testing::Test {
     auto handler = Handler::create(std::move(socket), 256, 4096);
 
     auto pipeline =
-        PipelineBuilder<Handler, MockAppHandler, SimpleBufferAllocator>()
+        StaticPipelineBuilder<Handler, MockAppHandler, SimpleBufferAllocator>()
             .setEventBase(&evb_)
             .setHead(handler.get())
             .setTail(&appHandler_)
@@ -148,11 +201,11 @@ class TransportHandlerTest : public ::testing::Test {
 
     handler->setPipeline(pipeline.get());
 
-    return {std::move(handler), std::move(pipeline)};
+    return {std::move(handler), PipelineOwner(std::move(pipeline))};
   }
 
   /**
-   * Creates a TransportHandler and Pipeline with a MockHandler that can capture
+   * Creates a TransportHandler and pipeline with an observer that can capture
    * exceptions.
    *
    * Pipeline must die before TransportHandler so its destruction defers via
@@ -168,8 +221,8 @@ class TransportHandlerTest : public ::testing::Test {
    */
   struct HandlerAndPipelineWithExceptionHandler {
     TransportHandler::Ptr handler;
-    MockHandler* mockHandler;
-    PipelineImpl::Ptr pipeline;
+    TransportExceptionObserver* mockHandler;
+    PipelineOwner pipeline;
   };
 
   HandlerAndPipelineWithExceptionHandler
@@ -185,24 +238,22 @@ class TransportHandlerTest : public ::testing::Test {
 
     auto handler = TransportHandler::create(std::move(socket), 256, 4096);
 
-    auto mockHandler = std::make_unique<MockHandler>();
-    auto* mockHandlerPtr = mockHandler.get();
-
-    auto pipeline = PipelineBuilder<
-                        TransportHandler,
-                        MockAppHandler,
-                        SimpleBufferAllocator>()
-                        .setEventBase(&evb_)
-                        .setHead(handler.get())
-                        .setTail(&appHandler_)
-                        .setAllocator(&allocator_)
-                        .addNextDuplex<MockHandler>(
-                            exception_handler_tag, std::move(mockHandler))
-                        .build();
-
+    auto pipeline =
+        StaticPipelineBuilder<
+            TransportHandler,
+            MockAppHandler,
+            SimpleBufferAllocator>()
+            .setEventBase(&evb_)
+            .setHead(handler.get())
+            .setTail(&appHandler_)
+            .setAllocator(&allocator_)
+            .addNextDuplex<TransportExceptionObserver>(exception_handler_tag)
+            .build();
+    auto* mockHandlerPtr = &pipeline->handler(exception_handler_tag);
     handler->setPipeline(pipeline.get());
 
-    return {std::move(handler), mockHandlerPtr, std::move(pipeline)};
+    return {
+        std::move(handler), mockHandlerPtr, PipelineOwner(std::move(pipeline))};
   }
 
   folly::EventBase evb_;
@@ -835,7 +886,7 @@ TEST_F(TransportHandlerTest, ReadBufferComesFromPipelineAllocator) {
 
   TestAllocator allocator;
   auto pipeline =
-      PipelineBuilder<TransportHandler, MockAppHandler, TestAllocator>()
+      StaticPipelineBuilder<TransportHandler, MockAppHandler, TestAllocator>()
           .setEventBase(&evb_)
           .setHead(handler.get())
           .setTail(&appHandler_)
@@ -967,13 +1018,15 @@ TEST_F(TransportHandlerTest, SetPipelineWithoutResetDeath) {
 
   // Create a second pipeline
   MockAppHandler appHandler2;
-  auto pipeline2 =
-      PipelineBuilder<TransportHandler, MockAppHandler, SimpleBufferAllocator>()
-          .setEventBase(&evb_)
-          .setHead(handler.get())
-          .setTail(&appHandler2)
-          .setAllocator(&allocator_)
-          .build();
+  auto pipeline2 = StaticPipelineBuilder<
+                       TransportHandler,
+                       MockAppHandler,
+                       SimpleBufferAllocator>()
+                       .setEventBase(&evb_)
+                       .setHead(handler.get())
+                       .setTail(&appHandler2)
+                       .setAllocator(&allocator_)
+                       .build();
 
   EXPECT_DEBUG_DEATH(handler->setPipeline(pipeline2.get()), "");
 }
@@ -1043,10 +1096,8 @@ TEST_F(TransportHandlerTest, RejectsANonMovableParserOnNativeIoUring) {
   NonMovableTransportHandler::Ptr handler =
       NonMovableTransportHandler::createWithParser(
           std::move(socket), NonMovableParser());
-  std::unique_ptr<MockHandler> mockHandler = std::make_unique<MockHandler>();
-  MockHandler* const mockHandlerPtr = mockHandler.get();
-  PipelineImpl::Ptr pipeline =
-      PipelineBuilder<
+  auto pipeline =
+      StaticPipelineBuilder<
           NonMovableTransportHandler,
           MockAppHandler,
           SimpleBufferAllocator>()
@@ -1054,9 +1105,9 @@ TEST_F(TransportHandlerTest, RejectsANonMovableParserOnNativeIoUring) {
           .setHead(handler.get())
           .setTail(&appHandler_)
           .setAllocator(&allocator_)
-          .addNextDuplex<MockHandler>(
-              exception_handler_tag, std::move(mockHandler))
+          .addNextDuplex<TransportExceptionObserver>(exception_handler_tag)
           .build();
+  auto* mockHandlerPtr = &pipeline->handler(exception_handler_tag);
   handler->setPipeline(pipeline.get());
 
   handler->onConnect();
@@ -1101,19 +1152,18 @@ TEST_F(TransportHandlerTest, SetPipelineIsInert) {
 
   auto handler = TransportHandler::create(std::move(socket), 256, 4096);
 
-  auto mockHandler = std::make_unique<MockHandler>();
-  auto* mockHandlerPtr = mockHandler.get();
-
   auto pipeline =
-      PipelineBuilder<TransportHandler, MockAppHandler, SimpleBufferAllocator>()
+      StaticPipelineBuilder<
+          TransportHandler,
+          MockAppHandler,
+          SimpleBufferAllocator>()
           .setEventBase(&evb_)
           .setHead(handler.get())
           .setTail(&appHandler_)
           .setAllocator(&allocator_)
-          .addNextDuplex<MockHandler>(
-              exception_handler_tag, std::move(mockHandler))
+          .addNextDuplex<TransportExceptionObserver>(exception_handler_tag)
           .build();
-
+  auto* mockHandlerPtr = &pipeline->handler(exception_handler_tag);
   handler->setPipeline(pipeline.get());
 
   EXPECT_EQ(mockHandlerPtr->pipelineActivatedCount(), 0);
@@ -1135,19 +1185,18 @@ TEST_F(TransportHandlerTest, OnConnectActivatesPipelineWhenSocketGood) {
 
   auto handler = TransportHandler::create(std::move(socket), 256, 4096);
 
-  auto mockHandler = std::make_unique<MockHandler>();
-  auto* mockHandlerPtr = mockHandler.get();
-
   auto pipeline =
-      PipelineBuilder<TransportHandler, MockAppHandler, SimpleBufferAllocator>()
+      StaticPipelineBuilder<
+          TransportHandler,
+          MockAppHandler,
+          SimpleBufferAllocator>()
           .setEventBase(&evb_)
           .setHead(handler.get())
           .setTail(&appHandler_)
           .setAllocator(&allocator_)
-          .addNextDuplex<MockHandler>(
-              exception_handler_tag, std::move(mockHandler))
+          .addNextDuplex<TransportExceptionObserver>(exception_handler_tag)
           .build();
-
+  auto* mockHandlerPtr = &pipeline->handler(exception_handler_tag);
   handler->setPipeline(pipeline.get());
   EXPECT_EQ(mockHandlerPtr->pipelineActivatedCount(), 0);
 
@@ -1164,14 +1213,11 @@ TEST_F(TransportHandlerTest, ReadEOFFiresExceptionToPipeline) {
   handler->onConnect();
 
   bool exceptionReceived = false;
-  mockHandler->setOnException(
-      [&](apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
-          const folly::exception_wrapper& e) {
-        exceptionReceived = true;
-        EXPECT_TRUE(e.is_compatible_with<
-                    apache::thrift::transport::TTransportException>());
-        return Result::Success;
-      });
+  mockHandler->setOnException([&](const folly::exception_wrapper& e) {
+    exceptionReceived = true;
+    EXPECT_TRUE(
+        e.is_compatible_with<apache::thrift::transport::TTransportException>());
+  });
 
   handler->readEOF();
 
@@ -1186,14 +1232,11 @@ TEST_F(TransportHandlerTest, ReadErrFiresExceptionToPipeline) {
   handler->onConnect();
 
   bool exceptionReceived = false;
-  mockHandler->setOnException(
-      [&](apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
-          const folly::exception_wrapper& e) {
-        exceptionReceived = true;
-        EXPECT_TRUE(e.is_compatible_with<
-                    apache::thrift::transport::TTransportException>());
-        return Result::Success;
-      });
+  mockHandler->setOnException([&](const folly::exception_wrapper& e) {
+    exceptionReceived = true;
+    EXPECT_TRUE(
+        e.is_compatible_with<apache::thrift::transport::TTransportException>());
+  });
 
   folly::AsyncSocketException ex(
       folly::AsyncSocketException::NETWORK_ERROR, "read error");
@@ -1210,13 +1253,10 @@ TEST_F(TransportHandlerTest, WriteErrFiresExceptionToPipeline) {
   handler->onConnect();
 
   bool exceptionReceived = false;
-  mockHandler->setOnException(
-      [&](apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
-          const folly::exception_wrapper& e) {
-        exceptionReceived = true;
-        EXPECT_TRUE(e.is_compatible_with<folly::AsyncSocketException>());
-        return Result::Success;
-      });
+  mockHandler->setOnException([&](const folly::exception_wrapper& e) {
+    exceptionReceived = true;
+    EXPECT_TRUE(e.is_compatible_with<folly::AsyncSocketException>());
+  });
 
   folly::AsyncTransport::WriteCallback* capturedCallback = nullptr;
 
@@ -1244,13 +1284,10 @@ TEST_F(TransportHandlerTest, OnCloseWithExceptionFiresExceptionToPipeline) {
   handler->onConnect();
 
   bool exceptionReceived = false;
-  mockHandler->setOnException(
-      [&](apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
-          const folly::exception_wrapper& e) {
-        exceptionReceived = true;
-        EXPECT_TRUE(e.is_compatible_with<std::runtime_error>());
-        return Result::Success;
-      });
+  mockHandler->setOnException([&](const folly::exception_wrapper& e) {
+    exceptionReceived = true;
+    EXPECT_TRUE(e.is_compatible_with<std::runtime_error>());
+  });
 
   handler->close(
       folly::make_exception_wrapper<std::runtime_error>("connection closed"));
@@ -1385,13 +1422,15 @@ TEST_F(TransportHandlerTest, StateTransitions) {
   EXPECT_FALSE(handler->debugState().hasPipeline);
   EXPECT_FALSE(handler->debugState().isDraining);
 
-  auto pipeline =
-      PipelineBuilder<TransportHandler, MockAppHandler, SimpleBufferAllocator>()
-          .setEventBase(&evb_)
-          .setHead(handler.get())
-          .setTail(&appHandler_)
-          .setAllocator(&allocator_)
-          .build();
+  auto pipeline = StaticPipelineBuilder<
+                      TransportHandler,
+                      MockAppHandler,
+                      SimpleBufferAllocator>()
+                      .setEventBase(&evb_)
+                      .setHead(handler.get())
+                      .setTail(&appHandler_)
+                      .setAllocator(&allocator_)
+                      .build();
 
   handler->setPipeline(pipeline.get());
   EXPECT_EQ(handler->state(), TransportHandler::State::Ready);
@@ -1505,13 +1544,15 @@ TEST_F(TransportHandlerTest, MultiWriteErrCascadeReachesClosed) {
   ON_CALL(*mockSocket, getEventBase()).WillByDefault(Return(&evb_));
 
   auto handler = TransportHandler::create(std::move(socket), 256, 4096);
-  auto pipeline =
-      PipelineBuilder<TransportHandler, MockAppHandler, SimpleBufferAllocator>()
-          .setEventBase(&evb_)
-          .setHead(handler.get())
-          .setTail(&appHandler_)
-          .setAllocator(&allocator_)
-          .build();
+  auto pipeline = StaticPipelineBuilder<
+                      TransportHandler,
+                      MockAppHandler,
+                      SimpleBufferAllocator>()
+                      .setEventBase(&evb_)
+                      .setHead(handler.get())
+                      .setTail(&appHandler_)
+                      .setAllocator(&allocator_)
+                      .build();
   handler->setPipeline(pipeline.get());
   handler->onConnect();
 
@@ -1605,13 +1646,15 @@ TEST_F(TransportHandlerTest, DrainTimeoutForcesClose) {
   auto handler = TransportHandler::create(
       std::move(socket), 256, 4096, std::chrono::milliseconds(20));
 
-  auto pipeline =
-      PipelineBuilder<TransportHandler, MockAppHandler, SimpleBufferAllocator>()
-          .setEventBase(&evb_)
-          .setHead(handler.get())
-          .setTail(&appHandler_)
-          .setAllocator(&allocator_)
-          .build();
+  auto pipeline = StaticPipelineBuilder<
+                      TransportHandler,
+                      MockAppHandler,
+                      SimpleBufferAllocator>()
+                      .setEventBase(&evb_)
+                      .setHead(handler.get())
+                      .setTail(&appHandler_)
+                      .setAllocator(&allocator_)
+                      .build();
   handler->setPipeline(pipeline.get());
   handler->onConnect();
 
@@ -1693,7 +1736,7 @@ class TransportHandlerEventTest : public ::testing::Test {
     appHandler_.reset();
   }
 
-  std::pair<HandlerT::Ptr, PipelineImpl::Ptr> createHandlerAndPipeline() {
+  std::pair<HandlerT::Ptr, PipelineOwner> createHandlerAndPipeline() {
     auto socket = folly::AsyncTransport::UniquePtr(
         new NiceMock<folly::test::MockAsyncTransport>());
     mockSocket_ = static_cast<folly::test::MockAsyncTransport*>(socket.get());
@@ -1702,14 +1745,14 @@ class TransportHandlerEventTest : public ::testing::Test {
 
     auto handler = HandlerT::create(std::move(socket), 256, 4096);
     auto pipeline =
-        PipelineBuilder<HandlerT, MockAppHandler, SimpleBufferAllocator>()
+        StaticPipelineBuilder<HandlerT, MockAppHandler, SimpleBufferAllocator>()
             .setEventBase(&evb_)
             .setHead(handler.get())
             .setTail(&appHandler_)
             .setAllocator(&allocator_)
             .build();
     handler->setPipeline(pipeline.get());
-    return {std::move(handler), std::move(pipeline)};
+    return {std::move(handler), PipelineOwner(std::move(pipeline))};
   }
 
   folly::EventBase evb_;

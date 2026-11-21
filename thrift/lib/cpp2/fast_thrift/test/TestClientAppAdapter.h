@@ -21,7 +21,7 @@
 #include <folly/io/async/EventBase.h>
 #include <folly/synchronization/Baton.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
 
 #include <mutex>
 #include <vector>
@@ -65,8 +65,8 @@ class TestClientAppAdapter {
     lastException_ = std::move(ew);
   }
 
-  Result onRead(
-      channel_pipeline::detail::ContextImpl&, TypeErasedBox&& msg) noexcept {
+  template <typename Context>
+  Result onRead(Context&, TypeErasedBox&& msg) noexcept {
     std::lock_guard lock(responsesMutex_);
     responseCount_++;
     responses_.push_back(std::move(msg));
@@ -94,7 +94,7 @@ class TestClientAppAdapter {
       sentCount_++;
 
       auto msg = TypeErasedBox(std::move(data));
-      result = pipeline_->fireWrite(std::move(msg));
+      result = pipeline_.fireWrite(std::move(msg));
     });
 
     return result;
@@ -113,7 +113,7 @@ class TestClientAppAdapter {
    * Set the pipeline reference for sending messages.
    */
   void setPipeline(
-      apache::thrift::fast_thrift::channel_pipeline::PipelineImpl* pipeline) {
+      apache::thrift::fast_thrift::channel_pipeline::PipelineRef pipeline) {
     pipeline_ = pipeline;
   }
 
@@ -183,8 +183,7 @@ class TestClientAppAdapter {
 
  private:
   // Client state
-  apache::thrift::fast_thrift::channel_pipeline::PipelineImpl* pipeline_{
-      nullptr};
+  apache::thrift::fast_thrift::channel_pipeline::PipelineRef pipeline_;
   folly::EventBase* evb_{nullptr};
   mutable std::mutex responsesMutex_;
   int responseCount_{0};
