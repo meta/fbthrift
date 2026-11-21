@@ -15,6 +15,7 @@
  */
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/ExecutionDomain.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/FollyExecutorDomain.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineAdapter.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineSpec.h>
@@ -24,6 +25,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -463,7 +465,7 @@ struct ConfiguredTaskState {
   int calls{0};
 };
 
-struct ConfiguredDomain {
+struct ConfiguredDomain : InlineExecution {
   explicit ConfiguredDomain(int value) : value(value) {}
   int value;
 };
@@ -504,7 +506,7 @@ TEST(PipelineSpecTest, LambdaCopiesConfiguredResourcesIntoEachPipeline) {
   EXPECT_EQ(domain.value, 7);
 }
 
-struct DefaultConfiguredDomain {
+struct DefaultConfiguredDomain : InlineExecution {
   int value{30};
 };
 
@@ -533,15 +535,25 @@ struct OwnedTaskState {
   std::unique_ptr<OwnedTaskResource> resource;
 };
 
-struct MoveOnlyDomain {
+struct MoveOnlyDomain : InlineExecution {
+  explicit MoveOnlyDomain(std::unique_ptr<int> value)
+      : value(std::move(value)) {}
   std::unique_ptr<int> value;
 };
 
 static_assert(kCanReuseWith<HandlerSpec, MoveOnlyDomain>);
+static_assert(!std::copy_constructible<MoveOnlyDomain>);
+static_assert(!kCanBuildWith<HandlerSpec, std::unique_ptr<int>>);
+static_assert(!kCanReuseWith<HandlerSpec, std::unique_ptr<int>>);
 
 struct MoveOnlyDomainHandler : StatelessEcho {
   template <typename C>
   Result onRead(C& ctx, TypeErasedBox&&) noexcept {
+    static_assert(
+        std::same_as<decltype(ctx.executionDomain()), MoveOnlyDomain&>);
+    static_assert(std::same_as<
+                  decltype(std::as_const(ctx).executionDomain()),
+                  const MoveOnlyDomain&>);
     auto& state = ctx.taskState();
     state.observed->push_back(++state.calls);
     state.observed->push_back(++*ctx.executionDomain().value);
@@ -1465,6 +1477,92 @@ TEST(PipelineSpecTest, InlineExecutionReturnsHandlerResultSynchronously) {
     EXPECT_EQ(calls, 2);
     EXPECT_EQ(observedDomain, readDomain);
   }
+}
+
+struct RvalueOnlyInlineTask {
+  std::unique_ptr<int> value;
+  int* observed;
+
+  void operator()() && noexcept { *observed = *value; }
+};
+
+static_assert(std::is_empty_v<InlineExecution>);
+static_assert(noexcept(std::declval<InlineExecution&>().post([] {})));
+static_assert(!FollyExecutorDomain<InlineExecution>);
+
+struct ExecutorViewDomain : InlineExecution {
+  folly::Executor* getExecutor() const noexcept;
+};
+
+static_assert(FollyExecutorDomain<ExecutorViewDomain>);
+
+TEST(InlineExecutionTest, ForwardsRvalueOnlyCallbacks) {
+  InlineExecution domain;
+  int observed = 0;
+  domain.post(RvalueOnlyInlineTask{std::make_unique<int>(42), &observed});
+  EXPECT_EQ(observed, 42);
+  domain.post(RvalueOnlyInlineTask{std::make_unique<int>(7), &observed});
+  EXPECT_EQ(observed, 7);
+  domain.post([&] {
+    domain.post(RvalueOnlyInlineTask{std::make_unique<int>(9), &observed});
+    EXPECT_EQ(observed, 7);
+  });
+  EXPECT_EQ(observed, 9);
+}
+
+TEST(InlineExecutionTest, RunsImmediatelyOnCallerThread) {
+  InlineExecution domain;
+  EXPECT_EQ(domain, InlineExecution{});
+  const auto caller = std::this_thread::get_id();
+  int calls = 0;
+  auto task = [&calls, caller, &domain, value = std::make_unique<int>(42)]() {
+    EXPECT_EQ(std::this_thread::get_id(), caller);
+    EXPECT_TRUE(domain.inRunningDomainThread());
+    EXPECT_EQ(*value, 42);
+    ++calls;
+  };
+  EXPECT_FALSE(domain.inRunningDomainThread());
+  domain.post(std::move(task));
+  EXPECT_EQ(calls, 1);
+  EXPECT_FALSE(domain.inRunningDomainThread());
+  domain.post([&calls, caller, value = std::make_unique<int>(7)]() {
+    EXPECT_EQ(std::this_thread::get_id(), caller);
+    EXPECT_EQ(*value, 7);
+    ++calls;
+  });
+  EXPECT_EQ(calls, 2);
+}
+
+TEST(InlineExecutionTest, QueuesNestedPostsInOrder) {
+  InlineExecution domain;
+  InlineExecution otherDomain;
+  std::vector<int> order;
+  domain.post([&] {
+    order.push_back(1);
+    domain.post([&] {
+      EXPECT_TRUE(domain.inRunningDomainThread());
+      order.push_back(3);
+      otherDomain.post([&] { order.push_back(5); });
+      order.push_back(4);
+    });
+    order.push_back(2);
+  });
+  EXPECT_EQ(order, (std::vector<int>{1, 2, 3, 4, 5}));
+  EXPECT_FALSE(domain.inRunningDomainThread());
+}
+
+TEST(InlineExecutionTest, SerializesOnlyWithinCallingThread) {
+  InlineExecution domain;
+  bool otherThreadInside = true;
+  bool otherThreadRan = false;
+  domain.post([&] {
+    std::thread([&] {
+      otherThreadInside = domain.inRunningDomainThread();
+      domain.post([&] { otherThreadRan = true; });
+    }).join();
+    EXPECT_TRUE(otherThreadRan);
+  });
+  EXPECT_FALSE(otherThreadInside);
 }
 
 template <std::size_t Count>

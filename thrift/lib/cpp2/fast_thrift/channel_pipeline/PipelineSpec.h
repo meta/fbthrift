@@ -22,6 +22,7 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/StaticPipeline.h>
 
+#include <concepts>
 #include <tuple>
 #include <type_traits>
 #include <utility>
