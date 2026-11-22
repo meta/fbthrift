@@ -48,7 +48,7 @@ void ConnectionListener::connectionAccepted(
   }
 
   folly::AsyncTransport::UniquePtr transport(socket.release());
-  const auto result = pipeline_->fireRead(
+  const auto result = pipeline_.fireRead(
       channel_pipeline::erase_and_box(
           ConnectionMessage{
               .transport = std::move(transport),

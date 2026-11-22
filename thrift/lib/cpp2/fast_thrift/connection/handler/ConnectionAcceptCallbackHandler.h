@@ -23,7 +23,6 @@
 #include <folly/ExceptionWrapper.h>
 #include <folly/logging/xlog.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 
 namespace apache::thrift::fast_thrift::connection {

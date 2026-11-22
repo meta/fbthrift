@@ -43,8 +43,8 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/BufferAllocator.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/common/Messages.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/handler/ConnectionTLSHandler.h>
@@ -64,9 +64,9 @@ namespace {
 
 class NoopHead {
  public:
+  template <typename Context>
   channel_pipeline::Result onWrite(
-      channel_pipeline::detail::ContextImpl&,
-      channel_pipeline::TypeErasedBox&&) noexcept {
+      Context&, channel_pipeline::TypeErasedBox&&) noexcept {
     return channel_pipeline::Result::Success;
   }
   void onReadReady() noexcept {}
@@ -81,9 +81,9 @@ class CapturingTail {
   using OnRead = folly::Function<void(conn::ConnectionMessage&&) noexcept>;
   explicit CapturingTail(OnRead onRead) noexcept : onRead_(std::move(onRead)) {}
 
+  template <typename Context>
   channel_pipeline::Result onRead(
-      channel_pipeline::detail::ContextImpl&,
-      channel_pipeline::TypeErasedBox&& msg) noexcept {
+      Context&, channel_pipeline::TypeErasedBox&& msg) noexcept {
     auto m = msg.take<conn::ConnectionMessage>();
     if (onRead_) {
       onRead_(std::move(m));
@@ -163,23 +163,19 @@ struct Harness {
         });
 
     evb->runInEventBaseThreadAndWait([&] {
-      channel_pipeline::PipelineBuilder<
-          NoopHead,
-          CapturingTail,
-          channel_pipeline::SimpleBufferAllocator>
-          builder;
-      builder.setEventBase(evb)
-          .setHead(head.get())
-          .setTail(tail.get())
-          .setAllocator(&allocator)
-          .addNextDuplex<conn::handler::ConnectionTLSHandler>(
-              tls_bench_handler_tag,
-              *evb,
-              policy,
-              tlsParamsObservable->getObserver(),
-              &allocator,
-              /*maxPendingConnectionsPerWorker=*/0);
-      pipeline = builder.build();
+      pipeline =
+          channel_pipeline::StaticPipelineBuilder<NoopHead, CapturingTail>()
+              .setEventBase(evb)
+              .setHead(head.get())
+              .setTail(tail.get())
+              .setAllocator(&allocator)
+              .addNextDuplexTemplate<conn::handler::ConnectionTLSHandler>(
+                  tls_bench_handler_tag,
+                  std::ref(*evb),
+                  policy,
+                  tlsParamsObservable->getObserver(),
+                  /*maxPendingConnectionsPerWorker=*/0)
+              .build();
       pipeline->activate();
     });
   }
@@ -239,7 +235,7 @@ struct Harness {
   channel_pipeline::SimpleBufferAllocator allocator;
   std::unique_ptr<NoopHead> head;
   std::unique_ptr<CapturingTail> tail;
-  channel_pipeline::PipelineImpl::Ptr pipeline;
+  channel_pipeline::PipelineOwner pipeline;
   folly::Baton<> done;
   folly::AsyncTransport::UniquePtr lastTransport;
 };

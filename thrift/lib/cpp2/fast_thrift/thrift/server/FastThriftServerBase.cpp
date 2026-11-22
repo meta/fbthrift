@@ -45,8 +45,6 @@
 
 namespace apache::thrift::fast_thrift::thrift {
 
-using channel_pipeline::PipelineBuilder;
-using channel_pipeline::PipelineImpl;
 using channel_pipeline::SimpleBufferAllocator;
 
 namespace {

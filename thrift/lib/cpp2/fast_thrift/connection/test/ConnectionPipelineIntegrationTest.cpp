@@ -27,21 +27,17 @@
 #include <folly/io/async/EventBase.h>
 #include <folly/io/async/ScopedEventBaseThread.h>
 #include <folly/net/NetworkSocket.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/BufferAllocator.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/SocketOptions.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/common/Messages.h>
+#include <thrift/lib/cpp2/fast_thrift/connection/endpoint/ConnectionInstaller.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/endpoint/ConnectionListener.h>
 
 namespace apache::thrift::fast_thrift::connection {
 
-using channel_pipeline::PipelineBuilder;
-using channel_pipeline::Result;
 using channel_pipeline::SimpleBufferAllocator;
-using channel_pipeline::TypeErasedBox;
-using channel_pipeline::test::MockTailHandler;
 
 namespace {
 
@@ -99,27 +95,26 @@ class ConnectionPipelineIntegrationTest : public ::testing::Test {
 };
 
 TEST_F(ConnectionPipelineIntegrationTest, ListenerDeliversConfiguredSocket) {
-  MockTailHandler tail;
   ConnectionMessage captured;
-  tail.setOnReadCallback([&captured](TypeErasedBox&& msg) {
-    captured = msg.take<ConnectionMessage>();
-    return Result::Success;
+  size_t readCount = 0;
+  ConnectionInstaller<ConnectionMessage> tail([&](ConnectionMessage message) {
+    ++readCount;
+    captured = std::move(message);
   });
 
   SocketOptions socketOptions;
   socketOptions.tcpNoDelay = true;
   socketOptions.trafficClass = 72;
   ConnectionListener listener(*evb_, socketOptions);
-  auto pipeline = PipelineBuilder<
+  auto pipeline = channel_pipeline::StaticPipelineBuilder<
                       ConnectionListener,
-                      MockTailHandler,
-                      SimpleBufferAllocator>()
+                      ConnectionInstaller<ConnectionMessage>>()
                       .setEventBase(evb_)
                       .setHead(&listener)
                       .setTail(&tail)
                       .setAllocator(&allocator_)
                       .build();
-  listener.setPipeline(pipeline.get());
+  listener.setPipeline(channel_pipeline::PipelineRef(*pipeline));
   evb_->runInEventBaseThreadAndWait([&] { pipeline->activate(); });
 
   auto sockets = makeTcpSocketPair();
@@ -133,7 +128,7 @@ TEST_F(ConnectionPipelineIntegrationTest, ListenerDeliversConfiguredSocket) {
         folly::AsyncServerSocket::AcceptCallback::AcceptInfo{});
   });
 
-  EXPECT_EQ(tail.readCount(), 1);
+  EXPECT_EQ(readCount, 1);
   EXPECT_EQ(captured.clientAddr, clientAddr);
   auto* socket = dynamic_cast<folly::AsyncSocket*>(captured.transport.get());
   ASSERT_NE(socket, nullptr);

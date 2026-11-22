@@ -46,8 +46,8 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/BufferAllocator.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/SocketOptions.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/common/Messages.h>
@@ -78,9 +78,9 @@ namespace {
 // Head: TLS pipeline produces no outbound, so any onWrite here is a bug.
 class NoopHead {
  public:
+  template <typename Context>
   channel_pipeline::Result onWrite(
-      channel_pipeline::detail::ContextImpl&,
-      channel_pipeline::TypeErasedBox&&) noexcept {
+      Context&, channel_pipeline::TypeErasedBox&&) noexcept {
     return channel_pipeline::Result::Success;
   }
   void onReadReady() noexcept {}
@@ -98,9 +98,9 @@ class CapturingTail {
 
   explicit CapturingTail(OnRead onRead) noexcept : onRead_(std::move(onRead)) {}
 
+  template <typename Context>
   channel_pipeline::Result onRead(
-      channel_pipeline::detail::ContextImpl&,
-      channel_pipeline::TypeErasedBox&& msg) noexcept {
+      Context&, channel_pipeline::TypeErasedBox&& msg) noexcept {
     auto m = msg.take<conn::ConnectionMessage>();
     if (onRead_) {
       onRead_(std::move(m));
@@ -230,24 +230,20 @@ class TLSPipelineIntegrationTest : public ::testing::Test {
     tail_->setOnException(std::move(onException));
 
     evb_->runInEventBaseThreadAndWait([&] {
-      channel_pipeline::PipelineBuilder<
-          NoopHead,
-          CapturingTail,
-          channel_pipeline::SimpleBufferAllocator>
-          builder;
-      builder.setEventBase(evb_)
-          .setHead(head_.get())
-          .setTail(tail_.get())
-          .setAllocator(&allocator_)
-          .addNextDuplex<conn::handler::ConnectionTLSHandler>(
-              tls_test_handler_tag,
-              *evb_,
-              policy,
-              tlsParamsObservable_->getObserver(),
-              &allocator_,
-              maxPendingConnectionsPerWorker,
-              &stats_);
-      pipeline_ = builder.build();
+      pipeline_ =
+          channel_pipeline::StaticPipelineBuilder<NoopHead, CapturingTail>()
+              .setEventBase(evb_)
+              .setHead(head_.get())
+              .setTail(tail_.get())
+              .setAllocator(&allocator_)
+              .addNextDuplexTemplate<conn::handler::ConnectionTLSHandler>(
+                  tls_test_handler_tag,
+                  std::ref(*evb_),
+                  policy,
+                  tlsParamsObservable_->getObserver(),
+                  maxPendingConnectionsPerWorker,
+                  &stats_)
+              .build();
       pipeline_->activate();
     });
   }
@@ -321,7 +317,7 @@ class TLSPipelineIntegrationTest : public ::testing::Test {
   fts_sec::TLSStatsShard stats_;
   std::unique_ptr<NoopHead> head_;
   std::unique_ptr<CapturingTail> tail_;
-  channel_pipeline::PipelineImpl::Ptr pipeline_;
+  channel_pipeline::PipelineOwner pipeline_;
 };
 
 TEST(SocketOptionsTest, DefaultsPendingConnectionsPerWorkerToClassicLimit) {
