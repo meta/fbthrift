@@ -35,8 +35,8 @@
 #include <folly/synchronization/Baton.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/handler/FrameCodecHandler.h>
@@ -64,9 +64,9 @@
 
 namespace apache::thrift::fast_thrift::rocket::test {
 
-using channel_pipeline::PipelineBuilder;
-using channel_pipeline::PipelineImpl;
+using channel_pipeline::PipelineOwner;
 using channel_pipeline::Result;
+using channel_pipeline::StaticPipelineBuilder;
 using channel_pipeline::TypeErasedBox;
 using channel_pipeline::test::TestAllocator;
 
@@ -217,7 +217,7 @@ class RocketE2ETest : public ::testing::Test {
 
       // Build client pipeline
       clientPipeline_ =
-          PipelineBuilder<
+          StaticPipelineBuilder<
               apache::thrift::fast_thrift::transport::TransportHandlerT<
                   apache::thrift::fast_thrift::transport::
                       NoOpWriteCompleteEventFactory,
@@ -258,7 +258,7 @@ class RocketE2ETest : public ::testing::Test {
 
       // Build server pipeline
       serverPipeline_ =
-          PipelineBuilder<
+          StaticPipelineBuilder<
               apache::thrift::fast_thrift::transport::TransportHandlerT<
                   apache::thrift::fast_thrift::transport::
                       NoOpWriteCompleteEventFactory,
@@ -334,8 +334,8 @@ class RocketE2ETest : public ::testing::Test {
       apache::thrift::fast_thrift::transport::NoOpWriteCompleteEventFactory,
       apache::thrift::fast_thrift::frame::read::FrameLengthParser>::Ptr
       serverTransport_;
-  PipelineImpl::Ptr clientPipeline_;
-  PipelineImpl::Ptr serverPipeline_;
+  PipelineOwner clientPipeline_;
+  PipelineOwner serverPipeline_;
   TestAllocator clientAllocator_;
   TestAllocator serverAllocator_;
 

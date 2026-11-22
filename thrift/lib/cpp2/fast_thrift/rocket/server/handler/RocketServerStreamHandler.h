@@ -25,7 +25,6 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/ErrorCode.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameViews.h>
@@ -315,9 +314,9 @@ class RocketServerStreamHandler {
 
 // Note: unlike stateless handlers, this handler reaches pipeline-level state
 // via `ctx.state<RocketStreamContexts>()`, which lives on the TypedContext view
-// (not the bare ContextImpl). Handlers never name TypedContext, so the
+// exposed to handlers. The
 // DuplexHandler concept is verified when the handler is added to a
-// state-registering pipeline (see PipelineBuilder::addNextDuplex), matching
-// RocketServerStreamStateHandler.
+// state-registering pipeline (see StaticPipelineBuilder::addNextDuplex),
+// matching RocketServerStreamStateHandler.
 
 } // namespace apache::thrift::fast_thrift::rocket::server::handler

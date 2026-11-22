@@ -41,13 +41,13 @@ namespace apache::thrift::fast_thrift::rocket::server::handler {
  *
  * Per-stream state lives in the pipeline-level `RocketStreamContexts` state,
  * registered once per connection via
- * `PipelineBuilder::addState<RocketStreamContexts>()` and reached here through
- * `ctx.state<RocketStreamContexts>()`. This handler owns the entry lifecycle
- * (insert on stream-open, erase on terminal) so per-pattern handlers can share
- * the same map without their own bookkeeping. The pipeline owns the map's
- * lifetime; this handler does not clear it on removal. When cancellation is
- * disabled, the RR-only server path stamps request identity directly and does
- * not access this map.
+ * `StaticPipelineBuilder::addState<RocketStreamContexts>()` and reached here
+ * through `ctx.state<RocketStreamContexts>()`. This handler owns the entry
+ * lifecycle (insert on stream-open, erase on terminal) so per-pattern handlers
+ * can share the same map without their own bookkeeping. The pipeline owns the
+ * map's lifetime; this handler does not clear it on removal. When cancellation
+ * is disabled, the RR-only server path stamps request identity directly and
+ * does not access this map.
  *
  * Pipeline position:
  *   App <-> StreamHandler <-> FrameHandler <-> Transport

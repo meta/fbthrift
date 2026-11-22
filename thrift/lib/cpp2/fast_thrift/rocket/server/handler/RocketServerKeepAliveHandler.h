@@ -29,9 +29,7 @@
 #include <folly/logging/xlog.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/ErrorCode.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameViews.h>
@@ -296,14 +294,5 @@ class RocketServerKeepAliveHandler {
   Clock::time_point lastProbe_{};
   bool active_{false};
 };
-
-static_assert(
-    apache::thrift::fast_thrift::channel_pipeline::DuplexHandler<
-        RocketServerKeepAliveHandler,
-        // The concept check needs the pipeline's context type, which has no
-        // public name.
-        // NOLINTNEXTLINE(facebook-hte-DetailCall)
-        apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl>,
-    "RocketServerKeepAliveHandler must satisfy DuplexHandler concept");
 
 } // namespace apache::thrift::fast_thrift::rocket::server::handler

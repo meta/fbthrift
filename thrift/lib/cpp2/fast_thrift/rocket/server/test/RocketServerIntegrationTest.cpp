@@ -49,8 +49,8 @@
 #include <folly/io/async/EventBase.h>
 #include <folly/portability/GMock.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/ErrorCode.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
@@ -83,9 +83,9 @@ namespace apache::thrift::fast_thrift::rocket::server::test {
 
 using namespace testing;
 
-using apache::thrift::fast_thrift::channel_pipeline::PipelineBuilder;
-using apache::thrift::fast_thrift::channel_pipeline::PipelineImpl;
+using apache::thrift::fast_thrift::channel_pipeline::PipelineOwner;
 using apache::thrift::fast_thrift::channel_pipeline::Result;
+using apache::thrift::fast_thrift::channel_pipeline::StaticPipelineBuilder;
 using apache::thrift::fast_thrift::channel_pipeline::test::TestAllocator;
 using apache::thrift::fast_thrift::transport::test::TestAsyncTransport;
 
@@ -166,7 +166,7 @@ class RocketServerIntegrationTest : public ::testing::Test {
         });
 
     pipeline_ =
-        PipelineBuilder<
+        StaticPipelineBuilder<
             apache::thrift::fast_thrift::transport::TransportHandlerT<
                 apache::thrift::fast_thrift::transport::
                     NoOpWriteCompleteEventFactory,
@@ -286,7 +286,7 @@ class RocketServerIntegrationTest : public ::testing::Test {
       apache::thrift::fast_thrift::transport::NoOpWriteCompleteEventFactory,
       apache::thrift::fast_thrift::frame::read::FrameLengthParser>::Ptr
       transportHandler_;
-  PipelineImpl::Ptr pipeline_;
+  PipelineOwner pipeline_;
   TestAllocator allocator_;
 
   // Request tracking
@@ -706,7 +706,7 @@ class RocketServerSetupRejectionTest : public ::testing::Test {
     transportHandler_ = RejectionTransportHandler::create(std::move(transport));
 
     pipeline_ =
-        PipelineBuilder<
+        StaticPipelineBuilder<
             RejectionTransportHandler,
             rocket::server::RocketServerAppAdapter,
             TestAllocator>()
@@ -783,7 +783,7 @@ class RocketServerSetupRejectionTest : public ::testing::Test {
   rocket::server::RocketServerAppAdapter::Ptr appAdapter_{
       new rocket::server::RocketServerAppAdapter()};
   RejectionTransportHandler::Ptr transportHandler_;
-  PipelineImpl::Ptr pipeline_;
+  PipelineOwner pipeline_;
   TestAllocator allocator_;
 };
 
@@ -939,8 +939,8 @@ class RocketServerCloseStepTest : public ::testing::Test {
     RejectionTransportHandler::Ptr transportHandler =
         RejectionTransportHandler::create(std::move(transport));
 
-    PipelineImpl::Ptr pipeline =
-        PipelineBuilder<
+    auto pipeline =
+        StaticPipelineBuilder<
             RejectionTransportHandler,
             rocket::server::RocketServerAppAdapter,
             TestAllocator>()

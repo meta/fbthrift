@@ -46,7 +46,7 @@ namespace apache::thrift::fast_thrift::rocket {
  *   until a demand-tracking per-pattern handler populates it.
  *
  * Deliberately small; concerns that do not belong here become separate
- * pipeline-level state types via PipelineBuilder::addState<T>().
+ * pipeline-level state types via StaticPipelineBuilder::addState<T>().
  */
 struct RocketStreamContext {
   frame::FrameType streamType{frame::FrameType::RESERVED};
@@ -63,9 +63,9 @@ struct RocketStreamContext {
  * streamId is (its streamType) and what has accumulated for it (credits).
  *
  * Registered once per connection via
- * PipelineBuilder::addState<RocketStreamContexts>() and reached by handlers
- * through ctx.state<RocketStreamContexts>(). Wraps the streamId-keyed map
- * (DirectStreamMap's default StreamIdIndex) in a struct so that additional
+ * StaticPipelineBuilder::addState<RocketStreamContexts>() and reached by
+ * handlers through ctx.state<RocketStreamContexts>(). Wraps the streamId-keyed
+ * map (DirectStreamMap's default StreamIdIndex) in a struct so that additional
  * connection-scoped stream state can be added alongside it without changing the
  * registered state type.
  */

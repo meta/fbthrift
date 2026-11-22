@@ -28,7 +28,7 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/BufferAllocator.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/ErrorCode.h>
@@ -331,12 +331,12 @@ TEST(ServerKeepAliveTimerTest, MissingProbeTimesOutConnection) {
   namespace cp = apache::thrift::fast_thrift::channel_pipeline;
 
   folly::EventBase eventBase;
-  cp::test::MockHeadHandler transport;
-  cp::test::MockTailHandler app;
+  cp::test::StaticMockHeadHandler transport;
+  cp::test::StaticMockTailHandler app;
   cp::test::TestAllocator allocator;
-  auto pipeline = cp::PipelineBuilder<
-                      cp::test::MockHeadHandler,
-                      cp::test::MockTailHandler,
+  auto pipeline = cp::StaticPipelineBuilder<
+                      cp::test::StaticMockHeadHandler,
+                      cp::test::StaticMockTailHandler,
                       cp::test::TestAllocator>()
                       .setEventBase(&eventBase)
                       .setHead(&transport)
@@ -371,13 +371,13 @@ TEST(ServerKeepAliveTimerTest, DefaultPolicyDoesNotTimeOutConnection) {
   namespace cp = apache::thrift::fast_thrift::channel_pipeline;
 
   folly::EventBase eventBase;
-  cp::test::MockHeadHandler transport;
-  cp::test::MockTailHandler app;
+  cp::test::StaticMockHeadHandler transport;
+  cp::test::StaticMockTailHandler app;
   cp::test::TestAllocator allocator;
   auto pipeline =
-      cp::PipelineBuilder<
-          cp::test::MockHeadHandler,
-          cp::test::MockTailHandler,
+      cp::StaticPipelineBuilder<
+          cp::test::StaticMockHeadHandler,
+          cp::test::StaticMockTailHandler,
           cp::test::TestAllocator>()
           .setEventBase(&eventBase)
           .setHead(&transport)
@@ -414,8 +414,8 @@ TEST(ServerKeepAliveTimerTest, ProbeExtendsLifetimeWithoutRearmingHotPath) {
   namespace cp = apache::thrift::fast_thrift::channel_pipeline;
 
   folly::EventBase eventBase;
-  cp::test::MockHeadHandler transport;
-  cp::test::MockTailHandler app;
+  cp::test::StaticMockHeadHandler transport;
+  cp::test::StaticMockTailHandler app;
   cp::test::TestAllocator allocator;
   size_t echoes = 0;
   transport.setOnWriteCallback([&echoes](TypeErasedBox&& box) noexcept {
@@ -425,9 +425,9 @@ TEST(ServerKeepAliveTimerTest, ProbeExtendsLifetimeWithoutRearmingHotPath) {
     ++echoes;
     return Result::Success;
   });
-  auto pipeline = cp::PipelineBuilder<
-                      cp::test::MockHeadHandler,
-                      cp::test::MockTailHandler,
+  auto pipeline = cp::StaticPipelineBuilder<
+                      cp::test::StaticMockHeadHandler,
+                      cp::test::StaticMockTailHandler,
                       cp::test::TestAllocator>()
                       .setEventBase(&eventBase)
                       .setHead(&transport)
