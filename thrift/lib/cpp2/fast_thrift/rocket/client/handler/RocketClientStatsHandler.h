@@ -22,7 +22,6 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/ParsedFrame.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/ComposedFrame.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/client/Event.h>
@@ -236,17 +235,5 @@ class RocketClientStatsHandler {
     }
   }
 };
-
-static_assert(
-    apache::thrift::fast_thrift::channel_pipeline::DuplexHandler<
-        RocketClientStatsHandler,
-        apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl>,
-    "RocketClientStatsHandler must satisfy DuplexHandler concept");
-
-static_assert(
-    apache::thrift::fast_thrift::channel_pipeline::TypeEventSubscriber<
-        RocketClientStatsHandler,
-        apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl>,
-    "RocketClientStatsHandler must satisfy TypeEventSubscriber concept");
 
 } // namespace apache::thrift::fast_thrift::rocket::client::handler

@@ -27,11 +27,8 @@
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameParser.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/client/Messages.h>
-#include <thrift/lib/cpp2/fast_thrift/rocket/common/TypeErasedPtr.h>
-
-#define private public
-#define protected public
 #include <thrift/lib/cpp2/fast_thrift/rocket/client/handler/RocketClientStreamStateHandler.h>
+#include <thrift/lib/cpp2/fast_thrift/rocket/common/TypeErasedPtr.h>
 
 namespace apache::thrift::fast_thrift::rocket::client::handler {
 
@@ -227,7 +224,7 @@ RocketResponseMessage makeRocketResponse(
 class ClientStreamStateHandlerTest : public ::testing::Test {
  protected:
   // The handler caches the pipeline state pointer on add, exactly as
-  // PipelineBuilder::build() would before any callback runs.
+  // StaticPipelineBuilder::build() would before any callback runs.
   void SetUp() override {
     ctx_.reset();
     handler_.handlerAdded(ctx_);
@@ -984,7 +981,7 @@ TEST_F(ClientStreamStateHandlerTest, DuplicateStreamIdCrashes) {
   EXPECT_TRUE(handler_.hasActiveStream(1));
 
   // Manually reset the stream ID counter to create a duplicate
-  handler_.nextStreamId_ = 1;
+  handler_.setNextStreamIdForTest(1);
 
   auto request2 = makeClientRequest(
       folly::IOBuf::copyBuffer("request"),

@@ -21,9 +21,7 @@
 #include <folly/logging/xlog.h>
 #include <thrift/lib/cpp/transport/TTransportException.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/ErrorCode.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameViews.h>
@@ -238,11 +236,5 @@ class RocketClientConnectionErrorHandler {
     return apache::thrift::fast_thrift::channel_pipeline::Result::Error;
   }
 };
-
-static_assert(
-    apache::thrift::fast_thrift::channel_pipeline::InboundHandler<
-        RocketClientConnectionErrorHandler,
-        apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl>,
-    "RocketClientConnectionErrorHandler must satisfy InboundHandler concept");
 
 } // namespace apache::thrift::fast_thrift::rocket::client::handler

@@ -54,7 +54,7 @@ namespace apache::thrift::fast_thrift::rocket::client {
  *   adapter.setOnError([&](exception_wrapper&& e) noexcept { ... });
  *
  *   // 2. Build rocket pipeline with adapter as tail
- *   auto pipeline = PipelineBuilder<
+ *   auto pipeline = StaticPipelineBuilder<
  *       TransportHandler, RocketClientAppAdapter, Allocator>()
  *       .setHead(transportHandler)
  *       .setTail(&adapter)

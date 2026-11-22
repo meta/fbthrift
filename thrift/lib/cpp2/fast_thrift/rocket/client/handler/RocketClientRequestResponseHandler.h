@@ -24,7 +24,6 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/ErrorCode.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameParser.h>
@@ -200,11 +199,5 @@ class RocketClientRequestResponseHandler {
     }
   }
 };
-
-static_assert(
-    apache::thrift::fast_thrift::channel_pipeline::InboundHandler<
-        RocketClientRequestResponseHandler,
-        apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl>,
-    "RocketClientRequestResponseHandler must satisfy InboundHandler concept");
 
 } // namespace apache::thrift::fast_thrift::rocket::client::handler

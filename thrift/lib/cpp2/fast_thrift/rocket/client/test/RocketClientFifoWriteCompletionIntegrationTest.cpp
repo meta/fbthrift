@@ -43,7 +43,8 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/BufferAllocator.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/handler/FrameCodecHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/ComposedFrame.h>
@@ -101,7 +102,8 @@ class EventCapturingAppHandler {
  public:
   using Result = cp::Result;
 
-  Result onRead(cp::detail::ContextImpl&, cp::TypeErasedBox&&) noexcept {
+  template <typename Context>
+  Result onRead(Context&, cp::TypeErasedBox&&) noexcept {
     return Result::Success;
   }
   void onException(folly::exception_wrapper&&) noexcept {}
@@ -155,13 +157,8 @@ class RocketClientFifoWriteCompletionIntegrationTest : public Test {
     transportHandler_ =
         TestTransportHandler::create(std::move(socket), 256, 4096);
 
-    auto fragmenter = std::make_unique<TestFragmenter>(
-        frame::write::QuantumFragmentationHandlerConfig{
-            .streamQuantum = kStreamQuantum});
-    fragmenter_ = fragmenter.get();
-
-    pipeline_ =
-        cp::PipelineBuilder<
+    auto pipeline =
+        cp::StaticPipelineBuilder<
             TestTransportHandler,
             EventCapturingAppHandler,
             cp::SimpleBufferAllocator>()
@@ -173,8 +170,12 @@ class RocketClientFifoWriteCompletionIntegrationTest : public Test {
             .addNextOutbound<fw::FrameLengthEncoderHandler>(length_encoder_tag)
             .addNextDuplex<frame::handler::FrameCodecHandler>(codec_tag)
             .addNextOutbound<TestFragmenter>(
-                fragmentation_tag, std::move(fragmenter))
+                fragmentation_tag,
+                frame::write::QuantumFragmentationHandlerConfig{
+                    .streamQuantum = kStreamQuantum})
             .build();
+    fragmenter_ = &pipeline->handler(fragmentation_tag);
+    pipeline_ = std::move(pipeline);
 
     transportHandler_->setPipeline(pipeline_.get());
     transportHandler_->onConnect();
@@ -216,7 +217,7 @@ class RocketClientFifoWriteCompletionIntegrationTest : public Test {
   TestFragmenter* fragmenter_{nullptr};
   EventCapturingAppHandler app_;
   cp::SimpleBufferAllocator allocator_;
-  cp::PipelineImpl::Ptr pipeline_;
+  cp::PipelineOwner pipeline_;
   std::vector<SocketWrite> writes_;
 };
 

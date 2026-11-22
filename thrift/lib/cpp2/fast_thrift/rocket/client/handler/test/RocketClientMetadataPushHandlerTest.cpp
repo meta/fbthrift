@@ -30,7 +30,6 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Event.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
@@ -49,7 +48,6 @@ namespace apache::thrift::fast_thrift::rocket::client::handler {
 namespace {
 
 using channel_pipeline::erase_and_box;
-using channel_pipeline::PipelineBuilder;
 using channel_pipeline::PipelineOwner;
 using channel_pipeline::Result;
 using channel_pipeline::StaticPipelineBuilder;
@@ -120,7 +118,7 @@ class RocketClientMetadataPushHandlerTest : public ::testing::Test {
  protected:
   RocketClientMetadataPushHandlerTest()
       : pipeline_(
-            PipelineBuilder<
+            StaticPipelineBuilder<
                 MetadataPushHead,
                 MetadataPushReceiver,
                 TestAllocator>()
@@ -193,7 +191,7 @@ TEST_F(
 
 TEST_F(
     RocketClientMetadataPushHandlerTest,
-    DynamicAndStaticPipelinesDeliverToTheirOwnReceiver) {
+    StaticPipelinesDeliverToTheirOwnReceiver) {
   MetadataPushHead otherHead;
   TestAllocator otherAllocator;
   MetadataPushReceiver otherReceiver;

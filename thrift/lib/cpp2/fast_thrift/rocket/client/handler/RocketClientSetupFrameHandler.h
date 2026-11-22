@@ -24,7 +24,6 @@
 #include <folly/io/async/EventBase.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/ComposedFrame.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/client/Messages.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/common/RSocketKeepAliveConfig.h>
@@ -185,14 +184,5 @@ class RocketClientSetupFrameHandler {
   // handlerRemoved does, takes it off the EventBase queue.
   std::optional<folly::EventBase::StackFunctionLoopCallback> deferredClose_;
 };
-
-static_assert(
-    apache::thrift::fast_thrift::channel_pipeline::InboundHandler<
-        RocketClientSetupFrameHandler,
-        apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl> &&
-        apache::thrift::fast_thrift::channel_pipeline::OutboundHandler<
-            RocketClientSetupFrameHandler,
-            apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl>,
-    "RocketClientSetupFrameHandler must satisfy InboundHandler and OutboundHandler concepts");
 
 } // namespace apache::thrift::fast_thrift::rocket::client::handler

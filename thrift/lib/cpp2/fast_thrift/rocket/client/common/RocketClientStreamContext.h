@@ -100,7 +100,7 @@ struct RocketClientStreamContext {
  * streamId.
  *
  * Registered once per connection via
- * PipelineBuilder::addState<RocketClientStreamContexts>() and reached by
+ * StaticPipelineBuilder::addState<RocketClientStreamContexts>() and reached by
  * handlers through ctx.state<RocketClientStreamContexts>().
  * RocketClientStreamStateHandler owns the entry lifecycle (insert on
  * stream-open, erase on terminal); every other handler only reads or updates

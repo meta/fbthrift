@@ -23,7 +23,6 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/ErrorCode.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/DirectStreamMap.h>
@@ -208,11 +207,5 @@ class RocketClientStreamHandler {
 
   apache::thrift::fast_thrift::frame::read::DirectStreamSet<> streams_;
 };
-
-static_assert(
-    apache::thrift::fast_thrift::channel_pipeline::DuplexHandler<
-        RocketClientStreamHandler,
-        apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl>,
-    "RocketClientStreamHandler must satisfy DuplexHandler concept");
 
 } // namespace apache::thrift::fast_thrift::rocket::client::handler

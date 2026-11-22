@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <glog/logging.h>
 #include <folly/ExceptionWrapper.h>
 #include <folly/lang/Assume.h>
 #include <folly/logging/xlog.h>
@@ -23,7 +24,6 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/DirectStreamMap.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameViews.h>
@@ -47,8 +47,8 @@ namespace apache::thrift::fast_thrift::rocket::client::handler {
  *
  * Per-stream state lives in the pipeline-level `RocketClientStreamContexts`
  * state, registered once per connection via
- * `PipelineBuilder::addState<RocketClientStreamContexts>()` and reached here
- * through `ctx.state<RocketClientStreamContexts>()`. This handler owns the
+ * `StaticPipelineBuilder::addState<RocketClientStreamContexts>()` and reached
+ * here through `ctx.state<RocketClientStreamContexts>()`. This handler owns the
  * entry lifecycle (insert on stream-open, erase on terminal) so the other
  * client rocket handlers can share the same map without their own
  * bookkeeping. The pipeline owns the map's lifetime; this handler does not
@@ -446,8 +446,8 @@ class RocketClientStreamStateHandler {
 
   /**
    * Mechanism: synthesize a RocketResponseError for one stream and route
-   * it inbound via `fireRead`. Skips own onRead via the cached
-   * next-handler pointer in ContextImpl, so the bridge / AppAdapter sees
+   * it inbound via `fireRead`, which starts at the next handler. The bridge or
+   * app adapter sees
    * the error directly and resolves the handler with `ew` — not the
    * generic auto-detach exception that ~TypeErasedPtr would fire.
    *
@@ -487,17 +487,5 @@ class RocketClientStreamStateHandler {
   /// between handlerAdded and handlerRemoved.
   RocketClientStreamContexts* contexts_{nullptr};
 };
-
-static_assert(
-    apache::thrift::fast_thrift::channel_pipeline::DuplexHandler<
-        RocketClientStreamStateHandler,
-        apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl>,
-    "RocketClientStreamStateHandler must satisfy DuplexHandler concept");
-
-static_assert(
-    apache::thrift::fast_thrift::channel_pipeline::TypeEventSubscriber<
-        RocketClientStreamStateHandler,
-        apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl>,
-    "RocketClientStreamStateHandler must satisfy TypeEventSubscriber concept");
 
 } // namespace apache::thrift::fast_thrift::rocket::client::handler

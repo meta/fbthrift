@@ -18,7 +18,7 @@
  * RocketClientWriteCompletionIntegrationTest
  *
  * Exercises the full client-side write-completion plumbing through a real
- * PipelineImpl:
+ * static pipeline:
  *
  *   TransportHandlerT<FrameEventFactory,
  * apache::thrift::fast_thrift::transport::test::PassthroughParser>
