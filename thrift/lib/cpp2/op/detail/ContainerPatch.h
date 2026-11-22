@@ -320,7 +320,9 @@ class MapPatch : public BaseContainerPatch<Patch, MapPatch<Patch>> {
   void tryPutMulti(C&& entries) {
     assignOr(*data_.add()).insert(entries.begin(), entries.end());
     for (const auto& entry : entries) {
-      if (data_.remove()->erase(entry.first)) {
+      // With an assignment, the entry is already in the assigned map and the
+      // key only has to leave `remove`.
+      if (data_.remove()->erase(entry.first) && !hasAssign()) {
         // If it was already removed, we should re-assign the entity.
         auto& added = (*data_.add())[entry.first];
         (*data_.patch())[entry.first] = std::move(added);
