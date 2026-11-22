@@ -15,11 +15,13 @@
  */
 
 #include <compare>
+#include <cstddef>
 #include <cstdint>
 #include <deque>
 #include <limits>
 #include <map>
 #include <memory_resource>
+#include <optional>
 #include <set>
 #include <sstream>
 #include <string>
@@ -30,10 +32,12 @@
 #include <vector>
 
 #include <gtest/gtest.h>
+#include <folly/io/IOBuf.h>
 
 #include <thrift/lib/cpp2/op/Compare.h>
 #include <thrift/lib/cpp2/op/Get.h>
 #include <thrift/lib/cpp2/op/Hash.h>
+#include <thrift/lib/cpp2/pmr/ArenaResource.h>
 #include <thrift/lib/cpp2/pmr/Rebind.h>
 #include <thrift/lib/cpp2/pmr/Teardown.h>
 #include <thrift/lib/cpp2/protocol/DebugProtocol.h>
@@ -338,6 +342,36 @@ class Arena : public std::pmr::monotonic_buffer_resource {
   Arena() : monotonic_buffer_resource(std::pmr::new_delete_resource()) {}
 };
 
+// Counts allocations and deallocations, and frees all its memory when
+// destroyed. `Base` decides whether Thrift treats it as an arena.
+template <class Base>
+class Counting : public Base {
+ public:
+  std::size_t allocations() const { return allocations_; }
+  std::size_t deallocations() const { return deallocations_; }
+
+ private:
+  std::pmr::monotonic_buffer_resource upstream_{
+      std::pmr::new_delete_resource()};
+  std::size_t allocations_ = 0;
+  std::size_t deallocations_ = 0;
+
+  void* do_allocate(std::size_t bytes, std::size_t alignment) override {
+    ++allocations_;
+    return upstream_.allocate(bytes, alignment);
+  }
+  void do_deallocate(void*, std::size_t, std::size_t) override {
+    ++deallocations_;
+  }
+  bool do_is_equal(
+      const std::pmr::memory_resource& other) const noexcept override {
+    return this == &other;
+  }
+};
+
+using CountingArena = Counting<pmr::ArenaResource>;
+using CountingHeap = Counting<std::pmr::memory_resource>;
+
 template <class T>
 std::pmr::memory_resource* resource(const T& value) {
   return value.get_allocator().resource();
@@ -576,6 +610,33 @@ void expectOn(const MemberUnion& u, std::pmr::memory_resource* r) {
   expectOn(*u.inner(), r);
 }
 
+void fill(Recursive& r) {
+  r.name() = kLong;
+  Recursive& child = r.children()->emplace_back();
+  child.name() = kOther;
+  child.children()->emplace_back().name() = kLong;
+}
+
+void fill(UsesAllocator& u) {
+  u.name() = kLong;
+  u.pmr_name() = kOther;
+}
+
+void fill(WithBox& w) {
+  w.name() = kLong;
+  w.boxed().emplace().name() = kOther;
+}
+
+void fill(HoldsPointerUnions& h) {
+  h.with_ref()->unique_ref().emplace();
+  h.with_box()->boxed_ref().emplace();
+}
+
+void fill(PmrWithoutArena& p) {
+  p.name() = kLong;
+  p.on_default_resource()->emplace_back(kOther);
+}
+
 TEST(CppArenaPmrTest, AllocatorConstructorPutsEverythingOnTheResource) {
   Arena arena;
   NoDefaultResource noDefault;
@@ -743,6 +804,101 @@ TEST(CppArenaPmrTest, MoveAssignmentAcrossResourcesCopies) {
   dst = std::move(src);
   EXPECT_EQ(dst, expected);
   expectOn(dst, &other);
+}
+
+template <class T, class Resource>
+std::size_t deallocationsWhenDestroying(Resource& resource) {
+  std::optional<T> value(std::in_place, &resource);
+  fill(*value);
+  const std::size_t before = resource.deallocations();
+  value.reset();
+  return resource.deallocations() - before;
+}
+
+TEST(CppArenaPmrTest, DestructorSkipsFieldsOnAnArena) {
+  CountingArena arena;
+  EXPECT_EQ(deallocationsWhenDestroying<Strings>(arena), 0);
+  EXPECT_EQ(deallocationsWhenDestroying<Containers>(arena), 0);
+  EXPECT_EQ(deallocationsWhenDestroying<Members>(arena), 0);
+  EXPECT_EQ(deallocationsWhenDestroying<Recursive>(arena), 0);
+  EXPECT_EQ(deallocationsWhenDestroying<UsesAllocator>(arena), 0);
+}
+
+TEST(CppArenaPmrTest, DestructorDestroysFieldsHoldingMemoryOffTheArena) {
+  CountingArena arena;
+  // The elements of `plains` hold strings on the default resource.
+  EXPECT_GT(deallocationsWhenDestroying<StructElements>(arena), 0);
+  // Skipping `on_default_resource` and `boxed` would leak memory off the
+  // arena, which the leak sanitizer reports.
+  EXPECT_EQ(deallocationsWhenDestroying<PmrWithoutArena>(arena), 0);
+  EXPECT_EQ(deallocationsWhenDestroying<WithBox>(arena), 0);
+}
+
+TEST(CppArenaPmrTest, DestructorDestroysUnionFieldsPointingOffTheArena) {
+  CountingArena arena;
+  // Skipping `with_ref` or `with_box` would leak the `Scalars` that their
+  // active fields point to, which the leak sanitizer reports.
+  EXPECT_EQ(deallocationsWhenDestroying<HoldsPointerUnions>(arena), 0);
+}
+
+struct FreeRecord {
+  std::vector<int>* freed;
+  int id;
+};
+
+void recordFree(void* /* buf */, void* userData) {
+  const auto* record = static_cast<const FreeRecord*>(userData);
+  record->freed->push_back(record->id);
+}
+
+// An IOBuf that appends `record.id` to `*record.freed` when it frees its
+// buffer.
+folly::IOBuf recordingIOBuf(FreeRecord& record) {
+  static char byte;
+  return folly::IOBuf(
+      folly::IOBuf::TAKE_OWNERSHIP, &byte, 1, &recordFree, &record);
+}
+
+template <class Resource>
+std::vector<int> fieldsInDestructionOrder() {
+  Resource resource;
+  std::vector<int> freed;
+  FreeRecord first{&freed, 1};
+  FreeRecord second{&freed, 2};
+  {
+    DestructionOrder value{&resource};
+    value.first() = recordingIOBuf(first);
+    value.second() = recordingIOBuf(second);
+  }
+  return freed;
+}
+
+// Like C++ members, so that a field's destructor can still use the fields
+// declared before it.
+TEST(CppArenaPmrTest, DestructorDestroysFieldsLastFirst) {
+  const std::vector<int> lastFirst{2, 1};
+  EXPECT_EQ(fieldsInDestructionOrder<CountingHeap>(), lastFirst);
+  EXPECT_EQ(fieldsInDestructionOrder<CountingArena>(), lastFirst);
+}
+
+template <class T>
+void expectDestroyingFreesEverything() {
+  CountingHeap heap;
+  {
+    T value{&heap};
+    fill(value);
+  }
+  EXPECT_GT(heap.allocations(), 0);
+  EXPECT_EQ(heap.deallocations(), heap.allocations());
+}
+
+TEST(CppArenaPmrTest, DestructorDestroysEverythingOffAnArena) {
+  expectDestroyingFreesEverything<Strings>();
+  expectDestroyingFreesEverything<Containers>();
+  expectDestroyingFreesEverything<StructElements>();
+  expectDestroyingFreesEverything<Members>();
+  expectDestroyingFreesEverything<Recursive>();
+  expectDestroyingFreesEverything<UsesAllocator>();
 }
 
 TEST(CppArenaPmrTest, UnionCopyAndMove) {

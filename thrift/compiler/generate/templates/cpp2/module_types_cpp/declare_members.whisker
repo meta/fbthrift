@@ -24,10 +24,23 @@
 }
     {{/if (and struct.exception? (object.notnull? struct.message_field))}}
 
+    {{#if (not struct.cpp_arena_allocator?)}}
 
 {{struct.cpp_underlying_name}}::~{{struct.cpp_underlying_name}}() {}
+    {{/if (not struct.cpp_arena_allocator?)}}
 
   {{/if struct.is_large?}}
+  {{#if struct.cpp_arena_allocator?}}
+{{struct.cpp_underlying_name}}::~{{struct.cpp_underlying_name}}() {
+  const bool onArena = ::apache::thrift::pmr::isArenaResource(get_allocator());
+    {{#each struct.fields_in_reverse_layout_order as |field|}}
+  if (!onArena || !::apache::thrift::pmr::detail::fieldAllocatesAllMemoryViaMemoryResource<{{struct.cpp_underlying_name}}, ::apache::thrift::field_id<{{field.id}}>>()) {
+    ::std::destroy_at(::std::addressof(this->{{field.cpp_storage_name}}));
+  }
+    {{/each}}
+}
+
+  {{/if struct.cpp_arena_allocator?}}
   {{#if (object.notnull? struct.cpp_allocator)}}
 {{> module_types_cpp/alloc_extended_ctors}}
 

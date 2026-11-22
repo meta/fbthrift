@@ -283,6 +283,15 @@ struct CustomTypes {
   4: map<string, IOBuf> iobufs;
 }
 
+// `first` and `second` are destroyed even on an arena, so the order in which
+// they free their buffers shows the order of destruction.
+struct DestructionOrder {
+  @cpp.Arena
+  1: string name;
+  2: IOBuf first;
+  3: IOBuf second;
+}
+
 struct Orderable {
   @cpp.Arena
   1: set<string> keys;

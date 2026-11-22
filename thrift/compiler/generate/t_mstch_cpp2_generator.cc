@@ -1382,6 +1382,9 @@ class t_mstch_cpp2_generator : public t_whisker_generator {
       return value == nullptr ? whisker::make::null
                               : whisker::make::string(*value);
     });
+    def.property("cpp_arena_allocator?", [](const t_structured& strct) {
+      return cpp2::has_arena_fields(strct);
+    });
     def.property("cpp_frozen2_exclude?", &is_frozen2_excluded);
     def.property("holds_arena_fields?", [this](const t_structured& strct) {
       return holds_arena_fields(strct);
@@ -1559,6 +1562,13 @@ class t_mstch_cpp2_generator : public t_whisker_generator {
       return to_array(
           cpp_context_->fields_in_layout_order(strct), proto.of<t_field>());
     });
+    def.property(
+        "fields_in_reverse_layout_order", [&](const t_structured& strct) {
+          std::vector<const t_field*> fields =
+              cpp_context_->fields_in_layout_order(strct);
+          std::reverse(fields.begin(), fields.end());
+          return to_array(fields, proto.of<t_field>());
+        });
     def.property(
         "explicitly_constructed_fields", [&](const t_structured& strct) {
           std::vector<const t_field*> filtered;
@@ -2809,7 +2819,9 @@ void forbid_deprecated_terse_writes_ref(
 }
 
 // A type with `@cpp.Arena` fields takes their PMR allocator, so it can't
-// declare another one.
+// declare another one. Nor can it return the allocator of a
+// `cpp.allocator_via` field, which may differ from theirs: the destructor would
+// then skip fields that hold heap memory.
 void forbid_allocator_on_arena_type(
     sema_context& ctx, const t_structured& node) {
   if (!cpp2::has_arena_fields(node)) {
@@ -2820,6 +2832,10 @@ void forbid_allocator_on_arena_type(
     annotation = "@internal.CppAllocator";
   } else if (node.has_unstructured_annotation("cpp.allocator")) {
     annotation = "cpp.allocator";
+  } else if (node.has_structured_annotation(kCppAllocatorViaUri)) {
+    annotation = "@internal.CppAllocatorVia";
+  } else if (node.has_unstructured_annotation("cpp.allocator_via")) {
+    annotation = "cpp.allocator_via";
   } else {
     return;
   }

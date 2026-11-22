@@ -9,7 +9,9 @@
 
 #include <compare>
 #include <thrift/lib/cpp2/gen/module_types_h.h>
+#include <thrift/lib/cpp2/pmr/ArenaResource.h>
 #include <thrift/lib/cpp2/pmr/Rebind.h>
+#include <thrift/lib/cpp2/pmr/Teardown.h>
 
 namespace apache::thrift {
 namespace ident {
@@ -329,15 +331,25 @@ class Fields final  {
   ~Fields();
 
  private:
-  ::apache::thrift::pmr::Rebind<::std::string>::type __fbthrift_field_name;
+  union {
+    ::apache::thrift::pmr::Rebind<::std::string>::type __fbthrift_field_name;
+  };
  private:
-  ::apache::thrift::pmr::Rebind<::std::map<::std::string, ::std::set<::std::int32_t>>>::type __fbthrift_field_groups;
+  union {
+    ::apache::thrift::pmr::Rebind<::std::map<::std::string, ::std::set<::std::int32_t>>>::type __fbthrift_field_groups;
+  };
  private:
-  ::apache::thrift::pmr::Rebind<::std::vector<::test::fixtures::cpp_arena::Inner>>::type __fbthrift_field_inners;
+  union {
+    ::apache::thrift::pmr::Rebind<::std::vector<::test::fixtures::cpp_arena::Inner>>::type __fbthrift_field_inners;
+  };
  private:
-  ::std::int64_t __fbthrift_field_id;
+  union {
+    ::std::int64_t __fbthrift_field_id;
+  };
  private:
-  ::apache::thrift::pmr::Rebind<std::unordered_map<::std::string, ::std::string>>::type __fbthrift_field_custom;
+  union {
+    ::apache::thrift::pmr::Rebind<std::unordered_map<::std::string, ::std::string>>::type __fbthrift_field_custom;
+  };
  private:
   apache::thrift::detail::isset_bitset<5, apache::thrift::detail::IssetBitsetOption::Unpacked> __isset;
 
@@ -693,9 +705,13 @@ class WholeStruct final  {
   ~WholeStruct();
 
  private:
-  ::apache::thrift::pmr::Rebind<::std::vector<::std::string>>::type __fbthrift_field_names;
+  union {
+    ::apache::thrift::pmr::Rebind<::std::vector<::std::string>>::type __fbthrift_field_names;
+  };
  private:
-  ::std::int64_t __fbthrift_field_id;
+  union {
+    ::std::int64_t __fbthrift_field_id;
+  };
  private:
   apache::thrift::detail::isset_bitset<2, apache::thrift::detail::IssetBitsetOption::Unpacked> __isset;
 
@@ -1020,10 +1036,17 @@ class ArenaMember final  {
   explicit ArenaMember(ArenaMember&& other, const allocator_type& alloc);
   ArenaMember& operator=(ArenaMember&&);
   ArenaMember& operator=(const ArenaMember&);
+
+  ~ArenaMember();
+
  private:
-  ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type __fbthrift_field_arena;
+  union {
+    ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type __fbthrift_field_arena;
+  };
  private:
-  ::test::fixtures::cpp_arena::WholeStruct __fbthrift_field_plain;
+  union {
+    ::test::fixtures::cpp_arena::WholeStruct __fbthrift_field_plain;
+  };
  private:
   apache::thrift::detail::isset_bitset<2, apache::thrift::detail::IssetBitsetOption::Unpacked> __isset;
 

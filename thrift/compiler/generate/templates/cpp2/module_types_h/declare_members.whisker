@@ -17,7 +17,31 @@
 }}
   {{#each struct.fields_in_layout_order as |field|}}
  {{field.visibility}}:
+    {{!
+      Declaring the field inside a C++ anonymous union keeps C++ from destroying
+      it automatically, so that the destructor can skip it. Every field is
+      wrapped, not just skippable ones, so that the destructor destroys all
+      fields in reverse declaration order. If only skippable fields were
+      wrapped, the others would be destroyed after them, which would break e.g.
+
+        struct Request {
+          @cpp.Arena
+          1: string endpoint;
+          @cpp.Adapter{name = "ScopedTimer"}
+          2: i64 startUs;
+        }
+
+      where ScopedTimer keeps `&*ctx.object.endpoint()` and, when destroyed,
+      logs the time since `startUs` under `endpoint`: `endpoint` would be
+      destroyed before `startUs` reads it.
+    }}
+    {{#if struct.cpp_arena_allocator?}}
+  union {
+    {{field.cpp_storage_type}} {{field.cpp_storage_name}};
+  };
+    {{#else}}
   {{#if field.lazy?}}mutable {{/if}}{{field.cpp_storage_type}} {{field.cpp_storage_name}};
+    {{/if struct.cpp_arena_allocator?}}
   {{/each}}
   {{#if struct.isset_fields?}}
  private:

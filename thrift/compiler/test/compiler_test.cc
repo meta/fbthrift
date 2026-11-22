@@ -4001,6 +4001,20 @@ TEST(CompilerTest, cpp_arena_with_declared_allocator) {
       1: string name;
     }
       # expected-error@-5: `@internal.CppAllocator` is not supported on `Structured`, which has `@cpp.Arena` fields.
+
+    @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.allocator_via": "name"}}
+    struct UnstructuredVia {
+      @cpp.Arena
+      1: string name;
+    }
+      # expected-error@-5: `cpp.allocator_via` is not supported on `UnstructuredVia`, which has `@cpp.Arena` fields.
+
+    @internal.CppAllocatorVia{name = "name"}
+    struct StructuredVia {
+      @cpp.Arena
+      1: string name;
+    }
+      # expected-error@-5: `@internal.CppAllocatorVia` is not supported on `StructuredVia`, which has `@cpp.Arena` fields.
   )");
 }
 

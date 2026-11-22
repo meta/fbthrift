@@ -142,7 +142,24 @@ Fields::Fields() :
 }
 
 
-Fields::~Fields() {}
+Fields::~Fields() {
+  const bool onArena = ::apache::thrift::pmr::isArenaResource(get_allocator());
+  if (!onArena || !::apache::thrift::pmr::detail::fieldAllocatesAllMemoryViaMemoryResource<Fields, ::apache::thrift::field_id<5>>()) {
+    ::std::destroy_at(::std::addressof(this->__fbthrift_field_custom));
+  }
+  if (!onArena || !::apache::thrift::pmr::detail::fieldAllocatesAllMemoryViaMemoryResource<Fields, ::apache::thrift::field_id<4>>()) {
+    ::std::destroy_at(::std::addressof(this->__fbthrift_field_id));
+  }
+  if (!onArena || !::apache::thrift::pmr::detail::fieldAllocatesAllMemoryViaMemoryResource<Fields, ::apache::thrift::field_id<3>>()) {
+    ::std::destroy_at(::std::addressof(this->__fbthrift_field_inners));
+  }
+  if (!onArena || !::apache::thrift::pmr::detail::fieldAllocatesAllMemoryViaMemoryResource<Fields, ::apache::thrift::field_id<2>>()) {
+    ::std::destroy_at(::std::addressof(this->__fbthrift_field_groups));
+  }
+  if (!onArena || !::apache::thrift::pmr::detail::fieldAllocatesAllMemoryViaMemoryResource<Fields, ::apache::thrift::field_id<1>>()) {
+    ::std::destroy_at(::std::addressof(this->__fbthrift_field_name));
+  }
+}
 
 Fields::Fields(const allocator_type& alloc) noexcept :
     __fbthrift_alloc(alloc),
@@ -306,7 +323,15 @@ WholeStruct::WholeStruct() :
 }
 
 
-WholeStruct::~WholeStruct() {}
+WholeStruct::~WholeStruct() {
+  const bool onArena = ::apache::thrift::pmr::isArenaResource(get_allocator());
+  if (!onArena || !::apache::thrift::pmr::detail::fieldAllocatesAllMemoryViaMemoryResource<WholeStruct, ::apache::thrift::field_id<2>>()) {
+    ::std::destroy_at(::std::addressof(this->__fbthrift_field_id));
+  }
+  if (!onArena || !::apache::thrift::pmr::detail::fieldAllocatesAllMemoryViaMemoryResource<WholeStruct, ::apache::thrift::field_id<1>>()) {
+    ::std::destroy_at(::std::addressof(this->__fbthrift_field_names));
+  }
+}
 
 WholeStruct::WholeStruct(const allocator_type& alloc) noexcept :
     __fbthrift_alloc(alloc),
@@ -494,6 +519,16 @@ ArenaMember& ArenaMember::operator=(const ArenaMember& other) {
   __fbthrift_swap(*this, tmp);
   ::apache::thrift::detail::copy_allocator(__fbthrift_alloc, other.__fbthrift_alloc);
   return *this;
+}
+
+ArenaMember::~ArenaMember() {
+  const bool onArena = ::apache::thrift::pmr::isArenaResource(get_allocator());
+  if (!onArena || !::apache::thrift::pmr::detail::fieldAllocatesAllMemoryViaMemoryResource<ArenaMember, ::apache::thrift::field_id<2>>()) {
+    ::std::destroy_at(::std::addressof(this->__fbthrift_field_plain));
+  }
+  if (!onArena || !::apache::thrift::pmr::detail::fieldAllocatesAllMemoryViaMemoryResource<ArenaMember, ::apache::thrift::field_id<1>>()) {
+    ::std::destroy_at(::std::addressof(this->__fbthrift_field_arena));
+  }
 }
 
 ArenaMember::ArenaMember(const allocator_type& alloc) noexcept :

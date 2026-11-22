@@ -27,7 +27,9 @@
 #include <compare>
 #include <thrift/lib/cpp2/gen/module_types_h.h>
 {{#if program.arena_fields?}}
+#include <thrift/lib/cpp2/pmr/ArenaResource.h>
 #include <thrift/lib/cpp2/pmr/Rebind.h>
+#include <thrift/lib/cpp2/pmr/Teardown.h>
 {{/if program.arena_fields?}}
 {{#if (has_compiler_option? "frozen")}}
 #include <thrift/lib/cpp/Frozen.h>
@@ -305,9 +307,9 @@ class {{#if def.exception?}}FOLLY_EXPORT {{/if}}{{def.cpp_underlying_name}} {{!
         {{/if (not def.cpp_noncopyable)}}
         {{#if def.virtual}}
 
-  {{#if (not def.exception?)}}virtual{{/if}} ~{{def.cpp_underlying_name}}() {{#if def.exception?}} override{{/if}}{{#if def.is_large?}};{{#else}}{}{{/if}}
+  {{#if (not def.exception?)}}virtual{{/if}} ~{{def.cpp_underlying_name}}() {{#if def.exception?}} override{{/if}}{{#if (or def.is_large? def.cpp_arena_allocator?)}};{{#else}}{}{{/if}}
 
-        {{#else if def.is_large?}}
+        {{#else if (or def.is_large? def.cpp_arena_allocator?)}}
 
   ~{{def.cpp_underlying_name}}(){{#if def.exception?}} override{{/if}};
 
