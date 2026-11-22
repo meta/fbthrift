@@ -464,7 +464,7 @@ TEST(UnionFieldTest, CopyUnionSharedPtr) {
   s.shared_mutable().emplace().str() = "shared";
   const std::shared_ptr<CppRef>& ref =
       copy_union_shared_ptr(s.shared_mutable());
-  EXPECT_EQ(&ref, &s.get_shared_mutable());
+  EXPECT_EQ(&ref, &::apache::thrift::copy_union_shared_ptr(s.shared_mutable()));
   EXPECT_EQ(&copy_union_shared_ptr(std::as_const(s).shared_mutable()), &ref);
   EXPECT_EQ(ref->str(), "shared");
   EXPECT_EQ(ref.use_count(), 1);
@@ -479,7 +479,7 @@ TEST(UnionFieldTest, CopyUnionSharedPtrConst) {
   s.shared_const().emplace("shared_const");
   const std::shared_ptr<const std::string>& ref =
       copy_union_shared_ptr(std::as_const(s).shared_const());
-  EXPECT_EQ(&ref, &s.get_shared_const());
+  EXPECT_EQ(&ref, &::apache::thrift::copy_union_shared_ptr(s.shared_const()));
   EXPECT_EQ(*ref, "shared_const");
 }
 
@@ -488,7 +488,7 @@ TEST(UnionFieldTest, CopyUnionSharedPtrInactiveMatchesGetter) {
   s.str() = "foo";
   std::string getterMessage;
   try {
-    s.get_shared_const();
+    ::apache::thrift::copy_union_shared_ptr(s.shared_const());
   } catch (const bad_union_field_access& e) {
     getterMessage = e.what();
   }
@@ -505,7 +505,8 @@ TEST(UnionFieldTest, CopyUnionSharedPtrNull) {
   CppRef s;
   s.set_shared_mutable(std::shared_ptr<CppRef>());
   EXPECT_EQ(s.getType(), CppRef::Type::shared_mutable);
-  EXPECT_EQ(s.get_shared_mutable(), nullptr);
+  EXPECT_EQ(
+      ::apache::thrift::copy_union_shared_ptr(s.shared_mutable()), nullptr);
   EXPECT_EQ(copy_union_shared_ptr(s.shared_mutable()), nullptr);
 }
 
