@@ -30,9 +30,7 @@
 #include <folly/io/async/DelayedDestruction.h>
 #include <folly/logging/xlog.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/security/common/Messages.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/security/common/Util.h>
 #include <thrift/lib/cpp2/fast_thrift/security/HandshakeTimeout.h>
@@ -50,7 +48,7 @@ namespace fast_security = ::apache::thrift::fast_thrift::security;
  *   TLS-looking → ctx.fireWrite(msg)
  *       Flows to the next stage on the work path (FizzHandshakeHandler).
  *
- *   Plaintext   → ctx.pipeline()->fireWriteToHeadHandler(msg)
+ *   Plaintext   → ctx.pipeline()->fireWriteFrom<0>(msg)
  *       Bypasses Fizz + StopTLS and lands directly at the head (TLSFinalizer),
  *       which turns the raw socket around onto the read path for handoff.
  *
@@ -69,6 +67,7 @@ namespace fast_security = ::apache::thrift::fast_thrift::security;
  * The aggregate pending-connection handler bounds sockets across the complete
  * TLS pipeline, including those parked here awaiting classification.
  */
+template <typename StaticContext>
 class TLSClassifier {
  public:
   TLSClassifier() = default;
@@ -192,6 +191,8 @@ class TLSClassifier {
       const folly::SocketAddress& clientAddr,
       std::shared_ptr<const fast_security::TLSParams> tlsParams,
       PendingConnectionPermit permit) noexcept {
+    auto guard = guardPipeline(ctx_);
+    auto pendingPermit = std::move(permit);
     if (ex || !socket) {
       XLOG(DBG3) << "TLS peek failed for " << clientAddr.describe() << ": "
                  << (ex ? ex.what().toStdString() : std::string("null"));
@@ -220,12 +221,12 @@ class TLSClassifier {
         .tlsParams = std::move(tlsParams),
         .extension = nullptr,
         .peerSecurity = nullptr,
-        .pendingConnectionPermit = std::move(permit),
+        .pendingConnectionPermit = std::move(pendingPermit),
     };
 
     auto result = looksLikeTLS
         ? ctx_->fireWrite(channel_pipeline::erase_and_box(std::move(forwarded)))
-        : ctx_->pipeline()->fireWriteToHeadHandler(
+        : ctx_->pipeline()->template fireWriteFrom<0>(
               channel_pipeline::erase_and_box(std::move(forwarded)));
 
     switch (result) {
@@ -252,7 +253,7 @@ class TLSClassifier {
       fast_security::TLSPrefixPeeker*,
       fast_security::TLSPrefixPeeker::UniquePtr>
       inFlight_;
-  channel_pipeline::detail::ContextImpl* ctx_{nullptr};
+  StaticContext* ctx_{nullptr};
   // Set once teardown begins; see onPipelineInactive.
   bool shuttingDown_{false};
 };

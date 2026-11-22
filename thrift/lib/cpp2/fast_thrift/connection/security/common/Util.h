@@ -16,16 +16,26 @@
 
 #pragma once
 
+#include <optional>
 #include <string>
 #include <string_view>
+#include <type_traits>
 
 #include <folly/ExceptionWrapper.h>
 #include <folly/SocketAddress.h>
 #include <folly/io/async/AsyncSocketException.h>
 
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
-
 namespace apache::thrift::fast_thrift::connection::security {
+
+template <typename Context>
+auto guardPipeline(Context* ctx) noexcept {
+  using Pipeline = std::remove_pointer_t<decltype(ctx->pipeline())>;
+  using Guard = typename Pipeline::Guard;
+  if (ctx == nullptr) {
+    return std::optional<Guard>{};
+  }
+  return std::optional<Guard>(std::in_place, ctx->pipeline());
+}
 
 /**
  * Report that a parked TLS stage gave up on a connection.
@@ -47,8 +57,9 @@ namespace apache::thrift::fast_thrift::connection::security {
  * the normal shutdown race — there is nowhere to report to, and the caller is
  * expected to have logged it.
  */
-inline void fireConnectionFailure(
-    channel_pipeline::detail::ContextImpl* ctx,
+template <typename Context>
+void fireConnectionFailure(
+    Context* ctx,
     const folly::exception_wrapper& ex,
     std::string_view what,
     const folly::SocketAddress& clientAddr) noexcept {

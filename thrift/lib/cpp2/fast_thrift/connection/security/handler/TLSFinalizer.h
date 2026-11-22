@@ -19,7 +19,6 @@
 #include <utility>
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/security/common/Messages.h>
 
@@ -49,19 +48,12 @@ class TLSFinalizer {
   TLSFinalizer(TLSFinalizer&&) = delete;
   TLSFinalizer& operator=(TLSFinalizer&&) = delete;
 
-  void setPipeline(channel_pipeline::PipelineImpl* pipeline) noexcept {
-    pipeline_ = pipeline;
-  }
-
   // Write-exit: every security stage has run and the transport is resolved.
   // Collapse the request down to a response and turn it around onto the read
   // path so it returns to the tail adapter.
+  template <typename Context>
   channel_pipeline::Result onWrite(
-      channel_pipeline::detail::ContextImpl&,
-      channel_pipeline::TypeErasedBox&& msg) noexcept {
-    if (!pipeline_) [[unlikely]] {
-      return channel_pipeline::Result::Error;
-    }
+      Context& ctx, channel_pipeline::TypeErasedBox&& msg) noexcept {
     auto request = msg.take<TLSRequestMessage>();
     TLSResponseMessage response{
         .transport = std::move(request.transport),
@@ -69,7 +61,7 @@ class TLSFinalizer {
         .peerSecurity = std::move(request.peerSecurity),
         .pendingConnectionPermit = std::move(request.pendingConnectionPermit),
     };
-    return pipeline_->fireRead(
+    return ctx.pipeline()->fireRead(
         channel_pipeline::erase_and_box(std::move(response)));
   }
 
@@ -78,9 +70,6 @@ class TLSFinalizer {
   void handlerRemoved() noexcept {}
   void onPipelineActive() noexcept {}
   void onPipelineInactive() noexcept {}
-
- private:
-  channel_pipeline::PipelineImpl* pipeline_{nullptr};
 };
 
 } // namespace apache::thrift::fast_thrift::connection::security::handler

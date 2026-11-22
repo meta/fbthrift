@@ -31,19 +31,12 @@
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/security/common/Messages.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/security/handler/TLSConnectionAdapter.h>
 
 namespace apache::thrift::fast_thrift::connection::security::handler::test {
 
 namespace {
-
-channel_pipeline::detail::ContextImpl& endpointContext() noexcept {
-  static channel_pipeline::detail::ContextImpl context(
-      nullptr, nullptr, nullptr, 0, 0);
-  return context;
-}
 
 // Stand-in owner: records what the adapter dispatches through its trampolines.
 struct RecordingOwner {
@@ -90,8 +83,10 @@ TEST(TLSConnectionAdapterTest, DispatchesResolvedToOwner) {
       .clientAddr = addr,
       .peerSecurity = peerSecurity,
       .pendingConnectionPermit = {}};
-  const auto result = adapter.onRead(
-      endpointContext(), channel_pipeline::erase_and_box(std::move(resp)));
+  struct EndpointContext {
+  } context;
+  const auto result =
+      adapter.onRead(context, channel_pipeline::erase_and_box(std::move(resp)));
 
   EXPECT_EQ(result, channel_pipeline::Result::Success);
   EXPECT_TRUE(owner.resolvedCalled);

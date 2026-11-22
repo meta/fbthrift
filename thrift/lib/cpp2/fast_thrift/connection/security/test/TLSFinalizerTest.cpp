@@ -39,8 +39,8 @@
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/BufferAllocator.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/security/common/Messages.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/security/handler/TLSFinalizer.h>
@@ -57,9 +57,9 @@ class CapturingTail {
 
   explicit CapturingTail(OnRead onRead) noexcept : onRead_(std::move(onRead)) {}
 
+  template <typename Context>
   channel_pipeline::Result onRead(
-      channel_pipeline::detail::ContextImpl&,
-      channel_pipeline::TypeErasedBox&& msg) noexcept {
+      Context&, channel_pipeline::TypeErasedBox&& msg) noexcept {
     auto m = msg.take<TLSResponseMessage>();
     if (onRead_) {
       onRead_(std::move(m));
@@ -110,17 +110,13 @@ class TLSFinalizerTest : public ::testing::Test {
   void buildPipeline(CapturingTail::OnRead onRead) {
     tail_ = std::make_unique<CapturingTail>(std::move(onRead));
     evb_->runInEventBaseThreadAndWait([&] {
-      channel_pipeline::PipelineBuilder<
-          TLSFinalizer,
-          CapturingTail,
-          channel_pipeline::SimpleBufferAllocator>
-          builder;
-      builder.setEventBase(evb_)
-          .setHead(&finalizer_)
-          .setTail(tail_.get())
-          .setAllocator(&allocator_);
-      pipeline_ = builder.build();
-      finalizer_.setPipeline(pipeline_.get());
+      pipeline_ =
+          channel_pipeline::StaticPipelineBuilder<TLSFinalizer, CapturingTail>()
+              .setEventBase(evb_)
+              .setHead(&finalizer_)
+              .setTail(tail_.get())
+              .setAllocator(&allocator_)
+              .build();
       pipeline_->activate();
     });
   }
@@ -130,7 +126,7 @@ class TLSFinalizerTest : public ::testing::Test {
   channel_pipeline::SimpleBufferAllocator allocator_;
   TLSFinalizer finalizer_;
   std::unique_ptr<CapturingTail> tail_;
-  channel_pipeline::PipelineImpl::Ptr pipeline_;
+  channel_pipeline::PipelineOwner pipeline_;
 };
 
 // A request driven through the finalizer emerges as a response carrying the

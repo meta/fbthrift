@@ -30,7 +30,6 @@
 #include <folly/logging/xlog.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/security/common/Messages.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/security/common/Util.h>
 #include <thrift/lib/cpp2/fast_thrift/security/FizzHandshakeHelper.h>
@@ -61,6 +60,7 @@ namespace fast_security = ::apache::thrift::fast_thrift::security;
  * The aggregate pending-connection handler bounds sockets across the complete
  * TLS pipeline, including handshakes parked here.
  */
+template <typename StaticContext>
 class FizzHandshakeHandler {
  public:
   FizzHandshakeHandler() = default;
@@ -197,6 +197,9 @@ class FizzHandshakeHandler {
       const folly::SocketAddress& clientAddr,
       std::shared_ptr<const fast_security::TLSParams> tlsParams,
       PendingConnectionPermit permit) noexcept {
+    // A completion can reenter teardown. Release the permit before its state.
+    auto guard = guardPipeline(ctx_);
+    auto pendingPermit = std::move(permit);
     if (ex || !fizzServer) {
       XLOG(DBG3) << "TLS handshake failed for " << clientAddr.describe() << ": "
                  << (ex ? ex.what().toStdString() : std::string("null"));
@@ -233,7 +236,7 @@ class FizzHandshakeHandler {
         .tlsParams = std::move(tlsParams),
         .extension = std::move(extension),
         .peerSecurity = std::move(peerSecurity),
-        .pendingConnectionPermit = std::move(permit),
+        .pendingConnectionPermit = std::move(pendingPermit),
     };
     auto result =
         ctx_->fireWrite(channel_pipeline::erase_and_box(std::move(upgraded)));
@@ -256,7 +259,7 @@ class FizzHandshakeHandler {
       fast_security::FizzHandshakeHelper*,
       fast_security::FizzHandshakeHelper::UniquePtr>
       inFlight_;
-  channel_pipeline::detail::ContextImpl* ctx_{nullptr};
+  StaticContext* ctx_{nullptr};
   // Set once teardown begins; see onPipelineInactive.
   bool shuttingDown_{false};
 };

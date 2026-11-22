@@ -29,7 +29,6 @@
 #include <folly/logging/xlog.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/security/common/Messages.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/security/common/Util.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/security/util/StopTLSHelper.h>
@@ -56,6 +55,7 @@ namespace apache::thrift::fast_thrift::connection::security::handler {
  * TLS pipeline, including downgrades parked here. Each downgrade is also
  * bounded by the handshake-timeout budget off the incoming message.
  */
+template <typename StaticContext>
 class StopTLSV1Handler {
  public:
   StopTLSV1Handler() = default;
@@ -190,6 +190,8 @@ class StopTLSV1Handler {
           extension,
       std::shared_ptr<const PeerSecurityInfo> peerSecurity,
       PendingConnectionPermit permit) noexcept {
+    auto guard = guardPipeline(ctx_);
+    auto pendingPermit = std::move(permit);
     if (ex || !plaintext) {
       XLOG(DBG3) << "StopTLS V1 failed for " << clientAddr.describe() << ": "
                  << (ex ? ex.what().toStdString() : std::string("null"));
@@ -213,7 +215,7 @@ class StopTLSV1Handler {
         .tlsParams = nullptr,
         .extension = std::move(extension),
         .peerSecurity = std::move(peerSecurity),
-        .pendingConnectionPermit = std::move(permit),
+        .pendingConnectionPermit = std::move(pendingPermit),
     };
     auto result =
         ctx_->fireWrite(channel_pipeline::erase_and_box(std::move(downgraded)));
@@ -234,7 +236,7 @@ class StopTLSV1Handler {
 
   folly::F14FastMap<util::StopTLSHelper*, util::StopTLSHelper::UniquePtr>
       inFlight_;
-  channel_pipeline::detail::ContextImpl* ctx_{nullptr};
+  StaticContext* ctx_{nullptr};
   // Set once teardown begins; see onPipelineInactive.
   bool shuttingDown_{false};
 };

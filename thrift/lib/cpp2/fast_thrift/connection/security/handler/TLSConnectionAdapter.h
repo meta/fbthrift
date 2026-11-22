@@ -22,7 +22,6 @@
 #include <folly/SocketAddress.h>
 #include <folly/io/async/AsyncTransport.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/security/common/Messages.h>
 
@@ -32,14 +31,9 @@ namespace apache::thrift::fast_thrift::connection::security::handler {
  * Tail endpoint of the TLS pipeline and its single integration point with the
  * owner that drives it.
  *
- * submit() drives a freshly accepted transport through the pipeline as an
- * outbound write — the security stages process on the write path. When the
- * resolved transport returns on the read path, onRead() dispatches it to the
- * owner via the resolved trampoline; exceptions raised inside the pipeline are
- * dispatched the same way via the exception trampoline so the owner can
- * propagate them. The owner registers both through setOwner() — function
- * pointers, not std::function, so there is no per-accept allocation or
- * indirect-call overhead.
+ * When the resolved transport returns on the read path, onRead() dispatches
+ * it to the owner. Exceptions raised inside the pipeline use a separate
+ * callback so the owner can propagate them.
  */
 class TLSConnectionAdapter {
  public:
@@ -55,6 +49,9 @@ class TLSConnectionAdapter {
   using ExceptionFn = void (*)(void*, folly::exception_wrapper&&) noexcept;
 
   TLSConnectionAdapter() noexcept = default;
+  TLSConnectionAdapter(
+      void* owner, ResolvedFn onResolved, ExceptionFn onException) noexcept
+      : owner_(owner), onResolved_(onResolved), onException_(onException) {}
   ~TLSConnectionAdapter() = default;
   TLSConnectionAdapter(const TLSConnectionAdapter&) = delete;
   TLSConnectionAdapter& operator=(const TLSConnectionAdapter&) = delete;
@@ -70,24 +67,10 @@ class TLSConnectionAdapter {
     onException_ = onException;
   }
 
-  void setPipeline(channel_pipeline::PipelineImpl* pipeline) noexcept {
-    pipeline_ = pipeline;
-  }
-
-  // Drive a transport through the TLS pipeline. Enters as an outbound write at
-  // the write-entry handler and flows toward the head.
-  channel_pipeline::Result submit(TLSRequestMessage&& msg) noexcept {
-    if (!pipeline_) [[unlikely]] {
-      return channel_pipeline::Result::Error;
-    }
-    return pipeline_->fireWrite(
-        channel_pipeline::erase_and_box(std::move(msg)));
-  }
-
   // Read-exit: the resolved transport returns here. Hand it back to the owner.
+  template <typename Context>
   channel_pipeline::Result onRead(
-      channel_pipeline::detail::ContextImpl&,
-      channel_pipeline::TypeErasedBox&& msg) noexcept {
+      Context&, channel_pipeline::TypeErasedBox&& msg) noexcept {
     auto resolved = msg.take<TLSResponseMessage>();
     DCHECK(onResolved_);
     return onResolved_(
@@ -112,7 +95,6 @@ class TLSConnectionAdapter {
   void* owner_{nullptr};
   ResolvedFn onResolved_{nullptr};
   ExceptionFn onException_{nullptr};
-  channel_pipeline::PipelineImpl* pipeline_{nullptr};
 };
 
 } // namespace apache::thrift::fast_thrift::connection::security::handler
