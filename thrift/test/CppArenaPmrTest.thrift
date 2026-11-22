@@ -152,10 +152,103 @@ struct WholeMembers {
   1: ArenaInner inner;
 }
 
+union MixedUnion {
+  @cpp.Arena
+  1: string name;
+  2: string plain;
+}
+
 union MemberUnion {
   @cpp.Arena
   1: ArenaInner inner;
   2: i64 id;
+}
+
+struct Scalars {
+  1: i64 id;
+  2: Color color;
+}
+
+struct ScalarMembers {
+  @cpp.Arena
+  1: list<Scalars> items;
+  2: Scalars single;
+}
+
+struct Recursive {
+  @cpp.Arena
+  1: string name;
+  @cpp.Arena
+  2: list<Recursive> children;
+}
+
+// `boxed` points to memory off the arena.
+struct WithBox {
+  @cpp.Arena
+  1: string name;
+  @thrift.Box
+  2: optional PlainInner boxed;
+}
+
+// `unique` points to memory off the arena, though `Scalars` is trivially
+// destructible.
+union UnionWithRef {
+  @cpp.Arena
+  1: string name;
+  @cpp.Ref{type = cpp.RefType.Unique}
+  2: Scalars unique;
+}
+
+// `boxed` points to memory off the arena, though `Scalars` is trivially
+// destructible.
+union UnionWithBox {
+  @cpp.Arena
+  1: string name;
+  @thrift.Box
+  2: Scalars boxed;
+}
+
+struct HoldsPointerUnions {
+  @cpp.Arena
+  1: UnionWithRef with_ref;
+  @cpp.Arena
+  2: UnionWithBox with_box;
+}
+
+struct WithLazy {
+  @cpp.Lazy
+  1: Scalars scalars;
+}
+
+// The lazily deserialized data of `WithLazy` needs destroying.
+struct HoldsLazy {
+  @cpp.Arena
+  1: list<WithLazy> items;
+}
+
+// `cpp.use_allocator` without `@cpp.Arena`.
+struct UsesAllocator {
+  @cpp.Arena
+  1: string name;
+  @cpp.Type{name = "std::pmr::string"}
+  @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
+  2: string pmr_name;
+}
+
+struct UsesAllocatorWithPlainStrings {
+  @cpp.Arena
+  1: string name;
+  @cpp.Type{template = "std::pmr::vector"}
+  @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
+  2: list<string> plain_strings;
+}
+
+// `on_default_resource` doesn't take the struct's allocator.
+struct PmrWithoutArena {
+  @cpp.Arena
+  1: string name;
+  @cpp.Type{template = "std::pmr::vector"}
+  2: list<string> on_default_resource;
 }
 
 typedef string Name

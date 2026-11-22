@@ -23,6 +23,7 @@
 #include <set>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
@@ -34,6 +35,7 @@
 #include <thrift/lib/cpp2/op/Get.h>
 #include <thrift/lib/cpp2/op/Hash.h>
 #include <thrift/lib/cpp2/pmr/Rebind.h>
+#include <thrift/lib/cpp2/pmr/Teardown.h>
 #include <thrift/lib/cpp2/protocol/DebugProtocol.h>
 #include <thrift/lib/cpp2/protocol/Json5Protocol.h>
 #include <thrift/lib/cpp2/protocol/Serializer.h>
@@ -230,6 +232,83 @@ static_assert(!std::uses_allocator_v<
 static_assert(std::uses_allocator_v<
               ArenaUnion,
               std::pmr::polymorphic_allocator<ArenaUnion>>);
+
+static_assert(pmr::detail::structuredOnResource<Containers>());
+static_assert(pmr::detail::structuredOnResource<HoldsUnions>());
+static_assert(pmr::detail::structuredOnResource<Members>());
+static_assert(pmr::detail::structuredOnResource<ScalarMembers>());
+static_assert(pmr::detail::structuredOnResource<Recursive>());
+static_assert(pmr::detail::structuredOnResource<UsesAllocator>());
+static_assert(pmr::detail::structuredOnResource<WholeUnion>());
+static_assert(!pmr::detail::structuredOnResource<Strings>());
+static_assert(!pmr::detail::structuredOnResource<StructElements>());
+static_assert(!pmr::detail::structuredOnResource<PmrWithoutArena>());
+static_assert(
+    !pmr::detail::structuredOnResource<UsesAllocatorWithPlainStrings>());
+static_assert(!pmr::detail::structuredOnResource<CustomTypes>());
+static_assert(!pmr::detail::structuredOnResource<MixedUnion>());
+static_assert(!pmr::detail::structuredOnResource<HoldsLazy>());
+static_assert(!pmr::detail::structuredOnResource<WithBox>());
+static_assert(!pmr::detail::structuredOnResource<UnionWithRef>());
+static_assert(!pmr::detail::structuredOnResource<UnionWithBox>());
+static_assert(!pmr::detail::structuredOnResource<HoldsPointerUnions>());
+// A string or container of another type isn't trusted, even if it uses the
+// memory resource.
+struct UserString : std::pmr::string {};
+static_assert(!pmr::detail::onResource<t::string_t, UserString>());
+template <class T>
+struct UserVector : std::pmr::vector<T> {};
+static_assert(!pmr::detail::onResource<
+              t::list<t::string_t>,
+              UserVector<std::pmr::string>>());
+static_assert(pmr::detail::onResource<
+              t::list<t::string_t>,
+              std::pmr::vector<std::pmr::string>>());
+static_assert(!pmr::detail::onResource<t::list<t::i32_t>, std::vector<int>>());
+
+// Rebind keeps these, but they free heap memory when destroyed.
+struct StatefulHash : std::hash<std::string_view> {
+  std::string seed;
+};
+struct StatefulGrowthPolicy {
+  std::string state;
+};
+static_assert(!pmr::detail::onResource<
+              t::set<t::string_t>,
+              std::pmr::unordered_set<std::pmr::string, StatefulHash>>());
+static_assert(
+    !pmr::detail::onResource<
+        t::set<t::i32_t>,
+        folly::pmr::
+            sorted_vector_set<int, std::less<int>, StatefulGrowthPolicy>>());
+static_assert(pmr::detail::onResource<
+              t::set<t::i32_t>,
+              folly::pmr::sorted_vector_set<int>>());
+
+template <class T>
+struct HeapAllocator {
+  using value_type = T;
+  HeapAllocator() = default;
+  /* implicit */ HeapAllocator(std::pmr::polymorphic_allocator<>) {}
+  template <class U>
+  explicit HeapAllocator(const HeapAllocator<U>&) {}
+  T* allocate(std::size_t n) { return std::allocator<T>{}.allocate(n); }
+  void deallocate(T* p, std::size_t n) { std::allocator<T>{}.deallocate(p, n); }
+  friend bool operator==(const HeapAllocator&, const HeapAllocator&) = default;
+};
+static_assert(
+    !pmr::detail::UsesPmrAllocator<std::vector<int, HeapAllocator<int>>>);
+static_assert(!pmr::detail::onResource<
+              t::list<t::i32_t>,
+              std::vector<int, HeapAllocator<int>>>());
+static_assert(!pmr::detail::onResource<
+              t::set<t::i32_t>,
+              folly::sorted_vector_set<
+                  int,
+                  std::less<int>,
+                  std::pmr::polymorphic_allocator<int>,
+                  void,
+                  std::vector<int>>>());
 
 constexpr const char* kLong =
     "This is too long for the small string optimization";
