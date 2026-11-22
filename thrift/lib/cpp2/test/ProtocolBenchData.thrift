@@ -101,6 +101,18 @@ struct BigListWideBigInt {
   1: list<i64> lst;
 }
 
+struct SmallListsInt {
+  1: list<list<i32>> lst;
+}
+
+struct SmallListsWideBigInt {
+  1: list<list<i64>> lst;
+}
+
+struct SmallListsMixedWidthBigInt {
+  1: list<list<i64>> lst;
+}
+
 struct BigListMixed {
   1: list<Mixed> lst;
 }
@@ -614,6 +626,21 @@ struct OpBigListSmallInt {
 @cpp.UseOpEncode
 struct OpBigListWideBigInt {
   1: list<i64> lst;
+}
+
+@cpp.UseOpEncode
+struct OpSmallListsInt {
+  1: list<list<i32>> lst;
+}
+
+@cpp.UseOpEncode
+struct OpSmallListsWideBigInt {
+  1: list<list<i64>> lst;
+}
+
+@cpp.UseOpEncode
+struct OpSmallListsMixedWidthBigInt {
+  1: list<list<i64>> lst;
 }
 
 @cpp.UseOpEncode

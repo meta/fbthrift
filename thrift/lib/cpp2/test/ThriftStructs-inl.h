@@ -293,6 +293,82 @@ create<thrift::benchmark::OpBigListWideBigInt>() {
       10000);
 }
 
+// 2000 lists of 1 to 8 elements, like the id lists of sparse features.
+template <class T, class MakeValue>
+inline T createSmallLists(MakeValue makeValue) {
+  std::mt19937 rng;
+  T d;
+  auto& lists = *d.lst();
+  lists.resize(2000);
+  for (auto& list : lists) {
+    list.resize(1 + rng() % 8);
+    for (auto& value : list) {
+      value = makeValue();
+    }
+  }
+  return d;
+}
+
+template <class T>
+inline T createSmallListsInt() {
+  std::mt19937 rng;
+  return createSmallLists<T>([&] { return static_cast<int32_t>(rng()); });
+}
+
+// Nine- and ten-byte varints, like hashes.
+template <class T>
+inline T createSmallListsWideBigInt() {
+  std::mt19937_64 rng;
+  return createSmallLists<T>([&] { return static_cast<int64_t>(rng()); });
+}
+
+// Values of random widths: varints of every length in random order.
+template <class T>
+inline T createSmallListsMixedWidthBigInt() {
+  std::mt19937_64 rng;
+  return createSmallLists<T>(
+      [&] { return static_cast<int64_t>(rng() >> (rng() % 64)); });
+}
+
+template <>
+inline thrift::benchmark::SmallListsInt
+create<thrift::benchmark::SmallListsInt>() {
+  return createSmallListsInt<thrift::benchmark::SmallListsInt>();
+}
+
+template <>
+inline thrift::benchmark::OpSmallListsInt
+create<thrift::benchmark::OpSmallListsInt>() {
+  return createSmallListsInt<thrift::benchmark::OpSmallListsInt>();
+}
+
+template <>
+inline thrift::benchmark::SmallListsWideBigInt
+create<thrift::benchmark::SmallListsWideBigInt>() {
+  return createSmallListsWideBigInt<thrift::benchmark::SmallListsWideBigInt>();
+}
+
+template <>
+inline thrift::benchmark::OpSmallListsWideBigInt
+create<thrift::benchmark::OpSmallListsWideBigInt>() {
+  return createSmallListsWideBigInt<
+      thrift::benchmark::OpSmallListsWideBigInt>();
+}
+
+template <>
+inline thrift::benchmark::SmallListsMixedWidthBigInt
+create<thrift::benchmark::SmallListsMixedWidthBigInt>() {
+  return createSmallListsMixedWidthBigInt<
+      thrift::benchmark::SmallListsMixedWidthBigInt>();
+}
+
+template <>
+inline thrift::benchmark::OpSmallListsMixedWidthBigInt
+create<thrift::benchmark::OpSmallListsMixedWidthBigInt>() {
+  return createSmallListsMixedWidthBigInt<
+      thrift::benchmark::OpSmallListsMixedWidthBigInt>();
+}
+
 template <>
 inline thrift::benchmark::BigListMixed
 create<thrift::benchmark::BigListMixed>() {
