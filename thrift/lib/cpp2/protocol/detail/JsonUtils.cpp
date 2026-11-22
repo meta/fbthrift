@@ -38,7 +38,8 @@ bool isAsciiWithNothingToEscape(std::string_view s) {
   // this check (16 B to 10 KB), so it saved at most 2%.
   bool result = true;
   for (char c : s) {
-    result &= 32 <= c && c <= 127 && c != '"' && c != '\\';
+    auto uc = static_cast<unsigned char>(c);
+    result &= 32 <= uc && uc <= 127 && uc != '"' && uc != '\\';
   }
   return result;
 }
