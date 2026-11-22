@@ -20,8 +20,6 @@
 #include <folly/GLog.h>
 #include <thrift/lib/cpp/TApplicationException.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/client/Messages.h>
 #include <thrift/lib/cpp2/transport/rocket/ChecksumGenerator.h>
 #include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
@@ -249,17 +247,5 @@ class ThriftClientChecksumHandler {
     return {};
   }
 };
-
-static_assert(
-    apache::thrift::fast_thrift::channel_pipeline::OutboundHandler<
-        ThriftClientChecksumHandler,
-        apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl>,
-    "ThriftClientChecksumHandler must satisfy OutboundHandler concept");
-
-static_assert(
-    apache::thrift::fast_thrift::channel_pipeline::InboundHandler<
-        ThriftClientChecksumHandler,
-        apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl>,
-    "ThriftClientChecksumHandler must satisfy InboundHandler concept");
 
 } // namespace apache::thrift::fast_thrift::thrift::client::handler

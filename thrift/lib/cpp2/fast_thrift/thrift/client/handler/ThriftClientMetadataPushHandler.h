@@ -21,8 +21,7 @@
 #include <thrift/lib/cpp/TApplicationException.h>
 #include <thrift/lib/cpp/transport/TTransportException.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Event.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/client/Messages.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/client/common/Event.h>
 #include <thrift/lib/cpp2/protocol/CompactProtocol.h>
@@ -214,11 +213,5 @@ class ThriftClientMetadataPushHandler {
   bool setupComplete_{false};
   bool serverSupportsZstd_{false};
 };
-
-static_assert(
-    apache::thrift::fast_thrift::channel_pipeline::InboundHandler<
-        ThriftClientMetadataPushHandler,
-        apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl>,
-    "ThriftClientMetadataPushHandler must satisfy InboundHandler concept");
 
 } // namespace apache::thrift::fast_thrift::thrift::client::handler

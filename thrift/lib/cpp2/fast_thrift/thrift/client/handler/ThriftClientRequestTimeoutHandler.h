@@ -28,8 +28,6 @@
 #include <thrift/lib/cpp/transport/TTransportException.h>
 #include <thrift/lib/cpp2/async/RpcTransportStats.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/client/Messages.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/client/common/ThriftRequestContext.h>
 #include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
@@ -179,11 +177,5 @@ class ThriftClientRequestTimeoutHandler {
 
   std::chrono::milliseconds defaultTimeout_{0};
 };
-
-static_assert(
-    apache::thrift::fast_thrift::channel_pipeline::DuplexHandler<
-        ThriftClientRequestTimeoutHandler,
-        apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl>,
-    "ThriftClientRequestTimeoutHandler must satisfy DuplexHandler concept");
 
 } // namespace apache::thrift::fast_thrift::thrift::client::handler

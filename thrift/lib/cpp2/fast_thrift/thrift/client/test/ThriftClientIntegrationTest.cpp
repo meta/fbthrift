@@ -18,6 +18,7 @@
 
 #include <memory>
 #include <string>
+#include <type_traits>
 
 #include <folly/futures/Promise.h>
 #include <folly/io/Cursor.h>
@@ -28,6 +29,7 @@
 #include <thrift/lib/cpp/transport/THeader.h>
 #include <thrift/lib/cpp/transport/TTransportException.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
@@ -1316,6 +1318,15 @@ class ThriftClientAppAdapterIntegrationTest : public ::testing::Test {
                 rocket_client_request_response_handler_tag)
             .build();
 
+    static_assert(channel_pipeline::TypeEventSubscriber<
+                  rocket::client::handler::RocketClientStatsHandler,
+                  std::remove_pointer_t<decltype(rocketPipeline->context(
+                      rocket_client_stats_handler_tag))>>);
+    static_assert(channel_pipeline::TypeEventSubscriber<
+                  rocket::client::handler::RocketClientStreamStateHandler,
+                  std::remove_pointer_t<decltype(rocketPipeline->context(
+                      rocket_client_stream_state_handler_tag))>>);
+
     streamStateHandler_ =
         &rocketPipeline->handler(rocket_client_stream_state_handler_tag);
     connection->pipeline = std::move(rocketPipeline);
@@ -1343,6 +1354,11 @@ class ThriftClientAppAdapterIntegrationTest : public ::testing::Test {
             .addNextDuplex<client::handler::ThriftClientGracefulDrainHandler>(
                 thrift_client_graceful_drain_handler_tag)
             .build();
+
+    static_assert(channel_pipeline::TypeEventSubscriber<
+                  client::handler::ThriftClientGracefulDrainHandler,
+                  std::remove_pointer_t<decltype(thriftPipeline->context(
+                      thrift_client_graceful_drain_handler_tag))>>);
 
     drainHandler_ =
         &thriftPipeline->handler(thrift_client_graceful_drain_handler_tag);

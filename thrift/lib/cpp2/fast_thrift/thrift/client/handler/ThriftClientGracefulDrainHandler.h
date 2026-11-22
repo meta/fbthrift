@@ -22,9 +22,8 @@
 #include <folly/lang/Hint.h>
 #include <thrift/lib/cpp/transport/TTransportException.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Event.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/client/Messages.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/client/common/Event.h>
 
@@ -221,18 +220,5 @@ class ThriftClientGracefulDrainHandler {
   State state_{State::Open};
   uint32_t inFlight_{0};
 };
-
-static_assert(
-    apache::thrift::fast_thrift::channel_pipeline::DuplexHandler<
-        ThriftClientGracefulDrainHandler,
-        apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl>,
-    "ThriftClientGracefulDrainHandler must satisfy DuplexHandler concept");
-
-static_assert(
-    apache::thrift::fast_thrift::channel_pipeline::TypeEventSubscriber<
-        ThriftClientGracefulDrainHandler,
-        apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl>,
-    "ThriftClientGracefulDrainHandler must satisfy TypeEventSubscriber concept "
-    "so the pipeline links its CloseConnection event hook");
 
 } // namespace apache::thrift::fast_thrift::thrift::client::handler
