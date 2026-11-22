@@ -28,8 +28,8 @@
 #include <folly/io/async/EventBase.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameParser.h>
@@ -50,12 +50,13 @@ namespace apache::thrift::fast_thrift::thrift::client::test {
 namespace transport = apache::thrift::fast_thrift::transport;
 
 using channel_pipeline::erase_and_box;
-using channel_pipeline::PipelineBuilder;
-using channel_pipeline::PipelineImpl;
+using channel_pipeline::PipelineOwner;
+using channel_pipeline::PipelineRef;
 using channel_pipeline::Result;
+using channel_pipeline::StaticPipelineBuilder;
 using channel_pipeline::TypeErasedBox;
-using channel_pipeline::test::MockHeadHandler;
-using channel_pipeline::test::MockTailHandler;
+using channel_pipeline::test::StaticMockHeadHandler;
+using channel_pipeline::test::StaticMockTailHandler;
 using channel_pipeline::test::TestAllocator;
 
 // =============================================================================
@@ -130,9 +131,11 @@ TypeErasedBox makeRocketErrorResponseBox(
 
 struct AdapterWithRocketPipeline {
   folly::EventBase evb;
-  MockHeadHandler rocketHead;
+  StaticMockHeadHandler rocketHead;
   TestAllocator allocator;
+  StaticMockTailHandler thriftTail;
   std::unique_ptr<ThriftClientTransportAdapter> adapter;
+  PipelineOwner thriftPipeline;
 
   AdapterWithRocketPipeline() {
     auto connection =
@@ -142,8 +145,8 @@ struct AdapterWithRocketPipeline {
     rocketHead.setOnWriteCallback(
         [](channel_pipeline::TypeErasedBox&&) { return Result::Success; });
 
-    auto rocketPipeline = PipelineBuilder<
-                              MockHeadHandler,
+    auto rocketPipeline = StaticPipelineBuilder<
+                              StaticMockHeadHandler,
                               rocket::client::RocketClientAppAdapter,
                               TestAllocator>()
                               .setEventBase(&evb)
@@ -157,6 +160,16 @@ struct AdapterWithRocketPipeline {
 
     adapter =
         std::make_unique<ThriftClientTransportAdapter>(std::move(connection));
+    thriftPipeline = StaticPipelineBuilder<
+                         ThriftClientTransportAdapter,
+                         StaticMockTailHandler,
+                         TestAllocator>()
+                         .setEventBase(&evb)
+                         .setHead(adapter.get())
+                         .setTail(&thriftTail)
+                         .setAllocator(&allocator)
+                         .build();
+    adapter->setPipeline(thriftPipeline.get());
   }
 };
 
@@ -169,8 +182,7 @@ struct AdapterWithRocketPipeline {
 TEST(ThriftClientTransportAdapterTest, OnWriteConvertsAndWritesToRocket) {
   AdapterWithRocketPipeline fixture;
 
-  auto result = fixture.adapter->onWrite(
-      channel_pipeline::test::inertEndpointContext(), makeThriftRequestBox());
+  auto result = fixture.thriftPipeline->fireWrite(makeThriftRequestBox());
   EXPECT_EQ(result, Result::Success);
   EXPECT_EQ(fixture.rocketHead.writeCount(), 1);
 }
@@ -185,9 +197,8 @@ TEST(ThriftClientTransportAdapterTest, OnWriteConvertsRpcKindToFrameType) {
     return Result::Success;
   });
 
-  auto result = fixture.adapter->onWrite(
-      channel_pipeline::test::inertEndpointContext(),
-      makeThriftRequestBox(&requestContext));
+  auto result =
+      fixture.thriftPipeline->fireWrite(makeThriftRequestBox(&requestContext));
   EXPECT_EQ(result, Result::Success);
 
   auto& rocketMsg = capturedMsg.get<rocket::RocketRequestMessage>();
@@ -200,18 +211,18 @@ TEST(ThriftClientTransportAdapterTest, InboundResponseConvertedToThrift) {
   auto* appAdapter = connection->appAdapter.get();
 
   folly::EventBase evb;
-  MockHeadHandler rocketHead;
+  StaticMockHeadHandler rocketHead;
   rocketHead.setOnWriteCallback(
       [](channel_pipeline::TypeErasedBox&&) { return Result::Success; });
   TestAllocator rocketAllocator;
 
   // Declared before `adapter` so they outlive the bridge's deferred thrift
   // pipeline destruction (the bridge holds a guard on the thrift pipeline).
-  MockTailHandler thriftTail;
+  StaticMockTailHandler thriftTail;
   TestAllocator thriftAllocator;
 
-  auto rocketPipeline = PipelineBuilder<
-                            MockHeadHandler,
+  auto rocketPipeline = StaticPipelineBuilder<
+                            StaticMockHeadHandler,
                             rocket::client::RocketClientAppAdapter,
                             TestAllocator>()
                             .setEventBase(&evb)
@@ -221,13 +232,14 @@ TEST(ThriftClientTransportAdapterTest, InboundResponseConvertedToThrift) {
                             .build();
 
   appAdapter->setPipeline(rocketPipeline.get());
+  auto rocketPipelineRef = PipelineRef(*rocketPipeline);
   connection->pipeline = std::move(rocketPipeline);
 
   ThriftClientTransportAdapter adapter(std::move(connection));
 
-  auto thriftPipeline = PipelineBuilder<
+  auto thriftPipeline = StaticPipelineBuilder<
                             ThriftClientTransportAdapter,
-                            MockTailHandler,
+                            StaticMockTailHandler,
                             TestAllocator>()
                             .setEventBase(&evb)
                             .setHead(&adapter)
@@ -239,8 +251,7 @@ TEST(ThriftClientTransportAdapterTest, InboundResponseConvertedToThrift) {
 
   auto responseBox = makeRocketResponseBox(
       reinterpret_cast<void*>(0x42), frame::FrameType::REQUEST_RESPONSE);
-  auto result = appAdapter->onRead(
-      channel_pipeline::test::inertEndpointContext(), std::move(responseBox));
+  auto result = rocketPipelineRef.fireRead(std::move(responseBox));
   EXPECT_EQ(result, Result::Success);
 
   EXPECT_EQ(thriftTail.readCount(), 1);
@@ -253,18 +264,18 @@ TEST(
   auto* appAdapter = connection->appAdapter.get();
 
   folly::EventBase evb;
-  MockHeadHandler rocketHead;
+  StaticMockHeadHandler rocketHead;
   rocketHead.setOnWriteCallback(
       [](channel_pipeline::TypeErasedBox&&) { return Result::Success; });
   TestAllocator rocketAllocator;
 
   // Declared before `adapter` so they outlive the bridge's deferred thrift
   // pipeline destruction (the bridge holds a guard on the thrift pipeline).
-  MockTailHandler thriftTail;
+  StaticMockTailHandler thriftTail;
   TestAllocator thriftAllocator;
 
-  auto rocketPipeline = PipelineBuilder<
-                            MockHeadHandler,
+  auto rocketPipeline = StaticPipelineBuilder<
+                            StaticMockHeadHandler,
                             rocket::client::RocketClientAppAdapter,
                             TestAllocator>()
                             .setEventBase(&evb)
@@ -274,13 +285,14 @@ TEST(
                             .build();
 
   appAdapter->setPipeline(rocketPipeline.get());
+  auto rocketPipelineRef = PipelineRef(*rocketPipeline);
   connection->pipeline = std::move(rocketPipeline);
 
   ThriftClientTransportAdapter adapter(std::move(connection));
 
-  auto thriftPipeline = PipelineBuilder<
+  auto thriftPipeline = StaticPipelineBuilder<
                             ThriftClientTransportAdapter,
-                            MockTailHandler,
+                            StaticMockTailHandler,
                             TestAllocator>()
                             .setEventBase(&evb)
                             .setHead(&adapter)
@@ -297,8 +309,7 @@ TEST(
   // channel stays Open (no fireException).
   auto errorBox = makeRocketErrorResponseBox(
       folly::make_exception_wrapper<std::runtime_error>("serialize boom"));
-  auto result = appAdapter->onRead(
-      channel_pipeline::test::inertEndpointContext(), std::move(errorBox));
+  auto result = rocketPipelineRef.fireRead(std::move(errorBox));
 
   EXPECT_EQ(result, Result::Success);
   EXPECT_EQ(thriftTail.readCount(), 1);
@@ -310,18 +321,18 @@ TEST(ThriftClientTransportAdapterTest, OnTransportErrorPropagatesException) {
   auto* appAdapter = connection->appAdapter.get();
 
   folly::EventBase evb;
-  MockHeadHandler rocketHead;
+  StaticMockHeadHandler rocketHead;
   rocketHead.setOnWriteCallback(
       [](channel_pipeline::TypeErasedBox&&) { return Result::Success; });
   TestAllocator rocketAllocator;
 
   // Declared before `adapter` so they outlive the bridge's deferred thrift
   // pipeline destruction (the bridge holds a guard on the thrift pipeline).
-  MockTailHandler thriftTail;
+  StaticMockTailHandler thriftTail;
   TestAllocator thriftAllocator;
 
-  auto rocketPipeline = PipelineBuilder<
-                            MockHeadHandler,
+  auto rocketPipeline = StaticPipelineBuilder<
+                            StaticMockHeadHandler,
                             rocket::client::RocketClientAppAdapter,
                             TestAllocator>()
                             .setEventBase(&evb)
@@ -335,9 +346,9 @@ TEST(ThriftClientTransportAdapterTest, OnTransportErrorPropagatesException) {
 
   ThriftClientTransportAdapter adapter(std::move(connection));
 
-  auto thriftPipeline = PipelineBuilder<
+  auto thriftPipeline = StaticPipelineBuilder<
                             ThriftClientTransportAdapter,
-                            MockTailHandler,
+                            StaticMockTailHandler,
                             TestAllocator>()
                             .setEventBase(&evb)
                             .setHead(&adapter)
@@ -368,19 +379,19 @@ struct RocketLifecycleCounter {
 
 struct AdapterWithBothPipelines {
   folly::EventBase evb;
-  MockHeadHandler rocketHead;
+  StaticMockHeadHandler rocketHead;
   TestAllocator rocketAllocator;
   TestAllocator thriftAllocator;
   // thriftTail must be declared BEFORE bridge: the bridge holds a guard
   // on the thrift pipeline, so pipeline destruction is deferred to bridge
   // destruction. The tail handler must outlive that deferred destruction.
-  MockTailHandler thriftTail;
+  StaticMockTailHandler thriftTail;
   // Non-owning pointers retained for test-side reach-through into the
   // rocket pipeline (otherwise hidden inside the bridge's connection_).
   rocket::client::RocketClientAppAdapter* rocketAppAdapter{nullptr};
-  PipelineImpl* rocketPipelineRaw{nullptr};
+  PipelineRef rocketPipelineRef;
   std::unique_ptr<ThriftClientTransportAdapter> bridge;
-  PipelineImpl::Ptr thriftPipeline;
+  PipelineOwner thriftPipeline;
 
   AdapterWithBothPipelines() {
     auto connection =
@@ -390,8 +401,8 @@ struct AdapterWithBothPipelines {
     rocketHead.setOnWriteCallback(
         [](channel_pipeline::TypeErasedBox&&) { return Result::Success; });
 
-    auto rocketPipeline = PipelineBuilder<
-                              MockHeadHandler,
+    auto rocketPipeline = StaticPipelineBuilder<
+                              StaticMockHeadHandler,
                               rocket::client::RocketClientAppAdapter,
                               TestAllocator>()
                               .setEventBase(&evb)
@@ -401,15 +412,15 @@ struct AdapterWithBothPipelines {
                               .build();
 
     rocketAppAdapter->setPipeline(rocketPipeline.get());
-    rocketPipelineRaw = rocketPipeline.get();
+    rocketPipelineRef = PipelineRef(*rocketPipeline);
     connection->pipeline = std::move(rocketPipeline);
 
     bridge =
         std::make_unique<ThriftClientTransportAdapter>(std::move(connection));
 
-    thriftPipeline = PipelineBuilder<
+    thriftPipeline = StaticPipelineBuilder<
                          ThriftClientTransportAdapter,
-                         MockTailHandler,
+                         StaticMockTailHandler,
                          TestAllocator>()
                          .setEventBase(&evb)
                          .setHead(bridge.get())
@@ -423,11 +434,11 @@ struct AdapterWithBothPipelines {
   ~AdapterWithBothPipelines() {
     // If the test already reset thriftPipeline, the bridge's handlerRemoved
     // will have run connection->destroy(), which already destroyed the
-    // rocket pipeline. Touching rocketPipelineRaw would be a UAF.
+    // rocket pipeline. Touching rocketPipelineRef would be a UAF.
     if (!thriftPipeline) {
       return;
     }
-    rocketPipelineRaw->deactivate();
+    rocketPipelineRef.deactivate();
     thriftPipeline->deactivate();
   }
 };
@@ -443,7 +454,7 @@ TEST(
   // onPipelineInactive must call connection_->disconnect(), which in turn
   // deactivates the rocket pipeline. deactivate() is a no-op unless the
   // pipeline is Active, so activate first.
-  fixture.rocketPipelineRaw->activate();
+  fixture.rocketPipelineRef.activate();
   fixture.thriftPipeline->activate();
   EXPECT_EQ(fixture.thriftTail.pipelineInactiveCount(), 0);
 
@@ -477,7 +488,7 @@ TEST(ThriftClientTransportAdapterTest, RocketActivePropagatesToThriftPipeline) {
   // Activate the rocket pipeline (TransportHandler::onConnect normally
   // does this when the socket connects). The bridge's onActive_ lambda
   // must propagate the activation to the thrift pipeline.
-  fixture.rocketPipelineRaw->activate();
+  fixture.rocketPipelineRef.activate();
 
   // Thrift tail saw onPipelineActive exactly once (proves bridge's
   // propagateActive ran and called thrift pipeline activate).
@@ -485,7 +496,7 @@ TEST(ThriftClientTransportAdapterTest, RocketActivePropagatesToThriftPipeline) {
 
   // Re-activating rocket should NOT re-fire the thrift active path
   // because of the bridge's activated_ guard.
-  fixture.rocketPipelineRaw->activate();
+  fixture.rocketPipelineRef.activate();
   EXPECT_EQ(fixture.thriftTail.pipelineActiveCount(), 1);
 }
 
@@ -520,8 +531,8 @@ namespace {
 // Thrift-pipeline tail that subscribes to the WriteComplete event and records
 // the relayed payload — models the consumer the bridge fires toward.
 struct WriteCompleteCapturingTail {
-  Result onRead(
-      channel_pipeline::detail::ContextImpl&, TypeErasedBox&&) noexcept {
+  template <typename Context>
+  Result onRead(Context&, TypeErasedBox&&) noexcept {
     return Result::Success;
   }
   void onException(folly::exception_wrapper&&) noexcept {}
@@ -549,7 +560,7 @@ TEST(
     ThriftClientTransportAdapterTest,
     RocketWriteCompleteRelaysToThriftWriteCompleteEvent) {
   folly::EventBase evb;
-  MockHeadHandler rocketHead;
+  StaticMockHeadHandler rocketHead;
   rocketHead.setOnWriteCallback(
       [](TypeErasedBox&&) { return Result::Success; });
   TestAllocator rocketAllocator;
@@ -558,8 +569,8 @@ TEST(
 
   auto connection = std::make_unique<rocket::client::RocketClientConnection>();
   auto* rocketAppAdapter = connection->appAdapter.get();
-  auto rocketPipeline = PipelineBuilder<
-                            MockHeadHandler,
+  auto rocketPipeline = StaticPipelineBuilder<
+                            StaticMockHeadHandler,
                             rocket::client::RocketClientAppAdapter,
                             TestAllocator>()
                             .setEventBase(&evb)
@@ -572,7 +583,7 @@ TEST(
 
   auto bridge =
       std::make_unique<ThriftClientTransportAdapter>(std::move(connection));
-  auto thriftPipeline = PipelineBuilder<
+  auto thriftPipeline = StaticPipelineBuilder<
                             ThriftClientTransportAdapter,
                             WriteCompleteCapturingTail,
                             TestAllocator>()
