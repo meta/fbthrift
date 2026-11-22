@@ -60,13 +60,13 @@ class MetadataCodegenTest : public testing::Test {
       bool optional = true) {
     auto type = check_field(field, key, name);
     EXPECT_EQ(*field.is_optional(), optional);
-    EXPECT_EQ(*type.get_t_union().name(), type_name);
+    EXPECT_EQ(*type.t_union()->name(), type_name);
   }
   void check_field_string(
       const ThriftField& field, int key, const std::string& name) {
     auto type = check_field(field, key, name);
     EXPECT_FALSE(*field.is_optional());
-    EXPECT_EQ(type.get_t_primitive(), ThriftPrimitiveType::THRIFT_STRING_TYPE);
+    EXPECT_EQ(*type.t_primitive(), ThriftPrimitiveType::THRIFT_STRING_TYPE);
   }
   ThriftMetadata metadata_;
 };
