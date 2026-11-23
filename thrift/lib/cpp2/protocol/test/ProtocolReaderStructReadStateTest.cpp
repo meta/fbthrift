@@ -21,9 +21,13 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <memory>
+#include <new>
 #include <thread>
 #include <vector>
 
+#include <folly/synchronization/CallOnce.h>
+#include <thrift/lib/cpp2/gen/module_types_cpp.h>
 #include <thrift/lib/cpp2/gen/tcc_struct_traits.h>
 #include <thrift/lib/cpp2/protocol/BinaryProtocol.h>
 #include <thrift/lib/cpp2/protocol/CompactProtocol.h>
@@ -115,6 +119,46 @@ TEST(ProtocolReaderStructReadState, fieldNameConcurrentInitialization) {
         i % 2 ? FieldLookupResult{1, T_I64} : FieldLookupResult{32767, T_BOOL};
     EXPECT_EQ(results[i], expected);
   }
+}
+
+TEST(ProtocolReaderStructReadState, fieldNameInitializationFailureRetry) {
+  constexpr std::array<std::string_view, 2> names{
+      "first",
+      "last",
+  };
+  constexpr std::array<int16_t, 2> ids{
+      -9,
+      32767,
+  };
+  constexpr std::array<TType, 2> types{
+      T_I64,
+      T_BOOL,
+  };
+  auto metadata = apache::thrift::detail::st::translate_field_name_table{
+      names.size(), names.data(), ids.data(), types.data()};
+  apache::thrift::detail::st::translate_field_name_cache cache{metadata};
+  using Table = apache::thrift::detail::st::translate_field_name_hash_table;
+  decltype(Table::map) emptyMap;
+  metadata.size = emptyMap.max_size() + 1;
+  int16_t id = kNoFieldId;
+  auto type = T_VOID;
+  EXPECT_THROW(
+      apache::thrift::detail::st::translate_field_name_or_id(
+          "first", id, type, cache),
+      std::bad_alloc);
+  EXPECT_FALSE(folly::test_once(cache.once));
+  metadata.size = names.size();
+  apache::thrift::detail::st::translate_field_name_or_id(
+      "last", id, type, cache);
+  EXPECT_TRUE(folly::test_once(cache.once));
+  EXPECT_EQ(id, 32767);
+  EXPECT_EQ(type, T_BOOL);
+  id = -9;
+  apache::thrift::detail::st::translate_field_name_or_id({}, id, type, cache);
+  EXPECT_EQ(id, -9);
+  EXPECT_EQ(type, T_I64);
+  // Unlike the process-lifetime caches, this test's storage is local.
+  std::destroy_at(std::launder(reinterpret_cast<Table*>(&cache.storage)));
 }
 
 template <class ProtocolWriter>

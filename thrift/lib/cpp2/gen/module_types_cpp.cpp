@@ -17,6 +17,7 @@
 #include <thrift/lib/cpp2/gen/module_types_cpp.h>
 
 #include <limits>
+#include <new>
 
 namespace apache::thrift::detail::st {
 
@@ -68,6 +69,7 @@ FOLLY_NOINLINE void translate_field_name_or_id(
   }
 }
 
+FOLLY_NOINLINE
 translate_field_name_hash_table::translate_field_name_hash_table(
     size_t size,
     const std::string_view* names,
@@ -81,7 +83,22 @@ translate_field_name_hash_table::translate_field_name_hash_table(
   }
 }
 
-void translate_field_name_or_id(
+FOLLY_NOINLINE void translate_field_name_or_id(
+    std::string_view fname,
+    int16_t& fid,
+    protocol::TType& ftype,
+    translate_field_name_cache& cache) {
+  folly::call_once(cache.once, [&] {
+    const auto& metadata = cache.metadata;
+    ::new (&cache.storage) translate_field_name_hash_table(
+        metadata.size, metadata.names, metadata.ids, metadata.types);
+  });
+  const auto& table = *std::launder(
+      reinterpret_cast<const translate_field_name_hash_table*>(&cache.storage));
+  translate_field_name_or_id(fname, fid, ftype, table);
+}
+
+FOLLY_NOINLINE void translate_field_name_or_id(
     std::string_view fname,
     int16_t& fid,
     protocol::TType& ftype,

@@ -28,6 +28,7 @@
 #include <folly/container/F14Map.h>
 #include <folly/container/Reserve.h>
 #include <folly/detail/StaticSingletonManager.h>
+#include <folly/synchronization/CallOnce.h>
 
 #include <thrift/lib/cpp/protocol/TType.h>
 #include <thrift/lib/cpp2/detail/Enum.h>
@@ -183,6 +184,15 @@ struct translate_field_name_hash_table {
   folly::F14FastMap<int16_t, protocol::TType> idMap;
 };
 
+/// translate_field_name_cache
+///
+/// Metadata must outlive the cache; successfully constructed maps are immortal.
+struct translate_field_name_cache {
+  const translate_field_name_table& metadata;
+  folly::once_flag once{};
+  folly::aligned_storage_for_t<translate_field_name_hash_table> storage{};
+};
+
 void checkFieldIdConflict(int16_t expected, int16_t actual);
 
 void translate_field_name_or_id(
@@ -196,6 +206,12 @@ void translate_field_name_or_id(
     int16_t& fid,
     protocol::TType& ftype,
     const translate_field_name_hash_table& table);
+
+void translate_field_name_or_id(
+    std::string_view fname,
+    int16_t& fid,
+    protocol::TType& ftype,
+    translate_field_name_cache& cache);
 
 namespace {
 

@@ -16,10 +16,7 @@
 
 #pragma once
 
-#include <type_traits>
-
-#include <folly/CppAttributes.h>
-#include <folly/Indestructible.h>
+#include <new>
 
 #include <thrift/lib/cpp2/gen/module_types_cpp.h>
 #include <thrift/lib/cpp2/gen/tcc_struct_traits.h>
@@ -32,19 +29,26 @@ void TccStructTraits<T, Enable>::translateFieldName(
     int16_t& fid,
     apache::thrift::protocol::TType& _ftype) {
   using data = apache::thrift::TStructDataStorage<T>;
+  static constexpr st::translate_field_name_table metadata{
+      data::fields_size,
+      data::fields_names.data(),
+      data::fields_ids.data(),
+      data::fields_types.data()};
   // Linear scan beats hashing for small structs (threshold 12 from
   // benchmarking).
-  using Table = std::conditional_t<
-      (data::fields_size <= 12),
-      st::translate_field_name_table,
-      st::translate_field_name_hash_table>;
-  [[FOLLY_ATTR_CLANG_NO_DESTROY]] static const folly::Indestructible<Table>
-      table{Table{
-          data::fields_size,
-          data::fields_names.data(),
-          data::fields_ids.data(),
-          data::fields_types.data()}};
-  st::translate_field_name_or_id(_fname, fid, _ftype, *table);
+  if constexpr (data::fields_size <= 12) {
+    st::translate_field_name_or_id(_fname, fid, _ftype, metadata);
+  } else {
+    static st::translate_field_name_cache cache{metadata};
+    if (folly::test_once(cache.once)) [[likely]] {
+      const auto& table = *std::launder(
+          reinterpret_cast<const st::translate_field_name_hash_table*>(
+              &cache.storage));
+      st::translate_field_name_or_id(_fname, fid, _ftype, table);
+    } else {
+      st::translate_field_name_or_id(_fname, fid, _ftype, cache);
+    }
+  }
 }
 
 } // namespace apache::thrift::detail
