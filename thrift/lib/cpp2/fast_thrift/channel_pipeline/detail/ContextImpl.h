@@ -18,6 +18,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <type_traits>
 
 #include <folly/CPortability.h>
 #include <folly/io/async/EventBase.h>
@@ -41,8 +42,6 @@ namespace detail {
  * - Access to the owning pipeline
  * - Buffer allocation
  * - EventBase access
- *
- * ContextImpl satisfies the ContextApi concept defined in context.h.
  *
  * Contexts are strictly owned by PipelineImpl and share its lifetime.
  * They do not need independent delayed destruction - the pipeline's
@@ -273,12 +272,8 @@ class alignas(64) ContextImpl {
   size_t handlerIndex() const noexcept { return handlerIndex_; }
 
   /**
-   * Raw storage for this context's persistent TypedContext view (see
-   * TypedContext.h). A TypedContext is a reference wrapper, so its size and
-   * alignment are independent of the registered state types — a pointer-sized,
-   * pointer-aligned slot holds any of them. Populated once by the builder for
-   * state-using pipelines (after contexts are finalized), left untouched
-   * otherwise. Used only by the TypedContext helpers.
+   * Raw storage for a persistent stateful view, initialized after context
+   * storage and pipeline state are finalized. It shares the context's lifetime.
    */
   void* typedViewStorage() noexcept { return &typedViewStorage_; }
 
@@ -287,10 +282,9 @@ class alignas(64) ContextImpl {
   void fireTypeEventFromRoute(
       std::size_t routeIndex, EventKey key, const void* payload) noexcept;
 
-  // The first cache line contains the pipeline/EventBase pointers and both
-  // read/write dispatch triples used by continuation completion.
+  // The first cache line holds the pipeline, persistent view and dispatch.
   PipelineImpl* pipeline_;
-  folly::EventBase* eventBase_;
+  alignas(void*) unsigned char typedViewStorage_[sizeof(void*)];
 
   Result (*nextReadFn_)(void*, ContextImpl&, TypeErasedBox&&) noexcept {
       nullptr};
@@ -304,9 +298,7 @@ class alignas(64) ContextImpl {
 
   void* allocator_; // Type-erased BufferAllocator
   void* pipelineState_{nullptr}; // Type-erased pipeline-level state
-  // Storage for the per-context TypedContext view (constructed by the builder
-  // for state-using pipelines). Sized/aligned for a reference wrapper.
-  alignas(void*) unsigned char typedViewStorage_[sizeof(void*)];
+  folly::EventBase* eventBase_;
   size_t handlerIndex_;
   HandlerId handlerId_;
 
@@ -314,8 +306,8 @@ class alignas(64) ContextImpl {
       void*, ContextImpl&, folly::exception_wrapper&&) noexcept {nullptr};
 
   // Offset of this publisher's compile-time-ordered routes. On 64-bit targets
-  // this occupies former tail padding and keeps ContextImpl at two cache lines;
-  // on 32-bit targets the context fits in one cache line.
+  // this occupies former tail padding and keeps ContextImpl at two cache
+  // lines; on 32-bit targets the context fits in one cache line.
   std::uint32_t typeEventRouteOffset_{0};
 
   friend class ::apache::thrift::fast_thrift::channel_pipeline::PipelineImpl;

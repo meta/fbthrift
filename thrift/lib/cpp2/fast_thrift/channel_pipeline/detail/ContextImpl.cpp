@@ -27,8 +27,8 @@ ContextImpl::ContextImpl(
     size_t handlerIndex,
     HandlerId handlerId) noexcept
     : pipeline_(pipeline),
-      eventBase_(eventBase),
       allocator_(allocator),
+      eventBase_(eventBase),
       handlerIndex_(handlerIndex),
       handlerId_(handlerId) {}
 
