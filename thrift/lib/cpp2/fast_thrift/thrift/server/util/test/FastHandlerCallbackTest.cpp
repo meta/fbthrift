@@ -29,7 +29,7 @@
 #include <folly/io/async/ScopedEventBaseThread.h>
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/util/FastHandlerCallback.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/util/FastHandlerCoro.h>
@@ -169,10 +169,10 @@ RecordingAdapterPtr makeRecorder(bool* destroyed = nullptr) {
 }
 
 void configureClosedPipeline(folly::EventBase& evb, RecordingAdapter& adapter) {
-  channel_pipeline::test::MockHeadHandler head;
+  channel_pipeline::test::StaticMockHeadHandler head;
   channel_pipeline::test::TestAllocator allocator;
-  auto pipeline = channel_pipeline::PipelineBuilder<
-                      channel_pipeline::test::MockHeadHandler,
+  auto pipeline = channel_pipeline::StaticPipelineBuilder<
+                      channel_pipeline::test::StaticMockHeadHandler,
                       RecordingAdapter,
                       channel_pipeline::test::TestAllocator>()
                       .setEventBase(&evb)
@@ -374,13 +374,11 @@ TEST(FastHandlerCallbackTest, StorageBypassesEventBaseAllocator) {
 
 TEST(FastHandlerCallbackTest, CancellationAcknowledgementCompletesOnce) {
   folly::EventBase evb;
-  channel_pipeline::test::MockHeadHandler head;
+  channel_pipeline::test::StaticMockHeadHandler head;
   channel_pipeline::test::TestAllocator allocator;
   auto rec = makeRecorder();
-  auto capture = std::make_unique<CompletionCaptureHandler>();
-  auto* capturePtr = capture.get();
-  auto pipeline = channel_pipeline::PipelineBuilder<
-                      channel_pipeline::test::MockHeadHandler,
+  auto pipeline = channel_pipeline::StaticPipelineBuilder<
+                      channel_pipeline::test::StaticMockHeadHandler,
                       RecordingAdapter,
                       channel_pipeline::test::TestAllocator>()
                       .setEventBase(&evb)
@@ -388,8 +386,9 @@ TEST(FastHandlerCallbackTest, CancellationAcknowledgementCompletesOnce) {
                       .setTail(rec.get())
                       .setAllocator(&allocator)
                       .addNextDuplex<CompletionCaptureHandler>(
-                          completion_capture_handler_tag, std::move(capture))
+                          completion_capture_handler_tag)
                       .build();
+  auto* capturePtr = &pipeline->handler(completion_capture_handler_tag);
   rec->setPipeline(pipeline.get());
   auto requestContext = makeThriftRequestContext(evb);
   requestContext->enableCancellation();
@@ -419,11 +418,11 @@ TEST(FastHandlerCallbackTest, CancellationAcknowledgementCompletesOnce) {
 
 TEST(FastHandlerCallbackTest, CancellationAfterPipelineResetIsDropped) {
   folly::EventBase evb;
-  channel_pipeline::test::MockHeadHandler head;
+  channel_pipeline::test::StaticMockHeadHandler head;
   channel_pipeline::test::TestAllocator allocator;
   auto rec = makeRecorder();
-  auto pipeline = channel_pipeline::PipelineBuilder<
-                      channel_pipeline::test::MockHeadHandler,
+  auto pipeline = channel_pipeline::StaticPipelineBuilder<
+                      channel_pipeline::test::StaticMockHeadHandler,
                       RecordingAdapter,
                       channel_pipeline::test::TestAllocator>()
                       .setEventBase(&evb)
@@ -454,13 +453,11 @@ TEST(FastHandlerCallbackTest, CancellationAfterPipelineResetIsDropped) {
 
 TEST(FastHandlerCallbackTest, CancellationCallbackCanAcknowledgeReentrantly) {
   folly::EventBase evb;
-  channel_pipeline::test::MockHeadHandler head;
+  channel_pipeline::test::StaticMockHeadHandler head;
   channel_pipeline::test::TestAllocator allocator;
   auto rec = makeRecorder();
-  auto capture = std::make_unique<CompletionCaptureHandler>();
-  auto* capturePtr = capture.get();
-  auto pipeline = channel_pipeline::PipelineBuilder<
-                      channel_pipeline::test::MockHeadHandler,
+  auto pipeline = channel_pipeline::StaticPipelineBuilder<
+                      channel_pipeline::test::StaticMockHeadHandler,
                       RecordingAdapter,
                       channel_pipeline::test::TestAllocator>()
                       .setEventBase(&evb)
@@ -468,8 +465,9 @@ TEST(FastHandlerCallbackTest, CancellationCallbackCanAcknowledgeReentrantly) {
                       .setTail(rec.get())
                       .setAllocator(&allocator)
                       .addNextDuplex<CompletionCaptureHandler>(
-                          completion_capture_handler_tag, std::move(capture))
+                          completion_capture_handler_tag)
                       .build();
+  auto* capturePtr = &pipeline->handler(completion_capture_handler_tag);
   rec->setPipeline(pipeline.get());
   auto requestContext = makeThriftRequestContext(evb);
   requestContext->enableCancellation();
@@ -499,13 +497,11 @@ TEST(
     FastHandlerCallbackTest,
     CancellationRacingResultCompletesOnceWithOrWithoutExecutor) {
   folly::EventBase evb;
-  channel_pipeline::test::MockHeadHandler head;
+  channel_pipeline::test::StaticMockHeadHandler head;
   channel_pipeline::test::TestAllocator allocator;
   auto rec = makeRecorder();
-  auto capture = std::make_unique<CompletionCaptureHandler>();
-  auto* capturePtr = capture.get();
-  auto pipeline = channel_pipeline::PipelineBuilder<
-                      channel_pipeline::test::MockHeadHandler,
+  auto pipeline = channel_pipeline::StaticPipelineBuilder<
+                      channel_pipeline::test::StaticMockHeadHandler,
                       RecordingAdapter,
                       channel_pipeline::test::TestAllocator>()
                       .setEventBase(&evb)
@@ -513,8 +509,9 @@ TEST(
                       .setTail(rec.get())
                       .setAllocator(&allocator)
                       .addNextDuplex<CompletionCaptureHandler>(
-                          completion_capture_handler_tag, std::move(capture))
+                          completion_capture_handler_tag)
                       .build();
+  auto* capturePtr = &pipeline->handler(completion_capture_handler_tag);
   rec->setPipeline(pipeline.get());
 
   constexpr int kIterationsPerMode = 100;
@@ -565,13 +562,11 @@ TEST(
 
 TEST(FastHandlerCallbackTest, CancellationRacingVoidCompletionCompletesOnce) {
   folly::EventBase evb;
-  channel_pipeline::test::MockHeadHandler head;
+  channel_pipeline::test::StaticMockHeadHandler head;
   channel_pipeline::test::TestAllocator allocator;
   auto rec = makeRecorder();
-  auto capture = std::make_unique<CompletionCaptureHandler>();
-  auto* capturePtr = capture.get();
-  auto pipeline = channel_pipeline::PipelineBuilder<
-                      channel_pipeline::test::MockHeadHandler,
+  auto pipeline = channel_pipeline::StaticPipelineBuilder<
+                      channel_pipeline::test::StaticMockHeadHandler,
                       RecordingAdapter,
                       channel_pipeline::test::TestAllocator>()
                       .setEventBase(&evb)
@@ -579,8 +574,9 @@ TEST(FastHandlerCallbackTest, CancellationRacingVoidCompletionCompletesOnce) {
                       .setTail(rec.get())
                       .setAllocator(&allocator)
                       .addNextDuplex<CompletionCaptureHandler>(
-                          completion_capture_handler_tag, std::move(capture))
+                          completion_capture_handler_tag)
                       .build();
+  auto* capturePtr = &pipeline->handler(completion_capture_handler_tag);
   rec->setPipeline(pipeline.get());
 
   constexpr int kIterations = 100;
@@ -622,13 +618,11 @@ TEST(FastHandlerCallbackTest, CancellationRacingVoidCompletionCompletesOnce) {
 
 TEST(FastHandlerCallbackTest, CoroutineReceivesRequestCancellationToken) {
   folly::EventBase evb;
-  channel_pipeline::test::MockHeadHandler head;
+  channel_pipeline::test::StaticMockHeadHandler head;
   channel_pipeline::test::TestAllocator allocator;
   auto rec = makeRecorder();
-  auto capture = std::make_unique<CompletionCaptureHandler>();
-  auto* capturePtr = capture.get();
-  auto pipeline = channel_pipeline::PipelineBuilder<
-                      channel_pipeline::test::MockHeadHandler,
+  auto pipeline = channel_pipeline::StaticPipelineBuilder<
+                      channel_pipeline::test::StaticMockHeadHandler,
                       RecordingAdapter,
                       channel_pipeline::test::TestAllocator>()
                       .setEventBase(&evb)
@@ -636,8 +630,9 @@ TEST(FastHandlerCallbackTest, CoroutineReceivesRequestCancellationToken) {
                       .setTail(rec.get())
                       .setAllocator(&allocator)
                       .addNextDuplex<CompletionCaptureHandler>(
-                          completion_capture_handler_tag, std::move(capture))
+                          completion_capture_handler_tag)
                       .build();
+  auto* capturePtr = &pipeline->handler(completion_capture_handler_tag);
   rec->setPipeline(pipeline.get());
   auto requestContext = makeThriftRequestContext(evb);
   requestContext->enableCancellation();

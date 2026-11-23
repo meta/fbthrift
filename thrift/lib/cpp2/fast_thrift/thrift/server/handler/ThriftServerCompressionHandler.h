@@ -39,7 +39,7 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/StaticHandlerContext.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/Messages.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/ThriftRequestContext.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/util/ResponsePayloads.h>
@@ -498,14 +498,16 @@ class ThriftServerCompressionHandler {
 // NOLINTBEGIN(facebook-hte-DetailCall)
 static_assert(
     channel_pipeline::OutboundHandler<
-        ThriftServerCompressionHandler<channel_pipeline::detail::ContextImpl>,
-        channel_pipeline::detail::ContextImpl>,
+        ThriftServerCompressionHandler<
+            channel_pipeline::detail::StaticHandlerContext>,
+        channel_pipeline::detail::StaticHandlerContext>,
     "ThriftServerCompressionHandler must satisfy OutboundHandler concept");
 
 static_assert(
     channel_pipeline::InboundHandler<
-        ThriftServerCompressionHandler<channel_pipeline::detail::ContextImpl>,
-        channel_pipeline::detail::ContextImpl>,
+        ThriftServerCompressionHandler<
+            channel_pipeline::detail::StaticHandlerContext>,
+        channel_pipeline::detail::StaticHandlerContext>,
     "ThriftServerCompressionHandler must satisfy InboundHandler concept");
 // NOLINTEND(facebook-hte-DetailCall)
 

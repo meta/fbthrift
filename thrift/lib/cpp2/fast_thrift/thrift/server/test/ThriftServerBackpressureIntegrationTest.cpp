@@ -24,10 +24,8 @@
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/Messages.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/ReadBackpressureArbiter.h>
@@ -47,10 +45,32 @@ HANDLER_TAG(req_ctx);
 HANDLER_TAG(close);
 HANDLER_TAG(server_backpressure);
 
-using Ctx = cp::detail::ContextImpl;
-using ReqCtxHandler = ft::ThriftServerRequestContextHandler<Ctx>;
-using CloseHandler = ft::ThriftServerConnectionCloseHandler<Ctx>;
-using BackpressureHandler = ft::ThriftServerBackpressureHandler<Ctx>;
+auto buildPipeline(
+    folly::EventBase& evb,
+    cp::test::StaticMockHeadHandler& head,
+    cp::test::StaticMockTailHandler& tail,
+    cp::test::TestAllocator& allocator,
+    ft::ReadBackpressureArbiter& arbiter) {
+  return cp::StaticPipelineBuilder<
+             cp::test::StaticMockHeadHandler,
+             cp::test::StaticMockTailHandler,
+             cp::test::TestAllocator>()
+      .setEventBase(&evb)
+      .setHead(&head)
+      .setTail(&tail)
+      .setAllocator(&allocator)
+      .addNextInboundTemplate<ft::ThriftServerRequestContextHandler>(
+          req_ctx_tag,
+          /*requestExtensionLayout=*/nullptr,
+          /*methodMetadata=*/nullptr,
+          boost::intrusive_ptr<ft::ThriftConnContext>(
+              new ft::ThriftConnContext{}),
+          /*enableRequestHeaders=*/false)
+      .addNextDuplexTemplate<ft::ThriftServerConnectionCloseHandler>(close_tag)
+      .addNextDuplexTemplate<ft::ThriftServerBackpressureHandler>(
+          server_backpressure_tag, &arbiter)
+      .build();
+}
 
 ft::ThriftServerRequestMessage makeRequest(uint32_t streamId) {
   return ft::ThriftServerRequestMessage{
@@ -81,32 +101,7 @@ class ThriftServerBackpressureIntegrationTest : public ::testing::Test {
     tail_.reset();
     allocator_.reset();
 
-    auto reqCtx = std::make_unique<ReqCtxHandler>(
-        /*requestExtensionLayout=*/nullptr,
-        /*methodMetadata=*/nullptr,
-        boost::intrusive_ptr<ft::ThriftConnContext>(
-            new ft::ThriftConnContext{}),
-        /*enableRequestHeaders=*/false);
-    auto closeHandler = std::make_unique<CloseHandler>();
-    auto backpressure = std::make_unique<BackpressureHandler>(&arbiter_);
-
-    closeHandler_ = closeHandler.get();
-    backpressure_ = backpressure.get();
-
-    pipeline_ =
-        cp::PipelineBuilder<
-            cp::test::MockHeadHandler,
-            cp::test::MockTailHandler,
-            cp::test::TestAllocator>()
-            .setEventBase(&evb_)
-            .setHead(&head_)
-            .setTail(&tail_)
-            .setAllocator(&allocator_)
-            .addNextInbound<ReqCtxHandler>(req_ctx_tag, std::move(reqCtx))
-            .addNextDuplex<CloseHandler>(close_tag, std::move(closeHandler))
-            .addNextDuplex<BackpressureHandler>(
-                server_backpressure_tag, std::move(backpressure))
-            .build();
+    pipeline_ = buildPipeline(evb_, head_, tail_, allocator_, arbiter_);
     pipeline_->activate();
   }
 
@@ -131,13 +126,11 @@ class ThriftServerBackpressureIntegrationTest : public ::testing::Test {
   }
 
   folly::EventBase evb_;
-  cp::test::MockHeadHandler head_;
-  cp::test::MockTailHandler tail_;
+  cp::test::StaticMockHeadHandler head_;
+  cp::test::StaticMockTailHandler tail_;
   cp::test::TestAllocator allocator_;
   ft::ReadBackpressureArbiter arbiter_;
-  cp::PipelineImpl::Ptr pipeline_;
-  CloseHandler* closeHandler_{nullptr};
-  BackpressureHandler* backpressure_{nullptr};
+  decltype(buildPipeline(evb_, head_, tail_, allocator_, arbiter_)) pipeline_;
 };
 
 TEST_F(
@@ -151,9 +144,9 @@ TEST_F(
   EXPECT_EQ(fireResponse(2), cp::Result::Success);
   EXPECT_EQ(fireResponse(3), cp::Result::Success);
 
-  EXPECT_FALSE(backpressure_->isBackpressured());
+  EXPECT_FALSE(pipeline_->handler(server_backpressure_tag).isBackpressured());
   EXPECT_EQ(head_.writeCount(), 3);
-  EXPECT_EQ(closeHandler_->inFlight(), 0u);
+  EXPECT_EQ(pipeline_->handler(close_tag).inFlight(), 0u);
 }
 
 TEST_F(
@@ -167,16 +160,16 @@ TEST_F(
   EXPECT_EQ(fireResponse(2), cp::Result::Success);
   EXPECT_EQ(fireResponse(3), cp::Result::Success);
 
-  EXPECT_TRUE(backpressure_->isBackpressured());
+  EXPECT_TRUE(pipeline_->handler(server_backpressure_tag).isBackpressured());
   EXPECT_EQ(head_.writeCount(), 3);
-  EXPECT_EQ(closeHandler_->inFlight(), 0u);
+  EXPECT_EQ(pipeline_->handler(close_tag).inFlight(), 0u);
   EXPECT_EQ(arbiter_.holderCount(), 1u);
   EXPECT_TRUE(pipeline_->hasPendingWriteReady());
   EXPECT_EQ(head_.onReadReadyCount(), 0);
 
   pipeline_->onWriteReady();
 
-  EXPECT_FALSE(backpressure_->isBackpressured());
+  EXPECT_FALSE(pipeline_->handler(server_backpressure_tag).isBackpressured());
   EXPECT_FALSE(pipeline_->hasPendingWriteReady());
   EXPECT_EQ(head_.writeCount(), 3);
   EXPECT_EQ(head_.onReadReadyCount(), 1);
@@ -196,7 +189,7 @@ TEST_F(
       cp::Result::Backpressure);
   EXPECT_EQ(tail_.readCount(), 2);
   EXPECT_EQ(fireResponse(99), cp::Result::Success);
-  EXPECT_EQ(closeHandler_->inFlight(), 0u);
+  EXPECT_EQ(pipeline_->handler(close_tag).inFlight(), 0u);
   EXPECT_EQ(head_.writeCount(), 2);
 }
 

@@ -26,7 +26,7 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/StaticHandlerContext.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/Messages.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/ThriftRequestContext.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/util/ResponsePayloads.h>
@@ -216,14 +216,16 @@ class ThriftServerChecksumHandler {
 
 static_assert(
     channel_pipeline::OutboundHandler<
-        ThriftServerChecksumHandler<channel_pipeline::detail::ContextImpl>,
-        channel_pipeline::detail::ContextImpl>,
+        ThriftServerChecksumHandler<
+            channel_pipeline::detail::StaticHandlerContext>,
+        channel_pipeline::detail::StaticHandlerContext>,
     "ThriftServerChecksumHandler must satisfy OutboundHandler concept");
 
 static_assert(
     channel_pipeline::InboundHandler<
-        ThriftServerChecksumHandler<channel_pipeline::detail::ContextImpl>,
-        channel_pipeline::detail::ContextImpl>,
+        ThriftServerChecksumHandler<
+            channel_pipeline::detail::StaticHandlerContext>,
+        channel_pipeline::detail::StaticHandlerContext>,
     "ThriftServerChecksumHandler must satisfy InboundHandler concept");
 
 } // namespace apache::thrift::fast_thrift::thrift

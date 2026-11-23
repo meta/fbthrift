@@ -39,8 +39,7 @@ using namespace apache::thrift::fast_thrift::thrift;
 
 namespace {
 
-// Stand-in for PipelineImpl exposing the single method the handler
-// reaches for via ctx.pipeline()->onReadReady() on full drain.
+// Stand-in for the pipeline that the handler asks to resume reads after drain.
 struct BenchPipeline {
   void onReadReady() noexcept {}
 };

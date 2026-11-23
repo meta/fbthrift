@@ -22,7 +22,7 @@
 
 #include <folly/io/async/EventBase.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/Messages.h>
 
@@ -165,20 +165,20 @@ TEST(
     ThriftServerBackpressureHandlerPipelineTest,
     WritesFlowWhileReadsArePaused) {
   folly::EventBase evb;
-  cp::test::MockHeadHandler head;
-  cp::test::MockTailHandler tail;
+  cp::test::StaticMockHeadHandler head;
+  cp::test::StaticMockTailHandler tail;
   cp::test::TestAllocator allocator;
   ReadBackpressureArbiter arbiter;
-  using Handler = ThriftServerBackpressureHandler<cp::detail::ContextImpl>;
-  auto pipeline = cp::PipelineBuilder<
-                      cp::test::MockHeadHandler,
-                      cp::test::MockTailHandler,
+  auto pipeline = cp::StaticPipelineBuilder<
+                      cp::test::StaticMockHeadHandler,
+                      cp::test::StaticMockTailHandler,
                       cp::test::TestAllocator>()
                       .setEventBase(&evb)
                       .setHead(&head)
                       .setTail(&tail)
                       .setAllocator(&allocator)
-                      .addNextDuplex<Handler>(read_backpressure_tag, &arbiter)
+                      .addNextDuplexTemplate<ThriftServerBackpressureHandler>(
+                          read_backpressure_tag, &arbiter)
                       .build();
   head.setOnWriteCallback([](TypeErasedBox&&) { return Result::Backpressure; });
 

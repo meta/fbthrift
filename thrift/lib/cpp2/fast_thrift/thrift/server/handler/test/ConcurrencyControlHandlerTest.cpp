@@ -15,14 +15,17 @@
  */
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/handler/ConcurrencyControlHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/util/ConcurrencyControlState.h>
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <stdexcept>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 #include <folly/io/async/EventBase.h>
@@ -33,17 +36,52 @@ namespace {
 
 using channel_pipeline::erase_and_box;
 using channel_pipeline::EventTag;
-using channel_pipeline::PipelineBuilder;
-using channel_pipeline::PipelineImpl;
 using channel_pipeline::Result;
+using channel_pipeline::StaticPipelineBuilder;
 using channel_pipeline::TypeErasedBox;
-using channel_pipeline::test::MockHeadHandler;
-using channel_pipeline::test::MockTailHandler;
+using channel_pipeline::test::StaticMockHeadHandler;
+using channel_pipeline::test::StaticMockTailHandler;
 using channel_pipeline::test::TestAllocator;
 
 HANDLER_TAG(concurrency);
 
 struct TestRequestCompletedEvent : EventTag<> {};
+
+struct TestPipelineResources {
+  folly::EventBase& eventBase;
+  StaticMockHeadHandler& head;
+  StaticMockTailHandler& tail;
+  TestAllocator& allocator;
+  ConcurrencyControlStateHolder& holder;
+};
+
+template <typename CompletionEvent>
+struct TestHandlerTemplate {
+  template <typename Context>
+  using Handler = ConcurrencyControlHandler<Context, CompletionEvent>;
+};
+
+template <typename CompletionEvent = TestRequestCompletedEvent>
+auto buildTestPipeline(
+    TestPipelineResources resources,
+    uint64_t maxActive,
+    uint64_t maxOutstanding) {
+  return StaticPipelineBuilder<
+             StaticMockHeadHandler,
+             StaticMockTailHandler,
+             TestAllocator>()
+      .setEventBase(&resources.eventBase)
+      .setHead(&resources.head)
+      .setTail(&resources.tail)
+      .setAllocator(&resources.allocator)
+      .template addNextDuplexTemplate<
+          TestHandlerTemplate<CompletionEvent>::template Handler>(
+          concurrency_tag,
+          maxActive,
+          maxOutstanding,
+          std::ref(resources.holder))
+      .build();
+}
 
 struct TrackedMessage {
   explicit TrackedMessage(std::shared_ptr<size_t> destroyed)
@@ -65,48 +103,47 @@ struct TrackedMessage {
 
 class ConcurrencyControlHandlerTest : public ::testing::Test {
  protected:
-  using Handler = ConcurrencyControlHandler<
-      channel_pipeline::detail::ContextImpl,
-      TestRequestCompletedEvent>;
+  using PipelinePtr =
+      decltype(buildTestPipeline(std::declval<TestPipelineResources>(), 0, 0));
+  using Handler =
+      std::remove_reference_t<decltype(std::declval<PipelinePtr&>()->handler(
+          concurrency_tag))>;
 
-  PipelineImpl::Ptr build(uint64_t maxActive, uint64_t maxOutstanding) {
+  PipelinePtr build(uint64_t maxActive, uint64_t maxOutstanding) {
     return build(maxActive, maxOutstanding, holder_);
   }
 
-  PipelineImpl::Ptr build(
+  PipelinePtr build(
       uint64_t maxActive,
       uint64_t maxOutstanding,
       ConcurrencyControlStateHolder& holder) {
     return build(maxActive, maxOutstanding, holder, eventBase_);
   }
 
-  PipelineImpl::Ptr build(
+  PipelinePtr build(
       uint64_t maxActive,
       uint64_t maxOutstanding,
       ConcurrencyControlStateHolder& holder,
       folly::EventBase& eventBase) {
-    auto handler = std::make_unique<Handler>(maxActive, maxOutstanding, holder);
-    handler_ = handler.get();
     tail_.setOnReadCallback([this](TypeErasedBox&& msg) {
       reads_.push_back(msg.take<uint32_t>());
       return readResult_;
     });
     head_.setOnWriteCallback([](TypeErasedBox&&) { return Result::Success; });
-    return PipelineBuilder<MockHeadHandler, MockTailHandler, TestAllocator>()
-        .setEventBase(&eventBase)
-        .setHead(&head_)
-        .setTail(&tail_)
-        .setAllocator(&allocator_)
-        .addNextDuplex<Handler>(concurrency_tag, std::move(handler))
-        .build();
+    auto pipeline = buildTestPipeline(
+        {eventBase, head_, tail_, allocator_, holder},
+        maxActive,
+        maxOutstanding);
+    handler_ = &pipeline->handler(concurrency_tag);
+    return pipeline;
   }
 
   static TypeErasedBox message(uint32_t value) { return erase_and_box(value); }
 
   folly::EventBase eventBase_;
   ConcurrencyControlStateHolder holder_;
-  MockHeadHandler head_;
-  MockTailHandler tail_;
+  StaticMockHeadHandler head_;
+  StaticMockTailHandler tail_;
   TestAllocator allocator_;
   Handler* handler_{nullptr};
   Result readResult_{Result::Success};
@@ -394,8 +431,8 @@ TEST_F(
 TEST_F(ConcurrencyControlHandlerTest, SharedStateThrottlesAcrossPipelines) {
   ConcurrencyControlStateHolder holder;
 
-  MockHeadHandler head2;
-  MockTailHandler tail2;
+  StaticMockHeadHandler head2;
+  StaticMockTailHandler tail2;
   TestAllocator allocator2;
   std::vector<uint32_t> reads2;
   tail2.setOnReadCallback([&](TypeErasedBox&& msg) {
@@ -403,16 +440,9 @@ TEST_F(ConcurrencyControlHandlerTest, SharedStateThrottlesAcrossPipelines) {
     return Result::Success;
   });
   head2.setOnWriteCallback([](TypeErasedBox&&) { return Result::Success; });
-  auto handler2 = std::make_unique<Handler>(1, 3, holder);
-  auto* handler2Ptr = handler2.get();
   auto pipeline2 =
-      PipelineBuilder<MockHeadHandler, MockTailHandler, TestAllocator>()
-          .setEventBase(&eventBase_)
-          .setHead(&head2)
-          .setTail(&tail2)
-          .setAllocator(&allocator2)
-          .addNextDuplex<Handler>(concurrency_tag, std::move(handler2))
-          .build();
+      buildTestPipeline({eventBase_, head2, tail2, allocator2, holder}, 1, 3);
+  auto* handler2Ptr = &pipeline2->handler(concurrency_tag);
 
   auto pipeline1 = build(1, 3, holder);
 
@@ -590,20 +620,10 @@ struct RequestCompletedEvent : EventTag<RequestCompletedEvent> {
 
 TEST_F(
     ConcurrencyControlHandlerTest, CompletionEventWithPayloadReleasesCapacity) {
-  using EventHandler = ConcurrencyControlHandler<
-      channel_pipeline::detail::ContextImpl,
-      RequestCompletedEvent>;
-  auto handler = std::make_unique<EventHandler>(1, 2, holder_);
-  auto* handlerPtr = handler.get();
   tail_.setOnReadCallback([](TypeErasedBox&&) { return Result::Success; });
-  auto pipeline =
-      PipelineBuilder<MockHeadHandler, MockTailHandler, TestAllocator>()
-          .setEventBase(&eventBase_)
-          .setHead(&head_)
-          .setTail(&tail_)
-          .setAllocator(&allocator_)
-          .addNextDuplex<EventHandler>(concurrency_tag, std::move(handler))
-          .build();
+  auto pipeline = buildTestPipeline<RequestCompletedEvent>(
+      {eventBase_, head_, tail_, allocator_, holder_}, 1, 2);
+  auto* handlerPtr = &pipeline->handler(concurrency_tag);
 
   EXPECT_EQ(pipeline->fireRead(message(1)), Result::Success);
   pipeline->fireEvent<RequestCompletedEvent>(

@@ -40,9 +40,8 @@ using channel_pipeline::erase_and_box;
 using channel_pipeline::Result;
 using channel_pipeline::TypeErasedBox;
 
-// Optional onDeactivate hook so tests can simulate the production
-// PipelineImpl cascade (calling onPipelineInactive on each handler)
-// from inside deactivate().
+// Tests can use onDeactivate to deliver onPipelineInactive from inside
+// deactivate(), as the static pipeline does.
 struct FakePipeline {
   int deactivateCount{0};
   std::function<void()> onDeactivate;
