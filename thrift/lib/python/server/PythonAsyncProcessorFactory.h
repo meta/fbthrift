@@ -27,6 +27,7 @@
 #include <thrift/lib/cpp2/gen/service_tcc.h>
 #include <thrift/lib/cpp2/protocol/Serializer.h>
 #include <thrift/lib/python/server/PythonAsyncProcessor.h>
+#include <thrift/lib/python/server/execution/IntakeExecutorFacade.h>
 #include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
 #include <thrift/lib/thrift/gen-cpp2/metadata_types.h>
 
@@ -62,6 +63,13 @@ class PythonAsyncProcessorFactory
 
   std::size_t requestedThreadCount() const noexcept {
     return requestedThreadCount_;
+  }
+
+  // The executor the host gives its server, from server init on. The host reads
+  // it before serving and keeps no copy of the borrowed pointer; the server
+  // takes its own keep-alive through setThreadManagerFromExecutor().
+  folly::Executor* intakeExecutor() const noexcept {
+    return intakeExecutorFacade_.get();
   }
 
   PythonAsyncProcessorFactory(PythonAsyncProcessorFactory&&) = delete;
@@ -112,6 +120,8 @@ class PythonAsyncProcessorFactory
 
  private:
   folly::SemiFuture<folly::Unit> callLifecycle(LifecycleFunc);
+  // Call with executionResourcesMutex_ held.
+  void releaseExecutorKeepAlives() noexcept;
 
   PyObject* python_server_;
   // note that the key is std::string_view, which a view into buffer owned by
@@ -123,6 +133,8 @@ class PythonAsyncProcessorFactory
   std::mutex executionResourcesMutex_;
   std::shared_ptr<execution::ExecutionSystem> executionSystem_;
   folly::Executor::KeepAlive<> controlExecutor_;
+  folly::Executor::KeepAlive<execution::IntakeExecutorFacade>
+      intakeExecutorFacade_;
   // Factory context entry completes before native service execution starts.
   bool factoryContextEntered_{false};
   std::size_t requestedThreadCount_{1};
@@ -145,6 +157,8 @@ class PythonAsyncProcessorFactory
         lifecycleFuncs_(std::move(lifecycleFuncs)),
         executionSystem_(std::move(executionSystem)),
         controlExecutor_(std::move(controlExecutor)),
+        intakeExecutorFacade_(
+            execution::IntakeExecutorFacade::create(controlExecutor_)),
         serviceName_(std::move(serviceName)) {}
 };
 

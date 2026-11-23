@@ -22,6 +22,9 @@ from thrift.python.test.python_async_processor_factory_customer_api_test import 
 class PythonAsyncProcessorFactoryCustomerApiTest(later.unittest.TestCase):
     """Bootstraps component tests for customer-facing Cython APIs."""
 
+    def test_factory_intake_preserves_control_work_and_lifetime(self) -> None:
+        CTests(self).test_factory_intake_preserves_control_work_and_lifetime()
+
     def test_processor_creation_and_legacy_stop_overlap(self) -> None:
         CTests(self).test_processor_creation_and_legacy_stop_overlap()
 
@@ -52,10 +55,24 @@ class PythonAsyncProcessorFactoryCustomerApiTest(later.unittest.TestCase):
     ) -> None:
         await CTests(self).test_host_without_factory_context_uses_legacy_stop_fallback()
 
+    async def test_host_without_factory_context_releases_the_intake_executor_at_stop(
+        self,
+    ) -> None:
+        await CTests(
+            self
+        ).test_host_without_factory_context_releases_the_intake_executor_at_stop()
+
     async def test_host_with_factory_context_defers_resources_to_exit(
         self,
     ) -> None:
         await CTests(self).test_host_with_factory_context_defers_resources_to_exit()
+
+    async def test_server_holds_the_factory_control_executor_through_its_intake_executor(
+        self,
+    ) -> None:
+        await CTests(
+            self
+        ).test_server_holds_the_factory_control_executor_through_its_intake_executor()
 
     async def test_factory_context_composes_handler_context(self) -> None:
         await CTests(self).test_factory_context_composes_handler_context()

@@ -91,7 +91,7 @@ PythonAsyncProcessorFactory::semifuture_onStopRequested() {
   // exact lifetime boundary.
   if (!factoryContextEntered_) {
     std::lock_guard lock(executionResourcesMutex_);
-    controlExecutor_ = folly::Executor::KeepAlive<>{};
+    releaseExecutorKeepAlives();
     executionSystem_ = execution::makeReleasedExecutionSystem();
   }
 #endif
@@ -102,7 +102,12 @@ PythonAsyncProcessorFactory::semifuture_onStopRequested() {
 void PythonAsyncProcessorFactory::releaseOwnedResources() noexcept {
   std::lock_guard lock(executionResourcesMutex_);
   executionSystem_->shutdown();
+  releaseExecutorKeepAlives();
+}
+
+void PythonAsyncProcessorFactory::releaseExecutorKeepAlives() noexcept {
   controlExecutor_.reset();
+  intakeExecutorFacade_.reset();
 }
 
 folly::SemiFuture<folly::Unit> PythonAsyncProcessorFactory::callLifecycle(

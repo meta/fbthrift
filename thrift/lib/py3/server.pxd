@@ -146,6 +146,7 @@ cdef class ThriftServer:
     cdef object address_future
     cdef void set_is_overloaded(self, cIsOverloadedFunc is_overloaded)
     cdef void add_routing_handler(self, unique_ptr[cTransportRoutingHandler] handler)
+    cdef cFollyExecutor* _intake_executor(self)
     cdef _use_worker_executor_if_active(self)
     # handler only set when initialized with thrift-python ServiceInterface
     cdef PythonServiceInterface handler

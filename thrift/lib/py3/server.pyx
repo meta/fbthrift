@@ -203,7 +203,9 @@ cdef class ThriftServer:
 
         self.loop = asyncio.get_event_loop()
         if self.factory is not None:
-            self.server.get().setThreadManagerFromExecutor(get_executor(), b'python_executor')
+            self.server.get().setThreadManagerFromExecutor(
+                self._intake_executor(), b'python_executor'
+            )
             if self.factory._cpp_obj:
                 self.server.get().setInterface(self.factory._cpp_obj)
             else:
@@ -255,10 +257,19 @@ cdef class ThriftServer:
             )
         (<PythonAsyncProcessorFactory>self.factory).set_cpu_worker_threads(count)
 
+    cdef cFollyExecutor* _intake_executor(self):
+        # A thrift-python factory supplies the one executor its server uses for
+        # the server's whole life. Other inputs keep the control executor.
+        if isinstance(self.factory, PythonAsyncProcessorFactory) and self.factory._cpp_obj:
+            return (
+                <cPythonAsyncProcessorFactory*>self.factory._cpp_obj.get()
+            ).intakeExecutor()
+        return get_executor()
+
     cdef _use_worker_executor_if_active(self):
-        # Zero-worker servers keep the control executor that __init__ hands to
-        # ThriftServer, and that path stays exactly as it was. When entering the
-        # factory context activated workers, hand ThriftServer the worker
+        # Zero-worker servers keep the intake executor facade that __init__ hands to
+        # ThriftServer, which sends all of their work to control. When entering
+        # the factory context activated workers, hand ThriftServer the worker
         # executor facade instead, before the native server starts. This relies
         # on two ThriftServer behaviors: the last setThreadManagerFromExecutor
         # call before serving wins, because the server reads its executor only

@@ -136,6 +136,7 @@ cdef extern from "thrift/lib/python/server/PythonAsyncProcessorFactory.h" namesp
         void setExecutionSystem(shared_ptr[cExecutionSystem] executionSystem) except +
         void setRequestedThreadCount(size_t count) noexcept
         size_t requestedThreadCount() noexcept
+        cFollyExecutor* intakeExecutor() noexcept
         void markContextEntered() noexcept
 
     cdef shared_ptr[cPythonAsyncProcessorFactory] \

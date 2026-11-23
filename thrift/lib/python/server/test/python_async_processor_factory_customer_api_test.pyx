@@ -63,6 +63,21 @@ cdef extern from "thrift/lib/python/server/test/PythonAsyncProcessorFactoryLifec
         cLaunchControlRequest launch_control_request,
     ) except +
 
+    cdef cppclass FactoryIntakeObservations:
+        bint intakeIsDistinctFromControl
+        bint plainWorkRan
+        size_t plainWorkDrained
+        bint priorityWorkRan
+        size_t priorityWorkDrained
+        unsigned char priorityCount
+        cvector[signed char] priorities
+        bint controlAliveAfterFactoryRelease
+        bint heldWorkRan
+        size_t heldWorkDrained
+        bint controlReleasedAfterHolderRelease
+
+    FactoryIntakeObservations observeFactoryIntake() except +
+
     bint isFreeThreadedBuild() noexcept
 
     size_t createProcessorsWhileLegacyStopRuns(
@@ -327,6 +342,28 @@ cdef class PythonAsyncProcessorFactoryCustomerApiCTest:
     def __cinit__(self, object unit_test):
         self.ut = unit_test
 
+    def test_factory_intake_preserves_control_work_and_lifetime(self):
+        # GIVEN
+        expected_priority_count = 3
+        expected_priorities = [127]
+        expected_work_drained = 1
+
+        # WHEN
+        observed = observeFactoryIntake()
+
+        # THEN
+        self.ut.assertTrue(observed.intakeIsDistinctFromControl)
+        self.ut.assertTrue(observed.plainWorkRan)
+        self.ut.assertEqual(expected_work_drained, observed.plainWorkDrained)
+        self.ut.assertTrue(observed.priorityWorkRan)
+        self.ut.assertEqual(expected_work_drained, observed.priorityWorkDrained)
+        self.ut.assertEqual(expected_priority_count, observed.priorityCount)
+        self.ut.assertEqual(expected_priorities, list(observed.priorities))
+        self.ut.assertTrue(observed.controlAliveAfterFactoryRelease)
+        self.ut.assertTrue(observed.heldWorkRan)
+        self.ut.assertEqual(expected_work_drained, observed.heldWorkDrained)
+        self.ut.assertTrue(observed.controlReleasedAfterHolderRelease)
+
     def test_processor_creation_and_legacy_stop_overlap(self):
         # GIVEN
         executor_probe = ExecutorKeepAliveProbe()
@@ -476,9 +513,11 @@ cdef class PythonAsyncProcessorFactoryCustomerApiCTest:
         expected_context_events = []
         expected_service_events = ["start", "stop"]
         expected_response = 42
-        # Only a free-threaded build has the stop-time fallback, so only there is
-        # the executor released before releaseOwnedResources().
-        expected_executor_released_after_serve = isFreeThreadedBuild()
+        # The server holds the control executor through its intake executor
+        # facade until the server is destroyed, so no build has released it when
+        # serve returns; dropping the server releases it on every build.
+        expected_executor_released_after_serve = False
+        expected_released_keep_alive_count = 0
 
         # WHEN
         try:
@@ -517,6 +556,9 @@ cdef class PythonAsyncProcessorFactoryCustomerApiCTest:
             if serve_task is not None:
                 await asyncio.gather(serve_task, return_exceptions=True)
             factory.releaseOwnedResources()
+        serve_task = None
+        server = None
+        actual_keep_alive_count_without_server = executor_probe.keep_alive_count()
         actual_context_enter_count = noop_context_factory.context_enter_count
         actual_context_exit_count = noop_context_factory.context_exit_count
         actual_keep_alive_count_before_callback = (
@@ -547,9 +589,57 @@ cdef class PythonAsyncProcessorFactoryCustomerApiCTest:
             expected_executor_released_after_serve,
             actual_executor_released_after_serve,
         )
+        self.ut.assertEqual(
+            expected_released_keep_alive_count,
+            actual_keep_alive_count_without_server,
+        )
         self.ut.assertTrue(actual_serve_completed)
         self.ut.assertEqual(expected_context_events, actual_context_events)
         self.ut.assertEqual(expected_service_events, actual_service_events)
+
+    async def test_host_without_factory_context_releases_the_intake_executor_at_stop(
+        self,
+    ):
+        # GIVEN
+        handler = Handler()
+        executor_probe = ExecutorKeepAliveProbe()
+        cdef PythonAsyncProcessorFactory factory = create_hosted_factory(
+            <cServiceInterface>handler,
+            executor_probe,
+            handler.onStartServing,
+            handler.onStopRequested,
+        )
+        server = ThriftServer(create_noop_context_factory(factory), ip="::1")
+        serve_task = None
+        # Two holders keep the control executor alive: the factory, and the
+        # server through its intake executor facade. On a free-threaded build,
+        # the factory's stop fallback (semifuture_onStopRequested) drops the
+        # factory's holds for a host that never entered the factory context,
+        # and dropping the server drops the facade's, so none are left before
+        # releaseOwnedResources(). A GIL build has no stop fallback, so the
+        # factory still holds keep-alives at that point.
+        expected_control_executor_released = isFreeThreadedBuild()
+
+        # WHEN
+        try:
+            serve_task = asyncio.create_task(server.serve())
+            await asyncio.wait_for(server.get_address(), timeout=5.0)
+            server.stop()
+            await asyncio.wait_for(serve_task, timeout=5.0)
+        finally:
+            server.stop()
+            if serve_task is not None:
+                await asyncio.gather(serve_task, return_exceptions=True)
+        serve_task = None
+        server = None
+        actual_control_executor_released = executor_probe.keep_alive_count() == 0
+        factory.releaseOwnedResources()
+
+        # THEN
+        self.ut.assertEqual(
+            expected_control_executor_released,
+            actual_control_executor_released,
+        )
 
     async def test_host_with_factory_context_defers_resources_to_exit(self):
         # GIVEN
@@ -570,6 +660,7 @@ cdef class PythonAsyncProcessorFactoryCustomerApiCTest:
         expected_context_events = ["enter", "exit"]
         expected_service_events = ["start", "stop"]
         expected_response = 42
+        expected_keep_alive_count_held_by_server = 1
         expected_released_keep_alive_count = 0
 
         # WHEN
@@ -611,6 +702,9 @@ cdef class PythonAsyncProcessorFactoryCustomerApiCTest:
             if serve_task is not None:
                 await asyncio.gather(serve_task, return_exceptions=True)
             factory.releaseOwnedResources()
+        serve_task = None
+        server = None
+        actual_keep_alive_count_without_server = executor_probe.keep_alive_count()
         actual_keep_alive_count_before_callback = (
             stop_observer.keep_alive_count_before_callback
         )
@@ -630,12 +724,71 @@ cdef class PythonAsyncProcessorFactoryCustomerApiCTest:
         self.ut.assertGreater(actual_keep_alive_count_after_callback, 0)
         self.ut.assertGreater(actual_keep_alive_count_during_exit, 0)
         self.ut.assertEqual(
-            expected_released_keep_alive_count,
+            expected_keep_alive_count_held_by_server,
             actual_keep_alive_count_after_exit,
+        )
+        self.ut.assertEqual(
+            expected_released_keep_alive_count,
+            actual_keep_alive_count_without_server,
         )
         self.ut.assertTrue(actual_serve_completed)
         self.ut.assertEqual(expected_context_events, actual_context_events)
         self.ut.assertEqual(expected_service_events, actual_service_events)
+
+    async def test_server_holds_the_factory_control_executor_through_its_intake_executor(
+        self,
+    ):
+        # GIVEN
+        handler = Handler()
+        executor_probe = ExecutorKeepAliveProbe()
+        cdef PythonAsyncProcessorFactory factory = create_hosted_factory(
+            <cServiceInterface>handler,
+            executor_probe,
+            handler.onStartServing,
+            handler.onStopRequested,
+        )
+        server = ThriftServer(factory, ip="::1")
+        serve_task = None
+        expected_response = 42
+        expected_keep_alive_count_held_by_server = 1
+        expected_released_keep_alive_count = 0
+
+        # WHEN
+        try:
+            serve_task = asyncio.create_task(server.serve())
+            address = await asyncio.wait_for(server.get_address(), timeout=5.0)
+            self.ut.assertIsNotNone(address.ip)
+            self.ut.assertIsNotNone(address.port)
+            async with get_client(
+                BaseService,
+                host=str(address.ip),
+                port=address.port,
+            ) as client:
+                actual_response = await asyncio.wait_for(
+                    client.theAnswer(),
+                    timeout=5.0,
+                )
+            server.stop()
+            await asyncio.wait_for(serve_task, timeout=5.0)
+            actual_keep_alive_count_with_server = executor_probe.keep_alive_count()
+        finally:
+            server.stop()
+            if serve_task is not None:
+                await asyncio.gather(serve_task, return_exceptions=True)
+        serve_task = None
+        server = None
+        actual_keep_alive_count_without_server = executor_probe.keep_alive_count()
+
+        # THEN
+        self.ut.assertEqual(expected_response, actual_response)
+        self.ut.assertEqual(
+            expected_keep_alive_count_held_by_server,
+            actual_keep_alive_count_with_server,
+        )
+        self.ut.assertEqual(
+            expected_released_keep_alive_count,
+            actual_keep_alive_count_without_server,
+        )
 
     async def test_factory_context_composes_handler_context(self):
         # GIVEN
