@@ -19,9 +19,11 @@
 #include <algorithm>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
+#include <variant>
 
 #include <folly/io/IOBuf.h>
 #include <folly/logging/xlog.h>
@@ -159,7 +161,8 @@ template <bool WithExtensions, typename Builder>
 PipelineOwner finishStaticThriftPipeline(
     Builder&& builder,
     const ThriftServerConnectionFactoryConfig& config,
-    ExtensionStateStore& extensionStates) {
+    ExtensionStateStore& extensionStates,
+    std::optional<channel_pipeline::detail::ErasedStaticHandler>& negotiation) {
   if constexpr (WithExtensions) {
     const bool hasSegments = std::any_of(
         config.thriftPipelineRegistrations.begin(),
@@ -167,7 +170,8 @@ PipelineOwner finishStaticThriftPipeline(
         [](const auto& registration) { return registration.isSegment(); });
     if (hasSegments) {
       std::vector<channel_pipeline::detail::ErasedStaticSegment> segments;
-      segments.reserve(config.thriftPipelineRegistrations.size());
+      segments.reserve(
+          config.thriftPipelineRegistrations.size() + negotiation.has_value());
       for (const auto& registration : config.thriftPipelineRegistrations) {
         if (registration.isSegment()) {
           segments.push_back(registration.makeStaticSegment(extensionStates));
@@ -177,6 +181,11 @@ PipelineOwner finishStaticThriftPipeline(
                   registration.makeStaticHandler(extensionStates)));
         }
       }
+      if (negotiation) {
+        segments.push_back(
+            channel_pipeline::makeErasedStaticHandlerSegment(
+                std::move(*negotiation)));
+      }
       return selectStaticThriftPipelineTail(
           std::forward<Builder>(builder).addStaticSegments(std::move(segments)),
           config.enableCancellation,
@@ -184,9 +193,13 @@ PipelineOwner finishStaticThriftPipeline(
           config);
     }
     std::vector<channel_pipeline::detail::ErasedStaticHandler> handlers;
-    handlers.reserve(config.thriftPipelineRegistrations.size());
+    handlers.reserve(
+        config.thriftPipelineRegistrations.size() + negotiation.has_value());
     for (const auto& registration : config.thriftPipelineRegistrations) {
       handlers.push_back(registration.makeStaticHandler(extensionStates));
+    }
+    if (negotiation) {
+      handlers.push_back(std::move(*negotiation));
     }
     return selectStaticThriftPipelineTail(
         std::forward<Builder>(builder).addStaticHandlers(std::move(handlers)),
@@ -207,13 +220,15 @@ PipelineOwner addStaticBackpressure(
     Builder&& builder,
     const ThriftServerConnectionFactoryConfig& config,
     ExtensionStateStore& extensionStates,
+    std::optional<channel_pipeline::detail::ErasedStaticHandler>& negotiation,
     ReadBackpressureArbiter& readBackpressureArbiter) {
   return finishStaticThriftPipeline<WithExtensions>(
       std::forward<Builder>(builder)
           .template addNextDuplexTemplate<ThriftServerBackpressureHandler>(
               thrift_server_backpressure_handler_tag, &readBackpressureArbiter),
       config,
-      extensionStates);
+      extensionStates,
+      negotiation);
 }
 
 template <bool WithChecksum, bool WithExtensions, typename Builder>
@@ -221,6 +236,7 @@ PipelineOwner addStaticChecksum(
     Builder&& builder,
     const ThriftServerConnectionFactoryConfig& config,
     ExtensionStateStore& extensionStates,
+    std::optional<channel_pipeline::detail::ErasedStaticHandler>& negotiation,
     ReadBackpressureArbiter& readBackpressureArbiter) {
   if constexpr (WithChecksum) {
     return addStaticBackpressure<WithExtensions>(
@@ -233,6 +249,7 @@ PipelineOwner addStaticChecksum(
                 config.reapTimeout),
         config,
         extensionStates,
+        negotiation,
         readBackpressureArbiter);
   } else {
     return addStaticBackpressure<WithExtensions>(
@@ -243,6 +260,7 @@ PipelineOwner addStaticChecksum(
                 config.reapTimeout),
         config,
         extensionStates,
+        negotiation,
         readBackpressureArbiter);
   }
 }
@@ -252,6 +270,7 @@ PipelineOwner addStaticCompression(
     Builder&& builder,
     const ThriftServerConnectionFactoryConfig& config,
     ExtensionStateStore& extensionStates,
+    std::optional<channel_pipeline::detail::ErasedStaticHandler>& negotiation,
     ReadBackpressureArbiter& readBackpressureArbiter) {
   return addStaticChecksum<WithChecksum, WithExtensions>(
       std::forward<Builder>(builder)
@@ -259,6 +278,7 @@ PipelineOwner addStaticCompression(
               thrift_server_compression_handler_tag),
       config,
       extensionStates,
+      negotiation,
       readBackpressureArbiter);
 }
 
@@ -275,6 +295,7 @@ PipelineOwner buildStaticThriftPipeline(
     SimpleBufferAllocator* allocator,
     boost::intrusive_ptr<ThriftConnContext> connContext,
     ExtensionStateStore& extensionStates,
+    std::optional<channel_pipeline::detail::ErasedStaticHandler>& negotiation,
     const ThriftServerConnectionFactoryConfig& config,
     ServerStatsShard* statsShard) {
   auto builder = channel_pipeline::StaticPipelineBuilder<
@@ -300,6 +321,7 @@ PipelineOwner buildStaticThriftPipeline(
                 WithHeaders),
         config,
         extensionStates,
+        negotiation,
         readBackpressureArbiter);
   } else {
     return addStaticCompression<WithChecksum, WithExtensions>(
@@ -312,6 +334,7 @@ PipelineOwner buildStaticThriftPipeline(
                 WithHeaders),
         config,
         extensionStates,
+        negotiation,
         readBackpressureArbiter);
   }
 }
@@ -329,8 +352,9 @@ PipelineOwner selectStaticExtensions(
     SimpleBufferAllocator* allocator,
     boost::intrusive_ptr<ThriftConnContext> connContext,
     ExtensionStateStore& extensionStates,
+    std::optional<channel_pipeline::detail::ErasedStaticHandler>& negotiation,
     ServerStatsShard* statsShard) {
-  if (!config.thriftPipelineRegistrations.empty()) {
+  if (negotiation || !config.thriftPipelineRegistrations.empty()) {
     return buildStaticThriftPipeline<
         WithStats,
         WithHeaders,
@@ -342,6 +366,7 @@ PipelineOwner selectStaticExtensions(
         allocator,
         std::move(connContext),
         extensionStates,
+        negotiation,
         config,
         statsShard);
   }
@@ -352,6 +377,7 @@ PipelineOwner selectStaticExtensions(
       allocator,
       std::move(connContext),
       extensionStates,
+      negotiation,
       config,
       statsShard);
 }
@@ -365,6 +391,7 @@ PipelineOwner selectStaticChecksum(
     SimpleBufferAllocator* allocator,
     boost::intrusive_ptr<ThriftConnContext> connContext,
     ExtensionStateStore& extensionStates,
+    std::optional<channel_pipeline::detail::ErasedStaticHandler>& negotiation,
     ServerStatsShard* statsShard) {
   if (config.enableChecksum) {
     return selectStaticExtensions<WithStats, WithHeaders, true>(
@@ -375,6 +402,7 @@ PipelineOwner selectStaticChecksum(
         allocator,
         std::move(connContext),
         extensionStates,
+        negotiation,
         statsShard);
   }
   return selectStaticExtensions<WithStats, WithHeaders, false>(
@@ -385,6 +413,7 @@ PipelineOwner selectStaticChecksum(
       allocator,
       std::move(connContext),
       extensionStates,
+      negotiation,
       statsShard);
 }
 
@@ -397,6 +426,7 @@ PipelineOwner selectStaticHeaders(
     SimpleBufferAllocator* allocator,
     boost::intrusive_ptr<ThriftConnContext> connContext,
     ExtensionStateStore& extensionStates,
+    std::optional<channel_pipeline::detail::ErasedStaticHandler>& negotiation,
     ServerStatsShard* statsShard) {
   if (config.enableRequestHeaders) {
     return selectStaticChecksum<WithStats, true>(
@@ -407,6 +437,7 @@ PipelineOwner selectStaticHeaders(
         allocator,
         std::move(connContext),
         extensionStates,
+        negotiation,
         statsShard);
   }
   return selectStaticChecksum<WithStats, false>(
@@ -417,6 +448,7 @@ PipelineOwner selectStaticHeaders(
       allocator,
       std::move(connContext),
       extensionStates,
+      negotiation,
       statsShard);
 }
 
@@ -429,6 +461,7 @@ PipelineOwner selectStaticThriftStats(
     SimpleBufferAllocator* allocator,
     boost::intrusive_ptr<ThriftConnContext> connContext,
     ExtensionStateStore& extensionStates,
+    std::optional<channel_pipeline::detail::ErasedStaticHandler>& negotiation,
     ServerStatsShard* statsShard) {
   if (statsShard != nullptr) {
     return selectStaticHeaders<true>(
@@ -439,6 +472,7 @@ PipelineOwner selectStaticThriftStats(
         allocator,
         std::move(connContext),
         extensionStates,
+        negotiation,
         statsShard);
   }
   return selectStaticHeaders<false>(
@@ -449,6 +483,7 @@ PipelineOwner selectStaticThriftStats(
       allocator,
       std::move(connContext),
       extensionStates,
+      negotiation,
       statsShard);
 }
 } // namespace
@@ -680,14 +715,22 @@ detail::ThriftServerConnectionFactoryT<Mode>::buildConnectionImpl(
   conn.tail = std::move(tail);
 
   std::unique_ptr<rocket::server::RocketServerConnection> rocketConnection;
-  std::optional<channel_pipeline::detail::HandlerNode>
-      transportNegotiationHandler;
+  using NegotiationHandler = std::conditional_t<
+      Mode == ChannelPipelineMode::Static,
+      channel_pipeline::detail::ErasedStaticHandler,
+      channel_pipeline::detail::HandlerNode>;
+  std::optional<NegotiationHandler> transportNegotiationHandler;
   if (config_.rocketConnectionBuilder) {
     auto buildResult = config_.rocketConnectionBuilder(
         std::move(socket), clientAddr, statsShard);
     rocketConnection = std::move(buildResult.connection);
-    transportNegotiationHandler =
-        std::move(buildResult.transportNegotiationHandler);
+    if (buildResult.transportNegotiationHandler) {
+      auto* handler = std::get_if<NegotiationHandler>(
+          &*buildResult.transportNegotiationHandler);
+      CHECK(handler) << "RocketServerConnectionBuilder returned a "
+                        "negotiation handler for the wrong pipeline mode";
+      transportNegotiationHandler.emplace(std::move(*handler));
+    }
     CHECK(rocketConnection)
         << "RocketServerConnectionBuilder returned a null connection";
   } else {
@@ -731,8 +774,6 @@ detail::ThriftServerConnectionFactoryT<Mode>::buildConnectionImpl(
       channel_pipeline::detail::ContextImpl>;
   PipelineOwner thriftPipeline;
   if constexpr (Mode == ChannelPipelineMode::Static) {
-    CHECK(!transportNegotiationHandler)
-        << "Static server cannot install a dynamic negotiation handler";
     thriftPipeline = selectStaticThriftStats(
         config_,
         evb,
@@ -741,6 +782,7 @@ detail::ThriftServerConnectionFactoryT<Mode>::buildConnectionImpl(
         &conn.thriftAllocator,
         std::move(connContext),
         conn.extensionStates,
+        transportNegotiationHandler,
         statsShard);
   } else {
     auto& readBackpressureArbiter = connContext->readBackpressureArbiter();

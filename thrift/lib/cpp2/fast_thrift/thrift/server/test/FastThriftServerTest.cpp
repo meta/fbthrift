@@ -2578,7 +2578,7 @@ static_assert(
     AcceptsModule<ftt::DynamicFastThriftServer, ftt::FastServerModule>);
 static_assert(
     AcceptsModule<ftt::DynamicFastThriftServer, ftt::DynamicFastServerModule>);
-static_assert(!AcceptsRocketBuilder<
+static_assert(AcceptsRocketBuilder<
               ftt::FastThriftServer,
               ftt::server::RocketServerConnectionBuilder>);
 static_assert(AcceptsRocketBuilder<

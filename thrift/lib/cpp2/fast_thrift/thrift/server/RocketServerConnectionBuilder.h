@@ -18,12 +18,14 @@
 
 #include <memory>
 #include <optional>
+#include <variant>
 
 #include <folly/CppAttributes.h>
 #include <folly/Function.h>
 #include <folly/SocketAddress.h>
 #include <folly/io/async/AsyncTransport.h>
 
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ErasedStaticHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/HandlerNode.h>
 #include <thrift/lib/cpp2/fast_thrift/common/ServerStats.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/server/common/RocketServerConnection.h>
@@ -32,7 +34,9 @@ namespace apache::thrift::fast_thrift::thrift::server {
 
 struct RocketServerConnectionBuildResult {
   std::unique_ptr<rocket::server::RocketServerConnection> connection;
-  std::optional<channel_pipeline::detail::HandlerNode>
+  std::optional<std::variant<
+      channel_pipeline::detail::ErasedStaticHandler,
+      channel_pipeline::detail::HandlerNode>>
       transportNegotiationHandler;
 };
 

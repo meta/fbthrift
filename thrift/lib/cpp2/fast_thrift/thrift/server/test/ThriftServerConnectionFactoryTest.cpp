@@ -31,7 +31,7 @@
 #include <folly/portability/GMock.h>
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/HandlerNode.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ErasedStaticHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/handler/FragmentCompletionTracker.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/handler/InlineFrameFragmentationHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/common/RocketTransportLifecycle.h>
@@ -90,15 +90,30 @@ class TestNegotiationHandler {
   explicit TestNegotiationHandler(LifecycleCounts& counts) : counts_(counts) {}
   ~TestNegotiationHandler() { ++counts_.handlerDestroyed; }
 
-  void handlerAdded(channel_pipeline::detail::ContextImpl&) noexcept {
+  void handlerAdded(channel_pipeline::detail::StaticHandlerContext&) noexcept {
     ++counts_.handlerAdded;
   }
 
-  void handlerRemoved(channel_pipeline::detail::ContextImpl&) noexcept {
+  void handlerRemoved(
+      channel_pipeline::detail::StaticHandlerContext&) noexcept {
     ++counts_.handlerRemoved;
   }
 
-  void onReadReady(channel_pipeline::detail::ContextImpl&) noexcept {}
+  void onPipelineActive(
+      channel_pipeline::detail::StaticHandlerContext&) noexcept {}
+  void onPipelineInactive(
+      channel_pipeline::detail::StaticHandlerContext&) noexcept {}
+  void onReadReady(channel_pipeline::detail::StaticHandlerContext&) noexcept {}
+  channel_pipeline::Result onRead(
+      channel_pipeline::detail::StaticHandlerContext& ctx,
+      channel_pipeline::TypeErasedBox&& message) noexcept {
+    return ctx.fireRead(std::move(message));
+  }
+  void onException(
+      channel_pipeline::detail::StaticHandlerContext& ctx,
+      folly::exception_wrapper&& error) noexcept {
+    ctx.fireException(std::move(error));
+  }
 
  private:
   LifecycleCounts& counts_;
@@ -182,15 +197,16 @@ TEST(
     return RocketServerConnectionBuildResult{
         .connection = std::move(connection),
         .transportNegotiationHandler =
-            channel_pipeline::detail::makeHandlerNode<TestNegotiationHandler>(
+            channel_pipeline::detail::makeErasedStaticHandler<
+                TestNegotiationHandler>(
                 channel_pipeline::fnv1a_hash(
                     "test_transport_negotiation_handler"),
-                std::make_unique<TestNegotiationHandler>(counts)),
+                counts),
     };
   };
 
   {
-    DynamicThriftServerConnectionFactory factory(std::move(config));
+    ThriftServerConnectionFactory factory(std::move(config));
     auto connection = factory.getConnection(
         makeTransport(eventBase), expectedClient, nullptr);
 

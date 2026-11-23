@@ -150,6 +150,14 @@ class FastThriftServer final
           ChannelPipelineMode::Static> {
  public:
   explicit FastThriftServer(FastThriftServerConfig config);
+
+  using detail::FastThriftServerBase::FastThriftServerT<
+      ChannelPipelineMode::Static>::setRocketConnectionBuilder;
+
+  void setRocketConnectionBuilder(
+      server::RocketServerConnectionBuilder builder) {
+    setRocketConnectionBuilderImpl(std::move(builder));
+  }
 };
 
 class DynamicFastThriftServer final
