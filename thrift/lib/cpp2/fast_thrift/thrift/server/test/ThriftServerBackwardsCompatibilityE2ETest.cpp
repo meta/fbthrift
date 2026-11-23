@@ -30,8 +30,8 @@
 #include <thrift/lib/cpp2/async/RocketClientChannel.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/BufferAllocator.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/ConnectionHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/ConnectionManager.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/handler/FrameCodecHandler.h>
@@ -60,9 +60,8 @@ THRIFT_FLAG_DECLARE_int64(rocket_client_max_version);
 
 namespace apache::thrift::fast_thrift::thrift::server::test {
 
-using apache::thrift::fast_thrift::channel_pipeline::PipelineBuilder;
-using apache::thrift::fast_thrift::channel_pipeline::PipelineImpl;
 using apache::thrift::fast_thrift::channel_pipeline::SimpleBufferAllocator;
+using apache::thrift::fast_thrift::channel_pipeline::StaticPipelineBuilder;
 
 using apache::thrift::fast_thrift::thrift::test::
     BackwardsCompatibilityTestService;
@@ -173,7 +172,7 @@ class ThriftServerBackwardsCompatibilityE2ETest : public ::testing::Test {
     auto& rocketConnRef = transportAdapter->rocketConnection();
 
     rocketConnRef.pipeline =
-        PipelineBuilder<
+        StaticPipelineBuilder<
             transport::TransportHandlerT<
                 rocket::server::RocketServerEventFactory>,
             apache::thrift::fast_thrift::rocket::server::RocketServerAppAdapter,
@@ -218,20 +217,20 @@ class ThriftServerBackwardsCompatibilityE2ETest : public ::testing::Test {
 
     thrift::server::test::TestServerConnection conn;
     conn.serverChannel = serverChannel;
-    conn.thriftPipeline = PipelineBuilder<
-                              thrift::server::ThriftServerTransportAdapter,
-                              thrift::ThriftServerChannel,
-                              SimpleBufferAllocator>()
-                              .setEventBase(evb)
-                              .setHead(transportAdapter.get())
-                              .setTail(serverChannel.get())
-                              .setAllocator(&conn.thriftAllocator)
-                              .addNextDuplex<thrift::ThriftServerSetupHandler<
-                                  channel_pipeline::detail::ContextImpl>>(
-                                  thrift_server_setup_handler_tag)
-                              .build();
+    conn.thriftPipeline =
+        StaticPipelineBuilder<
+            thrift::server::ThriftServerTransportAdapter,
+            thrift::ThriftServerChannel,
+            SimpleBufferAllocator>()
+            .setEventBase(evb)
+            .setHead(transportAdapter.get())
+            .setTail(serverChannel.get())
+            .emplaceAllocator()
+            .addNextDuplexTemplate<thrift::ThriftServerSetupHandler>(
+                thrift_server_setup_handler_tag)
+            .build();
     transportAdapter->setPipeline(conn.thriftPipeline.get());
-    serverChannel->setPipelineRef(*conn.thriftPipeline);
+    serverChannel->setPipelineRef(conn.thriftPipeline.ref());
     serverChannel->setWorker(apache::thrift::Cpp2Worker::createDummy(evb));
     conn.transportAdapter = std::move(transportAdapter);
     // Connection is inert; ConnectionHandler's installer lambda calls

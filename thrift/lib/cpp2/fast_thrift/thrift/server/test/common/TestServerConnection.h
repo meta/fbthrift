@@ -21,8 +21,7 @@
 #include <utility>
 
 #include <folly/io/async/AsyncTransport.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/BufferAllocator.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/common/Messages.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/ThriftServerChannel.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/adapter/ThriftServerTransportAdapter.h>
@@ -44,9 +43,8 @@ namespace apache::thrift::fast_thrift::thrift::server::test {
  */
 struct TestServerConnection {
   std::shared_ptr<ThriftServerChannel> serverChannel;
-  channel_pipeline::SimpleBufferAllocator thriftAllocator;
   std::unique_ptr<ThriftServerTransportAdapter> transportAdapter;
-  channel_pipeline::PipelineImpl::Ptr thriftPipeline;
+  channel_pipeline::PipelineOwner thriftPipeline;
   std::function<void()> closeCb;
   bool closed{false};
 

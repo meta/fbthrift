@@ -90,7 +90,7 @@ class PipelineResponseChannelRequest
  public:
   PipelineResponseChannelRequest(
       uint32_t streamId,
-      apache::thrift::fast_thrift::channel_pipeline::PipelineImpl* pipeline,
+      channel_pipeline::PipelineRef pipeline,
       std::shared_ptr<std::atomic<bool>> pipelineAlive,
       bool isOneway,
       apache::thrift::Cpp2ConnContext* connContext,
@@ -133,7 +133,7 @@ class PipelineResponseChannelRequest
                  << streamId_;
       return;
     }
-    auto result = pipeline_->fireWrite(
+    auto result = pipeline_.fireWrite(
         apache::thrift::fast_thrift::channel_pipeline::erase_and_box(
             std::move(msg)));
     if (result !=
@@ -176,7 +176,7 @@ class PipelineResponseChannelRequest
               .streamId = streamId_,
               .errorCode = static_cast<uint32_t>(error.errorCode)}};
 
-      auto result = pipeline_->fireWrite(
+      auto result = pipeline_.fireWrite(
           apache::thrift::fast_thrift::channel_pipeline::erase_and_box(
               std::move(msg)));
       if (result !=
@@ -217,7 +217,7 @@ class PipelineResponseChannelRequest
             .streamId = streamId_,
         }};
 
-    auto result = pipeline_->fireWrite(
+    auto result = pipeline_.fireWrite(
         apache::thrift::fast_thrift::channel_pipeline::erase_and_box(
             std::move(msg)));
     if (result !=
@@ -233,7 +233,7 @@ class PipelineResponseChannelRequest
 
  private:
   uint32_t streamId_;
-  apache::thrift::fast_thrift::channel_pipeline::PipelineImpl* pipeline_;
+  channel_pipeline::PipelineRef pipeline_;
   std::shared_ptr<std::atomic<bool>> pipelineAlive_;
   bool isOneway_;
   std::atomic<bool> active_{true};
@@ -261,7 +261,7 @@ void ThriftServerChannel::setCloseCallback(std::function<void()> cb) {
 }
 
 void ThriftServerChannel::setPipeline(
-    apache::thrift::fast_thrift::channel_pipeline::PipelineImpl::Ptr pipeline) {
+    channel_pipeline::PipelineOwner pipeline) {
   pipelineAlive_->store(false);
   pipeline_ = pipeline.get();
   ownedPipeline_ = std::move(pipeline);
@@ -269,10 +269,10 @@ void ThriftServerChannel::setPipeline(
 }
 
 void ThriftServerChannel::setPipelineRef(
-    apache::thrift::fast_thrift::channel_pipeline::PipelineImpl& pipeline) {
+    channel_pipeline::PipelineRef pipeline) {
   pipelineAlive_->store(false);
   ownedPipeline_.reset();
-  pipeline_ = &pipeline;
+  pipeline_ = pipeline;
   pipelineAlive_->store(true);
 }
 
@@ -283,11 +283,8 @@ void ThriftServerChannel::setWorker(
       nullptr, nullptr, nullptr, nullptr, nullptr, worker_.get(), 0);
 }
 
-apache::thrift::fast_thrift::channel_pipeline::Result
-ThriftServerChannel::onRead(
-    apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
-    apache::thrift::fast_thrift::channel_pipeline::TypeErasedBox&&
-        msg) noexcept {
+channel_pipeline::Result ThriftServerChannel::onRequest(
+    channel_pipeline::TypeErasedBox&& msg) noexcept {
   auto request = msg.take<ThriftServerRequestMessage>();
 
   if (!pipeline_) {
@@ -330,7 +327,7 @@ ThriftServerChannel::onRead(
 
   auto dataBuf = std::move(rr.data);
   if (!dataBuf) {
-    dataBuf = pipeline_->allocate(0);
+    dataBuf = pipeline_.allocate(0);
   }
 
   apache::thrift::SerializedCompressedRequest serializedRequest(
@@ -370,7 +367,7 @@ ThriftServerChannel::onRead(
         wildcardMetadata,
         protocolId,
         reqCtxPtr,
-        pipeline_->eventBase(),
+        pipeline_.eventBase(),
         nullptr /* tm */);
   } catch (...) {
     XLOG(DFATAL) << "AsyncProcessor::process exception: "
@@ -392,7 +389,7 @@ void ThriftServerChannel::sendThriftError(
           .streamId = streamId,
           .errorCode = static_cast<uint32_t>(error.errorCode)}};
 
-  auto result = pipeline_->fireWrite(
+  auto result = pipeline_.fireWrite(
       apache::thrift::fast_thrift::channel_pipeline::erase_and_box(
           std::move(msg)));
   if (result !=
@@ -409,7 +406,7 @@ void ThriftServerChannel::onException(folly::exception_wrapper&& e) noexcept {
     // Defer the close callback so that onException fully completes before
     // the callback potentially removes the last shared_ptr to this channel
     // (from FastThriftChannelServer::serverChannels_), destroying `this`.
-    pipeline_->eventBase()->runInEventBaseThread(std::move(cb));
+    pipeline_.eventBase()->runInEventBaseThread(std::move(cb));
   }
 }
 
