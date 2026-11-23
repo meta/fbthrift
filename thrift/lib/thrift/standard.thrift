@@ -18,6 +18,7 @@ include "thrift/annotation/thrift.thrift"
 include "thrift/annotation/java.thrift"
 include "thrift/annotation/cpp.thrift"
 include "thrift/annotation/rust.thrift"
+include "thrift/annotation/python.thrift"
 
 cpp_include "<folly/io/IOBuf.h>"
 cpp_include "<folly/FBString.h>"
@@ -47,7 +48,8 @@ enum Void {
  * Each language can map this type into a customized memory efficient object.
  */
 @thrift.AllowLegacyTypedefUri
-@cpp.Type{name = "folly::fbstring"}
+@python.Py3EnableCppAdapter
+@cpp.Adapter{name = "::apache::thrift::StringTypeAdapter<folly::fbstring>"}
 @java.Adapter{
   adapterClassName = "com.facebook.thrift.adapter.common.UnpooledByteBufTypeAdapter",
   typeClassName = "io.netty.buffer.ByteBuf",
