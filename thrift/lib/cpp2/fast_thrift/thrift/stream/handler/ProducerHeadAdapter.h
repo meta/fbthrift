@@ -28,7 +28,6 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/EndpointAdapter.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/stream/common/Messages.h>
 
 namespace apache::thrift::fast_thrift::thrift::stream {
@@ -57,7 +56,7 @@ using StreamSink =
  *
  * Both directions cross the seam at the head: the owning thrift pipeline
  * injects the consumer's `RequestN`/`Cancel` demand here
- * (`PipelineImpl::fireRead`), and producer output leaves here through the
+ * (`ProducerPipeline::fireRead`), and producer output leaves here through the
  * [[StreamSink]] back into that pipeline. The adapter is owned by the owning
  * thrift pipeline, which also owns the sub-pipeline and the paired tail
  * endpoint.
@@ -69,8 +68,8 @@ using StreamSink =
  * the sink, which delivers it to the owning thrift pipeline.
  *
  * The read (inbound) path — the consumer's `RequestN`/`Cancel` demand — is
- * *initiated* at the head by the owning pipeline (`PipelineImpl::fireRead`) and
- * travels head->tail toward the producer; a head endpoint has no `onRead`
+ * *initiated* at the head by the owning pipeline (`ProducerPipeline::fireRead`)
+ * and travels head->tail toward the producer; a head endpoint has no `onRead`
  * callback, so the adapter does not see it.
  *
  * Lifecycle: constructed with its output [[StreamSink]] and owned by the owning
@@ -80,7 +79,6 @@ using StreamSink =
  *
  * Paired with [[ProducerTailAdapter]], the fixed tail endpoint.
  */
-template <typename Context>
 class ProducerHeadAdapter {
  public:
   explicit ProducerHeadAdapter(StreamSink sink) noexcept
@@ -98,7 +96,7 @@ class ProducerHeadAdapter {
   // path carries only the Data set (Payload/Complete/Error), so the outbound
   // contract is enforced by the message type itself — no runtime guard needed.
   channel_pipeline::Result onWrite(
-      Context& /*ctx*/, channel_pipeline::TypeErasedBox&& msg) noexcept {
+      auto& /*ctx*/, channel_pipeline::TypeErasedBox&& msg) noexcept {
     return sink_(msg.take<DataMessage>());
   }
 
@@ -107,8 +105,7 @@ class ProducerHeadAdapter {
 };
 
 static_assert(
-    channel_pipeline::HeadEndpointHandler<
-        ProducerHeadAdapter<channel_pipeline::detail::ContextImpl>>,
+    channel_pipeline::HeadEndpointHandler<ProducerHeadAdapter>,
     "ProducerHeadAdapter must satisfy HeadEndpointHandler concept");
 
 } // namespace apache::thrift::fast_thrift::thrift::stream

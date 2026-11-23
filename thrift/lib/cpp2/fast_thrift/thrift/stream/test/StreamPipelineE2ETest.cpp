@@ -15,7 +15,7 @@
  */
 
 // End-to-end tests for the established-stream outbound sub-pipeline assembled
-// through ProducerPipeline::Builder:
+// through ProducerPipeline::build:
 //
 //   sink (wire) <- ProducerHeadAdapter <- InboundCreditHandler <-
 //   PayloadPrefetchHandler <- <sample producer> <- ProducerTailAdapter (tail)
@@ -45,7 +45,6 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/stream/ProducerPipeline.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/stream/common/Messages.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/stream/handler/InboundCreditHandler.h>
@@ -56,8 +55,6 @@ namespace apache::thrift::fast_thrift::thrift::stream {
 namespace cp = channel_pipeline;
 
 namespace {
-
-using Context = cp::detail::ContextImpl;
 
 DataMessage makeItem(uint8_t tag) {
   return DataMessage{
@@ -220,24 +217,26 @@ struct WireSink {
 
 class StreamPipelineE2ETest : public ::testing::Test {
  protected:
-  // Assemble the sub-pipeline through ProducerPipeline::Builder:
+  // Assemble the sub-pipeline through ProducerPipeline::build:
   //   HeadAdapter <- Credit <- Prefetch <- Producer <- TailAdapter
   // and record everything that reaches the injected sink. The Builder owns the
   // endpoints and the sub-pipeline's allocator; the test only composes the
   // middle handlers between them.
-  template <typename Producer>
-  ProducerPipeline& build(
-      std::unique_ptr<Producer> producer, PayloadPrefetchConfig cfg) {
-    ProducerPipeline::Builder builder(
-        &evb_, StreamSink{[this](DataMessage&& m) noexcept {
+  template <template <typename> class Producer, typename... Args>
+  ProducerPipeline& build(PayloadPrefetchConfig cfg, Args&&... args) {
+    pipeline_ = ProducerPipeline::build(
+        &evb_,
+        StreamSink{[this](DataMessage&& m) noexcept {
           return wire_.record(std::move(m));
-        }});
-    builder.addNextDuplex<InboundCreditHandler<Context>>(credit_tag)
-        .addNextDuplex<PayloadPrefetchHandler<Context>>(
-            prefetch_tag,
-            std::make_unique<PayloadPrefetchHandler<Context>>(cfg))
-        .addNextDuplex<Producer>(producer_tag, std::move(producer));
-    pipeline_ = builder.build();
+        }},
+        [&](auto builder) {
+          return std::move(builder)
+              .template addNextDuplexTemplate<InboundCreditHandler>(credit_tag)
+              .template addNextDuplexTemplate<PayloadPrefetchHandler>(
+                  prefetch_tag, cfg)
+              .template addNextDuplexTemplate<Producer>(
+                  producer_tag, std::forward<Args>(args)...);
+        });
     return *pipeline_;
   }
 
@@ -261,8 +260,7 @@ PayloadPrefetchConfig config() {
 } // namespace
 
 TEST_F(StreamPipelineE2ETest, FiniteStreamDeliversAllItemsThenCompletes) {
-  auto& pipeline =
-      build(std::make_unique<FiniteProducer<Context>>(3), config());
+  auto& pipeline = build<FiniteProducer>(config(), 3);
 
   grant(pipeline, 10);
 
@@ -274,8 +272,7 @@ TEST_F(StreamPipelineE2ETest, FiniteStreamDeliversAllItemsThenCompletes) {
 
 TEST_F(StreamPipelineE2ETest, CreditBoundsDeliveryAcrossGrants) {
   // 10 items available, buffer capacity 8.
-  auto& pipeline =
-      build(std::make_unique<FiniteProducer<Context>>(10), config());
+  auto& pipeline = build<FiniteProducer>(config(), 10);
 
   // First grant delivers only what was requested; the stream is not done.
   grant(pipeline, 3);
@@ -291,8 +288,7 @@ TEST_F(StreamPipelineE2ETest, CreditBoundsDeliveryAcrossGrants) {
 }
 
 TEST_F(StreamPipelineE2ETest, InfiniteStreamRespectsCreditThenStopsOnCancel) {
-  auto& pipeline =
-      build(std::make_unique<InfiniteProducer<Context>>(), config());
+  auto& pipeline = build<InfiniteProducer>(config());
 
   grant(pipeline, 3);
   grant(pipeline, 2);
@@ -311,7 +307,7 @@ TEST_F(StreamPipelineE2ETest, InfiniteStreamRespectsCreditThenStopsOnCancel) {
 }
 
 TEST_F(StreamPipelineE2ETest, ErrorStreamDeliversThenFails) {
-  auto& pipeline = build(std::make_unique<ErrorProducer<Context>>(2), config());
+  auto& pipeline = build<ErrorProducer>(config(), 2);
 
   grant(pipeline, 10);
 

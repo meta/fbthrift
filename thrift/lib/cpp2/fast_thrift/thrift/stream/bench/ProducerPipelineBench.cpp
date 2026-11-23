@@ -34,7 +34,6 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/stream/ProducerPipeline.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/stream/common/Messages.h>
 
@@ -43,12 +42,6 @@ using namespace apache::thrift::fast_thrift::channel_pipeline;
 using namespace apache::thrift::fast_thrift::thrift::stream;
 
 namespace {
-
-// The pipeline always instantiates its handlers with the concrete ContextImpl
-// (see ProducerPipeline.h), so the bench must name it to pre-bind EchoProducer.
-// NOLINTNEXTLINE(facebook-hte-DetailCall)
-using Context =
-    apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl;
 
 // Emits exactly the demand it is handed, one payload per requested item.
 template <typename Ctx>
@@ -90,10 +83,11 @@ BENCHMARK(DemandToSinkRoundTrip, iters) {
   BenchmarkSuspender suspender;
   folly::EventBase evb;
 
-  ProducerPipeline::Builder builder(&evb, StreamSink{&absorbSink});
-  builder.addNextDuplex<EchoProducer<Context>>(
-      producer_tag, std::make_unique<EchoProducer<Context>>());
-  auto pipeline = builder.build();
+  auto pipeline =
+      ProducerPipeline::build(&evb, StreamSink{&absorbSink}, [](auto builder) {
+        return std::move(builder).template addNextDuplexTemplate<EchoProducer>(
+            producer_tag);
+      });
 
   std::vector<TypeErasedBox> demands;
   demands.reserve(iters);

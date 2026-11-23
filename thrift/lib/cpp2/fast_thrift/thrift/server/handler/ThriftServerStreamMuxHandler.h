@@ -31,7 +31,6 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Event.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/DirectStreamMap.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/common/StreamPayloadMetadata.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/common/ThriftControlPayloads.h>
@@ -200,17 +199,6 @@ class ThriftServerStreamMuxHandler {
       uint32_t streamId,
       std::unique_ptr<stream::ProducerPipeline::ConfigFunc>
           configFunc) noexcept {
-    // The framework wires the endpoints/allocator/executor and the head's
-    // output sink; the configFunc only composes the application's producer
-    // between them. The sink captures (this, streamId) by value — never the
-    // entry — so the entry needs no stable address.
-    stream::ProducerPipeline::Builder builder(
-        mainCtx_->eventBase(),
-        stream::StreamSink{
-            [this, streamId](stream::DataMessage&& msg) noexcept {
-              return emitOutbound(streamId, std::move(msg));
-            }});
-    (*configFunc)(builder);
     // The entry usually already exists — the inbound REQUEST_STREAM created it
     // to stash the initial credit. It is absent only when the mux never saw
     // that request (e.g. a stream opened directly). `emplace` is find-or-create
@@ -221,7 +209,12 @@ class ThriftServerStreamMuxHandler {
     auto* slot = streams_.emplace(streamId, StreamEntry{}).first;
     DCHECK(!slot->second.pipeline.has_value())
         << "duplicate stream id " << streamId;
-    slot->second.pipeline = builder.build();
+    slot->second.pipeline = (*configFunc)(
+        mainCtx_->eventBase(),
+        stream::StreamSink{
+            [this, streamId](stream::DataMessage&& msg) noexcept {
+              return emitOutbound(streamId, std::move(msg));
+            }});
   }
 
   // Route an inbound flow-control message into the matching sub-pipeline.

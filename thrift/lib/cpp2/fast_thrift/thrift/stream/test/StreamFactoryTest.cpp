@@ -38,7 +38,6 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/stream/ProducerPipeline.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/stream/StreamElementEncoder.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/stream/common/Messages.h>
@@ -48,8 +47,6 @@ namespace apache::thrift::fast_thrift::thrift::stream {
 namespace cp = channel_pipeline;
 
 namespace {
-
-using Context = cp::detail::ContextImpl;
 
 // Hand-written encoder: an int is serialized as its 4 raw bytes.
 Payload encodeIntValue(int32_t&& value) noexcept {
@@ -134,11 +131,9 @@ struct Recorded {
 StreamFactory<int32_t> makeIntStreamFactory(std::vector<int32_t> values) {
   return StreamFactory<int32_t>(
       [values = std::move(values)](
-          ProducerPipeline::Builder& builder,
-          const StreamElementEncoder<int32_t>& encoder) mutable {
-        builder.addNextDuplex<IntProducer<Context>>(
-            producer_tag,
-            std::make_unique<IntProducer<Context>>(encoder, std::move(values)));
+          auto builder, const StreamElementEncoder<int32_t>& encoder) mutable {
+        return std::move(builder).template addNextDuplexTemplate<IntProducer>(
+            producer_tag, encoder, std::move(values));
       });
 }
 
@@ -160,8 +155,8 @@ TEST(StreamFactoryTest, BindEncodesElementsThroughSink) {
           .bind(
               StreamElementEncoder<int32_t>{&encodeIntValue, &encodeIntError});
 
-  ProducerPipeline::Builder builder(
-      &evb, StreamSink{[&](DataMessage&& m) noexcept -> cp::Result {
+  auto pipeline =
+      configFunc(&evb, StreamSink{[&](DataMessage&& m) noexcept -> cp::Result {
         if (m.payload.is<Payload>()) {
           recorded.push_back(
               {Recorded::Kind::Payload,
@@ -175,8 +170,6 @@ TEST(StreamFactoryTest, BindEncodesElementsThroughSink) {
         }
         return cp::Result::Success;
       }});
-  configFunc(builder);
-  auto pipeline = builder.build();
 
   (void)pipeline.fireRead(
       cp::erase_and_box(ControlMessage{.payload = RequestN{.n = 10}}));

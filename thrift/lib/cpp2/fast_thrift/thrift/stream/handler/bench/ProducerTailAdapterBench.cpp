@@ -45,7 +45,7 @@ struct BenchCtx {};
 
 BENCHMARK(OnRead_DemandBackstop, iters) {
   BenchmarkSuspender suspender;
-  ProducerTailAdapter<BenchCtx> handler;
+  ProducerTailAdapter handler;
   BenchCtx ctx;
   std::vector<TypeErasedBox> items;
   items.reserve(iters);

@@ -50,7 +50,7 @@ struct SinkRecorder {
   }
 };
 
-using Handler = ProducerHeadAdapter<StubContext>;
+using Handler = ProducerHeadAdapter;
 
 StreamSink recorderSink(SinkRecorder& recorder) {
   return StreamSink{[&recorder](DataMessage&& msg) noexcept {

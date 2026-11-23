@@ -39,7 +39,6 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/util/FastHandlerCallback.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/stream/ProducerPipeline.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/stream/StreamElementEncoder.h>
@@ -51,8 +50,6 @@ namespace apache::thrift::fast_thrift::thrift {
 namespace cp = channel_pipeline;
 
 namespace {
-
-using Context = cp::detail::ContextImpl;
 
 // Hand-written encoder: an int is serialized as its 4 raw bytes.
 stream::Payload encodeIntValue(int32_t&& value) noexcept {
@@ -141,11 +138,10 @@ stream::StreamFactory<int32_t> makeIntStreamFactory(
     std::vector<int32_t> values) {
   return stream::StreamFactory<int32_t>(
       [values = std::move(values)](
-          stream::ProducerPipeline::Builder& builder,
+          auto builder,
           const stream::StreamElementEncoder<int32_t>& encoder) mutable {
-        builder.addNextDuplex<IntProducer<Context>>(
-            producer_tag,
-            std::make_unique<IntProducer<Context>>(encoder, std::move(values)));
+        return std::move(builder).template addNextDuplexTemplate<IntProducer>(
+            producer_tag, encoder, std::move(values));
       });
 }
 
@@ -190,7 +186,7 @@ TEST(StreamResponseTest, MakeStreamOpenMessageBindsFactoryAndEncoder) {
   folly::EventBase evb;
   std::vector<int32_t> got;
   bool completed = false;
-  stream::ProducerPipeline::Builder builder(
+  auto pipeline = (*open.configFunc)(
       &evb,
       stream::StreamSink{[&](stream::DataMessage&& m) noexcept -> cp::Result {
         if (m.payload.is<stream::Payload>()) {
@@ -200,8 +196,6 @@ TEST(StreamResponseTest, MakeStreamOpenMessageBindsFactoryAndEncoder) {
         }
         return cp::Result::Success;
       }});
-  (*open.configFunc)(builder);
-  auto pipeline = builder.build();
 
   (void)pipeline.fireRead(
       cp::erase_and_box(
@@ -241,7 +235,7 @@ TEST(StreamResponseTest, ResponseAndStreamFactoryCarriesInitialResponse) {
   folly::EventBase evb;
   std::vector<int32_t> got;
   bool completed = false;
-  stream::ProducerPipeline::Builder builder(
+  auto pipeline = (*open.configFunc)(
       &evb,
       stream::StreamSink{[&](stream::DataMessage&& m) noexcept -> cp::Result {
         if (m.payload.is<stream::Payload>()) {
@@ -251,8 +245,6 @@ TEST(StreamResponseTest, ResponseAndStreamFactoryCarriesInitialResponse) {
         }
         return cp::Result::Success;
       }});
-  (*open.configFunc)(builder);
-  auto pipeline = builder.build();
 
   (void)pipeline.fireRead(
       cp::erase_and_box(

@@ -24,7 +24,6 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/EndpointAdapter.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 
 namespace apache::thrift::fast_thrift::thrift::stream {
 
@@ -49,7 +48,6 @@ namespace apache::thrift::fast_thrift::thrift::stream {
  *
  * Paired with [[ProducerHeadAdapter]], the fixed head endpoint.
  */
-template <typename Context>
 class ProducerTailAdapter {
  public:
   // EndpointHandlerLifecycle — a stateless backstop has nothing to set up or
@@ -63,7 +61,7 @@ class ProducerTailAdapter {
   // Inbound terminal backstop: demand should be consumed upstream by the
   // producer; anything reaching the tail is unhandled.
   channel_pipeline::Result onRead(
-      Context& /*ctx*/, channel_pipeline::TypeErasedBox&& /*msg*/) noexcept {
+      auto& /*ctx*/, channel_pipeline::TypeErasedBox&& /*msg*/) noexcept {
     return onUnhandledDemand();
   }
 
@@ -78,15 +76,17 @@ class ProducerTailAdapter {
   // (tearing the stream down) rather than silently ignored. Out-of-line to keep
   // the cold path off the hot path.
   FOLLY_NOINLINE static channel_pipeline::Result onUnhandledDemand() noexcept {
-    DCHECK(false)
+#ifndef NDEBUG
+    CHECK(false)
         << "inbound stream frame reached the tail unhandled (no producer consumed the demand)";
+#else
     return channel_pipeline::Result::Error;
+#endif
   }
 };
 
 static_assert(
-    channel_pipeline::TailEndpointHandler<
-        ProducerTailAdapter<channel_pipeline::detail::ContextImpl>>,
+    channel_pipeline::TailEndpointHandler<ProducerTailAdapter>,
     "ProducerTailAdapter must satisfy TailEndpointHandler concept");
 
 } // namespace apache::thrift::fast_thrift::thrift::stream

@@ -35,7 +35,6 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/stream/common/Messages.h>
 
 namespace apache::thrift::fast_thrift::thrift::stream {
@@ -43,8 +42,6 @@ namespace apache::thrift::fast_thrift::thrift::stream {
 namespace cp = channel_pipeline;
 
 namespace {
-
-using Context = cp::detail::ContextImpl;
 
 ControlMessage makeRequestN(uint64_t n) {
   return ControlMessage{.payload = RequestN{.n = n}};
@@ -121,10 +118,10 @@ HANDLER_TAG(producer);
 // output sink, add the application's producer, and build.
 ProducerPipeline makeProducerPipeline(
     folly::EventBase& evb, uint64_t total, StreamSink sink) {
-  ProducerPipeline::Builder builder(&evb, std::move(sink));
-  builder.addNextDuplex<FiniteProducer<Context>>(
-      producer_tag, std::make_unique<FiniteProducer<Context>>(total));
-  return builder.build();
+  return ProducerPipeline::build(&evb, std::move(sink), [total](auto builder) {
+    return std::move(builder).template addNextDuplexTemplate<FiniteProducer>(
+        producer_tag, total);
+  });
 }
 
 } // namespace

@@ -41,7 +41,10 @@ ThriftServerStreamOpenPayload makeOpen(uint32_t streamId) {
       .initialResponse =
           ThriftStreamInitialResponsePayload{.streamId = streamId},
       .configFunc = std::make_unique<stream::ProducerPipeline::ConfigFunc>(
-          [](stream::ProducerPipeline::Builder&) {}),
+          [](folly::EventBase* evb, stream::StreamSink sink) {
+            return stream::ProducerPipeline::build(
+                evb, std::move(sink), [](auto builder) { return builder; });
+          }),
   };
 }
 
