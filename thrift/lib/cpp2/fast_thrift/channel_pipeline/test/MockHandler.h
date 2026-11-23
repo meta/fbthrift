@@ -17,12 +17,22 @@
 #pragma once
 
 #include <folly/ExceptionWrapper.h>
+#include <folly/Portability.h>
+#include <folly/io/async/EventBase.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 
 #include <functional>
 
 namespace apache::thrift::fast_thrift::channel_pipeline::test {
+
+FOLLY_PUSH_WARNING
+FOLLY_GNU_DISABLE_WARNING("-Wdeprecated-declarations")
+inline void loopUntilIdle(folly::EventBase& eventBase) {
+  // NOLINTNEXTLINE(facebook-hte-Deprecated)
+  eventBase.loopIgnoreKeepAlive();
+}
+FOLLY_POP_WARNING
 
 /**
  * MockHandler is a configurable handler for testing.

@@ -263,7 +263,7 @@ class RocketClientIntegrationTest : public ::testing::Test {
     buildPipeline();
     transportHandler_->onConnect();
 
-    evb_.loopOnce();
+    evb_.loopOnce(EVLOOP_NONBLOCK);
 
     discardSetupFrame();
   }
@@ -378,7 +378,7 @@ class RocketClientIntegrationTest : public ::testing::Test {
     transportHandler_->setPipeline(pipeline_.get());
     transportHandler_->onConnect();
 
-    evb_.loopOnce();
+    evb_.loopOnce(EVLOOP_NONBLOCK);
 
     discardSetupFrame();
   }
@@ -453,7 +453,7 @@ class RocketClientIntegrationTest : public ::testing::Test {
     transportHandler_->setPipeline(pipeline_.get());
     transportHandler_->onConnect();
 
-    evb_.loopOnce();
+    evb_.loopOnce(EVLOOP_NONBLOCK);
 
     discardSetupFrame();
   }
@@ -546,7 +546,7 @@ TEST_F(RocketClientIntegrationTest, RequestFlowsThroughPipelineToSocket) {
   auto request = createRocketRequest(folly::IOBuf::copyBuffer("test payload"));
   (void)appAdapter_->write(std::move(request));
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto requestFrame = getWrittenFrame();
   ASSERT_NE(requestFrame, nullptr) << "Expected request frame to be written";
@@ -565,7 +565,7 @@ TEST_F(RocketClientIntegrationTest, MultipleRequestsGetDistinctStreamIds) {
 
   auto request1 = createRocketRequest(folly::IOBuf::copyBuffer("payload1"));
   (void)appAdapter_->write(std::move(request1));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
   auto frame1 = getWrittenFrame();
   ASSERT_NE(frame1, nullptr);
   auto parsed1 = parseWrittenFrame(std::move(frame1));
@@ -574,7 +574,7 @@ TEST_F(RocketClientIntegrationTest, MultipleRequestsGetDistinctStreamIds) {
 
   auto request2 = createRocketRequest(folly::IOBuf::copyBuffer("payload2"));
   (void)appAdapter_->write(std::move(request2));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
   auto frame2 = getWrittenFrame();
   ASSERT_NE(frame2, nullptr);
   auto parsed2 = parseWrittenFrame(std::move(frame2));
@@ -589,7 +589,7 @@ TEST_F(RocketClientIntegrationTest, RequestWithMetadataAndData) {
       folly::IOBuf::copyBuffer("data"), folly::IOBuf::copyBuffer("metadata"));
   (void)appAdapter_->write(std::move(request));
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto requestFrame = getWrittenFrame();
   ASSERT_NE(requestFrame, nullptr);
@@ -614,7 +614,7 @@ TEST_F(RocketClientIntegrationTest, ResponseFlowsFromSocketThroughPipeline) {
   auto request = createRocketRequest(folly::IOBuf::copyBuffer("test"));
   (void)appAdapter_->write(std::move(request));
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto requestFrame = getWrittenFrame();
   ASSERT_NE(requestFrame, nullptr);
@@ -629,8 +629,8 @@ TEST_F(RocketClientIntegrationTest, ResponseFlowsFromSocketThroughPipeline) {
 
   injectFrame(std::move(responseFrame));
 
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   EXPECT_EQ(responseCount_, 1) << "App adapter should have received response";
   EXPECT_FALSE(exceptionReceived_);
@@ -649,14 +649,14 @@ TEST_F(
 
   auto request1 = createRocketRequest(folly::IOBuf::copyBuffer("req1"));
   (void)appAdapter_->write(std::move(request1));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
   auto frame1 = getWrittenFrame();
   auto parsed1 = parseWrittenFrame(std::move(frame1));
   uint32_t streamId1 = parsed1.streamId();
 
   auto request2 = createRocketRequest(folly::IOBuf::copyBuffer("req2"));
   (void)appAdapter_->write(std::move(request2));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
   auto frame2 = getWrittenFrame();
   auto parsed2 = parseWrittenFrame(std::move(frame2));
   uint32_t streamId2 = parsed2.streamId();
@@ -664,8 +664,8 @@ TEST_F(
   auto response2 = createPayloadResponse(
       streamId2, nullptr, folly::IOBuf::copyBuffer("response2"));
   injectFrame(std::move(response2));
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   EXPECT_EQ(responseCount_, 1);
   auto& resp = responses_[0].get<RocketResponseMessage>();
@@ -674,8 +674,8 @@ TEST_F(
   auto response1 = createPayloadResponse(
       streamId1, nullptr, folly::IOBuf::copyBuffer("response1"));
   injectFrame(std::move(response1));
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   EXPECT_EQ(responseCount_, 2);
 }
@@ -698,7 +698,7 @@ TEST_F(
   // RocketResponseError by the injection handler.
   auto request1 = createRocketRequest(folly::IOBuf::copyBuffer("req1"));
   (void)appAdapter_->write(std::move(request1));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
   auto requestFrame1 = getWrittenFrame();
   ASSERT_NE(requestFrame1, nullptr);
   auto parsedRequest1 = parseWrittenFrame(std::move(requestFrame1));
@@ -710,8 +710,8 @@ TEST_F(
   auto responseFrame1 = createPayloadResponse(
       1u, nullptr, folly::IOBuf::copyBuffer("ignored payload"));
   injectFrame(std::move(responseFrame1));
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   // App receives one response carrying RocketResponseError; no
   // connection-level exception fires.
@@ -729,7 +729,7 @@ TEST_F(
   // flows through untouched. This is the "connection survives" assertion.
   auto request2 = createRocketRequest(folly::IOBuf::copyBuffer("req2"));
   (void)appAdapter_->write(std::move(request2));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
   auto requestFrame2 = getWrittenFrame();
   ASSERT_NE(requestFrame2, nullptr);
   auto parsedRequest2 = parseWrittenFrame(std::move(requestFrame2));
@@ -738,8 +738,8 @@ TEST_F(
   auto responseFrame2 = createPayloadResponse(
       3u, nullptr, folly::IOBuf::copyBuffer("real response"));
   injectFrame(std::move(responseFrame2));
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   ASSERT_EQ(responseCount_, 2);
   EXPECT_FALSE(exceptionReceived_);
@@ -764,7 +764,7 @@ TEST_F(
 
   auto request = createRocketRequest(folly::IOBuf::copyBuffer("test"));
   (void)appAdapter_->write(std::move(request));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   ASSERT_EQ(responseCount_, 1);
   EXPECT_FALSE(exceptionReceived_);
@@ -800,7 +800,7 @@ TEST_F(
 
   auto request1 = createRocketRequest(folly::IOBuf::copyBuffer("req1"));
   (void)appAdapter_->write(std::move(request1));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
   auto requestFrame1 = getWrittenFrame();
   ASSERT_NE(requestFrame1, nullptr);
   auto parsedRequest1 = parseWrittenFrame(std::move(requestFrame1));
@@ -808,7 +808,7 @@ TEST_F(
 
   auto request2 = createRocketRequest(folly::IOBuf::copyBuffer("req2"));
   (void)appAdapter_->write(std::move(request2));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
   auto requestFrame2 = getWrittenFrame();
   ASSERT_NE(requestFrame2, nullptr);
   auto parsedRequest2 = parseWrittenFrame(std::move(requestFrame2));
@@ -819,7 +819,7 @@ TEST_F(
       apache::thrift::transport::TTransportException::END_OF_FILE,
       "Transport closed unexpectedly");
   transportHandler_->close(folly::exception_wrapper(ew));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   ASSERT_EQ(responseCount_, 2);
   std::vector<uint32_t> seenStreamIds;
@@ -855,17 +855,17 @@ TEST_F(
 
   auto request1 = createRocketRequest(folly::IOBuf::copyBuffer("req1"));
   (void)appAdapter_->write(std::move(request1));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
   ASSERT_NE(getWrittenFrame(), nullptr);
 
   auto request2 = createRocketRequest(folly::IOBuf::copyBuffer("req2"));
   (void)appAdapter_->write(std::move(request2));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
   ASSERT_NE(getWrittenFrame(), nullptr);
 
   // No exception — graceful close path.
   transportHandler_->close(folly::exception_wrapper{});
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   ASSERT_EQ(responseCount_, 2);
   std::vector<uint32_t> seenStreamIds;
@@ -908,14 +908,14 @@ TEST_F(RocketClientIntegrationTest, RequestBeforeConnectFailsWithNotOpen) {
 
   // SETUP still goes out first, and the next request starts at stream 1.
   transportHandler_->onConnect();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
   EXPECT_THAT(
       parseWrittenFrame(getWrittenFrame()).type(),
       Eq(apache::thrift::fast_thrift::frame::FrameType::SETUP));
   EXPECT_THAT(
       appAdapter_->write(createRocketRequest(folly::IOBuf::copyBuffer("req"))),
       Ne(Result::Error));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
   EXPECT_THAT(parseWrittenFrame(getWrittenFrame()).streamId(), Eq(1u));
 }
 
@@ -925,7 +925,7 @@ TEST_F(RocketClientIntegrationTest, FailedSetupWriteClosesAfterActivation) {
   transportHandler_->onConnect();
 
   EXPECT_THAT(lifecycle_, ElementsAre("connect"));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
   EXPECT_THAT(lifecycle_, ElementsAre("connect", "disconnect"));
   EXPECT_THAT(testTransport_->good(), IsFalse());
 }
@@ -939,7 +939,7 @@ TEST_F(RocketClientIntegrationTest, ErrorFrameWithApplicationErrorCode) {
 
   auto request = createRocketRequest(folly::IOBuf::copyBuffer("test"));
   (void)appAdapter_->write(std::move(request));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto requestFrame = getWrittenFrame();
   auto parsedRequest = parseWrittenFrame(std::move(requestFrame));
@@ -953,8 +953,8 @@ TEST_F(RocketClientIntegrationTest, ErrorFrameWithApplicationErrorCode) {
 
   injectFrame(std::move(errorFrame));
 
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   EXPECT_EQ(responseCount_, 1);
   auto& response = responses_[0].get<RocketResponseMessage>();
@@ -969,7 +969,7 @@ TEST_F(RocketClientIntegrationTest, ErrorFrameWithRejectedCode) {
 
   auto request = createRocketRequest(folly::IOBuf::copyBuffer("test"));
   (void)appAdapter_->write(std::move(request));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto requestFrame = getWrittenFrame();
   auto parsedRequest = parseWrittenFrame(std::move(requestFrame));
@@ -983,8 +983,8 @@ TEST_F(RocketClientIntegrationTest, ErrorFrameWithRejectedCode) {
 
   injectFrame(std::move(errorFrame));
 
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   EXPECT_EQ(responseCount_, 1);
   auto& response = responses_[0].get<RocketResponseMessage>();
@@ -998,7 +998,7 @@ TEST_F(RocketClientIntegrationTest, ErrorFrameWithCanceledCode) {
 
   auto request = createRocketRequest(folly::IOBuf::copyBuffer("test"));
   (void)appAdapter_->write(std::move(request));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto requestFrame = getWrittenFrame();
   auto parsedRequest = parseWrittenFrame(std::move(requestFrame));
@@ -1012,8 +1012,8 @@ TEST_F(RocketClientIntegrationTest, ErrorFrameWithCanceledCode) {
 
   injectFrame(std::move(errorFrame));
 
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   EXPECT_EQ(responseCount_, 1);
   auto& response = responses_[0].get<RocketResponseMessage>();
@@ -1027,7 +1027,7 @@ TEST_F(RocketClientIntegrationTest, ErrorFrameWithInvalidCode) {
 
   auto request = createRocketRequest(folly::IOBuf::copyBuffer("test"));
   (void)appAdapter_->write(std::move(request));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto requestFrame = getWrittenFrame();
   auto parsedRequest = parseWrittenFrame(std::move(requestFrame));
@@ -1041,8 +1041,8 @@ TEST_F(RocketClientIntegrationTest, ErrorFrameWithInvalidCode) {
 
   injectFrame(std::move(errorFrame));
 
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   EXPECT_EQ(responseCount_, 1);
   auto& response = responses_[0].get<RocketResponseMessage>();
@@ -1060,7 +1060,7 @@ TEST_F(RocketClientIntegrationTest, ResponseWithEmptyPayload) {
 
   auto request = createRocketRequest(folly::IOBuf::copyBuffer("test"));
   (void)appAdapter_->write(std::move(request));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto requestFrame = getWrittenFrame();
   auto parsedRequest = parseWrittenFrame(std::move(requestFrame));
@@ -1070,8 +1070,8 @@ TEST_F(RocketClientIntegrationTest, ResponseWithEmptyPayload) {
 
   injectFrame(std::move(responseFrame));
 
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   EXPECT_EQ(responseCount_, 1);
   auto& response = responses_[0].get<RocketResponseMessage>();
@@ -1092,7 +1092,7 @@ TEST_F(RocketClientIntegrationTest, LargePayloadRequest) {
   auto request = createRocketRequest(std::move(largeData));
   (void)appAdapter_->write(std::move(request));
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto requestFrame = getWrittenFrame();
   ASSERT_NE(requestFrame, nullptr);
@@ -1110,7 +1110,7 @@ TEST_F(RocketClientIntegrationTest, ResponseWithMetadata) {
 
   auto request = createRocketRequest(folly::IOBuf::copyBuffer("test"));
   (void)appAdapter_->write(std::move(request));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto requestFrame = getWrittenFrame();
   auto parsedRequest = parseWrittenFrame(std::move(requestFrame));
@@ -1123,8 +1123,8 @@ TEST_F(RocketClientIntegrationTest, ResponseWithMetadata) {
 
   injectFrame(std::move(responseFrame));
 
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   EXPECT_EQ(responseCount_, 1);
   auto& response = responses_[0].get<RocketResponseMessage>();

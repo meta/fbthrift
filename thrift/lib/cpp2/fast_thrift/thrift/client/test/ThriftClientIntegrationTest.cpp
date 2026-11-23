@@ -235,7 +235,7 @@ class ThriftClientChannelIntegrationTest : public ::testing::Test {
     transportHandlerPtr->onConnect();
 
     // Drive event loop to process the SETUP frame write callback
-    evb_.loopOnce();
+    evb_.loopOnce(EVLOOP_NONBLOCK);
 
     // Discard the SETUP frame
     discardSetupFrame();
@@ -362,7 +362,7 @@ TEST_F(
       nullptr);
 
   // Drive event loop to flush writes
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   // Read the frame from the test transport
   auto requestFrame = getWrittenFrame();
@@ -392,8 +392,8 @@ TEST_F(
           apache::thrift::fast_thrift::rocket::server::MetadataProtocol::
               BINARY),
       folly::IOBuf::copyBuffer("cleanup")));
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 }
 
 TEST_F(
@@ -410,7 +410,7 @@ TEST_F(
       std::move(cb1),
       nullptr);
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
   auto frame1 = getWrittenFrame();
   ASSERT_NE(frame1, nullptr);
   auto parsed1 = parseWrittenFrame(std::move(frame1));
@@ -427,7 +427,7 @@ TEST_F(
       std::move(cb2),
       nullptr);
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
   auto frame2 = getWrittenFrame();
   ASSERT_NE(frame2, nullptr);
   auto parsed2 = parseWrittenFrame(std::move(frame2));
@@ -444,8 +444,8 @@ TEST_F(
             apache::thrift::fast_thrift::rocket::server::MetadataProtocol::
                 BINARY),
         folly::IOBuf::copyBuffer("cleanup")));
-    evb_.loopOnce();
-    evb_.loopOnce();
+    evb_.loopOnce(EVLOOP_NONBLOCK);
+    evb_.loopOnce(EVLOOP_NONBLOCK);
   }
 }
 
@@ -469,7 +469,7 @@ TEST_F(
       std::move(cb),
       nullptr);
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   // Read and parse the request to get stream ID
   auto requestFrame = getWrittenFrame();
@@ -492,8 +492,8 @@ TEST_F(
   injectFrame(std::move(responseFrame));
 
   // Drive event loop to process the incoming response
-  evb_.loopOnce();
-  evb_.loopOnce(); // May need multiple iterations
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK); // May need multiple iterations
 
   // Verify callback received the response
   EXPECT_TRUE(state->responseReceived)
@@ -518,7 +518,7 @@ TEST_F(
       std::move(cb1),
       nullptr);
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
   auto frame1 = getWrittenFrame();
   auto parsed1 = parseWrittenFrame(std::move(frame1));
   uint32_t streamId1 = parsed1.streamId();
@@ -532,7 +532,7 @@ TEST_F(
       std::move(cb2),
       nullptr);
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
   auto frame2 = getWrittenFrame();
   auto parsed2 = parseWrittenFrame(std::move(frame2));
   uint32_t streamId2 = parsed2.streamId();
@@ -547,8 +547,8 @@ TEST_F(
               BINARY),
       folly::IOBuf::copyBuffer("response2"));
   injectFrame(std::move(response2));
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   EXPECT_FALSE(state1->responseReceived);
   EXPECT_TRUE(state2->responseReceived);
@@ -563,8 +563,8 @@ TEST_F(
               BINARY),
       folly::IOBuf::copyBuffer("response1"));
   injectFrame(std::move(response1));
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   EXPECT_TRUE(state1->responseReceived);
   EXPECT_TRUE(state2->responseReceived);
@@ -587,7 +587,7 @@ TEST_F(ThriftClientChannelIntegrationTest, ErrorFrameWithApplicationErrorCode) {
       std::move(cb),
       nullptr);
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto requestFrame = getWrittenFrame();
   auto parsedRequest = parseWrittenFrame(std::move(requestFrame));
@@ -602,8 +602,8 @@ TEST_F(ThriftClientChannelIntegrationTest, ErrorFrameWithApplicationErrorCode) {
 
   injectFrame(std::move(errorFrame));
 
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   EXPECT_TRUE(state->errorReceived);
   EXPECT_FALSE(state->responseReceived);
@@ -639,7 +639,7 @@ TEST_F(ThriftClientChannelIntegrationTest, ErrorFrameWithRejectedCode) {
       std::move(cb),
       nullptr);
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto requestFrame = getWrittenFrame();
   auto parsedRequest = parseWrittenFrame(std::move(requestFrame));
@@ -657,8 +657,8 @@ TEST_F(ThriftClientChannelIntegrationTest, ErrorFrameWithRejectedCode) {
 
   injectFrame(std::move(errorFrame));
 
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   // ERROR frames with parseable ResponseRpcError are delivered via
   // onResponse(T_EXCEPTION) with THeader containing kHeaderEx
@@ -685,7 +685,7 @@ TEST_F(ThriftClientChannelIntegrationTest, ErrorFrameWithCanceledCode) {
       std::move(cb),
       nullptr);
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto requestFrame = getWrittenFrame();
   auto parsedRequest = parseWrittenFrame(std::move(requestFrame));
@@ -703,8 +703,8 @@ TEST_F(ThriftClientChannelIntegrationTest, ErrorFrameWithCanceledCode) {
 
   injectFrame(std::move(errorFrame));
 
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   EXPECT_TRUE(state->responseReceived);
   EXPECT_FALSE(state->errorReceived);
@@ -729,7 +729,7 @@ TEST_F(ThriftClientChannelIntegrationTest, ErrorFrameWithInvalidCode) {
       std::move(cb),
       nullptr);
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto requestFrame = getWrittenFrame();
   auto parsedRequest = parseWrittenFrame(std::move(requestFrame));
@@ -747,8 +747,8 @@ TEST_F(ThriftClientChannelIntegrationTest, ErrorFrameWithInvalidCode) {
 
   injectFrame(std::move(errorFrame));
 
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   EXPECT_TRUE(state->responseReceived);
   EXPECT_FALSE(state->errorReceived);
@@ -795,7 +795,7 @@ TEST_F(
       std::move(cb),
       nullptr);
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto requestFrame = getWrittenFrame();
   auto parsedRequest = parseWrittenFrame(std::move(requestFrame));
@@ -812,8 +812,8 @@ TEST_F(
 
   injectFrame(std::move(errorFrame));
 
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   EXPECT_TRUE(state->responseReceived);
   EXPECT_EQ(state->messageType, apache::thrift::MessageType::T_EXCEPTION);
@@ -877,7 +877,7 @@ TEST_F(
       createHeader(),
       std::move(pendingCb),
       nullptr);
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
   auto pendingFrame = getWrittenFrame();
   auto pendingParsed = parseWrittenFrame(std::move(pendingFrame));
 
@@ -924,8 +924,8 @@ TEST_F(
           apache::thrift::fast_thrift::rocket::server::MetadataProtocol::
               BINARY),
       folly::IOBuf::copyBuffer("cleanup")));
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 }
 
 // =============================================================================
@@ -945,7 +945,7 @@ TEST_F(ThriftClientChannelIntegrationTest, DeclaredExceptionInPayloadMetadata) {
       std::move(cb),
       nullptr);
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto requestFrame = getWrittenFrame();
   auto parsedRequest = parseWrittenFrame(std::move(requestFrame));
@@ -972,8 +972,8 @@ TEST_F(ThriftClientChannelIntegrationTest, DeclaredExceptionInPayloadMetadata) {
 
   injectFrame(std::move(responseFrame));
 
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   // Declared exceptions are NOT errors - they're delivered as responses
   EXPECT_TRUE(state->responseReceived);
@@ -995,7 +995,7 @@ TEST_F(
       std::move(cb),
       nullptr);
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto requestFrame = getWrittenFrame();
   auto parsedRequest = parseWrittenFrame(std::move(requestFrame));
@@ -1022,8 +1022,8 @@ TEST_F(
 
   injectFrame(std::move(responseFrame));
 
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   // Undeclared exceptions are errors
   EXPECT_TRUE(state->errorReceived);
@@ -1048,7 +1048,7 @@ TEST_F(ThriftClientChannelIntegrationTest, ResponseWithEmptyPayload) {
       std::move(cb),
       nullptr);
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto requestFrame = getWrittenFrame();
   auto parsedRequest = parseWrittenFrame(std::move(requestFrame));
@@ -1067,8 +1067,8 @@ TEST_F(ThriftClientChannelIntegrationTest, ResponseWithEmptyPayload) {
 
   injectFrame(std::move(responseFrame));
 
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   EXPECT_TRUE(state->responseReceived);
   EXPECT_FALSE(state->errorReceived);
@@ -1088,7 +1088,7 @@ TEST_F(ThriftClientChannelIntegrationTest, ResponseForUnknownStreamId) {
       std::move(cb),
       nullptr);
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
   auto requestFrame = getWrittenFrame();
   auto parsedRequest = parseWrittenFrame(std::move(requestFrame));
 
@@ -1104,8 +1104,8 @@ TEST_F(ThriftClientChannelIntegrationTest, ResponseForUnknownStreamId) {
 
   injectFrame(std::move(responseFrame));
 
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   // Original callback should NOT receive this response
   EXPECT_FALSE(state->responseReceived);
@@ -1120,8 +1120,8 @@ TEST_F(ThriftClientChannelIntegrationTest, ResponseForUnknownStreamId) {
           apache::thrift::fast_thrift::rocket::server::MetadataProtocol::
               BINARY),
       folly::IOBuf::copyBuffer("cleanup")));
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 }
 
 TEST_F(
@@ -1138,7 +1138,7 @@ TEST_F(
       std::move(cb),
       nullptr);
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto requestFrame = getWrittenFrame();
   auto parsedRequest = parseWrittenFrame(std::move(requestFrame));
@@ -1160,8 +1160,8 @@ TEST_F(
 
   injectFrame(std::move(responseFrame));
 
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   EXPECT_TRUE(state->responseReceived);
   EXPECT_FALSE(state->errorReceived);
@@ -1367,7 +1367,7 @@ class ThriftClientAppAdapterIntegrationTest : public ::testing::Test {
     transportAdapter_->setPipeline(pipeline_.get());
     transportHandlerPtr->onConnect();
 
-    evb_.loopOnce();
+    evb_.loopOnce(EVLOOP_NONBLOCK);
     discardSetupFrame();
   }
 
@@ -1577,7 +1577,7 @@ TEST_F(
   auto future =
       client_.sendBenchRequest(folly::IOBuf::copyBuffer("test payload"));
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto requestFrame = getWrittenFrame();
   ASSERT_NE(requestFrame, nullptr) << "Expected request frame to be written";
@@ -1594,8 +1594,8 @@ TEST_F(
       parsed.streamId(),
       std::move(serializedMetadata),
       folly::IOBuf::copyBuffer("cleanup")));
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 }
 
 TEST_F(
@@ -1607,7 +1607,7 @@ TEST_F(
 
   auto future = client_.sendBenchRequest(folly::IOBuf::copyBuffer("test"));
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto requestFrame = getWrittenFrame();
   ASSERT_NE(requestFrame, nullptr);
@@ -1624,8 +1624,8 @@ TEST_F(
 
   injectFrame(std::move(responseFrame));
 
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   ASSERT_TRUE(future.isReady());
   auto response = std::move(future).value();
@@ -1663,7 +1663,7 @@ TEST_F(
         capturedStats = stats;
       });
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto requestFrame = getWrittenFrame();
   ASSERT_NE(requestFrame, nullptr);
@@ -1673,8 +1673,8 @@ TEST_F(
   injectFrame(createPayloadResponse(
       streamId, std::move(metadataBuf), folly::IOBuf::copyBuffer(dataStr)));
 
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   ASSERT_TRUE(handlerCalled);
   ASSERT_TRUE(hadValue);
@@ -1801,7 +1801,7 @@ TEST_F(ThriftClientAppAdapterIntegrationTest, ErrorFramePropagatesException) {
 
   auto future = client_.sendBenchRequest(folly::IOBuf::copyBuffer("test"));
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto requestFrame = getWrittenFrame();
   auto parsedRequest = parseWrittenFrame(std::move(requestFrame));
@@ -1815,8 +1815,8 @@ TEST_F(ThriftClientAppAdapterIntegrationTest, ErrorFramePropagatesException) {
 
   injectFrame(std::move(errorFrame));
 
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   // The adapter delivers the response (including error frames) to the handler.
   // Error decoding is the client's responsibility, not the adapter's.
@@ -1852,7 +1852,7 @@ TEST_F(
   // transition (graceful drain semantics).
   auto inflightFuture =
       client_.sendBenchRequest(folly::IOBuf::copyBuffer("inflight"));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
   auto pendingFrame = getWrittenFrame();
   auto pendingParsed = parseWrittenFrame(std::move(pendingFrame));
 
@@ -1892,8 +1892,8 @@ TEST_F(
           apache::thrift::fast_thrift::rocket::server::MetadataProtocol::
               BINARY),
       folly::IOBuf::copyBuffer("cleanup")));
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 }
 
 } // namespace apache::thrift::fast_thrift::thrift

@@ -53,6 +53,7 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/handler/IntervalBatchingFrameHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/handler/WriteCompletionTracker.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/server/Event.h>
@@ -160,7 +161,7 @@ class RocketServerWriteCompletionIntegrationTest : public ::testing::Test {
 
     // IntervalBatchingFrameHandler default config uses runInLoop; drain
     // until quiescent.
-    evb_.loop();
+    cp::test::loopUntilIdle(evb_);
     return cb;
   }
 

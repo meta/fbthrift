@@ -120,7 +120,7 @@ class RocketServerIntegrationTest : public ::testing::Test {
     // Drain any pending write callbacks before destroying the adapter.
     // TestAsyncTransport defers writeSuccess() via runInLoop(), so we
     // must process those callbacks while the pipeline is still alive.
-    evb_.loopOnce();
+    evb_.loopOnce(EVLOOP_NONBLOCK);
 
     if (transportHandler_) {
       transportHandler_->close(folly::exception_wrapper{});
@@ -441,7 +441,7 @@ TEST_F(RocketServerIntegrationTest, ResponseFlowsFromAppToSocket) {
   (void)appAdapter_->write(std::move(response));
 
   // Drain the deferred writeSuccess() callback
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto responseFrame = getWrittenFrame();
   ASSERT_NE(responseFrame, nullptr) << "Expected response to be written";
@@ -477,7 +477,7 @@ TEST_F(RocketServerIntegrationTest, ErrorResponseFlowsFromAppToSocket) {
   };
   (void)appAdapter_->write(std::move(response));
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto responseFrame = getWrittenFrame();
   ASSERT_NE(responseFrame, nullptr);
@@ -512,7 +512,7 @@ TEST_F(RocketServerIntegrationTest, ResponseWithMetadata) {
   };
   (void)appAdapter_->write(std::move(response));
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto responseFrame = getWrittenFrame();
   ASSERT_NE(responseFrame, nullptr);
@@ -591,7 +591,7 @@ TEST_F(RocketServerIntegrationTest, ResponseForCompletedStreamFails) {
   };
   (void)appAdapter_->write(std::move(response));
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
   testTransport_->getWrittenData(); // consume the response
 
   RocketResponseMessage duplicate{
@@ -658,7 +658,7 @@ TEST_F(RocketServerIntegrationTest, EmptyPayloadResponse) {
   };
   (void)appAdapter_->write(std::move(response));
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto responseFrame = getWrittenFrame();
   ASSERT_NE(responseFrame, nullptr);
@@ -743,7 +743,7 @@ class RocketServerSetupRejectionTest : public ::testing::Test {
   // A test that hands the pieces to a RocketServerConnection leaves these
   // empty; that connection owns the teardown from then on.
   void TearDown() override {
-    evb_.loopOnce();
+    evb_.loopOnce(EVLOOP_NONBLOCK);
     if (transportHandler_) {
       transportHandler_->close(folly::exception_wrapper{});
       transportHandler_->resetPipeline();

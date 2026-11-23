@@ -31,6 +31,7 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/ErrorCode.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameDescriptor.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
@@ -362,7 +363,7 @@ TEST(ServerKeepAliveTimerTest, MissingProbeTimesOutConnection) {
   EXPECT_EQ(
       pipeline->fireRead(erase_and_box(std::move(request))), Result::Success);
 
-  eventBase.loop();
+  channel_pipeline::test::loopUntilIdle(eventBase);
 
   EXPECT_EQ(app.exceptionCount(), 1);
 }
@@ -405,7 +406,7 @@ TEST(ServerKeepAliveTimerTest, DefaultPolicyDoesNotTimeOutConnection) {
   auto stop = folly::AsyncTimeout::make(
       eventBase, [&]() noexcept { pipeline->deactivate(); });
   stop->scheduleTimeout(std::chrono::milliseconds{15});
-  eventBase.loop();
+  channel_pipeline::test::loopUntilIdle(eventBase);
 
   EXPECT_EQ(app.exceptionCount(), 0);
 }
@@ -465,7 +466,7 @@ TEST(ServerKeepAliveTimerTest, ProbeExtendsLifetimeWithoutRearmingHotPath) {
   probe->scheduleTimeout(std::chrono::milliseconds{7});
   stop->scheduleTimeout(std::chrono::milliseconds{15});
 
-  eventBase.loop();
+  channel_pipeline::test::loopUntilIdle(eventBase);
 
   EXPECT_EQ(echoes, 1u);
   EXPECT_EQ(app.exceptionCount(), 0);

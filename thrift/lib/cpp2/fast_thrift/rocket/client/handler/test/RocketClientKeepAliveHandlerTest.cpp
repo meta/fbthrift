@@ -19,6 +19,7 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameParser.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/FrameHeaders.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/FrameWriter.h>
@@ -105,7 +106,7 @@ TEST_F(ClientKeepAliveHandlerTest, SendsProbesAndTimesOutMissingReplies) {
                       .build();
 
   pipeline->activate();
-  eventBase_.loop();
+  cp::test::loopUntilIdle(eventBase_);
 
   EXPECT_GE(probes, 1u);
   EXPECT_EQ(app_.exceptionCount(), 1);
@@ -143,7 +144,7 @@ TEST_F(ClientKeepAliveHandlerTest, RepliesKeepConnectionAlive) {
   pipelineRef = cp::PipelineRef{*pipeline};
 
   pipeline->activate();
-  eventBase_.loop();
+  cp::test::loopUntilIdle(eventBase_);
 
   EXPECT_EQ(probes, 3u);
   EXPECT_EQ(app_.exceptionCount(), 0);
@@ -178,13 +179,13 @@ TEST_F(ClientKeepAliveHandlerTest, DeferredStartWaitsForFirstInboundFrame) {
   pipelineRef = cp::PipelineRef{*pipeline};
 
   pipeline->activate();
-  eventBase_.loop();
+  cp::test::loopUntilIdle(eventBase_);
   EXPECT_EQ(probes, 0u);
 
   EXPECT_EQ(
       pipeline->fireRead(cp::erase_and_box(makeKeepAliveReply())),
       cp::Result::Success);
-  eventBase_.loop();
+  cp::test::loopUntilIdle(eventBase_);
   EXPECT_EQ(probes, 1u);
   EXPECT_EQ(app_.exceptionCount(), 0);
 }

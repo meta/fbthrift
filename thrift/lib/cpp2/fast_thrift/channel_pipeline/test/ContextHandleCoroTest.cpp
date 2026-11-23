@@ -493,7 +493,7 @@ TEST(ContextHandleDirectAwaitableTest, DroppedFutureKeepsSuspendedFrameAlive) {
     ASSERT_GT(eventBase.getNotificationQueueSize(), 0);
   }
 
-  eventBase.loopOnce();
+  eventBase.loopOnce(EVLOOP_NONBLOCK);
   EXPECT_EQ(tail.readCount(), 1);
 }
 
