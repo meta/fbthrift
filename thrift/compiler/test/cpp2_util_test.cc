@@ -566,5 +566,30 @@ TEST(UtilTest, structs_and_typedefs_dependency_graph) {
   }
 }
 
+TEST(UtilTest, arena_struct_field_of_later_arena_struct) {
+  auto source_mgr = source_manager();
+  auto program = dedent_and_parse_to_program(
+      source_mgr,
+      R"(
+    include "thrift/annotation/cpp.thrift"
+
+    @cpp.Arena
+    struct Outer {
+      1: Inner inner;
+    }
+
+    @cpp.Arena
+    struct Inner {
+      1: string name;
+    }
+  )",
+      {},
+      {});
+
+  const t_structured* outer = *program->structured_definitions().begin();
+  ASSERT_EQ(outer->name(), "Outer");
+  EXPECT_TRUE(cpp2::is_arena_field(*outer->get_field_by_id(1)));
+}
+
 } // namespace
 } // namespace apache::thrift::compiler

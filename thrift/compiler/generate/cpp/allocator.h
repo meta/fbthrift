@@ -30,7 +30,8 @@ namespace apache::thrift::compiler::cpp2 {
 bool alloc_ctor_applies_custom_default(const t_field& field);
 
 // The value of `@internal.CppAllocator` or `cpp.allocator`, else the PMR
-// allocator if `node` has `@cpp.Arena` fields; null if none applies.
+// allocator if `node` or one of its fields has `@cpp.Arena`; null if none
+// applies.
 const std::string* find_allocator(const t_named& node);
 
 inline bool is_allocator_aware(const t_named& node) {

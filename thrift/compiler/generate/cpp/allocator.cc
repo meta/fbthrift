@@ -48,8 +48,11 @@ const std::string* find_allocator(const t_named& node) {
   static const auto& kArenaAllocator =
       *new std::string("::std::pmr::polymorphic_allocator<::std::byte>");
   const auto* strct = dynamic_cast<const t_structured*>(&node);
-  return strct != nullptr && has_arena_fields(*strct) ? &kArenaAllocator
-                                                      : nullptr;
+  return strct != nullptr &&
+          (strct->has_structured_annotation(kCppArenaUri) ||
+           has_arena_fields(*strct))
+      ? &kArenaAllocator
+      : nullptr;
 }
 
 const std::string* find_allocator_via(const t_named& node) {
