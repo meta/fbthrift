@@ -225,4 +225,18 @@ consteval bool mapOnResource() {
   }
 }
 
+// Move-assigns `src` to `dst`, field `Id` of `Struct`. If
+// `canSkipDestroyingOldData` and the field allocates only from the struct's
+// memory resource, move-constructs over the old value instead, leaving its
+// memory for the arena to reclaim.
+template <class Struct, class Id, class T>
+void moveAssignField(T& dst, T&& src, bool canSkipDestroyingOldData) {
+  if (canSkipDestroyingOldData &&
+      fieldAllocatesAllMemoryViaMemoryResource<Struct, Id>()) {
+    std::construct_at(std::addressof(dst), std::move(src));
+  } else {
+    dst = std::move(src);
+  }
+}
+
 } // namespace apache::thrift::pmr::detail

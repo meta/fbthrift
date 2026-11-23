@@ -918,7 +918,17 @@ void expectMoveAssignmentSkipsDestroyingOldFields() {
 }
 
 TEST(CppArenaPmrTest, MoveAssignmentOnTheSameArenaSkipsDestroyingOldFields) {
+  expectMoveAssignmentSkipsDestroyingOldFields<Containers>();
+  expectMoveAssignmentSkipsDestroyingOldFields<Members>();
   expectMoveAssignmentSkipsDestroyingOldFields<ArenaUnion>();
+
+  CountingArena arena;
+  Containers src{&arena};
+  fill(src);
+  const std::pmr::string* names = src.names()->data();
+  Containers dst{&arena};
+  dst = std::move(src);
+  EXPECT_EQ(dst.names()->data(), names);
 }
 
 TEST(CppArenaPmrTest, UnionSkipsDestroyingTheActiveFieldOnAnArena) {

@@ -60,8 +60,17 @@
       return *this;
     }
     {{/if (and (object.notnull? struct.cpp_allocator) struct.cpp_use_allocator_ref_fields?)}}
+    {{#if struct.cpp_arena_allocator?}}
+    const bool canSkipDestroyingOldData = this != &other &&
+        get_allocator() == other.get_allocator() &&
+        ::apache::thrift::pmr::isArenaResource(get_allocator());
+    {{/if struct.cpp_arena_allocator?}}
     {{#each struct.fields_in_layout_order as |field|}}
+      {{#if struct.cpp_arena_allocator?}}
+    ::apache::thrift::pmr::detail::moveAssignField<{{struct.cpp_underlying_name}}, ::apache::thrift::field_id<{{field.id}}>>(this->{{field.cpp_storage_name}}, std::move(other.{{field.cpp_storage_name}}), canSkipDestroyingOldData);
+      {{#else}}
     this->{{field.cpp_storage_name}} = std::move(other.{{field.cpp_storage_name}});
+      {{/if struct.cpp_arena_allocator?}}
       {{#if field.lazy?}}
     {
       const auto isDeserialized = other.__fbthrift_isDeserialized_.{{field.cpp_name}}.load(relaxed);

@@ -15,7 +15,8 @@
  */
 
 // Teardown of `@cpp.Arena` values: destroying the value, and releasing the
-// arena it was built on, if any.
+// arena it was built on, if any. Also move assignment between two values on
+// the same resource, followed by their teardown.
 
 #include <cstddef>
 #include <memory_resource>
@@ -90,6 +91,27 @@ void teardown(std::size_t iters, std::size_t n, bool onArena) {
   }
 }
 
+// Includes the teardown: on an arena, the move alone is too short to time
+// against filling both values for every iteration.
+template <class T>
+void moveAssign(std::size_t iters, std::size_t n, bool onArena) {
+  for (std::size_t i = 0; i < iters; ++i) {
+    std::optional<std::pmr::monotonic_buffer_resource> arena;
+    std::optional<T> dst;
+    std::optional<T> src;
+    BENCHMARK_SUSPEND {
+      std::pmr::memory_resource* resource =
+          onArena ? &arena.emplace() : std::pmr::get_default_resource();
+      fill(dst.emplace(resource), n);
+      fill(src.emplace(resource), n);
+    }
+    *dst = std::move(*src);
+    dst.reset();
+    src.reset();
+    arena.reset();
+  }
+}
+
 void setOfStrings(std::size_t iters, std::size_t n, bool onArena) {
   teardown<Containers>(iters, n, onArena);
 }
@@ -107,6 +129,14 @@ void unionOfMap(std::size_t iters, std::size_t n, bool onArena) {
 // list<ArenaInner>, each with a string and a list of 2 strings
 void listOfStructs(std::size_t iters, std::size_t n, bool onArena) {
   teardown<StructElements>(iters, n, onArena);
+}
+
+void moveAssignSetOfStrings(std::size_t iters, std::size_t n, bool onArena) {
+  moveAssign<Containers>(iters, n, onArena);
+}
+
+void moveAssignMapOfLists(std::size_t iters, std::size_t n, bool onArena) {
+  moveAssign<WholeStruct>(iters, n, onArena);
 }
 
 BENCHMARK_NAMED_PARAM(setOfStrings, heap_16, 16, false)
@@ -128,6 +158,16 @@ BENCHMARK_NAMED_PARAM(listOfStructs, heap_16, 16, false)
 BENCHMARK_RELATIVE_NAMED_PARAM(listOfStructs, arena_16, 16, true)
 BENCHMARK_NAMED_PARAM(listOfStructs, heap_1024, 1024, false)
 BENCHMARK_RELATIVE_NAMED_PARAM(listOfStructs, arena_1024, 1024, true)
+BENCHMARK_DRAW_LINE();
+BENCHMARK_NAMED_PARAM(moveAssignSetOfStrings, heap_16, 16, false)
+BENCHMARK_RELATIVE_NAMED_PARAM(moveAssignSetOfStrings, arena_16, 16, true)
+BENCHMARK_NAMED_PARAM(moveAssignSetOfStrings, heap_1024, 1024, false)
+BENCHMARK_RELATIVE_NAMED_PARAM(moveAssignSetOfStrings, arena_1024, 1024, true)
+BENCHMARK_DRAW_LINE();
+BENCHMARK_NAMED_PARAM(moveAssignMapOfLists, heap_16, 16, false)
+BENCHMARK_RELATIVE_NAMED_PARAM(moveAssignMapOfLists, arena_16, 16, true)
+BENCHMARK_NAMED_PARAM(moveAssignMapOfLists, heap_1024, 1024, false)
+BENCHMARK_RELATIVE_NAMED_PARAM(moveAssignMapOfLists, arena_1024, 1024, true)
 
 } // namespace
 } // namespace apache::thrift::test::arena_pmr

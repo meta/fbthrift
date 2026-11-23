@@ -200,11 +200,14 @@ Fields::Fields([[maybe_unused]] Fields&& other) noexcept :
 }
 
 Fields& Fields::operator=([[maybe_unused]] Fields&& other) {
-    this->__fbthrift_field_name = std::move(other.__fbthrift_field_name);
-    this->__fbthrift_field_groups = std::move(other.__fbthrift_field_groups);
-    this->__fbthrift_field_inners = std::move(other.__fbthrift_field_inners);
-    this->__fbthrift_field_id = std::move(other.__fbthrift_field_id);
-    this->__fbthrift_field_custom = std::move(other.__fbthrift_field_custom);
+    const bool canSkipDestroyingOldData = this != &other &&
+        get_allocator() == other.get_allocator() &&
+        ::apache::thrift::pmr::isArenaResource(get_allocator());
+    ::apache::thrift::pmr::detail::moveAssignField<Fields, ::apache::thrift::field_id<1>>(this->__fbthrift_field_name, std::move(other.__fbthrift_field_name), canSkipDestroyingOldData);
+    ::apache::thrift::pmr::detail::moveAssignField<Fields, ::apache::thrift::field_id<2>>(this->__fbthrift_field_groups, std::move(other.__fbthrift_field_groups), canSkipDestroyingOldData);
+    ::apache::thrift::pmr::detail::moveAssignField<Fields, ::apache::thrift::field_id<3>>(this->__fbthrift_field_inners, std::move(other.__fbthrift_field_inners), canSkipDestroyingOldData);
+    ::apache::thrift::pmr::detail::moveAssignField<Fields, ::apache::thrift::field_id<4>>(this->__fbthrift_field_id, std::move(other.__fbthrift_field_id), canSkipDestroyingOldData);
+    ::apache::thrift::pmr::detail::moveAssignField<Fields, ::apache::thrift::field_id<5>>(this->__fbthrift_field_custom, std::move(other.__fbthrift_field_custom), canSkipDestroyingOldData);
     __isset = other.__isset;
   ::apache::thrift::detail::move_allocator(__fbthrift_alloc, other.__fbthrift_alloc);
     return *this;
@@ -360,8 +363,11 @@ WholeStruct::WholeStruct([[maybe_unused]] WholeStruct&& other) noexcept :
 }
 
 WholeStruct& WholeStruct::operator=([[maybe_unused]] WholeStruct&& other) {
-    this->__fbthrift_field_names = std::move(other.__fbthrift_field_names);
-    this->__fbthrift_field_id = std::move(other.__fbthrift_field_id);
+    const bool canSkipDestroyingOldData = this != &other &&
+        get_allocator() == other.get_allocator() &&
+        ::apache::thrift::pmr::isArenaResource(get_allocator());
+    ::apache::thrift::pmr::detail::moveAssignField<WholeStruct, ::apache::thrift::field_id<1>>(this->__fbthrift_field_names, std::move(other.__fbthrift_field_names), canSkipDestroyingOldData);
+    ::apache::thrift::pmr::detail::moveAssignField<WholeStruct, ::apache::thrift::field_id<2>>(this->__fbthrift_field_id, std::move(other.__fbthrift_field_id), canSkipDestroyingOldData);
     __isset = other.__isset;
   ::apache::thrift::detail::move_allocator(__fbthrift_alloc, other.__fbthrift_alloc);
     return *this;
@@ -558,8 +564,11 @@ ArenaMember::ArenaMember([[maybe_unused]] ArenaMember&& other) noexcept :
 }
 
 ArenaMember& ArenaMember::operator=([[maybe_unused]] ArenaMember&& other) {
-    this->__fbthrift_field_arena = std::move(other.__fbthrift_field_arena);
-    this->__fbthrift_field_plain = std::move(other.__fbthrift_field_plain);
+    const bool canSkipDestroyingOldData = this != &other &&
+        get_allocator() == other.get_allocator() &&
+        ::apache::thrift::pmr::isArenaResource(get_allocator());
+    ::apache::thrift::pmr::detail::moveAssignField<ArenaMember, ::apache::thrift::field_id<1>>(this->__fbthrift_field_arena, std::move(other.__fbthrift_field_arena), canSkipDestroyingOldData);
+    ::apache::thrift::pmr::detail::moveAssignField<ArenaMember, ::apache::thrift::field_id<2>>(this->__fbthrift_field_plain, std::move(other.__fbthrift_field_plain), canSkipDestroyingOldData);
     __isset = other.__isset;
   ::apache::thrift::detail::move_allocator(__fbthrift_alloc, other.__fbthrift_alloc);
     return *this;
