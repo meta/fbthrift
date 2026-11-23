@@ -46,8 +46,8 @@
 #include <folly/io/async/EventBase.h>
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/handler/FrameCodecHandler.h>
@@ -82,9 +82,9 @@
 
 namespace apache::thrift::fast_thrift::thrift::server::test {
 
-using apache::thrift::fast_thrift::channel_pipeline::PipelineBuilder;
-using apache::thrift::fast_thrift::channel_pipeline::PipelineImpl;
+using apache::thrift::fast_thrift::channel_pipeline::PipelineOwner;
 using apache::thrift::fast_thrift::channel_pipeline::Result;
+using apache::thrift::fast_thrift::channel_pipeline::StaticPipelineBuilder;
 using apache::thrift::fast_thrift::channel_pipeline::test::TestAllocator;
 using apache::thrift::fast_thrift::rocket::server::RocketServerAppAdapter;
 using apache::thrift::fast_thrift::transport::test::TestAsyncTransport;
@@ -270,7 +270,7 @@ class ThriftServerCompositeIntegrationTest : public ::testing::Test {
 
     // 1. Rocket pipeline (identical to ThriftServerIntegrationTest setup).
     rocketConn->pipeline =
-        PipelineBuilder<
+        StaticPipelineBuilder<
             transport::TransportHandlerT<
                 rocket::server::RocketServerEventFactory>,
             RocketServerAppAdapter,
@@ -334,7 +334,7 @@ class ThriftServerCompositeIntegrationTest : public ::testing::Test {
         std::make_unique<ThriftServerTransportAdapter>(std::move(rocketConn));
 
     thriftPipeline_ =
-        PipelineBuilder<
+        StaticPipelineBuilder<
             ThriftServerTransportAdapter,
             ThriftServerCompositeAppAdapter,
             TestAllocator>()
@@ -342,8 +342,7 @@ class ThriftServerCompositeIntegrationTest : public ::testing::Test {
             .setHead(transportAdapter_.get())
             .setTail(composite_.get())
             .setAllocator(&thriftAllocator_)
-            .template addNextDuplex<thrift::ThriftServerSetupHandler<
-                channel_pipeline::detail::ContextImpl>>(
+            .template addNextDuplexTemplate<thrift::ThriftServerSetupHandler>(
                 thrift_server_setup_handler_tag)
             .build();
 
@@ -426,7 +425,7 @@ class ThriftServerCompositeIntegrationTest : public ::testing::Test {
   RecordingAppAdapter::Ptr childA_;
   RecordingAppAdapter::Ptr childB_;
   ThriftServerCompositeAppAdapter::Ptr composite_;
-  PipelineImpl::Ptr thriftPipeline_;
+  PipelineOwner thriftPipeline_;
   TestAllocator rocketAllocator_;
   TestAllocator thriftAllocator_;
 

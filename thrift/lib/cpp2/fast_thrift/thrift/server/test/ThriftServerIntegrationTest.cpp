@@ -44,8 +44,8 @@
 #include <thrift/lib/cpp2/async/AsyncProcessor.h>
 #include <thrift/lib/cpp2/async/ResponseChannel.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/handler/FrameCodecHandler.h>
@@ -87,10 +87,10 @@
 
 namespace apache::thrift::fast_thrift::thrift::server::test {
 
-using apache::thrift::fast_thrift::channel_pipeline::PipelineBuilder;
-using apache::thrift::fast_thrift::channel_pipeline::PipelineImpl;
+using apache::thrift::fast_thrift::channel_pipeline::PipelineOwner;
 using apache::thrift::fast_thrift::channel_pipeline::Result;
 using apache::thrift::fast_thrift::channel_pipeline::SimpleBufferAllocator;
+using apache::thrift::fast_thrift::channel_pipeline::StaticPipelineBuilder;
 using apache::thrift::fast_thrift::channel_pipeline::test::TestAllocator;
 using apache::thrift::fast_thrift::rocket::server::RocketServerAppAdapter;
 using apache::thrift::fast_thrift::transport::test::TestAsyncTransport;
@@ -295,7 +295,7 @@ class ThriftServerIntegrationTest : public ::testing::Test {
 
     // 1. Build rocket pipeline: TransportHandler → ... → RocketServerAppAdapter
     rocketConn->pipeline =
-        PipelineBuilder<
+        StaticPipelineBuilder<
             transport::TransportHandlerT<
                 rocket::server::RocketServerEventFactory>,
             RocketServerAppAdapter,
@@ -345,7 +345,7 @@ class ThriftServerIntegrationTest : public ::testing::Test {
         std::make_unique<ThriftServerTransportAdapter>(std::move(rocketConn));
 
     thriftPipeline_ =
-        PipelineBuilder<
+        StaticPipelineBuilder<
             ThriftServerTransportAdapter,
             ThriftServerChannel,
             TestAllocator>()
@@ -353,13 +353,12 @@ class ThriftServerIntegrationTest : public ::testing::Test {
             .setHead(transportAdapter_.get())
             .setTail(serverChannel_.get())
             .setAllocator(&thriftAllocator_)
-            .template addNextDuplex<thrift::ThriftServerSetupHandler<
-                channel_pipeline::detail::ContextImpl>>(
+            .template addNextDuplexTemplate<thrift::ThriftServerSetupHandler>(
                 thrift_server_setup_handler_tag)
             .build();
 
     transportAdapter_->setPipeline(thriftPipeline_.get());
-    serverChannel_->setPipelineRef(*thriftPipeline_);
+    serverChannel_->setPipelineRef(thriftPipeline_.ref());
     serverChannel_->setWorker(apache::thrift::Cpp2Worker::createDummy(&evb_));
 
     transportHandler_()->setPipeline(rocketPipeline_());
@@ -431,7 +430,7 @@ class ThriftServerIntegrationTest : public ::testing::Test {
   // accessors below deref into it.
   std::unique_ptr<ThriftServerTransportAdapter> transportAdapter_;
   std::shared_ptr<ThriftServerChannel> serverChannel_;
-  PipelineImpl::Ptr thriftPipeline_;
+  PipelineOwner thriftPipeline_;
   TestAllocator rocketAllocator_;
   TestAllocator thriftAllocator_;
   std::shared_ptr<MockAsyncProcessor> processor_;
@@ -736,9 +735,9 @@ TEST_F(ThriftServerIntegrationTest, MultipleResponsesForDifferentStreams) {
 namespace apache::thrift::fast_thrift::thrift::server::app_adapter_test {
 
 using apache::thrift::fast_thrift::channel_pipeline::erase_and_box;
-using apache::thrift::fast_thrift::channel_pipeline::PipelineBuilder;
-using apache::thrift::fast_thrift::channel_pipeline::PipelineImpl;
+using apache::thrift::fast_thrift::channel_pipeline::PipelineOwner;
 using apache::thrift::fast_thrift::channel_pipeline::Result;
+using apache::thrift::fast_thrift::channel_pipeline::StaticPipelineBuilder;
 using apache::thrift::fast_thrift::channel_pipeline::test::TestAllocator;
 using apache::thrift::fast_thrift::transport::test::TestAsyncTransport;
 
@@ -912,7 +911,7 @@ class ThriftServerAppAdapterIntegrationTest : public ::testing::Test {
         rocket::server::RocketServerEventFactory>::create(std::move(transport));
 
     pipeline_ =
-        PipelineBuilder<
+        StaticPipelineBuilder<
             transport::TransportHandlerT<
                 rocket::server::RocketServerEventFactory>,
             TestServerAppAdapter,
@@ -1022,7 +1021,7 @@ class ThriftServerAppAdapterIntegrationTest : public ::testing::Test {
   transport::TransportHandlerT<rocket::server::RocketServerEventFactory>::Ptr
       transportHandler_;
   TestServerAppAdapter::Ptr adapter_;
-  PipelineImpl::Ptr pipeline_;
+  PipelineOwner pipeline_;
   TestAllocator allocator_;
 };
 
@@ -1282,11 +1281,8 @@ class ThriftRequestContextIntegrationTest
     transportHandler_ = transport::TransportHandlerT<
         rocket::server::RocketServerEventFactory>::create(std::move(transport));
 
-    using ReqCtxHandler = ThriftServerRequestContextHandler<
-        apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl>;
-
     pipeline_ =
-        PipelineBuilder<
+        StaticPipelineBuilder<
             transport::TransportHandlerT<
                 rocket::server::RocketServerEventFactory>,
             TestServerAppAdapter,
@@ -1326,7 +1322,7 @@ class ThriftRequestContextIntegrationTest
                 server_request_response_frame_handler_tag)
             .addNextDuplex<RocketThriftServerInterfaceHandler>(
                 rocket_thrift_interface_handler_tag)
-            .addNextDuplex<ReqCtxHandler>(
+            .addNextDuplexTemplate<ThriftServerRequestContextHandler>(
                 thrift_server_request_context_handler_tag,
                 /*requestExtensionLayout=*/nullptr,
                 /*methodMetadata=*/nullptr,
