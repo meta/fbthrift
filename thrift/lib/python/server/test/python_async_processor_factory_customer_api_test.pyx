@@ -78,6 +78,18 @@ cdef extern from "thrift/lib/python/server/test/PythonAsyncProcessorFactoryLifec
 
     FactoryIntakeObservations observeFactoryIntake() except +
 
+    cdef cppclass FactoryActivationObservations:
+        unsigned char priorityCount
+        bint plainWorkRan
+        size_t plainWorkOnControl
+        size_t plainWorkOnWorker
+        bint priorityWorkRan
+        size_t priorityWorkOnControl
+        bint schedulerAliveWhileHeld
+        bint schedulerReleasedAfterHolderRelease
+
+    FactoryActivationObservations observeFactoryActivation() except +
+
     bint isFreeThreadedBuild() noexcept
 
     size_t createProcessorsWhileLegacyStopRuns(
@@ -363,6 +375,25 @@ cdef class PythonAsyncProcessorFactoryCustomerApiCTest:
         self.ut.assertTrue(observed.heldWorkRan)
         self.ut.assertEqual(expected_work_drained, observed.heldWorkDrained)
         self.ut.assertTrue(observed.controlReleasedAfterHolderRelease)
+
+    def test_factory_activation_preserves_intake_routes_and_lifetime(self):
+        # GIVEN
+        expected_priority_count = 2
+        expected_control_tasks = 1
+        expected_no_tasks = 0
+
+        # WHEN
+        observed = observeFactoryActivation()
+
+        # THEN
+        self.ut.assertEqual(expected_priority_count, observed.priorityCount)
+        self.ut.assertTrue(observed.plainWorkRan)
+        self.ut.assertEqual(expected_control_tasks, observed.plainWorkOnControl)
+        self.ut.assertEqual(expected_no_tasks, observed.plainWorkOnWorker)
+        self.ut.assertTrue(observed.priorityWorkRan)
+        self.ut.assertEqual(expected_no_tasks, observed.priorityWorkOnControl)
+        self.ut.assertTrue(observed.schedulerAliveWhileHeld)
+        self.ut.assertTrue(observed.schedulerReleasedAfterHolderRelease)
 
     def test_processor_creation_and_legacy_stop_overlap(self):
         # GIVEN

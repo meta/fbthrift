@@ -25,6 +25,9 @@ class PythonAsyncProcessorFactoryCustomerApiTest(later.unittest.TestCase):
     def test_factory_intake_preserves_control_work_and_lifetime(self) -> None:
         CTests(self).test_factory_intake_preserves_control_work_and_lifetime()
 
+    def test_factory_activation_preserves_intake_routes_and_lifetime(self) -> None:
+        CTests(self).test_factory_activation_preserves_intake_routes_and_lifetime()
+
     def test_processor_creation_and_legacy_stop_overlap(self) -> None:
         CTests(self).test_processor_creation_and_legacy_stop_overlap()
 

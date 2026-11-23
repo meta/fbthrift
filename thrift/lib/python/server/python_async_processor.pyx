@@ -855,10 +855,6 @@ cdef class PythonAsyncProcessorFactory(AsyncProcessorFactory):
     cdef void releaseOwnedResources(self) noexcept:
         (<cPythonAsyncProcessorFactory*>self._cpp_obj.get()).releaseOwnedResources()
 
-    cdef void _release_executor_facade(self) noexcept:
-        self.executorFacade.releaseCreatorReference()
-        self.executorFacade = NULL
-
     async def __aenter__(self):
         factory_exit = FactoryExit(self.handler)
         async with contextlib.AsyncExitStack() as stack:
@@ -927,10 +923,11 @@ cdef class PythonAsyncProcessorFactory(AsyncProcessorFactory):
             (<cPythonAsyncProcessorFactory*>self._cpp_obj.get()).setExecutionSystem(
                 self.workerSystem.executionSystem
             )
-            self.executorFacade = cWorkerExecutorFacade.create(
-                self.workerSystem.scheduler, <cFollyExecutor*>self.controlExecutor
+            (<cPythonAsyncProcessorFactory*>self._cpp_obj.get()).setIntakeExecutor(
+                static_pointer_cast[cFollyExecutor, cWorkScheduler](
+                    self.workerSystem.scheduler
+                )
             )
-            stack.callback(lambda: self._release_executor_facade())
             return stack.pop_all()
 
     @staticmethod

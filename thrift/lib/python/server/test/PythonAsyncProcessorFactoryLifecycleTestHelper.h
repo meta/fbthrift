@@ -27,6 +27,7 @@
 #include <vector>
 
 #include <folly/Executor.h>
+#include <folly/executors/ManualExecutor.h>
 #include <thrift/lib/python/server/PythonAsyncProcessorFactory.h>
 #include <thrift/lib/python/server/execution/ExecutionSystem.h>
 
@@ -221,6 +222,59 @@ inline FactoryIntakeObservations observeFactoryIntake() {
   }
   holder.reset();
   observed.controlReleasedAfterHolderRelease = *destroyed;
+  return observed;
+}
+
+struct FactoryActivationObservations {
+  uint8_t priorityCount = 0;
+  bool plainWorkRan = false;
+  std::size_t plainWorkOnControl = 0;
+  std::size_t plainWorkOnWorker = 0;
+  bool priorityWorkRan = false;
+  std::size_t priorityWorkOnControl = 0;
+  bool schedulerAliveWhileHeld = false;
+  bool schedulerReleasedAfterHolderRelease = false;
+};
+
+inline FactoryActivationObservations observeFactoryActivation() {
+  FactoryActivationObservations observed;
+  auto destroyed = std::make_shared<bool>(false);
+  auto* control = new ObservableControlExecutor(destroyed);
+  auto controlOwner = folly::getKeepAliveToken(control);
+  folly::ManualExecutor workerExecutor;
+  auto scheduler = std::make_shared<execution::WorkScheduler>();
+  const auto worker =
+      scheduler->registerWorker(folly::getKeepAliveToken(workerExecutor));
+  std::weak_ptr<execution::WorkScheduler> schedulerObserver = scheduler;
+  auto factory = PythonAsyncProcessorFactory::create(
+      nullptr,
+      {},
+      {},
+      execution::makeControlOnlyExecutionSystem(
+          control, [](PyObject*) { return 0; }, {}),
+      controlOwner,
+      "test.Service");
+  auto holder = folly::getKeepAliveToken(factory->intakeExecutor());
+  factory->setIntakeExecutor(scheduler);
+  observed.priorityCount = holder->getNumPriorities();
+
+  holder->add([&] { observed.plainWorkRan = true; });
+  scheduler->makeWorkerCapacityAvailable(worker);
+  observed.plainWorkOnWorker = workerExecutor.drain();
+  observed.plainWorkOnControl = control->drain();
+
+  holder->addWithPriority(
+      [&] { observed.priorityWorkRan = true; }, folly::Executor::LO_PRI);
+  observed.priorityWorkOnControl = control->drain();
+  workerExecutor.drain();
+
+  scheduler->close();
+  scheduler.reset();
+  factory->releaseOwnedResources();
+  factory.reset();
+  observed.schedulerAliveWhileHeld = !schedulerObserver.expired();
+  holder.reset();
+  observed.schedulerReleasedAfterHolderRelease = schedulerObserver.expired();
   return observed;
 }
 

@@ -72,6 +72,14 @@ class PythonAsyncProcessorFactory
     return intakeExecutorFacade_.get();
   }
 
+  // Worker activation calls this once, from factory entry, before native
+  // work starts, so the server's request intake goes to the workers.
+  // Factory release drops the facade. A second entry after release breaks
+  // the contract, and this dereference has no null check for that case.
+  void setIntakeExecutor(std::shared_ptr<folly::Executor> executor) {
+    intakeExecutorFacade_->setExecutor(std::move(executor));
+  }
+
   PythonAsyncProcessorFactory(PythonAsyncProcessorFactory&&) = delete;
   PythonAsyncProcessorFactory(const PythonAsyncProcessorFactory&) = delete;
   PythonAsyncProcessorFactory& operator=(PythonAsyncProcessorFactory&&) =

@@ -19,6 +19,7 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <utility>
 
 #include <folly/Executor.h>
@@ -31,16 +32,19 @@ namespace apache::thrift::python::execution {
 
 /**
  * The one executor a thrift-python processor factory gives ThriftServer for the
- * server's whole life. It sends the server's work to the factory's control
- * executor, through a keep-alive it holds from creation.
+ * server's whole life, so the server never swaps executors. Request intake
+ * (addWithPriority) and the priority count go to the executor it wraps: the
+ * factory's control executor at creation, then the work scheduler once worker
+ * activation sets it. The server's other work (add) always goes to control,
+ * through a keep-alive the facade holds from creation.
  *
  * The executor counts its creator's keep-alive and every other holder's, and
  * deletes itself on the last release. It runs no callbacks of its own, so it
  * never waits for anyone; a server that outlives the creating factory keeps it,
  * and the control executor, alive.
  *
- * Only PythonAsyncProcessorFactory creates it; every other holder sees it as a
- * plain folly::Executor.
+ * Only PythonAsyncProcessorFactory creates and configures it; every other
+ * holder sees it as a plain folly::Executor.
  */
 class IntakeExecutorFacade final : public folly::Executor {
  protected:
@@ -62,23 +66,36 @@ class IntakeExecutorFacade final : public folly::Executor {
     return makeKeepAlive(new IntakeExecutorFacade(std::move(control)));
   }
 
+  // Replaces the executor that request intake goes to. Call it once, from
+  // factory entry, before native work starts: nothing reads the executor
+  // before then, so this write takes no lock. A second call, or a call after
+  // native work starts, breaks the contract. Behavior stays undefined, and no
+  // check enforces this.
+  void setExecutor(std::shared_ptr<folly::Executor> executor) {
+    executor_ = std::move(executor);
+  }
+
   void add(folly::Func func) override { control_->add(std::move(func)); }
 
   void addWithPriority(folly::Func func, int8_t priority) override {
-    control_->addWithPriority(std::move(func), priority);
+    executor_->addWithPriority(std::move(func), priority);
   }
 
   uint8_t getNumPriorities() const override {
-    return control_->getNumPriorities();
+    return executor_->getNumPriorities();
   }
 
   explicit IntakeExecutorFacade(KeepAlive<> control)
-      : control_(std::move(control)) {}
+      : control_(std::move(control)),
+        executor_(std::shared_ptr<folly::Executor>(), control_.get()) {}
   ~IntakeExecutorFacade() override = default;
 
   // create() adopts this first reference for the creator's keep-alive.
   std::atomic<std::size_t> references_{1};
   KeepAlive<> control_;
+  // Control at creation, through a non-owning alias, since control_ already
+  // keeps it alive.
+  std::shared_ptr<folly::Executor> executor_;
 };
 
 } // namespace apache::thrift::python::execution

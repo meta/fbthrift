@@ -124,12 +124,6 @@ cdef extern from "thrift/lib/python/server/execution/WorkScheduler.h" namespace 
         cWorkScheduler& workScheduler, cAsyncioExecutor* executor
     ) except +
 
-cdef extern from "thrift/lib/python/server/execution/WorkerExecutorFacade.h" namespace "::apache::thrift::python::execution":
-    cdef cppclass cWorkerExecutorFacade "::apache::thrift::python::execution::WorkerExecutorFacade"(cFollyExecutor):
-        @staticmethod
-        cWorkerExecutorFacade* create(shared_ptr[cWorkScheduler] scheduler, cFollyExecutor* control) except +
-        void releaseCreatorReference() noexcept
-
 cdef extern from "thrift/lib/python/server/PythonAsyncProcessorFactory.h" namespace "::apache::thrift::python":
     cdef cppclass cPythonAsyncProcessorFactory "::apache::thrift::python::PythonAsyncProcessorFactory"(cAsyncProcessorFactory):
         void releaseOwnedResources() noexcept
@@ -137,6 +131,7 @@ cdef extern from "thrift/lib/python/server/PythonAsyncProcessorFactory.h" namesp
         void setRequestedThreadCount(size_t count) noexcept
         size_t requestedThreadCount() noexcept
         cFollyExecutor* intakeExecutor() noexcept
+        void setIntakeExecutor(shared_ptr[cFollyExecutor] executor) except +
         void markContextEntered() noexcept
 
     cdef shared_ptr[cPythonAsyncProcessorFactory] \
@@ -187,11 +182,9 @@ cdef class PythonAsyncProcessorFactory(AsyncProcessorFactory):
     cdef object initializerFactory
     cdef cAsyncioExecutor* controlExecutor
     cdef WorkerSystem workerSystem
-    cdef cWorkerExecutorFacade* executorFacade
     cdef object factoryExit
 
     cdef void releaseOwnedResources(self) noexcept
-    cdef void _release_executor_facade(self) noexcept
     cdef _activate_workers(self)
 
     @staticmethod

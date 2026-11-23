@@ -266,26 +266,6 @@ cdef class ThriftServer:
             ).intakeExecutor()
         return get_executor()
 
-    cdef _use_worker_executor_if_active(self):
-        # Zero-worker servers keep the intake executor facade that __init__ hands to
-        # ThriftServer, which sends all of their work to control. When entering
-        # the factory context activated workers, hand ThriftServer the worker
-        # executor facade instead, before the native server starts. This relies
-        # on two ThriftServer behaviors: the last setThreadManagerFromExecutor
-        # call before serving wins, because the server reads its executor only
-        # during setup; and nothing called setupThreadManager() earlier, which
-        # would make the second call fail.
-        if not isinstance(self.factory, PythonAsyncProcessorFactory):
-            return
-        if (<PythonAsyncProcessorFactory>self.factory).executorFacade == NULL:
-            return
-        self.server.get().setThreadManagerFromExecutor(
-            <cFollyExecutor*>(
-                (<PythonAsyncProcessorFactory>self.factory).executorFacade
-            ),
-            b'python_worker_executor',
-        )
-
     async def serve(self):
         # This check is only useful for C++-based Thrift servers.
         # TODO(praihan): remove this after migration of C++ services onto extra interfaces
@@ -299,7 +279,6 @@ cdef class ThriftServer:
             async with AsyncExitStack() as ownership_stack:
                 if ownership_context is not None:
                     await ownership_stack.enter_async_context(ownership_context)
-                self._use_worker_executor_if_active()
                 native_serve = run_native_serve(self.loop, _serve_native, self)
                 await run_server(
                     native_serve,
