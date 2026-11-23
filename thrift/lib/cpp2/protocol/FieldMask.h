@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <type_traits>
 #include <vector>
 
 #include <folly/Range.h>
@@ -120,6 +121,32 @@ inline T filter(const Mask& mask, const T& src) {
 Mask operator&(const Mask&, const Mask&); // intersect
 Mask operator|(const Mask&, const Mask&); // union
 Mask operator-(const Mask&, const Mask&); // subtract
+
+template <typename T>
+struct MaskBuilder;
+
+// An immutable, schema-validated mask for filtering many values of the same
+// type. Construct a snapshot with MaskBuilder<T>::freeze().
+template <typename T>
+class FrozenMask {
+ public:
+  T filter(const T& src) const {
+    T filtered;
+    detail::filter_fields(
+        MaskRef{mask_, false}, src, filtered, std::false_type{});
+    return filtered;
+  }
+
+ private:
+  friend struct MaskBuilder<T>;
+
+  explicit FrozenMask(const Mask& mask) : mask_(mask) {
+    detail::throwIfContainsMapMask(mask_);
+    detail::errorIfNotCompatible<type::infer_tag<T>>(mask_);
+  }
+
+  const Mask mask_;
+};
 
 // MaskBuilder provides convenient type-safe APIs to use Thrift Mask easier for
 // end-users to consturct and use. This converts Id/ field name to field id
@@ -251,6 +278,9 @@ struct MaskBuilder : type::detail::Wrap<Mask> {
   void ensure(T& obj) const { protocol::ensure(data_, obj); }
   void clear(T& obj) const { protocol::clear(data_, obj); }
   T filter(const T& src) const { return protocol::filter(data_, src); }
+
+  // Copy and validate the current mask for repeated filtering.
+  [[nodiscard]] FrozenMask<T> freeze() const { return FrozenMask<T>(data_); }
 };
 
 template <typename Struct>

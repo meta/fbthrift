@@ -1575,6 +1575,69 @@ TEST(FieldMaskTest, ValidateMutatedBuilderMask) {
   EXPECT_NO_THROW(builder.filter(Bar{}));
 }
 
+TEST(FieldMaskTest, FrozenMaskFiltersIndependentlyOfBuilder) {
+  Bar2 src;
+  auto& nested = src.field_3().emplace();
+  nested.field_1() = 1;
+  nested.field_2() = 2;
+  MaskBuilder<Bar2> builder(noneMask());
+  builder.includes<ident::field_3, ident::field_1>();
+  auto& nestedMask = builder.toThrift().includes()->at(1);
+  const auto frozen = builder.freeze();
+  const auto expected = builder.filter(src);
+
+  EXPECT_EQ(frozen.filter(src), expected);
+  EXPECT_EQ(frozen.filter(Bar2{}), builder.filter(Bar2{}));
+
+  nestedMask.includes()->emplace(3, allMask());
+  EXPECT_THROW(builder.filter(src), std::runtime_error);
+  EXPECT_EQ(frozen.filter(src), expected);
+}
+
+TEST(FieldMaskTest, FreezeRejectsInvalidMasks) {
+  MaskBuilder<Bar2> builder;
+  EXPECT_THROW((void)builder.freeze(), std::runtime_error);
+
+  builder.reset_to_none().includes<ident::field_3, ident::field_1>();
+  auto& nested = *builder.toThrift().includes()->at(1).includes();
+  nested.emplace(3, allMask());
+  EXPECT_THROW((void)builder.freeze(), std::runtime_error);
+
+  nested.erase(3);
+  nested.at(1) = Mask{};
+  EXPECT_THROW((void)builder.freeze(), std::runtime_error);
+}
+
+TEST(FieldMaskTest, FrozenMaskFiltersUnion) {
+  RecursiveUnion src;
+  auto& foo = src.foo().emplace();
+  foo.field1() = 1;
+  foo.field2() = 2;
+  MaskBuilder<RecursiveUnion> builder(noneMask());
+  builder.includes<ident::foo, ident::field1>();
+  const auto frozen = builder.freeze();
+
+  EXPECT_EQ(frozen.filter(src), builder.filter(src));
+}
+
+TEST(FieldMaskTest, FrozenMaskFiltersAny) {
+  Foo foo;
+  foo.field1() = 1;
+  foo.field2() = 2;
+  StructWithAny src;
+  src.rawAny() = type::AnyData::toAny<type::infer_tag<Foo>>(foo).toThrift();
+  MaskBuilder<Foo> nested(noneMask());
+  nested.includes<ident::field1>();
+  MaskBuilder<StructWithAny> builder(noneMask());
+  builder.includes_type<ident::rawAny>(
+      type::infer_tag<Foo>{}, nested.toThrift());
+  const auto frozen = builder.freeze();
+
+  const auto filtered = frozen.filter(src);
+  const auto expected = builder.filter(src);
+  EXPECT_TRUE(compareAny(*filtered.rawAny(), *expected.rawAny()));
+}
+
 TEST(FieldMaskTest, IsCompatibleWithNested) {
   EXPECT_TRUE(protocol::is_compatible_with<type::struct_t<Bar>>(allMask()));
   EXPECT_TRUE(protocol::is_compatible_with<type::struct_t<Bar>>(noneMask()));

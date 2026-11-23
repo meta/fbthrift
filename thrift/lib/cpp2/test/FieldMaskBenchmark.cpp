@@ -16,6 +16,7 @@
 
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 
 #include <folly/Benchmark.h>
 #include <folly/init/Init.h>
@@ -37,12 +38,28 @@ protocol::Mask makeMask(int fields, bool excluded = false) {
   return mask;
 }
 
+protocol::Mask makeNestedMask(int fields, bool excluded = false) {
+  protocol::Mask mask;
+  auto& included = mask.includes().emplace();
+  included.emplace(1, makeMask(fields, excluded));
+  included.emplace(2, makeMask(fields, excluded));
+  return mask;
+}
+
 template <class T>
 T makeSource() {
   T source;
   op::for_each_field_id<T>([&](auto id) {
     op::get<decltype(id)>(source) = static_cast<int64_t>(id());
   });
+  return source;
+}
+
+template <>
+Nested makeSource<Nested>() {
+  Nested source;
+  source.left() = makeSource<Medium>();
+  source.right() = makeSource<Medium>();
   return source;
 }
 
@@ -55,6 +72,12 @@ bool checkFiltered(const T& result, int64_t fields, bool excluded = false) {
         ((number <= fields) != excluded ? number : 0);
   });
   return correct;
+}
+
+bool checkFiltered(
+    const Nested& result, int64_t fields, bool excluded = false) {
+  return checkFiltered(*result.left(), fields, excluded) &&
+      checkFiltered(*result.right(), fields, excluded);
 }
 
 template <class T, bool Excluded = false>
@@ -90,16 +113,9 @@ void filter(size_t iters, int fields) {
 template <bool Excluded = false>
 void filterNested(size_t iters, int fields) {
   folly::BenchmarkSuspender susp;
-  protocol::Mask mask;
-  auto& included = mask.includes().emplace();
-  included.emplace(1, makeMask(fields, Excluded));
-  included.emplace(2, makeMask(fields, Excluded));
-  Nested source;
-  source.left() = makeSource<Medium>();
-  source.right() = makeSource<Medium>();
-  const auto sample = protocol::filter(mask, source);
-  if (!checkFiltered(*sample.left(), fields, Excluded) ||
-      !checkFiltered(*sample.right(), fields, Excluded)) {
+  auto mask = makeNestedMask(fields, Excluded);
+  const auto source = makeSource<Nested>();
+  if (!checkFiltered(protocol::filter(mask, source), fields, Excluded)) {
     throw std::logic_error(
         "Filtered nested fields differ from the selected mask");
   }
@@ -108,6 +124,52 @@ void filterNested(size_t iters, int fields) {
     folly::doNotOptimizeAway(mask);
     auto result = protocol::filter(mask, source);
     folly::doNotOptimizeAway(result);
+  }
+  susp.rehire();
+}
+
+template <class T>
+protocol::MaskBuilder<T> makeBuilder(int fields) {
+  if constexpr (std::is_same_v<T, Nested>) {
+    return protocol::MaskBuilder<T>(makeNestedMask(fields));
+  } else {
+    return protocol::MaskBuilder<T>(makeMask(fields));
+  }
+}
+
+template <class T, bool Frozen = false>
+void filterBuilder(size_t iters, int fields) {
+  folly::BenchmarkSuspender susp;
+  const auto builder = makeBuilder<T>(fields);
+  const auto source = makeSource<T>();
+  const auto repeat = [&](const auto& filter) {
+    if (!checkFiltered(filter.filter(source), fields)) {
+      throw std::logic_error("Filtered fields differ from the selected mask");
+    }
+    susp.dismiss();
+    while (iters--) {
+      folly::doNotOptimizeAway(filter);
+      auto result = filter.filter(source);
+      folly::doNotOptimizeAway(result);
+    }
+    susp.rehire();
+  };
+  if constexpr (Frozen) {
+    repeat(builder.freeze());
+  } else {
+    repeat(builder);
+  }
+}
+
+template <class T>
+void freezeBuilder(size_t iters, int fields) {
+  folly::BenchmarkSuspender susp;
+  const auto builder = makeBuilder<T>(fields);
+  susp.dismiss();
+  while (iters--) {
+    folly::doNotOptimizeAway(builder);
+    auto frozen = builder.freeze();
+    folly::doNotOptimizeAway(frozen);
   }
   susp.rehire();
 }
@@ -149,6 +211,13 @@ int main(int argc, char** argv) {
   addBenchmarks("filterExcluded<Medium>", filter<Medium, true>, {1, 32});
   addBenchmarks("filterExcluded<Large>", filter<Large, true>, {1, 256});
   addBenchmarks("filterNestedExcluded", filterNested<true>, {1, 8, 32});
+
+  addBenchmarks("filterBuilder<Medium>", filterBuilder<Medium>, {1});
+  addBenchmarks("filterFrozen<Medium>", filterBuilder<Medium, true>, {1});
+  addBenchmarks("filterBuilder<Nested>", filterBuilder<Nested>, {8});
+  addBenchmarks("filterFrozen<Nested>", filterBuilder<Nested, true>, {8});
+  addBenchmarks("freeze<Medium>", freezeBuilder<Medium>, {1});
+  addBenchmarks("freeze<Nested>", freezeBuilder<Nested>, {8});
 
   folly::runBenchmarks();
 }

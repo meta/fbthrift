@@ -318,19 +318,39 @@ void clear_fields(MaskRef ref, T& t) {
 
 bool filter_fields(MaskRef ref, const type::AnyStruct& t, type::AnyStruct& ret);
 
+// A type mask on Any still needs to be checked against the value it contains.
+template <bool Validate>
+bool filter_fields(
+    MaskRef ref,
+    const type::AnyStruct& t,
+    type::AnyStruct& ret,
+    std::bool_constant<Validate>) {
+  return filter_fields(ref, t, ret);
+}
+
+template <bool Validate = true>
 inline bool filter_fields(
-    MaskRef ref, const type::AnyData& t, type::AnyData& ret) {
+    MaskRef ref,
+    const type::AnyData& t,
+    type::AnyData& ret,
+    std::bool_constant<Validate> = {}) {
   static_assert(std::is_same_v<type::AnyStruct&, decltype(ret.toThrift())>);
   return filter_fields(ref, t.toThrift(), ret.toThrift());
 }
 
 // Writes masked fields from src (as specified by ref) into ret (ret must be
 // empty). Returns true if any masked field was written into ret.
-template <typename T>
-bool filter_fields(MaskRef ref, const T& src, T& ret) {
-  if (!validate_mask<T>(ref)) {
-    folly::throw_exception<std::runtime_error>(
-        "The mask and struct are incompatible.");
+template <typename T, bool Validate = true>
+bool filter_fields(
+    MaskRef ref,
+    const T& src,
+    T& ret,
+    std::bool_constant<Validate> validate = {}) {
+  if constexpr (Validate) {
+    if (!validate_mask<T>(ref)) {
+      folly::throw_exception<std::runtime_error>(
+          "The mask and struct are incompatible.");
+    }
   }
   bool retained = false;
   op::for_each_ordinal<T>([&](auto ord) {
@@ -345,7 +365,9 @@ bool filter_fields(MaskRef ref, const T& src, T& ret) {
     auto&& ret_ref = op::get<Ord>(ret);
     bool srcHasValue = bool(op::get_value_or_null(src_ref));
     if (!srcHasValue) { // skip
-      errorIfNotCompatible<op::get_type_tag<T, Ord>>(next.mask);
+      if constexpr (Validate) {
+        errorIfNotCompatible<op::get_type_tag<T, Ord>>(next.mask);
+      }
     } else if (next.isAllMask()) {
       if constexpr (is_thrift_union_v<T>) {
         // Simply copy the entire union over
@@ -358,7 +380,7 @@ bool filter_fields(MaskRef ref, const T& src, T& ret) {
       FieldType nested;
       // If no masked fields are retained, leave this field unset (will leave
       // optional fields unset)
-      if (filter_fields(next, *src_ref, nested)) {
+      if (filter_fields(next, *src_ref, nested, validate)) {
         moveObject(ret_ref, std::move(nested));
         retained = true;
       }
