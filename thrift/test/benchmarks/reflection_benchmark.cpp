@@ -73,7 +73,7 @@ void add_benchmark() {
     folly::addBenchmark(__FILE__, name + "_name_reflection", [] {
       int k = 0;
       apache::thrift::op::for_each_field_id<Struct>([&k](auto id) {
-        auto name = apache::thrift::op::get_name_v<Struct, decltype(id)>;
+        auto name = apache::thrift::op::get_field_name<Struct, decltype(id)>();
         for (char c : std::string_view(name)) {
           k += c;
         }
@@ -88,7 +88,7 @@ void add_benchmark() {
     folly::addBenchmark(__FILE__, name + "_name_visitation", [] {
       int k = 0;
       apache::thrift::op::for_each_field_id<Struct>([&k](auto id) {
-        auto name = apache::thrift::op::get_name_v<Struct, decltype(id)>;
+        auto name = apache::thrift::op::get_field_name<Struct, decltype(id)>();
         for (char c : std::string_view(name)) {
           k += c;
         }

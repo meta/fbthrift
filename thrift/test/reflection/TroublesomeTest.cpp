@@ -25,17 +25,17 @@ namespace {
 // internal reflection names) work correctly with modern always-on reflection.
 TEST(TroublesomeTest, ModernReflection) {
   // Verify struct names
-  EXPECT_EQ(op::get_class_name_v<strings>, "strings");
-  EXPECT_EQ(op::get_class_name_v<structs>, "structs");
-  EXPECT_EQ(op::get_class_name_v<name>, "name");
-  EXPECT_EQ(op::get_class_name_v<members>, "members");
+  EXPECT_EQ(op::get_class_name<strings>(), "strings");
+  EXPECT_EQ(op::get_class_name<structs>(), "structs");
+  EXPECT_EQ(op::get_class_name<name>(), "name");
+  EXPECT_EQ(op::get_class_name<members>(), "members");
 
   // Verify union names
-  EXPECT_EQ(op::get_class_name_v<unions>, "unions");
-  EXPECT_EQ(op::get_class_name_v<member>, "member");
+  EXPECT_EQ(op::get_class_name<unions>(), "unions");
+  EXPECT_EQ(op::get_class_name<member>(), "member");
 
   // Verify exception names
-  EXPECT_EQ(op::get_class_name_v<exceptions>, "exceptions");
+  EXPECT_EQ(op::get_class_name<exceptions>(), "exceptions");
 }
 
 } // namespace

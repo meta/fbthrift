@@ -98,7 +98,7 @@ void checkField(const char* identName) {
   static_assert(std::is_same_v<op::get_ident<Struct, Ordinal>, Ident>);
   static_assert(std::is_same_v<op::get_field_tag<Struct, Ordinal>, FieldTag>);
   if constexpr (Ordinal::value != FieldOrdinal{0}) {
-    EXPECT_EQ((op::get_name_v<Struct, Ordinal>), identName);
+    EXPECT_EQ((op::get_field_name<Struct, Ordinal>()), identName);
   }
 
   static_assert(std::is_same_v<op::get_ordinal<Struct, Id>, Ordinal>);
@@ -107,7 +107,7 @@ void checkField(const char* identName) {
   static_assert(std::is_same_v<op::get_ident<Struct, Id>, Ident>);
   static_assert(std::is_same_v<op::get_field_tag<Struct, Id>, FieldTag>);
   if constexpr (Ordinal::value != FieldOrdinal{0}) {
-    EXPECT_EQ((op::get_name_v<Struct, Id>), identName);
+    EXPECT_EQ((op::get_field_name<Struct, Id>()), identName);
   }
 
   if constexpr (is_type_tag_unique && !std::is_void_v<TypeTag>) {
@@ -117,7 +117,7 @@ void checkField(const char* identName) {
     static_assert(std::is_same_v<op::get_ident<Struct, TypeTag>, Ident>);
     static_assert(std::is_same_v<op::get_field_tag<Struct, TypeTag>, FieldTag>);
     if constexpr (Ordinal::value != FieldOrdinal{0}) {
-      EXPECT_EQ((op::get_name_v<Struct, TypeTag>), identName);
+      EXPECT_EQ((op::get_field_name<Struct, TypeTag>()), identName);
     }
   }
 
@@ -128,7 +128,7 @@ void checkField(const char* identName) {
     static_assert(std::is_same_v<op::get_ident<Struct, Ident>, Ident>);
     static_assert(std::is_same_v<op::get_field_tag<Struct, Ident>, FieldTag>);
     if constexpr (Ordinal::value != FieldOrdinal{0}) {
-      EXPECT_EQ((op::get_name_v<Struct, Ident>), identName);
+      EXPECT_EQ((op::get_field_name<Struct, Ident>()), identName);
     }
   }
 
@@ -140,7 +140,7 @@ void checkField(const char* identName) {
     static_assert(
         std::is_same_v<op::get_field_tag<Struct, FieldTag>, FieldTag>);
     if constexpr (Ordinal::value != FieldOrdinal{0}) {
-      EXPECT_EQ((op::get_name_v<Struct, FieldTag>), identName);
+      EXPECT_EQ((op::get_field_name<Struct, FieldTag>()), identName);
     }
   }
 }
@@ -356,19 +356,19 @@ TEST(FieldsTest, HelperAPIs) {
 
 TEST(FieldsTest, GetFieldNameCppName) {
   EXPECT_EQ(
-      (op::get_name_v<
+      (op::get_field_name<
           test_cpp2::cpp_reflection::struct_with_renamed_field,
-          field_ordinal<1>>),
+          field_ordinal<1>>()),
       "fancy.idl.name");
 }
 
 TEST(FieldsTest, GetClassName) {
-  EXPECT_EQ(op::get_class_name_v<test::MyStruct>, "MyStruct");
-  EXPECT_EQ(op::get_class_name_v<test::MyUnion>, "MyUnion");
-  EXPECT_EQ(op::get_class_name_v<test::MyException>, "MyException");
-  EXPECT_EQ(op::get_class_name_v<test::RenamedMyStruct>, "MyStruct2");
-  EXPECT_EQ(op::get_class_name_v<test::RenamedMyUnion>, "MyUnion2");
-  EXPECT_EQ(op::get_class_name_v<test::RenamedMyException>, "MyException2");
+  EXPECT_EQ(op::get_class_name<test::MyStruct>(), "MyStruct");
+  EXPECT_EQ(op::get_class_name<test::MyUnion>(), "MyUnion");
+  EXPECT_EQ(op::get_class_name<test::MyException>(), "MyException");
+  EXPECT_EQ(op::get_class_name<test::RenamedMyStruct>(), "MyStruct2");
+  EXPECT_EQ(op::get_class_name<test::RenamedMyUnion>(), "MyUnion2");
+  EXPECT_EQ(op::get_class_name<test::RenamedMyException>(), "MyException2");
 }
 
 TEST(FieldsTest, InvokeByFieldId) {

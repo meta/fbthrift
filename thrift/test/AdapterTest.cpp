@@ -1177,15 +1177,15 @@ TEST(VariableAdapterTest, Integer) {
 }
 
 TEST_F(AdapterTest, GetClassName) {
-  EXPECT_EQ(op::get_class_name_v<basic::MyStruct>, "MyStruct");
+  EXPECT_EQ(op::get_class_name<basic::MyStruct>(), "MyStruct");
   EXPECT_EQ(
-      op::get_class_name_v<basic::detail::DirectlyAdaptedStruct>,
+      op::get_class_name<basic::detail::DirectlyAdaptedStruct>(),
       "DirectlyAdaptedStruct");
   EXPECT_EQ(
-      op::get_class_name_v<basic::UnderlyingSameNamespaceStruct>,
+      op::get_class_name<basic::UnderlyingSameNamespaceStruct>(),
       "SameNamespaceStruct");
   EXPECT_EQ(
-      op::get_class_name_v<basic::detail::UnderlyingRenamedStruct>,
+      op::get_class_name<basic::detail::UnderlyingRenamedStruct>(),
       "RenamedStruct");
 }
 

@@ -35,7 +35,7 @@ TYPED_TEST(EvolutionTest, evolution) {
   using Serializer = typename TestFixture::Serializer;
   cpp2::Old oldObj;
   op::for_each_field_id<cpp2::Old>([&oldObj]<typename Id>(Id) {
-    op::get<Id>(oldObj) = op::get_name_v<cpp2::Old, Id>;
+    op::get<Id>(oldObj) = op::get_field_name<cpp2::Old, Id>();
   });
 
   cpp2::New newObj;

@@ -3024,7 +3024,7 @@ struct MaskBuilderTester {
   void identToFieldNameImpl(std::vector<folly::StringPiece>&) {}
   template <typename S, typename Id, typename... Ids>
   void identToFieldNameImpl(std::vector<folly::StringPiece>& v) {
-    v.push_back(op::get_name_v<S, Id>);
+    v.push_back(op::get_field_name<S, Id>());
     identToFieldNameImpl<op::get_native_type<S, Id>, Ids...>(v);
   }
   template <typename S, typename... Ids>
