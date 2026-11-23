@@ -17,7 +17,6 @@
 package com.facebook.thrift.legacy.codec;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.facebook.thrift.compression.CompressionManager;
 import com.facebook.thrift.protocol.TProtocolType;
@@ -28,26 +27,17 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
-import io.netty.handler.codec.TooLongFrameException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
 import org.apache.thrift.CompressionAlgorithm;
-import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TTransform;
-import org.apache.thrift.protocol.TMessage;
-import org.apache.thrift.protocol.TMessageType;
-import org.apache.thrift.protocol.TProtocol;
 import org.junit.jupiter.api.Test;
 
 class HeaderTransportCodecTest {
 
   private static final int HEADER_MAGIC = 0x0FFF;
   private static final int BINARY_PROTOCOL_ID = 0;
-  private static final int FRAME_SEQUENCE_ID = 7;
-  private static final int PROTOCOL_SEQUENCE_ID = 42;
   private final ByteBufAllocator allocator = ByteBufAllocator.DEFAULT;
 
   @Test
@@ -126,96 +116,6 @@ class HeaderTransportCodecTest {
     result.getMessage().readBytes(decoded);
     assertThat(decoded).isEqualTo(payload);
     result.release();
-  }
-
-  @Test
-  void serverSendsResponseWithinLimitUnchanged() throws Exception {
-    EmbeddedChannel channel = new EmbeddedChannel(new HeaderTransportCodec(true, 256));
-
-    channel.writeOutbound(reply(64));
-    ThriftFrame sent = HeaderTransportCodec.decodeFrame(allocator, channel.readOutbound());
-
-    TMessage message = TProtocolType.TBinary.apply(sent.getMessage()).readMessageBegin();
-    assertThat(message.type).isEqualTo(TMessageType.REPLY);
-    assertThat(sent.getHeaders()).doesNotContainKey("ex");
-    sent.release();
-    channel.finishAndReleaseAll();
-  }
-
-  @Test
-  void serverReplacesResponseOverLimitWithResponseTooBig() throws Exception {
-    EmbeddedChannel channel = new EmbeddedChannel(new HeaderTransportCodec(true, 256));
-    ThriftFrame response = reply(1024);
-
-    channel.writeOutbound(response);
-    ThriftFrame sent = HeaderTransportCodec.decodeFrame(allocator, channel.readOutbound());
-
-    TProtocol in = TProtocolType.TBinary.apply(sent.getMessage());
-    TMessage message = in.readMessageBegin();
-    TApplicationException exception = TApplicationException.read(in);
-    assertThat(sent.getSequenceId()).isEqualTo(FRAME_SEQUENCE_ID);
-    assertThat(message.name).isEqualTo("getPartitions");
-    assertThat(message.type).isEqualTo(TMessageType.EXCEPTION);
-    assertThat(message.seqid).isEqualTo(PROTOCOL_SEQUENCE_ID);
-    assertThat(exception.getType()).isEqualTo(TApplicationException.INTERNAL_ERROR);
-    assertThat(exception.getMessage()).isEqualTo("Response size too big");
-    assertThat(sent.getHeaders()).containsEntry("ex", "17").containsEntry("uex", "MetaException");
-    assertThat(response.refCnt()).isZero();
-    sent.release();
-    channel.finishAndReleaseAll();
-  }
-
-  @Test
-  void clientFailsRequestOverLimitWithoutSendingIt() {
-    EmbeddedChannel channel = new EmbeddedChannel(new HeaderTransportCodec(false, 256));
-    ThriftFrame request = reply(1024);
-
-    assertThatThrownBy(() -> channel.writeOutbound(request))
-        .isInstanceOf(TooLongFrameException.class);
-
-    assertThat((Object) channel.readOutbound()).isNull();
-    assertThat(request.refCnt()).isZero();
-    assertThat(channel.isActive()).isTrue();
-    channel.finishAndReleaseAll();
-  }
-
-  @Test
-  void serverReplacesCompressedResponseOverLimitWithResponseTooBig() throws Exception {
-    EmbeddedChannel channel = new EmbeddedChannel(new HeaderTransportCodec(true, 256));
-    ThriftFrame response = reply(1024, TTransform.ZSTD.getValue());
-
-    channel.writeOutbound(response);
-    ThriftFrame sent = HeaderTransportCodec.decodeFrame(allocator, channel.readOutbound());
-
-    TProtocol in = TProtocolType.TBinary.apply(sent.getMessage());
-    TMessage message = in.readMessageBegin();
-    assertThat(message.name).isEqualTo("getPartitions");
-    assertThat(TApplicationException.read(in).getMessage()).isEqualTo("Response size too big");
-    assertThat(response.refCnt()).isZero();
-    sent.release();
-    channel.finishAndReleaseAll();
-  }
-
-  /** A response frame as the server handler writes it: a reply envelope, a body and a header. */
-  private ThriftFrame reply(int bodyBytes, int... transforms) {
-    ByteBuf message = allocator.buffer();
-    TProtocol out = TProtocolType.TBinary.apply(message);
-    out.writeMessageBegin(new TMessage("getPartitions", TMessageType.REPLY, PROTOCOL_SEQUENCE_ID));
-    byte[] body = new byte[bodyBytes];
-    new Random(1).nextBytes(body);
-    message.writeBytes(body);
-
-    Map<String, String> headers = new HashMap<>();
-    headers.put("uex", "MetaException");
-    return new ThriftFrame(
-        FRAME_SEQUENCE_ID,
-        message,
-        headers,
-        Collections.emptyMap(),
-        LegacyTransportType.HEADER,
-        TProtocolType.TBinary,
-        true,
-        Ints.asList(transforms));
   }
 
   @Test

@@ -297,7 +297,7 @@ public class ThriftConnectionAcceptor implements Function<Connection, Publisher<
           encodeApplicationResponse(
               conn, requestFrame, metadata, serverResponsePayload, responseHeaders, sequenceId);
 
-      ByteBuf responseBuf = ReactiveHeaderCodec.encodeResponseFrame(out.alloc(), responseFrame);
+      ByteBuf responseBuf = ReactiveHeaderCodec.encodeFrame(out.alloc(), responseFrame, false);
       return out.sendObject(responseBuf).then();
     } catch (Throwable t) {
       log.error("Failed to encode response", t);

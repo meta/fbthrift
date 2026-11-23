@@ -16,18 +16,19 @@
 
 package com.facebook.thrift.legacy.server;
 
+import static com.facebook.thrift.util.ThriftProtocolConstants.BIG_FRAME_MAGIC;
 import static com.facebook.thrift.util.ThriftProtocolConstants.MAX_FRAME_SIZE;
 
+import com.facebook.thrift.util.ThriftProtocolConstants;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageEncoder;
-import io.netty.handler.codec.TooLongFrameException;
 import java.util.List;
 
 /**
- * Writes the 4-byte THeader length prefix that {@link ThriftHeaderFrameLengthBasedDecoder} reads.
- * THeader has no valid 4-byte length above 0x3FFFFFFF bytes, so a larger frame fails to write: only
- * its own call fails, and no invalid frame reaches the wire.
+ * Writes the THeader length prefix that {@link ThriftHeaderFrameLengthBasedDecoder} reads: a 4-byte
+ * length for a frame of at most 0x3FFFFFFF bytes, else {@link
+ * ThriftProtocolConstants#BIG_FRAME_MAGIC} and an 8-byte length, as the C++ {@code THeader} does.
  */
 final class ThriftHeaderFrameLengthPrepender extends MessageToMessageEncoder<ByteBuf> {
   private final int maxStandardFrameLength;
@@ -45,12 +46,16 @@ final class ThriftHeaderFrameLengthPrepender extends MessageToMessageEncoder<Byt
   protected void encode(ChannelHandlerContext ctx, ByteBuf frame, List<Object> out) {
     int length = frame.readableBytes();
 
-    if (length > maxStandardFrameLength) {
-      throw new TooLongFrameException(
-          "THeader frame of " + length + " bytes exceeds " + maxStandardFrameLength + " bytes");
+    if (length <= maxStandardFrameLength) {
+      out.add(ctx.alloc().buffer(Integer.BYTES).writeInt(length));
+    } else {
+      out.add(
+          ctx.alloc()
+              .buffer(Integer.BYTES + Long.BYTES)
+              .writeInt(BIG_FRAME_MAGIC)
+              .writeLong(length));
     }
 
-    out.add(ctx.alloc().buffer(Integer.BYTES).writeInt(length));
     out.add(frame.retain());
   }
 }

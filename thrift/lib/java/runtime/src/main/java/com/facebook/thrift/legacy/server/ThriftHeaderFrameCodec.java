@@ -19,9 +19,8 @@ package com.facebook.thrift.legacy.server;
 import io.netty.channel.CombinedChannelDuplexHandler;
 
 /**
- * THeader framing for one connection, shared by the HEADER client and servers: {@link
- * ThriftHeaderFrameLengthBasedDecoder} reads frames, including big frames ({@code BIGF}), and
- * {@link ThriftHeaderFrameLengthPrepender} writes them.
+ * THeader framing for one connection: {@link ThriftHeaderFrameLengthBasedDecoder} reads frames and
+ * {@link ThriftHeaderFrameLengthPrepender} writes them, both with big frame ({@code BIGF}) support.
  */
 public final class ThriftHeaderFrameCodec
     extends CombinedChannelDuplexHandler<
@@ -34,8 +33,10 @@ public final class ThriftHeaderFrameCodec
 
   /** Accepts inbound frames up to {@code maxFrameLength} bytes, length prefix included. */
   public ThriftHeaderFrameCodec(Integer maxFrameLength) {
-    super(
-        new ThriftHeaderFrameLengthBasedDecoder(maxFrameLength),
-        new ThriftHeaderFrameLengthPrepender());
+    this(maxFrameLength, new ThriftHeaderFrameLengthPrepender());
+  }
+
+  ThriftHeaderFrameCodec(Integer maxFrameLength, ThriftHeaderFrameLengthPrepender prepender) {
+    super(new ThriftHeaderFrameLengthBasedDecoder(maxFrameLength), prepender);
   }
 }

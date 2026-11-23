@@ -18,13 +18,11 @@ package com.facebook.thrift.legacy.server;
 
 import static com.google.common.base.Strings.repeat;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
-import io.netty.handler.codec.TooLongFrameException;
 import org.junit.jupiter.api.Test;
 
 class ThriftHeaderFrameLengthPrependerTest {
@@ -42,17 +40,13 @@ class ThriftHeaderFrameLengthPrependerTest {
   }
 
   @Test
-  void failsOnlyTheWriteOfALongerFrame() {
+  void writesBigFramePrefixForLongerFrame() {
     EmbeddedChannel channel =
         new EmbeddedChannel(new ThriftHeaderFrameLengthPrepender(MAX_STANDARD_FRAME_LENGTH));
-    ByteBuf longer = frame(17);
 
-    assertThatThrownBy(() -> channel.writeOutbound(longer))
-        .hasCauseInstanceOf(TooLongFrameException.class);
+    channel.writeOutbound(frame(17));
 
-    assertThat(longer.refCnt()).isZero();
-    assertThat(writtenHex(channel)).isEmpty();
-    assertThat(channel.isActive()).isTrue();
+    assertThat(writtenHex(channel)).isEqualTo("42494746" + "0000000000000011" + repeat("ab", 17));
     channel.finishAndReleaseAll();
   }
 
@@ -64,12 +58,17 @@ class ThriftHeaderFrameLengthPrependerTest {
     return frame;
   }
 
-  private static String writtenHex(EmbeddedChannel channel) {
+  private static ByteBuf written(EmbeddedChannel channel) {
     ByteBuf all = Unpooled.buffer();
     for (ByteBuf part = channel.readOutbound(); part != null; part = channel.readOutbound()) {
       all.writeBytes(part);
       part.release();
     }
+    return all;
+  }
+
+  private static String writtenHex(EmbeddedChannel channel) {
+    ByteBuf all = written(channel);
     String hex = ByteBufUtil.hexDump(all);
     all.release();
     return hex;

@@ -19,7 +19,6 @@ package com.facebook.thrift.transport.unified;
 import static com.facebook.thrift.util.ThriftProtocolConstants.HEADER_FLAGS_NONE;
 import static com.facebook.thrift.util.ThriftProtocolConstants.HEADER_FLAG_SUPPORT_OUT_OF_ORDER;
 import static com.facebook.thrift.util.ThriftProtocolConstants.HEADER_MAGIC;
-import static com.facebook.thrift.util.ThriftProtocolConstants.MAX_FRAME_SIZE;
 import static com.facebook.thrift.util.ThriftProtocolConstants.NORMAL_HEADERS;
 import static com.facebook.thrift.util.ThriftProtocolConstants.PERSISTENT_HEADERS;
 import static com.google.common.base.Verify.verify;
@@ -27,7 +26,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.facebook.thrift.compression.CompressionManager;
 import com.facebook.thrift.legacy.codec.LegacyTransportType;
-import com.facebook.thrift.legacy.codec.ResponseSizeLimit;
 import com.facebook.thrift.legacy.codec.ThriftFrame;
 import com.facebook.thrift.metadata.ClientInfo;
 import com.facebook.thrift.protocol.TProtocolType;
@@ -62,43 +60,6 @@ public class ReactiveHeaderCodec {
           Integer.BYTES
           + // sequenceId
           Short.BYTES; // header size
-
-  /**
-   * Encodes a server response like {@link #encodeFrame}. A response whose frame is larger than
-   * {@code MAX_FRAME_SIZE} is replaced by {@link ResponseSizeLimit#responseTooBig}.
-   */
-  static ByteBuf encodeResponseFrame(ByteBufAllocator alloc, ThriftFrame response) {
-    return encodeResponseFrame(alloc, response, MAX_FRAME_SIZE);
-  }
-
-  /** Tests lower the limit; a real frame above 0x3FFFFFFF bytes does not fit in a test heap. */
-  @VisibleForTesting
-  static ByteBuf encodeResponseFrame(
-      ByteBufAllocator alloc, ThriftFrame response, int maxFrameLength) {
-    // encodeFrame releases a compressed reply, and responseTooBig still reads its envelope.
-    response.retain();
-    try {
-      ByteBuf encodedFrame = encodeFrame(alloc, response, false);
-      if (encodedFrame.readableBytes() <= maxFrameLength) {
-        return encodedFrame;
-      }
-
-      log.warn(
-          "Response frame of {} bytes exceeds {} bytes, sending \"{}\"",
-          encodedFrame.readableBytes(),
-          maxFrameLength,
-          ResponseSizeLimit.MESSAGE);
-      ThriftFrame tooBig;
-      try {
-        tooBig = ResponseSizeLimit.responseTooBig(alloc, response);
-      } finally {
-        encodedFrame.release();
-      }
-      return encodeFrame(alloc, tooBig, false);
-    } finally {
-      response.release();
-    }
-  }
 
   /**
    * Encodes the HeaderFrame into a ByteBuf transferring the reference ownership.

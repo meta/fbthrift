@@ -26,8 +26,11 @@ import org.junit.jupiter.api.Test;
 class ThriftHeaderFrameCodecTest {
 
   @Test
-  void readsFramesItWrites() {
-    EmbeddedChannel writer = new EmbeddedChannel(new ThriftHeaderFrameCodec());
+  void readsStandardAndBigFramesItWrites() {
+    // Frames above 16 bytes get a big frame prefix; a real one needs more than 1 GiB.
+    EmbeddedChannel writer =
+        new EmbeddedChannel(
+            new ThriftHeaderFrameCodec(null, new ThriftHeaderFrameLengthPrepender(16)));
     EmbeddedChannel reader = new EmbeddedChannel(new ThriftHeaderFrameCodec());
 
     writer.writeOutbound(frame(16), frame(64), frame(8));
