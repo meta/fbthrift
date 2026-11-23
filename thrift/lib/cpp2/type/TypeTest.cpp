@@ -16,7 +16,11 @@
 
 #include <thrift/lib/cpp2/type/Type.h>
 
+#include <array>
+#include <barrier>
 #include <stdexcept>
+#include <thread>
+#include <vector>
 
 #include <gtest/gtest.h>
 #include <thrift/lib/cpp2/type/BaseType.h>
@@ -122,6 +126,79 @@ struct MyStruct {
 };
 
 struct MyAdapter {};
+
+struct NamedAdapter {
+  template <typename T>
+  static T fromThrift(T value) {
+    return value;
+  }
+};
+
+struct ConcurrentNamedType {
+  constexpr static folly::cstring_view __fbthrift_thrift_uri =
+      "domain.com/my/package/ConcurrentNamedType";
+};
+
+struct InvalidNamedType {
+  constexpr static folly::cstring_view __fbthrift_thrift_uri = "BadName";
+};
+
+TEST(TypeTest, NamedCacheKeepsOwnedCopy) {
+  const auto& cached = Type::get<struct_t<MyStruct>>();
+  Type copy = cached;
+  copy.toThrift().name()->structType().ensure().uri() =
+      "domain.com/my/package/ChangedCopy";
+  EXPECT_EQ(cached, Type::create<struct_c>("domain.com/my/package/MyStruct"));
+  EXPECT_EQ(copy, Type::create<struct_c>("domain.com/my/package/ChangedCopy"));
+  EXPECT_EQ(&cached, &Type::get<struct_t<MyStruct>>());
+}
+
+TEST(TypeTest, NamedCacheConcurrentFirstUse) {
+  constexpr size_t kThreads = 8;
+  std::barrier start(static_cast<std::ptrdiff_t>(kThreads));
+  std::array<const Type*, kThreads> results{};
+  std::vector<std::thread> threads;
+  threads.reserve(kThreads);
+  for (size_t i = 0; i < kThreads; ++i) {
+    threads.emplace_back([&, i] {
+      start.arrive_and_wait();
+      results[i] = &Type::get<struct_t<ConcurrentNamedType>>();
+    });
+  }
+  for (auto& thread : threads) {
+    thread.join();
+  }
+  const auto& cached = Type::get<struct_t<ConcurrentNamedType>>();
+  std::array<const Type*, kThreads> expected{};
+  expected.fill(&cached);
+  EXPECT_EQ(results, expected);
+  EXPECT_EQ(
+      cached,
+      Type::create<struct_c>("domain.com/my/package/ConcurrentNamedType"));
+}
+
+TEST(TypeTest, NamedTagWrappers) {
+  EXPECT_EQ(
+      (Type::get<adapted<NamedAdapter, struct_t<MyStruct>>>()),
+      Type::create<struct_c>("domain.com/my/package/MyStruct"));
+  EXPECT_EQ(
+      (Type::get<cpp_type<MyStruct, struct_t<MyStruct>>>()),
+      Type::create<struct_c>("domain.com/my/package/MyStruct"));
+  EXPECT_EQ(
+      (Type::get<cpp_type<MyEnum, enum_t<MyEnum>>>()),
+      Type::create<enum_c>("domain.com/my/package/MyEnum"));
+  EXPECT_EQ(
+      (Type::get<cpp_type<MyStruct, union_t<MyStruct>>>()),
+      Type::create<union_c>("domain.com/my/package/MyStruct"));
+  EXPECT_EQ(
+      (Type::get<cpp_type<MyStruct, exception_t<MyStruct>>>()),
+      Type::create<exception_c>("domain.com/my/package/MyStruct"));
+}
+
+TEST(TypeTest, NamedCacheRejectsInvalidName) {
+  EXPECT_THROW(Type::get<struct_t<InvalidNamedType>>(), std::invalid_argument);
+  EXPECT_THROW(Type::get<struct_t<InvalidNamedType>>(), std::invalid_argument);
+}
 
 TEST(TypeTest, Create) {
   EXPECT_EQ(Type::get<list<i16_t>>(), Type::create<list_c>(Type::get<i16_t>()));
