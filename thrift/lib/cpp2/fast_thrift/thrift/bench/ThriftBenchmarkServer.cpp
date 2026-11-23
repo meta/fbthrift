@@ -29,33 +29,13 @@
  */
 
 #include <gflags/gflags.h>
-#include <folly/Synchronized.h>
-#include <folly/executors/IOThreadPoolExecutor.h>
 #include <folly/init/Init.h>
 #include <folly/logging/xlog.h>
 
 #include <thrift/lib/cpp2/server/ThriftServer.h>
 
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/BufferAllocator.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
-#include <thrift/lib/cpp2/fast_thrift/connection/ConnectionManager.h>
-#include <thrift/lib/cpp2/fast_thrift/frame/handler/FrameCodecHandler.h>
-#include <thrift/lib/cpp2/fast_thrift/frame/read/FrameLengthParser.h>
-#include <thrift/lib/cpp2/fast_thrift/frame/read/handler/FrameDefragmentationHandler.h>
-#include <thrift/lib/cpp2/fast_thrift/frame/write/FragmentationHandlerConfig.h>
-#include <thrift/lib/cpp2/fast_thrift/frame/write/handler/BatchingFrameHandler.h>
-#include <thrift/lib/cpp2/fast_thrift/frame/write/handler/FrameFragmentationHandler.h>
-#include <thrift/lib/cpp2/fast_thrift/frame/write/handler/FrameLengthEncoderHandler.h>
-#include <thrift/lib/cpp2/fast_thrift/rocket/common/RocketStreamContext.h>
-#include <thrift/lib/cpp2/fast_thrift/rocket/server/handler/RocketServerMessageMarshalHandler.h>
-#include <thrift/lib/cpp2/fast_thrift/rocket/server/handler/RocketServerRequestResponseHandler.h>
-#include <thrift/lib/cpp2/fast_thrift/rocket/server/handler/RocketServerSetupFrameHandler.h>
-#include <thrift/lib/cpp2/fast_thrift/rocket/server/handler/RocketServerStreamStateHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/bench/if/gen-cpp2/BenchmarkService.h>
-#include <thrift/lib/cpp2/fast_thrift/thrift/server/ThriftServerChannel.h>
-#include <thrift/lib/cpp2/fast_thrift/transport/TransportHandler.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/FastThriftChannelServer.h>
 
 DEFINE_int32(port, 0, "Port to listen on (0 = system assigned)");
 DEFINE_int32(io_threads, 8, "Number of IO threads");
@@ -70,17 +50,6 @@ DEFINE_string(
 
 using namespace apache::thrift::fast_thrift;
 using namespace apache::thrift::fast_thrift::thrift::bench;
-
-// Handler tags for the fast_thrift server pipeline
-HANDLER_TAG(batching_frame_handler);
-HANDLER_TAG(frame_length_encoder_handler);
-HANDLER_TAG(frame_codec_handler);
-HANDLER_TAG(frame_defragmentation_handler);
-HANDLER_TAG(frame_fragmentation_handler);
-HANDLER_TAG(rocket_server_message_marshal_handler);
-HANDLER_TAG(rocket_server_setup_frame_handler);
-HANDLER_TAG(rocket_server_request_response_handler);
-HANDLER_TAG(rocket_server_stream_state_handler);
 
 namespace {
 
@@ -118,186 +87,6 @@ std::shared_ptr<apache::thrift::ThriftServer> createThriftServer(
   return server;
 }
 
-// =============================================================================
-// fast_thrift Pipeline Server
-// =============================================================================
-
-// Per-accepted-client connection state for the benchmark server. Satisfies
-// the connection::Connection concept.
-struct BenchmarkConnection {
-  apache::thrift::fast_thrift::transport::TransportHandlerT<
-      apache::thrift::fast_thrift::transport::NoOpWriteCompleteEventFactory,
-      apache::thrift::fast_thrift::frame::read::FrameLengthParser>::Ptr
-      transportHandler;
-  channel_pipeline::PipelineImpl::Ptr pipeline;
-  std::function<void()> closeCb;
-  bool closed{false};
-
-  BenchmarkConnection() = default;
-  BenchmarkConnection(BenchmarkConnection&&) noexcept = default;
-  BenchmarkConnection& operator=(BenchmarkConnection&&) noexcept = delete;
-  BenchmarkConnection(const BenchmarkConnection&) = delete;
-  BenchmarkConnection& operator=(const BenchmarkConnection&) = delete;
-  ~BenchmarkConnection() = default;
-
-  void start() noexcept { transportHandler->onConnect(); }
-
-  void close() noexcept {
-    if (closed) {
-      return;
-    }
-    closed = true;
-    if (pipeline) {
-      pipeline->close();
-      pipeline.reset();
-    }
-    transportHandler.reset();
-    if (closeCb) {
-      auto cb = std::move(closeCb);
-      cb();
-    }
-  }
-  void drain() noexcept { close(); }
-  void setCloseCallback(std::function<void()> cb) { closeCb = std::move(cb); }
-};
-
-class FastThriftBenchmarkServer {
- public:
-  FastThriftBenchmarkServer(
-      std::shared_ptr<BenchmarkServiceHandler> handler,
-      uint16_t port,
-      uint32_t numIOThreads,
-      uint32_t numConnectionSetupThreads)
-      : handler_(std::move(handler)),
-        executor_(std::make_shared<folly::IOThreadPoolExecutor>(numIOThreads)) {
-    if (numConnectionSetupThreads > 0) {
-      connectionSetupExecutor_ = std::make_shared<folly::IOThreadPoolExecutor>(
-          numConnectionSetupThreads, numConnectionSetupThreads);
-    }
-    folly::SocketAddress address;
-    address.setFromLocalPort(port);
-
-    connectionManager_ = connection::ConnectionManager::create(
-        std::move(address),
-        folly::getKeepAliveToken(executor_.get()),
-        security::SSLPolicy::DISABLED,
-        /*tlsParams=*/nullptr,
-        connection::SocketOptions{},
-        connectionSetupExecutor_
-            ? folly::getKeepAliveToken(connectionSetupExecutor_.get())
-            : folly::Executor::KeepAlive<folly::IOThreadPoolExecutorBase>{});
-
-    connectionManager_->setConnectionFactory(ConnectionFactory{this});
-  }
-
-  BenchmarkConnection buildConnection(folly::AsyncTransport::UniquePtr socket) {
-    auto* evb = socket->getEventBase();
-    auto transportHandler =
-        apache::thrift::fast_thrift::transport::TransportHandlerT<
-            apache::thrift::fast_thrift::transport::
-                NoOpWriteCompleteEventFactory,
-            apache::thrift::fast_thrift::frame::read::FrameLengthParser>::
-            create(std::move(socket));
-
-    auto serverChannel =
-        std::make_shared<thrift::ThriftServerChannel>(handler_);
-
-    // addState rebinds the builder type, so bind through it once and append
-    // from there.
-    auto builder =
-        channel_pipeline::PipelineBuilder<
-            apache::thrift::fast_thrift::transport::TransportHandlerT<
-                apache::thrift::fast_thrift::transport::
-                    NoOpWriteCompleteEventFactory,
-                apache::thrift::fast_thrift::frame::read::FrameLengthParser>,
-            thrift::ThriftServerChannel,
-            channel_pipeline::SimpleBufferAllocator>()
-            .setEventBase(evb)
-            .setHead(transportHandler.get())
-            .setTail(serverChannel.get())
-            .setAllocator(&allocator_)
-            .addState<
-                apache::thrift::fast_thrift::rocket::RocketStreamContexts>();
-    builder.addNextOutbound<frame::write::handler::BatchingFrameHandler>(
-        batching_frame_handler_tag);
-    builder
-        .addNextOutbound<frame::write::handler::FrameLengthEncoderHandler>(
-            frame_length_encoder_handler_tag)
-        .addNextDuplex<frame::handler::FrameCodecHandler>(
-            frame_codec_handler_tag)
-        .addNextInbound<frame::read::handler::FrameDefragmentationHandler>(
-            frame_defragmentation_handler_tag);
-    builder.addNextOutbound<frame::write::handler::FrameFragmentationHandler>(
-        frame_fragmentation_handler_tag,
-        frame::write::FragmentationHandlerConfig{});
-    auto pipeline =
-        builder
-            .addNextDuplex<
-                rocket::server::handler::RocketServerMessageMarshalHandler>(
-                rocket_server_message_marshal_handler_tag)
-            .addNextDuplex<
-                rocket::server::handler::RocketServerSetupFrameHandler>(
-                rocket_server_setup_frame_handler_tag)
-            .addNextDuplex<
-                rocket::server::handler::RocketServerStreamStateHandler>(
-                rocket_server_stream_state_handler_tag)
-            .addNextDuplex<
-                rocket::server::handler::RocketServerRequestResponseHandler>(
-                rocket_server_request_response_handler_tag)
-            .build();
-
-    serverChannel->setPipelineRef(*pipeline);
-    serverChannel->setWorker(apache::thrift::Cpp2Worker::createDummy(evb));
-    transportHandler->setPipeline(pipeline.get());
-
-    serverChannels_.withWLock(
-        [&](auto& channels) { channels.push_back(std::move(serverChannel)); });
-
-    BenchmarkConnection conn;
-    conn.transportHandler = std::move(transportHandler);
-    conn.pipeline = std::move(pipeline);
-    return conn;
-  }
-
-  // connection::ConnectionFactory satisfying type: delegates per-accept
-  // construction back to the owning FastThriftBenchmarkServer.
-  class ConnectionFactory {
-   public:
-    explicit ConnectionFactory(FastThriftBenchmarkServer* server) noexcept
-        : server_(server) {}
-    BenchmarkConnection getConnection(
-        folly::AsyncTransport::UniquePtr socket,
-        const folly::SocketAddress& /*clientAddr*/,
-        const std::shared_ptr<
-            const apache::thrift::fast_thrift::connection::PeerSecurityInfo>&
-        /*peerSecurity*/) {
-      return server_->buildConnection(std::move(socket));
-    }
-
-   private:
-    FastThriftBenchmarkServer* server_;
-  };
-
-  void serve() {
-    connectionManager_->start();
-    XLOG(INFO) << "fast_thrift server started on " << getAddress();
-    executor_->join();
-  }
-
-  folly::SocketAddress getAddress() const {
-    return connectionManager_->getAddress();
-  }
-
- private:
-  std::shared_ptr<BenchmarkServiceHandler> handler_;
-  std::shared_ptr<folly::IOThreadPoolExecutor> executor_;
-  std::shared_ptr<folly::IOThreadPoolExecutor> connectionSetupExecutor_;
-  connection::ConnectionManager::Ptr connectionManager_;
-  channel_pipeline::SimpleBufferAllocator allocator_;
-  folly::Synchronized<std::vector<std::shared_ptr<thrift::ThriftServerChannel>>>
-      serverChannels_;
-};
-
 } // namespace
 
 int main(int argc, char* argv[]) {
@@ -311,8 +100,12 @@ int main(int argc, char* argv[]) {
     XLOG(INFO) << "Starting ThriftServer on port " << FLAGS_port;
     server->serve();
   } else if (FLAGS_rpc_type == "fast_thrift") {
-    FastThriftBenchmarkServer server(
-        handler, port, FLAGS_io_threads, FLAGS_connection_setup_threads);
+    thrift::FastThriftServerConfig config;
+    config.address.setFromLocalPort(port);
+    config.numIOThreads = FLAGS_io_threads;
+    config.numConnectionSetupThreads = FLAGS_connection_setup_threads;
+    thrift::FastThriftChannelServer server(
+        std::move(config), std::move(handler));
     server.serve();
   } else {
     XLOG(FATAL) << "Unknown rpc_type: " << FLAGS_rpc_type
