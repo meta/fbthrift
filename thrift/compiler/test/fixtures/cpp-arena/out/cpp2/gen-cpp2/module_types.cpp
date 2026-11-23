@@ -654,10 +654,14 @@ void WholeUnion::__fbthrift_destruct() {
     case Type::__EMPTY__:
       break;
     case Type::names:
-      ::std::destroy_at(::std::addressof(value_.names));
+      if (!::apache::thrift::pmr::isArenaResource(get_allocator()) || !::apache::thrift::pmr::detail::fieldAllocatesAllMemoryViaMemoryResource<WholeUnion, ::apache::thrift::field_id<1>>()) {
+        ::std::destroy_at(::std::addressof(value_.names));
+      }
       break;
     case Type::id:
-      ::std::destroy_at(::std::addressof(value_.id));
+      if (!::apache::thrift::pmr::isArenaResource(get_allocator()) || !::apache::thrift::pmr::detail::fieldAllocatesAllMemoryViaMemoryResource<WholeUnion, ::apache::thrift::field_id<2>>()) {
+        ::std::destroy_at(::std::addressof(value_.id));
+      }
       break;
     default:
       assert(false);

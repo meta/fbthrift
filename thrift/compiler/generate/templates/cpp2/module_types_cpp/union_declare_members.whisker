@@ -20,7 +20,13 @@
       break;
   {{#each struct.fields as |field|}}
     case Type::{{field.cpp_name}}:
+    {{#if struct.cpp_arena_allocator?}}
+      if (!::apache::thrift::pmr::isArenaResource(get_allocator()) || !::apache::thrift::pmr::detail::fieldAllocatesAllMemoryViaMemoryResource<{{struct.cpp_underlying_name}}, ::apache::thrift::field_id<{{field.id}}>>()) {
+        ::std::destroy_at(::std::addressof(value_.{{field.cpp_name}}));
+      }
+    {{#else}}
       ::std::destroy_at(::std::addressof(value_.{{field.cpp_name}}));
+    {{/if struct.cpp_arena_allocator?}}
       break;
   {{/each}}
     default:

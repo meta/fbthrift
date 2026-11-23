@@ -822,6 +822,7 @@ TEST(CppArenaPmrTest, DestructorSkipsFieldsOnAnArena) {
   EXPECT_EQ(deallocationsWhenDestroying<Members>(arena), 0);
   EXPECT_EQ(deallocationsWhenDestroying<Recursive>(arena), 0);
   EXPECT_EQ(deallocationsWhenDestroying<UsesAllocator>(arena), 0);
+  EXPECT_EQ(deallocationsWhenDestroying<ArenaUnion>(arena), 0);
 }
 
 TEST(CppArenaPmrTest, DestructorDestroysFieldsHoldingMemoryOffTheArena) {
@@ -899,6 +900,51 @@ TEST(CppArenaPmrTest, DestructorDestroysEverythingOffAnArena) {
   expectDestroyingFreesEverything<Members>();
   expectDestroyingFreesEverything<Recursive>();
   expectDestroyingFreesEverything<UsesAllocator>();
+  expectDestroyingFreesEverything<ArenaUnion>();
+}
+
+template <class T>
+void expectMoveAssignmentSkipsDestroyingOldFields() {
+  CountingArena arena;
+  T dst{&arena};
+  fill(dst);
+  T src{&arena};
+  fill(src);
+  const T expected(src);
+  const std::size_t before = arena.deallocations();
+  dst = std::move(src);
+  EXPECT_EQ(arena.deallocations(), before);
+  EXPECT_EQ(dst, expected);
+}
+
+TEST(CppArenaPmrTest, MoveAssignmentOnTheSameArenaSkipsDestroyingOldFields) {
+  expectMoveAssignmentSkipsDestroyingOldFields<ArenaUnion>();
+}
+
+TEST(CppArenaPmrTest, UnionSkipsDestroyingTheActiveFieldOnAnArena) {
+  CountingArena arena;
+  ArenaUnion u{&arena};
+  fill(u);
+  const std::size_t before = arena.deallocations();
+  u.name() = kLong;
+  u.id() = 1;
+  apache::thrift::clear(u);
+  EXPECT_EQ(arena.deallocations(), before);
+}
+
+TEST(CppArenaPmrTest, UnionDestroysFieldsHoldingMemoryOffTheArena) {
+  // `plain` is on the default resource, so switching away from it must
+  // destroy it even on an arena. The leak sanitizer checks that.
+  CountingArena arena;
+  MixedUnion u{&arena};
+  u.plain() = kLong;
+  u.name() = kOther;
+  EXPECT_EQ(*u.name(), kOther);
+  // Likewise for the heap memory that `unique` and `boxed` point to.
+  UnionWithRef withRef{&arena};
+  withRef.unique_ref().emplace();
+  UnionWithBox withBox{&arena};
+  withBox.boxed_ref().emplace();
 }
 
 TEST(CppArenaPmrTest, UnionCopyAndMove) {

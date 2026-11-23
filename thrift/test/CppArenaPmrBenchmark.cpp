@@ -42,10 +42,11 @@ void fill(Containers& c, std::size_t n) {
   }
 }
 
-void fill(WholeStruct& s, std::size_t n) {
+template <class Map>
+void fillGroups(Map& groups, std::size_t n) {
   for (std::size_t i = 0; i < n; ++i) {
-    auto& values = s.groups()
-                       ->emplace(
+    auto& values = groups
+                       .emplace(
                            std::piecewise_construct,
                            std::forward_as_tuple(text(i)),
                            std::forward_as_tuple())
@@ -54,6 +55,14 @@ void fill(WholeStruct& s, std::size_t n) {
       values.emplace_back(text(j));
     }
   }
+}
+
+void fill(WholeStruct& s, std::size_t n) {
+  fillGroups(*s.groups(), n);
+}
+
+void fill(WholeUnion& u, std::size_t n) {
+  fillGroups(u.groups().emplace(), n);
 }
 
 void fill(StructElements& s, std::size_t n) {
@@ -90,6 +99,11 @@ void mapOfLists(std::size_t iters, std::size_t n, bool onArena) {
   teardown<WholeStruct>(iters, n, onArena);
 }
 
+// A Thrift union holding map<string, list<string>>, with 4 strings per list
+void unionOfMap(std::size_t iters, std::size_t n, bool onArena) {
+  teardown<WholeUnion>(iters, n, onArena);
+}
+
 // list<ArenaInner>, each with a string and a list of 2 strings
 void listOfStructs(std::size_t iters, std::size_t n, bool onArena) {
   teardown<StructElements>(iters, n, onArena);
@@ -104,6 +118,11 @@ BENCHMARK_NAMED_PARAM(mapOfLists, heap_16, 16, false)
 BENCHMARK_RELATIVE_NAMED_PARAM(mapOfLists, arena_16, 16, true)
 BENCHMARK_NAMED_PARAM(mapOfLists, heap_1024, 1024, false)
 BENCHMARK_RELATIVE_NAMED_PARAM(mapOfLists, arena_1024, 1024, true)
+BENCHMARK_DRAW_LINE();
+BENCHMARK_NAMED_PARAM(unionOfMap, heap_16, 16, false)
+BENCHMARK_RELATIVE_NAMED_PARAM(unionOfMap, arena_16, 16, true)
+BENCHMARK_NAMED_PARAM(unionOfMap, heap_1024, 1024, false)
+BENCHMARK_RELATIVE_NAMED_PARAM(unionOfMap, arena_1024, 1024, true)
 BENCHMARK_DRAW_LINE();
 BENCHMARK_NAMED_PARAM(listOfStructs, heap_16, 16, false)
 BENCHMARK_RELATIVE_NAMED_PARAM(listOfStructs, arena_16, 16, true)
