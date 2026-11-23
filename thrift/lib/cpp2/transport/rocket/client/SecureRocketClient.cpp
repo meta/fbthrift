@@ -66,7 +66,8 @@ bool SecureRocketClient::validateSecurityPolicy(
   apache::thrift::op::for_each_field_id<SecurityPolicy>([&](auto id) {
     using Id = decltype(id);
     auto fieldRef = apache::thrift::op::get<Id>(*securityPolicy);
-    std::string fieldName{apache::thrift::op::get_name_v<SecurityPolicy, Id>};
+    std::string fieldName{
+        apache::thrift::op::get_field_name<SecurityPolicy, Id>()};
     if (fieldRef.has_value()) {
       policies[fieldName] = apache::thrift::util::enumNameSafe(*fieldRef);
     } else {

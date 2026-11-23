@@ -168,7 +168,7 @@ class IsThriftUnionWithMatcher {
       return op::invoke_by_field_id<ThriftUnionType>(
           static_cast<apache::thrift::FieldId>(obj.getType()),
           [&]<class Id>(Id) {
-            const auto active = op::get_name_v<ThriftUnionType, Id>;
+            const auto active = op::get_field_name<ThriftUnionType, Id>();
             if constexpr (std::is_same_v<
                               FieldTag,
                               op::get_ident<ThriftUnionType, Id>>) {

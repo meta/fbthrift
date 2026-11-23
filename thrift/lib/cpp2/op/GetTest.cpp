@@ -49,7 +49,7 @@ TEST(GetTest, GetField) {
 template <typename T>
 FieldId findIdByName(const std::string& name) {
   return find_by_field_id<T>([&](auto id) {
-    return op::get_name_v<T, decltype(id)> == name ? id() : FieldId{};
+    return op::get_field_name<T, decltype(id)>() == name ? id() : FieldId{};
   });
 }
 
@@ -197,8 +197,8 @@ TEST(VisitUnionTest, Basic) {
         [&]<typename ident>(folly::tag_t<ident>, auto& value) {
           fid = folly::to_underlying(op::get_field_id_v<test::Union, ident>);
           LOG(INFO) << "Active field: "
-                    << op::get_name_v<test::Union, ident> << " with value: "
-                    << value;
+                    << op::get_field_name<test::Union, ident>()
+                    << " with value: " << value;
         },
         [&]() {
           fid = 0;
@@ -231,7 +231,8 @@ TEST(VisitUnionTest, Basic) {
   op::visit_union_with_tag(
       obj,
       []<typename ident>(folly::tag_t<ident>, auto& value) {
-        LOG(INFO) << op::get_name_v<test::Union, ident> << " --> " << value;
+        LOG(INFO) << op::get_field_name<test::Union, ident>() << " --> "
+                  << value;
       },
       []() { LOG(INFO) << "Empty union"; });
 }

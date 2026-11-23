@@ -216,7 +216,7 @@ Mask path(
       if (mask.includes()) { // already set
         return;
       }
-      if (op::get_name_v<T, Id> == fieldNames[index]) {
+      if (op::get_field_name<T, Id>() == fieldNames[index]) {
         mask.includes().emplace()[folly::to_underlying(id())] =
             path<op::get_type_tag<T, Id>>(fieldNames, index + 1, other);
       }
