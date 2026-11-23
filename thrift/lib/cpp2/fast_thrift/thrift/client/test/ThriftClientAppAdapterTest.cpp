@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <functional>
 #include <gtest/gtest.h>
 
 #include <folly/io/IOBuf.h>
@@ -22,11 +23,10 @@
 #include <folly/io/async/test/MockAsyncTransport.h>
 #include <thrift/lib/cpp2/async/RpcOptions.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameParser.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/client/Messages.h>
@@ -39,16 +39,40 @@
 namespace apache::thrift::fast_thrift::thrift {
 
 using apache::thrift::fast_thrift::channel_pipeline::erase_and_box;
-using apache::thrift::fast_thrift::channel_pipeline::PipelineBuilder;
-using apache::thrift::fast_thrift::channel_pipeline::PipelineImpl;
+using apache::thrift::fast_thrift::channel_pipeline::PipelineOwner;
 using apache::thrift::fast_thrift::channel_pipeline::Result;
+using apache::thrift::fast_thrift::channel_pipeline::StaticPipelineBuilder;
 using apache::thrift::fast_thrift::channel_pipeline::TypeErasedBox;
-using apache::thrift::fast_thrift::channel_pipeline::test::MockHandler;
 using apache::thrift::fast_thrift::channel_pipeline::test::TestAllocator;
 
 HANDLER_TAG(test_handler);
 
 namespace {
+
+class CaptureWrites {
+ public:
+  using Callback = std::function<Result(TypeErasedBox&&)>;
+
+  explicit CaptureWrites(Callback callback) : callback_(std::move(callback)) {}
+
+  template <typename Context>
+  Result onWrite(Context& ctx, TypeErasedBox&& box) noexcept {
+    return callback_ ? callback_(std::move(box))
+                     : ctx.fireWrite(std::move(box));
+  }
+
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineInactive(Context&) noexcept {}
+  template <typename Context>
+  void onWriteReady(Context&) noexcept {}
+
+ private:
+  Callback callback_;
+};
 
 // Test client that holds the adapter as a member (composition).
 class TestAppAdapterClient {
@@ -94,7 +118,6 @@ void sendBasicRequest(
 class ThriftClientAppAdapterTest : public ::testing::Test {
  protected:
   void SetUp() override {
-    MockHandler::resetOrderCounter();
     evbThread_ = std::make_unique<folly::ScopedEventBaseThread>();
     evb_ = evbThread_->getEventBase();
     allocator_.reset();
@@ -111,8 +134,7 @@ class ThriftClientAppAdapterTest : public ::testing::Test {
   struct BuiltPipeline {
     apache::thrift::fast_thrift::transport::test::PassthroughTransportHandler::
         Ptr transportHandler;
-    PipelineImpl::Ptr pipeline;
-    MockHandler* handler{nullptr};
+    PipelineOwner pipeline;
     ThriftClientAppAdapter* adapter{nullptr};
 
     ~BuiltPipeline() {
@@ -132,36 +154,29 @@ class ThriftClientAppAdapterTest : public ::testing::Test {
 
   BuiltPipeline buildPipeline(
       ThriftClientAppAdapter* adapter,
-      std::function<Result(
-          apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
-          TypeErasedBox&&)> writeHandler = nullptr) {
+      CaptureWrites::Callback writeHandler = {}) {
     auto transportHandler = apache::thrift::fast_thrift::transport::test::
         PassthroughTransportHandler::create(createMockSocket());
 
-    auto handlerPtr = std::make_unique<MockHandler>();
-    auto* rawHandler = handlerPtr.get();
-
-    if (writeHandler) {
-      handlerPtr->setOnWrite(std::move(writeHandler));
-    }
-
-    auto pipeline =
-        PipelineBuilder<
-            apache::thrift::fast_thrift::transport::test::
-                PassthroughTransportHandler,
-            ThriftClientAppAdapter,
-            TestAllocator>()
-            .setEventBase(evb_)
-            .setHead(transportHandler.get())
-            .setTail(adapter)
-            .setAllocator(&allocator_)
-            .addNextDuplex<MockHandler>(test_handler_tag, std::move(handlerPtr))
-            .build();
+    auto pipeline = StaticPipelineBuilder<
+                        apache::thrift::fast_thrift::transport::test::
+                            PassthroughTransportHandler,
+                        ThriftClientAppAdapter,
+                        TestAllocator>()
+                        .setEventBase(evb_)
+                        .setHead(transportHandler.get())
+                        .setTail(adapter)
+                        .setAllocator(&allocator_)
+                        .addNextOutbound<CaptureWrites>(
+                            test_handler_tag, std::move(writeHandler))
+                        .build();
 
     adapter->setPipeline(pipeline.get());
 
     return {
-        std::move(transportHandler), std::move(pipeline), rawHandler, adapter};
+        std::move(transportHandler),
+        PipelineOwner(std::move(pipeline)),
+        adapter};
   }
 
   std::unique_ptr<folly::ScopedEventBaseThread> evbThread_;
@@ -196,14 +211,11 @@ TEST_F(ThriftClientAppAdapterTest, SetProtocolId) {
 TEST_F(ThriftClientAppAdapterTest, OnMessageRoutesToHandler) {
   TestAppAdapterClient client;
   void* capturedUserContext = nullptr;
-  auto built = buildPipeline(
-      &client.adapter(),
-      [&](apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
-          TypeErasedBox&& box) {
-        capturedUserContext =
-            box.get<ThriftRequestMessage>().requestContext.release();
-        return Result::Success;
-      });
+  auto built = buildPipeline(&client.adapter(), [&](TypeErasedBox&& box) {
+    capturedUserContext =
+        box.get<ThriftRequestMessage>().requestContext.release();
+    return Result::Success;
+  });
 
   bool handlerCalled = false;
   std::string capturedData;
@@ -225,9 +237,7 @@ TEST_F(ThriftClientAppAdapterTest, OnMessageRoutesToHandler) {
 
   ASSERT_NE(capturedUserContext, nullptr);
   auto response = makeResponse(capturedUserContext);
-  auto result = client.adapter().onRead(
-      channel_pipeline::test::inertEndpointContext(),
-      erase_and_box(std::move(response)));
+  auto result = built.pipeline->fireRead(erase_and_box(std::move(response)));
 
   EXPECT_EQ(result, Result::Success);
   EXPECT_TRUE(handlerCalled);
@@ -241,9 +251,7 @@ TEST_F(ThriftClientAppAdapterTest, OnMessageNullUserContextSucceeds) {
   // Response without a requestContext stamped — adapter logs and returns
   // Success.
   auto response = makeResponse(nullptr);
-  auto result = client.adapter().onRead(
-      channel_pipeline::test::inertEndpointContext(),
-      erase_and_box(std::move(response)));
+  auto result = built.pipeline->fireRead(erase_and_box(std::move(response)));
 
   EXPECT_EQ(result, Result::Success);
 }
@@ -256,14 +264,11 @@ TEST_F(ThriftClientAppAdapterTest, EachRequestGetsUniqueUserContext) {
   TestAppAdapterClient client;
   std::vector<void*> capturedUserContexts;
 
-  auto built = buildPipeline(
-      &client.adapter(),
-      [&](apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
-          TypeErasedBox&& box) {
-        capturedUserContexts.push_back(
-            box.get<ThriftRequestMessage>().requestContext.release());
-        return Result::Success;
-      });
+  auto built = buildPipeline(&client.adapter(), [&](TypeErasedBox&& box) {
+    capturedUserContexts.push_back(
+        box.get<ThriftRequestMessage>().requestContext.release());
+    return Result::Success;
+  });
 
   evb_->runInEventBaseThreadAndWait([&] {
     sendBasicRequest(client.adapter(), [](auto&&, const auto&) noexcept {});
@@ -283,9 +288,7 @@ TEST_F(ThriftClientAppAdapterTest, EachRequestGetsUniqueUserContext) {
   // Deliver synthetic responses so per-request contexts are freed.
   evb_->runInEventBaseThreadAndWait([&] {
     for (auto* ctx : capturedUserContexts) {
-      (void)client.adapter().onRead(
-          channel_pipeline::test::inertEndpointContext(),
-          erase_and_box(makeResponse(ctx)));
+      (void)built.pipeline->fireRead(erase_and_box(makeResponse(ctx)));
     }
   });
 }
@@ -297,15 +300,12 @@ TEST_F(ThriftClientAppAdapterTest, OffEventBaseThreadSchedulesWrite) {
   TestAppAdapterClient client;
   bool writeCalled = false;
   void* capturedUserContext = nullptr;
-  auto built = buildPipeline(
-      &client.adapter(),
-      [&](apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
-          TypeErasedBox&& box) {
-        writeCalled = true;
-        capturedUserContext =
-            box.get<ThriftRequestMessage>().requestContext.release();
-        return Result::Success;
-      });
+  auto built = buildPipeline(&client.adapter(), [&](TypeErasedBox&& box) {
+    writeCalled = true;
+    capturedUserContext =
+        box.get<ThriftRequestMessage>().requestContext.release();
+    return Result::Success;
+  });
 
   sendBasicRequest(client.adapter(), [](auto&&, const auto&) noexcept {});
 
@@ -315,8 +315,7 @@ TEST_F(ThriftClientAppAdapterTest, OffEventBaseThreadSchedulesWrite) {
 
   // Deliver a synthetic response so the per-request context is freed.
   evb_->runInEventBaseThreadAndWait([&] {
-    (void)client.adapter().onRead(
-        channel_pipeline::test::inertEndpointContext(),
+    (void)built.pipeline->fireRead(
         erase_and_box(makeResponse(capturedUserContext)));
   });
 }
@@ -331,18 +330,15 @@ TEST_F(ThriftClientAppAdapterTest, SendRequestResponseBuildsRequestMessage) {
   apache::thrift::RpcKind capturedRpcKind{};
   void* capturedUserContext = nullptr;
 
-  auto built = buildPipeline(
-      &client.adapter(),
-      [&](apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
-          TypeErasedBox&& box) {
-        auto& msg = box.get<ThriftRequestMessage>();
-        auto& reqResp = msg.payload.get<ThriftRequestResponsePayload>();
-        capturedMetadata = std::move(reqResp.metadata);
-        capturedData = std::move(reqResp.data);
-        capturedRpcKind = msg.payload.rpcKind();
-        capturedUserContext = msg.requestContext.release();
-        return Result::Success;
-      });
+  auto built = buildPipeline(&client.adapter(), [&](TypeErasedBox&& box) {
+    auto& msg = box.get<ThriftRequestMessage>();
+    auto& reqResp = msg.payload.get<ThriftRequestResponsePayload>();
+    capturedMetadata = std::move(reqResp.metadata);
+    capturedData = std::move(reqResp.data);
+    capturedRpcKind = msg.payload.rpcKind();
+    capturedUserContext = msg.requestContext.release();
+    return Result::Success;
+  });
 
   apache::thrift::RpcOptions options;
   options.setTimeout(std::chrono::milliseconds(250));
@@ -373,8 +369,7 @@ TEST_F(ThriftClientAppAdapterTest, SendRequestResponseBuildsRequestMessage) {
 
   // Deliver a synthetic response so the per-request context is freed.
   evb_->runInEventBaseThreadAndWait([&] {
-    (void)client.adapter().onRead(
-        channel_pipeline::test::inertEndpointContext(),
+    (void)built.pipeline->fireRead(
         erase_and_box(makeResponse(capturedUserContext)));
   });
 }
