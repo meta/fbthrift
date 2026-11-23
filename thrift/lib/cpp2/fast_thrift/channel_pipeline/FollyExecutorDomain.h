@@ -31,7 +31,9 @@ concept FollyExecutorDomain =
       // Stable for the domain's lifetime; equal domains return the same
       // executor. Work added through it runs in the same serialized domain but
       // is not ordered relative to post().
-      { constDomain.getExecutor() } noexcept -> std::same_as<folly::Executor*>;
+      {
+        constDomain.getExecutor()
+      } noexcept -> std::convertible_to<folly::Executor*>;
     };
 
 } // namespace apache::thrift::fast_thrift::channel_pipeline
