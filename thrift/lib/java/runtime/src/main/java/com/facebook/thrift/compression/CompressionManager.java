@@ -109,6 +109,24 @@ public final class CompressionManager {
   }
 
   /**
+   * Undoes THeader transforms in reverse order, matching C++ THeader::untransform(). Takes
+   * ownership of the input buffer.
+   *
+   * @param transforms the TTransform wire IDs from the THeader frame, outermost first
+   * @param allocator the allocator for the output buffers
+   * @param data the transformed data; ownership is transferred
+   * @return the untransformed data; caller owns and must release
+   */
+  public static ByteBuf untransform(
+      List<Integer> transforms, ByteBufAllocator allocator, ByteBuf data) {
+    for (int i = transforms.size() - 1; i >= 0; i--) {
+      data = decompressFromTransform(transforms.get(i), allocator, data);
+    }
+
+    return data;
+  }
+
+  /**
    * Decompresses data using the algorithm indicated by the THeader transform ID. Takes ownership of
    * the input buffer.
    *

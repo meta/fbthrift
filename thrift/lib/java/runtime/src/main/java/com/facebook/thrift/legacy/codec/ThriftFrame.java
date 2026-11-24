@@ -57,9 +57,9 @@ public class ThriftFrame implements ReferenceCounted {
   }
 
   /**
-   * @param transforms THeader transform IDs ({@code TTransform} values) of the frame on the wire.
-   *     The message itself is never compressed: a HEADER codec compresses it in this order when it
-   *     writes the frame, and decompresses it when it reads the frame.
+   * @param transforms THeader transform IDs ({@code TTransform} values) of the frame on the wire. A
+   *     server codec untransforms the message when it reads the frame; a client codec leaves it
+   *     transformed and {@code ThriftClientHandler} untransforms it.
    */
   public ThriftFrame(
       int sequenceId,

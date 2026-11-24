@@ -35,7 +35,9 @@ import com.facebook.thrift.payload.ClientRequestPayload;
 import com.facebook.thrift.payload.ClientResponsePayload;
 import com.facebook.thrift.payload.Reader;
 import com.facebook.thrift.protocol.TProtocolType;
+import com.facebook.thrift.util.resources.RpcResources;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -56,15 +58,27 @@ import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.protocol.TProtocolUtil;
 import org.apache.thrift.transport.TTransportException;
 import reactor.core.publisher.Sinks;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 @SuppressWarnings("rawtypes")
 public final class ThriftClientHandler extends ChannelDuplexHandler {
   private final IntObjectMap<RequestContext<?, ?>> requestContexts;
   private final LegacyTransportType transport;
+  private final Scheduler scheduler;
 
   public ThriftClientHandler(LegacyTransportType transport) {
-    this.transport = transport;
+    this(
+        transport,
+        RpcResources.isForceClientExecutionOffEventLoop()
+            ? RpcResources.getClientOffLoopScheduler()
+            : Schedulers.immediate());
+  }
+
+  ThriftClientHandler(LegacyTransportType transport, Scheduler scheduler) {
     this.requestContexts = new IntObjectHashMap<>();
+    this.transport = transport;
+    this.scheduler = scheduler;
   }
 
   @Override
@@ -143,40 +157,79 @@ public final class ThriftClientHandler extends ChannelDuplexHandler {
       final ThriftFrame frame = (ThriftFrame) msg;
       final int sequenceId = frame.getSequenceId();
       final RequestContext<?, ?> requestContext = requestContexts.remove(sequenceId);
+
       if (requestContext == null) {
         // No in-flight request matches this sequenceId (a duplicate, late, or otherwise
         // unexpected response). Release the decoded frame so its ByteBuf is not leaked,
         // then stop processing this message.
         frame.release();
         ctx.fireChannelReadComplete();
+
         return;
       }
+
       final ClientRequestPayload payload = requestContext.getPayload();
       final Sinks.One processor = requestContext.getProcessor();
+      final ByteBufAllocator alloc = ctx.alloc();
 
-      processor
-          .asMono()
-          .doFinally(
-              __ -> {
-                ctx.fireChannelReadComplete();
-                frame.release();
-              })
-          .subscribe();
+      // Releases the frame on any terminal signal; the caller observes the result on its own
+      // subscription.
+      processor.asMono().doFinally(signal -> frame.release()).subscribe(v -> {}, e -> {});
+
+      ctx.fireChannelReadComplete();
 
       try {
-        final ClientResponsePayload responsePayload =
-            decodeResponse(
-                payload.getRequestRpcMetadata().getName(),
-                frame,
-                payload.getResponseReader(),
-                payload.getExceptionReaders(),
-                sequenceId);
-        processor.emitValue(responsePayload, Sinks.EmitFailureHandler.FAIL_FAST);
+        scheduler.schedule(() -> decode(processor, payload, frame, sequenceId, alloc));
       } catch (Throwable t) {
-        processor.emitError(t, Sinks.EmitFailureHandler.FAIL_FAST);
+        processor.tryEmitError(t);
       }
     } else {
       ctx.fireChannelRead(msg);
+    }
+  }
+
+  /**
+   * Decodes one matched response. The request leaves the map before scheduling and no other
+   * terminal path can reach it after that, so the ignored tryEmit results below are harmless, not
+   * use-after-free evidence. tryEmit stays because it degrades a double-complete to a dropped
+   * signal instead of throwing on the worker thread.
+   */
+  private void decode(
+      Sinks.One processor,
+      ClientRequestPayload payload,
+      ThriftFrame frame,
+      int sequenceId,
+      ByteBufAllocator alloc) {
+    // Own one reference: untransform consumes its input on success and failure, and plain.release()
+    // frees the result. The frame's own reference is released when the processor terminates.
+    ByteBuf message = frame.getMessage().retain();
+
+    try {
+      message = CompressionManager.untransform(frame.getTransforms(), alloc, message);
+
+      ThriftFrame plain =
+          new ThriftFrame(
+              frame.getSequenceId(),
+              message,
+              frame.getHeaders(),
+              frame.getPersistentHeaders(),
+              frame.getTransport(),
+              frame.getProtocol(),
+              frame.isSupportOutOfOrderResponse());
+
+      try {
+        processor.tryEmitValue(
+            decodeResponse(
+                payload.getRequestRpcMetadata().getName(),
+                plain,
+                payload.getResponseReader(),
+                payload.getExceptionReaders(),
+                sequenceId));
+      } finally {
+        plain.release();
+      }
+    } catch (Throwable t) {
+      processor.tryEmitError(t);
     }
   }
 

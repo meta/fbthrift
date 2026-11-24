@@ -77,7 +77,8 @@ public final class HeaderTransportCodec extends ChannelDuplexHandler {
       ThriftFrame frame = null;
       try {
         if (request.isReadable()) {
-          frame = decodeFrame(context.alloc(), request);
+          boolean untransform = isServer;
+          frame = decodeFrame(context.alloc(), request, untransform);
         }
       } catch (Throwable t) {
         ReferenceCountUtil.safeRelease(request);
@@ -245,6 +246,19 @@ public final class HeaderTransportCodec extends ChannelDuplexHandler {
    */
   @VisibleForTesting
   static ThriftFrame decodeFrame(ByteBufAllocator alloc, ByteBuf buffer) {
+    return decodeFrame(alloc, buffer, true);
+  }
+
+  /**
+   * Decodes the ByteBuf into a HeaderFrame transferring the reference ownership.
+   *
+   * @param buffer buffer to be decoded; reference count ownership is transferred to this method
+   * @param untransform whether to untransform the message before returning. The client pipeline
+   *     defers this to ThriftClientHandler; the frame keeps its wire transforms either way.
+   * @return the decoded frame; caller is responsible for releasing this object
+   */
+  @VisibleForTesting
+  static ThriftFrame decodeFrame(ByteBufAllocator alloc, ByteBuf buffer, boolean untransform) {
     short magic = buffer.readShort();
     verify(magic == HEADER_MAGIC, "Invalid header magic");
 
@@ -296,9 +310,8 @@ public final class HeaderTransportCodec extends ChannelDuplexHandler {
     }
     allHeaders.putAll(persistentHeaders);
 
-    // Apply decompression in reverse order, matching C++ THeader::untransform()
-    for (int i = transforms.length - 1; i >= 0; i--) {
-      buffer = CompressionManager.decompressFromTransform(transforms[i], alloc, buffer);
+    if (untransform) {
+      buffer = CompressionManager.untransform(Ints.asList(transforms), alloc, buffer);
     }
 
     ThriftFrame frame =
