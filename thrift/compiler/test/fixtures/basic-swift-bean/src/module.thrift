@@ -79,6 +79,31 @@ struct LegacyStruct {
   -1: i32 bad;
 }
 
+// A directly recursive struct: the fixed-bound analysis must treat the cycle
+// as "no fixed bound" instead of recursing forever.
+struct Recursive {
+  1: i32 x;
+  @cpp.Ref{type = cpp.RefType.Unique}
+  @cpp.AllowLegacyNonOptionalRef
+  @java.Recursive
+  2: Recursive next;
+}
+
+// A mutual reference pair: neither side has a fixed bound.
+struct MutuallyRecursiveA {
+  1: i32 x;
+  @cpp.Ref{type = cpp.RefType.Unique}
+  @cpp.AllowLegacyNonOptionalRef
+  @java.Recursive
+  2: MutuallyRecursiveB b;
+}
+
+struct MutuallyRecursiveB {
+  1: i32 y;
+  @java.Recursive
+  2: MutuallyRecursiveA a;
+}
+
 const MyStruct1 ms = {
   "MyIntField": 42,
   "MyStringField": "Meaning_of_life",

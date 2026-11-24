@@ -200,6 +200,30 @@ public final class BigStruct implements com.facebook.thrift.payload.ThriftSerial
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I32;
+
+        {
+            test.fixtures.module2.Struct _fbthriftVar0 =
+                this.s;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                {
+                    long _fbthriftSize0 = _fbthriftVar0.serializedSize();
+                    if (_fbthriftSize0 < 0) {
+                        return -1;
+                    }
+                    _fbthriftSize += _fbthriftSize0;
+                }
+            }
+        }
+        return _fbthriftSize;
+    }
+
     private static class _BigStructLazy {
         private static final BigStruct _DEFAULT = new BigStruct.Builder().build();
     }

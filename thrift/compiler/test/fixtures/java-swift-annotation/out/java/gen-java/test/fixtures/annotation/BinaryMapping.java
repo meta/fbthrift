@@ -264,6 +264,65 @@ public final class BinaryMapping implements com.facebook.thrift.payload.ThriftSe
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
+        {
+            Map<String, byte[]> _fbthriftVar0 =
+                this.binaryMap;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                for (Map.Entry<String, byte[]> _fbthriftVar1 :
+                    _fbthriftVar0.entrySet()) {
+                    {
+                        String _fbthriftVar2 =
+                            _fbthriftVar1.getKey();
+                        _fbthriftSize +=
+                            com.facebook.thrift.util.ThriftSizes.string(
+                                _fbthriftVar2);
+                    }
+                    {
+                        byte[] _fbthriftVar2 =
+                            _fbthriftVar1.getValue();
+                        _fbthriftSize +=
+                            com.facebook.thrift.util.ThriftSizes.binary(
+                                _fbthriftVar2);
+                    }
+                }
+            }
+        }
+
+        {
+            Map<String, byte[]> _fbthriftVar0 =
+                this.regularBinary;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                for (Map.Entry<String, byte[]> _fbthriftVar1 :
+                    _fbthriftVar0.entrySet()) {
+                    {
+                        String _fbthriftVar2 =
+                            _fbthriftVar1.getKey();
+                        _fbthriftSize +=
+                            com.facebook.thrift.util.ThriftSizes.string(
+                                _fbthriftVar2);
+                    }
+                    {
+                        byte[] _fbthriftVar2 =
+                            _fbthriftVar1.getValue();
+                        _fbthriftSize +=
+                            com.facebook.thrift.util.ThriftSizes.binary(
+                                _fbthriftVar2);
+                    }
+                }
+            }
+        }
+        return _fbthriftSize;
+    }
+
     private static class _BinaryMappingLazy {
         private static final BinaryMapping _DEFAULT = new BinaryMapping.Builder().build();
     }

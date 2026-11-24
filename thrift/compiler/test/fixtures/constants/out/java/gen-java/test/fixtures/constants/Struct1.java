@@ -200,6 +200,22 @@ public final class Struct1 implements com.facebook.thrift.payload.ThriftSerializ
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I32;
+
+        if (this.b != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.b);
+        }
+        return _fbthriftSize;
+    }
+
     private static class _Struct1Lazy {
         private static final Struct1 _DEFAULT = new Struct1.Builder().build();
     }

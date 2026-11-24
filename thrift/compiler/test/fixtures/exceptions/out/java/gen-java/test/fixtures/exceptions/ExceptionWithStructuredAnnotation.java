@@ -205,6 +205,22 @@ public final class ExceptionWithStructuredAnnotation extends org.apache.thrift.T
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I32;
+
+        if (this.messageField != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.messageField);
+        }
+        return _fbthriftSize;
+    }
+
     private static class _ExceptionWithStructuredAnnotationLazy {
         private static final ExceptionWithStructuredAnnotation _DEFAULT = new ExceptionWithStructuredAnnotation.Builder().build();
     }

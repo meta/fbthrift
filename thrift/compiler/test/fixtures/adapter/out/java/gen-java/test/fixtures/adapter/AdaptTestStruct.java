@@ -531,6 +531,58 @@ public final class AdaptTestStruct implements com.facebook.thrift.payload.Thrift
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + 3 * (com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I64)
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.BOOL
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I32;
+
+        {
+            byte[] _fbthriftVar0 =
+                this.custom;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.binary(_fbthriftVar0);
+            }
+        }
+
+        if (this.meta != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.meta);
+        }
+
+        if (this.indirectionString != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.indirectionString);
+        }
+
+        if (this.stringData != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.stringData);
+        }
+
+        {
+            byte[] _fbthriftVar0 =
+                this.binaryData;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.binary(_fbthriftVar0);
+            }
+        }
+        return _fbthriftSize;
+    }
+
     private static class _AdaptTestStructLazy {
         private static final AdaptTestStruct _DEFAULT = new AdaptTestStruct.Builder().build();
     }

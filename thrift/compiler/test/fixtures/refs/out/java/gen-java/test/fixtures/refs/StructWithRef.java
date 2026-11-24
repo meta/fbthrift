@@ -244,6 +244,21 @@ public final class StructWithRef implements com.facebook.thrift.payload.ThriftSe
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + 2 * (com.facebook.thrift.util.ThriftSizes.FIELD
+                    + test.fixtures.refs.Empty.serializedSizeBound());
+
+        if (this.optField != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + test.fixtures.refs.Empty.serializedSizeBound();
+        }
+        return _fbthriftSize;
+    }
+
     private static class _StructWithRefLazy {
         private static final StructWithRef _DEFAULT = new StructWithRef.Builder().build();
     }

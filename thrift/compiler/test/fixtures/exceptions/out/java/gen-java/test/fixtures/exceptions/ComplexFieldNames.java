@@ -207,6 +207,27 @@ public final class ComplexFieldNames extends org.apache.thrift.TBaseException im
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
+        if (this.errorMessage != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.errorMessage);
+        }
+
+        if (this.internalErrorMessage != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.internalErrorMessage);
+        }
+        return _fbthriftSize;
+    }
+
     private static class _ComplexFieldNamesLazy {
         private static final ComplexFieldNames _DEFAULT = new ComplexFieldNames.Builder().build();
     }

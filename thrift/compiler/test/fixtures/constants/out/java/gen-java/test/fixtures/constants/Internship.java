@@ -326,6 +326,41 @@ public final class Internship implements com.facebook.thrift.payload.ThriftSeria
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I32;
+
+        if (this.title != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.title);
+        }
+
+        if (this.employer != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.ENUM;
+        }
+
+        if (this.compensation != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.DOUBLE;
+        }
+
+        if (this.school != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.school);
+        }
+        return _fbthriftSize;
+    }
+
     private static class _InternshipLazy {
         private static final Internship _DEFAULT = new Internship.Builder().build();
     }

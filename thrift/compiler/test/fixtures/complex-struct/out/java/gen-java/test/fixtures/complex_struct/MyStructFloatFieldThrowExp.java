@@ -280,6 +280,26 @@ public final class MyStructFloatFieldThrowExp implements com.facebook.thrift.pay
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I64
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.BYTE
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.FLOAT;
+
+        if (this.myStringField != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.myStringField);
+        }
+        return _fbthriftSize;
+    }
+
     private static class _MyStructFloatFieldThrowExpLazy {
         private static final MyStructFloatFieldThrowExp _DEFAULT = new MyStructFloatFieldThrowExp.Builder().build();
     }

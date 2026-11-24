@@ -438,6 +438,34 @@ public final class Limits implements com.facebook.thrift.payload.ThriftSerializa
         oprot.writeStructEnd();
     }
 
+    public static long serializedSizeBound() {
+        return
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + 2 * (com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I64)
+                + 2 * (com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I32)
+                + 2 * (com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I16)
+                + 2 * (com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.BYTE);
+    }
+
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + 2 * (com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I64)
+                + 2 * (com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I32)
+                + 2 * (com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I16)
+                + 2 * (com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.BYTE);
+        return _fbthriftSize;
+    }
+
     private static class _LimitsLazy {
         private static final Limits _DEFAULT = new Limits.Builder().build();
     }

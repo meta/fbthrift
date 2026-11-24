@@ -2480,6 +2480,684 @@ public final class B implements com.facebook.thrift.payload.ThriftSerializable {
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + 3 * (com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.ENUM)
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I32
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.DOUBLE;
+
+        {
+            test.fixtures.shapes.A _fbthriftVar0 =
+                this.justAnA;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                {
+                    long _fbthriftSize0 = _fbthriftVar0.serializedSize();
+                    if (_fbthriftSize0 < 0) {
+                        return -1;
+                    }
+                    _fbthriftSize += _fbthriftSize0;
+                }
+            }
+        }
+
+        {
+            Set<Integer> _fbthriftVar0 =
+                this.setOfI32;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32;
+            }
+        }
+
+        {
+            List<Integer> _fbthriftVar0 =
+                this.listOfI32;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32;
+            }
+        }
+
+        {
+            List<String> _fbthriftVar0 =
+                this.listOfString;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize =
+                    com.facebook.thrift.util.ThriftSizes.addSize(
+                        _fbthriftSize,
+                        com.facebook.thrift.util.ThriftSizes.addSize(
+                            com.facebook.thrift.util.ThriftSizes.LIST,
+                            com.facebook.thrift.util.ThriftSizes.stringList(_fbthriftVar0)));
+            }
+        }
+
+        {
+            Map<String, Integer> _fbthriftVar0 =
+                this.mapOfStringToI32;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32;
+                for (Map.Entry<String, Integer> _fbthriftVar1 :
+                    _fbthriftVar0.entrySet()) {
+                    {
+                        String _fbthriftVar2 =
+                            _fbthriftVar1.getKey();
+                        _fbthriftSize +=
+                            com.facebook.thrift.util.ThriftSizes.string(
+                                _fbthriftVar2);
+                    }
+                }
+            }
+        }
+
+        {
+            Map<String, test.fixtures.shapes.A> _fbthriftVar0 =
+                this.mapOfStringToA;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                for (Map.Entry<String, test.fixtures.shapes.A> _fbthriftVar1 :
+                    _fbthriftVar0.entrySet()) {
+                    {
+                        String _fbthriftVar2 =
+                            _fbthriftVar1.getKey();
+                        _fbthriftSize +=
+                            com.facebook.thrift.util.ThriftSizes.string(
+                                _fbthriftVar2);
+                    }
+                    {
+                        test.fixtures.shapes.A _fbthriftVar2 =
+                            _fbthriftVar1.getValue();
+                        {
+                            long _fbthriftSize2 = _fbthriftVar2.serializedSize();
+                            if (_fbthriftSize2 < 0) {
+                                return -1;
+                            }
+                            _fbthriftSize += _fbthriftSize2;
+                        }
+                    }
+                }
+            }
+        }
+
+        {
+            Map<String, List<Integer>> _fbthriftVar0 =
+                this.mapOfStringToListOfI32;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                for (Map.Entry<String, List<Integer>> _fbthriftVar1 :
+                    _fbthriftVar0.entrySet()) {
+                    {
+                        String _fbthriftVar2 =
+                            _fbthriftVar1.getKey();
+                        _fbthriftSize +=
+                            com.facebook.thrift.util.ThriftSizes.string(
+                                _fbthriftVar2);
+                    }
+                    {
+                        List<Integer> _fbthriftVar2 =
+                            _fbthriftVar1.getValue();
+                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                        _fbthriftSize +=
+                            (long) _fbthriftVar2.size()
+                                * com.facebook.thrift.util.ThriftSizes.I32;
+                    }
+                }
+            }
+        }
+
+        {
+            Map<String, List<test.fixtures.shapes.A>> _fbthriftVar0 =
+                this.mapOfStringToListOfA;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                for (Map.Entry<String, List<test.fixtures.shapes.A>> _fbthriftVar1 :
+                    _fbthriftVar0.entrySet()) {
+                    {
+                        String _fbthriftVar2 =
+                            _fbthriftVar1.getKey();
+                        _fbthriftSize +=
+                            com.facebook.thrift.util.ThriftSizes.string(
+                                _fbthriftVar2);
+                    }
+                    {
+                        List<test.fixtures.shapes.A> _fbthriftVar2 =
+                            _fbthriftVar1.getValue();
+                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                        {
+                            long _fbthriftVar3 =
+                                com.facebook.thrift.util.ThriftSizes.structs(_fbthriftVar2);
+                            if (_fbthriftVar3 < 0) {
+                                return -1;
+                            }
+                            _fbthriftSize =
+                                com.facebook.thrift.util.ThriftSizes.addSize(
+                                    _fbthriftSize, _fbthriftVar3);
+                        }
+                    }
+                }
+            }
+        }
+
+        {
+            Map<String, Set<Integer>> _fbthriftVar0 =
+                this.mapOfStringToSetOfI32;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                for (Map.Entry<String, Set<Integer>> _fbthriftVar1 :
+                    _fbthriftVar0.entrySet()) {
+                    {
+                        String _fbthriftVar2 =
+                            _fbthriftVar1.getKey();
+                        _fbthriftSize +=
+                            com.facebook.thrift.util.ThriftSizes.string(
+                                _fbthriftVar2);
+                    }
+                    {
+                        Set<Integer> _fbthriftVar2 =
+                            _fbthriftVar1.getValue();
+                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
+                        _fbthriftSize +=
+                            (long) _fbthriftVar2.size()
+                                * com.facebook.thrift.util.ThriftSizes.I32;
+                    }
+                }
+            }
+        }
+
+        {
+            Map<String, Map<String, Integer>> _fbthriftVar0 =
+                this.mapOfStringToMapOfStringToI32;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                for (Map.Entry<String, Map<String, Integer>> _fbthriftVar1 :
+                    _fbthriftVar0.entrySet()) {
+                    {
+                        String _fbthriftVar2 =
+                            _fbthriftVar1.getKey();
+                        _fbthriftSize +=
+                            com.facebook.thrift.util.ThriftSizes.string(
+                                _fbthriftVar2);
+                    }
+                    {
+                        Map<String, Integer> _fbthriftVar2 =
+                            _fbthriftVar1.getValue();
+                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                        _fbthriftSize +=
+                            (long) _fbthriftVar2.size()
+                                * com.facebook.thrift.util.ThriftSizes.I32;
+                        for (Map.Entry<String, Integer> _fbthriftVar3 :
+                            _fbthriftVar2.entrySet()) {
+                            {
+                                String _fbthriftVar4 =
+                                    _fbthriftVar3.getKey();
+                                _fbthriftSize +=
+                                    com.facebook.thrift.util.ThriftSizes.string(
+                                        _fbthriftVar4);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        {
+            Map<String, Map<String, test.fixtures.shapes.A>> _fbthriftVar0 =
+                this.mapOfStringToMapOfStringToA;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                for (Map.Entry<String, Map<String, test.fixtures.shapes.A>> _fbthriftVar1 :
+                    _fbthriftVar0.entrySet()) {
+                    {
+                        String _fbthriftVar2 =
+                            _fbthriftVar1.getKey();
+                        _fbthriftSize +=
+                            com.facebook.thrift.util.ThriftSizes.string(
+                                _fbthriftVar2);
+                    }
+                    {
+                        Map<String, test.fixtures.shapes.A> _fbthriftVar2 =
+                            _fbthriftVar1.getValue();
+                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                        for (Map.Entry<String, test.fixtures.shapes.A> _fbthriftVar3 :
+                            _fbthriftVar2.entrySet()) {
+                            {
+                                String _fbthriftVar4 =
+                                    _fbthriftVar3.getKey();
+                                _fbthriftSize +=
+                                    com.facebook.thrift.util.ThriftSizes.string(
+                                        _fbthriftVar4);
+                            }
+                            {
+                                test.fixtures.shapes.A _fbthriftVar4 =
+                                    _fbthriftVar3.getValue();
+                                {
+                                    long _fbthriftSize4 = _fbthriftVar4.serializedSize();
+                                    if (_fbthriftSize4 < 0) {
+                                        return -1;
+                                    }
+                                    _fbthriftSize += _fbthriftSize4;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        {
+            List<Set<Integer>> _fbthriftVar0 =
+                this.listOfSetOfI32;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                for (Set<Integer> _fbthriftVar1 :
+                    _fbthriftVar0) {
+                    _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
+                    _fbthriftSize +=
+                        (long) _fbthriftVar1.size() * com.facebook.thrift.util.ThriftSizes.I32;
+                }
+            }
+        }
+
+        {
+            List<Map<String, List<test.fixtures.shapes.A>>> _fbthriftVar0 =
+                this.listOfMapOfStringToListOfA;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                for (Map<String, List<test.fixtures.shapes.A>> _fbthriftVar1 :
+                    _fbthriftVar0) {
+                    _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                    for (Map.Entry<String, List<test.fixtures.shapes.A>> _fbthriftVar2 :
+                        _fbthriftVar1.entrySet()) {
+                        {
+                            String _fbthriftVar3 =
+                                _fbthriftVar2.getKey();
+                            _fbthriftSize +=
+                                com.facebook.thrift.util.ThriftSizes.string(
+                                    _fbthriftVar3);
+                        }
+                        {
+                            List<test.fixtures.shapes.A> _fbthriftVar3 =
+                                _fbthriftVar2.getValue();
+                            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                            {
+                                long _fbthriftVar4 =
+                                    com.facebook.thrift.util.ThriftSizes.structs(_fbthriftVar3);
+                                if (_fbthriftVar4 < 0) {
+                                    return -1;
+                                }
+                                _fbthriftSize =
+                                    com.facebook.thrift.util.ThriftSizes.addSize(
+                                        _fbthriftSize, _fbthriftVar4);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        {
+            List<Map<String, test.fixtures.shapes.A>> _fbthriftVar0 =
+                this.listOfMapOfStringToA;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                for (Map<String, test.fixtures.shapes.A> _fbthriftVar1 :
+                    _fbthriftVar0) {
+                    _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                    for (Map.Entry<String, test.fixtures.shapes.A> _fbthriftVar2 :
+                        _fbthriftVar1.entrySet()) {
+                        {
+                            String _fbthriftVar3 =
+                                _fbthriftVar2.getKey();
+                            _fbthriftSize +=
+                                com.facebook.thrift.util.ThriftSizes.string(
+                                    _fbthriftVar3);
+                        }
+                        {
+                            test.fixtures.shapes.A _fbthriftVar3 =
+                                _fbthriftVar2.getValue();
+                            {
+                                long _fbthriftSize3 = _fbthriftVar3.serializedSize();
+                                if (_fbthriftSize3 < 0) {
+                                    return -1;
+                                }
+                                _fbthriftSize += _fbthriftSize3;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        {
+            test.fixtures.shapes.Union _fbthriftVar0 =
+                this.justAUnion;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                {
+                    long _fbthriftSize0 = _fbthriftVar0.serializedSize();
+                    if (_fbthriftSize0 < 0) {
+                        return -1;
+                    }
+                    _fbthriftSize += _fbthriftSize0;
+                }
+            }
+        }
+
+        {
+            test.fixtures.shapes.A _fbthriftVar0 =
+                this.optionalJustAnA;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                {
+                    long _fbthriftSize0 = _fbthriftVar0.serializedSize();
+                    if (_fbthriftSize0 < 0) {
+                        return -1;
+                    }
+                    _fbthriftSize += _fbthriftSize0;
+                }
+            }
+        }
+
+        {
+            Set<Integer> _fbthriftVar0 =
+                this.optionalSetOfI32;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32;
+            }
+        }
+
+        {
+            List<Integer> _fbthriftVar0 =
+                this.optionalListOfI32;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32;
+            }
+        }
+
+        {
+            List<String> _fbthriftVar0 =
+                this.optionalListOfString;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize =
+                    com.facebook.thrift.util.ThriftSizes.addSize(
+                        _fbthriftSize,
+                        com.facebook.thrift.util.ThriftSizes.addSize(
+                            com.facebook.thrift.util.ThriftSizes.LIST,
+                            com.facebook.thrift.util.ThriftSizes.stringList(_fbthriftVar0)));
+            }
+        }
+
+        {
+            Map<String, Integer> _fbthriftVar0 =
+                this.optionalMapOfStringToI32;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32;
+                for (Map.Entry<String, Integer> _fbthriftVar1 :
+                    _fbthriftVar0.entrySet()) {
+                    {
+                        String _fbthriftVar2 =
+                            _fbthriftVar1.getKey();
+                        _fbthriftSize +=
+                            com.facebook.thrift.util.ThriftSizes.string(
+                                _fbthriftVar2);
+                    }
+                }
+            }
+        }
+
+        {
+            Map<String, test.fixtures.shapes.A> _fbthriftVar0 =
+                this.optionalMapOfStringToA;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                for (Map.Entry<String, test.fixtures.shapes.A> _fbthriftVar1 :
+                    _fbthriftVar0.entrySet()) {
+                    {
+                        String _fbthriftVar2 =
+                            _fbthriftVar1.getKey();
+                        _fbthriftSize +=
+                            com.facebook.thrift.util.ThriftSizes.string(
+                                _fbthriftVar2);
+                    }
+                    {
+                        test.fixtures.shapes.A _fbthriftVar2 =
+                            _fbthriftVar1.getValue();
+                        {
+                            long _fbthriftSize2 = _fbthriftVar2.serializedSize();
+                            if (_fbthriftSize2 < 0) {
+                                return -1;
+                            }
+                            _fbthriftSize += _fbthriftSize2;
+                        }
+                    }
+                }
+            }
+        }
+
+        {
+            Map<String, List<Integer>> _fbthriftVar0 =
+                this.optionalMapOfStringToListOfI32;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                for (Map.Entry<String, List<Integer>> _fbthriftVar1 :
+                    _fbthriftVar0.entrySet()) {
+                    {
+                        String _fbthriftVar2 =
+                            _fbthriftVar1.getKey();
+                        _fbthriftSize +=
+                            com.facebook.thrift.util.ThriftSizes.string(
+                                _fbthriftVar2);
+                    }
+                    {
+                        List<Integer> _fbthriftVar2 =
+                            _fbthriftVar1.getValue();
+                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                        _fbthriftSize +=
+                            (long) _fbthriftVar2.size()
+                                * com.facebook.thrift.util.ThriftSizes.I32;
+                    }
+                }
+            }
+        }
+
+        {
+            Map<String, List<test.fixtures.shapes.A>> _fbthriftVar0 =
+                this.optionalMapOfStringToListOfA;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                for (Map.Entry<String, List<test.fixtures.shapes.A>> _fbthriftVar1 :
+                    _fbthriftVar0.entrySet()) {
+                    {
+                        String _fbthriftVar2 =
+                            _fbthriftVar1.getKey();
+                        _fbthriftSize +=
+                            com.facebook.thrift.util.ThriftSizes.string(
+                                _fbthriftVar2);
+                    }
+                    {
+                        List<test.fixtures.shapes.A> _fbthriftVar2 =
+                            _fbthriftVar1.getValue();
+                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                        {
+                            long _fbthriftVar3 =
+                                com.facebook.thrift.util.ThriftSizes.structs(_fbthriftVar2);
+                            if (_fbthriftVar3 < 0) {
+                                return -1;
+                            }
+                            _fbthriftSize =
+                                com.facebook.thrift.util.ThriftSizes.addSize(
+                                    _fbthriftSize, _fbthriftVar3);
+                        }
+                    }
+                }
+            }
+        }
+
+        {
+            Map<String, Set<Integer>> _fbthriftVar0 =
+                this.optionalMapOfStringToSetOfI32;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                for (Map.Entry<String, Set<Integer>> _fbthriftVar1 :
+                    _fbthriftVar0.entrySet()) {
+                    {
+                        String _fbthriftVar2 =
+                            _fbthriftVar1.getKey();
+                        _fbthriftSize +=
+                            com.facebook.thrift.util.ThriftSizes.string(
+                                _fbthriftVar2);
+                    }
+                    {
+                        Set<Integer> _fbthriftVar2 =
+                            _fbthriftVar1.getValue();
+                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
+                        _fbthriftSize +=
+                            (long) _fbthriftVar2.size()
+                                * com.facebook.thrift.util.ThriftSizes.I32;
+                    }
+                }
+            }
+        }
+
+        if (this.optionalEnum != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.ENUM;
+        }
+
+        if (this.stringWithDefaultValue != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.stringWithDefaultValue);
+        }
+
+        {
+            test.fixtures.shapes.A _fbthriftVar0 =
+                this.aWithDefaultValue;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                {
+                    long _fbthriftSize0 = _fbthriftVar0.serializedSize();
+                    if (_fbthriftSize0 < 0) {
+                        return -1;
+                    }
+                    _fbthriftSize += _fbthriftSize0;
+                }
+            }
+        }
+
+        {
+            Set<Integer> _fbthriftVar0 =
+                this.setOfI32WithDefaultValue;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32;
+            }
+        }
+
+        {
+            Map<Integer, String> _fbthriftVar0 =
+                this.mapOfI32ToStringWithDefaultValue;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32;
+                for (Map.Entry<Integer, String> _fbthriftVar1 :
+                    _fbthriftVar0.entrySet()) {
+                    {
+                        String _fbthriftVar2 =
+                            _fbthriftVar1.getValue();
+                        _fbthriftSize +=
+                            com.facebook.thrift.util.ThriftSizes.string(
+                                _fbthriftVar2);
+                    }
+                }
+            }
+        }
+
+        {
+            List<String> _fbthriftVar0 =
+                this.listOfStringWithDefaultValue;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize =
+                    com.facebook.thrift.util.ThriftSizes.addSize(
+                        _fbthriftSize,
+                        com.facebook.thrift.util.ThriftSizes.addSize(
+                            com.facebook.thrift.util.ThriftSizes.LIST,
+                            com.facebook.thrift.util.ThriftSizes.stringList(_fbthriftVar0)));
+            }
+        }
+
+        {
+            Map<String, List<Integer>> _fbthriftVar0 =
+                this.mapOfStringToListOfI32WithDefaultValue;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                for (Map.Entry<String, List<Integer>> _fbthriftVar1 :
+                    _fbthriftVar0.entrySet()) {
+                    {
+                        String _fbthriftVar2 =
+                            _fbthriftVar1.getKey();
+                        _fbthriftSize +=
+                            com.facebook.thrift.util.ThriftSizes.string(
+                                _fbthriftVar2);
+                    }
+                    {
+                        List<Integer> _fbthriftVar2 =
+                            _fbthriftVar1.getValue();
+                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                        _fbthriftSize +=
+                            (long) _fbthriftVar2.size()
+                                * com.facebook.thrift.util.ThriftSizes.I32;
+                    }
+                }
+            }
+        }
+        return _fbthriftSize;
+    }
+
     private static class _BLazy {
         private static final B _DEFAULT = new B.Builder().build();
     }

@@ -160,6 +160,20 @@ public final class CompatibleWithKeywordSink implements com.facebook.thrift.payl
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
+        if (this.sink != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.sink);
+        }
+        return _fbthriftSize;
+    }
+
     private static class _CompatibleWithKeywordSinkLazy {
         private static final CompatibleWithKeywordSink _DEFAULT = new CompatibleWithKeywordSink.Builder().build();
     }

@@ -161,6 +161,22 @@ public final class MyStructWithCustomDefault implements com.facebook.thrift.payl
         oprot.writeStructEnd();
     }
 
+    public static long serializedSizeBound() {
+        return
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I64;
+    }
+
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I64;
+        return _fbthriftSize;
+    }
+
     private static class _MyStructWithCustomDefaultLazy {
         private static final MyStructWithCustomDefault _DEFAULT = new MyStructWithCustomDefault.Builder().build();
     }

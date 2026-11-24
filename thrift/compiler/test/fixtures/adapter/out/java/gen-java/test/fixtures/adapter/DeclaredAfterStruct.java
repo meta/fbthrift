@@ -118,6 +118,18 @@ public final class DeclaredAfterStruct implements com.facebook.thrift.payload.Th
         oprot.writeStructEnd();
     }
 
+    public static long serializedSizeBound() {
+        return
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+    }
+
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+        return _fbthriftSize;
+    }
+
     private static class _DeclaredAfterStructLazy {
         private static final DeclaredAfterStruct _DEFAULT = new DeclaredAfterStruct.Builder().build();
     }

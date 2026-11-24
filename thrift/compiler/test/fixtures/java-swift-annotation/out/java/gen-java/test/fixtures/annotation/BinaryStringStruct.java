@@ -202,6 +202,31 @@ public final class BinaryStringStruct implements com.facebook.thrift.payload.Thr
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
+        {
+            byte[] _fbthriftVar0 =
+                this.binaryStringField;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.binary(_fbthriftVar0);
+            }
+        }
+
+        {
+            byte[] _fbthriftVar0 =
+                this.binaryField;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.binary(_fbthriftVar0);
+            }
+        }
+        return _fbthriftSize;
+    }
+
     private static class _BinaryStringStructLazy {
         private static final BinaryStringStruct _DEFAULT = new BinaryStringStruct.Builder().build();
     }

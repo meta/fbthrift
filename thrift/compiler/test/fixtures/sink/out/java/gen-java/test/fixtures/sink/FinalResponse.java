@@ -160,6 +160,20 @@ public final class FinalResponse implements com.facebook.thrift.payload.ThriftSe
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
+        if (this.content != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.content);
+        }
+        return _fbthriftSize;
+    }
+
     private static class _FinalResponseLazy {
         private static final FinalResponse _DEFAULT = new FinalResponse.Builder().build();
     }

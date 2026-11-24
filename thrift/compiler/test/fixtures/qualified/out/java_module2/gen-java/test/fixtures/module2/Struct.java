@@ -202,6 +202,43 @@ public final class Struct implements com.facebook.thrift.payload.ThriftSerializa
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
+        {
+            test.fixtures.module0.Struct _fbthriftVar0 =
+                this.first;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                {
+                    long _fbthriftSize0 = _fbthriftVar0.serializedSize();
+                    if (_fbthriftSize0 < 0) {
+                        return -1;
+                    }
+                    _fbthriftSize += _fbthriftSize0;
+                }
+            }
+        }
+
+        {
+            test.fixtures.module1.Struct _fbthriftVar0 =
+                this.second;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                {
+                    long _fbthriftSize0 = _fbthriftVar0.serializedSize();
+                    if (_fbthriftSize0 < 0) {
+                        return -1;
+                    }
+                    _fbthriftSize += _fbthriftSize0;
+                }
+            }
+        }
+        return _fbthriftSize;
+    }
+
     private static class _StructLazy {
         private static final Struct _DEFAULT = new Struct.Builder().build();
     }

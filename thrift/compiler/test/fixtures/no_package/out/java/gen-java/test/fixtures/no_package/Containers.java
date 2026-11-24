@@ -301,6 +301,59 @@ public final class Containers implements com.facebook.thrift.payload.ThriftSeria
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
+        {
+            List<Integer> _fbthriftVar0 =
+                this.i32List;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32;
+            }
+        }
+
+        {
+            Set<String> _fbthriftVar0 =
+                this.stringSet;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize =
+                    com.facebook.thrift.util.ThriftSizes.addSize(
+                        _fbthriftSize,
+                        com.facebook.thrift.util.ThriftSizes.addSize(
+                            com.facebook.thrift.util.ThriftSizes.SET,
+                            com.facebook.thrift.util.ThriftSizes.strings(_fbthriftVar0)));
+            }
+        }
+
+        {
+            Map<String, Long> _fbthriftVar0 =
+                this.stringToI64Map;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I64;
+                for (Map.Entry<String, Long> _fbthriftVar1 :
+                    _fbthriftVar0.entrySet()) {
+                    {
+                        String _fbthriftVar2 =
+                            _fbthriftVar1.getKey();
+                        _fbthriftSize +=
+                            com.facebook.thrift.util.ThriftSizes.string(
+                                _fbthriftVar2);
+                    }
+                }
+            }
+        }
+        return _fbthriftSize;
+    }
+
     private static class _ContainersLazy {
         private static final Containers _DEFAULT = new Containers.Builder().build();
     }

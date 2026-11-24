@@ -163,6 +163,28 @@ public final class CircularAdaptee implements com.facebook.thrift.payload.Thrift
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
+        {
+            test.fixtures.adapter.CircularStruct _fbthriftVar0 =
+                this.field;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                {
+                    long _fbthriftSize0 = _fbthriftVar0.serializedSize();
+                    if (_fbthriftSize0 < 0) {
+                        return -1;
+                    }
+                    _fbthriftSize += _fbthriftSize0;
+                }
+            }
+        }
+        return _fbthriftSize;
+    }
+
     private static class _CircularAdapteeLazy {
         private static final CircularAdaptee _DEFAULT = new CircularAdaptee.Builder().build();
     }

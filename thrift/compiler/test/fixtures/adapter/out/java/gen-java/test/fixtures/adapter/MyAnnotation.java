@@ -203,6 +203,22 @@ public final class MyAnnotation implements com.facebook.thrift.payload.ThriftSer
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.ENUM;
+
+        if (this.signature != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.signature);
+        }
+        return _fbthriftSize;
+    }
+
     private static class _MyAnnotationLazy {
         private static final MyAnnotation _DEFAULT = new MyAnnotation.Builder().build();
     }

@@ -200,6 +200,26 @@ public final class Included implements com.facebook.thrift.payload.ThriftSeriali
         oprot.writeStructEnd();
     }
 
+    public static long serializedSizeBound() {
+        return
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I64
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + test.fixtures.includes.transitive.Foo.serializedSizeBound();
+    }
+
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I64
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + test.fixtures.includes.transitive.Foo.serializedSizeBound();
+        return _fbthriftSize;
+    }
+
     private static class _IncludedLazy {
         private static final Included _DEFAULT = new Included.Builder().build();
     }

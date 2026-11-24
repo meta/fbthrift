@@ -159,6 +159,20 @@ public final class CustomException extends org.apache.thrift.TBaseException impl
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
+        if (this.message != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.message);
+        }
+        return _fbthriftSize;
+    }
+
     private static class _CustomExceptionLazy {
         private static final CustomException _DEFAULT = new CustomException.Builder().build();
     }

@@ -258,6 +258,48 @@ public final class ValUnion implements com.facebook.thrift.payload.ThriftSeriali
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        if (this.id != 0 && this.value == null) {
+            return 0;
+        }
+        long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
+        switch (this.id) {
+
+        case _V1: {
+            test.fixtures.complex_union.Val _fbthriftVar0 =
+                (test.fixtures.complex_union.Val) this.value;
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+            {
+                long _fbthriftSize0 = _fbthriftVar0.serializedSize();
+                if (_fbthriftSize0 < 0) {
+                    return -1;
+                }
+                _fbthriftSize += _fbthriftSize0;
+            }
+            break;
+        }
+
+        case _V2: {
+            test.fixtures.complex_union.Val _fbthriftVar0 =
+                (test.fixtures.complex_union.Val) this.value;
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+            {
+                long _fbthriftSize0 = _fbthriftVar0.serializedSize();
+                if (_fbthriftSize0 < 0) {
+                    return -1;
+                }
+                _fbthriftSize += _fbthriftSize0;
+            }
+            break;
+        }
+
+        default:
+        }
+        return _fbthriftSize;
+    }
+
     public static com.facebook.thrift.payload.Reader<ValUnion> asReader() {
         return ValUnion::read0;
     }

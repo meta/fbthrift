@@ -1143,6 +1143,111 @@ public final class AdaptTemplatedTestStruct implements com.facebook.thrift.paylo
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + 3 * (com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.BOOL)
+                + 2 * (com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.BYTE)
+                + 2 * (com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I16)
+                + 2 * (com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I32)
+                + 2 * (com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I64)
+                + 2 * (com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.DOUBLE)
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.ENUM;
+
+        if (this.adaptedString != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.adaptedString);
+        }
+
+        {
+            List<Long> _fbthriftVar0 =
+                this.adaptedList;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I64;
+            }
+        }
+
+        {
+            Set<Long> _fbthriftVar0 =
+                this.adaptedSet;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I64;
+            }
+        }
+
+        {
+            Map<Long, Long> _fbthriftVar0 =
+                this.adaptedMap;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I64;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I64;
+            }
+        }
+
+        if (this.adaptedStringDefault != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.adaptedStringDefault);
+        }
+
+        {
+            List<Long> _fbthriftVar0 =
+                this.adaptedListDefault;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I64;
+            }
+        }
+
+        {
+            Set<Long> _fbthriftVar0 =
+                this.adaptedSetDefault;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I64;
+            }
+        }
+
+        {
+            Map<Long, Long> _fbthriftVar0 =
+                this.adaptedMapDefault;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I64;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I64;
+            }
+        }
+        return _fbthriftSize;
+    }
+
     private static class _AdaptTemplatedTestStructLazy {
         private static final AdaptTemplatedTestStruct _DEFAULT = new AdaptTemplatedTestStruct.Builder().build();
     }

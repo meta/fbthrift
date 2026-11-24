@@ -199,6 +199,22 @@ public final class ReqXcep extends org.apache.thrift.TBaseException implements c
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I32;
+
+        if (this.message != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.message);
+        }
+        return _fbthriftSize;
+    }
+
     private static class _ReqXcepLazy {
         private static final ReqXcep _DEFAULT = new ReqXcep.Builder().build();
     }

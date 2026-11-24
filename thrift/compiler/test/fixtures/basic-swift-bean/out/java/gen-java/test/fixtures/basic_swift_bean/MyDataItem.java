@@ -200,4 +200,20 @@ public final class MyDataItem implements com.facebook.thrift.payload.ThriftSeria
         oprot.writeStructEnd();
     }
 
+    public static long serializedSizeBound() {
+        return
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + 2 * (com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I32);
+    }
+
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + 2 * (com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I32);
+        return _fbthriftSize;
+    }
+
 }

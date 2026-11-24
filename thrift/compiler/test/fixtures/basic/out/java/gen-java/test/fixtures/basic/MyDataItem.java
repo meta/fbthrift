@@ -118,6 +118,18 @@ public final class MyDataItem implements com.facebook.thrift.payload.ThriftSeria
         oprot.writeStructEnd();
     }
 
+    public static long serializedSizeBound() {
+        return
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+    }
+
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+        return _fbthriftSize;
+    }
+
     private static class _MyDataItemLazy {
         private static final MyDataItem _DEFAULT = new MyDataItem.Builder().build();
     }

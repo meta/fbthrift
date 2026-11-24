@@ -19,6 +19,9 @@ package com.facebook.thrift.adapter.test;
 import com.facebook.thrift.adapter.common.BooleanTypeAdapter;
 
 public class BooleanToStringTypeAdapter implements BooleanTypeAdapter<String> {
+  /** Counts `toThrift` calls so sizing tests can prove fixed-width paths never convert. */
+  public static long toThriftCalls;
+
   @Override
   public String fromThrift(Boolean aBoolean) {
     return String.valueOf(aBoolean);
@@ -26,6 +29,7 @@ public class BooleanToStringTypeAdapter implements BooleanTypeAdapter<String> {
 
   @Override
   public Boolean toThrift(String s) {
+    toThriftCalls++;
     return s == null ? null : Boolean.valueOf(s);
   }
 }

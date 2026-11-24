@@ -59,6 +59,51 @@ public void write0(TProtocol oprot) throws TException {
 }
 {{/let partial}}
 
+{{#let export partial union_size |struct| captures |types field_helpers|}}
+@java.lang.Override
+public long serializedSize() {
+    if (this.id != 0 && this.value == null) {
+        return 0;
+    }
+    long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
+    switch (this.id) {
+    {{#each struct.fields as |field|}}
+
+    case _{{field.javaAllCapsName}}: {
+        {{#if field.hasAdapter?}}
+        {{#if (or field.type.bool? field.type.byte? field.type.i16? field.type.i32? field.type.i64? field.type.float? field.type.double? field.type.enum?)}}
+        _fbthriftSize +=
+            com.facebook.thrift.util.ThriftSizes.FIELD
+                + {{#partial types.fixed_width type=field.type}};
+        {{#else}}
+        {{#partial types.field_type field=field}} _fbthriftVar0 =
+            ({{#partial types.field_type field=field}}) this.value;
+        if (_fbthriftVar0 != null) {
+            {{#partial types.adapted_field_boxed_type type=field.type field_hasAdapter=field.hasAdapter?}} _fbthriftVar1 =
+                {{#partial field_helpers.to_thrift_start field=field}}_fbthriftVar0{{#partial field_helpers.to_thrift_end field=field}};
+            if (_fbthriftVar1 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                {{#partial types.size_type field=field type=field.type depth=1}}
+            }
+        }
+        {{/if (or field.type.bool? field.type.byte? field.type.i16? field.type.i32? field.type.i64? field.type.float? field.type.double? field.type.enum?)}}
+        {{#else}}
+        {{#partial types.field_type field=field}} _fbthriftVar0 =
+            ({{#partial types.field_type field=field}}) this.value;
+        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+        {{#partial types.size_type field=field type=field.type depth=0}}
+        {{/if field.hasAdapter?}}
+        break;
+    }
+    {{/each}}
+
+    default:
+    }
+    return _fbthriftSize;
+}
+{{/let partial}}
+
 {{#let export partial union_read |struct| captures |types field_helpers|}}
 public static com.facebook.thrift.payload.Reader<{{struct.javaCapitalName}}> asReader() {
     return {{struct.javaCapitalName}}::read0;
@@ -155,7 +200,7 @@ public void set{{field.javaCapitalName}}(final {{#partial types.field_type field
 {{/each}}
 {{/let partial}}
 
-{{#let export partial union_class |struct| captures |common types field_helpers struct_partials union_builder union_setter union_write union_read|}}
+{{#let export partial union_class |struct| captures |common types field_helpers struct_partials union_builder union_setter union_write union_size union_read|}}
 {{#partial common.auto_generated}}
 
 package {{struct.program.javaPackage}};
@@ -344,6 +389,8 @@ public final class {{struct.javaCapitalName}} implements com.facebook.thrift.pay
     }
 
     {{#partial union_write struct=struct}}
+
+    {{#partial union_size struct=struct}}
 
     {{#partial union_read struct=struct}}
 

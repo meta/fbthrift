@@ -310,6 +310,44 @@ public final class Foo implements com.facebook.thrift.payload.ThriftSerializable
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I32;
+
+        if (this.myString != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.myString);
+        }
+
+        {
+            List<Boolean> _fbthriftVar0 =
+                this.myBools;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.BOOL;
+            }
+        }
+
+        {
+            List<Integer> _fbthriftVar0 =
+                this.myNumbers;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32;
+            }
+        }
+        return _fbthriftSize;
+    }
+
     private static class _FooLazy {
         private static final Foo _DEFAULT = new Foo.Builder().build();
     }

@@ -172,6 +172,22 @@ public final class TerseException extends org.apache.thrift.TBaseException imple
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
+        java.util.Objects.requireNonNull(
+            this.msg, "msg must not be null");
+        if (!com.facebook.thrift.util.IntrinsicDefaults.isDefault(this.msg)) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.msg);
+        }
+        return _fbthriftSize;
+    }
+
     private static class _TerseExceptionLazy {
         private static final TerseException _DEFAULT = new TerseException.Builder().build();
     }

@@ -160,6 +160,22 @@ public final class StructWithRefAndAnnotCppNoexceptMoveCtor implements com.faceb
         oprot.writeStructEnd();
     }
 
+    public static long serializedSizeBound() {
+        return
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + test.fixtures.refs.Empty.serializedSizeBound();
+    }
+
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + test.fixtures.refs.Empty.serializedSizeBound();
+        return _fbthriftSize;
+    }
+
     private static class _StructWithRefAndAnnotCppNoexceptMoveCtorLazy {
         private static final StructWithRefAndAnnotCppNoexceptMoveCtor _DEFAULT = new StructWithRefAndAnnotCppNoexceptMoveCtor.Builder().build();
     }

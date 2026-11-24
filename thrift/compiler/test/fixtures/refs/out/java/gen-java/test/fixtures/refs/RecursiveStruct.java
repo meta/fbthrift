@@ -173,6 +173,32 @@ public final class RecursiveStruct implements com.facebook.thrift.payload.Thrift
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
+        {
+            List<test.fixtures.refs.RecursiveStruct> _fbthriftVar0 =
+                this.mes;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                {
+                    long _fbthriftVar1 =
+                        com.facebook.thrift.util.ThriftSizes.structs(_fbthriftVar0);
+                    if (_fbthriftVar1 < 0) {
+                        return -1;
+                    }
+                    _fbthriftSize =
+                        com.facebook.thrift.util.ThriftSizes.addSize(
+                            _fbthriftSize, _fbthriftVar1);
+                }
+            }
+        }
+        return _fbthriftSize;
+    }
+
     private static class _RecursiveStructLazy {
         private static final RecursiveStruct _DEFAULT = new RecursiveStruct.Builder().build();
     }

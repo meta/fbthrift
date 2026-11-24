@@ -164,6 +164,20 @@ public final class InitialException extends org.apache.thrift.TBaseException imp
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
+        if (this.reason != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.reason);
+        }
+        return _fbthriftSize;
+    }
+
     private static class _InitialExceptionLazy {
         private static final InitialException _DEFAULT = new InitialException.Builder().build();
     }

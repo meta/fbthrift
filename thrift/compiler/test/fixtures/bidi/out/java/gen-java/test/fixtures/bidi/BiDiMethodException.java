@@ -159,6 +159,20 @@ public final class BiDiMethodException extends org.apache.thrift.TBaseException 
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
+        if (this.message != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.message);
+        }
+        return _fbthriftSize;
+    }
+
     private static class _BiDiMethodExceptionLazy {
         private static final BiDiMethodException _DEFAULT = new BiDiMethodException.Builder().build();
     }

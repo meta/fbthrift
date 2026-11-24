@@ -286,6 +286,41 @@ public final class FieldsInjectedWithIncludedStruct implements com.facebook.thri
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
+        if (this.stringField != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.stringField);
+        }
+
+        if (this.injectedField != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.injectedField);
+        }
+
+        if (this.injectedStructuredAnnotationField != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.injectedStructuredAnnotationField);
+        }
+
+        if (this.injectedUnstructuredAnnotationField != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.injectedUnstructuredAnnotationField);
+        }
+        return _fbthriftSize;
+    }
+
     private static class _FieldsInjectedWithIncludedStructLazy {
         private static final FieldsInjectedWithIncludedStruct _DEFAULT = new FieldsInjectedWithIncludedStruct.Builder().build();
     }

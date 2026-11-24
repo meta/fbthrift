@@ -593,6 +593,104 @@ public final class Person implements com.facebook.thrift.payload.ThriftSerializa
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I64;
+
+        if (this.name != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.name);
+        }
+
+        if (this.age != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I16;
+        }
+
+        if (this.address != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.address);
+        }
+
+        if (this.favoriteColor != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + test.fixtures.optionals.Color.serializedSizeBound();
+        }
+
+        {
+            Set<Long> _fbthriftVar0 =
+                this.friends;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I64;
+            }
+        }
+
+        if (this.bestFriend != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I64;
+        }
+
+        {
+            Map<test.fixtures.optionals.Animal, String> _fbthriftVar0 =
+                this.petNames;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.ENUM;
+                for (Map.Entry<test.fixtures.optionals.Animal, String> _fbthriftVar1 :
+                    _fbthriftVar0.entrySet()) {
+                    {
+                        String _fbthriftVar2 =
+                            _fbthriftVar1.getValue();
+                        _fbthriftSize +=
+                            com.facebook.thrift.util.ThriftSizes.string(
+                                _fbthriftVar2);
+                    }
+                }
+            }
+        }
+
+        if (this.afraidOfAnimal != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.ENUM;
+        }
+
+        {
+            List<test.fixtures.optionals.Vehicle> _fbthriftVar0 =
+                this.vehicles;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                {
+                    long _fbthriftVar1 =
+                        com.facebook.thrift.util.ThriftSizes.structs(_fbthriftVar0);
+                    if (_fbthriftVar1 < 0) {
+                        return -1;
+                    }
+                    _fbthriftSize =
+                        com.facebook.thrift.util.ThriftSizes.addSize(
+                            _fbthriftSize, _fbthriftVar1);
+                }
+            }
+        }
+        return _fbthriftSize;
+    }
+
     private static class _PersonLazy {
         private static final Person _DEFAULT = new Person.Builder().build();
     }

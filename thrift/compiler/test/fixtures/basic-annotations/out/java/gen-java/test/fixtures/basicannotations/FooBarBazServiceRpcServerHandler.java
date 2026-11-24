@@ -63,7 +63,9 @@ public class FooBarBazServiceRpcServerHandler
       final java.lang.Object _r,
       final com.facebook.swift.service.ContextChain _chain,
       final int _seqId) {
-      return oprot -> {
+      return new com.facebook.thrift.payload.Writer() {
+      @java.lang.Override
+      public void write(TProtocol oprot) throws org.apache.thrift.TException {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
 
@@ -75,6 +77,11 @@ public class FooBarBazServiceRpcServerHandler
       } catch (Throwable _e) {
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
+      }
+      }
+      @java.lang.Override
+      public int sizeHint() {
+        return com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
       }
     };
   }
@@ -176,7 +183,9 @@ public class FooBarBazServiceRpcServerHandler
       final java.lang.Object _r,
       final com.facebook.swift.service.ContextChain _chain,
       final int _seqId) {
-      return oprot -> {
+      return new com.facebook.thrift.payload.Writer() {
+      @java.lang.Override
+      public void write(TProtocol oprot) throws org.apache.thrift.TException {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
 
@@ -188,6 +197,11 @@ public class FooBarBazServiceRpcServerHandler
       } catch (Throwable _e) {
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
+      }
+      }
+      @java.lang.Override
+      public int sizeHint() {
+        return com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
       }
     };
   }
@@ -289,7 +303,9 @@ public class FooBarBazServiceRpcServerHandler
       final java.lang.Object _r,
       final com.facebook.swift.service.ContextChain _chain,
       final int _seqId) {
-      return oprot -> {
+      return new com.facebook.thrift.payload.Writer() {
+      @java.lang.Override
+      public void write(TProtocol oprot) throws org.apache.thrift.TException {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
 
@@ -301,6 +317,11 @@ public class FooBarBazServiceRpcServerHandler
       } catch (Throwable _e) {
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
+      }
+      }
+      @java.lang.Override
+      public int sizeHint() {
+        return com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
       }
     };
   }

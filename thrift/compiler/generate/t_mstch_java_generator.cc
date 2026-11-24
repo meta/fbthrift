@@ -16,6 +16,7 @@
 
 #include <cctype>
 #include <filesystem>
+#include <functional>
 #include <iomanip>
 #include <set>
 
@@ -24,6 +25,7 @@
 #include <openssl/evp.h> // @manual
 #include <thrift/common/detail/string.h>
 #include <thrift/compiler/ast/t_typedef.h>
+#include <thrift/compiler/ast/t_union.h>
 #include <thrift/compiler/ast/uri.h>
 #include <thrift/compiler/generate/cpp/name_resolver.h>
 #include <thrift/compiler/generate/java/util.h>
@@ -980,6 +982,62 @@ class t_mstch_java_generator : public t_whisker_generator {
         }
       }
       return count < 2;
+    });
+    // True when this type's serializedSize is a generation-time constant: a
+    // struct (never a union) whose every field is unqualified, fixed-width with
+    // no adapter or wrapper, or a nested struct that satisfies the same rule.
+    // The template emits a serializedSizeBound method for these and sizes
+    // containers of them without traversal. Defined on t_type so it answers
+    // false (rather than erroring) for any other type. Keep in sync with
+    // struct_fixed_width.
+    def.property("has_fixed_size_bound?", [](const t_type& self) {
+      // Structs on the current recursion path: revisiting one is a recursive
+      // reference, which has no fixed bound.
+      std::set<const t_structured*> in_progress;
+      std::function<bool(const t_structured&)> qualifies =
+          [&](const t_structured& s) -> bool {
+        if (s.is<t_union>()) {
+          return false;
+        }
+        if (!in_progress.insert(&s).second) {
+          return false;
+        }
+        bool ok = true;
+        for (const t_field& f : s.fields()) {
+          if (f.qualifier() == t_field_qualifier::optional ||
+              f.qualifier() == t_field_qualifier::terse) {
+            ok = false;
+            break;
+          }
+          if (f.has_structured_annotation(kJavaAdapterUri) ||
+              f.has_structured_annotation(kJavaWrapperUri)) {
+            ok = false;
+            break;
+          }
+          const t_type* deref = &f.type().deref();
+          if (deref->is<t_typedef>() &&
+              t_typedef::get_first_structured_annotation_or_null(
+                  deref, kJavaAdapterUri) != nullptr) {
+            ok = false;
+            break;
+          }
+          const t_type* t = f.type()->get_true_type();
+          if (t->is_bool() || t->is_byte() || t->is_i16() || t->is_i32() ||
+              t->is_i64() || t->is_float() || t->is_double() ||
+              t->is<t_enum>()) {
+            continue;
+          }
+          const auto* nested = t->try_as<t_structured>();
+          if (nested == nullptr || !qualifies(*nested)) {
+            ok = false;
+            break;
+          }
+        }
+        in_progress.erase(&s);
+        return ok;
+      };
+      const auto* s = self.get_true_type()->try_as<t_structured>();
+      return s != nullptr && qualifies(*s);
     });
 
     return std::move(def).make();

@@ -202,6 +202,30 @@ public final class AdaptedStructWithInternBox implements com.facebook.thrift.pay
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + test.fixtures.refs.Empty.serializedSizeBound();
+
+        {
+            test.fixtures.refs.MyField _fbthriftVar0 =
+                this.field2;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                {
+                    long _fbthriftSize0 = _fbthriftVar0.serializedSize();
+                    if (_fbthriftSize0 < 0) {
+                        return -1;
+                    }
+                    _fbthriftSize += _fbthriftSize0;
+                }
+            }
+        }
+        return _fbthriftSize;
+    }
+
     private static class _AdaptedStructWithInternBoxLazy {
         private static final AdaptedStructWithInternBox _DEFAULT = new AdaptedStructWithInternBox.Builder().build();
     }

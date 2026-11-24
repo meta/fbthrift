@@ -289,6 +289,26 @@ public final class StructFieldAdaptedStruct implements com.facebook.thrift.paylo
         oprot.writeStructEnd();
     }
 
+    public static long serializedSizeBound() {
+        return
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + 2 * (com.facebook.thrift.util.ThriftSizes.FIELD
+                    + test.fixtures.adapter.AdaptedStruct.serializedSizeBound())
+                + 2 * (com.facebook.thrift.util.ThriftSizes.FIELD
+                    + test.fixtures.adapter.DirectlyAdaptedStruct.serializedSizeBound());
+    }
+
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + 2 * (com.facebook.thrift.util.ThriftSizes.FIELD
+                    + test.fixtures.adapter.AdaptedStruct.serializedSizeBound())
+                + 2 * (com.facebook.thrift.util.ThriftSizes.FIELD
+                    + test.fixtures.adapter.DirectlyAdaptedStruct.serializedSizeBound());
+        return _fbthriftSize;
+    }
+
     private static class _StructFieldAdaptedStructLazy {
         private static final StructFieldAdaptedStruct _DEFAULT = new StructFieldAdaptedStruct.Builder().build();
     }

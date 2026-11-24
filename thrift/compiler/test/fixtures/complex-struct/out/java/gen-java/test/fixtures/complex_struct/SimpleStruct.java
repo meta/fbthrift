@@ -200,6 +200,22 @@ public final class SimpleStruct implements com.facebook.thrift.payload.ThriftSer
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I64;
+
+        if (this.name != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.name);
+        }
+        return _fbthriftSize;
+    }
+
     private static class _SimpleStructLazy {
         private static final SimpleStruct _DEFAULT = new SimpleStruct.Builder().build();
     }

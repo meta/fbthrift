@@ -257,6 +257,41 @@ public final class MyStructMapFloatThrowExp implements com.facebook.thrift.paylo
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I64;
+
+        {
+            Map<Integer, List<List<Float>>> _fbthriftVar0 =
+                this.mapListOfFloats;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32;
+                for (Map.Entry<Integer, List<List<Float>>> _fbthriftVar1 :
+                    _fbthriftVar0.entrySet()) {
+                    {
+                        List<List<Float>> _fbthriftVar2 =
+                            _fbthriftVar1.getValue();
+                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                        for (List<Float> _fbthriftVar3 :
+                            _fbthriftVar2) {
+                            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                            _fbthriftSize +=
+                                (long) _fbthriftVar3.size()
+                                    * com.facebook.thrift.util.ThriftSizes.FLOAT;
+                        }
+                    }
+                }
+            }
+        }
+        return _fbthriftSize;
+    }
+
     private static class _MyStructMapFloatThrowExpLazy {
         private static final MyStructMapFloatThrowExp _DEFAULT = new MyStructMapFloatThrowExp.Builder().build();
     }

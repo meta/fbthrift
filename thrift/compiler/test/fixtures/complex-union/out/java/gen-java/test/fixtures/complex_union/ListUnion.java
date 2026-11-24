@@ -266,6 +266,43 @@ public final class ListUnion implements com.facebook.thrift.payload.ThriftSerial
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        if (this.id != 0 && this.value == null) {
+            return 0;
+        }
+        long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
+        switch (this.id) {
+
+        case _INTLISTVALUE: {
+            List<Long> _fbthriftVar0 =
+                (List<Long>) this.value;
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+            _fbthriftSize +=
+                (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I64;
+            break;
+        }
+
+        case _STRINGLISTVALUE: {
+            List<String> _fbthriftVar0 =
+                (List<String>) this.value;
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+            _fbthriftSize =
+                com.facebook.thrift.util.ThriftSizes.addSize(
+                    _fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.addSize(
+                        com.facebook.thrift.util.ThriftSizes.LIST,
+                        com.facebook.thrift.util.ThriftSizes.stringList(_fbthriftVar0)));
+            break;
+        }
+
+        default:
+        }
+        return _fbthriftSize;
+    }
+
     public static com.facebook.thrift.payload.Reader<ListUnion> asReader() {
         return ListUnion::read0;
     }

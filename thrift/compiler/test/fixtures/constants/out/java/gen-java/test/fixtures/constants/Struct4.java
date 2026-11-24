@@ -242,6 +242,27 @@ public final class Struct4 implements com.facebook.thrift.payload.ThriftSerializ
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I32;
+
+        if (this.b != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.DOUBLE;
+        }
+
+        if (this.c != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.BYTE;
+        }
+        return _fbthriftSize;
+    }
+
     private static class _Struct4Lazy {
         private static final Struct4 _DEFAULT = new Struct4.Builder().build();
     }

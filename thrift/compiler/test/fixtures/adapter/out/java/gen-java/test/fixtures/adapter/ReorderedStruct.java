@@ -163,6 +163,22 @@ public final class ReorderedStruct implements com.facebook.thrift.payload.Thrift
         oprot.writeStructEnd();
     }
 
+    public static long serializedSizeBound() {
+        return
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + test.fixtures.adapter.DeclaredAfterStruct.serializedSizeBound();
+    }
+
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + test.fixtures.adapter.DeclaredAfterStruct.serializedSizeBound();
+        return _fbthriftSize;
+    }
+
     private static class _ReorderedStructLazy {
         private static final ReorderedStruct _DEFAULT = new ReorderedStruct.Builder().build();
     }

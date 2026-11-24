@@ -97,6 +97,8 @@ public final class {{struct.javaCapitalName}} extends org.apache.thrift.TBaseExc
 
     {{#partial struct_partials.struct_write struct=struct}}
 
+    {{#partial struct_partials.struct_size struct=struct}}
+
     {{#partial struct_partials.default_instance struct=struct}}
 }
 {{/let partial}}

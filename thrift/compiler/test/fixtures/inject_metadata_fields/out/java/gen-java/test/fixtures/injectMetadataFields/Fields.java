@@ -160,6 +160,20 @@ public final class Fields implements com.facebook.thrift.payload.ThriftSerializa
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
+        if (this.injectedField != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.injectedField);
+        }
+        return _fbthriftSize;
+    }
+
     private static class _FieldsLazy {
         private static final Fields _DEFAULT = new Fields.Builder().build();
     }

@@ -215,6 +215,30 @@ public final class AdaptedStructWithTerseInternBox implements com.facebook.thrif
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + test.fixtures.refs.Empty.serializedSizeBound();
+
+        {
+            test.fixtures.refs.MyField _fbthriftVar0 =
+                this.field2;
+            java.util.Objects.requireNonNull(
+                _fbthriftVar0, "field2 must not be null");
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+            {
+                long _fbthriftSize0 = _fbthriftVar0.serializedSize();
+                if (_fbthriftSize0 < 0) {
+                    return -1;
+                }
+                _fbthriftSize += _fbthriftSize0;
+            }
+        }
+        return _fbthriftSize;
+    }
+
     private static class _AdaptedStructWithTerseInternBoxLazy {
         private static final AdaptedStructWithTerseInternBox _DEFAULT = new AdaptedStructWithTerseInternBox.Builder().build();
     }

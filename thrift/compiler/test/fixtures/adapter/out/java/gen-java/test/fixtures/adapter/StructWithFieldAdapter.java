@@ -289,6 +289,25 @@ public final class StructWithFieldAdapter implements com.facebook.thrift.payload
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + 2 * (com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I32);
+
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I32;
+
+        if (this.optBoxedField != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I32;
+        }
+        return _fbthriftSize;
+    }
+
     private static class _StructWithFieldAdapterLazy {
         private static final StructWithFieldAdapter _DEFAULT = new StructWithFieldAdapter.Builder().build();
     }

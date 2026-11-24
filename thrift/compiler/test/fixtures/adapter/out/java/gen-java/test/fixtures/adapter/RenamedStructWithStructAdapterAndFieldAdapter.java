@@ -161,6 +161,22 @@ public final class RenamedStructWithStructAdapterAndFieldAdapter implements com.
         oprot.writeStructEnd();
     }
 
+    public static long serializedSizeBound() {
+        return
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I32;
+    }
+
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I32;
+        return _fbthriftSize;
+    }
+
     private static class _RenamedStructWithStructAdapterAndFieldAdapterLazy {
         private static final RenamedStructWithStructAdapterAndFieldAdapter _DEFAULT = new RenamedStructWithStructAdapterAndFieldAdapter.Builder().build();
     }

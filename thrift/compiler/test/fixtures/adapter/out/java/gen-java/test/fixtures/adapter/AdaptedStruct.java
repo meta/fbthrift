@@ -161,6 +161,22 @@ public final class AdaptedStruct implements com.facebook.thrift.payload.ThriftSe
         oprot.writeStructEnd();
     }
 
+    public static long serializedSizeBound() {
+        return
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I64;
+    }
+
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I64;
+        return _fbthriftSize;
+    }
+
     private static class _AdaptedStructLazy {
         private static final AdaptedStruct _DEFAULT = new AdaptedStruct.Builder().build();
     }

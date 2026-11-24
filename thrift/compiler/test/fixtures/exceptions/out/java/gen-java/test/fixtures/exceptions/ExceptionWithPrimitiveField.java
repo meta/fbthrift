@@ -200,6 +200,22 @@ public final class ExceptionWithPrimitiveField extends org.apache.thrift.TBaseEx
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I32;
+
+        if (this.message != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.message);
+        }
+        return _fbthriftSize;
+    }
+
     private static class _ExceptionWithPrimitiveFieldLazy {
         private static final ExceptionWithPrimitiveField _DEFAULT = new ExceptionWithPrimitiveField.Builder().build();
     }

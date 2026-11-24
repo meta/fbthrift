@@ -160,6 +160,20 @@ public final class MyStructNestedAnnotation implements com.facebook.thrift.paylo
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
+        if (this.name != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.name);
+        }
+        return _fbthriftSize;
+    }
+
     private static class _MyStructNestedAnnotationLazy {
         private static final MyStructNestedAnnotation _DEFAULT = new MyStructNestedAnnotation.Builder().build();
     }

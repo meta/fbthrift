@@ -79,5 +79,196 @@ oprot.writeMapEnd();
 {{#else if type.i64?}}oprot.writeI64(_fbthriftVar{{depth}});
 {{#else if type.float?}}oprot.writeFloat(_fbthriftVar{{depth}});
 {{#else if type.double?}}oprot.writeDouble(_fbthriftVar{{depth}});
-{{/if type.typedef?}}{{!
+  {{/if type.typedef?}}{{!
 }}{{/let partial}}
+
+{{! Sizes a Thrift value for response/sink writers, mirroring write_response_type branch for
+    branch. Takes a type object and a depth integer. Adds the value size to the `_fbthriftSize` long
+    accumulator with max(Binary, Compact worst case) widths, so no protocol calls are needed. }}
+{{#let export partial size_response_type |type depth| captures |types|}}
+  {{#if type.typedef?}}{{!
+}}{{#if (or type.isBinaryString? (and type.java_type? type.binary?))}}    {{#if (int.lt? depth 2)}}
+_fbthriftSize += com.facebook.thrift.util.ThriftSizes.binary(_fbthriftVar{{depth}});
+    {{#else}}
+_fbthriftSize +=
+    com.facebook.thrift.util.ThriftSizes.binary(
+        _fbthriftVar{{depth}});
+    {{/if (int.lt? depth 2)}}
+{{#else}}{{#partial size_response_type type=type.resolved depth=depth}}{{!
+}}{{/if (or type.isBinaryString? (and type.java_type? type.binary?))}}
+{{#else if type.set?}}{{#if (or type.elem_type.bool? type.elem_type.byte? type.elem_type.i16? type.elem_type.i32? type.elem_type.i64? type.elem_type.float? type.elem_type.double? type.elem_type.enum?)}}{{! collections of fixed-width primitives avoid looping }}
+_fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
+    {{#if (int.lt? depth 2)}}
+_fbthriftSize +=
+    (long) _fbthriftVar{{depth}}.size() * {{#partial types.fixed_width type=type.elem_type}};
+    {{#else}}
+_fbthriftSize +=
+    (long) _fbthriftVar{{depth}}.size()
+        * {{#partial types.fixed_width type=type.elem_type}};
+    {{/if (int.lt? depth 2)}}
+    {{#else}}_fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
+for ({{#partial types.java_type type=type.elem_type has_adapter_override=false}} _fbthriftVar{{(int.add depth 1)}} :
+    _fbthriftVar{{depth}}) {
+    {{#partial size_response_type type=type.elem_type depth=(int.add depth 1)}}
+}
+    {{/if (or type.elem_type.bool? type.elem_type.byte? type.elem_type.i16? type.elem_type.i32? type.elem_type.i64? type.elem_type.float? type.elem_type.double? type.elem_type.enum?)}}
+  {{#else if type.list?}}    {{#if (or type.elem_type.bool? type.elem_type.byte? type.elem_type.i16? type.elem_type.i32? type.elem_type.i64? type.elem_type.float? type.elem_type.double? type.elem_type.enum?)}}
+_fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+    {{#if (int.lt? depth 2)}}
+_fbthriftSize +=
+    (long) _fbthriftVar{{depth}}.size() * {{#partial types.fixed_width type=type.elem_type}};
+    {{#else}}
+_fbthriftSize +=
+    (long) _fbthriftVar{{depth}}.size()
+        * {{#partial types.fixed_width type=type.elem_type}};
+    {{/if (int.lt? depth 2)}}
+    {{#else}}_fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+for ({{#partial types.java_type type=type.elem_type has_adapter_override=false}} _fbthriftVar{{(int.add depth 1)}} :
+    _fbthriftVar{{depth}}) {
+    {{#partial size_response_type type=type.elem_type depth=(int.add depth 1)}}
+}
+    {{/if (or type.elem_type.bool? type.elem_type.byte? type.elem_type.i16? type.elem_type.i32? type.elem_type.i64? type.elem_type.float? type.elem_type.double? type.elem_type.enum?)}}
+  {{#else if type.map?}}    {{#if (and (or type.key_type.bool? type.key_type.byte? type.key_type.i16? type.key_type.i32? type.key_type.i64? type.key_type.float? type.key_type.double? type.key_type.enum?) (or type.val_type.bool? type.val_type.byte? type.val_type.i16? type.val_type.i32? type.val_type.i64? type.val_type.float? type.val_type.double? type.val_type.enum?))}}
+_fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+_fbthriftSize += (long) _fbthriftVar{{depth}}.size() * {{#partial types.fixed_width type=type.key_type}};
+_fbthriftSize += (long) _fbthriftVar{{depth}}.size() * {{#partial types.fixed_width type=type.val_type}};
+    {{#else}}_fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+      {{#if (or type.key_type.bool? type.key_type.byte? type.key_type.i16? type.key_type.i32? type.key_type.i64? type.key_type.float? type.key_type.double? type.key_type.enum?)}}
+    {{#if (int.lt? depth 2)}}
+_fbthriftSize +=
+    (long) _fbthriftVar{{depth}}.size() * {{#partial types.fixed_width type=type.key_type}};
+    {{#else}}
+_fbthriftSize +=
+    (long) _fbthriftVar{{depth}}.size()
+        * {{#partial types.fixed_width type=type.key_type}};
+    {{/if (int.lt? depth 2)}}
+      {{/if (or type.key_type.bool? type.key_type.byte? type.key_type.i16? type.key_type.i32? type.key_type.i64? type.key_type.float? type.key_type.double? type.key_type.enum?)}}
+      {{#if (or type.val_type.bool? type.val_type.byte? type.val_type.i16? type.val_type.i32? type.val_type.i64? type.val_type.float? type.val_type.double? type.val_type.enum?)}}
+    {{#if (int.lt? depth 2)}}
+_fbthriftSize +=
+    (long) _fbthriftVar{{depth}}.size() * {{#partial types.fixed_width type=type.val_type}};
+    {{#else}}
+_fbthriftSize +=
+    (long) _fbthriftVar{{depth}}.size()
+        * {{#partial types.fixed_width type=type.val_type}};
+    {{/if (int.lt? depth 2)}}
+      {{/if (or type.val_type.bool? type.val_type.byte? type.val_type.i16? type.val_type.i32? type.val_type.i64? type.val_type.float? type.val_type.double? type.val_type.enum?)}}
+for (Map.Entry<{{#partial types.boxed_type type=type.key_type field_hasAdapter=false}}, {{#partial types.boxed_type type=type.val_type field_hasAdapter=false}}> _fbthriftVar{{(int.add depth 1)}} :
+    _fbthriftVar{{depth}}.entrySet()) {
+      {{#if (or type.key_type.bool? type.key_type.byte? type.key_type.i16? type.key_type.i32? type.key_type.i64? type.key_type.float? type.key_type.double? type.key_type.enum?)}}
+      {{#else}}
+    {
+        {{#partial types.boxed_type type=type.key_type field_hasAdapter=false}} _fbthriftVar{{(int.add depth 2)}} =
+            _fbthriftVar{{(int.add depth 1)}}.getKey();
+        {{#partial size_response_type type=type.key_type depth=(int.add depth 2)}}
+    }
+      {{/if (or type.key_type.bool? type.key_type.byte? type.key_type.i16? type.key_type.i32? type.key_type.i64? type.key_type.float? type.key_type.double? type.key_type.enum?)}}
+      {{#if (or type.val_type.bool? type.val_type.byte? type.val_type.i16? type.val_type.i32? type.val_type.i64? type.val_type.float? type.val_type.double? type.val_type.enum?)}}
+      {{#else}}
+    {
+        {{#partial types.boxed_type type=type.val_type field_hasAdapter=false}} _fbthriftVar{{(int.add depth 2)}} =
+            _fbthriftVar{{(int.add depth 1)}}.getValue();
+        {{#partial size_response_type type=type.val_type depth=(int.add depth 2)}}
+    }
+      {{/if (or type.val_type.bool? type.val_type.byte? type.val_type.i16? type.val_type.i32? type.val_type.i64? type.val_type.float? type.val_type.double? type.val_type.enum?)}}
+}
+    {{/if (and (or type.key_type.bool? type.key_type.byte? type.key_type.i16? type.key_type.i32? type.key_type.i64? type.key_type.float? type.key_type.double? type.key_type.enum?) (or type.val_type.bool? type.val_type.byte? type.val_type.i16? type.val_type.i32? type.val_type.i64? type.val_type.float? type.val_type.double? type.val_type.enum?))}}
+{{#else if type.structured?}}{
+    long _fbthriftSize{{depth}} =
+        _fbthriftVar{{depth}}.serializedSize();
+    if (_fbthriftSize{{depth}} < 0) {
+        return -1;
+    }
+    _fbthriftSize += _fbthriftSize{{depth}};
+}
+{{#else if type.enum?}}    {{#if (int.lt? depth 2)}}
+_fbthriftSize += com.facebook.thrift.util.ThriftSizes.ENUM;
+    {{#else}}
+_fbthriftSize +=
+    com.facebook.thrift.util.ThriftSizes.ENUM;
+    {{/if (int.lt? depth 2)}}
+{{#else if type.binary?}}{{!
+}}{{#if (not type.java_type?)}}    {{#if (int.lt? depth 2)}}
+_fbthriftSize += com.facebook.thrift.util.ThriftSizes.binary(_fbthriftVar{{depth}}.length);
+    {{#else}}
+_fbthriftSize +=
+    com.facebook.thrift.util.ThriftSizes.binary(
+        _fbthriftVar{{depth}}.length);
+    {{/if (int.lt? depth 2)}}
+{{#else}}    {{#if (int.lt? depth 2)}}
+_fbthriftSize += com.facebook.thrift.util.ThriftSizes.binary(_fbthriftVar{{depth}});
+    {{#else}}
+_fbthriftSize +=
+    com.facebook.thrift.util.ThriftSizes.binary(
+        _fbthriftVar{{depth}});
+    {{/if (int.lt? depth 2)}}
+{{/if (not type.java_type?)}}{{!
+}}{{#else if type.string?}}    {{#if (int.lt? depth 2)}}
+_fbthriftSize += com.facebook.thrift.util.ThriftSizes.string(_fbthriftVar{{depth}});
+    {{#else}}
+_fbthriftSize +=
+    com.facebook.thrift.util.ThriftSizes.string(
+        _fbthriftVar{{depth}});
+    {{/if (int.lt? depth 2)}}
+{{#else if type.bool?}}    {{#if (int.lt? depth 2)}}
+_fbthriftSize += com.facebook.thrift.util.ThriftSizes.BOOL;
+    {{#else}}
+_fbthriftSize +=
+    com.facebook.thrift.util.ThriftSizes.BOOL;
+    {{/if (int.lt? depth 2)}}
+{{#else if type.byte?}}    {{#if (int.lt? depth 2)}}
+_fbthriftSize += com.facebook.thrift.util.ThriftSizes.BYTE;
+    {{#else}}
+_fbthriftSize +=
+    com.facebook.thrift.util.ThriftSizes.BYTE;
+    {{/if (int.lt? depth 2)}}
+{{#else if type.i16?}}    {{#if (int.lt? depth 2)}}
+_fbthriftSize += com.facebook.thrift.util.ThriftSizes.I16;
+    {{#else}}
+_fbthriftSize +=
+    com.facebook.thrift.util.ThriftSizes.I16;
+    {{/if (int.lt? depth 2)}}
+{{#else if type.i32?}}    {{#if (int.lt? depth 2)}}
+_fbthriftSize += com.facebook.thrift.util.ThriftSizes.I32;
+    {{#else}}
+_fbthriftSize +=
+    com.facebook.thrift.util.ThriftSizes.I32;
+    {{/if (int.lt? depth 2)}}
+{{#else if type.i64?}}    {{#if (int.lt? depth 2)}}
+_fbthriftSize += com.facebook.thrift.util.ThriftSizes.I64;
+    {{#else}}
+_fbthriftSize +=
+    com.facebook.thrift.util.ThriftSizes.I64;
+    {{/if (int.lt? depth 2)}}
+{{#else if type.float?}}    {{#if (int.lt? depth 2)}}
+_fbthriftSize += com.facebook.thrift.util.ThriftSizes.FLOAT;
+    {{#else}}
+_fbthriftSize +=
+    com.facebook.thrift.util.ThriftSizes.FLOAT;
+    {{/if (int.lt? depth 2)}}
+{{#else if type.double?}}    {{#if (int.lt? depth 2)}}
+_fbthriftSize += com.facebook.thrift.util.ThriftSizes.DOUBLE;
+    {{#else}}
+_fbthriftSize +=
+    com.facebook.thrift.util.ThriftSizes.DOUBLE;
+    {{/if (int.lt? depth 2)}}
+  {{/if type.typedef?}}{{!
+}}{{/let partial}}
+
+{{! Sizes one response value for a response/sink writer sizeHint: the field header, the value and
+    the stop, clamped. Fixed-width values return the constant directly, without declaring a local;
+    anything else is sized with size_response_type. `from_response` selects the `_r` value (request
+   /response writers) over the `_o` value (stream/sink factories). }}
+{{#let export partial response_size_body |type from_response| captures |types size_response_type|}}
+{{#if (or type.bool? type.byte? type.i16? type.i32? type.i64? type.float? type.double? type.enum?)}}
+return com.facebook.thrift.util.ThriftSizes.FIELD
+    + {{#partial types.fixed_width type=type}}
+    + com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+{{#else}}
+{{#partial types.java_type type=type has_adapter_override=false}} _fbthriftVar0 = ({{#partial types.java_type type=type has_adapter_override=false}}) {{#if from_response}}_r{{#else}}_o{{/if from_response}};
+long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD;
+{{#partial size_response_type type=type depth=0}}
+_fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+return com.facebook.thrift.util.ThriftSizes.clampToInt(_fbthriftSize);
+{{/if (or type.bool? type.byte? type.i16? type.i32? type.i64? type.float? type.double? type.enum?)}}
+{{/let partial}}

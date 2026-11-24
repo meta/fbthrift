@@ -163,6 +163,20 @@ public final class Person2 implements com.facebook.thrift.payload.ThriftSerializ
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
+        if (this.name != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.name);
+        }
+        return _fbthriftSize;
+    }
+
     private static class _Person2Lazy {
         private static final Person2 _DEFAULT = new Person2.Builder().build();
     }

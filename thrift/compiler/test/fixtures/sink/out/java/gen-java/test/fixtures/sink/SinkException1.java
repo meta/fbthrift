@@ -164,6 +164,20 @@ public final class SinkException1 extends org.apache.thrift.TBaseException imple
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
+        if (this.reason != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.reason);
+        }
+        return _fbthriftSize;
+    }
+
     private static class _SinkException1Lazy {
         private static final SinkException1 _DEFAULT = new SinkException1.Builder().build();
     }

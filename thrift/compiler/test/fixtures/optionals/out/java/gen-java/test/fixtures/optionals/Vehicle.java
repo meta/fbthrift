@@ -328,6 +328,42 @@ public final class Vehicle implements com.facebook.thrift.payload.ThriftSerializ
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + test.fixtures.optionals.Color.serializedSizeBound();
+
+        if (this.licensePlate != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.licensePlate);
+        }
+
+        if (this.description != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.description);
+        }
+
+        if (this.name != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.name);
+        }
+
+        if (this.hasAC != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.BOOL;
+        }
+        return _fbthriftSize;
+    }
+
     private static class _VehicleLazy {
         private static final Vehicle _DEFAULT = new Vehicle.Builder().build();
     }

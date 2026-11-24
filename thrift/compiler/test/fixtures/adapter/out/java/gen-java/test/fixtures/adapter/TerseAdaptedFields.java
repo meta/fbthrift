@@ -265,6 +265,37 @@ public final class TerseAdaptedFields implements com.facebook.thrift.payload.Thr
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I32;
+
+        java.util.Objects.requireNonNull(
+            this.stringField, "stringField must not be null");
+        if (!com.facebook.thrift.util.IntrinsicDefaults.isDefault(this.stringField)) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.stringField);
+        }
+
+        {
+            Set<Integer> _fbthriftVar0 =
+                this.setField;
+            java.util.Objects.requireNonNull(
+                _fbthriftVar0, "setField must not be null");
+            if (!com.facebook.thrift.util.IntrinsicDefaults.isDefault(_fbthriftVar0)) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32;
+            }
+        }
+        return _fbthriftSize;
+    }
+
     private static class _TerseAdaptedFieldsLazy {
         private static final TerseAdaptedFields _DEFAULT = new TerseAdaptedFields.Builder().build();
     }

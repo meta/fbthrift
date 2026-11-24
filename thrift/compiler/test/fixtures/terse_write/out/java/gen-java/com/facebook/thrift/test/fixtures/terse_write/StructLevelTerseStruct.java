@@ -827,6 +827,107 @@ public final class StructLevelTerseStruct implements com.facebook.thrift.payload
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.BOOL
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.BYTE
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I16
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I32
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I64
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.FLOAT
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.DOUBLE
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.ENUM
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.test.fixtures.terse_write.MyStruct.serializedSizeBound();
+
+        java.util.Objects.requireNonNull(
+            this.stringField, "stringField must not be null");
+        if (!com.facebook.thrift.util.IntrinsicDefaults.isDefault(this.stringField)) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.stringField);
+        }
+
+        {
+            byte[] _fbthriftVar0 =
+                this.binaryField;
+            java.util.Objects.requireNonNull(
+                _fbthriftVar0, "binaryField must not be null");
+            if (!com.facebook.thrift.util.IntrinsicDefaults.isDefault(_fbthriftVar0)) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.binary(_fbthriftVar0);
+            }
+        }
+
+        {
+            List<Short> _fbthriftVar0 =
+                this.listField;
+            java.util.Objects.requireNonNull(
+                _fbthriftVar0, "listField must not be null");
+            if (!com.facebook.thrift.util.IntrinsicDefaults.isDefault(_fbthriftVar0)) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I16;
+            }
+        }
+
+        {
+            Set<Short> _fbthriftVar0 =
+                this.setField;
+            java.util.Objects.requireNonNull(
+                _fbthriftVar0, "setField must not be null");
+            if (!com.facebook.thrift.util.IntrinsicDefaults.isDefault(_fbthriftVar0)) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I16;
+            }
+        }
+
+        {
+            Map<Short, Short> _fbthriftVar0 =
+                this.mapField;
+            java.util.Objects.requireNonNull(
+                _fbthriftVar0, "mapField must not be null");
+            if (!com.facebook.thrift.util.IntrinsicDefaults.isDefault(_fbthriftVar0)) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I16;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I16;
+            }
+        }
+
+        {
+            com.facebook.thrift.test.fixtures.terse_write.MyUnion _fbthriftVar0 =
+                this.unionField;
+            java.util.Objects.requireNonNull(
+                _fbthriftVar0, "unionField must not be null");
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+            {
+                long _fbthriftSize0 = _fbthriftVar0.serializedSize();
+                if (_fbthriftSize0 < 0) {
+                    return -1;
+                }
+                _fbthriftSize += _fbthriftSize0;
+            }
+        }
+        return _fbthriftSize;
+    }
+
     private static class _StructLevelTerseStructLazy {
         private static final StructLevelTerseStruct _DEFAULT = new StructLevelTerseStruct.Builder().build();
     }

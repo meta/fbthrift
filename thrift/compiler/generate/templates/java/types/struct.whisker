@@ -441,6 +441,191 @@ public void write0(TProtocol oprot) throws TException {
 }
 {{/let partial}}
 
+{{! Joined constant: newlines live only inside taken branches and the each-close sits
+    inline with a right tilde, so no iteration (including a skipped bound check) leaks a
+    trailing newline and the caller's ";" stays glued to the last line. }}
+{{#let export partial struct_fixed_width |struct| captures |types|}}
+  {{#if struct.folded_fixed_widths}}
+com.facebook.thrift.util.ThriftSizes.FIELD_STOP{{#each struct.folded_fixed_widths as |g|}}{{#if g.bound_struct}}{{#if g.type.has_fixed_size_bound?}}{{#if g.single}}
+            + com.facebook.thrift.util.ThriftSizes.FIELD
+                + {{g.type.program.javaPackage}}.{{g.type.javaCapitalName}}.serializedSizeBound(){{#else}}
+            + {{g.count}} * (com.facebook.thrift.util.ThriftSizes.FIELD
+                + {{g.type.program.javaPackage}}.{{g.type.javaCapitalName}}.serializedSizeBound()){{/if g.single}}{{/if g.type.has_fixed_size_bound?}}{{#else}}{{#if g.single}}
+            + com.facebook.thrift.util.ThriftSizes.FIELD
+                + {{#partial types.fixed_width type=g.type}}{{#else}}
+            + {{g.count}} * (com.facebook.thrift.util.ThriftSizes.FIELD
+                + {{#partial types.fixed_width type=g.type}}){{/if g.single}}{{/if g.bound_struct}}{{/each ~}}
+{{#else}}com.facebook.thrift.util.ThriftSizes.FIELD_STOP{{/if struct.folded_fixed_widths}}{{/let partial ~}}
+
+{{! Sizes a nullable adapted or wrapped fixed-width field unconditionally: write0 converts
+    unconditionally and writes when the converted value is non-null, so always adding the width
+    is an upper bound. No adapter or wrapper call, no local. Terse fields mirror write0's throw. }}
+{{#let export partial struct_adapted_stored_fixed |field| captures |types|}}
+
+    {{#if field.terse?}}
+java.util.Objects.requireNonNull(
+    this.{{field.javaName}}, "{{field.javaName}} must not be null");
+    {{/if field.terse?}}
+_fbthriftSize +=
+    com.facebook.thrift.util.ThriftSizes.FIELD
+        + {{#partial types.fixed_width type=field.type}};
+{{/let partial}}
+
+{{! Sizes a nullable adapted or wrapped variable-size field by converting and sizing the result, as
+    before: variable-size adapters run once here and once in write0. }}
+{{#let export partial struct_adapted_converted |field| captures |types field_helpers|}}
+
+{
+    {{#partial types.adapted_field_boxed_type type=field.type field_hasAdapter=field.hasAdapter?}} _fbthriftVar0 =
+        {{#partial field_helpers.to_thrift_start field=field}}this.{{field.javaName}}{{#partial field_helpers.to_thrift_end field=field}};
+    {{#if field.terse?}}
+    java.util.Objects.requireNonNull(
+        _fbthriftVar0, "{{field.javaName}} must not be null");
+    {{#if field.type.structured?}}
+    _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+    {{#partial types.size_type field=field type=field.type depth=0}}
+    {{#else}}
+    if (!com.facebook.thrift.util.IntrinsicDefaults.isDefault(_fbthriftVar0)) {
+        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+        {{#partial types.size_type field=field type=field.type depth=0}}
+    }
+    {{/if field.type.structured?}}
+    {{#else}}
+    if (_fbthriftVar0 != null) {
+        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+        {{#partial types.size_type field=field type=field.type depth=0}}
+    }
+    {{/if field.terse?}}
+}
+{{/let partial}}
+
+{{! Sizes one nullable adapted or wrapped field: fixed widths count unconditionally off the
+    stored value; anything else converts. }}
+{{#let export partial struct_adapted_size |field| captures |struct_adapted_stored_fixed struct_adapted_converted|}}
+    {{#if (or field.type.bool? field.type.byte? field.type.i16? field.type.i32? field.type.i64? field.type.float? field.type.double? field.type.enum?)}}
+    {{#partial struct_adapted_stored_fixed field=field}}
+    {{#else}}
+    {{#partial struct_adapted_converted field=field}}
+    {{/if (or field.type.bool? field.type.byte? field.type.i16? field.type.i32? field.type.i64? field.type.float? field.type.double? field.type.enum?)}}
+{{/let partial}}
+
+{{#let export partial struct_size |struct| captures |types field_helpers struct_fixed_width struct_adapted_size|}}
+{{#if struct.has_fixed_size_bound?}}
+public static long serializedSizeBound() {
+    return
+        {{#partial struct_fixed_width struct=struct}};
+}
+
+{{/if struct.has_fixed_size_bound?}}
+@java.lang.Override
+public long serializedSize() {
+    long _fbthriftSize =
+        {{#partial struct_fixed_width struct=struct}};
+    {{#each struct.fields_in_serialization_order as |field|}}
+    {{#if field.isNullableOrOptionalNotEnum?}}
+    {{#if field.hasAdapterOrWrapper?}}
+    {{#partial struct_adapted_size field=field}}
+    {{#else}}
+    {{#if (or field.type.bool? field.type.byte? field.type.i16? field.type.i32? field.type.i64? field.type.float? field.type.double? field.type.enum?)}}
+
+    if (this.{{field.javaName}} != null) {
+        _fbthriftSize +=
+            com.facebook.thrift.util.ThriftSizes.FIELD
+                + {{#partial types.fixed_width type=field.type}};
+    }
+    {{#else if (and field.type.string? (not field.type.isBinaryString?))}}
+    {{#if field.terse?}}
+
+    java.util.Objects.requireNonNull(
+        this.{{field.javaName}}, "{{field.javaName}} must not be null");
+    if (!com.facebook.thrift.util.IntrinsicDefaults.isDefault(this.{{field.javaName}})) {
+        _fbthriftSize +=
+            com.facebook.thrift.util.ThriftSizes.FIELD
+                + com.facebook.thrift.util.ThriftSizes.string(
+                    this.{{field.javaName}});
+    }
+    {{#else}}
+
+    if (this.{{field.javaName}} != null) {
+        _fbthriftSize +=
+            com.facebook.thrift.util.ThriftSizes.FIELD
+                + com.facebook.thrift.util.ThriftSizes.string(
+                    this.{{field.javaName}});
+    }
+    {{/if field.terse?}}
+    {{#else}}
+    {{#if (and field.type.structured? field.type.has_fixed_size_bound?)}}
+    {{#if field.optional?}}
+
+    if (this.{{field.javaName}} != null) {
+        _fbthriftSize +=
+            com.facebook.thrift.util.ThriftSizes.FIELD
+                + {{field.type.true_type.program.javaPackage}}.{{field.type.true_type.javaCapitalName}}.serializedSizeBound();
+    }
+    {{/if field.optional?}}
+    {{#else}}
+
+    {
+        {{#partial types.thrift_field_type field=field}} _fbthriftVar0 =
+            this.{{field.javaName}};
+        {{#if field.terse?}}
+        java.util.Objects.requireNonNull(
+            _fbthriftVar0, "{{field.javaName}} must not be null");
+        {{#if field.type.structured?}}
+        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+        {{#partial types.size_type field=field type=field.type depth=0}}
+        {{#else}}
+        if (!com.facebook.thrift.util.IntrinsicDefaults.isDefault(_fbthriftVar0)) {
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+            {{#partial types.size_type field=field type=field.type depth=0}}
+        }
+        {{/if field.type.structured?}}
+        {{#else}}
+        if (_fbthriftVar0 != null) {
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+            {{#partial types.size_type field=field type=field.type depth=0}}
+        }
+        {{/if field.terse?}}
+    }
+    {{/if (and field.type.structured? field.type.has_fixed_size_bound?)}}
+    {{/if (or field.type.bool? field.type.byte? field.type.i16? field.type.i32? field.type.i64? field.type.float? field.type.double? field.type.enum?)}}
+    {{/if field.hasAdapterOrWrapper?}}
+    {{#else}}
+    {{#if (or field.type.bool? field.type.byte? field.type.i16? field.type.i32? field.type.i64? field.type.float? field.type.double? field.type.enum?)}}
+    {{#else}}
+
+    {
+        {{#if field.hasAdapterOrWrapper?}}
+        {{#partial types.adapted_field_boxed_type type=field.type field_hasAdapter=field.hasAdapter?}} _fbthriftVar0 =
+            {{#partial field_helpers.to_thrift_start field=field}}this.{{field.javaName}}{{#partial field_helpers.to_thrift_end field=field}};
+        {{#else}}
+        {{#partial types.thrift_field_type field=field}} _fbthriftVar0 =
+            this.{{field.javaName}};
+        {{/if field.hasAdapterOrWrapper?}}
+        {{#if field.terse?}}
+        if (!com.facebook.thrift.util.IntrinsicDefaults.isDefault(_fbthriftVar0)) {
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+            {{#partial types.size_type field=field type=field.type depth=0}}
+        }
+        {{#else}}
+        {{#if field.hasAdapterOrWrapper?}}
+        if (_fbthriftVar0 != null) {
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+            {{#partial types.size_type field=field type=field.type depth=0}}
+        }
+        {{#else}}
+        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+        {{#partial types.size_type field=field type=field.type depth=0}}
+        {{/if field.hasAdapterOrWrapper?}}
+        {{/if field.terse?}}
+    }
+    {{/if (or field.type.bool? field.type.byte? field.type.i16? field.type.i32? field.type.i64? field.type.float? field.type.double? field.type.enum?)}}
+    {{/if field.isNullableOrOptionalNotEnum?}}
+    {{/each}}
+    return _fbthriftSize;
+}
+{{/let partial}}
+
 {{#let export partial exception_message |struct|}}
 @java.lang.Override
 public String getMessage() {
@@ -448,7 +633,7 @@ public String getMessage() {
 }
 {{/let partial}}
 
-{{#let export partial struct_class |struct| captures |common types field_helpers thrift_constructor struct_builder adapter_definition struct_to_string struct_equals struct_hash_code struct_read struct_write default_instance|}}
+{{#let export partial struct_class |struct| captures |common types field_helpers thrift_constructor struct_builder adapter_definition struct_to_string struct_equals struct_hash_code struct_read struct_write struct_fixed_width struct_size default_instance|}}
 {{#partial common.auto_generated}}
 
 package {{struct.program.javaPackage}};
@@ -538,6 +723,8 @@ public final class {{struct.javaCapitalName}} implements com.facebook.thrift.pay
     {{#partial struct_read struct=struct}}
 
     {{#partial struct_write struct=struct}}
+
+    {{#partial struct_size struct=struct}}
 
     {{#if (not struct.asBean?)}}
     {{#partial default_instance struct=struct}}

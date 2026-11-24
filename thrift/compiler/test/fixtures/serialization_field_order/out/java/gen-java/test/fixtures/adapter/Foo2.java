@@ -238,6 +238,22 @@ public final class Foo2 implements com.facebook.thrift.payload.ThriftSerializabl
         oprot.writeStructEnd();
     }
 
+    public static long serializedSizeBound() {
+        return
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + 3 * (com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I32);
+    }
+
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + 3 * (com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I32);
+        return _fbthriftSize;
+    }
+
     private static class _Foo2Lazy {
         private static final Foo2 _DEFAULT = new Foo2.Builder().build();
     }

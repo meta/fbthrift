@@ -282,6 +282,24 @@ public final class MyStruct1 implements com.facebook.thrift.payload.ThriftSerial
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + 2 * (com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I64)
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + test.fixtures.basic_swift_bean.MyDataItem.serializedSizeBound();
+
+        if (this.myStringField != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.myStringField);
+        }
+        return _fbthriftSize;
+    }
+
     private static class _MyStruct1Lazy {
         private static final MyStruct1 _DEFAULT = new MyStruct1.Builder().build();
     }

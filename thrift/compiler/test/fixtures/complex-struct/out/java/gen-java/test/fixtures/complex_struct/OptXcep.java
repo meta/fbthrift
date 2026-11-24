@@ -201,6 +201,26 @@ public final class OptXcep extends org.apache.thrift.TBaseException implements c
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
+        if (this.message != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.message);
+        }
+
+        if (this.errorCode != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I32;
+        }
+        return _fbthriftSize;
+    }
+
     private static class _OptXcepLazy {
         private static final OptXcep _DEFAULT = new OptXcep.Builder().build();
     }

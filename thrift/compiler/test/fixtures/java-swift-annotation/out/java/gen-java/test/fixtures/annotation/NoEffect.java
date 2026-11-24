@@ -200,6 +200,22 @@ public final class NoEffect implements com.facebook.thrift.payload.ThriftSeriali
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I32;
+
+        if (this.anSnakeString != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.anSnakeString);
+        }
+        return _fbthriftSize;
+    }
+
     private static class _NoEffectLazy {
         private static final NoEffect _DEFAULT = new NoEffect.Builder().build();
     }

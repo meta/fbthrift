@@ -478,6 +478,86 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        if (this.id != 0 && this.value == null) {
+            return 0;
+        }
+        long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
+        switch (this.id) {
+
+        case _MYENUM: {
+            test.fixtures.complex_struct.MyEnum _fbthriftVar0 =
+                (test.fixtures.complex_struct.MyEnum) this.value;
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.ENUM;
+            break;
+        }
+
+        case _MYSTRUCT: {
+            test.fixtures.complex_struct.MyStruct _fbthriftVar0 =
+                (test.fixtures.complex_struct.MyStruct) this.value;
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+            {
+                long _fbthriftSize0 = _fbthriftVar0.serializedSize();
+                if (_fbthriftSize0 < 0) {
+                    return -1;
+                }
+                _fbthriftSize += _fbthriftSize0;
+            }
+            break;
+        }
+
+        case _MYDATAITEM: {
+            test.fixtures.complex_struct.MyDataItem _fbthriftVar0 =
+                (test.fixtures.complex_struct.MyDataItem) this.value;
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+            {
+                long _fbthriftSize0 = _fbthriftVar0.serializedSize();
+                if (_fbthriftSize0 < 0) {
+                    return -1;
+                }
+                _fbthriftSize += _fbthriftSize0;
+            }
+            break;
+        }
+
+        case _COMPLEXNESTEDSTRUCT: {
+            test.fixtures.complex_struct.ComplexNestedStruct _fbthriftVar0 =
+                (test.fixtures.complex_struct.ComplexNestedStruct) this.value;
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+            {
+                long _fbthriftSize0 = _fbthriftVar0.serializedSize();
+                if (_fbthriftSize0 < 0) {
+                    return -1;
+                }
+                _fbthriftSize += _fbthriftSize0;
+            }
+            break;
+        }
+
+        case _LONGVALUE: {
+            long _fbthriftVar0 =
+                (long) this.value;
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.I64;
+            break;
+        }
+
+        case _INTVALUE: {
+            int _fbthriftVar0 =
+                (int) this.value;
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.I32;
+            break;
+        }
+
+        default:
+        }
+        return _fbthriftSize;
+    }
+
     public static com.facebook.thrift.payload.Reader<MyUnion> asReader() {
         return MyUnion::read0;
     }

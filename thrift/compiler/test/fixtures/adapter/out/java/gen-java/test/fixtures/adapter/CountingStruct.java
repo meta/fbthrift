@@ -247,6 +247,32 @@ public final class CountingStruct implements com.facebook.thrift.payload.ThriftS
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
+        if (this.regularInt != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I64;
+        }
+
+        if (this.countingInt != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I64;
+        }
+
+        if (this.regularString != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.regularString);
+        }
+        return _fbthriftSize;
+    }
+
     private static class _CountingStructLazy {
         private static final CountingStruct _DEFAULT = new CountingStruct.Builder().build();
     }

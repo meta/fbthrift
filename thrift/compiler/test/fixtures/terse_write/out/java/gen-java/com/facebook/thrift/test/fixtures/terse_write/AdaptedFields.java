@@ -250,6 +250,15 @@ public final class AdaptedFields implements com.facebook.thrift.payload.ThriftSe
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + 3 * (com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I32);
+        return _fbthriftSize;
+    }
+
     private static class _AdaptedFieldsLazy {
         private static final AdaptedFields _DEFAULT = new AdaptedFields.Builder().build();
     }

@@ -212,7 +212,9 @@ public class SinkServiceRpcServerHandler
   }
 
   private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_method = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
-    return oprot -> {
+    return new com.facebook.thrift.payload.Writer() {
+      @java.lang.Override
+      public void write(TProtocol oprot) throws org.apache.thrift.TException {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
 
@@ -226,6 +228,22 @@ public class SinkServiceRpcServerHandler
       } catch (Throwable _e) {
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
+      }
+      }
+      @java.lang.Override
+      public int sizeHint() {
+        test.fixtures.sink.FinalResponse _fbthriftVar0 = (test.fixtures.sink.FinalResponse) _o;
+        long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD;
+        {
+            long _fbthriftSize0 =
+                _fbthriftVar0.serializedSize();
+            if (_fbthriftSize0 < 0) {
+                return -1;
+            }
+            _fbthriftSize += _fbthriftSize0;
+        }
+        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+        return com.facebook.thrift.util.ThriftSizes.clampToInt(_fbthriftSize);
       }
     };
   };
@@ -247,7 +265,9 @@ public class SinkServiceRpcServerHandler
   }
 
   private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_methodAndReponse = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
-    return oprot -> {
+    return new com.facebook.thrift.payload.Writer() {
+      @java.lang.Override
+      public void write(TProtocol oprot) throws org.apache.thrift.TException {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
 
@@ -262,11 +282,29 @@ public class SinkServiceRpcServerHandler
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
       }
+      }
+      @java.lang.Override
+      public int sizeHint() {
+        test.fixtures.sink.FinalResponse _fbthriftVar0 = (test.fixtures.sink.FinalResponse) _o;
+        long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD;
+        {
+            long _fbthriftSize0 =
+                _fbthriftVar0.serializedSize();
+            if (_fbthriftSize0 < 0) {
+                return -1;
+            }
+            _fbthriftSize += _fbthriftSize0;
+        }
+        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+        return com.facebook.thrift.util.ThriftSizes.clampToInt(_fbthriftSize);
+      }
     };
   };
 
   private final static com.facebook.thrift.server.ResponseWriterFactory _first_ResponseWriterFactory_methodAndReponse = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
-    return oprot -> {
+    return new com.facebook.thrift.payload.Writer() {
+      @java.lang.Override
+      public void write(TProtocol oprot) throws org.apache.thrift.TException {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
 
@@ -282,6 +320,22 @@ public class SinkServiceRpcServerHandler
       } catch (Throwable _e) {
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
+      }
+      }
+      @java.lang.Override
+      public int sizeHint() {
+        test.fixtures.sink.InitialResponse _fbthriftVar0 = (test.fixtures.sink.InitialResponse) _o;
+        long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD;
+        {
+            long _fbthriftSize0 =
+                _fbthriftVar0.serializedSize();
+            if (_fbthriftSize0 < 0) {
+                return -1;
+            }
+            _fbthriftSize += _fbthriftSize0;
+        }
+        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+        return com.facebook.thrift.util.ThriftSizes.clampToInt(_fbthriftSize);
       }
     };
   };
@@ -303,7 +357,9 @@ public class SinkServiceRpcServerHandler
   }
 
   private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_methodThrow = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
-    return oprot -> {
+    return new com.facebook.thrift.payload.Writer() {
+      @java.lang.Override
+      public void write(TProtocol oprot) throws org.apache.thrift.TException {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
 
@@ -317,6 +373,22 @@ public class SinkServiceRpcServerHandler
       } catch (Throwable _e) {
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
+      }
+      }
+      @java.lang.Override
+      public int sizeHint() {
+        test.fixtures.sink.FinalResponse _fbthriftVar0 = (test.fixtures.sink.FinalResponse) _o;
+        long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD;
+        {
+            long _fbthriftSize0 =
+                _fbthriftVar0.serializedSize();
+            if (_fbthriftSize0 < 0) {
+                return -1;
+            }
+            _fbthriftSize += _fbthriftSize0;
+        }
+        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+        return com.facebook.thrift.util.ThriftSizes.clampToInt(_fbthriftSize);
       }
     };
   };
@@ -339,7 +411,9 @@ public class SinkServiceRpcServerHandler
   }
 
   private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_methodSinkThrow = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
-    return oprot -> {
+    return new com.facebook.thrift.payload.Writer() {
+      @java.lang.Override
+      public void write(TProtocol oprot) throws org.apache.thrift.TException {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
 
@@ -353,6 +427,22 @@ public class SinkServiceRpcServerHandler
       } catch (Throwable _e) {
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
+      }
+      }
+      @java.lang.Override
+      public int sizeHint() {
+        test.fixtures.sink.FinalResponse _fbthriftVar0 = (test.fixtures.sink.FinalResponse) _o;
+        long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD;
+        {
+            long _fbthriftSize0 =
+                _fbthriftVar0.serializedSize();
+            if (_fbthriftSize0 < 0) {
+                return -1;
+            }
+            _fbthriftSize += _fbthriftSize0;
+        }
+        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+        return com.facebook.thrift.util.ThriftSizes.clampToInt(_fbthriftSize);
       }
     };
   };
@@ -374,7 +464,9 @@ public class SinkServiceRpcServerHandler
   }
 
   private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_methodFinalThrow = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
-    return oprot -> {
+    return new com.facebook.thrift.payload.Writer() {
+      @java.lang.Override
+      public void write(TProtocol oprot) throws org.apache.thrift.TException {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
 
@@ -388,6 +480,22 @@ public class SinkServiceRpcServerHandler
       } catch (Throwable _e) {
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
+      }
+      }
+      @java.lang.Override
+      public int sizeHint() {
+        test.fixtures.sink.FinalResponse _fbthriftVar0 = (test.fixtures.sink.FinalResponse) _o;
+        long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD;
+        {
+            long _fbthriftSize0 =
+                _fbthriftVar0.serializedSize();
+            if (_fbthriftSize0 < 0) {
+                return -1;
+            }
+            _fbthriftSize += _fbthriftSize0;
+        }
+        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+        return com.facebook.thrift.util.ThriftSizes.clampToInt(_fbthriftSize);
       }
     };
   };
@@ -410,7 +518,9 @@ public class SinkServiceRpcServerHandler
   }
 
   private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_methodBothThrow = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
-    return oprot -> {
+    return new com.facebook.thrift.payload.Writer() {
+      @java.lang.Override
+      public void write(TProtocol oprot) throws org.apache.thrift.TException {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
 
@@ -424,6 +534,22 @@ public class SinkServiceRpcServerHandler
       } catch (Throwable _e) {
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
+      }
+      }
+      @java.lang.Override
+      public int sizeHint() {
+        test.fixtures.sink.FinalResponse _fbthriftVar0 = (test.fixtures.sink.FinalResponse) _o;
+        long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD;
+        {
+            long _fbthriftSize0 =
+                _fbthriftVar0.serializedSize();
+            if (_fbthriftSize0 < 0) {
+                return -1;
+            }
+            _fbthriftSize += _fbthriftSize0;
+        }
+        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+        return com.facebook.thrift.util.ThriftSizes.clampToInt(_fbthriftSize);
       }
     };
   };
@@ -445,7 +571,9 @@ public class SinkServiceRpcServerHandler
   }
 
   private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_methodFast = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
-    return oprot -> {
+    return new com.facebook.thrift.payload.Writer() {
+      @java.lang.Override
+      public void write(TProtocol oprot) throws org.apache.thrift.TException {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
 
@@ -459,6 +587,22 @@ public class SinkServiceRpcServerHandler
       } catch (Throwable _e) {
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
+      }
+      }
+      @java.lang.Override
+      public int sizeHint() {
+        test.fixtures.sink.FinalResponse _fbthriftVar0 = (test.fixtures.sink.FinalResponse) _o;
+        long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD;
+        {
+            long _fbthriftSize0 =
+                _fbthriftVar0.serializedSize();
+            if (_fbthriftSize0 < 0) {
+                return -1;
+            }
+            _fbthriftSize += _fbthriftSize0;
+        }
+        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+        return com.facebook.thrift.util.ThriftSizes.clampToInt(_fbthriftSize);
       }
     };
   };

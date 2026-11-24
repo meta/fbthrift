@@ -482,6 +482,87 @@ public final class ComplexUnion implements com.facebook.thrift.payload.ThriftSer
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        if (this.id != 0 && this.value == null) {
+            return 0;
+        }
+        long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
+        switch (this.id) {
+
+        case _INTVALUE: {
+            long _fbthriftVar0 =
+                (long) this.value;
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.I64;
+            break;
+        }
+
+        case _STRINGVALUE: {
+            String _fbthriftVar0 =
+                (String) this.value;
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.string(_fbthriftVar0);
+            break;
+        }
+
+        case _INTLISTVALUE: {
+            List<Long> _fbthriftVar0 =
+                (List<Long>) this.value;
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+            _fbthriftSize +=
+                (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I64;
+            break;
+        }
+
+        case _STRINGLISTVALUE: {
+            List<String> _fbthriftVar0 =
+                (List<String>) this.value;
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+            _fbthriftSize =
+                com.facebook.thrift.util.ThriftSizes.addSize(
+                    _fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.addSize(
+                        com.facebook.thrift.util.ThriftSizes.LIST,
+                        com.facebook.thrift.util.ThriftSizes.stringList(_fbthriftVar0)));
+            break;
+        }
+
+        case _TYPEDEFVALUE: {
+            Map<Short, String> _fbthriftVar0 =
+                (Map<Short, String>) this.value;
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+            _fbthriftSize +=
+                (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I16;
+            for (Map.Entry<Short, String> _fbthriftVar1 :
+                _fbthriftVar0.entrySet()) {
+                {
+                    String _fbthriftVar2 =
+                        _fbthriftVar1.getValue();
+                    _fbthriftSize +=
+                        com.facebook.thrift.util.ThriftSizes.string(
+                            _fbthriftVar2);
+                }
+            }
+            break;
+        }
+
+        case _STRINGREF: {
+            String _fbthriftVar0 =
+                (String) this.value;
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.string(_fbthriftVar0);
+            break;
+        }
+
+        default:
+        }
+        return _fbthriftSize;
+    }
+
     public static com.facebook.thrift.payload.Reader<ComplexUnion> asReader() {
         return ComplexUnion::read0;
     }

@@ -161,6 +161,22 @@ public final class Annotated implements com.facebook.thrift.payload.ThriftSerial
         oprot.writeStructEnd();
     }
 
+    public static long serializedSizeBound() {
+        return
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.BYTE;
+    }
+
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.BYTE;
+        return _fbthriftSize;
+    }
+
     private static class _AnnotatedLazy {
         private static final Annotated _DEFAULT = new Annotated.Builder().build();
     }

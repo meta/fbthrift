@@ -118,6 +118,18 @@ public final class A implements com.facebook.thrift.payload.ThriftSerializable {
         oprot.writeStructEnd();
     }
 
+    public static long serializedSizeBound() {
+        return
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+    }
+
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+        return _fbthriftSize;
+    }
+
     private static class _ALazy {
         private static final A _DEFAULT = new A.Builder().build();
     }

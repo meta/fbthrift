@@ -202,6 +202,22 @@ public final class SecretStruct implements com.facebook.thrift.payload.ThriftSer
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I64;
+
+        if (this.password != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.password);
+        }
+        return _fbthriftSize;
+    }
+
     private static class _SecretStructLazy {
         private static final SecretStruct _DEFAULT = new SecretStruct.Builder().build();
     }

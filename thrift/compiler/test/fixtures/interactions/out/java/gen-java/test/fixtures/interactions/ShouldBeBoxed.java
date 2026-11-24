@@ -160,6 +160,20 @@ public final class ShouldBeBoxed implements com.facebook.thrift.payload.ThriftSe
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
+        if (this.sessionId != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.sessionId);
+        }
+        return _fbthriftSize;
+    }
+
     private static class _ShouldBeBoxedLazy {
         private static final ShouldBeBoxed _DEFAULT = new ShouldBeBoxed.Builder().build();
     }

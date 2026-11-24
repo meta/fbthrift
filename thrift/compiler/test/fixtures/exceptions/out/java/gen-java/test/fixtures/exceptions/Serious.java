@@ -165,6 +165,20 @@ public final class Serious extends org.apache.thrift.TBaseException implements c
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
+        if (this.sonnet != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.sonnet);
+        }
+        return _fbthriftSize;
+    }
+
     private static class _SeriousLazy {
         private static final Serious _DEFAULT = new Serious.Builder().build();
     }

@@ -113,6 +113,18 @@ public final class FooEx2 extends org.apache.thrift.TBaseException implements co
         oprot.writeStructEnd();
     }
 
+    public static long serializedSizeBound() {
+        return
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+    }
+
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+        return _fbthriftSize;
+    }
+
     private static class _FooEx2Lazy {
         private static final FooEx2 _DEFAULT = new FooEx2.Builder().build();
     }

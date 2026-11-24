@@ -59,7 +59,9 @@ public class LegacyServiceRpcServerHandler
       final java.lang.Object _r,
       final com.facebook.swift.service.ContextChain _chain,
       final int _seqId) {
-      return oprot -> {
+      return new com.facebook.thrift.payload.Writer() {
+      @java.lang.Override
+      public void write(TProtocol oprot) throws org.apache.thrift.TException {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
 
@@ -90,6 +92,33 @@ public class LegacyServiceRpcServerHandler
       } catch (Throwable _e) {
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
+      }
+      }
+      @java.lang.Override
+      public int sizeHint() {
+        Map<String, List<Integer>> _fbthriftVar0 = (Map<String, List<Integer>>) _r;
+        long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD;
+        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+        for (Map.Entry<String, List<Integer>> _fbthriftVar1 :
+            _fbthriftVar0.entrySet()) {
+            {
+                String _fbthriftVar2 =
+                    _fbthriftVar1.getKey();
+                _fbthriftSize +=
+                    com.facebook.thrift.util.ThriftSizes.string(
+                        _fbthriftVar2);
+            }
+            {
+                List<Integer> _fbthriftVar2 =
+                    _fbthriftVar1.getValue();
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                _fbthriftSize +=
+                    (long) _fbthriftVar2.size()
+                        * com.facebook.thrift.util.ThriftSizes.I32;
+                        }
+        }
+        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+        return com.facebook.thrift.util.ThriftSizes.clampToInt(_fbthriftSize);
       }
     };
   }

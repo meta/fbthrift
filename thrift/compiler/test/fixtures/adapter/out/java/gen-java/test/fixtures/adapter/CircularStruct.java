@@ -163,6 +163,28 @@ public final class CircularStruct implements com.facebook.thrift.payload.ThriftS
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
+        {
+            test.fixtures.adapter.CircularAdaptee _fbthriftVar0 =
+                this.field;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                {
+                    long _fbthriftSize0 = _fbthriftVar0.serializedSize();
+                    if (_fbthriftSize0 < 0) {
+                        return -1;
+                    }
+                    _fbthriftSize += _fbthriftSize0;
+                }
+            }
+        }
+        return _fbthriftSize;
+    }
+
     private static class _CircularStructLazy {
         private static final CircularStruct _DEFAULT = new CircularStruct.Builder().build();
     }

@@ -22,6 +22,9 @@ import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 
 public class StringToByteBufTypeAdapter implements StringTypeAdapter<ByteBuf> {
+  /** Counts `toThrift` calls so sizing tests can show variable-size adapters run per pass. */
+  public static long toThriftCalls;
+
   @Override
   public ByteBuf fromThrift(String s) {
     return Unpooled.wrappedBuffer(s.getBytes());
@@ -29,6 +32,7 @@ public class StringToByteBufTypeAdapter implements StringTypeAdapter<ByteBuf> {
 
   @Override
   public String toThrift(ByteBuf byteBuf) {
+    toThriftCalls++;
     return byteBuf == null ? null : new String(ByteBufUtil.getBytes(byteBuf));
   }
 }

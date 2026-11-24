@@ -118,6 +118,18 @@ public final class ApplyAdapter implements com.facebook.thrift.payload.ThriftSer
         oprot.writeStructEnd();
     }
 
+    public static long serializedSizeBound() {
+        return
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+    }
+
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+        return _fbthriftSize;
+    }
+
     private static class _ApplyAdapterLazy {
         private static final ApplyAdapter _DEFAULT = new ApplyAdapter.Builder().build();
     }

@@ -328,6 +328,48 @@ public final class StructWithString implements com.facebook.thrift.payload.Thrif
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
+        if (this.defUniqueStringRef != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.defUniqueStringRef);
+        }
+
+        if (this.defSharedStringRef != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.defSharedStringRef);
+        }
+
+        if (this.defSharedStringConstRef != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.defSharedStringConstRef);
+        }
+
+        if (this.uniqueStringRef != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.uniqueStringRef);
+        }
+
+        if (this.sharedStringRef != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.sharedStringRef);
+        }
+        return _fbthriftSize;
+    }
+
     private static class _StructWithStringLazy {
         private static final StructWithString _DEFAULT = new StructWithString.Builder().build();
     }

@@ -24,4 +24,13 @@ public interface Writer {
   Writer EMPTY_WRITER = protocol -> {};
 
   void write(TProtocol protocol) throws TException;
+
+  /**
+   * Upper bound on the bytes {@link #write} emits on a Binary or Compact protocol, for pre-sizing
+   * the response buffer. Returns -1 when the size is not known. May throw a {@code
+   * RuntimeException} (e.g. a null required field); callers treat a throw as unknown.
+   */
+  default int sizeHint() {
+    return -1;
+  }
 }

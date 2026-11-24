@@ -817,4 +817,112 @@ public final class MyStruct3 implements com.facebook.thrift.payload.ThriftSerial
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I16
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I32
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I64
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.BOOL
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.DOUBLE
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + test.fixtures.basic_swift_bean.MyDataItem.serializedSizeBound();
+
+        if (this.myString != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.myString);
+        }
+
+        {
+            Set<String> _fbthriftVar0 =
+                this.mySet;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize =
+                    com.facebook.thrift.util.ThriftSizes.addSize(
+                        _fbthriftSize,
+                        com.facebook.thrift.util.ThriftSizes.addSize(
+                            com.facebook.thrift.util.ThriftSizes.SET,
+                            com.facebook.thrift.util.ThriftSizes.strings(_fbthriftVar0)));
+            }
+        }
+
+        {
+            List<test.fixtures.basic_swift_bean.MyDataItem> _fbthriftVar0 =
+                this.myList;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size()
+                        * test.fixtures.basic_swift_bean.MyDataItem.serializedSizeBound();
+            }
+        }
+
+        {
+            Map<Integer, List<test.fixtures.basic_swift_bean.MyDataItem>> _fbthriftVar0 =
+                this.myMapList;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32;
+                for (Map.Entry<Integer, List<test.fixtures.basic_swift_bean.MyDataItem>> _fbthriftVar1 :
+                    _fbthriftVar0.entrySet()) {
+                    {
+                        List<test.fixtures.basic_swift_bean.MyDataItem> _fbthriftVar2 =
+                            _fbthriftVar1.getValue();
+                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                        _fbthriftSize +=
+                            (long) _fbthriftVar2.size()
+                                * test.fixtures.basic_swift_bean.MyDataItem.serializedSizeBound();
+                    }
+                }
+            }
+        }
+
+        {
+            List<test.fixtures.basic_swift_bean.MyDataItem> _fbthriftVar0 =
+                this.myEmptyList;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size()
+                        * test.fixtures.basic_swift_bean.MyDataItem.serializedSizeBound();
+            }
+        }
+
+        {
+            Map<Integer, List<test.fixtures.basic_swift_bean.MyDataItem>> _fbthriftVar0 =
+                this.myEmptyMapList;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32;
+                for (Map.Entry<Integer, List<test.fixtures.basic_swift_bean.MyDataItem>> _fbthriftVar1 :
+                    _fbthriftVar0.entrySet()) {
+                    {
+                        List<test.fixtures.basic_swift_bean.MyDataItem> _fbthriftVar2 =
+                            _fbthriftVar1.getValue();
+                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                        _fbthriftSize +=
+                            (long) _fbthriftVar2.size()
+                                * test.fixtures.basic_swift_bean.MyDataItem.serializedSizeBound();
+                    }
+                }
+            }
+        }
+        return _fbthriftSize;
+    }
+
 }

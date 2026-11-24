@@ -163,6 +163,20 @@ public final class Config implements com.facebook.thrift.payload.ThriftSerializa
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
+        if (this.path != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.path);
+        }
+        return _fbthriftSize;
+    }
+
     private static class _ConfigLazy {
         private static final Config _DEFAULT = new Config.Builder().build();
     }

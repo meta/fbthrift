@@ -270,7 +270,9 @@ public class PubSubStreamingServiceRpcServerHandler
   }
 
   private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_returnstream = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
-    return oprot -> {
+    return new com.facebook.thrift.payload.Writer() {
+      @java.lang.Override
+      public void write(TProtocol oprot) throws org.apache.thrift.TException {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
 
@@ -284,6 +286,13 @@ public class PubSubStreamingServiceRpcServerHandler
       } catch (Throwable _e) {
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
+      }
+      }
+      @java.lang.Override
+      public int sizeHint() {
+        return com.facebook.thrift.util.ThriftSizes.FIELD
+            + com.facebook.thrift.util.ThriftSizes.I32
+            + com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
       }
     };
   };
@@ -298,7 +307,9 @@ public class PubSubStreamingServiceRpcServerHandler
   }
 
   private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_streamthrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
-    return oprot -> {
+    return new com.facebook.thrift.payload.Writer() {
+      @java.lang.Override
+      public void write(TProtocol oprot) throws org.apache.thrift.TException {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
 
@@ -312,6 +323,13 @@ public class PubSubStreamingServiceRpcServerHandler
       } catch (Throwable _e) {
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
+      }
+      }
+      @java.lang.Override
+      public int sizeHint() {
+        return com.facebook.thrift.util.ThriftSizes.FIELD
+            + com.facebook.thrift.util.ThriftSizes.I32
+            + com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
       }
     };
   };
@@ -326,7 +344,9 @@ public class PubSubStreamingServiceRpcServerHandler
   }
 
   private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_servicethrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
-    return oprot -> {
+    return new com.facebook.thrift.payload.Writer() {
+      @java.lang.Override
+      public void write(TProtocol oprot) throws org.apache.thrift.TException {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
 
@@ -340,6 +360,13 @@ public class PubSubStreamingServiceRpcServerHandler
       } catch (Throwable _e) {
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
+      }
+      }
+      @java.lang.Override
+      public int sizeHint() {
+        return com.facebook.thrift.util.ThriftSizes.FIELD
+            + com.facebook.thrift.util.ThriftSizes.I32
+            + com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
       }
     };
   };
@@ -354,7 +381,9 @@ public class PubSubStreamingServiceRpcServerHandler
   }
 
   private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_servicethrows2 = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
-    return oprot -> {
+    return new com.facebook.thrift.payload.Writer() {
+      @java.lang.Override
+      public void write(TProtocol oprot) throws org.apache.thrift.TException {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
 
@@ -368,6 +397,13 @@ public class PubSubStreamingServiceRpcServerHandler
       } catch (Throwable _e) {
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
+      }
+      }
+      @java.lang.Override
+      public int sizeHint() {
+        return com.facebook.thrift.util.ThriftSizes.FIELD
+            + com.facebook.thrift.util.ThriftSizes.I32
+            + com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
       }
     };
   };
@@ -382,7 +418,9 @@ public class PubSubStreamingServiceRpcServerHandler
   }
 
   private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_boththrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
-    return oprot -> {
+    return new com.facebook.thrift.payload.Writer() {
+      @java.lang.Override
+      public void write(TProtocol oprot) throws org.apache.thrift.TException {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
 
@@ -396,6 +434,13 @@ public class PubSubStreamingServiceRpcServerHandler
       } catch (Throwable _e) {
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
+      }
+      }
+      @java.lang.Override
+      public int sizeHint() {
+        return com.facebook.thrift.util.ThriftSizes.FIELD
+            + com.facebook.thrift.util.ThriftSizes.I32
+            + com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
       }
     };
   };
@@ -410,7 +455,9 @@ public class PubSubStreamingServiceRpcServerHandler
   }
 
   private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_responseandstreamstreamthrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
-    return oprot -> {
+    return new com.facebook.thrift.payload.Writer() {
+      @java.lang.Override
+      public void write(TProtocol oprot) throws org.apache.thrift.TException {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
 
@@ -425,11 +472,20 @@ public class PubSubStreamingServiceRpcServerHandler
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
       }
+      }
+      @java.lang.Override
+      public int sizeHint() {
+        return com.facebook.thrift.util.ThriftSizes.FIELD
+            + com.facebook.thrift.util.ThriftSizes.I32
+            + com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+      }
     };
   };
 
   private final static com.facebook.thrift.server.ResponseWriterFactory _first_ResponseWriterFactory_responseandstreamstreamthrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
-    return oprot -> {
+    return new com.facebook.thrift.payload.Writer() {
+      @java.lang.Override
+      public void write(TProtocol oprot) throws org.apache.thrift.TException {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
 
@@ -445,6 +501,13 @@ public class PubSubStreamingServiceRpcServerHandler
       } catch (Throwable _e) {
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
+      }
+      }
+      @java.lang.Override
+      public int sizeHint() {
+        return com.facebook.thrift.util.ThriftSizes.FIELD
+            + com.facebook.thrift.util.ThriftSizes.I32
+            + com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
       }
     };
   };
@@ -459,7 +522,9 @@ public class PubSubStreamingServiceRpcServerHandler
   }
 
   private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_responseandstreamservicethrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
-    return oprot -> {
+    return new com.facebook.thrift.payload.Writer() {
+      @java.lang.Override
+      public void write(TProtocol oprot) throws org.apache.thrift.TException {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
 
@@ -474,11 +539,20 @@ public class PubSubStreamingServiceRpcServerHandler
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
       }
+      }
+      @java.lang.Override
+      public int sizeHint() {
+        return com.facebook.thrift.util.ThriftSizes.FIELD
+            + com.facebook.thrift.util.ThriftSizes.I32
+            + com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+      }
     };
   };
 
   private final static com.facebook.thrift.server.ResponseWriterFactory _first_ResponseWriterFactory_responseandstreamservicethrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
-    return oprot -> {
+    return new com.facebook.thrift.payload.Writer() {
+      @java.lang.Override
+      public void write(TProtocol oprot) throws org.apache.thrift.TException {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
 
@@ -494,6 +568,13 @@ public class PubSubStreamingServiceRpcServerHandler
       } catch (Throwable _e) {
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
+      }
+      }
+      @java.lang.Override
+      public int sizeHint() {
+        return com.facebook.thrift.util.ThriftSizes.FIELD
+            + com.facebook.thrift.util.ThriftSizes.I32
+            + com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
       }
     };
   };
@@ -508,7 +589,9 @@ public class PubSubStreamingServiceRpcServerHandler
   }
 
   private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_responseandstreamboththrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
-    return oprot -> {
+    return new com.facebook.thrift.payload.Writer() {
+      @java.lang.Override
+      public void write(TProtocol oprot) throws org.apache.thrift.TException {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
 
@@ -523,11 +606,20 @@ public class PubSubStreamingServiceRpcServerHandler
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
       }
+      }
+      @java.lang.Override
+      public int sizeHint() {
+        return com.facebook.thrift.util.ThriftSizes.FIELD
+            + com.facebook.thrift.util.ThriftSizes.I32
+            + com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+      }
     };
   };
 
   private final static com.facebook.thrift.server.ResponseWriterFactory _first_ResponseWriterFactory_responseandstreamboththrows = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
-    return oprot -> {
+    return new com.facebook.thrift.payload.Writer() {
+      @java.lang.Override
+      public void write(TProtocol oprot) throws org.apache.thrift.TException {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
 
@@ -543,6 +635,13 @@ public class PubSubStreamingServiceRpcServerHandler
       } catch (Throwable _e) {
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
+      }
+      }
+      @java.lang.Override
+      public int sizeHint() {
+        return com.facebook.thrift.util.ThriftSizes.FIELD
+            + com.facebook.thrift.util.ThriftSizes.I32
+            + com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
       }
     };
   };
@@ -558,7 +657,9 @@ public class PubSubStreamingServiceRpcServerHandler
   }
 
   private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_returnstreamFast = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
-    return oprot -> {
+    return new com.facebook.thrift.payload.Writer() {
+      @java.lang.Override
+      public void write(TProtocol oprot) throws org.apache.thrift.TException {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
 
@@ -572,6 +673,13 @@ public class PubSubStreamingServiceRpcServerHandler
       } catch (Throwable _e) {
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
+      }
+      }
+      @java.lang.Override
+      public int sizeHint() {
+        return com.facebook.thrift.util.ThriftSizes.FIELD
+            + com.facebook.thrift.util.ThriftSizes.I32
+            + com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
       }
     };
   };

@@ -314,6 +314,44 @@ public final class ExampleUnion implements com.facebook.thrift.payload.ThriftSer
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        if (this.id != 0 && this.value == null) {
+            return 0;
+        }
+        long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
+        switch (this.id) {
+
+        case _STRINGVALUE: {
+            String _fbthriftVar0 =
+                (String) this.value;
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.string(_fbthriftVar0);
+            break;
+        }
+
+        case _INTVALUE: {
+            int _fbthriftVar0 =
+                (int) this.value;
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.I32;
+            break;
+        }
+
+        case _DOUBLEVALUE: {
+            double _fbthriftVar0 =
+                (double) this.value;
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.DOUBLE;
+            break;
+        }
+
+        default:
+        }
+        return _fbthriftSize;
+    }
+
     public static com.facebook.thrift.payload.Reader<ExampleUnion> asReader() {
         return ExampleUnion::read0;
     }

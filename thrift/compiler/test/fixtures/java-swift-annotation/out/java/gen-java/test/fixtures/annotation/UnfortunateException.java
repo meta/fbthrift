@@ -204,6 +204,22 @@ public final class UnfortunateException extends org.apache.thrift.TBaseException
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I32;
+
+        if (this.anSnakeString != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.anSnakeString);
+        }
+        return _fbthriftSize;
+    }
+
     private static class _UnfortunateExceptionLazy {
         private static final UnfortunateException _DEFAULT = new UnfortunateException.Builder().build();
     }

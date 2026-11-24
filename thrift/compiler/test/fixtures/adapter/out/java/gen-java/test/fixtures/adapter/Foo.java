@@ -996,6 +996,192 @@ public final class Foo implements com.facebook.thrift.payload.ThriftSerializable
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + 2 * (com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I32)
+                + 3 * (com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I64);
+
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.I32;
+
+            {
+                Set<String>   _fbthriftVar0 =
+                    __SetWithAdapter_Adapter.toThrift(this.setField);
+                if (_fbthriftVar0 != null) {
+                    _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                    _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
+                    for (String _fbthriftVar1 :
+                        _fbthriftVar0) {
+                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.string(_fbthriftVar1);
+                    }
+                }
+            }
+
+            {
+                Set<String>   _fbthriftVar0 =
+                    __SetWithAdapter_Adapter.toThrift(this.optionalSetField);
+                if (_fbthriftVar0 != null) {
+                    _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                    _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
+                    for (String _fbthriftVar1 :
+                        _fbthriftVar0) {
+                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.string(_fbthriftVar1);
+                    }
+                }
+            }
+
+            {
+                Map<String, com.facebook.thrift.my.AdaptedList_2>   _fbthriftVar0 =
+                    _mapField_Adapter.toThrift(this.mapField);
+                if (_fbthriftVar0 != null) {
+                    _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                    _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                    for (Map.Entry<String, com.facebook.thrift.my.AdaptedList_2> _fbthriftVar1 :
+                        _fbthriftVar0.entrySet()) {
+                        {
+                            String _fbthriftVar2 =
+                                _fbthriftVar1.getKey();
+                            _fbthriftSize +=
+                                com.facebook.thrift.util.ThriftSizes.string(
+                                    _fbthriftVar2);
+                        }
+                        {
+                            com.facebook.thrift.my.AdaptedList_2 _fbthriftVar2 =
+                                _fbthriftVar1.getValue();
+                    List<com.facebook.thrift.my.AdaptedString_1> _fbthriftVar3 =
+                                __ListWithElemAdapter_withAdapter_2312_Adapter.toThrift(_fbthriftVar2);
+                            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                            for (com.facebook.thrift.my.AdaptedString_1 _fbthriftVar4 :
+                                _fbthriftVar3) {
+                            String _fbthriftVar5 =
+                                    __StringWithAdapter_Adapter.toThrift(
+                                        _fbthriftVar4);
+                                _fbthriftSize +=
+                                    com.facebook.thrift.util.ThriftSizes.string(
+                                        _fbthriftVar5);
+                            }
+                        }
+                    }
+                }
+            }
+
+            {
+                Map<String, com.facebook.thrift.my.AdaptedList_2>   _fbthriftVar0 =
+                    _optionalMapField_Adapter.toThrift(this.optionalMapField);
+                if (_fbthriftVar0 != null) {
+                    _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                    _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                    for (Map.Entry<String, com.facebook.thrift.my.AdaptedList_2> _fbthriftVar1 :
+                        _fbthriftVar0.entrySet()) {
+                        {
+                            String _fbthriftVar2 =
+                                _fbthriftVar1.getKey();
+                            _fbthriftSize +=
+                                com.facebook.thrift.util.ThriftSizes.string(
+                                    _fbthriftVar2);
+                        }
+                        {
+                            com.facebook.thrift.my.AdaptedList_2 _fbthriftVar2 =
+                                _fbthriftVar1.getValue();
+                    List<com.facebook.thrift.my.AdaptedString_1> _fbthriftVar3 =
+                                __ListWithElemAdapter_withAdapter_2312_Adapter.toThrift(_fbthriftVar2);
+                            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                            for (com.facebook.thrift.my.AdaptedString_1 _fbthriftVar4 :
+                                _fbthriftVar3) {
+                            String _fbthriftVar5 =
+                                    __StringWithAdapter_Adapter.toThrift(
+                                        _fbthriftVar4);
+                                _fbthriftSize +=
+                                    com.facebook.thrift.util.ThriftSizes.string(
+                                        _fbthriftVar5);
+                            }
+                        }
+                    }
+                }
+            }
+
+            {
+                io.netty.buffer.ByteBuf   _fbthriftVar0 =
+                    _binaryField_Adapter.toThrift(this.binaryField);
+                if (_fbthriftVar0 != null) {
+                    _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                    _fbthriftSize += com.facebook.thrift.util.ThriftSizes.binary(_fbthriftVar0);
+                }
+            }
+
+        {
+            List<Integer> _fbthriftVar0 =
+                this.adaptedList;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32;
+            }
+        }
+
+        {
+            Set<Integer> _fbthriftVar0 =
+                this.adaptedSet;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32;
+            }
+        }
+
+        {
+            Map<String, Integer> _fbthriftVar0 =
+                this.adaptedMap;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                _fbthriftSize +=
+                    (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32;
+                for (Map.Entry<String, Integer> _fbthriftVar1 :
+                    _fbthriftVar0.entrySet()) {
+                    {
+                        String _fbthriftVar2 =
+                            _fbthriftVar1.getKey();
+                        _fbthriftSize +=
+                            com.facebook.thrift.util.ThriftSizes.string(
+                                _fbthriftVar2);
+                    }
+                }
+            }
+        }
+
+        {
+            List<List<Map<Integer, Integer>>> _fbthriftVar0 =
+                this.adaptedListNested;
+            if (_fbthriftVar0 != null) {
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                for (List<Map<Integer, Integer>> _fbthriftVar1 :
+                    _fbthriftVar0) {
+                    _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
+                    for (Map<Integer, Integer> _fbthriftVar2 :
+                        _fbthriftVar1) {
+                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
+                        _fbthriftSize +=
+                            (long) _fbthriftVar2.size()
+                                * com.facebook.thrift.util.ThriftSizes.I32;
+                        _fbthriftSize +=
+                            (long) _fbthriftVar2.size()
+                                * com.facebook.thrift.util.ThriftSizes.I32;
+                    }
+                }
+            }
+        }
+        return _fbthriftSize;
+    }
+
     private static class _FooLazy {
         private static final Foo _DEFAULT = new Foo.Builder().build();
     }

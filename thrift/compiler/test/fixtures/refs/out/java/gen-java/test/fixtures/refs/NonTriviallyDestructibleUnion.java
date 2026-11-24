@@ -204,6 +204,28 @@ public final class NonTriviallyDestructibleUnion implements com.facebook.thrift.
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        if (this.id != 0 && this.value == null) {
+            return 0;
+        }
+        long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
+        switch (this.id) {
+
+        case _INT_FIELD: {
+            int _fbthriftVar0 =
+                (int) this.value;
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.I32;
+            break;
+        }
+
+        default:
+        }
+        return _fbthriftSize;
+    }
+
     public static com.facebook.thrift.payload.Reader<NonTriviallyDestructibleUnion> asReader() {
         return NonTriviallyDestructibleUnion::read0;
     }

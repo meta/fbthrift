@@ -113,6 +113,18 @@ public final class FooStreamEx extends org.apache.thrift.TBaseException implemen
         oprot.writeStructEnd();
     }
 
+    public static long serializedSizeBound() {
+        return
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+    }
+
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+        return _fbthriftSize;
+    }
+
     private static class _FooStreamExLazy {
         private static final FooStreamEx _DEFAULT = new FooStreamEx.Builder().build();
     }

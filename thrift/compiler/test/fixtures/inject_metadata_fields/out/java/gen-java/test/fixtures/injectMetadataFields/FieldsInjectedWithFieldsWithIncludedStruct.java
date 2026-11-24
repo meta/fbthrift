@@ -202,6 +202,22 @@ public final class FieldsInjectedWithFieldsWithIncludedStruct implements com.fac
         oprot.writeStructEnd();
     }
 
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP
+                + com.facebook.thrift.util.ThriftSizes.FIELD
+                    + test.fixtures.injectMetadataFields.InjectedField.serializedSizeBound();
+
+        if (this.stringField != null) {
+            _fbthriftSize +=
+                com.facebook.thrift.util.ThriftSizes.FIELD
+                    + com.facebook.thrift.util.ThriftSizes.string(
+                        this.stringField);
+        }
+        return _fbthriftSize;
+    }
+
     private static class _FieldsInjectedWithFieldsWithIncludedStructLazy {
         private static final FieldsInjectedWithFieldsWithIncludedStruct _DEFAULT = new FieldsInjectedWithFieldsWithIncludedStruct.Builder().build();
     }

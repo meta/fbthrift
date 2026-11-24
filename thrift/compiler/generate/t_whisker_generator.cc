@@ -27,6 +27,7 @@
 #include <thrift/compiler/whisker/standard_library.h>
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <fstream>
 
@@ -262,6 +263,113 @@ prototype<t_structured>::ptr t_whisker_generator::make_prototype_for_structured(
             ? to_array(self.fields_id_order(), proto.of<t_field>())
             : to_array(self.fields(), proto.of<t_field>());
       });
+  // Folded fixed-width groups for serializedSize, ordered by first appearance:
+  // each entry maps {type, count, single, bound_struct}. Fixed-width primitives
+  // group by kind; nested non-union structs group by identity so the template
+  // can emit `FIELD + Nested.serializedSizeBound()` per group with a bounded
+  // expression. The template renders a nested group only when the nested type
+  // has a bound, and skips the runtime block for the same fields, so the two
+  // stay in sync. Membership mirrors the template fold gate (non-optional
+  // fields whose true type is fixed-width or a bound struct); keep them in
+  // sync.
+  def.property("folded_fixed_widths", [&proto](const t_structured& self) {
+    std::vector<const t_field*> ordered;
+    if (self.has_structured_annotation(kSerializeInFieldIdOrderUri)) {
+      for (const t_field* field : self.fields_id_order()) {
+        ordered.push_back(field);
+      }
+    } else {
+      for (const t_field& field : self.fields()) {
+        ordered.push_back(&field);
+      }
+    }
+    auto kind_of = [](const t_type& true_type) -> int {
+      if (true_type.is_bool()) {
+        return 0;
+      }
+      if (true_type.is_byte()) {
+        return 1;
+      }
+      if (true_type.is_i16()) {
+        return 2;
+      }
+      if (true_type.is_i32()) {
+        return 3;
+      }
+      if (true_type.is_i64()) {
+        return 4;
+      }
+      if (true_type.is_float()) {
+        return 5;
+      }
+      if (true_type.is_double()) {
+        return 6;
+      }
+      if (true_type.is<t_enum>()) {
+        return 7;
+      }
+      return -1;
+    };
+    struct group {
+      const t_type* type;
+      int64_t count;
+      bool bound_struct;
+    };
+    std::vector<group> groups;
+    std::array<int, 8> slot;
+    slot.fill(-1);
+    std::unordered_map<const t_structured*, int> nested_slot;
+    for (const t_field* field : ordered) {
+      if (field->qualifier() == t_field_qualifier::optional) {
+        continue;
+      }
+      const t_type* true_type = field->type()->get_true_type();
+      int kind = kind_of(*true_type);
+      if (kind >= 0) {
+        if (slot[kind] < 0) {
+          slot[kind] = static_cast<int>(groups.size());
+          groups.push_back({true_type, 1, false});
+        } else {
+          groups[slot[kind]].count++;
+        }
+        continue;
+      }
+      const auto* nested = true_type->try_as<t_structured>();
+      if (nested == nullptr || nested->is<t_union>()) {
+        continue;
+      }
+      // An adapted or wrapped nested struct is sized through the hook or the
+      // fallback on the converted value, so the fold must not count the
+      // thrift type's bound (keep in sync with has_fixed_size_bound?).
+      const t_type* deref = &field->type().deref();
+      if (field->has_structured_annotation(kJavaAdapterUri) ||
+          field->has_structured_annotation(kJavaWrapperUri) ||
+          (deref->is<t_typedef>() &&
+           t_typedef::get_first_structured_annotation_or_null(
+               deref, kJavaAdapterUri) != nullptr)) {
+        continue;
+      }
+      auto nested_it = nested_slot.find(nested);
+      if (nested_it == nested_slot.end()) {
+        nested_slot[nested] = static_cast<int>(groups.size());
+        groups.push_back({nested, 1, true});
+      } else {
+        groups[nested_it->second].count++;
+      }
+    }
+    whisker::array::raw result;
+    result.reserve(groups.size());
+    for (const group& g : groups) {
+      result.emplace_back(
+          w::map({
+              {"type", resolve_derived_t_type(proto, *g.type)},
+              {"count", w::i64(g.count)},
+              {"single", w::boolean(g.count == 1)},
+              {"bound_struct", w::boolean(g.bound_struct)},
+          }));
+    }
+    return w::array(std::move(result));
+  });
   def.property(
       "has_serialize_in_field_id_order_annotation?",
       [](const t_structured& self) {

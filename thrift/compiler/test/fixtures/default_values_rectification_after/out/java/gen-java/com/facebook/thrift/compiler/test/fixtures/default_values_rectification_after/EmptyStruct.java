@@ -118,6 +118,18 @@ public final class EmptyStruct implements com.facebook.thrift.payload.ThriftSeri
         oprot.writeStructEnd();
     }
 
+    public static long serializedSizeBound() {
+        return
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+    }
+
+    @java.lang.Override
+    public long serializedSize() {
+        long _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+        return _fbthriftSize;
+    }
+
     private static class _EmptyStructLazy {
         private static final EmptyStruct _DEFAULT = new EmptyStruct.Builder().build();
     }

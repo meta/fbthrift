@@ -65,7 +65,9 @@ public class PrimitivesServiceRpcServerHandler
       final java.lang.Object _r,
       final com.facebook.swift.service.ContextChain _chain,
       final int _seqId) {
-      return oprot -> {
+      return new com.facebook.thrift.payload.Writer() {
+      @java.lang.Override
+      public void write(TProtocol oprot) throws org.apache.thrift.TException {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
 
@@ -81,6 +83,13 @@ public class PrimitivesServiceRpcServerHandler
       } catch (Throwable _e) {
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
+      }
+      }
+      @java.lang.Override
+      public int sizeHint() {
+        return com.facebook.thrift.util.ThriftSizes.FIELD
+            + com.facebook.thrift.util.ThriftSizes.I64
+            + com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
       }
     };
   }
@@ -183,7 +192,9 @@ public class PrimitivesServiceRpcServerHandler
       final java.lang.Object _r,
       final com.facebook.swift.service.ContextChain _chain,
       final int _seqId) {
-      return oprot -> {
+      return new com.facebook.thrift.payload.Writer() {
+      @java.lang.Override
+      public void write(TProtocol oprot) throws org.apache.thrift.TException {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
 
@@ -200,6 +211,13 @@ public class PrimitivesServiceRpcServerHandler
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
       }
+      }
+      @java.lang.Override
+      public int sizeHint() {
+        return com.facebook.thrift.util.ThriftSizes.FIELD
+            + com.facebook.thrift.util.ThriftSizes.ENUM
+            + com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+      }
     };
   }
 
@@ -208,7 +226,9 @@ public class PrimitivesServiceRpcServerHandler
       final com.facebook.swift.service.ContextChain _chain,
       final int _seqId,
       final short _fieldId) {
-      return oprot -> {
+      return new com.facebook.thrift.payload.Writer() {
+      @java.lang.Override
+      public void write(TProtocol oprot) throws org.apache.thrift.TException {
       try {
         _chain.declaredUserException(_t);
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -226,6 +246,20 @@ public class PrimitivesServiceRpcServerHandler
       } catch (Throwable _e) {
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
+      }
+      }
+      @java.lang.Override
+      public int sizeHint() {
+        com.facebook.thrift.payload.ThriftSerializable _fbthriftVar0 =
+            (com.facebook.thrift.payload.ThriftSerializable) _t;
+        long _exceptionSize = _fbthriftVar0.serializedSize();
+        if (_exceptionSize < 0) {
+          return -1;
+        }
+        return com.facebook.thrift.util.ThriftSizes.clampToInt(
+            com.facebook.thrift.util.ThriftSizes.FIELD
+                + _exceptionSize
+                + com.facebook.thrift.util.ThriftSizes.FIELD_STOP);
       }
     };
   }
@@ -340,7 +374,9 @@ public class PrimitivesServiceRpcServerHandler
       final java.lang.Object _r,
       final com.facebook.swift.service.ContextChain _chain,
       final int _seqId) {
-      return oprot -> {
+      return new com.facebook.thrift.payload.Writer() {
+      @java.lang.Override
+      public void write(TProtocol oprot) throws org.apache.thrift.TException {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
 
@@ -352,6 +388,11 @@ public class PrimitivesServiceRpcServerHandler
       } catch (Throwable _e) {
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
+      }
+      }
+      @java.lang.Override
+      public int sizeHint() {
+        return com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
       }
     };
   }
