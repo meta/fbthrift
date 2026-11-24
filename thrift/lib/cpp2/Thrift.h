@@ -39,7 +39,7 @@ static_assert(
 
 // Keeps trivial accessors out of debug info. Generated code instantiates them
 // per field, and each instantiation would otherwise add its full name.
-#if FOLLY_HAS_CPP_ATTRIBUTE(gnu::nodebug)
+#if __has_cpp_attribute(gnu::nodebug)
 #define FBTHRIFT_NODEBUG [[gnu::nodebug]]
 #else
 #define FBTHRIFT_NODEBUG
