@@ -32,6 +32,7 @@ import com.facebook.thrift.model.ResponseAndStream;
 import com.facebook.thrift.payload.DefaultServerResponsePayload;
 import com.facebook.thrift.payload.ServerRequestPayload;
 import com.facebook.thrift.payload.ServerResponsePayload;
+import com.facebook.thrift.payload.Writer;
 import com.facebook.thrift.protocol.ProtocolUtil;
 import com.facebook.thrift.protocol.TProtocolType;
 import com.facebook.thrift.rsocket.util.PayloadUtil;
@@ -51,11 +52,15 @@ import com.facebook.thrift.test.rocket.TestServerException;
 import com.facebook.thrift.test.rocket.TestService;
 import com.facebook.thrift.util.NettyNiftyRequestContext;
 import com.facebook.thrift.util.RpcPayloadUtil;
+import com.facebook.thrift.util.TestResponseWriters;
+import com.facebook.thrift.util.TestResponseWriters.CountingAllocator;
 import com.facebook.thrift.util.Writers;
 import com.facebook.thrift.util.resources.RpcResources;
 import io.airlift.units.Duration;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.ByteBufUtil;
+import io.netty.buffer.CompositeByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.util.ReferenceCountUtil;
 import io.rsocket.Payload;
@@ -2813,5 +2818,157 @@ public class ThriftServerRSocketTest {
         .verify();
 
     assertRequestBuffersFreed(data, metadata);
+  }
+
+  /**
+   * A sized 64 MiB single response allocates once at exactly the hinted bound and never grows, with
+   * data bytes identical to the flat serialization. A plain unhinted buffer would need many growth
+   * steps here, so this fails without the sized path.
+   */
+  @Test
+  public void testSizedSingleResponseNeverGrows() throws TException {
+    this.protocolId = ProtocolId.COMPACT;
+    CountingAllocator counting = new CountingAllocator();
+    Writer writer = TestResponseWriters.sized(TestResponseWriters.largePayload());
+    ServerResponsePayload payload =
+        ServerResponsePayload.create(
+            writer, new ResponseRpcMetadata.Builder().build(), null, false);
+
+    RpcServerHandler stubHandler =
+        new RpcServerHandler() {
+          @Override
+          public Mono<ServerResponsePayload> singleRequestSingleResponse(
+              ServerRequestPayload request) {
+            return Mono.just(payload);
+          }
+        };
+
+    ThriftServerRSocket server = new ThriftServerRSocket(stubHandler, counting);
+    RequestRpcMetadata requestMetadata =
+        createRequestRpcMetadata("large", RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE);
+    Payload request = createPayload(requestMetadata, 5, "foo");
+
+    ByteBuf expected = flatRsocketBody(writer);
+
+    StepVerifier.create(server.requestResponse(request))
+        .assertNext(
+            rsocketResponse -> {
+              try {
+                assertEquals(0, counting.growthSteps());
+                assertFalse(rsocketResponse.data() instanceof CompositeByteBuf);
+                assertEquals(
+                    TestResponseWriters.bareBound(writer), rsocketResponse.data().capacity());
+                assertTrue(ByteBufUtil.equals(rsocketResponse.data(), expected));
+              } finally {
+                rsocketResponse.release();
+              }
+            })
+        .verifyComplete();
+
+    expected.release();
+  }
+
+  /**
+   * A sized 64 MiB first stream response allocates once at exactly the hinted bound and never
+   * grows, with data bytes identical to the flat serialization.
+   */
+  @Test
+  public void testSizedStreamResponseNeverGrows() throws TException {
+    this.protocolId = ProtocolId.COMPACT;
+    CountingAllocator counting = new CountingAllocator();
+    Writer writer = TestResponseWriters.sized(TestResponseWriters.largePayload());
+    ServerResponsePayload payload =
+        ServerResponsePayload.create(
+            writer, new ResponseRpcMetadata.Builder().build(), null, false);
+
+    RpcServerHandler stubHandler =
+        new RpcServerHandler() {
+          @Override
+          public Flux<ServerResponsePayload> singleRequestStreamingResponse(
+              ServerRequestPayload request) {
+            return Flux.just(payload);
+          }
+        };
+
+    ThriftServerRSocket server = new ThriftServerRSocket(stubHandler, counting);
+    RequestRpcMetadata requestMetadata =
+        createRequestRpcMetadata("large", RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE);
+    Payload request = createPayload(requestMetadata, 5, "foo");
+
+    ByteBuf expected = flatRsocketBody(writer);
+
+    StepVerifier.create(server.requestStream(request))
+        .assertNext(
+            rsocketResponse -> {
+              try {
+                assertEquals(0, counting.growthSteps());
+                assertFalse(rsocketResponse.data() instanceof CompositeByteBuf);
+                assertEquals(
+                    TestResponseWriters.bareBound(writer), rsocketResponse.data().capacity());
+                assertTrue(ByteBufUtil.equals(rsocketResponse.data(), expected));
+              } finally {
+                rsocketResponse.release();
+              }
+            })
+        .verifyComplete();
+
+    expected.release();
+  }
+
+  /**
+   * A writer whose size hint throws still runs the write error path: the request is canceled with
+   * UNKNOWN/INTERNAL_ERROR and all request buffers are freed.
+   */
+  @Test
+  public void testThrowingSizeHintCancelsRequest() {
+    this.protocolId = ProtocolId.COMPACT;
+    Writer writer =
+        new Writer() {
+          @Override
+          public void write(TProtocol protocol) throws TException {
+            throw new TException("boom");
+          }
+
+          @Override
+          public int sizeHint() {
+            throw new RuntimeException("size boom");
+          }
+        };
+
+    RpcServerHandler brokenHandler =
+        new RpcServerHandler() {
+          @Override
+          public Mono<ServerResponsePayload> singleRequestSingleResponse(
+              ServerRequestPayload request) {
+            return Mono.just(
+                ServerResponsePayload.create(
+                    writer, new ResponseRpcMetadata.Builder().build(), null, false));
+          }
+        };
+
+    RequestRpcMetadata requestMetadata =
+        createRequestRpcMetadata("requestResponse", RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE);
+    ByteBuf data = createData(requestMetadata, createTestRequest(0, "foo"));
+    ByteBuf metadata = createMetadata(requestMetadata);
+    Payload request = PayloadUtil.createPayload(data, metadata);
+
+    StepVerifier.create(new ThriftServerRSocket(brokenHandler, alloc).requestResponse(request))
+        .expectErrorSatisfies(
+            t ->
+                assertServerError(
+                    t,
+                    ErrorFrameCodec.CANCELED,
+                    ResponseRpcErrorCode.UNKNOWN,
+                    ResponseRpcErrorCategory.INTERNAL_ERROR))
+        .verify();
+
+    assertRequestBuffersFreed(data, metadata);
+  }
+
+  private ByteBuf flatRsocketBody(Writer writer) throws TException {
+    ByteBuf buf = alloc.buffer();
+    TProtocol out = TProtocolType.fromProtocolId(protocolId).apply(buf);
+    writer.write(out);
+    return buf;
   }
 }

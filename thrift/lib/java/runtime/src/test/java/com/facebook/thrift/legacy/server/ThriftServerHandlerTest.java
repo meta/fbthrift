@@ -33,11 +33,16 @@ import com.facebook.thrift.legacy.codec.LegacyTransportType;
 import com.facebook.thrift.legacy.codec.ThriftFrame;
 import com.facebook.thrift.payload.ServerRequestPayload;
 import com.facebook.thrift.payload.ServerResponsePayload;
+import com.facebook.thrift.payload.Writer;
 import com.facebook.thrift.protocol.TProtocolType;
 import com.facebook.thrift.server.RpcServerHandler;
+import com.facebook.thrift.util.TestResponseWriters;
 import com.google.common.primitives.Ints;
 import io.airlift.units.Duration;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.ByteBufUtil;
+import io.netty.buffer.CompositeByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
 import java.util.Collections;
@@ -128,6 +133,46 @@ class ThriftServerHandlerTest {
     }
     assertTrue(channel.isActive());
     channel.finishAndReleaseAll();
+  }
+
+  @Test
+  void throwingDataWriterDisconnectsWithoutResponse() throws Exception {
+    ServerResponsePayload response =
+        ServerResponsePayload.create(
+            out -> {
+              throw new TException("boom");
+            },
+            new ResponseRpcMetadata.Builder().build(),
+            null,
+            false);
+
+    EmbeddedChannel channel =
+        new EmbeddedChannel(
+            new ThriftServerHandler(
+                mockHandler(Mono.just(response)), new Duration(60, TimeUnit.SECONDS)));
+
+    channel.writeInbound(requestFrame(TProtocolType.TCompact, "ping", TMessageType.CALL, 7, false));
+
+    long disconnectDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+
+    while (channel.isActive()) {
+      if (System.nanoTime() > disconnectDeadline) {
+        throw new AssertionError("timed out waiting for disconnect after encode failure");
+      }
+
+      Thread.sleep(5);
+    }
+
+    assertNull(channel.readOutbound());
+
+    // Where the pipeline records the failure (the synchronous path), finishing rethrows the
+    // original error unwrapped. The asynchronous path swallows it after disconnecting; both end
+    // silent and disconnected.
+    try {
+      channel.finishAndReleaseAll();
+    } catch (RuntimeException failure) {
+      assertThat(failure.getMessage()).contains("boom");
+    }
   }
 
   @Test
@@ -521,5 +566,135 @@ class ThriftServerHandlerTest {
         LegacyTransportType.HEADER,
         TProtocolType.TCompact,
         false);
+  }
+
+  /**
+   * A sized small response allocates a flat buffer at exactly the hinted bound and never grows. An
+   * unhinted buffer would keep its 256-byte initial capacity, so the exact capacity fails without
+   * the sized path.
+   */
+  @Test
+  void sizedSmallResponseIsFlatAndNeverGrows() throws Exception {
+    TestResponseWriters.CountingAllocator alloc = new TestResponseWriters.CountingAllocator();
+    Writer writer = TestResponseWriters.sized(TestResponseWriters.smallPayload());
+    ServerResponsePayload payload =
+        ServerResponsePayload.create(
+            writer, new ResponseRpcMetadata.Builder().build(), null, false);
+
+    EmbeddedChannel channel =
+        new EmbeddedChannel(
+            new ThriftServerHandler(
+                mockHandler(Mono.just(payload)), new Duration(60, TimeUnit.SECONDS)));
+    channel.config().setAllocator(alloc);
+    channel.writeInbound(requestFrame(TProtocolType.TBinary, "ping", TMessageType.CALL, 41, false));
+
+    ThriftFrame response = awaitResponse(channel);
+    ByteBuf expected = flatResponse(TProtocolType.TBinary, "ping", 41, writer);
+
+    try {
+      assertThat(response.getMessage()).isNotInstanceOf(CompositeByteBuf.class);
+      assertThat(response.getMessage().capacity())
+          .isEqualTo(TestResponseWriters.envelopeBound(writer, "ping"));
+      assertThat(alloc.growthSteps()).isZero();
+      assertThat(ByteBufUtil.equals(response.getMessage(), expected)).isTrue();
+    } finally {
+      response.release();
+      expected.release();
+    }
+
+    channel.finishAndReleaseAll();
+  }
+
+  @Test
+  void sizedLargeResponseNeverGrows() throws Exception {
+    TestResponseWriters.CountingAllocator alloc = new TestResponseWriters.CountingAllocator();
+    Writer writer = TestResponseWriters.sized(TestResponseWriters.largePayload());
+    ServerResponsePayload payload =
+        ServerResponsePayload.create(
+            writer, new ResponseRpcMetadata.Builder().build(), null, false);
+
+    EmbeddedChannel channel =
+        new EmbeddedChannel(
+            new ThriftServerHandler(
+                mockHandler(Mono.just(payload)), new Duration(60, TimeUnit.SECONDS)));
+    channel.config().setAllocator(alloc);
+    channel.writeInbound(
+        requestFrame(TProtocolType.TCompact, "ping", TMessageType.CALL, 42, false));
+
+    ThriftFrame response = awaitResponse(channel);
+    ByteBuf expected = flatResponse(TProtocolType.TCompact, "ping", 42, writer);
+
+    try {
+      assertThat(response.getMessage().capacity())
+          .isEqualTo(TestResponseWriters.envelopeBound(writer, "ping"));
+      assertThat(alloc.growthSteps()).isZero();
+      assertThat(ByteBufUtil.equals(response.getMessage(), expected)).isTrue();
+    } finally {
+      response.release();
+      expected.release();
+    }
+
+    channel.finishAndReleaseAll();
+  }
+
+  /**
+   * A writer whose size hint throws still runs its write error path: no response is written and the
+   * pipeline disconnects.
+   */
+  @Test
+  void throwingSizeHintStillRunsWriteErrorPath() throws Exception {
+    Writer writer =
+        new Writer() {
+          @Override
+          public void write(TProtocol out) throws TException {
+            throw new TException("boom");
+          }
+
+          @Override
+          public int sizeHint() {
+            throw new RuntimeException("size boom");
+          }
+        };
+
+    ServerResponsePayload payload =
+        ServerResponsePayload.create(
+            writer, new ResponseRpcMetadata.Builder().build(), null, false);
+
+    EmbeddedChannel channel =
+        new EmbeddedChannel(
+            new ThriftServerHandler(
+                mockHandler(Mono.just(payload)), new Duration(60, TimeUnit.SECONDS)));
+    channel.writeInbound(
+        requestFrame(TProtocolType.TCompact, "ping", TMessageType.CALL, 44, false));
+
+    long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+
+    for (; ; ) {
+      channel.runPendingTasks();
+      assertNull(channel.readOutbound());
+
+      if (!channel.isActive()) {
+        break;
+      }
+
+      if (System.nanoTime() > deadline) {
+        throw new AssertionError("channel stayed active after write failure");
+      }
+
+      Thread.sleep(5);
+    }
+
+    channel.finishAndReleaseAll();
+  }
+
+  private static ByteBuf flatResponse(
+      TProtocolType protocol, String method, int seqId, Writer writer) throws TException {
+    ByteBuf buf = ByteBufAllocator.DEFAULT.buffer();
+    TProtocol out = protocol.apply(buf);
+    out.writeMessageBegin(new TMessage(method, TMessageType.REPLY, seqId));
+
+    writer.write(out);
+    out.writeMessageEnd();
+    return buf;
   }
 }

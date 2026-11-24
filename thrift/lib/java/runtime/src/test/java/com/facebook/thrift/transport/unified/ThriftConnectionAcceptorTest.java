@@ -16,6 +16,7 @@
 
 package com.facebook.thrift.transport.unified;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -31,14 +32,19 @@ import com.facebook.thrift.legacy.codec.LegacyTransportType;
 import com.facebook.thrift.legacy.codec.ThriftFrame;
 import com.facebook.thrift.payload.ServerRequestPayload;
 import com.facebook.thrift.payload.ServerResponsePayload;
+import com.facebook.thrift.payload.Writer;
 import com.facebook.thrift.protocol.TProtocolType;
 import com.facebook.thrift.server.OverloadedException;
 import com.facebook.thrift.server.RpcServerHandler;
 import com.facebook.thrift.util.RpcPayloadUtil;
+import com.facebook.thrift.util.TestResponseWriters;
+import com.facebook.thrift.util.TestResponseWriters.CountingAllocator;
 import com.google.common.primitives.Ints;
 import io.airlift.units.Duration;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.ByteBufUtil;
+import io.netty.buffer.CompositeByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
@@ -54,6 +60,7 @@ import org.apache.thrift.RequestRpcMetadata;
 import org.apache.thrift.ResponseRpcMetadata;
 import org.apache.thrift.RpcKind;
 import org.apache.thrift.TApplicationException;
+import org.apache.thrift.TException;
 import org.apache.thrift.TTransform;
 import org.apache.thrift.protocol.TMessage;
 import org.apache.thrift.protocol.TMessageType;
@@ -870,6 +877,279 @@ public class ThriftConnectionAcceptorTest {
         .then(() -> inboundPublisher.next(encodedRequest.retain()))
         .thenCancel()
         .verify();
+    if (encodedRequest.refCnt() > 0) {
+      encodedRequest.release();
+    }
+  }
+
+  @Test
+  public void testSizedResponseEchoesRequestTransforms() throws Exception {
+    sizedResponseEchoesTransforms(TTransform.ZSTD.getValue());
+  }
+
+  /**
+   * A sized 64 MiB response allocates once at exactly the hinted bound and never grows. A plain
+   * unhinted buffer would need many growth steps here, so this fails without the sized path.
+   */
+  @Test
+  public void testSizedLargeResponseNeverGrows() throws Exception {
+    TProtocolType protocol = TProtocolType.TCompact;
+    ByteBuf encodedRequest = createEncodedRequest(protocol, "testMethod", TMessageType.CALL, 53);
+
+    CountingAllocator counting = new CountingAllocator();
+    when(mockChannel.alloc()).thenReturn(counting);
+    when(mockOutbound.alloc()).thenReturn(counting);
+
+    Writer writer = TestResponseWriters.sized(TestResponseWriters.largePayload());
+    ServerResponsePayload mockResponse = mock(ServerResponsePayload.class);
+    when(mockResponse.isTApplicationException()).thenReturn(false);
+    when(mockResponse.getDataWriter()).thenReturn(writer);
+    when(mockResponse.getResponseRpcMetadata())
+        .thenReturn(new ResponseRpcMetadata.Builder().build());
+
+    when(mockRpcServerHandler.singleRequestSingleResponse(any(ServerRequestPayload.class)))
+        .thenReturn(Mono.just(mockResponse));
+
+    TestPublisher<ByteBuf> inboundPublisher = TestPublisher.create();
+    when(mockInbound.receive())
+        .thenReturn(ByteBufFlux.fromInbound(inboundPublisher.flux(), counting));
+
+    ArgumentCaptor<Object> responseCaptor = ArgumentCaptor.forClass(Object.class);
+    when(mockOutbound.sendObject(responseCaptor.capture())).thenReturn(mockSendObjectResult);
+
+    Mono<Void> result = acceptor.apply(mockConnection);
+
+    ByteBuf expectedResponse =
+        flatTestResponse(protocol, "testMethod", 53, TMessageType.REPLY, writer);
+
+    StepVerifier.create(result)
+        .then(() -> inboundPublisher.next(encodedRequest.retain()))
+        .then(
+            () -> {
+              verify(mockOutbound).sendObject(any(Object.class));
+              ByteBuf responseBuf = (ByteBuf) responseCaptor.getValue();
+
+              assertEquals(0, counting.growthSteps());
+              assertThat(messageCapacity(responseBuf))
+                  .isEqualTo(TestResponseWriters.envelopeBound(writer, "testMethod"));
+
+              ByteBuf copy = responseBuf.retainedDuplicate();
+              ThriftFrame decodedResponse = ReactiveHeaderCodec.decodeFrame(counting, copy);
+
+              try {
+                assertEquals(53, decodedResponse.getSequenceId());
+                assertEquals(protocol, decodedResponse.getProtocol());
+                assertTrue(ByteBufUtil.equals(decodedResponse.getMessage(), expectedResponse));
+              } finally {
+                decodedResponse.release();
+              }
+
+              responseBuf.release();
+            })
+        .thenCancel()
+        .verify();
+
+    expectedResponse.release();
+
+    if (encodedRequest.refCnt() > 0) {
+      encodedRequest.release();
+    }
+  }
+
+  private static ByteBuf flatTestResponse(
+      TProtocolType protocol, String method, int seqId, byte messageType, Writer writer)
+      throws Exception {
+    ByteBuf response = ByteBufAllocator.DEFAULT.buffer();
+
+    try {
+      TProtocol out = protocol.apply(response);
+      out.writeMessageBegin(new TMessage(method, messageType, seqId));
+
+      writer.write(out);
+      out.writeMessageEnd();
+
+      return response;
+    } catch (Exception e) {
+      response.release();
+      throw e;
+    }
+  }
+
+  /** An unknown-hint response flows through request compression and decodes to the flat bytes. */
+  @Test
+  public void testUnknownResponseFlowsThroughZstd() throws Exception {
+    TProtocolType protocol = TProtocolType.TCompact;
+    ByteBuf encodedRequest =
+        createEncodedRequest(
+            protocol, "testMethod", TMessageType.CALL, 54, TTransform.ZSTD.getValue());
+
+    Writer writer = TestResponseWriters.smallPayload()::write0;
+    ServerResponsePayload mockResponse = mock(ServerResponsePayload.class);
+    when(mockResponse.isTApplicationException()).thenReturn(false);
+    when(mockResponse.getDataWriter()).thenReturn(writer);
+    when(mockResponse.getResponseRpcMetadata())
+        .thenReturn(new ResponseRpcMetadata.Builder().build());
+
+    when(mockRpcServerHandler.singleRequestSingleResponse(any(ServerRequestPayload.class)))
+        .thenReturn(Mono.just(mockResponse));
+
+    TestPublisher<ByteBuf> inboundPublisher = TestPublisher.create();
+    when(mockInbound.receive())
+        .thenReturn(ByteBufFlux.fromInbound(inboundPublisher.flux(), allocator));
+
+    ArgumentCaptor<Object> responseCaptor = ArgumentCaptor.forClass(Object.class);
+    when(mockOutbound.sendObject(responseCaptor.capture())).thenReturn(mockSendObjectResult);
+
+    Mono<Void> result = acceptor.apply(mockConnection);
+
+    ByteBuf expectedResponse =
+        flatTestResponse(protocol, "testMethod", 54, TMessageType.REPLY, writer);
+
+    StepVerifier.create(result)
+        .then(() -> inboundPublisher.next(encodedRequest.retain()))
+        .then(
+            () -> {
+              verify(mockOutbound).sendObject(any(Object.class));
+              ByteBuf responseBuf = (ByteBuf) responseCaptor.getValue();
+
+              ByteBuf copy = responseBuf.retainedDuplicate();
+              ThriftFrame decodedResponse = ReactiveHeaderCodec.decodeFrame(allocator, copy);
+
+              try {
+                assertEquals(54, decodedResponse.getSequenceId());
+                assertEquals(protocol, decodedResponse.getProtocol());
+                assertTrue(decodedResponse.getTransforms().contains(TTransform.ZSTD.getValue()));
+                assertTrue(ByteBufUtil.equals(decodedResponse.getMessage(), expectedResponse));
+              } finally {
+                decodedResponse.release();
+              }
+
+              responseBuf.release();
+            })
+        .thenCancel()
+        .verify();
+
+    expectedResponse.release();
+
+    if (encodedRequest.refCnt() > 0) {
+      encodedRequest.release();
+    }
+  }
+
+  /**
+   * A writer whose size hint throws still runs the write error path: no response is sent, the
+   * request frame is released, and the connection is disposed.
+   */
+  @Test
+  public void testThrowingSizeHintDisposesWithoutResponse() {
+    TProtocolType protocol = TProtocolType.TCompact;
+    ByteBuf encodedRequest = createEncodedRequest(protocol, "testMethod", TMessageType.CALL, 55);
+
+    Writer writer =
+        new Writer() {
+          @Override
+          public void write(TProtocol out) throws TException {
+            throw new TException("boom");
+          }
+
+          @Override
+          public int sizeHint() {
+            throw new RuntimeException("size boom");
+          }
+        };
+
+    ServerResponsePayload mockResponse = mock(ServerResponsePayload.class);
+    when(mockResponse.isTApplicationException()).thenReturn(false);
+    when(mockResponse.getDataWriter()).thenReturn(writer);
+    when(mockResponse.getResponseRpcMetadata())
+        .thenReturn(new ResponseRpcMetadata.Builder().build());
+
+    when(mockRpcServerHandler.singleRequestSingleResponse(any(ServerRequestPayload.class)))
+        .thenReturn(Mono.just(mockResponse));
+
+    TestPublisher<ByteBuf> inboundPublisher = TestPublisher.create();
+    when(mockInbound.receive())
+        .thenReturn(ByteBufFlux.fromInbound(inboundPublisher.flux(), allocator));
+
+    Mono<Void> result = acceptor.apply(mockConnection);
+
+    StepVerifier.create(result)
+        .then(() -> inboundPublisher.next(encodedRequest.retain()))
+        .then(
+            () -> {
+              verify(mockOutbound, never()).sendObject(any(Object.class));
+              verify(mockConnection).dispose();
+            })
+        .thenCancel()
+        .verify();
+
+    if (encodedRequest.refCnt() > 0) {
+      encodedRequest.release();
+    }
+  }
+
+  /**
+   * The framed response is a composite whose last component is the message buffer, untouched when
+   * no transform applies. Its capacity is the sized bound; an unhinted buffer would show 256 (or a
+   * grown capacity for large responses).
+   */
+  private static int messageCapacity(ByteBuf framedResponse) {
+    CompositeByteBuf framed = (CompositeByteBuf) framedResponse;
+    return framed.component(framed.numComponents() - 1).capacity();
+  }
+
+  private void sizedResponseEchoesTransforms(int transform) throws Exception {
+    TProtocolType protocol = TProtocolType.TCompact;
+    ByteBuf encodedRequest =
+        createEncodedRequest(protocol, "testMethod", TMessageType.CALL, 52, transform);
+
+    Writer writer = TestResponseWriters.sized(TestResponseWriters.smallPayload());
+    ServerResponsePayload mockResponse = mock(ServerResponsePayload.class);
+    when(mockResponse.isTApplicationException()).thenReturn(false);
+    when(mockResponse.getDataWriter()).thenReturn(writer);
+    when(mockResponse.getResponseRpcMetadata())
+        .thenReturn(new ResponseRpcMetadata.Builder().build());
+
+    when(mockRpcServerHandler.singleRequestSingleResponse(any(ServerRequestPayload.class)))
+        .thenReturn(Mono.just(mockResponse));
+
+    TestPublisher<ByteBuf> inboundPublisher = TestPublisher.create();
+    when(mockInbound.receive())
+        .thenReturn(ByteBufFlux.fromInbound(inboundPublisher.flux(), allocator));
+
+    ArgumentCaptor<Object> responseCaptor = ArgumentCaptor.forClass(Object.class);
+    when(mockOutbound.sendObject(responseCaptor.capture())).thenReturn(mockSendObjectResult);
+
+    Mono<Void> result = acceptor.apply(mockConnection);
+
+    ByteBuf expectedResponse =
+        flatTestResponse(protocol, "testMethod", 52, TMessageType.REPLY, writer);
+
+    StepVerifier.create(result)
+        .then(() -> inboundPublisher.next(encodedRequest.retain()))
+        .then(
+            () -> {
+              verify(mockOutbound, times(1)).sendObject(any(Object.class));
+              ByteBuf responseBuf = (ByteBuf) responseCaptor.getValue();
+
+              ByteBuf copy = responseBuf.retainedDuplicate();
+              ThriftFrame decodedResponse = ReactiveHeaderCodec.decodeFrame(allocator, copy);
+
+              try {
+                assertEquals(protocol, decodedResponse.getProtocol());
+                assertTrue(decodedResponse.getTransforms().contains(transform));
+                assertTrue(ByteBufUtil.equals(decodedResponse.getMessage(), expectedResponse));
+              } finally {
+                decodedResponse.release();
+              }
+
+              responseBuf.release();
+            })
+        .thenCancel()
+        .verify();
+
+    expectedResponse.release();
+
     if (encodedRequest.refCnt() > 0) {
       encodedRequest.release();
     }

@@ -43,6 +43,7 @@ import com.facebook.thrift.server.UnknownMethodException;
 import com.facebook.thrift.util.FluxFirstResponseTimeoutTransformer;
 import com.facebook.thrift.util.MonoTimeoutTransformer;
 import com.facebook.thrift.util.NettyNiftyRequestContext;
+import com.facebook.thrift.util.ResponseBuffers;
 import com.facebook.thrift.util.RpcServerUtils;
 import com.facebook.thrift.util.resources.RpcResources;
 import io.airlift.units.Duration;
@@ -528,7 +529,11 @@ public class ThriftServerRSocket implements RSocket {
     ByteBuf metadata = null;
 
     try {
-      data = alloc.buffer();
+      data =
+          ResponseBuffers.allocate(
+              alloc,
+              responsePayload.getDataWriter(),
+              TProtocolType.fromProtocolId(requestPayload.getRequestRpcMetadata().getProtocol()));
 
       serializeResponse(requestPayload, responsePayload, data);
       if (firstResponse) {
@@ -724,7 +729,11 @@ public class ThriftServerRSocket implements RSocket {
     ByteBuf metadata = null;
 
     try {
-      data = alloc.buffer();
+      data =
+          ResponseBuffers.allocate(
+              alloc,
+              responsePayload.getDataWriter(),
+              TProtocolType.fromProtocolId(requestPayload.getRequestRpcMetadata().getProtocol()));
 
       serializeResponse(requestPayload, responsePayload, data);
       throwIfOverloaded(responsePayload);

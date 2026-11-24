@@ -33,6 +33,7 @@ import com.facebook.thrift.server.RpcServerHandler;
 import com.facebook.thrift.util.HeaderOverloadError;
 import com.facebook.thrift.util.MonoTimeoutTransformer;
 import com.facebook.thrift.util.NettyNiftyRequestContext;
+import com.facebook.thrift.util.ResponseBuffers;
 import com.facebook.thrift.util.RpcServerUtils;
 import com.facebook.thrift.util.resources.RpcResources;
 import io.airlift.units.Duration;
@@ -485,7 +486,13 @@ public class ThriftConnectionAcceptor implements Function<Connection, Publisher<
       ServerResponsePayload serverResponsePayload,
       Map<String, String> responseHeaders,
       int sequenceId) {
-    ByteBuf buf = conn.channel().alloc().buffer();
+    ByteBuf buf =
+        ResponseBuffers.allocate(
+            conn.channel().alloc(),
+            serverResponsePayload.getDataWriter(),
+            requestFrame.getProtocol(),
+            metadata.getName());
+
     try {
       TProtocol out = requestFrame.getProtocol().apply(buf);
 

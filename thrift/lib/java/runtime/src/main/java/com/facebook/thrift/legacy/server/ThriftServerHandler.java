@@ -39,6 +39,7 @@ import com.facebook.thrift.util.HeaderOverloadError;
 import com.facebook.thrift.util.MonoTimeoutTransformer;
 import com.facebook.thrift.util.NettyNiftyRequestContext;
 import com.facebook.thrift.util.NettyUtil;
+import com.facebook.thrift.util.ResponseBuffers;
 import com.facebook.thrift.util.resources.RpcResources;
 import io.airlift.units.Duration;
 import io.netty.buffer.ByteBuf;
@@ -371,34 +372,52 @@ public class ThriftServerHandler extends ChannelDuplexHandler {
       ServerResponsePayload serverResponsePayload,
       Map<String, String> responseHeaders,
       int sequenceId) {
-    ByteBuf buf = context.alloc().buffer();
-    TProtocol out = frame.getProtocol().apply(buf);
+    ByteBuf buf =
+        ResponseBuffers.allocate(
+            context.alloc(),
+            serverResponsePayload.getDataWriter(),
+            frame.getProtocol(),
+            metadata.getName());
 
-    if (serverResponsePayload.isTApplicationException()) {
-      out.writeMessageBegin(new TMessage(metadata.getName(), TMessageType.EXCEPTION, sequenceId));
-    } else {
-      out.writeMessageBegin(new TMessage(metadata.getName(), TMessageType.REPLY, sequenceId));
+    try {
+      TProtocol out = frame.getProtocol().apply(buf);
+
+      if (serverResponsePayload.isTApplicationException()) {
+        out.writeMessageBegin(new TMessage(metadata.getName(), TMessageType.EXCEPTION, sequenceId));
+      } else {
+        out.writeMessageBegin(new TMessage(metadata.getName(), TMessageType.REPLY, sequenceId));
+      }
+
+      serverResponsePayload.getDataWriter().write(out);
+      out.writeMessageEnd();
+
+      Map<String, String> otherMetadata =
+          serverResponsePayload.getResponseRpcMetadata().getOtherMetadata();
+      if (otherMetadata != null && !otherMetadata.isEmpty()) {
+        responseHeaders.putAll(otherMetadata);
+      }
+      HeaderOverloadError.stampResponseHeaders(
+          responseHeaders, serverResponsePayload.getApplicationException());
+
+      ThriftFrame response =
+          new ThriftFrame(
+              frame.getSequenceId(),
+              buf,
+              responseHeaders,
+              Collections.emptyMap(),
+              frame.getTransport(),
+              frame.getProtocol(),
+              frame.isSupportOutOfOrderResponse(),
+              frame.getTransforms());
+
+      buf = null; // Prevent release in finally
+
+      return response;
+    } finally {
+      if (buf != null) {
+        ReferenceCountUtil.safeRelease(buf);
+      }
     }
-    serverResponsePayload.getDataWriter().write(out);
-    out.writeMessageEnd();
-
-    Map<String, String> otherMetadata =
-        serverResponsePayload.getResponseRpcMetadata().getOtherMetadata();
-    if (otherMetadata != null && !otherMetadata.isEmpty()) {
-      responseHeaders.putAll(otherMetadata);
-    }
-    HeaderOverloadError.stampResponseHeaders(
-        responseHeaders, serverResponsePayload.getApplicationException());
-
-    return new ThriftFrame(
-        frame.getSequenceId(),
-        buf,
-        responseHeaders,
-        Collections.emptyMap(),
-        frame.getTransport(),
-        frame.getProtocol(),
-        frame.isSupportOutOfOrderResponse(),
-        frame.getTransforms());
   }
 
   private static ThriftFrame encodeApplicationException(

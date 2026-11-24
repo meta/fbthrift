@@ -45,6 +45,7 @@ import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TBaseException;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TField;
+import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.protocol.TStruct;
 import org.apache.thrift.protocol.TType;
 import reactor.core.Exceptions;
@@ -320,18 +321,32 @@ public final class RpcPayloadUtil {
    * @param fieldId the IDL field id of the exception in the {@code throws} clause
    */
   public static Writer declaredExceptionWriter(Throwable t, ContextChain chain, int fieldId) {
-    return protocol -> {
-      try {
-        chain.declaredUserException(t);
-        protocol.writeStructBegin(TSTRUCT);
-        protocol.writeFieldBegin(new TField(RESPONSE_FIELD_NAME, TType.STRUCT, (short) fieldId));
-        ((ThriftSerializable) t).write0(protocol);
-        protocol.writeFieldEnd();
-        protocol.writeFieldStop();
-        protocol.writeStructEnd();
-        chain.postWriteException(t);
-      } catch (Throwable e) {
-        throw Exceptions.propagate(e);
+    return new Writer() {
+      @Override
+      public void write(TProtocol protocol) throws TException {
+        try {
+          chain.declaredUserException(t);
+          protocol.writeStructBegin(TSTRUCT);
+          protocol.writeFieldBegin(new TField(RESPONSE_FIELD_NAME, TType.STRUCT, (short) fieldId));
+          ((ThriftSerializable) t).write0(protocol);
+          protocol.writeFieldEnd();
+          protocol.writeFieldStop();
+          protocol.writeStructEnd();
+          chain.postWriteException(t);
+        } catch (Throwable e) {
+          throw Exceptions.propagate(e);
+        }
+      }
+
+      @Override
+      public int sizeHint() {
+        long payloadSize = ((ThriftSerializable) t).serializedSize();
+
+        if (payloadSize < 0) {
+          return -1;
+        }
+
+        return ThriftSizes.clampToInt(ThriftSizes.FIELD + payloadSize + ThriftSizes.FIELD_STOP);
       }
     };
   }
