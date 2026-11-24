@@ -103,4 +103,6 @@ public final class Constants {
         builder.put("a", 97);
         return builder.build();
     }
+
+    public static final byte[] NON_ASCII_BYTES = "\u0080\u00c3\u00a9\u00ff".getBytes(java.nio.charset.StandardCharsets.ISO_8859_1);
 }
