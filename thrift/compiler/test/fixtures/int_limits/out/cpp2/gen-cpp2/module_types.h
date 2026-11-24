@@ -85,6 +85,16 @@ class Limits final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "Limits";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "max_i64_field", "min_i64_field", "max_i32_field", "min_i32_field", "max_i16_field", "min_i16_field", "max_byte_field", "min_byte_field"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";

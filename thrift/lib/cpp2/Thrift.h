@@ -24,6 +24,7 @@
 
 #include <functional>
 #include <utility>
+#include <folly/CppAttributes.h>
 #include <folly/Traits.h>
 #include <folly/Utility.h>
 #include <folly/functional/Invoke.h>
@@ -35,6 +36,14 @@
 
 static_assert(
     FOLLY_CPLUSPLUS >= 202002L, "Thrift must be built with C++20 or later.");
+
+// Keeps trivial accessors out of debug info. Generated code instantiates them
+// per field, and each instantiation would otherwise add its full name.
+#if FOLLY_HAS_CPP_ATTRIBUTE(gnu::nodebug)
+#define FBTHRIFT_NODEBUG [[gnu::nodebug]]
+#else
+#define FBTHRIFT_NODEBUG
+#endif
 
 namespace apache::thrift {
 
@@ -141,6 +150,23 @@ struct struct_private_access {
   template <typename T>
   static const folly::StringPiece __fbthrift_get_class_name() {
     return T::__fbthrift_get_class_name();
+  }
+
+  template <typename T>
+  static constexpr std::string_view class_name_v =
+      T::__fbthrift_constexpr_class_name;
+  template <typename T, FieldOrdinal Ord>
+  static constexpr std::string_view field_name_v =
+      T::__fbthrift_constexpr_field_names[folly::to_underlying(Ord)];
+
+  // The storage and isset bit of a struct field, without its field_ref.
+  template <int16_t Id, typename T>
+  FBTHRIFT_NODEBUG FOLLY_ERASE static const auto& field_storage(const T& t) {
+    return t.template __fbthrift_get_field_storage<Id>();
+  }
+  template <int16_t Id, typename T>
+  FBTHRIFT_NODEBUG FOLLY_ERASE static bool field_isset(const T& t) {
+    return t.template __fbthrift_get_field_isset<Id>();
   }
 
   template <typename T, typename Annotation>

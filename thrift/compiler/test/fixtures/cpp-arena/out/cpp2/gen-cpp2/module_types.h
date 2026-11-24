@@ -133,6 +133,16 @@ class Inner final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "facebook.com/thrift/test/fixtures/cpp_arena/Inner";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "Inner";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "name"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -276,6 +286,16 @@ class Fields final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "facebook.com/thrift/test/fixtures/cpp_arena/Fields";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "Fields";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "name", "groups", "inners", "id", "custom"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -656,6 +676,16 @@ class WholeStruct final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "facebook.com/thrift/test/fixtures/cpp_arena/WholeStruct";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "WholeStruct";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "names", "id"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -852,6 +882,16 @@ class HoldsWholeStruct final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "facebook.com/thrift/test/fixtures/cpp_arena/HoldsWholeStruct";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "HoldsWholeStruct";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "whole"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -988,6 +1028,16 @@ class ArenaMember final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "facebook.com/thrift/test/fixtures/cpp_arena/ArenaMember";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "ArenaMember";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "arena", "plain"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -1195,6 +1245,11 @@ class WholeUnion final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "facebook.com/thrift/test/fixtures/cpp_arena/WholeUnion";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "WholeUnion";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "names", "id"
+  };
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";

@@ -141,6 +141,16 @@ class SerializedStruct final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/python_capi/SerializedStruct";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "SerializedStruct";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "s", "i", "os", "rs"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "serialized_dep";
@@ -450,6 +460,11 @@ class SerializedUnion final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/python_capi/SerializedUnion";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "SerializedUnion";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "s", "i"
+  };
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "serialized_dep";
@@ -697,6 +712,16 @@ class FOLLY_EXPORT SerializedError : public virtual apache::thrift::TException {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/python_capi/SerializedError";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "SerializedError";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "msg", "os", "rs"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "serialized_dep";
@@ -968,6 +993,16 @@ class MarshalStruct final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/python_capi/MarshalStruct";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "MarshalStruct";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "s", "i", "os", "rs"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "serialized_dep";
@@ -1277,6 +1312,11 @@ class MarshalUnion final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/python_capi/MarshalUnion";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "MarshalUnion";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "s", "i"
+  };
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "serialized_dep";
@@ -1524,6 +1564,16 @@ class FOLLY_EXPORT MarshalError : public virtual apache::thrift::TException {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/python_capi/MarshalError";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "MarshalError";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "msg", "os", "rs"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "serialized_dep";

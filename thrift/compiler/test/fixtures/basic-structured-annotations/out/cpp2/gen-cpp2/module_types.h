@@ -197,6 +197,16 @@ class runtime_annotation final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/basic_structured_annotations/runtime_annotation";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "runtime_annotation";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    ""
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -275,6 +285,16 @@ class structured_annotation_inline final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/basic_structured_annotations/structured_annotation_inline";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "structured_annotation_inline";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "count", "name"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -466,6 +486,16 @@ class structured_annotation_with_default final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/basic_structured_annotations/structured_annotation_with_default";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "structured_annotation_with_default";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "name"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -609,6 +639,16 @@ class structured_annotation_forward final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/basic_structured_annotations/structured_annotation_forward";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "structured_annotation_forward";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "count"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -738,6 +778,16 @@ class structured_annotation_recursive final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/basic_structured_annotations/structured_annotation_recursive";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "structured_annotation_recursive";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "name", "recurse", "forward"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -980,6 +1030,16 @@ class structured_annotation_nested final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/basic_structured_annotations/structured_annotation_nested";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "structured_annotation_nested";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "name", "nest"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -1179,6 +1239,16 @@ class MyStruct final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/basic_structured_annotations/MyStruct";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "MyStruct";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "annotated_field", "annotated_type", "annotated_recursive", "annotated_nested"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -1489,6 +1559,16 @@ class FOLLY_EXPORT MyException : public virtual apache::thrift::TException {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/basic_structured_annotations/MyException";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "MyException";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "context"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -1642,6 +1722,11 @@ class MyUnion final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/basic_structured_annotations/MyUnion";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "MyUnion";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "first", "second"
+  };
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";

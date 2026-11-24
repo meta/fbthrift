@@ -9,3 +9,18 @@
 #include "thrift/compiler/test/fixtures/cpp-allocator-ref/gen-cpp2/module_types.h"
 
 #include <thrift/lib/cpp2/gen/module_types_tcc.h>
+
+namespace test::fixtures::cpp_allocator_ref {
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Child::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_value;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Child::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& FieldUseAllocatorRef::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_child;
+}
+} // namespace test::fixtures::cpp_allocator_ref

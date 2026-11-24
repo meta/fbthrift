@@ -9,3 +9,30 @@
 #include "thrift/compiler/test/fixtures/includes/gen-cpp2/module_types.h"
 
 #include <thrift/lib/cpp2/gen/module_types_tcc.h>
+
+namespace cpp2 {
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyStruct::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_MyIncludedField;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MyStruct::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyStruct::__fbthrift_get_field_storage<2>() const {
+  return this->__fbthrift_field_MyOtherIncludedField;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MyStruct::__fbthrift_get_field_isset<2>() const {
+  return this->__isset.get(1);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyStruct::__fbthrift_get_field_storage<3>() const {
+  return this->__fbthrift_field_MyIncludedInt;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MyStruct::__fbthrift_get_field_isset<3>() const {
+  return this->__isset.get(2);
+}
+} // namespace cpp2

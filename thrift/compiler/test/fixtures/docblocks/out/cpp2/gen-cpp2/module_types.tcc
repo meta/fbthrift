@@ -9,3 +9,46 @@
 #include "thrift/compiler/test/fixtures/docblocks/gen-cpp2/module_types.h"
 
 #include <thrift/lib/cpp2/gen/module_types_tcc.h>
+
+namespace facebook::thrift::test::fixtures::docblocks {
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Escapes::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_quotes;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Escapes::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Escapes::__fbthrift_get_field_storage<2>() const {
+  return this->__fbthrift_field_backslash;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Escapes::__fbthrift_get_field_isset<2>() const {
+  return this->__isset.get(1);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& CppRenamed::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_cpp_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool CppRenamed::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Retyped::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_retyped;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Retyped::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Undocumented::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_plain;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Undocumented::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+} // namespace facebook::thrift::test::fixtures::docblocks

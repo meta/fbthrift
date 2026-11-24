@@ -9,3 +9,70 @@
 #include "thrift/compiler/test/fixtures/enums/gen-cpp2/module_types.h"
 
 #include <thrift/lib/cpp2/gen/module_types_tcc.h>
+
+namespace test::fixtures::enums {
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& SomeStruct::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_reasonable;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool SomeStruct::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& SomeStruct::__fbthrift_get_field_storage<2>() const {
+  return this->__fbthrift_field_fine;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool SomeStruct::__fbthrift_get_field_isset<2>() const {
+  return this->__isset.get(1);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& SomeStruct::__fbthrift_get_field_storage<3>() const {
+  return this->__fbthrift_field_questionable;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool SomeStruct::__fbthrift_get_field_isset<3>() const {
+  return this->__isset.get(2);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& SomeStruct::__fbthrift_get_field_storage<4>() const {
+  return this->__fbthrift_field_tags;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool SomeStruct::__fbthrift_get_field_isset<4>() const {
+  return this->__isset.get(3);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyStruct::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_me2_3;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MyStruct::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyStruct::__fbthrift_get_field_storage<2>() const {
+  return this->__fbthrift_field_me3_n3;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MyStruct::__fbthrift_get_field_isset<2>() const {
+  return this->__isset.get(1);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyStruct::__fbthrift_get_field_storage<4>() const {
+  return this->__fbthrift_field_me1_t1;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MyStruct::__fbthrift_get_field_isset<4>() const {
+  return this->__isset.get(2);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyStruct::__fbthrift_get_field_storage<6>() const {
+  return this->__fbthrift_field_me1_t2;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MyStruct::__fbthrift_get_field_isset<6>() const {
+  return this->__isset.get(3);
+}
+} // namespace test::fixtures::enums

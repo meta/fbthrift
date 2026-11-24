@@ -9,3 +9,94 @@
 #include "thrift/compiler/test/fixtures/mcpp2-compare/gen-cpp2/extra_services_types.h"
 
 #include <thrift/lib/cpp2/gen/module_types_tcc.h>
+
+namespace extra::svc {
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& containerStruct2::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_fieldA;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool containerStruct2::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& containerStruct2::__fbthrift_get_field_storage<101>() const {
+  return this->__fbthrift_field_req_fieldA;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& containerStruct2::__fbthrift_get_field_storage<201>() const {
+  return this->__fbthrift_field_opt_fieldA;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool containerStruct2::__fbthrift_get_field_isset<201>() const {
+  return this->__isset.get(1);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& containerStruct2::__fbthrift_get_field_storage<2>() const {
+  return this->__fbthrift_field_fieldB;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool containerStruct2::__fbthrift_get_field_isset<2>() const {
+  return this->__isset.get(2);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& containerStruct2::__fbthrift_get_field_storage<102>() const {
+  return this->__fbthrift_field_req_fieldB;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& containerStruct2::__fbthrift_get_field_storage<202>() const {
+  return this->__fbthrift_field_opt_fieldB;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool containerStruct2::__fbthrift_get_field_isset<202>() const {
+  return this->__isset.get(3);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& containerStruct2::__fbthrift_get_field_storage<3>() const {
+  return this->__fbthrift_field_fieldC;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool containerStruct2::__fbthrift_get_field_isset<3>() const {
+  return this->__isset.get(4);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& containerStruct2::__fbthrift_get_field_storage<103>() const {
+  return this->__fbthrift_field_req_fieldC;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& containerStruct2::__fbthrift_get_field_storage<203>() const {
+  return this->__fbthrift_field_opt_fieldC;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool containerStruct2::__fbthrift_get_field_isset<203>() const {
+  return this->__isset.get(5);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& containerStruct2::__fbthrift_get_field_storage<4>() const {
+  return this->__fbthrift_field_fieldD;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool containerStruct2::__fbthrift_get_field_isset<4>() const {
+  return this->__isset.get(6);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& containerStruct2::__fbthrift_get_field_storage<5>() const {
+  return this->__fbthrift_field_fieldE;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool containerStruct2::__fbthrift_get_field_isset<5>() const {
+  return this->__isset.get(7);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& containerStruct2::__fbthrift_get_field_storage<105>() const {
+  return this->__fbthrift_field_req_fieldE;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& containerStruct2::__fbthrift_get_field_storage<205>() const {
+  return this->__fbthrift_field_opt_fieldE;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool containerStruct2::__fbthrift_get_field_isset<205>() const {
+  return this->__isset.get(8);
+}
+} // namespace extra::svc

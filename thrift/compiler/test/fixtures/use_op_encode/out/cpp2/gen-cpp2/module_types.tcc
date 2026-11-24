@@ -9,3 +9,30 @@
 #include "thrift/compiler/test/fixtures/use_op_encode/gen-cpp2/module_types.h"
 
 #include <thrift/lib/cpp2/gen/module_types_tcc.h>
+
+namespace facebook::thrift::compiler::test {
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyStruct::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_def_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MyStruct::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyStruct::__fbthrift_get_field_storage<2>() const {
+  return this->__fbthrift_field_opt_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MyStruct::__fbthrift_get_field_isset<2>() const {
+  return this->__isset.get(1);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyStruct::__fbthrift_get_field_storage<3>() const {
+  return this->__fbthrift_field_req_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyStruct::__fbthrift_get_field_storage<4>() const {
+  return this->__fbthrift_field_terse_field;
+}
+} // namespace facebook::thrift::compiler::test

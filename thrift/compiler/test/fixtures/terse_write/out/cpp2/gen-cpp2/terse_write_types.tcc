@@ -9,3 +9,270 @@
 #include "thrift/compiler/test/fixtures/terse_write/gen-cpp2/terse_write_types.h"
 
 #include <thrift/lib/cpp2/gen/module_types_tcc.h>
+
+namespace facebook::thrift::test::fixtures::terse_write {
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyStructWithCustomDefault::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_field1;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MyStructWithCustomDefault::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructLevelTerseStruct::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_bool_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructLevelTerseStruct::__fbthrift_get_field_storage<2>() const {
+  return this->__fbthrift_field_byte_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructLevelTerseStruct::__fbthrift_get_field_storage<3>() const {
+  return this->__fbthrift_field_short_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructLevelTerseStruct::__fbthrift_get_field_storage<4>() const {
+  return this->__fbthrift_field_int_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructLevelTerseStruct::__fbthrift_get_field_storage<5>() const {
+  return this->__fbthrift_field_long_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructLevelTerseStruct::__fbthrift_get_field_storage<6>() const {
+  return this->__fbthrift_field_float_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructLevelTerseStruct::__fbthrift_get_field_storage<7>() const {
+  return this->__fbthrift_field_double_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructLevelTerseStruct::__fbthrift_get_field_storage<8>() const {
+  return this->__fbthrift_field_string_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructLevelTerseStruct::__fbthrift_get_field_storage<9>() const {
+  return this->__fbthrift_field_binary_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructLevelTerseStruct::__fbthrift_get_field_storage<10>() const {
+  return this->__fbthrift_field_enum_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructLevelTerseStruct::__fbthrift_get_field_storage<11>() const {
+  return this->__fbthrift_field_list_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructLevelTerseStruct::__fbthrift_get_field_storage<12>() const {
+  return this->__fbthrift_field_set_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructLevelTerseStruct::__fbthrift_get_field_storage<13>() const {
+  return this->__fbthrift_field_map_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructLevelTerseStruct::__fbthrift_get_field_storage<14>() const {
+  return this->__fbthrift_field_struct_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructLevelTerseStruct::__fbthrift_get_field_storage<15>() const {
+  return this->__fbthrift_field_union_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& FieldLevelTerseStruct::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_terse_bool_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& FieldLevelTerseStruct::__fbthrift_get_field_storage<2>() const {
+  return this->__fbthrift_field_terse_byte_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& FieldLevelTerseStruct::__fbthrift_get_field_storage<3>() const {
+  return this->__fbthrift_field_terse_short_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& FieldLevelTerseStruct::__fbthrift_get_field_storage<4>() const {
+  return this->__fbthrift_field_terse_int_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& FieldLevelTerseStruct::__fbthrift_get_field_storage<5>() const {
+  return this->__fbthrift_field_terse_long_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& FieldLevelTerseStruct::__fbthrift_get_field_storage<6>() const {
+  return this->__fbthrift_field_terse_float_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& FieldLevelTerseStruct::__fbthrift_get_field_storage<7>() const {
+  return this->__fbthrift_field_terse_double_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& FieldLevelTerseStruct::__fbthrift_get_field_storage<8>() const {
+  return this->__fbthrift_field_terse_string_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& FieldLevelTerseStruct::__fbthrift_get_field_storage<9>() const {
+  return this->__fbthrift_field_terse_binary_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& FieldLevelTerseStruct::__fbthrift_get_field_storage<10>() const {
+  return this->__fbthrift_field_terse_enum_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& FieldLevelTerseStruct::__fbthrift_get_field_storage<11>() const {
+  return this->__fbthrift_field_terse_list_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& FieldLevelTerseStruct::__fbthrift_get_field_storage<12>() const {
+  return this->__fbthrift_field_terse_set_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& FieldLevelTerseStruct::__fbthrift_get_field_storage<13>() const {
+  return this->__fbthrift_field_terse_map_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& FieldLevelTerseStruct::__fbthrift_get_field_storage<14>() const {
+  return this->__fbthrift_field_terse_struct_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& FieldLevelTerseStruct::__fbthrift_get_field_storage<29>() const {
+  return this->__fbthrift_field_terse_union_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& FieldLevelTerseStruct::__fbthrift_get_field_storage<15>() const {
+  return this->__fbthrift_field_bool_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool FieldLevelTerseStruct::__fbthrift_get_field_isset<15>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& FieldLevelTerseStruct::__fbthrift_get_field_storage<16>() const {
+  return this->__fbthrift_field_byte_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool FieldLevelTerseStruct::__fbthrift_get_field_isset<16>() const {
+  return this->__isset.get(1);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& FieldLevelTerseStruct::__fbthrift_get_field_storage<17>() const {
+  return this->__fbthrift_field_short_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool FieldLevelTerseStruct::__fbthrift_get_field_isset<17>() const {
+  return this->__isset.get(2);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& FieldLevelTerseStruct::__fbthrift_get_field_storage<18>() const {
+  return this->__fbthrift_field_int_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool FieldLevelTerseStruct::__fbthrift_get_field_isset<18>() const {
+  return this->__isset.get(3);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& FieldLevelTerseStruct::__fbthrift_get_field_storage<19>() const {
+  return this->__fbthrift_field_long_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool FieldLevelTerseStruct::__fbthrift_get_field_isset<19>() const {
+  return this->__isset.get(4);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& FieldLevelTerseStruct::__fbthrift_get_field_storage<20>() const {
+  return this->__fbthrift_field_float_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool FieldLevelTerseStruct::__fbthrift_get_field_isset<20>() const {
+  return this->__isset.get(5);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& FieldLevelTerseStruct::__fbthrift_get_field_storage<21>() const {
+  return this->__fbthrift_field_double_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool FieldLevelTerseStruct::__fbthrift_get_field_isset<21>() const {
+  return this->__isset.get(6);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& FieldLevelTerseStruct::__fbthrift_get_field_storage<22>() const {
+  return this->__fbthrift_field_string_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool FieldLevelTerseStruct::__fbthrift_get_field_isset<22>() const {
+  return this->__isset.get(7);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& FieldLevelTerseStruct::__fbthrift_get_field_storage<23>() const {
+  return this->__fbthrift_field_binary_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool FieldLevelTerseStruct::__fbthrift_get_field_isset<23>() const {
+  return this->__isset.get(8);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& FieldLevelTerseStruct::__fbthrift_get_field_storage<24>() const {
+  return this->__fbthrift_field_enum_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool FieldLevelTerseStruct::__fbthrift_get_field_isset<24>() const {
+  return this->__isset.get(9);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& FieldLevelTerseStruct::__fbthrift_get_field_storage<25>() const {
+  return this->__fbthrift_field_list_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool FieldLevelTerseStruct::__fbthrift_get_field_isset<25>() const {
+  return this->__isset.get(10);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& FieldLevelTerseStruct::__fbthrift_get_field_storage<26>() const {
+  return this->__fbthrift_field_set_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool FieldLevelTerseStruct::__fbthrift_get_field_isset<26>() const {
+  return this->__isset.get(11);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& FieldLevelTerseStruct::__fbthrift_get_field_storage<27>() const {
+  return this->__fbthrift_field_map_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool FieldLevelTerseStruct::__fbthrift_get_field_isset<27>() const {
+  return this->__isset.get(12);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& FieldLevelTerseStruct::__fbthrift_get_field_storage<28>() const {
+  return this->__fbthrift_field_struct_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool FieldLevelTerseStruct::__fbthrift_get_field_isset<28>() const {
+  return this->__isset.get(13);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& FieldLevelTerseStruct::__fbthrift_get_field_storage<30>() const {
+  return this->__fbthrift_field_union_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool FieldLevelTerseStruct::__fbthrift_get_field_isset<30>() const {
+  return this->__isset.get(14);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& AdaptedFields::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_field1;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& AdaptedFields::__fbthrift_get_field_storage<2>() const {
+  return this->__fbthrift_field_field2;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& AdaptedFields::__fbthrift_get_field_storage<3>() const {
+  return this->__fbthrift_field_field3;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& TerseException::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_msg;
+}
+} // namespace facebook::thrift::test::fixtures::terse_write

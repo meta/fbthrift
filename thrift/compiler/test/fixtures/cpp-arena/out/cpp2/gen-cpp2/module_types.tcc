@@ -9,3 +9,94 @@
 #include "thrift/compiler/test/fixtures/cpp-arena/gen-cpp2/module_types.h"
 
 #include <thrift/lib/cpp2/gen/module_types_tcc.h>
+
+namespace test::fixtures::cpp_arena {
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Inner::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_name;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Inner::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Fields::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_name;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Fields::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Fields::__fbthrift_get_field_storage<2>() const {
+  return this->__fbthrift_field_groups;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Fields::__fbthrift_get_field_isset<2>() const {
+  return this->__isset.get(1);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Fields::__fbthrift_get_field_storage<3>() const {
+  return this->__fbthrift_field_inners;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Fields::__fbthrift_get_field_isset<3>() const {
+  return this->__isset.get(2);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Fields::__fbthrift_get_field_storage<4>() const {
+  return this->__fbthrift_field_id;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Fields::__fbthrift_get_field_isset<4>() const {
+  return this->__isset.get(3);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Fields::__fbthrift_get_field_storage<5>() const {
+  return this->__fbthrift_field_custom;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Fields::__fbthrift_get_field_isset<5>() const {
+  return this->__isset.get(4);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& WholeStruct::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_names;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool WholeStruct::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& WholeStruct::__fbthrift_get_field_storage<2>() const {
+  return this->__fbthrift_field_id;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool WholeStruct::__fbthrift_get_field_isset<2>() const {
+  return this->__isset.get(1);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& HoldsWholeStruct::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_whole;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool HoldsWholeStruct::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& ArenaMember::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_arena;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool ArenaMember::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& ArenaMember::__fbthrift_get_field_storage<2>() const {
+  return this->__fbthrift_field_plain;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool ArenaMember::__fbthrift_get_field_isset<2>() const {
+  return this->__isset.get(1);
+}
+} // namespace test::fixtures::cpp_arena

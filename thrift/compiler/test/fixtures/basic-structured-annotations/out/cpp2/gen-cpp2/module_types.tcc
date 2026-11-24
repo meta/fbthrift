@@ -9,3 +9,114 @@
 #include "thrift/compiler/test/fixtures/basic-structured-annotations/gen-cpp2/module_types.h"
 
 #include <thrift/lib/cpp2/gen/module_types_tcc.h>
+
+namespace test::fixtures::basic_structured_annotations {
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structured_annotation_inline::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_count;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool structured_annotation_inline::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structured_annotation_inline::__fbthrift_get_field_storage<2>() const {
+  return this->__fbthrift_field_name;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool structured_annotation_inline::__fbthrift_get_field_isset<2>() const {
+  return this->__isset.get(1);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structured_annotation_with_default::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_name;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool structured_annotation_with_default::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structured_annotation_recursive::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_name;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool structured_annotation_recursive::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structured_annotation_recursive::__fbthrift_get_field_storage<2>() const {
+  return this->__fbthrift_field_recurse;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structured_annotation_recursive::__fbthrift_get_field_storage<3>() const {
+  return this->__fbthrift_field_forward;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool structured_annotation_recursive::__fbthrift_get_field_isset<3>() const {
+  return this->__isset.get(1);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structured_annotation_forward::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_count;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool structured_annotation_forward::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structured_annotation_nested::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_name;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool structured_annotation_nested::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structured_annotation_nested::__fbthrift_get_field_storage<2>() const {
+  return this->__fbthrift_field_nest;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool structured_annotation_nested::__fbthrift_get_field_isset<2>() const {
+  return this->__isset.get(1);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyStruct::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_annotated_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MyStruct::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyStruct::__fbthrift_get_field_storage<2>() const {
+  return this->__fbthrift_field_annotated_type;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MyStruct::__fbthrift_get_field_isset<2>() const {
+  return this->__isset.get(1);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyStruct::__fbthrift_get_field_storage<3>() const {
+  return this->__fbthrift_field_annotated_recursive;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MyStruct::__fbthrift_get_field_isset<3>() const {
+  return this->__isset.get(2);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyStruct::__fbthrift_get_field_storage<4>() const {
+  return this->__fbthrift_field_annotated_nested;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MyStruct::__fbthrift_get_field_isset<4>() const {
+  return this->__isset.get(3);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyException::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_context;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MyException::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+} // namespace test::fixtures::basic_structured_annotations

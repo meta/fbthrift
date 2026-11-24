@@ -9,3 +9,14 @@
 #include "thrift/compiler/test/fixtures/mcpp2-compare/gen-cpp2/enums_types.h"
 
 #include <thrift/lib/cpp2/gen/module_types_tcc.h>
+
+namespace facebook::ns::qwerty {
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& SomeStruct::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_fieldA;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool SomeStruct::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+} // namespace facebook::ns::qwerty

@@ -9,3 +9,14 @@
 #include "thrift/compiler/test/fixtures/deprecated-public-fields-for-cpp-ref/gen-cpp2/module_types.h"
 
 #include <thrift/lib/cpp2/gen/module_types_tcc.h>
+
+namespace cpp2 {
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Foo::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_foo;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Foo::__fbthrift_get_field_storage<2>() const {
+  return this->__fbthrift_field_bar;
+}
+} // namespace cpp2

@@ -9,3 +9,22 @@
 #include "thrift/compiler/test/fixtures/iobuf_chain/gen-cpp2/module_types.h"
 
 #include <thrift/lib/cpp2/gen/module_types_tcc.h>
+
+namespace facebook::thrift::test::iobuf_chain {
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Data::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_payload;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Data::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Data::__fbthrift_get_field_storage<2>() const {
+  return this->__fbthrift_field_text;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Data::__fbthrift_get_field_isset<2>() const {
+  return this->__isset.get(1);
+}
+} // namespace facebook::thrift::test::iobuf_chain

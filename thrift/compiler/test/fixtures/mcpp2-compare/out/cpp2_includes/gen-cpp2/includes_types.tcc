@@ -9,3 +9,18 @@
 #include "thrift/compiler/test/fixtures/mcpp2-compare/gen-cpp2/includes_types.h"
 
 #include <thrift/lib/cpp2/gen/module_types_tcc.h>
+
+namespace a::different::ns {
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& AStruct::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_FieldA;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool AStruct::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& AStructB::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_FieldA;
+}
+} // namespace a::different::ns

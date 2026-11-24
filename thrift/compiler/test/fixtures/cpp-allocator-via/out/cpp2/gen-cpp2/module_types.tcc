@@ -9,3 +9,30 @@
 #include "thrift/compiler/test/fixtures/cpp-allocator-via/gen-cpp2/module_types.h"
 
 #include <thrift/lib/cpp2/gen/module_types_tcc.h>
+
+namespace test::fixtures::cpp_allocator_via {
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& AllocatorVia::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_aa_string;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool AllocatorVia::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& AllocatorVia::__fbthrift_get_field_storage<2>() const {
+  return this->__fbthrift_field_aa_list;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool AllocatorVia::__fbthrift_get_field_isset<2>() const {
+  return this->__isset.get(1);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& AllocatorVia::__fbthrift_get_field_storage<3>() const {
+  return this->__fbthrift_field_plain_int;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool AllocatorVia::__fbthrift_get_field_isset<3>() const {
+  return this->__isset.get(2);
+}
+} // namespace test::fixtures::cpp_allocator_via
