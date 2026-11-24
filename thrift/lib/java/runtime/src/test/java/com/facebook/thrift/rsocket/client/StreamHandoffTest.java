@@ -478,7 +478,6 @@ class StreamHandoffTest {
   @Test
   void rejectDuringQueuedDrainFreesCurrentAndLateFrames() {
     AtomicReference<Runnable> queued = new AtomicReference<>();
-    Disposable noop = () -> {};
     Scheduler scheduler = mock(Scheduler.class);
     when(scheduler.schedule(any(Runnable.class)))
         .thenAnswer(
@@ -486,7 +485,7 @@ class StreamHandoffTest {
               Runnable task = invocation.getArgument(0);
 
               if (queued.compareAndSet(null, task)) {
-                return noop;
+                return Disposables.disposed();
               }
 
               throw new RejectedExecutionException("no workers");

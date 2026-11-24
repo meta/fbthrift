@@ -20,7 +20,6 @@ import com.facebook.thrift.client.ResponseWrapper;
 import com.facebook.thrift.model.ResponseAndStream;
 import com.facebook.thrift.model.StreamResponse;
 import com.facebook.thrift.payload.ClientResponsePayload;
-import com.facebook.thrift.util.resources.RpcResources;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.reactivestreams.Subscription;
@@ -30,8 +29,6 @@ import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Operators;
-import reactor.core.scheduler.Scheduler;
-import reactor.util.concurrent.Queues;
 
 /**
  * Bridges a raw stream of decoded {@code ClientResponsePayload} elements carrying {@code
@@ -64,15 +61,14 @@ public final class ResponseAndStreamBridge {
    * Bridges the raw decoded stream into the user-facing holder.
    *
    * <p>This is the service-level path: the bridge itself performs no thread hop, so the outer
-   * holder resolves on the transport event loop. Subscribe the inner stream without blocking that
-   * thread (for example with {@code flatMapMany}); nesting a blocking subscription inside the outer
-   * {@code onNext} deadlocks the connection. The transport stream carries an initial window of
-   * {@code 1 + STREAM_WINDOW} credits (one for the first response, matching the C++ client) and
-   * {@code STREAM_WINDOW / 2} refills as elements are consumed; downstream demand (the switch's own
-   * first credit, the inner stream, the replay skip) is served from that window and is only
-   * forwarded upstream as consumption-paced refills, never as an early extra frame. The generated
-   * interaction {@code Wrapper} goes through {@link #toInteractionResponseAndStream} instead, which
-   * keeps the historical off-loop hop (with its prefetch window) on top of this bridge.
+   * holder resolves on whatever thread the transport emits on. Subscribe the inner stream without
+   * blocking that thread (for example with {@code flatMapMany}); nesting a blocking subscription
+   * inside the outer {@code onNext} deadlocks the connection. The transport stream carries an
+   * initial window of {@code 1 + STREAM_WINDOW} credits (one for the first response, matching the
+   * C++ client) and {@code STREAM_WINDOW / 2} refills as elements are consumed; downstream demand
+   * (the switch's own first credit, the inner stream, the replay skip) is served from that window
+   * and is only forwarded upstream as consumption-paced refills, never as an early extra frame. The
+   * generated interaction {@code Wrapper} calls {@link #toResponseAndStream}.
    *
    * <p>Lifecycle, matching the {@link ResponseAndStream} contract:
    *
@@ -132,102 +128,6 @@ public final class ResponseAndStreamBridge {
                 // apart (only holders carry a ResponseAndStream).
                 .single()
                 .doOnDiscard(ResponseWrapper.class, holder -> disposeIfDropped(holder)));
-  }
-
-  /**
-   * Interaction variant of {@link #toResponseAndStream}: keeps the historical interaction behavior
-   * exactly (same flag, same scheduler, same prefetch as the generated {@code Wrapper} applied at
-   * the parent revision). When forcing off the event loop is enabled, the outer holder resolution
-   * and every inner element are delivered off-loop, and the wire sees the first-response credit
-   * plus the {@link #INTERACTION_STREAM_PREFETCH} window regardless of user demand. When it is
-   * disabled, this is the bare bridge: the wire carries the initial window plus consumption-paced
-   * refills.
-   *
-   * @param responses decoded stream elements whose data is {@code StreamResponse<F, E>}
-   * @return Mono of the response wrapper holding the first response and the stream
-   */
-  public static <F, E>
-      Mono<ResponseWrapper<ResponseAndStream<F, ResponseWrapper<E>>>>
-          toInteractionResponseAndStream(Flux<? extends ClientResponsePayload<?>> responses) {
-    boolean forceOffLoop = RpcResources.isForceExecutionOffEventLoop();
-    Scheduler offLoopScheduler = forceOffLoop ? RpcResources.getOffLoopScheduler() : null;
-    Mono<ResponseWrapper<ResponseAndStream<F, ResponseWrapper<E>>>> outer =
-        ResponseAndStreamBridge.<F, E>toResponseAndStream(responses)
-            .map(
-                holder ->
-                    ResponseWrapper.create(
-                        holder
-                            .getData()
-                            .mapStream(
-                                (Flux<ResponseWrapper<E>> inner) ->
-                                    ResponseAndStreamBridge.hopInner(
-                                        inner, forceOffLoop, offLoopScheduler)),
-                        holder.getHeaders(),
-                        holder.getBinaryHeaders()));
-    if (!forceOffLoop) {
-      return outer;
-    }
-    return guardUndeliveredResponse(outer, offLoopScheduler);
-  }
-
-  /**
-   * Prefetch window the interaction path requests on top of the first-response credit: the default
-   * a single-argument {@code publishOn} requests ({@code Flux.publishOn(Scheduler)} delegates to
-   * this constant), so the wire behavior is identical to the generated {@code Wrapper} hop at the
-   * parent revision.
-   *
-   * <p>Hook for a future per-call knob (the pending {@code RpcOptions.chunkBufferSize} draft):
-   * replace this constant with {@code size + 1} to match the C++ Rocket client semantics.
-   */
-  static final int INTERACTION_STREAM_PREFETCH = Queues.SMALL_BUFFER_SIZE;
-
-  /** Applies the interaction inner-stream hop when forcing off-loop, untouched otherwise. */
-  private static <E> Flux<ResponseWrapper<E>> hopInner(
-      Flux<ResponseWrapper<E>> inner, boolean forceOffLoop, Scheduler offLoopScheduler) {
-    return forceOffLoop ? inner.publishOn(offLoopScheduler, INTERACTION_STREAM_PREFETCH) : inner;
-  }
-
-  /**
-   * Delivers an already-resolved holder across an off-loop hop while keeping transport ownership
-   * until the holder actually reaches the subscriber. If the outer subscription is cancelled while
-   * the holder is still queued in the hop (the hop operator clears its queue without a discard
-   * signal), the pending holder is disposed, which tears down the otherwise orphaned upstream
-   * stream exactly once. Rejected execution (a shut-down scheduler) takes the same path: the error
-   * terminates the sequence and any holder emitted before the rejection is disposed.
-   *
-   * <p>The pending cell lives per subscription (inside {@code Mono.defer}): sharing it across two
-   * subscriptions lets one subscription's cleanup dispose the other's holder. A closed sentinel
-   * closes the race between installation and cleanup: a holder installed after cleanup disposes
-   * itself, and cleanup after delivery is a no-op.
-   */
-  @SuppressWarnings("unchecked")
-  static <F, E>
-      Mono<ResponseWrapper<ResponseAndStream<F, ResponseWrapper<E>>>> guardUndeliveredResponse(
-          Mono<ResponseWrapper<ResponseAndStream<F, ResponseWrapper<E>>>> outer,
-          Scheduler scheduler) {
-    return Mono.defer(
-        () -> {
-          Object closed = new Object();
-          AtomicReference<Object> pending = new AtomicReference<>();
-          return outer
-              .doOnNext(
-                  holder -> {
-                    if (!pending.compareAndSet(null, holder)) {
-                      holder.getData().dispose();
-                    }
-                  })
-              .publishOn(scheduler)
-              .doOnNext(holder -> pending.compareAndSet(holder, closed))
-              .doFinally(
-                  signal -> {
-                    Object holder = pending.getAndSet(closed);
-                    if (holder != null && holder != closed) {
-                      ((ResponseWrapper<ResponseAndStream<F, ResponseWrapper<E>>>) holder)
-                          .getData()
-                          .dispose();
-                    }
-                  });
-        });
   }
 
   private static <F, E>

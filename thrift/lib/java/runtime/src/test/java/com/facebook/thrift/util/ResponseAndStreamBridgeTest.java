@@ -25,11 +25,11 @@ import com.facebook.thrift.client.ResponseWrapper;
 import com.facebook.thrift.model.ResponseAndStream;
 import com.facebook.thrift.model.StreamResponse;
 import com.facebook.thrift.payload.ClientResponsePayload;
-import com.facebook.thrift.util.resources.RpcResources;
 import com.google.common.collect.ImmutableMap;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -204,10 +204,9 @@ public class ResponseAndStreamBridgeTest {
         sourceOf(first("hello"), data("a")).doOnRequest(requested::addAndGet);
 
     ResponseWrapper<ResponseAndStream<String, ResponseWrapper<String>>> wrapper =
-        ResponseAndStreamBridge.<String, String>toInteractionResponseAndStream(source).block();
+        ResponseAndStreamBridge.<String, String>toResponseAndStream(source).block();
     assertEquals("hello", wrapper.getData().getFirstResponse());
-    // The bridge window goes out in both modes; the historical interaction hop (when
-    // forcing off-loop) only shapes inner-side buffering now.
+    // The bridge window goes out regardless of mode; inner-side demand passes straight through.
     assertEquals(1 + ResponseAndStreamBridge.STREAM_WINDOW, requested.get());
 
     StepVerifier.create(wrapper.getData().getStream(), 0)
@@ -644,169 +643,143 @@ public class ResponseAndStreamBridgeTest {
   }
 
   @Test
-  public void interactionSignalsArriveOffLoopWhenForced() {
-    // The service path performs no hop (parent parity); the interaction path keeps the
-    // historical hop, so its user callbacks run off the subscribing thread when forced.
-    // onSubscribe passes the hop through synchronously (as at the parent: the generated
-    // Wrapper applied a bare publishOn), so only value and terminal signals are asserted
-    // off-thread. Moving onSubscribe off-thread would change upstream subscription timing
-    // versus the parent, so it stays as-is by design.
+  public void interactionLiveSignalsStayOnTransportThread() throws Exception {
+    // The inner subscribes before the transport emits anything past the first response:
+    // every live signal runs on the transport thread, with no bridge hop.
+    AtomicReference<FluxSink<ClientResponsePayload<?>>> driver = new AtomicReference<>();
     Flux<ClientResponsePayload<?>> source =
-        sourceOf(first("hello"), data("a"), headerOnly(ImmutableMap.of()));
-    String subscribingThread = Thread.currentThread().getName();
-    Set<String> valueThreads = ConcurrentHashMap.newKeySet();
-    AtomicReference<String> subscribeThread = new AtomicReference<>();
+        Flux.<ClientResponsePayload<?>>create(driver::set).hide();
 
-    ResponseWrapper<ResponseAndStream<String, ResponseWrapper<String>>> wrapper =
-        ResponseAndStreamBridge.<String, String>toInteractionResponseAndStream(source)
-            .doOnNext(w -> valueThreads.add(Thread.currentThread().getName()))
-            .doOnSubscribe(s -> subscribeThread.set(Thread.currentThread().getName()))
-            .block();
-    wrapper
-        .getData()
-        .getStream()
-        .doOnNext(item -> valueThreads.add(Thread.currentThread().getName()))
-        .blockLast();
+    ExecutorService subscriber = Executors.newSingleThreadExecutor();
+    ExecutorService transport = Executors.newSingleThreadExecutor();
 
-    if (RpcResources.isForceExecutionOffEventLoop()) {
-      assertFalse(valueThreads.isEmpty(), "expected signals to be delivered");
-      assertTrue(
-          valueThreads.stream().noneMatch(subscribingThread::equals),
-          "value signals must not be delivered on the subscribing thread: " + valueThreads);
-    }
-    // Pass-through either way: documents the intentional parent parity (see above).
-    assertEquals(subscribingThread, subscribeThread.get());
-  }
-
-  @Test
-  public void interactionSignalsArriveOffNettyLoopWhenForced() throws Exception {
-    // Same as above but the source emits on a real Netty event-loop thread: no user value
-    // callback may run on it when forced.
-    io.netty.channel.nio.NioEventLoopGroup loop = new io.netty.channel.nio.NioEventLoopGroup(1);
     try {
-      AtomicReference<FluxSink<ClientResponsePayload<?>>> driver = new AtomicReference<>();
-      Flux<ClientResponsePayload<?>> source =
-          Flux.<ClientResponsePayload<?>>create(driver::set).hide();
-
       Set<String> valueThreads = ConcurrentHashMap.newKeySet();
-      java.util.concurrent.Future<
-              ResponseWrapper<ResponseAndStream<String, ResponseWrapper<String>>>>
-          resolved =
-              Executors.newSingleThreadExecutor()
-                  .submit(
-                      () ->
-                          ResponseAndStreamBridge.<String, String>toInteractionResponseAndStream(
-                                  source)
-                              .doOnNext(w -> valueThreads.add(Thread.currentThread().getName()))
-                              .block(Duration.ofSeconds(5)));
+      AtomicReference<String> transportThread = new AtomicReference<>();
+      CountDownLatch innerSubscribed = new CountDownLatch(1);
+      AtomicReference<Throwable> innerError = new AtomicReference<>();
+      List<String> innerValues = Collections.synchronizedList(new ArrayList<>());
+      CountDownLatch innerDone = new CountDownLatch(1);
+
+      Future<ResponseWrapper<ResponseAndStream<String, ResponseWrapper<String>>>> resolved =
+          subscriber.submit(
+              () ->
+                  ResponseAndStreamBridge.<String, String>toResponseAndStream(source)
+                      .doOnNext(w -> valueThreads.add(Thread.currentThread().getName()))
+                      .block(Duration.ofSeconds(5)));
+
       while (driver.get() == null) {
         Thread.yield();
       }
-      AtomicReference<String> loopThread = new AtomicReference<>();
-      loop.execute(
-          () -> {
-            loopThread.set(Thread.currentThread().getName());
-            FluxSink<ClientResponsePayload<?>> sink = driver.get();
-            sink.next(first("hello"));
-            sink.next(data("a"));
-            sink.complete();
-          });
+
+      Future<?> firstSent =
+          transport.submit(
+              () -> {
+                transportThread.set(Thread.currentThread().getName());
+                driver.get().next(first("hello"));
+              });
+
+      firstSent.get(5, TimeUnit.SECONDS);
 
       ResponseWrapper<ResponseAndStream<String, ResponseWrapper<String>>> wrapper =
           resolved.get(5, TimeUnit.SECONDS);
+
       wrapper
           .getData()
           .getStream()
+          .doOnSubscribe(s -> innerSubscribed.countDown())
           .doOnNext(item -> valueThreads.add(Thread.currentThread().getName()))
-          .blockLast(Duration.ofSeconds(5));
+          .subscribe(
+              item -> innerValues.add(item.getData()),
+              error -> {
+                innerError.set(error);
+                innerDone.countDown();
+              },
+              innerDone::countDown);
 
-      if (RpcResources.isForceExecutionOffEventLoop()) {
-        assertFalse(valueThreads.isEmpty(), "expected signals to be delivered");
-        assertTrue(
-            valueThreads.stream().noneMatch(loopThread.get()::equals),
-            "no user signal on the event loop " + loopThread.get() + ": " + valueThreads);
-      }
-    } finally {
-      loop.shutdownGracefully(0, 2, TimeUnit.SECONDS).sync();
-    }
-  }
+      assertTrue(innerSubscribed.await(5, TimeUnit.SECONDS));
 
-  @Test
-  public void guardDisposesHolderQueuedBehindBlockedHop() throws Exception {
-    // Fix-3 window, unit-tested against a controllable scheduler: the holder is resolved but
-    // still queued in the hop when the outer is cancelled. The pending holder must be disposed
-    // (tearing down the orphaned upstream) exactly once, and never delivered.
-    AtomicBoolean cancelled = new AtomicBoolean();
-    AtomicLong requested = new AtomicLong();
-    Flux<ClientResponsePayload<?>> source =
-        sourceOf(first("hello"))
-            .concatWith(Flux.never())
-            .doOnCancel(() -> cancelled.set(true))
-            .doOnRequest(requested::addAndGet);
-    Mono<ResponseWrapper<ResponseAndStream<String, ResponseWrapper<String>>>> outer =
-        ResponseAndStreamBridge.toResponseAndStream(source);
+      RuntimeException boom = new RuntimeException("boom");
 
-    reactor.core.scheduler.Scheduler hop = reactor.core.scheduler.Schedulers.newSingle("hop");
-    CountDownLatch release = new CountDownLatch(1);
-    hop.schedule(
-        () -> {
-          try {
-            release.await(10, TimeUnit.SECONDS);
-          } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-          }
-        });
-    try {
-      AtomicReference<Object> delivered = new AtomicReference<>();
-      reactor.core.Disposable subscription =
-          ResponseAndStreamBridge.guardUndeliveredResponse(outer, hop).subscribe(delivered::set);
-      assertTrue(
-          release.getCount() > 0 && requested.get() == 1 + ResponseAndStreamBridge.STREAM_WINDOW,
-          "outer subscribed and window requested");
-      // The hop worker is blocked, so the resolved holder is still queued: cancelling now
-      // must dispose it instead of delivering it.
-      subscription.dispose();
-      release.countDown();
-      long deadline = System.currentTimeMillis() + 5000;
-      while (!cancelled.get() && System.currentTimeMillis() < deadline) {
-        Thread.sleep(10);
-      }
-      assertTrue(cancelled.get(), "cancelling a queued holder must cancel the upstream stream");
-      Thread.sleep(200);
-      assertNull(delivered.get(), "a cancelled holder must never be delivered");
+      transport.execute(
+          () -> {
+            driver.get().next(data("a"));
+            driver.get().error(boom);
+          });
+
+      assertTrue(innerDone.await(5, TimeUnit.SECONDS));
+
+      assertEquals(Collections.singletonList("a"), innerValues);
+      assertEquals(boom, innerError.get());
+      assertFalse(valueThreads.isEmpty(), "expected signals to be delivered");
       assertEquals(
-          1 + ResponseAndStreamBridge.STREAM_WINDOW,
-          requested.get(),
-          "no further demand after the abandon");
+          Collections.singleton(transportThread.get()),
+          valueThreads,
+          "with no bridge hop every live signal runs on the transport thread");
     } finally {
-      release.countDown();
-      hop.dispose();
+      subscriber.shutdownNow();
+      transport.shutdownNow();
     }
   }
 
   @Test
-  public void guardOnRejectedHopSchedulerErrorsWithoutLeak() {
-    // A shut-down hop scheduler rejects the delivery: the outer errors, and a holder emitted
-    // before the rejection is still disposed (upstream torn down, never delivered).
-    AtomicBoolean cancelled = new AtomicBoolean();
-    AtomicLong requested = new AtomicLong();
+  public void interactionLateInnerReplaysWithoutScheduling() throws Exception {
+    // The transport finishes before the inner subscribes: the buffered elements replay
+    // on the subscribing thread, with no scheduler hop in either direction.
+    AtomicReference<FluxSink<ClientResponsePayload<?>>> driver = new AtomicReference<>();
     Flux<ClientResponsePayload<?>> source =
-        sourceOf(first("hello"))
-            .concatWith(Flux.never())
-            .doOnCancel(() -> cancelled.set(true))
-            .doOnRequest(requested::addAndGet);
+        Flux.<ClientResponsePayload<?>>create(driver::set).hide();
 
-    reactor.core.scheduler.Scheduler hop = reactor.core.scheduler.Schedulers.newSingle("hop");
-    hop.dispose();
-    StepVerifier.create(
-            ResponseAndStreamBridge.guardUndeliveredResponse(
-                ResponseAndStreamBridge.toResponseAndStream(source), hop))
-        .verifyError(java.util.concurrent.RejectedExecutionException.class);
-    assertEquals(
-        1 + ResponseAndStreamBridge.STREAM_WINDOW,
-        requested.get(),
-        "the window went out before the rejection");
-    assertTrue(cancelled.get(), "the rejected holder's upstream must be torn down");
+    ExecutorService subscriber = Executors.newSingleThreadExecutor();
+    ExecutorService transport = Executors.newSingleThreadExecutor();
+
+    try {
+      Future<ResponseWrapper<ResponseAndStream<String, ResponseWrapper<String>>>> resolved =
+          subscriber.submit(
+              () ->
+                  ResponseAndStreamBridge.<String, String>toResponseAndStream(source)
+                      .block(Duration.ofSeconds(5)));
+
+      while (driver.get() == null) {
+        Thread.yield();
+      }
+
+      Future<?> emitting =
+          transport.submit(
+              () -> {
+                FluxSink<ClientResponsePayload<?>> sink = driver.get();
+                sink.next(first("hello"));
+                sink.next(data("a"));
+                sink.next(data("b"));
+                sink.complete();
+              });
+
+      emitting.get(5, TimeUnit.SECONDS);
+
+      ResponseWrapper<ResponseAndStream<String, ResponseWrapper<String>>> wrapper =
+          resolved.get(5, TimeUnit.SECONDS);
+
+      String subscribingThread = Thread.currentThread().getName();
+      Set<String> replayThreads = ConcurrentHashMap.newKeySet();
+
+      List<String> replayed =
+          wrapper
+              .getData()
+              .getStream()
+              .map(item -> item.getData())
+              .doOnNext(v -> replayThreads.add(Thread.currentThread().getName()))
+              .collectList()
+              .block(Duration.ofSeconds(5));
+
+      assertEquals(Arrays.asList("a", "b"), replayed);
+      assertEquals(
+          Collections.singleton(subscribingThread),
+          replayThreads,
+          "replay runs on the subscribing thread");
+    } finally {
+      subscriber.shutdownNow();
+      transport.shutdownNow();
+    }
   }
 
   @Test

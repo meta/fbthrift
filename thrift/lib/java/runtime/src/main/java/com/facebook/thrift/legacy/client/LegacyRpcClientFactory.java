@@ -40,7 +40,7 @@ public final class LegacyRpcClientFactory implements RpcClientTransportFactory {
 
   public LegacyRpcClientFactory(final ThriftClientConfig config) {
     this.nettyConfig = requireNonNull(config, "swift netty config is null");
-    this.forceExecutionOffEventLoop = RpcResources.isForceExecutionOffEventLoop();
+    this.forceExecutionOffEventLoop = RpcResources.isForceClientExecutionOffEventLoop();
   }
 
   @Override
