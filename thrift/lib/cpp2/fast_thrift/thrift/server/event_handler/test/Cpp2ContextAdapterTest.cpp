@@ -30,7 +30,7 @@
 #include <folly/io/async/ssl/BasicTransportCertificate.h>
 #include <folly/io/async/ssl/OpenSSLTransportCertificate.h>
 #include <folly/io/async/ssl/OpenSSLUtils.h>
-#include <folly/io/async/test/MockAsyncTransport.h>
+#include <folly/io/async/testing/MockAsyncTransport.h>
 #include <folly/portability/GMock.h>
 
 #include <thrift/lib/cpp2/server/Cpp2Worker.h>

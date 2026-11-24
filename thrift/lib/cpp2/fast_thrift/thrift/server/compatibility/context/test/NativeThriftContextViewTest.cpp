@@ -31,7 +31,7 @@
 #include <folly/io/IOBuf.h>
 #include <folly/io/async/EventBase.h>
 #include <folly/io/async/ssl/BasicTransportCertificate.h>
-#include <folly/io/async/test/MockAsyncTransport.h>
+#include <folly/io/async/testing/MockAsyncTransport.h>
 #include <folly/portability/GMock.h>
 #include <folly/portability/OpenSSL.h>
 #include <thrift/lib/cpp2/PluggableFunction.h>
