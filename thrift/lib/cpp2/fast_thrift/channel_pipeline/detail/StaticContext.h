@@ -38,12 +38,23 @@ struct StaticTupleTypeCount<std::tuple<Ts...>, T>
           std::size_t,
           (std::size_t{0} + ... + std::same_as<T, Ts>)> {};
 
-/** Per-handler context whose pipeline and position are compile-time types. */
+/**
+ * Per-handler context whose pipeline and position are compile-time types.
+ *
+ * `IsEndpoint` marks the single context shared by the head and tail endpoints.
+ * For an endpoint, `fireRead`/`fireWrite` mean "propagate past me": the tail's
+ * `fireRead` routes to `forwardReadPastTail` and the head's `fireWrite` to
+ * `forwardWritePastHead` (a bound peer, else `Result::Error`). An endpoint only
+ * ever propagates in its own direction — the head never calls `fireRead`, the
+ * tail never `fireWrite` — so one shared context serves both. An internal
+ * handler (`IsEndpoint == false`) forwards to its neighbor as usual.
+ */
 template <
     typename Pipeline,
     std::size_t Index,
     HandlerId Id,
-    typename StateTuple = std::tuple<>>
+    typename StateTuple = std::tuple<>,
+    bool IsEndpoint = false>
 class StaticContext {
  public:
   explicit StaticContext(Pipeline* pipeline) noexcept : pipeline_(pipeline) {}
@@ -56,11 +67,19 @@ class StaticContext {
   void activate() noexcept {}
 
   FOLLY_ALWAYS_INLINE Result fireRead(TypeErasedBox&& msg) noexcept {
-    return pipeline_->template fireReadFrom<Index + 1>(std::move(msg));
+    if constexpr (IsEndpoint) {
+      return pipeline_->forwardReadPastTail(std::move(msg));
+    } else {
+      return pipeline_->template fireReadFrom<Index + 1>(std::move(msg));
+    }
   }
 
   FOLLY_ALWAYS_INLINE Result fireWrite(TypeErasedBox&& msg) noexcept {
-    return pipeline_->template fireWriteFrom<Index>(std::move(msg));
+    if constexpr (IsEndpoint) {
+      return pipeline_->forwardWritePastHead(std::move(msg));
+    } else {
+      return pipeline_->template fireWriteFrom<Index>(std::move(msg));
+    }
   }
 
   FOLLY_ALWAYS_INLINE void fireException(
@@ -92,15 +111,43 @@ class StaticContext {
 
   Pipeline* pipeline() const noexcept { return pipeline_; }
 
-  BytesPtr allocate(std::size_t size) noexcept {
+  decltype(auto) taskState() noexcept
+    requires requires(Pipeline& p) { p.taskState(); }
+  {
+    return pipeline_->taskState();
+  }
+  decltype(auto) taskState() const noexcept
+    requires requires(const Pipeline& p) { p.taskState(); }
+  {
+    return std::as_const(*pipeline_).taskState();
+  }
+
+  decltype(auto) executionDomain() noexcept
+    requires requires(Pipeline& p) { p.executionDomain(); }
+  {
+    return pipeline_->executionDomain();
+  }
+  decltype(auto) executionDomain() const noexcept
+    requires requires(const Pipeline& p) { p.executionDomain(); }
+  {
+    return std::as_const(*pipeline_).executionDomain();
+  }
+
+  BytesPtr allocate(std::size_t size) noexcept
+    requires requires(Pipeline& p) { p.allocate(size); }
+  {
     return pipeline_->allocate(size);
   }
 
-  BytesPtr copyBuffer(const void* data, std::size_t size) noexcept {
+  BytesPtr copyBuffer(const void* data, std::size_t size) noexcept
+    requires requires(Pipeline& p) { p.copyBuffer(data, size); }
+  {
     return pipeline_->copyBuffer(data, size);
   }
 
-  folly::EventBase* eventBase() const noexcept {
+  folly::EventBase* eventBase() const noexcept
+    requires requires(Pipeline& p) { p.eventBase(); }
+  {
     return pipeline_->eventBase();
   }
 

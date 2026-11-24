@@ -50,38 +50,19 @@ PlainThrowingUnion makeRefList() {
   return u;
 }
 
-// Copy assignment copies the active member through the generated setter.
-void expectThrowingCopyLeavesUnionEmpty(const PlainThrowingUnion& src) {
-  PlainThrowingUnion u;
-  u.n_ref() = 1;
-  {
-    ScopedThrowingAllocations armed;
-    EXPECT_THROW(u = src, std::bad_alloc);
+TEST(UnionSetterTest, ThrowingCopyKeepsPreviousMember) {
+  // Copy assignment copies the active member before clearing the union.
+  for (const auto& src :
+       {makeList(), makeString(), makeHolder(), makeRefList()}) {
+    PlainThrowingUnion u;
+    u.n_ref() = 1;
+    {
+      ScopedThrowingAllocations armed;
+      EXPECT_THROW(u = src, std::bad_alloc);
+    }
+    EXPECT_EQ(u.getType(), Type::n);
+    EXPECT_EQ(*u.n_ref(), 1);
   }
-  EXPECT_EQ(u.getType(), Type::__EMPTY__);
-  // The union must not destroy a member that was never constructed (ASAN).
-  u.n_ref() = 2;
-  EXPECT_EQ(*u.n_ref(), 2);
-}
-
-TEST(UnionSetterTest, ThrowingCopyLeavesUnionEmpty) {
-  expectThrowingCopyLeavesUnionEmpty(makeList());
-  expectThrowingCopyLeavesUnionEmpty(makeString());
-  expectThrowingCopyLeavesUnionEmpty(makeHolder());
-}
-
-TEST(UnionSetterTest, CppRefThrowingCopyKeepsPreviousMember) {
-  // The out-of-line cpp.ref setters build the new pointer before touching the
-  // union.
-  const auto src = makeRefList();
-  PlainThrowingUnion u;
-  u.n_ref() = 1;
-  {
-    ScopedThrowingAllocations armed;
-    EXPECT_THROW(u = src, std::bad_alloc);
-  }
-  EXPECT_EQ(u.getType(), Type::n);
-  EXPECT_EQ(*u.n_ref(), 1);
 }
 
 TEST(UnionSetterTest, CopyConstructsMembers) {

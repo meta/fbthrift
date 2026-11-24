@@ -17,10 +17,40 @@
 #pragma once
 
 #include <fizz/server/ServerExtensions.h>
+#include <folly/ExceptionWrapper.h>
+#include <folly/Optional.h>
+#include <thrift/lib/cpp2/PluggableFunction.h>
 #include <thrift/lib/cpp2/security/extensions/ThriftParametersContext.h>
 #include <thrift/lib/cpp2/security/extensions/Types.h>
 
 namespace apache::thrift {
+
+namespace detail {
+enum class PspEvent {
+  // Client and server share a PSPNegotiationVersion.
+  NegotiationSuccess,
+  // Both sides offered PSP versions but none in common.
+  NegotiationNoCommonVersion,
+  // Only the server offered PSP versions.
+  NegotiationNoPeerOffer,
+  // Only the client offered PSP versions.
+  NegotiationNoServerOffer,
+  // Neither side offered PSP versions.
+  NegotiationNoOffers,
+  // Post-handshake upgrade to PSP finished.
+  UpgradeSuccess,
+  // Post-handshake upgrade to PSP failed.
+  UpgradeError,
+};
+
+// Fired at most once per negotiation outcome and once per PSP upgrade outcome
+// on a server connection. `error` is only populated for UpgradeError.
+THRIFT_PLUGGABLE_FUNC_DECLARE(
+    void,
+    onThriftPspEvent,
+    PspEvent event,
+    const folly::Optional<folly::exception_wrapper>& error);
+} // namespace detail
 
 class ThriftParametersServerExtension : public fizz::ServerExtensions {
  public:

@@ -32,8 +32,8 @@
 #include <folly/io/async/EventBase.h>
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameLengthParser.h>
@@ -166,7 +166,7 @@ struct BenchmarkFixture {
       apache::thrift::fast_thrift::transport::NoOpWriteCompleteEventFactory,
       apache::thrift::fast_thrift::frame::read::FrameLengthParser>::Ptr
       transportHandler;
-  PipelineImpl::Ptr pipeline;
+  PipelineOwner pipeline;
   TestAllocator allocator;
 
   void setup() {
@@ -188,7 +188,7 @@ struct BenchmarkFixture {
         [](folly::exception_wrapper&& /*e*/) noexcept {});
 
     pipeline =
-        PipelineBuilder<
+        StaticPipelineBuilder<
             apache::thrift::fast_thrift::transport::TransportHandlerT<
                 apache::thrift::fast_thrift::transport::
                     NoOpWriteCompleteEventFactory,
@@ -363,7 +363,7 @@ BENCHMARK(Rocket_SetupFrame, iters) {
         [](folly::exception_wrapper&& /*e*/) noexcept {});
 
     fixture.pipeline =
-        PipelineBuilder<
+        StaticPipelineBuilder<
             apache::thrift::fast_thrift::transport::TransportHandlerT<
                 apache::thrift::fast_thrift::transport::
                     NoOpWriteCompleteEventFactory,

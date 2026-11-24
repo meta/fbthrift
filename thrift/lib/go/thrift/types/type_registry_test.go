@@ -18,6 +18,7 @@ package types
 
 import (
 	"crypto/sha256"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -33,7 +34,7 @@ func TestRegisterTypeAndGetFromURI(t *testing.T) {
 		},
 	}
 
-	InternalRegisterType(uri, spec)
+	InternalRegisterType(uri, spec, reflect.TypeOf(bool(false)))
 
 	result, ok := InternalTypeRegistryGetFromURI(uri)
 	require.True(t, ok)
@@ -51,7 +52,7 @@ func TestRegisterTypeWithThriftPrefix(t *testing.T) {
 		},
 	}
 
-	InternalRegisterType(uri, spec)
+	InternalRegisterType(uri, spec, reflect.TypeOf(bool(false)))
 
 	result, ok := InternalTypeRegistryGetFromURI("test/module/PrefixedStruct")
 	require.True(t, ok)
@@ -71,7 +72,7 @@ func TestGetFromHash(t *testing.T) {
 		FullName: "test.module.HashStruct",
 	}
 
-	InternalRegisterType(uri, spec)
+	InternalRegisterType(uri, spec, reflect.TypeOf(bool(false)))
 
 	h := sha256.New()
 	h.Write([]byte("fbthrift://" + uri))
@@ -105,4 +106,36 @@ func TestGetFromHashNotFound(t *testing.T) {
 	result, ok := InternalTypeRegistryGetFromHash(nonExistentHash)
 	require.False(t, ok)
 	require.Nil(t, result)
+}
+
+// Dummy struct type for testing reflect type registration.
+type testDummyStruct struct {
+	Field1 string
+	Field2 int
+}
+
+func TestGetFromReflectType(t *testing.T) {
+	uri := "test/module/ReflectStruct"
+	spec := &TypeSpec{
+		FullName: "test.module.ReflectStruct",
+		CodecStructSpec: &CodecStructSpec{
+			ScopedName: "test.module.ReflectStruct",
+			IsUnion:    false,
+		},
+	}
+
+	rtype := reflect.TypeOf((*testDummyStruct)(nil))
+	InternalRegisterType(uri, spec, rtype)
+
+	result := InternalTypeRegistryGetFromReflectType(rtype)
+	require.Equal(t, uri, result)
+}
+
+func TestGetFromReflectTypeNotFound(t *testing.T) {
+	// Use a type that was never registered
+	type unregisteredStruct struct{}
+	rtype := reflect.TypeOf((*unregisteredStruct)(nil))
+
+	result := InternalTypeRegistryGetFromReflectType(rtype)
+	require.Equal(t, "", result)
 }

@@ -17,7 +17,7 @@
 #include <thrift/lib/cpp2/fast_thrift/frame/write/handler/BatchingFrameHandler.h>
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
 
 #include <gtest/gtest.h>
@@ -326,7 +326,7 @@ TEST_F(BatchingFrameHandlerTest, BackpressureHandled) {
   EXPECT_FALSE(handler.isScheduled());
 }
 
-TEST_F(BatchingFrameHandlerTest, BackpressureBuffersFramesUntilWriteReady) {
+TEST_F(BatchingFrameHandlerTest, BackpressureStillSchedulesAcceptedFrames) {
   BatchingHandlerConfig config{
       .maxPendingBytes = 100,
       .maxPendingFrames = 10,
@@ -344,16 +344,20 @@ TEST_F(BatchingFrameHandlerTest, BackpressureBuffersFramesUntilWriteReady) {
   EXPECT_FALSE(handler.isScheduled());
   EXPECT_EQ(ctx_->writtenBatches().size(), 1);
 
-  // New frames must buffer without flushing or scheduling loop callback
+  // Pressure is reported upstream while accepted data keeps flushing.
   auto r = handler.onWrite(*ctx_, wrapFrame(makePayload(30)));
   EXPECT_EQ(
       r, apache::thrift::fast_thrift::channel_pipeline::Result::Backpressure);
   EXPECT_TRUE(handler.hasPendingData());
   EXPECT_EQ(handler.pendingFrames(), 1);
-  EXPECT_FALSE(handler.isScheduled());
+  EXPECT_TRUE(handler.isScheduled());
   EXPECT_EQ(ctx_->writtenBatches().size(), 1);
+  runEventBaseLoop();
+  EXPECT_FALSE(handler.hasPendingData());
+  EXPECT_EQ(ctx_->writtenBatches().size(), 2);
+  EXPECT_TRUE(handler.isBackpressured());
 
-  // Write ready: flush the buffered data
+  // Readiness clears pressure without retransmitting accepted data.
   ctx_->setBackpressureAt(SIZE_MAX);
   handler.onWriteReady(*ctx_);
 
@@ -361,6 +365,23 @@ TEST_F(BatchingFrameHandlerTest, BackpressureBuffersFramesUntilWriteReady) {
   EXPECT_FALSE(handler.isBackpressured());
   ASSERT_EQ(ctx_->writtenBatches().size(), 2);
   EXPECT_EQ(ctx_->totalBytesWritten(), 150);
+}
+
+TEST_F(BatchingFrameHandlerTest, ThresholdFlushContinuesUnderBackpressure) {
+  BatchingHandlerConfig config{.maxPendingBytes = 100, .maxPendingFrames = 10};
+  BatchingFrameHandler handler(config);
+  handler.handlerAdded(*ctx_);
+  ctx_->setBackpressureAt(0);
+
+  for (int i = 0; i < 3; ++i) {
+    EXPECT_EQ(
+        handler.onWrite(*ctx_, wrapFrame(makePayload(100))),
+        channel_pipeline::Result::Backpressure);
+  }
+
+  EXPECT_EQ(ctx_->writtenBatches().size(), 3);
+  EXPECT_EQ(ctx_->totalBytesWritten(), 300);
+  EXPECT_FALSE(handler.hasPendingData());
 }
 
 TEST_F(BatchingFrameHandlerTest, WriteReadyResumesFlushing) {
@@ -722,16 +743,15 @@ TEST_F(BatchingFrameHandlerTest, FlushListUnlinksOnHandlerTeardown) {
 // Pipeline Integration Tests
 // ============================================================================
 //
-// These tests exercise backpressure through a real PipelineImpl, verifying
-// the hook registration and dispatch chain end-to-end. This catches bugs like
-// writeReadyHook_ naming mismatches that unit tests above cannot detect
-// (they call onWriteReady() directly, bypassing the pipeline machinery).
+// These tests exercise backpressure through a static pipeline, verifying
+// the write-ready registration and dispatch chain end-to-end. The unit tests
+// above call onWriteReady() directly and bypass the pipeline.
 
 namespace apache::thrift::fast_thrift::frame::write::handler {
 
 namespace cp = apache::thrift::fast_thrift::channel_pipeline;
-using cp::test::MockHeadHandler;
-using cp::test::MockTailHandler;
+using cp::test::StaticMockHeadHandler;
+using cp::test::StaticMockTailHandler;
 using cp::test::TestAllocator;
 
 HANDLER_TAG(batching);
@@ -745,18 +765,20 @@ class BatchingFrameHandlerPipelineTest : public ::testing::Test {
     handlerPtr_ = nullptr;
   }
 
-  cp::PipelineImpl::Ptr buildPipeline(BatchingHandlerConfig config = {}) {
-    auto handler = std::make_unique<BatchingFrameHandler>(config);
-    handlerPtr_ = handler.get();
-    return cp::
-        PipelineBuilder<MockHeadHandler, MockTailHandler, TestAllocator>()
+  auto buildPipeline(BatchingHandlerConfig config = {}) {
+    auto pipeline =
+        cp::StaticPipelineBuilder<
+            StaticMockHeadHandler,
+            StaticMockTailHandler,
+            TestAllocator>()
             .setEventBase(&evb_)
             .setHead(&transport_)
             .setTail(&app_)
             .setAllocator(&allocator_)
-            .addNextOutbound<BatchingFrameHandler>(
-                batching_tag, std::move(handler))
+            .addNextOutbound<BatchingFrameHandler>(batching_tag, config)
             .build();
+    handlerPtr_ = &pipeline->handler(batching_tag);
+    return pipeline;
   }
 
   static cp::TypeErasedBox wrapFrame(std::unique_ptr<folly::IOBuf> buf) {
@@ -770,16 +792,15 @@ class BatchingFrameHandlerPipelineTest : public ::testing::Test {
   }
 
   folly::EventBase evb_;
-  MockHeadHandler transport_;
-  MockTailHandler app_;
+  StaticMockHeadHandler transport_;
+  StaticMockTailHandler app_;
   TestAllocator allocator_;
   BatchingFrameHandler* handlerPtr_{nullptr};
 };
 
-// Regression test: if writeReadyHook_ is misnamed, the pipeline's compile-time
-// hook detection silently fails and hasPendingWriteReady() stays false even
-// after backpressure is signaled by ctx.awaitWriteReady().
-TEST_F(BatchingFrameHandlerPipelineTest, HookRegisteredOnBackpressure) {
+// The pipeline records the handler as waiting when it calls
+// ctx.awaitWriteReady() after backpressure.
+TEST_F(BatchingFrameHandlerPipelineTest, AwaitsWriteReadyOnBackpressure) {
   BatchingHandlerConfig config{
       .maxPendingBytes = 100,
       .maxPendingFrames = 10,
@@ -794,9 +815,9 @@ TEST_F(BatchingFrameHandlerPipelineTest, HookRegisteredOnBackpressure) {
   EXPECT_TRUE(handlerPtr_->isBackpressured());
 }
 
-// Verifies that pipeline->onWriteReady() walks the writeReadyList and
-// dispatches to BatchingFrameHandler::onWriteReady(), which clears backpressure
-// and flushes the data buffered during backpressure.
+// Verifies that pipeline->onWriteReady() reaches
+// BatchingFrameHandler::onWriteReady(), which clears backpressure and flushes
+// the data buffered during backpressure.
 TEST_F(BatchingFrameHandlerPipelineTest, WriteReadyDispatchedThroughPipeline) {
   BatchingHandlerConfig config{
       .maxPendingBytes = 100,
@@ -824,10 +845,8 @@ TEST_F(BatchingFrameHandlerPipelineTest, WriteReadyDispatchedThroughPipeline) {
   EXPECT_EQ(transport_.writeCount(), 2);
 }
 
-// Covers the path where backpressure is first encountered via the loop-callback
-// flush (not a threshold flush). Verifies that after the loop tick fires and
-// doFlush() encounters backpressure, subsequent writes buffer correctly without
-// rescheduling the loop callback.
+// Deferred flushes can discover pressure after onWrite returned. Subsequent
+// writes report that pressure while their own flush remains scheduled.
 TEST_F(BatchingFrameHandlerPipelineTest, LoopTickBackpressureRegisters) {
   BatchingHandlerConfig config{
       .maxPendingBytes = 64 * 1024,
@@ -841,18 +860,23 @@ TEST_F(BatchingFrameHandlerPipelineTest, LoopTickBackpressureRegisters) {
   EXPECT_FALSE(pipeline->hasPendingWriteReady());
   EXPECT_FALSE(handlerPtr_->isBackpressured());
 
-  // Loop tick fires doFlush() → encounters backpressure → hook registered
+  // Loop tick fires doFlush() → encounters backpressure → waits for write-ready
   evb_.loopOnce(EVLOOP_NONBLOCK);
   EXPECT_TRUE(pipeline->hasPendingWriteReady());
   EXPECT_TRUE(handlerPtr_->isBackpressured());
   EXPECT_FALSE(handlerPtr_->isScheduled());
 
-  // Write during backpressure — must buffer, must not reschedule loop callback
-  (void)pipeline->fireWrite(wrapFrame(makePayload(50)));
+  // Accepted writes keep their normal loop flush while reporting pressure.
+  EXPECT_EQ(
+      pipeline->fireWrite(wrapFrame(makePayload(50))),
+      cp::Result::Backpressure);
   EXPECT_TRUE(handlerPtr_->hasPendingData());
-  EXPECT_FALSE(handlerPtr_->isScheduled());
+  EXPECT_TRUE(handlerPtr_->isScheduled());
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  EXPECT_FALSE(handlerPtr_->hasPendingData());
+  EXPECT_EQ(transport_.writeCount(), 2);
 
-  // Resume — onWriteReady flushes the buffered frame
+  // Readiness clears the pressure signal without retransmitting the batch.
   transport_.setWriteResult(cp::Result::Success);
   pipeline->onWriteReady();
 

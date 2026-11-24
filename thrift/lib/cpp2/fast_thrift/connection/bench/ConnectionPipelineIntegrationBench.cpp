@@ -36,17 +36,21 @@
 #include <folly/io/async/ScopedEventBaseThread.h>
 #include <folly/net/NetworkSocket.h>
 
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/BufferAllocator.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/SocketOptions.h>
+#include <thrift/lib/cpp2/fast_thrift/connection/common/Messages.h>
+#include <thrift/lib/cpp2/fast_thrift/connection/endpoint/ConnectionInstaller.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/endpoint/ConnectionListener.h>
 
 using namespace folly;
-using apache::thrift::fast_thrift::channel_pipeline::PipelineBuilder;
+using apache::thrift::fast_thrift::channel_pipeline::PipelineRef;
 using apache::thrift::fast_thrift::channel_pipeline::SimpleBufferAllocator;
-using apache::thrift::fast_thrift::channel_pipeline::test::MockTailHandler;
+using apache::thrift::fast_thrift::channel_pipeline::StaticPipelineBuilder;
+using apache::thrift::fast_thrift::connection::ConnectionInstaller;
 using apache::thrift::fast_thrift::connection::ConnectionListener;
+using apache::thrift::fast_thrift::connection::ConnectionMessage;
 using apache::thrift::fast_thrift::connection::SocketOptions;
 
 namespace {
@@ -65,19 +69,20 @@ BENCHMARK(Plaintext_AcceptToTail, iters) {
   ScopedEventBaseThread evbThread;
   auto* evb = evbThread.getEventBase();
 
-  MockTailHandler tail;
+  size_t readCount = 0;
+  ConnectionInstaller<ConnectionMessage> tail(
+      [&](ConnectionMessage) { ++readCount; });
   SimpleBufferAllocator allocator;
   ConnectionListener listener(*evb, SocketOptions{});
-  auto pipeline = PipelineBuilder<
+  auto pipeline = StaticPipelineBuilder<
                       ConnectionListener,
-                      MockTailHandler,
-                      SimpleBufferAllocator>()
+                      ConnectionInstaller<ConnectionMessage>>()
                       .setEventBase(evb)
                       .setHead(&listener)
                       .setTail(&tail)
                       .setAllocator(&allocator)
                       .build();
-  listener.setPipeline(pipeline.get());
+  listener.setPipeline(PipelineRef(*pipeline));
   evb->runInEventBaseThreadAndWait([&] { pipeline->activate(); });
 
   std::vector<folly::NetworkSocket> serverFds(iters);
@@ -100,7 +105,7 @@ BENCHMARK(Plaintext_AcceptToTail, iters) {
   });
   suspender.rehire();
 
-  doNotOptimizeAway(tail.readCount());
+  doNotOptimizeAway(readCount);
   for (auto fd : clientFds) {
     ::close(fd.toFd());
   }

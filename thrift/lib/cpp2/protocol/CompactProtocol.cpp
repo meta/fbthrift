@@ -16,13 +16,17 @@
 
 #include <thrift/lib/cpp2/protocol/CompactProtocol.h>
 
+#include <array>
+#include <bit>
+#include <span>
+#include <type_traits>
+
 #include <folly/Conv.h>
 
 #if FOLLY_ARM_FEATURE_NEON_SVE_BRIDGE
 
 #include <arm_neon.h>
 #include <arm_sve.h>
-#include <bit>
 
 #include <arm_neon_sve_bridge.h> // @manual
 
@@ -51,6 +55,39 @@ void CompactProtocolReader::readFieldBeginWithStateMediumSlow(
   in_.skipNoAdvance(1);
 
   readFieldBeginWithStateImpl(state, prevFieldId, byte);
+}
+
+namespace {
+// Floating-point elements are byte-swapped as integers of their width, as the
+// per-element float and double methods and Binary's bulk methods do.
+template <typename T>
+using SwapAs = std::conditional_t<
+    std::is_same_v<T, float>,
+    uint32_t,
+    std::conditional_t<std::is_same_v<T, double>, uint64_t, T>>;
+} // namespace
+
+// Function used with data types that are just sent as BE/LE bytes
+template <class Cursor, typename T, bool BE>
+static inline size_t writeUnencodedArithmeticVector(
+    Cursor& c, const T* inputPtr, size_t numElements) {
+  size_t len = numElements * sizeof(T);
+  size_t i = 0;
+  while (i < numElements) {
+    c.ensureWithinMaxGrowth(len);
+    // The cursor's maximum growth can be smaller than one element.
+    c.ensure(sizeof(T));
+    uint8_t* outPtr = c.writableData();
+    size_t loopBound = std::min(numElements, (c.length() / sizeof(T)) + i);
+    size_t j = 0;
+    for (; i < loopBound; ++i, ++j) {
+      auto bits = std::bit_cast<SwapAs<T>>(inputPtr[i]);
+      folly::storeUnaligned<SwapAs<T>>(
+          outPtr + j * sizeof(T), BE ? folly::Endian::big(bits) : bits);
+    }
+    c.append(j * sizeof(T));
+  }
+  return len;
 }
 
 #if FOLLY_ARM_FEATURE_NEON_SVE_BRIDGE
@@ -309,26 +346,6 @@ static uint64_t writeFourVarint16Sve(Cursor& c, uint32x4_t vec) {
   return totalSize;
 }
 
-// Function used with data types that are just sent as BE/LE bytes
-template <class Cursor, typename T, bool BE>
-static inline size_t writeUnencodedArithmeticVector(
-    Cursor& c, const T* inputPtr, size_t numElements) {
-  size_t len = numElements * sizeof(T);
-  size_t i = 0;
-  while (i < numElements) {
-    c.ensureWithinMaxGrowth(len);
-    uint8_t* outPtr = c.writableData();
-    size_t loopBound = std::min(numElements, (c.length() / sizeof(T)) + i);
-    size_t j = 0;
-    for (; i < loopBound; ++i, ++j) {
-      T value = BE ? folly::Endian::big<T>(inputPtr[i]) : inputPtr[i];
-      folly::storeUnaligned<T>(outPtr + j * sizeof(T), value);
-    }
-    c.append(j * sizeof(T));
-  }
-  return len;
-}
-
 template <typename T>
 constexpr size_t kSimdWriteWidth = sizeof(T) == 2 ? 4 : 2;
 
@@ -463,6 +480,130 @@ size_t CompactProtocolWriter::writeArithmeticVector<uint16_t>(
   return writeEncodedArithmeticVector<QueueAppender, uint16_t>(
       out_, inputPtr, numElements);
 }
+#else // FOLLY_ARM_FEATURE_NEON_SVE_BRIDGE
+
+// Like writeI16, zigzag-encodes int16_t in 32 bits: in 16 bits, every element
+// needs an extra zero extension before appendVarint.
+template <typename T>
+static auto toZigzag(T value) {
+  if constexpr (sizeof(T) == 8) {
+    return util::i64ToZigzag(static_cast<int64_t>(value));
+  } else {
+    return util::i32ToZigzag(static_cast<std::make_signed_t<T>>(value));
+  }
+}
+
+#if FOLLY_X64 && THRIFT_UTIL_VARINTUTILS_BRANCH_FREE_ENCODER
+// Both indexed by the number of leading zero bits of the 64-bit value, which
+// fixes how many 7-bit groups its varint needs. Grouping the value's 64 bits
+// by 7 from the bottom (bit 63 on its own):
+//
+//   zeros == 10:
+//     0 0000000 001xxxx xxxxxxx xxxxxxx xxxxxxx xxxxxxx xxxxxxx xxxxxxx xxxxxxx
+//     kVarintSizes[10] == 8
+//     kVarintContinuationBitMasks[10] == 0x0080808080808080
+constexpr auto kVarintSizes = [] {
+  std::array<uint8_t, 65> sizes{};
+  for (int zeros = 0; zeros <= 64; ++zeros) {
+    sizes[zeros] = std::max(1, (64 - zeros + 6) / 7);
+  }
+  return sizes;
+}();
+constexpr auto kVarintContinuationBitMasks = [] {
+  std::array<uint64_t, 65> bits{};
+  for (int zeros = 0; zeros <= 64; ++zeros) {
+    for (int byte = 0; byte < std::min(kVarintSizes[zeros] - 1, 8); ++byte) {
+      bits[zeros] |= uint64_t{0x80} << (8 * byte);
+    }
+  }
+  return bits;
+}();
+#endif
+
+// The most bytes appendVarint stores for a U, whatever the varint's length.
+template <typename U>
+constexpr size_t kAppendVarintBytes =
+    std::max(sizeof(uint64_t), util::detail::kVarintMaxBytes<U>);
+
+// Returns the end of the varint, but may store up to kAppendVarintBytes<U>
+// bytes past p. With BMI2 it has no branches, unlike util::writeVarint, so
+// lists of mixed-length varints cost no mispredictions.
+template <typename U>
+static uint8_t* appendVarint(uint8_t* p, U value) {
+#if FOLLY_X64 && THRIFT_UTIL_VARINTUTILS_BRANCH_FREE_ENCODER
+  const int zeros = std::countl_zero(uint64_t{value});
+  const uint64_t firstEightBytes =
+      _pdep_u64(value, 0x7f7f7f7f7f7f7f7f) | kVarintContinuationBitMasks[zeros];
+  folly::storeUnaligned<uint64_t>(p, firstEightBytes);
+  if constexpr (sizeof(U) == 8) {
+    p[8] = static_cast<uint8_t>(value >> 56);
+    p[9] = static_cast<uint8_t>(value >> 63);
+  }
+  return p + kVarintSizes[zeros];
+#else
+  if constexpr (sizeof(U) == 8) {
+    return p + util::writeVarint64(value, p);
+  } else {
+    return p + util::writeVarint32(value, p);
+  }
+#endif
+}
+
+template <typename T>
+static size_t writeVarintArithmeticVector(
+    QueueAppender& out, const T* inputPtr, size_t numElements) {
+  constexpr size_t kBytesPerElement =
+      kAppendVarintBytes<decltype(toZigzag(T()))>;
+  size_t bytesWritten = 0;
+  size_t i = 0;
+  while (i < numElements) {
+    out.ensure(kBytesPerElement);
+    size_t loopBound =
+        std::min(numElements, i + out.length() / kBytesPerElement);
+    uint8_t* const begin = out.writableData();
+    uint8_t* p = begin;
+    for (; i < loopBound; ++i) {
+      p = appendVarint(p, toZigzag(inputPtr[i]));
+    }
+    out.append(p - begin);
+    bytesWritten += p - begin;
+  }
+  return bytesWritten;
+}
+
+template <>
+size_t CompactProtocolWriter::writeArithmeticVector<int64_t>(
+    const int64_t* inputPtr, size_t numElements) {
+  return writeVarintArithmeticVector(out_, inputPtr, numElements);
+}
+template <>
+size_t CompactProtocolWriter::writeArithmeticVector<uint64_t>(
+    const uint64_t* inputPtr, size_t numElements) {
+  return writeVarintArithmeticVector(out_, inputPtr, numElements);
+}
+template <>
+size_t CompactProtocolWriter::writeArithmeticVector<int32_t>(
+    const int32_t* inputPtr, size_t numElements) {
+  return writeVarintArithmeticVector(out_, inputPtr, numElements);
+}
+template <>
+size_t CompactProtocolWriter::writeArithmeticVector<uint32_t>(
+    const uint32_t* inputPtr, size_t numElements) {
+  return writeVarintArithmeticVector(out_, inputPtr, numElements);
+}
+template <>
+size_t CompactProtocolWriter::writeArithmeticVector<int16_t>(
+    const int16_t* inputPtr, size_t numElements) {
+  return writeVarintArithmeticVector(out_, inputPtr, numElements);
+}
+template <>
+size_t CompactProtocolWriter::writeArithmeticVector<uint16_t>(
+    const uint16_t* inputPtr, size_t numElements) {
+  return writeVarintArithmeticVector(out_, inputPtr, numElements);
+}
+
+#endif // FOLLY_ARM_FEATURE_NEON_SVE_BRIDGE
+
 template <>
 size_t CompactProtocolWriter::writeArithmeticVector<int8_t>(
     const int8_t* inputPtr, size_t numElements) {
@@ -488,7 +629,43 @@ size_t CompactProtocolWriter::writeArithmeticVector<double>(
       out_, inputPtr, numElements);
 }
 
-#endif // FOLLY_ARM_FEATURE_NEON_SVE_BRIDGE
+// Room for the longest varint of T. The decoders may read all of it even when
+// the varint is shorter.
+template <typename T>
+using VarintBytes = std::span<const uint8_t, util::detail::kVarintMaxBytes<T>>;
+
+// Returns the number of bytes the varint takes.
+template <typename T>
+static size_t readVarint(T& value, VarintBytes<T> bytes) {
+  return util::detail::readVarintMediumSlowUnrolled(value, bytes.data());
+}
+
+#if THRIFT_UTIL_VARINTUTILS_BMI2_DECODER
+// readVarintMediumSlowUnrolled takes a branch per byte, which is slow for the
+// 9- and 10-byte varints of values such as hashes; those take one branch here.
+static size_t readVarint(int64_t& value, VarintBytes<int64_t> bytes) {
+  const uint64_t firstEightBytes = folly::loadUnaligned<uint64_t>(bytes.data());
+  constexpr uint64_t kContinuationBitMask = 0x8080808080808080;
+  if ((firstEightBytes & kContinuationBitMask) != kContinuationBitMask) {
+    // The varint is at most 8 bytes long.
+    return util::detail::readVarintMediumSlowUnrolled(value, bytes.data());
+  }
+  const uint64_t ninthByte = bytes[8];
+  const uint64_t tenthByte = bytes[9];
+  const uint64_t hasTenthByte = ninthByte >> 7;
+  if (hasTenthByte & (tenthByte >> 7)) {
+    util::detail::throwInvalidVarint();
+  }
+  // Bits 0-55; pext drops the continuation bits.
+  uint64_t result = _pext_u64(firstEightBytes, 0x7f7f7f7f7f7f7f7f);
+  // Bits 56-62; "& 0x7f" drops the continuation bit.
+  result |= (ninthByte & 0x7f) << 56;
+  // Bit 63, if there is a tenth byte.
+  result |= (tenthByte & hasTenthByte) << 63;
+  value = static_cast<int64_t>(result);
+  return 9 + hasTenthByte;
+}
+#endif
 
 // Function used with data types that are decoded from compacted zigzag
 template <class Cursor, typename T>
@@ -508,8 +685,10 @@ static inline void readEncodedArithmeticVector(
       if constexpr (sizeof(T) == 2) {
         int32_t valueA;
         int32_t valueB;
-        inPtr += util::detail::readVarintMediumSlowUnrolled(valueA, inPtr);
-        inPtr += util::detail::readVarintMediumSlowUnrolled(valueB, inPtr);
+        inPtr +=
+            readVarint(valueA, VarintBytes<int32_t>(inPtr, kMaxVarintBytes));
+        inPtr +=
+            readVarint(valueB, VarintBytes<int32_t>(inPtr, kMaxVarintBytes));
         valueA = util::detail::zigzagToSignedInt(valueA);
         valueB = util::detail::zigzagToSignedInt(valueB);
         outputPtr[i] = (int16_t)valueA;
@@ -517,8 +696,9 @@ static inline void readEncodedArithmeticVector(
       } else {
         T valueA;
         T valueB;
-        inPtr += util::detail::readVarintMediumSlowUnrolled(valueA, inPtr);
-        inPtr += util::detail::readVarintMediumSlowUnrolled(valueB, inPtr);
+        // The loop condition leaves room for two of the longest varints.
+        inPtr += readVarint(valueA, VarintBytes<T>(inPtr, kMaxVarintBytes));
+        inPtr += readVarint(valueB, VarintBytes<T>(inPtr, kMaxVarintBytes));
         valueA = util::detail::zigzagToSignedInt(valueA);
         valueB = util::detail::zigzagToSignedInt(valueB);
         outputPtr[i] = valueA;
@@ -528,7 +708,10 @@ static inline void readEncodedArithmeticVector(
     size_t consumed = inPtr - currentRange.data();
     c.skipNoAdvance(consumed);
     size_t len = currentRange.size() - consumed;
-    size_t trailingLoopBound = std::min(numElements, i + len);
+    // At least one element, so that readVarintSlow moves on to the next buffer
+    // or throws at the end of the input.
+    size_t trailingLoopBound =
+        std::min(numElements, i + std::max<size_t>(len, 1));
     while (i < trailingLoopBound) {
       if constexpr (sizeof(T) == 2) {
         // Need to finish consuming current input buffer
@@ -558,10 +741,8 @@ static inline void readUnencodedArithmeticVector(
         std::min(numElements, i + currentRange.size() / sizeof(T));
     size_t j = 0;
     for (; i < loopBound; ++i, ++j) {
-      T value = BE ? folly::Endian::big<T>(
-                         folly::loadUnaligned<T>(inPtr + j * sizeof(T)))
-                   : folly::loadUnaligned<T>(inPtr + j * sizeof(T));
-      outputPtr[i] = value;
+      auto bits = folly::loadUnaligned<SwapAs<T>>(inPtr + j * sizeof(T));
+      outputPtr[i] = std::bit_cast<T>(BE ? folly::Endian::big(bits) : bits);
     }
     c.skipNoAdvance(j * sizeof(T));
     if (i < numElements) {

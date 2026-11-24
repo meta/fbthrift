@@ -17,6 +17,7 @@
 #pragma once
 
 #include <cstdint>
+#include <new>
 #include <optional>
 #include <utility>
 
@@ -29,7 +30,6 @@
 #include <folly/logging/xlog.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/security/common/Messages.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/security/common/Util.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/security/util/StopTLSHelper.h>
@@ -56,9 +56,13 @@ namespace apache::thrift::fast_thrift::connection::security::handler {
  * TLS pipeline, including downgrades parked here. Each downgrade is also
  * bounded by the handshake-timeout budget off the incoming message.
  */
+template <typename StaticContext>
 class StopTLSV1Handler {
  public:
   StopTLSV1Handler() = default;
+
+  explicit StopTLSV1Handler(PreStopTLSEkmCapture capture) noexcept
+      : capture_(capture) {}
 
   ~StopTLSV1Handler() = default;
 
@@ -95,13 +99,39 @@ class StopTLSV1Handler {
     // to drive StopTLS against.
     auto* fizzPtr =
         dynamic_cast<fizz::server::AsyncFizzServer*>(incoming.transport.get());
-    if (FOLLY_UNLIKELY(fizzPtr == nullptr)) {
+    if (fizzPtr == nullptr) [[unlikely]] {
       XLOG(DBG3)
           << "StopTLS V1 negotiated but transport is not AsyncFizzServer "
              "for "
           << incoming.clientAddr.describe();
       return ctx.fireWrite(
           channel_pipeline::erase_and_box(std::move(incoming)));
+    }
+
+    if (capture_.capture != nullptr) {
+      try {
+        if (incoming.peerSecurity == nullptr) {
+          incoming.peerSecurity = std::make_unique<PeerSecurityInfo>();
+        }
+        if (!incoming.peerSecurity->capturedEkms.has_value()) {
+          incoming.peerSecurity->capturedEkms.emplace(
+              capture_.capture(capture_.owner, *fizzPtr));
+        }
+      } catch (const std::bad_alloc&) {
+        incoming.transport.reset();
+        // Consume the failed handshake without triggering allocating logs.
+        return channel_pipeline::Result::Success;
+      } catch (...) {
+        auto exception = folly::exception_wrapper(folly::current_exception());
+        auto clientAddr = std::move(incoming.clientAddr);
+        incoming.transport.reset();
+        incoming.peerSecurity.reset();
+        if (!shuttingDown_) {
+          fireConnectionFailure(
+              ctx_, exception, "EKM capture failed", clientAddr);
+        }
+        return channel_pipeline::Result::Error;
+      }
     }
 
     (void)incoming.transport.release();
@@ -120,7 +150,11 @@ class StopTLSV1Handler {
         std::move(fizzServer),
         stopTLSTimeout,
         [this](util::StopTLSHelper* h) noexcept { inFlight_.erase(h); },
-        [this, clientAddr, extension, peerSecurity, permit = std::move(permit)](
+        [this,
+         clientAddr,
+         extension,
+         peerSecurity = std::move(peerSecurity),
+         permit = std::move(permit)](
             folly::AsyncTransport::UniquePtr plaintext,
             const folly::exception_wrapper& ex) mutable noexcept {
           onStopTLSComplete(
@@ -128,7 +162,7 @@ class StopTLSV1Handler {
               ex,
               clientAddr,
               extension,
-              peerSecurity,
+              std::move(peerSecurity),
               std::move(permit));
         }));
     auto* raw = helper.get();
@@ -188,8 +222,10 @@ class StopTLSV1Handler {
       const folly::SocketAddress& clientAddr,
       std::shared_ptr<apache::thrift::ThriftParametersServerExtension>
           extension,
-      std::shared_ptr<const PeerSecurityInfo> peerSecurity,
+      std::unique_ptr<PeerSecurityInfo> peerSecurity,
       PendingConnectionPermit permit) noexcept {
+    auto guard = guardPipeline(ctx_);
+    auto pendingPermit = std::move(permit);
     if (ex || !plaintext) {
       XLOG(DBG3) << "StopTLS V1 failed for " << clientAddr.describe() << ": "
                  << (ex ? ex.what().toStdString() : std::string("null"));
@@ -198,7 +234,7 @@ class StopTLSV1Handler {
       }
       return;
     }
-    if (FOLLY_UNLIKELY(!ctx_)) {
+    if (!ctx_) [[unlikely]] {
       // Handler already removed from the pipeline: the downgrade landed after
       // teardown began, so there is nowhere to forward it. The transport dies
       // with this callback.
@@ -213,7 +249,7 @@ class StopTLSV1Handler {
         .tlsParams = nullptr,
         .extension = std::move(extension),
         .peerSecurity = std::move(peerSecurity),
-        .pendingConnectionPermit = std::move(permit),
+        .pendingConnectionPermit = std::move(pendingPermit),
     };
     auto result =
         ctx_->fireWrite(channel_pipeline::erase_and_box(std::move(downgraded)));
@@ -234,7 +270,8 @@ class StopTLSV1Handler {
 
   folly::F14FastMap<util::StopTLSHelper*, util::StopTLSHelper::UniquePtr>
       inFlight_;
-  channel_pipeline::detail::ContextImpl* ctx_{nullptr};
+  StaticContext* ctx_{nullptr};
+  PreStopTLSEkmCapture capture_;
   // Set once teardown begins; see onPipelineInactive.
   bool shuttingDown_{false};
 };

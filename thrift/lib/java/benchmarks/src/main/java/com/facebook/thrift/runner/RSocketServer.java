@@ -23,6 +23,7 @@ import com.facebook.thrift.example.ping.PingService;
 import com.facebook.thrift.example.ping.PingServiceRpcServerHandler;
 import com.facebook.thrift.rsocket.server.RSocketServerTransport;
 import com.facebook.thrift.rsocket.server.RSocketServerTransportFactory;
+import io.netty.handler.ssl.ClientAuth;
 import io.netty.util.ResourceLeakDetector;
 import java.net.InetSocketAddress;
 import java.util.Collections;
@@ -50,7 +51,10 @@ public class RSocketServer {
     logger.info("starting server");
     RSocketServerTransportFactory transportFactory =
         new RSocketServerTransportFactory(
-            new ThriftServerConfig().setPort(port).setSslEnabled(true));
+            new ThriftServerConfig()
+                .setClientAuth(ClientAuth.OPTIONAL)
+                .setPort(port)
+                .setSslEnabled(true));
     RSocketServerTransport transport =
         transportFactory.createServerTransport(serverHandler).block();
     InetSocketAddress address = (InetSocketAddress) transport.getAddress();

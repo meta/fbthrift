@@ -55,7 +55,7 @@ struct TLSRequestMessage {
   std::shared_ptr<const apache::thrift::fast_thrift::security::TLSParams>
       tlsParams;
   std::shared_ptr<apache::thrift::ThriftParametersServerExtension> extension;
-  std::shared_ptr<const PeerSecurityInfo> peerSecurity;
+  std::unique_ptr<PeerSecurityInfo> peerSecurity;
   PendingConnectionPermit pendingConnectionPermit;
 };
 
@@ -67,7 +67,7 @@ struct TLSRequestMessage {
 struct TLSResponseMessage {
   folly::AsyncTransport::UniquePtr transport;
   folly::SocketAddress clientAddr;
-  std::shared_ptr<const PeerSecurityInfo> peerSecurity;
+  std::unique_ptr<PeerSecurityInfo> peerSecurity;
   PendingConnectionPermit pendingConnectionPermit;
 };
 

@@ -24,11 +24,13 @@
 #include <folly/ScopeGuard.h>
 #include <folly/SocketAddress.h>
 #include <folly/Utility.h>
+#include <folly/container/F14Map.h>
 
 #include <thrift/lib/cpp/concurrency/PosixThreadFactory.h>
 #include <thrift/lib/cpp/concurrency/ThreadManager.h>
 #include <thrift/lib/cpp/protocol/TProtocolTypes.h>
 #include <thrift/lib/cpp2/async/AsyncProcessor.h>
+#include <thrift/lib/cpp2/async/MultiplexAsyncProcessor.h>
 #include <thrift/lib/cpp2/protocol/Serializer.h>
 #include <thrift/lib/cpp2/server/ThriftServer.h>
 #include <thrift/lib/py/server/CppContextData.h>
@@ -573,6 +575,45 @@ class PythonAsyncProcessorFactory : public AsyncProcessorFactory {
   std::shared_ptr<object> adapter_;
 };
 
+namespace {
+
+class MethodSubsetProcessorFactory : public AsyncProcessorFactory {
+ public:
+  MethodSubsetProcessorFactory(
+      std::shared_ptr<AsyncProcessorFactory> factory, MethodMetadataMap methods)
+      : factory_(std::move(factory)), methods_(std::move(methods)) {}
+
+  std::unique_ptr<apache::thrift::AsyncProcessor> getProcessor() override {
+    return factory_->getProcessor();
+  }
+
+  // The server registers factory_'s handlers through its security slot.
+  std::vector<apache::thrift::ServiceHandlerBase*> getServiceHandlers()
+      override {
+    return {};
+  }
+
+  CreateMethodMetadataResult createMethodMetadata() override {
+    return methods_;
+  }
+
+  std::shared_ptr<folly::RequestContext> getBaseContextForRequest(
+      const MethodMetadata& methodMetadata) override {
+    return factory_->getBaseContextForRequest(methodMetadata);
+  }
+
+  SelectPoolResult selectResourcePool(
+      const ServerRequest& request) const override {
+    return factory_->selectResourcePool(request);
+  }
+
+ private:
+  const std::shared_ptr<AsyncProcessorFactory> factory_;
+  const MethodMetadataMap methods_;
+};
+
+} // namespace
+
 class CppServerWrapper : public ThriftServer {
  public:
   CppServerWrapper() {
@@ -583,9 +624,8 @@ class CppServerWrapper : public ThriftServer {
     // We use a shared_ptr to manage the adapter so the processor
     // factory handing won't ever try to manipulate python reference
     // counts without the GIL.
-    setInterface(
-        std::make_unique<PythonAsyncProcessorFactory>(
-            std::make_shared<object>(adapter)));
+    adapter_ = std::make_shared<object>(adapter);
+    setInterface(std::make_unique<PythonAsyncProcessorFactory>(adapter_));
   }
 
   // peer to setObserver, but since we want a different argument, avoid
@@ -614,6 +654,19 @@ class CppServerWrapper : public ThriftServer {
   }
 
   void setup() {
+    // Python claims every method name, so security methods it lacks go first.
+    if (auto security = getSecurityInterface()) {
+      if (auto methods = securityMethodsPythonLacks(*security);
+          !methods.empty()) {
+        setInterface(
+            std::make_shared<MultiplexAsyncProcessorFactory>(
+                std::vector<std::shared_ptr<AsyncProcessorFactory>>{
+                    std::make_shared<MethodSubsetProcessorFactory>(
+                        std::move(security), std::move(methods)),
+                    getProcessorFactory()}));
+      }
+    }
+
     PyThreadState* save_state = PyEval_SaveThread();
     SCOPE_EXIT {
       PyEval_RestoreThread(save_state);
@@ -846,11 +899,36 @@ class CppServerWrapper : public ThriftServer {
   void setUnixSocketPath(const char* path) {
     setAddress(folly::SocketAddress::makeFromPath(path));
   }
+
+ private:
+  // Empty unless the Python processor lists its methods in `_processMap`.
+  AsyncProcessorFactory::MethodMetadataMap securityMethodsPythonLacks(
+      AsyncProcessorFactory& security) {
+    auto metadata = security.createMethodMetadata();
+    auto* methods =
+        std::get_if<AsyncProcessorFactory::MethodMetadataMap>(&metadata);
+    if (!adapter_ || !methods) {
+      return {};
+    }
+    try {
+      object processMap = adapter_->attr("processor").attr("_processMap");
+      if (!processMap) {
+        return {};
+      }
+      folly::erase_if(*methods, [&](const auto& method) {
+        return static_cast<bool>(processMap.contains(method.first));
+      });
+    } catch (const error_already_set&) {
+      PyErr_Clear();
+      return {};
+    }
+    return std::move(*methods);
+  }
+
+  std::shared_ptr<object> adapter_;
 };
 
 BOOST_PYTHON_MODULE(CppServerWrapper) {
-  PyEval_InitThreads();
-
   class_<CppContextData>("CppContextData")
       .def("getClientIdentity", &CppContextData::getClientIdentity)
       .def("getPeerAddress", &CppContextData::getPeerAddress)

@@ -17,6 +17,7 @@
 #include <array>
 #include <compare>
 #include <cstdint>
+#include <limits>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -502,6 +503,25 @@ TEST(CompareTest, Nan) {
       std::partial_ordering::unordered);
 }
 
+TEST(CompareTest, ThriftObjectModelLess_FloatingPoint) {
+  constexpr double kNan = std::numeric_limits<double>::quiet_NaN();
+  constexpr double kInf = std::numeric_limits<double>::infinity();
+  const std::vector<double> ascending = {-kNan, -kInf, -1.0, 1.0, kInf, kNan};
+  for (std::size_t i = 0; i + 1 < ascending.size(); ++i) {
+    EXPECT_TRUE(stable_less<type::double_t>(ascending[i], ascending[i + 1]))
+        << i;
+    EXPECT_FALSE(stable_less<type::double_t>(ascending[i + 1], ascending[i]))
+        << i;
+  }
+  EXPECT_FALSE(stable_less<type::double_t>(kNan, kNan));
+  EXPECT_FALSE(
+      stable_less<type::list<type::float_t>>(
+          std::vector<float>{-0.0f, 2.0f}, std::vector<float>{0.0f, 1.0f}));
+  EXPECT_TRUE(
+      stable_less<type::list<type::double_t>>(
+          std::vector<double>{1.0}, std::vector<double>{kNan}));
+}
+
 TEST(CompareTest, ThriftObjectModelLess_OutOfOrderStruct) {
   // OutOfOrderStruct has field_2 (id=2) declared first and field_1 (id=1)
   // declared second.
@@ -527,6 +547,18 @@ TEST(CompareTest, ThriftObjectModelLess_OutOfOrderStruct) {
   EXPECT_LT(l, r);
   EXPECT_FALSE(stable_less<test::OutOfOrderNested>(l, r));
   EXPECT_TRUE(stable_less<test::OutOfOrderNested>(r, l));
+}
+
+TEST(CompareTest, ThriftObjectModelLess_OutOfOrderException) {
+  test::OutOfOrderException lhs, rhs;
+  lhs.field_1() = 2;
+  lhs.field_2() = 10;
+  rhs.field_1() = 1;
+  rhs.field_2() = 20;
+
+  // stable_less compares field_1 (id=1) first, as for structs: 2 > 1.
+  EXPECT_FALSE(stable_less<test::OutOfOrderException>(lhs, rhs));
+  EXPECT_TRUE(stable_less<test::OutOfOrderException>(rhs, lhs));
 }
 
 TEST(CompareTest, ThriftObjectModelLess_OutOfOrderUnion) {

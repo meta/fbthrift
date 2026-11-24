@@ -171,11 +171,16 @@ class ThriftServerCompositeAppAdapter final : public folly::DelayedDestruction {
   };
 
   FOLLY_NOINLINE channel_pipeline::Result writeUnknownMethodError(
-      uint32_t streamId, std::string_view methodName) noexcept;
+      uint32_t streamId,
+      std::string_view methodName,
+      ThriftRequestContextPtr requestContext) noexcept;
   FOLLY_NOINLINE channel_pipeline::Result writeWrongRpcKindError(
-      uint32_t streamId, apache::thrift::RpcKind kind) noexcept;
+      uint32_t streamId,
+      apache::thrift::RpcKind kind,
+      ThriftRequestContextPtr requestContext) noexcept;
   channel_pipeline::Result writeFrameworkError(
-      ThriftServerResponseMessage&& message) noexcept;
+      ThriftServerResponseMessage&& message,
+      ThriftRequestContextPtr requestContext) noexcept;
 
   struct ChildHook {
     ThriftServerAppAdapter* adapter;

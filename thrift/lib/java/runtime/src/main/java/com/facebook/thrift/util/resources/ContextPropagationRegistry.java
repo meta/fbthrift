@@ -16,57 +16,31 @@
 
 package com.facebook.thrift.util.resources;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.util.HashSet;
 import java.util.Set;
-import reactor.core.publisher.Hooks;
-import reactor.core.publisher.Operators;
-import reactor.core.scheduler.Schedulers;
 
+/**
+ * @deprecated The framework binds the whole {@link com.facebook.nifty.core.RequestContext} for each
+ *     handler call and carries it on the Reactor context, so there are no keys to register and no
+ *     hooks to install. Every method here does nothing; the class is kept so callers compiled
+ *     against it still link. Hand work to another thread with {@link
+ *     com.facebook.nifty.core.RequestContextScope#capture} or {@link
+ *     com.facebook.nifty.core.RequestContextScope#wrap} instead.
+ */
+@Deprecated
 public class ContextPropagationRegistry {
-
   private ContextPropagationRegistry() {}
 
-  private static final Set<String> propagationKeys = new HashSet<>();
+  /** Does nothing. */
+  public static void registerContextPropagationKey(String key) {}
 
-  private static boolean hooksRegistered = false;
-
-  /**
-   * Register a context propagation key. Keys passed here will be propagated in thread hops within
-   * thrift. Data corresponding to these keys should be present in `RequestContext`. First
-   * invocation to this method also register reactor hooks needed to propagate thread locals across
-   * threads.
-   *
-   * @param key
-   */
-  public static void registerContextPropagationKey(String key) {
-    checkNotNull(key, "Context prop key is null");
-    // Register `ContextPropRunnable` and `ContextPropSubscriber` on first invocation.
-    if (!hooksRegistered) {
-      Schedulers.onScheduleHook("context.propagation", ContextPropRunnable::new);
-      Hooks.onLastOperator(
-          Operators.lift((scannable, subscriber) -> new ContextPropSubscriber<>(subscriber)));
-      hooksRegistered = true;
-    }
-    propagationKeys.add(key);
-  }
-
-  /**
-   * Returns ContextProp Keys to be used for copying context across threads.
-   *
-   * @return ContextProp Keys
-   */
+  /** Always empty. Each call returns a new set, so a caller that changes it changes nothing. */
   public static Set<String> getContextPropagationKeys() {
-    return propagationKeys;
+    return new HashSet<>();
   }
 
-  /**
-   * Returns if context prop is registered.
-   *
-   * @return hooksRegistered
-   */
+  /** Always false. */
   public static boolean isContextPropEnabled() {
-    return hooksRegistered;
+    return false;
   }
 }

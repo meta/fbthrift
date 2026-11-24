@@ -21,6 +21,7 @@
 
 #include <fmt/core.h>
 
+#include <algorithm>
 #include <functional>
 #include <memory>
 
@@ -99,6 +100,7 @@ StructuredNode::StructuredNode(
       structuredTypeKind_(structuredTypeKind),
       isSealed_(isSealed),
       annotations_(std::move(annotations)) {
+  fieldHandlesByIdAscending_.reserve(fields_.size());
   std::uint16_t ordinal = 1;
   for (const FieldDefinition& field : fields_) {
     bool emplaced =
@@ -122,8 +124,13 @@ StructuredNode::StructuredNode(
               field.identity().name(),
               uri_));
     }
+    fieldHandlesByIdAscending_.push_back(FastFieldHandle{ordinal});
     ++ordinal;
   }
+  std::ranges::sort(
+      fieldHandlesByIdAscending_, {}, [this](FastFieldHandle handle) {
+        return fields_[handle.index()].identity().id();
+      });
 }
 
 TypeRef StructuredNode::asRef() const noexcept {

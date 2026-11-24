@@ -31,7 +31,6 @@
  * Output: std::unique_ptr<folly::IOBuf> (chained batch of frames)
  */
 
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Backpressure.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/BatchingHandlerConfig.h>
@@ -65,8 +64,6 @@ template <
     typename FlushEvent = typename Tracker::FlushWritesEventType>
 class BatchingFrameHandlerT {
  public:
-  channel_pipeline::WriteReadyHook writeReadyHook_;
-
   explicit BatchingFrameHandlerT(BatchingHandlerConfig config = {}) noexcept
       : config_(config),
         scheduler_(
@@ -121,13 +118,6 @@ class BatchingFrameHandlerT {
     ++pendingFrames_;
     tracker_.onWrite();
 
-    // Downstream is backpressured: buffer and propagate backpressure upstream.
-    // Do not attempt to flush until onWriteReady is called.
-    if (backpressured_) {
-      return apache::thrift::fast_thrift::channel_pipeline::Result::
-          Backpressure;
-    }
-
     // Check flush thresholds
     if (pendingBytes_ >= config_.maxPendingBytes ||
         pendingFrames_ >= config_.maxPendingFrames) {
@@ -136,7 +126,10 @@ class BatchingFrameHandlerT {
 
     // Schedule flush for end of event loop iteration
     scheduleFlushIfNeeded();
-    return apache::thrift::fast_thrift::channel_pipeline::Result::Success;
+    if (backpressured_) {
+      return channel_pipeline::Result::Backpressure;
+    }
+    return channel_pipeline::Result::Success;
   }
 
   template <typename Context>
@@ -190,7 +183,7 @@ class BatchingFrameHandlerT {
   // scheduling.
   void setFlushList(FlushList* flushList) noexcept {
     scheduler_.setFlushList(flushList);
-    if (batch_ && !isBackpressured()) {
+    if (batch_) {
       scheduleFlushIfNeeded();
     }
   }
@@ -282,6 +275,9 @@ class BatchingFrameHandlerT {
       ctx.awaitWriteReady();
     }
 
+    if (result != channel_pipeline::Result::Error && backpressured_) {
+      return channel_pipeline::Result::Backpressure;
+    }
     return result;
   }
 

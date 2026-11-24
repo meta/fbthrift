@@ -25,6 +25,7 @@ import com.facebook.thrift.legacy.server.LegacyServerTransportFactory;
 import com.facebook.thrift.server.RpcServerHandler;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.netty.handler.ssl.ClientAuth;
 import io.netty.util.ResourceLeakDetector;
 import java.net.InetSocketAddress;
 import java.util.concurrent.locks.LockSupport;
@@ -49,7 +50,10 @@ public class AsyncNetty4Server {
     logger.info("starting server");
     LegacyServerTransportFactory transportFactory =
         new LegacyServerTransportFactory(
-            new ThriftServerConfig().setPort(port).setSslEnabled(false));
+            new ThriftServerConfig()
+                .setClientAuth(ClientAuth.OPTIONAL)
+                .setPort(port)
+                .setSslEnabled(false));
     LegacyServerTransport transport = transportFactory.createServerTransport(serverHandler).block();
     InetSocketAddress address = (InetSocketAddress) transport.getAddress();
 

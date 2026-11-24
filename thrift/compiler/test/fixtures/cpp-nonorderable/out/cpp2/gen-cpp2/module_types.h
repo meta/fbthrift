@@ -88,6 +88,16 @@ class NonOrderableStruct final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "NonOrderableStruct";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "field1", "field2"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -256,7 +266,6 @@ class NonOrderableStruct final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<NonOrderableStruct>;
   friend void swap(NonOrderableStruct& a, NonOrderableStruct& b);
 };
 
@@ -279,6 +288,11 @@ class NonOrderableUnion final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "NonOrderableUnion";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "int_value", "string_value"
+  };
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -323,33 +337,7 @@ class NonOrderableUnion final  {
 
   NonOrderableUnion(const NonOrderableUnion& rhs);
 
-  NonOrderableUnion& operator=(NonOrderableUnion&& rhs) noexcept {
-    if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-      {
-        __fbthrift_clear();
-        return *this;
-      }
-      case Type::int_value:
-      {
-        set_int_value(std::move(rhs.value_.int_value));
-        break;
-      }
-      case Type::string_value:
-      {
-        set_string_value(std::move(rhs.value_.string_value));
-        break;
-      }
-      default:
-      {
-        assert(false);
-        __fbthrift_clear();
-      }
-    }
-    apache::thrift::clear(rhs);
-    return *this;
-  }
+  NonOrderableUnion& operator=(NonOrderableUnion&& rhs) noexcept;
 
   NonOrderableUnion& operator=(const NonOrderableUnion& rhs);
 
@@ -410,6 +398,7 @@ class NonOrderableUnion final  {
 
 
   /** Glean { "field": "int_value" } */
+  [[deprecated("Use `FOO.int_value().value()` instead of `FOO.get_int_value()`")]]
   ::std::int32_t const& get_int_value() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::int_value) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -418,6 +407,7 @@ class NonOrderableUnion final  {
   }
 
   /** Glean { "field": "string_value" } */
+  [[deprecated("Use `FOO.string_value().value()` instead of `FOO.get_string_value()`")]]
   ::std::string const& get_string_value() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::string_value) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -529,7 +519,6 @@ class NonOrderableUnion final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<NonOrderableUnion>;
   friend void swap(NonOrderableUnion& a, NonOrderableUnion& b);
 };
 
@@ -552,6 +541,16 @@ class OrderableStruct final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "OrderableStruct";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "field1", "field2"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -720,7 +719,6 @@ class OrderableStruct final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<OrderableStruct>;
   friend void swap(OrderableStruct& a, OrderableStruct& b);
 };
 
@@ -743,6 +741,11 @@ class OrderableUnion final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "OrderableUnion";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "int_value", "string_value"
+  };
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -787,33 +790,7 @@ class OrderableUnion final  {
 
   OrderableUnion(const OrderableUnion& rhs);
 
-  OrderableUnion& operator=(OrderableUnion&& rhs) noexcept {
-    if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-      {
-        __fbthrift_clear();
-        return *this;
-      }
-      case Type::int_value:
-      {
-        set_int_value(std::move(rhs.value_.int_value));
-        break;
-      }
-      case Type::string_value:
-      {
-        set_string_value(std::move(rhs.value_.string_value));
-        break;
-      }
-      default:
-      {
-        assert(false);
-        __fbthrift_clear();
-      }
-    }
-    apache::thrift::clear(rhs);
-    return *this;
-  }
+  OrderableUnion& operator=(OrderableUnion&& rhs) noexcept;
 
   OrderableUnion& operator=(const OrderableUnion& rhs);
 
@@ -874,6 +851,7 @@ class OrderableUnion final  {
 
 
   /** Glean { "field": "int_value" } */
+  [[deprecated("Use `FOO.int_value().value()` instead of `FOO.get_int_value()`")]]
   ::std::int32_t const& get_int_value() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::int_value) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -882,6 +860,7 @@ class OrderableUnion final  {
   }
 
   /** Glean { "field": "string_value" } */
+  [[deprecated("Use `FOO.string_value().value()` instead of `FOO.get_string_value()`")]]
   ::std::string const& get_string_value() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::string_value) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -993,7 +972,6 @@ class OrderableUnion final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<OrderableUnion>;
   friend void swap(OrderableUnion& a, OrderableUnion& b);
 };
 

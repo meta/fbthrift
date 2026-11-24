@@ -59,9 +59,25 @@ public final class OptXcep extends org.apache.thrift.TBaseException implements c
       this.errorCode = null;
     }
 
+    public OptXcep(
+            final String message,
+            final Integer errorCode,
+            final java.lang.Throwable cause) {
+        super(cause);
+        this.message = message;
+        this.errorCode = errorCode;
+    }
+
+    public OptXcep(final java.lang.Throwable cause) {
+        super(cause);
+        this.message = cause == null ? null : cause.toString();
+        this.errorCode = null;
+    }
+
     public static class Builder {
         private String message = null;
         private Integer errorCode = null;
+        private java.lang.Throwable cause;
 
         @com.facebook.swift.codec.ThriftField(value=1, name="message", requiredness=Requiredness.OPTIONAL)    public Builder setMessage(String message) {
             this.message = message;
@@ -77,6 +93,11 @@ public final class OptXcep extends org.apache.thrift.TBaseException implements c
 
         public Integer getErrorCode() { return errorCode; }
 
+        public Builder setCause(final java.lang.Throwable cause) {
+            this.cause = cause;
+            return this;
+        }
+
         public Builder() { }
         public Builder(OptXcep other) {
             this.message = other.message;
@@ -89,6 +110,9 @@ public final class OptXcep extends org.apache.thrift.TBaseException implements c
                 this.message,
                 this.errorCode
             );
+            if (cause != null) {
+                result.initCause(cause);
+            }
             return result;
         }
     }

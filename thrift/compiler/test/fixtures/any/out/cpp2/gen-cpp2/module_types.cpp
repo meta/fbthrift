@@ -81,7 +81,7 @@ std::partial_ordering MyStruct::operator<=>([[maybe_unused]] const MyStruct& rhs
 
 void swap([[maybe_unused]] MyStruct& a, [[maybe_unused]] MyStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_myString, b.__fbthrift_field_myString);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myString, b.__fbthrift_field_myString);
   swap(a.__isset, b.__isset);
 }
 
@@ -138,33 +138,46 @@ void MyUnion::__fbthrift_clear() {
 bool MyUnion::__fbthrift_is_empty() const {
   return getType() == Type::__EMPTY__;
 }
+  MyUnion& MyUnion::operator=(MyUnion&& rhs) noexcept {
+    if (this == &rhs) { return *this; }
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+      {
+        __fbthrift_clear();
+        return *this;
+      }
+      case Type::myString:
+      {
+        auto value = std::move(rhs.value_.myString);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(myString_ref(), std::move(value));
+        break;
+      }
+      default:
+      {
+        assert(false);
+        __fbthrift_clear();
+      }
+    }
+    return *this;
+  }
+
   MyUnion::MyUnion(const MyUnion& rhs)
       : fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
     switch (rhs.getType()) {
       case Type::__EMPTY__:
         return;
       case Type::myString:
-        set_myString(rhs.value_.myString);
+        myString_ref().emplace(rhs.value_.myString);
         break;
       default:
         assert(false);
     }
   }
 
-    MyUnion&MyUnion::operator=(const MyUnion& rhs) {
+  MyUnion& MyUnion::operator=(const MyUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::myString:
-        set_myString(rhs.value_.myString);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = MyUnion(rhs);
   }
 
 
@@ -242,7 +255,7 @@ std::partial_ordering MyException::operator<=>([[maybe_unused]] const MyExceptio
 
 void swap([[maybe_unused]] MyException& a, [[maybe_unused]] MyException& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_myString, b.__fbthrift_field_myString);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myString, b.__fbthrift_field_myString);
   swap(a.__isset, b.__isset);
 }
 

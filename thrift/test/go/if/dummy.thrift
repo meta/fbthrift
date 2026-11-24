@@ -27,6 +27,7 @@ namespace go 'github.com/facebook/fbthrift/thrift/test/go/if/dummy'
 // server/client implementations in 'thrift/lib/go/thrift'.
 // It needs to stay simple - the way it currently is.
 
+@thrift.Uri{value = "facebook.com/thrift/test/go/if/dummy/DummyStruct1"}
 struct DummyStruct1 {
   1: byte field1;
   2: bool field2;

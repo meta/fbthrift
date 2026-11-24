@@ -159,9 +159,9 @@ class Json5ProtocolUtils final {
    */
   template <class Tag>
   [[nodiscard]] static type::native_type<Tag> fromJson5(std::string_view json) {
-    auto buf = folly::IOBuf::copyBuffer(json);
+    const auto buf = folly::IOBuf::wrapBufferAsValue(json.data(), json.size());
     json5::detail::Json5ProtocolReader reader;
-    reader.setInput(buf.get());
+    reader.setInput(&buf);
     type::native_type<Tag> value;
     op::decode<Tag>(reader, value);
     if (!reader.getCursor().isAtEnd()) {

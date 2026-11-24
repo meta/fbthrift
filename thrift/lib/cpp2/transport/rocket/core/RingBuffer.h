@@ -79,7 +79,7 @@ class RingBuffer {
   bool emplace_back(Args&&... args) noexcept(
       std::is_nothrow_constructible_v<T, Args...>) {
     const bool has_space = size() < capacity();
-    if (FOLLY_LIKELY(has_space)) {
+    if (has_space) [[likely]] {
       new (&data_[tail_index()]) T(std::forward<Args>(args)...);
       increment_tail();
     }

@@ -129,3 +129,11 @@ struct UsesIncludedAdapter {
 // Test case: const annotated with adapter from included file
 @dependency.IncludedAdapter{signature = "IncludedAdapterConstant"}
 const i32 CONST_WITH_INCLUDED_ADAPTER = 123456789;
+
+struct FieldCacheRace {
+  @python.Adapter{
+    name = "thrift.python.test.adapters.rendezvous.RendezvousAdapter",
+    typeHint = "thrift.python.test.adapters.rendezvous.Box[]",
+  }
+  1: string value;
+}

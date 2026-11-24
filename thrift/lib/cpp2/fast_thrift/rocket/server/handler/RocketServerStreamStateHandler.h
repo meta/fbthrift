@@ -17,6 +17,7 @@
 #pragma once
 
 #include <folly/ExceptionWrapper.h>
+#include <folly/Likely.h>
 #include <folly/logging/xlog.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
@@ -41,13 +42,13 @@ namespace apache::thrift::fast_thrift::rocket::server::handler {
  *
  * Per-stream state lives in the pipeline-level `RocketStreamContexts` state,
  * registered once per connection via
- * `PipelineBuilder::addState<RocketStreamContexts>()` and reached here through
- * `ctx.state<RocketStreamContexts>()`. This handler owns the entry lifecycle
- * (insert on stream-open, erase on terminal) so per-pattern handlers can share
- * the same map without their own bookkeeping. The pipeline owns the map's
- * lifetime; this handler does not clear it on removal. When cancellation is
- * disabled, the RR-only server path stamps request identity directly and does
- * not access this map.
+ * `StaticPipelineBuilder::addState<RocketStreamContexts>()` and reached here
+ * through `ctx.state<RocketStreamContexts>()`. This handler owns the entry
+ * lifecycle (insert on stream-open, erase on terminal) so per-pattern handlers
+ * can share the same map without their own bookkeeping. The pipeline owns the
+ * map's lifetime; this handler does not clear it on removal. When cancellation
+ * is disabled, RR traffic bypasses this map except for ERROR frames, which may
+ * terminate a tracked stream before its originating request type is known.
  *
  * Pipeline position:
  *   App <-> StreamHandler <-> FrameHandler <-> Transport
@@ -159,6 +160,14 @@ class RocketServerStreamStateHandler {
     if (!enableCancellation_ &&
         response.streamType ==
             apache::thrift::fast_thrift::frame::FrameType::REQUEST_RESPONSE) {
+      if (FOLLY_UNLIKELY(
+              response.frame.frameType ==
+                  apache::thrift::fast_thrift::frame::FrameType::ERROR &&
+              response.frame.streamId !=
+                  apache::thrift::fast_thrift::frame::kConnectionStreamId)) {
+        ctx.template state<RocketStreamContexts>().streams.erase(
+            response.frame.streamId);
+      }
       return ctx.fireWrite(std::move(msg));
     }
 
@@ -175,9 +184,8 @@ class RocketServerStreamStateHandler {
     // the connection, not to a stream, so there is no context to look up. They
     // are only reachable from above this handler, so an unknown streamId here
     // still means a stream frame that outlived its stream.
-    if (FOLLY_UNLIKELY(
-            streamId ==
-            apache::thrift::fast_thrift::frame::kConnectionStreamId)) {
+    if (streamId == apache::thrift::fast_thrift::frame::kConnectionStreamId)
+        [[unlikely]] {
       return ctx.fireWrite(std::move(msg));
     }
 

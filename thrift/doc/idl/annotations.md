@@ -186,7 +186,7 @@ struct aa_struct {
 
 ##### cpp.allocator
 
-* Where to use: struct
+* Where to use: struct, union
 * Value: string name of a type conforming to the [C++ named requirement "Allocator"](https://en.cppreference.com/w/cpp/named_req/Allocator)
 
 Declares that this is an allocator-aware structure, using the specified C++ allocator type. When this annotation is present, the Thrift compiler will generate additional code sufficient to meet the [C++ named requirement "AllocatorAwareContainer":](https://en.cppreference.com/w/cpp/named_req/AllocatorAwareContainer)
@@ -270,6 +270,10 @@ Constants include annotations just for themselves. The getter method is defined 
 Structured annotations are accessible in Python via the [metadata API](https://www.internalfb.com/intern/wiki/Thrift_in_Python/User_Guide/Advanced_Usage/Metadata/). They are accessible on all objects which have metadata, which is structs, exceptions, unions, fields, services, and enums.
 
 You can view an example for how to use these [here](https://github.com/facebook/fbthrift/tree/main/thrift/lib/py3/test/metadata.py?commit=80443af2713dbfa63ccd487d6d5f7d0850b2f022&lines=192).
+
+### Go
+
+Generated Go metadata exposes structured annotations on supported declaration scopes, including structs, exceptions, enums, services, and functions. It does not currently include field, parameter, throws-field, or individual enum-value annotations. See [Go runtime metadata](/languages/go/index.md#runtime-metadata) for accessors and limitations.
 
 ### Notable annotations that don't exist
 

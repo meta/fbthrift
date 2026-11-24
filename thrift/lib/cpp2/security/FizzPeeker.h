@@ -18,6 +18,7 @@
 
 #include <fizz/experimental/psp/PSP.h>
 #include <fizz/server/AsyncFizzServer.h>
+#include <folly/io/async/AsyncSocket.h>
 #include <thrift/lib/cpp2/PluggableFunction.h>
 #include <thrift/lib/cpp2/security/AsyncStopTLS.h>
 #include <thrift/lib/cpp2/security/extensions/ThriftParametersContext.h>
@@ -86,7 +87,7 @@ class ThriftFizzAcceptorHandshakeHelper
         thriftExtension_(std::move(thriftExtension)) {}
 
   void start(
-      folly::AsyncSSLSocket::UniquePtr sock,
+      folly::AsyncSocket::UniquePtr sock,
       wangle::AcceptorHandshakeHelper::Callback* callback) noexcept override;
 
  private:

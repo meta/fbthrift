@@ -156,6 +156,13 @@ impl ::std::default::Default for MyEnum {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for MyEnum {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.0 == 0
+    }
+}
+
 impl<'a> ::std::convert::From<&'a MyEnum> for ::std::primitive::i32 {
     #[inline]
     fn from(x: &'a MyEnum) -> Self {
@@ -382,6 +389,13 @@ impl ::std::default::Default for MyUnion {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for MyUnion {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        ::std::matches!(self, Self::UnknownField(_))
+    }
+}
+
 impl ::fbthrift::GetTType for MyUnion {
     const TTYPE: ::fbthrift::TType = ::fbthrift::TType::Struct;
 }
@@ -541,6 +555,13 @@ impl ::fbthrift::ThriftStruct for self::MyException {
         static FIELDS: &[::fbthrift::Field] = &[
         ];
         FIELDS
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for self::MyException {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        true
     }
 }
 

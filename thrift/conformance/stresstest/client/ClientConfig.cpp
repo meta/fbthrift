@@ -52,6 +52,10 @@ DEFINE_int64(
     10,
     "How often to poll in secs stats when running continuously");
 DEFINE_bool(io_uring, false, "Flag to enable io_uring on the client");
+DEFINE_bool(
+    iobuf_chain_parser,
+    false,
+    "Select the IOBufChain parser and chain storage-read RPCs on stresstest Rocket connections; requires --thrift_protocol=BINARY");
 DEFINE_int32(
     mss, 0, "TCP Maximum Segment Size to set on client sockets. 0 disables.");
 DEFINE_bool(quic, false, "Flag to enable quic on the client");
@@ -206,6 +210,7 @@ protocol::PROTOCOL_TYPES createThriftProtocolFromFlags() {
 
   config.enableRocketFrameRelativeAlignment =
       FLAGS_enable_rocket_frame_relative_alignment;
+  config.enableIOBufChainParser = FLAGS_iobuf_chain_parser;
 
   return config;
 }

@@ -17,7 +17,7 @@
 #include <thrift/lib/cpp2/protocol/test/Json5EnumDecoder.h>
 
 #include <thrift/lib/cpp2/protocol/Json5Protocol.h>
-#include <thrift/lib/cpp2/protocol/test/gen-cpp2/json5_test_types.h>
+#include <thrift/test/json5/gen-cpp2/json5_test_types.h>
 
 namespace apache::thrift::test {
 

@@ -244,6 +244,40 @@
         "is_exception" : false,
         "is_union" : false,
         "lineno" : 87
+      },
+      "OpenEnum" : {
+        "name" : "OpenEnum",
+        "structured_annotations": {
+          "scope.Enum" : {
+            "type" : {
+            "type" : "struct",
+            "name" : "Enum",
+            "path" : "thrift/annotation/scope.thrift"
+          },
+            "value" : {}
+          }
+        },
+        "docstring" : "Generates an open Java enum, which keeps values it does not define.\n",
+        "is_exception" : false,
+        "is_union" : false,
+        "lineno" : 91
+      },
+      "Utf8" : {
+        "name" : "Utf8",
+        "structured_annotations": {
+          "scope.Field" : {
+            "type" : {
+            "type" : "struct",
+            "name" : "Field",
+            "path" : "thrift/annotation/scope.thrift"
+          },
+            "value" : {}
+          }
+        },
+        "docstring" : "Makes generated Java throw when it reads malformed UTF-8 in this field's\n`string` values, including container elements. Without this annotation,\nmalformed bytes are replaced. `binary` and `@java.BinaryString` values are\nnever validated.\n",
+        "is_exception" : false,
+        "is_union" : false,
+        "lineno" : 100
       }
   },
   "source_path" : "thrift/annotation/java",

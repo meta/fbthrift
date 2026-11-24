@@ -29,6 +29,7 @@
 #include <folly/lang/Bits.h>
 
 #include <thrift/lib/cpp2/Flags.h>
+#include <thrift/lib/cpp2/IOBufChainCursor.h>
 #include <thrift/lib/cpp2/server/Cpp2ConnContext.h>
 #include <thrift/lib/cpp2/server/Cpp2Worker.h>
 #include <thrift/lib/cpp2/server/LoggingEvent.h>
@@ -87,14 +88,17 @@ std::unique_ptr<RocketRequestHandler> RocketSetupProcessor::handleSetupFrame(
   std::unique_ptr<RocketRequestHandler> requestHandler;
 
   try {
-    folly::io::Cursor cursor(frame.payload().buffer());
-    if (!validateProtocolKey(cursor, frame, connection)) {
-      return nullptr;
-    }
-
     RequestSetupMetadata meta;
-    if (!deserializeSetupMetadata(meta, cursor, frame, connection)) {
-      return nullptr;
+    if (frame.payload().usesIOBufChain()) {
+      io::IOBufChainCursor cursor(frame.payload().chainBuffer());
+      if (!readSetup(cursor, meta, frame, connection)) {
+        return nullptr;
+      }
+    } else {
+      folly::io::Cursor cursor(frame.payload().buffer());
+      if (!readSetup(cursor, meta, frame, connection)) {
+        return nullptr;
+      }
     }
 
     if (!negotiateProtocolVersion(meta, connection)) {
@@ -160,12 +164,23 @@ bool RocketSetupProcessor::validateSetupFrameBasics(
   return true;
 }
 
-bool RocketSetupProcessor::validateProtocolKey(
-    folly::io::Cursor& cursor,
+template <typename Cursor>
+bool RocketSetupProcessor::readSetup(
+    Cursor& cursor,
+    RequestSetupMetadata& meta,
     const SetupFrame& frame,
     IRocketServerConnection& connection) {
-  uint32_t protocolKey;
-  const bool success = cursor.tryReadBE<uint32_t>(protocolKey);
+  return validateProtocolKey(cursor, frame, connection) &&
+      deserializeSetupMetadata(meta, cursor, frame, connection);
+}
+
+template <typename Cursor>
+bool RocketSetupProcessor::validateProtocolKey(
+    Cursor& cursor,
+    const SetupFrame& frame,
+    IRocketServerConnection& connection) {
+  uint32_t protocolKey = 0;
+  const bool success = cursor.template tryReadBE<uint32_t>(protocolKey);
   constexpr uint32_t kLegacyRocketProtocolKey = 1;
 
   if (!success ||
@@ -192,6 +207,29 @@ bool RocketSetupProcessor::deserializeSetupMetadata(
     IRocketServerConnection& connection) {
   if (PayloadSerializer::getInstance()->unpack(
           meta, cursor, frame.encodeMetadataUsingBinary()) !=
+      frame.payload().metadataSize()) {
+    connection.close(
+        folly::make_exception_wrapper<RocketException>(
+            ErrorCode::INVALID_SETUP,
+            "Error deserializing SETUP payload: underflow"));
+    return false;
+  }
+  connContext_.readSetupMetadata(meta);
+  return true;
+}
+
+bool RocketSetupProcessor::deserializeSetupMetadata(
+    RequestSetupMetadata& meta,
+    io::IOBufChainCursor& cursor,
+    const SetupFrame& frame,
+    IRocketServerConnection& connection) {
+  if (!frame.encodeMetadataUsingBinary()) {
+    auto buffer = frame.payload().copyMetadataToIOBuf();
+    folly::io::Cursor metadataCursor(buffer.get());
+    metadataCursor.skip(cursor.getCurrentPosition());
+    return deserializeSetupMetadata(meta, metadataCursor, frame, connection);
+  }
+  if (PayloadSerializer::getInstance()->unpack(meta, cursor, true) !=
       frame.payload().metadataSize()) {
     connection.close(
         folly::make_exception_wrapper<RocketException>(

@@ -38,7 +38,7 @@ union SubUnion {
   209: string text;
 }
 
-const SubUnion kSubUnion = {"text": "glorious"};
+const SubUnion kSubUnion = SubUnion{text = "glorious"};
 
 struct OneOfEach {
   1: bool myBool = 1;
@@ -181,6 +181,11 @@ struct OpEncode {
 }
 
 struct OutOfOrderStruct {
+  2: i32 field_2;
+  1: i32 field_1;
+}
+
+exception OutOfOrderException {
   2: i32 field_2;
   1: i32 field_1;
 }

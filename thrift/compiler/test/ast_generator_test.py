@@ -574,3 +574,38 @@ class AstGeneratorTest(unittest.TestCase):
             {definition.value.attrs.name for definition in pruned.definitions},
             {"Root", "Derived", "Aliased", "Target", "Alias", "Leaf", "Base", "Used"},
         )
+
+    def test_pruned_follows_bidirectional_streams(self):
+        write_file(
+            "root.thrift",
+            textwrap.dedent(
+                """
+                include "deps.thrift"
+
+                service S {
+                    deps.Initial, sink<deps.SinkItem throws (1: deps.SinkEx e)>,
+                        stream<deps.StreamItem throws (1: deps.StreamEx e)> bidi();
+                }
+                """
+            ),
+        )
+        write_file(
+            "deps.thrift",
+            textwrap.dedent(
+                """
+                struct Initial {}
+                struct SinkItem {}
+                exception SinkEx {}
+                struct StreamItem {}
+                exception StreamEx {}
+                struct UnusedType {}
+                """
+            ),
+        )
+
+        pruned = self.run_thrift("root.thrift", pruned=True)
+
+        self.assertEqual(
+            {definition.value.attrs.name for definition in pruned.definitions},
+            {"S", "Initial", "SinkItem", "SinkEx", "StreamItem", "StreamEx"},
+        )

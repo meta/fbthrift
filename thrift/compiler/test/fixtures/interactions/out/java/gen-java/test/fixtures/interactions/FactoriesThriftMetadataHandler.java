@@ -85,6 +85,84 @@ public class FactoriesThriftMetadataHandler implements com.facebook.thrift.serve
                   .setIsOneway(false)
                   .build());
             }
+            {
+              List<ThriftField> args = new ArrayList<>();
+
+              List<ThriftField> exceptions = new ArrayList<>();
+
+              functions.add(new ThriftFunction.Builder()
+                  .setName("interactWithStream")
+                  .setReturnType(ThriftType.fromTPrimitive(ThriftPrimitiveType.THRIFT_VOID_TYPE))
+                  .setArguments(args)
+                  .setExceptions(exceptions)
+                  .setIsOneway(false)
+                  .build());
+            }
+            {
+              List<ThriftField> args = new ArrayList<>();
+
+              List<ThriftField> exceptions = new ArrayList<>();
+
+              functions.add(new ThriftFunction.Builder()
+                  .setName("interactWithStreamAndInitialResponse")
+                  .setReturnType(ThriftType.fromTPrimitive(ThriftPrimitiveType.THRIFT_I32_TYPE))
+                  .setArguments(args)
+                  .setExceptions(exceptions)
+                  .setIsOneway(false)
+                  .build());
+            }
+            {
+              List<ThriftField> args = new ArrayList<>();
+
+              List<ThriftField> exceptions = new ArrayList<>();
+
+              functions.add(new ThriftFunction.Builder()
+                  .setName("interactWithSink")
+                  .setReturnType(ThriftType.fromTPrimitive(ThriftPrimitiveType.THRIFT_VOID_TYPE))
+                  .setArguments(args)
+                  .setExceptions(exceptions)
+                  .setIsOneway(false)
+                  .build());
+            }
+            {
+              List<ThriftField> args = new ArrayList<>();
+
+              List<ThriftField> exceptions = new ArrayList<>();
+
+              functions.add(new ThriftFunction.Builder()
+                  .setName("interactWithSinkAndInitialResponse")
+                  .setReturnType(ThriftType.fromTPrimitive(ThriftPrimitiveType.THRIFT_I32_TYPE))
+                  .setArguments(args)
+                  .setExceptions(exceptions)
+                  .setIsOneway(false)
+                  .build());
+            }
+            {
+              List<ThriftField> args = new ArrayList<>();
+
+              List<ThriftField> exceptions = new ArrayList<>();
+
+              functions.add(new ThriftFunction.Builder()
+                  .setName("interactWithBidi")
+                  .setReturnType(ThriftType.fromTPrimitive(ThriftPrimitiveType.THRIFT_VOID_TYPE))
+                  .setArguments(args)
+                  .setExceptions(exceptions)
+                  .setIsOneway(false)
+                  .build());
+            }
+            {
+              List<ThriftField> args = new ArrayList<>();
+
+              List<ThriftField> exceptions = new ArrayList<>();
+
+              functions.add(new ThriftFunction.Builder()
+                  .setName("interactWithBidiAndInitialResponse")
+                  .setReturnType(ThriftType.fromTPrimitive(ThriftPrimitiveType.THRIFT_I32_TYPE))
+                  .setArguments(args)
+                  .setExceptions(exceptions)
+                  .setIsOneway(false)
+                  .build());
+            }
     }
 
     private static final ThriftService THRIFT_SERVICE;

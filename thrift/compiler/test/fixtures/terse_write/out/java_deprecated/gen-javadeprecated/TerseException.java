@@ -53,8 +53,21 @@ public class TerseException extends Exception implements TBase, java.io.Serializ
     this.msg = msg;
   }
 
+  public TerseException(
+      String msg,
+      java.lang.Throwable cause) {
+    this(msg);
+    initCause(cause);
+  }
+
+  public TerseException(java.lang.Throwable cause) {
+    super(cause);
+    this.msg = cause == null ? null : cause.toString();
+  }
+
   public static class Builder {
     private String msg;
+    private java.lang.Throwable cause;
 
     public Builder() {
     }
@@ -64,9 +77,17 @@ public class TerseException extends Exception implements TBase, java.io.Serializ
       return this;
     }
 
+    public Builder setCause(final java.lang.Throwable cause) {
+      this.cause = cause;
+      return this;
+    }
+
     public TerseException build() {
       TerseException result = new TerseException();
       result.setMsg(this.msg);
+      if (cause != null) {
+        result.initCause(cause);
+      }
       return result;
     }
   }

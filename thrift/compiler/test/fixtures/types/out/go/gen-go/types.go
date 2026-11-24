@@ -6103,7 +6103,7 @@ type AllocatorAware struct {
     AaString String_5252 `thrift:"aa_string,4" json:"aa_string" db:"aa_string"`
     NotAContainer int32 `thrift:"not_a_container,5" json:"not_a_container" db:"not_a_container"`
     AaUnique int32 `thrift:"aa_unique,6" json:"aa_unique" db:"aa_unique"`
-    AaShared I32_9314 `thrift:"aa_shared,7" json:"aa_shared" db:"aa_shared"`
+    AaShared String_5252 `thrift:"aa_shared,7" json:"aa_shared" db:"aa_shared"`
 }
 // Compile time interface enforcer
 var _ thrift.Struct = (*AllocatorAware)(nil)
@@ -6380,28 +6380,28 @@ func (x *AllocatorAware) readField6(p thrift.Decoder) error {  // AaUnique
     return nil
 }
 
-func (x *AllocatorAware) GetAaShared() I32_9314 {
+func (x *AllocatorAware) GetAaShared() String_5252 {
     return x.AaShared
 }
 
-func (x *AllocatorAware) SetAaSharedNonCompat(value I32_9314) *AllocatorAware {
+func (x *AllocatorAware) SetAaSharedNonCompat(value String_5252) *AllocatorAware {
     x.AaShared = value
     return x
 }
 
-func (x *AllocatorAware) SetAaShared(value I32_9314) *AllocatorAware {
+func (x *AllocatorAware) SetAaShared(value String_5252) *AllocatorAware {
     x.AaShared = value
     return x
 }
 
 
 func (x *AllocatorAware) writeField7(p thrift.Encoder) error {  // AaShared
-    if err := p.WriteFieldBegin("aa_shared", thrift.I32, 7); err != nil {
+    if err := p.WriteFieldBegin("aa_shared", thrift.STRING, 7); err != nil {
         return fmt.Errorf("AllocatorAware write field begin error: %w", err)
     }
 
     item := x.AaShared
-    err := WriteI32_9314(item, p)
+    err := WriteString_5252(item, p)
     if err != nil {
         return err
     }
@@ -6413,7 +6413,7 @@ func (x *AllocatorAware) writeField7(p thrift.Encoder) error {  // AaShared
 }
 
 func (x *AllocatorAware) readField7(p thrift.Decoder) error {  // AaShared
-    result, err := ReadI32_9314(p)
+    result, err := ReadString_5252(p)
     if err != nil {
         return err
     }
@@ -6491,7 +6491,7 @@ func (x *AllocatorAware) Read(p thrift.Decoder) error {
             fieldReadErr = x.readField5(p)
         case ((id == 6 && wireType == thrift.I32) || (id == thrift.NO_FIELD_ID && fieldName == "aa_unique")):  // aa_unique
             fieldReadErr = x.readField6(p)
-        case ((id == 7 && wireType == thrift.I32) || (id == thrift.NO_FIELD_ID && fieldName == "aa_shared")):  // aa_shared
+        case ((id == 7 && wireType == thrift.STRING) || (id == thrift.NO_FIELD_ID && fieldName == "aa_shared")):  // aa_shared
             fieldReadErr = x.readField7(p)
         default:
             fieldReadErr = p.Skip(wireType)
@@ -6525,7 +6525,7 @@ func (x *AllocatorAware) setDefaults() *AllocatorAware {
         SetAaStringNonCompat(NewString_5252()).
         SetNotAContainerNonCompat(0).
         SetAaUniqueNonCompat(0).
-        SetAaSharedNonCompat(NewI32_9314())
+        SetAaSharedNonCompat(NewString_5252())
 }
 
 func (x *AllocatorAware) GetThriftStructMetadata() *metadata.ThriftStruct {
@@ -7682,54 +7682,54 @@ func (x *respSomeServiceBinaryKeyedMap) setDefaults() *respSomeServiceBinaryKeye
 
 
 func init() {
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/empty_struct", premadeCodecTypeSpec_module_empty_struct)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/decorated_struct", premadeCodecTypeSpec_module_decorated_struct)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/ContainerStruct", premadeCodecTypeSpec_module_ContainerStruct)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/CppTypeStruct", premadeCodecTypeSpec_module_CppTypeStruct)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/VirtualStruct", premadeCodecTypeSpec_module_VirtualStruct)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/MyStructWithForwardRefEnum", premadeCodecTypeSpec_module_MyStructWithForwardRefEnum)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/TrivialNumeric", premadeCodecTypeSpec_module_TrivialNumeric)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/TrivialNestedWithDefault", premadeCodecTypeSpec_module_TrivialNestedWithDefault)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/ComplexString", premadeCodecTypeSpec_module_ComplexString)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/ComplexNestedWithDefault", premadeCodecTypeSpec_module_ComplexNestedWithDefault)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/MinPadding", premadeCodecTypeSpec_module_MinPadding)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/MinPaddingWithCustomType", premadeCodecTypeSpec_module_MinPaddingWithCustomType)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/MyStruct", premadeCodecTypeSpec_module_MyStruct)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/MyDataItem", premadeCodecTypeSpec_module_MyDataItem)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/Renaming", premadeCodecTypeSpec_module_Renaming)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/AnnotatedTypes", premadeCodecTypeSpec_module_AnnotatedTypes)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/ForwardUsageRoot", premadeCodecTypeSpec_module_ForwardUsageRoot)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/ForwardUsageStruct", premadeCodecTypeSpec_module_ForwardUsageStruct)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/ForwardUsageByRef", premadeCodecTypeSpec_module_ForwardUsageByRef)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/IncompleteMap", premadeCodecTypeSpec_module_IncompleteMap)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/IncompleteMapDep", premadeCodecTypeSpec_module_IncompleteMapDep)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/CompleteMap", premadeCodecTypeSpec_module_CompleteMap)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/CompleteMapDep", premadeCodecTypeSpec_module_CompleteMapDep)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/IncompleteList", premadeCodecTypeSpec_module_IncompleteList)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/IncompleteListDep", premadeCodecTypeSpec_module_IncompleteListDep)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/CompleteList", premadeCodecTypeSpec_module_CompleteList)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/CompleteListDep", premadeCodecTypeSpec_module_CompleteListDep)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/AdaptedList", premadeCodecTypeSpec_module_AdaptedList)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/AdaptedListDep", premadeCodecTypeSpec_module_AdaptedListDep)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/DependentAdaptedList", premadeCodecTypeSpec_module_DependentAdaptedList)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/DependentAdaptedListDep", premadeCodecTypeSpec_module_DependentAdaptedListDep)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/AllocatorAware", premadeCodecTypeSpec_module_AllocatorAware)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/AllocatorAware2", premadeCodecTypeSpec_module_AllocatorAware2)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/TypedefStruct", premadeCodecTypeSpec_module_TypedefStruct)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/StructWithDoubleUnderscores", premadeCodecTypeSpec_module_StructWithDoubleUnderscores)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/TBinary", premadeCodecTypeSpec_module_TBinary)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/IntTypedef", premadeCodecTypeSpec_module_IntTypedef)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/UintTypedef", premadeCodecTypeSpec_module_UintTypedef)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/SomeListOfTypeMap_2468", premadeCodecTypeSpec_module_SomeListOfTypeMap_2468)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/TBinary_8623", premadeCodecTypeSpec_module_TBinary_8623)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/i32_9314", premadeCodecTypeSpec_module_i32_9314)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/list_i32_9187", premadeCodecTypeSpec_module_list_i32_9187)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/map_i32_i32_9565", premadeCodecTypeSpec_module_map_i32_i32_9565)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/map_i32_string_1261", premadeCodecTypeSpec_module_map_i32_string_1261)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/set_i32_7070", premadeCodecTypeSpec_module_set_i32_7070)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/set_i32_7194", premadeCodecTypeSpec_module_set_i32_7194)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/string_5252", premadeCodecTypeSpec_module_string_5252)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/has_bitwise_ops", premadeCodecTypeSpec_module_has_bitwise_ops)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/is_unscoped", premadeCodecTypeSpec_module_is_unscoped)
-    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/MyForwardRefEnum", premadeCodecTypeSpec_module_MyForwardRefEnum)
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/empty_struct", premadeCodecTypeSpec_module_empty_struct, reflect.TypeOf((*EmptyStruct)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/decorated_struct", premadeCodecTypeSpec_module_decorated_struct, reflect.TypeOf((*DecoratedStruct)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/ContainerStruct", premadeCodecTypeSpec_module_ContainerStruct, reflect.TypeOf((*ContainerStruct)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/CppTypeStruct", premadeCodecTypeSpec_module_CppTypeStruct, reflect.TypeOf((*CppTypeStruct)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/VirtualStruct", premadeCodecTypeSpec_module_VirtualStruct, reflect.TypeOf((*VirtualStruct)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/MyStructWithForwardRefEnum", premadeCodecTypeSpec_module_MyStructWithForwardRefEnum, reflect.TypeOf((*MyStructWithForwardRefEnum)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/TrivialNumeric", premadeCodecTypeSpec_module_TrivialNumeric, reflect.TypeOf((*TrivialNumeric)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/TrivialNestedWithDefault", premadeCodecTypeSpec_module_TrivialNestedWithDefault, reflect.TypeOf((*TrivialNestedWithDefault)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/ComplexString", premadeCodecTypeSpec_module_ComplexString, reflect.TypeOf((*ComplexString)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/ComplexNestedWithDefault", premadeCodecTypeSpec_module_ComplexNestedWithDefault, reflect.TypeOf((*ComplexNestedWithDefault)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/MinPadding", premadeCodecTypeSpec_module_MinPadding, reflect.TypeOf((*MinPadding)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/MinPaddingWithCustomType", premadeCodecTypeSpec_module_MinPaddingWithCustomType, reflect.TypeOf((*MinPaddingWithCustomType)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/MyStruct", premadeCodecTypeSpec_module_MyStruct, reflect.TypeOf((*MyStruct)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/MyDataItem", premadeCodecTypeSpec_module_MyDataItem, reflect.TypeOf((*MyDataItem)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/Renaming", premadeCodecTypeSpec_module_Renaming, reflect.TypeOf((*Renaming)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/AnnotatedTypes", premadeCodecTypeSpec_module_AnnotatedTypes, reflect.TypeOf((*AnnotatedTypes)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/ForwardUsageRoot", premadeCodecTypeSpec_module_ForwardUsageRoot, reflect.TypeOf((*ForwardUsageRoot)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/ForwardUsageStruct", premadeCodecTypeSpec_module_ForwardUsageStruct, reflect.TypeOf((*ForwardUsageStruct)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/ForwardUsageByRef", premadeCodecTypeSpec_module_ForwardUsageByRef, reflect.TypeOf((*ForwardUsageByRef)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/IncompleteMap", premadeCodecTypeSpec_module_IncompleteMap, reflect.TypeOf((*IncompleteMap)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/IncompleteMapDep", premadeCodecTypeSpec_module_IncompleteMapDep, reflect.TypeOf((*IncompleteMapDep)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/CompleteMap", premadeCodecTypeSpec_module_CompleteMap, reflect.TypeOf((*CompleteMap)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/CompleteMapDep", premadeCodecTypeSpec_module_CompleteMapDep, reflect.TypeOf((*CompleteMapDep)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/IncompleteList", premadeCodecTypeSpec_module_IncompleteList, reflect.TypeOf((*IncompleteList)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/IncompleteListDep", premadeCodecTypeSpec_module_IncompleteListDep, reflect.TypeOf((*IncompleteListDep)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/CompleteList", premadeCodecTypeSpec_module_CompleteList, reflect.TypeOf((*CompleteList)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/CompleteListDep", premadeCodecTypeSpec_module_CompleteListDep, reflect.TypeOf((*CompleteListDep)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/AdaptedList", premadeCodecTypeSpec_module_AdaptedList, reflect.TypeOf((*AdaptedList)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/AdaptedListDep", premadeCodecTypeSpec_module_AdaptedListDep, reflect.TypeOf((*AdaptedListDep)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/DependentAdaptedList", premadeCodecTypeSpec_module_DependentAdaptedList, reflect.TypeOf((*DependentAdaptedList)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/DependentAdaptedListDep", premadeCodecTypeSpec_module_DependentAdaptedListDep, reflect.TypeOf((*DependentAdaptedListDep)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/AllocatorAware", premadeCodecTypeSpec_module_AllocatorAware, reflect.TypeOf((*AllocatorAware)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/AllocatorAware2", premadeCodecTypeSpec_module_AllocatorAware2, reflect.TypeOf((*AllocatorAware2)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/TypedefStruct", premadeCodecTypeSpec_module_TypedefStruct, reflect.TypeOf((*TypedefStruct)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/StructWithDoubleUnderscores", premadeCodecTypeSpec_module_StructWithDoubleUnderscores, reflect.TypeOf((*StructWithDoubleUnderscores)(nil)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/TBinary", premadeCodecTypeSpec_module_TBinary, reflect.TypeOf(NewTBinary()))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/IntTypedef", premadeCodecTypeSpec_module_IntTypedef, reflect.TypeOf(NewIntTypedef()))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/UintTypedef", premadeCodecTypeSpec_module_UintTypedef, reflect.TypeOf(NewUintTypedef()))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/SomeListOfTypeMap_2468", premadeCodecTypeSpec_module_SomeListOfTypeMap_2468, reflect.TypeOf(NewSomeListOfTypeMap_2468()))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/TBinary_8623", premadeCodecTypeSpec_module_TBinary_8623, reflect.TypeOf(NewTBinary_8623()))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/i32_9314", premadeCodecTypeSpec_module_i32_9314, reflect.TypeOf(NewI32_9314()))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/list_i32_9187", premadeCodecTypeSpec_module_list_i32_9187, reflect.TypeOf(NewListI32_9187()))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/map_i32_i32_9565", premadeCodecTypeSpec_module_map_i32_i32_9565, reflect.TypeOf(NewMapI32I32_9565()))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/map_i32_string_1261", premadeCodecTypeSpec_module_map_i32_string_1261, reflect.TypeOf(NewMapI32String_1261()))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/set_i32_7070", premadeCodecTypeSpec_module_set_i32_7070, reflect.TypeOf(NewSetI32_7070()))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/set_i32_7194", premadeCodecTypeSpec_module_set_i32_7194, reflect.TypeOf(NewSetI32_7194()))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/string_5252", premadeCodecTypeSpec_module_string_5252, reflect.TypeOf(NewString_5252()))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/has_bitwise_ops", premadeCodecTypeSpec_module_has_bitwise_ops, reflect.TypeOf(HasBitwiseOps(0)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/is_unscoped", premadeCodecTypeSpec_module_is_unscoped, reflect.TypeOf(IsUnscoped(0)))
+    thrift.InternalRegisterType("apache.org/thrift/fixtures/types/MyForwardRefEnum", premadeCodecTypeSpec_module_MyForwardRefEnum, reflect.TypeOf(MyForwardRefEnum(0)))
 }

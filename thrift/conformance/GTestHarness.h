@@ -197,17 +197,17 @@ class ConformanceTest : public testing::Test {
       const TestSuite& suite,
       const conformance::Test& test,
       const TestCase& testCase,
-      bool conforming)
+      std::string nonconforming)
       : client_(client),
         suite_(suite),
         test_(test),
         testCase_(testCase),
-        conforming_(conforming) {}
+        nonconforming_(std::move(nonconforming)) {}
 
  protected:
   void TestBody() override {
     testing::AssertionResult conforming = runTestCase(client_, testCase_);
-    if (conforming_) {
+    if (nonconforming_.empty()) {
       EXPECT_TRUE(conforming)
           // Most specific to least specific.
           << conforming.message() << std::endl
@@ -217,11 +217,8 @@ class ConformanceTest : public testing::Test {
           << genTagLinks(testCase_) << genTagLinks(test_)
           << genTagLinks(suite_);
     } else {
-      EXPECT_FALSE(conforming)
-          << conforming.message() << std::endl
-          << "If intentional, please remove the associated entry from:"
-          << std::endl
-          << "    thrift/conformance/data/nonconforming.txt" << std::endl;
+      EXPECT_FALSE(conforming) << conforming.message() << std::endl
+                               << nonconforming_ << std::endl;
     }
   }
 
@@ -230,7 +227,7 @@ class ConformanceTest : public testing::Test {
   const TestSuite& suite_;
   const conformance::Test& test_;
   const TestCase& testCase_;
-  const bool conforming_;
+  const std::string nonconforming_;
 };
 
 // Runs a conformance test case against the given client.
@@ -272,32 +269,40 @@ testing::AssertionResult runTestCase(Client& client, const TestCase& testCase) {
 
 // Registers a test suite with gtest.
 template <typename Client>
-void registerTests(
+std::set<size_t> registerTests(
     std::string_view category,
     const TestSuite& suite,
-    const std::set<std::string>& nonconforming,
+    const Nonconforming& nonconforming,
     std::function<Client&()> clientFn,
     const char* file,
     int line) {
+  std::set<size_t> used;
   for (const auto& test : *suite.tests()) {
     for (const auto& testCase : *test.testCases()) {
       std::string suiteName =
           fmt::format("{}/{}/{}", category, *suite.name(), *testCase.name());
       std::string fullName = fmt::format("{}.{}", suiteName, *test.name());
-      bool conforming = nonconforming.find(fullName) == nonconforming.end();
+      auto entry = nonconforming.find(fullName);
+      std::string where =
+          entry ? fmt::format("nonconforming.txt:{}", entry->line) : "";
+      std::string why = entry ? entry->explainConforming(fullName) : "";
+      if (entry) {
+        used.insert(entry->line);
+      }
       registerTest(
           suiteName.c_str(),
           test.name()->c_str(),
           nullptr,
-          conforming ? nullptr : "nonconforming",
+          entry ? where.c_str() : nullptr,
           file,
           line,
-          [clientFn, &suite, &test, &testCase, conforming]() {
+          [clientFn, &suite, &test, &testCase, why]() {
             return new ConformanceTest<Client>(
-                clientFn(), suite, test, testCase, conforming);
+                clientFn(), suite, test, testCase, why);
           });
     }
   }
+  return used;
 }
 
 namespace detail {
@@ -308,16 +313,21 @@ class ConformanceTestRegistration {
   ConformanceTestRegistration(
       std::vector<TestSuite> suites,
       client_fn_map<Client> clientFns,
-      const std::set<std::string>& nonconforming,
+      const Nonconforming& nonconforming,
       const char* file = "",
       int line = 0)
       : suites_(std::move(suites)) {
+    std::set<std::string> scope;
+    std::set<size_t> used;
     for (const auto& entry : clientFns) {
       for (const auto& suite : suites_) {
-        registerTests<Client>(
-            entry.first, suite, nonconforming, entry.second, file, line);
+        scope.insert(std::string(entry.first) + "/" + *suite.name());
+        used.merge(
+            registerTests<Client>(
+                entry.first, suite, nonconforming, entry.second, file, line));
       }
     }
+    registerStaleTest(nonconforming.stale(scope, used), file, line);
   }
 
  private:

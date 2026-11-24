@@ -28,11 +28,12 @@ public class NestedContainersBlockingReactiveWrapper
     public reactor.core.publisher.Mono<Void> mapList(final Map<Integer, List<Integer>> foo) {
         reactor.core.publisher.Mono<Void> _m = reactor.core.publisher.Mono.<Void>create(_sink -> {
             try {
-                reactor.util.context.ContextView _contextView = _sink.contextView();
-                com.facebook.nifty.core.RequestContext
-                    .tryContextView(_contextView)
-                    .ifPresent(com.facebook.nifty.core.RequestContexts::setCurrentContext);
-                _delegate.mapList(foo);
+                com.facebook.nifty.core.RequestContext _requestContext =
+                    com.facebook.nifty.core.RequestContext.tryContextView(_sink.contextView()).orElseGet(com.facebook.nifty.core.RequestContexts::tryGetCurrentContext);
+                com.facebook.nifty.core.RequestContextScope.call(_requestContext, () -> {
+                    _delegate.mapList(foo);
+                    return null;
+                });
                 _sink.success();
             } catch (Throwable _e) {
                 throw reactor.core.Exceptions.propagate(_e);
@@ -50,11 +51,12 @@ public class NestedContainersBlockingReactiveWrapper
     public reactor.core.publisher.Mono<Void> mapSet(final Map<Integer, Set<Integer>> foo) {
         reactor.core.publisher.Mono<Void> _m = reactor.core.publisher.Mono.<Void>create(_sink -> {
             try {
-                reactor.util.context.ContextView _contextView = _sink.contextView();
-                com.facebook.nifty.core.RequestContext
-                    .tryContextView(_contextView)
-                    .ifPresent(com.facebook.nifty.core.RequestContexts::setCurrentContext);
-                _delegate.mapSet(foo);
+                com.facebook.nifty.core.RequestContext _requestContext =
+                    com.facebook.nifty.core.RequestContext.tryContextView(_sink.contextView()).orElseGet(com.facebook.nifty.core.RequestContexts::tryGetCurrentContext);
+                com.facebook.nifty.core.RequestContextScope.call(_requestContext, () -> {
+                    _delegate.mapSet(foo);
+                    return null;
+                });
                 _sink.success();
             } catch (Throwable _e) {
                 throw reactor.core.Exceptions.propagate(_e);
@@ -72,11 +74,12 @@ public class NestedContainersBlockingReactiveWrapper
     public reactor.core.publisher.Mono<Void> listMap(final List<Map<Integer, Integer>> foo) {
         reactor.core.publisher.Mono<Void> _m = reactor.core.publisher.Mono.<Void>create(_sink -> {
             try {
-                reactor.util.context.ContextView _contextView = _sink.contextView();
-                com.facebook.nifty.core.RequestContext
-                    .tryContextView(_contextView)
-                    .ifPresent(com.facebook.nifty.core.RequestContexts::setCurrentContext);
-                _delegate.listMap(foo);
+                com.facebook.nifty.core.RequestContext _requestContext =
+                    com.facebook.nifty.core.RequestContext.tryContextView(_sink.contextView()).orElseGet(com.facebook.nifty.core.RequestContexts::tryGetCurrentContext);
+                com.facebook.nifty.core.RequestContextScope.call(_requestContext, () -> {
+                    _delegate.listMap(foo);
+                    return null;
+                });
                 _sink.success();
             } catch (Throwable _e) {
                 throw reactor.core.Exceptions.propagate(_e);
@@ -94,11 +97,12 @@ public class NestedContainersBlockingReactiveWrapper
     public reactor.core.publisher.Mono<Void> listSet(final List<Set<Integer>> foo) {
         reactor.core.publisher.Mono<Void> _m = reactor.core.publisher.Mono.<Void>create(_sink -> {
             try {
-                reactor.util.context.ContextView _contextView = _sink.contextView();
-                com.facebook.nifty.core.RequestContext
-                    .tryContextView(_contextView)
-                    .ifPresent(com.facebook.nifty.core.RequestContexts::setCurrentContext);
-                _delegate.listSet(foo);
+                com.facebook.nifty.core.RequestContext _requestContext =
+                    com.facebook.nifty.core.RequestContext.tryContextView(_sink.contextView()).orElseGet(com.facebook.nifty.core.RequestContexts::tryGetCurrentContext);
+                com.facebook.nifty.core.RequestContextScope.call(_requestContext, () -> {
+                    _delegate.listSet(foo);
+                    return null;
+                });
                 _sink.success();
             } catch (Throwable _e) {
                 throw reactor.core.Exceptions.propagate(_e);
@@ -116,11 +120,12 @@ public class NestedContainersBlockingReactiveWrapper
     public reactor.core.publisher.Mono<Void> turtles(final List<List<Map<Integer, Map<Integer, Set<Integer>>>>> foo) {
         reactor.core.publisher.Mono<Void> _m = reactor.core.publisher.Mono.<Void>create(_sink -> {
             try {
-                reactor.util.context.ContextView _contextView = _sink.contextView();
-                com.facebook.nifty.core.RequestContext
-                    .tryContextView(_contextView)
-                    .ifPresent(com.facebook.nifty.core.RequestContexts::setCurrentContext);
-                _delegate.turtles(foo);
+                com.facebook.nifty.core.RequestContext _requestContext =
+                    com.facebook.nifty.core.RequestContext.tryContextView(_sink.contextView()).orElseGet(com.facebook.nifty.core.RequestContexts::tryGetCurrentContext);
+                com.facebook.nifty.core.RequestContextScope.call(_requestContext, () -> {
+                    _delegate.turtles(foo);
+                    return null;
+                });
                 _sink.success();
             } catch (Throwable _e) {
                 throw reactor.core.Exceptions.propagate(_e);

@@ -14,15 +14,23 @@
  * limitations under the License.
  */
 
+#include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <functional>
+#include <iterator>
 #include <limits>
 #include <map>
 #include <memory>
+#include <memory_resource>
 #include <set>
+#include <stdexcept>
+#include <string>
+#include <string_view>
 #include <type_traits>
 #include <vector>
 #include <gtest/gtest.h>
+#include <folly/container/range_traits.h>
 #include <folly/sorted_vector_types.h>
 #include <thrift/conformance/cpp2/internal/AnyStructSerializer.h>
 #include <thrift/lib/cpp/util/EnumUtils.h>
@@ -35,8 +43,10 @@
 #include <thrift/lib/cpp2/protocol/detail/protocol_methods.h>
 #include <thrift/lib/cpp2/type/Tag.h>
 #include <thrift/test/AdapterTest.h>
+#include <thrift/test/gen-cpp2/References_types.h>
 #include <thrift/test/gen-cpp2/SerializationInFieldIdOrder_types.h>
 #include <thrift/test/gen-cpp2/structs_terse_types.h>
+#include <thrift/test/terse_write/gen-cpp2/terse_write_types.h>
 #include <thrift/test/testset/Testset.h>
 
 using namespace ::apache::thrift::conformance;
@@ -59,6 +69,8 @@ struct WideCountProtocol {
   std::size_t writeListEnd() { return 0; }
   std::size_t writeSetBegin(TType, uint32_t) { return 5; }
   std::size_t writeSetEnd() { return 7; }
+  std::size_t writeMapBegin(TType, TType, uint32_t, bool) { return 5; }
+  std::size_t writeMapEnd() { return 7; }
   KeyOrder keyOrder() const { return KeyOrder::Unspecified; }
   std::size_t serializedSizeListBegin(TType, uint32_t) { return 5; }
   std::size_t serializedSizeI64(int64_t) { return kElementBytes; }
@@ -105,6 +117,59 @@ TEST(EncodeTest, WideByteCounts) {
   EXPECT_EQ(
       expected,
       (op::serialized_size<false, type::list<type::i64_t>>)(protocol, values));
+}
+
+struct EnumNameProtocol {
+  std::string name;
+  std::int32_t value = 0;
+
+  std::size_t writeEnum(std::string_view enumName, std::int32_t enumValue) {
+    name = enumName;
+    value = enumValue;
+    return 1;
+  }
+};
+
+struct I32Protocol {
+  std::int32_t value = 0;
+
+  std::size_t writeI32(std::int32_t i32) {
+    value = i32;
+    return 4;
+  }
+};
+
+TEST(EncodeTest, WriteEnumValueLooksUpTheNameOnlyForProtocolsThatWriteIt) {
+  static_assert(writes_enum_names_v<EnumNameProtocol>);
+  static_assert(!writes_enum_names_v<I32Protocol>);
+
+  EnumNameProtocol named;
+  EXPECT_EQ(writeEnumValue(named, 7, [] { return "SEVEN"; }), 1);
+  EXPECT_EQ(named.name, "SEVEN");
+  EXPECT_EQ(named.value, 7);
+
+  I32Protocol numeric;
+  bool lookedUp = false;
+  EXPECT_EQ(
+      writeEnumValue(
+          numeric,
+          7,
+          [&] {
+            lookedUp = true;
+            return "SEVEN";
+          }),
+      4);
+  EXPECT_EQ(numeric.value, 7);
+  EXPECT_FALSE(lookedUp);
+}
+
+// Only Thrift-generated enums have `TEnumTraits` to look the name up in.
+enum class NonThriftEnum { Seven = 7 };
+
+TEST(EncodeTest, WriteEnumWritesNonThriftEnumsByValue) {
+  I32Protocol protocol;
+  EXPECT_EQ(writeEnum(protocol, NonThriftEnum::Seven), 4);
+  EXPECT_EQ(protocol.value, 7);
 }
 
 struct NoSpecialHandlingCompactWriter : CompactProtocolWriter {
@@ -174,6 +239,149 @@ TEST(EncodeTest, StandardWritersHaveFixedSerializedSizeForNumbers) {
   expectFixedSerializedSizeForNumbers<SimpleJSONProtocolWriter>();
 }
 
+struct ArithmeticVectorWriter {
+  static constexpr bool kSupportsArithmeticVectors() { return true; }
+  std::size_t writeListBegin(TType, uint32_t) { return 0; }
+  std::size_t writeListEnd() { return 0; }
+  std::size_t writeI32(int32_t) {
+    ++elementWrites;
+    return 4;
+  }
+  template <typename T>
+    requires std::is_same_v<T, int32_t>
+  std::size_t writeArithmeticVector(const T*, std::size_t n) {
+    bulkWrites += n;
+    return n * sizeof(T);
+  }
+
+  std::size_t elementWrites = 0;
+  std::size_t bulkWrites = 0;
+};
+
+TEST(EncodeTest, ListOfNumbersUsesArithmeticVector) {
+  ArithmeticVectorWriter writer;
+  op::encode<type::list<type::i32_t>>(writer, std::vector<int32_t>{1, 2, 3});
+  EXPECT_EQ(writer.bulkWrites, 3u);
+  EXPECT_EQ(writer.elementWrites, 0u);
+}
+
+TEST(EncodeTest, ListOfUnsupportedElementTypeWritesEachElement) {
+  ArithmeticVectorWriter writer;
+  op::encode<type::list<type::i32_t>>(writer, std::vector<uint32_t>{1, 2, 3});
+  EXPECT_EQ(writer.bulkWrites, 0u);
+  EXPECT_EQ(writer.elementWrites, 3u);
+}
+
+// Contiguous, but `data()` returns the vector, like admarket's
+// `RandomAccessList`.
+struct VectorBackedList {
+  using value_type = int32_t;
+  std::vector<int32_t> values;
+  const std::vector<int32_t>& data() const { return values; }
+  auto begin() const { return values.begin(); }
+  auto end() const { return values.end(); }
+  std::size_t size() const { return values.size(); }
+};
+
+TEST(EncodeTest, ListWhoseDataIsNotAPointerWritesEachElement) {
+  static_assert(folly::is_contiguous_range_v<VectorBackedList>);
+  ArithmeticVectorWriter writer;
+  op::encode<type::list<type::i32_t>>(writer, VectorBackedList{{1, 2, 3}});
+  EXPECT_EQ(writer.bulkWrites, 0u);
+  EXPECT_EQ(writer.elementWrites, 3u);
+}
+
+// Stores each value one less than its value on the wire.
+struct OffByOneAdapter {
+  static int32_t fromThrift(int32_t value) { return value - 1; }
+  static int32_t toThrift(int32_t value) { return value + 1; }
+};
+using OffByOneI32 = type::adapted<OffByOneAdapter, type::i32_t>;
+
+TEST(EncodeTest, ListOfAdaptedNumbersWritesEachElement) {
+  ArithmeticVectorWriter writer;
+  op::encode<type::list<OffByOneI32>>(writer, std::vector<int32_t>{1, 2, 3});
+  EXPECT_EQ(writer.bulkWrites, 0u);
+  EXPECT_EQ(writer.elementWrites, 3u);
+}
+
+struct ArithmeticVectorReader {
+  struct Cursor {
+    bool canAdvance(std::size_t) const { return true; }
+  };
+
+  static constexpr bool kSupportsArithmeticVectors() { return true; }
+  static constexpr bool kOmitsContainerSizes() { return false; }
+  bool peekList() { return false; }
+  Cursor getCursor() const { return {}; }
+  void readListBegin(TType& type, uint32_t& size) {
+    type = TType::T_I32;
+    size = 3;
+  }
+  void readListEnd() {}
+  void readI32(int32_t& value) {
+    value = 7;
+    ++elementReads;
+  }
+  // ListDecodeImpl also instantiates its skip path, for a mismatched wire
+  // type; this reader always reports T_I32, so these never run.
+  static constexpr std::size_t fixedSizeInContainer(TType) { return 4; }
+  void skipBytes(std::size_t) {}
+  void skip(TType, int = 0) {}
+  template <typename T>
+    requires std::is_same_v<T, int32_t>
+  void readArithmeticVector(T* values, std::size_t n) {
+    std::fill_n(values, n, 7);
+    bulkReads += n;
+  }
+
+  std::size_t elementReads = 0;
+  std::size_t bulkReads = 0;
+};
+
+TEST(DecodeTest, ListOfNumbersUsesArithmeticVector) {
+  ArithmeticVectorReader reader;
+  std::vector<int32_t> list;
+  op::decode<type::list<type::i32_t>>(reader, list);
+  EXPECT_EQ(list, (std::vector<int32_t>{7, 7, 7}));
+  EXPECT_EQ(reader.bulkReads, 3u);
+  EXPECT_EQ(reader.elementReads, 0u);
+}
+
+// Throws before reading any element.
+struct ThrowingArithmeticVectorReader : ArithmeticVectorReader {
+  template <typename T>
+    requires std::is_same_v<T, int32_t>
+  [[noreturn]] void readArithmeticVector(T*, std::size_t) {
+    throw std::runtime_error("truncated");
+  }
+};
+
+TEST(DecodeTest, FailedBulkReadLeavesNoStaleElements) {
+  ThrowingArithmeticVectorReader reader;
+  std::vector<int32_t> list{42, 42, 42};
+  EXPECT_THROW(
+      op::decode<type::list<type::i32_t>>(reader, list), std::runtime_error);
+  EXPECT_EQ(list, (std::vector<int32_t>{0, 0, 0}));
+}
+
+TEST(DecodeTest, ListOfUnsupportedElementTypeReadsEachElement) {
+  ArithmeticVectorReader reader;
+  std::vector<uint32_t> list;
+  op::decode<type::list<type::i32_t>>(reader, list);
+  EXPECT_EQ(list, (std::vector<uint32_t>{7, 7, 7}));
+  EXPECT_EQ(reader.bulkReads, 0u);
+  EXPECT_EQ(reader.elementReads, 3u);
+}
+
+TEST(DecodeTest, ListOfAdaptedNumbersReadsEachElement) {
+  ArithmeticVectorReader reader;
+  std::vector<int32_t> list;
+  op::decode<type::list<OffByOneI32>>(reader, list);
+  EXPECT_EQ(list, (std::vector<int32_t>{6, 6, 6}));
+  EXPECT_EQ(reader.bulkReads, 0u);
+}
+
 TEST(EncodeTest, SetWideByteCounts) {
   WideCountProtocol protocol;
   const std::set<int64_t> values{1, 2};
@@ -229,6 +437,102 @@ TEST(EncodeTest, SetWriteParity) {
   testSetWriteParity<SimpleJSONProtocolWriter>(ordered);
   testSetWriteParity<SimpleJSONProtocolWriter>(unordered);
   testSetWriteParity<CompactProtocolWriter>(std::set<int32_t>{});
+}
+
+TEST(EncodeTest, MapWideByteCounts) {
+  WideCountProtocol protocol;
+  const std::map<int64_t, int64_t> values{{1, 2}};
+  const auto expected = 2 * WideCountProtocol::kElementBytes + 12;
+  using Tag = type::map<type::i64_t, type::i64_t>;
+  using Methods = apache::thrift::detail::pm::protocol_methods<
+      type_class::map<type_class::integral, type_class::integral>,
+      std::map<int64_t, int64_t>,
+      Tag>;
+  EXPECT_EQ(expected, op::encode<Tag>(protocol, values));
+  EXPECT_EQ(expected, Methods::write(protocol, values));
+}
+
+template <typename Protocol, typename Map>
+void testMapWriteParity(const Map& values) {
+  using Tag = type::map<type::i32_t, type::string_t>;
+  using Methods = apache::thrift::detail::pm::protocol_methods<
+      type_class::map<type_class::integral, type_class::string>,
+      Map,
+      Tag>;
+  for (auto order :
+       {KeyOrder::Unspecified,
+        KeyOrder::NativeAscending,
+        KeyOrder::StableAscending}) {
+    SCOPED_TRACE(static_cast<int>(order));
+    SetOrderingWriter<Protocol> writer;
+    writer.order = order;
+    folly::IOBufQueue opQueue;
+    writer.setOutput(&opQueue);
+    const auto opSize = op::encode<Tag>(writer, values);
+    folly::IOBufQueue methodsQueue;
+    writer.setOutput(&methodsQueue);
+    const auto methodsSize = Methods::write(writer, values);
+    auto opBytes = opQueue.move();
+    auto methodsBytes = methodsQueue.move();
+    EXPECT_EQ(opSize, opBytes->computeChainDataLength());
+    EXPECT_EQ(methodsSize, methodsBytes->computeChainDataLength());
+    EXPECT_TRUE(folly::IOBufEqualTo{}(*opBytes, *methodsBytes));
+  }
+}
+
+TEST(EncodeTest, MapWriteParity) {
+  const std::map<int32_t, std::string, std::greater<int32_t>> ordered{
+      {3, "c"}, {2, "b"}, {1, "a"}};
+  const std::unordered_map<int32_t, std::string> unordered{
+      {3, "c"}, {2, "b"}, {1, "a"}};
+  testMapWriteParity<BinaryProtocolWriter>(ordered);
+  testMapWriteParity<BinaryProtocolWriter>(unordered);
+  testMapWriteParity<CompactProtocolWriter>(ordered);
+  testMapWriteParity<CompactProtocolWriter>(unordered);
+  testMapWriteParity<SimpleJSONProtocolWriter>(ordered);
+  testMapWriteParity<SimpleJSONProtocolWriter>(unordered);
+  testMapWriteParity<CompactProtocolWriter>(std::map<int32_t, std::string>{});
+}
+
+struct MapBeginRecorder : BinaryProtocolWriter {
+  bool alternativeKeyForm = false;
+  uint32_t writeMapBegin(
+      TType keyType, TType valueType, uint32_t size, bool alternative) {
+    alternativeKeyForm = alternative;
+    return BinaryProtocolWriter::writeMapBegin(
+        keyType, valueType, size, alternative);
+  }
+};
+
+template <typename KeyClass, typename KeyTag, typename Key>
+void testMapAlternativeKeyForm(bool expected) {
+  using Map = std::map<Key, int32_t>;
+  using Tag = type::map<KeyTag, type::i32_t>;
+  using Methods = apache::thrift::detail::pm::protocol_methods<
+      type_class::map<KeyClass, type_class::integral>,
+      Map,
+      Tag>;
+  folly::IOBufQueue queue;
+  MapBeginRecorder opWriter;
+  opWriter.setOutput(&queue);
+  op::encode<Tag>(opWriter, Map{});
+  EXPECT_EQ(opWriter.alternativeKeyForm, expected);
+  MapBeginRecorder methodsWriter;
+  methodsWriter.setOutput(&queue);
+  Methods::write(methodsWriter, Map{});
+  EXPECT_EQ(methodsWriter.alternativeKeyForm, expected);
+}
+
+TEST(EncodeTest, MapAlternativeKeyForm) {
+  testMapAlternativeKeyForm<type_class::string, type::string_t, std::string>(
+      true);
+  testMapAlternativeKeyForm<type_class::binary, type::binary_t, std::string>(
+      false);
+  testMapAlternativeKeyForm<
+      type_class::enumeration,
+      type::enum_t<StandardProtocol>,
+      StandardProtocol>(true);
+  testMapAlternativeKeyForm<type_class::integral, type::i32_t, int32_t>(false);
 }
 
 template <
@@ -1006,6 +1310,236 @@ TEST(DecodeTest, DecodeContainers) {
   testDecodeContainers<conformance::StandardProtocol::Compact>();
 }
 
+TEST(DecodeTest, SetReadParity) {
+  using Tag = type::set<type::i32_t>;
+  using Methods = apache::thrift::detail::pm::protocol_methods<
+      type_class::set<type_class::integral>,
+      std::set<int32_t>,
+      Tag>;
+  for (auto wireType : {TType::T_I32, TType::T_I64}) {
+    folly::IOBufQueue queue;
+    BinaryProtocolWriter writer;
+    writer.setOutput(&queue);
+    writer.writeSetBegin(wireType, 3);
+    for (auto value : {2, 1, 2}) {
+      if (wireType == TType::T_I32) {
+        writer.writeI32(value);
+      } else {
+        writer.writeI64(value);
+      }
+    }
+    writer.writeSetEnd();
+    writer.writeI32(42);
+    for (bool useOp : {false, true}) {
+      SCOPED_TRACE(useOp);
+      BinaryProtocolReader reader;
+      reader.setInput(queue.front());
+      std::set<int32_t> result{99};
+      if (useOp) {
+        op::decode<Tag>(reader, result);
+      } else {
+        Methods::read(reader, result);
+      }
+      EXPECT_EQ(
+          result,
+          wireType == TType::T_I32 ? (std::set<int32_t>{1, 2})
+                                   : std::set<int32_t>{});
+      int32_t next;
+      reader.readI32(next);
+      EXPECT_EQ(next, 42);
+    }
+  }
+}
+
+TEST(DecodeTest, SetTruncatedInput) {
+  using Tag = type::set<type::i32_t>;
+  using Methods = apache::thrift::detail::pm::protocol_methods<
+      type_class::set<type_class::integral>,
+      std::set<int32_t>,
+      Tag>;
+  folly::IOBufQueue queue;
+  BinaryProtocolWriter writer;
+  writer.setOutput(&queue);
+  writer.writeSetBegin(TType::T_I32, 5);
+  writer.writeI32(1);
+  for (bool useOp : {false, true}) {
+    BinaryProtocolReader reader;
+    reader.setInput(queue.front());
+    std::set<int32_t> result{99};
+    if (useOp) {
+      EXPECT_THROW(op::decode<Tag>(reader, result), TProtocolException);
+    } else {
+      EXPECT_THROW(Methods::read(reader, result), TProtocolException);
+    }
+    EXPECT_TRUE(result.empty());
+  }
+}
+
+TEST(DecodeTest, SetUnknownSizeAllocator) {
+  using Set = std::pmr::set<std::pmr::string>;
+  using Tag = type::set<type::string_t>;
+  using Methods = apache::thrift::detail::pm::
+      protocol_methods<type_class::set<type_class::string>, Set, Tag>;
+  struct Reader : SimpleJSONProtocolReader {
+    std::pmr::memory_resource* resource = nullptr;
+    void readString(std::pmr::string& value) {
+      EXPECT_EQ(value.get_allocator().resource(), resource);
+      SimpleJSONProtocolReader::readString(value);
+    }
+  };
+  const auto input = folly::IOBuf::copyBuffer(R"(["one","two"])");
+  for (bool useOp : {false, true}) {
+    std::pmr::monotonic_buffer_resource resource;
+    Set result(&resource);
+    result.emplace("old");
+    Reader reader;
+    reader.resource = &resource;
+    reader.setInput(input.get());
+    if (useOp) {
+      op::decode<Tag>(reader, result);
+    } else {
+      Methods::read(reader, result);
+    }
+    ASSERT_EQ(result.size(), 2);
+    EXPECT_EQ(*result.begin(), "one");
+    EXPECT_EQ(*std::next(result.begin()), "two");
+    EXPECT_EQ(result.get_allocator().resource(), &resource);
+  }
+}
+
+TEST(DecodeTest, MapReadParity) {
+  using Map = std::map<int32_t, int32_t>;
+  using Tag = type::map<type::i32_t, type::i32_t>;
+  using Methods = apache::thrift::detail::pm::protocol_methods<
+      type_class::map<type_class::integral, type_class::integral>,
+      Map,
+      Tag>;
+  for (auto valueType : {TType::T_I32, TType::T_I64}) {
+    folly::IOBufQueue queue;
+    BinaryProtocolWriter writer;
+    writer.setOutput(&queue);
+    writer.writeMapBegin(TType::T_I32, valueType, 3, false);
+    for (auto [key, value] : std::initializer_list<std::pair<int32_t, int32_t>>{
+             {2, 20}, {1, 10}, {2, 21}}) {
+      writer.writeI32(key);
+      if (valueType == TType::T_I32) {
+        writer.writeI32(value);
+      } else {
+        writer.writeI64(value);
+      }
+    }
+    writer.writeMapEnd();
+    writer.writeI32(42);
+    for (bool useOp : {false, true}) {
+      SCOPED_TRACE(useOp);
+      BinaryProtocolReader reader;
+      reader.setInput(queue.front());
+      Map result{{99, 99}};
+      if (useOp) {
+        op::decode<Tag>(reader, result);
+      } else {
+        Methods::read(reader, result);
+      }
+      EXPECT_EQ(
+          result, valueType == TType::T_I32 ? (Map{{1, 10}, {2, 20}}) : Map{});
+      int32_t next;
+      reader.readI32(next);
+      EXPECT_EQ(next, 42);
+    }
+  }
+}
+
+TEST(DecodeTest, MapCompactEmpty) {
+  using Map = std::map<int32_t, int32_t>;
+  using Tag = type::map<type::i32_t, type::i32_t>;
+  using Methods = apache::thrift::detail::pm::protocol_methods<
+      type_class::map<type_class::integral, type_class::integral>,
+      Map,
+      Tag>;
+  // Compact writes no key and value types for an empty map, so the reader
+  // reports types that don't match the expected ones.
+  folly::IOBufQueue queue;
+  CompactProtocolWriter writer;
+  writer.setOutput(&queue);
+  writer.writeMapBegin(TType::T_I32, TType::T_I32, 0, false);
+  writer.writeMapEnd();
+  writer.writeI32(42);
+  for (bool useOp : {false, true}) {
+    SCOPED_TRACE(useOp);
+    CompactProtocolReader reader;
+    reader.setInput(queue.front());
+    Map result{{99, 99}};
+    if (useOp) {
+      op::decode<Tag>(reader, result);
+    } else {
+      Methods::read(reader, result);
+    }
+    EXPECT_TRUE(result.empty());
+    int32_t next;
+    reader.readI32(next);
+    EXPECT_EQ(next, 42);
+  }
+}
+
+TEST(DecodeTest, MapTruncatedInput) {
+  using Map = std::map<int32_t, int32_t>;
+  using Tag = type::map<type::i32_t, type::i32_t>;
+  using Methods = apache::thrift::detail::pm::protocol_methods<
+      type_class::map<type_class::integral, type_class::integral>,
+      Map,
+      Tag>;
+  folly::IOBufQueue queue;
+  BinaryProtocolWriter writer;
+  writer.setOutput(&queue);
+  writer.writeMapBegin(TType::T_I32, TType::T_I32, 5, false);
+  writer.writeI32(1);
+  writer.writeI32(10);
+  for (bool useOp : {false, true}) {
+    BinaryProtocolReader reader;
+    reader.setInput(queue.front());
+    Map result{{99, 99}};
+    if (useOp) {
+      EXPECT_THROW(op::decode<Tag>(reader, result), TProtocolException);
+    } else {
+      EXPECT_THROW(Methods::read(reader, result), TProtocolException);
+    }
+    EXPECT_TRUE(result.empty());
+  }
+}
+
+TEST(DecodeTest, MapUnknownSizeAllocator) {
+  using Map = std::pmr::map<std::pmr::string, std::pmr::string>;
+  using Tag = type::map<type::string_t, type::string_t>;
+  using Methods = apache::thrift::detail::pm::protocol_methods<
+      type_class::map<type_class::string, type_class::string>,
+      Map,
+      Tag>;
+  struct Reader : SimpleJSONProtocolReader {
+    std::pmr::memory_resource* resource = nullptr;
+    void readString(std::pmr::string& value) {
+      EXPECT_EQ(value.get_allocator().resource(), resource);
+      SimpleJSONProtocolReader::readString(value);
+    }
+  };
+  const auto input = folly::IOBuf::copyBuffer(R"({"a":"one","b":"two"})");
+  for (bool useOp : {false, true}) {
+    std::pmr::monotonic_buffer_resource resource;
+    Map result(&resource);
+    result.emplace("old", "old");
+    Reader reader;
+    reader.resource = &resource;
+    reader.setInput(input.get());
+    if (useOp) {
+      op::decode<Tag>(reader, result);
+    } else {
+      Methods::read(reader, result);
+    }
+    const Map expected({{"a", "one"}, {"b", "two"}}, &resource);
+    EXPECT_EQ(result, expected);
+    EXPECT_EQ(result.get_allocator().resource(), &resource);
+  }
+}
+
 TEST(DecodeTest, DecodeListWithConstReference) {
   using Tag = type::list<type::i32_t>;
   const std::vector<std::int32_t> values{1, 2, 3};
@@ -1097,6 +1631,22 @@ TEST(DecodeTest, DecodeCppType) {
   testDecodeCppType<conformance::StandardProtocol::Binary>();
   testDecodeCppType<conformance::StandardProtocol::Compact>();
 }
+
+template <typename Tag, typename List>
+constexpr bool kCanDecodeList =
+    std::is_invocable_v<Decode<type::list<Tag>>, BinaryProtocolReader&, List&>;
+
+static_assert(kCanDecodeList<type::i32_t, std::vector<std::int32_t>>);
+static_assert(kCanDecodeList<type::i32_t, std::vector<std::uint32_t>>);
+static_assert(kCanDecodeList<
+              type::cpp_type<std::uint16_t, type::i16_t>,
+              std::vector<std::uint16_t>>);
+static_assert(kCanDecodeList<type::string_t, std::vector<std::string>>);
+// Each element would be narrowed from the tag's 64-bit value.
+static_assert(!kCanDecodeList<
+              type::cpp_type<std::uint64_t, type::i64_t>,
+              std::vector<std::int16_t>>);
+static_assert(!kCanDecodeList<type::double_t, std::vector<float>>);
 
 TEST(DecodeTest, DecodeAdapted) {
   testDecodeAdapted<conformance::StandardProtocol::Binary>();
@@ -1285,6 +1835,30 @@ TEST(DecodeTest, BinaryChainRejectsUnionWithMultipleFields) {
       op::decode<type::union_t<test::testset::union_i32>>(reader, actual),
       protocol::TProtocolException);
 }
+
+TEST(DecodeTest, SimpleJsonWithoutGeneratedJson) {
+  using apache::thrift::detail::st::struct_private_access;
+  static_assert(!decltype(struct_private_access::__fbthrift_cpp2_gen_json<
+                          test::Foo>())::value);
+
+  test::FooUnion expected;
+  auto& foo = expected.foo().ensure();
+  foo.field1() = 1;
+  foo.field2() = 2;
+  foo.field3() = 3;
+
+  SimpleJSONProtocolWriter writer;
+  folly::IOBufQueue queue;
+  writer.setOutput(&queue);
+  op::encode<type::union_t<test::FooUnion>>(writer, expected);
+  auto serialized = queue.move();
+
+  SimpleJSONProtocolReader reader;
+  reader.setInput(serialized.get());
+  test::FooUnion actual;
+  op::decode<type::union_t<test::FooUnion>>(reader, actual);
+  EXPECT_EQ(actual, expected);
+}
 } // namespace
 
 enum { UseWrite, UseStructEncode };
@@ -1344,40 +1918,161 @@ TEST(EncodeTest, EncodeMethod) {
   EXPECT_EQ(encodeJSONMockStruct(debug, jsonMock), UseStructEncode);
 }
 
+// Expects op::encode of `value`, through a subclass of `Writer` that it does
+// not treat as precompiled, to give the bytes and size that generated write()
+// gives for `expected` with `Writer`.
+template <typename Writer, typename T>
+void expectReflectionEncodeMatchesGenerated(const T& value, const T& expected) {
+  struct ReflectionWriter : Writer {};
+
+  folly::IOBufQueue generatedOutput;
+  Writer generatedWriter;
+  generatedWriter.setOutput(&generatedOutput);
+  auto generatedSize = expected.write(&generatedWriter);
+
+  folly::IOBufQueue reflectionOutput;
+  ReflectionWriter reflectionWriter;
+  reflectionWriter.setOutput(&reflectionOutput);
+  auto reflectionSize = op::encode<type::struct_t<T>>(reflectionWriter, value);
+
+  auto generated = generatedOutput.move();
+  auto reflection = reflectionOutput.move();
+  EXPECT_TRUE(folly::IOBufEqualTo{}(*generated, *reflection));
+  EXPECT_EQ(generatedSize, reflectionSize);
+}
+
+// Expects op::encode of `value` to match generated write() of `expected` with
+// Compact and Binary.
+template <typename T>
+void expectEncodeMatchesGenerated(const T& value, const T& expected) {
+  SCOPED_TRACE(folly::pretty_name<T>());
+  expectReflectionEncodeMatchesGenerated<CompactProtocolWriter>(
+      value, expected);
+  expectReflectionEncodeMatchesGenerated<BinaryProtocolWriter>(value, expected);
+}
+
+template <typename T>
+void expectEncodeMatchesGenerated(const T& value) {
+  expectEncodeMatchesGenerated(value, value);
+}
+
 TEST(EncodeTest, DeprecatedTerseWrite) {
-  auto expectGenericEncodeMatchesGenerated = []<typename T>(const T& value) {
-    SCOPED_TRACE(folly::pretty_name<T>());
-    struct GenericCompactProtocolWriter : CompactProtocolWriter {};
-
-    folly::IOBufQueue generatedOutput;
-    CompactProtocolWriter generatedWriter;
-    generatedWriter.setOutput(&generatedOutput);
-    value.write(&generatedWriter);
-
-    folly::IOBufQueue genericOutput;
-    GenericCompactProtocolWriter genericWriter;
-    genericWriter.setOutput(&genericOutput);
-    op::encode<type::struct_t<T>>(genericWriter, value);
-
-    auto generated = generatedOutput.move();
-    auto generic = genericOutput.move();
-    EXPECT_TRUE(folly::IOBufEqualTo{}(*generated, *generic));
-  };
-
   test::EmptiableTerseFieldsStruct intrinsicDefaults;
   intrinsicDefaults.int_field() = 42;
-  expectGenericEncodeMatchesGenerated(intrinsicDefaults);
+  expectEncodeMatchesGenerated(intrinsicDefaults);
 
   test::TerseFieldsWithCustomDefault customDefaults;
   customDefaults.int_field() = 0;
+  expectEncodeMatchesGenerated(customDefaults);
   customDefaults.cpp_shared_ref_exception_field() =
       std::make_shared<test::NestedException>();
-  expectGenericEncodeMatchesGenerated(customDefaults);
+  expectEncodeMatchesGenerated(customDefaults);
 
   test::RefsWithStringAndContainerTerseWrites emptyRefs;
   emptyRefs.string_list_field() = std::make_shared<std::vector<std::string>>();
   emptyRefs.string_field() = std::make_shared<std::string>();
-  expectGenericEncodeMatchesGenerated(emptyRefs);
+  expectEncodeMatchesGenerated(emptyRefs);
+}
+
+// Sets every non-optional `cpp.ref` field of `value` to null.
+template <typename T>
+void resetNonOptionalCppRefs(T& value) {
+  op::for_each_field_id<T>([&](auto id) {
+    using Id = decltype(id);
+    auto&& field = op::get<Id>(value);
+    if constexpr (apache::thrift::detail::is_shared_or_unique_ptr_v<
+                      std::remove_cvref_t<decltype(field)>>) {
+      if constexpr (!apache::thrift::detail::qualifier::
+                        is_cpp_ref_field_optional<T, op::get_field_id<T, Id>>::
+                            value) {
+        field = nullptr;
+      }
+    }
+  });
+}
+
+// Expects op::encode to match generated code for a default T and for a T whose
+// non-optional `cpp.ref` fields are null, which generated code writes as a
+// struct with no fields, an empty container or the intrinsic default.
+template <typename T>
+void expectNullNonOptionalCppRefsMatchGenerated() {
+  T value;
+  expectEncodeMatchesGenerated(value);
+  resetNonOptionalCppRefs(value);
+  expectEncodeMatchesGenerated(value);
+}
+
+TEST(EncodeTest, NullNonOptionalCppRef) {
+  expectNullNonOptionalCppRefsMatchGenerated<cpp2::RecursiveStruct>();
+  expectNullNonOptionalCppRefsMatchGenerated<cpp2::ReferringStruct>();
+  expectNullNonOptionalCppRefsMatchGenerated<
+      cpp2::ReferringStructWithBaseTypeFields>();
+  expectNullNonOptionalCppRefsMatchGenerated<
+      cpp2::ReferringStructWithStringFields>();
+  expectNullNonOptionalCppRefsMatchGenerated<
+      cpp2::ReferringStructWithEnumField>();
+  expectNullNonOptionalCppRefsMatchGenerated<
+      cpp2::ReferringStructWithBinaryField>();
+  expectNullNonOptionalCppRefsMatchGenerated<
+      cpp2::ReferringStructWithListFields>();
+  expectNullNonOptionalCppRefsMatchGenerated<
+      cpp2::ReferringStructWithSetFields>();
+  expectNullNonOptionalCppRefsMatchGenerated<
+      cpp2::ReferringStructWithMapFields>();
+  expectNullNonOptionalCppRefsMatchGenerated<cpp2::StructWithString>();
+  expectNullNonOptionalCppRefsMatchGenerated<cpp2::TypeAdapterRefStruct>();
+  expectNullNonOptionalCppRefsMatchGenerated<cpp2::FieldAdapterRefStruct>();
+  expectNullNonOptionalCppRefsMatchGenerated<cpp2::StructAdapterRefStruct>();
+  expectNullNonOptionalCppRefsMatchGenerated<cpp2::DoubleAdaptedRefStruct>();
+}
+
+// A null terse ref holds no value, so op::encode skips it like an empty one.
+// Generated write() instead writes the intrinsic default.
+TEST(EncodeTest, NullTerseCppRef) {
+  test::terse_write::CppRefTerseStruct value;
+  value.unique_int_field() = nullptr;
+  value.shared_int_field() = nullptr;
+  value.shared_const_int_field() = nullptr;
+  expectEncodeMatchesGenerated(value, test::terse_write::CppRefTerseStruct{});
+}
+
+TEST(EncodeTest, EmptyTerseCppRef) {
+  test::terse_write::CppRefTerseStruct value;
+  value.unique_int_field() = std::make_unique<int32_t>(0);
+  value.shared_int_field() = std::make_shared<int32_t>(0);
+  value.shared_const_int_field() = std::make_shared<const int32_t>(0);
+  expectEncodeMatchesGenerated(value);
+
+  value.unique_int_field() = std::make_unique<int32_t>(1);
+  value.shared_int_field() = std::make_shared<int32_t>(2);
+  value.shared_const_int_field() = std::make_shared<const int32_t>(3);
+  expectEncodeMatchesGenerated(value);
+}
+
+template <typename Ident, typename GetRef>
+void expectDeprecatedTerseRefWrittenIffSet(GetRef getRef) {
+  using apache::thrift::detail::st::private_access;
+  using T = test::TerseFieldsWithCustomDefault;
+  static_assert(private_access::is_deprecated_terse_field<T, Ident>);
+  T value;
+  auto& ref = getRef(value);
+  ref.reset();
+  EXPECT_FALSE(
+      (private_access::should_write_deprecated_terse_field<T, Ident>(value)));
+  ref = std::make_unique<
+      typename std::remove_reference_t<decltype(ref)>::element_type>();
+  EXPECT_TRUE(
+      (private_access::should_write_deprecated_terse_field<T, Ident>(value)));
+}
+
+TEST(EncodeTest, DeprecatedTerseWriteStructuredRef) {
+  using T = test::TerseFieldsWithCustomDefault;
+  expectDeprecatedTerseRefWrittenIffSet<ident::cpp_ref_struct_field>(
+      [](T& t) -> auto& { return t.cpp_ref_struct_field(); });
+  expectDeprecatedTerseRefWrittenIffSet<ident::cpp_ref_union_field>(
+      [](T& t) -> auto& { return t.cpp_ref_union_field(); });
+  expectDeprecatedTerseRefWrittenIffSet<ident::cpp_ref_exception_field>(
+      [](T& t) -> auto& { return t.cpp_ref_exception_field(); });
 }
 
 TEST(EncodeTest, keyOrder) {
@@ -1425,8 +2120,7 @@ TEST(EncodeTest, keyOrder) {
     reader.setInput(queue.front());
     op::decode<type::set<type::i32_t>>(reader, readSet);
   }
-  // Does not re-sort if already sorted.
-  EXPECT_EQ(readSet, (OrderPreservingSet{{3, 2, 1}}));
+  EXPECT_EQ(readSet, (OrderPreservingSet{{1, 2, 3}}));
 
   struct OrderPreservingMap : std::vector<std::pair<int, int>> {
     using key_type = int;
@@ -1449,6 +2143,42 @@ TEST(EncodeTest, keyOrder) {
     op::decode<type::map<type::i32_t, type::i32_t>>(reader, readMap);
   }
   EXPECT_EQ(readMap, (OrderPreservingMap{{{1, 0}, {2, 0}, {3, 0}}}));
+
+  std::map<int, int, std::greater<>> orderedMap{{3, 0}, {2, 0}, {1, 0}};
+  {
+    folly::IOBufQueue queue;
+    SortingProtocolWriter writer;
+    writer.setOutput(&queue);
+    op::encode<type::map<type::i32_t, type::i32_t>>(writer, orderedMap);
+    CompactProtocolReader reader;
+    reader.setInput(queue.front());
+    op::decode<type::map<type::i32_t, type::i32_t>>(reader, readMap);
+  }
+  EXPECT_EQ(readMap, (OrderPreservingMap{{{1, 0}, {2, 0}, {3, 0}}}));
+}
+
+TEST(EncodeTest, stableKeyOrder) {
+  struct StableOrderProtocolWriter : CompactProtocolWriter {
+    static constexpr KeyOrder keyOrder() { return KeyOrder::StableAscending; }
+  };
+  struct OrderPreservingSet : std::vector<int> {
+    void insert(int i) { push_back(i); }
+  };
+  auto writeAndRead = [](const auto& set) {
+    folly::IOBufQueue queue;
+    StableOrderProtocolWriter writer;
+    writer.setOutput(&queue);
+    op::encode<type::set<type::i32_t>>(writer, set);
+    CompactProtocolReader reader;
+    reader.setInput(queue.front());
+    OrderPreservingSet readSet;
+    op::decode<type::set<type::i32_t>>(reader, readSet);
+    return readSet;
+  };
+  const OrderPreservingSet ascending{{1, 2, 3}};
+  EXPECT_EQ(writeAndRead(std::set<int>{3, 1, 2}), ascending);
+  EXPECT_EQ(writeAndRead(std::set<int, std::greater<int>>{3, 1, 2}), ascending);
+  EXPECT_EQ(writeAndRead(std::unordered_set<int>{3, 1, 2}), ascending);
 }
 
 TEST(EncodeTest, SerializeInFieldIdOrder) {

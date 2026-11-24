@@ -16,13 +16,17 @@
 
 #include <thrift/test/CppAllocatorTest.h>
 
+#include <cstddef>
 #include <cstdint>
 #include <map>
+#include <memory_resource>
 #include <set>
+#include <string_view>
 #include <type_traits>
 #include <vector>
 
 #include <folly/ScopeGuard.h>
+#include <thrift/lib/cpp2/op/Encode.h>
 #include <thrift/lib/cpp2/op/Get.h>
 #include <thrift/lib/cpp2/protocol/Serializer.h>
 #include <thrift/test/gen-cpp2/CppAllocatorTest_types.h>
@@ -117,6 +121,21 @@ TEST(CppAllocatorTest, AllocatorVia) {
 TEST(CppAllocatorTest, AllocatorViaPmr) {
   NoAllocatorViaPmr s1;
   YesAllocatorViaPmr s2;
+  EXPECT_GT(sizeof(s1), sizeof(s2));
+}
+
+TEST(CppAllocatorTest, StructuredAnnotationsPmr) {
+  std::pmr::monotonic_buffer_resource res;
+  PmrByteAlloc alloc(&res);
+
+  StructuredAllocatorPmr s1(alloc);
+  EXPECT_EQ(s1.get_allocator(), alloc);
+  EXPECT_EQ(s1.aa_list()->get_allocator(), alloc);
+  EXPECT_EQ(s1.aa_string()->get_allocator(), alloc);
+  EXPECT_EQ(s1.legacy_aa_list()->get_allocator(), alloc);
+
+  StructuredAllocatorViaPmr s2(alloc);
+  EXPECT_EQ(s2.get_allocator(), alloc);
   EXPECT_GT(sizeof(s1), sizeof(s2));
 }
 
@@ -478,6 +497,23 @@ TEST(CppAllocatorTest, CountingAllocator) {
   EXPECT_NO_ALLOC(alloc, not_aa_child.not_aa_string()->assign(kTooLong));
 }
 
+TEST(CppAllocatorTest, DeserializeCountingStringRetainsAllocator) {
+  using serializer = apache::thrift::CompactSerializer;
+
+  CountingChild source;
+  source.aa_string() = kTooLong;
+
+  ScopedCountingAlloc<> alloc;
+  CountingChild destination(alloc);
+  EXPECT_EQ(destination.aa_string()->get_allocator(), alloc);
+
+  serializer::deserialize(
+      serializer::serialize<std::string>(source), destination);
+
+  EXPECT_EQ(destination.aa_string(), kTooLong);
+  EXPECT_EQ(destination.aa_string()->get_allocator(), alloc);
+}
+
 TEST(CppAllocatorTest, CountingResource) {
   CountingPmrResource res;
   PmrByteAlloc alloc(&res);
@@ -526,6 +562,7 @@ TEST(CppAllocatorTest, PropagateAllAlloc) {
     PropagateAllAllocStruct src(alloc1);
     PropagateAllAllocStruct dst(alloc2);
     dst = std::move(src);
+    // NOLINTNEXTLINE(bugprone-use-after-move): checks the moved-from allocator
     EXPECT_EQ(src.get_allocator(), alloc1);
     EXPECT_EQ(dst.get_allocator(), alloc1);
   }
@@ -555,6 +592,7 @@ TEST(CppAllocatorTest, PropagateNoneAlloc) {
     PropagateNoneAllocStruct src(alloc1);
     PropagateNoneAllocStruct dst(alloc2);
     dst = std::move(src);
+    // NOLINTNEXTLINE(bugprone-use-after-move): checks the moved-from allocator
     EXPECT_EQ(src.get_allocator(), alloc1);
     EXPECT_EQ(dst.get_allocator(), alloc2);
   }
@@ -584,6 +622,7 @@ TEST(CppAllocatorTest, PropagateOnlyCopyAlloc) {
     PropagateOnlyCopyAllocStruct src(alloc1);
     PropagateOnlyCopyAllocStruct dst(alloc2);
     dst = std::move(src);
+    // NOLINTNEXTLINE(bugprone-use-after-move): checks the moved-from allocator
     EXPECT_EQ(src.get_allocator(), alloc1);
     EXPECT_EQ(dst.get_allocator(), alloc2);
   }
@@ -638,6 +677,7 @@ TEST(CppAllocatorTest, PropagateOnlyMoveAlloc) {
     PropagateOnlyMoveAllocStruct src(alloc1);
     PropagateOnlyMoveAllocStruct dst(alloc2);
     dst = std::move(src);
+    // NOLINTNEXTLINE(bugprone-use-after-move): checks the moved-from allocator
     EXPECT_EQ(src.get_allocator(), alloc1);
     EXPECT_EQ(dst.get_allocator(), alloc1);
   }
@@ -667,6 +707,7 @@ TEST(CppAllocatorTest, PropagateOnlySwapAlloc) {
     PropagateOnlySwapAllocStruct src(alloc1);
     PropagateOnlySwapAllocStruct dst(alloc2);
     dst = std::move(src);
+    // NOLINTNEXTLINE(bugprone-use-after-move): checks the moved-from allocator
     EXPECT_EQ(src.get_allocator(), alloc1);
     EXPECT_EQ(dst.get_allocator(), alloc2);
   }
@@ -696,6 +737,7 @@ TEST(CppAllocatorTest, PropagateCopyMoveAlloc) {
     PropagateCopyMoveAllocStruct src(alloc1);
     PropagateCopyMoveAllocStruct dst(alloc2);
     dst = std::move(src);
+    // NOLINTNEXTLINE(bugprone-use-after-move): checks the moved-from allocator
     EXPECT_EQ(src.get_allocator(), alloc1);
     EXPECT_EQ(dst.get_allocator(), alloc1);
   }
@@ -725,6 +767,7 @@ TEST(CppAllocatorTest, PropagateCopySwapAlloc) {
     PropagateCopySwapAllocStruct src(alloc1);
     PropagateCopySwapAllocStruct dst(alloc2);
     dst = std::move(src);
+    // NOLINTNEXTLINE(bugprone-use-after-move): checks the moved-from allocator
     EXPECT_EQ(src.get_allocator(), alloc1);
     EXPECT_EQ(dst.get_allocator(), alloc2);
   }
@@ -754,6 +797,7 @@ TEST(CppAllocatorTest, PropagateMoveSwapAlloc) {
     PropagateMoveSwapAllocStruct src(alloc1);
     PropagateMoveSwapAllocStruct dst(alloc2);
     dst = std::move(src);
+    // NOLINTNEXTLINE(bugprone-use-after-move): checks the moved-from allocator
     EXPECT_EQ(src.get_allocator(), alloc1);
     EXPECT_EQ(dst.get_allocator(), alloc1);
   }
@@ -807,9 +851,37 @@ TEST(CppAllocatorTest, MoveConstructorPropagatesAllocator) {
   ScopedStatefulAlloc<> alloc(42);
   AAStruct s1(alloc);
   AAStruct s2(std::move(s1));
+  // NOLINTNEXTLINE(bugprone-use-after-move): checks the moved-from allocator
   EXPECT_EQ(s1.get_allocator(), alloc);
   EXPECT_EQ(s2.get_allocator(), alloc);
 }
+
+// The FragileConstructor has no allocator parameter, so cpp.allocator structs
+// don't have one.
+static_assert(std::is_constructible_v<
+              BoxedPayload,
+              apache::thrift::FragileConstructor,
+              int32_t>);
+static_assert(!std::is_constructible_v<
+              HasContainerFields,
+              apache::thrift::FragileConstructor,
+              StatefulAllocVector<int32_t>,
+              StatefulAllocSet<int32_t>,
+              StatefulAllocMap<int32_t, int32_t>>);
+static_assert(!std::is_constructible_v<
+              HasContainerFieldsPmr,
+              apache::thrift::FragileConstructor,
+              std::pmr::vector<int32_t>,
+              std::pmr::set<int32_t>,
+              std::pmr::map<int32_t, int32_t>>);
+static_assert(!std::is_constructible_v<
+              YesAllocatorVia,
+              apache::thrift::FragileConstructor,
+              AAStruct>);
+static_assert(!std::is_constructible_v<
+              YesAllocatorViaPmr,
+              apache::thrift::FragileConstructor,
+              AAStructPmr>);
 
 TEST(CppAllocatorTest, DefaultConstructor1allocator) {
   CountingParent s;
@@ -920,6 +992,109 @@ TEST(CppAllocatorTest, AllocExtendedMoveTakesOverRefs) {
   EXPECT_EQ(counting.allocations(), before);
 }
 
+namespace {
+// A const pointee on `alloc`, holding kTooLong.
+std::shared_ptr<const ChildPmr> makeConstChild(const PmrByteAlloc& alloc) {
+  auto child = std::allocate_shared<ChildPmr>(alloc);
+  child->aa_string() = kTooLong;
+  return child;
+}
+} // namespace
+
+// A `shared_ptr<const T>` field is built with the struct's allocator by every
+// constructor and assignment that builds a pointee, as a `shared_ptr<T>` one
+// is.
+TEST(CppAllocatorTest, ConstSharedRefPointeeUsesAllocator) {
+  std::pmr::monotonic_buffer_resource res1;
+  std::pmr::monotonic_buffer_resource res2;
+
+  const ConstRefPmr built{PmrByteAlloc(&res1)};
+  ASSERT_NE(built.c_ref(), nullptr);
+  EXPECT_EQ(built.c_ref()->get_allocator().resource(), &res1);
+
+  ConstRefPmr src{PmrByteAlloc(&res1)};
+  src.c_ref() = makeConstChild(PmrByteAlloc(&res1));
+
+  const ConstRefPmr copied(src, PmrByteAlloc(&res2));
+  EXPECT_EQ(*copied.c_ref()->aa_string(), kTooLong);
+  EXPECT_EQ(copied.c_ref()->get_allocator().resource(), &res2);
+  EXPECT_EQ(copied.c_ref()->aa_string()->get_allocator().resource(), &res2);
+
+  ConstRefPmr assigned{PmrByteAlloc(&res2)};
+  assigned = src;
+  EXPECT_EQ(*assigned.c_ref()->aa_string(), kTooLong);
+  EXPECT_EQ(assigned.c_ref()->get_allocator().resource(), &res2);
+
+  ConstRefPmr moveAssigned{PmrByteAlloc(&res2)};
+  moveAssigned = ConstRefPmr(src, PmrByteAlloc(&res1));
+  EXPECT_EQ(*moveAssigned.c_ref()->aa_string(), kTooLong);
+  EXPECT_EQ(moveAssigned.c_ref()->get_allocator().resource(), &res2);
+
+  const auto* pointee = src.c_ref().get();
+  const ConstRefPmr sameResource(std::move(src), PmrByteAlloc(&res1));
+  EXPECT_EQ(sameResource.c_ref().get(), pointee);
+
+  const ConstRefPmr otherResource(
+      ConstRefPmr(sameResource, PmrByteAlloc(&res1)), PmrByteAlloc(&res2));
+  EXPECT_EQ(*otherResource.c_ref()->aa_string(), kTooLong);
+  EXPECT_EQ(otherResource.c_ref()->get_allocator().resource(), &res2);
+}
+
+TEST(CppAllocatorTest, ConstSharedRefDeserializesOntoAllocator) {
+  ConstRefPmr src;
+  src.c_ref() = makeConstChild(PmrByteAlloc());
+  const auto bytes = CompactSerializer::serialize<std::string>(src);
+
+  auto prev = set_default_resource(std::pmr::null_memory_resource());
+  auto guard = folly::makeGuard([&] { set_default_resource(prev); });
+  std::pmr::monotonic_buffer_resource res(std::pmr::new_delete_resource());
+  ConstRefPmr dst{PmrByteAlloc(&res)};
+  CompactSerializer::deserialize(bytes, dst);
+
+  EXPECT_EQ(*dst.c_ref()->aa_string(), kTooLong);
+  EXPECT_EQ(dst.c_ref()->get_allocator().resource(), &res);
+  EXPECT_EQ(dst.c_ref()->aa_string()->get_allocator().resource(), &res);
+}
+
+// The chain reader takes op::decode's generic path, which can't decode a
+// `shared_ptr<const T>` in place and builds a new pointee.
+TEST(CppAllocatorTest, OpDecodeConstSharedRefUsesAllocator) {
+  ConstRefPmr src;
+  src.c_ref() = makeConstChild(PmrByteAlloc());
+  const IOBufChain input{
+      folly::IOBuf::copyBuffer(BinarySerializer::serialize<std::string>(src))};
+  BinaryProtocolChainReader reader;
+  reader.setInput(&input);
+  std::pmr::monotonic_buffer_resource res(std::pmr::new_delete_resource());
+  ConstRefPmr dst{PmrByteAlloc(&res)};
+
+  auto prev = set_default_resource(std::pmr::null_memory_resource());
+  auto guard = folly::makeGuard([&] { set_default_resource(prev); });
+  op::decode<type::struct_t<ConstRefPmr>>(reader, dst);
+
+  EXPECT_EQ(*dst.c_ref()->aa_string(), kTooLong);
+  EXPECT_EQ(dst.c_ref()->get_allocator().resource(), &res);
+  EXPECT_EQ(dst.c_ref()->aa_string()->get_allocator().resource(), &res);
+}
+
+TEST(CppAllocatorTest, FieldUseAllocatorRefPointeeUsesAllocator) {
+  std::pmr::monotonic_buffer_resource res1;
+  std::pmr::monotonic_buffer_resource res2;
+  FieldUseAllocatorRefPmr src{PmrByteAlloc(&res1)};
+  ASSERT_NE(src.c_ref(), nullptr);
+  EXPECT_EQ(src.c_ref()->get_allocator().resource(), &res1);
+  src.c_ref()->aa_string() = kTooLong;
+
+  const FieldUseAllocatorRefPmr copied(src, PmrByteAlloc(&res2));
+  EXPECT_EQ(copied.c_ref()->get_allocator().resource(), &res2);
+
+  const auto bytes = CompactSerializer::serialize<std::string>(src);
+  FieldUseAllocatorRefPmr dst{PmrByteAlloc(&res2)};
+  CompactSerializer::deserialize(bytes, dst);
+  EXPECT_EQ(*dst.c_ref()->aa_string(), kTooLong);
+  EXPECT_EQ(dst.c_ref()->get_allocator().resource(), &res2);
+}
+
 // Other owners may share the pointee, so it is copied rather than moved from.
 TEST(CppAllocatorTest, AllocExtendedMoveCopiesSharedRefPointee) {
   std::pmr::monotonic_buffer_resource res1;
@@ -949,6 +1124,133 @@ TEST(CppAllocatorTest, AllocExtendedCtorsRunAdapterConstruct) {
   EXPECT_EQ(count, 3);
   const AdaptedFieldPmr moved(std::move(movedWithAlloc));
   EXPECT_EQ(count, 4);
+}
+
+TEST(CppAllocatorTest, ReadIntoEmptyContainerFieldKeepsBuffer) {
+  HasContainerFieldsPmr src;
+  src.aa_list()->assign({1, 2, 3});
+  std::pmr::monotonic_buffer_resource res;
+  HasContainerFieldsPmr s{PmrByteAlloc(&res)};
+  s.aa_list()->reserve(16);
+  const auto* data = s.aa_list()->data();
+
+  CompactSerializer::deserialize(
+      CompactSerializer::serialize<std::string>(src), s);
+
+  EXPECT_EQ(s, src);
+  EXPECT_EQ(s.aa_list()->data(), data);
+  EXPECT_EQ(s.aa_list()->get_allocator().resource(), &res);
+}
+
+TEST(CppAllocatorTest, ReadReplacesNonEmptyContainerField) {
+  std::pmr::monotonic_buffer_resource res;
+  HasContainerFieldsPmr expected;
+  expected.aa_list()->assign({4, 5});
+  expected.aa_set()->insert(6);
+  expected.aa_map()->emplace(7, 8);
+  HasContainerFieldsPmr s{PmrByteAlloc(&res)};
+  s.aa_list()->assign({1, 2, 3});
+  s.aa_set()->insert(1);
+  s.aa_map()->emplace(1, 1);
+
+  CompactSerializer::deserialize(
+      CompactSerializer::serialize<std::string>(expected), s);
+
+  EXPECT_EQ(s, expected);
+  EXPECT_EQ(s.aa_list()->get_allocator().resource(), &res);
+  EXPECT_EQ(s.aa_set()->get_allocator().resource(), &res);
+  EXPECT_EQ(s.aa_map()->get_allocator().resource(), &res);
+}
+
+TEST(CppAllocatorTest, ResetContainerFieldForRead) {
+  std::pmr::vector<int> pmrEmpty;
+  pmrEmpty.reserve(16);
+  detail::reset_container_field_for_read(pmrEmpty, PmrByteAlloc());
+  EXPECT_GE(pmrEmpty.capacity(), 16);
+
+  std::vector<int> stdEmpty;
+  stdEmpty.reserve(16);
+  detail::reset_container_field_for_read(stdEmpty);
+  EXPECT_EQ(stdEmpty.capacity(), 0);
+
+  PropagatingStatefulVector<int> propagating(
+      ScopedPropagatingStatefulAlloc<int>(2));
+  detail::reset_container_field_for_read(
+      propagating, ScopedPropagatingStatefulAlloc<>(1));
+  EXPECT_EQ(propagating.get_allocator().state_, 1);
+}
+
+namespace {
+// Checks that each block is deallocated through the resource that allocated
+// it.
+class BalancedResource : public std::pmr::memory_resource {
+ public:
+  ~BalancedResource() override { EXPECT_TRUE(live_.empty()); }
+
+ private:
+  void* do_allocate(std::size_t bytes, std::size_t alignment) override {
+    void* p = std::pmr::new_delete_resource()->allocate(bytes, alignment);
+    live_.insert(p);
+    return p;
+  }
+  void do_deallocate(
+      void* p, std::size_t bytes, std::size_t alignment) override {
+    EXPECT_EQ(live_.erase(p), 1);
+    std::pmr::new_delete_resource()->deallocate(p, bytes, alignment);
+  }
+  bool do_is_equal(
+      const std::pmr::memory_resource& other) const noexcept override {
+    return this == &other;
+  }
+
+  std::set<void*> live_;
+};
+
+// Too long for the small string optimization, so they allocate.
+constexpr std::string_view kNameA =
+    "a name that is too long to be stored inline";
+constexpr std::string_view kNameB =
+    "b name that is too long to be stored inline, and longer than a";
+
+PmrTypedFields makePmrTypedFields(
+    std::pmr::memory_resource* res, std::string_view name, int32_t id) {
+  auto prev = std::pmr::set_default_resource(res);
+  SCOPE_EXIT {
+    std::pmr::set_default_resource(prev);
+  };
+  PmrTypedFields s;
+  s.name() = name;
+  s.ids()->push_back(id);
+  return s;
+}
+
+void expectResource(const PmrTypedFields& s, std::pmr::memory_resource* res) {
+  EXPECT_EQ(s.name()->get_allocator().resource(), res);
+  EXPECT_EQ(s.ids()->get_allocator().resource(), res);
+}
+} // namespace
+
+TEST(CppAllocatorTest, SwapPmrTypedFieldsOnDifferentResources) {
+  BalancedResource res1, res2;
+  auto a = makePmrTypedFields(&res1, kNameA, 1);
+  auto b = makePmrTypedFields(&res2, kNameB, 2);
+  swap(a, b);
+  EXPECT_EQ(*a.name(), kNameB);
+  EXPECT_EQ(*a.ids(), std::pmr::vector<int32_t>{2});
+  EXPECT_EQ(*b.name(), kNameA);
+  EXPECT_EQ(*b.ids(), std::pmr::vector<int32_t>{1});
+  expectResource(a, &res1);
+  expectResource(b, &res2);
+}
+
+TEST(CppAllocatorTest, CopyAssignPmrTypedFieldsOnDifferentResources) {
+  BalancedResource res1, res2;
+  auto a = makePmrTypedFields(&res1, kNameA, 1);
+  auto b = makePmrTypedFields(&res2, kNameB, 2);
+  a = b;
+  EXPECT_EQ(*a.name(), kNameB);
+  EXPECT_EQ(*a.ids(), std::pmr::vector<int32_t>{2});
+  expectResource(a, &res1);
 }
 
 } // namespace apache::thrift::test

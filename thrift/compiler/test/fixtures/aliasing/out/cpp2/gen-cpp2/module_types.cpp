@@ -91,8 +91,8 @@ const ::facebook::thrift::compiler::test::fixtures::aliasing::not_module::Foo& F
 
 void swap([[maybe_unused]] Foo& a, [[maybe_unused]] Foo& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_other_foo, b.__fbthrift_field_other_foo);
-  swap(a.__fbthrift_field_yet_another_foo, b.__fbthrift_field_yet_another_foo);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_other_foo, b.__fbthrift_field_other_foo);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_yet_another_foo, b.__fbthrift_field_yet_another_foo);
   swap(a.__isset, b.__isset);
 }
 

@@ -4417,6 +4417,9 @@ class AllocatorAware(thrift.py3.types.Struct):
         _fbthrift__maybe_str_enum = kwargs.get("aa_string", None)
         if isinstance(_fbthrift__maybe_str_enum, enum.Enum):
             kwargs["aa_string"] = _fbthrift__maybe_str_enum.value
+        _fbthrift__maybe_str_enum = kwargs.get("aa_shared", None)
+        if isinstance(_fbthrift__maybe_str_enum, enum.Enum):
+            kwargs["aa_shared"] = _fbthrift__maybe_str_enum.value
         try:
             self._fbthrift__inner = _fbthrift_python_types.AllocatorAware(*args, **kwargs)
         except TypeError:
@@ -4502,7 +4505,7 @@ class AllocatorAware(thrift.py3.types.Struct):
         return self._fbthrift__inner.aa_unique
 
     @_python__property
-    def aa_shared(self) -> _typing.Optional[int]:
+    def aa_shared(self) -> _typing.Optional[str]:
         return self._fbthrift__inner.aa_shared
 
 

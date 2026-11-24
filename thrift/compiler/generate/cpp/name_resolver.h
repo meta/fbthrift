@@ -18,6 +18,7 @@
 
 #include <stdint.h>
 #include <initializer_list>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -86,9 +87,10 @@ class cpp_name_resolver {
         standard_type_cache_, &node, [&]() { return gen_standard_type(node); });
   }
   const std::string& get_standard_type(const t_field& node) {
-    return detail::get_or_gen(field_standard_type_cache_, &node, [&]() {
-      return gen_standard_type(node);
-    });
+    if (const auto& cpp_type = get_cpp_type(node)) {
+      return *cpp_type;
+    }
+    return get_standard_type(*node.type());
   }
 
   // Returns C++ type tag of given thrift type
@@ -146,16 +148,6 @@ class cpp_name_resolver {
 
   const std::string* get_extra_namespace(const t_type& node);
 
-  // Checks whether a t_type could resolve to a scalar.
-  //
-  // A type could resolve to a scalar if t_type is
-  // a scalar, or has an 'cpp.type' and 'cpp.adapter' annotation.
-  // Note, the 'cpp.template' annotation only applies to container
-  // types, so it could never resolve to a scalar.
-  // In C++, scalars sometimes require a special treatment. For
-  // example, they are not initialized by default.
-  static bool can_resolve_to_scalar(const t_type& node);
-
   // Returns the C++ type that should be used to store the field's value.
   //
   // This differs from the type name when @cpp.Ref is applied to the field.
@@ -208,7 +200,8 @@ class cpp_name_resolver {
   std::unordered_map<const t_field*, std::string> qualified_field_type_cache_;
   std::unordered_map<const t_field*, std::string> qualified_storage_type_cache_;
   std::unordered_map<const t_type*, std::string> standard_type_cache_;
-  std::unordered_map<const t_field*, std::string> field_standard_type_cache_;
+  std::unordered_map<const t_field*, std::optional<std::string>>
+      field_cpp_type_cache_;
   std::unordered_map<const t_type*, std::string> underlying_type_cache_;
   std::unordered_map<const t_type*, std::string>
       underlying_namespaced_name_cache_;
@@ -218,6 +211,13 @@ class cpp_name_resolver {
   std::unordered_map<const t_field*, std::string> field_reference_type_cache_;
   // Sinks are not reused, so are sufficient for use as keys
   std::unordered_map<const t_sink*, std::string> bidi_cache_;
+
+  // The C++ type that `@cpp.Type` and `@cpp.Arena` on `field` give it; nullopt
+  // if neither applies.
+  const std::optional<std::string>& get_cpp_type(const t_field& field) {
+    return detail::get_or_gen(
+        field_cpp_type_cache_, &field, [&]() { return gen_cpp_type(field); });
+  }
 
   std::string gen_namespaced_name(
       const t_program& program, const t_named& node) {
@@ -243,7 +243,7 @@ class cpp_name_resolver {
   static const std::string& default_template(const t_container& ctype);
 
   // If the node has a @cpp.Type override, resolves the type name accounting
-  // for typedef kind and adapters. Returns nullptr if no override applies.
+  // for typedef kind. Returns nullptr if no override applies.
   const std::string* resolve_cpp_type_name(const t_type& node);
 
   // Generating functions.
@@ -264,7 +264,7 @@ class cpp_name_resolver {
       const t_field& field, const t_structured& parent, bool qualify_parent);
   std::string gen_standard_type(const t_type& node);
   std::string gen_standard_type(const t_type& node, type_resolve_fn resolve_fn);
-  std::string gen_standard_type(const t_field& node);
+  std::optional<std::string> gen_cpp_type(const t_field& field);
   std::string gen_storage_type(
       const std::string& native_type, cpp_reference_type ref_type);
   std::string gen_container_type(

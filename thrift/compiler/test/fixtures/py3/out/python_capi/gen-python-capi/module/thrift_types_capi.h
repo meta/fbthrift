@@ -272,7 +272,7 @@ struct Constructor<::apache::thrift::python::capi::ComposedStruct<
 template <>
 struct Extractor<::apache::thrift::python::capi::PythonNamespaced<::py3::simple::ComplexStruct, ::module::NamespaceTag>>
     : public BaseExtractor<::apache::thrift::python::capi::PythonNamespaced<::py3::simple::ComplexStruct, ::module::NamespaceTag>> {
-  static const bool kUsingMarshal = false;
+  static const bool kUsingMarshal = true;
   ExtractorResult<::py3::simple::ComplexStruct> operator()(PyObject* obj);
   int typeCheck(PyObject* obj);
 };
@@ -288,7 +288,7 @@ struct Extractor<::apache::thrift::python::capi::ComposedStruct<
 template <>
 struct Constructor<::apache::thrift::python::capi::PythonNamespaced<::py3::simple::ComplexStruct, ::module::NamespaceTag>>
     : public BaseConstructor<::apache::thrift::python::capi::PythonNamespaced<::py3::simple::ComplexStruct, ::module::NamespaceTag>> {
-  static const bool kUsingMarshal = false;
+  static const bool kUsingMarshal = true;
   PyObject* operator()(const ::py3::simple::ComplexStruct& val);
 };
 
@@ -453,6 +453,37 @@ struct Constructor<::apache::thrift::python::capi::ComposedStruct<
     : public BaseConstructor<::apache::thrift::python::capi::ComposedStruct<
         ::py3::simple::AdaptedTypedefFields, ::module::NamespaceTag>> {
   PyObject* operator()(const ::py3::simple::AdaptedTypedefFields& val);
+};
+
+template <>
+struct Extractor<::apache::thrift::python::capi::PythonNamespaced<::py3::simple::StringAdaptedUnion, ::module::NamespaceTag>>
+    : public BaseExtractor<::apache::thrift::python::capi::PythonNamespaced<::py3::simple::StringAdaptedUnion, ::module::NamespaceTag>> {
+  static const bool kUsingMarshal = false;
+  ExtractorResult<::py3::simple::StringAdaptedUnion> operator()(PyObject* obj);
+  int typeCheck(PyObject* obj);
+};
+
+template <>
+struct Extractor<::apache::thrift::python::capi::ComposedStruct<
+        ::py3::simple::StringAdaptedUnion, ::module::NamespaceTag >>
+    : public BaseExtractor<::apache::thrift::python::capi::ComposedStruct<
+        ::py3::simple::StringAdaptedUnion, ::module::NamespaceTag>> {
+  ExtractorResult<::py3::simple::StringAdaptedUnion> operator()(PyObject* obj);
+};
+
+template <>
+struct Constructor<::apache::thrift::python::capi::PythonNamespaced<::py3::simple::StringAdaptedUnion, ::module::NamespaceTag>>
+    : public BaseConstructor<::apache::thrift::python::capi::PythonNamespaced<::py3::simple::StringAdaptedUnion, ::module::NamespaceTag>> {
+  static const bool kUsingMarshal = false;
+  PyObject* operator()(const ::py3::simple::StringAdaptedUnion& val);
+};
+
+template <>
+struct Constructor<::apache::thrift::python::capi::ComposedStruct<
+        ::py3::simple::StringAdaptedUnion, ::module::NamespaceTag>>
+    : public BaseConstructor<::apache::thrift::python::capi::ComposedStruct<
+        ::py3::simple::StringAdaptedUnion, ::module::NamespaceTag>> {
+  PyObject* operator()(const ::py3::simple::StringAdaptedUnion& val);
 };
 
 template <>

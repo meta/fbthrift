@@ -47,6 +47,15 @@ struct StructContainingEnum {
   1: EnumZeroToTen data;
 }
 
+enum KeywordNamedValues {
+  None = 0,
+  OK = 1,
+}
+
+struct StructContainingKeywordNamedEnum {
+  1: KeywordNamedValues data;
+}
+
 typedef i64 int64
 struct JsonTypedefs {
   1: map<int64, int64> x;

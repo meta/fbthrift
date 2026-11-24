@@ -20,6 +20,7 @@
 #include <thrift/lib/cpp/TApplicationException.h>
 #include <thrift/lib/cpp2/TrustedServerException.h>
 #include <thrift/lib/cpp2/async/AsyncClient.h>
+#include <thrift/lib/cpp2/async/HeaderClientChannel.h>
 #include <thrift/lib/cpp2/util/ScopedServerInterfaceThread.h>
 
 #include <thrift/lib/cpp2/async/tests/gen-cpp2/test_clients.h>
@@ -43,6 +44,14 @@ class ThrowingTestHandler
   folly::coro::Task<void> co_func() override {
     throw apache::thrift::TrustedServerException::appOverloadError(
         kLoadsheddingMessage);
+  }
+};
+
+class AppOverloadedTestHandler
+    : public apache::thrift::ServiceHandler<apache::thrift::test::Test> {
+  folly::coro::Task<void> co_func() override {
+    throw apache::thrift::AppOverloadedException(
+        "AppOverloadedException", kLoadsheddingMessage);
   }
 };
 } // namespace
@@ -94,6 +103,26 @@ CO_TEST(AsyncClientTest, ApplicationExceptionTypeIsPreserved) {
   using ClientType = apache::thrift::Client<apache::thrift::test::Test>;
   std::unique_ptr<ClientType> client =
       apache::thrift::makeTestClient(std::make_shared<ThrowingTestHandler>());
+
+  try {
+    co_await client->co_func();
+    ADD_FAILURE() << "expected TApplicationException to be thrown";
+  } catch (const apache::thrift::TApplicationException& ex) {
+    EXPECT_EQ(
+        ex.getType(), apache::thrift::TApplicationException::LOADSHEDDING);
+    EXPECT_EQ(ex.getMessage(), kLoadsheddingMessage);
+  }
+}
+
+CO_TEST(AsyncClientTest, AppOverloadedExceptionTypeIsPreservedWithHeader) {
+  using ClientType = apache::thrift::Client<apache::thrift::test::Test>;
+  apache::thrift::ScopedServerInterfaceThread runner(
+      std::make_shared<AppOverloadedTestHandler>());
+  auto client = runner.newStickyClient<ClientType>(nullptr, [](auto socket) {
+    return apache::thrift::HeaderClientChannel::newChannel(
+        apache::thrift::HeaderClientChannel::WithoutRocketUpgrade{},
+        std::move(socket));
+  });
 
   try {
     co_await client->co_func();

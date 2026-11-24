@@ -59,20 +59,6 @@ namespace apache::thrift::fast_thrift::thrift::server {
  */
 
 /**
- * Resolves the peer's identities from what the connection proved.
- *
- * `apache::thrift::ClientIdentityHook` takes an `X509*`, which is absent on a
- * resumed TLS session even though the peer's identities are not. This takes
- * the certificate itself so a resolver can read either, and returns the opaque
- * identity object `Cpp2ConnContext::getPeerIdentities` hands back.
- *
- * Null certificate means the connection negotiated no security.
- */
-using PeerIdentityResolver = std::unique_ptr<void, void (*)(void*)> (*)(
-    const folly::AsyncTransportCertificate* cert,
-    const folly::SocketAddress& peerAddress);
-
-/**
  * Owns the `Cpp2ConnContext` for one connection, built from that connection's
  * `ThriftConnContext`. Construct once, when the setup request enters the
  * Thrift pipeline, and keep it for the connection's life: per-connection state
@@ -80,10 +66,10 @@ using PeerIdentityResolver = std::unique_ptr<void, void (*)(void*)> (*)(
  */
 class Cpp2ConnContextAdapter {
  public:
-  // `resolver` may be null, leaving the peer identities unset.
+  // An empty hook leaves the peer identities unset.
   Cpp2ConnContextAdapter(
       boost::intrusive_ptr<ThriftConnContext> connContext,
-      PeerIdentityResolver resolver);
+      const apache::thrift::ClientIdentityHook& clientIdentityHook);
 
   ~Cpp2ConnContextAdapter();
 
@@ -124,12 +110,12 @@ class Cpp2ConnContextAdapter {
  * as the owner left it, so an owner that hands the same one to a second
  * request carries over whatever a handler wrote outside the header maps.
  *
- * The `folly::RequestContext` starts as the request's bridge-owned base
- * context. A classic handler may install a nested context while binding; in
- * that case `captureAmbientContext()` retains the effective top context for
- * downstream dispatch and the response path. The handlers' scope guards own
- * the links below that top, so one shared pointer retains an arbitrary-depth
- * chain without a second stack allocation.
+ * The `folly::RequestContext` starts as the native request's context. A classic
+ * handler may install a nested context while binding; in that case
+ * `captureAmbientContext()` retains the effective top in the bridge for
+ * downstream dispatch and the response path. The handlers' scope
+ * guards own the links below that top, so one shared pointer retains an
+ * arbitrary-depth chain without a second stack allocation.
  */
 class Cpp2RequestContextAdapter {
  public:

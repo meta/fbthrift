@@ -37,7 +37,6 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/FastThriftServer.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/stream/ProducerPipeline.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/stream/StreamElementEncoder.h>
@@ -54,8 +53,6 @@ namespace integration = apache::thrift::fast_thrift::thrift::test::integration;
 using integration::EchoResponse;
 
 namespace {
-
-using Context = cp::detail::ContextImpl;
 
 HANDLER_TAG(producer);
 
@@ -120,11 +117,11 @@ class StreamHandler : public FastServiceHandler<integration::FastThriftServer> {
     cb->result(
         stream::StreamFactory<EchoResponse>(
             [count](
-                stream::ProducerPipeline::Builder& builder,
+                auto builder,
                 const stream::StreamElementEncoder<EchoResponse>& encoder) {
-              builder.addNextDuplex<EchoProducer<Context>>(
-                  producer_tag,
-                  std::make_unique<EchoProducer<Context>>(encoder, count));
+              return std::move(builder)
+                  .template addNextDuplexTemplate<EchoProducer>(
+                      producer_tag, encoder, count);
             }));
   }
 
@@ -139,11 +136,11 @@ class StreamHandler : public FastServiceHandler<integration::FastThriftServer> {
             .response = std::move(initial),
             .factory = stream::StreamFactory<EchoResponse>(
                 [count](
-                    stream::ProducerPipeline::Builder& builder,
+                    auto builder,
                     const stream::StreamElementEncoder<EchoResponse>& encoder) {
-                  builder.addNextDuplex<EchoProducer<Context>>(
-                      producer_tag,
-                      std::make_unique<EchoProducer<Context>>(encoder, count));
+                  return std::move(builder)
+                      .template addNextDuplexTemplate<EchoProducer>(
+                          producer_tag, encoder, count);
                 })});
   }
 };
@@ -176,13 +173,13 @@ class FastThriftServerStreamE2ETest : public ::testing::Test {
 } // namespace
 
 TEST_F(FastThriftServerStreamE2ETest, ClientReceivesStreamItems) {
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
   std::vector<std::string> items;
   folly::coro::blockingWait(
       folly::coro::co_withExecutor(
           evb, folly::coro::co_invoke([&]() -> folly::coro::Task<void> {
             auto socket =
-                folly::AsyncSocket::newSocket(evb, server_->getAddress());
+                folly::AsyncSocket::newSocket(evb.get(), server_->getAddress());
             auto channel = apache::thrift::RocketClientChannel::newChannel(
                 std::move(socket));
             apache::thrift::Client<integration::FastThriftServer> client(
@@ -200,14 +197,14 @@ TEST_F(FastThriftServerStreamE2ETest, ClientReceivesStreamItems) {
 TEST_F(
     FastThriftServerStreamE2ETest,
     ClientReceivesInitialResponseAndStreamItems) {
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
   std::string initialResponse;
   std::vector<std::string> items;
   folly::coro::blockingWait(
       folly::coro::co_withExecutor(
           evb, folly::coro::co_invoke([&]() -> folly::coro::Task<void> {
             auto socket =
-                folly::AsyncSocket::newSocket(evb, server_->getAddress());
+                folly::AsyncSocket::newSocket(evb.get(), server_->getAddress());
             auto channel = apache::thrift::RocketClientChannel::newChannel(
                 std::move(socket));
             apache::thrift::Client<integration::FastThriftServer> client(

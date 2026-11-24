@@ -18,6 +18,7 @@
 
 #include <memory>
 
+#include <thrift/conformance/stresstest/common/RxTimestamping.h>
 #include <thrift/lib/cpp2/server/ServiceInterceptor.h>
 
 namespace apache::thrift::stress {
@@ -25,13 +26,16 @@ namespace apache::thrift::stress {
 class StressTestServerStats;
 
 class StressTestServiceInterceptor final
-    : public ServiceInterceptor<folly::Unit, folly::Unit> {
-  using ConnectionState = folly::Unit;
+    : public ServiceInterceptor<
+          folly::Unit,
+          std::unique_ptr<RxTimestampingRegistration>> {
+  using ConnectionState = std::unique_ptr<RxTimestampingRegistration>;
   using RequestState = folly::Unit;
 
  public:
-  explicit StressTestServiceInterceptor(
-      std::shared_ptr<StressTestServerStats> serverStats);
+  StressTestServiceInterceptor(
+      std::shared_ptr<StressTestServerStats> serverStats,
+      bool rxTimestampingEnabled);
 
   std::string getName() const final;
 
@@ -47,6 +51,7 @@ class StressTestServiceInterceptor final
 
  private:
   std::shared_ptr<StressTestServerStats> serverStats_;
+  bool rxTimestampingEnabled_{false};
 };
 
 } // namespace apache::thrift::stress

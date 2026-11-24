@@ -17,7 +17,11 @@
 package com.facebook.thrift.rsocket.server;
 
 import static com.facebook.thrift.rsocket.util.PayloadUtil.createPayload;
+import static com.facebook.thrift.rsocket.util.RocketErrorUtil.fromApplicationException;
+import static com.facebook.thrift.rsocket.util.RocketErrorUtil.serverError;
+import static com.facebook.thrift.rsocket.util.RocketErrorUtil.streamError;
 import static com.facebook.thrift.rsocket.util.RocketErrorUtil.taskExpired;
+import static com.facebook.thrift.util.RpcClientUtils.getUndeclaredException;
 
 import com.facebook.nifty.core.ConnectionContext;
 import com.facebook.nifty.core.NiftyConnectionContext;
@@ -32,7 +36,11 @@ import com.facebook.thrift.payload.Writer;
 import com.facebook.thrift.protocol.ByteBufTProtocol;
 import com.facebook.thrift.protocol.ProtocolUtil;
 import com.facebook.thrift.protocol.TProtocolType;
+import com.facebook.thrift.rsocket.server.sink.SinkPayloadSubscriber;
+import com.facebook.thrift.server.OverloadedException;
 import com.facebook.thrift.server.RpcServerHandler;
+import com.facebook.thrift.server.UnknownMethodException;
+import com.facebook.thrift.util.FluxFirstResponseTimeoutTransformer;
 import com.facebook.thrift.util.MonoTimeoutTransformer;
 import com.facebook.thrift.util.NettyNiftyRequestContext;
 import com.facebook.thrift.util.RpcServerUtils;
@@ -40,25 +48,45 @@ import com.facebook.thrift.util.resources.RpcResources;
 import io.airlift.units.Duration;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
+import io.netty.handler.ssl.ClientAuth;
 import io.netty.util.ReferenceCountUtil;
 import io.netty.util.ReferenceCounted;
 import io.rsocket.Payload;
 import io.rsocket.RSocket;
+import io.rsocket.RSocketErrorException;
+import io.rsocket.frame.ErrorFrameCodec;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.thrift.CompressionAlgorithm;
 import org.apache.thrift.RequestRpcMetadata;
+import org.apache.thrift.ResponseRpcErrorCode;
+import org.apache.thrift.ResponseRpcMetadata;
 import org.apache.thrift.RpcKind;
+import org.apache.thrift.StreamPayloadMetadata;
+import org.apache.thrift.StreamRpcErrorCode;
+import org.apache.thrift.TApplicationException;
+import org.apache.thrift.TException;
+import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.Disposable;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.SignalType;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 public class ThriftServerRSocket implements RSocket {
   private static final Logger LOGGER = LoggerFactory.getLogger(ThriftServerRSocket.class);
 
-  private static final ThriftServerConfig DEFAULT_CONFIG = new ThriftServerConfig();
+  private static final ThriftServerConfig DEFAULT_CONFIG =
+      new ThriftServerConfig().setClientAuth(ClientAuth.OPTIONAL);
 
   private final RpcServerHandler rpcServerHandler;
   private final ByteBufAllocator alloc;
@@ -97,99 +125,418 @@ public class ThriftServerRSocket implements RSocket {
    */
   @Override
   public Mono<Payload> requestResponse(Payload payload) {
-    ByteBuf data = null;
-    ServerRequestPayload requestPayload = null;
+    final RequestRpcMetadata requestRpcMetadata;
     try {
-      RequestRpcMetadata requestRpcMetadata = decodeRequestRpcMetadata(payload);
-
-      RequestContext requestContext = createRequestContext(requestRpcMetadata.getOtherMetadata());
-
-      data = maybeDecompressRequestData(requestRpcMetadata, payload);
-      // The decoded request data is now owned independently of the RSocket Payload (retained slice
-      // in the uncompressed case, freshly allocated in the compressed case). Release the Payload
-      // immediately; the request buffer alone goes on the wire as the ServerRequestPayload's owned
-      // buffer.
-      ReferenceCountUtil.safeRelease(payload);
-      payload = null;
-
-      requestPayload = deserializeRequest(data, requestRpcMetadata, requestContext, data);
-      data = null; // ownership transferred to ServerRequestPayload
-
-      assert requestPayload.getRequestRpcMetadata().getKind()
-          == RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE;
-
-      final ServerRequestPayload finalRequestPayload = requestPayload;
-      Mono<ServerResponsePayload> response =
-          rpcServerHandler.singleRequestSingleResponse(requestPayload);
-
-      long timeoutMillis = resolveTaskTimeoutMillis(requestRpcMetadata);
-      if (timeoutMillis > 0) {
-        final String methodName = requestRpcMetadata.getName();
-        response =
-            response.transform(
-                createTimeoutTransformer(
-                    timeoutMillis, Mono.error(() -> reportTaskExpired(methodName, timeoutMillis))));
-      }
-
-      return response
-          .map(responsePayload -> handleResponse(alloc, finalRequestPayload, responsePayload))
-          // The generated handler releases the request buffer right after it reads the args; this
-          // is the backstop for paths where no method body runs (unsupported RpcKind, unknown
-          // method, scheduler rejection, task timeout, or cancellation before the read). It can
-          // run on a different thread from the read, so ServerRequestPayload serializes the two.
-          .doFinally(__ -> finalRequestPayload.releaseRequestData());
+      requestRpcMetadata = decodeRequestRpcMetadata(payload);
     } catch (Throwable t) {
-      releaseOnError(requestPayload, data, payload);
+      ReferenceCountUtil.safeRelease(payload);
+
+      LOGGER.warn("Invalid request metadata; sending REQUEST_PARSING_FAILURE", t);
+
+      return Mono.error(
+          serverError(ResponseRpcErrorCode.REQUEST_PARSING_FAILURE, "Invalid metadata object"));
+    }
+
+    try {
+      checkRequest(requestRpcMetadata, RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE);
+    } catch (Throwable t) {
+      ReferenceCountUtil.safeRelease(payload);
+
+      LOGGER.warn(
+          "Invalid request for method {}; sending REQUEST_PARSING_FAILURE",
+          requestRpcMetadata.getName(),
+          t);
+
       return Mono.error(t);
     }
+
+    RequestContext requestContext = createRequestContext(requestRpcMetadata.getOtherMetadata());
+
+    ByteBuf data;
+    try {
+      data = maybeDecompressRequestData(requestRpcMetadata.getCompression(), payload);
+    } catch (Throwable t) {
+      ReferenceCountUtil.safeRelease(payload);
+
+      LOGGER.warn(
+          "Decompression failure for method {}; sending REQUEST_PARSING_FAILURE",
+          requestRpcMetadata.getName(),
+          t);
+
+      return Mono.error(
+          serverError(
+              ResponseRpcErrorCode.REQUEST_PARSING_FAILURE,
+              "decompression failure: " + nonNullMessage(t)));
+    }
+
+    // The decoded request data is now owned independently of the RSocket Payload (retained slice
+    // in the uncompressed case, freshly allocated in the compressed case). Release the Payload
+    // immediately; the request buffer alone goes on the wire as the ServerRequestPayload's owned
+    // buffer.
+    ReferenceCountUtil.safeRelease(payload);
+    payload = null;
+
+    final ServerRequestPayload requestPayload;
+    try {
+      requestPayload = deserializeRequest(data, requestRpcMetadata, requestContext, data);
+    } catch (Throwable t) {
+      ReferenceCountUtil.safeRelease(data);
+
+      LOGGER.warn(
+          "Invalid request for method {}; sending REQUEST_PARSING_FAILURE",
+          requestRpcMetadata.getName(),
+          t);
+
+      return Mono.error(
+          serverError(ResponseRpcErrorCode.REQUEST_PARSING_FAILURE, "Invalid metadata object"));
+    }
+
+    Mono<ServerResponsePayload> response =
+        Mono.defer(() -> rpcServerHandler.singleRequestSingleResponse(requestPayload));
+
+    long timeoutMillis = resolveTaskTimeoutMillis(requestRpcMetadata);
+    if (timeoutMillis > 0) {
+      final String methodName = requestRpcMetadata.getName();
+      response =
+          response.transform(
+              createTimeoutTransformer(
+                  timeoutMillis, Mono.error(() -> reportTaskExpired(methodName, timeoutMillis))));
+    }
+
+    return response
+        .map(responsePayload -> handleResponse(alloc, requestPayload, responsePayload))
+        .onErrorMap(
+            e -> e instanceof RejectedExecutionException, ThriftServerRSocket::rejectedOverload)
+        .onErrorMap(e -> !isThriftFrame(e), ThriftServerRSocket::toServerError)
+        // The generated handler releases the request buffer right after it reads the args; this
+        // is the backstop for paths where no method body runs (unsupported RpcKind, unknown
+        // method, scheduler rejection, task timeout, or cancellation before the read). It can
+        // run on a different thread from the read, so ServerRequestPayload serializes the two.
+        .doFinally(__ -> requestPayload.releaseRequestData());
   }
 
   @Override
   public Flux<Payload> requestStream(Payload payload) {
-    ByteBuf data = null;
-    ServerRequestPayload requestPayload = null;
+    final RequestRpcMetadata requestRpcMetadata;
     try {
-      RequestRpcMetadata requestRpcMetadata = decodeRequestRpcMetadata(payload);
-
-      RequestContext requestContext = createRequestContext(requestRpcMetadata.getOtherMetadata());
-
-      data = maybeDecompressRequestData(requestRpcMetadata, payload);
-      ReferenceCountUtil.safeRelease(payload);
-      payload = null;
-
-      requestPayload = deserializeRequest(data, requestRpcMetadata, requestContext, data);
-      data = null; // ownership transferred to ServerRequestPayload
-
-      assert requestPayload.getRequestRpcMetadata().getKind()
-          == RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE;
-
-      final ServerRequestPayload finalRequestPayload = requestPayload;
-      return rpcServerHandler
-          .singleRequestStreamingResponse(requestPayload)
-          .map(responsePayload -> handleStreamResponse(alloc, finalRequestPayload, responsePayload))
-          // The stream handler reads the args once when the stream is subscribed and releases the
-          // request buffer then, so it is freed up front instead of being pinned for the whole
-          // stream; this is the idempotent backstop for paths where no method body runs.
-          .doFinally(__ -> finalRequestPayload.releaseRequestData());
+      requestRpcMetadata = decodeRequestRpcMetadata(payload);
     } catch (Throwable t) {
-      releaseOnError(requestPayload, data, payload);
+      ReferenceCountUtil.safeRelease(payload);
+
+      LOGGER.warn("Invalid request metadata; sending REQUEST_PARSING_FAILURE", t);
+
+      return Flux.error(
+          serverError(ResponseRpcErrorCode.REQUEST_PARSING_FAILURE, "Invalid metadata object"));
+    }
+
+    try {
+      checkRequest(requestRpcMetadata, RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE);
+    } catch (Throwable t) {
+      ReferenceCountUtil.safeRelease(payload);
+
+      LOGGER.warn(
+          "Invalid request for method {}; sending REQUEST_PARSING_FAILURE",
+          requestRpcMetadata.getName(),
+          t);
+
       return Flux.error(t);
+    }
+
+    RequestContext requestContext = createRequestContext(requestRpcMetadata.getOtherMetadata());
+
+    ByteBuf data;
+    try {
+      data = maybeDecompressRequestData(requestRpcMetadata.getCompression(), payload);
+    } catch (Throwable t) {
+      ReferenceCountUtil.safeRelease(payload);
+
+      LOGGER.warn(
+          "Decompression failure for method {}; sending REQUEST_PARSING_FAILURE",
+          requestRpcMetadata.getName(),
+          t);
+
+      return Flux.error(
+          serverError(
+              ResponseRpcErrorCode.REQUEST_PARSING_FAILURE,
+              "decompression failure: " + nonNullMessage(t)));
+    }
+
+    ReferenceCountUtil.safeRelease(payload);
+    payload = null;
+
+    final ServerRequestPayload requestPayload;
+    try {
+      requestPayload = deserializeRequest(data, requestRpcMetadata, requestContext, data);
+    } catch (Throwable t) {
+      ReferenceCountUtil.safeRelease(data);
+
+      LOGGER.warn(
+          "Invalid request for method {}; sending REQUEST_PARSING_FAILURE",
+          requestRpcMetadata.getName(),
+          t);
+
+      return Flux.error(
+          serverError(ResponseRpcErrorCode.REQUEST_PARSING_FAILURE, "Invalid metadata object"));
+    }
+
+    final ServerRequestPayload finalRequestPayload = requestPayload;
+    // Only the first response may become a rejection; later stream errors stay in band. The
+    // flag flips only after a response is emitted, so a failure serializing the first response
+    // still counts as before the first response.
+    final AtomicBoolean firstResponse = new AtomicBoolean(true);
+
+    return Flux.defer(() -> rpcServerHandler.singleRequestStreamingResponse(finalRequestPayload))
+        .map(
+            responsePayload ->
+                handleStreamResponse(
+                    alloc, finalRequestPayload, responsePayload, firstResponse.get()))
+        .doOnNext(__ -> firstResponse.set(false))
+        .onErrorMap(
+            e -> e instanceof RejectedExecutionException && firstResponse.get(),
+            ThriftServerRSocket::rejectedOverload)
+        .onErrorMap(
+            e -> !isThriftFrame(e) && firstResponse.get(), ThriftServerRSocket::toServerError)
+        // The stream handler reads the args once when the stream is subscribed and releases the
+        // request buffer then, so it is freed up front instead of being pinned for the whole
+        // stream; this is the idempotent backstop for paths where no method body runs.
+        .doFinally(__ -> finalRequestPayload.releaseRequestData());
+  }
+
+  /**
+   * Serves sink and bidi calls on rsocket-java's channel responder. The setup decodes like the
+   * other request frames; then each kind applies its own rules to the shared dispatch.
+   */
+  @Override
+  public Flux<Payload> requestChannel(Publisher<Payload> payloads) {
+    SinkPayloadSubscriber sinkSubscriber =
+        new SinkPayloadSubscriber(
+            RpcResources.isForceExecutionOffEventLoop()
+                ? RpcResources.getOffLoopScheduler()
+                : Schedulers.immediate());
+    payloads.subscribe(sinkSubscriber);
+
+    final ServerRequestPayload request;
+    try {
+      request = decodeChannelSetup(sinkSubscriber.setup());
+    } catch (Throwable t) {
+      LOGGER.warn("Invalid channel request; sending REQUEST_PARSING_FAILURE", t);
+
+      RSocketErrorException error =
+          t instanceof RSocketErrorException
+              ? (RSocketErrorException) t
+              : parsingFailure(nonNullMessage(t), t);
+
+      // The ERROR goes first: a cancel before it would send a CANCEL, which the peer rejects.
+      return Flux.<Payload>error(error).doFinally(sinkSubscriber::end);
+    }
+
+    return request.getRequestRpcMetadata().getKind() == RpcKind.SINK
+        ? serveSink(request, sinkSubscriber)
+        : serveBidi(request, sinkSubscriber);
+  }
+
+  /**
+   * Decodes a channel setup and releases its payload. A failure releases every buffer and becomes
+   * the ERROR frame for the call, with the original failure kept for the log.
+   */
+  private ServerRequestPayload decodeChannelSetup(Payload setup) {
+    // rsocket-java hands over the first payload inside subscribe, before requestChannel continues.
+    Objects.requireNonNull(setup, "setup");
+
+    final RequestRpcMetadata requestRpcMetadata;
+    try {
+      requestRpcMetadata = decodeRequestRpcMetadata(setup);
+    } catch (Throwable t) {
+      ReferenceCountUtil.safeRelease(setup);
+      throw parsingFailure("Invalid metadata object", t);
+    }
+
+    RpcKind kind =
+        requestRpcMetadata.getKind() == RpcKind.SINK ? RpcKind.SINK : RpcKind.BIDIRECTIONAL_STREAM;
+    try {
+      checkRequest(requestRpcMetadata, kind);
+    } catch (Throwable t) {
+      ReferenceCountUtil.safeRelease(setup);
+      throw Exceptions.propagate(t);
+    }
+
+    ByteBuf data;
+    try {
+      data = maybeDecompressRequestData(requestRpcMetadata.getCompression(), setup);
+    } catch (Throwable t) {
+      ReferenceCountUtil.safeRelease(setup);
+      throw parsingFailure("decompression failure: " + nonNullMessage(t), t);
+    }
+
+    ReferenceCountUtil.safeRelease(setup);
+
+    try {
+      RequestContext requestContext = createRequestContext(requestRpcMetadata.getOtherMetadata());
+      return deserializeRequest(data, requestRpcMetadata, requestContext, data);
+    } catch (Throwable t) {
+      ReferenceCountUtil.safeRelease(data);
+      throw parsingFailure("Invalid metadata object", t);
+    }
+  }
+
+  private static RSocketErrorException parsingFailure(String message, Throwable cause) {
+    RSocketErrorException error =
+        serverError(ResponseRpcErrorCode.REQUEST_PARSING_FAILURE, message);
+    error.addSuppressed(cause);
+
+    return error;
+  }
+
+  /**
+   * Serves a sink. A sink that ends after one payload, its initial error, ends with ERROR, because
+   * the peer rejects a lone COMPLETE after the first response.
+   */
+  private Flux<Payload> serveSink(
+      ServerRequestPayload request, SinkPayloadSubscriber sinkSubscriber) {
+    return serveChannel(request, sinkSubscriber, sinkSubscriber.sinkPayloads())
+        .concatWith(
+            Mono.defer(
+                () ->
+                    sinkSubscriber.responsesSent() == 1
+                        ? Mono.error(
+                            streamError(
+                                StreamRpcErrorCode.UNKNOWN, "Sink ended without a final response"))
+                        : Mono.empty()))
+        .doFinally(
+            signal -> {
+              request.releaseRequestData();
+              sinkSubscriber.end(signal);
+            });
+  }
+
+  /**
+   * Serves a bidi call. A peer can still send on its sink after the stream completes, so a sink
+   * that a reader took stays open until the peer ends it or the reader cancels; a sink that no
+   * reader took ends at once. An error or a cancel ends both halves.
+   */
+  private Flux<Payload> serveBidi(
+      ServerRequestPayload request, SinkPayloadSubscriber sinkSubscriber) {
+    return serveChannel(request, sinkSubscriber, sinkSubscriber.bidiSinkPayloads())
+        .doFinally(
+            signal -> {
+              request.releaseRequestData();
+
+              if (signal == SignalType.ON_COMPLETE) {
+                sinkSubscriber.endIfUnread();
+              } else {
+                sinkSubscriber.end(signal);
+              }
+            });
+  }
+
+  /**
+   * Runs the dispatch of a channel and encodes its responses. The task timeout stops at the first
+   * response, because after it a sink waits for its peer and a bidi stream can be idle. A call
+   * without a response ends with ERROR, because a peer rejects a lone COMPLETE as the first frame.
+   */
+  private Flux<Payload> serveChannel(
+      ServerRequestPayload request,
+      SinkPayloadSubscriber sinkSubscriber,
+      Flux<Payload> sinkPayloads) {
+    RequestRpcMetadata requestRpcMetadata = request.getRequestRpcMetadata();
+    Flux<ServerRequestPayload> decodedSinkPayloads =
+        sinkPayloads.map(
+            sinkPayload ->
+                decodeSinkPayload(sinkPayload, requestRpcMetadata, request.getRequestContext()));
+
+    Flux<ServerResponsePayload> responses =
+        Flux.defer(
+            () -> rpcServerHandler.streamingRequestStreamingResponse(request, decodedSinkPayloads));
+
+    long timeoutMillis = resolveTaskTimeoutMillis(requestRpcMetadata);
+    if (timeoutMillis > 0) {
+      final String methodName = requestRpcMetadata.getName();
+      responses =
+          responses.transform(
+              new FluxFirstResponseTimeoutTransformer<>(
+                  RpcResources.getOffLoopScheduler(),
+                  timeoutMillis,
+                  TimeUnit.MILLISECONDS,
+                  Mono.error(() -> reportTaskExpired(methodName, timeoutMillis))));
+    }
+
+    Flux<Payload> encoded =
+        responses
+            .switchIfEmpty(
+                Flux.error(
+                    () ->
+                        serverError(
+                            ResponseRpcErrorCode.UNKNOWN, "Call ended without a first response")))
+            .map(
+                responsePayload ->
+                    handleStreamResponse(
+                        alloc, request, responsePayload, sinkSubscriber.responsesSent() == 0))
+            .doOnNext(__ -> sinkSubscriber.responseSent())
+            .onErrorMap(
+                e -> e instanceof RejectedExecutionException && sinkSubscriber.responsesSent() == 0,
+                ThriftServerRSocket::rejectedOverload)
+            .onErrorMap(
+                e -> !isThriftFrame(e) && sinkSubscriber.responsesSent() == 0,
+                ThriftServerRSocket::toServerError)
+            .onErrorMap(
+                e -> !(e instanceof RSocketErrorException) && sinkSubscriber.responsesSent() > 0,
+                ThriftServerRSocket::toStreamError);
+
+    return sinkSubscriber.startSinkAfterFirstResponse(encoded);
+  }
+
+  /**
+   * Maps a failure after the first response, like a response that does not serialize, to the ERROR
+   * a peer reads there.
+   */
+  private static RSocketErrorException toStreamError(Throwable e) {
+    LOGGER.error("Unexpected error after the first response; sending a stream error", e);
+
+    return streamError(StreamRpcErrorCode.UNKNOWN, nonNullMessage(e));
+  }
+
+  /**
+   * Reads the metadata of one sink payload: its compression, and an undeclared peer error, which
+   * becomes an error signal. A declared error stays in the body for the dispatch, which has the
+   * readers.
+   */
+  private ServerRequestPayload decodeSinkPayload(
+      Payload sinkPayload, RequestRpcMetadata requestRpcMetadata, RequestContext requestContext) {
+    try {
+      StreamPayloadMetadata metadata =
+          ProtocolUtil.readCompact(StreamPayloadMetadata::read0, sinkPayload.sliceMetadata());
+      Optional<? extends TException> undeclared = getUndeclaredException(metadata);
+      if (undeclared.isPresent()) {
+        throw undeclared.get();
+      }
+
+      ByteBuf data = maybeDecompressRequestData(metadata.getCompression(), sinkPayload);
+      return deserializeRequest(data, requestRpcMetadata, requestContext, data);
+    } catch (Throwable t) {
+      throw Exceptions.propagate(t);
+    } finally {
+      sinkPayload.release();
     }
   }
 
   private static Payload handleStreamResponse(
       ByteBufAllocator alloc,
       ServerRequestPayload requestPayload,
-      ServerResponsePayload responsePayload) {
+      ServerResponsePayload responsePayload,
+      boolean firstResponse) {
     ByteBuf data = null;
     ByteBuf metadata = null;
 
     try {
       data = alloc.buffer();
-      metadata = alloc.buffer();
 
-      serializeStreamMetadata(responsePayload, metadata);
       serializeResponse(requestPayload, responsePayload, data);
+      if (firstResponse) {
+        throwIfOverloaded(responsePayload);
+      }
+
+      metadata = alloc.buffer();
+      serializeStreamMetadata(responsePayload, metadata);
 
       return createPayload(alloc, null, data, metadata);
     } catch (Throwable t) {
@@ -202,6 +549,77 @@ public class ThriftServerRSocket implements RSocket {
       }
       throw Exceptions.propagate(t);
     }
+  }
+
+  /**
+   * Throws the ERROR frame for a response that carries an unknown method or an overload reason.
+   * Returns normally so any other serialized body stays the response.
+   */
+  private static void throwIfOverloaded(ServerResponsePayload responsePayload) {
+    TApplicationException exception = responsePayload.getApplicationException();
+    if (exception instanceof UnknownMethodException) {
+      LOGGER.warn("Unknown method; sending UNKNOWN_METHOD: {}", exception.getMessage(), exception);
+
+      throw serverError(ResponseRpcErrorCode.UNKNOWN_METHOD, exception.getMessage());
+    }
+
+    RSocketErrorException rejection = fromApplicationException(exception);
+    if (rejection != null) {
+      throw rejection;
+    }
+  }
+
+  /**
+   * Rejects metadata that cannot route to a handler method: a missing protocol or name, or a kind
+   * that does not match the frame.
+   */
+  private static void checkRequest(RequestRpcMetadata metadata, RpcKind expectedKind) {
+    if (metadata.getProtocol() == null
+        || metadata.getName() == null
+        || metadata.getName().isEmpty()
+        || metadata.getKind() != expectedKind) {
+      throw serverError(ResponseRpcErrorCode.REQUEST_PARSING_FAILURE, "Invalid metadata object");
+    }
+  }
+
+  /**
+   * Maps anything that escapes the response pipeline before the first response to an ERROR frame,
+   * so a response serialization failure or a hook that throws inside error mapping never leaves as
+   * a bare APPLICATION_ERROR. Errors that already are frames pass through unchanged.
+   */
+  /** Never renders a null message as the text "null": falls back to the throwable itself. */
+  private static String nonNullMessage(Throwable t) {
+    return t.getMessage() == null ? t.toString() : t.getMessage();
+  }
+
+  private static RSocketErrorException toServerError(Throwable e) {
+    if (e instanceof UnknownMethodException) {
+      LOGGER.warn("Unknown method; sending UNKNOWN_METHOD: {}", e.getMessage(), e);
+
+      return serverError(ResponseRpcErrorCode.UNKNOWN_METHOD, e.getMessage());
+    }
+
+    // An unexpected failure (a serialization failure, a hook throwing inside error mapping):
+    // leave a server-side signal, since the UNKNOWN frame carries no stack trace.
+    LOGGER.error("Unexpected error before the first response; sending UNKNOWN", e);
+
+    return serverError(
+        ResponseRpcErrorCode.UNKNOWN, e.getMessage() == null ? "Unknown error" : e.getMessage());
+  }
+
+  /**
+   * Whether the error already is a Thrift frame the C++ client accepts: REJECTED, INVALID, or
+   * CANCELED. Any other error, including any other RSocket error code, still needs mapping.
+   */
+  private static boolean isThriftFrame(Throwable e) {
+    if (!(e instanceof RSocketErrorException)) {
+      return false;
+    }
+
+    int code = ((RSocketErrorException) e).errorCode();
+    return code == ErrorFrameCodec.REJECTED
+        || code == ErrorFrameCodec.INVALID
+        || code == ErrorFrameCodec.CANCELED;
   }
 
   private RequestContext createRequestContext(Map<String, String> requestHeaders) {
@@ -224,18 +642,27 @@ public class ThriftServerRSocket implements RSocket {
   }
 
   /**
-   * Returns the request data, decompressing if the metadata specifies compression. The returned
-   * buffer is always independently owned — the caller must release it. Always retains {@code
-   * payload.sliceData()} first; in the uncompressed case that retained slice is returned, in the
-   * compressed case the compressor takes ownership of it (releasing it in its own finally
+   * Maps a saturated off-loop scheduler to the overload rejection: when the pool is full the
+   * handler hop throws instead of running, which must read as a REJECTED OVERLOAD like the Header
+   * transports report, not an APPLICATION_ERROR. No exception hooks fire because the handler never
+   * ran.
+   */
+  private static RSocketErrorException rejectedOverload(Throwable e) {
+    return fromApplicationException(OverloadedException.host(e.getMessage()));
+  }
+
+  /**
+   * Returns the request data, decompressed when {@code compression} names an algorithm. The
+   * returned buffer is always independently owned — the caller must release it. Always retains
+   * {@code payload.sliceData()} first; in the uncompressed case that retained slice is returned, in
+   * the compressed case the compressor takes ownership of it (releasing it in its own finally
    * regardless of success or failure) and returns a freshly allocated uncompressed buffer. Looking
    * up the compressor is the only pre-ownership-transfer step; if it throws (e.g. unknown
    * algorithm), the retained slice is released here.
    */
-  private ByteBuf maybeDecompressRequestData(RequestRpcMetadata metadata, Payload payload) {
+  private ByteBuf maybeDecompressRequestData(CompressionAlgorithm compression, Payload payload) {
     ByteBuf data = payload.sliceData();
     data.retain();
-    CompressionAlgorithm compression = metadata.getCompression();
     if (compression == null || compression == CompressionAlgorithm.NONE) {
       return data;
     }
@@ -298,13 +725,21 @@ public class ThriftServerRSocket implements RSocket {
 
     try {
       data = alloc.buffer();
-      metadata = alloc.buffer();
 
       serializeResponse(requestPayload, responsePayload, data);
-      serializeResponseMetadata(responsePayload, metadata);
+      throwIfOverloaded(responsePayload);
 
-      return createPayload(
-          alloc, responsePayload.getResponseRpcMetadata().getCompression(), data, metadata);
+      ResponseRpcMetadata responseMetadata =
+          withCompression(
+              responsePayload.getResponseRpcMetadata(),
+              CompressionManager.algorithmFor(
+                  requestPayload.getRequestRpcMetadata().getCompressionConfig(),
+                  data.readableBytes()));
+
+      metadata = alloc.buffer();
+      ProtocolUtil.writeCompact(responseMetadata::write0, metadata);
+
+      return createPayload(alloc, responseMetadata.getCompression(), data, metadata);
 
     } catch (Throwable t) {
       if (data != null && data.refCnt() > 0) {
@@ -318,9 +753,13 @@ public class ThriftServerRSocket implements RSocket {
     }
   }
 
-  private static void serializeResponseMetadata(
-      ServerResponsePayload responsePayload, ByteBuf metadata) {
-    ProtocolUtil.writeCompact(responsePayload.getResponseRpcMetadata()::write0, metadata);
+  private static ResponseRpcMetadata withCompression(
+      ResponseRpcMetadata metadata, CompressionAlgorithm compression) {
+    if (compression == CompressionAlgorithm.NONE) {
+      return metadata;
+    }
+
+    return new ResponseRpcMetadata.Builder(metadata).setCompression(compression).build();
   }
 
   private static void serializeStreamMetadata(
@@ -353,14 +792,14 @@ public class ThriftServerRSocket implements RSocket {
 
       RequestContext requestContext = createRequestContext(requestRpcMetadata.getOtherMetadata());
 
-      data = maybeDecompressRequestData(requestRpcMetadata, payload);
+      data = maybeDecompressRequestData(requestRpcMetadata.getCompression(), payload);
       ReferenceCountUtil.safeRelease(payload);
       payload = null;
 
       requestPayload = deserializeRequest(data, requestRpcMetadata, requestContext, data);
       data = null; // ownership transferred to ServerRequestPayload
 
-      assert requestPayload.getRequestRpcMetadata().getKind() == RpcKind.SINGLE_REQUEST_NO_RESPONSE;
+      checkRequest(requestRpcMetadata, RpcKind.SINGLE_REQUEST_NO_RESPONSE);
 
       final ServerRequestPayload finalRequestPayload = requestPayload;
       Mono<Void> response = rpcServerHandler.singleRequestNoResponse(requestPayload);
@@ -389,7 +828,60 @@ public class ThriftServerRSocket implements RSocket {
           .doFinally(__ -> finalRequestPayload.releaseRequestData());
     } catch (Throwable t) {
       releaseOnError(requestPayload, data, payload);
+
+      if (t instanceof UnknownMethodException) {
+        LOGGER.warn("Unknown oneway method; dropping", t);
+      } else if (requestPayload == null || t instanceof RSocketErrorException) {
+        LOGGER.warn("Invalid oneway request; dropping", t);
+      } else {
+        LOGGER.error("Unexpected oneway handler failure; dropping", t);
+      }
+
       return Mono.error(t);
+    }
+  }
+
+  /**
+   * The scheduler a client CANCEL hops through on its way upstream: the off-loop scheduler with a
+   * common-pool fallback, because {@code cancelOn} has no rejection fallback and a rejected cancel
+   * would never reach upstream.
+   */
+  public static Scheduler cancelScheduler() {
+    return CancelSchedulerHolder.INSTANCE;
+  }
+
+  private static final class CancelSchedulerHolder {
+    static final Scheduler INSTANCE =
+        new CancelScheduler(Schedulers.fromExecutorService(ForkJoinPool.commonPool()));
+  }
+
+  /**
+   * Never rejects: the off-loop scheduler with a common-pool fallback, so a cancel is never lost.
+   */
+  private static final class CancelScheduler implements Scheduler {
+    private final Scheduler fallback;
+
+    CancelScheduler(Scheduler fallback) {
+      this.fallback = fallback;
+    }
+
+    @Override
+    public Disposable schedule(Runnable task) {
+      try {
+        return RpcResources.getOffLoopScheduler().schedule(task);
+      } catch (RejectedExecutionException e) {
+        return fallback.schedule(task);
+      }
+    }
+
+    @Override
+    public Scheduler.Worker createWorker() {
+      return RpcResources.getOffLoopScheduler().createWorker();
+    }
+
+    @Override
+    public boolean isDisposed() {
+      return false;
     }
   }
 }

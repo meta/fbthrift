@@ -112,6 +112,25 @@ public class MyServiceReactiveAsyncWrapper
     }
 
     @java.lang.Override
+    public com.google.common.util.concurrent.ListenableFuture<Integer> frobnicateWithArg(final int arg) {
+        throw new UnsupportedOperationException("Interactions are not yet supported on ReactiveAsyncWrapper Interfaces!");
+    }
+
+    @java.lang.Override
+    public com.google.common.util.concurrent.ListenableFuture<Integer> frobnicateWithArg(
+      final int arg,
+      com.facebook.thrift.client.RpcOptions rpcOptions) {
+        throw new UnsupportedOperationException("Interactions are not yet supported on ReactiveAsyncWrapper Interfaces!");
+    }
+
+    @java.lang.Override
+    public com.google.common.util.concurrent.ListenableFuture<com.facebook.thrift.client.ResponseWrapper<Integer>> frobnicateWithArgWrapper(
+      final int arg,
+      com.facebook.thrift.client.RpcOptions rpcOptions) {
+        throw new UnsupportedOperationException("Interactions are not yet supported on ReactiveAsyncWrapper Interfaces!");
+    }
+
+    @java.lang.Override
     public void close() {}
   }
 

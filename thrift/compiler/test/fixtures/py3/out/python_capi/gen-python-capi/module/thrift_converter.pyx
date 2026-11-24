@@ -96,3 +96,9 @@ cdef cAdaptedTypedefFields AdaptedTypedefFields_convert_to_cpp(object inst) exce
 cdef object AdaptedTypedefFields_from_cpp(const cAdaptedTypedefFields& c_struct):
     return cpp_to_python[cAdaptedTypedefFields, _fbthrift__NamespaceTag](c_struct)
 
+cdef cStringAdaptedUnion StringAdaptedUnion_convert_to_cpp(object inst) except *:
+    return cmove(python_to_cpp[cStringAdaptedUnion, _fbthrift__NamespaceTag](inst))
+
+cdef object StringAdaptedUnion_from_cpp(const cStringAdaptedUnion& c_struct):
+    return cpp_to_python[cStringAdaptedUnion, _fbthrift__NamespaceTag](c_struct)
+

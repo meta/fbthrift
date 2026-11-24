@@ -65,7 +65,7 @@ const ::matching_module_name::OtherStruct& MyStruct::get_OtherStructField() cons
 
 void swap([[maybe_unused]] MyStruct& a, [[maybe_unused]] MyStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_OtherStructField, b.__fbthrift_field_OtherStructField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_OtherStructField, b.__fbthrift_field_OtherStructField);
   swap(a.__isset, b.__isset);
 }
 

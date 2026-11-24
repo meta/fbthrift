@@ -14,9 +14,8 @@
 
 
 """
-SimpleJSON: the writer, byte-identical to C++ ``SimpleJSONProtocolWriter``
-(``thrift/lib/cpp2/protocol/SimpleJSONProtocol-inl.h``), and the parser that
-turns input into a tree for the walk to read.
+SimpleJSON: fully-compatible with C++ ``SimpleJSONProtocolWriter`` and
+``SimpleJSONProtocolReader``.
 
 A struct is ``{"name":value,...}``, a list or set ``[...]``, and a map
 ``{key:value,...}``, with no whitespace. Map keys of integer, enum, bool, and
@@ -27,18 +26,32 @@ as invalid JSON, raise ``EncodeError``.
 from __future__ import annotations
 
 import functools
+import itertools
 import json
-from typing import ClassVar, NoReturn
+from typing import cast, ClassVar, NoReturn
 
 from thrift.lib.python.schema._errors import DecodeError, EncodeError
 from thrift.lib.python.schema._protocol_common import decode_utf8
 from thrift.lib.python.schema._simple_json_scalars import (
+    binary_from_json,
+    bool_from_json_key,
+    floating_from_json,
+    floating_from_json_key,
+    int_from_json,
     json_binary,
     json_double,
     json_float32,
     json_string,
+    special_floating_from_json,
+    utf8_text,
 )
-from thrift.lib.python.schema._ttypes import Protocol
+from thrift.lib.python.schema._ttypes import (
+    NO_FIELD_ID,
+    Protocol,
+    PROTOCOL_MAX_DEPTH,
+    T_STOP,
+    T_VOID,
+)
 
 
 class _Context:
@@ -138,17 +151,21 @@ class SimpleJsonWriter:
     def write_bool(self, value: bool) -> None:
         self._write_number("true" if value else "false")
 
+    def _write_int(self, value: int) -> None:
+        # A generated enum member is an int whose str() is its name.
+        self._write_number(str(int(value)))
+
     def write_byte(self, value: int) -> None:
-        self._write_number(str(value))
+        self._write_int(value)
 
     def write_i16(self, value: int) -> None:
-        self._write_number(str(value))
+        self._write_int(value)
 
     def write_i32(self, value: int) -> None:
-        self._write_number(str(value))
+        self._write_int(value)
 
     def write_i64(self, value: int) -> None:
-        self._write_number(str(value))
+        self._write_int(value)
 
     def write_float(self, value: float) -> None:
         self._write_number(json_float32(value))
@@ -171,8 +188,8 @@ class SimpleJsonWriter:
 
 
 # ---------------------------------------------------------------------------
-# Reading: the ``json`` module (C-accelerated) builds a tree, which the walk
-# then reads against a ``TypeRef``.
+# Reading: the ``json`` module (C-accelerated) builds a tree, which
+# ``SimpleJsonReader`` reads.
 # ---------------------------------------------------------------------------
 
 
@@ -223,6 +240,17 @@ def parse_json(data: bytes) -> object:
         raise DecodeError(f"invalid JSON: {e}") from e
 
 
+def parse_json_prefix(text: str, start: int = 0) -> tuple[object, int]:
+    """The tree of the JSON value at ``text[start]``, as ``parse_json``
+    builds it, and the index just past the value; what follows is not read.
+    Raises ``DecodeError`` if no JSON value starts at ``start`` (or
+    ``RecursionError`` if it nests too deeply)."""
+    try:
+        return _decoder().raw_decode(text, start)
+    except ValueError as e:  # includes json.JSONDecodeError
+        raise DecodeError(f"invalid JSON: {e}") from e
+
+
 def json_kind(node: object) -> str:
     """The JSON kind of a tree node, for error messages."""
     match node:
@@ -254,3 +282,230 @@ def dump_json(node: object) -> str:
             return node.literal
         case _:
             return json.dumps(node)
+
+
+_READ = object()
+
+
+def _mismatch(node: object, type_name: str) -> DecodeError:
+    return DecodeError(f"JSON {json_kind(node)} cannot be read as type '{type_name}'")
+
+
+class _ReadContext:
+    """An open object or array: its items, keys and values alternating in an
+    object, and how many have been read."""
+
+    __slots__ = ("items", "is_object", "meta")
+    items: list[object]
+    is_object: bool
+    meta: int
+
+    def __init__(self, items: list[object], is_object: bool) -> None:
+        self.items = items
+        self.is_object = is_object
+        self.meta = 0
+
+
+class SimpleJsonReader:
+    """Reads SimpleJSON.
+
+    A field is identified by its name alone, and one whose value is ``null``
+    is skipped. Map keys are quoted; scalar keys are decoded from their text. The
+    input has no container sizes or wire types: the begin methods return the
+    size of the parsed object or array, and ``T_VOID`` for every wire type.
+    ``skip`` ignores the wire type."""
+
+    __slots__ = ("_size", "_root", "_contexts", "_height")
+    protocol: ClassVar[Protocol] = Protocol.SIMPLE_JSON
+    uses_field_names: ClassVar[bool] = True
+    omits_container_sizes: ClassVar[bool] = True
+
+    _size: int
+    _root: object
+    _contexts: list[_ReadContext]
+    _height: int
+
+    def __init__(self, data: bytes) -> None:
+        try:
+            self._root = parse_json(data)
+        except RecursionError:
+            raise DecodeError("input is nested too deeply to parse") from None
+        self._size = len(data)
+        self._contexts = []
+        self._height = PROTOCOL_MAX_DEPTH + 1
+
+    def remaining(self) -> int:
+        """``len(data)`` until the value has been read, then 0: the parser has
+        already rejected anything but whitespace after it."""
+        return 0 if self._root is _READ and not self._contexts else self._size
+
+    def _next(self) -> tuple[object, str | None]:
+        """The next item, and its text if it is an object key."""
+        if not self._contexts:
+            root = self._root
+            if root is _READ:
+                raise DecodeError("no value left to read")
+            self._root = _READ
+            return root, None
+        context = self._contexts[-1]
+        meta = context.meta
+        if meta == len(context.items):
+            kind = "object" if context.is_object else "array"
+            raise DecodeError(f"no items left to read in a JSON {kind}")
+        context.meta = meta + 1
+        item = context.items[meta]
+        if context.is_object and meta % 2 == 0:
+            return item, cast(str, item)
+        return item, None
+
+    def _descend(self) -> None:
+        self._height -= 1
+        if self._height == 0:
+            self._height += 1
+            raise DecodeError(f"nesting depth exceeds {PROTOCOL_MAX_DEPTH}")
+
+    def _next_container(self, type_name: str) -> object:
+        self._descend()
+        node, key = self._next()
+        if key is not None:
+            raise DecodeError(f"SimpleJSON cannot read a map key of type '{type_name}'")
+        return node
+
+    def _open_object(self, type_name: str) -> int:
+        node = self._next_container(type_name)
+        if not isinstance(node, JsonObject):
+            raise _mismatch(node, type_name)
+        self._contexts.append(
+            _ReadContext(list(itertools.chain.from_iterable(node)), True)
+        )
+        return len(node)
+
+    def _open_array(self, type_name: str) -> int:
+        node = self._next_container(type_name)
+        if not isinstance(node, list) or isinstance(node, JsonObject):
+            raise _mismatch(node, type_name)
+        self._contexts.append(_ReadContext(node, False))
+        return len(node)
+
+    def _close(self) -> None:
+        context = self._contexts.pop()
+        if context.meta != len(context.items):
+            kind = "object" if context.is_object else "array"
+            raise DecodeError(f"unread items left in a JSON {kind}")
+        self._height += 1
+
+    def read_struct_begin(self) -> None:
+        self._open_object("struct")
+
+    def read_struct_end(self) -> None:
+        self._close()
+
+    def read_field_begin(self) -> tuple[int, int, str]:
+        context = self._contexts[-1]
+        items = context.items
+        while context.meta < len(items) and items[context.meta + 1] is None:
+            context.meta += 2
+        if context.meta == len(items):
+            return T_STOP, 0, ""
+        name, _ = self._next()
+        return T_VOID, NO_FIELD_ID, cast(str, name)
+
+    def read_field_end(self) -> None:
+        pass
+
+    def read_map_begin(self) -> tuple[int, int, int]:
+        return T_VOID, T_VOID, self._open_object("map")
+
+    def read_map_end(self) -> None:
+        self._close()
+
+    def read_list_begin(self) -> tuple[int, int]:
+        return T_VOID, self._open_array("list")
+
+    def read_list_end(self) -> None:
+        self._close()
+
+    def read_set_begin(self) -> tuple[int, int]:
+        return T_VOID, self._open_array("set")
+
+    def read_set_end(self) -> None:
+        self._close()
+
+    def read_bool(self) -> bool:
+        node, key = self._next()
+        if key is not None:
+            return bool_from_json_key(key)
+        if isinstance(node, bool):
+            return node
+        raise _mismatch(node, "bool")
+
+    def _read_int(self, bits: int, type_name: str) -> int:
+        node, key = self._next()
+        if key is not None:
+            return int_from_json(key, bits, type_name)
+        if isinstance(node, JsonNumber):
+            return int_from_json(node.literal, bits, type_name)
+        raise _mismatch(node, type_name)
+
+    def read_byte(self) -> int:
+        return self._read_int(8, "byte")
+
+    def read_i16(self) -> int:
+        return self._read_int(16, "i16")
+
+    def read_i32(self) -> int:
+        return self._read_int(32, "i32")
+
+    def read_i64(self) -> int:
+        return self._read_int(64, "i64")
+
+    def _read_floating(self, float32: bool, type_name: str) -> float:
+        node, key = self._next()
+        if key is not None:
+            return floating_from_json_key(key, float32=float32)
+        if isinstance(node, JsonNumber):
+            return floating_from_json(node.literal, float32=float32)
+        if isinstance(node, str):
+            return special_floating_from_json(node)
+        raise _mismatch(node, type_name)
+
+    def read_float(self) -> float:
+        return self._read_floating(True, "float")
+
+    def read_double(self) -> float:
+        return self._read_floating(False, "double")
+
+    def _read_text(self, type_name: str) -> str:
+        node, _ = self._next()
+        if isinstance(node, str):
+            return node
+        raise _mismatch(node, type_name)
+
+    def read_string(self) -> str:
+        return utf8_text(self._read_text("string"))
+
+    def read_binary(self) -> bytes:
+        return binary_from_json(self._read_text("binary"))
+
+    def skip(self, ttype: int, depth: int = 0) -> None:
+        self._skip(depth)
+
+    def read_raw(self, ttype: int) -> bytes:
+        return dump_json(self._skip(0)).encode("utf-8")
+
+    def _skip(self, depth: int) -> object:
+        """Consume the next item: each nested value is one level deeper,
+        and each object or array counts toward the nesting limit."""
+        node, _ = self._next()
+        pending = [(node, 0)]
+        while pending:
+            item, level = pending.pop()
+            if depth + level >= PROTOCOL_MAX_DEPTH or (
+                isinstance(item, list) and level + 1 >= self._height
+            ):
+                raise DecodeError(f"nesting depth exceeds {PROTOCOL_MAX_DEPTH}")
+            if isinstance(item, JsonObject):
+                pending.extend((value, level + 1) for _, value in item)
+            elif isinstance(item, list):
+                pending.extend((element, level + 1) for element in item)
+        return node

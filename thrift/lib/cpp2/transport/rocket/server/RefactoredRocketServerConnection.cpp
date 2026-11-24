@@ -387,6 +387,18 @@ void RefactoredRocketServerConnection::pauseSocketReading() {
   socket_->setReadCB(nullptr);
 }
 
+void RefactoredRocketServerConnection::handleFrame(IOBufChain frame) {
+  DestructorGuard dg(this);
+  if (state_ != ConnectionState::ALIVE && state_ != ConnectionState::DRAINING) {
+    return;
+  }
+
+  frameHandler_->onBeforeHandleFrame();
+
+  // Process frames inline to avoid deferred processing issues.
+  incomingFrameHandler_.handle(std::move(frame));
+}
+
 void RefactoredRocketServerConnection::handleFrame(
     std::unique_ptr<folly::IOBuf> frame) {
   DestructorGuard dg(this);
@@ -534,7 +546,7 @@ void RefactoredRocketServerConnection::sendPayload(
 
     // Get or create OutgoingFrameHandler for this EventBase
     auto* handler = outgoingFrameHandler_.get(evb_);
-    if (FOLLY_UNLIKELY(handler == nullptr)) {
+    if (handler == nullptr) [[unlikely]] {
       outgoingFrameHandler_.emplace(
           evb_, evb_, cfg_.getOutgoingFrameHandlerBatchLogSize());
       handler = outgoingFrameHandler_.get(evb_);
@@ -574,7 +586,7 @@ void RefactoredRocketServerConnection::sendError(
 
     // Get or create OutgoingFrameHandler for this EventBase
     auto* handler = outgoingFrameHandler_.get(evb_);
-    if (FOLLY_UNLIKELY(handler == nullptr)) {
+    if (handler == nullptr) [[unlikely]] {
       outgoingFrameHandler_.emplace(
           evb_, evb_, cfg_.getOutgoingFrameHandlerBatchLogSize());
       handler = outgoingFrameHandler_.get(evb_);
@@ -606,7 +618,7 @@ void RefactoredRocketServerConnection::sendRequestN(
 
     // Get or create OutgoingFrameHandler for this EventBase
     auto* handler = outgoingFrameHandler_.get(evb_);
-    if (FOLLY_UNLIKELY(handler == nullptr)) {
+    if (handler == nullptr) [[unlikely]] {
       outgoingFrameHandler_.emplace(
           evb_, evb_, cfg_.getOutgoingFrameHandlerBatchLogSize());
       handler = outgoingFrameHandler_.get(evb_);
@@ -631,7 +643,7 @@ void RefactoredRocketServerConnection::sendCancel(StreamId streamId) {
 
     // Get or create OutgoingFrameHandler for this EventBase
     auto* handler = outgoingFrameHandler_.get(evb_);
-    if (FOLLY_UNLIKELY(handler == nullptr)) {
+    if (handler == nullptr) [[unlikely]] {
       outgoingFrameHandler_.emplace(
           evb_, evb_, cfg_.getOutgoingFrameHandlerBatchLogSize());
       handler = outgoingFrameHandler_.get(evb_);

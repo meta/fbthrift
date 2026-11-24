@@ -24,7 +24,7 @@ PayloadSerializer::PayloadSerializerHolder::~PayloadSerializerHolder() {
 
 PayloadSerializer::Ptr PayloadSerializer::PayloadSerializerHolder::get() {
   auto* serializer = serializer_.load(std::memory_order_acquire);
-  if (FOLLY_LIKELY(serializer != nullptr)) {
+  if (serializer != nullptr) [[likely]] {
     return Ptr(*serializer);
   }
   auto* newSerializer =

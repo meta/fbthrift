@@ -56,7 +56,7 @@ trait ThriftUnionSerializationTrait implements IThriftStruct {
         break;
       }
 
-      if ($field_id !== null) {
+      if ($field_id !== null && !$protocol::USES_FIELD_NAMES) {
         // Compact, Binary and JSON:
         // These protocols only encode the field id.
 
@@ -75,25 +75,28 @@ trait ThriftUnionSerializationTrait implements IThriftStruct {
         // This uses the TSPEC to find the field name.
         $field_name = $tspec[$field_id]['var'];
       } else {
-        // SimpleJSON:
-        // This protocol only encodes the field name.
+        // SimpleJSON and JSON5:
+        // These protocols encode the field name; JSON5 can also encode the
+        // field id, with the name or instead of it.
 
         // Versioning:
         // Skip type if there is a mismatch between the tspec and the
         // type that we obtain from the buffer.
-        // Since SimpleJSON doesn't have a field id, we use reflection
-        // to inspect the object for the element.
-        if (!PHP\array_key_exists($field_name, $this::FIELDMAP)) {
+        $field_id = $field_id is null
+          ? idx($this::FIELDMAP, $field_name)
+          : ThriftSerializationHelper::findFieldId(
+              $this,
+              $field_name,
+              $field_id,
+            );
+        if ($field_id === null) {
           $xfer += $protocol->skip($field_type as nonnull);
           $xfer += $protocol->readFieldEnd();
           continue;
         }
 
-        // This uses the TFIELDMAP to find the field id.
-        $field_id = $this::FIELDMAP[nullthrows(
-          $field_name,
-          '$field_name was unexpectedly null in '.__METHOD__,
-        )];
+        // This uses the TSPEC to find the field name.
+        $field_name = $tspec[$field_id]['var'];
       }
 
       $field_name_tmp = null;
@@ -106,7 +109,7 @@ trait ThriftUnionSerializationTrait implements IThriftStruct {
         $tspec[$field_id],
         inout $has_type_wrapper,
       );
-      if ($field_name_tmp !== null && $field_name is nonnull) {
+      if ($field_name_tmp !== null) {
         $is_field_wrapped =
           Shapes::idx($tspec[$field_id], 'is_wrapped') ?? false;
         if ($has_type_wrapper || $is_field_wrapped) {
@@ -221,10 +224,6 @@ trait ThriftUnionSerializationTrait implements IThriftStruct {
 
       $field_type = $field['type'];
       $xfer += $protocol->writeFieldBegin($field_name, $field_type, $field_id);
-      $adapter = Shapes::idx($field, 'adapter');
-      if ($field_value is nonnull && $adapter is nonnull) {
-        $field_value = $adapter::toThrift($field_value);
-      }
       $xfer += ThriftSerializationHelper::writeStructHelper(
         $protocol,
         $field_type,

@@ -54,7 +54,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -252,9 +251,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
-  _advance_failure:
-  _readState.afterAdvanceFailure(iprot);
 _loop:
   if (_readState.atStop()) {
     goto _end;
@@ -429,7 +425,7 @@ _readField_my_enum:
 _readField_cpp_type_annotation:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_cpp_type_annotation = ::cpp2::list_string_6884();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_cpp_type_annotation);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::string>, ::cpp2::list_string_6884, ::apache::thrift::type::cpp_type<::cpp2::list_string_6884, ::apache::thrift::type::list<::apache::thrift::type::string_t>>>::read(*iprot, this->__fbthrift_field_cpp_type_annotation);
     _readState.afterSubobject(iprot);
   }
@@ -463,7 +459,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -786,7 +781,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:

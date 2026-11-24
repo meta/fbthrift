@@ -38,7 +38,7 @@ void Foo::readNoXfer(Protocol_* iprot) {
 _readField_field1:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_field1 = ::std::vector<double>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field1);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::floating_point>, ::std::vector<double>, ::apache::thrift::type::list<::apache::thrift::type::double_t>>::read(*iprot, this->__fbthrift_field_field1);
     _readState.afterSubobject(iprot);
   }
@@ -54,7 +54,7 @@ _readField_field1:
 _readField_field2:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_field2 = ::std::vector<::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field2);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int32_t>, ::apache::thrift::type::list<::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_field2);
     _readState.afterSubobject(iprot);
   }
@@ -70,7 +70,7 @@ _readField_field2:
 _readField_field3:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_field3 = ::std::vector<double>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field3);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::floating_point>, ::std::vector<double>, ::apache::thrift::type::list<::apache::thrift::type::double_t>>::read(*iprot, this->__fbthrift_field_field3);
     _readState.afterSubobject(iprot);
   }
@@ -86,7 +86,7 @@ _readField_field3:
 _readField_field4:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_field4 = ::std::vector<::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field4);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int32_t>, ::apache::thrift::type::list<::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_field4);
     _readState.afterSubobject(iprot);
   }
@@ -105,7 +105,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -288,7 +287,7 @@ void LazyFoo::readNoXfer(Protocol_* iprot) {
 _readField_field1:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_field1 = ::std::vector<double>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field1);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::floating_point>, ::std::vector<double>, ::apache::thrift::type::list<::apache::thrift::type::double_t>>::read(*iprot, this->__fbthrift_field_field1);
     _readState.afterSubobject(iprot);
   }
@@ -304,7 +303,7 @@ _readField_field1:
 _readField_field2:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_field2 = ::std::vector<::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field2);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int32_t>, ::apache::thrift::type::list<::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_field2);
     _readState.afterSubobject(iprot);
   }
@@ -330,7 +329,7 @@ _readField_field3:
     __fbthrift_isDeserialized_.field3 = isDeserialized & ~::apache::thrift::detail::LazyDeserializationState::DESERIALIZED;
   } else {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_field3 = ::std::vector<double>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field3);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::floating_point>, ::std::vector<double>, ::apache::thrift::type::list<::apache::thrift::type::double_t>>::read(*iprot, this->__fbthrift_field_field3);
     _readState.afterSubobject(iprot);
   }
@@ -356,7 +355,7 @@ _readField_field4:
     __fbthrift_isDeserialized_.field4 = isDeserialized & ~::apache::thrift::detail::LazyDeserializationState::DESERIALIZED;
   } else {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_field4 = ::std::vector<::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field4);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int32_t>, ::apache::thrift::type::list<::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_field4);
     _readState.afterSubobject(iprot);
   }
@@ -375,7 +374,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -436,7 +434,7 @@ void LazyFoo::__fbthrift_read_field_field3_impl() const {
   ProtocolReader *iprot = &reader;
   [[maybe_unused]] apache::thrift::detail::ProtocolReaderStructReadState<ProtocolReader> _readState;
   _readState.beforeSubobject(iprot);
-  this->__fbthrift_field_field3 = ::std::vector<double>();
+  ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field3);
   ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::floating_point>, ::std::vector<double>, ::apache::thrift::type::list<::apache::thrift::type::double_t>>::read(*iprot, this->__fbthrift_field_field3);
   _readState.afterSubobject(iprot);
 }
@@ -447,7 +445,7 @@ void LazyFoo::__fbthrift_read_field_field4_impl() const {
   ProtocolReader *iprot = &reader;
   [[maybe_unused]] apache::thrift::detail::ProtocolReaderStructReadState<ProtocolReader> _readState;
   _readState.beforeSubobject(iprot);
-  this->__fbthrift_field_field4 = ::std::vector<::std::int32_t>();
+  ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field4);
   ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int32_t>, ::apache::thrift::type::list<::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_field4);
   _readState.afterSubobject(iprot);
 }
@@ -633,7 +631,7 @@ void OptionalFoo::readNoXfer(Protocol_* iprot) {
 _readField_field1:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_field1 = ::std::vector<double>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field1);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::floating_point>, ::std::vector<double>, ::apache::thrift::type::list<::apache::thrift::type::double_t>>::read(*iprot, this->__fbthrift_field_field1);
     _readState.afterSubobject(iprot);
   }
@@ -649,7 +647,7 @@ _readField_field1:
 _readField_field2:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_field2 = ::std::vector<::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field2);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int32_t>, ::apache::thrift::type::list<::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_field2);
     _readState.afterSubobject(iprot);
   }
@@ -665,7 +663,7 @@ _readField_field2:
 _readField_field3:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_field3 = ::std::vector<double>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field3);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::floating_point>, ::std::vector<double>, ::apache::thrift::type::list<::apache::thrift::type::double_t>>::read(*iprot, this->__fbthrift_field_field3);
     _readState.afterSubobject(iprot);
   }
@@ -681,7 +679,7 @@ _readField_field3:
 _readField_field4:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_field4 = ::std::vector<::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field4);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int32_t>, ::apache::thrift::type::list<::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_field4);
     _readState.afterSubobject(iprot);
   }
@@ -700,7 +698,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -891,7 +888,7 @@ void OptionalLazyFoo::readNoXfer(Protocol_* iprot) {
 _readField_field1:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_field1 = ::std::vector<double>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field1);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::floating_point>, ::std::vector<double>, ::apache::thrift::type::list<::apache::thrift::type::double_t>>::read(*iprot, this->__fbthrift_field_field1);
     _readState.afterSubobject(iprot);
   }
@@ -907,7 +904,7 @@ _readField_field1:
 _readField_field2:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_field2 = ::std::vector<::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field2);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int32_t>, ::apache::thrift::type::list<::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_field2);
     _readState.afterSubobject(iprot);
   }
@@ -933,7 +930,7 @@ _readField_field3:
     __fbthrift_isDeserialized_.field3 = isDeserialized & ~::apache::thrift::detail::LazyDeserializationState::DESERIALIZED;
   } else {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_field3 = ::std::vector<double>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field3);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::floating_point>, ::std::vector<double>, ::apache::thrift::type::list<::apache::thrift::type::double_t>>::read(*iprot, this->__fbthrift_field_field3);
     _readState.afterSubobject(iprot);
   }
@@ -959,7 +956,7 @@ _readField_field4:
     __fbthrift_isDeserialized_.field4 = isDeserialized & ~::apache::thrift::detail::LazyDeserializationState::DESERIALIZED;
   } else {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_field4 = ::std::vector<::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field4);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int32_t>, ::apache::thrift::type::list<::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_field4);
     _readState.afterSubobject(iprot);
   }
@@ -978,7 +975,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -1039,7 +1035,7 @@ void OptionalLazyFoo::__fbthrift_read_field_field3_impl() const {
   ProtocolReader *iprot = &reader;
   [[maybe_unused]] apache::thrift::detail::ProtocolReaderStructReadState<ProtocolReader> _readState;
   _readState.beforeSubobject(iprot);
-  this->__fbthrift_field_field3 = ::std::vector<double>();
+  ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field3);
   ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::floating_point>, ::std::vector<double>, ::apache::thrift::type::list<::apache::thrift::type::double_t>>::read(*iprot, this->__fbthrift_field_field3);
   _readState.afterSubobject(iprot);
 }
@@ -1050,7 +1046,7 @@ void OptionalLazyFoo::__fbthrift_read_field_field4_impl() const {
   ProtocolReader *iprot = &reader;
   [[maybe_unused]] apache::thrift::detail::ProtocolReaderStructReadState<ProtocolReader> _readState;
   _readState.beforeSubobject(iprot);
-  this->__fbthrift_field_field4 = ::std::vector<::std::int32_t>();
+  ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field4);
   ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int32_t>, ::apache::thrift::type::list<::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_field4);
   _readState.afterSubobject(iprot);
 }
@@ -1249,7 +1245,7 @@ void TerseLazyFooNoChecksum::readNoXfer(Protocol_* iprot) {
 _readField_field1:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_field1 = ::std::vector<::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field1);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int32_t>, ::apache::thrift::type::list<::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_field1);
     _readState.afterSubobject(iprot);
   }
@@ -1274,7 +1270,7 @@ _readField_field2:
     __fbthrift_isDeserialized_.field2 = isDeserialized & ~::apache::thrift::detail::LazyDeserializationState::DESERIALIZED;
   } else {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_field2 = ::std::vector<::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field2);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int32_t>, ::apache::thrift::type::list<::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_field2);
     _readState.afterSubobject(iprot);
   }
@@ -1299,7 +1295,7 @@ _readField_field3:
     __fbthrift_isDeserialized_.field3 = isDeserialized & ~::apache::thrift::detail::LazyDeserializationState::DESERIALIZED;
   } else {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_field3 = ::std::vector<::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field3);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int32_t>, ::apache::thrift::type::list<::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_field3);
     _readState.afterSubobject(iprot);
   }
@@ -1317,7 +1313,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -1370,7 +1365,7 @@ void TerseLazyFooNoChecksum::__fbthrift_read_field_field2_impl() const {
   ProtocolReader *iprot = &reader;
   [[maybe_unused]] apache::thrift::detail::ProtocolReaderStructReadState<ProtocolReader> _readState;
   _readState.beforeSubobject(iprot);
-  this->__fbthrift_field_field2 = ::std::vector<::std::int32_t>();
+  ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field2);
   ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int32_t>, ::apache::thrift::type::list<::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_field2);
   _readState.afterSubobject(iprot);
 }
@@ -1381,7 +1376,7 @@ void TerseLazyFooNoChecksum::__fbthrift_read_field_field3_impl() const {
   ProtocolReader *iprot = &reader;
   [[maybe_unused]] apache::thrift::detail::ProtocolReaderStructReadState<ProtocolReader> _readState;
   _readState.beforeSubobject(iprot);
-  this->__fbthrift_field_field3 = ::std::vector<::std::int32_t>();
+  ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field3);
   ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int32_t>, ::apache::thrift::type::list<::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_field3);
   _readState.afterSubobject(iprot);
 }
@@ -1678,7 +1673,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -2066,7 +2060,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -2449,7 +2442,7 @@ _readField_serialized_data_size:
 _readField_field1:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_field1 = ::std::vector<double>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field1);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::floating_point>, ::std::vector<double>, ::apache::thrift::type::list<::apache::thrift::type::double_t>>::read(*iprot, this->__fbthrift_field_field1);
     _readState.afterSubobject(iprot);
   }
@@ -2465,7 +2458,7 @@ _readField_field1:
 _readField_field2:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_field2 = ::std::vector<::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field2);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int32_t>, ::apache::thrift::type::list<::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_field2);
     _readState.afterSubobject(iprot);
   }
@@ -2481,7 +2474,7 @@ _readField_field2:
 _readField_field3:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_field3 = ::std::vector<double>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field3);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::floating_point>, ::std::vector<double>, ::apache::thrift::type::list<::apache::thrift::type::double_t>>::read(*iprot, this->__fbthrift_field_field3);
     _readState.afterSubobject(iprot);
   }
@@ -2497,7 +2490,7 @@ _readField_field3:
 _readField_field4:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_field4 = ::std::vector<::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field4);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int32_t>, ::apache::thrift::type::list<::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_field4);
     _readState.afterSubobject(iprot);
   }
@@ -2513,7 +2506,7 @@ _readField_field4:
 _readField_field_id_to_size:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_field_id_to_size = ::std::map<::std::int16_t, ::std::int64_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field_id_to_size);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::integral, ::apache::thrift::type_class::integral>, ::std::map<::std::int16_t, ::std::int64_t>, ::apache::thrift::type::map<::apache::thrift::type::i16_t, ::apache::thrift::type::i64_t>>::read(*iprot, this->__fbthrift_field_field_id_to_size);
     _readState.afterSubobject(iprot);
   }
@@ -2532,7 +2525,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -2769,7 +2761,7 @@ _readField_serialized_data_size:
 _readField_field1:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_field1 = ::std::vector<double>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field1);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::floating_point>, ::std::vector<double>, ::apache::thrift::type::list<::apache::thrift::type::double_t>>::read(*iprot, this->__fbthrift_field_field1);
     _readState.afterSubobject(iprot);
   }
@@ -2785,7 +2777,7 @@ _readField_field1:
 _readField_field2:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_field2 = ::std::vector<::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field2);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int32_t>, ::apache::thrift::type::list<::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_field2);
     _readState.afterSubobject(iprot);
   }
@@ -2801,7 +2793,7 @@ _readField_field2:
 _readField_field3:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_field3 = ::std::vector<double>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field3);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::floating_point>, ::std::vector<double>, ::apache::thrift::type::list<::apache::thrift::type::double_t>>::read(*iprot, this->__fbthrift_field_field3);
     _readState.afterSubobject(iprot);
   }
@@ -2817,7 +2809,7 @@ _readField_field3:
 _readField_field4:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_field4 = ::std::vector<::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field4);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int32_t>, ::apache::thrift::type::list<::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_field4);
     _readState.afterSubobject(iprot);
   }
@@ -2833,7 +2825,7 @@ _readField_field4:
 _readField_field_id_to_size:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_field_id_to_size = ::std::map<::std::int16_t, ::std::int64_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_field_id_to_size);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::integral, ::apache::thrift::type_class::integral>, ::std::map<::std::int16_t, ::std::int64_t>, ::apache::thrift::type::map<::apache::thrift::type::i16_t, ::apache::thrift::type::i64_t>>::read(*iprot, this->__fbthrift_field_field_id_to_size);
     _readState.afterSubobject(iprot);
   }
@@ -2852,7 +2844,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -3087,9 +3078,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
-  _advance_failure:
-  _readState.afterAdvanceFailure(iprot);
 _loop:
   if (_readState.atStop()) {
     goto _end;

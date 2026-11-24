@@ -21,6 +21,7 @@
 #include <folly/Synchronized.h>
 #include <folly/io/IOBuf.h>
 #include <thrift/conformance/stresstest/if/gen-cpp2/StressTest.h>
+#include <thrift/lib/cpp2/IOBufChain.h>
 
 namespace apache::thrift::stress {
 
@@ -76,6 +77,14 @@ class StressTestHandler : public apache::thrift::ServiceHandler<StressTest> {
   void async_eb_storageReadEb(
       HandlerCallbackPtr<std::unique_ptr<StorageReadResponse>> callback,
       std::unique_ptr<StorageReadRequest> request) override;
+
+  void async_tm_storageReadChainTm(
+      HandlerCallbackPtr<std::unique_ptr<StorageReadChainResponse>> callback,
+      std::unique_ptr<StorageReadChainRequest> request) override;
+
+  void async_eb_storageReadChainEb(
+      HandlerCallbackPtr<std::unique_ptr<StorageReadChainResponse>> callback,
+      std::unique_ptr<StorageReadChainRequest> request) override;
 
   void async_tm_storageWriteTm(
       HandlerCallbackPtr<std::unique_ptr<StorageWriteResponse>> callback,

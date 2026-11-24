@@ -34,6 +34,7 @@
 #include <thrift/compiler/ast/type_visitor.h>
 #include <thrift/compiler/ast/uri.h>
 #include <thrift/compiler/generate/common.h>
+#include <thrift/compiler/generate/cpp/allocator.h>
 #include <thrift/compiler/generate/cpp/name_resolver.h>
 #include <thrift/compiler/generate/cpp/orderable_type_utils.h>
 #include <thrift/compiler/generate/cpp/util.h>
@@ -797,9 +798,36 @@ bool type_transitively_refers_to_struct(const t_type& type) {
   return false;
 }
 
+bool is_frozen2_excluded(const t_structured& strct) {
+  // TODO(dokwon): Fix frozen2 compatibility with adapter.
+  return strct.has_unstructured_annotation("cpp.frozen2_exclude") ||
+      strct.has_structured_annotation(kCppFrozen2ExcludeUri) ||
+      cpp_name_resolver::is_directly_adapted(strct);
+}
+
 class t_mstch_cpp2_generator : public t_whisker_generator {
  public:
   using t_whisker_generator::t_whisker_generator;
+
+  std::optional<docblock_style> get_docblock_style() const override {
+    return docblock_style::c_style();
+  }
+
+  bool docblock_includes_definition(const t_named& node) const override {
+    if (cpp2::get_name(&node) != node.name()) {
+      return true;
+    }
+    if (const auto* field = dynamic_cast<const t_field*>(&node)) {
+      return cpp2::is_custom_type(*field);
+    }
+    if (const auto* constant = dynamic_cast<const t_const*>(&node)) {
+      return cpp2::is_custom_type(constant->type_ref().deref());
+    }
+    if (const auto* type = dynamic_cast<const t_type*>(&node)) {
+      return cpp2::is_custom_type(*type);
+    }
+    return false;
+  }
 
   void process_options(
       const std::map<std::string, std::string>& options) override {
@@ -837,6 +865,12 @@ class t_mstch_cpp2_generator : public t_whisker_generator {
              render_state().prototypes->create<t_service>(service))},
     });
     t_whisker_generator::render_to_file(output, template_name, context);
+  }
+
+  const t_structured& get_structured_parent(const t_field& field) const {
+    const t_structured* parent = context().get_field_parent(&field);
+    assert(parent != nullptr);
+    return *parent;
   }
 
   whisker::object make_rendered_type(
@@ -1095,6 +1129,14 @@ class t_mstch_cpp2_generator : public t_whisker_generator {
           return cpp_context_->field_default_const_ref_programs().contains(
               &program);
         });
+    def.property("arena_fields?", [](const t_program& self) {
+      return std::any_of(
+          self.structured_definitions().begin(),
+          self.structured_definitions().end(),
+          [](const t_structured* strct) {
+            return cpp2::has_arena_fields(*strct);
+          });
+    });
     def.property("frozen_packed?", [this](const t_program&) {
       return get_compiler_option("frozen") == "packed";
     });
@@ -1257,7 +1299,7 @@ class t_mstch_cpp2_generator : public t_whisker_generator {
         });
     def.property(
         "nondefault_copy_ctor_and_assignment?", [](const t_structured& strct) {
-          if (strct.has_unstructured_annotation("cpp.allocator")) {
+          if (cpp2::is_allocator_aware(strct)) {
             return true;
           }
           for (const auto& f : strct.fields()) {
@@ -1336,40 +1378,32 @@ class t_mstch_cpp2_generator : public t_whisker_generator {
       return strct.has_unstructured_annotation({"cpp.virtual", "cpp2.virtual"});
     });
     def.property("cpp_allocator", [](const t_structured& strct) {
-      const std::string& value =
-          strct.get_unstructured_annotation("cpp.allocator");
-      return value.empty() ? whisker::make::null : whisker::make::string(value);
+      const std::string* value = cpp2::find_allocator(strct);
+      return value == nullptr ? whisker::make::null
+                              : whisker::make::string(*value);
     });
-    def.property("cpp_frozen2_exclude?", [this](const t_structured& strct) {
-      // TODO(dokwon): Fix frozen2 compatibility with adapter.
-      return strct.has_unstructured_annotation("cpp.frozen2_exclude") ||
-          strct.has_structured_annotation(kCppFrozen2ExcludeUri) ||
-          cpp_context_->resolver().is_directly_adapted(strct);
+    def.property("cpp_arena_allocator?", [](const t_structured& strct) {
+      return cpp2::has_arena_fields(strct);
+    });
+    def.property("cpp_frozen2_exclude?", &is_frozen2_excluded);
+    def.property("holds_arena_fields?", [this](const t_structured& strct) {
+      return holds_arena_fields(strct);
     });
     def.property("cpp_allocator_via", [](const t_structured& strct) {
-      if (const std::string* name =
-              strct.find_unstructured_annotation_or_null("cpp.allocator_via")) {
-        for (const auto& field : strct.fields()) {
-          if (cpp2::get_name(&field) == *name) {
-            return whisker::make::string(mangle_field_name(*name));
-          }
-        }
-        throw std::runtime_error(
-            fmt::format("No cpp.allocator_via field \"{}\"", *name));
-      }
-      return whisker::make::null;
+      const std::string* name = cpp2::find_allocator_via(strct);
+      return name == nullptr ? whisker::make::null
+                             : whisker::make::string(mangle_field_name(*name));
     });
     // Applying a default can allocate, so the allocator-extended constructor
     // that does it cannot be noexcept.
-    def.property(
-        "cpp_alloc_ctor_default_fields?", [](const t_structured& strct) {
-          for (const auto& field : strct.fields()) {
-            if (cpp2::alloc_ctor_applies_custom_default(field)) {
-              return true;
-            }
-          }
+    def.property("cpp_alloc_ctor_noexcept?", [](const t_structured& strct) {
+      for (const auto& field : strct.fields()) {
+        if (cpp2::alloc_ctor_applies_custom_default(field)) {
           return false;
-        });
+        }
+      }
+      return true;
+    });
     // Whether some non-boxed `cpp.ref` field's pointee is `cpp.use_allocator`.
     def.property(
         "cpp_use_allocator_ref_fields?", [](const t_structured& strct) {
@@ -1378,8 +1412,7 @@ class t_mstch_cpp2_generator : public t_whisker_generator {
             if (ref_type != gen::cpp::reference_type::none &&
                 ref_type != gen::cpp::reference_type::boxed &&
                 ref_type != gen::cpp::reference_type::boxed_intern &&
-                t_typedef::get_first_unstructured_annotation_or_null(
-                    &field.type().deref(), {"cpp.use_allocator"})) {
+                cpp2::uses_allocator(field)) {
               return true;
             }
           }
@@ -1530,6 +1563,13 @@ class t_mstch_cpp2_generator : public t_whisker_generator {
           cpp_context_->fields_in_layout_order(strct), proto.of<t_field>());
     });
     def.property(
+        "fields_in_reverse_layout_order", [&](const t_structured& strct) {
+          std::vector<const t_field*> fields =
+              cpp_context_->fields_in_layout_order(strct);
+          std::reverse(fields.begin(), fields.end());
+          return to_array(fields, proto.of<t_field>());
+        });
+    def.property(
         "explicitly_constructed_fields", [&](const t_structured& strct) {
           std::vector<const t_field*> filtered;
           for (const t_field* field :
@@ -1624,8 +1664,7 @@ class t_mstch_cpp2_generator : public t_whisker_generator {
     });
 
     def.property("cpp_use_allocator?", [](const t_type& type) {
-      return !!t_typedef::get_first_unstructured_annotation_or_null(
-          &type, {"cpp.use_allocator"});
+      return cpp2::type_uses_allocator(type);
     });
     def.property("use_op_encode?", &needs_op_encode);
     def.property(
@@ -1745,16 +1784,10 @@ class t_mstch_cpp2_generator : public t_whisker_generator {
       return whisker::make::i64(field_context->isset_index);
     });
     def.property("cpp_type", [this](const t_field& field) {
-      const t_structured* parent = context().get_field_parent(&field);
-      assert(parent != nullptr);
-      return cpp_context_->resolver().get_native_type(field, *parent);
+      return cpp_context_->resolver().get_native_type(
+          field, get_structured_parent(field));
     });
-    // True if `cpp.use_allocator` is set on the field or its (typedef) type.
-    def.property("cpp_use_allocator?", [](const t_field& field) {
-      return field.has_unstructured_annotation("cpp.use_allocator") ||
-          !!t_typedef::get_first_unstructured_annotation_or_null(
-                 &field.type().deref(), {"cpp.use_allocator"});
-    });
+    def.property("cpp_use_allocator?", &cpp2::uses_allocator);
     def.property("cpp_alloc_ctor_applies_default?", [](const t_field& field) {
       return cpp2::alloc_ctor_applies_custom_default(field);
     });
@@ -1908,9 +1941,8 @@ class t_mstch_cpp2_generator : public t_whisker_generator {
       }
     });
     def.property("type_tag", [this](const t_field& field) {
-      const t_structured* parent = context().get_field_parent(&field);
-      assert(parent != nullptr);
-      return cpp_context_->resolver().get_type_tag(field, *parent);
+      return cpp_context_->resolver().get_type_tag(
+          field, get_structured_parent(field));
     });
     def.property("raw_string_or_binary?", [](const t_field& field) {
       return field.type()->get_true_type()->is_string_or_binary() &&
@@ -2169,10 +2201,24 @@ class t_mstch_cpp2_generator : public t_whisker_generator {
 
   std::unordered_map<std::string, int> get_client_name_to_split_count() const;
 
+  // Whether the structured, or a structured it holds by value, has an
+  // `@cpp.Arena` field.
+  bool holds_arena_fields(const t_structured& strct) const {
+    auto holds = [&](const t_field& field) {
+      const auto* s = field.type()->get_true_type()->try_as<t_structured>();
+      return s != nullptr && !cpp2::is_ref(&field) && holds_arena_fields(*s);
+    };
+    return detail::get_or_gen(holds_arena_fields_, &strct, [&] {
+      return cpp2::has_arena_fields(strct) ||
+          std::any_of(strct.fields().begin(), strct.fields().end(), holds);
+    });
+  }
+
   std::unique_ptr<cpp2_generator_context> cpp_context_;
   std::unordered_map<std::string, int32_t> client_name_to_split_count_;
   bool cpp_enable_same_program_const_referencing_ = true;
   mutable cpp2::is_eligible_for_constexpr is_eligible_for_constexpr_;
+  mutable std::unordered_map<const t_structured*, bool> holds_arena_fields_;
 };
 
 bool check_container_needs_op_encode(const t_type& type) {
@@ -2452,6 +2498,16 @@ void t_mstch_cpp2_generator::generate_out_of_line_service(
       "types_custom_protocol.h",
       fmt::format("{}_custom_protocol.h", name));
 
+  if (service->has_structured_annotation(kCppFastClientUri) ||
+      has_compiler_option("fast_client_stubs")) {
+    render_whisker_service_file(
+        *service, "ServiceFastClient.h", fmt::format("{}FastClient.h", name));
+    render_whisker_service_file(
+        *service,
+        "ServiceFastClient.cpp",
+        fmt::format("{}FastClient.cpp", name));
+  }
+
   auto iter = client_name_to_split_count_.find(name);
   if (iter != client_name_to_split_count_.end()) {
     auto split_count = iter->second;
@@ -2496,6 +2552,17 @@ void t_mstch_cpp2_generator::generate_out_of_line_services() {
       "module_clients_out_of_line.h", fmt::format("{}_clients.h", module_name));
   render_whisker_file(
       "module_clients_fwd.h", fmt::format("{}_clients_fwd.h", module_name));
+  if (has_compiler_option("fast_client_stubs") ||
+      std::any_of(
+          program_->services().begin(),
+          program_->services().end(),
+          [](const t_service* service) {
+            return service->has_structured_annotation(kCppFastClientUri);
+          })) {
+    render_whisker_file(
+        "module_fast_clients_out_of_line.h",
+        fmt::format("{}_fast_clients.h", module_name));
+  }
 }
 
 void t_mstch_cpp2_generator::generate_inline_services() {
@@ -2512,6 +2579,19 @@ void t_mstch_cpp2_generator::generate_inline_services() {
       "module_handlers.h", fmt::format("{}_handlers.h", module_name));
   render_whisker_file(
       "module_handlers.cpp", fmt::format("{}_handlers.cpp", module_name));
+  if (has_compiler_option("fast_client_stubs") ||
+      std::any_of(
+          program_->services().begin(),
+          program_->services().end(),
+          [](const t_service* service) {
+            return service->has_structured_annotation(kCppFastClientUri);
+          })) {
+    render_whisker_file(
+        "module_fast_clients.h", fmt::format("{}_fast_clients.h", module_name));
+    render_whisker_file(
+        "module_fast_clients.cpp",
+        fmt::format("{}_fast_clients.cpp", module_name));
+  }
 }
 
 std::string t_mstch_cpp2_generator::include_prefix(
@@ -2580,7 +2660,7 @@ void validate_struct_annotations(
     const t_structured& s,
     const compiler_options_map& options) {
   if (cpp2::packed_isset(s)) {
-    if (options.count("tablebased") != 0) {
+    if (options.contains("tablebased")) {
       ctx.report(
           s,
           "tablebased-isset-bitpacking-rule",
@@ -2588,6 +2668,39 @@ void validate_struct_annotations(
           "Tablebased serialization is incompatible with isset bitpacking for struct `{}`",
           s.name());
     }
+  }
+  // Table-based deserialization builds union members without the union's
+  // allocator, and has no type info for strings with a custom allocator, such
+  // as `std::pmr::string`.
+  if (options.contains("tablebased") && cpp2::is_allocator_aware(s)) {
+    ctx.report(
+        s,
+        "tablebased-allocator-rule",
+        diagnostic_level::error,
+        "Allocator-aware type `{}` is not supported with the `tablebased` "
+        "option.",
+        s.name());
+  }
+  // Frozen has no layouts for PMR types, thaws `cpp.ref` fields with
+  // `std::make_shared`, and thaws a union member through a setter, which a
+  // `cpp.use_allocator` member doesn't have.
+  if (options.contains("frozen") && cpp2::is_allocator_aware(s)) {
+    ctx.report(
+        s,
+        "frozen-allocator-rule",
+        diagnostic_level::error,
+        "Allocator-aware type `{}` is not supported with the `frozen` option.",
+        s.name());
+  }
+  if (options.contains("frozen2") && cpp2::is_allocator_aware(s) &&
+      !is_frozen2_excluded(s)) {
+    ctx.report(
+        s,
+        "frozen2-allocator-rule",
+        diagnostic_level::error,
+        "Allocator-aware type `{}` is not supported with the `frozen2` "
+        "option unless it has `@cpp.Frozen2Exclude`.",
+        s.name());
   }
 
   for (const auto& field : s.fields()) {
@@ -2705,29 +2818,45 @@ void forbid_deprecated_terse_writes_ref(
   }
 }
 
+// A type with `@cpp.Arena` fields takes their PMR allocator, so it can't
+// declare another one. Nor can it return the allocator of a
+// `cpp.allocator_via` field, which may differ from theirs: the destructor would
+// then skip fields that hold heap memory.
+void forbid_allocator_on_arena_type(
+    sema_context& ctx, const t_structured& node) {
+  if (!cpp2::has_arena_fields(node)) {
+    return;
+  }
+  const char* annotation = nullptr;
+  if (node.has_structured_annotation(kCppAllocatorUri)) {
+    annotation = "@internal.CppAllocator";
+  } else if (node.has_unstructured_annotation("cpp.allocator")) {
+    annotation = "cpp.allocator";
+  } else if (node.has_structured_annotation(kCppAllocatorViaUri)) {
+    annotation = "@internal.CppAllocatorVia";
+  } else if (node.has_unstructured_annotation("cpp.allocator_via")) {
+    annotation = "cpp.allocator_via";
+  } else {
+    return;
+  }
+  ctx.report(
+      node,
+      diagnostic_level::error,
+      "`{}` is not supported on `{}`, which has `@cpp.Arena` fields.",
+      annotation,
+      node.name());
+}
+
 // A union has no fields to route the allocator through, so `cpp.allocator_via`
 // has nothing to name.
 void forbid_allocator_via_on_union(sema_context& ctx, const t_union& node) {
-  if (node.has_unstructured_annotation("cpp.allocator_via")) {
+  if (cpp2::find_allocator_via(node) != nullptr) {
     ctx.report(
         node,
         diagnostic_level::error,
         "`cpp.allocator_via` is not supported on union `{}`.",
         node.name());
   }
-}
-
-void forbid_allocator_on_union(sema_context& ctx, const t_union& node) {
-  if (!node.has_unstructured_annotation("cpp.allocator") ||
-      node.has_structured_annotation(
-          kCppInternalExperimentalAllowAllocatorOnUnionUri)) {
-    return;
-  }
-  ctx.report(
-      node,
-      diagnostic_level::error,
-      "`cpp.allocator` does not support union `{}`",
-      node.name());
 }
 
 // `cpp.use_allocator` asks for the value to be built with the `cpp.allocator`
@@ -2739,17 +2868,90 @@ void forbid_allocator_ignoring_ref_fields(
   const bool unsupported = ref == gen::cpp::reference_type::unique ||
       ref == gen::cpp::reference_type::boxed ||
       ref == gen::cpp::reference_type::boxed_intern;
-  if (unsupported && parent.has_unstructured_annotation("cpp.allocator") &&
-      (field.has_unstructured_annotation("cpp.use_allocator") ||
-       t_typedef::get_first_unstructured_annotation_or_null(
-           &field.type().deref(), {"cpp.use_allocator"}))) {
+  if (unsupported && cpp2::is_allocator_aware(parent) &&
+      cpp2::uses_allocator(field)) {
     ctx.report(
         field,
         diagnostic_level::error,
-        "Reference field `{}` of `cpp.allocator` type `{}` doesn't support "
+        "Reference field `{}` of allocator-aware type `{}` doesn't support "
         "`cpp.use_allocator`.",
         field.name(),
         parent.name());
+  }
+}
+
+// The constructors of a `cpp.allocator` struct build a value for every
+// reference field, so an optional one starts out set, unlike in a struct
+// without `cpp.allocator`.
+void forbid_optional_ref_fields_on_allocator_aware(
+    sema_context& ctx, const t_field& field) {
+  const auto& parent = dynamic_cast<const t_structured&>(*ctx.parent());
+  const auto ref = gen::cpp::find_ref_type(field);
+  const bool ref_not_boxed = ref == gen::cpp::reference_type::unique ||
+      ref == gen::cpp::reference_type::shared_const ||
+      ref == gen::cpp::reference_type::shared_mutable;
+  if (ref_not_boxed && field.qualifier() == t_field_qualifier::optional &&
+      cpp2::is_allocator_aware(parent)) {
+    ctx.report(
+        field,
+        diagnostic_level::error,
+        "Optional reference field `{}` of allocator-aware type `{}` is not "
+        "supported.",
+        field.name(),
+        parent.name());
+  }
+}
+
+// An adapted field is constructed as its adapted type, which may take an
+// allocator.
+void forbid_use_allocator_on_allocator_unaware_fields(
+    sema_context& ctx, const t_field& field) {
+  const auto& parent = dynamic_cast<const t_structured&>(*ctx.parent());
+  if (!cpp2::is_allocator_aware(parent) || !cpp2::uses_allocator(field) ||
+      !field.type().resolved() ||
+      field.has_structured_annotation(kCppAdapterUri) ||
+      t_typedef::get_first_structured_annotation_or_null(
+          &field.type().deref(), kCppAdapterUri) != nullptr) {
+    return;
+  }
+  // `forbid_allocator_ignoring_ref_fields` reports these.
+  const auto ref = gen::cpp::find_ref_type(field);
+  if (ref == gen::cpp::reference_type::unique ||
+      ref == gen::cpp::reference_type::boxed ||
+      ref == gen::cpp::reference_type::boxed_intern) {
+    return;
+  }
+  const t_type* true_type = field.type()->get_true_type();
+  if (true_type->is<t_enum>() ||
+      (true_type->is<t_primitive_type>() &&
+       !true_type->is_string_or_binary())) {
+    ctx.report(
+        field,
+        diagnostic_level::error,
+        "`cpp.use_allocator` is not supported on field `{}` of type `{}`, "
+        "which can't take an allocator.",
+        field.name(),
+        field.type()->name());
+    return;
+  }
+  if ((true_type->is<t_struct>() || true_type->is<t_union>()) &&
+      !cpp2::is_allocator_aware(*true_type)) {
+    ctx.report(
+        field,
+        diagnostic_level::error,
+        "`cpp.use_allocator` is not supported on field `{}`: its type `{}` "
+        "has no `cpp.allocator`.",
+        field.name(),
+        true_type->name());
+    return;
+  }
+  if (cpp2::is_binary_iobuf(field)) {
+    ctx.report(
+        field,
+        diagnostic_level::error,
+        "`cpp.use_allocator` is not supported on `folly::IOBuf` field `{}`, "
+        "which can't take an allocator.",
+        field.name());
   }
 }
 
@@ -2759,7 +2961,7 @@ void forbid_allocator_ignoring_ref_fields(
 // after a copy that carries an allocator.
 void forbid_lazy_fields_on_allocator_aware(
     sema_context& ctx, const t_structured& strct) {
-  if (!strct.has_unstructured_annotation("cpp.allocator")) {
+  if (!cpp2::is_allocator_aware(strct)) {
     return;
   }
   for (const auto& field : strct.fields()) {
@@ -2781,8 +2983,7 @@ void forbid_lazy_fields_on_allocator_aware(
 // field opts in. Require the opt-in rather than let the default go missing.
 void validate_alloc_ctor_custom_defaults(
     sema_context& ctx, const t_structured& strct) {
-  const bool allocator_aware =
-      strct.has_unstructured_annotation("cpp.allocator");
+  const bool allocator_aware = cpp2::is_allocator_aware(strct);
   for (const auto& field : strct.fields()) {
     if (allocator_aware && strct.is<t_union>() &&
         field.default_value() != nullptr) {
@@ -2820,10 +3021,118 @@ void validate_alloc_ctor_custom_defaults(
           field,
           diagnostic_level::error,
           "`@cpp.AllowCustomDefaultInAllocCtor` on field `{}` has no effect: "
-          "it applies only to a field of a `cpp.allocator` struct that "
-          "declares a default value.",
+          "it applies only to a field of a `cpp.allocator` or `@cpp.Arena` "
+          "struct that declares a default value.",
           field.name());
     }
+  }
+}
+
+// Each structured allocator annotation replaces an unstructured one, so a node
+// can't have both. Names must be non-empty.
+void validate_allocator_annotations(sema_context& ctx, const t_named& node) {
+  struct annotation {
+    const char* uri;
+    const char* structured;
+    const char* unstructured;
+    bool has_name;
+  };
+  static constexpr annotation kAnnotations[] = {
+      {kCppAllocatorUri, "@internal.CppAllocator", "cpp.allocator", true},
+      {kCppAllocatorViaUri,
+       "@internal.CppAllocatorVia",
+       "cpp.allocator_via",
+       true},
+      {kCppUseAllocatorUri,
+       "@internal.CppUseAllocator",
+       "cpp.use_allocator",
+       false},
+  };
+  for (const auto& a : kAnnotations) {
+    const t_const* structured = node.find_structured_annotation_or_null(a.uri);
+    const std::string* unstructured =
+        node.find_unstructured_annotation_or_null(a.unstructured);
+    if (structured != nullptr && unstructured != nullptr) {
+      ctx.report(
+          node,
+          diagnostic_level::error,
+          "Both `{}` and `{}` are set on `{}`. Remove `{}`.",
+          a.structured,
+          a.unstructured,
+          node.name(),
+          a.unstructured);
+      continue;
+    }
+    if (!a.has_name) {
+      continue;
+    }
+    if (structured != nullptr) {
+      const t_const_value* name =
+          structured->get_value_from_structured_annotation_or_null("name");
+      if (name == nullptr || name->get_string().empty()) {
+        ctx.report(
+            node,
+            diagnostic_level::error,
+            "`{}` on `{}` needs a non-empty name.",
+            a.structured,
+            node.name());
+      }
+    } else if (unstructured != nullptr && unstructured->empty()) {
+      ctx.report(
+          node,
+          diagnostic_level::error,
+          "`{}` on `{}` needs a non-empty name.",
+          a.unstructured,
+          node.name());
+    }
+  }
+}
+
+// `get_allocator()` returns the allocator of the `cpp.allocator_via` field, so
+// that field must exist and not be a reference.
+void validate_allocator_via(sema_context& ctx, const t_struct& strct) {
+  const std::string* name = cpp2::find_allocator_via(strct);
+  if (name == nullptr || name->empty()) {
+    return;
+  }
+  const bool structured = strct.has_structured_annotation(kCppAllocatorViaUri);
+  const char* via =
+      structured ? "@internal.CppAllocatorVia" : "cpp.allocator_via";
+  if (!cpp2::is_allocator_aware(strct)) {
+    ctx.report(
+        strct,
+        diagnostic_level::error,
+        "`{}` on `{}` needs `{}`.",
+        via,
+        strct.name(),
+        structured ? "@internal.CppAllocator" : "cpp.allocator");
+    return;
+  }
+  const t_field* field = nullptr;
+  for (const auto& f : strct.fields()) {
+    if (cpp2::get_name(&f) == *name) {
+      field = &f;
+      break;
+    }
+  }
+  if (field == nullptr) {
+    ctx.report(
+        strct,
+        diagnostic_level::error,
+        "`{}` on `{}` names no field `{}`.",
+        via,
+        strct.name(),
+        *name);
+    return;
+  }
+  if (gen::cpp::find_ref_type(*field) != gen::cpp::reference_type::none) {
+    ctx.report(
+        strct,
+        diagnostic_level::error,
+        "`{}` on `{}` names reference field `{}`.",
+        via,
+        strct.name(),
+        *name);
   }
 }
 
@@ -2859,9 +3168,13 @@ void t_mstch_cpp2_generator::fill_validator_visitors(
           std::placeholders::_2,
           compiler_options()));
   validator.add_struct_visitor(forbid_deprecated_terse_writes_ref);
+  validator.add_definition_visitor(validate_allocator_annotations);
+  validator.add_structured_definition_visitor(forbid_allocator_on_arena_type);
+  validator.add_struct_visitor(validate_allocator_via);
   validator.add_union_visitor(forbid_allocator_via_on_union);
-  validator.add_union_visitor(forbid_allocator_on_union);
   validator.add_field_visitor(forbid_allocator_ignoring_ref_fields);
+  validator.add_field_visitor(forbid_optional_ref_fields_on_allocator_aware);
+  validator.add_field_visitor(forbid_use_allocator_on_allocator_unaware_fields);
   validator.add_structured_definition_visitor(
       validate_alloc_ctor_custom_defaults);
   validator.add_program_visitor(validate_splits(
@@ -2893,6 +3206,9 @@ deprecated_public_required_fields
   that do not have the _ref() suffix.
 disable_custom_type_ordering_if_structure_has_uri (IGNORED - ALWAYS SET)
   Without this option, custom set/map are considered orderable if parent structure has uri.
+fast_client_stubs
+  Emit empty FastClient files for unannotated services, for build systems
+  that require statically declared outputs. Does not enable FastClient symbols.
 frozen[=packed]
   Enable frozen structs. If the packed parameter is given, structure members
   will be packed with an alignment of 1 (i.e., #pragma pack(push, 1)).

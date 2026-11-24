@@ -285,6 +285,10 @@ cdef void requestchannel_callback(
 ) noexcept:
     cdef AsyncClient client = <object> userData
     future = client._connect_future
+    # Scope exit can precede the native channel future. Do not rebind an exited
+    # client or complete its replacement, terminal connection future again.
+    if future.done():
+        return
     if result.hasException():
         future.set_exception(create_py_exception(result.exception(), None))
     else:

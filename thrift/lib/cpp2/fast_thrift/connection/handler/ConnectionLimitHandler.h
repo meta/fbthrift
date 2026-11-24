@@ -81,8 +81,7 @@ class ConnectionLimitHandler {
     if (limit == 0) {
       return ctx.fireRead(std::move(msg));
     }
-    if (FOLLY_LIKELY(
-            liveConnections_->load(std::memory_order_relaxed) < limit)) {
+    if (liveConnections_->load(std::memory_order_relaxed) < limit) [[likely]] {
       return ctx.fireRead(std::move(msg));
     }
     const auto& incoming = msg.get<ConnectionMessage>();

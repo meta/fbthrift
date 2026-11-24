@@ -326,8 +326,8 @@ struct ClearOptionalField {
   void operator()(optional_field_ref<T> field, Struct&) const {
     field.reset();
   }
-  template <typename T, typename Union>
-  void operator()(union_field_ref<T> field, Union& u) const {
+  template <typename T, typename A, typename Union>
+  void operator()(union_field_ref<T, A> field, Union& u) const {
     if (field.has_value()) {
       thrift::clear(u);
       assert(!field.has_value());

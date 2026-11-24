@@ -21,6 +21,8 @@ import thrift.python.mutable_typeinfos as _fbthrift_python_mutable_typeinfos
 from test.thrift_enums import (
     from_,
     from_ as _fbthrift_from_,
+    Mode,
+    Mode as _fbthrift_Mode,
 )
 
 
@@ -159,7 +161,7 @@ class def_(metaclass=_fbthrift_python_mutable_types.MutableStructMeta):
 
     @staticmethod
     def __get_thrift_definition_key__() -> bytes:
-        return b"\x43\xa6\x15\x95\xe6\x9c\xba\x54\xc4\x28\x75\xe4\x6c\x10\x2d\x8d"
+        return b"\xba\xa4\x85\xfd\x0d\x1e\x65\x5b\xff\xb8\x12\x58\xed\x03\xef\x24"
 
     @staticmethod
     def __get_metadata__():
@@ -194,6 +196,7 @@ _fbthrift_def_ = def_
 
 _fbthrift_all_enums = [
     from_,
+    Mode,
 ]
 
 

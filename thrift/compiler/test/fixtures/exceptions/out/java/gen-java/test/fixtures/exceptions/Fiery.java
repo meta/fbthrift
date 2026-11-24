@@ -51,8 +51,21 @@ public final class Fiery extends org.apache.thrift.TBaseException implements com
       this.message = null;
     }
 
+    public Fiery(
+            final String message,
+            final java.lang.Throwable cause) {
+        super(message, cause);
+        this.message = message;
+    }
+
+    public Fiery(final java.lang.Throwable cause) {
+        super(cause);
+        this.message = cause == null ? null : cause.toString();
+    }
+
     public static class Builder {
         private String message = null;
+        private java.lang.Throwable cause;
 
         @com.facebook.swift.codec.ThriftField(value=1, name="message", requiredness=Requiredness.REQUIRED)    public Builder setMessage(String message) {
             this.message = message;
@@ -60,6 +73,11 @@ public final class Fiery extends org.apache.thrift.TBaseException implements com
         }
 
         public String getMessage() { return message; }
+
+        public Builder setCause(final java.lang.Throwable cause) {
+            this.cause = cause;
+            return this;
+        }
 
         public Builder() { }
         public Builder(Fiery other) {
@@ -71,6 +89,9 @@ public final class Fiery extends org.apache.thrift.TBaseException implements com
             Fiery result = new Fiery (
                 this.message
             );
+            if (cause != null) {
+                result.initCause(cause);
+            }
             return result;
         }
     }

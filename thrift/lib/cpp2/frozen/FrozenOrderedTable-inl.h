@@ -25,11 +25,8 @@ namespace frozen {
 namespace detail {
 
 template <typename Container>
-using detect_key_compare = typename Container::key_compare;
-
-template <typename Container>
 constexpr bool isOrderedContainer() {
-  if constexpr (folly::is_detected_v<detect_key_compare, Container>) {
+  if constexpr (::apache::thrift::detail::pm::is_ordered_container<Container>) {
     return std::is_same_v<
         typename Container::key_compare,
         std::less<typename Container::key_type>>;

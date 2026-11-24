@@ -18,6 +18,35 @@
 #include <thrift/lib/cpp2/security/extensions/ThriftParametersServerExtension.h>
 
 namespace apache::thrift {
+
+namespace detail {
+THRIFT_PLUGGABLE_FUNC_REGISTER(
+    void,
+    onThriftPspEvent,
+    PspEvent,
+    const folly::Optional<folly::exception_wrapper>&) {
+  return;
+}
+
+namespace {
+PspEvent classifyNegotiation(uint64_t serverSupports, uint64_t clientSupports) {
+  if ((serverSupports & clientSupports) != 0) {
+    return PspEvent::NegotiationSuccess;
+  }
+  if (serverSupports == 0 && clientSupports == 0) {
+    return PspEvent::NegotiationNoOffers;
+  }
+  if (clientSupports == 0) {
+    return PspEvent::NegotiationNoPeerOffer;
+  }
+  if (serverSupports == 0) {
+    return PspEvent::NegotiationNoServerOffer;
+  }
+  return PspEvent::NegotiationNoCommonVersion;
+}
+} // namespace
+} // namespace detail
+
 NegotiationParameters ThriftParametersServerExtension::negotiate(
     const ThriftParametersExt& clientParameters,
     const ThriftParametersContext& serverConfiguration) {
@@ -37,6 +66,9 @@ NegotiationParameters ThriftParametersServerExtension::negotiate(
     }
 
     uint64_t serverSupports = serverConfiguration.getSupportedPSPNegotiations();
+    detail::onThriftPspEvent(
+        detail::classifyNegotiation(serverSupports, clientSupports),
+        folly::none);
     uint64_t common = clientSupports & serverSupports;
     auto highestBit = folly::findLastSet(common);
     if (highestBit > 0) {

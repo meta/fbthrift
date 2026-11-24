@@ -15,6 +15,7 @@ from thrift.protocol.TProtocol import TProtocolBase
 __property__ = property  # sometimes `property` is used as a field name
 
 import simple.dependent.ttypes
+import simple.transitive.ttypes
 
 UTF8STRINGS: bool
 
@@ -193,7 +194,8 @@ class ComplexStruct:
         amap: __T.Optional[__T.Dict[str, str]] = ...,
         aset: __T.Optional[__T.Set[str]] = ...,
         item: __T.Optional[simple.dependent.ttypes.Item] = ...,
-        from_PY_RESERVED_KEYWORD: __T.Optional[int] = ...
+        from_PY_RESERVED_KEYWORD: __T.Optional[int] = ...,
+        color: __T.Optional[simple.transitive.ttypes.Color] = ...
     ) -> None:
         ...
 
@@ -241,6 +243,10 @@ class ComplexStruct:
     def from_PY_RESERVED_KEYWORD(self) -> int: ...
     @from_PY_RESERVED_KEYWORD.setter
     def from_PY_RESERVED_KEYWORD(self, value: __T.Optional[int]) -> None: ...
+    @__property__
+    def color(self) -> simple.transitive.ttypes.Color: ...
+    @color.setter
+    def color(self, value: __T.Optional[simple.transitive.ttypes.Color]) -> None: ...
 
 
     def isUnion(self) -> bool: ...

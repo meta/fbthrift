@@ -110,9 +110,9 @@ double& DataItem::set_value(double value_) {
 
 void swap([[maybe_unused]] DataItem& a, [[maybe_unused]] DataItem& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_id, b.__fbthrift_field_id);
-  swap(a.__fbthrift_field_name, b.__fbthrift_field_name);
-  swap(a.__fbthrift_field_value, b.__fbthrift_field_value);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_id, b.__fbthrift_field_id);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_name, b.__fbthrift_field_name);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_value, b.__fbthrift_field_value);
   swap(a.__isset, b.__isset);
 }
 
@@ -191,8 +191,8 @@ std::partial_ordering NotFoundException::operator<=>([[maybe_unused]] const NotF
 
 void swap([[maybe_unused]] NotFoundException& a, [[maybe_unused]] NotFoundException& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_id, b.__fbthrift_field_id);
-  swap(a.__fbthrift_field_message, b.__fbthrift_field_message);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_id, b.__fbthrift_field_id);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_message, b.__fbthrift_field_message);
   swap(a.__isset, b.__isset);
 }
 
@@ -261,8 +261,8 @@ std::partial_ordering PermissionDeniedException::operator<=>([[maybe_unused]] co
 
 void swap([[maybe_unused]] PermissionDeniedException& a, [[maybe_unused]] PermissionDeniedException& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_user, b.__fbthrift_field_user);
-  swap(a.__fbthrift_field_reason, b.__fbthrift_field_reason);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_user, b.__fbthrift_field_user);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_reason, b.__fbthrift_field_reason);
   swap(a.__isset, b.__isset);
 }
 

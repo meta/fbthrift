@@ -29,6 +29,7 @@
  */
 
 #include <folly/Benchmark.h>
+#include <folly/Utility.h>
 #include <folly/init/Init.h>
 #include <folly/io/Cursor.h>
 #include <folly/io/IOBuf.h>
@@ -41,8 +42,8 @@
 #include <thrift/lib/cpp2/async/RequestCallback.h>
 #include <thrift/lib/cpp2/async/RocketClientChannel.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameParser.h>
@@ -281,7 +282,7 @@ std::unique_ptr<rocket::client::RocketClientConnection> createRocketConnection(
       RocketClientConnection::TransportHandler::create(std::move(transport));
 
   connection->pipeline =
-      PipelineBuilder<
+      StaticPipelineBuilder<
           apache::thrift::fast_thrift::rocket::client::RocketClientConnection::
               TransportHandler,
           apache::thrift::fast_thrift::rocket::client::RocketClientAppAdapter,
@@ -390,26 +391,47 @@ class BenchAppAdapterClient {
 // ThriftClientTransportAdapter
 // =============================================================================
 
-struct AppAdapterBenchFixture {
+// folly::NonCopyableNonMovable deletes copy and move.
+// NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
+struct AppAdapterBenchFixture : private folly::NonCopyableNonMovable {
   folly::EventBase evb;
   BenchAsyncTransport* testTransport{nullptr};
 
   // Thrift pipeline (app adapter → transport adapter)
   BenchAppAdapterClient client;
   std::unique_ptr<client::ThriftClientTransportAdapter> transportAdapter;
-  PipelineImpl::Ptr thriftPipeline;
+  PipelineOwner thriftPipeline;
   TestAllocator thriftAllocator;
+
+  // `client` is destroyed after the transport adapter and the thrift
+  // pipeline, and its app adapter's destructor still reaches the transport
+  // adapter through that pipeline. Close the pipeline and detach both
+  // adapters first, while all of them are alive.
+  ~AppAdapterBenchFixture() {
+    if (thriftPipeline) {
+      thriftPipeline->deactivate();
+      thriftPipeline->close();
+    }
+    if (transportAdapter) {
+      transportAdapter->resetPipeline();
+    }
+    client.adapter().resetPipeline();
+    thriftPipeline.reset();
+    transportAdapter.reset();
+  }
 
   void setup() {
     testTransport = new BenchAsyncTransport(&evb);
     auto rocketConnection = createRocketConnection(testTransport, &evb);
+    rocket::client::RocketClientConnection::TransportHandler* const
+        transportHandler = rocketConnection->transportHandler.get();
 
     // Create transport adapter (takes ownership of rocket connection)
     transportAdapter = std::make_unique<client::ThriftClientTransportAdapter>(
         std::move(rocketConnection));
 
     // Build thrift pipeline
-    thriftPipeline = PipelineBuilder<
+    thriftPipeline = StaticPipelineBuilder<
                          client::ThriftClientTransportAdapter,
                          ThriftClientAppAdapter,
                          TestAllocator>()
@@ -427,6 +449,7 @@ struct AppAdapterBenchFixture {
     transportAdapter->setPipeline(thriftPipeline.get());
 
     // Connect transport and discard SETUP frame
+    transportHandler->onConnect();
     evb.loopOnce();
     testTransport->getWrittenData();
   }

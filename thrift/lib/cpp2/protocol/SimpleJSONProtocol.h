@@ -151,8 +151,6 @@ struct SimpleJSONProtocolReader::StructReadState {
   int16_t fieldId;
   apache::thrift::protocol::TType fieldType;
 
-  constexpr static bool kAcceptsContext = false;
-
   void readStructBegin(SimpleJSONProtocolReader* iprot) {
     iprot->readStructBegin(fieldName_);
   }

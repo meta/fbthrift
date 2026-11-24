@@ -99,9 +99,9 @@ class BinaryProtocolTest(WireTestCase):
     def test_read_headers(self) -> None:
         self.assert_reads(
             [
-                (b"\x08\x00\x01", lambda r: r.read_field_begin(), (T_I32, 1)),
-                (b"\x02\xff\xfb", lambda r: r.read_field_begin(), (T_BOOL, -5)),
-                (b"\x00", lambda r: r.read_field_begin(), (T_STOP, 0)),
+                (b"\x08\x00\x01", lambda r: r.read_field_begin(), (T_I32, 1, "")),
+                (b"\x02\xff\xfb", lambda r: r.read_field_begin(), (T_BOOL, -5, "")),
+                (b"\x00", lambda r: r.read_field_begin(), (T_STOP, 0, "")),
                 (b"\x08\x00\x00\x00\x03", lambda r: r.read_list_begin(), (T_I32, 3)),
                 (b"\x0b\x00\x00\x00\x00", lambda r: r.read_set_begin(), (T_STRING, 0)),
                 (

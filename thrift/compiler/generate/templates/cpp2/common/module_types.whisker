@@ -39,12 +39,12 @@ class {{struct.cpp_underlying_name}};
 {{#let export partial smart_ptr_constructor |field| captures |fields|}}
 {{#pragma ignore-newlines}}
   {{#if field.cpp_ref_unique?}}
-{{#if field.type.cpp_use_allocator?}}folly::allocate_unique{{#else}}std::make_unique{{/if field.type.cpp_use_allocator?}}
+{{#if field.cpp_use_allocator?}}folly::allocate_unique{{#else}}std::make_unique{{/if field.cpp_use_allocator?}}
   {{#else}}
-{{#if field.type.cpp_use_allocator?}}std::allocate_shared{{#else}}std::make_shared{{/if field.type.cpp_use_allocator?}}
+{{#if field.cpp_use_allocator?}}std::allocate_shared{{#else}}std::make_shared{{/if field.cpp_use_allocator?}}
   {{/if field.cpp_ref_unique?}}
 <{{field.cpp_type}}>(
-{{#if field.type.cpp_use_allocator?}}__fbthrift_alloc{{/if}}
+{{#if field.cpp_use_allocator?}}__fbthrift_alloc{{/if}}
 {{#if (object.notnull? field.default_value)}}{{#partial fields.default_value field=field}}{{/if}}
 )
 {{/let partial}}
@@ -53,9 +53,9 @@ class {{struct.cpp_underlying_name}};
 {{#let export partial alloc_smart_ptr_fn |field|}}
 {{#pragma ignore-newlines}}
   {{#if field.cpp_ref_unique?}}
-{{#if field.type.cpp_use_allocator?}}folly::allocate_unique{{#else}}std::make_unique{{/if}}
-  {{#else if field.cpp_ref_shared?}}
-{{#if field.type.cpp_use_allocator?}}std::allocate_shared{{#else}}std::make_shared{{/if}}
+{{#if field.cpp_use_allocator?}}folly::allocate_unique{{#else}}std::make_unique{{/if}}
+  {{#else}}
+{{#if field.cpp_use_allocator?}}std::allocate_shared{{#else}}std::make_shared{{/if}}
   {{/if field.cpp_ref_unique?}}
 <{{field.cpp_type}}>
 {{/let partial}}
@@ -143,34 +143,80 @@ std::partial_ordering {{struct.cpp_underlying_name}}::operator<=>([[maybe_unused
 }}{{/let partial}}
 
 
-{{! Union switch cases that copy `src` into `*this`. Callers supply the
-    __EMPTY__ and default arms. }}
-{{#let export partial union_copy_field_cases |struct src|}}
+{{! `x_ref()` of a deprecated field is `[[deprecated]]`. Pair with
+    FOLLY_POP_WARNING. }}
+{{#let partial union_push_deprecated_warning}}
+FOLLY_PUSH_WARNING
+FOLLY_GNU_DISABLE_WARNING("-Wdeprecated-declarations")
+FOLLY_MSVC_DISABLE_WARNING(4996)
+{{/let partial}}
+
+
+{{! Union switch cases that copy `src` into `*this`, a new union. Callers
+    supply the __EMPTY__ and default arms. }}
+{{#let export partial union_copy_field_cases |struct src| captures |union_push_deprecated_warning|}}
   {{#each struct.fields as |field|}}
 case Type::{{field.cpp_name}}:
+    {{#if field.deprecated?}}
+  {{#partial union_push_deprecated_warning}}
+    {{/if field.deprecated?}}
     {{#if field.transitively_refers_to_unique?}}
-  set_{{field.cpp_name}}(::apache::thrift::detail::st::copy_field<
+  ::apache::thrift::detail::union_emplace_storage({{field.cpp_name}}_ref(), ::apache::thrift::detail::st::copy_field<
     {{field.type.type_class}}>({{src}}.value_.{{field.cpp_name}}));
-    {{#else if field.cpp_ref?}}
-  set_{{field.cpp_name}}(*{{src}}.value_.{{field.cpp_name}});
     {{#else}}
-  set_{{field.cpp_name}}({{src}}.value_.{{field.cpp_name}});
+  {{field.cpp_name}}_ref().emplace({{#if field.cpp_ref?}}*{{/if}}{{src}}.value_.{{field.cpp_name}});
     {{/if field.transitively_refers_to_unique?}}
+    {{#if field.deprecated?}}
+  FOLLY_POP_WARNING
+    {{/if field.deprecated?}}
   break;
   {{/each}}
 {{/let partial}}
 
 
 {{! Union switch cases that move `src` into `*this`. Callers supply the
-    __EMPTY__ and default arms. }}
-{{#let export partial union_move_field_cases |struct src|}}
+    __EMPTY__ and default arms. `src` is emptied before `emplace()` clears
+    `*this`, because `src` may live inside `*this`. A pointer member moves its
+    pointer, and a null pointer stays null. A `cpp.use_allocator` pointer member
+    of a `cpp.allocator` union whose allocator differs copies its pointee with
+    the allocator of `*this` instead. }}
+{{#let export partial union_move_field_cases |struct src| captures |union_push_deprecated_warning|}}
   {{#each struct.fields as |field|}}
+    {{#let use_alloc? = (and (object.notnull? struct.cpp_allocator) field.cpp_use_allocator?)}}
 case Type::{{field.cpp_name}}:
 {
-  set_{{field.cpp_name}}(std::move({{#if field.cpp_ref?}}*{{/if}}{{src}}.value_.{{field.cpp_name}}));
+    {{#if field.deprecated?}}
+  {{#partial union_push_deprecated_warning}}
+    {{/if field.deprecated?}}
+    {{#if (and use_alloc? field.cpp_ref?)}}
+  auto value = {{src}}.get_allocator() == get_allocator()
+      ? std::move({{src}}.value_.{{field.cpp_name}})
+      : std::allocate_shared<{{field.cpp_type}}>(get_allocator(), *{{src}}.value_.{{field.cpp_name}});
+    {{#else}}
+  auto value = std::move({{src}}.value_.{{field.cpp_name}});
+    {{/if (and use_alloc? field.cpp_ref?)}}
+  apache::thrift::clear({{src}});
+  ::apache::thrift::detail::union_emplace_storage({{field.cpp_name}}_ref(), std::move(value));
+    {{#if field.deprecated?}}
+  FOLLY_POP_WARNING
+    {{/if field.deprecated?}}
   break;
 }
   {{/each}}
+{{/let partial}}
+
+
+{{! A move assignment between unequal allocators that don't propagate copies the
+    member onto the target's allocator, which can throw, and so can moving
+    `@cpp.Arena` fields to another memory resource. }}
+{{#let export partial union_move_assign_noexcept |struct|}}
+{{#pragma ignore-newlines}}
+  {{#if (not struct.holds_arena_fields?)}}
+ noexcept
+    {{#if (object.notnull? struct.cpp_allocator)}}
+(::apache::thrift::detail::move_assign_always_steals_v<allocator_type>)
+    {{/if (object.notnull? struct.cpp_allocator)}}
+  {{/if (not struct.holds_arena_fields?)}}
 {{/let partial}}
 
 
@@ -211,7 +257,7 @@ static void __fbthrift_swap({{struct.cpp_underlying_name}}& lhs, {{struct.cpp_un
   {{#if (object.notnull? struct.cpp_allocator)}}
   if (::apache::thrift::detail::copy_assign_changes_allocator(get_allocator(), other.get_allocator())) {
     {{#each struct.fields_in_layout_order as |field|}}
-    this->{{field.cpp_storage_name}} = {{#if field.cpp_ref_not_boxed?}}other.{{field.cpp_storage_name}} ? {{#partial alloc_smart_ptr_fn field=field}}({{#if field.type.cpp_use_allocator?}}other.get_allocator(), {{/if}}*other.{{field.cpp_storage_name}}) : nullptr{{#else}}other.{{field.cpp_storage_name}}{{/if field.cpp_ref_not_boxed?}};
+    this->{{field.cpp_storage_name}} = {{#if field.cpp_ref_not_boxed?}}other.{{field.cpp_storage_name}} ? {{#partial alloc_smart_ptr_fn field=field}}({{#if field.cpp_use_allocator?}}other.get_allocator(), {{/if}}*other.{{field.cpp_storage_name}}) : nullptr{{#else}}other.{{field.cpp_storage_name}}{{/if field.cpp_ref_not_boxed?}};
     {{/each}}
     {{#if struct.isset_fields?}}
     __isset = other.__isset;

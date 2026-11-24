@@ -22,8 +22,13 @@
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <memory>
+#include <new>
+#include <stdexcept>
+#include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -35,6 +40,7 @@
 #include <folly/Function.h>
 #include <folly/SocketAddress.h>
 #include <folly/init/Init.h>
+#include <folly/io/IOBuf.h>
 #include <folly/io/async/AsyncSocket.h>
 #include <folly/io/async/AsyncTransport.h>
 #include <folly/io/async/EventBase.h>
@@ -46,8 +52,8 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/BufferAllocator.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/SocketOptions.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/common/Messages.h>
@@ -58,6 +64,8 @@
 #include <thrift/lib/cpp2/fast_thrift/security/SSLPolicy.h>
 #include <thrift/lib/cpp2/fast_thrift/security/ThriftTlsConfig.h>
 #include <thrift/lib/cpp2/fast_thrift/security/test/TestCert.h>
+#include <thrift/lib/cpp2/security/extensions/ThriftParametersClientExtension.h>
+#include <thrift/lib/cpp2/security/extensions/ThriftParametersContext.h>
 
 namespace apache::thrift::fast_thrift::connection::security::test {
 
@@ -78,9 +86,9 @@ namespace {
 // Head: TLS pipeline produces no outbound, so any onWrite here is a bug.
 class NoopHead {
  public:
+  template <typename Context>
   channel_pipeline::Result onWrite(
-      channel_pipeline::detail::ContextImpl&,
-      channel_pipeline::TypeErasedBox&&) noexcept {
+      Context&, channel_pipeline::TypeErasedBox&&) noexcept {
     return channel_pipeline::Result::Success;
   }
   void onReadReady() noexcept {}
@@ -98,9 +106,9 @@ class CapturingTail {
 
   explicit CapturingTail(OnRead onRead) noexcept : onRead_(std::move(onRead)) {}
 
+  template <typename Context>
   channel_pipeline::Result onRead(
-      channel_pipeline::detail::ContextImpl&,
-      channel_pipeline::TypeErasedBox&& msg) noexcept {
+      Context&, channel_pipeline::TypeErasedBox&& msg) noexcept {
     auto m = msg.take<conn::ConnectionMessage>();
     if (onRead_) {
       onRead_(std::move(m));
@@ -140,15 +148,33 @@ SocketPair makeSocketPair() {
   return {folly::NetworkSocket(fds[0]), folly::NetworkSocket(fds[1])};
 }
 
-class TestFizzClient
-    : private fizz::client::AsyncFizzClient::HandshakeCallback {
+constexpr char kTestEkmLabel[] = "fast_thrift_tls_pipeline_test";
+constexpr uint16_t kTestEkmLength = 32;
+
+class TestFizzClient : private fizz::client::AsyncFizzClient::HandshakeCallback,
+                       private fizz::AsyncFizzBase::EndOfTLSCallback {
  public:
   using DoneCallback = folly::Function<void(folly::exception_wrapper) noexcept>;
 
-  TestFizzClient(folly::EventBase* evb, folly::NetworkSocket fd) {
+  TestFizzClient(folly::EventBase* evb, folly::NetworkSocket fd)
+      : TestFizzClient(evb, fd, false) {}
+
+  TestFizzClient(
+      folly::EventBase* evb, folly::NetworkSocket fd, bool useStopTLS)
+      : evb_(evb), useStopTLS_(useStopTLS) {
     auto sock = folly::AsyncSocket::newSocket(evb, fd);
     auto ctx = std::make_shared<fizz::client::FizzClientContext>();
-    client_.reset(new fizz::client::AsyncFizzClient(std::move(sock), ctx));
+    std::shared_ptr<apache::thrift::ThriftParametersClientExtension> extension;
+    if (useStopTLS_) {
+      ctx->setSupportedAlpns({"rs"});
+      auto params = std::make_shared<apache::thrift::ThriftParametersContext>();
+      params->setUseStopTLS(true);
+      extension =
+          std::make_shared<apache::thrift::ThriftParametersClientExtension>(
+              std::move(params));
+    }
+    client_.reset(new fizz::client::AsyncFizzClient(
+        std::move(sock), std::move(ctx), std::move(extension)));
   }
 
   void start(DoneCallback done) {
@@ -156,8 +182,21 @@ class TestFizzClient
     client_->connect(this, nullptr, folly::none, folly::none, folly::none);
   }
 
+  const folly::IOBuf* expectedEkm() const noexcept {
+    return expectedEkm_.get();
+  }
+
+  void close() { client_->closeNow(); }
+
  private:
-  void fizzHandshakeSuccess(fizz::client::AsyncFizzClient*) noexcept override {
+  void fizzHandshakeSuccess(
+      fizz::client::AsyncFizzClient* client) noexcept override {
+    if (useStopTLS_) {
+      expectedEkm_ = client->getExportedKeyingMaterial(
+          kTestEkmLabel, nullptr, kTestEkmLength);
+      client->setEndOfTLSCallback(this);
+      return;
+    }
     if (done_) {
       done_(folly::exception_wrapper());
     }
@@ -170,8 +209,70 @@ class TestFizzClient
     }
   }
 
+  void endOfTLS(
+      fizz::AsyncFizzBase* transport,
+      std::unique_ptr<folly::IOBuf> /*postData*/) override {
+    auto* sock = transport->getUnderlyingTransport<folly::AsyncSocket>();
+    auto fd = sock->detachNetworkSocket();
+    auto zcId = sock->getZeroCopyBufId();
+    plaintext_.reset(new folly::AsyncSocket(evb_, fd, zcId));
+    if (done_) {
+      done_(folly::exception_wrapper());
+    }
+  }
+
+  folly::EventBase* evb_;
+  bool useStopTLS_;
   fizz::client::AsyncFizzClient::UniquePtr client_;
+  folly::AsyncSocket::UniquePtr plaintext_;
+  std::unique_ptr<folly::IOBuf> expectedEkm_;
   DoneCallback done_;
+};
+
+struct EkmCaptureRecorder {
+  std::atomic<int> calls{0};
+  const folly::IOBuf* capturedBuffer{nullptr};
+  bool returnEmpty{false};
+  bool returnNegative{false};
+  bool throwOnCapture{false};
+  bool throwBadAllocOnCapture{false};
+  folly::Baton<> badAllocInjected;
+  TestFizzClient* peerToClose{nullptr};
+
+  static std::vector<apache::thrift::detail::EkmInfo> capture(
+      void* owner, const folly::AsyncTransport& transport) {
+    auto& recorder = *static_cast<EkmCaptureRecorder*>(owner);
+    recorder.calls.fetch_add(1);
+    EXPECT_NE(
+        dynamic_cast<const fizz::server::AsyncFizzServer*>(&transport),
+        nullptr);
+    if (recorder.throwBadAllocOnCapture) {
+      recorder.badAllocInjected.post();
+      throw std::bad_alloc{};
+    }
+    if (recorder.returnEmpty) {
+      return {};
+    }
+    std::unique_ptr<folly::IOBuf> buffer;
+    if (!recorder.returnNegative) {
+      buffer = transport.getExportedKeyingMaterial(
+          kTestEkmLabel, nullptr, kTestEkmLength);
+    }
+    recorder.capturedBuffer = buffer.get();
+    std::vector<apache::thrift::detail::EkmInfo> entries;
+    entries.push_back(
+        apache::thrift::detail::EkmInfo{
+            .label = kTestEkmLabel,
+            .length = kTestEkmLength,
+            .buf = std::move(buffer)});
+    if (recorder.peerToClose != nullptr) {
+      recorder.peerToClose->close();
+    }
+    if (recorder.throwOnCapture) {
+      throw std::runtime_error("test capture failure");
+    }
+    return entries;
+  }
 };
 
 HANDLER_TAG(tls_test_handler);
@@ -203,6 +304,11 @@ class TLSPipelineIntegrationTest : public ::testing::Test {
         pipeline_.reset();
       });
     }
+    evb_->runInEventBaseThreadAndWait([&] {
+      capturedTransport_.reset();
+      stopTLSClient_.reset();
+      capturedPeerSecurity_.reset();
+    });
     evbThread_.reset();
   }
 
@@ -222,6 +328,20 @@ class TLSPipelineIntegrationTest : public ::testing::Test {
       CapturingTail::OnRead onRead,
       uint32_t maxPendingConnectionsPerWorker,
       CapturingTail::OnException onException = nullptr) {
+    buildPipeline(
+        policy,
+        std::move(onRead),
+        maxPendingConnectionsPerWorker,
+        std::move(onException),
+        conn::PreStopTLSEkmCapture{});
+  }
+
+  void buildPipeline(
+      fts::SSLPolicy policy,
+      CapturingTail::OnRead onRead,
+      uint32_t maxPendingConnectionsPerWorker,
+      CapturingTail::OnException onException,
+      conn::PreStopTLSEkmCapture capture) {
     head_ = std::make_unique<NoopHead>();
     tail_ = std::make_unique<CapturingTail>(std::move(onRead));
     // Set before the pipeline is activated below: afterwards the EventBase
@@ -230,25 +350,67 @@ class TLSPipelineIntegrationTest : public ::testing::Test {
     tail_->setOnException(std::move(onException));
 
     evb_->runInEventBaseThreadAndWait([&] {
-      channel_pipeline::PipelineBuilder<
-          NoopHead,
-          CapturingTail,
-          channel_pipeline::SimpleBufferAllocator>
-          builder;
-      builder.setEventBase(evb_)
-          .setHead(head_.get())
-          .setTail(tail_.get())
-          .setAllocator(&allocator_)
-          .addNextDuplex<conn::handler::ConnectionTLSHandler>(
-              tls_test_handler_tag,
-              *evb_,
-              policy,
-              tlsParamsObservable_->getObserver(),
-              &allocator_,
-              maxPendingConnectionsPerWorker,
-              &stats_);
-      pipeline_ = builder.build();
+      pipeline_ =
+          channel_pipeline::StaticPipelineBuilder<NoopHead, CapturingTail>()
+              .setEventBase(evb_)
+              .setHead(head_.get())
+              .setTail(tail_.get())
+              .setAllocator(&allocator_)
+              .addNextDuplexTemplate<conn::handler::ConnectionTLSHandler>(
+                  tls_test_handler_tag,
+                  std::ref(*evb_),
+                  policy,
+                  tlsParamsObservable_->getObserver(),
+                  maxPendingConnectionsPerWorker,
+                  &stats_,
+                  capture)
+              .build();
       pipeline_->activate();
+    });
+  }
+
+  conn::PreStopTLSEkmCapture captureCallback() {
+    return {&captureRecorder_, &EkmCaptureRecorder::capture};
+  }
+
+  void startStopTLS(bool enableCapture, bool closePeerAfterCapture) {
+    auto cert = fts_test::makeTestCert();
+    fts::FizzServerCertConfig config;
+    config.certPem = cert.certPem;
+    config.keyPem = cert.keyPem;
+    config.clientAuth = fizz::server::ClientAuthMode::None;
+    fts::ThriftTlsConfig thriftConfig;
+    thriftConfig.enableStopTLS = true;
+    tlsParams_ = std::make_shared<const fts::TLSParams>(
+        fts::buildTLSParams(config, thriftConfig));
+    tlsParamsObservable_ = std::make_unique<folly::observer::SimpleObservable<
+        std::shared_ptr<const fts::TLSParams>>>(tlsParams_);
+    buildPipeline(
+        fts::SSLPolicy::REQUIRED,
+        [this](conn::ConnectionMessage&& message) noexcept {
+          capturedTransport_ = std::move(message.transport);
+          capturedPeerSecurity_ = std::move(message.peerSecurity);
+          emitted_.post();
+        },
+        1,
+        [this](folly::exception_wrapper&& exception) {
+          failure_ = std::move(exception);
+          failed_.post();
+        },
+        enableCapture ? captureCallback() : conn::PreStopTLSEkmCapture{});
+    auto sockets = makeSocketPair();
+    ASSERT_EQ(feedSocket(sockets.server), channel_pipeline::Result::Success);
+    evb_->runInEventBaseThreadAndWait([&] {
+      stopTLSClient_ =
+          std::make_unique<TestFizzClient>(evb_, sockets.client, true);
+      if (closePeerAfterCapture) {
+        captureRecorder_.peerToClose = stopTLSClient_.get();
+      }
+      stopTLSClient_->start(
+          [this](folly::exception_wrapper exception) noexcept {
+            clientFailure_ = std::move(exception);
+            clientDone_.post();
+          });
     });
   }
 
@@ -321,7 +483,16 @@ class TLSPipelineIntegrationTest : public ::testing::Test {
   fts_sec::TLSStatsShard stats_;
   std::unique_ptr<NoopHead> head_;
   std::unique_ptr<CapturingTail> tail_;
-  channel_pipeline::PipelineImpl::Ptr pipeline_;
+  channel_pipeline::PipelineOwner pipeline_;
+  EkmCaptureRecorder captureRecorder_;
+  std::unique_ptr<TestFizzClient> stopTLSClient_;
+  folly::AsyncTransport::UniquePtr capturedTransport_;
+  std::unique_ptr<conn::PeerSecurityInfo> capturedPeerSecurity_;
+  folly::Baton<> emitted_;
+  folly::Baton<> clientDone_;
+  folly::Baton<> failed_;
+  folly::exception_wrapper failure_;
+  folly::exception_wrapper clientFailure_;
 };
 
 TEST(SocketOptionsTest, DefaultsPendingConnectionsPerWorkerToClassicLimit) {
@@ -354,7 +525,7 @@ TEST_F(TLSPipelineIntegrationTest, MissingFizzContextReportsError) {
 TEST_F(TLSPipelineIntegrationTest, RequiredTLSHandshakeSucceeds) {
   folly::Baton<> emitted;
   folly::AsyncTransport::UniquePtr transport;
-  std::shared_ptr<const conn::PeerSecurityInfo> peerSecurity;
+  std::unique_ptr<conn::PeerSecurityInfo> peerSecurity;
 
   buildPipeline(
       fts::SSLPolicy::REQUIRED,
@@ -363,7 +534,9 @@ TEST_F(TLSPipelineIntegrationTest, RequiredTLSHandshakeSucceeds) {
         peerSecurity = std::move(m.peerSecurity);
         emitted.post();
       },
-      /*maxPendingConnectionsPerWorker=*/1);
+      /*maxPendingConnectionsPerWorker=*/1,
+      nullptr,
+      captureCallback());
 
   auto sp = makeSocketPair();
   ASSERT_EQ(feedSocket(sp.server), channel_pipeline::Result::Success);
@@ -389,6 +562,8 @@ TEST_F(TLSPipelineIntegrationTest, RequiredTLSHandshakeSucceeds) {
   // pipeline sees rather than being asked of the transport later.
   ASSERT_NE(peerSecurity, nullptr);
   EXPECT_FALSE(peerSecurity->securityProtocol.empty());
+  EXPECT_FALSE(peerSecurity->capturedEkms.has_value());
+  EXPECT_EQ(captureRecorder_.calls.load(), 0);
   EXPECT_TRUE(waitForAdmission());
 
   evb_->runInEventBaseThreadAndWait([&] {
@@ -397,13 +572,137 @@ TEST_F(TLSPipelineIntegrationTest, RequiredTLSHandshakeSucceeds) {
   });
 }
 
+TEST_F(
+    TLSPipelineIntegrationTest,
+    CapturesEkmBeforeStopTLSAndMovesItThroughHandoff) {
+  startStopTLS(true, false);
+
+  ASSERT_TRUE(emitted_.try_wait_for(std::chrono::seconds{5}));
+  ASSERT_TRUE(clientDone_.try_wait_for(std::chrono::seconds{5}));
+  EXPECT_FALSE(clientFailure_) << clientFailure_.what();
+  ASSERT_NE(capturedTransport_, nullptr);
+  EXPECT_EQ(
+      dynamic_cast<fizz::server::AsyncFizzServer*>(capturedTransport_.get()),
+      nullptr);
+  ASSERT_NE(capturedPeerSecurity_, nullptr);
+  EXPECT_EQ(capturedPeerSecurity_->securityProtocol, "stopTLS");
+  ASSERT_TRUE(capturedPeerSecurity_->capturedEkms.has_value());
+  const auto& entries = *capturedPeerSecurity_->capturedEkms;
+  ASSERT_EQ(entries.size(), 1);
+  ASSERT_NE(entries[0].buf, nullptr);
+  EXPECT_EQ(entries[0].label, kTestEkmLabel);
+  EXPECT_EQ(entries[0].length, kTestEkmLength);
+  EXPECT_EQ(entries[0].buf.get(), captureRecorder_.capturedBuffer);
+  ASSERT_NE(stopTLSClient_->expectedEkm(), nullptr);
+  EXPECT_EQ(
+      entries[0].buf->to<std::string>(),
+      stopTLSClient_->expectedEkm()->to<std::string>());
+  EXPECT_EQ(captureRecorder_.calls.load(), 1);
+
+  std::unique_ptr<folly::IOBuf> regenerated;
+  evb_->runInEventBaseThreadAndWait([&] {
+    regenerated = capturedTransport_->getExportedKeyingMaterial(
+        kTestEkmLabel, nullptr, kTestEkmLength);
+  });
+  ASSERT_NE(regenerated, nullptr);
+  const auto expected = stopTLSClient_->expectedEkm()->to<std::string>();
+  EXPECT_EQ(regenerated->to<std::string>(), expected);
+
+  evb_->runInEventBaseThreadAndWait([&] { capturedTransport_.reset(); });
+  auto retainedEntries = std::move(*capturedPeerSecurity_->capturedEkms);
+  ASSERT_EQ(retainedEntries.size(), 1);
+  auto cached = retainedEntries[0].buf->clone();
+  ASSERT_NE(cached, nullptr);
+  EXPECT_EQ(cached->to<std::string>(), expected);
+  EXPECT_EQ(captureRecorder_.calls.load(), 1);
+}
+
+TEST_F(TLSPipelineIntegrationTest, DefaultStopTLSDoesNotCaptureEkms) {
+  startStopTLS(false, false);
+
+  ASSERT_TRUE(emitted_.try_wait_for(std::chrono::seconds{5}));
+  ASSERT_TRUE(clientDone_.try_wait_for(std::chrono::seconds{5}));
+  EXPECT_FALSE(clientFailure_) << clientFailure_.what();
+  ASSERT_NE(capturedPeerSecurity_, nullptr);
+  EXPECT_EQ(capturedPeerSecurity_->securityProtocol, "stopTLS");
+  EXPECT_FALSE(capturedPeerSecurity_->capturedEkms.has_value());
+  EXPECT_EQ(captureRecorder_.calls.load(), 0);
+}
+
+TEST_F(TLSPipelineIntegrationTest, StopTLSRetainsCapturedEmptyCache) {
+  captureRecorder_.returnEmpty = true;
+  startStopTLS(true, false);
+
+  ASSERT_TRUE(emitted_.try_wait_for(std::chrono::seconds{5}));
+  ASSERT_TRUE(clientDone_.try_wait_for(std::chrono::seconds{5}));
+  ASSERT_NE(capturedPeerSecurity_, nullptr);
+  ASSERT_TRUE(capturedPeerSecurity_->capturedEkms.has_value());
+  EXPECT_TRUE(capturedPeerSecurity_->capturedEkms->empty());
+  EXPECT_EQ(captureRecorder_.calls.load(), 1);
+}
+
+TEST_F(TLSPipelineIntegrationTest, StopTLSRetainsNegativeCacheEntry) {
+  captureRecorder_.returnNegative = true;
+  startStopTLS(true, false);
+
+  ASSERT_TRUE(emitted_.try_wait_for(std::chrono::seconds{5}));
+  ASSERT_TRUE(clientDone_.try_wait_for(std::chrono::seconds{5}));
+  ASSERT_NE(capturedPeerSecurity_, nullptr);
+  ASSERT_TRUE(capturedPeerSecurity_->capturedEkms.has_value());
+  const auto& entries = *capturedPeerSecurity_->capturedEkms;
+  ASSERT_EQ(entries.size(), 1);
+  EXPECT_EQ(entries[0].label, kTestEkmLabel);
+  EXPECT_EQ(entries[0].length, kTestEkmLength);
+  EXPECT_EQ(entries[0].buf, nullptr);
+  EXPECT_EQ(captureRecorder_.calls.load(), 1);
+}
+
+TEST_F(TLSPipelineIntegrationTest, CaptureFailureReportsDroppedConnection) {
+  captureRecorder_.throwOnCapture = true;
+  startStopTLS(true, false);
+
+  ASSERT_TRUE(failed_.try_wait_for(std::chrono::seconds{5}));
+  EXPECT_FALSE(emitted_.ready());
+  EXPECT_NE(
+      failure_.what().toStdString().find("EKM capture failed"),
+      std::string::npos);
+  EXPECT_EQ(captureRecorder_.calls.load(), 1);
+  EXPECT_EQ(stats_.tlsError.value(), 1);
+  EXPECT_EQ(capturedPeerSecurity_, nullptr);
+}
+
+TEST_F(
+    TLSPipelineIntegrationTest, CaptureBadAllocDropsConnectionAndFreesPermit) {
+  captureRecorder_.throwBadAllocOnCapture = true;
+  startStopTLS(true, false);
+
+  ASSERT_TRUE(
+      captureRecorder_.badAllocInjected.try_wait_for(std::chrono::seconds{5}));
+  evb_->runInEventBaseThreadAndWait([&] {
+    EXPECT_FALSE(emitted_.ready());
+    EXPECT_FALSE(failed_.ready());
+    EXPECT_EQ(captureRecorder_.calls.load(), 1);
+  });
+  EXPECT_TRUE(waitForAdmission());
+}
+
+TEST_F(TLSPipelineIntegrationTest, StopTLSFailureAfterCaptureDoesNotHandoff) {
+  startStopTLS(true, true);
+
+  ASSERT_TRUE(failed_.try_wait_for(std::chrono::seconds{5}));
+  EXPECT_FALSE(emitted_.ready());
+  EXPECT_EQ(captureRecorder_.calls.load(), 1);
+  EXPECT_EQ(stats_.tlsError.value(), 1);
+  EXPECT_EQ(capturedPeerSecurity_, nullptr);
+}
+
 // PERMITTED + plaintext: classifier peeks, sees non-TLS, fires to tail.
 // Bypasses Fizz + StopTLS → tail receives a plaintext AsyncSocket, and nothing
 // was proved about the peer.
 TEST_F(TLSPipelineIntegrationTest, PermittedPlaintextBypassesHandshake) {
   folly::Baton<> emitted;
   folly::AsyncTransport::UniquePtr transport;
-  std::shared_ptr<const conn::PeerSecurityInfo> peerSecurity;
+  std::unique_ptr<conn::PeerSecurityInfo> peerSecurity;
 
   buildPipeline(
       fts::SSLPolicy::PERMITTED,
@@ -412,7 +711,9 @@ TEST_F(TLSPipelineIntegrationTest, PermittedPlaintextBypassesHandshake) {
         peerSecurity = std::move(m.peerSecurity);
         emitted.post();
       },
-      /*maxPendingConnectionsPerWorker=*/0);
+      /*maxPendingConnectionsPerWorker=*/0,
+      nullptr,
+      captureCallback());
 
   auto sp = makeSocketPair();
   ASSERT_EQ(feedSocket(sp.server), channel_pipeline::Result::Success);
@@ -431,6 +732,7 @@ TEST_F(TLSPipelineIntegrationTest, PermittedPlaintextBypassesHandshake) {
       dynamic_cast<fizz::server::AsyncFizzServer*>(transport.get()), nullptr);
   EXPECT_NE(dynamic_cast<folly::AsyncSocket*>(transport.get()), nullptr);
   EXPECT_EQ(peerSecurity, nullptr);
+  EXPECT_EQ(captureRecorder_.calls.load(), 0);
 
   evb_->runInEventBaseThreadAndWait([&] { transport.reset(); });
   ::close(sp.client.toFd());
@@ -496,7 +798,8 @@ TEST_F(
       fts::SSLPolicy::REQUIRED,
       [&](conn::ConnectionMessage&&) noexcept { emitted.post(); },
       /*maxPendingConnectionsPerWorker=*/0,
-      [&](folly::exception_wrapper&&) { failed.post(); });
+      [&](folly::exception_wrapper&&) { failed.post(); },
+      captureCallback());
 
   auto sp = makeSocketPair();
   ASSERT_EQ(feedSocket(sp.server), channel_pipeline::Result::Success);
@@ -519,6 +822,7 @@ TEST_F(
   // stage giving up on it is what tlsError counts.
   EXPECT_EQ(stats_.tlsComplete.value(), 0);
   EXPECT_EQ(stats_.tlsError.value(), 1);
+  EXPECT_EQ(captureRecorder_.calls.load(), 0);
 
   ::close(sp.client.toFd());
 }

@@ -31,7 +31,7 @@ class MyEnum(_fbthrift_python_types.Enum, int):
 
     @staticmethod
     def __get_thrift_definition_key__() -> builtins.bytes:
-        return b"\x5a\x44\x7a\x79\xbf\xa3\xed\xed\x3a\x5c\x60\x77\x59\x69\x61\xaf"
+        return b"\x3e\xd7\x13\x69\x6c\xff\x5e\xe1\xee\xc5\x4e\xb0\x5b\x2b\xea\xd0"
 
     @staticmethod
     def __get_metadata__() -> _fbthrift_metadata.ThriftMetadata:
@@ -63,7 +63,7 @@ class AnnoyingEnum(_fbthrift_python_types.Enum, int):
 
     @staticmethod
     def __get_thrift_definition_key__() -> builtins.bytes:
-        return b"\x11\xc8\xef\x28\x35\x42\x81\xfb\x84\xee\x28\xeb\xd4\x48\x96\x1d"
+        return b"\xaa\x3a\x08\x8f\xe4\x1b\xaa\x69\x1d\x1c\x0e\x31\x62\xcc\x98\xef"
 
     @staticmethod
     def __get_metadata__() -> _fbthrift_metadata.ThriftMetadata:

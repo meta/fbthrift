@@ -203,6 +203,114 @@ def get_reflection__Factories():
         structured_annotations={
         },
     )
+    _fbthrift_args = []
+    _fbthrift_exceptions = []
+    functions["interactWithStream"] = _FunctionSpec(
+        name="interactWithStream",
+        arguments=_fbthrift_args,
+        return_type=None,
+        return_thrift_type=_ThriftType.VOID,
+        qualifier=_QUALIFIER_MAP["Unspecified"],
+        exceptions=_fbthrift_exceptions,
+        stream=_StreamSpec(
+            elem_type=int,
+            elem_thrift_type=_ThriftType.I32,
+        ),
+        structured_annotations={
+        },
+    )
+    _fbthrift_args = []
+    _fbthrift_exceptions = []
+    functions["interactWithStreamAndInitialResponse"] = _FunctionSpec(
+        name="interactWithStreamAndInitialResponse",
+        arguments=_fbthrift_args,
+        return_type=int,
+        return_thrift_type=_ThriftType.I32,
+        qualifier=_QUALIFIER_MAP["Unspecified"],
+        exceptions=_fbthrift_exceptions,
+        stream=_StreamSpec(
+            elem_type=int,
+            elem_thrift_type=_ThriftType.I32,
+        ),
+        structured_annotations={
+        },
+    )
+    _fbthrift_args = []
+    _fbthrift_exceptions = []
+    functions["interactWithSink"] = _FunctionSpec(
+        name="interactWithSink",
+        arguments=_fbthrift_args,
+        return_type=None,
+        return_thrift_type=_ThriftType.VOID,
+        qualifier=_QUALIFIER_MAP["Unspecified"],
+        exceptions=_fbthrift_exceptions,
+        sink=_SinkSpec(
+            payload_type=int,
+            payload_thrift_type=_ThriftType.I32,
+            final_response_type=int,
+            final_response_thrift_type=_ThriftType.I32,
+        ),
+        structured_annotations={
+        },
+    )
+    _fbthrift_args = []
+    _fbthrift_exceptions = []
+    functions["interactWithSinkAndInitialResponse"] = _FunctionSpec(
+        name="interactWithSinkAndInitialResponse",
+        arguments=_fbthrift_args,
+        return_type=int,
+        return_thrift_type=_ThriftType.I32,
+        qualifier=_QUALIFIER_MAP["Unspecified"],
+        exceptions=_fbthrift_exceptions,
+        sink=_SinkSpec(
+            payload_type=int,
+            payload_thrift_type=_ThriftType.I32,
+            final_response_type=int,
+            final_response_thrift_type=_ThriftType.I32,
+        ),
+        structured_annotations={
+        },
+    )
+    _fbthrift_args = []
+    _fbthrift_exceptions = []
+    functions["interactWithBidi"] = _FunctionSpec(
+        name="interactWithBidi",
+        arguments=_fbthrift_args,
+        return_type=None,
+        return_thrift_type=_ThriftType.VOID,
+        qualifier=_QUALIFIER_MAP["Unspecified"],
+        exceptions=_fbthrift_exceptions,
+        stream=_StreamSpec(
+            elem_type=int,
+            elem_thrift_type=_ThriftType.I32,
+        ),
+        sink=_SinkSpec(
+            payload_type=int,
+            payload_thrift_type=_ThriftType.I32,
+        ),
+        structured_annotations={
+        },
+    )
+    _fbthrift_args = []
+    _fbthrift_exceptions = []
+    functions["interactWithBidiAndInitialResponse"] = _FunctionSpec(
+        name="interactWithBidiAndInitialResponse",
+        arguments=_fbthrift_args,
+        return_type=int,
+        return_thrift_type=_ThriftType.I32,
+        qualifier=_QUALIFIER_MAP["Unspecified"],
+        exceptions=_fbthrift_exceptions,
+        stream=_StreamSpec(
+            elem_type=int,
+            elem_thrift_type=_ThriftType.I32,
+        ),
+        sink=_SinkSpec(
+            payload_type=int,
+            payload_thrift_type=_ThriftType.I32,
+        ),
+        structured_annotations={
+        },
+    )
     return _ServiceSpec(
         name="Factories",
         functions=functions,

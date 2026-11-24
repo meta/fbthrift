@@ -50,7 +50,16 @@ class ThriftEnumWrapper(int):
     return super().__new__(cls, value)
   def __init__(self, enum_class, value):    self.enum_class = enum_class
   def __repr__(self):
-    return self.enum_class.__name__ + '.' + self.enum_class._VALUES_TO_NAMES[self]
+    import keyword
+    name = self.enum_class._VALUES_TO_NAMES[self]
+    if keyword.iskeyword(name):
+      # `E.None` is not valid Python: use the alias defined for such values,
+      # or look the value up by name if it has none.
+      alias = name + '_PY_RESERVED_KEYWORD'
+      if getattr(self.enum_class, alias, None) == self:
+        return self.enum_class.__name__ + '.' + alias
+      return '%s._NAMES_TO_VALUES[%r]' % (self.enum_class.__name__, name)
+    return self.enum_class.__name__ + '.' + name
 
 all_structs = []
 UTF8STRINGS = bool(0) or sys.version_info.major >= 3
@@ -3762,8 +3771,8 @@ class AllocatorAware:
         else:
           iprot.skip(ftype)
       elif fid == 7:
-        if ftype == TType.I32:
-          self.aa_shared = iprot.readI32()
+        if ftype == TType.STRING:
+          self.aa_shared = iprot.readString().decode('utf-8') if UTF8STRINGS else iprot.readString()
         else:
           iprot.skip(ftype)
       else:
@@ -3814,8 +3823,8 @@ class AllocatorAware:
       oprot.writeI32(self.aa_unique)
       oprot.writeFieldEnd()
     if self.aa_shared != None:
-      oprot.writeFieldBegin('aa_shared', TType.I32, 7)
-      oprot.writeI32(self.aa_shared)
+      oprot.writeFieldBegin('aa_shared', TType.STRING, 7)
+      oprot.writeString(self.aa_shared.encode('utf-8')) if UTF8STRINGS and not isinstance(self.aa_shared, bytes) else oprot.writeString(self.aa_shared)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
@@ -4962,7 +4971,7 @@ AllocatorAware.thrift_spec = tuple(__EXPAND_THRIFT_SPEC((
   (4, TType.STRING, 'aa_string', True, None, 2, ), # 4
   (5, TType.I32, 'not_a_container', None, None, 2, ), # 5
   (6, TType.I32, 'aa_unique', None, None, 2, ), # 6
-  (7, TType.I32, 'aa_shared', None, None, 2, ), # 7
+  (7, TType.STRING, 'aa_shared', True, None, 2, ), # 7
 )))
 
 AllocatorAware.thrift_struct_annotations = {

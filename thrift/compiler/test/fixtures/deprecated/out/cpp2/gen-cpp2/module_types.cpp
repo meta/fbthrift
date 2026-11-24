@@ -124,11 +124,11 @@ const ::std::string* User::get_email_address() const& [[FOLLY_ATTR_CLANG_LIFETIM
 
 void swap([[maybe_unused]] User& a, [[maybe_unused]] User& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_id, b.__fbthrift_field_id);
-  swap(a.__fbthrift_field_name, b.__fbthrift_field_name);
-  swap(a.__fbthrift_field_full_name, b.__fbthrift_field_full_name);
-  swap(a.__fbthrift_field_email, b.__fbthrift_field_email);
-  swap(a.__fbthrift_field_email_address, b.__fbthrift_field_email_address);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_id, b.__fbthrift_field_id);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_name, b.__fbthrift_field_name);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_full_name, b.__fbthrift_field_full_name);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_email, b.__fbthrift_field_email);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_email_address, b.__fbthrift_field_email_address);
   swap(a.__isset, b.__isset);
 }
 
@@ -190,45 +190,74 @@ void ExampleUnion::__fbthrift_clear() {
 bool ExampleUnion::__fbthrift_is_empty() const {
   return getType() == Type::__EMPTY__;
 }
+  ExampleUnion& ExampleUnion::operator=(ExampleUnion&& rhs) noexcept {
+    if (this == &rhs) { return *this; }
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+      {
+        __fbthrift_clear();
+        return *this;
+      }
+      case Type::stringValue:
+      {
+        auto value = std::move(rhs.value_.stringValue);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(stringValue_ref(), std::move(value));
+        break;
+      }
+      case Type::intValue:
+      {
+        FOLLY_PUSH_WARNING
+        FOLLY_GNU_DISABLE_WARNING("-Wdeprecated-declarations")
+        FOLLY_MSVC_DISABLE_WARNING(4996)
+        auto value = std::move(rhs.value_.intValue);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(intValue_ref(), std::move(value));
+        FOLLY_POP_WARNING
+        break;
+      }
+      case Type::doubleValue:
+      {
+        auto value = std::move(rhs.value_.doubleValue);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(doubleValue_ref(), std::move(value));
+        break;
+      }
+      default:
+      {
+        assert(false);
+        __fbthrift_clear();
+      }
+    }
+    return *this;
+  }
+
   ExampleUnion::ExampleUnion(const ExampleUnion& rhs)
       : fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
     switch (rhs.getType()) {
       case Type::__EMPTY__:
         return;
       case Type::stringValue:
-        set_stringValue(rhs.value_.stringValue);
+        stringValue_ref().emplace(rhs.value_.stringValue);
         break;
       case Type::intValue:
-        set_intValue(rhs.value_.intValue);
+        FOLLY_PUSH_WARNING
+        FOLLY_GNU_DISABLE_WARNING("-Wdeprecated-declarations")
+        FOLLY_MSVC_DISABLE_WARNING(4996)
+        intValue_ref().emplace(rhs.value_.intValue);
+        FOLLY_POP_WARNING
         break;
       case Type::doubleValue:
-        set_doubleValue(rhs.value_.doubleValue);
+        doubleValue_ref().emplace(rhs.value_.doubleValue);
         break;
       default:
         assert(false);
     }
   }
 
-    ExampleUnion&ExampleUnion::operator=(const ExampleUnion& rhs) {
+  ExampleUnion& ExampleUnion::operator=(const ExampleUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::stringValue:
-        set_stringValue(rhs.value_.stringValue);
-        break;
-      case Type::intValue:
-        set_intValue(rhs.value_.intValue);
-        break;
-      case Type::doubleValue:
-        set_doubleValue(rhs.value_.doubleValue);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = ExampleUnion(rhs);
   }
 
 

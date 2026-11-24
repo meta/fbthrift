@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+use std::future::Future;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -21,7 +22,10 @@ use std::time::Duration;
 use anyhow::Result;
 use anyhow::anyhow;
 use clap::Parser;
+use futures::FutureExt;
 use futures::stream::StreamExt;
+use rpc::rpc::SinkAbortClientInstruction;
+use rpc::rpc::SinkAbortClientTestResult;
 use rpc::rpc::SinkBasicClientInstruction;
 use rpc::rpc::SinkBasicClientTestResult;
 use rpc::rpc::SinkChunkTimeoutClientInstruction;
@@ -34,6 +38,8 @@ use rpc::rpc::SinkInitialResponseClientInstruction;
 use rpc::rpc::SinkInitialResponseClientTestResult;
 use rpc::rpc::SinkServerDeclaredExceptionClientInstruction;
 use rpc::rpc::SinkServerDeclaredExceptionClientTestResult;
+use rpc::rpc::SinkServerErrorClientInstruction;
+use rpc::rpc::SinkServerErrorClientTestResult;
 use rpc::rpc::SinkUndeclaredExceptionClientInstruction;
 use rpc::rpc::SinkUndeclaredExceptionClientTestResult;
 use rpc::rpc::StreamBasicClientInstruction;
@@ -54,6 +60,8 @@ use rpc::rpc::StreamInitialTimeoutClientInstruction;
 use rpc::rpc::StreamInitialTimeoutClientTestResult;
 use rpc::rpc::StreamInitialUndeclaredExceptionClientInstruction;
 use rpc::rpc::StreamInitialUndeclaredExceptionClientTestResult;
+use rpc::rpc::StreamServerErrorClientInstruction;
+use rpc::rpc::StreamServerErrorClientTestResult;
 use rpc::rpc::StreamUndeclaredExceptionClientInstruction;
 use rpc::rpc::StreamUndeclaredExceptionClientTestResult;
 use rpc_clients::rpc::RPCConformanceServiceExt;
@@ -79,6 +87,14 @@ struct Arguments {
     protocol: String,
     #[clap(long, default_value = "rocket")]
     transport: String,
+    #[clap(long)]
+    tls: bool,
+    #[clap(long)]
+    tls_cert: Option<String>,
+    #[clap(long)]
+    tls_key: Option<String>,
+    #[clap(long)]
+    tls_ca: Option<String>,
     #[clap(short, long, default_value = "info")]
     log: Vec<Directive>,
 }
@@ -97,7 +113,23 @@ async fn main(fb: fbinit::FacebookInit, args: Arguments) -> Result<()> {
         transport: match args.transport.as_str() {
             "rocket" => thriftclient::TransportType::Rocket,
             "header" => thriftclient::TransportType::Header,
+            "http2" => thriftclient::TransportType::Http,
             other => anyhow::bail!("Unknown transport {}", other),
+        },
+        tls: if args.tls {
+            Some(Tls {
+                cert_path: args
+                    .tls_cert
+                    .ok_or_else(|| anyhow::anyhow!("--tls needs --tls-cert"))?,
+                key_path: args
+                    .tls_key
+                    .ok_or_else(|| anyhow::anyhow!("--tls needs --tls-key"))?,
+                ca_path: args
+                    .tls_ca
+                    .ok_or_else(|| anyhow::anyhow!("--tls needs --tls-ca"))?,
+            })
+        } else {
+            None
         },
     };
     let client = get_client(&peer).await? as Arc<_>;
@@ -111,19 +143,39 @@ struct Peer {
     port: u16,
     protocol: thriftclient::WireProtocol,
     transport: thriftclient::TransportType,
+    tls: Option<Tls>,
+}
+
+struct Tls {
+    cert_path: String,
+    key_path: String,
+    ca_path: String,
 }
 
 impl Peer {
     fn channel_builder(&self) -> Result<thriftclient::ThriftChannelBuilder> {
-        Ok(thriftclient::ThriftChannelBuilder::from_sock_addr(
+        let builder = thriftclient::ThriftChannelBuilder::from_sock_addr(
             self.fb,
             SocketAddr::new(std::net::Ipv6Addr::LOCALHOST.into(), self.port),
         )?
         .with_secure(false)
         .with_transport_type(self.transport)
+        .with_http_host("localhost")
+        .with_http_url("/")
         .with_protocol(self.protocol.clone())
         .with_conn_timeout(30_000)
-        .with_recv_timeout(30_000))
+        .with_recv_timeout(30_000);
+        Ok(match &self.tls {
+            Some(tls) => builder
+                .with_secure(true)
+                .with_certificate_paths(thriftclient::CertificatePaths {
+                    cert_path: tls.cert_path.clone(),
+                    key_path: tls.key_path.clone(),
+                    ca_path: tls.ca_path.clone(),
+                })
+                .with_enforce_peer_identity(false),
+            None => builder,
+        })
     }
 }
 
@@ -172,8 +224,11 @@ fn init_logging(directives: Vec<Directive>) {
 
 // --
 
+use rpc::rpc::CallKind;
 use rpc::rpc::ClientInstruction;
 use rpc::rpc::ClientTestResult;
+use rpc::rpc::ClosingFrameClientInstruction;
+use rpc::rpc::ClosingFrameClientTestResult;
 use rpc::rpc::InteractionConstructorClientInstruction;
 use rpc::rpc::InteractionConstructorClientTestResult;
 use rpc::rpc::InteractionFactoryFunctionClientInstruction;
@@ -184,6 +239,8 @@ use rpc::rpc::InteractionTerminationClientInstruction;
 use rpc::rpc::InteractionTerminationClientTestResult;
 use rpc::rpc::RequestResponseAnyExceptionClientInstruction;
 use rpc::rpc::RequestResponseAnyExceptionClientTestResult;
+use rpc::rpc::RequestResponseBadContentLengthClientInstruction;
+use rpc::rpc::RequestResponseBadContentLengthClientTestResult;
 use rpc::rpc::RequestResponseBasicClientInstruction;
 use rpc::rpc::RequestResponseBasicClientTestResult;
 use rpc::rpc::RequestResponseConcurrentClientInstruction;
@@ -204,6 +261,8 @@ use rpc_clients::rpc::errors::r_p_c_conformance_service::RequestResponseBasicErr
 use rpc_clients::rpc::errors::r_p_c_conformance_service::RequestResponseDeclaredExceptionError;
 use rpc_clients::rpc::errors::r_p_c_conformance_service::RequestResponseTimeoutError;
 use rpc_clients::rpc::errors::r_p_c_conformance_service::RequestResponseUndeclaredExceptionError;
+use rpc_clients::rpc::errors::r_p_c_conformance_service::SinkBasicError;
+use rpc_clients::rpc::errors::r_p_c_conformance_service::StreamBasicError;
 
 async fn test(
     client: &dyn RPCConformanceServiceExt<thriftclient::ThriftChannel>,
@@ -221,6 +280,7 @@ async fn test(
         requestResponseServerError(i) => request_response_server_error(client, peer, i).await,
         requestResponseMetadata(i) => request_response_metadata(client, peer, i).await,
         requestResponseConcurrent(i) => request_response_concurrent(client, peer, i).await,
+        requestResponseBadContentLength(i) => request_response_bad_content_length(client, i).await,
         interactionConstructor(i) => interaction_constructor(client, i).await,
         interactionFactoryFunction(i) => interaction_factory_function(client, i).await,
         interactionPersistsState(i) => interaction_persists_state(client, i).await,
@@ -235,8 +295,11 @@ async fn test(
         streamInitialUndeclaredException(i) => stream_initial_undeclared_exception(client, i).await,
         streamInitialTimeout(i) => stream_initial_timeout(client, i).await,
         streamCancel(i) => stream_cancel(client, i).await,
+        streamServerError(i) => stream_server_error(client, i).await,
         sinkBasic(i) => sink_basic(client, i).await,
         sinkChunkTimeout(i) => sink_chunk_timeout(client, i).await,
+        sinkAbort(i) => sink_abort(client, i).await,
+        sinkServerError(i) => sink_server_error(client, i).await,
         sinkInitialResponse(i) => sink_initial_response(client, i).await,
         sinkInitialDeclaredException(i) => sink_initial_declared_exception(client, i).await,
         sinkDeclaredException(i) => sink_declared_exception(client, i).await,
@@ -268,6 +331,9 @@ async fn test(
             "bidiMethodUndeclaredException not implemented: {:?}",
             i
         )),
+        bidiAbort(i) => Err(anyhow!("bidiAbort not implemented: {:?}", i)),
+        bidiServerError(i) => Err(anyhow!("bidiServerError not implemented: {:?}", i)),
+        closingFrame(i) => closing_frame(peer, i).await,
         UnknownField(i) => Err(anyhow!(format!("not supported: {:?}", i))),
     }
 }
@@ -282,6 +348,11 @@ async fn create_interaction(
         Some(value) => client.basicInteractionFactoryFunction(*value).await?,
         None => client.createBasicInteraction()? as Arc<_>,
     })
+}
+
+async fn drop_unread<F: Future + Unpin>(mut call: F, after_ms: i64) {
+    let _ = (&mut call).now_or_never();
+    tokio::time::sleep(Duration::from_millis(after_ms as u64)).await;
 }
 
 // ---
@@ -531,6 +602,20 @@ async fn request_response_timeout(
     }
 }
 
+async fn request_response_bad_content_length(
+    client: &dyn RPCConformanceServiceExt<thriftclient::ThriftChannel>,
+    instr: &RequestResponseBadContentLengthClientInstruction,
+) -> Result<()> {
+    if let Err(exn) = client.requestResponseBasic(&instr.request).await {
+        tracing::info!("thrift error: {:?}", exn);
+    }
+    let test_result = ClientTestResult::requestResponseBadContentLength(
+        RequestResponseBadContentLengthClientTestResult::default(),
+    );
+    client.sendTestResult(&test_result).await?;
+    Ok(())
+}
+
 async fn interaction_constructor(
     client: &dyn RPCConformanceServiceExt<thriftclient::ThriftChannel>,
     _instr: &InteractionConstructorClientInstruction,
@@ -624,19 +709,51 @@ async fn stream_basic(
     Ok(())
 }
 
+async fn stream_server_error(
+    client: &dyn RPCConformanceServiceExt<thriftclient::ThriftChannel>,
+    instr: &StreamServerErrorClientInstruction,
+) -> Result<()> {
+    let exn = match client.streamBasic(&instr.request).await {
+        Err(StreamBasicError::ApplicationException(exn)) => exn,
+        Err(other) => {
+            return Err(anyhow!(
+                "stream_server_error: unexpected error: {:?}",
+                other
+            ));
+        }
+        Ok(_) => return Err(anyhow!("stream_server_error: the stream started")),
+    };
+    let test_result = ClientTestResult::streamServerError(StreamServerErrorClientTestResult {
+        exceptionType: exn.type_ as i32,
+        exceptionMessage: exn.message,
+        ..Default::default()
+    });
+    client.sendTestResult(&test_result).await?;
+    Ok(())
+}
+
 async fn stream_cancel(
     client: &dyn RPCConformanceServiceExt<thriftclient::ThriftChannel>,
     instr: &StreamCancelClientInstruction,
 ) -> Result<()> {
-    let mut stream = client.streamBasic(&instr.request).await?;
+    let call = client.streamBasic(&instr.request);
     let mut test_result = StreamCancelClientTestResult::default();
-    while (test_result.streamPayloads.len() as i64) < instr.consumeCount {
-        match stream.next().await {
-            Some(response) => test_result.streamPayloads.push(response?),
-            None => break,
+    match (instr.giveUpAfterMs, instr.dropUnreadAfterMs) {
+        (Some(give_up_after_ms), _) => {
+            drop(tokio::time::timeout(Duration::from_millis(give_up_after_ms as u64), call).await)
+        }
+        (None, Some(drop_unread_after_ms)) => drop_unread(call, drop_unread_after_ms).await,
+        (None, None) => {
+            let mut stream = call.await?;
+            while (test_result.streamPayloads.len() as i64) < instr.consumeCount {
+                match stream.next().await {
+                    Some(response) => test_result.streamPayloads.push(response?),
+                    None => break,
+                }
+            }
+            drop(stream);
         }
     }
-    drop(stream);
     client
         .sendTestResult(&ClientTestResult::streamCancel(test_result))
         .await?;
@@ -857,6 +974,46 @@ async fn sink_basic(
     Ok(())
 }
 
+async fn sink_abort(
+    client: &dyn RPCConformanceServiceExt<thriftclient::ThriftChannel>,
+    instr: &SinkAbortClientInstruction,
+) -> Result<()> {
+    let call = client.sinkBasic(&instr.request);
+    match (instr.giveUpAfterMs, instr.dropUnreadAfterMs) {
+        (Some(give_up_after_ms), _) => {
+            drop(tokio::time::timeout(Duration::from_millis(give_up_after_ms as u64), call).await)
+        }
+        (None, Some(drop_unread_after_ms)) => drop_unread(call, drop_unread_after_ms).await,
+        (None, None) => drop(call.await?),
+    }
+    client
+        .sendTestResult(&ClientTestResult::sinkAbort(
+            SinkAbortClientTestResult::default(),
+        ))
+        .await?;
+    Ok(())
+}
+
+async fn sink_server_error(
+    client: &dyn RPCConformanceServiceExt<thriftclient::ThriftChannel>,
+    instr: &SinkServerErrorClientInstruction,
+) -> Result<()> {
+    let exn = match client.sinkBasic(&instr.request).await {
+        Err(SinkBasicError::ApplicationException(exn)) => exn,
+        Err(other) => {
+            return Err(anyhow!("sink_server_error: unexpected error: {:?}", other));
+        }
+        Ok(_) => return Err(anyhow!("sink_server_error: the sink opened")),
+    };
+    let test_result = ClientTestResult::sinkServerError(SinkServerErrorClientTestResult {
+        exceptionType: exn.type_ as i32,
+        exceptionMessage: exn.message,
+        ..Default::default()
+    });
+    client.sendTestResult(&test_result).await?;
+    Ok(())
+}
+
 async fn sink_chunk_timeout(
     client: &dyn RPCConformanceServiceExt<thriftclient::ThriftChannel>,
     instr: &SinkChunkTimeoutClientInstruction,
@@ -1031,6 +1188,33 @@ async fn sink_server_declared_exception(
     };
     client
         .sendTestResult(&ClientTestResult::sinkServerDeclaredException(test_result))
+        .await?;
+    Ok(())
+}
+
+async fn closing_frame(peer: &Peer, instr: &ClosingFrameClientInstruction) -> Result<()> {
+    let one_connection = client_of(
+        peer.channel_builder()?
+            .with_channel_pool(false)
+            .build_channel()?,
+    )?;
+    let failed = match instr.call {
+        CallKind::REQUEST_RESPONSE => one_connection
+            .requestResponseBasic(&instr.request)
+            .await
+            .is_err(),
+        CallKind::STREAM => one_connection.streamBasic(&instr.request).await.is_err(),
+        CallKind::SINK => one_connection.sinkBasic(&instr.request).await.is_err(),
+        CallKind::BIDI => one_connection.bidiBasic(&instr.request).await.is_err(),
+        other => return Err(anyhow!("closing_frame: unknown call {:?}", other)),
+    };
+    if !failed {
+        return Err(anyhow!("closing_frame: the call succeeded"));
+    }
+    one_connection
+        .sendTestResult(&ClientTestResult::closingFrame(
+            ClosingFrameClientTestResult::default(),
+        ))
         .await?;
     Ok(())
 }

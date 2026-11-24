@@ -34,6 +34,7 @@
 #include <thrift/compiler/ast/t_union.h>
 #include <thrift/compiler/ast/uri.h>
 #include <thrift/compiler/generate/common.h>
+#include <thrift/compiler/generate/cpp/util.h>
 #include <thrift/compiler/generate/python/util.h>
 #include <thrift/compiler/generate/t_whisker_generator.h>
 #include <thrift/compiler/generate/templates.h>
@@ -795,7 +796,7 @@ class t_mstch_python_prototypes_generator : public t_whisker_generator {
     // Check if the field's type is IOBuf, considering both type-level and
     // field-level @cpp.Type annotations.
     def.property("is_type_iobuf?", [](const t_field& self) {
-      return is_type_iobuf(self);
+      return is_type_iobuf(cpp2::binary_cpp_type(self));
     });
 
     def.property("py_name", [this](const t_field& self) {
@@ -1246,7 +1247,7 @@ class t_mstch_python_prototypes_generator : public t_whisker_generator {
       return true_type.is_any_int() || true_type.is_byte();
     });
     def.property("iobuf?", [](const t_type& self) {
-      return self.get_true_type()->is_binary() && is_type_iobuf(&self);
+      return is_type_iobuf(cpp2::binary_cpp_type(&self));
     });
     def.property("contains_patch?", [](const t_type& self) {
       return type_contains_patch(self.get_true_type());
@@ -1367,6 +1368,25 @@ class t_mstch_python_generator : public t_mstch_python_prototypes_generator {
  public:
   using t_mstch_python_prototypes_generator::
       t_mstch_python_prototypes_generator;
+
+  std::optional<docblock_style> get_docblock_style() const override {
+    return docblock_style::python_style();
+  }
+
+  bool docblock_includes_definition(const t_named& node) const override {
+    // Functions, services and interactions keep their Thrift names in Python.
+    if (dynamic_cast<const t_function*>(&node) != nullptr ||
+        dynamic_cast<const t_interface*>(&node) != nullptr) {
+      return false;
+    }
+    if (python::get_py3_name(node) != node.name() ||
+        find_structured_adapter_annotation(node) != nullptr) {
+      return true;
+    }
+    const auto* field = dynamic_cast<const t_field*>(&node);
+    return field != nullptr &&
+        find_structured_adapter_annotation(field->type().deref()) != nullptr;
+  }
 
   std::string template_prefix() const override { return "python"; }
 

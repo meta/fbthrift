@@ -99,7 +99,7 @@ std::partial_ordering A::operator<=>([[maybe_unused]] const A& rhs) const {
 
 void swap([[maybe_unused]] A& a, [[maybe_unused]] A& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_useless_field, b.__fbthrift_field_useless_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_useless_field, b.__fbthrift_field_useless_field);
   swap(a.__isset, b.__isset);
 }
 
@@ -158,39 +158,56 @@ void U::__fbthrift_clear() {
 bool U::__fbthrift_is_empty() const {
   return getType() == Type::__EMPTY__;
 }
+  U& U::operator=(U&& rhs) noexcept {
+    if (this == &rhs) { return *this; }
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+      {
+        __fbthrift_clear();
+        return *this;
+      }
+      case Type::i:
+      {
+        auto value = std::move(rhs.value_.i);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(i_ref(), std::move(value));
+        break;
+      }
+      case Type::s:
+      {
+        auto value = std::move(rhs.value_.s);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(s_ref(), std::move(value));
+        break;
+      }
+      default:
+      {
+        assert(false);
+        __fbthrift_clear();
+      }
+    }
+    return *this;
+  }
+
   U::U(const U& rhs)
       : fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
     switch (rhs.getType()) {
       case Type::__EMPTY__:
         return;
       case Type::i:
-        set_i(rhs.value_.i);
+        i_ref().emplace(rhs.value_.i);
         break;
       case Type::s:
-        set_s(rhs.value_.s);
+        s_ref().emplace(rhs.value_.s);
         break;
       default:
         assert(false);
     }
   }
 
-    U&U::operator=(const U& rhs) {
+  U& U::operator=(const U& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::i:
-        set_i(rhs.value_.i);
-        break;
-      case Type::s:
-        set_s(rhs.value_.s);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = U(rhs);
   }
 
 
@@ -268,7 +285,7 @@ std::partial_ordering Bang::operator<=>([[maybe_unused]] const Bang& rhs) const 
 
 void swap([[maybe_unused]] Bang& a, [[maybe_unused]] Bang& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_message, b.__fbthrift_field_message);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_message, b.__fbthrift_field_message);
   swap(a.__isset, b.__isset);
 }
 

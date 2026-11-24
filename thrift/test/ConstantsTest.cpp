@@ -146,33 +146,34 @@ TEST(constants, examples) {
           pod_3.c()->c()->b()));
 
   EXPECT_EQ(union1::Type::i, test_constants::u_1_1().getType());
-  EXPECT_EQ(97, test_constants::u_1_1().get_i());
+  EXPECT_EQ(97, test_constants::u_1_1().i().value());
 
   EXPECT_EQ(union1::Type::d, test_constants::u_1_2().getType());
-  EXPECT_EQ(5.6, test_constants::u_1_2().get_d());
+  EXPECT_EQ(5.6, test_constants::u_1_2().d().value());
 
   EXPECT_EQ(union1::Type::__EMPTY__, test_constants::u_1_3().getType());
 
   EXPECT_EQ(union2::Type::i, test_constants::u_2_1().getType());
-  EXPECT_EQ(51, test_constants::u_2_1().get_i());
+  EXPECT_EQ(51, test_constants::u_2_1().i().value());
 
   EXPECT_EQ(union2::Type::d, test_constants::u_2_2().getType());
-  EXPECT_EQ(6.7, test_constants::u_2_2().get_d());
+  EXPECT_EQ(6.7, test_constants::u_2_2().d().value());
 
   EXPECT_EQ(union2::Type::s, test_constants::u_2_3().getType());
-  EXPECT_EQ(8, test_constants::u_2_3().get_s().a().value());
-  EXPECT_EQ("abacabb", test_constants::u_2_3().get_s().b().value());
+  EXPECT_EQ(8, test_constants::u_2_3().s().value().a().value());
+  EXPECT_EQ("abacabb", test_constants::u_2_3().s().value().b().value());
 
   EXPECT_EQ(union2::Type::u, test_constants::u_2_4().getType());
-  EXPECT_EQ(union1::Type::i, test_constants::u_2_4().get_u().getType());
-  EXPECT_EQ(43, test_constants::u_2_4().get_u().get_i());
+  EXPECT_EQ(union1::Type::i, test_constants::u_2_4().u().value().getType());
+  EXPECT_EQ(43, test_constants::u_2_4().u().value().i().value());
 
   EXPECT_EQ(union2::Type::u, test_constants::u_2_5().getType());
-  EXPECT_EQ(union1::Type::d, test_constants::u_2_5().get_u().getType());
-  EXPECT_EQ(9.8, test_constants::u_2_5().get_u().get_d());
+  EXPECT_EQ(union1::Type::d, test_constants::u_2_5().u().value().getType());
+  EXPECT_EQ(9.8, test_constants::u_2_5().u().value().d().value());
 
   EXPECT_EQ(union2::Type::u, test_constants::u_2_6().getType());
-  EXPECT_EQ(union1::Type::__EMPTY__, test_constants::u_2_6().get_u().getType());
+  EXPECT_EQ(
+      union1::Type::__EMPTY__, test_constants::u_2_6().u().value().getType());
 
   EXPECT_EQ(test_constants::maxIntDec(), 9223372036854775807);
 

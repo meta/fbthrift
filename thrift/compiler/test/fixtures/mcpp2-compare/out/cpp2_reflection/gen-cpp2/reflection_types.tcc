@@ -9,3 +9,14 @@
 #include "thrift/compiler/test/fixtures/mcpp2-compare/gen-cpp2/reflection_types.h"
 
 #include <thrift/lib/cpp2/gen/module_types_tcc.h>
+
+namespace cpp2 {
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& ReflectionStruct::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_fieldA;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool ReflectionStruct::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+} // namespace cpp2

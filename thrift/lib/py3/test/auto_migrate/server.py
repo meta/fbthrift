@@ -107,7 +107,10 @@ class Handler(TestingServiceInterface):
 class ServicesTests(unittest.IsolatedAsyncioTestCase):
     def test_server_rejects_invalid_handler(self) -> None:
         invalid_handler = cast(TestingServiceInterface, object())
-        expected_pattern = "ServiceInterface or AsyncProcessorFactory"
+        expected_pattern = (
+            "ServiceInterface, a callable that returns a ServiceInterface, "
+            "or an AsyncProcessorFactory"
+        )
 
         with self.assertRaisesRegex(TypeError, expected_pattern):
             ThriftServer(invalid_handler)

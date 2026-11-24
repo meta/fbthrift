@@ -29,6 +29,8 @@ from thrift.py3.types cimport (
     set_iter as __set_iter,
     map_iter as __map_iter,
     reference_shared_ptr as __reference_shared_ptr,
+    get_union_field_storage as __get_union_field_storage,
+    get_union_field_cref as __get_union_field_cref,
     get_field_name_by_index as __get_field_name_by_index,
     reset_field as __reset_field,
     translate_cpp_enum_to_python,
@@ -58,6 +60,7 @@ from module.thrift_enums import (
 )
 from module.types_impl_FBTHRIFT_ONLY_DO_NOT_USE import (
     __BinaryUnionType,
+    __StringAdaptedUnionType,
 )
 
 from module.containers_FBTHRIFT_ONLY_DO_NOT_USE import (
@@ -974,7 +977,9 @@ cdef class ComplexStruct(thrift.py3.types.Struct):
         return self.cdef__impl()
 
     cdef inline bytes_with_cpp_type_impl(self):
-        return (<const char*>deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).bytes_with_cpp_type_ref().value().data())[:deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).bytes_with_cpp_type_ref().value().size()]
+        if self.__fbthrift_cached_bytes_with_cpp_type is None:
+            self.__fbthrift_cached_bytes_with_cpp_type = _fbthrift_iobuf.IOBuf.create(ptr_address(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).bytes_with_cpp_type_ref().ref()), self)
+        return self.__fbthrift_cached_bytes_with_cpp_type
 
     @property
     def bytes_with_cpp_type(self):
@@ -1124,7 +1129,7 @@ cdef class BinaryUnion(thrift.py3.types.Union):
         if self.py_value is not None or self.type_int == 0:
             return self.py_value
         elif self.type_int == 1:
-            self.py_value = _fbthrift_iobuf.from_unique_ptr(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_iobuf_val().clone())
+            self.py_value = _fbthrift_iobuf.from_unique_ptr(__get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).iobuf_val_ref()).clone())
         return self.py_value
 
     cdef _initialize_py(BinaryUnion self):
@@ -1353,7 +1358,9 @@ cdef class CustomFields(thrift.py3.types.Struct):
         return self.string_field_impl()
 
     cdef inline binary_field_impl(self):
-        return (<const char*>deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).binary_field_ref().value().data())[:deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).binary_field_ref().value().size()]
+        if self.__fbthrift_cached_binary_field is None:
+            self.__fbthrift_cached_binary_field = _fbthrift_iobuf.IOBuf.create(ptr_address(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).binary_field_ref().ref()), self)
+        return self.__fbthrift_cached_binary_field
 
     @property
     def binary_field(self):
@@ -1527,7 +1534,11 @@ cdef class CustomTypedefFields(thrift.py3.types.Struct):
         return self.string_field_impl()
 
     cdef inline binary_field_impl(self):
-        return (<const char*>deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).binary_field_ref().value().data())[:deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).binary_field_ref().value().size()]
+        if self.__fbthrift_cached_binary_field is None:
+            if not deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).binary_field_ref().value():
+                return None
+            self.__fbthrift_cached_binary_field = _fbthrift_iobuf.IOBuf.create(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).binary_field_ref().value().get(), self)
+        return self.__fbthrift_cached_binary_field
 
     @property
     def binary_field(self):
@@ -1816,6 +1827,165 @@ cdef class AdaptedTypedefFields(thrift.py3.types.Struct):
         import thrift.util.converter
         py_deprecated_types = importlib.import_module("module.ttypes")
         return thrift.util.converter.to_py_struct(py_deprecated_types.AdaptedTypedefFields, self)
+
+
+
+@__cython.auto_pickle(False)
+@__cython.final
+cdef class StringAdaptedUnion(thrift.py3.types.Union):
+    __module__ = _fbthrift__module_name__
+    Type = __StringAdaptedUnionType
+
+    def __init__(
+        self, *,
+        str string_field=None,
+        bytes binary_field=None
+    ):
+        self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE = __to_shared_ptr(cmove(StringAdaptedUnion._make_instance(
+          NULL,
+          string_field,
+          binary_field,
+        )))
+        self._initialize_py()
+
+    @staticmethod
+    def fromValue(value):
+        if value is None:
+            return StringAdaptedUnion()
+        if isinstance(value, str):
+            return StringAdaptedUnion(string_field=value)
+        if isinstance(value, bytes):
+            return StringAdaptedUnion(binary_field=value)
+        raise ValueError(f"Unable to derive correct union field for value: {value}")
+
+    @staticmethod
+    cdef unique_ptr[_module_cbindings.cStringAdaptedUnion] _make_instance(
+        _module_cbindings.cStringAdaptedUnion* base_instance,
+        str string_field,
+        bytes binary_field
+    ) except *:
+        cdef unique_ptr[_module_cbindings.cStringAdaptedUnion] c_inst = make_unique[_module_cbindings.cStringAdaptedUnion]()
+        cdef bint any_set = False
+        if string_field is not None:
+            if any_set:
+                raise TypeError("At most one field may be set when initializing a union")
+            deref(c_inst).set_string_field(string_field.encode('UTF-8'))
+            any_set = True
+        if binary_field is not None:
+            if any_set:
+                raise TypeError("At most one field may be set when initializing a union")
+            deref(c_inst).set_binary_field(_module_cbindings._py3_simple_StringAdaptedBinary(cmove(<string>binary_field)))
+            any_set = True
+        # in C++ you don't have to call move(), but this doesn't translate
+        # into a C++ return statement, so you do here
+        return cmove(c_inst)
+
+    @staticmethod
+    cdef _create_FBTHRIFT_ONLY_DO_NOT_USE(shared_ptr[_module_cbindings.cStringAdaptedUnion] cpp_obj):
+        __fbthrift_inst = <StringAdaptedUnion>StringAdaptedUnion.__new__(StringAdaptedUnion)
+        __fbthrift_inst._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE = cmove(cpp_obj)
+        __fbthrift_inst._initialize_py()
+        return __fbthrift_inst
+
+    @property
+    def string_field(StringAdaptedUnion self not None):
+        if self.type_int != 1:
+            raise AttributeError(f'Union contains a value of type {self.type.name}, not string_field')
+        return self.value
+
+    @property
+    def binary_field(StringAdaptedUnion self not None):
+        if self.type_int != 2:
+            raise AttributeError(f'Union contains a value of type {self.type.name}, not binary_field')
+        return self.value
+
+
+    def __hash__(StringAdaptedUnion self):
+        return  super().__hash__()
+
+    @property
+    def type(StringAdaptedUnion self not None):
+        if self.py_type is None:
+            self.py_type = StringAdaptedUnion.Type(self.type_int)
+        return self.py_type
+
+    @property
+    def value(StringAdaptedUnion self not None):
+        if self.py_value is not None or self.type_int == 0:
+            return self.py_value
+        elif self.type_int == 1:
+            self.py_value = bytes(__get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).string_field_ref())).decode('UTF-8')
+        elif self.type_int == 2:
+            self.py_value = (<const char*>__get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).binary_field_ref()).data())[:__get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).binary_field_ref()).size()]
+        return self.py_value
+
+    cdef _initialize_py(StringAdaptedUnion self):
+        self.py_type = None
+        self.type_int = int(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).getType())
+        self.py_value = None
+
+    def __copy__(StringAdaptedUnion self):
+        return self
+
+    def __richcmp__(self, other, int op):
+        r = self._fbthrift_cmp_sametype(other, op)
+        return __richcmp[_module_cbindings.cStringAdaptedUnion](
+            self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE,
+            (<StringAdaptedUnion>other)._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE,
+            op,
+        ) if r is None else r
+
+    @staticmethod
+    def __get_reflection__():
+        return get_types_reflection().get_reflection__StringAdaptedUnion()
+
+    @staticmethod
+    def __get_metadata__():
+        cdef __fbthrift_cThriftMetadata meta
+        _module_cbindings.StructMetadata[_module_cbindings.cStringAdaptedUnion].gen(meta)
+        return __MetadataBox.box(cmove(meta))
+
+    @staticmethod
+    def __get_thrift_name__():
+        return "module.StringAdaptedUnion"
+
+    @classmethod
+    def _fbthrift_get_field_name_by_index(cls, idx):
+        return __sv_to_str(__get_field_name_by_index[_module_cbindings.cStringAdaptedUnion](idx))
+
+    @classmethod
+    def _fbthrift_get_struct_size(cls):
+        return 2
+
+    cdef _fbthrift_iobuf.IOBuf _fbthrift_serialize(StringAdaptedUnion self, __Protocol proto):
+        cdef unique_ptr[_fbthrift_iobuf.cIOBuf] data
+        with nogil:
+            data = cmove(serializer.cserialize[_module_cbindings.cStringAdaptedUnion](self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE.get(), proto))
+        return _fbthrift_iobuf.from_unique_ptr(cmove(data))
+
+    cdef cuint32_t _fbthrift_deserialize(StringAdaptedUnion self, const _fbthrift_iobuf.cIOBuf* buf, __Protocol proto) except? 0:
+        cdef cuint32_t needed
+        self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE = make_shared[_module_cbindings.cStringAdaptedUnion]()
+        with nogil:
+            needed = serializer.cdeserialize[_module_cbindings.cStringAdaptedUnion](buf, self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE.get(), proto)
+        # clear cache reload since the underlying data's changed
+        self._initialize_py()
+        return needed
+
+
+    def _to_python(self):
+        return thrift.python.converter.to_python_struct(
+            _fbthrift_python_types.StringAdaptedUnion,
+            self,
+        )
+
+    def _to_py3(self):
+        return self
+
+    def _to_py_deprecated(self):
+        import thrift.util.converter
+        py_deprecated_types = importlib.import_module("module.ttypes")
+        return thrift.util.converter.to_py_struct(py_deprecated_types.StringAdaptedUnion, self)
 
 cdef vector[cint16_t] List__i16__make_instance(object items) except *:
     cdef vector[cint16_t] c_inst
@@ -2552,12 +2722,12 @@ IOBufPtr = _fbthrift_iobuf.IOBuf
 IOBuf = _fbthrift_iobuf.IOBuf
 DeferredTruncationFloat = float
 AdaptedTypeDef = SimpleStruct
-foo_bar = bytes
+CustomBuffer = _fbthrift_iobuf.IOBuf
 CustomBool = bool
 CustomInteger = int
 CustomDouble = float
 CustomString = str
-CustomBinary = bytes
+CustomBinary = _fbthrift_iobuf.IOBuf
 CustomList = _MyType__List__i32
 CustomSet = _MyType__Set__i32
 CustomMap = _MyType__Map__i32_i32
@@ -2571,3 +2741,5 @@ AdaptedList = _py3_simple_AdaptedList__List__i32
 AdaptedSet = _py3_simple_AdaptedSet__Set__i32
 AdaptedMap = _py3_simple_AdaptedMap__Map__i32_i32
 AdaptedStruct = SimpleStruct
+StringAdaptedString = str
+StringAdaptedBinary = bytes

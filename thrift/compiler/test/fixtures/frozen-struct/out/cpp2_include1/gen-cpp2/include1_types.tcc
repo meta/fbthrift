@@ -9,3 +9,22 @@
 #include "thrift/compiler/test/fixtures/frozen-struct/gen-cpp2/include1_types.h"
 
 #include <thrift/lib/cpp2/gen/module_types_tcc.h>
+
+namespace some::ns {
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& IncludedA::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_i32Field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool IncludedA::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& IncludedA::__fbthrift_get_field_storage<2>() const {
+  return this->__fbthrift_field_strField;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool IncludedA::__fbthrift_get_field_isset<2>() const {
+  return this->__isset.get(1);
+}
+} // namespace some::ns

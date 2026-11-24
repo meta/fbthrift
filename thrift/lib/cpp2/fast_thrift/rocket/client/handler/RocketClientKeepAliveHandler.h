@@ -29,9 +29,7 @@
 #include <folly/logging/xlog.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameViews.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/ComposedFrame.h>
@@ -58,9 +56,8 @@ class RocketClientKeepAliveHandler {
 
   template <typename Context>
   void handlerAdded(Context& ctx) noexcept {
-    auto& base = static_cast<channel_pipeline::detail::ContextImpl&>(ctx);
     timer_ = folly::AsyncTimeout::make(
-        *ctx.eventBase(), [this, &base]() noexcept { onTimeout(base); });
+        *ctx.eventBase(), [this, &ctx]() noexcept { onTimeout(ctx); });
   }
 
   template <typename Context>
@@ -101,22 +98,21 @@ class RocketClientKeepAliveHandler {
       start(ctx);
     }
     auto& response = msg.get<RocketResponseMessage>();
-    if (FOLLY_LIKELY(
-            !response.payload.template is<frame::read::ParsedFrame>())) {
+    if (!response.payload.template is<frame::read::ParsedFrame>()) [[likely]] {
       return ctx.fireRead(std::move(msg));
     }
 
     auto& parsed = response.payload.template get<frame::read::ParsedFrame>();
-    if (FOLLY_LIKELY(parsed.type() != frame::FrameType::KEEPALIVE)) {
+    if (parsed.type() != frame::FrameType::KEEPALIVE) [[likely]] {
       return ctx.fireRead(std::move(msg));
     }
-    if (FOLLY_UNLIKELY(!parsed.isConnectionFrame())) {
+    if (!parsed.isConnectionFrame()) [[unlikely]] {
       failRead(ctx, "KEEPALIVE must use stream ID 0");
       return channel_pipeline::Result::Error;
     }
 
     frame::read::KeepAliveView view(parsed);
-    if (FOLLY_UNLIKELY(view.shouldRespond())) {
+    if (view.shouldRespond()) [[unlikely]] {
       XLOG(WARN) << "Ignoring respond-flagged KEEPALIVE from server";
       return channel_pipeline::Result::Success;
     }
@@ -169,7 +165,7 @@ class RocketClientKeepAliveHandler {
     }
 
     const auto now = Clock::now();
-    if (FOLLY_UNLIKELY(now >= lastReply_ + maxLifetime())) {
+    if (now >= lastReply_ + maxLifetime()) [[unlikely]] {
       failTimer(ctx, "Rocket keepalive reply timed out");
       return;
     }
@@ -187,7 +183,7 @@ class RocketClientKeepAliveHandler {
       };
       const auto result =
           ctx.fireWrite(channel_pipeline::erase_and_box(std::move(probe)));
-      if (FOLLY_UNLIKELY(result == channel_pipeline::Result::Error)) {
+      if (result == channel_pipeline::Result::Error) [[unlikely]] {
         failTimer(ctx, "Rocket keepalive write failed");
         return;
       }
@@ -209,8 +205,8 @@ class RocketClientKeepAliveHandler {
     timer_->scheduleTimeout(delay);
   }
 
-  void failTimer(
-      channel_pipeline::detail::ContextImpl& ctx, const char* reason) noexcept {
+  template <typename Context>
+  void failTimer(Context& ctx, const char* reason) noexcept {
     active_ = false;
     XLOG(ERR) << reason;
     ctx.fireException(
@@ -238,11 +234,5 @@ class RocketClientKeepAliveHandler {
   bool pipelineActive_{false};
   bool active_{false};
 };
-
-static_assert(
-    channel_pipeline::DuplexHandler<
-        RocketClientKeepAliveHandler,
-        channel_pipeline::detail::ContextImpl>,
-    "RocketClientKeepAliveHandler must satisfy DuplexHandler concept");
 
 } // namespace apache::thrift::fast_thrift::rocket::client::handler

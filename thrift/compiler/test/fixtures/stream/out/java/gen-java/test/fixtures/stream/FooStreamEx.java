@@ -37,8 +37,17 @@ public final class FooStreamEx extends org.apache.thrift.TBaseException implemen
     ) {
     }
 
+    public FooStreamEx(final java.lang.Throwable cause) {
+        super(cause);
+    }
 
     public static class Builder {
+        private java.lang.Throwable cause;
+
+        public Builder setCause(final java.lang.Throwable cause) {
+            this.cause = cause;
+            return this;
+        }
 
         public Builder() { }
         public Builder(FooStreamEx other) {
@@ -48,6 +57,9 @@ public final class FooStreamEx extends org.apache.thrift.TBaseException implemen
         public FooStreamEx build() {
             FooStreamEx result = new FooStreamEx (
             );
+            if (cause != null) {
+                result.initCause(cause);
+            }
             return result;
         }
     }

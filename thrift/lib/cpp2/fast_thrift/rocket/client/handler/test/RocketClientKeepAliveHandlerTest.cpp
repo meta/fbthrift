@@ -17,8 +17,9 @@
 #include <folly/io/async/EventBase.h>
 #include <folly/portability/GTest.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameParser.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/FrameHeaders.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/FrameWriter.h>
@@ -46,16 +47,37 @@ RocketResponseMessage makeKeepAliveReply() {
   return response;
 }
 
+class KeepAliveTransport : public cp::test::MockHeadHandler {
+ public:
+  template <typename Context>
+  cp::Result onWrite(Context&, cp::TypeErasedBox&& message) noexcept {
+    return MockHeadHandler::onWrite(
+        cp::test::inertEndpointContext(), std::move(message));
+  }
+
+  template <typename Context>
+  void onWriteReady(Context&) noexcept {}
+};
+
+class KeepAliveApp : public cp::test::MockTailHandler {
+ public:
+  template <typename Context>
+  cp::Result onRead(Context&, cp::TypeErasedBox&& message) noexcept {
+    return MockTailHandler::onRead(
+        cp::test::inertEndpointContext(), std::move(message));
+  }
+};
+
 class ClientKeepAliveHandlerTest : public ::testing::Test {
  protected:
-  using PipelineBuilder = cp::PipelineBuilder<
-      cp::test::MockHeadHandler,
-      cp::test::MockTailHandler,
+  using StaticPipelineBuilder = cp::StaticPipelineBuilder<
+      KeepAliveTransport,
+      KeepAliveApp,
       cp::test::TestAllocator>;
 
   folly::EventBase eventBase_;
-  cp::test::MockHeadHandler transport_;
-  cp::test::MockTailHandler app_;
+  KeepAliveTransport transport_;
+  KeepAliveApp app_;
   cp::test::TestAllocator allocator_;
 };
 
@@ -70,7 +92,7 @@ TEST_F(ClientKeepAliveHandlerTest, SendsProbesAndTimesOutMissingReplies) {
     return cp::Result::Success;
   });
 
-  auto pipeline = PipelineBuilder()
+  auto pipeline = StaticPipelineBuilder()
                       .setEventBase(&eventBase_)
                       .setHead(&transport_)
                       .setTail(&app_)
@@ -84,7 +106,7 @@ TEST_F(ClientKeepAliveHandlerTest, SendsProbesAndTimesOutMissingReplies) {
                       .build();
 
   pipeline->activate();
-  eventBase_.loop();
+  cp::test::loopUntilIdle(eventBase_);
 
   EXPECT_GE(probes, 1u);
   EXPECT_EQ(app_.exceptionCount(), 1);
@@ -92,22 +114,22 @@ TEST_F(ClientKeepAliveHandlerTest, SendsProbesAndTimesOutMissingReplies) {
 
 TEST_F(ClientKeepAliveHandlerTest, RepliesKeepConnectionAlive) {
   size_t probes = 0;
-  cp::PipelineImpl* pipelinePtr = nullptr;
+  cp::PipelineRef pipelineRef;
   transport_.setOnWriteCallback([&](cp::TypeErasedBox&& box) noexcept {
     auto request = box.take<RocketRequestMessage>();
     EXPECT_EQ(request.frame.frameType, frame::FrameType::KEEPALIVE);
     EXPECT_TRUE(request.frame.respond);
     ++probes;
     EXPECT_EQ(
-        pipelinePtr->fireRead(cp::erase_and_box(makeKeepAliveReply())),
+        pipelineRef.fireRead(cp::erase_and_box(makeKeepAliveReply())),
         cp::Result::Success);
     if (probes == 3) {
-      pipelinePtr->deactivate();
+      pipelineRef.deactivate();
     }
     return cp::Result::Success;
   });
 
-  auto pipeline = PipelineBuilder()
+  auto pipeline = StaticPipelineBuilder()
                       .setEventBase(&eventBase_)
                       .setHead(&transport_)
                       .setTail(&app_)
@@ -119,10 +141,10 @@ TEST_F(ClientKeepAliveHandlerTest, RepliesKeepConnectionAlive) {
                               .maxLifetimeMs = 8,
                           })
                       .build();
-  pipelinePtr = pipeline.get();
+  pipelineRef = cp::PipelineRef{*pipeline};
 
   pipeline->activate();
-  eventBase_.loop();
+  cp::test::loopUntilIdle(eventBase_);
 
   EXPECT_EQ(probes, 3u);
   EXPECT_EQ(app_.exceptionCount(), 0);
@@ -131,17 +153,17 @@ TEST_F(ClientKeepAliveHandlerTest, RepliesKeepConnectionAlive) {
 
 TEST_F(ClientKeepAliveHandlerTest, DeferredStartWaitsForFirstInboundFrame) {
   size_t probes = 0;
-  cp::PipelineImpl* pipelinePtr = nullptr;
+  cp::PipelineRef pipelineRef;
   transport_.setOnWriteCallback([&](cp::TypeErasedBox&& box) noexcept {
     auto request = box.take<RocketRequestMessage>();
     EXPECT_EQ(request.frame.frameType, frame::FrameType::KEEPALIVE);
     ++probes;
-    pipelinePtr->deactivate();
+    pipelineRef.deactivate();
     return cp::Result::Success;
   });
 
   auto pipeline =
-      PipelineBuilder()
+      StaticPipelineBuilder()
           .setEventBase(&eventBase_)
           .setHead(&transport_)
           .setTail(&app_)
@@ -154,16 +176,16 @@ TEST_F(ClientKeepAliveHandlerTest, DeferredStartWaitsForFirstInboundFrame) {
               },
               RocketClientKeepAliveHandler::StartPolicy::FirstInboundFrame)
           .build();
-  pipelinePtr = pipeline.get();
+  pipelineRef = cp::PipelineRef{*pipeline};
 
   pipeline->activate();
-  eventBase_.loop();
+  cp::test::loopUntilIdle(eventBase_);
   EXPECT_EQ(probes, 0u);
 
   EXPECT_EQ(
       pipeline->fireRead(cp::erase_and_box(makeKeepAliveReply())),
       cp::Result::Success);
-  eventBase_.loop();
+  cp::test::loopUntilIdle(eventBase_);
   EXPECT_EQ(probes, 1u);
   EXPECT_EQ(app_.exceptionCount(), 0);
 }

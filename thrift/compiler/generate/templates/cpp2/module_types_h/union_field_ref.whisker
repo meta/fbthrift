@@ -16,22 +16,14 @@
 
 }}
   {{#each struct.fields as |field|}}
+    {{#let use_alloc? = (and (object.notnull? struct.cpp_allocator) field.cpp_use_allocator?)}}
   {{#partial glean.field_docblock field=field}}
   template <typename..., typename T = {{field.cpp_storage_type}}>
       {{#if field.deprecated?}}
   [[deprecated("{{field.deprecation_message}}")]]
       {{/if field.deprecated?}}
-  {{field.cpp_accessor_attribute}} ::apache::thrift::union_field_ref<const T&> {{field.cpp_name}}_ref() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
-    return {value_.{{field.cpp_name}}, fbthrift_type_, folly::to_underlying(Type::{{field.cpp_name}}), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
-  }
-
-  {{#partial glean.field_docblock field=field}}
-  template <typename..., typename T = {{field.cpp_storage_type}}>
-      {{#if field.deprecated?}}
-  [[deprecated("{{field.deprecation_message}}")]]
-      {{/if field.deprecated?}}
-  {{field.cpp_accessor_attribute}} ::apache::thrift::union_field_ref<T&> {{field.cpp_name}}_ref() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
-    return {value_.{{field.cpp_name}}, fbthrift_type_, folly::to_underlying(Type::{{field.cpp_name}}), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
+  {{field.cpp_accessor_attribute}} ::apache::thrift::union_field_ref<const T&{{#if use_alloc?}}, allocator_type{{/if}}> {{field.cpp_name}}_ref() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
+    return {value_.{{field.cpp_name}}, fbthrift_type_, folly::to_underlying(Type::{{field.cpp_name}}), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>{{#if use_alloc?}}, __fbthrift_alloc{{/if}}};
   }
 
   {{#partial glean.field_docblock field=field}}
@@ -39,31 +31,40 @@
       {{#if field.deprecated?}}
   [[deprecated("{{field.deprecation_message}}")]]
       {{/if field.deprecated?}}
-  {{field.cpp_accessor_attribute}} ::apache::thrift::union_field_ref<T&&> {{field.cpp_name}}_ref() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
-    return {std::move(value_.{{field.cpp_name}}), fbthrift_type_, folly::to_underlying(Type::{{field.cpp_name}}), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
+  {{field.cpp_accessor_attribute}} ::apache::thrift::union_field_ref<T&{{#if use_alloc?}}, allocator_type{{/if}}> {{field.cpp_name}}_ref() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
+    return {value_.{{field.cpp_name}}, fbthrift_type_, folly::to_underlying(Type::{{field.cpp_name}}), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>{{#if use_alloc?}}, __fbthrift_alloc{{/if}}};
+  }
+
+  {{#partial glean.field_docblock field=field}}
+  template <typename..., typename T = {{field.cpp_storage_type}}>
+      {{#if field.deprecated?}}
+  [[deprecated("{{field.deprecation_message}}")]]
+      {{/if field.deprecated?}}
+  {{field.cpp_accessor_attribute}} ::apache::thrift::union_field_ref<T&&{{#if use_alloc?}}, allocator_type{{/if}}> {{field.cpp_name}}_ref() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
+    return {std::move(value_.{{field.cpp_name}}), fbthrift_type_, folly::to_underlying(Type::{{field.cpp_name}}), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>{{#if use_alloc?}}, __fbthrift_alloc{{/if}}};
   }
 
   {{#partial glean.field_docblock field=field}}
       {{#if field.deprecated?}}
   [[deprecated("{{field.deprecation_message}}")]]
       {{/if field.deprecated?}}
-  {{field.cpp_accessor_attribute}} ::apache::thrift::union_field_ref<const {{field.cpp_storage_type}}&> {{field.cpp_name}}() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
-    return {value_.{{field.cpp_name}}, fbthrift_type_, folly::to_underlying(Type::{{field.cpp_name}}), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
+  {{field.cpp_accessor_attribute}} ::apache::thrift::union_field_ref<const {{field.cpp_storage_type}}&{{#if use_alloc?}}, allocator_type{{/if}}> {{field.cpp_name}}() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
+    return {value_.{{field.cpp_name}}, fbthrift_type_, folly::to_underlying(Type::{{field.cpp_name}}), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>{{#if use_alloc?}}, __fbthrift_alloc{{/if}}};
   }
 
   {{#partial glean.field_docblock field=field}}
       {{#if field.deprecated?}}
   [[deprecated("{{field.deprecation_message}}")]]
       {{/if field.deprecated?}}
-  {{field.cpp_accessor_attribute}} ::apache::thrift::union_field_ref<{{field.cpp_storage_type}}&> {{field.cpp_name}}() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
-    return {value_.{{field.cpp_name}}, fbthrift_type_, folly::to_underlying(Type::{{field.cpp_name}}), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
+  {{field.cpp_accessor_attribute}} ::apache::thrift::union_field_ref<{{field.cpp_storage_type}}&{{#if use_alloc?}}, allocator_type{{/if}}> {{field.cpp_name}}() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
+    return {value_.{{field.cpp_name}}, fbthrift_type_, folly::to_underlying(Type::{{field.cpp_name}}), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>{{#if use_alloc?}}, __fbthrift_alloc{{/if}}};
   }
 
   {{#partial glean.field_docblock field=field}}
       {{#if field.deprecated?}}
   [[deprecated("{{field.deprecation_message}}")]]
       {{/if field.deprecated?}}
-  {{field.cpp_accessor_attribute}} ::apache::thrift::union_field_ref<{{field.cpp_storage_type}}&&> {{field.cpp_name}}() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
-    return {std::move(value_.{{field.cpp_name}}), fbthrift_type_, folly::to_underlying(Type::{{field.cpp_name}}), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
+  {{field.cpp_accessor_attribute}} ::apache::thrift::union_field_ref<{{field.cpp_storage_type}}&&{{#if use_alloc?}}, allocator_type{{/if}}> {{field.cpp_name}}() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
+    return {std::move(value_.{{field.cpp_name}}), fbthrift_type_, folly::to_underlying(Type::{{field.cpp_name}}), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>{{#if use_alloc?}}, __fbthrift_alloc{{/if}}};
   }
   {{/each}}

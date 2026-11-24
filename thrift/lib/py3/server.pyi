@@ -17,10 +17,21 @@
 
 import ipaddress
 import os
-from asyncio import Future
+from asyncio import AbstractEventLoop, Future
 from enum import Enum
 from types import TracebackType
-from typing import Any, Callable, ClassVar, Mapping, Optional, Type, TypeVar, Union
+from typing import (
+    Any,
+    Callable,
+    ClassVar,
+    Mapping,
+    Optional,
+    overload,
+    Type,
+    TypeVar,
+    Union,
+)
+from weakref import ReferenceType
 
 from thrift.py3.common import Headers, Priority
 from thrift.python.server_impl.interceptor.server_module import PythonServerModule
@@ -70,9 +81,19 @@ Py3Interface = TypeVar("Py3Interface", bound=AsyncProcessorFactory)
 PythonInterface = TypeVar("PythonInterface", bound=PythonServiceInterface)
 
 class ThriftServer:
+    @overload
     def __init__(
         self,
         handler: Optional[Union[Py3Interface, PythonInterface]],
+        port: int = 0,
+        ip: Optional[Union[IPAddress, str]] = None,
+        path: Optional[Path] = None,
+        socket_fd: Optional[int] = None,
+    ) -> None: ...
+    @overload
+    def __init__(
+        self,
+        handler: Callable[[], PythonServiceInterface],
         port: int = 0,
         ip: Optional[Union[IPAddress, str]] = None,
         path: Optional[Path] = None,
@@ -87,11 +108,13 @@ class ThriftServer:
     def get_active_requests(self) -> int: ...
     def get_max_requests(self) -> int: ...
     def set_max_requests(self, max_requests: int) -> None: ...
+    def set_max_debug_payload_memory_per_request(self, size: int) -> None: ...
     def get_max_connections(self) -> int: ...
     def set_max_connections(self, max_connections: int) -> None: ...
     def get_listen_backlog(self) -> int: ...
     def set_listen_backlog(self, listen_backlog: int) -> None: ...
     def set_io_worker_threads(self, num: int) -> None: ...
+    def enable_cpu_worker_threads(self, count: int) -> None: ...
     def get_io_worker_threads(self) -> int: ...
     def get_cpu_worker_threads(self) -> int: ...
     def set_workers_join_timeout(self, seconds: int) -> None: ...
@@ -120,3 +143,13 @@ class ThriftServer:
     def set_stream_expire_time(self, seconds: float) -> None: ...
     def start_health_polling(self) -> None: ...
     def stop_health_polling(self) -> None: ...
+
+def _serve_native(server: ThriftServer) -> None: ...
+def run_native_serve(
+    loop: AbstractEventLoop,
+    native_serve: Callable[[T], None],
+    owner: T,
+) -> Future[None]: ...
+def _run_native_serve_impl(
+    native_serve: Callable[[T], None], owner_ref: ReferenceType[T]
+) -> None: ...

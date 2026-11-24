@@ -21,6 +21,14 @@ import thrift.python.mutable_containers as _fbthrift_python_mutable_containers
 
 @_typing.final
 class TemplateLists(_fbthrift_python_mutable_types.MutableStruct, _fbthrift_python_abstract_types.TemplateLists):
+    r"""
+    Vector-like container types that don't work in thrift-cpp2:
+    - std::array -> requires fixed size, fails cpp2 compilation
+    - std::stack -> no push_back
+    - std::forward_list -> no size()
+    Containers we can support but don't currently work:
+    - std::list (need to switch constructor to forward iterator)
+    """
     @property
     def std_string(self) -> _typing.Optional[_fbthrift_python_mutable_containers.MutableList[builtins.str]]: ...
     @std_string.setter

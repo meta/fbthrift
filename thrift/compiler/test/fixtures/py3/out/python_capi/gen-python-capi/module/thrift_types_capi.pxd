@@ -58,9 +58,6 @@ cdef api object init__module__HiddenException(object data)
 
 cdef api int can_extract__module__ComplexStruct(object) except -1
 
-cdef api __cIOBuf* extract__module__ComplexStruct(object) except NULL
-
-cdef api object construct__module__ComplexStruct(__unique_ptr[__cIOBuf])
 
 cdef api object init__module__ComplexStruct(object data)
 
@@ -97,6 +94,14 @@ cdef api __cIOBuf* extract__module__AdaptedTypedefFields(object) except NULL
 cdef api object construct__module__AdaptedTypedefFields(__unique_ptr[__cIOBuf])
 
 cdef api object init__module__AdaptedTypedefFields(object data)
+
+cdef api int can_extract__module__StringAdaptedUnion(object) except -1
+
+cdef api __cIOBuf* extract__module__StringAdaptedUnion(object) except NULL
+
+cdef api object construct__module__StringAdaptedUnion(__unique_ptr[__cIOBuf])
+
+cdef api object init__module__StringAdaptedUnion(object data)
 
 cdef api int can_extract__module__AnEnum(object) except -1
 

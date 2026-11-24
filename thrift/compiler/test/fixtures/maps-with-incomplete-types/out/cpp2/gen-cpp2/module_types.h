@@ -56,6 +56,16 @@ class B final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "B";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "field"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -168,7 +178,6 @@ class B final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<B>;
   friend void swap(B& a, B& b);
 };
 
@@ -191,6 +200,16 @@ class A final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "A";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "some_map"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -242,36 +261,42 @@ class A final  {
   bool operator==(const A&) const;
   std::partial_ordering operator<=>(const A&) const;
 
+  /** 1: optional map<i32, B> some_map */
   /** Glean { "field": "some_map" } */
   template <typename..., typename fbthrift_T = std::unordered_map<::std::int32_t, ::apache::thrift::test::B>>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<const fbthrift_T&> some_map_ref() const& {
     return {this->__fbthrift_field_some_map, __isset.at(0), __isset.bit(0)};
   }
 
+  /** 1: optional map<i32, B> some_map */
   /** Glean { "field": "some_map" } */
   template <typename..., typename fbthrift_T = std::unordered_map<::std::int32_t, ::apache::thrift::test::B>>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&> some_map_ref() & {
     return {this->__fbthrift_field_some_map, __isset.at(0), __isset.bit(0)};
   }
 
+  /** 1: optional map<i32, B> some_map */
   /** Glean { "field": "some_map" } */
   template <typename..., typename fbthrift_T = std::unordered_map<::std::int32_t, ::apache::thrift::test::B>>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&&> some_map_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_some_map), __isset.at(0), __isset.bit(0)};
   }
 
+  /** 1: optional map<i32, B> some_map */
   /** Glean { "field": "some_map" } */
   template <typename..., typename fbthrift_T = std::unordered_map<::std::int32_t, ::apache::thrift::test::B>>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<const fbthrift_T&> some_map() const& {
     return {this->__fbthrift_field_some_map, __isset.at(0), __isset.bit(0)};
   }
 
+  /** 1: optional map<i32, B> some_map */
   /** Glean { "field": "some_map" } */
   template <typename..., typename fbthrift_T = std::unordered_map<::std::int32_t, ::apache::thrift::test::B>>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&> some_map() & {
     return {this->__fbthrift_field_some_map, __isset.at(0), __isset.bit(0)};
   }
 
+  /** 1: optional map<i32, B> some_map */
   /** Glean { "field": "some_map" } */
   template <typename..., typename fbthrift_T = std::unordered_map<::std::int32_t, ::apache::thrift::test::B>>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&&> some_map() && {
@@ -309,7 +334,6 @@ class A final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<A>;
   friend void swap(A& a, A& b);
 };
 

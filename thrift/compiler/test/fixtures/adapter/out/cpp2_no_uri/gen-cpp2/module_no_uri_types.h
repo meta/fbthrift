@@ -51,6 +51,11 @@ class RefUnion final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "RefUnion";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "field1"
+  };
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module_no_uri";
@@ -92,28 +97,7 @@ class RefUnion final  {
 
   RefUnion(const RefUnion& rhs);
 
-  RefUnion& operator=(RefUnion&& rhs) noexcept {
-    if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-      {
-        __fbthrift_clear();
-        return *this;
-      }
-      case Type::field1:
-      {
-        set_field1(std::move(*rhs.value_.field1));
-        break;
-      }
-      default:
-      {
-        assert(false);
-        __fbthrift_clear();
-      }
-    }
-    apache::thrift::clear(rhs);
-    return *this;
-  }
+  RefUnion& operator=(RefUnion&& rhs) noexcept;
 
   RefUnion& operator=(const RefUnion& rhs);
 
@@ -129,6 +113,7 @@ class RefUnion final  {
   bool operator==(const RefUnion&) const;
   std::partial_ordering operator<=>(const RefUnion&) const;
 
+  /** 1: string field1 */
   /** Glean { "field": "field1" } */
   template <typename... A> requires (sizeof...(A) == 0)
   ::std::shared_ptr<::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter1, 1, ::std::string, RefUnion>>& set_field1(::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter1, 1, ::std::string, RefUnion> const &t) {
@@ -140,6 +125,7 @@ class RefUnion final  {
     return value_.field1;
   }
 
+  /** 1: string field1 */
   /** Glean { "field": "field1" } */
   template <typename... A> requires (sizeof...(A) == 0)
   ::std::shared_ptr<::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter1, 1, ::std::string, RefUnion>>& set_field1(::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter1, 1, ::std::string, RefUnion>&& t) {
@@ -151,6 +137,7 @@ class RefUnion final  {
     return value_.field1;
   }
 
+  /** 1: string field1 */
   /** Glean { "field": "field1" } */
   template<typename... T, typename = ::apache::thrift::safe_overload_t<::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter1, 1, ::std::string, RefUnion>, T...>> ::std::shared_ptr<::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter1, 1, ::std::string, RefUnion>>& set_field1(T&&... t) {
     __fbthrift_clear();
@@ -159,6 +146,7 @@ class RefUnion final  {
     return value_.field1;
   }
 
+  /** 1: string field1 */
   /** Glean { "field": "field1" } */
   ::std::shared_ptr<::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter1, 1, ::std::string, RefUnion>>& set_field1(::std::shared_ptr<::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter1, 1, ::std::string, RefUnion>> t) {
     __fbthrift_clear();
@@ -167,7 +155,9 @@ class RefUnion final  {
     return value_.field1;
   }
 
+  /** 1: string field1 */
   /** Glean { "field": "field1" } */
+  [[deprecated("Use `FOO.field1().value()` instead of `FOO.get_field1()`")]]
   ::std::shared_ptr<::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter1, 1, ::std::string, RefUnion>> const& get_field1() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::field1) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -186,34 +176,40 @@ class RefUnion final  {
     return std::move(value_.field1);
   }
 
+  /** 1: string field1 */
   /** Glean { "field": "field1" } */
   template <typename..., typename T = ::std::shared_ptr<::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter1, 1, ::std::string, RefUnion>>>
   FOLLY_ERASE ::apache::thrift::union_field_ref<const T&> field1_ref() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.field1, fbthrift_type_, folly::to_underlying(Type::field1), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
+  /** 1: string field1 */
   /** Glean { "field": "field1" } */
   template <typename..., typename T = ::std::shared_ptr<::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter1, 1, ::std::string, RefUnion>>>
   FOLLY_ERASE ::apache::thrift::union_field_ref<T&> field1_ref() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.field1, fbthrift_type_, folly::to_underlying(Type::field1), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
+  /** 1: string field1 */
   /** Glean { "field": "field1" } */
   template <typename..., typename T = ::std::shared_ptr<::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter1, 1, ::std::string, RefUnion>>>
   FOLLY_ERASE ::apache::thrift::union_field_ref<T&&> field1_ref() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {std::move(value_.field1), fbthrift_type_, folly::to_underlying(Type::field1), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
+  /** 1: string field1 */
   /** Glean { "field": "field1" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<const ::std::shared_ptr<::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter1, 1, ::std::string, RefUnion>>&> field1() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.field1, fbthrift_type_, folly::to_underlying(Type::field1), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
+  /** 1: string field1 */
   /** Glean { "field": "field1" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<::std::shared_ptr<::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter1, 1, ::std::string, RefUnion>>&> field1() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.field1, fbthrift_type_, folly::to_underlying(Type::field1), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
+  /** 1: string field1 */
   /** Glean { "field": "field1" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<::std::shared_ptr<::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter1, 1, ::std::string, RefUnion>>&&> field1() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {std::move(value_.field1), fbthrift_type_, folly::to_underlying(Type::field1), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
@@ -236,7 +232,6 @@ class RefUnion final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<RefUnion>;
   friend void swap(RefUnion& a, RefUnion& b);
 };
 

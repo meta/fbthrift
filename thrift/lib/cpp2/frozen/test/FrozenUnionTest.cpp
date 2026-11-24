@@ -195,7 +195,7 @@ TEST(FrozenUnion, union_serde) {
   EXPECT_EQ(f.get_aInt(), 937);
   TestUnion u2 = f.thaw();
   EXPECT_EQ(u2.getType(), TestUnion::Type::aInt);
-  EXPECT_EQ(u2.get_aInt(), 937);
+  EXPECT_EQ(u2.aInt().as_const().value(), 937);
 }
 
 TEST(FrozenUnion, union_get_wrong_type) {

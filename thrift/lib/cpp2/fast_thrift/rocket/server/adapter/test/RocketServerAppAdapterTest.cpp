@@ -27,8 +27,7 @@
 #include <folly/io/async/EventBase.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/server/Event.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/server/Messages.h>
@@ -40,12 +39,11 @@ namespace apache::thrift::fast_thrift::rocket::server::test {
 
 namespace transport = apache::thrift::fast_thrift::transport;
 
-using channel_pipeline::PipelineBuilder;
-using channel_pipeline::PipelineImpl;
 using channel_pipeline::Result;
+using channel_pipeline::StaticPipelineBuilder;
 using channel_pipeline::TypeErasedBox;
-using channel_pipeline::test::MockHeadHandler;
-using channel_pipeline::test::MockTailHandler;
+using channel_pipeline::test::StaticMockHeadHandler;
+using channel_pipeline::test::StaticMockTailHandler;
 using channel_pipeline::test::TestAllocator;
 
 // =============================================================================
@@ -256,20 +254,22 @@ HANDLER_TAG(mock_head_tag);
 
 TEST(RocketServerAppAdapterTest, WriteWithPipelineCallsFireWrite) {
   folly::EventBase evb;
-  MockHeadHandler head;
+  StaticMockHeadHandler head;
   head.setOnWriteCallback(
       [](channel_pipeline::TypeErasedBox&&) { return Result::Success; });
   TestAllocator allocator;
   RocketServerAppAdapter::Ptr adapter(new RocketServerAppAdapter());
 
   // Server pipeline: head=transport(mock), tail=app(adapter)
-  auto pipeline =
-      PipelineBuilder<MockHeadHandler, RocketServerAppAdapter, TestAllocator>()
-          .setEventBase(&evb)
-          .setHead(&head)
-          .setTail(adapter.get())
-          .setAllocator(&allocator)
-          .build();
+  auto pipeline = StaticPipelineBuilder<
+                      StaticMockHeadHandler,
+                      RocketServerAppAdapter,
+                      TestAllocator>()
+                      .setEventBase(&evb)
+                      .setHead(&head)
+                      .setTail(adapter.get())
+                      .setAllocator(&allocator)
+                      .build();
 
   adapter->setPipeline(pipeline.get());
 
@@ -296,17 +296,19 @@ TEST(RocketServerAppAdapterTest, WriteWithPipelineCallsFireWrite) {
 
 TEST(RocketServerAppAdapterTest, NotifyReadReadyFiresPipelineOnReadReady) {
   folly::EventBase evb;
-  MockHeadHandler head;
+  StaticMockHeadHandler head;
   TestAllocator allocator;
   RocketServerAppAdapter::Ptr adapter(new RocketServerAppAdapter());
 
-  auto pipeline =
-      PipelineBuilder<MockHeadHandler, RocketServerAppAdapter, TestAllocator>()
-          .setEventBase(&evb)
-          .setHead(&head)
-          .setTail(adapter.get())
-          .setAllocator(&allocator)
-          .build();
+  auto pipeline = StaticPipelineBuilder<
+                      StaticMockHeadHandler,
+                      RocketServerAppAdapter,
+                      TestAllocator>()
+                      .setEventBase(&evb)
+                      .setHead(&head)
+                      .setTail(adapter.get())
+                      .setAllocator(&allocator)
+                      .build();
   adapter->setPipeline(pipeline.get());
 
   adapter->notifyReadReady();
@@ -325,7 +327,7 @@ TEST(RocketServerAppAdapterTest, NotifyReadReadyNoOpWhenPipelineUnset) {
 
 TEST(RocketServerAppAdapterTest, RocketWriteCompleteDeliveredThroughPipeline) {
   folly::EventBase evb;
-  MockHeadHandler head;
+  StaticMockHeadHandler head;
   TestAllocator allocator;
   RocketServerAppAdapter::Ptr adapter(new RocketServerAppAdapter());
 
@@ -335,13 +337,15 @@ TEST(RocketServerAppAdapterTest, RocketWriteCompleteDeliveredThroughPipeline) {
     count++;
     streamId = e.streamId;
   });
-  auto pipeline =
-      PipelineBuilder<MockHeadHandler, RocketServerAppAdapter, TestAllocator>()
-          .setEventBase(&evb)
-          .setHead(&head)
-          .setTail(adapter.get())
-          .setAllocator(&allocator)
-          .build();
+  auto pipeline = StaticPipelineBuilder<
+                      StaticMockHeadHandler,
+                      RocketServerAppAdapter,
+                      TestAllocator>()
+                      .setEventBase(&evb)
+                      .setHead(&head)
+                      .setTail(adapter.get())
+                      .setAllocator(&allocator)
+                      .build();
 
   // The enriched event reaches the subscribed callback.
   pipeline->fireEvent<RocketWriteCompleteEvent>(RocketWriteCompleteEvent{

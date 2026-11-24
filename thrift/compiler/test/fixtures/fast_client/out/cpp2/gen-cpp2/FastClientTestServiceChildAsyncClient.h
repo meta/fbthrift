@@ -6,7 +6,7 @@
  */
 #pragma once
 
-#include <thrift/lib/cpp2/gen/fast_client_h.h>
+#include <thrift/lib/cpp2/gen/client_h.h>
 
 #include "thrift/compiler/test/fixtures/fast_client/gen-cpp2/module_types.h"
 #if __has_include("thrift/compiler/test/fixtures/fast_client/gen-cpp2/FastClientTestServiceAsyncClient.h")
@@ -15,128 +15,170 @@
 #include "thrift/compiler/test/fixtures/fast_client/gen-cpp2/module_clients.h"
 #endif
 
+namespace apache { namespace thrift {
+  class Cpp2RequestContext;
+  namespace detail { namespace ac { struct ClientRequestContext; }}
+  namespace transport { class THeader; }
+}}
+
 namespace cpp2::test {
-
 class FastClientTestServiceChild;
-
-class FastClientTestServiceChildFastClientInternal {
-  template <typename, typename>
-  friend class apache::thrift::FastClient;
-
- private:
-  static folly::Expected<
-      std::unique_ptr<folly::IOBuf>,
-      folly::exception_wrapper>
-  serialize_greet(
-      uint16_t protocolId,
-      const ::std::string& p_name);
-
-  static folly::exception_wrapper
-  deserialize_greet(
-      ::std::string& _return,
-      uint16_t protocolId,
-      const folly::IOBuf* buf);
-
-  FastClientTestServiceChildFastClientInternal() = delete;
-};
-
 } // namespace cpp2::test
-
 namespace apache::thrift {
 
-template <apache::thrift::fast_thrift::thrift::client::ClientOutboundAppAdapter AppAdapter>
-class FastClient<::cpp2::test::FastClientTestServiceChild, AppAdapter>
-    : public ::apache::thrift::FastClient<::cpp2::test::FastClientTestService, AppAdapter> {
+namespace detail {
+
+template<>
+struct ServiceMethodTypesFootprint<::cpp2::test::FastClientTestServiceChild> {
+  // The types that appear in the definitions of service methods.
+  // e.g. if it appears as a type of an input, output, exception sink or stream
+  // parameter of a client stub, it appears here,
+  using TypesInMethods = folly::tag_t<
+  ::std::string>;
+};
+
+} // namespace detail
+
+template <>
+class Client<::cpp2::test::FastClientTestServiceChild> : public ::cpp2::test::FastClientTestServiceAsyncClient {
+  static_assert(!folly::is_detected_v<::apache::thrift::detail::st::detect_complete, ::cpp2::test::FastClientTestServiceChild>, "Definition collision with service tag. Either rename the Thrift service using @cpp.Name annotation or rename the conflicting C++ type.");
  public:
-  using ::apache::thrift::FastClient<::cpp2::test::FastClientTestService, AppAdapter>::FastClient;
+  using ::cpp2::test::FastClientTestServiceAsyncClient::FastClientTestServiceAsyncClient;
 
-  // ---- greet ----
+  std::string_view getServiceName() const noexcept override {
+    return "FastClientTestServiceChild";
+  }
 
+  static constexpr folly::cstring_view __fbthrift_thrift_uri = "meta.com/thrift/test/fixtures/fast_client/FastClientTestServiceChild";
+
+
+  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
+  virtual void greet(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::string& p_name);
+  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
+  virtual void greet(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::string& p_name);
+ protected:
+  void fbthrift_serialize_and_send_greet(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const ::std::string& p_name, bool stealRpcOptions = false);
+ public:
+
+  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
+  virtual void sync_greet(::std::string& _return, const ::std::string& p_name);
+  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
+  virtual void sync_greet(apache::thrift::RpcOptions& rpcOptions, ::std::string& _return, const ::std::string& p_name);
+
+  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
+  virtual folly::Future<::std::string> future_greet(const ::std::string& p_name);
+  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
+  virtual folly::SemiFuture<::std::string> semifuture_greet(const ::std::string& p_name);
+  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
+  virtual folly::Future<::std::string> future_greet(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_name);
+  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
+  virtual folly::SemiFuture<::std::string> semifuture_greet(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_name);
+
+#if FOLLY_HAS_COROUTINES
+  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
+  template <int = 0>
   folly::coro::Task<::std::string> co_greet(const ::std::string& p_name) {
     return co_greet<false>(nullptr, p_name);
   }
-
+  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
+  template <int = 0>
   folly::coro::Task<::std::string> co_greet(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_name) {
     return co_greet<true>(&rpcOptions, p_name);
   }
-
-  void sync_greet(::std::string& _return, const ::std::string& p_name) {
-    _return = folly::coro::blockingWait(co_greet(p_name));
-  }
-
-  void sync_greet(apache::thrift::RpcOptions& rpcOptions, ::std::string& _return, const ::std::string& p_name) {
-    _return = folly::coro::blockingWait(co_greet(rpcOptions, p_name));
-  }
-
-  void greet(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::string& p_name) {
-    apache::thrift::RpcOptions defaultOptions;
-    greet(defaultOptions, std::move(callback), p_name);
-  }
-
-  void greet(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::string& p_name) {
-    auto serialized = ::cpp2::test::FastClientTestServiceChildFastClientInternal::serialize_greet(this->adapter_->getProtocolId(), p_name);
-    this->sendRequestResponse(
-        rpcOptions,
-        "greet",
-        apache::thrift::RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE,
-        std::move(serialized),
-        std::move(callback));
-  }
-
-  static folly::exception_wrapper recv_wrapped_greet(
-      ::std::string& _return,
-      ::apache::thrift::ClientReceiveState& state) {
-    if (auto ew = apache::thrift::detail::ac::check_recv_state(state)) {
-      return ew;
-    }
-    if (state.serializedResponse().usesIOBufChain()) {
-      return folly::make_exception_wrapper<apache::thrift::TApplicationException>(
-          apache::thrift::TApplicationException::PROTOCOL_ERROR,
-          "Fast client does not support IOBufChain responses");
-    }
-    return ::cpp2::test::FastClientTestServiceChildFastClientInternal::deserialize_greet(
-        _return,
-        state.protocolId(),
-        state.serializedResponse().buffer.get());
-  }
-  static void recv_greet(
-      ::std::string& _return,
-      ::apache::thrift::ClientReceiveState& state) {
-    auto ew = recv_wrapped_greet(_return, state);
-    if (ew) {
-      ew.throw_exception();
-    }
-  }
-
  private:
   template <bool hasRpcOptions>
   folly::coro::Task<::std::string> co_greet(apache::thrift::RpcOptions* rpcOptions, const ::std::string& p_name) {
+    const folly::CancellationToken& cancelToken =
+        co_await folly::coro::co_current_cancellation_token;
+    const bool cancellable = cancelToken.canBeCancelled();
+    apache::thrift::ClientReceiveState returnState;
+    apache::thrift::ClientCoroCallback<false> callback(&returnState, co_await folly::coro::co_current_executor);
+    auto channelShared = apache::thrift::GeneratedAsyncClient::getChannelShared();
+    auto protocolId = channelShared->getProtocolId();
+    std::weak_ptr<apache::thrift::RequestChannel> channelWeak = std::move(channelShared);
+    auto [ctx, header] = greetCtx(rpcOptions);
+    using CancellableCallback = apache::thrift::CancellableRequestClientCallback<false>;
+    auto cancellableCallback = cancellable ? CancellableCallback::create(&callback, channel_) : nullptr;
     static apache::thrift::RpcOptions* defaultRpcOptions = new apache::thrift::RpcOptions();
-
-    auto serialized = ::cpp2::test::FastClientTestServiceChildFastClientInternal::serialize_greet(
-        this->adapter_->getProtocolId(),
-        p_name);
-
-    auto response = co_await this->co_sendRequestResponse(
-        hasRpcOptions ? *rpcOptions : *defaultRpcOptions,
-        "greet",
-        apache::thrift::RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE,
-        std::move(serialized),
-        // Response headers go to the caller's own RpcOptions. Never to
-        // defaultRpcOptions: it is shared process-wide, so writing there
-        // would race and leak headers between unrelated requests.
-        hasRpcOptions ? rpcOptions : nullptr);
-
-    auto data = std::move(response);
-    ::std::string _return{};
-    auto ew = ::cpp2::test::FastClientTestServiceChildFastClientInternal::deserialize_greet(
-        _return, this->adapter_->getProtocolId(), data.get());
+    auto wrappedCallback = apache::thrift::RequestClientCallback::Ptr(cancellableCallback ? (apache::thrift::RequestClientCallback*)cancellableCallback.get() : &callback);
+    if (ctx != nullptr) {
+      auto argsAsRefs = std::tie(p_name);
+      auto interceptorTry = ctx->processClientInterceptorsOnRequest(apache::thrift::ClientInterceptorOnRequestArguments(argsAsRefs), header.get(), hasRpcOptions ? *rpcOptions : *defaultRpcOptions);
+      if (interceptorTry.hasException()) {
+        co_yield folly::coro::co_error(std::move(interceptorTry.exception()));
+      }
+    }
+    if constexpr (hasRpcOptions) {
+      fbthrift_serialize_and_send_greet(*rpcOptions, header, ctx.get(), std::move(wrappedCallback), p_name);
+    } else {
+      fbthrift_serialize_and_send_greet(*defaultRpcOptions, header, ctx.get(), std::move(wrappedCallback), p_name);
+    }
+    if (cancellable) {
+      folly::CancellationCallback cb(cancelToken, [&] { CancellableCallback::cancel(std::move(cancellableCallback)); });
+      co_await callback.co_waitUntilDone();
+    } else {
+      co_await callback.co_waitUntilDone();
+    }
+    if (returnState.isException()) {
+      co_yield folly::coro::co_error(std::move(returnState.exception()));
+    }
+    returnState.resetProtocolId(protocolId);
+    returnState.resetCtx(std::move(ctx));
+    ::std::string _return;
+    SCOPE_EXIT {
+      if (hasRpcOptions && returnState.header()) {
+        auto* rheader = returnState.header();
+        if (!rheader->getHeaders().empty()) {
+          rpcOptions->setReadHeaders(rheader->releaseHeaders());
+        }
+        rpcOptions->setRoutingData(rheader->releaseRoutingData());
+      }
+    };
+    if (auto channel = channelWeak.lock()) {
+      channel->decompressResponse(returnState);
+    }
+    auto ew = recv_wrapped_greet(_return, returnState);
+    if (returnState.ctx()) {
+      auto interceptorResult = returnState.ctx()->processClientInterceptorsOnResponse(returnState.header(), ew, _return);
+      folly::Try<void> interceptorTry;
+      if (!apache::thrift::ContextStack::tryResolveInterceptorResultSync(interceptorResult, interceptorTry)) {
+        interceptorTry = co_await std::get<folly::coro::Task<folly::Try<void>>>(std::move(interceptorResult));
+      }
+      interceptorTry.throwUnlessValue();
+    }
     if (ew) {
       co_yield folly::coro::co_error(std::move(ew));
     }
-    co_return std::move(_return);
+    co_return _return;
   }
+ public:
+#endif // FOLLY_HAS_COROUTINES
+
+  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
+  virtual void greet(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, const ::std::string& p_name);
+
+
+  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
+  static folly::exception_wrapper recv_wrapped_greet(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
+  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
+  static void recv_greet(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
+  // Mock friendly virtual instance method
+  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
+  virtual void recv_instance_greet(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
+  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
+  virtual folly::exception_wrapper recv_instance_wrapped_greet(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
+ private:
+  apache::thrift::SerializedRequest fbthrift_serialize_greet(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::std::string& p_name);
+  template <typename RpcOptions>
+  void fbthrift_send_greet(apache::thrift::SerializedRequest&& request, RpcOptions&& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::RequestClientCallback::Ptr callback, std::unique_ptr<folly::IOBuf> interceptorFrameworkMetadata);
+  std::pair<::apache::thrift::ContextStack::UniquePtr, std::shared_ptr<::apache::thrift::transport::THeader>> greetCtx(apache::thrift::RpcOptions* rpcOptions);
+  template <typename CallbackType>
+  folly::SemiFuture<::std::string> fbthrift_semifuture_greet(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_name);
  public:
 };
 
 } // namespace apache::thrift
+
+namespace cpp2::test {
+using FastClientTestServiceChildAsyncClient [[deprecated("Use apache::thrift::Client<FastClientTestServiceChild> instead")]] = ::apache::thrift::Client<FastClientTestServiceChild>;
+} // namespace cpp2::test

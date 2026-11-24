@@ -59,9 +59,9 @@ BENCHMARK_RELATIVE(unsafe, n) {
   int64_t k = n * (1 + 'a');
   while (n--) {
     a.set_int64(1);
-    k -= a.get_int64();
+    k -= a.int64().as_const().value();
     a.set_str("a");
-    k -= a.get_str()[0];
+    k -= a.str().as_const().value()[0];
   }
   CHECK_EQ(k, 0);
   folly::doNotOptimizeAway(k);

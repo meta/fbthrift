@@ -1,5 +1,4 @@
 <?hh
-// (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
 /*
  * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
@@ -18,13 +17,6 @@
 
 <<Oncalls('thrift')>>
 final class TCompactSerializerTest extends WWWTest {
-
-  // The knob samples requests in production; pin it off so other cases never
-  // queue a PSP comparison.
-  <<__Override>>
-  public static async function createData(): Awaitable<void> {
-    MockJustKnobs::setBool('thrift/hack:compact_protocol_v2', false);
-  }
 
   public static function provideStructs(): vec<(IThriftStruct)> {
     return vec[
@@ -61,23 +53,7 @@ final class TCompactSerializerTest extends WWWTest {
     expect($serialized_again)->toEqual($serialized);
   }
 
-  public static function providerProtocolV2Knob(
-  ): dict<string, shape('enabled' => bool)> {
-    return dict[
-      'protocol v2 comparison off' => shape('enabled' => false),
-      'protocol v2 comparison on' => shape('enabled' => true),
-    ];
-  }
-
-  <<DataProvider('providerProtocolV2Knob')>>
-  public function testPureHackPathsAcrossProtocolV2Knob(bool $enabled): void {
-    MockJustKnobs::setBool('thrift/hack:compact_protocol_v2', $enabled);
-    // shouldCompareProtocolV2() is memoized; earlier cases would otherwise pin
-    // its value.
-    clear_class_memoization(
-      nameof TCompactSerializer,
-      'shouldCompareProtocolV2',
-    );
+  public function testPureHackPathsMatchExtension(): void {
     $struct = new thriftshim_FooBar(Vector {1.0, -2.5}, 'bar');
     $expected = thrift_protocol_write_compact_struct_to_string(
       $struct,
@@ -99,15 +75,24 @@ final class TCompactSerializerTest extends WWWTest {
     $data = TCompactSerializer::serializeData(Math\INT64_MIN, $i64);
     expect(TCompactSerializer::deserializeData($data, $i64))
       ->toEqual(Math\INT64_MIN);
+  }
 
-    // V2 decodes this i64 with the opposite sign; the knob only schedules a
-    // comparison, so the base protocol's value is still returned.
-    $overflow = TCompactSerializer::deserialize(
-      "\x36".Str\repeat("\xff", 9)."\x02\x00",
-      thriftshim_Pokemon::withDefaultValues(),
-      null,
-      true,
+  public function testTopLevelBoolRoundTrip(): void {
+    $bool = shape('type' => TType::BOOL);
+    foreach (vec[true, false] as $value) {
+      $data = TCompactSerializer::serializeData($value, $bool);
+      expect(TCompactSerializer::deserializeData($data, $bool))
+        ->toEqual($value);
+    }
+  }
+
+  public function testTopLevelAdaptedBoolRoundTrips(): void {
+    $spec = shape(
+      'type' => TType::BOOL,
+      'adapter' => ThriftKeySerializerBoolToStringAdapter::class,
     );
-    expect($overflow->charizard)->toEqual(4611686018427387904);
+    $data = TCompactSerializer::serializeData('true', $spec);
+    expect($data)->toEqual(PHP\chr(TCompactProtocolBase::COMPACT_TRUE));
+    expect(TCompactSerializer::deserializeData($data, $spec))->toEqual('true');
   }
 }

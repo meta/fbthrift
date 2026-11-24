@@ -305,7 +305,7 @@ template <typename Adapter, typename AdaptedT>
 struct thrift_hash {
   constexpr size_t operator()(const AdaptedT& value) const {
     auto&& tvalue = Adapter::toThrift(value);
-    return std::hash<folly::remove_cvref_t<decltype(tvalue)>>()(tvalue);
+    return std::hash<std::remove_cvref_t<decltype(tvalue)>>()(tvalue);
   }
 };
 

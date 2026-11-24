@@ -413,6 +413,21 @@ class THeader final {
     return c_.srProxyCompressionPassthrough_;
   }
 
+  // Local-only permission for a standard-compressed, envelope-free Rocket
+  // unary reply, additive to CPU-offload policy: false does not override an
+  // enabled CPU flag. Exceptions are decoded by the channel. CUSTOM is decoded
+  // unless its forced unary decode kill switch restores legacy handling.
+  // Inspect getResponseCompressionAlgorithm() before decoding
+  // or forwarding; this does not change wire compression policy. Do not mutate
+  // in-flight headers; clear/recompute permission for a different receiver.
+  void setAcceptsCompressedResponse(bool value) {
+    c_.acceptsCompressedResponse_ = value;
+  }
+
+  bool getAcceptsCompressedResponse() const {
+    return c_.acceptsCompressedResponse_;
+  }
+
   void setResponseCompressionAlgorithm(CompressionAlgorithm algorithm) {
     c_.responseCompressionAlgorithm_ = algorithm;
   }
@@ -682,6 +697,8 @@ class THeader final {
     // separate from preCompressedAlgorithm_ so the logged signal is
     // passthrough-specific.
     bool srProxyCompressionPassthrough_{false};
+
+    bool acceptsCompressedResponse_{false};
 
     // Response compression state: set by the transport when skipping
     // decompression, consumed by decompressResponse() on the caller thread.

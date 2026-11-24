@@ -110,10 +110,6 @@ template <typename Tag>
 inline constexpr bool less_than_comparable_v =
     folly::is_detected_v<less_than_t, Tag>;
 
-// Resolves to R, if the tag can be used with LessThan.
-template <typename Tag, typename R = void>
-using if_less_than_comparable = folly::type_t<R, less_than_t<Tag>>;
-
 // A CompareThreeWay implementation that delegates to native comparisons.
 // Thrift-aware behavior is supplied by concrete CompareThreeWay
 // specializations.
@@ -183,14 +179,6 @@ using compare_three_way_t = decltype(CompareThreeWay<Tag>{}(
 template <typename Tag>
 inline constexpr bool comparable_v =
     folly::is_detected_v<compare_three_way_t, Tag>;
-
-// Resolves to R, if the tag *can* be used with CompareThreeWay.
-template <typename Tag, typename R = std::partial_ordering>
-using if_comparable = folly::type_t<R, compare_three_way_t<Tag>>;
-
-// Resolves to R, if the tag *cannot* be used with CompareThreeWay.
-template <typename Tag, typename R = std::partial_ordering>
-using if_not_comparable = std::enable_if_t<!comparable_v<Tag>, R>;
 
 // Use bit_cast for floating point identical.
 template <typename F, typename I>
@@ -1025,9 +1013,24 @@ struct StableComparePolicy<type::struct_t<T>> {
 };
 
 template <class T>
+struct StableComparePolicy<type::exception_t<T>>
+    : StableComparePolicy<type::struct_t<T>> {};
+
+template <class T>
 struct StableComparePolicy<type::union_t<T>> {
   std::partial_ordering operator()(const T& lhs, const T& rhs) const {
     return compareUnionsByFieldId<T, StableComparePolicy>(lhs, rhs);
+  }
+};
+
+// The Thrift Object Model's order (-NaN first, NaN last), except that -0.0 and
+// 0.0 are equivalent, as areRecordsEqual requires for lists, sets and fields.
+template <class Tag>
+  requires folly::is_one_of_v<Tag, type::float_t, type::double_t>
+struct StableComparePolicy<Tag> {
+  std::partial_ordering operator()(
+      type::native_type<Tag> lhs, type::native_type<Tag> rhs) const {
+    return std::weak_order(lhs, rhs);
   }
 };
 

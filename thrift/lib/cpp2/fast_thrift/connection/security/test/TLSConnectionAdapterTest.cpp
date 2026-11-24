@@ -22,16 +22,17 @@
 // onto the outer pipeline.
 
 #include <stdexcept>
+#include <vector>
 
 #include <gtest/gtest.h>
 
 #include <folly/ExceptionWrapper.h>
 #include <folly/SocketAddress.h>
+#include <folly/io/IOBuf.h>
 #include <folly/io/async/AsyncTransport.h>
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/security/common/Messages.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/security/handler/TLSConnectionAdapter.h>
 
@@ -39,17 +40,11 @@ namespace apache::thrift::fast_thrift::connection::security::handler::test {
 
 namespace {
 
-channel_pipeline::detail::ContextImpl& endpointContext() noexcept {
-  static channel_pipeline::detail::ContextImpl context(
-      nullptr, nullptr, nullptr, 0, 0);
-  return context;
-}
-
 // Stand-in owner: records what the adapter dispatches through its trampolines.
 struct RecordingOwner {
   bool resolvedCalled{false};
   folly::SocketAddress resolvedAddr;
-  std::shared_ptr<const PeerSecurityInfo> resolvedPeerSecurity;
+  std::unique_ptr<PeerSecurityInfo> resolvedPeerSecurity;
   bool exceptionCalled{false};
   folly::exception_wrapper caught;
 
@@ -57,7 +52,7 @@ struct RecordingOwner {
       void* self,
       folly::AsyncTransport::UniquePtr /*transport*/,
       folly::SocketAddress clientAddr,
-      std::shared_ptr<const PeerSecurityInfo> peerSecurity) noexcept {
+      std::unique_ptr<PeerSecurityInfo> peerSecurity) noexcept {
     auto* owner = static_cast<RecordingOwner*>(self);
     owner->resolvedCalled = true;
     owner->resolvedAddr = std::move(clientAddr);
@@ -83,21 +78,36 @@ TEST(TLSConnectionAdapterTest, DispatchesResolvedToOwner) {
       &owner, &RecordingOwner::onResolved, &RecordingOwner::onException);
 
   const folly::SocketAddress addr{"127.0.0.1", 4321};
-  auto peerSecurity = std::make_shared<const PeerSecurityInfo>(
+  auto peerSecurity = std::make_unique<PeerSecurityInfo>(
       PeerSecurityInfo{.peerCertificate = nullptr, .securityProtocol = "TLS"});
+  auto* expectedPeerSecurity = peerSecurity.get();
+  auto buffer = folly::IOBuf::copyBuffer("captured-ekm");
+  auto* expectedBuffer = buffer.get();
+  std::vector<apache::thrift::detail::EkmInfo> entries;
+  entries.push_back(
+      apache::thrift::detail::EkmInfo{
+          .label = "test", .length = 12, .buf = std::move(buffer)});
+  peerSecurity->capturedEkms.emplace(std::move(entries));
   TLSResponseMessage resp{
       .transport = nullptr,
       .clientAddr = addr,
-      .peerSecurity = peerSecurity,
+      .peerSecurity = std::move(peerSecurity),
       .pendingConnectionPermit = {}};
-  const auto result = adapter.onRead(
-      endpointContext(), channel_pipeline::erase_and_box(std::move(resp)));
+  struct EndpointContext {
+  } context;
+  const auto result =
+      adapter.onRead(context, channel_pipeline::erase_and_box(std::move(resp)));
 
   EXPECT_EQ(result, channel_pipeline::Result::Success);
   EXPECT_TRUE(owner.resolvedCalled);
   EXPECT_FALSE(owner.exceptionCalled);
   EXPECT_EQ(owner.resolvedAddr, addr);
-  EXPECT_EQ(owner.resolvedPeerSecurity, peerSecurity);
+  EXPECT_EQ(owner.resolvedPeerSecurity.get(), expectedPeerSecurity);
+  ASSERT_TRUE(owner.resolvedPeerSecurity->capturedEkms.has_value());
+  ASSERT_EQ(owner.resolvedPeerSecurity->capturedEkms->size(), 1);
+  EXPECT_EQ(
+      owner.resolvedPeerSecurity->capturedEkms->front().buf.get(),
+      expectedBuffer);
 }
 
 // An exception is dispatched to the owner's exception trampoline rather than

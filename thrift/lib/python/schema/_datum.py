@@ -184,7 +184,6 @@ def true_type(type_ref: TypeRef) -> TypeRef:
 
 
 def type_name(type_ref: TypeRef) -> str:
-    """A short name for error messages."""
     match type_ref:
         case PrimitiveTypeRef():
             return type_ref.primitive.name.lower()

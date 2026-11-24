@@ -35,9 +35,8 @@ namespace apache::thrift::fast_thrift::thrift {
 inline folly::Expected<std::unique_ptr<folly::IOBuf>, folly::exception_wrapper>
 processRequestResponseFrame(
     apache::thrift::fast_thrift::frame::read::ParsedFrame& frame) {
-  if (FOLLY_LIKELY(
-          frame.type() ==
-          apache::thrift::fast_thrift::frame::FrameType::PAYLOAD)) {
+  if (frame.type() == apache::thrift::fast_thrift::frame::FrameType::PAYLOAD)
+      [[likely]] {
     return std::move(frame).extractData();
   } else if (
       frame.type() == apache::thrift::fast_thrift::frame::FrameType::ERROR) {

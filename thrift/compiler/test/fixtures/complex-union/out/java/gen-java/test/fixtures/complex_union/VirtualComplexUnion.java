@@ -275,6 +275,8 @@ public final class VirtualComplexUnion implements com.facebook.thrift.payload.Th
                     String _fbthriftVar0;
                     _fbthriftVar0 = oprot.readString();
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _THINGTWO:
@@ -282,6 +284,8 @@ public final class VirtualComplexUnion implements com.facebook.thrift.payload.Th
                     String _fbthriftVar0;
                     _fbthriftVar0 = oprot.readString();
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             default:

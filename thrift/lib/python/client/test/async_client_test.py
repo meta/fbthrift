@@ -193,7 +193,9 @@ class AsyncClientTests(IsolatedAsyncioTestCase):
                 path="/",
                 client_type=ClientType.THRIFT_HTTP2_CLIENT_TYPE,
             ) as client:
-                sum = await client.add(1, 2)
+                options = RpcOptions()
+                options.timeout = 30.0
+                sum = await client.add(1, 2, rpc_options=options)
                 self.assertEqual(3, sum)
 
     def test_http_host_header_selects_virtual_host_route(self) -> None:

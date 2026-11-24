@@ -26,7 +26,7 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/StaticHandlerContext.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/Messages.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/ThriftRequestContext.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/util/ResponsePayloads.h>
@@ -55,7 +55,8 @@ namespace apache::thrift::fast_thrift::thrift {
  * response's `requestContext` (forwarded onto the message by
  * FastHandlerCallback). When non-NONE, stamps `metadata->checksum()` with that
  * algorithm and computes the value over the response data IOBuf. Responses with
- * no requestContext (framework errors) or a non-initial payload pass through.
+ * no requestContext (for example, pre-context framework errors) or a
+ * non-initial payload pass through.
  *
  * Pipeline order: MUST sit downstream of ThriftServerRequestContextHandler
  * (which allocates the per-request ThriftRequestContext).
@@ -72,9 +73,8 @@ class ThriftServerChecksumHandler {
       Context& ctx, channel_pipeline::TypeErasedBox&& msg) noexcept {
     auto& request = msg.get<ThriftServerRequestMessage>();
 
-    if (FOLLY_UNLIKELY(
-            !request.payload
-                 .template is<ThriftServerRequestResponsePayload>())) {
+    if (!request.payload.template is<ThriftServerRequestResponsePayload>())
+        [[unlikely]] {
       return ctx.fireRead(std::move(msg));
     }
 
@@ -90,11 +90,19 @@ class ThriftServerChecksumHandler {
       // error response toward head from here; it never re-enters our own
       // onWrite and never reaches the tail, so the request is dropped with
       // nothing dispatched.
-      return ctx.fireWrite(
-          channel_pipeline::erase_and_box(makeFrameworkErrorMessage(
-              request.streamId,
-              apache::thrift::ResponseRpcErrorCode::CHECKSUM_MISMATCH,
-              std::move(*error))));
+      auto response = makeFrameworkErrorMessage(
+          request.streamId,
+          apache::thrift::ResponseRpcErrorCode::CHECKSUM_MISMATCH,
+          std::move(*error));
+      response.requestContext = std::move(request.requestContext);
+      // On Backpressure the pipeline accepted the CHECKSUM_MISMATCH response.
+      // As a read result, Backpressure would pause reads on the whole
+      // connection.
+      if (ctx.fireWrite(channel_pipeline::erase_and_box(std::move(response))) ==
+          channel_pipeline::Result::Error) {
+        return channel_pipeline::Result::Error;
+      }
+      return channel_pipeline::Result::Success;
     }
 
     request.requestContext->setChecksumAlgorithm(checksum.algorithm().value());
@@ -208,14 +216,16 @@ class ThriftServerChecksumHandler {
 
 static_assert(
     channel_pipeline::OutboundHandler<
-        ThriftServerChecksumHandler<channel_pipeline::detail::ContextImpl>,
-        channel_pipeline::detail::ContextImpl>,
+        ThriftServerChecksumHandler<
+            channel_pipeline::detail::StaticHandlerContext>,
+        channel_pipeline::detail::StaticHandlerContext>,
     "ThriftServerChecksumHandler must satisfy OutboundHandler concept");
 
 static_assert(
     channel_pipeline::InboundHandler<
-        ThriftServerChecksumHandler<channel_pipeline::detail::ContextImpl>,
-        channel_pipeline::detail::ContextImpl>,
+        ThriftServerChecksumHandler<
+            channel_pipeline::detail::StaticHandlerContext>,
+        channel_pipeline::detail::StaticHandlerContext>,
     "ThriftServerChecksumHandler must satisfy InboundHandler concept");
 
 } // namespace apache::thrift::fast_thrift::thrift

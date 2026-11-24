@@ -290,12 +290,11 @@ class basic_ast_visitor {
   FBTHRIFT_AST_DETAIL_AST_VISITOR_NODE_T(function) {
     begin_visit_and_call_visitors(function_visitors_, node, args...);
 
-    auto* sink_or_stream = node.sink_or_stream();
-    if (sink_or_stream == nullptr) {
-      // Do nothing.
-    } else if (auto* sink = ast_detail::as<t_sink>(sink_or_stream)) {
+    // A bidirectional stream has both.
+    if (auto* sink = node.sink()) {
       visit_child(*sink, args...); // accept: t_sink
-    } else if (auto* stream = ast_detail::as<t_stream>(sink_or_stream)) {
+    }
+    if (auto* stream = node.stream()) {
       visit_child(*stream, args...); // accept: t_stream
     }
     visit_children_wrapped<function_param>(

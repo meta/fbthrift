@@ -695,45 +695,6 @@ var (
                     },
                 },
         }
-    premadeThriftType_module_i32_9314 =
-        &metadata.ThriftType{
-            TTypedef:
-                &metadata.ThriftTypedefType{
-                    Name:           "module.i32_9314",
-                    UnderlyingType: premadeThriftType_i32,
-                    StructuredAnnotations: []*metadata.ThriftConstStruct{
-                        &metadata.ThriftConstStruct{
-                            Type: &metadata.ThriftStructType{
-                                Name: "thrift.DeprecatedUnvalidatedAnnotations",
-                            },
-                            Fields: map[string]*metadata.ThriftConstValue{
-                                "items":
-                                    &metadata.ThriftConstValue{
-                                        CvMap: []*metadata.ThriftConstValuePair{
-                                            &metadata.ThriftConstValuePair{
-                                                Key: &metadata.ThriftConstValue{
-                                                CvString: new("cpp.use_allocator"),
-                                            },
-
-                                                Value: &metadata.ThriftConstValue{
-                                                CvString: new("1"),
-                                            },
-
-                                            },
-                                        },
-                                    },
-                            },
-                        },
-                        &metadata.ThriftConstStruct{
-                            Type: &metadata.ThriftStructType{
-                                Name: "thrift.AllowLegacyTypedefUri",
-                            },
-                            Fields: map[string]*metadata.ThriftConstValue{
-                            },
-                        },
-                    },
-                },
-        }
     premadeThriftType_module_AllocatorAware =
         &metadata.ThriftType{
             TStruct:
@@ -805,6 +766,45 @@ var (
             TStruct:
                 &metadata.ThriftStructType{
                     Name: "module.StructWithDoubleUnderscores",
+                },
+        }
+    premadeThriftType_module_i32_9314 =
+        &metadata.ThriftType{
+            TTypedef:
+                &metadata.ThriftTypedefType{
+                    Name:           "module.i32_9314",
+                    UnderlyingType: premadeThriftType_i32,
+                    StructuredAnnotations: []*metadata.ThriftConstStruct{
+                        &metadata.ThriftConstStruct{
+                            Type: &metadata.ThriftStructType{
+                                Name: "thrift.DeprecatedUnvalidatedAnnotations",
+                            },
+                            Fields: map[string]*metadata.ThriftConstValue{
+                                "items":
+                                    &metadata.ThriftConstValue{
+                                        CvMap: []*metadata.ThriftConstValuePair{
+                                            &metadata.ThriftConstValuePair{
+                                                Key: &metadata.ThriftConstValue{
+                                                CvString: new("cpp.use_allocator"),
+                                            },
+
+                                                Value: &metadata.ThriftConstValue{
+                                                CvString: new("1"),
+                                            },
+
+                                            },
+                                        },
+                                    },
+                            },
+                        },
+                        &metadata.ThriftConstStruct{
+                            Type: &metadata.ThriftStructType{
+                                Name: "thrift.AllowLegacyTypedefUri",
+                            },
+                            Fields: map[string]*metadata.ThriftConstValue{
+                            },
+                        },
+                    },
                 },
         }
     premadeThriftType_module_has_bitwise_ops =
@@ -1577,7 +1577,7 @@ var (
                     Id:         7,
                     Name:       "aa_shared",
                     IsOptional: false,
-                    Type:       premadeThriftType_module_i32_9314,
+                    Type:       premadeThriftType_module_string_5252,
                 },
             },
             StructuredAnnotations: []*metadata.ThriftConstStruct{
@@ -1738,13 +1738,13 @@ var premadeThriftTypesMap = func() map[string]*metadata.ThriftType {
     fbthriftThriftTypesMap["module.set_i32_7070"] = premadeThriftType_module_set_i32_7070
     fbthriftThriftTypesMap["module.map_i32_i32_9565"] = premadeThriftType_module_map_i32_i32_9565
     fbthriftThriftTypesMap["module.string_5252"] = premadeThriftType_module_string_5252
-    fbthriftThriftTypesMap["module.i32_9314"] = premadeThriftType_module_i32_9314
     fbthriftThriftTypesMap["module.AllocatorAware"] = premadeThriftType_module_AllocatorAware
     fbthriftThriftTypesMap["module.AllocatorAware2"] = premadeThriftType_module_AllocatorAware2
     fbthriftThriftTypesMap["module.IntTypedef"] = premadeThriftType_module_IntTypedef
     fbthriftThriftTypesMap["module.UintTypedef"] = premadeThriftType_module_UintTypedef
     fbthriftThriftTypesMap["module.TypedefStruct"] = premadeThriftType_module_TypedefStruct
     fbthriftThriftTypesMap["module.StructWithDoubleUnderscores"] = premadeThriftType_module_StructWithDoubleUnderscores
+    fbthriftThriftTypesMap["module.i32_9314"] = premadeThriftType_module_i32_9314
     fbthriftThriftTypesMap["module.has_bitwise_ops"] = premadeThriftType_module_has_bitwise_ops
     fbthriftThriftTypesMap["module.is_unscoped"] = premadeThriftType_module_is_unscoped
     return fbthriftThriftTypesMap

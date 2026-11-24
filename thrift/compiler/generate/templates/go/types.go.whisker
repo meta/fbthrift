@@ -72,17 +72,17 @@ var _ = metadata.GoUnusedProtection__
 func init() {
     {{#each root_program.structured_definitions as |struct|}}
     {{#if struct.uri}}
-    thrift.InternalRegisterType("{{struct.uri}}", {{struct.codec_type_spec_name}})
+    thrift.InternalRegisterType("{{struct.uri}}", {{struct.codec_type_spec_name}}, reflect.TypeOf((*{{struct.go_name}})(nil)))
     {{/if struct.uri}}
     {{/each}}
     {{#each root_program.typedefs as |typedef|}}
     {{#if typedef.uri}}
-    thrift.InternalRegisterType("{{typedef.uri}}", {{typedef.codec_type_spec_name}})
+    thrift.InternalRegisterType("{{typedef.uri}}", {{typedef.codec_type_spec_name}}, reflect.TypeOf({{typedef.go_qualified_new_func}}()))
     {{/if typedef.uri}}
     {{/each}}
     {{#each root_program.enums as |enum|}}
     {{#if enum.uri}}
-    thrift.InternalRegisterType("{{enum.uri}}", {{enum.codec_type_spec_name}})
+    thrift.InternalRegisterType("{{enum.uri}}", {{enum.codec_type_spec_name}}, reflect.TypeOf({{enum.go_name}}(0)))
     {{/if enum.uri}}
     {{/each}}
     {{! Register exception metadata (blame/kind/safety) for all exception types. }}

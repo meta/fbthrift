@@ -11,11 +11,11 @@ import static com.facebook.swift.service.SwiftConstants.STICKY_HASH_KEY;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 import org.apache.thrift.protocol.*;
 import org.apache.thrift.ClientPushMetadata;
 import org.apache.thrift.InteractionCreate;
 import org.apache.thrift.InteractionTerminate;
+import com.facebook.thrift.client.InteractionIds;
 import com.facebook.thrift.client.ResponseWrapper;
 import com.facebook.thrift.client.RpcOptions;
 import com.facebook.thrift.client.v2.manager.RpcClientBinding;
@@ -23,7 +23,6 @@ import com.facebook.thrift.util.Readers;
 
 public class MyServiceReactiveClient 
   implements MyService.Reactive {
-  private static final AtomicLong _interactionCounter = new AtomicLong(0);
 
   protected final org.apache.thrift.ProtocolId _protocolId;
   protected final RpcClientBinding _clientBinding;
@@ -62,18 +61,18 @@ public class MyServiceReactiveClient
   }
 
   public MyServiceReactiveClient(org.apache.thrift.ProtocolId _protocolId, RpcClientBinding _clientBinding, Map<String, String> _headers, Map<String, String> _persistentHeaders) {
-    this(_protocolId, _clientBinding, reactor.core.publisher.Mono.just(_headers != null ? _headers : java.util.Collections.emptyMap()), reactor.core.publisher.Mono.just(_persistentHeaders != null ? _persistentHeaders : java.util.Collections.emptyMap()), new AtomicLong(), ConcurrentHashMap.newKeySet());
+    this(_protocolId, _clientBinding, reactor.core.publisher.Mono.just(_headers != null ? _headers : java.util.Collections.emptyMap()), reactor.core.publisher.Mono.just(_persistentHeaders != null ? _persistentHeaders : java.util.Collections.emptyMap()), ConcurrentHashMap.newKeySet());
   }
 
   public MyServiceReactiveClient(org.apache.thrift.ProtocolId _protocolId, RpcClientBinding _clientBinding, reactor.core.publisher.Mono<Map<String, String>> _headersMono, reactor.core.publisher.Mono<Map<String, String>> _persistentHeadersMono) {
-    this(_protocolId, _clientBinding, _headersMono, _persistentHeadersMono, new AtomicLong(), ConcurrentHashMap.newKeySet());
+    this(_protocolId, _clientBinding, _headersMono, _persistentHeadersMono, ConcurrentHashMap.newKeySet());
   }
 
-  public MyServiceReactiveClient(org.apache.thrift.ProtocolId _protocolId, RpcClientBinding _clientBinding, Map<String, String> _headers, Map<String, String> _persistentHeaders, AtomicLong interactionCounter, Set<Long> activeInteractions) {
-    this(_protocolId,_clientBinding, reactor.core.publisher.Mono.just(_headers != null ? _headers : java.util.Collections.emptyMap()), reactor.core.publisher.Mono.just(_persistentHeaders != null ? _persistentHeaders : java.util.Collections.emptyMap()), interactionCounter, activeInteractions);
+  public MyServiceReactiveClient(org.apache.thrift.ProtocolId _protocolId, RpcClientBinding _clientBinding, Map<String, String> _headers, Map<String, String> _persistentHeaders, Set<Long> activeInteractions) {
+    this(_protocolId,_clientBinding, reactor.core.publisher.Mono.just(_headers != null ? _headers : java.util.Collections.emptyMap()), reactor.core.publisher.Mono.just(_persistentHeaders != null ? _persistentHeaders : java.util.Collections.emptyMap()), activeInteractions);
   }
 
-  public MyServiceReactiveClient(org.apache.thrift.ProtocolId _protocolId, RpcClientBinding _clientBinding, reactor.core.publisher.Mono<Map<String, String>> _headersMono, reactor.core.publisher.Mono<Map<String, String>> _persistentHeadersMono, AtomicLong interactionCounter, Set<Long> activeInteractions) {
+  public MyServiceReactiveClient(org.apache.thrift.ProtocolId _protocolId, RpcClientBinding _clientBinding, reactor.core.publisher.Mono<Map<String, String>> _headersMono, reactor.core.publisher.Mono<Map<String, String>> _persistentHeadersMono, Set<Long> activeInteractions) {
     this._protocolId = _protocolId;
     this._clientBinding = _clientBinding;
     this._headersMono = _headersMono;
@@ -92,21 +91,14 @@ public class MyServiceReactiveClient
   }
 
   private com.facebook.thrift.payload.Writer _createpingWriter() {
-    return oprot -> {
-      try {
-
-      } catch (Throwable _e) {
-        com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
-        throw reactor.core.Exceptions.propagate(_e);
-      }
-    };
+    return com.facebook.thrift.payload.Writer.EMPTY_WRITER;
   }
 
   private static final com.facebook.thrift.payload.Reader _ping_READER = Readers.voidReader();
 
   @java.lang.Override
   public reactor.core.publisher.Mono<com.facebook.thrift.client.ResponseWrapper<Void>> pingWrapper( final com.facebook.thrift.client.RpcOptions rpcOptions) {
-    return _clientBinding.acquire()
+    return com.facebook.thrift.util.RequestContextUtil.withCallerContext(_clientBinding.acquire()
       .flatMap(_rpc -> getHeaders(rpcOptions).flatMap(headers -> {
         org.apache.thrift.RequestRpcMetadata _metadata = new org.apache.thrift.RequestRpcMetadata.Builder()
                 .setName("ping")
@@ -125,8 +117,8 @@ public class MyServiceReactiveClient
                     java.util.Collections.emptyMap());
 
             return _rpc
-                .singleRequestSingleResponse(_crp, rpcOptions).transform(com.facebook.thrift.util.MonoPublishingTransformer.getInstance()).doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());});
-      }));
+                .singleRequestSingleResponse(_crp, rpcOptions).doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());});
+      })));
   }
 
   @java.lang.Override
@@ -140,21 +132,14 @@ public class MyServiceReactiveClient
   }
 
   private com.facebook.thrift.payload.Writer _creategetRandomDataWriter() {
-    return oprot -> {
-      try {
-
-      } catch (Throwable _e) {
-        com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
-        throw reactor.core.Exceptions.propagate(_e);
-      }
-    };
+    return com.facebook.thrift.payload.Writer.EMPTY_WRITER;
   }
 
   private static final com.facebook.thrift.payload.Reader _getRandomData_READER = Readers.stringReader();
 
   @java.lang.Override
   public reactor.core.publisher.Mono<com.facebook.thrift.client.ResponseWrapper<String>> getRandomDataWrapper( final com.facebook.thrift.client.RpcOptions rpcOptions) {
-    return _clientBinding.acquire()
+    return com.facebook.thrift.util.RequestContextUtil.withCallerContext(_clientBinding.acquire()
       .flatMap(_rpc -> getHeaders(rpcOptions).flatMap(headers -> {
         org.apache.thrift.RequestRpcMetadata _metadata = new org.apache.thrift.RequestRpcMetadata.Builder()
                 .setName("getRandomData")
@@ -173,8 +158,8 @@ public class MyServiceReactiveClient
                     java.util.Collections.emptyMap());
 
             return _rpc
-                .singleRequestSingleResponse(_crp, rpcOptions).transform(com.facebook.thrift.util.MonoPublishingTransformer.getInstance()).doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());});
-      }));
+                .singleRequestSingleResponse(_crp, rpcOptions).doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());});
+      })));
   }
 
   @java.lang.Override
@@ -211,7 +196,7 @@ public class MyServiceReactiveClient
 
   @java.lang.Override
   public reactor.core.publisher.Mono<com.facebook.thrift.client.ResponseWrapper<Void>> sinkWrapper(final long sink,  final com.facebook.thrift.client.RpcOptions rpcOptions) {
-    return _clientBinding.acquire()
+    return com.facebook.thrift.util.RequestContextUtil.withCallerContext(_clientBinding.acquire()
       .flatMap(_rpc -> getHeaders(rpcOptions).flatMap(headers -> {
         org.apache.thrift.RequestRpcMetadata _metadata = new org.apache.thrift.RequestRpcMetadata.Builder()
                 .setName("sink")
@@ -230,8 +215,8 @@ public class MyServiceReactiveClient
                     java.util.Collections.emptyMap());
 
             return _rpc
-                .singleRequestSingleResponse(_crp, rpcOptions).transform(com.facebook.thrift.util.MonoPublishingTransformer.getInstance()).doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());});
-      }));
+                .singleRequestSingleResponse(_crp, rpcOptions).doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());});
+      })));
   }
 
   @java.lang.Override
@@ -277,7 +262,7 @@ public class MyServiceReactiveClient
 
   @java.lang.Override
   public reactor.core.publisher.Mono<com.facebook.thrift.client.ResponseWrapper<Void>> putDataByIdWrapper(final long id, final String data,  final com.facebook.thrift.client.RpcOptions rpcOptions) {
-    return _clientBinding.acquire()
+    return com.facebook.thrift.util.RequestContextUtil.withCallerContext(_clientBinding.acquire()
       .flatMap(_rpc -> getHeaders(rpcOptions).flatMap(headers -> {
         org.apache.thrift.RequestRpcMetadata _metadata = new org.apache.thrift.RequestRpcMetadata.Builder()
                 .setName("putDataById")
@@ -296,8 +281,8 @@ public class MyServiceReactiveClient
                     java.util.Collections.emptyMap());
 
             return _rpc
-                .singleRequestSingleResponse(_crp, rpcOptions).transform(com.facebook.thrift.util.MonoPublishingTransformer.getInstance()).doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());});
-      }));
+                .singleRequestSingleResponse(_crp, rpcOptions).doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());});
+      })));
   }
 
   @java.lang.Override
@@ -334,7 +319,7 @@ public class MyServiceReactiveClient
 
   @java.lang.Override
   public reactor.core.publisher.Mono<com.facebook.thrift.client.ResponseWrapper<Boolean>> hasDataByIdWrapper(final long id,  final com.facebook.thrift.client.RpcOptions rpcOptions) {
-    return _clientBinding.acquire()
+    return com.facebook.thrift.util.RequestContextUtil.withCallerContext(_clientBinding.acquire()
       .flatMap(_rpc -> getHeaders(rpcOptions).flatMap(headers -> {
         org.apache.thrift.RequestRpcMetadata _metadata = new org.apache.thrift.RequestRpcMetadata.Builder()
                 .setName("hasDataById")
@@ -353,8 +338,8 @@ public class MyServiceReactiveClient
                     java.util.Collections.emptyMap());
 
             return _rpc
-                .singleRequestSingleResponse(_crp, rpcOptions).transform(com.facebook.thrift.util.MonoPublishingTransformer.getInstance()).doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());});
-      }));
+                .singleRequestSingleResponse(_crp, rpcOptions).doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());});
+      })));
   }
 
   @java.lang.Override
@@ -391,7 +376,7 @@ public class MyServiceReactiveClient
 
   @java.lang.Override
   public reactor.core.publisher.Mono<com.facebook.thrift.client.ResponseWrapper<String>> getDataByIdWrapper(final long id,  final com.facebook.thrift.client.RpcOptions rpcOptions) {
-    return _clientBinding.acquire()
+    return com.facebook.thrift.util.RequestContextUtil.withCallerContext(_clientBinding.acquire()
       .flatMap(_rpc -> getHeaders(rpcOptions).flatMap(headers -> {
         org.apache.thrift.RequestRpcMetadata _metadata = new org.apache.thrift.RequestRpcMetadata.Builder()
                 .setName("getDataById")
@@ -410,8 +395,8 @@ public class MyServiceReactiveClient
                     java.util.Collections.emptyMap());
 
             return _rpc
-                .singleRequestSingleResponse(_crp, rpcOptions).transform(com.facebook.thrift.util.MonoPublishingTransformer.getInstance()).doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());});
-      }));
+                .singleRequestSingleResponse(_crp, rpcOptions).doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());});
+      })));
   }
 
   @java.lang.Override
@@ -448,7 +433,7 @@ public class MyServiceReactiveClient
 
   @java.lang.Override
   public reactor.core.publisher.Mono<com.facebook.thrift.client.ResponseWrapper<Void>> deleteDataByIdWrapper(final long id,  final com.facebook.thrift.client.RpcOptions rpcOptions) {
-    return _clientBinding.acquire()
+    return com.facebook.thrift.util.RequestContextUtil.withCallerContext(_clientBinding.acquire()
       .flatMap(_rpc -> getHeaders(rpcOptions).flatMap(headers -> {
         org.apache.thrift.RequestRpcMetadata _metadata = new org.apache.thrift.RequestRpcMetadata.Builder()
                 .setName("deleteDataById")
@@ -467,8 +452,8 @@ public class MyServiceReactiveClient
                     java.util.Collections.emptyMap());
 
             return _rpc
-                .singleRequestSingleResponse(_crp, rpcOptions).transform(com.facebook.thrift.util.MonoPublishingTransformer.getInstance()).doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());});
-      }));
+                .singleRequestSingleResponse(_crp, rpcOptions).doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());});
+      })));
   }
 
   @java.lang.Override
@@ -514,7 +499,7 @@ public class MyServiceReactiveClient
 
   @java.lang.Override
   public reactor.core.publisher.Mono<com.facebook.thrift.client.ResponseWrapper<Void>> lobDataByIdWrapper(final long id, final String data,  final com.facebook.thrift.client.RpcOptions rpcOptions) {
-    return _clientBinding.acquire()
+    return com.facebook.thrift.util.RequestContextUtil.withCallerContext(_clientBinding.acquire()
       .flatMap(_rpc -> getHeaders(rpcOptions).flatMap(headers -> {
         org.apache.thrift.RequestRpcMetadata _metadata = new org.apache.thrift.RequestRpcMetadata.Builder()
                 .setName("lobDataById")
@@ -534,7 +519,7 @@ public class MyServiceReactiveClient
 
             return _rpc
                 .singleRequestNoResponse(_crp, rpcOptions).thenReturn(ResponseWrapper.create(null, java.util.Collections.emptyMap(), java.util.Collections.emptyMap()));
-      }));
+      })));
   }
 
   @java.lang.Override
@@ -548,21 +533,14 @@ public class MyServiceReactiveClient
   }
 
   private com.facebook.thrift.payload.Writer _createinvalidReturnForHackWriter() {
-    return oprot -> {
-      try {
-
-      } catch (Throwable _e) {
-        com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
-        throw reactor.core.Exceptions.propagate(_e);
-      }
-    };
+    return com.facebook.thrift.payload.Writer.EMPTY_WRITER;
   }
 
   private static final com.facebook.thrift.payload.Reader _invalidReturnForHack_READER = Readers.setReader(Readers.floatReader());
 
   @java.lang.Override
   public reactor.core.publisher.Mono<com.facebook.thrift.client.ResponseWrapper<Set<Float>>> invalidReturnForHackWrapper( final com.facebook.thrift.client.RpcOptions rpcOptions) {
-    return _clientBinding.acquire()
+    return com.facebook.thrift.util.RequestContextUtil.withCallerContext(_clientBinding.acquire()
       .flatMap(_rpc -> getHeaders(rpcOptions).flatMap(headers -> {
         org.apache.thrift.RequestRpcMetadata _metadata = new org.apache.thrift.RequestRpcMetadata.Builder()
                 .setName("invalid_return_for_hack")
@@ -581,8 +559,8 @@ public class MyServiceReactiveClient
                     java.util.Collections.emptyMap());
 
             return _rpc
-                .singleRequestSingleResponse(_crp, rpcOptions).transform(com.facebook.thrift.util.MonoPublishingTransformer.getInstance()).doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());});
-      }));
+                .singleRequestSingleResponse(_crp, rpcOptions).doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());});
+      })));
   }
 
   @java.lang.Override
@@ -596,21 +574,14 @@ public class MyServiceReactiveClient
   }
 
   private com.facebook.thrift.payload.Writer _createrpcSkippedCodegenWriter() {
-    return oprot -> {
-      try {
-
-      } catch (Throwable _e) {
-        com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
-        throw reactor.core.Exceptions.propagate(_e);
-      }
-    };
+    return com.facebook.thrift.payload.Writer.EMPTY_WRITER;
   }
 
   private static final com.facebook.thrift.payload.Reader _rpcSkippedCodegen_READER = Readers.voidReader();
 
   @java.lang.Override
   public reactor.core.publisher.Mono<com.facebook.thrift.client.ResponseWrapper<Void>> rpcSkippedCodegenWrapper( final com.facebook.thrift.client.RpcOptions rpcOptions) {
-    return _clientBinding.acquire()
+    return com.facebook.thrift.util.RequestContextUtil.withCallerContext(_clientBinding.acquire()
       .flatMap(_rpc -> getHeaders(rpcOptions).flatMap(headers -> {
         org.apache.thrift.RequestRpcMetadata _metadata = new org.apache.thrift.RequestRpcMetadata.Builder()
                 .setName("rpc_skipped_codegen")
@@ -629,8 +600,8 @@ public class MyServiceReactiveClient
                     java.util.Collections.emptyMap());
 
             return _rpc
-                .singleRequestSingleResponse(_crp, rpcOptions).transform(com.facebook.thrift.util.MonoPublishingTransformer.getInstance()).doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());});
-      }));
+                .singleRequestSingleResponse(_crp, rpcOptions).doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());});
+      })));
   }
 
   @java.lang.Override

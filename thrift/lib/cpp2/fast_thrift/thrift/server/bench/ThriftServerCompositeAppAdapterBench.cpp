@@ -45,13 +45,13 @@
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/common/ThriftRequestPayloads.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/adapter/ThriftServerAppAdapter.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/adapter/ThriftServerCompositeAppAdapter.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/adapter/util/ThriftServerCompositeRoutingTable.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/adapter/util/ThriftServerMethodDispatchTable.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/Messages.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/util/RequestMetadata.h>
 #include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
 
 #include <memory>
@@ -79,10 +79,10 @@ folly::EventBase& requestMetadataEventBase() {
   return eventBase;
 }
 
-apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&
-endpointContext() noexcept {
-  static apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl
-      context(nullptr, nullptr, nullptr, 0, 0);
+struct UnusedEndpointContext {};
+
+UnusedEndpointContext& endpointContext() noexcept {
+  static UnusedEndpointContext context;
   return context;
 }
 

@@ -17,7 +17,6 @@
 #pragma once
 
 #include <folly/ExceptionWrapper.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Backpressure.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Event.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
@@ -86,7 +85,7 @@ struct HandlerNode {
   OnReadFn onReadFn{nullptr};
   OnExceptionFn onExceptionFn{nullptr};
 
-  // Outbound handler methods
+  // Outbound handler methods and the ready callbacks
   OnWriteFn onWriteFn{nullptr};
   OnWriteReadyFn onWriteReadyFn{nullptr};
   OnReadReadyFn onReadReadyFn{nullptr};
@@ -103,10 +102,11 @@ struct HandlerNode {
   HandlerAddedFn handlerAddedFn{nullptr};
   HandlerRemovedFn handlerRemovedFn{nullptr};
 
-  // Hook pointers for backpressure/ready registration (nullptr if handler
-  // doesn't have hook). Detected at compile time by makeHandlerNode.
-  WriteReadyHook* writeReadyHook_{nullptr};
-  ReadReadyHook* readReadyHook_{nullptr};
+  // Set at compile time by makeHandlerNode. A handler may wait for write ready
+  // if it has onWriteReady(), and for read ready if it has onReadReady(),
+  // whatever its direction.
+  bool handlesWriteReady{false};
+  bool handlesReadReady{false};
 
   // Move-only with explicit move constructor to nullify moved-from object
   HandlerNode() = default;
@@ -135,8 +135,8 @@ struct HandlerNode {
         typeSubscriptionCount(other.typeSubscriptionCount),
         handlerAddedFn(other.handlerAddedFn),
         handlerRemovedFn(other.handlerRemovedFn),
-        writeReadyHook_(other.writeReadyHook_),
-        readReadyHook_(other.readReadyHook_) {
+        handlesWriteReady(other.handlesWriteReady),
+        handlesReadReady(other.handlesReadReady) {
     other.handlerId = 0;
     other.handlerPtr = nullptr;
     other.onPipelineActiveFn = nullptr;
@@ -152,8 +152,8 @@ struct HandlerNode {
     other.typeSubscriptionCount = 0;
     other.handlerAddedFn = nullptr;
     other.handlerRemovedFn = nullptr;
-    other.writeReadyHook_ = nullptr;
-    other.readReadyHook_ = nullptr;
+    other.handlesWriteReady = false;
+    other.handlesReadReady = false;
   }
 
   HandlerNode& operator=(HandlerNode&& other) noexcept {
@@ -174,8 +174,8 @@ struct HandlerNode {
       typeSubscriptionCount = other.typeSubscriptionCount;
       handlerAddedFn = other.handlerAddedFn;
       handlerRemovedFn = other.handlerRemovedFn;
-      writeReadyHook_ = other.writeReadyHook_;
-      readReadyHook_ = other.readReadyHook_;
+      handlesWriteReady = other.handlesWriteReady;
+      handlesReadReady = other.handlesReadReady;
 
       other.handlerId = 0;
       other.handlerPtr = nullptr;
@@ -192,8 +192,8 @@ struct HandlerNode {
       other.typeSubscriptionCount = 0;
       other.handlerAddedFn = nullptr;
       other.handlerRemovedFn = nullptr;
-      other.writeReadyHook_ = nullptr;
-      other.readReadyHook_ = nullptr;
+      other.handlesWriteReady = false;
+      other.handlesReadReady = false;
     }
     return *this;
   }
@@ -242,14 +242,14 @@ inline constexpr auto kHandlerTypeSubscriptions =
 /**
  * Creates a HandlerNode from a concrete handler type.
  *
- * This function template captures the concrete handler type at compile time
- * and generates appropriate function pointers. For handlers that don't
- * satisfy InboundHandler or OutboundHandler concepts, the corresponding
- * methods become passthroughs.
+ * For a handler without InboundHandler, onRead() and onException() pass on to
+ * the next handler, and onPipelineActive() does nothing. For a handler without
+ * OutboundHandler, onWrite() passes on, and onPipelineInactive() does nothing.
  *
- * If the handler has readReadyHook_ or writeReadyHook_ members, their
- * addresses are captured for use by the awaitReadReady() /
- * awaitWriteReady() context methods.
+ * A handler of any direction gets onWriteReady() calls if it satisfies
+ * WriteReadyHandler, and onReadReady() calls if it satisfies ReadReadyHandler.
+ * Without the callback, that ready function does nothing. A ready callback in
+ * another form fails the build.
  *
  * @tparam H The concrete handler type
  * @param handler_id The unique ID for this handler
@@ -273,19 +273,6 @@ HandlerNode makeHandlerNode(HandlerId handlerId, std::unique_ptr<H> handler) {
   node.handlerPtr = handler.get();
   node.owner = std::unique_ptr<void, void (*)(void*)>(
       handler.release(), [](void* p) { delete static_cast<H*>(p); });
-
-  // Capture hook pointers at compile time if handler has them.
-  if constexpr (requires(H& h) { h.writeReadyHook_; }) {
-    if (node.handlerPtr != nullptr) {
-      node.writeReadyHook_ = &static_cast<H*>(node.handlerPtr)->writeReadyHook_;
-    }
-  }
-
-  if constexpr (requires(H& h) { h.readReadyHook_; }) {
-    if (node.handlerPtr != nullptr) {
-      node.readReadyHook_ = &static_cast<H*>(node.handlerPtr)->readReadyHook_;
-    }
-  }
 
   // Lifecycle methods - always present (required by HandlerLifecycle concept)
   node.handlerAddedFn = [](void* h, ContextImpl& ctx) noexcept {
@@ -311,11 +298,6 @@ HandlerNode makeHandlerNode(HandlerId handlerId, std::unique_ptr<H> handler) {
       return static_cast<H*>(h)->onRead(c, std::move(msg));
     };
 
-    node.onReadReadyFn = [](void* h, ContextImpl& ctx) noexcept {
-      decltype(auto) c = contextFor<StateTuple>(ctx);
-      static_cast<H*>(h)->onReadReady(c);
-    };
-
     node.onExceptionFn =
         [](void* h, ContextImpl& ctx, folly::exception_wrapper&& e) noexcept {
           decltype(auto) c = contextFor<StateTuple>(ctx);
@@ -332,10 +314,6 @@ HandlerNode makeHandlerNode(HandlerId handlerId, std::unique_ptr<H> handler) {
       return ctx.fireRead(std::move(msg));
     };
 
-    node.onReadReadyFn = [](void*, ContextImpl&) noexcept {
-      // No-op for non-inbound handlers
-    };
-
     node.onExceptionFn =
         [](void*, ContextImpl& ctx, folly::exception_wrapper&& e) noexcept {
           ctx.fireException(std::move(e));
@@ -350,11 +328,6 @@ HandlerNode makeHandlerNode(HandlerId handlerId, std::unique_ptr<H> handler) {
       return static_cast<H*>(h)->onWrite(c, std::move(msg));
     };
 
-    node.onWriteReadyFn = [](void* h, ContextImpl& ctx) noexcept {
-      decltype(auto) c = contextFor<StateTuple>(ctx);
-      static_cast<H*>(h)->onWriteReady(c);
-    };
-
     node.onPipelineInactiveFn = [](void* h, ContextImpl& ctx) noexcept {
       decltype(auto) c = contextFor<StateTuple>(ctx);
       static_cast<H*>(h)->onPipelineInactive(c);
@@ -366,12 +339,34 @@ HandlerNode makeHandlerNode(HandlerId handlerId, std::unique_ptr<H> handler) {
       return ctx.fireWrite(std::move(msg));
     };
 
-    node.onWriteReadyFn = [](void*, ContextImpl&) noexcept {
-      // No-op for non-outbound handlers
-    };
-
     node.onPipelineInactiveFn = [](void*, ContextImpl&) noexcept {
       // No-op for non-outbound handlers
+    };
+  }
+
+  // Ready callbacks - a handler of any direction may have them
+  checkReadyCallbacks<H, Ctx>();
+  if constexpr (WriteReadyHandler<H, Ctx>) {
+    node.onWriteReadyFn = [](void* h, ContextImpl& ctx) noexcept {
+      decltype(auto) c = contextFor<StateTuple>(ctx);
+      static_cast<H*>(h)->onWriteReady(c);
+    };
+    node.handlesWriteReady = true;
+  } else {
+    node.onWriteReadyFn = [](void*, ContextImpl&) noexcept {
+      // No-op for handlers without onWriteReady()
+    };
+  }
+
+  if constexpr (ReadReadyHandler<H, Ctx>) {
+    node.onReadReadyFn = [](void* h, ContextImpl& ctx) noexcept {
+      decltype(auto) c = contextFor<StateTuple>(ctx);
+      static_cast<H*>(h)->onReadReady(c);
+    };
+    node.handlesReadReady = true;
+  } else {
+    node.onReadReadyFn = [](void*, ContextImpl&) noexcept {
+      // No-op for handlers without onReadReady()
     };
   }
 
@@ -412,17 +407,6 @@ StoredHandlerArg<Arg> storeHandlerArg(Arg&& arg) {
 template <typename Arg>
 decltype(auto) forwardStoredHandlerArg(StoredHandlerArg<Arg>& arg) {
   return std::move(arg);
-}
-
-template <typename H>
-void setHandlerPointer(HandlerNode& node, H* handler) noexcept {
-  node.handlerPtr = handler;
-  if constexpr (requires(H& h) { h.writeReadyHook_; }) {
-    node.writeReadyHook_ = &handler->writeReadyHook_;
-  }
-  if constexpr (requires(H& h) { h.readReadyHook_; }) {
-    node.readReadyHook_ = &handler->readReadyHook_;
-  }
 }
 
 template <typename H, typename StateTuple = std::tuple<>, typename... Args>
@@ -466,7 +450,7 @@ HandlerNode makeInlineHandlerNode(HandlerId handlerId, Args&&... args) {
         node.owner = decltype(node.owner)(
             handler,
             +[](void* p) noexcept { std::destroy_at(static_cast<H*>(p)); });
-        setHandlerPointer(node, handler);
+        node.handlerPtr = handler;
       },
       [](HandlerNode& node) {
         auto handler = [&] {
@@ -486,7 +470,7 @@ HandlerNode makeInlineHandlerNode(HandlerId handlerId, Args&&... args) {
         auto* handlerPtr = handler.release();
         node.owner = decltype(node.owner)(
             handlerPtr, +[](void* p) noexcept { delete static_cast<H*>(p); });
-        setHandlerPointer(node, handlerPtr);
+        node.handlerPtr = handlerPtr;
       }};
   node.handlerPtr = const_cast<HandlerConstructionOps*>(&kConstructionOps);
   return node;

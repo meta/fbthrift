@@ -24,10 +24,21 @@ import com.facebook.thrift.compression.zlib.ZlibCompressor;
 import com.facebook.thrift.compression.zstd.ZstdCompressor;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
+import org.apache.thrift.CodecConfig;
 import org.apache.thrift.CompressionAlgorithm;
+import org.apache.thrift.CompressionConfig;
+import org.apache.thrift.CustomCompressionCodecConfig;
+import org.apache.thrift.Lz4CompressionCodecConfig;
+import org.apache.thrift.Lz4CompressionLevelPreset;
 import org.apache.thrift.TTransform;
+import org.apache.thrift.ZlibCompressionCodecConfig;
+import org.apache.thrift.ZstdCompressionCodecConfig;
+import org.apache.thrift.ZstdCompressionLevelPreset;
 import org.junit.jupiter.api.Test;
 
 class CompressionManagerTest {
@@ -208,5 +219,96 @@ class CompressionManagerTest {
     assertThat(TTransform.ZLIB_MORE.getValue()).isEqualTo(11);
     assertThat(TTransform.ZSTD_MORE.getValue()).isEqualTo(12);
     assertThat(TTransform.LZ4_MORE.getValue()).isEqualTo(13);
+  }
+
+  @Test
+  void compressForTransformsRoundTripsWithDecompressInReverseOrder() {
+    byte[] original = "compress then decompress".getBytes(StandardCharsets.UTF_8);
+    List<Integer> transforms =
+        Arrays.asList(TTransform.ZLIB.getValue(), TTransform.ZSTD.getValue());
+
+    ByteBuf compressed =
+        CompressionManager.compressForTransforms(
+            transforms, allocator, Unpooled.wrappedBuffer(original));
+    ByteBuf result =
+        CompressionManager.decompressFromTransform(transforms.get(1), allocator, compressed);
+    result = CompressionManager.decompressFromTransform(transforms.get(0), allocator, result);
+
+    assertThat(ByteBufUtil.getBytes(result)).isEqualTo(original);
+    result.release();
+  }
+
+  @Test
+  void fromCodecConfigMapsCodecsAndLevels() {
+    assertThat(
+            CompressionManager.fromCodecConfig(
+                CodecConfig.fromZlibConfig(new ZlibCompressionCodecConfig.Builder().build())))
+        .isEqualTo(CompressionAlgorithm.ZLIB);
+    assertThat(
+            CompressionManager.fromCodecConfig(
+                CodecConfig.fromZstdConfig(
+                    new ZstdCompressionCodecConfig.Builder()
+                        .setLevelPreset(ZstdCompressionLevelPreset.LESS)
+                        .build())))
+        .isEqualTo(CompressionAlgorithm.ZSTD_LESS);
+    assertThat(
+            CompressionManager.fromCodecConfig(
+                CodecConfig.fromLz4Config(
+                    new Lz4CompressionCodecConfig.Builder()
+                        .setLevelPreset(Lz4CompressionLevelPreset.MORE)
+                        .build())))
+        .isEqualTo(CompressionAlgorithm.LZ4_MORE);
+    assertThat(CompressionManager.fromCodecConfig(new CodecConfig()))
+        .isEqualTo(CompressionAlgorithm.NONE);
+  }
+
+  @Test
+  void algorithmForCompressesOnlyAboveTheSizeLimit() {
+    CompressionConfig config = zstdConfig(100L);
+
+    assertThat(CompressionManager.algorithmFor(config, 100)).isEqualTo(CompressionAlgorithm.NONE);
+    assertThat(CompressionManager.algorithmFor(config, 101)).isEqualTo(CompressionAlgorithm.ZSTD);
+    assertThat(CompressionManager.algorithmFor(null, 101)).isEqualTo(CompressionAlgorithm.NONE);
+  }
+
+  @Test
+  void headerTransformsForGivesTheTransformOfTheCodecAndNoneForCustom() {
+    assertThat(CompressionManager.headerTransformsFor(zstdConfig(null), 1))
+        .containsExactly(TTransform.ZSTD.getValue());
+
+    CompressionConfig custom =
+        new CompressionConfig.Builder()
+            .setCodecConfig(
+                CodecConfig.fromCustomConfig(new CustomCompressionCodecConfig.Builder().build()))
+            .build();
+    assertThat(CompressionManager.headerTransformsFor(custom, 1)).isEmpty();
+  }
+
+  @Test
+  void toTTransformIsTheInverseOfFromTTransform() {
+    for (TTransform transform : TTransform.values()) {
+      assertThat(
+              CompressionManager.toTTransform(
+                  CompressionManager.fromTTransform(transform.getValue())))
+          .isEqualTo(transform);
+    }
+  }
+
+  private static CompressionConfig zstdConfig(Long sizeLimit) {
+    return new CompressionConfig.Builder()
+        .setCodecConfig(
+            CodecConfig.fromZstdConfig(new ZstdCompressionCodecConfig.Builder().build()))
+        .setCompressionSizeLimit(sizeLimit)
+        .build();
+  }
+
+  @Test
+  void decompressWithoutACompressorReleasesTheData() {
+    ByteBuf data = Unpooled.buffer().writeZero(8);
+
+    assertThatThrownBy(
+            () -> CompressionManager.decompress(CompressionAlgorithm.CUSTOM, allocator, data))
+        .isInstanceOf(RuntimeException.class);
+    assertThat(data.refCnt()).isZero();
   }
 }

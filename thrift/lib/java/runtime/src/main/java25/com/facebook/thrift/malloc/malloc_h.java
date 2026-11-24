@@ -16,6 +16,7 @@
 
 package com.facebook.thrift.malloc;
 
+import java.lang.foreign.Arena;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
 import java.lang.foreign.MemoryLayout;
@@ -34,12 +35,12 @@ import org.slf4j.LoggerFactory;
  * naming conventions. Derived from jextract output over {@code <malloc.h>}, reduced to the single
  * call this runtime needs.
  *
- * <p>{@code mallinfo2} is a glibc extension. It is absent under jemalloc, tcmalloc, musl, and on
- * non-Linux platforms, so resolution is strictly best effort: {@link #isAvailable()} reports
- * whether the symbol was found and no code path here throws during class initialization. This is
- * the reason the binding uses {@link SymbolLookup#find} (returning an {@code Optional}) rather than
- * jextract's generated {@code findOrThrow}, which would raise {@code ExceptionInInitializerError}
- * on the first touch when the symbol is missing.
+ * <p>{@code mallinfo2} is a glibc extension. It is absent under tcmalloc, musl, and on non-Linux
+ * platforms; under a preloaded jemalloc it still resolves and reports zeros. Resolution is strictly
+ * best effort: {@link #isAvailable()} reports whether the symbol was found and no code path here
+ * throws during class initialization. This is the reason the binding uses {@link SymbolLookup#find}
+ * (returning an {@code Optional}) rather than jextract's generated {@code findOrThrow}, which would
+ * raise {@code ExceptionInInitializerError} on the first touch when the symbol is missing.
  *
  * <p>Unlike the older {@code mallinfo(3)}, {@code mallinfo2} uses {@code size_t} fields and so does
  * not wrap past 4GB. It aggregates every arena, not just the main one, and therefore reflects
@@ -196,7 +197,12 @@ public final class malloc_h {
       if (address.isEmpty() || address.get().equals(MemorySegment.NULL)) {
         return null;
       }
-      return linker.downcallHandle(address.get(), FunctionDescriptor.of(MALLINFO2));
+      MethodHandle handle = linker.downcallHandle(address.get(), FunctionDescriptor.of(MALLINFO2));
+      // Runs in the class initializer, so glibc's lazy init completes before any concurrent call.
+      try (Arena arena = Arena.ofConfined()) {
+        MemorySegment unused = (MemorySegment) handle.invokeExact((SegmentAllocator) arena);
+      }
+      return handle;
     } catch (Throwable t) {
       LOGGER.debug("mallinfo2 could not be resolved; glibc allocator stats are disabled", t);
       return null;

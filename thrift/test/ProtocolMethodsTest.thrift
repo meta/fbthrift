@@ -35,5 +35,5 @@ struct MyStruct {
 // The following were automatically generated and may benefit from renaming.
 @cpp.Type{name = "MyInt"}
 typedef i32 i32_7453
-@cpp.Type{name = "MyString"}
+@cpp.Adapter{name = "::apache::thrift::StringTypeAdapter<MyString>"}
 typedef string string_9131

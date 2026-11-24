@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from libc.stdint cimport uint16_t, int32_t, uint32_t, int64_t
+from libc.stdint cimport uint16_t, int32_t, uint32_t, int64_t, uint64_t
 from libcpp cimport bool as cbool
 from libcpp.memory cimport shared_ptr, unique_ptr
 from libcpp.string cimport string
@@ -63,6 +63,7 @@ cdef extern from "thrift/lib/cpp2/server/ThriftServer.h" \
         int32_t getActiveRequests()
         uint32_t getMaxRequests()
         void setMaxRequests(uint32_t maxRequests)
+        void setMaxDebugPayloadMemoryPerRequest(uint64_t limit)
         uint32_t getMaxConnections()
         void setMaxConnections(uint32_t maxConnections)
         int getListenBacklog()
@@ -138,12 +139,14 @@ cdef class ServiceInterface(Py3AsyncProcessorFactory):
 
 
 cdef class ThriftServer:
+    cdef object __weakref__
     cdef shared_ptr[cThriftServer] server
     cdef Py3AsyncProcessorFactory factory
     cdef object loop
     cdef object address_future
     cdef void set_is_overloaded(self, cIsOverloadedFunc is_overloaded)
     cdef void add_routing_handler(self, unique_ptr[cTransportRoutingHandler] handler)
+    cdef cFollyExecutor* _intake_executor(self)
     # handler only set when initialized with thrift-python ServiceInterface
     cdef PythonServiceInterface handler
     # Health polling members

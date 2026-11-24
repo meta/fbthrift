@@ -16,6 +16,9 @@
 
 #pragma once
 
+#include <optional>
+#include <string>
+
 #include <folly/io/async/AsyncTransport.h>
 #include <folly/io/async/DelayedDestruction.h>
 
@@ -23,6 +26,11 @@
 #include <thrift/lib/cpp2/transport/rocket/client/RocketClient.h>
 
 namespace apache::thrift {
+
+struct RocketClientChannelOptions {
+  // No override uses the rocket_frame_parser flag at channel construction.
+  std::optional<std::string> frameParser;
+};
 
 /**
  * Thrift client channel using the Rocket protocol for RPC communication.
@@ -53,6 +61,10 @@ class RocketClientChannel final : public RocketClientChannelBase,
   static Ptr newChannel(folly::AsyncTransport::UniquePtr socket);
   static Ptr newChannelWithMetadata(
       folly::AsyncTransport::UniquePtr socket, RequestSetupMetadata meta);
+  static Ptr newChannelWithOptions(
+      folly::AsyncTransport::UniquePtr socket,
+      RocketClientChannelOptions options,
+      RequestSetupMetadata meta = {});
 
  protected:
   rocket::RocketClient& getRocketClientImpl() override { return *this; }
@@ -79,6 +91,7 @@ class RocketClientChannel final : public RocketClientChannelBase,
       folly::EventBase* evb,
       folly::AsyncTransport::UniquePtr socket,
       RequestSetupMetadata meta,
+      RocketClientChannelOptions options = {},
       int32_t keepAliveTimeoutMs = 0,
       std::shared_ptr<rocket::ParserAllocatorType> allocatorPtr = nullptr);
 

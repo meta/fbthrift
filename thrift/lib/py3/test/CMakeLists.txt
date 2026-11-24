@@ -38,7 +38,7 @@ macro (thrift_py3_test filename services)
   endif ()
 
   thrift_generate(
-    ${filename}.thrift
+    ${filename}-cpp2 ${filename}.thrift
     LANGUAGE py3
     SERVICES ${services}
     OPTIONS ${_py3_thrift_flags}

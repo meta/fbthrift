@@ -155,11 +155,10 @@ TEST_F(FrameLengthParserTest, BackpressureThenResume) {
   EXPECT_GT(parser_.size(), 0);
 
   sinkResult_ = Result::Success;
-  EXPECT_EQ(feed(buildFrame(40)), Result::Success);
+  EXPECT_EQ(parser_.resume(sink()), Result::Success);
 
-  ASSERT_EQ(frames_.size(), 3);
+  ASSERT_EQ(frames_.size(), 2);
   EXPECT_EQ(frames_[1]->computeChainDataLength(), 30);
-  EXPECT_EQ(frames_[2]->computeChainDataLength(), 40);
   EXPECT_EQ(parser_.size(), 0);
 }
 
@@ -178,11 +177,10 @@ TEST_F(FrameLengthParserTest, BackpressureThenResumeOnTheConsumePath) {
   EXPECT_THAT(parser_.size(), Gt(0));
 
   sinkResult_ = Result::Success;
-  EXPECT_THAT(feedViaReadBuffer(buildFrame(40)), Eq(Result::Success));
+  EXPECT_THAT(parser_.resume(sink()), Eq(Result::Success));
 
-  ASSERT_THAT(frames_, SizeIs(3));
+  ASSERT_THAT(frames_, SizeIs(2));
   EXPECT_THAT(frames_[1]->computeChainDataLength(), Eq(30));
-  EXPECT_THAT(frames_[2]->computeChainDataLength(), Eq(40));
   EXPECT_THAT(parser_.size(), Eq(0));
 }
 

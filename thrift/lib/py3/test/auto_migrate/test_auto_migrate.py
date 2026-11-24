@@ -16,24 +16,24 @@
 import os
 import sys
 
-import pytest
 from buck2.tests.e2e_util.api.buck import Buck
 from buck2.tests.e2e_util.api.buck_result import TestResult
-from buck2.tests.e2e_util.buck_workspace import buck_test
-
-
-@buck_test(inplace=True)
-async def test_par(buck: Buck) -> None:
-    target = os.getenv("TARGET")
-    if not target:
-        pytest.fail("error: Target not provided")
-
-    test_result = await run_buck(buck, target)
-
-    print(test_result.stderr, file=sys.stderr)
+from buck2.tests.e2e_util.buck_workspace import buck_test, BuckTestCase
 
 
 async def run_buck(buck: Buck, target: str) -> TestResult:
     args = [target, "-c thrift.py3_auto_migrate=True", "--", "--return-zero-on-skips"]
     result = await buck.test(*args)
     return result
+
+
+class AutoMigrateTest(BuckTestCase):
+    @buck_test(inplace=True)
+    async def test_par(self, buck: Buck) -> None:
+        target = os.getenv("TARGET")
+        if not target:
+            self.fail("error: Target not provided")
+
+        test_result = await run_buck(buck, target)
+
+        print(test_result.stderr, file=sys.stderr)

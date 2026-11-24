@@ -18,6 +18,6 @@ except ImportError:
         pass
 
 
-from .ttypes import UTF8STRINGS, InjectMetadataFields
+from .ttypes import UTF8STRINGS, InjectMetadataFields, CppAllocator, CppUseAllocator, CppAllocatorVia
 warn_thrift_py_deprecated(__name__)
 

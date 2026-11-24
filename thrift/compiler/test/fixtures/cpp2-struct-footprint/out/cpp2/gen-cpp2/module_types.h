@@ -66,6 +66,7 @@ namespace apache::thrift::detail::qualifier {
 // BEGIN hash_and_equal_to
 // END hash_and_equal_to
 namespace cpp2_struct_footprint {
+/** typedef i32 I32Alias */
 /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "name": "I32Alias", "kind": "typedef" } */
 using I32Alias = SimpleStruct;
 /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "name": "MyInt", "kind": "typedef" } */
@@ -78,8 +79,10 @@ using StructList = ::std::vector<::cpp2_struct_footprint::SimpleStruct>;
 using StructMap = ::std::map<::std::string, ::cpp2_struct_footprint::SimpleStruct>;
 /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "name": "StructSet", "kind": "typedef" } */
 using StructSet = ::std::set<::cpp2_struct_footprint::SimpleStruct>;
+/** typedef binary IOBuf */
 /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "name": "IOBuf", "kind": "typedef" } */
 using IOBuf = folly::IOBuf;
+/** typedef binary IOBufPtr */
 /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "name": "IOBufPtr", "kind": "typedef" } */
 using IOBufPtr = std::unique_ptr<folly::IOBuf>;
 
@@ -94,6 +97,16 @@ class SimpleStruct final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "SimpleStruct";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "field"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -200,7 +213,6 @@ class SimpleStruct final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<SimpleStruct>;
   friend void swap(SimpleStruct& a, SimpleStruct& b);
 };
 
@@ -223,6 +235,16 @@ class ComplexStruct final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "ComplexStruct";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "nested"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -336,7 +358,6 @@ class ComplexStruct final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<ComplexStruct>;
   friend void swap(ComplexStruct& a, ComplexStruct& b);
 };
 
@@ -359,6 +380,16 @@ class Struct1 final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "Struct1";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    ""
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -414,7 +445,6 @@ class Struct1 final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<Struct1>;
   friend void swap(Struct1& a, Struct1& b);
 };
 
@@ -437,6 +467,16 @@ class Struct2 final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "Struct2";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    ""
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -492,7 +532,6 @@ class Struct2 final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<Struct2>;
   friend void swap(Struct2& a, Struct2& b);
 };
 
@@ -515,6 +554,16 @@ class Struct3 final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "Struct3";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    ""
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -570,7 +619,6 @@ class Struct3 final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<Struct3>;
   friend void swap(Struct3& a, Struct3& b);
 };
 
@@ -593,6 +641,16 @@ class Struct4 final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "Struct4";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    ""
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -648,7 +706,6 @@ class Struct4 final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<Struct4>;
   friend void swap(Struct4& a, Struct4& b);
 };
 
@@ -671,6 +728,16 @@ class Struct5 final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "Struct5";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    ""
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -726,7 +793,6 @@ class Struct5 final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<Struct5>;
   friend void swap(Struct5& a, Struct5& b);
 };
 
@@ -749,6 +815,16 @@ class FOLLY_EXPORT ExStruct : public virtual apache::thrift::TException {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "ExStruct";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "message"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -879,7 +955,6 @@ class FOLLY_EXPORT ExStruct : public virtual apache::thrift::TException {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<ExStruct>;
   friend void swap(ExStruct& a, ExStruct& b);
 };
 
@@ -902,6 +977,11 @@ class TestUnion final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "TestUnion";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "int_value", "struct_value"
+  };
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -946,33 +1026,7 @@ class TestUnion final  {
 
   TestUnion(const TestUnion& rhs);
 
-  TestUnion& operator=(TestUnion&& rhs) noexcept {
-    if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-      {
-        __fbthrift_clear();
-        return *this;
-      }
-      case Type::int_value:
-      {
-        set_int_value(std::move(rhs.value_.int_value));
-        break;
-      }
-      case Type::struct_value:
-      {
-        set_struct_value(std::move(rhs.value_.struct_value));
-        break;
-      }
-      default:
-      {
-        assert(false);
-        __fbthrift_clear();
-      }
-    }
-    apache::thrift::clear(rhs);
-    return *this;
-  }
+  TestUnion& operator=(TestUnion&& rhs) noexcept;
 
   TestUnion& operator=(const TestUnion& rhs);
 
@@ -1032,6 +1086,7 @@ class TestUnion final  {
   }
 
   /** Glean { "field": "int_value" } */
+  [[deprecated("Use `FOO.int_value().value()` instead of `FOO.get_int_value()`")]]
   ::std::int32_t const& get_int_value() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::int_value) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1040,6 +1095,7 @@ class TestUnion final  {
   }
 
   /** Glean { "field": "struct_value" } */
+  [[deprecated("Use `FOO.struct_value().value()` instead of `FOO.get_struct_value()`")]]
   ::cpp2_struct_footprint::SimpleStruct const& get_struct_value() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::struct_value) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1151,7 +1207,6 @@ class TestUnion final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<TestUnion>;
   friend void swap(TestUnion& a, TestUnion& b);
 };
 

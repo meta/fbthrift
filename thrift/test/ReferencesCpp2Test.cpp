@@ -16,6 +16,7 @@
 
 #include <gtest/gtest.h>
 
+#include <functional>
 #include <map>
 #include <set>
 #include <vector>
@@ -444,12 +445,13 @@ TEST(References, string_ref) {
 TEST(References, CppRefUnionLessThan) {
   auto check = [](ReferringUnionWithCppRef& smallerAddress,
                   ReferringUnionWithCppRef& largerAddress) {
-    *smallerAddress.get_box_string() = "2";
-    *largerAddress.get_box_string() = "1";
+    *smallerAddress.box_string() = "2";
+    *largerAddress.box_string() = "1";
 
-    EXPECT_LT(smallerAddress.get_box_string(), largerAddress.get_box_string());
-    EXPECT_GT(
-        *smallerAddress.get_box_string(), *largerAddress.get_box_string());
+    EXPECT_TRUE(
+        std::less<>{}(
+            &*smallerAddress.box_string(), &*largerAddress.box_string()));
+    EXPECT_GT(*smallerAddress.box_string(), *largerAddress.box_string());
     EXPECT_GT(smallerAddress, largerAddress);
   };
 
@@ -457,7 +459,7 @@ TEST(References, CppRefUnionLessThan) {
   ReferringUnionWithCppRef b;
   a.set_box_string("");
   b.set_box_string("");
-  if (a.get_box_string() < b.get_box_string()) {
+  if (std::less<>{}(&*a.box_string(), &*b.box_string())) {
     check(a, b);
   } else {
     check(b, a);
@@ -471,25 +473,25 @@ TEST(References, CppRefUnionSetterGetter) {
 
   a.set_box_plain(p);
 
-  EXPECT_THROW(a.get_box_string(), bad_field_access);
-  EXPECT_THROW(a.get_box_self(), bad_field_access);
-  EXPECT_EQ(a.get_box_plain()->field(), 42);
+  EXPECT_THROW(a.box_string().value(), bad_field_access);
+  EXPECT_THROW(a.box_self().value(), bad_field_access);
+  EXPECT_EQ(a.box_plain()->field(), 42);
 
   a.set_box_string("foo");
 
-  EXPECT_THROW(a.get_box_plain(), bad_field_access);
-  EXPECT_THROW(a.get_box_self(), bad_field_access);
-  EXPECT_EQ(*a.get_box_string(), "foo");
+  EXPECT_THROW(a.box_plain().value(), bad_field_access);
+  EXPECT_THROW(a.box_self().value(), bad_field_access);
+  EXPECT_EQ(*a.box_string(), "foo");
 
   ReferringUnionWithCppRef b;
 
   b.set_box_self(a);
 
-  EXPECT_THROW(b.get_box_string(), bad_field_access);
-  EXPECT_THROW(b.get_box_plain(), bad_field_access);
-  EXPECT_THROW(b.get_box_self()->get_box_plain(), bad_field_access);
-  EXPECT_THROW(b.get_box_self()->get_box_self(), bad_field_access);
-  EXPECT_EQ(*b.get_box_self()->get_box_string(), "foo");
+  EXPECT_THROW(b.box_string().value(), bad_field_access);
+  EXPECT_THROW(b.box_plain().value(), bad_field_access);
+  EXPECT_THROW(b.box_self()->box_plain().value(), bad_field_access);
+  EXPECT_THROW(b.box_self()->box_self().value(), bad_field_access);
+  EXPECT_EQ(*b.box_self()->box_string(), "foo");
 }
 
 TEST(References, UnionFieldRef) {
@@ -643,6 +645,36 @@ TEST(References, NonTriviallyDestructibleUnionSetter) {
   auto objd = CompactSerializer::deserialize<NonTriviallyDestructibleUnion>(
       CompactSerializer::serialize<std::string>(obj));
   EXPECT_EQ(obj, objd);
+}
+
+// A non-optional `@cpp.Ref` field can hold a null pointer, for example after a
+// move. The writer still writes the field header, so it must write a value too.
+// Without one the reader takes the next bytes as that value.
+template <typename ThriftStruct>
+void serialize_null_non_optional_ref_test() {
+  ThriftStruct obj;
+  obj.def_field().reset();
+
+  EXPECT_EQ(
+      ThriftStruct{},
+      CompactSerializer::deserialize<ThriftStruct>(
+          CompactSerializer::serialize<std::string>(obj)));
+}
+
+TEST(References, serialize_null_base_type_ref) {
+  serialize_null_non_optional_ref_test<ReferringStructWithBaseTypeFields>();
+}
+
+TEST(References, serialize_null_string_ref) {
+  serialize_null_non_optional_ref_test<ReferringStructWithStringFields>();
+}
+
+TEST(References, serialize_null_binary_ref) {
+  serialize_null_non_optional_ref_test<ReferringStructWithBinaryField>();
+}
+
+TEST(References, serialize_null_enum_ref) {
+  serialize_null_non_optional_ref_test<ReferringStructWithEnumField>();
 }
 
 TEST(References, is_cpp_ref_field_optional) {

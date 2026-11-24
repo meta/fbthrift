@@ -43,6 +43,11 @@ class MyServiceInterface(
             b"MyInteraction.frobnicate": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE, MyInteractionInterface._fbthrift__handler_frobnicate, interaction=b"MyInteraction", interaction_factory=self.createMyInteraction),
             b"MyInteraction.ping": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_NO_RESPONSE, MyInteractionInterface._fbthrift__handler_ping, interaction=b"MyInteraction", interaction_factory=self.createMyInteraction),
             b"MyInteraction.truthify": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE, MyInteractionInterface._fbthrift__handler_truthify, interaction=b"MyInteraction", interaction_factory=self.createMyInteraction),
+            b"MyInteraction.failstream": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE, MyInteractionInterface._fbthrift__handler_failstream, interaction=b"MyInteraction", interaction_factory=self.createMyInteraction),
+            b"MyInteraction.failstreaminit": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE, MyInteractionInterface._fbthrift__handler_failstreaminit, interaction=b"MyInteraction", interaction_factory=self.createMyInteraction),
+            b"MyInteraction.frobnicateWithArg": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE, MyInteractionInterface._fbthrift__handler_frobnicateWithArg, interaction=b"MyInteraction", interaction_factory=self.createMyInteraction),
+            b"MyInteraction.streamWithArg": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE, MyInteractionInterface._fbthrift__handler_streamWithArg, interaction=b"MyInteraction", interaction_factory=self.createMyInteraction),
+            b"MyInteraction.firstAndStream": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE, MyInteractionInterface._fbthrift__handler_firstAndStream, interaction=b"MyInteraction", interaction_factory=self.createMyInteraction),
             b"MyInteractionFast.frobnicate": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE, MyInteractionFastInterface._fbthrift__handler_frobnicate, interaction=b"MyInteractionFast", interaction_factory=self.createMyInteractionFast),
             b"MyInteractionFast.ping": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_NO_RESPONSE, MyInteractionFastInterface._fbthrift__handler_ping, interaction=b"MyInteractionFast", interaction_factory=self.createMyInteractionFast),
             b"MyInteractionFast.truthify": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE, MyInteractionFastInterface._fbthrift__handler_truthify, interaction=b"MyInteractionFast", interaction_factory=self.createMyInteractionFast),
@@ -56,7 +61,7 @@ class MyServiceInterface(
 
     @staticmethod
     def __get_thrift_definition_key__() -> bytes:
-        return b"\x76\xb4\x43\x71\x74\x4c\xcf\x17\x4a\x1e\xac\xce\x43\xe0\xad\x38"
+        return b"\x9b\x8f\x49\x32\xd2\x2d\x8e\x17\x51\xf8\xa5\xae\xd1\x01\x7b\x2b"
 
     @staticmethod
     def __get_metadata__() -> _fbthrift_metadata.ThriftMetadata:
@@ -159,10 +164,17 @@ class MyInteractionInterface(
             value = await self.frobnicate()
             return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_frobnicate_result(success=value)
         except _fbthrift__test__fixtures__interactions__module__thrift_mutable_types.CustomException as e:
-            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_frobnicate_result(_ex0__ex=e)
-            buf = serialize_iobuf(return_struct, protocol)
-            exp = PythonUserException('test.fixtures.interactions.CustomException', str(e), buf)
-            raise exp
+            buf = serialize_iobuf(
+                _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_frobnicate_result(
+                    _ex0__ex=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "test.fixtures.interactions.CustomException",
+                str(e),
+                buf,
+            )
         return serialize_iobuf(return_struct, protocol)
 
     async def ping(
@@ -195,6 +207,152 @@ class MyInteractionInterface(
             stream = await stream
         return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_truthify_result()
         return_stream = self._fbthrift__stream_wrapper_truthify(stream, protocol)
+        return (serialize_iobuf(return_struct, protocol), return_stream)
+
+    def failstream(
+            self
+        ) -> _typing.Awaitable[_typing.AsyncIterator[builtins.int]] | _typing.AsyncIterator[builtins.int]:
+        raise NotImplementedError("async def failstream is not implemented")
+
+    def _fbthrift__stream_wrapper_failstream(self, stream_generator: _typing.AsyncIterator[builtins.int], protocol: Protocol) -> _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]:
+        return CloseableGenerator(
+            stream_generator,
+            protocol,
+            _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_failstream_result_stream_elem,
+            (
+                UserExceptionMeta(_fbthrift__test__fixtures__interactions__module__thrift_mutable_types.CustomException, "_ex0__boom", 'test.fixtures.interactions.CustomException'),
+            ),
+        )
+
+    async def _fbthrift__handler_failstream(self, args: _fbthrift_iobuf.IOBuf, protocol: Protocol) -> _typing.Tuple[_fbthrift_iobuf.IOBuf, _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]]:
+        args_struct = deserialize(_fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_failstream_args, args, protocol)
+        value = self.failstream()
+        stream = value
+        if not isinstance(stream, _typing.AsyncIterator):
+            stream = await stream
+        return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_failstream_result()
+        return_stream = self._fbthrift__stream_wrapper_failstream(stream, protocol)
+        return (serialize_iobuf(return_struct, protocol), return_stream)
+
+    def failstreaminit(
+            self
+        ) -> _typing.Awaitable[_typing.AsyncIterator[builtins.int]] | _typing.AsyncIterator[builtins.int]:
+        raise NotImplementedError("async def failstreaminit is not implemented")
+
+    def _fbthrift__stream_wrapper_failstreaminit(self, stream_generator: _typing.AsyncIterator[builtins.int], protocol: Protocol) -> _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]:
+        return CloseableGenerator(
+            stream_generator,
+            protocol,
+            _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_failstreaminit_result_stream_elem,
+            (),
+        )
+
+    async def _fbthrift__handler_failstreaminit(self, args: _fbthrift_iobuf.IOBuf, protocol: Protocol) -> _typing.Tuple[_fbthrift_iobuf.IOBuf, _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]]:
+        args_struct = deserialize(_fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_failstreaminit_args, args, protocol)
+        try:
+            value = self.failstreaminit()
+            stream = value
+            if not isinstance(stream, _typing.AsyncIterator):
+                stream = await stream
+            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_failstreaminit_result()
+            return_stream = self._fbthrift__stream_wrapper_failstreaminit(stream, protocol)
+        except _fbthrift__test__fixtures__interactions__module__thrift_mutable_types.CustomException as e:
+            buf = serialize_iobuf(
+                _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_failstreaminit_result(
+                    _ex0__boom=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "test.fixtures.interactions.CustomException",
+                str(e),
+                buf,
+            )
+        return (serialize_iobuf(return_struct, protocol), return_stream)
+
+    async def frobnicateWithArg(
+            self,
+            arg: builtins.int
+        ) -> builtins.int:
+        raise NotImplementedError("async def frobnicateWithArg is not implemented")
+
+    async def _fbthrift__handler_frobnicateWithArg(self, args: _fbthrift_iobuf.IOBuf, protocol: Protocol) -> _fbthrift_iobuf.IOBuf:
+        args_struct = deserialize(_fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_frobnicateWithArg_args, args, protocol)
+        try:
+            value = await self.frobnicateWithArg(args_struct.arg,)
+            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_frobnicateWithArg_result(success=value)
+        except _fbthrift__test__fixtures__interactions__module__thrift_mutable_types.CustomException as e:
+            buf = serialize_iobuf(
+                _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_frobnicateWithArg_result(
+                    _ex0__ex=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "test.fixtures.interactions.CustomException",
+                str(e),
+                buf,
+            )
+        return serialize_iobuf(return_struct, protocol)
+
+    def streamWithArg(
+            self,
+            query: builtins.str
+        ) -> _typing.Awaitable[_typing.AsyncIterator[builtins.int]] | _typing.AsyncIterator[builtins.int]:
+        raise NotImplementedError("async def streamWithArg is not implemented")
+
+    def _fbthrift__stream_wrapper_streamWithArg(self, stream_generator: _typing.AsyncIterator[builtins.int], protocol: Protocol) -> _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]:
+        return CloseableGenerator(
+            stream_generator,
+            protocol,
+            _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_streamWithArg_result_stream_elem,
+            (),
+        )
+
+    async def _fbthrift__handler_streamWithArg(self, args: _fbthrift_iobuf.IOBuf, protocol: Protocol) -> _typing.Tuple[_fbthrift_iobuf.IOBuf, _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]]:
+        args_struct = deserialize(_fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_streamWithArg_args, args, protocol)
+        try:
+            value = self.streamWithArg(args_struct.query,)
+            stream = value
+            if not isinstance(stream, _typing.AsyncIterator):
+                stream = await stream
+            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_streamWithArg_result()
+            return_stream = self._fbthrift__stream_wrapper_streamWithArg(stream, protocol)
+        except _fbthrift__test__fixtures__interactions__module__thrift_mutable_types.CustomException as e:
+            buf = serialize_iobuf(
+                _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_streamWithArg_result(
+                    _ex0__boom=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "test.fixtures.interactions.CustomException",
+                str(e),
+                buf,
+            )
+        return (serialize_iobuf(return_struct, protocol), return_stream)
+
+    async def firstAndStream(
+            self
+        ) -> _typing.Tuple[builtins.int, _typing.Awaitable[_typing.AsyncIterator[builtins.int]] | _typing.AsyncIterator[builtins.int]]:
+        raise NotImplementedError("async def firstAndStream is not implemented")
+
+    def _fbthrift__stream_wrapper_firstAndStream(self, stream_generator: _typing.AsyncIterator[builtins.int], protocol: Protocol) -> _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]:
+        return CloseableGenerator(
+            stream_generator,
+            protocol,
+            _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_firstAndStream_result_stream_elem,
+            (),
+        )
+
+    async def _fbthrift__handler_firstAndStream(self, args: _fbthrift_iobuf.IOBuf, protocol: Protocol) -> _typing.Tuple[_fbthrift_iobuf.IOBuf, _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]]:
+        args_struct = deserialize(_fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_firstAndStream_args, args, protocol)
+        value = self.firstAndStream()
+        value, stream = await value
+        if not isinstance(stream, _typing.AsyncIterator):
+            stream = await stream
+        return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_firstAndStream_result(success=value)
+        return_stream = self._fbthrift__stream_wrapper_firstAndStream(stream, protocol)
         return (serialize_iobuf(return_struct, protocol), return_stream)
 
 class MyInteractionFastInterface(
@@ -276,9 +434,20 @@ class FactoriesInterface(
             b"interact": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE, self._fbthrift__handler_interact, interaction=b"MyInteraction", creates_interaction=True, interaction_factory=self.createMyInteraction),
             b"interactFast": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE, self._fbthrift__handler_interactFast, interaction=b"MyInteractionFast", creates_interaction=True, interaction_factory=self.createMyInteractionFast, returns_initial_response=True),
             b"serialize": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE, self._fbthrift__handler_serialize, interaction=b"SerialInteraction", creates_interaction=True, interaction_factory=self.createSerialInteraction),
+            b"interactWithStream": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE, self._fbthrift__handler_interactWithStream, interaction=b"MyInteraction", creates_interaction=True, interaction_factory=self.createMyInteraction),
+            b"interactWithStreamAndInitialResponse": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE, self._fbthrift__handler_interactWithStreamAndInitialResponse, interaction=b"MyInteraction", creates_interaction=True, interaction_factory=self.createMyInteraction),
+            b"interactWithSink": _fbthrift_FunctionEntry(RpcKind.SINK, self._fbthrift__handler_interactWithSink, interaction=b"MyInteraction", creates_interaction=True, interaction_factory=self.createMyInteraction),
+            b"interactWithSinkAndInitialResponse": _fbthrift_FunctionEntry(RpcKind.SINK, self._fbthrift__handler_interactWithSinkAndInitialResponse, interaction=b"MyInteraction", creates_interaction=True, interaction_factory=self.createMyInteraction),
+            b"interactWithBidi": _fbthrift_FunctionEntry(RpcKind.BIDIRECTIONAL_STREAM, self._fbthrift__handler_interactWithBidi, interaction=b"MyInteraction", creates_interaction=True, interaction_factory=self.createMyInteraction),
+            b"interactWithBidiAndInitialResponse": _fbthrift_FunctionEntry(RpcKind.BIDIRECTIONAL_STREAM, self._fbthrift__handler_interactWithBidiAndInitialResponse, interaction=b"MyInteraction", creates_interaction=True, interaction_factory=self.createMyInteraction),
             b"MyInteraction.frobnicate": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE, MyInteractionInterface._fbthrift__handler_frobnicate, interaction=b"MyInteraction", interaction_factory=self.createMyInteraction),
             b"MyInteraction.ping": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_NO_RESPONSE, MyInteractionInterface._fbthrift__handler_ping, interaction=b"MyInteraction", interaction_factory=self.createMyInteraction),
             b"MyInteraction.truthify": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE, MyInteractionInterface._fbthrift__handler_truthify, interaction=b"MyInteraction", interaction_factory=self.createMyInteraction),
+            b"MyInteraction.failstream": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE, MyInteractionInterface._fbthrift__handler_failstream, interaction=b"MyInteraction", interaction_factory=self.createMyInteraction),
+            b"MyInteraction.failstreaminit": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE, MyInteractionInterface._fbthrift__handler_failstreaminit, interaction=b"MyInteraction", interaction_factory=self.createMyInteraction),
+            b"MyInteraction.frobnicateWithArg": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE, MyInteractionInterface._fbthrift__handler_frobnicateWithArg, interaction=b"MyInteraction", interaction_factory=self.createMyInteraction),
+            b"MyInteraction.streamWithArg": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE, MyInteractionInterface._fbthrift__handler_streamWithArg, interaction=b"MyInteraction", interaction_factory=self.createMyInteraction),
+            b"MyInteraction.firstAndStream": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE, MyInteractionInterface._fbthrift__handler_firstAndStream, interaction=b"MyInteraction", interaction_factory=self.createMyInteraction),
             b"MyInteractionFast.frobnicate": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE, MyInteractionFastInterface._fbthrift__handler_frobnicate, interaction=b"MyInteractionFast", interaction_factory=self.createMyInteractionFast),
             b"MyInteractionFast.ping": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_NO_RESPONSE, MyInteractionFastInterface._fbthrift__handler_ping, interaction=b"MyInteractionFast", interaction_factory=self.createMyInteractionFast),
             b"MyInteractionFast.truthify": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE, MyInteractionFastInterface._fbthrift__handler_truthify, interaction=b"MyInteractionFast", interaction_factory=self.createMyInteractionFast),
@@ -292,7 +461,7 @@ class FactoriesInterface(
 
     @staticmethod
     def __get_thrift_definition_key__() -> bytes:
-        return b"\x4e\xac\x2e\x48\x8e\x4a\x06\x25\x0d\x9c\x20\x8c\x3d\x6e\x63\x21"
+        return b"\x1f\x7a\x54\x63\x77\xd0\xa7\xb2\xa3\x5e\xb4\x67\x2e\xc8\x42\xf6"
 
     @staticmethod
     def __get_metadata__() -> _fbthrift_metadata.ThriftMetadata:
@@ -370,6 +539,222 @@ class FactoriesInterface(
         return_stream = self._fbthrift__stream_wrapper_serialize(stream, protocol)
         return (serialize_iobuf(return_struct, protocol), return_stream)
 
+
+    def interactWithStream(
+            self
+        ) -> _typing.Awaitable[_typing.AsyncIterator[builtins.int]] | _typing.AsyncIterator[builtins.int]:
+        raise NotImplementedError("async def interactWithStream is not implemented")
+
+    def _fbthrift__stream_wrapper_interactWithStream(self, stream_generator: _typing.AsyncIterator[builtins.int], protocol: Protocol) -> _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]:
+        return CloseableGenerator(
+            stream_generator,
+            protocol,
+            _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_Factories_interactWithStream_result_stream_elem,
+            (),
+        )
+
+    async def _fbthrift__handler_interactWithStream(self, args: _fbthrift_iobuf.IOBuf, protocol: Protocol) -> _typing.Tuple[_fbthrift_iobuf.IOBuf, _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]]:
+        args_struct = deserialize(_fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_Factories_interactWithStream_args, args, protocol)
+        value = self.interactWithStream()
+        stream = value
+        if not isinstance(stream, _typing.AsyncIterator):
+            stream = await stream
+        return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_Factories_interactWithStream_result()
+        return_stream = self._fbthrift__stream_wrapper_interactWithStream(stream, protocol)
+        return (serialize_iobuf(return_struct, protocol), return_stream)
+
+
+    async def interactWithStreamAndInitialResponse(
+            self
+        ) -> _typing.Tuple[builtins.int, _typing.Awaitable[_typing.AsyncIterator[builtins.int]] | _typing.AsyncIterator[builtins.int]]:
+        raise NotImplementedError("async def interactWithStreamAndInitialResponse is not implemented")
+
+    def _fbthrift__stream_wrapper_interactWithStreamAndInitialResponse(self, stream_generator: _typing.AsyncIterator[builtins.int], protocol: Protocol) -> _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]:
+        return CloseableGenerator(
+            stream_generator,
+            protocol,
+            _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_Factories_interactWithStreamAndInitialResponse_result_stream_elem,
+            (),
+        )
+
+    async def _fbthrift__handler_interactWithStreamAndInitialResponse(self, args: _fbthrift_iobuf.IOBuf, protocol: Protocol) -> _typing.Tuple[_fbthrift_iobuf.IOBuf, _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]]:
+        args_struct = deserialize(_fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_Factories_interactWithStreamAndInitialResponse_args, args, protocol)
+        value = self.interactWithStreamAndInitialResponse()
+        value, stream = await value
+        if not isinstance(stream, _typing.AsyncIterator):
+            stream = await stream
+        return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_Factories_interactWithStreamAndInitialResponse_result(success=value)
+        return_stream = self._fbthrift__stream_wrapper_interactWithStreamAndInitialResponse(stream, protocol)
+        return (serialize_iobuf(return_struct, protocol), return_stream)
+
+
+    async def interactWithSink(
+            self
+        ) -> _typing.Callable[[_typing.AsyncGenerator[builtins.int, None]], _typing.Awaitable[builtins.int]]:
+        raise NotImplementedError("async def interactWithSink is not implemented")
+
+    def _fbthrift__sink_wrapper_interactWithSink(
+        self,
+        handler_sink_callback: _typing.Callable[[_typing.AsyncGenerator[builtins.int, None]], _typing.Awaitable[builtins.int]],
+        protocol: Protocol
+    ) -> _typing.Callable[[_typing.AsyncGenerator[_fbthrift_iobuf.IOBuf, None]], _typing.Awaitable[_fbthrift_iobuf.IOBuf]]:
+        async def _fbthrift_iobuf_sink_callback(
+            _iobuf_agen: _typing.AsyncGenerator[_fbthrift_iobuf.IOBuf, None],
+        ) -> _fbthrift_iobuf.IOBuf:
+            async def _handler_agen() -> _typing.AsyncGenerator[builtins.int, None]:
+                async for iobuf_item in _iobuf_agen:
+                    sink_elem = deserialize(
+                        _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_Factories_interactWithSink_result_sink_elem,
+                        iobuf_item,
+                        protocol
+                    )
+                    if sink_elem.success is None:
+                        break
+                    else:
+                        yield sink_elem.success
+
+            final_resp = await handler_sink_callback(_handler_agen())
+            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_Factories_interactWithSink_result_sink_final(success=final_resp)
+            return serialize_iobuf(return_struct, protocol)
+
+        return _fbthrift_iobuf_sink_callback
+
+
+    async def _fbthrift__handler_interactWithSink(self, args: _fbthrift_iobuf.IOBuf, protocol: Protocol) -> _typing.Tuple[_fbthrift_iobuf.IOBuf, _typing.Callable[[_typing.Callable[[], _typing.AsyncGenerator[_fbthrift_iobuf.IOBuf, None]]], _typing.Awaitable[_fbthrift_iobuf.IOBuf]]]:
+        args_struct = deserialize(_fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_Factories_interactWithSink_args, args, protocol)
+        value = await self.interactWithSink()
+        sink_callback = value
+        return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_Factories_interactWithSink_result()
+        return_sink_callback = self._fbthrift__sink_wrapper_interactWithSink(sink_callback, protocol)
+        return (serialize_iobuf(return_struct, protocol), return_sink_callback)
+
+
+    async def interactWithSinkAndInitialResponse(
+            self
+        ) -> _typing.Tuple[builtins.int, _typing.Callable[[_typing.AsyncGenerator[builtins.int, None]], _typing.Awaitable[builtins.int]]]:
+        raise NotImplementedError("async def interactWithSinkAndInitialResponse is not implemented")
+
+    def _fbthrift__sink_wrapper_interactWithSinkAndInitialResponse(
+        self,
+        handler_sink_callback: _typing.Callable[[_typing.AsyncGenerator[builtins.int, None]], _typing.Awaitable[builtins.int]],
+        protocol: Protocol
+    ) -> _typing.Callable[[_typing.AsyncGenerator[_fbthrift_iobuf.IOBuf, None]], _typing.Awaitable[_fbthrift_iobuf.IOBuf]]:
+        async def _fbthrift_iobuf_sink_callback(
+            _iobuf_agen: _typing.AsyncGenerator[_fbthrift_iobuf.IOBuf, None],
+        ) -> _fbthrift_iobuf.IOBuf:
+            async def _handler_agen() -> _typing.AsyncGenerator[builtins.int, None]:
+                async for iobuf_item in _iobuf_agen:
+                    sink_elem = deserialize(
+                        _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_Factories_interactWithSinkAndInitialResponse_result_sink_elem,
+                        iobuf_item,
+                        protocol
+                    )
+                    if sink_elem.success is None:
+                        break
+                    else:
+                        yield sink_elem.success
+
+            final_resp = await handler_sink_callback(_handler_agen())
+            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_Factories_interactWithSinkAndInitialResponse_result_sink_final(success=final_resp)
+            return serialize_iobuf(return_struct, protocol)
+
+        return _fbthrift_iobuf_sink_callback
+
+
+    async def _fbthrift__handler_interactWithSinkAndInitialResponse(self, args: _fbthrift_iobuf.IOBuf, protocol: Protocol) -> _typing.Tuple[_fbthrift_iobuf.IOBuf, _typing.Callable[[_typing.Callable[[], _typing.AsyncGenerator[_fbthrift_iobuf.IOBuf, None]]], _typing.Awaitable[_fbthrift_iobuf.IOBuf]]]:
+        args_struct = deserialize(_fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_Factories_interactWithSinkAndInitialResponse_args, args, protocol)
+        value = await self.interactWithSinkAndInitialResponse()
+        value, sink_callback = value
+        return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_Factories_interactWithSinkAndInitialResponse_result(success=value)
+        return_sink_callback = self._fbthrift__sink_wrapper_interactWithSinkAndInitialResponse(sink_callback, protocol)
+        return (serialize_iobuf(return_struct, protocol), return_sink_callback)
+
+
+    
+    async def interactWithBidi(
+            self
+        ) -> _typing.Callable[[_typing.AsyncGenerator[builtins.int, None]], _typing.AsyncGenerator[builtins.int, None]]:
+            raise NotImplementedError("async def interactWithBidi is not implemented")
+
+    def _fbthrift__bidi_wrapper_interactWithBidi(
+        self,
+        handler_bidi_callback: _typing.Callable[[_typing.AsyncGenerator[builtins.int, None]], _typing.AsyncGenerator[builtins.int, None]],
+        protocol: Protocol
+    ) -> _typing.Callable[[_typing.AsyncGenerator[_fbthrift_iobuf.IOBuf, None]], _typing.Awaitable[_typing.AsyncGenerator[_fbthrift_iobuf.IOBuf, None]]]:
+        async def _fbthrift_iobuf_bidi_callback(
+            _iobuf_agen: _typing.AsyncGenerator[_fbthrift_iobuf.IOBuf, None],
+        ) -> _typing.AsyncGenerator[_fbthrift_iobuf.IOBuf, None]:
+            async def _handle_sink() -> _typing.AsyncGenerator[builtins.int, None]:
+                async for iobuf_item in _iobuf_agen:
+                    sink_elem = deserialize(
+                        _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_Factories_interactWithBidi_result_sink_elem,
+                        iobuf_item,
+                        protocol
+                    )
+                    if sink_elem.success is None:
+                        break
+                    else:
+                        yield sink_elem.success
+
+            return CloseableGenerator(
+                handler_bidi_callback(_handle_sink()),
+                protocol,
+                _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_Factories_interactWithBidi_result_stream_elem,
+                (),
+            )
+
+        return _fbthrift_iobuf_bidi_callback
+    async def _fbthrift__handler_interactWithBidi(self, args: _fbthrift_iobuf.IOBuf, protocol: Protocol) -> _typing.Tuple[_fbthrift_iobuf.IOBuf, _typing.Callable[[_typing.Callable[[], _typing.AsyncGenerator[_fbthrift_iobuf.IOBuf, None]]], _typing.Awaitable[_typing.AsyncGenerator[_fbthrift_iobuf.IOBuf, None]]]]:
+        args_struct = deserialize(_fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_Factories_interactWithBidi_args, args, protocol)
+        value = await self.interactWithBidi()
+        bidi_callback = value
+        return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_Factories_interactWithBidi_result()
+        return_bidi_callback = self._fbthrift__bidi_wrapper_interactWithBidi(bidi_callback, protocol)
+        return (serialize_iobuf(return_struct, protocol), return_bidi_callback)
+
+
+    
+    async def interactWithBidiAndInitialResponse(
+            self
+        ) -> _typing.Tuple[builtins.int, _typing.Callable[[_typing.AsyncGenerator[builtins.int, None]], _typing.AsyncGenerator[builtins.int, None]]]:
+            raise NotImplementedError("async def interactWithBidiAndInitialResponse is not implemented")
+
+    def _fbthrift__bidi_wrapper_interactWithBidiAndInitialResponse(
+        self,
+        handler_bidi_callback: _typing.Callable[[_typing.AsyncGenerator[builtins.int, None]], _typing.AsyncGenerator[builtins.int, None]],
+        protocol: Protocol
+    ) -> _typing.Callable[[_typing.AsyncGenerator[_fbthrift_iobuf.IOBuf, None]], _typing.Awaitable[_typing.AsyncGenerator[_fbthrift_iobuf.IOBuf, None]]]:
+        async def _fbthrift_iobuf_bidi_callback(
+            _iobuf_agen: _typing.AsyncGenerator[_fbthrift_iobuf.IOBuf, None],
+        ) -> _typing.AsyncGenerator[_fbthrift_iobuf.IOBuf, None]:
+            async def _handle_sink() -> _typing.AsyncGenerator[builtins.int, None]:
+                async for iobuf_item in _iobuf_agen:
+                    sink_elem = deserialize(
+                        _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_Factories_interactWithBidiAndInitialResponse_result_sink_elem,
+                        iobuf_item,
+                        protocol
+                    )
+                    if sink_elem.success is None:
+                        break
+                    else:
+                        yield sink_elem.success
+
+            return CloseableGenerator(
+                handler_bidi_callback(_handle_sink()),
+                protocol,
+                _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_Factories_interactWithBidiAndInitialResponse_result_stream_elem,
+                (),
+            )
+
+        return _fbthrift_iobuf_bidi_callback
+    async def _fbthrift__handler_interactWithBidiAndInitialResponse(self, args: _fbthrift_iobuf.IOBuf, protocol: Protocol) -> _typing.Tuple[_fbthrift_iobuf.IOBuf, _typing.Callable[[_typing.Callable[[], _typing.AsyncGenerator[_fbthrift_iobuf.IOBuf, None]]], _typing.Awaitable[_typing.AsyncGenerator[_fbthrift_iobuf.IOBuf, None]]]]:
+        args_struct = deserialize(_fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_Factories_interactWithBidiAndInitialResponse_args, args, protocol)
+        value = await self.interactWithBidiAndInitialResponse()
+        value, bidi_callback = value
+        return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_Factories_interactWithBidiAndInitialResponse_result(success=value)
+        return_bidi_callback = self._fbthrift__bidi_wrapper_interactWithBidiAndInitialResponse(bidi_callback, protocol)
+        return (serialize_iobuf(return_struct, protocol), return_bidi_callback)
+
     def createMyInteraction(self) -> MyInteractionInterface:
         raise NotImplementedError("createMyInteraction is not implemented")
 
@@ -395,10 +780,17 @@ class MyInteractionInterface(
             value = await self.frobnicate()
             return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_frobnicate_result(success=value)
         except _fbthrift__test__fixtures__interactions__module__thrift_mutable_types.CustomException as e:
-            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_frobnicate_result(_ex0__ex=e)
-            buf = serialize_iobuf(return_struct, protocol)
-            exp = PythonUserException('test.fixtures.interactions.CustomException', str(e), buf)
-            raise exp
+            buf = serialize_iobuf(
+                _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_frobnicate_result(
+                    _ex0__ex=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "test.fixtures.interactions.CustomException",
+                str(e),
+                buf,
+            )
         return serialize_iobuf(return_struct, protocol)
 
     async def ping(
@@ -431,6 +823,152 @@ class MyInteractionInterface(
             stream = await stream
         return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_truthify_result()
         return_stream = self._fbthrift__stream_wrapper_truthify(stream, protocol)
+        return (serialize_iobuf(return_struct, protocol), return_stream)
+
+    def failstream(
+            self
+        ) -> _typing.Awaitable[_typing.AsyncIterator[builtins.int]] | _typing.AsyncIterator[builtins.int]:
+        raise NotImplementedError("async def failstream is not implemented")
+
+    def _fbthrift__stream_wrapper_failstream(self, stream_generator: _typing.AsyncIterator[builtins.int], protocol: Protocol) -> _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]:
+        return CloseableGenerator(
+            stream_generator,
+            protocol,
+            _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_failstream_result_stream_elem,
+            (
+                UserExceptionMeta(_fbthrift__test__fixtures__interactions__module__thrift_mutable_types.CustomException, "_ex0__boom", 'test.fixtures.interactions.CustomException'),
+            ),
+        )
+
+    async def _fbthrift__handler_failstream(self, args: _fbthrift_iobuf.IOBuf, protocol: Protocol) -> _typing.Tuple[_fbthrift_iobuf.IOBuf, _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]]:
+        args_struct = deserialize(_fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_failstream_args, args, protocol)
+        value = self.failstream()
+        stream = value
+        if not isinstance(stream, _typing.AsyncIterator):
+            stream = await stream
+        return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_failstream_result()
+        return_stream = self._fbthrift__stream_wrapper_failstream(stream, protocol)
+        return (serialize_iobuf(return_struct, protocol), return_stream)
+
+    def failstreaminit(
+            self
+        ) -> _typing.Awaitable[_typing.AsyncIterator[builtins.int]] | _typing.AsyncIterator[builtins.int]:
+        raise NotImplementedError("async def failstreaminit is not implemented")
+
+    def _fbthrift__stream_wrapper_failstreaminit(self, stream_generator: _typing.AsyncIterator[builtins.int], protocol: Protocol) -> _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]:
+        return CloseableGenerator(
+            stream_generator,
+            protocol,
+            _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_failstreaminit_result_stream_elem,
+            (),
+        )
+
+    async def _fbthrift__handler_failstreaminit(self, args: _fbthrift_iobuf.IOBuf, protocol: Protocol) -> _typing.Tuple[_fbthrift_iobuf.IOBuf, _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]]:
+        args_struct = deserialize(_fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_failstreaminit_args, args, protocol)
+        try:
+            value = self.failstreaminit()
+            stream = value
+            if not isinstance(stream, _typing.AsyncIterator):
+                stream = await stream
+            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_failstreaminit_result()
+            return_stream = self._fbthrift__stream_wrapper_failstreaminit(stream, protocol)
+        except _fbthrift__test__fixtures__interactions__module__thrift_mutable_types.CustomException as e:
+            buf = serialize_iobuf(
+                _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_failstreaminit_result(
+                    _ex0__boom=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "test.fixtures.interactions.CustomException",
+                str(e),
+                buf,
+            )
+        return (serialize_iobuf(return_struct, protocol), return_stream)
+
+    async def frobnicateWithArg(
+            self,
+            arg: builtins.int
+        ) -> builtins.int:
+        raise NotImplementedError("async def frobnicateWithArg is not implemented")
+
+    async def _fbthrift__handler_frobnicateWithArg(self, args: _fbthrift_iobuf.IOBuf, protocol: Protocol) -> _fbthrift_iobuf.IOBuf:
+        args_struct = deserialize(_fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_frobnicateWithArg_args, args, protocol)
+        try:
+            value = await self.frobnicateWithArg(args_struct.arg,)
+            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_frobnicateWithArg_result(success=value)
+        except _fbthrift__test__fixtures__interactions__module__thrift_mutable_types.CustomException as e:
+            buf = serialize_iobuf(
+                _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_frobnicateWithArg_result(
+                    _ex0__ex=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "test.fixtures.interactions.CustomException",
+                str(e),
+                buf,
+            )
+        return serialize_iobuf(return_struct, protocol)
+
+    def streamWithArg(
+            self,
+            query: builtins.str
+        ) -> _typing.Awaitable[_typing.AsyncIterator[builtins.int]] | _typing.AsyncIterator[builtins.int]:
+        raise NotImplementedError("async def streamWithArg is not implemented")
+
+    def _fbthrift__stream_wrapper_streamWithArg(self, stream_generator: _typing.AsyncIterator[builtins.int], protocol: Protocol) -> _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]:
+        return CloseableGenerator(
+            stream_generator,
+            protocol,
+            _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_streamWithArg_result_stream_elem,
+            (),
+        )
+
+    async def _fbthrift__handler_streamWithArg(self, args: _fbthrift_iobuf.IOBuf, protocol: Protocol) -> _typing.Tuple[_fbthrift_iobuf.IOBuf, _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]]:
+        args_struct = deserialize(_fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_streamWithArg_args, args, protocol)
+        try:
+            value = self.streamWithArg(args_struct.query,)
+            stream = value
+            if not isinstance(stream, _typing.AsyncIterator):
+                stream = await stream
+            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_streamWithArg_result()
+            return_stream = self._fbthrift__stream_wrapper_streamWithArg(stream, protocol)
+        except _fbthrift__test__fixtures__interactions__module__thrift_mutable_types.CustomException as e:
+            buf = serialize_iobuf(
+                _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_streamWithArg_result(
+                    _ex0__boom=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "test.fixtures.interactions.CustomException",
+                str(e),
+                buf,
+            )
+        return (serialize_iobuf(return_struct, protocol), return_stream)
+
+    async def firstAndStream(
+            self
+        ) -> _typing.Tuple[builtins.int, _typing.Awaitable[_typing.AsyncIterator[builtins.int]] | _typing.AsyncIterator[builtins.int]]:
+        raise NotImplementedError("async def firstAndStream is not implemented")
+
+    def _fbthrift__stream_wrapper_firstAndStream(self, stream_generator: _typing.AsyncIterator[builtins.int], protocol: Protocol) -> _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]:
+        return CloseableGenerator(
+            stream_generator,
+            protocol,
+            _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_firstAndStream_result_stream_elem,
+            (),
+        )
+
+    async def _fbthrift__handler_firstAndStream(self, args: _fbthrift_iobuf.IOBuf, protocol: Protocol) -> _typing.Tuple[_fbthrift_iobuf.IOBuf, _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]]:
+        args_struct = deserialize(_fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_firstAndStream_args, args, protocol)
+        value = self.firstAndStream()
+        value, stream = await value
+        if not isinstance(stream, _typing.AsyncIterator):
+            stream = await stream
+        return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_firstAndStream_result(success=value)
+        return_stream = self._fbthrift__stream_wrapper_firstAndStream(stream, protocol)
         return (serialize_iobuf(return_struct, protocol), return_stream)
 
 class MyInteractionFastInterface(
@@ -512,6 +1050,11 @@ class PerformInterface(
             b"MyInteraction.frobnicate": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE, MyInteractionInterface._fbthrift__handler_frobnicate, interaction=b"MyInteraction", interaction_factory=self.createMyInteraction),
             b"MyInteraction.ping": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_NO_RESPONSE, MyInteractionInterface._fbthrift__handler_ping, interaction=b"MyInteraction", interaction_factory=self.createMyInteraction),
             b"MyInteraction.truthify": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE, MyInteractionInterface._fbthrift__handler_truthify, interaction=b"MyInteraction", interaction_factory=self.createMyInteraction),
+            b"MyInteraction.failstream": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE, MyInteractionInterface._fbthrift__handler_failstream, interaction=b"MyInteraction", interaction_factory=self.createMyInteraction),
+            b"MyInteraction.failstreaminit": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE, MyInteractionInterface._fbthrift__handler_failstreaminit, interaction=b"MyInteraction", interaction_factory=self.createMyInteraction),
+            b"MyInteraction.frobnicateWithArg": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE, MyInteractionInterface._fbthrift__handler_frobnicateWithArg, interaction=b"MyInteraction", interaction_factory=self.createMyInteraction),
+            b"MyInteraction.streamWithArg": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE, MyInteractionInterface._fbthrift__handler_streamWithArg, interaction=b"MyInteraction", interaction_factory=self.createMyInteraction),
+            b"MyInteraction.firstAndStream": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE, MyInteractionInterface._fbthrift__handler_firstAndStream, interaction=b"MyInteraction", interaction_factory=self.createMyInteraction),
             b"MyInteractionFast.frobnicate": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE, MyInteractionFastInterface._fbthrift__handler_frobnicate, interaction=b"MyInteractionFast", interaction_factory=self.createMyInteractionFast),
             b"MyInteractionFast.ping": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_NO_RESPONSE, MyInteractionFastInterface._fbthrift__handler_ping, interaction=b"MyInteractionFast", interaction_factory=self.createMyInteractionFast),
             b"MyInteractionFast.truthify": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE, MyInteractionFastInterface._fbthrift__handler_truthify, interaction=b"MyInteractionFast", interaction_factory=self.createMyInteractionFast),
@@ -525,7 +1068,7 @@ class PerformInterface(
 
     @staticmethod
     def __get_thrift_definition_key__() -> bytes:
-        return b"\xd4\x56\x2f\xc1\x15\x85\x3e\x25\x6b\x9a\xa1\x73\x3b\x01\xcd\xbf"
+        return b"\xea\x7f\xf4\xa9\x59\xde\x30\x09\x5d\x68\x76\x5b\x43\x34\x2e\x8c"
 
     @staticmethod
     def __get_metadata__() -> _fbthrift_metadata.ThriftMetadata:
@@ -577,10 +1120,17 @@ class MyInteractionInterface(
             value = await self.frobnicate()
             return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_frobnicate_result(success=value)
         except _fbthrift__test__fixtures__interactions__module__thrift_mutable_types.CustomException as e:
-            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_frobnicate_result(_ex0__ex=e)
-            buf = serialize_iobuf(return_struct, protocol)
-            exp = PythonUserException('test.fixtures.interactions.CustomException', str(e), buf)
-            raise exp
+            buf = serialize_iobuf(
+                _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_frobnicate_result(
+                    _ex0__ex=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "test.fixtures.interactions.CustomException",
+                str(e),
+                buf,
+            )
         return serialize_iobuf(return_struct, protocol)
 
     async def ping(
@@ -613,6 +1163,152 @@ class MyInteractionInterface(
             stream = await stream
         return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_truthify_result()
         return_stream = self._fbthrift__stream_wrapper_truthify(stream, protocol)
+        return (serialize_iobuf(return_struct, protocol), return_stream)
+
+    def failstream(
+            self
+        ) -> _typing.Awaitable[_typing.AsyncIterator[builtins.int]] | _typing.AsyncIterator[builtins.int]:
+        raise NotImplementedError("async def failstream is not implemented")
+
+    def _fbthrift__stream_wrapper_failstream(self, stream_generator: _typing.AsyncIterator[builtins.int], protocol: Protocol) -> _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]:
+        return CloseableGenerator(
+            stream_generator,
+            protocol,
+            _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_failstream_result_stream_elem,
+            (
+                UserExceptionMeta(_fbthrift__test__fixtures__interactions__module__thrift_mutable_types.CustomException, "_ex0__boom", 'test.fixtures.interactions.CustomException'),
+            ),
+        )
+
+    async def _fbthrift__handler_failstream(self, args: _fbthrift_iobuf.IOBuf, protocol: Protocol) -> _typing.Tuple[_fbthrift_iobuf.IOBuf, _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]]:
+        args_struct = deserialize(_fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_failstream_args, args, protocol)
+        value = self.failstream()
+        stream = value
+        if not isinstance(stream, _typing.AsyncIterator):
+            stream = await stream
+        return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_failstream_result()
+        return_stream = self._fbthrift__stream_wrapper_failstream(stream, protocol)
+        return (serialize_iobuf(return_struct, protocol), return_stream)
+
+    def failstreaminit(
+            self
+        ) -> _typing.Awaitable[_typing.AsyncIterator[builtins.int]] | _typing.AsyncIterator[builtins.int]:
+        raise NotImplementedError("async def failstreaminit is not implemented")
+
+    def _fbthrift__stream_wrapper_failstreaminit(self, stream_generator: _typing.AsyncIterator[builtins.int], protocol: Protocol) -> _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]:
+        return CloseableGenerator(
+            stream_generator,
+            protocol,
+            _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_failstreaminit_result_stream_elem,
+            (),
+        )
+
+    async def _fbthrift__handler_failstreaminit(self, args: _fbthrift_iobuf.IOBuf, protocol: Protocol) -> _typing.Tuple[_fbthrift_iobuf.IOBuf, _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]]:
+        args_struct = deserialize(_fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_failstreaminit_args, args, protocol)
+        try:
+            value = self.failstreaminit()
+            stream = value
+            if not isinstance(stream, _typing.AsyncIterator):
+                stream = await stream
+            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_failstreaminit_result()
+            return_stream = self._fbthrift__stream_wrapper_failstreaminit(stream, protocol)
+        except _fbthrift__test__fixtures__interactions__module__thrift_mutable_types.CustomException as e:
+            buf = serialize_iobuf(
+                _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_failstreaminit_result(
+                    _ex0__boom=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "test.fixtures.interactions.CustomException",
+                str(e),
+                buf,
+            )
+        return (serialize_iobuf(return_struct, protocol), return_stream)
+
+    async def frobnicateWithArg(
+            self,
+            arg: builtins.int
+        ) -> builtins.int:
+        raise NotImplementedError("async def frobnicateWithArg is not implemented")
+
+    async def _fbthrift__handler_frobnicateWithArg(self, args: _fbthrift_iobuf.IOBuf, protocol: Protocol) -> _fbthrift_iobuf.IOBuf:
+        args_struct = deserialize(_fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_frobnicateWithArg_args, args, protocol)
+        try:
+            value = await self.frobnicateWithArg(args_struct.arg,)
+            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_frobnicateWithArg_result(success=value)
+        except _fbthrift__test__fixtures__interactions__module__thrift_mutable_types.CustomException as e:
+            buf = serialize_iobuf(
+                _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_frobnicateWithArg_result(
+                    _ex0__ex=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "test.fixtures.interactions.CustomException",
+                str(e),
+                buf,
+            )
+        return serialize_iobuf(return_struct, protocol)
+
+    def streamWithArg(
+            self,
+            query: builtins.str
+        ) -> _typing.Awaitable[_typing.AsyncIterator[builtins.int]] | _typing.AsyncIterator[builtins.int]:
+        raise NotImplementedError("async def streamWithArg is not implemented")
+
+    def _fbthrift__stream_wrapper_streamWithArg(self, stream_generator: _typing.AsyncIterator[builtins.int], protocol: Protocol) -> _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]:
+        return CloseableGenerator(
+            stream_generator,
+            protocol,
+            _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_streamWithArg_result_stream_elem,
+            (),
+        )
+
+    async def _fbthrift__handler_streamWithArg(self, args: _fbthrift_iobuf.IOBuf, protocol: Protocol) -> _typing.Tuple[_fbthrift_iobuf.IOBuf, _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]]:
+        args_struct = deserialize(_fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_streamWithArg_args, args, protocol)
+        try:
+            value = self.streamWithArg(args_struct.query,)
+            stream = value
+            if not isinstance(stream, _typing.AsyncIterator):
+                stream = await stream
+            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_streamWithArg_result()
+            return_stream = self._fbthrift__stream_wrapper_streamWithArg(stream, protocol)
+        except _fbthrift__test__fixtures__interactions__module__thrift_mutable_types.CustomException as e:
+            buf = serialize_iobuf(
+                _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_streamWithArg_result(
+                    _ex0__boom=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "test.fixtures.interactions.CustomException",
+                str(e),
+                buf,
+            )
+        return (serialize_iobuf(return_struct, protocol), return_stream)
+
+    async def firstAndStream(
+            self
+        ) -> _typing.Tuple[builtins.int, _typing.Awaitable[_typing.AsyncIterator[builtins.int]] | _typing.AsyncIterator[builtins.int]]:
+        raise NotImplementedError("async def firstAndStream is not implemented")
+
+    def _fbthrift__stream_wrapper_firstAndStream(self, stream_generator: _typing.AsyncIterator[builtins.int], protocol: Protocol) -> _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]:
+        return CloseableGenerator(
+            stream_generator,
+            protocol,
+            _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_firstAndStream_result_stream_elem,
+            (),
+        )
+
+    async def _fbthrift__handler_firstAndStream(self, args: _fbthrift_iobuf.IOBuf, protocol: Protocol) -> _typing.Tuple[_fbthrift_iobuf.IOBuf, _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]]:
+        args_struct = deserialize(_fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_firstAndStream_args, args, protocol)
+        value = self.firstAndStream()
+        value, stream = await value
+        if not isinstance(stream, _typing.AsyncIterator):
+            stream = await stream
+        return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_firstAndStream_result(success=value)
+        return_stream = self._fbthrift__stream_wrapper_firstAndStream(stream, protocol)
         return (serialize_iobuf(return_struct, protocol), return_stream)
 
 class MyInteractionFastInterface(
@@ -694,6 +1390,11 @@ class InteractWithSharedInterface(
             b"MyInteraction.frobnicate": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE, MyInteractionInterface._fbthrift__handler_frobnicate, interaction=b"MyInteraction", interaction_factory=self.createMyInteraction),
             b"MyInteraction.ping": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_NO_RESPONSE, MyInteractionInterface._fbthrift__handler_ping, interaction=b"MyInteraction", interaction_factory=self.createMyInteraction),
             b"MyInteraction.truthify": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE, MyInteractionInterface._fbthrift__handler_truthify, interaction=b"MyInteraction", interaction_factory=self.createMyInteraction),
+            b"MyInteraction.failstream": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE, MyInteractionInterface._fbthrift__handler_failstream, interaction=b"MyInteraction", interaction_factory=self.createMyInteraction),
+            b"MyInteraction.failstreaminit": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE, MyInteractionInterface._fbthrift__handler_failstreaminit, interaction=b"MyInteraction", interaction_factory=self.createMyInteraction),
+            b"MyInteraction.frobnicateWithArg": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE, MyInteractionInterface._fbthrift__handler_frobnicateWithArg, interaction=b"MyInteraction", interaction_factory=self.createMyInteraction),
+            b"MyInteraction.streamWithArg": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE, MyInteractionInterface._fbthrift__handler_streamWithArg, interaction=b"MyInteraction", interaction_factory=self.createMyInteraction),
+            b"MyInteraction.firstAndStream": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE, MyInteractionInterface._fbthrift__handler_firstAndStream, interaction=b"MyInteraction", interaction_factory=self.createMyInteraction),
             b"SharedInteraction.init": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE, SharedInteractionInterface._fbthrift__handler_init, interaction=b"SharedInteraction", interaction_factory=self.createSharedInteraction),
             b"SharedInteraction.do_something": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE, SharedInteractionInterface._fbthrift__handler_do_something, interaction=b"SharedInteraction", interaction_factory=self.createSharedInteraction),
             b"SharedInteraction.tear_down": _fbthrift_FunctionEntry(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE, SharedInteractionInterface._fbthrift__handler_tear_down, interaction=b"SharedInteraction", interaction_factory=self.createSharedInteraction),
@@ -706,7 +1407,7 @@ class InteractWithSharedInterface(
 
     @staticmethod
     def __get_thrift_definition_key__() -> bytes:
-        return b"\xee\x1e\x31\x94\xc7\x92\x5e\xbb\x4c\x6a\xdd\x02\x01\xd3\x32\x4d"
+        return b"\xf3\x7c\xb3\xdd\x3e\x03\x42\xb9\x0d\x08\x10\x67\xf6\xe9\x6b\x25"
 
     @staticmethod
     def __get_metadata__() -> _fbthrift_metadata.ThriftMetadata:
@@ -755,10 +1456,17 @@ class MyInteractionInterface(
             value = await self.frobnicate()
             return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_frobnicate_result(success=value)
         except _fbthrift__test__fixtures__interactions__module__thrift_mutable_types.CustomException as e:
-            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_frobnicate_result(_ex0__ex=e)
-            buf = serialize_iobuf(return_struct, protocol)
-            exp = PythonUserException('test.fixtures.interactions.CustomException', str(e), buf)
-            raise exp
+            buf = serialize_iobuf(
+                _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_frobnicate_result(
+                    _ex0__ex=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "test.fixtures.interactions.CustomException",
+                str(e),
+                buf,
+            )
         return serialize_iobuf(return_struct, protocol)
 
     async def ping(
@@ -791,6 +1499,152 @@ class MyInteractionInterface(
             stream = await stream
         return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_truthify_result()
         return_stream = self._fbthrift__stream_wrapper_truthify(stream, protocol)
+        return (serialize_iobuf(return_struct, protocol), return_stream)
+
+    def failstream(
+            self
+        ) -> _typing.Awaitable[_typing.AsyncIterator[builtins.int]] | _typing.AsyncIterator[builtins.int]:
+        raise NotImplementedError("async def failstream is not implemented")
+
+    def _fbthrift__stream_wrapper_failstream(self, stream_generator: _typing.AsyncIterator[builtins.int], protocol: Protocol) -> _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]:
+        return CloseableGenerator(
+            stream_generator,
+            protocol,
+            _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_failstream_result_stream_elem,
+            (
+                UserExceptionMeta(_fbthrift__test__fixtures__interactions__module__thrift_mutable_types.CustomException, "_ex0__boom", 'test.fixtures.interactions.CustomException'),
+            ),
+        )
+
+    async def _fbthrift__handler_failstream(self, args: _fbthrift_iobuf.IOBuf, protocol: Protocol) -> _typing.Tuple[_fbthrift_iobuf.IOBuf, _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]]:
+        args_struct = deserialize(_fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_failstream_args, args, protocol)
+        value = self.failstream()
+        stream = value
+        if not isinstance(stream, _typing.AsyncIterator):
+            stream = await stream
+        return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_failstream_result()
+        return_stream = self._fbthrift__stream_wrapper_failstream(stream, protocol)
+        return (serialize_iobuf(return_struct, protocol), return_stream)
+
+    def failstreaminit(
+            self
+        ) -> _typing.Awaitable[_typing.AsyncIterator[builtins.int]] | _typing.AsyncIterator[builtins.int]:
+        raise NotImplementedError("async def failstreaminit is not implemented")
+
+    def _fbthrift__stream_wrapper_failstreaminit(self, stream_generator: _typing.AsyncIterator[builtins.int], protocol: Protocol) -> _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]:
+        return CloseableGenerator(
+            stream_generator,
+            protocol,
+            _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_failstreaminit_result_stream_elem,
+            (),
+        )
+
+    async def _fbthrift__handler_failstreaminit(self, args: _fbthrift_iobuf.IOBuf, protocol: Protocol) -> _typing.Tuple[_fbthrift_iobuf.IOBuf, _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]]:
+        args_struct = deserialize(_fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_failstreaminit_args, args, protocol)
+        try:
+            value = self.failstreaminit()
+            stream = value
+            if not isinstance(stream, _typing.AsyncIterator):
+                stream = await stream
+            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_failstreaminit_result()
+            return_stream = self._fbthrift__stream_wrapper_failstreaminit(stream, protocol)
+        except _fbthrift__test__fixtures__interactions__module__thrift_mutable_types.CustomException as e:
+            buf = serialize_iobuf(
+                _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_failstreaminit_result(
+                    _ex0__boom=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "test.fixtures.interactions.CustomException",
+                str(e),
+                buf,
+            )
+        return (serialize_iobuf(return_struct, protocol), return_stream)
+
+    async def frobnicateWithArg(
+            self,
+            arg: builtins.int
+        ) -> builtins.int:
+        raise NotImplementedError("async def frobnicateWithArg is not implemented")
+
+    async def _fbthrift__handler_frobnicateWithArg(self, args: _fbthrift_iobuf.IOBuf, protocol: Protocol) -> _fbthrift_iobuf.IOBuf:
+        args_struct = deserialize(_fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_frobnicateWithArg_args, args, protocol)
+        try:
+            value = await self.frobnicateWithArg(args_struct.arg,)
+            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_frobnicateWithArg_result(success=value)
+        except _fbthrift__test__fixtures__interactions__module__thrift_mutable_types.CustomException as e:
+            buf = serialize_iobuf(
+                _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_frobnicateWithArg_result(
+                    _ex0__ex=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "test.fixtures.interactions.CustomException",
+                str(e),
+                buf,
+            )
+        return serialize_iobuf(return_struct, protocol)
+
+    def streamWithArg(
+            self,
+            query: builtins.str
+        ) -> _typing.Awaitable[_typing.AsyncIterator[builtins.int]] | _typing.AsyncIterator[builtins.int]:
+        raise NotImplementedError("async def streamWithArg is not implemented")
+
+    def _fbthrift__stream_wrapper_streamWithArg(self, stream_generator: _typing.AsyncIterator[builtins.int], protocol: Protocol) -> _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]:
+        return CloseableGenerator(
+            stream_generator,
+            protocol,
+            _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_streamWithArg_result_stream_elem,
+            (),
+        )
+
+    async def _fbthrift__handler_streamWithArg(self, args: _fbthrift_iobuf.IOBuf, protocol: Protocol) -> _typing.Tuple[_fbthrift_iobuf.IOBuf, _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]]:
+        args_struct = deserialize(_fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_streamWithArg_args, args, protocol)
+        try:
+            value = self.streamWithArg(args_struct.query,)
+            stream = value
+            if not isinstance(stream, _typing.AsyncIterator):
+                stream = await stream
+            return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_streamWithArg_result()
+            return_stream = self._fbthrift__stream_wrapper_streamWithArg(stream, protocol)
+        except _fbthrift__test__fixtures__interactions__module__thrift_mutable_types.CustomException as e:
+            buf = serialize_iobuf(
+                _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_streamWithArg_result(
+                    _ex0__boom=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "test.fixtures.interactions.CustomException",
+                str(e),
+                buf,
+            )
+        return (serialize_iobuf(return_struct, protocol), return_stream)
+
+    async def firstAndStream(
+            self
+        ) -> _typing.Tuple[builtins.int, _typing.Awaitable[_typing.AsyncIterator[builtins.int]] | _typing.AsyncIterator[builtins.int]]:
+        raise NotImplementedError("async def firstAndStream is not implemented")
+
+    def _fbthrift__stream_wrapper_firstAndStream(self, stream_generator: _typing.AsyncIterator[builtins.int], protocol: Protocol) -> _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]:
+        return CloseableGenerator(
+            stream_generator,
+            protocol,
+            _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_firstAndStream_result_stream_elem,
+            (),
+        )
+
+    async def _fbthrift__handler_firstAndStream(self, args: _fbthrift_iobuf.IOBuf, protocol: Protocol) -> _typing.Tuple[_fbthrift_iobuf.IOBuf, _typing.AsyncIterator[_fbthrift_iobuf.IOBuf]]:
+        args_struct = deserialize(_fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_firstAndStream_args, args, protocol)
+        value = self.firstAndStream()
+        value, stream = await value
+        if not isinstance(stream, _typing.AsyncIterator):
+            stream = await stream
+        return_struct = _fbthrift__test__fixtures__interactions__module__thrift_mutable_types._fbthrift_MyInteraction_firstAndStream_result(success=value)
+        return_stream = self._fbthrift__stream_wrapper_firstAndStream(stream, protocol)
         return (serialize_iobuf(return_struct, protocol), return_stream)
 
 class SharedInteractionInterface(
@@ -853,7 +1707,7 @@ class BoxServiceInterface(
 
     @staticmethod
     def __get_thrift_definition_key__() -> bytes:
-        return b"\x6c\x05\x03\x8b\xc9\x43\xfa\x33\xe4\x42\x2f\x59\x5a\xae\x0f\x5b"
+        return b"\x35\x67\x6b\x10\xa5\xf1\xaf\x1d\x43\x13\x3d\x9e\xfc\xd6\x8c\x0e"
 
     @staticmethod
     def __get_metadata__() -> _fbthrift_metadata.ThriftMetadata:

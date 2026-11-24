@@ -898,7 +898,7 @@ inline void JSONProtocolReaderCommon::readJSONString(StrType& val) {
 
   while (true) { // for loop generates larger code with 2 calls to peekBytesSlow
     auto const peek = folly::reinterpret_span_cast<char const>(in_.peek());
-    if (FOLLY_UNLIKELY(peek.empty())) {
+    if (peek.empty()) [[unlikely]] {
       std::ignore = in_.read<uint8_t>(); // this should throw
       folly::assume_unreachable();
     }
@@ -913,7 +913,7 @@ inline void JSONProtocolReaderCommon::readJSONString(StrType& val) {
     auto const ch = peek[size];
     in_.skip(size + 1);
     // ch must be either '"' or '\\'
-    if (FOLLY_LIKELY(ch == detail::json::kJSONStringDelimiter)) {
+    if (ch == detail::json::kJSONStringDelimiter) [[likely]] {
       return;
     }
     FOLLY_SAFE_DCHECK(ch == apache::thrift::detail::json::kJSONBackslash);

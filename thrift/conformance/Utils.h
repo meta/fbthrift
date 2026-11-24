@@ -16,7 +16,11 @@
 
 #pragma once
 
+#include <optional>
+#include <set>
+
 #include <gtest/gtest.h>
+#include <folly/container/F14Map.h>
 #include <folly/json.h>
 #include <thrift/conformance/if/gen-cpp2/test_suite_types.h>
 #include <thrift/lib/cpp2/protocol/Serializer.h>
@@ -55,16 +59,48 @@ std::pair<std::string_view, std::string_view> parseNameAndCmd(
 std::map<std::string_view, std::string_view> parseCmds(
     std::string_view cmdsStr);
 
-// Parses a set of non-conforming test names, seporated by '/n'
-//
-// Use # for comments.
-std::set<std::string> parseNonconforming(std::string_view data);
+// Entries loaded from nonconforming.txt
+class Nonconforming {
+ public:
+  struct Entry {
+    size_t line;
+    std::string text;
+
+    std::string explainConforming(std::string_view test) const;
+  };
+
+  explicit Nonconforming(std::string_view data);
+
+  // The first entry naming the test.
+  std::optional<Entry> find(std::string_view test) const;
+
+  // The entries confined to one of `scope`'s `category/suite`s whose line is
+  // not in `used`, the lines `find` returned for that scope's tests.
+  std::vector<Entry> stale(
+      const std::set<std::string>& scope, const std::set<size_t>& used) const;
+
+ private:
+  struct Glob {
+    Entry entry;
+    std::string lang;
+    std::optional<std::vector<std::string>> config;
+    std::string rest;
+  };
+
+  folly::F14FastMap<std::string, Entry> exact_;
+  std::vector<Glob> globs_;
+  std::vector<std::pair<std::string, Entry>> scoped_;
+};
+
+// Registers a test that fails naming the `stale` entries.
+void registerStaleTest(
+    std::vector<Nonconforming::Entry> stale, const char* file, int line);
 
 // Reads or generates the test suites to run.
 std::vector<TestSuite> getSuites();
 
 // Read the list of non-conforming tests.
-std::set<std::string> getNonconforming();
+Nonconforming getNonconforming();
 
 // From a newer version of gtest.
 //

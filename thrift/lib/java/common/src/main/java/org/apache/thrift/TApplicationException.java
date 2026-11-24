@@ -64,6 +64,11 @@ public class TApplicationException extends TException {
     type_ = type;
   }
 
+  public TApplicationException(int type, String message, Throwable cause) {
+    super(message, cause);
+    type_ = type;
+  }
+
   public TApplicationException(String message) {
     super(message);
   }

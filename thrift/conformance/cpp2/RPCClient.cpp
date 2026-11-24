@@ -24,20 +24,31 @@
 #include <folly/coro/BlockingWait.h>
 #include <folly/coro/Collect.h>
 #include <folly/coro/Sleep.h>
+#include <folly/coro/Timeout.h>
+#include <folly/executors/GlobalExecutor.h>
 #include <folly/io/async/AsyncSocket.h>
 #include <folly/io/async/AsyncTransport.h>
 
+#include <folly/io/async/AsyncSSLSocket.h>
+#include <folly/io/async/SSLContext.h>
 #include <thrift/conformance/if/gen-cpp2/RPCConformanceService.h>
 #include <thrift/conformance/if/gen-cpp2/RPCConformanceSetupService.h>
 #include <thrift/conformance/if/gen-cpp2/rpc_types.h>
+#include <thrift/lib/cpp2/async/HTTPClientChannel.h>
 #include <thrift/lib/cpp2/async/HeaderClientChannel.h>
 #include <thrift/lib/cpp2/async/PooledRequestChannel.h>
 #include <thrift/lib/cpp2/async/RocketClientChannel.h>
 #include <thrift/lib/cpp2/protocol/Serializer.h>
+#include <thrift/lib/cpp2/transport/rocket/payload/PayloadSerializer.h>
 
 DEFINE_int32(port, 7777, "Port for Conformance Verification Server");
 DEFINE_string(protocol, "compact", "compact or binary");
-DEFINE_string(transport, "rocket", "rocket or header");
+DEFINE_string(transport, "rocket", "rocket, header or http2");
+DEFINE_bool(tls, false, "Connect over TLS, presenting --tls-cert");
+DEFINE_string(tls_cert, "", "The client's certificate");
+DEFINE_string(tls_key, "", "The client certificate's key");
+DEFINE_string(tls_ca, "", "The CA the server's certificate must be signed by");
+DEFINE_bool(checksum, false, "Verify the checksum a response carries");
 
 using namespace apache::thrift;
 using namespace apache::thrift::conformance;
@@ -51,13 +62,38 @@ apache::thrift::protocol::PROTOCOL_TYPES protocolId() {
   return apache::thrift::protocol::T_COMPACT_PROTOCOL;
 }
 
+folly::AsyncTransport::UniquePtr connect(folly::EventBase& eb) {
+  const folly::SocketAddress address("::1", FLAGS_port);
+  if (!FLAGS_tls) {
+    return folly::AsyncTransport::UniquePtr(
+        new folly::AsyncSocket(&eb, address));
+  }
+  CHECK_EQ(FLAGS_transport, "rocket");
+  auto context = std::make_shared<folly::SSLContext>();
+  context->loadCertKeyPairFromFiles(
+      FLAGS_tls_cert.c_str(), FLAGS_tls_key.c_str());
+  context->loadTrustedCertificates(FLAGS_tls_ca.c_str());
+  context->setVerificationOption(folly::SSLContext::SSLVerifyPeerEnum::VERIFY);
+  context->setAdvertisedNextProtocols({"rs"});
+  auto socket = folly::AsyncSSLSocket::newSocket(context, &eb);
+  socket->connect(nullptr, address);
+  return folly::AsyncTransport::UniquePtr(socket.release());
+}
+
 ClientChannel::Ptr newChannel(folly::EventBase& eb) {
-  folly::AsyncTransport::UniquePtr socket(
-      new folly::AsyncSocket(&eb, folly::SocketAddress("::1", FLAGS_port)));
+  auto socket = connect(eb);
   if (FLAGS_transport == "header") {
     return HeaderClientChannel::newChannel(
         std::move(socket),
         HeaderClientChannel::Options().setProtocolId(protocolId()));
+  }
+  if (FLAGS_transport == "http2") {
+    auto channel = HTTPClientChannel::newHTTP2Channel(std::move(socket));
+    channel->setProtocolId(protocolId());
+    channel->setHTTPHost("localhost");
+    channel->setHTTPUrl("/");
+    channel->setTimeout(60'000);
+    return channel;
   }
   CHECK_EQ(FLAGS_transport, "rocket");
   auto channel = RocketClientChannel::newChannel(std::move(socket));
@@ -97,8 +133,11 @@ RequestResponseBasicClientTestResult runRequestResponseBasicTest(
     const RequestResponseBasicClientInstruction& instruction) {
   RequestResponseBasicClientTestResult result;
   auto client = createClient();
+  auto rpcOptions = RpcOptions().setChecksum(
+      static_cast<RpcOptions::Checksum>(
+          instruction.checksum().value_or(ChecksumKind::NONE)));
   client->sync_requestResponseBasic(
-      result.response().emplace(), *instruction.request());
+      rpcOptions, result.response().emplace(), *instruction.request());
   return result;
 }
 
@@ -246,6 +285,20 @@ RequestResponseTimeoutClientTestResult runRequestResponseTimeoutTest(
   return result;
 }
 
+RequestResponseBadContentLengthClientTestResult
+requestResponseBadContentLengthTest(
+    const RequestResponseBadContentLengthClientInstruction& instruction) {
+  RequestResponseBadContentLengthClientTestResult result;
+  auto client = createClient();
+  try {
+    Response response;
+    client->sync_requestResponseBasic(response, *instruction.request());
+  } catch (const TTransportException& e) {
+    result.transportExceptionType() = static_cast<int32_t>(e.getType());
+  }
+  return result;
+}
+
 // =================== Stream ===================
 StreamBasicClientTestResult streamBasicTest(
     StreamBasicClientInstruction& instruction) {
@@ -259,6 +312,9 @@ StreamBasicClientTestResult streamBasicTest(
   } else {
     rpcOptions.setChunkBufferSize(*instruction.bufferSize());
   }
+  rpcOptions.setChecksum(
+      static_cast<RpcOptions::Checksum>(
+          instruction.checksum().value_or(ChecksumKind::NONE)));
   return folly::coro::blockingWait(
       [&]() -> folly::coro::Task<StreamBasicClientTestResult> {
         auto gen = (co_await client->co_streamBasic(
@@ -272,14 +328,32 @@ StreamBasicClientTestResult streamBasicTest(
       }());
 }
 
+template <typename T>
+folly::coro::Task<void> dropUnread(folly::coro::Task<T> call, int64_t afterMs) {
+  auto onCpu = folly::coro::co_withExecutor(
+      folly::getGlobalCPUExecutor(), std::move(call));
+  auto started = std::move(onCpu).start();
+  co_await folly::coro::sleep(std::chrono::milliseconds(afterMs));
+}
+
 StreamCancelClientTestResult streamCancelTest(
+    Client<RPCConformanceService>& client,
     const StreamCancelClientInstruction& instruction) {
-  auto client = createClient();
   return folly::coro::blockingWait(
       [&]() -> folly::coro::Task<StreamCancelClientTestResult> {
         StreamCancelClientTestResult result;
-        auto gen = (co_await client->co_streamBasic(*instruction.request()))
-                       .toAsyncGenerator();
+        auto call = client.co_streamBasic(*instruction.request());
+        if (auto giveUpAfterMs = instruction.giveUpAfterMs()) {
+          auto giveUpAfter = std::chrono::milliseconds(*giveUpAfterMs);
+          co_await folly::coro::co_awaitTry(
+              folly::coro::timeout(std::move(call), giveUpAfter));
+          co_return result;
+        }
+        if (auto dropUnreadAfterMs = instruction.dropUnreadAfterMs()) {
+          co_await dropUnread(std::move(call), *dropUnreadAfterMs);
+          co_return result;
+        }
+        auto gen = (co_await std::move(call)).toAsyncGenerator();
         while (static_cast<int64_t>(result.streamPayloads()->size()) <
                *instruction.consumeCount()) {
           auto val = co_await gen.next();
@@ -290,6 +364,24 @@ StreamCancelClientTestResult streamCancelTest(
         }
         co_return result;
       }());
+}
+
+StreamServerErrorClientTestResult streamServerErrorTest(
+    const StreamServerErrorClientInstruction& instruction) {
+  StreamServerErrorClientTestResult result;
+  auto client = createClient();
+  try {
+    folly::coro::blockingWait([&]() -> folly::coro::Task<void> {
+      auto gen = (co_await client->co_streamBasic(*instruction.request()))
+                     .toAsyncGenerator();
+      while (co_await gen.next()) {
+      }
+    }());
+  } catch (const TApplicationException& e) {
+    result.exceptionType() = e.getType();
+    result.exceptionMessage() = e.getMessage();
+  }
+  return result;
 }
 
 StreamChunkTimeoutClientTestResult streamChunkTimeoutTest(
@@ -455,9 +547,13 @@ StreamInitialTimeoutClientTestResult streamInitialTimeoutTest(
 SinkBasicClientTestResult sinkBasicTest(
     SinkBasicClientInstruction& instruction) {
   auto client = createClient();
+  auto rpcOptions = RpcOptions().setChecksum(
+      static_cast<RpcOptions::Checksum>(
+          instruction.checksum().value_or(ChecksumKind::NONE)));
   return folly::coro::blockingWait(
       [&]() -> folly::coro::Task<SinkBasicClientTestResult> {
-        auto sink = co_await client->co_sinkBasic(*instruction.request());
+        auto sink =
+            co_await client->co_sinkBasic(rpcOptions, *instruction.request());
         auto finalResponse =
             co_await sink.sink([&]() -> folly::coro::AsyncGenerator<Request&&> {
               for (auto& payload : *instruction.sinkPayloads()) {
@@ -489,6 +585,41 @@ SinkChunkTimeoutClientTestResult sinkChunkTimeoutTest(
     if (e.getType() == TApplicationException::TIMEOUT) {
       result.chunkTimeoutException() = true;
     }
+  }
+  return result;
+}
+
+SinkAbortClientTestResult sinkAbortTest(
+    Client<RPCConformanceService>& client,
+    const SinkAbortClientInstruction& instruction) {
+  folly::coro::blockingWait([&]() -> folly::coro::Task<void> {
+    auto call = client.co_sinkBasic(*instruction.request());
+    if (auto giveUpAfterMs = instruction.giveUpAfterMs()) {
+      auto giveUpAfter = std::chrono::milliseconds(*giveUpAfterMs);
+      co_await folly::coro::co_awaitTry(
+          folly::coro::timeout(std::move(call), giveUpAfter));
+    } else if (auto dropUnreadAfterMs = instruction.dropUnreadAfterMs()) {
+      co_await dropUnread(std::move(call), *dropUnreadAfterMs);
+    } else {
+      co_await std::move(call);
+    }
+  }());
+  return {};
+}
+
+SinkServerErrorClientTestResult sinkServerErrorTest(
+    const SinkServerErrorClientInstruction& instruction) {
+  SinkServerErrorClientTestResult result;
+  auto client = createClient();
+  try {
+    folly::coro::blockingWait([&]() -> folly::coro::Task<void> {
+      auto sink = co_await client->co_sinkBasic(*instruction.request());
+      co_await sink.sink(
+          []() -> folly::coro::AsyncGenerator<Request&&> { co_return; }());
+    }());
+  } catch (const TApplicationException& e) {
+    result.exceptionType() = e.getType();
+    result.exceptionMessage() = e.getMessage();
   }
   return result;
 }
@@ -586,9 +717,13 @@ SinkServerDeclaredExceptionClientTestResult sinkServerDeclaredExceptionTest(
 BidiBasicClientTestResult bidiBasicTest(
     BidiBasicClientInstruction& instruction) {
   auto client = createClient();
+  auto rpcOptions = RpcOptions().setChecksum(
+      static_cast<RpcOptions::Checksum>(
+          instruction.checksum().value_or(ChecksumKind::NONE)));
   return folly::coro::blockingWait(
       [&]() -> folly::coro::Task<BidiBasicClientTestResult> {
-        auto bidi = co_await client->co_bidiBasic(*instruction.request());
+        auto bidi =
+            co_await client->co_bidiBasic(rpcOptions, *instruction.request());
         BidiBasicClientTestResult result;
         co_await folly::coro::collectAll(
             folly::coro::co_invoke([&]() -> folly::coro::Task<void> {
@@ -805,6 +940,66 @@ BidiMethodUndeclaredExceptionClientTestResult bidiMethodUndeclaredExceptionTest(
   return result;
 }
 
+BidiAbortClientTestResult bidiAbortTest(
+    Client<RPCConformanceService>& client,
+    const BidiAbortClientInstruction& instruction) {
+  folly::coro::blockingWait([&]() -> folly::coro::Task<void> {
+    auto call = client.co_bidiBasic(*instruction.request());
+    if (auto giveUpAfterMs = instruction.giveUpAfterMs()) {
+      auto giveUpAfter = std::chrono::milliseconds(*giveUpAfterMs);
+      co_await folly::coro::co_awaitTry(
+          folly::coro::timeout(std::move(call), giveUpAfter));
+    } else if (auto dropUnreadAfterMs = instruction.dropUnreadAfterMs()) {
+      co_await dropUnread(std::move(call), *dropUnreadAfterMs);
+    } else {
+      co_await std::move(call);
+    }
+  }());
+  return {};
+}
+
+BidiServerErrorClientTestResult bidiServerErrorTest(
+    const BidiServerErrorClientInstruction& instruction) {
+  BidiServerErrorClientTestResult result;
+  auto client = createClient();
+  try {
+    folly::coro::blockingWait([&]() -> folly::coro::Task<void> {
+      auto bidi = co_await client->co_bidiBasic(*instruction.request());
+      auto gen = std::move(bidi.stream).toAsyncGenerator();
+      while (co_await gen.next()) {
+      }
+    }());
+  } catch (const TApplicationException& e) {
+    result.exceptionType() = e.getType();
+    result.exceptionMessage() = e.getMessage();
+  }
+  return result;
+}
+
+ClosingFrameClientTestResult closingFrameTest(
+    Client<RPCConformanceService>& client,
+    const ClosingFrameClientInstruction& instruction) {
+  folly::coro::blockingWait([&]() -> folly::coro::Task<void> {
+    const auto& request = *instruction.request();
+    switch (*instruction.call()) {
+      case CallKind::REQUEST_RESPONSE:
+        co_await folly::coro::co_awaitTry(
+            client.co_requestResponseBasic(request));
+        break;
+      case CallKind::STREAM:
+        co_await folly::coro::co_awaitTry(client.co_streamBasic(request));
+        break;
+      case CallKind::SINK:
+        co_await folly::coro::co_awaitTry(client.co_sinkBasic(request));
+        break;
+      case CallKind::BIDI:
+        co_await folly::coro::co_awaitTry(client.co_bidiBasic(request));
+        break;
+    }
+  }());
+  return {};
+}
+
 // =================== Interactions ===================
 InteractionConstructorClientTestResult interactionConstructorTest(
     InteractionConstructorClientInstruction&) {
@@ -855,6 +1050,11 @@ InteractionTerminationClientTestResult interactionTerminationTest(
 
 int main(int argc, char** argv) {
   const folly::Init init(&argc, &argv);
+  if (FLAGS_checksum) {
+    rocket::PayloadSerializer::initialize(
+        rocket::ChecksumPayloadSerializerStrategy<
+            rocket::DefaultPayloadSerializerStrategy>());
+  }
 
   RpcTestCase testCase;
   auto client = createClient();
@@ -902,6 +1102,11 @@ int main(int argc, char** argv) {
       result.requestResponseConcurrent() = requestResponseConcurrentTest(
           *clientInstruction.requestResponseConcurrent());
       break;
+    case ClientInstruction::Type::requestResponseBadContentLength:
+      result.requestResponseBadContentLength() =
+          requestResponseBadContentLengthTest(
+              *clientInstruction.requestResponseBadContentLength());
+      break;
     case ClientInstruction::Type::streamBasic:
       result.streamBasic() = streamBasicTest(*clientInstruction.streamBasic());
       break;
@@ -941,7 +1146,11 @@ int main(int argc, char** argv) {
       break;
     case ClientInstruction::Type::streamCancel:
       result.streamCancel() =
-          streamCancelTest(*clientInstruction.streamCancel());
+          streamCancelTest(*client, *clientInstruction.streamCancel());
+      break;
+    case ClientInstruction::Type::streamServerError:
+      result.streamServerError() =
+          streamServerErrorTest(*clientInstruction.streamServerError());
       break;
     case ClientInstruction::Type::sinkBasic:
       result.sinkBasic() = sinkBasicTest(*clientInstruction.sinkBasic());
@@ -953,6 +1162,14 @@ int main(int argc, char** argv) {
     case ClientInstruction::Type::sinkChunkTimeout:
       result.sinkChunkTimeout() =
           sinkChunkTimeoutTest(*clientInstruction.sinkChunkTimeout());
+      break;
+    case ClientInstruction::Type::sinkAbort:
+      result.sinkAbort() =
+          sinkAbortTest(*client, *clientInstruction.sinkAbort());
+      break;
+    case ClientInstruction::Type::sinkServerError:
+      result.sinkServerError() =
+          sinkServerErrorTest(*clientInstruction.sinkServerError());
       break;
     case ClientInstruction::Type::sinkDeclaredException:
       result.sinkDeclaredException() =
@@ -1018,6 +1235,18 @@ int main(int argc, char** argv) {
       result.bidiMethodUndeclaredException() =
           bidiMethodUndeclaredExceptionTest(
               *clientInstruction.bidiMethodUndeclaredException());
+      break;
+    case ClientInstruction::Type::bidiAbort:
+      result.bidiAbort() =
+          bidiAbortTest(*client, *clientInstruction.bidiAbort());
+      break;
+    case ClientInstruction::Type::bidiServerError:
+      result.bidiServerError() =
+          bidiServerErrorTest(*clientInstruction.bidiServerError());
+      break;
+    case ClientInstruction::Type::closingFrame:
+      result.closingFrame() =
+          closingFrameTest(*client, *clientInstruction.closingFrame());
       break;
     default:
       throw std::runtime_error("Invalid TestCase Type.");

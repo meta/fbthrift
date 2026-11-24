@@ -365,7 +365,7 @@ class AllocatorAware_Builder(thrift.py3.builder.StructBuilder):
         self.aa_string: _typing.Optional[str] = None
         self.not_a_container: _typing.Optional[int] = None
         self.aa_unique: _typing.Optional[int] = None
-        self.aa_shared: _typing.Optional[int] = None
+        self.aa_shared: _typing.Optional[str] = None
 
     def __iter__(self):
         yield "aa_list", self.aa_list

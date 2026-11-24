@@ -33,6 +33,8 @@ struct Payload {
   @cpp.Type{name = "::apache::thrift::IOBufChain"}
   4: binary chainBinary;
   5: Choice choice;
+  @cpp.Type{name = "std::unique_ptr<folly::IOBuf>"}
+  6: binary iobufBinary;
 }
 
 service ChainService {

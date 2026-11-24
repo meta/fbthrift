@@ -21,7 +21,7 @@ except ImportError:
     def warn_thrift_py_deprecated(name):
         pass
 
-from .ttypes import UTF8STRINGS, from_PY_RESERVED_KEYWORD, def_PY_RESERVED_KEYWORD, and_PY_RESERVED_KEYWORD
+from .ttypes import UTF8STRINGS, from_PY_RESERVED_KEYWORD, Mode, def_PY_RESERVED_KEYWORD, and_PY_RESERVED_KEYWORD
 from thrift.Thrift import TProcessor
 import pprint
 import warnings
@@ -53,7 +53,16 @@ class ThriftEnumWrapper(int):
     return super().__new__(cls, value)
   def __init__(self, enum_class, value):    self.enum_class = enum_class
   def __repr__(self):
-    return self.enum_class.__name__ + '.' + self.enum_class._VALUES_TO_NAMES[self]
+    import keyword
+    name = self.enum_class._VALUES_TO_NAMES[self]
+    if keyword.iskeyword(name):
+      # `E.None` is not valid Python: use the alias defined for such values,
+      # or look the value up by name if it has none.
+      alias = name + '_PY_RESERVED_KEYWORD'
+      if getattr(self.enum_class, alias, None) == self:
+        return self.enum_class.__name__ + '.' + alias
+      return '%s._NAMES_TO_VALUES[%r]' % (self.enum_class.__name__, name)
+    return self.enum_class.__name__ + '.' + name
 
 
 all_structs = []

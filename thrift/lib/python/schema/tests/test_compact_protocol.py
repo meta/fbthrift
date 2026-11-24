@@ -191,7 +191,7 @@ class CompactProtocolTest(WireTestCase):
         )
 
     def test_read_field_headers(self) -> None:
-        def fields(reader: ProtocolReader) -> list[tuple[int, int]]:
+        def fields(reader: ProtocolReader) -> list[tuple[int, int, str]]:
             reader.read_struct_begin()
             result = []
             while (field := reader.read_field_begin())[0] != T_STOP:
@@ -201,17 +201,21 @@ class CompactProtocolTest(WireTestCase):
 
         self.assert_reads(
             [
-                (b"\x15\x00\x00", fields, [(T_I32, 1)]),
-                (b"\x05\x22\x00\x05\x04\x00\x00", fields, [(T_I32, 17), (T_I32, 2)]),
-                (b"\x05\x09\x00\x00", fields, [(T_I32, -5)]),
-                (b"\x11\x32\x00", fields, [(T_BOOL, 1), (T_BOOL, 4)]),
-                (b"\x01\xd8\x04\x00", fields, [(T_BOOL, 300)]),
-                (b"\x06\xfe\xff\x03\x00\x00", fields, [(T_I64, 32767)]),
-                (b"\x05\x80\x80\x04\x00\x00", fields, [(T_I32, -(2**15))]),
+                (b"\x15\x00\x00", fields, [(T_I32, 1, "")]),
+                (
+                    b"\x05\x22\x00\x05\x04\x00\x00",
+                    fields,
+                    [(T_I32, 17, ""), (T_I32, 2, "")],
+                ),
+                (b"\x05\x09\x00\x00", fields, [(T_I32, -5, "")]),
+                (b"\x11\x32\x00", fields, [(T_BOOL, 1, ""), (T_BOOL, 4, "")]),
+                (b"\x01\xd8\x04\x00", fields, [(T_BOOL, 300, "")]),
+                (b"\x06\xfe\xff\x03\x00\x00", fields, [(T_I64, 32767, "")]),
+                (b"\x05\x80\x80\x04\x00\x00", fields, [(T_I32, -(2**15), "")]),
                 (
                     b"\x05\xfe\xff\x03\x00\x15\x00\x00",
                     fields,
-                    [(T_I32, 2**15 - 1), (T_I32, -(2**15))],
+                    [(T_I32, 2**15 - 1, ""), (T_I32, -(2**15), "")],
                 ),
             ]
         )
@@ -227,7 +231,7 @@ class CompactProtocolTest(WireTestCase):
         self.assert_reads([(b"\x11\x12\x00", bools, [True, False])])
 
     def test_nested_structs_restore_the_last_field_id(self) -> None:
-        def read(reader: ProtocolReader) -> list[tuple[int, int]]:
+        def read(reader: ProtocolReader) -> list[tuple[int, int, str]]:
             reader.read_struct_begin()
             outer = reader.read_field_begin()
             reader.read_struct_begin()
@@ -244,7 +248,12 @@ class CompactProtocolTest(WireTestCase):
                 (
                     b"\x5c\x15\x02\x00\x15\x04\x00",
                     read,
-                    [(T_STRUCT, 5), (T_I32, 1), (T_I32, 6), (T_STOP, 0)],
+                    [
+                        (T_STRUCT, 5, ""),
+                        (T_I32, 1, ""),
+                        (T_I32, 6, ""),
+                        (T_STOP, 0, ""),
+                    ],
                 )
             ]
         )
@@ -327,7 +336,7 @@ class CompactProtocolTest(WireTestCase):
         )
 
     def test_stop_ignores_the_high_nibble(self) -> None:
-        self.assert_reads([(b"\x50", lambda r: r.read_field_begin(), (T_STOP, 0))])
+        self.assert_reads([(b"\x50", lambda r: r.read_field_begin(), (T_STOP, 0, ""))])
 
     def test_skip_every_type(self) -> None:
         self.assert_skips(

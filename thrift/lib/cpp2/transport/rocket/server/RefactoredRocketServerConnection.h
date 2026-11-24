@@ -153,6 +153,7 @@ class RefactoredRocketServerConnection final : public IRocketServerConnection {
       uint32_t initialRequestN) override;
 
   // Parser callbacks - must be public for Parser access
+  void handleFrame(IOBufChain frame);
   void handleFrame(std::unique_ptr<folly::IOBuf> frame) override;
   void close(folly::exception_wrapper ew) override;
 

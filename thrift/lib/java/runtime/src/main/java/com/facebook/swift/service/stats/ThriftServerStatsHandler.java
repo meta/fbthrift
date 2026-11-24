@@ -28,7 +28,7 @@ import io.netty.util.internal.OutOfDirectMemoryError;
  * instance of ThriftServerStats is needed to initialize the handler. It uses preRead(), postRead()
  * preWrite(), postWrite() and done() methods from parent class to manage statistics.
  */
-public class ThriftServerStatsHandler extends ThriftEventHandler {
+public class ThriftServerStatsHandler implements ThriftEventHandler {
 
   private final ServerStats thriftServerStats;
 

@@ -23,6 +23,13 @@ impl ::fbthrift::GetTType for {{typedef.rust_name}} {
         {{~ #if typedef.has_adapter?}}<{{typedef.adapter_qualified}}::StandardType{{#else}}<{{#partial types.type_name type=typedef.resolved}}{{/if}} as ::fbthrift::GetTType>::MAP_KEY_TYPE;
 }
 
+impl ::fbthrift::help::IsEmpty for {{typedef.rust_name}} {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        ::fbthrift::help::Terse(&{{#if typedef.has_adapter?}}{{typedef.adapter_qualified}}::to_thrift(&self.0){{#else}}self.0{{/if}}).is_empty()
+    }
+}
+
     {{#if typedef.nonstandard?}}
 impl<P> ::fbthrift::Serialize<P> for {{typedef.rust_name}}
 where

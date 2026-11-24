@@ -30,39 +30,39 @@ public final class Constants {
     public static final List<Integer> ALIST = construct_ALIST();
 
     private static List<Integer> construct_ALIST() {
-        return ImmutableList.<Integer>builder()
-        .add(2)
-        .add(3)
-        .add(5)
-        .add(7)
-        .build();
+        ImmutableList.Builder<Integer> builder = ImmutableList.builder();
+        builder.add(2);
+        builder.add(3);
+        builder.add(5);
+        builder.add(7);
+        return builder.build();
     }
 
     public static final Set<String> ASET = construct_ASET();
 
     private static Set<String> construct_ASET() {
-        return ImmutableSet.<String>builder()
-        .add("foo")
-        .add("bar")
-        .add("baz")
-        .build();
+        ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+        builder.add("foo");
+        builder.add("bar");
+        builder.add("baz");
+        return builder.build();
     }
 
     public static final Map<String, List<Integer>> AMAP = construct_AMAP();
 
     private static Map<String, List<Integer>> construct_AMAP() {
-        return ImmutableMap.<String, List<Integer>>builder()
-        .put("foo", ImmutableList.<Integer>builder()
+        ImmutableMap.Builder<String, List<Integer>> builder = ImmutableMap.builder();
+        builder.put("foo", ImmutableList.<Integer>builder()
         .add(1)
         .add(2)
         .add(3)
         .add(4)
-        .build())
-        .put("bar", ImmutableList.<Integer>builder()
+        .build());
+        builder.put("bar", ImmutableList.<Integer>builder()
         .add(10)
         .add(32)
         .add(54)
-        .build())
-        .build();
+        .build());
+        return builder.build();
     }
 }

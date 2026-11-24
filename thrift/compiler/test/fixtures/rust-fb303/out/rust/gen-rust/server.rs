@@ -95,7 +95,7 @@ where
 }
 /// Processor for ExtendsFacebookService's methods.
 #[derive(Clone, Debug)]
-pub struct ExtendsFacebookServiceProcessor<P, H, R, RS, SS> {
+pub struct ExtendsFacebookServiceProcessor<P, H, R, RS, SS, const NO_FB303: bool = false> {
     service: H,
     supa: SS,
     _phantom: ::std::marker::PhantomData<(P, H, R, RS)>,
@@ -126,7 +126,33 @@ impl<P: ::fbthrift::ProtocolReader> ::fbthrift::Deserialize<P> for self::Args_Ex
     }
 }
 
-impl<P, H, R, RS, SS> ExtendsFacebookServiceProcessor<P, H, R, RS, SS>
+impl<P, H, R, RS, SS> ExtendsFacebookServiceProcessor<P, H, R, RS, SS, false>
+where
+    P: ::fbthrift::Protocol,
+    P::Frame: ::std::marker::Send + 'static,
+    SS: ::fbthrift::ThriftService<P::Frame>,
+    SS::Handler: fb303__services::FacebookService,
+{
+    pub fn new(service: H, supa: SS) -> Self {
+        Self {
+            service,
+            supa,
+            _phantom: ::std::marker::PhantomData,
+        }
+    }
+}
+
+impl<P, H, R, RS> ExtendsFacebookServiceProcessor<P, H, R, RS, ::fbthrift::NullServiceProcessor<P, R, RS>, true> {
+    pub fn new_no_fb303(service: H) -> Self {
+        Self {
+            service,
+            supa: ::fbthrift::NullServiceProcessor::new(),
+            _phantom: ::std::marker::PhantomData,
+        }
+    }
+}
+
+impl<P, H, R, RS, SS, const NO_FB303: bool> ExtendsFacebookServiceProcessor<P, H, R, RS, SS, NO_FB303>
 where
     P: ::fbthrift::Protocol + ::std::marker::Send + ::std::marker::Sync + 'static,
     P::Frame: ::std::marker::Send + 'static,
@@ -139,15 +165,7 @@ where
     ::fbthrift::ProtocolDecoded<P>: ::std::clone::Clone,
     ::fbthrift::ProtocolEncodedFinal<P>: ::std::clone::Clone + ::fbthrift::BufExt,
     SS: ::fbthrift::ThriftService<P::Frame>,
-    SS::Handler: fb303__services::FacebookService
 {
-    pub fn new(service: H, supa: SS) -> Self {
-        Self {
-            service,
-            supa,
-            _phantom: ::std::marker::PhantomData,
-        }
-    }
 
     pub fn into_inner(self) -> H {
         self.service
@@ -182,6 +200,12 @@ where
         p.read_message_end()?;
         // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
         ::std::mem::drop(p);
+
+        // After the event handlers and before the service method, where
+        // generated C++ runs the interceptors. Reached only once pre_read and
+        // post_read have both succeeded, so a handler that refused the request
+        // ends it without any interceptor being asked.
+        ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
         let res = ::std::panic::AssertUnwindSafe(
             self.service.do_facebook(
@@ -221,13 +245,12 @@ where
 }
 
 #[::async_trait::async_trait]
-impl<P, H, R, RS, SS> ::fbthrift::ServiceProcessor<P> for ExtendsFacebookServiceProcessor<P, H, R, RS, SS>
+impl<P, H, R, RS, SS, const NO_FB303: bool> ::fbthrift::ServiceProcessor<P> for ExtendsFacebookServiceProcessor<P, H, R, RS, SS, NO_FB303>
 where
     P: ::fbthrift::Protocol + ::std::marker::Send + ::std::marker::Sync + 'static,
     P::Deserializer: ::std::marker::Send,
     H: ExtendsFacebookService,
     SS: ::fbthrift::ThriftService<P::Frame>,
-    SS::Handler: fb303__services::FacebookService,
     P::Frame: ::std::marker::Send + 'static,
     R: ::fbthrift::RequestContext<Name = ::std::ffi::CStr> + ::std::marker::Send + ::std::marker::Sync + 'static,
     <R as ::fbthrift::RequestContext>::ContextStack: ::fbthrift::ContextStack<Name = R::Name, Frame = <P as ::fbthrift::Protocol>::Frame>
@@ -298,14 +321,13 @@ where
 }
 
 #[::async_trait::async_trait]
-impl<P, H, R, RS, SS> ::fbthrift::ThriftService<P::Frame> for ExtendsFacebookServiceProcessor<P, H, R, RS, SS>
+impl<P, H, R, RS, SS, const NO_FB303: bool> ::fbthrift::ThriftService<P::Frame> for ExtendsFacebookServiceProcessor<P, H, R, RS, SS, NO_FB303>
 where
     P: ::fbthrift::Protocol + ::std::marker::Send + ::std::marker::Sync + 'static,
     P::Deserializer: ::std::marker::Send,
     P::Frame: ::std::marker::Send + 'static,
     H: ExtendsFacebookService,
     SS: ::fbthrift::ThriftService<P::Frame, RequestContext = R, ReplyState = RS>,
-    SS::Handler: fb303__services::FacebookService,
     P::Frame: ::std::marker::Send + 'static,
     R: ::fbthrift::RequestContext<Name = ::std::ffi::CStr> + ::std::marker::Send + ::std::marker::Sync + 'static,
     <R as ::fbthrift::RequestContext>::ContextStack: ::fbthrift::ContextStack<Name = R::Name, Frame = <P as ::fbthrift::Protocol>::Frame>
@@ -364,6 +386,19 @@ where
     }
 
     fn get_method_metadata(&self) -> &'static [::fbthrift::processor::MethodMetadata] {
+        // Without an fb303 parent, the C++ layer must keep answering fb303 methods.
+        if NO_FB303 {
+            return &[
+                // From module.ExtendsFacebookService:
+                ::fbthrift::processor::MethodMetadata{
+                  interaction_type: ::fbthrift::processor::InteractionType::None,
+                  rpc_kind: ::fbthrift::processor::RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE,
+                  name: "do_facebook",
+                  starts_interaction: false,
+                  interaction_name: None,
+                },
+            ];
+        }
         &[
             // From module.ExtendsFacebookService:
             ::fbthrift::processor::MethodMetadata{
@@ -414,22 +449,22 @@ where
     }
 }
 
+/// Processor for ExtendsFacebookService's methods without its fb303 parent.
+pub type ExtendsFacebookServiceProcessorNoFb303<P, H, R, RS> =
+    ExtendsFacebookServiceProcessor<P, H, R, RS, ::fbthrift::NullServiceProcessor<P, R, RS>, true>;
+
 /// Construct a new instance of a ExtendsFacebookService service.
 ///
 /// This is called when a new instance of a Thrift service Processor
 /// is needed for a particular Thrift protocol.
 #[::tracing::instrument(level="debug", skip_all, fields(proto = ?proto))]
-pub fn make_ExtendsFacebookService_server<F, H, R, RS, SMAKE, SS>(
+pub fn make_ExtendsFacebookService_server<F, H, R, RS>(
     proto: ::fbthrift::ProtocolID,
     handler: H,
-    supa: SMAKE,
 ) -> ::std::result::Result<::std::boxed::Box<dyn ::fbthrift::ThriftService<F, Handler = H, RequestContext = R, ReplyState = RS> + ::std::marker::Send + 'static>, ::fbthrift::ApplicationException>
 where
     F: ::fbthrift::Framing + ::std::marker::Send + ::std::marker::Sync + 'static,
     H: ExtendsFacebookService,
-    SMAKE: ::std::ops::FnOnce(::fbthrift::ProtocolID) -> ::std::result::Result<SS, ::fbthrift::ApplicationException>,
-    SS: ::fbthrift::ThriftService<F, RequestContext = R, ReplyState = RS>,
-    SS::Handler: fb303__services::FacebookService,
     R: ::fbthrift::RequestContext<Name = ::std::ffi::CStr> + ::std::marker::Send + ::std::marker::Sync + 'static,
     <R as ::fbthrift::RequestContext>::ContextStack: ::fbthrift::ContextStack<Name = R::Name, Frame = F> + ::std::marker::Send + ::std::marker::Sync + 'static,
     RS: ::fbthrift::ReplyState<F, RequestContext = R> + ::std::marker::Send + ::std::marker::Sync + 'static,
@@ -438,47 +473,10 @@ where
 {
     match proto {
         ::fbthrift::ProtocolID::BinaryProtocol => {
-            ::std::result::Result::Ok(::std::boxed::Box::new(ExtendsFacebookServiceProcessor::<::fbthrift::BinaryProtocol<F>, H, R, RS, SS>::new(handler, supa(proto)?)))
+            ::std::result::Result::Ok(::std::boxed::Box::new(ExtendsFacebookServiceProcessorNoFb303::<::fbthrift::BinaryProtocol<F>, H, R, RS>::new_no_fb303(handler)))
         }
         ::fbthrift::ProtocolID::CompactProtocol => {
-            ::std::result::Result::Ok(::std::boxed::Box::new(ExtendsFacebookServiceProcessor::<::fbthrift::CompactProtocol<F>, H, R, RS, SS>::new(handler, supa(proto)?)))
-        }
-        bad => {
-            ::tracing::error!(method = "ExtendsFacebookService.", invalid_protocol = ?bad);
-            ::std::result::Result::Err(::fbthrift::ApplicationException::invalid_protocol(bad))
-        }
-    }
-}
-
-/// Construct a new instance of a ExtendsFacebookService service.
-///
-/// Temporary duplicate of `make_ExtendsFacebookService_server` for services that
-/// extend fb303. It holds the 3-argument shape to preserve behavior for legacy services.
-/// It will be removed after the fb303 migration.
-#[::tracing::instrument(level="debug", skip_all, fields(proto = ?proto))]
-pub fn make_ExtendsFacebookService_server_fb303<F, H, R, RS, SMAKE, SS>(
-    proto: ::fbthrift::ProtocolID,
-    handler: H,
-    supa: SMAKE,
-) -> ::std::result::Result<::std::boxed::Box<dyn ::fbthrift::ThriftService<F, Handler = H, RequestContext = R, ReplyState = RS> + ::std::marker::Send + 'static>, ::fbthrift::ApplicationException>
-where
-    F: ::fbthrift::Framing + ::std::marker::Send + ::std::marker::Sync + 'static,
-    H: ExtendsFacebookService,
-    SMAKE: ::std::ops::FnOnce(::fbthrift::ProtocolID) -> ::std::result::Result<SS, ::fbthrift::ApplicationException>,
-    SS: ::fbthrift::ThriftService<F, RequestContext = R, ReplyState = RS>,
-    SS::Handler: fb303__services::FacebookService,
-    R: ::fbthrift::RequestContext<Name = ::std::ffi::CStr> + ::std::marker::Send + ::std::marker::Sync + 'static,
-    <R as ::fbthrift::RequestContext>::ContextStack: ::fbthrift::ContextStack<Name = R::Name, Frame = F> + ::std::marker::Send + ::std::marker::Sync + 'static,
-    RS: ::fbthrift::ReplyState<F, RequestContext = R> + ::std::marker::Send + ::std::marker::Sync + 'static,
-    ::fbthrift::FramingDecoded<F>: ::std::clone::Clone,
-    ::fbthrift::FramingEncodedFinal<F>: ::std::clone::Clone + ::fbthrift::BufExt,
-{
-    match proto {
-        ::fbthrift::ProtocolID::BinaryProtocol => {
-            ::std::result::Result::Ok(::std::boxed::Box::new(ExtendsFacebookServiceProcessor::<::fbthrift::BinaryProtocol<F>, H, R, RS, SS>::new(handler, supa(proto)?)))
-        }
-        ::fbthrift::ProtocolID::CompactProtocol => {
-            ::std::result::Result::Ok(::std::boxed::Box::new(ExtendsFacebookServiceProcessor::<::fbthrift::CompactProtocol<F>, H, R, RS, SS>::new(handler, supa(proto)?)))
+            ::std::result::Result::Ok(::std::boxed::Box::new(ExtendsFacebookServiceProcessorNoFb303::<::fbthrift::CompactProtocol<F>, H, R, RS>::new_no_fb303(handler)))
         }
         bad => {
             ::tracing::error!(method = "ExtendsFacebookService.", invalid_protocol = ?bad);
@@ -529,7 +527,7 @@ where
 }
 /// Processor for ExtendsBaseService's methods.
 #[derive(Clone, Debug)]
-pub struct ExtendsBaseServiceProcessor<P, H, R, RS, SS> {
+pub struct ExtendsBaseServiceProcessor<P, H, R, RS, SS, const NO_FB303: bool = false> {
     service: H,
     supa: SS,
     _phantom: ::std::marker::PhantomData<(P, H, R, RS)>,
@@ -560,7 +558,33 @@ impl<P: ::fbthrift::ProtocolReader> ::fbthrift::Deserialize<P> for self::Args_Ex
     }
 }
 
-impl<P, H, R, RS, SS> ExtendsBaseServiceProcessor<P, H, R, RS, SS>
+impl<P, H, R, RS, SS> ExtendsBaseServiceProcessor<P, H, R, RS, SS, false>
+where
+    P: ::fbthrift::Protocol,
+    P::Frame: ::std::marker::Send + 'static,
+    SS: ::fbthrift::ThriftService<P::Frame>,
+    SS::Handler: fb303_core__services::BaseService,
+{
+    pub fn new(service: H, supa: SS) -> Self {
+        Self {
+            service,
+            supa,
+            _phantom: ::std::marker::PhantomData,
+        }
+    }
+}
+
+impl<P, H, R, RS> ExtendsBaseServiceProcessor<P, H, R, RS, ::fbthrift::NullServiceProcessor<P, R, RS>, true> {
+    pub fn new_no_fb303(service: H) -> Self {
+        Self {
+            service,
+            supa: ::fbthrift::NullServiceProcessor::new(),
+            _phantom: ::std::marker::PhantomData,
+        }
+    }
+}
+
+impl<P, H, R, RS, SS, const NO_FB303: bool> ExtendsBaseServiceProcessor<P, H, R, RS, SS, NO_FB303>
 where
     P: ::fbthrift::Protocol + ::std::marker::Send + ::std::marker::Sync + 'static,
     P::Frame: ::std::marker::Send + 'static,
@@ -573,15 +597,7 @@ where
     ::fbthrift::ProtocolDecoded<P>: ::std::clone::Clone,
     ::fbthrift::ProtocolEncodedFinal<P>: ::std::clone::Clone + ::fbthrift::BufExt,
     SS: ::fbthrift::ThriftService<P::Frame>,
-    SS::Handler: fb303_core__services::BaseService
 {
-    pub fn new(service: H, supa: SS) -> Self {
-        Self {
-            service,
-            supa,
-            _phantom: ::std::marker::PhantomData,
-        }
-    }
 
     pub fn into_inner(self) -> H {
         self.service
@@ -616,6 +632,12 @@ where
         p.read_message_end()?;
         // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
         ::std::mem::drop(p);
+
+        // After the event handlers and before the service method, where
+        // generated C++ runs the interceptors. Reached only once pre_read and
+        // post_read have both succeeded, so a handler that refused the request
+        // ends it without any interceptor being asked.
+        ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
         let res = ::std::panic::AssertUnwindSafe(
             self.service.do_base(
@@ -655,13 +677,12 @@ where
 }
 
 #[::async_trait::async_trait]
-impl<P, H, R, RS, SS> ::fbthrift::ServiceProcessor<P> for ExtendsBaseServiceProcessor<P, H, R, RS, SS>
+impl<P, H, R, RS, SS, const NO_FB303: bool> ::fbthrift::ServiceProcessor<P> for ExtendsBaseServiceProcessor<P, H, R, RS, SS, NO_FB303>
 where
     P: ::fbthrift::Protocol + ::std::marker::Send + ::std::marker::Sync + 'static,
     P::Deserializer: ::std::marker::Send,
     H: ExtendsBaseService,
     SS: ::fbthrift::ThriftService<P::Frame>,
-    SS::Handler: fb303_core__services::BaseService,
     P::Frame: ::std::marker::Send + 'static,
     R: ::fbthrift::RequestContext<Name = ::std::ffi::CStr> + ::std::marker::Send + ::std::marker::Sync + 'static,
     <R as ::fbthrift::RequestContext>::ContextStack: ::fbthrift::ContextStack<Name = R::Name, Frame = <P as ::fbthrift::Protocol>::Frame>
@@ -732,14 +753,13 @@ where
 }
 
 #[::async_trait::async_trait]
-impl<P, H, R, RS, SS> ::fbthrift::ThriftService<P::Frame> for ExtendsBaseServiceProcessor<P, H, R, RS, SS>
+impl<P, H, R, RS, SS, const NO_FB303: bool> ::fbthrift::ThriftService<P::Frame> for ExtendsBaseServiceProcessor<P, H, R, RS, SS, NO_FB303>
 where
     P: ::fbthrift::Protocol + ::std::marker::Send + ::std::marker::Sync + 'static,
     P::Deserializer: ::std::marker::Send,
     P::Frame: ::std::marker::Send + 'static,
     H: ExtendsBaseService,
     SS: ::fbthrift::ThriftService<P::Frame, RequestContext = R, ReplyState = RS>,
-    SS::Handler: fb303_core__services::BaseService,
     P::Frame: ::std::marker::Send + 'static,
     R: ::fbthrift::RequestContext<Name = ::std::ffi::CStr> + ::std::marker::Send + ::std::marker::Sync + 'static,
     <R as ::fbthrift::RequestContext>::ContextStack: ::fbthrift::ContextStack<Name = R::Name, Frame = <P as ::fbthrift::Protocol>::Frame>
@@ -798,6 +818,19 @@ where
     }
 
     fn get_method_metadata(&self) -> &'static [::fbthrift::processor::MethodMetadata] {
+        // Without an fb303 parent, the C++ layer must keep answering fb303 methods.
+        if NO_FB303 {
+            return &[
+                // From module.ExtendsBaseService:
+                ::fbthrift::processor::MethodMetadata{
+                  interaction_type: ::fbthrift::processor::InteractionType::None,
+                  rpc_kind: ::fbthrift::processor::RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE,
+                  name: "do_base",
+                  starts_interaction: false,
+                  interaction_name: None,
+                },
+            ];
+        }
         &[
             // From module.ExtendsBaseService:
             ::fbthrift::processor::MethodMetadata{
@@ -839,22 +872,22 @@ where
     }
 }
 
+/// Processor for ExtendsBaseService's methods without its fb303 parent.
+pub type ExtendsBaseServiceProcessorNoFb303<P, H, R, RS> =
+    ExtendsBaseServiceProcessor<P, H, R, RS, ::fbthrift::NullServiceProcessor<P, R, RS>, true>;
+
 /// Construct a new instance of a ExtendsBaseService service.
 ///
 /// This is called when a new instance of a Thrift service Processor
 /// is needed for a particular Thrift protocol.
 #[::tracing::instrument(level="debug", skip_all, fields(proto = ?proto))]
-pub fn make_ExtendsBaseService_server<F, H, R, RS, SMAKE, SS>(
+pub fn make_ExtendsBaseService_server<F, H, R, RS>(
     proto: ::fbthrift::ProtocolID,
     handler: H,
-    supa: SMAKE,
 ) -> ::std::result::Result<::std::boxed::Box<dyn ::fbthrift::ThriftService<F, Handler = H, RequestContext = R, ReplyState = RS> + ::std::marker::Send + 'static>, ::fbthrift::ApplicationException>
 where
     F: ::fbthrift::Framing + ::std::marker::Send + ::std::marker::Sync + 'static,
     H: ExtendsBaseService,
-    SMAKE: ::std::ops::FnOnce(::fbthrift::ProtocolID) -> ::std::result::Result<SS, ::fbthrift::ApplicationException>,
-    SS: ::fbthrift::ThriftService<F, RequestContext = R, ReplyState = RS>,
-    SS::Handler: fb303_core__services::BaseService,
     R: ::fbthrift::RequestContext<Name = ::std::ffi::CStr> + ::std::marker::Send + ::std::marker::Sync + 'static,
     <R as ::fbthrift::RequestContext>::ContextStack: ::fbthrift::ContextStack<Name = R::Name, Frame = F> + ::std::marker::Send + ::std::marker::Sync + 'static,
     RS: ::fbthrift::ReplyState<F, RequestContext = R> + ::std::marker::Send + ::std::marker::Sync + 'static,
@@ -863,47 +896,10 @@ where
 {
     match proto {
         ::fbthrift::ProtocolID::BinaryProtocol => {
-            ::std::result::Result::Ok(::std::boxed::Box::new(ExtendsBaseServiceProcessor::<::fbthrift::BinaryProtocol<F>, H, R, RS, SS>::new(handler, supa(proto)?)))
+            ::std::result::Result::Ok(::std::boxed::Box::new(ExtendsBaseServiceProcessorNoFb303::<::fbthrift::BinaryProtocol<F>, H, R, RS>::new_no_fb303(handler)))
         }
         ::fbthrift::ProtocolID::CompactProtocol => {
-            ::std::result::Result::Ok(::std::boxed::Box::new(ExtendsBaseServiceProcessor::<::fbthrift::CompactProtocol<F>, H, R, RS, SS>::new(handler, supa(proto)?)))
-        }
-        bad => {
-            ::tracing::error!(method = "ExtendsBaseService.", invalid_protocol = ?bad);
-            ::std::result::Result::Err(::fbthrift::ApplicationException::invalid_protocol(bad))
-        }
-    }
-}
-
-/// Construct a new instance of a ExtendsBaseService service.
-///
-/// Temporary duplicate of `make_ExtendsBaseService_server` for services that
-/// extend fb303. It holds the 3-argument shape to preserve behavior for legacy services.
-/// It will be removed after the fb303 migration.
-#[::tracing::instrument(level="debug", skip_all, fields(proto = ?proto))]
-pub fn make_ExtendsBaseService_server_fb303<F, H, R, RS, SMAKE, SS>(
-    proto: ::fbthrift::ProtocolID,
-    handler: H,
-    supa: SMAKE,
-) -> ::std::result::Result<::std::boxed::Box<dyn ::fbthrift::ThriftService<F, Handler = H, RequestContext = R, ReplyState = RS> + ::std::marker::Send + 'static>, ::fbthrift::ApplicationException>
-where
-    F: ::fbthrift::Framing + ::std::marker::Send + ::std::marker::Sync + 'static,
-    H: ExtendsBaseService,
-    SMAKE: ::std::ops::FnOnce(::fbthrift::ProtocolID) -> ::std::result::Result<SS, ::fbthrift::ApplicationException>,
-    SS: ::fbthrift::ThriftService<F, RequestContext = R, ReplyState = RS>,
-    SS::Handler: fb303_core__services::BaseService,
-    R: ::fbthrift::RequestContext<Name = ::std::ffi::CStr> + ::std::marker::Send + ::std::marker::Sync + 'static,
-    <R as ::fbthrift::RequestContext>::ContextStack: ::fbthrift::ContextStack<Name = R::Name, Frame = F> + ::std::marker::Send + ::std::marker::Sync + 'static,
-    RS: ::fbthrift::ReplyState<F, RequestContext = R> + ::std::marker::Send + ::std::marker::Sync + 'static,
-    ::fbthrift::FramingDecoded<F>: ::std::clone::Clone,
-    ::fbthrift::FramingEncodedFinal<F>: ::std::clone::Clone + ::fbthrift::BufExt,
-{
-    match proto {
-        ::fbthrift::ProtocolID::BinaryProtocol => {
-            ::std::result::Result::Ok(::std::boxed::Box::new(ExtendsBaseServiceProcessor::<::fbthrift::BinaryProtocol<F>, H, R, RS, SS>::new(handler, supa(proto)?)))
-        }
-        ::fbthrift::ProtocolID::CompactProtocol => {
-            ::std::result::Result::Ok(::std::boxed::Box::new(ExtendsBaseServiceProcessor::<::fbthrift::CompactProtocol<F>, H, R, RS, SS>::new(handler, supa(proto)?)))
+            ::std::result::Result::Ok(::std::boxed::Box::new(ExtendsBaseServiceProcessorNoFb303::<::fbthrift::CompactProtocol<F>, H, R, RS>::new_no_fb303(handler)))
         }
         bad => {
             ::tracing::error!(method = "ExtendsBaseService.", invalid_protocol = ?bad);
@@ -1039,6 +1035,12 @@ where
         p.read_message_end()?;
         // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
         ::std::mem::drop(p);
+
+        // After the event handlers and before the service method, where
+        // generated C++ runs the interceptors. Reached only once pre_read and
+        // post_read have both succeeded, so a handler that refused the request
+        // ends it without any interceptor being asked.
+        ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
         let res = ::std::panic::AssertUnwindSafe(
             self.service.do_root(
@@ -1395,6 +1397,12 @@ where
         p.read_message_end()?;
         // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
         ::std::mem::drop(p);
+
+        // After the event handlers and before the service method, where
+        // generated C++ runs the interceptors. Reached only once pre_read and
+        // post_read have both succeeded, so a handler that refused the request
+        // ends it without any interceptor being asked.
+        ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
         let res = ::std::panic::AssertUnwindSafe(
             self.service.do_child(
@@ -1770,6 +1778,12 @@ where
         // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
         ::std::mem::drop(p);
 
+        // After the event handlers and before the service method, where
+        // generated C++ runs the interceptors. Reached only once pre_read and
+        // post_read have both succeeded, so a handler that refused the request
+        // ends it without any interceptor being asked.
+        ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
         let res = ::std::panic::AssertUnwindSafe(
             self.service.do_grandchild(
             )
@@ -1969,29 +1983,6 @@ where
               starts_interaction: false,
               interaction_name: None,
             },
-
-            // From fb303_core.BaseService:
-            ::fbthrift::processor::MethodMetadata{
-              interaction_type: ::fbthrift::processor::InteractionType::None,
-              rpc_kind: ::fbthrift::processor::RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE,
-              name: "getStatus",
-              starts_interaction: false,
-              interaction_name: None,
-            },
-            ::fbthrift::processor::MethodMetadata{
-              interaction_type: ::fbthrift::processor::InteractionType::None,
-              rpc_kind: ::fbthrift::processor::RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE,
-              name: "getStatusDetails",
-              starts_interaction: false,
-              interaction_name: None,
-            },
-            ::fbthrift::processor::MethodMetadata{
-              interaction_type: ::fbthrift::processor::InteractionType::None,
-              rpc_kind: ::fbthrift::processor::RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE,
-              name: "getName",
-              starts_interaction: false,
-              interaction_name: None,
-            },
         ]
     }
 
@@ -2164,6 +2155,12 @@ where
         p.read_message_end()?;
         // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
         ::std::mem::drop(p);
+
+        // After the event handlers and before the service method, where
+        // generated C++ runs the interceptors. Reached only once pre_read and
+        // post_read have both succeeded, so a handler that refused the request
+        // ends it without any interceptor being asked.
+        ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
         let res = ::std::panic::AssertUnwindSafe(
             self.service.do_standalone(

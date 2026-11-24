@@ -60,9 +60,25 @@ public final class ExceptionWithStructuredAnnotation extends org.apache.thrift.T
       this.errorCode = 0;
     }
 
+    public ExceptionWithStructuredAnnotation(
+            final String messageField,
+            final int errorCode,
+            final java.lang.Throwable cause) {
+        super(messageField, cause);
+        this.messageField = messageField;
+        this.errorCode = errorCode;
+    }
+
+    public ExceptionWithStructuredAnnotation(final java.lang.Throwable cause) {
+        super(cause);
+        this.messageField = cause == null ? null : cause.toString();
+        this.errorCode = 0;
+    }
+
     public static class Builder {
         private String messageField = null;
         private int errorCode = 0;
+        private java.lang.Throwable cause;
 
         @com.facebook.swift.codec.ThriftField(value=1, name="message_field", requiredness=Requiredness.NONE)    public Builder setMessageField(String messageField) {
             this.messageField = messageField;
@@ -78,6 +94,11 @@ public final class ExceptionWithStructuredAnnotation extends org.apache.thrift.T
 
         public int getErrorCode() { return errorCode; }
 
+        public Builder setCause(final java.lang.Throwable cause) {
+            this.cause = cause;
+            return this;
+        }
+
         public Builder() { }
         public Builder(ExceptionWithStructuredAnnotation other) {
             this.messageField = other.messageField;
@@ -90,6 +111,9 @@ public final class ExceptionWithStructuredAnnotation extends org.apache.thrift.T
                 this.messageField,
                 this.errorCode
             );
+            if (cause != null) {
+                result.initCause(cause);
+            }
             return result;
         }
     }

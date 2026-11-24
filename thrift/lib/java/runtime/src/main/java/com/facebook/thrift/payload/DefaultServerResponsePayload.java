@@ -16,13 +16,13 @@
 
 package com.facebook.thrift.payload;
 
+import javax.annotation.Nullable;
 import org.apache.thrift.ResponseRpcMetadata;
 import org.apache.thrift.StreamPayloadMetadata;
+import org.apache.thrift.TApplicationException;
 
 public class DefaultServerResponsePayload implements ServerResponsePayload {
   private final Writer dataWriter;
-
-  private final boolean isTApplicationException;
 
   private final ResponseRpcMetadata responseRpcMetadata;
 
@@ -30,17 +30,19 @@ public class DefaultServerResponsePayload implements ServerResponsePayload {
 
   private final boolean hasStreamingResponse;
 
+  private final TApplicationException applicationException;
+
   public DefaultServerResponsePayload(
       Writer dataWriter,
-      boolean isTApplicationException,
       ResponseRpcMetadata responseRpcMetadata,
       StreamPayloadMetadata streamPayloadMetadata,
-      boolean hasStreamingResponse) {
+      boolean hasStreamingResponse,
+      @Nullable TApplicationException applicationException) {
     this.dataWriter = dataWriter;
-    this.isTApplicationException = isTApplicationException;
     this.responseRpcMetadata = responseRpcMetadata;
     this.streamPayloadMetadata = streamPayloadMetadata;
     this.hasStreamingResponse = hasStreamingResponse;
+    this.applicationException = applicationException;
   }
 
   @Override
@@ -50,7 +52,13 @@ public class DefaultServerResponsePayload implements ServerResponsePayload {
 
   @Override
   public boolean isTApplicationException() {
-    return isTApplicationException;
+    return applicationException != null;
+  }
+
+  @Override
+  @Nullable
+  public TApplicationException getApplicationException() {
+    return applicationException;
   }
 
   @Override

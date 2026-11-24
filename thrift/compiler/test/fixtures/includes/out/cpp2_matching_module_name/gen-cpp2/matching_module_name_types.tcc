@@ -9,3 +9,14 @@
 #include "thrift/compiler/test/fixtures/includes/gen-cpp2/matching_module_name_types.h"
 
 #include <thrift/lib/cpp2/gen/module_types_tcc.h>
+
+namespace matching_module_name {
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyStruct::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_OtherStructField;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MyStruct::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+} // namespace matching_module_name

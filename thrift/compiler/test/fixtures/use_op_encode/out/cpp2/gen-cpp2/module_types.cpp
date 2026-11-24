@@ -95,10 +95,10 @@ const ::std::int32_t* MyStruct::get_opt_field() const& [[FOLLY_ATTR_CLANG_LIFETI
 
 void swap([[maybe_unused]] MyStruct& a, [[maybe_unused]] MyStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_def_field, b.__fbthrift_field_def_field);
-  swap(a.__fbthrift_field_opt_field, b.__fbthrift_field_opt_field);
-  swap(a.__fbthrift_field_req_field, b.__fbthrift_field_req_field);
-  swap(a.__fbthrift_field_terse_field, b.__fbthrift_field_terse_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_def_field, b.__fbthrift_field_def_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_opt_field, b.__fbthrift_field_opt_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_req_field, b.__fbthrift_field_req_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_terse_field, b.__fbthrift_field_terse_field);
   swap(a.__isset, b.__isset);
 }
 

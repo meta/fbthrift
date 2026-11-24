@@ -69,6 +69,28 @@ TEST(ResponsePayloadsTest, HandlerSetHeadersLandOnResponseMetadata) {
   EXPECT_EQ(*metadataOf(message).otherMetadata(), expected);
 }
 
+TEST(ResponsePayloadsTest, HandlerSetHeadersLandOnStreamInitialMetadata) {
+  auto requestContext = makeThriftRequestContext(requestContextEventBase());
+  requestContext->setResponseHeader("shard", "42");
+  ThriftServerResponseMessage message{
+      .requestContext = std::move(requestContext),
+      .payload = ThriftStreamInitialResponsePayload{
+          .data = folly::IOBuf::copyBuffer("initial response"),
+          .metadata = std::make_unique<apache::thrift::ResponseRpcMetadata>(),
+          .streamId = kStreamId,
+          .complete = false,
+          .next = true,
+      }};
+
+  attachResponseHeaders(message);
+
+  const auto& metadata =
+      *message.payload.get<ThriftStreamInitialResponsePayload>().metadata;
+  const ThriftRequestContext::HeaderMap expected{{"shard", "42"}};
+  ASSERT_TRUE(metadata.otherMetadata().has_value());
+  EXPECT_EQ(*metadata.otherMetadata(), expected);
+}
+
 // The common case must not materialize the optional field at all: an empty
 // otherMetadata would still cost a map entry on the wire.
 TEST(ResponsePayloadsTest, NoHandlerHeadersLeavesOtherMetadataUnset) {
@@ -113,7 +135,7 @@ TEST(ResponsePayloadsTest, HeadersAreExtractedFromTheContext) {
   EXPECT_FALSE(requestContextPtr->hasResponseHeaders());
 }
 
-// Framework errors (unknown method, wrong RPC kind) carry no request context.
+// Responses created before request-context construction carry no context.
 TEST(ResponsePayloadsTest, MissingRequestContextIsIgnored) {
   auto message = makeResponseMessage(
       kStreamId,

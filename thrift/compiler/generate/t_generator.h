@@ -19,6 +19,7 @@
 #include <filesystem>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_set>
@@ -27,8 +28,63 @@
 
 namespace apache::thrift::compiler {
 
+class t_named;
 class t_program;
 class t_program_bundle;
+class t_type;
+
+struct docblock_style {
+  std::string_view opening;
+  std::string_view line_prefix;
+  std::string_view closing;
+  // Would end the docblock early if it appeared in the text, so it is replaced
+  // with `escaped_terminator`.
+  std::string_view terminator{};
+  std::string_view escaped_terminator{};
+  // Would start a comment nested in the docblock, which compilers reject under
+  // `-Werror,-Wcomment`, so it is replaced with `escaped_nested_opener`.
+  std::string_view nested_opener{};
+  std::string_view escaped_nested_opener{};
+  // Delimit a docblock rendered on a single line, e.g. `/** text */`.
+  std::string_view inline_opening;
+  std::string_view inline_closing;
+
+  static docblock_style c_style();
+  static docblock_style python_style();
+  static docblock_style triple_slash_style();
+  static docblock_style hash_style();
+};
+
+// Renders `text` as a docblock in `style`. Trailing whitespace is trimmed from
+// every line, so a blank line renders as the bare prefix (` *`, `#`).
+std::string apply_docblock_style(
+    std::string_view text, const docblock_style& style);
+
+// Like apply_docblock_style, but renders a one-line `text` on a single line.
+std::string apply_compact_docblock_style(
+    std::string_view text, const docblock_style& style);
+
+// Returns the name of `type` as written in Thrift IDL, qualifying types defined
+// outside of `program` with the name of their program.
+std::string thrift_type_name(const t_type& type, const t_program& program);
+
+// Returns `node`'s definition as Thrift IDL in `program`, without a body or
+// value, e.g. `1: optional i32 foo` for a field. Empty for a node that is not a
+// definition.
+std::string thrift_definition(const t_named& node, const t_program& program);
+
+// Returns the language-independent text of the docblock that documents `node`
+// in code generated for `program`, to render with apply_docblock_style: its
+// doc comment, followed by its thrift_definition if `with_definition`. Pass
+// `with_definition` when the generated code names or types `node` differently
+// from the IDL, so the docblock shows what it was generated from. A
+// `code_fence` encloses the definition in a Markdown code block of that
+// language, for docblocks rendered as Markdown.
+std::string docblock_text(
+    const t_named& node,
+    const t_program& program,
+    bool with_definition,
+    std::string_view code_fence = {});
 
 class t_generator {
  public:
@@ -62,6 +118,10 @@ class t_generator {
   // Generate the program. Overridden by subclasses to implement program
   // generation.
   virtual void generate_program() = 0;
+
+  virtual std::optional<docblock_style> get_docblock_style() const {
+    return std::nullopt;
+  }
 
   const t_program* get_program() const { return program_; }
 

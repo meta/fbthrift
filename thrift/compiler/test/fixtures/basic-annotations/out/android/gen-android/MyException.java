@@ -29,6 +29,11 @@ public class MyException extends Exception implements TBase, java.io.Serializabl
   public MyException() {
   }
 
+  public MyException(java.lang.Throwable cause) {
+    this();
+    initCause(cause);
+  }
+
   /**
    * Performs a deep copy on <i>other</i>.
    */

@@ -12,53 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Set the compiler directory.
-set(COMPILER_DIR ${CMAKE_CURRENT_BINARY_DIR})
-
-# Override the default install path for `make install` step.
-set(CMAKE_INSTALL_PREFIX ${THRIFT_SOURCE_DIR})
-
-check_cxx_source_compiles(
-  "
-  #include <type_traits>
-  #if _GLIBCXX_RELEASE
-  int main() {}
-  #endif"
-  FBTHRIFT_COMPILER_STDLIB_LIBSTDCXX)
-check_cxx_source_compiles(
-  "
-  #include <type_traits>
-  #if _GLIBCXX_RELEASE >= 9
-  int main() {}
-  #endif"
-  FBTHRIFT_COMPILER_STDLIB_LIBSTDCXX_GE_9)
-check_cxx_source_compiles(
-  "
-  #include <type_traits>
-  #if _LIBCPP_VERSION
-  int main() {}
-  #endif"
-  FBTHRIFT_COMPILER_STDLIB_LIBCXX)
-check_cxx_source_compiles(
-  "
-  #include <type_traits>
-  #if _LIBCPP_VERSION >= 9000
-  int main() {}
-  #endif"
-  FBTHRIFT_COMPILER_STDLIB_LIBCXX_GE_9)
-
-if (FBTHRIFT_COMPILER_STDLIB_LIBSTDCXX
-    AND NOT FBTHRIFT_COMPILER_STDLIB_LIBSTDCXX_GE_9)
-  list(APPEND FBTHRIFT_COMPILER_LINK_CXXFS stdc++fs)
-endif ()
-if (FBTHRIFT_COMPILER_STDLIB_LIBCXX AND NOT
-                                        FBTHRIFT_COMPILER_STDLIB_LIBCXX_GE_9)
-  list(APPEND FBTHRIFT_COMPILER_LINK_CXXFS c++fs)
-endif ()
-
 # The Thrift AST library.
 add_library(
-  compiler_ast
+  thrift_ast STATIC
   ast/t_primitive_type.cc
   ast/t_const.cc
   ast/t_const_value.cc
@@ -82,20 +38,18 @@ add_library(
   ast/t_typedef.cc
   ast/t_union.cc
   ast/scope_identifier.cc)
-thrift_configure_target(compiler_ast PUBLIC)
-target_link_libraries(compiler_ast fmt::fmt Folly::folly)
+thrift_configure_target(thrift_ast PUBLIC)
+target_link_libraries(thrift_ast fmt::fmt Folly::folly)
 
 # The base compiler infrastructure library
-add_library(compiler_base STATIC detail/system.cc detail/pluggable_functions.cc
-                                 diagnostic.cc source_location.cc)
-set_target_properties(compiler_base PROPERTIES POSITION_INDEPENDENT_CODE
-                                               "${BUILD_SHARED_LIBS}")
-target_link_libraries(compiler_base fmt::fmt Folly::folly common
-                      ${FBTHRIFT_COMPILER_LINK_CXXFS})
+add_library(
+  thrift_compiler_base STATIC detail/system.cc detail/pluggable_functions.cc
+                              diagnostic.cc source_location.cc)
+target_link_libraries(thrift_compiler_base fmt::fmt Folly::folly thrift_common)
 
 # The base Thrift compiler library.
 add_library(
-  compiler_lib STATIC
+  thrift_frontend STATIC
   parse/lexer.cc
   parse/lexer.h
   parse/parser.cc
@@ -113,17 +67,15 @@ add_library(
   sema/sema_context.cc
   sema/schematizer.cc
   sema/standard_validator.cc
-  sema/sema_context.cc
   sema/resolution_mismatch.cc)
-set_target_properties(compiler_lib PROPERTIES POSITION_INDEPENDENT_CODE
-                                              "${BUILD_SHARED_LIBS}")
-target_compile_definitions(compiler_lib PRIVATE THRIFT_OSS)
-target_link_libraries(compiler_lib compiler_base compiler_ast fmt::fmt
+target_compile_definitions(thrift_frontend PRIVATE THRIFT_OSS)
+target_link_libraries(thrift_frontend thrift_compiler_base thrift_ast fmt::fmt
                       Folly::folly OpenSSL::Crypto)
 
 # The Thrift compiler library.
 add_library(
-  compiler
+  thrift_generator_util STATIC
+  generate/cpp/allocator.cc
   generate/cpp/reference_type.cc
   generate/cpp/name_resolver.cc
   generate/cpp/util.cc
@@ -133,17 +85,11 @@ add_library(
   generate/python/util.cc
   generate/rust/util.cc
   generate/swift/util.cc)
-target_link_libraries(
-  compiler
-  compiler_ast
-  compiler_base
-  fmt::fmt
-  Folly::folly
-  OpenSSL::Crypto
-  ${FBTHRIFT_COMPILER_LINK_CXXFS})
+target_link_libraries(thrift_generator_util thrift_ast thrift_compiler_base
+                      fmt::fmt Folly::folly OpenSSL::Crypto)
 
 add_library(
-  whisker STATIC
+  thrift_whisker STATIC
   whisker/ast.cc
   whisker/dsl.cc
   whisker/detail/string.cc
@@ -155,51 +101,31 @@ add_library(
   whisker/render.cc
   whisker/standard_library.cc
   whisker/token.cc)
-set_target_properties(whisker PROPERTIES POSITION_INDEPENDENT_CODE
-                                         "${BUILD_SHARED_LIBS}")
-target_link_libraries(whisker fmt::fmt Folly::folly compiler_base)
+target_link_libraries(thrift_whisker fmt::fmt Folly::folly thrift_compiler_base)
 
 add_subdirectory(generate)
 
-# Force compiler_generators linking (compiler will optimize it out otherwise).
+# Force thrift_generators linking (compiler will optimize it out otherwise).
 if (MSVC)
-  set(GENERATE_LINKED compiler_generators) # MSVC WHOLEARCHIVE is set after exe.
+  set(GENERATE_LINKED thrift_generators) # MSVC WHOLEARCHIVE is set after exe.
 elseif (APPLE)
-  set(GENERATE_LINKED -Wl,-force_load compiler_generators)
+  set(GENERATE_LINKED -Wl,-force_load thrift_generators)
 else ()
-  set(GENERATE_LINKED -Wl,--whole-archive compiler_generators
+  set(GENERATE_LINKED -Wl,--whole-archive thrift_generators
                       -Wl,--no-whole-archive)
 endif ()
 
 # Create the Thrift compiler binary.
 add_executable(thrift main.cc compiler.cc)
-target_link_libraries(thrift compiler_ast compiler_lib
-                      ${FBTHRIFT_COMPILER_LINK_CXXFS} ${GENERATE_LINKED})
-# Force compiler_generators linking (compiler will optimize it out otherwise).
+target_link_libraries(thrift thrift_ast thrift_frontend Folly::folly
+                      ${GENERATE_LINKED})
+# Force thrift_generators linking (compiler will optimize it out otherwise).
 if (MSVC)
   set_target_properties(thrift PROPERTIES LINK_FLAGS
-                                          "/WHOLEARCHIVE:compiler_generators")
+                                          "/WHOLEARCHIVE:thrift_generators")
 endif ()
 
-if (BUILD_SHARED_LIBS)
-  # All but thrift since it's a binary.
-  set_target_properties(
-    compiler_ast compiler_base compiler_lib compiler whisker compiler_generators
-    PROPERTIES VERSION ${PROJECT_VERSION})
-endif ()
-
-install(
-  TARGETS thrift
-          compiler_ast
-          compiler_base
-          compiler_lib
-          compiler
-          whisker
-          common
-  EXPORT fbthrift-exports
-  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+thrift_install_targets(thrift thrift_common)
 
 # Deprecated alias. The link is relative, so the install stays relocatable.
 # Windows has no dependable symlink support for an unprivileged install, so

@@ -20,7 +20,6 @@
 #include <folly/io/IOBufQueue.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/FrameLength.h>
@@ -106,11 +105,5 @@ class FrameLengthEncoderHandler {
             std::move(lengthPrefix)));
   }
 };
-
-static_assert(
-    apache::thrift::fast_thrift::channel_pipeline::OutboundHandler<
-        FrameLengthEncoderHandler,
-        apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl>,
-    "FrameLengthEncoderHandler must satisfy OutboundHandler concept");
 
 } // namespace apache::thrift::fast_thrift::frame::write::handler

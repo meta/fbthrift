@@ -17,10 +17,13 @@
 #pragma once
 
 #include <algorithm>
+#include <functional>
 #include <limits>
 #include <memory_resource>
 #include <scoped_allocator>
+#include <tuple>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include <folly/Traits.h>
@@ -52,17 +55,32 @@ void readEnum(Protocol& protocol, T& out) {
   }
 }
 
-template <typename Protocol, typename T>
-std::size_t writeEnum(Protocol& protocol, const T& in) {
-  const auto value = static_cast<std::int32_t>(in);
-  if constexpr (requires {
-                  protocol.writeEnum(std::string_view{}, std::int32_t{});
-                }) {
-    const char* name = apache::thrift::util::enumName(in);
-    return protocol.writeEnum(name ? name : "", value);
+template <typename Protocol>
+inline constexpr bool writes_enum_names_v = requires(Protocol& protocol) {
+  protocol.writeEnum(std::string_view{}, std::int32_t{});
+};
+
+// Shared with dynamic serialization, which looks names up at runtime.
+// `name()` is called only for protocols that write enum names; an empty name
+// means the enum does not define the value.
+template <typename Protocol, typename NameFn>
+std::size_t writeEnumValue(
+    Protocol& protocol, std::int32_t value, NameFn&& name) {
+  if constexpr (writes_enum_names_v<Protocol>) {
+    return protocol.writeEnum(std::string_view{name()}, value);
   } else {
     return protocol.writeI32(value);
   }
+}
+
+template <typename Protocol, typename T>
+std::size_t writeEnum(Protocol& protocol, const T& in) {
+  // Generic so that `enumName` is instantiated only for protocols that write
+  // enum names: enums that Thrift did not generate have no `TEnumTraits`.
+  return writeEnumValue(protocol, static_cast<std::int32_t>(in), [&](auto...) {
+    const char* name = apache::thrift::util::enumName(in);
+    return name ? name : "";
+  });
 }
 
 template <typename Protocol, typename T>
@@ -83,13 +101,9 @@ using detect_resize_without_initialization =
 // ([mem.poly.allocator.mem]). An allocator absent from this list leaves the
 // element with a default-constructed one.
 template <typename Alloc>
-inline constexpr bool alloc_propagates_to_elements = false;
-template <typename Outer, typename... Inner>
-inline constexpr bool alloc_propagates_to_elements<
-    std::scoped_allocator_adaptor<Outer, Inner...>> = true;
-template <typename T>
-inline constexpr bool
-    alloc_propagates_to_elements<std::pmr::polymorphic_allocator<T>> = true;
+inline constexpr bool alloc_propagates_to_elements =
+    folly::is_instantiation_of_v<std::scoped_allocator_adaptor, Alloc> ||
+    folly::is_instantiation_of_v<std::pmr::polymorphic_allocator, Alloc>;
 
 template <typename Container>
 typename Container::reference emplace_back_default(Container& c) {
@@ -108,39 +122,10 @@ typename Container::reference emplace_back_default(Container& c) {
   return c.emplace_back();
 }
 
-template <typename Container, typename Map>
-typename Container::reference emplace_back_default_map(Container& c, Map& m) {
-  constexpr auto passAlloc =
-      apache::thrift::detail::
-          alloc_should_propagate<Map, typename Map::key_type> ||
-      apache::thrift::detail::
-          alloc_should_propagate<Map, typename Map::mapped_type>;
-  if constexpr (passAlloc) {
-    return c.emplace_back(
-        apache::thrift::detail::default_map_key(m),
-        apache::thrift::detail::default_map_value(m));
-  } else {
-    return c.emplace_back();
-  }
-}
-
 template <typename Map, typename KeyDeserializer, typename MappedDeserializer>
-  requires(apache::thrift::detail::alloc_should_propagate_map<Map>)
 void deserialize_key_val_into_map(
     Map& m, const KeyDeserializer& kr, const MappedDeserializer& mr) {
   typename Map::key_type key = apache::thrift::detail::default_map_key(m);
-  typename Map::mapped_type value =
-      apache::thrift::detail::default_map_value(m);
-  kr(key);
-  mr(value);
-  m.emplace(std::move(key), std::move(value));
-}
-
-template <typename Map, typename KeyDeserializer, typename MappedDeserializer>
-  requires(!apache::thrift::detail::alloc_should_propagate_map<Map>)
-void deserialize_key_val_into_map(
-    Map& m, const KeyDeserializer& kr, const MappedDeserializer& mr) {
-  typename Map::key_type key;
   kr(key);
   mr(m[std::move(key)]);
 }
@@ -165,8 +150,21 @@ inline constexpr bool sorted_unique_constructible_v =
 FOLLY_CREATE_MEMBER_INVOKER(emplace_hint_invoker, emplace_hint);
 FOLLY_CREATE_MEMBER_INVOKER(try_emplace_invoker, try_emplace);
 
-template <typename T>
-using detect_key_compare = typename T::key_compare;
+template <typename Container>
+concept is_ordered_container = requires { typename Container::key_compare; };
+
+template <typename Container>
+concept iterates_in_native_ascending_order = is_ordered_container<Container> &&
+    folly::is_one_of_v<typename Container::key_compare,
+                       std::less<typename Container::key_type>,
+                       std::less<>>;
+
+// For integers, the `StableLessThan<KeyTag>` order is the `std::less` order.
+template <typename KeyTag, typename Container>
+concept iterates_in_stable_ascending_order =
+    iterates_in_native_ascending_order<Container> &&
+    type::is_a_v<KeyTag, type::integral_c> &&
+    std::is_integral_v<typename Container::key_type>;
 
 template <typename T>
 constexpr bool map_emplace_hint_is_invocable_v = std::is_invocable_v<
@@ -180,13 +178,31 @@ template <typename T>
 constexpr bool map_try_emplace_is_invocable_v =
     std::is_invocable_v<try_emplace_invoker, T, typename T::key_type>;
 
-// Unordered maps that do not propagate their allocator can deserialize the
-// mapped value in place via try_emplace rather than through a temporary.
+// Unordered maps that do not propagate their allocator deserialize every mapped
+// value in place via try_emplace. Other maps deserialize in place only the
+// values that aren't trivially copyable.
 template <typename T>
-constexpr bool map_supports_in_place_deserialize_v =
-    !folly::is_detected_v<detect_key_compare, T> &&
+constexpr bool map_supports_in_place_deserialize_v = !is_ordered_container<T> &&
     !apache::thrift::detail::alloc_should_propagate_map<T> &&
     map_try_emplace_is_invocable_v<T>;
+
+// Emplaces `key` with a default value through try_emplace or emplace_hint at
+// end(), whichever is faster for the map.
+template <typename Map>
+std::pair<typename Map::iterator, bool> emplace_default(
+    Map& map, typename Map::key_type&& key) {
+  if constexpr (map_supports_in_place_deserialize_v<Map>) {
+    return map.try_emplace(std::move(key));
+  } else {
+    const auto size = map.size();
+    auto it = map.emplace_hint(
+        map.end(),
+        std::piecewise_construct,
+        std::forward_as_tuple(std::move(key)),
+        std::tuple<>());
+    return {it, map.size() != size};
+  }
+}
 
 template <typename T>
 constexpr bool set_emplace_hint_is_invocable_v = std::is_invocable_v<
@@ -210,12 +226,12 @@ void deserialize_known_length_map(
   typename Map::container_type tmp(map.get_allocator());
   folly::reserve_if_available(tmp, mapSize);
   {
-    decltype(auto) elem0 = emplace_back_default_map(tmp, map);
+    decltype(auto) elem0 = tmp.emplace_back();
     kr(elem0.first);
     mr(elem0.second);
   }
   for (size_t i = 1; i < mapSize; ++i) {
-    decltype(auto) elem = emplace_back_default_map(tmp, map);
+    decltype(auto) elem = tmp.emplace_back();
     kr(elem.first);
     mr(elem.second);
     sorted = sorted && map.key_comp()(tmp[i - 1].first, elem.first);
@@ -227,11 +243,13 @@ void deserialize_known_length_map(
                : Map(std::move(tmp), compare);
 }
 
+// Trivially copyable values measured faster through a temporary.
 template <typename Map, typename KeyDeserializer, typename MappedDeserializer>
   requires(
       !sorted_unique_constructible_v<Map> &&
       map_emplace_hint_is_invocable_v<Map> &&
-      map_supports_in_place_deserialize_v<Map>)
+      (map_supports_in_place_deserialize_v<Map> ||
+       !std::is_trivially_copyable_v<typename Map::mapped_type>))
 void deserialize_known_length_map(
     Map& map,
     std::uint32_t mapSize,
@@ -241,7 +259,7 @@ void deserialize_known_length_map(
   for (auto i = mapSize; i--;) {
     typename Map::key_type key = apache::thrift::detail::default_map_key(map);
     kr(key);
-    auto [it, inserted] = map.try_emplace(std::move(key));
+    auto [it, inserted] = emplace_default(map, std::move(key));
     if (inserted) {
       mr(it->second);
     } else {
@@ -256,7 +274,8 @@ template <typename Map, typename KeyDeserializer, typename MappedDeserializer>
   requires(
       !sorted_unique_constructible_v<Map> &&
       map_emplace_hint_is_invocable_v<Map> &&
-      !map_supports_in_place_deserialize_v<Map>)
+      !map_supports_in_place_deserialize_v<Map> &&
+      std::is_trivially_copyable_v<typename Map::mapped_type>)
 void deserialize_known_length_map(
     Map& map,
     std::uint32_t mapSize,
@@ -388,23 +407,19 @@ inline constexpr bool supports_arithmetic_vectors_v =
 
 template <typename ElemType, typename ElemTType>
 inline constexpr bool is_supported_arithmetic_elem_type_v =
-    (std::is_same_v<ElemType, float> || std::is_same_v<ElemType, double> ||
-     std::is_same_v<ElemType, std::int8_t> ||
-     std::is_same_v<ElemType, std::uint8_t> ||
-     std::is_same_v<ElemType, std::int64_t> ||
-     std::is_same_v<ElemType, std::uint64_t> ||
-     std::is_same_v<ElemType, std::int32_t> ||
-     std::is_same_v<ElemType, std::uint32_t> ||
-     std::is_same_v<ElemType, std::int16_t> ||
-     std::is_same_v<ElemType, std::uint16_t>) &&
-    (ElemTType::value == protocol::TType::T_BYTE ||
-     ElemTType::value == protocol::TType::T_FLOAT ||
-     ElemTType::value == protocol::TType::T_DOUBLE ||
-     ElemTType::value == protocol::TType::T_U64 ||
-     ElemTType::value == protocol::TType::T_I64 ||
-     ElemTType::value == protocol::TType::T_I32 ||
-     ElemTType::value == protocol::TType::T_I16 ||
-     ElemTType::value == protocol::TType::T_I08);
+    (ElemTType::value == protocol::TType::T_FLOAT &&
+     std::is_same_v<ElemType, float>) ||
+    (ElemTType::value == protocol::TType::T_DOUBLE &&
+     std::is_same_v<ElemType, double>) ||
+    (ElemTType::value == protocol::TType::T_BYTE &&
+     folly::is_one_of_v<ElemType, std::int8_t, std::uint8_t>) ||
+    (ElemTType::value == protocol::TType::T_I16 &&
+     folly::is_one_of_v<ElemType, std::int16_t, std::uint16_t>) ||
+    (ElemTType::value == protocol::TType::T_I32 &&
+     folly::is_one_of_v<ElemType, std::int32_t, std::uint32_t>) ||
+    ((ElemTType::value == protocol::TType::T_I64 ||
+      ElemTType::value == protocol::TType::T_U64) &&
+     folly::is_one_of_v<ElemType, std::int64_t, std::uint64_t>);
 
 template <typename Protocol, typename ElemTType, typename ContainerType>
 inline constexpr bool should_process_as_arithmetic_vector_v =
@@ -413,9 +428,11 @@ inline constexpr bool should_process_as_arithmetic_vector_v =
         typename ContainerType::value_type,
         ElemTType> &&
     folly::is_contiguous_range_v<ContainerType> &&
-    requires(typename ContainerType::value_type* value, size_t len) {
-      Protocol::writeArithmeticVector(value, len);
-    };
+    (requires(Protocol& prot, ContainerType& list) {
+      prot.writeArithmeticVector(list.data(), list.size());
+    } || requires(Protocol& prot, ContainerType& list) {
+      prot.readArithmeticVector(list.data(), list.size());
+    });
 
 /*
  * Common helper that iterates over a set-like container in the order required
@@ -426,11 +443,12 @@ inline constexpr bool should_process_as_arithmetic_vector_v =
 template <typename Tag, typename Protocol, typename Container, typename WriteFn>
 void encodeSetElements(
     Protocol& protocol, const Container& set, WriteFn writeElem) {
-  constexpr bool kContainerIsOrdered =
-      folly::is_detected_v<detect_key_compare, Container>;
   const KeyOrder keyOrder = protocol.keyOrder();
-  const bool shouldSort = keyOrder == KeyOrder::StableAscending ||
-      (keyOrder == KeyOrder::NativeAscending && !kContainerIsOrdered);
+  const bool shouldSort =
+      (keyOrder == KeyOrder::StableAscending &&
+       !iterates_in_stable_ascending_order<Tag, Container>) ||
+      (keyOrder == KeyOrder::NativeAscending &&
+       !iterates_in_native_ascending_order<Container>);
 
   if (shouldSort) {
     std::vector<typename Container::const_iterator> iters;
@@ -458,9 +476,8 @@ void encodeSetElements(
 
 /*
  * Common helper that iterates over a map-like container in the order required
- * by `Protocol`, invoking `writeEntry(key, value)` for each entry. Used by both
- * `protocol_methods<type_class::map<...>, ..., ...>::write` and
- * `op::detail::MapEncode<Key, Value>`.
+ * by `Protocol`, invoking `writeEntry(key, value)` for each entry. Used by
+ * `op::detail::MapEncodeImpl`.
  */
 template <
     typename KeyTag,
@@ -469,11 +486,12 @@ template <
     typename WriteFn>
 void encodeMapElements(
     Protocol& protocol, const Container& map, WriteFn writeEntry) {
-  constexpr bool kContainerIsOrdered =
-      folly::is_detected_v<detect_key_compare, Container>;
   const KeyOrder keyOrder = protocol.keyOrder();
-  const bool shouldSort = keyOrder == KeyOrder::StableAscending ||
-      (keyOrder == KeyOrder::NativeAscending && !kContainerIsOrdered);
+  const bool shouldSort =
+      (keyOrder == KeyOrder::StableAscending &&
+       !iterates_in_stable_ascending_order<KeyTag, Container>) ||
+      (keyOrder == KeyOrder::NativeAscending &&
+       !iterates_in_native_ascending_order<Container>);
 
   if (shouldSort) {
     std::vector<typename Container::const_iterator> iters;

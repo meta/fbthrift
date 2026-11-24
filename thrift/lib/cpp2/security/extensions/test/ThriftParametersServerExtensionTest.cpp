@@ -18,7 +18,23 @@
 
 #include <gtest/gtest.h>
 
+#include <vector>
+
 namespace apache::thrift {
+
+namespace detail {
+namespace {
+std::vector<PspEvent> pspEvents;
+} // namespace
+
+THRIFT_PLUGGABLE_FUNC_SET_TEST(
+    void,
+    onThriftPspEvent,
+    PspEvent event,
+    const folly::Optional<folly::exception_wrapper>& /*error*/) {
+  pspEvents.push_back(event);
+}
+} // namespace detail
 
 class ThriftParametersServerExtensionTest : public testing::Test {
  public:
@@ -100,6 +116,8 @@ TEST_F(ThriftParametersServerExtensionTest, IncompatibleCompressionAlgorithms) {
 
 class ThriftServerPSPNegotiationTest : public testing::Test {
  public:
+  void SetUp() override { detail::pspEvents.clear(); }
+
   struct NegotiationResult {
     std::shared_ptr<ThriftParametersServerExtension> ext;
     NegotiationParameters sentParameters;
@@ -172,6 +190,46 @@ TEST_F(ThriftServerPSPNegotiationTest, ServerNegotiatesConsistently) {
   // computing what it would have sent would require a policy function
   // invocation
   EXPECT_EQ(r.ext->getNegotiatedPSPUpgrade(), 1L);
+}
+
+TEST_F(ThriftServerPSPNegotiationTest, ReportsNegotiated) {
+  negotiate([](const auto&) { return 0xf; }, {}, 0x7);
+
+  const std::vector<detail::PspEvent> expected{
+      detail::PspEvent::NegotiationSuccess};
+  EXPECT_EQ(detail::pspEvents, expected);
+}
+
+TEST_F(ThriftServerPSPNegotiationTest, ReportsNoCommonVersion) {
+  negotiate([](const auto&) { return 0x8; }, {}, 0x1);
+
+  const std::vector<detail::PspEvent> expected{
+      detail::PspEvent::NegotiationNoCommonVersion};
+  EXPECT_EQ(detail::pspEvents, expected);
+}
+
+TEST_F(ThriftServerPSPNegotiationTest, ReportsMissingClientPSPOffer) {
+  negotiate([](const auto&) { return 0x1; }, {}, folly::none);
+
+  const std::vector<detail::PspEvent> expected{
+      detail::PspEvent::NegotiationNoPeerOffer};
+  EXPECT_EQ(detail::pspEvents, expected);
+}
+
+TEST_F(ThriftServerPSPNegotiationTest, ReportsMissingServerPSPOffer) {
+  negotiate([](const auto&) { return 0; }, {}, 0x1);
+
+  const std::vector<detail::PspEvent> expected{
+      detail::PspEvent::NegotiationNoServerOffer};
+  EXPECT_EQ(detail::pspEvents, expected);
+}
+
+TEST_F(ThriftServerPSPNegotiationTest, ReportsNoOffersFromEitherSide) {
+  negotiate([](const auto&) { return 0; }, {}, folly::none);
+
+  const std::vector<detail::PspEvent> expected{
+      detail::PspEvent::NegotiationNoOffers};
+  EXPECT_EQ(detail::pspEvents, expected);
 }
 
 } // namespace apache::thrift

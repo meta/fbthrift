@@ -28,9 +28,9 @@ enum class HandlerState : uint8_t {
   Completed,
 };
 
-class EvbCancellationSlot {
+class LocalCancellationSlot {
  public:
-  explicit EvbCancellationSlot(HandlerState state) noexcept : state_(state) {}
+  explicit LocalCancellationSlot(HandlerState state) noexcept : state_(state) {}
 
   bool tryComplete() noexcept {
     if (state_ == HandlerState::Completed) {
@@ -52,9 +52,10 @@ class EvbCancellationSlot {
   HandlerState state_;
 };
 
-class CpuCancellationSlot {
+class AtomicCancellationSlot {
  public:
-  explicit CpuCancellationSlot(HandlerState state) noexcept : state_(state) {}
+  explicit AtomicCancellationSlot(HandlerState state) noexcept
+      : state_(state) {}
 
   bool tryComplete() noexcept {
     auto state = state_.load(std::memory_order_acquire);
@@ -87,35 +88,36 @@ class CpuCancellationSlot {
   std::atomic<HandlerState> state_;
 };
 
-// Selects the synchronization policy once per request. The optional keeps the
-// CPU slot, including construction of its atomic, off the EventBase-only path.
+// The atomic slot is paid only when cancellation can race completion;
+// otherwise sole callback ownership serializes state access.
 class CancellationSlot {
  public:
-  CancellationSlot(bool useCpuSlot, HandlerState state) noexcept : evb_(state) {
-    if (useCpuSlot) {
-      cpu_.emplace(state);
+  CancellationSlot(bool useAtomicSlot, HandlerState state) noexcept
+      : local_(state) {
+    if (useAtomicSlot) {
+      atomic_.emplace(state);
     }
   }
 
   bool tryComplete() noexcept {
-    return cpu_ ? cpu_->tryComplete() : evb_.tryComplete();
+    return atomic_ ? atomic_->tryComplete() : local_.tryComplete();
   }
 
   void markHandlerStarted() noexcept {
-    if (cpu_) {
-      cpu_->markHandlerStarted();
+    if (atomic_) {
+      atomic_->markHandlerStarted();
     } else {
-      evb_.markHandlerStarted();
+      local_.markHandlerStarted();
     }
   }
 
   HandlerState state() const noexcept {
-    return cpu_ ? cpu_->state() : evb_.state();
+    return atomic_ ? atomic_->state() : local_.state();
   }
 
  private:
-  EvbCancellationSlot evb_;
-  std::optional<CpuCancellationSlot> cpu_;
+  LocalCancellationSlot local_;
+  std::optional<AtomicCancellationSlot> atomic_;
 };
 
 } // namespace apache::thrift::fast_thrift::thrift::detail

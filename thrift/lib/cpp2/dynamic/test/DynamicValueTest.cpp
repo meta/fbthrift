@@ -395,6 +395,20 @@ TEST(DynamicRefTest, DebugString) {
   EXPECT_FALSE(debugStr.empty());
 }
 
+TEST(DynamicValueTest, DebugStringDoesNotDependOnSetInsertionOrder) {
+  static type_system::detail::ContainerTypeCache setCache;
+  const type_system::TypeRef setType(
+      type_system::TypeRef::Set::of(type_system::TypeSystem::I32(), setCache));
+  auto ascending = DynamicValue::makeDefault(setType);
+  auto descending = DynamicValue::makeDefault(setType);
+  for (int32_t i = 0; i < 100; ++i) {
+    ascending.asSet().insert(DynamicValue::makeI32(i));
+    descending.asSet().insert(DynamicValue::makeI32(99 - i));
+  }
+
+  EXPECT_EQ(ascending.debugString(), descending.debugString());
+}
+
 // Helper to create a list type
 inline type_system::TypeRef::List makeListType(
     type_system::TypeRef elementType) {

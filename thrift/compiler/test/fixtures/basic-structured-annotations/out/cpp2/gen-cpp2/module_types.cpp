@@ -175,8 +175,8 @@ std::partial_ordering structured_annotation_inline::operator<=>([[maybe_unused]]
 
 void swap([[maybe_unused]] structured_annotation_inline& a, [[maybe_unused]] structured_annotation_inline& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_count, b.__fbthrift_field_count);
-  swap(a.__fbthrift_field_name, b.__fbthrift_field_name);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_count, b.__fbthrift_field_count);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_name, b.__fbthrift_field_name);
   swap(a.__isset, b.__isset);
 }
 
@@ -241,7 +241,7 @@ std::partial_ordering structured_annotation_with_default::operator<=>([[maybe_un
 
 void swap([[maybe_unused]] structured_annotation_with_default& a, [[maybe_unused]] structured_annotation_with_default& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_name, b.__fbthrift_field_name);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_name, b.__fbthrift_field_name);
   swap(a.__isset, b.__isset);
 }
 
@@ -335,9 +335,9 @@ const ::test::fixtures::basic_structured_annotations::structured_annotation_forw
 
 void swap([[maybe_unused]] structured_annotation_recursive& a, [[maybe_unused]] structured_annotation_recursive& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_name, b.__fbthrift_field_name);
-  swap(a.__fbthrift_field_recurse, b.__fbthrift_field_recurse);
-  swap(a.__fbthrift_field_forward, b.__fbthrift_field_forward);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_name, b.__fbthrift_field_name);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_recurse, b.__fbthrift_field_recurse);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_forward, b.__fbthrift_field_forward);
   swap(a.__isset, b.__isset);
 }
 
@@ -403,7 +403,7 @@ std::partial_ordering structured_annotation_forward::operator<=>([[maybe_unused]
 
 void swap([[maybe_unused]] structured_annotation_forward& a, [[maybe_unused]] structured_annotation_forward& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_count, b.__fbthrift_field_count);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_count, b.__fbthrift_field_count);
   swap(a.__isset, b.__isset);
 }
 
@@ -480,8 +480,8 @@ const ::test::fixtures::basic_structured_annotations::structured_annotation_with
 
 void swap([[maybe_unused]] structured_annotation_nested& a, [[maybe_unused]] structured_annotation_nested& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_name, b.__fbthrift_field_name);
-  swap(a.__fbthrift_field_nest, b.__fbthrift_field_nest);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_name, b.__fbthrift_field_name);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_nest, b.__fbthrift_field_nest);
   swap(a.__isset, b.__isset);
 }
 
@@ -586,10 +586,10 @@ std::partial_ordering MyStruct::operator<=>([[maybe_unused]] const MyStruct& rhs
 
 void swap([[maybe_unused]] MyStruct& a, [[maybe_unused]] MyStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_annotated_field, b.__fbthrift_field_annotated_field);
-  swap(a.__fbthrift_field_annotated_type, b.__fbthrift_field_annotated_type);
-  swap(a.__fbthrift_field_annotated_recursive, b.__fbthrift_field_annotated_recursive);
-  swap(a.__fbthrift_field_annotated_nested, b.__fbthrift_field_annotated_nested);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_annotated_field, b.__fbthrift_field_annotated_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_annotated_type, b.__fbthrift_field_annotated_type);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_annotated_recursive, b.__fbthrift_field_annotated_recursive);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_annotated_nested, b.__fbthrift_field_annotated_nested);
   swap(a.__isset, b.__isset);
 }
 
@@ -653,7 +653,7 @@ std::partial_ordering MyException::operator<=>([[maybe_unused]] const MyExceptio
 
 void swap([[maybe_unused]] MyException& a, [[maybe_unused]] MyException& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_context, b.__fbthrift_field_context);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_context, b.__fbthrift_field_context);
   swap(a.__isset, b.__isset);
 }
 
@@ -712,39 +712,56 @@ void MyUnion::__fbthrift_clear() {
 bool MyUnion::__fbthrift_is_empty() const {
   return getType() == Type::__EMPTY__;
 }
+  MyUnion& MyUnion::operator=(MyUnion&& rhs) noexcept {
+    if (this == &rhs) { return *this; }
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+      {
+        __fbthrift_clear();
+        return *this;
+      }
+      case Type::first:
+      {
+        auto value = std::move(rhs.value_.first);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(first_ref(), std::move(value));
+        break;
+      }
+      case Type::second:
+      {
+        auto value = std::move(rhs.value_.second);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(second_ref(), std::move(value));
+        break;
+      }
+      default:
+      {
+        assert(false);
+        __fbthrift_clear();
+      }
+    }
+    return *this;
+  }
+
   MyUnion::MyUnion(const MyUnion& rhs)
       : fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
     switch (rhs.getType()) {
       case Type::__EMPTY__:
         return;
       case Type::first:
-        set_first(rhs.value_.first);
+        first_ref().emplace(rhs.value_.first);
         break;
       case Type::second:
-        set_second(rhs.value_.second);
+        second_ref().emplace(rhs.value_.second);
         break;
       default:
         assert(false);
     }
   }
 
-    MyUnion&MyUnion::operator=(const MyUnion& rhs) {
+  MyUnion& MyUnion::operator=(const MyUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::first:
-        set_first(rhs.value_.first);
-        break;
-      case Type::second:
-        set_second(rhs.value_.second);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = MyUnion(rhs);
   }
 
 

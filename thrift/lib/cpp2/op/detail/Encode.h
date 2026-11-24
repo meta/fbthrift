@@ -34,6 +34,7 @@
 #include <thrift/lib/cpp2/op/Get.h>
 #include <thrift/lib/cpp2/op/detail/EncodeHelpers.h>
 #include <thrift/lib/cpp2/protocol/Protocol.h>
+#include <thrift/lib/cpp2/protocol/ProtocolReaderWireTypeInfo.h>
 #include <thrift/lib/cpp2/type/NativeType.h>
 #include <thrift/lib/cpp2/type/Tag.h>
 #include <thrift/lib/cpp2/type/detail/TypeClassFromTypeTag.h>
@@ -63,8 +64,7 @@ FieldOrder getFieldOrder(const Protocol& prot) {
 }
 
 template <typename T, typename Tag>
-inline constexpr bool kIsStrongType =
-    std::is_enum_v<folly::remove_cvref_t<T>> &&
+inline constexpr bool kIsStrongType = std::is_enum_v<std::remove_cvref_t<T>> &&
     type::is_a_v<Tag, type::integral_c>;
 
 template <typename T, typename Tag>
@@ -620,6 +620,19 @@ struct ShouldWriteField {
         return false;
       }
     }
+    // Generated code writes a non-optional, non-terse `cpp.ref` field even
+    // when it is null (see encodeNullCppRef), and skips an empty terse one. A
+    // null terse one holds no value, so it is skipped too.
+    if constexpr (apache::thrift::detail::is_shared_or_unique_ptr_v<Field>) {
+      using FieldId = op::get_field_id<T, Id>;
+      if constexpr (apache::thrift::detail::qualifier::
+                        is_cpp_ref_field_terse<T, FieldId>::value) {
+        return field != nullptr && !isEmpty<Tag>(*field);
+      } else if constexpr (!apache::thrift::detail::qualifier::
+                               is_cpp_ref_field_optional<T, FieldId>::value) {
+        return true;
+      }
+    }
     return ShouldWrite<Tag>{}(field);
   }
 };
@@ -629,6 +642,35 @@ struct ShouldWriteField<Tag, void> : ShouldWrite<Tag> {};
 
 template <typename T, typename Id = void>
 inline constexpr ShouldWriteField<T, Id> should_write{};
+
+// The tag of the thrift type under any `adapted` and `cpp_type` wrappers.
+template <typename Tag>
+struct UnadaptedTag {
+  using type = Tag;
+};
+template <typename Adapter, typename Tag>
+struct UnadaptedTag<type::adapted<Adapter, Tag>> : UnadaptedTag<Tag> {};
+template <typename T, typename Tag>
+struct UnadaptedTag<type::cpp_type<T, Tag>> : UnadaptedTag<Tag> {};
+
+// Writes what generated code writes for a null non-optional `cpp.ref` field
+// of type `Tag`: a struct, union or exception with no fields, an empty
+// container, or the intrinsic default of the thrift type. Neither the field's
+// adapter nor its IDL default applies, and a default-constructed struct is
+// not written because it may hold fields with IDL defaults.
+template <typename Tag, typename Protocol>
+std::size_t encodeNullCppRef(Protocol& prot) {
+  using UTag = typename UnadaptedTag<Tag>::type;
+  if constexpr (type::is_a_v<UTag, type::structured_c>) {
+    std::size_t s = prot.writeStructBegin(
+        op::get_class_name<type::native_type<UTag>>().data());
+    s += prot.writeFieldStop();
+    s += prot.writeStructEnd();
+    return s;
+  } else {
+    return Encode<UTag>{}(prot, type::native_type<UTag>{});
+  }
+}
 
 template <typename T>
 struct StructEncode {
@@ -674,7 +716,13 @@ struct StructEncode {
           op::get_field_name<T, Id>().data(),
           typeTagToTType<TypeTag>,
           folly::to_underlying(Id::value));
-      s += Encode<TypeTag>{}(prot, *field);
+      if constexpr (apache::thrift::detail::is_shared_or_unique_ptr_v<
+                        std::remove_cvref_t<decltype(field)>>) {
+        s += field != nullptr ? Encode<TypeTag>{}(prot, *field)
+                              : encodeNullCppRef<TypeTag>(prot);
+      } else {
+        s += Encode<TypeTag>{}(prot, *field);
+      }
       s += prot.writeFieldEnd();
     }
   };
@@ -715,7 +763,7 @@ struct Encode<type::enum_t<T>> {
   }
 };
 
-template <TType ElemType, typename ElemCppType>
+template <TType ElemType, typename ElemCppType, bool kMayWriteInBulk = true>
 struct ListEncodeImpl {
   template <typename Protocol, typename ListType, typename ElementWrite>
   std::size_t operator()(
@@ -723,10 +771,12 @@ struct ListEncodeImpl {
     std::size_t xfer = 0;
     xfer += prot.writeListBegin(ElemType, checked_container_size(list.size()));
 
-    if constexpr (should_process_as_arithmetic_vector_v<
-                      Protocol,
-                      std::integral_constant<TType, ElemType>,
-                      ListType>) {
+    if constexpr (
+        kMayWriteInBulk &&
+        should_process_as_arithmetic_vector_v<
+            Protocol,
+            std::integral_constant<TType, ElemType>,
+            ListType>) {
       xfer += prot.template writeArithmeticVector<ElemCppType>(
           list.data(), list.size());
     } else {
@@ -745,10 +795,14 @@ struct ListEncode {
   // noinline limits optimizer work for generated translation units with many
   // list fields.
   FOLLY_NOINLINE std::size_t operator()(Protocol& prot, const T& list) const {
-    return ListEncodeImpl<typeTagToTType<Tag>, type::native_type<Tag>>{}(
-        prot, list, [&](const auto& elem) {
-          return Encode<Tag>{}(prot, elem);
-        });
+    // An adapter must convert each element, so adapted elements are never
+    // written in bulk.
+    return ListEncodeImpl<
+        typeTagToTType<Tag>,
+        type::native_type<Tag>,
+        kIsUnadaptedNumber<Tag>>{}(prot, list, [&](const auto& elem) {
+      return Encode<Tag>{}(prot, elem);
+    });
   }
 };
 
@@ -781,29 +835,50 @@ struct SetEncode {
 template <typename Tag>
 struct Encode<type::set<Tag>> : SetEncode<Tag> {};
 
+template <TType KeyType, TType ValueType, typename KeyTag>
+struct MapEncodeImpl {
+  template <
+      typename Protocol,
+      typename T,
+      typename KeyWrite,
+      typename ValueWrite>
+  std::size_t operator()(
+      Protocol& prot,
+      const T& map,
+      KeyWrite keyWrite,
+      ValueWrite valueWrite) const {
+    std::size_t xfer = 0;
+    // alternativeKeyForm disambiguates string/binary and i32/enum key types.
+    constexpr bool alternativeKeyForm = type::is_a_v<KeyTag, type::enum_c> ||
+        type::is_a_v<KeyTag, type::string_t>;
+    xfer += prot.writeMapBegin(
+        KeyType,
+        ValueType,
+        checked_container_size(map.size()),
+        alternativeKeyForm);
+
+    encodeMapElements<KeyTag>(
+        prot, map, [&](const auto& key, const auto& value) {
+          xfer += writeMapValueBegin(prot);
+          xfer += keyWrite(key);
+          xfer += valueWrite(value);
+          xfer += writeMapValueEnd(prot);
+        });
+
+    xfer += prot.writeMapEnd();
+    return xfer;
+  }
+};
+
 template <typename Key, typename Value>
 struct MapEncode {
   template <typename Protocol, typename T>
   std::size_t operator()(Protocol& prot, const T& map) const {
-    std::size_t xfer = 0;
-    // alternativeKeyForm disambiguates string/binary and i32/enum key types.
-    constexpr bool alternativeKeyForm =
-        type::is_a_v<Key, type::enum_c> || type::is_a_v<Key, type::string_t>;
-    xfer += prot.writeMapBegin(
-        typeTagToTType<Key>,
-        typeTagToTType<Value>,
-        checked_container_size(map.size()),
-        alternativeKeyForm);
-
-    encodeMapElements<Key>(prot, map, [&](const auto& key, const auto& value) {
-      xfer += writeMapValueBegin(prot);
-      xfer += Encode<Key>{}(prot, key);
-      xfer += Encode<Value>{}(prot, value);
-      xfer += writeMapValueEnd(prot);
-    });
-
-    xfer += prot.writeMapEnd();
-    return xfer;
+    return MapEncodeImpl<typeTagToTType<Key>, typeTagToTType<Value>, Key>{}(
+        prot,
+        map,
+        [&](const auto& key) { return Encode<Key>{}(prot, key); },
+        [&](const auto& value) { return Encode<Value>{}(prot, value); });
   }
 };
 
@@ -977,9 +1052,22 @@ inline constexpr bool kIsSharedPtrToConst<std::shared_ptr<const U>> = true;
 
 template <typename>
 inline constexpr bool kIsConstUnionFieldRef = false;
-template <typename T>
-inline constexpr bool kIsConstUnionFieldRef<union_field_ref<T>> =
-    std::is_const_v<typename union_field_ref<T>::value_type>;
+template <typename T, typename A>
+inline constexpr bool kIsConstUnionFieldRef<union_field_ref<T, A>> =
+    std::is_const_v<typename union_field_ref<T, A>::value_type>;
+
+// Makes the value that the `shared_ptr<const T>` field `Id` of `obj` is decoded
+// into, with `obj`'s allocator if the field's pointee takes it.
+template <typename FieldValue, typename Id, typename Obj>
+std::shared_ptr<FieldValue> makeConstRefFieldValue(const Obj& obj) {
+  constexpr bool kUsesAllocator = ::apache::thrift::detail::qualifier::
+      is_field_using_allocator<Obj, op::get_field_id<Obj, Id>>::value;
+  if constexpr (kUsesAllocator) {
+    return std::allocate_shared<FieldValue>(obj.get_allocator());
+  } else {
+    return std::make_shared<FieldValue>();
+  }
+}
 
 template <bool ClearBeforeDecode = false, typename T, typename Protocol>
 bool decodeStructField(
@@ -998,17 +1086,18 @@ bool decodeStructField(
         }
 
         using FieldTag = op::get_field_tag<T, IdT>;
-        using FieldRef = folly::remove_cvref_t<decltype(op::get<IdT>(value))>;
+        using FieldRef = std::remove_cvref_t<decltype(op::get<IdT>(value))>;
         if constexpr (kIsConstUnionFieldRef<FieldRef>) {
           // A union `shared_ptr<const T>` field can't be decoded in place.
           using FieldValue = type::native_type<ValueTag>;
-          auto fieldValue = std::make_shared<FieldValue>();
+          auto fieldValue = makeConstRefFieldValue<FieldValue, IdT>(value);
           Decode<FieldTag>{}(prot, *fieldValue, value);
           op::get<IdT>(value).emplace(
               std::shared_ptr<const FieldValue>(std::move(fieldValue)));
         } else if constexpr (kIsSharedPtrToConst<FieldRef>) {
           // `shared_ptr<const T>` field can't be decoded in place.
-          auto fieldValue = std::make_shared<type::native_type<ValueTag>>();
+          auto fieldValue =
+              makeConstRefFieldValue<type::native_type<ValueTag>, IdT>(value);
           Decode<FieldTag>{}(prot, *fieldValue, value);
           op::get<IdT>(value) = std::move(fieldValue);
         } else {
@@ -1085,6 +1174,20 @@ inline constexpr bool kUsePrecompiledPath =
     !std::is_same_v<Protocol, json5::detail::Json5ProtocolReader> &&
     !std::is_same_v<Protocol, BinaryProtocolChainReader>;
 
+// The SimpleJSON reader is only instantiated for types generated with the
+// `json` option; other types decode SimpleJSON generically, as Encode does.
+template <typename T, typename Protocol>
+constexpr bool usePrecompiledRead() {
+  if constexpr (!kUsePrecompiledPath<Protocol>) {
+    return false;
+  } else if constexpr (std::is_same_v<Protocol, SimpleJSONProtocolReader>) {
+    return decltype(apache::thrift::detail::st::struct_private_access::
+                        __fbthrift_cpp2_gen_json<T>())::value;
+  } else {
+    return true;
+  }
+}
+
 // MSVC workaround: keep the constrained precompiled overload in its own base,
 // rather than declaring it in Decode alongside an inherited operator().
 // Inheriting both overloads also avoids a forwarding instantiation for each
@@ -1092,7 +1195,7 @@ inline constexpr bool kUsePrecompiledPath =
 template <typename T>
 struct PrecompiledDecode {
   template <typename Protocol>
-    requires kUsePrecompiledPath<Protocol>
+    requires(usePrecompiledRead<T, Protocol>())
   void operator()(Protocol& prot, T& value) const {
     value.read(&prot);
   }
@@ -1121,7 +1224,7 @@ struct Decode<type::enum_t<T>> {
   }
 };
 
-template <TType ElemType>
+template <TType ElemType, bool kMayReadInBulk = true>
 struct ListDecodeImpl {
   template <typename Protocol, typename ListType, typename ElementRead>
   void operator()(
@@ -1130,7 +1233,7 @@ struct ListDecodeImpl {
       if constexpr (std::is_const_v<std::remove_reference_t<
                         typename ListType::reference>>) {
         list.emplace_back(folly::invocable_to([&] {
-          folly::remove_cvref_t<typename ListType::value_type> elem;
+          std::remove_cvref_t<typename ListType::value_type> elem;
           elementRead(elem);
           return elem;
         }));
@@ -1173,31 +1276,31 @@ struct ListDecodeImpl {
       // resize is more performant than reserve.
       if constexpr (should_resize_without_initialization) {
         folly::resizeWithoutInitialization(list, s);
-        if constexpr (should_process_as_arithmetic_vector_v<
-                          Protocol,
-                          std::integral_constant<TType, ElemType>,
-                          ListType>) {
-          prot.template readArithmeticVector<value_type>(
-              list.data(), list.size());
-        } else {
-          auto outIt = list.begin();
-          const auto outEnd = list.end();
-          try {
+        auto outIt = list.begin();
+        const auto outEnd = list.end();
+        try {
+          if constexpr (
+              kMayReadInBulk &&
+              should_process_as_arithmetic_vector_v<
+                  Protocol,
+                  std::integral_constant<TType, ElemType>,
+                  ListType>) {
+            prot.template readArithmeticVector<value_type>(
+                list.data(), list.size());
+          } else {
             for (; outIt != outEnd; ++outIt) {
               elementRead(*outIt);
             }
-          } catch (...) {
-            // For behaviour parity, initialize the leftover elements when
-            // exceptions happen
-            std::fill(outIt, outEnd, typename ListType::value_type());
-            throw;
           }
+        } catch (...) {
+          // For behaviour parity, initialize the leftover elements when
+          // exceptions happen
+          std::fill(outIt, outEnd, typename ListType::value_type());
+          throw;
         }
       } else if constexpr (should_resize) {
         list.resize(s);
-        for (auto&& elem : list) {
-          elementRead(elem);
-        }
+        std::for_each_n(list.begin(), s, elementRead);
       } else {
         folly::reserve_if_available(list, s);
         while (s--) {
@@ -1212,35 +1315,49 @@ struct ListDecodeImpl {
   }
 };
 
+// A list's C++ elements can differ from its element tag's native type only in
+// signedness, so that decoding never converts a number to another width.
+template <typename Elem, typename Native>
+inline constexpr bool kIsListElementOf = !std::is_arithmetic_v<Elem> ||
+    !std::is_arithmetic_v<Native> || std::is_same_v<Elem, Native> ||
+    (std::is_integral_v<Elem> && std::is_integral_v<Native> &&
+     sizeof(Elem) == sizeof(Native));
+
 template <typename Tag>
 struct Decode<type::list<Tag>> {
   template <typename Protocol, typename ListType>
+    requires kIsListElementOf<
+        typename ListType::value_type,
+        type::native_type<Tag>>
   void operator()(Protocol& prot, ListType& list) const {
-    ListDecodeImpl<typeTagToTType<Tag>>{}(
+    // An adapter must convert each element, so adapted elements are never
+    // read in bulk.
+    ListDecodeImpl<typeTagToTType<Tag>, kIsUnadaptedNumber<Tag>>{}(
         prot, list, [&](auto&& elem) { Decode<Tag>{}(prot, elem); });
   }
 };
 
-template <typename Tag>
-struct Decode<type::set<Tag>> {
-  template <typename Protocol, typename SetType>
-  void operator()(Protocol& prot, SetType& set) const {
-    TType t;
-    uint32_t s;
+template <TType ElemType>
+struct SetDecodeImpl {
+  template <typename Protocol, typename SetType, typename ElementRead>
+  void operator()(Protocol& prot, SetType& set, ElementRead elementRead) const {
+    using WireTypeInfo =
+        apache::thrift::detail::ProtocolReaderWireTypeInfo<Protocol>;
+    auto t = WireTypeInfo::defaultValue();
+    uint32_t s = static_cast<uint32_t>(-1);
     prot.readSetBegin(t, s);
     set.clear();
     if (prot.kOmitsContainerSizes()) {
       while (prot.peekSet()) {
-        typename SetType::value_type value;
-        Decode<Tag>{}(prot, value);
+        auto value = apache::thrift::detail::default_set_element(set);
+        elementRead(value);
         set.insert(std::move(value));
       }
-    } else if (typeTagToTType<Tag> == t) {
+    } else if (WireTypeInfo::fromTType(ElemType) == t) {
       if (!canReadNElements(prot, s, {t})) {
         TProtocolException::throwTruncatedData();
       }
-      deserialize_known_length_set(
-          set, s, [&prot](auto& value) { Decode<Tag>{}(prot, value); });
+      deserialize_known_length_set(set, s, elementRead);
     } else {
       apache::thrift::skip_n(prot, s, {t});
     }
@@ -1249,34 +1366,57 @@ struct Decode<type::set<Tag>> {
   }
 };
 
+template <typename Tag>
+struct Decode<type::set<Tag>> {
+  template <typename Protocol, typename SetType>
+  void operator()(Protocol& prot, SetType& set) const {
+    SetDecodeImpl<typeTagToTType<Tag>>{}(
+        prot, set, [&](auto& value) { Decode<Tag>{}(prot, value); });
+  }
+};
+
+template <
+    TType KeyType,
+    TType ValueType,
+    typename Protocol,
+    typename MapType,
+    typename KeyRead,
+    typename ValueRead>
+void decode_map(
+    Protocol& prot, MapType& map, KeyRead keyRead, ValueRead valueRead) {
+  using WireTypeInfo =
+      apache::thrift::detail::ProtocolReaderWireTypeInfo<Protocol>;
+  auto keyType = WireTypeInfo::defaultValue();
+  auto valueType = WireTypeInfo::defaultValue();
+  uint32_t s = static_cast<uint32_t>(-1);
+  prot.readMapBegin(keyType, valueType, s);
+  map.clear();
+  if (prot.kOmitsContainerSizes()) {
+    while (prot.peekMap()) {
+      deserialize_key_val_into_map(map, keyRead, valueRead);
+    }
+  } else if (
+      WireTypeInfo::fromTType(KeyType) == keyType &&
+      WireTypeInfo::fromTType(ValueType) == valueType) {
+    if (!canReadNElements(prot, s, {keyType, valueType})) {
+      TProtocolException::throwTruncatedData();
+    }
+    deserialize_known_length_map(map, s, keyRead, valueRead);
+  } else {
+    apache::thrift::skip_n(prot, s, {keyType, valueType});
+  }
+  prot.readMapEnd();
+}
+
 template <typename Key, typename Value>
 struct Decode<type::map<Key, Value>> {
   template <typename Protocol, typename MapType>
   void operator()(Protocol& prot, MapType& map) const {
-    TType keyType, valueType;
-    uint32_t s;
-    prot.readMapBegin(keyType, valueType, s);
-    map.clear();
-    if (prot.kOmitsContainerSizes()) {
-      while (prot.peekMap()) {
-        typename MapType::key_type key;
-        Decode<Key>{}(prot, key);
-        Decode<Value>{}(prot, map[key]);
-      }
-    } else if (
-        typeTagToTType<Key> == keyType && typeTagToTType<Value> == valueType) {
-      if (!canReadNElements(prot, s, {keyType, valueType})) {
-        TProtocolException::throwTruncatedData();
-      }
-      deserialize_known_length_map(
-          map,
-          s,
-          [&prot](auto& key) { Decode<Key>{}(prot, key); },
-          [&prot](auto& value) { Decode<Value>{}(prot, value); });
-    } else {
-      apache::thrift::skip_n(prot, s, {keyType, valueType});
-    }
-    prot.readMapEnd();
+    decode_map<typeTagToTType<Key>, typeTagToTType<Value>>(
+        prot,
+        map,
+        [&](auto& key) { Decode<Key>{}(prot, key); },
+        [&](auto& value) { Decode<Value>{}(prot, value); });
   }
 };
 

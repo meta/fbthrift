@@ -30,6 +30,7 @@ namespace go 'github.com/facebook/fbthrift/thrift/lib/thrift/rpcmetadata'
 
 include "thrift/annotation/thrift.thrift"
 include "thrift/annotation/cpp.thrift"
+include "thrift/annotation/python.thrift"
 
 @thrift.AllowLegacyMissingUris
 package;
@@ -228,7 +229,8 @@ struct NegotiationParameters {
 }
 
 // String type optimized for generated code
-@cpp.Type{name = "::apache::thrift::ManagedStringViewWithConversions"}
+@python.Py3EnableCppAdapter
+@cpp.Adapter{name = "::apache::thrift::StringTypeAdapter<::apache::thrift::ManagedStringViewWithConversions>"}
 typedef string ManagedStringViewField
 
 struct InteractionCreate {

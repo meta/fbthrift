@@ -22,17 +22,22 @@
 #include <atomic>
 #include <chrono>
 #include <cstddef>
+#include <functional>
+#include <future>
 #include <memory>
 #include <set>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 #include <thread>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
 #include <pthread.h>
 #include <sched.h>
+
+#include <boost/intrusive_ptr.hpp>
 
 #include <fizz/client/AsyncFizzClient.h>
 #include <fizz/client/FizzClientContext.h>
@@ -40,19 +45,29 @@
 #include <folly/ScopeGuard.h>
 #include <folly/SocketAddress.h>
 #include <folly/Synchronized.h>
+#include <folly/Try.h>
 #include <folly/futures/Future.h>
+#include <folly/io/IOBuf.h>
 #include <folly/io/async/AsyncSocket.h>
+#include <folly/io/async/EventBase.h>
+#include <folly/io/async/Request.h>
 #include <folly/io/async/ScopedEventBaseThread.h>
 #include <folly/synchronization/Baton.h>
 
+#include <thrift/lib/cpp/TApplicationException.h>
+#include <thrift/lib/cpp/Thrift.h>
 #include <thrift/lib/cpp2/Flags.h>
+#include <thrift/lib/cpp2/async/ResponseChannel.h>
 #include <thrift/lib/cpp2/async/RocketClientChannel.h>
 #include <thrift/lib/cpp2/async/RpcOptions.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/util/ReusePortBpfProgram.h>
 #include <thrift/lib/cpp2/fast_thrift/security/FizzServerCertConfig.h>
 #include <thrift/lib/cpp2/fast_thrift/security/test/TestCert.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/client/util/ErrorDecoding.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/FastThriftServer.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/CachedEkmExtension.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/extension/ThriftExtension.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/extension/ThriftExtensionPipelineHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/framework/FastServerModule.h>
@@ -62,6 +77,10 @@
 #include <thrift/lib/cpp2/fast_thrift/thrift/test/if/gen-cpp2/FastThriftServerAsyncClient.h>
 #include <thrift/lib/cpp2/security/extensions/ThriftParametersClientExtension.h>
 #include <thrift/lib/cpp2/security/extensions/ThriftParametersContext.h>
+#include <thrift/lib/cpp2/transport/core/RpcMetadataUtil.h>
+#include <thrift/lib/cpp2/transport/rocket/RocketException.h>
+#include <thrift/lib/cpp2/transport/rocket/payload/PayloadSerializer.h>
+#include <thrift/lib/cpp2/transport/rocket/test/network/ClientServerTestUtil.h>
 #include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
 
 THRIFT_FLAG_DECLARE_bool(rocket_client_binary_rpc_metadata_encoding);
@@ -79,6 +98,29 @@ using ::apache::thrift::fast_thrift::thrift::test::integration::
     PermissionDeniedException;
 
 namespace {
+
+struct FollyContextMarker : folly::RequestData {
+  bool hasCallback() override { return false; }
+};
+
+const folly::RequestToken& follyContextMarkerToken() {
+  static const folly::RequestToken token{"fast_thrift_server_test_marker"};
+  return token;
+}
+
+bool hasFollyContextMarker() {
+  auto* context = folly::RequestContext::try_get();
+  return context != nullptr &&
+      context->getContextData(follyContextMarkerToken()) != nullptr;
+}
+
+struct FollyContextObservations {
+  std::atomic<folly::RequestContext*> request{nullptr};
+  std::atomic<folly::RequestContext*> application{nullptr};
+  std::atomic<folly::RequestContext*> response{nullptr};
+  std::atomic<bool> applicationSawMarker{false};
+  std::atomic<bool> responseSawMarker{false};
+};
 
 // User-implemented FastServiceHandler. Test sets flags to control behavior;
 // methods call cb->result()/done()/exception() synchronously.
@@ -143,6 +185,26 @@ class TestHandler : public FastServiceHandler<integration::FastThriftServer> {
   }
 };
 
+class FollyContextObservingHandler : public TestHandler {
+ public:
+  explicit FollyContextObservingHandler(FollyContextObservations& observations)
+      : observations_(observations) {}
+
+  void async_tm_add(
+      ftt::FastHandlerCallbackPtr<int64_t> cb, int64_t a, int64_t b) override {
+    observations_.application.store(
+        folly::RequestContext::try_get(), std::memory_order_relaxed);
+    observations_.applicationSawMarker.store(
+        hasFollyContextMarker(), std::memory_order_relaxed);
+
+    folly::RequestContextScopeGuard unrelatedCompletionContext;
+    cb->result(a + b);
+  }
+
+ private:
+  FollyContextObservations& observations_;
+};
+
 // Handler that retains the ping callback instead of completing it. Tests
 // drive completion on their own schedule, after stop() has begun, to
 // reproduce the race where an in-flight FHC would write back through a
@@ -167,6 +229,38 @@ class DeferredPingHandler
  private:
   ftt::FastHandlerCallbackPtr<void> callback_;
   folly::EventBase* evb_{nullptr};
+};
+
+class ConcurrencyLimitedPingHandler
+    : public FastServiceHandler<integration::FastThriftServer> {
+ public:
+  void async_tm_ping(ftt::FastHandlerCallbackPtr<void> cb) override {
+    evb_ = cb->getEventBase();
+    callbacks_.push_back(std::move(cb));
+    const auto started = started_.fetch_add(1) + 1;
+    if (started == 1) {
+      firstStarted_.post();
+    } else if (started == 2) {
+      secondStarted_.set_value();
+    }
+  }
+
+  void completeNext() {
+    auto callback = std::move(callbacks_.front());
+    callbacks_.erase(callbacks_.begin());
+    std::move(callback)->done();
+  }
+
+  folly::EventBase* getEventBase() const { return evb_; }
+  size_t started() const { return started_.load(); }
+
+  folly::Baton<> firstStarted_;
+  std::promise<void> secondStarted_;
+
+ private:
+  std::vector<ftt::FastHandlerCallbackPtr<void>> callbacks_;
+  folly::EventBase* evb_{nullptr};
+  std::atomic<size_t> started_{0};
 };
 
 // Establishes a fizz-client connection to `address` and returns the negotiated
@@ -757,6 +851,92 @@ TEST(
   evb->runInEventBaseThreadAndWait([&] { client.reset(); });
 }
 
+TEST(
+    FastThriftServerStandaloneTest,
+    RequestConcurrencyLimitsAreSharedAcrossConnections) {
+  THRIFT_FLAG_SET_MOCK(rocket_client_binary_rpc_metadata_encoding, true);
+
+  auto verify = []<typename Server>() {
+    auto handler = std::make_shared<ConcurrencyLimitedPingHandler>();
+    auto secondStarted = handler->secondStarted_.get_future();
+    ftt::FastThriftServerConfig config;
+    config.address = folly::SocketAddress("::1", 0);
+    config.numIOThreads = 1;
+    config.requestConcurrencyLimits = ftt::RequestConcurrencyLimits{
+        .maxActiveRequests = 1,
+        .maxOutstandingRequests = 2,
+    };
+
+    Server server(std::move(config));
+    server.setInterface(handler);
+    server.start();
+
+    folly::ScopedEventBaseThread clientThread;
+    auto* clientEvb = clientThread.getEventBase();
+    using Client = apache::thrift::Client<integration::FastThriftServer>;
+    std::unique_ptr<Client> firstClient;
+    std::unique_ptr<Client> secondClient;
+    clientEvb->runInEventBaseThreadAndWait([&] {
+      auto makeClient = [&] {
+        auto socket =
+            folly::AsyncSocket::newSocket(clientEvb, server.getAddress());
+        auto channel =
+            apache::thrift::RocketClientChannel::newChannel(std::move(socket));
+        return std::make_unique<Client>(std::move(channel));
+      };
+      firstClient = makeClient();
+      secondClient = makeClient();
+    });
+
+    std::atomic<size_t> completed{0};
+    folly::Baton<> bothCompleted;
+    clientEvb->runInEventBaseThread([&] {
+      firstClient->semifuture_ping().via(clientEvb).thenTry(
+          [&](folly::Try<folly::Unit>&& result) {
+            if (result.hasException()) {
+              ADD_FAILURE() << folly::exceptionStr(result.exception());
+            }
+            if (completed.fetch_add(1) + 1 == 2) {
+              bothCompleted.post();
+            }
+          });
+      secondClient->semifuture_ping().via(clientEvb).thenTry(
+          [&](folly::Try<folly::Unit>&& result) {
+            if (result.hasException()) {
+              ADD_FAILURE() << folly::exceptionStr(result.exception());
+            }
+            if (completed.fetch_add(1) + 1 == 2) {
+              bothCompleted.post();
+            }
+          });
+    });
+
+    ASSERT_TRUE(handler->firstStarted_.try_wait_for(std::chrono::seconds{5}));
+    EXPECT_EQ(
+        secondStarted.wait_for(std::chrono::milliseconds{100}),
+        std::future_status::timeout);
+    EXPECT_EQ(handler->started(), 1);
+
+    ASSERT_NE(handler->getEventBase(), nullptr);
+    handler->getEventBase()->runInEventBaseThreadAndWait(
+        [&] { handler->completeNext(); });
+    ASSERT_EQ(
+        secondStarted.wait_for(std::chrono::seconds{5}),
+        std::future_status::ready);
+    handler->getEventBase()->runInEventBaseThreadAndWait(
+        [&] { handler->completeNext(); });
+
+    EXPECT_TRUE(bothCompleted.try_wait_for(std::chrono::seconds{5}));
+    clientEvb->runInEventBaseThreadAndWait([&] {
+      firstClient.reset();
+      secondClient.reset();
+    });
+    server.stop();
+  };
+  verify.template operator()<ftt::FastThriftServer>();
+  verify.template operator()<ftt::DynamicFastThriftServer>();
+}
+
 // ---------------------------------------------------------------------------
 // TLS coverage — FastThriftServer with FizzServerConfig.
 // ---------------------------------------------------------------------------
@@ -1174,6 +1354,29 @@ class StaticSelectionRecordingHandler {
   std::atomic<int>* firstRead_;
 };
 
+struct RequestStateExtension {
+  EXTENSION_ID(request_state_test);
+
+  struct RequestState {
+    int value{0};
+  };
+
+  explicit RequestStateExtension(std::atomic<int>* observed)
+      : observed(observed) {}
+
+  ftt::RequestVerdict onRequest(
+      const ftt::ThriftRequestView& request) noexcept {
+    request.emplaceState<RequestStateExtension>().value = 42;
+    return ftt::RequestVerdict::proceed();
+  }
+
+  void onResponse(const ftt::ThriftResponseView& response) noexcept {
+    const auto* state = response.tryState<RequestStateExtension>();
+    observed->store(state == nullptr ? -1 : state->value);
+  }
+
+  std::atomic<int>* observed;
+};
 // Identity for a state object that outlives the object itself, so a test can
 // still tell two of them apart. An address cannot do this job: a connection's
 // store is destroyed with the connection, and the next one may be handed the
@@ -1253,6 +1456,66 @@ struct SharedStateExtension {
   StateObservations* observed_{nullptr};
 };
 
+struct ConstructorObservations {
+  std::atomic<const void*> constructed{nullptr};
+  std::atomic<const void*> called{nullptr};
+  std::atomic<const void*> constructorState{nullptr};
+  std::atomic<const void*> callbackState{nullptr};
+};
+
+struct ImmovableExtension {
+  ImmovableExtension() = default;
+  ImmovableExtension(const ImmovableExtension&) = delete;
+  ImmovableExtension& operator=(const ImmovableExtension&) = delete;
+  ImmovableExtension(ImmovableExtension&&) = delete;
+  ImmovableExtension& operator=(ImmovableExtension&&) = delete;
+};
+
+struct EmptyImmovableRequestExtension : ImmovableExtension {
+  explicit EmptyImmovableRequestExtension(ConstructorObservations* observed) {
+    observed->constructed.store(this);
+  }
+
+  ftt::RequestVerdict onRequest(
+      const ftt::ThriftRequestView& request) noexcept {
+    const auto connection = request.connection();
+    if (connection) {
+      if (auto* observed =
+              static_cast<ConstructorObservations*>(connection.userData())) {
+        observed->called.store(this);
+      }
+    }
+    return ftt::RequestVerdict::proceed();
+  }
+};
+
+struct SharedImmovableRequestExtension : ImmovableExtension {
+  using ConnState = SharedCallerState;
+
+  SharedImmovableRequestExtension(
+      SharedCallerState& state, ConstructorObservations* observed)
+      : state_(&state), observed_(observed) {
+    observed_->constructed.store(this);
+    observed_->constructorState.store(state_);
+  }
+
+  ftt::RequestVerdict onRequest(
+      const ftt::ThriftRequestView& /*request*/) noexcept {
+    observed_->called.store(this);
+    observed_->callbackState.store(state_);
+    return ftt::RequestVerdict::proceed();
+  }
+
+  SharedCallerState* state_;
+  ConstructorObservations* observed_;
+};
+
+static_assert(std::is_empty_v<EmptyImmovableRequestExtension>);
+static_assert(!std::is_copy_constructible_v<EmptyImmovableRequestExtension>);
+static_assert(!std::is_move_constructible_v<EmptyImmovableRequestExtension>);
+static_assert(!std::is_copy_constructible_v<SharedImmovableRequestExtension>);
+static_assert(!std::is_move_constructible_v<SharedImmovableRequestExtension>);
+
 // A second extension type naming a different ConnState, to prove the slots do
 // not alias. Ids come from the one counter both state types share, so an id
 // from here can be compared against one from SharedCallerState.
@@ -1293,10 +1556,36 @@ struct RejectingExtension {
     if (rejections) {
       rejections->fetch_add(1, std::memory_order_relaxed);
     }
-    return ftt::RequestVerdict::reject<std::runtime_error>(
-        "denied by extension");
+    return ftt::RequestVerdict::reject<apache::thrift::AppClientError>(
+        "TypedExtensionRejection", "denied by extension");
   }
 };
+
+struct RejectionObservation {
+  bool failed{false};
+  std::string message;
+  apache::thrift::transport::THeader::StringToStringMap headers;
+};
+
+RejectionObservation addRoundTripObservingRejection(
+    const folly::SocketAddress& addr) {
+  folly::EventBase evb;
+  auto channel = apache::thrift::RocketClientChannel::newChannel(
+      folly::AsyncSocket::newSocket(&evb, addr));
+  apache::thrift::Client<integration::FastThriftServer> client(
+      std::move(channel));
+
+  apache::thrift::RpcOptions options;
+  RejectionObservation observation;
+  try {
+    (void)client.sync_add(options, 7, 35);
+  } catch (const apache::thrift::TApplicationException& ex) {
+    observation.failed = true;
+    observation.message = ex.what();
+  }
+  observation.headers = options.getReadHeaders();
+  return observation;
+}
 
 // Drives one `add(7, 35)` RPC against `addr` and returns the result, so tests
 // that only care about exercising the server pipeline stay tight.
@@ -1381,13 +1670,140 @@ ftt::FastThriftServerConfig makeHeadersConfig() {
   return config;
 }
 
+class FastThriftServerRpcMetadataTest : public ::testing::TestWithParam<bool> {
+ protected:
+  void SetUp() override {
+    auto config = makeHeadersConfig();
+    config.enableStreamMux = true;
+    server_ = std::make_unique<ftt::FastThriftServer>(std::move(config));
+    server_->setInterface(std::make_shared<TestHandler>());
+    server_->addModule(
+        ftt::FastServerModule("rejecting")
+            .addThriftExtension<RejectingExtension>(&rejections_));
+    server_->start();
+    apache::thrift::RequestSetupMetadata setupMetadata;
+    setupMetadata.minVersion() = 8;
+    setupMetadata.maxVersion() = 10;
+    setupMetadata.encodeMetadataUsingBinary() = false;
+    client_ = std::make_unique<apache::thrift::rocket::test::RocketTestClient>(
+        server_->getAddress(), std::move(setupMetadata));
+  }
+
+  void TearDown() override {
+    client_.reset();
+    server_->stop();
+    server_.reset();
+  }
+
+  apache::thrift::RequestRpcMetadata validMetadata() const {
+    apache::thrift::RequestRpcMetadata metadata;
+    metadata.protocol() = apache::thrift::ProtocolId::COMPACT;
+    metadata.name() = GetParam() ? "streamEchoes" : "add";
+    metadata.kind() = GetParam()
+        ? apache::thrift::RpcKind::SINGLE_REQUEST_STREAMING_RESPONSE
+        : apache::thrift::RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE;
+    return metadata;
+  }
+
+  apache::thrift::rocket::Payload makeRequest(
+      const apache::thrift::RequestRpcMetadata& metadata) {
+    return apache::thrift::rocket::Payload::makeFromMetadataAndData(
+        apache::thrift::rocket::PayloadSerializer::getInstance()->packCompact(
+            metadata),
+        folly::IOBuf::copyBuffer("\0", 1));
+  }
+
+  template <class T>
+  void expectParsingFailure(folly::Try<T>& response) {
+    ASSERT_TRUE(response.hasException());
+    const auto* error =
+        response.exception()
+            .template get_exception<apache::thrift::rocket::RocketException>();
+    ASSERT_NE(error, nullptr);
+    EXPECT_EQ(
+        error->getErrorCode(), apache::thrift::rocket::ErrorCode::INVALID);
+    auto errorCopy = *error;
+    auto data = errorCopy.moveErrorData();
+    ASSERT_NE(data, nullptr);
+    apache::thrift::ResponseRpcError rpcError;
+    apache::thrift::rocket::PayloadSerializer::getInstance()->unpack(
+        rpcError, data.get(), /*useBinary=*/false);
+    EXPECT_EQ(
+        rpcError.code(),
+        apache::thrift::ResponseRpcErrorCode::REQUEST_PARSING_FAILURE);
+    EXPECT_EQ(
+        rpcError.category(),
+        apache::thrift::ResponseRpcErrorCategory::INVALID_REQUEST);
+    auto decoded = ftt::decodeErrorAsResponse(
+        static_cast<uint32_t>(error->getErrorCode()), data.get());
+    ASSERT_TRUE(decoded.hasValue());
+    EXPECT_EQ(
+        decoded->exType,
+        apache::thrift::TApplicationException::UNSUPPORTED_CLIENT_TYPE);
+    EXPECT_EQ(decoded->exCode, ::kRequestParsingErrorCode);
+    EXPECT_EQ(decoded->what, "Invalid metadata object");
+  }
+
+  std::atomic<int> rejections_{0};
+  std::unique_ptr<ftt::FastThriftServer> server_;
+  std::unique_ptr<apache::thrift::rocket::test::RocketTestClient> client_;
+};
+
+TEST_P(
+    FastThriftServerRpcMetadataTest,
+    MalformedMetadataPrecedesRejectingExtension) {
+  std::array<apache::thrift::RequestRpcMetadata, 4> requests{
+      validMetadata(), validMetadata(), validMetadata(), validMetadata()};
+  requests[0].protocol().reset();
+  requests[1].name().reset();
+  requests[2].kind().reset();
+  requests[3].kind() = GetParam()
+      ? apache::thrift::RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE
+      : apache::thrift::RpcKind::SINGLE_REQUEST_STREAMING_RESPONSE;
+
+  for (size_t i = 0; i < requests.size(); ++i) {
+    SCOPED_TRACE(i);
+    if (GetParam()) {
+      auto response = client_->sendRequestStreamSync(makeRequest(requests[i]));
+      expectParsingFailure(response);
+    } else {
+      auto response = client_->sendRequestResponseSync(
+          makeRequest(requests[i]), std::chrono::seconds{5}, nullptr);
+      expectParsingFailure(response);
+    }
+    EXPECT_EQ(rejections_.load(), 0);
+  }
+}
+
+TEST_P(
+    FastThriftServerRpcMetadataTest, ValidMetadataReachesRejectingExtension) {
+  if (GetParam()) {
+    auto response =
+        client_->sendRequestStreamSync(makeRequest(validMetadata()));
+    EXPECT_TRUE(response.hasValue());
+  } else {
+    auto response = client_->sendRequestResponseSync(
+        makeRequest(validMetadata()), std::chrono::seconds{5}, nullptr);
+    EXPECT_TRUE(response.hasValue());
+  }
+  EXPECT_EQ(rejections_.load(), 1);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    RocketFrames,
+    FastThriftServerRpcMetadataTest,
+    ::testing::Values(false, true),
+    [](const ::testing::TestParamInfo<bool>& info) {
+      return info.param ? "InitialStream" : "Unary";
+    });
+
 std::unique_ptr<void, void (*)(void*)> resolveFirstPeerIdentity(
-    const folly::AsyncTransportCertificate*, const folly::SocketAddress&) {
+    const folly::AsyncTransport*, X509*, const folly::SocketAddress&) {
   return {nullptr, +[](void*) noexcept {}};
 }
 
 std::unique_ptr<void, void (*)(void*)> resolveSecondPeerIdentity(
-    const folly::AsyncTransportCertificate*, const folly::SocketAddress&) {
+    const folly::AsyncTransport*, X509*, const folly::SocketAddress&) {
   return {nullptr, +[](void*) noexcept {}};
 }
 
@@ -1445,15 +1861,27 @@ struct ClassicContextCheckingExtension {
   }
 };
 
-TEST(FastThriftServerExtensionTest, RejectsConflictingPeerIdentityResolvers) {
+TEST(
+    FastThriftServerExtensionTest, ClientIdentityHookCanBeReplacedBeforeStart) {
   ftt::FastThriftServer server(makeLoopbackConfig());
-
-  server.setPeerIdentityResolver(&resolveFirstPeerIdentity);
-  EXPECT_NO_THROW(server.setPeerIdentityResolver(&resolveFirstPeerIdentity));
-  EXPECT_THROW(
-      server.setPeerIdentityResolver(&resolveSecondPeerIdentity),
-      std::logic_error);
-  EXPECT_EQ(server.getPeerIdentityResolver(), &resolveFirstPeerIdentity);
+  const folly::SocketAddress peer("127.0.0.1", 4321);
+  int calls = 0;
+  server.setClientIdentityHook([&](const folly::AsyncTransport* transport,
+                                   X509* cert,
+                                   const folly::SocketAddress& address) {
+    EXPECT_EQ(transport, nullptr);
+    EXPECT_EQ(cert, nullptr);
+    EXPECT_EQ(address, peer);
+    ++calls;
+    return std::unique_ptr<void, void (*)(void*)>(nullptr, +[](void*) {});
+  });
+  server.getClientIdentityHook()(nullptr, nullptr, peer);
+  EXPECT_EQ(calls, 1);
+  server.setClientIdentityHook(&resolveSecondPeerIdentity);
+  server.getClientIdentityHook()(nullptr, nullptr, peer);
+  EXPECT_EQ(calls, 1);
+  server.setClientIdentityHook(nullptr);
+  EXPECT_FALSE(server.getClientIdentityHook());
 }
 
 TEST(FastThriftServerExtensionTest, RejectsNullClassicEventHandlers) {
@@ -1475,7 +1903,7 @@ TEST(FastThriftServerExtensionTest, RejectsClassicRegistrationAfterStart) {
   server.start();
 
   EXPECT_THROW(
-      server.setPeerIdentityResolver(&resolveFirstPeerIdentity),
+      server.setClientIdentityHook(&resolveFirstPeerIdentity),
       std::logic_error);
   EXPECT_THROW(server.addProcessorEventHandler(eventHandler), std::logic_error);
   EXPECT_THROW(server.addServerEventHandler(eventHandler), std::logic_error);
@@ -1487,6 +1915,7 @@ TEST(FastThriftServerExtensionTest, CoalescesClassicEventHandlers) {
   auto handler = std::make_shared<TestHandler>();
   std::atomic<int> requests{0};
   std::atomic<int> connections{0};
+  std::atomic<int> identityCalls{0};
   std::atomic<bool> connectionReady{false};
   std::atomic<bool> requestReady{false};
   auto first =
@@ -1497,6 +1926,16 @@ TEST(FastThriftServerExtensionTest, CoalescesClassicEventHandlers) {
   auto config = makeLoopbackConfig();
   ftt::FastThriftServer server(std::move(config));
   server.setInterface(handler);
+  server.setClientIdentityHook([&](const folly::AsyncTransport* transport,
+                                   X509* cert,
+                                   const folly::SocketAddress& peer) {
+    EXPECT_NE(transport, nullptr);
+    EXPECT_EQ(cert, nullptr);
+    EXPECT_TRUE(peer.isLoopbackAddress());
+    EXPECT_EQ(connections.load(), 0);
+    identityCalls.fetch_add(1);
+    return std::unique_ptr<void, void (*)(void*)>(nullptr, +[](void*) {});
+  });
   server.addProcessorEventHandler(first);
   server.addServerEventHandler(first);
   server.addProcessorEventHandler(second);
@@ -1510,6 +1949,7 @@ TEST(FastThriftServerExtensionTest, CoalescesClassicEventHandlers) {
   EXPECT_EQ(addRoundTrip(server.getAddress()), 42);
   EXPECT_EQ(requests.load(), 2);
   EXPECT_EQ(connections.load(), 2);
+  EXPECT_EQ(identityCalls.load(), 1);
   EXPECT_TRUE(connectionReady.load());
   EXPECT_TRUE(requestReady.load());
 }
@@ -1523,6 +1963,7 @@ struct ConnectionRecorder {
   std::atomic<int> established{-1};
   std::atomic<int> request{-1};
   std::atomic<int> closed{0};
+  std::atomic<void*> closedUserData{nullptr};
   std::atomic<int> negotiatedVersion{0};
   std::atomic<bool> sawClientSetup{false};
 
@@ -1644,8 +2085,9 @@ struct PolicyContributingExtension {
 struct ClosedOnlyExtension {
   ConnectionRecorder* rec{nullptr};
 
-  void onConnectionClosed(const ftt::ThriftConnectionView& /*conn*/) noexcept {
-    rec->closed.fetch_add(1, std::memory_order_relaxed);
+  void onConnectionClosed(const ftt::ThriftConnectionView& conn) noexcept {
+    rec->closedUserData.store(conn.userData(), std::memory_order_relaxed);
+    rec->closed.fetch_add(1, std::memory_order_release);
   }
 };
 
@@ -1746,6 +2188,108 @@ struct ObservingBackpressureExtension {
 
   BackpressureRecorder* rec{nullptr};
   int requests{0};
+};
+
+struct ForwardingBackpressureExtension : BackpressureExtension {
+  ForwardingBackpressureExtension(
+      BackpressureRecorder& recorder, bool& shouldReject) noexcept
+      : BackpressureExtension(&recorder), shouldReject_(&shouldReject) {}
+
+  ftt::RequestVerdict onRequest(
+      const ftt::ThriftRequestView& request) noexcept {
+    if (*shouldReject_) {
+      return ftt::RequestVerdict::reject<std::runtime_error>(
+          "forwarding test rejection");
+    }
+    return BackpressureExtension::onRequest(request);
+  }
+
+ private:
+  bool* shouldReject_;
+};
+
+class ExtensionForwardingContext {
+ public:
+  explicit ExtensionForwardingContext(folly::EventBase& eventBase)
+      : eventBase_(&eventBase) {}
+
+  cp::Result fireRead(cp::TypeErasedBox&&) noexcept {
+    ++reads;
+    // Nested reads must not invoke the outer read's hook again.
+    auto hook = std::exchange(onFireRead, std::function<void()>{});
+    if (hook) {
+      hook();
+    }
+    return readResult;
+  }
+
+  cp::Result fireWrite(cp::TypeErasedBox&& message) noexcept {
+    ++writes;
+    const auto& response = message.get<ftt::ThriftServerResponseMessage>();
+    responseHasContext = response.requestContext != nullptr;
+    if (response.payload.is<ftt::ThriftInitialResponsePayload>()) {
+      responseStreamId =
+          response.payload.get<ftt::ThriftInitialResponsePayload>().streamId;
+    }
+    return writeResult;
+  }
+
+  void fireException(folly::exception_wrapper&&) noexcept {}
+  cp::PipelineRef pipeline() const noexcept { return {}; }
+  folly::EventBase* eventBase() const noexcept { return eventBase_; }
+
+  int reads{0};
+  int writes{0};
+  bool responseHasContext{false};
+  uint32_t responseStreamId{0};
+  cp::Result readResult{cp::Result::Success};
+  cp::Result writeResult{cp::Result::Success};
+  std::function<void()> onFireRead;
+
+ private:
+  folly::EventBase* eventBase_;
+};
+
+class FastThriftServerForwardingTest : public testing::Test {
+ protected:
+  using Adapter = ftt::server::ThriftExtensionPipelineHandler<
+      ForwardingBackpressureExtension,
+      ExtensionForwardingContext>;
+
+  void SetUp() override {
+    handler_.handlerAdded(context_);
+    auto setup = makeSetup();
+    ASSERT_EQ(handler_.onRead(context_, std::move(setup)), cp::Result::Success);
+    context_.reads = 0;
+  }
+
+  void TearDown() override { handler_.handlerRemoved(context_); }
+
+  cp::TypeErasedBox makeRequest(uint32_t streamId) {
+    ftt::ThriftServerRequestMessage request;
+    request.requestContext = ftt::makeThriftRequestContext(eventBase_);
+    request.requestContext->setConnectionContext(connection_);
+    request.payload = ftt::ThriftServerRequestResponsePayload{};
+    request.streamId = streamId;
+    return cp::erase_and_box(std::move(request));
+  }
+
+  cp::TypeErasedBox makeSetup() {
+    auto setup = std::make_unique<ftt::ConnectionSetupData>();
+    setup->connContext = connection_.get();
+    ftt::ThriftServerRequestMessage request;
+    request.payload = ftt::ThriftConnectionSetupPayload{std::move(setup)};
+    return cp::erase_and_box(std::move(request));
+  }
+
+  folly::EventBase eventBase_;
+  ftt::ExtensionStateStore store_;
+  boost::intrusive_ptr<ftt::ThriftConnContext> connection_{
+      new ftt::ThriftConnContext()};
+  BackpressureRecorder recorder_;
+  bool shouldReject_{false};
+  ExtensionForwardingContext context_{eventBase_};
+  Adapter handler_{store_, recorder_, shouldReject_};
 };
 
 // `count` sequential RPCs over one connection, returning false rather than
@@ -1856,6 +2400,44 @@ TEST(FastThriftServerSharedPoolTest, RoundTripWithEmbedderPool) {
   evb->runInEventBaseThreadAndWait([&] { client.reset(); });
 }
 
+struct CacheRequiredExtension {
+  static constexpr bool kUsesCachedEkms = true;
+  ftt::RequestVerdict onRequest(const ftt::ThriftRequestView&) noexcept {
+    return ftt::RequestVerdict::proceed();
+  }
+};
+
+TEST(
+    FastThriftServerConnContextTest,
+    PreregisteredCacheIsPublishedBeforeAcceptWithoutRequests) {
+  folly::Baton<> accepted;
+  std::atomic<bool> cachePublished{false};
+  ftt::FastThriftServer server(makeLoopbackConfig());
+  server.setInterface(std::make_shared<TestHandler>());
+  server.registerExtension<ftt::CachedEkmExtension>();
+  server.addModule(
+      ftt::StaticFastServerModule("cached_ekms")
+          .addThriftExtension<CacheRequiredExtension>());
+  server.setOnConnectionAccepted([&](ftt::ThriftConnContext* context) {
+    cachePublished.store(
+        context != nullptr &&
+        context->tryState<ftt::CachedEkmExtension>() != nullptr);
+    accepted.post();
+  });
+  server.start();
+
+  folly::ScopedEventBaseThread clientThread;
+  auto* eventBase = clientThread.getEventBase();
+  std::shared_ptr<folly::AsyncSocket> socket;
+  eventBase->runInEventBaseThreadAndWait([&] {
+    socket = folly::AsyncSocket::newSocket(eventBase, server.getAddress());
+  });
+  EXPECT_TRUE(accepted.try_wait_for(std::chrono::seconds{5}));
+  EXPECT_TRUE(cachePublished.load());
+  eventBase->runInEventBaseThreadAndWait([&] { socket.reset(); });
+  server.stop();
+}
+
 // The per-connection context carries the peer address captured when the socket
 // was accepted, not one re-derived from the transport at build time.
 TEST(FastThriftServerConnContextTest, PeerAddressReachesConnContext) {
@@ -1905,6 +2487,38 @@ struct HeaderReadingExtension {
     ran->store(true, std::memory_order_relaxed);
     return ftt::RequestVerdict::proceed();
   }
+};
+
+struct FollyContextObservingExtension {
+  explicit FollyContextObservingExtension(
+      FollyContextObservations* observations) noexcept
+      : observations_(observations) {}
+
+  ftt::RequestVerdict onRequest(
+      const ftt::ThriftRequestView& /*request*/) noexcept {
+    auto* context = folly::RequestContext::try_get();
+    observations_->request.store(context, std::memory_order_relaxed);
+    if (context != nullptr) {
+      context->setContextData(
+          follyContextMarkerToken(), std::make_unique<FollyContextMarker>());
+    }
+    sawRequest_ = true;
+    return ftt::RequestVerdict::proceed();
+  }
+
+  void onResponse(const ftt::ThriftResponseView& /*response*/) noexcept {
+    if (!sawRequest_) {
+      return;
+    }
+    observations_->response.store(
+        folly::RequestContext::try_get(), std::memory_order_relaxed);
+    observations_->responseSawMarker.store(
+        hasFollyContextMarker(), std::memory_order_relaxed);
+  }
+
+ private:
+  FollyContextObservations* observations_{nullptr};
+  bool sawRequest_{false};
 };
 
 // Drives one `add(7, 35)` RPC carrying a custom request header.
@@ -1969,6 +2583,36 @@ TEST(FastThriftServerExtensionTest, ExtensionReadsRequestHeaderWithHeadersOn) {
   EXPECT_EQ(seen, "abc");
 }
 
+TEST(
+    FastThriftServerExtensionTest,
+    FollyRequestContextSpansExtensionsAndApplication) {
+  THRIFT_FLAG_SET_MOCK(rocket_client_binary_rpc_metadata_encoding, true);
+
+  FollyContextObservations observations;
+  auto handler = std::make_shared<FollyContextObservingHandler>(observations);
+  auto config = makeLoopbackConfig();
+  config.numCPUThreads = 1;
+  ftt::FastThriftServer server(std::move(config));
+  server.setInterface(handler);
+  server.addModule(
+      ftt::FastServerModule("folly_request_context")
+          .addThriftExtension<FollyContextObservingExtension>(&observations));
+  server.start();
+
+  EXPECT_EQ(addRoundTrip(server.getAddress()), 42);
+
+  auto* const requestContext =
+      observations.request.load(std::memory_order_relaxed);
+  ASSERT_NE(requestContext, nullptr);
+  EXPECT_EQ(
+      observations.application.load(std::memory_order_relaxed), requestContext);
+  EXPECT_EQ(
+      observations.response.load(std::memory_order_relaxed), requestContext);
+  EXPECT_TRUE(
+      observations.applicationSawMarker.load(std::memory_order_relaxed));
+  EXPECT_TRUE(observations.responseSawMarker.load(std::memory_order_relaxed));
+}
+
 // With the header handler off there is nowhere for the extension to read
 // headers from, so the server refuses the module outright rather than let it
 // run against headers it will never see.
@@ -2001,6 +2645,23 @@ struct ResponseHeaderExtension {
     }
   }
 };
+
+struct NoopRequestExtension {
+  ftt::RequestVerdict onRequest(
+      const ftt::ThriftRequestView& /*request*/) noexcept {
+    return ftt::RequestVerdict::proceed();
+  }
+};
+
+template <class H>
+constexpr bool kAdapterUsesOnlyHandlerStorage =
+    sizeof(ftt::server::ThriftExtensionPipelineHandler<H>) == sizeof(H) &&
+    alignof(ftt::server::ThriftExtensionPipelineHandler<H>) == alignof(H);
+
+static_assert(kAdapterUsesOnlyHandlerStorage<RejectingExtension>);
+static_assert(kAdapterUsesOnlyHandlerStorage<NoopRequestExtension>);
+static_assert(kAdapterUsesOnlyHandlerStorage<ResponseHeaderExtension>);
+static_assert(kAdapterUsesOnlyHandlerStorage<EmptyImmovableRequestExtension>);
 
 // Drives one `add(7, 35)` RPC and reports the response header the client saw.
 //
@@ -2089,7 +2750,7 @@ static_assert(
     AcceptsModule<ftt::DynamicFastThriftServer, ftt::FastServerModule>);
 static_assert(
     AcceptsModule<ftt::DynamicFastThriftServer, ftt::DynamicFastServerModule>);
-static_assert(!AcceptsRocketBuilder<
+static_assert(AcceptsRocketBuilder<
               ftt::FastThriftServer,
               ftt::server::RocketServerConnectionBuilder>);
 static_assert(AcceptsRocketBuilder<
@@ -2221,6 +2882,21 @@ TEST(
   EXPECT_GT(extensionFirstRequest.load(), handlerFirstRead.load());
 }
 
+TEST(FastThriftServerExtensionTest, RequestStateSurvivesUntilResponse) {
+  THRIFT_FLAG_SET_MOCK(rocket_client_binary_rpc_metadata_encoding, true);
+
+  auto handler = std::make_shared<TestHandler>();
+  std::atomic<int> observed{0};
+  ftt::FastThriftServer server(makeLoopbackConfig());
+  server.setInterface(handler);
+  server.addModule(
+      ftt::FastServerModule("request_state")
+          .addThriftExtension<RequestStateExtension>(&observed));
+  server.start();
+
+  EXPECT_EQ(addRoundTrip(server.getAddress()), 42);
+  EXPECT_EQ(observed.load(), 42);
+}
 // Extensions are spliced in registration order (head→tail), across modules and
 // within a module: module "first" (A) runs before module "second" (B, C), and
 // within "second" B runs before C. First-request sequence numbers pin
@@ -2304,6 +2980,34 @@ TEST(FastThriftServerExtensionTest, DistinctConnStateTypesDoNotAlias) {
   EXPECT_NE(observed.id(0), observed.id(1));
 }
 
+TEST(FastThriftServerExtensionTest, ImmovableExtensionsConstructInPlace) {
+  THRIFT_FLAG_SET_MOCK(rocket_client_binary_rpc_metadata_encoding, true);
+
+  auto handler = std::make_shared<TestHandler>();
+  ConstructorObservations ordinary;
+  ConstructorObservations shared;
+  ftt::FastThriftServer server(makeLoopbackConfig());
+  server.setInterface(handler);
+  server.setOnConnectionAccepted([&](ftt::ThriftConnContext* conn) {
+    conn->setUserData(
+        apache::thrift::fast_thrift::rocket::with_custom_deleter(
+            &ordinary, +[](void*) noexcept {}));
+  });
+  server.addModule(
+      ftt::FastServerModule("immovable")
+          .addThriftExtension<EmptyImmovableRequestExtension>(&ordinary)
+          .addThriftExtension<SharedImmovableRequestExtension>(&shared));
+  server.start();
+
+  EXPECT_EQ(addRoundTrip(server.getAddress()), 42);
+  ASSERT_NE(ordinary.constructed.load(), nullptr);
+  EXPECT_EQ(ordinary.called.load(), ordinary.constructed.load());
+  ASSERT_NE(shared.constructed.load(), nullptr);
+  EXPECT_EQ(shared.called.load(), shared.constructed.load());
+  ASSERT_NE(shared.constructorState.load(), nullptr);
+  EXPECT_EQ(shared.callbackState.load(), shared.constructorState.load());
+}
+
 // The state is per connection, not per server: a second connection gets its own
 // object, so nothing an extension caches can bleed between callers.
 TEST(FastThriftServerExtensionTest, ConnStateIsPerConnection) {
@@ -2368,16 +3072,49 @@ TEST(FastThriftServerExtensionTest, ModifierRejectionShortCircuitsService) {
 
   auto handler = std::make_shared<TestHandler>();
   std::atomic<int> rejections{0};
+  FollyContextObservations observations;
 
   ftt::FastThriftServer server(makeHeadersConfig());
   server.setInterface(handler);
   server.addModule(
-      ftt::FastServerModule("reject").addThriftExtension<RejectingExtension>(
-          &rejections));
+      ftt::FastServerModule("reject")
+          .addThriftExtension<FollyContextObservingExtension>(&observations)
+          .addThriftExtension<RejectingExtension>(&rejections));
   server.start();
 
-  EXPECT_TRUE(addRoundTripFails(server.getAddress()));
+  const auto observation = addRoundTripObservingRejection(server.getAddress());
+  EXPECT_TRUE(observation.failed);
+  EXPECT_EQ(observation.message, "denied by extension");
+  EXPECT_EQ(
+      observation.headers.at(std::string(apache::thrift::detail::kHeaderUex)),
+      "TypedExtensionRejection");
+  EXPECT_EQ(
+      observation.headers.at(std::string(apache::thrift::detail::kHeaderEx)),
+      kAppClientErrorCode);
+  EXPECT_EQ(observation.headers.at("x-rejected-by-extension"), "add");
   EXPECT_GE(rejections.load(), 1);
+  auto* const requestContext =
+      observations.request.load(std::memory_order_relaxed);
+  ASSERT_NE(requestContext, nullptr);
+  EXPECT_EQ(observations.application.load(std::memory_order_relaxed), nullptr);
+  EXPECT_EQ(
+      observations.response.load(std::memory_order_relaxed), requestContext);
+  EXPECT_TRUE(observations.responseSawMarker.load(std::memory_order_relaxed));
+}
+
+TEST(FastThriftServerExtensionTest, ResponseViewClassifiesApplicationErrors) {
+  auto appError = ftt::makeAppErrorMessage(
+      1,
+      "TypedExtensionRejection",
+      "denied by extension",
+      apache::thrift::ErrorBlame::CLIENT);
+  const ftt::ThriftResponseView appErrorView(appError);
+  EXPECT_TRUE(appErrorView.isApplicationError());
+
+  auto success = ftt::makeResponseMessage(
+      1, nullptr, std::make_unique<apache::thrift::ResponseRpcMetadata>());
+  const ftt::ThriftResponseView successView(success);
+  EXPECT_FALSE(successView.isApplicationError());
 }
 
 // The connection callbacks bracket the SETUP exchange: attempted fires once
@@ -2451,13 +3188,16 @@ TEST(FastThriftServerConnectionExtensionTest, AttemptedRejectionRefusesSetup) {
   server.setInterface(handler);
   server.addModule(
       ftt::FastServerModule("reject-attempt")
+          .addThriftExtension<ClosedOnlyExtension>(&rec)
           .addThriftExtension<RejectAtAttemptedExtension>(&rec));
   server.start();
 
   EXPECT_TRUE(addRoundTripFails(server.getAddress()));
+  server.stop();
   EXPECT_GE(rec.attempted.load(), 0);
   EXPECT_EQ(rec.established.load(), -1);
   EXPECT_EQ(rec.request.load(), -1);
+  EXPECT_EQ(rec.closed.load(), 0);
 }
 
 // An extension may hook teardown alone, with no request callback. The closed
@@ -2467,9 +3207,15 @@ TEST(FastThriftServerConnectionExtensionTest, ClosedFiresForSettledConnection) {
 
   auto handler = std::make_shared<TestHandler>();
   ConnectionRecorder rec;
+  int marker = 0;
 
   ftt::FastThriftServer server(makeLoopbackConfig());
   server.setInterface(handler);
+  server.setOnConnectionAccepted([&](ftt::ThriftConnContext* conn) {
+    conn->setUserData(
+        apache::thrift::fast_thrift::rocket::with_custom_deleter(
+            &marker, +[](void*) noexcept {}));
+  });
   server.addModule(
       ftt::FastServerModule("closed-only")
           .addThriftExtension<ClosedOnlyExtension>(&rec));
@@ -2479,6 +3225,8 @@ TEST(FastThriftServerConnectionExtensionTest, ClosedFiresForSettledConnection) {
   // close is already in flight by the time we start waiting.
   EXPECT_EQ(addRoundTrip(server.getAddress()), 42);
   EXPECT_TRUE(waitFor(rec.closed, 1));
+  ASSERT_GE(rec.closed.load(std::memory_order_acquire), 1);
+  EXPECT_EQ(rec.closedUserData.load(std::memory_order_relaxed), &marker);
 }
 
 // An extension can contribute to the SETUP response the client receives, not
@@ -2601,24 +3349,28 @@ TEST(
 TEST(FastThriftServerBackpressureExtensionTest, PauseThenResumeKeepsServing) {
   THRIFT_FLAG_SET_MOCK(rocket_client_binary_rpc_metadata_encoding, true);
 
-  BackpressureRecorder rec;
-  rec.pauseOnce.store(true, std::memory_order_relaxed);
-  auto handler = std::make_shared<TestHandler>();
+  auto verify = []<typename Server>() {
+    BackpressureRecorder rec;
+    rec.pauseOnce.store(true, std::memory_order_relaxed);
+    auto handler = std::make_shared<TestHandler>();
 
-  auto config = makeLoopbackConfig();
-  ftt::FastThriftServer server(std::move(config));
-  server.setInterface(handler);
-  server.setIOThreadPool(makeFixedSizePool(1));
-  server.addModule(
-      ftt::FastServerModule("backpressure")
-          .addThriftExtension<BackpressureExtension>(&rec));
-  server.start();
+    auto config = makeLoopbackConfig();
+    Server server(std::move(config));
+    server.setInterface(handler);
+    server.setIOThreadPool(makeFixedSizePool(1));
+    server.addModule(
+        ftt::FastServerModule("backpressure")
+            .addThriftExtension<BackpressureExtension>(&rec));
+    server.start();
 
-  EXPECT_TRUE(roundTripsOnOneConnection(server.getAddress(), 2));
-  EXPECT_GE(rec.drained.load(), 1);
-  // The resumer named the EventBase the connection was running on, so a resume
-  // deferred onto it is guaranteed to run.
-  EXPECT_TRUE(rec.resumerEvbLooping.load(std::memory_order_relaxed));
+    EXPECT_TRUE(roundTripsOnOneConnection(server.getAddress(), 2));
+    EXPECT_GE(rec.drained.load(), 1);
+    // The resumer named the EventBase the connection was running on, so a
+    // resume deferred onto it is guaranteed to run.
+    EXPECT_TRUE(rec.resumerEvbLooping.load(std::memory_order_relaxed));
+  };
+  verify.template operator()<ftt::FastThriftServer>();
+  verify.template operator()<ftt::DynamicFastThriftServer>();
 }
 
 // The extension outlives the connection, so a resume that arrives after
@@ -2695,14 +3447,101 @@ TEST(FastThriftServerBackpressureExtensionTest, ConceptsAreIndependent) {
       "one extension may implement both families");
 }
 
-TEST(FastThriftServerBackpressureExtensionTest, AcceptsBackpressureExtension) {
+TEST(
+    FastThriftServerBackpressureExtensionTest,
+    DefaultConfigAcceptsBackpressureExtension) {
   BackpressureRecorder rec;
   auto config = makeLoopbackConfig();
-  config.enableWriteBufferBackpressure = true;
   ftt::FastThriftServer server(std::move(config));
   EXPECT_NO_THROW(server.addModule(
       ftt::FastServerModule("backpressure")
           .addThriftExtension<BackpressureExtension>(&rec)));
+}
+
+TEST_F(
+    FastThriftServerForwardingTest,
+    PauseAndResumeDuringFireReadAffectReturnedResult) {
+  auto nested = makeRequest(3);
+  cp::Result nestedResult = cp::Result::Success;
+  context_.onFireRead = [&] {
+    recorder_.pauseOnce.store(true, std::memory_order_relaxed);
+    nestedResult = handler_.onRead(context_, std::move(nested));
+  };
+  auto outer = makeRequest(1);
+  EXPECT_EQ(
+      handler_.onRead(context_, std::move(outer)), cp::Result::Backpressure);
+  EXPECT_EQ(nestedResult, cp::Result::Backpressure);
+  EXPECT_EQ(context_.reads, 2);
+  EXPECT_EQ(connection_->readBackpressureArbiter().holderCount(), 1u);
+
+  recorder_.resumer.resume();
+  EXPECT_EQ(connection_->readBackpressureArbiter().holderCount(), 0u);
+
+  context_.reads = 0;
+  recorder_.pauseOnce.store(true, std::memory_order_relaxed);
+  context_.onFireRead = [&] { recorder_.resumer.resume(); };
+  auto resumed = makeRequest(5);
+  EXPECT_EQ(handler_.onRead(context_, std::move(resumed)), cp::Result::Success);
+  EXPECT_EQ(context_.reads, 1);
+  EXPECT_EQ(connection_->readBackpressureArbiter().holderCount(), 0u);
+}
+
+TEST_F(
+    FastThriftServerForwardingTest,
+    ErrorsAndRejectionsWhilePausedKeepTheirForwardingContract) {
+  recorder_.pauseOnce.store(true, std::memory_order_relaxed);
+  auto paused = makeRequest(1);
+  EXPECT_EQ(
+      handler_.onRead(context_, std::move(paused)), cp::Result::Backpressure);
+
+  context_.readResult = cp::Result::Error;
+  auto failed = makeRequest(3);
+  EXPECT_EQ(handler_.onRead(context_, std::move(failed)), cp::Result::Error);
+  EXPECT_EQ(context_.reads, 2);
+  EXPECT_EQ(connection_->readBackpressureArbiter().holderCount(), 1u);
+
+  shouldReject_ = true;
+  auto rejected = makeRequest(11);
+  const auto& rejectedRequest = rejected.get<ftt::ThriftServerRequestMessage>();
+  EXPECT_EQ(
+      handler_.onRead(context_, std::move(rejected)), cp::Result::Backpressure);
+  EXPECT_EQ(context_.reads, 2);
+  EXPECT_EQ(context_.writes, 1);
+  EXPECT_TRUE(context_.responseHasContext);
+  EXPECT_EQ(context_.responseStreamId, 11u);
+  EXPECT_EQ(rejectedRequest.requestContext, nullptr);
+
+  context_.writeResult = cp::Result::Error;
+  auto rejectedError = makeRequest(13);
+  EXPECT_EQ(
+      handler_.onRead(context_, std::move(rejectedError)), cp::Result::Error);
+  EXPECT_EQ(context_.reads, 2);
+  EXPECT_EQ(context_.writes, 2);
+  EXPECT_EQ(context_.responseStreamId, 13u);
+  EXPECT_EQ(connection_->readBackpressureArbiter().holderCount(), 1u);
+}
+
+TEST_F(FastThriftServerForwardingTest, SetupWhilePausedBypassesMasking) {
+  recorder_.pauseOnce.store(true, std::memory_order_relaxed);
+  auto paused = makeRequest(1);
+  EXPECT_EQ(
+      handler_.onRead(context_, std::move(paused)), cp::Result::Backpressure);
+
+  recorder_.pauseOnce.store(true, std::memory_order_relaxed);
+  auto setup = makeSetup();
+  EXPECT_EQ(handler_.onRead(context_, std::move(setup)), cp::Result::Success);
+  EXPECT_TRUE(recorder_.pauseOnce.load(std::memory_order_relaxed));
+  EXPECT_EQ(context_.reads, 2);
+  EXPECT_EQ(connection_->readBackpressureArbiter().holderCount(), 1u);
+
+  context_.readResult = cp::Result::Error;
+  auto setupError = makeSetup();
+  EXPECT_EQ(
+      handler_.onRead(context_, std::move(setupError)), cp::Result::Error);
+  EXPECT_TRUE(recorder_.pauseOnce.load(std::memory_order_relaxed));
+  EXPECT_EQ(context_.reads, 3);
+  EXPECT_EQ(context_.writes, 0);
+  EXPECT_EQ(connection_->readBackpressureArbiter().holderCount(), 1u);
 }
 
 // Registering two modules with the same name on the server is rejected.

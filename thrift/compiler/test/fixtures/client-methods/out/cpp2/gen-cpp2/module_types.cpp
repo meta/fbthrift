@@ -78,7 +78,7 @@ std::partial_ordering EchoRequest::operator<=>([[maybe_unused]] const EchoReques
 
 void swap([[maybe_unused]] EchoRequest& a, [[maybe_unused]] EchoRequest& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_text, b.__fbthrift_field_text);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_text, b.__fbthrift_field_text);
   swap(a.__isset, b.__isset);
 }
 
@@ -142,7 +142,7 @@ std::partial_ordering EchoResponse::operator<=>([[maybe_unused]] const EchoRespo
 
 void swap([[maybe_unused]] EchoResponse& a, [[maybe_unused]] EchoResponse& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_text, b.__fbthrift_field_text);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_text, b.__fbthrift_field_text);
   swap(a.__isset, b.__isset);
 }
 

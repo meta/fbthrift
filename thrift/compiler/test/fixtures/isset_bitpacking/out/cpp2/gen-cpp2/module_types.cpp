@@ -152,10 +152,10 @@ double& Default::set_field4(double field4_) {
 
 void swap([[maybe_unused]] Default& a, [[maybe_unused]] Default& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
-  swap(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
-  swap(a.__fbthrift_field_field3, b.__fbthrift_field_field3);
-  swap(a.__fbthrift_field_field4, b.__fbthrift_field_field4);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field3, b.__fbthrift_field_field3);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field4, b.__fbthrift_field_field4);
   swap(a.__isset, b.__isset);
 }
 
@@ -289,10 +289,10 @@ double& NonAtomic::set_field4(double field4_) {
 
 void swap([[maybe_unused]] NonAtomic& a, [[maybe_unused]] NonAtomic& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
-  swap(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
-  swap(a.__fbthrift_field_field3, b.__fbthrift_field_field3);
-  swap(a.__fbthrift_field_field4, b.__fbthrift_field_field4);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field3, b.__fbthrift_field_field3);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field4, b.__fbthrift_field_field4);
   swap(a.__isset, b.__isset);
 }
 
@@ -426,10 +426,10 @@ double& Atomic::set_field4(double field4_) {
 
 void swap([[maybe_unused]] Atomic& a, [[maybe_unused]] Atomic& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
-  swap(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
-  swap(a.__fbthrift_field_field3, b.__fbthrift_field_field3);
-  swap(a.__fbthrift_field_field4, b.__fbthrift_field_field4);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field3, b.__fbthrift_field_field3);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field4, b.__fbthrift_field_field4);
   swap(a.__isset, b.__isset);
 }
 
@@ -563,10 +563,10 @@ double& AtomicFoo::set_field4(double field4_) {
 
 void swap([[maybe_unused]] AtomicFoo& a, [[maybe_unused]] AtomicFoo& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
-  swap(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
-  swap(a.__fbthrift_field_field3, b.__fbthrift_field_field3);
-  swap(a.__fbthrift_field_field4, b.__fbthrift_field_field4);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field3, b.__fbthrift_field_field3);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field4, b.__fbthrift_field_field4);
   swap(a.__isset, b.__isset);
 }
 

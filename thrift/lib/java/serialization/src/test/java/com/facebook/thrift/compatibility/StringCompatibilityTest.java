@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.facebook.thrift.payload.Reader;
 import com.facebook.thrift.protocol.ByteBufTProtocol;
+import com.facebook.thrift.test.utf8.TestBinaryStringStruct;
 import com.facebook.thrift.test.utf8.TestException;
 import com.facebook.thrift.test.utf8.TestExceptionCompat;
 import com.facebook.thrift.test.utf8.TestStruct;
@@ -46,6 +47,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.apache.thrift.protocol.TProtocolException;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -269,6 +271,20 @@ public class StringCompatibilityTest {
                   TestUnionCompat.asReader(), SerializerUtil.toByteArray(u, protocol), protocol);
             });
     assertTrue(ex.getMessage().contains("Malformed UTF8 string: 32ffff3435"));
+  }
+
+  @Test
+  public void testBinaryStringTypedefEqualsAndHashCode() {
+    TestBinaryStringStruct a =
+        new TestBinaryStringStruct.Builder().setData(new byte[] {1, 2, 3}).build();
+    TestBinaryStringStruct b =
+        new TestBinaryStringStruct.Builder().setData(new byte[] {1, 2, 3}).build();
+    TestBinaryStringStruct c =
+        new TestBinaryStringStruct.Builder().setData(new byte[] {1, 2, 4}).build();
+    // @java.BinaryString fields are byte[]: equals/hashCode must compare by content.
+    assertEquals(a, b);
+    assertEquals(a.hashCode(), b.hashCode());
+    assertNotEquals(a, c);
   }
 
   @ParameterizedTest

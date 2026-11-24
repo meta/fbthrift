@@ -19,6 +19,8 @@
 #include <gtest/gtest.h>
 #include <thrift/conformance/cpp2/Protocol.h>
 #include <thrift/conformance/cpp2/Testing.h>
+#include <thrift/conformance/if/gen-cpp2/protocol_types.h>
+#include <thrift/lib/thrift/gen-cpp2/any_rep_types.h>
 
 namespace apache::thrift::conformance {
 namespace {
@@ -117,6 +119,29 @@ TEST(AnyTest, Custom_EmptyString) {
   EXPECT_TRUE(any.customProtocol().has_value());
   EXPECT_EQ(getProtocol(any), kNoProtocol);
   EXPECT_TRUE(hasProtocol(any, kNoProtocol));
+}
+
+folly::fbstring prefixOf(folly::StringPiece hash, type::hash_size_t bytes) {
+  auto prefix = type::getUniversalHashPrefix(hash, bytes);
+  return folly::fbstring(prefix.begin(), prefix.end());
+}
+
+TEST(AnyTest, HasType) {
+  auto any = toStaticAny(ProtocolStruct());
+  EXPECT_TRUE(hasType<ProtocolStruct>(any));
+  EXPECT_FALSE(hasType<type::AnyStruct>(any));
+
+  const auto hash = type::getUniversalHash(
+      type::UniversalHashAlgorithm::Sha2_256, uri<ProtocolStruct>());
+  any.type().reset();
+  any.typeHashPrefixSha2_256() = prefixOf(hash, kMinTypeHashBytes);
+  EXPECT_TRUE(hasType<ProtocolStruct>(any));
+  EXPECT_FALSE(hasType<type::AnyStruct>(any));
+
+  any.typeHashPrefixSha2_256() = prefixOf(hash, kMinTypeHashBytes - 1);
+  EXPECT_FALSE(hasType<ProtocolStruct>(any));
+
+  EXPECT_FALSE(hasType<ProtocolStruct>(Any()));
 }
 
 TEST(AnyTest, ValidateAny) {

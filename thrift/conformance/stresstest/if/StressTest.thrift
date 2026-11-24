@@ -20,13 +20,18 @@ namespace hack thrift_stress
 include "thrift/annotation/cpp.thrift"
 include "thrift/annotation/thrift.thrift"
 
+@cpp.EnableIOBufChainSupport
 @thrift.AllowLegacyMissingUris
 package;
 
 cpp_include "thrift/lib/cpp2/protocol/detail/PaddedBinaryAdapter.h"
+cpp_include "thrift/lib/cpp2/IOBufChain.h"
 
 @cpp.Type{name = "std::unique_ptr<folly::IOBuf>"}
 typedef binary IOBufPtr
+
+@cpp.Type{name = "::apache::thrift::IOBufChain"}
+typedef binary IOBufChainData
 
 enum ProcessingMode {
   Default = 0, // execute inline in handler (synchronously)
@@ -99,6 +104,15 @@ struct StorageReadResponse {
   1: IOBufPtr payload;
 }
 
+struct StorageReadChainRequest {
+  1: i64 responseBytes;
+  2: bool stopTLSv2;
+}
+
+struct StorageReadChainResponse {
+  1: IOBufChainData payload;
+}
+
 struct StorageWriteRequest {
   1: IOBufPtr payload;
 }
@@ -136,6 +150,9 @@ service StressTest {
   StorageReadResponse storageReadTm(1: StorageReadRequest req);
   @cpp.ProcessInEbThreadUnsafe
   StorageReadResponse storageReadEb(1: StorageReadRequest req);
+  StorageReadChainResponse storageReadChainTm(1: StorageReadChainRequest req);
+  @cpp.ProcessInEbThreadUnsafe
+  StorageReadChainResponse storageReadChainEb(1: StorageReadChainRequest req);
   StorageWriteResponse storageWriteTm(1: StorageWriteRequest req);
   @cpp.ProcessInEbThreadUnsafe
   StorageWriteResponse storageWriteEb(1: StorageWriteRequest req);

@@ -146,11 +146,11 @@ class CompactReader(BufferReader):
         self._last_field_id = self._field_id_stack.pop()
         self._ascend()
 
-    def read_field_begin(self) -> tuple[int, int]:
+    def read_field_begin(self) -> tuple[int, int, str]:
         byte = self._data[self._take(1)]
         ctype = byte & 0x0F
         if ctype == T_STOP:
-            return T_STOP, 0
+            return T_STOP, 0, ""
         delta = byte >> 4
         field_id = (
             self.read_i16() if delta == 0 else _wrap16(self._last_field_id + delta)
@@ -159,7 +159,7 @@ class CompactReader(BufferReader):
         if ctype == _CT_BOOLEAN_TRUE or ctype == _CT_BOOLEAN_FALSE:
             self._bool_value = ctype == _CT_BOOLEAN_TRUE
         self._last_field_id = field_id
-        return ttype, field_id
+        return ttype, field_id, ""
 
     def read_map_begin(self) -> tuple[int, int, int]:
         self._descend()

@@ -98,13 +98,13 @@ struct EveryLayout {
 
 struct VectorTest {
   1: list<i32> aList;
-  @cpp.Type{template = "apache::thrift::frozen::VectorAsSet"}
+  @cpp.Type{template = "::apache::thrift::frozen::VectorAsSet"}
   2: set<i32> aSet;
-  @cpp.Type{template = "apache::thrift::frozen::VectorAsMap"}
+  @cpp.Type{template = "::apache::thrift::frozen::VectorAsMap"}
   3: map<i32, i32> aMap;
-  @cpp.Type{template = "apache::thrift::frozen::VectorAsHashSet"}
+  @cpp.Type{template = "::apache::thrift::frozen::VectorAsHashSet"}
   4: set<i32> aHashSet;
-  @cpp.Type{template = "apache::thrift::frozen::VectorAsHashMap"}
+  @cpp.Type{template = "::apache::thrift::frozen::VectorAsHashMap"}
   5: map<i32, i32> aHashMap;
   @cpp.Type{template = "folly::fbvector"}
   6: list<i32> fbVector;
@@ -186,7 +186,7 @@ struct TestFixedSizeString {
   1: Fixed8 bytes8;
   @cpp.Adapter{name = "::apache::thrift::StringTypeAdapter<apache::thrift::frozen::FixedSizeString<4>>"}
   2: optional string bytes4;
-  @cpp.Type{template = "apache::thrift::frozen::VectorAsHashMap"}
+  @cpp.Type{template = "::apache::thrift::frozen::VectorAsHashMap"}
   3: map<Fixed8, Fixed2> aMapToFreeze;
   @cpp.Type{template = "std::unordered_map"}
   4: map<Fixed8, Fixed2> aMap;

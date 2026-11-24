@@ -59,7 +59,7 @@ std::vector<TypeErasedBox> boxes(size_t n, Make&& make) {
 
 BENCHMARK(OnWrite_DeliverPayloadToSink, iters) {
   BenchmarkSuspender suspender;
-  ProducerHeadAdapter<BenchCtx> handler(StreamSink{&absorbSink});
+  ProducerHeadAdapter handler(StreamSink{&absorbSink});
   BenchCtx ctx;
   auto items = boxes(
       iters, [] { return DataMessage{.payload = Payload{.data = nullptr}}; });

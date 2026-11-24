@@ -27,6 +27,23 @@
 
 namespace apache::thrift::stress {
 
+namespace {
+std::unique_ptr<folly::IOBuf> makeStorageReadBuffer(
+    int64_t size, bool stopTLSv2) {
+  if (size <= 0) {
+    return nullptr;
+  }
+  auto buffer = folly::IOBuf::create(size);
+  std::memset(buffer->writableData(), 'x', size);
+  buffer->append(size);
+  if (stopTLSv2) {
+    buffer = facebook::services::SecureThriftUtil::tagUnencryptedBuf(
+        std::move(buffer));
+  }
+  return buffer;
+}
+} // namespace
+
 void StressTestHandler::async_eb_ping(HandlerCallbackPtr<void> callback) {
   callback->done();
 }
@@ -319,17 +336,10 @@ void StressTestHandler::async_eb_alignedRequestResponseEb(
 void StressTestHandler::async_tm_storageReadTm(
     HandlerCallbackPtr<std::unique_ptr<StorageReadResponse>> callback,
     std::unique_ptr<StorageReadRequest> request) {
-  auto response = std::make_unique<StorageReadResponse>();
-  auto size = *request->responseBytes();
-  if (size > 0) {
-    auto buf = folly::IOBuf::create(size);
-    std::memset(buf->writableData(), 'x', size);
-    buf->append(size);
-    if (*request->stopTLSv2()) {
-      buf = facebook::services::SecureThriftUtil::tagUnencryptedBuf(
-          std::move(buf));
-    }
-    response->payload() = std::move(buf);
+  StorageReadResponse response;
+  if (auto buffer = makeStorageReadBuffer(
+          *request->responseBytes(), *request->stopTLSv2())) {
+    response.payload() = std::move(buffer);
   }
   callback->result(std::move(response));
 }
@@ -337,18 +347,29 @@ void StressTestHandler::async_tm_storageReadTm(
 void StressTestHandler::async_eb_storageReadEb(
     HandlerCallbackPtr<std::unique_ptr<StorageReadResponse>> callback,
     std::unique_ptr<StorageReadRequest> request) {
-  auto response = std::make_unique<StorageReadResponse>();
-  auto size = *request->responseBytes();
-  if (size > 0) {
-    auto buf = folly::IOBuf::create(size);
-    std::memset(buf->writableData(), 'x', size);
-    buf->append(size);
-    if (*request->stopTLSv2()) {
-      buf = facebook::services::SecureThriftUtil::tagUnencryptedBuf(
-          std::move(buf));
-    }
-    response->payload() = std::move(buf);
+  StorageReadResponse response;
+  if (auto buffer = makeStorageReadBuffer(
+          *request->responseBytes(), *request->stopTLSv2())) {
+    response.payload() = std::move(buffer);
   }
+  callback->result(std::move(response));
+}
+
+void StressTestHandler::async_tm_storageReadChainTm(
+    HandlerCallbackPtr<std::unique_ptr<StorageReadChainResponse>> callback,
+    std::unique_ptr<StorageReadChainRequest> request) {
+  StorageReadChainResponse response;
+  response.payload() = IOBufChain{
+      makeStorageReadBuffer(*request->responseBytes(), *request->stopTLSv2())};
+  callback->result(std::move(response));
+}
+
+void StressTestHandler::async_eb_storageReadChainEb(
+    HandlerCallbackPtr<std::unique_ptr<StorageReadChainResponse>> callback,
+    std::unique_ptr<StorageReadChainRequest> request) {
+  StorageReadChainResponse response;
+  response.payload() = IOBufChain{
+      makeStorageReadBuffer(*request->responseBytes(), *request->stopTLSv2())};
   callback->result(std::move(response));
 }
 

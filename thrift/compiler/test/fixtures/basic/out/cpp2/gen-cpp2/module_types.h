@@ -277,6 +277,16 @@ class MyDataItem final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/basic/MyDataItem";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "MyDataItem";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    ""
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -332,7 +342,6 @@ class MyDataItem final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<MyDataItem>;
   friend void swap(MyDataItem& a, MyDataItem& b);
 };
 
@@ -356,6 +365,16 @@ class MyStruct final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/basic/MyStruct";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "MyStruct";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "MyIntField", "MyStringField", "MyDataField", "myEnum", "oneway", "readonly", "idempotent", "floatSet", "no_hack_codegen_field"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -888,7 +907,6 @@ class MyStruct final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<MyStruct>;
   friend void swap(MyStruct& a, MyStruct& b);
 };
 
@@ -912,6 +930,16 @@ class Containers final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/basic/Containers";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "Containers";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "I32List", "StringSet", "StringToI64Map"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -1140,7 +1168,6 @@ class Containers final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<Containers>;
   friend void swap(Containers& a, Containers& b);
 };
 
@@ -1164,6 +1191,11 @@ class MyUnion final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/basic/MyUnion";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "MyUnion";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "myEnum", "myStruct", "myDataItem", "floatSet"
+  };
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -1214,43 +1246,7 @@ class MyUnion final  {
 
   MyUnion(const MyUnion& rhs);
 
-  MyUnion& operator=(MyUnion&& rhs) noexcept {
-    if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-      {
-        __fbthrift_clear();
-        return *this;
-      }
-      case Type::myEnum:
-      {
-        set_myEnum(std::move(rhs.value_.myEnum));
-        break;
-      }
-      case Type::myStruct:
-      {
-        set_myStruct(std::move(rhs.value_.myStruct));
-        break;
-      }
-      case Type::myDataItem:
-      {
-        set_myDataItem(std::move(rhs.value_.myDataItem));
-        break;
-      }
-      case Type::floatSet:
-      {
-        set_floatSet(std::move(rhs.value_.floatSet));
-        break;
-      }
-      default:
-      {
-        assert(false);
-        __fbthrift_clear();
-      }
-    }
-    apache::thrift::clear(rhs);
-    return *this;
-  }
+  MyUnion& operator=(MyUnion&& rhs) noexcept;
 
   MyUnion& operator=(const MyUnion& rhs);
 
@@ -1372,6 +1368,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "myEnum" } */
+  [[deprecated("Use `FOO.myEnum().value()` instead of `FOO.get_myEnum()`")]]
   ::test::fixtures::basic::MyEnumAlias const& get_myEnum() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::myEnum) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1380,6 +1377,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "myStruct" } */
+  [[deprecated("Use `FOO.myStruct().value()` instead of `FOO.get_myStruct()`")]]
   ::test::fixtures::basic::MyStruct const& get_myStruct() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::myStruct) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1388,6 +1386,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "myDataItem" } */
+  [[deprecated("Use `FOO.myDataItem().value()` instead of `FOO.get_myDataItem()`")]]
   ::test::fixtures::basic::MyDataItem const& get_myDataItem() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::myDataItem) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1396,6 +1395,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "floatSet" } */
+  [[deprecated("Use `FOO.floatSet().value()` instead of `FOO.get_floatSet()`")]]
   ::std::set<float> const& get_floatSet() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::floatSet) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1593,7 +1593,6 @@ class MyUnion final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<MyUnion>;
   friend void swap(MyUnion& a, MyUnion& b);
 };
 
@@ -1617,6 +1616,16 @@ class FOLLY_EXPORT MyException : public virtual apache::thrift::TException {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/basic/MyException";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "MyException";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "MyIntField", "MyStringField", "myStruct", "myUnion"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -1907,7 +1916,6 @@ class FOLLY_EXPORT MyException : public virtual apache::thrift::TException {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<MyException>;
   friend void swap(MyException& a, MyException& b);
 };
 
@@ -1931,6 +1939,16 @@ class FOLLY_EXPORT MyExceptionWithMessage : public virtual apache::thrift::TExce
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/basic/MyExceptionWithMessage";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "MyExceptionWithMessage";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "MyIntField", "MyStringField", "myStruct", "myUnion"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -2222,7 +2240,6 @@ class FOLLY_EXPORT MyExceptionWithMessage : public virtual apache::thrift::TExce
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<MyExceptionWithMessage>;
   friend void swap(MyExceptionWithMessage& a, MyExceptionWithMessage& b);
 };
 
@@ -2246,6 +2263,16 @@ class ReservedKeyword final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/basic/ReservedKeyword";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "ReservedKeyword";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "reserved_field"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -2352,7 +2379,6 @@ class ReservedKeyword final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<ReservedKeyword>;
   friend void swap(ReservedKeyword& a, ReservedKeyword& b);
 };
 
@@ -2376,6 +2402,11 @@ class UnionToBeRenamed final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/basic/UnionToBeRenamed";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "UnionToBeRenamed";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "reserved_field"
+  };
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -2417,28 +2448,7 @@ class UnionToBeRenamed final  {
 
   UnionToBeRenamed(const UnionToBeRenamed& rhs);
 
-  UnionToBeRenamed& operator=(UnionToBeRenamed&& rhs) noexcept {
-    if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-      {
-        __fbthrift_clear();
-        return *this;
-      }
-      case Type::reserved_field:
-      {
-        set_reserved_field(std::move(rhs.value_.reserved_field));
-        break;
-      }
-      default:
-      {
-        assert(false);
-        __fbthrift_clear();
-      }
-    }
-    apache::thrift::clear(rhs);
-    return *this;
-  }
+  UnionToBeRenamed& operator=(UnionToBeRenamed&& rhs) noexcept;
 
   UnionToBeRenamed& operator=(const UnionToBeRenamed& rhs);
 
@@ -2464,6 +2474,7 @@ class UnionToBeRenamed final  {
 
 
   /** Glean { "field": "reserved_field" } */
+  [[deprecated("Use `FOO.reserved_field().value()` instead of `FOO.get_reserved_field()`")]]
   ::std::int32_t const& get_reserved_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::reserved_field) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -2532,7 +2543,6 @@ class UnionToBeRenamed final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<UnionToBeRenamed>;
   friend void swap(UnionToBeRenamed& a, UnionToBeRenamed& b);
 };
 

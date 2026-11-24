@@ -16,6 +16,11 @@
 
 package com.facebook.thrift.transport.unified;
 
+import static com.facebook.thrift.util.ThriftProtocolConstants.HEADER_FLAGS_NONE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.HEADER_FLAG_SUPPORT_OUT_OF_ORDER;
+import static com.facebook.thrift.util.ThriftProtocolConstants.HEADER_MAGIC;
+import static com.facebook.thrift.util.ThriftProtocolConstants.NORMAL_HEADERS;
+import static com.facebook.thrift.util.ThriftProtocolConstants.PERSISTENT_HEADERS;
 import static com.google.common.base.Verify.verify;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -24,7 +29,9 @@ import com.facebook.thrift.legacy.codec.LegacyTransportType;
 import com.facebook.thrift.legacy.codec.ThriftFrame;
 import com.facebook.thrift.metadata.ClientInfo;
 import com.facebook.thrift.protocol.TProtocolType;
+import com.facebook.thrift.util.HeaderOverloadError;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.primitives.Ints;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufUtil;
@@ -44,7 +51,6 @@ import reactor.netty.Connection;
 public class ReactiveHeaderCodec {
   private static final Logger log = LoggerFactory.getLogger(ReactiveHeaderCodec.class);
 
-  private static final int HEADER_MAGIC = 0x0FFF;
   private static final int ENCODED_INFO_SIZE = 2 * Byte.BYTES;
   private static final int FRAME_HEADER_SIZE =
       Short.BYTES
@@ -55,12 +61,6 @@ public class ReactiveHeaderCodec {
           + // sequenceId
           Short.BYTES; // header size
 
-  private static final int FLAGS_NONE = 0;
-  private static final int FLAG_SUPPORT_OUT_OF_ORDER = 1;
-
-  private static final int NORMAL_HEADERS = 0x01;
-  private static final int PERSISTENT_HEADERS = 0x02;
-
   /**
    * Encodes the HeaderFrame into a ByteBuf transferring the reference ownership.
    *
@@ -69,18 +69,25 @@ public class ReactiveHeaderCodec {
    */
   static ByteBuf encodeFrame(
       ByteBufAllocator alloc, ThriftFrame frame, boolean addClientMetadataHeader) {
+    ByteBuf message = null;
     ByteBuf encodedInfo = null;
     ByteBuf encodedHeaders = null;
     ByteBuf frameHeader = null;
 
     try {
-      encodedInfo = alloc.buffer(ENCODED_INFO_SIZE);
+      message =
+          CompressionManager.compressForTransforms(
+              frame.getTransforms(), alloc, frame.getMessage());
+
+      encodedInfo = alloc.buffer(ENCODED_INFO_SIZE + frame.getTransforms().size());
 
       // protocol id
       encodedInfo.writeByte(frame.getProtocol().getProtocolId().getValue());
 
-      // number of "transforms" -- no transforms are supported
-      encodedInfo.writeByte(0);
+      writeVarInt32(encodedInfo, frame.getTransforms().size());
+      for (int transform : frame.getTransforms()) {
+        writeVarInt32(encodedInfo, transform);
+      }
 
       encodedHeaders = alloc.buffer();
 
@@ -107,7 +114,9 @@ public class ReactiveHeaderCodec {
 
       // flags
       frameHeader.writeShort(
-          frame.isSupportOutOfOrderResponse() ? FLAG_SUPPORT_OUT_OF_ORDER : FLAGS_NONE);
+          frame.isSupportOutOfOrderResponse()
+              ? HEADER_FLAG_SUPPORT_OUT_OF_ORDER
+              : HEADER_FLAGS_NONE);
 
       // seq id
       frameHeader.writeInt(frame.getSequenceId());
@@ -118,9 +127,10 @@ public class ReactiveHeaderCodec {
       ByteBuf result =
           alloc
               .compositeBuffer()
-              .addComponents(true, frameHeader, encodedInfo, encodedHeaders, frame.getMessage());
+              .addComponents(true, frameHeader, encodedInfo, encodedHeaders, message);
 
       // Success - ownership transferred to composite buffer, null out to prevent release in finally
+      message = null;
       frameHeader = null;
       encodedInfo = null;
       encodedHeaders = null;
@@ -128,6 +138,9 @@ public class ReactiveHeaderCodec {
       return result;
     } catch (Throwable t) {
       // Only release components that weren't successfully added to composite
+      if (message != null && message != frame.getMessage()) {
+        ReferenceCountUtil.safeRelease(message);
+      }
       ReferenceCountUtil.safeRelease(encodedInfo);
       ReferenceCountUtil.safeRelease(encodedHeaders);
       ReferenceCountUtil.safeRelease(frameHeader);
@@ -190,10 +203,10 @@ public class ReactiveHeaderCodec {
     short flags = buffer.readShort();
     boolean outOfOrderResponse;
     switch (flags) {
-      case FLAGS_NONE:
+      case HEADER_FLAGS_NONE:
         outOfOrderResponse = false;
         break;
-      case FLAG_SUPPORT_OUT_OF_ORDER:
+      case HEADER_FLAG_SUPPORT_OUT_OF_ORDER:
         outOfOrderResponse = true;
         break;
       default:
@@ -247,7 +260,8 @@ public class ReactiveHeaderCodec {
             persistentHeaders,
             LegacyTransportType.HEADER,
             protocolType,
-            outOfOrderResponse);
+            outOfOrderResponse,
+            Ints.asList(transforms));
 
     return frame;
   }
@@ -308,8 +322,7 @@ public class ReactiveHeaderCodec {
    * @param protocol The protocol type
    * @param sequenceId The sequence ID
    * @param supportOutOfOrderResponse Whether out-of-order responses are supported
-   * @param errorCode The TApplicationException error code
-   * @param errorMessage The error message
+   * @param applicationException The actual application exception to encode
    * @param responseHeaders The response headers
    * @return A ThriftFrame containing the encoded exception
    */
@@ -320,20 +333,18 @@ public class ReactiveHeaderCodec {
       TProtocolType protocol,
       int sequenceId,
       boolean supportOutOfOrderResponse,
-      int errorCode,
-      String errorMessage,
+      TApplicationException applicationException,
       Map<String, String> responseHeaders) {
 
     ByteBuf buf = conn.channel().alloc().buffer();
     try {
-      TApplicationException applicationException =
-          new TApplicationException(errorCode, errorMessage);
-
       TProtocol out = protocol.apply(buf);
 
       out.writeMessageBegin(new TMessage(methodName, TMessageType.EXCEPTION, sequenceId));
       applicationException.write(out);
       out.writeMessageEnd();
+
+      HeaderOverloadError.stampResponseHeaders(responseHeaders, applicationException);
 
       return new ThriftFrame(
           sequenceId,

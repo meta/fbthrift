@@ -26,7 +26,7 @@
 #include <folly/io/async/AsyncSocket.h>
 #include <folly/io/async/ScopedEventBaseThread.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/BufferAllocator.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/ConnectionManager.h>
 #include <thrift/lib/cpp2/fast_thrift/test/TestClientAppAdapter.h>
 #include <thrift/lib/cpp2/fast_thrift/test/TestServerAppAdapter.h>
@@ -50,7 +50,7 @@ using TestConnectionManager =
  */
 struct ClientConnection {
   ClientTransportHandler::Ptr transportHandler;
-  apache::thrift::fast_thrift::channel_pipeline::PipelineImpl::Ptr pipeline;
+  apache::thrift::fast_thrift::channel_pipeline::PipelineOwner pipeline;
   TestClientAppAdapter appAdapter;
   std::unique_ptr<folly::AsyncSocket::ConnectCallback> connectCallback;
 };
@@ -62,7 +62,7 @@ struct ClientConnection {
  */
 struct TestServerConnection {
   ServerTransportHandler::Ptr transportHandler;
-  apache::thrift::fast_thrift::channel_pipeline::PipelineImpl::Ptr pipeline;
+  apache::thrift::fast_thrift::channel_pipeline::PipelineOwner pipeline;
   std::function<void()> closeCb;
   bool closed{false};
 
@@ -106,8 +106,7 @@ class TestServerConnectionFactory {
   TestServerConnection getConnection(
       folly::AsyncTransport::UniquePtr socket,
       const folly::SocketAddress& clientAddr,
-      const std::shared_ptr<
-          const apache::thrift::fast_thrift::connection::PeerSecurityInfo>&
+      std::unique_ptr<apache::thrift::fast_thrift::connection::PeerSecurityInfo>
           peerSecurity);
 
  private:

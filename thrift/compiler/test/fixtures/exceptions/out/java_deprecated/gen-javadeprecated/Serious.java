@@ -53,8 +53,21 @@ public class Serious extends Exception implements TBase, java.io.Serializable, C
     this.sonnet = sonnet;
   }
 
+  public Serious(
+      String sonnet,
+      java.lang.Throwable cause) {
+    this(sonnet);
+    initCause(cause);
+  }
+
+  public Serious(java.lang.Throwable cause) {
+    super(cause);
+    this.sonnet = cause == null ? null : cause.toString();
+  }
+
   public static class Builder {
     private String sonnet;
+    private java.lang.Throwable cause;
 
     public Builder() {
     }
@@ -64,9 +77,17 @@ public class Serious extends Exception implements TBase, java.io.Serializable, C
       return this;
     }
 
+    public Builder setCause(final java.lang.Throwable cause) {
+      this.cause = cause;
+      return this;
+    }
+
     public Serious build() {
       Serious result = new Serious();
       result.setSonnet(this.sonnet);
+      if (cause != null) {
+        result.initCause(cause);
+      }
       return result;
     }
   }

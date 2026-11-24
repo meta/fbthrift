@@ -48,8 +48,8 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Event.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/handler/LoopBatchingFrameHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/handler/WriteCompletionTracker.h>
@@ -97,7 +97,7 @@ struct FixtureT {
   BenchAsyncTransport* testTransport{nullptr};
   RocketClientAppAdapter::Ptr appAdapter{new RocketClientAppAdapter()};
   typename TransportHandler::Ptr transportHandler;
-  PipelineImpl::Ptr pipeline;
+  PipelineOwner pipeline;
   SimpleBufferAllocator allocator;
 
   FixtureT() = default;
@@ -120,7 +120,7 @@ struct FixtureT {
 
     transportHandler = TransportHandler::create(std::move(transport));
 
-    pipeline = PipelineBuilder<
+    pipeline = StaticPipelineBuilder<
                    TransportHandler,
                    RocketClientAppAdapter,
                    SimpleBufferAllocator>()

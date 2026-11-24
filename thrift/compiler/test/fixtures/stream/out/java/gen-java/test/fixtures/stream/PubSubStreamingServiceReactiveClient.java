@@ -11,11 +11,11 @@ import static com.facebook.swift.service.SwiftConstants.STICKY_HASH_KEY;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 import org.apache.thrift.protocol.*;
 import org.apache.thrift.ClientPushMetadata;
 import org.apache.thrift.InteractionCreate;
 import org.apache.thrift.InteractionTerminate;
+import com.facebook.thrift.client.InteractionIds;
 import com.facebook.thrift.client.ResponseWrapper;
 import com.facebook.thrift.client.RpcOptions;
 import com.facebook.thrift.client.v2.manager.RpcClientBinding;
@@ -23,7 +23,6 @@ import com.facebook.thrift.util.Readers;
 
 public class PubSubStreamingServiceReactiveClient 
   implements PubSubStreamingService.Reactive {
-  private static final AtomicLong _interactionCounter = new AtomicLong(0);
 
   protected final org.apache.thrift.ProtocolId _protocolId;
   protected final RpcClientBinding _clientBinding;
@@ -93,18 +92,18 @@ public class PubSubStreamingServiceReactiveClient
   }
 
   public PubSubStreamingServiceReactiveClient(org.apache.thrift.ProtocolId _protocolId, RpcClientBinding _clientBinding, Map<String, String> _headers, Map<String, String> _persistentHeaders) {
-    this(_protocolId, _clientBinding, reactor.core.publisher.Mono.just(_headers != null ? _headers : java.util.Collections.emptyMap()), reactor.core.publisher.Mono.just(_persistentHeaders != null ? _persistentHeaders : java.util.Collections.emptyMap()), new AtomicLong(), ConcurrentHashMap.newKeySet());
+    this(_protocolId, _clientBinding, reactor.core.publisher.Mono.just(_headers != null ? _headers : java.util.Collections.emptyMap()), reactor.core.publisher.Mono.just(_persistentHeaders != null ? _persistentHeaders : java.util.Collections.emptyMap()), ConcurrentHashMap.newKeySet());
   }
 
   public PubSubStreamingServiceReactiveClient(org.apache.thrift.ProtocolId _protocolId, RpcClientBinding _clientBinding, reactor.core.publisher.Mono<Map<String, String>> _headersMono, reactor.core.publisher.Mono<Map<String, String>> _persistentHeadersMono) {
-    this(_protocolId, _clientBinding, _headersMono, _persistentHeadersMono, new AtomicLong(), ConcurrentHashMap.newKeySet());
+    this(_protocolId, _clientBinding, _headersMono, _persistentHeadersMono, ConcurrentHashMap.newKeySet());
   }
 
-  public PubSubStreamingServiceReactiveClient(org.apache.thrift.ProtocolId _protocolId, RpcClientBinding _clientBinding, Map<String, String> _headers, Map<String, String> _persistentHeaders, AtomicLong interactionCounter, Set<Long> activeInteractions) {
-    this(_protocolId,_clientBinding, reactor.core.publisher.Mono.just(_headers != null ? _headers : java.util.Collections.emptyMap()), reactor.core.publisher.Mono.just(_persistentHeaders != null ? _persistentHeaders : java.util.Collections.emptyMap()), interactionCounter, activeInteractions);
+  public PubSubStreamingServiceReactiveClient(org.apache.thrift.ProtocolId _protocolId, RpcClientBinding _clientBinding, Map<String, String> _headers, Map<String, String> _persistentHeaders, Set<Long> activeInteractions) {
+    this(_protocolId,_clientBinding, reactor.core.publisher.Mono.just(_headers != null ? _headers : java.util.Collections.emptyMap()), reactor.core.publisher.Mono.just(_persistentHeaders != null ? _persistentHeaders : java.util.Collections.emptyMap()), activeInteractions);
   }
 
-  public PubSubStreamingServiceReactiveClient(org.apache.thrift.ProtocolId _protocolId, RpcClientBinding _clientBinding, reactor.core.publisher.Mono<Map<String, String>> _headersMono, reactor.core.publisher.Mono<Map<String, String>> _persistentHeadersMono, AtomicLong interactionCounter, Set<Long> activeInteractions) {
+  public PubSubStreamingServiceReactiveClient(org.apache.thrift.ProtocolId _protocolId, RpcClientBinding _clientBinding, reactor.core.publisher.Mono<Map<String, String>> _headersMono, reactor.core.publisher.Mono<Map<String, String>> _persistentHeadersMono, Set<Long> activeInteractions) {
     this._protocolId = _protocolId;
     this._clientBinding = _clientBinding;
     this._headersMono = _headersMono;
@@ -466,9 +465,9 @@ public class PubSubStreamingServiceReactiveClient
   private static final com.facebook.thrift.payload.Reader _responseandstreamstreamthrows_FIRST_READER = Readers.i32Reader();
 
   @java.lang.Override
-  public reactor.core.publisher.Flux<com.facebook.thrift.client.ResponseWrapper<com.facebook.thrift.model.StreamResponse<Integer,Integer>>> responseandstreamstreamthrowsWrapper(final int foo,  final com.facebook.thrift.client.RpcOptions rpcOptions) {
+  public reactor.core.publisher.Mono<com.facebook.thrift.client.ResponseWrapper<com.facebook.thrift.model.ResponseAndStream<Integer,com.facebook.thrift.client.ResponseWrapper<Integer>>>> responseandstreamstreamthrowsWrapper(final int foo,  final com.facebook.thrift.client.RpcOptions rpcOptions) {
     return _clientBinding.acquire()
-      .flatMapMany(_rpc -> getHeaders(rpcOptions).flatMapMany(headers -> {
+      .flatMap(_rpc -> getHeaders(rpcOptions).flatMap(headers -> {
         org.apache.thrift.RequestRpcMetadata _metadata = new org.apache.thrift.RequestRpcMetadata.Builder()
                 .setName("responseandstreamstreamthrows")
                 .setKind(org.apache.thrift.RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE)
@@ -487,20 +486,18 @@ public class PubSubStreamingServiceReactiveClient
                     _metadata,
                     java.util.Collections.emptyMap());
 
-            return _rpc
-                .singleRequestStreamingResponse(_crp, rpcOptions)
-                .doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());})
-                .map(_p -> ResponseWrapper.create(((com.facebook.thrift.model.StreamResponse<Integer, Integer>)_p.getData()), _p.getHeaders(), _p.getBinaryHeaders()));
+            return com.facebook.thrift.util.ResponseAndStreamBridge.toResponseAndStream(
+                _rpc.singleRequestStreamingResponse(_crp, rpcOptions));
       }));
   }
 
   @java.lang.Override
-  public reactor.core.publisher.Flux<com.facebook.thrift.model.StreamResponse<Integer,Integer>> responseandstreamstreamthrows(final int foo,  final com.facebook.thrift.client.RpcOptions rpcOptions) {
-      return responseandstreamstreamthrowsWrapper(foo,  rpcOptions).map(_p -> _p.getData());
+  public reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer,Integer>> responseandstreamstreamthrows(final int foo,  final com.facebook.thrift.client.RpcOptions rpcOptions) {
+      return responseandstreamstreamthrowsWrapper(foo,  rpcOptions).map(_w -> _w.getData().mapStream(_s -> _s.filter(_i -> _i.getData() != null).map(_i -> _i.getData())));
   }
 
   @java.lang.Override
-  public reactor.core.publisher.Flux<com.facebook.thrift.model.StreamResponse<Integer,Integer>> responseandstreamstreamthrows(final int foo) {
+  public reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer,Integer>> responseandstreamstreamthrows(final int foo) {
     return responseandstreamstreamthrows(foo,  com.facebook.thrift.client.RpcOptions.EMPTY);
   }
 
@@ -529,9 +526,9 @@ public class PubSubStreamingServiceReactiveClient
   private static final com.facebook.thrift.payload.Reader _responseandstreamservicethrows_FIRST_READER = Readers.i32Reader();
 
   @java.lang.Override
-  public reactor.core.publisher.Flux<com.facebook.thrift.client.ResponseWrapper<com.facebook.thrift.model.StreamResponse<Integer,Integer>>> responseandstreamservicethrowsWrapper(final int foo,  final com.facebook.thrift.client.RpcOptions rpcOptions) {
+  public reactor.core.publisher.Mono<com.facebook.thrift.client.ResponseWrapper<com.facebook.thrift.model.ResponseAndStream<Integer,com.facebook.thrift.client.ResponseWrapper<Integer>>>> responseandstreamservicethrowsWrapper(final int foo,  final com.facebook.thrift.client.RpcOptions rpcOptions) {
     return _clientBinding.acquire()
-      .flatMapMany(_rpc -> getHeaders(rpcOptions).flatMapMany(headers -> {
+      .flatMap(_rpc -> getHeaders(rpcOptions).flatMap(headers -> {
         org.apache.thrift.RequestRpcMetadata _metadata = new org.apache.thrift.RequestRpcMetadata.Builder()
                 .setName("responseandstreamservicethrows")
                 .setKind(org.apache.thrift.RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE)
@@ -550,20 +547,18 @@ public class PubSubStreamingServiceReactiveClient
                     _metadata,
                     java.util.Collections.emptyMap());
 
-            return _rpc
-                .singleRequestStreamingResponse(_crp, rpcOptions)
-                .doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());})
-                .map(_p -> ResponseWrapper.create(((com.facebook.thrift.model.StreamResponse<Integer, Integer>)_p.getData()), _p.getHeaders(), _p.getBinaryHeaders()));
+            return com.facebook.thrift.util.ResponseAndStreamBridge.toResponseAndStream(
+                _rpc.singleRequestStreamingResponse(_crp, rpcOptions));
       }));
   }
 
   @java.lang.Override
-  public reactor.core.publisher.Flux<com.facebook.thrift.model.StreamResponse<Integer,Integer>> responseandstreamservicethrows(final int foo,  final com.facebook.thrift.client.RpcOptions rpcOptions) {
-      return responseandstreamservicethrowsWrapper(foo,  rpcOptions).map(_p -> _p.getData());
+  public reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer,Integer>> responseandstreamservicethrows(final int foo,  final com.facebook.thrift.client.RpcOptions rpcOptions) {
+      return responseandstreamservicethrowsWrapper(foo,  rpcOptions).map(_w -> _w.getData().mapStream(_s -> _s.filter(_i -> _i.getData() != null).map(_i -> _i.getData())));
   }
 
   @java.lang.Override
-  public reactor.core.publisher.Flux<com.facebook.thrift.model.StreamResponse<Integer,Integer>> responseandstreamservicethrows(final int foo) {
+  public reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer,Integer>> responseandstreamservicethrows(final int foo) {
     return responseandstreamservicethrows(foo,  com.facebook.thrift.client.RpcOptions.EMPTY);
   }
 
@@ -592,9 +587,9 @@ public class PubSubStreamingServiceReactiveClient
   private static final com.facebook.thrift.payload.Reader _responseandstreamboththrows_FIRST_READER = Readers.i32Reader();
 
   @java.lang.Override
-  public reactor.core.publisher.Flux<com.facebook.thrift.client.ResponseWrapper<com.facebook.thrift.model.StreamResponse<Integer,Integer>>> responseandstreamboththrowsWrapper(final int foo,  final com.facebook.thrift.client.RpcOptions rpcOptions) {
+  public reactor.core.publisher.Mono<com.facebook.thrift.client.ResponseWrapper<com.facebook.thrift.model.ResponseAndStream<Integer,com.facebook.thrift.client.ResponseWrapper<Integer>>>> responseandstreamboththrowsWrapper(final int foo,  final com.facebook.thrift.client.RpcOptions rpcOptions) {
     return _clientBinding.acquire()
-      .flatMapMany(_rpc -> getHeaders(rpcOptions).flatMapMany(headers -> {
+      .flatMap(_rpc -> getHeaders(rpcOptions).flatMap(headers -> {
         org.apache.thrift.RequestRpcMetadata _metadata = new org.apache.thrift.RequestRpcMetadata.Builder()
                 .setName("responseandstreamboththrows")
                 .setKind(org.apache.thrift.RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE)
@@ -613,20 +608,18 @@ public class PubSubStreamingServiceReactiveClient
                     _metadata,
                     java.util.Collections.emptyMap());
 
-            return _rpc
-                .singleRequestStreamingResponse(_crp, rpcOptions)
-                .doOnNext(_p -> {if(_p.getException() != null) throw reactor.core.Exceptions.propagate(_p.getException());})
-                .map(_p -> ResponseWrapper.create(((com.facebook.thrift.model.StreamResponse<Integer, Integer>)_p.getData()), _p.getHeaders(), _p.getBinaryHeaders()));
+            return com.facebook.thrift.util.ResponseAndStreamBridge.toResponseAndStream(
+                _rpc.singleRequestStreamingResponse(_crp, rpcOptions));
       }));
   }
 
   @java.lang.Override
-  public reactor.core.publisher.Flux<com.facebook.thrift.model.StreamResponse<Integer,Integer>> responseandstreamboththrows(final int foo,  final com.facebook.thrift.client.RpcOptions rpcOptions) {
-      return responseandstreamboththrowsWrapper(foo,  rpcOptions).map(_p -> _p.getData());
+  public reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer,Integer>> responseandstreamboththrows(final int foo,  final com.facebook.thrift.client.RpcOptions rpcOptions) {
+      return responseandstreamboththrowsWrapper(foo,  rpcOptions).map(_w -> _w.getData().mapStream(_s -> _s.filter(_i -> _i.getData() != null).map(_i -> _i.getData())));
   }
 
   @java.lang.Override
-  public reactor.core.publisher.Flux<com.facebook.thrift.model.StreamResponse<Integer,Integer>> responseandstreamboththrows(final int foo) {
+  public reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer,Integer>> responseandstreamboththrows(final int foo) {
     return responseandstreamboththrows(foo,  com.facebook.thrift.client.RpcOptions.EMPTY);
   }
 

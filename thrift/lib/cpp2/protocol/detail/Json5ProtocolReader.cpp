@@ -16,7 +16,6 @@
 
 #include <thrift/lib/cpp2/protocol/detail/Json5ProtocolReader.h>
 
-#include <charconv>
 #include <limits>
 #include <optional>
 #include <stdexcept>
@@ -24,6 +23,7 @@
 #include <variant>
 
 #include <folly/Exception.h>
+#include <folly/Range.h>
 #include <folly/String.h>
 #include <folly/base64.h>
 #include <folly/lang/Pretty.h>
@@ -77,6 +77,17 @@ std::string Json5ProtocolReader::takeStringValue(
   return std::move(*s);
 }
 
+template <typename T>
+T Json5ProtocolReader::parseInteger(std::string_view s) {
+  auto number =
+      Json5Reader::parseNumber(s, Json5Reader::FloatingPointPrecision::Double);
+  auto* i = std::get_if<Json5Reader::Integer>(&number);
+  if (i == nullptr) {
+    throwError(fmt::format("invalid integer '{}'", s));
+  }
+  return convertTo<T>(i->value());
+}
+
 // ============================================================================
 // Cursor Methods
 // ============================================================================
@@ -102,6 +113,12 @@ size_t Json5ProtocolReader::getCursorPosition() const {
 // ============================================================================
 
 void Json5ProtocolReader::beginReadValue() {
+  // Primitive keys are read as member names before this is reached, so this
+  // is a struct or container key, which a member name cannot hold.
+  if (containerStack_.inObjectMapExpectingKey()) {
+    throwError("struct and container map keys must use the array form");
+  }
+
   auto* map = containerStack_.mapState();
   if (map == nullptr ||
       map->encodedAs != CompoundTypeTracker::MapForm::KeyValueArray) {
@@ -167,14 +184,12 @@ std::optional<std::string> Json5ProtocolReader::tryReadObjectMapKey() {
 
 Json5Reader::Primitive Json5ProtocolReader::readPrimitiveOrMapKey(
     Json5Reader::FloatingPointPrecision precision) {
-  Json5Reader::Primitive primitive;
   if (auto key = tryReadObjectMapKey()) {
-    primitive = std::move(*key);
-  } else {
-    beginReadValue();
-    primitive = reader_.readPrimitive(precision);
-    endReadValue();
+    return std::move(*key);
   }
+  beginReadValue();
+  auto primitive = reader_.readPrimitive(precision);
+  endReadValue();
   return primitive;
 }
 
@@ -397,19 +412,6 @@ Json5ProtocolReader::readEnumImpl() {
   return parseIdentifierString(takeStringValue(std::move(primitive), "enum"));
 }
 
-namespace {
-// Parse the entire string as an integer.
-template <typename T>
-std::optional<T> tryParseNumber(std::string_view sv) {
-  T out;
-  auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), out);
-  if (ec == std::errc{} && ptr == sv.data() + sv.size()) {
-    return out;
-  }
-  return std::nullopt;
-}
-} // namespace
-
 template <typename T>
 Json5ProtocolReader::IdentifierReadResult<T>
 Json5ProtocolReader::parseIdentifierString(std::string_view s) {
@@ -417,19 +419,19 @@ Json5ProtocolReader::parseIdentifierString(std::string_view s) {
     throwError("Cannot parse empty string as identifier");
   }
 
-  // bare integer, e.g. "123" or "-123"
-  if (auto i = tryParseNumber<T>(s)) {
-    return {.name = {}, .value = *i};
-  }
-
   // bare identifier, e.g. "NAME"
   if (isIdentifier(s)) {
     return {.name = std::string(s), .value = std::nullopt};
   }
 
+  // bare integer, e.g. "123" or "-0x7B"
+  if (!s.ends_with(')')) {
+    return {.name = {}, .value = parseInteger<T>(s)};
+  }
+
   // "NAME (value)" or "(value)"
   auto parenOpen = s.find('(');
-  if (parenOpen == std::string_view::npos || !s.ends_with(')')) {
+  if (parenOpen == std::string_view::npos) {
     throwError(fmt::format("invalid identifier: '{}'", s));
   }
 
@@ -442,11 +444,7 @@ Json5ProtocolReader::parseIdentifierString(std::string_view s) {
   // Parsing value in "NAME (value)" or "(value)"
   auto valueStr = s.substr(parenOpen + 1); // "value)"
   valueStr.remove_suffix(1); // "value"
-  if (auto value = tryParseNumber<T>(valueStr)) {
-    return {.name = std::string(name), .value = *value};
-  }
-
-  throwError(fmt::format("invalid identifier: '{}'", s));
+  return {.name = std::string(name), .value = parseInteger<T>(valueStr)};
 }
 
 template Json5ProtocolReader::IdentifierReadResult<std::int32_t>
@@ -462,14 +460,28 @@ std::string Json5ProtocolReader::readStringValue() {
   return takeStringValue(readPrimitiveOrMapKey(), "string");
 }
 
+namespace {
+// Like `s.find_first_of(chars) != npos`, which is a nested loop in libstdc++;
+// `folly::qfind_first_of` uses SSE4.2.
+bool containsAnyOf(std::string_view s, std::string_view chars) {
+  return folly::qfind_first_of(
+             folly::StringPiece(s), folly::StringPiece(chars)) !=
+      std::string_view::npos;
+}
+
+std::string_view bareStringEncoding(std::string_view encoded) {
+  return containsAnyOf(encoded, "-_") ? "base64url" : "base64";
+}
+} // namespace
+
 std::string Json5ProtocolReader::readBinaryValue() {
-  // A binary map key written as a member name is base64.
   if (auto key = tryReadObjectMapKey()) {
-    return decodeBinary("base64url", std::move(*key));
+    auto encoding = bareStringEncoding(*key);
+    return decodeBinary(encoding, std::move(*key));
   }
 
   beginReadValue();
-  std::string encoding = "base64url";
+  std::string encoding;
   std::string encoded;
   if (reader_.peekToken() == Json5Reader::Token::ObjectBegin) {
     // {"utf-8": ...}, {"base64": ...} or {"base64url": ...}
@@ -478,8 +490,8 @@ std::string Json5ProtocolReader::readBinaryValue() {
     encoded = takeStringValue(reader_.readPrimitive(), "binary");
     reader_.readObjectEnd();
   } else {
-    // A plain string is base64.
     encoded = takeStringValue(reader_.readPrimitive(), "binary");
+    encoding = bareStringEncoding(encoded);
   }
   endReadValue();
   return decodeBinary(encoding, std::move(encoded));
@@ -490,48 +502,29 @@ std::string Json5ProtocolReader::decodeBinary(
   if (encoding == "utf-8") {
     return encoded;
   }
+  if (encoding != "base64" && encoding != "base64url") {
+    throwError(
+        fmt::format(
+            "Unsupported encoding type for binary object: {}", encoding));
+  }
+  // folly::base64URLDecode accepts both alphabets, with or without padding.
+  if (containsAnyOf(encoded, encoding == "base64" ? "-_" : "+/")) {
+    throwError(fmt::format("invalid character in {} binary value", encoding));
+  }
   try {
-    if (encoding == "base64url") {
-      // Accepts both standard and url-safe base64.
-      return folly::base64URLDecode(encoded);
-    } else if (encoding == "base64") {
-      while (encoded.size() % 4 != 0) {
-        // We want to support unpadded base64 string. Unfortunately there is no
-        // folly function to support base64 decode without padding. We have to
-        // add padding manually.
-        encoded += '=';
-      }
-      return folly::base64Decode(encoded);
-    }
+    return folly::base64URLDecode(encoded);
   } catch (const folly::base64_decode_error& e) {
     throwError(fmt::format("invalid {} binary value: {}", encoding, e.what()));
   }
-  throwError(
-      fmt::format("Unsupported encoding type for binary object: {}", encoding));
 }
 
-namespace {
-
-std::optional<std::int64_t> tryParseI64(
-    const Json5Reader::Primitive& primitive) {
+std::int64_t Json5ProtocolReader::readIntegralValue() {
+  auto primitive = readPrimitiveOrMapKey();
   if (auto* i = std::get_if<Json5Reader::Integer>(&primitive)) {
     return i->value();
   }
-  if (auto* s = std::get_if<std::string>(&primitive)) {
-    if (auto i = folly::tryTo<std::int64_t>(*s)) {
-      return *i;
-    }
-  }
-  return std::nullopt;
-}
-
-} // namespace
-
-std::int64_t Json5ProtocolReader::readIntegralValue() {
-  if (auto i = tryParseI64(readPrimitiveOrMapKey())) {
-    return *i;
-  }
-  throwError("expected integer value");
+  return parseInteger<std::int64_t>(
+      takeStringValue(std::move(primitive), "integer"));
 }
 
 template <std::floating_point T>
@@ -542,13 +535,7 @@ T Json5ProtocolReader::readFloatingPointValue() {
 
   auto primitive = readPrimitiveOrMapKey(precision);
   if (auto* s = std::get_if<std::string>(&primitive)) {
-    auto buf = folly::IOBuf::wrapBufferAsValue(s->data(), s->size());
-    folly::io::Cursor cursor(&buf);
-    auto number = Json5Reader::parseNumber(cursor, precision);
-    if (!cursor.isAtEnd()) {
-      throwError(fmt::format("invalid number '{}'", *s));
-    }
-    primitive = number;
+    primitive = Json5Reader::parseNumber(*s, precision);
   }
 
   if (auto* f = std::get_if<T>(&primitive)) {

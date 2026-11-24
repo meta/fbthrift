@@ -18,15 +18,18 @@
 
 #include <algorithm>
 #include <cstring>
+#include <string>
+#include <vector>
 
 #include <folly/io/Cursor.h>
 #include <folly/io/IOBuf.h>
 #include <folly/io/IOBufQueue.h>
 #include <folly/io/async/EventBase.h>
+#include <folly/portability/GMock.h>
 #include <thrift/lib/cpp/transport/TTransportException.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameLengthParser.h>
@@ -38,6 +41,7 @@
 #include <thrift/lib/cpp2/fast_thrift/rocket/client/adapter/RocketClientAppAdapter.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/client/handler/RocketClientConnectionErrorHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/client/handler/RocketClientFrameCodecHandler.h>
+#include <thrift/lib/cpp2/fast_thrift/rocket/client/handler/RocketClientKeepAliveHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/client/handler/RocketClientRequestResponseHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/client/handler/RocketClientSetupFrameHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/client/handler/RocketClientStreamStateHandler.h>
@@ -46,11 +50,12 @@
 
 namespace apache::thrift::fast_thrift::rocket::client::test {
 
-using apache::thrift::fast_thrift::channel_pipeline::PipelineBuilder;
-using apache::thrift::fast_thrift::channel_pipeline::PipelineImpl;
+using apache::thrift::fast_thrift::channel_pipeline::PipelineOwner;
 using apache::thrift::fast_thrift::channel_pipeline::Result;
+using apache::thrift::fast_thrift::channel_pipeline::StaticPipelineBuilder;
 using apache::thrift::fast_thrift::channel_pipeline::test::TestAllocator;
 using apache::thrift::fast_thrift::transport::test::TestAsyncTransport;
+using namespace testing;
 
 // Bring message types into scope
 using rocket::kInvalidStreamId;
@@ -61,6 +66,7 @@ using ParsedFrame = apache::thrift::fast_thrift::frame::read::ParsedFrame;
 // Bring handler types into scope
 using rocket::client::handler::RocketClientConnectionErrorHandler;
 using rocket::client::handler::RocketClientFrameCodecHandler;
+using rocket::client::handler::RocketClientKeepAliveHandler;
 using rocket::client::handler::RocketClientRequestResponseHandler;
 using rocket::client::handler::RocketClientSetupFrameHandler;
 using rocket::client::handler::RocketClientStreamStateHandler;
@@ -80,6 +86,7 @@ HANDLER_TAG(rocket_client_connection_error_handler);
 HANDLER_TAG(rocket_client_stream_state_handler);
 HANDLER_TAG(error_injection_inbound_handler);
 HANDLER_TAG(outbound_write_fail_handler);
+HANDLER_TAG(rocket_client_keepalive_handler);
 
 using channel_pipeline::TypeErasedBox;
 
@@ -168,13 +175,10 @@ class RocketClientIntegrationTest : public ::testing::Test {
     testTransport_ = nullptr;
   }
 
-  /**
-   * Set up the rocket-only pipeline with TestAsyncTransport.
-   * No thrift handlers - just the rocket client handlers.
-   * The test treats the adapter as a black box: writes requests to
-   * appAdapter_ and validates responses via callbacks.
-   */
-  void setupPipeline() {
+  // Creates the TestAsyncTransport and its transport handler, and records
+  // what reaches the app adapter: each response and exception, and "connect"
+  // and "disconnect" in lifecycle_.
+  void createTransportAndRecordAppEvents() {
     auto transport =
         folly::AsyncTransport::UniquePtr(new TestAsyncTransport(&evb_));
     testTransport_ = static_cast<TestAsyncTransport*>(transport.get());
@@ -196,49 +200,107 @@ class RocketClientIntegrationTest : public ::testing::Test {
           exceptionReceived_ = true;
           exception_ = std::move(e);
         });
+    appAdapter_->setLifecycleHandlers(
+        [this]() noexcept { lifecycle_.emplace_back("connect"); },
+        [this]() noexcept { lifecycle_.emplace_back("disconnect"); });
+  }
 
-    pipeline_ =
-        PipelineBuilder<
-            apache::thrift::fast_thrift::transport::TransportHandlerT<
-                apache::thrift::fast_thrift::transport::
-                    NoOpWriteCompleteEventFactory,
-                apache::thrift::fast_thrift::frame::read::FrameLengthParser>,
-            rocket::client::RocketClientAppAdapter,
-            TestAllocator>()
-            .setEventBase(&evb_)
-            .setHead(transportHandler_.get())
-            .setTail(appAdapter_.get())
-            .setAllocator(&allocator_)
-            .addState<apache::thrift::fast_thrift::rocket::client::
-                          RocketClientStreamContexts>()
+  // Starts the pipeline: its two ends, the stream contexts, the frame length
+  // encoder and the frame codec. The caller adds the handlers above the codec.
+  auto pipelineBuilderUpToFrameCodec() {
+    return StaticPipelineBuilder<
+               apache::thrift::fast_thrift::transport::TransportHandlerT<
+                   apache::thrift::fast_thrift::transport::
+                       NoOpWriteCompleteEventFactory,
+                   apache::thrift::fast_thrift::frame::read::FrameLengthParser>,
+               rocket::client::RocketClientAppAdapter,
+               TestAllocator>()
+        .setEventBase(&evb_)
+        .setHead(transportHandler_.get())
+        .setTail(appAdapter_.get())
+        .setAllocator(&allocator_)
+        .addState<apache::thrift::fast_thrift::rocket::client::
+                      RocketClientStreamContexts>()
 
-            .addNextOutbound<apache::thrift::fast_thrift::frame::write::
-                                 handler::FrameLengthEncoderHandler>(
-                frame_length_encoder_handler_tag)
-            .addNextDuplex<RocketClientFrameCodecHandler>(
-                rocket_client_frame_codec_handler_tag)
-            .addNextDuplex<RocketClientSetupFrameHandler>(
-                rocket_client_setup_handler_tag,
-                []() {
-                  return std::make_pair(
-                      folly::IOBuf::copyBuffer("setup"),
-                      std::unique_ptr<folly::IOBuf>());
-                })
-            .addNextInbound<RocketClientConnectionErrorHandler>(
-                rocket_client_connection_error_handler_tag)
-            .addNextDuplex<RocketClientStreamStateHandler>(
-                rocket_client_stream_state_handler_tag)
-            .addNextInbound<RocketClientRequestResponseHandler>(
-                rocket_client_request_response_handler_tag)
-            .build();
+        .addNextOutbound<apache::thrift::fast_thrift::frame::write::handler::
+                             FrameLengthEncoderHandler>(
+            frame_length_encoder_handler_tag)
+        .addNextDuplex<RocketClientFrameCodecHandler>(
+            rocket_client_frame_codec_handler_tag);
+  }
+
+  /**
+   * Build the rocket-only pipeline with TestAsyncTransport, without
+   * connecting it. No thrift handlers - just the rocket client handlers.
+   * The test treats the adapter as a black box: writes requests to
+   * appAdapter_ and validates responses via callbacks.
+   */
+  void buildPipeline() {
+    createTransportAndRecordAppEvents();
+
+    pipeline_ = pipelineBuilderUpToFrameCodec()
+                    .addNextDuplex<RocketClientSetupFrameHandler>(
+                        rocket_client_setup_handler_tag,
+                        []() {
+                          return std::make_pair(
+                              folly::IOBuf::copyBuffer("setup"),
+                              std::unique_ptr<folly::IOBuf>());
+                        })
+                    .addNextInbound<RocketClientConnectionErrorHandler>(
+                        rocket_client_connection_error_handler_tag)
+                    .addNextDuplex<RocketClientStreamStateHandler>(
+                        rocket_client_stream_state_handler_tag)
+                    .addNextInbound<RocketClientRequestResponseHandler>(
+                        rocket_client_request_response_handler_tag)
+                    .build();
 
     appAdapter_->setPipeline(pipeline_.get());
     transportHandler_->setPipeline(pipeline_.get());
+  }
+
+  // Builds the pipeline, connects it and drops the SETUP frame.
+  void setupPipeline() {
+    buildPipeline();
     transportHandler_->onConnect();
 
-    evb_.loopOnce();
+    evb_.loopOnce(EVLOOP_NONBLOCK);
 
     discardSetupFrame();
+  }
+
+  // Like setupPipeline() without the connect, with a keepalive handler right
+  // above the setup handler. The keepalive handler is activated after the
+  // setup handler and starts a timer then. An OutboundWriteFailHandler right
+  // below the setup handler fails every write, SETUP first.
+  void buildKeepAlivePipelineWithFailingWrites() {
+    createTransportAndRecordAppEvents();
+
+    pipeline_ = pipelineBuilderUpToFrameCodec()
+                    .addNextOutbound<OutboundWriteFailHandler>(
+                        outbound_write_fail_handler_tag)
+                    .addNextDuplex<RocketClientSetupFrameHandler>(
+                        rocket_client_setup_handler_tag,
+                        []() {
+                          return std::make_pair(
+                              folly::IOBuf::copyBuffer("setup"),
+                              std::unique_ptr<folly::IOBuf>());
+                        })
+                    .addNextDuplex<RocketClientKeepAliveHandler>(
+                        rocket_client_keepalive_handler_tag,
+                        rocket::RSocketKeepAliveConfig{
+                            .intervalMs = 60000,
+                            .maxLifetimeMs = 600000,
+                        })
+                    .addNextInbound<RocketClientConnectionErrorHandler>(
+                        rocket_client_connection_error_handler_tag)
+                    .addNextDuplex<RocketClientStreamStateHandler>(
+                        rocket_client_stream_state_handler_tag)
+                    .addNextInbound<RocketClientRequestResponseHandler>(
+                        rocket_client_request_response_handler_tag)
+                    .build();
+
+    appAdapter_->setPipeline(pipeline_.get());
+    transportHandler_->setPipeline(pipeline_.get());
   }
 
   /**
@@ -274,7 +336,7 @@ class RocketClientIntegrationTest : public ::testing::Test {
         });
 
     pipeline_ =
-        PipelineBuilder<
+        StaticPipelineBuilder<
             apache::thrift::fast_thrift::transport::TransportHandlerT<
                 apache::thrift::fast_thrift::transport::
                     NoOpWriteCompleteEventFactory,
@@ -316,7 +378,7 @@ class RocketClientIntegrationTest : public ::testing::Test {
     transportHandler_->setPipeline(pipeline_.get());
     transportHandler_->onConnect();
 
-    evb_.loopOnce();
+    evb_.loopOnce(EVLOOP_NONBLOCK);
 
     discardSetupFrame();
   }
@@ -351,7 +413,7 @@ class RocketClientIntegrationTest : public ::testing::Test {
         });
 
     pipeline_ =
-        PipelineBuilder<
+        StaticPipelineBuilder<
             apache::thrift::fast_thrift::transport::TransportHandlerT<
                 apache::thrift::fast_thrift::transport::
                     NoOpWriteCompleteEventFactory,
@@ -391,7 +453,7 @@ class RocketClientIntegrationTest : public ::testing::Test {
     transportHandler_->setPipeline(pipeline_.get());
     transportHandler_->onConnect();
 
-    evb_.loopOnce();
+    evb_.loopOnce(EVLOOP_NONBLOCK);
 
     discardSetupFrame();
   }
@@ -463,7 +525,7 @@ class RocketClientIntegrationTest : public ::testing::Test {
       apache::thrift::fast_thrift::transport::NoOpWriteCompleteEventFactory,
       apache::thrift::fast_thrift::frame::read::FrameLengthParser>::Ptr
       transportHandler_;
-  PipelineImpl::Ptr pipeline_;
+  PipelineOwner pipeline_;
   TestAllocator allocator_;
 
   // Response tracking
@@ -471,6 +533,7 @@ class RocketClientIntegrationTest : public ::testing::Test {
   std::vector<TypeErasedBox> responses_;
   bool exceptionReceived_{false};
   folly::exception_wrapper exception_;
+  std::vector<std::string> lifecycle_;
 };
 
 // =============================================================================
@@ -483,7 +546,7 @@ TEST_F(RocketClientIntegrationTest, RequestFlowsThroughPipelineToSocket) {
   auto request = createRocketRequest(folly::IOBuf::copyBuffer("test payload"));
   (void)appAdapter_->write(std::move(request));
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto requestFrame = getWrittenFrame();
   ASSERT_NE(requestFrame, nullptr) << "Expected request frame to be written";
@@ -502,7 +565,7 @@ TEST_F(RocketClientIntegrationTest, MultipleRequestsGetDistinctStreamIds) {
 
   auto request1 = createRocketRequest(folly::IOBuf::copyBuffer("payload1"));
   (void)appAdapter_->write(std::move(request1));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
   auto frame1 = getWrittenFrame();
   ASSERT_NE(frame1, nullptr);
   auto parsed1 = parseWrittenFrame(std::move(frame1));
@@ -511,7 +574,7 @@ TEST_F(RocketClientIntegrationTest, MultipleRequestsGetDistinctStreamIds) {
 
   auto request2 = createRocketRequest(folly::IOBuf::copyBuffer("payload2"));
   (void)appAdapter_->write(std::move(request2));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
   auto frame2 = getWrittenFrame();
   ASSERT_NE(frame2, nullptr);
   auto parsed2 = parseWrittenFrame(std::move(frame2));
@@ -526,7 +589,7 @@ TEST_F(RocketClientIntegrationTest, RequestWithMetadataAndData) {
       folly::IOBuf::copyBuffer("data"), folly::IOBuf::copyBuffer("metadata"));
   (void)appAdapter_->write(std::move(request));
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto requestFrame = getWrittenFrame();
   ASSERT_NE(requestFrame, nullptr);
@@ -551,7 +614,7 @@ TEST_F(RocketClientIntegrationTest, ResponseFlowsFromSocketThroughPipeline) {
   auto request = createRocketRequest(folly::IOBuf::copyBuffer("test"));
   (void)appAdapter_->write(std::move(request));
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto requestFrame = getWrittenFrame();
   ASSERT_NE(requestFrame, nullptr);
@@ -566,8 +629,8 @@ TEST_F(RocketClientIntegrationTest, ResponseFlowsFromSocketThroughPipeline) {
 
   injectFrame(std::move(responseFrame));
 
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   EXPECT_EQ(responseCount_, 1) << "App adapter should have received response";
   EXPECT_FALSE(exceptionReceived_);
@@ -586,14 +649,14 @@ TEST_F(
 
   auto request1 = createRocketRequest(folly::IOBuf::copyBuffer("req1"));
   (void)appAdapter_->write(std::move(request1));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
   auto frame1 = getWrittenFrame();
   auto parsed1 = parseWrittenFrame(std::move(frame1));
   uint32_t streamId1 = parsed1.streamId();
 
   auto request2 = createRocketRequest(folly::IOBuf::copyBuffer("req2"));
   (void)appAdapter_->write(std::move(request2));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
   auto frame2 = getWrittenFrame();
   auto parsed2 = parseWrittenFrame(std::move(frame2));
   uint32_t streamId2 = parsed2.streamId();
@@ -601,8 +664,8 @@ TEST_F(
   auto response2 = createPayloadResponse(
       streamId2, nullptr, folly::IOBuf::copyBuffer("response2"));
   injectFrame(std::move(response2));
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   EXPECT_EQ(responseCount_, 1);
   auto& resp = responses_[0].get<RocketResponseMessage>();
@@ -611,8 +674,8 @@ TEST_F(
   auto response1 = createPayloadResponse(
       streamId1, nullptr, folly::IOBuf::copyBuffer("response1"));
   injectFrame(std::move(response1));
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   EXPECT_EQ(responseCount_, 2);
 }
@@ -635,7 +698,7 @@ TEST_F(
   // RocketResponseError by the injection handler.
   auto request1 = createRocketRequest(folly::IOBuf::copyBuffer("req1"));
   (void)appAdapter_->write(std::move(request1));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
   auto requestFrame1 = getWrittenFrame();
   ASSERT_NE(requestFrame1, nullptr);
   auto parsedRequest1 = parseWrittenFrame(std::move(requestFrame1));
@@ -647,8 +710,8 @@ TEST_F(
   auto responseFrame1 = createPayloadResponse(
       1u, nullptr, folly::IOBuf::copyBuffer("ignored payload"));
   injectFrame(std::move(responseFrame1));
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   // App receives one response carrying RocketResponseError; no
   // connection-level exception fires.
@@ -666,7 +729,7 @@ TEST_F(
   // flows through untouched. This is the "connection survives" assertion.
   auto request2 = createRocketRequest(folly::IOBuf::copyBuffer("req2"));
   (void)appAdapter_->write(std::move(request2));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
   auto requestFrame2 = getWrittenFrame();
   ASSERT_NE(requestFrame2, nullptr);
   auto parsedRequest2 = parseWrittenFrame(std::move(requestFrame2));
@@ -675,8 +738,8 @@ TEST_F(
   auto responseFrame2 = createPayloadResponse(
       3u, nullptr, folly::IOBuf::copyBuffer("real response"));
   injectFrame(std::move(responseFrame2));
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   ASSERT_EQ(responseCount_, 2);
   EXPECT_FALSE(exceptionReceived_);
@@ -701,7 +764,7 @@ TEST_F(
 
   auto request = createRocketRequest(folly::IOBuf::copyBuffer("test"));
   (void)appAdapter_->write(std::move(request));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   ASSERT_EQ(responseCount_, 1);
   EXPECT_FALSE(exceptionReceived_);
@@ -737,7 +800,7 @@ TEST_F(
 
   auto request1 = createRocketRequest(folly::IOBuf::copyBuffer("req1"));
   (void)appAdapter_->write(std::move(request1));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
   auto requestFrame1 = getWrittenFrame();
   ASSERT_NE(requestFrame1, nullptr);
   auto parsedRequest1 = parseWrittenFrame(std::move(requestFrame1));
@@ -745,7 +808,7 @@ TEST_F(
 
   auto request2 = createRocketRequest(folly::IOBuf::copyBuffer("req2"));
   (void)appAdapter_->write(std::move(request2));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
   auto requestFrame2 = getWrittenFrame();
   ASSERT_NE(requestFrame2, nullptr);
   auto parsedRequest2 = parseWrittenFrame(std::move(requestFrame2));
@@ -756,7 +819,7 @@ TEST_F(
       apache::thrift::transport::TTransportException::END_OF_FILE,
       "Transport closed unexpectedly");
   transportHandler_->close(folly::exception_wrapper(ew));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   ASSERT_EQ(responseCount_, 2);
   std::vector<uint32_t> seenStreamIds;
@@ -792,17 +855,17 @@ TEST_F(
 
   auto request1 = createRocketRequest(folly::IOBuf::copyBuffer("req1"));
   (void)appAdapter_->write(std::move(request1));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
   ASSERT_NE(getWrittenFrame(), nullptr);
 
   auto request2 = createRocketRequest(folly::IOBuf::copyBuffer("req2"));
   (void)appAdapter_->write(std::move(request2));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
   ASSERT_NE(getWrittenFrame(), nullptr);
 
   // No exception — graceful close path.
   transportHandler_->close(folly::exception_wrapper{});
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   ASSERT_EQ(responseCount_, 2);
   std::vector<uint32_t> seenStreamIds;
@@ -826,6 +889,47 @@ TEST_F(
   EXPECT_FALSE(exceptionReceived_);
 }
 
+TEST_F(RocketClientIntegrationTest, RequestBeforeConnectFailsWithNotOpen) {
+  buildPipeline();
+
+  EXPECT_THAT(
+      appAdapter_->write(createRocketRequest(folly::IOBuf::copyBuffer("req"))),
+      Eq(Result::Error));
+  ASSERT_THAT(responses_, SizeIs(1));
+  const apache::thrift::transport::TTransportException* const error =
+      responses_[0]
+          .get<RocketResponseMessage>()
+          .payload.get<rocket::RocketResponseError>()
+          .ew.get_exception<apache::thrift::transport::TTransportException>();
+  ASSERT_THAT(error, NotNull());
+  EXPECT_THAT(
+      error->getType(),
+      Eq(apache::thrift::transport::TTransportException::NOT_OPEN));
+
+  // SETUP still goes out first, and the next request starts at stream 1.
+  transportHandler_->onConnect();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  EXPECT_THAT(
+      parseWrittenFrame(getWrittenFrame()).type(),
+      Eq(apache::thrift::fast_thrift::frame::FrameType::SETUP));
+  EXPECT_THAT(
+      appAdapter_->write(createRocketRequest(folly::IOBuf::copyBuffer("req"))),
+      Ne(Result::Error));
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  EXPECT_THAT(parseWrittenFrame(getWrittenFrame()).streamId(), Eq(1u));
+}
+
+TEST_F(RocketClientIntegrationTest, FailedSetupWriteClosesAfterActivation) {
+  buildKeepAlivePipelineWithFailingWrites();
+
+  transportHandler_->onConnect();
+
+  EXPECT_THAT(lifecycle_, ElementsAre("connect"));
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  EXPECT_THAT(lifecycle_, ElementsAre("connect", "disconnect"));
+  EXPECT_THAT(testTransport_->good(), IsFalse());
+}
+
 // =============================================================================
 // Error Response Tests
 // =============================================================================
@@ -835,7 +939,7 @@ TEST_F(RocketClientIntegrationTest, ErrorFrameWithApplicationErrorCode) {
 
   auto request = createRocketRequest(folly::IOBuf::copyBuffer("test"));
   (void)appAdapter_->write(std::move(request));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto requestFrame = getWrittenFrame();
   auto parsedRequest = parseWrittenFrame(std::move(requestFrame));
@@ -849,8 +953,8 @@ TEST_F(RocketClientIntegrationTest, ErrorFrameWithApplicationErrorCode) {
 
   injectFrame(std::move(errorFrame));
 
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   EXPECT_EQ(responseCount_, 1);
   auto& response = responses_[0].get<RocketResponseMessage>();
@@ -865,7 +969,7 @@ TEST_F(RocketClientIntegrationTest, ErrorFrameWithRejectedCode) {
 
   auto request = createRocketRequest(folly::IOBuf::copyBuffer("test"));
   (void)appAdapter_->write(std::move(request));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto requestFrame = getWrittenFrame();
   auto parsedRequest = parseWrittenFrame(std::move(requestFrame));
@@ -879,8 +983,8 @@ TEST_F(RocketClientIntegrationTest, ErrorFrameWithRejectedCode) {
 
   injectFrame(std::move(errorFrame));
 
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   EXPECT_EQ(responseCount_, 1);
   auto& response = responses_[0].get<RocketResponseMessage>();
@@ -894,7 +998,7 @@ TEST_F(RocketClientIntegrationTest, ErrorFrameWithCanceledCode) {
 
   auto request = createRocketRequest(folly::IOBuf::copyBuffer("test"));
   (void)appAdapter_->write(std::move(request));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto requestFrame = getWrittenFrame();
   auto parsedRequest = parseWrittenFrame(std::move(requestFrame));
@@ -908,8 +1012,8 @@ TEST_F(RocketClientIntegrationTest, ErrorFrameWithCanceledCode) {
 
   injectFrame(std::move(errorFrame));
 
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   EXPECT_EQ(responseCount_, 1);
   auto& response = responses_[0].get<RocketResponseMessage>();
@@ -923,7 +1027,7 @@ TEST_F(RocketClientIntegrationTest, ErrorFrameWithInvalidCode) {
 
   auto request = createRocketRequest(folly::IOBuf::copyBuffer("test"));
   (void)appAdapter_->write(std::move(request));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto requestFrame = getWrittenFrame();
   auto parsedRequest = parseWrittenFrame(std::move(requestFrame));
@@ -937,8 +1041,8 @@ TEST_F(RocketClientIntegrationTest, ErrorFrameWithInvalidCode) {
 
   injectFrame(std::move(errorFrame));
 
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   EXPECT_EQ(responseCount_, 1);
   auto& response = responses_[0].get<RocketResponseMessage>();
@@ -956,7 +1060,7 @@ TEST_F(RocketClientIntegrationTest, ResponseWithEmptyPayload) {
 
   auto request = createRocketRequest(folly::IOBuf::copyBuffer("test"));
   (void)appAdapter_->write(std::move(request));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto requestFrame = getWrittenFrame();
   auto parsedRequest = parseWrittenFrame(std::move(requestFrame));
@@ -966,8 +1070,8 @@ TEST_F(RocketClientIntegrationTest, ResponseWithEmptyPayload) {
 
   injectFrame(std::move(responseFrame));
 
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   EXPECT_EQ(responseCount_, 1);
   auto& response = responses_[0].get<RocketResponseMessage>();
@@ -988,7 +1092,7 @@ TEST_F(RocketClientIntegrationTest, LargePayloadRequest) {
   auto request = createRocketRequest(std::move(largeData));
   (void)appAdapter_->write(std::move(request));
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto requestFrame = getWrittenFrame();
   ASSERT_NE(requestFrame, nullptr);
@@ -1006,7 +1110,7 @@ TEST_F(RocketClientIntegrationTest, ResponseWithMetadata) {
 
   auto request = createRocketRequest(folly::IOBuf::copyBuffer("test"));
   (void)appAdapter_->write(std::move(request));
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto requestFrame = getWrittenFrame();
   auto parsedRequest = parseWrittenFrame(std::move(requestFrame));
@@ -1019,8 +1123,8 @@ TEST_F(RocketClientIntegrationTest, ResponseWithMetadata) {
 
   injectFrame(std::move(responseFrame));
 
-  evb_.loopOnce();
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   EXPECT_EQ(responseCount_, 1);
   auto& response = responses_[0].get<RocketResponseMessage>();

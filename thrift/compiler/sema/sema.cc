@@ -78,6 +78,9 @@ class type_ref_resolver {
     const scope::identifier id{
         detail::unresolved_type_ref_info::unresolved_name(ref),
         ref.src_range()};
+    if (!id.has_scope()) {
+      return nullptr; // An unqualified type name never leaves its own program.
+    }
     return dynamic_cast<const t_type*>(bundle_.root_program()->find(id));
   }
 
@@ -542,6 +545,25 @@ std::unique_ptr<t_field> clone_injected_field(
   return clone;
 }
 
+// `@cpp.Arena` on a struct or union applies to each field that field-level
+// `@cpp.Arena` supports.
+void apply_arena(const t_named& node, t_structured& fields) {
+  const t_const* arena = node.find_structured_annotation_or_null(kCppArenaUri);
+  if (arena == nullptr) {
+    return;
+  }
+  for (t_field& field : fields.fields()) {
+    if (!cpp2::is_arena_field(field) && cpp2::is_arena_supported(field)) {
+      field.add_structured_annotation(arena->clone());
+    }
+  }
+}
+
+void mutate_structured_arena(
+    sema_context&, mutator_context&, t_structured& node) {
+  apply_arena(node, node);
+}
+
 void mutate_inject_metadata_fields(
     sema_context& ctx, mutator_context&, t_structured& node) {
   // TODO(dokwon): Currently field injection doesn't work for structs used as
@@ -569,13 +591,13 @@ void mutate_inject_metadata_fields(
   }
   const scope::identifier id{type_string, loc};
 
-  const t_type* ttype = node.program()->find<t_type>(id);
+  const t_type* ttype = node.program()->find_type(id);
   if (!ttype && annotation->program()) {
     // [TEMPORARY] Allow injected metadata fields to use the scope name
     // of the program they're defined in. e.g.
     // @internal.InjectMetadataFields{type = "Bar"} in foo.thrift should be
     // resolved as foo.Bar, not just Bar.
-    ttype = annotation->program()->find<t_type>(id);
+    ttype = annotation->program()->find_type(id);
   }
   if (!ttype) {
     ctx.error(
@@ -694,6 +716,8 @@ std::vector<ast_mutator> pre_validation_standard_mutators() {
   main.add_struct_visitor(&mutate_terse_write_annotation_structured);
   main.add_exception_visitor(&mutate_terse_write_annotation_structured);
   main.add_struct_visitor(&mutate_inject_metadata_fields);
+  main.add_struct_visitor(&mutate_structured_arena);
+  main.add_union_visitor(&mutate_structured_arena);
   main.add_const_visitor(&match_const_type_with_value);
   main.add_field_visitor(&match_field_type_with_default_value);
   main.add_function_param_visitor(&match_field_type_with_default_value);

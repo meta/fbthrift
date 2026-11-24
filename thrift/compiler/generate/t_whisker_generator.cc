@@ -68,6 +68,34 @@ prototype<t_named>::ptr t_whisker_generator::make_prototype_for_named(
   def.property("scoped_name", mem_fn(&t_named::get_scoped_name));
   def.property("doc", mem_fn(&t_named::doc));
   def.property("docs?", mem_fn(&t_named::has_doc));
+  // Renders the docblock documenting a definition in the generator's
+  // docblock_style, without a trailing newline, or an empty string for a
+  // definition with nothing to document. `code_fence` is passed to
+  // docblock_text.
+  def.function("docblock", [this](const t_named& self, function::context ctx) {
+    ctx.declare_arity(0);
+    ctx.declare_named_arguments({"code_fence"});
+    const std::optional<docblock_style> style = get_docblock_style();
+    if (!style.has_value()) {
+      throw ctx.make_error(
+          "docblock is not available: the generator has no docblock_style");
+    }
+    const auto code_fence =
+        ctx.named_argument<string>("code_fence", function::context::optional);
+    const std::string text = docblock_text(
+        self,
+        *program_,
+        docblock_includes_definition(self),
+        code_fence.value_or(""));
+    if (text.empty()) {
+      return std::string();
+    }
+    std::string docblock = apply_compact_docblock_style(text, *style);
+    if (docblock.ends_with('\n')) {
+      docblock.pop_back();
+    }
+    return docblock;
+  });
   def.property("generated?", mem_fn(&t_named::generated));
   def.property("program", mem_fn(&t_named::program, proto.of<t_program>()));
   def.property(
@@ -1054,11 +1082,14 @@ t_whisker_generator::cached_render_state& t_whisker_generator::render_state() {
       }
     }
 
+    auto errors = std::make_unique<whisker::diagnostic_results>();
+    whisker::diagnostics_engine diagnostic_engine(
+        source_resolver->source_manager(),
+        *errors,
+        diagnostic_params::only_errors());
     cached_render_state_ = cached_render_state{
-        whisker::diagnostics_engine(
-            source_resolver->source_manager(),
-            [](const diagnostic& d) { fmt::print(stderr, "{}\n", d); },
-            diagnostic_params::only_errors()),
+        std::move(errors),
+        std::move(diagnostic_engine),
         source_resolver,
         std::move(options),
         std::move(prototypes),
@@ -1072,6 +1103,16 @@ t_whisker_generator::cached_render_state& t_whisker_generator::render_state() {
 std::string t_whisker_generator::render(
     std::string_view template_file, const whisker::object& context) {
   cached_render_state& state = render_state();
+  const std::size_t first_error = state.errors->diagnostics().size();
+  const auto render_error = [&](std::string_view action) {
+    std::string message =
+        fmt::format("Failed to {} template '{}'", action, template_file);
+    const std::vector<diagnostic>& errors = state.errors->diagnostics();
+    for (auto it = errors.begin() + first_error; it != errors.end(); ++it) {
+      message += fmt::format("\n{}", *it);
+    }
+    return std::runtime_error{message};
+  };
   const whisker::ast::root& ast = whisker::visit(
       state.source_resolver->resolve_import(
           template_file, {}, state.diagnostic_engine),
@@ -1083,16 +1124,12 @@ std::string t_whisker_generator::render(
         return *resolved;
       },
       [&](const whisker::source_resolver::parsing_error&)
-          -> const whisker::ast::root& {
-        throw std::runtime_error{
-            fmt::format("Failed to parse template '{}'", template_file)};
-      });
+          -> const whisker::ast::root& { throw render_error("parse"); });
 
   std::ostringstream out;
   if (!whisker::render(
           out, ast, context, state.diagnostic_engine, state.render_options)) {
-    throw std::runtime_error{
-        fmt::format("Failed to render template '{}'", template_file)};
+    throw render_error("render");
   }
   return out.str();
 }

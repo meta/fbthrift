@@ -22,6 +22,8 @@ import static javax.annotation.meta.When.UNKNOWN;
 import com.facebook.thrift.protocol.TProtocolType;
 import io.netty.buffer.ByteBuf;
 import io.netty.util.ReferenceCounted;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import javax.annotation.CheckReturnValue;
 
@@ -33,6 +35,7 @@ public class ThriftFrame implements ReferenceCounted {
   private final LegacyTransportType transport;
   private final TProtocolType protocol;
   private final boolean supportOutOfOrderResponse;
+  private final List<Integer> transforms;
 
   public ThriftFrame(
       int sequenceId,
@@ -42,6 +45,31 @@ public class ThriftFrame implements ReferenceCounted {
       LegacyTransportType transport,
       TProtocolType protocol,
       boolean supportOutOfOrderResponse) {
+    this(
+        sequenceId,
+        message,
+        headers,
+        persistentHeaders,
+        transport,
+        protocol,
+        supportOutOfOrderResponse,
+        Collections.emptyList());
+  }
+
+  /**
+   * @param transforms THeader transform IDs ({@code TTransform} values) of the frame on the wire. A
+   *     server codec untransforms the message when it reads the frame; a client codec leaves it
+   *     transformed and {@code ThriftClientHandler} untransforms it.
+   */
+  public ThriftFrame(
+      int sequenceId,
+      ByteBuf message,
+      Map<String, String> headers,
+      Map<String, String> persistentHeaders,
+      LegacyTransportType transport,
+      TProtocolType protocol,
+      boolean supportOutOfOrderResponse,
+      List<Integer> transforms) {
     this.sequenceId = sequenceId;
     this.message = requireNonNull(message, "message is null");
     this.headers = requireNonNull(headers, "headers is null");
@@ -49,6 +77,7 @@ public class ThriftFrame implements ReferenceCounted {
     this.transport = requireNonNull(transport, "transport is null");
     this.protocol = requireNonNull(protocol, "protocol is null");
     this.supportOutOfOrderResponse = supportOutOfOrderResponse;
+    this.transforms = requireNonNull(transforms, "transforms is null");
   }
 
   public int getSequenceId() {
@@ -77,6 +106,10 @@ public class ThriftFrame implements ReferenceCounted {
 
   public boolean isSupportOutOfOrderResponse() {
     return supportOutOfOrderResponse;
+  }
+
+  public List<Integer> getTransforms() {
+    return transforms;
   }
 
   @Override

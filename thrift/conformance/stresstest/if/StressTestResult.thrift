@@ -57,10 +57,18 @@ struct CqeCounters {
   3: i64 zeroCopyNotifCount;
 }
 
+struct RxTimestampStats {
+  1: i64 samples;
+  2: double p50Us;
+  3: double p99Us;
+  4: double p100Us;
+}
+
 struct ClientResult {
   1: ResultMetadata metadata;
   2: RequestCounters requests;
   3: CqeCounters cqe;
+  4: optional RxTimestampStats rxTimestamps;
 }
 
 struct ServerResult {
@@ -69,4 +77,5 @@ struct ServerResult {
   3: ZcrxCounters zcrx;
   4: ProvidedBufferCounters providedBuffer;
   5: CqeCounters cqe;
+  6: optional RxTimestampStats rxTimestamps;
 }

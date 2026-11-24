@@ -19,6 +19,7 @@
 #include <limits>
 
 #include <folly/io/IOBuf.h>
+#include <folly/portability/GMock.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/ErrorCode.h>
@@ -40,6 +41,7 @@ using apache::thrift::fast_thrift::frame::ErrorCode;
 using apache::thrift::fast_thrift::frame::FrameType;
 using apache::thrift::fast_thrift::rocket::RocketStreamContext;
 using apache::thrift::fast_thrift::rocket::RocketStreamContexts;
+using namespace testing;
 
 namespace {
 
@@ -345,6 +347,18 @@ TEST_F(
       static_cast<ErrorCode>(errorMsg.frame.errorCode), ErrorCode::INVALID);
 }
 
+TEST_F(
+    ServerStreamHandlerTest,
+    Read_RequestStreamInvalidInitialRequestNWithBackpressuredError_ReturnsSuccess) {
+  ctx_.openStream(/*streamId=*/1);
+  ctx_.setNextWriteResult(Result::Backpressure);
+
+  EXPECT_THAT(
+      handler_.onRead(
+          ctx_, erase_and_box(makeRequestStreamRequest(/*streamId=*/1, 0))),
+      Eq(Result::Success));
+}
+
 // =============================================================================
 // Inbound: REQUEST_N -- credit increments on streaming streams.
 // =============================================================================
@@ -412,6 +426,32 @@ TEST_F(ServerStreamHandlerTest, Read_RequestNOverflow_SynthesizesError) {
   EXPECT_EQ(errorMsg.frame.frameType, FrameType::ERROR);
   EXPECT_EQ(
       static_cast<ErrorCode>(errorMsg.frame.errorCode), ErrorCode::INVALID);
+}
+
+TEST_F(
+    ServerStreamHandlerTest,
+    Read_RequestNOverflowWithBackpressuredError_ReturnsSuccess) {
+  ctx_.openStream(/*streamId=*/1);
+  ctx_.setCredits(1, std::numeric_limits<uint64_t>::max());
+  ctx_.setNextWriteResult(Result::Backpressure);
+
+  EXPECT_THAT(
+      handler_.onRead(
+          ctx_, erase_and_box(makeRequestN(/*streamId=*/1, /*requestN=*/1))),
+      Eq(Result::Success));
+}
+
+TEST_F(
+    ServerStreamHandlerTest,
+    Read_RequestNOverflowWithFailedError_ReturnsError) {
+  ctx_.openStream(/*streamId=*/1);
+  ctx_.setCredits(1, std::numeric_limits<uint64_t>::max());
+  ctx_.setNextWriteResult(Result::Error);
+
+  EXPECT_THAT(
+      handler_.onRead(
+          ctx_, erase_and_box(makeRequestN(/*streamId=*/1, /*requestN=*/1))),
+      Eq(Result::Error));
 }
 
 // =============================================================================
@@ -485,6 +525,18 @@ TEST_F(
   EXPECT_EQ(errorMsg.frame.streamId, 1u);
   EXPECT_EQ(
       static_cast<ErrorCode>(errorMsg.frame.errorCode), ErrorCode::INVALID);
+}
+
+TEST_F(
+    ServerStreamHandlerTest,
+    Read_ExtNoIgnoreWithBackpressuredError_ReturnsSuccess) {
+  ctx_.openStream(/*streamId=*/1);
+  ctx_.setNextWriteResult(Result::Backpressure);
+
+  EXPECT_THAT(
+      handler_.onRead(
+          ctx_, erase_and_box(makeExt(/*streamId=*/1, /*ignore=*/false))),
+      Eq(Result::Success));
 }
 
 TEST_F(ServerStreamHandlerTest, Read_ExtNoIgnoreOnUnknownStream_PassesThrough) {

@@ -49,6 +49,7 @@ struct Bools {
   2: bool im_false;
 }
 
+@thrift.Sealed
 struct Xtruct {
   1: string string_thing;
   4: byte byte_thing;
@@ -72,6 +73,7 @@ struct Xtruct3 {
 @thrift.DeprecatedUnvalidatedAnnotations{
   items = {"no_default_comparators": "1"},
 }
+@thrift.Sealed
 struct Insanity {
   1: map<Numberz, UserId> userMap;
   2: list<Xtruct> xtructs;
@@ -80,7 +82,6 @@ struct Insanity {
 
 struct CrazyNesting {
   1: string string_field;
-  @thrift.AllowUnsafeNonSealedKeyType
   2: optional set<Insanity> set_field;
   @thrift.AllowUnsafeRequiredFieldQualifier
   3: required list<

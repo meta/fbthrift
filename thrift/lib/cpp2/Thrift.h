@@ -22,7 +22,9 @@
 #include <thrift/lib/cpp/util/EnumUtils.h>
 #include <thrift/lib/cpp2/TypeClass.h>
 
+#include <functional>
 #include <utility>
+#include <folly/CppAttributes.h>
 #include <folly/Traits.h>
 #include <folly/Utility.h>
 #include <folly/functional/Invoke.h>
@@ -34,6 +36,14 @@
 
 static_assert(
     FOLLY_CPLUSPLUS >= 202002L, "Thrift must be built with C++20 or later.");
+
+// Keeps trivial accessors out of debug info. Generated code instantiates them
+// per field, and each instantiation would otherwise add its full name.
+#if FOLLY_HAS_CPP_ATTRIBUTE(gnu::nodebug)
+#define FBTHRIFT_NODEBUG [[gnu::nodebug]]
+#else
+#define FBTHRIFT_NODEBUG
+#endif
 
 namespace apache::thrift {
 
@@ -142,6 +152,23 @@ struct struct_private_access {
     return T::__fbthrift_get_class_name();
   }
 
+  template <typename T>
+  static constexpr std::string_view class_name_v =
+      T::__fbthrift_constexpr_class_name;
+  template <typename T, FieldOrdinal Ord>
+  static constexpr std::string_view field_name_v =
+      T::__fbthrift_constexpr_field_names[folly::to_underlying(Ord)];
+
+  // The storage and isset bit of a struct field, without its field_ref.
+  template <int16_t Id, typename T>
+  FBTHRIFT_NODEBUG FOLLY_ERASE static const auto& field_storage(const T& t) {
+    return t.template __fbthrift_get_field_storage<Id>();
+  }
+  template <int16_t Id, typename T>
+  FBTHRIFT_NODEBUG FOLLY_ERASE static bool field_isset(const T& t) {
+    return t.template __fbthrift_get_field_isset<Id>();
+  }
+
   template <typename T, typename Annotation>
   static constexpr bool __fbthrift_has_struct_annotation() {
     if constexpr (requires { typename T::__fbthrift_struct_annotations; }) {
@@ -188,6 +215,7 @@ struct struct_private_access {
 
   FOLLY_CREATE_MEMBER_INVOKER(clear_fn, __fbthrift_clear);
   FOLLY_CREATE_MEMBER_INVOKER(empty_fn, __fbthrift_is_empty);
+  FOLLY_CREATE_MEMBER_INVOKER(read_no_xfer_fn, readNoXfer);
 
   template <typename T>
   static constexpr auto num_fields = T::__fbthrift_num_fields;
@@ -230,14 +258,22 @@ struct struct_private_access {
 using private_access = struct_private_access;
 
 template <typename T, typename = void>
-struct IsThriftClass : std::false_type {};
+struct IsThriftClass : std::false_type {
+  static_assert(
+      !std::is_class_v<T> || requires { sizeof(T); },
+      "T must be a complete type.");
+};
 
 template <typename T>
 struct IsThriftClass<T, std::void_t<typename T::__fbthrift_cpp2_type>>
     : std::true_type {};
 
 template <typename T, typename = void>
-struct IsThriftUnion : std::false_type {};
+struct IsThriftUnion : std::false_type {
+  static_assert(
+      !std::is_class_v<T> || requires { sizeof(T); },
+      "T must be a complete type.");
+};
 
 template <typename T>
 struct IsThriftUnion<T, std::void_t<typename T::__fbthrift_cpp2_type>>
@@ -403,13 +439,13 @@ using detect_indirection_fn_t = typename T::__fbthrift_cpp2_indirection_fn;
 
 template <typename T>
 using indirection_fn_t =
-    folly::detected_or_t<folly::identity_fn, detect_indirection_fn_t, T>;
+    folly::detected_or_t<std::identity, detect_indirection_fn_t, T>;
 
 namespace detail {
 struct apply_indirection_fn {
  private:
   template <typename T>
-  using i = indirection_fn_t<folly::remove_cvref_t<T>>;
+  using i = indirection_fn_t<std::remove_cvref_t<T>>;
 
  public:
   template <typename T>
@@ -545,14 +581,19 @@ void swap_allocators(Alloc& a, Alloc& b) {
   swap_allocators_impl(pocs{}, a, b);
 }
 
-// Whether move assignment may take over the source's memory: the allocator
-// propagates on move assignment, all instances compare equal, or `dst` equals
-// `src`.
+// Whether move assignment always takes over the source's memory: the allocator
+// propagates on move assignment or all instances compare equal.
+template <typename Alloc>
+inline constexpr bool move_assign_always_steals_v =
+    std::allocator_traits<
+        Alloc>::propagate_on_container_move_assignment::value ||
+    std::allocator_traits<Alloc>::is_always_equal::value;
+
+// Whether move assignment may take over the source's memory: it always does, or
+// `dst` equals `src`.
 template <typename Alloc>
 bool move_assign_can_steal(const Alloc& dst, const Alloc& src) {
-  using traits = std::allocator_traits<Alloc>;
-  return traits::propagate_on_container_move_assignment::value ||
-      traits::is_always_equal::value || dst == src;
+  return move_assign_always_steals_v<Alloc> || dst == src;
 }
 
 // Whether copy assignment replaces `dst` with `src`: the allocator propagates
@@ -564,6 +605,19 @@ bool copy_assign_changes_allocator(const Alloc& dst, const Alloc& src) {
       !traits::is_always_equal::value && dst != src;
 }
 
+template <typename Field>
+void reset_container_field_for_read(Field& field) {
+  field = Field();
+}
+
+template <typename Field, typename Alloc>
+void reset_container_field_for_read(Field& field, const Alloc& alloc) {
+  using traits = std::allocator_traits<Alloc>;
+  if (traits::propagate_on_container_move_assignment::value || !field.empty()) {
+    field = Field(alloc);
+  }
+}
+
 // We identify field quailfier using different types of C++ field_ref. For
 // cpp.ref fields, we can not deduce the field qualifier information.
 namespace qualifier {
@@ -573,6 +627,12 @@ struct is_cpp_ref_field_optional : std::false_type {
 };
 template <class Struct, class Id>
 struct is_cpp_ref_field_terse : std::false_type {
+  static_assert(sizeof(Struct), "Struct must be a complete type.");
+};
+// Whether a field's value, or a `cpp.ref` field's pointee, takes its struct's
+// or union's allocator, for the field's `cpp.use_allocator`.
+template <class Struct, class Id>
+struct is_field_using_allocator : std::false_type {
   static_assert(sizeof(Struct), "Struct must be a complete type.");
 };
 // Identify a field has deprecated terse write optimization with custom default

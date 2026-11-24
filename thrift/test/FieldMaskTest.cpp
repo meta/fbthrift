@@ -86,12 +86,12 @@ T getViaIdenticalType(const type::AnyStruct& any, const type::Type& type) {
 void convertToHashedURI(type::Type& type) {
   auto& typeUriUnion = *type.toThrift().name()->structType();
 
-  auto hashed =
-      type::getUniversalHashPrefix(
-          type::getUniversalHash(
-              type::UniversalHashAlgorithm::Sha2_256, typeUriUnion.get_uri()),
-          type::kDefaultTypeHashBytes)
-          .toString();
+  auto hashed = type::getUniversalHashPrefix(
+                    type::getUniversalHash(
+                        type::UniversalHashAlgorithm::Sha2_256,
+                        typeUriUnion.uri().as_const().value()),
+                    type::kDefaultTypeHashBytes)
+                    .toString();
   typeUriUnion.typeHashPrefixSha2_256().ensure() = hashed;
 }
 
@@ -1540,6 +1540,39 @@ TEST(FieldMaskTest, IsCompatibleWithSimple) {
 
   includes[2] = allMask(); // doesn't exist
   EXPECT_FALSE(protocol::is_compatible_with<type::struct_t<Foo>>(m));
+}
+
+TEST(FieldMaskTest, ValidateFieldIds) {
+  EXPECT_TRUE(validate_mask<Empty>(MaskRef{allMask()}));
+  EXPECT_TRUE(validate_mask<Empty>(MaskRef{noneMask()}));
+
+  // Bar declares field 2 before field 1. Ordinals are not sorted field IDs.
+  Mask m;
+  m.includes().emplace()[1] = allMask();
+  m.includes()->emplace(2, allMask());
+  EXPECT_TRUE(validate_mask<Bar>(MaskRef{m}));
+  EXPECT_FALSE(validate_mask<Empty>(MaskRef{m}));
+
+  for (int16_t id : {-32768, -1, 0, 3, 32767}) {
+    m.includes()->emplace(id, allMask());
+    EXPECT_FALSE(validate_mask<Bar>(MaskRef{m}));
+    m.includes()->erase(id);
+    EXPECT_TRUE(validate_mask<Bar>(MaskRef{m}));
+  }
+
+  m = protocol::reverseMask(std::move(m));
+  EXPECT_TRUE(validate_mask<Bar>(MaskRef{m}));
+  m.excludes()->emplace(3, allMask());
+  EXPECT_FALSE(validate_mask<Bar>(MaskRef{m}));
+}
+
+TEST(FieldMaskTest, ValidateMutatedBuilderMask) {
+  MaskBuilder<Bar> builder(allMask());
+  auto& mask = builder.toThrift();
+  mask.excludes()->emplace(3, allMask());
+  EXPECT_THROW(builder.filter(Bar{}), std::runtime_error);
+  mask.excludes()->erase(3);
+  EXPECT_NO_THROW(builder.filter(Bar{}));
 }
 
 TEST(FieldMaskTest, IsCompatibleWithNested) {
@@ -2991,7 +3024,7 @@ struct MaskBuilderTester {
   void identToFieldNameImpl(std::vector<folly::StringPiece>&) {}
   template <typename S, typename Id, typename... Ids>
   void identToFieldNameImpl(std::vector<folly::StringPiece>& v) {
-    v.push_back(op::get_name_v<S, Id>);
+    v.push_back(op::get_field_name<S, Id>());
     identToFieldNameImpl<op::get_native_type<S, Id>, Ids...>(v);
   }
   template <typename S, typename... Ids>

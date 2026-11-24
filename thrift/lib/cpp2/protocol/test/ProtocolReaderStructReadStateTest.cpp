@@ -16,8 +16,19 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
+#include <barrier>
+#include <cstddef>
 #include <cstdint>
+#include <limits>
+#include <memory>
+#include <new>
+#include <thread>
+#include <vector>
 
+#include <folly/synchronization/CallOnce.h>
+#include <thrift/lib/cpp2/gen/module_types_cpp.h>
+#include <thrift/lib/cpp2/gen/tcc_struct_traits.h>
 #include <thrift/lib/cpp2/protocol/BinaryProtocol.h>
 #include <thrift/lib/cpp2/protocol/CompactProtocol.h>
 #include <thrift/lib/cpp2/protocol/ProtocolReaderStructReadState.h>
@@ -31,6 +42,124 @@ using namespace apache::thrift::detail::pm;
 using namespace apache::thrift::test;
 
 namespace {
+
+constexpr int16_t kNoFieldId = std::numeric_limits<int16_t>::min();
+
+struct FieldLookupResult {
+  int16_t id;
+  TType type;
+  bool operator==(const FieldLookupResult&) const = default;
+};
+
+template <typename Struct>
+FieldLookupResult lookupField(std::string_view name, int16_t id = kNoFieldId) {
+  auto type = T_VOID;
+  apache::thrift::detail::TccStructTraits<Struct>::translateFieldName(
+      name, id, type);
+  return {id, type};
+}
+
+template <typename Struct>
+void testFieldNameTranslation() {
+  EXPECT_EQ(lookupField<Struct>("first"), (FieldLookupResult{1, T_I64}));
+  EXPECT_EQ(lookupField<Struct>("last"), (FieldLookupResult{32767, T_BOOL}));
+  EXPECT_EQ(lookupField<Struct>("second", 2), (FieldLookupResult{2, T_STRING}));
+  EXPECT_EQ(lookupField<Struct>({}, 1), (FieldLookupResult{1, T_I64}));
+  EXPECT_EQ(lookupField<Struct>({}, 32767), (FieldLookupResult{32767, T_BOOL}));
+  EXPECT_EQ(
+      lookupField<Struct>("missing"), (FieldLookupResult{kNoFieldId, T_VOID}));
+  EXPECT_EQ(lookupField<Struct>("missing", 7), (FieldLookupResult{7, T_VOID}));
+  EXPECT_EQ(lookupField<Struct>({}, 7), (FieldLookupResult{7, T_VOID}));
+  EXPECT_THROW(lookupField<Struct>("first", 2), TProtocolException);
+  EXPECT_THROW(lookupField<Struct>("missing", 2), TProtocolException);
+  int16_t id = 7;
+  auto type = T_I16;
+  using Traits = apache::thrift::detail::TccStructTraits<Struct>;
+  Traits::translateFieldName("missing", id, type);
+  EXPECT_EQ(id, 7);
+  EXPECT_EQ(type, T_I16);
+  id = 2;
+  EXPECT_THROW(
+      Traits::translateFieldName("first", id, type), TProtocolException);
+  EXPECT_EQ(id, 2);
+  EXPECT_EQ(type, T_I16);
+  EXPECT_EQ(lookupField<Struct>({}, 2), (FieldLookupResult{2, T_STRING}));
+  EXPECT_EQ(
+      lookupField<Struct>(std::string_view("last_suffix", 4)),
+      (FieldLookupResult{32767, T_BOOL}));
+}
+
+TEST(ProtocolReaderStructReadState, fieldNameLinearLookup) {
+  testFieldNameTranslation<FieldLookup12>();
+}
+
+TEST(ProtocolReaderStructReadState, fieldNameCachedLookup) {
+  testFieldNameTranslation<FieldLookup13>();
+  testFieldNameTranslation<FieldLookup13>();
+}
+
+TEST(ProtocolReaderStructReadState, fieldNameConcurrentInitialization) {
+  constexpr size_t kThreads = 8;
+  std::barrier start(static_cast<std::ptrdiff_t>(kThreads));
+  std::array<FieldLookupResult, kThreads> results{};
+  std::vector<std::thread> threads;
+  threads.reserve(kThreads);
+  for (size_t i = 0; i < kThreads; ++i) {
+    threads.emplace_back([&, i] {
+      start.arrive_and_wait();
+      results[i] = i % 2 ? lookupField<FieldLookupConcurrent>({}, 1)
+                         : lookupField<FieldLookupConcurrent>("last");
+    });
+  }
+  for (auto& thread : threads) {
+    thread.join();
+  }
+  for (size_t i = 0; i < kThreads; ++i) {
+    const auto expected =
+        i % 2 ? FieldLookupResult{1, T_I64} : FieldLookupResult{32767, T_BOOL};
+    EXPECT_EQ(results[i], expected);
+  }
+}
+
+TEST(ProtocolReaderStructReadState, fieldNameInitializationFailureRetry) {
+  constexpr std::array<std::string_view, 2> names{
+      "first",
+      "last",
+  };
+  constexpr std::array<int16_t, 2> ids{
+      -9,
+      32767,
+  };
+  constexpr std::array<TType, 2> types{
+      T_I64,
+      T_BOOL,
+  };
+  auto metadata = apache::thrift::detail::st::translate_field_name_table{
+      names.size(), names.data(), ids.data(), types.data()};
+  apache::thrift::detail::st::translate_field_name_cache cache{metadata};
+  using Table = apache::thrift::detail::st::translate_field_name_hash_table;
+  decltype(Table::map) emptyMap;
+  metadata.size = emptyMap.max_size() + 1;
+  int16_t id = kNoFieldId;
+  auto type = T_VOID;
+  EXPECT_THROW(
+      apache::thrift::detail::st::translate_field_name_or_id(
+          "first", id, type, cache),
+      std::bad_alloc);
+  EXPECT_FALSE(folly::test_once(cache.once));
+  metadata.size = names.size();
+  apache::thrift::detail::st::translate_field_name_or_id(
+      "last", id, type, cache);
+  EXPECT_TRUE(folly::test_once(cache.once));
+  EXPECT_EQ(id, 32767);
+  EXPECT_EQ(type, T_BOOL);
+  id = -9;
+  apache::thrift::detail::st::translate_field_name_or_id({}, id, type, cache);
+  EXPECT_EQ(id, -9);
+  EXPECT_EQ(type, T_I64);
+  // Unlike the process-lifetime caches, this test's storage is local.
+  std::destroy_at(std::launder(reinterpret_cast<Table*>(&cache.storage)));
+}
 
 template <class ProtocolWriter>
 std::unique_ptr<folly::IOBuf> createTestInput() {

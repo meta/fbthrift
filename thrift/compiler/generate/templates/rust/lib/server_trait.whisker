@@ -15,23 +15,20 @@
   limitations under the License.
 
 }}
+{{#import "lib/docs" as docs}}
 {{#import "lib/rpc" as rpc}}
 {{#import "lib/types" as types}}
 
-{{#let export partial server_trait |interface| captures |rpc types|}}
+{{#let export partial server_trait |interface| captures |docs rpc types|}}
   {{#let has_request_context = (and (not interface.interaction?) interface.requestContext?)}}
-  {{#if interface.docs?}}
-#[doc = {{interface.docs}}]
-  {{/if interface.docs?}}
+{{#partial docs.docblock node=interface}}
 #[::async_trait::async_trait]
 pub trait {{interface.rust_name}}: ::std::marker::Send + ::std::marker::Sync + 'static {
   {{#if has_request_context}}
     type RequestContext: ::std::marker::Sync;
   {{/if has_request_context}}
   {{#each interface.functions as |function|}}
-    {{#if function.docs?}}
-    #[doc = {{function.docs}}]
-    {{/if function.docs?}}
+    {{#partial docs.docblock node=function}}
     {{#if function.starts_interaction?}}
     fn {{function.rust_name}}(
         &self,

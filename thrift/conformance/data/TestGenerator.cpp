@@ -16,12 +16,15 @@
 
 #include <thrift/conformance/data/TestGenerator.h>
 
+#include <string_view>
+
 #include <fmt/core.h>
 
 #include <thrift/conformance/data/TestUtil.h>
 #include <thrift/conformance/data/ValueGenerator.h>
 #include <thrift/lib/cpp2/type/Tag.h>
 #include <thrift/test/testset/Testset.h>
+#include <thrift/test/testset/gen-cpp2/Terse_types.h>
 
 namespace mp11 = boost::mp11;
 using apache::thrift::protocol::asValueStruct;
@@ -98,6 +101,90 @@ Test createRoundTripTest(
   return test;
 }
 
+template <typename T, typename Set>
+T make(Set set) {
+  T value;
+  set(value);
+  return value;
+}
+
+template <
+    typename ElementTag,
+    typename Struct,
+    typename AddTestCase,
+    typename Set>
+void addTerseValueTestCases(
+    AddTestCase& addTestCase, std::string_view kind, Set set) {
+  for (const auto& value : ValueGenerator<ElementTag>::getInterestingValues()) {
+    addTestCase(
+        make<Struct>([&](auto& data) { set(data, value.value); }),
+        fmt::format(
+            "{}.{}/{}", kind, getTestTypeName<ElementTag>(), value.name));
+  }
+}
+
+Test createTerseRoundTripTest(
+    const AnyRegistry& registry, const Protocol& protocol) {
+  using namespace apache::thrift::test::testset;
+
+  Test test;
+  test.name() = protocol.name();
+  test.tags()->emplace("idl/");
+  auto addTestCase = [&](const auto& data, std::string_view name) {
+    RoundTripTestCase roundTrip;
+    roundTrip.request()->value() = registry.store(data, protocol);
+    auto& testCase = test.testCases()->emplace_back();
+    testCase.name() = fmt::format("testset.Terse.{}", name);
+    testCase.test()->roundTrip() = std::move(roundTrip);
+  };
+  auto setField = [](auto& data, const auto& value) { data.field() = value; };
+
+  addTestCase(TerseEnumStruct{}, "enum/zero");
+  addTestCase(
+      make<TerseEnumStruct>([](auto& data) { data.field() = TerseEnum::one; }),
+      "enum/one");
+
+  addTestCase(TerseUnionStruct{}, "union/empty");
+  addTestCase(
+      make<TerseUnionStruct>([](auto& data) { data.field()->set_field_1(); }),
+      "union/default_member");
+
+  addTerseValueTestCases<type::i32_t, TerseNewTypeI32Struct>(
+      addTestCase, "NewType", setField);
+  addTerseValueTestCases<type::string_t, TerseNewTypeStringStruct>(
+      addTestCase, "NewType", setField);
+  addTerseValueTestCases<type::list<type::i32_t>, TerseNewTypeListI32Struct>(
+      addTestCase, "NewType", setField);
+
+  addTestCase(TerseEmptiableStruct{}, "struct/empty");
+  addTestCase(
+      make<TerseEmptiableStruct>(
+          [](auto& data) { data.field()->optional_field() = 0; }),
+      "struct/optional_zero");
+  addTestCase(
+      make<TerseEmptiableStruct>(
+          [](auto& data) { data.field()->terse_field() = "a"; }),
+      "struct/terse_lower");
+  addTestCase(TerseNonEmptiableStruct{}, "struct/unqualified_zero");
+
+  addTestCase(TerseEmptiableExceptionStruct{}, "exception/empty");
+  addTestCase(
+      make<TerseEmptiableExceptionStruct>(
+          [](auto& data) { data.field()->message() = ""; }),
+      "exception/optional_empty");
+
+  addTerseValueTestCases<type::string_t, TerseAdaptedFieldStruct>(
+      addTestCase, "RustAdapter", setField);
+  addTerseValueTestCases<type::string_t, TerseAdaptedTypedefStruct>(
+      addTestCase, "RustAdapter.typedef", setField);
+  addTerseValueTestCases<type::string_t, TerseNestedAdaptedFieldStruct>(
+      addTestCase,
+      "struct.Terse.RustAdapter",
+      [](auto& data, const auto& value) { data.field()->field() = value; });
+
+  return test;
+}
+
 void addRoundTripToSuite(
     const AnyRegistry& registry, const Protocol& protocol, TestSuite& suite) {
   mp11::mp_for_each<detail::PrimaryTypeTags>([&](auto element_tag) {
@@ -120,6 +207,7 @@ void addRoundTripToSuite(
     suite.tests()->emplace_back(
         createRoundTripTest<type::set<KeyTag>>(registry, protocol));
   });
+  suite.tests()->emplace_back(createTerseRoundTripTest(registry, protocol));
 }
 
 } // namespace

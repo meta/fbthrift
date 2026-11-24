@@ -22,6 +22,7 @@ import my
 
 @_typing.final
 class _fbthrift_unadapted_AnnotationWithContainers(_fbthrift_python_mutable_types.MutableStruct, _fbthrift_python_abstract_types._fbthrift_unadapted_AnnotationWithContainers):
+    r"""struct AnnotationWithContainers"""
     @property
     def names(self) -> _fbthrift_python_mutable_containers.MutableList[builtins.str]: ...
     @names.setter
@@ -53,8 +54,11 @@ _fbthrift_AnnotationWithContainers = AnnotationWithContainers
 
 @_typing.final
 class _fbthrift_unadapted_MyStruct(_fbthrift_python_mutable_types.MutableStruct, _fbthrift_python_abstract_types._fbthrift_unadapted_MyStruct):
+    r"""struct MyStruct"""
     @property
-    def abc(self) -> my.AdaptedType[builtins.int]: ...
+    def abc(self) -> my.AdaptedType[builtins.int]:
+        r"""1: i32 abc"""
+        ...
     @abc.setter
     def abc(self, value: my.AdaptedType[builtins.int]) -> None: ...
 

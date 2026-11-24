@@ -72,6 +72,14 @@ struct Bar {
   1: i32 field;
 }
 
+union UnionWithAdapters {
+  1: ReversedList reversedListField;
+}
+
+union UnionWithoutAdapters {
+  1: list<i32> reversedListField;
+}
+
 service Service {
   ReversedList func(1: i32WithAdapter arg1, 2: Foo arg2);
 }

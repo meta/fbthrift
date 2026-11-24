@@ -187,7 +187,7 @@ public class ServerRequestPayloadReleaseTest {
     volatile int refCntDuringRead = -1;
 
     ServerRequestPayload payload(String method, Object... args) {
-      Function<List<Reader>, List<Object>> readerTransformer =
+      Function<List<FieldReader<?>>, List<Object>> readerTransformer =
           readers -> {
             readInvoked = true;
             refCntDuringRead = frame.refCnt();

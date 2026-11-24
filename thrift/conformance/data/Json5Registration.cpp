@@ -27,6 +27,7 @@
 #include <thrift/lib/cpp2/protocol/Object.h>
 #include <thrift/lib/cpp2/type/Tag.h>
 #include <thrift/test/testset/Testset.h>
+#include <thrift/test/testset/gen-cpp2/Terse_types.h>
 
 namespace mp11 = boost::mp11;
 using apache::thrift::test::testset::FieldModifier;
@@ -87,6 +88,19 @@ void registerRoundTripJson5Serializers(AnyRegistry& registry) {
     using KeyTag = decltype(key_tag);
     registerVariants<type::set<KeyTag>>(registry);
   });
+
+  using namespace apache::thrift::test::testset;
+  registerJson5<TerseEnumStruct>(registry);
+  registerJson5<TerseUnionStruct>(registry);
+  registerJson5<TerseNewTypeI32Struct>(registry);
+  registerJson5<TerseNewTypeStringStruct>(registry);
+  registerJson5<TerseNewTypeListI32Struct>(registry);
+  registerJson5<TerseEmptiableStruct>(registry);
+  registerJson5<TerseNonEmptiableStruct>(registry);
+  registerJson5<TerseEmptiableExceptionStruct>(registry);
+  registerJson5<TerseAdaptedFieldStruct>(registry);
+  registerJson5<TerseAdaptedTypedefStruct>(registry);
+  registerJson5<TerseNestedAdaptedFieldStruct>(registry);
 }
 
 } // namespace apache::thrift::conformance::data

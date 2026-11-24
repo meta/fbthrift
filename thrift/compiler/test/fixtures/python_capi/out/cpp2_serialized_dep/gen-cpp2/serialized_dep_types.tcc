@@ -9,3 +9,102 @@
 #include "thrift/compiler/test/fixtures/python_capi/gen-cpp2/serialized_dep_types.h"
 
 #include <thrift/lib/cpp2/gen/module_types_tcc.h>
+
+namespace test::fixtures::python_capi {
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& SerializedStruct::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_s;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool SerializedStruct::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& SerializedStruct::__fbthrift_get_field_storage<2>() const {
+  return this->__fbthrift_field_i;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool SerializedStruct::__fbthrift_get_field_isset<2>() const {
+  return this->__isset.get(1);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& SerializedStruct::__fbthrift_get_field_storage<3>() const {
+  return this->__fbthrift_field_os;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool SerializedStruct::__fbthrift_get_field_isset<3>() const {
+  return this->__isset.get(2);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& SerializedStruct::__fbthrift_get_field_storage<4>() const {
+  return this->__fbthrift_field_rs;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& SerializedError::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_msg;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool SerializedError::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& SerializedError::__fbthrift_get_field_storage<2>() const {
+  return this->__fbthrift_field_os;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool SerializedError::__fbthrift_get_field_isset<2>() const {
+  return this->__isset.get(1);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& SerializedError::__fbthrift_get_field_storage<3>() const {
+  return this->__fbthrift_field_rs;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MarshalStruct::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_s;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MarshalStruct::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MarshalStruct::__fbthrift_get_field_storage<2>() const {
+  return this->__fbthrift_field_i;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MarshalStruct::__fbthrift_get_field_isset<2>() const {
+  return this->__isset.get(1);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MarshalStruct::__fbthrift_get_field_storage<3>() const {
+  return this->__fbthrift_field_os;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MarshalStruct::__fbthrift_get_field_isset<3>() const {
+  return this->__isset.get(2);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MarshalStruct::__fbthrift_get_field_storage<4>() const {
+  return this->__fbthrift_field_rs;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MarshalError::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_msg;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MarshalError::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MarshalError::__fbthrift_get_field_storage<2>() const {
+  return this->__fbthrift_field_os;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MarshalError::__fbthrift_get_field_isset<2>() const {
+  return this->__isset.get(1);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MarshalError::__fbthrift_get_field_storage<3>() const {
+  return this->__fbthrift_field_rs;
+}
+} // namespace test::fixtures::python_capi

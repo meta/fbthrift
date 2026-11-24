@@ -105,6 +105,7 @@ struct DiscriminantLoadSheddingOSS {
     std::optional<ServerRequestRejection> checkEnqueue(
         const ServerRequest& request);
     void onDequeue(const ServerRequest& request);
+    void onLimitRejection(size_t requestBytes);
 
     uint64_t totalQueuedBytes() const {
       return totalQueuedBytes_.load(std::memory_order_relaxed);
@@ -120,6 +121,8 @@ struct DiscriminantLoadSheddingOSS {
         const std::vector<uint64_t>& thresholds);
 
    private:
+    void releaseRequestAccounting(uint64_t requestBytes);
+
     Options opts_;
     std::atomic<uint64_t> totalQueuedBytes_{0};
     std::atomic<uint64_t> totalQueuedRequests_{0};

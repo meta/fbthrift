@@ -145,13 +145,7 @@ final class ThreadPoolScheduler extends AtomicBoolean implements ThriftScheduler
 
   @Override
   public Disposable schedule(Runnable task) {
-    // If ContextPropagation is enabled, wrap the runnable with ContextPropRunnable
-    Runnable wrappedTask = task;
-    if (ContextPropagationRegistry.isContextPropEnabled()) {
-      wrappedTask = new ContextPropRunnable(task);
-    }
-    DisposableExecutionMeasuringRunnable runnable =
-        new DisposableExecutionMeasuringRunnable(wrappedTask);
+    DisposableExecutionMeasuringRunnable runnable = new DisposableExecutionMeasuringRunnable(task);
     threadPoolExecutor.submit(runnable);
     return runnable;
   }

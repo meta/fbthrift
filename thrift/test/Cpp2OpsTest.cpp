@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+#include <memory_resource>
+#include <string>
+#include <vector>
+
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
@@ -22,6 +26,7 @@
 #include <folly/io/IOBufQueue.h>
 #include <thrift/lib/cpp2/protocol/BinaryProtocol.h>
 #include <thrift/lib/cpp2/protocol/CompactProtocol.h>
+#include <thrift/lib/cpp2/protocol/DebugProtocol.h>
 #include <thrift/lib/cpp2/protocol/JSONProtocol.h>
 #include <thrift/lib/cpp2/protocol/SimpleJSONProtocol.h>
 #include <thrift/test/gen-cpp2/Cpp2OpsNative_constants.h>
@@ -323,6 +328,47 @@ TYPED_TEST(Cpp2OpsScalarTest, Binary) {
         return p.serializedSizeZCBinary(v);
       },
       [](auto& p, std::unique_ptr<folly::IOBuf>& v) { p.readBinary(v); });
+}
+
+template <class T>
+std::string writeCompact(const T& value) {
+  apache::thrift::CompactProtocolWriter writer;
+  folly::IOBufQueue queue;
+  writer.setOutput(&queue);
+  apache::thrift::Cpp2Ops<T>::write(&writer, &value);
+  return queue.move()->toString();
+}
+
+template <class T>
+uint32_t sizeCompact(const T& value) {
+  apache::thrift::CompactProtocolWriter writer;
+  const uint32_t size =
+      apache::thrift::Cpp2Ops<T>::serializedSize(&writer, &value);
+  EXPECT_EQ(
+      size, apache::thrift::Cpp2Ops<T>::serializedSizeZC(&writer, &value));
+  return size;
+}
+
+TEST(Cpp2OpsTest, StringWithCustomAllocator) {
+  const char* const kTooLong =
+      "This is too long for the small string optimization";
+  const std::vector<std::string> expected{kTooLong, "b"};
+  const std::pmr::vector<std::pmr::string> value{kTooLong, "b"};
+  const std::string bytes = writeCompact(value);
+  EXPECT_EQ(bytes, writeCompact(expected));
+  EXPECT_EQ(sizeCompact(value), sizeCompact(expected));
+  EXPECT_EQ(
+      apache::thrift::debugString(value),
+      apache::thrift::debugString(expected));
+
+  std::pmr::monotonic_buffer_resource res;
+  std::pmr::vector<std::pmr::string> read(&res);
+  const auto buf = folly::IOBuf::wrapBuffer(bytes.data(), bytes.size());
+  apache::thrift::CompactProtocolReader reader;
+  reader.setInput(buf.get());
+  apache::thrift::Cpp2Ops<decltype(read)>::read(&reader, &read);
+  EXPECT_EQ(read, value);
+  EXPECT_EQ(read[0].get_allocator().resource(), &res);
 }
 
 } // namespace thrift::test::cpp2ops

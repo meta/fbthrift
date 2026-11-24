@@ -425,6 +425,7 @@ class EnumTests(unittest.TestCase):
 
     def test_class_mangled_color(self) -> None:
         self.assertEqual(self.Color._Color__pleurigloss, 3)
+        # pyrefly: ignore [missing-attribute]
         self.assertEqual(self.Color._Color__octarine, 4)
         self.assertFalse(hasattr(self.Color, "__octarine"))
 

@@ -7,6 +7,7 @@
 import typing as __T
 
 import simple.dependent.ttypes
+import simple.transitive.ttypes
 from simple.example.ttypes import *
 
 A_BOOL: bool

@@ -29,6 +29,8 @@ from thrift.py3.types cimport (
     set_iter as __set_iter,
     map_iter as __map_iter,
     reference_shared_ptr as __reference_shared_ptr,
+    get_union_field_storage as __get_union_field_storage,
+    get_union_field_cref as __get_union_field_cref,
     get_field_name_by_index as __get_field_name_by_index,
     reset_field as __reset_field,
     translate_cpp_enum_to_python,
@@ -289,7 +291,9 @@ cdef class ClientBufferedStream__bool(ClientBufferedStream):
         cdef __cOptional[cbool] opt_val
         cdef cbool _value
         stream, pyfuture, rpc_options = <object> userdata
-        if result.hasException():
+        if result.hasException[_test_fixtures_interactions_module_cbindings.cCustomException]():
+            pyfuture.set_exception(CustomException._create_FBTHRIFT_ONLY_DO_NOT_USE(thrift.py3.exceptions.try_make_shared_exception[_test_fixtures_interactions_module_cbindings.cCustomException](result.exception())))
+        elif result.hasException():
             pyfuture.set_exception(
                 thrift.python.exceptions.create_py_exception(result.exception(), <__RpcOptions>rpc_options)
             )
@@ -337,7 +341,9 @@ cdef class ClientBufferedStream__i32(ClientBufferedStream):
         cdef __cOptional[cint32_t] opt_val
         cdef cint32_t _value
         stream, pyfuture, rpc_options = <object> userdata
-        if result.hasException():
+        if result.hasException[_test_fixtures_interactions_module_cbindings.cCustomException]():
+            pyfuture.set_exception(CustomException._create_FBTHRIFT_ONLY_DO_NOT_USE(thrift.py3.exceptions.try_make_shared_exception[_test_fixtures_interactions_module_cbindings.cCustomException](result.exception())))
+        elif result.hasException():
             pyfuture.set_exception(
                 thrift.python.exceptions.create_py_exception(result.exception(), <__RpcOptions>rpc_options)
             )

@@ -109,10 +109,10 @@ bool& BasicTypes::set_isTrue(bool isTrue_) {
 
 void swap([[maybe_unused]] BasicTypes& a, [[maybe_unused]] BasicTypes& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_first, b.__fbthrift_field_first);
-  swap(a.__fbthrift_field_second, b.__fbthrift_field_second);
-  swap(a.__fbthrift_field_third, b.__fbthrift_field_third);
-  swap(a.__fbthrift_field_isTrue, b.__fbthrift_field_isTrue);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_first, b.__fbthrift_field_first);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_second, b.__fbthrift_field_second);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_third, b.__fbthrift_field_third);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_isTrue, b.__fbthrift_field_isTrue);
   swap(a.__isset, b.__isset);
 }
 

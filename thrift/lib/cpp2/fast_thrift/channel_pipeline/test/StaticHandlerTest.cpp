@@ -137,7 +137,6 @@ struct NonMovableHandler {
   NonMovableHandler& operator=(NonMovableHandler&&) = delete;
 
   int value;
-  WriteReadyHook writeReadyHook_;
 };
 
 TEST(StaticContextTest, CallsTypedPipelineDirectly) {
@@ -197,14 +196,26 @@ TEST(StaticHandlerTest, ConstructsNonMovableHandlerInline) {
 
   EXPECT_EQ(slot.handler().value, 7);
   EXPECT_EQ(slot.context().handlerId(), kHandlerId);
-  EXPECT_EQ(slot.writeReadyHook(), &slot.handler().writeReadyHook_);
-  EXPECT_EQ(slot.readReadyHook(), nullptr);
 }
 
 TEST(StaticHandlerTest, EmptyHandlerAddsOnlyPipelinePointer) {
   struct EmptyHandler {};
   using Slot = detail::
       StaticHandler<EmptyHandler, kHandlerId, FakePipeline, kHandlerIndex>;
+
+  EXPECT_EQ(sizeof(Slot), sizeof(void*));
+}
+
+struct UniformPipeline : FakePipeline {
+  static constexpr bool kUniformHandlers = true;
+};
+
+TEST(
+    StaticHandlerTest,
+    UniformHandlerWithoutReadyMarkersAddsOnlyPipelinePointer) {
+  struct EmptyHandler {};
+  using Slot = detail::
+      StaticHandler<EmptyHandler, kHandlerId, UniformPipeline, kHandlerIndex>;
 
   EXPECT_EQ(sizeof(Slot), sizeof(void*));
 }

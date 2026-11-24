@@ -39,6 +39,8 @@
 #include <fstream>
 #include <set>
 
+#include <folly/Portability.h>
+
 #include <thrift/common/detail/string.h>
 
 #include <thrift/compiler/ast/t_program_bundle.h>
@@ -51,12 +53,6 @@
 #include <thrift/compiler/sema/sema_context.h>
 #include <thrift/compiler/sema/standard_validator.h>
 
-// dependency on folly/Portability.h causes UB in some targets
-#if defined(_MSC_VER)
-#define FOLLY_CPLUSPLUS _MSVC_LANG
-#else
-#define FOLLY_CPLUSPLUS __cplusplus
-#endif
 static_assert(
     FOLLY_CPLUSPLUS >= 202002L, "Thrift must be built with C++20 or later.");
 
@@ -505,47 +501,36 @@ bool generate_code_for_single_program(
     t_program& program,
     t_program_bundle& program_bundle,
     diagnostics_engine& diags) {
-  try {
-    bool all_targets_successful = true;
+  bool all_targets_successful = true;
 
-    std::ofstream genfile_list_out;
-    if (!params.genfile.empty()) {
-      genfile_list_out.open(params.genfile);
-    }
-
-    for (const std::string& target : params.targets) {
-      std::unique_ptr<t_generator> generator =
-          create_generator(target, params, program, program_bundle, diags);
-      if (generator == nullptr) {
-        continue;
-      }
-
-      if (!validate_program(*generator, diags)) {
-        all_targets_successful = false;
-        continue;
-      }
-
-      diags.report(
-          source_location(),
-          diagnostic_level::info,
-          "generating \"{}\"",
-          target);
-      generator->generate_program();
-
-      if (genfile_list_out.is_open()) {
-        for (const std::string& s : generator->get_genfiles()) {
-          genfile_list_out << s << "\n";
-        }
-      }
-    }
-    return all_targets_successful && !diags.has_errors();
-  } catch (const std::string& s) {
-    printf("Error: %s\n", s.c_str());
-    return false;
-  } catch (const char* exc) {
-    printf("Error: %s\n", exc);
-    return false;
+  std::ofstream genfile_list_out;
+  if (!params.genfile.empty()) {
+    genfile_list_out.open(params.genfile);
   }
+
+  for (const std::string& target : params.targets) {
+    std::unique_ptr<t_generator> generator =
+        create_generator(target, params, program, program_bundle, diags);
+    if (generator == nullptr) {
+      continue;
+    }
+
+    if (!validate_program(*generator, diags)) {
+      all_targets_successful = false;
+      continue;
+    }
+
+    diags.report(
+        source_location(), diagnostic_level::info, "generating \"{}\"", target);
+    generator->generate_program();
+
+    if (genfile_list_out.is_open()) {
+      for (const std::string& s : generator->get_genfiles()) {
+        genfile_list_out << s << "\n";
+      }
+    }
+  }
+  return all_targets_successful && !diags.has_errors();
 }
 
 /**
@@ -1264,6 +1249,38 @@ void record_invocation_params(
   metrics.get(detail::metrics::StringValue::INPUT_FILENAME).set(input_filename);
 }
 
+namespace {
+
+void record_errors(
+    const diagnostic_results& results, detail::metrics& metrics) {
+  detail::event<std::string>& errors_metric =
+      metrics.get(detail::metrics::EventString::ERRORS);
+  for (const diagnostic& diag : results.diagnostics()) {
+    if (diag.level() == diagnostic_level::error) {
+      errors_metric.add(diag.str());
+    }
+  }
+}
+
+compile_retcode parse_and_generate(
+    source_manager& source_mgr,
+    sema_context& ctx,
+    const std::string& input_filename,
+    const parsing_params& pparams,
+    const gen_params& gparams) {
+  std::unique_ptr<t_program_bundle> program_bundle =
+      parse_and_mutate(source_mgr, ctx, input_filename, pparams, gparams);
+  if (program_bundle == nullptr) {
+    return compile_retcode::failure;
+  }
+  if (gparams.skip_gen) {
+    return compile_retcode::success;
+  }
+  return generate_code_for_program_bundle(*program_bundle, gparams, ctx);
+}
+
+} // namespace
+
 compile_result compile_with_options(
     const parsing_params& pparams,
     const gen_params& gparams,
@@ -1281,18 +1298,9 @@ compile_result compile_with_options(
   record_invocation_params(
       pparams, gparams, ctx.sema_parameters(), input_filename, ctx.metrics());
 
-  std::unique_ptr<t_program_bundle> program_bundle =
-      parse_and_mutate(source_mgr, ctx, input_filename, pparams, gparams);
-  if (program_bundle == nullptr) {
-    return result;
-  }
-
-  if (gparams.skip_gen) {
-    result.retcode = compile_retcode::success;
-    return result;
-  }
   result.retcode =
-      generate_code_for_program_bundle(*program_bundle, gparams, ctx);
+      parse_and_generate(source_mgr, ctx, input_filename, pparams, gparams);
+  record_errors(result.detail, ctx.metrics());
   auto end = std::chrono::high_resolution_clock::now();
   auto duration =
       std::chrono::duration_cast<std::chrono::milliseconds>(end - start)

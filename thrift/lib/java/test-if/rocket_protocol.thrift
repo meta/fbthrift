@@ -64,8 +64,17 @@ transient server exception TestServerException {
   1: string msg;
 }
 
+interaction TestSession {
+  stream<TestResponse throws (21: TestException e)> streamDeclaredException();
+  TestResponse interactionUnaryDeclaredException() throws (22: TestException e);
+  stream<TestResponse> streamInitDeclaredException() throws (23: TestException e);
+}
+
 service TestService {
+  performs TestSession;
   void requestResponseVoid(1: TestRequest request);
+  // @lint-ignore THRIFTCHECKS avoid-oneway-method test-only: exercises the oneway dispatch path
+  oneway void requestFireAndForget(1: TestRequest request);
   TestResponse requestResponse(1: TestRequest request);
 
   TestResponse requestResponseDeclaredException(1: TestRequest request) throws (
@@ -156,4 +165,11 @@ service TestService {
   InitialTestResponse, stream<
     TestResponse
   > streamInitialResponseInvalidFirstResponse(1: TestRequest request);
+
+  // Test: a forwarded holder (e.g. `return backend.foo(req)`), carrying a dispose handle
+  // like a client-bridge holder: the server must dispose it when the downstream never
+  // consumes the stream.
+  InitialTestResponse, stream<
+    TestResponse
+  > streamForwardedHolder(1: TestRequest request);
 }

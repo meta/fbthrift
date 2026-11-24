@@ -78,8 +78,8 @@ struct ExtensionSlotEntry {
  * instance without synchronization. Indices are assigned in registration order,
  * which no reader observes: a lookup is by id.
  *
- * A server with no installed extensions builds an empty layout, and contexts
- * under it carry no slots.
+ * An entry may additionally describe request state owned by its context. Its
+ * destructor is stored once in this shared layout, not once per request.
  */
 class ExtensionLayout {
  public:
@@ -108,8 +108,9 @@ class ExtensionLayoutBuilder {
   /**
    * Reserves a slot for `id`.
    *
-   * A slot holds one pointer. A null deleter makes that pointer borrowed; a
-   * non-null deleter makes the context own it.
+   * A slot added this way holds a borrowed pointer. `addOwned` instead records
+   * the destructor for state the context owns — allocated through
+   * `ExtensionSlots::emplace`, or adopted through `ExtensionSlots::adopt`.
    *
    * A repeated id aborts. Two extensions reaching one slot is the failure this
    * mechanism exists to prevent, and startup is the only point at which it can
@@ -129,6 +130,11 @@ class ExtensionLayoutBuilder {
             .deleter = deleter});
   }
 
+  template <class State>
+  void addOwned(ExtensionId id) {
+    add(id, +[](void* state) noexcept { delete static_cast<State*>(state); });
+  }
+
   ExtensionLayout build() && { return std::move(layout_); }
 
  private:
@@ -138,9 +144,11 @@ class ExtensionLayoutBuilder {
 /**
  * A context's extension slots: one pointer per installed extension.
  *
- * The framework owns the array. Each layout entry decides whether its pointer
- * is borrowed or owned; owned entries are destroyed with the context without
- * widening the per-context slot.
+ * The framework owns the array. Borrowed slots hold state managed by their
+ * publisher; owned slots hold extension state — adopted through `adopt` or
+ * allocated through `emplace` — and destroy it with the context. The
+ * event-handler bridge uses the borrowed form and stores a
+ * `Cpp2RequestContext*` it already owns.
  *
  * Slots are installed after construction rather than built in, so a context
  * created without a layout — every test that does not exercise an extension —
@@ -158,6 +166,11 @@ class ExtensionSlots {
 
   ExtensionSlots() = default;
   ~ExtensionSlots() {
+    clearAllOwned([]() noexcept {});
+  }
+
+  template <typename BeforeDelete>
+  void clearAllOwned(BeforeDelete&& beforeDelete) noexcept {
     if (layout_ == nullptr) {
       return;
     }
@@ -165,9 +178,25 @@ class ExtensionSlots {
     for (std::size_t i = 0; i < layout_->entryCount(); ++i) {
       const auto& entry = entries[i];
       if (entry.deleter != nullptr && slots_[entry.index] != nullptr) {
-        entry.deleter(slots_[entry.index]);
+        void* state = std::exchange(slots_[entry.index], nullptr);
+        beforeDelete();
+        entry.deleter(state);
       }
     }
+  }
+
+  bool hasOwnedState() const noexcept {
+    if (layout_ == nullptr) {
+      return false;
+    }
+    const auto* entries = layout_->entries();
+    for (std::size_t i = 0; i < layout_->entryCount(); ++i) {
+      const auto& entry = entries[i];
+      if (entry.deleter != nullptr && slots_[entry.index] != nullptr) {
+        return true;
+      }
+    }
+    return false;
   }
 
   // Rejected rather than bound: a layout that dies at the end of the install
@@ -248,6 +277,20 @@ class ExtensionSlots {
     if (state != nullptr) {
       entry->deleter(state);
     }
+  }
+
+  /** Constructs owned state in place; the context destroys it with itself. */
+  template <class State, class... Args>
+  State& emplace(ExtensionId id, Args&&... args) {
+    const auto* entry = findEntry(id);
+    FOLLY_SAFE_CHECK(entry != nullptr, "extension is not installed");
+    FOLLY_SAFE_CHECK(entry->deleter != nullptr, "extension state is not owned");
+    FOLLY_SAFE_CHECK(
+        slots_[entry->index] == nullptr, "extension state already exists");
+    auto state = std::make_unique<State>(std::forward<Args>(args)...);
+    auto& result = *state;
+    slots_[entry->index] = state.release();
+    return result;
   }
 
   // Whether `id` has a slot on this context at all.

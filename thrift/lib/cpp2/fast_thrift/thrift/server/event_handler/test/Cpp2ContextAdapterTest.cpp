@@ -17,7 +17,9 @@
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/event_handler/Cpp2ContextAdapter.h>
 
 #include <memory>
+#include <stdexcept>
 #include <string>
+#include <vector>
 
 #include <gtest/gtest.h>
 
@@ -26,6 +28,10 @@
 #include <folly/io/async/AsyncSocket.h>
 #include <folly/io/async/EventBase.h>
 #include <folly/io/async/ssl/BasicTransportCertificate.h>
+#include <folly/io/async/ssl/OpenSSLTransportCertificate.h>
+#include <folly/io/async/ssl/OpenSSLUtils.h>
+#include <folly/io/async/test/MockAsyncTransport.h>
+#include <folly/portability/GMock.h>
 
 #include <thrift/lib/cpp2/server/Cpp2Worker.h>
 
@@ -38,14 +44,22 @@ namespace {
 struct ResolvedIdentities {
   std::string identity;
   const folly::AsyncTransportCertificate* certSeen{nullptr};
+  const folly::AsyncTransport* transportSeen{nullptr};
+  const X509* x509Seen{nullptr};
 };
 
 std::unique_ptr<void, void (*)(void*)> resolveIdentities(
-    const folly::AsyncTransportCertificate* cert,
+    const folly::AsyncTransport* transport,
+    X509* x509,
     const folly::SocketAddress& /*peerAddress*/) {
+  const auto* cert = transport ? transport->getPeerCertificate() : nullptr;
   auto owned = std::make_unique<ResolvedIdentities>();
-  owned->identity = cert == nullptr ? "plaintext" : cert->getIdentity();
+  owned->identity = cert ? cert->getIdentity()
+      : x509             ? folly::ssl::OpenSSLUtils::getCommonName(x509)
+                         : "plaintext";
   owned->certSeen = cert;
+  owned->transportSeen = transport;
+  owned->x509Seen = x509;
   return std::unique_ptr<void, void (*)(void*)>(
       owned.release(),
       +[](void* p) noexcept { delete static_cast<ResolvedIdentities*>(p); });
@@ -86,13 +100,14 @@ TEST(Cpp2ContextAdapterTest, ConnectionContextCarriesWhatTheConnectionKnows) {
   EXPECT_EQ(adapter.get().getSecurityProtocol(), "TLS1.3");
 }
 
-// The resolver is handed the certificate itself, not an X509 extracted from
-// it: a resumed session has identities but no X509, so extracting first would
-// silently produce none.
-TEST(Cpp2ContextAdapterTest, ResolverSeesTheCertificateAndItsResultIsCached) {
+TEST(Cpp2ContextAdapterTest, HookReadsTransportIdentitiesWithoutX509) {
   auto cert = std::make_shared<folly::ssl::BasicTransportCertificate>(
       "peer.identity", nullptr);
   auto conn = makeConnContext(cert);
+  testing::NiceMock<folly::test::MockAsyncTransport> transport;
+  ON_CALL(transport, getPeerCertificate())
+      .WillByDefault(testing::Return(cert.get()));
+  conn->setTransport(&transport);
 
   Cpp2ConnContextAdapter adapter(conn, &resolveIdentities);
 
@@ -103,10 +118,224 @@ TEST(Cpp2ContextAdapterTest, ResolverSeesTheCertificateAndItsResultIsCached) {
   EXPECT_EQ(identities->certSeen, cert.get());
 }
 
-TEST(Cpp2ContextAdapterTest, NoResolverLeavesIdentitiesUnset) {
+TEST(Cpp2ContextAdapterTest, HookReadsTheLiveCertificateAtInvocation) {
+  auto retained = std::make_shared<folly::ssl::BasicTransportCertificate>(
+      "retained", nullptr);
+  const folly::ssl::BasicTransportCertificate first("first", nullptr);
+  const folly::ssl::BasicTransportCertificate second("second", nullptr);
+  testing::NiceMock<folly::test::MockAsyncTransport> transport;
+  EXPECT_CALL(transport, getPeerCertificate())
+      .WillOnce(testing::Return(&first))
+      .WillOnce(testing::Return(&first))
+      .WillOnce(testing::Return(&second));
+  auto conn = makeConnContext(retained);
+  conn->setTransport(&transport);
+
+  Cpp2ConnContextAdapter adapter(conn, &resolveIdentities);
+
+  auto* identities =
+      static_cast<ResolvedIdentities*>(adapter.get().getPeerIdentities());
+  ASSERT_NE(identities, nullptr);
+  EXPECT_EQ(identities->identity, "second");
+  EXPECT_EQ(identities->certSeen, &second);
+}
+
+TEST(Cpp2ContextAdapterTest, CachedX509FallbackSurvivesTransportRemoval) {
+  auto cert = std::make_shared<folly::ssl::BasicTransportCertificate>(
+      "retained", folly::ssl::X509UniquePtr(X509_new()));
+  auto x509 = cert->getX509();
+  ASSERT_NE(x509, nullptr);
+  ASSERT_EQ(
+      X509_NAME_add_entry_by_txt(
+          X509_get_subject_name(x509.get()),
+          "CN",
+          MBSTRING_ASC,
+          reinterpret_cast<const unsigned char*>("retained"),
+          -1,
+          -1,
+          0),
+      1);
+  const auto* expected = x509.get();
+  auto conn = makeConnContext(cert);
+  folly::EventBase evb;
+  auto socket = folly::AsyncSocket::newSocket(&evb);
+  conn->setTransport(socket.get());
+
+  Cpp2ConnContextAdapter adapter(conn, &resolveIdentities);
+
+  EXPECT_EQ(adapter.get().getPeerCertificate(), expected);
+  auto* identities =
+      static_cast<ResolvedIdentities*>(adapter.get().getPeerIdentities());
+  ASSERT_NE(identities, nullptr);
+  EXPECT_EQ(identities->certSeen, nullptr);
+  EXPECT_EQ(identities->x509Seen, expected);
+  EXPECT_EQ(identities->identity, "retained");
+  x509.reset();
+  cert->dropX509();
+  conn->setPeerCertificate(nullptr);
+  adapter.connectionClosed();
+  EXPECT_EQ(adapter.get().getTransport(), nullptr);
+  EXPECT_EQ(adapter.get().getPeerCertificate(), expected);
+  EXPECT_EQ(
+      folly::ssl::OpenSSLUtils::getCommonName(
+          const_cast<X509*>(adapter.get().getPeerCertificate())),
+      "retained");
+}
+
+enum class HookCertificateCase {
+  NoTransport,
+  NoCertificate,
+  RetainedX509,
+  LiveX509,
+  LiveIdentityWithoutX509,
+  LiveCertificateChanges,
+};
+
+class Cpp2ClientIdentityHookParityTest
+    : public testing::TestWithParam<HookCertificateCase> {};
+
+TEST_P(Cpp2ClientIdentityHookParityTest, MatchesDirectCpp2Construction) {
+  auto retained = std::make_shared<folly::ssl::BasicTransportCertificate>(
+      "retained", folly::ssl::X509UniquePtr(X509_new()));
+  const folly::ssl::BasicTransportCertificate live(
+      "live", folly::ssl::X509UniquePtr(X509_new()));
+  const folly::ssl::BasicTransportCertificate identityOnly("identity", nullptr);
+  const auto scenario = GetParam();
+  auto conn = makeConnContext(
+      scenario == HookCertificateCase::NoCertificate ? nullptr : retained);
+  testing::NiceMock<folly::test::MockAsyncTransport> transport;
+  if (scenario != HookCertificateCase::NoTransport) {
+    conn->setTransport(&transport);
+  }
+  std::vector<std::string> trace;
+  int reads = 0;
+  ON_CALL(transport, getPeerCertificate())
+      .WillByDefault([&]() -> const folly::AsyncTransportCertificate* {
+        trace.push_back("certificate:" + std::to_string(++reads));
+        switch (scenario) {
+          case HookCertificateCase::LiveX509:
+            return &live;
+          case HookCertificateCase::LiveIdentityWithoutX509:
+            return &identityOnly;
+          case HookCertificateCase::LiveCertificateChanges:
+            return reads <= 2 ? &live : &identityOnly;
+          case HookCertificateCase::NoTransport:
+          case HookCertificateCase::NoCertificate:
+          case HookCertificateCase::RetainedX509:
+            return nullptr;
+        }
+      });
+  apache::thrift::ClientIdentityHook hook =
+      [&](const folly::AsyncTransport* seenTransport,
+          X509* seenX509,
+          const folly::SocketAddress& seenAddress) {
+        trace.emplace_back("hook");
+        EXPECT_EQ(seenAddress, conn->getPeerAddress());
+        return resolveIdentities(seenTransport, seenX509, seenAddress);
+      };
+  const auto worker = Cpp2Worker::createDummy(nullptr, nullptr);
+  Cpp2ConnContext classic(
+      &conn->getPeerAddress(),
+      conn->getTransport(),
+      nullptr,
+      folly::OpenSSLTransportCertificate::tryExtractX509(
+          conn->getPeerCertificate()),
+      hook,
+      worker.get(),
+      0);
+  const auto expectedTrace = trace;
+  const auto* expected =
+      static_cast<ResolvedIdentities*>(classic.getPeerIdentities());
+  ASSERT_NE(expected, nullptr);
+  trace.clear();
+  reads = 0;
+
+  Cpp2ConnContextAdapter adapter(conn, hook);
+
+  const auto* actual =
+      static_cast<ResolvedIdentities*>(adapter.get().getPeerIdentities());
+  ASSERT_NE(actual, nullptr);
+  EXPECT_EQ(trace, expectedTrace);
+  EXPECT_EQ(actual->transportSeen, expected->transportSeen);
+  EXPECT_EQ(actual->x509Seen, expected->x509Seen);
+  EXPECT_EQ(actual->certSeen, expected->certSeen);
+  EXPECT_EQ(actual->identity, expected->identity);
+  EXPECT_EQ(adapter.get().getPeerCertificate(), classic.getPeerCertificate());
+  EXPECT_EQ(conn->getPeerIdentities(), actual);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    CertificateSources,
+    Cpp2ClientIdentityHookParityTest,
+    testing::Values(
+        HookCertificateCase::NoTransport,
+        HookCertificateCase::NoCertificate,
+        HookCertificateCase::RetainedX509,
+        HookCertificateCase::LiveX509,
+        HookCertificateCase::LiveIdentityWithoutX509,
+        HookCertificateCase::LiveCertificateChanges));
+
+TEST(Cpp2ContextAdapterTest, HookExceptionMatchesClassicAndPublishesNoState) {
+  auto conn = makeConnContext(nullptr);
+  using HookResult = std::unique_ptr<void, void (*)(void*)>;
+  testing::MockFunction<HookResult(
+      const folly::AsyncTransport*, X509*, const folly::SocketAddress&)>
+      hook;
+  EXPECT_CALL(hook, Call(nullptr, nullptr, conn->getPeerAddress()))
+      .Times(2)
+      .WillRepeatedly(
+          testing::Throw(std::runtime_error("identity extraction failed")));
+  const auto clientIdentityHook = hook.AsStdFunction();
+  EXPECT_THROW(
+      Cpp2ConnContext(
+          &conn->getPeerAddress(),
+          nullptr,
+          nullptr,
+          nullptr,
+          clientIdentityHook),
+      std::runtime_error);
+  EXPECT_THROW(
+      Cpp2ConnContextAdapter(conn, clientIdentityHook), std::runtime_error);
+  EXPECT_EQ(conn->getPeerIdentities(), nullptr);
+  EXPECT_EQ(tryGetCpp2ConnContext(*conn), nullptr);
+}
+
+TEST(Cpp2ContextAdapterTest, TransportExceptionPreventsHookLikeClassic) {
+  auto conn = makeConnContext(nullptr);
+  testing::NiceMock<folly::test::MockAsyncTransport> transport;
+  conn->setTransport(&transport);
+  EXPECT_CALL(transport, getPeerCertificate())
+      .WillRepeatedly(
+          testing::Throw(std::runtime_error("certificate unavailable")));
+  int calls = 0;
+  apache::thrift::ClientIdentityHook hook =
+      [&](const folly::AsyncTransport* t,
+          X509* cert,
+          const folly::SocketAddress& peer) {
+        ++calls;
+        return resolveIdentities(t, cert, peer);
+      };
+  const auto worker = Cpp2Worker::createDummy(nullptr, nullptr);
+  EXPECT_THROW(
+      Cpp2ConnContext(
+          &conn->getPeerAddress(),
+          &transport,
+          nullptr,
+          nullptr,
+          hook,
+          worker.get(),
+          0),
+      std::runtime_error);
+  EXPECT_THROW(Cpp2ConnContextAdapter(conn, hook), std::runtime_error);
+  EXPECT_EQ(calls, 0);
+  EXPECT_EQ(conn->getPeerIdentities(), nullptr);
+  EXPECT_EQ(tryGetCpp2ConnContext(*conn), nullptr);
+}
+
+TEST(Cpp2ContextAdapterTest, NoHookLeavesIdentitiesUnset) {
   auto conn = makeConnContext(nullptr);
 
-  Cpp2ConnContextAdapter adapter(conn, /*resolver=*/nullptr);
+  Cpp2ConnContextAdapter adapter(conn, /*clientIdentityHook=*/nullptr);
 
   EXPECT_EQ(adapter.get().getPeerIdentities(), nullptr);
 }
@@ -120,7 +349,7 @@ TEST(Cpp2ContextAdapterTest, ConnectionContextCarriesTheTransport) {
   auto conn = makeConnContext(nullptr);
   conn->setTransport(socket.get());
 
-  Cpp2ConnContextAdapter adapter(conn, /*resolver=*/nullptr);
+  Cpp2ConnContextAdapter adapter(conn, /*clientIdentityHook=*/nullptr);
 
   EXPECT_EQ(adapter.get().getTransport(), socket.get());
 }
@@ -130,7 +359,7 @@ TEST(Cpp2ContextAdapterTest, ConnectionCloseDetachesTheTransport) {
   auto socket = folly::AsyncSocket::newSocket(&evb);
   auto conn = makeConnContext(nullptr);
   conn->setTransport(socket.get());
-  Cpp2ConnContextAdapter adapter(conn, /*resolver=*/nullptr);
+  Cpp2ConnContextAdapter adapter(conn, /*clientIdentityHook=*/nullptr);
   auto cancellationToken = adapter.get().getCancellationToken();
   const folly::AsyncTransport* transportDuringCancellation = socket.get();
   folly::CancellationCallback cancellationCallback{
@@ -157,7 +386,7 @@ TEST(Cpp2ContextAdapterTest, SecurityProtocolSurvivesADowngradedTransport) {
   conn->setTransport(socket.get());
   ASSERT_TRUE(socket->getSecurityProtocol().empty());
 
-  Cpp2ConnContextAdapter adapter(conn, /*resolver=*/nullptr);
+  Cpp2ConnContextAdapter adapter(conn, /*clientIdentityHook=*/nullptr);
 
   EXPECT_TRUE(conn->peerCertReceived());
   EXPECT_TRUE(adapter.get().peerCertReceived());
@@ -172,7 +401,7 @@ TEST(Cpp2ContextAdapterTest, ClientMetadataReachesTheClassicContext) {
   metadata.hostname() = "client.host";
   conn->setClientMetadata(std::move(metadata));
 
-  Cpp2ConnContextAdapter adapter(conn, /*resolver=*/nullptr);
+  Cpp2ConnContextAdapter adapter(conn, /*clientIdentityHook=*/nullptr);
 
   const auto seen = adapter.get().getClientMetadataRef();
   ASSERT_TRUE(seen.has_value());
@@ -184,7 +413,7 @@ TEST(Cpp2ContextAdapterTest, ClientMetadataReachesTheClassicContext) {
 TEST(Cpp2ContextAdapterTest, NoClientMetadataLeavesTheClassicContextEmpty) {
   auto conn = makeConnContext(nullptr);
 
-  Cpp2ConnContextAdapter adapter(conn, /*resolver=*/nullptr);
+  Cpp2ConnContextAdapter adapter(conn, /*clientIdentityHook=*/nullptr);
 
   EXPECT_FALSE(adapter.get().getClientMetadataRef().has_value());
 }
@@ -194,7 +423,7 @@ TEST(Cpp2ContextAdapterTest, NoClientMetadataLeavesTheClassicContextEmpty) {
 TEST(Cpp2ContextAdapterTest, WorkerIsPresentButBelongsToNoServer) {
   auto conn = makeConnContext(nullptr);
 
-  Cpp2ConnContextAdapter adapter(conn, /*resolver=*/nullptr);
+  Cpp2ConnContextAdapter adapter(conn, /*clientIdentityHook=*/nullptr);
 
   ASSERT_NE(adapter.get().getWorker(), nullptr);
   EXPECT_EQ(adapter.get().getWorker()->getServer(), nullptr);
@@ -202,7 +431,7 @@ TEST(Cpp2ContextAdapterTest, WorkerIsPresentButBelongsToNoServer) {
 
 TEST(Cpp2ContextAdapterTest, RequestContextCarriesHeadersMethodAndConnection) {
   auto conn = makeConnContext(nullptr);
-  Cpp2ConnContextAdapter connAdapter(conn, /*resolver=*/nullptr);
+  Cpp2ConnContextAdapter connAdapter(conn, /*clientIdentityHook=*/nullptr);
 
   // Declared before the request: the classic context points at this, and the
   // request reaches the classic context, so it has to outlive both.
@@ -231,7 +460,7 @@ TEST(Cpp2ContextAdapterTest, RequestContextCarriesHeadersMethodAndConnection) {
 
 TEST(Cpp2ContextAdapterTest, BorrowsAndCanReleaseTheNativeMethodName) {
   auto conn = makeConnContext(nullptr);
-  Cpp2ConnContextAdapter connAdapter(conn, /*resolver=*/nullptr);
+  Cpp2ConnContextAdapter connAdapter(conn, /*clientIdentityHook=*/nullptr);
   transport::THeader header;
   ThriftRequestContext request;
   request.installExtensions(bridgeLayout());
@@ -250,7 +479,7 @@ TEST(Cpp2ContextAdapterTest, BorrowsAndCanReleaseTheNativeMethodName) {
 
 TEST(Cpp2ContextAdapterTest, ClassicHeaderMutationDetachesFromNativeHeaders) {
   auto conn = makeConnContext(nullptr);
-  Cpp2ConnContextAdapter connAdapter(conn, /*resolver=*/nullptr);
+  Cpp2ConnContextAdapter connAdapter(conn, /*clientIdentityHook=*/nullptr);
   transport::THeader header;
   ThriftRequestContext request;
   request.installExtensions(bridgeLayout());
@@ -267,7 +496,7 @@ TEST(Cpp2ContextAdapterTest, ClassicHeaderMutationDetachesFromNativeHeaders) {
 
 TEST(Cpp2ContextAdapterTest, AdapterClearsBorrowedHeadersOnDestruction) {
   auto conn = makeConnContext(nullptr);
-  Cpp2ConnContextAdapter connAdapter(conn, /*resolver=*/nullptr);
+  Cpp2ConnContextAdapter connAdapter(conn, /*clientIdentityHook=*/nullptr);
   transport::THeader header;
   ThriftRequestContext request;
   request.installExtensions(bridgeLayout());
@@ -287,7 +516,7 @@ TEST(Cpp2ContextAdapterTest, AdapterClearsBorrowedHeadersOnDestruction) {
 // carry.
 TEST(Cpp2ContextAdapterTest, WriteHeadersAreHandedBack) {
   auto conn = makeConnContext(nullptr);
-  Cpp2ConnContextAdapter connAdapter(conn, /*resolver=*/nullptr);
+  Cpp2ConnContextAdapter connAdapter(conn, /*clientIdentityHook=*/nullptr);
   ThriftRequestContext request;
   request.installExtensions(bridgeLayout());
   request.setConnectionContext(conn);
@@ -304,31 +533,35 @@ TEST(Cpp2ContextAdapterTest, WriteHeadersAreHandedBack) {
   EXPECT_TRUE(requestAdapter.takeWriteHeaders().empty());
 }
 
-// fast_thrift installs no ambient context, so each request brings its own
-// rather than sharing the process-global default.
-TEST(Cpp2ContextAdapterTest, EachRequestOwnsADistinctAmbientContext) {
+TEST(Cpp2ContextAdapterTest, AdapterUsesTheNativeRequestAmbientContext) {
   auto conn = makeConnContext(nullptr);
-  Cpp2ConnContextAdapter connAdapter(conn, /*resolver=*/nullptr);
-  ThriftRequestContext request;
-  request.installExtensions(bridgeLayout());
-  request.setConnectionContext(conn);
+  Cpp2ConnContextAdapter connAdapter(conn, /*clientIdentityHook=*/nullptr);
+  ThriftRequestContext firstRequest;
+  firstRequest.installExtensions(bridgeLayout());
+  firstRequest.setConnectionContext(conn);
+  ThriftRequestContext secondRequest;
+  secondRequest.installExtensions(bridgeLayout());
+  secondRequest.setConnectionContext(conn);
 
   transport::THeader firstHeader;
   transport::THeader secondHeader;
   Cpp2RequestContext firstCpp2(&connAdapter.get(), &firstHeader, "ping");
   Cpp2RequestContext secondCpp2(&connAdapter.get(), &secondHeader, "ping");
-  Cpp2RequestContextAdapter first(firstCpp2, firstHeader, request);
-  Cpp2RequestContextAdapter second(secondCpp2, secondHeader, request);
+  Cpp2RequestContextAdapter first(firstCpp2, firstHeader, firstRequest);
+  Cpp2RequestContextAdapter second(secondCpp2, secondHeader, secondRequest);
 
-  ASSERT_NE(first.ambientContext(), nullptr);
-  ASSERT_NE(second.ambientContext(), nullptr);
+  EXPECT_EQ(
+      first.ambientContext(), firstRequest.getFollyRequestContext().capture());
+  EXPECT_EQ(
+      second.ambientContext(),
+      secondRequest.getFollyRequestContext().capture());
   EXPECT_NE(first.ambientContext(), second.ambientContext());
   EXPECT_NE(first.ambientContext().get(), folly::RequestContext::try_get());
 }
 
 TEST(Cpp2ContextAdapterTest, ClearedAmbientContextFallsBackToRequestContext) {
   auto conn = makeConnContext(nullptr);
-  Cpp2ConnContextAdapter connAdapter(conn, /*resolver=*/nullptr);
+  Cpp2ConnContextAdapter connAdapter(conn, /*clientIdentityHook=*/nullptr);
   ThriftRequestContext request;
   request.installExtensions(bridgeLayout());
   request.setConnectionContext(conn);
@@ -354,6 +587,10 @@ TEST(Cpp2ContextAdapterTest, PeerIdentitiesAreReachableFromTheConnection) {
   auto cert = std::make_shared<folly::ssl::BasicTransportCertificate>(
       "peer.identity", nullptr);
   auto conn = makeConnContext(cert);
+  testing::NiceMock<folly::test::MockAsyncTransport> transport;
+  ON_CALL(transport, getPeerCertificate())
+      .WillByDefault(testing::Return(cert.get()));
+  conn->setTransport(&transport);
   EXPECT_EQ(conn->getPeerIdentities(), nullptr);
 
   {
@@ -373,7 +610,7 @@ TEST(Cpp2ContextAdapterTest, ClassicContextIsReachableThroughTheConnection) {
   EXPECT_EQ(tryGetCpp2ConnContext(*conn), nullptr);
 
   {
-    Cpp2ConnContextAdapter connAdapter(conn, /*resolver=*/nullptr);
+    Cpp2ConnContextAdapter connAdapter(conn, /*clientIdentityHook=*/nullptr);
     EXPECT_EQ(tryGetCpp2ConnContext(*conn), &connAdapter.get());
   }
   EXPECT_EQ(tryGetCpp2ConnContext(*conn), nullptr);
@@ -383,7 +620,7 @@ TEST(Cpp2ContextAdapterTest, ClassicContextIsReachableThroughTheConnection) {
 // revoked before that adapter's extension state is destroyed.
 TEST(Cpp2ContextAdapterTest, ClassicContextIsReachableThroughTheRequest) {
   auto conn = makeConnContext(nullptr);
-  Cpp2ConnContextAdapter connAdapter(conn, /*resolver=*/nullptr);
+  Cpp2ConnContextAdapter connAdapter(conn, /*clientIdentityHook=*/nullptr);
   transport::THeader header;
   ThriftRequestContext request;
   request.installExtensions(bridgeLayout());
@@ -407,7 +644,7 @@ TEST(Cpp2ContextAdapterTest, ClassicContextIsReachableThroughTheRequest) {
 // storage the next request rebuilds.
 TEST(Cpp2ContextAdapterTest, ClearingTheSlotLeavesNothingToRead) {
   auto conn = makeConnContext(nullptr);
-  Cpp2ConnContextAdapter connAdapter(conn, /*resolver=*/nullptr);
+  Cpp2ConnContextAdapter connAdapter(conn, /*clientIdentityHook=*/nullptr);
   transport::THeader header;
   ThriftRequestContext request;
   request.installExtensions(bridgeLayout());

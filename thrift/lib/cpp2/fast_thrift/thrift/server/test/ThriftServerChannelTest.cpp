@@ -24,13 +24,14 @@
 #include <thrift/lib/cpp2/async/AsyncProcessor.h>
 #include <thrift/lib/cpp2/async/RpcTypes.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/ThriftServerChannel.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/Messages.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/test/common/StaticPipelineTestHelpers.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/util/RequestMetadata.h>
 #include <thrift/lib/cpp2/protocol/CompactProtocol.h>
 #include <thrift/lib/cpp2/server/Cpp2ConnContext.h>
 #include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
@@ -38,14 +39,15 @@
 namespace apache::thrift::fast_thrift::thrift {
 
 using apache::thrift::fast_thrift::channel_pipeline::erase_and_box;
-using apache::thrift::fast_thrift::channel_pipeline::PipelineBuilder;
-using apache::thrift::fast_thrift::channel_pipeline::PipelineImpl;
+using apache::thrift::fast_thrift::channel_pipeline::PipelineOwner;
 using apache::thrift::fast_thrift::channel_pipeline::Result;
+using apache::thrift::fast_thrift::channel_pipeline::StaticPipelineBuilder;
 using apache::thrift::fast_thrift::channel_pipeline::TypeErasedBox;
-using apache::thrift::fast_thrift::channel_pipeline::test::MockHandler;
 using MockTransportHandler =
-    apache::thrift::fast_thrift::channel_pipeline::test::MockHeadHandler;
+    apache::thrift::fast_thrift::channel_pipeline::test::StaticMockHeadHandler;
 using apache::thrift::fast_thrift::channel_pipeline::test::TestAllocator;
+using server::test::inertStaticEndpointContext;
+using server::test::WriteCaptureHandler;
 
 HANDLER_TAG(test_handler);
 
@@ -194,7 +196,6 @@ class MockAsyncProcessorFactory : public apache::thrift::AsyncProcessorFactory {
 class ThriftServerChannelTest : public ::testing::Test {
  protected:
   void SetUp() override {
-    MockHandler::resetOrderCounter();
     evb_ = std::make_unique<folly::EventBase>();
     allocator_.reset();
     mockProcessor_ = std::make_shared<MockAsyncProcessor>();
@@ -224,23 +225,20 @@ class ThriftServerChannelTest : public ::testing::Test {
     return copyBuffer(s.data(), s.size());
   }
 
-  PipelineImpl::Ptr buildPipelineWithHandler(
-      std::function<Result(
-          apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
-          TypeErasedBox&&)> writeHandler) {
-    handler_ = std::make_unique<MockHandler>();
-    handler_->setOnWrite(std::move(writeHandler));
-
-    return PipelineBuilder<
-               MockTransportHandler,
-               ThriftServerChannel,
-               TestAllocator>()
-        .setEventBase(evb_.get())
-        .setHead(&mockTransport_)
-        .setTail(channel_.get())
-        .setAllocator(&allocator_)
-        .addNextDuplex<MockHandler>(test_handler_tag, std::move(handler_))
-        .build();
+  PipelineOwner buildPipelineWithHandler(
+      WriteCaptureHandler::Callback writeHandler) {
+    return PipelineOwner(
+        StaticPipelineBuilder<
+            MockTransportHandler,
+            ThriftServerChannel,
+            TestAllocator>()
+            .setEventBase(evb_.get())
+            .setHead(&mockTransport_)
+            .setTail(channel_.get())
+            .setAllocator(&allocator_)
+            .addNextOutbound<WriteCaptureHandler>(
+                test_handler_tag, std::move(writeHandler))
+            .build());
   }
 
   apache::thrift::fast_thrift::thrift::ThriftServerRequestMessage
@@ -277,8 +275,7 @@ class ThriftServerChannelTest : public ::testing::Test {
   TestAllocator allocator_;
   std::shared_ptr<MockAsyncProcessor> mockProcessor_;
   std::unique_ptr<ThriftServerChannel> channel_;
-  PipelineImpl::Ptr pipeline_;
-  std::unique_ptr<MockHandler> handler_;
+  PipelineOwner pipeline_;
 };
 
 // =============================================================================
@@ -296,15 +293,13 @@ TEST_F(ThriftServerChannelTest, OnMessageDispatchesToProcessor) {
         req->sendReply(apache::thrift::ResponsePayload(this->copyBuffer("ok")));
       });
 
-  pipeline_ = buildPipelineWithHandler(
-      [](apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
-         TypeErasedBox&&) { return Result::Success; });
+  pipeline_ =
+      buildPipelineWithHandler([](TypeErasedBox&&) { return Result::Success; });
   channel_->setPipeline(std::move(pipeline_));
 
   auto request = createRequestMessage(1, "testMethod", "request data");
   auto result = channel_->onRead(
-      channel_pipeline::test::inertEndpointContext(),
-      erase_and_box(std::move(request)));
+      inertStaticEndpointContext(), erase_and_box(std::move(request)));
 
   EXPECT_EQ(result, Result::Success);
   EXPECT_EQ(mockProcessor_->requestCount(), 1);
@@ -320,15 +315,13 @@ TEST_F(ThriftServerChannelTest, OnMessageExtractsMethodName) {
         req->sendReply(apache::thrift::ResponsePayload(this->copyBuffer("ok")));
       });
 
-  pipeline_ = buildPipelineWithHandler(
-      [](apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
-         TypeErasedBox&&) { return Result::Success; });
+  pipeline_ =
+      buildPipelineWithHandler([](TypeErasedBox&&) { return Result::Success; });
   channel_->setPipeline(std::move(pipeline_));
 
   auto request = createRequestMessage(1, "myServiceMethod", "data");
   std::ignore = channel_->onRead(
-      channel_pipeline::test::inertEndpointContext(),
-      erase_and_box(std::move(request)));
+      inertStaticEndpointContext(), erase_and_box(std::move(request)));
 
   EXPECT_EQ(mockProcessor_->lastMethodName(), "myServiceMethod");
 }
@@ -343,15 +336,13 @@ TEST_F(ThriftServerChannelTest, OnMessageExtractsProtocol) {
         req->sendReply(apache::thrift::ResponsePayload(this->copyBuffer("ok")));
       });
 
-  pipeline_ = buildPipelineWithHandler(
-      [](apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
-         TypeErasedBox&&) { return Result::Success; });
+  pipeline_ =
+      buildPipelineWithHandler([](TypeErasedBox&&) { return Result::Success; });
   channel_->setPipeline(std::move(pipeline_));
 
   auto request = createRequestMessage(1, "method", "data");
   std::ignore = channel_->onRead(
-      channel_pipeline::test::inertEndpointContext(),
-      erase_and_box(std::move(request)));
+      inertStaticEndpointContext(), erase_and_box(std::move(request)));
 
   EXPECT_EQ(
       mockProcessor_->lastProtocolId(),
@@ -379,23 +370,20 @@ TEST_F(ThriftServerChannelTest, SendReplyPreservesResponsePayload) {
             apache::thrift::ResponsePayload(this->copyBuffer("hello world")));
       });
 
-  pipeline_ = buildPipelineWithHandler(
-      [&](apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
-          TypeErasedBox&& msg) {
-        auto& response = msg.get<
-            apache::thrift::fast_thrift::thrift::ThriftServerResponseMessage>();
-        if (auto& d = payloadData(response); d) {
-          folly::io::Cursor cursor(d.get());
-          capturedPayload = cursor.readFixedString(d->computeChainDataLength());
-        }
-        return Result::Success;
-      });
+  pipeline_ = buildPipelineWithHandler([&](TypeErasedBox&& msg) {
+    auto& response = msg.get<
+        apache::thrift::fast_thrift::thrift::ThriftServerResponseMessage>();
+    if (auto& d = payloadData(response); d) {
+      folly::io::Cursor cursor(d.get());
+      capturedPayload = cursor.readFixedString(d->computeChainDataLength());
+    }
+    return Result::Success;
+  });
   channel_->setPipeline(std::move(pipeline_));
 
   auto request = createRequestMessage(1, "method", "data");
   std::ignore = channel_->onRead(
-      channel_pipeline::test::inertEndpointContext(),
-      erase_and_box(std::move(request)));
+      inertStaticEndpointContext(), erase_and_box(std::move(request)));
 
   EXPECT_EQ(capturedPayload, "hello world");
 }
@@ -412,25 +400,22 @@ TEST_F(ThriftServerChannelTest, SendReplySetsResponseMetadata) {
         req->sendReply(apache::thrift::ResponsePayload(this->copyBuffer("ok")));
       });
 
-  pipeline_ = buildPipelineWithHandler(
-      [&](apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
-          TypeErasedBox&& msg) {
-        auto& response = msg.get<
-            apache::thrift::fast_thrift::thrift::ThriftServerResponseMessage>();
-        if (auto* m = payloadMetadata(response); m) {
-          auto ref = m->payloadMetadata();
-          if (ref) {
-            capturedType = ref->getType();
-          }
-        }
-        return Result::Success;
-      });
+  pipeline_ = buildPipelineWithHandler([&](TypeErasedBox&& msg) {
+    auto& response = msg.get<
+        apache::thrift::fast_thrift::thrift::ThriftServerResponseMessage>();
+    if (auto* m = payloadMetadata(response); m) {
+      auto ref = m->payloadMetadata();
+      if (ref) {
+        capturedType = ref->getType();
+      }
+    }
+    return Result::Success;
+  });
   channel_->setPipeline(std::move(pipeline_));
 
   auto request = createRequestMessage(1, "method", "data");
   std::ignore = channel_->onRead(
-      channel_pipeline::test::inertEndpointContext(),
-      erase_and_box(std::move(request)));
+      inertStaticEndpointContext(), erase_and_box(std::move(request)));
 
   EXPECT_EQ(
       capturedType, apache::thrift::PayloadMetadata::Type::responseMetadata);
@@ -459,40 +444,37 @@ TEST_F(ThriftServerChannelTest, SendErrorWrappedSetsExceptionMetadata) {
             "23");
       });
 
-  pipeline_ = buildPipelineWithHandler(
-      [&](apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
-          TypeErasedBox&& msg) {
-        auto& response = msg.get<
-            apache::thrift::fast_thrift::thrift::ThriftServerResponseMessage>();
-        if (auto* m = payloadMetadata(response); m) {
-          auto ref = m->payloadMetadata();
-          if (ref) {
-            capturedPayloadType = ref->getType();
-            if (capturedPayloadType ==
-                apache::thrift::PayloadMetadata::Type::exceptionMetadata) {
-              auto& exBase = ref->get_exceptionMetadata();
-              if (exBase.what_utf8()) {
-                capturedWhat = *exBase.what_utf8();
-              }
-              auto metaRef = exBase.metadata();
-              EXPECT_TRUE(metaRef.has_value());
-              if (metaRef) {
-                EXPECT_EQ(
-                    metaRef->getType(),
-                    apache::thrift::PayloadExceptionMetadata::Type::
-                        appUnknownException);
-              }
-            }
+  pipeline_ = buildPipelineWithHandler([&](TypeErasedBox&& msg) {
+    auto& response = msg.get<
+        apache::thrift::fast_thrift::thrift::ThriftServerResponseMessage>();
+    if (auto* m = payloadMetadata(response); m) {
+      auto ref = m->payloadMetadata();
+      if (ref) {
+        capturedPayloadType = ref->getType();
+        if (capturedPayloadType ==
+            apache::thrift::PayloadMetadata::Type::exceptionMetadata) {
+          auto& exBase = ref->exceptionMetadata().value();
+          if (exBase.what_utf8()) {
+            capturedWhat = *exBase.what_utf8();
+          }
+          auto metaRef = exBase.metadata();
+          EXPECT_TRUE(metaRef.has_value());
+          if (metaRef) {
+            EXPECT_EQ(
+                metaRef->getType(),
+                apache::thrift::PayloadExceptionMetadata::Type::
+                    appUnknownException);
           }
         }
-        return Result::Success;
-      });
+      }
+    }
+    return Result::Success;
+  });
   channel_->setPipeline(std::move(pipeline_));
 
   auto request = createRequestMessage(1, "method", "data");
   std::ignore = channel_->onRead(
-      channel_pipeline::test::inertEndpointContext(),
-      erase_and_box(std::move(request)));
+      inertStaticEndpointContext(), erase_and_box(std::move(request)));
 
   EXPECT_EQ(
       capturedPayloadType,
@@ -522,41 +504,38 @@ TEST_F(ThriftServerChannelTest, SendReplyPreservesDeclaredExceptionMetadata) {
             apache::thrift::ResponsePayload(this->copyBuffer("ex data")));
       });
 
-  pipeline_ = buildPipelineWithHandler(
-      [&](apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
-          TypeErasedBox&& msg) {
-        auto& response = msg.get<ThriftServerResponseMessage>();
-        if (auto* m = payloadMetadata(response); m) {
-          auto ref = m->payloadMetadata();
-          if (ref) {
-            capturedPayloadType = ref->getType();
-            if (capturedPayloadType ==
-                apache::thrift::PayloadMetadata::Type::exceptionMetadata) {
-              auto& exBase = ref->get_exceptionMetadata();
-              if (exBase.name_utf8()) {
-                capturedName = *exBase.name_utf8();
-              }
-              if (exBase.what_utf8()) {
-                capturedWhat = *exBase.what_utf8();
-              }
-              auto metaRef = exBase.metadata();
-              if (metaRef) {
-                hasDeclaredEx =
-                    (metaRef->getType() ==
-                     apache::thrift::PayloadExceptionMetadata::Type::
-                         declaredException);
-              }
-            }
+  pipeline_ = buildPipelineWithHandler([&](TypeErasedBox&& msg) {
+    auto& response = msg.get<ThriftServerResponseMessage>();
+    if (auto* m = payloadMetadata(response); m) {
+      auto ref = m->payloadMetadata();
+      if (ref) {
+        capturedPayloadType = ref->getType();
+        if (capturedPayloadType ==
+            apache::thrift::PayloadMetadata::Type::exceptionMetadata) {
+          auto& exBase = ref->exceptionMetadata().value();
+          if (exBase.name_utf8()) {
+            capturedName = *exBase.name_utf8();
+          }
+          if (exBase.what_utf8()) {
+            capturedWhat = *exBase.what_utf8();
+          }
+          auto metaRef = exBase.metadata();
+          if (metaRef) {
+            hasDeclaredEx =
+                (metaRef->getType() ==
+                 apache::thrift::PayloadExceptionMetadata::Type::
+                     declaredException);
           }
         }
-        return Result::Success;
-      });
+      }
+    }
+    return Result::Success;
+  });
   channel_->setPipeline(std::move(pipeline_));
 
   auto request = createRequestMessage(1, "method", "data");
   std::ignore = channel_->onRead(
-      channel_pipeline::test::inertEndpointContext(),
-      erase_and_box(std::move(request)));
+      inertStaticEndpointContext(), erase_and_box(std::move(request)));
 
   EXPECT_EQ(
       capturedPayloadType,
@@ -583,39 +562,36 @@ TEST_F(ThriftServerChannelTest, SendErrorWrappedSetsClientBlame) {
             "23");
       });
 
-  pipeline_ = buildPipelineWithHandler(
-      [&](apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
-          TypeErasedBox&& msg) {
-        auto& response = msg.get<ThriftServerResponseMessage>();
-        if (auto* m = payloadMetadata(response); m) {
-          auto ref = m->payloadMetadata();
-          if (ref &&
-              ref->getType() ==
-                  apache::thrift::PayloadMetadata::Type::exceptionMetadata) {
-            auto& exBase = ref->get_exceptionMetadata();
-            auto metaRef = exBase.metadata();
-            if (metaRef &&
-                metaRef->getType() ==
-                    apache::thrift::PayloadExceptionMetadata::Type::
-                        appUnknownException) {
-              auto& appEx = metaRef->get_appUnknownException();
-              if (auto ec = appEx.errorClassification()) {
-                if (auto b = ec->blame()) {
-                  hasBlame = true;
-                  capturedBlame = *b;
-                }
-              }
+  pipeline_ = buildPipelineWithHandler([&](TypeErasedBox&& msg) {
+    auto& response = msg.get<ThriftServerResponseMessage>();
+    if (auto* m = payloadMetadata(response); m) {
+      auto ref = m->payloadMetadata();
+      if (ref &&
+          ref->getType() ==
+              apache::thrift::PayloadMetadata::Type::exceptionMetadata) {
+        auto& exBase = ref->exceptionMetadata().value();
+        auto metaRef = exBase.metadata();
+        if (metaRef &&
+            metaRef->getType() ==
+                apache::thrift::PayloadExceptionMetadata::Type::
+                    appUnknownException) {
+          auto& appEx = metaRef->appUnknownException().value();
+          if (auto ec = appEx.errorClassification()) {
+            if (auto b = ec->blame()) {
+              hasBlame = true;
+              capturedBlame = *b;
             }
           }
         }
-        return Result::Success;
-      });
+      }
+    }
+    return Result::Success;
+  });
   channel_->setPipeline(std::move(pipeline_));
 
   auto request = createRequestMessage(1, "method", "data");
   std::ignore = channel_->onRead(
-      channel_pipeline::test::inertEndpointContext(),
-      erase_and_box(std::move(request)));
+      inertStaticEndpointContext(), erase_and_box(std::move(request)));
 
   EXPECT_TRUE(hasBlame);
   EXPECT_EQ(capturedBlame, apache::thrift::ErrorBlame::CLIENT);
@@ -638,39 +614,36 @@ TEST_F(ThriftServerChannelTest, SendErrorWrappedSetsServerBlame) {
             "24");
       });
 
-  pipeline_ = buildPipelineWithHandler(
-      [&](apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
-          TypeErasedBox&& msg) {
-        auto& response = msg.get<ThriftServerResponseMessage>();
-        if (auto* m = payloadMetadata(response); m) {
-          auto ref = m->payloadMetadata();
-          if (ref &&
-              ref->getType() ==
-                  apache::thrift::PayloadMetadata::Type::exceptionMetadata) {
-            auto& exBase = ref->get_exceptionMetadata();
-            auto metaRef = exBase.metadata();
-            if (metaRef &&
-                metaRef->getType() ==
-                    apache::thrift::PayloadExceptionMetadata::Type::
-                        appUnknownException) {
-              auto& appEx = metaRef->get_appUnknownException();
-              if (auto ec = appEx.errorClassification()) {
-                if (auto b = ec->blame()) {
-                  hasBlame = true;
-                  capturedBlame = *b;
-                }
-              }
+  pipeline_ = buildPipelineWithHandler([&](TypeErasedBox&& msg) {
+    auto& response = msg.get<ThriftServerResponseMessage>();
+    if (auto* m = payloadMetadata(response); m) {
+      auto ref = m->payloadMetadata();
+      if (ref &&
+          ref->getType() ==
+              apache::thrift::PayloadMetadata::Type::exceptionMetadata) {
+        auto& exBase = ref->exceptionMetadata().value();
+        auto metaRef = exBase.metadata();
+        if (metaRef &&
+            metaRef->getType() ==
+                apache::thrift::PayloadExceptionMetadata::Type::
+                    appUnknownException) {
+          auto& appEx = metaRef->appUnknownException().value();
+          if (auto ec = appEx.errorClassification()) {
+            if (auto b = ec->blame()) {
+              hasBlame = true;
+              capturedBlame = *b;
             }
           }
         }
-        return Result::Success;
-      });
+      }
+    }
+    return Result::Success;
+  });
   channel_->setPipeline(std::move(pipeline_));
 
   auto request = createRequestMessage(1, "method", "data");
   std::ignore = channel_->onRead(
-      channel_pipeline::test::inertEndpointContext(),
-      erase_and_box(std::move(request)));
+      inertStaticEndpointContext(), erase_and_box(std::move(request)));
 
   EXPECT_TRUE(hasBlame);
   EXPECT_EQ(capturedBlame, apache::thrift::ErrorBlame::SERVER);
@@ -711,30 +684,27 @@ TEST_F(ThriftServerChannelTest, SendErrorWrappedReadsUexHeaderAsExceptionName) {
         exErased = headers.find("ex") == headers.end();
       });
 
-  pipeline_ = buildPipelineWithHandler(
-      [&](apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
-          TypeErasedBox&& msg) {
-        auto& response = msg.get<ThriftServerResponseMessage>();
-        if (auto* m = payloadMetadata(response); m) {
-          auto ref = m->payloadMetadata();
-          if (ref &&
-              ref->getType() ==
-                  apache::thrift::PayloadMetadata::Type::exceptionMetadata) {
-            auto& exBase = ref->get_exceptionMetadata();
-            if (auto n = exBase.name_utf8()) {
-              hasName = true;
-              capturedName = *n;
-            }
-          }
+  pipeline_ = buildPipelineWithHandler([&](TypeErasedBox&& msg) {
+    auto& response = msg.get<ThriftServerResponseMessage>();
+    if (auto* m = payloadMetadata(response); m) {
+      auto ref = m->payloadMetadata();
+      if (ref &&
+          ref->getType() ==
+              apache::thrift::PayloadMetadata::Type::exceptionMetadata) {
+        auto& exBase = ref->exceptionMetadata().value();
+        if (auto n = exBase.name_utf8()) {
+          hasName = true;
+          capturedName = *n;
         }
-        return Result::Success;
-      });
+      }
+    }
+    return Result::Success;
+  });
   channel_->setPipeline(std::move(pipeline_));
 
   auto request = createRequestMessage(1, "method", "data");
   std::ignore = channel_->onRead(
-      channel_pipeline::test::inertEndpointContext(),
-      erase_and_box(std::move(request)));
+      inertStaticEndpointContext(), erase_and_box(std::move(request)));
 
   EXPECT_TRUE(hasName);
   EXPECT_EQ(capturedName, "my.thrift.MyAppError");
@@ -758,9 +728,8 @@ TEST_F(ThriftServerChannelTest, OnewayRequestDetected) {
         isOnewayCaptured = req->isOneway();
       });
 
-  pipeline_ = buildPipelineWithHandler(
-      [](apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
-         TypeErasedBox&&) { return Result::Success; });
+  pipeline_ =
+      buildPipelineWithHandler([](TypeErasedBox&&) { return Result::Success; });
   channel_->setPipeline(std::move(pipeline_));
 
   auto request = createRequestMessage(
@@ -769,8 +738,7 @@ TEST_F(ThriftServerChannelTest, OnewayRequestDetected) {
       "data",
       apache::thrift::RpcKind::SINGLE_REQUEST_NO_RESPONSE);
   std::ignore = channel_->onRead(
-      channel_pipeline::test::inertEndpointContext(),
-      erase_and_box(std::move(request)));
+      inertStaticEndpointContext(), erase_and_box(std::move(request)));
 
   EXPECT_TRUE(isOnewayCaptured);
 }
@@ -787,9 +755,8 @@ TEST_F(ThriftServerChannelTest, RequestResponseIsNotOneway) {
         req->sendReply(apache::thrift::ResponsePayload(this->copyBuffer("ok")));
       });
 
-  pipeline_ = buildPipelineWithHandler(
-      [](apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
-         TypeErasedBox&&) { return Result::Success; });
+  pipeline_ =
+      buildPipelineWithHandler([](TypeErasedBox&&) { return Result::Success; });
   channel_->setPipeline(std::move(pipeline_));
 
   auto request = createRequestMessage(
@@ -798,8 +765,7 @@ TEST_F(ThriftServerChannelTest, RequestResponseIsNotOneway) {
       "data",
       apache::thrift::RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE);
   std::ignore = channel_->onRead(
-      channel_pipeline::test::inertEndpointContext(),
-      erase_and_box(std::move(request)));
+      inertStaticEndpointContext(), erase_and_box(std::move(request)));
 
   EXPECT_FALSE(isOnewayCaptured);
 }
@@ -820,14 +786,12 @@ TEST_F(ThriftServerChannelTest, MultipleRequestsDispatchedCorrectly) {
         req->sendReply(apache::thrift::ResponsePayload(this->copyBuffer("ok")));
       });
 
-  pipeline_ = buildPipelineWithHandler(
-      [&](apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
-          TypeErasedBox&& msg) {
-        auto& response = msg.get<
-            apache::thrift::fast_thrift::thrift::ThriftServerResponseMessage>();
-        capturedStreamIds.push_back(payloadStreamId(response));
-        return Result::Success;
-      });
+  pipeline_ = buildPipelineWithHandler([&](TypeErasedBox&& msg) {
+    auto& response = msg.get<
+        apache::thrift::fast_thrift::thrift::ThriftServerResponseMessage>();
+    capturedStreamIds.push_back(payloadStreamId(response));
+    return Result::Success;
+  });
   channel_->setPipeline(std::move(pipeline_));
 
   auto req1 = createRequestMessage(1, "method1", "data1");
@@ -835,14 +799,11 @@ TEST_F(ThriftServerChannelTest, MultipleRequestsDispatchedCorrectly) {
   auto req3 = createRequestMessage(5, "method3", "data3");
 
   std::ignore = channel_->onRead(
-      channel_pipeline::test::inertEndpointContext(),
-      erase_and_box(std::move(req1)));
+      inertStaticEndpointContext(), erase_and_box(std::move(req1)));
   std::ignore = channel_->onRead(
-      channel_pipeline::test::inertEndpointContext(),
-      erase_and_box(std::move(req2)));
+      inertStaticEndpointContext(), erase_and_box(std::move(req2)));
   std::ignore = channel_->onRead(
-      channel_pipeline::test::inertEndpointContext(),
-      erase_and_box(std::move(req3)));
+      inertStaticEndpointContext(), erase_and_box(std::move(req3)));
 
   EXPECT_EQ(mockProcessor_->requestCount(), 3);
   ASSERT_EQ(capturedStreamIds.size(), 3u);
@@ -872,18 +833,15 @@ TEST_F(ThriftServerChannelTest, DoubleSendReplyIsIgnored) {
             apache::thrift::ResponsePayload(this->copyBuffer("second")));
       });
 
-  pipeline_ = buildPipelineWithHandler(
-      [&](apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
-          TypeErasedBox&&) {
-        responseCount++;
-        return Result::Success;
-      });
+  pipeline_ = buildPipelineWithHandler([&](TypeErasedBox&&) {
+    responseCount++;
+    return Result::Success;
+  });
   channel_->setPipeline(std::move(pipeline_));
 
   auto request = createRequestMessage(1, "method", "data");
   std::ignore = channel_->onRead(
-      channel_pipeline::test::inertEndpointContext(),
-      erase_and_box(std::move(request)));
+      inertStaticEndpointContext(), erase_and_box(std::move(request)));
 
   EXPECT_EQ(responseCount, 1);
 }
@@ -912,27 +870,24 @@ TEST_F(
             "5");
       });
 
-  pipeline_ = buildPipelineWithHandler(
-      [&](apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
-          TypeErasedBox&& msg) {
-        auto& response = msg.get<ThriftServerResponseMessage>();
-        capturedErrorCode = payloadErrorCode(response);
-        // Deserialize ResponseRpcError from data to check the code
-        if (auto& d = payloadData(response); d) {
-          apache::thrift::ResponseRpcError rpcError;
-          apache::thrift::CompactProtocolReader reader;
-          reader.setInput(d.get());
-          rpcError.read(&reader);
-          capturedRpcErrorCode = *rpcError.code();
-        }
-        return Result::Success;
-      });
+  pipeline_ = buildPipelineWithHandler([&](TypeErasedBox&& msg) {
+    auto& response = msg.get<ThriftServerResponseMessage>();
+    capturedErrorCode = payloadErrorCode(response);
+    // Deserialize ResponseRpcError from data to check the code
+    if (auto& d = payloadData(response); d) {
+      apache::thrift::ResponseRpcError rpcError;
+      apache::thrift::CompactProtocolReader reader;
+      reader.setInput(d.get());
+      rpcError.read(&reader);
+      capturedRpcErrorCode = *rpcError.code();
+    }
+    return Result::Success;
+  });
   channel_->setPipeline(std::move(pipeline_));
 
   auto request = createRequestMessage(1, "method", "data");
   std::ignore = channel_->onRead(
-      channel_pipeline::test::inertEndpointContext(),
-      erase_and_box(std::move(request)));
+      inertStaticEndpointContext(), erase_and_box(std::move(request)));
 
   // ERROR frame (errorCode != 0)
   EXPECT_NE(capturedErrorCode, 0u);
@@ -962,18 +917,15 @@ TEST_F(ThriftServerChannelTest, SendErrorWrappedConnectionClosingSendsNothing) {
             "-1");
       });
 
-  pipeline_ = buildPipelineWithHandler(
-      [&](apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
-          TypeErasedBox&&) {
-        writeCount++;
-        return Result::Success;
-      });
+  pipeline_ = buildPipelineWithHandler([&](TypeErasedBox&&) {
+    writeCount++;
+    return Result::Success;
+  });
   channel_->setPipeline(std::move(pipeline_));
 
   auto request = createRequestMessage(1, "method", "data");
   std::ignore = channel_->onRead(
-      channel_pipeline::test::inertEndpointContext(),
-      erase_and_box(std::move(request)));
+      inertStaticEndpointContext(), erase_and_box(std::move(request)));
 
   EXPECT_EQ(writeCount, 0) << "Connection closing should not write anything";
 }

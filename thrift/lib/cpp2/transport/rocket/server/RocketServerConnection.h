@@ -125,6 +125,7 @@ class RocketServerConnection final : public IRocketServerConnection {
       uint32_t initialRequestN) override;
 
   // Parser callbacks
+  void handleFrame(IOBufChain frame);
   void handleFrame(std::unique_ptr<folly::IOBuf> frame) override;
   void close(folly::exception_wrapper ew) override;
 
@@ -469,6 +470,15 @@ class RocketServerConnection final : public IRocketServerConnection {
       FrameType frameType,
       Flags flags,
       folly::io::Cursor cursor);
+  template <typename FrameBuffer, typename Cursor>
+  void handleFrameImpl(FrameBuffer& frame, Cursor& cursor);
+  template <typename FrameBuffer, typename Cursor>
+  void handleUntrackedFrameImpl(
+      FrameBuffer& frame,
+      StreamId streamId,
+      FrameType frameType,
+      Flags flags,
+      Cursor& cursor);
   template <typename RequestFrame>
   void handleRequestFrame(RequestFrame&& frame) {
     auto streamId = frame.streamId();

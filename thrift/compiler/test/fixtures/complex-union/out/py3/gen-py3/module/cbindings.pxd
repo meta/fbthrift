@@ -64,16 +64,22 @@ cdef extern from "thrift/compiler/test/fixtures/complex-union/gen-cpp2/module_ty
         bint operator>=(cComplexUnion&)
         cComplexUnion__type getType() const
         const cint64_t& get_intValue "get_intValue" () const
+        __union_field_ref[cint64_t] intValue_ref "intValue_ref" ()
         cint64_t& set_intValue "set_intValue" (const cint64_t&)
         const string& get_stringValue "get_stringValue" () const
+        __union_field_ref[string] stringValue_ref "stringValue_ref" ()
         string& set_stringValue "set_stringValue" (const string&)
         const vector[cint64_t]& get_intListValue "get_intListValue" () const
+        __union_field_ref[vector[cint64_t]] intListValue_ref "intListValue_ref" ()
         vector[cint64_t]& set_intListValue "set_intListValue" (const vector[cint64_t]&)
         const vector[string]& get_stringListValue "get_stringListValue" () const
+        __union_field_ref[vector[string]] stringListValue_ref "stringListValue_ref" ()
         vector[string]& set_stringListValue "set_stringListValue" (const vector[string]&)
         const cmap[cint16_t,string]& get_typedefValue "get_typedefValue" () const
+        __union_field_ref[cmap[cint16_t,string]] typedefValue_ref "typedefValue_ref" ()
         cmap[cint16_t,string]& set_typedefValue "set_typedefValue" (const cmap[cint16_t,string]&)
         const unique_ptr[string]& get_stringRef "get_stringRef" () const
+        __union_field_ref[unique_ptr[string]] stringRef_ref "stringRef_ref" ()
         unique_ptr[string]& set_stringRef "set_stringRef" (const string&)
 
     cdef enum class cListUnion__type "::cpp2::ListUnion::Type":
@@ -92,8 +98,10 @@ cdef extern from "thrift/compiler/test/fixtures/complex-union/gen-cpp2/module_ty
         bint operator>=(cListUnion&)
         cListUnion__type getType() const
         const vector[cint64_t]& get_intListValue "get_intListValue" () const
+        __union_field_ref[vector[cint64_t]] intListValue_ref "intListValue_ref" ()
         vector[cint64_t]& set_intListValue "set_intListValue" (const vector[cint64_t]&)
         const vector[string]& get_stringListValue "get_stringListValue" () const
+        __union_field_ref[vector[string]] stringListValue_ref "stringListValue_ref" ()
         vector[string]& set_stringListValue "set_stringListValue" (const vector[string]&)
 
     cdef enum class cDataUnion__type "::cpp2::DataUnion::Type":
@@ -112,8 +120,10 @@ cdef extern from "thrift/compiler/test/fixtures/complex-union/gen-cpp2/module_ty
         bint operator>=(cDataUnion&)
         cDataUnion__type getType() const
         const string& get_binaryData "get_binaryData" () const
+        __union_field_ref[string] binaryData_ref "binaryData_ref" ()
         string& set_binaryData "set_binaryData" (const string&)
         const string& get_stringData "get_stringData" () const
+        __union_field_ref[string] stringData_ref "stringData_ref" ()
         string& set_stringData "set_stringData" (const string&)
 
 
@@ -146,8 +156,10 @@ cdef extern from "thrift/compiler/test/fixtures/complex-union/gen-cpp2/module_ty
         bint operator>=(cValUnion&)
         cValUnion__type getType() const
         const cVal& get_v1 "get_v1" () const
+        __union_field_ref[cVal] v1_ref "v1_ref" ()
         cVal& set_v1 "set_v1" (const cVal&)
         const cVal& get_v2 "get_v2" () const
+        __union_field_ref[cVal] v2_ref "v2_ref" ()
         cVal& set_v2 "set_v2" (const cVal&)
 
     cdef enum class cVirtualComplexUnion__type "::cpp2::VirtualComplexUnion::Type":
@@ -166,8 +178,10 @@ cdef extern from "thrift/compiler/test/fixtures/complex-union/gen-cpp2/module_ty
         bint operator>=(cVirtualComplexUnion&)
         cVirtualComplexUnion__type getType() const
         const string& get_thingOne "get_thingOne" () const
+        __union_field_ref[string] thingOne_ref "thingOne_ref" ()
         string& set_thingOne "set_thingOne" (const string&)
         const string& get_thingTwo "get_thingTwo" () const
+        __union_field_ref[string] thingTwo_ref "thingTwo_ref" ()
         string& set_thingTwo "set_thingTwo" (const string&)
 
 
@@ -195,5 +209,6 @@ cdef extern from "thrift/compiler/test/fixtures/complex-union/gen-cpp2/module_ty
         bint operator>=(cNonCopyableUnion&)
         cNonCopyableUnion__type getType() const
         const cNonCopyableStruct& get_s "get_s" () const
+        __union_field_ref[cNonCopyableStruct] s_ref "s_ref" ()
         cNonCopyableStruct& set_s "set_s" (const cNonCopyableStruct&)
 

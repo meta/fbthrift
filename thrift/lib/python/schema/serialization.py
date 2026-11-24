@@ -14,8 +14,8 @@
 
 
 """
-Serialization of ``DynamicValue`` in the Binary and Compact protocols, driven
-by the value's ``TypeRef``::
+Serialization of ``DynamicValue`` in the Binary, Compact, and SimpleJSON
+protocols, driven by the value's ``TypeRef``::
 
     data = serialize(value, Protocol.BINARY)
     assert deserialize(value.type_ref, data, Protocol.BINARY) == value
@@ -64,6 +64,7 @@ from thrift.lib.python.schema._ttypes import (
     T_STOP,
     T_STRING,
     T_STRUCT,
+    T_VOID,
 )
 from thrift.lib.python.schema.dynamic_value import (
     _handle,
@@ -93,6 +94,7 @@ __all__ = ["DecodeError", "EncodeError", "Protocol", "deserialize", "serialize"]
 _THRIFT_PYTHON_PROTOCOLS: dict[Protocol, thrift_python.Protocol] = {
     Protocol.BINARY: thrift_python.Protocol.BINARY,
     Protocol.COMPACT: thrift_python.Protocol.COMPACT,
+    Protocol.SIMPLE_JSON: thrift_python.Protocol.JSON,
 }
 
 
@@ -100,8 +102,8 @@ def serialize(value: DynamicValue, protocol: Protocol = Protocol.COMPACT) -> byt
     """Encode ``value`` as its ``TypeRef``.
 
     Raises ``EncodeError`` if ``value`` cannot be encoded, such as when it is
-    nested too deeply."""
-    writer = default_backend().writers[_supported(protocol)]()
+    nested too deeply or, in SimpleJSON, has a struct or container map key."""
+    writer = default_backend().writers[protocol]()
     try:
         # The stored datum itself, owned or frozen; both encode alike.
         _write(writer, value.type_ref, value._datum)
@@ -119,7 +121,7 @@ def deserialize(
 
     Raises ``DecodeError`` if ``data`` is malformed, nested too deeply, or does
     not match ``type_ref``."""
-    reader = default_backend().readers[_supported(protocol)](bytes(data))
+    reader = default_backend().readers[protocol](bytes(data))
     try:
         datum = _read(reader, type_ref)
     except RecursionError:
@@ -128,12 +130,6 @@ def deserialize(
         raise DecodeError(f"{reader.remaining()} bytes left after the value")
     # The walk built owned storage that fits ``type_ref``; no validating copy.
     return _handle(MutableDynamicValue, type_ref, datum, False)
-
-
-def _supported(protocol: Protocol) -> Protocol:
-    if protocol not in (Protocol.BINARY, Protocol.COMPACT):
-        raise ValueError(f"unsupported protocol {protocol!r}")
-    return protocol
 
 
 _PRIMITIVE_TTYPES: dict[Primitive, int] = {
@@ -315,12 +311,13 @@ def _check_container(
 ) -> None:
     """Check a container header before reading any element:
     element wire types only if the container is non-empty (writers may leave
-    them unset otherwise), then that the input could hold ``size`` elements."""
+    them unset otherwise), then that the input could hold ``size`` elements,
+    unless the sizes come from the parsed input."""
     if not size:
         return
     for what, ttype, type_ref in elements:
         _check_ttype(ttype, type_ref, what)
-    if size * len(elements) > reader.remaining():
+    if not reader.omits_container_sizes and size * len(elements) > reader.remaining():
         raise DecodeError(
             f"truncated input: {size} elements cannot fit in {reader.remaining()} bytes"
         )
@@ -328,7 +325,7 @@ def _check_container(
 
 def _check_ttype(ttype: int, type_ref: TypeRef, what: str) -> None:
     expected = _ttype(type_ref)
-    if ttype != expected:
+    if ttype != expected and ttype != T_VOID:
         raise DecodeError(
             f"{what} of type '{type_name(type_ref)}' has wire type {ttype}, "
             f"expected {expected}"
@@ -344,14 +341,14 @@ def _read_struct(reader: ProtocolReader, node: StructNode) -> list[object]:
     values: list[object] = [_MISSING] * len(fields)
     reader.read_struct_begin()
     while True:
-        ttype, field_id = reader.read_field_begin()
+        ttype, field_id, name = reader.read_field_begin()
         if ttype == T_STOP:
             break
-        index = slots.get(field_id)
-        if index is None:
+        field = _header_field(node, field_id, name)
+        if field is None:
             reader.skip(ttype)
         else:
-            values[index] = _read_field(reader, ttype, fields[index])
+            values[slots[field.identity.id]] = _read_field(reader, ttype, field)
         reader.read_field_end()
     reader.read_struct_end()
     # Defaults are built per value, since decoded storage may be edited.
@@ -366,20 +363,28 @@ def _read_union(reader: ProtocolReader, node: UnionNode) -> list[object]:
     read_a_field = False
     reader.read_struct_begin()
     while True:
-        ttype, field_id = reader.read_field_begin()
+        ttype, field_id, name = reader.read_field_begin()
         if ttype == T_STOP:
             break
         if read_a_field:
             raise DecodeError(f"union '{node.uri}' has more than one field")
         read_a_field = True
-        field = node.field_by_id(field_id)
+        field = _header_field(node, field_id, name)
         if field is None:
             reader.skip(ttype)
         else:
-            value = [field_id, _read_field(reader, ttype, field)]
+            value = [field.identity.id, _read_field(reader, ttype, field)]
         reader.read_field_end()
     reader.read_struct_end()
     return value
+
+
+def _header_field(
+    node: StructNode | UnionNode, field_id: int, name: str
+) -> FieldDefinition | None:
+    """The field a field header names: by name if it has one, as from a
+    SimpleJSON reader, and otherwise by id."""
+    return node.field_by_name(name) if name else node.field_by_id(field_id)
 
 
 def _read_field(reader: ProtocolReader, ttype: int, field: FieldDefinition) -> object:

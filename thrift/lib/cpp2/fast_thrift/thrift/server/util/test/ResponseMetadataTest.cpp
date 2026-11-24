@@ -72,7 +72,7 @@ TEST(ResponseMetadataTest, FillAppErrorResponseMetadataHasBlame) {
       md.payloadMetadata()->getType(),
       apache::thrift::PayloadMetadata::Type::exceptionMetadata);
 
-  auto& exBase = md.payloadMetadata()->get_exceptionMetadata();
+  auto& exBase = md.payloadMetadata()->exceptionMetadata().as_const().value();
   ASSERT_TRUE(exBase.name_utf8().has_value());
   EXPECT_EQ(*exBase.name_utf8(), "SomeException");
   ASSERT_TRUE(exBase.what_utf8().has_value());
@@ -82,7 +82,7 @@ TEST(ResponseMetadataTest, FillAppErrorResponseMetadataHasBlame) {
   EXPECT_EQ(
       exBase.metadata()->getType(),
       apache::thrift::PayloadExceptionMetadata::Type::appUnknownException);
-  auto& appEx = exBase.metadata()->get_appUnknownException();
+  auto& appEx = exBase.metadata()->appUnknownException().value();
   ASSERT_TRUE(appEx.errorClassification().has_value());
   ASSERT_TRUE(appEx.errorClassification()->blame().has_value());
   EXPECT_EQ(
@@ -103,7 +103,7 @@ TEST(ResponseMetadataTest, FillDeclaredExceptionMetadataHasCorrectType) {
       md.payloadMetadata()->getType(),
       apache::thrift::PayloadMetadata::Type::exceptionMetadata);
 
-  auto& exBase = md.payloadMetadata()->get_exceptionMetadata();
+  auto& exBase = md.payloadMetadata()->exceptionMetadata().as_const().value();
   ASSERT_TRUE(exBase.name_utf8().has_value());
   EXPECT_EQ(*exBase.name_utf8(), "MyException");
   ASSERT_TRUE(exBase.what_utf8().has_value());
@@ -114,7 +114,7 @@ TEST(ResponseMetadataTest, FillDeclaredExceptionMetadataHasCorrectType) {
       exBase.metadata()->getType(),
       apache::thrift::PayloadExceptionMetadata::Type::declaredException);
 
-  auto& declaredEx = exBase.metadata()->get_declaredException();
+  auto& declaredEx = exBase.metadata()->declaredException().value();
   ASSERT_TRUE(declaredEx.errorClassification().has_value());
   ASSERT_TRUE(declaredEx.errorClassification()->blame().has_value());
   EXPECT_EQ(

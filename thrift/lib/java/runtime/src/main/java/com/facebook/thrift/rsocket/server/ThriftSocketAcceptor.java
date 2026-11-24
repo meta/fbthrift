@@ -25,6 +25,7 @@ import com.facebook.thrift.util.resources.RpcResources;
 import io.airlift.units.Duration;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.netty.handler.ssl.ClientAuth;
 import io.rsocket.ConnectionSetupPayload;
 import io.rsocket.Payload;
 import io.rsocket.RSocket;
@@ -37,7 +38,8 @@ import reactor.core.publisher.Mono;
 
 public class ThriftSocketAcceptor implements SocketAcceptor {
 
-  private static final ThriftServerConfig DEFAULT_CONFIG = new ThriftServerConfig();
+  private static final ThriftServerConfig DEFAULT_CONFIG =
+      new ThriftServerConfig().setClientAuth(ClientAuth.OPTIONAL);
 
   private final RpcServerHandler serverHandler;
   private final ConnectionContext connectionContext;

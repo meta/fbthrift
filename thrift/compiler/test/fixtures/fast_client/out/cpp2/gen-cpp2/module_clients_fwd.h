@@ -11,14 +11,26 @@ namespace apache::thrift {
 } // namespace apache::thrift
 
 namespace cpp2::test {
+class FastAncestor;
+} // namespace cpp2::test
+namespace cpp2::test {
+class NonFastParent;
+} // namespace cpp2::test
+namespace cpp2::test {
 class FastClientTestService;
 } // namespace cpp2::test
 namespace cpp2::test {
 class FastClientTestServiceChild;
 } // namespace cpp2::test
+namespace cpp2::test {
+class FastClientTestServiceGrandchild;
+} // namespace cpp2::test
 
 
 namespace apache::thrift {
+template<> class Client<::cpp2::test::FastAncestor>;
+template<> class Client<::cpp2::test::NonFastParent>;
 template<> class Client<::cpp2::test::FastClientTestService>;
 template<> class Client<::cpp2::test::FastClientTestServiceChild>;
+template<> class Client<::cpp2::test::FastClientTestServiceGrandchild>;
 } // namespace apache::thrift

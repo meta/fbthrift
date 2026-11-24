@@ -32,7 +32,7 @@ THRIFT_FLAG_DEFINE_string(rocket_frame_parser, "strategy");
 
 namespace apache::thrift::rocket::detail {
 
-#if FOLLY_HAS_MEMORY_RESOURCE
+#if FOLLY_HAS_MEMORY_RESOURCE && defined(__cpp_lib_memory_resource)
 namespace {
 // Process-wide resource backing the default parser allocator. Installed via
 // setDefaultParserMemoryResource() before any connection is created, and
@@ -95,6 +95,8 @@ ParserAllocatorType& getDefaultAllocator() {
 ParserMode stringToMode(const std::string& modeStr) noexcept {
   if (modeStr == "strategy") {
     return ParserMode::STRATEGY;
+  } else if (modeStr == "iobuf_chain") {
+    return ParserMode::IOBUF_CHAIN;
   } else if (modeStr == "allocating") {
     return ParserMode::ALLOCATING;
   } else if (modeStr == "aligned") {
@@ -107,7 +109,7 @@ ParserMode stringToMode(const std::string& modeStr) noexcept {
 }
 } // namespace apache::thrift::rocket::detail
 
-#if FOLLY_HAS_MEMORY_RESOURCE
+#if FOLLY_HAS_MEMORY_RESOURCE && defined(__cpp_lib_memory_resource)
 namespace apache::thrift::rocket {
 
 void setDefaultParserMemoryResource(std::pmr::memory_resource* resource) {

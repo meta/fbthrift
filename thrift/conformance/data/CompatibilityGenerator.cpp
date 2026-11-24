@@ -254,11 +254,14 @@ using test::testset::DifferentValueEnumStruct;
 using test::testset::LessFieldEnumStruct;
 using test::testset::NoZeroEnumStruct;
 using test::testset::StandardEnumStruct;
+using test::testset::TerseStandardEnumStruct;
 
 template <class EnumStruct>
 std::string getEnumStructName() {
   if constexpr (std::is_same_v<EnumStruct, StandardEnumStruct>) {
     return "Standard";
+  } else if constexpr (std::is_same_v<EnumStruct, TerseStandardEnumStruct>) {
+    return "TerseStandard";
   } else if constexpr (std::is_same_v<EnumStruct, NoZeroEnumStruct>) {
     return "NoZero";
   } else if constexpr (std::is_same_v<EnumStruct, LessFieldEnumStruct>) {
@@ -286,8 +289,8 @@ template <class Old, class New>
     New new_data,
     int32_t new_value,
     std::string description) {
-  setEnum(old_data.field().ensure(), old_value);
-  setEnum(new_data.field().ensure(), new_value);
+  setEnum(old_data.field().emplace(), old_value);
+  setEnum(new_data.field().emplace(), new_value);
   auto name = fmt::format(
       "testset/ChangeEnumType/{}.{}.{}.{}",
       getEnumStructName<decltype(old_data)>(),
@@ -333,16 +336,6 @@ template <class Old, class New>
     });
   });
 
-  // Remove field 0
-  ret.push_back(changeEnumValueTestCase(
-      protocol,
-      StandardEnumStruct{},
-      0,
-      NoZeroEnumStruct{},
-      0,
-      "Test when removing `0` from Enum Struct. "
-      "The old value should be retained."));
-
   // Remove field
   ret.push_back(changeEnumValueTestCase(
       protocol,
@@ -373,6 +366,16 @@ template <class Old, class New>
       "Test when changing enum value. "
       "The old value should be retained."));
 
+  // Make field terse
+  ret.push_back(changeEnumValueTestCase(
+      protocol,
+      StandardEnumStruct{},
+      0,
+      TerseStandardEnumStruct{},
+      0,
+      "Test when making the field terse. "
+      "`0` should no longer be written."));
+
   return ret;
 }
 
@@ -390,16 +393,16 @@ template <class TT>
 
     auto get_name = [&](const auto& i) -> std::string_view {
       if constexpr (std::is_same_v<
-                        folly::remove_cvref_t<decltype(i)>,
-                        folly::remove_cvref_t<decltype(s)>>) {
+                        std::remove_cvref_t<decltype(i)>,
+                        std::remove_cvref_t<decltype(s)>>) {
         return "Struct";
       } else if constexpr (std::is_same_v<
-                               folly::remove_cvref_t<decltype(i)>,
-                               folly::remove_cvref_t<decltype(u)>>) {
+                               std::remove_cvref_t<decltype(i)>,
+                               std::remove_cvref_t<decltype(u)>>) {
         return "Union";
       } else if constexpr (std::is_same_v<
-                               folly::remove_cvref_t<decltype(i)>,
-                               folly::remove_cvref_t<decltype(e)>>) {
+                               std::remove_cvref_t<decltype(i)>,
+                               std::remove_cvref_t<decltype(e)>>) {
         return "Exception";
       } else {
         static_assert(sizeof(i) == 0);

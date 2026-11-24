@@ -97,6 +97,13 @@ impl ::std::default::Default for Metasyntactic {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for Metasyntactic {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.0 == 0
+    }
+}
+
 impl<'a> ::std::convert::From<&'a Metasyntactic> for ::std::primitive::i32 {
     #[inline]
     fn from(x: &'a Metasyntactic) -> Self {
@@ -264,6 +271,13 @@ impl ::std::default::Default for MyEnum1 {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for MyEnum1 {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.0 == 0
+    }
+}
+
 impl<'a> ::std::convert::From<&'a MyEnum1> for ::std::primitive::i32 {
     #[inline]
     fn from(x: &'a MyEnum1) -> Self {
@@ -420,6 +434,13 @@ impl ::fbthrift::ThriftEnum for MyEnum2 {
 impl ::std::default::Default for MyEnum2 {
     fn default() -> Self {
         Self(0)
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for MyEnum2 {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.0 == 0
     }
 }
 
@@ -588,6 +609,13 @@ impl ::std::default::Default for MyEnum3 {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for MyEnum3 {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.0 == 0
+    }
+}
+
 impl<'a> ::std::convert::From<&'a MyEnum3> for ::std::primitive::i32 {
     #[inline]
     fn from(x: &'a MyEnum3) -> Self {
@@ -751,6 +779,13 @@ impl ::std::default::Default for MyEnum4 {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for MyEnum4 {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.0 == 0
+    }
+}
+
 impl<'a> ::std::convert::From<&'a MyEnum4> for ::std::primitive::i32 {
     #[inline]
     fn from(x: &'a MyEnum4) -> Self {
@@ -906,6 +941,13 @@ impl ::std::default::Default for MyBitmaskEnum1 {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for MyBitmaskEnum1 {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.0 == 0
+    }
+}
+
 impl<'a> ::std::convert::From<&'a MyBitmaskEnum1> for ::std::primitive::i32 {
     #[inline]
     fn from(x: &'a MyBitmaskEnum1) -> Self {
@@ -1056,6 +1098,13 @@ impl ::fbthrift::ThriftEnum for MyBitmaskEnum2 {
 impl ::std::default::Default for MyBitmaskEnum2 {
     fn default() -> Self {
         Self(0)
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for MyBitmaskEnum2 {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.0 == 0
     }
 }
 

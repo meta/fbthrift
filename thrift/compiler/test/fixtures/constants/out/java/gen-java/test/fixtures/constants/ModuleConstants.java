@@ -26,17 +26,17 @@ public final class ModuleConstants {
     public static final List<Map<String, Integer>> STATES = construct_STATES();
 
     private static List<Map<String, Integer>> construct_STATES() {
-        return ImmutableList.<Map<String, Integer>>builder()
-        .add(ImmutableMap.<String, Integer>builder()
+        ImmutableList.Builder<Map<String, Integer>> builder = ImmutableList.builder();
+        builder.add(ImmutableMap.<String, Integer>builder()
         .put("San Diego", 3211000)
         .put("Sacramento", 479600)
         .put("SF", 837400)
-        .build())
-        .add(ImmutableMap.<String, Integer>builder()
+        .build());
+        builder.add(ImmutableMap.<String, Integer>builder()
         .put("New York", 8406000)
         .put("Albany", 98400)
-        .build())
-        .build();
+        .build());
+        return builder.build();
     }
 
     public static final double X = (double)1;
@@ -64,18 +64,18 @@ public final class ModuleConstants {
     public static final Map<String, String> MYMAP = construct_MYMAP();
 
     private static Map<String, String> construct_MYMAP() {
-        return ImmutableMap.<String, String>builder()
-        .put("keys", "values")
-        .build();
+        ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
+        builder.put("keys", "values");
+        return builder.build();
     }
 
     public static final List<test.fixtures.constants.Company> MY_APPS = construct_MY_APPS();
 
     private static List<test.fixtures.constants.Company> construct_MY_APPS() {
-        return ImmutableList.<test.fixtures.constants.Company>builder()
-        .add(test.fixtures.constants.Company.FACEBOOK)
-        .add(test.fixtures.constants.Company.__FRIEND__FEED)
-        .build();
+        ImmutableList.Builder<test.fixtures.constants.Company> builder = ImmutableList.builder();
+        builder.add(test.fixtures.constants.Company.FACEBOOK);
+        builder.add(test.fixtures.constants.Company.__FRIEND__FEED);
+        return builder.build();
     }
 
     public static final test.fixtures.constants.Internship INSTAGRAM = construct_INSTAGRAM();
@@ -93,43 +93,43 @@ public final class ModuleConstants {
     public static final List<test.fixtures.constants.City> CITIES = construct_CITIES();
 
     private static List<test.fixtures.constants.City> construct_CITIES() {
-        return ImmutableList.<test.fixtures.constants.City>builder()
-        .add(test.fixtures.constants.City.NYC)
-        .add(test.fixtures.constants.City.MPK)
-        .add(test.fixtures.constants.City.SEA)
-        .add(test.fixtures.constants.City.LON)
-        .build();
+        ImmutableList.Builder<test.fixtures.constants.City> builder = ImmutableList.builder();
+        builder.add(test.fixtures.constants.City.NYC);
+        builder.add(test.fixtures.constants.City.MPK);
+        builder.add(test.fixtures.constants.City.SEA);
+        builder.add(test.fixtures.constants.City.LON);
+        return builder.build();
     }
 
     public static final Map<test.fixtures.constants.Company, List<test.fixtures.constants.City>> COMPANY_LOCATIONS = construct_COMPANY_LOCATIONS();
 
     private static Map<test.fixtures.constants.Company, List<test.fixtures.constants.City>> construct_COMPANY_LOCATIONS() {
-        return ImmutableMap.<test.fixtures.constants.Company, List<test.fixtures.constants.City>>builder()
-        .put(test.fixtures.constants.Company.FACEBOOK, ImmutableList.<test.fixtures.constants.City>builder()
+        ImmutableMap.Builder<test.fixtures.constants.Company, List<test.fixtures.constants.City>> builder = ImmutableMap.builder();
+        builder.put(test.fixtures.constants.Company.FACEBOOK, ImmutableList.<test.fixtures.constants.City>builder()
         .add(test.fixtures.constants.City.NYC)
         .add(test.fixtures.constants.City.MPK)
         .add(test.fixtures.constants.City.SEA)
         .add(test.fixtures.constants.City.LON)
-        .build())
-        .build();
+        .build());
+        return builder.build();
     }
 
     public static final List<test.fixtures.constants.Range> K_RANGES = construct_K_RANGES();
 
     private static List<test.fixtures.constants.Range> construct_K_RANGES() {
-        return ImmutableList.<test.fixtures.constants.Range>builder()
-        .add(new test.fixtures.constants.Range.Builder().setMin(1).setMax(2).build())
-        .add(new test.fixtures.constants.Range.Builder().setMin(5).setMax(6).build())
-        .build();
+        ImmutableList.Builder<test.fixtures.constants.Range> builder = ImmutableList.builder();
+        builder.add(new test.fixtures.constants.Range.Builder().setMin(1).setMax(2).build());
+        builder.add(new test.fixtures.constants.Range.Builder().setMin(5).setMax(6).build());
+        return builder.build();
     }
 
     public static final List<test.fixtures.constants.Internship> INTERN_LIST = construct_INTERN_LIST();
 
     private static List<test.fixtures.constants.Internship> construct_INTERN_LIST() {
-        return ImmutableList.<test.fixtures.constants.Internship>builder()
-        .add(test.fixtures.constants.Constants.INSTAGRAM)
-        .add(new test.fixtures.constants.Internship.Builder().setWeeks(10).setTitle("Sales Intern").setEmployer(test.fixtures.constants.Company.FACEBOOK).setCompensation((double)1000).build())
-        .build();
+        ImmutableList.Builder<test.fixtures.constants.Internship> builder = ImmutableList.builder();
+        builder.add(test.fixtures.constants.Constants.INSTAGRAM);
+        builder.add(new test.fixtures.constants.Internship.Builder().setWeeks(10).setTitle("Sales Intern").setEmployer(test.fixtures.constants.Company.FACEBOOK).setCompensation((double)1000).build());
+        return builder.build();
     }
 
     public static final test.fixtures.constants.Struct1 POD_0 = construct_POD_0();
@@ -279,53 +279,53 @@ public final class ModuleConstants {
     public static final Map<String, Integer> CHAR2ASCII = construct_CHAR2ASCII();
 
     private static Map<String, Integer> construct_CHAR2ASCII() {
-        return ImmutableMap.<String, Integer>builder()
-        .put("'", 39)
-        .put("\"", 34)
-        .put("\\", 92)
-        .put("a", 97)
-        .build();
+        ImmutableMap.Builder<String, Integer> builder = ImmutableMap.builder();
+        builder.put("'", 39);
+        builder.put("\"", 34);
+        builder.put("\\", 92);
+        builder.put("a", 97);
+        return builder.build();
     }
 
     public static final List<String> ESCAPED_STRINGS = construct_ESCAPED_STRINGS();
 
     private static List<String> construct_ESCAPED_STRINGS() {
-        return ImmutableList.<String>builder()
-        .add("\001")
-        .add("\037")
-        .add(" ")
-        .add("'")
-        .add("\"")
-        .add("\n")
-        .add("\015")
-        .add("\011")
-        .add("a")
-        .add("«")
-        .add("j")
-        .add("¦")
-        .add("ayyy")
-        .add("«yyy")
-        .add("jyyy")
-        .add("¦yyy")
-        .add("zzza")
-        .add("zzz«")
-        .add("zzzj")
-        .add("zzz¦")
-        .add("zzzayyy")
-        .add("zzz«yyy")
-        .add("zzzjyyy")
-        .add("zzz¦yyy")
-        .build();
+        ImmutableList.Builder<String> builder = ImmutableList.builder();
+        builder.add("\001");
+        builder.add("\037");
+        builder.add(" ");
+        builder.add("'");
+        builder.add("\"");
+        builder.add("\n");
+        builder.add("\015");
+        builder.add("\011");
+        builder.add("a");
+        builder.add("«");
+        builder.add("j");
+        builder.add("¦");
+        builder.add("ayyy");
+        builder.add("«yyy");
+        builder.add("jyyy");
+        builder.add("¦yyy");
+        builder.add("zzza");
+        builder.add("zzz«");
+        builder.add("zzzj");
+        builder.add("zzz¦");
+        builder.add("zzzayyy");
+        builder.add("zzz«yyy");
+        builder.add("zzzjyyy");
+        builder.add("zzz¦yyy");
+        return builder.build();
     }
 
     public static final List<String> UNICODE_LIST = construct_UNICODE_LIST();
 
     private static List<String> construct_UNICODE_LIST() {
-        return ImmutableList.<String>builder()
-        .add("Bulgaria")
-        .add("Benin")
-        .add("Saint Barthélemy")
-        .build();
+        ImmutableList.Builder<String> builder = ImmutableList.builder();
+        builder.add("Bulgaria");
+        builder.add("Benin");
+        builder.add("Saint Barthélemy");
+        return builder.build();
     }
 
     public static final boolean FALSE_C = false;
@@ -347,67 +347,67 @@ public final class ModuleConstants {
     public static final List<Integer> EMPTY_INT_LIST = construct_EMPTY_INT_LIST();
 
     private static List<Integer> construct_EMPTY_INT_LIST() {
-        return ImmutableList.<Integer>builder()
-        .build();
+        ImmutableList.Builder<Integer> builder = ImmutableList.builder();
+        return builder.build();
     }
 
     public static final List<String> EMPTY_STRING_LIST = construct_EMPTY_STRING_LIST();
 
     private static List<String> construct_EMPTY_STRING_LIST() {
-        return ImmutableList.<String>builder()
-        .build();
+        ImmutableList.Builder<String> builder = ImmutableList.builder();
+        return builder.build();
     }
 
     public static final Set<Integer> EMPTY_INT_SET = construct_EMPTY_INT_SET();
 
     private static Set<Integer> construct_EMPTY_INT_SET() {
-        return ImmutableSet.<Integer>builder()
-        .build();
+        ImmutableSet.Builder<Integer> builder = ImmutableSet.builder();
+        return builder.build();
     }
 
     public static final Set<String> EMPTY_STRING_SET = construct_EMPTY_STRING_SET();
 
     private static Set<String> construct_EMPTY_STRING_SET() {
-        return ImmutableSet.<String>builder()
-        .build();
+        ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+        return builder.build();
     }
 
     public static final Map<Integer, Integer> EMPTY_INT_INT_MAP = construct_EMPTY_INT_INT_MAP();
 
     private static Map<Integer, Integer> construct_EMPTY_INT_INT_MAP() {
-        return ImmutableMap.<Integer, Integer>builder()
-        .build();
+        ImmutableMap.Builder<Integer, Integer> builder = ImmutableMap.builder();
+        return builder.build();
     }
 
     public static final Map<Integer, String> EMPTY_INT_STRING_MAP = construct_EMPTY_INT_STRING_MAP();
 
     private static Map<Integer, String> construct_EMPTY_INT_STRING_MAP() {
-        return ImmutableMap.<Integer, String>builder()
-        .build();
+        ImmutableMap.Builder<Integer, String> builder = ImmutableMap.builder();
+        return builder.build();
     }
 
     public static final Map<String, Integer> EMPTY_STRING_INT_MAP = construct_EMPTY_STRING_INT_MAP();
 
     private static Map<String, Integer> construct_EMPTY_STRING_INT_MAP() {
-        return ImmutableMap.<String, Integer>builder()
-        .build();
+        ImmutableMap.Builder<String, Integer> builder = ImmutableMap.builder();
+        return builder.build();
     }
 
     public static final Map<String, String> EMPTY_STRING_STRING_MAP = construct_EMPTY_STRING_STRING_MAP();
 
     private static Map<String, String> construct_EMPTY_STRING_STRING_MAP() {
-        return ImmutableMap.<String, String>builder()
-        .build();
+        ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
+        return builder.build();
     }
 
     public static final Map<String, String> UNICODE_MAP = construct_UNICODE_MAP();
 
     private static Map<String, String> construct_UNICODE_MAP() {
-        return ImmutableMap.<String, String>builder()
-        .put("BG", "Bulgaria")
-        .put("BH", "Bahrain")
-        .put("BÉ", "Saint Barthélemy")
-        .build();
+        ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
+        builder.put("BG", "Bulgaria");
+        builder.put("BH", "Bahrain");
+        builder.put("BÉ", "Saint Barthélemy");
+        return builder.build();
     }
 
     public static final long MAX_INT_DEC = 9223372036854775807L;
@@ -455,43 +455,43 @@ public final class ModuleConstants {
     public static final Map<Integer, Boolean> I2B = construct_I2B();
 
     private static Map<Integer, Boolean> construct_I2B() {
-        return ImmutableMap.<Integer, Boolean>builder()
-        .put(0, false)
-        .put(1, true)
-        .put(2, true)
-        .put(3, false)
-        .build();
+        ImmutableMap.Builder<Integer, Boolean> builder = ImmutableMap.builder();
+        builder.put(0, false);
+        builder.put(1, true);
+        builder.put(2, true);
+        builder.put(3, false);
+        return builder.build();
     }
 
     public static final Map<Integer, Boolean> I2B_REF = construct_I2B_REF();
 
     private static Map<Integer, Boolean> construct_I2B_REF() {
-        return ImmutableMap.<Integer, Boolean>builder()
-        .put(0, false)
-        .put(1, true)
-        .put(2, true)
-        .put(3, false)
-        .build();
+        ImmutableMap.Builder<Integer, Boolean> builder = ImmutableMap.builder();
+        builder.put(0, false);
+        builder.put(1, true);
+        builder.put(2, true);
+        builder.put(3, false);
+        return builder.build();
     }
 
     public static final Map<Integer, Integer> MAP_LIST_INITIALIZER = construct_MAP_LIST_INITIALIZER();
 
     private static Map<Integer, Integer> construct_MAP_LIST_INITIALIZER() {
-        return ImmutableMap.<Integer, Integer>builder()
-        .build();
+        ImmutableMap.Builder<Integer, Integer> builder = ImmutableMap.builder();
+        return builder.build();
     }
 
     public static final List<Integer> LIST_MAP_INITIALIZER = construct_LIST_MAP_INITIALIZER();
 
     private static List<Integer> construct_LIST_MAP_INITIALIZER() {
-        return ImmutableList.<Integer>builder()
-        .build();
+        ImmutableList.Builder<Integer> builder = ImmutableList.builder();
+        return builder.build();
     }
 
     public static final Set<Integer> SET_MAP_INITIALIZER = construct_SET_MAP_INITIALIZER();
 
     private static Set<Integer> construct_SET_MAP_INITIALIZER() {
-        return ImmutableSet.<Integer>builder()
-        .build();
+        ImmutableSet.Builder<Integer> builder = ImmutableSet.builder();
+        return builder.build();
     }
 }

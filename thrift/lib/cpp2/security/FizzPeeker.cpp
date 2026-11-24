@@ -15,7 +15,6 @@
  */
 
 #include <fizz/experimental/psp/PSP.h>
-#include <folly/io/async/AsyncSocket.h>
 #include <thrift/lib/cpp2/Flags.h>
 #include <thrift/lib/cpp2/security/FizzPeeker.h>
 #include <thrift/lib/cpp2/security/SSLUtil.h>
@@ -41,7 +40,7 @@ THRIFT_PLUGGABLE_FUNC_REGISTER(
 } // namespace detail
 
 void ThriftFizzAcceptorHandshakeHelper::start(
-    folly::AsyncSSLSocket::UniquePtr sock,
+    folly::AsyncSocket::UniquePtr sock,
     wangle::AcceptorHandshakeHelper::Callback* callback) noexcept {
   callback_ = callback;
 
@@ -188,6 +187,7 @@ void ThriftFizzAcceptorHandshakeHelper::stopTLSSuccess(
 
 void ThriftFizzAcceptorHandshakeHelper::pspSuccess(
     folly::NetworkSocket, std::unique_ptr<folly::IOBuf> postTlsData) noexcept {
+  detail::onThriftPspEvent(detail::PspEvent::UpgradeSuccess, folly::none);
   auto applicationProtocol = transport_->getApplicationProtocol();
 
   auto plaintextTransport =
@@ -209,6 +209,7 @@ void ThriftFizzAcceptorHandshakeHelper::pspSuccess(
 
 void ThriftFizzAcceptorHandshakeHelper::pspError(
     const folly::exception_wrapper& ew) noexcept {
+  detail::onThriftPspEvent(detail::PspEvent::UpgradeError, ew);
   return callback_->connectionError(transport_.get(), ew, sslError_);
 }
 

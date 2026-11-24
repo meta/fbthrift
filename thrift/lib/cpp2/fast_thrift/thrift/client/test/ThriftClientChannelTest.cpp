@@ -29,7 +29,7 @@
 #include <folly/io/async/AsyncTransport.h>
 #include <folly/io/async/EventBase.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/handler/FrameLengthEncoderHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/client/common/RocketClientConnection.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/client/handler/RocketClientConnectionErrorHandler.h>
@@ -43,7 +43,7 @@
 
 namespace apache::thrift::fast_thrift::thrift {
 
-using apache::thrift::fast_thrift::channel_pipeline::PipelineBuilder;
+using apache::thrift::fast_thrift::channel_pipeline::StaticPipelineBuilder;
 using apache::thrift::fast_thrift::transport::test::TestAsyncTransport;
 
 // Handler tags for the rocket pipeline.
@@ -72,7 +72,7 @@ class ThriftClientChannelTest : public ::testing::Test {
     auto* transportHandlerPtr = connection->transportHandler.get();
 
     connection->pipeline =
-        PipelineBuilder<
+        StaticPipelineBuilder<
             rocket::client::RocketClientConnection::TransportHandler,
             rocket::client::RocketClientAppAdapter,
             channel_pipeline::SimpleBufferAllocator>()

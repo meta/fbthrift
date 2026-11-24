@@ -112,6 +112,13 @@ impl ::std::default::Default for Animal {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for Animal {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.0 == 0
+    }
+}
+
 impl<'a> ::std::convert::From<&'a Animal> for ::std::primitive::i32 {
     #[inline]
     fn from(x: &'a Animal) -> Self {

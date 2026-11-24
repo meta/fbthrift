@@ -364,7 +364,7 @@ void readVarintMediumSlow(CursorT& c, T& value, const uint8_t* p, size_t len) {
       sizeof(T) == 1 || sizeof(T) == 2 || sizeof(T) == 4 || sizeof(T) == 8,
       "Trying to deserialize into an unsupported type");
 
-  if (FOLLY_LIKELY(len >= kVarintMaxBytes<T>)) {
+  if (len >= kVarintMaxBytes<T>) [[likely]] {
     size_t bytesRead;
     if (sizeof(T) <= 4) {
       // NOTE: BMI2-based decoding for 32-bit integers appears not to
@@ -438,7 +438,7 @@ uint8_t writeVarintSlow(Cursor& c, T value) {
 
 template <class Cursor, class T>
 uint8_t writeVarintUnrolled(Cursor& c, T value) {
-  if (FOLLY_LIKELY((value & ~0x7f) == 0)) {
+  if ((value & ~0x7f) == 0) [[likely]] {
     c.template write<uint8_t>(static_cast<uint8_t>(value));
     return 1;
   }
@@ -453,7 +453,7 @@ uint8_t writeVarintUnrolled(Cursor& c, T value) {
 template <class Cursor, class T>
 uint8_t writeVarintSve(Cursor& c, T valueS) {
   auto value = folly::to_unsigned(valueS);
-  if (FOLLY_LIKELY((value & ~0x7f) == 0)) {
+  if ((value & ~0x7f) == 0) [[likely]] {
     c.template write<uint8_t>(static_cast<uint8_t>(value));
     return 1;
   }
@@ -545,7 +545,7 @@ inline uint64_t compressBits(uint64_t value, uint64_t mask) {
 template <class Cursor, class T>
 uint8_t writeVarintBranchFreeX86(Cursor& c, T valueS) {
   auto value = folly::to_unsigned(valueS);
-  if (FOLLY_LIKELY((value & ~0x7f) == 0)) {
+  if ((value & ~0x7f) == 0) [[likely]] {
     c.template write<uint8_t>(static_cast<uint8_t>(value));
     return 1;
   }

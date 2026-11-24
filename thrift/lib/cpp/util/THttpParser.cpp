@@ -23,9 +23,12 @@
 #include <folly/String.h>
 #include <folly/container/F14Map.h>
 
+#include <algorithm>
 #include <cassert>
 #include <cstdlib>
 #include <sstream>
+#include <string>
+#include <string_view>
 
 namespace apache::thrift::util {
 
@@ -323,19 +326,21 @@ void THttpClientParser::parseHeaderLine(folly::StringPiece header) {
     return;
   }
 
-  const auto value = folly::ltrimWhitespace(header.subpiece(colonPos + 1));
+  const std::string_view value =
+      folly::ltrimWhitespace(header.subpiece(colonPos + 1));
 
-  readHeaders_.emplace(header.subpiece(0, colonPos).str(), value.str());
+  readHeaders_.emplace(header.subpiece(0, colonPos).str(), std::string(value));
 
   const folly::AsciiCaseInsensitive i{};
 
   if (header.startsWith("Transfer-Encoding", i)) {
-    if (value.endsWith("chunked", i)) {
+    if (value.size() >= 7 &&
+        std::equal(value.end() - 7, value.end(), "chunked", i)) {
       chunked_ = true;
     }
   } else if (header.startsWith("Content-Length", i)) {
     chunked_ = false;
-    contentLength_ = atoi(value.begin());
+    contentLength_ = atoi(value.data());
   } else if (header.startsWith("Connection", i)) {
     if (header.endsWith("close", i)) {
       connectionClosedByServer_ = true;

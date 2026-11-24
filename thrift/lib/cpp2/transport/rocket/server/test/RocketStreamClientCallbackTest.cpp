@@ -16,6 +16,7 @@
 
 #include <folly/portability/GMock.h>
 #include <folly/portability/GTest.h>
+#include <thrift/lib/cpp2/transport/rocket/framing/test/Util.h>
 #include <thrift/lib/cpp2/transport/rocket/server/RocketStreamClientCallback.h>
 #include <thrift/lib/cpp2/transport/rocket/server/StreamFirstResponseLoggingCallback.h>
 #include <thrift/lib/cpp2/transport/rocket/server/test/MockIRocketServerConnection.h>
@@ -135,6 +136,13 @@ class RocketStreamClientCallbackTest : public ::testing::Test {
   std::unique_ptr<RocketStreamClientCallback> callback_;
 };
 
+template <typename Buffer>
+class RocketStreamClientCallbackFrameTest
+    : public RocketStreamClientCallbackTest {};
+using StreamFrameBuffers =
+    ::testing::Types<std::unique_ptr<folly::IOBuf>, IOBufChain>;
+TYPED_TEST_SUITE(RocketStreamClientCallbackFrameTest, StreamFrameBuffers);
+
 TEST_F(RocketStreamClientCallbackTest, HandleRequestNPostReady) {
   makeReady();
 
@@ -202,34 +210,59 @@ TEST_F(RocketStreamClientCallbackTest, HandleErrorClosesConnection) {
   callback_->handleFrame(std::move(frame));
 }
 
-TEST_F(RocketStreamClientCallbackTest, HandleExtPreReadyClosesConnection) {
-  EXPECT_CALL(connection_, close(_)).Times(1);
+TYPED_TEST(
+    RocketStreamClientCallbackFrameTest, HandleExtPreReadyClosesConnection) {
+  EXPECT_CALL(this->connection_, close(_)).Times(1);
 
-  ExtFrame frame(kStreamId, Payload{}, Flags(), ExtFrameType::UNKNOWN);
-  callback_->handleFrame(std::move(frame));
+  ExtFrame frame(
+      this->kStreamId,
+      Payload::makeFromData(folly::IOBuf::create(0)),
+      Flags(),
+      ExtFrameType::UNKNOWN);
+  auto decoded = roundTripFrame<TypeParam>(std::move(frame));
+  EXPECT_EQ(
+      (std::is_same_v<TypeParam, IOBufChain>),
+      decoded.payload().usesIOBufChain());
+  this->callback_->handleFrame(std::move(decoded));
 }
 
-TEST_F(
-    RocketStreamClientCallbackTest,
+TYPED_TEST(
+    RocketStreamClientCallbackFrameTest,
     HandleExtPostReadyNoIgnoreClosesConnection) {
-  makeReady();
+  this->makeReady();
 
-  EXPECT_CALL(connection_, close(_)).Times(1);
+  EXPECT_CALL(this->connection_, close(_)).Times(1);
 
-  ExtFrame frame(kStreamId, Payload{}, Flags(), ExtFrameType::UNKNOWN);
-  callback_->handleFrame(std::move(frame));
+  ExtFrame frame(
+      this->kStreamId,
+      Payload::makeFromData(folly::IOBuf::create(0)),
+      Flags(),
+      ExtFrameType::UNKNOWN);
+  auto decoded = roundTripFrame<TypeParam>(std::move(frame));
+  EXPECT_EQ(
+      (std::is_same_v<TypeParam, IOBufChain>),
+      decoded.payload().usesIOBufChain());
+  this->callback_->handleFrame(std::move(decoded));
 }
 
-TEST_F(RocketStreamClientCallbackTest, HandleExtPostReadyIgnoreFlag) {
-  makeReady();
+TYPED_TEST(RocketStreamClientCallbackFrameTest, HandleExtPostReadyIgnoreFlag) {
+  this->makeReady();
 
   // ExtFrame with ignore flag set should be silently dropped
-  EXPECT_CALL(connection_, close(_)).Times(0);
+  EXPECT_CALL(this->connection_, close(_)).Times(0);
 
   Flags flags;
   flags.ignore(true);
-  ExtFrame frame(kStreamId, Payload{}, flags, ExtFrameType::UNKNOWN);
-  callback_->handleFrame(std::move(frame));
+  ExtFrame frame(
+      this->kStreamId,
+      Payload::makeFromData(folly::IOBuf::create(0)),
+      flags,
+      ExtFrameType::UNKNOWN);
+  auto decoded = roundTripFrame<TypeParam>(std::move(frame));
+  EXPECT_EQ(
+      (std::is_same_v<TypeParam, IOBufChain>),
+      decoded.payload().usesIOBufChain());
+  this->callback_->handleFrame(std::move(decoded));
 }
 
 TEST_F(RocketStreamClientCallbackTest, HandleConnectionClose) {

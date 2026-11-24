@@ -39,7 +39,28 @@ public final class {{root_program.constantClassName}} {
     public static final {{#partial types.java_type type=constant.type has_adapter_override=false}} {{constant.javaCapitalName}} = construct_{{constant.javaCapitalName}}();
 
     private static {{#partial types.java_type type=constant.type has_adapter_override=false}} construct_{{constant.javaCapitalName}}() {
+      {{#let value_type = constant.value.type.true_type}}
+      {{#if constant.value.type.map?}}
+        ImmutableMap.Builder<{{#partial types.boxed_type type=value_type.key_type field_hasAdapter=false}}, {{#partial types.boxed_type type=value_type.val_type field_hasAdapter=false}}> builder = ImmutableMap.builder();
+        {{#each constant.value.map_elements as |elem|}}
+        builder.put({{#partial const_value.collection_element element=elem.key root_const=constant}}, {{#partial const_value.collection_element element=elem.value root_const=constant}});
+        {{/each}}
+        return builder.build();
+      {{#else if constant.value.type.set?}}
+        ImmutableSet.Builder<{{#partial types.boxed_type type=value_type.elem_type field_hasAdapter=false}}> builder = ImmutableSet.builder();
+        {{#each constant.value.list_elements as |elem|}}
+        builder.add({{#partial const_value.collection_element element=elem root_const=constant}});
+        {{/each}}
+        return builder.build();
+      {{#else if constant.value.type.list?}}
+        ImmutableList.Builder<{{#partial types.boxed_type type=value_type.elem_type field_hasAdapter=false}}> builder = ImmutableList.builder();
+        {{#each constant.value.list_elements as |elem|}}
+        builder.add({{#partial const_value.collection_element element=elem root_const=constant}});
+        {{/each}}
+        return builder.build();
+      {{#else}}
         return {{#partial const_value.const_value value=constant.value root_const=constant as_bean=false field_hasAdapter=false }};
+      {{/if constant.value.type.map?}}
     }
     {{/if constant.type.primitive?}}{{!
     }}{{/if (not constant.javaIgnoreConstant?)}}

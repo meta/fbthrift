@@ -215,6 +215,44 @@ void FactoriesWrapper::async_tm_serialize(
         });
     });
 }
+void FactoriesWrapper::async_tm_interactWithStream(
+  apache::thrift::HandlerCallbackPtr<apache::thrift::ServerStream<int32_t>> callback) {
+  auto ctx = callback->getRequestContext();
+  folly::via(
+    this->executor,
+    [this, ctx,
+     callback = std::move(callback)
+    ]() mutable {
+        auto [promise, future] = folly::makePromiseContract<apache::thrift::ServerStream<int32_t>>();
+        call_cy_Factories_interactWithStream(
+            this->if_object,
+            ctx,
+            std::move(promise)        );
+        std::move(future).via(this->executor).thenTry([callback = std::move(callback)](folly::Try<apache::thrift::ServerStream<int32_t>>&& t) {
+          (void)t;
+          callback->complete(std::move(t));
+        });
+    });
+}
+void FactoriesWrapper::async_tm_interactWithStreamAndInitialResponse(
+  apache::thrift::HandlerCallbackPtr<apache::thrift::ResponseAndServerStream<int32_t,int32_t>> callback) {
+  auto ctx = callback->getRequestContext();
+  folly::via(
+    this->executor,
+    [this, ctx,
+     callback = std::move(callback)
+    ]() mutable {
+        auto [promise, future] = folly::makePromiseContract<apache::thrift::ResponseAndServerStream<int32_t,int32_t>>();
+        call_cy_Factories_interactWithStreamAndInitialResponse(
+            this->if_object,
+            ctx,
+            std::move(promise)        );
+        std::move(future).via(this->executor).thenTry([callback = std::move(callback)](folly::Try<apache::thrift::ResponseAndServerStream<int32_t,int32_t>>&& t) {
+          (void)t;
+          callback->complete(std::move(t));
+        });
+    });
+}
 std::shared_ptr<apache::thrift::ServerInterface> FactoriesInterface(PyObject *if_object, folly::Executor *exc) {
   return std::make_shared<FactoriesWrapper>(if_object, exc);
 }

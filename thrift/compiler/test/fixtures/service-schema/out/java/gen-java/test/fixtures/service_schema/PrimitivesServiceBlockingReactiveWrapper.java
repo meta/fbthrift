@@ -28,11 +28,11 @@ public class PrimitivesServiceBlockingReactiveWrapper
     public reactor.core.publisher.Mono<Long> init(final long param0, final long param1) {
         reactor.core.publisher.Mono<Long> _m = reactor.core.publisher.Mono.create(_sink -> {
             try {
-                reactor.util.context.ContextView _contextView = _sink.contextView();
-                com.facebook.nifty.core.RequestContext
-                    .tryContextView(_contextView)
-                    .ifPresent(com.facebook.nifty.core.RequestContexts::setCurrentContext);
-                _sink.success(_delegate.init(param0, param1));
+                com.facebook.nifty.core.RequestContext _requestContext =
+                    com.facebook.nifty.core.RequestContext.tryContextView(_sink.contextView()).orElseGet(com.facebook.nifty.core.RequestContexts::tryGetCurrentContext);
+                _sink.success(com.facebook.nifty.core.RequestContextScope.call(
+                    _requestContext,
+                    () -> _delegate.init(param0, param1)));
             } catch (Throwable _e) {
                 _sink.error(_e);
             }
@@ -49,11 +49,11 @@ public class PrimitivesServiceBlockingReactiveWrapper
     public reactor.core.publisher.Mono<test.fixtures.service_schema.Result> methodThatThrows() {
         reactor.core.publisher.Mono<test.fixtures.service_schema.Result> _m = reactor.core.publisher.Mono.create(_sink -> {
             try {
-                reactor.util.context.ContextView _contextView = _sink.contextView();
-                com.facebook.nifty.core.RequestContext
-                    .tryContextView(_contextView)
-                    .ifPresent(com.facebook.nifty.core.RequestContexts::setCurrentContext);
-                _sink.success(_delegate.methodThatThrows());
+                com.facebook.nifty.core.RequestContext _requestContext =
+                    com.facebook.nifty.core.RequestContext.tryContextView(_sink.contextView()).orElseGet(com.facebook.nifty.core.RequestContexts::tryGetCurrentContext);
+                _sink.success(com.facebook.nifty.core.RequestContextScope.call(
+                    _requestContext,
+                    () -> _delegate.methodThatThrows()));
             } catch (Throwable _e) {
                 _sink.error(_e);
             }
@@ -70,11 +70,12 @@ public class PrimitivesServiceBlockingReactiveWrapper
     public reactor.core.publisher.Mono<Void> returnVoidMethod(final long id, final test.fixtures.service_schema.I i) {
         reactor.core.publisher.Mono<Void> _m = reactor.core.publisher.Mono.<Void>create(_sink -> {
             try {
-                reactor.util.context.ContextView _contextView = _sink.contextView();
-                com.facebook.nifty.core.RequestContext
-                    .tryContextView(_contextView)
-                    .ifPresent(com.facebook.nifty.core.RequestContexts::setCurrentContext);
-                _delegate.returnVoidMethod(id, i);
+                com.facebook.nifty.core.RequestContext _requestContext =
+                    com.facebook.nifty.core.RequestContext.tryContextView(_sink.contextView()).orElseGet(com.facebook.nifty.core.RequestContexts::tryGetCurrentContext);
+                com.facebook.nifty.core.RequestContextScope.call(_requestContext, () -> {
+                    _delegate.returnVoidMethod(id, i);
+                    return null;
+                });
                 _sink.success();
             } catch (Throwable _e) {
                 throw reactor.core.Exceptions.propagate(_e);

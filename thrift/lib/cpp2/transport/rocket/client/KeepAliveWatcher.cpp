@@ -79,6 +79,15 @@ void KeepAliveWatcher::handleKeepaliveFrame(
   lastKeepAliveTs_ = std::chrono::steady_clock::now();
 }
 
+void KeepAliveWatcher::handleKeepaliveFrame(IOBufChain frame) {
+  KeepAliveFrame keepAliveFrame(std::move(frame));
+  if (keepAliveFrame.hasRespondFlag()) {
+    LOG(WARNING) << "Received Respond Flagged Keep Alive Frame, ignoring!";
+    return;
+  }
+  lastKeepAliveTs_ = std::chrono::steady_clock::now();
+}
+
 void KeepAliveWatcher::sendKeepAliveFrame(SetupFrame* setupFrame) {
   DestructorGuard dg(this);
   evb_->dcheckIsInEventBaseThread();

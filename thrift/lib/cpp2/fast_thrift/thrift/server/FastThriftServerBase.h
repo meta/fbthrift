@@ -293,7 +293,7 @@ class FastThriftServerBase {
 
   /**
    * Adds a classic server event handler to the same server-owned bridge.
-   * The connection context and identity resolver are shared with processor
+   * The connection context and client identity hook are shared with processor
    * event handlers. Must be called before start()/serve().
    * @throws std::logic_error if called after start()/serve() or with a null
    *     handler.
@@ -303,15 +303,15 @@ class FastThriftServerBase {
           eventHandler);
 
   /**
-   * Sets the resolver used to cache peer identities on the shared Cpp2
-   * connection context. Must be called before start()/serve().
-   * @throws std::logic_error if called after start()/serve() or if a different
-   *     resolver is already installed.
+   * Sets the Classic client identity hook invoked by Cpp2ConnContext.
+   * Must be called before start()/serve().
+   * @throws std::logic_error if called after start()/serve().
    */
-  void setPeerIdentityResolver(server::PeerIdentityResolver resolver);
+  void setClientIdentityHook(apache::thrift::ClientIdentityHook hook);
 
-  server::PeerIdentityResolver getPeerIdentityResolver() const noexcept {
-    return peerIdentityResolver_;
+  const apache::thrift::ClientIdentityHook& getClientIdentityHook()
+      const noexcept {
+    return clientIdentityHook_;
   }
 
   /**
@@ -325,7 +325,15 @@ class FastThriftServerBase {
   template <class Ext>
   void registerExtension() {
     if constexpr (requires { typename Ext::ConnState; }) {
-      connExtensionBuilder_.add(Ext::kId);
+      if constexpr (requires(typename Ext::ConnState* state) {
+                      Ext::destroyConnState(state);
+                    }) {
+        connExtensionBuilder_.add(Ext::kId, [](void* state) noexcept {
+          Ext::destroyConnState(static_cast<typename Ext::ConnState*>(state));
+        });
+      } else {
+        connExtensionBuilder_.add(Ext::kId);
+      }
     }
     if constexpr (requires { typename Ext::RequestState; }) {
       if constexpr (requires(typename Ext::RequestState* state) {
@@ -508,6 +516,12 @@ class FastThriftServerBase {
   /// (gating accessors that require the server to be running).
   bool isRunning() const noexcept { return state_ == State::kRunning; }
 
+  /// The bound address if the server is running, else nullopt. Read under the
+  /// lifecycle lock, so a caller that gets an address also sees every
+  /// interface and the metadata response written before start(). Those do not
+  /// change after start(), so they can then be read without the lock.
+  std::optional<folly::SocketAddress> getAddressIfRunning() const;
+
   /**
    * The IO pool backing this server, or nullptr before start() unless the
    * embedder supplied one via setIOThreadPool (start() materializes the
@@ -542,6 +556,19 @@ class FastThriftServerBase {
   getMetadataResponse() const noexcept {
     return metadataResponse_;
   }
+
+  /**
+   * The bundled schema of the user interface and every wired auxiliary
+   * interface, merged; empty if none of them has bundled schema, as for a C++
+   * ThriftServer. The user interface comes first in `getServiceSchemaNodes()`,
+   * the order debug clients use to pick the primary service. Read only once
+   * getAddressIfRunning() returns an address: until start() the setters may
+   * still be writing the interfaces.
+   */
+  ::apache::thrift::schema::DefinitionsSchema getServiceSchema() const;
+  std::vector<
+      folly::not_null<const ::apache::thrift::syntax_graph::ServiceNode*>>
+  getServiceSchemaNodes() const;
 
   /// Snapshot of which auxiliary slots are wired (for debug introspection).
   bool hasMonitoringHandler() const noexcept {
@@ -589,13 +616,18 @@ class FastThriftServerBase {
   };
 
   void rebuildMethodMetadataRegistry();
+  std::vector<folly::not_null<ThriftServerAppAdapterFactory*>> interfaces()
+      const;
 
  protected:
   void addModuleRegistrations(
       std::string name,
       bool requiresHeaders,
+      bool requiresCachedEkms,
       std::vector<FastServerModule::PendingConnectionCallbacks>
           pendingConnectionCallbacks,
+      const std::vector<FastServerModule::RequestStateRegistration>&
+          requestStateRegistrations,
       std::vector<server::ThriftPipelineRegistration> registrations);
 
  private:
@@ -607,8 +639,9 @@ class FastThriftServerBase {
   // Embedder-registered thrift pipeline handler factories, in registration
   // order. Copied into the per-connection factory config at start().
   std::vector<server::ThriftPipelineRegistration> thriftPipelineRegistrations_;
+  bool requiresCachedEkms_{false};
   server::TProcessorEventHandlers eventHandlers_;
-  server::PeerIdentityResolver peerIdentityResolver_{nullptr};
+  apache::thrift::ClientIdentityHook clientIdentityHook_;
   server::RocketServerConnectionBuilder rocketConnectionBuilder_;
   // Consumed into the layouts below at start(); untouched after.
   ExtensionLayoutBuilder connExtensionBuilder_;
@@ -664,7 +697,7 @@ class FastThriftServerBase {
   // observes the connectionManager_ assignment from start() with a proper
   // happens-before. Without this, TSAN reports a race when stop() runs on a
   // different thread from serve().
-  std::mutex lifecycleMutex_;
+  mutable std::mutex lifecycleMutex_;
   State state_{State::kNotStarted};
   // Process-wide registration. Mutable nowhere — declared last so it is
   // destroyed first (its destructor blocks until any in-flight

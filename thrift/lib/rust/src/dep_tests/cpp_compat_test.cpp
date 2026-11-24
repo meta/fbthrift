@@ -190,4 +190,98 @@ TEST(ConstsTest, consts) {
   ASSERT_EQ(expected, custom);
 }
 
+TEST(TerseTest, Enum) {
+  TerseEnum empty;
+  EXPECT_EQ(
+      apache::thrift::CompactSerializer::serialize<std::string>(empty),
+      std::string("\x00", 1));
+
+  TerseEnum two;
+  two.e() = En::TWO;
+  EXPECT_EQ(
+      apache::thrift::CompactSerializer::serialize<std::string>(two),
+      std::string("\x15\x04\x00", 3));
+}
+
+TEST(TerseTest, Union) {
+  TerseUnion empty;
+  EXPECT_EQ(
+      apache::thrift::CompactSerializer::serialize<std::string>(empty),
+      std::string("\x00", 1));
+
+  TerseUnion set;
+  set.u()->un1().emplace();
+  EXPECT_EQ(
+      apache::thrift::CompactSerializer::serialize<std::string>(set),
+      std::string("\x1c\x1c\x15\x00\x00\x00\x00", 7));
+}
+
+TEST(TerseTest, NewType) {
+  TerseNewType empty;
+  EXPECT_EQ(
+      apache::thrift::CompactSerializer::serialize<std::string>(empty),
+      std::string("\x00", 1));
+
+  TerseNewType integer;
+  integer.i() = 5;
+  EXPECT_EQ(
+      apache::thrift::CompactSerializer::serialize<std::string>(integer),
+      std::string("\x15\x0a\x00", 3));
+
+  TerseNewType negativeZero;
+  negativeZero.d() = -0.0;
+  EXPECT_EQ(
+      apache::thrift::CompactSerializer::serialize<std::string>(negativeZero),
+      std::string("\x27\x80\x00\x00\x00\x00\x00\x00\x00\x00", 10));
+}
+
+TEST(TerseTest, Struct) {
+  TerseStruct defaults;
+  EXPECT_EQ(
+      apache::thrift::CompactSerializer::serialize<std::string>(defaults),
+      std::string("\x2c\x15\x00\x16\x00\x00\x00", 7));
+
+  TerseStruct nested;
+  nested.emptiable()->terse() = "a";
+  EXPECT_EQ(
+      apache::thrift::CompactSerializer::serialize<std::string>(nested),
+      std::string("\x1c\x28\x01\x61\x00\x1c\x15\x00\x16\x00\x00\x00", 12));
+
+  TerseStruct optionalSet;
+  optionalSet.emptiable()->opt() = 0;
+  EXPECT_EQ(
+      apache::thrift::CompactSerializer::serialize<std::string>(optionalSet),
+      std::string("\x1c\x15\x00\x00\x1c\x15\x00\x16\x00\x00\x00", 11));
+
+  TerseStruct exception;
+  exception.ex()->message() = "";
+  EXPECT_EQ(
+      apache::thrift::CompactSerializer::serialize<std::string>(exception),
+      std::string("\x2c\x15\x00\x16\x00\x00\x1c\x18\x00\x00\x00", 11));
+}
+
+TEST(TerseTest, Adapted) {
+  TerseAdapted empty;
+  EXPECT_EQ(
+      apache::thrift::CompactSerializer::serialize<std::string>(empty),
+      std::string("\x00", 1));
+
+  TerseAdapted adapted;
+  adapted.s() = "a";
+  EXPECT_EQ(
+      apache::thrift::CompactSerializer::serialize<std::string>(adapted),
+      std::string("\x18\x01\x61\x00", 4));
+
+  TerseAdaptedStruct emptyStruct;
+  EXPECT_EQ(
+      apache::thrift::CompactSerializer::serialize<std::string>(emptyStruct),
+      std::string("\x00", 1));
+
+  TerseAdaptedStruct nested;
+  nested.adapted() = adapted;
+  EXPECT_EQ(
+      apache::thrift::CompactSerializer::serialize<std::string>(nested),
+      std::string("\x1c\x18\x01\x61\x00\x00", 6));
+}
+
 } // namespace facebook

@@ -16,11 +16,49 @@
 
 #include <thrift/lib/cpp2/type/Type.h>
 
+#include <memory>
+#include <mutex>
+#include <stdexcept>
+
 #include <fmt/format.h>
 #include <folly/lang/Exception.h>
 #include <thrift/lib/cpp2/type/UniversalName.h>
 
 namespace apache::thrift::type {
+
+namespace {
+
+TypeUri& ensureNamedTypeUri(TypeName& name, BaseType kind) {
+  if (kind == BaseType::Enum) {
+    return name.enumType().ensure();
+  }
+  if (kind == BaseType::Struct) {
+    return name.structType().ensure();
+  }
+  if (kind == BaseType::Union) {
+    return name.unionType().ensure();
+  }
+  if (kind == BaseType::Exception) {
+    return name.exceptionType().ensure();
+  }
+  folly::throw_exception<std::logic_error>("expected a named type");
+}
+
+} // namespace
+
+FOLLY_NOINLINE const Type& detail::NamedTypeCache::getSlow(
+    BaseType kind, folly::cstring_view uri) {
+  std::lock_guard lock(mutex_);
+  if (auto* value = value_.load(std::memory_order_relaxed)) {
+    return *value;
+  }
+  auto value = std::make_unique<Type>();
+  validateUniversalName(uri);
+  ensureNamedTypeUri(*value->toThrift().name(), kind).uri_ref() = uri;
+  auto* cached = value.release();
+  value_.store(cached, std::memory_order_release);
+  return *cached;
+}
 
 bool Type::isFull(const TypeUri& typeUri, bool validate_uri) {
   if (typeUri.getType() != TypeUri::Type::uri) {
@@ -28,7 +66,7 @@ bool Type::isFull(const TypeUri& typeUri, bool validate_uri) {
   }
   if (validate_uri) {
     try {
-      checkName(typeUri.get_uri());
+      checkName(typeUri.uri().value());
     } catch (std::exception&) {
       return false;
     }

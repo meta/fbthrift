@@ -100,11 +100,27 @@ struct StringTypeAdapter {
 
   template <typename Tag, typename Protocol>
   static void decode(Protocol& protocol, AdaptedT& value) {
+    // Some protocols (e.g. virtual protocols) only implement readString and
+    // readBinary for std::string and folly::fbstring. Fall back to reading
+    // into a temporary and converting for adapted types they cannot read
+    // directly. The conversion is guaranteed by StringTypeAdapterCompatible.
     if constexpr (type::is_a_v<Tag, type::binary_t>) {
-      protocol.readBinary(value);
+      if constexpr (requires { protocol.readBinary(value); }) {
+        protocol.readBinary(value);
+      } else {
+        std::string tmp;
+        protocol.readBinary(tmp);
+        value = std::move(tmp);
+      }
     } else {
       static_assert(type::is_a_v<Tag, type::string_t>);
-      protocol.readString(value);
+      if constexpr (requires { protocol.readString(value); }) {
+        protocol.readString(value);
+      } else {
+        std::string tmp;
+        protocol.readString(tmp);
+        value = std::move(tmp);
+      }
     }
   }
 

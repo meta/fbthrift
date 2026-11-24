@@ -81,7 +81,9 @@ class t_function final : public t_named {
                  : static_cast<const t_node*>(stream_.get());
   }
 
+  t_sink* sink() { return sink_.get(); }
   const t_sink* sink() const { return sink_.get(); }
+  t_stream* stream() { return stream_.get(); }
   const t_stream* stream() const { return stream_.get(); }
 
   bool is_bidirectional_stream() const {

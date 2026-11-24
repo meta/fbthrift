@@ -18,6 +18,8 @@
 
 #include <chrono>
 #include <memory>
+#include <optional>
+#include <string>
 #include <utility>
 
 #include <folly/ExceptionWrapper.h>
@@ -77,6 +79,7 @@ class RocketClient : public virtual folly::DelayedDestruction,
 
   ~RocketClient() override;
 
+  void handleFrame(IOBufChain frame);
   void handleFrame(std::unique_ptr<folly::IOBuf> frame);
 
   using Ptr =
@@ -86,7 +89,8 @@ class RocketClient : public virtual folly::DelayedDestruction,
       folly::AsyncTransport::UniquePtr socket,
       RequestSetupMetadata&& setupMetadata,
       int32_t keepAliveTimeoutMs = 0,
-      std::shared_ptr<rocket::ParserAllocatorType> allocatorPtr = nullptr);
+      std::shared_ptr<rocket::ParserAllocatorType> allocatorPtr = nullptr,
+      std::optional<std::string> frameParser = std::nullopt);
 
   using WriteSuccessCallback = RequestContext::WriteSuccessCallback;
   class RequestResponseCallback : public WriteSuccessCallback {
@@ -483,7 +487,8 @@ class RocketClient : public virtual folly::DelayedDestruction,
       folly::AsyncTransport::UniquePtr socket,
       RequestSetupMetadata&& setupMetadata,
       int32_t keepAliveTimeoutMs = 0,
-      std::shared_ptr<rocket::ParserAllocatorType> allocatorPtr = nullptr);
+      std::shared_ptr<rocket::ParserAllocatorType> allocatorPtr = nullptr,
+      std::optional<std::string> frameParser = std::nullopt);
 
   bool encodeMetadataUsingBinary() const { return encodeMetadataUsingBinary_; }
   virtual void handleSetupResponse(const ServerPushMetadata& serverMeta);
@@ -514,18 +519,18 @@ class RocketClient : public virtual folly::DelayedDestruction,
   void freeStream(StreamId streamId);
   void contractViolation(std::string_view msg);
 
-  void handleRequestResponseFrame(
-      RequestContext& ctx,
-      FrameType frameType,
-      std::unique_ptr<folly::IOBuf> frame);
-  void handleStreamChannelFrame(
-      StreamId streamId,
-      FrameType frameType,
-      std::unique_ptr<folly::IOBuf> frame);
+  template <typename FrameBuffer, typename Cursor>
+  void handleFrameImpl(FrameBuffer& frame, Cursor& cursor);
 
-  template <typename CallbackType>
-  void handlePayloadFrame(
-      CallbackType& serverCallback, std::unique_ptr<folly::IOBuf> frame);
+  template <typename FrameBuffer>
+  void handleRequestResponseFrame(
+      RequestContext& ctx, FrameType frameType, FrameBuffer frame);
+  template <typename FrameBuffer>
+  void handleStreamChannelFrame(
+      StreamId streamId, FrameType frameType, FrameBuffer frame);
+
+  template <typename CallbackType, typename FrameBuffer>
+  void handlePayloadFrame(CallbackType& serverCallback, FrameBuffer frame);
 
   template <typename CallbackType>
   void handleFirstResponse(
@@ -558,21 +563,17 @@ class RocketClient : public virtual folly::DelayedDestruction,
 
   folly::Try<StreamPayload> unpackStreamPayload(Payload&& fullPayload);
 
-  template <typename CallbackType>
-  void handleErrorFrame(
-      CallbackType& serverCallback, std::unique_ptr<folly::IOBuf> frame);
+  template <typename CallbackType, typename FrameBuffer>
+  void handleErrorFrame(CallbackType& serverCallback, FrameBuffer frame);
 
-  template <typename CallbackType>
-  void handleRequestNFrame(
-      CallbackType& serverCallback, std::unique_ptr<folly::IOBuf> frame);
+  template <typename CallbackType, typename FrameBuffer>
+  void handleRequestNFrame(CallbackType& serverCallback, FrameBuffer frame);
 
-  template <typename CallbackType>
-  void handleCancelFrame(
-      CallbackType& serverCallback, std::unique_ptr<folly::IOBuf> frame);
+  template <typename CallbackType, typename FrameBuffer>
+  void handleCancelFrame(CallbackType& serverCallback, FrameBuffer frame);
 
-  template <typename CallbackType>
-  void handleExtFrame(
-      CallbackType& serverCallback, std::unique_ptr<folly::IOBuf> frame);
+  template <typename CallbackType, typename FrameBuffer>
+  void handleExtFrame(CallbackType& serverCallback, FrameBuffer frame);
 
   void handleError(RocketException&& rex);
 

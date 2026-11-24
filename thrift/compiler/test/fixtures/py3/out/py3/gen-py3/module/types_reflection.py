@@ -452,7 +452,7 @@ def get_reflection__ComplexStruct() -> __StructSpec:
             id=9,
             name="bytes_with_cpp_type",
             py_name="bytes_with_cpp_type",
-            type=bytes,
+            type=_fbthrift_iobuf.IOBuf,
             kind=__NumberType.NOT_A_NUMBER,
             qualifier=__Qualifier.UNQUALIFIED,
             default=None,
@@ -569,7 +569,7 @@ def get_reflection__CustomFields() -> __StructSpec:
             id=5,
             name="binary_field",
             py_name="binary_field",
-            type=bytes,
+            type=_fbthrift_iobuf.IOBuf,
             kind=__NumberType.NOT_A_NUMBER,
             qualifier=__Qualifier.UNQUALIFIED,
             default=None,
@@ -694,7 +694,7 @@ def get_reflection__CustomTypedefFields() -> __StructSpec:
             id=5,
             name="binary_field",
             py_name="binary_field",
-            type=bytes,
+            type=_fbthrift_iobuf.IOBuf,
             kind=__NumberType.NOT_A_NUMBER,
             qualifier=__Qualifier.UNQUALIFIED,
             default=None,
@@ -872,6 +872,40 @@ def get_reflection__AdaptedTypedefFields() -> __StructSpec:
             name="struct_field",
             py_name="struct_field",
             type=_module_types.SimpleStruct,
+            kind=__NumberType.NOT_A_NUMBER,
+            qualifier=__Qualifier.UNQUALIFIED,
+            default=None,
+            annotations={
+            },
+        ),
+    )
+    return spec
+def get_reflection__StringAdaptedUnion() -> __StructSpec:
+    spec: __StructSpec = __StructSpec._fbthrift_create(
+        name="StringAdaptedUnion",
+        kind=__StructType.UNION,
+        annotations={
+        },
+    )
+    spec.add_field(
+        __FieldSpec._fbthrift_create(
+            id=1,
+            name="string_field",
+            py_name="string_field",
+            type=str,
+            kind=__NumberType.NOT_A_NUMBER,
+            qualifier=__Qualifier.UNQUALIFIED,
+            default=None,
+            annotations={
+            },
+        ),
+    )
+    spec.add_field(
+        __FieldSpec._fbthrift_create(
+            id=2,
+            name="binary_field",
+            py_name="binary_field",
+            type=bytes,
             kind=__NumberType.NOT_A_NUMBER,
             qualifier=__Qualifier.UNQUALIFIED,
             default=None,

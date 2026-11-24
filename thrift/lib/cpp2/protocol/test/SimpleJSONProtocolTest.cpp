@@ -30,28 +30,6 @@ class SimpleJSONProtocolTest : public testing::Test {};
 
 using S = SimpleJSONSerializer;
 
-template <typename T>
-struct action_traits_impl;
-template <typename C, typename A>
-struct action_traits_impl<void (C::*)(A&) const> {
-  using arg_type = A;
-};
-template <typename C, typename A>
-struct action_traits_impl<void (C::*)(A&)> {
-  using arg_type = A;
-};
-template <typename F>
-using action_traits = action_traits_impl<decltype(&F::operator())>;
-template <typename F>
-using arg = typename action_traits<F>::arg_type;
-
-template <typename F>
-arg<F> returning(F&& f) {
-  arg<F> ret;
-  f(ret);
-  return ret;
-}
-
 } // namespace
 
 TEST_F(SimpleJSONProtocolTest, roundtrip_struct_with_empty_map_string_i64) {

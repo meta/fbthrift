@@ -35,6 +35,7 @@ _fbthrift_Fiery = Fiery
 @_typing.final
 class Serious(_fbthrift_python_exceptions.GeneratedError, _fbthrift_python_abstract_types.Serious):
     not_sonnet: _typing.Final[_typing.Optional[builtins.str]] = ...
+    r"""1: optional string sonnet"""
     def __init__(
         self, *,
         not_sonnet: _typing.Optional[builtins.str]=...

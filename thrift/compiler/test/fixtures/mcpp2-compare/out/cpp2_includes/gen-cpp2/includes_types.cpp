@@ -97,7 +97,7 @@ std::partial_ordering AStruct::operator<=>([[maybe_unused]] const AStruct& rhs) 
 
 void swap([[maybe_unused]] AStruct& a, [[maybe_unused]] AStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_FieldA, b.__fbthrift_field_FieldA);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_FieldA, b.__fbthrift_field_FieldA);
   swap(a.__isset, b.__isset);
 }
 
@@ -158,7 +158,7 @@ std::partial_ordering AStructB::operator<=>([[maybe_unused]] const AStructB& rhs
 
 void swap([[maybe_unused]] AStructB& a, [[maybe_unused]] AStructB& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_FieldA, b.__fbthrift_field_FieldA);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_FieldA, b.__fbthrift_field_FieldA);
 }
 
 static_assert(

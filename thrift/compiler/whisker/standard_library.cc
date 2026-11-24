@@ -20,7 +20,9 @@
 
 #include <fmt/core.h>
 
+#include <algorithm>
 #include <iterator>
+#include <utility>
 
 namespace w = whisker::make;
 
@@ -116,6 +118,75 @@ map::raw::value_type create_array_functions() {
               "Index '{}' is out of bounds (size is {}).", index, a->size());
         }
         return a->at(index);
+      });
+
+  /**
+   * Partitions an array into consecutive chunks, preserving the input order.
+   * The last chunk may be shorter; empty input produces no chunks.
+   *
+   * Name: array.chunk
+   *
+   * Arguments:
+   *   - [array] — The array to partition.
+   *
+   * Named arguments:
+   *   - [chunk_size: i64] — Required maximum chunk length, greater than zero.
+   *
+   * Returns:
+   *   [array] chunks, with length ceil(input length / chunk_size).
+   */
+  array_functions["chunk"] = dsl::make_function(
+      "array.chunk", [](dsl::function::context ctx) -> object {
+        ctx.declare_named_arguments({"chunk_size"});
+        ctx.declare_arity(1);
+
+        array::ptr arr = ctx.argument<array>(0);
+        const i64 requested_chunk_size =
+            ctx.named_argument<i64>("chunk_size").value();
+        if (requested_chunk_size == 0 ||
+            !std::in_range<std::size_t>(requested_chunk_size)) {
+          throw ctx.make_error(
+              "chunk_size must be greater than 0 and a valid array size, but got {}.",
+              requested_chunk_size);
+        }
+
+        class chunk_view : public array {
+         public:
+          explicit chunk_view(array::ptr a, std::size_t chunk_size)
+              : array_(std::move(a)), chunk_size_(chunk_size) {}
+
+          std::size_t size() const final {
+            return array_->size() / chunk_size_ +
+                (array_->size() % chunk_size_ != 0);
+          }
+          object at(std::size_t index) const final {
+            if (chunk_size_ >= array_->size()) {
+              return object(array_);
+            }
+            const std::size_t begin = index * chunk_size_;
+            const std::size_t length =
+                std::min(chunk_size_, array_->size() - begin);
+            array::raw chunk;
+            chunk.reserve(length);
+            for (std::size_t i = 0; i < length; ++i) {
+              chunk.emplace_back(array_->at(begin + i));
+            }
+            return w::array(std::move(chunk));
+          }
+
+          void print_to(
+              tree_printer::scope& scope,
+              const object_print_options& options) const final {
+            default_print_to("<array.chunk view>", scope, options);
+          }
+
+         private:
+          array::ptr array_;
+          std::size_t chunk_size_;
+        };
+
+        return w::make_array<chunk_view>(
+            std::move(arr), static_cast<std::size_t>(requested_chunk_size));
       });
 
   /**

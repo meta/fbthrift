@@ -267,6 +267,12 @@ std::optional<ServerRequestRejection> RoundRobinRequestPile::enqueue(
     }
   }
 
+  // Read before `request` is moved into a queue.
+  const size_t wiredRequestBytes =
+      limitRejectionObserver_ && request.requestContext()
+      ? request.requestContext()->getWiredRequestBytes()
+      : 0;
+
   // TODO(yichengfb): enforcing limit on single bucket queue
   // We temporarily disable limit for single bucket queue
   // because we currently rely on AtomicNotificationQueue to
@@ -281,6 +287,9 @@ std::optional<ServerRequestRejection> RoundRobinRequestPile::enqueue(
     if (onRequestRejectedFunction_) {
       onRequestRejectedFunction_(pri, bucket);
     }
+    if (limitRejectionObserver_) {
+      limitRejectionObserver_(wiredRequestBytes);
+    }
     return std::make_optional<ServerRequestRejection>(AppServerException(
         "AppServerException", "RequestPile enqueue error : reached max limit"));
   }
@@ -292,6 +301,9 @@ std::optional<ServerRequestRejection> RoundRobinRequestPile::enqueue(
       case RequestQueue::TryPushResult::FAILED_LIMIT_REACHED: {
         if (onRequestRejectedFunction_) {
           onRequestRejectedFunction_(pri, bucket);
+        }
+        if (limitRejectionObserver_) {
+          limitRejectionObserver_(wiredRequestBytes);
         }
         return std::make_optional<ServerRequestRejection>(AppServerException(
             "AppServerException",

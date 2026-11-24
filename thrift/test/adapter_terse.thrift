@@ -28,8 +28,10 @@ cpp_include "thrift/test/AdapterTest.h"
 typedef i64 DurationMs
 
 @cpp.Type{name = "::folly::IOBuf"}
+typedef binary CustomProtocolIOBuf
+
 @cpp.Adapter{name = "::apache::thrift::test::CustomProtocolAdapter"}
-typedef binary CustomProtocolType
+typedef CustomProtocolIOBuf CustomProtocolType
 
 struct AdaptTestStruct {
   @cpp.DeprecatedTerseWrite

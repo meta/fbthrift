@@ -25,7 +25,7 @@
 // These cases are order-dependent and cannot coexist with the "custom resource
 // installed first" cases, which live in their own single-purpose binary.
 
-#if FOLLY_HAS_MEMORY_RESOURCE
+#if FOLLY_HAS_MEMORY_RESOURCE && defined(__cpp_lib_memory_resource)
 
 using apache::thrift::rocket::detail::getDefaultAllocator;
 using apache::thrift::rocket::detail::setDefaultParserMemoryResource;
@@ -53,4 +53,4 @@ TEST(ParserDefaultMemoryResourceTest, SetAfterCaptureFatals) {
       "already materialized");
 }
 
-#endif // FOLLY_HAS_MEMORY_RESOURCE
+#endif // FOLLY_HAS_MEMORY_RESOURCE && defined(__cpp_lib_memory_resource)

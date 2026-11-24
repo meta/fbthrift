@@ -24,6 +24,7 @@ RocketClientChannel::RocketClientChannel(
     folly::EventBase* evb,
     folly::AsyncTransport::UniquePtr socket,
     RequestSetupMetadata meta,
+    RocketClientChannelOptions options,
     int32_t keepAliveTimeoutMs,
     std::shared_ptr<rocket::ParserAllocatorType> allocatorPtr)
     : RocketClientChannelBase(evb),
@@ -32,23 +33,33 @@ RocketClientChannel::RocketClientChannel(
           std::move(socket),
           populateSetupMetadata(std::move(meta), kClientName),
           keepAliveTimeoutMs,
-          std::move(allocatorPtr)) {
+          std::move(allocatorPtr),
+          std::move(options.frameParser)) {
   apache::thrift::detail::hookForClientTransport(getTransport());
 }
 
 RocketClientChannel::Ptr RocketClientChannel::newChannel(
     folly::AsyncTransport::UniquePtr socket) {
-  auto evb = socket->getEventBase();
-  return RocketClientChannel::Ptr(
-      new RocketClientChannel(evb, std::move(socket), RequestSetupMetadata()));
+  return newChannelWithOptions(std::move(socket), {});
 }
 
 RocketClientChannel::Ptr RocketClientChannel::newChannelWithMetadata(
     folly::AsyncTransport::UniquePtr socket, RequestSetupMetadata meta) {
+  return newChannelWithOptions(std::move(socket), {}, std::move(meta));
+}
+
+RocketClientChannel::Ptr RocketClientChannel::newChannelWithOptions(
+    folly::AsyncTransport::UniquePtr socket,
+    RocketClientChannelOptions options,
+    RequestSetupMetadata meta) {
   auto evb = socket->getEventBase();
   auto keepAliveTimeoutMs = getMetaKeepAliveTimeoutMs(meta);
   return RocketClientChannel::Ptr(new RocketClientChannel(
-      evb, std::move(socket), std::move(meta), keepAliveTimeoutMs));
+      evb,
+      std::move(socket),
+      std::move(meta),
+      std::move(options),
+      keepAliveTimeoutMs));
 }
 
 RocketClientChannel::~RocketClientChannel() {

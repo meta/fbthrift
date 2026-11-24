@@ -31,6 +31,7 @@ import com.facebook.thrift.legacy.server.LegacyServerTransportFactory;
 import com.facebook.thrift.legacy.server.testservices.BlockingPingService;
 import io.airlift.units.DataSize;
 import io.airlift.units.Duration;
+import io.netty.handler.ssl.ClientAuth;
 import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
@@ -50,7 +51,10 @@ public class TestServerDecoder {
         new PingServiceRpcServerHandler(new BlockingPingService(), Collections.emptyList());
 
     ThriftServerConfig serverConfig =
-        new ThriftServerConfig().setMaxFrameSize(maxFrameSize).setEnableJdkSsl(false);
+        new ThriftServerConfig()
+            .setClientAuth(ClientAuth.OPTIONAL)
+            .setMaxFrameSize(maxFrameSize)
+            .setEnableJdkSsl(false);
 
     LegacyServerTransportFactory transportFactory = new LegacyServerTransportFactory(serverConfig);
     LegacyServerTransport transport = transportFactory.createServerTransport(serverHandler).block();
@@ -101,7 +105,10 @@ public class TestServerDecoder {
         new PingServiceRpcServerHandler(new BlockingPingService(), Collections.emptyList());
     LegacyServerTransportFactory transportFactory =
         new LegacyServerTransportFactory(
-            new ThriftServerConfig().setMaxFrameSize(maxFrameSize).setEnableJdkSsl(false));
+            new ThriftServerConfig()
+                .setClientAuth(ClientAuth.OPTIONAL)
+                .setMaxFrameSize(maxFrameSize)
+                .setEnableJdkSsl(false));
     LegacyServerTransport transport = transportFactory.createServerTransport(serverHandler).block();
     InetSocketAddress address = (InetSocketAddress) transport.getAddress();
 
@@ -134,7 +141,10 @@ public class TestServerDecoder {
         new PingServiceRpcServerHandler(new BlockingPingService(), Collections.emptyList());
 
     ThriftServerConfig serverConfig =
-        new ThriftServerConfig().setMaxFrameSize(maxFrameSize).setEnableJdkSsl(false);
+        new ThriftServerConfig()
+            .setClientAuth(ClientAuth.OPTIONAL)
+            .setMaxFrameSize(maxFrameSize)
+            .setEnableJdkSsl(false);
 
     LegacyServerTransportFactory transportFactory = new LegacyServerTransportFactory(serverConfig);
     LegacyServerTransport transport = transportFactory.createServerTransport(serverHandler).block();

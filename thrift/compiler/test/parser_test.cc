@@ -17,6 +17,7 @@
 #include <thrift/compiler/parse/parse_ast.h>
 
 #include <optional>
+#include <string>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -41,6 +42,40 @@ TEST(ParserTest, type_resolution) {
 
   // Programs must be non-null even in case of an error.
   EXPECT_TRUE(programs != nullptr);
+}
+
+TEST(ParserTest, unqualified_type_cannot_resolve_in_an_implicit_root) {
+  for (const bool global : {false, true}) {
+    source_manager source_mgr;
+    source_mgr.add_virtual_file("dependent.thrift", R"(
+      package "example.com/dependent"
+      struct Uses { 1: External field; }
+    )");
+    source_mgr.add_virtual_file("root.thrift", R"(
+      include "dependent.thrift"
+      package "example.com/root"
+      struct External { 1: i64 id; }
+    )");
+    std::vector<std::string> errors;
+    diagnostics_engine diags(source_mgr, [&](const diagnostic& d) {
+      if (d.level() == diagnostic_level::error) {
+        errors.push_back(d.message());
+      }
+    });
+    parsing_params params;
+    params.use_global_resolution = global;
+    auto programs = parse_ast(source_mgr, diags, "root.thrift", params);
+    ASSERT_NE(programs, nullptr);
+    EXPECT_EQ(
+        errors, (std::vector<std::string>{"Type `External` not defined."}));
+    const auto* dependent =
+        programs->root_program()->includes().front()->get_program();
+    EXPECT_FALSE(dependent->structured_definitions()
+                     .at(0)
+                     ->get_field_by_id(1)
+                     ->type()
+                     .resolved());
+  }
 }
 
 TEST(ParserTest, missing_field_ids) {
@@ -399,4 +434,88 @@ TEST(ParserTest, structured_annotation_before_include_uri) {
   // has_structured_annotation should also work with URI lookup
   EXPECT_TRUE(root.has_structured_annotation(
       "facebook.com/thrift/test/annotation/MyAnnotation"));
+}
+
+TEST(ParserTest, unqualified_type_does_not_use_a_local_constant_as_fallback) {
+  source_manager source_mgr;
+  source_mgr.add_virtual_file("a/foo.thrift", R"(
+    package "example.com/a"
+    struct Foo { 1: i64 id; }
+  )");
+  source_mgr.add_virtual_file("b/foo.thrift", R"(
+    include "a/foo.thrift"
+    package "example.com/b"
+    struct Bar { 1: Foo field; }
+    const i32 Foo = 1
+  )");
+  source_mgr.add_virtual_file("c/foo.thrift", R"(
+    package "example.com/c"
+    struct Foo { 1: string value; }
+  )");
+  source_mgr.add_virtual_file("entry.thrift", R"(
+    include "b/foo.thrift"
+    include "c/foo.thrift"
+    package "example.com/entry"
+  )");
+  diagnostics_engine diags(source_mgr, [](const diagnostic&) {});
+  auto programs = parse_ast(source_mgr, diags, "entry.thrift", {});
+  ASSERT_NE(programs, nullptr);
+  EXPECT_TRUE(diags.has_errors());
+  const auto* b = programs->root_program()->includes().at(0)->get_program();
+  EXPECT_FALSE(
+      b->structured_definitions().at(0)->get_field_by_id(1)->type().resolved());
+  for (const auto& mismatch : b->global_scope()->resolution_mismatches()) {
+    EXPECT_FALSE(mismatch.program == b && mismatch.id == "Foo");
+  }
+}
+
+TEST(ParserTest, qualified_import_retains_legacy_binding_order) {
+  for (const bool global : {false, true}) {
+    source_manager source_mgr;
+    source_mgr.add_virtual_file("import/foo.thrift", R"(
+      package "example.com/import"
+      struct Name { 1: string value; }
+    )");
+    source_mgr.add_virtual_file("foo.thrift", R"(
+      include "import/foo.thrift"
+      package "example.com/root"
+      @foo.Name
+      struct Before { 1: foo.Name name; }
+      struct Name { 1: i64 id; }
+      @foo.Name
+      struct After { 1: foo.Name name; }
+    )");
+    diagnostics_engine diags(source_mgr, [](const diagnostic&) {});
+    parsing_params params;
+    params.use_global_resolution = global;
+    auto programs = parse_ast(source_mgr, diags, "foo.thrift", params);
+    ASSERT_NE(programs, nullptr);
+    ASSERT_FALSE(diags.has_errors());
+    const auto* root = programs->root_program();
+    const auto* imported =
+        root->includes().front()->get_program()->structured_definitions().at(0);
+    const auto* own = root->structured_definitions().at(1);
+    EXPECT_EQ(
+        root->structured_definitions()
+            .at(0)
+            ->get_field_by_id(1)
+            ->type()
+            ->get_true_type(),
+        imported);
+    EXPECT_EQ(
+        root->structured_definitions()
+            .at(2)
+            ->get_field_by_id(1)
+            ->type()
+            ->get_true_type(),
+        global ? own : imported);
+    // An annotation binds like a field type with the same spelling.
+    for (const auto* def :
+         {root->structured_definitions().at(0),
+          root->structured_definitions().at(2)}) {
+      EXPECT_EQ(
+          def->structured_annotations().front().type()->get_true_type(),
+          def->get_field_by_id(1)->type()->get_true_type());
+    }
+  }
 }

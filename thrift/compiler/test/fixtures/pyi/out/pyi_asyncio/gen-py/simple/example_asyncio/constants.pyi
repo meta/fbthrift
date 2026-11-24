@@ -7,6 +7,7 @@
 import typing as __T
 
 import simple.dependent_asyncio.ttypes
+import simple.transitive_asyncio.ttypes
 from simple.example_asyncio.ttypes import *
 
 A_BOOL: bool

@@ -65,7 +65,7 @@ namespace apache::thrift {
  *    apache::thrift::merge_into(std::move(src2), dst); // move-style
  */
 template <typename T>
-void merge_into(T&& src, folly::remove_cvref_t<T>& dst);
+void merge_into(T&& src, std::remove_cvref_t<T>& dst);
 
 } // namespace apache::thrift
 

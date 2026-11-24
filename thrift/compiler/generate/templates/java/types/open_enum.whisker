@@ -43,9 +43,17 @@ public class {{enum.javaCapitalName}} extends ThriftEnum<{{enum.javaCapitalName}
 
     private static final Map<Integer, Value> hm = new HashMap<>();
 
-    private static void init() {
-{{#each (array.enumerate enum.values) as |index enum_value|}}
+{{#each (array.enumerate (array.chunk (array.enumerate enum.values) chunk_size=1000)) as |chunk_index chunk|}}
+    private static void init{{chunk_index}}() {
+{{#each chunk as |index enum_value|}}
         hm.put({{enum_value.value}}, new Value({{index}}, "{{enum_value.javaConstantName}}", {{enum_value.javaConstantName}}));
+{{/each}}
+    }
+
+{{/each}}
+    private static void init() {
+{{#each (array.enumerate (array.chunk (array.enumerate enum.values) chunk_size=1000)) as |chunk_index chunk|}}
+        init{{chunk_index}}();
 {{/each}}
         hm.put(UNRECOGNIZED_VALUE, new Value({{(array.len enum.values)}}, "UNRECOGNIZED", null));
     }

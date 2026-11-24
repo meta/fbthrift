@@ -14,6 +14,11 @@
  * limitations under the License.
  */
 
+#include <stdexcept>
+#include <string>
+#include <type_traits>
+#include <vector>
+
 #include <gtest/gtest.h>
 #include <folly/CPortability.h>
 
@@ -494,4 +499,48 @@ TEST(CompactProtocolReaderTest, ParsesUpdatedManually) {
       EXPECT_FALSE(reader.getCursor().canAdvance(1));
     }
   }
+}
+
+TEST(
+    CompactProtocolReaderTest,
+    ReadArithmeticVectorThrowsAtEndAfterLongestVarints) {
+  const std::string longestI32Varint = std::string(4, '\xff') + '\x0f';
+  const auto buf =
+      folly::IOBuf::copyBuffer(longestI32Varint + longestI32Varint);
+  CompactProtocolReader reader;
+  reader.setInput(buf.get());
+  std::vector<int32_t> values(3);
+  EXPECT_THROW(
+      reader.readArithmeticVector(values.data(), values.size()),
+      std::out_of_range);
+}
+
+template <typename T>
+void expectBulkWriteThroughOneByteBuffersMatchesEachElement() {
+  const std::vector<T> values{1, -2, 3};
+  CompactProtocolWriter eachElement;
+  folly::IOBufQueue expected;
+  eachElement.setOutput(&expected);
+  for (T value : values) {
+    if constexpr (std::is_same_v<T, float>) {
+      eachElement.writeFloat(value);
+    } else {
+      eachElement.writeDouble(value);
+    }
+  }
+
+  CompactProtocolWriter bulk;
+  folly::IOBufQueue actual;
+  bulk.setOutput(&actual, /*maxGrowth=*/1);
+  bulk.writeArithmeticVector(values.data(), values.size());
+  std::string expectedBytes;
+  expected.appendToString(expectedBytes);
+  std::string actualBytes;
+  actual.appendToString(actualBytes);
+  EXPECT_EQ(actualBytes, expectedBytes);
+}
+
+TEST(CompactProtocolWriterTest, WriteArithmeticVectorThroughOneByteBuffers) {
+  expectBulkWriteThroughOneByteBuffersMatchesEachElement<float>();
+  expectBulkWriteThroughOneByteBuffersMatchesEachElement<double>();
 }

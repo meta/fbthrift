@@ -17,13 +17,14 @@
 package com.facebook.thrift.legacy.server;
 
 import static com.facebook.thrift.util.RpcServerUtils.getThriftSslSession;
+import static com.facebook.thrift.util.ThriftProtocolConstants.FRAME_NO_REPLY_SEQ_ID;
 import static com.google.common.base.Strings.nullToEmpty;
 import static java.util.Objects.requireNonNull;
 import static java.util.regex.Pattern.CASE_INSENSITIVE;
 
 import com.facebook.nifty.core.NiftyConnectionContext;
 import com.facebook.nifty.core.RequestContext;
-import com.facebook.nifty.core.RequestContexts;
+import com.facebook.nifty.core.RequestContextScope;
 import com.facebook.thrift.legacy.codec.FrameInfo;
 import com.facebook.thrift.legacy.codec.LegacyTransportType;
 import com.facebook.thrift.legacy.codec.ThriftFrame;
@@ -32,7 +33,9 @@ import com.facebook.thrift.payload.RequestData;
 import com.facebook.thrift.payload.ServerRequestPayload;
 import com.facebook.thrift.payload.ServerResponsePayload;
 import com.facebook.thrift.protocol.TProtocolType;
+import com.facebook.thrift.server.OverloadedException;
 import com.facebook.thrift.server.RpcServerHandler;
+import com.facebook.thrift.util.HeaderOverloadError;
 import com.facebook.thrift.util.MonoTimeoutTransformer;
 import com.facebook.thrift.util.NettyNiftyRequestContext;
 import com.facebook.thrift.util.NettyUtil;
@@ -101,8 +104,7 @@ public class ThriftServerHandler extends ChannelDuplexHandler {
                   frameInfo.getProtocol(),
                   frameInfo.getSequenceId(),
                   frameInfo.isSupportOutOfOrderResponse(),
-                  TApplicationException.PROTOCOL_ERROR,
-                  e.getMessage(),
+                  new TApplicationException(TApplicationException.PROTOCOL_ERROR, e.getMessage()),
                   Collections.emptyMap()));
         } catch (Throwable t) {
           context.close();
@@ -123,9 +125,22 @@ public class ThriftServerHandler extends ChannelDuplexHandler {
   private void messageReceived(ChannelHandlerContext context, ThriftFrame frame) {
     NettyNiftyRequestContext nettyNiftyRequestContext =
         new NettyNiftyRequestContext(frame.getHeaders(), getConnectionContext(context));
-    RequestContext currentContext = RequestContexts.getCurrentContext();
-    RequestContexts.setCurrentContext(nettyNiftyRequestContext);
+    RequestContextScope.run(
+        nettyNiftyRequestContext, () -> dispatch(context, frame, nettyNiftyRequestContext));
+  }
 
+  /**
+   * Decodes the frame, assembles the response pipeline and subscribes to it, all under the binding
+   * its caller opened. The method body runs synchronously on the event loop thread that read the
+   * frame. Completion callbacks on the pipeline, such as its {@code doFinally}, run on whichever
+   * thread terminates it, so they must not assume event loop affinity or touch the binding; the
+   * pipeline carries the context through the Reactor {@code Context} the generated dispatcher
+   * writes.
+   */
+  private void dispatch(
+      ChannelHandlerContext context,
+      ThriftFrame frame,
+      NettyNiftyRequestContext nettyNiftyRequestContext) {
     ServerRequestPayload serverRequestPayload = null;
     RequestRpcMetadata metadata;
     Mono<Void> response;
@@ -167,20 +182,18 @@ public class ThriftServerHandler extends ChannelDuplexHandler {
                 return Mono.empty();
               })
           .doFinally(
-              __ -> {
-                RequestContexts.setCurrentContext(currentContext);
-                // The generated handler released the frame right after the read. This is the
-                // idempotent backstop for the paths where it never runs (e.g. the off-loop
-                // scheduler rejecting the request under load shedding).
-                payload.releaseRequestData();
-              })
+              __ ->
+                  // The generated handler released the frame right after the read. This is the
+                  // idempotent backstop for the paths where it never runs (e.g. the off-loop
+                  // scheduler rejecting the request under load shedding).
+                  payload.releaseRequestData())
           .subscribe();
 
     } catch (Throwable t) {
       // Synchronous failure decoding the message or assembling the response pipeline. The reactive
-      // doFinally below never runs on this path, so release the frame here (idempotent with
-      // decodeMessage's own release) to avoid leaking the underlying direct buffer, restore the
-      // request context, then surface the error as before.
+      // doFinally above never runs on this path, so release the frame here (idempotent with
+      // decodeMessage's own release) to avoid leaking the underlying direct buffer, then surface
+      // the error as before.
       if (serverRequestPayload != null) {
         // Payload took ownership of the frame: route through its idempotent release so the catch
         // and success paths stay consistent and the payload's internal frame ref is cleared.
@@ -189,7 +202,6 @@ public class ThriftServerHandler extends ChannelDuplexHandler {
         // Decode failed before the payload took ownership; release the frame directly.
         frame.release();
       }
-      RequestContexts.setCurrentContext(currentContext);
       throw Exceptions.propagate(t);
     }
   }
@@ -209,23 +221,11 @@ public class ThriftServerHandler extends ChannelDuplexHandler {
                 TimeUnit.MILLISECONDS,
                 Mono.defer(
                     () -> {
-                      String message =
-                          String.format(
-                              "method %s timed out after %s", metadata.getName(), requestTimeout);
-                      log.warn(message);
-                      ThriftFrame exceptionFrame =
-                          encodeApplicationException(
-                              context,
-                              metadata.getName(),
-                              frame.getTransport(),
-                              frame.getProtocol(),
-                              frame.getSequenceId(),
-                              frame.isSupportOutOfOrderResponse(),
-                              TApplicationException.TIMEOUT,
-                              message,
-                              responseHeaders);
-
-                      return NettyUtil.toMono(context.writeAndFlush(exceptionFrame));
+                      log.warn(
+                          "oneway method {} timed out after {}",
+                          metadata.getName(),
+                          requestTimeout);
+                      return Mono.empty();
                     })));
   }
 
@@ -283,8 +283,7 @@ public class ThriftServerHandler extends ChannelDuplexHandler {
                               frame.getProtocol(),
                               frame.getSequenceId(),
                               frame.isSupportOutOfOrderResponse(),
-                              TApplicationException.TIMEOUT,
-                              message,
+                              new TApplicationException(TApplicationException.TIMEOUT, message),
                               responseHeaders);
 
                       return NettyUtil.toMono(context.writeAndFlush(exceptionFrame));
@@ -298,6 +297,9 @@ public class ThriftServerHandler extends ChannelDuplexHandler {
       ThriftFrame frame,
       Map<String, String> responseHeaders) {
     log.error("ThriftServerHandler received uncaught exception", throwable);
+    if (metadata.getKind() == RpcKind.SINGLE_REQUEST_NO_RESPONSE) {
+      return Mono.empty();
+    }
     if (throwable instanceof RejectedExecutionException) {
       ThriftFrame exceptionFrame =
           encodeApplicationException(
@@ -307,8 +309,7 @@ public class ThriftServerHandler extends ChannelDuplexHandler {
               frame.getProtocol(),
               frame.getSequenceId(),
               frame.isSupportOutOfOrderResponse(),
-              TApplicationException.LOADSHEDDING,
-              throwable.getMessage(),
+              OverloadedException.host(throwable.getMessage()),
               responseHeaders);
 
       if (!context.channel().isActive()) {
@@ -335,8 +336,10 @@ public class ThriftServerHandler extends ChannelDuplexHandler {
 
       TMessage message = byteBufTProtocol.readMessageBegin();
 
+      // A C++ Header oneway arrives with the reserved frame sequence above and a T_CALL body;
+      // either sentinel routes to no-response. A bare body seqid -1 keeps the Java-only behavior.
       RpcKind kind =
-          message.seqid == -1
+          message.seqid == -1 || frame.getSequenceId() == FRAME_NO_REPLY_SEQ_ID
               ? RpcKind.SINGLE_REQUEST_NO_RESPONSE
               : RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE;
 
@@ -381,10 +384,11 @@ public class ThriftServerHandler extends ChannelDuplexHandler {
 
     Map<String, String> otherMetadata =
         serverResponsePayload.getResponseRpcMetadata().getOtherMetadata();
-
     if (otherMetadata != null && !otherMetadata.isEmpty()) {
       responseHeaders.putAll(otherMetadata);
     }
+    HeaderOverloadError.stampResponseHeaders(
+        responseHeaders, serverResponsePayload.getApplicationException());
 
     return new ThriftFrame(
         frame.getSequenceId(),
@@ -393,7 +397,8 @@ public class ThriftServerHandler extends ChannelDuplexHandler {
         Collections.emptyMap(),
         frame.getTransport(),
         frame.getProtocol(),
-        frame.isSupportOutOfOrderResponse());
+        frame.isSupportOutOfOrderResponse(),
+        frame.getTransforms());
   }
 
   private static ThriftFrame encodeApplicationException(
@@ -403,17 +408,16 @@ public class ThriftServerHandler extends ChannelDuplexHandler {
       TProtocolType protocol,
       int sequenceId,
       boolean supportOutOfOrderResponse,
-      int errorCode,
-      String errorMessage,
+      TApplicationException applicationException,
       Map<String, String> responseHeaders) {
-    TApplicationException applicationException = new TApplicationException(errorCode, errorMessage);
-
     ByteBuf buf = context.alloc().buffer();
     TProtocol out = protocol.apply(buf);
 
     out.writeMessageBegin(new TMessage(methodName, TMessageType.EXCEPTION, sequenceId));
     applicationException.write(out);
     out.writeMessageEnd();
+
+    HeaderOverloadError.stampResponseHeaders(responseHeaders, applicationException);
 
     return new ThriftFrame(
         sequenceId,

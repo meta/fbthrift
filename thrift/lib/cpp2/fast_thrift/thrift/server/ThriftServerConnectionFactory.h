@@ -19,6 +19,7 @@
 #include <chrono>
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <variant>
 #include <vector>
 
@@ -34,7 +35,6 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/BufferAllocator.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
 #include <thrift/lib/cpp2/fast_thrift/common/ServerStats.h>
-#include <thrift/lib/cpp2/fast_thrift/frame/write/FragmentationHandlerConfig.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/IntervalBatchingHandlerConfig.h>
 #include <thrift/lib/cpp2/fast_thrift/interface/control/ControlServerInterface.h>
 #include <thrift/lib/cpp2/fast_thrift/interface/debug/DebugServerInterface.h>
@@ -51,6 +51,7 @@
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/MethodMetadata.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/ThriftServerConnection.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/framework/ThriftPipelineHandler.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/util/ConcurrencyControlState.h>
 #include <thrift/lib/cpp2/fast_thrift/transport/TransportHandler.h>
 #include <thrift/lib/thrift/gen-cpp2/metadata_types.h>
 
@@ -95,6 +96,8 @@ struct ThriftServerConnectionFactoryConfig {
   std::shared_ptr<const ExtensionLayout> requestExtensionLayout;
   std::shared_ptr<const ThriftServerMethodMetadataRegistry> methodMetadata;
 
+  bool requiresCachedEkms{false};
+
   // When true, populate each request's ThriftRequestContext with the inbound
   // custom headers (RequestRpcMetadata.otherMetadata).
   bool enableRequestHeaders{false};
@@ -109,11 +112,8 @@ struct ThriftServerConnectionFactoryConfig {
   // tokens to service handlers. Disabled requests retain an invalid source.
   bool enableCancellation{false};
 
-  // When true, insert WriteBufferBackpressureHandler into the thrift
-  // pipeline to absorb outbound Backpressure: responses queue in a FIFO
-  // when downstream is saturated and drain on onWriteReady; inbound reads
-  // surface Backpressure while buffered to pause socket reads.
-  bool enableWriteBufferBackpressure{false};
+  std::optional<RequestConcurrencyLimits> requestConcurrencyLimits;
+  std::shared_ptr<ConcurrencyControlStateHolder> concurrencyState;
 
   // When true, insert ThriftServerStreamMuxHandler immediately head-ward of the
   // tail app adapter, so it owns/multiplexes per-stream producing-end
@@ -126,10 +126,6 @@ struct ThriftServerConnectionFactoryConfig {
   // at end of each event loop iteration. Set batchingInterval > 0 to use
   // an HHWheelTimer-driven flush instead.
   frame::write::IntervalBatchingHandlerConfig batchingConfig{};
-
-  // Outbound frame fragmentation. Splits oversized PAYLOAD / REQUEST_*
-  // frames into spec-compliant fragment chains; small frames bypass.
-  frame::write::FragmentationHandlerConfig fragmentationConfig{};
 
   // Per-connection terminal-phase deadlines passed to
   // ThriftServerConnectionCloseHandler. Defaults mirror that handler's
@@ -179,9 +175,25 @@ class ThriftServerConnectionFactoryT {
   ThriftServerConnection getConnection(
       folly::AsyncTransport::UniquePtr socket,
       const folly::SocketAddress& clientAddr,
-      const std::shared_ptr<const connection::PeerSecurityInfo>& peerSecurity);
+      std::unique_ptr<connection::PeerSecurityInfo> peerSecurity);
+
+  // An empty result means the socket was dropped after EKM allocation failed.
+  std::optional<ThriftServerConnection> tryGetConnectionForAccept(
+      folly::AsyncTransport::UniquePtr socket,
+      const folly::SocketAddress& clientAddr,
+      std::unique_ptr<connection::PeerSecurityInfo> peerSecurity);
+
+  connection::PreStopTLSEkmCapture getPreStopTLSEkmCapture() const noexcept;
 
  private:
+  enum class EkmAllocationFailure { Propagate, DropConnection };
+
+  std::optional<ThriftServerConnection> getConnectionImpl(
+      folly::AsyncTransport::UniquePtr socket,
+      const folly::SocketAddress& clientAddr,
+      std::unique_ptr<connection::PeerSecurityInfo> peerSecurity,
+      EkmAllocationFailure onEkmAllocationFailure);
+
   // Builds the rocket pipeline (TransportHandler ... RocketServerAppAdapter).
   // Same shape as the legacy FastThriftServer::buildRocketPipeline; lives
   // here because the factory owns the shared rocket allocator.
@@ -192,13 +204,6 @@ class ThriftServerConnectionFactoryT {
       folly::EventBase* evb,
       TransportHandler* transportHandler,
       rocket::server::RocketServerAppAdapter* appAdapter,
-      ServerStatsShard* FOLLY_NULLABLE statsShard);
-
-  template <transport::Parser ParserT>
-  void initializeRocketConnection(
-      folly::AsyncTransport::UniquePtr socket,
-      folly::EventBase* evb,
-      rocket::server::RocketServerConnection& rocketConnection,
       ServerStatsShard* FOLLY_NULLABLE statsShard);
 
   // Hands the configured CPU pool to a user adapter. No-op when no pool is

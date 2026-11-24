@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <thrift/lib/cpp2/transport/rocket/framing/Parser.h>
 #include <thrift/lib/cpp2/transport/rocket/framing/parser/FrameLengthParserStrategy.h>
 
 #include <cstring>
@@ -67,6 +68,14 @@ struct ThrowingOwner {
 
   size_t handledFrames{0};
   uint32_t memoryCounter{0};
+};
+
+struct ParserOwner : folly::DelayedDestruction, FakeOwner {
+  ~ParserOwner() override = default;
+
+  void close(const transport::TTransportException&) { ++closeCalls; }
+
+  size_t closeCalls{0};
 };
 
 void recordRelease(void*, void* userData) noexcept {
@@ -131,6 +140,39 @@ TEST(FrameLengthParserIOBufChainTest, CompleteFrameRetainsLease) {
   EXPECT_EQ(tracker.releases, 0);
   owner.chainFrames_.clear();
   EXPECT_EQ(tracker.releases, 1);
+}
+
+TEST(FrameLengthParserIOBufChainTest, OuterParserRoutesBufferByMode) {
+  auto input = makeFrame("payload");
+  ReleaseTracker tracker;
+  ParserOwner owner;
+  Parser<ParserOwner> parser(owner, "iobuf_chain");
+
+  folly::AsyncTransport::ReadCallback* callback = &parser;
+  EXPECT_TRUE(callback->isBufferMovable());
+  callback->readBufferAvailable(
+      makeOwnedBuffer(input.data(), input.size(), tracker));
+
+  ASSERT_EQ(owner.chainFrames_.size(), 1);
+  EXPECT_EQ(chainString(owner.chainFrames_.front()), "payload");
+  EXPECT_EQ(owner.closeCalls, 0);
+  owner.chainFrames_.clear();
+  EXPECT_EQ(tracker.releases, 1);
+
+  ParserOwner defaultOwner;
+  Parser<ParserOwner> defaultParser(defaultOwner, "strategy");
+  folly::AsyncTransport::ReadCallback* defaultCallback = &defaultParser;
+  EXPECT_TRUE(defaultCallback->isBufferMovable());
+  ReleaseTracker defaultTracker;
+  defaultCallback->readBufferAvailable(
+      makeOwnedBuffer(input.data(), input.size(), defaultTracker));
+
+  ASSERT_EQ(defaultOwner.frames_.size(), 1);
+  EXPECT_EQ(defaultOwner.frames_.front()->length(), 7);
+  EXPECT_TRUE(defaultOwner.chainFrames_.empty());
+  EXPECT_EQ(defaultOwner.closeCalls, 0);
+  defaultOwner.frames_.clear();
+  EXPECT_EQ(defaultTracker.releases, 1);
 }
 
 TEST(FrameLengthParserIOBufChainTest, HeaderCanSpanInputBuffers) {

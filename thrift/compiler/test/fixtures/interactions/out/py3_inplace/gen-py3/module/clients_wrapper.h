@@ -74,6 +74,18 @@ class MyServiceClientWrapper : public ::thrift::py3::ClientWrapper {
           apache::thrift::RpcOptions& rpcOptions);
         folly::Future<apache::thrift::ClientBufferedStream<bool>> truthify(
           apache::thrift::RpcOptions& rpcOptions);
+        folly::Future<apache::thrift::ClientBufferedStream<int32_t>> failstream(
+          apache::thrift::RpcOptions& rpcOptions);
+        folly::Future<apache::thrift::ClientBufferedStream<int32_t>> failstreaminit(
+          apache::thrift::RpcOptions& rpcOptions);
+        folly::Future<int32_t> frobnicateWithArg(
+          apache::thrift::RpcOptions& rpcOptions,
+          int32_t arg_arg);
+        folly::Future<apache::thrift::ClientBufferedStream<int32_t>> streamWithArg(
+          apache::thrift::RpcOptions& rpcOptions,
+          std::string arg_query);
+        folly::Future<apache::thrift::ResponseAndClientBufferedStream<int32_t,int32_t>> firstAndStream(
+          apache::thrift::RpcOptions& rpcOptions);
     };
 
     class MyInteractionFastInteractionWrapper : public ClientWrapper {
@@ -120,6 +132,10 @@ class FactoriesClientWrapper : public ::thrift::py3::ClientWrapper {
       apache::thrift::RpcOptions& rpcOptions);
     folly::Future<apache::thrift::ResponseAndClientBufferedStream<int32_t,int32_t>> serialize(
       apache::thrift::RpcOptions& rpcOptions);
+    folly::Future<apache::thrift::ClientBufferedStream<int32_t>> interactWithStream(
+      apache::thrift::RpcOptions& rpcOptions);
+    folly::Future<apache::thrift::ResponseAndClientBufferedStream<int32_t,int32_t>> interactWithStreamAndInitialResponse(
+      apache::thrift::RpcOptions& rpcOptions);
 };
 
 
@@ -142,6 +158,18 @@ class PerformClientWrapper : public ::thrift::py3::ClientWrapper {
         folly::Future<folly::Unit> ping(
           apache::thrift::RpcOptions& rpcOptions);
         folly::Future<apache::thrift::ClientBufferedStream<bool>> truthify(
+          apache::thrift::RpcOptions& rpcOptions);
+        folly::Future<apache::thrift::ClientBufferedStream<int32_t>> failstream(
+          apache::thrift::RpcOptions& rpcOptions);
+        folly::Future<apache::thrift::ClientBufferedStream<int32_t>> failstreaminit(
+          apache::thrift::RpcOptions& rpcOptions);
+        folly::Future<int32_t> frobnicateWithArg(
+          apache::thrift::RpcOptions& rpcOptions,
+          int32_t arg_arg);
+        folly::Future<apache::thrift::ClientBufferedStream<int32_t>> streamWithArg(
+          apache::thrift::RpcOptions& rpcOptions,
+          std::string arg_query);
+        folly::Future<apache::thrift::ResponseAndClientBufferedStream<int32_t,int32_t>> firstAndStream(
           apache::thrift::RpcOptions& rpcOptions);
     };
 
@@ -195,6 +223,18 @@ class InteractWithSharedClientWrapper : public ::thrift::py3::ClientWrapper {
         folly::Future<folly::Unit> ping(
           apache::thrift::RpcOptions& rpcOptions);
         folly::Future<apache::thrift::ClientBufferedStream<bool>> truthify(
+          apache::thrift::RpcOptions& rpcOptions);
+        folly::Future<apache::thrift::ClientBufferedStream<int32_t>> failstream(
+          apache::thrift::RpcOptions& rpcOptions);
+        folly::Future<apache::thrift::ClientBufferedStream<int32_t>> failstreaminit(
+          apache::thrift::RpcOptions& rpcOptions);
+        folly::Future<int32_t> frobnicateWithArg(
+          apache::thrift::RpcOptions& rpcOptions,
+          int32_t arg_arg);
+        folly::Future<apache::thrift::ClientBufferedStream<int32_t>> streamWithArg(
+          apache::thrift::RpcOptions& rpcOptions,
+          std::string arg_query);
+        folly::Future<apache::thrift::ResponseAndClientBufferedStream<int32_t,int32_t>> firstAndStream(
           apache::thrift::RpcOptions& rpcOptions);
     };
 

@@ -27,6 +27,7 @@ from typing import (
     Union,
 )
 
+from apache.thrift.metadata.thrift_types import ThriftMetadata as PythonThriftMetadata
 from apache.thrift.metadata.types import (
     ThriftConstStruct,
     ThriftConstValue,
@@ -98,6 +99,9 @@ class ThriftConstKind(Enum):
 
 class Metadata(Protocol):
     def getThriftModuleMetadata(self) -> ThriftMetadata: ...
+
+class PythonMetadata(Protocol):
+    def getThriftModuleMetadata(self) -> PythonThriftMetadata: ...
 
 class ThriftTypeProxy:
     thriftType: Union[
@@ -178,7 +182,7 @@ class ThriftStructProxy(ThriftTypeProxy):
     is_union: bool
     structuredAnnotations: Sequence[ThriftConstStructProxy]
 
-ConstType = Union[  # type: ignore
+ConstType = Union[
     bool,
     int,
     float,
@@ -232,6 +236,8 @@ class ThriftServiceProxy(Protocol):
 
 @overload
 def gen_metadata(cls: Metadata) -> ThriftMetadata: ...
+@overload
+def gen_metadata(cls: PythonMetadata) -> PythonThriftMetadata: ...
 @overload
 def gen_metadata(cls: Union[Struct, Type[Struct]]) -> ThriftStructProxy: ...
 @overload

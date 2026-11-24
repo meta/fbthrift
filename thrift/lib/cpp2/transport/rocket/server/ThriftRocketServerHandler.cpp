@@ -31,6 +31,7 @@
 #include <thrift/lib/cpp/TApplicationException.h>
 #include <thrift/lib/cpp/util/EnumUtils.h>
 #include <thrift/lib/cpp2/Flags.h>
+#include <thrift/lib/cpp2/IOBufChainCursor.h>
 #include <thrift/lib/cpp2/async/ResponseChannel.h>
 #include <thrift/lib/cpp2/logging/ThriftConnectionLog.h>
 #include <thrift/lib/cpp2/server/Cpp2ConnContext.h>
@@ -78,6 +79,64 @@ bool isMetadataValid(const RequestRpcMetadata& metadata, RpcKind expectedKind) {
       metadata.kind() == expectedKind;
 }
 
+size_t unpackSetupMetadata(
+    RequestSetupMetadata& metadata,
+    const folly::io::Cursor& cursor,
+    const SetupFrame& frame) {
+  return PayloadSerializer::getInstance()->unpack(
+      metadata, cursor, frame.encodeMetadataUsingBinary());
+}
+
+size_t unpackSetupMetadata(
+    RequestSetupMetadata& metadata,
+    const io::IOBufChainCursor& cursor,
+    const SetupFrame& frame) {
+  if (frame.encodeMetadataUsingBinary()) {
+    return PayloadSerializer::getInstance()->unpack(metadata, cursor, true);
+  }
+  auto buffer = frame.payload().copyMetadataToIOBuf();
+  folly::io::Cursor metadataCursor(buffer.get());
+  metadataCursor.skip(cursor.getCurrentPosition());
+  return PayloadSerializer::getInstance()->unpack(
+      metadata, metadataCursor, false);
+}
+
+template <typename Cursor>
+bool readSetup(
+    Cursor& cursor,
+    RequestSetupMetadata& meta,
+    const SetupFrame& frame,
+    IRocketServerConnection& connection) {
+  uint32_t protocolKey = 0;
+  const bool success = cursor.template tryReadBE<uint32_t>(protocolKey);
+  constexpr uint32_t kLegacyRocketProtocolKey = 1;
+  if (!success ||
+      ((!THRIFT_FLAG(rocket_server_legacy_protocol_key) ||
+        protocolKey != kLegacyRocketProtocolKey) &&
+       protocolKey != RpcMetadata_constants::kRocketProtocolKey())) {
+    if (!frame.rocketMimeTypes()) {
+      connection.close(
+          folly::make_exception_wrapper<RocketException>(
+              ErrorCode::INVALID_SETUP, "Incompatible Thrift version"));
+      return false;
+    }
+    // If Rocket MIME types are used the protocol key is optional.
+    if (success) {
+      cursor.retreat(4);
+    }
+  }
+
+  if (unpackSetupMetadata(meta, cursor, frame) !=
+      frame.payload().metadataSize()) {
+    connection.close(
+        folly::make_exception_wrapper<RocketException>(
+            ErrorCode::INVALID_SETUP,
+            "Error deserializing SETUP payload: underflow"));
+    return false;
+  }
+  return true;
+}
+
 // The reason we have separate helper functions is for some minor perf
 // optimization: calling THRIFT_REQUEST_EVENT will attempt to fetch the handler
 // from a global map, the result of which is cached at the function that invokes
@@ -120,7 +179,9 @@ ThriftRocketServerHandler::ThriftRocketServerHandler(
                                 .get()),
       resetConnCtxUserDataOnClose_(worker_->getServer()
                                        ->getThriftServerConfig()
-                                       .getResetConnCtxUserDataOnClose()) {
+                                       .getResetConnCtxUserDataOnClose()),
+      keepDebugPayloads_(
+          worker_->getServer()->getMaxDebugPayloadMemoryPerRequest() > 0) {
   connContext_.setTransportType(Cpp2ConnContext::TransportType::ROCKET);
 
   auto* server = worker_->getServer();
@@ -177,36 +238,18 @@ void ThriftRocketServerHandler::handleSetupFrame(
             "Missing required metadata in SETUP frame"));
   }
 
-  folly::io::Cursor cursor(frame.payload().buffer());
-
-  // Validate Thrift protocol key
-  uint32_t protocolKey;
-  const bool success = cursor.tryReadBE<uint32_t>(protocolKey);
-  constexpr uint32_t kLegacyRocketProtocolKey = 1;
-  if (!success ||
-      ((!THRIFT_FLAG(rocket_server_legacy_protocol_key) ||
-        protocolKey != kLegacyRocketProtocolKey) &&
-       protocolKey != RpcMetadata_constants::kRocketProtocolKey())) {
-    if (!frame.rocketMimeTypes()) {
-      return connection.close(
-          folly::make_exception_wrapper<RocketException>(
-              ErrorCode::INVALID_SETUP, "Incompatible Thrift version"));
-    }
-    // If Rocket MIME types are used the protocol key is optional.
-    if (success) {
-      cursor.retreat(4);
-    }
-  }
-
   RequestSetupMetadata meta;
   try {
-    if (PayloadSerializer::getInstance()->unpack(
-            meta, cursor, frame.encodeMetadataUsingBinary()) !=
-        frame.payload().metadataSize()) {
-      return connection.close(
-          folly::make_exception_wrapper<RocketException>(
-              ErrorCode::INVALID_SETUP,
-              "Error deserializing SETUP payload: underflow"));
+    if (frame.payload().usesIOBufChain()) {
+      io::IOBufChainCursor cursor(frame.payload().chainBuffer());
+      if (!readSetup(cursor, meta, frame, connection)) {
+        return;
+      }
+    } else {
+      folly::io::Cursor cursor(frame.payload().buffer());
+      if (!readSetup(cursor, meta, frame, connection)) {
+        return;
+      }
     }
 
     connContext_.readSetupMetadata(meta);
@@ -591,7 +634,8 @@ void ThriftRocketServerHandler::handleRequestCommon(
       std::chrono::steady_clock::now()};
   auto wiredPayloadSize = payload.metadataAndDataSize();
 
-  rocket::Payload debugPayload = payload.clone();
+  rocket::Payload debugPayload =
+      keepDebugPayloads_ ? payload.clone() : rocket::Payload();
   auto requestPayloadTry =
       connection.getPayloadSerializer()->unpackAsCompressed<RequestPayload>(
           std::move(payload),
@@ -803,6 +847,7 @@ void ThriftRocketServerHandler::handleRequestCommon(
         auto loadshedRequest = makeActiveRequest(
             std::move(metadata), std::move(debugPayload), std::move(reqCtx));
         if (auto* dropReqCtx = loadshedRequest->getRequestContext()) {
+          dropReqCtx->setWiredRequestBytes(wiredPayloadSize);
           processServiceInterceptorsOnReceived(*serverConfigs_, *dropReqCtx);
           processServiceInterceptorsOnDrop(
               *serverConfigs_,
@@ -818,6 +863,11 @@ void ThriftRocketServerHandler::handleRequestCommon(
   // A request should not be active until the overload checking is done.
   auto request = makeRequest(
       std::move(metadata), std::move(debugPayload), std::move(reqCtx));
+  // Set before the admission checks so that interceptors see the size of
+  // requests that are dropped.
+  if (auto* requestContext = request->getRequestContext()) {
+    requestContext->setWiredRequestBytes(wiredPayloadSize);
+  }
 
   // check if server is overloaded
   const auto& headers = request->getTHeader().getHeaders();
@@ -915,8 +965,6 @@ void ThriftRocketServerHandler::handleRequestCommon(
   if (frameworkMetadataPtr) {
     cpp2ReqCtx->setFrameworkMetadata(std::move(*frameworkMetadataPtr));
   }
-
-  cpp2ReqCtx->setWiredRequestBytes(wiredPayloadSize);
 
   context_utils::checkRequestEncryptionState(*cpp2ReqCtx);
 

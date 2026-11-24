@@ -19,6 +19,7 @@
 #include <chrono>
 #include <future>
 #include <memory>
+#include <optional>
 #include <string>
 
 #include <folly/Try.h>
@@ -58,6 +59,9 @@ namespace rocket::test {
 class RocketTestClient {
  public:
   explicit RocketTestClient(const folly::SocketAddress& serverAddr);
+  RocketTestClient(
+      const folly::SocketAddress& serverAddr,
+      RequestSetupMetadata setupMetadata);
   ~RocketTestClient();
 
   folly::Try<Payload> sendRequestResponseSync(
@@ -92,6 +96,7 @@ class RocketTestClient {
   folly::fibers::FiberManager& fm_;
   std::unique_ptr<RocketClient, folly::DelayedDestruction::Destructor> client_;
   const folly::SocketAddress serverAddr_;
+  std::optional<RequestSetupMetadata> setupMetadataOverride_;
 };
 
 class RocketTestServer {

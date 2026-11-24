@@ -67,6 +67,10 @@ class ServiceHandler<::cpp2::test::FastClientTestServiceChild> : virtual public 
   static ::cpp2::test::FastClientTestServiceChildServiceInfoHolder __fbthrift_serviceInfoHolder;
   std::atomic<apache::thrift::detail::si::InvocationType> __fbthrift_invocation_greet{apache::thrift::detail::si::InvocationType::AsyncTm};
  public:
+  void fbthrift_execute_decorators_before_ancestorEcho(apache::thrift::Cpp2RequestContext& /*requestCtx*/, apache::thrift::detail::DecoratorArgType<::std::string>::type /*p_message*/) override {}
+  void fbthrift_execute_decorators_after_ancestorEcho(apache::thrift::Cpp2RequestContext& /*requestCtx*/, apache::thrift::detail::DecoratorReturnType<::std::string>::type /*result*/) override {}
+  void fbthrift_execute_decorators_before_parentEcho(apache::thrift::Cpp2RequestContext& /*requestCtx*/, apache::thrift::detail::DecoratorArgType<::std::string>::type /*p_message*/) override {}
+  void fbthrift_execute_decorators_after_parentEcho(apache::thrift::Cpp2RequestContext& /*requestCtx*/, apache::thrift::detail::DecoratorReturnType<::std::string>::type /*result*/) override {}
   void fbthrift_execute_decorators_before_ping(apache::thrift::Cpp2RequestContext& /*requestCtx*/) override {}
   void fbthrift_execute_decorators_after_ping(apache::thrift::Cpp2RequestContext& /*requestCtx*/) override {}
   void fbthrift_execute_decorators_before_echo(apache::thrift::Cpp2RequestContext& /*requestCtx*/, apache::thrift::detail::DecoratorArgType<::std::string>::type /*p_message*/) override {}
@@ -88,8 +92,8 @@ class ServiceHandler<::cpp2::test::FastClientTestServiceChild> : virtual public 
 namespace detail {
 template <> struct TSchemaAssociation<::cpp2::test::FastClientTestServiceChild, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = 8360439536290031381;
-  static constexpr ::std::string_view definitionKey = {"\xf4\xc4\x4b\x6b\x9e\x67\xfb\x7c\x52\xc5\xf5\x76\x3e\x77\xae\xcf", 16};
+  static constexpr int64_t programId = 1128474985759956154;
+  static constexpr ::std::string_view definitionKey = {"\xd3\xe9\xbd\x1b\xe3\x7c\xf9\xdc\x18\xd2\x6a\xd9\x01\x92\xe9\x4a", 16};
 };
 }
 } // namespace apache::thrift

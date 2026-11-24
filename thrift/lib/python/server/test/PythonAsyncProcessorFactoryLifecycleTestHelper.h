@@ -18,6 +18,7 @@
 
 #include <atomic>
 #include <cstddef>
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <string>
@@ -26,6 +27,7 @@
 #include <vector>
 
 #include <folly/Executor.h>
+#include <folly/executors/ManualExecutor.h>
 #include <thrift/lib/python/server/PythonAsyncProcessorFactory.h>
 #include <thrift/lib/python/server/execution/ExecutionSystem.h>
 
@@ -127,6 +129,153 @@ inline std::shared_ptr<PythonAsyncProcessorFactory> createHostedTestFactory(
       std::move(executionSystem),
       folly::getKeepAliveToken(controlExecutor),
       "test.Service");
+}
+
+struct FactoryIntakeObservations {
+  bool intakeIsDistinctFromControl = false;
+  bool plainWorkRan = false;
+  std::size_t plainWorkDrained = 0;
+  bool priorityWorkRan = false;
+  std::size_t priorityWorkDrained = 0;
+  uint8_t priorityCount = 0;
+  std::vector<int8_t> priorities;
+  bool controlAliveAfterFactoryRelease = false;
+  bool heldWorkRan = false;
+  std::size_t heldWorkDrained = 0;
+  bool controlReleasedAfterHolderRelease = false;
+};
+
+class ObservableControlExecutor final : public folly::Executor {
+ public:
+  explicit ObservableControlExecutor(std::shared_ptr<bool> destroyed)
+      : destroyed_(std::move(destroyed)) {}
+
+  void add(folly::Func func) override { pending_.push_back(std::move(func)); }
+
+  std::size_t drain() {
+    auto pending = std::move(pending_);
+    for (auto& func : pending) {
+      std::move(func)();
+    }
+    return pending.size();
+  }
+
+  void addWithPriority(folly::Func func, int8_t priority) override {
+    priorities.push_back(priority);
+    add(std::move(func));
+  }
+
+  uint8_t getNumPriorities() const override { return 3; }
+
+  bool keepAliveAcquire() noexcept override {
+    ++references_;
+    return true;
+  }
+
+  void keepAliveRelease() noexcept override {
+    if (--references_ == 0) {
+      delete this;
+    }
+  }
+
+  std::vector<int8_t> priorities;
+
+ private:
+  ~ObservableControlExecutor() override { *destroyed_ = true; }
+
+  std::shared_ptr<bool> destroyed_;
+  std::vector<folly::Func> pending_;
+  std::size_t references_{0};
+};
+
+inline FactoryIntakeObservations observeFactoryIntake() {
+  FactoryIntakeObservations observed;
+  auto destroyed = std::make_shared<bool>(false);
+  auto* control = new ObservableControlExecutor(destroyed);
+  auto controlOwner = folly::getKeepAliveToken(control);
+  auto factory = PythonAsyncProcessorFactory::create(
+      nullptr,
+      {},
+      {},
+      execution::makeControlOnlyExecutionSystem(
+          control, [](PyObject*) { return 0; }, {}),
+      controlOwner,
+      "test.Service");
+  auto holder = folly::getKeepAliveToken(factory->intakeExecutor());
+  observed.intakeIsDistinctFromControl = holder.get() != control;
+  controlOwner.reset();
+
+  holder->add([&] { observed.plainWorkRan = true; });
+  observed.plainWorkDrained = control->drain();
+  observed.priorityCount = holder->getNumPriorities();
+  holder->addWithPriority(
+      [&] { observed.priorityWorkRan = true; }, folly::Executor::HI_PRI);
+  observed.priorityWorkDrained = control->drain();
+  observed.priorities = control->priorities;
+
+  factory->releaseOwnedResources();
+  factory.reset();
+  observed.controlAliveAfterFactoryRelease = !*destroyed;
+  if (!*destroyed) {
+    holder->add([&] { observed.heldWorkRan = true; });
+    observed.heldWorkDrained = control->drain();
+  }
+  holder.reset();
+  observed.controlReleasedAfterHolderRelease = *destroyed;
+  return observed;
+}
+
+struct FactoryActivationObservations {
+  uint8_t priorityCount = 0;
+  bool plainWorkRan = false;
+  std::size_t plainWorkOnControl = 0;
+  std::size_t plainWorkOnWorker = 0;
+  bool priorityWorkRan = false;
+  std::size_t priorityWorkOnControl = 0;
+  bool schedulerAliveWhileHeld = false;
+  bool schedulerReleasedAfterHolderRelease = false;
+};
+
+inline FactoryActivationObservations observeFactoryActivation() {
+  FactoryActivationObservations observed;
+  auto destroyed = std::make_shared<bool>(false);
+  auto* control = new ObservableControlExecutor(destroyed);
+  auto controlOwner = folly::getKeepAliveToken(control);
+  folly::ManualExecutor workerExecutor;
+  auto scheduler = std::make_shared<execution::WorkScheduler>();
+  const auto worker =
+      scheduler->registerWorker(folly::getKeepAliveToken(workerExecutor));
+  std::weak_ptr<execution::WorkScheduler> schedulerObserver = scheduler;
+  auto factory = PythonAsyncProcessorFactory::create(
+      nullptr,
+      {},
+      {},
+      execution::makeControlOnlyExecutionSystem(
+          control, [](PyObject*) { return 0; }, {}),
+      controlOwner,
+      "test.Service");
+  auto holder = folly::getKeepAliveToken(factory->intakeExecutor());
+  factory->setIntakeExecutor(scheduler);
+  observed.priorityCount = holder->getNumPriorities();
+
+  holder->add([&] { observed.plainWorkRan = true; });
+  scheduler->makeWorkerCapacityAvailable(worker);
+  observed.plainWorkOnWorker = workerExecutor.drain();
+  observed.plainWorkOnControl = control->drain();
+
+  holder->addWithPriority(
+      [&] { observed.priorityWorkRan = true; }, folly::Executor::LO_PRI);
+  observed.priorityWorkOnControl = control->drain();
+  workerExecutor.drain();
+
+  scheduler->close();
+  scheduler.reset();
+  factory->releaseOwnedResources();
+  factory.reset();
+  observed.schedulerAliveWhileHeld = !schedulerObserver.expired();
+  holder.reset();
+  observed.schedulerReleasedAfterHolderRelease = schedulerObserver.expired();
+  return observed;
 }
 
 } // namespace apache::thrift::python::test

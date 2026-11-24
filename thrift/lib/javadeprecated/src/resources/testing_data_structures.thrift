@@ -305,3 +305,13 @@ typedef map<i32, FMap> map_i32_FMap_3815
   },
 }
 typedef map<i64, string> map_i64_string_6611
+
+exception MyCauseException {
+  1: string message;
+  2: i32 code;
+}
+
+exception MessageAnnotatedException {
+  @thrift.ExceptionMessage
+  1: string reason;
+}

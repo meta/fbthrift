@@ -183,7 +183,7 @@ class ThriftStructProxy(ThriftTypeProxy):
     is_union: bool
     structuredAnnotations: Sequence[ThriftConstStructProxy]
 
-ConstType = Union[  # type: ignore
+ConstType = Union[
     bool,
     int,
     float,

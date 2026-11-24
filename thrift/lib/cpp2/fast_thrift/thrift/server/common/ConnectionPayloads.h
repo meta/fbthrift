@@ -29,6 +29,7 @@
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/ComposedFrame.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/server/MetadataProtocol.h>
+#include <thrift/lib/cpp2/fast_thrift/rocket/server/SetupParameters.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/ThriftConnContext.h>
 #include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
 
@@ -66,6 +67,7 @@ struct ConnectionSetupData {
   // here for everything downstream to read.
   ThriftConnContext* connContext{nullptr};
   apache::thrift::RequestSetupMetadata clientSetup;
+  apache::thrift::fast_thrift::rocket::server::SetupParameters rocketSetup;
 
   // Set to refuse the connection. The terminus answers with this instead of a
   // SETUP response, so a refusing handler forwards the message like any other

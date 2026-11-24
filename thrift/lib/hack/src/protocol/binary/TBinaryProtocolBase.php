@@ -20,6 +20,9 @@ use namespace FlibSL\{C, Math, Str, Vec}; // @oss-enable
 
 /**
  * Binary implementation of the Thrift protocol.
+ *
+ * Assumes 64-bit ints: there is no hi/lo split for i64, and decodeI32
+ * sign-extends through a 64-bit int.
  */
 // @oss-disable: <<Oncalls('thrift')>>
 abstract class TBinaryProtocolBase extends TProtocol {
@@ -29,7 +32,6 @@ abstract class TBinaryProtocolBase extends TProtocol {
   const VERSION_1 = 0x80010000;
   const DEFAULT_MEMORY_LIMIT = 128000000; //128M, the default
 
-  protected bool $littleEndian = false;
   protected int $memoryLimit = self::DEFAULT_MEMORY_LIMIT;
   protected ?int $sequenceID = null;
 
@@ -39,9 +41,6 @@ abstract class TBinaryProtocolBase extends TProtocol {
     protected bool $strictWrite = true,
   )[read_globals] {
     parent::__construct($trans);
-    if (PHP\pack('S', 1) == "\x01\x00") {
-      $this->littleEndian = true;
-    }
     $this->memoryLimit = MemoryLimit::get() ?? self::DEFAULT_MEMORY_LIMIT;
   }
 
@@ -84,7 +83,8 @@ abstract class TBinaryProtocolBase extends TProtocol {
     TType $field_type,
     int $field_id,
   )[zoned_shallow]: int {
-    return $this->writeByte($field_type) + $this->writeI16($field_id);
+    $this->trans_->write(PHP\pack('cn', $field_type, $field_id));
+    return 3;
   }
 
   <<__Override>>
@@ -103,9 +103,8 @@ abstract class TBinaryProtocolBase extends TProtocol {
     TType $val_type,
     int $size,
   )[zoned_shallow]: int {
-    return $this->writeByte($key_type) +
-      $this->writeByte($val_type) +
-      $this->writeI32($size);
+    $this->trans_->write(PHP\pack('ccN', $key_type, $val_type, $size));
+    return 6;
   }
 
   <<__Override>>
@@ -118,7 +117,8 @@ abstract class TBinaryProtocolBase extends TProtocol {
     TType $elem_type,
     int $size,
   )[zoned_shallow]: int {
-    return $this->writeByte($elem_type) + $this->writeI32($size);
+    $this->trans_->write(PHP\pack('cN', $elem_type, $size));
+    return 5;
   }
 
   <<__Override>>
@@ -131,7 +131,8 @@ abstract class TBinaryProtocolBase extends TProtocol {
     TType $elem_type,
     int $size,
   )[zoned_shallow]: int {
-    return $this->writeByte($elem_type) + $this->writeI32($size);
+    $this->trans_->write(PHP\pack('cN', $elem_type, $size));
+    return 5;
   }
 
   <<__Override>>
@@ -141,7 +142,7 @@ abstract class TBinaryProtocolBase extends TProtocol {
 
   <<__Override>>
   public function writeBool(bool $value)[zoned_shallow]: int {
-    $this->trans_->write(PHP\pack('c', $value ? 1 : 0));
+    $this->trans_->write($value ? "\x01" : "\x00");
     return 1;
   }
 
@@ -153,111 +154,57 @@ abstract class TBinaryProtocolBase extends TProtocol {
 
   <<__Override>>
   public function writeI16(int $value)[zoned_shallow]: int {
-    $data = PHP\chr($value).PHP\chr($value >> 8);
-    if ($this->littleEndian) {
-      $data = PHP\strrev($data);
-    }
-    $this->trans_->write($data);
+    $this->trans_->write(PHP\pack('n', $value));
     return 2;
   }
 
   <<__Override>>
   public function writeI32(int $value)[zoned_shallow]: int {
-    $data = PHP\chr($value).
-      PHP\chr($value >> 8).
-      PHP\chr($value >> 16).
-      PHP\chr($value >> 24);
-    if ($this->littleEndian) {
-      $data = PHP\strrev($data);
-    }
-    $this->trans_->write($data);
+    $this->trans_->write(PHP\pack('N', $value));
     return 4;
   }
 
   <<__Override>>
   public function writeI64(?int $value)[zoned_shallow]: int {
-    $value ??= 0;
-    // If we are on a 32bit architecture we have to explicitly deal with
-    // 64-bit twos-complement arithmetic since PHP wants to treat all ints
-    // as signed and any int over 2^31 - 1 as a float
-    if (PHP_INT_SIZE === 4) {
-      $neg = $value < 0;
-
-      if ($neg) {
-        $value *= -1;
-      }
-
-      $hi = (int)($value / 4294967296);
-      $lo = (int)$value;
-
-      if ($neg) {
-        $hi = ~$hi;
-        $lo = ~$lo;
-        if (($lo & (int)0xffffffff) === (int)0xffffffff) {
-          $lo = 0;
-          $hi++;
-        } else {
-          $lo++;
-        }
-      }
-      $data = PHP\pack('N2', $hi, $lo);
-    } else {
-      $data = PHP\chr($value).
-        PHP\chr($value >> 8).
-        PHP\chr($value >> 16).
-        PHP\chr($value >> 24).
-        PHP\chr($value >> 32).
-        PHP\chr($value >> 40).
-        PHP\chr($value >> 48).
-        PHP\chr($value >> 56);
-      if ($this->littleEndian) {
-        $data = PHP\strrev($data);
-      }
-    }
-
-    $this->trans_->write($data);
+    $this->trans_->write(PHP\pack('J', $value ?? 0));
     return 8;
   }
 
   <<__Override>>
   public function writeDouble(float $value)[zoned_shallow]: int {
-    $data = PHP\pack('d', $value);
-    if ($this->littleEndian) {
-      $data = PHP\strrev($data);
-    }
-    $this->trans_->write($data);
+    $this->trans_->write(PHP\pack('E', $value));
     return 8;
   }
 
   <<__Override>>
   public function writeFloat(float $value)[zoned_shallow]: int {
-    $data = PHP\pack('f', $value);
-    if ($this->littleEndian) {
-      $data = PHP\strrev($data);
-    }
-    $this->trans_->write($data);
+    $this->trans_->write(PHP\pack('G', $value));
     return 4;
   }
 
   <<__Override>>
   public function writeString(string $value)[zoned_shallow]: int {
     $len = Str\length($value);
-    $result = $this->writeI32($len);
+    $this->trans_->write(PHP\pack('N', $len));
     if ($len !== 0) {
       $this->trans_->write($value);
     }
-    return $result + $len;
+    return 4 + $len;
   }
 
-  private function unpackI32(string $data)[]: int {
-    $value = PHP\ord($data[3]) |
-      (PHP\ord($data[2]) << 8) |
-      (PHP\ord($data[1]) << 16) |
-      (PHP\ord($data[0]) << 24);
-    if ($value > 0x7fffffff) {
-      $value = 0 - (($value - 1) ^ 0xffffffff);
-    }
-    return $value;
+  // ord() arithmetic instead of unpack() for 2 and 4 bytes: unpack's format
+  // parsing and result dict made i16 decoding 4x slower.
+  private static function decodeI16(string $data, int $offset)[]: int {
+    $value = (PHP\ord($data[$offset]) << 8) | PHP\ord($data[$offset + 1]);
+    return $value > 0x7fff ? $value - 0x10000 : $value;
+  }
+
+  private static function decodeI32(string $data, int $offset)[]: int {
+    $value = (PHP\ord($data[$offset]) << 24) |
+      (PHP\ord($data[$offset + 1]) << 16) |
+      (PHP\ord($data[$offset + 2]) << 8) |
+      PHP\ord($data[$offset + 3]);
+    return $value > 0x7fffffff ? $value - 0x100000000 : $value;
   }
 
   /**
@@ -283,7 +230,7 @@ abstract class TBinaryProtocolBase extends TProtocol {
     }
 
     $data = $trans->peek(4);
-    $sz = $this->unpackI32($data);
+    $sz = self::decodeI32($data, 0);
     $start = 4;
 
     if ($sz < 0) {
@@ -296,11 +243,11 @@ abstract class TBinaryProtocolBase extends TProtocol {
       }
       // skip name string
       $data = $trans->peek(4, $start);
-      $name_len = $this->unpackI32($data);
+      $name_len = self::decodeI32($data, 0);
       $start += 4 + $name_len;
       // peek seqId
       $data = $trans->peek(4, $start);
-      $seqid = $this->unpackI32($data);
+      $seqid = self::decodeI32($data, 0);
     } else {
       if ($this->strictRead) {
         throw new TProtocolException(
@@ -323,7 +270,7 @@ abstract class TBinaryProtocolBase extends TProtocol {
         $start += 1;
         // peek seqId
         $data = $trans->peek(4, $start);
-        $seqid = $this->unpackI32($data);
+        $seqid = self::decodeI32($data, 0);
       }
     }
     return $seqid;
@@ -413,20 +360,13 @@ abstract class TBinaryProtocolBase extends TProtocol {
     inout ?TType $field_type,
     inout ?int $field_id,
   )[zoned_shallow]: int {
-    $field_type_byte = -1;
-    $result = $this->readByte(inout $field_type_byte);
-    $field_type = TType::assert($field_type_byte);
+    $field_type = TType::assert(PHP\ord($this->trans_->readAll(1)));
     if ($field_type === TType::STOP) {
       $field_id = 0;
-      return $result;
+      return 1;
     }
-    // TODO (partisan): Refactor this as a part of inout deprecation in read
-    // methods.
-    $field_id_nonnull = -1;
-    $fid_res = $this->readI16(inout $field_id_nonnull);
-    $field_id = $field_id_nonnull;
-    $result += $fid_res;
-    return $result;
+    $field_id = self::decodeI16($this->trans_->readAll(2), 0);
+    return 3;
   }
 
   <<__Override>>
@@ -440,18 +380,11 @@ abstract class TBinaryProtocolBase extends TProtocol {
     inout ?TType $val_type,
     inout ?int $size,
   )[zoned_shallow]: int {
-    $key_type_byte = -1;
-    $key_res = $this->readByte(inout $key_type_byte);
-    $key_type = TType::assert($key_type_byte);
-    $val_type_byte = -1;
-    $val_res = $this->readByte(inout $val_type_byte);
-    $val_type = TType::assert($val_type_byte);
-    // TODO (partisan): Remove after refactoring of read methods to not use
-    // inout.
-    $size_nonnull = -1;
-    $size_res = $this->readI32(inout $size_nonnull);
-    $size = $size_nonnull;
-    return $key_res + $val_res + $size_res;
+    $header = $this->trans_->readAll(6);
+    $key_type = TType::assert(PHP\ord($header[0]));
+    $val_type = TType::assert(PHP\ord($header[1]));
+    $size = self::decodeI32($header, 2);
+    return 6;
   }
 
   <<__Override>>
@@ -464,15 +397,10 @@ abstract class TBinaryProtocolBase extends TProtocol {
     inout ?TType $elem_type,
     inout ?int $size,
   )[zoned_shallow]: int {
-    $elem_type = -1;
-    $etype_res = $this->readByte(inout $elem_type);
-    $elem_type = TType::assert($elem_type);
-    // TODO (partisan): Remove after refactoring of read methods to not use
-    // inout.
-    $size_nonnull = -1;
-    $size_res = $this->readI32(inout $size_nonnull);
-    $size = $size_nonnull;
-    return $etype_res + $size_res;
+    $header = $this->trans_->readAll(5);
+    $elem_type = TType::assert(PHP\ord($header[0]));
+    $size = self::decodeI32($header, 1);
+    return 5;
   }
 
   <<__Override>>
@@ -485,15 +413,10 @@ abstract class TBinaryProtocolBase extends TProtocol {
     inout ?TType $elem_type,
     inout ?int $size,
   )[zoned_shallow]: int {
-    $elem_type_byte = -1;
-    $etype_res = $this->readByte(inout $elem_type_byte);
-    $elem_type = TType::assert($elem_type_byte);
-    // TODO (partisan): Remove after refactoring of read methods to not use
-    // inout.
-    $size_nonnull = -1;
-    $size_res = $this->readI32(inout $size_nonnull);
-    $size = $size_nonnull;
-    return $etype_res + $size_res;
+    $header = $this->trans_->readAll(5);
+    $elem_type = TType::assert(PHP\ord($header[0]));
+    $size = self::decodeI32($header, 1);
+    return 5;
   }
 
   <<__Override>>
@@ -503,8 +426,7 @@ abstract class TBinaryProtocolBase extends TProtocol {
 
   <<__Override>>
   public function readBool(inout bool $value)[zoned_shallow]: int {
-    $arr = PHP\unpack('c', $this->trans_->readAll(1));
-    $value = $arr[1] == 1;
+    $value = PHP\ord($this->trans_->readAll(1)) === 1;
     return 1;
   }
 
@@ -519,116 +441,42 @@ abstract class TBinaryProtocolBase extends TProtocol {
 
   <<__Override>>
   public function readI16(inout int $value)[zoned_shallow]: int {
-    $data = $this->trans_->readAll(2);
-    $value = PHP\ord($data[1]) | (PHP\ord($data[0]) << 8);
-    if ($value > 0x7fff) {
-      $value = 0 - (($value - 1) ^ 0xffff);
-    }
+    $value = self::decodeI16($this->trans_->readAll(2), 0);
     return 2;
   }
 
   <<__Override>>
   public function readI32(inout int $value)[zoned_shallow]: int {
-    $value = $this->unpackI32($this->trans_->readAll(4));
+    $value = self::decodeI32($this->trans_->readAll(4), 0);
     return 4;
   }
 
   <<__Override>>
   public function readI64(inout int $value)[zoned_shallow]: int {
-    $arr = PHP\unpack('N2', $this->trans_->readAll(8));
-
-    // If we are on a 32bit architecture we have to explicitly deal with
-    // 64-bit twos-complement arithmetic since PHP wants to treat all ints
-    // as signed and any int over 2^31 - 1 as a float
-    if (PHP_INT_SIZE === 4) {
-      $hi = $arr[1] as int;
-      $lo = $arr[2] as int;
-      $is_neg = $hi < 0;
-
-      // Check for a negative
-      if ($is_neg) {
-        $hi = ~$hi & (int)0xffffffff;
-        $lo = ~$lo & (int)0xffffffff;
-
-        if ($lo === (int)0xffffffff) {
-          $hi++;
-          $lo = 0;
-        } else {
-          $lo++;
-        }
-      }
-
-      // Force 32bit words in excess of 2G to pe positive - we deal wigh sign
-      // explicitly below
-
-      if (($hi & (int)0x80000000) !== 0) {
-        $hi &= (int)0x7fffffff;
-        $hi += 0x80000000;
-      }
-
-      if (($lo & (int)0x80000000) !== 0) {
-        $lo &= (int)0x7fffffff;
-        $lo += 0x80000000;
-      }
-
-      $value = $hi * 4294967296 + $lo;
-
-      if ($is_neg) {
-        $value = 0 - $value;
-      }
-    } else {
-      // Upcast negatives in LSB bit
-      if (($arr[2] & 0x80000000) !== 0) {
-        $arr[2] = $arr[2] & 0xffffffff;
-      }
-
-      // Check for a negative
-      if (($arr[1] & 0x80000000) !== 0) {
-        $arr[1] = $arr[1] & 0xffffffff;
-        $arr[1] = $arr[1] ^ 0xffffffff;
-        $arr[2] = $arr[2] ^ 0xffffffff;
-        $value = 0 - $arr[1] * 4294967296 - $arr[2] - 1;
-        $value as int;
-      } else {
-        $value = $arr[1] * 4294967296 + $arr[2];
-        $value as int;
-      }
-    }
-
+    $value = PHP\unpack('J', $this->trans_->readAll(8))[1] as int;
     return 8;
   }
 
   <<__Override>>
   public function readDouble(inout float $value)[zoned_shallow]: int {
-    $data = $this->trans_->readAll(8);
-    if ($this->littleEndian) {
-      $data = PHP\strrev($data);
-    }
-    $arr = PHP\unpack('d', $data);
-    $value = $arr[1] as float;
+    $value = PHP\unpack('E', $this->trans_->readAll(8))[1] as float;
     return 8;
   }
 
   <<__Override>>
   public function readFloat(inout float $value)[zoned_shallow]: int {
-    $data = $this->trans_->readAll(4);
-    if ($this->littleEndian) {
-      $data = PHP\strrev($data);
-    }
-    $arr = PHP\unpack('f', $data);
-    $value = $arr[1] as float;
+    $value = PHP\unpack('G', $this->trans_->readAll(4))[1] as float;
     return 4;
   }
 
   <<__Override>>
   public function readString(inout string $value)[zoned_shallow]: int {
-    $len = 0;
-    $result = $this->readI32(inout $len);
+    $len = self::decodeI32($this->trans_->readAll(4), 0);
     if ($len !== 0) {
       $value = $this->trans_->readAll($len);
     } else {
       $value = '';
     }
-    return $result + $len;
+    return 4 + $len;
   }
 }

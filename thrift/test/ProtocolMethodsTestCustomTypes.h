@@ -17,7 +17,10 @@
 #pragma once
 
 #include <string>
+#include <string_view>
+#include <utility>
 
+#include <folly/memory/UninitializedMemoryHacks.h>
 #include <thrift/lib/cpp2/protocol/detail/protocol_methods.h>
 
 namespace apache::thrift {
@@ -35,6 +38,24 @@ struct MyString {
   std::string value;
   MyString() = default;
   MyString(const char* value) : value(value) {}
+  explicit MyString(std::string value) : value(std::move(value)) {}
+  MyString& operator=(std::string bytes) {
+    value = std::move(bytes);
+    return *this;
+  }
+  const char* data() const { return value.data(); }
+  char* data() { return value.data(); }
+  std::size_t size() const { return value.size(); }
+  void clear() { value.clear(); }
+  void reserve(std::size_t size) { value.reserve(size); }
+  void append(const char* data, std::size_t size) { value.append(data, size); }
+  void resize_without_initialization(std::size_t size) {
+    folly::resizeWithoutInitialization(value, size);
+  }
+  MyString& operator+=(std::string_view bytes) {
+    value += bytes;
+    return *this;
+  }
   bool operator==(const MyString& other) const { return value == other.value; }
 };
 

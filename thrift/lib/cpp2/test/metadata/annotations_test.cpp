@@ -24,7 +24,6 @@
 
 namespace apache::thrift::test {
 
-using metadata::detail::LimitedVector;
 using namespace apache::thrift::detail::md;
 using namespace apache::thrift::metadata;
 
@@ -147,8 +146,8 @@ bool structuredAnnotationsEquality(
       normalizeStructuredAnnotations(std::move(rhsAnnotations), nameToType);
 }
 
-LimitedVector<metadata::ThriftConstStruct> expectedAnnotations() {
-  LimitedVector<metadata::ThriftConstStruct> ret;
+std::vector<metadata::ThriftConstStruct> expectedAnnotations() {
+  std::vector<metadata::ThriftConstStruct> ret;
   metadata::ThriftConstStruct* last = &ret.emplace_back();
   last->type()->name() = "annotations.Annotation";
   last->fields()["boolField"].cv_bool() = true;

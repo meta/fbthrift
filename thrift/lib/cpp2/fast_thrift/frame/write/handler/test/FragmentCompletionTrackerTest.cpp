@@ -19,6 +19,7 @@
 #include <thrift/lib/cpp2/fast_thrift/transport/WriteCompletion.h>
 
 #include <gtest/gtest.h>
+#include <folly/portability/GMock.h>
 
 #include <cstddef>
 #include <cstdint>
@@ -27,6 +28,8 @@
 
 namespace apache::thrift::fast_thrift::frame::write::handler {
 namespace {
+
+using namespace testing;
 
 struct TestBatchWriteCompleteEvent
     : channel_pipeline::EventTag<TestBatchWriteCompleteEvent> {
@@ -41,6 +44,11 @@ struct TestFrameWriteCompleteEvent
   uint32_t streamId;
   transport::WriteCompletionStatus status;
   bool quiesced;
+
+  bool operator==(const TestFrameWriteCompleteEvent& other) const noexcept {
+    return streamId == other.streamId && status == other.status &&
+        quiesced == other.quiesced;
+  }
 };
 
 struct TestEventFactory {
@@ -250,6 +258,63 @@ TEST(FragmentCompletionTrackerTest, ErrorBeforeLastFragmentFiresNoCompletion) {
       /*handlerHasPendingWrites=*/false);
 
   EXPECT_TRUE(ctx.events().empty());
+}
+
+TEST(FragmentCompletionTrackerTest, AbortedFragmentRemovesItsOwnRecord) {
+  FragmentCompletionTrackerT<TestEventFactory> tracker;
+  CapturingContext ctx;
+
+  tracker.onFragment(1, /*isLastFragment=*/true);
+  tracker.onFragment(3, /*isLastFragment=*/true);
+  tracker.onFragmentAborted();
+  tracker.onFragment(5, /*isLastFragment=*/true);
+  tracker.on<TestBatchWriteCompleteEvent>(
+      ctx,
+      batchWriteComplete(transport::WriteCompletionStatus::Success, 2, 0),
+      /*handlerHasPendingWrites=*/false);
+
+  const std::vector<TestFrameWriteCompleteEvent> expected{
+      {
+          .streamId = 1,
+          .status = transport::WriteCompletionStatus::Success,
+          .quiesced = false,
+      },
+      {
+          .streamId = 5,
+          .status = transport::WriteCompletionStatus::Success,
+          .quiesced = false,
+      }};
+  EXPECT_THAT(ctx.events(), Eq(expected));
+}
+
+TEST(FragmentCompletionTrackerTest, AbortAfterCompletionLeavesTrackerUsable) {
+  FragmentCompletionTrackerT<TestEventFactory> tracker;
+  CapturingContext ctx;
+
+  tracker.onFragment(1, /*isLastFragment=*/true);
+  tracker.on<TestBatchWriteCompleteEvent>(
+      ctx,
+      batchWriteComplete(transport::WriteCompletionStatus::Success, 1, 0),
+      /*handlerHasPendingWrites=*/false);
+  tracker.onFragmentAborted();
+  tracker.onFragment(3, /*isLastFragment=*/true);
+  tracker.on<TestBatchWriteCompleteEvent>(
+      ctx,
+      batchWriteComplete(transport::WriteCompletionStatus::Success, 1, 0),
+      /*handlerHasPendingWrites=*/false);
+
+  const std::vector<TestFrameWriteCompleteEvent> expected{
+      {
+          .streamId = 1,
+          .status = transport::WriteCompletionStatus::Success,
+          .quiesced = false,
+      },
+      {
+          .streamId = 3,
+          .status = transport::WriteCompletionStatus::Success,
+          .quiesced = false,
+      }};
+  EXPECT_THAT(ctx.events(), Eq(expected));
 }
 
 // The batcher can only speak for itself. When this handler is still holding

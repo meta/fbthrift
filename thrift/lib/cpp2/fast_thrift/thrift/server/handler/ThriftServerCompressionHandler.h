@@ -39,7 +39,7 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/StaticHandlerContext.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/Messages.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/ThriftRequestContext.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/util/ResponsePayloads.h>
@@ -74,9 +74,8 @@ class ThriftServerCompressionHandler {
   channel_pipeline::Result onRead(
       Context& ctx, channel_pipeline::TypeErasedBox&& msg) noexcept {
     auto& request = msg.get<ThriftServerRequestMessage>();
-    if (FOLLY_UNLIKELY(
-            !request.payload
-                 .template is<ThriftServerRequestResponsePayload>())) {
+    if (!request.payload.template is<ThriftServerRequestResponsePayload>())
+        [[unlikely]] {
       return ctx.fireRead(std::move(msg));
     }
 
@@ -84,7 +83,17 @@ class ThriftServerCompressionHandler {
     auto& payload =
         request.payload.template get<ThriftServerRequestResponsePayload>();
     if (auto error = decompressRequest(payload)) {
-      return writeParsingFailure(ctx, streamId, std::move(*error));
+      // On Backpressure the pipeline accepted the REQUEST_PARSING_FAILURE
+      // response. As a read result, Backpressure would pause reads on the whole
+      // connection.
+      if (writeParsingFailure(
+              ctx,
+              streamId,
+              std::move(request.requestContext),
+              std::move(*error)) == channel_pipeline::Result::Error) {
+        return channel_pipeline::Result::Error;
+      }
+      return channel_pipeline::Result::Success;
     }
 
     if (payload.metadata != nullptr) {
@@ -198,7 +207,7 @@ class ThriftServerCompressionHandler {
 
     const auto compression = *payload.metadata->compression();
     const auto codec = codecForAlgorithm(compression);
-    if (FOLLY_UNLIKELY(!codec.has_value())) {
+    if (!codec.has_value()) [[unlikely]] {
       return compression == apache::thrift::CompressionAlgorithm::CUSTOM
           ? "CUSTOM request compression is not supported by FastThriftServer"
           : "Unsupported request compression algorithm";
@@ -208,7 +217,7 @@ class ThriftServerCompressionHandler {
       payload.metadata->compression().reset();
       return std::nullopt;
     }
-    if (FOLLY_UNLIKELY(payload.data == nullptr)) {
+    if (payload.data == nullptr) [[unlikely]] {
       return "Request decompression failed: missing request data";
     }
 
@@ -276,7 +285,7 @@ class ThriftServerCompressionHandler {
       const auto bytesWritten = outputSize - output.size();
       outputBuffer->trimEnd(output.size());
       decompressedSize += bytesWritten;
-      if (FOLLY_UNLIKELY(decompressedSize > maxDecompressedRequestSize_)) {
+      if (decompressedSize > maxDecompressedRequestSize_) [[unlikely]] {
         throw std::runtime_error("decompressed request exceeds size limit");
       }
       if (bytesWritten != 0) {
@@ -389,9 +398,12 @@ class ThriftServerCompressionHandler {
 
     payload.metadata->compression().reset();
     const auto compression = compressionForConfig(config);
-    if (FOLLY_UNLIKELY(!compression.has_value())) {
+    if (!compression.has_value()) [[unlikely]] {
       return writeCompressionFailure(
-          ctx, payload.streamId, "Unsupported response compression config");
+          ctx,
+          payload.streamId,
+          std::move(msg.get<ThriftServerResponseMessage>().requestContext),
+          "Unsupported response compression config");
     }
     if (*compression == apache::thrift::CompressionAlgorithm::NONE ||
         *compression == apache::thrift::CompressionAlgorithm::CUSTOM) {
@@ -405,18 +417,24 @@ class ThriftServerCompressionHandler {
     }
 
     const auto codec = codecForAlgorithm(*compression);
-    if (FOLLY_UNLIKELY(!codec.has_value())) {
+    if (!codec.has_value()) [[unlikely]] {
       return writeCompressionFailure(
-          ctx, payload.streamId, "Unsupported response compression algorithm");
+          ctx,
+          payload.streamId,
+          std::move(msg.get<ThriftServerResponseMessage>().requestContext),
+          "Unsupported response compression algorithm");
     }
 
     try {
       auto compressed =
           folly::compression::getCodec(codec->first, codec->second)
               ->compress(payload.data.get());
-      if (FOLLY_UNLIKELY(compressed == nullptr)) {
+      if (compressed == nullptr) [[unlikely]] {
         return writeCompressionFailure(
-            ctx, payload.streamId, "Response compression returned no data");
+            ctx,
+            payload.streamId,
+            std::move(msg.get<ThriftServerResponseMessage>().requestContext),
+            "Response compression returned no data");
       }
       payload.data = std::move(compressed);
       payload.metadata->compression() = *compression;
@@ -424,10 +442,14 @@ class ThriftServerCompressionHandler {
       return writeCompressionFailure(
           ctx,
           payload.streamId,
+          std::move(msg.get<ThriftServerResponseMessage>().requestContext),
           std::string("Response compression failed: ") + ex.what());
     } catch (...) {
       return writeCompressionFailure(
-          ctx, payload.streamId, "Response compression failed");
+          ctx,
+          payload.streamId,
+          std::move(msg.get<ThriftServerResponseMessage>().requestContext),
+          "Response compression failed");
     }
 
     return ctx.fireWrite(std::move(msg));
@@ -444,36 +466,49 @@ class ThriftServerCompressionHandler {
         folly::compression::CodecType::LZ4_VARINT_SIZE);
   }
   static channel_pipeline::Result writeParsingFailure(
-      Context& ctx, uint32_t streamId, std::string message) noexcept {
-    return ctx.fireWrite(
-        channel_pipeline::erase_and_box(makeFrameworkErrorMessage(
-            streamId,
-            apache::thrift::ResponseRpcErrorCode::REQUEST_PARSING_FAILURE,
-            std::move(message))));
+      Context& ctx,
+      uint32_t streamId,
+      ThriftRequestContextPtr requestContext,
+      std::string message) noexcept {
+    auto response = makeFrameworkErrorMessage(
+        streamId,
+        apache::thrift::ResponseRpcErrorCode::REQUEST_PARSING_FAILURE,
+        std::move(message));
+    response.requestContext = std::move(requestContext);
+    return ctx.fireWrite(channel_pipeline::erase_and_box(std::move(response)));
   }
 
   static channel_pipeline::Result writeCompressionFailure(
-      Context& ctx, uint32_t streamId, std::string message) noexcept {
-    return ctx.fireWrite(
-        channel_pipeline::erase_and_box(makeFrameworkErrorMessage(
-            streamId,
-            apache::thrift::ResponseRpcErrorCode::UNKNOWN,
-            std::move(message))));
+      Context& ctx,
+      uint32_t streamId,
+      ThriftRequestContextPtr requestContext,
+      std::string message) noexcept {
+    auto response = makeFrameworkErrorMessage(
+        streamId,
+        apache::thrift::ResponseRpcErrorCode::UNKNOWN,
+        std::move(message));
+    response.requestContext = std::move(requestContext);
+    return ctx.fireWrite(channel_pipeline::erase_and_box(std::move(response)));
   }
 
   size_t maxDecompressedRequestSize_;
 };
 
+// Concept checks need the pipeline's context type, which has no public name.
+// NOLINTBEGIN(facebook-hte-DetailCall)
 static_assert(
     channel_pipeline::OutboundHandler<
-        ThriftServerCompressionHandler<channel_pipeline::detail::ContextImpl>,
-        channel_pipeline::detail::ContextImpl>,
+        ThriftServerCompressionHandler<
+            channel_pipeline::detail::StaticHandlerContext>,
+        channel_pipeline::detail::StaticHandlerContext>,
     "ThriftServerCompressionHandler must satisfy OutboundHandler concept");
 
 static_assert(
     channel_pipeline::InboundHandler<
-        ThriftServerCompressionHandler<channel_pipeline::detail::ContextImpl>,
-        channel_pipeline::detail::ContextImpl>,
+        ThriftServerCompressionHandler<
+            channel_pipeline::detail::StaticHandlerContext>,
+        channel_pipeline::detail::StaticHandlerContext>,
     "ThriftServerCompressionHandler must satisfy InboundHandler concept");
+// NOLINTEND(facebook-hte-DetailCall)
 
 } // namespace apache::thrift::fast_thrift::thrift

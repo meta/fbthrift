@@ -17,10 +17,10 @@
 #include <chrono>
 #include <condition_variable>
 
+#include <barrier>
 #include <gtest/gtest.h>
 #include <folly/fibers/Fiber.h>
 #include <folly/fibers/FiberManagerMap.h>
-#include <folly/synchronization/test/Barrier.h>
 #include <thrift/lib/cpp2/async/RocketClientChannel.h>
 #include <thrift/lib/cpp2/server/ThriftServer.h>
 #include <thrift/lib/cpp2/test/gen-cpp2/TestService.h>
@@ -469,24 +469,23 @@ TEST_F(ThriftClientTest, FutureCallOneWay) {
 TEST_F(ThriftClientTest, FirstResponseTimeout) {
   struct TestServiceHandler
       : public apache::thrift::ServiceHandler<TestService> {
-    explicit TestServiceHandler(folly::test::Barrier& barrier)
-        : barrier_(barrier) {}
+    explicit TestServiceHandler(std::barrier<>& barrier) : barrier_(barrier) {}
     apache::thrift::ResponseAndServerStream<bool, int32_t> rangeWithResponse(
         int32_t, int32_t) override {
       // signal main thread that we received the request
-      barrier_.wait();
+      barrier_.arrive_and_wait();
       // trigger a timeout on the client
       /* sleep override */ std::this_thread::sleep_for(
           std::chrono::seconds(10));
       // signal main thread that the request is done
-      barrier_.wait();
+      barrier_.arrive_and_wait();
       return {false, ServerStream<int32_t>::createEmpty()};
     }
-    folly::test::Barrier& barrier_;
+    std::barrier<>& barrier_;
   };
 
   // server
-  folly::test::Barrier barrier(2);
+  std::barrier barrier(2);
   auto handler = std::make_shared<TestServiceHandler>(barrier);
   ScopedServerInterfaceThread runner(handler);
 
@@ -504,12 +503,12 @@ TEST_F(ThriftClientTest, FirstResponseTimeout) {
   auto f = client->semifuture_rangeWithResponse(options, 0, 10);
 
   // wait for server to receive the request
-  barrier.wait();
+  barrier.arrive_and_wait();
   // release client while the first response is still pending
   client.reset();
   // (... a response timeout here should not cause a crash ...)
   // wait for server to complete the request
-  barrier.wait();
+  barrier.arrive_and_wait();
 
   evb.terminateLoopSoon();
   t.join();

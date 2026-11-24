@@ -253,15 +253,15 @@ const ::std::set<float>& MyStruct::get_floatSet() const& [[FOLLY_ATTR_CLANG_LIFE
 
 void swap([[maybe_unused]] MyStruct& a, [[maybe_unused]] MyStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_MyIntField, b.__fbthrift_field_MyIntField);
-  swap(a.__fbthrift_field_MyStringField, b.__fbthrift_field_MyStringField);
-  swap(a.__fbthrift_field_MyDataField, b.__fbthrift_field_MyDataField);
-  swap(a.__fbthrift_field_myEnum, b.__fbthrift_field_myEnum);
-  swap(a.__fbthrift_field_oneway, b.__fbthrift_field_oneway);
-  swap(a.__fbthrift_field_readonly, b.__fbthrift_field_readonly);
-  swap(a.__fbthrift_field_idempotent, b.__fbthrift_field_idempotent);
-  swap(a.__fbthrift_field_floatSet, b.__fbthrift_field_floatSet);
-  swap(a.__fbthrift_field_no_hack_codegen_field, b.__fbthrift_field_no_hack_codegen_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyIntField, b.__fbthrift_field_MyIntField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyStringField, b.__fbthrift_field_MyStringField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyDataField, b.__fbthrift_field_MyDataField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myEnum, b.__fbthrift_field_myEnum);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_oneway, b.__fbthrift_field_oneway);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_readonly, b.__fbthrift_field_readonly);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_idempotent, b.__fbthrift_field_idempotent);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_floatSet, b.__fbthrift_field_floatSet);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_no_hack_codegen_field, b.__fbthrift_field_no_hack_codegen_field);
   swap(a.__isset, b.__isset);
 }
 
@@ -365,9 +365,9 @@ const ::std::map<::std::string, ::std::int64_t>& Containers::get_StringToI64Map(
 
 void swap([[maybe_unused]] Containers& a, [[maybe_unused]] Containers& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_I32List, b.__fbthrift_field_I32List);
-  swap(a.__fbthrift_field_StringSet, b.__fbthrift_field_StringSet);
-  swap(a.__fbthrift_field_StringToI64Map, b.__fbthrift_field_StringToI64Map);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_I32List, b.__fbthrift_field_I32List);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_StringSet, b.__fbthrift_field_StringSet);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_StringToI64Map, b.__fbthrift_field_StringToI64Map);
   swap(a.__isset, b.__isset);
 }
 
@@ -470,51 +470,76 @@ void MyUnion::__fbthrift_clear() {
 bool MyUnion::__fbthrift_is_empty() const {
   return getType() == Type::__EMPTY__;
 }
+  MyUnion& MyUnion::operator=(MyUnion&& rhs) noexcept {
+    if (this == &rhs) { return *this; }
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+      {
+        __fbthrift_clear();
+        return *this;
+      }
+      case Type::myEnum:
+      {
+        auto value = std::move(rhs.value_.myEnum);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(myEnum_ref(), std::move(value));
+        break;
+      }
+      case Type::myStruct:
+      {
+        auto value = std::move(rhs.value_.myStruct);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(myStruct_ref(), std::move(value));
+        break;
+      }
+      case Type::myDataItem:
+      {
+        auto value = std::move(rhs.value_.myDataItem);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(myDataItem_ref(), std::move(value));
+        break;
+      }
+      case Type::floatSet:
+      {
+        auto value = std::move(rhs.value_.floatSet);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(floatSet_ref(), std::move(value));
+        break;
+      }
+      default:
+      {
+        assert(false);
+        __fbthrift_clear();
+      }
+    }
+    return *this;
+  }
+
   MyUnion::MyUnion(const MyUnion& rhs)
       : fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
     switch (rhs.getType()) {
       case Type::__EMPTY__:
         return;
       case Type::myEnum:
-        set_myEnum(rhs.value_.myEnum);
+        myEnum_ref().emplace(rhs.value_.myEnum);
         break;
       case Type::myStruct:
-        set_myStruct(rhs.value_.myStruct);
+        myStruct_ref().emplace(rhs.value_.myStruct);
         break;
       case Type::myDataItem:
-        set_myDataItem(rhs.value_.myDataItem);
+        myDataItem_ref().emplace(rhs.value_.myDataItem);
         break;
       case Type::floatSet:
-        set_floatSet(rhs.value_.floatSet);
+        floatSet_ref().emplace(rhs.value_.floatSet);
         break;
       default:
         assert(false);
     }
   }
 
-    MyUnion&MyUnion::operator=(const MyUnion& rhs) {
+  MyUnion& MyUnion::operator=(const MyUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::myEnum:
-        set_myEnum(rhs.value_.myEnum);
-        break;
-      case Type::myStruct:
-        set_myStruct(rhs.value_.myStruct);
-        break;
-      case Type::myDataItem:
-        set_myDataItem(rhs.value_.myDataItem);
-        break;
-      case Type::floatSet:
-        set_floatSet(rhs.value_.floatSet);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = MyUnion(rhs);
   }
 
 
@@ -645,10 +670,10 @@ const ::cpp2::MyUnion& MyException::get_myUnion() const& [[FOLLY_ATTR_CLANG_LIFE
 
 void swap([[maybe_unused]] MyException& a, [[maybe_unused]] MyException& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_MyIntField, b.__fbthrift_field_MyIntField);
-  swap(a.__fbthrift_field_MyStringField, b.__fbthrift_field_MyStringField);
-  swap(a.__fbthrift_field_myStruct, b.__fbthrift_field_myStruct);
-  swap(a.__fbthrift_field_myUnion, b.__fbthrift_field_myUnion);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyIntField, b.__fbthrift_field_MyIntField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyStringField, b.__fbthrift_field_MyStringField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myStruct, b.__fbthrift_field_myStruct);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myUnion, b.__fbthrift_field_myUnion);
   swap(a.__isset, b.__isset);
 }
 
@@ -769,10 +794,10 @@ const ::cpp2::MyUnion& MyExceptionWithMessage::get_myUnion() const& [[FOLLY_ATTR
 
 void swap([[maybe_unused]] MyExceptionWithMessage& a, [[maybe_unused]] MyExceptionWithMessage& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_MyIntField, b.__fbthrift_field_MyIntField);
-  swap(a.__fbthrift_field_MyStringField, b.__fbthrift_field_MyStringField);
-  swap(a.__fbthrift_field_myStruct, b.__fbthrift_field_myStruct);
-  swap(a.__fbthrift_field_myUnion, b.__fbthrift_field_myUnion);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyIntField, b.__fbthrift_field_MyIntField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyStringField, b.__fbthrift_field_MyStringField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myStruct, b.__fbthrift_field_myStruct);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myUnion, b.__fbthrift_field_myUnion);
   swap(a.__isset, b.__isset);
 }
 
@@ -838,7 +863,7 @@ std::partial_ordering ReservedKeyword::operator<=>([[maybe_unused]] const Reserv
 
 void swap([[maybe_unused]] ReservedKeyword& a, [[maybe_unused]] ReservedKeyword& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_reserved_field, b.__fbthrift_field_reserved_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_reserved_field, b.__fbthrift_field_reserved_field);
   swap(a.__isset, b.__isset);
 }
 
@@ -891,33 +916,46 @@ void UnionToBeRenamed::__fbthrift_clear() {
 bool UnionToBeRenamed::__fbthrift_is_empty() const {
   return getType() == Type::__EMPTY__;
 }
+  UnionToBeRenamed& UnionToBeRenamed::operator=(UnionToBeRenamed&& rhs) noexcept {
+    if (this == &rhs) { return *this; }
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+      {
+        __fbthrift_clear();
+        return *this;
+      }
+      case Type::reserved_field:
+      {
+        auto value = std::move(rhs.value_.reserved_field);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(reserved_field_ref(), std::move(value));
+        break;
+      }
+      default:
+      {
+        assert(false);
+        __fbthrift_clear();
+      }
+    }
+    return *this;
+  }
+
   UnionToBeRenamed::UnionToBeRenamed(const UnionToBeRenamed& rhs)
       : fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
     switch (rhs.getType()) {
       case Type::__EMPTY__:
         return;
       case Type::reserved_field:
-        set_reserved_field(rhs.value_.reserved_field);
+        reserved_field_ref().emplace(rhs.value_.reserved_field);
         break;
       default:
         assert(false);
     }
   }
 
-    UnionToBeRenamed&UnionToBeRenamed::operator=(const UnionToBeRenamed& rhs) {
+  UnionToBeRenamed& UnionToBeRenamed::operator=(const UnionToBeRenamed& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::reserved_field:
-        set_reserved_field(rhs.value_.reserved_field);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = UnionToBeRenamed(rhs);
   }
 
 

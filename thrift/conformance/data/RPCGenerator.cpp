@@ -17,6 +17,9 @@
 #include <thrift/conformance/data/RPCGenerator.h>
 
 #include <thrift/lib/cpp/TApplicationException.h>
+#include <thrift/lib/cpp/transport/TTransportException.h>
+#include <thrift/lib/cpp2/protocol/Serializer.h>
+#include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
 
 namespace apache::thrift::conformance::data {
 
@@ -24,6 +27,16 @@ namespace {
 const uint32_t kMaxFrameSize = (1 << 24) - 1;
 const std::string kLargeData = std::string(kMaxFrameSize * 2, 'a');
 const uint64_t kDefaultBufferSize = 100;
+const int32_t kRocketApplicationError = 0x201;
+const int32_t kRocketCanceled = 0x203;
+const int32_t kRocketCancelFrame = 0x09;
+const int32_t kRocketErrorFrame = 0x0B;
+const std::string kUndecodableMetadata = "\x1f";
+const std::string kProcessFirstResponseError =
+    "apache::thrift::TApplicationException: process first response error";
+const auto kUnknownCompression = static_cast<CompressionAlgorithm>(99);
+const std::string kUnknownCompressionMessage =
+    "Unknown CompressionAlgorithm enum value: 99";
 
 // =================== Request-Response ===================
 Test createRequestResponseBasicTest() {
@@ -235,6 +248,43 @@ Test createRequestResponseLoadsheddingTest() {
   return ret;
 }
 
+Test createRequestResponseUnexpectedErrorCodeTest() {
+  Test ret;
+  ret.name() = "RequestResponseUnexpectedErrorCodeTest";
+  ret.tags()->emplace("spec/compatibility/rocket#internal-server-error");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = "RequestResponseUnexpectedErrorCode/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  rpcTest.clientInstruction()
+      .emplace()
+      .requestResponseServerError()
+      .emplace()
+      .request()
+      .emplace()
+      .data() = "hello";
+  auto& clientTestResult = rpcTest.clientTestResult()
+                               .emplace()
+                               .requestResponseServerError()
+                               .emplace();
+  clientTestResult.exceptionType() = TApplicationException::UNKNOWN;
+  clientTestResult.exceptionMessage() = "Unexpected error frame type: 513";
+  auto& errorFrame = rpcTest.serverInstruction()
+                         .emplace()
+                         .requestResponseServerError()
+                         .emplace()
+                         .error()
+                         .emplace()
+                         .errorFrame()
+                         .emplace();
+  errorFrame.code() = kRocketApplicationError;
+  errorFrame.message() = "rejected before the first response";
+  rpcTest.serverTestResult().emplace();
+
+  return ret;
+}
+
 Test createRequestResponseTaskExpiredTest() {
   Test ret;
   ret.name() = "RequestResponseTaskExpiredTest";
@@ -267,6 +317,47 @@ Test createRequestResponseTaskExpiredTest() {
                           .emplace();
   taskExpired.taskExpireTimeMs() = 500;
   taskExpired.handlerTimeMs() = 1500;
+  rpcTest.serverTestResult()
+      .emplace()
+      .requestResponseServerError()
+      .emplace()
+      .request()
+      .emplace()
+      .data() = "hello";
+
+  return ret;
+}
+
+Test createRequestResponseUndeclaredExceptionTypeTest() {
+  Test ret;
+  ret.name() = "RequestResponseUndeclaredExceptionTypeTest";
+  ret.tags()->emplace("spec/protocol/interface/#undeclared-exception");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = "RequestResponseUndeclaredExceptionType/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  rpcTest.clientInstruction()
+      .emplace()
+      .requestResponseServerError()
+      .emplace()
+      .request()
+      .emplace()
+      .data() = "hello";
+  auto& clientTestResult = rpcTest.clientTestResult()
+                               .emplace()
+                               .requestResponseServerError()
+                               .emplace();
+  clientTestResult.exceptionType() = TApplicationException::UNKNOWN;
+  clientTestResult.exceptionMessage() =
+      "std::runtime_error: my undeclared exception";
+  rpcTest.serverInstruction()
+      .emplace()
+      .requestResponseServerError()
+      .emplace()
+      .error()
+      .emplace()
+      .undeclaredException() = "my undeclared exception";
   rpcTest.serverTestResult()
       .emplace()
       .requestResponseServerError()
@@ -574,6 +665,45 @@ Test createRequestResponseConcurrentTest() {
   return ret;
 }
 
+Test createRequestResponseBadContentLengthTest() {
+  Test ret;
+  ret.name() = "RequestResponseBadContentLengthTest";
+  ret.tags()->emplace("spec/protocol/interface/#request-response");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = "RequestResponseBadContentLength/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  rpcTest.clientInstruction()
+      .emplace()
+      .requestResponseBadContentLength()
+      .emplace()
+      .request()
+      .emplace()
+      .data() = "hello";
+  rpcTest.clientTestResult()
+      .emplace()
+      .requestResponseBadContentLength()
+      .emplace()
+      .transportExceptionType() = transport::TTransportException::UNKNOWN;
+
+  auto& serverInstruction = rpcTest.serverInstruction()
+                                .emplace()
+                                .requestResponseBadContentLength()
+                                .emplace();
+  serverInstruction.response().emplace().data() = "world";
+  serverInstruction.contentLength() = 1;
+  rpcTest.serverTestResult()
+      .emplace()
+      .requestResponseBadContentLength()
+      .emplace()
+      .request()
+      .emplace()
+      .data() = "hello";
+
+  return ret;
+}
+
 Test createRequestResponseNoArgVoidResponse() {
   Test ret;
   ret.name() = "RequestResponseNoArgVoidResponseTest";
@@ -746,6 +876,123 @@ Test createStreamCancelTest() {
       rpcTest.serverTestResult().emplace().streamCancel().emplace();
   serverTestResult.request().emplace().data() = "hello";
   serverTestResult.cancelled() = true;
+
+  return ret;
+}
+
+Test createStreamCancelBeforeInitialResponseTest() {
+  Test ret;
+  ret.name() = "StreamCancelBeforeInitialResponseTest";
+  ret.tags()->emplace("spec/protocol/interface/#stream-cancellation");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = "StreamCancelBeforeInitialResponse/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  auto& clientInstruction =
+      rpcTest.clientInstruction().emplace().streamCancel().emplace();
+  clientInstruction.request().emplace().data() = "hello";
+  clientInstruction.giveUpAfterMs() = 100;
+  rpcTest.clientTestResult().emplace().streamCancel().emplace();
+  rpcTest.serverInstruction()
+      .emplace()
+      .streamCancel()
+      .emplace()
+      .initialResponseDelayMs() = 500;
+  auto& serverTestResult =
+      rpcTest.serverTestResult().emplace().streamCancel().emplace();
+  serverTestResult.request().emplace().data() = "hello";
+  serverTestResult.cancelled() = true;
+
+  return ret;
+}
+
+Test createStreamCancelUnreadInitialResponseTest() {
+  Test ret;
+  ret.name() = "StreamCancelUnreadInitialResponseTest";
+  ret.tags()->emplace("spec/protocol/interface/#stream-cancellation");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = "StreamCancelUnreadInitialResponse/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  auto& clientInstruction =
+      rpcTest.clientInstruction().emplace().streamCancel().emplace();
+  clientInstruction.request().emplace().data() = "hello";
+  clientInstruction.dropUnreadAfterMs() = 200;
+  rpcTest.clientTestResult().emplace().streamCancel().emplace();
+  rpcTest.serverInstruction().emplace().streamCancel().emplace();
+  auto& serverTestResult =
+      rpcTest.serverTestResult().emplace().streamCancel().emplace();
+  serverTestResult.request().emplace().data() = "hello";
+  serverTestResult.cancelled() = true;
+
+  return ret;
+}
+
+Test createStreamLoadsheddingTest() {
+  Test ret;
+  ret.name() = "StreamLoadsheddingTest";
+  ret.tags()->emplace("spec/protocol/interface/#loadshedding");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = "StreamLoadshedding/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  rpcTest.clientInstruction()
+      .emplace()
+      .streamServerError()
+      .emplace()
+      .request()
+      .emplace()
+      .data() = "hello";
+  auto& clientTestResult =
+      rpcTest.clientTestResult().emplace().streamServerError().emplace();
+  clientTestResult.exceptionType() = TApplicationException::LOADSHEDDING;
+  clientTestResult.exceptionMessage() = "shedding the conformance call";
+  rpcTest.serverInstruction()
+      .emplace()
+      .streamServerError()
+      .emplace()
+      .error()
+      .emplace()
+      .loadshedding() = "shedding the conformance call";
+  rpcTest.serverTestResult().emplace();
+
+  return ret;
+}
+
+Test createStreamUnexpectedErrorCodeTest() {
+  Test ret;
+  ret.name() = "StreamUnexpectedErrorCodeTest";
+  ret.tags()->emplace("spec/compatibility/rocket#internal-server-error");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = "StreamUnexpectedErrorCode/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  rpcTest.clientInstruction()
+      .emplace()
+      .streamServerError()
+      .emplace()
+      .request()
+      .emplace()
+      .data() = "hello";
+  auto& clientTestResult =
+      rpcTest.clientTestResult().emplace().streamServerError().emplace();
+  clientTestResult.exceptionType() = TApplicationException::UNKNOWN;
+  clientTestResult.exceptionMessage() = "Unexpected error frame type: 513";
+  auto& errorFrame = rpcTest.serverInstruction()
+                         .emplace()
+                         .streamServerError()
+                         .emplace()
+                         .error()
+                         .emplace()
+                         .errorFrame()
+                         .emplace();
+  errorFrame.code() = kRocketApplicationError;
+  errorFrame.message() = "rejected before the first response";
+  rpcTest.serverTestResult().emplace();
 
   return ret;
 }
@@ -1349,6 +1596,149 @@ Test createSinkEarlyFinalResponseTest() {
   return ret;
 }
 
+Test createSinkAbortTest() {
+  Test ret;
+  ret.name() = "SinkAbortTest";
+  ret.tags()->emplace("spec/protocol/interface/#sink");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = "SinkAbort/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  rpcTest.clientInstruction()
+      .emplace()
+      .sinkAbort()
+      .emplace()
+      .request()
+      .emplace()
+      .data() = "hello";
+  rpcTest.clientTestResult().emplace().sinkAbort().emplace();
+  rpcTest.serverInstruction().emplace().sinkAbort().emplace();
+  auto& serverTestResult =
+      rpcTest.serverTestResult().emplace().sinkAbort().emplace();
+  serverTestResult.request().emplace().data() = "hello";
+  serverTestResult.aborted() = true;
+
+  return ret;
+}
+
+Test createSinkAbortBeforeInitialResponseTest() {
+  Test ret;
+  ret.name() = "SinkAbortBeforeInitialResponseTest";
+  ret.tags()->emplace("spec/protocol/interface/#sink");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = "SinkAbortBeforeInitialResponse/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  auto& clientInstruction =
+      rpcTest.clientInstruction().emplace().sinkAbort().emplace();
+  clientInstruction.request().emplace().data() = "hello";
+  clientInstruction.giveUpAfterMs() = 100;
+  rpcTest.clientTestResult().emplace().sinkAbort().emplace();
+  rpcTest.serverInstruction()
+      .emplace()
+      .sinkAbort()
+      .emplace()
+      .initialResponseDelayMs() = 500;
+  auto& serverTestResult =
+      rpcTest.serverTestResult().emplace().sinkAbort().emplace();
+  serverTestResult.request().emplace().data() = "hello";
+  serverTestResult.aborted() = true;
+
+  return ret;
+}
+
+Test createSinkAbortUnreadInitialResponseTest() {
+  Test ret;
+  ret.name() = "SinkAbortUnreadInitialResponseTest";
+  ret.tags()->emplace("spec/protocol/interface/#sink");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = "SinkAbortUnreadInitialResponse/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  auto& clientInstruction =
+      rpcTest.clientInstruction().emplace().sinkAbort().emplace();
+  clientInstruction.request().emplace().data() = "hello";
+  clientInstruction.dropUnreadAfterMs() = 200;
+  rpcTest.clientTestResult().emplace().sinkAbort().emplace();
+  rpcTest.serverInstruction().emplace().sinkAbort().emplace();
+  auto& serverTestResult =
+      rpcTest.serverTestResult().emplace().sinkAbort().emplace();
+  serverTestResult.request().emplace().data() = "hello";
+  serverTestResult.aborted() = true;
+
+  return ret;
+}
+
+Test createSinkLoadsheddingTest() {
+  Test ret;
+  ret.name() = "SinkLoadsheddingTest";
+  ret.tags()->emplace("spec/protocol/interface/#loadshedding");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = "SinkLoadshedding/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  rpcTest.clientInstruction()
+      .emplace()
+      .sinkServerError()
+      .emplace()
+      .request()
+      .emplace()
+      .data() = "hello";
+  auto& clientTestResult =
+      rpcTest.clientTestResult().emplace().sinkServerError().emplace();
+  clientTestResult.exceptionType() = TApplicationException::LOADSHEDDING;
+  clientTestResult.exceptionMessage() = "shedding the conformance call";
+  rpcTest.serverInstruction()
+      .emplace()
+      .sinkServerError()
+      .emplace()
+      .error()
+      .emplace()
+      .loadshedding() = "shedding the conformance call";
+  rpcTest.serverTestResult().emplace();
+
+  return ret;
+}
+
+Test createSinkUnexpectedErrorCodeTest() {
+  Test ret;
+  ret.name() = "SinkUnexpectedErrorCodeTest";
+  ret.tags()->emplace("spec/compatibility/rocket#internal-server-error");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = "SinkUnexpectedErrorCode/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  rpcTest.clientInstruction()
+      .emplace()
+      .sinkServerError()
+      .emplace()
+      .request()
+      .emplace()
+      .data() = "hello";
+  auto& clientTestResult =
+      rpcTest.clientTestResult().emplace().sinkServerError().emplace();
+  clientTestResult.exceptionType() = TApplicationException::UNKNOWN;
+  clientTestResult.exceptionMessage() = "Unexpected error frame type: 513";
+  auto& errorFrame = rpcTest.serverInstruction()
+                         .emplace()
+                         .sinkServerError()
+                         .emplace()
+                         .error()
+                         .emplace()
+                         .errorFrame()
+                         .emplace();
+  errorFrame.code() = kRocketApplicationError;
+  errorFrame.message() = "rejected before the first response";
+  rpcTest.serverTestResult().emplace();
+
+  return ret;
+}
+
 Test createSinkChunkTimeoutTest() {
   Test ret;
   ret.name() = "SinkChunkTimeoutTest";
@@ -1383,6 +1773,47 @@ Test createSinkChunkTimeoutTest() {
   serverResult.request().emplace().data() = "hello";
   serverResult.sinkPayloads().copy_from(clientInstruction.sinkPayloads());
   serverResult.chunkTimeoutException() = true;
+
+  return ret;
+}
+
+Test createSinkChunkDoesNotTimeoutTest() {
+  Test ret;
+  ret.name() = "SinkChunkDoesNotTimeoutTest";
+  ret.tags()->emplace("spec/protocol/interface/#sink-chunk-timeout");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = "SinkChunkDoesNotTimeout/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  auto& clientInstruction =
+      rpcTest.clientInstruction().emplace().sinkChunkTimeout().emplace();
+  clientInstruction.request().emplace().data() = "hello";
+  for (int i = 0; i < 100; i++) {
+    auto& sinkPayload = clientInstruction.sinkPayloads()->emplace_back();
+    sinkPayload.data() = folly::to<std::string>(i);
+  }
+  // Client will go quiet for 2000ms
+  clientInstruction.chunkTimeoutMs() = 2000;
+
+  rpcTest.clientTestResult()
+      .emplace()
+      .sinkChunkTimeout()
+      .emplace()
+      .chunkTimeoutException() = false;
+
+  auto& serverInstruction =
+      rpcTest.serverInstruction().emplace().sinkChunkTimeout().emplace();
+  serverInstruction.finalResponse().emplace().data() = "world";
+  // The server is longer than the default (1000) and longer than the client's
+  // silent time, so we should not see any timeout errors
+  serverInstruction.chunkTimeoutMs() = 3000;
+
+  auto& serverResult =
+      rpcTest.serverTestResult().emplace().sinkChunkTimeout().emplace();
+  serverResult.request().emplace().data() = "hello";
+  serverResult.sinkPayloads().copy_from(clientInstruction.sinkPayloads());
+  serverResult.chunkTimeoutException() = false;
 
   return ret;
 }
@@ -1945,6 +2376,871 @@ Test createBidiMethodUndeclaredExceptionTest() {
   return ret;
 }
 
+Test createBidiAbortTest() {
+  Test ret;
+  ret.name() = "BidiAbortTest";
+  ret.tags()->emplace("spec/protocol/interface/#bidi");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = "BidiAbort/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  rpcTest.clientInstruction()
+      .emplace()
+      .bidiAbort()
+      .emplace()
+      .request()
+      .emplace()
+      .data() = "hello";
+  rpcTest.clientTestResult().emplace().bidiAbort().emplace();
+  rpcTest.serverInstruction().emplace().bidiAbort().emplace();
+  auto& serverTestResult =
+      rpcTest.serverTestResult().emplace().bidiAbort().emplace();
+  serverTestResult.request().emplace().data() = "hello";
+  serverTestResult.sinkAborted() = true;
+
+  return ret;
+}
+
+Test createBidiAbortBeforeInitialResponseTest() {
+  Test ret;
+  ret.name() = "BidiAbortBeforeInitialResponseTest";
+  ret.tags()->emplace("spec/protocol/interface/#bidi");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = "BidiAbortBeforeInitialResponse/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  auto& clientInstruction =
+      rpcTest.clientInstruction().emplace().bidiAbort().emplace();
+  clientInstruction.request().emplace().data() = "hello";
+  clientInstruction.giveUpAfterMs() = 100;
+  rpcTest.clientTestResult().emplace().bidiAbort().emplace();
+  rpcTest.serverInstruction()
+      .emplace()
+      .bidiAbort()
+      .emplace()
+      .initialResponseDelayMs() = 500;
+  auto& serverTestResult =
+      rpcTest.serverTestResult().emplace().bidiAbort().emplace();
+  serverTestResult.request().emplace().data() = "hello";
+  serverTestResult.sinkAborted() = true;
+
+  return ret;
+}
+
+Test createBidiAbortUnreadInitialResponseTest() {
+  Test ret;
+  ret.name() = "BidiAbortUnreadInitialResponseTest";
+  ret.tags()->emplace("spec/protocol/interface/#bidi");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = "BidiAbortUnreadInitialResponse/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  auto& clientInstruction =
+      rpcTest.clientInstruction().emplace().bidiAbort().emplace();
+  clientInstruction.request().emplace().data() = "hello";
+  clientInstruction.dropUnreadAfterMs() = 200;
+  rpcTest.clientTestResult().emplace().bidiAbort().emplace();
+  rpcTest.serverInstruction().emplace().bidiAbort().emplace();
+  auto& serverTestResult =
+      rpcTest.serverTestResult().emplace().bidiAbort().emplace();
+  serverTestResult.request().emplace().data() = "hello";
+  serverTestResult.sinkAborted() = true;
+
+  return ret;
+}
+
+Test createBidiLoadsheddingTest() {
+  Test ret;
+  ret.name() = "BidiLoadsheddingTest";
+  ret.tags()->emplace("spec/protocol/interface/#loadshedding");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = "BidiLoadshedding/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  rpcTest.clientInstruction()
+      .emplace()
+      .bidiServerError()
+      .emplace()
+      .request()
+      .emplace()
+      .data() = "hello";
+  auto& clientTestResult =
+      rpcTest.clientTestResult().emplace().bidiServerError().emplace();
+  clientTestResult.exceptionType() = TApplicationException::LOADSHEDDING;
+  clientTestResult.exceptionMessage() = "shedding the conformance call";
+  rpcTest.serverInstruction()
+      .emplace()
+      .bidiServerError()
+      .emplace()
+      .error()
+      .emplace()
+      .loadshedding() = "shedding the conformance call";
+  rpcTest.serverTestResult().emplace();
+
+  return ret;
+}
+
+Test createBidiUnexpectedErrorCodeTest() {
+  Test ret;
+  ret.name() = "BidiUnexpectedErrorCodeTest";
+  ret.tags()->emplace("spec/compatibility/rocket#internal-server-error");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = "BidiUnexpectedErrorCode/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  rpcTest.clientInstruction()
+      .emplace()
+      .bidiServerError()
+      .emplace()
+      .request()
+      .emplace()
+      .data() = "hello";
+  auto& clientTestResult =
+      rpcTest.clientTestResult().emplace().bidiServerError().emplace();
+  clientTestResult.exceptionType() = TApplicationException::UNKNOWN;
+  clientTestResult.exceptionMessage() = "Unexpected error frame type: 513";
+  auto& errorFrame = rpcTest.serverInstruction()
+                         .emplace()
+                         .bidiServerError()
+                         .emplace()
+                         .error()
+                         .emplace()
+                         .errorFrame()
+                         .emplace();
+  errorFrame.code() = kRocketApplicationError;
+  errorFrame.message() = "rejected before the first response";
+  rpcTest.serverTestResult().emplace();
+
+  return ret;
+}
+
+ClientFrame cancelFrame() {
+  ClientFrame frame;
+  frame.type() = kRocketCancelFrame;
+  return frame;
+}
+
+ClientFrame canceledErrorFrame() {
+  ClientFrame frame;
+  frame.type() = kRocketErrorFrame;
+  frame.errorCode() = kRocketCanceled;
+  frame.errorData() = "";
+  return frame;
+}
+
+ClientFrame processFirstResponseErrorFrame() {
+  ClientFrame frame;
+  frame.type() = kRocketErrorFrame;
+  frame.errorCode() = kRocketApplicationError;
+  frame.errorData() = kProcessFirstResponseError;
+  return frame;
+}
+
+ClientFrame neverCalledSinkFrame() {
+  ClientFrame frame;
+  frame.type() = kRocketErrorFrame;
+  frame.errorCode() = kRocketApplicationError;
+  frame.errorData() =
+      "apache::thrift::TApplicationException: never called sink object";
+  return frame;
+}
+
+std::string undeclaredExceptionMetadata() {
+  ResponseRpcMetadata metadata;
+  auto& exception =
+      metadata.payloadMetadata().emplace().exceptionMetadata().emplace();
+  exception.what_utf8() = "the first response is an exception";
+  exception.metadata().emplace().appUnknownException().emplace();
+  return CompactSerializer::serialize<std::string>(metadata);
+}
+
+std::string emptyPayloadMetadata() {
+  ResponseRpcMetadata metadata;
+  metadata.payloadMetadata().emplace();
+  return CompactSerializer::serialize<std::string>(metadata);
+}
+
+Test createClosingFrameTest(
+    const std::string& kind, CallKind call, std::vector<ClientFrame> frames) {
+  Test ret;
+  ret.name() = kind + "ClosingFrameTest";
+  ret.tags()->emplace("spec/compatibility/rocket#internal-server-error");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = kind + "ClosingFrame/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  auto& clientInstruction =
+      rpcTest.clientInstruction().emplace().closingFrame().emplace();
+  clientInstruction.call() = call;
+  clientInstruction.request().emplace().data() = "hello";
+  rpcTest.clientTestResult().emplace().closingFrame().emplace();
+  auto& serverInstruction =
+      rpcTest.serverInstruction().emplace().closingFrame().emplace();
+  serverInstruction.call() = call;
+  auto& errorFrame = serverInstruction.firstResponse()->errorFrame().emplace();
+  errorFrame.code() = kRocketApplicationError;
+  errorFrame.message() = "rejected before the first response";
+  rpcTest.serverTestResult().emplace().closingFrame().emplace().frames() =
+      std::move(frames);
+
+  return ret;
+}
+
+Test createUndecodableFirstResponseTest(
+    const std::string& kind, CallKind call, std::vector<ClientFrame> frames) {
+  Test ret;
+  ret.name() = kind + "UndecodableFirstResponseTest";
+  ret.tags()->emplace("spec/compatibility/rocket#stream-initial-response");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = kind + "UndecodableFirstResponse/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  auto& clientInstruction =
+      rpcTest.clientInstruction().emplace().closingFrame().emplace();
+  clientInstruction.call() = call;
+  clientInstruction.request().emplace().data() = "hello";
+  rpcTest.clientTestResult().emplace().closingFrame().emplace();
+  auto& serverInstruction =
+      rpcTest.serverInstruction().emplace().closingFrame().emplace();
+  serverInstruction.call() = call;
+  serverInstruction.firstResponse()->metadata() = kUndecodableMetadata;
+  rpcTest.serverTestResult().emplace().closingFrame().emplace().frames() =
+      std::move(frames);
+
+  return ret;
+}
+
+Test createInvalidPayloadMetadataTest(
+    const std::string& kind, CallKind call, std::vector<ClientFrame> frames) {
+  Test ret;
+  ret.name() = kind + "InvalidPayloadMetadataTest";
+  ret.tags()->emplace("spec/compatibility/rocket#stream-initial-response");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = kind + "InvalidPayloadMetadata/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  auto& clientInstruction =
+      rpcTest.clientInstruction().emplace().closingFrame().emplace();
+  clientInstruction.call() = call;
+  clientInstruction.request().emplace().data() = "hello";
+  rpcTest.clientTestResult().emplace().closingFrame().emplace();
+  auto& serverInstruction =
+      rpcTest.serverInstruction().emplace().closingFrame().emplace();
+  serverInstruction.call() = call;
+  serverInstruction.firstResponse()->metadata() = emptyPayloadMetadata();
+  rpcTest.serverTestResult().emplace().closingFrame().emplace().frames() =
+      std::move(frames);
+
+  return ret;
+}
+
+Test createUndeclaredExceptionFirstResponseTest(
+    const std::string& kind, CallKind call, std::vector<ClientFrame> frames) {
+  Test ret;
+  ret.name() = kind + "UndeclaredExceptionFirstResponseTest";
+  ret.tags()->emplace("spec/compatibility/rocket#stream-initial-response");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = kind + "UndeclaredExceptionFirstResponse/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  auto& clientInstruction =
+      rpcTest.clientInstruction().emplace().closingFrame().emplace();
+  clientInstruction.call() = call;
+  clientInstruction.request().emplace().data() = "hello";
+  rpcTest.clientTestResult().emplace().closingFrame().emplace();
+  auto& serverInstruction =
+      rpcTest.serverInstruction().emplace().closingFrame().emplace();
+  serverInstruction.call() = call;
+  serverInstruction.firstResponse()->metadata() = undeclaredExceptionMetadata();
+  rpcTest.serverTestResult().emplace().closingFrame().emplace().frames() =
+      std::move(frames);
+
+  return ret;
+}
+
+std::string unknownCompressionMetadata() {
+  ResponseRpcMetadata metadata;
+  metadata.payloadMetadata().emplace().responseMetadata().emplace();
+  metadata.compression() = kUnknownCompression;
+  return CompactSerializer::serialize<std::string>(metadata);
+}
+
+std::string unknownCompressionChunkMetadata() {
+  StreamPayloadMetadata metadata;
+  metadata.compression() = kUnknownCompression;
+  return CompactSerializer::serialize<std::string>(metadata);
+}
+
+ServerError withFirstResponse(std::string metadata) {
+  ServerError error;
+  error.firstResponseMetadata() = std::move(metadata);
+  return error;
+}
+
+ServerError withChunk(std::string metadata) {
+  ServerError error;
+  error.chunkMetadata() = std::move(metadata);
+  return error;
+}
+
+std::string unknownCompressionTag(const ServerError& error) {
+  return error.chunkMetadata()
+      ? "spec/compatibility/rocket#stream-responses"
+      : "spec/compatibility/rocket#stream-initial-response";
+}
+
+Test createRequestResponseUnknownCompressionTest() {
+  Test ret;
+  ret.name() = "RequestResponseUnknownCompressionTest";
+  ret.tags()->emplace("spec/compatibility/rocket#request-response");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = "RequestResponseUnknownCompression/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  rpcTest.clientInstruction()
+      .emplace()
+      .requestResponseServerError()
+      .emplace()
+      .request()
+      .emplace()
+      .data() = "hello";
+  auto& clientTestResult = rpcTest.clientTestResult()
+                               .emplace()
+                               .requestResponseServerError()
+                               .emplace();
+  clientTestResult.exceptionType() = TApplicationException::PROTOCOL_ERROR;
+  clientTestResult.exceptionMessage() = kUnknownCompressionMessage;
+  rpcTest.serverInstruction()
+      .emplace()
+      .requestResponseServerError()
+      .emplace()
+      .error() = withFirstResponse(unknownCompressionMetadata());
+  rpcTest.serverTestResult().emplace();
+
+  return ret;
+}
+
+Test createStreamUnknownCompressionTest(
+    const std::string& name, ServerError error) {
+  Test ret;
+  ret.name() = name + "UnknownCompressionTest";
+  ret.tags()->emplace(unknownCompressionTag(error));
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = name + "UnknownCompression/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  rpcTest.clientInstruction()
+      .emplace()
+      .streamServerError()
+      .emplace()
+      .request()
+      .emplace()
+      .data() = "hello";
+  auto& clientTestResult =
+      rpcTest.clientTestResult().emplace().streamServerError().emplace();
+  clientTestResult.exceptionType() = TApplicationException::PROTOCOL_ERROR;
+  clientTestResult.exceptionMessage() = kUnknownCompressionMessage;
+  rpcTest.serverInstruction().emplace().streamServerError().emplace().error() =
+      std::move(error);
+  rpcTest.serverTestResult().emplace();
+
+  return ret;
+}
+
+Test createSinkUnknownCompressionTest(
+    const std::string& name, ServerError error) {
+  Test ret;
+  ret.name() = name + "UnknownCompressionTest";
+  ret.tags()->emplace(unknownCompressionTag(error));
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = name + "UnknownCompression/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  rpcTest.clientInstruction()
+      .emplace()
+      .sinkServerError()
+      .emplace()
+      .request()
+      .emplace()
+      .data() = "hello";
+  auto& clientTestResult =
+      rpcTest.clientTestResult().emplace().sinkServerError().emplace();
+  clientTestResult.exceptionType() = TApplicationException::PROTOCOL_ERROR;
+  clientTestResult.exceptionMessage() = kUnknownCompressionMessage;
+  rpcTest.serverInstruction().emplace().sinkServerError().emplace().error() =
+      std::move(error);
+  rpcTest.serverTestResult().emplace();
+
+  return ret;
+}
+
+Test createBidiUnknownCompressionTest(
+    const std::string& name, ServerError error) {
+  Test ret;
+  ret.name() = name + "UnknownCompressionTest";
+  ret.tags()->emplace(unknownCompressionTag(error));
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = name + "UnknownCompression/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  rpcTest.clientInstruction()
+      .emplace()
+      .bidiServerError()
+      .emplace()
+      .request()
+      .emplace()
+      .data() = "hello";
+  auto& clientTestResult =
+      rpcTest.clientTestResult().emplace().bidiServerError().emplace();
+  clientTestResult.exceptionType() = TApplicationException::PROTOCOL_ERROR;
+  clientTestResult.exceptionMessage() = kUnknownCompressionMessage;
+  rpcTest.serverInstruction().emplace().bidiServerError().emplace().error() =
+      std::move(error);
+  rpcTest.serverTestResult().emplace();
+
+  return ret;
+}
+
+std::string mismatchedChecksumMetadata() {
+  ResponseRpcMetadata metadata;
+  metadata.payloadMetadata().emplace().responseMetadata().emplace();
+  auto& checksum = metadata.checksum().emplace();
+  checksum.algorithm() = ChecksumAlgorithm::XXH3_64;
+  checksum.checksum() = 1;
+  checksum.salt() = 0;
+  return CompactSerializer::serialize<std::string>(metadata);
+}
+
+Test createRequestResponseChecksumMismatchTest() {
+  Test ret;
+  ret.name() = "RequestResponseChecksumMismatchTest";
+  ret.tags()->emplace("spec/compatibility/rocket#stream-initial-response");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = "RequestResponseChecksumMismatch/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  rpcTest.clientInstruction()
+      .emplace()
+      .requestResponseServerError()
+      .emplace()
+      .request()
+      .emplace()
+      .data() = "hello";
+  auto& clientTestResult = rpcTest.clientTestResult()
+                               .emplace()
+                               .requestResponseServerError()
+                               .emplace();
+  clientTestResult.exceptionType() = TApplicationException::CHECKSUM_MISMATCH;
+  clientTestResult.exceptionMessage() = "Checksum mismatch";
+  rpcTest.serverInstruction()
+      .emplace()
+      .requestResponseServerError()
+      .emplace()
+      .error()
+      .emplace()
+      .firstResponseMetadata() = mismatchedChecksumMetadata();
+  rpcTest.serverTestResult().emplace();
+
+  return ret;
+}
+
+Test createStreamChecksumMismatchTest() {
+  Test ret;
+  ret.name() = "StreamChecksumMismatchTest";
+  ret.tags()->emplace("spec/compatibility/rocket#stream-initial-response");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = "StreamChecksumMismatch/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  rpcTest.clientInstruction()
+      .emplace()
+      .streamServerError()
+      .emplace()
+      .request()
+      .emplace()
+      .data() = "hello";
+  auto& clientTestResult =
+      rpcTest.clientTestResult().emplace().streamServerError().emplace();
+  clientTestResult.exceptionType() = TApplicationException::CHECKSUM_MISMATCH;
+  clientTestResult.exceptionMessage() = "Checksum mismatch";
+  rpcTest.serverInstruction()
+      .emplace()
+      .streamServerError()
+      .emplace()
+      .error()
+      .emplace()
+      .firstResponseMetadata() = mismatchedChecksumMetadata();
+  rpcTest.serverTestResult().emplace();
+
+  return ret;
+}
+
+Test createSinkChecksumMismatchTest() {
+  Test ret;
+  ret.name() = "SinkChecksumMismatchTest";
+  ret.tags()->emplace("spec/compatibility/rocket#stream-initial-response");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = "SinkChecksumMismatch/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  rpcTest.clientInstruction()
+      .emplace()
+      .sinkServerError()
+      .emplace()
+      .request()
+      .emplace()
+      .data() = "hello";
+  auto& clientTestResult =
+      rpcTest.clientTestResult().emplace().sinkServerError().emplace();
+  clientTestResult.exceptionType() = TApplicationException::CHECKSUM_MISMATCH;
+  clientTestResult.exceptionMessage() = "Checksum mismatch";
+  rpcTest.serverInstruction()
+      .emplace()
+      .sinkServerError()
+      .emplace()
+      .error()
+      .emplace()
+      .firstResponseMetadata() = mismatchedChecksumMetadata();
+  rpcTest.serverTestResult().emplace();
+
+  return ret;
+}
+
+Test createBidiChecksumMismatchTest() {
+  Test ret;
+  ret.name() = "BidiChecksumMismatchTest";
+  ret.tags()->emplace("spec/compatibility/rocket#stream-initial-response");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = "BidiChecksumMismatch/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  rpcTest.clientInstruction()
+      .emplace()
+      .bidiServerError()
+      .emplace()
+      .request()
+      .emplace()
+      .data() = "hello";
+  auto& clientTestResult =
+      rpcTest.clientTestResult().emplace().bidiServerError().emplace();
+  clientTestResult.exceptionType() = TApplicationException::CHECKSUM_MISMATCH;
+  clientTestResult.exceptionMessage() = "Checksum mismatch";
+  rpcTest.serverInstruction()
+      .emplace()
+      .bidiServerError()
+      .emplace()
+      .error()
+      .emplace()
+      .firstResponseMetadata() = mismatchedChecksumMetadata();
+  rpcTest.serverTestResult().emplace();
+
+  return ret;
+}
+
+Test createRequestResponseChecksumTest(
+    const std::string& algorithm, ChecksumKind checksum) {
+  Test ret;
+  ret.name() = "RequestResponse" + algorithm + "ChecksumTest";
+  ret.tags()->emplace("spec/compatibility/rocket#request-response");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = "RequestResponse" + algorithm + "Checksum/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  auto& clientInstruction =
+      rpcTest.clientInstruction().emplace().requestResponseBasic().emplace();
+  clientInstruction.request().emplace().data() = "hello";
+  clientInstruction.checksum() = checksum;
+  rpcTest.clientTestResult()
+      .emplace()
+      .requestResponseBasic()
+      .emplace()
+      .response()
+      .emplace()
+      .data() = "world";
+  rpcTest.serverInstruction()
+      .emplace()
+      .requestResponseBasic()
+      .emplace()
+      .response()
+      .emplace()
+      .data() = "world";
+  auto& serverTestResult =
+      rpcTest.serverTestResult().emplace().requestResponseBasic().emplace();
+  serverTestResult.request().emplace().data() = "hello";
+  serverTestResult.checksum() = checksum;
+
+  return ret;
+}
+
+Test createStreamChecksumTest(
+    const std::string& algorithm, ChecksumKind checksum) {
+  Test ret;
+  ret.name() = "Stream" + algorithm + "ChecksumTest";
+  ret.tags()->emplace("spec/compatibility/rocket#stream");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = "Stream" + algorithm + "Checksum/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  auto& clientInstruction =
+      rpcTest.clientInstruction().emplace().streamBasic().emplace();
+  clientInstruction.request().emplace().data() = "hello";
+  clientInstruction.bufferSize() = kDefaultBufferSize;
+  clientInstruction.checksum() = checksum;
+
+  auto& serverInstruction =
+      rpcTest.serverInstruction().emplace().streamBasic().emplace();
+  for (int i = 0; i < 100; i++) {
+    auto& payload = serverInstruction.streamPayloads()->emplace_back();
+    payload.data() = folly::to<std::string>(i);
+  }
+
+  rpcTest.clientTestResult()
+      .emplace()
+      .streamBasic()
+      .emplace()
+      .streamPayloads()
+      .copy_from(serverInstruction.streamPayloads());
+
+  auto& serverTestResult =
+      rpcTest.serverTestResult().emplace().streamBasic().emplace();
+  serverTestResult.request().emplace().data() = "hello";
+  serverTestResult.checksum() = checksum;
+
+  return ret;
+}
+
+Test createSinkChecksumTest(
+    const std::string& algorithm, ChecksumKind checksum) {
+  Test ret;
+  ret.name() = "Sink" + algorithm + "ChecksumTest";
+  ret.tags()->emplace("spec/compatibility/rocket#sink");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = "Sink" + algorithm + "Checksum/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  auto& clientInstruction =
+      rpcTest.clientInstruction().emplace().sinkBasic().emplace();
+  clientInstruction.request().emplace().data() = "hello";
+  for (int i = 0; i < 100; i++) {
+    auto& sinkPayload = clientInstruction.sinkPayloads()->emplace_back();
+    sinkPayload.data() = folly::to<std::string>(i);
+  }
+  clientInstruction.checksum() = checksum;
+
+  rpcTest.clientTestResult()
+      .emplace()
+      .sinkBasic()
+      .emplace()
+      .finalResponse()
+      .emplace()
+      .data() = "world";
+
+  auto& serverInstruction =
+      rpcTest.serverInstruction().emplace().sinkBasic().emplace();
+  serverInstruction.finalResponse().emplace().data() = "world";
+  serverInstruction.bufferSize() = kDefaultBufferSize;
+
+  auto& serverTestResult =
+      rpcTest.serverTestResult().emplace().sinkBasic().emplace();
+  serverTestResult.request().emplace().data() = "hello";
+  serverTestResult.sinkPayloads().copy_from(clientInstruction.sinkPayloads());
+  serverTestResult.checksum() = checksum;
+
+  return ret;
+}
+
+Test createBidiChecksumTest(
+    const std::string& algorithm, ChecksumKind checksum) {
+  Test ret;
+  ret.name() = "Bidi" + algorithm + "ChecksumTest";
+  ret.tags()->emplace("spec/compatibility/rocket#bidi");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = "Bidi" + algorithm + "Checksum/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  auto& clientInstruction =
+      rpcTest.clientInstruction().emplace().bidiBasic().emplace();
+  clientInstruction.request().emplace().data() = "hello";
+  for (int i = 0; i < 100; i++) {
+    auto& sinkPayload = clientInstruction.sinkPayloads()->emplace_back();
+    sinkPayload.data() = folly::to<std::string>(i);
+  }
+  clientInstruction.checksum() = checksum;
+
+  auto& serverInstruction =
+      rpcTest.serverInstruction().emplace().bidiBasic().emplace();
+  for (int i = 0; i < 100; i++) {
+    auto& payload = serverInstruction.streamPayloads()->emplace_back();
+    payload.data() = folly::to<std::string>(i);
+  }
+
+  rpcTest.clientTestResult()
+      .emplace()
+      .bidiBasic()
+      .emplace()
+      .streamPayloads()
+      .copy_from(serverInstruction.streamPayloads());
+
+  auto& serverTestResult =
+      rpcTest.serverTestResult().emplace().bidiBasic().emplace();
+  serverTestResult.request().emplace().data() = "hello";
+  serverTestResult.sinkPayloads().copy_from(clientInstruction.sinkPayloads());
+  serverTestResult.checksum() = checksum;
+
+  return ret;
+}
+
+std::string mismatchedChunkChecksumMetadata() {
+  StreamPayloadMetadata metadata;
+  auto& checksum = metadata.checksum().emplace();
+  checksum.algorithm() = ChecksumAlgorithm::XXH3_64;
+  checksum.checksum() = 1;
+  checksum.salt() = 0;
+  return CompactSerializer::serialize<std::string>(metadata);
+}
+
+Test createStreamChunkChecksumMismatchTest() {
+  Test ret;
+  ret.name() = "StreamChunkChecksumMismatchTest";
+  ret.tags()->emplace("spec/compatibility/rocket#stream-responses");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = "StreamChunkChecksumMismatch/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  rpcTest.clientInstruction()
+      .emplace()
+      .streamServerError()
+      .emplace()
+      .request()
+      .emplace()
+      .data() = "hello";
+  auto& clientTestResult =
+      rpcTest.clientTestResult().emplace().streamServerError().emplace();
+  clientTestResult.exceptionType() = TApplicationException::CHECKSUM_MISMATCH;
+  clientTestResult.exceptionMessage() = "Checksum mismatch";
+  rpcTest.serverInstruction()
+      .emplace()
+      .streamServerError()
+      .emplace()
+      .error()
+      .emplace()
+      .chunkMetadata() = mismatchedChunkChecksumMetadata();
+  rpcTest.serverTestResult().emplace();
+
+  return ret;
+}
+
+Test createBidiChunkChecksumMismatchTest() {
+  Test ret;
+  ret.name() = "BidiChunkChecksumMismatchTest";
+  ret.tags()->emplace("spec/compatibility/rocket#stream-responses");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = "BidiChunkChecksumMismatch/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  rpcTest.clientInstruction()
+      .emplace()
+      .bidiServerError()
+      .emplace()
+      .request()
+      .emplace()
+      .data() = "hello";
+  auto& clientTestResult =
+      rpcTest.clientTestResult().emplace().bidiServerError().emplace();
+  clientTestResult.exceptionType() = TApplicationException::CHECKSUM_MISMATCH;
+  clientTestResult.exceptionMessage() = "Checksum mismatch";
+  rpcTest.serverInstruction()
+      .emplace()
+      .bidiServerError()
+      .emplace()
+      .error()
+      .emplace()
+      .chunkMetadata() = mismatchedChunkChecksumMetadata();
+  rpcTest.serverTestResult().emplace();
+
+  return ret;
+}
+
+Test createSinkFinalResponseChecksumMismatchTest() {
+  Test ret;
+  ret.name() = "SinkFinalResponseChecksumMismatchTest";
+  ret.tags()->emplace("spec/compatibility/rocket#sink-final-response");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = "SinkFinalResponseChecksumMismatch/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  rpcTest.clientInstruction()
+      .emplace()
+      .sinkServerError()
+      .emplace()
+      .request()
+      .emplace()
+      .data() = "hello";
+  auto& clientTestResult =
+      rpcTest.clientTestResult().emplace().sinkServerError().emplace();
+  clientTestResult.exceptionType() = TApplicationException::CHECKSUM_MISMATCH;
+  clientTestResult.exceptionMessage() = "Checksum mismatch";
+  rpcTest.serverInstruction()
+      .emplace()
+      .sinkServerError()
+      .emplace()
+      .error()
+      .emplace()
+      .chunkMetadata() = mismatchedChunkChecksumMetadata();
+  rpcTest.serverTestResult().emplace();
+
+  return ret;
+}
+
+Test createChecksumMismatchClosingFrameTest(
+    const std::string& kind, CallKind call, std::vector<ClientFrame> frames) {
+  Test ret;
+  ret.name() = kind + "ChecksumMismatchClosingFrameTest";
+  ret.tags()->emplace("spec/compatibility/rocket#stream-initial-response");
+
+  auto& testCase = ret.testCases()->emplace_back();
+  testCase.name() = kind + "ChecksumMismatchClosingFrame/Success";
+
+  auto& rpcTest = testCase.rpc().emplace();
+  auto& clientInstruction =
+      rpcTest.clientInstruction().emplace().closingFrame().emplace();
+  clientInstruction.call() = call;
+  clientInstruction.request().emplace().data() = "hello";
+  rpcTest.clientTestResult().emplace().closingFrame().emplace();
+  auto& serverInstruction =
+      rpcTest.serverInstruction().emplace().closingFrame().emplace();
+  serverInstruction.call() = call;
+  serverInstruction.firstResponse()->metadata() = mismatchedChecksumMetadata();
+  rpcTest.serverTestResult().emplace().closingFrame().emplace().frames() =
+      std::move(frames);
+
+  return ret;
+}
+
 // =================== Interactions ===================
 Test createInteractionConstructorTest() {
   Test ret;
@@ -2173,6 +3469,7 @@ void addExtendedRequestResponseTests(TestSuite& suite) {
   suite.tests()->push_back(createRequestResponseLoadsheddingTest());
   suite.tests()->push_back(createRequestResponseTaskExpiredTest());
   suite.tests()->push_back(createRequestResponseTooBigTest());
+  suite.tests()->push_back(createRequestResponseUndeclaredExceptionTypeTest());
   suite.tests()->push_back(createRequestResponseUnknownMethodTest());
   suite.tests()->push_back(createRequestResponseWriteHeadersTest());
   suite.tests()->push_back(createRequestResponsePersistentHeadersTest());
@@ -2191,6 +3488,7 @@ TestSuite createRPCServerTestSuite() {
   addCommonRPCTests(suite);
   // =================== Sink ===================
   suite.tests()->push_back(createSinkChunkTimeoutTest());
+  suite.tests()->push_back(createSinkChunkDoesNotTimeoutTest());
   return suite;
 }
 
@@ -2221,10 +3519,72 @@ TestSuite createRPCClientExtendedTestSuite() {
   suite.name() = "ThriftRPCClientTest";
   suite.tags()->emplace("spec/protocol/interface/");
   addExtendedRequestResponseTests(suite);
+  suite.tests()->push_back(createRequestResponseUnexpectedErrorCodeTest());
   suite.tests()->push_back(createStreamCancelTest());
+  suite.tests()->push_back(createStreamCancelBeforeInitialResponseTest());
+  suite.tests()->push_back(createStreamCancelUnreadInitialResponseTest());
+  suite.tests()->push_back(createStreamLoadsheddingTest());
+  suite.tests()->push_back(createStreamUnexpectedErrorCodeTest());
   suite.tests()->push_back(createStreamMemoryBufferSizeTest());
   suite.tests()->push_back(createSinkChunkTimeoutTest());
   suite.tests()->push_back(createSinkEarlyFinalResponseTest());
+  suite.tests()->push_back(createSinkAbortTest());
+  suite.tests()->push_back(createSinkAbortBeforeInitialResponseTest());
+  suite.tests()->push_back(createSinkAbortUnreadInitialResponseTest());
+  suite.tests()->push_back(createSinkLoadsheddingTest());
+  suite.tests()->push_back(createSinkUnexpectedErrorCodeTest());
+  suite.tests()->push_back(createBidiAbortTest());
+  suite.tests()->push_back(createBidiAbortBeforeInitialResponseTest());
+  suite.tests()->push_back(createBidiAbortUnreadInitialResponseTest());
+  suite.tests()->push_back(createBidiLoadsheddingTest());
+  suite.tests()->push_back(createBidiUnexpectedErrorCodeTest());
+  suite.tests()->push_back(createClosingFrameTest(
+      "RequestResponse", CallKind::REQUEST_RESPONSE, {}));
+  suite.tests()->push_back(
+      createClosingFrameTest("Stream", CallKind::STREAM, {cancelFrame()}));
+  suite.tests()->push_back(
+      createClosingFrameTest("Sink", CallKind::SINK, {canceledErrorFrame()}));
+  suite.tests()->push_back(
+      createClosingFrameTest("Bidi", CallKind::BIDI, {canceledErrorFrame()}));
+  suite.tests()->push_back(createUndecodableFirstResponseTest(
+      "RequestResponse", CallKind::REQUEST_RESPONSE, {}));
+  suite.tests()->push_back(createUndecodableFirstResponseTest(
+      "Stream", CallKind::STREAM, {cancelFrame()}));
+  suite.tests()->push_back(createUndecodableFirstResponseTest(
+      "Sink", CallKind::SINK, {canceledErrorFrame()}));
+  suite.tests()->push_back(createUndecodableFirstResponseTest(
+      "Bidi", CallKind::BIDI, {canceledErrorFrame()}));
+  suite.tests()->push_back(createInvalidPayloadMetadataTest(
+      "RequestResponse", CallKind::REQUEST_RESPONSE, {}));
+  suite.tests()->push_back(createInvalidPayloadMetadataTest(
+      "Stream", CallKind::STREAM, {cancelFrame()}));
+  suite.tests()->push_back(createInvalidPayloadMetadataTest(
+      "Sink", CallKind::SINK, {processFirstResponseErrorFrame()}));
+  suite.tests()->push_back(createInvalidPayloadMetadataTest(
+      "Bidi",
+      CallKind::BIDI,
+      {cancelFrame(), processFirstResponseErrorFrame()}));
+  suite.tests()->push_back(createUndeclaredExceptionFirstResponseTest(
+      "RequestResponse", CallKind::REQUEST_RESPONSE, {}));
+  suite.tests()->push_back(createUndeclaredExceptionFirstResponseTest(
+      "Stream", CallKind::STREAM, {cancelFrame()}));
+  suite.tests()->push_back(createUndeclaredExceptionFirstResponseTest(
+      "Sink", CallKind::SINK, {neverCalledSinkFrame()}));
+  suite.tests()->push_back(createUndeclaredExceptionFirstResponseTest(
+      "Bidi", CallKind::BIDI, {neverCalledSinkFrame(), cancelFrame()}));
+  suite.tests()->push_back(createRequestResponseUnknownCompressionTest());
+  suite.tests()->push_back(createStreamUnknownCompressionTest(
+      "Stream", withFirstResponse(unknownCompressionMetadata())));
+  suite.tests()->push_back(createStreamUnknownCompressionTest(
+      "StreamChunk", withChunk(unknownCompressionChunkMetadata())));
+  suite.tests()->push_back(createSinkUnknownCompressionTest(
+      "Sink", withFirstResponse(unknownCompressionMetadata())));
+  suite.tests()->push_back(createSinkUnknownCompressionTest(
+      "SinkFinalResponse", withChunk(unknownCompressionChunkMetadata())));
+  suite.tests()->push_back(createBidiUnknownCompressionTest(
+      "Bidi", withFirstResponse(unknownCompressionMetadata())));
+  suite.tests()->push_back(createBidiUnknownCompressionTest(
+      "BidiChunk", withChunk(unknownCompressionChunkMetadata())));
   return suite;
 }
 
@@ -2235,6 +3595,52 @@ TestSuite createRPCClientRequestResponseTestSuite() {
   addCommonRequestResponseTests(suite);
   suite.tests()->push_back(createRequestResponseTimeoutTest());
   addExtendedRequestResponseTests(suite);
+  return suite;
+}
+
+TestSuite createRPCClientHTTP2TestSuite() {
+  TestSuite suite;
+  suite.name() = "ThriftRPCClientTest";
+  suite.tags()->emplace("spec/protocol/interface/");
+  suite.tests()->push_back(createRequestResponseBadContentLengthTest());
+  return suite;
+}
+
+TestSuite createRPCClientChecksumTestSuite() {
+  TestSuite suite;
+  suite.name() = "ThriftRPCClientTest";
+  suite.tags()->emplace("spec/compatibility/");
+  suite.tests()->push_back(
+      createRequestResponseChecksumTest("Crc32", ChecksumKind::CRC32));
+  suite.tests()->push_back(
+      createRequestResponseChecksumTest("Xxh3", ChecksumKind::XXH3_64));
+  suite.tests()->push_back(
+      createStreamChecksumTest("Crc32", ChecksumKind::CRC32));
+  suite.tests()->push_back(
+      createStreamChecksumTest("Xxh3", ChecksumKind::XXH3_64));
+  suite.tests()->push_back(
+      createSinkChecksumTest("Crc32", ChecksumKind::CRC32));
+  suite.tests()->push_back(
+      createSinkChecksumTest("Xxh3", ChecksumKind::XXH3_64));
+  suite.tests()->push_back(
+      createBidiChecksumTest("Crc32", ChecksumKind::CRC32));
+  suite.tests()->push_back(
+      createBidiChecksumTest("Xxh3", ChecksumKind::XXH3_64));
+  suite.tests()->push_back(createRequestResponseChecksumMismatchTest());
+  suite.tests()->push_back(createStreamChecksumMismatchTest());
+  suite.tests()->push_back(createSinkChecksumMismatchTest());
+  suite.tests()->push_back(createBidiChecksumMismatchTest());
+  suite.tests()->push_back(createChecksumMismatchClosingFrameTest(
+      "RequestResponse", CallKind::REQUEST_RESPONSE, {}));
+  suite.tests()->push_back(createChecksumMismatchClosingFrameTest(
+      "Stream", CallKind::STREAM, {cancelFrame()}));
+  suite.tests()->push_back(createChecksumMismatchClosingFrameTest(
+      "Sink", CallKind::SINK, {canceledErrorFrame()}));
+  suite.tests()->push_back(createChecksumMismatchClosingFrameTest(
+      "Bidi", CallKind::BIDI, {canceledErrorFrame()}));
+  suite.tests()->push_back(createStreamChunkChecksumMismatchTest());
+  suite.tests()->push_back(createBidiChunkChecksumMismatchTest());
+  suite.tests()->push_back(createSinkFinalResponseChecksumMismatchTest());
   return suite;
 }
 

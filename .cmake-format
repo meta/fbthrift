@@ -1,4 +1,32 @@
 format:
   separate_ctrl_name_with_space: true
+  max_subgroups_hwrap: 3
 markup:
   enable_markup: false
+parse:
+  additional_commands:
+    thrift_generate:
+      pargs: 2
+      kwargs:
+        LANGUAGE: 1
+        SERVICES: +
+        OPTIONS: +
+        INCLUDE_DIRECTORIES: +
+        OUTPUT_DIRECTORY: 1
+        INCLUDE_PREFIX: 1
+        NAMESPACE: 1
+        FILE_DEPENDS: +
+      flags:
+        - LEGACY_STRICT
+    thrift_add_library:
+      pargs: 2
+      kwargs:
+        LANGUAGE: 1
+        SERVICES: +
+        DEPENDS: +
+        OPTIONS: +
+        INCLUDE_DIRECTORIES: +
+        OUTPUT_DIRECTORY: 1
+        INCLUDE_PREFIX: 1
+      flags:
+        - LEGACY_STRICT

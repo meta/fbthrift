@@ -19,9 +19,16 @@
 #include <sys/socket.h>
 #include <array>
 #include <atomic>
+#include <exception>
+#include <functional>
 #include <memory>
+#include <optional>
+#include <stdexcept>
+#include <string>
+#include <utility>
 #include <vector>
 
+#include <folly/ExceptionWrapper.h>
 #include <folly/SocketAddress.h>
 #include <folly/init/Init.h>
 #include <folly/io/async/AsyncTransport.h>
@@ -30,6 +37,8 @@
 #include <folly/net/NetworkSocket.h>
 #include <folly/observer/SimpleObservable.h>
 
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/ConnectionHandler.h>
 
 namespace apache::thrift::fast_thrift::connection {
@@ -103,9 +112,9 @@ class TestConnectionFactory {
   TestConnection getConnection(
       folly::AsyncTransport::UniquePtr socket,
       const folly::SocketAddress& clientAddr,
-      const std::shared_ptr<const PeerSecurityInfo>& peerSecurity) {
+      std::unique_ptr<PeerSecurityInfo> peerSecurity) {
     lastClientAddr = clientAddr;
-    lastPeerSecurity = peerSecurity;
+    lastPeerSecurity = std::move(peerSecurity);
     return TestConnection{
         .transport = std::move(socket),
         .closeCount = closeCount_,
@@ -116,12 +125,42 @@ class TestConnectionFactory {
 
   // Written on the data EVB; read back through that EVB.
   folly::SocketAddress lastClientAddr;
-  std::shared_ptr<const PeerSecurityInfo> lastPeerSecurity;
+  std::unique_ptr<PeerSecurityInfo> lastPeerSecurity;
 
  private:
   std::shared_ptr<std::atomic<size_t>> closeCount_;
   std::shared_ptr<std::atomic<size_t>> closeCallbackCount_;
   bool closeOnStart_;
+};
+
+struct CaptureFailingFactory {
+  std::exception_ptr cause;
+
+  [[noreturn]] TestConnection getConnection(
+      folly::AsyncTransport::UniquePtr /*socket*/,
+      const folly::SocketAddress& /*clientAddr*/,
+      std::unique_ptr<PeerSecurityInfo> /*peerSecurity*/) {
+    throw CachedEkmCaptureFailure{cause};
+  }
+};
+
+class DropFirstConnectionFactory : public TestConnectionFactory {
+ public:
+  using TestConnectionFactory::TestConnectionFactory;
+
+  std::optional<TestConnection> tryGetConnectionForAccept(
+      folly::AsyncTransport::UniquePtr socket,
+      const folly::SocketAddress& clientAddr,
+      std::unique_ptr<PeerSecurityInfo> peerSecurity) {
+    if (std::exchange(dropNext_, false)) {
+      return std::nullopt;
+    }
+    return getConnection(
+        std::move(socket), clientAddr, std::move(peerSecurity));
+  }
+
+ private:
+  bool dropNext_{true};
 };
 
 } // namespace
@@ -190,6 +229,64 @@ TEST_F(ConnectionHandlerTest, ConstructDoesNotStart) {
   EXPECT_EQ(handler->connectionCount(), 0);
 }
 
+TEST_F(
+    ConnectionHandlerTest, CaptureFailureIsReportedWithoutAcceptingOrStarting) {
+  CaptureFailingFactory factory{
+      std::make_exception_ptr(std::runtime_error("exporter unavailable"))};
+  channel_pipeline::test::StaticMockHeadHandler head;
+  channel_pipeline::test::StaticMockTailHandler tail;
+  channel_pipeline::SimpleBufferAllocator allocator;
+  folly::exception_wrapper diagnostic;
+  int accepts = 0;
+  int starts = 0;
+  tail.setOnExceptionCallback(
+      [&](folly::exception_wrapper&& error) { diagnostic = std::move(error); });
+  tail.setOnReadCallback([&](channel_pipeline::TypeErasedBox&& message) {
+    ++starts;
+    message.take<TestConnection>().start();
+    return channel_pipeline::Result::Success;
+  });
+
+  const folly::SocketAddress clientAddr("127.0.0.1", 5001);
+  auto result = channel_pipeline::Result::Success;
+  evb_->runInEventBaseThreadAndWait([&] {
+    auto pipeline =
+        channel_pipeline::StaticPipelineBuilder<
+            channel_pipeline::test::StaticMockHeadHandler,
+            channel_pipeline::test::StaticMockTailHandler>()
+            .setEventBase(evb_)
+            .setHead(&head)
+            .setTail(&tail)
+            .setAllocator(&allocator)
+            .addNextInbound<ConnectionBuilderHandler<CaptureFailingFactory>>(
+                connection_builder_handler_tag, std::ref(factory))
+            .addNextInbound<ConnectionAcceptCallbackHandler<TestConnection>>(
+                connection_accept_callback_handler_tag,
+                [&](TestConnection&) { ++accepts; })
+            .build();
+    pipeline->activate();
+    result = pipeline->fireRead(
+        channel_pipeline::erase_and_box(
+            ConnectionMessage{
+                .transport = nullptr,
+                .clientAddr = clientAddr,
+                .peerSecurity = nullptr}));
+    pipeline->deactivate();
+    pipeline.reset();
+  });
+
+  EXPECT_EQ(result, channel_pipeline::Result::Error);
+  EXPECT_EQ(tail.exceptionCount(), 1);
+  EXPECT_EQ(tail.readCount(), 0);
+  EXPECT_EQ(accepts, 0);
+  EXPECT_EQ(starts, 0);
+  ASSERT_TRUE(diagnostic);
+  const auto message = diagnostic.what().toStdString();
+  EXPECT_NE(message.find("EKM capture failed"), std::string::npos);
+  EXPECT_NE(message.find("exporter unavailable"), std::string::npos);
+  EXPECT_NE(message.find(clientAddr.describe()), std::string::npos);
+}
+
 TEST_F(ConnectionHandlerTest, AcceptsSingleConnection) {
   auto handler = createConnectionHandler();
   wireFactory(*handler);
@@ -197,6 +294,26 @@ TEST_F(ConnectionHandlerTest, AcceptsSingleConnection) {
   install(*handler);
 
   EXPECT_EQ(handler->connectionCount(), 1);
+}
+
+TEST_F(ConnectionHandlerTest, FactoryDropClosesSocketWithoutAccepting) {
+  DropFirstConnectionFactory factory(closeCount_, closeCallbackCount_);
+  int accepts = 0;
+  auto handler = createConnectionHandler();
+  evb_->runInEventBaseThreadAndWait([&] {
+    handler->setConnectionFactory(factory, [&](TestConnection&) { ++accepts; });
+  });
+
+  install(*handler);
+  EXPECT_EQ(handler->connectionCount(), 0);
+  EXPECT_EQ(accepts, 0);
+  ASSERT_EQ(clientFds_.size(), 1);
+  char byte;
+  EXPECT_EQ(::recv(clientFds_.front().toFd(), &byte, 1, MSG_DONTWAIT), 0);
+
+  install(*handler);
+  EXPECT_EQ(handler->connectionCount(), 1);
+  EXPECT_EQ(accepts, 1);
 }
 
 TEST_F(ConnectionHandlerTest, AcceptsMultipleConnections) {

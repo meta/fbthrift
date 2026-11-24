@@ -34,17 +34,19 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
   private final {{service.javaCapitalName}}.Reactive _delegate;
 
   {{#each service.single_request_functions as |func|}}
-  private final java.util.List<com.facebook.thrift.payload.Reader> _{{func.java_name}}Readers;
+  private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _{{func.java_name}}Readers;
   {{/each}}
   {{#each service.streaming_functions as |func|}}
-  private final java.util.List<com.facebook.thrift.payload.Reader> _{{func.java_name}}Readers;
-  private final com.facebook.thrift.server.generated.SingleRequestStreamResponseDelegate<{{#partial types.stream_return_type function=func}}> _delegate_{{func.java_name}};
-  {{#if (not func.stream_has_first_response?)}}
-  private final com.facebook.thrift.server.generated.StreamResponseHandler<{{#partial types.boxed_type type=func.stream.elem_type field_hasAdapter=false}}> _handler_{{func.java_name}};
-  {{/if (not func.stream_has_first_response?)}}
+  private final java.util.List<com.facebook.thrift.payload.FieldReader<?>> _{{func.java_name}}Readers;
   {{#if func.stream_has_first_response?}}
-  private final com.facebook.thrift.server.generated.StreamWithFirstResponseHandler<{{#partial types.boxed_type type=func.return_type field_hasAdapter=false}},{{#partial types.boxed_type type=func.stream.elem_type field_hasAdapter=false}}> _handler_{{func.java_name}};
+  private final com.facebook.thrift.server.stream.StreamMethod<{{#partial types.boxed_type type=func.return_type field_hasAdapter=false}},{{#partial types.boxed_type type=func.stream.elem_type field_hasAdapter=false}}> _method_{{func.java_name}};
+  {{#else}}
+  private final com.facebook.thrift.server.stream.StreamMethod<java.lang.Object,{{#partial types.boxed_type type=func.stream.elem_type field_hasAdapter=false}}> _method_{{func.java_name}};
   {{/if func.stream_has_first_response?}}
+  {{/each}}
+  {{#each service.channel_functions as |func|}}
+  {{#let stream_type = (if func.bidirectional_stream? func.stream.elem_type func.sink.final_response_type)}}
+  private final com.facebook.thrift.server.{{#if func.bidirectional_stream?}}bidi.BidiMethod{{#else}}sink.SinkMethod{{/if}}<{{#if func.sink_has_first_response?}}{{#partial types.boxed_type type=func.return_type field_hasAdapter=false}}{{#else}}java.lang.Object{{/if}},{{#partial types.boxed_type type=stream_type field_hasAdapter=false}},{{#partial types.boxed_type type=func.sink.elem_type field_hasAdapter=false}}> _method_{{func.java_name}};
   {{/each}}
 
   private final java.util.List<com.facebook.swift.service.ThriftEventHandler> _eventHandlers;
@@ -72,60 +74,94 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
     {{/each}}
 
     {{#each service.streaming_functions as |func|}}
-    _methodMap.put("{{func.java_name}}", this);
+    _methodMap.put("{{func.name}}", this);
     _{{func.java_name}}Readers = _create_{{func.java_name}}_request_readers();
-    _delegate_{{func.java_name}} = (java.util.List<Object> _list) -> {
-        java.util.Iterator _iterator = _list.iterator();
+    _method_{{func.java_name}} =
+    new com.facebook.thrift.server.stream.StreamMethod<>(
+      _{{func.java_name}}Readers,
+      _args -> {
+        java.util.Iterator _iterator = _args.iterator();
         {{#each func.params.fields as |field|}}
         {{#partial types.java_type type=field.type has_adapter_override=field.hasAdapter?}} {{field.javaName}} = ({{#partial types.java_type type=field.type has_adapter_override=field.hasAdapter?}}) _iterator.next();
         {{/each}}
 
-        return _delegate.{{func.java_name}}({{#each (array.enumerate func.params.fields with_last=true) as |i field last?|}}{{field.javaName}}{{#if (not last?)}}, {{/if (not last?)}}{{/each}});
-    };
-
-    _handler_{{func.java_name}} =
-    {{#if (not func.stream_has_first_response?)}}
-    new com.facebook.thrift.server.generated.StreamResponseHandler<>(
-      _delegate_{{func.java_name}},
-      _ResponseWriterFactory_{{func.java_name}},
-      _{{func.java_name}}Readers,
-      "{{func.java_name}}",
-      new Class[]{ {{#each (array.enumerate func.exceptions with_last=true) as |i field last?|}}{{#partial types.boxed_type type=field.type field_hasAdapter=field.hasAdapter?}}.class{{#if (not last?)}},{{/if (not last?)}}{{/each}} },
-      new Integer[]{ {{#each (array.enumerate func.exceptions with_last=true) as |i field last?|}}{{field.id}}{{#if (not last?)}},{{/if (not last?)}}{{/each}} },
-      new Class[]{ {{#each (array.enumerate func.stream.exceptions with_last=true) as |i field last?|}}{{#partial types.boxed_type type=field.type field_hasAdapter=field.hasAdapter?}}.class{{#if (not last?)}},{{/if (not last?)}}{{/each}} },
-      new Integer[]{ {{#each (array.enumerate func.stream.exceptions with_last=true) as |i field last?|}}{{field.id}}{{#if (not last?)}},{{/if (not last?)}}{{/each}} }
-    );
-    {{/if (not func.stream_has_first_response?)}}
-    {{#if func.stream_has_first_response?}}
-    new com.facebook.thrift.server.generated.StreamWithFirstResponseHandler<>(
-      _delegate_{{func.java_name}},
+        {{#if func.stream_has_first_response?}}
+        return com.facebook.nifty.core.RequestContextScope.get(
+            com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+            () -> _delegate.{{func.java_name}}({{#each (array.enumerate func.params.fields with_last=true) as |i field last?|}}{{field.javaName}}{{#if (not last?)}}, {{/if (not last?)}}{{/each}}));
+        {{#else}}
+        return com.facebook.nifty.core.RequestContextScope.get(
+            com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+            () -> reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.stream.ServerStreams.NO_FIRST_RESPONSE, _delegate.{{func.java_name}}({{#each (array.enumerate func.params.fields with_last=true) as |i field last?|}}{{field.javaName}}{{#if (not last?)}}, {{/if (not last?)}}{{/each}}))));
+        {{/if func.stream_has_first_response?}}
+      },
+      {{#if func.stream_has_first_response?}}
       _first_ResponseWriterFactory_{{func.java_name}},
+      {{#else}}
+      com.facebook.thrift.server.stream.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
+      {{/if func.stream_has_first_response?}}
       _ResponseWriterFactory_{{func.java_name}},
-      _{{func.java_name}}Readers,
       "{{func.java_name}}",
       new Class[]{ {{#each (array.enumerate func.exceptions with_last=true) as |i field last?|}}{{#partial types.boxed_type type=field.type field_hasAdapter=field.hasAdapter?}}.class{{#if (not last?)}},{{/if (not last?)}}{{/each}} },
       new Integer[]{ {{#each (array.enumerate func.exceptions with_last=true) as |i field last?|}}{{field.id}}{{#if (not last?)}},{{/if (not last?)}}{{/each}} },
       new Class[]{ {{#each (array.enumerate func.stream.exceptions with_last=true) as |i field last?|}}{{#partial types.boxed_type type=field.type field_hasAdapter=field.hasAdapter?}}.class{{#if (not last?)}},{{/if (not last?)}}{{/each}} },
       new Integer[]{ {{#each (array.enumerate func.stream.exceptions with_last=true) as |i field last?|}}{{field.id}}{{#if (not last?)}},{{/if (not last?)}}{{/each}} }
     );
-    {{/if func.stream_has_first_response?}}
+
+    {{/each}}
+    {{#each service.channel_functions as |func|}}
+    {{#let stream_type = (if func.bidirectional_stream? func.stream.elem_type func.sink.final_response_type)}}
+    {{#let stream_exceptions = (if func.bidirectional_stream? func.stream.exceptions func.sink.final_response_exceptions)}}
+    _methodMap.put("{{func.name}}", this);
+    _method_{{func.java_name}} =
+    new com.facebook.thrift.server.{{#if func.bidirectional_stream?}}bidi.BidiMethod{{#else}}sink.SinkMethod{{/if}}<{{#if func.sink_has_first_response?}}{{#partial types.boxed_type type=func.return_type field_hasAdapter=false}}{{#else}}java.lang.Object{{/if}},{{#partial types.boxed_type type=stream_type field_hasAdapter=false}},{{#partial types.boxed_type type=func.sink.elem_type field_hasAdapter=false}}>(
+      _create_{{func.java_name}}_request_readers(),
+      _create_{{func.java_name}}_sink_readers(),
+      (_args, _sinkElements) -> {
+        java.util.Iterator _iterator = _args.iterator();
+        {{#each func.params.fields as |field|}}
+        {{#partial types.java_type type=field.type has_adapter_override=field.hasAdapter?}} {{field.javaName}} = ({{#partial types.java_type type=field.type has_adapter_override=field.hasAdapter?}}) _iterator.next();
+        {{/each}}
+
+        {{#if func.sink_has_first_response?}}
+        return {{#if (not func.bidirectional_stream?)}}com.facebook.thrift.server.sink.ServerSinks.firstAndFinal({{/if}}com.facebook.nifty.core.RequestContextScope.get(
+            com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+            () -> _delegate.{{func.java_name}}({{#each func.params.fields as |field|}}{{field.javaName}}, {{/each}}_sinkElements)){{#if (not func.bidirectional_stream?)}}){{/if}};
+        {{#else}}
+        return com.facebook.nifty.core.RequestContextScope.get(
+            com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+            () -> reactor.core.publisher.Mono.just(com.facebook.thrift.model.ResponseAndStream.of(com.facebook.thrift.server.stream.ServerStreams.NO_FIRST_RESPONSE, _delegate.{{func.java_name}}({{#each func.params.fields as |field|}}{{field.javaName}}, {{/each}}_sinkElements){{#if (not func.bidirectional_stream?)}}.flux(){{/if}})));
+        {{/if func.sink_has_first_response?}}
+      },
+      {{#if func.sink_has_first_response?}}
+      _first_ResponseWriterFactory_{{func.java_name}},
+      {{#else}}
+      com.facebook.thrift.server.stream.ServerStreams.EMPTY_FIRST_RESPONSE_WRITER,
+      {{/if func.sink_has_first_response?}}
+      _ResponseWriterFactory_{{func.java_name}},
+      "{{func.java_name}}",
+      new Class[]{ {{#each (array.enumerate func.exceptions with_last=true) as |i field last?|}}{{#partial types.boxed_type type=field.type field_hasAdapter=field.hasAdapter?}}.class{{#if (not last?)}},{{/if (not last?)}}{{/each}} },
+      new Integer[]{ {{#each (array.enumerate func.exceptions with_last=true) as |i field last?|}}{{field.id}}{{#if (not last?)}},{{/if (not last?)}}{{/each}} },
+      new Class[]{ {{#each (array.enumerate stream_exceptions with_last=true) as |i field last?|}}{{#partial types.boxed_type type=field.type field_hasAdapter=field.hasAdapter?}}.class{{#if (not last?)}},{{/if (not last?)}}{{/each}} },
+      new Integer[]{ {{#each (array.enumerate stream_exceptions with_last=true) as |i field last?|}}{{field.id}}{{#if (not last?)}},{{/if (not last?)}}{{/each}} }
+    );
 
     {{/each}}
 
   }
 
   {{#each service.streaming_functions as |func|}}
-  private final static java.util.List<com.facebook.thrift.payload.Reader> _create_{{func.java_name}}_request_readers() {
-    java.util.List<com.facebook.thrift.payload.Reader> _readerList = new java.util.ArrayList<>();
+  private final static java.util.List<com.facebook.thrift.payload.FieldReader<?>> _create_{{func.java_name}}_request_readers() {
+    java.util.List<com.facebook.thrift.payload.FieldReader<?>> _readerList = new java.util.ArrayList<>();
 
     {{#each func.params.fields as |field|}}
-    _readerList.add({{#partial types.type_reader type=field.type}});
+    _readerList.add(new com.facebook.thrift.payload.FieldReader<>((short){{field.id}}, TType.{{#partial types.ttype type=field.type}}, {{#partial types.type_reader type=field.type}}, () -> {{#partial types.param_default_value type=field.type}}));
     {{/each}}
 
     return _readerList;
   }
 
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _ResponseWriterFactory_{{func.java_name}} = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain, com.facebook.thrift.payload.ServerRequestPayload _requestPayload) -> {
+  private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_{{func.java_name}} = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -139,8 +175,6 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
 
         oprot.writeFieldStop();
         oprot.writeStructEnd();
-
-        _chain.postWrite(_o);
       } catch (Throwable _e) {
         com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
         throw reactor.core.Exceptions.propagate(_e);
@@ -149,7 +183,7 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
   };
 
   {{#if func.stream_has_first_response?}}
-  private final static com.facebook.thrift.server.generated.ResponseWriterFactory _first_ResponseWriterFactory_{{func.java_name}} = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain, com.facebook.thrift.payload.ServerRequestPayload _requestPayload) -> {
+  private final static com.facebook.thrift.server.ResponseWriterFactory _first_ResponseWriterFactory_{{func.java_name}} = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
     return oprot -> {
       try {
         oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
@@ -175,13 +209,80 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
   {{/if func.stream_has_first_response?}}
 
   {{/each}}
-
-  {{#each service.request_response_functions as |func|}}
-  private static java.util.List<com.facebook.thrift.payload.Reader> _create_{{func.java_name}}_request_readers() {
-    java.util.List<com.facebook.thrift.payload.Reader> _readerList = new java.util.ArrayList<>();
+  {{#each service.channel_functions as |func|}}
+  {{#let stream_type = (if func.bidirectional_stream? func.stream.elem_type func.sink.final_response_type)}}
+  private final static java.util.List<com.facebook.thrift.payload.FieldReader<?>> _create_{{func.java_name}}_request_readers() {
+    java.util.List<com.facebook.thrift.payload.FieldReader<?>> _readerList = new java.util.ArrayList<>();
 
     {{#each func.params.fields as |field|}}
-    _readerList.add({{#partial types.type_reader type=field.type}});
+    _readerList.add(new com.facebook.thrift.payload.FieldReader<>((short){{field.id}}, TType.{{#partial types.ttype type=field.type}}, {{#partial types.type_reader type=field.type}}, () -> {{#partial types.param_default_value type=field.type}}));
+    {{/each}}
+
+    return _readerList;
+  }
+
+  private final static java.util.List<com.facebook.thrift.payload.FieldReader<?>> _create_{{func.java_name}}_sink_readers() {
+    java.util.List<com.facebook.thrift.payload.FieldReader<?>> _readerList = new java.util.ArrayList<>();
+
+    _readerList.add(new com.facebook.thrift.payload.FieldReader<>((short)0, TType.{{#partial types.ttype type=func.sink.elem_type}}, {{#partial types.type_reader type=func.sink.elem_type}}, () -> null));
+    {{#each func.sink.exceptions as |field|}}
+    _readerList.add(new com.facebook.thrift.payload.FieldReader<>((short){{field.id}}, TType.{{#partial types.ttype type=field.type}}, {{#partial types.type_reader type=field.type}}, () -> null));
+    {{/each}}
+
+    return _readerList;
+  }
+
+  private final static com.facebook.thrift.server.ResponseWriterFactory _ResponseWriterFactory_{{func.java_name}} = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+    return oprot -> {
+      try {
+        oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
+
+        {{#partial types.java_type type=stream_type has_adapter_override=false}} _fbthriftVar0 = ({{#partial types.java_type type=stream_type has_adapter_override=false}})_o;
+        oprot.writeFieldBegin({{#partial codec.rpc_field_type type=stream_type}});
+        {{#partial codec.write_response_type type=stream_type depth=0}}
+        oprot.writeFieldEnd();
+
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      } catch (Throwable _e) {
+        com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
+        throw reactor.core.Exceptions.propagate(_e);
+      }
+    };
+  };
+
+  {{#if func.sink_has_first_response?}}
+  private final static com.facebook.thrift.server.ResponseWriterFactory _first_ResponseWriterFactory_{{func.java_name}} = (java.lang.Object _o, com.facebook.swift.service.ContextChain _chain) -> {
+    return oprot -> {
+      try {
+        oprot.writeStructBegin(com.facebook.thrift.util.RpcPayloadUtil.TSTRUCT);
+
+        {{#partial types.java_type type=func.return_type has_adapter_override=false}} _fbthriftVar0 = ({{#partial types.java_type type=func.return_type has_adapter_override=false}})_o;
+        oprot.writeFieldBegin({{#partial codec.rpc_field_type type=func.return_type}});
+        {{#partial codec.write_response_type type=func.return_type depth=0}}
+        oprot.writeFieldEnd();
+
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+
+        _chain.postWrite(_o);
+      } catch (Throwable _e) {
+        com.facebook.thrift.util.NettyUtil.releaseIfByteBufTProtocol(oprot);
+        throw reactor.core.Exceptions.propagate(_e);
+      }
+    };
+  };
+
+  {{/if func.sink_has_first_response?}}
+
+  {{/each}}
+
+  {{#each service.request_response_functions as |func|}}
+  private static java.util.List<com.facebook.thrift.payload.FieldReader<?>> _create_{{func.java_name}}_request_readers() {
+    java.util.List<com.facebook.thrift.payload.FieldReader<?>> _readerList = new java.util.ArrayList<>();
+
+    {{#each func.params.fields as |field|}}
+    _readerList.add(new com.facebook.thrift.payload.FieldReader<>((short){{field.id}}, TType.{{#partial types.ttype type=field.type}}, {{#partial types.type_reader type=field.type}}, () -> {{#partial types.param_default_value type=field.type}}));
     {{/each}}
 
     return _readerList;
@@ -246,8 +347,10 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
     _do{{func.java_name}}(
     {{service.javaCapitalName}}.Reactive _delegate,
     com.facebook.thrift.payload.ServerRequestPayload _payload,
-    java.util.List<com.facebook.thrift.payload.Reader> _readers,
+    java.util.List<com.facebook.thrift.payload.FieldReader<?>> _readers,
     com.facebook.swift.service.ContextChain _chain) {
+          final com.facebook.nifty.core.RequestContext _requestContext = _payload.getRequestContext();
+
           _chain.preRead();
           java.util.List<java.lang.Object> _data;
           try {
@@ -269,11 +372,17 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
           _chain.postRead(_data);
 
           reactor.core.publisher.Mono<{{#partial types.boxed_type type=func.return_type field_hasAdapter=false}}> _delegateResponse =
-            _delegate
-              .{{func.java_name}}({{#each (array.enumerate func.params.fields with_last=true) as |i field last?|}}{{field.javaName}}{{#if (not last?)}}, {{/if (not last?)}}{{/each}});
+            reactor.core.publisher.Mono.defer(
+              () -> com.facebook.nifty.core.RequestContextScope.get(
+                com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+                () -> _delegate
+                  .{{func.java_name}}({{#each (array.enumerate func.params.fields with_last=true) as |i field last?|}}{{field.javaName}}{{#if (not last?)}}, {{/if (not last?)}}{{/each}})));
 
           reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _internalResponse =
-            _delegateResponse.map(_response -> {
+            _delegateResponse.map(_response ->
+              com.facebook.nifty.core.RequestContextScope.<com.facebook.thrift.payload.ServerResponsePayload>get(
+                _requestContext,
+                () -> {
               _chain.preWrite(_response);
               com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload =
                 com.facebook.thrift.util.RpcPayloadUtil.createServerResponsePayload(
@@ -281,10 +390,12 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
                   _create_{{func.java_name}}_response_writer(_response, _chain, _payload.getMessageSeqId()));
 
                 return _serverResponsePayload;
-            })
+            }))
             .switchIfEmpty(
               reactor.core.publisher.Mono.fromSupplier(
-                () -> {
+                () -> com.facebook.nifty.core.RequestContextScope.<com.facebook.thrift.payload.ServerResponsePayload>get(
+                  _requestContext,
+                  () -> {
                   {{#if (not func.voidType)}}
                   org.apache.thrift.TApplicationException _tApplicationException =
                     new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "method {{func.java_name}} returned null");
@@ -296,13 +407,16 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
                     _payload,
                     _create_{{func.java_name}}_response_writer(null, _chain, _payload.getMessageSeqId()));
                   {{/if func.voidType}}
-                }
+                })
               )
             )
-            .<com.facebook.thrift.payload.ServerResponsePayload>onErrorResume(_t -> {
-                _chain.preWriteException(_t);
+            .<com.facebook.thrift.payload.ServerResponsePayload>onErrorResume(_t ->
+              com.facebook.nifty.core.RequestContextScope.<reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload>>get(
+                _requestContext,
+                () -> {
                 {{#each func.exceptions as |field|}}
                 if (_t instanceof {{#partial types.java_type type=field.type has_adapter_override=field.hasAdapter?}}) {
+                    _chain.preWriteException(_t);
                     com.facebook.thrift.payload.Writer _exceptionWriter = _create_{{func.java_name}}_exception_writer(_t, _chain, _payload.getMessageSeqId(), (short) {{field.id}});
                     com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload =
                       com.facebook.thrift.util.RpcPayloadUtil.createServerResponsePayload(
@@ -316,7 +430,18 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
                 {{#if func.exceptions?}}
                 else {
                 {{/if func.exceptions?}}
-                // exception is not of user declared type
+                if (_t instanceof org.apache.thrift.TApplicationException) {
+                // A known application exception keeps its original object, type and subclass.
+                // The payload writer fires its hooks exactly once, so no assembly
+                // preWriteException here: it would fire a second time.
+                org.apache.thrift.TApplicationException _tApplicationException =
+                    (org.apache.thrift.TApplicationException) _t;
+                com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload =
+                    com.facebook.thrift.util.RpcPayloadUtil.fromTApplicationException(_tApplicationException, _payload.getRequestRpcMetadata(),  _chain);
+
+                return reactor.core.publisher.Mono.just(_serverResponsePayload);
+                }
+                // exception is neither user declared nor a known application exception
                 String _errorMessage = String.format("Internal error processing {{func.java_name}}: %s", _t.getMessage() == null ? "<null>" : _t.getMessage());
                 org.apache.thrift.TApplicationException _tApplicationException =
                     new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.INTERNAL_ERROR, _errorMessage);
@@ -328,18 +453,18 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
                 {{#if func.exceptions?}}
                 }
                 {{/if func.exceptions?}}
-            });
+            }));
 
           return _internalResponse;
   }
   {{/each}}
 
   {{#each service.oneway_functions as |func|}}
-  private static java.util.List<com.facebook.thrift.payload.Reader> _create_{{func.java_name}}_request_readers() {
-    java.util.List<com.facebook.thrift.payload.Reader> _readerList = new java.util.ArrayList<>();
+  private static java.util.List<com.facebook.thrift.payload.FieldReader<?>> _create_{{func.java_name}}_request_readers() {
+    java.util.List<com.facebook.thrift.payload.FieldReader<?>> _readerList = new java.util.ArrayList<>();
 
     {{#each func.params.fields as |field|}}
-    _readerList.add({{#partial types.type_reader type=field.type}});
+    _readerList.add(new com.facebook.thrift.payload.FieldReader<>((short){{field.id}}, TType.{{#partial types.ttype type=field.type}}, {{#partial types.type_reader type=field.type}}, () -> {{#partial types.param_default_value type=field.type}}));
     {{/each}}
 
     return _readerList;
@@ -349,7 +474,7 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
     _do{{func.java_name}}(
     {{service.javaCapitalName}}.Reactive _delegate,
     com.facebook.thrift.payload.ServerRequestPayload _payload,
-    java.util.List<com.facebook.thrift.payload.Reader> _readers,
+    java.util.List<com.facebook.thrift.payload.FieldReader<?>> _readers,
     com.facebook.swift.service.ContextChain _chain) {
     _chain.preRead();
     java.util.List<java.lang.Object> _data;
@@ -371,7 +496,10 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
 
     _chain.postRead(_data);
 
-    reactor.core.publisher.Mono<Void> _internalResponse = _delegate.{{func.java_name}}({{#each (array.enumerate func.params.fields with_last=true) as |i field last?|}}{{field.javaName}}{{#if (not last?)}}, {{/if (not last?)}}{{/each}});
+    reactor.core.publisher.Mono<Void> _internalResponse =
+      com.facebook.nifty.core.RequestContextScope.get(
+        com.facebook.nifty.core.RequestContextScope.ASSEMBLY_SENTINEL,
+        () -> _delegate.{{func.java_name}}({{#each (array.enumerate func.params.fields with_last=true) as |i field last?|}}{{field.javaName}}{{#if (not last?)}}, {{/if (not last?)}}{{/each}}));
 
     return _internalResponse;
   }
@@ -394,7 +522,7 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
     try {
       _chain = new com.facebook.swift.service.ContextChain(_eventHandlers, _qualifiedMethodName, _payload.getRequestContext());
     } catch (Throwable _t) {
-      com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.internalErrorResponse(_t, "context chain construction", _payload.getRequestRpcMetadata(), null);
+      com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.internalErrorResponse(_t, "during context chain construction", _payload.getRequestRpcMetadata(), null);
       return reactor.core.publisher.Flux.just(_serverResponsePayload);
     }
     try {
@@ -403,19 +531,19 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
       com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.fromTApplicationException(_tApplicationException, _payload.getRequestRpcMetadata(), _chain);
       return reactor.core.publisher.Flux.just(_serverResponsePayload).doFinally(__ -> _chain.done());
     } catch (Throwable _t) {
-      com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.internalErrorResponse(_t, "preprocess", _payload.getRequestRpcMetadata(), _chain);
+      com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.internalErrorResponse(_t, "during preprocess", _payload.getRequestRpcMetadata(), _chain);
       return reactor.core.publisher.Flux.just(_serverResponsePayload).doFinally(__ -> _chain.done());
     }
-    reactor.core.publisher.Flux<com.facebook.thrift.payload.ServerResponsePayload> _response = reactor.core.publisher.Flux.defer(() -> {
-    com.facebook.nifty.core.RequestContext _prevRequestContext = com.facebook.nifty.core.RequestContexts.getCurrentContext();
-    com.facebook.nifty.core.RequestContexts.setCurrentContext(_payload.getRequestContext());
-
+    reactor.core.publisher.Flux<com.facebook.thrift.payload.ServerResponsePayload> _response = reactor.core.publisher.Flux.defer(() ->
+      com.facebook.nifty.core.RequestContextScope.<reactor.core.publisher.Flux<com.facebook.thrift.payload.ServerResponsePayload>>get(
+        _payload.getRequestContext(),
+        () -> {
     reactor.core.publisher.Flux<com.facebook.thrift.payload.ServerResponsePayload> _result;
     try {
       switch(_name) {
         {{#each service.streaming_functions as |func|}}
         case "{{func.name}}":
-          _result = _handler_{{func.java_name}}.handleStream(_payload, _chain);
+          _result = com.facebook.thrift.server.stream.ServerStreams.handleStream(_payload, _chain, _method_{{func.java_name}});
           break;
         {{/each}}
         default: {
@@ -425,22 +553,26 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
             _chain.preRead();
             org.apache.thrift.TApplicationException _tApplicationException = new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.UNKNOWN_METHOD, "no method found with name " + _name);
             com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.fromTApplicationException(_tApplicationException, _payload.getRequestRpcMetadata(), _chain);
-            return reactor.core.publisher.Flux.just(_serverResponsePayload).doFinally(__ -> com.facebook.nifty.core.RequestContexts.setCurrentContext(_prevRequestContext));
+            return reactor.core.publisher.Flux.just(_serverResponsePayload);
           {{/if (object.notnull? service.extends)}}
         }
       }
     } catch (org.apache.thrift.TApplicationException _tApplicationException) {
       com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.fromTApplicationException(_tApplicationException, _payload.getRequestRpcMetadata(), _chain);
-      return reactor.core.publisher.Flux.just(_serverResponsePayload).doFinally(__ -> com.facebook.nifty.core.RequestContexts.setCurrentContext(_prevRequestContext));
+      return reactor.core.publisher.Flux.just(_serverResponsePayload);
     } catch (Throwable _t) {
       _result = reactor.core.publisher.Flux.error(_t);
     }
-    return _result.doFinally(__ -> com.facebook.nifty.core.RequestContexts.setCurrentContext(_prevRequestContext));
-    });
+    return _result;
+    }));
     if (com.facebook.thrift.util.resources.RpcResources.isForceExecutionOffEventLoop()) {
       _response = _response.subscribeOn(com.facebook.thrift.util.resources.RpcResources.getOffLoopScheduler());
     }
-    return _response.doFinally(__ -> _chain.done());
+    // finishRequest, not done(): a begun stream's terminal and done() already fired together from
+    // the inner terminal site, and this downstream doFinally runs first in the fused fast paths.
+    return _response
+      .contextWrite(_context -> com.facebook.nifty.core.RequestContext.toContext(_context, _payload.getRequestContext()))
+      .doFinally(__ -> _chain.finishRequest());
   }
 
   @java.lang.Override
@@ -460,7 +592,7 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
     try {
       _chain = new com.facebook.swift.service.ContextChain(_eventHandlers, _qualifiedMethodName, _payload.getRequestContext());
     } catch (Throwable _t) {
-      com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.internalErrorResponse(_t, "context chain construction", _payload.getRequestRpcMetadata(), null);
+      com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.internalErrorResponse(_t, "during context chain construction", _payload.getRequestRpcMetadata(), null);
       return reactor.core.publisher.Mono.just(_serverResponsePayload);
     }
     try {
@@ -469,13 +601,13 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
       com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.fromTApplicationException(_tApplicationException, _payload.getRequestRpcMetadata(), _chain);
       return reactor.core.publisher.Mono.just(_serverResponsePayload).doFinally(__ -> _chain.done());
     } catch (Throwable _t) {
-      com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.internalErrorResponse(_t, "preprocess", _payload.getRequestRpcMetadata(), _chain);
+      com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.internalErrorResponse(_t, "during preprocess", _payload.getRequestRpcMetadata(), _chain);
       return reactor.core.publisher.Mono.just(_serverResponsePayload).doFinally(__ -> _chain.done());
     }
-    reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _response = reactor.core.publisher.Mono.defer(() -> {
-    com.facebook.nifty.core.RequestContext _prevRequestContext = com.facebook.nifty.core.RequestContexts.getCurrentContext();
-    com.facebook.nifty.core.RequestContexts.setCurrentContext(_payload.getRequestContext());
-
+    reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _response = reactor.core.publisher.Mono.defer(() ->
+      com.facebook.nifty.core.RequestContextScope.<reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload>>get(
+        _payload.getRequestContext(),
+        () -> {
     reactor.core.publisher.Mono<com.facebook.thrift.payload.ServerResponsePayload> _result;
     try {
       switch (_name) {
@@ -491,24 +623,26 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
             _chain.preRead();
             org.apache.thrift.TApplicationException _tApplicationException = new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.UNKNOWN_METHOD, "no method found with name " + _name);
             com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.fromTApplicationException(_tApplicationException, _payload.getRequestRpcMetadata(), _chain);
-            return reactor.core.publisher.Mono.just(_serverResponsePayload).doFinally(__ -> com.facebook.nifty.core.RequestContexts.setCurrentContext(_prevRequestContext));
+            return reactor.core.publisher.Mono.just(_serverResponsePayload);
           {{/if (object.notnull? service.extends)}}
         }
       }
     } catch (org.apache.thrift.TApplicationException _tApplicationException) {
       com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.fromTApplicationException(_tApplicationException, _payload.getRequestRpcMetadata(), _chain);
-      return reactor.core.publisher.Mono.just(_serverResponsePayload).doFinally(__ -> com.facebook.nifty.core.RequestContexts.setCurrentContext(_prevRequestContext));
+      return reactor.core.publisher.Mono.just(_serverResponsePayload);
     } catch (Throwable _t) {
-      _result = reactor.core.publisher.Mono.error(_t);
+      _result = reactor.core.publisher.Mono.just(com.facebook.thrift.util.RpcPayloadUtil.internalErrorResponse(_t, "processing " + _name, _payload.getRequestRpcMetadata(), _chain));
     }
 
-    return _result.doFinally(__ -> com.facebook.nifty.core.RequestContexts.setCurrentContext(_prevRequestContext));
-    });
+    return _result;
+    }));
 
     if (com.facebook.thrift.util.resources.RpcResources.isForceExecutionOffEventLoop()) {
       _response = _response.subscribeOn(com.facebook.thrift.util.resources.RpcResources.getOffLoopScheduler());
     }
-    return _response.doFinally(__ -> _chain.done());
+    return _response
+      .contextWrite(_context -> com.facebook.nifty.core.RequestContext.toContext(_context, _payload.getRequestContext()))
+      .doFinally(__ -> _chain.done());
   }
 
   @java.lang.Override
@@ -536,10 +670,10 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
       return reactor.core.publisher.Mono.<Void>error(_t).doFinally(__ -> _chain.done());
     }
 
-    reactor.core.publisher.Mono<Void> _response = reactor.core.publisher.Mono.defer(() -> {
-    com.facebook.nifty.core.RequestContext _prevRequestContext = com.facebook.nifty.core.RequestContexts.getCurrentContext();
-    com.facebook.nifty.core.RequestContexts.setCurrentContext(_payload.getRequestContext());
-
+    reactor.core.publisher.Mono<Void> _response = reactor.core.publisher.Mono.defer(() ->
+      com.facebook.nifty.core.RequestContextScope.<reactor.core.publisher.Mono<Void>>get(
+        _payload.getRequestContext(),
+        () -> {
     reactor.core.publisher.Mono<Void> _result;
     try {
       switch (_name) {
@@ -560,15 +694,97 @@ public class {{service.javaCapitalName}}RpcServerHandler {{#if (object.notnull? 
       _result = reactor.core.publisher.Mono.error(_t);
     }
 
-    return _result.doFinally(__ -> com.facebook.nifty.core.RequestContexts.setCurrentContext(_prevRequestContext));
-    });
+    return _result;
+    }));
 
     if (com.facebook.thrift.util.resources.RpcResources.isForceExecutionOffEventLoop()) {
       _response = _response.subscribeOn(com.facebook.thrift.util.resources.RpcResources.getOffLoopScheduler());
     }
-    return _response.doFinally(__ -> _chain.done());
+    return _response
+      .contextWrite(_context -> com.facebook.nifty.core.RequestContext.toContext(_context, _payload.getRequestContext()))
+      .doFinally(__ -> _chain.done());
   }
 
+  {{#if (not (array.empty? service.channel_functions))}}
+  @java.lang.Override
+  public reactor.core.publisher.Flux<com.facebook.thrift.payload.ServerResponsePayload> streamingRequestStreamingResponse(com.facebook.thrift.payload.ServerRequestPayload _payload, org.reactivestreams.Publisher<com.facebook.thrift.payload.ServerRequestPayload> _sinkPayloads) {
+    final String _name = _payload.getRequestRpcMetadata().getName();
+    {{#if (object.notnull? service.extends)}}
+
+    // Inherited methods: defer to super so the lifecycle fires only at the owning level.
+    if (!_methodMap.containsKey(_name)) {
+      return super.streamingRequestStreamingResponse(_payload, _sinkPayloads);
+    }
+
+    {{/if (object.notnull? service.extends)}}
+    final String _qualifiedMethodName = "{{service.javaCapitalName}}." + _name;
+
+    // Caller-thread admission gate. ContextChain.getContext() and preprocess() get the request
+    // context via explicit arguments -- no caller-thread ThreadLocal needed. done() is guaranteed
+    // via the outer doFinally below.
+    final com.facebook.swift.service.ContextChain _chain;
+    try {
+      _chain = new com.facebook.swift.service.ContextChain(_eventHandlers, _qualifiedMethodName, _payload.getRequestContext());
+    } catch (Throwable _t) {
+      com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.internalErrorResponse(_t, "during context chain construction", _payload.getRequestRpcMetadata(), null);
+      return reactor.core.publisher.Flux.just(_serverResponsePayload);
+    }
+
+    try {
+      _chain.preprocess();
+    } catch (org.apache.thrift.TApplicationException _tApplicationException) {
+      com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.fromTApplicationException(_tApplicationException, _payload.getRequestRpcMetadata(), _chain);
+      return reactor.core.publisher.Flux.just(_serverResponsePayload).doFinally(__ -> _chain.done());
+    } catch (Throwable _t) {
+      com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.internalErrorResponse(_t, "during preprocess", _payload.getRequestRpcMetadata(), _chain);
+      return reactor.core.publisher.Flux.just(_serverResponsePayload).doFinally(__ -> _chain.done());
+    }
+
+    reactor.core.publisher.Flux<com.facebook.thrift.payload.ServerResponsePayload> _response = reactor.core.publisher.Flux.defer(() ->
+      com.facebook.nifty.core.RequestContextScope.<reactor.core.publisher.Flux<com.facebook.thrift.payload.ServerResponsePayload>>get(
+        _payload.getRequestContext(),
+        () -> {
+    reactor.core.publisher.Flux<com.facebook.thrift.payload.ServerResponsePayload> _result;
+    try {
+      switch(_name) {
+        {{#each service.channel_functions as |func|}}
+        case "{{func.name}}":
+          _result = com.facebook.thrift.server.{{#if func.bidirectional_stream?}}bidi.ServerBidiStreams.handleBidi{{#else}}sink.ServerSinks.handleSink{{/if}}(_payload, _chain, _method_{{func.java_name}}, _sinkPayloads);
+          break;
+        {{/each}}
+        default: {
+          {{#if (object.notnull? service.extends)}}
+          _result =  super.streamingRequestStreamingResponse(_payload, _sinkPayloads);
+          {{#else}}
+            _chain.preRead();
+            org.apache.thrift.TApplicationException _tApplicationException = new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.UNKNOWN_METHOD, "no method found with name " + _name);
+            com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.fromTApplicationException(_tApplicationException, _payload.getRequestRpcMetadata(), _chain);
+            return reactor.core.publisher.Flux.just(_serverResponsePayload);
+          {{/if (object.notnull? service.extends)}}
+        }
+      }
+    } catch (org.apache.thrift.TApplicationException _tApplicationException) {
+      com.facebook.thrift.payload.ServerResponsePayload _serverResponsePayload = com.facebook.thrift.util.RpcPayloadUtil.fromTApplicationException(_tApplicationException, _payload.getRequestRpcMetadata(), _chain);
+      return reactor.core.publisher.Flux.just(_serverResponsePayload);
+    } catch (Throwable _t) {
+      _result = reactor.core.publisher.Flux.error(_t);
+    }
+
+    return _result;
+    }));
+
+    if (com.facebook.thrift.util.resources.RpcResources.isForceExecutionOffEventLoop()) {
+      _response = _response.subscribeOn(com.facebook.thrift.util.resources.RpcResources.getOffLoopScheduler());
+    }
+
+    // finishRequest, not done(): a begun stream's terminal and done() already fired together from
+    // the inner terminal site, and this downstream doFinally runs first in the fused fast paths.
+    return _response
+      .contextWrite(_context -> com.facebook.nifty.core.RequestContext.toContext(_context, _payload.getRequestContext()))
+      .doFinally(__ -> _chain.finishRequest());
+  }
+
+  {{/if (not (array.empty? service.channel_functions))}}
   public java.util.Map<String, com.facebook.thrift.server.RpcServerHandler> getMethodMap() {
     {{#if (object.notnull? service.extends)}}
       java.util.Map<String, com.facebook.thrift.server.RpcServerHandler> _combined = new java.util.HashMap();

@@ -20,7 +20,7 @@ Form:
 void swap(Struct& a, Struct& b) {
   using ::std::swap;
   ...;
-  swap(a.element, b.element);
+  ::apache::thrift::detail::swap_field(a.element, b.element);
 }
 
 }}void swap([[maybe_unused]] {{struct.cpp_underlying_name}}& a, [[maybe_unused]] {{struct.cpp_underlying_name}}& b) {
@@ -31,7 +31,7 @@ void swap(Struct& a, Struct& b) {
   swap(a.__fbthrift_serializedData_, b.__fbthrift_serializedData_);
   {{/if struct.lazy_fields?}}
   {{#each struct.fields_in_layout_order as |field|}}
-  swap(a.{{field.cpp_storage_name}}, b.{{field.cpp_storage_name}});
+  ::apache::thrift::detail::swap_field(a.{{field.cpp_storage_name}}, b.{{field.cpp_storage_name}});
     {{#if field.lazy?}}
   a.__fbthrift_isDeserialized_.{{field.cpp_name}}.store(b.__fbthrift_isDeserialized_.{{field.cpp_name}}.exchange(a.__fbthrift_isDeserialized_.{{field.cpp_name}}.load(relaxed), relaxed), relaxed);
     {{/if field.lazy?}}

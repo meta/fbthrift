@@ -79,11 +79,27 @@ public class MyExceptionWithMessage extends Exception implements TBase, java.io.
     this.myUnion = myUnion;
   }
 
+  public MyExceptionWithMessage(
+      long MyIntField,
+      String MyStringField,
+      MyStruct myStruct,
+      MyUnion myUnion,
+      java.lang.Throwable cause) {
+    this(MyIntField, MyStringField, myStruct, myUnion);
+    initCause(cause);
+  }
+
+  public MyExceptionWithMessage(java.lang.Throwable cause) {
+    super(cause);
+    this.MyStringField = cause == null ? null : cause.toString();
+  }
+
   public static class Builder {
     private long MyIntField;
     private String MyStringField;
     private MyStruct myStruct;
     private MyUnion myUnion;
+    private java.lang.Throwable cause;
 
     BitSet __optional_isset = new BitSet(1);
 
@@ -111,6 +127,11 @@ public class MyExceptionWithMessage extends Exception implements TBase, java.io.
       return this;
     }
 
+    public Builder setCause(final java.lang.Throwable cause) {
+      this.cause = cause;
+      return this;
+    }
+
     public MyExceptionWithMessage build() {
       MyExceptionWithMessage result = new MyExceptionWithMessage();
       if (__optional_isset.get(__MYINTFIELD_ISSET_ID)) {
@@ -119,6 +140,9 @@ public class MyExceptionWithMessage extends Exception implements TBase, java.io.
       result.setMyStringField(this.MyStringField);
       result.setMyStruct(this.myStruct);
       result.setMyUnion(this.myUnion);
+      if (cause != null) {
+        result.initCause(cause);
+      }
       return result;
     }
   }

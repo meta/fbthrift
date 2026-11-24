@@ -41,7 +41,6 @@
 #include <thrift/lib/cpp2/op/detail/EncodeHelpers.h>
 #include <thrift/lib/cpp2/protocol/Cpp2Ops.h>
 #include <thrift/lib/cpp2/protocol/Protocol.h>
-#include <thrift/lib/cpp2/protocol/ProtocolReaderWireTypeInfo.h>
 #include <thrift/lib/cpp2/protocol/Traits.h>
 #include <thrift/lib/cpp2/type/detail/TypeClassToTypeTag.h>
 
@@ -84,10 +83,10 @@
 namespace apache::thrift::detail::pm {
 
 using op::detail::checked_container_size;
-using op::detail::deserialize_key_val_into_map;
 using op::detail::deserialize_known_length_map;
 using op::detail::deserialize_known_length_set;
-using op::detail::detect_key_compare;
+// NOLINTNEXTLINE(facebook-hte-DetailCall)
+using op::detail::is_ordered_container;
 using op::detail::ListDecodeImpl;
 // NOLINTNEXTLINE(facebook-hte-DetailCall)
 using op::detail::ListEncodeImpl;
@@ -98,8 +97,6 @@ using op::detail::map_supports_in_place_deserialize_v;
 using op::detail::map_try_emplace_is_invocable_v;
 using op::detail::set_emplace_hint_is_invocable_v;
 using op::detail::sorted_unique_constructible_v;
-using op::detail::writeMapValueBegin;
-using op::detail::writeMapValueEnd;
 
 /*
  * Primitive Types Specialization
@@ -347,7 +344,7 @@ struct protocol_methods<type_class::list<ElemClass>, Type, ExpectedTag> {
       !std::is_same<ElemClass, type_class::unknown>(),
       "Unable to serialize unknown list element");
 
-  using elem_type = folly::remove_cvref_t<typename Type::value_type>;
+  using elem_type = std::remove_cvref_t<typename Type::value_type>;
   using elem_methods = protocol_methods<
       ElemClass,
       elem_type,
@@ -356,8 +353,9 @@ struct protocol_methods<type_class::list<ElemClass>, Type, ExpectedTag> {
 
   template <typename Protocol>
   static void read(Protocol& protocol, Type& out) {
-    ListDecodeImpl<elem_ttype::value>{}(
-        protocol, out, [&](auto& elem) { elem_methods::read(protocol, elem); });
+    ListDecodeImpl<elem_ttype::value>{}(protocol, out, [&](auto&& elem) {
+      elem_methods::read(protocol, elem);
+    });
   }
 
   template <typename Protocol>
@@ -373,8 +371,6 @@ struct protocol_methods<type_class::list<ElemClass>, Type, ExpectedTag> {
     return op::serialized_size<ZeroCopy, ExpectedTag>(protocol, out);
   }
 };
-
-using op::detail::encodeMapElements;
 
 /*
  * Set Specialization
@@ -395,44 +391,12 @@ struct protocol_methods<type_class::set<ElemClass>, Type, ExpectedTag> {
       expected_value_tag_or_void_t<ExpectedTag>>;
   using elem_ttype = protocol_type<ElemClass, elem_type>;
 
- private:
-  template <typename Protocol>
-  static void consume_elem(Protocol& protocol, Type& out) {
-    auto tmp = detail::default_set_element(out);
-    elem_methods::read(protocol, tmp);
-    out.insert(std::move(tmp));
-  }
-
- public:
   template <typename Protocol>
   static void read(Protocol& protocol, Type& out) {
-    std::uint32_t set_size = -1;
-
-    using WireTypeInfo = ProtocolReaderWireTypeInfo<Protocol>;
-    using WireType = typename WireTypeInfo::WireType;
-
-    WireType reported_type = WireTypeInfo::defaultValue();
-
-    protocol.readSetBegin(reported_type, set_size);
-    out.clear();
-    if (protocol.kOmitsContainerSizes()) {
-      while (protocol.peekSet()) {
-        consume_elem(protocol, out);
-      }
-    } else {
-      if (reported_type != WireTypeInfo::fromTType(elem_ttype::value)) {
-        apache::thrift::skip_n(protocol, set_size, {reported_type});
-      } else {
-        if (!canReadNElements(protocol, set_size, {reported_type})) {
-          protocol::TProtocolException::throwTruncatedData();
-        }
-        const auto vreader = [&protocol](auto& value) {
+    op::detail::SetDecodeImpl<elem_ttype::value>{}(
+        protocol, out, [&](auto& value) {
           elem_methods::read(protocol, value);
-        };
-        deserialize_known_length_set(out, set_size, vreader);
-      }
-    }
-    protocol.readSetEnd();
+        });
   }
 
   template <typename Protocol>
@@ -485,77 +449,26 @@ struct protocol_methods<
   using key_ttype = protocol_type<KeyClass, key_type>;
   using mapped_ttype = protocol_type<MappedClass, mapped_type>;
 
- protected:
-  template <typename Protocol, typename U>
-  static void consume_elem(Protocol& protocol, U& out) {
-    deserialize_key_val_into_map(
-        out,
-        [&protocol](auto& key) { key_methods::read(protocol, key); },
-        [&protocol](auto& value) { mapped_methods::read(protocol, value); });
-  }
-
- public:
   template <typename Protocol, typename U>
   static void read(Protocol& protocol, U& out) {
-    std::uint32_t map_size = -1;
-    using WireTypeInfo = ProtocolReaderWireTypeInfo<Protocol>;
-    using WireType = typename WireTypeInfo::WireType;
-
-    WireType rpt_key_type = WireTypeInfo::defaultValue(),
-             rpt_mapped_type = WireTypeInfo::defaultValue();
-
-    protocol.readMapBegin(rpt_key_type, rpt_mapped_type, map_size);
-    out.clear();
-    if (protocol.kOmitsContainerSizes()) {
-      while (protocol.peekMap()) {
-        consume_elem(protocol, out);
-      }
-    } else {
-      // CompactProtocol does not transmit key/mapped types if
-      // the map is empty
-      if (map_size > 0 &&
-          (WireTypeInfo::fromTType(key_ttype::value) != rpt_key_type ||
-           WireTypeInfo::fromTType(mapped_ttype::value) != rpt_mapped_type)) {
-        apache::thrift::skip_n(
-            protocol, map_size, {rpt_key_type, rpt_mapped_type});
-      } else {
-        if (!canReadNElements(
-                protocol, map_size, {rpt_key_type, rpt_mapped_type})) {
-          protocol::TProtocolException::throwTruncatedData();
-        }
-        const auto kreader = [&protocol](auto& key) {
-          key_methods::read(protocol, key);
-        };
-        const auto vreader = [&protocol](auto& value) {
-          mapped_methods::read(protocol, value);
-        };
-        deserialize_known_length_map(out, map_size, kreader, vreader);
-      }
-    }
-    protocol.readMapEnd();
+    op::detail::decode_map<key_ttype::value, mapped_ttype::value>(
+        protocol,
+        out,
+        [&](auto& key) { key_methods::read(protocol, key); },
+        [&](auto& value) { mapped_methods::read(protocol, value); });
   }
 
   template <typename Protocol, typename U>
   static std::size_t write(Protocol& protocol, const U& out) {
-    std::size_t xfer = 0;
-
-    xfer += protocol.writeMapBegin(
-        key_ttype::value,
-        mapped_ttype::value,
-        checked_container_size(out.size()),
-        std::is_same_v<KeyClass, type_class::string> ||
-            std::is_same_v<KeyClass, type_class::enumeration>);
-
     using KeyTag = type_class::to_type_tag_t<KeyClass, key_type>;
-    encodeMapElements<KeyTag>(
-        protocol, out, [&](const auto& key, const auto& value) {
-          xfer += writeMapValueBegin(protocol);
-          xfer += key_methods::write(protocol, key);
-          xfer += mapped_methods::write(protocol, value);
-          xfer += writeMapValueEnd(protocol);
-        });
-    xfer += protocol.writeMapEnd();
-    return xfer;
+    return op::detail::
+        MapEncodeImpl<key_ttype::value, mapped_ttype::value, KeyTag>{}(
+            protocol,
+            out,
+            [&](const auto& key) { return key_methods::write(protocol, key); },
+            [&](const auto& value) {
+              return mapped_methods::write(protocol, value);
+            });
   }
 
   template <bool ZeroCopy, typename Protocol, typename U>

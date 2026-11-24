@@ -309,7 +309,6 @@ where
                 sink_processor,
             } = call_sink.await?;
 
-          {{#if function.sink_has_first_response?}}
             let de = P::deserializer(_initial_response);
             let res = ::fbthrift::help::async_deserialize_response_envelope::<P, {{program.crate}}::errors::{{interface.snake}}::{{function.upcamel}}Reader, S>(de).await?;
 
@@ -319,9 +318,6 @@ where
                     ::std::result::Result::Err({{program.crate}}::errors::{{interface.snake}}::{{function.upcamel}}Error::ApplicationException(aexn))
                 }
             }?;
-          {{#else}}
-            let initial_response = ();
-          {{/if function.sink_has_first_response?}}
 
             let sink_helper_fn = move |stream: ::futures::stream::BoxStream<'static, ::std::result::Result<
                 {{#partial types.type_name type=function.sink.elem_type}},
@@ -595,7 +591,7 @@ pub struct make_{{interface.rust_name}};
 impl dyn {{interface.rust_name}} {
     {{#each interface.unstructured_annotations as |annotation|}}
       {{#if (not (string.empty? annotation.value))}}
-    pub const {{(rust_annotation_name annotation.key)}}: &'static ::std::primitive::str = {{(rust_quote annotation.value escape_backslashes=true)}};
+    pub const {{(rust_annotation_name annotation.key)}}: &'static ::std::primitive::str = {{(rust_quote annotation.value)}};
       {{/if (not (string.empty? annotation.value))}}
     {{/each}}
     pub fn new<P, T>(

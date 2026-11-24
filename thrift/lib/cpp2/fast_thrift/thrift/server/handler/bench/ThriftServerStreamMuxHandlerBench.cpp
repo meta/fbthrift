@@ -35,9 +35,8 @@
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/common/ThriftControlPayloads.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/common/ThriftResponsePayloads.h>
@@ -52,10 +51,6 @@ using namespace apache::thrift::fast_thrift::channel_pipeline;
 using namespace apache::thrift::fast_thrift::thrift;
 
 namespace {
-
-// NOLINTNEXTLINE(facebook-hte-DetailCall)
-using Context =
-    apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl;
 
 // Emits exactly the demand it is handed, one payload per requested item; never
 // completes, so the stream stays alive across the timed loop.
@@ -93,9 +88,12 @@ HANDLER_TAG(producer);
 
 std::unique_ptr<stream::ProducerPipeline::ConfigFunc> makeEchoRecipe() {
   return std::make_unique<stream::ProducerPipeline::ConfigFunc>(
-      [](stream::ProducerPipeline::Builder& builder) {
-        builder.addNextDuplex<EchoProducer<Context>>(
-            producer_tag, std::make_unique<EchoProducer<Context>>());
+      [](folly::EventBase* evb, stream::StreamSink sink) {
+        return stream::ProducerPipeline::build(
+            evb, std::move(sink), [](auto builder) {
+              return std::move(builder)
+                  .template addNextDuplexTemplate<EchoProducer>(producer_tag);
+            });
       });
 }
 
@@ -105,23 +103,23 @@ BENCHMARK(RequestNRoutedToWire, iters) {
   BenchmarkSuspender suspender;
   folly::EventBase evb;
   test::TestAllocator alloc;
-  test::MockHeadHandler head;
-  test::MockTailHandler tail;
+  test::StaticMockHeadHandler head;
+  test::StaticMockTailHandler tail;
   head.setOnWriteCallback([](TypeErasedBox&& box) -> Result {
     doNotOptimizeAway(box);
     return Result::Success;
   });
 
   auto pipeline =
-      PipelineBuilder<
-          test::MockHeadHandler,
-          test::MockTailHandler,
+      StaticPipelineBuilder<
+          test::StaticMockHeadHandler,
+          test::StaticMockTailHandler,
           test::TestAllocator>()
           .setEventBase(&evb)
           .setHead(&head)
           .setTail(&tail)
           .setAllocator(&alloc)
-          .addNextDuplex<ThriftServerStreamMuxHandler<Context>>(mux_tag)
+          .addNextDuplexTemplate<ThriftServerStreamMuxHandler>(mux_tag)
           .build();
 
   ThriftServerResponseMessage open;
@@ -149,23 +147,23 @@ BENCHMARK(OpenStreamOnWrite, iters) {
   BenchmarkSuspender suspender;
   folly::EventBase evb;
   test::TestAllocator alloc;
-  test::MockHeadHandler head;
-  test::MockTailHandler tail;
+  test::StaticMockHeadHandler head;
+  test::StaticMockTailHandler tail;
   head.setOnWriteCallback([](TypeErasedBox&& box) -> Result {
     doNotOptimizeAway(box);
     return Result::Success;
   });
 
   auto pipeline =
-      PipelineBuilder<
-          test::MockHeadHandler,
-          test::MockTailHandler,
+      StaticPipelineBuilder<
+          test::StaticMockHeadHandler,
+          test::StaticMockTailHandler,
           test::TestAllocator>()
           .setEventBase(&evb)
           .setHead(&head)
           .setTail(&tail)
           .setAllocator(&alloc)
-          .addNextDuplex<ThriftServerStreamMuxHandler<Context>>(mux_tag)
+          .addNextDuplexTemplate<ThriftServerStreamMuxHandler>(mux_tag)
           .build();
 
   // One open message per iteration, each on a distinct streamId so every

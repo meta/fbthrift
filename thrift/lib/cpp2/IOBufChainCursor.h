@@ -65,10 +65,10 @@ class IOBufChainCursor {
   }
 
   size_t pullAtMost(void* destination, size_t length) {
-    if (FOLLY_UNLIKELY(length == 0)) {
+    if (length == 0) [[unlikely]] {
       return 0;
     }
-    if (FOLLY_LIKELY(length <= this->length())) {
+    if (length <= this->length()) [[likely]] {
       std::memcpy(destination, data(), length);
       advanceWithinCurrentBuffer(length);
       return length;
@@ -76,10 +76,10 @@ class IOBufChainCursor {
     return pullAtMostSlow(destination, length);
   }
   void pull(void* destination, size_t length) {
-    if (FOLLY_UNLIKELY(length == 0)) {
+    if (length == 0) [[unlikely]] {
       return;
     }
-    if (FOLLY_LIKELY(length <= this->length())) {
+    if (length <= this->length()) [[likely]] {
       std::memcpy(destination, data(), length);
       advanceWithinCurrentBuffer(length);
       return;
@@ -87,10 +87,10 @@ class IOBufChainCursor {
     pullSlow(destination, length);
   }
   void skip(size_t length) {
-    if (FOLLY_UNLIKELY(length == 0)) {
+    if (length == 0) [[unlikely]] {
       return;
     }
-    if (FOLLY_LIKELY(length <= this->length())) {
+    if (length <= this->length()) [[likely]] {
       advanceWithinCurrentBuffer(length);
       return;
     }
@@ -156,7 +156,7 @@ class IOBufChainCursor {
 template <typename T>
 T IOBufChainCursor::read() {
   static_assert(std::is_trivially_copyable_v<T>);
-  if (FOLLY_LIKELY(sizeof(T) <= length())) {
+  if (sizeof(T) <= length()) [[likely]] {
     const auto value = folly::loadUnaligned<T>(data());
     advanceWithinCurrentBuffer(sizeof(T));
     return value;
@@ -174,7 +174,7 @@ T IOBufChainCursor::readBE() {
 template <typename T>
   requires std::is_arithmetic_v<T>
 bool IOBufChainCursor::tryRead(T& value) {
-  if (FOLLY_LIKELY(sizeof(T) <= length())) {
+  if (sizeof(T) <= length()) [[likely]] {
     value = folly::loadUnaligned<T>(data());
     advanceWithinCurrentBuffer(sizeof(T));
     return true;

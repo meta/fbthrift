@@ -51,6 +51,10 @@ class StressTestClient {
       const StorageReadRequest&) = 0;
   virtual folly::coro::Task<StorageReadResponse> co_storageReadEb(
       const StorageReadRequest&) = 0;
+  virtual folly::coro::Task<void> readStorageTm(const StorageReadRequest&);
+  virtual folly::coro::Task<void> readStorageEb(const StorageReadRequest&);
+  virtual folly::coro::Task<void> readStorageEbAndVerify(
+      const StorageReadRequest&);
   virtual folly::coro::Task<StorageWriteResponse> co_storageWriteTm(
       const StorageWriteRequest&) = 0;
   virtual folly::coro::Task<StorageWriteResponse> co_storageWriteEb(
@@ -108,6 +112,10 @@ class ThriftStressTestClient : public StressTestClient {
       const StorageReadRequest&) override;
   folly::coro::Task<StorageReadResponse> co_storageReadEb(
       const StorageReadRequest&) override;
+  folly::coro::Task<void> readStorageTm(const StorageReadRequest&) override;
+  folly::coro::Task<void> readStorageEb(const StorageReadRequest&) override;
+  folly::coro::Task<void> readStorageEbAndVerify(
+      const StorageReadRequest&) override;
   folly::coro::Task<StorageWriteResponse> co_storageWriteTm(
       const StorageWriteRequest&) override;
   folly::coro::Task<StorageWriteResponse> co_storageWriteEb(
@@ -118,14 +126,30 @@ class ThriftStressTestClient : public StressTestClient {
   folly::AsyncTransport* getTransport() override;
   bool reattach(std::unordered_map<int, folly::EventBase*>& evbs) override;
 
- private:
+ protected:
   template <class Fn>
   folly::coro::Task<void> timedExecute(Fn&& fn);
 
   std::shared_ptr<StressTestAsyncClient> client_;
 
+ private:
   const bool enableChecksum_;
   AlignedResponse resp;
+};
+
+class ChainThriftStressTestClient final : public ThriftStressTestClient {
+ public:
+  using ThriftStressTestClient::ThriftStressTestClient;
+
+  folly::coro::Task<StorageReadChainResponse> co_storageReadChainTm(
+      const StorageReadChainRequest&);
+  folly::coro::Task<StorageReadChainResponse> co_storageReadChainEb(
+      const StorageReadChainRequest&);
+
+  folly::coro::Task<void> readStorageTm(const StorageReadRequest&) override;
+  folly::coro::Task<void> readStorageEb(const StorageReadRequest&) override;
+  folly::coro::Task<void> readStorageEbAndVerify(
+      const StorageReadRequest&) override;
 };
 
 } // namespace apache::thrift::stress

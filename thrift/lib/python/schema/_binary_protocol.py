@@ -112,7 +112,7 @@ class BufferReader:
     def read_struct_end(self) -> None:
         self._ascend()
 
-    def read_field_begin(self) -> tuple[int, int]:
+    def read_field_begin(self) -> tuple[int, int, str]:
         raise NotImplementedError
 
     def read_field_end(self) -> None:
@@ -185,7 +185,7 @@ class BufferReader:
     def _skip_struct(self, depth: int) -> Iterator[_SkipRequest]:
         self.read_struct_begin()
         while True:
-            ttype, _ = self.read_field_begin()
+            ttype, _, _ = self.read_field_begin()
             if ttype == T_STOP:
                 break
             yield ttype, depth + 1
@@ -252,11 +252,11 @@ class BinaryReader(BufferReader):
     protocol = Protocol.BINARY
     FIXED_SIZES_IN_CONTAINER = _FIXED_SIZES
 
-    def read_field_begin(self) -> tuple[int, int]:
+    def read_field_begin(self) -> tuple[int, int, str]:
         ttype = self._data[self._take(1)]
         if ttype == T_STOP:
-            return T_STOP, 0
-        return ttype, _I16.unpack_from(self._data, self._take(2))[0]
+            return T_STOP, 0, ""
+        return ttype, _I16.unpack_from(self._data, self._take(2))[0], ""
 
     def read_map_begin(self) -> tuple[int, int, int]:
         self._descend()

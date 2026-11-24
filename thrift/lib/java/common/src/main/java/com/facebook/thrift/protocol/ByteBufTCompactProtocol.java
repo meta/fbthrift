@@ -461,11 +461,45 @@ public final class ByteBufTCompactProtocol extends ByteBufTProtocol {
   /** Read a byte[] from the wire. */
   public ByteBuffer readBinary() throws TException {
     final int size = readVarInt32();
+    checkBinarySize(size);
     final ByteBuffer byteBuffer;
     byte[] bytes = new byte[size];
     byteBuffer = ByteBuffer.wrap(bytes);
     byteBuf.readBytes(bytes);
     return byteBuffer;
+  }
+
+  /**
+   * Skips a binary or string field without allocating: validates the declared length against the
+   * readable bytes, as C++ skip does against its cursor, instead of materializing the bytes.
+   */
+  @Override
+  public void skipBinary() throws TException {
+    final int size = readVarInt32();
+    checkBinarySize(size);
+    byteBuf.skipBytes(size);
+  }
+
+  /**
+   * Rejects negative and over-declared binary lengths before any allocation or slice. Buffers that
+   * do not know their length (stream-backed ones) skip the upper-bound check.
+   */
+  private void checkBinarySize(int size) {
+    if (size < 0) {
+      throw new TProtocolException(
+          TProtocolException.NEGATIVE_SIZE, "Negative binary size: " + size);
+    }
+    int readable;
+    try {
+      readable = byteBuf.readableBytes();
+    } catch (UnsupportedOperationException e) {
+      return;
+    }
+    if (size > readable) {
+      throw new TProtocolException(
+          TProtocolException.SIZE_LIMIT,
+          "Binary size " + size + " exceeds readable bytes " + readable);
+    }
   }
 
   // These methods are here for the struct to call, but don't have any wire
@@ -492,7 +526,12 @@ public final class ByteBufTCompactProtocol extends ByteBufTProtocol {
 
   /** Given a TCompactProtocol Type constant, convert it to its corresponding TType value. */
   private static byte getTType(final byte type) {
-    return compactTypeToTType[type & 0x0f];
+    int index = type & 0x0f;
+    if (index >= compactTypeToTType.length) {
+      throw new TProtocolException(
+          TProtocolException.INVALID_DATA, "Invalid compact type: " + index);
+    }
+    return compactTypeToTType[index];
   }
 
   /** Given a TType value, find the appropriate TCompactProtocol Type constant. */
@@ -592,6 +631,7 @@ public final class ByteBufTCompactProtocol extends ByteBufTProtocol {
 
   public ByteBuf readBinaryAsSlice() {
     final int size = readVarInt32();
+    checkBinarySize(size);
     return byteBuf.readSlice(size);
   }
 

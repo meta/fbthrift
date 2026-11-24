@@ -42,9 +42,8 @@
 #include <thrift/lib/cpp2/async/RpcOptions.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/BufferAllocator.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/ConnectionHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/ConnectionManager.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/handler/FrameCodecHandler.h>
@@ -81,8 +80,10 @@
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/handler/ThriftServerSetupHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/test/if/gen-cpp2/CompositeE2EPrimaryService.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/test/if/gen-cpp2/CompositeE2EPrimaryService.tcc>
+#include <thrift/lib/cpp2/fast_thrift/thrift/test/if/gen-cpp2/CompositeE2EPrimaryServiceFastClient.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/test/if/gen-cpp2/CompositeE2ESecondaryService.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/test/if/gen-cpp2/CompositeE2ESecondaryService.tcc>
+#include <thrift/lib/cpp2/fast_thrift/thrift/test/if/gen-cpp2/CompositeE2ESecondaryServiceFastClient.h>
 #include <thrift/lib/cpp2/fast_thrift/transport/TransportHandler.h>
 #include <thrift/lib/thrift/gen-cpp2/RpcMetadata_constants.h>
 
@@ -93,9 +94,9 @@ namespace {
 using namespace apache::thrift::fast_thrift;
 using namespace apache::thrift::fast_thrift::thrift::test::composite_e2e;
 
-using channel_pipeline::PipelineBuilder;
-using channel_pipeline::PipelineImpl;
+using channel_pipeline::PipelineOwner;
 using channel_pipeline::SimpleBufferAllocator;
+using channel_pipeline::StaticPipelineBuilder;
 
 // Server handler tags
 HANDLER_TAG(thrift_server_setup_handler);
@@ -235,21 +236,17 @@ class ThriftServerCompositeE2ETest : public ::testing::Test {
     // Field order is destruction order in reverse. Tail handlers (composite,
     // children) must be declared FIRST so they outlive transportAdapter:
     // transportAdapter's destructor releases the last pipeline
-    // DestructorGuard, which kicks off PipelineImpl::onDelayedDestroy →
-    // callHandlerRemovedImpl → composite->handlerRemoved(). Composite must
-    // still be alive at that point. Mirrors FastThriftFastClientE2ETest's
-    // ThriftConnectionContext, where serverChannel (the tail) is declared
-    // before transportAdapter for the same reason.
+    // guard, which lets the pipeline call composite->handlerRemoved().
+    // Composite must still be alive at that point. Mirrors
+    // FastThriftFastClientE2ETest's ThriftConnectionContext, where
+    // serverChannel (the tail) is declared before transportAdapter for the same
+    // reason.
     thrift::ThriftServerAppAdapter::Ptr primaryChild;
     thrift::ThriftServerAppAdapter::Ptr secondaryChild;
     thrift::ThriftServerCompositeAppAdapter::Ptr composite;
     std::unique_ptr<thrift::server::ThriftServerTransportAdapter>
         transportAdapter;
-    PipelineImpl::Ptr thriftPipeline;
-    std::unique_ptr<SimpleBufferAllocator> thriftAllocator =
-        std::make_unique<SimpleBufferAllocator>();
-    std::unique_ptr<SimpleBufferAllocator> rocketAllocator =
-        std::make_unique<SimpleBufferAllocator>();
+    PipelineOwner thriftPipeline;
 
     std::function<void()> closeCb;
     bool closed{false};
@@ -295,8 +292,8 @@ class ThriftServerCompositeE2ETest : public ::testing::Test {
     ServerConnectionContext getConnection(
         folly::AsyncTransport::UniquePtr socket,
         const folly::SocketAddress& /*clientAddr*/,
-        const std::shared_ptr<
-            const apache::thrift::fast_thrift::connection::PeerSecurityInfo>&
+        std::unique_ptr<
+            apache::thrift::fast_thrift::connection::PeerSecurityInfo>
         /*peerSecurity*/) {
       return build_(std::move(socket));
     }
@@ -343,7 +340,7 @@ class ThriftServerCompositeE2ETest : public ::testing::Test {
 
     // 1. Rocket pipeline (same as bare-server E2E)
     rocketConn->pipeline =
-        PipelineBuilder<
+        StaticPipelineBuilder<
             transport::TransportHandlerT<
                 rocket::server::RocketServerEventFactory>,
             rocket::server::RocketServerAppAdapter,
@@ -351,7 +348,7 @@ class ThriftServerCompositeE2ETest : public ::testing::Test {
             .setEventBase(evb)
             .setHead(transportHandler.get())
             .setTail(rocketConn->appAdapter.get())
-            .setAllocator(ctx.rocketAllocator.get())
+            .emplaceAllocator()
             .addState<
                 apache::thrift::fast_thrift::rocket::RocketStreamContexts>()
 
@@ -396,34 +393,33 @@ class ThriftServerCompositeE2ETest : public ::testing::Test {
         std::make_unique<thrift::server::ThriftServerTransportAdapter>(
             std::move(rocketConn));
 
-    PipelineBuilder<
-        thrift::server::ThriftServerTransportAdapter,
-        thrift::ThriftServerCompositeAppAdapter,
-        SimpleBufferAllocator>
-        serverBuilder;
-    serverBuilder.setEventBase(evb)
-        .setHead(ctx.transportAdapter.get())
-        .setTail(ctx.composite.get())
-        .setAllocator(ctx.thriftAllocator.get());
+    auto serverBuilder = StaticPipelineBuilder<
+                             thrift::server::ThriftServerTransportAdapter,
+                             thrift::ThriftServerCompositeAppAdapter,
+                             SimpleBufferAllocator>()
+                             .setEventBase(evb)
+                             .setHead(ctx.transportAdapter.get())
+                             .setTail(ctx.composite.get())
+                             .emplaceAllocator();
+    const auto finish = [](auto builder) {
+      return PipelineOwner(
+          std::move(builder)
+              .template addNextDuplexTemplate<thrift::ThriftServerSetupHandler>(
+                  thrift_server_setup_handler_tag)
+              .build());
+    };
     if (enableChecksum_) {
-      // Request-context handler creates the per-request context the checksum
-      // handler records the response algorithm on; checksum handler validates
-      // the request checksum and drives the response echo.
-      serverBuilder
-          .addNextInbound<thrift::ThriftServerRequestContextHandler<
-              channel_pipeline::detail::ContextImpl>>(
-              thrift_server_request_context_handler_tag,
-              /*requestExtensionLayout=*/nullptr)
-          .addNextDuplex<thrift::ThriftServerChecksumHandler<
-              channel_pipeline::detail::ContextImpl>>(
-              thrift_server_checksum_handler_tag);
+      ctx.thriftPipeline = finish(
+          std::move(serverBuilder)
+              .addNextInboundTemplate<
+                  thrift::ThriftServerRequestContextHandler>(
+                  thrift_server_request_context_handler_tag,
+                  /*requestExtensionLayout=*/nullptr)
+              .addNextDuplexTemplate<thrift::ThriftServerChecksumHandler>(
+                  thrift_server_checksum_handler_tag));
+    } else {
+      ctx.thriftPipeline = finish(std::move(serverBuilder));
     }
-    ctx.thriftPipeline =
-        serverBuilder
-            .template addNextDuplex<thrift::ThriftServerSetupHandler<
-                channel_pipeline::detail::ContextImpl>>(
-                thrift_server_setup_handler_tag)
-            .build();
 
     ctx.transportAdapter->setPipeline(ctx.thriftPipeline.get());
     // composite's setPipeline fans out to both children so their
@@ -445,7 +441,7 @@ class ThriftServerCompositeE2ETest : public ::testing::Test {
   struct ClientConnectionResources {
     std::unique_ptr<thrift::client::ThriftClientTransportAdapter>
         transportAdapter;
-    PipelineImpl::Ptr pipeline;
+    PipelineOwner pipeline;
   };
 
   void TearDown() override {
@@ -551,7 +547,7 @@ class ThriftServerCompositeE2ETest : public ::testing::Test {
       };
 
       connection->pipeline =
-          PipelineBuilder<
+          StaticPipelineBuilder<
               rocket::client::RocketClientConnection::TransportHandler,
               rocket::client::RocketClientAppAdapter,
               SimpleBufferAllocator>()
@@ -590,7 +586,7 @@ class ThriftServerCompositeE2ETest : public ::testing::Test {
               std::move(connection));
 
       resources.pipeline =
-          PipelineBuilder<
+          StaticPipelineBuilder<
               thrift::client::ThriftClientTransportAdapter,
               thrift::ThriftClientAppAdapter,
               SimpleBufferAllocator>()

@@ -18,6 +18,7 @@
 
 #include <folly/io/IOBuf.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/ErrorCode.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
@@ -170,6 +171,9 @@ class MockContext {
   std::vector<TypeErasedBox> writeMessages_;
   folly::exception_wrapper exception_;
 };
+
+static_assert(
+    channel_pipeline::DuplexHandler<RocketClientStreamHandler, MockContext>);
 
 } // namespace
 

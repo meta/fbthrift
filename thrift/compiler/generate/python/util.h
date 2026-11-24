@@ -35,12 +35,6 @@ namespace apache::thrift::compiler {
  */
 bool is_type_iobuf(std::string_view name);
 
-bool is_type_iobuf(const t_type* type);
-
-// Check if a field's type is IOBuf, considering both type-level and
-// field-level @cpp.Type annotations.
-bool is_type_iobuf(const t_field& field);
-
 bool is_patch_program(const t_program* prog);
 
 bool type_contains_patch(const t_type* type);

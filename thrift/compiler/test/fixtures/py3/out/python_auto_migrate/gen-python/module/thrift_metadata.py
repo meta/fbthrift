@@ -389,10 +389,10 @@ def _fbthrift_gen_metadata_struct_CustomFields(metadata_struct: _fbthrift_metada
             _fbthrift_metadata.ThriftConstStruct(type=_fbthrift_metadata.ThriftStructType(name="cpp.Type"), fields= { "name": _fbthrift_metadata.ThriftConstValue(cv_string="::MyType"),  }),
         ]),
         _fbthrift_metadata.ThriftField(id=4, type=_fbthrift_metadata.ThriftType(t_primitive=_fbthrift_metadata.ThriftPrimitiveType.THRIFT_STRING_TYPE), name="string_field", is_optional=False, structured_annotations=[
-            _fbthrift_metadata.ThriftConstStruct(type=_fbthrift_metadata.ThriftStructType(name="cpp.Type"), fields= { "name": _fbthrift_metadata.ThriftConstValue(cv_string="::MyType"),  }),
+            _fbthrift_metadata.ThriftConstStruct(type=_fbthrift_metadata.ThriftStructType(name="cpp.Type"), fields= { "name": _fbthrift_metadata.ThriftConstValue(cv_string="std::pmr::string"),  }),
         ]),
         _fbthrift_metadata.ThriftField(id=5, type=_fbthrift_metadata.ThriftType(t_primitive=_fbthrift_metadata.ThriftPrimitiveType.THRIFT_BINARY_TYPE), name="binary_field", is_optional=False, structured_annotations=[
-            _fbthrift_metadata.ThriftConstStruct(type=_fbthrift_metadata.ThriftStructType(name="cpp.Type"), fields= { "name": _fbthrift_metadata.ThriftConstValue(cv_string="::MyType"),  }),
+            _fbthrift_metadata.ThriftConstStruct(type=_fbthrift_metadata.ThriftStructType(name="cpp.Type"), fields= { "name": _fbthrift_metadata.ThriftConstValue(cv_string="folly::IOBuf"),  }),
         ]),
         _fbthrift_metadata.ThriftField(id=6, type=_fbthrift_metadata.ThriftType(t_list=_fbthrift_metadata.ThriftListType(valueType=_fbthrift_metadata.ThriftType(t_primitive=_fbthrift_metadata.ThriftPrimitiveType.THRIFT_I32_TYPE))), name="list_field", is_optional=False, structured_annotations=[
             _fbthrift_metadata.ThriftConstStruct(type=_fbthrift_metadata.ThriftStructType(name="cpp.Type"), fields= { "template": _fbthrift_metadata.ThriftConstValue(cv_string="::MyType"),  }),
@@ -525,6 +525,33 @@ def _fbthrift_gen_metadata_struct_AdaptedTypedefFields(metadata_struct: _fbthrif
     return new_struct
 def gen_metadata_struct_AdaptedTypedefFields() -> _fbthrift_metadata.ThriftMetadata:
     return _fbthrift_gen_metadata_struct_AdaptedTypedefFields(_fbthrift_metadata.ThriftMetadata(structs={}, enums={}, exceptions={}, services={}))
+
+# TODO (ffrancet): This general pattern can be optimized by using tuples and dicts
+# instead of re-generating thrift structs
+def _fbthrift_gen_metadata_struct_StringAdaptedUnion(metadata_struct: _fbthrift_metadata.ThriftMetadata) -> _fbthrift_metadata.ThriftMetadata:
+    qualified_name = "module.StringAdaptedUnion"
+
+    if qualified_name in metadata_struct.structs:
+        return metadata_struct
+    fields = [
+        _fbthrift_metadata.ThriftField(id=1, type=_fbthrift_metadata.ThriftType(t_primitive=_fbthrift_metadata.ThriftPrimitiveType.THRIFT_STRING_TYPE), name="string_field", is_optional=False, structured_annotations=[
+        ]),
+        _fbthrift_metadata.ThriftField(id=2, type=_fbthrift_metadata.ThriftType(t_primitive=_fbthrift_metadata.ThriftPrimitiveType.THRIFT_BINARY_TYPE), name="binary_field", is_optional=False, structured_annotations=[
+        ]),
+    ]
+    struct_dict = dict(metadata_struct.structs)
+    struct_dict[qualified_name] = _fbthrift_metadata.ThriftStruct(name=qualified_name, fields=fields,
+        is_union=True,
+        structured_annotations=[
+        ])
+    new_struct = metadata_struct(structs=struct_dict)
+
+    # string_field
+    # binary_field
+
+    return new_struct
+def gen_metadata_struct_StringAdaptedUnion() -> _fbthrift_metadata.ThriftMetadata:
+    return _fbthrift_gen_metadata_struct_StringAdaptedUnion(_fbthrift_metadata.ThriftMetadata(structs={}, enums={}, exceptions={}, services={}))
 
 
 def gen_metadata_service_SimpleService() -> _fbthrift_metadata.ThriftMetadata:
@@ -1156,6 +1183,7 @@ def getThriftModuleMetadata() -> _fbthrift_metadata.ThriftMetadata:
     meta = _fbthrift_gen_metadata_struct_CustomFields(meta)
     meta = _fbthrift_gen_metadata_struct_CustomTypedefFields(meta)
     meta = _fbthrift_gen_metadata_struct_AdaptedTypedefFields(meta)
+    meta = _fbthrift_gen_metadata_struct_StringAdaptedUnion(meta)
     meta = _fbthrift_gen_metadata_service_SimpleService(meta)
     meta = _fbthrift_gen_metadata_service_DerivedService(meta)
     meta = _fbthrift_gen_metadata_service_RederivedService(meta)

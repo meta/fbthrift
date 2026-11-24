@@ -4092,7 +4092,7 @@ func (x *respBadInteractionFoo) setDefaults() *respBadInteractionFoo {
 
 
 func init() {
-    thrift.InternalRegisterType("facebook.com/thrift/compiler/test/fixtures/basic_annotations/src/module/MyStruct", premadeCodecTypeSpec_module_MyStruct)
+    thrift.InternalRegisterType("facebook.com/thrift/compiler/test/fixtures/basic_annotations/src/module/MyStruct", premadeCodecTypeSpec_module_MyStruct, reflect.TypeOf((*MyStruct)(nil)))
     thrift.InternalRegisterError(
         (*MyException)(nil),
         "MyException",

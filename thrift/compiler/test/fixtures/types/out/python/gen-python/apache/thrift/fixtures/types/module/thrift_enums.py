@@ -31,7 +31,7 @@ class has_bitwise_ops(_fbthrift_python_types.Enum, int):
 
     @staticmethod
     def __get_thrift_definition_key__() -> builtins.bytes:
-        return b"\xbc\x4d\xd7\x64\xbf\x82\xa1\x2e\x52\x67\x3c\x98\xb7\xba\x73\xa5"
+        return b"\x80\xc4\x2b\x4b\x2d\xbd\x32\x5b\x4c\x79\x9f\x83\xc8\x94\xeb\x1f"
 
     @staticmethod
     def __get_metadata__() -> _fbthrift_metadata.ThriftMetadata:
@@ -63,7 +63,7 @@ class is_unscoped(_fbthrift_python_types.Enum, int):
 
     @staticmethod
     def __get_thrift_definition_key__() -> builtins.bytes:
-        return b"\x24\x6c\x4b\x84\x60\x9c\x74\xd2\x0b\xe1\xe5\x2c\x0e\xaf\x33\xf7"
+        return b"\x3b\xd2\x89\x5a\x8b\xca\x04\xb7\x02\x68\x90\x8e\xa1\x09\x57\xc1"
 
     @staticmethod
     def __get_metadata__() -> _fbthrift_metadata.ThriftMetadata:
@@ -95,7 +95,7 @@ class MyForwardRefEnum(_fbthrift_python_types.Enum, int):
 
     @staticmethod
     def __get_thrift_definition_key__() -> builtins.bytes:
-        return b"\xe8\x56\xb7\xf8\x6a\x33\x8e\x4b\x05\xd7\x7c\x4c\xae\x66\xe0\xf5"
+        return b"\x9a\xea\x26\x34\xcd\x79\x65\x32\xda\x11\xa6\x8b\x35\x2d\xb5\xd8"
 
     @staticmethod
     def __get_metadata__() -> _fbthrift_metadata.ThriftMetadata:

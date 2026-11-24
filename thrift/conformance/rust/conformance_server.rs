@@ -35,6 +35,7 @@ use patch_data::PatchOpResponse;
 use protocol_detail as protocol_detail_types; // fbcode//thrift:protocol_detail
 use serialization::RoundTripRequest;
 use serialization::RoundTripResponse;
+use terse as terse_types; // fbcode//thrift/test/testset:terse
 use testset as test_types; // fbcode//thrift/test/testet:testset
 use tracing::info;
 use tracing_subscriber::layer::SubscriberExt;
@@ -57,6 +58,7 @@ fn main(fb: fbinit::FacebookInit) -> Result<()> {
     let any_registry = Box::leak(Box::new(fbthrift_conformance::AnyRegistry::new()));
     test_types::init_registry(any_registry)?;
     enum_types::init_registry(any_registry)?;
+    terse_types::init_registry(any_registry)?;
     protocol_detail_types::init_registry(any_registry)?;
     info!(
         "\"Any registry\" initialized, {} types registered.",

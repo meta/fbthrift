@@ -16,12 +16,16 @@
 
 #include <thrift/lib/cpp2/protocol/detail/JsonReader.h>
 
+#include <algorithm>
 #include <charconv>
 #include <cstdint>
+#include <iterator>
 #include <limits>
+#include <utility>
 
 #include <fmt/core.h>
 #include <folly/Conv.h>
+#include <folly/Range.h>
 #include <folly/String.h>
 #include <folly/Unicode.h>
 #include <thrift/lib/cpp/protocol/TProtocolException.h>
@@ -38,6 +42,11 @@ constexpr bool isAsciiHexDigit(char c) {
   return isAsciiDigit(c) || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
 }
 
+constexpr bool isNumberStart(char c) {
+  return isAsciiDigit(c) || c == '-' || c == '+' || c == '.' || c == 'N' ||
+      c == 'I';
+}
+
 constexpr bool isAsciiAlpha(char c) {
   return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 }
@@ -45,6 +54,24 @@ constexpr bool isAsciiAlpha(char c) {
 constexpr bool isAsciiSpace(char c) {
   return c == ' ' || c == '\t' || c == '\n' || c == '\v' || c == '\f' ||
       c == '\r';
+}
+
+// JSON5 WhiteSpace and LineTerminator beyond ASCII: Unicode Zs, U+2028, U+2029
+// and U+FEFF.
+constexpr bool isUnicodeSpace(char32_t c) {
+  return c == U'\u00A0' || c == U'\u1680' ||
+      (c >= U'\u2000' && c <= U'\u200A') || c == U'\u2028' || c == U'\u2029' ||
+      c == U'\u202F' || c == U'\u205F' || c == U'\u3000' || c == U'\uFEFF';
+}
+
+// Returns the code point at `cursor` and its length in bytes, or U+FFFD and 1
+// if the input there is not well-formed UTF-8.
+std::pair<char32_t, std::size_t> peekCodePoint(folly::io::Cursor cursor) {
+  unsigned char buf[4];
+  const unsigned char* p = buf;
+  const char32_t codePoint = folly::utf8ToCodePoint(
+      p, buf + cursor.pullAtMost(buf, sizeof(buf)), /*skipOnError=*/true);
+  return {codePoint, p - buf};
 }
 
 bool isIdentifierStart(char c) {
@@ -94,12 +121,12 @@ Json5Reader::Integer makeInteger(
   return {.negative = negative, .magnitude = magnitude};
 }
 
-std::uint16_t readFourHexDigits(folly::io::Cursor& cursor) {
-  if (!cursor.canAdvance(4)) {
-    throwParseError("expected 4 hex digits");
+std::uint16_t readHexDigits(folly::io::Cursor& cursor, std::size_t count) {
+  if (!cursor.canAdvance(count)) {
+    throwParseError(fmt::format("expected {} hex digits", count));
   }
   return static_cast<std::uint16_t>(
-      parseHexMagnitude(cursor.readFixedString(4)));
+      parseHexMagnitude(cursor.readFixedString(count)));
 }
 
 // The writer escapes strings with folly::json::escapeString's validate_utf8, so
@@ -119,14 +146,14 @@ void validateUtf8(std::string_view str) {
 // Decodes a `\uXXXX` escape, with the cursor just past the `u`. A code point
 // outside the BMP is written as a UTF-16 surrogate pair, i.e. two escapes.
 void decodeUnicodeEscape(folly::io::Cursor& cursor, std::string& out) {
-  const std::uint16_t first = readFourHexDigits(cursor);
+  const std::uint16_t first = readHexDigits(cursor, 4);
   char32_t codePoint = first;
 
   if (folly::utf16_code_unit_is_high_surrogate(first)) {
     if (!cursor.canAdvance(2) || cursor.readFixedString(2) != "\\u") {
       throwParseError("expected a second escape to complete surrogate pair");
     }
-    const std::uint16_t second = readFourHexDigits(cursor);
+    const std::uint16_t second = readHexDigits(cursor, 4);
     if (!folly::utf16_code_unit_is_low_surrogate(second)) {
       throwParseError("invalid second half of surrogate pair");
     }
@@ -139,6 +166,125 @@ void decodeUnicodeEscape(folly::io::Cursor& cursor, std::string& out) {
   folly::appendCodePointToUtf8(codePoint, out);
 }
 
+// Returns the leading bytes that can be copied into the string as is:
+// everything before the closing `quote`, a backslash, `\n` or `\r`.
+folly::ByteRange findCopyableRange(folly::ByteRange bytes, char quote) {
+  const unsigned char q = quote;
+  auto isSpecial = [q](unsigned char b) {
+    return b == q || b == '\\' || b == '\n' || b == '\r';
+  };
+  // Most strings (member names, enum names) are short, and a plain loop finds
+  // their end faster than the setup of the vectorized search below.
+  constexpr std::size_t kShortSize = 16;
+  const folly::ByteRange prefix = bytes.subpiece(0, kShortSize);
+  const auto end = std::find_if(prefix.begin(), prefix.end(), isSpecial);
+  if (end != prefix.end() || prefix.size() == bytes.size()) {
+    return {bytes.begin(), end};
+  }
+  const unsigned char specials[] = {q, '\\', '\n', '\r'};
+  const std::size_t pos =
+      bytes.subpiece(kShortSize).find_first_of({specials, std::end(specials)});
+  return pos == folly::ByteRange::npos ? bytes
+                                       : bytes.subpiece(0, kShortSize + pos);
+}
+
+bool isNumberPart(char c) {
+  return isIdentifierPart(c) || c == '.' || c == '+' || c == '-';
+}
+
+// Parses the JSON5 number at the start of `input` and removes it from `input`,
+// leaving any trailing characters.
+Json5Reader::Primitive parseNumberPrefix(
+    std::string_view& input, Json5Reader::FloatingPointPrecision precision) {
+  using enum Json5Reader::FloatingPointPrecision;
+  const std::string_view start = input;
+  auto peek = [&] { return input.empty() ? '\0' : input.front(); };
+  auto skipWhile = [&](auto pred) {
+    auto end = std::find_if_not(input.begin(), input.end(), pred);
+    auto skipped = input.substr(0, end - input.begin());
+    input.remove_prefix(skipped.size());
+    return skipped;
+  };
+  auto consumed = [&] { return start.substr(0, start.size() - input.size()); };
+
+  char c = peek();
+  const int8_t sign = (c == '-' ? -1 : 1);
+  if (c == '+' || c == '-') {
+    input.remove_prefix(1);
+    c = peek();
+  }
+
+  // Infinity or NaN
+  if (c == 'I' || c == 'N') {
+    const auto word = skipWhile(isIdentifierPart);
+    if (word != "Infinity" && word != "NaN") {
+      throwParseError(
+          fmt::format("expected 'Infinity' or 'NaN', got '{}'", word));
+    }
+    const double d = std::copysign(
+        word == "NaN" ? std::numeric_limits<double>::quiet_NaN()
+                      : std::numeric_limits<double>::infinity(),
+        sign);
+    if (precision == Single) {
+      return float(d);
+    }
+    return d;
+  }
+  // Hex literal: 0x...
+  if (c == '0') {
+    input.remove_prefix(1);
+    c = peek();
+    if (c == 'x' || c == 'X') {
+      const auto prefix = consumed();
+      input.remove_prefix(1);
+      const auto digits = skipWhile(isAsciiHexDigit);
+      return makeInteger(
+          sign < 0,
+          parseHexMagnitude(digits),
+          fmt::format("{}x{}", prefix, digits));
+    }
+  } else if (c != '.') {
+    skipWhile(isAsciiDigit);
+    c = peek();
+  }
+
+  bool isFloating = false;
+
+  if (c == '.') {
+    isFloating = true;
+    input.remove_prefix(1);
+    skipWhile(isAsciiDigit);
+    c = peek();
+  }
+
+  if (c == 'e' || c == 'E') {
+    isFloating = true;
+    input.remove_prefix(1);
+    if (peek() == '+' || peek() == '-') {
+      input.remove_prefix(1);
+    }
+    skipWhile(isAsciiDigit);
+  }
+
+  const std::string_view numStr = consumed();
+  if (numStr.empty() || numStr == "+" || numStr == "-") {
+    throwParseError("expected number");
+  }
+
+  if (!isFloating) {
+    std::string_view digits = numStr;
+    if (digits.front() == '+' || digits.front() == '-') {
+      digits.remove_prefix(1);
+    }
+    return makeInteger(
+        sign < 0, parseNumberOrThrow<std::uint64_t>(digits), numStr);
+  }
+  if (precision == Single) {
+    return parseNumberOrThrow<float>(numStr);
+  }
+  return parseNumberOrThrow<double>(numStr);
+}
+
 char peekNext(folly::io::Cursor& cursor) {
   return cursor.isAtEnd() ? '\0' : static_cast<char>(cursor.peek().front());
 }
@@ -148,6 +294,24 @@ char readNext(folly::io::Cursor& cursor) {
     throwParseError("unexpected end of input");
   }
   return cursor.read<char>();
+}
+
+// Returns the length of the JSON5 LineTerminatorSequence (LF, CR, CR LF, U+2028
+// or U+2029) at `cursor`, or 0.
+std::size_t lineTerminatorSize(folly::io::Cursor cursor) {
+  switch (peekNext(cursor)) {
+    case '\n':
+      return 1;
+    case '\r':
+      cursor.skip(1);
+      return peekNext(cursor) == '\n' ? 2 : 1;
+    case '\xE2': {
+      auto [codePoint, size] = peekCodePoint(cursor);
+      return codePoint == U'\u2028' || codePoint == U'\u2029' ? size : 0;
+    }
+    default:
+      return 0;
+  }
 }
 
 } // namespace
@@ -194,9 +358,8 @@ bool Json5Reader::skipComment() {
   switch (readChar()) {
     case '/':
       // Skip "// ..." comment
-      cursor().skipWhile([](char c) { return c != '\n' && c != '\r'; });
-      if (!cursor().isAtEnd()) {
-        cursor().skip(1); // Skip "\n"
+      while (!cursor().isAtEnd() && lineTerminatorSize(cursor()) == 0) {
+        cursor().skip(1);
       }
       return true;
     case '*': {
@@ -221,11 +384,31 @@ bool Json5Reader::skipComment() {
   }
 }
 
+bool Json5Reader::skipUnicodeSpace() {
+  if (static_cast<unsigned char>(peekChar()) < 0x80) {
+    return false;
+  }
+  auto [codePoint, size] = peekCodePoint(cursor());
+  if (!isUnicodeSpace(codePoint)) {
+    return false;
+  }
+  cursor().skip(size);
+  return true;
+}
+
 void Json5Reader::skipWhitespaceAndComments() {
+  // This runs after every token, and in compact JSON nothing follows most of
+  // them, so check the one byte that would have to start whitespace or a
+  // comment (ASCII space, '/', or the lead byte of a Unicode space) before
+  // paying for the loop below.
+  const char c = peekChar();
+  if (!isAsciiSpace(c) && c != '/' && static_cast<unsigned char>(c) < 0x80) {
+    return;
+  }
   do {
     cursor().skipWhile(isAsciiSpace);
     // Loop to handle adjacent comments, e.g. `/*a*//*b*/`.
-  } while (skipComment());
+  } while (skipUnicodeSpace() || skipComment());
 }
 
 // -- comma handling -------------------------------------------------------
@@ -270,42 +453,47 @@ Json5Reader::Token Json5Reader::peekToken() {
 // -- strings and identifiers ----------------------------------------------
 
 std::string Json5Reader::parseString(char quote) {
+  folly::io::Cursor start = cursor();
   std::string result;
-  bool hasRawNonAscii = false;
+  // OR of every input byte copied as is; bit 7 is set if any was non-ASCII.
+  unsigned char rawBytesOr = 0;
+  auto appendRaw = [&](char ch) {
+    rawBytesOr |= static_cast<unsigned char>(ch);
+    result.push_back(ch);
+  };
   while (true) {
+    const folly::ByteRange bytes = cursor().peekBytes();
+    const folly::ByteRange copyableRange = findCopyableRange(bytes, quote);
+    for (auto byte : copyableRange) {
+      rawBytesOr |= byte;
+    }
+    result.append(
+        reinterpret_cast<const char*>(copyableRange.data()),
+        copyableRange.size());
+    cursor().skip(copyableRange.size());
+    if (copyableRange.size() == bytes.size() && !copyableRange.empty()) {
+      continue; // The string may continue in the next buffer.
+    }
+
     char c = readChar();
     if (c == quote) {
-      // Escapes always decode to well-formed UTF-8; only raw bytes need
-      // validation.
-      if (hasRawNonAscii) {
-        validateUtf8(result);
+      // Validate the input, not `result`: a line continuation can join
+      // ill-formed input bytes into a well-formed `result`.
+      if ((rawBytesOr & 0x80) != 0) {
+        validateUtf8(start.readFixedString(cursor() - start - 1));
       }
       return result;
     }
     if (c == '\n' || c == '\r') {
       throwParseError("unescaped newline in string");
     }
-    if (c != '\\') {
-      hasRawNonAscii |= (static_cast<unsigned char>(c) & 0x80) != 0;
-      result.push_back(c);
+    if (auto size = lineTerminatorSize(cursor())) {
+      // Line continuation
+      cursor().skip(size);
       continue;
     }
     char esc = readChar();
     switch (esc) {
-      case '"':
-      case '/':
-      case '\'':
-      case '\\':
-      case '\n':
-      case '\r':
-        if (esc != '\n' && esc != '\r') {
-          result.push_back(esc);
-        }
-        if (esc == '\r' && peekChar() == '\n') {
-          // handles "\r\n" (CRLF)
-          cursor().skip(1);
-        }
-        break;
       case 'b':
         result.push_back('\b');
         break;
@@ -321,11 +509,27 @@ std::string Json5Reader::parseString(char quote) {
       case 't':
         result.push_back('\t');
         break;
+      case 'v':
+        result.push_back('\v');
+        break;
+      case '0':
+        if (isAsciiDigit(peekChar())) {
+          throwParseError("octal escape in string");
+        }
+        result.push_back('\0');
+        break;
+      case 'x':
+        folly::appendCodePointToUtf8(readHexDigits(cursor(), 2), result);
+        break;
       case 'u':
         decodeUnicodeEscape(cursor(), result);
         break;
       default:
-        throwParseError(fmt::format("unknown escape '\\{}' in string", esc));
+        if (isAsciiDigit(esc)) {
+          throwParseError(fmt::format("unknown escape '\\{}' in string", esc));
+        }
+        // Any other character escapes itself, e.g. `\"` and `\q`.
+        appendRaw(esc);
     }
   }
 }
@@ -350,84 +554,35 @@ std::string Json5Reader::readObjectName() {
 
 Json5Reader::Primitive Json5Reader::parseNumber(
     folly::io::Cursor& cursor, FloatingPointPrecision precision) {
-  std::string numStr;
-  char c = peekNext(cursor);
-
-  const int8_t sign = (c == '-' ? -1 : 1);
-  if (c == '+' || c == '-') {
-    numStr.push_back(readNext(cursor));
-    c = peekNext(cursor);
+  // Parse in place, unless the characters that can make up a number run into
+  // the next buffer.
+  const folly::ByteRange bytes = cursor.peekBytes();
+  std::string_view input(
+      reinterpret_cast<const char*>(bytes.data()), bytes.size());
+  std::string spanning;
+  // The number can only run into the next buffer if this one ends in a
+  // character that can be part of it.
+  if ((input.empty() || isNumberPart(input.back())) &&
+      std::all_of(input.begin(), input.end(), isNumberPart)) {
+    spanning = folly::io::Cursor(cursor).readWhile(isNumberPart);
+    input = spanning;
   }
+  std::string_view rest = input;
+  auto number = parseNumberPrefix(rest, precision);
+  cursor.skip(input.size() - rest.size());
+  return number;
+}
 
-  // Infinity or NaN
-  if (c == 'I' || c == 'N') {
-    std::string word = cursor.readWhile(isIdentifierPart);
-    if (word == "Infinity") {
-      double d = std::copysign(std::numeric_limits<double>::infinity(), sign);
-      if (precision == FloatingPointPrecision::Single) {
-        return float(d);
-      }
-      return d;
+Json5Reader::Primitive Json5Reader::parseNumber(
+    std::string_view str, FloatingPointPrecision precision) {
+  if (!str.empty() && isNumberStart(str.front())) {
+    std::string_view rest = str;
+    auto number = parseNumberPrefix(rest, precision);
+    if (rest.empty()) {
+      return number;
     }
-    if (word == "NaN") {
-      double d = std::copysign(std::numeric_limits<double>::quiet_NaN(), sign);
-      if (precision == FloatingPointPrecision::Single) {
-        return float(d);
-      }
-      return d;
-    }
-    throwParseError(
-        fmt::format("expected 'Infinity' or 'NaN', got '{}'", word));
   }
-  // Hex literal: 0x...
-  if (c == '0') {
-    numStr.push_back(readNext(cursor));
-    c = peekNext(cursor);
-    if (c == 'x' || c == 'X') {
-      cursor.skip(1);
-      auto digits = cursor.readWhile(isAsciiHexDigit);
-      return makeInteger(
-          sign < 0, parseHexMagnitude(digits), numStr + "x" + digits);
-    }
-  } else if (c != '.') {
-    numStr += cursor.readWhile(isAsciiDigit);
-    c = peekNext(cursor);
-  }
-
-  bool isFloating = false;
-
-  if (c == '.') {
-    isFloating = true;
-    numStr.push_back(readNext(cursor));
-    numStr += cursor.readWhile(isAsciiDigit);
-    c = peekNext(cursor);
-  }
-
-  if (c == 'e' || c == 'E') {
-    isFloating = true;
-    numStr.push_back(readNext(cursor));
-    if (peekNext(cursor) == '+' || peekNext(cursor) == '-') {
-      numStr.push_back(readNext(cursor));
-    }
-    numStr += cursor.readWhile(isAsciiDigit);
-  }
-
-  if (numStr.empty() || numStr == "+" || numStr == "-") {
-    throwParseError("expected number");
-  }
-
-  if (!isFloating) {
-    std::string_view digits = numStr;
-    if (digits.front() == '+' || digits.front() == '-') {
-      digits.remove_prefix(1);
-    }
-    return makeInteger(
-        sign < 0, parseNumberOrThrow<std::uint64_t>(digits), numStr);
-  }
-  if (precision == FloatingPointPrecision::Single) {
-    return parseNumberOrThrow<float>(numStr);
-  }
-  return parseNumberOrThrow<double>(numStr);
+  throwParseError(fmt::format("invalid number '{}'", str));
 }
 
 // -- values ---------------------------------------------------------------
@@ -440,9 +595,7 @@ Json5Reader::Primitive Json5Reader::readPrimitive(
   if (c == '"' || c == '\'') {
     cursor().skip(1);
     result = parseString(c);
-  } else if (
-      isAsciiDigit(c) || c == '-' || c == '+' || c == '.' || c == 'N' ||
-      c == 'I') {
+  } else if (isNumberStart(c)) {
     result = parseNumber(cursor(), precision);
   } else if (isIdentifierStart(c)) {
     std::string word = cursor().readWhile(isIdentifierPart);
@@ -459,7 +612,6 @@ Json5Reader::Primitive Json5Reader::readPrimitive(
     throwParseError(fmt::format("expected value, got '{}'", c));
   }
 
-  skipWhitespaceAndComments();
   expectCommaOrEnd();
   return result;
 }

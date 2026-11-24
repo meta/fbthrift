@@ -51,6 +51,24 @@ public class MyException extends Exception implements TBase, java.io.Serializabl
     this.myUnion = myUnion;
   }
 
+  public MyException(
+      Long MyIntField,
+      String MyStringField,
+      MyStruct myStruct,
+      MyUnion myUnion,
+      java.lang.Throwable cause) {
+    this(MyIntField, MyStringField, myStruct, myUnion);
+    initCause(cause);
+  }
+
+  public MyException(java.lang.Throwable cause) {
+    super(cause);
+    this.MyIntField = null;
+    this.MyStringField = null;
+    this.myStruct = null;
+    this.myUnion = null;
+  }
+
   /**
    * Performs a deep copy on <i>other</i>.
    */

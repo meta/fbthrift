@@ -38,6 +38,7 @@ import (
 	"thrift/lib/thrift/protocol_detail"
 	"thrift/test/testset"
 	enum "thrift/test/testset/Enum"
+	terse "thrift/test/testset/Terse"
 
 	"github.com/facebook/fbthrift/thrift/lib/go/thrift"
 	"github.com/facebook/fbthrift/thrift/lib/go/thrift/format"
@@ -48,6 +49,7 @@ import (
 var _ = protocol_detail.GoUnusedProtection__
 var _ = testset.GoUnusedProtection__
 var _ = enum.GoUnusedProtection__
+var _ = terse.GoUnusedProtection__
 
 func main() {
 	// Catch SIGTERM/SIGKILL

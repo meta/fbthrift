@@ -277,6 +277,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
                     int _fbthriftVar0;
                     _fbthriftVar0 = oprot.readI32();
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _ASTRING:
@@ -284,6 +286,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
                     String _fbthriftVar0;
                     _fbthriftVar0 = oprot.readString();
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             default:

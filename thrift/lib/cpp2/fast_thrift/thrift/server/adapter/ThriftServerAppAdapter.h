@@ -285,9 +285,13 @@ class ThriftServerAppAdapter : public folly::DelayedDestruction {
 
  private:
   FOLLY_NOINLINE void handleWrongRpcKind(
-      uint32_t streamId, apache::thrift::RpcKind kind) noexcept;
+      uint32_t streamId,
+      apache::thrift::RpcKind kind,
+      ThriftRequestContextPtr requestContext) noexcept;
   FOLLY_NOINLINE void handleUnknownMethod(
-      uint32_t streamId, std::string_view methodName) noexcept;
+      uint32_t streamId,
+      std::string_view methodName,
+      ThriftRequestContextPtr requestContext) noexcept;
   FOLLY_NOINLINE void handleMissingPipeline() noexcept;
 
   void onConnectionClosed() noexcept;
@@ -330,10 +334,11 @@ ThriftServerAppAdapter::dispatchRequestResponse(
   auto& inbound = request.payload;
   const apache::thrift::RequestRpcMetadata* metadata = nullptr;
   std::unique_ptr<folly::IOBuf> data;
+  ThriftServerRequestResponsePayload* requestResponse = nullptr;
   if (inbound.is<ThriftServerRequestResponsePayload>()) {
-    auto& requestResponse = inbound.get<ThriftServerRequestResponsePayload>();
-    metadata = requestResponse.metadata.get();
-    data = std::move(requestResponse.data);
+    requestResponse = &inbound.get<ThriftServerRequestResponsePayload>();
+    metadata = requestResponse->metadata.get();
+    data = std::move(requestResponse->data);
   } else if (inbound.is<ThriftRequestStreamPayload>()) {
     auto& requestStream = inbound.get<ThriftRequestStreamPayload>();
     metadata = requestStream.metadata.get();
@@ -351,6 +356,11 @@ ThriftServerAppAdapter::dispatchRequestResponse(
       std::move(data),
       protocol,
       std::move(request.requestContext));
+  // Nothing past the process function reads the metadata: the method name and
+  // headers already moved into the request context.
+  if (requestResponse != nullptr) {
+    recycleServerRequestMetadata(requestResponse->metadata);
+  }
   return channel_pipeline::Result::Success;
 }
 

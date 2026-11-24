@@ -570,6 +570,7 @@ class StructuredCursorReader : detail::BaseCursorReader<ProtocolReader> {
   template <typename, typename, bool>
   friend class ContainerCursorReader;
   friend class CursorSerializationWrapper<T>;
+  friend struct detail::CursorAccess;
 };
 
 /**
@@ -759,6 +760,7 @@ class ContainerCursorReader : detail::BaseCursorReader<ProtocolReader> {
   template <typename, typename, bool>
   friend class ContainerCursorReader;
   friend class ContainerCursorIterator<Tag, ProtocolReader, Contiguous>;
+  friend struct detail::CursorAccess;
 };
 
 /**
@@ -1149,6 +1151,7 @@ class StructuredCursorWriter : detail::BaseCursorWriter<ProtocolWriter> {
   friend class ContainerCursorWriter;
   friend class CursorSerializationWrapper<T>;
   friend struct detail::DefaultValueWriter<Tag, ProtocolWriter>;
+  friend struct detail::CursorAccess;
 };
 
 /**
@@ -1251,6 +1254,7 @@ class ContainerCursorWriter
   friend class StructuredCursorWriter;
   template <typename, bool, typename>
   friend class ContainerCursorWriter;
+  friend struct detail::CursorAccess;
 
   void finalize() { Base::finalize(n); }
 
@@ -1405,12 +1409,12 @@ void ContainerCursorReader<Tag, ProtocolReader, Contiguous>::finalize() {
   state_ = State::Done;
 
   if (remaining_ > 0) {
-    if (!lastRead_) {
-      lastRead_.emplace();
-      readItem();
-    }
-    // Skip remaining unread elements
-    skip_n(*protocol_, remaining_ - 1, detail::ContainerTraits<Tag>::wireTypes);
+    // Skip remaining unread elements. A cached lastRead_ was already consumed
+    // from the buffer.
+    skip_n(
+        *protocol_,
+        lastRead_ ? remaining_ - 1 : remaining_,
+        detail::ContainerTraits<Tag>::wireTypes);
   }
 
   if constexpr (type::is_a_v<Tag, type::list_c>) {

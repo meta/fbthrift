@@ -102,6 +102,15 @@ std::string writeI64(int64_t i, Serializer<Reader, Writer>) {
   return output.moveAsValue().to<std::string>();
 }
 
+template <class Reader, class Writer, class F>
+std::string serializeWith(F&& f, Serializer<Reader, Writer>) {
+  IOBufQueue output;
+  Writer writer;
+  writer.setOutput(&output);
+  f(writer);
+  return output.moveAsValue().to<std::string>();
+}
+
 template <class Serializer>
 bool cheapToSkipListOfDouble(Serializer) {
   static_assert(
@@ -427,5 +436,76 @@ TYPED_TEST(LazyDeserialization, MismatchedChecksumInIndexField) {
   EXPECT_EQ(get_field2(foo), indexedFoo.field2_ref());
   EXPECT_EQ(get_field3(foo), indexedFoo.field3_ref());
   EXPECT_EQ(get_field4(foo), indexedFoo.field4_ref());
+}
+
+TYPED_TEST(LazyDeserialization, IndexFieldWithMismatchedValueType) {
+  using Serializer = typename TypeParam::Serializer;
+  using LazyStruct = typename TypeParam::LazyStruct;
+  using IndexedStruct = typename TypeParam::IndexedStruct;
+
+  auto indexedFoo = genIndexedStruct<IndexedStruct>(Serializer{});
+  auto tokens = tokenize(indexedFoo, Serializer{});
+
+  // Replace header with internal field ids
+  tokens[0].header = genFieldHeader(
+      detail::kExpectedRandomNumberField.type,
+      detail::kExpectedRandomNumberField.id,
+      Serializer{});
+  tokens[1].header = genFieldHeader(
+      detail::kSizeField.type, detail::kSizeField.id, Serializer{});
+  tokens.rbegin()->header = genFieldHeader(
+      detail::kIndexField.type, detail::kIndexField.id, Serializer{});
+
+  // Write index values as i32 instead of i64
+  tokens.rbegin()->value = serializeWith(
+      [&](auto& writer) {
+        const auto& index = *indexedFoo.field_id_to_size_ref();
+        writer.writeMapBegin(TType::T_I16, TType::T_I32, index.size());
+        for (auto [id, size] : index) {
+          writer.writeI16(id);
+          writer.writeI32(static_cast<int32_t>(size));
+        }
+        writer.writeMapEnd();
+      },
+      Serializer{});
+
+  auto lazyFoo = this->template deserialize<LazyStruct>(merge(tokens));
+
+  // Index is skipped, so we don't use it
+  EXPECT_EQ(get_field4(lazyFoo).empty(), cheapToSkipListOfDouble(Serializer{}));
+  EXPECT_EQ(lazyFoo.field1_ref(), indexedFoo.field1_ref());
+  EXPECT_EQ(lazyFoo.field2_ref(), indexedFoo.field2_ref());
+  EXPECT_EQ(lazyFoo.field3_ref(), indexedFoo.field3_ref());
+  EXPECT_EQ(lazyFoo.field4_ref(), indexedFoo.field4_ref());
+}
+
+TYPED_TEST(LazyDeserialization, IndexFieldWithOversizedCount) {
+  using Serializer = typename TypeParam::Serializer;
+  using LazyStruct = typename TypeParam::LazyStruct;
+  using IndexedStruct = typename TypeParam::IndexedStruct;
+
+  auto indexedFoo = genIndexedStruct<IndexedStruct>(Serializer{});
+  auto tokens = tokenize(indexedFoo, Serializer{});
+
+  // Replace header with internal field ids
+  tokens[0].header = genFieldHeader(
+      detail::kExpectedRandomNumberField.type,
+      detail::kExpectedRandomNumberField.id,
+      Serializer{});
+  tokens[1].header = genFieldHeader(
+      detail::kSizeField.type, detail::kSizeField.id, Serializer{});
+  tokens.rbegin()->header = genFieldHeader(
+      detail::kIndexField.type, detail::kIndexField.id, Serializer{});
+
+  // Map header claims more entries than the remaining input can hold
+  tokens.rbegin()->value = serializeWith(
+      [](auto& writer) {
+        writer.writeMapBegin(TType::T_I16, TType::T_I64, 1 << 20);
+      },
+      Serializer{});
+
+  EXPECT_THROW(
+      this->template deserialize<LazyStruct>(merge(tokens)),
+      TProtocolException);
 }
 } // namespace apache::thrift::test

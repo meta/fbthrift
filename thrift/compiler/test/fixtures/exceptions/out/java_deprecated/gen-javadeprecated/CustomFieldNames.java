@@ -60,9 +60,23 @@ public class CustomFieldNames extends Exception implements TBase, java.io.Serial
     this.internal_error_message = internal_error_message;
   }
 
+  public CustomFieldNames(
+      String error_message,
+      String internal_error_message,
+      java.lang.Throwable cause) {
+    this(error_message, internal_error_message);
+    initCause(cause);
+  }
+
+  public CustomFieldNames(java.lang.Throwable cause) {
+    super(cause);
+    this.internal_error_message = cause == null ? null : cause.toString();
+  }
+
   public static class Builder {
     private String error_message;
     private String internal_error_message;
+    private java.lang.Throwable cause;
 
     public Builder() {
     }
@@ -77,10 +91,18 @@ public class CustomFieldNames extends Exception implements TBase, java.io.Serial
       return this;
     }
 
+    public Builder setCause(final java.lang.Throwable cause) {
+      this.cause = cause;
+      return this;
+    }
+
     public CustomFieldNames build() {
       CustomFieldNames result = new CustomFieldNames();
       result.setError_message(this.error_message);
       result.setInternal_error_message(this.internal_error_message);
+      if (cause != null) {
+        result.initCause(cause);
+      }
       return result;
     }
   }

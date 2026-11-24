@@ -8,8 +8,8 @@ Facebook Thrift
   https://github.com/facebook/fbthrift/actions/workflows/macos.yml/badge.svg)](
   https://github.com/facebook/fbthrift/actions/workflows/macos.yml)
 [![Windows Build Status](
-  https://github.com/facebook/fbthrift/actions/workflows/getdeps_windows.yml/badge.svg)](
-  https://github.com/facebook/fbthrift/actions/workflows/getdeps_windows.yml)
+  https://github.com/facebook/fbthrift/actions/workflows/windows.yml/badge.svg)](
+  https://github.com/facebook/fbthrift/actions/workflows/windows.yml)
 [![Python Build Status](
   https://github.com/facebook/fbthrift/actions/workflows/getdeps_python_linux_container.yml/badge.svg)](
   https://github.com/facebook/fbthrift/actions/workflows/getdeps_python_linux_container.yml)
@@ -77,58 +77,57 @@ two commands are enough:
 
     git clone https://github.com/facebook/fbthrift
     cd fbthrift
-    cmake -B _build
-    cmake --build _build
+    cmake -B build
+    cmake --build build
 
-This needs CMake 3.24 or newer, a C++20 compiler, and zlib and
-[Zstd](https://github.com/facebook/zstd) installed. Everything else, including
+This needs CMake 3.24 or newer and a C++20 compiler. Everything else, including
+zlib, [Zstd](https://github.com/facebook/zstd),
 [Folly](https://github.com/facebook/folly),
 [Fizz](https://github.com/facebookincubator/fizz),
 [Wangle](https://github.com/facebook/wangle),
 [mvfst](https://github.com/facebook/mvfst) and their dependencies, is used
-as-is if already on the system and fetched otherwise. Alternatively, install
-the system packages first:
+as-is if already on the system and fetched otherwise. Alternatively, install the
+system packages first:
 
-    ./build/fbcode_builder/getdeps.py install-system-deps --recursive fbthrift
+    ./tool/fbcode_builder/getdeps.py install-system-deps --recursive fbthrift
 
-The build puts its outputs in `_build`:
+The build puts its outputs in `build`:
 
-* `_build/bin/thrift`: The Thrift compiler binary to generate client and
+* `build/bin/thrift`: The Thrift compiler binary to generate client and
   server code.
-* `_build/lib/libthriftcpp2.a`: Library for clients and servers.
+* `build/lib/libthriftcpp2.a`: Library for clients and servers.
 
 Tests are not built by default. Configure with `-DTHRIFT_TESTS=ON` to build
-them. They need [GTest](https://github.com/google/googletest) and, unless
-`THRIFT_BENCHMARKS` is off, [Google Benchmark](https://github.com/google/benchmark)
-installed; neither is fetched:
+them. They need [GTest](https://github.com/google/googletest) installed; it is
+not fetched:
 
-    cmake -B _build -DTHRIFT_TESTS=ON
-    cmake --build _build
-    (cd _build && ctest)
+    cmake -B build -DTHRIFT_TESTS=ON
+    cmake --build build
+    (cd build && ctest)
 
-If configure had to fetch Fizz, Wangle, mvfst or xxHash, it turns install rules
-off, because an installed Thrift would refer to libraries that exist only in
-the build tree. The configure output lists them; install them and reconfigure
-to get an installable Thrift.
+If configure had to fetch zlib, Zstd, gflags, Folly, Fizz, Wangle, mvfst or
+xxHash, it turns install rules off, because an installed Thrift would refer to
+libraries that exist only in the build tree. The configure output lists them;
+install them and reconfigure to get an installable Thrift.
 
 CMake options:
 
 * `THRIFT_RPC` (default `ON`): build the RPC transport stack and its
   dependencies (Fizz, Wangle, mvfst).
 * `THRIFT_TESTS` (default `OFF`): build the tests.
-* `THRIFT_BENCHMARKS` (default `ON`): build the benchmarks along with the
-  tests.
+* `THRIFT_BENCHMARKS` (default: the value of `THRIFT_TESTS`): build the
+  benchmarks.
 * `THRIFT_PYTHON` (default `OFF`): build the thrift-python library and
   extensions; requires Cython.
 
 ### `getdeps.py`
 
-`getdeps.py` also builds Thrift's sibling projects and is what the Windows and
-Python CI use; the Linux and macOS CI use the CMake build above. Prefer the
+`getdeps.py` also builds Thrift's sibling projects and is what the Python CI
+uses; the Linux, macOS and Windows CI use the CMake build above. Prefer the
 CMake build unless you need that.
 
     # Build, using system dependencies if available
-    ./build/fbcode_builder/getdeps.py --allow-system-packages build fbthrift
+    ./tool/fbcode_builder/getdeps.py --allow-system-packages build fbthrift
 
 `getdeps.py` will invoke cmake etc and put output in its scratch area (you can
 see in logs, and can override with `--scratch-path`), including
@@ -139,22 +138,20 @@ If you want to invoke `cmake` again to iterate, there is a helpful
 
 ### Thrift Files
 
-When using thrift and the CMake build system, include: `ThriftLibrary.cmake` in
-your project. This includes the following macro to help building Thrift files:
+To generate code from `.thrift` files in a CMake project, find the installed
+Thrift, which provides `thrift_generate`:
 
-    thrift_library(
-      #file_name
-      #services
-      #language
-      #options
-      #file_path
-      #output_path
-    )
+    find_package(thrift CONFIG REQUIRED)
 
-This generates a library called `file_name-<language>`. That is, for
-`Test.thrift` compiled as cpp2, it will generate the library `Test-cpp2`.
-This should be added as a dependency to any source or header file that contains
-an include to generated code.
+    add_library(example)
+    thrift_generate(example if/example.thrift LANGUAGE cpp2)
+    target_include_directories(example PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+    target_link_libraries(example PUBLIC thrift::protocol)
+
+`thrift_generate` adds the generated sources to `example`; the comment above it
+in `ThriftGenerate.cmake` describes the other options. Code generated for
+services also needs `thrift::rpc`. A project that adds Thrift with
+`add_subdirectory()` or FetchContent uses the same `thrift::` names.
 
 ### Python Build (thrift-python)
 
@@ -171,10 +168,10 @@ docker run -it -v $(pwd):/fbthrift -w /fbthrift fbthrift-python-build bash
 
 ```bash
 apt-get update
-python3 build/fbcode_builder/getdeps.py install-system-deps --recursive fbthrift-python
-python3 build/fbcode_builder/getdeps.py build fbthrift-python
-python3 build/fbcode_builder/getdeps.py test fbthrift-python
-pip3 install $(python3 build/fbcode_builder/getdeps.py show-inst-dir fbthrift-python)/share/thrift/wheels/thrift-*.whl
+python3 tool/fbcode_builder/getdeps.py install-system-deps --recursive fbthrift-python
+python3 tool/fbcode_builder/getdeps.py build fbthrift-python
+python3 tool/fbcode_builder/getdeps.py test fbthrift-python
+pip3 install $(python3 tool/fbcode_builder/getdeps.py show-inst-dir fbthrift-python)/share/thrift/wheels/thrift-*.whl
 python3 -c "from thrift.python.types import StructMeta; print('thrift-python installed successfully')"
 ```
 
@@ -188,9 +185,9 @@ python3 -c "from thrift.python.types import StructMeta; print('thrift-python ins
 sudo apt-get update
 sudo apt-get install -y python3-dev patchelf
 pip3 install cython auditwheel
-python3 build/fbcode_builder/getdeps.py --allow-system-packages install-system-deps --recursive fbthrift-python
-python3 build/fbcode_builder/getdeps.py --allow-system-packages build fbthrift-python
-python3 build/fbcode_builder/getdeps.py --allow-system-packages test fbthrift-python
+python3 tool/fbcode_builder/getdeps.py --allow-system-packages install-system-deps --recursive fbthrift-python
+python3 tool/fbcode_builder/getdeps.py --allow-system-packages build fbthrift-python
+python3 tool/fbcode_builder/getdeps.py --allow-system-packages test fbthrift-python
 ```
 
 **Build with Conda:**
@@ -202,9 +199,9 @@ conda install cython=3.2.2
 pip3 install auditwheel cmake==3.28.0
 sudo apt-get update
 sudo apt-get install -y patchelf
-python3 build/fbcode_builder/getdeps.py --allow-system-packages install-system-deps --recursive fbthrift-python
-python3 build/fbcode_builder/getdeps.py --allow-system-packages build fbthrift-python
-python3 build/fbcode_builder/getdeps.py --allow-system-packages test fbthrift-python
+python3 tool/fbcode_builder/getdeps.py --allow-system-packages install-system-deps --recursive fbthrift-python
+python3 tool/fbcode_builder/getdeps.py --allow-system-packages build fbthrift-python
+python3 tool/fbcode_builder/getdeps.py --allow-system-packages test fbthrift-python
 ```
 
 **Building Containers with Other Runtimes:**
@@ -224,7 +221,7 @@ podman run -it -v $(pwd):/fbthrift -w /fbthrift fbthrift-python-build bash
 **Install the wheel** (for all non-container builds):
 
 ```bash
-pip3 install $(python3 build/fbcode_builder/getdeps.py show-inst-dir fbthrift-python)/share/thrift/wheels/thrift-*.whl
+pip3 install $(python3 tool/fbcode_builder/getdeps.py show-inst-dir fbthrift-python)/share/thrift/wheels/thrift-*.whl
 ```
 
 ## C++ Static Reflection

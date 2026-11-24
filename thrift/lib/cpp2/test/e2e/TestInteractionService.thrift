@@ -61,6 +61,9 @@ service Calculator {
   Addition newAddition() throws (1: AdditionException ex);
   Addition, i32 initializedAddition(1: i32 a);
   Addition, string stringifiedAddition(1: i32 a);
+  Addition, sink<i32, i32> additionWithSink(1: i32 initialSum);
+  Addition, i32, sink<i32, i32> additionWithSinkAndResponse(1: i32 initialSum);
+  Addition, sink<i32>, stream<i32> additionWithBidi(1: i32 initialSum);
   AdditionFast fastAddition();
   @cpp.ProcessInEbThreadUnsafe
   AdditionFast veryFastAddition();

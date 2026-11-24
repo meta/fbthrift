@@ -269,11 +269,11 @@ class InheritanceTest(unittest.TestCase):
 class ImmutabilityTest(unittest.TestCase):
     def test_service_spec_immutable(self) -> None:
         with self.assertRaises(AttributeError):
-            _get_spec().name = "X"  # type: ignore[misc]
+            _get_spec().name = "X"
 
     def test_function_spec_immutable(self) -> None:
         with self.assertRaises(AttributeError):
-            _get_func("getName").name = "X"  # type: ignore[misc]
+            _get_func("getName").name = "X"
 
 
 class ContainerTypeInspectabilityTest(unittest.TestCase):

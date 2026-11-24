@@ -13,20 +13,38 @@ pub use self::consts::*;
 
 pub mod services;
 
+/// ```thrift
+/// typedef set<string> SetWithAdapter
+/// ```
 pub type SetWithAdapter = <::my::Adapter2 as ::fbthrift::adapter::ThriftAdapter>::AdaptedType;
 
+/// ```thrift
+/// typedef string StringWithAdapter
+/// ```
 pub type StringWithAdapter = <::my::Adapter1 as ::fbthrift::adapter::ThriftAdapter>::AdaptedType;
 
 pub type ListWithElemAdapter = ::std::vec::Vec<crate::types::StringWithAdapter>;
 
+/// ```thrift
+/// typedef ListWithElemAdapter ListWithElemAdapter_withAdapter
+/// ```
 pub type ListWithElemAdapter_withAdapter = <::fbthrift::adapter::LayeredThriftAdapter<::my::Adapter2, ::fbthrift::adapter::ListMapAdapter<crate::types::adapters::StringWithAdapter>> as ::fbthrift::adapter::ThriftAdapter>::AdaptedType;
 
+/// ```thrift
+/// typedef i64 MyI64
+/// ```
 pub type MyI64 = <::my::Adapter1 as ::fbthrift::adapter::ThriftAdapter>::AdaptedType;
 
 pub type DoubleTypedefI64 = crate::types::MyI64;
 
+/// ```thrift
+/// typedef i32 MyI32
+/// ```
 pub type MyI32 = <::my::Adapter1 as ::fbthrift::adapter::ThriftAdapter>::AdaptedType;
 
+/// ```thrift
+/// typedef Foo FooWithAdapter
+/// ```
 pub type FooWithAdapter = <::my::Adapter1 as ::fbthrift::adapter::ThriftAdapter>::AdaptedType;
 
 pub type ListOfFooTypedef = ::std::vec::Vec<crate::types::Foo>;
@@ -109,15 +127,36 @@ pub struct MyAnnotation {
 
 #[derive(Clone, PartialEq)]
 pub struct Foo {
+    /// ```thrift
+    /// 1: i32_5137 intField
+    /// ```
     pub intField: <::my::Adapter1 as ::fbthrift::adapter::ThriftAdapter>::AdaptedType,
+    /// ```thrift
+    /// 2: optional i32_5137 optionalIntField
+    /// ```
     pub optionalIntField: ::std::option::Option<<::my::Adapter1 as ::fbthrift::adapter::ThriftAdapter>::AdaptedType>,
+    /// ```thrift
+    /// 3: i32_5137 intFieldWithDefault
+    /// ```
     pub intFieldWithDefault: <::my::Adapter1 as ::fbthrift::adapter::ThriftAdapter>::AdaptedType,
     pub setField: <crate::types::adapters::SetWithAdapter as ::fbthrift::adapter::ThriftAdapter>::AdaptedType,
     pub optionalSetField: ::std::option::Option<<crate::types::adapters::SetWithAdapter as ::fbthrift::adapter::ThriftAdapter>::AdaptedType>,
+    /// ```thrift
+    /// 6: map_string_ListWithElemAdapter_withAdapter_8454 mapField
+    /// ```
     pub mapField: <::fbthrift::adapter::LayeredThriftAdapter<::my::Adapter3, ::fbthrift::adapter::MapMapAdapter<::fbthrift::adapter::IdentityAdapter<::std::string::String>, crate::types::adapters::ListWithElemAdapter_withAdapter>> as ::fbthrift::adapter::ThriftAdapter>::AdaptedType,
+    /// ```thrift
+    /// 7: optional map_string_ListWithElemAdapter_withAdapter_8454 optionalMapField
+    /// ```
     pub optionalMapField: ::std::option::Option<<::fbthrift::adapter::LayeredThriftAdapter<::my::Adapter3, ::fbthrift::adapter::MapMapAdapter<::fbthrift::adapter::IdentityAdapter<::std::string::String>, crate::types::adapters::ListWithElemAdapter_withAdapter>> as ::fbthrift::adapter::ThriftAdapter>::AdaptedType>,
+    /// ```thrift
+    /// 8: binary_5673 binaryField
+    /// ```
     pub binaryField: <::my::Adapter3 as ::fbthrift::adapter::ThriftAdapter>::AdaptedType,
     pub longField: <crate::types::adapters::MyI64 as ::fbthrift::adapter::ThriftAdapter>::AdaptedType,
+    /// ```thrift
+    /// 10: MyI64 adaptedLongField
+    /// ```
     pub adaptedLongField: <::fbthrift::adapter::LayeredThriftAdapter<::my::Adapter2, crate::types::adapters::MyI64> as ::fbthrift::adapter::ThriftAdapter>::AdaptedType,
     pub doubleAdaptedField: <crate::types::adapters::MyI64 as ::fbthrift::adapter::ThriftAdapter>::AdaptedType,
     pub adapted_list: ::std::vec::Vec<::std::primitive::i32>,
@@ -134,9 +173,18 @@ pub struct Foo {
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum Baz {
+    /// ```thrift
+    /// 1: i32_5137 intField
+    /// ```
     intField(<::my::Adapter1 as ::fbthrift::adapter::ThriftAdapter>::AdaptedType),
     setField(<crate::types::adapters::SetWithAdapter as ::fbthrift::adapter::ThriftAdapter>::AdaptedType),
+    /// ```thrift
+    /// 6: map_string_ListWithElemAdapter_withAdapter_8454 mapField
+    /// ```
     mapField(<::fbthrift::adapter::LayeredThriftAdapter<::my::Adapter3, ::fbthrift::adapter::MapMapAdapter<::fbthrift::adapter::IdentityAdapter<::std::string::String>, crate::types::adapters::ListWithElemAdapter_withAdapter>> as ::fbthrift::adapter::ThriftAdapter>::AdaptedType),
+    /// ```thrift
+    /// 8: binary_5673 binaryField
+    /// ```
     binaryField(<::my::Adapter1 as ::fbthrift::adapter::ThriftAdapter>::AdaptedType),
     longField(<crate::types::adapters::MyI64 as ::fbthrift::adapter::ThriftAdapter>::AdaptedType),
     UnknownField(::std::primitive::i32),
@@ -184,8 +232,14 @@ pub struct IndependentDirectlyAdapted {
 
 #[derive(Clone, PartialEq)]
 pub struct StructWithFieldAdapter {
+    /// ```thrift
+    /// 1: i32 field
+    /// ```
     pub field: <::my::Adapter1<::std::primitive::i32> as ::fbthrift::adapter::ThriftAdapter>::AdaptedType,
     pub shared_field: ::std::primitive::i32,
+    /// ```thrift
+    /// 3: optional i32 opt_shared_field
+    /// ```
     pub opt_shared_field: ::std::option::Option<<::my::Adapter1<::std::primitive::i32> as ::fbthrift::adapter::ThriftAdapter>::AdaptedType>,
     pub opt_boxed_field: ::std::option::Option<::std::boxed::Box<::std::primitive::i32>>,
     // This field forces `..Default::default()` when instantiating this
@@ -293,8 +347,17 @@ pub struct AdaptTemplatedTestStruct {
     pub adaptedDoubleDefault: crate::types::AdaptedDouble,
     pub adaptedStringDefault: crate::types::AdaptedString,
     pub adaptedEnum: crate::types::AdaptedEnum,
+    /// ```thrift
+    /// 19: list<i64> adaptedListDefault
+    /// ```
     pub adaptedListDefault: <::fbthrift_adapters::test::TestAdapter as ::fbthrift::adapter::ThriftAdapter>::AdaptedType,
+    /// ```thrift
+    /// 20: set<i64> adaptedSetDefault
+    /// ```
     pub adaptedSetDefault: <::fbthrift_adapters::test::TestAdapter as ::fbthrift::adapter::ThriftAdapter>::AdaptedType,
+    /// ```thrift
+    /// 21: map<i64, i64> adaptedMapDefault
+    /// ```
     pub adaptedMapDefault: <::fbthrift_adapters::test::TestAdapter as ::fbthrift::adapter::ThriftAdapter>::AdaptedType,
     pub doubleTypedefBool: crate::types::DoubleTypedefBool,
     // This field forces `..Default::default()` when instantiating this
@@ -548,6 +611,13 @@ impl ::std::default::Default for Color {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for Color {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.0 == 0
+    }
+}
+
 impl<'a> ::std::convert::From<&'a Color> for ::std::primitive::i32 {
     #[inline]
     fn from(x: &'a Color) -> Self {
@@ -696,6 +766,13 @@ impl ::fbthrift::ThriftEnum for ThriftAdaptedEnum {
 impl ::std::default::Default for ThriftAdaptedEnum {
     fn default() -> Self {
         Self(0)
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for ThriftAdaptedEnum {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.0 == 0
     }
 }
 
@@ -1877,6 +1954,13 @@ impl ::fbthrift::metadata::ThriftAnnotations for Foo {
 impl ::std::default::Default for Baz {
     fn default() -> Self {
         Self::UnknownField(-1)
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for Baz {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        ::std::matches!(self, Self::UnknownField(_))
     }
 }
 
@@ -3362,6 +3446,15 @@ impl ::fbthrift::ThriftStruct for self::TerseAdaptedFields {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for self::TerseAdaptedFields {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        ::fbthrift::help::Terse(&self.int_field).is_empty()
+            && ::fbthrift::help::Terse(&self.string_field).is_empty()
+            && ::fbthrift::help::Terse(&self.set_field).is_empty()
+    }
+}
+
 impl<P> ::fbthrift::Serialize<P> for self::TerseAdaptedFields
 where
     P: ::fbthrift::ProtocolWriter,
@@ -3369,15 +3462,21 @@ where
     #[inline]
     fn rs_thrift_write(&self, p: &mut P) {
         p.write_struct_begin("TerseAdaptedFields");
-        p.write_field_begin("int_field", ::fbthrift::TType::I32, 1);
-        ::fbthrift::Serialize::rs_thrift_write(&self.int_field, p);
-        p.write_field_end();
-        p.write_field_begin("string_field", ::fbthrift::TType::String, 2);
-        ::fbthrift::Serialize::rs_thrift_write(&self.string_field, p);
-        p.write_field_end();
-        p.write_field_begin("set_field", ::fbthrift::TType::Set, 3);
-        ::fbthrift::Serialize::rs_thrift_write(&self.set_field, p);
-        p.write_field_end();
+        if !::fbthrift::help::Terse(&self.int_field).is_empty() {
+            p.write_field_begin("int_field", ::fbthrift::TType::I32, 1);
+            ::fbthrift::Serialize::rs_thrift_write(&self.int_field, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.string_field).is_empty() {
+            p.write_field_begin("string_field", ::fbthrift::TType::String, 2);
+            ::fbthrift::Serialize::rs_thrift_write(&self.string_field, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.set_field).is_empty() {
+            p.write_field_begin("set_field", ::fbthrift::TType::Set, 3);
+            ::fbthrift::Serialize::rs_thrift_write(&self.set_field, p);
+            p.write_field_end();
+        }
         p.write_field_stop();
         p.write_struct_end();
     }
@@ -3737,6 +3836,13 @@ impl ::fbthrift::ThriftStruct for self::A {
         static FIELDS: &[::fbthrift::Field] = &[
         ];
         FIELDS
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for self::A {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        true
     }
 }
 
@@ -5335,6 +5441,13 @@ impl ::std::default::Default for AdaptTestUnion {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for AdaptTestUnion {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        ::std::matches!(self, Self::UnknownField(_))
+    }
+}
+
 impl ::fbthrift::GetTType for AdaptTestUnion {
     const TTYPE: ::fbthrift::TType = ::fbthrift::TType::Struct;
 }
@@ -6144,6 +6257,13 @@ impl ::fbthrift::ThriftStruct for self::CircularStruct {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for self::CircularStruct {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.field.is_none()
+    }
+}
+
 impl<P> ::fbthrift::Serialize<P> for self::CircularStruct
 where
     P: ::fbthrift::ProtocolWriter,
@@ -6440,6 +6560,13 @@ impl ::fbthrift::ThriftStruct for self::DeclaredAfterStruct {
         static FIELDS: &[::fbthrift::Field] = &[
         ];
         FIELDS
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for self::DeclaredAfterStruct {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        true
     }
 }
 
@@ -6875,6 +7002,13 @@ impl ::fbthrift::ThriftStruct for self::ApplyAdapter {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for self::ApplyAdapter {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        true
+    }
+}
+
 impl<P> ::fbthrift::Serialize<P> for self::ApplyAdapter
 where
     P: ::fbthrift::ProtocolWriter,
@@ -7018,6 +7152,13 @@ impl ::fbthrift::ThriftStruct for self::TransitiveAdapted {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for self::TransitiveAdapted {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        true
+    }
+}
+
 impl<P> ::fbthrift::Serialize<P> for self::TransitiveAdapted
 where
     P: ::fbthrift::ProtocolWriter,
@@ -7154,6 +7295,15 @@ impl ::fbthrift::ThriftStruct for self::CountingStruct {
             ::fbthrift::Field::new("regularString", ::fbthrift::TType::String, 3),
         ];
         FIELDS
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for self::CountingStruct {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.regularInt.is_none()
+            && self.countingInt.is_none()
+            && self.regularString.is_none()
     }
 }
 

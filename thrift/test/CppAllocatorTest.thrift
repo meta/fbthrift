@@ -15,6 +15,7 @@
  */
 
 include "thrift/annotation/cpp.thrift"
+include "thrift/annotation/internal.thrift"
 include "thrift/annotation/thrift.thrift"
 
 @thrift.AllowLegacyMissingUris
@@ -127,6 +128,29 @@ struct NoAllocatorViaPmr {
 struct YesAllocatorViaPmr {
   @cpp.Name{value = "bar"}
   1: AAStructPmr_1852 foo;
+}
+
+@internal.CppUseAllocator
+@cpp.Type{template = "std::pmr::vector"}
+typedef list<i32> StructuredPmrList
+
+@internal.CppAllocator{name = "PmrByteAlloc"}
+struct StructuredAllocatorPmr {
+  1: StructuredPmrList aa_list;
+  @internal.CppUseAllocator
+  @cpp.Type{name = "std::pmr::string"}
+  2: string aa_string;
+  // Uses the unstructured `cpp.use_allocator`.
+  3: list_i32_8699 legacy_aa_list;
+}
+
+@internal.CppAllocator{name = "PmrByteAlloc"}
+@internal.CppAllocatorVia{name = "aa_list"}
+struct StructuredAllocatorViaPmr {
+  1: StructuredPmrList aa_list;
+  @internal.CppUseAllocator
+  @cpp.Type{name = "std::pmr::string"}
+  2: string aa_string;
 }
 
 @thrift.DeprecatedUnvalidatedAnnotations{
@@ -245,11 +269,38 @@ struct HasContainerFieldsPmr {
   items = {"cpp.allocator": "PmrByteAlloc"},
 }
 struct OptionalRefPmr {
+  // @lint-ignore THRIFTCHECKS thrift-parser
   @cpp.Ref{type = cpp.RefType.SharedMutable}
-  1: optional ChildPmr_7470 c;
+  @cpp.AllowLegacyNonOptionalRef
+  1: ChildPmr_7470 c;
   2: list_ChildPmr_9632 l;
+  // @lint-ignore THRIFTCHECKS thrift-parser
   @cpp.Ref{type = cpp.RefType.SharedMutable}
-  3: optional ChildPmr s;
+  @cpp.AllowLegacyNonOptionalRef
+  3: ChildPmr s;
+}
+
+// A `shared_ptr<const T>` field whose pointee uses the struct's allocator.
+@thrift.DeprecatedUnvalidatedAnnotations{
+  items = {"cpp.allocator": "PmrByteAlloc"},
+}
+struct ConstRefPmr {
+  // @lint-ignore THRIFTCHECKS thrift-parser
+  @cpp.Ref{type = cpp.RefType.Shared}
+  @cpp.AllowLegacyNonOptionalRef
+  1: ChildPmr_7470 c;
+}
+
+// `cpp.use_allocator` on a `cpp.ref` field rather than on its typedef.
+@thrift.DeprecatedUnvalidatedAnnotations{
+  items = {"cpp.allocator": "PmrByteAlloc"},
+}
+struct FieldUseAllocatorRefPmr {
+  // @lint-ignore THRIFTCHECKS thrift-parser
+  @cpp.Ref{type = cpp.RefType.SharedMutable}
+  @cpp.AllowLegacyNonOptionalRef
+  @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
+  1: ChildPmr c;
 }
 
 @thrift.DeprecatedUnvalidatedAnnotations{
@@ -572,10 +623,10 @@ typedef set<i32> set_i32_9206
 @cpp.Type{template = "::StatefulAllocSortedVectorSet"}
 typedef set<i32> set_i32_992
 @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
-@cpp.Type{name = "::CountingString"}
+@cpp.Adapter{name = "::apache::thrift::StringTypeAdapter<::CountingString>"}
 typedef string string_186
 @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
-@cpp.Type{name = "::AlwaysThrowString"}
+@cpp.Adapter{name = "::apache::thrift::StringTypeAdapter<::AlwaysThrowString>"}
 typedef string string_4597
 @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
 @cpp.Type{name = "std::pmr::string"}
@@ -598,8 +649,22 @@ typedef CopyPropagatingChild CopyPropagatingChildAA
 }
 struct CopyPropagatingParent {
   @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
-  @cpp.Type{name = "::CopyPropagatingString"}
+  @cpp.Adapter{name = "::apache::thrift::StringTypeAdapter<::CopyPropagatingString>"}
   1: string s;
+  // @lint-ignore THRIFTCHECKS thrift-parser
   @cpp.Ref{type = cpp.RefType.SharedMutable}
-  2: optional CopyPropagatingChildAA c;
+  @cpp.AllowLegacyNonOptionalRef
+  2: CopyPropagatingChildAA c;
+}
+
+// PMR fields without `cpp.allocator`. The IOBuf pointer makes copy assignment
+// copy and swap.
+struct PmrTypedFields {
+  @cpp.Type{name = "std::pmr::string"}
+  1: string name;
+  @cpp.Type{template = "std::pmr::vector"}
+  2: list<i32> ids;
+  3: i32 count;
+  @cpp.Type{name = "std::unique_ptr<folly::IOBuf>"}
+  4: binary iobuf;
 }

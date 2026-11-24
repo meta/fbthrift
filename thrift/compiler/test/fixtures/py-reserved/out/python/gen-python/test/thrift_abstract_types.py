@@ -23,6 +23,8 @@ import thrift.python.abstract_types as _fbthrift_python_abstract_types
 from test.thrift_enums import (
     from_,
     from_ as _fbthrift_from_,
+    Mode,
+    Mode as _fbthrift_Mode,
 )
 
 class def_(_abc.ABC):

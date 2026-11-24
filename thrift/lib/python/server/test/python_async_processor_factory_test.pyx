@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import asyncio
+import functools
+import threading
 
 from cython.operator cimport dereference as deref
 from libcpp.memory cimport shared_ptr
@@ -22,8 +24,27 @@ from thrift.python.server_impl.python_async_processor cimport (
     cLaunchControlRequest,
     makeControlOnlyExecutionSystem,
     makeHandlerFunc,
+    WorkerSystem,
+)
+from thrift.python.server_impl.python_async_processor import (
+    PerLoopWorkerInitializer,
+    SharedWorkerInitializer,
 )
 from thrift.python.std_libcpp cimport bytes_to_string_view
+from thrift.python.types import FunctionEntry, ServiceInterface
+
+
+cdef extern from "thrift/lib/python/server/test/WorkerInitializerTestHelper.h" namespace "apache::thrift::python::test":
+    void startSelectedFunctionForTest(
+        cExecutionSystem& executionSystem, string method
+    ) except +
+    void startLabeledRequestForTest(
+        cExecutionSystem& executionSystem, string method, string label
+    ) except +
+    string currentRequestLabelForTest()
+
+
+WORKER_METHOD = b"worker_method"
 
 
 cdef int launchControlTask(object coroutine_factory) except -1:
@@ -62,6 +83,96 @@ cdef cCreateMethodMetadataResult create(bytes function_name, RpcKind rpc_kind):
     return deref(obj).createMethodMetadata()
 
 
+class RecordingHandler(ServiceInterface):
+    def __init__(self, served):
+        self.created_on = threading.get_ident()
+        self.events = []
+        self.threads = set()
+        self.exit_error = None
+        self._served = served
+
+    def _record(self, event):
+        self.events.append(event)
+        self.threads.add(threading.get_ident())
+
+    async def __aenter__(self):
+        self._record("enter")
+        return self
+
+    async def __aexit__(self, exc_type, exc, traceback):
+        self.exit_error = exc
+        self._record("exit")
+
+    def getFunctionTable(self):
+        return {
+            WORKER_METHOD: FunctionEntry(
+                RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE, self.serve
+            )
+        }
+
+    async def serve(self):
+        self._record("request")
+        self._served.release()
+
+
+class FailingTableHandler(RecordingHandler):
+    def __init__(self, served, exit_result):
+        super().__init__(served)
+        self._exit_result = exit_result
+
+    def getFunctionTable(self):
+        raise RuntimeError("no function table")
+
+    async def __aexit__(self, exc_type, exc, traceback):
+        await super().__aexit__(exc_type, exc, traceback)
+        return self._exit_result
+
+
+async def wait_for_requests(served, count):
+    return await asyncio.to_thread(
+        lambda: all(served.acquire(timeout=10) for _ in range(count))
+    )
+
+
+class RequestLabelRecordingHandler(ServiceInterface):
+    def __init__(self, first_request_started, release_first_request, served):
+        self.labels = []
+        self.released_in_time = False
+        self._first_request_started = first_request_started
+        self._release_first_request = release_first_request
+        self._served = served
+
+    def getFunctionTable(self):
+        return {
+            WORKER_METHOD: FunctionEntry(
+                RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE, self.serve
+            )
+        }
+
+    async def serve(self):
+        # One entry per request, in the order the requests start.
+        labels = [currentRequestLabelForTest()]
+        self.labels.append(labels)
+        if len(self.labels) == 1:
+            self._first_request_started.set()
+            # Blocking, not awaiting, keeps the worker's capacity, so the next
+            # request has to wait in the scheduler's queue.
+            self.released_in_time = self._release_first_request.wait(timeout=10)
+        await asyncio.sleep(0)
+        labels.append(currentRequestLabelForTest())
+        self._served.release()
+
+
+cdef start_request(WorkerSystem worker_system, bytes method):
+    startSelectedFunctionForTest(deref(worker_system.executionSystem.get()), method)
+
+
+cdef start_labeled_request(WorkerSystem worker_system, bytes method, bytes label):
+    startLabeledRequestForTest(
+        deref(worker_system.executionSystem.get()), method, label
+    )
+
+
 cdef class PythonAsyncProcessorFactoryCTest:
     def __cinit__(self, object unit_test):
         self.ut = unit_test
@@ -89,3 +200,152 @@ cdef class PythonAsyncProcessorFactoryCTest:
             function_name_view,
         )
         self.ut.assertEqual(expected, handler_func.fullName)
+
+    async def test_workers_serve_requests_from_a_shared_table(self):
+        # GIVEN
+        forbidden_worker_thread = threading.get_ident()
+        served = threading.Semaphore(0)
+        shared_handler = RecordingHandler(served)
+        function_table = shared_handler.getFunctionTable()
+        expected_events = ["request", "request"]
+        expected_worker_thread_count = 2
+        cdef WorkerSystem worker_system = WorkerSystem.create(
+            get_executor(), function_table, {WORKER_METHOD}
+        )
+
+        # WHEN
+        try:
+            worker_system.start(
+                2, functools.partial(SharedWorkerInitializer, funcMap=function_table)
+            )
+            # Each worker publishes one capacity slot, so the two requests go to
+            # the two workers in turn.
+            start_request(worker_system, WORKER_METHOD)
+            start_request(worker_system, WORKER_METHOD)
+            served_in_time = await wait_for_requests(served, 2)
+        finally:
+            worker_system.close()
+
+        # THEN
+        self.ut.assertTrue(served_in_time)
+        self.ut.assertEqual(expected_events, shared_handler.events)
+        self.ut.assertEqual(expected_worker_thread_count, len(shared_handler.threads))
+        self.ut.assertNotIn(forbidden_worker_thread, shared_handler.threads)
+
+    async def test_each_worker_serves_requests_with_its_own_handler(self):
+        # GIVEN
+        forbidden_worker_thread = threading.get_ident()
+        served = threading.Semaphore(0)
+        handlers = []
+        control_table = RecordingHandler(served).getFunctionTable()
+        expected_events = [["enter", "request", "exit"], ["enter", "request", "exit"]]
+        expected_worker_thread_count = 2
+
+        def make_handler():
+            handler = RecordingHandler(served)
+            handlers.append(handler)
+            return handler
+
+        cdef WorkerSystem worker_system = WorkerSystem.create(
+            get_executor(), control_table, {WORKER_METHOD}
+        )
+
+        # WHEN
+        try:
+            worker_system.start(
+                2, functools.partial(PerLoopWorkerInitializer, factory=make_handler)
+            )
+            # Each worker publishes one capacity slot, so the two requests go to
+            # the two workers in turn.
+            start_request(worker_system, WORKER_METHOD)
+            start_request(worker_system, WORKER_METHOD)
+            served_in_time = await wait_for_requests(served, 2)
+        finally:
+            worker_system.close()
+
+        # THEN
+        creation_threads = [handler.created_on for handler in handlers]
+        self.ut.assertTrue(served_in_time)
+        self.ut.assertEqual(expected_events, [handler.events for handler in handlers])
+        # Each handler does everything on the worker thread that created it.
+        self.ut.assertEqual(
+            [{thread} for thread in creation_threads],
+            [handler.threads for handler in handlers],
+        )
+        self.ut.assertEqual(expected_worker_thread_count, len(set(creation_threads)))
+        self.ut.assertNotIn(forbidden_worker_thread, creation_threads)
+
+    async def test_queued_worker_request_runs_under_its_own_request_context(self):
+        # GIVEN
+        # Services load this module. It runs each asyncio task under the folly
+        # RequestContext that was current when the task was created, so request
+        # code keeps its RequestContext across awaits.
+        from folly import request_context
+        request_context.ensure()
+        first_request_started = threading.Event()
+        release_first_request = threading.Event()
+        served = threading.Semaphore(0)
+        handler = RequestLabelRecordingHandler(
+            first_request_started, release_first_request, served
+        )
+        function_table = handler.getFunctionTable()
+        # Each request sees its own label when it starts and after it awaits.
+        expected_labels = [
+            [b"first request", b"first request"],
+            [b"second request", b"second request"],
+        ]
+        cdef WorkerSystem worker_system = WorkerSystem.create(
+            get_executor(), function_table, {WORKER_METHOD}
+        )
+
+        # WHEN
+        try:
+            worker_system.start(
+                1, functools.partial(SharedWorkerInitializer, funcMap=function_table)
+            )
+            start_labeled_request(worker_system, WORKER_METHOD, b"first request")
+            first_request_started_in_time = await asyncio.to_thread(
+                first_request_started.wait, 10
+            )
+            # The only worker is busy, so this request waits in the queue until
+            # the first request gives the worker's capacity back.
+            start_labeled_request(worker_system, WORKER_METHOD, b"second request")
+            release_first_request.set()
+            served_in_time = await wait_for_requests(served, 2)
+        finally:
+            release_first_request.set()
+            worker_system.close()
+
+        # THEN
+        self.ut.assertTrue(first_request_started_in_time)
+        self.ut.assertTrue(handler.released_in_time)
+        self.ut.assertTrue(served_in_time)
+        self.ut.assertEqual(expected_labels, handler.labels)
+
+    async def test_failed_worker_start_propagates_and_the_worker_handler_exits(
+        self, exit_result
+    ):
+        # GIVEN
+        served = threading.Semaphore(0)
+        handler = FailingTableHandler(served, exit_result)
+        control_table = RecordingHandler(served).getFunctionTable()
+        expected_events = ["enter", "exit"]
+        cdef WorkerSystem worker_system = WorkerSystem.create(
+            get_executor(), control_table, {WORKER_METHOD}
+        )
+
+        # WHEN
+        try:
+            with self.ut.assertRaisesRegex(
+                RuntimeError, "^no function table$"
+            ) as failure:
+                worker_system.start(
+                    1,
+                    functools.partial(PerLoopWorkerInitializer, factory=lambda: handler),
+                )
+        finally:
+            worker_system.close()
+
+        # THEN
+        self.ut.assertEqual(expected_events, handler.events)
+        self.ut.assertIs(failure.exception, handler.exit_error)

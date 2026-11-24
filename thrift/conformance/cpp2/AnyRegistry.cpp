@@ -39,6 +39,22 @@ AnyRegistry& getGeneratedAnyRegistry() {
   return folly::detail::createGlobal<AnyRegistry, GeneratedTag>();
 }
 
+FOLLY_NOINLINE bool registerGeneratedStructImpl(
+    AnyRegistry& registry,
+    const std::type_info& typeInfo,
+    ThriftTypeInfo&& type,
+    std::initializer_list<const AnySerializer*> serializers) {
+  return registry.registerType(typeInfo, std::move(type), serializers);
+}
+
+[[noreturn]] FOLLY_NOINLINE void throwGeneratedStructRegistrationError(
+    const AnyRegistry& registry, const ThriftTypeInfo& type) {
+  LOG(ERROR) << "Could not register: " << type.uri().value()
+             << ". Registry state: " << registry.debugString();
+  folly::throw_exception<std::runtime_error>(
+      "Could not register: " + type.uri().value());
+}
+
 } // namespace detail
 
 namespace {

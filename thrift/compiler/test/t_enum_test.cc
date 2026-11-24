@@ -55,5 +55,38 @@ TEST(TEnumTest, Unused) {
   EXPECT_EQ(def.unused(), 113 + 7);
 }
 
+TEST(TEnumTest, NameLookupAfterAppend) {
+  t_program program("program.thrift", "program.thrift");
+  t_enum def(&program, "Enum");
+  t_enum_value_list values;
+  values.push_back(std::make_unique<t_enum_value>("negative", -1));
+  values.push_back(std::make_unique<t_enum_value>("implicit"));
+  values.push_back(std::make_unique<t_enum_value>("alias", -1));
+  def.set_values(std::move(values));
+  const auto* negative = def.find_const_by_name("negative");
+  ASSERT_NE(negative, nullptr);
+  for (int i = 0; i < 1000; ++i) {
+    def.append_value(std::make_unique<t_enum_value>(std::to_string(i), i));
+  }
+  EXPECT_EQ(def.find_const_by_name("negative"), negative);
+  EXPECT_EQ(def.find_const_by_name("implicit")->value()->get_integer(), 0);
+  EXPECT_EQ(def.find_const_by_name("alias")->value()->get_integer(), -1);
+  EXPECT_EQ(def.find_const_by_name("999")->value()->get_integer(), 999);
+  EXPECT_EQ(def.find_const_by_name("missing"), nullptr);
+  EXPECT_EQ(def.find_value(-1), &def.values().front());
+}
+
+TEST(TEnumTest, SetValuesReplacesNameLookup) {
+  t_program program("program.thrift", "program.thrift");
+  t_enum def(&program, "Enum");
+  def.append_value(std::make_unique<t_enum_value>("old", 1));
+  t_enum_value_list values;
+  values.push_back(std::make_unique<t_enum_value>("new", 2));
+  def.set_values(std::move(values));
+  EXPECT_EQ(def.find_const_by_name("old"), nullptr);
+  ASSERT_NE(def.find_const_by_name("new"), nullptr);
+  EXPECT_EQ(def.find_const_by_name("new")->value()->get_integer(), 2);
+}
+
 } // namespace
 } // namespace apache::thrift::compiler

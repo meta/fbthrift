@@ -268,9 +268,9 @@ class ComplexStruct(_abc.ABC):
     # pyre-ignore[16]: Module `_fbthrift_builtins` has no attribute `property`.
     @_fbthrift_builtins.property
     @_abc.abstractmethod
-    def bytes_with_cpp_type(self) -> builtins.bytes: ...
+    def bytes_with_cpp_type(self) -> _fbthrift_iobuf.IOBuf: ...
     @_abc.abstractmethod
-    def __iter__(self) -> _typing.Iterator[_typing.Tuple[builtins.str, _typing.Union[_fbthrift_SimpleStruct, _fbthrift_SimpleStruct, builtins.int, builtins.str, _fbthrift_AnEnum, builtins.bytes, builtins.str, builtins.str, builtins.bytes]]]: ...
+    def __iter__(self) -> _typing.Iterator[_typing.Tuple[builtins.str, _typing.Union[_fbthrift_SimpleStruct, _fbthrift_SimpleStruct, builtins.int, builtins.str, _fbthrift_AnEnum, builtins.bytes, builtins.str, builtins.str, _fbthrift_iobuf.IOBuf]]]: ...
     @_abc.abstractmethod
     def _to_mutable_python(self) -> "module.thrift_mutable_types.ComplexStruct": ...  # type: ignore
     @_abc.abstractmethod
@@ -345,7 +345,7 @@ class CustomFields(_abc.ABC):
     # pyre-ignore[16]: Module `_fbthrift_builtins` has no attribute `property`.
     @_fbthrift_builtins.property
     @_abc.abstractmethod
-    def binary_field(self) -> builtins.bytes: ...
+    def binary_field(self) -> _fbthrift_iobuf.IOBuf: ...
     # pyre-ignore[16]: Module `_fbthrift_builtins` has no attribute `property`.
     @_fbthrift_builtins.property
     @_abc.abstractmethod
@@ -363,7 +363,7 @@ class CustomFields(_abc.ABC):
     @_abc.abstractmethod
     def struct_field(self) -> _fbthrift_SimpleStruct: ...
     @_abc.abstractmethod
-    def __iter__(self) -> _typing.Iterator[_typing.Tuple[builtins.str, _typing.Union[builtins.bool, builtins.int, builtins.float, builtins.str, builtins.bytes, _typing.Sequence[builtins.int], _typing.AbstractSet[builtins.int], _typing.Mapping[builtins.int, builtins.int], _fbthrift_SimpleStruct]]]: ...
+    def __iter__(self) -> _typing.Iterator[_typing.Tuple[builtins.str, _typing.Union[builtins.bool, builtins.int, builtins.float, builtins.str, _fbthrift_iobuf.IOBuf, _typing.Sequence[builtins.int], _typing.AbstractSet[builtins.int], _typing.Mapping[builtins.int, builtins.int], _fbthrift_SimpleStruct]]]: ...
     @_abc.abstractmethod
     def _to_mutable_python(self) -> "module.thrift_mutable_types.CustomFields": ...  # type: ignore
     @_abc.abstractmethod
@@ -393,7 +393,7 @@ class CustomTypedefFields(_abc.ABC):
     # pyre-ignore[16]: Module `_fbthrift_builtins` has no attribute `property`.
     @_fbthrift_builtins.property
     @_abc.abstractmethod
-    def binary_field(self) -> builtins.bytes: ...
+    def binary_field(self) -> _fbthrift_iobuf.IOBuf: ...
     # pyre-ignore[16]: Module `_fbthrift_builtins` has no attribute `property`.
     @_fbthrift_builtins.property
     @_abc.abstractmethod
@@ -411,7 +411,7 @@ class CustomTypedefFields(_abc.ABC):
     @_abc.abstractmethod
     def struct_field(self) -> _fbthrift_SimpleStruct: ...
     @_abc.abstractmethod
-    def __iter__(self) -> _typing.Iterator[_typing.Tuple[builtins.str, _typing.Union[builtins.bool, builtins.int, builtins.float, builtins.str, builtins.bytes, _typing.Sequence[builtins.int], _typing.AbstractSet[builtins.int], _typing.Mapping[builtins.int, builtins.int], _fbthrift_SimpleStruct]]]: ...
+    def __iter__(self) -> _typing.Iterator[_typing.Tuple[builtins.str, _typing.Union[builtins.bool, builtins.int, builtins.float, builtins.str, _fbthrift_iobuf.IOBuf, _typing.Sequence[builtins.int], _typing.AbstractSet[builtins.int], _typing.Mapping[builtins.int, builtins.int], _fbthrift_SimpleStruct]]]: ...
     @_abc.abstractmethod
     def _to_mutable_python(self) -> "module.thrift_mutable_types.CustomTypedefFields": ...  # type: ignore
     @_abc.abstractmethod
@@ -469,6 +469,40 @@ class AdaptedTypedefFields(_abc.ABC):
     @_abc.abstractmethod
     def _to_py_deprecated(self) -> "module.ttypes.AdaptedTypedefFields": ...  # type: ignore
 _fbthrift_AdaptedTypedefFields = AdaptedTypedefFields
+class StringAdaptedUnion(_abc.ABC):
+    # pyre-ignore[16]: Module `_fbthrift_builtins` has no attribute `property`.
+    @_fbthrift_builtins.property
+    @_abc.abstractmethod
+    def string_field(self) -> builtins.str: ...
+    # pyre-ignore[16]: Module `_fbthrift_builtins` has no attribute `property`.
+    @_fbthrift_builtins.property
+    @_abc.abstractmethod
+    def binary_field(self) -> builtins.bytes: ...
+    @_abc.abstractmethod
+    def _to_mutable_python(self) -> "module.thrift_mutable_types.StringAdaptedUnion": ...  # type: ignore
+    @_abc.abstractmethod
+    def _to_python(self) -> "module.thrift_types.StringAdaptedUnion": ...  # type: ignore
+    @_abc.abstractmethod
+    def _to_py3(self) -> "module.types.StringAdaptedUnion": ...  # type: ignore
+    @_abc.abstractmethod
+    def _to_py_deprecated(self) -> "module.ttypes.StringAdaptedUnion": ...  # type: ignore
+
+    class FbThriftUnionFieldEnum(_enum.Enum):
+        EMPTY = 0
+        string_field = 1
+        binary_field = 2
+
+    FbThriftUnionFieldEnum.__name__ = "StringAdaptedUnion"
+    # pyre-ignore[16]: Module `_fbthrift_builtins` has no attribute `property`.
+    @_fbthrift_builtins.property
+    @_abc.abstractmethod
+    def fbthrift_current_value(self) -> _typing.Union[None, builtins.str, builtins.bytes]: ...
+    # pyre-ignore[16]: Module `_fbthrift_builtins` has no attribute `property`.
+    @_fbthrift_builtins.property
+    @_abc.abstractmethod
+    def fbthrift_current_field(self) -> FbThriftUnionFieldEnum: ...
+
+_fbthrift_StringAdaptedUnion = StringAdaptedUnion
 
 IOBufPtr = _fbthrift_iobuf.IOBuf
 IOBuf = _fbthrift_iobuf.IOBuf
@@ -476,12 +510,12 @@ DeferredTruncationFloat = builtins.float
 AdaptedTypeDef = _fbthrift_SimpleStruct
 HiddenTypeDef = _fbthrift_SimpleStruct
 ImplicitlyHiddenTypeDef = _fbthrift_AdaptedUnion
-foo_bar = builtins.bytes
+CustomBuffer = _fbthrift_iobuf.IOBuf
 CustomBool = builtins.bool
 CustomInteger = builtins.int
 CustomDouble = builtins.float
 CustomString = builtins.str
-CustomBinary = builtins.bytes
+CustomBinary = _fbthrift_iobuf.IOBuf
 CustomList = _typing.Sequence[builtins.int]
 CustomSet = _typing.AbstractSet[builtins.int]
 CustomMap = _typing.Mapping[builtins.int, builtins.int]
@@ -495,3 +529,5 @@ AdaptedList = _typing.Sequence[builtins.int]
 AdaptedSet = _typing.AbstractSet[builtins.int]
 AdaptedMap = _typing.Mapping[builtins.int, builtins.int]
 AdaptedStruct = _fbthrift_SimpleStruct
+StringAdaptedString = builtins.str
+StringAdaptedBinary = builtins.bytes

@@ -58,6 +58,7 @@ union ServerTestResult {
   7: RequestResponseServerErrorServerTestResult requestResponseServerError;
   8: RequestResponseMetadataServerTestResult requestResponseMetadata;
   9: RequestResponseConcurrentServerTestResult requestResponseConcurrent;
+  10: RequestResponseBadContentLengthServerTestResult requestResponseBadContentLength;
   100: StreamBasicServerTestResult streamBasic;
   101: StreamChunkTimeoutServerTestResult streamChunkTimeout;
   102: StreamInitialResponseServerTestResult streamInitialResponse;
@@ -68,6 +69,7 @@ union ServerTestResult {
   107: StreamInitialUndeclaredExceptionServerTestResult streamInitialUndeclaredException;
   108: StreamInitialTimeoutServerTestResult streamInitialTimeout;
   109: StreamCancelServerTestResult streamCancel;
+  110: StreamServerErrorServerTestResult streamServerError;
   200: SinkBasicServerTestResult sinkBasic;
   201: SinkChunkTimeoutServerTestResult sinkChunkTimeout;
   202: SinkInitialResponseServerTestResult sinkInitialResponse;
@@ -75,6 +77,7 @@ union ServerTestResult {
   204: SinkUndeclaredExceptionServerTestResult sinkUndeclaredException;
   205: SinkInitialDeclaredExceptionServerTestResult sinkInitialDeclaredException;
   206: SinkServerDeclaredExceptionServerTestResult sinkServerDeclaredException;
+  207: SinkAbortServerTestResult sinkAbort;
   300: InteractionConstructorServerTestResult interactionConstructor;
   301: InteractionFactoryFunctionServerTestResult interactionFactoryFunction;
   302: InteractionPersistsStateServerTestResult interactionPersistsState;
@@ -87,6 +90,8 @@ union ServerTestResult {
   405: BidiSinkUndeclaredExceptionServerTestResult bidiSinkUndeclaredException;
   406: BidiMethodDeclaredExceptionServerTestResult bidiMethodDeclaredException;
   407: BidiMethodUndeclaredExceptionServerTestResult bidiMethodUndeclaredException;
+  408: BidiAbortServerTestResult bidiAbort;
+  500: ClosingFrameServerTestResult closingFrame;
 }
 
 union ClientTestResult {
@@ -99,6 +104,7 @@ union ClientTestResult {
   7: RequestResponseServerErrorClientTestResult requestResponseServerError;
   8: RequestResponseMetadataClientTestResult requestResponseMetadata;
   9: RequestResponseConcurrentClientTestResult requestResponseConcurrent;
+  10: RequestResponseBadContentLengthClientTestResult requestResponseBadContentLength;
   100: StreamBasicClientTestResult streamBasic;
   101: StreamChunkTimeoutClientTestResult streamChunkTimeout;
   102: StreamInitialResponseClientTestResult streamInitialResponse;
@@ -109,6 +115,7 @@ union ClientTestResult {
   107: StreamInitialUndeclaredExceptionClientTestResult streamInitialUndeclaredException;
   108: StreamInitialTimeoutClientTestResult streamInitialTimeout;
   109: StreamCancelClientTestResult streamCancel;
+  110: StreamServerErrorClientTestResult streamServerError;
   200: SinkBasicClientTestResult sinkBasic;
   201: SinkChunkTimeoutClientTestResult sinkChunkTimeout;
   202: SinkInitialResponseClientTestResult sinkInitialResponse;
@@ -116,6 +123,8 @@ union ClientTestResult {
   204: SinkUndeclaredExceptionClientTestResult sinkUndeclaredException;
   205: SinkInitialDeclaredExceptionClientTestResult sinkInitialDeclaredException;
   206: SinkServerDeclaredExceptionClientTestResult sinkServerDeclaredException;
+  207: SinkAbortClientTestResult sinkAbort;
+  208: SinkServerErrorClientTestResult sinkServerError;
   300: InteractionConstructorClientTestResult interactionConstructor;
   301: InteractionFactoryFunctionClientTestResult interactionFactoryFunction;
   302: InteractionPersistsStateClientTestResult interactionPersistsState;
@@ -128,10 +137,14 @@ union ClientTestResult {
   405: BidiSinkUndeclaredExceptionClientTestResult bidiSinkUndeclaredException;
   406: BidiMethodDeclaredExceptionClientTestResult bidiMethodDeclaredException;
   407: BidiMethodUndeclaredExceptionClientTestResult bidiMethodUndeclaredException;
+  408: BidiAbortClientTestResult bidiAbort;
+  409: BidiServerErrorClientTestResult bidiServerError;
+  500: ClosingFrameClientTestResult closingFrame;
 }
 
 struct RequestResponseBasicServerTestResult {
   1: Request request;
+  2: optional ChecksumKind checksum;
 }
 
 struct RequestResponseDeclaredExceptionServerTestResult {
@@ -169,8 +182,13 @@ struct RequestResponseConcurrentServerTestResult {
   2: bool allInFlight;
 }
 
+struct RequestResponseBadContentLengthServerTestResult {
+  1: Request request;
+}
+
 struct StreamBasicServerTestResult {
   1: Request request;
+  2: optional ChecksumKind checksum;
 }
 
 struct StreamChunkTimeoutServerTestResult {
@@ -210,9 +228,14 @@ struct StreamCancelServerTestResult {
   2: bool cancelled;
 }
 
+struct StreamServerErrorServerTestResult {
+  1: Request request;
+}
+
 struct SinkBasicServerTestResult {
   1: Request request;
   2: list<Request> sinkPayloads;
+  3: optional ChecksumKind checksum;
 }
 
 struct SinkChunkTimeoutServerTestResult {
@@ -246,6 +269,11 @@ struct SinkServerDeclaredExceptionServerTestResult {
   2: optional string exceptionMessage;
 }
 
+struct SinkAbortServerTestResult {
+  1: Request request;
+  2: bool aborted;
+}
+
 struct InteractionConstructorServerTestResult {
   1: bool constructorCalled;
 }
@@ -263,6 +291,7 @@ struct InteractionTerminationServerTestResult {
 struct BidiBasicServerTestResult {
   1: Request request;
   2: list<Request> sinkPayloads;
+  3: optional ChecksumKind checksum;
 }
 
 struct BidiInitialResponseServerTestResult {
@@ -300,6 +329,21 @@ struct BidiMethodDeclaredExceptionServerTestResult {
 
 struct BidiMethodUndeclaredExceptionServerTestResult {
   1: Request request;
+}
+
+struct BidiAbortServerTestResult {
+  1: Request request;
+  2: bool sinkAborted;
+}
+
+struct ClosingFrameServerTestResult {
+  1: list<ClientFrame> frames;
+}
+
+struct ClientFrame {
+  1: i32 type;
+  2: optional i32 errorCode;
+  3: optional binary errorData;
 }
 
 struct RequestResponseBasicClientTestResult {
@@ -340,6 +384,10 @@ struct RequestResponseMetadataClientTestResult {
 
 struct RequestResponseConcurrentClientTestResult {
   1: list<Response> responses;
+}
+
+struct RequestResponseBadContentLengthClientTestResult {
+  1: optional i32 transportExceptionType;
 }
 
 struct StreamBasicClientTestResult {
@@ -388,6 +436,11 @@ struct StreamCancelClientTestResult {
   1: list<Response> streamPayloads;
 }
 
+struct StreamServerErrorClientTestResult {
+  1: i32 exceptionType;
+  2: string exceptionMessage;
+}
+
 struct SinkBasicClientTestResult {
   1: Response finalResponse;
 }
@@ -415,6 +468,13 @@ struct SinkInitialDeclaredExceptionClientTestResult {
 
 struct SinkServerDeclaredExceptionClientTestResult {
   1: bool sinkThrew;
+}
+
+struct SinkAbortClientTestResult {}
+
+struct SinkServerErrorClientTestResult {
+  1: i32 exceptionType;
+  2: string exceptionMessage;
 }
 
 struct InteractionConstructorClientTestResult {}
@@ -468,6 +528,15 @@ struct BidiMethodUndeclaredExceptionClientTestResult {
   1: string exceptionMessage;
 }
 
+struct BidiAbortClientTestResult {}
+
+struct BidiServerErrorClientTestResult {
+  1: i32 exceptionType;
+  2: string exceptionMessage;
+}
+
+struct ClosingFrameClientTestResult {}
+
 union ClientInstruction {
   1: RequestResponseBasicClientInstruction requestResponseBasic;
   2: RequestResponseDeclaredExceptionClientInstruction requestResponseDeclaredException;
@@ -478,6 +547,7 @@ union ClientInstruction {
   7: RequestResponseServerErrorClientInstruction requestResponseServerError;
   8: RequestResponseMetadataClientInstruction requestResponseMetadata;
   9: RequestResponseConcurrentClientInstruction requestResponseConcurrent;
+  10: RequestResponseBadContentLengthClientInstruction requestResponseBadContentLength;
   100: StreamBasicClientInstruction streamBasic;
   101: StreamChunkTimeoutClientInstruction streamChunkTimeout;
   102: StreamInitialResponseClientInstruction streamInitialResponse;
@@ -488,6 +558,7 @@ union ClientInstruction {
   107: StreamInitialUndeclaredExceptionClientInstruction streamInitialUndeclaredException;
   108: StreamInitialTimeoutClientInstruction streamInitialTimeout;
   109: StreamCancelClientInstruction streamCancel;
+  110: StreamServerErrorClientInstruction streamServerError;
   200: SinkBasicClientInstruction sinkBasic;
   201: SinkChunkTimeoutClientInstruction sinkChunkTimeout;
   202: SinkInitialResponseClientInstruction sinkInitialResponse;
@@ -495,6 +566,8 @@ union ClientInstruction {
   204: SinkUndeclaredExceptionClientInstruction sinkUndeclaredException;
   205: SinkInitialDeclaredExceptionClientInstruction sinkInitialDeclaredException;
   206: SinkServerDeclaredExceptionClientInstruction sinkServerDeclaredException;
+  207: SinkAbortClientInstruction sinkAbort;
+  208: SinkServerErrorClientInstruction sinkServerError;
   300: InteractionConstructorClientInstruction interactionConstructor;
   301: InteractionFactoryFunctionClientInstruction interactionFactoryFunction;
   302: InteractionPersistsStateClientInstruction interactionPersistsState;
@@ -507,6 +580,9 @@ union ClientInstruction {
   405: BidiSinkUndeclaredExceptionClientInstruction bidiSinkUndeclaredException;
   406: BidiMethodDeclaredExceptionClientInstruction bidiMethodDeclaredException;
   407: BidiMethodUndeclaredExceptionClientInstruction bidiMethodUndeclaredException;
+  408: BidiAbortClientInstruction bidiAbort;
+  409: BidiServerErrorClientInstruction bidiServerError;
+  500: ClosingFrameClientInstruction closingFrame;
 }
 
 union ServerInstruction {
@@ -519,6 +595,7 @@ union ServerInstruction {
   7: RequestResponseServerErrorServerInstruction requestResponseServerError;
   8: RequestResponseMetadataServerInstruction requestResponseMetadata;
   9: RequestResponseConcurrentServerInstruction requestResponseConcurrent;
+  10: RequestResponseBadContentLengthServerInstruction requestResponseBadContentLength;
   100: StreamBasicServerInstruction streamBasic;
   101: StreamChunkTimeoutServerInstruction streamChunkTimeout;
   102: StreamInitialResponseServerInstruction streamInitialResponse;
@@ -529,6 +606,7 @@ union ServerInstruction {
   107: StreamInitialUndeclaredExceptionServerInstruction streamInitialUndeclaredException;
   108: StreamInitialTimeoutServerInstruction streamInitialTimeout;
   109: StreamCancelServerInstruction streamCancel;
+  110: StreamServerErrorServerInstruction streamServerError;
   200: SinkBasicServerInstruction sinkBasic;
   201: SinkChunkTimeoutServerInstruction sinkChunkTimeout;
   202: SinkInitialResponseServerInstruction sinkInitialResponse;
@@ -536,6 +614,8 @@ union ServerInstruction {
   204: SinkUndeclaredExceptionServerInstruction sinkUndeclaredException;
   205: SinkInitialDeclaredExceptionServerInstruction sinkInitialDeclaredException;
   206: SinkServerDeclaredExceptionServerInstruction sinkServerDeclaredException;
+  207: SinkAbortServerInstruction sinkAbort;
+  208: SinkServerErrorServerInstruction sinkServerError;
   300: InteractionConstructorServerInstruction interactionConstructor;
   301: InteractionFactoryFunctionServerInstruction interactionFactoryFunction;
   302: InteractionPersistsStateServerInstruction interactionPersistsState;
@@ -548,10 +628,14 @@ union ServerInstruction {
   405: BidiSinkUndeclaredExceptionServerInstruction bidiSinkUndeclaredException;
   406: BidiMethodDeclaredExceptionServerInstruction bidiMethodDeclaredException;
   407: BidiMethodUndeclaredExceptionServerInstruction bidiMethodUndeclaredException;
+  408: BidiAbortServerInstruction bidiAbort;
+  409: BidiServerErrorServerInstruction bidiServerError;
+  500: ClosingFrameServerInstruction closingFrame;
 }
 
 struct RequestResponseBasicClientInstruction {
   1: Request request;
+  2: optional ChecksumKind checksum;
 }
 
 struct RequestResponseDeclaredExceptionClientInstruction {
@@ -592,10 +676,15 @@ struct RequestResponseConcurrentClientInstruction {
   1: list<Request> requests;
 }
 
+struct RequestResponseBadContentLengthClientInstruction {
+  1: Request request;
+}
+
 struct StreamBasicClientInstruction {
   1: Request request;
   2: i64 bufferSize;
   3: optional StreamMemoryBufferSize memoryBufferSize;
+  4: optional ChecksumKind checksum;
 }
 
 struct StreamMemoryBufferSize {
@@ -642,11 +731,18 @@ struct StreamInitialTimeoutClientInstruction {
 struct StreamCancelClientInstruction {
   1: Request request;
   2: i64 consumeCount;
+  3: optional i64 giveUpAfterMs;
+  4: optional i64 dropUnreadAfterMs;
+}
+
+struct StreamServerErrorClientInstruction {
+  1: Request request;
 }
 
 struct SinkBasicClientInstruction {
   1: Request request;
   2: list<Request> sinkPayloads;
+  3: optional ChecksumKind checksum;
 }
 
 struct SinkChunkTimeoutClientInstruction {
@@ -680,6 +776,16 @@ struct SinkServerDeclaredExceptionClientInstruction {
   2: optional string exceptionMessage;
 }
 
+struct SinkAbortClientInstruction {
+  1: Request request;
+  2: optional i64 giveUpAfterMs;
+  3: optional i64 dropUnreadAfterMs;
+}
+
+struct SinkServerErrorClientInstruction {
+  1: Request request;
+}
+
 struct InteractionConstructorClientInstruction {}
 
 struct InteractionFactoryFunctionClientInstruction {
@@ -698,6 +804,7 @@ struct InteractionTerminationClientInstruction {
 struct BidiBasicClientInstruction {
   1: Request request;
   2: list<Request> sinkPayloads;
+  3: optional ChecksumKind checksum;
 }
 
 struct BidiInitialResponseClientInstruction {
@@ -737,6 +844,34 @@ struct BidiMethodUndeclaredExceptionClientInstruction {
   1: Request request;
 }
 
+struct BidiAbortClientInstruction {
+  1: Request request;
+  2: optional i64 giveUpAfterMs;
+  3: optional i64 dropUnreadAfterMs;
+}
+
+struct BidiServerErrorClientInstruction {
+  1: Request request;
+}
+
+enum ChecksumKind {
+  NONE = 0,
+  CRC32 = 1,
+  XXH3_64 = 2,
+}
+
+enum CallKind {
+  REQUEST_RESPONSE = 0,
+  STREAM = 1,
+  SINK = 2,
+  BIDI = 3,
+}
+
+struct ClosingFrameClientInstruction {
+  1: CallKind call;
+  2: Request request;
+}
+
 struct RequestResponseBasicServerInstruction {
   1: Response response;
 }
@@ -768,6 +903,10 @@ union ServerError {
   1: string loadshedding;
   2: TaskExpiredServerError taskExpired;
   3: ResponseTooBigServerError responseTooBig;
+  4: string undeclaredException;
+  5: ErrorFrameServerError errorFrame;
+  6: binary firstResponseMetadata;
+  7: binary chunkMetadata;
 }
 
 struct TaskExpiredServerError {
@@ -780,6 +919,11 @@ struct ResponseTooBigServerError {
   2: i64 responseSize;
 }
 
+struct ErrorFrameServerError {
+  1: i32 code;
+  2: string message;
+}
+
 struct RequestResponseServerErrorServerInstruction {
   1: ServerError error;
 }
@@ -790,6 +934,11 @@ struct RequestResponseMetadataServerInstruction {
 
 struct RequestResponseConcurrentServerInstruction {
   1: i64 requestCount;
+}
+
+struct RequestResponseBadContentLengthServerInstruction {
+  1: Response response;
+  2: i64 contentLength;
 }
 
 struct StreamBasicServerInstruction {
@@ -835,7 +984,13 @@ struct StreamInitialTimeoutServerInstruction {
   1: i64 timeoutMs;
 }
 
-struct StreamCancelServerInstruction {}
+struct StreamCancelServerInstruction {
+  1: optional i64 initialResponseDelayMs;
+}
+
+struct StreamServerErrorServerInstruction {
+  1: ServerError error;
+}
 
 struct SinkBasicServerInstruction {
   1: Response finalResponse;
@@ -874,6 +1029,14 @@ struct SinkServerDeclaredExceptionServerInstruction {
   // TODO(dokwon): Remove @thrift.Box after fixing incomplete type bug.
   @thrift.Box
   2: optional UserException userException;
+}
+
+struct SinkAbortServerInstruction {
+  1: optional i64 initialResponseDelayMs;
+}
+
+struct SinkServerErrorServerInstruction {
+  1: ServerError error;
 }
 
 struct InteractionConstructorServerInstruction {}
@@ -921,6 +1084,25 @@ struct BidiMethodDeclaredExceptionServerInstruction {
 
 struct BidiMethodUndeclaredExceptionServerInstruction {
   1: string exceptionMessage;
+}
+
+struct BidiAbortServerInstruction {
+  1: optional i64 initialResponseDelayMs;
+}
+
+struct BidiServerErrorServerInstruction {
+  1: ServerError error;
+}
+
+struct ClosingFrameServerInstruction {
+  1: CallKind call;
+  2: FirstResponse firstResponse;
+}
+
+union FirstResponse {
+  1: ErrorFrameServerError errorFrame;
+  2: binary metadata;
+  3: binary chunkMetadata;
 }
 
 interaction BasicInteraction {

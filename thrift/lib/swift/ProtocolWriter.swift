@@ -24,7 +24,8 @@ import Foundation
 ///
 /// Conforming types must provide the primitive write operations, the collection
 /// headers, and `writeStruct`. Container writes (`writeList`/`writeSet`/
-/// `writeMap`) are supplied as protocol extensions.
+/// `writeMap`) are supplied as protocol extensions; `writeByteListElements` has a
+/// default that writes one byte at a time, which writers can replace with a bulk copy.
 public protocol ProtocolWriter {
   func writeFieldBegin(_ fieldType: WireType, _ fieldId: Int16)
   func writeFieldStop()
@@ -42,12 +43,26 @@ public protocol ProtocolWriter {
   func writeMapBegin(
     _ keyType: WireType, _ valType: WireType, _ size: Int)
   func writeStruct<T: ThriftSerializable>(_ value: T)
+  /// Writes the elements of a `list<byte>` after its header. Every protocol
+  /// encodes these as one raw byte each.
+  func writeByteListElements(_ value: [Int8])
 }
 
 extension ProtocolWriter {
+  public func writeByteListElements(_ value: [Int8]) {
+    for elem in value {
+      writeByte(elem)
+    }
+  }
+
   /// Writes a list, including its header and every element.
   public func writeList<T: ThriftWritable>(_ value: [T]) {
     writeListBegin(T.thriftWireType, value.count)
+    // Large `list<byte>` payloads (e.g. raw image pixels) are written in bulk.
+    if T.self == Int8.self {
+      writeByteListElements(unsafeBitCast(value, to: [Int8].self))
+      return
+    }
     for elem in value {
       elem.thriftWrite(to: self)
     }

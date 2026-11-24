@@ -34,9 +34,8 @@ AlignedParser::AlignedParser(size_t maxFrameSize) noexcept
 channel_pipeline::BytesPtr AlignedParser::newBuffer(size_t capacity) noexcept {
   channel_pipeline::BytesPtr buffer =
       bufFactory_ ? (*bufFactory_)(capacity) : folly::IOBuf::create(capacity);
-  if (FOLLY_UNLIKELY(
-          !buffer || buffer->isChained() || buffer->isSharedOne() ||
-          !buffer->empty() || buffer->tailroom() < capacity)) {
+  if (!buffer || buffer->isChained() || buffer->isSharedOne() ||
+      !buffer->empty() || buffer->tailroom() < capacity) [[unlikely]] {
     return nullptr;
   }
   return buffer;
@@ -201,12 +200,12 @@ AlignedParser::Step AlignedParser::onHeaderBytes(size_t len) noexcept {
   frameLength_ = detail::readFrameOrMetadataSize(cursor);
 
   // The length a frame gives must at least cover the header itself.
-  if (FOLLY_UNLIKELY(frameLength_ < kBaseHeaderSize)) {
+  if (frameLength_ < kBaseHeaderSize) [[unlikely]] {
     return Step::Bad;
   }
   // Refuse before anything is allocated. If we checked later, we would first
   // reserve the exact size we then turn down.
-  if (FOLLY_UNLIKELY(frameLength_ > maxFrameSize_)) {
+  if (frameLength_ > maxFrameSize_) [[unlikely]] {
     return Step::Bad;
   }
 
@@ -230,7 +229,7 @@ AlignedParser::Step AlignedParser::onHeaderBytes(size_t len) noexcept {
 AlignedParser::Step AlignedParser::startOwnBuffers(uint16_t flags) noexcept {
   if (flags & frame::detail::kMetadataBit) {
     // Three more header bytes hold the metadata length.
-    if (FOLLY_UNLIKELY(frameLength_ < kBaseHeaderSize + kMetadataLengthSize)) {
+    if (frameLength_ < kBaseHeaderSize + kMetadataLengthSize) [[unlikely]] {
       return Step::Bad;
     }
     remainingHeader_ = kMetadataLengthSize;
@@ -263,7 +262,7 @@ AlignedParser::Step AlignedParser::onMetadataLengthBytes(size_t len) noexcept {
   remainingMetadata_ = detail::readFrameOrMetadataSize(cursor);
 
   const size_t budget = frameLength_ - kBaseHeaderSize - kMetadataLengthSize;
-  if (FOLLY_UNLIKELY(remainingMetadata_ > budget)) {
+  if (remainingMetadata_ > budget) [[unlikely]] {
     return Step::Bad;
   }
   remainingData_ = budget - remainingMetadata_;

@@ -31,21 +31,16 @@
 namespace apache::thrift::fast_thrift::frame::write::handler {
 
 /**
- * Composable tracker mixin for the fragmentation handler. The handler invokes
- * the tracker at two points:
- *   - onFragment(streamId, isLastFragment) — per fragment written downstream
- *     in doFlush. `isLastFragment` is true when this fragment completes the
- *     original frame (either unfragmented fast-path or final SRPT chunk).
- *   - onFlush()                           — when a doFlush completes
- *     successfully (all queued fragments drained).
+ * Defines completion hooks for fragmentation handlers.
  *
- * The concrete tracker maintains a per-fragment FIFO and subscribes to
- * BatchWriteComplete; on each batch completion it pops `frameCount` records
- * and fires FrameWriteComplete for every completed original frame.
+ * `onFragment()` supports two call orders. A handler that records after the
+ * downstream write calls it only for a non-Error result. A handler that
+ * records before the write allows an inline `BatchWriteComplete` to find the
+ * record. If the write returns Error, it must call `onFragmentAborted()`
+ * before another `onFragment()` call. `isLastFragment` is true when the
+ * fragment completes its original frame.
  *
- * The typed event callback additionally receives whether the handler is still
- * holding frames it has not handed downstream, which is the term the layer
- * below cannot see when it reports the connection caught up.
+ * A handler calls `onFlush()` after a drain ends with no queued fragments.
  */
 template <typename T>
 concept FragmentCompletionTracker =
@@ -53,6 +48,7 @@ concept FragmentCompletionTracker =
     channel_pipeline::kIsEventSet<typename T::SubscribedEvents> &&
     requires(T tracker, uint32_t streamId, bool isLast) {
       { tracker.onFragment(streamId, isLast) } noexcept;
+      { tracker.onFragmentAborted() } noexcept;
       { tracker.onFlush() } noexcept;
     };
 
@@ -61,6 +57,7 @@ struct NoOpFragmentCompletionTracker {
   using SubscribedEvents = channel_pipeline::Events<>;
 
   void onFragment(uint32_t, bool) noexcept {}
+  void onFragmentAborted() noexcept {}
   void onFlush() noexcept {}
 };
 
@@ -82,10 +79,14 @@ concept FrameWriteCompleteEventFactory =
     };
 
 /**
- * Concrete tracker — records {streamId, isLastFragment} per fragment written
- * downstream. On each BatchWriteComplete (from the downstream batch tracker),
- * pops `frameCount` fragment records and fires FrameWriteComplete{streamId}
- * for every record where isLastFragment is true.
+ * Maps downstream batch completions to original frames.
+ *
+ * `onFragment()` appends {streamId, isLastFragment} to a FIFO.
+ * `onFragmentAborted()` removes the newest record, and does nothing when the
+ * FIFO is empty.
+ *
+ * Each `BatchWriteComplete` pops `frameCount` records from the front and fires
+ * FrameWriteComplete{streamId} for each record whose `isLastFragment` is true.
  *
  * Also narrows the quiescence the batch event carries. The batcher can only
  * speak for itself, and this handler sits above it holding frames the batcher
@@ -115,6 +116,12 @@ class FragmentCompletionTrackerT {
 
   void onFragment(uint32_t streamId, bool isLastFragment) noexcept {
     fragments_.push_back({streamId, isLastFragment});
+  }
+
+  void onFragmentAborted() noexcept {
+    if (!fragments_.empty()) {
+      fragments_.pop_back();
+    }
   }
 
   void onFlush() noexcept {}

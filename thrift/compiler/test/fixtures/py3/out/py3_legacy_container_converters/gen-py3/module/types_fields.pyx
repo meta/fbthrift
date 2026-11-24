@@ -472,9 +472,9 @@ cdef class __ComplexStruct_FieldsSetter(__StructFieldsSetter):
         if _fbthrift_value is None:
             __reset_field[_module_cbindings.cComplexStruct](deref(self._struct_cpp_obj), 8)
             return
-        if not isinstance(_fbthrift_value, bytes):
-            raise TypeError(f'bytes_with_cpp_type is not a { bytes !r}.')
-        deref(self._struct_cpp_obj).bytes_with_cpp_type_ref().assign(_module_cbindings.foo_Bar(cmove(<string>_fbthrift_value)))
+        if not isinstance(_fbthrift_value, _fbthrift_iobuf.IOBuf):
+            raise TypeError(f'bytes_with_cpp_type is not a { _fbthrift_iobuf.IOBuf !r}.')
+        deref(self._struct_cpp_obj).bytes_with_cpp_type_ref().assign(deref((<_fbthrift_iobuf.IOBuf?>_fbthrift_value).c_clone()))
 
 
 @__cython.auto_pickle(False)
@@ -571,9 +571,9 @@ cdef class __CustomFields_FieldsSetter(__StructFieldsSetter):
         if _fbthrift_value is None:
             __reset_field[_module_cbindings.cCustomFields](deref(self._struct_cpp_obj), 4)
             return
-        if not isinstance(_fbthrift_value, bytes):
-            raise TypeError(f'binary_field is not a { bytes !r}.')
-        deref(self._struct_cpp_obj).binary_field_ref().assign(_module_cbindings._MyType(cmove(<string>_fbthrift_value)))
+        if not isinstance(_fbthrift_value, _fbthrift_iobuf.IOBuf):
+            raise TypeError(f'binary_field is not a { _fbthrift_iobuf.IOBuf !r}.')
+        deref(self._struct_cpp_obj).binary_field_ref().assign(deref((<_fbthrift_iobuf.IOBuf?>_fbthrift_value).c_clone()))
 
     cdef void _set_field_5(self, _fbthrift_value) except *:
         # for field list_field
@@ -673,9 +673,9 @@ cdef class __CustomTypedefFields_FieldsSetter(__StructFieldsSetter):
         if _fbthrift_value is None:
             __reset_field[_module_cbindings.cCustomTypedefFields](deref(self._struct_cpp_obj), 4)
             return
-        if not isinstance(_fbthrift_value, bytes):
-            raise TypeError(f'binary_field is not a { bytes !r}.')
-        deref(self._struct_cpp_obj).binary_field_ref().assign(_module_cbindings._MyType(cmove(<string>_fbthrift_value)))
+        if not isinstance(_fbthrift_value, _fbthrift_iobuf.IOBuf):
+            raise TypeError(f'binary_field is not a { _fbthrift_iobuf.IOBuf !r}.')
+        deref(self._struct_cpp_obj).binary_field_ref().assign((<_fbthrift_iobuf.IOBuf?>_fbthrift_value).c_clone())
 
     cdef void _set_field_5(self, _fbthrift_value) except *:
         # for field list_field

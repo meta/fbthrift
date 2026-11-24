@@ -18,14 +18,20 @@
 
 #include <gtest/gtest.h>
 
+#include <folly/ScopeGuard.h>
 #include <folly/io/IOBuf.h>
 #include <folly/io/async/EventBase.h>
+#include <folly/logging/LogCategory.h>
+#include <folly/logging/LoggerDB.h>
+#include <folly/logging/test/TestLogHandler.h>
+#include <folly/portability/GMock.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/BufferAllocator.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/ErrorCode.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameDescriptor.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
@@ -41,6 +47,7 @@ namespace apache::thrift::fast_thrift::rocket::server::handler {
 using apache::thrift::fast_thrift::channel_pipeline::erase_and_box;
 using apache::thrift::fast_thrift::channel_pipeline::Result;
 using apache::thrift::fast_thrift::channel_pipeline::TypeErasedBox;
+using namespace testing;
 namespace frame = apache::thrift::fast_thrift::frame;
 
 namespace {
@@ -245,6 +252,24 @@ TEST_F(
       static_cast<uint32_t>(frame::ErrorCode::CONNECTION_ERROR));
 }
 
+TEST_F(ServerKeepAliveHandlerTest, AcceptedConnectionErrorIsNotLoggedAsFailed) {
+  folly::LogCategory* const root = folly::LoggerDB::get().getCategory("");
+  const std::vector<std::shared_ptr<folly::LogHandler>> handlers =
+      root->getHandlers();
+  const auto logs = std::make_shared<folly::TestLogHandler>();
+  root->addHandler(logs);
+  SCOPE_EXIT {
+    root->replaceHandlers(handlers);
+  };
+  ctx_.setWriteResult(Result::Backpressure);
+
+  (void)callOnRead(
+      makeRawFrame(frame::FrameType::KEEPALIVE, /*streamId=*/5, /*flags=*/0));
+
+  EXPECT_THAT(
+      logs->getMessageValues(), Not(Contains(HasSubstr("Failed to deliver"))));
+}
+
 // =============================================================================
 // Non-KEEPALIVE frames pass through untouched
 // =============================================================================
@@ -307,12 +332,12 @@ TEST(ServerKeepAliveTimerTest, MissingProbeTimesOutConnection) {
   namespace cp = apache::thrift::fast_thrift::channel_pipeline;
 
   folly::EventBase eventBase;
-  cp::test::MockHeadHandler transport;
-  cp::test::MockTailHandler app;
+  cp::test::StaticMockHeadHandler transport;
+  cp::test::StaticMockTailHandler app;
   cp::test::TestAllocator allocator;
-  auto pipeline = cp::PipelineBuilder<
-                      cp::test::MockHeadHandler,
-                      cp::test::MockTailHandler,
+  auto pipeline = cp::StaticPipelineBuilder<
+                      cp::test::StaticMockHeadHandler,
+                      cp::test::StaticMockTailHandler,
                       cp::test::TestAllocator>()
                       .setEventBase(&eventBase)
                       .setHead(&transport)
@@ -338,7 +363,7 @@ TEST(ServerKeepAliveTimerTest, MissingProbeTimesOutConnection) {
   EXPECT_EQ(
       pipeline->fireRead(erase_and_box(std::move(request))), Result::Success);
 
-  eventBase.loop();
+  channel_pipeline::test::loopUntilIdle(eventBase);
 
   EXPECT_EQ(app.exceptionCount(), 1);
 }
@@ -347,13 +372,13 @@ TEST(ServerKeepAliveTimerTest, DefaultPolicyDoesNotTimeOutConnection) {
   namespace cp = apache::thrift::fast_thrift::channel_pipeline;
 
   folly::EventBase eventBase;
-  cp::test::MockHeadHandler transport;
-  cp::test::MockTailHandler app;
+  cp::test::StaticMockHeadHandler transport;
+  cp::test::StaticMockTailHandler app;
   cp::test::TestAllocator allocator;
   auto pipeline =
-      cp::PipelineBuilder<
-          cp::test::MockHeadHandler,
-          cp::test::MockTailHandler,
+      cp::StaticPipelineBuilder<
+          cp::test::StaticMockHeadHandler,
+          cp::test::StaticMockTailHandler,
           cp::test::TestAllocator>()
           .setEventBase(&eventBase)
           .setHead(&transport)
@@ -381,7 +406,7 @@ TEST(ServerKeepAliveTimerTest, DefaultPolicyDoesNotTimeOutConnection) {
   auto stop = folly::AsyncTimeout::make(
       eventBase, [&]() noexcept { pipeline->deactivate(); });
   stop->scheduleTimeout(std::chrono::milliseconds{15});
-  eventBase.loop();
+  channel_pipeline::test::loopUntilIdle(eventBase);
 
   EXPECT_EQ(app.exceptionCount(), 0);
 }
@@ -390,8 +415,8 @@ TEST(ServerKeepAliveTimerTest, ProbeExtendsLifetimeWithoutRearmingHotPath) {
   namespace cp = apache::thrift::fast_thrift::channel_pipeline;
 
   folly::EventBase eventBase;
-  cp::test::MockHeadHandler transport;
-  cp::test::MockTailHandler app;
+  cp::test::StaticMockHeadHandler transport;
+  cp::test::StaticMockTailHandler app;
   cp::test::TestAllocator allocator;
   size_t echoes = 0;
   transport.setOnWriteCallback([&echoes](TypeErasedBox&& box) noexcept {
@@ -401,9 +426,9 @@ TEST(ServerKeepAliveTimerTest, ProbeExtendsLifetimeWithoutRearmingHotPath) {
     ++echoes;
     return Result::Success;
   });
-  auto pipeline = cp::PipelineBuilder<
-                      cp::test::MockHeadHandler,
-                      cp::test::MockTailHandler,
+  auto pipeline = cp::StaticPipelineBuilder<
+                      cp::test::StaticMockHeadHandler,
+                      cp::test::StaticMockTailHandler,
                       cp::test::TestAllocator>()
                       .setEventBase(&eventBase)
                       .setHead(&transport)
@@ -441,7 +466,7 @@ TEST(ServerKeepAliveTimerTest, ProbeExtendsLifetimeWithoutRearmingHotPath) {
   probe->scheduleTimeout(std::chrono::milliseconds{7});
   stop->scheduleTimeout(std::chrono::milliseconds{15});
 
-  eventBase.loop();
+  channel_pipeline::test::loopUntilIdle(eventBase);
 
   EXPECT_EQ(echoes, 1u);
   EXPECT_EQ(app.exceptionCount(), 0);

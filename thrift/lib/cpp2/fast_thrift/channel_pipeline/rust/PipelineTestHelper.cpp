@@ -145,11 +145,11 @@ PipelineTestResult run_pipeline_test() noexcept {
 
   CHECK(pipeline);
   pipeline->activate();
-  eventBase.loopOnce();
+  eventBase.loopOnce(EVLOOP_NONBLOCK);
   (void)pipeline->fireRead(erase_and_box(makeBytes(10, 0xab)));
-  eventBase.loopOnce();
+  eventBase.loopOnce(EVLOOP_NONBLOCK);
   (void)pipeline->fireWrite(erase_and_box(makeBytes(5, 0xcd)));
-  eventBase.loopOnce();
+  eventBase.loopOnce(EVLOOP_NONBLOCK);
 
   const auto rustReads = rust_handler_test_read_callbacks();
   const auto rustWrites = rust_handler_test_write_callbacks();
@@ -170,9 +170,9 @@ PipelineTestResult run_pipeline_test() noexcept {
   };
 
   pipeline->deactivate();
-  eventBase.loopOnce();
+  eventBase.loopOnce(EVLOOP_NONBLOCK);
   pipeline.reset();
-  eventBase.loopOnce();
+  eventBase.loopOnce(EVLOOP_NONBLOCK);
   return result;
 }
 
@@ -196,9 +196,9 @@ Result runReadWithHandler(rust::Box<RustHandlerOpaque> handler) {
               std::make_unique<ProductionRustHandler>(std::move(handler)))
           .build();
   const auto result = pipeline->fireRead(erase_and_box(makeBytes(1, 0xa5)));
-  eventBase.loopOnce();
+  eventBase.loopOnce(EVLOOP_NONBLOCK);
   pipeline.reset();
-  eventBase.loopOnce();
+  eventBase.loopOnce(EVLOOP_NONBLOCK);
   return result;
 }
 
@@ -220,7 +220,7 @@ Result runReadBoxWithHandler(
           .build();
   const auto result = pipeline->fireRead(std::move(message));
   pipeline.reset();
-  eventBase.loopOnce();
+  eventBase.loopOnce(EVLOOP_NONBLOCK);
   return result;
 }
 
@@ -242,7 +242,7 @@ Result runWriteBoxWithHandler(
           .build();
   const auto result = pipeline->fireWrite(std::move(message));
   pipeline.reset();
-  eventBase.loopOnce();
+  eventBase.loopOnce(EVLOOP_NONBLOCK);
   return result;
 }
 
@@ -276,7 +276,7 @@ DownstreamResultObservation runReadWithDownstreamResult(Result downstream) {
   const auto* original = bytes.get();
   const auto result = pipeline->fireRead(erase_and_box(std::move(bytes)));
   pipeline.reset();
-  eventBase.loopOnce();
+  eventBase.loopOnce(EVLOOP_NONBLOCK);
   return {result, received == original};
 }
 
@@ -305,7 +305,7 @@ DownstreamResultObservation runWriteWithDownstreamResult(Result downstream) {
   const auto* original = bytes.get();
   const auto result = pipeline->fireWrite(erase_and_box(std::move(bytes)));
   pipeline.reset();
-  eventBase.loopOnce();
+  eventBase.loopOnce(EVLOOP_NONBLOCK);
   return {result, received == original};
 }
 
@@ -325,9 +325,9 @@ Result runWriteWithHandler(rust::Box<RustHandlerOpaque> handler) {
               std::make_unique<ProductionRustHandler>(std::move(handler)))
           .build();
   const auto result = pipeline->fireWrite(erase_and_box(makeBytes(1, 0xa5)));
-  eventBase.loopOnce();
+  eventBase.loopOnce(EVLOOP_NONBLOCK);
   pipeline.reset();
-  eventBase.loopOnce();
+  eventBase.loopOnce(EVLOOP_NONBLOCK);
   return result;
 }
 
@@ -393,18 +393,18 @@ BehaviorTestResult run_behavior_test() noexcept {
                   rust_handler_new_lifecycle_test()))
           .build();
   pipeline->activate();
-  eventBase.loopOnce();
+  eventBase.loopOnce(EVLOOP_NONBLOCK);
   (void)pipeline->fireRead(erase_and_box(makeBytes(1, 0xa5)));
   pipeline->onReadReady();
   (void)pipeline->fireWrite(erase_and_box(makeBytes(1, 0xa5)));
   pipeline->onWriteReady();
   pipeline->fireException(
       folly::make_exception_wrapper<std::runtime_error>("test exception"));
-  eventBase.loopOnce();
+  eventBase.loopOnce(EVLOOP_NONBLOCK);
   pipeline->deactivate();
-  eventBase.loopOnce();
+  eventBase.loopOnce(EVLOOP_NONBLOCK);
   pipeline.reset();
-  eventBase.loopOnce();
+  eventBase.loopOnce(EVLOOP_NONBLOCK);
 
   return BehaviorTestResult{
       .success_read = static_cast<int32_t>(successRead),
@@ -486,11 +486,11 @@ PositionTestResult runPositionTest(
 
   CHECK(pipeline);
   pipeline->activate();
-  eventBase.loopOnce();
+  eventBase.loopOnce(EVLOOP_NONBLOCK);
   (void)pipeline->fireRead(erase_and_box(makeBytes(10, 0xab)));
-  eventBase.loopOnce();
+  eventBase.loopOnce(EVLOOP_NONBLOCK);
   (void)pipeline->fireWrite(erase_and_box(makeBytes(5, 0xcd)));
-  eventBase.loopOnce();
+  eventBase.loopOnce(EVLOOP_NONBLOCK);
 
   const auto rustReads = rust_handler_test_read_callbacks();
   const auto rustWrites = rust_handler_test_write_callbacks();
@@ -507,9 +507,9 @@ PositionTestResult runPositionTest(
   };
 
   pipeline->deactivate();
-  eventBase.loopOnce();
+  eventBase.loopOnce(EVLOOP_NONBLOCK);
   pipeline.reset();
-  eventBase.loopOnce();
+  eventBase.loopOnce(EVLOOP_NONBLOCK);
   return result;
 }
 
@@ -1068,7 +1068,7 @@ StateMachineResult run_state_machine_test() noexcept {
   uint32_t state = rust_handler_phase5_state();
   auto afterRead = pipeline->fireRead(erase_and_box(makeBytes(1, 0xcc)));
   auto afterWrite = pipeline->fireWrite(erase_and_box(makeBytes(1, 0xdd)));
-  bool closeClearedHooks =
+  bool closeClearedWaits =
       !pipeline->hasPendingReadReady() && !pipeline->hasPendingWriteReady();
   ::rust::String finalSeq = rust_handler_phase5_p5_sequence();
 
@@ -1084,7 +1084,7 @@ StateMachineResult run_state_machine_test() noexcept {
       .head_writes = headWrites,
       .removed = removed,
       .inactive = inactive,
-      .closed = closeClearedHooks,
+      .closed = closeClearedWaits,
       .top_level_read_is_error = afterRead == Result::Error,
       .top_level_write_is_error = afterWrite == Result::Error,
   };
@@ -1817,13 +1817,13 @@ ForwardUnknownResult run_forward_unknown_test() noexcept {
           .build();
   CHECK(pipeline);
   pipeline->activate();
-  eventBase.loopOnce();
+  eventBase.loopOnce(EVLOOP_NONBLOCK);
 
   const auto readResult = pipeline->fireRead(erase_and_box(makeBytes(7, 0xab)));
-  eventBase.loopOnce();
+  eventBase.loopOnce(EVLOOP_NONBLOCK);
   const auto writeResult =
       pipeline->fireWrite(erase_and_box(makeBytes(3, 0xcd)));
-  eventBase.loopOnce();
+  eventBase.loopOnce(EVLOOP_NONBLOCK);
 
   using apache::thrift::fast_thrift::channel_pipeline::Result;
   ForwardUnknownResult result{
@@ -1834,9 +1834,9 @@ ForwardUnknownResult run_forward_unknown_test() noexcept {
   };
 
   pipeline->deactivate();
-  eventBase.loopOnce();
+  eventBase.loopOnce(EVLOOP_NONBLOCK);
   pipeline.reset();
-  eventBase.loopOnce();
+  eventBase.loopOnce(EVLOOP_NONBLOCK);
   return result;
 }
 

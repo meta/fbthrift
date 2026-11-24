@@ -57,6 +57,16 @@ class FOLLY_EXPORT CustomException : public virtual apache::thrift::TException {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "CustomException";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "message"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -187,7 +197,6 @@ class FOLLY_EXPORT CustomException : public virtual apache::thrift::TException {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<CustomException>;
   friend void swap(CustomException& a, CustomException& b);
 };
 
@@ -210,6 +219,16 @@ class ShouldBeBoxed final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "ShouldBeBoxed";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "sessionId"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -330,7 +349,6 @@ class ShouldBeBoxed final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<ShouldBeBoxed>;
   friend void swap(ShouldBeBoxed& a, ShouldBeBoxed& b);
 };
 
@@ -347,12 +365,12 @@ unsigned long ShouldBeBoxed::read(Protocol_* iprot) {
 namespace apache::thrift::detail {
 template <> struct TSchemaAssociation<::cpp2::CustomException, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = -5332076339143014214;
-  static constexpr ::std::string_view definitionKey = {"\x6d\xf7\xf7\x52\xf1\x0e\xc6\x2d\x16\x2a\x96\xfd\x3a\x52\xfd\xc8", 16};
+  static constexpr int64_t programId = 9128126991281441442;
+  static constexpr ::std::string_view definitionKey = {"\xdf\x34\x71\x92\x60\x7f\xb8\x2f\xe1\x63\x3e\xa9\xfe\x62\x44\x65", 16};
 };
 template <> struct TSchemaAssociation<::cpp2::ShouldBeBoxed, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = -5332076339143014214;
-  static constexpr ::std::string_view definitionKey = {"\x5f\xd2\x52\xff\x8c\x5f\x08\x5c\xce\x10\xe8\x7b\x23\xbf\x3d\xbf", 16};
+  static constexpr int64_t programId = 9128126991281441442;
+  static constexpr ::std::string_view definitionKey = {"\x20\x56\x73\x63\x13\x3a\x86\xc3\x60\xc5\xe1\x72\x94\x88\x3e\x1d", 16};
 };
 } // namespace apache::thrift::detail

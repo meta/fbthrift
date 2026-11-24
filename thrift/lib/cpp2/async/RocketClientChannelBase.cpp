@@ -35,6 +35,7 @@
 #include <thrift/lib/cpp/protocol/TProtocolTypes.h>
 #include <thrift/lib/cpp/transport/THeader.h>
 #include <thrift/lib/cpp2/Flags.h>
+#include <thrift/lib/cpp2/async/ClientCompressionFlags.h>
 #include <thrift/lib/cpp2/async/ResponseChannel.h>
 #include <thrift/lib/cpp2/async/RpcTypes.h>
 #include <thrift/lib/cpp2/op/Encode.h>
@@ -302,7 +303,7 @@ template <class Handler>
         break;
       case PayloadMetadata::Type::exceptionMetadata: {
         auto& exceptionMetadataBase =
-            payloadMetadataRef->get_exceptionMetadata();
+            payloadMetadataRef->exceptionMetadata().as_const().value();
         auto otherMetadataRef = metadata.otherMetadata();
         if (!otherMetadataRef) {
           otherMetadataRef.emplace();
@@ -484,6 +485,33 @@ void uncompressBufferImpl(
     }
     // Clear the algorithm so the caller-thread decompressResponse() hook (e.g.
     // PooledRequestChannel's) does not decompress these bytes a second time.
+    firstResponse.metadata.compression().reset();
+  } catch (const std::exception& ex) {
+    return folly::make_exception_wrapper<TTransportException>(
+        TTransportException::CORRUPTED_DATA,
+        fmt::format("Response decompression failed: {}", ex.what()));
+  }
+  return {};
+}
+
+// CUSTOM compression is negotiated per connection. A request opting into
+// standard-compressed replies must receive CUSTOM as plaintext, decoded by this
+// connection's payload serializer with the compression marker cleared.
+[[nodiscard]] folly::exception_wrapper decodeCustomCompressedResponse(
+    FirstResponsePayload& firstResponse,
+    rocket::PayloadSerializer& payloadSerializer) {
+  auto compression = firstResponse.metadata.compression();
+  if (!compression || *compression != CompressionAlgorithm::CUSTOM) {
+    return {};
+  }
+  try {
+    if (firstResponse.payloadChain) {
+      firstResponse.payloadChain = payloadSerializer.uncompressBuffer(
+          std::move(*firstResponse.payloadChain), CompressionAlgorithm::CUSTOM);
+    } else {
+      firstResponse.payload = payloadSerializer.uncompressBuffer(
+          std::move(firstResponse.payload), CompressionAlgorithm::CUSTOM);
+    }
     firstResponse.metadata.compression().reset();
   } catch (const std::exception& ex) {
     return folly::make_exception_wrapper<TTransportException>(
@@ -801,7 +829,9 @@ class RocketClientChannelBase::SingleRequestSingleResponseCallback final
         guardedClient_(std::move(guardedClient)),
         skipDecompression_(skipDecompression) {}
 
-  void onWriteSuccess() noexcept override { timeEndSend_ = clock::now(); }
+  void onWriteSuccess(clock::time_point writeTime) noexcept override {
+    timeEndSend_ = writeTime;
+  }
 
   // Note: nominally "private" — this nested class is itself a private
   // implementation detail of RocketClientChannelBase, so this accessor is
@@ -881,6 +911,16 @@ class RocketClientChannelBase::SingleRequestSingleResponseCallback final
             transport,
             fdMetadata.numFds().value_or(0),
             fdMetadata.fdSeqNum().value_or(folly::SocketFds::kNoSeqNum));
+      }
+
+      if (skipDecompression_ &&
+          THRIFT_FLAG(
+              thrift_client_decode_custom_response_when_skipping_decompression)) {
+        if (auto error = decodeCustomCompressedResponse(
+                *response, *guardedClient_.client->getPayloadSerializer())) {
+          cb_.release()->onResponseError(std::move(error));
+          return;
+        }
       }
 
       // processFirstResponse eagerly deserializes exception payloads
@@ -1243,6 +1283,8 @@ void RocketClientChannelBase::sendThriftRequest(
   }
 
   if constexpr (std::is_same_v<Callback, RequestClientCallback::Ptr>) {
+    const bool skipDecompression = header->getAcceptsCompressedResponse() ||
+        apache::thrift::clientCompressRequestOnCpu();
     header.reset(); // avoid extending lifetime past fiber suspension in send*
     switch (kind) {
       case RpcKind::SINGLE_REQUEST_NO_RESPONSE:
@@ -1261,8 +1303,7 @@ void RocketClientChannelBase::sendThriftRequest(
             requestSerializedSize,
             std::move(requestPayload),
             std::move(clientCallback),
-            /*skipDecompression=*/
-            apache::thrift::clientCompressRequestOnCpu());
+            skipDecompression);
         break;
 
       default:

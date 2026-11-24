@@ -268,15 +268,25 @@ bool AnyRegistry::registerType(
 
 namespace detail {
 
+bool registerGeneratedStructImpl(
+    AnyRegistry& registry,
+    const std::type_info& typeInfo,
+    ThriftTypeInfo&& type,
+    std::initializer_list<const AnySerializer*> serializers);
+
+[[noreturn]] void throwGeneratedStructRegistrationError(
+    const AnyRegistry& registry, const ThriftTypeInfo& type);
+
 template <typename T, StandardProtocol... Ps>
 void registerGeneratedStruct() {
   const ThriftTypeInfo& type = getGeneratedThriftTypeInfo<T>();
-  if (!getGeneratedAnyRegistry().registerType<T, Ps...>(type)) {
-    LOG(ERROR) << "Could not register: " << type.uri().value()
-               << ". Registry state: "
-               << getGeneratedAnyRegistry().debugString();
-    folly::throw_exception<std::runtime_error>(
-        "Could not register: " + type.uri().value());
+  auto& registry = getGeneratedAnyRegistry();
+  if (!registerGeneratedStructImpl(
+          registry,
+          typeid(T),
+          folly::copy(type),
+          {&getAnyStandardSerializer<T, Ps>()...})) {
+    throwGeneratedStructRegistrationError(registry, type);
   }
   using Tag = type::infer_tag<T>;
   op::registerStdSerializers<Tag, static_cast<type::StandardProtocol>(Ps)...>(

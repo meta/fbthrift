@@ -17,13 +17,14 @@
 #include <thrift/compiler/generate/cpp/util.h>
 
 #include <algorithm>
+#include <cassert>
 #include <functional>
 #include <memory>
 #include <queue>
 #include <stdexcept>
 
-#include <openssl/evp.h>
-#include <openssl/sha.h>
+#include <openssl/evp.h> // @manual
+#include <openssl/sha.h> // @manual
 
 #include <fmt/core.h>
 
@@ -36,6 +37,7 @@
 #include <thrift/compiler/ast/t_struct.h>
 #include <thrift/compiler/ast/t_typedef.h>
 #include <thrift/compiler/ast/uri.h>
+#include <thrift/compiler/generate/cpp/allocator.h>
 #include <thrift/compiler/generate/cpp/name_resolver.h>
 
 namespace apache::thrift::compiler::cpp2 {
@@ -65,18 +67,14 @@ const std::unordered_set<std::string>& get_template_exceptions() {
     for (auto& type : {
              "folly::F14NodeMap",
              "folly::F14VectorMap",
-             "folly::small_vector_map",
              "folly::sorted_vector_map",
 
              "folly::F14NodeSet",
              "folly::F14VectorSet",
-             "folly::small_vector_set",
              "folly::sorted_vector_set",
 
              "std::forward_list",
              "std::list",
-
-             "::apache::thrift::metadata::detail::LimitedVector",
          }) {
       s.insert(type);
       s.insert(fmt::format("::{}", type));
@@ -94,19 +92,9 @@ bool field_cpp_type_supports_incomplete_params(const t_field& field) {
   if (!annot) {
     return true;
   }
-  const auto& exceptions = get_template_exceptions();
-  if (auto* tmpl =
-          annot->get_value_from_structured_annotation_or_null("template")) {
-    return exceptions.count(tmpl->get_string()) > 0;
-  }
-  if (auto* name =
-          annot->get_value_from_structured_annotation_or_null("name")) {
-    auto cpp_template =
-        name->get_string().substr(0, name->get_string().find('<'));
-    return exceptions.count(cpp_template) > 0;
-  }
-  // Has @cpp.Type but no template or name — assume requires complete types.
-  return false;
+  auto* tmpl = annot->get_value_from_structured_annotation_or_null("template");
+  return tmpl != nullptr &&
+      get_template_exceptions().contains(tmpl->get_string());
 }
 
 } // namespace
@@ -123,6 +111,53 @@ bool is_custom_type(const t_field& field) {
       is_custom_type(*field.type());
 }
 
+bool has_arena_fields(const t_structured& strct) {
+  return std::any_of(
+      strct.fields().begin(), strct.fields().end(), is_arena_field);
+}
+
+namespace {
+// Whether a level of `type` is adapted or is a `std::unique_ptr<folly::IOBuf>`,
+// which `pmr::Rebind` can't map.
+bool has_unsupported_arena_level(const t_type& type) {
+  if (t_typedef::get_first_structured_annotation_or_null(
+          &type, kCppAdapterUri) != nullptr ||
+      is_binary_iobuf_unique_ptr(&type)) {
+    return true;
+  }
+  const t_type* true_type = type.get_true_type();
+  assert(true_type != nullptr);
+  if (const auto* list = true_type->try_as<t_list>()) {
+    return has_unsupported_arena_level(*list->elem_type());
+  }
+  if (const auto* set = true_type->try_as<t_set>()) {
+    return has_unsupported_arena_level(*set->elem_type());
+  }
+  if (const auto* map = true_type->try_as<t_map>()) {
+    return has_unsupported_arena_level(*map->key_type()) ||
+        has_unsupported_arena_level(*map->val_type());
+  }
+  return false;
+}
+
+// Callers check for `folly::IOBuf` themselves, because a field's own
+// `@cpp.Type` overrides its type's.
+bool is_arena_rebindable(const t_type& type) {
+  const t_type* true_type = type.get_true_type();
+  assert(true_type != nullptr);
+  return (true_type->is_string_or_binary() || true_type->is<t_container>() ||
+          is_allocator_aware(*true_type)) &&
+      !has_unsupported_arena_level(type);
+}
+} // namespace
+
+bool is_arena_supported(const t_field& field) {
+  return is_arena_rebindable(*field.type()) &&
+      field.default_value() == nullptr && !is_ref(&field) && !is_lazy(&field) &&
+      !is_binary_iobuf(field) &&
+      !field.has_structured_annotation(kCppAdapterUri);
+}
+
 bool container_supports_incomplete_params(const t_type& type) {
   if (t_typedef::get_first_structured_annotation_or_null(
           &type,
@@ -134,25 +169,13 @@ bool container_supports_incomplete_params(const t_type& type) {
     return true;
   }
 
-  const auto& template_exceptions = get_template_exceptions();
   if (auto* annot = t_typedef::get_first_structured_annotation_or_null(
           &type, kCppTypeUri)) {
     if (auto* tmpl =
             annot->get_value_from_structured_annotation_or_null("template")) {
-      if (template_exceptions.count(tmpl->get_string())) {
-        return true;
-      }
-    }
-    if (auto* name =
-            annot->get_value_from_structured_annotation_or_null("name")) {
-      auto cpp_template =
-          name->get_string().substr(0, name->get_string().find('<'));
-      if (template_exceptions.count(cpp_template)) {
-        return true;
-      }
+      return get_template_exceptions().contains(tmpl->get_string());
     }
   }
-
   return false;
 }
 
@@ -285,10 +308,10 @@ std::string_view get_type(const t_type* type) {
   return value_or_empty(cpp_name_resolver::find_type(*type));
 }
 
-bool is_binary_iobuf_unique_ptr(const t_type* type) {
+std::string_view binary_cpp_type(const t_type* type) {
   auto const* resolved_typedef = type->get_true_type();
   if (resolved_typedef == nullptr || !resolved_typedef->is_binary()) {
-    return false;
+    return {};
   }
   // Check for cpp.type on the true type (legacy unstructured annotations)
   // or on any typedef in the chain (structured @cpp.Type).
@@ -302,23 +325,44 @@ bool is_binary_iobuf_unique_ptr(const t_type* type) {
       }
     }
   }
+  return type_str;
+}
+
+std::string_view binary_cpp_type(const t_field& field) {
+  if (auto* annot = field.find_structured_annotation_or_null(kCppTypeUri)) {
+    if (auto* name =
+            annot->get_value_from_structured_annotation_or_null("name")) {
+      return field.type().deref().get_true_type()->is_binary()
+          ? std::string_view(name->get_string())
+          : std::string_view();
+    }
+  }
+  return binary_cpp_type(&field.type().deref());
+}
+
+namespace {
+
+bool is_iobuf_unique_ptr(std::string_view type_str) {
   return contains(type_str, "std::unique_ptr") &&
       contains(type_str, "folly::IOBuf");
 }
 
+} // namespace
+
+bool is_binary_iobuf(const t_type* type) {
+  return contains(binary_cpp_type(type), "folly::IOBuf");
+}
+
+bool is_binary_iobuf(const t_field& field) {
+  return contains(binary_cpp_type(field), "folly::IOBuf");
+}
+
+bool is_binary_iobuf_unique_ptr(const t_type* type) {
+  return is_iobuf_unique_ptr(binary_cpp_type(type));
+}
+
 bool is_binary_iobuf_unique_ptr(const t_field& field) {
-  // Check field-level @cpp.Type annotation first.
-  if (auto* annot = field.find_structured_annotation_or_null(kCppTypeUri)) {
-    if (auto* name =
-            annot->get_value_from_structured_annotation_or_null("name")) {
-      const auto& type_str = name->get_string();
-      return field.type().deref().get_true_type()->is_binary() &&
-          contains(type_str, "std::unique_ptr") &&
-          contains(type_str, "folly::IOBuf");
-    }
-  }
-  // Fall back to type-level check (for typedef-level @cpp.Type).
-  return is_binary_iobuf_unique_ptr(&field.type().deref());
+  return is_iobuf_unique_ptr(binary_cpp_type(field));
 }
 
 bool field_transitively_refers_to_unique(const t_field* field) {
@@ -385,8 +429,9 @@ bool is_eligible_for_constexpr::operator()(const t_type* type) {
     } else if (t->is<t_union>() || t->is<t_exception>()) {
       // Union and exception constructors are not defaulted.
       result = false;
-    } else if (t->has_unstructured_annotation(
-                   {"cpp.virtual", "cpp2.virtual", "cpp.allocator"})) {
+    } else if (
+        t->has_unstructured_annotation({"cpp.virtual", "cpp2.virtual"}) ||
+        is_allocator_aware(*t)) {
       result = false;
     } else {
       return eligible::unknown;

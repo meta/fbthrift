@@ -75,6 +75,7 @@ namespace apache::thrift::detail::qualifier {
 // END hash_and_equal_to
 namespace apache::thrift::test {
 
+/** Example struct demonstrating @thrift.Deprecated annotation on fields. */
 /** Glean {"file": "thrift/compiler/test/fixtures/deprecated/src/module.thrift", "name": "User", "kind": "struct" } */
 class User final  {
  private:
@@ -87,6 +88,16 @@ class User final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "facebook.com/thrift/test/User";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "User";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "id", "name", "full_name", "email", "email_address"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -190,6 +201,7 @@ class User final  {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_id), __isset.at(0), __isset.bit(0)};
   }
 
+  /** @deprecated Use 'full_name' instead */
   /** Glean { "field": "name" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("Use 'full_name' instead")]]
@@ -197,6 +209,7 @@ class User final  {
     return {this->__fbthrift_field_name, __isset.at(1), __isset.bit(1)};
   }
 
+  /** @deprecated Use 'full_name' instead */
   /** Glean { "field": "name" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("Use 'full_name' instead")]]
@@ -204,6 +217,7 @@ class User final  {
     return {this->__fbthrift_field_name, __isset.at(1), __isset.bit(1)};
   }
 
+  /** @deprecated Use 'full_name' instead */
   /** Glean { "field": "name" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("Use 'full_name' instead")]]
@@ -211,6 +225,7 @@ class User final  {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_name), __isset.at(1), __isset.bit(1)};
   }
 
+  /** @deprecated Use 'full_name' instead */
   /** Glean { "field": "name" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("Use 'full_name' instead")]]
@@ -218,6 +233,7 @@ class User final  {
     return {this->__fbthrift_field_name, __isset.at(1), __isset.bit(1)};
   }
 
+  /** @deprecated Use 'full_name' instead */
   /** Glean { "field": "name" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("Use 'full_name' instead")]]
@@ -225,6 +241,7 @@ class User final  {
     return {this->__fbthrift_field_name, __isset.at(1), __isset.bit(1)};
   }
 
+  /** @deprecated Use 'full_name' instead */
   /** Glean { "field": "name" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("Use 'full_name' instead")]]
@@ -268,6 +285,7 @@ class User final  {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_full_name), __isset.at(2), __isset.bit(2)};
   }
 
+  /** @deprecated This field is no longer used */
   /** Glean { "field": "email" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("This field is no longer used")]]
@@ -275,6 +293,7 @@ class User final  {
     return {this->__fbthrift_field_email, __isset.at(3), __isset.bit(3)};
   }
 
+  /** @deprecated This field is no longer used */
   /** Glean { "field": "email" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("This field is no longer used")]]
@@ -282,6 +301,7 @@ class User final  {
     return {this->__fbthrift_field_email, __isset.at(3), __isset.bit(3)};
   }
 
+  /** @deprecated This field is no longer used */
   /** Glean { "field": "email" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("This field is no longer used")]]
@@ -289,6 +309,7 @@ class User final  {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_email), __isset.at(3), __isset.bit(3)};
   }
 
+  /** @deprecated This field is no longer used */
   /** Glean { "field": "email" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("This field is no longer used")]]
@@ -296,6 +317,7 @@ class User final  {
     return {this->__fbthrift_field_email, __isset.at(3), __isset.bit(3)};
   }
 
+  /** @deprecated This field is no longer used */
   /** Glean { "field": "email" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("This field is no longer used")]]
@@ -303,6 +325,7 @@ class User final  {
     return {this->__fbthrift_field_email, __isset.at(3), __isset.bit(3)};
   }
 
+  /** @deprecated This field is no longer used */
   /** Glean { "field": "email" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("This field is no longer used")]]
@@ -443,7 +466,6 @@ class User final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<User>;
   friend void swap(User& a, User& b);
 };
 
@@ -455,6 +477,7 @@ unsigned long User::read(Protocol_* iprot) {
 }
 
 
+/** Example union with deprecated field. */
 /** Glean {"file": "thrift/compiler/test/fixtures/deprecated/src/module.thrift", "name": "ExampleUnion", "kind": "union" } */
 class ExampleUnion final  {
  private:
@@ -467,6 +490,11 @@ class ExampleUnion final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "facebook.com/thrift/test/ExampleUnion";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "ExampleUnion";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "stringValue", "intValue", "doubleValue"
+  };
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -514,38 +542,7 @@ class ExampleUnion final  {
 
   ExampleUnion(const ExampleUnion& rhs);
 
-  ExampleUnion& operator=(ExampleUnion&& rhs) noexcept {
-    if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-      {
-        __fbthrift_clear();
-        return *this;
-      }
-      case Type::stringValue:
-      {
-        set_stringValue(std::move(rhs.value_.stringValue));
-        break;
-      }
-      case Type::intValue:
-      {
-        set_intValue(std::move(rhs.value_.intValue));
-        break;
-      }
-      case Type::doubleValue:
-      {
-        set_doubleValue(std::move(rhs.value_.doubleValue));
-        break;
-      }
-      default:
-      {
-        assert(false);
-        __fbthrift_clear();
-      }
-    }
-    apache::thrift::clear(rhs);
-    return *this;
-  }
+  ExampleUnion& operator=(ExampleUnion&& rhs) noexcept;
 
   ExampleUnion& operator=(const ExampleUnion& rhs);
 
@@ -619,6 +616,7 @@ class ExampleUnion final  {
 
 
   /** Glean { "field": "stringValue" } */
+  [[deprecated("Use `FOO.stringValue().value()` instead of `FOO.get_stringValue()`")]]
   ::std::string const& get_stringValue() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::stringValue) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -627,6 +625,7 @@ class ExampleUnion final  {
   }
 
   /** Glean { "field": "intValue" } */
+  [[deprecated("Use `FOO.intValue().value()` instead of `FOO.get_intValue()`")]]
   ::std::int32_t const& get_intValue() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::intValue) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -635,6 +634,7 @@ class ExampleUnion final  {
   }
 
   /** Glean { "field": "doubleValue" } */
+  [[deprecated("Use `FOO.doubleValue().value()` instead of `FOO.get_doubleValue()`")]]
   double const& get_doubleValue() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::doubleValue) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -795,7 +795,6 @@ class ExampleUnion final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<ExampleUnion>;
   friend void swap(ExampleUnion& a, ExampleUnion& b);
 };
 

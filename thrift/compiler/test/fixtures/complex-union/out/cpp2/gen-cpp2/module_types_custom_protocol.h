@@ -59,7 +59,7 @@ void ComplexUnion::readNoXfer(Protocol_* iprot) {
         if (_readState.isCompatibleWithType(iprot, apache::thrift::protocol::TType::T_LIST)) {
           this->intListValue_ref().emplace();
           _readState.beforeSubobject(iprot);
-          value_.intListValue = ::std::vector<::std::int64_t>();
+          ::apache::thrift::detail::reset_container_field_for_read(value_.intListValue);
           ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int64_t>, ::apache::thrift::type::list<::apache::thrift::type::i64_t>>::read(*iprot, value_.intListValue);
           _readState.afterSubobject(iprot);
         } else {
@@ -72,7 +72,7 @@ void ComplexUnion::readNoXfer(Protocol_* iprot) {
         if (_readState.isCompatibleWithType(iprot, apache::thrift::protocol::TType::T_LIST)) {
           this->stringListValue_ref().emplace();
           _readState.beforeSubobject(iprot);
-          value_.stringListValue = ::std::vector<::std::string>();
+          ::apache::thrift::detail::reset_container_field_for_read(value_.stringListValue);
           ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::string>, ::std::vector<::std::string>, ::apache::thrift::type::list<::apache::thrift::type::string_t>>::read(*iprot, value_.stringListValue);
           _readState.afterSubobject(iprot);
         } else {
@@ -85,7 +85,7 @@ void ComplexUnion::readNoXfer(Protocol_* iprot) {
         if (_readState.isCompatibleWithType(iprot, apache::thrift::protocol::TType::T_MAP)) {
           this->typedefValue_ref().emplace();
           _readState.beforeSubobject(iprot);
-          value_.typedefValue = ::cpp2::containerTypedef();
+          ::apache::thrift::detail::reset_container_field_for_read(value_.typedefValue);
           ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::integral, ::apache::thrift::type_class::string>, ::cpp2::containerTypedef, ::apache::thrift::type::map<::apache::thrift::type::i16_t, ::apache::thrift::type::string_t>>::read(*iprot, value_.typedefValue);
           _readState.afterSubobject(iprot);
         } else {
@@ -160,6 +160,8 @@ uint32_t ComplexUnion::serializedSize(Protocol_ const* prot_) const {
       xfer += prot_->serializedFieldSize("stringRef", apache::thrift::protocol::TType::T_STRING, 14);
       if (value_.stringRef) {
         xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, ::std::string, ::apache::thrift::type::string_t>::serializedSize<false>(*prot_, *value_.stringRef);
+      } else {
+        xfer += prot_->serializedSizeString("");
       }
       break;
     }
@@ -212,6 +214,8 @@ uint32_t ComplexUnion::serializedSizeZC(Protocol_ const* prot_) const {
       xfer += prot_->serializedFieldSize("stringRef", apache::thrift::protocol::TType::T_STRING, 14);
       if (value_.stringRef) {
         xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, ::std::string, ::apache::thrift::type::string_t>::serializedSize<false>(*prot_, *value_.stringRef);
+      } else {
+        xfer += prot_->serializedSizeString("");
       }
       break;
     }
@@ -275,6 +279,8 @@ uint32_t ComplexUnion::write(Protocol_* prot_) const {
       xfer += ::apache::thrift::detail::writeFieldBegin<apache::thrift::protocol::TType::T_STRING, 14, kPrevFieldId>(*prot_, "stringRef", false);
       if (value_.stringRef) {
         xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, ::std::string, ::apache::thrift::type::string_t>::write(*prot_, *value_.stringRef);
+      } else {
+        xfer += prot_->writeString("");
       }
       xfer += prot_->writeFieldEnd();
       break;
@@ -319,7 +325,7 @@ void ListUnion::readNoXfer(Protocol_* iprot) {
         if (_readState.isCompatibleWithType(iprot, apache::thrift::protocol::TType::T_LIST)) {
           this->intListValue_ref().emplace();
           _readState.beforeSubobject(iprot);
-          value_.intListValue = ::std::vector<::std::int64_t>();
+          ::apache::thrift::detail::reset_container_field_for_read(value_.intListValue);
           ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int64_t>, ::apache::thrift::type::list<::apache::thrift::type::i64_t>>::read(*iprot, value_.intListValue);
           _readState.afterSubobject(iprot);
         } else {
@@ -332,7 +338,7 @@ void ListUnion::readNoXfer(Protocol_* iprot) {
         if (_readState.isCompatibleWithType(iprot, apache::thrift::protocol::TType::T_LIST)) {
           this->stringListValue_ref().emplace();
           _readState.beforeSubobject(iprot);
-          value_.stringListValue = ::std::vector<::std::string>();
+          ::apache::thrift::detail::reset_container_field_for_read(value_.stringListValue);
           ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::string>, ::std::vector<::std::string>, ::apache::thrift::type::list<::apache::thrift::type::string_t>>::read(*iprot, value_.stringListValue);
           _readState.afterSubobject(iprot);
         } else {
@@ -636,7 +642,7 @@ _readField_intVal:
 _readField_typedefValue:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_typedefValue = ::cpp2::containerTypedef();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_typedefValue);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::integral, ::apache::thrift::type_class::string>, ::cpp2::containerTypedef, ::apache::thrift::type::map<::apache::thrift::type::i16_t, ::apache::thrift::type::string_t>>::read(*iprot, this->__fbthrift_field_typedefValue);
     _readState.afterSubobject(iprot);
   }
@@ -655,7 +661,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -1116,7 +1121,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:

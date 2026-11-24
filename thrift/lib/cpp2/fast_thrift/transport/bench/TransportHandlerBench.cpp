@@ -33,7 +33,7 @@
 #include <folly/portability/GMock.h>
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
 #include <thrift/lib/cpp2/fast_thrift/transport/TransportHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/transport/test/PassthroughParser.h>
@@ -119,9 +119,8 @@ class BenchEndpointHandler {
   BenchEndpointHandler() = default;
 
   // TailEndpointHandler interface
-  Result onRead(
-      apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
-      TypeErasedBox&&) noexcept {
+  template <typename Context>
+  Result onRead(Context&, TypeErasedBox&&) noexcept {
     return Result::Success;
   }
 
@@ -154,7 +153,7 @@ auto createHandlerAndPipeline(
   auto handler = apache::thrift::fast_thrift::transport::test::
       PassthroughTransportHandler::create(std::move(socket), 256, 4096);
 
-  auto pipeline = PipelineBuilder<
+  auto pipeline = StaticPipelineBuilder<
                       apache::thrift::fast_thrift::transport::test::
                           PassthroughTransportHandler,
                       BenchEndpointHandler,

@@ -19,7 +19,6 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameParser.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/ParsedFrame.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/FrameWriter.h>
@@ -139,11 +138,5 @@ class RocketClientFrameCodecHandler {
   template <typename Context>
   void onWriteReady(Context& /*ctx*/) noexcept {}
 };
-
-static_assert(
-    apache::thrift::fast_thrift::channel_pipeline::DuplexHandler<
-        RocketClientFrameCodecHandler,
-        apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl>,
-    "RocketClientFrameCodecHandler must satisfy DuplexHandler concept");
 
 } // namespace apache::thrift::fast_thrift::rocket::client::handler

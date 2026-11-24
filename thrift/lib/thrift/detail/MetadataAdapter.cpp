@@ -20,8 +20,7 @@
 namespace apache::thrift::metadata {
 
 const ThriftConstStruct* findStructuredAnnotation(
-    const detail::LimitedVector<ThriftConstStruct>& annotations,
-    std::string_view name) {
+    const std::vector<ThriftConstStruct>& annotations, std::string_view name) {
   for (const auto& i : annotations) {
     if (i.type()->name() == name) {
       return &i;
@@ -30,8 +29,7 @@ const ThriftConstStruct* findStructuredAnnotation(
   return nullptr;
 }
 const ThriftConstStruct& findStructuredAnnotationOrThrow(
-    const detail::LimitedVector<ThriftConstStruct>& annotations,
-    std::string_view name) {
+    const std::vector<ThriftConstStruct>& annotations, std::string_view name) {
   if (const auto* p = findStructuredAnnotation(annotations, name)) {
     return *p;
   }

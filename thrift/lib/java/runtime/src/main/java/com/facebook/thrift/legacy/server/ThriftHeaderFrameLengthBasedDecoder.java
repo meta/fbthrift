@@ -16,6 +16,9 @@
 
 package com.facebook.thrift.legacy.server;
 
+import static com.facebook.thrift.util.ThriftProtocolConstants.BIG_FRAME_MAGIC;
+import static com.facebook.thrift.util.ThriftProtocolConstants.MAX_FRAME_SIZE;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
@@ -53,10 +56,10 @@ import java.util.List;
  * return the frame to next handler.
  */
 public class ThriftHeaderFrameLengthBasedDecoder extends ByteToMessageDecoder {
-  private static final int MAX_FRAME_LENGTH = 0x3FFFFFFF + 4;
+  private static final int MAX_FRAME_LENGTH = MAX_FRAME_SIZE + 4;
   private static final int MAX_BIG_FRAME_LENGTH = Integer.MAX_VALUE;
-  private static final long BIG_FRAME_MAGIC = 0x42494746L;
-  private Integer maxFrameLength;
+  private final Integer maxFrameLength;
+  private long frameLengthLimit;
   private int frameLengthInt = -1;
   private boolean discardingTooLongFrame;
   private long bytesToDiscard;
@@ -107,9 +110,9 @@ public class ThriftHeaderFrameLengthBasedDecoder extends ByteToMessageDecoder {
         // Big frame detected: read 8-byte length and adjust size to 12 bytes total
         frameLength = in.getLong(index + 4);
         lengthFieldSize = 12;
-        maxFrameLength = maxFrameLength == null ? MAX_BIG_FRAME_LENGTH : maxFrameLength;
+        frameLengthLimit = maxFrameLength == null ? MAX_BIG_FRAME_LENGTH : maxFrameLength;
       } else {
-        maxFrameLength = maxFrameLength == null ? MAX_FRAME_LENGTH : maxFrameLength;
+        frameLengthLimit = maxFrameLength == null ? MAX_FRAME_LENGTH : maxFrameLength;
       }
 
       if (frameLength < 0) {
@@ -123,11 +126,11 @@ public class ThriftHeaderFrameLengthBasedDecoder extends ByteToMessageDecoder {
         failOnFrameLengthLessThanLengthFieldEndOffset(in, frameLength, lengthFieldSize);
       }
 
-      if (frameLength > maxFrameLength) {
+      if (frameLength > frameLengthLimit) {
         exceededFrameLength(in, frameLength);
         return null;
       }
-      // never overflows because it's less than maxFrameLength
+      // never overflows because it's less than frameLengthLimit
       frameLengthInt = (int) frameLength;
     }
 
@@ -212,10 +215,14 @@ public class ThriftHeaderFrameLengthBasedDecoder extends ByteToMessageDecoder {
   private void fail(long frameLength) {
     if (frameLength > 0) {
       throw new TooLongFrameException(
-          "Adjusted frame length exceeds " + maxFrameLength + ": " + frameLength + " - discarded");
+          "Adjusted frame length exceeds "
+              + frameLengthLimit
+              + ": "
+              + frameLength
+              + " - discarded");
     } else {
       throw new TooLongFrameException(
-          "Adjusted frame length exceeds " + maxFrameLength + " - discarding");
+          "Adjusted frame length exceeds " + frameLengthLimit + " - discarding");
     }
   }
 

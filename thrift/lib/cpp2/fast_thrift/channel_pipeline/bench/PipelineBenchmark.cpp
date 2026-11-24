@@ -21,7 +21,6 @@
  * All message allocation happens outside the timing loop.
  */
 
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Backpressure.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/ContextHandle.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
@@ -208,10 +207,8 @@ struct EchoHandler {
 
 // Backpressure handler
 
-// Backpressure handler - has hook for intrusive list registration
 // Simulates a handler that registers for write ready notifications
 struct BackpressureHandler {
-  WriteReadyHook writeReadyHook_;
   uint64_t write_count{0};
   uint64_t write_ready_count{0};
   bool register_on_write{true};
@@ -247,10 +244,8 @@ struct BackpressureHandler {
   void handlerRemoved(detail::ContextImpl&) noexcept {}
 };
 
-// Read backpressure handler - has hook for intrusive list registration
 // Simulates a handler that registers for read ready notifications
 struct ReadBackpressureHandler {
-  ReadReadyHook readReadyHook_;
   uint64_t read_count{0};
   uint64_t read_ready_count{0};
   bool register_on_read{true};
@@ -1605,11 +1600,11 @@ BENCHMARK_DRAW_LINE();
 
 // =============================================================================
 // Backpressure Benchmarks
-// Measures overhead of intrusive list registration/unregistration and callbacks
+// Measures overhead of ready registration/unregistration and callbacks
 // =============================================================================
 
 // Measures the overhead of awaitWriteReady + cancelAwaitWriteReady cycle
-// This is pure intrusive list push_back + unlink cost
+// This is pure bit set + clear cost
 BENCHMARK(Backpressure_RegisterUnregister_1Handler, iters) {
   folly::BenchmarkSuspender susp;
   folly::EventBase evb;
@@ -1670,9 +1665,9 @@ BENCHMARK(Pipeline_FireWrite_Backpressure_ResumeWrite, iters) {
   susp.dismiss();
 
   // Measure repeated onWriteReady calls
-  // Handler unlinks then re-registers via the fireWrite call
+  // Handler unregisters then re-registers via the fireWrite call
   for (size_t i = 0; i < iters; ++i) {
-    pipeline->onWriteReady(); // Calls callback, handler unlinks
+    pipeline->onWriteReady(); // Calls callback, handler unregisters
     // Re-register for next iteration (clone is cheap, no heap allocation)
     (void)pipeline->fireWrite(TypeErasedBox(templateBuf->clone()));
   }
@@ -1852,7 +1847,7 @@ BENCHMARK(Pipeline_FireRead_Backpressure_ResumeRead, iters) {
   susp.dismiss();
 
   for (size_t i = 0; i < iters; ++i) {
-    pipeline->onReadReady(); // Calls callback, handler unlinks
+    pipeline->onReadReady(); // Calls callback, handler unregisters
     (void)pipeline->fireRead(TypeErasedBox(static_cast<int>(i))); // Re-register
   }
 

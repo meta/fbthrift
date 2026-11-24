@@ -1,0 +1,1056 @@
+/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include <compare>
+#include <cstddef>
+#include <cstdint>
+#include <deque>
+#include <limits>
+#include <map>
+#include <memory_resource>
+#include <optional>
+#include <set>
+#include <sstream>
+#include <string>
+#include <string_view>
+#include <type_traits>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
+#include <gtest/gtest.h>
+#include <folly/io/IOBuf.h>
+
+#include <thrift/lib/cpp2/op/Compare.h>
+#include <thrift/lib/cpp2/op/Get.h>
+#include <thrift/lib/cpp2/op/Hash.h>
+#include <thrift/lib/cpp2/pmr/ArenaResource.h>
+#include <thrift/lib/cpp2/pmr/Rebind.h>
+#include <thrift/lib/cpp2/pmr/Teardown.h>
+#include <thrift/lib/cpp2/protocol/DebugProtocol.h>
+#include <thrift/lib/cpp2/protocol/Json5Protocol.h>
+#include <thrift/lib/cpp2/protocol/Serializer.h>
+#include <thrift/test/gen-cpp2/CppArenaPmrTest_types.h>
+#include <thrift/test/gen-cpp2/CppArenaPmrTest_types_custom_protocol.h>
+
+namespace apache::thrift::test::arena_pmr {
+namespace {
+
+namespace t = ::apache::thrift::type;
+
+// The C++ type `@cpp.Arena` gives a level whose C++ type is `N` without it.
+template <class N>
+using R = typename ::apache::thrift::pmr::Rebind<N>::type;
+
+// The tag of a string, binary or container level whose C++ type is `N`
+// without `@cpp.Arena` and whose Thrift tag is `Tag`, built from its rebound
+// children.
+template <class N, class Tag>
+using A = t::cpp_type<R<N>, Tag>;
+
+using S = std::string;
+using I = std::int32_t;
+
+// Whether the field has the C++ type and type tag that `@cpp.Arena` gives a
+// field whose C++ type is `Native` and whose Thrift tag is `Tag` without it.
+template <class Struct, class Id, class Native, class Tag>
+constexpr bool kIsArenaField =
+    std::is_same_v<op::get_native_type<Struct, Id>, R<Native>> &&
+    std::is_same_v<op::get_type_tag<Struct, Id>, A<Native, Tag>>;
+
+static_assert(std::is_same_v<
+              Strings::allocator_type,
+              std::pmr::polymorphic_allocator<std::byte>>);
+static_assert(kIsArenaField<Strings, ident::name, S, t::string_t>);
+static_assert(kIsArenaField<Strings, ident::data, S, t::binary_t>);
+static_assert(kIsArenaField<Strings, ident::nickname, S, t::string_t>);
+static_assert(kIsArenaField<Strings, ident::terse_name, S, t::string_t>);
+static_assert(
+    std::is_same_v<op::get_native_type<Strings, ident::id>, std::int64_t>);
+static_assert(std::is_same_v<op::get_native_type<Strings, ident::plain>, S>);
+static_assert(
+    std::is_same_v<op::get_type_tag<Strings, ident::plain>, t::string_t>);
+static_assert(std::is_same_v<R<S>, std::pmr::string>);
+
+static_assert(kIsArenaField<
+              Containers,
+              ident::names,
+              std::vector<S>,
+              t::list<A<S, t::string_t>>>);
+static_assert(kIsArenaField<
+              Containers,
+              ident::tags,
+              std::set<S>,
+              t::set<A<S, t::string_t>>>);
+static_assert(kIsArenaField<
+              Containers,
+              ident::groups,
+              std::map<S, std::set<I>>,
+              t::map<A<S, t::string_t>, A<std::set<I>, t::set<t::i32_t>>>>);
+static_assert(kIsArenaField<
+              Containers,
+              ident::matrix,
+              std::vector<std::vector<S>>,
+              t::list<A<std::vector<S>, t::list<A<S, t::string_t>>>>>);
+static_assert(kIsArenaField<
+              Containers,
+              ident::blobs,
+              std::map<S, std::vector<S>>,
+              t::map<
+                  A<S, t::string_t>,
+                  A<std::vector<S>, t::list<A<S, t::binary_t>>>>>);
+static_assert(
+    kIsArenaField<
+        Containers,
+        ident::nested,
+        std::vector<std::map<I, std::set<S>>>,
+        t::list<
+            A<std::map<I, std::set<S>>,
+              t::map<t::i32_t, A<std::set<S>, t::set<A<S, t::binary_t>>>>>>>);
+static_assert(kIsArenaField<
+              Containers,
+              ident::values,
+              std::vector<double>,
+              t::list<t::double_t>>);
+static_assert(kIsArenaField<
+              Containers,
+              ident::by_color,
+              std::map<Color, S>,
+              t::map<t::enum_t<Color>, A<S, t::string_t>>>);
+static_assert(kIsArenaField<
+              Containers,
+              ident::maybe,
+              std::vector<S>,
+              t::list<A<S, t::string_t>>>);
+static_assert(kIsArenaField<
+              Containers,
+              ident::terse_tags,
+              std::set<S>,
+              t::set<A<S, t::string_t>>>);
+static_assert(
+    std::is_same_v<
+        op::get_native_type<Containers, ident::nested>,
+        std::pmr::vector<std::pmr::map<I, std::pmr::set<std::pmr::string>>>>);
+
+static_assert(kIsArenaField<
+              StructElements,
+              ident::plains,
+              std::vector<PlainInner>,
+              t::list<t::struct_t<PlainInner>>>);
+static_assert(kIsArenaField<
+              StructElements,
+              ident::plain_by_name,
+              std::map<S, PlainInner>,
+              t::map<A<S, t::string_t>, t::struct_t<PlainInner>>>);
+static_assert(kIsArenaField<
+              StructElements,
+              ident::arenas,
+              std::vector<ArenaInner>,
+              t::list<t::struct_t<ArenaInner>>>);
+static_assert(kIsArenaField<
+              StructElements,
+              ident::arena_by_name,
+              std::map<S, ArenaInner>,
+              t::map<A<S, t::string_t>, t::struct_t<ArenaInner>>>);
+static_assert(kIsArenaField<WholeStruct, ident::name, S, t::string_t>);
+static_assert(kIsArenaField<
+              WholeStruct,
+              ident::groups,
+              std::map<S, std::vector<S>>,
+              t::map<
+                  A<S, t::string_t>,
+                  A<std::vector<S>, t::list<A<S, t::string_t>>>>>);
+static_assert(
+    std::is_same_v<op::get_native_type<WholeStruct, ident::id>, std::int64_t>);
+static_assert(kIsArenaField<ArenaUnion, ident::name, S, t::string_t>);
+static_assert(kIsArenaField<
+              ArenaUnion,
+              ident::names,
+              std::vector<S>,
+              t::list<A<S, t::string_t>>>);
+static_assert(kIsArenaField<WholeUnion, ident::name, S, t::string_t>);
+static_assert(kIsArenaField<
+              WholeUnion,
+              ident::groups,
+              std::map<S, std::vector<S>>,
+              t::map<
+                  A<S, t::string_t>,
+                  A<std::vector<S>, t::list<A<S, t::string_t>>>>>);
+static_assert(
+    std::is_same_v<op::get_native_type<WholeUnion, ident::id>, std::int64_t>);
+
+static_assert(kIsArenaField<
+              Typedefs,
+              ident::names,
+              Names,
+              t::list<A<Name, t::string_t>>>);
+static_assert(
+    kIsArenaField<
+        Typedefs,
+        ident::by_name,
+        std::map<Name, Names>,
+        t::map<A<Name, t::string_t>, A<Names, t::list<A<Name, t::string_t>>>>>);
+
+static_assert(kIsArenaField<
+              CustomTypes,
+              ident::by_name,
+              std::unordered_map<S, std::deque<S>>,
+              t::map<
+                  A<S, t::string_t>,
+                  A<std::deque<S>, t::list<A<S, t::string_t>>>>>);
+static_assert(kIsArenaField<
+              CustomTypes,
+              ident::pmr_string,
+              std::pmr::string,
+              t::string_t>);
+static_assert(kIsArenaField<
+              CustomTypes,
+              ident::u32s,
+              std::vector<std::uint32_t>,
+              t::list<t::cpp_type<std::uint32_t, t::i32_t>>>);
+static_assert(std::is_same_v<
+              op::get_native_type<CustomTypes, ident::iobufs>,
+              std::pmr::map<std::pmr::string, folly::IOBuf>>);
+
+// PlainInner has no `@cpp.Arena`, so its members keep their types.
+static_assert(std::is_same_v<op::get_native_type<PlainInner, ident::name>, S>);
+static_assert(std::uses_allocator_v<
+              ArenaInner,
+              std::pmr::polymorphic_allocator<ArenaInner>>);
+static_assert(!std::uses_allocator_v<
+              PlainInner,
+              std::pmr::polymorphic_allocator<PlainInner>>);
+static_assert(std::uses_allocator_v<
+              ArenaUnion,
+              std::pmr::polymorphic_allocator<ArenaUnion>>);
+
+static_assert(pmr::allocate_all_memory_via_memory_resource_v<Scalars>);
+static_assert(!pmr::allocate_all_memory_via_memory_resource_v<PlainInner>);
+static_assert(pmr::allocate_all_memory_via_memory_resource_v<Containers>);
+static_assert(pmr::allocate_all_memory_via_memory_resource_v<HoldsUnions>);
+static_assert(pmr::allocate_all_memory_via_memory_resource_v<Members>);
+static_assert(pmr::allocate_all_memory_via_memory_resource_v<ScalarMembers>);
+static_assert(pmr::allocate_all_memory_via_memory_resource_v<Recursive>);
+static_assert(pmr::allocate_all_memory_via_memory_resource_v<UsesAllocator>);
+static_assert(pmr::allocate_all_memory_via_memory_resource_v<WholeUnion>);
+static_assert(!pmr::allocate_all_memory_via_memory_resource_v<Strings>);
+static_assert(!pmr::allocate_all_memory_via_memory_resource_v<StructElements>);
+static_assert(!pmr::allocate_all_memory_via_memory_resource_v<PmrWithoutArena>);
+static_assert(!pmr::allocate_all_memory_via_memory_resource_v<
+              UsesAllocatorWithPlainStrings>);
+static_assert(!pmr::allocate_all_memory_via_memory_resource_v<CustomTypes>);
+static_assert(!pmr::allocate_all_memory_via_memory_resource_v<MixedUnion>);
+static_assert(!pmr::allocate_all_memory_via_memory_resource_v<HoldsLazy>);
+static_assert(!pmr::allocate_all_memory_via_memory_resource_v<WithBox>);
+static_assert(!pmr::allocate_all_memory_via_memory_resource_v<UnionWithRef>);
+static_assert(!pmr::allocate_all_memory_via_memory_resource_v<UnionWithBox>);
+static_assert(
+    !pmr::allocate_all_memory_via_memory_resource_v<HoldsPointerUnions>);
+// A string or container of another type isn't trusted, even if it uses the
+// memory resource.
+struct UserString : std::pmr::string {};
+static_assert(!pmr::detail::onResource<t::string_t, UserString>());
+template <class T>
+struct UserVector : std::pmr::vector<T> {};
+static_assert(!pmr::detail::onResource<
+              t::list<t::string_t>,
+              UserVector<std::pmr::string>>());
+static_assert(pmr::detail::onResource<
+              t::list<t::string_t>,
+              std::pmr::vector<std::pmr::string>>());
+static_assert(!pmr::detail::onResource<t::list<t::i32_t>, std::vector<int>>());
+
+// Rebind keeps these, but they free heap memory when destroyed.
+struct StatefulHash : std::hash<std::string_view> {
+  std::string seed;
+};
+struct StatefulGrowthPolicy {
+  std::string state;
+};
+static_assert(!pmr::detail::onResource<
+              t::set<t::string_t>,
+              std::pmr::unordered_set<std::pmr::string, StatefulHash>>());
+static_assert(
+    !pmr::detail::onResource<
+        t::set<t::i32_t>,
+        folly::pmr::
+            sorted_vector_set<int, std::less<int>, StatefulGrowthPolicy>>());
+static_assert(pmr::detail::onResource<
+              t::set<t::i32_t>,
+              folly::pmr::sorted_vector_set<int>>());
+
+template <class T>
+struct HeapAllocator {
+  using value_type = T;
+  HeapAllocator() = default;
+  /* implicit */ HeapAllocator(std::pmr::polymorphic_allocator<>) {}
+  template <class U>
+  explicit HeapAllocator(const HeapAllocator<U>&) {}
+  T* allocate(std::size_t n) { return std::allocator<T>{}.allocate(n); }
+  void deallocate(T* p, std::size_t n) { std::allocator<T>{}.deallocate(p, n); }
+  friend bool operator==(const HeapAllocator&, const HeapAllocator&) = default;
+};
+static_assert(
+    !pmr::detail::UsesPmrAllocator<std::vector<int, HeapAllocator<int>>>);
+static_assert(!pmr::detail::onResource<
+              t::list<t::i32_t>,
+              std::vector<int, HeapAllocator<int>>>());
+static_assert(!pmr::detail::onResource<
+              t::set<t::i32_t>,
+              folly::sorted_vector_set<
+                  int,
+                  std::less<int>,
+                  std::pmr::polymorphic_allocator<int>,
+                  void,
+                  std::vector<int>>>());
+
+constexpr const char* kLong =
+    "This is too long for the small string optimization";
+constexpr const char* kOther =
+    "This is also too long for the small string optimization";
+
+class ScopedDefaultResource {
+ public:
+  explicit ScopedDefaultResource(std::pmr::memory_resource* resource)
+      : prev_(std::pmr::set_default_resource(resource)) {}
+  ScopedDefaultResource(const ScopedDefaultResource&) = delete;
+  ScopedDefaultResource& operator=(const ScopedDefaultResource&) = delete;
+  ~ScopedDefaultResource() { std::pmr::set_default_resource(prev_); }
+
+ private:
+  std::pmr::memory_resource* prev_;
+};
+
+class NoDefaultResource : public ScopedDefaultResource {
+ public:
+  NoDefaultResource()
+      : ScopedDefaultResource(std::pmr::null_memory_resource()) {}
+};
+
+class Arena : public std::pmr::monotonic_buffer_resource {
+ public:
+  Arena() : monotonic_buffer_resource(std::pmr::new_delete_resource()) {}
+};
+
+// Counts allocations and deallocations, and frees all its memory when
+// destroyed. `Base` decides whether Thrift treats it as an arena.
+template <class Base>
+class Counting : public Base {
+ public:
+  std::size_t allocations() const { return allocations_; }
+  std::size_t deallocations() const { return deallocations_; }
+
+ private:
+  std::pmr::monotonic_buffer_resource upstream_{
+      std::pmr::new_delete_resource()};
+  std::size_t allocations_ = 0;
+  std::size_t deallocations_ = 0;
+
+  void* do_allocate(std::size_t bytes, std::size_t alignment) override {
+    ++allocations_;
+    return upstream_.allocate(bytes, alignment);
+  }
+  void do_deallocate(void*, std::size_t, std::size_t) override {
+    ++deallocations_;
+  }
+  bool do_is_equal(
+      const std::pmr::memory_resource& other) const noexcept override {
+    return this == &other;
+  }
+};
+
+using CountingArena = Counting<pmr::ArenaResource>;
+using CountingHeap = Counting<std::pmr::memory_resource>;
+
+template <class T>
+std::pmr::memory_resource* resource(const T& value) {
+  return value.get_allocator().resource();
+}
+
+void fill(Strings& s) {
+  s.name() = kLong;
+  s.data() = kOther;
+  s.nickname() = kLong;
+  s.terse_name() = kOther;
+  s.id() = 7;
+  s.plain() = kLong;
+}
+
+void expectOn(const Strings& s, std::pmr::memory_resource* r) {
+  EXPECT_EQ(resource(s), r);
+  EXPECT_EQ(resource(*s.name()), r);
+  EXPECT_EQ(resource(*s.data()), r);
+  EXPECT_EQ(resource(*s.nickname()), r);
+  EXPECT_EQ(resource(*s.terse_name()), r);
+}
+
+void fill(Containers& c) {
+  c.names()->emplace_back(kLong);
+  const std::pmr::string key(kLong, resource(*c.names()));
+  c.tags()->emplace(kLong);
+  c.tags()->emplace(kOther);
+  (*c.groups())[key].insert(3);
+  c.matrix()->emplace_back().emplace_back(kOther);
+  (*c.blobs())[key].emplace_back(kOther);
+  c.nested()->emplace_back()[7].emplace(kLong);
+  c.values()->push_back(2.5);
+  (*c.by_color())[Color::GREEN] = kOther;
+  c.maybe().ensure().emplace_back(kLong);
+  c.terse_tags()->emplace(kOther);
+}
+
+void expectOn(const Containers& c, std::pmr::memory_resource* r) {
+  EXPECT_EQ(resource(c), r);
+  EXPECT_EQ(resource(*c.names()), r);
+  EXPECT_EQ(resource(c.names()->front()), r);
+  EXPECT_EQ(resource(*c.tags()), r);
+  EXPECT_EQ(resource(*c.tags()->begin()), r);
+  EXPECT_EQ(resource(*c.groups()), r);
+  EXPECT_EQ(resource(c.groups()->begin()->first), r);
+  EXPECT_EQ(resource(c.groups()->begin()->second), r);
+  EXPECT_EQ(resource(*c.matrix()), r);
+  EXPECT_EQ(resource(c.matrix()->front()), r);
+  EXPECT_EQ(resource(c.matrix()->front().front()), r);
+  EXPECT_EQ(resource(*c.blobs()), r);
+  EXPECT_EQ(resource(c.blobs()->begin()->second.front()), r);
+  EXPECT_EQ(resource(*c.nested()), r);
+  EXPECT_EQ(resource(c.nested()->front()), r);
+  EXPECT_EQ(resource(c.nested()->front().at(7)), r);
+  EXPECT_EQ(resource(*c.nested()->front().at(7).begin()), r);
+  EXPECT_EQ(resource(*c.values()), r);
+  EXPECT_EQ(resource(*c.by_color()), r);
+  EXPECT_EQ(resource(c.by_color()->at(Color::GREEN)), r);
+  EXPECT_EQ(resource(*c.maybe()), r);
+  EXPECT_EQ(resource(c.maybe()->front()), r);
+  EXPECT_EQ(resource(*c.terse_tags()), r);
+  EXPECT_EQ(resource(*c.terse_tags()->begin()), r);
+}
+
+void fill(StructElements& s) {
+  const std::pmr::string key(kLong, resource(*s.plains()));
+  PlainInner& plain = s.plains()->emplace_back();
+  plain.name() = kLong;
+  plain.values()->push_back(1);
+  (*s.plain_by_name())[key].name() = kOther;
+  ArenaInner& arena = s.arenas()->emplace_back();
+  arena.name() = kLong;
+  arena.tags()->emplace_back(kOther);
+  ArenaInner& named = (*s.arena_by_name())[key];
+  named.name() = kOther;
+  named.tags()->emplace_back(kLong);
+}
+
+void expectOn(const StructElements& s, std::pmr::memory_resource* r) {
+  EXPECT_EQ(resource(*s.plains()), r);
+  EXPECT_EQ(resource(*s.plain_by_name()), r);
+  EXPECT_EQ(resource(s.plain_by_name()->begin()->first), r);
+  EXPECT_EQ(resource(*s.arenas()), r);
+  EXPECT_EQ(resource(s.arenas()->front()), r);
+  EXPECT_EQ(resource(*s.arenas()->front().name()), r);
+  EXPECT_EQ(resource(*s.arenas()->front().tags()), r);
+  EXPECT_EQ(resource(s.arenas()->front().tags()->front()), r);
+  EXPECT_EQ(resource(*s.arena_by_name()), r);
+  const ArenaInner& named = s.arena_by_name()->begin()->second;
+  EXPECT_EQ(resource(named), r);
+  EXPECT_EQ(resource(*named.name()), r);
+  EXPECT_EQ(resource(named.tags()->front()), r);
+}
+
+void fill(CustomTypes& c) {
+  const std::pmr::string key(kLong, resource(*c.by_name()));
+  (*c.by_name())[key].emplace_back(kOther);
+  c.pmr_string() = kLong;
+}
+
+void expectOn(const CustomTypes& c, std::pmr::memory_resource* r) {
+  EXPECT_EQ(resource(c), r);
+  EXPECT_EQ(resource(*c.by_name()), r);
+  EXPECT_EQ(resource(c.by_name()->begin()->first), r);
+  EXPECT_EQ(resource(c.by_name()->begin()->second), r);
+  EXPECT_EQ(resource(c.by_name()->begin()->second.front()), r);
+  EXPECT_EQ(resource(*c.pmr_string()), r);
+}
+
+void fill(WholeStruct& s) {
+  s.name() = kLong;
+  const std::pmr::string key(kLong, resource(*s.groups()));
+  (*s.groups())[key].emplace_back(kOther);
+}
+
+void expectOn(const WholeStruct& s, std::pmr::memory_resource* r) {
+  EXPECT_EQ(resource(s), r);
+  EXPECT_EQ(resource(*s.name()), r);
+  EXPECT_EQ(resource(*s.groups()), r);
+  EXPECT_EQ(resource(s.groups()->begin()->first), r);
+  EXPECT_EQ(resource(s.groups()->begin()->second.front()), r);
+}
+
+void fill(ArenaUnion& u) {
+  u.names().emplace().emplace_back(kLong);
+}
+
+void expectOn(const ArenaUnion& u, std::pmr::memory_resource* r) {
+  EXPECT_EQ(resource(u), r);
+  EXPECT_EQ(resource(*u.names()), r);
+  EXPECT_EQ(resource(u.names()->front()), r);
+}
+
+// Moving a PMR string or container to another resource copies it, which can
+// throw.
+static_assert(!std::is_nothrow_move_assignable_v<Strings>);
+static_assert(std::is_nothrow_move_constructible_v<Strings>);
+static_assert(!std::is_nothrow_move_assignable_v<HoldsStrings>);
+static_assert(!std::is_nothrow_move_assignable_v<ArenaUnion>);
+static_assert(!std::is_nothrow_move_assignable_v<HoldsArenaUnion>);
+
+Strings makeStrings(std::pmr::memory_resource* r, const char* name) {
+  ScopedDefaultResource defaultResource(r);
+  Strings s;
+  fill(s);
+  s.name() = name;
+  return s;
+}
+
+TEST(CppArenaPmrTest, SwapAndMoveAssignmentKeepEachResource) {
+  Arena arena1;
+  Arena arena2;
+  Strings a = makeStrings(&arena1, kLong);
+  Strings b = makeStrings(&arena2, kOther);
+  swap(a, b);
+  EXPECT_EQ(*a.name(), kOther);
+  EXPECT_EQ(*b.name(), kLong);
+  expectOn(a, &arena1);
+  expectOn(b, &arena2);
+  a = std::move(b);
+  EXPECT_EQ(*a.name(), kLong);
+  expectOn(a, &arena1);
+}
+
+void fill(WholeUnion& u) {
+  auto& groups = u.groups().emplace();
+  groups[std::pmr::string(kLong, resource(groups))].emplace_back(kOther);
+}
+
+void expectOn(const WholeUnion& u, std::pmr::memory_resource* r) {
+  EXPECT_EQ(resource(u), r);
+  EXPECT_EQ(resource(*u.groups()), r);
+  EXPECT_EQ(resource(u.groups()->begin()->first), r);
+  EXPECT_EQ(resource(u.groups()->begin()->second.front()), r);
+}
+
+void fill(HoldsUnions& h) {
+  fill(h.unions()->emplace_back());
+}
+
+void expectOn(const HoldsUnions& h, std::pmr::memory_resource* r) {
+  EXPECT_EQ(resource(h), r);
+  EXPECT_EQ(resource(*h.unions()), r);
+  expectOn(h.unions()->front(), r);
+}
+
+void fill(ArenaError& e) {
+  e.message() = kLong;
+  e.details()->emplace_back(kOther);
+}
+
+void expectOn(const ArenaError& e, std::pmr::memory_resource* r) {
+  EXPECT_EQ(resource(e), r);
+  EXPECT_EQ(resource(*e.message()), r);
+  EXPECT_EQ(resource(*e.details()), r);
+  EXPECT_EQ(resource(e.details()->front()), r);
+}
+
+void fill(ArenaInner& i) {
+  i.name() = kLong;
+  i.tags()->emplace_back(kOther);
+}
+
+void expectOn(const ArenaInner& i, std::pmr::memory_resource* r) {
+  EXPECT_EQ(resource(i), r);
+  EXPECT_EQ(resource(*i.name()), r);
+  EXPECT_EQ(resource(i.tags()->front()), r);
+}
+
+void fill(Members& m) {
+  fill(*m.inner());
+  fill(*m.either());
+}
+
+void expectOn(const Members& m, std::pmr::memory_resource* r) {
+  EXPECT_EQ(resource(m), r);
+  expectOn(*m.inner(), r);
+  expectOn(*m.either(), r);
+}
+
+void fill(WholeMembers& w) {
+  fill(*w.inner());
+}
+
+void expectOn(const WholeMembers& w, std::pmr::memory_resource* r) {
+  EXPECT_EQ(resource(w), r);
+  expectOn(*w.inner(), r);
+}
+
+void fill(MemberUnion& u) {
+  fill(u.inner().emplace());
+}
+
+void expectOn(const MemberUnion& u, std::pmr::memory_resource* r) {
+  EXPECT_EQ(resource(u), r);
+  expectOn(*u.inner(), r);
+}
+
+void fill(Recursive& r) {
+  r.name() = kLong;
+  Recursive& child = r.children()->emplace_back();
+  child.name() = kOther;
+  child.children()->emplace_back().name() = kLong;
+}
+
+void fill(UsesAllocator& u) {
+  u.name() = kLong;
+  u.pmr_name() = kOther;
+}
+
+void fill(WithBox& w) {
+  w.name() = kLong;
+  w.boxed().emplace().name() = kOther;
+}
+
+void fill(HoldsPointerUnions& h) {
+  h.with_ref()->unique_ref().emplace();
+  h.with_box()->boxed_ref().emplace();
+}
+
+void fill(PmrWithoutArena& p) {
+  p.name() = kLong;
+  p.on_default_resource()->emplace_back(kOther);
+}
+
+TEST(CppArenaPmrTest, AllocatorConstructorPutsEverythingOnTheResource) {
+  Arena arena;
+  NoDefaultResource noDefault;
+  Strings s{&arena};
+  fill(s);
+  expectOn(s, &arena);
+  Containers c{&arena};
+  fill(c);
+  expectOn(c, &arena);
+  StructElements e{&arena};
+  fill(e);
+  expectOn(e, &arena);
+  WholeStruct w{&arena};
+  fill(w);
+  expectOn(w, &arena);
+  ArenaUnion fieldUnion{&arena};
+  fill(fieldUnion);
+  expectOn(fieldUnion, &arena);
+  WholeUnion wholeUnion{&arena};
+  fill(wholeUnion);
+  expectOn(wholeUnion, &arena);
+  HoldsUnions h{&arena};
+  fill(h);
+  expectOn(h, &arena);
+  ArenaError error{&arena};
+  fill(error);
+  expectOn(error, &arena);
+  CustomTypes u{&arena};
+  fill(u);
+  expectOn(u, &arena);
+  Members m{&arena};
+  fill(m);
+  expectOn(m, &arena);
+  WholeMembers wholeMembers{&arena};
+  fill(wholeMembers);
+  expectOn(wholeMembers, &arena);
+  MemberUnion memberUnion{&arena};
+  fill(memberUnion);
+  expectOn(memberUnion, &arena);
+}
+
+TEST(CppArenaPmrTest, DefaultConstructionUsesTheDefaultResource) {
+  Arena arena;
+  ScopedDefaultResource defaultResource(&arena);
+  Strings s;
+  fill(s);
+  expectOn(s, &arena);
+  Containers c;
+  fill(c);
+  expectOn(c, &arena);
+  StructElements e;
+  fill(e);
+  expectOn(e, &arena);
+  WholeStruct w;
+  fill(w);
+  expectOn(w, &arena);
+  ArenaUnion fieldUnion;
+  fill(fieldUnion);
+  expectOn(fieldUnion, &arena);
+  WholeUnion wholeUnion;
+  fill(wholeUnion);
+  expectOn(wholeUnion, &arena);
+  CustomTypes u;
+  fill(u);
+  expectOn(u, &arena);
+}
+
+template <class Serializer, class T>
+void expectRoundTrip() {
+  T in;
+  fill(in);
+  EXPECT_EQ(
+      Serializer::template deserialize<T>(
+          Serializer::template serialize<std::string>(in)),
+      in);
+}
+
+template <class T>
+void expectRoundTrip() {
+  expectRoundTrip<BinarySerializer, T>();
+  expectRoundTrip<CompactSerializer, T>();
+  expectRoundTrip<SimpleJSONSerializer, T>();
+}
+
+TEST(CppArenaPmrTest, SerializationRoundTrips) {
+  expectRoundTrip<Strings>();
+  expectRoundTrip<Containers>();
+  expectRoundTrip<StructElements>();
+  expectRoundTrip<WholeStruct>();
+  expectRoundTrip<ArenaUnion>();
+  expectRoundTrip<WholeUnion>();
+  expectRoundTrip<CustomTypes>();
+  expectRoundTrip<Members>();
+  expectRoundTrip<WholeMembers>();
+  expectRoundTrip<MemberUnion>();
+}
+
+template <class Serializer, class T>
+void expectDeserializationLandsOnTheResource() {
+  T in;
+  fill(in);
+  const auto buf = Serializer::template serialize<std::string>(in);
+  Arena arena;
+  T out{&arena};
+  {
+    NoDefaultResource noDefault;
+    Serializer::deserialize(buf, out);
+  }
+  EXPECT_EQ(out, in);
+  expectOn(out, &arena);
+}
+
+template <class T>
+void expectDeserializationLandsOnTheResource() {
+  expectDeserializationLandsOnTheResource<BinarySerializer, T>();
+  expectDeserializationLandsOnTheResource<CompactSerializer, T>();
+  expectDeserializationLandsOnTheResource<SimpleJSONSerializer, T>();
+}
+
+TEST(CppArenaPmrTest, DeserializationLandsOnTheResource) {
+  expectDeserializationLandsOnTheResource<Strings>();
+  expectDeserializationLandsOnTheResource<Containers>();
+  expectDeserializationLandsOnTheResource<StructElements>();
+  expectDeserializationLandsOnTheResource<WholeStruct>();
+  expectDeserializationLandsOnTheResource<ArenaUnion>();
+  expectDeserializationLandsOnTheResource<WholeUnion>();
+  expectDeserializationLandsOnTheResource<HoldsUnions>();
+  expectDeserializationLandsOnTheResource<ArenaError>();
+  expectDeserializationLandsOnTheResource<CustomTypes>();
+  expectDeserializationLandsOnTheResource<Members>();
+  expectDeserializationLandsOnTheResource<WholeMembers>();
+  expectDeserializationLandsOnTheResource<MemberUnion>();
+}
+
+TEST(CppArenaPmrTest, CopyGoesToTheDefaultResource) {
+  Arena arena;
+  Containers src{&arena};
+  fill(src);
+  const Containers copy(src);
+  EXPECT_EQ(copy, src);
+  expectOn(copy, std::pmr::get_default_resource());
+}
+
+TEST(CppArenaPmrTest, MoveConstructionKeepsTheResource) {
+  Arena arena;
+  Containers src{&arena};
+  fill(src);
+  const Containers expected(src);
+  const std::pmr::string* names = src.names()->data();
+
+  NoDefaultResource noDefault;
+  const Containers moved(std::move(src));
+  EXPECT_EQ(moved, expected);
+  expectOn(moved, &arena);
+  EXPECT_EQ(moved.names()->data(), names);
+}
+
+TEST(CppArenaPmrTest, MoveAssignmentAcrossResourcesCopies) {
+  Arena arena;
+  Arena other;
+  Containers src{&arena};
+  fill(src);
+  const Containers expected(src);
+  Containers dst{&other};
+  dst = std::move(src);
+  EXPECT_EQ(dst, expected);
+  expectOn(dst, &other);
+}
+
+template <class T, class Resource>
+std::size_t deallocationsWhenDestroying(Resource& resource) {
+  std::optional<T> value(std::in_place, &resource);
+  fill(*value);
+  const std::size_t before = resource.deallocations();
+  value.reset();
+  return resource.deallocations() - before;
+}
+
+TEST(CppArenaPmrTest, DestructorSkipsFieldsOnAnArena) {
+  CountingArena arena;
+  EXPECT_EQ(deallocationsWhenDestroying<Strings>(arena), 0);
+  EXPECT_EQ(deallocationsWhenDestroying<Containers>(arena), 0);
+  EXPECT_EQ(deallocationsWhenDestroying<Members>(arena), 0);
+  EXPECT_EQ(deallocationsWhenDestroying<Recursive>(arena), 0);
+  EXPECT_EQ(deallocationsWhenDestroying<UsesAllocator>(arena), 0);
+  EXPECT_EQ(deallocationsWhenDestroying<ArenaUnion>(arena), 0);
+}
+
+TEST(CppArenaPmrTest, DestructorDestroysFieldsHoldingMemoryOffTheArena) {
+  CountingArena arena;
+  // The elements of `plains` hold strings on the default resource.
+  EXPECT_GT(deallocationsWhenDestroying<StructElements>(arena), 0);
+  // Skipping `on_default_resource` and `boxed` would leak memory off the
+  // arena, which the leak sanitizer reports.
+  EXPECT_EQ(deallocationsWhenDestroying<PmrWithoutArena>(arena), 0);
+  EXPECT_EQ(deallocationsWhenDestroying<WithBox>(arena), 0);
+}
+
+TEST(CppArenaPmrTest, DestructorDestroysUnionFieldsPointingOffTheArena) {
+  CountingArena arena;
+  // Skipping `with_ref` or `with_box` would leak the `Scalars` that their
+  // active fields point to, which the leak sanitizer reports.
+  EXPECT_EQ(deallocationsWhenDestroying<HoldsPointerUnions>(arena), 0);
+}
+
+struct FreeRecord {
+  std::vector<int>* freed;
+  int id;
+};
+
+void recordFree(void* /* buf */, void* userData) {
+  const auto* record = static_cast<const FreeRecord*>(userData);
+  record->freed->push_back(record->id);
+}
+
+// An IOBuf that appends `record.id` to `*record.freed` when it frees its
+// buffer.
+folly::IOBuf recordingIOBuf(FreeRecord& record) {
+  static char byte;
+  return folly::IOBuf(
+      folly::IOBuf::TAKE_OWNERSHIP, &byte, 1, &recordFree, &record);
+}
+
+template <class Resource>
+std::vector<int> fieldsInDestructionOrder() {
+  Resource resource;
+  std::vector<int> freed;
+  FreeRecord first{&freed, 1};
+  FreeRecord second{&freed, 2};
+  {
+    DestructionOrder value{&resource};
+    value.first() = recordingIOBuf(first);
+    value.second() = recordingIOBuf(second);
+  }
+  return freed;
+}
+
+// Like C++ members, so that a field's destructor can still use the fields
+// declared before it.
+TEST(CppArenaPmrTest, DestructorDestroysFieldsLastFirst) {
+  const std::vector<int> lastFirst{2, 1};
+  EXPECT_EQ(fieldsInDestructionOrder<CountingHeap>(), lastFirst);
+  EXPECT_EQ(fieldsInDestructionOrder<CountingArena>(), lastFirst);
+}
+
+template <class T>
+void expectDestroyingFreesEverything() {
+  CountingHeap heap;
+  {
+    T value{&heap};
+    fill(value);
+  }
+  EXPECT_GT(heap.allocations(), 0);
+  EXPECT_EQ(heap.deallocations(), heap.allocations());
+}
+
+TEST(CppArenaPmrTest, DestructorDestroysEverythingOffAnArena) {
+  expectDestroyingFreesEverything<Strings>();
+  expectDestroyingFreesEverything<Containers>();
+  expectDestroyingFreesEverything<StructElements>();
+  expectDestroyingFreesEverything<Members>();
+  expectDestroyingFreesEverything<Recursive>();
+  expectDestroyingFreesEverything<UsesAllocator>();
+  expectDestroyingFreesEverything<ArenaUnion>();
+}
+
+template <class T>
+void expectMoveAssignmentSkipsDestroyingOldFields() {
+  CountingArena arena;
+  T dst{&arena};
+  fill(dst);
+  T src{&arena};
+  fill(src);
+  const T expected(src);
+  const std::size_t before = arena.deallocations();
+  dst = std::move(src);
+  EXPECT_EQ(arena.deallocations(), before);
+  EXPECT_EQ(dst, expected);
+}
+
+TEST(CppArenaPmrTest, MoveAssignmentOnTheSameArenaSkipsDestroyingOldFields) {
+  expectMoveAssignmentSkipsDestroyingOldFields<Containers>();
+  expectMoveAssignmentSkipsDestroyingOldFields<Members>();
+  expectMoveAssignmentSkipsDestroyingOldFields<ArenaUnion>();
+
+  CountingArena arena;
+  Containers src{&arena};
+  fill(src);
+  const std::pmr::string* names = src.names()->data();
+  Containers dst{&arena};
+  dst = std::move(src);
+  EXPECT_EQ(dst.names()->data(), names);
+}
+
+TEST(CppArenaPmrTest, UnionSkipsDestroyingTheActiveFieldOnAnArena) {
+  CountingArena arena;
+  ArenaUnion u{&arena};
+  fill(u);
+  const std::size_t before = arena.deallocations();
+  u.name() = kLong;
+  u.id() = 1;
+  apache::thrift::clear(u);
+  EXPECT_EQ(arena.deallocations(), before);
+}
+
+TEST(CppArenaPmrTest, UnionDestroysFieldsHoldingMemoryOffTheArena) {
+  // `plain` is on the default resource, so switching away from it must
+  // destroy it even on an arena. The leak sanitizer checks that.
+  CountingArena arena;
+  MixedUnion u{&arena};
+  u.plain() = kLong;
+  u.name() = kOther;
+  EXPECT_EQ(*u.name(), kOther);
+  // Likewise for the heap memory that `unique` and `boxed` point to.
+  UnionWithRef withRef{&arena};
+  withRef.unique_ref().emplace();
+  UnionWithBox withBox{&arena};
+  withBox.boxed_ref().emplace();
+}
+
+TEST(CppArenaPmrTest, UnionCopyAndMove) {
+  Arena arena;
+  ArenaUnion src{&arena};
+  fill(src);
+  const ArenaUnion copy(src);
+  EXPECT_EQ(copy, src);
+  expectOn(copy, std::pmr::get_default_resource());
+
+  Arena other;
+  ArenaUnion assigned{&other};
+  assigned = src;
+  EXPECT_EQ(assigned, src);
+  expectOn(assigned, &other);
+
+  NoDefaultResource noDefault;
+  const ArenaUnion moved(std::move(src));
+  EXPECT_EQ(moved, copy);
+  expectOn(moved, &arena);
+}
+
+TEST(CppArenaPmrTest, OpFunctions) {
+  Containers a;
+  fill(a);
+  Containers b;
+  fill(b);
+  using Tag = t::struct_t<Containers>;
+  EXPECT_TRUE(op::equal<Tag>(a, b));
+  EXPECT_TRUE(op::identical<Tag>(a, b));
+  EXPECT_EQ(op::hash<Tag>(a), op::hash<Tag>(b));
+
+  b.names()->emplace_back(kOther);
+  EXPECT_FALSE(op::equal<Tag>(a, b));
+  EXPECT_FALSE(op::identical<Tag>(a, b));
+  EXPECT_NE(op::hash<Tag>(a), op::hash<Tag>(b));
+
+  // The double level keeps its exact tag, so NaN is identical but not equal.
+  constexpr double kNaN = std::numeric_limits<double>::quiet_NaN();
+  a.values()->push_back(kNaN);
+  b.values()->push_back(kNaN);
+  using ValuesTag = op::get_type_tag<Containers, ident::values>;
+  EXPECT_FALSE(op::equal<ValuesTag>(*a.values(), *b.values()));
+  EXPECT_TRUE(op::identical<ValuesTag>(*a.values(), *b.values()));
+
+  using GroupsTag = op::get_type_tag<Containers, ident::groups>;
+  EXPECT_TRUE(op::equal<GroupsTag>(*a.groups(), *b.groups()));
+  EXPECT_EQ(op::hash<GroupsTag>(*a.groups()), op::hash<GroupsTag>(*b.groups()));
+}
+
+Orderable makeOrderable(const char* key) {
+  Orderable o;
+  o.keys()->emplace(key);
+  (*o.values())[key].emplace_back(kOther);
+  return o;
+}
+
+TEST(CppArenaPmrTest, StructsWithArenaSetsAndMapsStayOrderable) {
+  const Orderable a = makeOrderable("a long enough key for the heap, first");
+  const Orderable b = makeOrderable("a long enough key for the heap, second");
+  EXPECT_TRUE(a < b);
+  EXPECT_EQ(a <=> b, std::partial_ordering::less);
+  EXPECT_EQ(
+      op::compare<t::struct_t<Orderable>>(a, b), std::partial_ordering::less);
+  EXPECT_TRUE(op::less<t::struct_t<Orderable>>(a, b));
+  EXPECT_EQ(a, Orderable(a));
+  EXPECT_NE(a, b);
+
+  HoldsOrderableSet holder;
+  holder.items()->insert(b);
+  holder.items()->insert(a);
+  holder.items()->insert(Orderable(a));
+  ASSERT_EQ(holder.items()->size(), 2);
+  EXPECT_EQ(*holder.items()->begin(), a);
+  EXPECT_EQ(
+      CompactSerializer::deserialize<HoldsOrderableSet>(
+          CompactSerializer::serialize<std::string>(holder)),
+      holder);
+}
+
+TEST(CppArenaPmrTest, DebugStringAndJson5) {
+  Containers c;
+  fill(c);
+  EXPECT_NE(debugString(c).find(kOther), std::string::npos);
+  EXPECT_NE(Json5ProtocolUtils::toJson5(c).find(kOther), std::string::npos);
+  StructElements e;
+  fill(e);
+  EXPECT_NE(debugString(e).find(kLong), std::string::npos);
+  EXPECT_NE(Json5ProtocolUtils::toJson5(e).find(kLong), std::string::npos);
+  std::ostringstream os;
+  PrintTo(e, &os); // apache::thrift::PrintTo
+  EXPECT_NE(os.str().find(kLong), std::string::npos);
+}
+
+} // namespace
+} // namespace apache::thrift::test::arena_pmr

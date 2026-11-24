@@ -56,6 +56,9 @@ void AllocUnion::__fbthrift_destruct() {
     case Type::plain_int:
       ::std::destroy_at(::std::addressof(value_.plain_int));
       break;
+    case Type::aa_shared_string:
+      ::std::destroy_at(::std::addressof(value_.aa_shared_string));
+      break;
     default:
       assert(false);
       break;
@@ -74,10 +77,6 @@ void AllocUnion::__fbthrift_clear() {
 bool AllocUnion::__fbthrift_is_empty() const {
   return getType() == Type::__EMPTY__;
 }
-  AllocUnion::AllocUnion(const allocator_type& alloc) noexcept
-      : __fbthrift_alloc(alloc),
-        fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {}
-
   AllocUnion::AllocUnion(AllocUnion&& rhs, const allocator_type& alloc)
       : __fbthrift_alloc(alloc),
         fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
@@ -86,23 +85,85 @@ bool AllocUnion::__fbthrift_is_empty() const {
         return;
       case Type::aa_string:
       {
-        set_aa_string(std::move(rhs.value_.aa_string));
+        auto value = std::move(rhs.value_.aa_string);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(aa_string_ref(), std::move(value));
         break;
       }
       case Type::aa_list:
       {
-        set_aa_list(std::move(rhs.value_.aa_list));
+        auto value = std::move(rhs.value_.aa_list);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(aa_list_ref(), std::move(value));
         break;
       }
       case Type::plain_int:
       {
-        set_plain_int(std::move(rhs.value_.plain_int));
+        auto value = std::move(rhs.value_.plain_int);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(plain_int_ref(), std::move(value));
+        break;
+      }
+      case Type::aa_shared_string:
+      {
+        auto value = rhs.get_allocator() == get_allocator()
+            ? std::move(rhs.value_.aa_shared_string)
+            : std::allocate_shared<::test::fixtures::cpp_allocator_union::PmrString>(get_allocator(), *rhs.value_.aa_shared_string);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(aa_shared_string_ref(), std::move(value));
         break;
       }
       default:
         assert(false);
     }
-    apache::thrift::clear(rhs);
+  }
+
+  AllocUnion& AllocUnion::operator=(AllocUnion&& rhs) noexcept(::apache::thrift::detail::move_assign_always_steals_v<allocator_type>) {
+    if (this == &rhs) { return *this; }
+    ::apache::thrift::detail::move_allocator(__fbthrift_alloc, rhs.__fbthrift_alloc);
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+      {
+        __fbthrift_clear();
+        return *this;
+      }
+      case Type::aa_string:
+      {
+        auto value = std::move(rhs.value_.aa_string);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(aa_string_ref(), std::move(value));
+        break;
+      }
+      case Type::aa_list:
+      {
+        auto value = std::move(rhs.value_.aa_list);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(aa_list_ref(), std::move(value));
+        break;
+      }
+      case Type::plain_int:
+      {
+        auto value = std::move(rhs.value_.plain_int);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(plain_int_ref(), std::move(value));
+        break;
+      }
+      case Type::aa_shared_string:
+      {
+        auto value = rhs.get_allocator() == get_allocator()
+            ? std::move(rhs.value_.aa_shared_string)
+            : std::allocate_shared<::test::fixtures::cpp_allocator_union::PmrString>(get_allocator(), *rhs.value_.aa_shared_string);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(aa_shared_string_ref(), std::move(value));
+        break;
+      }
+      default:
+      {
+        assert(false);
+        __fbthrift_clear();
+      }
+    }
+    return *this;
   }
 
   AllocUnion::AllocUnion(const AllocUnion& rhs)
@@ -112,13 +173,16 @@ bool AllocUnion::__fbthrift_is_empty() const {
       case Type::__EMPTY__:
         return;
       case Type::aa_string:
-        set_aa_string(rhs.value_.aa_string);
+        aa_string_ref().emplace(rhs.value_.aa_string);
         break;
       case Type::aa_list:
-        set_aa_list(rhs.value_.aa_list);
+        aa_list_ref().emplace(rhs.value_.aa_list);
         break;
       case Type::plain_int:
-        set_plain_int(rhs.value_.plain_int);
+        plain_int_ref().emplace(rhs.value_.plain_int);
+        break;
+      case Type::aa_shared_string:
+        aa_shared_string_ref().emplace(*rhs.value_.aa_shared_string);
         break;
       default:
         assert(false);
@@ -132,41 +196,30 @@ bool AllocUnion::__fbthrift_is_empty() const {
       case Type::__EMPTY__:
         return;
       case Type::aa_string:
-        set_aa_string(rhs.value_.aa_string);
+        aa_string_ref().emplace(rhs.value_.aa_string);
         break;
       case Type::aa_list:
-        set_aa_list(rhs.value_.aa_list);
+        aa_list_ref().emplace(rhs.value_.aa_list);
         break;
       case Type::plain_int:
-        set_plain_int(rhs.value_.plain_int);
+        plain_int_ref().emplace(rhs.value_.plain_int);
+        break;
+      case Type::aa_shared_string:
+        aa_shared_string_ref().emplace(*rhs.value_.aa_shared_string);
         break;
       default:
         assert(false);
     }
   }
 
-    AllocUnion&AllocUnion::operator=(const AllocUnion& rhs) {
+  AllocUnion& AllocUnion::operator=(const AllocUnion& rhs) {
     if (this == &rhs) { return *this; }
+    allocator_type alloc = __fbthrift_alloc;
+    ::apache::thrift::detail::copy_allocator(alloc, rhs.__fbthrift_alloc);
+    AllocUnion copy(rhs, alloc);
     __fbthrift_clear();
     ::apache::thrift::detail::copy_allocator(__fbthrift_alloc, rhs.__fbthrift_alloc);
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::aa_string:
-        set_aa_string(rhs.value_.aa_string);
-        break;
-      case Type::aa_list:
-        set_aa_list(rhs.value_.aa_list);
-        break;
-      case Type::plain_int:
-        set_plain_int(rhs.value_.plain_int);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = std::move(copy);
   }
 
 

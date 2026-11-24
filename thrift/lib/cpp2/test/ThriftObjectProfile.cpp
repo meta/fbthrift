@@ -22,6 +22,7 @@
 #include <glog/logging.h>
 #include <folly/Benchmark.h>
 #include <folly/BenchmarkUtil.h>
+#include <folly/String.h>
 #include <folly/init/Init.h>
 #include <folly/portability/GFlags.h>
 

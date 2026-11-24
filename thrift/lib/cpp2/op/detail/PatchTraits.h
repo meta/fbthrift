@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <folly/Traits.h>
 #include <folly/container/F14Map.h>
 #include <thrift/lib/cpp2/Adapter.h>
 #include <thrift/lib/cpp2/type/Any.h>
@@ -97,36 +98,29 @@ using SetPatchAdapter = InlineAdapter<SetPatch<T>>;
 template <typename T>
 using MapPatchAdapter = InlineAdapter<MapPatch<T>>;
 
-template <class>
-constexpr inline bool is_list_patch_v = false;
-template <class Patch>
-constexpr inline bool is_list_patch_v<ListPatch<Patch>> = true;
-template <class>
-constexpr inline bool is_set_patch_v = false;
-template <class Patch>
-constexpr inline bool is_set_patch_v<SetPatch<Patch>> = true;
-template <class>
-constexpr inline bool is_map_patch_v = false;
-template <class Patch>
-constexpr inline bool is_map_patch_v<MapPatch<Patch>> = true;
-template <class>
-constexpr inline bool is_structured_patch_v = false;
-template <class Patch>
-constexpr inline bool is_structured_patch_v<StructPatch<Patch>> = true;
-template <class Patch>
-constexpr inline bool is_structured_patch_v<UnionPatch<Patch>> = true;
-template <class>
-constexpr inline bool is_struct_patch_v = false;
-template <class Patch>
-constexpr inline bool is_struct_patch_v<StructPatch<Patch>> = true;
-template <class>
-constexpr inline bool is_union_patch_v = false;
-template <class Patch>
-constexpr inline bool is_union_patch_v<UnionPatch<Patch>> = true;
-template <class>
-constexpr inline bool is_any_patch_v = false;
-template <class Patch>
-constexpr inline bool is_any_patch_v<AnyPatch<Patch>> = true;
+template <class T>
+constexpr inline bool is_list_patch_v =
+    folly::is_instantiation_of_v<ListPatch, T>;
+template <class T>
+constexpr inline bool is_set_patch_v =
+    folly::is_instantiation_of_v<SetPatch, T>;
+template <class T>
+constexpr inline bool is_map_patch_v =
+    folly::is_instantiation_of_v<MapPatch, T>;
+template <class T>
+constexpr inline bool is_struct_patch_v =
+    folly::is_instantiation_of_v<StructPatch, T>;
+template <class T>
+constexpr inline bool is_union_patch_v =
+    folly::is_instantiation_of_v<UnionPatch, T>;
+template <class T>
+constexpr inline bool is_structured_patch_v =
+    is_struct_patch_v<T> || is_union_patch_v<T>;
+template <class T>
+constexpr inline bool is_any_patch_v =
+    folly::is_instantiation_of_v<AnyPatch, T>;
+// `folly::is_instantiation_of_v` does not take a template with a non-type
+// parameter.
 template <class>
 constexpr inline bool is_assign_patch_v = false;
 template <class Patch, bool DynamicMerge>

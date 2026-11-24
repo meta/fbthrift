@@ -406,7 +406,7 @@ class ThriftStructProxy(ThriftTypeProxy):
             yield ThriftFieldProxy(field, self.thriftMeta)
 
 
-ConstType = Union[  # type: ignore
+ConstType = Union[
     bool,
     int,
     float,

@@ -447,23 +447,21 @@ class BinaryPatch : public BaseStringPatch<Patch, BinaryPatch<Patch>> {
   }
 
   /// Appends a binary string.
-  template <typename... Args>
-  void append(Args&&... args) {
-    folly::IOBufQueue queue{folly::IOBufQueue::cacheChainLength()};
-    auto& cur = assignOr(*data_.append());
-    queue.append(cur);
-    queue.append(std::forward<Args>(args)...);
-    cur = queue.moveAsValue();
+  template <typename U>
+  void append(U&& val) {
+    if (auto tail = toChain(std::forward<U>(val))) {
+      assignOr(*data_.append()).appendToChain(std::move(tail));
+    }
   }
 
   /// Prepends a binary string.
   template <typename U>
   void prepend(U&& val) {
-    auto& cur = assignOr(*data_.prepend());
-    folly::IOBufQueue queue{folly::IOBufQueue::cacheChainLength()};
-    queue.append(std::forward<U>(val));
-    queue.append(cur);
-    cur = queue.moveAsValue();
+    if (auto head = toChain(std::forward<U>(val))) {
+      auto& cur = assignOr(*data_.prepend());
+      head->appendToChain(std::make_unique<folly::IOBuf>(std::move(cur)));
+      cur = std::move(*head);
+    }
   }
 
   void apply(T& val) const {
@@ -502,6 +500,18 @@ class BinaryPatch : public BaseStringPatch<Patch, BinaryPatch<Patch>> {
  private:
   using Base::assignOr;
   using Base::data_;
+
+  // Returns `val` as an IOBuf chain, or null if it holds no bytes.
+  template <typename U>
+  static std::unique_ptr<folly::IOBuf> toChain(U&& val) {
+    folly::IOBufQueue queue;
+    queue.append(std::forward<U>(val));
+    auto chain = queue.move();
+    if (chain && chain->empty()) {
+      chain.reset();
+    }
+    return chain;
+  }
 };
 
 } // namespace apache::thrift::op::detail

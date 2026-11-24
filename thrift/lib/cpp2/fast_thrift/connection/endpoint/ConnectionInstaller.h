@@ -17,14 +17,11 @@
 #pragma once
 
 #include <functional>
-#include <memory>
 #include <utility>
 
 #include <folly/ExceptionWrapper.h>
-#include <folly/io/async/DelayedDestruction.h>
 #include <folly/logging/xlog.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 
 namespace apache::thrift::fast_thrift::connection {
@@ -41,10 +38,8 @@ namespace apache::thrift::fast_thrift::connection {
  * where the concrete type is known.
  */
 template <typename Conn>
-class ConnectionInstaller : public folly::DelayedDestruction {
+class ConnectionInstaller {
  public:
-  using Ptr = std::
-      unique_ptr<ConnectionInstaller, folly::DelayedDestruction::Destructor>;
   using RegisterFn = std::function<void(Conn)>;
 
   explicit ConnectionInstaller(RegisterFn registerConnection) noexcept
@@ -56,25 +51,11 @@ class ConnectionInstaller : public folly::DelayedDestruction {
   ConnectionInstaller& operator=(const ConnectionInstaller&) = delete;
   ConnectionInstaller(ConnectionInstaller&&) = delete;
   ConnectionInstaller& operator=(ConnectionInstaller&&) = delete;
+  ~ConnectionInstaller() = default;
 
-  void setPipeline(channel_pipeline::PipelineImpl* pipeline) noexcept {
-    DCHECK(pipeline);
-    DCHECK(!pipeline_) << "setPipeline called twice without resetPipeline";
-    pipeline_ = pipeline;
-    pipelineGuard_ =
-        std::make_unique<folly::DelayedDestruction::DestructorGuard>(pipeline);
-  }
-
-  void resetPipeline() noexcept {
-    pipeline_ = nullptr;
-    pipelineGuard_.reset();
-  }
-
-  // === TailEndpointHandler ===
-
+  template <typename Context>
   channel_pipeline::Result onRead(
-      channel_pipeline::detail::ContextImpl&,
-      channel_pipeline::TypeErasedBox&& msg) noexcept {
+      Context&, channel_pipeline::TypeErasedBox&& msg) noexcept {
     registerConnection_(msg.take<Conn>());
     return channel_pipeline::Result::Success;
   }
@@ -92,13 +73,8 @@ class ConnectionInstaller : public folly::DelayedDestruction {
   void onPipelineInactive() noexcept {}
   void onWriteReady() noexcept {}
 
- protected:
-  ~ConnectionInstaller() override = default;
-
  private:
   RegisterFn registerConnection_;
-  channel_pipeline::PipelineImpl* pipeline_{nullptr};
-  std::unique_ptr<folly::DelayedDestruction::DestructorGuard> pipelineGuard_;
 };
 
 } // namespace apache::thrift::fast_thrift::connection

@@ -147,6 +147,9 @@ using CopyPropagatingVector = std::vector<T, ScopedCopyPropagatingAlloc<T>>;
 using CopyPropagatingString = std::
     basic_string<char, std::char_traits<char>, ScopedCopyPropagatingAlloc<>>;
 
+using StatefulAllocString =
+    std::basic_string<char, std::char_traits<char>, ScopedStatefulAlloc<>>;
+
 // Unlike PropagateAllAlloc below, containers can rebind it.
 template <class T>
 struct PropagatingStatefulAlloc : StatefulAlloc<T> {
@@ -165,6 +168,14 @@ struct PropagatingStatefulAlloc : StatefulAlloc<T> {
 template <typename T = char>
 using ScopedPropagatingStatefulAlloc =
     std::scoped_allocator_adaptor<PropagatingStatefulAlloc<T>>;
+
+template <class T>
+using PropagatingStatefulVector =
+    std::vector<T, ScopedPropagatingStatefulAlloc<T>>;
+
+template <class T>
+using PropagatingSortedVectorSet = folly::
+    sorted_vector_set<T, std::less<T>, ScopedPropagatingStatefulAlloc<T>>;
 
 template <class T>
 using StatefulAllocSortedVectorSet =

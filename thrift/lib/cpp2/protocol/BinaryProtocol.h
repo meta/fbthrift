@@ -337,8 +337,6 @@ struct BinaryProtocolReaderBase<Cursor>::StructReadState {
   int16_t fieldId;
   apache::thrift::protocol::TType fieldType;
 
-  constexpr static bool kAcceptsContext = false;
-
   void readStructBegin(BinaryProtocolReaderBase* iprot);
 
   void readStructEnd(BinaryProtocolReaderBase* iprot);

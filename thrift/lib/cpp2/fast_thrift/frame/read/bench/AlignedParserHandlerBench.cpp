@@ -61,8 +61,8 @@
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/BufferAllocator.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/AlignedParser.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameLengthParser.h>
@@ -73,10 +73,10 @@
 #include <thrift/lib/cpp2/fast_thrift/transport/bench/BenchAsyncTransport.h>
 
 using apache::thrift::fast_thrift::channel_pipeline::BytesPtr;
-using apache::thrift::fast_thrift::channel_pipeline::PipelineBuilder;
-using apache::thrift::fast_thrift::channel_pipeline::PipelineImpl;
+using apache::thrift::fast_thrift::channel_pipeline::PipelineOwner;
 using apache::thrift::fast_thrift::channel_pipeline::Result;
 using apache::thrift::fast_thrift::channel_pipeline::SimpleBufferAllocator;
+using apache::thrift::fast_thrift::channel_pipeline::StaticPipelineBuilder;
 using apache::thrift::fast_thrift::channel_pipeline::TypeErasedBox;
 using apache::thrift::fast_thrift::frame::kMetadataLengthSize;
 using apache::thrift::fast_thrift::frame::read::AlignedParser;
@@ -135,9 +135,8 @@ std::vector<uint8_t> buildRequestFnfFrame(size_t dataSize) {
 
 class FrameSink {
  public:
-  Result onRead(
-      apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
-      TypeErasedBox&& message) noexcept {
+  template <typename Context>
+  Result onRead(Context&, TypeErasedBox&& message) noexcept {
     BytesPtr frame = std::move(message.get<BytesPtr>());
     folly::doNotOptimizeAway(frame.get());
     ++framesRead_;
@@ -185,13 +184,15 @@ class HandlerFixture {
     transportHandler_ =
         TransportHandler::createWithParser(std::move(transport), ParserT{});
 
-    pipeline_ =
-        PipelineBuilder<TransportHandler, FrameSink, SimpleBufferAllocator>()
-            .setEventBase(&eventBase_)
-            .setHead(transportHandler_.get())
-            .setTail(&frameSink_)
-            .setAllocator(&allocator_)
-            .build();
+    pipeline_ = StaticPipelineBuilder<
+                    TransportHandler,
+                    FrameSink,
+                    SimpleBufferAllocator>()
+                    .setEventBase(&eventBase_)
+                    .setHead(transportHandler_.get())
+                    .setTail(&frameSink_)
+                    .setAllocator(&allocator_)
+                    .build();
 
     transportHandler_->setPipeline(pipeline_.get());
     transportHandler_->onConnect();
@@ -230,7 +231,7 @@ class HandlerFixture {
   FrameSink frameSink_;
   BenchAsyncTransport* testTransport_{nullptr};
   typename TransportHandler::Ptr transportHandler_;
-  PipelineImpl::Ptr pipeline_;
+  PipelineOwner pipeline_;
 };
 
 struct BenchmarkFrames {

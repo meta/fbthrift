@@ -47,6 +47,10 @@ namespace detail {
 bool requiresMovableReadCallback(
     const folly::AsyncTransport& transport) noexcept;
 
+bool setSocketBufferCallback(
+    folly::AsyncTransport& transport,
+    folly::AsyncTransport::BufferCallback* callback) noexcept;
+
 } // namespace detail
 
 /**
@@ -85,7 +89,8 @@ template <
     Parser ParserT = frame::read::FrameLengthParser>
 class TransportHandlerT : public folly::DelayedDestruction,
                           public folly::AsyncTransport::ReadCallback,
-                          public folly::AsyncTransport::WriteCallback {
+                          public folly::AsyncTransport::WriteCallback,
+                          public folly::AsyncTransport::BufferCallback {
  public:
   using BytesPtr = apache::thrift::fast_thrift::channel_pipeline::BytesPtr;
   using Result = apache::thrift::fast_thrift::channel_pipeline::Result;
@@ -188,6 +193,7 @@ class TransportHandlerT : public folly::DelayedDestruction,
     };
     parser_.setIOBufFactory(&bufFactory_);
     state_ = State::Ready;
+    bufferCallbackRegistered_ = detail::setSocketBufferCallback(*socket_, this);
   }
 
   bool setZeroCopy(bool enable) noexcept {
@@ -204,7 +210,7 @@ class TransportHandlerT : public folly::DelayedDestruction,
     state_ = State::Open;
     const bool unsupportedReadCallback = !MovableBufferParser<ParserT> &&
         detail::requiresMovableReadCallback(*socket_);
-    if (FOLLY_UNLIKELY(unsupportedReadCallback)) {
+    if (unsupportedReadCallback) [[unlikely]] {
       pipeline_.activate();
       closeImmediately(
           folly::AsyncSocketException(
@@ -284,7 +290,7 @@ class TransportHandlerT : public folly::DelayedDestruction,
     // that fires send() immediately after constructing the socket racing
     // against connectSuccess() silently drops the bytes. Only refuse in
     // terminal / pre-pipeline states.
-    if (FOLLY_UNLIKELY(state_ != State::Open && state_ != State::Ready)) {
+    if (state_ != State::Open && state_ != State::Ready) [[unlikely]] {
       return Result::Error;
     }
 
@@ -297,11 +303,11 @@ class TransportHandlerT : public folly::DelayedDestruction,
       return Result::Error;
     }
 
-    // writeChain can complete inline, in which case writeSuccess has already
-    // run and writePending_ is back to 0: the bytes are on the wire and
-    // nothing is saturated. Otherwise the socket buffered them and upstream
-    // is being told to stop, which is what arms the wake-up in writeSuccess.
-    if (writePending_ == 0) {
+    // AsyncSocket reports buffering before writeChain returns. Transports
+    // without an underlying AsyncSocket retain pending-write flow control.
+    const bool backpressured =
+        bufferCallbackRegistered_ ? socketBuffered_ : writePending_ != 0;
+    if (!backpressured) {
       return Result::Success;
     }
     writeSaturated_ = true;
@@ -310,7 +316,7 @@ class TransportHandlerT : public folly::DelayedDestruction,
 
   void pauseRead() noexcept {
     folly::DelayedDestruction::DestructorGuard dg(this);
-    if (FOLLY_UNLIKELY(readPaused_)) {
+    if (readPaused_) [[unlikely]] {
       return;
     }
     readPaused_ = true;
@@ -319,11 +325,14 @@ class TransportHandlerT : public folly::DelayedDestruction,
 
   void resumeRead() noexcept {
     folly::DelayedDestruction::DestructorGuard dg(this);
-    if (FOLLY_UNLIKELY(!readPaused_)) {
+    if (!readPaused_ || state_ >= State::Closing) [[unlikely]] {
       return;
     }
     readPaused_ = false;
-    socket_->setReadCB(this);
+    handleReadResult(parser_.resume(messageSink()));
+    if (!readPaused_ && state_ < State::Closing) {
+      socket_->setReadCB(this);
+    }
   }
 
   // Graceful disconnect: pending writes drain naturally; drain timeout is
@@ -340,6 +349,11 @@ class TransportHandlerT : public folly::DelayedDestruction,
     folly::DelayedDestruction::DestructorGuard dg(this);
     // Pipeline must not be actively dispatching when we drop it.
     DCHECK(state_ != State::Open);
+    if (bufferCallbackRegistered_) {
+      const bool detached = detail::setSocketBufferCallback(*socket_, nullptr);
+      DCHECK(detached);
+      bufferCallbackRegistered_ = false;
+    }
     onClosed_ = nullptr;
     eventPublisher_ = {};
     pipeline_.reset();
@@ -377,6 +391,16 @@ class TransportHandlerT : public folly::DelayedDestruction,
     maybeReleaseDrainer();
   }
 
+  void onEgressBuffered() noexcept override { socketBuffered_ = true; }
+
+  void onEgressBufferCleared() noexcept override {
+    folly::DelayedDestruction::DestructorGuard dg(this);
+    socketBuffered_ = false;
+    if (state_ == State::Open) {
+      maybeSignalWriteReady();
+    }
+  }
+
   ~TransportHandlerT() override {
     // Force a non-graceful close from Open so we reach Closed before
     // detaching the pipeline.
@@ -408,7 +432,7 @@ class TransportHandlerT : public folly::DelayedDestruction,
   void signalWriteComplete(
       WriteCompletionStatus status, size_t bytes) noexcept {
     if constexpr (!std::is_same_v<Factory, NoOpWriteCompleteEventFactory>) {
-      if (FOLLY_LIKELY(state_ == State::Open)) {
+      if (state_ == State::Open) [[likely]] {
         DCHECK(pipeline_);
         using Event = typename Factory::TransportWriteCompleteEventType;
         if constexpr (std::is_void_v<typename Event::Payload>) {
@@ -432,7 +456,7 @@ class TransportHandlerT : public folly::DelayedDestruction,
   // originates here. A handler that arms on its own internal state instead
   // would never be woken.
   void maybeSignalWriteReady() noexcept {
-    if (writeSaturated_ && writePending_ == 0) {
+    if (writeSaturated_ && writePending_ == 0 && !socketBuffered_) {
       writeSaturated_ = false;
       pipeline_.onWriteReady();
     }
@@ -445,7 +469,7 @@ class TransportHandlerT : public folly::DelayedDestruction,
   // queued for a connection that will never read them again.
   auto messageSink() noexcept {
     return [this](BytesPtr&& bytes) noexcept {
-      if (FOLLY_UNLIKELY(state_ == State::Closing || state_ == State::Closed)) {
+      if (state_ == State::Closing || state_ == State::Closed) [[unlikely]] {
         return Result::Error;
       }
       return pipeline_.fireRead(TypeErasedBox(std::move(bytes)));
@@ -456,7 +480,7 @@ class TransportHandlerT : public folly::DelayedDestruction,
   // pauses reads, Error closes gracefully. Shared by readDataAvailable +
   // readBufferAvailable.
   void handleReadResult(Result result) noexcept {
-    if (FOLLY_LIKELY(result == Result::Success)) {
+    if (result == Result::Success) [[likely]] {
       return;
     }
     if (result == Result::Backpressure) {
@@ -592,6 +616,8 @@ class TransportHandlerT : public folly::DelayedDestruction,
   State state_{State::Created};
   bool readPaused_{true};
   bool writeSaturated_{false};
+  bool socketBuffered_{false};
+  bool bufferCallbackRegistered_{false};
   uint32_t writePending_{0};
   SocketDrainer socketDrainer_;
 };

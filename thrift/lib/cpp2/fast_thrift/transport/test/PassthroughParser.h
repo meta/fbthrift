@@ -65,6 +65,11 @@ class PassthroughParser {
     readBufQueue_.setIOBufFactory(factory);
   }
 
+  template <typename Sink>
+  channel_pipeline::Result resume(Sink&&) noexcept {
+    return channel_pipeline::Result::Success;
+  }
+
   void reset() noexcept { readBufQueue_.reset(); }
 
  private:

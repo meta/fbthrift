@@ -18,11 +18,13 @@
 
 #include <thrift/lib/cpp2/dynamic/DynamicValue.h>
 #include <thrift/lib/cpp2/dynamic/SerializableRecord.h>
+#include <thrift/lib/cpp2/dynamic/StableCompare.h>
 #include <thrift/lib/cpp2/dynamic/TypeSystem.h>
 #include <thrift/lib/cpp2/dynamic/Union.h>
 #include <thrift/lib/cpp2/dynamic/detail/ConcreteList.h>
 #include <thrift/lib/cpp2/dynamic/detail/Datum.h>
 #include <thrift/lib/cpp2/dynamic/fwd.h>
+#include <thrift/lib/cpp2/op/Encode.h>
 #include <thrift/lib/cpp2/protocol/JSONProtocolCommon.h>
 #include <thrift/lib/cpp2/protocol/Protocol.h>
 #include <thrift/lib/cpp2/protocol/Traits.h>
@@ -32,7 +34,11 @@
 #include <folly/lang/Assume.h>
 #include <folly/memory/not_null.h>
 
+#include <cstdint>
+#include <limits>
 #include <memory_resource>
+#include <optional>
+#include <string_view>
 
 namespace apache::thrift::dynamic {
 
@@ -57,8 +63,138 @@ struct ThrowingValidationCallbacks {
 
   [[noreturn]] void onMultipleUnionFields(
       const type_system::UnionNode&, uint32_t) {
-    throw std::runtime_error(
-        "Union cannot have more than one field during deserialization");
+    protocol::TProtocolException::throwUnionMissingStop();
+  }
+};
+
+// Returns an empty string for values that the enum does not define.
+inline std::string_view enumValueName(
+    const type_system::EnumNode& enumNode, std::int32_t value) {
+  for (const auto& enumValue : enumNode.values()) {
+    if (enumValue.i32 == value) {
+      return enumValue.name;
+    }
+  }
+  return {};
+}
+
+// Dynamic containers have no native ordering, so KeyOrder::NativeAscending
+// uses the stable order too.
+template <typename ProtocolWriter>
+bool sortsSetAndMapKeys(const ProtocolWriter& writer) {
+  if constexpr (requires { writer.keyOrder(); }) {
+    return writer.keyOrder() != KeyOrder::Unspecified;
+  } else {
+    return false;
+  }
+}
+
+// Mirrors op::detail::MapEncode: string and enum keys have an alternative
+// encoding, e.g. as JSON object member names.
+inline bool hasAlternativeMapKeyForm(const type_system::TypeRef& keyType) {
+  const auto trueKeyType = keyType.trueType();
+  return trueKeyType.isString() || trueKeyType.isEnum();
+}
+
+// A terse field is omitted when it equals its intrinsic default (so -0.0 is
+// omitted but NaN is written), and a struct is empty only if it has no
+// unqualified fields, its optional fields are unset, and its terse fields are
+// empty.
+inline bool isEmptyForTerseWrite(const DynamicConstRef& value) {
+  return value.type().matchKind(
+      [&]<type_system::TypeRef::Kind k>(
+          type_system::TypeRef::KindConstant<k>) -> bool {
+        const auto& v = value.as<k>();
+        using T = std::remove_cvref_t<decltype(v)>;
+        if constexpr (std::is_arithmetic_v<T>) {
+          // Including enums, which are stored as i32
+          return v == T{};
+        } else if constexpr (std::is_same_v<T, String>) {
+          return v.view().empty();
+        } else if constexpr (std::is_same_v<T, Binary>) {
+          return v.empty();
+        } else if constexpr (std::is_same_v<T, Any>) {
+          // AnyStruct has only unqualified fields
+          return false;
+        } else if constexpr (
+            std::is_same_v<T, List> || std::is_same_v<T, Set> ||
+            std::is_same_v<T, Map>) {
+          return v.isEmpty();
+        } else if constexpr (std::is_same_v<T, Struct>) {
+          const auto fields = v.type().asStructUnchecked().fields();
+          for (size_t i = 0; i < fields.size(); ++i) {
+            const type_system::FastFieldHandle handle{
+                static_cast<uint16_t>(i + 1)};
+            switch (fields[i].presence()) {
+              case type_system::PresenceQualifier::OPTIONAL_:
+                if (v.hasField(handle)) {
+                  return false;
+                }
+                break;
+              case type_system::PresenceQualifier::TERSE:
+                if (!isEmptyForTerseWrite(*v.getField(handle))) {
+                  return false;
+                }
+                break;
+              default:
+                return false;
+            }
+          }
+          return true;
+        } else {
+          static_assert(std::is_same_v<T, Union>);
+          return v.isEmpty();
+        }
+      });
+}
+
+// Readers that omit types but can peek at the JSON type of the next value
+// (e.g. SimpleJSON), so that values of the wrong type are reported to the
+// callbacks and skipped. Other readers that omit types (e.g. JSON5, which also
+// accepts quoted numbers, binary objects, and maps as key-value arrays) throw
+// on values of the wrong type instead.
+template <typename ProtocolReader>
+inline constexpr bool kPeeksJsonValueTypes = requires(ProtocolReader& reader) {
+  requires ProtocolReader::kOmitsContainerElemTypes();
+  reader.peekValueTType();
+};
+
+// Mirrors the static path (detail::st::translate_field_name_or_id): readers
+// of name-based protocols identify a field by name, by id (with an empty
+// name), or by both, which must then agree.
+inline type_system::FastFieldHandle fieldHandleForNamedField(
+    const type_system::StructuredNode& node,
+    std::string_view name,
+    int16_t id) {
+  const FieldId fieldId{id};
+  if (name.empty()) {
+    return node.fieldHandleFor(fieldId);
+  }
+  const bool hasId = id != std::numeric_limits<int16_t>::min();
+  const auto handle = node.fieldHandleFor(name);
+  const bool conflicts = handle.valid()
+      ? hasId && node.at(handle).identity().id() != fieldId
+      : hasId && node.hasField(fieldId);
+  if (conflicts) {
+    protocol::TProtocolException::throwInvalidFieldData();
+  }
+  return handle;
+}
+
+// Resolves enum names for readers that decode enums by name.
+struct EnumNodeResolver {
+  const type_system::EnumNode& enumNode;
+
+  std::string_view findName(std::int32_t value) const {
+    return enumValueName(enumNode, value);
+  }
+  std::optional<std::int32_t> findValue(std::string_view name) const {
+    for (const auto& enumValue : enumNode.values()) {
+      if (enumValue.name == name) {
+        return enumValue.i32;
+      }
+    }
+    return std::nullopt;
   }
 };
 
@@ -73,6 +209,16 @@ template <typename T, typename ProtocolWriter>
   requires std::is_arithmetic_v<T>
 void serialize(ProtocolWriter& writer, T value) {
   op::encode<type::infer_tag<T>>(writer, value);
+}
+
+// Enum - by name for protocols that support it, like the static path
+template <typename ProtocolWriter>
+void serializeEnum(
+    ProtocolWriter& writer,
+    const type_system::EnumNode& enumNode,
+    std::int32_t value) {
+  op::detail::writeEnumValue(
+      writer, value, [&] { return detail::enumValueName(enumNode, value); });
 }
 
 // String
@@ -110,8 +256,14 @@ void serialize(ProtocolWriter& writer, const Set& set) {
   writer.writeSetBegin(
       type_system::ToTTypeFn{}(elemType), folly::to_narrow(set.size()));
 
-  for (auto elemRef : set) {
-    serializeValue(writer, elemRef);
+  if (detail::sortsSetAndMapKeys(writer)) {
+    for (const auto& elemRef : detail::sortedElements(set)) {
+      serializeValue(writer, elemRef);
+    }
+  } else {
+    for (auto elemRef : set) {
+      serializeValue(writer, elemRef);
+    }
   }
 
   writer.writeSetEnd();
@@ -125,11 +277,19 @@ void serialize(ProtocolWriter& writer, const Map& map) {
   writer.writeMapBegin(
       type_system::ToTTypeFn{}(keyType),
       type_system::ToTTypeFn{}(valueType),
-      folly::to_narrow(map.size()));
+      folly::to_narrow(map.size()),
+      detail::hasAlternativeMapKeyForm(keyType));
 
-  for (auto [keyRef, valueRef] : map) {
-    serializeValue(writer, keyRef);
-    serializeValue(writer, valueRef);
+  if (detail::sortsSetAndMapKeys(writer)) {
+    for (const auto& [keyRef, valueRef] : detail::sortedEntries(map)) {
+      serializeValue(writer, keyRef);
+      serializeValue(writer, valueRef);
+    }
+  } else {
+    for (auto [keyRef, valueRef] : map) {
+      serializeValue(writer, keyRef);
+      serializeValue(writer, valueRef);
+    }
   }
 
   writer.writeMapEnd();
@@ -227,10 +387,15 @@ double deserialize(
 template <typename ProtocolReader>
 int32_t deserialize(
     ProtocolReader& reader,
-    const type_system::EnumNode&,
+    const type_system::EnumNode& enumNode,
     std::pmr::memory_resource*) {
   int32_t ret;
-  op::decode<type::i32_t>(reader, ret);
+  const detail::EnumNodeResolver resolver{enumNode};
+  if constexpr (requires { reader.readEnum(ret, resolver); }) {
+    reader.readEnum(ret, resolver);
+  } else {
+    op::decode<type::i32_t>(reader, ret);
+  }
   return ret;
 }
 
@@ -305,7 +470,7 @@ Set deserialize(
   if constexpr (ProtocolReader::kOmitsContainerSizes()) {
     auto expected = type_system::ToTTypeFn{}(type.elementType());
     while (reader.peekSet()) {
-      if constexpr (ProtocolReader::kOmitsContainerElemTypes()) {
+      if constexpr (detail::kPeeksJsonValueTypes<ProtocolReader>) {
         auto peeked = reader.peekValueTType();
         if (!isJsonTypeCompatible(peeked, expected)) {
           callbacks.onTypeMismatch("set element", expected, peeked);
@@ -387,7 +552,7 @@ Map deserialize(
     auto expectedValueTType = type_system::ToTTypeFn{}(type.valueType());
     while (reader.peekMap()) {
       // For protocols without wire type info, peek at the key's JSON type.
-      if constexpr (ProtocolReader::kOmitsContainerElemTypes()) {
+      if constexpr (detail::kPeeksJsonValueTypes<ProtocolReader>) {
         auto peekedKey = reader.peekValueTType();
         if (!isJsonTypeCompatible(
                 peekedKey, expectedKeyTType, /*isMapKey=*/true)) {
@@ -406,7 +571,7 @@ Map deserialize(
       auto key = deserializeValue(reader, type.keyType(), alloc, callbacks);
 
       // For protocols without wire type info, peek at the value's JSON type.
-      if constexpr (ProtocolReader::kOmitsContainerElemTypes()) {
+      if constexpr (detail::kPeeksJsonValueTypes<ProtocolReader>) {
         auto peekedValue = reader.peekValueTType();
         if (!isJsonTypeCompatible(peekedValue, expectedValueTType)) {
           callbacks.onTypeMismatch(
@@ -572,7 +737,12 @@ template <typename ProtocolWriter>
 void serializeValue(ProtocolWriter& prot, const DynamicConstRef& v) {
   using Kind = type_system::TypeRef::Kind;
   v.type().matchKind([&]<Kind k>(type_system::TypeRef::KindConstant<k>) {
-    serialize(prot, v.as<k>());
+    if constexpr (k == Kind::ENUM) {
+      serializeEnum(
+          prot, v.type().trueType().asEnumUnchecked(), v.as<Kind::ENUM>());
+    } else {
+      serialize(prot, v.as<k>());
+    }
   });
 }
 
@@ -591,6 +761,23 @@ void serializeListElements(
     ProtocolWriter& writer, const ConcreteList<T>& data) {
   writer.template writeArithmeticVector<T>(
       data.elements().data(), data.elements().size());
+}
+
+// i32 elements may be enums, which some protocols write by name
+template <typename ProtocolWriter>
+  requires op::detail::writes_enum_names_v<ProtocolWriter>
+void serializeListElements(
+    ProtocolWriter& writer, const ConcreteList<int32_t>& data) {
+  const auto elementType = data.elementType().trueType();
+  if (!elementType.isEnum()) {
+    for (int32_t elt : data.elements()) {
+      serialize(writer, elt);
+    }
+    return;
+  }
+  for (int32_t elt : data.elements()) {
+    serializeEnum(writer, elementType.asEnumUnchecked(), elt);
+  }
 }
 
 // Specialization for bool (which uses std::byte storage)
@@ -670,7 +857,7 @@ List deserialize(
         if constexpr (ProtocolReader::kOmitsContainerSizes()) {
           auto expected = type_system::ToTTypeFn{}(type.elementType());
           while (reader.peekList()) {
-            if constexpr (ProtocolReader::kOmitsContainerElemTypes()) {
+            if constexpr (detail::kPeeksJsonValueTypes<ProtocolReader>) {
               auto peeked = reader.peekValueTType();
               if (!isJsonTypeCompatible(peeked, expected)) {
                 callbacks.onTypeMismatch("list element", expected, peeked);
@@ -758,14 +945,21 @@ void serialize(ProtocolWriter& writer, const Struct& structValue) {
 
   writer.writeStructBegin(structNode.uri().data());
 
-  // Iterate through fields using the type system and virtual interface
-  for (size_t i = 0; i < fieldDefs.size(); ++i) {
-    const auto& fieldDef = fieldDefs[i];
-    auto handle = type_system::FastFieldHandle{static_cast<uint16_t>(i + 1)};
-
+  auto writeField = [&](type_system::FastFieldHandle handle) {
     // Skip unset optional fields
     if (!structValue.hasField(handle)) {
-      continue;
+      return;
+    }
+
+    // Get the field value through the virtual interface
+    // We know fieldRef has a value because hasField returned true
+    auto fieldRef = structValue.getField(handle);
+
+    // Skip terse fields that hold their intrinsic default, like the static path
+    const auto& fieldDef = fieldDefs[handle.index()];
+    if (fieldDef.presence() == type_system::PresenceQualifier::TERSE &&
+        detail::isEmptyForTerseWrite(*fieldRef)) {
+      return;
     }
 
     writer.writeFieldBegin(
@@ -773,14 +967,19 @@ void serialize(ProtocolWriter& writer, const Struct& structValue) {
         fieldDef.wireType(),
         static_cast<int16_t>(fieldDef.identity().id()));
 
-    // Get the field value through the virtual interface
-    auto fieldRef = structValue.getField(handle);
-
-    // Serialize the field value through the reference
-    // We know fieldRef has a value because hasField returned true
     serializeValue(writer, *fieldRef);
 
     writer.writeFieldEnd();
+  };
+
+  if (op::detail::getFieldOrder(writer) == FieldOrder::IdAscending) {
+    for (auto handle : structNode.fieldHandlesByIdAscending()) {
+      writeField(handle);
+    }
+  } else {
+    for (size_t i = 0; i < fieldDefs.size(); ++i) {
+      writeField(type_system::FastFieldHandle{static_cast<uint16_t>(i + 1)});
+    }
   }
 
   writer.writeFieldStop();
@@ -813,7 +1012,7 @@ Struct deserialize(
     auto handle = [&]() {
       if constexpr (ProtocolReader::kUsesFieldNames()) {
         // Field name-based protocol (e.g., SimpleJSON)
-        return type.fieldHandleFor(name);
+        return detail::fieldHandleForNamedField(type, name, fid);
       } else {
         // Field ID-based protocol (e.g., Compact, Binary)
         Struct::FieldId id{fid};
@@ -848,7 +1047,7 @@ Struct deserialize(
         reader.skip(ftype);
         reader.readFieldEnd();
         continue;
-      } else if constexpr (ProtocolReader::kOmitsContainerSizes()) {
+      } else if constexpr (detail::kPeeksJsonValueTypes<ProtocolReader>) {
         if (ftype == protocol::TType::T_VOID) {
           auto peeked = reader.peekValueTType();
           if (!isJsonTypeCompatible(peeked, field.wireType())) {
@@ -905,15 +1104,15 @@ void serialize(ProtocolWriter& writer, const Union& unionValue) {
   // Serialize the active field if the union is not empty
   if (!unionValue.isEmpty()) {
     const auto& fieldDef = *unionValue.activeFieldDef_;
-    const auto& datum = *unionValue.activeFieldData_;
 
     writer.writeFieldBegin(
         fieldDef.identity().name().data(),
         fieldDef.wireType(),
         static_cast<int16_t>(fieldDef.identity().id()));
 
-    // Serialize the field value
-    datum.visit([&](const auto& value) { serialize(writer, value); });
+    // Dispatch on the field type rather than the datum, which stores enums as
+    // plain i32.
+    serializeValue(writer, unionValue.getField(unionValue.activeField()));
 
     writer.writeFieldEnd();
   }
@@ -950,7 +1149,7 @@ Union deserialize(
   auto handle = [&]() {
     if constexpr (ProtocolReader::kUsesFieldNames()) {
       // Field name-based protocol (e.g., SimpleJSON)
-      return type.fieldHandleFor(name);
+      return detail::fieldHandleForNamedField(type, name, fid);
     } else {
       // Field ID-based protocol (e.g., Compact, Binary)
       Union::FieldId id{fid};
@@ -971,7 +1170,7 @@ Union deserialize(
           ftype);
       reader.skip(ftype);
       mismatch = true;
-    } else if constexpr (ProtocolReader::kOmitsContainerSizes()) {
+    } else if constexpr (detail::kPeeksJsonValueTypes<ProtocolReader>) {
       if (ftype == protocol::TType::T_VOID) {
         auto peeked = reader.peekValueTType();
         if (!isJsonTypeCompatible(peeked, field.wireType())) {

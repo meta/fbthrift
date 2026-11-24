@@ -1,5 +1,19 @@
 <?hh
-// (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
+/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 <<Oncalls('thrift')>>
 final class ThriftKeySerializerTest extends WWWTest {
@@ -248,6 +262,35 @@ final class ThriftKeySerializerTest extends WWWTest {
     expect($serialized_42)->toNotEqual($serialized_43);
     expect(ThriftKeySerializer::deserialize($serialized_42, TType::I32, $spec))
       ->toEqual('42');
+  }
+
+  public function testSparseProtocolValueKeysSurviveReset(): void {
+    $key =
+      apache_thrift_protocol_detail_Value::fromShape(shape('i32Value' => 0));
+    $spec = shape(
+      'type' => TType::STRUCT,
+      'class' => apache_thrift_protocol_detail_Value::class,
+    );
+    $map = ThriftMap::forStruct<apache_thrift_protocol_detail_Value, string>();
+    $map->set($key, 'zero');
+    expect(ThriftKeySerializer::serialize($key, TType::STRUCT, $spec))
+      ->toEqual(TCompactSerializer::serialize($key));
+
+    $key->set_boolValue(false);
+    $map->set($key, 'false');
+    expect(ThriftKeySerializer::serialize($key, TType::STRUCT, $spec))
+      ->toEqual(TCompactSerializer::serialize($key));
+    expect(
+      $map->at(
+        apache_thrift_protocol_detail_Value::fromShape(shape('i32Value' => 0)),
+      ),
+    )->toEqual('zero');
+    expect($map->at($key))->toEqual('false');
+
+    $key->reset();
+    expect(ThriftKeySerializer::serialize($key, TType::STRUCT, $spec))
+      ->toEqual("\x00");
+    expect($map->count())->toEqual(2);
   }
 
   public function testTerseNestedWrappedStructUsesWrappedDefault(): void {

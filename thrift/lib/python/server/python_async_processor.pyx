@@ -13,7 +13,9 @@
 # limitations under the License.
 
 import asyncio
+import contextlib
 import functools
+import logging
 import sys
 import traceback
 
@@ -56,6 +58,12 @@ from thrift.python.server_impl.request_context import (
     RequestContext,
     SocketAddress,
 )
+from thrift.python.server_impl.execution.asyncio_worker import (
+    launch_worker_task,
+)
+from thrift.python.server_impl.execution.asyncio_worker_pool import (
+    AsyncioWorkerPool,
+)
 
 cdef extern from "thrift/lib/python/server/PythonAsyncProcessor.h" namespace "apache::thrift::python":
     void installInteractionTileFromHandler(
@@ -95,6 +103,8 @@ from thrift.python.streaming.bidistream cimport (
     createResponseAndStreamTransformation,
 )
 from cpython.contextvars cimport PyContextVar_Set, PyContextVar_Reset
+
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 ctypedef unique_ptr[cIOBuf] UniqueIOBuf
@@ -392,6 +402,17 @@ cdef api int launchControlTask(object coroutine_factory) except -1:
     asyncio.get_running_loop().create_task(coroutine_factory())
     return 0
 
+
+cdef int launchWorkerTask(
+    object coroutine_factory,
+    shared_ptr[cWorkerCapacityLease] lease,
+) except -1:
+    def release_lease():
+        lease.reset()
+
+    launch_worker_task(release_lease, coroutine_factory)
+    return 0
+
 cdef int combinedHandler(
     object func,
     object interaction_self,
@@ -425,6 +446,13 @@ cdef int combinedHandler(
         )
     finally:
         PyContextVar_Reset(THRIFT_REQUEST_CONTEXT, reset_token)
+
+cdef api void warnThreadsWithoutFactoryContext() noexcept with gil:
+    logger.warning(
+        "workers set and context not entered. "
+        "Server will stay in single thread mode"
+    )
+
 
 cdef api void handleLifecycleCallback(object func, string funcName, cFollyPromise[cFollyUnit] cPromise):
     cdef Promise_cFollyUnit __promise = Promise_cFollyUnit.create(cmove(cPromise))
@@ -612,27 +640,300 @@ cdef api void scheduleInteractionTermination(object handler):
     be called on the loop thread (GIL held)."""
     _schedule_termination(handler, None)
 
+cdef cmap[string, PyObjPtr] buildHandlerMethods(dict funcMap):
+    cdef cmap[string, PyObjPtr] methods
+    cdef FunctionEntry entry
+    for name, entry in funcMap.items():
+        methods[<bytes>name] = <PyObject*>entry.handler
+    return methods
+
+
+cdef class WorkerSystem:
+    """Carries what the worker subsystem shares from factory creation to
+    shutdown: the control executor and the function table it starts from, and,
+    once started, the work scheduler, the worker-capable execution system, and
+    the worker pool. Callers skip worker setup entirely when no method is
+    worker-capable."""
+
+    @staticmethod
+    cdef WorkerSystem create(
+        cAsyncioExecutor* controlExecutor,
+        dict funcMap,
+        set workerCapableMethodNames,
+    ):
+        """Workers must send control methods to the executor that control
+        dispatch already uses, so the factory passes that executor in when it
+        is created."""
+        cdef WorkerSystem workerSystem = WorkerSystem.__new__(WorkerSystem)
+        workerSystem.controlExecutor = controlExecutor
+        workerSystem.funcMap = funcMap
+        workerSystem.workerCapableMethodNames = workerCapableMethodNames
+        return workerSystem
+
+    cdef start(self, int workerCount, object makeInitializer):
+        """Builds the work scheduler and the worker-capable execution system,
+        then starts workerCount workers, each with the initializer that
+        makeInitializer builds from this worker system. If the workers fail to
+        start, closes what it built and re-raises."""
+        cdef cmap[string, PyObjPtr] controlMethods = buildHandlerMethods(
+            self.funcMap
+        )
+        cdef cset[string] workerCapable
+        for name in self.workerCapableMethodNames:
+            workerCapable.insert(<bytes>name)
+        self.scheduler = make_shared[cWorkScheduler]()
+        self.executionSystem = makeWorkerCapableExecutionSystem(
+            self.controlExecutor,
+            <cLaunchControlRequest>launchControlTask,
+            cmove(controlMethods),
+            self.scheduler,
+            <cLaunchWorkerRequest>launchWorkerTask,
+            cmove(workerCapable),
+        )
+        try:
+            workerPool = AsyncioWorkerPool(workerCount, makeInitializer(self))
+            # On failure the pool rolls back the workers it started.
+            workerPool.start()
+        except BaseException:
+            self.close()
+            raise
+        self.workerPool = workerPool
+
+    cdef close(self):
+        """Closes the workers, so each cleans up on its own loop, then the work
+        scheduler, the order that work_scheduler.md requires, and then releases
+        the execution system, which holds the control executor alive. Does
+        nothing if start() never ran."""
+        # The pool's initializers hold this worker system; drop the pool to
+        # break that cycle.
+        workerPool, self.workerPool = self.workerPool, None
+        try:
+            if workerPool is not None:
+                workerPool.close()
+        finally:
+            if self.scheduler.get() != NULL:
+                self.scheduler.get().close()
+            self.scheduler.reset()
+            self.executionSystem.reset()
+
+
+# Each worker unregisters on its own loop, before that loop closes: the
+# registration keeps the loop's executor alive, and an executor's destructor
+# never returns while something still keeps it alive.
+cdef object makeWorkerUnregisterer(
+    shared_ptr[cWorkScheduler] scheduler, shared_ptr[cWorkerHandle] worker
+):
+    def unregister_worker():
+        cdef cWorkScheduler* workScheduler = scheduler.get()
+        cdef cWorkerHandle* workerHandle = worker.get()
+        with nogil:
+            workScheduler.unregisterWorker(dereference(workerHandle))
+
+    return unregister_worker
+
+
+# The stack ignores the value a handler's exit returns, so a handler that
+# suppresses exceptions cannot hide a failed worker start.
+async def exitThatPropagatesErrors(handler, exc_type, exc, traceback):
+    await handler.__aexit__(exc_type, exc, traceback)
+    return False
+
+
+cdef class PerLoopWorkerInitializer:
+    """Starts a per-loop worker: the worker calls factory on its own loop and
+    serves requests with that handler."""
+
+    cdef WorkerSystem workerSystem
+    cdef object factory
+
+    def __cinit__(self, WorkerSystem workerSystem, object factory):
+        self.workerSystem = workerSystem
+        self.factory = factory
+
+    async def __call__(self):
+        cdef shared_ptr[cWorkerHandle] worker
+        cdef cmap[string, PyObjPtr] workerMethods
+        # A failed start unwinds the stack; a successful one hands it to the
+        # pool, which closes it when the worker leaves. Until then the stack
+        # also keeps this worker's handler and function table alive.
+        async with contextlib.AsyncExitStack() as cleanup:
+            handler = self.factory()
+            if not isinstance(handler, ServiceInterface):
+                raise TypeError(
+                    f"Handler factory returned {type(handler).__name__}; "
+                    "expected a thrift-python ServiceInterface."
+                )
+            await handler.__aenter__()
+            cleanup.push_async_exit(
+                functools.partial(exitThatPropagatesErrors, handler)
+            )
+            # getFunctionTable builds fresh entries per call, and the bindings
+            # below borrow them.
+            workerFuncMap = handler.getFunctionTable()
+            cleanup.callback(workerFuncMap.clear)
+            missingMethodNames = (
+                self.workerSystem.workerCapableMethodNames.difference(workerFuncMap)
+            )
+            if missingMethodNames:
+                missing = ", ".join(
+                    sorted(name.decode() for name in missingMethodNames)
+                )
+                raise TypeError(
+                    f"Handler factory returned {type(handler).__name__} for a "
+                    f"worker; it lacks routed methods: {missing}."
+                )
+            worker = registerWorkerExecutor(
+                dereference(self.workerSystem.scheduler), get_executor()
+            )
+            cleanup.callback(
+                makeWorkerUnregisterer(self.workerSystem.scheduler, worker)
+            )
+            workerMethods = buildHandlerMethods(workerFuncMap)
+            self.workerSystem.executionSystem.get().bindWorkerMethods(
+                dereference(worker), cmove(workerMethods)
+            )
+            self.workerSystem.scheduler.get().makeWorkerCapacityAvailable(
+                dereference(worker)
+            )
+            return cleanup.pop_all()
+
+
+cdef class SharedWorkerInitializer:
+    """Starts a shared-mode worker: the worker binds funcMap's handler
+    functions, and control owns the one handler."""
+
+    cdef WorkerSystem workerSystem
+    cdef cmap[string, PyObjPtr] workerMethods
+
+    def __cinit__(self, WorkerSystem workerSystem, dict funcMap):
+        self.workerSystem = workerSystem
+        # Shared table only; control owns the handler lifecycle. The caller
+        # keeps funcMap alive for the borrowed bindings.
+        self.workerMethods = buildHandlerMethods(funcMap)
+
+    async def __call__(self):
+        cdef shared_ptr[cWorkerHandle] worker
+        # A failed start unwinds the stack; a successful one hands it to the
+        # pool, which closes it when the worker leaves.
+        async with contextlib.AsyncExitStack() as cleanup:
+            worker = registerWorkerExecutor(
+                dereference(self.workerSystem.scheduler), get_executor()
+            )
+            cleanup.callback(
+                makeWorkerUnregisterer(self.workerSystem.scheduler, worker)
+            )
+            self.workerSystem.executionSystem.get().bindWorkerMethods(
+                dereference(worker), self.workerMethods
+            )
+            self.workerSystem.scheduler.get().makeWorkerCapacityAvailable(
+                dereference(worker)
+            )
+            return cleanup.pop_all()
+
+
+class FactoryExit:
+    """Exits an entered factory. The control handler may suppress only the
+    exception that the caller raised inside the factory context; a failure from
+    the factory's own entry or cleanup always propagates, whatever the
+    handler's exit returns."""
+
+    def __init__(self, handler):
+        self.handler = handler
+        self.entered = None
+        self.caller_exception = None
+
+    async def exit_control_handler(self, exc_type, exc, traceback):
+        suppress = await self.handler.__aexit__(exc_type, exc, traceback)
+        return bool(suppress) and exc is not None and exc is self.caller_exception
+
+    async def __call__(self, *exc_info):
+        self.caller_exception = exc_info[1]
+        return await self.entered.__aexit__(*exc_info)
+
+
 cdef class PythonAsyncProcessorFactory(AsyncProcessorFactory):
     cdef void releaseOwnedResources(self) noexcept:
         (<cPythonAsyncProcessorFactory*>self._cpp_obj.get()).releaseOwnedResources()
 
     async def __aenter__(self):
-        try:
+        factory_exit = FactoryExit(self.handler)
+        async with contextlib.AsyncExitStack() as stack:
+            stack.callback(lambda: self.releaseOwnedResources())
             await self.handler.__aenter__()
-        except BaseException:
-            self.releaseOwnedResources()
-            raise
-        (<cPythonAsyncProcessorFactory*>self._cpp_obj.get()).markContextEntered()
+            stack.push_async_exit(factory_exit.exit_control_handler)
+            (<cPythonAsyncProcessorFactory*>self._cpp_obj.get()).markContextEntered()
+            if (
+                self.workerSystem is not None
+                and (<cPythonAsyncProcessorFactory*>self._cpp_obj.get()).requestedThreadCount() > 1
+            ):
+                stack.enter_context(self._activate_workers())
+            factory_exit.entered = stack.pop_all()
+            # The exit is assigned only after every step succeeds. A failed step
+            # unwinds this stack, so a failed entry leaves no exit to call.
+            self.factoryExit = factory_exit
         return self
 
     async def __aexit__(self, *exc_info):
-        try:
-            return await self.handler.__aexit__(*exc_info)
-        finally:
-            self.releaseOwnedResources()
+        # Python calls __aexit__ once for each __aenter__ that returns, so
+        # factoryExit is set here.
+        #
+        # The exit records the caller's exception. That exception's traceback
+        # holds this frame, and this frame holds the factory. If the factory
+        # kept the exit, the cycle would keep the handler and everything it
+        # reaches alive until the garbage collector runs; a cycle like this
+        # once blocked event-loop shutdown. So the factory detaches the exit
+        # first and then calls it.
+        factory_exit, self.factoryExit = self.factoryExit, None
+        return await factory_exit(*exc_info)
+
+    def set_cpu_worker_threads(self, number_of_threads):
+        """Sets the number of CPU worker threads for this factory's requests.
+        Call it before the caller enters the factory context, on the thread
+        that enters it; the last value set before entry wins. One, the default,
+        serves every request on the control thread; a larger number starts that
+        many worker threads beside the control thread when the factory context
+        is entered. The factory applies the count on any build. A count below
+        one raises ValueError.
+
+        Worker threads run only request-response methods outside interactions.
+        A service without such methods serves every request on the control
+        thread, whatever count it requests.
+
+        A factory from create() shares one handler across every thread. Objects
+        that the handler creates on the control thread's event loop, such as
+        async clients or asyncio locks, may fail when a worker thread uses them.
+        create_from_handler_factory() gives each thread its own handler."""
+        if number_of_threads < 1:
+            raise ValueError(
+                f"Thread count must be one or more; got {number_of_threads}."
+            )
+        (<cPythonAsyncProcessorFactory*>self._cpp_obj.get()).setRequestedThreadCount(
+            number_of_threads
+        )
+
+    cdef _activate_workers(self):
+        with contextlib.ExitStack() as stack:
+            self.workerSystem.start(
+                (<cPythonAsyncProcessorFactory*>self._cpp_obj.get()).requestedThreadCount(),
+                self.initializerFactory,
+            )
+            # start() rolls back what it started when it fails, so close() is
+            # registered only after a successful start.
+            stack.callback(lambda: self.workerSystem.close())
+            (<cPythonAsyncProcessorFactory*>self._cpp_obj.get()).setExecutionSystem(
+                self.workerSystem.executionSystem
+            )
+            (<cPythonAsyncProcessorFactory*>self._cpp_obj.get()).setIntakeExecutor(
+                static_pointer_cast[cFollyExecutor, cWorkScheduler](
+                    self.workerSystem.scheduler
+                )
+            )
+            return stack.pop_all()
 
     @staticmethod
     cdef PythonAsyncProcessorFactory create(cServiceInterface server):
+        # One handler serves every thread. For a handler with loop-affine resources,
+        # such as async clients or asyncio locks, use create_from_handler_factory().
         cdef cServiceInterface controlHandler = server
         cdef cmap[string_view, HandlerFunc] funcs
         cdef cmap[string, PyObjPtr] controlMethods
@@ -646,10 +947,16 @@ cdef class PythonAsyncProcessorFactory(AsyncProcessorFactory):
         ]
         cdef FunctionEntry entry
         cdef PyObject* factory_obj
+        cdef set workerCapableMethodNames = set()
 
         for name, entry in funcMap.items():
             name_view = bytes_to_string_view(name)
             controlMethods[<bytes>name] = <PyObject*>entry.handler
+            if (
+                entry.rpc_kind == RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE
+                and not entry.interaction
+            ):
+                workerCapableMethodNames.add(name)
             if entry.interaction:
                 # Factory or inside-interaction method. interactionName is a
                 # string_view into the Python bytes held by `entry` (kept alive
@@ -684,8 +991,16 @@ cdef class PythonAsyncProcessorFactory(AsyncProcessorFactory):
         )
         cdef PythonAsyncProcessorFactory inst = PythonAsyncProcessorFactory.__new__(PythonAsyncProcessorFactory)
         inst.funcMap = funcMap
+        inst.initializerFactory = functools.partial(
+            SharedWorkerInitializer, funcMap=funcMap
+        )
         inst.lifecycleFuncs = lifecycleFuncs
         inst.handler = controlHandler
+        inst.controlExecutor = controlExecutor
+        if workerCapableMethodNames:
+            inst.workerSystem = WorkerSystem.create(
+                controlExecutor, funcMap, workerCapableMethodNames
+            )
         inst._cpp_obj = static_pointer_cast[cAsyncProcessorFactory, cPythonAsyncProcessorFactory](
             cCreatePythonAsyncProcessorFactory(
                 <PyObject*>controlHandler,
@@ -694,4 +1009,24 @@ cdef class PythonAsyncProcessorFactory(AsyncProcessorFactory):
                 executionSystem,
                 controlExecutor,
                 <bytes>controlHandler.service_name()))
+        return inst
+
+    @staticmethod
+    cdef PythonAsyncProcessorFactory create_from_handler_factory(
+        object handlerFactory
+    ):
+        # The factory's first product is the control handler. Each worker
+        # calls the factory again on its own loop once workers activate.
+        controlHandler = handlerFactory()
+        if not isinstance(controlHandler, ServiceInterface):
+            raise TypeError(
+                f"Handler factory returned {type(controlHandler).__name__}; "
+                "expected a thrift-python ServiceInterface."
+            )
+        cdef PythonAsyncProcessorFactory inst = PythonAsyncProcessorFactory.create(
+            controlHandler
+        )
+        inst.initializerFactory = functools.partial(
+            PerLoopWorkerInitializer, factory=handlerFactory
+        )
         return inst

@@ -25,10 +25,16 @@ pub type list_i32_9187 = ::std::vec::Vec<::std::primitive::i32>;
 
 pub type map_i32_i32_9565 = ::std::collections::BTreeMap<::std::primitive::i32, ::std::primitive::i32>;
 
+/// ```thrift
+/// typedef map<i32, string> map_i32_string_1261
+/// ```
 pub type map_i32_string_1261 = ::sorted_vector_map::SortedVectorMap<::std::primitive::i32, ::std::string::String>;
 
 pub type set_i32_7070 = ::std::collections::BTreeSet<::std::primitive::i32>;
 
+/// ```thrift
+/// typedef set<i32> set_i32_7194
+/// ```
 pub type set_i32_7194 = ::sorted_vector_map::SortedVectorSet<::std::primitive::i32>;
 
 pub type string_5252 = ::std::string::String;
@@ -401,7 +407,7 @@ pub struct AllocatorAware {
     pub aa_string: crate::types::string_5252,
     pub not_a_container: ::std::primitive::i32,
     pub aa_unique: ::std::primitive::i32,
-    pub aa_shared: crate::types::i32_9314,
+    pub aa_shared: crate::types::string_5252,
     // This field forces `..Default::default()` when instantiating this
     // struct, to make code future-proof against new fields added later to
     // the definition in Thrift. If you don't want this, add the annotation
@@ -505,6 +511,13 @@ impl ::fbthrift::ThriftEnum for has_bitwise_ops {
 impl ::std::default::Default for has_bitwise_ops {
     fn default() -> Self {
         Self(0)
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for has_bitwise_ops {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.0 == 0
     }
 }
 
@@ -661,6 +674,13 @@ impl ::std::default::Default for is_unscoped {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for is_unscoped {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.0 == 0
+    }
+}
+
 impl<'a> ::std::convert::From<&'a is_unscoped> for ::std::primitive::i32 {
     #[inline]
     fn from(x: &'a is_unscoped) -> Self {
@@ -808,6 +828,13 @@ impl ::std::default::Default for MyForwardRefEnum {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for MyForwardRefEnum {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.0 == 0
+    }
+}
+
 impl<'a> ::std::convert::From<&'a MyForwardRefEnum> for ::std::primitive::i32 {
     #[inline]
     fn from(x: &'a MyForwardRefEnum) -> Self {
@@ -949,6 +976,13 @@ impl ::fbthrift::ThriftStruct for self::empty_struct {
         static FIELDS: &[::fbthrift::Field] = &[
         ];
         FIELDS
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for self::empty_struct {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        true
     }
 }
 
@@ -2878,6 +2912,17 @@ impl ::fbthrift::ThriftStruct for self::MinPaddingWithCustomType {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for self::MinPaddingWithCustomType {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        ::fbthrift::help::Terse(&self.small).is_empty()
+            && ::fbthrift::help::Terse(&self.biggish).is_empty()
+            && ::fbthrift::help::Terse(&self.medium).is_empty()
+            && ::fbthrift::help::Terse(&self.big).is_empty()
+            && ::fbthrift::help::Terse(&self.tiny).is_empty()
+    }
+}
+
 impl<P> ::fbthrift::Serialize<P> for self::MinPaddingWithCustomType
 where
     P: ::fbthrift::ProtocolWriter,
@@ -2885,21 +2930,31 @@ where
     #[inline]
     fn rs_thrift_write(&self, p: &mut P) {
         p.write_struct_begin("MinPaddingWithCustomType");
-        p.write_field_begin("small", ::fbthrift::TType::Byte, 1);
-        ::fbthrift::Serialize::rs_thrift_write(&self.small, p);
-        p.write_field_end();
-        p.write_field_begin("biggish", ::fbthrift::TType::I32, 2);
-        ::fbthrift::Serialize::rs_thrift_write(&self.biggish, p);
-        p.write_field_end();
-        p.write_field_begin("medium", ::fbthrift::TType::I16, 3);
-        ::fbthrift::Serialize::rs_thrift_write(&self.medium, p);
-        p.write_field_end();
-        p.write_field_begin("big", ::fbthrift::TType::I64, 4);
-        ::fbthrift::Serialize::rs_thrift_write(&self.big, p);
-        p.write_field_end();
-        p.write_field_begin("tiny", ::fbthrift::TType::Byte, 5);
-        ::fbthrift::Serialize::rs_thrift_write(&self.tiny, p);
-        p.write_field_end();
+        if !::fbthrift::help::Terse(&self.small).is_empty() {
+            p.write_field_begin("small", ::fbthrift::TType::Byte, 1);
+            ::fbthrift::Serialize::rs_thrift_write(&self.small, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.biggish).is_empty() {
+            p.write_field_begin("biggish", ::fbthrift::TType::I32, 2);
+            ::fbthrift::Serialize::rs_thrift_write(&self.biggish, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.medium).is_empty() {
+            p.write_field_begin("medium", ::fbthrift::TType::I16, 3);
+            ::fbthrift::Serialize::rs_thrift_write(&self.medium, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.big).is_empty() {
+            p.write_field_begin("big", ::fbthrift::TType::I64, 4);
+            ::fbthrift::Serialize::rs_thrift_write(&self.big, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.tiny).is_empty() {
+            p.write_field_begin("tiny", ::fbthrift::TType::Byte, 5);
+            ::fbthrift::Serialize::rs_thrift_write(&self.tiny, p);
+            p.write_field_end();
+        }
         p.write_field_stop();
         p.write_struct_end();
     }
@@ -3305,6 +3360,13 @@ impl ::fbthrift::ThriftStruct for self::MyDataItem {
         static FIELDS: &[::fbthrift::Field] = &[
         ];
         FIELDS
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for self::MyDataItem {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        true
     }
 }
 
@@ -3779,6 +3841,14 @@ impl ::fbthrift::ThriftStruct for self::ForwardUsageRoot {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for self::ForwardUsageRoot {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.ForwardUsageStruct.is_none()
+            && self.ForwardUsageByRef.is_none()
+    }
+}
+
 impl<P> ::fbthrift::Serialize<P> for self::ForwardUsageRoot
 where
     P: ::fbthrift::ProtocolWriter,
@@ -3940,6 +4010,13 @@ impl ::fbthrift::ThriftStruct for self::ForwardUsageStruct {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for self::ForwardUsageStruct {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.foo.is_none()
+    }
+}
+
 impl<P> ::fbthrift::Serialize<P> for self::ForwardUsageStruct
 where
     P: ::fbthrift::ProtocolWriter,
@@ -4084,6 +4161,13 @@ impl ::fbthrift::ThriftStruct for self::ForwardUsageByRef {
             ::fbthrift::Field::new("foo", ::fbthrift::TType::Struct, 1),
         ];
         FIELDS
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for self::ForwardUsageByRef {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.foo.is_none()
     }
 }
 
@@ -4234,6 +4318,13 @@ impl ::fbthrift::ThriftStruct for self::IncompleteMap {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for self::IncompleteMap {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.field.is_none()
+    }
+}
+
 impl<P> ::fbthrift::Serialize<P> for self::IncompleteMap
 where
     P: ::fbthrift::ProtocolWriter,
@@ -4365,6 +4456,13 @@ impl ::fbthrift::ThriftStruct for self::IncompleteMapDep {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for self::IncompleteMapDep {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        true
+    }
+}
+
 impl<P> ::fbthrift::Serialize<P> for self::IncompleteMapDep
 where
     P: ::fbthrift::ProtocolWriter,
@@ -4482,6 +4580,13 @@ impl ::fbthrift::ThriftStruct for self::CompleteMap {
             ::fbthrift::Field::new("field", ::fbthrift::TType::Map, 1),
         ];
         FIELDS
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for self::CompleteMap {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.field.is_none()
     }
 }
 
@@ -4643,6 +4748,13 @@ impl ::fbthrift::ThriftStruct for self::CompleteMapDep {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for self::CompleteMapDep {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        true
+    }
+}
+
 impl<P> ::fbthrift::Serialize<P> for self::CompleteMapDep
 where
     P: ::fbthrift::ProtocolWriter,
@@ -4760,6 +4872,13 @@ impl ::fbthrift::ThriftStruct for self::IncompleteList {
             ::fbthrift::Field::new("field", ::fbthrift::TType::List, 1),
         ];
         FIELDS
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for self::IncompleteList {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.field.is_none()
     }
 }
 
@@ -4908,6 +5027,13 @@ impl ::fbthrift::ThriftStruct for self::IncompleteListDep {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for self::IncompleteListDep {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        true
+    }
+}
+
 impl<P> ::fbthrift::Serialize<P> for self::IncompleteListDep
 where
     P: ::fbthrift::ProtocolWriter,
@@ -5025,6 +5151,13 @@ impl ::fbthrift::ThriftStruct for self::CompleteList {
             ::fbthrift::Field::new("field", ::fbthrift::TType::List, 1),
         ];
         FIELDS
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for self::CompleteList {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.field.is_none()
     }
 }
 
@@ -5173,6 +5306,13 @@ impl ::fbthrift::ThriftStruct for self::CompleteListDep {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for self::CompleteListDep {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        true
+    }
+}
+
 impl<P> ::fbthrift::Serialize<P> for self::CompleteListDep
 where
     P: ::fbthrift::ProtocolWriter,
@@ -5290,6 +5430,13 @@ impl ::fbthrift::ThriftStruct for self::AdaptedList {
             ::fbthrift::Field::new("field", ::fbthrift::TType::List, 1),
         ];
         FIELDS
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for self::AdaptedList {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.field.is_none()
     }
 }
 
@@ -5576,6 +5723,13 @@ impl ::fbthrift::ThriftStruct for self::DependentAdaptedList {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for self::DependentAdaptedList {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.field.is_none()
+    }
+}
+
 impl<P> ::fbthrift::Serialize<P> for self::DependentAdaptedList
 where
     P: ::fbthrift::ProtocolWriter,
@@ -5707,6 +5861,13 @@ impl ::fbthrift::ThriftStruct for self::DependentAdaptedListDep {
             ::fbthrift::Field::new("field", ::fbthrift::TType::I16, 1),
         ];
         FIELDS
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for self::DependentAdaptedListDep {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.field.is_none()
     }
 }
 
@@ -5882,7 +6043,7 @@ impl ::fbthrift::ThriftStruct for self::AllocatorAware {
             ::fbthrift::Field::new("aa_list", ::fbthrift::TType::List, 1),
             ::fbthrift::Field::new("aa_map", ::fbthrift::TType::Map, 3),
             ::fbthrift::Field::new("aa_set", ::fbthrift::TType::Set, 2),
-            ::fbthrift::Field::new("aa_shared", ::fbthrift::TType::I32, 7),
+            ::fbthrift::Field::new("aa_shared", ::fbthrift::TType::String, 7),
             ::fbthrift::Field::new("aa_string", ::fbthrift::TType::String, 4),
             ::fbthrift::Field::new("aa_unique", ::fbthrift::TType::I32, 6),
             ::fbthrift::Field::new("not_a_container", ::fbthrift::TType::I32, 5),
@@ -5916,7 +6077,7 @@ where
         p.write_field_begin("aa_unique", ::fbthrift::TType::I32, 6);
         ::fbthrift::Serialize::rs_thrift_write(&self.aa_unique, p);
         p.write_field_end();
-        p.write_field_begin("aa_shared", ::fbthrift::TType::I32, 7);
+        p.write_field_begin("aa_shared", ::fbthrift::TType::String, 7);
         ::fbthrift::Serialize::rs_thrift_write(&self.aa_shared, p);
         p.write_field_end();
         p.write_field_stop();
@@ -5934,7 +6095,7 @@ where
             ::fbthrift::Field::new("aa_list", ::fbthrift::TType::List, 1),
             ::fbthrift::Field::new("aa_map", ::fbthrift::TType::Map, 3),
             ::fbthrift::Field::new("aa_set", ::fbthrift::TType::Set, 2),
-            ::fbthrift::Field::new("aa_shared", ::fbthrift::TType::I32, 7),
+            ::fbthrift::Field::new("aa_shared", ::fbthrift::TType::String, 7),
             ::fbthrift::Field::new("aa_string", ::fbthrift::TType::String, 4),
             ::fbthrift::Field::new("aa_unique", ::fbthrift::TType::I32, 6),
             ::fbthrift::Field::new("not_a_container", ::fbthrift::TType::I32, 5),
@@ -5988,7 +6149,7 @@ where
                 break 'fastpath true;
             }
             (_, fty, fid) = p.read_field_begin(|_| (), FIELDS)?;
-            if (fty, fid) == (::fbthrift::TType::I32, 7) {
+            if (fty, fid) == (::fbthrift::TType::String, 7) {
                 output.aa_shared = ::anyhow::Context::context(::fbthrift::Deserialize::rs_thrift_read(p), ::fbthrift::errors::DeserializingFieldError { field: "aa_shared", strct: "AllocatorAware"})?;
                 p.read_field_end()?;
             } else {
@@ -6009,7 +6170,7 @@ where
                     (::fbthrift::TType::String, 4) => output.aa_string = ::anyhow::Context::context(::fbthrift::Deserialize::rs_thrift_read(p), ::fbthrift::errors::DeserializingFieldError { field: "aa_string", strct: "AllocatorAware"})?,
                     (::fbthrift::TType::I32, 5) => output.not_a_container = ::anyhow::Context::context(::fbthrift::Deserialize::rs_thrift_read(p), ::fbthrift::errors::DeserializingFieldError { field: "not_a_container", strct: "AllocatorAware"})?,
                     (::fbthrift::TType::I32, 6) => output.aa_unique = ::anyhow::Context::context(::fbthrift::Deserialize::rs_thrift_read(p), ::fbthrift::errors::DeserializingFieldError { field: "aa_unique", strct: "AllocatorAware"})?,
-                    (::fbthrift::TType::I32, 7) => output.aa_shared = ::anyhow::Context::context(::fbthrift::Deserialize::rs_thrift_read(p), ::fbthrift::errors::DeserializingFieldError { field: "aa_shared", strct: "AllocatorAware"})?,
+                    (::fbthrift::TType::String, 7) => output.aa_shared = ::anyhow::Context::context(::fbthrift::Deserialize::rs_thrift_read(p), ::fbthrift::errors::DeserializingFieldError { field: "aa_shared", strct: "AllocatorAware"})?,
                     (fty, _) => p.skip(fty)?,
                 }
                 p.read_field_end()?;

@@ -249,7 +249,7 @@ std::partial_ordering InitialResponse::operator<=>([[maybe_unused]] const Initia
 
 void swap([[maybe_unused]] InitialResponse& a, [[maybe_unused]] InitialResponse& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_content, b.__fbthrift_field_content);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_content, b.__fbthrift_field_content);
   swap(a.__isset, b.__isset);
 }
 
@@ -313,7 +313,7 @@ std::partial_ordering FinalResponse::operator<=>([[maybe_unused]] const FinalRes
 
 void swap([[maybe_unused]] FinalResponse& a, [[maybe_unused]] FinalResponse& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_content, b.__fbthrift_field_content);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_content, b.__fbthrift_field_content);
   swap(a.__isset, b.__isset);
 }
 
@@ -377,7 +377,7 @@ std::partial_ordering SinkPayload::operator<=>([[maybe_unused]] const SinkPayloa
 
 void swap([[maybe_unused]] SinkPayload& a, [[maybe_unused]] SinkPayload& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_content, b.__fbthrift_field_content);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_content, b.__fbthrift_field_content);
   swap(a.__isset, b.__isset);
 }
 
@@ -441,7 +441,7 @@ std::partial_ordering CompatibleWithKeywordSink::operator<=>([[maybe_unused]] co
 
 void swap([[maybe_unused]] CompatibleWithKeywordSink& a, [[maybe_unused]] CompatibleWithKeywordSink& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_sink, b.__fbthrift_field_sink);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_sink, b.__fbthrift_field_sink);
   swap(a.__isset, b.__isset);
 }
 
@@ -505,7 +505,7 @@ std::partial_ordering InitialException::operator<=>([[maybe_unused]] const Initi
 
 void swap([[maybe_unused]] InitialException& a, [[maybe_unused]] InitialException& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_reason, b.__fbthrift_field_reason);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_reason, b.__fbthrift_field_reason);
   swap(a.__isset, b.__isset);
 }
 
@@ -569,7 +569,7 @@ std::partial_ordering SinkException1::operator<=>([[maybe_unused]] const SinkExc
 
 void swap([[maybe_unused]] SinkException1& a, [[maybe_unused]] SinkException1& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_reason, b.__fbthrift_field_reason);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_reason, b.__fbthrift_field_reason);
   swap(a.__isset, b.__isset);
 }
 
@@ -643,7 +643,7 @@ std::partial_ordering SinkException2::operator<=>([[maybe_unused]] const SinkExc
 
 void swap([[maybe_unused]] SinkException2& a, [[maybe_unused]] SinkException2& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_reason, b.__fbthrift_field_reason);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_reason, b.__fbthrift_field_reason);
   swap(a.__isset, b.__isset);
 }
 
@@ -707,7 +707,7 @@ std::partial_ordering StreamItem::operator<=>([[maybe_unused]] const StreamItem&
 
 void swap([[maybe_unused]] StreamItem& a, [[maybe_unused]] StreamItem& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_content, b.__fbthrift_field_content);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_content, b.__fbthrift_field_content);
   swap(a.__isset, b.__isset);
 }
 

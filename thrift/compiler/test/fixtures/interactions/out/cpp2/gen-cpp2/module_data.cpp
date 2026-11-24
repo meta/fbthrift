@@ -58,52 +58,52 @@ THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<int, 1> TStructDataStorage<:
 namespace detail {
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::cpp2::CustomException, false>::bundle() {
-    return ::cpp2::module_constants::_fbthrift_schema_b600a8d1f21d88ba_includes();
+    return ::cpp2::module_constants::_fbthrift_schema_7ead9f22bbfc4aa2_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::cpp2::ShouldBeBoxed, false>::bundle() {
-    return ::cpp2::module_constants::_fbthrift_schema_b600a8d1f21d88ba_includes();
+    return ::cpp2::module_constants::_fbthrift_schema_7ead9f22bbfc4aa2_includes();
 }
 
 template <> struct TSchemaAssociation<::cpp2::MyService, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = -5332076339143014214;
-  static constexpr ::std::string_view definitionKey = {"\x76\xb4\x43\x71\x74\x4c\xcf\x17\x4a\x1e\xac\xce\x43\xe0\xad\x38", 16};
+  static constexpr int64_t programId = 9128126991281441442;
+  static constexpr ::std::string_view definitionKey = {"\x9b\x8f\x49\x32\xd2\x2d\x8e\x17\x51\xf8\xa5\xae\xd1\x01\x7b\x2b", 16};
 };
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::cpp2::MyService, false>::bundle() {
-    return ::cpp2::module_constants::_fbthrift_schema_b600a8d1f21d88ba_includes();
+    return ::cpp2::module_constants::_fbthrift_schema_7ead9f22bbfc4aa2_includes();
 }
 template <> struct TSchemaAssociation<::cpp2::Factories, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = -5332076339143014214;
-  static constexpr ::std::string_view definitionKey = {"\x4e\xac\x2e\x48\x8e\x4a\x06\x25\x0d\x9c\x20\x8c\x3d\x6e\x63\x21", 16};
+  static constexpr int64_t programId = 9128126991281441442;
+  static constexpr ::std::string_view definitionKey = {"\x1f\x7a\x54\x63\x77\xd0\xa7\xb2\xa3\x5e\xb4\x67\x2e\xc8\x42\xf6", 16};
 };
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::cpp2::Factories, false>::bundle() {
-    return ::cpp2::module_constants::_fbthrift_schema_b600a8d1f21d88ba_includes();
+    return ::cpp2::module_constants::_fbthrift_schema_7ead9f22bbfc4aa2_includes();
 }
 template <> struct TSchemaAssociation<::cpp2::Perform, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = -5332076339143014214;
-  static constexpr ::std::string_view definitionKey = {"\xd4\x56\x2f\xc1\x15\x85\x3e\x25\x6b\x9a\xa1\x73\x3b\x01\xcd\xbf", 16};
+  static constexpr int64_t programId = 9128126991281441442;
+  static constexpr ::std::string_view definitionKey = {"\xea\x7f\xf4\xa9\x59\xde\x30\x09\x5d\x68\x76\x5b\x43\x34\x2e\x8c", 16};
 };
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::cpp2::Perform, false>::bundle() {
-    return ::cpp2::module_constants::_fbthrift_schema_b600a8d1f21d88ba_includes();
+    return ::cpp2::module_constants::_fbthrift_schema_7ead9f22bbfc4aa2_includes();
 }
 template <> struct TSchemaAssociation<::cpp2::InteractWithShared, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = -5332076339143014214;
-  static constexpr ::std::string_view definitionKey = {"\xee\x1e\x31\x94\xc7\x92\x5e\xbb\x4c\x6a\xdd\x02\x01\xd3\x32\x4d", 16};
+  static constexpr int64_t programId = 9128126991281441442;
+  static constexpr ::std::string_view definitionKey = {"\xf3\x7c\xb3\xdd\x3e\x03\x42\xb9\x0d\x08\x10\x67\xf6\xe9\x6b\x25", 16};
 };
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::cpp2::InteractWithShared, false>::bundle() {
-    return ::cpp2::module_constants::_fbthrift_schema_b600a8d1f21d88ba_includes();
+    return ::cpp2::module_constants::_fbthrift_schema_7ead9f22bbfc4aa2_includes();
 }
 template <> struct TSchemaAssociation<::cpp2::BoxService, false> {
   static ::folly::Range<const ::std::string_view*> bundle();
-  static constexpr int64_t programId = -5332076339143014214;
-  static constexpr ::std::string_view definitionKey = {"\x6c\x05\x03\x8b\xc9\x43\xfa\x33\xe4\x42\x2f\x59\x5a\xae\x0f\x5b", 16};
+  static constexpr int64_t programId = 9128126991281441442;
+  static constexpr ::std::string_view definitionKey = {"\x35\x67\x6b\x10\xa5\xf1\xaf\x1d\x43\x13\x3d\x9e\xfc\xd6\x8c\x0e", 16};
 };
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::cpp2::BoxService, false>::bundle() {
-    return ::cpp2::module_constants::_fbthrift_schema_b600a8d1f21d88ba_includes();
+    return ::cpp2::module_constants::_fbthrift_schema_7ead9f22bbfc4aa2_includes();
 }
 } // namespace detail
 } // namespace apache::thrift

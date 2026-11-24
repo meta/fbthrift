@@ -141,7 +141,10 @@ public class TProtocolUtil {
         break;
 
       default:
-        break;
+        // Like C++ prot->skip, reject types that can never appear on the wire (STOP, VOID, ENUM,
+        // unknown bytes) instead of silently consuming nothing: a no-op default lets a hostile
+        // container loop billions of times without reading a byte.
+        throw new TProtocolException(TProtocolException.INVALID_DATA, "Invalid skip type: " + type);
     }
   }
 

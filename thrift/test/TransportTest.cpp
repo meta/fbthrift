@@ -19,8 +19,8 @@
 #include <functional>
 #include <random>
 
+#include <fmt/format.h>
 #include <folly/Conv.h>
-#include <folly/Format.h>
 #include <folly/portability/Unistd.h>
 
 #include <thrift/lib/cpp/transport/TBufferTransports.h>
@@ -63,7 +63,7 @@ class RandomSizeGenerator : public SizeGenerator {
   uint32_t nextSize() override { return dist_(rng_); }
 
   string describe() const override {
-    return sformat("rand({}, {})", getMin(), getMax());
+    return fmt::format("rand({}, {})", getMin(), getMax());
   }
 
   uint32_t getMin() const { return dist_.min(); }

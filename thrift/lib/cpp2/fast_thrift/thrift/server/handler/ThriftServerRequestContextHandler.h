@@ -21,6 +21,9 @@
 #include <boost/intrusive_ptr.hpp>
 
 #include <folly/ExceptionWrapper.h>
+#include <folly/Likely.h>
+#include <folly/io/async/Request.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/event_handler/Cpp2BridgeExtension.h>
 
 #include <folly/lang/Hint.h>
 
@@ -30,6 +33,8 @@
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/MethodMetadata.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/ThriftConnContext.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/ThriftRequestContext.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/util/PayloadUtils.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/util/RequestMetadata.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/util/ResponsePayloads.h>
 
 namespace apache::thrift::fast_thrift::thrift {
@@ -48,6 +53,8 @@ namespace apache::thrift::fast_thrift::thrift {
  * context (i.e. between ThriftServerTransportAdapter and any handler that
  * sets fields on ThriftRequestContext). Symmetrically, every handler and
  * extension that contributes a response header must sit downstream of it.
+ * A supplied method registry is authoritative: RPCs absent from it are
+ * answered before downstream handlers run.
  */
 template <typename Context>
 class ThriftServerRequestContextHandler {
@@ -87,10 +94,17 @@ class ThriftServerRequestContextHandler {
     // The setup message carries no request context and is answered further
     // down; nothing here applies to it. Tested positively: a valueless payload
     // is not a setup message and must still be handled.
-    if (FOLLY_UNLIKELY(
-            request.payload.template is<ThriftConnectionSetupPayload>())) {
+    if (request.payload.template is<ThriftConnectionSetupPayload>())
+        [[unlikely]] {
       request.payload.template get<ThriftConnectionSetupPayload>()
           .setup->connContext = connContext_.get();
+      return ctx.fireRead(std::move(msg));
+    }
+    // Established-stream control frames are not RPCs. The mux routes them to
+    // the original stream, which already owns the one request context/FRC for
+    // that RPC; allocating another pair here would be both wrong and hot-path
+    // overhead on every credit update.
+    if (isStreamControlRequest(request.payload)) [[unlikely]] {
       return ctx.fireRead(std::move(msg));
     }
     request.requestContext = makeThriftRequestContext(*ctx.eventBase());
@@ -98,23 +112,50 @@ class ThriftServerRequestContextHandler {
     if (requestExtensionLayout_ != nullptr) {
       request.requestContext->installExtensions(*requestExtensionLayout_);
     }
-    if (request.payload.template is<ThriftServerRequestResponsePayload>()) {
-      auto& metadata =
-          request.payload.template get<ThriftServerRequestResponsePayload>()
-              .metadata;
-      if (metadata != nullptr && metadata->name().has_value()) {
-        const auto methodName = metadata->name()->view();
-        request.requestContext->setMethodMetadata(
-            methodMetadata_ == nullptr ? nullptr
-                                       : methodMetadata_->find(methodName));
-        request.requestContext->setMethodName(
-            std::move(*metadata->name()).str());
+    bool unknownMethod = false;
+    auto populateRequestMetadata = [&](auto& payload) {
+      auto& metadata = payload.metadata;
+      if (metadata == nullptr ||
+          !isRequestRpcMetadataValid(*metadata, payload.kRpcKind)) {
+        return false;
       }
-      if (enableRequestHeaders_ && metadata != nullptr &&
-          metadata->otherMetadata().has_value()) {
+      const auto methodName = metadata->name()->view();
+      const auto* method = methodMetadata_ == nullptr
+          ? nullptr
+          : methodMetadata_->find(methodName);
+      request.requestContext->setMethodMetadata(method);
+      unknownMethod = methodMetadata_ != nullptr && method == nullptr;
+      request.requestContext->setMethodName(std::move(*metadata->name()).str());
+      if (enableRequestHeaders_ && metadata->otherMetadata().has_value()) {
         request.requestContext->setHeaders(
             std::move(*metadata->otherMetadata()));
       }
+      return true;
+    };
+    bool validMetadata = true;
+    if (request.payload.template is<ThriftServerRequestResponsePayload>()) {
+      validMetadata = populateRequestMetadata(
+          request.payload.template get<ThriftServerRequestResponsePayload>());
+    } else if (request.payload.template is<ThriftRequestStreamPayload>()) {
+      validMetadata = populateRequestMetadata(
+          request.payload.template get<ThriftRequestStreamPayload>());
+    }
+    server::RequestContextScopeGuard guard(request.requestContext.get());
+    if (FOLLY_UNLIKELY(!validMetadata)) {
+      auto response = makeFrameworkErrorMessage(
+          request.streamId,
+          apache::thrift::ResponseRpcErrorCode::REQUEST_PARSING_FAILURE,
+          "Invalid metadata object");
+      response.requestContext = std::move(request.requestContext);
+      return ctx.fireWrite(
+          channel_pipeline::erase_and_box(std::move(response)));
+    }
+    if (FOLLY_UNLIKELY(unknownMethod)) {
+      auto response = makeUnknownMethodMessage(
+          request.streamId, request.requestContext->getMethodName());
+      response.requestContext = std::move(request.requestContext);
+      return ctx.fireWrite(
+          channel_pipeline::erase_and_box(std::move(response)));
     }
     return ctx.fireRead(std::move(msg));
   }
@@ -130,7 +171,18 @@ class ThriftServerRequestContextHandler {
   // OutboundHandler
   channel_pipeline::Result onWrite(
       Context& ctx, channel_pipeline::TypeErasedBox&& msg) noexcept {
-    attachResponseHeaders(msg.template get<ThriftServerResponseMessage>());
+    auto& response = msg.template get<ThriftServerResponseMessage>();
+    if (response.requestContext == nullptr) {
+      attachResponseHeaders(response);
+      return ctx.fireWrite(std::move(msg));
+    }
+    if (folly::RequestContext::try_get() ==
+        response.requestContext->getFollyRequestContext().get()) {
+      attachResponseHeaders(response);
+      return ctx.fireWrite(std::move(msg));
+    }
+    server::RequestContextScopeGuard guard(response.requestContext.get());
+    attachResponseHeaders(response);
     return ctx.fireWrite(std::move(msg));
   }
 

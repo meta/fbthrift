@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_library(thriftannotation)
-thrift_configure_target(thriftannotation PUBLIC)
-target_link_libraries(thriftannotation PUBLIC Folly::folly)
+add_library(thrift_annotation)
 
 foreach (
   name
@@ -25,11 +23,8 @@ foreach (
   go
   scope
   thrift)
-  thrift_generate(${name}.thrift LANGUAGE cpp2 OPTIONS templates no_metadata
-                  TARGET thriftannotation)
+  thrift_generate(thrift_annotation ${name}.thrift LANGUAGE cpp2
+                  OPTIONS templates no_metadata)
 endforeach ()
 
-install(
-  TARGETS thriftannotation
-  EXPORT fbthrift-exports
-  DESTINATION ${CMAKE_INSTALL_LIBDIR})
+thrift_install_targets(thrift_annotation)

@@ -525,6 +525,7 @@ namespace FBThrift.Conformance.Server
             // generates testsetTypeRegistry).
             Apache.Thrift.Test.Testset.@testsetTypeRegistry.RegisterTypes(RegisterType);
             Apache.Thrift.Test.Enum.@EnumTypeRegistry.RegisterTypes(RegisterType);
+            Apache.Thrift.Test.Terse.@TerseTypeRegistry.RegisterTypes(RegisterType);
             facebook.thrift.protocol.detail.@protocol_detailTypeRegistry.RegisterTypes(RegisterType);
         }
 

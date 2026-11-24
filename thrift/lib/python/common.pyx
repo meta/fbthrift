@@ -169,6 +169,32 @@ cdef class RpcOptions:
         self._cpp_obj.setTimeout(milliseconds(<int64_t>(seconds * 1000)))
 
     @property
+    def processing_timeout(self):
+        """Get the ServiceRouter processing timeout in seconds; zero uses its default."""
+        return self._cpp_obj.getProcessingTimeout().count() / 1000
+
+    @processing_timeout.setter
+    def processing_timeout(self, double seconds):
+        """Set the SR processing timeout in seconds, truncated to milliseconds.
+
+        Zero, including positive sub-millisecond values, uses the SR default.
+        """
+        self._cpp_obj.setProcessingTimeout(milliseconds(<int64_t>(seconds * 1000)))
+
+    @property
+    def overall_timeout(self):
+        """Get the ServiceRouter overall timeout in seconds; zero uses its default."""
+        return self._cpp_obj.getOverallTimeout().count() / 1000
+
+    @overall_timeout.setter
+    def overall_timeout(self, double seconds):
+        """Set the SR overall timeout in seconds, truncated to milliseconds.
+
+        Zero, including positive sub-millisecond values, uses the SR default.
+        """
+        self._cpp_obj.setOverallTimeout(milliseconds(<int64_t>(seconds * 1000)))
+
+    @property
     def priority(self):
         return Priority(<int>self._cpp_obj.getPriority())
 

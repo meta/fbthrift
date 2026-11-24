@@ -64,6 +64,14 @@ class ClientSinkBridge : public TwoWayBridge<
   };
   using ClientPtr = std::unique_ptr<ClientSinkBridge, ClientDeleter>;
 
+  // For clients that read the final response without sink() and so must
+  // release the client side without cancel().
+  struct ClientReleaseDeleter : Deleter {
+    void operator()(ClientSinkBridge* ptr);
+  };
+  using ClientReleasePtr =
+      std::unique_ptr<ClientSinkBridge, ClientReleaseDeleter>;
+
   ~ClientSinkBridge() override;
 
   using FirstResponseCallback = FirstResponseClientCallback<ClientPtr>;

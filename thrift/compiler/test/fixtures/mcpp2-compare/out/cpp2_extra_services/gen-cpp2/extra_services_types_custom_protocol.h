@@ -77,7 +77,7 @@ _readField_opt_fieldA:
 _readField_fieldB:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_fieldB = ::std::map<::std::string, bool>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_fieldB);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::string, ::apache::thrift::type_class::integral>, ::std::map<::std::string, bool>, ::apache::thrift::type::map<::apache::thrift::type::string_t, ::apache::thrift::type::bool_t>>::read(*iprot, this->__fbthrift_field_fieldB);
     _readState.afterSubobject(iprot);
   }
@@ -93,7 +93,7 @@ _readField_fieldB:
 _readField_req_fieldB:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_req_fieldB = ::std::map<::std::string, bool>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_req_fieldB);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::string, ::apache::thrift::type_class::integral>, ::std::map<::std::string, bool>, ::apache::thrift::type::map<::apache::thrift::type::string_t, ::apache::thrift::type::bool_t>>::read(*iprot, this->__fbthrift_field_req_fieldB);
     _readState.afterSubobject(iprot);
   }
@@ -108,7 +108,7 @@ _readField_req_fieldB:
 _readField_opt_fieldB:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_opt_fieldB = ::std::map<::std::string, bool>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_opt_fieldB);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::string, ::apache::thrift::type_class::integral>, ::std::map<::std::string, bool>, ::apache::thrift::type::map<::apache::thrift::type::string_t, ::apache::thrift::type::bool_t>>::read(*iprot, this->__fbthrift_field_opt_fieldB);
     _readState.afterSubobject(iprot);
   }
@@ -124,7 +124,7 @@ _readField_opt_fieldB:
 _readField_fieldC:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_fieldC = ::std::set<::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_fieldC);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::set<::apache::thrift::type_class::integral>, ::std::set<::std::int32_t>, ::apache::thrift::type::set<::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_fieldC);
     _readState.afterSubobject(iprot);
   }
@@ -140,7 +140,7 @@ _readField_fieldC:
 _readField_req_fieldC:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_req_fieldC = ::std::set<::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_req_fieldC);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::set<::apache::thrift::type_class::integral>, ::std::set<::std::int32_t>, ::apache::thrift::type::set<::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_req_fieldC);
     _readState.afterSubobject(iprot);
   }
@@ -155,7 +155,7 @@ _readField_req_fieldC:
 _readField_opt_fieldC:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_opt_fieldC = ::std::set<::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_opt_fieldC);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::set<::apache::thrift::type_class::integral>, ::std::set<::std::int32_t>, ::apache::thrift::type::set<::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_opt_fieldC);
     _readState.afterSubobject(iprot);
   }
@@ -225,7 +225,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:

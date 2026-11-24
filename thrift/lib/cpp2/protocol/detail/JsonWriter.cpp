@@ -16,10 +16,15 @@
 
 #include <thrift/lib/cpp2/protocol/detail/JsonWriter.h>
 
+#include <cmath>
 #include <cstring>
+#include <string>
+#include <type_traits>
+#include <fmt/compile.h>
 #include <fmt/format.h>
 #include <folly/Exception.h>
 #include <folly/json.h>
+#include <folly/lang/Exception.h>
 #include <thrift/lib/cpp2/protocol/detail/JsonUtils.h>
 
 namespace apache::thrift::json5::detail {
@@ -53,7 +58,12 @@ std::uint32_t JsonWriter::appendComma() {
 }
 
 char JsonWriter::back() {
-  return out_.value().tail<folly::io::CursorAccess::PRIVATE>(1).read<char>();
+  folly::io::RWPrivateCursor head(out_.value());
+  const folly::IOBuf* last = head.currentBuffer()->prev();
+  if (last->length() == 0) {
+    folly::terminate_with<std::logic_error>("last output buffer is empty");
+  }
+  return last->tail()[-1];
 }
 
 char JsonWriter::getOpenBracket(ContainerType type) {
@@ -148,9 +158,20 @@ std::uint32_t JsonWriter::writeFloatingPoint(T t) {
     n += sp.size();
     out_.value().push(sp);
   } else {
-    auto tmp = fmt::format("{}", t);
+    fmt::memory_buffer buf;
+    fmt::format_to(fmt::appender(buf), FMT_COMPILE("{}"), t);
+    // Re-reads `buf` on every call: writing to it below can reallocate it.
+    auto formatted = [&] { return std::string_view(buf.data(), buf.size()); };
+    if (std::is_same_v<T, float> && !options_.useSimpleJsonFloatNotation &&
+        std::abs(t) >= 1e7f && formatted().find('e') == std::string::npos) {
+      // fmt prints the shortest digits that read back as the same float, so
+      // whatever comes after those digits is padding zeros.
+      size_t digits = formatted().find_last_not_of('0') + 1 - std::signbit(t);
+      buf.clear();
+      fmt::format_to(fmt::appender(buf), "{:.{}e}", t, digits - 1);
+    }
     if (!options_.wholeNumberFloatWithoutFraction &&
-        tmp.find_first_of(".eE") == std::string::npos) {
+        formatted().find_first_of(".eE") == std::string::npos) {
       // The shortest round-trip form of a whole-valued double has no '.', 'e',
       // or 'E' (e.g. "100000"), which would read back as an integer, so append
       // ".0" to keep it a floating-point literal. Values that already carry a
@@ -158,10 +179,11 @@ std::uint32_t JsonWriter::writeFloatingPoint(T t) {
       //
       // fmt::format("{:#}", t) would also force a decimal point, but it emits
       // "1.e-05" for scientific-notation values, which is invalid JSON.
-      tmp += ".0";
+      buf.push_back('.');
+      buf.push_back('0');
     }
-    out_.value().push(folly::StringPiece(tmp));
-    n += tmp.size();
+    out_.value().push(folly::StringPiece(formatted()));
+    n += buf.size();
   }
   n += appendComma();
   return n;
@@ -173,7 +195,8 @@ template std::uint32_t JsonWriter::writeFloatingPoint(double);
 std::uint32_t JsonWriter::writeIntegral(std::integral auto t) {
   std::uint32_t n = 0;
   n += beginValue();
-  auto s = fmt::format("{}", t);
+  char buf[24];
+  auto s = std::string_view(buf, fmt::format_to(buf, FMT_COMPILE("{}"), t));
   out_.value().push(folly::StringPiece(s));
   n += s.size();
   n += appendComma();
@@ -189,10 +212,17 @@ template std::uint32_t JsonWriter::writeIntegral(std::int64_t);
 // -- strings ----------------------------------------------------------
 
 std::uint32_t JsonWriter::writeQuotedString(std::string_view s) {
-  std::string tmp;
-  folly::json::escapeString(s, tmp, {.validate_utf8 = true});
-  out_.value().push(folly::StringPiece(tmp));
-  return static_cast<std::uint32_t>(tmp.size());
+  if (isAsciiWithNothingToEscape(s)) {
+    out_.value().write('"');
+    out_.value().push(folly::StringPiece(s));
+    out_.value().write('"');
+    return static_cast<std::uint32_t>(s.size() + 2);
+  }
+  static const folly::json::serialization_opts kOpts{.validate_utf8 = true};
+  escaped_.clear();
+  folly::json::escapeString(s, escaped_, kOpts);
+  out_.value().push(folly::StringPiece(escaped_));
+  return static_cast<std::uint32_t>(escaped_.size());
 }
 
 std::uint32_t JsonWriter::writeObjectName(std::string_view s) {
@@ -204,8 +234,15 @@ std::uint32_t JsonWriter::writeObjectName(std::string_view s) {
   std::uint32_t n = 0;
   lastWrittenValueWasObjectName_ = true;
   n += appendNewlineAndIndent();
-  if (options_.unquoteObjectName && isIdentifier(s, /*allowDollarSign=*/true)) {
+  if (isIdentifier(s, /*allowDollarSign=*/true)) {
+    if (!options_.unquoteObjectName) {
+      out_.value().write('"');
+    }
     out_.value().push(folly::StringPiece(s));
+    if (!options_.unquoteObjectName) {
+      out_.value().write('"');
+      n += 2;
+    }
     n += s.size();
   } else {
     n += writeQuotedString(s);
@@ -220,6 +257,15 @@ std::uint32_t JsonWriter::writeString(std::string_view s) {
   std::uint32_t n = 0;
   n += beginValue();
   n += writeQuotedString(s);
+  n += appendComma();
+  return n;
+}
+
+std::uint32_t JsonWriter::writeNull() {
+  std::uint32_t n = 0;
+  n += beginValue();
+  out_.value().push(folly::StringPiece("null"));
+  n += 4;
   n += appendComma();
   return n;
 }

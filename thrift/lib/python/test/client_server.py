@@ -18,6 +18,9 @@ from __future__ import annotations
 
 import asyncio
 import gc
+import threading
+import time
+import traceback
 import unittest
 import weakref
 from typing import Sequence
@@ -41,10 +44,19 @@ from thrift.python.exceptions import (
     ApplicationErrorType,
     ApplicationOverloadError,
 )
-from thrift.python.server import ServiceInterface
+from thrift.python.server import ServiceInterface, ThriftServer
 
 
 class Handler(TestingServiceInterface):
+    def __init__(self) -> None:
+        super().__init__()
+        self.request_id_threads: list[int] = []
+        # A getRequestId call whose "hold" header names an event here waits
+        # until the test sets that event.
+        self.release_held_requests: dict[str, threading.Event] = {}
+        self.held_requests_started = threading.Semaphore(0)
+        self.held_requests_released_in_time: dict[str, bool] = {}
+
     async def invert(self, value: bool) -> bool:
         ctx = get_context()
         if "from client" in ctx.read_headers:
@@ -62,7 +74,22 @@ class Handler(TestingServiceInterface):
 
     async def getRequestId(self) -> str:
         ctx = get_context()
+        self.request_id_threads.append(threading.get_ident())
+        hold = ctx.read_headers.get("hold")
+        if hold is not None:
+            self.held_requests_started.release()
+            # Blocking, not awaiting, keeps this thread busy, so requests that
+            # arrive meanwhile wait for another thread.
+            self.held_requests_released_in_time[hold] = self.release_held_requests[
+                hold
+            ].wait(timeout=10)
         return ctx.request_id
+
+    @staticmethod
+    def hold_options(name: str) -> RpcOptions:
+        options = RpcOptions()
+        options.set_header("hold", name)
+        return options
 
     async def getRequestTimeout(self) -> float:
         ctx = get_context()
@@ -123,33 +150,110 @@ class ClientServerTests(unittest.IsolatedAsyncioTestCase):
     These are tests where a client and server talk to each other
     """
 
+    @staticmethod
+    def wait_for_active_requests(server: ThriftServer, count: int) -> bool:
+        # The server gives no notice when it takes a request, so this checks its
+        # count until it reaches `count`, for at most ten seconds.
+        deadline = time.monotonic() + 10
+        while server.get_active_requests() < count:
+            if time.monotonic() > deadline:
+                return False
+        return True
+
+    async def assert_request_context(self, client: TestingService.Async) -> None:
+        options = RpcOptions()
+        options.timeout = 100.0
+
+        self.assertEqual("Testing", await client.getName(rpc_options=options))
+        self.assertEqual("true", options.read_headers["contextvar"])
+        self.assertEqual(
+            "getMethodName",
+            await client.getMethodName(),
+        )
+        # requestId is a 16 char wide hex string
+        self.assertEqual(
+            len(await client.getRequestId()),
+            16,
+        )
+        self.assertEqual(
+            100.0,
+            await client.getRequestTimeout(rpc_options=options),
+        )
+
     async def test_get_context(self) -> None:
         async with local_server() as sa:
             ip, port = sa.ip, sa.port
             assert ip and port
             async with get_client(TestingService, host=ip, port=port) as client:
-                options = RpcOptions()
-                options.timeout = 100.0
-
-                self.assertEqual("Testing", await client.getName(rpc_options=options))
-                self.assertEqual("true", options.read_headers["contextvar"])
-                self.assertEqual(
-                    "getMethodName",
-                    await client.getMethodName(),
-                )
-                # requestId is a 16 char wide hex string
-                self.assertEqual(
-                    len(await client.getRequestId()),
-                    16,
-                )
-                self.assertEqual(
-                    100.0,
-                    await client.getRequestTimeout(rpc_options=options),
-                )
+                await self.assert_request_context(client)
 
         handler = Handler()  # so we can call it outside the thrift server
         with self.assertRaises(LookupError):
             await handler.getName()
+
+    async def test_get_context_on_cpu_worker_threads(self) -> None:
+        control_thread = threading.get_ident()
+        handler = Handler()
+        handler.release_held_requests.update(
+            first=threading.Event(), second=threading.Event()
+        )
+        test_server = local_server(handler)
+        test_server.server.enable_cpu_worker_threads(2)
+        async with test_server as sa:
+            ip, port = sa.ip, sa.port
+            assert ip and port
+            async with get_client(TestingService, host=ip, port=port) as client:
+                await self.assert_request_context(client)
+                try:
+                    # Hold both workers, so the next requests queue for one.
+                    # Only a worker can be held: a hold on the control thread
+                    # would block its event loop.
+                    held_requests = {
+                        name: asyncio.create_task(
+                            client.getRequestId(rpc_options=Handler.hold_options(name))
+                        )
+                        for name in handler.release_held_requests
+                    }
+                    held_requests_started = await asyncio.to_thread(
+                        lambda: all(
+                            handler.held_requests_started.acquire(timeout=10)
+                            for _ in held_requests
+                        )
+                    )
+                    queued_request = asyncio.create_task(client.getRequestId())
+                    # The server takes the requests of one connection in order,
+                    # so once it counts this later request, the queued request
+                    # already waits in the queue for a worker.
+                    later_request = asyncio.create_task(client.getRequestId())
+                    queued_in_time = await asyncio.to_thread(
+                        self.wait_for_active_requests, test_server.server, 4
+                    )
+                    # Free one worker for the queued request; the other stays
+                    # held until that request finishes.
+                    handler.release_held_requests["first"].set()
+                    queued_request_id = await queued_request
+                    handler.release_held_requests["second"].set()
+                    request_ids = [
+                        await held_requests["first"],
+                        await held_requests["second"],
+                        queued_request_id,
+                        await later_request,
+                    ]
+                finally:
+                    for release in handler.release_held_requests.values():
+                        release.set()
+
+        self.assertTrue(held_requests_started)
+        self.assertTrue(queued_in_time)
+        self.assertEqual(
+            {"first": True, "second": True}, handler.held_requests_released_in_time
+        )
+        # Each request reads the id of its own request context.
+        self.assertEqual(
+            [16, 16, 16, 16], [len(request_id) for request_id in request_ids]
+        )
+        self.assertEqual(4, len(set(request_ids)))
+        self.assertNotIn(control_thread, handler.request_id_threads)
 
     async def test_rpc_headers(self) -> None:
         async with local_server() as sa:
@@ -200,6 +304,73 @@ class ClientServerTests(unittest.IsolatedAsyncioTestCase):
                     self.assertIsNone(payload_ref())
                 finally:
                     gc.enable()
+
+    async def test_server_releases_declared_exception_payload_without_gc(self) -> None:
+        class Payload:
+            pass
+
+        payload_refs: list[weakref.ref[Payload]] = []
+
+        class RejectingHandler(Handler):
+            async def takes_a_list(self, ints: Sequence[int]) -> None:
+                payload = Payload()
+                payload_refs.append(weakref.ref(payload))
+                raise SimpleError(color=Color.red)
+
+        async with local_server(RejectingHandler()) as sa:
+            ip, port = sa.ip, sa.port
+            assert ip and port
+            async with get_client(TestingService, host=ip, port=port) as client:
+                was_enabled = gc.isenabled()
+                gc.disable()
+                try:
+                    for _ in range(3):
+                        try:
+                            await client.takes_a_list([])
+                        except SimpleError as error:
+                            self.assertEqual(error.color, Color.red)
+                        else:
+                            self.fail("Expected declared exception")
+                    self.assertEqual(len(payload_refs), 3)
+                    self.assertTrue(all(ref() is None for ref in payload_refs))
+                finally:
+                    if was_enabled:
+                        gc.enable()
+                    gc.collect()
+
+    async def test_server_preserves_retained_exception_traceback(self) -> None:
+        saved_errors: list[SimpleError] = []
+
+        class RejectingHandler(Handler):
+            async def takes_a_list(self, ints: Sequence[int]) -> None:
+                try:
+                    raise ValueError("original cause")
+                except ValueError as cause:
+                    error = SimpleError(color=Color.red)
+                    saved_errors.append(error)
+                    raise error from cause
+
+        async with local_server(RejectingHandler()) as sa:
+            ip, port = sa.ip, sa.port
+            assert ip and port
+            async with get_client(TestingService, host=ip, port=port) as client:
+                with self.assertRaises(SimpleError) as raised:
+                    await client.takes_a_list([])
+                self.assertEqual(raised.exception.color, Color.red)
+
+        self.assertEqual(len(saved_errors), 1)
+        error = saved_errors[0]
+        self.assertIsInstance(error.__cause__, ValueError)
+        self.assertIs(error.__cause__, error.__context__)
+        for exception in (error, error.__cause__):
+            assert exception is not None
+            self.assertIn(
+                "takes_a_list",
+                [
+                    frame.f_code.co_name
+                    for frame, _ in traceback.walk_tb(exception.__traceback__)
+                ],
+            )
 
     async def test_no_client_aexit(self) -> None:
         async with default_server() as sa:

@@ -21,6 +21,7 @@
 #include <functional>
 #include <limits>
 #include <memory>
+#include <optional>
 
 #include <folly/CppAttributes.h>
 
@@ -33,11 +34,11 @@
 // After close(), handlers have been removed and the head/tail raw pointers
 // may dangle (their owning structs can be destroyed without nulling our
 // raw pointers). Refuse all dispatches.
-#define RETURN_IF_CLOSED(...)                      \
-  do {                                             \
-    if (FOLLY_UNLIKELY(state_ == State::Closed)) { \
-      return __VA_ARGS__;                          \
-    }                                              \
+#define RETURN_IF_CLOSED(...)                   \
+  do {                                          \
+    if (state_ == State::Closed) [[unlikely]] { \
+      return __VA_ARGS__;                       \
+    }                                           \
   } while (0)
 
 namespace {
@@ -68,6 +69,22 @@ void tailHandlerExceptionFn(
       std::move(e));
 }
 
+// Terminal for a read propagating past the tail endpoint (the tail endpoint's
+// own ctx.fireRead). Routes to a bound peer, else reports no downstream.
+Result tailForwardReadFn(
+    void* pipeline, ContextImpl& /*ctx*/, TypeErasedBox&& msg) noexcept {
+  return static_cast<PipelineImpl*>(pipeline)->forwardReadPastTail(
+      std::move(msg));
+}
+
+// Terminal for a write propagating past the head endpoint (the head endpoint's
+// own ctx.fireWrite). Routes to a bound peer, else reports no downstream.
+Result headForwardWriteFn(
+    void* pipeline, ContextImpl& /*ctx*/, TypeErasedBox&& msg) noexcept {
+  return static_cast<PipelineImpl*>(pipeline)->forwardWritePastHead(
+      std::move(msg));
+}
+
 std::size_t typeEventStartIndex(EventKey key, std::size_t tableSize) noexcept {
   auto value = reinterpret_cast<std::uintptr_t>(key) >> 3;
   value ^= value >> 16;
@@ -81,6 +98,19 @@ namespace apache::thrift::fast_thrift::channel_pipeline {
 PipelineImpl::~PipelineImpl() {
   if (pipelineStateDeleter_) {
     pipelineStateDeleter_(pipelineState_);
+  }
+  // Runs after all handlers and contexts have been destroyed (derived storage
+  // is torn down before this base destructor), so an owned allocator outlives
+  // every handler that may hold buffers allocated from it. Allocator is
+  // destroyed last.
+  if (ownedHeadDeleter_) {
+    ownedHeadDeleter_(ownedHead_);
+  }
+  if (ownedTailDeleter_) {
+    ownedTailDeleter_(ownedTail_);
+  }
+  if (ownedAllocatorDeleter_) {
+    ownedAllocatorDeleter_(ownedAllocator_);
   }
 }
 
@@ -106,15 +136,6 @@ void PipelineImpl::initializeStorageViews(
   handlerMap_ = handlerMap;
 
   const auto N = handlers_.size();
-  headWriteReadyHook_.handlerIndex = N;
-  for (size_t i = 0; i < N; ++i) {
-    if (handlers_[i].writeReadyHook_) {
-      handlers_[i].writeReadyHook_->handlerIndex = i;
-    }
-    if (handlers_[i].readReadyHook_) {
-      handlers_[i].readReadyHook_->handlerIndex = i;
-    }
-  }
 
   // Wire up cached dispatch pointers.
   // Each context caches direct function pointers to the next/prev handler,
@@ -171,6 +192,17 @@ void PipelineImpl::initializeStorageViews(
   tailCtx_.prevWriteFn_ = lastWriteFn_ ? lastWriteFn_ : &headHandlerWriteFn;
   tailCtx_.prevHandler_ = lastHandler_ ? lastHandler_ : this;
   tailCtx_.prevCtx_ = lastCtx_ ? lastCtx_ : &headCtx_;
+
+  // Propagation past the endpoints: the tail endpoint's ctx.fireRead and the
+  // head endpoint's ctx.fireWrite route to a bound peer (or report no
+  // downstream). This is the only behavior binding changes; the endpoints
+  // themselves run unchanged.
+  tailCtx_.nextReadFn_ = &tailForwardReadFn;
+  tailCtx_.nextHandler_ = this;
+  tailCtx_.nextCtx_ = &tailCtx_; // unused by terminal function
+  headCtx_.prevWriteFn_ = &headForwardWriteFn;
+  headCtx_.prevHandler_ = this;
+  headCtx_.prevCtx_ = &headCtx_; // unused by terminal function
 }
 
 void PipelineImpl::linkTypeEventLists() noexcept {
@@ -446,7 +478,7 @@ void PipelineImpl::deactivateFromIndex(size_t index) noexcept {
 
 PIPELINE_HOT_PATH Result PipelineImpl::fireRead(TypeErasedBox&& msg) noexcept {
   RETURN_IF_CLOSED(Result::Error);
-  if (FOLLY_UNLIKELY(!firstReadFn_)) {
+  if (!firstReadFn_) [[unlikely]] {
     return fireReadToTailHandler(std::move(msg));
   }
   return firstReadFn_(firstHandler_, *firstCtx_, std::move(msg));
@@ -454,7 +486,7 @@ PIPELINE_HOT_PATH Result PipelineImpl::fireRead(TypeErasedBox&& msg) noexcept {
 
 PIPELINE_HOT_PATH Result PipelineImpl::fireWrite(TypeErasedBox&& msg) noexcept {
   RETURN_IF_CLOSED(Result::Error);
-  if (FOLLY_UNLIKELY(!lastWriteFn_)) {
+  if (!lastWriteFn_) [[unlikely]] {
     return fireWriteToHeadHandler(std::move(msg));
   }
   return lastWriteFn_(lastHandler_, *lastCtx_, std::move(msg));
@@ -463,7 +495,7 @@ PIPELINE_HOT_PATH Result PipelineImpl::fireWrite(TypeErasedBox&& msg) noexcept {
 PIPELINE_HOT_PATH void PipelineImpl::fireException(
     folly::exception_wrapper&& e) noexcept {
   RETURN_IF_CLOSED();
-  if (FOLLY_UNLIKELY(!firstExceptionFn_)) {
+  if (!firstExceptionFn_) [[unlikely]] {
     fireExceptionToTailHandler(std::move(e));
     return;
   }
@@ -472,15 +504,15 @@ PIPELINE_HOT_PATH void PipelineImpl::fireException(
 
 void PipelineImpl::fireTypeEvent(EventKey key, const void* payload) noexcept {
   RETURN_IF_CLOSED();
-  if (FOLLY_UNLIKELY(!typeEventTable_)) {
+  if (!typeEventTable_) [[unlikely]] {
     return;
   }
 
   auto index = typeEventStartIndex(key, typeEventTableSize_);
   while (true) {
     auto& slot = typeEventTable_[index];
-    if (FOLLY_LIKELY(slot.key == key)) {
-      if (FOLLY_UNLIKELY(slot.subscriberCount == 0)) {
+    if (slot.key == key) [[likely]] {
+      if (slot.subscriberCount == 0) [[unlikely]] {
         return;
       }
       DestructorGuard dg(this);
@@ -490,7 +522,7 @@ void PipelineImpl::fireTypeEvent(EventKey key, const void* payload) noexcept {
       }
       return;
     }
-    if (FOLLY_UNLIKELY(slot.key == nullptr)) {
+    if (slot.key == nullptr) [[unlikely]] {
       return;
     }
     index = (index + 1) & (typeEventTableSize_ - 1);
@@ -513,7 +545,7 @@ void PipelineImpl::fireBoundTypeEvent(
     const void* route, const void* payload) noexcept {
   const auto* slot = static_cast<const TypeEventSlot*>(route);
   RETURN_IF_CLOSED();
-  if (FOLLY_UNLIKELY(slot == nullptr || slot->subscriberCount == 0)) {
+  if (slot == nullptr || slot->subscriberCount == 0) [[unlikely]] {
     return;
   }
 
@@ -535,7 +567,7 @@ void PipelineImpl::fireTypeEventFromRoute(
   DCHECK_EQ(typeEventRoutes_[absoluteIndex].key, key);
 
   const auto& route = typeEventRoutes_[absoluteIndex];
-  if (FOLLY_UNLIKELY(route.subscriberCount == 0)) {
+  if (route.subscriberCount == 0) [[unlikely]] {
     return;
   }
   DestructorGuard dg(this);
@@ -596,11 +628,34 @@ void PipelineImpl::close() noexcept {
   deactivate();
   state_ = State::Closed;
 
-  // Clear ready lists - handlers should not receive callbacks after close
-  writeReadyList_.clear();
-  readReadyList_.clear();
+  // Clear ready waiters - handlers should not receive callbacks after close
+  writeReadyWaiters_.clear();
+  readReadyWaiters_.clear();
 
   callHandlerRemoved();
+}
+
+void PipelineImpl::checkBindPeer(PipelineRef peer) const noexcept {
+  CHECK(peer) << "bind: peer pipeline is empty";
+  // Same-EventBase is a simplification: a crossing is a direct, same-thread
+  // call. Executor hops across the seam will be supported later; until then we
+  // enforce a shared EventBase.
+  CHECK_EQ(peer.eventBase(), eventBase_)
+      << "bind requires the peer to share this pipeline's EventBase";
+}
+
+Result PipelineImpl::forwardReadPastTail(TypeErasedBox&& msg) noexcept {
+  if (boundTailPeer_) {
+    return boundTailPeer_.fireRead(tailConvert_(std::move(msg)));
+  }
+  return Result::Error;
+}
+
+Result PipelineImpl::forwardWritePastHead(TypeErasedBox&& msg) noexcept {
+  if (boundHeadPeer_) {
+    return boundHeadPeer_.fireWrite(headConvert_(std::move(msg)));
+  }
+  return Result::Error;
 }
 
 PIPELINE_HOT_PATH Result
@@ -702,49 +757,39 @@ PIPELINE_HOT_PATH void PipelineImpl::onWriteReady() noexcept {
   }
   writeReadyDispatching_ = true;
 
+  const size_t headIndex = handlers_.size();
   bool propagationBlocked = false;
   do {
     writeReadyDispatchPending_ = false;
-    // A callback may unlink and re-arm its hook. Mark each hook before
-    // dispatch and restart list inspection after every callback so no iterator
-    // survives arbitrary hook mutation.
-    const auto generation = ++writeReadyGeneration_;
 
     // Write capacity originates at the head endpoint. Let it consume the edge
     // before upstream handlers retry so they observe the updated transport
     // state.
-    if (headWriteReadyHook_.hook.is_linked()) {
-      headWriteReadyHook_.lastNotifiedGeneration = generation;
+    if (writeReadyWaiters_.isArmed(headIndex)) {
       DCHECK(headOnWriteReadyFn_);
       headOnWriteReadyFn_(headHandler_, headCtx_);
-      if (state_ == State::Closed || headWriteReadyHook_.hook.is_linked()) {
+      if (state_ == State::Closed || writeReadyWaiters_.isArmed(headIndex)) {
         propagationBlocked = true;
         break;
       }
     }
 
+    // A callback may arm or cancel any handler, so the walk looks up the next
+    // waiting handler after each one. It never finds the head endpoint, because
+    // the pass stops as soon as the head endpoint waits.
+    size_t begin = 0;
     while (true) {
-      WriteReadyHook* next = nullptr;
-      for (auto& hook : writeReadyList_) {
-        if (hook.lastNotifiedGeneration != generation) {
-          next = &hook;
-          break;
-        }
-      }
-      if (next == nullptr) {
+      const std::optional<size_t> next =
+          writeReadyWaiters_.lowestArmedFrom(begin);
+      if (!next) {
         break;
       }
-      next->lastNotifiedGeneration = generation;
-      const size_t i = next->handlerIndex;
-      if (i == handlers_.size()) {
-        DCHECK(headOnWriteReadyFn_);
-        headOnWriteReadyFn_(headHandler_, headCtx_);
-      } else {
-        DCHECK(handlers_[i].onWriteReadyFn);
-        DCHECK_LT(i, contexts_.size());
-        handlers_[i].onWriteReadyFn(handlers_[i].handlerPtr, contexts_[i]);
-      }
-      if (state_ == State::Closed || headWriteReadyHook_.hook.is_linked()) {
+      const size_t i = *next;
+      begin = i + 1;
+      DCHECK_LT(i, contexts_.size());
+      DCHECK(handlers_[i].onWriteReadyFn);
+      handlers_[i].onWriteReadyFn(handlers_[i].handlerPtr, contexts_[i]);
+      if (state_ == State::Closed || writeReadyWaiters_.isArmed(headIndex)) {
         propagationBlocked = true;
         break;
       }
@@ -767,31 +812,41 @@ void PipelineImpl::onReadReady() noexcept {
   if (state_ == State::Closed) {
     return;
   }
-
-  // A callback may unlink and re-arm its hook. Mark each hook before dispatch
-  // and skip hooks already delivered in this generation, preventing same-pass
-  // reentrant delivery without allocating or changing native linked semantics.
-  const auto generation = ++readReadyGeneration_;
-  auto it = readReadyList_.begin();
-  while (it != readReadyList_.end()) {
-    auto& hook = *it;
-    ++it;
-    if (hook.lastNotifiedGeneration == generation) {
-      continue;
-    }
-    hook.lastNotifiedGeneration = generation;
-    size_t i = hook.handlerIndex;
-    DCHECK(handlers_[i].onReadReadyFn);
-    DCHECK_LT(i, contexts_.size());
-    handlers_[i].onReadReadyFn(handlers_[i].handlerPtr, contexts_[i]);
-    if (state_ == State::Closed) {
-      break;
-    }
+  if (readReadyDispatching_) {
+    readReadyDispatchPending_ = true;
+    return;
   }
+  readReadyDispatching_ = true;
 
-  // Notify the head endpoint that reads can resume.
-  DCHECK(headOnReadReadyFn_);
-  headOnReadReadyFn_(headHandler_);
+  do {
+    readReadyDispatchPending_ = false;
+
+    // A callback may arm or cancel any handler, so the walk looks up the next
+    // waiting handler after each one.
+    size_t end = handlers_.size();
+    while (true) {
+      const std::optional<size_t> next =
+          readReadyWaiters_.highestArmedBelow(end);
+      if (!next) {
+        break;
+      }
+      const size_t i = *next;
+      end = i;
+      DCHECK(handlers_[i].onReadReadyFn);
+      DCHECK_LT(i, contexts_.size());
+      handlers_[i].onReadReadyFn(handlers_[i].handlerPtr, contexts_[i]);
+      if (state_ == State::Closed) {
+        break;
+      }
+    }
+
+    if (state_ != State::Closed) {
+      DCHECK(headOnReadReadyFn_);
+      headOnReadReadyFn_(headHandler_);
+    }
+  } while (readReadyDispatchPending_ && state_ != State::Closed);
+
+  readReadyDispatching_ = false;
 }
 
 } // namespace apache::thrift::fast_thrift::channel_pipeline

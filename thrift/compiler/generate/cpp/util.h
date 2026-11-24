@@ -58,6 +58,18 @@ inline std::string get_qualified_name(const t_named& node) {
 bool is_custom_type(const t_field& field);
 bool is_custom_type(const t_type& type);
 
+// Whether field-level `@cpp.Arena` can give the field a PMR C++ type.
+bool is_arena_supported(const t_field& field);
+
+// Whether the field has `@cpp.Arena`, written on it or copied by sema from its
+// struct.
+inline bool is_arena_field(const t_field& field) {
+  return field.has_structured_annotation(kCppArenaUri);
+}
+
+// Whether the struct has a field for which `is_arena_field` holds.
+bool has_arena_fields(const t_structured& strct);
+
 std::unordered_map<const t_type*, std::vector<const t_type*>>
 gen_dependency_graph(
     const t_program* program, const std::vector<const t_type*>& types);
@@ -84,6 +96,26 @@ inline std::string get_service_qualified_name(const t_service& service) {
  */
 // TODO(afuller): Replace with type_resolver::get_type_name.
 std::string_view get_type(const t_type* type);
+
+// The C++ type that `cpp.type` or `@cpp.Type{name}` gives a binary type, or
+// empty.
+std::string_view binary_cpp_type(const t_type* type);
+
+// Like `binary_cpp_type(field.type())`, but a field-level `@cpp.Type{name}`
+// comes first.
+std::string_view binary_cpp_type(const t_field& field);
+
+/**
+ * Check if the cpp_type names folly::IOBuf, by value or through a pointer, on
+ * a binary type.
+ */
+bool is_binary_iobuf(const t_type* type);
+
+/**
+ * Check if the cpp_type names folly::IOBuf on a binary field, checking the
+ * field's own @cpp.Type annotation before the field's type node.
+ */
+bool is_binary_iobuf(const t_field& field);
 
 /**
  * Check if the cpp_type is std::unique_ptr<folly::IOBuf> on binary type.
@@ -129,31 +161,6 @@ inline bool is_lazy_ref(const t_field* field) {
     }
   }
   return false;
-}
-
-// Whether the field's IDL declaration states a default value.
-inline bool declares_custom_default(const t_field& field) {
-  return field.default_value() != nullptr;
-}
-
-// Whether the allocator-extended constructors must apply this field's default
-// rather than value-initialize it. Implies the field declares a default, so a
-// template may emit that default on this alone.
-inline bool alloc_ctor_applies_custom_default(const t_field& field) {
-  if (!declares_custom_default(field)) {
-    return false;
-  }
-  const t_const* anno = field.find_structured_annotation_or_null(
-      kCppAllowCustomDefaultInAllocCtorUri);
-  if (anno == nullptr) {
-    return false;
-  }
-  for (const auto& kv : anno->value()->get_map()) {
-    if (kv.first->get_string() == "legacy_ignore_custom_default") {
-      return !kv.second->get_bool();
-    }
-  }
-  return true;
 }
 
 bool field_transitively_refers_to_unique(const t_field* field);

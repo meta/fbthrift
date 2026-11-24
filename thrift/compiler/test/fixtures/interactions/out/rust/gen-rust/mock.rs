@@ -236,6 +236,12 @@ pub struct Factories<'mock> {
     pub interact: r#impl::factories::interact<'mock>,
     pub interactFast: r#impl::factories::interactFast<'mock>,
     pub serialize: r#impl::factories::serialize<'mock>,
+    pub interactWithStream: r#impl::factories::interactWithStream<'mock>,
+    pub interactWithStreamAndInitialResponse: r#impl::factories::interactWithStreamAndInitialResponse<'mock>,
+    pub interactWithSink: r#impl::factories::interactWithSink<'mock>,
+    pub interactWithSinkAndInitialResponse: r#impl::factories::interactWithSinkAndInitialResponse<'mock>,
+    pub interactWithBidi: r#impl::factories::interactWithBidi<'mock>,
+    pub interactWithBidiAndInitialResponse: r#impl::factories::interactWithBidiAndInitialResponse<'mock>,
     _marker: ::std::marker::PhantomData<&'mock ()>,
 }
 
@@ -247,6 +253,12 @@ impl crate::DynClient for dyn ::::Factories {
             interact: r#impl::factories::interact::unimplemented(),
             interactFast: r#impl::factories::interactFast::unimplemented(),
             serialize: r#impl::factories::serialize::unimplemented(),
+            interactWithStream: r#impl::factories::interactWithStream::unimplemented(),
+            interactWithStreamAndInitialResponse: r#impl::factories::interactWithStreamAndInitialResponse::unimplemented(),
+            interactWithSink: r#impl::factories::interactWithSink::unimplemented(),
+            interactWithSinkAndInitialResponse: r#impl::factories::interactWithSinkAndInitialResponse::unimplemented(),
+            interactWithBidi: r#impl::factories::interactWithBidi::unimplemented(),
+            interactWithBidiAndInitialResponse: r#impl::factories::interactWithBidiAndInitialResponse::unimplemented(),
             _marker: ::std::marker::PhantomData,
         }
     }
@@ -277,6 +289,54 @@ impl<'mock> ::::Factories for Factories<'mock> {
     fn serialize(
         &self,
     ) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(crate::client::SerialInteractionClient, (::std::primitive::i32, ::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::SerializeStreamError>>)), crate::errors::factories::SerializeError>> {
+        unimplemented!("Mocking interactions is not yet implemented");
+    }
+
+    fn interactWithStream(
+        &self,
+    ) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(crate::client::MyInteractionClient, ::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithStreamStreamError>>), crate::errors::factories::InteractWithStreamError>> {
+        unimplemented!("Mocking interactions is not yet implemented");
+    }
+
+    fn interactWithStreamAndInitialResponse(
+        &self,
+    ) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(crate::client::MyInteractionClient, (::std::primitive::i32, ::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithStreamAndInitialResponseStreamError>>)), crate::errors::factories::InteractWithStreamAndInitialResponseError>> {
+        unimplemented!("Mocking interactions is not yet implemented");
+    }
+
+    fn interactWithSink(
+        &self,
+    ) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(crate::client::MyInteractionClient, ::fbthrift::SinkResult<
+    (),
+    ::std::primitive::i32,
+    crate::errors::factories::InteractWithSinkSinkError,
+    ::std::primitive::i32,
+    crate::errors::factories::InteractWithSinkSinkFinalError,
+>), crate::errors::factories::InteractWithSinkError>> {
+        unimplemented!("Mocking interactions is not yet implemented");
+    }
+
+    fn interactWithSinkAndInitialResponse(
+        &self,
+    ) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(crate::client::MyInteractionClient, ::fbthrift::SinkResult<
+    ::std::primitive::i32,
+    ::std::primitive::i32,
+    crate::errors::factories::InteractWithSinkAndInitialResponseSinkError,
+    ::std::primitive::i32,
+    crate::errors::factories::InteractWithSinkAndInitialResponseSinkFinalError,
+>), crate::errors::factories::InteractWithSinkAndInitialResponseError>> {
+        unimplemented!("Mocking interactions is not yet implemented");
+    }
+
+    fn interactWithBidi(
+        &self,
+    ) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(crate::client::MyInteractionClient, (::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithBidiStreamError>>, Box<dyn ::std::ops::FnOnce(::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithBidiSinkError>>) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(), crate::errors::factories::InteractWithBidiSinkError>> + ::std::marker::Send>)), crate::errors::factories::InteractWithBidiError>> {
+        unimplemented!("Mocking interactions is not yet implemented");
+    }
+
+    fn interactWithBidiAndInitialResponse(
+        &self,
+    ) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(crate::client::MyInteractionClient, (::std::primitive::i32, ::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithBidiAndInitialResponseStreamError>>, Box<dyn ::std::ops::FnOnce(::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithBidiAndInitialResponseSinkError>>) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(), crate::errors::factories::InteractWithBidiAndInitialResponseSinkError>> + ::std::marker::Send>)), crate::errors::factories::InteractWithBidiAndInitialResponseError>> {
         unimplemented!("Mocking interactions is not yet implemented");
     }
 }
@@ -316,6 +376,66 @@ where
         _rpc_options: T::RpcOptions,
     ) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(crate::client::SerialInteractionClient, (::std::primitive::i32, ::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::SerializeStreamError>>)), crate::errors::factories::SerializeError>> {
         <Self as ::::Factories>::serialize(
+            self,
+        )
+    }
+    fn interactWithStream_with_rpc_opts(
+        &self,
+        _rpc_options: T::RpcOptions,
+    ) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(crate::client::MyInteractionClient, ::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithStreamStreamError>>), crate::errors::factories::InteractWithStreamError>> {
+        <Self as ::::Factories>::interactWithStream(
+            self,
+        )
+    }
+    fn interactWithStreamAndInitialResponse_with_rpc_opts(
+        &self,
+        _rpc_options: T::RpcOptions,
+    ) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(crate::client::MyInteractionClient, (::std::primitive::i32, ::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithStreamAndInitialResponseStreamError>>)), crate::errors::factories::InteractWithStreamAndInitialResponseError>> {
+        <Self as ::::Factories>::interactWithStreamAndInitialResponse(
+            self,
+        )
+    }
+    fn interactWithSink_with_rpc_opts(
+        &self,
+        _rpc_options: T::RpcOptions,
+    ) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(crate::client::MyInteractionClient, ::fbthrift::SinkResult<
+    (),
+    ::std::primitive::i32,
+    crate::errors::factories::InteractWithSinkSinkError,
+    ::std::primitive::i32,
+    crate::errors::factories::InteractWithSinkSinkFinalError,
+>), crate::errors::factories::InteractWithSinkError>> {
+        <Self as ::::Factories>::interactWithSink(
+            self,
+        )
+    }
+    fn interactWithSinkAndInitialResponse_with_rpc_opts(
+        &self,
+        _rpc_options: T::RpcOptions,
+    ) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(crate::client::MyInteractionClient, ::fbthrift::SinkResult<
+    ::std::primitive::i32,
+    ::std::primitive::i32,
+    crate::errors::factories::InteractWithSinkAndInitialResponseSinkError,
+    ::std::primitive::i32,
+    crate::errors::factories::InteractWithSinkAndInitialResponseSinkFinalError,
+>), crate::errors::factories::InteractWithSinkAndInitialResponseError>> {
+        <Self as ::::Factories>::interactWithSinkAndInitialResponse(
+            self,
+        )
+    }
+    fn interactWithBidi_with_rpc_opts(
+        &self,
+        _rpc_options: T::RpcOptions,
+    ) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(crate::client::MyInteractionClient, (::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithBidiStreamError>>, Box<dyn ::std::ops::FnOnce(::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithBidiSinkError>>) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(), crate::errors::factories::InteractWithBidiSinkError>> + ::std::marker::Send>)), crate::errors::factories::InteractWithBidiError>> {
+        <Self as ::::Factories>::interactWithBidi(
+            self,
+        )
+    }
+    fn interactWithBidiAndInitialResponse_with_rpc_opts(
+        &self,
+        _rpc_options: T::RpcOptions,
+    ) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(crate::client::MyInteractionClient, (::std::primitive::i32, ::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithBidiAndInitialResponseStreamError>>, Box<dyn ::std::ops::FnOnce(::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithBidiAndInitialResponseSinkError>>) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(), crate::errors::factories::InteractWithBidiAndInitialResponseSinkError>> + ::std::marker::Send>)), crate::errors::factories::InteractWithBidiAndInitialResponseError>> {
+        <Self as ::::Factories>::interactWithBidiAndInitialResponse(
             self,
         )
     }
@@ -883,6 +1003,324 @@ pub mod r#impl {
             pub fn throw<E>(&self, exception: E)
             where
                 E: ::std::convert::Into<::::errors::factories::SerializeError>,
+                E: ::std::clone::Clone + ::std::marker::Send + ::std::marker::Sync + 'mock,
+            {
+                let mut closure = self.closure.lock().unwrap();
+                *closure = ::std::boxed::Box::new(move || ::std::result::Result::Err(exception.clone().into()));
+            }
+        }
+
+        pub struct interactWithStream<'mock> {
+            pub(crate) closure: ::std::sync::Mutex<::std::boxed::Box<
+                dyn ::std::ops::FnMut() -> ::std::result::Result<
+                    ::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithStreamStreamError>>,
+                    ::::errors::factories::InteractWithStreamError,
+                > + ::std::marker::Send + ::std::marker::Sync + 'mock,
+            >>,
+        }
+
+        #[allow(clippy::redundant_closure)]
+        impl<'mock> interactWithStream<'mock> {
+            pub(crate) fn unimplemented() -> Self {
+                Self {
+                    closure: ::std::sync::Mutex::new(::std::boxed::Box::new(|| panic!(
+                        "{}::{} is not mocked",
+                        "Factories",
+                        "interactWithStream",
+                    ))),
+                }
+            }
+
+            pub fn ret(&self, _value: ::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithStreamStreamError>>) {
+                unimplemented!("Mocking streams is not yet implemented, as value isn't cloneable");
+            }
+
+            pub fn mock(&self, mut mock: impl ::std::ops::FnMut() -> ::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithStreamStreamError>> + ::std::marker::Send + ::std::marker::Sync + 'mock) {
+                let mut closure = self.closure.lock().unwrap();
+                *closure = ::std::boxed::Box::new(move || ::std::result::Result::Ok(mock()));
+            }
+
+            pub fn mock_result(&self, mut mock: impl ::std::ops::FnMut() -> ::std::result::Result<::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithStreamStreamError>>, ::::errors::factories::InteractWithStreamError> + ::std::marker::Send + ::std::marker::Sync + 'mock) {
+                let mut closure = self.closure.lock().unwrap();
+                *closure = ::std::boxed::Box::new(move || mock());
+            }
+
+            pub fn throw<E>(&self, exception: E)
+            where
+                E: ::std::convert::Into<::::errors::factories::InteractWithStreamError>,
+                E: ::std::clone::Clone + ::std::marker::Send + ::std::marker::Sync + 'mock,
+            {
+                let mut closure = self.closure.lock().unwrap();
+                *closure = ::std::boxed::Box::new(move || ::std::result::Result::Err(exception.clone().into()));
+            }
+        }
+
+        pub struct interactWithStreamAndInitialResponse<'mock> {
+            pub(crate) closure: ::std::sync::Mutex<::std::boxed::Box<
+                dyn ::std::ops::FnMut() -> ::std::result::Result<
+                    (::std::primitive::i32, ::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithStreamAndInitialResponseStreamError>>),
+                    ::::errors::factories::InteractWithStreamAndInitialResponseError,
+                > + ::std::marker::Send + ::std::marker::Sync + 'mock,
+            >>,
+        }
+
+        #[allow(clippy::redundant_closure)]
+        impl<'mock> interactWithStreamAndInitialResponse<'mock> {
+            pub(crate) fn unimplemented() -> Self {
+                Self {
+                    closure: ::std::sync::Mutex::new(::std::boxed::Box::new(|| panic!(
+                        "{}::{} is not mocked",
+                        "Factories",
+                        "interactWithStreamAndInitialResponse",
+                    ))),
+                }
+            }
+
+            pub fn ret(&self, _value: (::std::primitive::i32, ::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithStreamAndInitialResponseStreamError>>)) {
+                unimplemented!("Mocking streams is not yet implemented, as value isn't cloneable");
+            }
+
+            pub fn mock(&self, mut mock: impl ::std::ops::FnMut() -> (::std::primitive::i32, ::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithStreamAndInitialResponseStreamError>>) + ::std::marker::Send + ::std::marker::Sync + 'mock) {
+                let mut closure = self.closure.lock().unwrap();
+                *closure = ::std::boxed::Box::new(move || ::std::result::Result::Ok(mock()));
+            }
+
+            pub fn mock_result(&self, mut mock: impl ::std::ops::FnMut() -> ::std::result::Result<(::std::primitive::i32, ::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithStreamAndInitialResponseStreamError>>), ::::errors::factories::InteractWithStreamAndInitialResponseError> + ::std::marker::Send + ::std::marker::Sync + 'mock) {
+                let mut closure = self.closure.lock().unwrap();
+                *closure = ::std::boxed::Box::new(move || mock());
+            }
+
+            pub fn throw<E>(&self, exception: E)
+            where
+                E: ::std::convert::Into<::::errors::factories::InteractWithStreamAndInitialResponseError>,
+                E: ::std::clone::Clone + ::std::marker::Send + ::std::marker::Sync + 'mock,
+            {
+                let mut closure = self.closure.lock().unwrap();
+                *closure = ::std::boxed::Box::new(move || ::std::result::Result::Err(exception.clone().into()));
+            }
+        }
+
+        pub struct interactWithSink<'mock> {
+            pub(crate) closure: ::std::sync::Mutex<::std::boxed::Box<
+                dyn ::std::ops::FnMut() -> ::std::result::Result<
+                    ::fbthrift::SinkResult<
+    (),
+    ::std::primitive::i32,
+    crate::errors::factories::InteractWithSinkSinkError,
+    ::std::primitive::i32,
+    crate::errors::factories::InteractWithSinkSinkFinalError,
+>,
+                    ::::errors::factories::InteractWithSinkError,
+                > + ::std::marker::Send + ::std::marker::Sync + 'mock,
+            >>,
+        }
+
+        #[allow(clippy::redundant_closure)]
+        impl<'mock> interactWithSink<'mock> {
+            pub(crate) fn unimplemented() -> Self {
+                Self {
+                    closure: ::std::sync::Mutex::new(::std::boxed::Box::new(|| panic!(
+                        "{}::{} is not mocked",
+                        "Factories",
+                        "interactWithSink",
+                    ))),
+                }
+            }
+
+            pub fn ret(&self, _value: ::fbthrift::SinkResult<
+    (),
+    ::std::primitive::i32,
+    crate::errors::factories::InteractWithSinkSinkError,
+    ::std::primitive::i32,
+    crate::errors::factories::InteractWithSinkSinkFinalError,
+>) {
+                unimplemented!("Mocking sinks is not yet implemented, as value isn't cloneable");
+            }
+
+            pub fn mock(&self, mut mock: impl ::std::ops::FnMut() -> ::fbthrift::SinkResult<
+    (),
+    ::std::primitive::i32,
+    crate::errors::factories::InteractWithSinkSinkError,
+    ::std::primitive::i32,
+    crate::errors::factories::InteractWithSinkSinkFinalError,
+> + ::std::marker::Send + ::std::marker::Sync + 'mock) {
+                let mut closure = self.closure.lock().unwrap();
+                *closure = ::std::boxed::Box::new(move || ::std::result::Result::Ok(mock()));
+            }
+
+            pub fn mock_result(&self, mut mock: impl ::std::ops::FnMut() -> ::std::result::Result<::fbthrift::SinkResult<
+    (),
+    ::std::primitive::i32,
+    crate::errors::factories::InteractWithSinkSinkError,
+    ::std::primitive::i32,
+    crate::errors::factories::InteractWithSinkSinkFinalError,
+>, ::::errors::factories::InteractWithSinkError> + ::std::marker::Send + ::std::marker::Sync + 'mock) {
+                let mut closure = self.closure.lock().unwrap();
+                *closure = ::std::boxed::Box::new(move || mock());
+            }
+
+            pub fn throw<E>(&self, exception: E)
+            where
+                E: ::std::convert::Into<::::errors::factories::InteractWithSinkError>,
+                E: ::std::clone::Clone + ::std::marker::Send + ::std::marker::Sync + 'mock,
+            {
+                let mut closure = self.closure.lock().unwrap();
+                *closure = ::std::boxed::Box::new(move || ::std::result::Result::Err(exception.clone().into()));
+            }
+        }
+
+        pub struct interactWithSinkAndInitialResponse<'mock> {
+            pub(crate) closure: ::std::sync::Mutex<::std::boxed::Box<
+                dyn ::std::ops::FnMut() -> ::std::result::Result<
+                    ::fbthrift::SinkResult<
+    ::std::primitive::i32,
+    ::std::primitive::i32,
+    crate::errors::factories::InteractWithSinkAndInitialResponseSinkError,
+    ::std::primitive::i32,
+    crate::errors::factories::InteractWithSinkAndInitialResponseSinkFinalError,
+>,
+                    ::::errors::factories::InteractWithSinkAndInitialResponseError,
+                > + ::std::marker::Send + ::std::marker::Sync + 'mock,
+            >>,
+        }
+
+        #[allow(clippy::redundant_closure)]
+        impl<'mock> interactWithSinkAndInitialResponse<'mock> {
+            pub(crate) fn unimplemented() -> Self {
+                Self {
+                    closure: ::std::sync::Mutex::new(::std::boxed::Box::new(|| panic!(
+                        "{}::{} is not mocked",
+                        "Factories",
+                        "interactWithSinkAndInitialResponse",
+                    ))),
+                }
+            }
+
+            pub fn ret(&self, _value: ::fbthrift::SinkResult<
+    ::std::primitive::i32,
+    ::std::primitive::i32,
+    crate::errors::factories::InteractWithSinkAndInitialResponseSinkError,
+    ::std::primitive::i32,
+    crate::errors::factories::InteractWithSinkAndInitialResponseSinkFinalError,
+>) {
+                unimplemented!("Mocking sinks is not yet implemented, as value isn't cloneable");
+            }
+
+            pub fn mock(&self, mut mock: impl ::std::ops::FnMut() -> ::fbthrift::SinkResult<
+    ::std::primitive::i32,
+    ::std::primitive::i32,
+    crate::errors::factories::InteractWithSinkAndInitialResponseSinkError,
+    ::std::primitive::i32,
+    crate::errors::factories::InteractWithSinkAndInitialResponseSinkFinalError,
+> + ::std::marker::Send + ::std::marker::Sync + 'mock) {
+                let mut closure = self.closure.lock().unwrap();
+                *closure = ::std::boxed::Box::new(move || ::std::result::Result::Ok(mock()));
+            }
+
+            pub fn mock_result(&self, mut mock: impl ::std::ops::FnMut() -> ::std::result::Result<::fbthrift::SinkResult<
+    ::std::primitive::i32,
+    ::std::primitive::i32,
+    crate::errors::factories::InteractWithSinkAndInitialResponseSinkError,
+    ::std::primitive::i32,
+    crate::errors::factories::InteractWithSinkAndInitialResponseSinkFinalError,
+>, ::::errors::factories::InteractWithSinkAndInitialResponseError> + ::std::marker::Send + ::std::marker::Sync + 'mock) {
+                let mut closure = self.closure.lock().unwrap();
+                *closure = ::std::boxed::Box::new(move || mock());
+            }
+
+            pub fn throw<E>(&self, exception: E)
+            where
+                E: ::std::convert::Into<::::errors::factories::InteractWithSinkAndInitialResponseError>,
+                E: ::std::clone::Clone + ::std::marker::Send + ::std::marker::Sync + 'mock,
+            {
+                let mut closure = self.closure.lock().unwrap();
+                *closure = ::std::boxed::Box::new(move || ::std::result::Result::Err(exception.clone().into()));
+            }
+        }
+
+        pub struct interactWithBidi<'mock> {
+            pub(crate) closure: ::std::sync::Mutex<::std::boxed::Box<
+                dyn ::std::ops::FnMut() -> ::std::result::Result<
+                    (::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithBidiStreamError>>, Box<dyn ::std::ops::FnOnce(::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithBidiSinkError>>) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(), crate::errors::factories::InteractWithBidiSinkError>> + ::std::marker::Send>),
+                    ::::errors::factories::InteractWithBidiError,
+                > + ::std::marker::Send + ::std::marker::Sync + 'mock,
+            >>,
+        }
+
+        #[allow(clippy::redundant_closure)]
+        impl<'mock> interactWithBidi<'mock> {
+            pub(crate) fn unimplemented() -> Self {
+                Self {
+                    closure: ::std::sync::Mutex::new(::std::boxed::Box::new(|| panic!(
+                        "{}::{} is not mocked",
+                        "Factories",
+                        "interactWithBidi",
+                    ))),
+                }
+            }
+
+            pub fn ret(&self, __value: (::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithBidiStreamError>>, Box<dyn ::std::ops::FnOnce(::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithBidiSinkError>>) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(), crate::errors::factories::InteractWithBidiSinkError>> + ::std::marker::Send>)) {
+                unimplemented!("Mocking bidirectional streams is not yet implemented, as value isn't cloneable");
+            }
+
+            pub fn mock(&self, mut mock: impl ::std::ops::FnMut() -> (::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithBidiStreamError>>, Box<dyn ::std::ops::FnOnce(::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithBidiSinkError>>) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(), crate::errors::factories::InteractWithBidiSinkError>> + ::std::marker::Send>) + ::std::marker::Send + ::std::marker::Sync + 'mock) {
+                let mut closure = self.closure.lock().unwrap();
+                *closure = ::std::boxed::Box::new(move || ::std::result::Result::Ok(mock()));
+            }
+
+            pub fn mock_result(&self, mut mock: impl ::std::ops::FnMut() -> ::std::result::Result<(::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithBidiStreamError>>, Box<dyn ::std::ops::FnOnce(::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithBidiSinkError>>) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(), crate::errors::factories::InteractWithBidiSinkError>> + ::std::marker::Send>), ::::errors::factories::InteractWithBidiError> + ::std::marker::Send + ::std::marker::Sync + 'mock) {
+                let mut closure = self.closure.lock().unwrap();
+                *closure = ::std::boxed::Box::new(move || mock());
+            }
+
+            pub fn throw<E>(&self, exception: E)
+            where
+                E: ::std::convert::Into<::::errors::factories::InteractWithBidiError>,
+                E: ::std::clone::Clone + ::std::marker::Send + ::std::marker::Sync + 'mock,
+            {
+                let mut closure = self.closure.lock().unwrap();
+                *closure = ::std::boxed::Box::new(move || ::std::result::Result::Err(exception.clone().into()));
+            }
+        }
+
+        pub struct interactWithBidiAndInitialResponse<'mock> {
+            pub(crate) closure: ::std::sync::Mutex<::std::boxed::Box<
+                dyn ::std::ops::FnMut() -> ::std::result::Result<
+                    (::std::primitive::i32, ::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithBidiAndInitialResponseStreamError>>, Box<dyn ::std::ops::FnOnce(::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithBidiAndInitialResponseSinkError>>) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(), crate::errors::factories::InteractWithBidiAndInitialResponseSinkError>> + ::std::marker::Send>),
+                    ::::errors::factories::InteractWithBidiAndInitialResponseError,
+                > + ::std::marker::Send + ::std::marker::Sync + 'mock,
+            >>,
+        }
+
+        #[allow(clippy::redundant_closure)]
+        impl<'mock> interactWithBidiAndInitialResponse<'mock> {
+            pub(crate) fn unimplemented() -> Self {
+                Self {
+                    closure: ::std::sync::Mutex::new(::std::boxed::Box::new(|| panic!(
+                        "{}::{} is not mocked",
+                        "Factories",
+                        "interactWithBidiAndInitialResponse",
+                    ))),
+                }
+            }
+
+            pub fn ret(&self, __value: (::std::primitive::i32, ::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithBidiAndInitialResponseStreamError>>, Box<dyn ::std::ops::FnOnce(::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithBidiAndInitialResponseSinkError>>) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(), crate::errors::factories::InteractWithBidiAndInitialResponseSinkError>> + ::std::marker::Send>)) {
+                unimplemented!("Mocking bidirectional streams is not yet implemented, as value isn't cloneable");
+            }
+
+            pub fn mock(&self, mut mock: impl ::std::ops::FnMut() -> (::std::primitive::i32, ::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithBidiAndInitialResponseStreamError>>, Box<dyn ::std::ops::FnOnce(::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithBidiAndInitialResponseSinkError>>) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(), crate::errors::factories::InteractWithBidiAndInitialResponseSinkError>> + ::std::marker::Send>) + ::std::marker::Send + ::std::marker::Sync + 'mock) {
+                let mut closure = self.closure.lock().unwrap();
+                *closure = ::std::boxed::Box::new(move || ::std::result::Result::Ok(mock()));
+            }
+
+            pub fn mock_result(&self, mut mock: impl ::std::ops::FnMut() -> ::std::result::Result<(::std::primitive::i32, ::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithBidiAndInitialResponseStreamError>>, Box<dyn ::std::ops::FnOnce(::futures::stream::BoxStream<'static, ::std::result::Result<::std::primitive::i32, crate::errors::factories::InteractWithBidiAndInitialResponseSinkError>>) -> ::futures::future::BoxFuture<'static, ::std::result::Result<(), crate::errors::factories::InteractWithBidiAndInitialResponseSinkError>> + ::std::marker::Send>), ::::errors::factories::InteractWithBidiAndInitialResponseError> + ::std::marker::Send + ::std::marker::Sync + 'mock) {
+                let mut closure = self.closure.lock().unwrap();
+                *closure = ::std::boxed::Box::new(move || mock());
+            }
+
+            pub fn throw<E>(&self, exception: E)
+            where
+                E: ::std::convert::Into<::::errors::factories::InteractWithBidiAndInitialResponseError>,
                 E: ::std::clone::Clone + ::std::marker::Send + ::std::marker::Sync + 'mock,
             {
                 let mut closure = self.closure.lock().unwrap();

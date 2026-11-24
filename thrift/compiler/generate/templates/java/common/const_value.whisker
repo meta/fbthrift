@@ -155,3 +155,14 @@ new {{#partial types.boxed_type type=type.true_type field_hasAdapter=field_hasAd
     {{/if (value.referenceable_from? root_const)}}
   {{/if type.bool?}}
 {{/let partial}}{{! End of `const_value` }}
+
+{{!
+  Render a collection element of a root constant, for constants whose
+  collection elements are added one statement at a time.
+}}
+{{#let export partial collection_element |element root_const| captures |const_value|}}
+{{#pragma ignore-newlines}}
+{{#if element.type.hasAdapter?}}__{{element.type.name}}_Adapter.fromThrift({{/if}}
+{{#partial const_value value=element root_const=root_const as_bean=false field_hasAdapter=false}}
+{{#if element.type.hasAdapter?}}){{/if}}
+{{/let partial}}{{! End of `collection_element` }}

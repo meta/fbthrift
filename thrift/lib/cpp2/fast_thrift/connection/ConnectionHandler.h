@@ -33,8 +33,8 @@
 #include <folly/synchronization/Baton.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/BufferAllocator.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/ConnectionFactory.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/SocketOptions.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/common/ConnectionStats.h>
@@ -202,11 +202,7 @@ class ConnectionHandler {
   // tears down first.
   channel_pipeline::SimpleBufferAllocator allocator_;
   ConnectionListener listener_;
-  std::unique_ptr<
-      folly::DelayedDestruction,
-      void (*)(folly::DelayedDestruction*) noexcept>
-      installer_{nullptr, [](folly::DelayedDestruction*) noexcept {}};
-  channel_pipeline::PipelineImpl::Ptr pipeline_;
+  channel_pipeline::PipelineOwner pipeline_;
 
   // This EventBase's counter shard, resolved in the ctor, or null when the
   // server was given no stats. Written only from this EventBase.
@@ -251,72 +247,78 @@ void ConnectionHandler::setConnectionFactory(
   // would invoke onConnectionClosed against an entry that doesn't yet
   // exist. The local `c` is moved into the map, so start() is invoked via
   // the stored AnyConnection.
-  auto installer =
-      typename Installer::Ptr(new Installer([this](Conn c) noexcept {
-        auto connId = nextConnId_++;
-        c.setCloseCallback(
-            [this, connId]() noexcept { onConnectionClosed(connId); });
-        auto it = connections_.emplace(connId, wrap<Conn>(std::move(c))).first;
-        connectionCount_.fetch_add(1, std::memory_order_relaxed);
-        it->second.start();
-      }));
-  auto* installerRaw = installer.get();
-  installer_ = std::unique_ptr<
-      folly::DelayedDestruction,
-      void (*)(folly::DelayedDestruction*) noexcept>(
-      installer.release(),
-      [](folly::DelayedDestruction* p) noexcept { p->destroy(); });
+  auto builder =
+      channel_pipeline::StaticPipelineBuilder<ConnectionListener, Installer>()
+          .setEventBase(evb_.get())
+          .setHead(&listener_)
+          .setAllocator(&allocator_)
+          .emplaceTail(typename Installer::RegisterFn{[this](Conn c) noexcept {
+            auto connId = nextConnId_++;
+            c.setCloseCallback(
+                [this, connId]() noexcept { onConnectionClosed(connId); });
+            auto it =
+                connections_.emplace(connId, wrap<Conn>(std::move(c))).first;
+            connectionCount_.fetch_add(1, std::memory_order_relaxed);
+            it->second.start();
+          }});
 
-  channel_pipeline::PipelineBuilder<
-      ConnectionListener,
-      Installer,
-      channel_pipeline::SimpleBufferAllocator>
-      builder;
-  builder.setEventBase(evb_.get())
-      .setHead(&listener_)
-      .setTail(installerRaw)
-      .setAllocator(&allocator_);
-
-  if (sslPolicy_ != fast_security::SSLPolicy::DISABLED) {
-    builder.template addNextDuplex<handler::ConnectionTLSHandler>(
-        connection_tls_tag,
-        *evb_,
-        sslPolicy_,
-        tlsParamsObserver_,
-        &allocator_,
-        socketOptions_.maxPendingConnectionsPerWorker,
-        tlsShard_);
+  const auto finish = [this](auto current) {
+    // Only successfully built connections reach the metrics stage.
+    if (statsShard_ != nullptr) {
+      pipeline_ =
+          std::move(current)
+              .template addNextInbound<handler::ConnectionMetricsHandler>(
+                  handler::connection_metrics_handler_tag, statsShard_)
+              .build();
+    } else {
+      pipeline_ = std::move(current).build();
+    }
+  };
+  const auto addBuilder = [&](auto current) {
+    auto withBuilder = std::move(current).template addNextInbound<Builder>(
+        connection_builder_handler_tag, std::ref(factory));
+    if (onAccept) {
+      finish(
+          std::move(withBuilder)
+              .template addNextInbound<AcceptCallback>(
+                  connection_accept_callback_handler_tag, std::move(onAccept)));
+    } else {
+      finish(std::move(withBuilder));
+    }
+  };
+  const auto addLimit = [&](auto current) {
+    if (maxConnectionsPerIOThread_.has_value()) {
+      // Only connections that passed TLS count against the established cap.
+      addBuilder(
+          std::move(current)
+              .template addNextInbound<handler::ConnectionLimitHandler>(
+                  handler::connection_limit_handler_tag,
+                  *maxConnectionsPerIOThread_,
+                  &connectionCount_,
+                  statsShard_));
+    } else {
+      addBuilder(std::move(current));
+    }
+  };
+  if (sslPolicy_ == fast_security::SSLPolicy::DISABLED) {
+    addLimit(std::move(builder));
+  } else {
+    PreStopTLSEkmCapture capture;
+    if constexpr (requires { factory.getPreStopTLSEkmCapture(); }) {
+      capture = factory.getPreStopTLSEkmCapture();
+    }
+    addLimit(
+        std::move(builder)
+            .template addNextDuplexTemplate<handler::ConnectionTLSHandler>(
+                connection_tls_tag,
+                std::ref(*evb_),
+                sslPolicy_,
+                tlsParamsObserver_,
+                socketOptions_.maxPendingConnectionsPerWorker,
+                tlsShard_,
+                capture));
   }
-
-  // Above the builder, so a refused connection is closed before a Connection
-  // is built for it, and below the TLS handler, so only connections that got
-  // through the handshake are counted against the cap.
-  if (maxConnectionsPerIOThread_.has_value()) {
-    builder.template addNextInbound<handler::ConnectionLimitHandler>(
-        handler::connection_limit_handler_tag,
-        *maxConnectionsPerIOThread_,
-        &connectionCount_,
-        statsShard_);
-  }
-
-  builder.template addNextInbound<Builder>(
-      connection_builder_handler_tag, factory);
-
-  if (onAccept) {
-    builder.template addNextInbound<AcceptCallback>(
-        connection_accept_callback_handler_tag, std::move(onAccept));
-  }
-
-  // Below the builder, so only connections that were built reach it — matching
-  // what the classic server's connAccepted() counts.
-  if (statsShard_ != nullptr) {
-    builder.template addNextInbound<handler::ConnectionMetricsHandler>(
-        handler::connection_metrics_handler_tag, statsShard_);
-  }
-
-  pipeline_ = builder.build();
   listener_.setPipeline(pipeline_.get());
-  installerRaw->setPipeline(pipeline_.get());
   pipeline_->activate();
 }
 

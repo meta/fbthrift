@@ -28,7 +28,6 @@
 #include <thrift/lib/cpp2/transport/core/RpcMetadataUtil.h>
 #include <thrift/lib/cpp2/type/Any.h>
 #include <thrift/lib/cpp2/type/Protocol.h>
-#include <thrift/lib/cpp2/type/Runtime.h>
 #include <thrift/lib/cpp2/type/TypeRegistry.h>
 
 namespace apache::thrift::fast_thrift::thrift {
@@ -112,7 +111,8 @@ classifyPayloadAction(const apache::thrift::ResponseRpcMetadata& metadata) {
       return PayloadAction::PassThrough;
 
     case apache::thrift::PayloadMetadata::Type::exceptionMetadata: {
-      const auto& exMeta = payloadMetadataRef->get_exceptionMetadata();
+      const auto& exMeta =
+          payloadMetadataRef.as_const()->exceptionMetadata().value();
       const auto& exMetaInner = exMeta.metadata();
       if (!exMetaInner) {
         return folly::makeUnexpected(
@@ -221,7 +221,7 @@ inline folly::exception_wrapper processPayloadMetadata(
       return folly::exception_wrapper{};
 
     case apache::thrift::PayloadMetadata::Type::exceptionMetadata: {
-      auto& exMeta = payloadMetadataRef->get_exceptionMetadata();
+      auto& exMeta = payloadMetadataRef->exceptionMetadata().as_const().value();
       return processExceptionMetadata(exMeta, otherMetadata);
     }
 

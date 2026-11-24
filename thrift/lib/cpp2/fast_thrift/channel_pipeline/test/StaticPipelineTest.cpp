@@ -14,19 +14,30 @@
  * limitations under the License.
  */
 
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticSegmentBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
 
+#include <folly/portability/GMock.h>
 #include <folly/portability/GTest.h>
 
+#include <algorithm>
+#include <array>
+#include <cstddef>
+#include <deque>
+#include <memory>
+#include <stdexcept>
 #include <string>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 #include <vector>
 
 namespace apache::thrift::fast_thrift::channel_pipeline::test {
 namespace {
+
+using namespace testing;
 
 static_assert(!std::is_default_constructible_v<detail::ErasedStaticHandler>);
 
@@ -37,15 +48,30 @@ class StaticHeadHandler {
     ++writes_;
     return Result::Success;
   }
-  void onReadReady() noexcept {}
+  void onReadReady() noexcept { ++readReadies_; }
   void handlerAdded() noexcept {}
   void handlerRemoved() noexcept {}
   void onPipelineActive() noexcept {}
   void onPipelineInactive() noexcept {}
   std::size_t writeCount() const noexcept { return writes_; }
+  std::size_t readReadyCount() const noexcept { return readReadies_; }
 
  private:
   std::size_t writes_{0};
+  std::size_t readReadies_{0};
+};
+
+// A head handler that records "head" when it gets read-ready, so that a test
+// can see when the pass notifies the head.
+class ReadReadyRecordingStaticHead : public StaticHeadHandler {
+ public:
+  explicit ReadReadyRecordingStaticHead(std::vector<std::string>* readiness)
+      : readiness_(readiness) {}
+
+  void onReadReady() noexcept { readiness_->emplace_back("head"); }
+
+ private:
+  std::vector<std::string>* readiness_;
 };
 
 class StaticTailHandler {
@@ -56,17 +82,49 @@ class StaticTailHandler {
     return Result::Success;
   }
   void onException(folly::exception_wrapper&&) noexcept { ++exceptions_; }
-  void onWriteReady() noexcept {}
+  void onWriteReady() noexcept { ++writeReadies_; }
   void handlerAdded() noexcept {}
   void handlerRemoved() noexcept {}
   void onPipelineActive() noexcept {}
   void onPipelineInactive() noexcept {}
   std::size_t readCount() const noexcept { return reads_; }
   std::size_t exceptionCount() const noexcept { return exceptions_; }
+  std::size_t writeReadyCount() const noexcept { return writeReadies_; }
 
  private:
   std::size_t reads_{0};
   std::size_t exceptions_{0};
+  std::size_t writeReadies_{0};
+};
+
+// A tail handler that records "tail" when it gets write-ready, so that a test
+// can see when the pass notifies the tail.
+class WriteReadyRecordingStaticTail : public StaticTailHandler {
+ public:
+  explicit WriteReadyRecordingStaticTail(std::vector<std::string>* readiness)
+      : readiness_(readiness) {}
+
+  void onWriteReady() noexcept { readiness_->emplace_back("tail"); }
+
+ private:
+  std::vector<std::string>* readiness_;
+};
+
+// A tail handler with a private destructor, owned by the caller through a
+// custom deleter. Proves the pipeline never requires `~T` for an endpoint that
+// is only set externally (regression test for OwnedEndpointSlot odr-using ~T).
+class PrivateDestructorStaticTail : public StaticTailHandler {
+ public:
+  static auto create() {
+    return std::unique_ptr<
+        PrivateDestructorStaticTail,
+        void (*)(PrivateDestructorStaticTail*)>(
+        new PrivateDestructorStaticTail(),
+        [](PrivateDestructorStaticTail* tail) { delete tail; });
+  }
+
+ private:
+  ~PrivateDestructorStaticTail() = default;
 };
 
 HANDLER_TAG(first_static);
@@ -77,10 +135,13 @@ HANDLER_TAG(publisher_static);
 HANDLER_TAG(subscriber_static);
 HANDLER_TAG(first_erased_static);
 HANDLER_TAG(second_erased_static);
+HANDLER_TAG(third_erased_static);
 HANDLER_TAG(read_ready_canceller_static);
 HANDLER_TAG(read_ready_target_static);
 HANDLER_TAG(read_ready_reentrant_static);
 HANDLER_TAG(reentrant_close_static);
+HANDLER_TAG(await_before_forward_static);
+HANDLER_TAG(inserted_static);
 
 class TraceHandler {
  public:
@@ -130,6 +191,292 @@ class TraceHandler {
  private:
   std::vector<std::string>* trace_;
   std::string name_;
+};
+
+// Shared teardown log so tests can assert the relative destruction order of
+// handlers and owned endpoints/allocator.
+inline std::vector<std::string>& staticTeardownLog() {
+  static std::vector<std::string> log;
+  return log;
+}
+
+// Inbound handler that records its destruction, to prove an owned allocator is
+// destroyed after all handlers.
+class StaticTeardownHandler {
+ public:
+  StaticTeardownHandler() = default;
+  StaticTeardownHandler(const StaticTeardownHandler&) = delete;
+  StaticTeardownHandler& operator=(const StaticTeardownHandler&) = delete;
+  StaticTeardownHandler(StaticTeardownHandler&&) = delete;
+  StaticTeardownHandler& operator=(StaticTeardownHandler&&) = delete;
+  ~StaticTeardownHandler() { staticTeardownLog().emplace_back("handler"); }
+
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineActive(Context&) noexcept {}
+  template <typename Context>
+  Result onRead(Context& ctx, TypeErasedBox&& msg) noexcept {
+    return ctx.fireRead(std::move(msg));
+  }
+  template <typename Context>
+  void onException(Context& ctx, folly::exception_wrapper&& e) noexcept {
+    ctx.fireException(std::move(e));
+  }
+  template <typename Context>
+  void onReadReady(Context&) noexcept {}
+};
+
+// An inbound-only handler: it has no onWriteReady(), and it asks for it on
+// each read. It has onPipelineInactive() because a segment calls both
+// lifecycle callbacks on each handler.
+class InboundAwaitingWriteReady {
+ public:
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineActive(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineInactive(Context&) noexcept {}
+  template <typename Context>
+  Result onRead(Context& ctx, TypeErasedBox&& msg) noexcept {
+    ctx.awaitWriteReady();
+    return ctx.fireRead(std::move(msg));
+  }
+  template <typename Context>
+  void onException(Context& ctx, folly::exception_wrapper&& e) noexcept {
+    ctx.fireException(std::move(e));
+  }
+  template <typename Context>
+  void onReadReady(Context&) noexcept {}
+};
+
+// An outbound-only handler: it has no onReadReady(), and it asks for it on
+// each write. It has onPipelineActive() because a segment calls both
+// lifecycle callbacks on each handler.
+class OutboundAwaitingReadReady {
+ public:
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineActive(Context&) noexcept {}
+  template <typename Context>
+  Result onWrite(Context& ctx, TypeErasedBox&& msg) noexcept {
+    ctx.awaitReadReady();
+    return ctx.fireWrite(std::move(msg));
+  }
+  template <typename Context>
+  void onWriteReady(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineInactive(Context&) noexcept {}
+};
+
+// An inbound-only handler that answers each read with a write, as in a
+// request-response pipeline. It has onWriteReady(), and it waits for it when
+// its write gets Backpressure. It has onPipelineInactive() because a segment
+// calls both lifecycle callbacks on each handler.
+class InboundResponder {
+ public:
+  explicit InboundResponder(std::vector<std::string>* events)
+      : events_(events) {}
+
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineActive(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineInactive(Context&) noexcept {}
+  template <typename Context>
+  Result onRead(Context& ctx, TypeErasedBox&& msg) noexcept {
+    const Result written = ctx.fireWrite(std::move(msg));
+    if (written == Result::Backpressure) {
+      events_->emplace_back("write backpressure");
+      ctx.awaitWriteReady();
+      return Result::Success;
+    }
+    return written;
+  }
+  template <typename Context>
+  void onException(Context& ctx, folly::exception_wrapper&& e) noexcept {
+    ctx.fireException(std::move(e));
+  }
+  template <typename Context>
+  void onReadReady(Context&) noexcept {}
+  template <typename Context>
+  void onWriteReady(Context& ctx) noexcept {
+    events_->emplace_back("write ready");
+    ctx.cancelAwaitWriteReady();
+  }
+
+ private:
+  std::vector<std::string>* events_;
+};
+
+// The mirror of InboundResponder: an outbound-only handler that answers each
+// write with a read. It has onReadReady(), and it waits for it when its read
+// gets Backpressure. It has onPipelineActive() because a segment calls both
+// lifecycle callbacks on each handler.
+class OutboundResponder {
+ public:
+  explicit OutboundResponder(std::vector<std::string>* events)
+      : events_(events) {}
+
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineActive(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineInactive(Context&) noexcept {}
+  template <typename Context>
+  Result onWrite(Context& ctx, TypeErasedBox&& msg) noexcept {
+    const Result read = ctx.fireRead(std::move(msg));
+    if (read == Result::Backpressure) {
+      events_->emplace_back("read backpressure");
+      ctx.awaitReadReady();
+      return Result::Success;
+    }
+    return read;
+  }
+  template <typename Context>
+  void onWriteReady(Context&) noexcept {}
+  template <typename Context>
+  void onReadReady(Context& ctx) noexcept {
+    events_->emplace_back("read ready");
+    ctx.cancelAwaitReadReady();
+  }
+
+ private:
+  std::vector<std::string>* events_;
+};
+
+// Owned head endpoint with observable lifetime and constructor-argument
+// capture. Non-movable to prove the pipeline constructs it in place (never
+// moves it).
+class OwnedStaticHead {
+ public:
+  OwnedStaticHead() noexcept { onConstructed(); }
+  OwnedStaticHead(int id, std::string name) noexcept
+      : id_(id), name_(std::move(name)) {
+    onConstructed();
+  }
+  explicit OwnedStaticHead(std::unique_ptr<int> token) noexcept : id_(*token) {
+    onConstructed();
+  }
+  OwnedStaticHead(const OwnedStaticHead&) = delete;
+  OwnedStaticHead& operator=(const OwnedStaticHead&) = delete;
+  OwnedStaticHead(OwnedStaticHead&&) = delete;
+  OwnedStaticHead& operator=(OwnedStaticHead&&) = delete;
+  ~OwnedStaticHead() {
+    ++destructions;
+    staticTeardownLog().emplace_back("head");
+  }
+
+  template <typename Context>
+  Result onWrite(Context&, TypeErasedBox&&) noexcept {
+    return Result::Success;
+  }
+  void onReadReady() noexcept {}
+  void handlerAdded() noexcept {}
+  void handlerRemoved() noexcept {}
+  void onPipelineActive() noexcept {}
+  void onPipelineInactive() noexcept {}
+
+  int id() const noexcept { return id_; }
+  const std::string& name() const noexcept { return name_; }
+
+  static void reset() noexcept {
+    constructions = 0;
+    destructions = 0;
+    lastConstructed = nullptr;
+  }
+  static inline std::size_t constructions{0};
+  static inline std::size_t destructions{0};
+  static inline OwnedStaticHead* lastConstructed{nullptr};
+
+ private:
+  void onConstructed() noexcept {
+    ++constructions;
+    lastConstructed = this;
+  }
+  int id_{0};
+  std::string name_;
+};
+
+// Owned tail endpoint with observable lifetime.
+class OwnedStaticTail {
+ public:
+  OwnedStaticTail() noexcept { ++constructions; }
+  OwnedStaticTail(const OwnedStaticTail&) = delete;
+  OwnedStaticTail& operator=(const OwnedStaticTail&) = delete;
+  OwnedStaticTail(OwnedStaticTail&&) = delete;
+  OwnedStaticTail& operator=(OwnedStaticTail&&) = delete;
+  ~OwnedStaticTail() {
+    ++destructions;
+    staticTeardownLog().emplace_back("tail");
+  }
+
+  template <typename Context>
+  Result onRead(Context&, TypeErasedBox&&) noexcept {
+    return Result::Success;
+  }
+  void onException(folly::exception_wrapper&&) noexcept {}
+  void onWriteReady() noexcept {}
+  void handlerAdded() noexcept {}
+  void handlerRemoved() noexcept {}
+  void onPipelineActive() noexcept {}
+  void onPipelineInactive() noexcept {}
+
+  static void reset() noexcept {
+    constructions = 0;
+    destructions = 0;
+  }
+  static inline std::size_t constructions{0};
+  static inline std::size_t destructions{0};
+};
+
+// Owned allocator; counts heap allocations so tests can prove it is co-located
+// in the single pipeline allocation rather than separately heap-allocated.
+class OwnedStaticAllocator {
+ public:
+  OwnedStaticAllocator() noexcept { lastConstructed = this; }
+  OwnedStaticAllocator(const OwnedStaticAllocator&) = delete;
+  OwnedStaticAllocator& operator=(const OwnedStaticAllocator&) = delete;
+  OwnedStaticAllocator(OwnedStaticAllocator&&) = delete;
+  OwnedStaticAllocator& operator=(OwnedStaticAllocator&&) = delete;
+  ~OwnedStaticAllocator() {
+    ++destructions;
+    staticTeardownLog().emplace_back("allocator");
+  }
+
+  BytesPtr allocate(size_t size) { return folly::IOBuf::create(size); }
+  BytesPtr copyBuffer(const void* data, size_t size) {
+    return folly::IOBuf::copyBuffer(data, size);
+  }
+
+  static void* operator new(std::size_t size) {
+    ++heapAllocations;
+    return ::operator new(size);
+  }
+  static void operator delete(void* ptr) noexcept { ::operator delete(ptr); }
+
+  static void reset() noexcept {
+    heapAllocations = 0;
+    destructions = 0;
+    lastConstructed = nullptr;
+  }
+  static inline std::size_t heapAllocations{0};
+  static inline std::size_t destructions{0};
+  [[maybe_unused]] static inline OwnedStaticAllocator* lastConstructed{nullptr};
 };
 
 class DestructionCountingHandler {
@@ -193,8 +540,6 @@ class StatefulHandler {
 
 class ReadyHandler {
  public:
-  WriteReadyHook writeReadyHook_;
-
   explicit ReadyHandler(int* calls) : calls_(calls) {}
 
   template <typename Context>
@@ -218,6 +563,680 @@ class ReadyHandler {
 
  private:
   int* calls_;
+};
+
+// Head whose every write leaves it blocked until its next onWriteReady(). With
+// staysBlocked set, it stays blocked through that call and becomes ready in
+// the call after it.
+class BlockingStaticHead {
+ public:
+  explicit BlockingStaticHead(std::vector<std::string>* readiness)
+      : readiness_(readiness) {}
+
+  template <typename Context>
+  Result onWrite(Context& ctx, TypeErasedBox&&) noexcept {
+    ctx.awaitWriteReady();
+    return Result::Backpressure;
+  }
+  template <typename Context>
+  void onWriteReady(Context& ctx) noexcept {
+    readiness_->emplace_back("head");
+    if (!std::exchange(staysBlocked, false)) {
+      ctx.cancelAwaitWriteReady();
+    }
+  }
+  void onReadReady() noexcept {}
+  void handlerAdded() noexcept {}
+  void handlerRemoved() noexcept {}
+  void onPipelineActive() noexcept {}
+  void onPipelineInactive() noexcept {}
+
+  bool staysBlocked{false};
+
+ private:
+  std::vector<std::string>* readiness_;
+};
+
+// Waits for write-ready before it forwards a write, so it arms before the head
+// and every handler below it. It records its name when it wakes.
+class AwaitBeforeForwardHandler {
+ public:
+  explicit AwaitBeforeForwardHandler(
+      std::vector<std::string>* readiness, std::string name = "handler")
+      : readiness_(readiness), name_(std::move(name)) {}
+
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineActive(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineInactive(Context&) noexcept {}
+  template <typename Context>
+  Result onWrite(Context& ctx, TypeErasedBox&& msg) noexcept {
+    ctx.awaitWriteReady();
+    return ctx.fireWrite(std::move(msg));
+  }
+  template <typename Context>
+  void onWriteReady(Context& ctx) noexcept {
+    readiness_->push_back(name_);
+    ctx.cancelAwaitWriteReady();
+  }
+
+ private:
+  std::vector<std::string>* readiness_;
+  std::string name_;
+};
+
+// Holds every write and answers Backpressure until its first onWriteReady(),
+// which forwards what it holds.
+class BlockedUntilReadyHandler {
+ public:
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineActive(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineInactive(Context&) noexcept {}
+  template <typename Context>
+  Result onWrite(Context& ctx, TypeErasedBox&& msg) noexcept {
+    if (!blocked_) {
+      return ctx.fireWrite(std::move(msg));
+    }
+    held_.push_back(std::move(msg));
+    ctx.awaitWriteReady();
+    return Result::Backpressure;
+  }
+  template <typename Context>
+  void onWriteReady(Context& ctx) noexcept {
+    blocked_ = false;
+    ctx.cancelAwaitWriteReady();
+    for (TypeErasedBox& msg : held_) {
+      (void)ctx.fireWrite(std::move(msg));
+    }
+    held_.clear();
+  }
+
+ private:
+  bool blocked_{true};
+  std::vector<TypeErasedBox> held_;
+};
+
+// Waits for write-ready before it forwards a write. When it wakes, it writes
+// one more message and records the result of that write.
+class WriteOnReadyHandler {
+ public:
+  explicit WriteOnReadyHandler(std::vector<Result>* results)
+      : results_(results) {}
+
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineActive(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineInactive(Context&) noexcept {}
+  template <typename Context>
+  Result onWrite(Context& ctx, TypeErasedBox&& msg) noexcept {
+    ctx.awaitWriteReady();
+    return ctx.fireWrite(std::move(msg));
+  }
+  template <typename Context>
+  void onWriteReady(Context& ctx) noexcept {
+    ctx.cancelAwaitWriteReady();
+    const Result result = ctx.fireWrite(erase_and_box(folly::IOBuf::create(0)));
+    results_->push_back(result);
+    if (result == Result::Backpressure) {
+      ctx.awaitWriteReady();
+    }
+  }
+
+ private:
+  std::vector<Result>* results_;
+};
+
+// Waits for read-ready before it forwards a read, so it arms before every
+// handler above it. It records its name when it wakes.
+class AwaitBeforeForwardReader {
+ public:
+  AwaitBeforeForwardReader(
+      std::vector<std::string>* readiness, std::string name)
+      : readiness_(readiness), name_(std::move(name)) {}
+
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineActive(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineInactive(Context&) noexcept {}
+  template <typename Context>
+  Result onRead(Context& ctx, TypeErasedBox&& msg) noexcept {
+    ctx.awaitReadReady();
+    return ctx.fireRead(std::move(msg));
+  }
+  template <typename Context>
+  void onReadReady(Context& ctx) noexcept {
+    readiness_->push_back(name_);
+    ctx.cancelAwaitReadReady();
+  }
+  template <typename Context>
+  void onException(Context& ctx, folly::exception_wrapper&& e) noexcept {
+    ctx.fireException(std::move(e));
+  }
+
+ private:
+  std::vector<std::string>* readiness_;
+  std::string name_;
+};
+
+// Holds every read and answers Backpressure until its first onReadReady(),
+// which forwards what it holds.
+class BlockedUntilReadReadyHandler {
+ public:
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineActive(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineInactive(Context&) noexcept {}
+  template <typename Context>
+  Result onRead(Context& ctx, TypeErasedBox&& msg) noexcept {
+    if (!blocked_) {
+      return ctx.fireRead(std::move(msg));
+    }
+    held_.push_back(std::move(msg));
+    ctx.awaitReadReady();
+    return Result::Backpressure;
+  }
+  template <typename Context>
+  void onReadReady(Context& ctx) noexcept {
+    blocked_ = false;
+    ctx.cancelAwaitReadReady();
+    for (TypeErasedBox& msg : held_) {
+      (void)ctx.fireRead(std::move(msg));
+    }
+    held_.clear();
+  }
+  template <typename Context>
+  void onException(Context& ctx, folly::exception_wrapper&& e) noexcept {
+    ctx.fireException(std::move(e));
+  }
+
+ private:
+  bool blocked_{true};
+  std::vector<TypeErasedBox> held_;
+};
+
+// Waits for read-ready before it forwards a read. When it wakes, it reads one
+// more message and records the result of that read.
+class ReadOnReadyHandler {
+ public:
+  explicit ReadOnReadyHandler(std::vector<Result>* results)
+      : results_(results) {}
+
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineActive(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineInactive(Context&) noexcept {}
+  template <typename Context>
+  Result onRead(Context& ctx, TypeErasedBox&& msg) noexcept {
+    ctx.awaitReadReady();
+    return ctx.fireRead(std::move(msg));
+  }
+  template <typename Context>
+  void onReadReady(Context& ctx) noexcept {
+    ctx.cancelAwaitReadReady();
+    const Result result = ctx.fireRead(TypeErasedBox{2});
+    results_->push_back(result);
+    if (result == Result::Backpressure) {
+      ctx.awaitReadReady();
+    }
+  }
+  template <typename Context>
+  void onException(Context& ctx, folly::exception_wrapper&& e) noexcept {
+    ctx.fireException(std::move(e));
+  }
+
+ private:
+  std::vector<Result>* results_;
+};
+
+// Waits for write-ready before it forwards a write, and stays armed when it
+// wakes, as a handler that is still blocked does. It records its name when it
+// wakes.
+class StaysArmedHandler {
+ public:
+  StaysArmedHandler(std::vector<std::string>* readiness, std::string name)
+      : readiness_(readiness), name_(std::move(name)) {}
+
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineActive(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineInactive(Context&) noexcept {}
+  template <typename Context>
+  Result onWrite(Context& ctx, TypeErasedBox&& msg) noexcept {
+    ctx.awaitWriteReady();
+    return ctx.fireWrite(std::move(msg));
+  }
+  template <typename Context>
+  void onWriteReady(Context&) noexcept {
+    readiness_->push_back(name_);
+  }
+
+ private:
+  std::vector<std::string>* readiness_;
+  std::string name_;
+};
+
+// Waits for write-ready before it forwards a write. When it wakes, it asks for
+// one more write-ready pass and cancels. It records its name when it wakes.
+class NestedWriteReadyHandler {
+ public:
+  NestedWriteReadyHandler(std::vector<std::string>* readiness, std::string name)
+      : readiness_(readiness), name_(std::move(name)) {}
+
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineActive(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineInactive(Context&) noexcept {}
+  template <typename Context>
+  Result onWrite(Context& ctx, TypeErasedBox&& msg) noexcept {
+    ctx.awaitWriteReady();
+    return ctx.fireWrite(std::move(msg));
+  }
+  template <typename Context>
+  void onWriteReady(Context& ctx) noexcept {
+    readiness_->push_back(name_);
+    ctx.pipeline()->onWriteReady();
+    ctx.cancelAwaitWriteReady();
+  }
+
+ private:
+  std::vector<std::string>* readiness_;
+  std::string name_;
+};
+
+// Waits for write-ready before it forwards a write. It stays armed when it
+// first wakes and cancels when it wakes again. It records its name each time.
+class ArmedForOnePassHandler {
+ public:
+  ArmedForOnePassHandler(std::vector<std::string>* readiness, std::string name)
+      : readiness_(readiness), name_(std::move(name)) {}
+
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineActive(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineInactive(Context&) noexcept {}
+  template <typename Context>
+  Result onWrite(Context& ctx, TypeErasedBox&& msg) noexcept {
+    ctx.awaitWriteReady();
+    return ctx.fireWrite(std::move(msg));
+  }
+  template <typename Context>
+  void onWriteReady(Context& ctx) noexcept {
+    readiness_->push_back(name_);
+    if (std::exchange(wokenBefore_, true)) {
+      ctx.cancelAwaitWriteReady();
+    }
+  }
+
+ private:
+  std::vector<std::string>* readiness_;
+  std::string name_;
+  bool wokenBefore_{false};
+};
+
+// Waits for write-ready before it forwards a write. When it wakes, it cancels
+// and arms again, as a handler that is still blocked after its callback does.
+// It counts its wakes, and after 3 it stops arming again, so that a pass that
+// wakes it again cannot loop forever.
+class ArmsAgainWhenWokenHandler {
+ public:
+  explicit ArmsAgainWhenWokenHandler(std::size_t* wakes) : wakes_(wakes) {}
+
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineActive(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineInactive(Context&) noexcept {}
+  template <typename Context>
+  Result onWrite(Context& ctx, TypeErasedBox&& msg) noexcept {
+    ctx.awaitWriteReady();
+    return ctx.fireWrite(std::move(msg));
+  }
+  template <typename Context>
+  void onWriteReady(Context& ctx) noexcept {
+    ctx.cancelAwaitWriteReady();
+    if (++*wakes_ < 3) {
+      ctx.awaitWriteReady();
+    }
+  }
+
+ private:
+  std::size_t* wakes_;
+};
+
+// When it wakes, it stops waiting and makes the handler with
+// second_static_tag wait for write-ready. It records its name when it wakes.
+class ArmsTheHandlerAboveHandler {
+ public:
+  explicit ArmsTheHandlerAboveHandler(std::vector<std::string>* readiness)
+      : readiness_(readiness) {}
+
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineActive(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineInactive(Context&) noexcept {}
+  template <typename Context>
+  Result onWrite(Context& ctx, TypeErasedBox&& msg) noexcept {
+    return ctx.fireWrite(std::move(msg));
+  }
+  template <typename Context>
+  void onWriteReady(Context& ctx) noexcept {
+    readiness_->emplace_back("below");
+    ctx.cancelAwaitWriteReady();
+    ctx.pipeline()->context(second_static_tag)->awaitWriteReady();
+  }
+
+ private:
+  std::vector<std::string>* readiness_;
+};
+
+// Queues every write and waits for write-ready. When it wakes, it writes the
+// queued messages until a write returns Backpressure, and records each result.
+class QueuedWriterHandler {
+ public:
+  explicit QueuedWriterHandler(std::vector<Result>* results)
+      : results_(results) {}
+
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineActive(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineInactive(Context&) noexcept {}
+  template <typename Context>
+  Result onWrite(Context& ctx, TypeErasedBox&& msg) noexcept {
+    queued_.push_back(std::move(msg));
+    ctx.awaitWriteReady();
+    return Result::Backpressure;
+  }
+  template <typename Context>
+  void onWriteReady(Context& ctx) noexcept {
+    ctx.cancelAwaitWriteReady();
+    while (!queued_.empty()) {
+      const Result result = ctx.fireWrite(std::move(queued_.front()));
+      queued_.pop_front();
+      results_->push_back(result);
+      if (result == Result::Backpressure) {
+        ctx.awaitWriteReady();
+        break;
+      }
+    }
+  }
+
+ private:
+  std::vector<Result>* results_;
+  std::deque<TypeErasedBox> queued_;
+};
+
+// Waits for write-ready before it forwards a write, and closes the pipeline
+// when it wakes.
+class ClosesOnWriteReadyHandler {
+ public:
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineActive(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineInactive(Context&) noexcept {}
+  template <typename Context>
+  Result onWrite(Context& ctx, TypeErasedBox&& msg) noexcept {
+    ctx.awaitWriteReady();
+    return ctx.fireWrite(std::move(msg));
+  }
+  template <typename Context>
+  void onWriteReady(Context& ctx) noexcept {
+    ctx.pipeline()->close();
+  }
+};
+
+// Waits for write-ready before it forwards a write. When it wakes, it cancels,
+// asks for one more write-ready pass and writes one more message.
+class NestedWriteReadyThenWriteHandler {
+ public:
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineActive(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineInactive(Context&) noexcept {}
+  template <typename Context>
+  Result onWrite(Context& ctx, TypeErasedBox&& msg) noexcept {
+    ctx.awaitWriteReady();
+    return ctx.fireWrite(std::move(msg));
+  }
+  template <typename Context>
+  void onWriteReady(Context& ctx) noexcept {
+    ctx.cancelAwaitWriteReady();
+    ctx.pipeline()->onWriteReady();
+    (void)ctx.fireWrite(erase_and_box(folly::IOBuf::create(0)));
+  }
+};
+
+// Waits for read-ready before it forwards a read, and stays armed when it
+// wakes, as a handler that is still blocked does. It records its name when it
+// wakes.
+class StaysArmedReader {
+ public:
+  StaysArmedReader(std::vector<std::string>* readiness, std::string name)
+      : readiness_(readiness), name_(std::move(name)) {}
+
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineActive(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineInactive(Context&) noexcept {}
+  template <typename Context>
+  Result onRead(Context& ctx, TypeErasedBox&& msg) noexcept {
+    ctx.awaitReadReady();
+    return ctx.fireRead(std::move(msg));
+  }
+  template <typename Context>
+  void onReadReady(Context&) noexcept {
+    readiness_->push_back(name_);
+  }
+  template <typename Context>
+  void onException(Context& ctx, folly::exception_wrapper&& e) noexcept {
+    ctx.fireException(std::move(e));
+  }
+
+ private:
+  std::vector<std::string>* readiness_;
+  std::string name_;
+};
+
+// Waits for read-ready before it forwards a read. When it wakes, it cancels and
+// arms again, as a handler that is still blocked after its callback does. It
+// counts its wakes, and after 3 it stops arming again, so that a pass that
+// wakes it again cannot loop forever.
+class ArmsAgainWhenWokenReader {
+ public:
+  explicit ArmsAgainWhenWokenReader(std::size_t* wakes) : wakes_(wakes) {}
+
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineActive(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineInactive(Context&) noexcept {}
+  template <typename Context>
+  Result onRead(Context& ctx, TypeErasedBox&& msg) noexcept {
+    ctx.awaitReadReady();
+    return ctx.fireRead(std::move(msg));
+  }
+  template <typename Context>
+  void onReadReady(Context& ctx) noexcept {
+    ctx.cancelAwaitReadReady();
+    if (++*wakes_ < 3) {
+      ctx.awaitReadReady();
+    }
+  }
+  template <typename Context>
+  void onException(Context& ctx, folly::exception_wrapper&& e) noexcept {
+    ctx.fireException(std::move(e));
+  }
+
+ private:
+  std::size_t* wakes_;
+};
+
+// When it wakes, it stops waiting and makes the handler with first_static_tag
+// wait for read-ready. It records its name when it wakes.
+class ArmsTheReaderBelowHandler {
+ public:
+  explicit ArmsTheReaderBelowHandler(std::vector<std::string>* readiness)
+      : readiness_(readiness) {}
+
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineActive(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineInactive(Context&) noexcept {}
+  template <typename Context>
+  Result onRead(Context& ctx, TypeErasedBox&& msg) noexcept {
+    return ctx.fireRead(std::move(msg));
+  }
+  template <typename Context>
+  void onReadReady(Context& ctx) noexcept {
+    readiness_->emplace_back("above");
+    ctx.cancelAwaitReadReady();
+    ctx.pipeline()->context(first_static_tag)->awaitReadReady();
+  }
+  template <typename Context>
+  void onException(Context& ctx, folly::exception_wrapper&& e) noexcept {
+    ctx.fireException(std::move(e));
+  }
+
+ private:
+  std::vector<std::string>* readiness_;
+};
+
+// Waits for read-ready before it forwards a read, and closes the pipeline when
+// it wakes.
+class ClosesOnReadReadyReader {
+ public:
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineActive(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineInactive(Context&) noexcept {}
+  template <typename Context>
+  Result onRead(Context& ctx, TypeErasedBox&& msg) noexcept {
+    ctx.awaitReadReady();
+    return ctx.fireRead(std::move(msg));
+  }
+  template <typename Context>
+  void onReadReady(Context& ctx) noexcept {
+    ctx.pipeline()->close();
+  }
+  template <typename Context>
+  void onException(Context& ctx, folly::exception_wrapper&& e) noexcept {
+    ctx.fireException(std::move(e));
+  }
+};
+
+// Queues every read and waits for read-ready. When it wakes, it reads the
+// queued messages on until a read returns Backpressure, and records each
+// result.
+class QueuedReaderHandler {
+ public:
+  explicit QueuedReaderHandler(std::vector<Result>* results)
+      : results_(results) {}
+
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineActive(Context&) noexcept {}
+  template <typename Context>
+  void onPipelineInactive(Context&) noexcept {}
+  template <typename Context>
+  Result onRead(Context& ctx, TypeErasedBox&& msg) noexcept {
+    queued_.push_back(std::move(msg));
+    ctx.awaitReadReady();
+    return Result::Backpressure;
+  }
+  template <typename Context>
+  void onReadReady(Context& ctx) noexcept {
+    ctx.cancelAwaitReadReady();
+    while (!queued_.empty()) {
+      const Result result = ctx.fireRead(std::move(queued_.front()));
+      queued_.pop_front();
+      results_->push_back(result);
+      if (result == Result::Backpressure) {
+        ctx.awaitReadReady();
+        break;
+      }
+    }
+  }
+  template <typename Context>
+  void onException(Context& ctx, folly::exception_wrapper&& e) noexcept {
+    ctx.fireException(std::move(e));
+  }
+
+ private:
+  std::vector<Result>* results_;
+  std::deque<TypeErasedBox> queued_;
 };
 
 struct ValueEvent : EventTag<int> {};
@@ -404,8 +1423,6 @@ class CountingSubscriber {
 
 class ReadReadyCanceller {
  public:
-  ReadReadyHook readReadyHook_;
-
   explicit ReadReadyCanceller(int* calls) : calls_(calls) {}
 
   template <typename Context>
@@ -440,8 +1457,6 @@ class ReadReadyCanceller {
 
 class ReadReadyTarget {
  public:
-  ReadReadyHook readReadyHook_;
-
   explicit ReadReadyTarget(int* calls) : calls_(calls) {}
 
   template <typename Context>
@@ -473,8 +1488,6 @@ class ReadReadyTarget {
 
 class ReentrantReadReadyHandler {
  public:
-  ReadReadyHook readReadyHook_;
-
   explicit ReentrantReadReadyHandler(int* calls) : calls_(calls) {}
 
   template <typename Context>
@@ -656,7 +1669,7 @@ TEST(StaticPipelineTest, ReentrantCloseRemovesHandlersOnce) {
   EXPECT_EQ(removedCalls, 1);
 }
 
-TEST(StaticPipelineTest, ReadReadyCallbackCanUnlinkNextHandler) {
+TEST(StaticPipelineTest, ReadReadyCallbackCanCancelNextHandler) {
   folly::EventBase eventBase;
   StaticHeadHandler head;
   StaticTailHandler tail;
@@ -672,10 +1685,10 @@ TEST(StaticPipelineTest, ReadReadyCallbackCanUnlinkNextHandler) {
                       .setHead(&head)
                       .setTail(&tail)
                       .setAllocator(&allocator)
-                      .addNextInbound<ReadReadyCanceller>(
-                          read_ready_canceller_static_tag, &cancellerCalls)
                       .addNextInbound<ReadReadyTarget>(
                           read_ready_target_static_tag, &targetCalls)
+                      .addNextInbound<ReadReadyCanceller>(
+                          read_ready_canceller_static_tag, &cancellerCalls)
                       .build();
 
   pipeline->onReadReady();
@@ -707,6 +1720,235 @@ TEST(StaticPipelineTest, DefersReentrantReadReadyDispatch) {
 
   EXPECT_EQ(calls, 1);
   EXPECT_FALSE(pipeline->hasPendingReadReady());
+}
+
+TEST(StaticPipelineTest, ReadReadyWakesHandlersFromTailToHead) {
+  folly::EventBase eventBase;
+  std::vector<std::string> readiness;
+  StaticHeadHandler head;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+  std::vector<detail::ErasedStaticHandler> erasedHandlers;
+  erasedHandlers.push_back(
+      detail::makeErasedStaticHandler<AwaitBeforeForwardReader>(
+          first_erased_static_tag.id, &readiness, "erased"));
+
+  auto pipeline = StaticPipelineBuilder<
+                      StaticHeadHandler,
+                      StaticTailHandler,
+                      TestAllocator>()
+                      .setEventBase(&eventBase)
+                      .setHead(&head)
+                      .setTail(&tail)
+                      .setAllocator(&allocator)
+                      .addNextInbound<AwaitBeforeForwardReader>(
+                          first_static_tag, &readiness, "first")
+                      .addStaticHandlers(std::move(erasedHandlers))
+                      .addNextInbound<AwaitBeforeForwardReader>(
+                          second_static_tag, &readiness, "last")
+                      .build();
+
+  // The read reaches the handlers from the head toward the tail, so they arm
+  // in the order first, erased, last.
+  EXPECT_THAT(pipeline->fireRead(TypeErasedBox{1}), Eq(Result::Success));
+  pipeline->onReadReady();
+
+  EXPECT_THAT(readiness, ElementsAre("last", "erased", "first"));
+}
+
+TEST(StaticPipelineTest, FreedHandlerLetsHandlerBelowReadInSamePass) {
+  folly::EventBase eventBase;
+  StaticHeadHandler head;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+  std::vector<Result> results;
+
+  auto pipeline =
+      StaticPipelineBuilder<
+          StaticHeadHandler,
+          StaticTailHandler,
+          TestAllocator>()
+          .setEventBase(&eventBase)
+          .setHead(&head)
+          .setTail(&tail)
+          .setAllocator(&allocator)
+          .addNextInbound<ReadOnReadyHandler>(first_static_tag, &results)
+          .addNextInbound<BlockedUntilReadReadyHandler>(second_static_tag)
+          .build();
+
+  // The reader below arms before the blocked handler does.
+  EXPECT_THAT(pipeline->fireRead(TypeErasedBox{1}), Eq(Result::Backpressure));
+  pipeline->onReadReady();
+
+  EXPECT_THAT(
+      std::tuple(results, tail.readCount(), pipeline->hasPendingReadReady()),
+      Eq(std::tuple(std::vector{Result::Success}, std::size_t{2}, false)));
+}
+
+TEST(StaticPipelineTest, ReaderArmedBehindThePassWakesInTheNextPass) {
+  folly::EventBase eventBase;
+  StaticHeadHandler head;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+  std::vector<Result> results;
+
+  auto pipeline =
+      StaticPipelineBuilder<
+          StaticHeadHandler,
+          StaticTailHandler,
+          TestAllocator>()
+          .setEventBase(&eventBase)
+          .setHead(&head)
+          .setTail(&tail)
+          .setAllocator(&allocator)
+          .addNextInbound<QueuedReaderHandler>(first_static_tag, &results)
+          .addNextInbound<BlockedUntilReadReadyHandler>(second_static_tag)
+          .build();
+  // The reader below queues two messages. The handler above does not wait when
+  // the pass starts.
+  EXPECT_THAT(pipeline->fireRead(TypeErasedBox{1}), Eq(Result::Backpressure));
+  EXPECT_THAT(pipeline->fireRead(TypeErasedBox{2}), Eq(Result::Backpressure));
+
+  // The reader wakes and reads into the handler above, which holds the message
+  // and starts to wait behind the pass. The pass does not wake it again and
+  // notifies the head.
+  pipeline->onReadReady();
+  const auto afterPass = std::tuple(
+      results,
+      tail.readCount(),
+      pipeline->hasPendingReadReady(),
+      head.readReadyCount());
+  // The next pass wakes the handler above and then the reader.
+  pipeline->onReadReady();
+
+  EXPECT_THAT(
+      std::tuple(
+          afterPass,
+          results,
+          tail.readCount(),
+          pipeline->hasPendingReadReady(),
+          head.readReadyCount()),
+      Eq(std::tuple(
+          std::tuple(
+              std::vector{Result::Backpressure},
+              std::size_t{0},
+              true,
+              std::size_t{1}),
+          std::vector{Result::Backpressure, Result::Success},
+          std::size_t{2},
+          false,
+          std::size_t{2})));
+}
+
+TEST(StaticPipelineTest, ReaderThatArmsAgainInItsCallbackWakesOncePerPass) {
+  folly::EventBase eventBase;
+  StaticHeadHandler head;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+  std::size_t wakes = 0;
+
+  auto pipeline =
+      StaticPipelineBuilder<
+          StaticHeadHandler,
+          StaticTailHandler,
+          TestAllocator>()
+          .setEventBase(&eventBase)
+          .setHead(&head)
+          .setTail(&tail)
+          .setAllocator(&allocator)
+          .addNextInbound<ArmsAgainWhenWokenReader>(first_static_tag, &wakes)
+          .build();
+
+  EXPECT_THAT(pipeline->fireRead(TypeErasedBox{1}), Eq(Result::Success));
+  pipeline->onReadReady();
+
+  EXPECT_THAT(
+      std::tuple(wakes, head.readReadyCount(), pipeline->hasPendingReadReady()),
+      Eq(std::tuple(std::size_t{1}, std::size_t{1}, true)));
+}
+
+TEST(StaticPipelineTest, ReaderArmedBelowThePassWakesInIt) {
+  folly::EventBase eventBase;
+  std::vector<std::string> readiness;
+  ReadReadyRecordingStaticHead head(&readiness);
+  StaticTailHandler tail;
+  TestAllocator allocator;
+
+  auto pipeline = StaticPipelineBuilder<
+                      ReadReadyRecordingStaticHead,
+                      StaticTailHandler,
+                      TestAllocator>()
+                      .setEventBase(&eventBase)
+                      .setHead(&head)
+                      .setTail(&tail)
+                      .setAllocator(&allocator)
+                      .addNextInbound<AwaitBeforeForwardReader>(
+                          first_static_tag, &readiness, "below")
+                      .addNextInbound<ArmsTheReaderBelowHandler>(
+                          second_static_tag, &readiness)
+                      .build();
+  pipeline->context(second_static_tag)->awaitReadReady();
+
+  // The handler above makes the handler below wait during the pass, and the
+  // pass wakes it before the head.
+  pipeline->onReadReady();
+
+  EXPECT_THAT(readiness, ElementsAre("above", "below", "head"));
+}
+
+TEST(StaticPipelineTest, ReadReadyCallbackThatClosesPipelineSkipsHead) {
+  folly::EventBase eventBase;
+  StaticHeadHandler head;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+
+  auto pipeline = StaticPipelineBuilder<
+                      StaticHeadHandler,
+                      StaticTailHandler,
+                      TestAllocator>()
+                      .setEventBase(&eventBase)
+                      .setHead(&head)
+                      .setTail(&tail)
+                      .setAllocator(&allocator)
+                      .addNextInbound<ClosesOnReadReadyReader>(first_static_tag)
+                      .build();
+  EXPECT_THAT(pipeline->fireRead(TypeErasedBox{1}), Eq(Result::Success));
+  pipeline->onReadReady();
+
+  // After close the head endpoint may be gone, so the pass must not call it.
+  EXPECT_THAT(head.readReadyCount(), Eq(std::size_t{0}));
+}
+
+TEST(StaticPipelineTest, ReadReadyWakesHandlerBelowOneThatStaysArmed) {
+  folly::EventBase eventBase;
+  std::vector<std::string> readiness;
+  StaticHeadHandler head;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+
+  auto pipeline = StaticPipelineBuilder<
+                      StaticHeadHandler,
+                      StaticTailHandler,
+                      TestAllocator>()
+                      .setEventBase(&eventBase)
+                      .setHead(&head)
+                      .setTail(&tail)
+                      .setAllocator(&allocator)
+                      .addNextInbound<AwaitBeforeForwardReader>(
+                          first_static_tag, &readiness, "below")
+                      .addNextInbound<StaysArmedReader>(
+                          second_static_tag, &readiness, "above")
+                      .build();
+
+  EXPECT_THAT(pipeline->fireRead(TypeErasedBox{1}), Eq(Result::Success));
+  pipeline->onReadReady();
+
+  // The handler above stays armed, and the handler below and the head still
+  // wake in the same pass.
+  EXPECT_THAT(
+      std::tuple(readiness, head.readReadyCount()),
+      Eq(std::tuple(
+          std::vector<std::string>{"above", "below"}, std::size_t{1})));
 }
 
 TEST(StaticPipelineTest, ErasedHandlersDestroyOwnersExactlyOnce) {
@@ -1142,6 +2384,403 @@ TEST(StaticPipelineTest, RejectsDuplicateHandlerIds) {
       std::invalid_argument);
 }
 
+TEST(StaticPipelineTest, RejectsMoreThan63Handlers) {
+  folly::EventBase eventBase;
+  StaticHeadHandler head;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+  std::vector<std::string> trace;
+  auto builderWithOneTypedHandler = [&] {
+    return StaticPipelineBuilder<
+               StaticHeadHandler,
+               StaticTailHandler,
+               TestAllocator>()
+        .setEventBase(&eventBase)
+        .setHead(&head)
+        .setTail(&tail)
+        .setAllocator(&allocator)
+        .addNextDuplex<TraceHandler>(first_static_tag, &trace, "typed");
+  };
+  auto buildWithErasedHandlers = [&](std::size_t count) {
+    std::vector<detail::ErasedStaticHandler> erasedHandlers;
+    erasedHandlers.reserve(count);
+    for (std::size_t i = 0; i < count; ++i) {
+      erasedHandlers.push_back(
+          detail::makeErasedStaticHandler<TraceHandler>(
+              static_cast<HandlerId>(i + 1), &trace, "erased"));
+    }
+    return builderWithOneTypedHandler()
+        .addStaticHandlers(std::move(erasedHandlers))
+        .build();
+  };
+  auto buildWithTwoHandlerSegments = [&](std::size_t count) {
+    std::vector<detail::ErasedStaticSegment> segments;
+    segments.reserve(count);
+    for (std::size_t i = 0; i < count; ++i) {
+      segments.push_back(
+          StaticSegmentBuilder<>()
+              .addHandler<SegmentTraceHandler>(
+                  static_cast<HandlerId>(2 * i + 1), &trace, "segment")
+              .addHandler<SegmentTraceHandler>(
+                  static_cast<HandlerId>(2 * i + 2), &trace, "segment")
+              .build());
+    }
+    return builderWithOneTypedHandler()
+        .addStaticSegments(std::move(segments))
+        .build();
+  };
+
+  EXPECT_THAT(buildWithErasedHandlers(62)->handlerCount(), Eq(63));
+  EXPECT_THAT(
+      [&] { buildWithErasedHandlers(63); }, Throws<std::length_error>());
+  EXPECT_THAT(buildWithTwoHandlerSegments(31)->handlerCount(), Eq(63));
+  EXPECT_THAT(
+      [&] { buildWithTwoHandlerSegments(32); }, Throws<std::length_error>());
+}
+
+template <typename>
+using SegmentInboundAwaitingWriteReady = InboundAwaitingWriteReady;
+template <typename>
+using SegmentOutboundAwaitingReadReady = OutboundAwaitingReadReady;
+template <typename>
+using SegmentInboundResponder = InboundResponder;
+template <typename>
+using SegmentOutboundResponder = OutboundResponder;
+
+// Calls use(builder, erased, segment) and returns its result. Every pipeline
+// that builder() starts shares one EventBase, Head, Tail and allocator, which
+// live until use returns.
+//
+// erased(args...) returns Handler, made from args, as an erased handler.
+// segment(args...) returns SegmentHandler, made from args, inside a segment.
+template <
+    typename Handler,
+    template <typename> class SegmentHandler,
+    typename Head = StaticHeadHandler,
+    typename Tail = StaticTailHandler,
+    typename Use>
+auto withStaticForms(Use use) {
+  folly::EventBase eventBase;
+  Head head;
+  Tail tail;
+  TestAllocator allocator;
+
+  const auto builder = [&] {
+    return StaticPipelineBuilder<Head, Tail, TestAllocator>()
+        .setEventBase(&eventBase)
+        .setHead(&head)
+        .setTail(&tail)
+        .setAllocator(&allocator);
+  };
+  const auto erased = [](auto... args) {
+    std::vector<detail::ErasedStaticHandler> erasedHandlers;
+    erasedHandlers.push_back(
+        detail::makeErasedStaticHandler<Handler>(
+            first_erased_static_tag.id, args...));
+    return erasedHandlers;
+  };
+  const auto segment = [](auto... args) {
+    std::vector<detail::ErasedStaticSegment> segments;
+    segments.push_back(
+        StaticSegmentBuilder<>()
+            .addHandler<SegmentHandler>(second_erased_static_tag.id, args...)
+            .build());
+    return segments;
+  };
+
+  return use(builder, erased, segment);
+}
+
+// Sends one read through Handler as a typed and an erased handler in one
+// pipeline, and through SegmentHandler inside a segment in another. Returns
+// each result and whether each pipeline then waits for write ready.
+template <typename Handler, template <typename> class SegmentHandler>
+std::tuple<Result, bool, Result, bool> readThroughStaticForms() {
+  return withStaticForms<Handler, SegmentHandler>(
+      [](auto builder, auto erased, auto segment) {
+        const auto typedAndErased =
+            builder()
+                .template addNextInbound<Handler>(first_static_tag)
+                .addStaticHandlers(erased())
+                .build();
+        const auto segmented = builder().addStaticSegments(segment()).build();
+
+        // Braced initialization evaluates the calls from left to right.
+        return std::tuple{
+            typedAndErased->fireRead(TypeErasedBox{1}),
+            typedAndErased->hasPendingWriteReady(),
+            segmented->fireRead(TypeErasedBox{1}),
+            segmented->hasPendingWriteReady()};
+      });
+}
+
+// The same as readThroughStaticForms() for the write side: sends one write and
+// returns whether each pipeline then waits for read ready.
+template <typename Handler, template <typename> class SegmentHandler>
+std::tuple<Result, bool, Result, bool> writeThroughStaticForms() {
+  return withStaticForms<Handler, SegmentHandler>(
+      [](auto builder, auto erased, auto segment) {
+        const auto typedAndErased =
+            builder()
+                .template addNextOutbound<Handler>(first_static_tag)
+                .addStaticHandlers(erased())
+                .build();
+        const auto segmented = builder().addStaticSegments(segment()).build();
+
+        // Braced initialization evaluates the calls from left to right.
+        return std::tuple{
+            typedAndErased->fireWrite(erase_and_box(folly::IOBuf::create(0))),
+            typedAndErased->hasPendingReadReady(),
+            segmented->fireWrite(erase_and_box(folly::IOBuf::create(0))),
+            segmented->hasPendingReadReady()};
+      });
+}
+
+// A handler without onWriteReady() cannot wait for it, as a typed handler, as
+// an erased one or inside a segment.
+TEST(StaticPipelineTest, HandlerWithoutWriteReadyCallbackCannotAwaitIt) {
+  EXPECT_THAT(
+      (readThroughStaticForms<
+          InboundAwaitingWriteReady,
+          SegmentInboundAwaitingWriteReady>()),
+      Eq(std::tuple{Result::Success, false, Result::Success, false}));
+}
+
+// A handler without onReadReady() cannot wait for it, as a typed handler, as
+// an erased one or inside a segment.
+TEST(StaticPipelineTest, HandlerWithoutReadReadyCallbackCannotAwaitIt) {
+  EXPECT_THAT(
+      (writeThroughStaticForms<
+          OutboundAwaitingReadReady,
+          SegmentOutboundAwaitingReadReady>()),
+      Eq(std::tuple{Result::Success, false, Result::Success, false}));
+}
+
+// A head endpoint that takes every write and answers Backpressure.
+class BackpressureStaticHead : public StaticHeadHandler {
+ public:
+  template <typename Context>
+  Result onWrite(Context&, TypeErasedBox&&) noexcept {
+    return Result::Backpressure;
+  }
+};
+
+// A tail endpoint that takes every read and answers Backpressure.
+class BackpressureStaticTail : public StaticTailHandler {
+ public:
+  template <typename Context>
+  Result onRead(Context&, TypeErasedBox&&) noexcept {
+    return Result::Backpressure;
+  }
+};
+
+// Builds three pipelines: one with the typed handler that addTyped adds, one
+// with Handler as an erased handler, and one with SegmentHandler inside a
+// segment. Calls send and then wake on each pipeline, and returns the events
+// that each handler records.
+template <
+    typename Head,
+    typename Tail,
+    typename Handler,
+    template <typename> class SegmentHandler,
+    typename AddTyped,
+    typename Send,
+    typename Wake>
+std::array<std::vector<std::string>, 3> sendAndWakeInStaticForms(
+    AddTyped addTyped, Send send, Wake wake) {
+  return withStaticForms<Handler, SegmentHandler, Head, Tail>(
+      [&](auto builder, auto erased, auto segment) {
+        const auto sendAndWake = [&](auto pipeline) {
+          send(*pipeline);
+          wake(*pipeline);
+        };
+        std::array<std::vector<std::string>, 3> events;
+
+        sendAndWake(addTyped(builder(), &events[0]).build());
+        sendAndWake(builder().addStaticHandlers(erased(&events[1])).build());
+        sendAndWake(builder().addStaticSegments(segment(&events[2])).build());
+        return events;
+      });
+}
+
+// The head endpoint takes the write and answers Backpressure, so the handler
+// waits. The write-ready pass that the transport starts when it frees wakes it.
+// This holds for a typed handler, an erased one and one inside a segment.
+TEST(StaticPipelineTest, InboundOnlyHandlerWaitsForWriteReady) {
+  const std::vector<std::string> waitAndWake{
+      "write backpressure", "write ready"};
+
+  EXPECT_THAT(
+      (sendAndWakeInStaticForms<
+          BackpressureStaticHead,
+          StaticTailHandler,
+          InboundResponder,
+          SegmentInboundResponder>(
+          [](auto builder, std::vector<std::string>* events) {
+            return std::move(builder).template addNextInbound<InboundResponder>(
+                first_static_tag, events);
+          },
+          [](auto& pipeline) {
+            EXPECT_THAT(
+                pipeline.fireRead(TypeErasedBox{1}), Eq(Result::Success));
+          },
+          [](auto& pipeline) { pipeline.onWriteReady(); })),
+      ElementsAre(waitAndWake, waitAndWake, waitAndWake));
+}
+
+// The tail endpoint takes the read and answers Backpressure, so the handler
+// waits until a read-ready pass. This holds for a typed handler, an erased one
+// and one inside a segment.
+TEST(StaticPipelineTest, OutboundOnlyHandlerWaitsForReadReady) {
+  const std::vector<std::string> waitAndWake{"read backpressure", "read ready"};
+
+  EXPECT_THAT(
+      (sendAndWakeInStaticForms<
+          StaticHeadHandler,
+          BackpressureStaticTail,
+          OutboundResponder,
+          SegmentOutboundResponder>(
+          [](auto builder, std::vector<std::string>* events) {
+            return std::move(builder)
+                .template addNextOutbound<OutboundResponder>(
+                    first_static_tag, events);
+          },
+          [](auto& pipeline) {
+            EXPECT_THAT(
+                pipeline.fireWrite(erase_and_box(folly::IOBuf::create(0))),
+                Eq(Result::Success));
+          },
+          [](auto& pipeline) { pipeline.onReadReady(); })),
+      ElementsAre(waitAndWake, waitAndWake, waitAndWake));
+}
+
+// A head that waits on every write but has no onWriteReady().
+class ArmingHeadWithoutWriteReady : public StaticHeadHandler {
+ public:
+  template <typename Context>
+  Result onWrite(Context& ctx, TypeErasedBox&&) noexcept {
+    ctx.awaitWriteReady();
+    return Result::Backpressure;
+  }
+};
+
+TEST(StaticPipelineTest, HeadWithoutWriteReadyCallbackCannotAwaitIt) {
+  folly::EventBase eventBase;
+  ArmingHeadWithoutWriteReady head;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+
+  auto pipeline = StaticPipelineBuilder<
+                      ArmingHeadWithoutWriteReady,
+                      StaticTailHandler,
+                      TestAllocator>()
+                      .setEventBase(&eventBase)
+                      .setHead(&head)
+                      .setTail(&tail)
+                      .setAllocator(&allocator)
+                      .build();
+
+  EXPECT_THAT(
+      pipeline->fireWrite(erase_and_box(folly::IOBuf::create(0))),
+      Eq(Result::Backpressure));
+  pipeline->onWriteReady();
+
+  EXPECT_THAT(
+      std::tuple(pipeline->hasPendingWriteReady(), tail.writeReadyCount()),
+      Eq(std::tuple(false, std::size_t{1})));
+}
+
+template <typename>
+using SegmentWriter = AwaitBeforeForwardHandler;
+
+// A segment handler waits at its place in the pipeline, after the typed
+// handlers and the segments before it.
+TEST(StaticPipelineTest, WriteReadyWakesSegmentHandlersFromHeadToTail) {
+  folly::EventBase eventBase;
+  std::vector<std::string> readiness;
+  StaticHeadHandler head;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+
+  std::vector<detail::ErasedStaticSegment> segments;
+  segments.push_back(
+      StaticSegmentBuilder<>()
+          .addHandler<SegmentWriter>(
+              first_erased_static_tag.id, &readiness, "segment1-a")
+          .addHandler<SegmentWriter>(
+              second_erased_static_tag.id, &readiness, "segment1-b")
+          .build());
+  segments.push_back(
+      StaticSegmentBuilder<>()
+          .addHandler<SegmentWriter>(
+              third_erased_static_tag.id, &readiness, "segment2")
+          .build());
+
+  auto pipeline = StaticPipelineBuilder<
+                      StaticHeadHandler,
+                      StaticTailHandler,
+                      TestAllocator>()
+                      .setEventBase(&eventBase)
+                      .setHead(&head)
+                      .setTail(&tail)
+                      .setAllocator(&allocator)
+                      .addNextOutbound<AwaitBeforeForwardHandler>(
+                          first_static_tag, &readiness, "first")
+                      .addStaticSegments(std::move(segments))
+                      .addNextOutbound<AwaitBeforeForwardHandler>(
+                          second_static_tag, &readiness, "last")
+                      .build();
+
+  EXPECT_THAT(
+      pipeline->fireWrite(erase_and_box(folly::IOBuf::create(0))),
+      Eq(Result::Success));
+  pipeline->onWriteReady();
+
+  EXPECT_THAT(
+      readiness,
+      ElementsAre("first", "segment1-a", "segment1-b", "segment2", "last"));
+}
+
+template <typename>
+using SegmentReader = AwaitBeforeForwardReader;
+
+// Inside a static segment, an outbound handler can wait for write ready, and an
+// inbound handler can wait for read ready.
+TEST(StaticPipelineTest, SegmentHandlersAwaitReady) {
+  folly::EventBase eventBase;
+  std::vector<std::string> readiness;
+  StaticHeadHandler head;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+  std::vector<detail::ErasedStaticSegment> segments;
+  segments.push_back(
+      StaticSegmentBuilder<>()
+          .addHandler<SegmentWriter>(
+              first_erased_static_tag.id, &readiness, "writer")
+          .addHandler<SegmentReader>(
+              second_erased_static_tag.id, &readiness, "reader")
+          .build());
+  auto pipeline = StaticPipelineBuilder<
+                      StaticHeadHandler,
+                      StaticTailHandler,
+                      TestAllocator>()
+                      .setEventBase(&eventBase)
+                      .setHead(&head)
+                      .setTail(&tail)
+                      .setAllocator(&allocator)
+                      .addStaticSegments(std::move(segments))
+                      .build();
+
+  EXPECT_THAT(
+      pipeline->fireWrite(erase_and_box(folly::IOBuf::create(0))),
+      Eq(Result::Success));
+  EXPECT_THAT(pipeline->fireRead(TypeErasedBox{1}), Eq(Result::Success));
+  pipeline->onWriteReady();
+  pipeline->onReadReady();
+
+  EXPECT_THAT(readiness, ElementsAre("writer", "reader"));
+}
+
 TEST(StaticPipelineTest, StaticHandlersDispatchReadyAndEvents) {
   folly::EventBase eventBase;
   StaticHeadHandler head;
@@ -1247,6 +2886,1079 @@ TEST(StaticPipelineTest, DispatchesReadyAndTypedEvents) {
   auto publisher = pipeline->bindEvents<Events<ValueEvent>>();
   publisher.fire<ValueEvent>(23);
   EXPECT_EQ(eventValue, 23);
+}
+
+TEST(StaticPipelineTest, HeadReceivesWriteReadyBeforeHandlers) {
+  folly::EventBase eventBase;
+  std::vector<std::string> readiness;
+  BlockingStaticHead head(&readiness);
+  StaticTailHandler tail;
+  TestAllocator allocator;
+
+  auto pipeline = StaticPipelineBuilder<
+                      BlockingStaticHead,
+                      StaticTailHandler,
+                      TestAllocator>()
+                      .setEventBase(&eventBase)
+                      .setHead(&head)
+                      .setTail(&tail)
+                      .setAllocator(&allocator)
+                      .addNextOutbound<AwaitBeforeForwardHandler>(
+                          await_before_forward_static_tag, &readiness)
+                      .build();
+
+  EXPECT_THAT(
+      pipeline->fireWrite(erase_and_box(folly::IOBuf::create(0))),
+      Eq(Result::Backpressure));
+  pipeline->onWriteReady();
+
+  EXPECT_THAT(readiness, ElementsAre("head", "handler"));
+}
+
+TEST(StaticPipelineTest, HandlersWaitWhileHeadStaysBlocked) {
+  folly::EventBase eventBase;
+  std::vector<std::string> readiness;
+  BlockingStaticHead head(&readiness);
+  head.staysBlocked = true;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+
+  auto pipeline = StaticPipelineBuilder<
+                      BlockingStaticHead,
+                      StaticTailHandler,
+                      TestAllocator>()
+                      .setEventBase(&eventBase)
+                      .setHead(&head)
+                      .setTail(&tail)
+                      .setAllocator(&allocator)
+                      .addNextOutbound<AwaitBeforeForwardHandler>(
+                          await_before_forward_static_tag, &readiness)
+                      .build();
+
+  EXPECT_THAT(
+      pipeline->fireWrite(erase_and_box(folly::IOBuf::create(0))),
+      Eq(Result::Backpressure));
+  pipeline->onWriteReady();
+  pipeline->onWriteReady();
+
+  EXPECT_THAT(readiness, ElementsAre("head", "head", "handler"));
+}
+
+TEST(StaticPipelineTest, WriteReadyWakesHandlersFromHeadToTail) {
+  folly::EventBase eventBase;
+  std::vector<std::string> readiness;
+  StaticHeadHandler head;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+  std::vector<detail::ErasedStaticHandler> erasedHandlers;
+  erasedHandlers.push_back(
+      detail::makeErasedStaticHandler<AwaitBeforeForwardHandler>(
+          first_erased_static_tag.id, &readiness, "erased"));
+
+  auto pipeline = StaticPipelineBuilder<
+                      StaticHeadHandler,
+                      StaticTailHandler,
+                      TestAllocator>()
+                      .setEventBase(&eventBase)
+                      .setHead(&head)
+                      .setTail(&tail)
+                      .setAllocator(&allocator)
+                      .addNextOutbound<AwaitBeforeForwardHandler>(
+                          first_static_tag, &readiness, "first")
+                      .addStaticHandlers(std::move(erasedHandlers))
+                      .addNextOutbound<AwaitBeforeForwardHandler>(
+                          second_static_tag, &readiness, "last")
+                      .build();
+
+  // The write reaches the handlers from the tail toward the head, so they arm
+  // in the order last, erased, first.
+  EXPECT_THAT(
+      pipeline->fireWrite(erase_and_box(folly::IOBuf::create(0))),
+      Eq(Result::Success));
+  pipeline->onWriteReady();
+
+  EXPECT_THAT(readiness, ElementsAre("first", "erased", "last"));
+}
+
+TEST(StaticPipelineTest, FreedHandlerLetsHandlerAboveWriteInSamePass) {
+  folly::EventBase eventBase;
+  StaticHeadHandler head;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+  std::vector<Result> results;
+
+  auto pipeline =
+      StaticPipelineBuilder<
+          StaticHeadHandler,
+          StaticTailHandler,
+          TestAllocator>()
+          .setEventBase(&eventBase)
+          .setHead(&head)
+          .setTail(&tail)
+          .setAllocator(&allocator)
+          .addNextOutbound<BlockedUntilReadyHandler>(first_static_tag)
+          .addNextOutbound<WriteOnReadyHandler>(second_static_tag, &results)
+          .build();
+
+  // The writer above arms before the blocked handler does.
+  EXPECT_THAT(
+      pipeline->fireWrite(erase_and_box(folly::IOBuf::create(0))),
+      Eq(Result::Backpressure));
+  pipeline->onWriteReady();
+
+  EXPECT_THAT(
+      std::tuple(results, head.writeCount(), pipeline->hasPendingWriteReady()),
+      Eq(std::tuple(std::vector{Result::Success}, std::size_t{2}, false)));
+}
+
+TEST(StaticPipelineTest, HandlerArmedBehindThePassWakesInTheNextPass) {
+  folly::EventBase eventBase;
+  StaticHeadHandler head;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+  std::vector<Result> results;
+
+  auto pipeline =
+      StaticPipelineBuilder<
+          StaticHeadHandler,
+          StaticTailHandler,
+          TestAllocator>()
+          .setEventBase(&eventBase)
+          .setHead(&head)
+          .setTail(&tail)
+          .setAllocator(&allocator)
+          .addNextOutbound<BlockedUntilReadyHandler>(first_static_tag)
+          .addNextOutbound<QueuedWriterHandler>(second_static_tag, &results)
+          .build();
+  // The writer above queues two messages. The handler below does not wait
+  // when the pass starts.
+  EXPECT_THAT(
+      pipeline->fireWrite(erase_and_box(folly::IOBuf::create(0))),
+      Eq(Result::Backpressure));
+  EXPECT_THAT(
+      pipeline->fireWrite(erase_and_box(folly::IOBuf::create(0))),
+      Eq(Result::Backpressure));
+
+  // The writer wakes and writes into the handler below, which holds the
+  // message and starts to wait behind the pass. The pass does not wake it
+  // again and notifies the tail.
+  pipeline->onWriteReady();
+  const auto afterPass = std::tuple(
+      results,
+      head.writeCount(),
+      pipeline->hasPendingWriteReady(),
+      tail.writeReadyCount());
+  // The next pass wakes the handler below and then the writer.
+  pipeline->onWriteReady();
+
+  EXPECT_THAT(
+      std::tuple(
+          afterPass,
+          results,
+          head.writeCount(),
+          pipeline->hasPendingWriteReady(),
+          tail.writeReadyCount()),
+      Eq(std::tuple(
+          std::tuple(
+              std::vector{Result::Backpressure},
+              std::size_t{0},
+              true,
+              std::size_t{1}),
+          std::vector{Result::Backpressure, Result::Success},
+          std::size_t{2},
+          false,
+          std::size_t{2})));
+}
+
+TEST(StaticPipelineTest, HandlerThatArmsAgainInItsCallbackWakesOncePerPass) {
+  folly::EventBase eventBase;
+  StaticHeadHandler head;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+  std::size_t wakes = 0;
+
+  auto pipeline =
+      StaticPipelineBuilder<
+          StaticHeadHandler,
+          StaticTailHandler,
+          TestAllocator>()
+          .setEventBase(&eventBase)
+          .setHead(&head)
+          .setTail(&tail)
+          .setAllocator(&allocator)
+          .addNextOutbound<ArmsAgainWhenWokenHandler>(first_static_tag, &wakes)
+          .build();
+
+  EXPECT_THAT(
+      pipeline->fireWrite(erase_and_box(folly::IOBuf::create(0))),
+      Eq(Result::Success));
+  pipeline->onWriteReady();
+
+  EXPECT_THAT(
+      std::tuple(
+          wakes, tail.writeReadyCount(), pipeline->hasPendingWriteReady()),
+      Eq(std::tuple(std::size_t{1}, std::size_t{1}, true)));
+}
+
+TEST(StaticPipelineTest, HandlerArmedAboveThePassWakesInIt) {
+  folly::EventBase eventBase;
+  std::vector<std::string> readiness;
+  StaticHeadHandler head;
+  WriteReadyRecordingStaticTail tail(&readiness);
+  TestAllocator allocator;
+
+  auto pipeline = StaticPipelineBuilder<
+                      StaticHeadHandler,
+                      WriteReadyRecordingStaticTail,
+                      TestAllocator>()
+                      .setEventBase(&eventBase)
+                      .setHead(&head)
+                      .setTail(&tail)
+                      .setAllocator(&allocator)
+                      .addNextOutbound<ArmsTheHandlerAboveHandler>(
+                          first_static_tag, &readiness)
+                      .addNextOutbound<AwaitBeforeForwardHandler>(
+                          second_static_tag, &readiness, "above")
+                      .build();
+  pipeline->context(first_static_tag)->awaitWriteReady();
+
+  // The handler below makes the handler above wait during the pass, and the
+  // pass wakes it before the tail.
+  pipeline->onWriteReady();
+
+  EXPECT_THAT(readiness, ElementsAre("below", "above", "tail"));
+}
+
+TEST(StaticPipelineTest, WriteReadyWakesHandlerAboveOneThatStaysArmed) {
+  folly::EventBase eventBase;
+  std::vector<std::string> readiness;
+  StaticHeadHandler head;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+
+  auto pipeline = StaticPipelineBuilder<
+                      StaticHeadHandler,
+                      StaticTailHandler,
+                      TestAllocator>()
+                      .setEventBase(&eventBase)
+                      .setHead(&head)
+                      .setTail(&tail)
+                      .setAllocator(&allocator)
+                      .addNextOutbound<StaysArmedHandler>(
+                          first_static_tag, &readiness, "below")
+                      .addNextOutbound<AwaitBeforeForwardHandler>(
+                          second_static_tag, &readiness, "above")
+                      .build();
+
+  EXPECT_THAT(
+      pipeline->fireWrite(erase_and_box(folly::IOBuf::create(0))),
+      Eq(Result::Success));
+  pipeline->onWriteReady();
+
+  // The handler below stays armed, and the handler above and the tail still
+  // wake in the same pass.
+  EXPECT_THAT(
+      std::tuple(readiness, tail.writeReadyCount()),
+      Eq(std::tuple(
+          std::vector<std::string>{"below", "above"}, std::size_t{1})));
+}
+
+TEST(StaticPipelineTest, NestedWriteReadyWakesAHandlerThatStaysArmedAgain) {
+  folly::EventBase eventBase;
+  std::vector<std::string> readiness;
+  StaticHeadHandler head;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+
+  auto pipeline = StaticPipelineBuilder<
+                      StaticHeadHandler,
+                      StaticTailHandler,
+                      TestAllocator>()
+                      .setEventBase(&eventBase)
+                      .setHead(&head)
+                      .setTail(&tail)
+                      .setAllocator(&allocator)
+                      .addNextOutbound<NestedWriteReadyHandler>(
+                          first_static_tag, &readiness, "nested")
+                      .addNextOutbound<ArmedForOnePassHandler>(
+                          second_static_tag, &readiness, "armed")
+                      .build();
+
+  EXPECT_THAT(
+      pipeline->fireWrite(erase_and_box(folly::IOBuf::create(0))),
+      Eq(Result::Success));
+  pipeline->onWriteReady();
+
+  // The nested request runs as a second pass after the first one. The handler
+  // that stays armed through the first pass wakes again in the second, and the
+  // tail hears of each pass.
+  EXPECT_THAT(
+      std::tuple(readiness, tail.writeReadyCount()),
+      Eq(std::tuple(
+          std::vector<std::string>{"nested", "armed", "armed"},
+          std::size_t{2})));
+}
+
+TEST(StaticPipelineTest, PassStopsWhenAHandlerMakesTheHeadWaitAgain) {
+  folly::EventBase eventBase;
+  std::vector<std::string> readiness;
+  BlockingStaticHead head(&readiness);
+  StaticTailHandler tail;
+  TestAllocator allocator;
+  std::vector<Result> results;
+
+  auto pipeline =
+      StaticPipelineBuilder<
+          BlockingStaticHead,
+          StaticTailHandler,
+          TestAllocator>()
+          .setEventBase(&eventBase)
+          .setHead(&head)
+          .setTail(&tail)
+          .setAllocator(&allocator)
+          .addNextOutbound<WriteOnReadyHandler>(first_static_tag, &results)
+          .build();
+
+  EXPECT_THAT(
+      pipeline->fireWrite(erase_and_box(folly::IOBuf::create(0))),
+      Eq(Result::Backpressure));
+  pipeline->onWriteReady();
+
+  // The handler's write from its callback makes the head wait again, so the
+  // pass ends before the tail.
+  EXPECT_THAT(
+      std::tuple(readiness, results, tail.writeReadyCount()),
+      Eq(std::tuple(
+          std::vector<std::string>{"head"},
+          std::vector{Result::Backpressure},
+          std::size_t{0})));
+}
+
+TEST(StaticPipelineTest, WriteReadyRequestedDuringAPassThatStopsRunsAfterIt) {
+  folly::EventBase eventBase;
+  std::vector<std::string> readiness;
+  BlockingStaticHead head(&readiness);
+  StaticTailHandler tail;
+  TestAllocator allocator;
+
+  auto pipeline =
+      StaticPipelineBuilder<
+          BlockingStaticHead,
+          StaticTailHandler,
+          TestAllocator>()
+          .setEventBase(&eventBase)
+          .setHead(&head)
+          .setTail(&tail)
+          .setAllocator(&allocator)
+          .addNextOutbound<NestedWriteReadyThenWriteHandler>(first_static_tag)
+          .build();
+
+  EXPECT_THAT(
+      pipeline->fireWrite(erase_and_box(folly::IOBuf::create(0))),
+      Eq(Result::Backpressure));
+  pipeline->onWriteReady();
+
+  // The handler's write makes the head wait again, which stops the first
+  // pass. The pass that the handler asked for runs after it, wakes the head
+  // again and notifies the tail.
+  EXPECT_THAT(
+      std::tuple(
+          readiness, tail.writeReadyCount(), pipeline->hasPendingWriteReady()),
+      Eq(std::tuple(
+          std::vector<std::string>{"head", "head"}, std::size_t{1}, false)));
+}
+
+TEST(StaticPipelineTest, WriteReadyCallbackThatClosesPipelineSkipsTail) {
+  folly::EventBase eventBase;
+  StaticHeadHandler head;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+
+  auto pipeline =
+      StaticPipelineBuilder<
+          StaticHeadHandler,
+          StaticTailHandler,
+          TestAllocator>()
+          .setEventBase(&eventBase)
+          .setHead(&head)
+          .setTail(&tail)
+          .setAllocator(&allocator)
+          .addNextOutbound<ClosesOnWriteReadyHandler>(first_static_tag)
+          .build();
+  EXPECT_THAT(
+      pipeline->fireWrite(erase_and_box(folly::IOBuf::create(0))),
+      Eq(Result::Success));
+  pipeline->onWriteReady();
+
+  // After close the tail endpoint may be gone, so the pass must not call it.
+  EXPECT_THAT(tail.writeReadyCount(), Eq(std::size_t{0}));
+}
+
+template <typename Endpoint, std::size_t Padding, std::size_t Alignment>
+struct alignas(Alignment) PaddedEndpoint : Endpoint {
+  std::array<std::byte, Padding> padding{};
+};
+
+template <typename Head, typename Tail, typename Allocator>
+auto makeBorrowedStoragePipeline(
+    folly::EventBase& eventBase, Head& head, Tail& tail, Allocator& allocator) {
+  return StaticPipelineBuilder<Head, Tail, Allocator>()
+      .setEventBase(&eventBase)
+      .setHead(&head)
+      .setTail(&tail)
+      .setAllocator(&allocator)
+      .template addState<PipelineState>()
+      .template addNextDuplexTemplate<StatefulHandler>(state_static_tag)
+      .build();
+}
+
+template <typename Head, typename Tail, typename Allocator>
+void expectBorrowedStorage(
+    std::size_t expectedSize,
+    std::size_t expectedAlignment,
+    const char* description) {
+  SCOPED_TRACE(description);
+  folly::EventBase eventBase;
+  Head head;
+  Tail tail;
+  Allocator allocator;
+  auto pipeline = makeBorrowedStoragePipeline(eventBase, head, tail, allocator);
+
+  EXPECT_EQ(sizeof(*pipeline), expectedSize);
+  EXPECT_EQ(
+      alignof(typename decltype(pipeline)::element_type), expectedAlignment);
+  EXPECT_EQ(pipeline->fireRead(TypeErasedBox{17}), Result::Success);
+  EXPECT_EQ(pipeline->fireWrite(TypeErasedBox{23}), Result::Success);
+  EXPECT_EQ(pipeline->template state<PipelineState>().reads, 1);
+  EXPECT_EQ(head.writeCount(), 1);
+  EXPECT_EQ(tail.readCount(), 1);
+  auto buffer = pipeline->allocate(7);
+  ASSERT_NE(buffer, nullptr);
+  EXPECT_EQ(allocator.allocationCount(), 1);
+}
+
+TEST(StaticPipelineTest, BorrowedComponentSizeAndAlignmentDoNotGrowPipeline) {
+  folly::EventBase eventBase;
+  StaticHeadHandler head;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+  auto pipeline = makeBorrowedStoragePipeline(eventBase, head, tail, allocator);
+  constexpr auto expectedSize = sizeof(*pipeline);
+  constexpr auto expectedAlignment =
+      alignof(typename decltype(pipeline)::element_type);
+
+  expectBorrowedStorage<
+      PaddedEndpoint<StaticHeadHandler, 4096, alignof(StaticHeadHandler)>,
+      StaticTailHandler,
+      TestAllocator>(expectedSize, expectedAlignment, "large borrowed head");
+  expectBorrowedStorage<
+      StaticHeadHandler,
+      PaddedEndpoint<StaticTailHandler, 4096, alignof(StaticTailHandler)>,
+      TestAllocator>(expectedSize, expectedAlignment, "large borrowed tail");
+  expectBorrowedStorage<
+      StaticHeadHandler,
+      StaticTailHandler,
+      PaddedEndpoint<TestAllocator, 4096, alignof(TestAllocator)>>(
+      expectedSize, expectedAlignment, "large borrowed allocator");
+  expectBorrowedStorage<
+      PaddedEndpoint<StaticHeadHandler, 1, 64>,
+      StaticTailHandler,
+      TestAllocator>(
+      expectedSize, expectedAlignment, "overaligned borrowed head");
+  expectBorrowedStorage<
+      StaticHeadHandler,
+      PaddedEndpoint<StaticTailHandler, 1, 64>,
+      TestAllocator>(
+      expectedSize, expectedAlignment, "overaligned borrowed tail");
+  expectBorrowedStorage<
+      StaticHeadHandler,
+      StaticTailHandler,
+      PaddedEndpoint<TestAllocator, 1, 64>>(
+      expectedSize, expectedAlignment, "overaligned borrowed allocator");
+}
+
+template <typename Tail, typename Allocator>
+auto makeOwnedHeadStoragePipeline(
+    folly::EventBase& eventBase, Tail& tail, Allocator& allocator) {
+  return StaticPipelineBuilder<OwnedStaticHead, Tail, Allocator>()
+      .setEventBase(&eventBase)
+      .emplaceHead(42, std::string("owned"))
+      .setTail(&tail)
+      .setAllocator(&allocator)
+      .template addState<PipelineState>()
+      .template addNextDuplexTemplate<StatefulHandler>(state_static_tag)
+      .build();
+}
+
+TEST(StaticPipelineTest, OwnedHeadDoesNotReserveBorrowedCompanionStorage) {
+  OwnedStaticHead::reset();
+  folly::EventBase eventBase;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+  PaddedEndpoint<StaticTailHandler, 4096, 64> largeTail;
+  PaddedEndpoint<TestAllocator, 4096, 64> largeAllocator;
+  {
+    auto pipeline = makeOwnedHeadStoragePipeline(eventBase, tail, allocator);
+    auto largePipeline =
+        makeOwnedHeadStoragePipeline(eventBase, largeTail, largeAllocator);
+    EXPECT_EQ(sizeof(*pipeline), sizeof(*largePipeline));
+    EXPECT_EQ(
+        alignof(typename decltype(pipeline)::element_type),
+        alignof(typename decltype(largePipeline)::element_type));
+    EXPECT_EQ(largePipeline->fireRead(TypeErasedBox{17}), Result::Success);
+    EXPECT_EQ(largePipeline->fireWrite(TypeErasedBox{23}), Result::Success);
+    EXPECT_EQ(largePipeline->state<PipelineState>().reads, 1);
+    EXPECT_EQ(largeTail.readCount(), 1);
+    auto buffer = largePipeline->allocate(7);
+    ASSERT_NE(buffer, nullptr);
+    EXPECT_EQ(largeAllocator.allocationCount(), 1);
+    EXPECT_EQ(OwnedStaticHead::constructions, 2);
+    EXPECT_EQ(OwnedStaticHead::destructions, 0);
+  }
+  EXPECT_EQ(OwnedStaticHead::destructions, 2);
+}
+
+// === Owning setters (emplaceHead / emplaceTail / emplaceAllocator) ===
+
+TEST(StaticPipelineTest, EmplacedHeadIsOwnedAndDestroyedWithPipeline) {
+  OwnedStaticHead::reset();
+  folly::EventBase eventBase;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+  {
+    auto pipeline = StaticPipelineBuilder<
+                        OwnedStaticHead,
+                        StaticTailHandler,
+                        TestAllocator>()
+                        .setEventBase(&eventBase)
+                        .emplaceHead()
+                        .setTail(&tail)
+                        .setAllocator(&allocator)
+                        .build();
+    EXPECT_EQ(OwnedStaticHead::constructions, 1);
+    EXPECT_EQ(OwnedStaticHead::destructions, 0);
+  }
+  EXPECT_EQ(OwnedStaticHead::destructions, 1);
+}
+
+TEST(StaticPipelineTest, ExternalTailWithPrivateDestructorRemainsCallerOwned) {
+  folly::EventBase eventBase;
+  StaticHeadHandler head;
+  auto tail = PrivateDestructorStaticTail::create();
+  TestAllocator allocator;
+  auto pipeline = StaticPipelineBuilder<
+                      StaticHeadHandler,
+                      PrivateDestructorStaticTail,
+                      TestAllocator>()
+                      .setEventBase(&eventBase)
+                      .setHead(&head)
+                      .setTail(tail.get())
+                      .setAllocator(&allocator)
+                      .build();
+
+  EXPECT_EQ(pipeline->fireRead(TypeErasedBox{17}), Result::Success);
+  pipeline.reset();
+  EXPECT_EQ(tail->readCount(), 1);
+}
+
+TEST(StaticPipelineTest, EmplacedTailIsOwnedAndDestroyedWithPipeline) {
+  OwnedStaticTail::reset();
+  folly::EventBase eventBase;
+  StaticHeadHandler head;
+  TestAllocator allocator;
+  {
+    auto pipeline = StaticPipelineBuilder<
+                        StaticHeadHandler,
+                        OwnedStaticTail,
+                        TestAllocator>()
+                        .setEventBase(&eventBase)
+                        .setHead(&head)
+                        .emplaceTail()
+                        .setAllocator(&allocator)
+                        .build();
+    EXPECT_EQ(OwnedStaticTail::constructions, 1);
+    EXPECT_EQ(OwnedStaticTail::destructions, 0);
+  }
+  EXPECT_EQ(OwnedStaticTail::destructions, 1);
+}
+
+TEST(StaticPipelineTest, EmplacedAllocatorIsOwnedAndDestroyedWithPipeline) {
+  OwnedStaticAllocator::reset();
+  folly::EventBase eventBase;
+  StaticHeadHandler head;
+  StaticTailHandler tail;
+  {
+    auto pipeline = StaticPipelineBuilder<
+                        StaticHeadHandler,
+                        StaticTailHandler,
+                        OwnedStaticAllocator>()
+                        .setEventBase(&eventBase)
+                        .setHead(&head)
+                        .setTail(&tail)
+                        .emplaceAllocator()
+                        .build();
+    EXPECT_EQ(OwnedStaticAllocator::destructions, 0);
+  }
+  EXPECT_EQ(OwnedStaticAllocator::destructions, 1);
+}
+
+TEST(StaticPipelineTest, EmplaceForwardsConstructorArguments) {
+  OwnedStaticHead::reset();
+  folly::EventBase eventBase;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+  auto pipeline =
+      StaticPipelineBuilder<OwnedStaticHead, StaticTailHandler, TestAllocator>()
+          .setEventBase(&eventBase)
+          .emplaceHead(42, std::string("codec"))
+          .setTail(&tail)
+          .setAllocator(&allocator)
+          .build();
+  ASSERT_NE(OwnedStaticHead::lastConstructed, nullptr);
+  EXPECT_EQ(OwnedStaticHead::lastConstructed->id(), 42);
+  EXPECT_EQ(OwnedStaticHead::lastConstructed->name(), "codec");
+}
+
+TEST(StaticPipelineTest, EmplaceForwardsMoveOnlyConstructorArgument) {
+  OwnedStaticHead::reset();
+  folly::EventBase eventBase;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+  auto pipeline =
+      StaticPipelineBuilder<OwnedStaticHead, StaticTailHandler, TestAllocator>()
+          .setEventBase(&eventBase)
+          .emplaceHead(std::make_unique<int>(7))
+          .setTail(&tail)
+          .setAllocator(&allocator)
+          .build();
+  ASSERT_NE(OwnedStaticHead::lastConstructed, nullptr);
+  EXPECT_EQ(OwnedStaticHead::lastConstructed->id(), 7);
+}
+
+TEST(StaticPipelineTest, OwnedAllocatorDestroyedAfterHandlers) {
+  OwnedStaticAllocator::reset();
+  staticTeardownLog().clear();
+  folly::EventBase eventBase;
+  {
+    auto pipeline =
+        StaticPipelineBuilder<
+            StaticHeadHandler,
+            StaticTailHandler,
+            OwnedStaticAllocator>()
+            .setEventBase(&eventBase)
+            .emplaceHead()
+            .emplaceTail()
+            .emplaceAllocator()
+            .addNextInbound<StaticTeardownHandler>(first_static_tag)
+            .addNextInbound<StaticTeardownHandler>(second_static_tag)
+            .build();
+  }
+
+  const auto& log = staticTeardownLog();
+  ASSERT_FALSE(log.empty());
+  EXPECT_EQ(log.back(), "allocator");
+  EXPECT_EQ(std::count(log.begin(), log.end(), "allocator"), 1);
+  EXPECT_EQ(std::count(log.begin(), log.end(), "handler"), 2);
+}
+
+TEST(StaticPipelineTest, MixedOwnedAndExternalComponents) {
+  OwnedStaticHead::reset();
+  OwnedStaticAllocator::reset();
+  folly::EventBase eventBase;
+  StaticTailHandler tail;
+  OwnedStaticAllocator externalAllocator;
+  const auto baselineDestructions = OwnedStaticAllocator::destructions;
+  {
+    auto pipeline = StaticPipelineBuilder<
+                        OwnedStaticHead,
+                        StaticTailHandler,
+                        OwnedStaticAllocator>()
+                        .setEventBase(&eventBase)
+                        .emplaceHead()
+                        .setTail(&tail)
+                        .setAllocator(&externalAllocator)
+                        .build();
+  }
+  EXPECT_EQ(OwnedStaticHead::destructions, 1);
+  EXPECT_EQ(OwnedStaticAllocator::destructions, baselineDestructions);
+}
+
+TEST(StaticPipelineTest, SetterAfterEmplaceDropsDeferredConstruction) {
+  folly::EventBase eventBase;
+  OwnedStaticHead externalHead;
+  OwnedStaticHead::reset();
+  StaticTailHandler tail;
+  TestAllocator allocator;
+  auto pipeline =
+      StaticPipelineBuilder<OwnedStaticHead, StaticTailHandler, TestAllocator>()
+          .setEventBase(&eventBase)
+          .emplaceHead(99, std::string("dropped"))
+          .setHead(&externalHead)
+          .setTail(&tail)
+          .setAllocator(&allocator)
+          .build();
+  EXPECT_EQ(OwnedStaticHead::constructions, 0);
+}
+
+TEST(StaticPipelineTest, InlineAllocatorConstructedWithoutHeap) {
+  OwnedStaticAllocator::reset();
+  folly::EventBase eventBase;
+  StaticHeadHandler head;
+  StaticTailHandler tail;
+  {
+    auto pipeline = StaticPipelineBuilder<
+                        StaticHeadHandler,
+                        StaticTailHandler,
+                        OwnedStaticAllocator>()
+                        .setEventBase(&eventBase)
+                        .setHead(&head)
+                        .setTail(&tail)
+                        .emplaceAllocator()
+                        .build();
+    EXPECT_EQ(OwnedStaticAllocator::heapAllocations, 0);
+  }
+  EXPECT_EQ(OwnedStaticAllocator::destructions, 1);
+}
+
+TEST(StaticPipelineTest, ExplicitOwnershipDefersLvalueConstructorArguments) {
+  OwnedStaticHead::reset();
+  OwnedStaticTail::reset();
+  OwnedStaticAllocator::reset();
+  folly::EventBase eventBase;
+  {
+    auto builder = StaticPipelineBuilder<
+                       OwnedStaticHead,
+                       OwnedStaticTail,
+                       OwnedStaticAllocator>()
+                       .withHeadOwnership()
+                       .withTailOwnership()
+                       .withAllocatorOwnership();
+    builder.setEventBase(&eventBase);
+    {
+      std::string name("deferred");
+      builder.emplaceHead(42, name);
+      name = "changed";
+    }
+    builder.emplaceTail();
+    builder.emplaceAllocator();
+    EXPECT_EQ(OwnedStaticHead::constructions, 0);
+    EXPECT_EQ(OwnedStaticTail::constructions, 0);
+
+    auto pipeline = std::move(builder).build();
+    ASSERT_NE(OwnedStaticHead::lastConstructed, nullptr);
+    EXPECT_EQ(OwnedStaticHead::lastConstructed->id(), 42);
+    EXPECT_EQ(OwnedStaticHead::lastConstructed->name(), "deferred");
+    EXPECT_EQ(pipeline->fireRead(TypeErasedBox{17}), Result::Success);
+    EXPECT_EQ(pipeline->fireWrite(TypeErasedBox{23}), Result::Success);
+    EXPECT_EQ(OwnedStaticAllocator::heapAllocations, 0);
+  }
+  EXPECT_EQ(OwnedStaticHead::destructions, 1);
+  EXPECT_EQ(OwnedStaticTail::destructions, 1);
+  EXPECT_EQ(OwnedStaticAllocator::destructions, 1);
+}
+
+TEST(StaticPipelineTest, LvalueSetterDropsDeferredOwnership) {
+  folly::EventBase eventBase;
+  OwnedStaticHead externalHead(7, std::string("caller"));
+  OwnedStaticHead::reset();
+  StaticTailHandler tail;
+  TestAllocator allocator;
+  auto builder =
+      StaticPipelineBuilder<OwnedStaticHead, StaticTailHandler, TestAllocator>()
+          .withHeadOwnership();
+  builder.setEventBase(&eventBase)
+      .setHead(&externalHead)
+      .setTail(&tail)
+      .setAllocator(&allocator);
+  builder.emplaceHead(99, std::string("dropped"));
+  builder.setHead(&externalHead);
+
+  auto pipeline = std::move(builder).build();
+  EXPECT_EQ(OwnedStaticHead::constructions, 0);
+  EXPECT_EQ(pipeline->fireRead(TypeErasedBox{17}), Result::Success);
+  EXPECT_EQ(pipeline->fireWrite(TypeErasedBox{23}), Result::Success);
+  pipeline.reset();
+  EXPECT_EQ(OwnedStaticHead::destructions, 0);
+  EXPECT_EQ(externalHead.id(), 7);
+  EXPECT_EQ(externalHead.name(), "caller");
+}
+
+struct ReplaceSecondHandler {
+  using Tags = std::tuple<decltype(second_static_tag)>;
+
+  template <typename Builder>
+  static auto add(
+      Builder&& builder,
+      decltype(second_static_tag) tag,
+      std::vector<std::string>* trace,
+      const char*) {
+    return std::forward<Builder>(builder).template addNextDuplex<TraceHandler>(
+        tag, trace, "replacement");
+  }
+};
+
+struct InsertBeforeSecondHandler {
+  using Tags = std::tuple<decltype(second_static_tag)>;
+
+  template <typename Builder>
+  static auto add(
+      Builder&& builder,
+      decltype(second_static_tag) tag,
+      std::vector<std::string>* trace,
+      const char* name) {
+    return std::forward<Builder>(builder)
+        .template addNextDuplex<TraceHandler>(
+            inserted_static_tag, trace, "inserted")
+        .template addNextDuplex<TraceHandler>(tag, trace, name);
+  }
+};
+
+template <typename Overrides>
+auto buildTracePipeline(
+    folly::EventBase& eventBase,
+    StaticHeadHandler& head,
+    StaticTailHandler& tail,
+    TestAllocator& allocator,
+    std::vector<std::string>& trace) {
+  return StaticPipelineBuilder<
+             StaticHeadHandler,
+             StaticTailHandler,
+             TestAllocator>()
+      .setEventBase(&eventBase)
+      .setHead(&head)
+      .setTail(&tail)
+      .setAllocator(&allocator)
+      .template withHandlerOverrides<Overrides>()
+      .template addNextDuplex<TraceHandler>(first_static_tag, &trace, "first")
+      .template addNextDuplex<TraceHandler>(second_static_tag, &trace, "second")
+      .build();
+}
+
+TEST(StaticPipelineTest, HandlerOverridesReplaceHandlerWithSameTag) {
+  folly::EventBase eventBase;
+  StaticHeadHandler head;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+  std::vector<std::string> trace;
+
+  auto pipeline = buildTracePipeline<ReplaceSecondHandler>(
+      eventBase, head, tail, allocator, trace);
+  EXPECT_THAT(pipeline->fireRead(TypeErasedBox{1}), Eq(Result::Success));
+
+  EXPECT_THAT(pipeline->handlerCount(), Eq(2));
+  EXPECT_THAT(
+      trace,
+      ElementsAre(
+          "first.added",
+          "replacement.added",
+          "first.read",
+          "replacement.read"));
+}
+
+TEST(StaticPipelineTest, HandlerOverridesInsertHandlerBesideReplacedOne) {
+  folly::EventBase eventBase;
+  StaticHeadHandler head;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+  std::vector<std::string> trace;
+
+  auto pipeline = buildTracePipeline<InsertBeforeSecondHandler>(
+      eventBase, head, tail, allocator, trace);
+  EXPECT_THAT(pipeline->fireRead(TypeErasedBox{1}), Eq(Result::Success));
+
+  EXPECT_THAT(pipeline->handlerCount(), Eq(3));
+  EXPECT_THAT(
+      trace,
+      ElementsAre(
+          "first.added",
+          "inserted.added",
+          "second.added",
+          "first.read",
+          "inserted.read",
+          "second.read"));
+}
+
+struct RenameFirstAndSecondHandlers {
+  using Tags =
+      std::tuple<decltype(first_static_tag), decltype(second_static_tag)>;
+
+  template <typename Builder, typename Tag>
+  static auto add(
+      Builder&& builder,
+      Tag tag,
+      std::vector<std::string>* trace,
+      const char* name) {
+    return std::forward<Builder>(builder).template addNextDuplex<TraceHandler>(
+        tag, trace, std::string(name) + "-replacement");
+  }
+};
+
+TEST(StaticPipelineTest, HandlerOverridesReplaceHandlersAroundAKeptOne) {
+  folly::EventBase eventBase;
+  StaticHeadHandler head;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+  std::vector<std::string> trace;
+
+  auto pipeline =
+      StaticPipelineBuilder<
+          StaticHeadHandler,
+          StaticTailHandler,
+          TestAllocator>()
+          .setEventBase(&eventBase)
+          .setHead(&head)
+          .setTail(&tail)
+          .setAllocator(&allocator)
+          .withHandlerOverrides<RenameFirstAndSecondHandlers>()
+          .addNextDuplex<TraceHandler>(first_static_tag, &trace, "first")
+          .addNextDuplex<TraceHandler>(inserted_static_tag, &trace, "kept")
+          .addNextDuplex<TraceHandler>(second_static_tag, &trace, "second")
+          .build();
+  EXPECT_THAT(pipeline->fireRead(TypeErasedBox{1}), Eq(Result::Success));
+
+  EXPECT_THAT(
+      trace,
+      ElementsAre(
+          "first-replacement.added",
+          "kept.added",
+          "second-replacement.added",
+          "first-replacement.read",
+          "kept.read",
+          "second-replacement.read"));
+}
+
+struct DoubleStatefulHandler {
+  using Tags = std::tuple<decltype(state_static_tag)>;
+
+  template <typename Builder>
+  static auto add(Builder&& builder, decltype(state_static_tag) tag) {
+    return std::forward<Builder>(builder)
+        .template addNextDuplexTemplate<StatefulHandler>(inserted_static_tag)
+        .template addNextDuplexTemplate<StatefulHandler>(tag);
+  }
+};
+
+TEST(StaticPipelineTest, HandlerOverridesReplaceTemplateHandler) {
+  folly::EventBase eventBase;
+  StaticHeadHandler head;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+
+  auto pipeline = StaticPipelineBuilder<
+                      StaticHeadHandler,
+                      StaticTailHandler,
+                      TestAllocator>()
+                      .setEventBase(&eventBase)
+                      .setHead(&head)
+                      .setTail(&tail)
+                      .setAllocator(&allocator)
+                      .addState<PipelineState>()
+                      .withHandlerOverrides<DoubleStatefulHandler>()
+                      .addNextDuplexTemplate<StatefulHandler>(state_static_tag)
+                      .build();
+  EXPECT_THAT(pipeline->fireRead(TypeErasedBox{1}), Eq(Result::Success));
+
+  EXPECT_THAT(pipeline->state<PipelineState>().reads, Eq(2));
+}
+
+TEST(StaticPipelineTest, HandlerOverridesStayOutOfPipelineType) {
+  folly::EventBase eventBase;
+  StaticHeadHandler head;
+  StaticTailHandler tail;
+  TestAllocator allocator;
+  std::vector<std::string> trace;
+
+  auto plain =
+      StaticPipelineBuilder<
+          StaticHeadHandler,
+          StaticTailHandler,
+          TestAllocator>()
+          .setEventBase(&eventBase)
+          .setHead(&head)
+          .setTail(&tail)
+          .setAllocator(&allocator)
+          .addNextDuplex<TraceHandler>(first_static_tag, &trace, "first")
+          .addNextDuplex<TraceHandler>(second_static_tag, &trace, "second")
+          .build();
+  auto withoutOverrides = buildTracePipeline<NoHandlerOverrides>(
+      eventBase, head, tail, allocator, trace);
+  auto replaced = buildTracePipeline<ReplaceSecondHandler>(
+      eventBase, head, tail, allocator, trace);
+
+  EXPECT_THAT(
+      (std::is_same_v<decltype(plain), decltype(withoutOverrides)>), IsTrue());
+  EXPECT_THAT((std::is_same_v<decltype(plain), decltype(replaced)>), IsTrue());
+}
+
+class ForwardingPolicyTail : public StaticTailHandler {
+ public:
+  template <typename Context>
+  Result onRead(Context& ctx, TypeErasedBox&& msg) noexcept {
+    return ctx.fireRead(std::move(msg));
+  }
+};
+
+TEST(StaticPipelineTest, StoragePoliciesSurviveStateAndHandlerRebinding) {
+  OwnedStaticHead::reset();
+  OwnedStaticAllocator::reset();
+  staticTeardownLog().clear();
+  folly::EventBase eventBase;
+  StaticHeadHandler peerHead;
+  StaticTailHandler peerTail;
+  TestAllocator peerAllocator;
+  auto peer = StaticPipelineBuilder<
+                  StaticHeadHandler,
+                  StaticTailHandler,
+                  TestAllocator>()
+                  .setEventBase(&eventBase)
+                  .setHead(&peerHead)
+                  .setTail(&peerTail)
+                  .setAllocator(&peerAllocator)
+                  .build();
+  ForwardingPolicyTail tail;
+  std::vector<std::string> trace;
+  std::vector<detail::ErasedStaticSegment> segments;
+  segments.push_back(
+      StaticSegmentBuilder<>()
+          .addHandler<SegmentTraceHandler>(
+              first_erased_static_tag.id, &trace, "segment")
+          .build());
+  {
+    auto pipeline =
+        StaticPipelineBuilder<
+            OwnedStaticHead,
+            ForwardingPolicyTail,
+            OwnedStaticAllocator>()
+            .setEventBase(&eventBase)
+            .emplaceHead(42, std::string("owned"))
+            .setTail(&tail)
+            .emplaceAllocator()
+            .withBinding()
+            .addState<PipelineState>()
+            .withHandlerOverrides<DoubleStatefulHandler>()
+            .addNextDuplexTemplate<StatefulHandler>(state_static_tag)
+            .addStaticSegments(std::move(segments))
+            .addNextDuplex<TraceHandler>(second_static_tag, &trace, "after")
+            .build();
+    pipeline->adaptTail(PipelineRef(*peer));
+    trace.clear();
+
+    EXPECT_EQ(pipeline->fireRead(TypeErasedBox{17}), Result::Success);
+    EXPECT_EQ(pipeline->state<PipelineState>().reads, 2);
+    EXPECT_EQ(peerTail.readCount(), 1);
+    EXPECT_THAT(trace, ElementsAre("segment.read", "after.read"));
+    EXPECT_EQ(pipeline->fireWrite(TypeErasedBox{23}), Result::Success);
+    EXPECT_THAT(
+        trace,
+        ElementsAre(
+            "segment.read", "after.read", "after.write", "segment.write"));
+    EXPECT_EQ(OwnedStaticHead::constructions, 1);
+    EXPECT_EQ(OwnedStaticAllocator::heapAllocations, 0);
+  }
+  EXPECT_EQ(OwnedStaticHead::destructions, 1);
+  EXPECT_EQ(OwnedStaticAllocator::destructions, 1);
+  ASSERT_FALSE(staticTeardownLog().empty());
+  EXPECT_EQ(staticTeardownLog().back(), "allocator");
 }
 
 } // namespace

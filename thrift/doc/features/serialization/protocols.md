@@ -198,7 +198,7 @@ Reversing this is `(x >> 1) ^ -(x & 1)`.
 
 * **Encoding:** Input must be UTF-8 encoded; strings (including object names) that are not well-formed UTF-8 are rejected. The contents of comments are not validated.
 * **Format:** Input must be valid JSON5 data; invalid input is rejected.
-* **Whitespace:** Leading/trailing whitespace are accepted; JSON5 comments (`//`, `/* ... */`) allowed anywhere whitespace is permitted (per JSON5 spec). UTF-8 BOM (byte sequence `EF BB BF` at start of input) is rejected.
+* **Whitespace:** Leading/trailing whitespace are accepted; JSON5 comments (`//`, `/* ... */`) allowed anywhere whitespace is permitted (per JSON5 spec). A UTF-8 BOM (byte sequence `EF BB BF`) at the start of input is whitespace too, as JSON5 lists U+FEFF as whitespace.
 * **Case sensitivity:** All matching is case-sensitive (booleans, enum names, field names).
 * **Null handling:** Struct/union field `null` → treated as absent (a field with value `null` and an absent field are equivalent after deserialization); `null` elsewhere is treated as type mismatch.
 * **Type mismatch:** Rejected (e.g., `true` for integer field). Note: This differs from Binary/Compact protocols, where type-mismatched fields are skipped silently. Since JSON5 input can be created by hand, silently skipping type-mismatched data is error-prone.
@@ -240,29 +240,25 @@ Rejects:
 
 **Serialization**:
 
-* Finite values: shortest round-trip decimal representation.
-* `-0.0`: always written as `-0.0` (with explicit decimal point, not `-0`).
-* Special values:
-
-| Value | JSON output | JSON5 output |
+| Value `v` of type `T` | JSON output | JSON5 output |
 | :---- | :---- | :---- |
-| NaN | `"NaN"` | `NaN` |
-| \-NaN | `"-NaN"` | `-NaN` |
-| Infinity | `"Infinity"` | `Infinity` |
-| \-Infinity | `"-Infinity"` | `-Infinity` |
+| NaN / -NaN | `"NaN"` / `"-NaN"` | `NaN` / `-NaN` |
+| Infinity / -Infinity | `"Infinity"` / `"-Infinity"` | `Infinity` / `-Infinity` |
+| \|v\| = 0, or T(10<sup>-4</sup>) ≤ \|v\| < 10<sup>7</sup> (float) or 10<sup>16</sup> (double) | Shortest round-trip fixed notation, with at least one digit on each side of `.` (e.g., `-0.0`, `0.5`, `100000.0`) | Same as JSON output |
+| Otherwise | Shortest round-trip scientific notation; the exponent has a sign and at least two digits (e.g., `1e-05`, `1.5e+16`) | Same as JSON output |
 
 **Deserialization**: Accepts
 
 * JSON5 numeric literals.
 * Special float literals.
-* Integers if and only if converting to the target IEEE 754 type and back to integer yields the original value (e.g., every integer in \[-2²⁴, 2²⁴\] (`±16,777,216`) for float or \[-2⁵³, 2⁵³\] (`±9,007,199,254,740,992`) for double, and larger ones such as `9223372036854774784`, i.e. 2⁶³ − 1024, for double). `-0` is read as `-0.0`.
+* Integers if and only if converting to the target IEEE 754 type and back to integer yields the original value (e.g., every integer in \[-2<sup>24</sup>, 2<sup>24</sup>\] (`±16,777,216`) for float or \[-2<sup>53</sup>, 2<sup>53</sup>\] (`±9,007,199,254,740,992`) for double, and larger ones such as `9223372036854774784`, i.e. 2<sup>63</sup> − 1024, for double). `-0` is read as `-0.0`.
 * Quoted numeric strings and object-form map keys (same rules as above, e.g., `"3.14"`).
 
 Rejects:
 
 * Non-numeric strings (e.g., `"abc"`, `""`).
 * Integers with precision loss (e.g., `9007199254740993` or `9223372036854775807` for double, `123456789` for float).
-* Integers outside the int64 range, even ones without precision loss (e.g., `9223372036854775808`, i.e. 2⁶³); write them with an exponent instead (e.g., `9.223372036854775808e18`).
+* Integers outside the int64 range, even ones without precision loss (e.g., `9223372036854775808`, i.e. 2<sup>63</sup>); write them with an exponent instead (e.g., `9.223372036854775808e18`).
 
 #### STRING
 
@@ -292,7 +288,7 @@ Rejects any invalid JSON5 strings, as well as strings whose contents are not wel
 Binary data is considered printable if and only if all of the following are true:
 
 1. Bytes form valid UTF-8.
-2. No C0 control characters (U+0000–U+001F) except `\b`, `\f`, `\n`, `\r`, `\t` which have JSON escape sequences.
+2. No non-printable ASCII characters, i.e. C0 control characters (U+0000–U+001F) and DEL (U+007F), except `\b`, `\f`, `\n`, `\r`, `\t` which have JSON escape sequences.
 3. No C1 control characters (U+0080–U+009F).
 
 **Deserialization**: Accepts `utf-8`, `base64`, and `base64url` encoding keys (with or without padding).

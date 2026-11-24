@@ -38,9 +38,8 @@
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/common/ThriftControlPayloads.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/common/ThriftRequestPayloads.h>
@@ -56,8 +55,6 @@ namespace apache::thrift::fast_thrift::thrift {
 namespace cp = channel_pipeline;
 
 namespace {
-
-using Context = cp::detail::ContextImpl;
 
 // A synchronous sample producer: on each RequestN it emits up to `n` payloads
 // (bounded by the total it was given) then a single Complete; consumes Cancel.
@@ -203,25 +200,36 @@ HANDLER_TAG(producer);
 std::unique_ptr<stream::ProducerPipeline::ConfigFunc> makeRecipe(
     uint64_t total) {
   return std::make_unique<stream::ProducerPipeline::ConfigFunc>(
-      [total](stream::ProducerPipeline::Builder& builder) {
-        builder.addNextDuplex<FiniteProducer<Context>>(
-            producer_tag, std::make_unique<FiniteProducer<Context>>(total));
+      [total](folly::EventBase* evb, stream::StreamSink sink) {
+        return stream::ProducerPipeline::build(
+            evb, std::move(sink), [total](auto builder) {
+              return std::move(builder)
+                  .template addNextDuplexTemplate<FiniteProducer>(
+                      producer_tag, total);
+            });
       });
 }
 
 std::unique_ptr<stream::ProducerPipeline::ConfigFunc> makeErrorRecipe() {
   return std::make_unique<stream::ProducerPipeline::ConfigFunc>(
-      [](stream::ProducerPipeline::Builder& builder) {
-        builder.addNextDuplex<ErrorProducer<Context>>(
-            producer_tag, std::make_unique<ErrorProducer<Context>>());
+      [](folly::EventBase* evb, stream::StreamSink sink) {
+        return stream::ProducerPipeline::build(
+            evb, std::move(sink), [](auto builder) {
+              return std::move(builder)
+                  .template addNextDuplexTemplate<ErrorProducer>(producer_tag);
+            });
       });
 }
 
 std::unique_ptr<stream::ProducerPipeline::ConfigFunc> makeMetadataRecipe() {
   return std::make_unique<stream::ProducerPipeline::ConfigFunc>(
-      [](stream::ProducerPipeline::Builder& builder) {
-        builder.addNextDuplex<MetadataProducer<Context>>(
-            producer_tag, std::make_unique<MetadataProducer<Context>>());
+      [](folly::EventBase* evb, stream::StreamSink sink) {
+        return stream::ProducerPipeline::build(
+            evb, std::move(sink), [](auto builder) {
+              return std::move(builder)
+                  .template addNextDuplexTemplate<MetadataProducer>(
+                      producer_tag);
+            });
       });
 }
 
@@ -239,7 +247,7 @@ const apache::thrift::PayloadExceptionMetadataBase* exceptionMetadata(
           apache::thrift::PayloadMetadata::Type::exceptionMetadata) {
     return nullptr;
   }
-  return &payloadMetadataRef->get_exceptionMetadata();
+  return &payloadMetadataRef.as_const()->exceptionMetadata().value();
 }
 
 // A recorded outbound chunk that reached the wire (MockHead), reduced to the
@@ -300,7 +308,7 @@ ThriftServerRequestMessage makeStreamOpenRequest(
 
 class ThriftServerStreamMuxHandlerTest : public ::testing::Test {
  protected:
-  cp::PipelineImpl::Ptr build() {
+  auto build() {
     head_.setOnWriteCallback([this](cp::TypeErasedBox&& box) -> cp::Result {
       auto& resp = box.get<ThriftServerResponseMessage>();
       auto& p = resp.payload;
@@ -339,22 +347,22 @@ class ThriftServerStreamMuxHandlerTest : public ::testing::Test {
     // to the tail; capture them so tests can assert on them.
     tail_.setOnExceptionCallback(
         [this](folly::exception_wrapper&& e) { exceptions_.push_back(e); });
-    return cp::PipelineBuilder<
-               cp::test::MockHeadHandler,
-               cp::test::MockTailHandler,
+    return cp::StaticPipelineBuilder<
+               cp::test::StaticMockHeadHandler,
+               cp::test::StaticMockTailHandler,
                cp::test::TestAllocator>()
         .setEventBase(&evb_)
         .setHead(&head_)
         .setTail(&tail_)
         .setAllocator(&alloc_)
-        .addNextDuplex<ThriftServerStreamMuxHandler<Context>>(mux_tag)
+        .addNextDuplexTemplate<ThriftServerStreamMuxHandler>(mux_tag)
         .build();
   }
 
   folly::EventBase evb_;
   cp::test::TestAllocator alloc_;
-  cp::test::MockHeadHandler head_;
-  cp::test::MockTailHandler tail_;
+  cp::test::StaticMockHeadHandler head_;
+  cp::test::StaticMockTailHandler tail_;
   std::vector<Recorded> recorded_;
   std::vector<folly::exception_wrapper> exceptions_;
 };

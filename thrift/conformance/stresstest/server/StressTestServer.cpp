@@ -17,12 +17,14 @@
 #include <thrift/conformance/stresstest/server/StressTestServer.h>
 
 #include <memory>
+#include <optional>
 
 #include <glog/logging.h>
 #include <folly/init/Init.h>
 #include <folly/io/async/EventBase.h>
 #include <folly/io/async/IoUringBackend.h>
 #include <folly/io/async/IoUringBufferPoolSharing.h>
+#include <folly/io/async/TerminateCancellationToken.h>
 #include <folly/memory/IoUringArena.h>
 
 #include <gflags/gflags.h>
@@ -106,14 +108,23 @@ DEFINE_bool(
     disable_active_request_tracking, false, "Disabled Active Request Tracking");
 DEFINE_bool(enable_checksum, false, "Enable Server Side Checksum support");
 DEFINE_bool(aligned_parser, false, "Enable AlignedParser");
+DEFINE_bool(
+    iobuf_chain_parser,
+    false,
+    "Enable the opt-in IOBufChain Rocket frame parser");
 DEFINE_string(
     plaintext_parser,
     "",
-    "Parser override to use for plaintext connections (strategy, allocating, aligned)");
+    "Parser override to use for plaintext connections (strategy, allocating, aligned, iobuf_chain)");
 DEFINE_uint32(
     io_uring_dump_stat_interval,
     0,
     "Dump io_uring stats every N seconds (0 = disabled)");
+DEFINE_bool(
+    server_rx_timestamping,
+    false,
+    "Measure kernel-to-userspace RX collect latency on server sockets. "
+    "Linux kTLS RX currently does not emit software timestamp cmsgs.");
 
 namespace apache::thrift::detail {
 THRIFT_PLUGGABLE_FUNC_SET(
@@ -201,26 +212,50 @@ std::shared_ptr<folly::IOThreadPoolExecutor> getIOThreadPool(
   }
 }
 
-class IoUringStatsInitHandler
+class StressTestServerStatsHandler
     : public apache::thrift::server::TServerEventHandler {
  public:
-  IoUringStatsInitHandler(
+  StressTestServerStatsHandler(
+      ThriftServer& server,
       std::shared_ptr<folly::IOThreadPoolExecutor> ioThreadPool,
       std::shared_ptr<StressTestServerStats> serverStats,
+      bool collectIoUringStats,
       uint32_t dumpStatInterval)
-      : ioThreadPool_{std::move(ioThreadPool)},
+      : server_{server},
+        ioThreadPool_{std::move(ioThreadPool)},
         serverStats_{std::move(serverStats)},
+        collectIoUringStats_{collectIoUringStats},
         dumpStatInterval_{dumpStatInterval} {}
 
   void preServe(const folly::SocketAddress* /*address*/) override {
-    auto evbs = ioThreadPool_->getAllEventBases();
-    serverStats_->init(evbs, dumpStatInterval_);
+    if (collectIoUringStats_) {
+      auto evbs = ioThreadPool_->getAllEventBases();
+      serverStats_->init(evbs, dumpStatInterval_);
+    }
+    shutdownCallback_.emplace(folly::getTerminateCancellationToken(), [this] {
+      try {
+        serverStats_->collectFinal();
+      } catch (const std::exception& exception) {
+        LOG(ERROR) << "Failed to collect final stress test statistics: "
+                   << exception.what();
+      }
+      server_.stop();
+    });
+  }
+
+  void postStop() override {
+    if (FLAGS_server_rx_timestamping) {
+      serverStats_->logRxTimestampStats();
+    }
   }
 
  private:
+  ThriftServer& server_;
   std::shared_ptr<folly::IOThreadPoolExecutor> ioThreadPool_;
   std::shared_ptr<StressTestServerStats> serverStats_;
+  bool collectIoUringStats_;
   uint32_t dumpStatInterval_;
+  std::optional<folly::CancellationCallback> shutdownCallback_;
 };
 
 std::shared_ptr<ThriftServer> createStressTestServer(
@@ -234,6 +269,14 @@ std::shared_ptr<ThriftServer> createStressTestServer(
 
   if (FLAGS_aligned_parser) {
     THRIFT_FLAG_SET_MOCK(rocket_frame_parser, "aligned");
+  }
+  if (FLAGS_iobuf_chain_parser) {
+    if (FLAGS_aligned_parser || !FLAGS_plaintext_parser.empty()) {
+      LOG(FATAL)
+          << "--iobuf_chain_parser cannot be combined with --aligned_parser "
+             "or --plaintext_parser";
+    }
+    THRIFT_FLAG_SET_MOCK(rocket_frame_parser, "iobuf_chain");
   }
 
   auto server = std::make_shared<ThriftServer>();
@@ -280,19 +323,21 @@ std::shared_ptr<ThriftServer> createStressTestServer(
   server->setNumCPUWorkerThreads(numCpuWorkerThreads);
   const bool collectIoUringStats =
       FLAGS_io_uring && (FLAGS_io_uring_dump_stat_interval > 0 || serverStats);
-  if (collectIoUringStats && !serverStats) {
+  if ((collectIoUringStats || FLAGS_server_rx_timestamping) && !serverStats) {
     serverStats = std::make_shared<StressTestServerStats>();
   }
-  auto stressTestServerModule =
-      std::make_unique<StressTestServerModule>(serverStats);
-  if (collectIoUringStats) {
+  auto stressTestServerModule = std::make_unique<StressTestServerModule>(
+      serverStats, FLAGS_server_rx_timestamping);
+  if (serverStats) {
     // Defer stats-timer registration until preServe: the IOThreadPoolExecutor
     // has not created its EventBases yet at this point, so getAllEventBases()
     // would return an empty list here.
     server->addServerEventHandler(
-        std::make_shared<IoUringStatsInitHandler>(
+        std::make_shared<StressTestServerStatsHandler>(
+            *server,
             ioThreadPool,
             serverStats,
+            collectIoUringStats,
             static_cast<uint32_t>(FLAGS_io_uring_dump_stat_interval)));
   }
   if (FLAGS_io_uring && FLAGS_io_uring_dump_stat_interval > 0) {
@@ -336,7 +381,9 @@ std::shared_ptr<ThriftServer> createStressTestServer(
     server->disableActiveRequestsTracking();
   }
 
-  server->setSSLPolicy(apache::thrift::SSLPolicy::PERMITTED);
+  if (gflags::GetCommandLineFlagInfoOrDie("thrift_ssl_policy").is_default) {
+    server->setSSLPolicy(apache::thrift::SSLPolicy::PERMITTED);
+  }
   if (!FLAGS_certPath.empty() && !FLAGS_keyPath.empty() &&
       !FLAGS_caPath.empty()) {
     LOG(INFO) << "SSL config enabled";

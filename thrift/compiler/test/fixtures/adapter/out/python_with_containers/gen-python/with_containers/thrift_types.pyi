@@ -20,6 +20,7 @@ import my
 
 @_typing.final
 class _fbthrift_unadapted_AnnotationWithContainers(_fbthrift_python_types.Struct, _fbthrift_python_abstract_types._fbthrift_unadapted_AnnotationWithContainers):
+    r"""struct AnnotationWithContainers"""
     names: _typing.Final[_fbthrift_python_types.ImmutableList[builtins.str]] = ...
     counts: _typing.Final[_fbthrift_python_types.ImmutableMap[builtins.str, builtins.int]] = ...
     def __init__(
@@ -43,7 +44,9 @@ _fbthrift_AnnotationWithContainers = AnnotationWithContainers
 
 @_typing.final
 class _fbthrift_unadapted_MyStruct(_fbthrift_python_types.Struct, _fbthrift_python_abstract_types._fbthrift_unadapted_MyStruct):
+    r"""struct MyStruct"""
     abc: _typing.Final[my.AdaptedType[builtins.int]] = ...
+    r"""1: i32 abc"""
     def __init__(
         self, *,
         abc: _typing.Optional[my.AdaptedType[builtins.int]]=...

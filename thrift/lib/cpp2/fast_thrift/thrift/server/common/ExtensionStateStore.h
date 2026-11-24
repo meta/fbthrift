@@ -86,6 +86,25 @@ class ExtensionStateStore {
     return slots_.contains(std::type_index{typeid(T)});
   }
 
+  /**
+   * Transfers the connection's `T` out of the store. Returns null when no
+   * extension created one.
+   *
+   * Existing references remain valid: the object itself does not move. This
+   * is used when setup transfers shared extension state into the connection
+   * context that must outlive the pipeline which constructed it.
+   */
+  template <typename T>
+  std::unique_ptr<T> take() {
+    const auto it = slots_.find(std::type_index{typeid(T)});
+    if (it == slots_.end()) {
+      return nullptr;
+    }
+    auto state = it->second.template release_as<T>();
+    slots_.erase(it);
+    return state;
+  }
+
   std::size_t size() const noexcept { return slots_.size(); }
 
  private:

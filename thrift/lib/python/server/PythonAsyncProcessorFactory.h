@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -26,6 +27,7 @@
 #include <thrift/lib/cpp2/gen/service_tcc.h>
 #include <thrift/lib/cpp2/protocol/Serializer.h>
 #include <thrift/lib/python/server/PythonAsyncProcessor.h>
+#include <thrift/lib/python/server/execution/IntakeExecutorFacade.h>
 #include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
 #include <thrift/lib/thrift/gen-cpp2/metadata_types.h>
 
@@ -43,6 +45,40 @@ class PythonAsyncProcessorFactory
   void releaseOwnedResources() noexcept;
 
   void markContextEntered() noexcept { factoryContextEntered_ = true; }
+
+  // Replaces the execution system that processors dispatch through. Call it
+  // before the server creates any processor. Nothing dispatches before then,
+  // so this write takes no lock; ThreadSanitizer reports a race if a processor
+  // is ever created during it.
+  void setExecutionSystem(
+      std::shared_ptr<execution::ExecutionSystem> executionSystem) {
+    executionSystem_ = std::move(executionSystem);
+  }
+
+  // The host sets the count before factory context entry, on the thread that
+  // enters it; entry and serving read it only afterwards.
+  void setRequestedThreadCount(std::size_t count) noexcept {
+    requestedThreadCount_ = count;
+  }
+
+  std::size_t requestedThreadCount() const noexcept {
+    return requestedThreadCount_;
+  }
+
+  // The executor the host gives its server, from server init on. The host reads
+  // it before serving and keeps no copy of the borrowed pointer; the server
+  // takes its own keep-alive through setThreadManagerFromExecutor().
+  folly::Executor* intakeExecutor() const noexcept {
+    return intakeExecutorFacade_.get();
+  }
+
+  // Worker activation calls this once, from factory entry, before native
+  // work starts, so the server's request intake goes to the workers.
+  // Factory release drops the facade. A second entry after release breaks
+  // the contract, and this dereference has no null check for that case.
+  void setIntakeExecutor(std::shared_ptr<folly::Executor> executor) {
+    intakeExecutorFacade_->setExecutor(std::move(executor));
+  }
 
   PythonAsyncProcessorFactory(PythonAsyncProcessorFactory&&) = delete;
   PythonAsyncProcessorFactory(const PythonAsyncProcessorFactory&) = delete;
@@ -92,6 +128,8 @@ class PythonAsyncProcessorFactory
 
  private:
   folly::SemiFuture<folly::Unit> callLifecycle(LifecycleFunc);
+  // Call with executionResourcesMutex_ held.
+  void releaseExecutorKeepAlives() noexcept;
 
   PyObject* python_server_;
   // note that the key is std::string_view, which a view into buffer owned by
@@ -103,8 +141,11 @@ class PythonAsyncProcessorFactory
   std::mutex executionResourcesMutex_;
   std::shared_ptr<execution::ExecutionSystem> executionSystem_;
   folly::Executor::KeepAlive<> controlExecutor_;
+  folly::Executor::KeepAlive<execution::IntakeExecutorFacade>
+      intakeExecutorFacade_;
   // Factory context entry completes before native service execution starts.
   bool factoryContextEntered_{false};
+  std::size_t requestedThreadCount_{1};
   std::string serviceName_;
 
   /**
@@ -124,6 +165,8 @@ class PythonAsyncProcessorFactory
         lifecycleFuncs_(std::move(lifecycleFuncs)),
         executionSystem_(std::move(executionSystem)),
         controlExecutor_(std::move(controlExecutor)),
+        intakeExecutorFacade_(
+            execution::IntakeExecutorFacade::create(controlExecutor_)),
         serviceName_(std::move(serviceName)) {}
 };
 

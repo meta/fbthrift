@@ -102,6 +102,23 @@ void Nada::__fbthrift_clear() {
 bool Nada::__fbthrift_is_empty() const {
   return getType() == Type::__EMPTY__;
 }
+  Nada& Nada::operator=(Nada&& rhs) noexcept {
+    if (this == &rhs) { return *this; }
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+      {
+        __fbthrift_clear();
+        return *this;
+      }
+      default:
+      {
+        assert(false);
+        __fbthrift_clear();
+      }
+    }
+    return *this;
+  }
+
   Nada::Nada(const Nada& rhs)
       : fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
     switch (rhs.getType()) {
@@ -112,17 +129,9 @@ bool Nada::__fbthrift_is_empty() const {
     }
   }
 
-    Nada&Nada::operator=(const Nada& rhs) {
+  Nada& Nada::operator=(const Nada& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = Nada(rhs);
   }
 
 

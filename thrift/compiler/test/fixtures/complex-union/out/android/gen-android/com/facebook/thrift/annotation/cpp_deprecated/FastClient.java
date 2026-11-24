@@ -24,12 +24,13 @@ import com.facebook.thrift.transport.*;
 import com.facebook.thrift.protocol.*;
 
 /**
- * When applied to a service, generates only a FastClient instead of the
+ * When applied to a service, generates a FastClient in addition to the
  * standard AsyncClient. The FastClient uses the fast_thrift pipeline for
  * lower latency serialization and deserialization.
  * 
- * Only request/response functions are supported. Functions using streams,
- * sinks, oneway, or interactions are skipped.
+ * The FastClient supports only request/response functions. Functions using
+ * streams, sinks, oneway, or interactions are skipped by the FastClient and
+ * remain available on the AsyncClient.
  */
 @SuppressWarnings({ "unused", "serial" })
 public class FastClient implements TBase, java.io.Serializable, Cloneable {

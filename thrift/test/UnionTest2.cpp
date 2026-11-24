@@ -68,7 +68,7 @@ class TerseUnionTestFixture : public Test {
 TEST_F(UnionTestFixture, Constructors) {
   auto f = [](const TestUnion& u) {
     EXPECT_EQ(TestUnion::Type::i32_field, u.getType());
-    EXPECT_EQ(100, u.get_i32_field());
+    EXPECT_EQ(100, u.i32_field().value());
   };
 
   TestUnion u;
@@ -92,7 +92,7 @@ TEST_F(UnionTestFixture, ChangeType) {
   TestUnion u;
   u.set_i32_field(100);
   EXPECT_EQ(TestUnion::Type::i32_field, u.getType());
-  EXPECT_EQ(100, u.get_i32_field());
+  EXPECT_EQ(100, u.i32_field().as_const().value());
 
   CHECK_EQ(TestUnion::Type::i32_field, u.getType());
   EXPECT_DEATH(
@@ -120,19 +120,19 @@ TEST_F(UnionTestFixture, ChangeType) {
 
   u.set_other_i32_field(200);
   EXPECT_EQ(TestUnion::Type::other_i32_field, u.getType());
-  EXPECT_EQ(200, u.get_other_i32_field());
+  EXPECT_EQ(200, u.other_i32_field().as_const().value());
 
   u.set_string_field("str");
   EXPECT_EQ(TestUnion::Type::string_field, u.getType());
-  EXPECT_EQ("str", u.get_string_field());
+  EXPECT_EQ("str", u.string_field().as_const().value());
 
   u.set_struct_list(std::vector<RandomStuff>());
   EXPECT_EQ(TestUnion::Type::struct_list, u.getType());
-  EXPECT_EQ(std::vector<RandomStuff>(), u.get_struct_list());
+  EXPECT_EQ(std::vector<RandomStuff>(), u.struct_list().as_const().value());
 
   u.set_ref_field(OneOfEach());
   EXPECT_EQ(TestUnion::Type::ref_field, u.getType());
-  EXPECT_EQ(OneOfEach(), *u.get_ref_field());
+  EXPECT_EQ(OneOfEach(), *u.ref_field());
 }
 
 TEST_F(UnionTestFixture, SerdeTest) {
@@ -194,13 +194,13 @@ TEST(NonCopyableUnion, Simple) {
   a.set_a(42);
   auto b = serializeDeserialize(a);
   EXPECT_TRUE(b.getType() == NonCopyableUnion::Type::a);
-  EXPECT_EQ(42, b.get_a());
+  EXPECT_EQ(42, b.a().as_const().value());
 
   const char buf[] = "hello world";
   a.set_buf(folly::IOBuf(folly::IOBuf::COPY_BUFFER, buf, sizeof(buf)));
   b = serializeDeserialize(a);
   EXPECT_TRUE(b.getType() == NonCopyableUnion::Type::buf);
-  auto& iob = b.get_buf();
+  auto& iob = b.buf().as_const().value();
   EXPECT_EQ(sizeof(buf), iob.length());
   EXPECT_EQ(0, memcmp(buf, iob.data(), sizeof(buf)));
 }
@@ -210,7 +210,7 @@ TEST(NonCopyableUnion, NoncopyableMember) {
   *s.num() = 42;
   NonCopyableUnion u;
   u.set_ncs(std::move(s));
-  EXPECT_EQ(*u.get_ncs().num(), 42);
+  EXPECT_EQ(*u.ncs().as_const().value().num(), 42);
 }
 
 TEST(NoExceptMoveUnion, Constructor) {
@@ -218,7 +218,7 @@ TEST(NoExceptMoveUnion, Constructor) {
   NoExceptMoveUnion u1;
   u1.set_string_field("hello world");
   NoExceptMoveUnion u2(std::move(u1));
-  EXPECT_EQ(u2.get_string_field(), "hello world");
+  EXPECT_EQ(u2.string_field().as_const().value(), "hello world");
 }
 
 TEST(NoExceptMoveUnion, MoveOperator) {
@@ -227,7 +227,7 @@ TEST(NoExceptMoveUnion, MoveOperator) {
   u1.set_string_field("hello world");
   NoExceptMoveUnion u2;
   u2 = std::move(u1);
-  EXPECT_EQ(u2.get_string_field(), "hello world");
+  EXPECT_EQ(u2.string_field().as_const().value(), "hello world");
 }
 
 TEST(CppRefContainers, Simple) {
@@ -239,8 +239,8 @@ TEST(CppRefContainers, Simple) {
   v.set_values({v1, v2});
 
   EXPECT_EQ(v.getType(), CppRefContainers::Type::values);
-  EXPECT_EQ((*v.get_values())[0].get_data(), "v1");
-  EXPECT_EQ((*v.get_values())[1].get_data(), "v2");
+  EXPECT_EQ((*v.values())[0].data().as_const().value(), "v1");
+  EXPECT_EQ((*v.values())[1].data().as_const().value(), "v2");
 }
 
 TEST(Empty, Simple) {

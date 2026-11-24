@@ -50,8 +50,10 @@
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/handler/IntervalBatchingFrameHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/handler/WriteCompletionTracker.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/server/Event.h>
@@ -81,7 +83,8 @@ class EventCapturingAppHandler {
  public:
   using Result = cp::Result;
 
-  Result onRead(cp::detail::ContextImpl&, cp::TypeErasedBox&&) noexcept {
+  template <typename Context>
+  Result onRead(Context&, cp::TypeErasedBox&&) noexcept {
     return Result::Success;
   }
   void onException(folly::exception_wrapper&&) noexcept {}
@@ -119,7 +122,7 @@ class RocketServerWriteCompletionIntegrationTest : public ::testing::Test {
     transportHandler_ =
         TestTransportHandler::create(std::move(socket), 256, 4096);
 
-    pipeline_ = cp::PipelineBuilder<
+    pipeline_ = cp::StaticPipelineBuilder<
                     TestTransportHandler,
                     EventCapturingAppHandler,
                     cp::SimpleBufferAllocator>()
@@ -158,7 +161,7 @@ class RocketServerWriteCompletionIntegrationTest : public ::testing::Test {
 
     // IntervalBatchingFrameHandler default config uses runInLoop; drain
     // until quiescent.
-    evb_.loop();
+    cp::test::loopUntilIdle(evb_);
     return cb;
   }
 
@@ -167,7 +170,7 @@ class RocketServerWriteCompletionIntegrationTest : public ::testing::Test {
   TestTransportHandler::Ptr transportHandler_;
   EventCapturingAppHandler app_;
   cp::SimpleBufferAllocator allocator_;
-  cp::PipelineImpl::Ptr pipeline_;
+  cp::PipelineOwner pipeline_;
 };
 
 TEST_F(

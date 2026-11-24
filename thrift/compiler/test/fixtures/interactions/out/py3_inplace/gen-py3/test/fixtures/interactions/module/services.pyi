@@ -93,6 +93,30 @@ class FactoriesInterface(
     async def serialize(
         self
     ) -> _typing.Tuple[int, _typing.Union[_typing.Awaitable[_typing.AsyncGenerator[int, None]],_typing.AsyncGenerator[int, None]]]: ...
+
+    @staticmethod
+    def createPublisher_interactWithStream(callback=None) -> _typing.Tuple[
+        _typing.AsyncGenerator[int, None],
+        _test_fixtures_interactions_module_types.ServerPublisher_cint32_t
+    ]: ...
+
+
+    @abstractmethod
+    def interactWithStream(
+        self
+    ) -> _typing.Union[_typing.Awaitable[_typing.AsyncGenerator[int, None]],_typing.AsyncGenerator[int, None]]: ...
+
+    @staticmethod
+    def createPublisher_interactWithStreamAndInitialResponse(callback=None) -> _typing.Tuple[
+        _typing.AsyncGenerator[int, None],
+        _test_fixtures_interactions_module_types.ServerPublisher_cint32_t
+    ]: ...
+
+
+    @abstractmethod
+    async def interactWithStreamAndInitialResponse(
+        self
+    ) -> _typing.Tuple[int, _typing.Union[_typing.Awaitable[_typing.AsyncGenerator[int, None]],_typing.AsyncGenerator[int, None]]]: ...
     pass
 
 

@@ -46,7 +46,6 @@ CPackConfig.cmake
 CPackSourceConfig.cmake
 Makefile
 cmake_install.cmake
-/build/bin
-/build/thrift
+/build
 /compile_commands.json
 /thrift/lib/java/**/target

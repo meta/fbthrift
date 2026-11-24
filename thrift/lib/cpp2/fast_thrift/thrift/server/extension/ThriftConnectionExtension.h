@@ -18,6 +18,7 @@
 
 #include <concepts>
 #include <cstdint>
+#include <string>
 #include <string_view>
 #include <utility>
 
@@ -30,9 +31,14 @@
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/SetupResponseBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/ConnectionPayloads.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/ThriftConnContext.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/event_handler/Cpp2BridgeExtension.h>
 #include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
 
 namespace apache::thrift::fast_thrift::thrift {
+
+namespace server::compatibility::detail {
+class NativeContextAccess;
+}
 
 /**
  * Connection-lifecycle callbacks for FastThriftServer extensions.
@@ -109,6 +115,8 @@ class ConnectionVerdict {
  * before calling any accessor; accessors require a nonempty view.
  */
 class ThriftConnectionView {
+  friend class server::compatibility::detail::NativeContextAccess;
+
  public:
   explicit ThriftConnectionView(const ThriftConnContext& connContext) noexcept
       : ThriftConnectionView(&connContext) {}
@@ -135,9 +143,50 @@ class ThriftConnectionView {
     return connContext_->getSecurityProtocol();
   }
 
-  // Peer's TLS leaf certificate, or null on plaintext.
+  // Retained handshake certificate, including after StopTLS.
   const folly::AsyncTransportCertificate* peerCertificate() const noexcept {
     return connContext_->getPeerCertificate();
+  }
+
+  // Borrowed live transport certificate. Requires the connection's EventBase
+  // and may throw; null when the transport or its certificate is absent.
+  const folly::AsyncTransportCertificate* FOLLY_NULLABLE
+  transportPeerCertificate() const {
+    // @lint-ignore NULLSAFECLANG nullable-dereference
+    return connContext_->getTransportPeerCertificate();
+  }
+
+  // Borrowed cached X509, or null. Survives transport removal; valid until the
+  // context replaces its certificate or is destroyed.
+  const X509* FOLLY_NULLABLE peerX509Certificate() const noexcept {
+    // @lint-ignore NULLSAFECLANG nullable-dereference
+    return connContext_->getCachedPeerCertificate();
+  }
+
+  // Reads the live transport on the connection's EventBase and may throw.
+  // Empty when the transport or an OpenSSL certificate is absent.
+  std::string peerCommonName() const {
+    // @lint-ignore NULLSAFECLANG nullable-dereference
+    return connContext_->getPeerCommonName();
+  }
+
+  // Reflects the retained handshake certificate, including after StopTLS.
+  bool peerCertReceived() const noexcept {
+    // @lint-ignore NULLSAFECLANG nullable-dereference
+    return connContext_->peerCertReceived();
+  }
+
+  std::unique_ptr<folly::IOBuf> cachedEkm(
+      std::string_view label, uint16_t length) const {
+    if (connContext_ == nullptr) {
+      return nullptr;
+    }
+    const folly::StringPiece key(label.data(), label.size());
+    if (const auto* bridge =
+            connContext_->tryState<server::Cpp2BridgeExtension>()) {
+      return bridge->getCachedEkm(key, length);
+    }
+    return connContext_->getCachedEkm(key, length);
   }
 
   const folly::AsyncTransport* FOLLY_NULLABLE transport() const noexcept {
@@ -158,6 +207,10 @@ class ThriftConnectionView {
     return connContext_->getPeerIdentities();
   }
 
+  const ExtensionSlots* FOLLY_NULLABLE extensionSlots() const noexcept {
+    return connContext_ == nullptr ? nullptr : &connContext_->extensionSlots();
+  }
+
   // State published on this connection by another installed extension.
   template <class Ext>
   typename Ext::ConnState* tryState() const noexcept {
@@ -174,6 +227,8 @@ class ThriftConnectionView {
  * receive one, because outside that exchange these fields do not exist.
  */
 class ThriftSetupConnectionView : public ThriftConnectionView {
+  friend class ThriftSetupConnectionMutator;
+
  public:
   explicit ThriftSetupConnectionView(const ConnectionSetupData& setup) noexcept
       : ThriftConnectionView(*setup.connContext), setup_(setup) {}
@@ -210,19 +265,28 @@ class ThriftSetupConnectionView : public ThriftConnectionView {
 class ThriftSetupConnectionMutator final : public ThriftSetupConnectionView {
  public:
   explicit ThriftSetupConnectionMutator(ConnectionSetupData& setup) noexcept
-      : ThriftSetupConnectionView(setup), setup_(setup) {}
+      : ThriftSetupConnectionView(setup) {}
 
   template <class Ext>
   void setState(typename Ext::ConnState* state) noexcept {
     setup_.connContext->template setState<Ext>(state);
   }
 
+  template <class Ext>
+  void adoptState(typename Ext::ConnState* state) noexcept {
+    setup_.connContext->template adoptState<Ext>(state);
+  }
+
   void setPeerIdentities(void* FOLLY_NULLABLE identities) noexcept {
     setup_.connContext->setPeerIdentities(identities);
   }
 
- private:
-  ConnectionSetupData& setup_;
+  void adoptPeerIdentities(
+      ThriftConnContext::PeerIdentitiesPtr identities) noexcept {
+    // Setup views require a connection at construction.
+    // @lint-ignore NULLSAFECLANG nullable-dereference
+    setup_.connContext->adoptPeerIdentities(std::move(identities));
+  }
 };
 
 /**

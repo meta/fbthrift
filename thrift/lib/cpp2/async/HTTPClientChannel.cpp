@@ -294,11 +294,6 @@ class HTTPTransactionCallback
     }
   }
 
-  void onUpgrade(proxygen::UpgradeProtocol /*protocol*/) noexcept override {
-    // If code comes here, it is seriously wrong
-    // TODO (geniusye) destroy the channel here
-  }
-
   void onError(const proxygen::HTTPException& error) noexcept override {
     if (!oneway_) {
       if (error.getProxygenError() == proxygen::ProxygenError::kErrorTimeout) {

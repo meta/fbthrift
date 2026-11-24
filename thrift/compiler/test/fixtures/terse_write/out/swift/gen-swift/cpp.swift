@@ -1131,8 +1131,8 @@ public struct AllowCustomDefaultInAllocCtor: ThriftSerializable, Hashable {
     }
 }
 
-/// Auto-generated from InternalExperimentalAllowAllocatorOnUnion
-public struct InternalExperimentalAllowAllocatorOnUnion: ThriftSerializable, Hashable {
+/// Auto-generated from Arena
+public struct Arena: ThriftSerializable, Hashable {
 
     public init() {}
 

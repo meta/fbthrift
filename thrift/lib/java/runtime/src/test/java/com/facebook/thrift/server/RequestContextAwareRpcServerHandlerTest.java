@@ -31,6 +31,7 @@ import com.facebook.thrift.legacy.server.LegacyServerTransport;
 import com.facebook.thrift.legacy.server.LegacyServerTransportFactory;
 import com.google.common.util.concurrent.Futures;
 import io.airlift.units.Duration;
+import io.netty.handler.ssl.ClientAuth;
 import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.HashMap;
@@ -59,7 +60,8 @@ public class RequestContextAwareRpcServerHandlerTest {
 
     System.out.println("starting server");
     LegacyServerTransportFactory transportFactory =
-        new LegacyServerTransportFactory(new ThriftServerConfig().setEnableJdkSsl(false));
+        new LegacyServerTransportFactory(
+            new ThriftServerConfig().setClientAuth(ClientAuth.OPTIONAL).setEnableJdkSsl(false));
     LegacyServerTransport transport = transportFactory.createServerTransport(serverHandler).block();
     InetSocketAddress address = (InetSocketAddress) transport.getAddress();
 
@@ -103,7 +105,8 @@ public class RequestContextAwareRpcServerHandlerTest {
 
     System.out.println("starting server");
     LegacyServerTransportFactory transportFactory =
-        new LegacyServerTransportFactory(new ThriftServerConfig().setEnableJdkSsl(false));
+        new LegacyServerTransportFactory(
+            new ThriftServerConfig().setClientAuth(ClientAuth.OPTIONAL).setEnableJdkSsl(false));
     LegacyServerTransport transport = transportFactory.createServerTransport(serverHandler).block();
     InetSocketAddress address = (InetSocketAddress) transport.getAddress();
 
@@ -151,7 +154,8 @@ public class RequestContextAwareRpcServerHandlerTest {
 
     System.out.println("starting server");
     LegacyServerTransportFactory transportFactory =
-        new LegacyServerTransportFactory(new ThriftServerConfig().setEnableJdkSsl(false));
+        new LegacyServerTransportFactory(
+            new ThriftServerConfig().setClientAuth(ClientAuth.OPTIONAL).setEnableJdkSsl(false));
     LegacyServerTransport transport = transportFactory.createServerTransport(serverHandler).block();
     InetSocketAddress address = (InetSocketAddress) transport.getAddress();
 

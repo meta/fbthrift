@@ -147,6 +147,7 @@ cdef class ComplexStruct(thrift.py3.types.Struct):
     cdef SimpleStruct __fbthrift_cached_structOne
     cdef SimpleStruct __fbthrift_cached_structTwo
     cdef object __fbthrift_cached_an_enum
+    cdef _fbthrift_iobuf.IOBuf __fbthrift_cached_bytes_with_cpp_type
 
     @staticmethod
     cdef _create_FBTHRIFT_ONLY_DO_NOT_USE(shared_ptr[_module_cbindings.cComplexStruct])
@@ -194,6 +195,7 @@ cdef class CustomFields(thrift.py3.types.Struct):
     cdef inline object set_field_impl(self)
     cdef inline object map_field_impl(self)
     cdef inline object struct_field_impl(self)
+    cdef _fbthrift_iobuf.IOBuf __fbthrift_cached_binary_field
     cdef object __fbthrift_cached_list_field
     cdef object __fbthrift_cached_set_field
     cdef object __fbthrift_cached_map_field
@@ -216,6 +218,7 @@ cdef class CustomTypedefFields(thrift.py3.types.Struct):
     cdef inline object set_field_impl(self)
     cdef inline object map_field_impl(self)
     cdef inline object struct_field_impl(self)
+    cdef _fbthrift_iobuf.IOBuf __fbthrift_cached_binary_field
     cdef object __fbthrift_cached_list_field
     cdef object __fbthrift_cached_set_field
     cdef object __fbthrift_cached_map_field
@@ -245,6 +248,25 @@ cdef class AdaptedTypedefFields(thrift.py3.types.Struct):
 
     @staticmethod
     cdef _create_FBTHRIFT_ONLY_DO_NOT_USE(shared_ptr[_module_cbindings.cAdaptedTypedefFields])
+
+
+
+cdef class StringAdaptedUnion(thrift.py3.types.Union):
+    cdef shared_ptr[_module_cbindings.cStringAdaptedUnion] _cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE
+    cdef int64_t type_int
+    cdef object py_type
+    cdef object py_value
+    cdef _initialize_py(StringAdaptedUnion self)
+
+    @staticmethod
+    cdef unique_ptr[_module_cbindings.cStringAdaptedUnion] _make_instance(
+        _module_cbindings.cStringAdaptedUnion* base_instance,
+        str string_field,
+        bytes binary_field
+    ) except *
+
+    @staticmethod
+    cdef _create_FBTHRIFT_ONLY_DO_NOT_USE(shared_ptr[_module_cbindings.cStringAdaptedUnion])
 
 
 cdef vector[cint16_t] List__i16__make_instance(object items) except *

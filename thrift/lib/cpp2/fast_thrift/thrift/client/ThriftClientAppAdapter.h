@@ -28,7 +28,7 @@
 #include <folly/logging/xlog.h>
 #include <thrift/lib/cpp2/async/RpcOptions.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/FastThriftAdapterBase.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/client/Messages.h>
@@ -45,7 +45,7 @@ namespace apache::thrift::fast_thrift::thrift {
  * the pipeline. Generated clients hold one of these and call
  * sendRequestResponse() to issue request-response RPCs.
  *
- * Non-owning: holds a raw PipelineImpl*, does NOT own the transport or
+ * Non-owning: holds a PipelineRef, does NOT own the transport or
  * pipeline (the pipeline owner keeps those alive).
  *
  * Implements the ClientInboundAppAdapter concept (onRead / onException).
@@ -69,15 +69,21 @@ class ThriftClientAppAdapter : public folly::DelayedDestruction,
   ThriftClientAppAdapter(ThriftClientAppAdapter&&) = delete;
   ThriftClientAppAdapter& operator=(ThriftClientAppAdapter&&) = delete;
 
-  void setPipeline(
-      apache::thrift::fast_thrift::channel_pipeline::PipelineImpl* pipeline) {
+  template <channel_pipeline::PipelineRefTarget P>
+  void setPipeline(P* pipeline) {
+    DCHECK(pipeline != nullptr);
+    setPipeline(channel_pipeline::PipelineRef(*pipeline));
+  }
+
+  void setPipeline(channel_pipeline::PipelineRef pipeline) {
     DCHECK(pipeline);
+    CHECK(pipeline.eventBase() != nullptr)
+        << "ThriftClientAppAdapter requires a pipeline EventBase";
     if (pipeline_) {
       XLOG(FATAL) << "must reset pipeline before setting a new one";
     }
     pipeline_ = pipeline;
-    pipelineGuard_ =
-        std::make_unique<folly::DelayedDestruction::DestructorGuard>(pipeline);
+    pipelineGuard_ = pipeline_.guard();
   }
 
   /**
@@ -85,7 +91,7 @@ class ThriftClientAppAdapter : public folly::DelayedDestruction,
    * cross-thread submitWrite callbacks are pending before calling.
    */
   void resetPipeline() noexcept {
-    pipeline_ = nullptr;
+    pipeline_.reset();
     pipelineGuard_.reset();
   }
 
@@ -124,10 +130,11 @@ class ThriftClientAppAdapter : public folly::DelayedDestruction,
 
   // === TailEndpointHandler interface ===
 
-  apache::thrift::fast_thrift::channel_pipeline::Result onRead(
-      apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
-      apache::thrift::fast_thrift::channel_pipeline::TypeErasedBox&&
-          msg) noexcept;
+  template <typename Context>
+  channel_pipeline::Result onRead(
+      Context&, channel_pipeline::TypeErasedBox&& msg) noexcept {
+    return onResponse(std::move(msg));
+  }
 
   void onException(folly::exception_wrapper&& e) noexcept;
 
@@ -136,6 +143,9 @@ class ThriftClientAppAdapter : public folly::DelayedDestruction,
 
  private:
   enum class State { Open, Closing, Closed };
+
+  channel_pipeline::Result onResponse(
+      channel_pipeline::TypeErasedBox&& msg) noexcept;
 
   void submitWrite(ThriftRequestMessage msg) noexcept;
   void submitWriteOnEventBase(ThriftRequestMessage msg) noexcept;
@@ -148,9 +158,8 @@ class ThriftClientAppAdapter : public folly::DelayedDestruction,
   FOLLY_NOINLINE void handleNotOpen(ThriftRequestMessage msg) noexcept;
   FOLLY_NOINLINE void handleWriteError() noexcept;
 
-  apache::thrift::fast_thrift::channel_pipeline::PipelineImpl* pipeline_{
-      nullptr};
-  std::unique_ptr<folly::DelayedDestruction::DestructorGuard> pipelineGuard_;
+  channel_pipeline::PipelineRef pipeline_;
+  channel_pipeline::PipelineGuard pipelineGuard_;
   CloseCallback closeCallback_;
   uint16_t protocolId_{0};
   State state_{State::Open};

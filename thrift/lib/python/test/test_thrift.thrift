@@ -116,7 +116,8 @@ typedef map<string, easy> StrEasyMap
 @cpp.Type{name = "uint32_t"}
 typedef i32 ui32
 @thrift.AllowLegacyTypedefUri
-@cpp.Type{name = "::folly::fbstring"}
+@python.Py3EnableCppAdapter
+@cpp.Adapter{name = "::apache::thrift::StringTypeAdapter<::folly::fbstring>"}
 typedef string FollyFbString
 @thrift.AllowLegacyTypedefUri
 @cpp.Type{template = "::folly::F14FastMap"}
@@ -442,7 +443,8 @@ typedef set<i32> set_typedef
 @cpp.Type{template = "::std::unordered_map"}
 typedef map<i32, i32> map_typedef
 @thrift.AllowLegacyTypedefUri
-@cpp.Type{name = "folly::fbstring"}
+@python.Py3EnableCppAdapter
+@cpp.Adapter{name = "::apache::thrift::StringTypeAdapter<folly::fbstring>"}
 typedef string string_typedef
 
 @cpp.EnableCustomTypeOrdering

@@ -512,7 +512,11 @@ void addStructField(
   entry.required = !isUnion &&
       field.presence() == type_system::PresenceQualifier::UNQUALIFIED;
   if (!isThriftWriteProtocol(ops.protocol)) {
-    if (field.customDefault() != nullptr) {
+    // JSON keeps field presence: a field the JSON leaves out stays absent in
+    // Thrift, where the reader applies the custom default. Protobuf reads an
+    // absent field as the intrinsic default instead.
+    if (field.customDefault() != nullptr &&
+        ops.protocol != WireProtocol::Json) {
       throw std::invalid_argument(
           "custom defaults are not supported for non-Thrift protocol "
           "transcoding");

@@ -57,13 +57,11 @@ class FakeThreadManager : public apache::thrift::concurrency::ThreadManager {
 
   STATE state() const override {
     LOG(FATAL) << "Method not implemented in this fake object";
-    return STARTED;
   }
 
   std::shared_ptr<apache::thrift::concurrency::ThreadFactory> threadFactory()
       const override {
     LOG(FATAL) << "Method not implemented in this fake object";
-    return std::shared_ptr<apache::thrift::concurrency::ThreadFactory>();
   }
 
   void threadFactory(
@@ -74,7 +72,6 @@ class FakeThreadManager : public apache::thrift::concurrency::ThreadManager {
 
   std::string getNamePrefix() const override {
     LOG(FATAL) << "Method not implemented in this fake object";
-    return "";
   }
 
   void setNamePrefix(const std::string& /*name*/) override {
@@ -91,32 +88,26 @@ class FakeThreadManager : public apache::thrift::concurrency::ThreadManager {
 
   size_t idleWorkerCount() const override {
     LOG(FATAL) << "Method not implemented in this fake object";
-    return 1;
   }
 
   size_t workerCount() const override {
     LOG(FATAL) << "Method not implemented in this fake object";
-    return 1;
   }
 
   size_t pendingTaskCount() const override {
     LOG(FATAL) << "Method not implemented in this fake object";
-    return 1;
   }
 
   size_t pendingUpstreamTaskCount() const override {
     LOG(FATAL) << "Method not implemented in this fake object";
-    return 1;
   }
 
   size_t totalTaskCount() const override {
     LOG(FATAL) << "Method not implemented in this fake object";
-    return 1;
   }
 
   size_t expiredTaskCount() override {
     LOG(FATAL) << "Method not implemented in this fake object";
-    return 1;
   }
 
   void remove(std::shared_ptr<apache::thrift::concurrency::Runnable> /*task*/)
@@ -127,7 +118,6 @@ class FakeThreadManager : public apache::thrift::concurrency::ThreadManager {
   std::shared_ptr<apache::thrift::concurrency::Runnable> removeNextPending()
       override {
     LOG(FATAL) << "Method not implemented in this fake object";
-    return std::shared_ptr<apache::thrift::concurrency::Runnable>();
   }
 
   void clearPending() override {
@@ -152,12 +142,10 @@ class FakeThreadManager : public apache::thrift::concurrency::ThreadManager {
 
   bool codelEnabled() const override {
     LOG(FATAL) << "Method not implemented in this fake object";
-    return false;
   }
 
   folly::Codel* getCodel() override {
     LOG(FATAL) << "Method not implemented in this fake object";
-    return nullptr;
   }
 
  private:

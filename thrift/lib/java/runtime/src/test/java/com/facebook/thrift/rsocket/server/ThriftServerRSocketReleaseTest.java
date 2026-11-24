@@ -61,10 +61,10 @@ import reactor.test.StepVerifier;
  * {@code ByteBuf} is extracted, and hands ONLY that decoded buffer to {@link
  * com.facebook.thrift.payload.ServerRequestPayload} as its owned reference. The server handler
  * releases it via {@code releaseRequestData()} right after the synchronous read (the generated
- * {@code _do<method>} for request-response/oneway, {@code StreamResponseHandlerTemplate} for
- * streams), and the transport's {@code doFinally} calls the same idempotent method as a backstop.
- * So the request buffer is freed as soon as the arguments are decoded instead of being pinned until
- * the response (or the whole stream) completes.
+ * {@code _do<method>} for request-response/oneway, {@code ServerStreams} for streams), and the
+ * transport's {@code doFinally} calls the same idempotent method as a backstop. So the request
+ * buffer is freed as soon as the arguments are decoded instead of being pinned until the response
+ * (or the whole stream) completes.
  *
  * <p>Request buffers are allocated with {@link Unpooled} so their {@code refCnt()} is a stable
  * release oracle: unlike pooled buffers and the recyclable {@code ByteBufPayload}, an unpooled
@@ -148,6 +148,91 @@ public class ThriftServerRSocketReleaseTest {
   }
 
   @Test
+  public void streamInitialResponse_freesRequestBufferEagerlyBeforeStreamCompletes() {
+    // Success path through the Mono<ResponseAndStream> adapter: the request buffer is freed
+    // at arg decode, before the first-response frame is even emitted.
+    RequestRpcMetadata metadata =
+        metadata(
+            ProtocolId.COMPACT, "streamInitialResponse", RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE);
+    ByteBuf data = createData(metadata, request(0, "foo"));
+    ByteBuf meta = createMetadata(metadata);
+    Payload payload = PayloadUtil.createPayload(data, meta);
+
+    StepVerifier.create(rocket.requestStream(payload))
+        .assertNext(
+            response -> {
+              assertEquals(
+                  0, data.refCnt(), "request data must be freed eagerly when the stream starts");
+              response.release();
+            })
+        .thenConsumeWhile(p -> true, Payload::release)
+        .verifyComplete();
+
+    assertEquals(0, data.refCnt());
+    assertEquals(0, meta.refCnt());
+  }
+
+  @Test
+  public void streamInitialResponse_outerError_freesRequestBuffers() {
+    // Outer Mono error encodes as the initial error; the request buffer is still freed.
+    RequestRpcMetadata metadata =
+        metadata(
+            ProtocolId.COMPACT,
+            "streamInitialResponseDeclaredException",
+            RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE);
+    ByteBuf data = createData(metadata, request(0, "foo"));
+    ByteBuf meta = createMetadata(metadata);
+    Payload payload = PayloadUtil.createPayload(data, meta);
+
+    StepVerifier.create(rocket.requestStream(payload))
+        .assertNext(Payload::release)
+        .verifyComplete();
+
+    assertEquals(0, data.refCnt(), "request data must be freed on outer Mono error");
+    assertEquals(0, meta.refCnt(), "request metadata must be freed on outer Mono error");
+  }
+
+  @Test
+  public void streamInitialResponse_innerError_freesRequestBuffers() {
+    // Inner Flux error encodes as a stream error after the first response; buffers freed.
+    RequestRpcMetadata metadata =
+        metadata(
+            ProtocolId.COMPACT,
+            "streamInitialResponseDeclaredExceptionAfterFirst",
+            RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE);
+    ByteBuf data = createData(metadata, request(0, "foo"));
+    ByteBuf meta = createMetadata(metadata);
+    Payload payload = PayloadUtil.createPayload(data, meta);
+
+    StepVerifier.create(rocket.requestStream(payload))
+        .thenConsumeWhile(p -> true, Payload::release)
+        .verifyComplete();
+
+    assertEquals(0, data.refCnt(), "request data must be freed on inner Flux error");
+    assertEquals(0, meta.refCnt(), "request metadata must be freed on inner Flux error");
+  }
+
+  @Test
+  public void streamInitialResponse_cancelAfterFirst_freesRequestBuffers() {
+    // Cancelling after the first response must still free the request buffer via the
+    // transport's doFinally backstop.
+    RequestRpcMetadata metadata =
+        metadata(
+            ProtocolId.COMPACT, "streamInitialResponse", RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE);
+    ByteBuf data = createData(metadata, request(0, "foo"));
+    ByteBuf meta = createMetadata(metadata);
+    Payload payload = PayloadUtil.createPayload(data, meta);
+
+    StepVerifier.create(rocket.requestStream(payload))
+        .assertNext(Payload::release)
+        .thenCancel()
+        .verify();
+
+    assertEquals(0, data.refCnt(), "request data must be freed on cancel after first response");
+    assertEquals(0, meta.refCnt(), "request metadata must be freed on cancel after first response");
+  }
+
+  @Test
   public void requestResponse_compressedRequest_freesCompressedAndDecodedBuffers() {
     // Compressed path: the request frame on the wire is the ZLIB-compressed payload of the
     // serialized struct. ThriftServerRSocket.maybeDecompressRequestData decompresses it -- the
@@ -213,11 +298,9 @@ public class ThriftServerRSocketReleaseTest {
     ByteBuf meta = createMetadata(metadata);
     Payload payload = PayloadUtil.createPayload(data, meta);
 
-    // Sanity check: client receives a proper Thrift LOADSHEDDING error response, not a connection
-    // drop, when the dispatcher returns Mono.just(errorResponse) from the preprocess catch.
-    StepVerifier.create(sheddingRocket.requestResponse(payload))
-        .assertNext(Payload::release)
-        .verifyComplete();
+    // Sanity check: the shed surfaces as a Rocket ERROR, not a connection drop, when the
+    // dispatcher returns Mono.just(errorResponse) from the preprocess catch.
+    StepVerifier.create(sheddingRocket.requestResponse(payload)).verifyError();
 
     assertEquals(1, handlerInvocations.get(), "preprocess must fire exactly once");
     // The core invariant: even though preprocess sheds BEFORE the Mono.defer is ever subscribed,
@@ -280,12 +363,10 @@ public class ThriftServerRSocketReleaseTest {
     ByteBuf meta = createMetadata(metadata);
     Payload payload = PayloadUtil.createPayload(data, meta);
 
-    // Streaming shed: dispatcher returns Flux.just(errorResponse). The stream emits the error
-    // payload and completes; the transport's doFinally releases the buffer immediately -- not
+    // Streaming shed: the dispatcher returns Flux.just(errorResponse) and the transport turns
+    // it into a Rocket ERROR; the transport's doFinally releases the buffer immediately -- not
     // pinned for any stream lifetime.
-    StepVerifier.create(sheddingRocket.requestStream(payload))
-        .assertNext(Payload::release)
-        .verifyComplete();
+    StepVerifier.create(sheddingRocket.requestStream(payload)).verifyError();
 
     assertEquals(0, data.refCnt(), "request data must be freed on streaming preprocess shed");
     assertEquals(0, meta.refCnt(), "request metadata must be freed on streaming preprocess shed");

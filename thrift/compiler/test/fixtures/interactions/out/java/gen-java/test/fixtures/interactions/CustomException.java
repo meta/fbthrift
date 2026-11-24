@@ -50,8 +50,21 @@ public final class CustomException extends org.apache.thrift.TBaseException impl
       this.message = null;
     }
 
+    public CustomException(
+            final String message,
+            final java.lang.Throwable cause) {
+        super(cause);
+        this.message = message;
+    }
+
+    public CustomException(final java.lang.Throwable cause) {
+        super(cause);
+        this.message = cause == null ? null : cause.toString();
+    }
+
     public static class Builder {
         private String message = null;
+        private java.lang.Throwable cause;
 
         @com.facebook.swift.codec.ThriftField(value=1, name="message", requiredness=Requiredness.NONE)    public Builder setMessage(String message) {
             this.message = message;
@@ -59,6 +72,11 @@ public final class CustomException extends org.apache.thrift.TBaseException impl
         }
 
         public String getMessage() { return message; }
+
+        public Builder setCause(final java.lang.Throwable cause) {
+            this.cause = cause;
+            return this;
+        }
 
         public Builder() { }
         public Builder(CustomException other) {
@@ -70,6 +88,9 @@ public final class CustomException extends org.apache.thrift.TBaseException impl
             CustomException result = new CustomException (
                 this.message
             );
+            if (cause != null) {
+                result.initCause(cause);
+            }
             return result;
         }
     }

@@ -77,11 +77,33 @@ public final class MyException extends org.apache.thrift.TBaseException implemen
       this.myUnion = null;
     }
 
+    public MyException(
+            final long myIntField,
+            final String myStringField,
+            final test.fixtures.no_package.MyStruct myStruct,
+            final test.fixtures.no_package.MyUnion myUnion,
+            final java.lang.Throwable cause) {
+        super(cause);
+        this.myIntField = myIntField;
+        this.myStringField = myStringField;
+        this.myStruct = myStruct;
+        this.myUnion = myUnion;
+    }
+
+    public MyException(final java.lang.Throwable cause) {
+        super(cause);
+        this.myIntField = 0L;
+        this.myStringField = null;
+        this.myStruct = null;
+        this.myUnion = null;
+    }
+
     public static class Builder {
         private long myIntField = 0L;
         private String myStringField = null;
         private test.fixtures.no_package.MyStruct myStruct = null;
         private test.fixtures.no_package.MyUnion myUnion = null;
+        private java.lang.Throwable cause;
 
         @com.facebook.swift.codec.ThriftField(value=1, name="MyIntField", requiredness=Requiredness.NONE)    public Builder setMyIntField(long myIntField) {
             this.myIntField = myIntField;
@@ -111,6 +133,11 @@ public final class MyException extends org.apache.thrift.TBaseException implemen
 
         public test.fixtures.no_package.MyUnion getMyUnion() { return myUnion; }
 
+        public Builder setCause(final java.lang.Throwable cause) {
+            this.cause = cause;
+            return this;
+        }
+
         public Builder() { }
         public Builder(MyException other) {
             this.myIntField = other.myIntField;
@@ -127,6 +154,9 @@ public final class MyException extends org.apache.thrift.TBaseException implemen
                 this.myStruct,
                 this.myUnion
             );
+            if (cause != null) {
+                result.initCause(cause);
+            }
             return result;
         }
     }

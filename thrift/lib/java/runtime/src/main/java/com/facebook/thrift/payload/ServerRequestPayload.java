@@ -33,10 +33,16 @@ public interface ServerRequestPayload {
    * {@link #releaseRequestData()} from freeing a buffer that is being read. Generated handlers call
    * this once and thereafter retain only the concrete Java arguments.
    *
+   * <p>The readers are the {@link FieldReader} list the generated handler builds: arguments are
+   * decoded by Field ID like C++, anything else is skipped, and a parameter the request omits takes
+   * its default-constructed value.
+   *
    * @throws IllegalStateException if the request bytes are already gone, either because they were
    *     read once already or because the request ended first and the transport released them
+   * @throws org.apache.thrift.protocol.TProtocolException if the argument bytes are truncated or
+   *     malformed
    */
-  List<Object> getData(List<Reader> readers);
+  List<Object> getData(List<FieldReader<?>> readers);
 
   /**
    * Releases the framework's owning reference to the request buffer, if any.
@@ -102,7 +108,7 @@ public interface ServerRequestPayload {
    * payload carries. The bytes are still claimed as one unit, so the release stays safe.
    */
   static ServerRequestPayload create(
-      Function<List<Reader>, List<Object>> readerTransformer,
+      Function<List<FieldReader<?>>, List<Object>> readerTransformer,
       RequestRpcMetadata requestRpcMetadata,
       RequestContext requestContext,
       int messageSeqId,
@@ -117,7 +123,7 @@ public interface ServerRequestPayload {
 
   /** As above, with the default message seq id. */
   static ServerRequestPayload create(
-      Function<List<Reader>, List<Object>> readerTransformer,
+      Function<List<FieldReader<?>>, List<Object>> readerTransformer,
       RequestRpcMetadata requestRpcMetadata,
       RequestContext requestContext,
       ReferenceCounted requestData) {
@@ -125,7 +131,7 @@ public interface ServerRequestPayload {
   }
 
   static ServerRequestPayload create(
-      Function<List<Reader>, List<Object>> readerTransformer,
+      Function<List<FieldReader<?>>, List<Object>> readerTransformer,
       RequestRpcMetadata requestRpcMetadata,
       RequestContext requestContext,
       int messageSeqId) {
@@ -133,7 +139,7 @@ public interface ServerRequestPayload {
   }
 
   static ServerRequestPayload create(
-      Function<List<Reader>, List<Object>> readerTransformer,
+      Function<List<FieldReader<?>>, List<Object>> readerTransformer,
       RequestRpcMetadata requestRpcMetadata,
       RequestContext requestContext) {
     return create(readerTransformer, requestRpcMetadata, requestContext, 1, null);

@@ -334,10 +334,10 @@ const ::std::set<::std::int32_t>& SomeStruct::get_tags() const& [[FOLLY_ATTR_CLA
 
 void swap([[maybe_unused]] SomeStruct& a, [[maybe_unused]] SomeStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_reasonable, b.__fbthrift_field_reasonable);
-  swap(a.__fbthrift_field_fine, b.__fbthrift_field_fine);
-  swap(a.__fbthrift_field_questionable, b.__fbthrift_field_questionable);
-  swap(a.__fbthrift_field_tags, b.__fbthrift_field_tags);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_reasonable, b.__fbthrift_field_reasonable);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fine, b.__fbthrift_field_fine);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_questionable, b.__fbthrift_field_questionable);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_tags, b.__fbthrift_field_tags);
   swap(a.__isset, b.__isset);
 }
 
@@ -427,10 +427,10 @@ std::partial_ordering MyStruct::operator<=>([[maybe_unused]] const MyStruct& rhs
 
 void swap([[maybe_unused]] MyStruct& a, [[maybe_unused]] MyStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_me2_3, b.__fbthrift_field_me2_3);
-  swap(a.__fbthrift_field_me3_n3, b.__fbthrift_field_me3_n3);
-  swap(a.__fbthrift_field_me1_t1, b.__fbthrift_field_me1_t1);
-  swap(a.__fbthrift_field_me1_t2, b.__fbthrift_field_me1_t2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_me2_3, b.__fbthrift_field_me2_3);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_me3_n3, b.__fbthrift_field_me3_n3);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_me1_t1, b.__fbthrift_field_me1_t1);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_me1_t2, b.__fbthrift_field_me1_t2);
   swap(a.__isset, b.__isset);
 }
 

@@ -455,16 +455,16 @@ TEST(SerializationTest, UnsignedIntUnion) {
   TestUnsignedIntUnion u;
 
   static_assert(
-      std::is_same_v<decltype(u.get_u8()), const uint8_t&>,
+      std::is_same_v<decltype(u.u8().as_const().value()), const uint8_t&>,
       "Unexpected return value type for u.get_u8()");
   static_assert(
-      std::is_same_v<decltype(u.get_u16()), const uint16_t&>,
+      std::is_same_v<decltype(u.u16().as_const().value()), const uint16_t&>,
       "Unexpected return value type for u.get_u16()");
   static_assert(
-      std::is_same_v<decltype(u.get_u32()), const uint32_t&>,
+      std::is_same_v<decltype(u.u32().as_const().value()), const uint32_t&>,
       "Unexpected return value type for u.get_u32()");
   static_assert(
-      std::is_same_v<decltype(u.get_u64()), const uint64_t&>,
+      std::is_same_v<decltype(u.u64().as_const().value()), const uint64_t&>,
       "Unexpected return value type for s.get_u64()");
 
   u.u64() = 9223372036854775808ULL;

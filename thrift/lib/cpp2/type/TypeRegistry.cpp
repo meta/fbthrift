@@ -53,23 +53,6 @@ AnyData TypeRegistry::store(AnyConstRef value, const Protocol& protocol) const {
   return AnyData{std::move(builder)};
 }
 
-AnyData TypeRegistry::store(ConstRef value, const Protocol& protocol) const {
-  if (value.type() == Type::get<type::void_t>()) {
-    return {};
-  }
-
-  const auto& serializer = getEntry(value.type()).getSerializer(protocol);
-  folly::IOBufQueue queue(folly::IOBufQueue::cacheChainLength());
-  constexpr size_t kDesiredGrowth = (1 << 14) - 64;
-  serializer.encode(value, folly::io::QueueAppender(&queue, kDesiredGrowth));
-
-  SemiAny builder;
-  builder.data() = queue.moveAsValue();
-  builder.protocol() = protocol;
-  builder.type() = value.type();
-  return AnyData{std::move(builder)};
-}
-
 void TypeRegistry::load(const AnyData& data, AnyRef out) const {
   if (data.type() == Type::get<type::void_t>()) {
     if (out.type() != Type::get<type::void_t>()) {

@@ -29,8 +29,8 @@
 #include <folly/io/async/EventBase.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/EndpointAdapter.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/server/Event.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/server/adapter/RocketServerAppAdapter.h>
@@ -42,12 +42,12 @@ namespace apache::thrift::fast_thrift::thrift::server::test {
 
 namespace transport = apache::thrift::fast_thrift::transport;
 
-using channel_pipeline::PipelineBuilder;
-using channel_pipeline::PipelineImpl;
+using channel_pipeline::PipelineOwner;
 using channel_pipeline::Result;
+using channel_pipeline::StaticPipelineBuilder;
 using channel_pipeline::TypeErasedBox;
-using channel_pipeline::test::MockHeadHandler;
-using channel_pipeline::test::MockTailHandler;
+using channel_pipeline::test::StaticMockHeadHandler;
+using channel_pipeline::test::StaticMockTailHandler;
 using channel_pipeline::test::TestAllocator;
 
 static_assert(
@@ -60,29 +60,29 @@ namespace {
 // server topology:
 //
 //   Rocket pipeline (head → tail):
-//       MockHeadHandler → ... → RocketServerAppAdapter
+//       StaticMockHeadHandler → ... → RocketServerAppAdapter
 //
 //   Thrift pipeline (head → tail):
-//       ThriftServerTransportAdapter (bridge) → ... → MockTailHandler
+//       ThriftServerTransportAdapter (bridge) → ... → StaticMockTailHandler
 //
 // The bridge takes ownership of the rocket connection bundle. The rocket
 // adapter inside that bundle is the tail of the rocket pipeline; the
 // fixture keeps a raw pointer to it for activation/deactivation.
 struct BridgeFixture {
   folly::EventBase evb;
-  MockHeadHandler rocketHead;
+  StaticMockHeadHandler rocketHead;
   TestAllocator rocketAllocator;
   TestAllocator thriftAllocator;
   // thriftTail must outlive the thrift pipeline; declare before the bridge
   // so it stays alive across teardown.
-  MockTailHandler thriftTail;
+  StaticMockTailHandler thriftTail;
   rocket::server::RocketServerAppAdapter* rocketAdapter{nullptr};
   rocket::server::RocketServerConnection* rocketConnRaw{nullptr};
   std::unique_ptr<ThriftServerTransportAdapter> bridge;
   // Non-owning — the actual rocket pipeline lives inside the bundle that
   // the bridge owns (rocketConnRaw->pipeline).
-  PipelineImpl* rocketPipeline{nullptr};
-  PipelineImpl::Ptr thriftPipeline;
+  channel_pipeline::PipelineRef rocketPipeline;
+  PipelineOwner thriftPipeline;
 
   BridgeFixture() {
     rocketHead.setOnWriteCallback(
@@ -93,8 +93,8 @@ struct BridgeFixture {
     rocketAdapter = rocketConn->appAdapter.get();
     rocketConnRaw = rocketConn.get();
 
-    auto rocketPipelinePtr = PipelineBuilder<
-                                 MockHeadHandler,
+    auto rocketPipelinePtr = StaticPipelineBuilder<
+                                 StaticMockHeadHandler,
                                  rocket::server::RocketServerAppAdapter,
                                  TestAllocator>()
                                  .setEventBase(&evb)
@@ -103,15 +103,15 @@ struct BridgeFixture {
                                  .setAllocator(&rocketAllocator)
                                  .build();
     rocketAdapter->setPipeline(rocketPipelinePtr.get());
-    rocketPipeline = rocketPipelinePtr.get();
+    rocketPipeline = channel_pipeline::PipelineRef(*rocketPipelinePtr);
     rocketConn->pipeline = std::move(rocketPipelinePtr);
 
     bridge =
         std::make_unique<ThriftServerTransportAdapter>(std::move(rocketConn));
 
-    thriftPipeline = PipelineBuilder<
+    thriftPipeline = StaticPipelineBuilder<
                          ThriftServerTransportAdapter,
-                         MockTailHandler,
+                         StaticMockTailHandler,
                          TestAllocator>()
                          .setEventBase(&evb)
                          .setHead(bridge.get())
@@ -142,13 +142,13 @@ TEST(
   // Activate the rocket pipeline. The rocket adapter fires onConnect_ on
   // its lifecycle subscription, which the bridge translates into thrift
   // pipeline activate.
-  fixture.rocketPipeline->activate();
+  fixture.rocketPipeline.activate();
 
   EXPECT_EQ(fixture.thriftTail.pipelineActiveCount(), 1);
 
   // Re-activating rocket must NOT re-fire the thrift active path
   // because of the bridge's connected_ guard.
-  fixture.rocketPipeline->activate();
+  fixture.rocketPipeline.activate();
   EXPECT_EQ(fixture.thriftTail.pipelineActiveCount(), 1);
 }
 
@@ -156,13 +156,13 @@ TEST(
     ThriftServerTransportAdapterTest,
     RocketInactivePropagatesToThriftPipelineDeactivate) {
   BridgeFixture fixture;
-  fixture.rocketPipeline->activate();
+  fixture.rocketPipeline.activate();
   EXPECT_EQ(fixture.thriftTail.pipelineActiveCount(), 1);
   EXPECT_EQ(fixture.thriftTail.pipelineInactiveCount(), 0);
 
   // Rocket side goes inactive (socket closed). The bridge translates
   // this into thrift pipeline deactivate.
-  fixture.rocketPipeline->deactivate();
+  fixture.rocketPipeline.deactivate();
 
   EXPECT_EQ(fixture.thriftTail.pipelineInactiveCount(), 1);
 }
@@ -171,7 +171,7 @@ TEST(
     ThriftServerTransportAdapterTest,
     ThriftDeactivateDisconnectsRocketConnection) {
   BridgeFixture fixture;
-  fixture.rocketPipeline->activate();
+  fixture.rocketPipeline.activate();
   EXPECT_FALSE(fixture.rocketConnRaw->disconnected_);
 
   // Thrift side initiates: deactivate the thrift pipeline. The bridge's
@@ -184,19 +184,19 @@ TEST(
 TEST(ThriftServerTransportAdapterTest, ReactivateAfterDeactivateCyclesCleanly) {
   BridgeFixture fixture;
 
-  fixture.rocketPipeline->activate();
+  fixture.rocketPipeline.activate();
   EXPECT_EQ(fixture.thriftTail.pipelineActiveCount(), 1);
   EXPECT_EQ(fixture.thriftTail.pipelineInactiveCount(), 0);
 
-  fixture.rocketPipeline->deactivate();
+  fixture.rocketPipeline.deactivate();
   EXPECT_EQ(fixture.thriftTail.pipelineInactiveCount(), 1);
 
   // Re-activate — the bridge's connected_ flag was cleared by the
   // deactivate path, so the second activate must propagate again.
-  fixture.rocketPipeline->activate();
+  fixture.rocketPipeline.activate();
   EXPECT_EQ(fixture.thriftTail.pipelineActiveCount(), 2);
 
-  fixture.rocketPipeline->deactivate();
+  fixture.rocketPipeline.deactivate();
   EXPECT_EQ(fixture.thriftTail.pipelineInactiveCount(), 2);
 }
 
@@ -204,7 +204,7 @@ TEST(
     ThriftServerTransportAdapterTest,
     ReentryFromRocketToThriftToRocketDoesNotLoop) {
   BridgeFixture fixture;
-  fixture.rocketPipeline->activate();
+  fixture.rocketPipeline.activate();
   EXPECT_EQ(fixture.thriftTail.pipelineInactiveCount(), 0);
   EXPECT_FALSE(fixture.rocketConnRaw->disconnected_);
 
@@ -216,7 +216,7 @@ TEST(
   // propagation path, so the reentry is absorbed. No infinite loop, and
   // disconnect() is never invoked (the rocket pipeline initiated, not
   // the bridge).
-  fixture.rocketPipeline->deactivate();
+  fixture.rocketPipeline.deactivate();
 
   EXPECT_EQ(fixture.thriftTail.pipelineInactiveCount(), 1);
   EXPECT_FALSE(fixture.rocketConnRaw->disconnected_);
@@ -227,8 +227,8 @@ namespace {
 // Thrift-pipeline tail that subscribes to the WriteComplete event and records
 // the relayed payload — models the consumer the bridge fires toward.
 struct WriteCompleteCapturingTail {
-  Result onRead(
-      channel_pipeline::detail::ContextImpl&, TypeErasedBox&&) noexcept {
+  template <typename Context>
+  Result onRead(Context&, TypeErasedBox&&) noexcept {
     return Result::Success;
   }
   void onException(folly::exception_wrapper&&) noexcept {}
@@ -256,7 +256,7 @@ TEST(
     ThriftServerTransportAdapterTest,
     RocketWriteCompleteRelaysToThriftWriteCompleteEvent) {
   folly::EventBase evb;
-  MockHeadHandler rocketHead;
+  StaticMockHeadHandler rocketHead;
   rocketHead.setOnWriteCallback(
       [](TypeErasedBox&&) { return Result::Success; });
   TestAllocator rocketAllocator;
@@ -265,8 +265,8 @@ TEST(
 
   auto rocketConn = std::make_unique<rocket::server::RocketServerConnection>();
   auto* rocketAdapter = rocketConn->appAdapter.get();
-  auto rocketPipeline = PipelineBuilder<
-                            MockHeadHandler,
+  auto rocketPipeline = StaticPipelineBuilder<
+                            StaticMockHeadHandler,
                             rocket::server::RocketServerAppAdapter,
                             TestAllocator>()
                             .setEventBase(&evb)
@@ -279,7 +279,7 @@ TEST(
 
   auto bridge =
       std::make_unique<ThriftServerTransportAdapter>(std::move(rocketConn));
-  auto thriftPipeline = PipelineBuilder<
+  auto thriftPipeline = StaticPipelineBuilder<
                             ThriftServerTransportAdapter,
                             WriteCompleteCapturingTail,
                             TestAllocator>()

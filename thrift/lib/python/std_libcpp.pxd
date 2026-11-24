@@ -93,7 +93,7 @@ cdef extern from "<string_view>" namespace "std" nogil:
 # This is very dependent on the version of cython we're using, but string_view
 # is already properly supported upstream, so we can just use that when we
 # finally upgrade.
-cdef extern from "":
+cdef extern from *:
     cdef bytes __Pyx_PyBytes_FromStringAndSize(const char* s, Py_ssize_t size)
 
 cdef inline str sv_to_str(string_view sv) except +:

@@ -63,9 +63,23 @@ public class optXcep extends Exception implements TBase, java.io.Serializable, C
     setErrorCodeIsSet(true);
   }
 
+  public optXcep(
+      String message,
+      int errorCode,
+      java.lang.Throwable cause) {
+    this(message, errorCode);
+    initCause(cause);
+  }
+
+  public optXcep(java.lang.Throwable cause) {
+    super(cause);
+    this.message = cause == null ? null : cause.toString();
+  }
+
   public static class Builder {
     private String message;
     private int errorCode;
+    private java.lang.Throwable cause;
 
     BitSet __optional_isset = new BitSet(1);
 
@@ -83,11 +97,19 @@ public class optXcep extends Exception implements TBase, java.io.Serializable, C
       return this;
     }
 
+    public Builder setCause(final java.lang.Throwable cause) {
+      this.cause = cause;
+      return this;
+    }
+
     public optXcep build() {
       optXcep result = new optXcep();
       result.setMessage(this.message);
       if (__optional_isset.get(__ERRORCODE_ISSET_ID)) {
         result.setErrorCode(this.errorCode);
+      }
+      if (cause != null) {
+        result.initCause(cause);
       }
       return result;
     }

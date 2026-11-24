@@ -19,11 +19,12 @@
 #include <atomic>
 #include <functional>
 #include <memory>
+#include <utility>
 #include <folly/ExceptionWrapper.h>
 #include <folly/Synchronized.h>
 #include <thrift/lib/cpp2/async/AsyncProcessor.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/server/MetadataProtocol.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/Messages.h>
 #include <thrift/lib/cpp2/server/Cpp2ConnContext.h>
@@ -65,14 +66,21 @@ class ThriftServerChannel {
 
   // Set the pipeline (takes ownership) - must be called before processing
   // requests
-  void setPipeline(
-      apache::thrift::fast_thrift::channel_pipeline::PipelineImpl::Ptr
-          pipeline);
+  void setPipeline(channel_pipeline::PipelineOwner pipeline);
+
+  template <channel_pipeline::PipelineRefTarget P, typename D>
+  void setPipeline(std::unique_ptr<P, D> pipeline) {
+    setPipeline(channel_pipeline::PipelineOwner(std::move(pipeline)));
+  }
 
   // Set the pipeline (non-owning) - for use when the pipeline is owned
   // externally (e.g., by ConnectionHandler)
-  void setPipelineRef(
-      apache::thrift::fast_thrift::channel_pipeline::PipelineImpl& pipeline);
+  void setPipelineRef(channel_pipeline::PipelineRef pipeline);
+
+  template <channel_pipeline::PipelineRefTarget P>
+  void setPipelineRef(P& pipeline) {
+    setPipelineRef(channel_pipeline::PipelineRef(pipeline));
+  }
 
   // Set the worker context for Cpp2ConnContext initialization.
   // Must be called before processing requests to provide IOWorkerContext.
@@ -96,15 +104,19 @@ class ThriftServerChannel {
 
   // === TailEndpointHandler interface ===
   // Called by the pipeline when a request message arrives
-  apache::thrift::fast_thrift::channel_pipeline::Result onRead(
-      apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl&,
-      apache::thrift::fast_thrift::channel_pipeline::TypeErasedBox&&
-          msg) noexcept;
+  template <typename Context>
+  channel_pipeline::Result onRead(
+      Context&, channel_pipeline::TypeErasedBox&& msg) noexcept {
+    return onRequest(std::move(msg));
+  }
 
   // Called when an exception propagates through the pipeline
   void onException(folly::exception_wrapper&& e) noexcept;
 
  private:
+  channel_pipeline::Result onRequest(
+      channel_pipeline::TypeErasedBox&& msg) noexcept;
+
   // Send a Thrift RPC infrastructure error as an ERROR frame.
   void sendThriftError(
       uint32_t streamId,
@@ -113,10 +125,8 @@ class ThriftServerChannel {
 
   std::shared_ptr<apache::thrift::AsyncProcessorFactory> processorFactory_;
   std::unique_ptr<apache::thrift::AsyncProcessor> processor_;
-  apache::thrift::fast_thrift::channel_pipeline::PipelineImpl* pipeline_{
-      nullptr};
-  apache::thrift::fast_thrift::channel_pipeline::PipelineImpl::Ptr
-      ownedPipeline_;
+  channel_pipeline::PipelineRef pipeline_;
+  channel_pipeline::PipelineOwner ownedPipeline_;
   std::shared_ptr<apache::thrift::Cpp2Worker> worker_;
   apache::thrift::Cpp2ConnContext connContext_;
 

@@ -223,6 +223,11 @@ class Json5ProtocolWriter final
   template <class Tag, class T>
   std::optional<std::uint32_t> maybeWriteSimpleMapKey(const T& value);
 
+  // Writes `value` as an object member name when a map key is expected, and
+  // with the `JsonWriter` member function `Write` otherwise.
+  template <class Tag, auto Write, class T>
+  std::uint32_t writeScalar(T value);
+
   CompoundTypeTracker containerStack_;
   Options options_;
   JsonWriter writer_;

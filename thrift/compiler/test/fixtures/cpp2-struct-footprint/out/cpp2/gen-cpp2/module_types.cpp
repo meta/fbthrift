@@ -82,7 +82,7 @@ std::partial_ordering SimpleStruct::operator<=>([[maybe_unused]] const SimpleStr
 
 void swap([[maybe_unused]] SimpleStruct& a, [[maybe_unused]] SimpleStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_field, b.__fbthrift_field_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field, b.__fbthrift_field_field);
   swap(a.__isset, b.__isset);
 }
 
@@ -135,7 +135,7 @@ const ::cpp2_struct_footprint::SimpleStruct& ComplexStruct::get_nested() const& 
 
 void swap([[maybe_unused]] ComplexStruct& a, [[maybe_unused]] ComplexStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_nested, b.__fbthrift_field_nested);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_nested, b.__fbthrift_field_nested);
   swap(a.__isset, b.__isset);
 }
 
@@ -395,7 +395,7 @@ std::partial_ordering ExStruct::operator<=>([[maybe_unused]] const ExStruct& rhs
 
 void swap([[maybe_unused]] ExStruct& a, [[maybe_unused]] ExStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_message, b.__fbthrift_field_message);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_message, b.__fbthrift_field_message);
   swap(a.__isset, b.__isset);
 }
 
@@ -454,39 +454,56 @@ void TestUnion::__fbthrift_clear() {
 bool TestUnion::__fbthrift_is_empty() const {
   return getType() == Type::__EMPTY__;
 }
+  TestUnion& TestUnion::operator=(TestUnion&& rhs) noexcept {
+    if (this == &rhs) { return *this; }
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+      {
+        __fbthrift_clear();
+        return *this;
+      }
+      case Type::int_value:
+      {
+        auto value = std::move(rhs.value_.int_value);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(int_value_ref(), std::move(value));
+        break;
+      }
+      case Type::struct_value:
+      {
+        auto value = std::move(rhs.value_.struct_value);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(struct_value_ref(), std::move(value));
+        break;
+      }
+      default:
+      {
+        assert(false);
+        __fbthrift_clear();
+      }
+    }
+    return *this;
+  }
+
   TestUnion::TestUnion(const TestUnion& rhs)
       : fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
     switch (rhs.getType()) {
       case Type::__EMPTY__:
         return;
       case Type::int_value:
-        set_int_value(rhs.value_.int_value);
+        int_value_ref().emplace(rhs.value_.int_value);
         break;
       case Type::struct_value:
-        set_struct_value(rhs.value_.struct_value);
+        struct_value_ref().emplace(rhs.value_.struct_value);
         break;
       default:
         assert(false);
     }
   }
 
-    TestUnion&TestUnion::operator=(const TestUnion& rhs) {
+  TestUnion& TestUnion::operator=(const TestUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::int_value:
-        set_int_value(rhs.value_.int_value);
-        break;
-      case Type::struct_value:
-        set_struct_value(rhs.value_.struct_value);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = TestUnion(rhs);
   }
 
 

@@ -79,7 +79,11 @@ class CompactProtocolWriter : public detail::ProtocolBase {
   static constexpr bool kHasIndexSupport() { return true; }
 
   static constexpr bool kSupportsArithmeticVectors() {
-#if FOLLY_ARM_FEATURE_NEON_SVE_BRIDGE
+    // Measured faster than writing each element only on these. Without the
+    // branch-free encoder (BMI2, not Apple), the bulk writer encodes varints
+    // a byte at a time.
+#if (FOLLY_X64 && THRIFT_UTIL_VARINTUTILS_BRANCH_FREE_ENCODER) || \
+    FOLLY_ARM_FEATURE_NEON_SVE_BRIDGE
     return true;
 #else
     return false;
@@ -270,8 +274,10 @@ class CompactProtocolReader : public detail::ProtocolBase {
   static constexpr bool kCanReadStringView() { return true; }
 
   static constexpr bool kSupportsArithmeticVectors() {
-    // Disabling on x86 due to seeing regressions in some tests
-#if FOLLY_ARM_FEATURE_NEON_SVE_BRIDGE
+    // Measured faster than reading each element only on these. Without BMI2,
+    // the bulk reader decodes long varints a byte at a time.
+#if (FOLLY_X64 && THRIFT_UTIL_VARINTUTILS_BMI2_DECODER) || \
+    FOLLY_ARM_FEATURE_NEON_SVE_BRIDGE
     return true;
 #else
     return false;
@@ -404,8 +410,6 @@ struct CompactProtocolReader::StructReadState {
   int16_t fieldId;
   apache::thrift::protocol::TType fieldType;
   // bool boolValue;
-
-  constexpr static bool kAcceptsContext = false;
 
   void readStructBegin(CompactProtocolReader* iprot) {
     iprot->readStructBeginWithState(*this);

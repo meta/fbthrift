@@ -68,16 +68,16 @@ AnyValue decode(
 TEST(SerializerTest, TagSerializer) {
   test::FollyToStringSerializer<type::i32_t> intCodec;
   int i = 1;
-  auto ri = Ref::to<type::i32_t>(i);
+  AnyConstRef ri(i);
   EXPECT_EQ(encode(intCodec, ri), "1");
   EXPECT_EQ(decode<type::i32_t>(intCodec, "1"), 1);
 
   double d = 2.5;
-  auto rd = Ref::to<type::double_t>(d);
+  AnyConstRef rd(d);
   Serializer& anyCodec(intCodec);
   EXPECT_EQ(encode(anyCodec, ri), "1");
   EXPECT_EQ(encode(anyCodec, AnyValue::create<type::i32_t>(2)), "2");
-  EXPECT_THROW(encode(anyCodec, rd), std::bad_any_cast);
+  EXPECT_THROW(encode(anyCodec, rd), folly::BadPolyCast);
   EXPECT_THROW(
       encode(anyCodec, AnyValue::create<type::double_t>(2.5)),
       folly::BadPolyCast);
@@ -94,7 +94,7 @@ TEST(SerializerTest, TagSerializer) {
 
 TEST(SerializerTest, MultiSerializer) {
   int i = 1;
-  auto ri = Ref::to<type::i32_t>(i);
+  AnyConstRef ri(i);
 
   test::MultiSerializer multiSerializer;
   const Serializer& serializer = multiSerializer;
@@ -103,7 +103,7 @@ TEST(SerializerTest, MultiSerializer) {
   // Can handle int refs.
   EXPECT_EQ(encode(serializer, ri), "1");
   FBTHRIFT_SCOPED_CHECK(multiSerializer.checkIntEnc());
-  EXPECT_EQ(decode<type::i32_t>(serializer, "1"), 1);
+  EXPECT_EQ(decodeViaAnyRef<type::i32_t>(serializer, "1"), 1);
   FBTHRIFT_SCOPED_CHECK(multiSerializer.checkIntDec());
 
   // Can handle int AnyValue.
@@ -114,11 +114,11 @@ TEST(SerializerTest, MultiSerializer) {
   FBTHRIFT_SCOPED_CHECK(multiSerializer.checkIntEnc());
 
   double d = 2.5;
-  auto rd = Ref::to<type::double_t>(d);
+  AnyConstRef rd(d);
   // Can handle doubles.
   EXPECT_EQ(encode(serializer, rd), "2.5");
   FBTHRIFT_SCOPED_CHECK(multiSerializer.checkDblEnc());
-  EXPECT_EQ(decode<type::double_t>(serializer, "0.5"), 0.5);
+  EXPECT_EQ(decodeViaAnyRef<type::double_t>(serializer, "0.5"), 0.5);
   FBTHRIFT_SCOPED_CHECK(multiSerializer.checkDblDec());
 
   // Can handle double AnyValue.
@@ -130,10 +130,11 @@ TEST(SerializerTest, MultiSerializer) {
 
   // Cannot handle float.
   float f = 1.5f;
-  auto rf = Ref::to<type::float_t>(f);
+  AnyConstRef rf(f);
   EXPECT_THROW(encode(serializer, rf), std::bad_any_cast);
   FBTHRIFT_SCOPED_CHECK(multiSerializer.checkAndResetAll());
-  EXPECT_THROW(decode<type::float_t>(serializer, "1"), std::bad_any_cast);
+  EXPECT_THROW(
+      decodeViaAnyRef<type::float_t>(serializer, "1"), std::bad_any_cast);
   FBTHRIFT_SCOPED_CHECK(multiSerializer.checkAndResetAll());
 
   // Cannot handle std::any(float).

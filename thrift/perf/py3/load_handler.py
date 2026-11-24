@@ -37,7 +37,7 @@ def burn_in_executor(us):
 class LoadTestHandler(LoadTestInterface):
     def __init__(self, loop=None):
         super().__init__()
-        self.loop = loop or asyncio.get_event_loop()
+        self.loop = loop
         self.pool = ProcessPoolExecutor()
         pickle.DEFAULT_PROTOCOL = pickle.HIGHEST_PROTOCOL
 
@@ -60,11 +60,13 @@ class LoadTestHandler(LoadTestInterface):
 
     # pyrefly: ignore [bad-param-name-override]
     async def burn(self, us):
-        return await self.loop.run_in_executor(self.pool, burn_in_executor, us)
+        loop = self.loop or asyncio.get_running_loop()
+        return await loop.run_in_executor(self.pool, burn_in_executor, us)
 
     # pyrefly: ignore [bad-param-name-override]
     async def onewayBurn(self, us):
-        return await self.loop.run_in_executor(self.pool, burn_in_executor, us)
+        loop = self.loop or asyncio.get_running_loop()
+        return await loop.run_in_executor(self.pool, burn_in_executor, us)
 
     # pyrefly: ignore [bad-param-name-override]
     async def badSleep(self, us):

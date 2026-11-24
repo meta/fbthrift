@@ -111,6 +111,10 @@ cdef extern from "<thrift/lib/python/types.h>" namespace "::apache::thrift::pyth
         object, const cStructInfo& structInfo
     ) except+
     cdef object createUnionTuple() except+
+    ctypedef object (*FieldValueFactory)(object, int16_t)
+    object fieldCacheGetOrCreate(
+        object cache, int16_t index, object owner, FieldValueFactory create
+    )
     cdef cTypeInfo createImmutableStructTypeInfo(
         const cDynamicStructInfo& structInfo
     ) except+

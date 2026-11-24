@@ -44,7 +44,7 @@ auto Hash() {
 }
 
 TEST(UniversalNameTest, Constants) {
-  IsSame<hash_size_t, folly::remove_cvref_t<decltype(kMinHashBytes)>>();
+  IsSame<hash_size_t, std::remove_cvref_t<decltype(kMinHashBytes)>>();
 
   auto* ctx = EVP_MD_CTX_new();
   ASSERT_NE(ctx, nullptr);

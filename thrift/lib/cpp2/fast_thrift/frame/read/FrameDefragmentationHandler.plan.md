@@ -453,7 +453,7 @@ cpp_library(
     name = "fragment_state",
     headers = ["FragmentState.h"],
     deps = [
-        "//folly/io:iobuf",
+        "fbsource//xplat/folly/io:iobuf",
         ":frame_type",
         ":parsed_frame",
     ],
@@ -463,8 +463,8 @@ cpp_library(
     name = "frame_defragmentation_handler",
     headers = ["FrameDefragmentationHandler.h"],
     deps = [
-        "//folly/container:f14_hash",
-        "//folly/io:iobuf",
+        "fbsource//xplat/folly/container:f14_hash",
+        "fbsource//xplat/folly/io:iobuf",
         ":fragment_state",
         ":parsed_frame",
         "//thrift/lib/cpp2/fast_thrift/channel_pipeline:common",
@@ -481,7 +481,7 @@ cpp_unittest(
     srcs = ["FrameDefragmentationHandlerTest.cpp"],
     deps = [
         "//thrift/lib/cpp2/fast_thrift/framing/reading:frame_defragmentation_handler",
-        "//folly/portability:gtest",
+        "fbsource//xplat/folly/portability:gtest",
     ],
 )
 
@@ -490,7 +490,7 @@ cpp_binary(
     srcs = ["FrameDefragmentationHandlerBench.cpp"],
     deps = [
         "//thrift/lib/cpp2/fast_thrift/framing/reading:frame_defragmentation_handler",
-        "//folly:benchmark",
+        "fbsource//xplat/folly:benchmark",
     ],
 )
 ```
@@ -796,7 +796,7 @@ onWriteReady():
   resumeFlush();
 ```
 
-This integrates with the existing `WriteReadyHook` mechanism in channel_pipeline.
+This integrates with the existing `awaitWriteReady()` and `onWriteReady()` mechanism in channel_pipeline.
 
 ---
 

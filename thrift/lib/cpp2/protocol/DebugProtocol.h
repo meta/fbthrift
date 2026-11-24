@@ -231,7 +231,10 @@ std::string debugStringViaEncode(
   return debugStringViaEncode<type::infer_tag<T, true>>(obj, options);
 }
 
-template <ThriftClass T>
+// gtest checks this overload for every type it prints, including incomplete
+// ones, so check completeness before `ThriftClass`.
+template <typename T>
+  requires(requires { sizeof(T); } && ThriftClass<T>)
 void PrintTo(const T& obj, std::ostream* os) {
   *os << debugStringViaEncode(obj);
 }

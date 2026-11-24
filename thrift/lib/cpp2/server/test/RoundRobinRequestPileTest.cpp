@@ -235,6 +235,64 @@ TEST_F(RoundRobinRequestPileTest, testBucketSizeLimitForSingleBucket) {
   }
 }
 
+TEST_F(RoundRobinRequestPileTest, limitRejectionObserverMultiBucket) {
+  auto opts = makeOpts({2});
+  opts.setNumMaxRequests(1);
+  opts.setPreEnqueueFilter(
+      [](const ServerRequest& request)
+          -> std::optional<ServerRequestRejection> {
+        if (request.requestContext()->getWiredRequestBytes() == 33) {
+          return ServerRequestRejection(
+              TApplicationException("filter rejected"));
+        }
+        return std::nullopt;
+      });
+  RoundRobinRequestPile pile(std::move(opts));
+  std::vector<size_t> observedBytes;
+  pile.setLimitRejectionObserver([&](size_t wiredRequestBytes) {
+    observedBytes.push_back(wiredRequestBytes);
+  });
+
+  auto accepted = makeServerRequestForBucket(0, 0);
+  accepted.requestContext()->setWiredRequestBytes(11);
+  EXPECT_FALSE(pile.enqueue(std::move(accepted)));
+  EXPECT_TRUE(observedBytes.empty());
+
+  auto rejected = makeServerRequestForBucket(0, 0);
+  rejected.requestContext()->setWiredRequestBytes(22);
+  EXPECT_TRUE(pile.enqueue(std::move(rejected)));
+  EXPECT_EQ(observedBytes, (std::vector<size_t>{22}));
+
+  auto filtered = makeServerRequestForBucket(0, 0);
+  filtered.requestContext()->setWiredRequestBytes(33);
+  EXPECT_TRUE(pile.enqueue(std::move(filtered)));
+
+  auto otherBucket = makeServerRequestForBucket(0, 1);
+  otherBucket.requestContext()->setWiredRequestBytes(44);
+  EXPECT_FALSE(pile.enqueue(std::move(otherBucket)));
+  EXPECT_EQ(observedBytes, (std::vector<size_t>{22}));
+}
+
+TEST_F(RoundRobinRequestPileTest, limitRejectionObserverSingleBucket) {
+  auto opts = makeOpts({1});
+  opts.setNumMaxRequests(1);
+  RoundRobinRequestPile pile(std::move(opts));
+  std::vector<size_t> observedBytes;
+  pile.setLimitRejectionObserver([&](size_t wiredRequestBytes) {
+    observedBytes.push_back(wiredRequestBytes);
+  });
+
+  auto accepted = makeServerRequestForBucket(0, 0);
+  accepted.requestContext()->setWiredRequestBytes(11);
+  EXPECT_FALSE(pile.enqueue(std::move(accepted)));
+  EXPECT_TRUE(observedBytes.empty());
+
+  auto rejected = makeServerRequestForBucket(0, 0);
+  rejected.requestContext()->setWiredRequestBytes(22);
+  EXPECT_TRUE(pile.enqueue(std::move(rejected)));
+  EXPECT_EQ(observedBytes, (std::vector<size_t>{22}));
+}
+
 TEST_F(RoundRobinRequestPileTest, getRequestsCounts) {
   auto opts = makeOpts({3, 4, 5, 6, 7});
   RoundRobinRequestPile pile(opts);

@@ -80,6 +80,7 @@ APACHE_THRIFT_DEFINE_ACCESSOR(password);
 // BEGIN declare_enums
 namespace cpp2 {
 
+/** enum MyEnum */
 /** Glean {"file": "thrift/compiler/test/fixtures/basic-annotations/src/module.thrift", "name": "YourEnum", "kind": "enum" } */
 enum class YourEnum {
   MyValue1 = 0,
@@ -153,6 +154,7 @@ namespace apache::thrift::detail::qualifier {
 namespace cpp2 {
 
 namespace detail {
+/** union MyUnion */
 /** Glean {"file": "thrift/compiler/test/fixtures/basic-annotations/src/module.thrift", "name": "YourUnion", "kind": "union" } */
 class YourUnion final  {
  private:
@@ -164,6 +166,11 @@ class YourUnion final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "MyUnion";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    ""
+  };
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -202,23 +209,7 @@ class YourUnion final  {
 
   YourUnion(const YourUnion& rhs);
 
-  YourUnion& operator=(YourUnion&& rhs) noexcept {
-    if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-      {
-        __fbthrift_clear();
-        return *this;
-      }
-      default:
-      {
-        assert(false);
-        __fbthrift_clear();
-      }
-    }
-    apache::thrift::clear(rhs);
-    return *this;
-  }
+  YourUnion& operator=(YourUnion&& rhs) noexcept;
 
   YourUnion& operator=(const YourUnion& rhs);
 
@@ -248,7 +239,6 @@ class YourUnion final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<YourUnion>;
   friend void swap(YourUnion& a, YourUnion& b);
 };
 
@@ -262,10 +252,12 @@ unsigned long YourUnion::read(Protocol_* iprot) {
 
 using YourUnion = ::apache::thrift::adapt_detail::adapted_t<::StaticCast, ::cpp2::detail::YourUnion>;
 
+/** typedef list<string> list_string_6884 */
 /** Glean {"file": "thrift/compiler/test/fixtures/basic-annotations/src/module.thrift", "name": "list_string_6884", "kind": "typedef" } */
 using list_string_6884 = std::deque<::std::string>;
 
 namespace detail {
+/** struct MyStruct */
 /** Glean {"file": "thrift/compiler/test/fixtures/basic-annotations/src/module.thrift", "name": "YourStruct", "kind": "struct" } */
 class YourStruct final  {
  private:
@@ -278,6 +270,16 @@ class YourStruct final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "facebook.com/thrift/compiler/test/fixtures/basic_annotations/src/module/MyStruct";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "MyStruct";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "major", "abstract", "annotation_with_quote", "class_", "annotation_with_trailing_comma", "empty_annotations", "my_enum", "cpp_type_annotation", "my_union"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -361,36 +363,42 @@ class YourStruct final  {
   bool operator==(const YourStruct&) const;
   std::partial_ordering operator<=>(const YourStruct&) const;
 
+  /** 2: i64 major */
   /** Glean { "field": "majorVer" } */
   template <typename..., typename fbthrift_T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> majorVer_ref() const& {
     return {this->__fbthrift_field_majorVer, __isset.at(0), __isset.bit(0)};
   }
 
+  /** 2: i64 major */
   /** Glean { "field": "majorVer" } */
   template <typename..., typename fbthrift_T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> majorVer_ref() & {
     return {this->__fbthrift_field_majorVer, __isset.at(0), __isset.bit(0)};
   }
 
+  /** 2: i64 major */
   /** Glean { "field": "majorVer" } */
   template <typename..., typename fbthrift_T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> majorVer_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_majorVer), __isset.at(0), __isset.bit(0)};
   }
 
+  /** 2: i64 major */
   /** Glean { "field": "majorVer" } */
   template <typename..., typename fbthrift_T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> majorVer() const& {
     return {this->__fbthrift_field_majorVer, __isset.at(0), __isset.bit(0)};
   }
 
+  /** 2: i64 major */
   /** Glean { "field": "majorVer" } */
   template <typename..., typename fbthrift_T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> majorVer() & {
     return {this->__fbthrift_field_majorVer, __isset.at(0), __isset.bit(0)};
   }
 
+  /** 2: i64 major */
   /** Glean { "field": "majorVer" } */
   template <typename..., typename fbthrift_T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> majorVer() && {
@@ -613,72 +621,84 @@ class YourStruct final  {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_my_enum), __isset.at(6), __isset.bit(6)};
   }
 
+  /** 8: list_string_6884 cpp_type_annotation */
   /** Glean { "field": "cpp_type_annotation" } */
   template <typename..., typename fbthrift_T = ::cpp2::list_string_6884>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> cpp_type_annotation_ref() const& {
     return {this->__fbthrift_field_cpp_type_annotation, __isset.at(7), __isset.bit(7)};
   }
 
+  /** 8: list_string_6884 cpp_type_annotation */
   /** Glean { "field": "cpp_type_annotation" } */
   template <typename..., typename fbthrift_T = ::cpp2::list_string_6884>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> cpp_type_annotation_ref() & {
     return {this->__fbthrift_field_cpp_type_annotation, __isset.at(7), __isset.bit(7)};
   }
 
+  /** 8: list_string_6884 cpp_type_annotation */
   /** Glean { "field": "cpp_type_annotation" } */
   template <typename..., typename fbthrift_T = ::cpp2::list_string_6884>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> cpp_type_annotation_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_cpp_type_annotation), __isset.at(7), __isset.bit(7)};
   }
 
+  /** 8: list_string_6884 cpp_type_annotation */
   /** Glean { "field": "cpp_type_annotation" } */
   template <typename..., typename fbthrift_T = ::cpp2::list_string_6884>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> cpp_type_annotation() const& {
     return {this->__fbthrift_field_cpp_type_annotation, __isset.at(7), __isset.bit(7)};
   }
 
+  /** 8: list_string_6884 cpp_type_annotation */
   /** Glean { "field": "cpp_type_annotation" } */
   template <typename..., typename fbthrift_T = ::cpp2::list_string_6884>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> cpp_type_annotation() & {
     return {this->__fbthrift_field_cpp_type_annotation, __isset.at(7), __isset.bit(7)};
   }
 
+  /** 8: list_string_6884 cpp_type_annotation */
   /** Glean { "field": "cpp_type_annotation" } */
   template <typename..., typename fbthrift_T = ::cpp2::list_string_6884>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> cpp_type_annotation() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_cpp_type_annotation), __isset.at(7), __isset.bit(7)};
   }
 
+  /** 9: MyUnion my_union */
   /** Glean { "field": "my_union" } */
   template <typename..., typename fbthrift_T = ::cpp2::YourUnion>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> my_union_ref() const& {
     return {this->__fbthrift_field_my_union, __isset.at(8), __isset.bit(8)};
   }
 
+  /** 9: MyUnion my_union */
   /** Glean { "field": "my_union" } */
   template <typename..., typename fbthrift_T = ::cpp2::YourUnion>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> my_union_ref() & {
     return {this->__fbthrift_field_my_union, __isset.at(8), __isset.bit(8)};
   }
 
+  /** 9: MyUnion my_union */
   /** Glean { "field": "my_union" } */
   template <typename..., typename fbthrift_T = ::cpp2::YourUnion>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> my_union_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_my_union), __isset.at(8), __isset.bit(8)};
   }
 
+  /** 9: MyUnion my_union */
   /** Glean { "field": "my_union" } */
   template <typename..., typename fbthrift_T = ::cpp2::YourUnion>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> my_union() const& {
     return {this->__fbthrift_field_my_union, __isset.at(8), __isset.bit(8)};
   }
 
+  /** 9: MyUnion my_union */
   /** Glean { "field": "my_union" } */
   template <typename..., typename fbthrift_T = ::cpp2::YourUnion>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> my_union() & {
     return {this->__fbthrift_field_my_union, __isset.at(8), __isset.bit(8)};
   }
 
+  /** 9: MyUnion my_union */
   /** Glean { "field": "my_union" } */
   template <typename..., typename fbthrift_T = ::cpp2::YourUnion>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> my_union() && {
@@ -830,7 +850,6 @@ class YourStruct final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<YourStruct>;
   friend void swap(YourStruct& a, YourStruct& b);
 };
 
@@ -844,8 +863,10 @@ unsigned long YourStruct::read(Protocol_* iprot) {
 
 using YourStruct = ::apache::thrift::adapt_detail::adapted_t<::StaticCast, ::cpp2::detail::YourStruct>;
 
+/** typedef MyStruct AwesomeStruct */
 /** Glean {"file": "thrift/compiler/test/fixtures/basic-annotations/src/module.thrift", "name": "AwesomeStruct", "kind": "typedef" } */
 using AwesomeStruct = ::cpp2::YourStruct;
+/** typedef MyStruct FantasticStruct */
 /** Glean {"file": "thrift/compiler/test/fixtures/basic-annotations/src/module.thrift", "name": "FantasticStruct", "kind": "typedef" } */
 using FantasticStruct = ::cpp2::YourStruct;
 
@@ -860,6 +881,16 @@ class MyStructNestedAnnotation final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "MyStructNestedAnnotation";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "name"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -980,7 +1011,6 @@ class MyStructNestedAnnotation final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<MyStructNestedAnnotation>;
   friend void swap(MyStructNestedAnnotation& a, MyStructNestedAnnotation& b);
 };
 
@@ -993,6 +1023,7 @@ unsigned long MyStructNestedAnnotation::read(Protocol_* iprot) {
 
 
 namespace detail {
+/** exception MyException */
 /** Glean {"file": "thrift/compiler/test/fixtures/basic-annotations/src/module.thrift", "name": "YourException", "kind": "exception" } */
 class FOLLY_EXPORT YourException : public virtual apache::thrift::TException {
  private:
@@ -1004,6 +1035,16 @@ class FOLLY_EXPORT YourException : public virtual apache::thrift::TException {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "MyException";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    ""
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -1072,7 +1113,6 @@ class FOLLY_EXPORT YourException : public virtual apache::thrift::TException {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<YourException>;
   friend void swap(YourException& a, YourException& b);
 };
 
@@ -1098,6 +1138,16 @@ class SecretStruct final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "SecretStruct";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "id", "password"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -1266,7 +1316,6 @@ class SecretStruct final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<SecretStruct>;
   friend void swap(SecretStruct& a, SecretStruct& b);
 };
 

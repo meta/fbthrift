@@ -22,6 +22,6 @@ except ImportError:
         pass
 
 
-from .ttypes import UTF8STRINGS, Mutable, Annotation, BinaryString, Adapter, Wrapper, Recursive, FieldUseUnmangledName, UseIntrinsicDefault
+from .ttypes import UTF8STRINGS, Mutable, Annotation, BinaryString, Adapter, Wrapper, Recursive, FieldUseUnmangledName, UseIntrinsicDefault, OpenEnum, Utf8
 warn_thrift_py_deprecated(__name__)
 

@@ -25,7 +25,6 @@
 #include <thrift/lib/cpp2/protocol/CompactProtocol.h>
 #include <thrift/lib/cpp2/protocol/ProtocolReaderWithRefill.h>
 
-#include <folly/Format.h>
 #include <folly/Range.h>
 #include <folly/ScopeGuard.h>
 

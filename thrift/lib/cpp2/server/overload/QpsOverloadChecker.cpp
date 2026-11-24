@@ -20,7 +20,7 @@ namespace apache::thrift {
 
 folly::Optional<OverloadResult> QpsOverloadChecker::checkOverload(
     const CheckOverloadParams params) {
-  if (FOLLY_UNLIKELY(params.method == nullptr)) {
+  if (params.method == nullptr) [[unlikely]] {
     return folly::none;
   }
 

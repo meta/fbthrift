@@ -137,7 +137,6 @@ FrameFragmentationHandler : public folly::EventBase::LoopCallback
   - immediateQueue_: std::deque<Frame>  // Small frames bypass
   - streams_: F14NodeMap<uint32_t, PerStreamState>  // Large frame fragments
   - roundRobinIterator_: iterator (for resume after backpressure)
-  - WriteReadyHook writeReadyHook_  // For backpressure
 ```
 
 ### Core Algorithm: onWrite()
@@ -371,7 +370,7 @@ cpp_library(
     name = "per_stream_state",
     headers = ["PerStreamState.h"],
     deps = [
-        "//folly/io:iobuf",
+        "fbsource//xplat/folly/io:iobuf",
         ":frame_type",
         ":frame_headers",
     ],
@@ -382,9 +381,9 @@ cpp_library(
     headers = ["FrameFragmentationHandler.h"],
     srcs = ["FrameFragmentationHandler.cpp"],  # if needed
     deps = [
-        "//folly/container:f14_hash",
-        "//folly/io:async_base",
-        "//folly/io:iobuf",
+        "fbsource//xplat/folly/container:f14_hash",
+        "fbsource//xplat/folly/io:async_base",
+        "fbsource//xplat/folly/io:iobuf",
         ":per_stream_state",
         ":frame_writer",
         "//thrift/lib/cpp2/fast_thrift/channel_pipeline:common",
@@ -402,7 +401,7 @@ cpp_unittest(
     srcs = ["FrameFragmentationHandlerTest.cpp"],
     deps = [
         "//thrift/lib/cpp2/fast_thrift/framing/writing:frame_fragmentation_handler",
-        "//folly/portability:gtest",
+        "fbsource//xplat/folly/portability:gtest",
     ],
 )
 
@@ -411,7 +410,7 @@ cpp_binary(
     srcs = ["FrameFragmentationHandlerBench.cpp"],
     deps = [
         "//thrift/lib/cpp2/fast_thrift/framing/writing:frame_fragmentation_handler",
-        "//folly:benchmark",
+        "fbsource//xplat/folly:benchmark",
     ],
 )
 ```
@@ -841,7 +840,7 @@ auto pipeline = PipelineBuilder()
 | **No upstream coupling** | Accepts any `TypeErasedBox` with frame data |
 | **No downstream coupling** | Calls `ctx.fireWrite()` like any other handler |
 | **No EventBase ownership** | Uses `eventBase_` from context, doesn't manage it |
-| **Standard backpressure** | Uses existing `WriteReadyHook` mechanism |
+| **Standard backpressure** | Uses existing `awaitWriteReady()` mechanism |
 | **Standard lifecycle** | Implements `handlerAdded`/`handlerRemoved` |
 
 ### Pipeline Position

@@ -30,25 +30,36 @@
  * the handler. Fragmentable types (PAYLOAD + REQUEST_*) are split
  * data-tail-only — all metadata stays with the first fragment.
  *
+ * Each fragment carries at most `maxFragmentSize` data bytes, and no fragment
+ * goes above `kMaxStreamQuantum` bytes. This limit keeps the frame length
+ * within the three bytes that RSocket gives it. The first fragment counts its
+ * metadata toward the limit. So a frame whose metadata plus data are above the
+ * limit is split, even if its data alone fits in `maxFragmentSize`.
+ * `onWrite()` returns Error and drops a data frame whose metadata alone is
+ * above `kMaxStreamQuantum`. It logs the metadata size and the limit, at most
+ * once a minute.
+ *
  * See: FrameFragmentationHandler.md for design documentation.
  */
 
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Backpressure.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/ComposedFrame.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/FragmentationHandlerConfig.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/PerStreamState.h>
+#include <thrift/lib/cpp2/fast_thrift/frame/write/QuantumFragmentationHandlerConfig.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/SrptHeap.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/handler/FragmentCompletionTracker.h>
 
 #include <folly/ExceptionWrapper.h>
 #include <folly/io/IOBuf.h>
 #include <folly/io/async/EventBase.h>
+#include <folly/logging/xlog.h>
 
 #include <glog/logging.h>
 
+#include <algorithm>
 #include <deque>
 #include <stdexcept>
 
@@ -74,8 +85,6 @@ struct RemainingBytesFn {
 template <FragmentCompletionTracker Tracker = NoOpFragmentCompletionTracker>
 class FrameFragmentationHandlerT : public folly::EventBase::LoopCallback {
  public:
-  channel_pipeline::WriteReadyHook writeReadyHook_;
-
   explicit FrameFragmentationHandlerT(
       FragmentationHandlerConfig config = {}) noexcept
       : config_(config) {}
@@ -131,11 +140,21 @@ class FrameFragmentationHandlerT : public folly::EventBase::LoopCallback {
       return passThrough(ctx, std::move(msg), streamId);
     }
 
+    if (!metadataFitsInMaxStreamQuantum(frame)) {
+      XLOGF_EVERY_MS(
+          ERR,
+          60'000,
+          "FrameFragmentationHandler refused a data frame with {} metadata "
+          "bytes. The limit is {} bytes.",
+          frame.metadata->computeChainDataLength(),
+          kMaxStreamQuantum);
+      return channel_pipeline::Result::Error;
+    }
+
     const size_t dataSize =
         frame.data ? frame.data->computeChainDataLength() : 0;
-
     const bool streamHasPending = streams_.contains(streamId);
-    const bool needsFragmentation = dataSize > config_.maxFragmentSize;
+    const bool needsFragmentation = dataSize > firstFragmentDataLimit(frame);
 
     // Slow path: needs fragmentation, OR same-stream frames are already
     // pending (ordering must be preserved on the wire for that stream).
@@ -159,15 +178,19 @@ class FrameFragmentationHandlerT : public folly::EventBase::LoopCallback {
     }
 
     scheduleFlushIfNeeded();
-    return apache::thrift::fast_thrift::channel_pipeline::Result::Success;
+    if (backpressured_) {
+      return channel_pipeline::Result::Backpressure;
+    }
+    return channel_pipeline::Result::Success;
   }
 
   template <typename Context>
-  void onPipelineInactive(Context& /*ctx*/) noexcept {
+  void onPipelineInactive(Context& ctx) noexcept {
     cancelLoopCallbackIfScheduled();
     immediateQueue_.clear();
     streams_.clear();
     resetPending();
+    cancelAwaitWriteReady(ctx);
   }
 
   template <typename Context>
@@ -219,10 +242,10 @@ class FrameFragmentationHandlerT : public folly::EventBase::LoopCallback {
    * The tracker's FIFO is popped against the downstream batch frame count, and
    * the batcher counts every frame it receives — bypassed ones included. A
    * bypassed frame that went unrecorded would leave the FIFO permanently short
-   * of the counts, misattributing every later completion. Recording happens
-   * after fireWrite and only on non-Error for the same reason it does in
-   * doFlush: a frame the downstream rejected never reaches the batcher and so
-   * is never counted.
+   * of the counts, misattributing every later completion. The record comes
+   * before fireWrite(), as in doFlush, because the batch can complete inside
+   * fireWrite() and that completion must find it. A frame that downstream
+   * refuses with Error never reaches the batcher, so its record is removed.
    */
   template <typename Context>
   [[nodiscard]] apache::thrift::fast_thrift::channel_pipeline::Result
@@ -230,10 +253,18 @@ class FrameFragmentationHandlerT : public folly::EventBase::LoopCallback {
       Context& ctx,
       apache::thrift::fast_thrift::channel_pipeline::TypeErasedBox&& msg,
       uint32_t streamId) noexcept {
+    tracker_.onFragment(streamId, /*isLastFragment=*/true);
     auto result = ctx.fireWrite(std::move(msg));
-    if (result !=
+    if (result ==
         apache::thrift::fast_thrift::channel_pipeline::Result::Error) {
-      tracker_.onFragment(streamId, /*isLastFragment=*/true);
+      tracker_.onFragmentAborted();
+    }
+    if (result == channel_pipeline::Result::Backpressure) {
+      backpressured_ = true;
+      ctx.awaitWriteReady();
+    }
+    if (result != channel_pipeline::Result::Error && backpressured_) {
+      return channel_pipeline::Result::Backpressure;
     }
     return result;
   }
@@ -255,6 +286,18 @@ class FrameFragmentationHandlerT : public folly::EventBase::LoopCallback {
       state.enqueue(std::move(frame), std::move(data), originalComplete);
       streams_.insert(streamId, std::move(state));
     }
+  }
+
+  // A fragment's metadata plus data stay within kMaxStreamQuantum. Only the
+  // first fragment of a frame carries metadata. onWrite() refuses metadata
+  // above kMaxStreamQuantum, so the subtraction does not wrap.
+  size_t fragmentDataLimit(size_t metadataSize) const noexcept {
+    return std::min(config_.maxFragmentSize, kMaxStreamQuantum - metadataSize);
+  }
+
+  size_t firstFragmentDataLimit(const ComposedFrame& frame) const noexcept {
+    return fragmentDataLimit(
+        frame.metadata ? frame.metadata->computeChainDataLength() : 0);
   }
 
   void scheduleFlushIfNeeded() noexcept {
@@ -325,9 +368,18 @@ class FrameFragmentationHandlerT : public folly::EventBase::LoopCallback {
   }
 
   template <typename Context>
+  void cancelAwaitWriteReady(Context& ctx) noexcept {
+    if (backpressured_) {
+      ctx.cancelAwaitWriteReady();
+      backpressured_ = false;
+    }
+  }
+
+  template <typename Context>
   void flushAndPropagateErrors(Context& ctx) noexcept {
     if (doFlush(ctx) ==
         apache::thrift::fast_thrift::channel_pipeline::Result::Error) {
+      cancelAwaitWriteReady(ctx);
       ctx.fireException(
           folly::make_exception_wrapper<std::runtime_error>(
               "FrameFragmentationHandler: downstream write failed"));
@@ -348,17 +400,17 @@ class FrameFragmentationHandlerT : public folly::EventBase::LoopCallback {
       // fireWrite() runs the frame is no longer ours to track, and a
       // re-entrant flush must see counters that already exclude it.
       decrPending(sz, 1);
+      tracker_.onFragment(streamId, true);
       auto result = ctx.fireWrite(std::move(box));
       if (result ==
           apache::thrift::fast_thrift::channel_pipeline::Result::Error) {
+        tracker_.onFragmentAborted();
         return result;
       }
-      tracker_.onFragment(streamId, true);
       if (result ==
           apache::thrift::fast_thrift::channel_pipeline::Result::Backpressure) {
         backpressured_ = true;
         ctx.awaitWriteReady();
-        return result;
       }
     }
 
@@ -372,7 +424,10 @@ class FrameFragmentationHandlerT : public folly::EventBase::LoopCallback {
       }
 
       const uint32_t curStreamId = state.streamId;
-      auto frag = state.nextFragment(config_.maxFragmentSize);
+      const PendingFrame& front = state.frames.front();
+      auto frag = state.nextFragment(
+          front.firstEmitted ? fragmentDataLimit(0)
+                             : firstFragmentDataLimit(front.originalFrame));
       const bool frameDone = frag.currentFrameDone;
 
       // Refresh heap priority after mutating remaining bytes.
@@ -382,20 +437,20 @@ class FrameFragmentationHandlerT : public folly::EventBase::LoopCallback {
       // observes counters that already exclude this fragment.
       decrPending(frag.payloadBytes, frameDone ? 1 : 0);
 
+      tracker_.onFragment(curStreamId, frameDone);
       auto result = ctx.fireWrite(
           apache::thrift::fast_thrift::channel_pipeline::erase_and_box(
               std::move(frag.outFrame)));
 
       if (result ==
           apache::thrift::fast_thrift::channel_pipeline::Result::Error) {
+        tracker_.onFragmentAborted();
         return result;
       }
-      tracker_.onFragment(curStreamId, frameDone);
       if (result ==
           apache::thrift::fast_thrift::channel_pipeline::Result::Backpressure) {
         backpressured_ = true;
         ctx.awaitWriteReady();
-        return result;
       }
 
       if (!state.hasMore()) {
@@ -404,7 +459,10 @@ class FrameFragmentationHandlerT : public folly::EventBase::LoopCallback {
     }
 
     tracker_.onFlush();
-    return apache::thrift::fast_thrift::channel_pipeline::Result::Success;
+    if (backpressured_) {
+      return channel_pipeline::Result::Backpressure;
+    }
+    return channel_pipeline::Result::Success;
   }
 
   FragmentationHandlerConfig config_;

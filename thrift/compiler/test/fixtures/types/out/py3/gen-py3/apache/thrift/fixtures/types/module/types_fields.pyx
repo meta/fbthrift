@@ -1093,10 +1093,9 @@ cdef class __AllocatorAware_FieldsSetter(__StructFieldsSetter):
         if _fbthrift_value is None:
             __reset_field[_apache_thrift_fixtures_types_module_cbindings.cAllocatorAware](deref(self._struct_cpp_obj), 6)
             return
-        if not isinstance(_fbthrift_value, int):
-            raise TypeError(f'aa_shared is not a { int !r}.')
-        _fbthrift_value = <cint32_t> _fbthrift_value
-        assign_shared_ptr[cint32_t](deref(self._struct_cpp_obj).aa_shared_ref(), (<cint32_t?>_fbthrift_value)._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE)
+        if not isinstance(_fbthrift_value, str):
+            raise TypeError(f'aa_shared is not a { str !r}.')
+        assign_shared_ptr[string](deref(self._struct_cpp_obj).aa_shared_ref(), (<str?>_fbthrift_value)._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE)
 
 
 @__cython.auto_pickle(False)

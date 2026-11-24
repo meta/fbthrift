@@ -20,9 +20,10 @@
 #include <thrift/lib/cpp2/protocol/Serializer.h>
 #include <thrift/lib/cpp2/test/Structs.h>
 
-#include <benchmark/benchmark.h>
 #include <glog/logging.h>
+#include <folly/Benchmark.h>
 #include <folly/Optional.h>
+#include <folly/init/Init.h>
 
 using namespace apache::thrift;
 using namespace thrift::benchmark;
@@ -100,6 +101,51 @@ struct Json5OnSimpleJSONSerializer {
   }
 };
 
+// Writes the way RPC writes a request (RequestChannel) or a response
+// (GeneratedAsyncProcessorBase::serializeResponseImpl): size the struct, then
+// write it into one buffer of that size plus transport headroom. Reads with
+// Base, from bytes laid out by receive() the way RPC receives them.
+template <class Base>
+struct RpcSerializer : Base {
+  template <class T>
+  static void serialize(const T& obj, folly::IOBufQueue* out) {
+    GetWriter<Base> writer;
+    const size_t size = Cpp2Ops<T>::serializedSizeZC(&writer, &obj);
+    constexpr size_t kHeadroomBytes = 128;
+    auto buf = folly::IOBuf::create(kHeadroomBytes + size);
+    buf->advance(kHeadroomBytes);
+    out->append(std::move(buf));
+    writer.setOutput(out, size);
+    Cpp2Ops<T>::write(&writer, &obj);
+  }
+
+  // RPC's default rocket frame parser (FrameLengthParserStrategy) reads the
+  // first 4 KB of a frame before it knows the frame's length, then reads the
+  // rest into one buffer sized for it, and nothing coalesces the two before
+  // the payload is deserialized. That first read also holds the frame and
+  // metadata headers, so a bit less than 4 KB of it is payload.
+  static std::unique_ptr<folly::IOBuf> receive(
+      std::unique_ptr<folly::IOBuf> message) {
+    constexpr size_t kFirstReadPayloadBytes = 4000;
+    const folly::ByteRange bytes = message->coalesce();
+    if (bytes.size() <= kFirstReadPayloadBytes) {
+      return message;
+    }
+    auto received =
+        folly::IOBuf::copyBuffer(bytes.subpiece(0, kFirstReadPayloadBytes));
+    received->appendToChain(
+        folly::IOBuf::copyBuffer(bytes.subpiece(kFirstReadPayloadBytes)));
+    return received;
+  }
+};
+using RpcBinarySerializer = RpcSerializer<BinarySerializer>;
+using RpcCompactSerializer = RpcSerializer<CompactSerializer>;
+
+template <class>
+constexpr bool kIsRpcSerializer = false;
+template <class Base>
+constexpr bool kIsRpcSerializer<RpcSerializer<Base>> = true;
+
 enum class SerializerMethod {
   Codegen,
   Object,
@@ -113,7 +159,8 @@ template <
     SerializerMethod kSerializerMethod,
     typename Serializer,
     typename Struct>
-void writeBench(::benchmark::State& state) {
+void writeBench(size_t iters) {
+  folly::BenchmarkSuspender susp;
   auto strct = create<Struct>();
   protocol::Object obj;
   if constexpr (kSerializerMethod == SerializerMethod::Object) {
@@ -123,13 +170,19 @@ void writeBench(::benchmark::State& state) {
   }
 
   folly::IOBufQueue q;
-  for (auto _ : state) {
+  susp.dismiss();
+  while (iters--) {
     if constexpr (kSerializerMethod == SerializerMethod::Object) {
       protocol::serializeObject<GetWriter<Serializer>>(obj, q);
-      ::benchmark::DoNotOptimize(q);
+      folly::doNotOptimizeAway(q);
+    } else if constexpr (kIsRpcSerializer<Serializer>) {
+      // RPC frees the buffer once the message is sent.
+      folly::IOBufQueue rpcQueue(folly::IOBufQueue::cacheChainLength());
+      Serializer::serialize(strct, &rpcQueue);
+      folly::doNotOptimizeAway(rpcQueue);
     } else {
       Serializer::serialize(strct, &q);
-      ::benchmark::DoNotOptimize(q);
+      folly::doNotOptimizeAway(q);
     }
 
     // Reuse the queue across iterations to avoid allocating a new buffer for
@@ -139,30 +192,38 @@ void writeBench(::benchmark::State& state) {
       q.append(q.move()->prev()->unlink());
     }
   }
+  susp.rehire();
 }
 
 template <
     SerializerMethod kSerializerMethod,
     typename Serializer,
     typename Struct>
-void readBench(::benchmark::State& state) {
+void readBench(size_t iters) {
+  folly::BenchmarkSuspender susp;
   auto strct = create<Struct>();
   folly::IOBufQueue q;
   Serializer::serialize(strct, &q);
   auto buf = q.move();
-  // coalesce the IOBuf chain to test fast path
-  buf->coalesce();
+  if constexpr (kIsRpcSerializer<Serializer>) {
+    buf = Serializer::receive(std::move(buf));
+  } else {
+    // coalesce the IOBuf chain to test fast path
+    buf->coalesce();
+  }
 
-  for (auto _ : state) {
+  susp.dismiss();
+  while (iters--) {
     if constexpr (kSerializerMethod == SerializerMethod::Object) {
       auto obj = protocol::parseObject<GetReader<Serializer>>(*buf);
-      ::benchmark::DoNotOptimize(obj);
+      folly::doNotOptimizeAway(obj);
     } else {
       Struct data;
       Serializer::deserialize(buf.get(), data);
-      ::benchmark::DoNotOptimize(data);
+      folly::doNotOptimizeAway(data);
     }
   }
+  susp.rehire();
 }
 
 constexpr SerializerMethod getSerializerMethod(std::string_view prefix) {
@@ -174,14 +235,12 @@ constexpr SerializerMethod getSerializerMethod(std::string_view prefix) {
 
 // clang-format off
 #define X1(Prefix, proto, rdwr, bench, benchprefix)                        \
-  static void Prefix##proto##Protocol_##rdwr##_##bench(                    \
-      ::benchmark::State& state) {                                         \
+  BENCHMARK(Prefix##proto##Protocol_##rdwr##_##bench, iters) {             \
     rdwr##Bench<                                                           \
         getSerializerMethod(#Prefix),                                      \
         proto##Serializer,                                                 \
-        benchprefix##bench>(state);                                        \
-  }                                                                        \
-  BENCHMARK(Prefix##proto##Protocol_##rdwr##_##bench);
+        benchprefix##bench>(iters);                                        \
+  }
 
 #define X2(Prefix, proto, bench)  \
   X1(Prefix, proto, write, bench,) \
@@ -214,6 +273,11 @@ constexpr SerializerMethod getSerializerMethod(std::string_view prefix) {
   M(Prefix, proto, BigListBigInt)      \
   M(Prefix, proto, BigListFloat)       \
   M(Prefix, proto, BigListDouble)      \
+  M(Prefix, proto, BigListSmallInt)    \
+  M(Prefix, proto, BigListWideBigInt)  \
+  M(Prefix, proto, SmallListsInt)      \
+  M(Prefix, proto, SmallListsWideBigInt) \
+  M(Prefix, proto, SmallListsMixedWidthBigInt) \
   M(Prefix, proto, BigListMixed)       \
   M(Prefix, proto, BigListMixedByte)   \
   M(Prefix, proto, BigListMixedShort)  \
@@ -273,7 +337,14 @@ X(Object, Binary)
 X(Object, Compact)
 OpEncodeX(OpEncode, Binary)
 OpEncodeX(OpEncode, Compact)
+X(, RpcBinary)
+X(, RpcCompact)
+OpEncodeX(OpEncode, RpcBinary)
+OpEncodeX(OpEncode, RpcCompact)
 
-BENCHMARK_MAIN();
+int main(int argc, char** argv) {
+  folly::Init init(&argc, &argv);
+  folly::runBenchmarks();
+}
 // NOLINTEND(facebook-avoid-non-const-global-variables)
 // clang-format on

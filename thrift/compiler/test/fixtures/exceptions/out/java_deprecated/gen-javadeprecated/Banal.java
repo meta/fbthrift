@@ -39,13 +39,27 @@ public class Banal extends Exception implements TBase, java.io.Serializable, Clo
   public Banal() {
   }
 
+  public Banal(java.lang.Throwable cause) {
+    this();
+    initCause(cause);
+  }
+
   public static class Builder {
+    private java.lang.Throwable cause;
 
     public Builder() {
     }
 
+    public Builder setCause(final java.lang.Throwable cause) {
+      this.cause = cause;
+      return this;
+    }
+
     public Banal build() {
       Banal result = new Banal();
+      if (cause != null) {
+        result.initCause(cause);
+      }
       return result;
     }
   }

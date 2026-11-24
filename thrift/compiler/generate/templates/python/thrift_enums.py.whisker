@@ -52,8 +52,10 @@ def _fbthrift__import_ThriftMetadata() -> ModuleType:
 
 
 class {{enum.py_name}}({{#if enum.format_as_int?}}_fbthrift_python_types.EnumFormatAsInt, {{/if}}_fbthrift_python_types.{{#if enum.flags?}}Flag{{#else}}Enum, int{{/if}}):
+    {{#partial m_common.docstring node=enum}}
     {{#each enum.values as |enum_value|}}
     {{enum_value.py_name}} = {{enum_value.value}}
+    {{#partial m_common.docstring node=enum_value}}
     {{/each}}
     @staticmethod
     def __get_thrift_name__() -> builtins.str:

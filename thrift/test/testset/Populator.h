@@ -21,8 +21,7 @@
 namespace apache::thrift::test {
 
 template <class T>
-T populated(
-    std::mt19937& rng, populator::populator_opts opt = {}) {
+T populated(std::mt19937& rng, populator::populator_opts opt = {}) {
   T result;
   populator::populate(result, opt, rng);
   return result;

@@ -18,6 +18,7 @@
 
 #include <variant>
 #include <folly/GLog.h>
+#include <thrift/lib/cpp/TApplicationException.h>
 #include <thrift/lib/cpp2/Flags.h>
 #include <thrift/lib/cpp2/IOBufChain.h>
 #include <thrift/lib/cpp2/transport/rocket/payload/ChecksumPayloadSerializerStrategy.h>
@@ -205,6 +206,19 @@ class PayloadSerializer {
     }
     return visit([&](auto& strategy) {
       return strategy.template unpackCompact<T>(output, cursor);
+    });
+  }
+
+  template <typename T>
+  FOLLY_ERASE size_t
+  unpack(T& output, const io::IOBufChainCursor& cursor, bool useBinary) {
+    if (!useBinary) {
+      folly::throw_exception<TApplicationException>(
+          TApplicationException::UNSUPPORTED_CLIENT_TYPE,
+          "Compact metadata decoding does not support IOBufChain input");
+    }
+    return visit([&](auto& strategy) {
+      return strategy.template unpackBinary<T>(output, cursor);
     });
   }
 

@@ -422,9 +422,14 @@ final class ThriftContextPropStateTest extends WWWTest {
       shape('fb_user_id' => null, 'ig_user_id' => null),
     );
 
-    // set up mocks for VC
-    $fb_vc = mock(nameof IFBViewerContext)->mockReturn('getAccountID', fbid(1));
-    $ig_vc = mock(nameof IIGViewerContext)->mockReturn('getViewerID', fbid(2));
+    $fb_vc = await gen_test_user_utvc();
+    $ig_vc = await ig_gen_utvc(
+      (
+        await IGEntUserExample::genCreate(
+          await IGEntUserExample::genViewerContext(),
+        )
+      )->getID(),
+    );
 
     $buf = new TMemoryBuffer();
     $prot = new TCompactProtocolAccelerated($buf);
@@ -438,8 +443,8 @@ final class ThriftContextPropStateTest extends WWWTest {
 
     $tcps = ThriftContextPropState::get();
     // expect user ids were set from fetched values
-    expect($tcps->getUserIds()?->fb_user_id)->toEqual(1);
-    expect($tcps->getUserIds()?->ig_user_id)->toEqual(2);
+    expect($tcps->getUserIds()?->fb_user_id)->toEqual($fb_vc->getAccountID());
+    expect($tcps->getUserIds()?->ig_user_id)->toEqual($ig_vc->getViewerID());
   }
 
   public async function testInitializationWithBothTFMandVC(
@@ -452,9 +457,7 @@ final class ThriftContextPropStateTest extends WWWTest {
       shape('fb_user_id' => null, 'ig_user_id' => 456),
     );
 
-    // set up mocks for VC
-    $fb_vc =
-      mock(nameof IFBViewerContext)->mockReturn('getAccountID', fbid(123));
+    $fb_vc = await gen_test_user_utvc();
 
     $buf = new TMemoryBuffer();
     $prot = new TCompactProtocolAccelerated($buf);
@@ -467,7 +470,7 @@ final class ThriftContextPropStateTest extends WWWTest {
 
     $tcps = ThriftContextPropState::get();
     // expect fb user id to be populated
-    expect($tcps->getUserIds()?->fb_user_id)->toEqual(123);
+    expect($tcps->getUserIds()?->fb_user_id)->toEqual($fb_vc->getAccountID());
     expect($tcps->getUserIds()?->ig_user_id)->toEqual(456);
   }
 
@@ -480,9 +483,14 @@ final class ThriftContextPropStateTest extends WWWTest {
     $tfm->baggage->user_ids = ContextProp\UserIds::fromShape(
       shape('fb_user_id' => 123, 'ig_user_id' => 456),
     );
-    // set up mocks for VC
-    $fb_vc = mock(nameof IFBViewerContext)->mockReturn('getAccountID', fbid(1));
-    $ig_vc = mock(nameof IIGViewerContext)->mockReturn('getViewerID', fbid(2));
+    $fb_vc = await gen_test_user_utvc();
+    $ig_vc = await ig_gen_utvc(
+      (
+        await IGEntUserExample::genCreate(
+          await IGEntUserExample::genViewerContext(),
+        )
+      )->getID(),
+    );
 
     $buf = new TMemoryBuffer();
     $prot = new TCompactProtocolAccelerated($buf);
@@ -495,8 +503,8 @@ final class ThriftContextPropStateTest extends WWWTest {
     ThriftContextPropState::updateUserIdFromVC($ig_vc, "test");
 
     $tcps = ThriftContextPropState::get();
-    expect($tcps->getUserIds()?->fb_user_id)->toEqual(1);
-    expect($tcps->getUserIds()?->ig_user_id)->toEqual(2);
+    expect($tcps->getUserIds()?->fb_user_id)->toEqual($fb_vc->getAccountID());
+    expect($tcps->getUserIds()?->ig_user_id)->toEqual($ig_vc->getViewerID());
   }
 
   public async function testUpdatedWithExplicitFBUserId(

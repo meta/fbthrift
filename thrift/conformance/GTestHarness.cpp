@@ -74,6 +74,13 @@ testing::AssertionResult runRoundTripTest(
       case StandardProtocol::Binary:
         return protocol::parseObject<apache::thrift::BinaryProtocolReader>(
             *a.data());
+      case StandardProtocol::SimpleJson:
+        // SimpleJson cannot be parsed without a schema, so transcode it to
+        // Compact through the registered type.
+        return protocol::parseObject<apache::thrift::CompactProtocolReader>(
+            *AnyRegistry::generated()
+                 .store(a, getStandardProtocol<StandardProtocol::Compact>())
+                 .data());
       default:
         throw std::invalid_argument(
             "Unsupported protocol: " + util::enumNameSafe(protocol));
@@ -388,7 +395,7 @@ SinkInitialDeclaredExceptionClientTestResult runSinkInitialDeclaredException(
         SinkInitialDeclaredExceptionClientTestResult result;
         try {
           co_await client.co_sinkInitialDeclaredException(request);
-        } catch (...) {
+        } catch (const UserException&) {
           result.sinkThrew() = true;
         }
         co_return result;
@@ -405,7 +412,7 @@ SinkServerDeclaredExceptionClientTestResult runSinkServerDeclaredException(
           auto sink = co_await client.co_sinkServerDeclaredException(request);
           co_await sink.sink(
               []() -> folly::coro::AsyncGenerator<Request&&> { co_return; }());
-        } catch (...) {
+        } catch (const UserException&) {
           result.sinkThrew() = true;
         }
         co_return result;

@@ -29,9 +29,7 @@
 #include <folly/logging/xlog.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/ErrorCode.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameViews.h>
@@ -69,8 +67,10 @@ namespace apache::thrift::fast_thrift::rocket::server::handler {
 class RocketServerKeepAliveHandler {
  public:
   explicit RocketServerKeepAliveHandler(
-      bool enforcePeerLiveness = false) noexcept
-      : enforcePeerLiveness_(enforcePeerLiveness) {}
+      bool enforcePeerLiveness = false,
+      apache::thrift::fast_thrift::rocket::RSocketKeepAliveConfig config =
+          {}) noexcept
+      : enforcePeerLiveness_(enforcePeerLiveness), config_(config) {}
 
   // === HandlerLifecycle ===
 
@@ -81,6 +81,7 @@ class RocketServerKeepAliveHandler {
     }
     timer_ = folly::AsyncTimeout::make(
         *ctx.eventBase(), [this, &ctx]() noexcept { onTimeout(ctx); });
+    arm();
   }
 
   template <typename Context>
@@ -105,23 +106,21 @@ class RocketServerKeepAliveHandler {
     auto& request = msg.get<RocketRequestMessage>();
     auto& frame = request.frame;
 
-    if (FOLLY_UNLIKELY(
-            enforcePeerLiveness_ &&
-            frame.type() ==
-                apache::thrift::fast_thrift::frame::FrameType::SETUP)) {
+    if (enforcePeerLiveness_ &&
+        frame.type() == apache::thrift::fast_thrift::frame::FrameType::SETUP)
+        [[unlikely]] {
       armFromSetup(frame);
       return ctx.fireRead(std::move(msg));
     }
 
-    if (FOLLY_LIKELY(
-            frame.type() !=
-            apache::thrift::fast_thrift::frame::FrameType::KEEPALIVE)) {
+    if (frame.type() !=
+        apache::thrift::fast_thrift::frame::FrameType::KEEPALIVE) [[likely]] {
       return ctx.fireRead(std::move(msg));
     }
 
     // KEEPALIVE is a connection-level frame; a non-zero stream ID is a peer
     // protocol violation that terminates the connection (stock parity).
-    if (FOLLY_UNLIKELY(!frame.isConnectionFrame())) {
+    if (!frame.isConnectionFrame()) [[unlikely]] {
       XLOG(ERR) << "Received KEEPALIVE with non-zero streamId="
                 << frame.streamId() << "; closing connection";
       return sendConnectionError(ctx, "KEEPALIVE must use stream ID 0");
@@ -199,8 +198,15 @@ class RocketServerKeepAliveHandler {
         .intervalMs = view.keepaliveTime(),
         .maxLifetimeMs = view.maxLifetime(),
     };
-    if (!config_.enabled()) {
+    arm();
+  }
+
+  void arm() noexcept {
+    if (!enforcePeerLiveness_ || !config_.enabled() || timer_ == nullptr) {
       return;
+    }
+    if (timer_->isScheduled()) {
+      timer_->cancelTimeout();
     }
     active_ = true;
     lastProbe_ = Clock::now();
@@ -215,7 +221,7 @@ class RocketServerKeepAliveHandler {
 
     const auto now = Clock::now();
     const auto deadline = lastProbe_ + Milliseconds{config_.maxLifetimeMs};
-    if (FOLLY_UNLIKELY(now >= deadline)) {
+    if (now >= deadline) [[unlikely]] {
       failTimer(ctx, "Rocket keepalive probe timed out");
       return;
     }
@@ -268,8 +274,8 @@ class RocketServerKeepAliveHandler {
       };
       if (ctx.fireWrite(
               apache::thrift::fast_thrift::channel_pipeline::erase_and_box(
-                  std::move(response))) !=
-          apache::thrift::fast_thrift::channel_pipeline::Result::Success) {
+                  std::move(response))) ==
+          apache::thrift::fast_thrift::channel_pipeline::Result::Error) {
         XLOG(WARN) << "Failed to deliver KEEPALIVE CONNECTION_ERROR frame";
       }
     } catch (...) {
@@ -288,11 +294,5 @@ class RocketServerKeepAliveHandler {
   Clock::time_point lastProbe_{};
   bool active_{false};
 };
-
-static_assert(
-    apache::thrift::fast_thrift::channel_pipeline::DuplexHandler<
-        RocketServerKeepAliveHandler,
-        apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl>,
-    "RocketServerKeepAliveHandler must satisfy DuplexHandler concept");
 
 } // namespace apache::thrift::fast_thrift::rocket::server::handler

@@ -134,6 +134,9 @@ class ThriftRocketServerHandler : public RocketServerHandler {
   int32_t version_;
   std::chrono::milliseconds maxResponseWriteTime_;
   bool resetConnCtxUserDataOnClose_;
+  // A zero per-request budget would release the debug copy on registration,
+  // so it is not made at all.
+  bool keepDebugPayloads_;
 
   folly::once_flag setupLoggingFlag_;
 

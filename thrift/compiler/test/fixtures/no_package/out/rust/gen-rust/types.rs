@@ -217,6 +217,13 @@ impl ::std::default::Default for MyEnum {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for MyEnum {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.0 == 0
+    }
+}
+
 impl<'a> ::std::convert::From<&'a MyEnum> for ::std::primitive::i32 {
     #[inline]
     fn from(x: &'a MyEnum) -> Self {
@@ -355,6 +362,13 @@ impl ::fbthrift::ThriftEnum for HackEnum {
 impl ::std::default::Default for HackEnum {
     fn default() -> Self {
         Self(0)
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for HackEnum {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.0 == 0
     }
 }
 
@@ -905,6 +919,13 @@ impl ::fbthrift::ThriftStruct for self::MyDataItem {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for self::MyDataItem {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        true
+    }
+}
+
 impl<P> ::fbthrift::Serialize<P> for self::MyDataItem
 where
     P: ::fbthrift::ProtocolWriter,
@@ -979,6 +1000,13 @@ impl ::fbthrift::metadata::ThriftAnnotations for MyDataItem {
 impl ::std::default::Default for MyUnion {
     fn default() -> Self {
         Self::UnknownField(-1)
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for MyUnion {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        ::std::matches!(self, Self::UnknownField(_))
     }
 }
 
@@ -1638,6 +1666,13 @@ impl ::fbthrift::metadata::ThriftAnnotations for ReservedKeyword {
 impl ::std::default::Default for UnionToBeRenamed {
     fn default() -> Self {
         Self::UnknownField(-1)
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for UnionToBeRenamed {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        ::std::matches!(self, Self::UnknownField(_))
     }
 }
 

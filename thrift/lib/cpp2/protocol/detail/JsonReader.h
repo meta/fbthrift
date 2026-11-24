@@ -17,6 +17,7 @@
 #pragma once
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <variant>
 
 #include <folly/io/Cursor.h>
@@ -75,7 +76,8 @@ namespace apache::thrift::json5::detail {
  * | Trailing commas (objects)        | Yes       |
  * | Trailing commas (arrays)         | Yes       |
  * | Single-quoted strings            | Yes       |
- * | Multi-line strings (escaped LF)  | Yes       |
+ * | Line continuations (\ + newline) | Yes       |
+ * | All ES5 escapes (\x, \v, \0, \q) | Yes       |
  * | Infinity / NaN literals          | Yes       |
  * | Comments (//, block)             | Yes       |
  * | Hexadecimal integers             | Yes       |
@@ -142,9 +144,9 @@ class Json5Reader final {
   Primitive readPrimitive(
       FloatingPointPrecision precision = FloatingPointPrecision::Double);
 
-  /** Parses a JSON5 number at `cursor`, leaving trailing characters unread. */
+  /** Parses all of `str` as a JSON5 number. */
   static Primitive parseNumber(
-      folly::io::Cursor& cursor, FloatingPointPrecision precision);
+      std::string_view str, FloatingPointPrecision precision);
 
   /** Reads and returns the next object key name. */
   std::string readObjectName();
@@ -165,12 +167,17 @@ class Json5Reader final {
   folly::io::Cursor& cursor();
 
   bool skipComment();
+  bool skipUnicodeSpace();
   void skipWhitespaceAndComments();
   char peekChar();
   char readChar();
   void consume(char c);
 
   std::string parseString(char quote);
+
+  // Parses a JSON5 number at `cursor`, leaving trailing characters unread.
+  static Primitive parseNumber(
+      folly::io::Cursor& cursor, FloatingPointPrecision precision);
 
   // Consume a comma separator between elements. Throws if neither a comma
   // nor a closing delimiter follows the current position.

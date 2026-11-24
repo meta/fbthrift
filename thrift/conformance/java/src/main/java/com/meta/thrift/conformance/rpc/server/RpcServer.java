@@ -35,6 +35,8 @@ public class RpcServer {
                 new ThriftServerConfig()
                     .setBindAddress("::1")
                     .setBindAddressEnabled(true)
+                    // The conformance harness connects over plaintext.
+                    .setSslEnabled(false)
                     .setPort(0),
                 TransportType.RSOCKET,
                 handler)

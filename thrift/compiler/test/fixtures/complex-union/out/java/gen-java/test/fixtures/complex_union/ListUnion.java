@@ -292,6 +292,8 @@ public final class ListUnion implements com.facebook.thrift.payload.ThriftSerial
                         oprot.readListEnd();
                     }
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _STRINGLISTVALUE:
@@ -308,6 +310,8 @@ public final class ListUnion implements com.facebook.thrift.payload.ThriftSerial
                         oprot.readListEnd();
                     }
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             default:

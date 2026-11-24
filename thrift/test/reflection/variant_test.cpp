@@ -16,60 +16,61 @@
 
 #include <thrift/lib/cpp2/reflection/variant.h>
 
-#include <thrift/lib/cpp2/reflection/internal/test_helpers.h>
-
 #include <thrift/test/reflection/gen-cpp2/reflection_types.h>
 
 #include <gtest/gtest.h>
 
 #include <memory>
+#include <type_traits>
 #include <utility>
 
 namespace test_cpp2::cpp_reflection {
 
 TEST(FatalVariant, VariantTryGet) {
-#define TEST_IMPL2(TYPE, FIELD, OTHER1, OTHER2, OTHER3, VALUE, ...)           \
-  do {                                                                        \
-    union1 u;                                                                 \
-    const union1& c = u;                                                      \
-    TYPE __VA_ARGS__ value{VALUE};                                            \
-    u.set_##FIELD(value);                                                     \
-                                                                              \
-    ASSERT_NE(nullptr, apache::thrift::variant_try_get<TYPE>(u));             \
-    ASSERT_EQ(union1::Type::FIELD, u.getType());                              \
-    EXPECT_EQ(value, *apache::thrift::variant_try_get<TYPE>(u));              \
-    ASSERT_EQ(union1::Type::FIELD, u.getType());                              \
-    EXPECT_EQ(                                                                \
-        std::addressof(u.mutable_##FIELD()),                                  \
-        apache::thrift::variant_try_get<TYPE>(u));                            \
-    ASSERT_EQ(union1::Type::FIELD, u.getType());                              \
-    EXPECT_SAME<TYPE*, decltype(apache::thrift::variant_try_get<TYPE>(u))>(); \
-                                                                              \
-    ASSERT_NE(nullptr, apache::thrift::variant_try_get<TYPE>(c));             \
-    ASSERT_EQ(union1::Type::FIELD, u.getType());                              \
-    EXPECT_EQ(value, *apache::thrift::variant_try_get<TYPE>(c));              \
-    ASSERT_EQ(union1::Type::FIELD, u.getType());                              \
-    EXPECT_EQ(                                                                \
-        std::addressof(c.get_##FIELD()),                                      \
-        apache::thrift::variant_try_get<TYPE>(c));                            \
-    ASSERT_EQ(union1::Type::FIELD, u.getType());                              \
-    EXPECT_SAME<                                                              \
-        const TYPE*,                                                          \
-        decltype(apache::thrift::variant_try_get<TYPE>(c))>();                \
-                                                                              \
-    EXPECT_EQ(nullptr, apache::thrift::variant_try_get<OTHER1>(u));           \
-    ASSERT_EQ(union1::Type::FIELD, u.getType());                              \
-    EXPECT_EQ(nullptr, apache::thrift::variant_try_get<OTHER2>(u));           \
-    ASSERT_EQ(union1::Type::FIELD, u.getType());                              \
-    EXPECT_EQ(nullptr, apache::thrift::variant_try_get<OTHER3>(u));           \
-    ASSERT_EQ(union1::Type::FIELD, u.getType());                              \
-                                                                              \
-    EXPECT_EQ(nullptr, apache::thrift::variant_try_get<OTHER1>(c));           \
-    ASSERT_EQ(union1::Type::FIELD, u.getType());                              \
-    EXPECT_EQ(nullptr, apache::thrift::variant_try_get<OTHER2>(c));           \
-    ASSERT_EQ(union1::Type::FIELD, u.getType());                              \
-    EXPECT_EQ(nullptr, apache::thrift::variant_try_get<OTHER3>(c));           \
-    ASSERT_EQ(union1::Type::FIELD, u.getType());                              \
+#define TEST_IMPL2(TYPE, FIELD, OTHER1, OTHER2, OTHER3, VALUE, ...)     \
+  do {                                                                  \
+    union1 u;                                                           \
+    const union1& c = u;                                                \
+    TYPE __VA_ARGS__ value{VALUE};                                      \
+    u.set_##FIELD(value);                                               \
+                                                                        \
+    ASSERT_NE(nullptr, apache::thrift::variant_try_get<TYPE>(u));       \
+    ASSERT_EQ(union1::Type::FIELD, u.getType());                        \
+    EXPECT_EQ(value, *apache::thrift::variant_try_get<TYPE>(u));        \
+    ASSERT_EQ(union1::Type::FIELD, u.getType());                        \
+    EXPECT_EQ(                                                          \
+        std::addressof(u.mutable_##FIELD()),                            \
+        apache::thrift::variant_try_get<TYPE>(u));                      \
+    ASSERT_EQ(union1::Type::FIELD, u.getType());                        \
+    static_assert(std::is_same_v<                                       \
+                  TYPE*,                                                \
+                  decltype(apache::thrift::variant_try_get<TYPE>(u))>); \
+                                                                        \
+    ASSERT_NE(nullptr, apache::thrift::variant_try_get<TYPE>(c));       \
+    ASSERT_EQ(union1::Type::FIELD, u.getType());                        \
+    EXPECT_EQ(value, *apache::thrift::variant_try_get<TYPE>(c));        \
+    ASSERT_EQ(union1::Type::FIELD, u.getType());                        \
+    EXPECT_EQ(                                                          \
+        std::addressof(c.FIELD().value()),                              \
+        apache::thrift::variant_try_get<TYPE>(c));                      \
+    ASSERT_EQ(union1::Type::FIELD, u.getType());                        \
+    static_assert(std::is_same_v<                                       \
+                  const TYPE*,                                          \
+                  decltype(apache::thrift::variant_try_get<TYPE>(c))>); \
+                                                                        \
+    EXPECT_EQ(nullptr, apache::thrift::variant_try_get<OTHER1>(u));     \
+    ASSERT_EQ(union1::Type::FIELD, u.getType());                        \
+    EXPECT_EQ(nullptr, apache::thrift::variant_try_get<OTHER2>(u));     \
+    ASSERT_EQ(union1::Type::FIELD, u.getType());                        \
+    EXPECT_EQ(nullptr, apache::thrift::variant_try_get<OTHER3>(u));     \
+    ASSERT_EQ(union1::Type::FIELD, u.getType());                        \
+                                                                        \
+    EXPECT_EQ(nullptr, apache::thrift::variant_try_get<OTHER1>(c));     \
+    ASSERT_EQ(union1::Type::FIELD, u.getType());                        \
+    EXPECT_EQ(nullptr, apache::thrift::variant_try_get<OTHER2>(c));     \
+    ASSERT_EQ(union1::Type::FIELD, u.getType());                        \
+    EXPECT_EQ(nullptr, apache::thrift::variant_try_get<OTHER3>(c));     \
+    ASSERT_EQ(union1::Type::FIELD, u.getType());                        \
   } while (false)
 
 #define TEST_IMPL(...)              \
@@ -88,19 +89,20 @@ TEST(FatalVariant, VariantTryGet) {
 }
 
 TEST(FatalVariant, VariantSet) {
-#define TEST_IMPL2(TYPE, FIELD, VALUE, ...)                              \
-  do {                                                                   \
-    union1 u;                                                            \
-    TYPE value{VALUE};                                                   \
-    TYPE const expected{VALUE};                                          \
-                                                                         \
-    apache::thrift::variant_set(u, __VA_ARGS__(value));                  \
-                                                                         \
-    ASSERT_EQ(union1::Type::FIELD, u.getType());                         \
-    EXPECT_EQ(expected, u.get_##FIELD());                                \
-    EXPECT_SAME<                                                         \
-        void,                                                            \
-        decltype(apache::thrift::variant_set(u, __VA_ARGS__(value)))>(); \
+#define TEST_IMPL2(TYPE, FIELD, VALUE, ...)                                 \
+  do {                                                                      \
+    union1 u;                                                               \
+    TYPE value{VALUE};                                                      \
+    TYPE const expected{VALUE};                                             \
+                                                                            \
+    apache::thrift::variant_set(u, __VA_ARGS__(value));                     \
+                                                                            \
+    ASSERT_EQ(union1::Type::FIELD, u.getType());                            \
+    EXPECT_EQ(expected, u.FIELD().value());                                 \
+    static_assert(                                                          \
+        std::is_same_v<                                                     \
+            void,                                                           \
+            decltype(apache::thrift::variant_set(u, __VA_ARGS__(value)))>); \
   } while (false)
 
 #define TEST_IMPL(TYPE, FIELD, VALUE)                         \

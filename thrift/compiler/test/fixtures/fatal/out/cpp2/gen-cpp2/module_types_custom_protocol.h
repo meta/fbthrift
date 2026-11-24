@@ -678,7 +678,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -1074,7 +1073,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -1329,7 +1327,7 @@ _readField_i:
 _readField_j:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_j = ::std::vector<::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_j);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int32_t>, ::apache::thrift::type::list<::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_j);
     _readState.afterSubobject(iprot);
   }
@@ -1345,7 +1343,7 @@ _readField_j:
 _readField_j1:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_j1 = ::std::vector<::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_j1);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int32_t>, ::apache::thrift::type::list<::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_j1);
     _readState.afterSubobject(iprot);
   }
@@ -1361,7 +1359,7 @@ _readField_j1:
 _readField_j2:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_j2 = ::std::vector<::test_cpp2::cpp_reflection::enum1>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_j2);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::enumeration>, ::std::vector<::test_cpp2::cpp_reflection::enum1>, ::apache::thrift::type::list<::apache::thrift::type::enum_t<::test_cpp2::cpp_reflection::enum1>>>::read(*iprot, this->__fbthrift_field_j2);
     _readState.afterSubobject(iprot);
   }
@@ -1377,7 +1375,7 @@ _readField_j2:
 _readField_j3:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_j3 = ::std::vector<::test_cpp2::cpp_reflection::structA>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_j3);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::structure>, ::std::vector<::test_cpp2::cpp_reflection::structA>, ::apache::thrift::type::list<::apache::thrift::type::struct_t<::test_cpp2::cpp_reflection::structA>>>::read(*iprot, this->__fbthrift_field_j3);
     _readState.afterSubobject(iprot);
   }
@@ -1393,7 +1391,7 @@ _readField_j3:
 _readField_k:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_k = ::std::set<::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_k);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::set<::apache::thrift::type_class::integral>, ::std::set<::std::int32_t>, ::apache::thrift::type::set<::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_k);
     _readState.afterSubobject(iprot);
   }
@@ -1409,7 +1407,7 @@ _readField_k:
 _readField_k1:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_k1 = ::std::set<::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_k1);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::set<::apache::thrift::type_class::integral>, ::std::set<::std::int32_t>, ::apache::thrift::type::set<::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_k1);
     _readState.afterSubobject(iprot);
   }
@@ -1425,7 +1423,7 @@ _readField_k1:
 _readField_k2:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_k2 = ::std::set<::test_cpp2::cpp_reflection::enum2>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_k2);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::set<::apache::thrift::type_class::enumeration>, ::std::set<::test_cpp2::cpp_reflection::enum2>, ::apache::thrift::type::set<::apache::thrift::type::enum_t<::test_cpp2::cpp_reflection::enum2>>>::read(*iprot, this->__fbthrift_field_k2);
     _readState.afterSubobject(iprot);
   }
@@ -1441,7 +1439,7 @@ _readField_k2:
 _readField_k3:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_k3 = ::std::set<::test_cpp2::cpp_reflection::structB>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_k3);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::set<::apache::thrift::type_class::structure>, ::std::set<::test_cpp2::cpp_reflection::structB>, ::apache::thrift::type::set<::apache::thrift::type::struct_t<::test_cpp2::cpp_reflection::structB>>>::read(*iprot, this->__fbthrift_field_k3);
     _readState.afterSubobject(iprot);
   }
@@ -1457,7 +1455,7 @@ _readField_k3:
 _readField_l:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_l = ::std::map<::std::int32_t, ::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_l);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::integral, ::apache::thrift::type_class::integral>, ::std::map<::std::int32_t, ::std::int32_t>, ::apache::thrift::type::map<::apache::thrift::type::i32_t, ::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_l);
     _readState.afterSubobject(iprot);
   }
@@ -1473,7 +1471,7 @@ _readField_l:
 _readField_l1:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_l1 = ::std::map<::std::int32_t, ::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_l1);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::integral, ::apache::thrift::type_class::integral>, ::std::map<::std::int32_t, ::std::int32_t>, ::apache::thrift::type::map<::apache::thrift::type::i32_t, ::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_l1);
     _readState.afterSubobject(iprot);
   }
@@ -1489,7 +1487,7 @@ _readField_l1:
 _readField_l2:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_l2 = ::std::map<::std::int32_t, ::test_cpp2::cpp_reflection::enum1>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_l2);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::integral, ::apache::thrift::type_class::enumeration>, ::std::map<::std::int32_t, ::test_cpp2::cpp_reflection::enum1>, ::apache::thrift::type::map<::apache::thrift::type::i32_t, ::apache::thrift::type::enum_t<::test_cpp2::cpp_reflection::enum1>>>::read(*iprot, this->__fbthrift_field_l2);
     _readState.afterSubobject(iprot);
   }
@@ -1505,7 +1503,7 @@ _readField_l2:
 _readField_l3:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_l3 = ::std::map<::std::int32_t, ::test_cpp2::cpp_reflection::structB>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_l3);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::integral, ::apache::thrift::type_class::structure>, ::std::map<::std::int32_t, ::test_cpp2::cpp_reflection::structB>, ::apache::thrift::type::map<::apache::thrift::type::i32_t, ::apache::thrift::type::struct_t<::test_cpp2::cpp_reflection::structB>>>::read(*iprot, this->__fbthrift_field_l3);
     _readState.afterSubobject(iprot);
   }
@@ -1521,7 +1519,7 @@ _readField_l3:
 _readField_m1:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_m1 = ::std::map<::test_cpp2::cpp_reflection::enum1, ::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_m1);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::enumeration, ::apache::thrift::type_class::integral>, ::std::map<::test_cpp2::cpp_reflection::enum1, ::std::int32_t>, ::apache::thrift::type::map<::apache::thrift::type::enum_t<::test_cpp2::cpp_reflection::enum1>, ::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_m1);
     _readState.afterSubobject(iprot);
   }
@@ -1537,7 +1535,7 @@ _readField_m1:
 _readField_m2:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_m2 = ::std::map<::test_cpp2::cpp_reflection::enum1, ::test_cpp2::cpp_reflection::enum2>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_m2);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::enumeration, ::apache::thrift::type_class::enumeration>, ::std::map<::test_cpp2::cpp_reflection::enum1, ::test_cpp2::cpp_reflection::enum2>, ::apache::thrift::type::map<::apache::thrift::type::enum_t<::test_cpp2::cpp_reflection::enum1>, ::apache::thrift::type::enum_t<::test_cpp2::cpp_reflection::enum2>>>::read(*iprot, this->__fbthrift_field_m2);
     _readState.afterSubobject(iprot);
   }
@@ -1553,7 +1551,7 @@ _readField_m2:
 _readField_m3:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_m3 = ::std::map<::test_cpp2::cpp_reflection::enum1, ::test_cpp2::cpp_reflection::structB>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_m3);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::enumeration, ::apache::thrift::type_class::structure>, ::std::map<::test_cpp2::cpp_reflection::enum1, ::test_cpp2::cpp_reflection::structB>, ::apache::thrift::type::map<::apache::thrift::type::enum_t<::test_cpp2::cpp_reflection::enum1>, ::apache::thrift::type::struct_t<::test_cpp2::cpp_reflection::structB>>>::read(*iprot, this->__fbthrift_field_m3);
     _readState.afterSubobject(iprot);
   }
@@ -1569,7 +1567,7 @@ _readField_m3:
 _readField_n1:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_n1 = ::std::map<::std::string, ::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_n1);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::string, ::apache::thrift::type_class::integral>, ::std::map<::std::string, ::std::int32_t>, ::apache::thrift::type::map<::apache::thrift::type::string_t, ::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_n1);
     _readState.afterSubobject(iprot);
   }
@@ -1585,7 +1583,7 @@ _readField_n1:
 _readField_n2:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_n2 = ::std::map<::std::string, ::test_cpp2::cpp_reflection::enum1>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_n2);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::string, ::apache::thrift::type_class::enumeration>, ::std::map<::std::string, ::test_cpp2::cpp_reflection::enum1>, ::apache::thrift::type::map<::apache::thrift::type::string_t, ::apache::thrift::type::enum_t<::test_cpp2::cpp_reflection::enum1>>>::read(*iprot, this->__fbthrift_field_n2);
     _readState.afterSubobject(iprot);
   }
@@ -1601,7 +1599,7 @@ _readField_n2:
 _readField_n3:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_n3 = ::std::map<::std::string, ::test_cpp2::cpp_reflection::structB>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_n3);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::string, ::apache::thrift::type_class::structure>, ::std::map<::std::string, ::test_cpp2::cpp_reflection::structB>, ::apache::thrift::type::map<::apache::thrift::type::string_t, ::apache::thrift::type::struct_t<::test_cpp2::cpp_reflection::structB>>>::read(*iprot, this->__fbthrift_field_n3);
     _readState.afterSubobject(iprot);
   }
@@ -1617,7 +1615,7 @@ _readField_n3:
 _readField_o1:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_o1 = ::std::map<::test_cpp2::cpp_reflection::structA, ::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_o1);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::structure, ::apache::thrift::type_class::integral>, ::std::map<::test_cpp2::cpp_reflection::structA, ::std::int32_t>, ::apache::thrift::type::map<::apache::thrift::type::struct_t<::test_cpp2::cpp_reflection::structA>, ::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_o1);
     _readState.afterSubobject(iprot);
   }
@@ -1633,7 +1631,7 @@ _readField_o1:
 _readField_o2:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_o2 = ::std::map<::test_cpp2::cpp_reflection::structA, ::test_cpp2::cpp_reflection::enum1>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_o2);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::structure, ::apache::thrift::type_class::enumeration>, ::std::map<::test_cpp2::cpp_reflection::structA, ::test_cpp2::cpp_reflection::enum1>, ::apache::thrift::type::map<::apache::thrift::type::struct_t<::test_cpp2::cpp_reflection::structA>, ::apache::thrift::type::enum_t<::test_cpp2::cpp_reflection::enum1>>>::read(*iprot, this->__fbthrift_field_o2);
     _readState.afterSubobject(iprot);
   }
@@ -1649,7 +1647,7 @@ _readField_o2:
 _readField_o3:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_o3 = ::std::map<::test_cpp2::cpp_reflection::structA, ::test_cpp2::cpp_reflection::structB>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_o3);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::structure, ::apache::thrift::type_class::structure>, ::std::map<::test_cpp2::cpp_reflection::structA, ::test_cpp2::cpp_reflection::structB>, ::apache::thrift::type::map<::apache::thrift::type::struct_t<::test_cpp2::cpp_reflection::structA>, ::apache::thrift::type::struct_t<::test_cpp2::cpp_reflection::structB>>>::read(*iprot, this->__fbthrift_field_o3);
     _readState.afterSubobject(iprot);
   }
@@ -1668,7 +1666,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -2527,7 +2524,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -2855,7 +2851,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -3213,7 +3208,7 @@ _readField_fieldH:
 _readField_fieldI:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_fieldI = ::std::vector<::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_fieldI);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int32_t>, ::apache::thrift::type::list<::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_fieldI);
     _readState.afterSubobject(iprot);
   }
@@ -3229,7 +3224,7 @@ _readField_fieldI:
 _readField_fieldJ:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_fieldJ = ::std::vector<::std::string>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_fieldJ);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::string>, ::std::vector<::std::string>, ::apache::thrift::type::list<::apache::thrift::type::string_t>>::read(*iprot, this->__fbthrift_field_fieldJ);
     _readState.afterSubobject(iprot);
   }
@@ -3245,7 +3240,7 @@ _readField_fieldJ:
 _readField_fieldK:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_fieldK = ::std::vector<::std::string>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_fieldK);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::string>, ::std::vector<::std::string>, ::apache::thrift::type::list<::apache::thrift::type::string_t>>::read(*iprot, this->__fbthrift_field_fieldK);
     _readState.afterSubobject(iprot);
   }
@@ -3261,7 +3256,7 @@ _readField_fieldK:
 _readField_fieldL:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_fieldL = ::std::vector<::test_cpp2::cpp_reflection::structA>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_fieldL);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::structure>, ::std::vector<::test_cpp2::cpp_reflection::structA>, ::apache::thrift::type::list<::apache::thrift::type::struct_t<::test_cpp2::cpp_reflection::structA>>>::read(*iprot, this->__fbthrift_field_fieldL);
     _readState.afterSubobject(iprot);
   }
@@ -3277,7 +3272,7 @@ _readField_fieldL:
 _readField_fieldM:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_fieldM = ::std::set<::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_fieldM);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::set<::apache::thrift::type_class::integral>, ::std::set<::std::int32_t>, ::apache::thrift::type::set<::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_fieldM);
     _readState.afterSubobject(iprot);
   }
@@ -3293,7 +3288,7 @@ _readField_fieldM:
 _readField_fieldN:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_fieldN = ::std::set<::std::string>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_fieldN);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::set<::apache::thrift::type_class::string>, ::std::set<::std::string>, ::apache::thrift::type::set<::apache::thrift::type::string_t>>::read(*iprot, this->__fbthrift_field_fieldN);
     _readState.afterSubobject(iprot);
   }
@@ -3309,7 +3304,7 @@ _readField_fieldN:
 _readField_fieldO:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_fieldO = ::std::set<::std::string>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_fieldO);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::set<::apache::thrift::type_class::string>, ::std::set<::std::string>, ::apache::thrift::type::set<::apache::thrift::type::string_t>>::read(*iprot, this->__fbthrift_field_fieldO);
     _readState.afterSubobject(iprot);
   }
@@ -3325,7 +3320,7 @@ _readField_fieldO:
 _readField_fieldP:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_fieldP = ::std::set<::test_cpp2::cpp_reflection::structB>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_fieldP);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::set<::apache::thrift::type_class::structure>, ::std::set<::test_cpp2::cpp_reflection::structB>, ::apache::thrift::type::set<::apache::thrift::type::struct_t<::test_cpp2::cpp_reflection::structB>>>::read(*iprot, this->__fbthrift_field_fieldP);
     _readState.afterSubobject(iprot);
   }
@@ -3341,7 +3336,7 @@ _readField_fieldP:
 _readField_fieldQ:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_fieldQ = ::std::map<::std::string, ::test_cpp2::cpp_reflection::structA>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_fieldQ);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::string, ::apache::thrift::type_class::structure>, ::std::map<::std::string, ::test_cpp2::cpp_reflection::structA>, ::apache::thrift::type::map<::apache::thrift::type::string_t, ::apache::thrift::type::struct_t<::test_cpp2::cpp_reflection::structA>>>::read(*iprot, this->__fbthrift_field_fieldQ);
     _readState.afterSubobject(iprot);
   }
@@ -3357,7 +3352,7 @@ _readField_fieldQ:
 _readField_fieldR:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_fieldR = ::std::map<::std::string, ::test_cpp2::cpp_reflection::structB>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_fieldR);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::string, ::apache::thrift::type_class::structure>, ::std::map<::std::string, ::test_cpp2::cpp_reflection::structB>, ::apache::thrift::type::map<::apache::thrift::type::string_t, ::apache::thrift::type::struct_t<::test_cpp2::cpp_reflection::structB>>>::read(*iprot, this->__fbthrift_field_fieldR);
     _readState.afterSubobject(iprot);
   }
@@ -3376,7 +3371,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -3935,7 +3929,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -4202,7 +4195,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -4421,7 +4413,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -4576,7 +4567,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -4777,7 +4767,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -4948,7 +4937,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -6347,7 +6335,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -7093,7 +7080,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:

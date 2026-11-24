@@ -32,21 +32,19 @@ namespace apache::thrift::fast_thrift::connection::security::handler {
  */
 class PendingConnectionLimitHandler {
  public:
-  explicit PendingConnectionLimitHandler(PendingConnectionState& state) noexcept
-      : state_(state) {}
-
   template <typename Context>
   [[nodiscard]] channel_pipeline::Result onWrite(
       Context& ctx, channel_pipeline::TypeErasedBox&& msg) noexcept {
     auto incoming = msg.take<TLSRequestMessage>();
-    if (FOLLY_UNLIKELY(state_.atCapacity())) {
+    auto& state = ctx.template state<PendingConnectionState>();
+    if (state.atCapacity()) [[unlikely]] {
       XLOG_EVERY_MS(WARN, 1000)
           << "Refusing connection from " << incoming.clientAddr.describe()
-          << ": already processing " << state_.maxPendingConnections
+          << ": already processing " << state.maxPendingConnections
           << " pending connections on this worker";
       return channel_pipeline::Result::Error;
     }
-    incoming.pendingConnectionPermit = PendingConnectionPermit(state_);
+    incoming.pendingConnectionPermit = PendingConnectionPermit(state);
     return ctx.fireWrite(channel_pipeline::erase_and_box(std::move(incoming)));
   }
 
@@ -73,9 +71,6 @@ class PendingConnectionLimitHandler {
   void onReadReady(Context& /*ctx*/) noexcept {}
   template <typename Context>
   void onWriteReady(Context& /*ctx*/) noexcept {}
-
- private:
-  PendingConnectionState& state_;
 };
 
 } // namespace apache::thrift::fast_thrift::connection::security::handler

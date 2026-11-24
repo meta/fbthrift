@@ -101,7 +101,7 @@ class AnnotationConverter {
   static ThriftConstStruct convert(const syntax_graph::Annotation&);
 
  private:
-  static metadata::detail::LimitedVector<ThriftConstValue> convertListOrSet(
+  static std::vector<ThriftConstValue> convertListOrSet(
       const syntax_graph::TypeRef& element, const folly::dynamic&);
   static std::vector<ThriftConstValuePair> convertMap(
       const syntax_graph::Map&, const folly::dynamic&);
@@ -187,10 +187,9 @@ ThriftConstValue AnnotationConverter::convertValue(
       "Mismatched annotation type and value");
 }
 
-metadata::detail::LimitedVector<ThriftConstValue>
-AnnotationConverter::convertListOrSet(
+std::vector<ThriftConstValue> AnnotationConverter::convertListOrSet(
     const syntax_graph::TypeRef& element, const folly::dynamic& dynamic) {
-  metadata::detail::LimitedVector<ThriftConstValue> ret;
+  std::vector<ThriftConstValue> ret;
   for (const auto& i : dynamic) {
     ret.push_back(convertValue(element, i));
   }
@@ -237,9 +236,9 @@ ThriftConstValue AnnotationConverter::convertMapKey(
   return ret;
 }
 
-metadata::detail::LimitedVector<ThriftConstStruct> genStructuredAnnotations(
+std::vector<ThriftConstStruct> genStructuredAnnotations(
     std::span<const syntax_graph::Annotation> annotations) {
-  metadata::detail::LimitedVector<ThriftConstStruct> ret;
+  std::vector<ThriftConstStruct> ret;
   folly::grow_capacity_by(ret, annotations.size());
   for (const auto& i : annotations) {
     ret.push_back(AnnotationConverter::convert(i));

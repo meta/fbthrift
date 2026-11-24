@@ -1,0 +1,29 @@
+[manifest]
+name = absl
+
+[git]
+repo_url = https://github.com/abseil/abseil-cpp.git
+rev = 2d5a8e38e7443d0aef7c5fe4a3590fbaa44e8978
+
+[build]
+builder = cmake
+
+[cmake.defines]
+ABSL_ENABLE_INSTALL = ON
+ABSL_BUILD_TESTING = OFF
+ABSL_PROPAGATE_CXX_STD = ON
+ABSL_USE_SYSTEM_INCLUDES = ON
+
+# EL8/EL9 ship 20211102.0, too old for absl::log.
+[rpms.any(distro=fedora,all(distro_family=rhel,not(any(distro_vers=8,distro_vers=9))))]
+abseil-cpp-devel
+
+# Ubuntu 24.04 ships abseil 20220623.1, too old for absl::log.
+[debs.not(all(distro=ubuntu,any(distro_vers="18.04",distro_vers="20.04",distro_vers="22.04",distro_vers="24.04")))]
+libabsl-dev
+
+[homebrew]
+abseil
+
+[pps]
+abseil-cpp

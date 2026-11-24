@@ -40,12 +40,12 @@
 #include <thrift/lib/cpp2/fast_thrift/security/FizzServerContextBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/ThriftServerConnectionFactory.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/adapter/MetadataAppAdapter.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/CachedEkmExtension.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/event_handler/TProcessorEventHandlerBridge.h>
+#include <thrift/lib/cpp2/schema/detail/Merge.h>
 
 namespace apache::thrift::fast_thrift::thrift {
 
-using channel_pipeline::PipelineBuilder;
-using channel_pipeline::PipelineImpl;
 using channel_pipeline::SimpleBufferAllocator;
 
 namespace {
@@ -281,23 +281,20 @@ void detail::FastThriftServerBase::addNativeThriftPipelineHandlersImpl(
   thriftPipelineRegistrations_.reserve(
       thriftPipelineRegistrations_.size() + factories.size());
   for (auto& factory : factories) {
+    requiresCachedEkms_ |= factory.requiresCachedEkms();
     thriftPipelineRegistrations_.emplace_back(std::move(factory));
   }
 }
 
-void detail::FastThriftServerBase::setPeerIdentityResolver(
-    server::PeerIdentityResolver resolver) {
+void detail::FastThriftServerBase::setClientIdentityHook(
+    apache::thrift::ClientIdentityHook hook) {
   std::lock_guard<std::mutex> lock(lifecycleMutex_);
   if (state_ != State::kNotStarted) {
     throw std::logic_error(
-        "FastThriftServer::setPeerIdentityResolver must be called before "
+        "FastThriftServer::setClientIdentityHook must be called before "
         "start()/serve()");
   }
-  if (peerIdentityResolver_ != nullptr && peerIdentityResolver_ != resolver) {
-    throw std::logic_error(
-        "FastThriftServer already has a different peer identity resolver");
-  }
-  peerIdentityResolver_ = resolver;
+  clientIdentityHook_ = std::move(hook);
 }
 
 void detail::FastThriftServerBase::addProcessorEventHandler(
@@ -334,8 +331,11 @@ void detail::FastThriftServerBase::addServerEventHandler(
 void detail::FastThriftServerBase::addModuleRegistrations(
     std::string name,
     bool requiresHeaders,
+    bool requiresCachedEkms,
     std::vector<FastServerModule::PendingConnectionCallbacks>
         pendingConnectionCallbacks,
+    const std::vector<FastServerModule::RequestStateRegistration>&
+        requestStateRegistrations,
     std::vector<server::ThriftPipelineRegistration> registrations) {
   std::lock_guard<std::mutex> lock(lifecycleMutex_);
   CHECK(state_ == State::kNotStarted)
@@ -366,6 +366,9 @@ void detail::FastThriftServerBase::addModuleRegistrations(
             "that uses headers, which requires enableRequestHeaders",
             name));
   }
+  for (auto registration : requestStateRegistrations) {
+    registration(requestExtensionBuilder_);
+  }
   pendingConnectionCallbacks_.reserve(
       pendingConnectionCallbacks_.size() + pendingConnectionCallbacks.size());
   pendingConnectionCallbacks_.insert(
@@ -380,6 +383,7 @@ void detail::FastThriftServerBase::addModuleRegistrations(
   // Claim the name only once the splice succeeded, so a throwing splice does
   // not leave the name permanently reserved against a retry.
   moduleNames_.insert(std::move(name));
+  requiresCachedEkms_ |= requiresCachedEkms;
 }
 void detail::FastThriftServerBase::setOnConnectionAccepted(
     OnConnectionAcceptedFn cb) {
@@ -636,6 +640,7 @@ void detail::FastThriftServerBase::start() {
       !eventHandlers_.processor.empty() || !eventHandlers_.server.empty();
   if (hasClassicEventHandlers) {
     registerExtension<server::Cpp2BridgeExtension>();
+    eventHandlers_.clientIdentityHook = clientIdentityHook_;
     auto handlers = std::make_shared<const server::TProcessorEventHandlers>(
         std::move(eventHandlers_));
     thriftPipelineRegistrations_.insert(
@@ -650,8 +655,7 @@ void detail::FastThriftServerBase::start() {
                     kEventHandlerBridgeName, /*index=*/0),
                 server::TProcessorEventHandlerBridgeConfig{
                     .handlers = std::move(handlers),
-                    .methodMetadata = methodMetadataRegistry_,
-                    .identityResolver = peerIdentityResolver_})));
+                    .methodMetadata = methodMetadataRegistry_})));
   }
 
   // Wire the per-connection factory. The factory carries all per-EVB-handler
@@ -661,8 +665,20 @@ void detail::FastThriftServerBase::start() {
   // the per-connection ThriftConnContext via ThriftServerConnection.
   // Frozen here: every extension has registered by now, and both layouts are
   // shared unchanged by every connection and request from this point on.
-  connExtensionLayout_ = std::make_shared<const ExtensionLayout>(
-      std::move(connExtensionBuilder_).build());
+  auto connectionLayout = std::move(connExtensionBuilder_).build();
+  const bool requiresNativeCachedEkms =
+      requiresCachedEkms_ && !hasClassicEventHandlers;
+  if (hasClassicEventHandlers) {
+    const auto* entries = connectionLayout.entries();
+    for (std::size_t i = 0; i < connectionLayout.entryCount(); ++i) {
+      if (entries[i].id == CachedEkmExtension::kId) {
+        connectionLayout = withoutCachedEkmExtension(connectionLayout);
+        break;
+      }
+    }
+  }
+  connExtensionLayout_ =
+      std::make_shared<const ExtensionLayout>(std::move(connectionLayout));
   requestExtensionLayout_ = std::make_shared<const ExtensionLayout>(
       std::move(requestExtensionBuilder_).build());
 
@@ -680,10 +696,12 @@ void detail::FastThriftServerBase::start() {
       .connExtensionLayout = connExtensionLayout_,
       .requestExtensionLayout = requestExtensionLayout_,
       .methodMetadata = methodMetadataRegistry_,
+      .requiresCachedEkms = requiresNativeCachedEkms,
       .enableRequestHeaders = config_.enableRequestHeaders,
       .enableChecksum = config_.enableChecksum,
       .enableCancellation = config_.enableCancellation,
-      .enableWriteBufferBackpressure = config_.enableWriteBufferBackpressure,
+      .requestConcurrencyLimits = config_.requestConcurrencyLimits,
+      .concurrencyState = nullptr,
       .enableStreamMux = config_.enableStreamMux,
       .batchingConfig = config_.batchingConfig,
       .drainTimeout = config_.drainTimeout,
@@ -752,6 +770,69 @@ folly::SocketAddress detail::FastThriftServerBase::getAddress() const {
          "isRunning() to gate this call when iterating servers via "
          "FastThriftServerRegistry";
   return connectionManager_->getAddress();
+}
+
+std::vector<folly::not_null<ThriftServerAppAdapterFactory*>>
+detail::FastThriftServerBase::interfaces() const {
+  std::vector<folly::not_null<ThriftServerAppAdapterFactory*>> result;
+  for (ThriftServerAppAdapterFactory* factory :
+       {static_cast<ThriftServerAppAdapterFactory*>(handler_.get()),
+        static_cast<ThriftServerAppAdapterFactory*>(
+            auxInterfaces_.monitoringHandler.get()),
+        static_cast<ThriftServerAppAdapterFactory*>(
+            auxInterfaces_.statusHandler.get()),
+        static_cast<ThriftServerAppAdapterFactory*>(
+            auxInterfaces_.debugHandler.get()),
+        static_cast<ThriftServerAppAdapterFactory*>(
+            auxInterfaces_.controlHandler.get()),
+        static_cast<ThriftServerAppAdapterFactory*>(
+            auxInterfaces_.securityHandler.get())}) {
+    if (factory != nullptr) {
+      result.emplace_back(factory);
+    }
+  }
+  return result;
+}
+
+std::optional<folly::SocketAddress>
+detail::FastThriftServerBase::getAddressIfRunning() const {
+  std::lock_guard<std::mutex> lock(lifecycleMutex_);
+  if (state_ != State::kRunning) {
+    return std::nullopt;
+  }
+  return connectionManager_->getAddress();
+}
+
+::apache::thrift::schema::DefinitionsSchema
+detail::FastThriftServerBase::getServiceSchema() const {
+  std::vector<::apache::thrift::type::Schema> schemas;
+  ::apache::thrift::schema::DefinitionsSchema result;
+  for (auto factory : interfaces()) {
+    if (auto schema = factory->getServiceSchema()) {
+      schemas.push_back(std::move(schema->schema));
+      result.definitions.insert(
+          result.definitions.end(),
+          std::make_move_iterator(schema->definitions.begin()),
+          std::make_move_iterator(schema->definitions.end()));
+    }
+  }
+  // As MultiplexAsyncProcessorFactory merges a C++ ThriftServer's schemas.
+  result.schema =
+      // NOLINTNEXTLINE(facebook-hte-DetailCall)
+      ::apache::thrift::schema::detail::mergeSchemas(std::move(schemas));
+  return result;
+}
+
+std::vector<folly::not_null<const ::apache::thrift::syntax_graph::ServiceNode*>>
+detail::FastThriftServerBase::getServiceSchemaNodes() const {
+  std::vector<
+      folly::not_null<const ::apache::thrift::syntax_graph::ServiceNode*>>
+      result;
+  for (auto factory : interfaces()) {
+    auto nodes = factory->getServiceSchemaNodes();
+    result.insert(result.end(), nodes.begin(), nodes.end());
+  }
+  return result;
 }
 
 } // namespace apache::thrift::fast_thrift::thrift

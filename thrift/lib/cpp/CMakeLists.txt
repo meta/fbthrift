@@ -12,30 +12,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if (THRIFT_TESTS)
+if (THRIFT_TESTS OR THRIFT_BENCHMARKS)
   add_subdirectory(util/test)
 endif ()
 
-add_library(thrift-core Thrift.cpp ../cpp2/FieldRef.cpp)
-thrift_configure_target(thrift-core PUBLIC)
-target_link_libraries(thrift-core PUBLIC fmt::fmt Folly::folly)
+add_library(thrift_core Thrift.cpp ../cpp2/FieldRef.cpp)
+thrift_configure_target(thrift_core PUBLIC)
+target_link_libraries(thrift_core PUBLIC Boost::headers fmt::fmt Folly::folly)
 
 add_library(
-  concurrency concurrency/InitThreadFactory.cpp
-              concurrency/PosixThreadFactory.cpp concurrency/ThreadManager.cpp)
-thrift_configure_target(concurrency PUBLIC)
-target_link_libraries(concurrency PUBLIC Folly::folly gflags glog::glog)
+  thrift_concurrency
+  concurrency/InitThreadFactory.cpp concurrency/PosixThreadFactory.cpp
+  concurrency/ThreadManager.cpp)
+thrift_configure_target(thrift_concurrency PUBLIC)
+target_link_libraries(thrift_concurrency PUBLIC Folly::folly ${thrift_gflags}
+                                                glog::glog)
+target_link_libraries(thrift_concurrency PRIVATE Boost::headers)
 
-add_library(runtime ../cpp2/runtime/Init.cpp)
-thrift_configure_target(runtime PUBLIC)
-target_link_libraries(runtime PUBLIC Folly::folly)
+add_library(thrift_runtime ../cpp2/runtime/Init.cpp)
+thrift_configure_target(thrift_runtime PUBLIC)
+target_link_libraries(thrift_runtime PUBLIC Folly::folly)
 
-# transport pulls in rocket/CompressionManager via THeader.cpp, which
-# lives in thriftcpp2, and async and thrift build on transport. Build them only
-# when the RPC stack is enabled.
+# thrift_transport pulls in rocket/CompressionManager via THeader.cpp, which
+# lives in thrift_rpc, and thrift_async and thrift-cpp build on thrift_transport.
+# Build them only when the RPC stack is enabled.
 if (THRIFT_RPC)
   add_library(
-    transport
+    thrift_transport
     transport/TTransportException.cpp
     transport/TFDTransport.cpp
     transport/THttpTransport.cpp
@@ -52,19 +55,20 @@ if (THRIFT_RPC)
     util/PausableTimer.cpp
     util/THttpParser.cpp
     util/VarintUtils.cpp)
-  add_dependencies(transport rpcmetadata)
+  add_dependencies(thrift_transport thrift_rpc_metadata)
   target_link_libraries(
-    transport
-    PUBLIC concurrency
-           thrift-core
-           rpcmetadata
+    thrift_transport
+    PUBLIC thrift_common
+           thrift_concurrency
+           thrift_core
+           thrift_rpc_metadata
            Folly::folly
-           ZLIB::ZLIB
+           ${thrift_zlib}
            ${thrift_openssl_crypto}
-           zstd::zstd)
+           ${thrift_zstd})
 
   add_library(
-    async
+    thrift_async
     ContextStack.cpp
     EventHandlerBase.cpp
     server/TServerObserver.cpp
@@ -75,13 +79,13 @@ if (THRIFT_RPC)
   if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL
                                                "GNU")
     target_compile_options(
-      async PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-fsized-deallocation>)
+      thrift_async PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-fsized-deallocation>)
   endif ()
   target_link_libraries(
-    async
-    PUBLIC concurrency
-           runtime
-           transport
+    thrift_async
+    PUBLIC thrift_concurrency
+           thrift_runtime
+           thrift_transport
            Boost::headers
            Folly::folly
            ${thrift_wangle}
@@ -90,39 +94,23 @@ if (THRIFT_RPC)
 
   add_library(thrift-cpp INTERFACE)
   target_link_libraries(
-    thrift-cpp INTERFACE async concurrency thriftprotocol transport
-                         Folly::folly glog::glog)
+    thrift-cpp INTERFACE thrift_async thrift_concurrency thrift_protocol
+                         thrift_transport Folly::folly glog::glog)
+  add_library(FBThrift::thrift-cpp ALIAS thrift-cpp)
 endif () # THRIFT_RPC
-
-set(THRIFT1_HEADER_DIRS async concurrency protocol server transport)
-foreach (dir ${THRIFT1_HEADER_DIRS})
-  install(
-    DIRECTORY ${dir}
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/thrift/lib/cpp
-    FILES_MATCHING
-    PATTERN "*.h")
-  install(
-    DIRECTORY ${dir}
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/thrift/lib/cpp
-    FILES_MATCHING
-    PATTERN "*.tcc")
-endforeach ()
 
 if (BUILD_SHARED_LIBS)
   # all but thrift-cpp since it's an interface
-  set_target_properties(thrift-core concurrency PROPERTIES VERSION
-                                                           ${PROJECT_VERSION})
+  set_target_properties(thrift_core thrift_concurrency
+                        PROPERTIES VERSION ${PROJECT_VERSION})
   if (THRIFT_RPC)
-    set_target_properties(async transport PROPERTIES VERSION ${PROJECT_VERSION})
+    set_target_properties(thrift_async thrift_transport
+                          PROPERTIES VERSION ${PROJECT_VERSION})
   endif ()
 endif ()
 
-install(TARGETS thrift-core concurrency
-        runtime EXPORT fbthrift-exports DESTINATION ${CMAKE_INSTALL_LIBDIR})
+thrift_install_targets(thrift_core thrift_concurrency thrift_runtime)
 
 if (THRIFT_RPC)
-  install(
-    TARGETS transport async thrift-cpp
-    EXPORT fbthrift-exports
-    DESTINATION ${CMAKE_INSTALL_LIBDIR})
+  thrift_install_targets(thrift_transport thrift_async)
 endif ()

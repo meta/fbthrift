@@ -14,61 +14,47 @@
  * limitations under the License.
  */
 
-/** Subscriber that will forward ContextData for keys provided in ContextPropagationRegistry */
 package com.facebook.thrift.util.resources;
 
-import com.facebook.nifty.core.RequestContext;
-import com.facebook.nifty.core.RequestContexts;
-import java.util.HashMap;
-import java.util.Map;
 import org.reactivestreams.Subscription;
 import reactor.core.CoreSubscriber;
+import reactor.util.context.Context;
 
+/**
+ * @deprecated Forwards every signal to its delegate and propagates nothing. Reactive code reads the
+ *     request context with {@link com.facebook.nifty.core.RequestContexts#currentContext()}. Kept
+ *     so callers compiled against it still link.
+ */
+@Deprecated
 public class ContextPropSubscriber<T> implements CoreSubscriber<T> {
-  final CoreSubscriber<T> delegate;
-  final Map<String, Object> contextData = new HashMap<>();
+  private final CoreSubscriber<T> delegate;
 
   public ContextPropSubscriber(CoreSubscriber<T> delegate) {
     this.delegate = delegate;
   }
 
   @Override
-  public void onSubscribe(Subscription s) {
-
-    delegate.onSubscribe(s);
-    // Copy the context data from the current context. onSubscribe will happen on current thread.
-    RequestContext context = RequestContexts.getOrCreateCurrentContext();
-    for (String key : ContextPropagationRegistry.getContextPropagationKeys()) {
-      if (context.getContextData(key) != null) {
-        this.contextData.put(key, context.getContextData(key));
-      }
-    }
+  public Context currentContext() {
+    return delegate.currentContext();
   }
 
-  // Set context data for the captured contextData keys before doing onNext, onError, onComplete
+  @Override
+  public void onSubscribe(Subscription s) {
+    delegate.onSubscribe(s);
+  }
+
   @Override
   public void onNext(T t) {
-    setContextData();
     delegate.onNext(t);
   }
 
   @Override
   public void onError(Throwable t) {
-    setContextData();
     delegate.onError(t);
   }
 
   @Override
   public void onComplete() {
-    setContextData();
     delegate.onComplete();
-  }
-
-  private void setContextData() {
-    // Set the new context data for the captured contextData keys
-    if (!this.contextData.isEmpty()) {
-      RequestContext context = RequestContexts.getOrCreateCurrentContext();
-      this.contextData.forEach((key, value) -> context.setContextData(key, value));
-    }
   }
 }

@@ -49,7 +49,7 @@ TEST(GetTest, GetField) {
 template <typename T>
 FieldId findIdByName(const std::string& name) {
   return find_by_field_id<T>([&](auto id) {
-    return op::get_name_v<T, decltype(id)> == name ? id() : FieldId{};
+    return op::get_field_name<T, decltype(id)>() == name ? id() : FieldId{};
   });
 }
 
@@ -133,7 +133,8 @@ TEST(GetValueOrNullTest, Union) {
     UnionStruct obj;
     EXPECT_EQ(op::get_value_or_null(obj.field()), nullptr);
     obj.field().emplace().int_field() = 2;
-    EXPECT_EQ(op::get_value_or_null(obj.field())->get_int_field(), 2);
+    EXPECT_EQ(
+        op::get_value_or_null(obj.field())->int_field().as_const().value(), 2);
   }
   {
     // test with const T&
@@ -142,7 +143,7 @@ TEST(GetValueOrNullTest, Union) {
     EXPECT_EQ(op::get_value_or_null(objConst.field()), nullptr);
     obj.field().emplace().string_field() = "foo";
     EXPECT_EQ(
-        op::get_value_or_null(objConst.field())->get_string_field(), "foo");
+        op::get_value_or_null(objConst.field())->string_field().value(), "foo");
   }
 }
 
@@ -196,8 +197,8 @@ TEST(VisitUnionTest, Basic) {
         [&]<typename ident>(folly::tag_t<ident>, auto& value) {
           fid = folly::to_underlying(op::get_field_id_v<test::Union, ident>);
           LOG(INFO) << "Active field: "
-                    << op::get_name_v<test::Union, ident> << " with value: "
-                    << value;
+                    << op::get_field_name<test::Union, ident>()
+                    << " with value: " << value;
         },
         [&]() {
           fid = 0;
@@ -230,7 +231,8 @@ TEST(VisitUnionTest, Basic) {
   op::visit_union_with_tag(
       obj,
       []<typename ident>(folly::tag_t<ident>, auto& value) {
-        LOG(INFO) << op::get_name_v<test::Union, ident> << " --> " << value;
+        LOG(INFO) << op::get_field_name<test::Union, ident>() << " --> "
+                  << value;
       },
       []() { LOG(INFO) << "Empty union"; });
 }

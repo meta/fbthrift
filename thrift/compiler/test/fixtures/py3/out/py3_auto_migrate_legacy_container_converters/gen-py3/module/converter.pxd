@@ -64,6 +64,9 @@ cdef object CustomTypedefFields_from_cpp(const shared_ptr[_fbthrift_cbindings.cC
 cdef shared_ptr[_fbthrift_cbindings.cAdaptedTypedefFields] AdaptedTypedefFields_convert_to_cpp(object inst) except*
 cdef object AdaptedTypedefFields_from_cpp(const shared_ptr[_fbthrift_cbindings.cAdaptedTypedefFields]& c_struct)
 
+cdef shared_ptr[_fbthrift_cbindings.cStringAdaptedUnion] StringAdaptedUnion_convert_to_cpp(object inst) except*
+cdef object StringAdaptedUnion_from_cpp(const shared_ptr[_fbthrift_cbindings.cStringAdaptedUnion]& c_struct)
+
 cdef vector[cint16_t] List__i16__make_instance(object items) except *
 cdef vector[cint32_t] List__i32__make_instance(object items) except *
 cdef vector[cint64_t] List__i64__make_instance(object items) except *

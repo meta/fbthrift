@@ -19,8 +19,6 @@
 #include <folly/io/async/EventBase.h>
 #include <folly/io/async/HHWheelTimer.h>
 
-#include <boost/intrusive/list.hpp>
-
 #include <chrono>
 #include <functional>
 #include <utility>
@@ -30,9 +28,7 @@ namespace apache::thrift::fast_thrift::frame::write::util {
 class BatchFlushScheduler : private folly::EventBase::LoopCallback,
                             private folly::HHWheelTimer::Callback {
  public:
-  using FlushList = boost::intrusive::list<
-      folly::EventBase::LoopCallback,
-      boost::intrusive::constant_time_size<false>>;
+  using FlushList = folly::EventBase::LoopCallbackList;
 
   enum class DeferredFlushMode {
     EndOfCurrentLoop,

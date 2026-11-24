@@ -24,10 +24,10 @@ pub(crate) use ::::services;
 
 
 
-#[doc = "Detailed overview of service"]
+/// Detailed overview of service
 #[::async_trait::async_trait]
 pub trait C: ::std::marker::Send + ::std::marker::Sync + 'static {
-    #[doc = "Function doctext."]
+    /// Function doctext.
     async fn f(
         &self,
     ) -> ::std::result::Result<(), crate::services::c::FExn> {
@@ -38,7 +38,7 @@ pub trait C: ::std::marker::Send + ::std::marker::Sync + 'static {
             ),
         ))
     }
-    #[doc = "Streaming function"]
+    /// Streaming function
     async fn numbers(
         &self,
     ) -> ::std::result::Result<
@@ -51,7 +51,6 @@ pub trait C: ::std::marker::Send + ::std::marker::Sync + 'static {
             ),
         ))
     }
-    #[doc = ""]
     async fn thing(
         &self,
         _a: ::std::primitive::i32,
@@ -285,6 +284,12 @@ where
         // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
         ::std::mem::drop(p);
 
+        // After the event handlers and before the service method, where
+        // generated C++ runs the interceptors. Reached only once pre_read and
+        // post_read have both succeeded, so a handler that refused the request
+        // ends it without any interceptor being asked.
+        ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
+
         let res = ::std::panic::AssertUnwindSafe(
             self.service.f(
             )
@@ -350,6 +355,12 @@ where
         p.read_message_end()?;
         // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
         ::std::mem::drop(p);
+
+        // After the event handlers and before the service method, where
+        // generated C++ runs the interceptors. Reached only once pre_read and
+        // post_read have both succeeded, so a handler that refused the request
+        // ends it without any interceptor being asked.
+        ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
         let res = ::std::panic::AssertUnwindSafe(
             self.service.numbers(
@@ -453,6 +464,12 @@ where
         p.read_message_end()?;
         // drop the deserializer buffer since we already have the relevant data pulled out and placed into the _args variable
         ::std::mem::drop(p);
+
+        // After the event handlers and before the service method, where
+        // generated C++ runs the interceptors. Reached only once pre_read and
+        // post_read have both succeeded, so a handler that refused the request
+        // ends it without any interceptor being asked.
+        ::fbthrift::RequestContext::run_on_request_interceptors(req_ctxt).await?;
 
         let res = ::std::panic::AssertUnwindSafe(
             self.service.thing(

@@ -1034,6 +1034,11 @@ class union1 final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "union1";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "ui", "ud", "us", "ue"
+  };
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -1084,43 +1089,7 @@ class union1 final  {
 
   union1(const union1& rhs);
 
-  union1& operator=(union1&& rhs) noexcept {
-    if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-      {
-        __fbthrift_clear();
-        return *this;
-      }
-      case Type::ui:
-      {
-        set_ui(std::move(rhs.value_.ui));
-        break;
-      }
-      case Type::ud:
-      {
-        set_ud(std::move(rhs.value_.ud));
-        break;
-      }
-      case Type::us:
-      {
-        set_us(std::move(rhs.value_.us));
-        break;
-      }
-      case Type::ue:
-      {
-        set_ue(std::move(rhs.value_.ue));
-        break;
-      }
-      default:
-      {
-        assert(false);
-        __fbthrift_clear();
-      }
-    }
-    apache::thrift::clear(rhs);
-    return *this;
-  }
+  union1& operator=(union1&& rhs) noexcept;
 
   union1& operator=(const union1& rhs);
 
@@ -1207,6 +1176,7 @@ class union1 final  {
 
 
   /** Glean { "field": "ui" } */
+  [[deprecated("Use `FOO.ui().value()` instead of `FOO.get_ui()`")]]
   ::std::int32_t const& get_ui() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::ui) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1215,6 +1185,7 @@ class union1 final  {
   }
 
   /** Glean { "field": "ud" } */
+  [[deprecated("Use `FOO.ud().value()` instead of `FOO.get_ud()`")]]
   double const& get_ud() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::ud) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1223,6 +1194,7 @@ class union1 final  {
   }
 
   /** Glean { "field": "us" } */
+  [[deprecated("Use `FOO.us().value()` instead of `FOO.get_us()`")]]
   ::std::string const& get_us() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::us) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1231,6 +1203,7 @@ class union1 final  {
   }
 
   /** Glean { "field": "ue" } */
+  [[deprecated("Use `FOO.ue().value()` instead of `FOO.get_ue()`")]]
   ::test_cpp2::cpp_reflection::enum1 const& get_ue() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::ue) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1428,7 +1401,6 @@ class union1 final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<union1>;
   friend void swap(union1& a, union1& b);
 };
 
@@ -1451,6 +1423,11 @@ class union2 final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "union2";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "ui_2", "ud_2", "us_2", "ue_2"
+  };
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -1501,43 +1478,7 @@ class union2 final  {
 
   union2(const union2& rhs);
 
-  union2& operator=(union2&& rhs) noexcept {
-    if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-      {
-        __fbthrift_clear();
-        return *this;
-      }
-      case Type::ui_2:
-      {
-        set_ui_2(std::move(rhs.value_.ui_2));
-        break;
-      }
-      case Type::ud_2:
-      {
-        set_ud_2(std::move(rhs.value_.ud_2));
-        break;
-      }
-      case Type::us_2:
-      {
-        set_us_2(std::move(rhs.value_.us_2));
-        break;
-      }
-      case Type::ue_2:
-      {
-        set_ue_2(std::move(rhs.value_.ue_2));
-        break;
-      }
-      default:
-      {
-        assert(false);
-        __fbthrift_clear();
-      }
-    }
-    apache::thrift::clear(rhs);
-    return *this;
-  }
+  union2& operator=(union2&& rhs) noexcept;
 
   union2& operator=(const union2& rhs);
 
@@ -1624,6 +1565,7 @@ class union2 final  {
 
 
   /** Glean { "field": "ui_2" } */
+  [[deprecated("Use `FOO.ui_2().value()` instead of `FOO.get_ui_2()`")]]
   ::std::int32_t const& get_ui_2() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::ui_2) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1632,6 +1574,7 @@ class union2 final  {
   }
 
   /** Glean { "field": "ud_2" } */
+  [[deprecated("Use `FOO.ud_2().value()` instead of `FOO.get_ud_2()`")]]
   double const& get_ud_2() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::ud_2) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1640,6 +1583,7 @@ class union2 final  {
   }
 
   /** Glean { "field": "us_2" } */
+  [[deprecated("Use `FOO.us_2().value()` instead of `FOO.get_us_2()`")]]
   ::std::string const& get_us_2() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::us_2) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1648,6 +1592,7 @@ class union2 final  {
   }
 
   /** Glean { "field": "ue_2" } */
+  [[deprecated("Use `FOO.ue_2().value()` instead of `FOO.get_ue_2()`")]]
   ::test_cpp2::cpp_reflection::enum1 const& get_ue_2() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::ue_2) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1845,7 +1790,6 @@ class union2 final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<union2>;
   friend void swap(union2& a, union2& b);
 };
 
@@ -1868,6 +1812,11 @@ class union3 final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "union3";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "ui_3", "ud_3", "us_3", "ue_3"
+  };
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -1918,43 +1867,7 @@ class union3 final  {
 
   union3(const union3& rhs);
 
-  union3& operator=(union3&& rhs) noexcept {
-    if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-      {
-        __fbthrift_clear();
-        return *this;
-      }
-      case Type::ui_3:
-      {
-        set_ui_3(std::move(rhs.value_.ui_3));
-        break;
-      }
-      case Type::ud_3:
-      {
-        set_ud_3(std::move(rhs.value_.ud_3));
-        break;
-      }
-      case Type::us_3:
-      {
-        set_us_3(std::move(rhs.value_.us_3));
-        break;
-      }
-      case Type::ue_3:
-      {
-        set_ue_3(std::move(rhs.value_.ue_3));
-        break;
-      }
-      default:
-      {
-        assert(false);
-        __fbthrift_clear();
-      }
-    }
-    apache::thrift::clear(rhs);
-    return *this;
-  }
+  union3& operator=(union3&& rhs) noexcept;
 
   union3& operator=(const union3& rhs);
 
@@ -2041,6 +1954,7 @@ class union3 final  {
 
 
   /** Glean { "field": "ui_3" } */
+  [[deprecated("Use `FOO.ui_3().value()` instead of `FOO.get_ui_3()`")]]
   ::std::int32_t const& get_ui_3() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::ui_3) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -2049,6 +1963,7 @@ class union3 final  {
   }
 
   /** Glean { "field": "ud_3" } */
+  [[deprecated("Use `FOO.ud_3().value()` instead of `FOO.get_ud_3()`")]]
   double const& get_ud_3() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::ud_3) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -2057,6 +1972,7 @@ class union3 final  {
   }
 
   /** Glean { "field": "us_3" } */
+  [[deprecated("Use `FOO.us_3().value()` instead of `FOO.get_us_3()`")]]
   ::std::string const& get_us_3() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::us_3) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -2065,6 +1981,7 @@ class union3 final  {
   }
 
   /** Glean { "field": "ue_3" } */
+  [[deprecated("Use `FOO.ue_3().value()` instead of `FOO.get_ue_3()`")]]
   ::test_cpp2::cpp_reflection::enum1 const& get_ue_3() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::ue_3) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -2262,7 +2179,6 @@ class union3 final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<union3>;
   friend void swap(union3& a, union3& b);
 };
 
@@ -2285,6 +2201,16 @@ class structA final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "structA";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "a", "b"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -2453,7 +2379,6 @@ class structA final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<structA>;
   friend void swap(structA& a, structA& b);
 };
 
@@ -2476,6 +2401,11 @@ class unionA final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "unionA";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "i", "d", "s", "e", "a"
+  };
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -2529,48 +2459,7 @@ class unionA final  {
 
   unionA(const unionA& rhs);
 
-  unionA& operator=(unionA&& rhs) noexcept {
-    if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-      {
-        __fbthrift_clear();
-        return *this;
-      }
-      case Type::i:
-      {
-        set_i(std::move(rhs.value_.i));
-        break;
-      }
-      case Type::d:
-      {
-        set_d(std::move(rhs.value_.d));
-        break;
-      }
-      case Type::s:
-      {
-        set_s(std::move(rhs.value_.s));
-        break;
-      }
-      case Type::e:
-      {
-        set_e(std::move(rhs.value_.e));
-        break;
-      }
-      case Type::a:
-      {
-        set_a(std::move(rhs.value_.a));
-        break;
-      }
-      default:
-      {
-        assert(false);
-        __fbthrift_clear();
-      }
-    }
-    apache::thrift::clear(rhs);
-    return *this;
-  }
+  unionA& operator=(unionA&& rhs) noexcept;
 
   unionA& operator=(const unionA& rhs);
 
@@ -2688,6 +2577,7 @@ class unionA final  {
   }
 
   /** Glean { "field": "i" } */
+  [[deprecated("Use `FOO.i().value()` instead of `FOO.get_i()`")]]
   ::std::int32_t const& get_i() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::i) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -2696,6 +2586,7 @@ class unionA final  {
   }
 
   /** Glean { "field": "d" } */
+  [[deprecated("Use `FOO.d().value()` instead of `FOO.get_d()`")]]
   double const& get_d() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::d) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -2704,6 +2595,7 @@ class unionA final  {
   }
 
   /** Glean { "field": "s" } */
+  [[deprecated("Use `FOO.s().value()` instead of `FOO.get_s()`")]]
   ::std::string const& get_s() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::s) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -2712,6 +2604,7 @@ class unionA final  {
   }
 
   /** Glean { "field": "e" } */
+  [[deprecated("Use `FOO.e().value()` instead of `FOO.get_e()`")]]
   ::test_cpp2::cpp_reflection::enum1 const& get_e() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::e) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -2720,6 +2613,7 @@ class unionA final  {
   }
 
   /** Glean { "field": "a" } */
+  [[deprecated("Use `FOO.a().value()` instead of `FOO.get_a()`")]]
   ::test_cpp2::cpp_reflection::structA const& get_a() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::a) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -2960,7 +2854,6 @@ class unionA final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<unionA>;
   friend void swap(unionA& a, unionA& b);
 };
 
@@ -2983,6 +2876,16 @@ class structB final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "structB";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "c", "d"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -3138,7 +3041,6 @@ class structB final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<structB>;
   friend void swap(structB& a, structB& b);
 };
 
@@ -3161,6 +3063,16 @@ class structC final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "structC";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "j1", "j2", "j3", "k", "k1", "k2", "k3", "l", "l1", "l2", "l3", "m1", "m2", "m3", "n1", "n2", "n3", "o1", "o2", "o3"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -4865,7 +4777,6 @@ class structC final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<structC>;
   friend void swap(structC& a, structC& b);
 };
 
@@ -4888,6 +4799,16 @@ class struct1 final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "struct1";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "field0", "field1", "field2", "field3", "field4", "field5"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -5264,7 +5185,6 @@ class struct1 final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<struct1>;
   friend void swap(struct1& a, struct1& b);
 };
 
@@ -5287,6 +5207,16 @@ class struct2 final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "struct2";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "fieldA", "fieldB", "fieldC", "fieldD", "fieldE", "fieldF", "fieldG"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -5719,7 +5649,6 @@ class struct2 final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<struct2>;
   friend void swap(struct2& a, struct2& b);
 };
 
@@ -5742,6 +5671,16 @@ class struct3 final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "struct3";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "fieldA", "fieldB", "fieldC", "fieldD", "fieldE", "fieldF", "fieldG", "fieldH", "fieldI", "fieldJ", "fieldK", "fieldL", "fieldM", "fieldN", "fieldO", "fieldP", "fieldQ", "fieldR"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -6790,7 +6729,6 @@ class struct3 final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<struct3>;
   friend void swap(struct3& a, struct3& b);
 };
 
@@ -6813,6 +6751,16 @@ class struct4 final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "struct4";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "field0", "field1", "field2", "field3"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -7070,7 +7018,6 @@ class struct4 final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<struct4>;
   friend void swap(struct4& a, struct4& b);
 };
 
@@ -7093,6 +7040,16 @@ class struct5 final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "struct5";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "field0", "field1", "field2", "field3", "field4"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -7419,7 +7376,6 @@ class struct5 final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<struct5>;
   friend void swap(struct5& a, struct5& b);
 };
 
@@ -7442,6 +7398,16 @@ class struct_binary final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "struct_binary";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "bi"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -7562,7 +7528,6 @@ class struct_binary final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<struct_binary>;
   friend void swap(struct_binary& a, struct_binary& b);
 };
 
@@ -7585,6 +7550,16 @@ class dep_A_struct final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "dep_A_struct";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "b", "c", "i_a"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -7803,7 +7778,6 @@ class dep_A_struct final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<dep_A_struct>;
   friend void swap(dep_A_struct& a, dep_A_struct& b);
 };
 
@@ -7826,6 +7800,16 @@ class dep_B_struct final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "dep_B_struct";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "b", "c", "i_a"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -8044,7 +8028,6 @@ class dep_B_struct final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<dep_B_struct>;
   friend void swap(dep_B_struct& a, dep_B_struct& b);
 };
 
@@ -8067,6 +8050,16 @@ class annotated final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "annotated";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "a"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -8173,7 +8166,6 @@ class annotated final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<annotated>;
   friend void swap(annotated& a, annotated& b);
 };
 
@@ -8196,6 +8188,11 @@ class union_with_special_names final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "union_with_special_names";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "get", "getter", "lists", "maps", "name", "name_to_value", "names", "prefix_tree", "sets", "setter", "str", "strings", "type", "value", "value_to_name", "values", "id", "ids", "descriptor", "descriptors", "key", "keys", "annotation", "annotations", "member", "members", "field", "fields"
+  };
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -8318,163 +8315,7 @@ class union_with_special_names final  {
 
   union_with_special_names(const union_with_special_names& rhs);
 
-  union_with_special_names& operator=(union_with_special_names&& rhs) noexcept {
-    if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-      {
-        __fbthrift_clear();
-        return *this;
-      }
-      case Type::get:
-      {
-        set_get(std::move(rhs.value_.get));
-        break;
-      }
-      case Type::getter:
-      {
-        set_getter(std::move(rhs.value_.getter));
-        break;
-      }
-      case Type::lists:
-      {
-        set_lists(std::move(rhs.value_.lists));
-        break;
-      }
-      case Type::maps:
-      {
-        set_maps(std::move(rhs.value_.maps));
-        break;
-      }
-      case Type::name:
-      {
-        set_name(std::move(rhs.value_.name));
-        break;
-      }
-      case Type::name_to_value:
-      {
-        set_name_to_value(std::move(rhs.value_.name_to_value));
-        break;
-      }
-      case Type::names:
-      {
-        set_names(std::move(rhs.value_.names));
-        break;
-      }
-      case Type::prefix_tree:
-      {
-        set_prefix_tree(std::move(rhs.value_.prefix_tree));
-        break;
-      }
-      case Type::sets:
-      {
-        set_sets(std::move(rhs.value_.sets));
-        break;
-      }
-      case Type::setter:
-      {
-        set_setter(std::move(rhs.value_.setter));
-        break;
-      }
-      case Type::str:
-      {
-        set_str(std::move(rhs.value_.str));
-        break;
-      }
-      case Type::strings:
-      {
-        set_strings(std::move(rhs.value_.strings));
-        break;
-      }
-      case Type::type:
-      {
-        set_type(std::move(rhs.value_.type));
-        break;
-      }
-      case Type::value:
-      {
-        set_value(std::move(rhs.value_.value));
-        break;
-      }
-      case Type::value_to_name:
-      {
-        set_value_to_name(std::move(rhs.value_.value_to_name));
-        break;
-      }
-      case Type::values:
-      {
-        set_values(std::move(rhs.value_.values));
-        break;
-      }
-      case Type::id:
-      {
-        set_id(std::move(rhs.value_.id));
-        break;
-      }
-      case Type::ids:
-      {
-        set_ids(std::move(rhs.value_.ids));
-        break;
-      }
-      case Type::descriptor:
-      {
-        set_descriptor(std::move(rhs.value_.descriptor));
-        break;
-      }
-      case Type::descriptors:
-      {
-        set_descriptors(std::move(rhs.value_.descriptors));
-        break;
-      }
-      case Type::key:
-      {
-        set_key(std::move(rhs.value_.key));
-        break;
-      }
-      case Type::keys:
-      {
-        set_keys(std::move(rhs.value_.keys));
-        break;
-      }
-      case Type::annotation:
-      {
-        set_annotation(std::move(rhs.value_.annotation));
-        break;
-      }
-      case Type::annotations:
-      {
-        set_annotations(std::move(rhs.value_.annotations));
-        break;
-      }
-      case Type::member:
-      {
-        set_member(std::move(rhs.value_.member));
-        break;
-      }
-      case Type::members:
-      {
-        set_members(std::move(rhs.value_.members));
-        break;
-      }
-      case Type::field:
-      {
-        set_field(std::move(rhs.value_.field));
-        break;
-      }
-      case Type::fields:
-      {
-        set_fields(std::move(rhs.value_.fields));
-        break;
-      }
-      default:
-      {
-        assert(false);
-        __fbthrift_clear();
-      }
-    }
-    apache::thrift::clear(rhs);
-    return *this;
-  }
+  union_with_special_names& operator=(union_with_special_names&& rhs) noexcept;
 
   union_with_special_names& operator=(const union_with_special_names& rhs);
 
@@ -8851,6 +8692,7 @@ class union_with_special_names final  {
 
 
   /** Glean { "field": "get" } */
+  [[deprecated("Use `FOO.get().value()` instead of `FOO.get_get()`")]]
   ::std::int32_t const& get_get() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::get) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -8859,6 +8701,7 @@ class union_with_special_names final  {
   }
 
   /** Glean { "field": "getter" } */
+  [[deprecated("Use `FOO.getter().value()` instead of `FOO.get_getter()`")]]
   ::std::int32_t const& get_getter() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::getter) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -8867,6 +8710,7 @@ class union_with_special_names final  {
   }
 
   /** Glean { "field": "lists" } */
+  [[deprecated("Use `FOO.lists().value()` instead of `FOO.get_lists()`")]]
   ::std::int32_t const& get_lists() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::lists) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -8875,6 +8719,7 @@ class union_with_special_names final  {
   }
 
   /** Glean { "field": "maps" } */
+  [[deprecated("Use `FOO.maps().value()` instead of `FOO.get_maps()`")]]
   ::std::int32_t const& get_maps() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::maps) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -8883,6 +8728,7 @@ class union_with_special_names final  {
   }
 
   /** Glean { "field": "name" } */
+  [[deprecated("Use `FOO.name().value()` instead of `FOO.get_name()`")]]
   ::std::int32_t const& get_name() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::name) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -8891,6 +8737,7 @@ class union_with_special_names final  {
   }
 
   /** Glean { "field": "name_to_value" } */
+  [[deprecated("Use `FOO.name_to_value().value()` instead of `FOO.get_name_to_value()`")]]
   ::std::int32_t const& get_name_to_value() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::name_to_value) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -8899,6 +8746,7 @@ class union_with_special_names final  {
   }
 
   /** Glean { "field": "names" } */
+  [[deprecated("Use `FOO.names().value()` instead of `FOO.get_names()`")]]
   ::std::int32_t const& get_names() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::names) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -8907,6 +8755,7 @@ class union_with_special_names final  {
   }
 
   /** Glean { "field": "prefix_tree" } */
+  [[deprecated("Use `FOO.prefix_tree().value()` instead of `FOO.get_prefix_tree()`")]]
   ::std::int32_t const& get_prefix_tree() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::prefix_tree) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -8915,6 +8764,7 @@ class union_with_special_names final  {
   }
 
   /** Glean { "field": "sets" } */
+  [[deprecated("Use `FOO.sets().value()` instead of `FOO.get_sets()`")]]
   ::std::int32_t const& get_sets() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::sets) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -8923,6 +8773,7 @@ class union_with_special_names final  {
   }
 
   /** Glean { "field": "setter" } */
+  [[deprecated("Use `FOO.setter().value()` instead of `FOO.get_setter()`")]]
   ::std::int32_t const& get_setter() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::setter) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -8931,6 +8782,7 @@ class union_with_special_names final  {
   }
 
   /** Glean { "field": "str" } */
+  [[deprecated("Use `FOO.str().value()` instead of `FOO.get_str()`")]]
   ::std::int32_t const& get_str() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::str) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -8939,6 +8791,7 @@ class union_with_special_names final  {
   }
 
   /** Glean { "field": "strings" } */
+  [[deprecated("Use `FOO.strings().value()` instead of `FOO.get_strings()`")]]
   ::std::int32_t const& get_strings() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::strings) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -8947,6 +8800,7 @@ class union_with_special_names final  {
   }
 
   /** Glean { "field": "type" } */
+  [[deprecated("Use `FOO.type().value()` instead of `FOO.get_type()`")]]
   ::std::int32_t const& get_type() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::type) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -8955,6 +8809,7 @@ class union_with_special_names final  {
   }
 
   /** Glean { "field": "value" } */
+  [[deprecated("Use `FOO.value().value()` instead of `FOO.get_value()`")]]
   ::std::int32_t const& get_value() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::value) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -8963,6 +8818,7 @@ class union_with_special_names final  {
   }
 
   /** Glean { "field": "value_to_name" } */
+  [[deprecated("Use `FOO.value_to_name().value()` instead of `FOO.get_value_to_name()`")]]
   ::std::int32_t const& get_value_to_name() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::value_to_name) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -8971,6 +8827,7 @@ class union_with_special_names final  {
   }
 
   /** Glean { "field": "values" } */
+  [[deprecated("Use `FOO.values().value()` instead of `FOO.get_values()`")]]
   ::std::int32_t const& get_values() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::values) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -8979,6 +8836,7 @@ class union_with_special_names final  {
   }
 
   /** Glean { "field": "id" } */
+  [[deprecated("Use `FOO.id().value()` instead of `FOO.get_id()`")]]
   ::std::int32_t const& get_id() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::id) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -8987,6 +8845,7 @@ class union_with_special_names final  {
   }
 
   /** Glean { "field": "ids" } */
+  [[deprecated("Use `FOO.ids().value()` instead of `FOO.get_ids()`")]]
   ::std::int32_t const& get_ids() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::ids) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -8995,6 +8854,7 @@ class union_with_special_names final  {
   }
 
   /** Glean { "field": "descriptor" } */
+  [[deprecated("Use `FOO.descriptor().value()` instead of `FOO.get_descriptor()`")]]
   ::std::int32_t const& get_descriptor() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::descriptor) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -9003,6 +8863,7 @@ class union_with_special_names final  {
   }
 
   /** Glean { "field": "descriptors" } */
+  [[deprecated("Use `FOO.descriptors().value()` instead of `FOO.get_descriptors()`")]]
   ::std::int32_t const& get_descriptors() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::descriptors) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -9011,6 +8872,7 @@ class union_with_special_names final  {
   }
 
   /** Glean { "field": "key" } */
+  [[deprecated("Use `FOO.key().value()` instead of `FOO.get_key()`")]]
   ::std::int32_t const& get_key() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::key) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -9019,6 +8881,7 @@ class union_with_special_names final  {
   }
 
   /** Glean { "field": "keys" } */
+  [[deprecated("Use `FOO.keys().value()` instead of `FOO.get_keys()`")]]
   ::std::int32_t const& get_keys() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::keys) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -9027,6 +8890,7 @@ class union_with_special_names final  {
   }
 
   /** Glean { "field": "annotation" } */
+  [[deprecated("Use `FOO.annotation().value()` instead of `FOO.get_annotation()`")]]
   ::std::int32_t const& get_annotation() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::annotation) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -9035,6 +8899,7 @@ class union_with_special_names final  {
   }
 
   /** Glean { "field": "annotations" } */
+  [[deprecated("Use `FOO.annotations().value()` instead of `FOO.get_annotations()`")]]
   ::std::int32_t const& get_annotations() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::annotations) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -9043,6 +8908,7 @@ class union_with_special_names final  {
   }
 
   /** Glean { "field": "member" } */
+  [[deprecated("Use `FOO.member().value()` instead of `FOO.get_member()`")]]
   ::std::int32_t const& get_member() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::member) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -9051,6 +8917,7 @@ class union_with_special_names final  {
   }
 
   /** Glean { "field": "members" } */
+  [[deprecated("Use `FOO.members().value()` instead of `FOO.get_members()`")]]
   ::std::int32_t const& get_members() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::members) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -9059,6 +8926,7 @@ class union_with_special_names final  {
   }
 
   /** Glean { "field": "field" } */
+  [[deprecated("Use `FOO.field().value()` instead of `FOO.get_field()`")]]
   ::std::int32_t const& get_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::field) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -9067,6 +8935,7 @@ class union_with_special_names final  {
   }
 
   /** Glean { "field": "fields" } */
+  [[deprecated("Use `FOO.fields().value()` instead of `FOO.get_fields()`")]]
   ::std::int32_t const& get_fields() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::fields) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -10296,7 +10165,6 @@ class union_with_special_names final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<union_with_special_names>;
   friend void swap(union_with_special_names& a, union_with_special_names& b);
 };
 
@@ -10319,6 +10187,16 @@ class struct_with_special_names final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "struct_with_special_names";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "get", "getter", "lists", "maps", "name", "name_to_value", "names", "prefix_tree", "sets", "setter", "str", "strings", "type", "value", "value_to_name", "values", "id", "ids", "descriptor", "descriptors", "key", "keys", "annotation", "annotations", "member", "members", "field", "fields"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -11748,7 +11626,6 @@ class struct_with_special_names final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<struct_with_special_names>;
   friend void swap(struct_with_special_names& a, struct_with_special_names& b);
 };
 

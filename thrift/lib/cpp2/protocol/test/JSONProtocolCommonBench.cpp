@@ -55,10 +55,10 @@ FOLLY_NOINLINE void reading(size_t iters, Cursor& cur, F f) {
   using member_sig = decltype(&F::operator());
   using sig = typename folly::member_pointer_traits<member_sig>::member_type;
   while (iters--) {
-    folly::remove_cvref_t<function_arguments_element_t<0, sig>> reader;
+    std::remove_cvref_t<function_arguments_element_t<0, sig>> reader;
     reader.setInput(cur);
     compiler_must_not_elide(reader); // for baseline
-    folly::remove_cvref_t<function_arguments_element_t<1, sig>> out;
+    std::remove_cvref_t<function_arguments_element_t<1, sig>> out;
     f(reader, out);
   }
 }

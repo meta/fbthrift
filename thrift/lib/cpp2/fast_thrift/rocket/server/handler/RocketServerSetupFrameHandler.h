@@ -36,19 +36,12 @@
 #include <thrift/lib/cpp2/fast_thrift/rocket/server/Event.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/server/Messages.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/server/MetadataProtocol.h>
+#include <thrift/lib/cpp2/fast_thrift/rocket/server/SetupParameters.h>
 
 namespace apache::thrift::fast_thrift::rocket::server::handler {
 
-struct SetupParameters {
-  uint16_t majorVersion{0};
-  uint16_t minorVersion{0};
-  uint32_t keepaliveTime{0};
-  uint32_t maxLifetime{0};
-  bool hasLease{false};
-  // Wire encoding for per-connection RpcMetadata, negotiated via the SETUP
-  // frame's metadata MIME type. Defaults to Binary (matches today's behavior).
-  MetadataProtocol metadataProtocol{MetadataProtocol::BINARY};
-};
+using SetupParameters =
+    apache::thrift::fast_thrift::rocket::server::SetupParameters;
 
 /**
  * RocketServerSetupFrameHandler - Pipeline handler for RSocket SETUP frame
@@ -75,6 +68,9 @@ class RocketServerSetupFrameHandler {
   static constexpr uint16_t kRSocketMinorVersion = 0;
 
   RocketServerSetupFrameHandler() = default;
+
+  explicit RocketServerSetupFrameHandler(SetupParameters params) noexcept
+      : setupComplete_(true), params_(std::move(params)) {}
 
   using PublishedEvents =
       channel_pipeline::Events<SetupCompleteEvent, FlushWritesEvent>;
@@ -106,13 +102,12 @@ class RocketServerSetupFrameHandler {
     auto& request = msg.get<RocketRequestMessage>();
     auto& frame = request.frame;
 
-    if (FOLLY_UNLIKELY(!setupComplete_)) {
+    if (!setupComplete_) [[unlikely]] {
       return handleAwaitingSetup(ctx, std::move(msg));
     }
 
-    if (FOLLY_UNLIKELY(
-            frame.type() ==
-            apache::thrift::fast_thrift::frame::FrameType::SETUP)) {
+    if (frame.type() == apache::thrift::fast_thrift::frame::FrameType::SETUP)
+        [[unlikely]] {
       XLOG(ERR) << "Received duplicate SETUP frame after setup complete";
       return sendError(
           ctx,
@@ -239,9 +234,8 @@ class RocketServerSetupFrameHandler {
     // slow down, so the next frame is post-setup traffic.
     msg.get<RocketRequestMessage>().metadataProtocol = params_.metadataProtocol;
     const auto result = ctx.fireRead(std::move(msg));
-    if (FOLLY_UNLIKELY(
-            result ==
-            apache::thrift::fast_thrift::channel_pipeline::Result::Error)) {
+    if (result == apache::thrift::fast_thrift::channel_pipeline::Result::Error)
+        [[unlikely]] {
       return result;
     }
     setupComplete_ = true;
@@ -258,7 +252,7 @@ class RocketServerSetupFrameHandler {
       apache::thrift::fast_thrift::channel_pipeline::Result result) noexcept {
     RocketSetupCompleteEvent event;
     PublishedEvents::template fire<SetupCompleteEvent>(ctx, &event);
-    if (FOLLY_UNLIKELY(event.reject.has_value())) {
+    if (event.reject.has_value()) [[unlikely]] {
       return sendError(ctx, event.reject->code, event.reject->reason.c_str());
     }
     return result;
@@ -315,8 +309,8 @@ class RocketServerSetupFrameHandler {
       auto writeResult = ctx.fireWrite(
           apache::thrift::fast_thrift::channel_pipeline::erase_and_box(
               std::move(response)));
-      if (writeResult !=
-          apache::thrift::fast_thrift::channel_pipeline::Result::Success) {
+      if (writeResult ==
+          apache::thrift::fast_thrift::channel_pipeline::Result::Error) {
         XLOG(WARN) << "Failed to deliver ERROR frame for errorCode="
                    << apache::thrift::fast_thrift::frame::toString(errorCode);
       }

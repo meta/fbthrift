@@ -6,5 +6,6 @@
 #
 import typing as __T
 
+import simple.transitive.ttypes
 from simple.dependent.ttypes import *
 

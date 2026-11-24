@@ -155,6 +155,10 @@ void AnyData::get(native_type<Tag>& v) const {
     CompactProtocolReader reader;
     reader.setInput(&data());
     op::decode<Tag>(reader, v);
+  } else if (protocol() == Protocol::get<StandardProtocol::SimpleJson>()) {
+    SimpleJSONProtocolReader reader;
+    reader.setInput(&data());
+    op::decode<Tag>(reader, v);
   } else {
     folly::throw_exception<std::runtime_error>(
         "Unsupported protocol: " + std::string(protocol().name()));

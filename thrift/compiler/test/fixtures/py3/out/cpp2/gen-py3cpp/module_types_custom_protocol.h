@@ -54,7 +54,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -179,7 +178,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -381,7 +379,7 @@ _readField_smaller_real:
 _readField_something:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_something = ::std::unordered_map<::std::int32_t, ::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_something);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::integral, ::apache::thrift::type_class::integral>, ::std::unordered_map<::std::int32_t, ::std::int32_t>, ::apache::thrift::type::cpp_type<::std::unordered_map<::std::int32_t, ::std::int32_t>, ::apache::thrift::type::map<::apache::thrift::type::i32_t, ::apache::thrift::type::i32_t>>>::read(*iprot, this->__fbthrift_field_something);
     _readState.afterSubobject(iprot);
   }
@@ -452,7 +450,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -846,7 +843,7 @@ _readField_float64:
 _readField_float_list:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_float_list = ::std::vector<::py3::simple::DeferredTruncationFloat>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_float_list);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::floating_point>, ::std::vector<::py3::simple::DeferredTruncationFloat>, ::apache::thrift::type::list<::apache::thrift::type::float_t>>::read(*iprot, this->__fbthrift_field_float_list);
     _readState.afterSubobject(iprot);
   }
@@ -862,7 +859,7 @@ _readField_float_list:
 _readField_float_map:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_float_map = ::std::map<::std::string, ::std::vector<::py3::simple::DeferredTruncationFloat>>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_float_map);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::string, ::apache::thrift::type_class::list<::apache::thrift::type_class::floating_point>>, ::std::map<::std::string, ::std::vector<::py3::simple::DeferredTruncationFloat>>, ::apache::thrift::type::map<::apache::thrift::type::string_t, ::apache::thrift::type::list<::apache::thrift::type::float_t>>>::read(*iprot, this->__fbthrift_field_float_map);
     _readState.afterSubobject(iprot);
   }
@@ -881,7 +878,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -1101,7 +1097,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -1306,7 +1301,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -1592,7 +1586,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -1808,7 +1801,7 @@ _readField_cdef:
   }
 _readField_bytes_with_cpp_type:
   {
-    ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, ::py3::simple::foo_bar, ::apache::thrift::type::cpp_type<::py3::simple::foo_bar, ::apache::thrift::type::binary_t>>::read(*iprot, this->__fbthrift_field_bytes_with_cpp_type);
+    ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, ::py3::simple::CustomBuffer, ::apache::thrift::type::cpp_type<::py3::simple::CustomBuffer, ::apache::thrift::type::binary_t>>::read(*iprot, this->__fbthrift_field_bytes_with_cpp_type);
   }
  this->__isset.set(8, true);
 
@@ -1825,7 +1818,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -1958,7 +1950,7 @@ uint32_t ComplexStruct::serializedSize(Protocol_ const* prot_) const {
   }
   {
     xfer += prot_->serializedFieldSize("bytes_with_cpp_type", apache::thrift::protocol::TType::T_STRING, 9);
-    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, ::py3::simple::foo_bar, ::apache::thrift::type::cpp_type<::py3::simple::foo_bar, ::apache::thrift::type::binary_t>>::serializedSize<false>(*prot_, this->__fbthrift_field_bytes_with_cpp_type);
+    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, ::py3::simple::CustomBuffer, ::apache::thrift::type::cpp_type<::py3::simple::CustomBuffer, ::apache::thrift::type::binary_t>>::serializedSize<false>(*prot_, this->__fbthrift_field_bytes_with_cpp_type);
   }
   xfer += prot_->serializedSizeStop();
   return xfer;
@@ -2002,7 +1994,7 @@ uint32_t ComplexStruct::serializedSizeZC(Protocol_ const* prot_) const {
   }
   {
     xfer += prot_->serializedFieldSize("bytes_with_cpp_type", apache::thrift::protocol::TType::T_STRING, 9);
-    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, ::py3::simple::foo_bar, ::apache::thrift::type::cpp_type<::py3::simple::foo_bar, ::apache::thrift::type::binary_t>>::serializedSize<true>(*prot_, this->__fbthrift_field_bytes_with_cpp_type);
+    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, ::py3::simple::CustomBuffer, ::apache::thrift::type::cpp_type<::py3::simple::CustomBuffer, ::apache::thrift::type::binary_t>>::serializedSize<true>(*prot_, this->__fbthrift_field_bytes_with_cpp_type);
   }
   xfer += prot_->serializedSizeStop();
   return xfer;
@@ -2081,7 +2073,7 @@ uint32_t ComplexStruct::write(Protocol_* prot_) const {
     constexpr int16_t kPrevFieldId = 8;
     xfer += ::apache::thrift::detail::writeFieldBegin<apache::thrift::protocol::TType::T_STRING, 9, kPrevFieldId>(*prot_, "bytes_with_cpp_type", previousFieldHasValue);
     previousFieldHasValue = true;
-    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, ::py3::simple::foo_bar, ::apache::thrift::type::cpp_type<::py3::simple::foo_bar, ::apache::thrift::type::binary_t>>::write(*prot_, this->__fbthrift_field_bytes_with_cpp_type);
+    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, ::py3::simple::CustomBuffer, ::apache::thrift::type::cpp_type<::py3::simple::CustomBuffer, ::apache::thrift::type::binary_t>>::write(*prot_, this->__fbthrift_field_bytes_with_cpp_type);
     xfer += prot_->writeFieldEnd();
   }
   xfer += prot_->writeFieldStop();
@@ -2249,7 +2241,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -2396,7 +2387,7 @@ _readField_double_field:
   }
 _readField_string_field:
   {
-    ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, ::MyType, ::apache::thrift::type::cpp_type<::MyType, ::apache::thrift::type::string_t>>::read(*iprot, this->__fbthrift_field_string_field);
+    ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, std::pmr::string, ::apache::thrift::type::cpp_type<std::pmr::string, ::apache::thrift::type::string_t>>::read(*iprot, this->__fbthrift_field_string_field);
   }
  this->__isset.set(3, true);
 
@@ -2409,7 +2400,7 @@ _readField_string_field:
   }
 _readField_binary_field:
   {
-    ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, ::MyType, ::apache::thrift::type::cpp_type<::MyType, ::apache::thrift::type::binary_t>>::read(*iprot, this->__fbthrift_field_binary_field);
+    ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, folly::IOBuf, ::apache::thrift::type::cpp_type<folly::IOBuf, ::apache::thrift::type::binary_t>>::read(*iprot, this->__fbthrift_field_binary_field);
   }
  this->__isset.set(4, true);
 
@@ -2423,7 +2414,7 @@ _readField_binary_field:
 _readField_list_field:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_list_field = ::MyType<::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_list_field);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::MyType<::std::int32_t>, ::apache::thrift::type::cpp_type<::MyType<::std::int32_t>, ::apache::thrift::type::list<::apache::thrift::type::i32_t>>>::read(*iprot, this->__fbthrift_field_list_field);
     _readState.afterSubobject(iprot);
   }
@@ -2439,7 +2430,7 @@ _readField_list_field:
 _readField_set_field:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_set_field = ::MyType<::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_set_field);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::set<::apache::thrift::type_class::integral>, ::MyType<::std::int32_t>, ::apache::thrift::type::cpp_type<::MyType<::std::int32_t>, ::apache::thrift::type::set<::apache::thrift::type::i32_t>>>::read(*iprot, this->__fbthrift_field_set_field);
     _readState.afterSubobject(iprot);
   }
@@ -2455,7 +2446,7 @@ _readField_set_field:
 _readField_map_field:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_map_field = ::MyType<::std::int32_t, ::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_map_field);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::integral, ::apache::thrift::type_class::integral>, ::MyType<::std::int32_t, ::std::int32_t>, ::apache::thrift::type::cpp_type<::MyType<::std::int32_t, ::std::int32_t>, ::apache::thrift::type::map<::apache::thrift::type::i32_t, ::apache::thrift::type::i32_t>>>::read(*iprot, this->__fbthrift_field_map_field);
     _readState.afterSubobject(iprot);
   }
@@ -2489,7 +2480,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -2602,11 +2592,11 @@ uint32_t CustomFields::serializedSize(Protocol_ const* prot_) const {
   }
   {
     xfer += prot_->serializedFieldSize("string_field", apache::thrift::protocol::TType::T_STRING, 4);
-    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, ::MyType, ::apache::thrift::type::cpp_type<::MyType, ::apache::thrift::type::string_t>>::serializedSize<false>(*prot_, this->__fbthrift_field_string_field);
+    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, std::pmr::string, ::apache::thrift::type::cpp_type<std::pmr::string, ::apache::thrift::type::string_t>>::serializedSize<false>(*prot_, this->__fbthrift_field_string_field);
   }
   {
     xfer += prot_->serializedFieldSize("binary_field", apache::thrift::protocol::TType::T_STRING, 5);
-    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, ::MyType, ::apache::thrift::type::cpp_type<::MyType, ::apache::thrift::type::binary_t>>::serializedSize<false>(*prot_, this->__fbthrift_field_binary_field);
+    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, folly::IOBuf, ::apache::thrift::type::cpp_type<folly::IOBuf, ::apache::thrift::type::binary_t>>::serializedSize<false>(*prot_, this->__fbthrift_field_binary_field);
   }
   {
     xfer += prot_->serializedFieldSize("list_field", apache::thrift::protocol::TType::T_LIST, 6);
@@ -2646,11 +2636,11 @@ uint32_t CustomFields::serializedSizeZC(Protocol_ const* prot_) const {
   }
   {
     xfer += prot_->serializedFieldSize("string_field", apache::thrift::protocol::TType::T_STRING, 4);
-    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, ::MyType, ::apache::thrift::type::cpp_type<::MyType, ::apache::thrift::type::string_t>>::serializedSize<false>(*prot_, this->__fbthrift_field_string_field);
+    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, std::pmr::string, ::apache::thrift::type::cpp_type<std::pmr::string, ::apache::thrift::type::string_t>>::serializedSize<false>(*prot_, this->__fbthrift_field_string_field);
   }
   {
     xfer += prot_->serializedFieldSize("binary_field", apache::thrift::protocol::TType::T_STRING, 5);
-    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, ::MyType, ::apache::thrift::type::cpp_type<::MyType, ::apache::thrift::type::binary_t>>::serializedSize<true>(*prot_, this->__fbthrift_field_binary_field);
+    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, folly::IOBuf, ::apache::thrift::type::cpp_type<folly::IOBuf, ::apache::thrift::type::binary_t>>::serializedSize<true>(*prot_, this->__fbthrift_field_binary_field);
   }
   {
     xfer += prot_->serializedFieldSize("list_field", apache::thrift::protocol::TType::T_LIST, 6);
@@ -2710,14 +2700,14 @@ uint32_t CustomFields::write(Protocol_* prot_) const {
     constexpr int16_t kPrevFieldId = 3;
     xfer += ::apache::thrift::detail::writeFieldBegin<apache::thrift::protocol::TType::T_STRING, 4, kPrevFieldId>(*prot_, "string_field", previousFieldHasValue);
     previousFieldHasValue = true;
-    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, ::MyType, ::apache::thrift::type::cpp_type<::MyType, ::apache::thrift::type::string_t>>::write(*prot_, this->__fbthrift_field_string_field);
+    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::string, std::pmr::string, ::apache::thrift::type::cpp_type<std::pmr::string, ::apache::thrift::type::string_t>>::write(*prot_, this->__fbthrift_field_string_field);
     xfer += prot_->writeFieldEnd();
   }
   {
     constexpr int16_t kPrevFieldId = 4;
     xfer += ::apache::thrift::detail::writeFieldBegin<apache::thrift::protocol::TType::T_STRING, 5, kPrevFieldId>(*prot_, "binary_field", previousFieldHasValue);
     previousFieldHasValue = true;
-    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, ::MyType, ::apache::thrift::type::cpp_type<::MyType, ::apache::thrift::type::binary_t>>::write(*prot_, this->__fbthrift_field_binary_field);
+    xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::binary, folly::IOBuf, ::apache::thrift::type::cpp_type<folly::IOBuf, ::apache::thrift::type::binary_t>>::write(*prot_, this->__fbthrift_field_binary_field);
     xfer += prot_->writeFieldEnd();
   }
   {
@@ -2847,7 +2837,7 @@ _readField_binary_field:
 _readField_list_field:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_list_field = ::py3::simple::CustomList();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_list_field);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::py3::simple::CustomList, ::apache::thrift::type::cpp_type<::py3::simple::CustomList, ::apache::thrift::type::list<::apache::thrift::type::i32_t>>>::read(*iprot, this->__fbthrift_field_list_field);
     _readState.afterSubobject(iprot);
   }
@@ -2863,7 +2853,7 @@ _readField_list_field:
 _readField_set_field:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_set_field = ::py3::simple::CustomSet();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_set_field);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::set<::apache::thrift::type_class::integral>, ::py3::simple::CustomSet, ::apache::thrift::type::cpp_type<::py3::simple::CustomSet, ::apache::thrift::type::set<::apache::thrift::type::i32_t>>>::read(*iprot, this->__fbthrift_field_set_field);
     _readState.afterSubobject(iprot);
   }
@@ -2879,7 +2869,7 @@ _readField_set_field:
 _readField_map_field:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_map_field = ::py3::simple::CustomMap();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_map_field);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::integral, ::apache::thrift::type_class::integral>, ::py3::simple::CustomMap, ::apache::thrift::type::cpp_type<::py3::simple::CustomMap, ::apache::thrift::type::map<::apache::thrift::type::i32_t, ::apache::thrift::type::i32_t>>>::read(*iprot, this->__fbthrift_field_map_field);
     _readState.afterSubobject(iprot);
   }
@@ -2913,7 +2903,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -3334,7 +3323,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -3606,6 +3594,149 @@ extern template void AdaptedTypedefFields::readNoXfer<>(apache::thrift::CompactP
 extern template uint32_t AdaptedTypedefFields::write<>(apache::thrift::CompactProtocolWriter*) const;
 extern template uint32_t AdaptedTypedefFields::serializedSize<>(apache::thrift::CompactProtocolWriter const*) const;
 extern template uint32_t AdaptedTypedefFields::serializedSizeZC<>(apache::thrift::CompactProtocolWriter const*) const;
+
+
+template <class Protocol_>
+void StringAdaptedUnion::readNoXfer(Protocol_* iprot) {
+  apache::thrift::detail::ProtocolReaderStructReadState<Protocol_> _readState;
+  _readState.fieldId = 0;
+
+  _readState.readStructBegin(iprot);
+
+  _readState.readFieldBegin(iprot);
+  if (_readState.atStop()) {
+    apache::thrift::clear(*this);
+  } else {
+    if (iprot->kUsesFieldNames()) {
+      _readState.template fillFieldTraitsFromName<apache::thrift::detail::TccStructTraits<StringAdaptedUnion>>();
+    }
+    switch (_readState.fieldId) {
+      case 1:
+      {
+        if (_readState.isCompatibleWithType(iprot, apache::thrift::protocol::TType::T_STRING)) {
+          this->string_field_ref().emplace();
+          ::apache::thrift::op::decode<::apache::thrift::type::adapted<::apache::thrift::StringTypeAdapter<folly::fbstring>, ::apache::thrift::type::string_t>>(*iprot, value_.string_field);
+        } else {
+          _readState.skip(iprot);
+        }
+        break;
+      }
+      case 2:
+      {
+        if (_readState.isCompatibleWithType(iprot, apache::thrift::protocol::TType::T_STRING)) {
+          this->binary_field_ref().emplace();
+          ::apache::thrift::op::decode<::apache::thrift::type::adapted<::apache::thrift::StringTypeAdapter<folly::fbstring>, ::apache::thrift::type::binary_t>>(*iprot, value_.binary_field);
+        } else {
+          _readState.skip(iprot);
+        }
+        break;
+      }
+      default:
+      {
+        _readState.skip(iprot);
+        break;
+      }
+    }
+    _readState.readFieldEnd(iprot);
+    _readState.readFieldBegin(iprot);
+    if (UNLIKELY(!_readState.atStop())) {
+      using apache::thrift::protocol::TProtocolException;
+      TProtocolException::throwUnionMissingStop();
+    }
+  }
+  _readState.readStructEnd(iprot);
+}
+template <class Protocol_>
+uint32_t StringAdaptedUnion::serializedSize(Protocol_ const* prot_) const {
+  uint32_t xfer = 0;
+  xfer += prot_->serializedStructSize("StringAdaptedUnion");
+  switch(this->getType()) {
+    case StringAdaptedUnion::Type::string_field:
+    {
+      xfer += prot_->serializedFieldSize("string_field", apache::thrift::protocol::TType::T_STRING, 1);
+      xfer += ::apache::thrift::op::serialized_size<false, ::apache::thrift::type::adapted<::apache::thrift::StringTypeAdapter<folly::fbstring>, ::apache::thrift::type::string_t>>(*prot_, value_.string_field);
+      break;
+    }
+    case StringAdaptedUnion::Type::binary_field:
+    {
+      xfer += prot_->serializedFieldSize("binary_field", apache::thrift::protocol::TType::T_STRING, 2);
+      xfer += ::apache::thrift::op::serialized_size<false, ::apache::thrift::type::adapted<::apache::thrift::StringTypeAdapter<folly::fbstring>, ::apache::thrift::type::binary_t>>(*prot_, value_.binary_field);
+      break;
+    }
+    case StringAdaptedUnion::Type::__EMPTY__:
+      break;
+    default:
+      break;
+  }
+  xfer += prot_->serializedSizeStop();
+  return xfer;
+}
+
+template <class Protocol_>
+uint32_t StringAdaptedUnion::serializedSizeZC(Protocol_ const* prot_) const {
+  uint32_t xfer = 0;
+  xfer += prot_->serializedStructSize("StringAdaptedUnion");
+  switch(this->getType()) {
+    case StringAdaptedUnion::Type::string_field:
+    {
+      xfer += prot_->serializedFieldSize("string_field", apache::thrift::protocol::TType::T_STRING, 1);
+      xfer += ::apache::thrift::op::serialized_size<false, ::apache::thrift::type::adapted<::apache::thrift::StringTypeAdapter<folly::fbstring>, ::apache::thrift::type::string_t>>(*prot_, value_.string_field);
+      break;
+    }
+    case StringAdaptedUnion::Type::binary_field:
+    {
+      xfer += prot_->serializedFieldSize("binary_field", apache::thrift::protocol::TType::T_STRING, 2);
+      xfer += ::apache::thrift::op::serialized_size<true, ::apache::thrift::type::adapted<::apache::thrift::StringTypeAdapter<folly::fbstring>, ::apache::thrift::type::binary_t>>(*prot_, value_.binary_field);
+      break;
+    }
+    case StringAdaptedUnion::Type::__EMPTY__:;
+      break;
+    default:
+      break;
+  }
+  xfer += prot_->serializedSizeStop();
+  return xfer;
+}
+
+template <class Protocol_>
+uint32_t StringAdaptedUnion::write(Protocol_* prot_) const {
+  uint32_t xfer = 0;
+  xfer += prot_->writeStructBegin("StringAdaptedUnion");
+  switch(this->getType()) {
+    case StringAdaptedUnion::Type::string_field:
+    {
+      constexpr int16_t kPrevFieldId = 0;
+      xfer += ::apache::thrift::detail::writeFieldBegin<apache::thrift::protocol::TType::T_STRING, 1, kPrevFieldId>(*prot_, "string_field", false);
+      xfer += ::apache::thrift::op::encode<::apache::thrift::type::adapted<::apache::thrift::StringTypeAdapter<folly::fbstring>, ::apache::thrift::type::string_t>>(*prot_, value_.string_field);
+      xfer += prot_->writeFieldEnd();
+      break;
+    }
+    case StringAdaptedUnion::Type::binary_field:
+    {
+      constexpr int16_t kPrevFieldId = 1;
+      xfer += ::apache::thrift::detail::writeFieldBegin<apache::thrift::protocol::TType::T_STRING, 2, kPrevFieldId>(*prot_, "binary_field", false);
+      xfer += ::apache::thrift::op::encode<::apache::thrift::type::adapted<::apache::thrift::StringTypeAdapter<folly::fbstring>, ::apache::thrift::type::binary_t>>(*prot_, value_.binary_field);
+      xfer += prot_->writeFieldEnd();
+      break;
+    }
+    case StringAdaptedUnion::Type::__EMPTY__:;
+      break;
+    default:
+      break;
+  }
+  xfer += prot_->writeFieldStop();
+  xfer += prot_->writeStructEnd();
+  return xfer;
+}
+
+extern template void StringAdaptedUnion::readNoXfer<>(apache::thrift::BinaryProtocolReader*);
+extern template uint32_t StringAdaptedUnion::write<>(apache::thrift::BinaryProtocolWriter*) const;
+extern template uint32_t StringAdaptedUnion::serializedSize<>(apache::thrift::BinaryProtocolWriter const*) const;
+extern template uint32_t StringAdaptedUnion::serializedSizeZC<>(apache::thrift::BinaryProtocolWriter const*) const;
+extern template void StringAdaptedUnion::readNoXfer<>(apache::thrift::CompactProtocolReader*);
+extern template uint32_t StringAdaptedUnion::write<>(apache::thrift::CompactProtocolWriter*) const;
+extern template uint32_t StringAdaptedUnion::serializedSize<>(apache::thrift::CompactProtocolWriter const*) const;
+extern template uint32_t StringAdaptedUnion::serializedSizeZC<>(apache::thrift::CompactProtocolWriter const*) const;
 
 
 } // namespace py3::simple

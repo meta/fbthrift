@@ -214,6 +214,13 @@ impl ::std::default::Default for MyEnum {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for MyEnum {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.0 == 0
+    }
+}
+
 impl<'a> ::std::convert::From<&'a MyEnum> for ::std::primitive::i32 {
     #[inline]
     fn from(x: &'a MyEnum) -> Self {
@@ -358,6 +365,13 @@ impl ::fbthrift::ThriftStruct for self::MyStruct {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for self::MyStruct {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        true
+    }
+}
+
 impl<P> ::fbthrift::Serialize<P> for self::MyStruct
 where
     P: ::fbthrift::ProtocolWriter,
@@ -432,6 +446,13 @@ impl ::fbthrift::metadata::ThriftAnnotations for MyStruct {
 impl ::std::default::Default for MyUnion {
     fn default() -> Self {
         Self::UnknownField(-1)
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for MyUnion {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        ::std::matches!(self, Self::UnknownField(_))
     }
 }
 
@@ -923,6 +944,27 @@ impl ::fbthrift::ThriftStruct for self::StructLevelTerseStruct {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for self::StructLevelTerseStruct {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        ::fbthrift::help::Terse(&self.bool_field).is_empty()
+            && ::fbthrift::help::Terse(&self.byte_field).is_empty()
+            && ::fbthrift::help::Terse(&self.short_field).is_empty()
+            && ::fbthrift::help::Terse(&self.int_field).is_empty()
+            && ::fbthrift::help::Terse(&self.long_field).is_empty()
+            && ::fbthrift::help::Terse(&self.float_field).is_empty()
+            && ::fbthrift::help::Terse(&self.double_field).is_empty()
+            && ::fbthrift::help::Terse(&self.string_field).is_empty()
+            && ::fbthrift::help::Terse(&self.binary_field).is_empty()
+            && ::fbthrift::help::Terse(&self.enum_field).is_empty()
+            && ::fbthrift::help::Terse(&self.list_field).is_empty()
+            && ::fbthrift::help::Terse(&self.set_field).is_empty()
+            && ::fbthrift::help::Terse(&self.map_field).is_empty()
+            && ::fbthrift::help::Terse(&self.struct_field).is_empty()
+            && ::fbthrift::help::Terse(&self.union_field).is_empty()
+    }
+}
+
 impl<P> ::fbthrift::Serialize<P> for self::StructLevelTerseStruct
 where
     P: ::fbthrift::ProtocolWriter,
@@ -930,51 +972,81 @@ where
     #[inline]
     fn rs_thrift_write(&self, p: &mut P) {
         p.write_struct_begin("StructLevelTerseStruct");
-        p.write_field_begin("bool_field", ::fbthrift::TType::Bool, 1);
-        ::fbthrift::Serialize::rs_thrift_write(&self.bool_field, p);
-        p.write_field_end();
-        p.write_field_begin("byte_field", ::fbthrift::TType::Byte, 2);
-        ::fbthrift::Serialize::rs_thrift_write(&self.byte_field, p);
-        p.write_field_end();
-        p.write_field_begin("short_field", ::fbthrift::TType::I16, 3);
-        ::fbthrift::Serialize::rs_thrift_write(&self.short_field, p);
-        p.write_field_end();
-        p.write_field_begin("int_field", ::fbthrift::TType::I32, 4);
-        ::fbthrift::Serialize::rs_thrift_write(&self.int_field, p);
-        p.write_field_end();
-        p.write_field_begin("long_field", ::fbthrift::TType::I64, 5);
-        ::fbthrift::Serialize::rs_thrift_write(&self.long_field, p);
-        p.write_field_end();
-        p.write_field_begin("float_field", ::fbthrift::TType::Float, 6);
-        ::fbthrift::Serialize::rs_thrift_write(&self.float_field, p);
-        p.write_field_end();
-        p.write_field_begin("double_field", ::fbthrift::TType::Double, 7);
-        ::fbthrift::Serialize::rs_thrift_write(&self.double_field, p);
-        p.write_field_end();
-        p.write_field_begin("string_field", ::fbthrift::TType::String, 8);
-        ::fbthrift::Serialize::rs_thrift_write(&self.string_field, p);
-        p.write_field_end();
-        p.write_field_begin("binary_field", ::fbthrift::TType::String, 9);
-        ::fbthrift::Serialize::rs_thrift_write(&self.binary_field, p);
-        p.write_field_end();
-        p.write_field_begin("enum_field", ::fbthrift::TType::I32, 10);
-        ::fbthrift::Serialize::rs_thrift_write(&self.enum_field, p);
-        p.write_field_end();
-        p.write_field_begin("list_field", ::fbthrift::TType::List, 11);
-        ::fbthrift::Serialize::rs_thrift_write(&self.list_field, p);
-        p.write_field_end();
-        p.write_field_begin("set_field", ::fbthrift::TType::Set, 12);
-        ::fbthrift::Serialize::rs_thrift_write(&self.set_field, p);
-        p.write_field_end();
-        p.write_field_begin("map_field", ::fbthrift::TType::Map, 13);
-        ::fbthrift::Serialize::rs_thrift_write(&self.map_field, p);
-        p.write_field_end();
-        p.write_field_begin("struct_field", ::fbthrift::TType::Struct, 14);
-        ::fbthrift::Serialize::rs_thrift_write(&self.struct_field, p);
-        p.write_field_end();
-        p.write_field_begin("union_field", ::fbthrift::TType::Struct, 15);
-        ::fbthrift::Serialize::rs_thrift_write(&self.union_field, p);
-        p.write_field_end();
+        if !::fbthrift::help::Terse(&self.bool_field).is_empty() {
+            p.write_field_begin("bool_field", ::fbthrift::TType::Bool, 1);
+            ::fbthrift::Serialize::rs_thrift_write(&self.bool_field, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.byte_field).is_empty() {
+            p.write_field_begin("byte_field", ::fbthrift::TType::Byte, 2);
+            ::fbthrift::Serialize::rs_thrift_write(&self.byte_field, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.short_field).is_empty() {
+            p.write_field_begin("short_field", ::fbthrift::TType::I16, 3);
+            ::fbthrift::Serialize::rs_thrift_write(&self.short_field, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.int_field).is_empty() {
+            p.write_field_begin("int_field", ::fbthrift::TType::I32, 4);
+            ::fbthrift::Serialize::rs_thrift_write(&self.int_field, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.long_field).is_empty() {
+            p.write_field_begin("long_field", ::fbthrift::TType::I64, 5);
+            ::fbthrift::Serialize::rs_thrift_write(&self.long_field, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.float_field).is_empty() {
+            p.write_field_begin("float_field", ::fbthrift::TType::Float, 6);
+            ::fbthrift::Serialize::rs_thrift_write(&self.float_field, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.double_field).is_empty() {
+            p.write_field_begin("double_field", ::fbthrift::TType::Double, 7);
+            ::fbthrift::Serialize::rs_thrift_write(&self.double_field, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.string_field).is_empty() {
+            p.write_field_begin("string_field", ::fbthrift::TType::String, 8);
+            ::fbthrift::Serialize::rs_thrift_write(&self.string_field, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.binary_field).is_empty() {
+            p.write_field_begin("binary_field", ::fbthrift::TType::String, 9);
+            ::fbthrift::Serialize::rs_thrift_write(&self.binary_field, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.enum_field).is_empty() {
+            p.write_field_begin("enum_field", ::fbthrift::TType::I32, 10);
+            ::fbthrift::Serialize::rs_thrift_write(&self.enum_field, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.list_field).is_empty() {
+            p.write_field_begin("list_field", ::fbthrift::TType::List, 11);
+            ::fbthrift::Serialize::rs_thrift_write(&self.list_field, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.set_field).is_empty() {
+            p.write_field_begin("set_field", ::fbthrift::TType::Set, 12);
+            ::fbthrift::Serialize::rs_thrift_write(&self.set_field, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.map_field).is_empty() {
+            p.write_field_begin("map_field", ::fbthrift::TType::Map, 13);
+            ::fbthrift::Serialize::rs_thrift_write(&self.map_field, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.struct_field).is_empty() {
+            p.write_field_begin("struct_field", ::fbthrift::TType::Struct, 14);
+            ::fbthrift::Serialize::rs_thrift_write(&self.struct_field, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.union_field).is_empty() {
+            p.write_field_begin("union_field", ::fbthrift::TType::Struct, 15);
+            ::fbthrift::Serialize::rs_thrift_write(&self.union_field, p);
+            p.write_field_end();
+        }
         p.write_field_stop();
         p.write_struct_end();
     }
@@ -1326,51 +1398,81 @@ where
     #[inline]
     fn rs_thrift_write(&self, p: &mut P) {
         p.write_struct_begin("FieldLevelTerseStruct");
-        p.write_field_begin("terse_bool_field", ::fbthrift::TType::Bool, 1);
-        ::fbthrift::Serialize::rs_thrift_write(&self.terse_bool_field, p);
-        p.write_field_end();
-        p.write_field_begin("terse_byte_field", ::fbthrift::TType::Byte, 2);
-        ::fbthrift::Serialize::rs_thrift_write(&self.terse_byte_field, p);
-        p.write_field_end();
-        p.write_field_begin("terse_short_field", ::fbthrift::TType::I16, 3);
-        ::fbthrift::Serialize::rs_thrift_write(&self.terse_short_field, p);
-        p.write_field_end();
-        p.write_field_begin("terse_int_field", ::fbthrift::TType::I32, 4);
-        ::fbthrift::Serialize::rs_thrift_write(&self.terse_int_field, p);
-        p.write_field_end();
-        p.write_field_begin("terse_long_field", ::fbthrift::TType::I64, 5);
-        ::fbthrift::Serialize::rs_thrift_write(&self.terse_long_field, p);
-        p.write_field_end();
-        p.write_field_begin("terse_float_field", ::fbthrift::TType::Float, 6);
-        ::fbthrift::Serialize::rs_thrift_write(&self.terse_float_field, p);
-        p.write_field_end();
-        p.write_field_begin("terse_double_field", ::fbthrift::TType::Double, 7);
-        ::fbthrift::Serialize::rs_thrift_write(&self.terse_double_field, p);
-        p.write_field_end();
-        p.write_field_begin("terse_string_field", ::fbthrift::TType::String, 8);
-        ::fbthrift::Serialize::rs_thrift_write(&self.terse_string_field, p);
-        p.write_field_end();
-        p.write_field_begin("terse_binary_field", ::fbthrift::TType::String, 9);
-        ::fbthrift::Serialize::rs_thrift_write(&self.terse_binary_field, p);
-        p.write_field_end();
-        p.write_field_begin("terse_enum_field", ::fbthrift::TType::I32, 10);
-        ::fbthrift::Serialize::rs_thrift_write(&self.terse_enum_field, p);
-        p.write_field_end();
-        p.write_field_begin("terse_list_field", ::fbthrift::TType::List, 11);
-        ::fbthrift::Serialize::rs_thrift_write(&self.terse_list_field, p);
-        p.write_field_end();
-        p.write_field_begin("terse_set_field", ::fbthrift::TType::Set, 12);
-        ::fbthrift::Serialize::rs_thrift_write(&self.terse_set_field, p);
-        p.write_field_end();
-        p.write_field_begin("terse_map_field", ::fbthrift::TType::Map, 13);
-        ::fbthrift::Serialize::rs_thrift_write(&self.terse_map_field, p);
-        p.write_field_end();
-        p.write_field_begin("terse_struct_field", ::fbthrift::TType::Struct, 14);
-        ::fbthrift::Serialize::rs_thrift_write(&self.terse_struct_field, p);
-        p.write_field_end();
-        p.write_field_begin("terse_union_field", ::fbthrift::TType::Struct, 29);
-        ::fbthrift::Serialize::rs_thrift_write(&self.terse_union_field, p);
-        p.write_field_end();
+        if !::fbthrift::help::Terse(&self.terse_bool_field).is_empty() {
+            p.write_field_begin("terse_bool_field", ::fbthrift::TType::Bool, 1);
+            ::fbthrift::Serialize::rs_thrift_write(&self.terse_bool_field, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.terse_byte_field).is_empty() {
+            p.write_field_begin("terse_byte_field", ::fbthrift::TType::Byte, 2);
+            ::fbthrift::Serialize::rs_thrift_write(&self.terse_byte_field, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.terse_short_field).is_empty() {
+            p.write_field_begin("terse_short_field", ::fbthrift::TType::I16, 3);
+            ::fbthrift::Serialize::rs_thrift_write(&self.terse_short_field, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.terse_int_field).is_empty() {
+            p.write_field_begin("terse_int_field", ::fbthrift::TType::I32, 4);
+            ::fbthrift::Serialize::rs_thrift_write(&self.terse_int_field, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.terse_long_field).is_empty() {
+            p.write_field_begin("terse_long_field", ::fbthrift::TType::I64, 5);
+            ::fbthrift::Serialize::rs_thrift_write(&self.terse_long_field, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.terse_float_field).is_empty() {
+            p.write_field_begin("terse_float_field", ::fbthrift::TType::Float, 6);
+            ::fbthrift::Serialize::rs_thrift_write(&self.terse_float_field, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.terse_double_field).is_empty() {
+            p.write_field_begin("terse_double_field", ::fbthrift::TType::Double, 7);
+            ::fbthrift::Serialize::rs_thrift_write(&self.terse_double_field, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.terse_string_field).is_empty() {
+            p.write_field_begin("terse_string_field", ::fbthrift::TType::String, 8);
+            ::fbthrift::Serialize::rs_thrift_write(&self.terse_string_field, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.terse_binary_field).is_empty() {
+            p.write_field_begin("terse_binary_field", ::fbthrift::TType::String, 9);
+            ::fbthrift::Serialize::rs_thrift_write(&self.terse_binary_field, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.terse_enum_field).is_empty() {
+            p.write_field_begin("terse_enum_field", ::fbthrift::TType::I32, 10);
+            ::fbthrift::Serialize::rs_thrift_write(&self.terse_enum_field, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.terse_list_field).is_empty() {
+            p.write_field_begin("terse_list_field", ::fbthrift::TType::List, 11);
+            ::fbthrift::Serialize::rs_thrift_write(&self.terse_list_field, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.terse_set_field).is_empty() {
+            p.write_field_begin("terse_set_field", ::fbthrift::TType::Set, 12);
+            ::fbthrift::Serialize::rs_thrift_write(&self.terse_set_field, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.terse_map_field).is_empty() {
+            p.write_field_begin("terse_map_field", ::fbthrift::TType::Map, 13);
+            ::fbthrift::Serialize::rs_thrift_write(&self.terse_map_field, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.terse_struct_field).is_empty() {
+            p.write_field_begin("terse_struct_field", ::fbthrift::TType::Struct, 14);
+            ::fbthrift::Serialize::rs_thrift_write(&self.terse_struct_field, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.terse_union_field).is_empty() {
+            p.write_field_begin("terse_union_field", ::fbthrift::TType::Struct, 29);
+            ::fbthrift::Serialize::rs_thrift_write(&self.terse_union_field, p);
+            p.write_field_end();
+        }
         p.write_field_begin("bool_field", ::fbthrift::TType::Bool, 15);
         ::fbthrift::Serialize::rs_thrift_write(&self.bool_field, p);
         p.write_field_end();
@@ -1985,6 +2087,15 @@ impl ::fbthrift::ThriftStruct for self::AdaptedFields {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for self::AdaptedFields {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        ::fbthrift::help::Terse(&self.field1).is_empty()
+            && ::fbthrift::help::Terse(&self.field2).is_empty()
+            && ::fbthrift::help::Terse(&self.field3).is_empty()
+    }
+}
+
 impl<P> ::fbthrift::Serialize<P> for self::AdaptedFields
 where
     P: ::fbthrift::ProtocolWriter,
@@ -1992,15 +2103,21 @@ where
     #[inline]
     fn rs_thrift_write(&self, p: &mut P) {
         p.write_struct_begin("AdaptedFields");
-        p.write_field_begin("field1", ::fbthrift::TType::I32, 1);
-        ::fbthrift::Serialize::rs_thrift_write(&self.field1, p);
-        p.write_field_end();
-        p.write_field_begin("field2", ::fbthrift::TType::I32, 2);
-        ::fbthrift::Serialize::rs_thrift_write(&self.field2, p);
-        p.write_field_end();
-        p.write_field_begin("field3", ::fbthrift::TType::I32, 3);
-        ::fbthrift::Serialize::rs_thrift_write(&self.field3, p);
-        p.write_field_end();
+        if !::fbthrift::help::Terse(&self.field1).is_empty() {
+            p.write_field_begin("field1", ::fbthrift::TType::I32, 1);
+            ::fbthrift::Serialize::rs_thrift_write(&self.field1, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.field2).is_empty() {
+            p.write_field_begin("field2", ::fbthrift::TType::I32, 2);
+            ::fbthrift::Serialize::rs_thrift_write(&self.field2, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.field3).is_empty() {
+            p.write_field_begin("field3", ::fbthrift::TType::I32, 3);
+            ::fbthrift::Serialize::rs_thrift_write(&self.field3, p);
+            p.write_field_end();
+        }
         p.write_field_stop();
         p.write_struct_end();
     }
@@ -2203,6 +2320,13 @@ impl ::fbthrift::ThriftStruct for self::TerseException {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for self::TerseException {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        ::fbthrift::help::Terse(&self.msg).is_empty()
+    }
+}
+
 impl<P> ::fbthrift::Serialize<P> for self::TerseException
 where
     P: ::fbthrift::ProtocolWriter,
@@ -2210,9 +2334,11 @@ where
     #[inline]
     fn rs_thrift_write(&self, p: &mut P) {
         p.write_struct_begin("TerseException");
-        p.write_field_begin("msg", ::fbthrift::TType::String, 1);
-        ::fbthrift::Serialize::rs_thrift_write(&self.msg, p);
-        p.write_field_end();
+        if !::fbthrift::help::Terse(&self.msg).is_empty() {
+            p.write_field_begin("msg", ::fbthrift::TType::String, 1);
+            ::fbthrift::Serialize::rs_thrift_write(&self.msg, p);
+            p.write_field_end();
+        }
         p.write_field_stop();
         p.write_struct_end();
     }

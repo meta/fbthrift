@@ -507,6 +507,49 @@ TEST(AstVisitorTest, stream) {
   EXPECT_THAT(exns, testing::ElementsAre(thrownptr));
 }
 
+TEST(AstVisitorTest, bidirectional_stream) {
+  auto exn = std::make_unique<t_exception>(nullptr, "Exception");
+  auto sink = std::make_unique<t_sink>(
+      t_primitive_type::t_i32(), t_primitive_type::t_i32());
+  auto sinkptr = sink.get();
+  auto sink_throws = std::make_unique<t_throws>();
+  t_field* sink_thrownptr = &sink_throws->create_field(*exn, "ex", 1);
+  sink->set_sink_exceptions(std::move(sink_throws));
+  auto stream = std::make_unique<t_stream>(t_primitive_type::t_i32());
+  auto streamptr = stream.get();
+  auto stream_throws = std::make_unique<t_throws>();
+  t_field* stream_thrownptr = &stream_throws->create_field(*exn, "ex", 1);
+  stream->set_exceptions(std::move(stream_throws));
+
+  auto program =
+      t_program("path/to/program.thrift", "/root/path/to/program.thrift");
+  auto service = std::make_unique<t_service>(&program, "Service");
+  service->add_function(
+      std::make_unique<t_function>(
+          &program,
+          t_type_ref(),
+          "f",
+          nullptr,
+          std::move(sink),
+          std::move(stream)));
+  program.add_definition(std::move(service));
+
+  auto visitor = ast_visitor();
+  auto sinks = std::vector<const t_sink*>();
+  visitor.add_sink_visitor([&](const t_sink& node) { sinks.push_back(&node); });
+  auto streams = std::vector<const t_stream*>();
+  visitor.add_stream_visitor(
+      [&](const t_stream& node) { streams.push_back(&node); });
+  auto exns = std::vector<const t_field*>();
+  visitor.add_thrown_exception_visitor(
+      [&](const t_field& node) { exns.push_back(&node); });
+  visitor(program);
+
+  EXPECT_THAT(sinks, testing::ElementsAre(sinkptr));
+  EXPECT_THAT(streams, testing::ElementsAre(streamptr));
+  EXPECT_THAT(exns, testing::ElementsAre(sink_thrownptr, stream_thrownptr));
+}
+
 TEST(AstVisitorTest, modifications) {
   t_program program("path/to/program.thrift", "/root/path/to/program.thrift");
   program.add_def(std::make_unique<t_union>(&program, "Union1"));

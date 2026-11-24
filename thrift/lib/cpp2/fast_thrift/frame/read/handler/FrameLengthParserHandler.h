@@ -21,7 +21,6 @@
 #include <folly/lang/Hint.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 
@@ -34,12 +33,6 @@ namespace apache::thrift::fast_thrift::frame::read::handler {
  * It receives raw IOBuf bytes from the transport adapter, buffers them,
  * extracts complete frames based on the 3-byte length prefix, and fires
  * the frames (with length prefix stripped) downstream.
- *
- * Usage:
- *   auto pipeline = PipelineBuilder()
- *       .addNextInbound(frame_parser_tag,
- * std::make_unique<FrameLengthParserHandler>())
- * .addNextDuplex(frame_decoder_tag, std::make_unique<FrameDecoder>()) .build();
  *
  * Input: BytesPtr (raw bytes from transport)
  * Output: BytesPtr (complete RSocket frames, length prefix stripped)
@@ -114,7 +107,7 @@ class FrameLengthParserHandler {
         computeFrameLength();
 
         // Reject frames that exceed the maximum allowed size
-        if (FOLLY_UNLIKELY(frameLength_ > maxFrameSize_)) {
+        if (frameLength_ > maxFrameSize_) [[unlikely]] {
           ctx.fireException(
               folly::make_exception_wrapper<std::runtime_error>(
                   "Frame size exceeds maximum allowed size"));
@@ -167,11 +160,5 @@ class FrameLengthParserHandler {
 
   folly::IOBufQueue readBufQueue_{folly::IOBufQueue::cacheChainLength()};
 };
-
-static_assert(
-    apache::thrift::fast_thrift::channel_pipeline::InboundHandler<
-        FrameLengthParserHandler,
-        apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl>,
-    "FrameLengthParserHandler must satisfy InboundHandler concept");
 
 } // namespace apache::thrift::fast_thrift::frame::read::handler

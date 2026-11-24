@@ -90,6 +90,11 @@ class AlignedParser {
   // bytes of that room as headroom.
   void setIOBufFactory(folly::IOBufFactory* factory) noexcept;
 
+  template <typename Sink>
+  channel_pipeline::Result resume(Sink&&) noexcept {
+    return channel_pipeline::Result::Success;
+  }
+
   void reset() noexcept;
 
  private:
@@ -181,7 +186,7 @@ channel_pipeline::Result AlignedParser::consume(
   if (step == Step::NeedMore) {
     return channel_pipeline::Result::Success;
   }
-  if (FOLLY_UNLIKELY(step == Step::Bad)) {
+  if (step == Step::Bad) [[unlikely]] {
     state_ = State::Error;
     return channel_pipeline::Result::Error;
   }

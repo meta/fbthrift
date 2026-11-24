@@ -33,7 +33,17 @@ enum StatusCode {
 }
 
 @cpp.FastClient
-service FastClientTestService {
+service FastAncestor {
+  string ancestorEcho(1: string message);
+}
+
+service NonFastParent extends FastAncestor {
+  string parentEcho(1: string message);
+}
+
+// @lint-ignore THRIFTCHECKS Pinned linter predates unannotated Fast client parents.
+@cpp.FastClient
+service FastClientTestService extends NonFastParent {
   void ping();
   string echo(1: string message);
   i32 add(1: i32 a, 2: i32 b);
@@ -44,4 +54,8 @@ service FastClientTestService {
 @cpp.FastClient
 service FastClientTestServiceChild extends FastClientTestService {
   string greet(1: string name);
+}
+
+@cpp.FastClient
+service FastClientTestServiceGrandchild extends FastClientTestServiceChild {
 }

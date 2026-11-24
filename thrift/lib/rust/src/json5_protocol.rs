@@ -29,6 +29,7 @@ use anyhow::Context;
 use anyhow::Result;
 use anyhow::anyhow;
 use anyhow::bail;
+use anyhow::ensure;
 use base64::Engine;
 use base64::alphabet::STANDARD;
 use base64::alphabet::URL_SAFE;
@@ -64,11 +65,15 @@ const MAXIMUM_NESTING_DEPTH: usize = 64;
 const MAXIMUM_INDENT_WIDTH: usize = 16;
 const STANDARD_NO_PAD_INDIFFERENT: GeneralPurpose = GeneralPurpose::new(
     &STANDARD,
-    NO_PAD.with_decode_padding_mode(DecodePaddingMode::Indifferent),
+    NO_PAD
+        .with_decode_padding_mode(DecodePaddingMode::Indifferent)
+        .with_decode_allow_trailing_bits(true),
 );
 const URL_SAFE_NO_PAD_INDIFFERENT: GeneralPurpose = GeneralPurpose::new(
     &URL_SAFE,
-    NO_PAD.with_decode_padding_mode(DecodePaddingMode::Indifferent),
+    NO_PAD
+        .with_decode_padding_mode(DecodePaddingMode::Indifferent)
+        .with_decode_allow_trailing_bits(true),
 );
 
 #[derive(Clone, Debug, Error)]
@@ -623,11 +628,7 @@ fn write_value(
         Value::Float32(value) if *value == f32::NEG_INFINITY => {
             write_special_float(output, "-Infinity", options.mode)
         }
-        Value::Float32(value) => output.put_slice(
-            serde_json::to_string(value)
-                .expect("finite float is representable in JSON")
-                .as_bytes(),
-        ),
+        Value::Float32(value) => write_finite_float(output, value, 7),
         Value::Float64(value) if value.is_nan() => {
             write_special_float(output, signed_nan(*value), options.mode)
         }
@@ -637,16 +638,9 @@ fn write_value(
         Value::Float64(value) if *value == f64::NEG_INFINITY => {
             write_special_float(output, "-Infinity", options.mode)
         }
-        Value::Float64(value) => output.put_slice(
-            serde_json::to_string(value)
-                .expect("finite float is representable in JSON")
-                .as_bytes(),
-        ),
-        Value::ParsedFloat { value, .. } => output.put_slice(
-            serde_json::to_string(value)
-                .expect("finite float is representable in JSON")
-                .as_bytes(),
-        ),
+        Value::Float64(value) | Value::ParsedFloat { value, .. } => {
+            write_finite_float(output, value, 16)
+        }
         Value::String(value) => write_string(output, value, options, object_name),
         Value::Binary(value) if options.binary_as_base64_string => {
             write_string(
@@ -707,6 +701,31 @@ fn write_value(
         }
     }
     Ok(())
+}
+
+/// Lays out the shortest round-trip digits in fixed notation for decimal
+/// exponents in [-4, `fixed_below`), and in scientific notation otherwise.
+fn write_finite_float(
+    output: &mut Vec<u8>,
+    value: impl fmt::Display + fmt::LowerExp,
+    fixed_below: i32,
+) {
+    let scientific = format!("{value:e}");
+    let (mantissa, exponent) = scientific
+        .split_once('e')
+        .expect("`{:e}` output has an exponent");
+    let exponent: i32 = exponent.parse().expect("`{:e}` exponent is an integer");
+    let formatted = if (-4..fixed_below).contains(&exponent) {
+        let fixed = value.to_string();
+        if fixed.contains('.') {
+            fixed
+        } else {
+            format!("{fixed}.0")
+        }
+    } else {
+        format!("{mantissa}e{exponent:+03}")
+    };
+    output.put_slice(formatted.as_bytes());
 }
 
 fn write_special_float(output: &mut Vec<u8>, value: &str, mode: Json5Mode) {
@@ -900,7 +919,7 @@ impl Json5ProtocolDeserializer {
     fn take_integer(&mut self) -> Result<i64> {
         match self.take_value()? {
             Value::Integer(value) => Ok(value),
-            Value::String(value) => value.parse().context("invalid JSON5 integer"),
+            Value::String(value) => parse_integer(&value).context("invalid JSON5 integer"),
             _ => bail!("expected a JSON5 integer"),
         }
     }
@@ -917,13 +936,13 @@ impl Json5ProtocolDeserializer {
                 value,
                 token: Some(token),
             }),
-            Value::String(value) => match value.parse::<i64>() {
-                Ok(value) => Ok(Number::Integer(value)),
-                Err(_) => Ok(Number::Float {
-                    value: parse_f64(&value)?,
-                    token: Some(value),
-                }),
-            },
+            Value::String(value) if is_float_token(&value) => Ok(Number::Float {
+                value: parse_f64(&value)?,
+                token: Some(value),
+            }),
+            Value::String(value) => Ok(Number::Integer(
+                parse_integer(&value).context("invalid JSON5 double value")?,
+            )),
             _ => bail!("expected a JSON5 floating-point value"),
         }
     }
@@ -1211,17 +1230,10 @@ impl ProtocolReader for Json5ProtocolDeserializer {
 
     fn read_float(&mut self) -> Result<f32> {
         match self.take_number()? {
-            Number::Float { value, token } => {
-                let converted = match token {
-                    Some(token) => parse_f32(&token)?,
-                    None => value as f32,
-                };
-                ensure_err!(
-                    !value.is_finite() || converted.is_finite(),
-                    ProtocolError::InvalidValue
-                );
-                Ok(converted)
-            }
+            Number::Float { value, token } => match token {
+                Some(token) => parse_f32(&token),
+                None => Ok(value as f32),
+            },
             Number::Integer(value) => {
                 let converted = value as f32;
                 ensure_err!(
@@ -1249,11 +1261,9 @@ impl ProtocolReader for Json5ProtocolDeserializer {
                 };
                 match encoding.as_str() {
                     "utf-8" => value.into_bytes(),
-                    "base64url" => URL_SAFE_NO_PAD_INDIFFERENT
-                        .decode(value)
+                    "base64url" => decode_base64(&URL_SAFE_NO_PAD_INDIFFERENT, &value)
                         .context("invalid base64url binary value")?,
-                    "base64" => STANDARD_NO_PAD_INDIFFERENT
-                        .decode(value)
+                    "base64" => decode_base64(&STANDARD_NO_PAD_INDIFFERENT, &value)
                         .context("invalid base64 binary value")?,
                     _ => bail!("unknown JSON5 binary encoding `{encoding}`"),
                 }
@@ -1276,25 +1286,21 @@ enum Number {
 fn parse_f32(token: &str) -> Result<f32> {
     let normalized = match parse_special_float(token) {
         Some(value) => return Ok(value as f32),
-        None => normalize_float_token(token),
+        None => normalize_float_token(token)?,
     };
-    let value = normalized
+    normalized
         .parse::<f32>()
-        .context("invalid JSON5 float value")?;
-    ensure_err!(value.is_finite(), ProtocolError::InvalidValue);
-    Ok(value)
+        .context("invalid JSON5 float value")
 }
 
 fn parse_f64(token: &str) -> Result<f64> {
     let normalized = match parse_special_float(token) {
         Some(value) => return Ok(value),
-        None => normalize_float_token(token),
+        None => normalize_float_token(token)?,
     };
-    let value = normalized
+    normalized
         .parse::<f64>()
-        .context("invalid JSON5 double value")?;
-    ensure_err!(value.is_finite(), ProtocolError::InvalidValue);
-    Ok(value)
+        .context("invalid JSON5 double value")
 }
 
 fn parse_special_float(token: &str) -> Option<f64> {
@@ -1307,14 +1313,24 @@ fn parse_special_float(token: &str) -> Option<f64> {
     }
 }
 
-fn normalize_float_token(token: &str) -> String {
-    match token {
+fn normalize_float_token(token: &str) -> Result<String> {
+    if has_leading_zero(token) {
+        bail!("JSON5 numbers do not permit leading zeros");
+    }
+    let mantissa = token
+        .split_once(['e', 'E'])
+        .map_or(token, |(mantissa, _)| mantissa);
+    ensure!(
+        mantissa.contains(|ch: char| ch.is_ascii_digit()),
+        "JSON5 numbers need a digit before the exponent"
+    );
+    Ok(match token {
         token if token.starts_with("+.") => format!("+0{}", &token[1..]),
         token if token.starts_with("-.") => format!("-0{}", &token[1..]),
         token if token.starts_with('.') => format!("0{token}"),
         token if token.ends_with('.') => format!("{token}0"),
         token => token.to_owned(),
-    }
+    })
 }
 
 fn attach_float_tokens(
@@ -1471,42 +1487,32 @@ fn is_identifier_continue(byte: u8) -> bool {
     byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'$')
 }
 
-fn is_float_token(token: &str) -> bool {
+fn is_hex_token(token: &str) -> bool {
     let unsigned = token.strip_prefix(['+', '-']).unwrap_or(token);
-    if unsigned.starts_with("0x") || unsigned.starts_with("0X") {
-        return false;
-    }
-    token.contains(['.', 'e', 'E']) || token.contains("Infinity") || token.contains("NaN")
+    unsigned.starts_with("0x") || unsigned.starts_with("0X")
+}
+
+fn is_float_token(token: &str) -> bool {
+    !is_hex_token(token)
+        && (token.contains(['.', 'e', 'E']) || token.contains("Infinity") || token.contains("NaN"))
 }
 
 fn normalize_number_token(token: &str) -> std::result::Result<String, Json5ParseError> {
     if token == "+Infinity" || token == "+NaN" {
         return Ok(token[1..].to_owned());
     }
+    // `json5` rejects f64 overflow; the reader reparses the saved token.
+    if is_float_token(token) && parse_f64(token).is_ok_and(f64::is_infinite) {
+        let sign = if token.starts_with('-') { "-" } else { "" };
+        return Ok(format!("{sign}Infinity"));
+    }
 
-    let (negative, unsigned) = match token.as_bytes().first() {
-        Some(b'-') => (true, &token[1..]),
-        Some(b'+') => (false, &token[1..]),
-        _ => (false, token),
-    };
-    let Some(hex) = unsigned
-        .strip_prefix("0x")
-        .or_else(|| unsigned.strip_prefix("0X"))
-    else {
+    if !is_hex_token(token) {
         return Ok(token.to_owned());
-    };
-    let magnitude = u64::from_str_radix(hex, 16).map_err(|_| {
-        Json5ParseError("hex integer is outside the JSON5 integer range".to_owned())
-    })?;
-    if !negative {
-        return Ok(magnitude.to_string());
     }
-    if magnitude == (i64::MAX as u64) + 1 {
-        return Ok(i64::MIN.to_string());
-    }
-    let magnitude = i64::try_from(magnitude)
-        .map_err(|_| Json5ParseError("hex integer is outside the Thrift i64 range".to_owned()))?;
-    Ok((-magnitude).to_string())
+    parse_integer(token)
+        .map(|value| value.to_string())
+        .map_err(|error| Json5ParseError(format!("invalid JSON5 hex integer: {error:#}")))
 }
 
 fn next_significant_byte(input: &str, mut index: usize) -> Option<u8> {
@@ -1621,10 +1627,19 @@ fn validate_input_nesting(input: &str) -> std::result::Result<(), Json5ParseErro
 }
 
 fn decode_base64_compatible(value: &str) -> Result<Vec<u8>> {
-    URL_SAFE_NO_PAD_INDIFFERENT
-        .decode(value)
-        .or_else(|_| STANDARD_NO_PAD_INDIFFERENT.decode(value))
+    decode_base64(&URL_SAFE_NO_PAD_INDIFFERENT, value)
+        .or_else(|_| decode_base64(&STANDARD_NO_PAD_INDIFFERENT, value))
         .context("invalid base64 binary value")
+}
+
+/// Padding is optional, but must be complete when present.
+fn decode_base64(engine: &GeneralPurpose, value: &str) -> Result<Vec<u8>> {
+    let decoded = engine.decode(value)?;
+    ensure!(
+        !value.ends_with('=') || value.len().is_multiple_of(4),
+        "incomplete base64 padding"
+    );
+    Ok(decoded)
 }
 
 fn parse_map_entry(value: Value) -> Result<(Value, Value)> {
@@ -1671,11 +1686,33 @@ fn parse_identifier(identifier: &str) -> Result<(Option<&str>, Option<i32>)> {
 }
 
 fn parse_identifier_number(value: &str) -> Option<i32> {
-    let digits = value.strip_prefix('-').unwrap_or(value);
-    if digits.is_empty() || !digits.bytes().all(|byte| byte.is_ascii_digit()) {
-        return None;
+    parse_integer(value).ok()?.try_into().ok()
+}
+
+fn parse_integer(text: &str) -> Result<i64> {
+    if has_leading_zero(text) {
+        bail!("leading zeros are not permitted");
     }
-    value.parse().ok()
+    let unsigned = text.strip_prefix(['+', '-']).unwrap_or(text);
+    let Some(hex) = unsigned
+        .strip_prefix("0x")
+        .or_else(|| unsigned.strip_prefix("0X"))
+    else {
+        return Ok(text.parse()?);
+    };
+    // `from_str_radix` takes the sign, which must not follow `0x`.
+    if hex.starts_with(['+', '-']) {
+        bail!("invalid digit found in string");
+    }
+    let sign = &text[..text.len() - unsigned.len()];
+    Ok(i64::from_str_radix(&format!("{sign}{hex}"), 16)?)
+}
+
+fn has_leading_zero(number: &str) -> bool {
+    let unsigned = number.strip_prefix(['+', '-']).unwrap_or(number);
+    unsigned
+        .strip_prefix('0')
+        .is_some_and(|rest| rest.starts_with(|ch: char| ch.is_ascii_digit()))
 }
 
 fn is_thrift_identifier(value: &str) -> bool {

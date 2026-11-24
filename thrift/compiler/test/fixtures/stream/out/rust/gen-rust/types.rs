@@ -158,6 +158,13 @@ impl ::fbthrift::ThriftStruct for self::FooStreamEx {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for self::FooStreamEx {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        true
+    }
+}
+
 impl<P> ::fbthrift::Serialize<P> for self::FooStreamEx
 where
     P: ::fbthrift::ProtocolWriter,
@@ -269,6 +276,13 @@ impl ::fbthrift::ThriftStruct for self::FooEx {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for self::FooEx {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        true
+    }
+}
+
 impl<P> ::fbthrift::Serialize<P> for self::FooEx
 where
     P: ::fbthrift::ProtocolWriter,
@@ -377,6 +391,13 @@ impl ::fbthrift::ThriftStruct for self::FooEx2 {
         static FIELDS: &[::fbthrift::Field] = &[
         ];
         FIELDS
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for self::FooEx2 {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        true
     }
 }
 

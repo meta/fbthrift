@@ -19,8 +19,8 @@
 #include <folly/container/F14Map.h>
 #include <folly/logging/xlog.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/BufferAllocator.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/transport/TransportHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/transport/test/PassthroughParser.h>
 
@@ -54,6 +54,7 @@ class TcpClient::AppAdapter {
       transportHandler_->close(folly::exception_wrapper{});
       transportHandler_->resetPipeline();
     }
+    pipeline_.reset();
   }
 
   AppAdapter(const AppAdapter&) = delete;
@@ -61,9 +62,7 @@ class TcpClient::AppAdapter {
   AppAdapter(AppAdapter&&) = delete;
   AppAdapter& operator=(AppAdapter&&) = delete;
 
-  void setPipeline(
-      apache::thrift::fast_thrift::channel_pipeline::PipelineImpl::Ptr
-          pipeline) {
+  void setPipeline(channel_pipeline::PipelineOwner pipeline) {
     pipeline_ = std::move(pipeline);
     transportHandler_->setPipeline(pipeline_.get());
     transportHandler_->resumeRead();
@@ -82,8 +81,8 @@ class TcpClient::AppAdapter {
    * Called by the pipeline when a response message is received.
    * Looks up the pending request and fulfills its promise.
    */
-  Result onRead(
-      channel_pipeline::detail::ContextImpl&, TypeErasedBox&& msg) noexcept {
+  template <typename Context>
+  Result onRead(Context&, TypeErasedBox&& msg) noexcept {
     auto iobuf = std::move(msg).take<std::unique_ptr<folly::IOBuf>>();
 
     // Complete the oldest pending request
@@ -148,7 +147,7 @@ class TcpClient::AppAdapter {
   folly::EventBase* evb_;
   apache::thrift::fast_thrift::transport::test::PassthroughTransportHandler::Ptr
       transportHandler_;
-  apache::thrift::fast_thrift::channel_pipeline::PipelineImpl::Ptr pipeline_;
+  apache::thrift::fast_thrift::channel_pipeline::PipelineOwner pipeline_;
   apache::thrift::fast_thrift::channel_pipeline::SimpleBufferAllocator
       allocator_;
   RequestId nextRequestId_{0};
@@ -184,7 +183,7 @@ void TcpClient::connect(
   appAdapter_ = std::make_unique<AppAdapter>(std::move(socket));
 
   auto pipeline =
-      apache::thrift::fast_thrift::channel_pipeline::PipelineBuilder<
+      apache::thrift::fast_thrift::channel_pipeline::StaticPipelineBuilder<
           apache::thrift::fast_thrift::transport::test::
               PassthroughTransportHandler,
           AppAdapter,
@@ -196,7 +195,8 @@ void TcpClient::connect(
           .setTail(appAdapter_.get())
           .build();
 
-  appAdapter_->setPipeline(std::move(pipeline));
+  appAdapter_->setPipeline(
+      channel_pipeline::PipelineOwner(std::move(pipeline)));
 }
 
 folly::Future<std::unique_ptr<folly::IOBuf>> TcpClient::echo(

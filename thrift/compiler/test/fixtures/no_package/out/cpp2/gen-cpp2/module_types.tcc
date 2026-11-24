@@ -9,3 +9,174 @@
 #include "thrift/compiler/test/fixtures/no_package/gen-cpp2/module_types.h"
 
 #include <thrift/lib/cpp2/gen/module_types_tcc.h>
+
+namespace cpp2 {
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyStruct::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_MyIntField;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MyStruct::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyStruct::__fbthrift_get_field_storage<2>() const {
+  return this->__fbthrift_field_MyStringField;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MyStruct::__fbthrift_get_field_isset<2>() const {
+  return this->__isset.get(1);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyStruct::__fbthrift_get_field_storage<3>() const {
+  return this->__fbthrift_field_MyDataField;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MyStruct::__fbthrift_get_field_isset<3>() const {
+  return this->__isset.get(2);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyStruct::__fbthrift_get_field_storage<4>() const {
+  return this->__fbthrift_field_myEnum;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MyStruct::__fbthrift_get_field_isset<4>() const {
+  return this->__isset.get(3);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyStruct::__fbthrift_get_field_storage<5>() const {
+  return this->__fbthrift_field_oneway;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MyStruct::__fbthrift_get_field_isset<5>() const {
+  return this->__isset.get(4);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyStruct::__fbthrift_get_field_storage<6>() const {
+  return this->__fbthrift_field_readonly;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MyStruct::__fbthrift_get_field_isset<6>() const {
+  return this->__isset.get(5);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyStruct::__fbthrift_get_field_storage<7>() const {
+  return this->__fbthrift_field_idempotent;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MyStruct::__fbthrift_get_field_isset<7>() const {
+  return this->__isset.get(6);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyStruct::__fbthrift_get_field_storage<8>() const {
+  return this->__fbthrift_field_floatSet;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MyStruct::__fbthrift_get_field_isset<8>() const {
+  return this->__isset.get(7);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyStruct::__fbthrift_get_field_storage<9>() const {
+  return this->__fbthrift_field_no_hack_codegen_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MyStruct::__fbthrift_get_field_isset<9>() const {
+  return this->__isset.get(8);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Containers::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_I32List;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Containers::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Containers::__fbthrift_get_field_storage<2>() const {
+  return this->__fbthrift_field_StringSet;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Containers::__fbthrift_get_field_isset<2>() const {
+  return this->__isset.get(1);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Containers::__fbthrift_get_field_storage<3>() const {
+  return this->__fbthrift_field_StringToI64Map;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Containers::__fbthrift_get_field_isset<3>() const {
+  return this->__isset.get(2);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyException::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_MyIntField;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MyException::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyException::__fbthrift_get_field_storage<2>() const {
+  return this->__fbthrift_field_MyStringField;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MyException::__fbthrift_get_field_isset<2>() const {
+  return this->__isset.get(1);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyException::__fbthrift_get_field_storage<3>() const {
+  return this->__fbthrift_field_myStruct;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MyException::__fbthrift_get_field_isset<3>() const {
+  return this->__isset.get(2);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyException::__fbthrift_get_field_storage<4>() const {
+  return this->__fbthrift_field_myUnion;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MyException::__fbthrift_get_field_isset<4>() const {
+  return this->__isset.get(3);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyExceptionWithMessage::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_MyIntField;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MyExceptionWithMessage::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyExceptionWithMessage::__fbthrift_get_field_storage<2>() const {
+  return this->__fbthrift_field_MyStringField;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MyExceptionWithMessage::__fbthrift_get_field_isset<2>() const {
+  return this->__isset.get(1);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyExceptionWithMessage::__fbthrift_get_field_storage<3>() const {
+  return this->__fbthrift_field_myStruct;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MyExceptionWithMessage::__fbthrift_get_field_isset<3>() const {
+  return this->__isset.get(2);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyExceptionWithMessage::__fbthrift_get_field_storage<4>() const {
+  return this->__fbthrift_field_myUnion;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool MyExceptionWithMessage::__fbthrift_get_field_isset<4>() const {
+  return this->__isset.get(3);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& ReservedKeyword::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_reserved_field;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool ReservedKeyword::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+} // namespace cpp2

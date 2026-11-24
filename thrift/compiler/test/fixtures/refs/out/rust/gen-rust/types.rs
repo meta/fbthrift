@@ -308,6 +308,13 @@ impl ::std::default::Default for MyEnum {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for MyEnum {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.0 == 0
+    }
+}
+
 impl<'a> ::std::convert::From<&'a MyEnum> for ::std::primitive::i32 {
     #[inline]
     fn from(x: &'a MyEnum) -> Self {
@@ -449,6 +456,13 @@ impl ::std::default::Default for TypedEnum {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for TypedEnum {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.0 == 0
+    }
+}
+
 impl<'a> ::std::convert::From<&'a TypedEnum> for ::std::primitive::i32 {
     #[inline]
     fn from(x: &'a TypedEnum) -> Self {
@@ -544,6 +558,13 @@ impl ::fbthrift::help::clap::builder::ValueParserFactory for TypedEnum {
 impl ::std::default::Default for MyUnion {
     fn default() -> Self {
         Self::UnknownField(-1)
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for MyUnion {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        ::std::matches!(self, Self::UnknownField(_))
     }
 }
 
@@ -711,6 +732,13 @@ impl ::fbthrift::metadata::ThriftAnnotations for MyUnion {
 impl ::std::default::Default for NonTriviallyDestructibleUnion {
     fn default() -> Self {
         Self::UnknownField(-1)
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for NonTriviallyDestructibleUnion {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        ::std::matches!(self, Self::UnknownField(_))
     }
 }
 
@@ -1771,6 +1799,13 @@ impl ::fbthrift::ThriftStruct for self::RecursiveStruct {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for self::RecursiveStruct {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.mes.is_none()
+    }
+}
+
 impl<P> ::fbthrift::Serialize<P> for self::RecursiveStruct
 where
     P: ::fbthrift::ProtocolWriter,
@@ -2474,6 +2509,13 @@ impl ::fbthrift::ThriftStruct for self::Empty {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for self::Empty {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        true
+    }
+}
+
 impl<P> ::fbthrift::Serialize<P> for self::Empty
 where
     P: ::fbthrift::ProtocolWriter,
@@ -2818,6 +2860,15 @@ impl ::fbthrift::ThriftStruct for self::StructWithBox {
             ::fbthrift::Field::new("c", ::fbthrift::TType::Struct, 3),
         ];
         FIELDS
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for self::StructWithBox {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.a.is_none()
+            && self.b.is_none()
+            && self.c.is_none()
     }
 }
 
@@ -3181,6 +3232,14 @@ impl ::fbthrift::ThriftStruct for self::StructWithTerseInternBox {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for self::StructWithTerseInternBox {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        ::fbthrift::help::Terse(&self.field1).is_empty()
+            && ::fbthrift::help::Terse(&self.field2).is_empty()
+    }
+}
+
 impl<P> ::fbthrift::Serialize<P> for self::StructWithTerseInternBox
 where
     P: ::fbthrift::ProtocolWriter,
@@ -3188,12 +3247,16 @@ where
     #[inline]
     fn rs_thrift_write(&self, p: &mut P) {
         p.write_struct_begin("StructWithTerseInternBox");
-        p.write_field_begin("field1", ::fbthrift::TType::Struct, 1);
-        ::fbthrift::Serialize::rs_thrift_write(&self.field1, p);
-        p.write_field_end();
-        p.write_field_begin("field2", ::fbthrift::TType::Struct, 2);
-        ::fbthrift::Serialize::rs_thrift_write(&self.field2, p);
-        p.write_field_end();
+        if !::fbthrift::help::Terse(&self.field1).is_empty() {
+            p.write_field_begin("field1", ::fbthrift::TType::Struct, 1);
+            ::fbthrift::Serialize::rs_thrift_write(&self.field1, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.field2).is_empty() {
+            p.write_field_begin("field2", ::fbthrift::TType::Struct, 2);
+            ::fbthrift::Serialize::rs_thrift_write(&self.field2, p);
+            p.write_field_end();
+        }
         p.write_field_stop();
         p.write_struct_end();
     }
@@ -3582,6 +3645,14 @@ impl ::fbthrift::ThriftStruct for self::AdaptedStructWithTerseInternBox {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for self::AdaptedStructWithTerseInternBox {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        ::fbthrift::help::Terse(&self.field1).is_empty()
+            && ::fbthrift::help::Terse(&self.field2).is_empty()
+    }
+}
+
 impl<P> ::fbthrift::Serialize<P> for self::AdaptedStructWithTerseInternBox
 where
     P: ::fbthrift::ProtocolWriter,
@@ -3589,12 +3660,16 @@ where
     #[inline]
     fn rs_thrift_write(&self, p: &mut P) {
         p.write_struct_begin("AdaptedStructWithTerseInternBox");
-        p.write_field_begin("field1", ::fbthrift::TType::Struct, 1);
-        ::fbthrift::Serialize::rs_thrift_write(&self.field1, p);
-        p.write_field_end();
-        p.write_field_begin("field2", ::fbthrift::TType::Struct, 2);
-        ::fbthrift::Serialize::rs_thrift_write(&self.field2, p);
-        p.write_field_end();
+        if !::fbthrift::help::Terse(&self.field1).is_empty() {
+            p.write_field_begin("field1", ::fbthrift::TType::Struct, 1);
+            ::fbthrift::Serialize::rs_thrift_write(&self.field1, p);
+            p.write_field_end();
+        }
+        if !::fbthrift::help::Terse(&self.field2).is_empty() {
+            p.write_field_begin("field2", ::fbthrift::TType::Struct, 2);
+            ::fbthrift::Serialize::rs_thrift_write(&self.field2, p);
+            p.write_field_end();
+        }
         p.write_field_stop();
         p.write_struct_end();
     }

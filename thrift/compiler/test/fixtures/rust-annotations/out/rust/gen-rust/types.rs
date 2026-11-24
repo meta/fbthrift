@@ -13,19 +13,34 @@ pub use self::consts::*;
 
 pub mod services;
 
+/// ```thrift
+/// typedef double double_t
+/// ```
 pub type double_t = ::fbthrift::builtin_types::OrderedFloat<f64>;
 
+/// ```thrift
+/// typedef map<string, i64> map_t
+/// ```
 pub type map_t = ::sorted_vector_map::SortedVectorMap<::std::string::String, ::std::primitive::i64>;
 
+/// ```thrift
+/// typedef binary binary_t
+/// ```
 #[derive(Default, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct binary_t(pub ::smallvec::SmallVec<[u8; 16]>);
 
 #[derive(Default, Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Generation(pub ::std::primitive::i64);
 
+/// ```thrift
+/// typedef binary binary_t2
+/// ```
 #[derive(Default, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct binary_t2(pub ::smallvec::SmallVec<[u8; 16]>);
 
+/// ```thrift
+/// typedef i64 t_t1
+/// ```
 pub type t_y1 = ::std::primitive::i64;
 
 #[derive(Clone, PartialEq)]
@@ -41,6 +56,9 @@ pub struct T0 {
 
 #[derive(Clone, PartialEq)]
 pub struct T1 {
+    /// ```thrift
+    /// 1: double data
+    /// ```
     pub data: ::fbthrift::builtin_types::OrderedFloat<f64>,
     // This field forces `..Default::default()` when instantiating this
     // struct, to make code future-proof against new fields added later to
@@ -63,6 +81,9 @@ pub struct T2 {
 
 #[derive(Clone, PartialEq)]
 pub struct T3 {
+    /// ```thrift
+    /// 1: map<string, i64> data
+    /// ```
     pub data: ::sorted_vector_map::SortedVectorMap<::std::string::String, ::std::primitive::i64>,
     // This field forces `..Default::default()` when instantiating this
     // struct, to make code future-proof against new fields added later to
@@ -74,6 +95,9 @@ pub struct T3 {
 
 #[derive(Clone, PartialEq)]
 pub struct T4 {
+    /// ```thrift
+    /// 1: map_t data
+    /// ```
     pub data: ::fbthrift::builtin_types::HashMap<::std::string::String, ::std::primitive::i64>,
     // This field forces `..Default::default()` when instantiating this
     // struct, to make code future-proof against new fields added later to
@@ -157,7 +181,13 @@ pub struct T13 {
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+/// ```thrift
+/// struct T10
+/// ```
 pub struct U10 {
+    /// ```thrift
+    /// 1: string data
+    /// ```
     pub string: ::std::string::String,
     // This field forces `..Default::default()` when instantiating this
     // struct, to make code future-proof against new fields added later to
@@ -168,7 +198,13 @@ pub struct U10 {
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+/// ```thrift
+/// union T11
+/// ```
 pub enum U11 {
+    /// ```thrift
+    /// 1: string str
+    /// ```
     string(::std::string::String),
     integer(::std::primitive::i32),
     btreeset(::std::collections::BTreeSet<crate::types::U11>),
@@ -233,6 +269,9 @@ impl ::std::fmt::Display for SomeError {
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum Bar {
+    /// ```thrift
+    /// 1: i32 WithAnnotation
+    /// ```
     Annotated(::std::primitive::i32),
     WithoutAnnotation(::std::primitive::i32),
     UnknownField(::std::primitive::i32),
@@ -242,7 +281,13 @@ pub enum Bar {
 pub struct E1(pub ::std::primitive::i32);
 
 impl E1 {
+    /// ```thrift
+    /// A0 = 0
+    /// ```
     pub const B0: Self = E1(0i32);
+    /// ```thrift
+    /// A1 = 1
+    /// ```
     pub const B1: Self = E1(1i32);
 }
 
@@ -285,6 +330,13 @@ impl ::fbthrift::ThriftEnum for E1 {
 impl ::std::default::Default for E1 {
     fn default() -> Self {
         Self(0)
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for E1 {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.0 == 0
     }
 }
 
@@ -379,6 +431,9 @@ impl ::fbthrift::help::clap::builder::ValueParserFactory for E1 {
     }
 }
 
+/// ```thrift
+/// enum E2
+/// ```
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct F2(pub ::std::primitive::i32);
 
@@ -418,6 +473,13 @@ impl ::fbthrift::ThriftEnum for F2 {
 impl ::std::default::Default for F2 {
     fn default() -> Self {
         Self(0)
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for F2 {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.0 == 0
     }
 }
 
@@ -558,6 +620,13 @@ impl ::std::default::Default for EnumWithDerives {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for EnumWithDerives {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.0 == 0
+    }
+}
+
 impl<'a> ::std::convert::From<&'a EnumWithDerives> for ::std::primitive::i32 {
     #[inline]
     fn from(x: &'a EnumWithDerives) -> Self {
@@ -653,6 +722,13 @@ impl ::fbthrift::GetTType for binary_t {
     const MAP_KEY_TYPE: ::fbthrift::MapKeyType = <::std::vec::Vec<::std::primitive::u8> as ::fbthrift::GetTType>::MAP_KEY_TYPE;
 }
 
+impl ::fbthrift::help::IsEmpty for binary_t {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        ::fbthrift::help::Terse(&self.0).is_empty()
+    }
+}
+
 impl<P> ::fbthrift::Serialize<P> for binary_t
 where
     P: ::fbthrift::ProtocolWriter,
@@ -678,6 +754,13 @@ impl ::fbthrift::GetTType for Generation {
     const MAP_KEY_TYPE: ::fbthrift::MapKeyType = <::std::primitive::i64 as ::fbthrift::GetTType>::MAP_KEY_TYPE;
 }
 
+impl ::fbthrift::help::IsEmpty for Generation {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        ::fbthrift::help::Terse(&self.0).is_empty()
+    }
+}
+
 impl<P> ::fbthrift::Serialize<P> for Generation
 where
     P: ::fbthrift::ProtocolWriter,
@@ -701,6 +784,13 @@ where
 impl ::fbthrift::GetTType for binary_t2 {
     const TTYPE: ::fbthrift::TType = <::std::vec::Vec<::std::primitive::u8> as ::fbthrift::GetTType>::TTYPE;
     const MAP_KEY_TYPE: ::fbthrift::MapKeyType = <::std::vec::Vec<::std::primitive::u8> as ::fbthrift::GetTType>::MAP_KEY_TYPE;
+}
+
+impl ::fbthrift::help::IsEmpty for binary_t2 {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        ::fbthrift::help::Terse(&self.0).is_empty()
+    }
 }
 
 impl<P> ::fbthrift::Serialize<P> for binary_t2
@@ -1566,6 +1656,13 @@ impl ::fbthrift::ThriftStruct for self::T6 {
         static FIELDS: &[::fbthrift::Field] = &[
         ];
         FIELDS
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for self::T6 {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        true
     }
 }
 
@@ -2535,6 +2632,13 @@ impl ::std::default::Default for U11 {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for U11 {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        ::std::matches!(self, Self::UnknownField(_))
+    }
+}
+
 impl ::fbthrift::GetTType for U11 {
     const TTYPE: ::fbthrift::TType = ::fbthrift::TType::Struct;
 }
@@ -2755,6 +2859,13 @@ impl ::fbthrift::ThriftStruct for self::TransitiveDerives {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for self::TransitiveDerives {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        true
+    }
+}
+
 impl<P> ::fbthrift::Serialize<P> for self::TransitiveDerives
 where
     P: ::fbthrift::ProtocolWriter,
@@ -2902,6 +3013,13 @@ impl ::fbthrift::ThriftStruct for self::StructWithTransitiveDerives {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for self::StructWithTransitiveDerives {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        true
+    }
+}
+
 impl<P> ::fbthrift::Serialize<P> for self::StructWithTransitiveDerives
 where
     P: ::fbthrift::ProtocolWriter,
@@ -3026,6 +3144,13 @@ impl ::fbthrift::ThriftStruct for self::SomeError {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for self::SomeError {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        true
+    }
+}
+
 impl<P> ::fbthrift::Serialize<P> for self::SomeError
 where
     P: ::fbthrift::ProtocolWriter,
@@ -3100,6 +3225,13 @@ impl ::fbthrift::metadata::ThriftAnnotations for SomeError {
 impl ::std::default::Default for Bar {
     fn default() -> Self {
         Self::UnknownField(-1)
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for Bar {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        ::std::matches!(self, Self::UnknownField(_))
     }
 }
 

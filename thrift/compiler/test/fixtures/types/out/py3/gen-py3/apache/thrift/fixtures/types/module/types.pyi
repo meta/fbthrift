@@ -840,7 +840,7 @@ class AllocatorAware(thrift.py3.types.Struct, _typing.Hashable):
     aa_string: _typing.Final[str] = ...
     not_a_container: _typing.Final[int] = ...
     aa_unique: _typing.Final[_typing.Optional[int]] = ...
-    aa_shared: _typing.Final[_typing.Optional[int]] = ...
+    aa_shared: _typing.Final[_typing.Optional[str]] = ...
 
     def __init__(
         self, *,
@@ -850,7 +850,7 @@ class AllocatorAware(thrift.py3.types.Struct, _typing.Hashable):
         aa_string: _typing.Optional[str]=None,
         not_a_container: _typing.Optional[int]=None,
         aa_unique: _typing.Optional[int]=None,
-        aa_shared: _typing.Optional[int]=None
+        aa_shared: _typing.Optional[str]=None
     ) -> None: ...
 
     def __call__(
@@ -861,7 +861,7 @@ class AllocatorAware(thrift.py3.types.Struct, _typing.Hashable):
         aa_string: _typing.Union[str, None]=None,
         not_a_container: _typing.Union[int, None]=None,
         aa_unique: _typing.Union[int, None]=None,
-        aa_shared: _typing.Union[int, None]=None
+        aa_shared: _typing.Union[str, None]=None
     ) -> AllocatorAware: ...
 
     def __reduce__(self) -> _typing.Tuple[_typing.Callable, _typing.Tuple[_typing.Type['AllocatorAware'], bytes]]: ...

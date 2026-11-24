@@ -83,7 +83,8 @@ class MetadataAppAdapter final : public ThriftServerAppAdapter {
       ThriftRequestContextPtr requestContext) noexcept;
 
   template <typename Writer>
-  void writeMetadataResponse(uint32_t streamId) noexcept;
+  void writeMetadataResponse(
+      uint32_t streamId, ThriftRequestContextPtr requestContext) noexcept;
 };
 
 } // namespace apache::thrift::fast_thrift::thrift

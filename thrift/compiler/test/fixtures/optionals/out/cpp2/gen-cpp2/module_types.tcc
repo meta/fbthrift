@@ -9,3 +9,158 @@
 #include "thrift/compiler/test/fixtures/optionals/gen-cpp2/module_types.h"
 
 #include <thrift/lib/cpp2/gen/module_types_tcc.h>
+
+namespace cpp2 {
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Color::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_red;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Color::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Color::__fbthrift_get_field_storage<2>() const {
+  return this->__fbthrift_field_green;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Color::__fbthrift_get_field_isset<2>() const {
+  return this->__isset.get(1);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Color::__fbthrift_get_field_storage<3>() const {
+  return this->__fbthrift_field_blue;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Color::__fbthrift_get_field_isset<3>() const {
+  return this->__isset.get(2);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Color::__fbthrift_get_field_storage<4>() const {
+  return this->__fbthrift_field_alpha;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Color::__fbthrift_get_field_isset<4>() const {
+  return this->__isset.get(3);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Vehicle::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_color;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Vehicle::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Vehicle::__fbthrift_get_field_storage<2>() const {
+  return this->__fbthrift_field_licensePlate;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Vehicle::__fbthrift_get_field_isset<2>() const {
+  return this->__isset.get(1);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Vehicle::__fbthrift_get_field_storage<3>() const {
+  return this->__fbthrift_field_description;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Vehicle::__fbthrift_get_field_isset<3>() const {
+  return this->__isset.get(2);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Vehicle::__fbthrift_get_field_storage<4>() const {
+  return this->__fbthrift_field_name;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Vehicle::__fbthrift_get_field_isset<4>() const {
+  return this->__isset.get(3);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Vehicle::__fbthrift_get_field_storage<5>() const {
+  return this->__fbthrift_field_hasAC;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Vehicle::__fbthrift_get_field_isset<5>() const {
+  return this->__isset.get(4);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Person::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_id;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Person::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Person::__fbthrift_get_field_storage<2>() const {
+  return this->__fbthrift_field_name;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Person::__fbthrift_get_field_isset<2>() const {
+  return this->__isset.get(1);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Person::__fbthrift_get_field_storage<3>() const {
+  return this->__fbthrift_field_age;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Person::__fbthrift_get_field_isset<3>() const {
+  return this->__isset.get(2);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Person::__fbthrift_get_field_storage<4>() const {
+  return this->__fbthrift_field_address;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Person::__fbthrift_get_field_isset<4>() const {
+  return this->__isset.get(3);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Person::__fbthrift_get_field_storage<5>() const {
+  return this->__fbthrift_field_favoriteColor;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Person::__fbthrift_get_field_isset<5>() const {
+  return this->__isset.get(4);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Person::__fbthrift_get_field_storage<6>() const {
+  return this->__fbthrift_field_friends;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Person::__fbthrift_get_field_isset<6>() const {
+  return this->__isset.get(5);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Person::__fbthrift_get_field_storage<7>() const {
+  return this->__fbthrift_field_bestFriend;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Person::__fbthrift_get_field_isset<7>() const {
+  return this->__isset.get(6);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Person::__fbthrift_get_field_storage<8>() const {
+  return this->__fbthrift_field_petNames;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Person::__fbthrift_get_field_isset<8>() const {
+  return this->__isset.get(7);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Person::__fbthrift_get_field_storage<9>() const {
+  return this->__fbthrift_field_afraidOfAnimal;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Person::__fbthrift_get_field_isset<9>() const {
+  return this->__isset.get(8);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Person::__fbthrift_get_field_storage<10>() const {
+  return this->__fbthrift_field_vehicles;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool Person::__fbthrift_get_field_isset<10>() const {
+  return this->__isset.get(9);
+}
+} // namespace cpp2

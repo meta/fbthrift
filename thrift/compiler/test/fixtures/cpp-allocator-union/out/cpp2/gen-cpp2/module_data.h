@@ -14,21 +14,23 @@ namespace apache { namespace thrift {
 
 template <> struct TEnumDataStorage<::test::fixtures::cpp_allocator_union::AllocUnion::Type> {
   using type = ::test::fixtures::cpp_allocator_union::AllocUnion::Type;
-  static constexpr const std::size_t size = 3;
+  static constexpr const std::size_t size = 4;
   static constexpr std::array<type, size> values = { {
       type::aa_string,
       type::aa_list,
       type::plain_int,
+      type::aa_shared_string,
   }};
   static constexpr std::array<std::string_view, size> names = { {
       "aa_string"sv,
       "aa_list"sv,
       "plain_int"sv,
+      "aa_shared_string"sv,
   }};
 };
 
 template <> struct TStructDataStorage<::test::fixtures::cpp_allocator_union::AllocUnion> {
-  static constexpr const std::size_t fields_size = 3;
+  static constexpr const std::size_t fields_size = 4;
   static const std::string_view name;
   static const std::array<std::string_view, fields_size> fields_names;
   static const std::array<int16_t, fields_size> fields_ids;

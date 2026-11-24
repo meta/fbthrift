@@ -250,7 +250,7 @@ void execSeq(TranscodeCursor* c, const SeqOp& op) {
       return;
     }
     const uint8_t* savedReadEnd = c->readEnd;
-    if (FOLLY_UNLIKELY(!setReadEndFromByteLength(*c, byteLen))) {
+    if (!setReadEndFromByteLength(*c, byteLen)) [[unlikely]] {
       return;
     }
 
@@ -378,7 +378,7 @@ void execIdStructToFieldFramed(
   Framing wf = framingFor(writeProto);
 
   const uint8_t* savedReadEnd = nullptr;
-  if (FOLLY_UNLIKELY(!enterIdStructRead(c, op, savedReadEnd))) {
+  if (!enterIdStructRead(c, op, savedReadEnd)) [[unlikely]] {
     return;
   }
 
@@ -398,7 +398,7 @@ void execIdStructToFieldFramed(
             c, op, readProto, rf, prevRead, match, op.unknownFieldMode)) {
       break;
     }
-    if (FOLLY_UNLIKELY(!noteUnionMember(c, unionStruct, unionMemberSeen))) {
+    if (!noteUnionMember(c, unionStruct, unionMemberSeen)) [[unlikely]] {
       return;
     }
 
@@ -421,7 +421,7 @@ void execIdStructToFieldFramed(
     if (const auto* sc = std::get_if<ScalarOp>(match.field->command.get());
         sc != nullptr && sc->writeFn == WriteFn::CompactBoolInType) {
       int64_t boolVal = 0;
-      if (FOLLY_UNLIKELY(!readScalarInt(c, *sc, match.typeInfo, &boolVal))) {
+      if (!readScalarInt(c, *sc, match.typeInfo, &boolVal)) [[unlikely]] {
         return;
       }
       thrift_transcode_compact_write_bool_field(
@@ -447,20 +447,20 @@ void execIdStructToFieldFramed(
   for (const auto& override : fieldOverrides) {
     const FieldEntry* field = nullptr;
     const ScalarOp* scalar = nullptr;
-    if (FOLLY_UNLIKELY(
-            !resolveScalarOverrideField(c, op, override, field, scalar))) {
+    if (!resolveScalarOverrideField(c, op, override, field, scalar))
+        [[unlikely]] {
       return;
     }
-    if (FOLLY_UNLIKELY(!noteUnionMember(c, unionStruct, unionMemberSeen))) {
+    if (!noteUnionMember(c, unionStruct, unionMemberSeen)) [[unlikely]] {
       return;
     }
-    if (FOLLY_UNLIKELY(!writeFieldFramedScalarValue(
-            c, wf, *field, *scalar, override.value, prevWrite))) {
+    if (!writeFieldFramedScalarValue(
+            c, wf, *field, *scalar, override.value, prevWrite)) [[unlikely]] {
       return;
     }
   }
 
-  if (FOLLY_UNLIKELY(!finishUnion(c, unionStruct, unionMemberSeen))) {
+  if (!finishUnion(c, unionStruct, unionMemberSeen)) [[unlikely]] {
     return;
   }
   if (!op.writeLengthDelimited) {
@@ -475,7 +475,7 @@ void execIdStructFlattened(
     FieldProto readProto,
     const Framing& rf) {
   const uint8_t* savedReadEnd = nullptr;
-  if (FOLLY_UNLIKELY(!enterIdStructRead(c, op, savedReadEnd))) {
+  if (!enterIdStructRead(c, op, savedReadEnd)) [[unlikely]] {
     return;
   }
   auto restoreReadEnd =
@@ -489,13 +489,13 @@ void execIdStructFlattened(
             c, op, readProto, rf, prevRead, match, UnknownFieldMode::Reject)) {
       break;
     }
-    if (FOLLY_UNLIKELY(
-            !execFlattenedField(c, *match.field, match.typeInfo, fieldSeen))) {
+    if (!execFlattenedField(c, *match.field, match.typeInfo, fieldSeen))
+        [[unlikely]] {
       return;
     }
   }
   if (!hasError(c)) {
-    if (FOLLY_UNLIKELY(!finishSingleField(c, fieldSeen))) {
+    if (!finishSingleField(c, fieldSeen)) [[unlikely]] {
       return;
     }
   }
@@ -723,7 +723,7 @@ bool writeScalarValue(
   switch (op.valueKind) {
     case ValueKind::Bool: {
       int64_t v = 0;
-      if (FOLLY_UNLIKELY(!getBoolOverride(c, value, v))) {
+      if (!getBoolOverride(c, value, v)) [[unlikely]] {
         return false;
       }
       return writeScalarInt(c, op, v);
@@ -735,7 +735,7 @@ bool writeScalarValue(
     case ValueKind::Enum: {
       int64_t v = 0;
       getIntegerOverride(value, v);
-      if (FOLLY_UNLIKELY(!intFits(op.valueKind, v))) {
+      if (!intFits(op.valueKind, v)) [[unlikely]] {
         detail::setError(c, kMalformedFieldType);
         return false;
       }
@@ -764,7 +764,7 @@ void execScalar(TranscodeCursor* c, const ScalarOp& op, uint8_t fieldTypeInfo) {
   if (readFnIsBytes(op.readFn)) {
     const uint8_t* data = nullptr;
     size_t len = 0;
-    if (FOLLY_UNLIKELY(!readScalarBytes(c, op.readFn, &data, &len))) {
+    if (!readScalarBytes(c, op.readFn, &data, &len)) [[unlikely]] {
       return;
     }
     if (data == nullptr && len != 0) {
@@ -772,34 +772,34 @@ void execScalar(TranscodeCursor* c, const ScalarOp& op, uint8_t fieldTypeInfo) {
       return;
     }
     const uint8_t empty = 0;
-    if (FOLLY_UNLIKELY(!writeScalarBytes(
-            c, op.writeFn, data == nullptr ? &empty : data, len))) {
+    if (!writeScalarBytes(c, op.writeFn, data == nullptr ? &empty : data, len))
+        [[unlikely]] {
       return;
     }
     return;
   }
   if (op.valueKind == ValueKind::F32 || op.valueKind == ValueKind::F64) {
     double v = 0;
-    if (FOLLY_UNLIKELY(!readScalarFloat(c, op.readFn, &v))) {
+    if (!readScalarFloat(c, op.readFn, &v)) [[unlikely]] {
       return;
     }
-    if (FOLLY_UNLIKELY(!writeScalarFloat(c, op.writeFn, v))) {
+    if (!writeScalarFloat(c, op.writeFn, v)) [[unlikely]] {
       return;
     }
     return;
   }
   int64_t v = 0;
-  if (FOLLY_UNLIKELY(!readScalarInt(c, op, fieldTypeInfo, &v))) {
+  if (!readScalarInt(c, op, fieldTypeInfo, &v)) [[unlikely]] {
     return;
   }
-  if (FOLLY_UNLIKELY(!intFits(op.valueKind, v))) {
+  if (!intFits(op.valueKind, v)) [[unlikely]] {
     detail::setError(c, 1);
     return;
   }
   // CoerceOp is a no-op for our int64 register model (WidenI32ToI64 etc. are
   // already represented as int64); float widening is handled in the F32/F64
   // path above.
-  if (FOLLY_UNLIKELY(!writeScalarInt(c, op, v))) {
+  if (!writeScalarInt(c, op, v)) [[unlikely]] {
     return;
   }
 }
@@ -1000,7 +1000,7 @@ bool writeFieldFramedScalarValue(
     int16_t& prevWrite) {
   if (scalar.writeFn == WriteFn::CompactBoolInType) {
     int64_t boolVal = 0;
-    if (FOLLY_UNLIKELY(!getBoolOverride(c, value, boolVal))) {
+    if (!getBoolOverride(c, value, boolVal)) [[unlikely]] {
       return false;
     }
     thrift_transcode_compact_write_bool_field(
@@ -1068,9 +1068,8 @@ bool readNextIdField(
       }
       continue;
     }
-    if (FOLLY_UNLIKELY(
-            field->command == nullptr ||
-            !fieldTypeMatches(readProto, *field, typeInfo))) {
+    if (field->command == nullptr ||
+        !fieldTypeMatches(readProto, *field, typeInfo)) [[unlikely]] {
       detail::setError(c, kMalformedFieldType);
       return false;
     }
@@ -1084,7 +1083,7 @@ bool execFlattenedField(
     const FieldEntry& field,
     uint8_t typeInfo,
     bool& fieldSeen) {
-  if (FOLLY_UNLIKELY(!noteSingleField(c, fieldSeen))) {
+  if (!noteSingleField(c, fieldSeen)) [[unlikely]] {
     return false;
   }
   execCommand(c, *field.command, typeInfo);

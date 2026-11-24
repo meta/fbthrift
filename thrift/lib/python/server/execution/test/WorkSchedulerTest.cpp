@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstdint>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -726,6 +727,27 @@ TEST(WorkSchedulerTest, AssignedWorkReceivesItsWorkersExecutor) {
 
   // THEN
   EXPECT_EQ(expectedExecutor, actualExecutor);
+}
+
+TEST(WorkSchedulerTest, ServesAsFollyExecutor) {
+  // GIVEN
+  folly::ManualExecutor workerExecutor;
+  auto workScheduler = std::make_shared<WorkScheduler>();
+  const auto worker = workScheduler->registerWorker(
+      folly::Executor::getKeepAliveToken(workerExecutor));
+  workScheduler->makeWorkerCapacityAvailable(worker);
+  std::shared_ptr<folly::Executor> executor = workScheduler;
+  const std::uint8_t expectedNumberOfPriorities = 2;
+  bool ran = false;
+
+  // WHEN
+  const auto actualNumberOfPriorities = executor->getNumPriorities();
+  executor->addWithPriority([&] { ran = true; }, folly::Executor::LO_PRI);
+  workerExecutor.drain();
+
+  // THEN
+  EXPECT_EQ(expectedNumberOfPriorities, actualNumberOfPriorities);
+  EXPECT_TRUE(ran);
 }
 
 } // namespace

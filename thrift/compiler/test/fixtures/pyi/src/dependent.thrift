@@ -15,6 +15,7 @@
  */
 
 include "thrift/annotation/thrift.thrift"
+include "transitive.thrift"
 
 @thrift.AllowLegacyMissingUris
 package;
@@ -34,3 +35,6 @@ enum ItemEnum {
   OPTION_ONE = 1,
   OPTION_TWO = 2,
 }
+
+// A typedef of a type from a file that `shared.thrift` does not include.
+typedef transitive.Color ItemColor

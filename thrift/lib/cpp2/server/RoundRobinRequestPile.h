@@ -182,6 +182,7 @@ class RoundRobinRequestPile : public RequestPileBase {
 
   using BucketEventLoggingFunction = std::function<void(Priority, Bucket)>;
   using DequeueObserver = std::function<void(const ServerRequest& request)>;
+  using LimitRejectionObserver = std::function<void(size_t wiredRequestBytes)>;
 
   // the consumer class used by the AtomicNotificationQueue
   class Consumer {
@@ -223,8 +224,14 @@ class RoundRobinRequestPile : public RequestPileBase {
   BucketEventLoggingFunction onRequestAcceptedFunction_;
   BucketEventLoggingFunction onRequestRejectedFunction_;
   DequeueObserver dequeueObserver_;
+  LimitRejectionObserver limitRejectionObserver_;
 
  public:
+  // The (Priority, Bucket) callbacks count every accepted or rejected request,
+  // including rejections by the pre-enqueue filter.
+  // The dequeue observer receives each queued request when it leaves the pile.
+  // The limit-rejection observer receives the wired request bytes of a request
+  // that passes the pre-enqueue filter but is rejected by the per-bucket limit.
   void setOnRequestAcceptedFunction(BucketEventLoggingFunction fn) {
     onRequestAcceptedFunction_ = std::move(fn);
   }
@@ -235,6 +242,10 @@ class RoundRobinRequestPile : public RequestPileBase {
 
   void setDequeueObserver(DequeueObserver fn) {
     dequeueObserver_ = std::move(fn);
+  }
+
+  void setLimitRejectionObserver(LimitRejectionObserver fn) {
+    limitRejectionObserver_ = std::move(fn);
   }
 };
 

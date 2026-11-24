@@ -22,4 +22,6 @@ namespace apache::thrift::json5::detail {
 
 bool isIdentifier(std::string_view sv, bool allowDollarSign = false);
 
+bool isAsciiWithNothingToEscape(std::string_view s);
+
 } // namespace apache::thrift::json5::detail

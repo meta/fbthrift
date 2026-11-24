@@ -124,9 +124,10 @@ _end:
     {{/if (has_compiler_option? "deprecated_enforce_required")}}
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
+    {{#if struct.fields?}}
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
+    {{/if struct.fields?}}
 _loop:
   if (_readState.atStop()) {
     goto _end;

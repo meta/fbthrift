@@ -19,8 +19,8 @@
 #include <concepts>
 #include <cstdint>
 #include <utility>
-#include <vector>
 
+#include <folly/CancellationToken.h>
 #include <folly/ExceptionWrapper.h>
 #include <folly/Likely.h>
 #include <folly/container/F14Map.h>
@@ -30,6 +30,7 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/Event.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/Messages.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/util/PayloadUtils.h>
 
 namespace apache::thrift::fast_thrift::thrift {
 
@@ -59,16 +60,21 @@ class ThriftServerRequestLifecycleHandler {
   channel_pipeline::Result onRead(
       Context& ctx, channel_pipeline::TypeErasedBox&& msg) noexcept {
     auto& request = msg.template get<ThriftServerRequestMessage>();
+    if (!request.payload.template is<ThriftServerRequestResponsePayload>() &&
+        !request.payload.template is<ThriftRequestStreamPayload>()) {
+      return ctx.fireRead(std::move(msg));
+    }
     DCHECK(request.requestContext != nullptr);
     const auto streamId = request.streamId;
     auto [it, inserted] =
         requests_.try_emplace(streamId, folly::CancellationSource::invalid());
-    if (FOLLY_UNLIKELY(!inserted)) {
+    if (!inserted) [[unlikely]] {
       return channel_pipeline::Result::Error;
     }
-    it->second = request.requestContext->enableCancellation();
+    request.requestContext->enableCancellation();
+    it->second = request.requestContext->getCancellationSource();
     auto result = ctx.fireRead(std::move(msg));
-    if (FOLLY_UNLIKELY(result == channel_pipeline::Result::Error)) {
+    if (result == channel_pipeline::Result::Error) [[unlikely]] {
       auto requestIt = requests_.find(streamId);
       if (requestIt != requests_.end()) {
         auto source = std::move(requestIt->second);
@@ -82,6 +88,13 @@ class ThriftServerRequestLifecycleHandler {
   channel_pipeline::Result onWrite(
       Context& ctx, channel_pipeline::TypeErasedBox&& msg) noexcept {
     auto& response = msg.template get<ThriftServerResponseMessage>();
+    // Stream continuations belong to an already-completed request exchange.
+    // The mux owns their remaining lifetime and cancellation; running request
+    // completion arbitration again would swallow every chunk after the
+    // initial response.
+    if (!isRequestRetiringResponse(response.payload)) {
+      return ctx.fireWrite(std::move(msg));
+    }
     const auto streamId = responseStreamId(response);
     auto it = requests_.find(streamId);
     if (it != requests_.end()) {
@@ -106,17 +119,11 @@ class ThriftServerRequestLifecycleHandler {
   }
 
   void onPipelineInactive(Context&) noexcept {
-    std::vector<uint32_t> streamIds;
-    streamIds.reserve(requests_.size());
-    for (const auto& [streamId, _] : requests_) {
-      streamIds.push_back(streamId);
-    }
-    for (const auto streamId : streamIds) {
-      auto it = requests_.find(streamId);
-      if (it != requests_.end()) {
-        auto source = it->second;
-        source.requestCancellation();
-      }
+    while (!requests_.empty()) {
+      auto it = requests_.begin();
+      auto source = std::move(it->second);
+      requests_.erase(it);
+      source.requestCancellation();
     }
   }
 
@@ -144,6 +151,10 @@ class ThriftServerRequestLifecycleHandler {
       const ThriftServerResponseMessage& response) noexcept {
     if (response.payload.template is<ThriftInitialResponsePayload>()) {
       return response.payload.template get<ThriftInitialResponsePayload>()
+          .streamId;
+    }
+    if (response.payload.template is<ThriftStreamInitialResponsePayload>()) {
+      return response.payload.template get<ThriftStreamInitialResponsePayload>()
           .streamId;
     }
     if (response.payload.template is<ThriftErrorPayload>()) {

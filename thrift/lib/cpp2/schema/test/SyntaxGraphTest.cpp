@@ -1310,6 +1310,18 @@ TEST(SyntaxGraphTest, StructWithCustomDefault) {
   EXPECT_EQ(*tsStructNode.at(FieldId{8}).customDefault(), testUnionRecord);
 }
 
+TEST(SyntaxGraphTest, FloatingPointAnnotation) {
+  auto& registry = SchemaRegistry::get();
+  const auto& annot =
+      registry.getTypeSystemNode<test::StructWithFloatingPointAnnotation>()
+          .getAnnotationOrNull("meta.com/thrift_test/FloatingPointAnnotation")
+          ->asFieldSet();
+  EXPECT_EQ(
+      annot.at(FieldId{1}), type_system::SerializableRecord::Float32(1.5f));
+  EXPECT_EQ(
+      annot.at(FieldId{2}), type_system::SerializableRecord::Float64(2.5));
+}
+
 TEST(SyntaxGraphTest, SerializableTypeSystemBuilder) {
   auto testA = [](const type_system::SerializableTypeSystem& sts) {
     auto& structA = sts.types()

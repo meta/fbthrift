@@ -13,31 +13,35 @@
 namespace apache::thrift {
 
 THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::string_view TStructDataStorage<::test::fixtures::cpp_allocator_union::AllocUnion>::name = "AllocUnion";
-THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<std::string_view, 3> TStructDataStorage<::test::fixtures::cpp_allocator_union::AllocUnion>::fields_names = { {
+THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<std::string_view, 4> TStructDataStorage<::test::fixtures::cpp_allocator_union::AllocUnion>::fields_names = { {
   "aa_string"sv,
   "aa_list"sv,
   "plain_int"sv,
+  "aa_shared_string"sv,
 }};
-THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<int16_t, 3> TStructDataStorage<::test::fixtures::cpp_allocator_union::AllocUnion>::fields_ids = { {
+THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<int16_t, 4> TStructDataStorage<::test::fixtures::cpp_allocator_union::AllocUnion>::fields_ids = { {
   1,
   2,
   3,
+  4,
 }};
-THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<protocol::TType, 3> TStructDataStorage<::test::fixtures::cpp_allocator_union::AllocUnion>::fields_types = { {
+THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<protocol::TType, 4> TStructDataStorage<::test::fixtures::cpp_allocator_union::AllocUnion>::fields_types = { {
   apache::thrift::protocol::TType::T_STRING,
   apache::thrift::protocol::TType::T_LIST,
   apache::thrift::protocol::TType::T_I32,
+  apache::thrift::protocol::TType::T_STRING,
 }};
-THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<int, 3> TStructDataStorage<::test::fixtures::cpp_allocator_union::AllocUnion>::isset_indexes = { {
+THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<int, 4> TStructDataStorage<::test::fixtures::cpp_allocator_union::AllocUnion>::isset_indexes = { {
   0,
   1,
   2,
+  -1,
 }};
 
 namespace detail {
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::test::fixtures::cpp_allocator_union::AllocUnion, false>::bundle() {
-    return ::test::fixtures::cpp_allocator_union::module_constants::_fbthrift_schema_e48dded07633ff5b_includes();
+    return ::test::fixtures::cpp_allocator_union::module_constants::_fbthrift_schema_3b6037986c72f4da_includes();
 }
 
 } // namespace detail

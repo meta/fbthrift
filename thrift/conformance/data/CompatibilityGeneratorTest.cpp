@@ -16,6 +16,9 @@
 
 #include <thrift/conformance/data/CompatibilityGenerator.h>
 
+#include <set>
+#include <string>
+
 #include <gtest/gtest.h>
 #include <thrift/conformance/cpp2/AnyRegistry.h>
 
@@ -48,6 +51,17 @@ TEST(TestGeneratorTest, RoundTripSuite) {
     const auto& testCase = test.testCases()->at(1);
     EXPECT_EQ(testCase.name(), "testset.byte/RemoveField/zero");
     EXPECT_TRUE(testCase.test()->roundTrip());
+  }
+}
+
+TEST(TestGeneratorTest, NamesAreUnique) {
+  const auto suite = createCompatibilitySuite();
+  std::set<std::string> names;
+  for (const auto& test : *suite.tests()) {
+    for (const auto& testCase : *test.testCases()) {
+      auto name = *testCase.name() + "." + *test.name();
+      EXPECT_TRUE(names.insert(name).second) << name;
+    }
   }
 }
 

@@ -184,8 +184,8 @@ struct merge_impl<type::cpp_type<T, Tag>> : merge_impl<Tag> {};
 namespace apache::thrift {
 
 template <typename T>
-void merge_into(T&& src, folly::remove_cvref_t<T>& dst) {
-  using D = typename folly::remove_cvref_t<T>;
+void merge_into(T&& src, std::remove_cvref_t<T>& dst) {
+  using D = typename std::remove_cvref_t<T>;
   static_assert(is_thrift_class_v<D>, "merge_into: not a structured type");
   using Tag = type::infer_tag<D>;
   merge_into_detail::merge_impl<Tag>::go(std::forward<T>(src), dst);

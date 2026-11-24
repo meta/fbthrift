@@ -19,7 +19,7 @@
 _readState.beforeSubobject(iprot);
   {{/if (or field.type.container? field.type.structured?)}}
   {{#if field.cpp_ref?}}
-auto ptr = ::apache::thrift::detail::make_mutable_smart_ptr<{{field.cpp_storage_type}}>({{#if (and (object.notnull? struct.cpp_allocator) field.type.cpp_use_allocator?)}}this->get_allocator(){{/if}});
+auto ptr = ::apache::thrift::detail::make_mutable_smart_ptr<{{field.cpp_storage_type}}>({{#if (and (object.notnull? struct.cpp_allocator) field.cpp_use_allocator?)}}this->get_allocator(){{/if}});
   {{/if field.cpp_ref?}}
   {{#if field.use_op_encode?}}
 ::apache::thrift::op::decode<{{#partial fields.tag field=field struct=struct}}>(*iprot, {{#partial custom_protocol.member_or_ptr field=field struct=struct}}{{#if (object.notnull? field.cpp_adapter)}}, *this{{/if}});
@@ -42,7 +42,7 @@ if constexpr(::apache::thrift::adapt_detail::has_inplace_toThrift<{{field.cpp_fi
     {{/if field.cpp_exactly_one_adapter?}}
   {{#else}}
     {{#if (and (not field.cpp_ref?) field.type.container?)}}
-{{#partial fields.member field=field struct=struct}} = {{field.cpp_type}}({{#if (and (object.notnull? struct.cpp_allocator) field.cpp_use_allocator?)}}this->get_allocator(){{/if}});
+::apache::thrift::detail::reset_container_field_for_read({{#partial fields.member field=field struct=struct}}{{#if (and (object.notnull? struct.cpp_allocator) field.cpp_use_allocator?)}}, this->get_allocator(){{/if}});
     {{/if (and (not field.cpp_ref?) field.type.container?)}}
 {{#partial custom_protocol.protocol_methods field=field}}::read(*iprot, {{#partial custom_protocol.member_or_ptr field=field struct=struct}});
   {{/if field.use_op_encode?}}

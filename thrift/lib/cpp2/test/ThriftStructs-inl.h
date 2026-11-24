@@ -15,7 +15,9 @@
  */
 
 #pragma once
+#include <random>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include <folly/Random.h>
@@ -92,40 +94,43 @@ inline thrift::benchmark::OpBigString create<thrift::benchmark::OpBigString>() {
   return d;
 }
 
+// Deterministic contents (not printable UTF-8), so that protocols that choose
+// an encoding by content, like JSON5, take the same path in every binary.
+inline std::unique_ptr<folly::IOBuf> createBinary(std::size_t size) {
+  auto buf = folly::IOBuf::create(size);
+  for (std::size_t i = 0; i < size; ++i) {
+    buf->writableData()[i] = static_cast<std::uint8_t>(i);
+  }
+  buf->append(size);
+  return buf;
+}
+
 template <>
 inline thrift::benchmark::BigBinary create<thrift::benchmark::BigBinary>() {
-  auto buf = folly::IOBuf::create(10'000);
-  buf->append(10'000);
   thrift::benchmark::BigBinary d;
-  d.bin() = std::move(buf);
+  d.bin() = createBinary(10'000);
   return d;
 }
 
 template <>
 inline thrift::benchmark::OpBigBinary create<thrift::benchmark::OpBigBinary>() {
-  auto buf = folly::IOBuf::create(10'000);
-  buf->append(10'000);
   thrift::benchmark::OpBigBinary d;
-  d.bin() = std::move(buf);
+  d.bin() = createBinary(10'000);
   return d;
 }
 
 template <>
 inline thrift::benchmark::LargeBinary create<thrift::benchmark::LargeBinary>() {
-  auto buf = folly::IOBuf::create(10'000'000);
-  buf->append(10'000'000);
   thrift::benchmark::LargeBinary d;
-  d.bin() = std::move(buf);
+  d.bin() = createBinary(10'000'000);
   return d;
 }
 
 template <>
 inline thrift::benchmark::OpLargeBinary
 create<thrift::benchmark::OpLargeBinary>() {
-  auto buf = folly::IOBuf::create(10'000'000);
-  buf->append(10'000'000);
   thrift::benchmark::OpLargeBinary d;
-  d.bin() = std::move(buf);
+  d.bin() = createBinary(10'000'000);
   return d;
 }
 
@@ -164,13 +169,16 @@ create<thrift::benchmark::OpMixedUnion>() {
   return d;
 }
 
-template <class T>
-inline T createList(int size) {
-  std::mt19937 rng;
+// Fills the list with random values of `valueBits` bits.
+template <class T, class Rng = std::mt19937>
+inline T createList(int size, int valueBits = Rng::word_size) {
+  Rng rng;
   T d;
-  d.lst()->resize(size);
-  for (int i = 0; i < size; ++i) {
-    d.lst()->at(i) = rng();
+  auto& list = *d.lst();
+  list.resize(size);
+  using Value = typename std::remove_reference_t<decltype(list)>::value_type;
+  for (auto& value : list) {
+    value = static_cast<Value>(rng() >> (Rng::word_size - valueBits));
   }
   return d;
 }
@@ -255,6 +263,110 @@ template <>
 inline thrift::benchmark::OpBigListDouble
 create<thrift::benchmark::OpBigListDouble>() {
   return createList<thrift::benchmark::OpBigListDouble>(10000);
+}
+
+// One- and two-byte varints in random order.
+template <>
+inline thrift::benchmark::BigListSmallInt
+create<thrift::benchmark::BigListSmallInt>() {
+  return createList<thrift::benchmark::BigListSmallInt>(10000, 7);
+}
+
+template <>
+inline thrift::benchmark::OpBigListSmallInt
+create<thrift::benchmark::OpBigListSmallInt>() {
+  return createList<thrift::benchmark::OpBigListSmallInt>(10000, 7);
+}
+
+// Nine- and ten-byte varints, like hashes.
+template <>
+inline thrift::benchmark::BigListWideBigInt
+create<thrift::benchmark::BigListWideBigInt>() {
+  return createList<thrift::benchmark::BigListWideBigInt, std::mt19937_64>(
+      10000);
+}
+
+template <>
+inline thrift::benchmark::OpBigListWideBigInt
+create<thrift::benchmark::OpBigListWideBigInt>() {
+  return createList<thrift::benchmark::OpBigListWideBigInt, std::mt19937_64>(
+      10000);
+}
+
+// 2000 lists of 1 to 8 elements, like the id lists of sparse features.
+template <class T, class MakeValue>
+inline T createSmallLists(MakeValue makeValue) {
+  std::mt19937 rng;
+  T d;
+  auto& lists = *d.lst();
+  lists.resize(2000);
+  for (auto& list : lists) {
+    list.resize(1 + rng() % 8);
+    for (auto& value : list) {
+      value = makeValue();
+    }
+  }
+  return d;
+}
+
+template <class T>
+inline T createSmallListsInt() {
+  std::mt19937 rng;
+  return createSmallLists<T>([&] { return static_cast<int32_t>(rng()); });
+}
+
+// Nine- and ten-byte varints, like hashes.
+template <class T>
+inline T createSmallListsWideBigInt() {
+  std::mt19937_64 rng;
+  return createSmallLists<T>([&] { return static_cast<int64_t>(rng()); });
+}
+
+// Values of random widths: varints of every length in random order.
+template <class T>
+inline T createSmallListsMixedWidthBigInt() {
+  std::mt19937_64 rng;
+  return createSmallLists<T>(
+      [&] { return static_cast<int64_t>(rng() >> (rng() % 64)); });
+}
+
+template <>
+inline thrift::benchmark::SmallListsInt
+create<thrift::benchmark::SmallListsInt>() {
+  return createSmallListsInt<thrift::benchmark::SmallListsInt>();
+}
+
+template <>
+inline thrift::benchmark::OpSmallListsInt
+create<thrift::benchmark::OpSmallListsInt>() {
+  return createSmallListsInt<thrift::benchmark::OpSmallListsInt>();
+}
+
+template <>
+inline thrift::benchmark::SmallListsWideBigInt
+create<thrift::benchmark::SmallListsWideBigInt>() {
+  return createSmallListsWideBigInt<thrift::benchmark::SmallListsWideBigInt>();
+}
+
+template <>
+inline thrift::benchmark::OpSmallListsWideBigInt
+create<thrift::benchmark::OpSmallListsWideBigInt>() {
+  return createSmallListsWideBigInt<
+      thrift::benchmark::OpSmallListsWideBigInt>();
+}
+
+template <>
+inline thrift::benchmark::SmallListsMixedWidthBigInt
+create<thrift::benchmark::SmallListsMixedWidthBigInt>() {
+  return createSmallListsMixedWidthBigInt<
+      thrift::benchmark::SmallListsMixedWidthBigInt>();
+}
+
+template <>
+inline thrift::benchmark::OpSmallListsMixedWidthBigInt
+create<thrift::benchmark::OpSmallListsMixedWidthBigInt>() {
+  return createSmallListsMixedWidthBigInt<
+      thrift::benchmark::OpSmallListsMixedWidthBigInt>();
 }
 
 template <>

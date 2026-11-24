@@ -49,6 +49,15 @@ struct ref_builder : gen::base_thrift_annotation_builder {
     return make_inst(std::move(map));
   }
 };
+
+struct arena_builder : gen::base_thrift_annotation_builder {
+  explicit arena_builder(t_program& p)
+      : base_thrift_annotation_builder(p, "cpp", "Arena") {}
+
+  std::unique_ptr<t_const> make() {
+    return make_inst(t_const_value::make_map());
+  }
+};
 } // namespace
 
 class CppNameResolverTest : public ::testing::Test {
@@ -57,10 +66,6 @@ class CppNameResolverTest : public ::testing::Test {
       : program_("path/to/program.thrift", "path/to/program.thrift"),
         struct_(&program_, "ThriftStruct") {
     program_.set_namespace("cpp2", "path.to");
-  }
-
-  bool can_resolve_to_scalar(const t_type& node) {
-    return resolver_.can_resolve_to_scalar(node);
   }
 
   const std::string& get_native_type(const t_type& node) {
@@ -172,17 +177,6 @@ TEST_F(CppNameResolverTest, base_types) {
   EXPECT_EQ(get_native_type(t_primitive_type::t_string()), "::std::string");
   EXPECT_EQ(get_native_type(t_primitive_type::t_binary()), "::std::string");
 
-  EXPECT_FALSE(can_resolve_to_scalar(t_primitive_type::t_void()));
-  EXPECT_TRUE(can_resolve_to_scalar(t_primitive_type::t_bool()));
-  EXPECT_TRUE(can_resolve_to_scalar(t_primitive_type::t_byte()));
-  EXPECT_TRUE(can_resolve_to_scalar(t_primitive_type::t_i16()));
-  EXPECT_TRUE(can_resolve_to_scalar(t_primitive_type::t_i32()));
-  EXPECT_TRUE(can_resolve_to_scalar(t_primitive_type::t_i64()));
-  EXPECT_TRUE(can_resolve_to_scalar(t_primitive_type::t_float()));
-  EXPECT_TRUE(can_resolve_to_scalar(t_primitive_type::t_double()));
-  EXPECT_FALSE(can_resolve_to_scalar(t_primitive_type::t_string()));
-  EXPECT_FALSE(can_resolve_to_scalar(t_primitive_type::t_binary()));
-
   EXPECT_EQ(
       get_type_tag(t_primitive_type::t_void()),
       "::apache::thrift::type::void_t");
@@ -225,9 +219,6 @@ TEST_F(CppNameResolverTest, struct_adapter) {
       gen::adapter_builder(program_, "cpp").make("FooAdapter"));
   EXPECT_EQ(get_standard_type(strct2), "::path::to::detail::Bar");
   EXPECT_EQ(get_native_type(strct2), "::path::to::Bar");
-
-  // cpp.adapter could resolve to a scalar.
-  EXPECT_TRUE(can_resolve_to_scalar(strct));
 }
 
 TEST_F(CppNameResolverTest, cpp_name) {
@@ -237,48 +228,37 @@ TEST_F(CppNameResolverTest, cpp_name) {
 }
 
 TEST_F(CppNameResolverTest, containers) {
-  // A container could not resolve to a scalar.
   t_map tmap(t_primitive_type::t_string(), t_primitive_type::t_i32());
   EXPECT_EQ(get_native_type(tmap), "::std::map<::std::string, ::std::int32_t>");
-  EXPECT_FALSE(can_resolve_to_scalar(tmap));
   t_list tlist(t_primitive_type::t_double());
   EXPECT_EQ(get_native_type(tlist), "::std::vector<double>");
-  EXPECT_FALSE(can_resolve_to_scalar(tlist));
   t_set tset(tmap);
   EXPECT_EQ(
       get_native_type(tset),
       "::std::set<::std::map<::std::string, ::std::int32_t>>");
-  EXPECT_FALSE(can_resolve_to_scalar(tset));
 }
 
 TEST_F(CppNameResolverTest, containers_custom_template) {
-  // cpp.template could not resolve to a scalar since it can be only used for
-  // container fields.
   t_map tmap(t_primitive_type::t_string(), t_primitive_type::t_i32());
   tmap.add_structured_annotation(
       gen::type_builder(program_, "cpp").make_template("std::unordered_map"));
   EXPECT_EQ(
       get_native_type(tmap),
       "std::unordered_map<::std::string, ::std::int32_t>");
-  EXPECT_FALSE(can_resolve_to_scalar(tmap));
   t_list tlist(t_primitive_type::t_double());
   tlist.add_structured_annotation(
       gen::type_builder(program_, "cpp").make_template("std::list"));
   EXPECT_EQ(get_native_type(tlist), "std::list<double>");
-  EXPECT_FALSE(can_resolve_to_scalar(tlist));
   t_set tset(t_primitive_type::t_binary());
   tset.add_structured_annotation(
       gen::type_builder(program_, "cpp").make_template("::std::unordered_set"));
   EXPECT_EQ(get_native_type(tset), "::std::unordered_set<::std::string>");
-  EXPECT_FALSE(can_resolve_to_scalar(tset));
 }
 
 TEST_F(CppNameResolverTest, containers_adapter) {
-  // cpp.adapter could resolve to a scalar.
   t_struct strct(&program_, "Foo");
   strct.add_structured_annotation(
       gen::adapter_builder(program_, "cpp").make("HashAdapter"));
-  EXPECT_TRUE(can_resolve_to_scalar(strct));
 
   // Adapters work on container type arguments.
   t_map tmap(t_primitive_type::t_i16(), strct);
@@ -308,25 +288,20 @@ TEST_F(CppNameResolverTest, containers_adapter) {
 TEST_F(CppNameResolverTest, structs) {
   t_struct tstruct(&program_, "Foo");
   EXPECT_EQ(get_native_type(tstruct), "::path::to::Foo");
-  EXPECT_FALSE(can_resolve_to_scalar(tstruct));
   t_union tunion(&program_, "Bar");
   EXPECT_EQ(get_native_type(tunion), "::path::to::Bar");
-  EXPECT_FALSE(can_resolve_to_scalar(tunion));
   t_exception texcept(&program_, "Baz");
   EXPECT_EQ(get_native_type(texcept), "::path::to::Baz");
-  EXPECT_FALSE(can_resolve_to_scalar(texcept));
 }
 
 TEST_F(CppNameResolverTest, typedefs) {
   // Scalar
   t_typedef ttypedef1(&program_, "Foo", t_primitive_type::t_bool());
   EXPECT_EQ(get_native_type(ttypedef1), "::path::to::Foo");
-  EXPECT_TRUE(can_resolve_to_scalar(ttypedef1));
 
   // Non-scalar
   t_typedef ttypedef2(&program_, "Foo", t_primitive_type::t_string());
   EXPECT_EQ(get_native_type(ttypedef2), "::path::to::Foo");
-  EXPECT_FALSE(can_resolve_to_scalar(ttypedef2));
 }
 
 TEST_F(CppNameResolverTest, typedefs_nested) {
@@ -334,15 +309,11 @@ TEST_F(CppNameResolverTest, typedefs_nested) {
   t_typedef ttypedef1(&program_, "Foo", t_primitive_type::t_bool());
   t_typedef ttypedef2(&program_, "Bar", ttypedef1);
   EXPECT_EQ(get_native_type(ttypedef2), "::path::to::Bar");
-  EXPECT_TRUE(can_resolve_to_scalar(ttypedef1));
-  EXPECT_TRUE(can_resolve_to_scalar(ttypedef2));
 
   // Non-scalar
   t_typedef ttypedef3(&program_, "Foo", t_primitive_type::t_string());
   t_typedef ttypedef4(&program_, "Bar", ttypedef3);
   EXPECT_EQ(get_native_type(ttypedef4), "::path::to::Bar");
-  EXPECT_FALSE(can_resolve_to_scalar(ttypedef3));
-  EXPECT_FALSE(can_resolve_to_scalar(ttypedef4));
 }
 
 TEST_F(CppNameResolverTest, typedefs_adapter) {
@@ -357,7 +328,6 @@ TEST_F(CppNameResolverTest, typedefs_adapter) {
   EXPECT_EQ(get_native_type(ttypedef1), "::path::to::MyHash");
   // It is the referred to type that has the adapter.
   EXPECT_EQ(get_native_type(*ttypedef1.type()), "::path::to::Foo");
-  EXPECT_TRUE(can_resolve_to_scalar(ttypedef1));
   ASSERT_TRUE(resolver_.find_first_adapter(ttypedef1));
   EXPECT_EQ(*resolver_.find_first_adapter(ttypedef1), "HashAdapter");
 
@@ -367,7 +337,6 @@ TEST_F(CppNameResolverTest, typedefs_adapter) {
       gen::adapter_builder(program_, "cpp").make("TypeDefAdapter"));
   EXPECT_EQ(get_standard_type(ttypedef2), "::path::to::detail::Foo");
   EXPECT_EQ(get_native_type(ttypedef2), "::path::to::MyHash");
-  EXPECT_TRUE(can_resolve_to_scalar(ttypedef2));
   ASSERT_TRUE(resolver_.find_first_adapter(ttypedef2));
   EXPECT_EQ(*resolver_.find_first_adapter(ttypedef2), "TypeDefAdapter");
 
@@ -386,13 +355,11 @@ TEST_F(CppNameResolverTest, custom_type) {
   tui64.add_structured_annotation(
       gen::type_builder(program_, "cpp").make("::std::uint64_t"));
   EXPECT_EQ(get_native_type(tui64), "::std::uint64_t");
-  EXPECT_TRUE(can_resolve_to_scalar(tui64));
 
   t_union tunion(&program_, "Bar");
   tunion.add_structured_annotation(
       gen::type_builder(program_, "cpp").make("Other"));
   EXPECT_EQ(get_native_type(tunion), "Other");
-  EXPECT_TRUE(can_resolve_to_scalar(tunion));
 
   t_typedef ttypedef1(&program_, "Foo", t_primitive_type::t_bool());
   ttypedef1.add_structured_annotation(
@@ -400,18 +367,15 @@ TEST_F(CppNameResolverTest, custom_type) {
   // For typedefs, get_native_type returns the namespaced typedef name, not
   // the raw cpp.type override. The override is used in the using declaration.
   EXPECT_EQ(get_native_type(ttypedef1), "::path::to::Foo");
-  EXPECT_TRUE(can_resolve_to_scalar(ttypedef1));
 
   t_typedef ttypedef2(&program_, "FooBar", t_primitive_type::t_string());
   ttypedef2.add_structured_annotation(
       gen::type_builder(program_, "cpp").make("Other"));
   EXPECT_EQ(get_native_type(ttypedef2), "::path::to::FooBar");
-  EXPECT_TRUE(can_resolve_to_scalar(ttypedef2));
 
   t_map tmap1(t_primitive_type::t_string(), tui64);
   EXPECT_EQ(
       get_native_type(tmap1), "::std::map<::std::string, ::std::uint64_t>");
-  EXPECT_FALSE(can_resolve_to_scalar(tmap1));
 
   // Can be combined with template.
   t_map tmap2(tmap1);
@@ -420,14 +384,12 @@ TEST_F(CppNameResolverTest, custom_type) {
   EXPECT_EQ(
       get_native_type(tmap2),
       "std::unordered_map<::std::string, ::std::uint64_t>");
-  EXPECT_FALSE(can_resolve_to_scalar(tmap2));
 
   // Custom type overrides default container type.
   t_map tmap3(t_primitive_type::t_string(), tui64);
   tmap3.add_structured_annotation(
       gen::type_builder(program_, "cpp").make("MyMap"));
   EXPECT_EQ(get_native_type(tmap3), "MyMap");
-  EXPECT_TRUE(can_resolve_to_scalar(tmap3));
 }
 
 TEST_F(CppNameResolverTest, stream) {
@@ -512,8 +474,6 @@ TEST_F(CppNameResolverTest, storage_type) {
 }
 
 TEST_F(CppNameResolverTest, typedef_cpptemplate) {
-  // cpp.template could not resolve to a scalar since it can be only used for
-  // container fields.
   t_map imap(t_primitive_type::t_i32(), t_primitive_type::t_string());
   t_typedef iumap(&program_, "iumap", imap);
   iumap.add_structured_annotation(
@@ -523,17 +483,14 @@ TEST_F(CppNameResolverTest, typedef_cpptemplate) {
   EXPECT_EQ(get_native_type(imap), "::std::map<::std::int32_t, ::std::string>");
   EXPECT_EQ(
       get_standard_type(imap), "::std::map<::std::int32_t, ::std::string>");
-  EXPECT_FALSE(can_resolve_to_scalar(imap));
 
   // The @cpp.Type{template} annotation on a typedef is used for the using
   // declaration, but references to the typedef use the namespaced typedef name.
   EXPECT_EQ(get_native_type(iumap), "::path::to::iumap");
   EXPECT_EQ(get_standard_type(iumap), "::path::to::iumap");
-  EXPECT_FALSE(can_resolve_to_scalar(iumap));
 
   EXPECT_EQ(get_native_type(tiumap), "::path::to::tiumap");
   EXPECT_EQ(get_standard_type(tiumap), "::path::to::tiumap");
-  EXPECT_FALSE(can_resolve_to_scalar(tiumap));
 }
 
 TEST_F(CppNameResolverTest, typedef_cpptype) {
@@ -547,17 +504,14 @@ TEST_F(CppNameResolverTest, typedef_cpptype) {
   EXPECT_EQ(get_native_type(imap), "::std::map<::std::int32_t, ::std::string>");
   EXPECT_EQ(
       get_standard_type(imap), "::std::map<::std::int32_t, ::std::string>");
-  EXPECT_FALSE(can_resolve_to_scalar(imap));
 
   // The @cpp.Type{name} annotation on a typedef is used for the using
   // declaration, but references to the typedef use the namespaced typedef name.
   EXPECT_EQ(get_native_type(iumap), "::path::to::iumap");
   EXPECT_EQ(get_standard_type(iumap), "::path::to::iumap");
-  EXPECT_TRUE(can_resolve_to_scalar(iumap));
 
   EXPECT_EQ(get_native_type(tiumap), "::path::to::tiumap");
   EXPECT_EQ(get_standard_type(tiumap), "::path::to::tiumap");
-  EXPECT_TRUE(can_resolve_to_scalar(tiumap));
 }
 
 TEST_F(CppNameResolverTest, adapted_field_type) {
@@ -753,4 +707,74 @@ TEST_F(CppNameResolverTest, has_reference_type_false) {
     field.add_structured_annotation(
         ref_builder(program_, "cpp").make((int)RefType::SharedMutable));
   }
+}
+
+TEST_F(CppNameResolverTest, arena_fields) {
+  arena_builder arena(program_);
+  t_set ints(t_primitive_type::t_i32());
+  t_map groups(t_primitive_type::t_string(), ints);
+  t_struct elem(&program_, "Elem");
+  t_list elems(elem);
+  t_struct strct(&program_, "Arenas");
+  t_field& str = strct.create_field(t_primitive_type::t_string(), "str", 1);
+  t_field& map = strct.create_field(groups, "groups", 2);
+  t_field& list = strct.create_field(elems, "elems", 3);
+  for (t_field* field : {&str, &map, &list}) {
+    field->add_structured_annotation(arena.make());
+  }
+
+  const std::string rebound_str =
+      "::apache::thrift::pmr::Rebind<::std::string>::type";
+  EXPECT_EQ(resolver_.get_native_type(str, strct), rebound_str);
+  EXPECT_EQ(resolver_.get_standard_type(str), rebound_str);
+  EXPECT_EQ(
+      resolver_.get_type_tag(str, strct),
+      "::apache::thrift::type::cpp_pmr_type<" + rebound_str +
+          ", ::apache::thrift::type::string_t>");
+
+  const std::string rebound_map =
+      "::apache::thrift::pmr::Rebind<::std::map<::std::string, "
+      "::std::set<::std::int32_t>>>::type";
+  EXPECT_EQ(resolver_.get_native_type(map, strct), rebound_map);
+  EXPECT_EQ(resolver_.get_standard_type(map), rebound_map);
+  EXPECT_EQ(
+      resolver_.get_type_tag(map, strct),
+      "::apache::thrift::type::cpp_pmr_type<" + rebound_map +
+          ", ::apache::thrift::type::map<::apache::thrift::type::string_t, "
+          "::apache::thrift::type::set<::apache::thrift::type::i32_t>>>");
+
+  const std::string rebound_list =
+      "::apache::thrift::pmr::Rebind<::std::vector<::path::to::Elem>>::type";
+  EXPECT_EQ(resolver_.get_native_type(list, strct), rebound_list);
+  EXPECT_EQ(resolver_.get_standard_type(list), rebound_list);
+  EXPECT_EQ(
+      resolver_.get_type_tag(list, strct),
+      "::apache::thrift::type::cpp_pmr_type<" + rebound_list +
+          ", ::apache::thrift::type::list<"
+          "::apache::thrift::type::struct_t<::path::to::Elem>>>");
+}
+
+TEST_F(CppNameResolverTest, arena_custom_types) {
+  t_list strings(t_primitive_type::t_string());
+  t_typedef deque(&program_, "Deque", strings);
+  deque.add_structured_annotation(
+      gen::type_builder(program_, "cpp").make_template("std::deque"));
+  t_map tmap(t_primitive_type::t_string(), deque);
+  t_struct strct(&program_, "Arenas");
+  t_field& field = strct.create_field(tmap, "custom", 1);
+  field.add_structured_annotation(
+      gen::type_builder(program_, "cpp").make_template("std::unordered_map"));
+  field.add_structured_annotation(arena_builder(program_).make());
+
+  const std::string rebound =
+      "::apache::thrift::pmr::Rebind<std::unordered_map<::std::string, "
+      "::path::to::Deque>>::type";
+  EXPECT_EQ(resolver_.get_native_type(field, strct), rebound);
+  EXPECT_EQ(resolver_.get_standard_type(field), rebound);
+  EXPECT_EQ(
+      resolver_.get_type_tag(field, strct),
+      "::apache::thrift::type::cpp_pmr_type<" + rebound +
+          ", ::apache::thrift::type::map<::apache::thrift::type::string_t, "
+          "::apache::thrift::type::cpp_type<::path::to::Deque, "
+          "::apache::thrift::type::list<::apache::thrift::type::string_t>>>>");
 }

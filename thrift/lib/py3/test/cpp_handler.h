@@ -28,11 +28,13 @@ class TestingService
     return std::make_shared<TestingService>();
   }
 
-  void hard_error(bool valid) override {
+  void async_tm_hard_error(
+      apache::thrift::HandlerCallbackPtr<void> callback, bool valid) override {
     cpp2::HardError error;
     error.code() = 0;
     error.errortext() = valid ? "valid UTF-8" : "\xfa\xf0";
-    throw error;
+    callback->exception(
+        folly::make_exception_wrapper<cpp2::HardError>(std::move(error)));
   }
 };
 

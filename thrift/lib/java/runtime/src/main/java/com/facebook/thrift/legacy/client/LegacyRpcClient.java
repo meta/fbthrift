@@ -142,9 +142,7 @@ final class LegacyRpcClient implements RpcClient {
             Mono<ClientResponsePayload<T>> response =
                 NettyUtil.toMono(channel.writeAndFlush(context)).then(processor.asMono());
 
-            response = emitExceptionOnClose(response);
-
-            return forceExecutionOffLoopIfNecessary(response);
+            return emitExceptionOnClose(response);
           } catch (Throwable t) {
             ReferenceCountUtil.safeRelease(encodedRequest);
             return Mono.error(t);
@@ -183,6 +181,8 @@ final class LegacyRpcClient implements RpcClient {
 
             response = emitExceptionOnClose(response);
 
+            // A oneway has no response to decode, so this hop only moves the write-ack
+            // completion off the loop.
             return forceExecutionOffLoopIfNecessary(response);
           } catch (Throwable t) {
             ReferenceCountUtil.safeRelease(encodedRequest);

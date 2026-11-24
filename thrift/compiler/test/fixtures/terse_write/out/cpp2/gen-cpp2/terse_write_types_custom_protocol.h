@@ -41,9 +41,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
-  _advance_failure:
-  _readState.afterAdvanceFailure(iprot);
 _loop:
   if (_readState.atStop()) {
     goto _end;
@@ -226,7 +223,7 @@ void MyUnion::readNoXfer(Protocol_* iprot) {
         if (_readState.isCompatibleWithType(iprot, apache::thrift::protocol::TType::T_LIST)) {
           this->list_field_ref().emplace();
           _readState.beforeSubobject(iprot);
-          value_.list_field = ::std::vector<::std::int16_t>();
+          ::apache::thrift::detail::reset_container_field_for_read(value_.list_field);
           ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int16_t>, ::apache::thrift::type::list<::apache::thrift::type::i16_t>>::read(*iprot, value_.list_field);
           _readState.afterSubobject(iprot);
         } else {
@@ -239,7 +236,7 @@ void MyUnion::readNoXfer(Protocol_* iprot) {
         if (_readState.isCompatibleWithType(iprot, apache::thrift::protocol::TType::T_SET)) {
           this->set_field_ref().emplace();
           _readState.beforeSubobject(iprot);
-          value_.set_field = ::std::set<::std::int16_t>();
+          ::apache::thrift::detail::reset_container_field_for_read(value_.set_field);
           ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::set<::apache::thrift::type_class::integral>, ::std::set<::std::int16_t>, ::apache::thrift::type::set<::apache::thrift::type::i16_t>>::read(*iprot, value_.set_field);
           _readState.afterSubobject(iprot);
         } else {
@@ -252,7 +249,7 @@ void MyUnion::readNoXfer(Protocol_* iprot) {
         if (_readState.isCompatibleWithType(iprot, apache::thrift::protocol::TType::T_MAP)) {
           this->map_field_ref().emplace();
           _readState.beforeSubobject(iprot);
-          value_.map_field = ::std::map<::std::int16_t, ::std::int16_t>();
+          ::apache::thrift::detail::reset_container_field_for_read(value_.map_field);
           ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::integral, ::apache::thrift::type_class::integral>, ::std::map<::std::int16_t, ::std::int16_t>, ::apache::thrift::type::map<::apache::thrift::type::i16_t, ::apache::thrift::type::i16_t>>::read(*iprot, value_.map_field);
           _readState.afterSubobject(iprot);
         } else {
@@ -655,7 +652,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -884,7 +880,7 @@ _readField_enum_field:
 _readField_list_field:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_list_field = ::std::vector<::std::int16_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_list_field);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int16_t>, ::apache::thrift::type::list<::apache::thrift::type::i16_t>>::read(*iprot, this->__fbthrift_field_list_field);
     _readState.afterSubobject(iprot);
   }
@@ -899,7 +895,7 @@ _readField_list_field:
 _readField_set_field:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_set_field = ::std::set<::std::int16_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_set_field);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::set<::apache::thrift::type_class::integral>, ::std::set<::std::int16_t>, ::apache::thrift::type::set<::apache::thrift::type::i16_t>>::read(*iprot, this->__fbthrift_field_set_field);
     _readState.afterSubobject(iprot);
   }
@@ -914,7 +910,7 @@ _readField_set_field:
 _readField_map_field:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_map_field = ::std::map<::std::int16_t, ::std::int16_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_map_field);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::integral, ::apache::thrift::type_class::integral>, ::std::map<::std::int16_t, ::std::int16_t>, ::apache::thrift::type::map<::apache::thrift::type::i16_t, ::apache::thrift::type::i16_t>>::read(*iprot, this->__fbthrift_field_map_field);
     _readState.afterSubobject(iprot);
   }
@@ -960,7 +956,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -1541,7 +1536,7 @@ _readField_terse_enum_field:
 _readField_terse_list_field:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_terse_list_field = ::std::vector<::std::int16_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_terse_list_field);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int16_t>, ::apache::thrift::type::list<::apache::thrift::type::i16_t>>::read(*iprot, this->__fbthrift_field_terse_list_field);
     _readState.afterSubobject(iprot);
   }
@@ -1556,7 +1551,7 @@ _readField_terse_list_field:
 _readField_terse_set_field:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_terse_set_field = ::std::set<::std::int16_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_terse_set_field);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::set<::apache::thrift::type_class::integral>, ::std::set<::std::int16_t>, ::apache::thrift::type::set<::apache::thrift::type::i16_t>>::read(*iprot, this->__fbthrift_field_terse_set_field);
     _readState.afterSubobject(iprot);
   }
@@ -1571,7 +1566,7 @@ _readField_terse_set_field:
 _readField_terse_map_field:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_terse_map_field = ::std::map<::std::int16_t, ::std::int16_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_terse_map_field);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::integral, ::apache::thrift::type_class::integral>, ::std::map<::std::int16_t, ::std::int16_t>, ::apache::thrift::type::map<::apache::thrift::type::i16_t, ::apache::thrift::type::i16_t>>::read(*iprot, this->__fbthrift_field_terse_map_field);
     _readState.afterSubobject(iprot);
   }
@@ -1744,7 +1739,7 @@ _readField_enum_field:
 _readField_list_field:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_list_field = ::std::vector<::std::int16_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_list_field);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int16_t>, ::apache::thrift::type::list<::apache::thrift::type::i16_t>>::read(*iprot, this->__fbthrift_field_list_field);
     _readState.afterSubobject(iprot);
   }
@@ -1760,7 +1755,7 @@ _readField_list_field:
 _readField_set_field:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_set_field = ::std::set<::std::int16_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_set_field);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::set<::apache::thrift::type_class::integral>, ::std::set<::std::int16_t>, ::apache::thrift::type::set<::apache::thrift::type::i16_t>>::read(*iprot, this->__fbthrift_field_set_field);
     _readState.afterSubobject(iprot);
   }
@@ -1776,7 +1771,7 @@ _readField_set_field:
 _readField_map_field:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_map_field = ::std::map<::std::int16_t, ::std::int16_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_map_field);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::integral, ::apache::thrift::type_class::integral>, ::std::map<::std::int16_t, ::std::int16_t>, ::apache::thrift::type::map<::apache::thrift::type::i16_t, ::apache::thrift::type::i16_t>>::read(*iprot, this->__fbthrift_field_map_field);
     _readState.afterSubobject(iprot);
   }
@@ -1825,7 +1820,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -2670,7 +2664,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -2846,7 +2839,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:

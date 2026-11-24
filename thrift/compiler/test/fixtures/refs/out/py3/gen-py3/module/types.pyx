@@ -29,6 +29,8 @@ from thrift.py3.types cimport (
     set_iter as __set_iter,
     map_iter as __map_iter,
     reference_shared_ptr as __reference_shared_ptr,
+    get_union_field_storage as __get_union_field_storage,
+    get_union_field_cref as __get_union_field_cref,
     get_field_name_by_index as __get_field_name_by_index,
     reset_field as __reset_field,
     translate_cpp_enum_to_python,
@@ -172,15 +174,15 @@ cdef class MyUnion(thrift.py3.types.Union):
         if self.py_value is not None or self.type_int == 0:
             return self.py_value
         elif self.type_int == 1:
-            if not deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_anInteger():
+            if not __get_union_field_storage(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).anInteger_ref()):
                 self.py_value = None
             else:
-                self.py_value = cint32_t._create_FBTHRIFT_ONLY_DO_NOT_USE(__reference_shared_ptr[cint32_t](deref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_anInteger()), self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE))
+                self.py_value = cint32_t._create_FBTHRIFT_ONLY_DO_NOT_USE(__reference_shared_ptr[cint32_t](deref(__get_union_field_storage(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).anInteger_ref())), self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE))
         elif self.type_int == 2:
-            if not deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_aString():
+            if not __get_union_field_storage(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).aString_ref()):
                 self.py_value = None
             else:
-                self.py_value = str._create_FBTHRIFT_ONLY_DO_NOT_USE(__reference_shared_ptr[string](deref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_aString()), self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE))
+                self.py_value = str._create_FBTHRIFT_ONLY_DO_NOT_USE(__reference_shared_ptr[string](deref(__get_union_field_storage(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).aString_ref())), self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE))
         return self.py_value
 
     cdef _initialize_py(MyUnion self):
@@ -332,10 +334,10 @@ cdef class NonTriviallyDestructibleUnion(thrift.py3.types.Union):
         if self.py_value is not None or self.type_int == 0:
             return self.py_value
         elif self.type_int == 1:
-            if not deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_int_field():
+            if not __get_union_field_storage(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).int_field_ref()):
                 self.py_value = None
             else:
-                self.py_value = cint32_t._create_FBTHRIFT_ONLY_DO_NOT_USE(__reference_shared_ptr[cint32_t](deref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_int_field()), self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE))
+                self.py_value = cint32_t._create_FBTHRIFT_ONLY_DO_NOT_USE(__reference_shared_ptr[cint32_t](deref(__get_union_field_storage(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).int_field_ref())), self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE))
         return self.py_value
 
     cdef _initialize_py(NonTriviallyDestructibleUnion self):

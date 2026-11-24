@@ -51,6 +51,8 @@ class ThriftParametersClientExtension : public fizz::ClientExtensions {
     return negotiatedStopTLSForTTLSTunnel_;
   }
 
+  uint64_t getOfferedPSPUpgrade() const { return offerredPSP_; }
+
   uint64_t getNegotiatedPSPUpgrade() const { return negotiatedPSP_; }
 
  private:

@@ -19,12 +19,18 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 
 #include <folly/SocketAddress.h>
 
 #include <thrift/lib/cpp2/fast_thrift/frame/write/IntervalBatchingHandlerConfig.h>
 
 namespace apache::thrift::fast_thrift::thrift {
+
+struct RequestConcurrencyLimits {
+  uint64_t maxActiveRequests;
+  uint64_t maxOutstandingRequests;
+};
 
 enum class ChannelPipelineMode : uint8_t {
   Dynamic,
@@ -99,12 +105,8 @@ struct FastThriftServerConfig {
   // Only takes effect on FastThriftServer.
   bool enableCancellation{false};
 
-  // When true, insert WriteBufferBackpressureHandler into the thrift
-  // pipeline. The handler buffers outbound responses when the downstream
-  // pipeline returns Result::Backpressure (e.g. transport write buffer
-  // full), drains them in FIFO on onWriteReady, and surfaces inbound
-  // Backpressure while saturated so the transport pauses socket reads.
-  bool enableWriteBufferBackpressure{false};
+  // Shared per-EventBase admission limits.
+  std::optional<RequestConcurrencyLimits> requestConcurrencyLimits;
 
   // When true, insert ThriftServerStreamMuxHandler immediately head-ward of the
   // tail app adapter. It owns and multiplexes per-stream producing-end

@@ -2371,6 +2371,7 @@ struct ServiceInterceptorCountDrops
   void onRequestDropped(DroppedRequestInfo info) override {
     lastDropReason = info.reason;
     *lastDroppedMethodName.wlock() = std::string(info.methodName);
+    lastDroppedWiredRequestBytes = info.context->getWiredRequestBytes();
     onRequestDroppedCount++;
   }
 
@@ -2380,6 +2381,7 @@ struct ServiceInterceptorCountDrops
   std::atomic<int> onRequestDroppedCount{0};
   std::atomic<ServiceInterceptorBase::DropReason> lastDropReason{
       ServiceInterceptorBase::DropReason::UNKNOWN};
+  std::atomic<size_t> lastDroppedWiredRequestBytes{0};
   folly::Synchronized<std::string> lastReceivedMethodName;
   folly::Synchronized<std::string> lastDroppedMethodName;
 };
@@ -2423,6 +2425,7 @@ CO_TEST_P(ServiceInterceptorTestP, OnRequestDroppedOverload) {
       interceptor->lastDropReason,
       ServiceInterceptorBase::DropReason::OVERLOAD);
   EXPECT_EQ(*interceptor->lastDroppedMethodName.rlock(), "echo");
+  EXPECT_GT(interceptor->lastDroppedWiredRequestBytes, 0);
   EXPECT_EQ(interceptor->onRequestCount, 0);
   EXPECT_EQ(interceptor->onResponseCount, 0);
   // onRequestReceived fires for all requests, including those rejected

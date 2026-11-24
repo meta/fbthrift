@@ -984,8 +984,8 @@ def get_reflection__AllocatorAware() -> __StructSpec:
             id=7,
             name="aa_shared",
             py_name="aa_shared",
-            type=int,
-            kind=__NumberType.I32,
+            type=str,
+            kind=__NumberType.NOT_A_NUMBER,
             qualifier=__Qualifier.UNQUALIFIED,
             default=None,
             annotations={

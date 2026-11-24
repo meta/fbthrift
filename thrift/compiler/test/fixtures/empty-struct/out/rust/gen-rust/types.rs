@@ -63,6 +63,13 @@ impl ::fbthrift::ThriftStruct for self::Empty {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for self::Empty {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        true
+    }
+}
+
 impl<P> ::fbthrift::Serialize<P> for self::Empty
 where
     P: ::fbthrift::ProtocolWriter,
@@ -137,6 +144,13 @@ impl ::fbthrift::metadata::ThriftAnnotations for Empty {
 impl ::std::default::Default for Nada {
     fn default() -> Self {
         Self::UnknownField(-1)
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for Nada {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        ::std::matches!(self, Self::UnknownField(_))
     }
 }
 

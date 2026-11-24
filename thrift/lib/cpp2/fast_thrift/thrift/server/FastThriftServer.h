@@ -69,11 +69,14 @@ class FastThriftServerBase::FastThriftServerT : public FastThriftServerBase {
     requires(
         Mode == ChannelPipelineMode::Dynamic ||
         ModuleMode == ChannelPipelineMode::Static)
-  void addModule(module_detail::FastServerModuleT<ModuleMode> module) {
-    auto name = module.name();
-    const bool requiresHeaders = module.requiresHeaders();
-    auto callbacks = module.pendingConnectionCallbacks();
-    auto factories = std::move(module).handlers();
+  void addModule(module_detail::FastServerModuleT<ModuleMode> serverModule) {
+    auto name = serverModule.name();
+    const bool requiresHeaders = serverModule.requiresHeaders();
+    const bool requiresCachedEkms = serverModule.requiresCachedEkms();
+    auto callbacks = serverModule.pendingConnectionCallbacks();
+    const auto& requestStateRegistrations =
+        serverModule.requestStateRegistrations();
+    auto factories = std::move(serverModule).handlers();
     std::vector<server::ThriftPipelineRegistration> registrations;
     registrations.reserve(factories.size());
     for (auto& factory : factories) {
@@ -82,21 +85,26 @@ class FastThriftServerBase::FastThriftServerT : public FastThriftServerBase {
     addModuleRegistrations(
         std::move(name),
         requiresHeaders,
+        requiresCachedEkms,
         std::move(callbacks),
+        requestStateRegistrations,
         std::move(registrations));
   }
 
   template <typename... Entry>
-  void addModule(StaticFastServerModule<Entry...> module) {
-    auto name = module.name();
-    const bool requiresHeaders = module.requiresHeaders();
-    auto pendingConnectionCallbacks = module.pendingConnectionCallbacks();
+  void addModule(StaticFastServerModule<Entry...> serverModule) {
+    auto name = serverModule.name();
+    const bool requiresHeaders = serverModule.requiresHeaders();
+    const bool requiresCachedEkms = serverModule.requiresCachedEkms();
+    auto pendingConnectionCallbacks = serverModule.pendingConnectionCallbacks();
     std::vector<server::ThriftPipelineRegistration> registrations;
-    registrations.push_back(std::move(module).registration());
+    registrations.push_back(std::move(serverModule).registration());
     addModuleRegistrations(
         std::move(name),
         requiresHeaders,
+        requiresCachedEkms,
         std::move(pendingConnectionCallbacks),
+        {},
         std::move(registrations));
   }
 
@@ -146,6 +154,14 @@ class FastThriftServer final
           ChannelPipelineMode::Static> {
  public:
   explicit FastThriftServer(FastThriftServerConfig config);
+
+  using detail::FastThriftServerBase::FastThriftServerT<
+      ChannelPipelineMode::Static>::setRocketConnectionBuilder;
+
+  void setRocketConnectionBuilder(
+      server::RocketServerConnectionBuilder builder) {
+    setRocketConnectionBuilderImpl(std::move(builder));
+  }
 };
 
 class DynamicFastThriftServer final

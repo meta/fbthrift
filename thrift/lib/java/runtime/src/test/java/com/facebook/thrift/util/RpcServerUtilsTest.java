@@ -43,6 +43,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.unix.DomainSocketAddress;
 import io.netty.channel.uring.IoUringServerDomainSocketChannel;
 import io.netty.channel.uring.IoUringServerSocketChannel;
+import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContext;
 import io.netty.util.AttributeKey;
 import io.netty.util.internal.PlatformDependent;
@@ -169,21 +170,24 @@ public class RpcServerUtilsTest {
   // TODO(yuhanhao) need NettyTcNativeLoader
   @Test
   public void tesSslContext() {
-    SslContext context = RpcServerUtils.getSslContext(new ThriftServerConfig());
+    SslContext context =
+        RpcServerUtils.getSslContext(new ThriftServerConfig().setClientAuth(ClientAuth.OPTIONAL));
     assertTrue(context.isServer());
   }
 
   @Test
   public void tesJdkSslContext() {
     SslContext context =
-        RpcServerUtils.getSslContext(new ThriftServerConfig().setEnableJdkSsl(true));
+        RpcServerUtils.getSslContext(
+            new ThriftServerConfig().setClientAuth(ClientAuth.OPTIONAL).setEnableJdkSsl(true));
     assertTrue(context.isServer());
   }
 
   @Test
   public void testSslAttribute() {
     SslContext context =
-        RpcServerUtils.getSslContext(new ThriftServerConfig().setEnableJdkSsl(true));
+        RpcServerUtils.getSslContext(
+            new ThriftServerConfig().setClientAuth(ClientAuth.OPTIONAL).setEnableJdkSsl(true));
     // This will create sslSession
     ThriftOptionalSslHandler optionalSslHandler = new ThriftOptionalSslHandler(context);
     // This should re-use sslSession
@@ -269,7 +273,7 @@ public class RpcServerUtilsTest {
 
   @Test
   public void testTaskTimeoutUsesServerConfigDefault() {
-    ThriftServerConfig config = new ThriftServerConfig();
+    ThriftServerConfig config = new ThriftServerConfig().setClientAuth(ClientAuth.OPTIONAL);
     assertEquals(
         5000L,
         RpcServerUtils.resolveTaskTimeoutMillis(

@@ -41,6 +41,5 @@ endif ()
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(
-  Cython
-  REQUIRED_VARS CYTHON_EXE CYTHON_VERSION_STRING
+  Cython REQUIRED_VARS CYTHON_EXE CYTHON_VERSION_STRING
   VERSION_VAR CYTHON_VERSION_STRING)

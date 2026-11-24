@@ -94,57 +94,6 @@ class t_concat_generator : public t_generator {
     return tservice->name();
   }
 
-  /*
-   * Get the full thrift typename of a (possibly complex) type.
-   */
-  virtual std::string thrift_type_name(const t_type* ttype) {
-    if (const auto* tbase = ttype->try_as<t_primitive_type>()) {
-      return tbase->name();
-    }
-
-    if (ttype->is<t_container>()) {
-      if (const t_map* tmap = ttype->try_as<t_map>()) {
-        return "map<" + thrift_type_name(&tmap->key_type().deref()) + ", " +
-            thrift_type_name(&tmap->val_type().deref()) + ">";
-      } else if (const t_set* tset = ttype->try_as<t_set>()) {
-        return "set<" + thrift_type_name(&tset->elem_type().deref()) + ">";
-      } else if (const t_list* tlist = ttype->try_as<t_list>()) {
-        return "list<" + thrift_type_name(&tlist->elem_type().deref()) + ">";
-      }
-    }
-
-    // A complex type like struct, typedef, exception.
-    std::string full_name = ttype->name();
-
-    // Qualify the name with the program name, if the type isn't from this
-    // program.
-    const t_program* program = ttype->program();
-    if (program != nullptr && program != program_) {
-      full_name = program->name() + "." + full_name;
-    }
-    return full_name;
-  }
-
-  /**
-   * Generates the structural ID.
-   *
-   * The structural ID reflects the fields properties (key, name, type,
-   * required or not). It is supposedly unique for a given thrift structure.
-   *
-   * To generate this ID, a hash is created consisting of the following
-   * properties: key, name, type, field required or not). The structural ID
-   * can be used when deserializing thrift instances in PHP to know if the
-   * thrift definition has changed while the object was in the cache. In that
-   * case, some properties might not be properly initialized (sets may be
-   * null instead of being an empty set) and the object should be carefully
-   * handled or deleted.
-   *
-   * The structural ID is *NOT* unique across different structures. Example:
-   * two structures having same fields properties will have the same
-   * structural ID.
-   */
-  std::string generate_structural_id(const t_structured* t_struct);
-
   /**
    * Creates a unique temporary variable name, which is just "name" with a
    * number appended to it (i.e. name35)
@@ -156,24 +105,9 @@ class t_concat_generator : public t_generator {
   }
 
   /**
-   * Get current tmp variable counter value
-   */
-  int get_tmp_counter() const { return tmp_; }
-
-  /**
-   * Set tmp variable counter value
-   */
-  void set_tmp_counter(int tmp) { tmp_ = tmp; }
-
-  /**
    * Get current indentation level.
    */
   int get_indent() const { return indent_; }
-
-  /**
-   * Set current indentation level.
-   */
-  void set_indent(int indent) { indent_ = indent; }
 
   /**
    * Indentation level modifiers
@@ -295,35 +229,6 @@ class t_concat_generator : public t_generator {
     }
 
     return out.str();
-  }
-
-  bool option_is_specified(
-      const std::map<std::string, std::string>& options,
-      const std::string& name) {
-    return options.find(name) != options.end();
-  }
-
-  bool get_option_value(
-      const std::map<std::string, std::string>& options,
-      const std::string& name,
-      std::string& value) {
-    std::map<std::string, std::string>::const_iterator it = options.find(name);
-    if (it == options.end()) {
-      return false;
-    }
-    value = it->second;
-    return true;
-  }
-
-  bool option_is_set(
-      const std::map<std::string, std::string>& options,
-      const std::string& name,
-      bool default_value) {
-    std::string value;
-    if (get_option_value(options, name, value)) {
-      return value == "1" || value == "true";
-    }
-    return default_value;
   }
 
   /**

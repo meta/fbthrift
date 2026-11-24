@@ -25,10 +25,11 @@
 #include <folly/executors/ManualExecutor.h>
 #include <folly/io/async/DelayedDestruction.h>
 #include <folly/io/async/EventBase.h>
+#include <folly/io/async/Request.h>
 #include <folly/io/async/ScopedEventBaseThread.h>
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/util/FastHandlerCallback.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/util/FastHandlerCoro.h>
@@ -58,6 +59,7 @@ class RecordingAdapter : public ThriftServerAppAdapter {
   // Recorded rather than kept alive: the thunks own the context and drop it,
   // so only its identity survives the call.
   const ThriftRequestContext* lastRequestContext{nullptr};
+  folly::RequestContext* lastFollyRequestContext{nullptr};
   void markPipelineClosed() {
     pipelineActive_ = false;
     pipeline_.reset();
@@ -93,6 +95,7 @@ void onResult(
   r.lastStreamId = streamId;
   r.lastValue = value;
   r.lastRequestContext = requestContext.get();
+  r.lastFollyRequestContext = folly::RequestContext::try_get();
   if (auto* callback = std::exchange(r.reentrantCallback, nullptr)) {
     callback->result(456);
   }
@@ -111,6 +114,7 @@ void onException(
   r.lastStreamId = streamId;
   r.lastExceptionMessage = ew.what().toStdString();
   r.lastRequestContext = requestContext.get();
+  r.lastFollyRequestContext = folly::RequestContext::try_get();
 }
 
 struct ThrowingMoveValue {
@@ -142,6 +146,7 @@ void onThrowingMoveResult(
   r.lastStreamId = streamId;
   r.lastValue = value.value;
   r.lastRequestContext = requestContext.get();
+  r.lastFollyRequestContext = folly::RequestContext::try_get();
 }
 
 void onDone(
@@ -153,6 +158,7 @@ void onDone(
   r.doneCount++;
   r.lastStreamId = streamId;
   r.lastRequestContext = requestContext.get();
+  r.lastFollyRequestContext = folly::RequestContext::try_get();
 }
 
 using RecordingAdapterPtr =
@@ -163,10 +169,10 @@ RecordingAdapterPtr makeRecorder(bool* destroyed = nullptr) {
 }
 
 void configureClosedPipeline(folly::EventBase& evb, RecordingAdapter& adapter) {
-  channel_pipeline::test::MockHeadHandler head;
+  channel_pipeline::test::StaticMockHeadHandler head;
   channel_pipeline::test::TestAllocator allocator;
-  auto pipeline = channel_pipeline::PipelineBuilder<
-                      channel_pipeline::test::MockHeadHandler,
+  auto pipeline = channel_pipeline::StaticPipelineBuilder<
+                      channel_pipeline::test::StaticMockHeadHandler,
                       RecordingAdapter,
                       channel_pipeline::test::TestAllocator>()
                       .setEventBase(&evb)
@@ -307,8 +313,19 @@ TEST(FastHandlerCallbackTest, DroppedDispatchTaskCompletesWithError) {
   auto rec = makeRecorder();
   folly::EventBase evb;
   DroppingExecutor executor;
+  folly::RequestContextScopeGuard callerGuard;
+  auto* const callerContext = folly::RequestContext::try_get();
+  auto requestContext = makeThriftRequestContext(evb);
+  auto* const requestFollyContext =
+      requestContext->getFollyRequestContext().get();
   auto cb = makeFastHandlerCallback<FastHandlerCallback<int>>(
-      &onResult, &onException, rec.get(), kStreamId, evb, &executor, nullptr);
+      &onResult,
+      &onException,
+      rec.get(),
+      kStreamId,
+      evb,
+      &executor,
+      std::move(requestContext));
 
   executor.add([cb = std::move(cb)]() mutable {
     cb->markHandlerStarted();
@@ -317,6 +334,8 @@ TEST(FastHandlerCallbackTest, DroppedDispatchTaskCompletesWithError) {
 
   EXPECT_EQ(rec->resultCount, 0);
   EXPECT_EQ(rec->exceptionCount, 1);
+  EXPECT_EQ(rec->lastFollyRequestContext, requestFollyContext);
+  EXPECT_EQ(folly::RequestContext::try_get(), callerContext);
   EXPECT_NE(
       rec->lastExceptionMessage.find(detail::kHandlerExecutorUnavailable),
       std::string::npos);
@@ -355,13 +374,11 @@ TEST(FastHandlerCallbackTest, StorageBypassesEventBaseAllocator) {
 
 TEST(FastHandlerCallbackTest, CancellationAcknowledgementCompletesOnce) {
   folly::EventBase evb;
-  channel_pipeline::test::MockHeadHandler head;
+  channel_pipeline::test::StaticMockHeadHandler head;
   channel_pipeline::test::TestAllocator allocator;
   auto rec = makeRecorder();
-  auto capture = std::make_unique<CompletionCaptureHandler>();
-  auto* capturePtr = capture.get();
-  auto pipeline = channel_pipeline::PipelineBuilder<
-                      channel_pipeline::test::MockHeadHandler,
+  auto pipeline = channel_pipeline::StaticPipelineBuilder<
+                      channel_pipeline::test::StaticMockHeadHandler,
                       RecordingAdapter,
                       channel_pipeline::test::TestAllocator>()
                       .setEventBase(&evb)
@@ -369,8 +386,9 @@ TEST(FastHandlerCallbackTest, CancellationAcknowledgementCompletesOnce) {
                       .setTail(rec.get())
                       .setAllocator(&allocator)
                       .addNextDuplex<CompletionCaptureHandler>(
-                          completion_capture_handler_tag, std::move(capture))
+                          completion_capture_handler_tag)
                       .build();
+  auto* capturePtr = &pipeline->handler(completion_capture_handler_tag);
   rec->setPipeline(pipeline.get());
   auto requestContext = makeThriftRequestContext(evb);
   requestContext->enableCancellation();
@@ -400,11 +418,11 @@ TEST(FastHandlerCallbackTest, CancellationAcknowledgementCompletesOnce) {
 
 TEST(FastHandlerCallbackTest, CancellationAfterPipelineResetIsDropped) {
   folly::EventBase evb;
-  channel_pipeline::test::MockHeadHandler head;
+  channel_pipeline::test::StaticMockHeadHandler head;
   channel_pipeline::test::TestAllocator allocator;
   auto rec = makeRecorder();
-  auto pipeline = channel_pipeline::PipelineBuilder<
-                      channel_pipeline::test::MockHeadHandler,
+  auto pipeline = channel_pipeline::StaticPipelineBuilder<
+                      channel_pipeline::test::StaticMockHeadHandler,
                       RecordingAdapter,
                       channel_pipeline::test::TestAllocator>()
                       .setEventBase(&evb)
@@ -435,13 +453,11 @@ TEST(FastHandlerCallbackTest, CancellationAfterPipelineResetIsDropped) {
 
 TEST(FastHandlerCallbackTest, CancellationCallbackCanAcknowledgeReentrantly) {
   folly::EventBase evb;
-  channel_pipeline::test::MockHeadHandler head;
+  channel_pipeline::test::StaticMockHeadHandler head;
   channel_pipeline::test::TestAllocator allocator;
   auto rec = makeRecorder();
-  auto capture = std::make_unique<CompletionCaptureHandler>();
-  auto* capturePtr = capture.get();
-  auto pipeline = channel_pipeline::PipelineBuilder<
-                      channel_pipeline::test::MockHeadHandler,
+  auto pipeline = channel_pipeline::StaticPipelineBuilder<
+                      channel_pipeline::test::StaticMockHeadHandler,
                       RecordingAdapter,
                       channel_pipeline::test::TestAllocator>()
                       .setEventBase(&evb)
@@ -449,8 +465,9 @@ TEST(FastHandlerCallbackTest, CancellationCallbackCanAcknowledgeReentrantly) {
                       .setTail(rec.get())
                       .setAllocator(&allocator)
                       .addNextDuplex<CompletionCaptureHandler>(
-                          completion_capture_handler_tag, std::move(capture))
+                          completion_capture_handler_tag)
                       .build();
+  auto* capturePtr = &pipeline->handler(completion_capture_handler_tag);
   rec->setPipeline(pipeline.get());
   auto requestContext = makeThriftRequestContext(evb);
   requestContext->enableCancellation();
@@ -476,15 +493,15 @@ TEST(FastHandlerCallbackTest, CancellationCallbackCanAcknowledgeReentrantly) {
   rec->resetPipeline();
 }
 
-TEST(FastHandlerCallbackTest, CpuCancellationRacingResultCompletesOnce) {
+TEST(
+    FastHandlerCallbackTest,
+    CancellationRacingResultCompletesOnceWithOrWithoutExecutor) {
   folly::EventBase evb;
-  channel_pipeline::test::MockHeadHandler head;
+  channel_pipeline::test::StaticMockHeadHandler head;
   channel_pipeline::test::TestAllocator allocator;
   auto rec = makeRecorder();
-  auto capture = std::make_unique<CompletionCaptureHandler>();
-  auto* capturePtr = capture.get();
-  auto pipeline = channel_pipeline::PipelineBuilder<
-                      channel_pipeline::test::MockHeadHandler,
+  auto pipeline = channel_pipeline::StaticPipelineBuilder<
+                      channel_pipeline::test::StaticMockHeadHandler,
                       RecordingAdapter,
                       channel_pipeline::test::TestAllocator>()
                       .setEventBase(&evb)
@@ -492,31 +509,94 @@ TEST(FastHandlerCallbackTest, CpuCancellationRacingResultCompletesOnce) {
                       .setTail(rec.get())
                       .setAllocator(&allocator)
                       .addNextDuplex<CompletionCaptureHandler>(
-                          completion_capture_handler_tag, std::move(capture))
+                          completion_capture_handler_tag)
                       .build();
+  auto* capturePtr = &pipeline->handler(completion_capture_handler_tag);
+  rec->setPipeline(pipeline.get());
+
+  constexpr int kIterationsPerMode = 100;
+  for (const bool useExecutor : {false, true}) {
+    for (int i = 0; i < kIterationsPerMode; ++i) {
+      folly::ManualExecutor executor;
+      auto* const executorPtr = useExecutor ? &executor : nullptr;
+      auto requestContext = makeThriftRequestContext(evb);
+      requestContext->enableCancellation();
+      auto cb = makeFastHandlerCallback<FastHandlerCallback<int>>(
+          &onResult,
+          &onException,
+          rec.get(),
+          kStreamId,
+          evb,
+          executorPtr,
+          std::move(requestContext));
+      cb->markHandlerStarted();
+
+      std::atomic<bool> start{false};
+      std::thread response([&] {
+        std::optional<detail::HandlerExecutorScope> scope;
+        if (executorPtr != nullptr) {
+          scope.emplace(executorPtr);
+        }
+        while (!start.load(std::memory_order_acquire)) {
+        }
+        cb->result(123);
+      });
+      std::thread cancellation([&] {
+        while (!start.load(std::memory_order_acquire)) {
+        }
+        cb->cancelled();
+      });
+
+      start.store(true, std::memory_order_release);
+      response.join();
+      cancellation.join();
+      evb.loopOnce(EVLOOP_NONBLOCK);
+      cb.reset();
+    }
+  }
+
+  EXPECT_EQ(rec->resultCount + capturePtr->count, 2 * kIterationsPerMode);
+  EXPECT_EQ(rec->exceptionCount, 0);
+  rec->resetPipeline();
+}
+
+TEST(FastHandlerCallbackTest, CancellationRacingVoidCompletionCompletesOnce) {
+  folly::EventBase evb;
+  channel_pipeline::test::StaticMockHeadHandler head;
+  channel_pipeline::test::TestAllocator allocator;
+  auto rec = makeRecorder();
+  auto pipeline = channel_pipeline::StaticPipelineBuilder<
+                      channel_pipeline::test::StaticMockHeadHandler,
+                      RecordingAdapter,
+                      channel_pipeline::test::TestAllocator>()
+                      .setEventBase(&evb)
+                      .setHead(&head)
+                      .setTail(rec.get())
+                      .setAllocator(&allocator)
+                      .addNextDuplex<CompletionCaptureHandler>(
+                          completion_capture_handler_tag)
+                      .build();
+  auto* capturePtr = &pipeline->handler(completion_capture_handler_tag);
   rec->setPipeline(pipeline.get());
 
   constexpr int kIterations = 100;
   for (int i = 0; i < kIterations; ++i) {
-    folly::ManualExecutor executor;
     auto requestContext = makeThriftRequestContext(evb);
     requestContext->enableCancellation();
-    auto cb = makeFastHandlerCallback<FastHandlerCallback<int>>(
-        &onResult,
+    auto cb = makeFastHandlerCallback<FastHandlerCallback<void>>(
+        &onDone,
         &onException,
         rec.get(),
         kStreamId,
         evb,
-        &executor,
+        nullptr,
         std::move(requestContext));
-    cb->markHandlerStarted();
 
     std::atomic<bool> start{false};
     std::thread response([&] {
-      detail::HandlerExecutorScope scope(&executor);
       while (!start.load(std::memory_order_acquire)) {
       }
-      cb->result(123);
+      cb->done();
     });
     std::thread cancellation([&] {
       while (!start.load(std::memory_order_acquire)) {
@@ -531,20 +611,18 @@ TEST(FastHandlerCallbackTest, CpuCancellationRacingResultCompletesOnce) {
     cb.reset();
   }
 
-  EXPECT_EQ(rec->resultCount + capturePtr->count, kIterations);
+  EXPECT_EQ(rec->doneCount + capturePtr->count, kIterations);
   EXPECT_EQ(rec->exceptionCount, 0);
   rec->resetPipeline();
 }
 
 TEST(FastHandlerCallbackTest, CoroutineReceivesRequestCancellationToken) {
   folly::EventBase evb;
-  channel_pipeline::test::MockHeadHandler head;
+  channel_pipeline::test::StaticMockHeadHandler head;
   channel_pipeline::test::TestAllocator allocator;
   auto rec = makeRecorder();
-  auto capture = std::make_unique<CompletionCaptureHandler>();
-  auto* capturePtr = capture.get();
-  auto pipeline = channel_pipeline::PipelineBuilder<
-                      channel_pipeline::test::MockHeadHandler,
+  auto pipeline = channel_pipeline::StaticPipelineBuilder<
+                      channel_pipeline::test::StaticMockHeadHandler,
                       RecordingAdapter,
                       channel_pipeline::test::TestAllocator>()
                       .setEventBase(&evb)
@@ -552,8 +630,9 @@ TEST(FastHandlerCallbackTest, CoroutineReceivesRequestCancellationToken) {
                       .setTail(rec.get())
                       .setAllocator(&allocator)
                       .addNextDuplex<CompletionCaptureHandler>(
-                          completion_capture_handler_tag, std::move(capture))
+                          completion_capture_handler_tag)
                       .build();
+  auto* capturePtr = &pipeline->handler(completion_capture_handler_tag);
   rec->setPipeline(pipeline.get());
   auto requestContext = makeThriftRequestContext(evb);
   requestContext->enableCancellation();
@@ -630,9 +709,20 @@ TEST(FastHandlerCallbackTest, ResultRunsOnConfiguredExecutor) {
   auto rec = makeRecorder();
   folly::EventBase evb;
   folly::ManualExecutor executor;
+  folly::RequestContextScopeGuard callerGuard;
+  auto* const callerContext = folly::RequestContext::try_get();
+  auto requestContext = makeThriftRequestContext(evb);
+  auto* const requestFollyContext =
+      requestContext->getFollyRequestContext().get();
   {
     auto cb = makeFastHandlerCallback<FastHandlerCallback<int>>(
-        &onResult, &onException, rec.get(), kStreamId, evb, &executor, nullptr);
+        &onResult,
+        &onException,
+        rec.get(),
+        kStreamId,
+        evb,
+        &executor,
+        std::move(requestContext));
     cb->result(123);
   }
 
@@ -640,6 +730,8 @@ TEST(FastHandlerCallbackTest, ResultRunsOnConfiguredExecutor) {
   EXPECT_EQ(executor.drain(), 1);
   EXPECT_EQ(rec->resultCount, 1);
   EXPECT_EQ(rec->lastValue, 123);
+  EXPECT_EQ(rec->lastFollyRequestContext, requestFollyContext);
+  EXPECT_EQ(folly::RequestContext::try_get(), callerContext);
 }
 
 TEST(FastHandlerCallbackTest, ThrowingMoveResultRunsOnConfiguredExecutor) {
@@ -692,8 +784,19 @@ TEST(FastHandlerCallbackTest, ResultAlreadyOnConfiguredExecutorRunsInline) {
   auto rec = makeRecorder();
   folly::EventBase evb;
   folly::ManualExecutor executor;
+  folly::RequestContextScopeGuard callerGuard;
+  auto* const callerContext = folly::RequestContext::try_get();
+  auto requestContext = makeThriftRequestContext(evb);
+  auto* const requestFollyContext =
+      requestContext->getFollyRequestContext().get();
   auto cb = makeFastHandlerCallback<FastHandlerCallback<int>>(
-      &onResult, &onException, rec.get(), kStreamId, evb, &executor, nullptr);
+      &onResult,
+      &onException,
+      rec.get(),
+      kStreamId,
+      evb,
+      &executor,
+      std::move(requestContext));
 
   {
     detail::HandlerExecutorScope scope(&executor);
@@ -701,6 +804,8 @@ TEST(FastHandlerCallbackTest, ResultAlreadyOnConfiguredExecutorRunsInline) {
   }
 
   EXPECT_EQ(rec->resultCount, 1);
+  EXPECT_EQ(rec->lastFollyRequestContext, requestFollyContext);
+  EXPECT_EQ(folly::RequestContext::try_get(), callerContext);
   EXPECT_EQ(executor.drain(), 0);
 }
 
@@ -776,15 +881,28 @@ TEST(FastHandlerCallbackTest, DestructorErrorRunsOnConfiguredExecutor) {
   auto rec = makeRecorder();
   folly::EventBase evb;
   folly::ManualExecutor executor;
+  folly::RequestContextScopeGuard callerGuard;
+  auto* const callerContext = folly::RequestContext::try_get();
+  auto requestContext = makeThriftRequestContext(evb);
+  auto* const requestFollyContext =
+      requestContext->getFollyRequestContext().get();
   {
     auto cb = makeFastHandlerCallback<FastHandlerCallback<int>>(
-        &onResult, &onException, rec.get(), kStreamId, evb, &executor, nullptr);
+        &onResult,
+        &onException,
+        rec.get(),
+        kStreamId,
+        evb,
+        &executor,
+        std::move(requestContext));
     cb->markHandlerStarted();
   }
 
   EXPECT_EQ(rec->exceptionCount, 0);
   EXPECT_EQ(executor.drain(), 1);
   EXPECT_EQ(rec->exceptionCount, 1);
+  EXPECT_EQ(rec->lastFollyRequestContext, requestFollyContext);
+  EXPECT_EQ(folly::RequestContext::try_get(), callerContext);
   EXPECT_NE(rec->lastExceptionMessage.find("not completed"), std::string::npos);
 }
 
@@ -805,15 +923,28 @@ TEST(FastHandlerCallbackTest, VoidDoneRunsOnConfiguredExecutor) {
   auto rec = makeRecorder();
   folly::EventBase evb;
   folly::ManualExecutor executor;
+  folly::RequestContextScopeGuard callerGuard;
+  auto* const callerContext = folly::RequestContext::try_get();
+  auto requestContext = makeThriftRequestContext(evb);
+  auto* const requestFollyContext =
+      requestContext->getFollyRequestContext().get();
   {
     auto cb = makeFastHandlerCallback<FastHandlerCallback<void>>(
-        &onDone, &onException, rec.get(), kStreamId, evb, &executor, nullptr);
+        &onDone,
+        &onException,
+        rec.get(),
+        kStreamId,
+        evb,
+        &executor,
+        std::move(requestContext));
     cb->done();
   }
 
   EXPECT_EQ(rec->doneCount, 0);
   EXPECT_EQ(executor.drain(), 1);
   EXPECT_EQ(rec->doneCount, 1);
+  EXPECT_EQ(rec->lastFollyRequestContext, requestFollyContext);
+  EXPECT_EQ(folly::RequestContext::try_get(), callerContext);
 }
 
 TEST(FastHandlerCallbackTest, VoidExceptionRunsOnConfiguredExecutor) {
@@ -939,13 +1070,17 @@ TEST(
     FastHandlerCallbackTest,
     OffThreadCallbackDropDestroysRequestContextOnEventBase) {
   auto rec = makeRecorder();
+  folly::RequestContextScopeGuard callerGuard;
+  auto* const callerContext = folly::RequestContext::try_get();
   folly::ScopedEventBaseThread evbThread;
   auto* evb = evbThread.getEventBase();
   FastHandlerCallbackPtr<int> cb;
   const ThriftRequestContext* requestContextPtr{nullptr};
+  folly::RequestContext* requestFollyContext{nullptr};
   evb->runInEventBaseThreadAndWait([&] {
     auto requestContext = makeThriftRequestContext(*evb);
     requestContextPtr = requestContext.get();
+    requestFollyContext = requestContext->getFollyRequestContext().get();
     cb = makeFastHandlerCallback<FastHandlerCallback<int>>(
         &onResult,
         &onException,
@@ -962,6 +1097,8 @@ TEST(
 
   EXPECT_EQ(rec->exceptionCount, 1);
   EXPECT_EQ(rec->lastRequestContext, requestContextPtr);
+  EXPECT_EQ(rec->lastFollyRequestContext, requestFollyContext);
+  EXPECT_EQ(folly::RequestContext::try_get(), callerContext);
 }
 
 // =============================================================================

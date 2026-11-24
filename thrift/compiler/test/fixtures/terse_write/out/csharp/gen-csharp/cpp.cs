@@ -2455,13 +2455,13 @@ namespace facebook.thrift.annotation.cpp
     }
 
     /// <summary>
-    /// Auto-generated from InternalExperimentalAllowAllocatorOnUnion
+    /// Auto-generated from Arena
     /// </summary>
-    public class @InternalExperimentalAllowAllocatorOnUnion : IThriftSerializable
+    public class @Arena : IThriftSerializable
     {
         /// <summary>The Thrift URI for this type, used for type registration.</summary>
-        public static readonly string __fbthrift_uri = "facebook.com/thrift/annotation/cpp/InternalExperimentalAllowAllocatorOnUnion";
-        public @InternalExperimentalAllowAllocatorOnUnion()
+        public static readonly string __fbthrift_uri = "facebook.com/thrift/annotation/cpp/Arena";
+        public @Arena()
         {
         }
 
@@ -2500,7 +2500,7 @@ namespace facebook.thrift.annotation.cpp
 
         public override bool Equals(object? obj)
         {
-            if (obj is not @InternalExperimentalAllowAllocatorOnUnion other)
+            if (obj is not @Arena other)
             {
                 return false;
             }
@@ -2516,7 +2516,7 @@ namespace facebook.thrift.annotation.cpp
         public override string ToString()
         {
             var sb = new System.Text.StringBuilder();
-            sb.Append("InternalExperimentalAllowAllocatorOnUnion(");
+            sb.Append("Arena(");
             sb.Append(")");
             return sb.ToString();
         }
@@ -2560,7 +2560,7 @@ namespace facebook.thrift.annotation.cpp
             register("facebook.com/thrift/annotation/cpp/DeclareHashSpecialization", () => new @DeclareHashSpecialization());
             register("facebook.com/thrift/annotation/cpp/DeclareEqualToSpecialization", () => new @DeclareEqualToSpecialization());
             register("facebook.com/thrift/annotation/cpp/AllowCustomDefaultInAllocCtor", () => new @AllowCustomDefaultInAllocCtor());
-            register("facebook.com/thrift/annotation/cpp/InternalExperimentalAllowAllocatorOnUnion", () => new @InternalExperimentalAllowAllocatorOnUnion());
+            register("facebook.com/thrift/annotation/cpp/Arena", () => new @Arena());
         }
     }
 }

@@ -17,11 +17,16 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"flag"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"apache/thrift/test/load"
+	"github.com/facebook/fbthrift/thrift/lib/go/thrift"
 
 	"github.com/golang/glog"
 )
@@ -37,13 +42,29 @@ func main() {
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGTERM, os.Interrupt)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	go func() {
 		<-sig
 		glog.Info("Shutting down.")
 		// Do any cleanup work here
-		os.Exit(0)
+		cancel()
 	}()
 	addr := net.JoinHostPort(*host, *port)
-	// Start the thrift server
-	glog.Fatal(Serve(addr))
+
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		glog.Fatalf("failed to listen: %v", err)
+	}
+
+	proc := load.NewLoadTestProcessor(&LoadTestHandler{})
+	server := thrift.NewServer(proc, listener, thrift.TransportIDUpgradeToRocket)
+
+	glog.Infof("starting thrift server on '%s'", addr)
+	err = server.ServeContext(ctx)
+	if err == nil || errors.Is(err, context.Canceled) {
+		glog.Info("Thrift server terminated")
+	} else {
+		glog.Fatalf("unexpected server error: %v", err)
+	}
 }

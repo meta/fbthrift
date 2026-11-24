@@ -20,6 +20,7 @@ from module.thrift_types import (
     CustomFields,
     CustomTypedefFields,
     AdaptedTypedefFields,
+    StringAdaptedUnion,
     AnEnum,
     AnEnumRenamed,
     Flags,
@@ -45,7 +46,7 @@ from module.thrift_types import (
     AdaptedTypeDef,
     HiddenTypeDef,
     ImplicitlyHiddenTypeDef,
-    foo_bar,
+    CustomBuffer,
     CustomBool,
     CustomInteger,
     CustomDouble,
@@ -64,6 +65,8 @@ from module.thrift_types import (
     AdaptedSet,
     AdaptedMap,
     AdaptedStruct,
+    StringAdaptedString,
+    StringAdaptedBinary,
 )
 import importlib
 import thrift.python.types as _fbthrift_python_types

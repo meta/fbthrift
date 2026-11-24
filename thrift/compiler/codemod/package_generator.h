@@ -68,7 +68,7 @@ class package_name_generator {
   }
 
   std::string get_domain() const {
-    return fmt::to_string(fmt::join(domain_.begin(), domain_.end(), "."));
+    return boost::algorithm::join(domain_, ".");
   }
 
   static std::string from_file_path(std::string path) {
@@ -167,7 +167,7 @@ class package_name_generator {
   }
 
   std::string get_path(const std::vector<std::string>& path) const {
-    return fmt::to_string(fmt::join(path.begin(), path.end(), "/"));
+    return boost::algorithm::join(path, "/");
   }
 
   std::string to_snake_case(std::string input) {

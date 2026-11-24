@@ -180,6 +180,16 @@ class Foo final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "facebook.com/thrift/test/fixtures/encode/Foo";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "Foo";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "field"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -286,7 +296,6 @@ class Foo final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<Foo>;
   friend void swap(Foo& a, Foo& b);
 };
 
@@ -297,6 +306,7 @@ unsigned long Foo::read(Protocol_* iprot) {
   return iprot->getCursorPosition() - _xferStart;
 }
 
+/** typedef Foo AdaptedFoo */
 /** Glean {"file": "thrift/compiler/test/fixtures/encode/src/module.thrift", "name": "AdaptedFoo", "kind": "typedef" } */
 using AdaptedFoo = ::apache::thrift::adapt_detail::adapted_t<::apache::thrift::test::TemplatedTestAdapter, ::facebook::thrift::test::fixtures::encode::Foo>;
 
@@ -312,6 +322,16 @@ class Bar final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "facebook.com/thrift/test/fixtures/encode/Bar";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "Bar";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "list_field"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -428,7 +448,6 @@ class Bar final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<Bar>;
   friend void swap(Bar& a, Bar& b);
 };
 
@@ -452,6 +471,16 @@ class Baz final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "facebook.com/thrift/test/fixtures/encode/Baz";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "Baz";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "list_field", "nested_list_field"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -624,7 +653,6 @@ class Baz final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<Baz>;
   friend void swap(Baz& a, Baz& b);
 };
 
@@ -648,6 +676,16 @@ class OpEncodeStruct final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "facebook.com/thrift/test/fixtures/encode/OpEncodeStruct";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "OpEncodeStruct";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "int_field", "enum_field", "foo_field", "adapted_field", "list_field", "list_shared_ptr_field", "list_cpp_type_field", "set_field", "map_field", "nested_field", "bar_field", "adapted_list_field"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -851,36 +889,42 @@ class OpEncodeStruct final  {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_foo_field), __isset.at(2), __isset.bit(2)};
   }
 
+  /** 4: AdaptedFoo adapted_field */
   /** Glean { "field": "adapted_field" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::fixtures::encode::AdaptedFoo>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> adapted_field_ref() const& {
     return {this->__fbthrift_field_adapted_field, __isset.at(3), __isset.bit(3)};
   }
 
+  /** 4: AdaptedFoo adapted_field */
   /** Glean { "field": "adapted_field" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::fixtures::encode::AdaptedFoo>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> adapted_field_ref() & {
     return {this->__fbthrift_field_adapted_field, __isset.at(3), __isset.bit(3)};
   }
 
+  /** 4: AdaptedFoo adapted_field */
   /** Glean { "field": "adapted_field" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::fixtures::encode::AdaptedFoo>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> adapted_field_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_adapted_field), __isset.at(3), __isset.bit(3)};
   }
 
+  /** 4: AdaptedFoo adapted_field */
   /** Glean { "field": "adapted_field" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::fixtures::encode::AdaptedFoo>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> adapted_field() const& {
     return {this->__fbthrift_field_adapted_field, __isset.at(3), __isset.bit(3)};
   }
 
+  /** 4: AdaptedFoo adapted_field */
   /** Glean { "field": "adapted_field" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::fixtures::encode::AdaptedFoo>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> adapted_field() & {
     return {this->__fbthrift_field_adapted_field, __isset.at(3), __isset.bit(3)};
   }
 
+  /** 4: AdaptedFoo adapted_field */
   /** Glean { "field": "adapted_field" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::fixtures::encode::AdaptedFoo>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> adapted_field() && {
@@ -1142,36 +1186,42 @@ class OpEncodeStruct final  {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_bar_field), __isset.at(9), __isset.bit(9)};
   }
 
+  /** 12: list<AdaptedFoo> adapted_list_field */
   /** Glean { "field": "adapted_list_field" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::FieldAdapter, 12, ::std::vector<::facebook::thrift::test::fixtures::encode::AdaptedFoo>, OpEncodeStruct>>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> adapted_list_field_ref() const& {
     return {this->__fbthrift_field_adapted_list_field, __isset.at(10), __isset.bit(10)};
   }
 
+  /** 12: list<AdaptedFoo> adapted_list_field */
   /** Glean { "field": "adapted_list_field" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::FieldAdapter, 12, ::std::vector<::facebook::thrift::test::fixtures::encode::AdaptedFoo>, OpEncodeStruct>>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> adapted_list_field_ref() & {
     return {this->__fbthrift_field_adapted_list_field, __isset.at(10), __isset.bit(10)};
   }
 
+  /** 12: list<AdaptedFoo> adapted_list_field */
   /** Glean { "field": "adapted_list_field" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::FieldAdapter, 12, ::std::vector<::facebook::thrift::test::fixtures::encode::AdaptedFoo>, OpEncodeStruct>>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> adapted_list_field_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_adapted_list_field), __isset.at(10), __isset.bit(10)};
   }
 
+  /** 12: list<AdaptedFoo> adapted_list_field */
   /** Glean { "field": "adapted_list_field" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::FieldAdapter, 12, ::std::vector<::facebook::thrift::test::fixtures::encode::AdaptedFoo>, OpEncodeStruct>>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> adapted_list_field() const& {
     return {this->__fbthrift_field_adapted_list_field, __isset.at(10), __isset.bit(10)};
   }
 
+  /** 12: list<AdaptedFoo> adapted_list_field */
   /** Glean { "field": "adapted_list_field" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::FieldAdapter, 12, ::std::vector<::facebook::thrift::test::fixtures::encode::AdaptedFoo>, OpEncodeStruct>>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> adapted_list_field() & {
     return {this->__fbthrift_field_adapted_list_field, __isset.at(10), __isset.bit(10)};
   }
 
+  /** 12: list<AdaptedFoo> adapted_list_field */
   /** Glean { "field": "adapted_list_field" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::FieldAdapter, 12, ::std::vector<::facebook::thrift::test::fixtures::encode::AdaptedFoo>, OpEncodeStruct>>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> adapted_list_field() && {
@@ -1319,7 +1369,6 @@ class OpEncodeStruct final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<OpEncodeStruct>;
   friend void swap(OpEncodeStruct& a, OpEncodeStruct& b);
 };
 

@@ -56,15 +56,22 @@ constexpr std::chrono::microseconds kMinSleepGap{150};
 constexpr std::chrono::milliseconds kMaxSleepSlice{20};
 } // namespace
 
-PoissonLoadGenerator::PoissonLoadGenerator(double targetQps)
-    : targetQps_(targetQps) {}
+PoissonLoadGenerator::PoissonLoadGenerator(
+    const double targetQps,
+    MarkerEnqueuedCallback markerEnqueuedCallback,
+    std::chrono::steady_clock::time_point (*const now)())
+    : targetQps_(targetQps),
+      markerEnqueuedCallback_(std::move(markerEnqueuedCallback)),
+      now_(now) {}
 
 folly::coro::AsyncGenerator<PoissonLoadGenerator::Count>
 PoissonLoadGenerator::getRequestCount() {
   folly::coro::AsyncGenerator<RequestSignal> signals = getRequestSignals();
   while (const folly::coro::AsyncGenerator<RequestSignal>::NextResult signal =
              co_await signals.next()) {
-    co_yield signal->count;
+    if (signal->type == RequestSignal::Type::Request) {
+      co_yield signal->count;
+    }
   }
 }
 
@@ -80,58 +87,160 @@ PoissonLoadGenerator::getRequestSignals() {
 }
 
 void PoissonLoadGenerator::generateRequestSignals() {
-  // Callers build a generator whether or not load was asked for, so a rate of
-  // zero has to mean no requests rather than an error.
-  if (targetQps_ <= 0.0) {
-    return;
+  // An empty request path still stays alive to emit its measurement boundary.
+  std::optional<std::exponential_distribution<double>> gaps;
+  if (targetQps_ > 0.0) {
+    gaps.emplace(targetQps_);
   }
-  std::exponential_distribution<double> gaps(targetQps_);
 
   // Arrival times accumulate rather than restart from now(), so a late wakeup
   // is paid back on the following gaps and the long-run rate still holds.
-  std::chrono::steady_clock::time_point nextArrival =
-      std::chrono::steady_clock::now();
-  while (running_.load(std::memory_order_relaxed)) {
-    const std::chrono::duration<double> gap(gaps(gen_));
+  std::chrono::steady_clock::time_point nextArrival = now_();
+  if (gaps) {
     nextArrival +=
-        std::chrono::duration_cast<std::chrono::steady_clock::duration>(gap);
+        std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+            std::chrono::duration<double>((*gaps)(gen_)));
+  }
+  while (running_.load(std::memory_order_relaxed)) {
+    if (emitRequestedBoundary(nextArrival, gaps ? &*gaps : nullptr)) {
+      continue;
+    }
+
+    if (!gaps) {
+      std::unique_lock lock(controlMutex_);
+      controlCondition_.wait(lock, [this] {
+        return !running_.load(std::memory_order_relaxed) ||
+            requestedBoundary_.has_value();
+      });
+      continue;
+    }
 
     // Sleeping is done in slices. sleep_until cannot be woken, so a single
     // sleep over a long gap would hold up the destructor for that whole gap;
     // slices cap teardown at kMaxSleepSlice instead.
     while (running_.load(std::memory_order_relaxed)) {
-      const std::chrono::steady_clock::time_point now =
-          std::chrono::steady_clock::now();
+      const std::chrono::steady_clock::time_point now = now_();
       if (now + kMinSleepGap >= nextArrival) {
         break;
       }
-      // @lint-ignore CLANGTIDY facebook-hte-BadCall-sleep_until
-      // The sleep is what paces the load. This is a generator, not a test
-      // waiting on someone else's work, so there is no event to wait on.
-      std::this_thread::sleep_until(
-          std::min(nextArrival, now + kMaxSleepSlice));
+      std::unique_lock lock(controlMutex_);
+      // This wait keeps stop latency bounded and wakes for a boundary request.
+      const bool boundaryRequested = controlCondition_.wait_until(
+          lock, std::min(nextArrival, now + kMaxSleepSlice), [this] {
+            return !running_.load(std::memory_order_relaxed) ||
+                requestedBoundary_.has_value();
+          });
+      if (boundaryRequested) {
+        break;
+      }
+    }
+
+    if (emitRequestedBoundary(nextArrival, &*gaps)) {
+      continue;
     }
 
     // The last stretch is too short to sleep on: the wakeup lands tens of
     // microseconds late, which over a gap this short is most of the gap, and
     // the arrival would miss its slot. Burning the time keeps it on time.
-    while (running_.load(std::memory_order_relaxed) &&
-           std::chrono::steady_clock::now() < nextArrival) {
+    while (running_.load(std::memory_order_relaxed) && now_() < nextArrival) {
+      if (hasRequestedBoundary()) {
+        break;
+      }
       // Pause rather than yield. Yielding hands the core away and getting it
       // back can cost more than the gap we are waiting out, which defeats the
       // point of spinning.
       folly::asm_volatile_pause();
     }
 
+    if (emitRequestedBoundary(nextArrival, &*gaps)) {
+      continue;
+    }
+
     if (!running_.load(std::memory_order_relaxed)) {
       break;
     }
-    queue_.enqueue(
-        RequestSignal{
-            .count = 1,
-            .plannedArrival = nextArrival,
+    enqueueRequest(nextArrival);
+    nextArrival +=
+        std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+            std::chrono::duration<double>((*gaps)(gen_)));
+  }
+}
+
+bool PoissonLoadGenerator::hasRequestedBoundary() {
+  const std::lock_guard lock(controlMutex_);
+  return requestedBoundary_.has_value();
+}
+
+bool PoissonLoadGenerator::emitRequestedBoundary(
+    std::chrono::steady_clock::time_point& nextArrival,
+    std::exponential_distribution<double>* const gaps) {
+  std::optional<MeasurementBoundary> boundary;
+  MarkerEnqueuedCallback callback;
+  {
+    std::lock_guard lock(controlMutex_);
+    if (!requestedBoundary_) {
+      return false;
+    }
+    boundary = requestedBoundary_;
+    requestedBoundary_.reset();
+    emittedBoundaryWindow_ = boundary->windowId;
+    callback = markerEnqueuedCallback_;
+  }
+
+  while (gaps != nullptr && nextArrival < boundary->measurementEnd) {
+    enqueueRequest(nextArrival);
+    nextArrival +=
+        std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+            std::chrono::duration<double>((*gaps)(gen_)));
+  }
+
+  boundary->markerSequence = nextSequence_++;
+  queue_.enqueue(
+      RequestSignal{
+          .type = RequestSignal::Type::MeasurementBoundary,
+          .count = 0,
+          .plannedArrival = boundary->measurementEnd,
+          .sequence = boundary->markerSequence,
+          .measurementBoundary = *boundary,
+      });
+  const std::chrono::steady_clock::time_point enqueueTimestamp = now_();
+  if (callback) {
+    callback(
+        MarkerEnqueuedEvent{
+            .boundary = *boundary,
+            .producerEnqueueTimestamp = enqueueTimestamp,
         });
   }
+  return true;
+}
+
+void PoissonLoadGenerator::enqueueRequest(
+    const std::chrono::steady_clock::time_point plannedArrival) {
+  const uint64_t sequence = nextSequence_++;
+  queue_.enqueue(
+      RequestSignal{
+          .type = RequestSignal::Type::Request,
+          .count = 1,
+          .plannedArrival = plannedArrival,
+          .sequence = sequence,
+          .measurementBoundary = {},
+      });
+}
+
+void PoissonLoadGenerator::requestMeasurementBoundary(
+    const uint64_t windowId,
+    const std::chrono::steady_clock::time_point measurementEnd) {
+  {
+    std::lock_guard lock(controlMutex_);
+    if (requestedBoundary_ || emittedBoundaryWindow_ == windowId) {
+      return;
+    }
+    requestedBoundary_ = MeasurementBoundary{
+        .windowId = windowId,
+        .measurementEnd = measurementEnd,
+    };
+  }
+  controlCondition_.notify_one();
 }
 
 void PoissonLoadGenerator::start() {
@@ -144,6 +253,7 @@ void PoissonLoadGenerator::start() {
 void PoissonLoadGenerator::stop() {
   if (running_.exchange(false, std::memory_order_relaxed)) {
     queue_.enqueue(RequestSignal{});
+    controlCondition_.notify_one();
   }
 }
 

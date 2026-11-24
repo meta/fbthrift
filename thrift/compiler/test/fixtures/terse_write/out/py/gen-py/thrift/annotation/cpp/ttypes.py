@@ -52,12 +52,21 @@ class ThriftEnumWrapper(int):
     return super().__new__(cls, value)
   def __init__(self, enum_class, value):    self.enum_class = enum_class
   def __repr__(self):
-    return self.enum_class.__name__ + '.' + self.enum_class._VALUES_TO_NAMES[self]
+    import keyword
+    name = self.enum_class._VALUES_TO_NAMES[self]
+    if keyword.iskeyword(name):
+      # `E.None` is not valid Python: use the alias defined for such values,
+      # or look the value up by name if it has none.
+      alias = name + '_PY_RESERVED_KEYWORD'
+      if getattr(self.enum_class, alias, None) == self:
+        return self.enum_class.__name__ + '.' + alias
+      return '%s._NAMES_TO_VALUES[%r]' % (self.enum_class.__name__, name)
+    return self.enum_class.__name__ + '.' + name
 
 all_structs = []
 UTF8STRINGS = bool(0) or sys.version_info.major >= 3
 
-__all__ = ['UTF8STRINGS', 'RefType', 'EnumUnderlyingType', 'Name', 'Type', 'Ref', 'Lazy', 'DisableLazyChecksum', 'Adapter', 'PackIsset', 'MinimizePadding', 'ScopedEnumAsUnionType', 'FieldInterceptor', 'UseOpEncode', 'EnableIOBufChainSupport', 'EnumType', 'Frozen2Exclude', 'Frozen2RequiresCompleteContainerParams', 'ProcessInEbThreadUnsafe', 'UseCursorSerialization', 'GenerateDeprecatedHeaderClientMethods', 'AllowLegacyNonOptionalRef', 'DeprecatedTerseWrite', 'AllowLegacyDeprecatedTerseWritesRef', 'EnableCustomTypeOrdering', 'GenerateServiceMethodDecorator', 'FastClient', 'FastServer', 'NonOrderable', 'DeclareHashSpecialization', 'DeclareEqualToSpecialization', 'AllowCustomDefaultInAllocCtor', 'InternalExperimentalAllowAllocatorOnUnion']
+__all__ = ['UTF8STRINGS', 'RefType', 'EnumUnderlyingType', 'Name', 'Type', 'Ref', 'Lazy', 'DisableLazyChecksum', 'Adapter', 'PackIsset', 'MinimizePadding', 'ScopedEnumAsUnionType', 'FieldInterceptor', 'UseOpEncode', 'EnableIOBufChainSupport', 'EnumType', 'Frozen2Exclude', 'Frozen2RequiresCompleteContainerParams', 'ProcessInEbThreadUnsafe', 'UseCursorSerialization', 'GenerateDeprecatedHeaderClientMethods', 'AllowLegacyNonOptionalRef', 'DeprecatedTerseWrite', 'AllowLegacyDeprecatedTerseWritesRef', 'EnableCustomTypeOrdering', 'GenerateServiceMethodDecorator', 'FastClient', 'FastServer', 'NonOrderable', 'DeclareHashSpecialization', 'DeclareEqualToSpecialization', 'AllowCustomDefaultInAllocCtor', 'Arena']
 warn_thrift_py_deprecated(__name__)
 
 class RefType:
@@ -2877,12 +2886,13 @@ class GenerateServiceMethodDecorator:
 
 class FastClient:
   r"""
-  When applied to a service, generates only a FastClient instead of the
+  When applied to a service, generates a FastClient in addition to the
   standard AsyncClient. The FastClient uses the fast_thrift pipeline for
   lower latency serialization and deserialization.
   
-  Only request/response functions are supported. Functions using streams,
-  sinks, oneway, or interactions are skipped.
+  The FastClient supports only request/response functions. Functions using
+  streams, sinks, oneway, or interactions are skipped by the FastClient and
+  remain available on the AsyncClient.
   """
 
   thrift_spec = None
@@ -3529,14 +3539,17 @@ class AllowCustomDefaultInAllocCtor:
   def _to_py_deprecated(self):
     return self
 
-class InternalExperimentalAllowAllocatorOnUnion:
+class Arena:
   r"""
-  Allows the unstructured `cpp.allocator` annotation on this union, which
-  unions otherwise reject.
+  Gives a string, binary or container field a PMR allocator-aware C++ type,
+  such as `std::pmr::string` or `std::pmr::vector`, that can allocate from a
+  `std::pmr::memory_resource` such as an arena. The field doesn't use its
+  struct's memory resource yet: it allocates from the default resource. On a
+  struct or union it does nothing yet, and on a typedef it is an error. On a
+  request-response function it does nothing yet; other functions reject it.
   
-  Internal and experimental: Thrift's own unit tests use it while support for
-  `cpp.allocator` unions is incomplete. Do not use it elsewhere; it may change
-  or go away without notice.
+  The py3 generator rejects fields with it unless `auto_migrate` is set, and
+  always rejects functions with it. Other languages ignore it.
   """
 
   thrift_spec = None
@@ -3570,7 +3583,7 @@ class InternalExperimentalAllowAllocatorOnUnion:
     if (isinstance(oprot, TCompactProtocol.TCompactProtocolAccelerated) or (isinstance(oprot, THeaderProtocol.THeaderProtocolAccelerate) and oprot.get_protocol_id() == THeaderProtocol.THeaderProtocol.T_COMPACT_PROTOCOL)) and self.thrift_spec is not None and fastproto is not None:
       oprot.trans.write(fastproto.encode(self, [self.__class__, self.thrift_spec, False], utf8strings=UTF8STRINGS, protoid=2))
       return
-    oprot.writeStructBegin('InternalExperimentalAllowAllocatorOnUnion')
+    oprot.writeStructBegin('Arena')
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
@@ -3617,19 +3630,19 @@ class InternalExperimentalAllowAllocatorOnUnion:
     import importlib
     import thrift.python.converter
     python_types = importlib.import_module("facebook.thrift.annotation.cpp.thrift_types")
-    return thrift.python.converter.to_python_struct(python_types.InternalExperimentalAllowAllocatorOnUnion, self)
+    return thrift.python.converter.to_python_struct(python_types.Arena, self)
 
   def _to_mutable_python(self):
     import importlib
     import thrift.python.mutable_converter
     python_mutable_types = importlib.import_module("facebook.thrift.annotation.cpp.thrift_mutable_types")
-    return thrift.python.mutable_converter.to_mutable_python_struct_or_union(python_mutable_types.InternalExperimentalAllowAllocatorOnUnion, self)
+    return thrift.python.mutable_converter.to_mutable_python_struct_or_union(python_mutable_types.Arena, self)
 
   def _to_py3(self):
     import importlib
     import thrift.py3.converter
     py3_types = importlib.import_module("facebook.thrift.annotation.cpp.types")
-    return thrift.py3.converter.to_py3_struct(py3_types.InternalExperimentalAllowAllocatorOnUnion, self)
+    return thrift.py3.converter.to_py3_struct(py3_types.Arena, self)
 
   def _to_py_deprecated(self):
     return self
@@ -4027,13 +4040,13 @@ def AllowCustomDefaultInAllocCtor__setstate__(self, state):
 AllowCustomDefaultInAllocCtor.__getstate__ = lambda self: self.__dict__.copy()
 AllowCustomDefaultInAllocCtor.__setstate__ = AllowCustomDefaultInAllocCtor__setstate__
 
-all_structs.append(InternalExperimentalAllowAllocatorOnUnion)
-InternalExperimentalAllowAllocatorOnUnion.thrift_spec = tuple(__EXPAND_THRIFT_SPEC((
+all_structs.append(Arena)
+Arena.thrift_spec = tuple(__EXPAND_THRIFT_SPEC((
 )))
 
-InternalExperimentalAllowAllocatorOnUnion.thrift_struct_annotations = {
+Arena.thrift_struct_annotations = {
 }
-InternalExperimentalAllowAllocatorOnUnion.thrift_field_annotations = {
+Arena.thrift_field_annotations = {
 }
 
 fix_spec(all_structs)

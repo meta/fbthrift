@@ -52,6 +52,10 @@ public final class BinaryWriter: ProtocolWriter {
     buffer.append(UInt8(bitPattern: value))
   }
 
+  public func writeByteListElements(_ value: [Int8]) {
+    value.withUnsafeBytes { buffer.append(contentsOf: $0) }
+  }
+
   public func writeI16(_ value: Int16) {
     appendBigEndian(UInt16(bitPattern: value))
   }

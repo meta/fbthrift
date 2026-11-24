@@ -15,42 +15,43 @@
   limitations under the License.
 
 }}{{#each struct.fields as |field|}}
-    {{#if field.boxed_ref?}}
+  {{#if (not (and (object.notnull? struct.cpp_allocator) field.cpp_use_allocator?))}}
+      {{#if field.boxed_ref?}}
  private:
-    {{#else}}
-      {{#if (not struct.legacy_api?)}}
+      {{#else}}
+        {{#if (not struct.legacy_api?)}}
  private:
-      {{/if (not struct.legacy_api?)}}
-    {{/if field.boxed_ref?}}
-  {{#if (or field.type.primitive? field.type.enum?)}}
+        {{/if (not struct.legacy_api?)}}
+      {{/if field.boxed_ref?}}
+    {{#if (or field.type.primitive? field.type.enum?)}}
 
-    {{#if (not field.type.string_or_binary?)}}
+      {{#if (not field.type.string_or_binary?)}}
   {{#partial glean.field_docblock field=field}}
   template <typename... A> requires (sizeof...(A) == 0)
   {{!deprecated}}{{field.cpp_storage_type}}& set_{{field.cpp_name}}({{field.cpp_type}} t = {{field.cpp_type}}()) {
     using T0 = {{field.cpp_storage_type}};
     using T = folly::type_t<T0, A...>;
     __fbthrift_clear();
-      {{#if field.cpp_ref?}}
+        {{#if field.cpp_ref?}}
     ::new (std::addressof(value_.{{field.cpp_name}})) T({{#if (not field.boxed_ref?)}}new {{/if}}typename T::element_type(t));
-      {{#else}}
+        {{#else}}
     ::new (std::addressof(value_.{{field.cpp_name}})) T(t);
-      {{/if field.cpp_ref?}}
+        {{/if field.cpp_ref?}}
     fbthrift_type_ = folly::to_underlying(Type::{{field.cpp_name}});
     return value_.{{field.cpp_name}};
   }
-    {{#else}}
+      {{#else}}
   {{#partial glean.field_docblock field=field}}
   template <typename... A> requires (sizeof...(A) == 0)
   {{!deprecated}}{{field.cpp_storage_type}}& set_{{field.cpp_name}}({{field.cpp_type}} const &t) {
     using T0 = {{field.cpp_storage_type}};
     using T = folly::type_t<T0, A...>;
     __fbthrift_clear();
-      {{#if field.cpp_ref?}}
+        {{#if field.cpp_ref?}}
     ::new (std::addressof(value_.{{field.cpp_name}})) T({{#if (not field.boxed_ref?)}}new {{/if}}typename T::element_type(t));
-      {{#else}}
+        {{#else}}
     ::new (std::addressof(value_.{{field.cpp_name}})) T(t);
-      {{/if field.cpp_ref?}}
+        {{/if field.cpp_ref?}}
     fbthrift_type_ = folly::to_underlying(Type::{{field.cpp_name}});
     return value_.{{field.cpp_name}};
   }
@@ -61,11 +62,11 @@
     using T0 = {{field.cpp_storage_type}};
     using T = folly::type_t<T0, A...>;
     __fbthrift_clear();
-      {{#if field.cpp_ref?}}
+        {{#if field.cpp_ref?}}
     ::new (std::addressof(value_.{{field.cpp_name}})) T({{#if (not field.boxed_ref?)}}new {{/if}}typename T::element_type(std::move(t)));
-      {{#else}}
+        {{#else}}
     ::new (std::addressof(value_.{{field.cpp_name}})) T(std::move(t));
-      {{/if field.cpp_ref?}}
+        {{/if field.cpp_ref?}}
     fbthrift_type_ = folly::to_underlying(Type::{{field.cpp_name}});
     return value_.{{field.cpp_name}};
   }
@@ -74,17 +75,17 @@
   {{#partial glean.field_docblock field=field}}
   template<typename... T, typename = ::apache::thrift::safe_overload_t<{{field.cpp_type}}, T...>> {{field.cpp_storage_type}}& set_{{field.cpp_name}}(T&&... t) {
     __fbthrift_clear();
-      {{#if field.cpp_ref?}}
+        {{#if field.cpp_ref?}}
     ::new (std::addressof(value_.{{field.cpp_name}})) {{field.cpp_storage_type}}({{#if (not field.boxed_ref?)}}new {{/if}}{{field.cpp_storage_type}}::element_type(std::forward<T>(t)...));
-      {{#else}}
+        {{#else}}
     ::new (std::addressof(value_.{{field.cpp_name}})) {{field.cpp_type}}(std::forward<T>(t)...);
-      {{/if field.cpp_ref?}}
+        {{/if field.cpp_ref?}}
     fbthrift_type_ = folly::to_underlying(Type::{{field.cpp_name}});
     return value_.{{field.cpp_name}};
   }
-    {{/if (not field.type.string_or_binary?)}}
+      {{/if (not field.type.string_or_binary?)}}
 
-    {{#if field.cpp_ref?}}
+      {{#if field.cpp_ref?}}
   {{#partial glean.field_docblock field=field}}
   {{!deprecated}}{{field.cpp_storage_type}}& set_{{field.cpp_name}}({{field.cpp_storage_type}} t) {
     __fbthrift_clear();
@@ -92,12 +93,12 @@
     fbthrift_type_ = folly::to_underlying(Type::{{field.cpp_name}});
     return value_.{{field.cpp_name}};
   }
-    {{/if field.cpp_ref?}}
-  {{/if (or field.type.primitive? field.type.enum?)}}
-  {{#if (or field.type.container? field.type.structured?)}}
-    {{#if (not field.cpp_ref?)}}
+      {{/if field.cpp_ref?}}
+    {{/if (or field.type.primitive? field.type.enum?)}}
+    {{#if (or field.type.container? field.type.structured?)}}
+      {{#if (not field.cpp_ref?)}}
 
-      {{#if (not field.cpp_noncopyable?)}}
+        {{#if (not field.cpp_noncopyable?)}}
   {{#partial glean.field_docblock field=field}}
   template <typename... A> requires (sizeof...(A) == 0)
   {{!deprecated}}
@@ -109,7 +110,7 @@
     fbthrift_type_ = folly::to_underlying(Type::{{field.cpp_name}});
     return value_.{{field.cpp_name}};
   }
-      {{/if (not field.cpp_noncopyable?)}}
+        {{/if (not field.cpp_noncopyable?)}}
 
   {{#partial glean.field_docblock field=field}}
   template <typename... A> requires (sizeof...(A) == 0)
@@ -130,7 +131,7 @@
     fbthrift_type_ = folly::to_underlying(Type::{{field.cpp_name}});
     return value_.{{field.cpp_name}};
   }
-    {{#else}}
+      {{#else}}
   {{!deprecated}}{{field.cpp_storage_type}}& set_{{field.cpp_name}}({{field.cpp_storage_type}} t);
   {{!deprecated}}{{field.cpp_storage_type}}& set_{{field.cpp_name}}({{field.cpp_type}} const &t);
   {{!deprecated}}{{field.cpp_storage_type}}& set_{{field.cpp_name}}({{field.cpp_type}}&& t);
@@ -144,13 +145,14 @@
     fbthrift_type_ = folly::to_underlying(Type::{{field.cpp_name}});
     return value_.{{field.cpp_name}};
   }
-    {{/if (not field.cpp_ref?)}}
-  {{/if (or field.type.container? field.type.structured?)}}
-    {{#if field.boxed_ref?}}
+      {{/if (not field.cpp_ref?)}}
+    {{/if (or field.type.container? field.type.structured?)}}
+      {{#if field.boxed_ref?}}
  public:
-    {{#else}}
-      {{#if (not struct.legacy_api?)}}
+      {{#else}}
+        {{#if (not struct.legacy_api?)}}
  public:
-      {{/if (not struct.legacy_api?)}}
-    {{/if field.boxed_ref?}}
+        {{/if (not struct.legacy_api?)}}
+      {{/if field.boxed_ref?}}
+  {{/if (not (and (object.notnull? struct.cpp_allocator) field.cpp_use_allocator?))}}
 {{/each}}

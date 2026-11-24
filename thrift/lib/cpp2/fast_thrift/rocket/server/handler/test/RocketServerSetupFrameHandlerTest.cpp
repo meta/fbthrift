@@ -18,8 +18,13 @@
 
 #include <gtest/gtest.h>
 
+#include <folly/ScopeGuard.h>
 #include <folly/io/IOBuf.h>
 #include <folly/io/async/EventBase.h>
+#include <folly/logging/LogCategory.h>
+#include <folly/logging/LoggerDB.h>
+#include <folly/logging/test/TestLogHandler.h>
+#include <folly/portability/GMock.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/BufferAllocator.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
@@ -37,6 +42,7 @@ namespace apache::thrift::fast_thrift::rocket::server::handler {
 using apache::thrift::fast_thrift::channel_pipeline::erase_and_box;
 using apache::thrift::fast_thrift::channel_pipeline::Result;
 using apache::thrift::fast_thrift::channel_pipeline::TypeErasedBox;
+using namespace testing;
 
 namespace {
 
@@ -598,6 +604,24 @@ TEST_F(ServerSetupFrameHandlerTest, DuplicateSetupFrameReturnsInvalidSetup) {
       errPayload.errorCode,
       static_cast<uint32_t>(
           apache::thrift::fast_thrift::frame::ErrorCode::INVALID_SETUP));
+}
+
+TEST_F(ServerSetupFrameHandlerTest, AcceptedErrorFrameIsNotLoggedAsFailed) {
+  completeSetup();
+  folly::LogCategory* const root = folly::LoggerDB::get().getCategory("");
+  const std::vector<std::shared_ptr<folly::LogHandler>> handlers =
+      root->getHandlers();
+  const auto logs = std::make_shared<folly::TestLogHandler>();
+  root->addHandler(logs);
+  SCOPE_EXIT {
+    root->replaceHandlers(handlers);
+  };
+  ctx_.setWriteResult(Result::Backpressure);
+
+  (void)callOnRead(makeSetupFrame(1, 0, 30000, 60000));
+
+  EXPECT_THAT(
+      logs->getMessageValues(), Not(Contains(HasSubstr("Failed to deliver"))));
 }
 
 // =============================================================================

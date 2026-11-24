@@ -15,6 +15,8 @@
  */
 
 #include <gtest/gtest.h>
+#include <folly/ScopeGuard.h>
+#include <thrift/lib/cpp2/Flags.h>
 #include <thrift/lib/cpp2/patch/DynamicPatch.h>
 #include <thrift/lib/cpp2/patch/detail/PatchBadge.h>
 #include <thrift/lib/cpp2/patch/test/gen-cpp2/gen_patch_DynamicPatchTest_types.h>
@@ -23,6 +25,8 @@
 #include <thrift/lib/cpp2/protocol/Patch.h>
 #include <thrift/lib/cpp2/protocol/Serializer.h>
 #include <thrift/lib/thrift/gen-cpp2/any_patch_types.h>
+
+THRIFT_FLAG_DECLARE_bool(dynamic_patch_reject_unclassified_unknown_patch);
 
 namespace apache::thrift::protocol {
 
@@ -143,6 +147,19 @@ TEST(DynamicPatchTest, List) {
   testOneWay<type::list<type::i32_t>, DynamicListPatch>({2}, {1, 2});
   testOneWay<type::list<type::i32_t>, DynamicListPatch>({2}, {2, 1});
   testOneWay<type::list<type::i32_t>, DynamicListPatch>({1}, {1});
+}
+
+TEST(DynamicPatchTest, ListDiffAppendsOnlyWhenSrcIsPrefix) {
+  using Tag = type::list<type::i32_t>;
+  auto isAssign = [](std::vector<int32_t> src, std::vector<int32_t> dst) {
+    return DiffVisitorBase{}
+        .diff(badge, asValueStruct<Tag>(src), asValueStruct<Tag>(dst))
+        .toObject()
+        .contains(static_cast<FieldId>(op::PatchOp::Assign));
+  };
+  EXPECT_FALSE(isAssign({1, 2}, {1, 2, 3}));
+  EXPECT_TRUE(isAssign({2, 3}, {1, 2, 3}));
+  EXPECT_TRUE(isAssign({1, 2, 3}, {1, 2}));
 }
 
 TEST(DynamicPatchTest, Set) {
@@ -460,6 +477,62 @@ TEST(DiffVisitorTest, Union) {
       asValueStruct<type::struct_c>(dst));
 }
 
+class EnsureListFieldDiffVisitor : public DiffVisitorBase {
+ public:
+  void diffField(
+      const Object& src,
+      const Object& dst,
+      FieldId id,
+      DynamicStructPatch& patch) override {
+    patch.ensure(id, asValueStruct<type::list<type::i32_t>>({}));
+    patch.patchIfSet(id).merge(diff(src.at(id), dst.at(id)));
+  }
+};
+
+TEST(DiffVisitorTest, SingleFieldPatchWithEnsure) {
+  Value src, dst;
+  src.emplace_object()[FieldId{1}] =
+      asValueStruct<type::list<type::i32_t>>({1});
+  dst.emplace_object()[FieldId{1}] =
+      asValueStruct<type::list<type::i32_t>>({1, 2});
+
+  const auto patch =
+      EnsureListFieldDiffVisitor{}.diff(src.as_object(), dst.as_object());
+
+  EXPECT_TRUE(patch.holds_alternative<DynamicStructPatch>(badge));
+  patch.apply(src);
+  EXPECT_EQ(src, dst);
+}
+
+class RemoveDeprecatedFieldDiffVisitor : public DiffVisitorBase {
+ public:
+  void diffField(
+      const Object& src,
+      const Object& dst,
+      FieldId id,
+      DynamicStructPatch& patch) override {
+    patch.remove(kDeprecatedField);
+    DiffVisitorBase::diffField(src, dst, id, patch);
+  }
+
+  static constexpr FieldId kDeprecatedField{2};
+};
+
+TEST(DiffVisitorTest, SingleFieldPatchWithRemove) {
+  Value src, dst;
+  src.emplace_object()[FieldId{1}] =
+      asValueStruct<type::list<type::i32_t>>({1});
+  dst.emplace_object()[FieldId{1}] =
+      asValueStruct<type::list<type::i32_t>>({1, 2});
+
+  const auto patch =
+      RemoveDeprecatedFieldDiffVisitor{}.diff(src.as_object(), dst.as_object());
+
+  EXPECT_TRUE(patch.holds_alternative<DynamicStructPatch>(badge));
+  patch.apply(src);
+  EXPECT_EQ(src, dst);
+}
+
 TEST(DynamicPatch, List) {
   DynamicListPatch p;
   p.append(asValueStruct<type::i32_t>(1));
@@ -722,6 +795,23 @@ TEST_F(StringVsBinaryTest, PatchingStringWithStringApplyPatch) {
   EXPECT_FALSE(stringSetValue.as_set().empty());
 }
 
+TEST(DynamicPatch, ConvertStringToBinaryInNestedContainers) {
+  auto str = [](const char* s) { return asValueStruct<type::string_t>(s); };
+  auto bin = [](const char* s) { return asValueStruct<type::binary_t>(s); };
+  auto build = [](auto leaf) {
+    Value value;
+    auto& outer = value.ensure_map();
+    outer[leaf("set")].ensure_set().insert(leaf("a"));
+    outer[leaf("map")].ensure_map()[leaf("x")] = leaf("y");
+    outer[leaf("list")].ensure_list().push_back(leaf("z"));
+    return value;
+  };
+
+  Value value = build(str);
+  detail::convertStringToBinary(value);
+  EXPECT_EQ(value, build(bin));
+}
+
 TEST(DynamicPatch, Map) {
   ValueMap m;
   m[asValueStruct<type::i32_t>(1)] = asValueStruct<type::i32_t>(10);
@@ -912,6 +1002,38 @@ TEST(DynamicPatch, FromSetOrMapPatch) {
   }
 }
 
+TEST(DynamicPatch, UnknownPatchRejectsNonObjectAssign) {
+  Object obj;
+  obj[static_cast<FieldId>(op::PatchOp::Assign)].emplace_i32(1);
+  DynamicUnknownPatch patch;
+  EXPECT_THROW(patch.fromObject(badge, obj), std::runtime_error);
+}
+
+TEST(DynamicPatch, UnknownPatchRejectsNonSetRemove) {
+  Object obj;
+  obj[static_cast<FieldId>(op::PatchOp::Clear)].emplace_bool(true);
+  obj[static_cast<FieldId>(op::PatchOp::Remove)].emplace_list() = {
+      asValueStruct<type::i32_t>(1)};
+  DynamicUnknownPatch patch;
+  EXPECT_THROW(patch.fromObject(badge, obj), std::runtime_error);
+}
+
+TEST(DynamicPatch, UnknownPatchRejectsUnexpectedOperation) {
+  Object obj;
+  obj[FieldId{100}].emplace_bool(true);
+  EXPECT_THROW((void)DynamicPatch::fromObject(obj), std::runtime_error);
+}
+
+TEST(DynamicPatch, UnknownPatchAcceptedWhenRejectionDisabled) {
+  THRIFT_FLAG_SET_MOCK(dynamic_patch_reject_unclassified_unknown_patch, false);
+  SCOPE_EXIT {
+    THRIFT_FLAG_UNMOCK(dynamic_patch_reject_unclassified_unknown_patch);
+  };
+  Object obj;
+  obj[FieldId{100}].emplace_bool(true);
+  EXPECT_NO_THROW((void)DynamicPatch::fromObject(obj));
+}
+
 TEST(DynamicPatch, FromStructOrUnionPatch) {
   op::I32Patch fieldPatch;
   fieldPatch += 10;
@@ -951,6 +1073,138 @@ TEST(DynamicPatch, FromStructOrUnionPatch) {
     DynamicPatch patch = DynamicPatch::fromObject(obj);
     EXPECT_TRUE(patch.holds_alternative<DynamicStructPatch>(badge));
   }
+}
+
+TEST(DynamicPatch, UnknownPatchUnmutatedObjectRoundTrip) {
+  op::I32Patch fieldPatch;
+  fieldPatch += 10;
+  Object obj;
+  obj[static_cast<FieldId>(op::PatchOp::Clear)].emplace_bool(true);
+  obj[static_cast<FieldId>(op::PatchOp::PatchPrior)]
+      .emplace_object()[FieldId{2}] =
+      asValueStruct<type::infer_tag<op::I32Patch>>(fieldPatch);
+  obj[static_cast<FieldId>(op::PatchOp::PatchAfter)]
+      .emplace_object()[FieldId{3}] =
+      asValueStruct<type::infer_tag<op::I32Patch>>(fieldPatch);
+
+  DynamicPatch patch = DynamicPatch::fromObject(obj);
+  ASSERT_TRUE(patch.isPatchTypeAmbiguous());
+  EXPECT_EQ(patch.toObject(), obj);
+}
+
+TEST(DynamicPatch, UnknownPatchEncodeRoundTrip) {
+  op::I32Patch fieldPatch;
+  fieldPatch += 10;
+  Object structured;
+  structured[static_cast<FieldId>(op::PatchOp::Clear)].emplace_bool(true);
+  structured[static_cast<FieldId>(op::PatchOp::PatchPrior)]
+      .emplace_object()[FieldId{2}] =
+      asValueStruct<type::infer_tag<op::I32Patch>>(fieldPatch);
+  structured[static_cast<FieldId>(op::PatchOp::PatchAfter)]
+      .emplace_object()[FieldId{3}] =
+      asValueStruct<type::infer_tag<op::I32Patch>>(fieldPatch);
+
+  Object remove;
+  remove[static_cast<FieldId>(op::PatchOp::Remove)].emplace_set() = {
+      asValueStruct<type::i32_t>(1)};
+
+  Object emptyRemove;
+  emptyRemove[static_cast<FieldId>(op::PatchOp::Remove)].emplace_set();
+
+  Object assign;
+  assign[static_cast<FieldId>(op::PatchOp::Assign)]
+      .emplace_object()[FieldId{1}]
+      .emplace_i32(1);
+
+  for (const auto& obj : {structured, remove, emptyRemove, assign}) {
+    auto patch = DynamicPatch::fromObject(obj);
+    ASSERT_TRUE(patch.isPatchTypeAmbiguous());
+    auto decoded = roundTrip(patch);
+    EXPECT_TRUE(decoded.isPatchTypeAmbiguous());
+    EXPECT_EQ(decoded.toObject(), obj);
+  }
+}
+
+namespace {
+DynamicPatch makeUnknownFieldPatch(FieldId id, const op::I32Patch& fieldPatch) {
+  Object obj;
+  obj[static_cast<FieldId>(op::PatchOp::PatchPrior)].emplace_object()[id] =
+      asValueStruct<type::infer_tag<op::I32Patch>>(fieldPatch);
+  auto patch = DynamicPatch::fromObject(std::move(obj));
+  CHECK(patch.isPatchTypeAmbiguous());
+  return patch;
+}
+} // namespace
+
+// Merging mutates the decoded sub-patches, so every reader has to see the
+// merged state and not the Object the patch was built from.
+TEST(DynamicPatch, UnknownPatchMergeVisibleThroughEveryReader) {
+  op::I32Patch addOne;
+  addOne += 1;
+  op::I32Patch addTwo;
+  addTwo += 2;
+
+  DynamicPatch merged = makeUnknownFieldPatch(FieldId{1}, addOne);
+  merged.merge(makeUnknownFieldPatch(FieldId{2}, addTwo));
+  merged.merge(makeUnknownFieldPatch(FieldId{1}, addTwo));
+  ASSERT_TRUE(merged.isPatchTypeAmbiguous());
+
+  EXPECT_FALSE(merged.empty());
+
+  auto applyTo = [&](const DynamicPatch& patch) {
+    Value value;
+    auto& members = value.ensure_object();
+    members[FieldId{1}].emplace_i32(0);
+    members[FieldId{2}].emplace_i32(0);
+    patch.apply(value);
+    return value;
+  };
+
+  auto applied = applyTo(merged);
+  EXPECT_EQ(applied.as_object()[FieldId{1}].as_i32(), 3);
+  EXPECT_EQ(applied.as_object()[FieldId{2}].as_i32(), 2);
+
+  // Serializing and re-parsing must yield an equivalent patch: the merged
+  // sub-patches have to be written back into the Object.
+  auto asObject = merged.toObject();
+  auto* prior = folly::get_ptr(
+      *asObject.members(), folly::to_underlying(op::PatchOp::PatchPrior));
+  ASSERT_NE(prior, nullptr);
+  EXPECT_EQ(prior->as_object().members()->size(), 2);
+
+  auto reparsed = DynamicPatch::fromObject(asObject);
+  auto reapplied = applyTo(reparsed);
+  EXPECT_EQ(reapplied.as_object(), applied.as_object());
+
+  EXPECT_FALSE(merged.extractMaskFromPatch().write == protocol::noneMask());
+}
+
+// patchAfter applies on top of patchPrior, and a merged-in patch is newer than
+// both. Uses assign + add so a wrong order changes the result.
+TEST(DynamicPatch, UnknownPatchMergeKeepsPriorAfterOrder) {
+  op::I32Patch assignFive;
+  assignFive = 5;
+  op::I32Patch addOne;
+  addOne += 1;
+  op::I32Patch addTwo;
+  addTwo += 2;
+
+  Object obj;
+  obj[static_cast<FieldId>(op::PatchOp::PatchPrior)]
+      .emplace_object()[FieldId{1}] =
+      asValueStruct<type::infer_tag<op::I32Patch>>(assignFive);
+  obj[static_cast<FieldId>(op::PatchOp::PatchAfter)]
+      .emplace_object()[FieldId{1}] =
+      asValueStruct<type::infer_tag<op::I32Patch>>(addOne);
+
+  DynamicPatch patch = DynamicPatch::fromObject(std::move(obj));
+  ASSERT_TRUE(patch.isPatchTypeAmbiguous());
+  patch.merge(makeUnknownFieldPatch(FieldId{1}, addTwo));
+
+  Value value;
+  value.ensure_object()[FieldId{1}].emplace_i32(100);
+  patch.apply(value);
+  EXPECT_EQ(value.as_object()[FieldId{1}].as_i32(), 8);
 }
 
 TEST(PatchMergeTest, DynamicStructPatch) {
@@ -1349,8 +1603,8 @@ TEST(DynamicPatch, MergingIncompatiblePatch) {
     testUnmergeablePatches(p1, p2);
   }
   {
-    test::FooPatch patch;
-    patch.patchIfSet<ident::bar>() = "123";
+    MyUnionPatch patch;
+    patch.patchIfSet<ident::s>() = "123";
 
     op::AnyPatch p1;
     p1.patchIfTypeIs(patch);
@@ -1358,7 +1612,7 @@ TEST(DynamicPatch, MergingIncompatiblePatch) {
     DynamicUnknownPatch p2;
     p2.fromObject(badge, patch.toObject());
 
-    // p1 is AnyPatch, p2 is StructPatch. They are not mergeable.
+    // p1 is AnyPatch, p2 is a struct-or-union patch. They are not mergeable.
     testUnmergeablePatches(p1, p2);
   }
 }
@@ -1384,6 +1638,33 @@ TEST(DynamicPatch, InvalidGetStoredPatchByTag) {
     EXPECT_THROW(
         dynPatch.getStoredPatchByTag<type::i32_t>(), std::runtime_error);
   }
+}
+
+TEST(DynamicPatch, GetStoredStringPatchFromBinaryPatch) {
+  auto applyAsString = [](const op::BinaryPatch& binary) {
+    DynamicPatch patch = DynamicPatch::fromStaticPatch(binary);
+    std::string value = "hi";
+    patch.getStoredPatchByTag<type::string_t>().apply(value);
+    EXPECT_TRUE(patch.holds_alternative<op::StringPatch>(badge));
+    return value;
+  };
+
+  EXPECT_EQ(applyAsString(op::BinaryPatch{}), "hi");
+
+  op::BinaryPatch assign;
+  assign.assign(std::string("x"));
+  EXPECT_EQ(applyAsString(assign), "x");
+
+  op::BinaryPatch relative;
+  relative.prepend("(");
+  relative.append(")");
+  EXPECT_EQ(applyAsString(relative), "(hi)");
+
+  op::BinaryPatch cleared;
+  cleared.clear();
+  cleared.prepend("<");
+  cleared.append(">");
+  EXPECT_EQ(applyAsString(cleared), "<>");
 }
 
 TEST(DynamicPatch, DynamicSafePatch) {

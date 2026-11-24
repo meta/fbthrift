@@ -31,6 +31,8 @@ public class Ewma {
 
   private long lastUpdateTimestamp;
 
+  private boolean hasValue;
+
   private final Clock clock;
 
   private final ReentrantLock lock;
@@ -61,10 +63,16 @@ public class Ewma {
     lock.lock();
     try {
       final long now = clock.now();
-      final double elapsed = Math.max(0, now - lastUpdateTimestamp);
-
+      final long previousTimestamp = lastUpdateTimestamp;
       lastUpdateTimestamp = now;
 
+      if (!hasValue) {
+        hasValue = true;
+        average = value;
+        return;
+      }
+
+      final double elapsed = Math.max(0, now - previousTimestamp);
       double weight = Math.exp(-elapsed / decay);
       average = weight * average + (1.0 - weight) * value;
     } finally {

@@ -92,5 +92,17 @@ public interface BiDiService extends java.io.Closeable, com.facebook.thrift.util
             };
         }
 
+        default reactor.core.publisher.Flux<Short> simple( org.reactivestreams.Publisher<Integer> payloads) {
+            throw new UnsupportedOperationException();
+        }
+
+        default reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<String, Short>> response( org.reactivestreams.Publisher<Integer> payloads) {
+            throw new UnsupportedOperationException();
+        }
+
+        default reactor.core.publisher.Flux<Long> canThrow( org.reactivestreams.Publisher<Long> payloads) {
+            throw new UnsupportedOperationException();
+        }
+
     }
 }

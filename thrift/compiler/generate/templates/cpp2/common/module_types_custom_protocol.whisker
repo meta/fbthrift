@@ -56,7 +56,8 @@ ptr.mut()
   {{/if type.map?}}
 {{/let partial}}
 
-{{! The protocol struct/container field type name (e.g. Map, List, Struct). }}
+{{! The name that the protocol methods carry for a type, such as I32, String or
+    Map. An enum goes on the wire as an I32. }}
 {{#let export partial struct_field_type |type|}}
 {{#pragma ignore-newlines}}
 {{#if type.void?}}Void
@@ -69,10 +70,20 @@ ptr.mut()
 {{#else if type.i64?}}I64
 {{#else if type.double?}}Double
 {{#else if type.float?}}Float
+{{#else if type.enum?}}I32
 {{#else if type.set?}}Set
 {{#else if type.map?}}Map
 {{#else if type.list?}}List
 {{/if type.void?}}
+{{/let partial}}
+
+{{! The intrinsic default of a type that is neither a container nor a struct. }}
+{{#let export partial intrinsic_default |type|}}
+{{#pragma ignore-newlines}}
+{{#if type.bool?}}false
+{{#else if (or type.string? type.binary?)}}""
+{{#else}}0
+{{/if type.bool?}}
 {{/let partial}}
 
 {{! Opening conditional for field serialization (union case/terse/optional guard). }}

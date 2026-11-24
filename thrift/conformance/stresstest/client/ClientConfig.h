@@ -17,6 +17,8 @@
 #pragma once
 
 #include <chrono>
+#include <optional>
+#include <string>
 #include <gflags/gflags.h>
 #include <folly/SocketAddress.h>
 #include <folly/io/async/AsyncSocket.h>
@@ -73,6 +75,7 @@ struct ClientConnectionConfig {
   bool stopTLSv2{false};
   int mss{0};
   protocol::PROTOCOL_TYPES thriftProtocol{protocol::T_COMPACT_PROTOCOL};
+  std::optional<std::string> rocketFrameParser;
   folly::AsyncSocket::ConnectCallback* connectCb;
 };
 
@@ -88,6 +91,7 @@ struct ClientConfig {
   ClientConnectionConfig connConfig;
   bool enableChecksum{false};
   bool enableRocketFrameRelativeAlignment{false};
+  bool enableIOBufChainParser{false};
 
   static ClientConfig createFromFlags();
 };

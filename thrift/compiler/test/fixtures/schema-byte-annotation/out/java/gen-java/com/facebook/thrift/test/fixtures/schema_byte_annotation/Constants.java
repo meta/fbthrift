@@ -30,19 +30,19 @@ public final class Constants {
     public static final List<Byte> K_BYTE_LIST = construct_K_BYTE_LIST();
 
     private static List<Byte> construct_K_BYTE_LIST() {
-        return ImmutableList.<Byte>builder()
-        .add((byte)-128)
-        .add((byte)0)
-        .add((byte)127)
-        .build();
+        ImmutableList.Builder<Byte> builder = ImmutableList.builder();
+        builder.add((byte)-128);
+        builder.add((byte)0);
+        builder.add((byte)127);
+        return builder.build();
     }
 
     public static final Map<Byte, Byte> K_BYTE_MAP = construct_K_BYTE_MAP();
 
     private static Map<Byte, Byte> construct_K_BYTE_MAP() {
-        return ImmutableMap.<Byte, Byte>builder()
-        .put((byte)-1, (byte)1)
-        .build();
+        ImmutableMap.Builder<Byte, Byte> builder = ImmutableMap.builder();
+        builder.put((byte)-1, (byte)1);
+        return builder.build();
     }
 
 }

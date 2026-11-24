@@ -22,26 +22,26 @@ public final class Constants {
     public static final List<Map<String, Integer>> STATES = construct_STATES();
 
     private static List<Map<String, Integer>> construct_STATES() {
-        return ImmutableList.<Map<String, Integer>>builder()
-        .add(ImmutableMap.<String, Integer>builder()
+        ImmutableList.Builder<Map<String, Integer>> builder = ImmutableList.builder();
+        builder.add(ImmutableMap.<String, Integer>builder()
         .put("San Diego", 3211000)
         .put("Sacramento", 479600)
         .put("SF", 837400)
-        .build())
-        .add(ImmutableMap.<String, Integer>builder()
+        .build());
+        builder.add(ImmutableMap.<String, Integer>builder()
         .put("New York", 8406000)
         .put("Albany", 98400)
-        .build())
-        .build();
+        .build());
+        return builder.build();
     }
 
     public static final Set<String> CITIES = construct_CITIES();
 
     private static Set<String> construct_CITIES() {
-        return ImmutableSet.<String>builder()
-        .add("New York")
-        .add("Sacramento")
-        .build();
+        ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+        builder.add("New York");
+        builder.add("Sacramento");
+        return builder.build();
     }
 
     public static final double X = (double)1;
@@ -53,10 +53,10 @@ public final class Constants {
     public static final Map<test.fixtures.lazy_constants.Company, Integer> CONST_ENUM_MAP = construct_CONST_ENUM_MAP();
 
     private static Map<test.fixtures.lazy_constants.Company, Integer> construct_CONST_ENUM_MAP() {
-        return ImmutableMap.<test.fixtures.lazy_constants.Company, Integer>builder()
-        .put(test.fixtures.lazy_constants.Company.FACEBOOK, 123)
-        .put(test.fixtures.lazy_constants.Company.WHATSAPP, 2)
-        .build();
+        ImmutableMap.Builder<test.fixtures.lazy_constants.Company, Integer> builder = ImmutableMap.builder();
+        builder.put(test.fixtures.lazy_constants.Company.FACEBOOK, 123);
+        builder.put(test.fixtures.lazy_constants.Company.WHATSAPP, 2);
+        return builder.build();
     }
 
     public static final test.fixtures.lazy_constants.Internship INSTAGRAM = construct_INSTAGRAM();
@@ -68,19 +68,19 @@ public final class Constants {
     public static final List<test.fixtures.lazy_constants.Range> K_RANGES = construct_K_RANGES();
 
     private static List<test.fixtures.lazy_constants.Range> construct_K_RANGES() {
-        return ImmutableList.<test.fixtures.lazy_constants.Range>builder()
-        .add(new test.fixtures.lazy_constants.Range.Builder().setMin(1).setMax(2).build())
-        .add(new test.fixtures.lazy_constants.Range.Builder().setMin(5).setMax(6).build())
-        .build();
+        ImmutableList.Builder<test.fixtures.lazy_constants.Range> builder = ImmutableList.builder();
+        builder.add(new test.fixtures.lazy_constants.Range.Builder().setMin(1).setMax(2).build());
+        builder.add(new test.fixtures.lazy_constants.Range.Builder().setMin(5).setMax(6).build());
+        return builder.build();
     }
 
     public static final List<test.fixtures.lazy_constants.Internship> INTERN_LIST = construct_INTERN_LIST();
 
     private static List<test.fixtures.lazy_constants.Internship> construct_INTERN_LIST() {
-        return ImmutableList.<test.fixtures.lazy_constants.Internship>builder()
-        .add(test.fixtures.lazy_constants.Constants.INSTAGRAM)
-        .add(new test.fixtures.lazy_constants.Internship.Builder().setWeeks(10).setTitle("Sales Intern").setEmployer(test.fixtures.lazy_constants.Company.FACEBOOK).build())
-        .build();
+        ImmutableList.Builder<test.fixtures.lazy_constants.Internship> builder = ImmutableList.builder();
+        builder.add(test.fixtures.lazy_constants.Constants.INSTAGRAM);
+        builder.add(new test.fixtures.lazy_constants.Internship.Builder().setWeeks(10).setTitle("Sales Intern").setEmployer(test.fixtures.lazy_constants.Company.FACEBOOK).build());
+        return builder.build();
     }
 
     public static final String APOSTROPHE = "'";
@@ -96,11 +96,11 @@ public final class Constants {
     public static final Map<String, Integer> CHAR2ASCII = construct_CHAR2ASCII();
 
     private static Map<String, Integer> construct_CHAR2ASCII() {
-        return ImmutableMap.<String, Integer>builder()
-        .put("'", 39)
-        .put("\"", 34)
-        .put("\\", 92)
-        .put("a", 97)
-        .build();
+        ImmutableMap.Builder<String, Integer> builder = ImmutableMap.builder();
+        builder.put("'", 39);
+        builder.put("\"", 34);
+        builder.put("\\", 92);
+        builder.put("a", 97);
+        return builder.build();
     }
 }

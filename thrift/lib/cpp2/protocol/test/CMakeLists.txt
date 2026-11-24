@@ -12,24 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Generate required Thrift dependencies.
+# The generated code the tests share, compiled once. An object library rather
+# than a static one, so that every test links all of the generated objects.
+add_library(thrift_protocol_test_fixtures OBJECT)
+target_compile_options(thrift_protocol_test_fixtures
+                       PRIVATE -Wno-shadow-compatible-local)
+target_link_libraries(thrift_protocol_test_fixtures
+                      PUBLIC thrift_annotation thrift_frozen thrift_metadata)
+# cursor.thrift's adapters are in thrift/test/AdapterTest.h, which uses GTest.
+target_link_libraries(thrift_protocol_test_fixtures PRIVATE GTest::gtest)
 foreach (thrift_file Module CompactProtocolTestStructs cursor)
   # cursor.thrift's adapted types have no frozen layouts, and its Buck target
   # doesn't generate them either.
   if ("${thrift_file}" STREQUAL "cursor")
     set(thrift_options "")
   else ()
-    set(thrift_options frozen2 layouts)
+    set(thrift_options frozen2)
   endif ()
-  thrift_generate(${thrift_file}.thrift LANGUAGE cpp2 OPTIONS ${thrift_options}
-                  OUT_SOURCES sources)
-  set_source_files_properties(${thrift_file} PROPERTIES GENERATED TRUE)
-  set(GENERATED_THRIFT_SOURCES ${GENERATED_THRIFT_SOURCES} ${sources})
+  thrift_generate(thrift_protocol_test_fixtures ${thrift_file}.thrift
+                  LANGUAGE cpp2 OPTIONS ${thrift_options})
 endforeach ()
 
 # Test files to compile.
 set(PROTOCOL_TESTS
     BinaryProtocolTest
+    CompactProtocolArithmeticVectorTest
     CompactProtocolTest
     CompactV1ProtocolTest
     ContainerSkippingTest
@@ -44,9 +51,10 @@ set(PROTOCOL_TESTS
 
 # Build each test independently.
 foreach (test_name ${PROTOCOL_TESTS})
-  add_executable(${test_name} ${test_name}.cpp ${GENERATED_THRIFT_SOURCES})
-  target_compile_options(${test_name} PUBLIC -Wno-shadow-compatible-local)
-  target_link_libraries(${test_name} GTest::gtest_main thriftcpp2 Folly::folly
-                        fmt::fmt)
-  gtest_discover_tests(${test_name})
+  add_executable(thrift_${test_name} ${test_name}.cpp)
+  target_compile_options(thrift_${test_name}
+                         PUBLIC -Wno-shadow-compatible-local)
+  target_link_libraries(thrift_${test_name} thrift_protocol_test_fixtures
+                        GTest::gtest_main Folly::folly fmt::fmt)
+  gtest_discover_tests(thrift_${test_name})
 endforeach ()

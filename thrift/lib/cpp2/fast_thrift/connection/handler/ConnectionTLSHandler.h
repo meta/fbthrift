@@ -25,13 +25,13 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/BufferAllocator.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/common/Messages.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/security/common/Messages.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/security/common/PendingConnection.h>
+#include <thrift/lib/cpp2/fast_thrift/connection/security/common/Util.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/security/handler/FizzHandshakeHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/security/handler/PendingConnectionLimitHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/security/handler/StopTLSV1Handler.h>
@@ -58,6 +58,61 @@ HANDLER_TAG(tls_inner_classifier);
 HANDLER_TAG(tls_inner_fizz_handshake);
 HANDLER_TAG(tls_inner_stoptls_v1);
 HANDLER_TAG(tls_inner_pending_connection_limit);
+
+inline channel_pipeline::PipelineOwner buildTLSConnectionPipeline(
+    folly::EventBase& evb,
+    fast_security::SSLPolicy sslPolicy,
+    folly::observer::Observer<std::shared_ptr<const fast_security::TLSParams>>
+        tlsParamsObserver,
+    uint32_t maxPendingConnectionsPerWorker,
+    tls_pipeline::TLSStatsShard* stats,
+    PreStopTLSEkmCapture capture,
+    void* owner,
+    tls_handler::TLSConnectionAdapter::ResolvedFn onResolved,
+    tls_handler::TLSConnectionAdapter::ExceptionFn onException) {
+  using channel_pipeline::PipelineOwner;
+  using tls_handler::TLSConnectionAdapter;
+  auto builder = channel_pipeline::StaticPipelineBuilder<
+                     tls_handler::TLSFinalizer,
+                     TLSConnectionAdapter>()
+                     .setEventBase(&evb)
+                     .emplaceHead()
+                     .emplaceTail(owner, onResolved, onException)
+                     .emplaceAllocator()
+                     .addState<tls_pipeline::PendingConnectionState>(
+                         maxPendingConnectionsPerWorker)
+                     .addNextDuplexTemplate<tls_handler::StopTLSV1Handler>(
+                         tls_inner_stoptls_v1_tag, capture)
+                     .addNextDuplexTemplate<tls_handler::FizzHandshakeHandler>(
+                         tls_inner_fizz_handshake_tag);
+
+  const auto finish = [](auto current) {
+    return PipelineOwner(
+        std::move(current)
+            .template addNextDuplex<tls_handler::PendingConnectionLimitHandler>(
+                tls_inner_pending_connection_limit_tag)
+            .build());
+  };
+  const auto addConfig = [&](auto current) {
+    auto withConfig =
+        std::move(current)
+            .template addNextDuplex<tls_handler::TLSConfigHandler>(
+                tls_inner_config_tag, std::move(tlsParamsObserver));
+    if (stats != nullptr) {
+      return finish(
+          std::move(withConfig)
+              .template addNextDuplex<tls_handler::TLSMetricsHandler>(
+                  tls_inner_metrics_tag, stats));
+    }
+    return finish(std::move(withConfig));
+  };
+  if (sslPolicy == fast_security::SSLPolicy::PERMITTED) {
+    return addConfig(
+        std::move(builder).addNextDuplexTemplate<tls_handler::TLSClassifier>(
+            tls_inner_classifier_tag));
+  }
+  return addConfig(std::move(builder));
+}
 
 /**
  * Outer-pipeline (connection acceptance) middle handler that hides the entire
@@ -106,81 +161,58 @@ HANDLER_TAG(tls_inner_pending_connection_limit);
  *     into the pipeline so handlers can drain in-flight peek/handshake/StopTLS
  *     helpers on shutdown.
  */
+template <typename StaticContext>
 class ConnectionTLSHandler {
  public:
   // sslPolicy must not be DISABLED — caller (ConnectionHandler) doesn't
   // install this handler at all in that case. tlsParamsObserver supplies
   // fizz context + thrift extension params + handshake timeout per accept.
-  // allocator is shared with the outer pipeline.
   ConnectionTLSHandler(
       folly::EventBase& evb,
       fast_security::SSLPolicy sslPolicy,
       folly::observer::Observer<std::shared_ptr<const fast_security::TLSParams>>
           tlsParamsObserver,
-      channel_pipeline::SimpleBufferAllocator* allocator,
       uint32_t maxPendingConnectionsPerWorker,
       tls_pipeline::TLSStatsShard* stats = nullptr)
-      : pendingConnections_(maxPendingConnectionsPerWorker) {
+      : ConnectionTLSHandler(
+            evb,
+            sslPolicy,
+            std::move(tlsParamsObserver),
+            maxPendingConnectionsPerWorker,
+            stats,
+            PreStopTLSEkmCapture{}) {}
+
+  ConnectionTLSHandler(
+      folly::EventBase& evb,
+      fast_security::SSLPolicy sslPolicy,
+      folly::observer::Observer<std::shared_ptr<const fast_security::TLSParams>>
+          tlsParamsObserver,
+      uint32_t maxPendingConnectionsPerWorker,
+      tls_pipeline::TLSStatsShard* stats,
+      PreStopTLSEkmCapture capture)
+      : innerPipeline_(buildTLSConnectionPipeline(
+            evb,
+            sslPolicy,
+            std::move(tlsParamsObserver),
+            maxPendingConnectionsPerWorker,
+            stats,
+            capture,
+            this,
+            [](void* self,
+               folly::AsyncTransport::UniquePtr transport,
+               folly::SocketAddress clientAddr,
+               std::unique_ptr<PeerSecurityInfo> peerSecurity) noexcept {
+              return static_cast<ConnectionTLSHandler*>(self)->onResolved(
+                  std::move(transport),
+                  std::move(clientAddr),
+                  std::move(peerSecurity));
+            },
+            [](void* self, folly::exception_wrapper&& e) noexcept {
+              static_cast<ConnectionTLSHandler*>(self)->onInnerException(
+                  std::move(e));
+            })) {
     DCHECK(sslPolicy != fast_security::SSLPolicy::DISABLED)
         << "ConnectionTLSHandler should not be installed for DISABLED policy";
-
-    channel_pipeline::PipelineBuilder<
-        tls_handler::TLSFinalizer,
-        tls_handler::TLSConnectionAdapter,
-        channel_pipeline::SimpleBufferAllocator>
-        builder;
-    builder.setEventBase(&evb).setHead(&head_).setTail(&tail_).setAllocator(
-        allocator);
-
-    // Build order is head→tail, the reverse of the work (write) order. Work
-    // flows TLSConfigHandler → [TLSClassifier] → FizzHandshakeHandler →
-    // StopTLSV1Handler → TLSFinalizer.
-    builder.template addNextDuplex<tls_handler::StopTLSV1Handler>(
-        tls_inner_stoptls_v1_tag);
-    builder.template addNextDuplex<tls_handler::FizzHandshakeHandler>(
-        tls_inner_fizz_handshake_tag);
-    if (sslPolicy == fast_security::SSLPolicy::PERMITTED) {
-      builder.template addNextDuplex<tls_handler::TLSClassifier>(
-          tls_inner_classifier_tag);
-    }
-    // TLSConfigHandler stamps the current TLSParams snapshot onto every
-    // accepted message; downstream stages read it via msg.tlsParams and
-    // don't carry the Observer themselves.
-    builder.template addNextDuplex<tls_handler::TLSConfigHandler>(
-        tls_inner_config_tag, std::move(tlsParamsObserver));
-
-    // Metrics sit at the tail end of the security stages. Both things worth
-    // counting travel head→tail — the resolved connection on the read path
-    // TLSFinalizer turns it around onto, and any stage's failure as an
-    // exception — so this position sees both.
-    if (stats != nullptr) {
-      builder.template addNextDuplex<tls_handler::TLSMetricsHandler>(
-          tls_inner_metrics_tag, stats);
-    }
-
-    // Last in build order means first on the write/work path and last on the
-    // read/response path, wrapping the complete TLS lifecycle.
-    builder.template addNextDuplex<tls_handler::PendingConnectionLimitHandler>(
-        tls_inner_pending_connection_limit_tag, pendingConnections_);
-
-    innerPipeline_ = builder.build();
-    head_.setPipeline(innerPipeline_.get());
-    tail_.setPipeline(innerPipeline_.get());
-    tail_.setOwner(
-        this,
-        [](void* self,
-           folly::AsyncTransport::UniquePtr transport,
-           folly::SocketAddress clientAddr,
-           std::shared_ptr<const PeerSecurityInfo> peerSecurity) noexcept {
-          return static_cast<ConnectionTLSHandler*>(self)->onResolved(
-              std::move(transport),
-              std::move(clientAddr),
-              std::move(peerSecurity));
-        },
-        [](void* self, folly::exception_wrapper&& e) noexcept {
-          static_cast<ConnectionTLSHandler*>(self)->onInnerException(
-              std::move(e));
-        });
   }
 
   ~ConnectionTLSHandler() = default;
@@ -211,7 +243,8 @@ class ConnectionTLSHandler {
         .peerSecurity = nullptr,
         .pendingConnectionPermit = {},
     };
-    return tail_.submit(std::move(request));
+    return innerPipeline_->fireWrite(
+        channel_pipeline::erase_and_box(std::move(request)));
   }
 
   template <typename Context>
@@ -247,10 +280,11 @@ class ConnectionTLSHandler {
   channel_pipeline::Result onResolved(
       folly::AsyncTransport::UniquePtr transport,
       folly::SocketAddress clientAddr,
-      std::shared_ptr<const PeerSecurityInfo> peerSecurity) noexcept {
-    if (FOLLY_UNLIKELY(!outerCtx_)) {
+      std::unique_ptr<PeerSecurityInfo> peerSecurity) noexcept {
+    if (!outerCtx_) [[unlikely]] {
       return channel_pipeline::Result::Success;
     }
+    auto guard = tls_pipeline::guardPipeline(outerCtx_);
     ConnectionMessage out{
         .transport = std::move(transport),
         .clientAddr = std::move(clientAddr),
@@ -263,17 +297,13 @@ class ConnectionTLSHandler {
   // Re-fire onto the outer pipeline so its teardown observes inner failures.
   void onInnerException(folly::exception_wrapper&& e) noexcept {
     if (outerCtx_) {
+      auto guard = tls_pipeline::guardPipeline(outerCtx_);
       outerCtx_->fireException(std::move(e));
     }
   }
 
-  tls_handler::TLSFinalizer head_;
-  tls_handler::TLSConnectionAdapter tail_;
-  channel_pipeline::detail::ContextImpl* outerCtx_{nullptr};
-  tls_pipeline::PendingConnectionState pendingConnections_;
-  // Declared last so it is destroyed first: PipelineImpl teardown calls
-  // handlerRemoved on head_/tail_, which must still be alive.
-  channel_pipeline::PipelineImpl::Ptr innerPipeline_;
+  StaticContext* outerCtx_{nullptr};
+  channel_pipeline::PipelineOwner innerPipeline_;
 };
 
 } // namespace apache::thrift::fast_thrift::connection::handler

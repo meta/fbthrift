@@ -39,6 +39,6 @@ using native_type = typename detail::NativeTypes<Tag>::native_type;
 // Otherwise the mapping is undefined (i.e. compiler error).
 template <typename T, bool GuessStringTag = false>
 using infer_tag =
-    typename detail::InferTag<folly::remove_cvref_t<T>, GuessStringTag>::type;
+    typename detail::InferTag<std::remove_cvref_t<T>, GuessStringTag>::type;
 
 } // namespace apache::thrift::type

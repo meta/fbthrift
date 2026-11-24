@@ -45,19 +45,6 @@ void erase_all(C1& container, const C2& values) {
   }
 }
 
-template <typename C1, typename C2>
-void remove_all_values(C1& container, const C2& values) {
-  container.erase(
-      std::remove_if(
-          container.begin(),
-          container.end(),
-          [&](const auto& element) {
-            return std::find(values.begin(), values.end(), element) !=
-                values.end();
-          }),
-      container.end());
-}
-
 /// Patch for a Thrift list.
 ///
 /// The `Patch` template parameter must be a Thrift struct with the following
@@ -333,7 +320,9 @@ class MapPatch : public BaseContainerPatch<Patch, MapPatch<Patch>> {
   void tryPutMulti(C&& entries) {
     assignOr(*data_.add()).insert(entries.begin(), entries.end());
     for (const auto& entry : entries) {
-      if (data_.remove()->erase(entry.first)) {
+      // With an assignment, the entry is already in the assigned map and the
+      // key only has to leave `remove`.
+      if (data_.remove()->erase(entry.first) && !hasAssign()) {
         // If it was already removed, we should re-assign the entity.
         auto& added = (*data_.add())[entry.first];
         (*data_.patch())[entry.first] = std::move(added);
@@ -485,15 +474,6 @@ class MapPatch : public BaseContainerPatch<Patch, MapPatch<Patch>> {
   bool isKeyModified(K&& key) {
     return data_.add()->find(key) != data_.add()->end() ||
         data_.put()->find(key) != data_.put()->end();
-  }
-
-  void applyPatch(T& val, const P& patch) const {
-    for (const auto& p : patch) {
-      auto it = val.find(p.first);
-      if (it != val.end()) {
-        p.second.apply(it->second);
-      }
-    }
   }
 
   // If field has assign, we need to replace it with clear && add

@@ -25,6 +25,7 @@ import (
 	"math"
 	"net"
 	"runtime"
+	"runtime/debug"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -424,7 +425,8 @@ func (s *rocketServerSocket) requestResponse(msg payload.Payload) mono.Mono {
 			defer func() {
 				if r := recover(); r != nil {
 					s.observer.ProcessorPanic()
-					panic(r)
+					s.log("thrift handler panic in %s: %v\n%s", rpcFuncName, r, debug.Stack())
+					panic(fmt.Sprintf("thrift handler panic in %s: %v", rpcFuncName, r))
 				}
 			}()
 			pfuncStartTime := time.Now()
@@ -521,7 +523,8 @@ func (s *rocketServerSocket) fireAndForget(msg payload.Payload) {
 		defer func() {
 			if r := recover(); r != nil {
 				s.observer.ProcessorPanic()
-				panic(r)
+				s.log("thrift handler panic in %s: %v\n%s", rpcFuncName, r, debug.Stack())
+				panic(fmt.Sprintf("thrift handler panic in %s: %v", rpcFuncName, r))
 			}
 		}()
 		pfuncStartTime := time.Now()
@@ -905,6 +908,18 @@ func (s *rocketServerSocket) requestChannelBiDi(
 	})
 }
 
+// responseCompression picks the compression of a response payload of
+// payloadSize bytes. Like C++ CompressionManager::setCompressionCodec, only
+// payloads larger than compressionSizeLimit (default 0) are compressed. C++
+// compares as size_t, so a negative limit turns compression off.
+func responseCompression(compressionConfig *rpcmetadata.CompressionConfig, payloadSize int) rpcmetadata.CompressionAlgorithm {
+	limit := compressionConfig.GetCompressionSizeLimit()
+	if limit < 0 || int64(payloadSize) <= limit {
+		return rpcmetadata.CompressionAlgorithm_NONE
+	}
+	return rocket.CompressionAlgorithmFromCompressionConfig(compressionConfig)
+}
+
 // makeResponsePayload encodes a single response struct into a rocket payload.
 // isFirstResponse selects the initial-response encoding (request-response style)
 // over the subsequent stream-element encoding. It is shared by the streaming RPC
@@ -918,7 +933,6 @@ func (s *rocketServerSocket) makeResponsePayload(
 ) (payload.Payload, error) {
 	rpcFuncName := metadata.GetName()
 	protoID := metadata.GetProtocol()
-	compression := rocket.CompressionAlgorithmFromCompressionConfig(metadata.GetCompressionConfig())
 
 	writeStartTime := time.Now()
 
@@ -960,6 +974,7 @@ func (s *rocketServerSocket) makeResponsePayload(
 		s.observer.TimeWriteUsForFunction(rpcFuncName, time.Since(writeStartTime))
 	}()
 
+	compression := responseCompression(metadata.GetCompressionConfig(), len(dataBytes))
 	payloadMetadata := rpcmetadata.NewPayloadMetadata()
 	if exceptionMetadata != nil {
 		payloadMetadata.SetExceptionMetadata(exceptionMetadata)
@@ -1077,7 +1092,7 @@ func (s *rocketServerSocket) preprocessRequest(msg payload.Payload) (
 
 	pfunc, exists := processor.ProcessorFunctionMap()[rpcFuncName]
 	if !exists {
-		return nil, nil, nil, nil, fmt.Errorf("no such function: %q", rpcFuncName)
+		return nil, nil, nil, nil, newUnknownMethodError(rpcFuncName)
 	}
 
 	argStruct := pfunc.NewReqArgs()

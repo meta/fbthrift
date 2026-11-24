@@ -21,32 +21,61 @@
 /** Glean {"file": "{{root_program.autogen_path}}"} */
 {{/let partial}}
 
+{{!
+  Docs on a generated definition go in a docblock of their own, right ahead of
+  its Glean annotation: clang attaches adjacent docblocks to a declaration as
+  one comment, which is where Glean's indexer reads the annotation from. A
+  definition without docs keeps the annotation alone.
+}}
+{{#let partial docs |node|}}
+  {{#let docblock = (node.docblock)}}
+  {{#if (not (string.empty? docblock))}}
+{{docblock}}
+  {{/if (not (string.empty? docblock))}}
+{{/let partial}}
+
+{{! Field annotation - Glean annotation for mapping generated methods to thrift fields, without docs }}
+{{#let export partial field_annotation |field|}}
+/** Glean { "field": "{{field.cpp_name}}" } */
+{{/let partial}}
+
+{{! Function annotation - Glean annotation for mapping generated functions to thrift definitions, without docs }}
+{{#let export partial function_annotation |service function|}}
+/** Glean {"file": "{{service.program.autogen_path}}", "service": "{{service.name}}", "function": "{{function.name}}"} */
+{{/let partial}}
+
 {{! Constant docblock - Glean annotation for mapping generated constants to thrift constants }}
-{{#let export partial const_docblock |const|}}
+{{#let export partial const_docblock |const| captures |docs|}}
+{{#partial docs node=const}}
 /** Glean {"constant": "{{const.name}}"} */
 {{/let partial}}
 
 {{! Field docblock - Glean annotation for mapping generated methods to thrift fields }}
-{{#let export partial field_docblock |field|}}
-/** Glean { "field": "{{field.cpp_name}}" } */
+{{#let export partial field_docblock |field| captures |docs field_annotation|}}
+{{#partial docs node=field}}
+{{#partial field_annotation field=field}}
 {{/let partial}}
 
 {{! Glean annotation to map generated functions to thrift enums. }}
-{{#let export partial enum_docblock |enum|}}
+{{#let export partial enum_docblock |enum| captures |docs|}}
+{{#partial docs node=enum}}
 /** Glean {"file": "{{enum.program.autogen_path}}", "name": "{{enum.cpp_name}}", "kind": "enum" } */
 {{/let partial}}
 
 {{! Class docblock - Glean annotation for mapping generated classes to thrift structs/unions/exceptions }}
-{{#let export partial class_docblock |struct|}}
+{{#let export partial class_docblock |struct| captures |docs|}}
+{{#partial docs node=struct}}
 /** Glean {"file": "{{struct.program.autogen_path}}", "name": "{{struct.cpp_underlying_name}}", "kind": "{{#if struct.exception?}}exception{{#else if struct.union?}}union{{#else}}struct{{/if}}" } */
 {{/let partial}}
 
 {{! Typedef docblock - Glean annotation for mapping generated typedefs to thrift typedefs }}
-{{#let export partial typedef_docblock |def|}}
+{{#let export partial typedef_docblock |def| captures |docs|}}
+{{#partial docs node=def}}
 /** Glean {"file": "{{def.program.autogen_path}}", "name": "{{def.name}}", "kind": "typedef" } */
 {{/let partial}}
 
 {{! Function docblock - Glean annotation for mapping generated functions to thrift definitions }}
-{{#let export partial function_docblock |service function|}}
-  /** Glean {"file": "{{service.program.autogen_path}}", "service": "{{service.name}}", "function": "{{function.name}}"} */
+{{#let export partial function_docblock |service function| captures |docs function_annotation|}}
+{{#partial docs node=function}}
+{{#partial function_annotation service=service function=function}}
 {{/let partial}}

@@ -309,18 +309,12 @@ TYPED_TEST(MultiProtocolTest, UnionWithRef) {
   {
     UnionWithRef oldObject;
     oldObject.set_unique_field();
-    {
-      auto& ptr = oldObject.get_unique_field();
-      const_cast<std::unique_ptr<StructA>&>(ptr) =
-          std::unique_ptr<StructA>(nullptr);
-    }
+    apache::thrift::detail::union_field_storage(oldObject.unique_field()) =
+        nullptr;
     tablebased::UnionWithRef newObject;
     newObject.set_unique_field();
-    {
-      auto& ptr = newObject.get_unique_field();
-      const_cast<std::unique_ptr<tablebased::StructA>&>(ptr) =
-          std::unique_ptr<tablebased::StructA>(nullptr);
-    }
+    apache::thrift::detail::union_field_storage(newObject.unique_field()) =
+        nullptr;
     EXPECT_TRUE(isCompatibleProtocolUnionRef<TypeParam>(oldObject, newObject));
     oldObject.set_unique_field(makeStructALike<StructA>());
     newObject.set_unique_field(makeStructALike<tablebased::StructA>());
@@ -330,14 +324,16 @@ TYPED_TEST(MultiProtocolTest, UnionWithRef) {
     UnionWithRef oldObject;
     oldObject.set_shared_field();
     {
-      auto& ptr = oldObject.get_shared_field();
+      auto& ptr =
+          ::apache::thrift::copy_union_shared_ptr(oldObject.shared_field());
       const_cast<std::shared_ptr<StructA>&>(ptr) =
           std::shared_ptr<StructA>(nullptr);
     }
     tablebased::UnionWithRef newObject;
     newObject.set_shared_field();
     {
-      auto& ptr = newObject.get_shared_field();
+      auto& ptr =
+          ::apache::thrift::copy_union_shared_ptr(newObject.shared_field());
       const_cast<std::shared_ptr<tablebased::StructA>&>(ptr) =
           std::shared_ptr<tablebased::StructA>(nullptr);
     }
@@ -350,14 +346,16 @@ TYPED_TEST(MultiProtocolTest, UnionWithRef) {
     UnionWithRef oldObject;
     oldObject.set_shared_const_field();
     {
-      auto& ptr = oldObject.get_shared_const_field();
+      auto& ptr = ::apache::thrift::copy_union_shared_ptr(
+          oldObject.shared_const_field());
       const_cast<std::shared_ptr<const StructA>&>(ptr) =
           std::shared_ptr<const StructA>(nullptr);
     }
     tablebased::UnionWithRef newObject;
     newObject.set_shared_const_field();
     {
-      auto& ptr = newObject.get_shared_const_field();
+      auto& ptr = ::apache::thrift::copy_union_shared_ptr(
+          newObject.shared_const_field());
       const_cast<std::shared_ptr<const tablebased::StructA>&>(ptr) =
           std::shared_ptr<const tablebased::StructA>(nullptr);
     }

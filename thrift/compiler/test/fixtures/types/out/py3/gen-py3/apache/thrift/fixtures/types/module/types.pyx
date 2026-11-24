@@ -29,6 +29,8 @@ from thrift.py3.types cimport (
     set_iter as __set_iter,
     map_iter as __map_iter,
     reference_shared_ptr as __reference_shared_ptr,
+    get_union_field_storage as __get_union_field_storage,
+    get_union_field_cref as __get_union_field_cref,
     get_field_name_by_index as __get_field_name_by_index,
     reset_field as __reset_field,
     translate_cpp_enum_to_python,
@@ -3459,7 +3461,7 @@ cdef class AllocatorAware(thrift.py3.types.Struct):
         if self.__fbthrift_cached_aa_shared is None:
             if not deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).aa_shared_ref():
                 return None
-            self.__fbthrift_cached_aa_shared = cint32_t._create_FBTHRIFT_ONLY_DO_NOT_USE(__reference_shared_ptr[cint32_t](deref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).aa_shared_ref()), self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE))
+            self.__fbthrift_cached_aa_shared = str._create_FBTHRIFT_ONLY_DO_NOT_USE(__reference_shared_ptr[string](deref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).aa_shared_ref()), self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE))
         return self.__fbthrift_cached_aa_shared
 
     @property

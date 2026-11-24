@@ -383,12 +383,12 @@ bool Map::ConstIterator::operator==(const ConstIterator& other) const {
 }
 
 bool operator==(const Map& lhs, const Map& rhs) {
-  if (!lhs.impl_ && !rhs.impl_) {
-    return type_system::TypeRef(lhs.mapType_)
-        .isEqualIdentityTo(type_system::TypeRef(rhs.mapType_));
-  }
   if (!lhs.impl_ || !rhs.impl_) {
-    return false; // One is empty, the other is not
+    // Storage is allocated lazily but kept once the map is emptied, so a
+    // map with storage may still be empty.
+    return lhs.isEmpty() && rhs.isEmpty() &&
+        type_system::TypeRef(lhs.mapType_)
+            .isEqualIdentityTo(type_system::TypeRef(rhs.mapType_));
   }
   return lhs.impl_->operator==(*rhs.impl_);
 }

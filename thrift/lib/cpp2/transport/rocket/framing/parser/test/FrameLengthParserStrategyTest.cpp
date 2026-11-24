@@ -16,7 +16,10 @@
 
 #include <gtest/gtest.h>
 
+#include <type_traits>
+
 #include <folly/io/IOBuf.h>
+#include <thrift/lib/cpp2/IOBufChainCursor.h>
 #include <thrift/lib/cpp2/transport/rocket/framing/parser/FrameLengthParserStrategy.h>
 #include <thrift/lib/cpp2/transport/rocket/framing/parser/test/TestUtil.h>
 
@@ -43,148 +46,219 @@ std::string serializeFrame(const std::string& payload) {
 
 } // namespace
 
-TEST(FrameLengthParserTest, testAppendFrame) {
+template <typename Buffer>
+class FrameLengthParserTest : public ::testing::Test {
+ protected:
+  using Parser = FrameLengthParserStrategy<FakeOwner, Buffer>;
+
+  class ReadInput {
+   public:
+    explicit ReadInput(Parser& parser) : parser_(parser) {}
+
+    void prepareRead(void** data, size_t* size) {
+      if constexpr (std::is_same_v<Buffer, IOBufChain>) {
+        pending_ = folly::IOBuf::create(4096);
+        pending_->append(pending_->capacity());
+        *data = pending_->writableData();
+        *size = pending_->length();
+      } else {
+        parser_.getReadBuffer(data, size);
+      }
+    }
+
+    void completeRead(size_t size) {
+      if constexpr (std::is_same_v<Buffer, IOBufChain>) {
+        auto bytes = pending_->clone();
+        bytes->trimEnd(bytes->length() - size);
+        pending_->trimStart(size);
+        parser_.readBufferAvailable(std::move(bytes));
+      } else {
+        parser_.readDataAvailable(size);
+      }
+    }
+
+   private:
+    Parser& parser_;
+    std::unique_ptr<folly::IOBuf> pending_;
+  };
+
+  static auto& frames(FakeOwner& owner) {
+    if constexpr (std::is_same_v<Buffer, IOBufChain>) {
+      return owner.chainFrames_;
+    } else {
+      return owner.frames_;
+    }
+  }
+
+  static size_t frameSize(const Buffer& frame) {
+    if constexpr (std::is_same_v<Buffer, IOBufChain>) {
+      return frame.chainLength();
+    } else {
+      return frame->computeChainDataLength();
+    }
+  }
+
+  static std::string frameData(const Buffer& frame) {
+    if constexpr (std::is_same_v<Buffer, IOBufChain>) {
+      return io::IOBufChainCursor(frame).readFixedString(frame.chainLength());
+    } else {
+      return frame->template to<std::string>();
+    }
+  }
+};
+
+using ParserBuffers =
+    ::testing::Types<std::unique_ptr<folly::IOBuf>, IOBufChain>;
+TYPED_TEST_SUITE(FrameLengthParserTest, ParserBuffers);
+
+TYPED_TEST(FrameLengthParserTest, testAppendFrame) {
   FakeOwner owner;
-  FrameLengthParserStrategy<FakeOwner> parser(owner);
+  typename TestFixture::Parser parser(owner);
+  typename TestFixture::ReadInput input(parser);
 
   void* buf;
   size_t lenReturn;
-  parser.getReadBuffer(&buf, &lenReturn);
+  input.prepareRead(&buf, &lenReturn);
 
   HeaderSerializer serializer(static_cast<uint8_t*>(buf), lenReturn);
   serializer.writeFrameOrMetadataSize(20);
   std::string b(20, 'b');
   memcpy(&static_cast<uint8_t*>(buf)[3], b.data(), 20);
 
-  parser.readDataAvailable(23);
+  input.completeRead(23);
 
   EXPECT_EQ(parser.getSize(), 0);
   EXPECT_EQ(parser.getFrameLength(), 0);
   EXPECT_EQ(parser.getFrameLengthAndFieldSize(), 0);
   EXPECT_EQ(owner.memoryCounter_, 0);
-  EXPECT_EQ(owner.frames_.size(), 1);
+  ASSERT_EQ(this->frames(owner).size(), 1);
 
-  auto frame = std::move(owner.frames_[0]);
-  EXPECT_EQ(frame->length(), 20);
+  auto frame = std::move(this->frames(owner)[0]);
+  EXPECT_EQ(this->frameSize(frame), 20);
+  EXPECT_EQ(this->frameData(frame), b);
 }
 
-TEST(FrameLengthParserTest, testAppendLessThanFullFrame) {
+TYPED_TEST(FrameLengthParserTest, testAppendLessThanFullFrame) {
   FakeOwner owner;
-  FrameLengthParserStrategy<FakeOwner> parser(owner);
+  typename TestFixture::Parser parser(owner);
+  typename TestFixture::ReadInput input(parser);
 
   void* buf;
   size_t lenReturn;
-  parser.getReadBuffer(&buf, &lenReturn);
+  input.prepareRead(&buf, &lenReturn);
 
   HeaderSerializer serializer(static_cast<uint8_t*>(buf), lenReturn);
   serializer.writeFrameOrMetadataSize(20);
   std::string b(20, 'b');
   memcpy(&static_cast<uint8_t*>(buf)[3], b.data(), 20);
 
-  parser.readDataAvailable(10);
+  input.completeRead(10);
 
   EXPECT_EQ(parser.getSize(), 10);
   EXPECT_EQ(parser.getFrameLength(), 20);
   EXPECT_EQ(parser.getFrameLengthAndFieldSize(), 23);
   EXPECT_EQ(owner.memoryCounter_, 23);
-  EXPECT_EQ(owner.frames_.size(), 0);
+  EXPECT_EQ(this->frames(owner).size(), 0);
 }
 
-TEST(FrameLengthParserTest, testAppendLessTwiceAndGetAFrame) {
+TYPED_TEST(FrameLengthParserTest, testAppendLessTwiceAndGetAFrame) {
   FakeOwner owner;
-  FrameLengthParserStrategy<FakeOwner> parser(owner);
+  typename TestFixture::Parser parser(owner);
+  typename TestFixture::ReadInput input(parser);
 
   void* buf;
   size_t lenReturn;
-  parser.getReadBuffer(&buf, &lenReturn);
+  input.prepareRead(&buf, &lenReturn);
 
   HeaderSerializer serializer(static_cast<uint8_t*>(buf), lenReturn);
   serializer.writeFrameOrMetadataSize(20);
   std::string b(20, 'b');
   memcpy(&static_cast<uint8_t*>(buf)[3], b.data(), 20);
 
-  parser.readDataAvailable(10);
+  input.completeRead(10);
 
   EXPECT_EQ(parser.getSize(), 10);
   EXPECT_EQ(parser.getFrameLength(), 20);
   EXPECT_EQ(parser.getFrameLengthAndFieldSize(), 23);
   EXPECT_EQ(owner.memoryCounter_, 23);
-  EXPECT_EQ(owner.frames_.size(), 0);
+  EXPECT_EQ(this->frames(owner).size(), 0);
 
-  parser.readDataAvailable(13);
+  input.completeRead(13);
 
   EXPECT_EQ(parser.getSize(), 0);
   EXPECT_EQ(parser.getFrameLength(), 0);
   EXPECT_EQ(parser.getFrameLengthAndFieldSize(), 0);
   EXPECT_EQ(owner.memoryCounter_, 0);
-  EXPECT_EQ(owner.frames_.size(), 1);
+  ASSERT_EQ(this->frames(owner).size(), 1);
+  EXPECT_EQ(this->frameData(this->frames(owner)[0]), std::string(20, 'b'));
 }
 
-TEST(FrameLengthParserTest, testAppendMultipleFrames) {
+TYPED_TEST(FrameLengthParserTest, testAppendMultipleFrames) {
   FakeOwner owner;
-  FrameLengthParserStrategy<FakeOwner> parser(owner);
+  typename TestFixture::Parser parser(owner);
+  typename TestFixture::ReadInput input(parser);
 
   {
     void* buf;
     size_t lenReturn;
-    parser.getReadBuffer(&buf, &lenReturn);
+    input.prepareRead(&buf, &lenReturn);
 
     HeaderSerializer serializer(static_cast<uint8_t*>(buf), lenReturn);
     serializer.writeFrameOrMetadataSize(20);
     std::string b(20, 'b');
     memcpy(&static_cast<uint8_t*>(buf)[3], b.data(), 20);
 
-    parser.readDataAvailable(23);
+    input.completeRead(23);
 
     EXPECT_EQ(parser.getSize(), 0);
     EXPECT_EQ(parser.getFrameLength(), 0);
     EXPECT_EQ(parser.getFrameLengthAndFieldSize(), 0);
     EXPECT_EQ(owner.memoryCounter_, 0);
-    EXPECT_EQ(owner.frames_.size(), 1);
+    EXPECT_EQ(this->frames(owner).size(), 1);
   }
 
   {
     void* buf;
     size_t lenReturn;
-    parser.getReadBuffer(&buf, &lenReturn);
+    input.prepareRead(&buf, &lenReturn);
 
     HeaderSerializer serializer(static_cast<uint8_t*>(buf), lenReturn);
     serializer.writeFrameOrMetadataSize(20);
     std::string b(20, 'b');
     memcpy(&static_cast<uint8_t*>(buf)[3], b.data(), 20);
 
-    parser.readDataAvailable(23);
+    input.completeRead(23);
 
     EXPECT_EQ(parser.getSize(), 0);
     EXPECT_EQ(parser.getFrameLength(), 0);
     EXPECT_EQ(parser.getFrameLengthAndFieldSize(), 0);
     EXPECT_EQ(owner.memoryCounter_, 0);
-    EXPECT_EQ(owner.frames_.size(), 2);
+    EXPECT_EQ(this->frames(owner).size(), 2);
   }
 
   {
     void* buf;
     size_t lenReturn;
-    parser.getReadBuffer(&buf, &lenReturn);
+    input.prepareRead(&buf, &lenReturn);
 
     HeaderSerializer serializer(static_cast<uint8_t*>(buf), lenReturn);
     serializer.writeFrameOrMetadataSize(20);
     std::string b(20, 'b');
     memcpy(&static_cast<uint8_t*>(buf)[3], b.data(), 20);
 
-    parser.readDataAvailable(23);
+    input.completeRead(23);
 
     EXPECT_EQ(parser.getSize(), 0);
     EXPECT_EQ(parser.getFrameLength(), 0);
     EXPECT_EQ(parser.getFrameLengthAndFieldSize(), 0);
     EXPECT_EQ(owner.memoryCounter_, 0);
-    EXPECT_EQ(owner.frames_.size(), 3);
+    EXPECT_EQ(this->frames(owner).size(), 3);
   }
 }
 
-TEST(FrameLengthParserTest, testAppendUsingIOBuf) {
+TYPED_TEST(FrameLengthParserTest, testAppendUsingIOBuf) {
   FakeOwner owner;
-  FrameLengthParserStrategy<FakeOwner> parser(owner);
+  typename TestFixture::Parser parser(owner);
 
   folly::IOBufQueue queue =
       folly::IOBufQueue{folly::IOBufQueue::cacheChainLength()};
@@ -217,7 +291,8 @@ TEST(FrameLengthParserTest, testAppendUsingIOBuf) {
   EXPECT_EQ(parser.getFrameLength(), 0);
   EXPECT_EQ(parser.getFrameLengthAndFieldSize(), 0);
   EXPECT_EQ(owner.memoryCounter_, 0);
-  EXPECT_EQ(owner.frames_.size(), 1);
+  ASSERT_EQ(this->frames(owner).size(), 1);
+  EXPECT_EQ(this->frameData(this->frames(owner)[0]), std::string(20, 'b'));
 }
 
 TEST(FrameLengthParserTest, testCopiesFrameIfAnyBufferIsScarce) {

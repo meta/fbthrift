@@ -115,6 +115,12 @@ class PayloadSerializerStrategy {
     return child_.unpackBinary(output, cursor);
   }
 
+  template <typename T>
+  FOLLY_ALWAYS_INLINE size_t
+  unpackBinary(T& output, const io::IOBufChainCursor& cursor) {
+    return child_.unpackBinary(output, cursor);
+  }
+
   FOLLY_ALWAYS_INLINE std::unique_ptr<folly::IOBuf> compressBuffer(
       std::unique_ptr<folly::IOBuf>&& buffer,
       CompressionAlgorithm compressionAlgorithm) {

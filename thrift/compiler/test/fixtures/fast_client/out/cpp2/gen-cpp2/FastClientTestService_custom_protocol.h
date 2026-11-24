@@ -15,3 +15,4 @@
 
 #include "thrift/compiler/test/fixtures/fast_client/gen-cpp2/FastClientTestService.tcc"
 #include "thrift/compiler/test/fixtures/fast_client/gen-cpp2/module_types_custom_protocol.h"
+#include "thrift/compiler/test/fixtures/fast_client/gen-cpp2/NonFastParent_custom_protocol.h"

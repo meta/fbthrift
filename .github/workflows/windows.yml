@@ -1,0 +1,88 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
+# This source code is licensed under the license found in the
+# LICENSE file in the root directory of this source tree.
+
+name: windows
+
+on:
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
+
+permissions:
+  contents: read  #  to fetch code (actions/checkout)
+  actions: read  #  to query GitHub Actions cache usage
+
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 300
+    env:
+      SCCACHE_GHA_ENABLED: "on"
+    steps:
+
+    # Thrift and the dependencies it fetches carry paths past MAX_PATH, and
+    # symlinks and checked-in fixtures that CRLF translation would corrupt.
+    - name: Fix Git config
+      run: >
+        git config --system core.longpaths true &&
+        git config --system core.autocrlf false &&
+        git config --system core.symlinks true
+      shell: cmd
+
+    - uses: actions/checkout@v6
+
+    - name: Set up sccache
+      uses: mozilla-actions/sccache-action@v0.0.10
+      with:
+        version: "v0.14.0"
+
+    # The image ships Boost, which is worth more than fetching and building it.
+    - name: Export boost environment
+      run: "echo BOOST_ROOT=%BOOST_ROOT_1_83_0% >> %GITHUB_ENV%"
+      shell: cmd
+
+    # The build fetches the rest. zlib and zstd come from vcpkg, which is faster
+    # than fetching them. vcpkg comes with the image; its bin directory goes on
+    # PATH for the DLLs.
+    - name: Install dependencies
+      run: >
+        vcpkg install --triplet x64-windows zlib zstd &&
+        echo %VCPKG_INSTALLATION_ROOT%\installed\x64-windows\bin>> %GITHUB_PATH%
+      shell: cmd
+
+    # Only the developer environment puts nmake and ninja on PATH, and folly
+    # needs nmake to drive OpenSSL's own build when the image has no OpenSSL.
+    - uses: ilammy/msvc-dev-cmd@v1
+
+    # Ninja keeps this single-config like the other platforms, and unlike the
+    # Visual Studio generator it honours the compiler launcher that sccache
+    # needs. There is no Test step: getdeps never built the tests on Windows
+    # (its manifest sets THRIFT_TESTS=OFF there).
+    #
+    # RelWithDebInfo defaults to /Zi, whose shared .pdb breaks under sccache
+    # (C1041 despite /FS). Embedded (/Z7) keeps debug info in each object.
+    # CMP0141 enables the setting; Thrift's cmake_minimum_required predates it.
+    - name: Configure
+      run: >
+        cmake -B build -G Ninja
+        -DCMAKE_BUILD_TYPE=RelWithDebInfo
+        -DCMAKE_PREFIX_PATH=%VCPKG_INSTALLATION_ROOT%/installed/x64-windows
+        -DCMAKE_C_COMPILER_LAUNCHER=sccache
+        -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
+        -DCMAKE_POLICY_DEFAULT_CMP0141=NEW
+        -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded
+      shell: cmd
+
+    # A bare -j leaves it to Ninja, which runs cores + 2 jobs. getdeps budgets
+    # 3 GB per Thrift compile, so this 4-vCPU, 16 GB runner fits four.
+    - name: Build
+      run: cmake --build build -j 4
+
+    - name: Show sccache stats
+      if: always()
+      run: sccache --show-stats

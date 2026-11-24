@@ -14,29 +14,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 
-}}  {{struct.cpp_underlying_name}}& operator=({{struct.cpp_underlying_name}}&& rhs) noexcept {
-    if (this == &rhs) { return *this; }
-  {{#if (object.notnull? struct.cpp_allocator)}}
-    ::apache::thrift::detail::move_allocator(__fbthrift_alloc, rhs.__fbthrift_alloc);
-  {{/if (object.notnull? struct.cpp_allocator)}}
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-      {
-        __fbthrift_clear();
-        return *this;
-      }
-    {{#if struct.fields?}}
-      {{#partial module_types.union_move_field_cases struct=struct src="rhs"}}
-    {{/if struct.fields?}}
-      default:
-      {
-        assert(false);
-        __fbthrift_clear();
-      }
-    }
-    apache::thrift::clear(rhs);
-    return *this;
-  }
+}}  {{struct.cpp_underlying_name}}& operator=({{struct.cpp_underlying_name}}&& rhs){{#partial module_types.union_move_assign_noexcept struct=struct}};
   {{#if (not struct.cpp_noncopyable)}}
 
   {{struct.cpp_underlying_name}}& operator=(const {{struct.cpp_underlying_name}}& rhs);

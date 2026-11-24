@@ -205,6 +205,76 @@ cdef void getNextGenerator_Factories_serialize(object generator, cFollyPromise[o
             __promise
         )
     )
+async def runGenerator_Factories_interactWithStream(object generator, Promise_cint32_t_Stream promise):
+    try:
+        item = await generator.asend(None)
+    except StopAsyncIteration:
+        promise.cPromise.setValue(optional[cint32_t]())
+    except __ApplicationError as ex:
+        # If the handler raised an ApplicationError convert it to a C++ one
+        promise.cPromise.setException(cTApplicationException(
+            ex.type.value, ex.message.encode('UTF-8')
+        ))
+    except Exception as ex:
+        print(
+            "Unexpected error in Factories.interactWithStream:",
+            file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler Factories.interactWithStream:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
+        ))
+    else:
+        promise.cPromise.setValue(optional[cint32_t](<cint32_t?>item))
+
+cdef void getNextGenerator_Factories_interactWithStream(object generator, cFollyPromise[optional[cint32_t]] cPromise) noexcept:
+    cdef Promise_cint32_t_Stream __promise = Promise_cint32_t_Stream._fbthrift_create(cmove(cPromise))
+    asyncio.get_event_loop().create_task(
+        runGenerator_Factories_interactWithStream(
+            generator,
+            __promise
+        )
+    )
+async def runGenerator_Factories_interactWithStreamAndInitialResponse(object generator, Promise_cint32_t_Stream promise):
+    try:
+        item = await generator.asend(None)
+    except StopAsyncIteration:
+        promise.cPromise.setValue(optional[cint32_t]())
+    except __ApplicationError as ex:
+        # If the handler raised an ApplicationError convert it to a C++ one
+        promise.cPromise.setException(cTApplicationException(
+            ex.type.value, ex.message.encode('UTF-8')
+        ))
+    except Exception as ex:
+        print(
+            "Unexpected error in Factories.interactWithStreamAndInitialResponse:",
+            file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler Factories.interactWithStreamAndInitialResponse:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
+        ))
+    else:
+        promise.cPromise.setValue(optional[cint32_t](<cint32_t?>item))
+
+cdef void getNextGenerator_Factories_interactWithStreamAndInitialResponse(object generator, cFollyPromise[optional[cint32_t]] cPromise) noexcept:
+    cdef Promise_cint32_t_Stream __promise = Promise_cint32_t_Stream._fbthrift_create(cmove(cPromise))
+    asyncio.get_event_loop().create_task(
+        runGenerator_Factories_interactWithStreamAndInitialResponse(
+            generator,
+            __promise
+        )
+    )
 
 
 @cython.auto_pickle(False)
@@ -252,6 +322,22 @@ cdef class Promise_cServerStream__cbool:
     @staticmethod
     cdef _fbthrift_create(cFollyPromise[cServerStream[cbool]] cPromise):
         cdef Promise_cServerStream__cbool inst = Promise_cServerStream__cbool.__new__(Promise_cServerStream__cbool)
+        inst.cPromise[0] = cmove(cPromise)
+        return inst
+
+@cython.auto_pickle(False)
+cdef class Promise_cServerStream__cint32_t:
+    cdef cFollyPromise[cServerStream[cint32_t]]* cPromise
+
+    def __cinit__(self):
+        self.cPromise = new cFollyPromise[cServerStream[cint32_t]](cFollyPromise[cServerStream[cint32_t]].makeEmpty())
+
+    def __dealloc__(self):
+        del self.cPromise
+
+    @staticmethod
+    cdef _fbthrift_create(cFollyPromise[cServerStream[cint32_t]] cPromise):
+        cdef Promise_cServerStream__cint32_t inst = Promise_cServerStream__cint32_t.__new__(Promise_cServerStream__cint32_t)
         inst.cPromise[0] = cmove(cPromise)
         return inst
 
@@ -407,6 +493,26 @@ cdef class FactoriesInterface(
 
     @staticmethod
     def createPublisher_serialize(callback=None):
+        cdef unique_ptr[pair[cServerStream[cint32_t], cServerStreamPublisher[cint32_t]]] streams = make_unique[pair[cServerStream[cint32_t], cServerStreamPublisher[cint32_t]]](cServerStream[cint32_t].createPublisher(pythonFuncToCppFunc(callback)))
+
+        return (ServerStream_cint32_t._fbthrift_create(cmove(deref(streams).first)), ServerPublisher_cint32_t._fbthrift_create(cmove(deref(streams).second)))
+
+    async def interactWithStream(
+            self):
+        raise NotImplementedError("async def interactWithStream is not implemented")
+
+    @staticmethod
+    def createPublisher_interactWithStream(callback=None):
+        cdef unique_ptr[pair[cServerStream[cint32_t], cServerStreamPublisher[cint32_t]]] streams = make_unique[pair[cServerStream[cint32_t], cServerStreamPublisher[cint32_t]]](cServerStream[cint32_t].createPublisher(pythonFuncToCppFunc(callback)))
+
+        return (ServerStream_cint32_t._fbthrift_create(cmove(deref(streams).first)), ServerPublisher_cint32_t._fbthrift_create(cmove(deref(streams).second)))
+
+    async def interactWithStreamAndInitialResponse(
+            self):
+        raise NotImplementedError("async def interactWithStreamAndInitialResponse is not implemented")
+
+    @staticmethod
+    def createPublisher_interactWithStreamAndInitialResponse(callback=None):
         cdef unique_ptr[pair[cServerStream[cint32_t], cServerStreamPublisher[cint32_t]]] streams = make_unique[pair[cServerStream[cint32_t], cServerStreamPublisher[cint32_t]]](cServerStream[cint32_t].createPublisher(pythonFuncToCppFunc(callback)))
 
         return (ServerStream_cint32_t._fbthrift_create(cmove(deref(streams).first)), ServerPublisher_cint32_t._fbthrift_create(cmove(deref(streams).second)))
@@ -854,6 +960,40 @@ cdef api void call_cy_Factories_serialize(
       )
     finally:
       __THRIFT_REQUEST_CONTEXT.reset(__prev_context_token)
+cdef api void call_cy_Factories_interactWithStream(
+    object self,
+    Cpp2RequestContext* ctx,
+    cFollyPromise[cServerStream[cint32_t]] cPromise
+) noexcept:
+    cdef Promise_cServerStream__cint32_t __promise = Promise_cServerStream__cint32_t._fbthrift_create(cmove(cPromise))
+    __context = RequestContext._fbthrift_create(ctx)
+    __prev_context_token = __THRIFT_REQUEST_CONTEXT.set(__context)
+    try:
+      asyncio.get_event_loop().create_task(
+          Factories_interactWithStream_coro(
+              self,
+              __promise
+          )
+      )
+    finally:
+      __THRIFT_REQUEST_CONTEXT.reset(__prev_context_token)
+cdef api void call_cy_Factories_interactWithStreamAndInitialResponse(
+    object self,
+    Cpp2RequestContext* ctx,
+    cFollyPromise[cResponseAndServerStream[cint32_t,cint32_t]] cPromise
+) noexcept:
+    cdef Promise_cResponseAndServerStream__cint32_t_cint32_t __promise = Promise_cResponseAndServerStream__cint32_t_cint32_t._fbthrift_create(cmove(cPromise))
+    __context = RequestContext._fbthrift_create(ctx)
+    __prev_context_token = __THRIFT_REQUEST_CONTEXT.set(__context)
+    try:
+      asyncio.get_event_loop().create_task(
+          Factories_interactWithStreamAndInitialResponse_coro(
+              self,
+              __promise
+          )
+      )
+    finally:
+      __THRIFT_REQUEST_CONTEXT.reset(__prev_context_token)
 cdef api void call_cy_Factories_onStartServing(
     object self,
     cFollyPromise[cFollyUnit] cPromise
@@ -989,6 +1129,72 @@ async def Factories_serialize_coro(
         ))
     except asyncio.CancelledError as ex:
         print("Coroutine was cancelled in service handler Factories.serialize:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
+        ))
+    else:
+        promise.cPromise.setValue(createResponseAndServerStream[cint32_t,cint32_t]((<cint32_t?> item), cmove(deref((<ServerStream_cint32_t?>result).cStream))))
+
+async def Factories_interactWithStream_coro(
+    object self,
+    Promise_cServerStream__cint32_t promise
+):
+    try:
+        result = self.interactWithStream()
+        if not isinstance(result, (ServerStream, AsyncIterator)):
+            result = await result
+        if isinstance(result, AsyncIterator):
+            result = ServerStream_cint32_t._fbthrift_create(cmove(createAsyncIteratorFromPyIterator[cint32_t](result, get_executor(), &getNextGenerator_Factories_interactWithStream)))
+    except __ApplicationError as ex:
+        # If the handler raised an ApplicationError convert it to a C++ one
+        promise.cPromise.setException(cTApplicationException(
+            ex.type.value, ex.message.encode('UTF-8')
+        ))
+    except Exception as ex:
+        print(
+            "Unexpected error in service handler Factories.interactWithStream:",
+            file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler Factories.interactWithStream:", file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')
+        ))
+    else:
+        promise.cPromise.setValue(cmove(deref((<ServerStream_cint32_t?>result).cStream)))
+
+async def Factories_interactWithStreamAndInitialResponse_coro(
+    object self,
+    Promise_cResponseAndServerStream__cint32_t_cint32_t promise
+):
+    try:
+        result = self.interactWithStreamAndInitialResponse()
+        result = await result
+        item, result = result
+        if not isinstance(result, (ServerStream, AsyncIterator)):
+            result = await result
+        if isinstance(result, AsyncIterator):
+            result = ServerStream_cint32_t._fbthrift_create(cmove(createAsyncIteratorFromPyIterator[cint32_t](result, get_executor(), &getNextGenerator_Factories_interactWithStreamAndInitialResponse)))
+    except __ApplicationError as ex:
+        # If the handler raised an ApplicationError convert it to a C++ one
+        promise.cPromise.setException(cTApplicationException(
+            ex.type.value, ex.message.encode('UTF-8')
+        ))
+    except Exception as ex:
+        print(
+            "Unexpected error in service handler Factories.interactWithStreamAndInitialResponse:",
+            file=sys.stderr)
+        traceback.print_exc()
+        promise.cPromise.setException(cTApplicationException(
+            cTApplicationExceptionType__UNKNOWN, repr(ex).encode('UTF-8')
+        ))
+    except asyncio.CancelledError as ex:
+        print("Coroutine was cancelled in service handler Factories.interactWithStreamAndInitialResponse:", file=sys.stderr)
         traceback.print_exc()
         promise.cPromise.setException(cTApplicationException(
             cTApplicationExceptionType__UNKNOWN, (f'Application was cancelled on the server with message: {str(ex)}').encode('UTF-8')

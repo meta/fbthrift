@@ -21,8 +21,7 @@
 #include <thrift/lib/cpp/TApplicationException.h>
 #include <thrift/lib/cpp/transport/TTransportException.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Event.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/client/Messages.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/client/common/Event.h>
 #include <thrift/lib/cpp2/protocol/CompactProtocol.h>
@@ -86,8 +85,8 @@ class ThriftClientMetadataPushHandler {
     auto& response = msg.get<ThriftResponseMessage>();
 
     // Pass through per-request error variant unchanged — handled at the tail.
-    if (FOLLY_UNLIKELY(
-            !response.payload.is<ThriftClientInboundPayloadVariant>())) {
+    if (!response.payload.is<ThriftClientInboundPayloadVariant>())
+        [[unlikely]] {
       return ctx.fireRead(std::move(msg));
     }
 
@@ -122,7 +121,7 @@ class ThriftClientMetadataPushHandler {
   template <typename Context>
   apache::thrift::fast_thrift::channel_pipeline::Result handleMetadataPush(
       Context& ctx, ThriftMetadataPushPayload& payload) noexcept {
-    if (FOLLY_UNLIKELY(payload.metadata == nullptr)) {
+    if (payload.metadata == nullptr) [[unlikely]] {
       ctx.fireException(
           folly::make_exception_wrapper<
               apache::thrift::transport::TTransportException>(
@@ -150,10 +149,12 @@ class ThriftClientMetadataPushHandler {
     // NOLINTNEXTLINE(clang-diagnostic-switch-enum)
     switch (serverMeta.getType()) {
       case apache::thrift::ServerPushMetadata::Type::setupResponse:
-        return handleSetupResponse(ctx, serverMeta.get_setupResponse());
+        return handleSetupResponse(
+            ctx, serverMeta.setupResponse().as_const().value());
 
       case apache::thrift::ServerPushMetadata::Type::drainCompletePush:
-        return handleDrainComplete(ctx, serverMeta.get_drainCompletePush());
+        return handleDrainComplete(
+            ctx, serverMeta.drainCompletePush().as_const().value());
 
       case apache::thrift::ServerPushMetadata::Type::streamHeadersPush:
         XLOG(DBG2) << "Received streamHeadersPush, ignoring (not supported)";
@@ -212,11 +213,5 @@ class ThriftClientMetadataPushHandler {
   bool setupComplete_{false};
   bool serverSupportsZstd_{false};
 };
-
-static_assert(
-    apache::thrift::fast_thrift::channel_pipeline::InboundHandler<
-        ThriftClientMetadataPushHandler,
-        apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl>,
-    "ThriftClientMetadataPushHandler must satisfy InboundHandler concept");
 
 } // namespace apache::thrift::fast_thrift::thrift::client::handler

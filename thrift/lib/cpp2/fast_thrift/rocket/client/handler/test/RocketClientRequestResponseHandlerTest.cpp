@@ -125,19 +125,30 @@ class MockContext {
     exception_ = std::move(e);
   }
 
+  template <channel_pipeline::PipelineEvent E>
+    requires std::same_as<E, RocketTerminateStreamEvent>
+  void fireEvent(const RocketTerminateStreamEvent& event) noexcept {
+    terminatedStreams_.push_back(event.streamId);
+  }
+
   std::vector<TypeErasedBox>& readMessages() { return readMessages_; }
   std::vector<TypeErasedBox>& writeMessages() { return writeMessages_; }
+  const std::vector<uint32_t>& terminatedStreams() const {
+    return terminatedStreams_;
+  }
   bool hasException() const { return static_cast<bool>(exception_); }
 
   void reset() {
     readMessages_.clear();
     writeMessages_.clear();
+    terminatedStreams_.clear();
     exception_ = folly::exception_wrapper();
   }
 
  private:
   std::vector<TypeErasedBox> readMessages_;
   std::vector<TypeErasedBox> writeMessages_;
+  std::vector<uint32_t> terminatedStreams_;
   folly::exception_wrapper exception_;
 };
 
@@ -202,6 +213,7 @@ TEST_F(ClientRequestResponseHandlerTest, Read_PayloadWithNext_Forwarded) {
   EXPECT_EQ(parsed.type(), FrameType::PAYLOAD);
   EXPECT_TRUE(parsed.hasNext());
   EXPECT_EQ(parsed.streamId(), 1u);
+  EXPECT_TRUE(ctx_.terminatedStreams().empty());
 }
 
 TEST_F(ClientRequestResponseHandlerTest, Read_PayloadWithNextOnly_Forwarded) {
@@ -232,6 +244,28 @@ TEST_F(
   EXPECT_EQ(parsed.streamId(), 7u);
   apache::thrift::fast_thrift::frame::read::ErrorView errorView{parsed};
   EXPECT_EQ(static_cast<ErrorCode>(errorView.errorCode()), ErrorCode::INVALID);
+  EXPECT_TRUE(ctx_.terminatedStreams().empty());
+}
+
+TEST_F(
+    ClientRequestResponseHandlerTest,
+    Read_PayloadWithoutNextOrComplete_TerminatesStream) {
+  auto response = makePayloadResponse(7, /*complete=*/false, /*next=*/false);
+
+  EXPECT_EQ(
+      handler_.onRead(ctx_, erase_and_box(std::move(response))),
+      Result::Success);
+  ASSERT_EQ(ctx_.readMessages().size(), 1);
+  auto& parsed = ctx_.readMessages()[0]
+                     .get<RocketResponseMessage>()
+                     .payload.get<frame::read::ParsedFrame>();
+  EXPECT_EQ(parsed.type(), FrameType::ERROR);
+  EXPECT_EQ(parsed.streamId(), 7u);
+  EXPECT_EQ(
+      static_cast<ErrorCode>(frame::read::ErrorView{parsed}.errorCode()),
+      ErrorCode::INVALID);
+  EXPECT_EQ(ctx_.terminatedStreams(), (std::vector<uint32_t>{7u}));
+  EXPECT_TRUE(ctx_.writeMessages().empty());
 }
 
 // =============================================================================
@@ -270,6 +304,7 @@ TEST_F(ClientRequestResponseHandlerTest, Read_ExtWithIgnore_SilentlyDropped) {
   // Critical: dropped, NOT forwarded upstream. Stream stays alive for the
   // server to follow up with a real response.
   EXPECT_TRUE(ctx_.readMessages().empty());
+  EXPECT_TRUE(ctx_.terminatedStreams().empty());
 }
 
 TEST_F(
@@ -288,6 +323,8 @@ TEST_F(
   EXPECT_EQ(parsed.type(), FrameType::ERROR);
   apache::thrift::fast_thrift::frame::read::ErrorView errorView{parsed};
   EXPECT_EQ(static_cast<ErrorCode>(errorView.errorCode()), ErrorCode::INVALID);
+  EXPECT_EQ(ctx_.terminatedStreams(), (std::vector<uint32_t>{1u}));
+  EXPECT_TRUE(ctx_.writeMessages().empty());
 }
 
 // =============================================================================
@@ -312,6 +349,8 @@ TEST_F(
   EXPECT_EQ(parsed.streamId(), 1u);
   apache::thrift::fast_thrift::frame::read::ErrorView errorView{parsed};
   EXPECT_EQ(static_cast<ErrorCode>(errorView.errorCode()), ErrorCode::INVALID);
+  EXPECT_EQ(ctx_.terminatedStreams(), (std::vector<uint32_t>{1u}));
+  EXPECT_TRUE(ctx_.writeMessages().empty());
 }
 
 // =============================================================================

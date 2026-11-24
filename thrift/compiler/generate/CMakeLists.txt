@@ -12,50 +12,43 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_executable(compiler_generate_build_templates build_templates.cc)
-thrift_configure_target(compiler_generate_build_templates PRIVATE)
-target_link_libraries(compiler_generate_build_templates
-                      ${FBTHRIFT_COMPILER_LINK_CXXFS})
+add_executable(thrift_build_templates build_templates.cc)
+thrift_configure_target(thrift_build_templates PRIVATE)
 
-file(
-  GLOB_RECURSE TEMPLATE_FILES CONFIGURE_DEPENDS
-  RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
-  ${CMAKE_CURRENT_SOURCE_DIR}/templates/**/*.whisker)
+file(GLOB_RECURSE TEMPLATE_FILES CONFIGURE_DEPENDS
+     RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+     ${CMAKE_CURRENT_SOURCE_DIR}/templates/**/*.whisker)
 add_custom_command(
   OUTPUT templates.cc
-  COMMAND compiler_generate_build_templates
-          ${CMAKE_CURRENT_SOURCE_DIR}/templates > templates.cc
-  DEPENDS compiler_generate_build_templates ${TEMPLATE_FILES}
+  COMMAND thrift_build_templates ${CMAKE_CURRENT_SOURCE_DIR}/templates >
+          templates.cc
+  DEPENDS thrift_build_templates ${TEMPLATE_FILES}
   VERBATIM)
 
-file(
-  GLOB GENERATOR_FILES
-  RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
-  *.cc)
+file(GLOB GENERATOR_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.cc)
 list(REMOVE_ITEM GENERATOR_FILES build_templates.cc)
 list(REMOVE_ITEM GENERATOR_FILES t_ast_generator.cc)
 list(REMOVE_ITEM GENERATOR_FILES schema_populator.cc)
 list(APPEND GENERATOR_FILES
      ${CMAKE_CURRENT_SOURCE_DIR}/cpp/orderable_type_utils.cc)
 
-add_library(compiler_generators STATIC ${GENERATOR_FILES}
-                                       ${CMAKE_CURRENT_BINARY_DIR}/templates.cc)
-# Always emit PIC so that compiler_generators can be linked into a
+add_library(thrift_generators STATIC ${GENERATOR_FILES}
+                                     ${CMAKE_CURRENT_BINARY_DIR}/templates.cc)
+# Always emit PIC so that thrift_generators can be linked into a
 # downstream shared library; the upstream rule only enables PIC when
 # building the whole tree shared, which forced consumers that want
 # static archives in a shared world to either turn on BUILD_SHARED_LIBS
 # (and inherit fbthrift's cross-dylib RTTI problems) or maintain a
 # separate patch for this one line.
-set_target_properties(compiler_generators PROPERTIES POSITION_INDEPENDENT_CODE
-                                                     ON)
+set_target_properties(thrift_generators PROPERTIES POSITION_INDEPENDENT_CODE ON)
 if (MSVC)
-  set_target_properties(compiler_generators PROPERTIES COMPILE_FLAGS "/bigobj")
+  set_target_properties(thrift_generators PROPERTIES COMPILE_FLAGS "/bigobj")
 endif ()
 target_link_libraries(
-  compiler_generators
-  compiler_ast
-  compiler_base
-  compiler_lib
-  compiler
-  whisker
+  thrift_generators
+  thrift_ast
+  thrift_compiler_base
+  thrift_frontend
+  thrift_generator_util
+  thrift_whisker
   OpenSSL::Crypto)

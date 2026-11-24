@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+use fbthrift::export::OrderedFloat;
+
 #[test]
 fn test_consts() {
     // NOTE: Keep in sync with `consts` test in cpp_compat_test
@@ -44,6 +46,17 @@ fn test_consts() {
         },
         *fbthrift_test_if::CUSTOM_SUBSTRUCT
     );
+}
+
+#[test]
+fn test_binary_const() {
+    assert_eq!(fbthrift_test_if::BINARY_SUBSTRUCT.bin, b"\x7f\x80");
+}
+
+#[test]
+fn test_floating_point_key_consts() {
+    assert!(fbthrift_test_if::DOUBLE_SET.contains(&OrderedFloat(1.5)));
+    assert_eq!(fbthrift_test_if::FLOAT_KEY_MAP[&OrderedFloat(1.5)], 1);
 }
 
 #[test]

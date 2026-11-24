@@ -405,8 +405,10 @@ cdef extern from "thrift/compiler/test/fixtures/mcpp2-compare/gen-cpp2/module_ty
         bint operator>=(cSimpleUnion&)
         cSimpleUnion__type getType() const
         const cint64_t& get_intValue "get_intValue" () const
+        __union_field_ref[cint64_t] intValue_ref "intValue_ref" ()
         cint64_t& set_intValue "set_intValue" (const cint64_t&)
         const string& get_stringValue "get_stringValue" () const
+        __union_field_ref[string] stringValue_ref "stringValue_ref" ()
         string& set_stringValue "set_stringValue" (const string&)
 
     cdef enum class cComplexUnion__type "::some::valid::ns::ComplexUnion::Type":
@@ -451,60 +453,88 @@ cdef extern from "thrift/compiler/test/fixtures/mcpp2-compare/gen-cpp2/module_ty
         bint operator>=(cComplexUnion&)
         cComplexUnion__type getType() const
         const cint64_t& get_intValue "get_intValue" () const
+        __union_field_ref[cint64_t] intValue_ref "intValue_ref" ()
         cint64_t& set_intValue "set_intValue" (const cint64_t&)
         const cint64_t& get_opt_intValue "get_opt_intValue" () const
+        __union_field_ref[cint64_t] opt_intValue_ref "opt_intValue_ref" ()
         cint64_t& set_opt_intValue "set_opt_intValue" (const cint64_t&)
         const string& get_stringValue "get_stringValue" () const
+        __union_field_ref[string] stringValue_ref "stringValue_ref" ()
         string& set_stringValue "set_stringValue" (const string&)
         const string& get_opt_stringValue "get_opt_stringValue" () const
+        __union_field_ref[string] opt_stringValue_ref "opt_stringValue_ref" ()
         string& set_opt_stringValue "set_opt_stringValue" (const string&)
         const cint16_t& get_intValue2 "get_intValue2" () const
+        __union_field_ref[cint16_t] intValue2_ref "intValue2_ref" ()
         cint16_t& set_intValue2 "set_intValue2" (const cint16_t&)
         const cint32_t& get_intValue3 "get_intValue3" () const
+        __union_field_ref[cint32_t] intValue3_ref "intValue3_ref" ()
         cint32_t& set_intValue3 "set_intValue3" (const cint32_t&)
         const double& get_doubelValue "get_doubelValue" () const
+        __union_field_ref[double] doubelValue_ref "doubelValue_ref" ()
         double& set_doubelValue "set_doubelValue" (const double&)
         const cbool& get_boolValue "get_boolValue" () const
+        __union_field_ref[cbool] boolValue_ref "boolValue_ref" ()
         cbool& set_boolValue "set_boolValue" (const cbool&)
         const vector[cint32_t]& get_union_list "get_union_list" () const
+        __union_field_ref[vector[cint32_t]] union_list_ref "union_list_ref" ()
         vector[cint32_t]& set_union_list "set_union_list" (const vector[cint32_t]&)
         const cset[cint64_t]& get_union_set "get_union_set" () const
+        __union_field_ref[cset[cint64_t]] union_set_ref "union_set_ref" ()
         cset[cint64_t]& set_union_set "set_union_set" (const cset[cint64_t]&)
         const cmap[string,cint32_t]& get_union_map "get_union_map" () const
+        __union_field_ref[cmap[string,cint32_t]] union_map_ref "union_map_ref" ()
         cmap[string,cint32_t]& set_union_map "set_union_map" (const cmap[string,cint32_t]&)
         const cmap[string,cint32_t]& get_opt_union_map "get_opt_union_map" () const
+        __union_field_ref[cmap[string,cint32_t]] opt_union_map_ref "opt_union_map_ref" ()
         cmap[string,cint32_t]& set_opt_union_map "set_opt_union_map" (const cmap[string,cint32_t]&)
         const cMyEnumA& get_enum_field "get_enum_field" () const
+        __union_field_ref[cMyEnumA] enum_field_ref "enum_field_ref" ()
         cMyEnumA& set_enum_field "set_enum_field" (const cMyEnumA&)
         const vector[cMyEnumA]& get_enum_container "get_enum_container" () const
+        __union_field_ref[vector[cMyEnumA]] enum_container_ref "enum_container_ref" ()
         vector[cMyEnumA]& set_enum_container "set_enum_container" (const vector[cMyEnumA]&)
         const cMyStruct& get_a_struct "get_a_struct" () const
+        __union_field_ref[cMyStruct] a_struct_ref "a_struct_ref" ()
         cMyStruct& set_a_struct "set_a_struct" (const cMyStruct&)
         const cset[cMyStruct]& get_a_set_struct "get_a_set_struct" () const
+        __union_field_ref[cset[cMyStruct]] a_set_struct_ref "a_set_struct_ref" ()
         cset[cMyStruct]& set_a_set_struct "set_a_set_struct" (const cset[cMyStruct]&)
         const cSimpleUnion& get_a_union "get_a_union" () const
+        __union_field_ref[cSimpleUnion] a_union_ref "a_union_ref" ()
         cSimpleUnion& set_a_union "set_a_union" (const cSimpleUnion&)
         const cSimpleUnion& get_opt_a_union "get_opt_a_union" () const
+        __union_field_ref[cSimpleUnion] opt_a_union_ref "opt_a_union_ref" ()
         cSimpleUnion& set_opt_a_union "set_opt_a_union" (const cSimpleUnion&)
         const vector[cSimpleUnion]& get_a_union_list "get_a_union_list" () const
+        __union_field_ref[vector[cSimpleUnion]] a_union_list_ref "a_union_list_ref" ()
         vector[cSimpleUnion]& set_a_union_list "set_a_union_list" (const vector[cSimpleUnion]&)
         const cset[cSimpleUnion]& get_a_union_typedef "get_a_union_typedef" () const
+        __union_field_ref[cset[cSimpleUnion]] a_union_typedef_ref "a_union_typedef_ref" ()
         cset[cSimpleUnion]& set_a_union_typedef "set_a_union_typedef" (const cset[cSimpleUnion]&)
         const vector[cset[cSimpleUnion]]& get_a_union_typedef_list "get_a_union_typedef_list" () const
+        __union_field_ref[vector[cset[cSimpleUnion]]] a_union_typedef_list_ref "a_union_typedef_list_ref" ()
         vector[cset[cSimpleUnion]]& set_a_union_typedef_list "set_a_union_typedef_list" (const vector[cset[cSimpleUnion]]&)
         const string& get_MyBinaryField "get_MyBinaryField" () const
+        __union_field_ref[string] MyBinaryField_ref "MyBinaryField_ref" ()
         string& set_MyBinaryField "set_MyBinaryField" (const string&)
         const string& get_MyBinaryField2 "get_MyBinaryField2" () const
+        __union_field_ref[string] MyBinaryField2_ref "MyBinaryField2_ref" ()
         string& set_MyBinaryField2 "set_MyBinaryField2" (const string&)
         const vector[string]& get_MyBinaryListField4 "get_MyBinaryListField4" () const
+        __union_field_ref[vector[string]] MyBinaryListField4_ref "MyBinaryListField4_ref" ()
         vector[string]& set_MyBinaryListField4 "set_MyBinaryListField4" (const vector[string]&)
         const unique_ptr[cMyStruct]& get_ref_field "get_ref_field" () const
+        __union_field_ref[unique_ptr[cMyStruct]] ref_field_ref "ref_field_ref" ()
         unique_ptr[cMyStruct]& set_ref_field "set_ref_field" (const cMyStruct&)
         const shared_ptr[const cMyStruct]& get_ref_field2 "get_ref_field2" () const
+        __union_field_ref[shared_ptr[const cMyStruct]] ref_field2_ref "ref_field2_ref" ()
         shared_ptr[const cMyStruct]& set_ref_field2 "set_ref_field2" (const cMyStruct&)
         const cAnException& get_excp_field "get_excp_field" () const
+        __union_field_ref[cAnException] excp_field_ref "excp_field_ref" ()
         cAnException& set_excp_field "set_excp_field" (const cAnException&)
         const _fbthrift_iobuf.cIOBuf& get_MyCustomField "get_MyCustomField" () const
+        __union_field_ref[_fbthrift_iobuf.cIOBuf] MyCustomField_ref "MyCustomField_ref" ()
         _fbthrift_iobuf.cIOBuf& set_MyCustomField "set_MyCustomField" (const _fbthrift_iobuf.cIOBuf&)
 
 
@@ -703,8 +733,10 @@ cdef extern from "thrift/compiler/test/fixtures/mcpp2-compare/gen-cpp2/module_ty
         bint operator>=(cFloatUnion&)
         cFloatUnion__type getType() const
         const float& get_floatSide "get_floatSide" () const
+        __union_field_ref[float] floatSide_ref "floatSide_ref" ()
         float& set_floatSide "set_floatSide" (const float&)
         const double& get_doubleSide "get_doubleSide" () const
+        __union_field_ref[double] doubleSide_ref "doubleSide_ref" ()
         double& set_doubleSide "set_doubleSide" (const double&)
 
 

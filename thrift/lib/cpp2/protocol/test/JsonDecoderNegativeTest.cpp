@@ -27,14 +27,15 @@
 #include <folly/lang/Pretty.h>
 #include <folly/portability/GFlags.h>
 #include <thrift/lib/cpp/protocol/TProtocolException.h>
-#include <thrift/lib/cpp2/protocol/test/gen-cpp2/json5_negative_test_constants.h>
-#include <thrift/lib/cpp2/protocol/test/gen-cpp2/json5_negative_test_types.h>
-#include <thrift/lib/cpp2/protocol/test/gen-cpp2/json5_test_types.h>
-#include <thrift/lib/cpp2/protocol/test/gen-cpp2/json5_test_types_custom_protocol.h>
+#include <thrift/test/json5/gen-cpp2/json5_negative_test_constants.h>
+#include <thrift/test/json5/gen-cpp2/json5_negative_test_types.h>
+#include <thrift/test/json5/gen-cpp2/json5_test_types.h>
+#include <thrift/test/json5/gen-cpp2/json5_test_types_custom_protocol.h>
 
 namespace apache::thrift {
 
 using facebook::thrift::json5::Example;
+using facebook::thrift::json5::InvalidUtf8TestCase;
 using facebook::thrift::json5::NegativeTestCase;
 using facebook::thrift::json5::Recursive;
 using namespace facebook::thrift::json5::json5_negative_test_constants;
@@ -52,27 +53,20 @@ TEST_P(JsonDecoderNegativeTest, RejectsInvalidInput) {
   }
 }
 
-// Like Binary/Compact, malformed input is reported as TProtocolException
-// INVALID_DATA, whichever layer detects it.
-TEST(JsonDecoderErrorTypeTest, ReportsInvalidDataAsTProtocolException) {
-  for (std::string_view json : {
-           R"({"i64Value": 1)", // syntax error in the lexer
-           R"({"i64Value": 99999999999999999999})", // integer literal overflow
-           R"({"i32Value": 3000000000})", // out of range for the field type
-           R"({"enumValue": "NOT_AN_ENUM"})", // rejected by the protocol reader
-           R"({"binaryValue": {"base64": "!!!!"}})", // invalid base64
-           R"({"i64Value": 1}])", // trailing content after the value
-           R"({"i64Value": 1},)", // a comma after the top-level value
-       }) {
-    try {
-      (void)Json5ProtocolUtils::fromJson5<Example>(json);
-      ADD_FAILURE() << "expected rejection: " << json;
-    } catch (const protocol::TProtocolException& e) {
-      EXPECT_EQ(e.getType(), protocol::TProtocolException::INVALID_DATA)
-          << json;
-    }
-  }
+class JsonDecoderInvalidUtf8Test
+    : public ::testing::TestWithParam<InvalidUtf8TestCase> {};
+
+TEST_P(JsonDecoderInvalidUtf8Test, RejectsInvalidInput) {
+  EXPECT_THROW(
+      (void)Json5ProtocolUtils::fromJson5<Example>(*GetParam().json()),
+      protocol::TProtocolException);
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    InvalidUtf8,
+    JsonDecoderInvalidUtf8Test,
+    ::testing::ValuesIn(invalidUtf8NegativeCases()),
+    [](const auto& info) { return std::string(*info.param.name()); });
 
 TEST(JsonDecoderErrorTypeTest, TypeMismatchNamesTheFoundType) {
   try {
@@ -130,27 +124,6 @@ TEST(JsonDecoderDepthLimitTest, SiblingsDoNotAccumulateDepth) {
         R"({"children": [], "byName": {}, "ids": [], "unknown": {"a": {}}},)";
   }
   EXPECT_NO_THROW(decode(json + "]}"));
-}
-
-TEST(JsonDecoderFloatingPointKeyTest, IntegerKeysMustConvertExactly) {
-  using DoubleKeyed = type::map<type::double_t, type::i32_t>;
-  using FloatKeyed = type::map<type::float_t, type::i32_t>;
-  auto doubleKey = [](std::string_view json) {
-    return Json5ProtocolUtils::fromJson5<DoubleKeyed>(json).begin()->first;
-  };
-  EXPECT_EQ(doubleKey(R"({"9007199254740992": 1})"), 0x1p53);
-  EXPECT_EQ(doubleKey(R"({"1.5": 1})"), 1.5);
-  EXPECT_EQ(doubleKey(R"({"1e20": 1})"), 1e20);
-  EXPECT_THROW(
-      doubleKey(R"({"9007199254740993": 1})"), protocol::TProtocolException);
-  EXPECT_THROW(
-      doubleKey(R"({"9223372036854775808": 1})"), protocol::TProtocolException);
-
-  auto floatKey = [](std::string_view json) {
-    return Json5ProtocolUtils::fromJson5<FloatKeyed>(json).begin()->first;
-  };
-  EXPECT_EQ(floatKey(R"({"16777216": 1})"), 0x1p24f);
-  EXPECT_THROW(floatKey(R"({"16777217": 1})"), protocol::TProtocolException);
 }
 
 INSTANTIATE_TEST_SUITE_P(

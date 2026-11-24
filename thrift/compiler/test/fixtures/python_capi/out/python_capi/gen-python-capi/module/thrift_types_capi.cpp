@@ -692,12 +692,12 @@ Extractor<::apache::thrift::python::capi::ComposedStruct<
       cpp.empty_struct_ref(),
       PyTuple_GET_ITEM(fbThriftData, _fbthrift__PrimitiveStruct__tuple_pos[12]),
       error);
-  Extractor<Bytes>{}.extractInto(
-      cpp.fbstring_ref(),
+  Extractor<folly::IOBuf>{}.extractInto(
+      cpp.custom_iobuf_ref(),
       PyTuple_GET_ITEM(fbThriftData, _fbthrift__PrimitiveStruct__tuple_pos[13]),
       error);
   Extractor<::apache::thrift::python::capi::FallibleString>{}.extractInto(
-      cpp.managed_string_view_ref(),
+      cpp.pmr_string_ref(),
       PyTuple_GET_ITEM(fbThriftData, _fbthrift__PrimitiveStruct__tuple_pos[14]),
       error);
   Extractor<::apache::thrift::python::capi::ComposedStruct<::test::fixtures::python_capi::SomeError, ::test__fixtures__python_capi__thrift_dep::NamespaceTag>>{}.extractInto(
@@ -903,24 +903,24 @@ PyObject* Constructor<::apache::thrift::python::capi::ComposedStruct<
           *_fbthrift__empty_struct) == -1) {
     return nullptr;
   }
-  StrongRef _fbthrift__fbstring(
-    Constructor<Bytes>{}
-    .constructFrom(val.fbstring_ref()));
-  if (!_fbthrift__fbstring ||
+  StrongRef _fbthrift__custom_iobuf(
+    Constructor<folly::IOBuf>{}
+    .constructFrom(val.custom_iobuf_ref()));
+  if (!_fbthrift__custom_iobuf ||
       setStructField(
           *fbthrift_data,
           _fbthrift__PrimitiveStruct__tuple_pos[13],
-          *_fbthrift__fbstring) == -1) {
+          *_fbthrift__custom_iobuf) == -1) {
     return nullptr;
   }
-  StrongRef _fbthrift__managed_string_view(
+  StrongRef _fbthrift__pmr_string(
     Constructor<::apache::thrift::python::capi::FallibleString>{}
-    .constructFrom(val.managed_string_view_ref()));
-  if (!_fbthrift__managed_string_view ||
+    .constructFrom(val.pmr_string_ref()));
+  if (!_fbthrift__pmr_string ||
       setStructField(
           *fbthrift_data,
           _fbthrift__PrimitiveStruct__tuple_pos[14],
-          *_fbthrift__managed_string_view) == -1) {
+          *_fbthrift__pmr_string) == -1) {
     return nullptr;
   }
   StrongRef _fbthrift__some_error(

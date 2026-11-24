@@ -26,7 +26,6 @@
 #if __has_include(<thrift/lib/thrift/gen-cpp2/any_rep_types.h>)
 #include <thrift/lib/cpp2/type/Any.h>
 #include <thrift/lib/cpp2/type/AnyValue.h>
-#include <thrift/lib/cpp2/type/Runtime.h>
 #include <thrift/lib/cpp2/type/Tag.h>
 #include <thrift/lib/cpp2/type/TypeRegistry.h>
 #define THRIFT_ANY_AVAILABLE
@@ -138,6 +137,7 @@ void helper<ProtocolReader, ProtocolWriter>::process_exn(
     int32_t protoSeqId) {
   ProtocolWriter oprot;
   if (req) {
+    req->resetPreCompressedResponse();
     LOG(ERROR) << msg << " in function " << func;
     TApplicationException x(type, msg);
     auto payload = THeader::transform(

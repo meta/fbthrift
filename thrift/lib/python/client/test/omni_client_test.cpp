@@ -31,6 +31,7 @@
 #include <thrift/lib/cpp/server/TServerEventHandler.h>
 #include <thrift/lib/cpp2/Flags.h>
 #include <thrift/lib/cpp2/async/ClientBufferedStream.h>
+#include <thrift/lib/cpp2/async/ClientCompressionFlags.h>
 #include <thrift/lib/cpp2/async/ClientInterceptor.h>
 #include <thrift/lib/cpp2/async/InterceptorFlags.h>
 #include <thrift/lib/cpp2/async/PooledRequestChannel.h>

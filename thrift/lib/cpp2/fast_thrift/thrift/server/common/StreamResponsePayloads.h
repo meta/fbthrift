@@ -34,11 +34,9 @@ namespace apache::thrift::fast_thrift::thrift {
  * payloads because it additionally carries a [[ProducerPipeline::ConfigFunc]]
  * the stream mux runs to build the stream's producing-end sub-pipeline.
  *
- * The mux consumes it: it constructs a [[ProducerPipeline::Builder]], runs the
- * configFunc to compose the application's producer into it, builds and
- * registers the sub-pipeline (keyed by `initialResponse.streamId`), then
- * forwards `initialResponse` upward as the stream's first chunk. The configFunc
- * never travels past the mux.
+ * The mux runs the factory with the stream's EventBase and output sink and
+ * stores the resulting pipeline under `initialResponse.streamId`. It then
+ * forwards `initialResponse` as the first chunk.
  *
  * The configFunc is held behind a `unique_ptr` so this payload stays
  * pointer-sized: it rides `ThriftServerResponseMessage` through
@@ -69,12 +67,14 @@ struct ThriftServerStreamOpenPayload {
       rocket::server::MetadataProtocol /*metadataProtocol*/) && noexcept {
     DCHECK(false)
         << "ThriftServerStreamOpenPayload reached the transport un-consumed";
+#ifdef NDEBUG
     return {
         .frameType = apache::thrift::fast_thrift::frame::FrameType::ERROR,
         .streamId = initialResponse.streamId,
         .errorCode = static_cast<uint32_t>(
             apache::thrift::fast_thrift::frame::ErrorCode::INVALID),
     };
+#endif
   }
 };
 

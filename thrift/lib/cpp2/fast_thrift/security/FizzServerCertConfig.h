@@ -121,11 +121,15 @@ struct FizzServerCertConfig {
   // Defaults to "rs" (Rocket) to match the rest of the fast_thrift stack.
   std::vector<std::string> alpnProtocols{"rs"};
 
-  // Mutual TLS mode. Default None — mTLS is opt-in. Callers wanting mTLS
-  // set this to Required (or Optional) and also supply caPath OR
-  // customClientCertVerifier; without one of those, buildTLSParams
-  // throws at startup rather than silently accepting any peer cert.
-  fizz::server::ClientAuthMode clientAuth{fizz::server::ClientAuthMode::None};
+  // Mutual TLS mode. Default Required — the server requests a client
+  // certificate and fails the handshake when verification fails or no
+  // certificate is presented. Callers preserving the historical opt-in
+  // behavior set this to None explicitly. Required (or Optional) also
+  // needs caPath OR customClientCertVerifier; without one of those,
+  // buildTLSParams throws at startup rather than silently accepting
+  // any peer cert.
+  fizz::server::ClientAuthMode clientAuth{
+      fizz::server::ClientAuthMode::Required};
 
   // ALPN enforcement when client offers no overlap. Default Optional is
   // stricter than fizz's natural AllowMismatch default; catches accidental

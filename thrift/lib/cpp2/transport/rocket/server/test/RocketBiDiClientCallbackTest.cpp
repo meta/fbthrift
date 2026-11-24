@@ -18,6 +18,7 @@
 #include <folly/portability/GTest.h>
 #include <thrift/lib/cpp2/protocol/Serializer.h>
 #include <thrift/lib/cpp2/transport/rocket/RocketException.h>
+#include <thrift/lib/cpp2/transport/rocket/framing/test/Util.h>
 #include <thrift/lib/cpp2/transport/rocket/server/RocketBiDiClientCallback.h>
 #include <thrift/lib/cpp2/transport/rocket/server/test/MockIRocketServerConnection.h>
 #include <thrift/lib/cpp2/transport/rocket/server/test/ThrowingPayloadSerializer.h>
@@ -70,6 +71,13 @@ class RocketBiDiClientCallbackTest : public ::testing::Test {
   NiceMock<MockBiDiServerCallback> serverCallback_;
   std::unique_ptr<RocketBiDiClientCallback> callback_;
 };
+
+template <typename Buffer>
+class RocketBiDiClientCallbackFrameTest : public RocketBiDiClientCallbackTest {
+};
+using BiDiFrameBuffers =
+    ::testing::Types<std::unique_ptr<folly::IOBuf>, IOBufChain>;
+TYPED_TEST_SUITE(RocketBiDiClientCallbackFrameTest, BiDiFrameBuffers);
 
 TEST_F(RocketBiDiClientCallbackTest, HandlePayloadOnSinkNext) {
   makeReady();
@@ -215,13 +223,22 @@ TEST_F(RocketBiDiClientCallbackTest, HandleCancelAfterStreamClosedIsNoop) {
   callback_->handleFrame(std::move(frame));
 }
 
-TEST_F(RocketBiDiClientCallbackTest, HandleExtNoIgnoreClosesConnection) {
-  makeReady();
+TYPED_TEST(
+    RocketBiDiClientCallbackFrameTest, HandleExtNoIgnoreClosesConnection) {
+  this->makeReady();
 
-  EXPECT_CALL(connection_, close(_)).Times(1);
+  EXPECT_CALL(this->connection_, close(_)).Times(1);
 
-  ExtFrame frame(kStreamId, Payload{}, Flags(), ExtFrameType::UNKNOWN);
-  callback_->handleFrame(std::move(frame));
+  ExtFrame frame(
+      this->kStreamId,
+      Payload::makeFromData(folly::IOBuf::create(0)),
+      Flags(),
+      ExtFrameType::UNKNOWN);
+  auto decoded = roundTripFrame<TypeParam>(std::move(frame));
+  EXPECT_EQ(
+      (std::is_same_v<TypeParam, IOBufChain>),
+      decoded.payload().usesIOBufChain());
+  this->callback_->handleFrame(std::move(decoded));
 }
 
 TEST_F(RocketBiDiClientCallbackTest, HandleConnectionClose) {

@@ -57,7 +57,6 @@ struct Name {
  */
 @scope.Typedef
 @scope.Field
-@scope.FunctionParameter
 struct Type {
   1: string name;
 
@@ -454,12 +453,13 @@ struct EnableCustomTypeOrdering {}
 struct GenerateServiceMethodDecorator {}
 
 /**
- * When applied to a service, generates only a FastClient instead of the
+ * When applied to a service, generates a FastClient in addition to the
  * standard AsyncClient. The FastClient uses the fast_thrift pipeline for
  * lower latency serialization and deserialization.
  *
- * Only request/response functions are supported. Functions using streams,
- * sinks, oneway, or interactions are skipped.
+ * The FastClient supports only request/response functions. Functions using
+ * streams, sinks, oneway, or interactions are skipped by the FastClient and
+ * remain available on the AsyncClient.
  */
 @scope.Service
 struct FastClient {}
@@ -528,13 +528,20 @@ struct AllowCustomDefaultInAllocCtor {
 }
 
 /**
- * Allows the unstructured `cpp.allocator` annotation on this union, which
- * unions otherwise reject.
+ * Gives a string, binary or container field a PMR allocator-aware C++ type,
+ * such as `std::pmr::string` or `std::pmr::vector`, that can allocate from a
+ * `std::pmr::memory_resource` such as an arena. The field doesn't use its
+ * struct's memory resource yet: it allocates from the default resource. On a
+ * struct or union it does nothing yet, and on a typedef it is an error. On a
+ * request-response function it does nothing yet; other functions reject it.
  *
- * Internal and experimental: Thrift's own unit tests use it while support for
- * `cpp.allocator` unions is incomplete. Do not use it elsewhere; it may change
- * or go away without notice.
+ * The py3 generator rejects fields with it unless `auto_migrate` is set, and
+ * always rejects functions with it. Other languages ignore it.
  */
+@scope.Field
+@scope.Struct
 @scope.Union
+@scope.Typedef
+@scope.Function
 @thrift.Experimental
-struct InternalExperimentalAllowAllocatorOnUnion {}
+struct Arena {}

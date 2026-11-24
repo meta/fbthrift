@@ -484,8 +484,9 @@ class t_mstch_python_capi_generator : public t_whisker_generator {
     def.property("marshal_type", [](const t_field& self) {
       return format_marshal_type(self);
     });
-    def.property(
-        "iobuf?", [](const t_field& self) { return is_type_iobuf(self); });
+    def.property("iobuf?", [](const t_field& self) {
+      return is_type_iobuf(cpp2::binary_cpp_type(self));
+    });
 
     return std::move(def).make();
   }
@@ -553,8 +554,11 @@ class t_mstch_python_capi_generator : public t_whisker_generator {
         }
       }
 
+      // The marshaling extractors build `std::` strings and containers, which
+      // `@cpp.Arena` fields can't be assigned from.
       if (force_serialize || self.generated() ||
-          has_compiler_option("serialize_python_capi")) {
+          has_compiler_option("serialize_python_capi") ||
+          cpp2::has_arena_fields(self)) {
         return false;
       }
       if (marshal_override != nullptr ||

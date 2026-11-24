@@ -16,8 +16,10 @@
 
 #pragma once
 
+#include <chrono>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include <folly/CPortability.h>
@@ -25,6 +27,7 @@
 #include <folly/Synchronized.h>
 #include <folly/io/async/AsyncTimeout.h>
 #include <folly/io/async/EventBase.h>
+#include <folly/stats/Histogram.h>
 #include <thrift/conformance/stresstest/if/gen-cpp2/StressTestResult_types.h>
 
 namespace apache::thrift::stress {
@@ -36,6 +39,8 @@ class StressTestServerStats {
       uint32_t intervalSeconds);
   void collectFinal();
   void recordConnection(ConnectionMode mode);
+  void recordRxTimestampCollect(std::chrono::microseconds collect);
+  void logRxTimestampStats() const;
   ServerResult publish(ResultMetadata metadata) const;
 
  private:
@@ -52,7 +57,15 @@ class StressTestServerStats {
     int64_t stopTlsV2Connections{0};
   };
 
+  struct RxTimestampState {
+    folly::Histogram<double> histogram{1, 0, 2'000};
+    int64_t samples{0};
+  };
+
+  std::optional<RxTimestampStats> snapshotRxTimestampStats() const;
+
   folly::Synchronized<ConnectionState> connectionState_;
+  folly::Synchronized<RxTimestampState> rxTimestampState_;
   ZcrxCounters zcrxCounters_;
   ProvidedBufferCounters providedBufferCounters_;
   CqeCounters cqeCounters_;

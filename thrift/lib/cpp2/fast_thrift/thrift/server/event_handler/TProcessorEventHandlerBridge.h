@@ -46,6 +46,7 @@
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/ServerAppAdapter.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/event_handler/Cpp2ContextAdapter.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/event_handler/EventHandlerChain.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/util/RequestMetadata.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/util/ResponsePayloads.h>
 
 namespace apache::thrift::fast_thrift::thrift::server {
@@ -63,6 +64,7 @@ struct TProcessorEventHandlers {
       processor;
   std::vector<std::shared_ptr<apache::thrift::server::TServerEventHandler>>
       server;
+  apache::thrift::ClientIdentityHook clientIdentityHook;
 };
 
 struct TProcessorEventHandlerBridgeConfig {
@@ -70,7 +72,6 @@ struct TProcessorEventHandlerBridgeConfig {
   // connection's handler, and one refcount is the whole cost of that copy.
   std::shared_ptr<const TProcessorEventHandlers> handlers;
   std::shared_ptr<const ThriftServerMethodMetadataRegistry> methodMetadata;
-  PeerIdentityResolver identityResolver{nullptr};
 };
 
 struct TProcessorEventHandlerBridgeRequestStateOwner
@@ -134,6 +135,7 @@ struct TProcessorEventHandlerBridgeRequestState {
         folly::RequestContext::setContext(ambient);
       }
     });
+    published.ambientContext = nullptr;
     context.reset();
     cpp2Request.reset();
     published.context = nullptr;
@@ -172,23 +174,6 @@ inline std::uint32_t payloadBytes(
   return data == nullptr
       ? 0
       : static_cast<std::uint32_t>(data->computeChainDataLength());
-}
-
-inline bool isAppUnknownException(
-    const ThriftInitialResponsePayload& reply) noexcept {
-  if (reply.metadata == nullptr ||
-      !reply.metadata->payloadMetadata().has_value()) {
-    return false;
-  }
-  const auto& payloadMetadata = *reply.metadata->payloadMetadata();
-  if (payloadMetadata.getType() !=
-      apache::thrift::PayloadMetadata::Type::exceptionMetadata) {
-    return false;
-  }
-  const auto& exceptionMetadata = *payloadMetadata.exceptionMetadata();
-  return !exceptionMetadata.metadata().has_value() ||
-      exceptionMetadata.metadata()->getType() ==
-      apache::thrift::PayloadExceptionMetadata::Type::appUnknownException;
 }
 
 // Moves what the handlers wrote onto the outgoing reply. Only the normal reply
@@ -240,8 +225,9 @@ inline void stampWriteHeaders(
  *
  * NOT supported, because fast_thrift has no equivalent: streams, sinks,
  * interactions (`onInteractionTerminate`), and the server-lifecycle callbacks
- * (`preStart` / `preServe` / `postStop`). A handler relying on any of those
- * will not see them.
+ * (`preStart` / `preServe` / `postStop`). When processor handlers are
+ * installed, a stream request is refused rather than dispatched without them;
+ * the other unsupported callbacks are never driven.
  *
  * Requires `enableRequestHeaders` if any handler reads request headers. A
  * request arriving without a context from a manually composed pipeline is
@@ -264,7 +250,6 @@ class TProcessorEventHandlerBridge {
                 : new TProcessorEventHandlerBridgeRequestStateOwner(
                       std::move(config.handlers))),
         methodMetadataOwner_(std::move(config.methodMetadata)),
-        identityResolver_(config.identityResolver),
         handlers_(
             requestStateOwner_ == nullptr ? nullptr
                                           : requestStateOwner_->handlers.get()),
@@ -288,7 +273,7 @@ class TProcessorEventHandlerBridge {
     // The setup exchange is not a request. Latch the connection context it
     // carries — the only place the pipeline offers one — and publish the
     // classic context before downstream connection extensions run.
-    if (FOLLY_UNLIKELY(request.payload.is<ThriftConnectionSetupPayload>())) {
+    if (request.payload.is<ThriftConnectionSetupPayload>()) [[unlikely]] {
       auto& setup = *request.payload.get<ThriftConnectionSetupPayload>().setup;
       auto* const ftConnContext = setup.connContext;
       if (handlers_ != nullptr && ftConnContext != nullptr &&
@@ -298,7 +283,7 @@ class TProcessorEventHandlerBridge {
         }
         requestStateOwner_->context = std::make_unique<Cpp2ConnContextAdapter>(
             boost::intrusive_ptr<ThriftConnContext>(ftConnContext),
-            identityResolver_);
+            handlers_->clientIdentityHook);
         connectionContext_ = requestStateOwner_->context.get();
         for (const auto& handler : handlers_->server) {
           handler->newConnection(&connectionContext_->get());
@@ -318,36 +303,56 @@ class TProcessorEventHandlerBridge {
     }
 
     const auto routing = getServerRequestRoutingMetadata(request);
-    if (FOLLY_UNLIKELY(routing.status != ServerRequestRoutingStatus::Ready)) {
+    if (routing.status != ServerRequestRoutingStatus::Ready) [[unlikely]] {
       return ctx.fireRead(std::move(msg));
     }
 
-    const uint32_t streamId = request.streamId;
-    if (FOLLY_UNLIKELY(methodMetadata_ == nullptr)) {
+    // Streams are deliberately outside this bridge's classic-callback
+    // contract. The shared routing helper considers them ready because the
+    // generated app adapters support them, but forwarding one without running
+    // installed processor handlers could bypass authorization. Refuse it with
+    // the same framework error an app adapter uses for an unsupported RPC kind.
+    // Independently require the variant before accessing it below, so a
+    // malformed kind/payload combination also fails closed.
+    if (routing.kind !=
+            apache::thrift::RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE ||
+        !request.payload.is<ThriftServerRequestResponsePayload>())
+        [[unlikely]] {
+      auto response = makeWrongRpcKindMessage(request.streamId, routing.kind);
+      response.requestContext = std::move(request.requestContext);
       return ctx.fireWrite(
-          channel_pipeline::erase_and_box(makeAppErrorMessage(
-              streamId,
-              "TProcessorEventHandlerBridgeMisconfigured",
-              "event handlers are installed but the server has no method "
-              "metadata registry")));
+          channel_pipeline::erase_and_box(std::move(response)));
+    }
+
+    const uint32_t streamId = request.streamId;
+    if (methodMetadata_ == nullptr) [[unlikely]] {
+      auto response = makeAppErrorMessage(
+          streamId,
+          "TProcessorEventHandlerBridgeMisconfigured",
+          "event handlers are installed but the server has no method "
+          "metadata registry");
+      response.requestContext = std::move(request.requestContext);
+      return ctx.fireWrite(
+          channel_pipeline::erase_and_box(std::move(response)));
     }
     const auto* method = methodMetadata_->find(routing.methodName);
-    if (FOLLY_UNLIKELY(method == nullptr)) {
+    if (method == nullptr) [[unlikely]] {
       return ctx.fireRead(std::move(msg));
     }
 
     // Fail closed. A handler may be the thing authorizing this request, and
     // there is no way to tell from here, so a request the bridge cannot run
     // them for is refused rather than let through.
-    if (FOLLY_UNLIKELY(
-            request.requestContext == nullptr ||
-            connectionContext_ == nullptr)) {
+    if (request.requestContext == nullptr || connectionContext_ == nullptr)
+        [[unlikely]] {
+      auto response = makeAppErrorMessage(
+          streamId,
+          "TProcessorEventHandlerBridgeMisconfigured",
+          "event handlers are installed but the pipeline provided no "
+          "request or connection context");
+      response.requestContext = std::move(request.requestContext);
       return ctx.fireWrite(
-          channel_pipeline::erase_and_box(makeAppErrorMessage(
-              streamId,
-              "TProcessorEventHandlerBridgeMisconfigured",
-              "event handlers are installed but the pipeline provided no "
-              "request or connection context")));
+          channel_pipeline::erase_and_box(std::move(response)));
     }
 
     auto ownedState =
@@ -362,6 +367,7 @@ class TProcessorEventHandlerBridge {
     state->context.emplace(
         *state->cpp2Request, state->header, *request.requestContext);
     state->published.context = &state->context->get();
+    state->published.ambientContext = &state->context->ambientContext();
     request.requestContext->adoptState<Cpp2BridgeExtension>(
         &ownedState.release()->published);
 
@@ -457,8 +463,7 @@ class TProcessorEventHandlerBridge {
         // served, so there is no verdict left to honour and swallowing would
         // hide a handler bug. An escape terminates, as it would on a classic
         // server.
-        if ((exception == nullptr &&
-             !event_handler_detail::isAppUnknownException(*reply)) ||
+        if ((exception == nullptr && !isAppUnknownException(*reply)) ||
             (exception != nullptr && exception->declared)) {
           state->chain.preWrite();
           state->chain.onWriteData(state->protocolType, reply->data.get());
@@ -516,7 +521,6 @@ class TProcessorEventHandlerBridge {
   const TProcessorEventHandlerBridgeRequestStateOwnerPtr requestStateOwner_;
   const std::shared_ptr<const ThriftServerMethodMetadataRegistry>
       methodMetadataOwner_;
-  const PeerIdentityResolver identityResolver_;
   // Resolved once: the answer cannot change, and reaching it through the
   // shared_ptr on every request is two dependent loads into memory that every
   // connection shares.

@@ -19,7 +19,7 @@ package com.facebook.swift.service;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static io.airlift.units.DataSize.Unit.MEGABYTE;
+import static io.airlift.units.DataSize.Unit.BYTE;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.DAYS;
 import static java.util.concurrent.TimeUnit.MINUTES;
@@ -91,19 +91,17 @@ public class ThriftServerConfig {
   private String caFile = "/var/facebook/rootcanal/ca.pem";
   private boolean enableUDS = false;
   private String udsPath = null;
-  private ClientAuth clientAuth = ClientAuth.OPTIONAL;
+  private ClientAuth clientAuth = ClientAuth.REQUIRE;
   private boolean enableKeepAliveThread = true;
 
   private boolean enableAlpn = false;
 
   /**
-   * The default maximum allowable size for a single incoming thrift request or outgoing thrift
-   * response. A server can configure the actual maximum to be much higher (up to 0x3FFFFFFF or
-   * almost 1 GB). The default max could also be safely bumped up, but 64MB is chosen simply because
-   * it seems reasonable that if you are sending requests or responses larger than that, it should
-   * be a conscious decision (something you must manually configure).
+   * The maximum allowable size for a single incoming thrift request. The default accepts any frame
+   * a ByteBuf can hold (Integer.MAX_VALUE bytes); a HEADER frame above 0x3FFFFFFF bytes arrives as
+   * a THeader big frame. Lower it to reject large requests.
    */
-  private DataSize maxFrameSize = new DataSize(64, MEGABYTE);
+  private DataSize maxFrameSize = new DataSize(Integer.MAX_VALUE, BYTE);
 
   public String getBindAddress() {
     return bindAddress;
@@ -147,8 +145,8 @@ public class ThriftServerConfig {
   }
 
   @MinDataSize("0B")
-  // 0x3FFFFFFF bytes
-  @MaxDataSize("1073741823B")
+  // Integer.MAX_VALUE bytes
+  @MaxDataSize("2147483647B")
   public DataSize getMaxFrameSize() {
     return maxFrameSize;
   }
@@ -156,7 +154,7 @@ public class ThriftServerConfig {
   /** Sets a maximum frame size */
   @Config("thrift.max-frame-size")
   public ThriftServerConfig setMaxFrameSize(DataSize maxFrameSize) {
-    checkArgument(maxFrameSize.toBytes() <= 0x3FFFFFFF);
+    checkArgument(maxFrameSize.toBytes() <= Integer.MAX_VALUE);
     this.maxFrameSize = maxFrameSize;
     return this;
   }

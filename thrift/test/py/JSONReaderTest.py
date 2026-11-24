@@ -19,7 +19,9 @@ import unittest
 
 from JsonReaderTest.ttypes import (
     Container,
+    KeywordNamedValues,
     StructContainingEnum,
+    StructContainingKeywordNamedEnum,
     StructContainingOptionalList,
     StructContainingRequiredList,
 )
@@ -87,6 +89,22 @@ class TestJSONReader(unittest.TestCase):
         oprot = TBinaryProtocolAcceleratedFactory().getProtocol(read_transport)
         struct.write(oprot)
         self.assertEqual(read_transport.getvalue(), b"\x08\x00\x01\x00\x00\x00\x05\x00")
+
+    def testWrappedEnumValueNamedAfterKeywordIsValidPython(self):
+        # `KeywordNamedValues.None` is a syntax error, so the value is also
+        # available under the reserved-keyword alias, which repr uses.
+        self.assertEqual(getattr(KeywordNamedValues, "None"), 0)
+        self.assertEqual(KeywordNamedValues.None_PY_RESERVED_KEYWORD, 0)
+        self.assertEqual(KeywordNamedValues._NAMES_TO_VALUES, {"None": 0, "OK": 1})
+        self.assertEqual(KeywordNamedValues._VALUES_TO_NAMES, {0: "None", 1: "OK"})
+
+        struct = StructContainingKeywordNamedEnum()
+        struct.readFromJson('{ "data": 0}', wrap_enum_constants=True)
+        self.assertEqual(
+            repr(struct.data), "KeywordNamedValues.None_PY_RESERVED_KEYWORD"
+        )
+        struct.readFromJson('{ "data": 1}', wrap_enum_constants=True)
+        self.assertEqual(repr(struct.data), "KeywordNamedValues.OK")
 
     def testWrapEnumConstantsExcludesRelaxEnumValidation(self):
         struct = StructContainingEnum()

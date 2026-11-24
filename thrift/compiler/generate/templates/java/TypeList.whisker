@@ -17,6 +17,7 @@
 }}
 {{#import "common/common" as common}}
 {{#partial common.auto_generated}}
+  {{#let type_batches = (array.chunk root_program.types_with_uris chunk_size=512)}}
 
 package {{root_program.javaPackage}};
 
@@ -32,19 +33,19 @@ public class __fbthrift_TypeList_{{root_program.type_list_hash}} implements Type
         list.add(new TypeList.TypeMapping(uri, className));
     }
 
-    {{#each (array.enumerate root_program.type_list_batches) as |batch_index types|}}
+  {{#each (array.enumerate type_batches) as |batch_index types|}}
     private static void addToList{{batch_index}}() {
-        {{#each types as |type|}}
+    {{#each types as |type|}}
         add("{{type.uri}}", "{{root_program.javaPackage}}.{{type.javaCapitalName}}");
-        {{/each}}
-    }
     {{/each}}
+    }
+  {{/each}}
 
-    {{#each (array.enumerate root_program.type_list_batches) as |batch_index types|}}
+  {{#each (array.enumerate type_batches) as |batch_index types|}}
     static {
         addToList{{batch_index}}();
     }
-    {{/each}}
+  {{/each}}
 
     @java.lang.Override
     public List<TypeList.TypeMapping> getTypes() {

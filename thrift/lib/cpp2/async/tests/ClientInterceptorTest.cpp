@@ -338,7 +338,7 @@ class SyncClientInterface : public ClientInterface {
       std::string arg2,
       test::RequestArgsStruct arg3) override {
     std::string ret;
-    client_->sync_requestArgs(ret, arg1, std::move(arg2), std::move(arg3));
+    client_->sync_requestArgs(ret, arg1, arg2, arg3);
     co_return ret;
   }
 

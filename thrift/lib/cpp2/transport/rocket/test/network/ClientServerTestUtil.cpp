@@ -132,6 +132,15 @@ RocketTestClient::RocketTestClient(const folly::SocketAddress& serverAddr)
   connect();
 }
 
+RocketTestClient::RocketTestClient(
+    const folly::SocketAddress& serverAddr, RequestSetupMetadata setupMetadata)
+    : evb_(*evbThread_.getEventBase()),
+      fm_(folly::fibers::getFiberManager(evb_)),
+      serverAddr_(serverAddr),
+      setupMetadataOverride_(std::move(setupMetadata)) {
+  connect();
+}
+
 RocketTestClient::~RocketTestClient() {
   disconnect();
 }
@@ -271,8 +280,11 @@ void RocketTestClient::connect() {
   evb_.runInEventBaseThreadAndWait([this] {
     folly::AsyncSocket::UniquePtr socket(
         new folly::AsyncSocket(&evb_, serverAddr_));
+    auto setupMetadata = setupMetadataOverride_.has_value()
+        ? *setupMetadataOverride_
+        : makeTestSetupMetadata();
     client_ =
-        RocketClient::create(evb_, std::move(socket), makeTestSetupMetadata());
+        RocketClient::create(evb_, std::move(socket), std::move(setupMetadata));
   });
 }
 
@@ -537,7 +549,7 @@ class RocketTestServer::RocketTestServerHandler : public RocketServerHandler {
         decoder,
         std::move(encodeFinalResponse),
         std::move(encodeException),
-        folly::getKeepAliveToken(threadManagerThread_.getEventBase()),
+        threadManagerThread_.getEventBaseKeepAlive(),
         10,
         0,
         std::chrono::milliseconds::zero());

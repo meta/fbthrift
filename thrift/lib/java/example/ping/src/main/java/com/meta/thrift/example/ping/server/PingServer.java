@@ -22,6 +22,7 @@ import com.facebook.thrift.server.RpcServerHandler;
 import com.facebook.thrift.server.ServerTransport;
 import com.facebook.thrift.util.RpcServerUtils;
 import com.facebook.thrift.util.TransportType;
+import io.netty.handler.ssl.ClientAuth;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -95,6 +96,7 @@ public class PingServer {
     ServerTransport transport =
         RpcServerUtils.createServerTransport(
                 new ThriftServerConfig()
+                    .setClientAuth(ClientAuth.OPTIONAL)
                     .setPort(config.getPort())
                     .setSslEnabled(false)
                     .setEnableJdkSsl(false),

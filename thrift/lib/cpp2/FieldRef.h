@@ -21,6 +21,7 @@
 #include <memory>
 #include <optional>
 #include <string_view>
+#include <tuple>
 #include <type_traits>
 #include <folly/CPortability.h>
 #include <folly/CppAttributes.h>
@@ -60,6 +61,9 @@ struct alias_isset_fn;
 struct move_to_unique_ptr_fn;
 struct assign_from_unique_ptr_fn;
 struct union_value_unsafe_fn;
+struct union_field_storage_fn;
+struct union_emplace_storage_fn;
+struct copy_union_shared_ptr_fn;
 struct is_non_optional_field_set_manually_or_by_serializer_fn;
 
 // Lets field ref specializations read each other's members. A
@@ -644,10 +648,10 @@ template <typename T>
 class optional_boxed_field_ref {
   static_assert(std::is_reference_v<T>, "not a reference");
   static_assert(
-      detail::is_boxed_value_ptr_v<folly::remove_cvref_t<T>>,
+      detail::is_boxed_value_ptr_v<std::remove_cvref_t<T>>,
       "not a boxed_value_ptr");
 
-  using element_type = typename folly::remove_cvref_t<T>::element_type;
+  using element_type = typename std::remove_cvref_t<T>::element_type;
 
   friend struct apache::thrift::detail::field_ref_access;
   friend struct apache::thrift::detail::move_to_unique_ptr_fn;
@@ -898,9 +902,9 @@ template <typename T>
 class intern_boxed_field_ref {
   static_assert(std::is_reference_v<T>, "not a reference");
   static_assert(
-      detail::is_boxed_value_v<folly::remove_cvref_t<T>>, "not a boxed_value");
+      detail::is_boxed_value_v<std::remove_cvref_t<T>>, "not a boxed_value");
 
-  using element_type = typename folly::remove_cvref_t<T>::element_type;
+  using element_type = typename std::remove_cvref_t<T>::element_type;
   using boxed_value_type = std::remove_reference_t<T>;
 
   friend struct apache::thrift::detail::field_ref_access;
@@ -1128,9 +1132,9 @@ template <typename T>
 class terse_intern_boxed_field_ref {
   static_assert(std::is_reference_v<T>, "not a reference");
   static_assert(
-      detail::is_boxed_value_v<folly::remove_cvref_t<T>>, "not a boxed_value");
+      detail::is_boxed_value_v<std::remove_cvref_t<T>>, "not a boxed_value");
 
-  using element_type = typename folly::remove_cvref_t<T>::element_type;
+  using element_type = typename std::remove_cvref_t<T>::element_type;
   using boxed_value_type = std::remove_reference_t<T>;
 
   friend struct apache::thrift::detail::field_ref_access;
@@ -1396,13 +1400,19 @@ struct move_to_unique_ptr_fn {
   FOLLY_ERASE auto operator()(optional_boxed_field_ref<T> ref) const noexcept {
     return ref.release();
   }
+
+  template <typename T>
+    requires union_field_ref<T>::kReleasable
+  FOLLY_ERASE auto operator()(union_field_ref<T> ref) const noexcept {
+    return ref.release();
+  }
 };
 
 struct assign_from_unique_ptr_fn {
   template <typename T>
   FOLLY_ERASE void operator()(
       optional_boxed_field_ref<T> ref,
-      std::unique_ptr<typename folly::remove_cvref_t<T>::element_type> ptr)
+      std::unique_ptr<typename std::remove_cvref_t<T>::element_type> ptr)
       const noexcept {
     ref.reset(std::move(ptr));
   }
@@ -1433,6 +1443,12 @@ constexpr apache::thrift::detail::can_throw_fn can_throw;
 //  move_to_unique_ptr
 //
 //  Transfer ownership of underlying boxed field to std::unique_ptr.
+//
+//  Also takes the value of a union field that is boxed or stored as a
+//  std::unique_ptr with the default deleter (unique `cpp.ref`, or `cpp.Type`
+//  such as `std::unique_ptr<folly::IOBuf>`). The union is left empty, even if
+//  the field held a null pointer, which is returned as nullptr. If the field is
+//  not the active one, returns nullptr and leaves the union unchanged.
 //
 //  Example:
 //
@@ -1675,6 +1691,27 @@ inline constexpr union_field_ref_owner_vtable //
         &union_field_ref_owner_vtable_impl::active_field<T>,
         &union_field_ref_owner_vtable_impl::class_name<T>};
 
+template <typename T, typename Tuple>
+inline constexpr bool is_nothrow_constructible_from_tuple_v = false;
+template <typename T, typename... Args>
+inline constexpr bool
+    is_nothrow_constructible_from_tuple_v<T, std::tuple<Args...>> =
+        std::is_nothrow_constructible_v<T, Args...>;
+
+// Whether union_field_ref builds a T from Args with allocator A without
+// throwing: as is if A is void, else by uses-allocator construction.
+template <typename T, typename A, typename... Args>
+constexpr bool is_nothrow_union_member_constructible() {
+  if constexpr (std::is_void_v<A>) {
+    return std::is_nothrow_constructible_v<T, Args...>;
+  } else {
+    return is_nothrow_constructible_from_tuple_v<
+        T,
+        decltype(std::uses_allocator_construction_args<T>(
+            std::declval<const A&>(), std::declval<Args>()...))>;
+  }
+}
+
 } // namespace detail
 
 // A reference to a union field of the possibly const-qualified type.
@@ -1686,35 +1723,48 @@ inline constexpr union_field_ref_owner_vtable //
 //
 // If Allocator is not void (the default), ensure(), emplace() and
 // assignment to an inactive field build the value with it, by uses-allocator
-// construction.
+// construction, or for a std::shared_ptr field with std::allocate_shared.
 template <typename T, typename Allocator>
 class union_field_ref {
   static_assert(std::is_reference_v<T>, "not a reference");
 
   friend struct detail::union_value_unsafe_fn;
+  friend struct detail::union_field_storage_fn;
+  friend struct detail::union_emplace_storage_fn;
+  friend struct detail::move_to_unique_ptr_fn;
+  friend struct detail::copy_union_shared_ptr_fn;
 
   using is_cpp_ref_or_boxed = std::bool_constant<
-      detail::is_boxed_value_ptr_v<folly::remove_cvref_t<T>> ||
-      detail::is_shared_or_unique_ptr_v<folly::remove_cvref_t<T>>>;
+      detail::is_boxed_value_ptr_v<std::remove_cvref_t<T>> ||
+      detail::is_shared_or_unique_ptr_v<std::remove_cvref_t<T>>>;
 
   struct element_type_adapter {
-    using element_type = folly::remove_cvref_t<T>;
+    using element_type = std::remove_cvref_t<T>;
   };
 
   using element_type = typename std::conditional_t<
       is_cpp_ref_or_boxed::value,
-      folly::remove_cvref_t<T>,
+      std::remove_cvref_t<T>,
       element_type_adapter>::element_type;
 
   using storage_reference_type = T;
   using storage_value_type = std::remove_reference_t<T>;
+
+  // Whether release() can hand the value over as a
+  // std::unique_ptr<element_type>. A custom deleter is excluded: the result
+  // would have to drop it or change type.
+  static constexpr bool kReleasable = !std::is_const_v<storage_value_type> &&
+      (detail::is_boxed_value_ptr_v<storage_value_type> ||
+       std::is_same_v<storage_value_type, std::unique_ptr<element_type>>);
 
   static_assert(
       std::is_void_v<Allocator> ||
           (!is_cpp_ref_or_boxed::value &&
            std::uses_allocator_v<
                std::remove_cv_t<storage_value_type>,
-               Allocator>),
+               Allocator>) ||
+          (detail::is_shared_ptr_v<std::remove_cv_t<storage_value_type>> &&
+           std::uses_allocator_v<std::remove_cv_t<element_type>, Allocator>),
       "only a field whose value uses Allocator can carry it");
 
  public:
@@ -1749,11 +1799,11 @@ class union_field_ref {
               std::is_constructible_v<value_type, U&&>,
           int> = 0>
   FOLLY_ERASE union_field_ref& operator=(U&& other) noexcept(
-      std::is_void_v<Allocator> &&
-      std::is_nothrow_constructible_v<value_type, U> &&
+      detail::
+          is_nothrow_union_member_constructible<value_type, Allocator, U>() &&
       std::is_nothrow_assignable_v<value_type, U>) {
     if (has_value() &&
-        !detail::is_shared_or_unique_ptr_v<folly::remove_cvref_t<T>>) {
+        !detail::is_shared_or_unique_ptr_v<std::remove_cvref_t<T>>) {
       get_value() = static_cast<U&&>(other);
     } else {
       emplace(static_cast<U&&>(other));
@@ -1911,7 +1961,7 @@ class union_field_ref {
     if (!has_value()) {
       apache::thrift::detail::throw_on_bad_union_field_access(
           vtable_.get_class_name(),
-          field_type_,
+          folly::to_narrow(field_type_),
           vtable_.get_active_field(owner_));
     }
   }
@@ -1931,6 +1981,24 @@ class union_field_ref {
     return *storage_value_;
   }
 
+  // Clears the union rather than leaving this field active with a null
+  // pointer, which value() would reject.
+  FOLLY_ERASE std::unique_ptr<element_type> release() noexcept
+    requires kReleasable
+  {
+    if (!has_value()) {
+      return nullptr;
+    }
+    std::unique_ptr<element_type> ptr;
+    if constexpr (detail::is_boxed_value_ptr_v<storage_value_type>) {
+      ptr = storage_value_.release();
+    } else {
+      ptr = std::move(storage_value_);
+    }
+    vtable_.reset(owner_);
+    return ptr;
+  }
+
   template <class... Args>
   FOLLY_ERASE void emplace_impl(std::false_type, Args&&... args) {
     if constexpr (std::is_void_v<Allocator>) {
@@ -1943,8 +2011,14 @@ class union_field_ref {
 
   template <class... Args>
   FOLLY_ERASE void emplace_impl(std::true_type, Args&&... args) {
-    ::new (&storage_value_) storage_value_type();
-    storage_value_.reset(new element_type(static_cast<Args&&>(args)...));
+    if constexpr (std::is_void_v<Allocator>) {
+      ::new (&storage_value_) storage_value_type();
+      storage_value_.reset(new element_type(static_cast<Args&&>(args)...));
+    } else {
+      ::new (&storage_value_) storage_value_type(
+          std::allocate_shared<element_type>(
+              alloc_, static_cast<Args&&>(args)...));
+    }
   }
 
   FOLLY_ERASE void emplace_impl(
@@ -1972,7 +2046,65 @@ struct union_value_unsafe_fn {
         ref.get_value());
   }
 };
+
+// Returns the storage of the active field. For a `cpp.ref`, `@thrift.Box` or
+// `std::unique_ptr` field that is the pointer, which can be null, rather than
+// the pointee `value()` returns. Throws bad_field_access if the field isn't
+// active.
+struct union_field_storage_fn {
+  template <typename T, typename A>
+  T operator()(union_field_ref<T, A> ref) const {
+    ref.throw_if_unset();
+    return static_cast<T>(ref.storage_value_);
+  }
+};
+inline constexpr union_field_storage_fn union_field_storage{};
+
+// Makes `ref` the active field holding `value`. Unlike `ref.emplace(value)`,
+// a null pointer is kept, as setters keep it. For union copies and moves.
+struct union_emplace_storage_fn {
+  template <typename T, typename A>
+  void operator()(
+      union_field_ref<T, A> ref, std::remove_reference_t<T>&& value) const {
+    if constexpr (union_field_ref<T, A>::is_cpp_ref_or_boxed::value) {
+      ref.vtable_.reset(ref.owner_);
+      ::new (&ref.storage_value_) std::remove_reference_t<T>(std::move(value));
+      ref.type_ = ref.field_type_;
+    } else {
+      ref.emplace(std::move(value));
+    }
+  }
+};
+inline constexpr union_emplace_storage_fn union_emplace_storage{};
+
+struct copy_union_shared_ptr_fn {
+  template <typename T, typename A>
+    requires is_shared_ptr_v<std::remove_cvref_t<T>>
+  const std::remove_cvref_t<T>& operator()(union_field_ref<T, A> ref) const {
+    if (!ref.has_value()) {
+      // Matches the exception of the deprecated `get_*()` union getters, which
+      // callers of this function migrate from.
+      throw_on_bad_union_field_access();
+    }
+    return ref.storage_value_;
+  }
+};
 } // namespace detail
+
+//  copy_union_shared_ptr
+//
+//  Returns the `std::shared_ptr` that stores a shared `cpp.ref` union field,
+//  for code that needs the pointer itself rather than the pointee `value()`
+//  returns, e.g. to share ownership. The reference is to the union's storage:
+//  it is valid while the union exists and this field stays active. It is null
+//  if a null pointer was stored with the setter. Throws bad_union_field_access
+//  if the field isn't active.
+//
+//  Example:
+//
+//    std::shared_ptr<const Foo> ptr =
+//        apache::thrift::copy_union_shared_ptr(obj.foo());
+inline constexpr detail::copy_union_shared_ptr_fn copy_union_shared_ptr{};
 
 // A reference to a terse field of the possibly const-qualified type
 // std::remove_reference_t<T> in a Thrift-generated struct. Note, a terse field

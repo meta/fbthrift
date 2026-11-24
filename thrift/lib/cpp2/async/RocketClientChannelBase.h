@@ -25,6 +25,7 @@
 #include <folly/fibers/FiberManagerMap.h>
 #include <folly/io/async/AsyncTransport.h>
 #include <folly/io/async/DelayedDestruction.h>
+#include <folly/io/async/EventBase.h>
 
 #include <thrift/lib/cpp2/async/ClientChannel.h>
 #include <thrift/lib/cpp2/transport/rocket/client/RocketClient.h>
@@ -132,9 +133,7 @@ class RocketClientChannelBase : public ClientChannel {
   void closeNow() override;
   void setCloseCallback(CloseCallback* closeCallback) override;
 
-  using FlushList = boost::intrusive::list<
-      folly::EventBase::LoopCallback,
-      boost::intrusive::constant_time_size<false>>;
+  using FlushList = folly::EventBase::LoopCallbackList;
 
   void setFlushList(FlushList* flushList);
 

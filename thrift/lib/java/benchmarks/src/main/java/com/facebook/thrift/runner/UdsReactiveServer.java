@@ -25,6 +25,7 @@ import com.facebook.thrift.legacy.server.LegacyServerTransport;
 import com.facebook.thrift.legacy.server.LegacyServerTransportFactory;
 import com.facebook.thrift.util.SPINiftyMetrics;
 import io.netty.channel.unix.DomainSocketAddress;
+import io.netty.handler.ssl.ClientAuth;
 import io.netty.util.ResourceLeakDetector;
 import java.util.Collections;
 import java.util.concurrent.locks.LockSupport;
@@ -46,7 +47,10 @@ public class UdsReactiveServer {
     logger.info("starting server");
     LegacyServerTransportFactory transportFactory =
         new LegacyServerTransportFactory(
-            new ThriftServerConfig().setSslEnabled(false).setUdsPath("/tmp/uds_benchmark.socket"));
+            new ThriftServerConfig()
+                .setClientAuth(ClientAuth.OPTIONAL)
+                .setSslEnabled(false)
+                .setUdsPath("/tmp/uds_benchmark.socket"));
     DomainSocketAddress socketAddress = new DomainSocketAddress("/tmp/uds_benchmark.socket");
     LegacyServerTransport transport =
         transportFactory

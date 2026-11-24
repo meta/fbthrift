@@ -88,7 +88,7 @@ std::partial_ordering Fiery::operator<=>([[maybe_unused]] const Fiery& rhs) cons
 
 void swap([[maybe_unused]] Fiery& a, [[maybe_unused]] Fiery& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_message, b.__fbthrift_field_message);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_message, b.__fbthrift_field_message);
 }
 
 
@@ -168,7 +168,7 @@ const ::std::string* Serious::get_sonnet() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOU
 
 void swap([[maybe_unused]] Serious& a, [[maybe_unused]] Serious& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_sonnet, b.__fbthrift_field_sonnet);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_sonnet, b.__fbthrift_field_sonnet);
   swap(a.__isset, b.__isset);
 }
 
@@ -241,8 +241,8 @@ std::partial_ordering ComplexFieldNames::operator<=>([[maybe_unused]] const Comp
 
 void swap([[maybe_unused]] ComplexFieldNames& a, [[maybe_unused]] ComplexFieldNames& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_error_message, b.__fbthrift_field_error_message);
-  swap(a.__fbthrift_field_internal_error_message, b.__fbthrift_field_internal_error_message);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_error_message, b.__fbthrift_field_error_message);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_internal_error_message, b.__fbthrift_field_internal_error_message);
   swap(a.__isset, b.__isset);
 }
 
@@ -315,8 +315,8 @@ std::partial_ordering CustomFieldNames::operator<=>([[maybe_unused]] const Custo
 
 void swap([[maybe_unused]] CustomFieldNames& a, [[maybe_unused]] CustomFieldNames& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_error_message, b.__fbthrift_field_error_message);
-  swap(a.__fbthrift_field_internal_error_message, b.__fbthrift_field_internal_error_message);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_error_message, b.__fbthrift_field_error_message);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_internal_error_message, b.__fbthrift_field_internal_error_message);
   swap(a.__isset, b.__isset);
 }
 
@@ -399,8 +399,8 @@ std::partial_ordering ExceptionWithPrimitiveField::operator<=>([[maybe_unused]] 
 
 void swap([[maybe_unused]] ExceptionWithPrimitiveField& a, [[maybe_unused]] ExceptionWithPrimitiveField& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_message, b.__fbthrift_field_message);
-  swap(a.__fbthrift_field_error_code, b.__fbthrift_field_error_code);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_message, b.__fbthrift_field_message);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_error_code, b.__fbthrift_field_error_code);
   swap(a.__isset, b.__isset);
 }
 
@@ -483,8 +483,8 @@ std::partial_ordering ExceptionWithStructuredAnnotation::operator<=>([[maybe_unu
 
 void swap([[maybe_unused]] ExceptionWithStructuredAnnotation& a, [[maybe_unused]] ExceptionWithStructuredAnnotation& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_message_field, b.__fbthrift_field_message_field);
-  swap(a.__fbthrift_field_error_code, b.__fbthrift_field_error_code);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_message_field, b.__fbthrift_field_message_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_error_code, b.__fbthrift_field_error_code);
   swap(a.__isset, b.__isset);
 }
 

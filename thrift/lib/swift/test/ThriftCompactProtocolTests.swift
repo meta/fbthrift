@@ -217,6 +217,25 @@ struct ThriftCompactProtocolTests {
     #expect(try roundTrip(a) == a)
   }
 
+  @Test func byteListUsesCompactListEncoding() {
+    // 20 elements needs the long list header: 0xF0 | byte type (3), then varint count.
+    let bytes: [Int8] = (0..<20).map { Int8(truncatingIfNeeded: $0 * 13 - 100) }
+    let writer = CompactWriter()
+    writer.writeList(bytes)
+
+    #expect(writer.bytes == [0xF3, 20] + bytes.map { UInt8(bitPattern: $0) })
+  }
+
+  @Test func byteListRoundTrips() throws {
+    let bytes: [Int8] = (0..<1_000).map { Int8(truncatingIfNeeded: $0) }
+    let writer = CompactWriter()
+    writer.writeList(bytes)
+
+    let reader = CompactReader(data: writer.data)
+    let decoded: [Int8] = try reader.readList()
+    #expect(decoded == bytes)
+  }
+
   // MARK: - Malformed input
 
   @Test func unknownFieldIsSkipped() {

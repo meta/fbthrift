@@ -77,6 +77,62 @@ func DecodeAny(anyStruct *thriftany.Any) (any, error) {
 	return dstValue.Interface(), nil
 }
 
+// EncodeStructToAny encodes a Thrift struct into an Any using the specified protocol.
+// The struct must be registered in the type registry (via generated code's init function).
+// The type URI is automatically looked up from the registry based on the struct's reflect type.
+func EncodeStructToAny(value types.WritableStruct, protocol thriftstandard.StandardProtocol) (*thriftany.Any, error) {
+	if value == nil {
+		return nil, errors.New("value is nil")
+	}
+
+	// Look up the URI from the registry using the reflect type.
+	typeURI := types.InternalTypeRegistryGetFromReflectType(reflect.TypeOf(value))
+	if typeURI == "" {
+		return nil, errors.New("type not found in registry")
+	}
+
+	// Serialize the struct to bytes using the specified protocol.
+	var data []byte
+	var err error
+	switch protocol {
+	case thriftstandard.StandardProtocol_Binary:
+		data, err = EncodeBinary(value)
+	case thriftstandard.StandardProtocol_Compact:
+		data, err = EncodeCompact(value)
+	case thriftstandard.StandardProtocol_Json:
+		data, err = EncodeCompactJSON(value)
+	case thriftstandard.StandardProtocol_SimpleJson:
+		data, err = EncodeSimpleJSON(value)
+	default:
+		return nil, errors.New("unsupported protocol")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// Build the type information.
+	typeURIStruct := thriftstandard.NewTypeUri().
+		SetUri(&typeURI)
+
+	typeName := thriftstandard.NewTypeName().
+		SetStructType(typeURIStruct)
+
+	typeStruct := thrifttyperep.NewTypeStruct().
+		SetName(typeName)
+
+	// Build the protocol information.
+	protocolUnion := thrifttyperep.NewProtocolUnion().
+		SetStandard(&protocol)
+
+	// Assemble the Any struct.
+	anyStruct := thriftany.NewAny().
+		SetType(typeStruct).
+		SetProtocol(protocolUnion).
+		SetData(data)
+
+	return anyStruct, nil
+}
+
 func getTypeSpec(typeStruct *thrifttyperep.TypeStruct) (*types.TypeSpec, reflect.Value, error) {
 	typeName := typeStruct.GetName()
 

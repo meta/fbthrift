@@ -69,6 +69,13 @@ impl ::std::default::Default for HackEnum {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for HackEnum {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.0 == 0
+    }
+}
+
 impl<'a> ::std::convert::From<&'a HackEnum> for ::std::primitive::i32 {
     #[inline]
     fn from(x: &'a HackEnum) -> Self {

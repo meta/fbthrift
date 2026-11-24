@@ -17,7 +17,7 @@
 #include <thrift/common/universal_name.h>
 
 #include <regex>
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 

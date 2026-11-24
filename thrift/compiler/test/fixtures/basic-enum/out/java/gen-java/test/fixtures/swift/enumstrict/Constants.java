@@ -24,9 +24,9 @@ public final class Constants {
     public static final Map<test.fixtures.swift.enumstrict.MyEnum, String> ENUM_NAMES = construct_ENUM_NAMES();
 
     private static Map<test.fixtures.swift.enumstrict.MyEnum, String> construct_ENUM_NAMES() {
-        return ImmutableMap.<test.fixtures.swift.enumstrict.MyEnum, String>builder()
-        .put(test.fixtures.swift.enumstrict.MyEnum.ONE, "one")
-        .put(test.fixtures.swift.enumstrict.MyEnum.TWO, "two")
-        .build();
+        ImmutableMap.Builder<test.fixtures.swift.enumstrict.MyEnum, String> builder = ImmutableMap.builder();
+        builder.put(test.fixtures.swift.enumstrict.MyEnum.ONE, "one");
+        builder.put(test.fixtures.swift.enumstrict.MyEnum.TWO, "two");
+        return builder.build();
     }
 }

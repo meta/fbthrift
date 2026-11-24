@@ -495,14 +495,15 @@ void ReconnectingRequestChannel::sendQueuedRequests() {
 }
 
 void ReconnectingRequestChannel::terminateInteraction(InteractionId id) {
-  if (!isChannelGood()) {
-    if (useRequestQueue_) {
-      reconnectRequestChannelWithCallback();
-    } else {
-      reconnectRequestChannel();
-    }
+  auto it = interactionChannels_.find(id);
+  if (it == interactionChannels_.end()) {
+    LOG(DFATAL) << "Terminating an interaction this channel did not register";
+    releaseInteractionId(std::move(id));
+    return;
   }
-  impl_->terminateInteraction(std::move(id));
+  auto channel = std::move(it->second);
+  interactionChannels_.erase(it);
+  channel->terminateInteraction(std::move(id));
 }
 
 InteractionId ReconnectingRequestChannel::createInteraction(
@@ -514,7 +515,9 @@ InteractionId ReconnectingRequestChannel::createInteraction(
       reconnectRequestChannel();
     }
   }
-  return impl_->createInteraction(std::move(name));
+  auto id = impl_->createInteraction(std::move(name));
+  interactionChannels_.emplace(id, impl_);
+  return id;
 }
 
 InteractionId ReconnectingRequestChannel::registerInteraction(
@@ -526,7 +529,9 @@ InteractionId ReconnectingRequestChannel::registerInteraction(
       reconnectRequestChannel();
     }
   }
-  return impl_->registerInteraction(std::move(name), id);
+  auto interactionId = impl_->registerInteraction(std::move(name), id);
+  interactionChannels_.emplace(interactionId, impl_);
+  return interactionId;
 }
 
 } // namespace apache::thrift

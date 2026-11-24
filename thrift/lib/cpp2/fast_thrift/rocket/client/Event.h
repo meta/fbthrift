@@ -19,11 +19,32 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 
+#include <folly/ExceptionWrapper.h>
+#include <folly/io/IOBuf.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Event.h>
 #include <thrift/lib/cpp2/fast_thrift/transport/WriteCompletion.h>
 
+namespace apache::thrift::fast_thrift::rocket {
+struct RocketResponseMessage;
+}
+
 namespace apache::thrift::fast_thrift::rocket::client {
+
+/**
+ * Owned, opaque connection metadata. The event pointer is borrowed during
+ * synchronous dispatch. A consumer may move the metadata out and returns its
+ * acceptance status through result.
+ */
+struct RocketMetadataPush {
+  std::unique_ptr<folly::IOBuf> metadata;
+  channel_pipeline::Result result{channel_pipeline::Result::Success};
+  folly::exception_wrapper error{};
+};
+
+struct MetadataPushEvent : channel_pipeline::EventTag<RocketMetadataPush*> {};
 
 /**
  * `TransportWriteCompleteEvent` reports the outcome of one
@@ -88,6 +109,17 @@ struct RocketWriteCompleteEvent
 struct RocketCancelRequestEvent
     : channel_pipeline::EventTag<RocketCancelRequestEvent> {
   void* requestContext;
+};
+
+/**
+ * Requests local stream retirement and transfers its owned request context
+ * into a terminal response. The response is borrowed only for synchronous
+ * event delivery; subscribers must not retain it. No frame is sent to the peer.
+ */
+struct RocketTerminateStreamEvent
+    : channel_pipeline::EventTag<RocketTerminateStreamEvent> {
+  uint32_t streamId;
+  RocketResponseMessage& response;
 };
 
 /**

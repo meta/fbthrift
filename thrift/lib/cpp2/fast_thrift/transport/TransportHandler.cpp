@@ -28,6 +28,17 @@
 
 namespace apache::thrift::fast_thrift::transport::detail {
 
+bool setSocketBufferCallback(
+    folly::AsyncTransport& transport,
+    folly::AsyncTransport::BufferCallback* callback) noexcept {
+  auto* socket = transport.getUnderlyingTransport<folly::AsyncSocket>();
+  if (socket == nullptr) {
+    return false;
+  }
+  socket->setBufferCallback(callback);
+  return true;
+}
+
 bool requiresMovableReadCallback(
     const folly::AsyncTransport& transport) noexcept {
 #if FOLLY_HAS_LIBURING

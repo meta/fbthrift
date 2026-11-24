@@ -18,6 +18,10 @@
 #include <thrift/lib/cpp2/async/RocketClientChannel.h>
 #include <thrift/lib/cpp2/transport/rocket/payload/PayloadSerializer.h>
 
+#include <stdexcept>
+#include <type_traits>
+#include <utility>
+
 #include <glog/logging.h>
 #include <folly/coro/Sleep.h>
 #include <folly/synchronization/CallOnce.h>
@@ -26,6 +30,44 @@ namespace apache::thrift::stress {
 
 namespace {
 constexpr double kHistogramMax = 1000.0 * 60.0; // 1 minute
+
+static_assert(std::is_same_v<
+              std::remove_cvref_t<
+                  decltype(*std::declval<StorageReadResponse&>().payload())>,
+              std::unique_ptr<folly::IOBuf>>);
+static_assert(
+    std::is_same_v<
+        std::remove_cvref_t<
+            decltype(*std::declval<StorageReadChainResponse&>().payload())>,
+        IOBufChain>);
+
+StorageReadChainRequest makeChainReadRequest(
+    const StorageReadRequest& request) {
+  StorageReadChainRequest result;
+  result.responseBytes() = *request.responseBytes();
+  result.stopTLSv2() = *request.stopTLSv2();
+  return result;
+}
+
+size_t storageReadPayloadLength(const std::unique_ptr<folly::IOBuf>& payload) {
+  return payload ? payload->computeChainDataLength() : 0;
+}
+
+size_t storageReadPayloadLength(const IOBufChain& payload) {
+  return payload.chainLength();
+}
+
+template <typename Response>
+void verifyStorageReadResponse(
+    const Response& response, const StorageReadRequest& request) {
+  const auto expected = *request.responseBytes() > 0
+      ? static_cast<size_t>(*request.responseBytes())
+      : 0;
+  if (storageReadPayloadLength(*response.payload()) != expected) {
+    throw std::runtime_error(
+        "Storage read returned an unexpected payload size");
+  }
+}
 
 folly::coro::Task<void> maybeSleep(const StreamRequest& req) {
   if (auto dur = *req.processInfo()->clientChunkProcessingTimeMs(); dur > 0) {
@@ -43,6 +85,22 @@ void ClientRpcStats::combine(const ClientRpcStats& other) {
 }
 
 // ===== ThriftStressTestClient Implementation =====
+
+folly::coro::Task<void> StressTestClient::readStorageTm(
+    const StorageReadRequest& request) {
+  co_await co_storageReadTm(request);
+}
+
+folly::coro::Task<void> StressTestClient::readStorageEb(
+    const StorageReadRequest& request) {
+  co_await co_storageReadEb(request);
+}
+
+folly::coro::Task<void> StressTestClient::readStorageEbAndVerify(
+    const StorageReadRequest& request) {
+  auto response = co_await co_storageReadEb(request);
+  verifyStorageReadResponse(response, request);
+}
 
 folly::coro::Task<void> ThriftStressTestClient::co_ping() {
   co_await timedExecute([&]() { return client_->co_ping(); });
@@ -239,6 +297,77 @@ folly::coro::Task<StorageReadResponse> ThriftStressTestClient::co_storageReadEb(
     ret = co_await client_->co_storageReadEb(req);
   });
   co_return ret;
+}
+
+folly::coro::Task<void> ThriftStressTestClient::readStorageTm(
+    const StorageReadRequest& request) {
+  StorageReadResponse response;
+  co_await timedExecute([&]() -> folly::coro::Task<void> {
+    response = co_await client_->co_storageReadTm(request);
+  });
+}
+
+folly::coro::Task<void> ThriftStressTestClient::readStorageEb(
+    const StorageReadRequest& request) {
+  StorageReadResponse response;
+  co_await timedExecute([&]() -> folly::coro::Task<void> {
+    response = co_await client_->co_storageReadEb(request);
+  });
+}
+
+folly::coro::Task<void> ThriftStressTestClient::readStorageEbAndVerify(
+    const StorageReadRequest& request) {
+  co_await timedExecute([&]() -> folly::coro::Task<void> {
+    auto response = co_await client_->co_storageReadEb(request);
+    verifyStorageReadResponse(response, request);
+  });
+}
+
+folly::coro::Task<StorageReadChainResponse>
+ChainThriftStressTestClient::co_storageReadChainTm(
+    const StorageReadChainRequest& request) {
+  StorageReadChainResponse response;
+  co_await timedExecute([&]() -> folly::coro::Task<void> {
+    response = co_await client_->co_storageReadChainTm(request);
+  });
+  co_return response;
+}
+
+folly::coro::Task<StorageReadChainResponse>
+ChainThriftStressTestClient::co_storageReadChainEb(
+    const StorageReadChainRequest& request) {
+  StorageReadChainResponse response;
+  co_await timedExecute([&]() -> folly::coro::Task<void> {
+    response = co_await client_->co_storageReadChainEb(request);
+  });
+  co_return response;
+}
+
+folly::coro::Task<void> ChainThriftStressTestClient::readStorageTm(
+    const StorageReadRequest& request) {
+  auto chainRequest = makeChainReadRequest(request);
+  StorageReadChainResponse response;
+  co_await timedExecute([&]() -> folly::coro::Task<void> {
+    response = co_await client_->co_storageReadChainTm(chainRequest);
+  });
+}
+
+folly::coro::Task<void> ChainThriftStressTestClient::readStorageEb(
+    const StorageReadRequest& request) {
+  auto chainRequest = makeChainReadRequest(request);
+  StorageReadChainResponse response;
+  co_await timedExecute([&]() -> folly::coro::Task<void> {
+    response = co_await client_->co_storageReadChainEb(chainRequest);
+  });
+}
+
+folly::coro::Task<void> ChainThriftStressTestClient::readStorageEbAndVerify(
+    const StorageReadRequest& request) {
+  auto chainRequest = makeChainReadRequest(request);
+  co_await timedExecute([&]() -> folly::coro::Task<void> {
+    auto response = co_await client_->co_storageReadChainEb(chainRequest);
+    verifyStorageReadResponse(response, request);
+  });
 }
 
 folly::coro::Task<StorageWriteResponse>

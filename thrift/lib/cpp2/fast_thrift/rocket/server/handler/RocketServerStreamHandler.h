@@ -25,7 +25,6 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/ErrorCode.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameViews.h>
@@ -181,7 +180,7 @@ class RocketServerStreamHandler {
     auto n = static_cast<int32_t>(rawN);
 
     if (n <= 0) {
-      return synthesizeError(
+      return synthesizeErrorOnRead(
           ctx, streamId, "REQUEST_STREAM with invalid initialRequestN");
     }
 
@@ -213,7 +212,7 @@ class RocketServerStreamHandler {
 
     auto increment = static_cast<uint64_t>(rawN);
     if (entry.credits > std::numeric_limits<uint64_t>::max() - increment) {
-      return synthesizeError(
+      return synthesizeErrorOnRead(
           ctx, streamId, "REQUEST_N would overflow credit counter");
     }
     entry.credits += increment;
@@ -234,7 +233,7 @@ class RocketServerStreamHandler {
       return apache::thrift::fast_thrift::channel_pipeline::Result::Success;
     }
 
-    return synthesizeError(
+    return synthesizeErrorOnRead(
         ctx, request.frame.streamId(), "non-ignorable EXT on streaming stream");
   }
 
@@ -298,13 +297,26 @@ class RocketServerStreamHandler {
         apache::thrift::fast_thrift::channel_pipeline::erase_and_box(
             std::move(errorResponse)));
   }
+
+  // On Backpressure the pipeline accepted the ERROR frame. As a read result,
+  // Backpressure would pause reads on the whole connection.
+  template <typename Context>
+  [[nodiscard]] apache::thrift::fast_thrift::channel_pipeline::Result
+  synthesizeErrorOnRead(
+      Context& ctx, uint32_t streamId, std::string description) noexcept {
+    if (synthesizeError(ctx, streamId, std::move(description)) ==
+        apache::thrift::fast_thrift::channel_pipeline::Result::Error) {
+      return apache::thrift::fast_thrift::channel_pipeline::Result::Error;
+    }
+    return apache::thrift::fast_thrift::channel_pipeline::Result::Success;
+  }
 };
 
 // Note: unlike stateless handlers, this handler reaches pipeline-level state
 // via `ctx.state<RocketStreamContexts>()`, which lives on the TypedContext view
-// (not the bare ContextImpl). Handlers never name TypedContext, so the
+// exposed to handlers. The
 // DuplexHandler concept is verified when the handler is added to a
-// state-registering pipeline (see PipelineBuilder::addNextDuplex), matching
-// RocketServerStreamStateHandler.
+// state-registering pipeline (see StaticPipelineBuilder::addNextDuplex),
+// matching RocketServerStreamStateHandler.
 
 } // namespace apache::thrift::fast_thrift::rocket::server::handler

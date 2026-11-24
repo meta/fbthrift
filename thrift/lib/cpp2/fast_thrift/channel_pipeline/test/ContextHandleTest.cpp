@@ -141,25 +141,25 @@ TEST_P(ContextHandleChainTest, InboundNormalAsyncNormalChain) {
   std::thread worker;
   auto a = std::make_unique<MockHandler>();
   a->setOnRead([&](detail::ContextImpl& ctx, TypeErasedBox&& message) {
-    order.push_back("A");
-    message.get<std::unique_ptr<TraceMessage>>()->trace.push_back("A");
+    order.emplace_back("A");
+    message.get<std::unique_ptr<TraceMessage>>()->trace.emplace_back("A");
     return ctx.fireRead(std::move(message));
   });
   auto b = std::make_unique<MockHandler>();
   b->setOnRead([&](detail::ContextImpl& ctx, TypeErasedBox&& message) {
-    order.push_back("B");
-    message.get<std::unique_ptr<TraceMessage>>()->trace.push_back("B");
+    order.emplace_back("B");
+    message.get<std::unique_ptr<TraceMessage>>()->trace.emplace_back("B");
     completeRead(GetParam(), ContextHandle{ctx}, std::move(message), worker);
     return Result::Success;
   });
   auto c = std::make_unique<MockHandler>();
   c->setOnRead([&](detail::ContextImpl& ctx, TypeErasedBox&& message) {
-    order.push_back("C");
-    message.get<std::unique_ptr<TraceMessage>>()->trace.push_back("C");
+    order.emplace_back("C");
+    message.get<std::unique_ptr<TraceMessage>>()->trace.emplace_back("C");
     return ctx.fireRead(std::move(message));
   });
   tail_.setOnReadCallback([&](TypeErasedBox&& message) {
-    order.push_back("Tail");
+    order.emplace_back("Tail");
     tailTrace = message.get<std::unique_ptr<TraceMessage>>()->trace;
     return Result::Success;
   });
@@ -184,25 +184,25 @@ TEST_P(ContextHandleChainTest, OutboundNormalAsyncNormalChain) {
   std::thread worker;
   auto a = std::make_unique<MockHandler>();
   a->setOnWrite([&](detail::ContextImpl& ctx, TypeErasedBox&& message) {
-    order.push_back("A");
-    message.get<std::unique_ptr<TraceMessage>>()->trace.push_back("A");
+    order.emplace_back("A");
+    message.get<std::unique_ptr<TraceMessage>>()->trace.emplace_back("A");
     return ctx.fireWrite(std::move(message));
   });
   auto b = std::make_unique<MockHandler>();
   b->setOnWrite([&](detail::ContextImpl& ctx, TypeErasedBox&& message) {
-    order.push_back("B");
-    message.get<std::unique_ptr<TraceMessage>>()->trace.push_back("B");
+    order.emplace_back("B");
+    message.get<std::unique_ptr<TraceMessage>>()->trace.emplace_back("B");
     completeWrite(GetParam(), ContextHandle{ctx}, std::move(message), worker);
     return Result::Success;
   });
   auto c = std::make_unique<MockHandler>();
   c->setOnWrite([&](detail::ContextImpl& ctx, TypeErasedBox&& message) {
-    order.push_back("C");
-    message.get<std::unique_ptr<TraceMessage>>()->trace.push_back("C");
+    order.emplace_back("C");
+    message.get<std::unique_ptr<TraceMessage>>()->trace.emplace_back("C");
     return ctx.fireWrite(std::move(message));
   });
   head_.setOnWriteCallback([&](TypeErasedBox&& message) {
-    order.push_back("Head");
+    order.emplace_back("Head");
     headTrace = message.get<std::unique_ptr<TraceMessage>>()->trace;
     return Result::Success;
   });
@@ -227,24 +227,24 @@ TEST_P(ContextHandleChainTest, ExceptionNormalAsyncNormalChain) {
   auto a = std::make_unique<MockHandler>();
   a->setOnException(
       [&](detail::ContextImpl& ctx, folly::exception_wrapper&& exception) {
-        order.push_back("A");
+        order.emplace_back("A");
         ctx.fireException(std::move(exception));
       });
   auto b = std::make_unique<MockHandler>();
   b->setOnException(
       [&](detail::ContextImpl& ctx, folly::exception_wrapper&& exception) {
-        order.push_back("B");
+        order.emplace_back("B");
         completeException(
             GetParam(), ContextHandle{ctx}, std::move(exception), worker);
       });
   auto c = std::make_unique<MockHandler>();
   c->setOnException(
       [&](detail::ContextImpl& ctx, folly::exception_wrapper&& exception) {
-        order.push_back("C");
+        order.emplace_back("C");
         ctx.fireException(std::move(exception));
       });
   tail_.setOnExceptionCallback(
-      [&](folly::exception_wrapper&&) { order.push_back("Tail"); });
+      [&](folly::exception_wrapper&&) { order.emplace_back("Tail"); });
   auto pipeline = buildChain(std::move(a), std::move(b), std::move(c));
 
   pipeline->fireException(

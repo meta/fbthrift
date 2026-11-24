@@ -2249,6 +2249,48 @@ foo
 
 ---
 
+#### `array.chunk`
+Partitions an array into consecutive chunks, preserving the input order. Each
+chunk contains at most `chunk_size` elements; the last chunk may be shorter.
+The output length is `ceil(input_length / chunk_size)`.
+
+An empty input produces an empty array. A nonempty input whose length is at most
+`chunk_size` produces a single chunk containing the input array.
+
+**Positional Arguments**:
+- `array` — the array to partition
+
+**Named Arguments**:
+- `chunk_size` (i64, required) — the maximum number of elements in each chunk;
+  must be greater than zero
+
+`chunk_size` must be passed by name: `(array.chunk my_array chunk_size=2)` is
+valid, but `(array.chunk my_array 2)` is an error. Zero and negative chunk sizes
+are also errors, including for an empty input.
+
+<Example>
+
+```whisker title=example.whisker
+{{#let chunks = (array.chunk my_array chunk_size=2)}}
+{{#each (array.enumerate chunks) as |index chunk|}}
+{{index}}:{{#each chunk as |item|}} {{item}}{{/each}}
+{{/each}}
+```
+
+```json title=Context
+{ "my_array": [0, 1, 2, 3, 4] }
+```
+
+```text title=Output
+0: 0 1
+1: 2 3
+2: 4
+```
+
+</Example>
+
+---
+
 #### `array.empty?`
 Checks an array for emptiness. Returns `true` if the array is empty, otherwise
 returns `false`.

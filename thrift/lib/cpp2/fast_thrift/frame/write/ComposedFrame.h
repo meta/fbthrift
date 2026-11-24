@@ -110,7 +110,9 @@ struct ComposedFrame {
         DCHECK(false) << "Unknown FrameType: "
                       << static_cast<uint8_t>(frameType);
     }
+#ifdef NDEBUG
     return false;
+#endif
   }
 
   /// True if this frame terminates the sender's half of the stream
@@ -141,7 +143,9 @@ struct ComposedFrame {
         DCHECK(false) << "Unknown FrameType: "
                       << static_cast<uint8_t>(frameType);
     }
+#ifdef NDEBUG
     return false;
+#endif
   }
 
   /// Produce wire bytes. Consumes the frame. Returns nullptr for
@@ -231,7 +235,9 @@ struct ComposedFrame {
         DCHECK(false) << "Unknown FrameType: "
                       << static_cast<uint8_t>(frameType);
     }
+#ifdef NDEBUG
     return nullptr;
+#endif
   }
 };
 

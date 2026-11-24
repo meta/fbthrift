@@ -158,6 +158,16 @@ TEST(SetTest, Equality) {
   EXPECT_FALSE(set3 == set4);
 }
 
+TEST(SetTest, EmptySetsAreEqualWhetherOrNotTheyAllocated) {
+  auto set1 = makeSet(makeSetType(type_system::TypeSystem::I32()));
+  auto set2 = makeSet(makeSetType(type_system::TypeSystem::I32()));
+  set2.insert(DynamicValue::makeI32(1));
+  set2.clear();
+
+  EXPECT_TRUE(set1 == set2);
+  EXPECT_TRUE(set2 == set1);
+}
+
 TEST(SetTest, TypeMismatch) {
   auto set = makeSet(makeSetType(type_system::TypeSystem::I32()));
 

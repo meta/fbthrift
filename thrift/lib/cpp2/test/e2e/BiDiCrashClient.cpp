@@ -119,7 +119,7 @@ int main(int argc, char* argv[]) {
   auto* evb = evbThread.getEventBase();
 
   auto client =
-      folly::via(evb, [evb, port] {
+      folly::via(evbThread.getEventBaseKeepAlive(), [evb, port] {
         return std::make_unique<Client<detail::test::TestBiDiService>>(
             RocketClientChannel::newChannel(
                 folly::AsyncSocket::newSocket(

@@ -1,0 +1,44 @@
+[manifest]
+name = mvfst
+fbsource_path = xplat/quic
+shipit_project = mvfst
+shipit_fbcode_builder = true
+
+[git]
+repo_url = https://github.com/facebook/mvfst.git
+
+[build]
+builder = cmake
+subdir = .
+
+# Consumers opt in with `mvfst = haberdashery`. haberdashery only has
+# assembly for Linux.
+[features]
+default =
+haberdashery =
+
+[cmake.defines.all(os=linux, feature_haberdashery=on)]
+MVFST_USE_HABERDASHERY = ON
+
+[cmake.defines.test=on]
+BUILD_TESTS = ON
+
+[cmake.defines.all(os=windows, test=on)]
+BUILD_TESTS = OFF
+
+[cmake.defines.test=off]
+BUILD_TESTS = OFF
+
+[dependencies]
+folly
+fizz
+
+[dependencies.all(test=on, not(os=windows))]
+googletest
+
+[dependencies.all(os=linux, feature_haberdashery=on)]
+haberdashery
+
+[shipit.pathmap]
+xplat/quic/public_root = .
+xplat/quic = quic

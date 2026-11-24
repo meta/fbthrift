@@ -20,8 +20,8 @@
 
 #include <folly/logging/xlog.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/transport/test/PassthroughParser.h>
 
 namespace apache::thrift::fast_thrift::bench {
@@ -45,7 +45,7 @@ class TcpServer::ServerAppAdapter {
   ServerAppAdapter() = default;
 
   void setPipeline(
-      apache::thrift::fast_thrift::channel_pipeline::PipelineImpl* pipeline) {
+      apache::thrift::fast_thrift::channel_pipeline::PipelineRef pipeline) {
     pipeline_ = pipeline;
   }
 
@@ -60,8 +60,8 @@ class TcpServer::ServerAppAdapter {
    * Called by the pipeline when a message reaches the application layer.
    * Immediately echoes the message back.
    */
-  Result onRead(
-      channel_pipeline::detail::ContextImpl&, TypeErasedBox&& msg) noexcept {
+  template <typename Context>
+  Result onRead(Context&, TypeErasedBox&& msg) noexcept {
     if (!pipeline_) {
       XLOG(ERR) << "ServerAppAdapter::onRead called with null pipeline";
       return Result::Error;
@@ -73,15 +73,14 @@ class TcpServer::ServerAppAdapter {
 
     auto& bytes = msg.get<BytesPtr>();
     auto response = bytes->clone();
-    (void)pipeline_->fireWrite(TypeErasedBox(std::move(response)));
+    (void)pipeline_.fireWrite(TypeErasedBox(std::move(response)));
     return Result::Success;
   }
 
   void onException(folly::exception_wrapper&& /*e*/) noexcept {}
 
  private:
-  apache::thrift::fast_thrift::channel_pipeline::PipelineImpl* pipeline_{
-      nullptr};
+  apache::thrift::fast_thrift::channel_pipeline::PipelineRef pipeline_;
 };
 
 namespace {
@@ -94,7 +93,7 @@ namespace {
 struct TcpConnection {
   apache::thrift::fast_thrift::transport::test::PassthroughTransportHandler::Ptr
       transportHandler;
-  apache::thrift::fast_thrift::channel_pipeline::PipelineImpl::Ptr pipeline;
+  apache::thrift::fast_thrift::channel_pipeline::PipelineOwner pipeline;
   std::function<void()> closeCb;
   bool closed{false};
 
@@ -143,8 +142,7 @@ class TcpConnectionFactory {
   TcpConnection getConnection(
       folly::AsyncTransport::UniquePtr socket,
       const folly::SocketAddress& /*clientAddr*/,
-      const std::shared_ptr<const connection::PeerSecurityInfo>&
-      /*peerSecurity*/) {
+      std::unique_ptr<connection::PeerSecurityInfo> /*peerSecurity*/) {
     return build_(std::move(socket));
   }
 
@@ -176,23 +174,23 @@ TcpServer::TcpServer(
 
             auto adapter = std::make_unique<ServerAppAdapter>();
 
-            auto pipeline =
-                apache::thrift::fast_thrift::channel_pipeline::PipelineBuilder<
-                    apache::thrift::fast_thrift::transport::test::
-                        PassthroughTransportHandler,
-                    ServerAppAdapter,
-                    apache::thrift::fast_thrift::channel_pipeline::
-                        SimpleBufferAllocator>()
-                    .setEventBase(evb)
-                    .setHead(transportHandler.get())
-                    .setTail(adapter.get())
-                    .setAllocator(&allocator_)
-                    .build();
+            auto pipeline = channel_pipeline::StaticPipelineBuilder<
+                                apache::thrift::fast_thrift::transport::test::
+                                    PassthroughTransportHandler,
+                                ServerAppAdapter,
+                                apache::thrift::fast_thrift::channel_pipeline::
+                                    SimpleBufferAllocator>()
+                                .setEventBase(evb)
+                                .setHead(transportHandler.get())
+                                .setTail(adapter.get())
+                                .setAllocator(&allocator_)
+                                .build();
 
-            adapter->setPipeline(pipeline.get());
+            adapter->setPipeline(channel_pipeline::PipelineRef(*pipeline));
             adapters_.insert(std::move(adapter));
 
-            transportHandler->setPipeline(pipeline.get());
+            transportHandler->setPipeline(
+                channel_pipeline::PipelineRef(*pipeline));
 
             if (zeroCopyThreshold_ > 0) {
               if (!transportHandler->setZeroCopy(true)) {

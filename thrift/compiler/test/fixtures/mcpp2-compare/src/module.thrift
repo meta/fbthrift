@@ -502,13 +502,9 @@ service ParamService {
     7: UnorderedMapStruct map_struct_type,
     8: IOBuf iobuf_type,
     9: IOBufPtr iobuf_ptr,
-    @cpp.Type{template = "std::list"}
     10: list<i32> list_i32_template,
-    @cpp.Type{template = "std::deque"}
     11: list<string> list_string_template,
-    @cpp.Type{template = "folly::sorted_vector_set"}
     12: set<string> set_template,
-    @cpp.Type{template = "folly::sorted_vector_map"}
     13: map<i64, string> map_template,
     14: std_list typedef_list_template,
     15: std_deque typedef_deque_template,

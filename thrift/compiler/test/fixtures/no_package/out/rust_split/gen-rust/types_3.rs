@@ -19,6 +19,13 @@ impl ::std::default::Default for UnionToBeRenamed {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for UnionToBeRenamed {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        ::std::matches!(self, Self::UnknownField(_))
+    }
+}
+
 impl ::fbthrift::GetTType for UnionToBeRenamed {
     const TTYPE: ::fbthrift::TType = ::fbthrift::TType::Struct;
 }

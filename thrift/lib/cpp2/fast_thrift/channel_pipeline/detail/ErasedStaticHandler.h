@@ -17,7 +17,6 @@
 #pragma once
 
 #include <folly/ExceptionWrapper.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Backpressure.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/StaticHandlerContext.h>
 
@@ -42,20 +41,6 @@ class ErasedStaticHandlerSlot {
   H& handler() noexcept { return handler_; }
   Context& context() noexcept { return context_; }
 
-  WriteReadyHook* writeReadyHook() noexcept {
-    if constexpr (requires(H& handler) { handler.writeReadyHook_; }) {
-      return &handler_.writeReadyHook_;
-    }
-    return nullptr;
-  }
-
-  ReadReadyHook* readReadyHook() noexcept {
-    if constexpr (requires(H& handler) { handler.readReadyHook_; }) {
-      return &handler_.readReadyHook_;
-    }
-    return nullptr;
-  }
-
  private:
   H handler_;
   StaticHandlerContext context_;
@@ -74,8 +59,10 @@ class ErasedStaticHandler {
     void (*handlerAdded)(void*) noexcept;
     void (*handlerRemoved)(void*) noexcept;
     void (*fireEvent)(void*, EventKey, const void*) noexcept;
-    WriteReadyHook* (*writeReadyHook)(void*) noexcept;
-    ReadReadyHook* (*readReadyHook)(void*) noexcept;
+    // A handler may wait for write ready if it has onWriteReady(), and for read
+    // ready if it has onReadReady(), whatever its direction.
+    bool handlesWriteReady;
+    bool handlesReadReady;
     void (*bindContext)(
         void*, void*, const StaticHandlerContextOps&, std::size_t) noexcept;
     void (*destroy)(void*) noexcept;
@@ -124,12 +111,8 @@ class ErasedStaticHandler {
   void fireEvent(EventKey key, const void* payload) noexcept {
     ops_->fireEvent(owner_, key, payload);
   }
-  WriteReadyHook* writeReadyHook() noexcept {
-    return ops_->writeReadyHook(owner_);
-  }
-  ReadReadyHook* readReadyHook() noexcept {
-    return ops_->readReadyHook(owner_);
-  }
+  bool handlesWriteReady() const noexcept { return ops_->handlesWriteReady; }
+  bool handlesReadReady() const noexcept { return ops_->handlesReadReady; }
 
   template <typename H, typename... Args>
   static ErasedStaticHandler make(HandlerId id, Args&&... args) {
@@ -192,6 +175,7 @@ class ErasedStaticHandler {
         InboundHandler<H, Context> || OutboundHandler<H, Context> ||
         DuplexHandler<H, Context>);
     static_assert(HandlerLifecycle<H, Context>);
+    checkReadyCallbacks<H, Context>();
     Ops ops{};
     ops.onRead = [](void* p, TypeErasedBox&& msg) noexcept {
       auto& slot = *static_cast<Slot*>(p);
@@ -219,13 +203,13 @@ class ErasedStaticHandler {
     };
     ops.onWriteReady = [](void* p) noexcept {
       auto& slot = *static_cast<Slot*>(p);
-      if constexpr (OutboundHandler<H, Context>) {
+      if constexpr (WriteReadyHandler<H, Context>) {
         slot.handler().onWriteReady(slot.context());
       }
     };
     ops.onReadReady = [](void* p) noexcept {
       auto& slot = *static_cast<Slot*>(p);
-      if constexpr (InboundHandler<H, Context>) {
+      if constexpr (ReadReadyHandler<H, Context>) {
         slot.handler().onReadReady(slot.context());
       }
     };
@@ -269,12 +253,8 @@ class ErasedStaticHandler {
             typename H::SubscribedEvents{});
       }
     };
-    ops.writeReadyHook = [](void* p) noexcept -> WriteReadyHook* {
-      return static_cast<Slot*>(p)->writeReadyHook();
-    };
-    ops.readReadyHook = [](void* p) noexcept -> ReadReadyHook* {
-      return static_cast<Slot*>(p)->readReadyHook();
-    };
+    ops.handlesWriteReady = WriteReadyHandler<H, Context>;
+    ops.handlesReadReady = ReadReadyHandler<H, Context>;
     ops.bindContext = [](void* p,
                          void* pipeline,
                          const StaticHandlerContextOps& contextOps,
@@ -290,7 +270,8 @@ class ErasedStaticHandler {
   const Ops* ops_{nullptr};
 };
 
-static_assert(sizeof(ErasedStaticHandler) == 3 * sizeof(void*));
+static_assert(
+    sizeof(ErasedStaticHandler) == sizeof(HandlerId) + 2 * sizeof(void*));
 
 template <typename H, typename... Args>
 ErasedStaticHandler makeErasedStaticHandler(HandlerId id, Args&&... args) {

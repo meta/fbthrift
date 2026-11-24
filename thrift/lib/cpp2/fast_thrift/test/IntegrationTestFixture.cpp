@@ -17,7 +17,7 @@
 #include <thrift/lib/cpp2/fast_thrift/test/IntegrationTestFixture.h>
 
 #include <folly/io/async/AsyncSocket.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/transport/test/PassthroughParser.h>
 
 namespace apache::thrift::fast_thrift::test {
@@ -47,15 +47,14 @@ class ConnectCallback : public folly::AsyncSocket::ConnectCallback {
 TestServerConnection TestServerConnectionFactory::getConnection(
     folly::AsyncTransport::UniquePtr socket,
     const folly::SocketAddress& /*clientAddr*/,
-    const std::shared_ptr<
-        const apache::thrift::fast_thrift::connection::PeerSecurityInfo>&
+    std::unique_ptr<apache::thrift::fast_thrift::connection::PeerSecurityInfo>
     /*peerSecurity*/) {
   auto* evb = socket->getEventBase();
   auto transportHandler = apache::thrift::fast_thrift::transport::test::
       PassthroughTransportHandler::create(std::move(socket));
 
   auto pipeline =
-      apache::thrift::fast_thrift::channel_pipeline::PipelineBuilder<
+      apache::thrift::fast_thrift::channel_pipeline::StaticPipelineBuilder<
           ServerTransportHandler,
           TestServerAppAdapter,
           apache::thrift::fast_thrift::channel_pipeline::
@@ -65,8 +64,8 @@ TestServerConnection TestServerConnectionFactory::getConnection(
           .setTail(appAdapter_)
           .setAllocator(allocator_)
           .build();
-  appAdapter_->setPipeline(pipeline.get());
-  transportHandler->setPipeline(pipeline.get());
+  appAdapter_->setPipeline(channel_pipeline::PipelineRef(*pipeline));
+  transportHandler->setPipeline(channel_pipeline::PipelineRef(*pipeline));
 
   TestServerConnection conn;
   conn.transportHandler = std::move(transportHandler);
@@ -112,7 +111,7 @@ ClientConnection& IntegrationTestFixture::connectClient() {
     auto transportHandler = ClientTransportHandler::create(std::move(socket));
 
     auto pipeline =
-        apache::thrift::fast_thrift::channel_pipeline::PipelineBuilder<
+        apache::thrift::fast_thrift::channel_pipeline::StaticPipelineBuilder<
             ClientTransportHandler,
             TestClientAppAdapter,
             apache::thrift::fast_thrift::channel_pipeline::
@@ -123,8 +122,9 @@ ClientConnection& IntegrationTestFixture::connectClient() {
             .setAllocator(&clientAllocator_)
             .build();
 
-    transportHandler->setPipeline(pipeline.get());
-    clientConnection_.appAdapter.setPipeline(pipeline.get());
+    transportHandler->setPipeline(channel_pipeline::PipelineRef(*pipeline));
+    clientConnection_.appAdapter.setPipeline(
+        channel_pipeline::PipelineRef(*pipeline));
     clientConnection_.appAdapter.setEventBase(evb);
 
     clientConnection_.transportHandler = std::move(transportHandler);
@@ -147,6 +147,7 @@ void IntegrationTestFixture::disconnectClient() {
         clientConnection_.transportHandler->close(folly::exception_wrapper{});
         clientConnection_.transportHandler->resetPipeline();
       }
+      clientConnection_.appAdapter.setPipeline({});
       clientConnection_.pipeline.reset();
       clientConnection_.transportHandler.reset();
     });

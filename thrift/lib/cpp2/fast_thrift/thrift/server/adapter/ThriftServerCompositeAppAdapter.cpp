@@ -16,15 +16,19 @@
 
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/adapter/ThriftServerCompositeAppAdapter.h>
 
+#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
 
+#include <folly/io/async/Request.h>
 #include <folly/logging/xlog.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/event_handler/Cpp2BridgeExtension.h>
 
 #include <thrift/lib/cpp2/fast_thrift/thrift/common/ThriftResponsePayloads.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/Event.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/Messages.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/util/RequestMetadata.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/util/ResponsePayloads.h>
 
 namespace apache::thrift::fast_thrift::thrift {
@@ -46,23 +50,28 @@ void ThriftServerCompositeAppAdapter::setCloseCallback(
 
 channel_pipeline::Result ThriftServerCompositeAppAdapter::onReadImpl(
     channel_pipeline::TypeErasedBox&& msg) noexcept {
-  const auto& request = msg.get<ThriftServerRequestMessage>();
+  auto& request = msg.get<ThriftServerRequestMessage>();
   DCHECK(request.streamId != 0) << "Invalid stream ID";
 
   const auto routing = getServerRequestRoutingMetadata(request);
-  if (FOLLY_UNLIKELY(
-          routing.status == ServerRequestRoutingStatus::MissingMetadata)) {
-    return writeUnknownMethodError(request.streamId, {});
+  if (routing.status == ServerRequestRoutingStatus::MissingMetadata)
+      [[unlikely]] {
+    return writeUnknownMethodError(
+        request.streamId, {}, std::move(request.requestContext));
   }
-  if (FOLLY_UNLIKELY(
-          routing.status == ServerRequestRoutingStatus::UnsupportedRpcKind)) {
-    return writeWrongRpcKindError(request.streamId, routing.kind);
+  if (routing.status == ServerRequestRoutingStatus::UnsupportedRpcKind)
+      [[unlikely]] {
+    return writeWrongRpcKindError(
+        request.streamId, routing.kind, std::move(request.requestContext));
   }
 
   if (routingTable_) {
     const auto* route = routingTable_->find(routing.methodName);
-    if (FOLLY_UNLIKELY(route == nullptr)) {
-      return writeUnknownMethodError(request.streamId, routing.methodName);
+    if (route == nullptr) [[unlikely]] {
+      return writeUnknownMethodError(
+          request.streamId,
+          routing.methodName,
+          std::move(request.requestContext));
     }
     DCHECK_LT(route->childIndex, children_.size());
     return route->dispatch(
@@ -74,7 +83,8 @@ channel_pipeline::Result ThriftServerCompositeAppAdapter::onReadImpl(
       return child.adapter->dispatchRequest(std::move(msg));
     }
   }
-  return writeUnknownMethodError(request.streamId, routing.methodName);
+  return writeUnknownMethodError(
+      request.streamId, routing.methodName, std::move(request.requestContext));
 }
 
 void ThriftServerCompositeAppAdapter::onException(
@@ -95,6 +105,8 @@ void ThriftServerCompositeAppAdapter::onException(
 
 void ThriftServerCompositeAppAdapter::setPipeline(
     channel_pipeline::PipelineRef pipeline) noexcept {
+  CHECK(pipeline.eventBase() != nullptr)
+      << "ThriftServerCompositeAppAdapter requires a pipeline EventBase";
   pipeline_ = pipeline;
   pipelineGuard_ = pipeline_.guard();
   for (auto& child : children_) {
@@ -164,34 +176,48 @@ void ThriftServerCompositeAppAdapter::onWriteReady() noexcept {
 
 channel_pipeline::Result
 ThriftServerCompositeAppAdapter::writeUnknownMethodError(
-    uint32_t streamId, std::string_view methodName) noexcept {
-  return writeFrameworkError(makeUnknownMethodMessage(streamId, methodName));
+    uint32_t streamId,
+    std::string_view methodName,
+    ThriftRequestContextPtr requestContext) noexcept {
+  return writeFrameworkError(
+      makeUnknownMethodMessage(streamId, methodName),
+      std::move(requestContext));
 }
 
 channel_pipeline::Result
 ThriftServerCompositeAppAdapter::writeWrongRpcKindError(
-    uint32_t streamId, apache::thrift::RpcKind kind) noexcept {
+    uint32_t streamId,
+    apache::thrift::RpcKind kind,
+    ThriftRequestContextPtr requestContext) noexcept {
   XLOG_EVERY_MS(ERR, 60'000)
       << "Unsupported RPC kind: " << static_cast<int>(kind);
-  return writeFrameworkError(makeWrongRpcKindMessage(streamId, kind));
+  return writeFrameworkError(
+      makeWrongRpcKindMessage(streamId, kind), std::move(requestContext));
 }
 
 channel_pipeline::Result ThriftServerCompositeAppAdapter::writeFrameworkError(
-    ThriftServerResponseMessage&& message) noexcept {
-  if (FOLLY_UNLIKELY(!pipeline_)) {
+    ThriftServerResponseMessage&& message,
+    ThriftRequestContextPtr requestContext) noexcept {
+  message.requestContext = std::move(requestContext);
+  std::optional<server::RequestContextScopeGuard> requestContextGuard;
+  if (message.requestContext != nullptr) {
+    requestContextGuard.emplace(message.requestContext.get());
+  }
+  if (!pipeline_) [[unlikely]] {
     XLOG(ERR) << "Pipeline not set, cannot send framework error";
+    message.requestContext.reset();
     return channel_pipeline::Result::Error;
   }
   auto result =
       pipeline_.fireWrite(channel_pipeline::erase_and_box(std::move(message)));
-  if (FOLLY_UNLIKELY(result == channel_pipeline::Result::Error)) {
+  if (result == channel_pipeline::Result::Error) [[unlikely]] {
     pipeline_.deactivate();
   }
   return result;
 }
 
 void ThriftServerCompositeAppAdapter::close() noexcept {
-  if (FOLLY_UNLIKELY(!pipeline_)) {
+  if (!pipeline_) [[unlikely]] {
     return;
   }
   pipeline_.bindEvents<PublishedEvents>()

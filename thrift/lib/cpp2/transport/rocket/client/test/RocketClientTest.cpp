@@ -30,6 +30,7 @@
 #include <gtest/gtest.h>
 
 #include <folly/Portability.h>
+#include <folly/ScopeGuard.h>
 #include <folly/Try.h>
 #include <folly/futures/Future.h>
 #include <folly/io/async/AsyncSocket.h>
@@ -40,6 +41,7 @@
 #include <thrift/lib/cpp/transport/TTransportException.h>
 #include <thrift/lib/cpp/util/EnumUtils.h>
 #include <thrift/lib/cpp2/FieldRef.h>
+#include <thrift/lib/cpp2/Flags.h>
 #include <thrift/lib/cpp2/async/ClientChannel.h>
 #include <thrift/lib/cpp2/async/RocketClientChannel.h>
 #include <thrift/lib/cpp2/async/StreamCallbacks.h>
@@ -175,6 +177,52 @@ class TestRocketClient : public apache::thrift::rocket::RocketClient {
       RequestSetupMetadata&& setupMetadata)
       : RocketClient(evb, std::move(socket), std::move(setupMetadata)) {}
 };
+
+TEST_F(RocketClientTest, ParserOverrideIsPerChannel) {
+  THRIFT_FLAG_SET_MOCK(rocket_frame_parser, "allocating");
+  SCOPE_EXIT {
+    THRIFT_FLAG_UNMOCK(rocket_frame_parser);
+  };
+  ScopedServerInterfaceThread runner(std::make_shared<TestInterface>());
+  folly::EventBase evb;
+  auto makeSocket = [&] {
+    return folly::AsyncSocket::newSocket(&evb, runner.getAddress());
+  };
+
+  auto native = RocketClientChannel::newChannel(makeSocket());
+  RocketClientChannelOptions chainOptions;
+  chainOptions.frameParser = "iobuf_chain";
+  auto chain =
+      RocketClientChannel::newChannelWithOptions(makeSocket(), chainOptions);
+  EXPECT_FALSE(native->getTransport()->getReadCallback()->isBufferMovable());
+  EXPECT_TRUE(chain->getTransport()->getReadCallback()->isBufferMovable());
+  EXPECT_EQ("allocating", THRIFT_FLAG(rocket_frame_parser));
+
+  THRIFT_FLAG_SET_MOCK(rocket_frame_parser, "iobuf_chain");
+  auto defaultChain = RocketClientChannel::newChannelWithMetadata(
+      makeSocket(), RequestSetupMetadata{});
+  RocketClientChannelOptions nativeOptions;
+  nativeOptions.frameParser = "allocating";
+  auto explicitNative = RocketClientChannel::newChannelWithOptions(
+      makeSocket(), nativeOptions, RequestSetupMetadata{});
+  EXPECT_TRUE(
+      defaultChain->getTransport()->getReadCallback()->isBufferMovable());
+  EXPECT_FALSE(
+      explicitNative->getTransport()->getReadCallback()->isBufferMovable());
+  EXPECT_FALSE(native->getTransport()->getReadCallback()->isBufferMovable());
+  EXPECT_TRUE(chain->getTransport()->getReadCallback()->isBufferMovable());
+
+  auto directClient = rocket::RocketClient::create(
+      evb,
+      makeSocket(),
+      RequestSetupMetadata{},
+      0,
+      nullptr,
+      std::string("allocating"));
+  EXPECT_FALSE(directClient->getTransportWrapper()
+                   ->getReadCallback()
+                   ->isBufferMovable());
+}
 
 // These tests rely on ASAN to catch RocketClient destruction use-after-free, so
 // they are no-ops under non-ASAN builds. Early-return (rather than GTEST_SKIP)

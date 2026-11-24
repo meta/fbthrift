@@ -25,43 +25,9 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/Messages.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/util/RequestMetadata.h>
 
 namespace apache::thrift::fast_thrift::thrift {
-
-enum class ServerRequestRoutingStatus {
-  MissingMetadata,
-  UnsupportedRpcKind,
-  Ready,
-};
-
-struct ServerRequestRoutingMetadata {
-  std::string_view methodName;
-  apache::thrift::RpcKind kind{static_cast<apache::thrift::RpcKind>(-1)};
-  ServerRequestRoutingStatus status{
-      ServerRequestRoutingStatus::MissingMetadata};
-};
-
-inline ServerRequestRoutingMetadata getServerRequestRoutingMetadata(
-    const ThriftServerRequestMessage& request) noexcept {
-  const auto* metadata = request.payload.getRequestRpcMetadata();
-  if (metadata == nullptr) {
-    return {};
-  }
-  const auto kind =
-      metadata->kind().value_or(static_cast<apache::thrift::RpcKind>(-1));
-  if (kind != apache::thrift::RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE &&
-      kind != apache::thrift::RpcKind::SINGLE_REQUEST_STREAMING_RESPONSE) {
-    return {{}, kind, ServerRequestRoutingStatus::UnsupportedRpcKind};
-  }
-  std::string_view methodName;
-  if (request.requestContext != nullptr &&
-      !request.requestContext->getMethodName().empty()) {
-    methodName = request.requestContext->getMethodName();
-  } else if (auto name = metadata->name(); name.has_value()) {
-    methodName = name->view();
-  }
-  return {methodName, kind, ServerRequestRoutingStatus::Ready};
-}
 
 /**
  * ServerInboundAppAdapter — server-side inbound endpoint concept. The

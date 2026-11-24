@@ -18,6 +18,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <type_traits>
 
 #include <folly/CPortability.h>
 #include <folly/io/async/EventBase.h>
@@ -41,8 +42,6 @@ namespace detail {
  * - Access to the owning pipeline
  * - Buffer allocation
  * - EventBase access
- *
- * ContextImpl satisfies the ContextApi concept defined in context.h.
  *
  * Contexts are strictly owned by PipelineImpl and share its lifetime.
  * They do not need independent delayed destruction - the pipeline's
@@ -83,19 +82,20 @@ class alignas(64) ContextImpl {
   // === Fire methods (propagate to next handler) ===
 
   /**
-   * Propagate pipeline activation to the next inbound handler.
-   * Direction: tail → head (increasing index)
+   * Does nothing. PipelineImpl::activate() notifies every handler from the
+   * head to the tail, so a handler does not pass activation on.
    */
   void activate() noexcept;
 
   /**
    * Fire a read event to the next inbound handler.
-   * Direction: tail → head (increasing index)
+   * Direction: head → tail (increasing index)
    *
    * Uses cached next-handler pointer — no PipelineImpl round-trip.
    *
    * @param msg The message to propagate
-   * @return Result from the next handler (or head endpoint at head)
+   * @return Result from the next handler, or from the tail endpoint for the
+   *         last handler
    */
   FOLLY_ALWAYS_INLINE Result fireRead(TypeErasedBox&& msg) noexcept {
     return nextReadFn_(nextHandler_, *nextCtx_, std::move(msg));
@@ -103,12 +103,13 @@ class alignas(64) ContextImpl {
 
   /**
    * Fire a write event to the next outbound handler.
-   * Direction: head → tail (decreasing index)
+   * Direction: tail → head (decreasing index)
    *
    * Uses cached prev-handler pointer — no PipelineImpl round-trip.
    *
    * @param msg The message to propagate
-   * @return Result from the next handler (or tail endpoint at tail)
+   * @return Result from the next handler, or from the head endpoint for
+   *         handler 0
    */
   FOLLY_ALWAYS_INLINE Result fireWrite(TypeErasedBox&& msg) noexcept {
     return prevWriteFn_(prevHandler_, *prevCtx_, std::move(msg));
@@ -116,7 +117,7 @@ class alignas(64) ContextImpl {
 
   /**
    * Fire an exception event to the next inbound handler.
-   * Direction: tail → head (increasing index)
+   * Direction: head → tail (increasing index)
    *
    * Uses cached next-handler pointer — no PipelineImpl round-trip.
    *
@@ -152,8 +153,9 @@ class alignas(64) ContextImpl {
   }
 
   /**
-   * Propagate pipeline deactivation to the next outbound handler.
-   * Direction: head → tail (decreasing index)
+   * Deactivates this handler and then each handler nearer the head
+   * (decreasing index). From an endpoint's context it deactivates the whole
+   * pipeline.
    */
   void deactivate() noexcept;
 
@@ -204,24 +206,31 @@ class alignas(64) ContextImpl {
   // === Backpressure / Ready Registration ===
 
   /**
-   * Register this handler to receive onWriteReady() callback.
+   * Asks for an onWriteReady() call when the pipeline can take writes again.
    *
-   * Call this only after a fireWrite() that returned Result::Backpressure.
-   * The transport calls onWriteReady() only after it returned Backpressure
-   * to a write, so a handler that registers for any other reason may never
-   * get onWriteReady(). The handler must have a writeReadyHook_ member
-   * (detected at compile time).
+   * Call it after a fireWrite() that returned Backpressure. That message was
+   * accepted, so do not resend it. Queue the messages after it and send them
+   * from onWriteReady().
    *
-   * No-op if the handler doesn't have a writeReadyHook_ or is already
-   * registered.
+   * A handler that waits for its own reason, such as a full send window, must
+   * start the pass itself with ctx.pipeline()->onWriteReady() when that reason
+   * clears, or it may never get onWriteReady().
+   *
+   * Any handler with onWriteReady() can wait, whatever its direction. Does
+   * nothing if the handler has no onWriteReady(), already waits, or the
+   * pipeline is closed.
+   *
+   * The head endpoint may wait if it has onWriteReady(). The tail endpoint
+   * must not call this or cancelAwaitWriteReady(), because its context acts on
+   * the head endpoint's wait.
    */
   void awaitWriteReady() noexcept;
 
   /**
    * Cancel pending await for write ready.
    *
-   * Call this after successfully processing buffered messages to unregister
-   * from the write ready list.
+   * Call this after successfully processing buffered messages to stop waiting
+   * for onWriteReady().
    *
    * No-op if not currently awaiting.
    */
@@ -233,10 +242,15 @@ class alignas(64) ContextImpl {
   bool isAwaitingWriteReady() const noexcept;
 
   /**
-   * Register this handler to receive onReadReady() callback.
+   * Asks for an onReadReady() call in a read-ready pass.
    *
-   * Use this when an inbound handler needs to be notified to resume processing
-   * after it returned Result::Backpressure from onRead().
+   * Call this after a fireRead() that returned Backpressure, or after this
+   * handler returned Backpressure from onRead(). The code that clears the
+   * block starts the pass with ctx.pipeline()->onReadReady().
+   *
+   * Any handler with onReadReady() can wait, whatever its direction. Does
+   * nothing if the handler has no onReadReady(), already waits, or the
+   * pipeline is closed.
    */
   void awaitReadReady() noexcept;
 
@@ -258,12 +272,8 @@ class alignas(64) ContextImpl {
   size_t handlerIndex() const noexcept { return handlerIndex_; }
 
   /**
-   * Raw storage for this context's persistent TypedContext view (see
-   * TypedContext.h). A TypedContext is a reference wrapper, so its size and
-   * alignment are independent of the registered state types — a pointer-sized,
-   * pointer-aligned slot holds any of them. Populated once by the builder for
-   * state-using pipelines (after contexts are finalized), left untouched
-   * otherwise. Used only by the TypedContext helpers.
+   * Raw storage for a persistent stateful view, initialized after context
+   * storage and pipeline state are finalized. It shares the context's lifetime.
    */
   void* typedViewStorage() noexcept { return &typedViewStorage_; }
 
@@ -272,10 +282,9 @@ class alignas(64) ContextImpl {
   void fireTypeEventFromRoute(
       std::size_t routeIndex, EventKey key, const void* payload) noexcept;
 
-  // The first cache line contains the pipeline/EventBase pointers and both
-  // read/write dispatch triples used by continuation completion.
+  // The first cache line holds the pipeline, persistent view and dispatch.
   PipelineImpl* pipeline_;
-  folly::EventBase* eventBase_;
+  alignas(void*) unsigned char typedViewStorage_[sizeof(void*)];
 
   Result (*nextReadFn_)(void*, ContextImpl&, TypeErasedBox&&) noexcept {
       nullptr};
@@ -289,9 +298,7 @@ class alignas(64) ContextImpl {
 
   void* allocator_; // Type-erased BufferAllocator
   void* pipelineState_{nullptr}; // Type-erased pipeline-level state
-  // Storage for the per-context TypedContext view (constructed by the builder
-  // for state-using pipelines). Sized/aligned for a reference wrapper.
-  alignas(void*) unsigned char typedViewStorage_[sizeof(void*)];
+  folly::EventBase* eventBase_;
   size_t handlerIndex_;
   HandlerId handlerId_;
 
@@ -299,8 +306,8 @@ class alignas(64) ContextImpl {
       void*, ContextImpl&, folly::exception_wrapper&&) noexcept {nullptr};
 
   // Offset of this publisher's compile-time-ordered routes. On 64-bit targets
-  // this occupies former tail padding and keeps ContextImpl at two cache lines;
-  // on 32-bit targets the context fits in one cache line.
+  // this occupies former tail padding and keeps ContextImpl at two cache
+  // lines; on 32-bit targets the context fits in one cache line.
   std::uint32_t typeEventRouteOffset_{0};
 
   friend class ::apache::thrift::fast_thrift::channel_pipeline::PipelineImpl;

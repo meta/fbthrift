@@ -177,14 +177,14 @@ std::partial_ordering Limits::operator<=>([[maybe_unused]] const Limits& rhs) co
 
 void swap([[maybe_unused]] Limits& a, [[maybe_unused]] Limits& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_max_i64_field, b.__fbthrift_field_max_i64_field);
-  swap(a.__fbthrift_field_min_i64_field, b.__fbthrift_field_min_i64_field);
-  swap(a.__fbthrift_field_max_i32_field, b.__fbthrift_field_max_i32_field);
-  swap(a.__fbthrift_field_min_i32_field, b.__fbthrift_field_min_i32_field);
-  swap(a.__fbthrift_field_max_i16_field, b.__fbthrift_field_max_i16_field);
-  swap(a.__fbthrift_field_min_i16_field, b.__fbthrift_field_min_i16_field);
-  swap(a.__fbthrift_field_max_byte_field, b.__fbthrift_field_max_byte_field);
-  swap(a.__fbthrift_field_min_byte_field, b.__fbthrift_field_min_byte_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_max_i64_field, b.__fbthrift_field_max_i64_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_min_i64_field, b.__fbthrift_field_min_i64_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_max_i32_field, b.__fbthrift_field_max_i32_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_min_i32_field, b.__fbthrift_field_min_i32_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_max_i16_field, b.__fbthrift_field_max_i16_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_min_i16_field, b.__fbthrift_field_min_i16_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_max_byte_field, b.__fbthrift_field_max_byte_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_min_byte_field, b.__fbthrift_field_min_byte_field);
   swap(a.__isset, b.__isset);
 }
 

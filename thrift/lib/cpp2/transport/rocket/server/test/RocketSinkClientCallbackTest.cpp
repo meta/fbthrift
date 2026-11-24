@@ -18,6 +18,7 @@
 #include <folly/portability/GTest.h>
 #include <thrift/lib/cpp2/protocol/Serializer.h>
 #include <thrift/lib/cpp2/transport/rocket/RocketException.h>
+#include <thrift/lib/cpp2/transport/rocket/framing/test/Util.h>
 #include <thrift/lib/cpp2/transport/rocket/server/RocketSinkClientCallback.h>
 #include <thrift/lib/cpp2/transport/rocket/server/test/MockIRocketServerConnection.h>
 #include <thrift/lib/cpp2/transport/rocket/server/test/ThrowingPayloadSerializer.h>
@@ -58,6 +59,13 @@ class RocketSinkClientCallbackTest : public ::testing::Test {
   NiceMock<MockSinkServerCallback> serverCallback_;
   std::unique_ptr<RocketSinkClientCallback> callback_;
 };
+
+template <typename Buffer>
+class RocketSinkClientCallbackFrameTest : public RocketSinkClientCallbackTest {
+};
+using SinkFrameBuffers =
+    ::testing::Types<std::unique_ptr<folly::IOBuf>, IOBufChain>;
+TYPED_TEST_SUITE(RocketSinkClientCallbackFrameTest, SinkFrameBuffers);
 
 TEST_F(RocketSinkClientCallbackTest, HandlePayloadOnSinkNext) {
   makeReady();
@@ -158,13 +166,21 @@ TEST_F(RocketSinkClientCallbackTest, HandleCancelClosesConnection) {
   callback_->handleFrame(std::move(frame));
 }
 
-TEST_F(RocketSinkClientCallbackTest, HandleExtClosesConnection) {
-  makeReady();
+TYPED_TEST(RocketSinkClientCallbackFrameTest, HandleExtClosesConnection) {
+  this->makeReady();
 
-  EXPECT_CALL(connection_, close(_)).Times(1);
+  EXPECT_CALL(this->connection_, close(_)).Times(1);
 
-  ExtFrame frame(kStreamId, Payload{}, Flags(), ExtFrameType::UNKNOWN);
-  callback_->handleFrame(std::move(frame));
+  ExtFrame frame(
+      this->kStreamId,
+      Payload::makeFromData(folly::IOBuf::create(0)),
+      Flags(),
+      ExtFrameType::UNKNOWN);
+  auto decoded = roundTripFrame<TypeParam>(std::move(frame));
+  EXPECT_EQ(
+      (std::is_same_v<TypeParam, IOBufChain>),
+      decoded.payload().usesIOBufChain());
+  this->callback_->handleFrame(std::move(decoded));
 }
 
 TEST_F(RocketSinkClientCallbackTest, HandlePayloadFragmentReassembly) {

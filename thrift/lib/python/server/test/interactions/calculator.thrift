@@ -57,6 +57,8 @@ struct CounterSnapshot {
 
 interaction Counter {
   void add(1: i32 n);
+  // returns the value of the request header `key`, or "" if absent.
+  string readHeader(1: string key);
   i32 get();
   void reset();
   // @lint-ignore THRIFTCHECKS avoid-oneway-method (oneway-in-interaction coverage)

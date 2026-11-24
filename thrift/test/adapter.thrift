@@ -60,8 +60,11 @@ typedef AdaptedBool DoubleTypedefBool
 
 @thrift.AllowLegacyTypedefUri
 @cpp.Type{name = "::folly::IOBuf"}
+typedef binary CustomProtocolIOBuf
+
+@thrift.AllowLegacyTypedefUri
 @cpp.Adapter{name = "::apache::thrift::test::CustomProtocolAdapter"}
-typedef binary CustomProtocolType
+typedef CustomProtocolIOBuf CustomProtocolType
 
 @thrift.AllowLegacyTypedefUri
 @cpp.Adapter{

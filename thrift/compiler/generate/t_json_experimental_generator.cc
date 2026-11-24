@@ -29,8 +29,10 @@ std::string get_filepath(
   if (auto full_path = sm.found_include_file(path)) {
     path = std::move(*full_path);
   }
+  // `weakly_canonical` because bundled standard library files (e.g.
+  // thrift/annotation/*.thrift) are virtual and may not exist on disk.
   return std::filesystem::relative(
-             std::filesystem::canonical(std::filesystem::path(path)),
+             std::filesystem::weakly_canonical(std::filesystem::absolute(path)),
              compiler_path)
       .generic_string();
 }

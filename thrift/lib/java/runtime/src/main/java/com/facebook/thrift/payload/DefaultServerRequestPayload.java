@@ -17,13 +17,16 @@
 package com.facebook.thrift.payload;
 
 import com.facebook.nifty.core.RequestContext;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import org.apache.thrift.RequestRpcMetadata;
+import org.apache.thrift.protocol.TField;
 import org.apache.thrift.protocol.TProtocol;
+import org.apache.thrift.protocol.TProtocolException;
+import org.apache.thrift.protocol.TProtocolUtil;
+import org.apache.thrift.protocol.TType;
 
 final class DefaultServerRequestPayload implements ServerRequestPayload {
   private final RequestRpcMetadata requestRpcMetadata;
@@ -46,14 +49,14 @@ final class DefaultServerRequestPayload implements ServerRequestPayload {
 
   // Set only by the create overloads that take a Function, for callers that read the arguments
   // through their own closure instead of the protocol carried in requestData.
-  private final Function<List<Reader>, List<Object>> customReader;
+  private final Function<List<FieldReader<?>>, List<Object>> customReader;
 
   DefaultServerRequestPayload(
       RequestRpcMetadata requestRpcMetadata,
       RequestContext requestContext,
       int messageSeqId,
       RequestData requestData,
-      Function<List<Reader>, List<Object>> customReader) {
+      Function<List<FieldReader<?>>, List<Object>> customReader) {
     this.requestRpcMetadata = requestRpcMetadata;
     this.requestContext = requestContext;
     this.messageSeqId = messageSeqId;
@@ -62,7 +65,7 @@ final class DefaultServerRequestPayload implements ServerRequestPayload {
   }
 
   @Override
-  public List<Object> getData(List<Reader> readers) {
+  public List<Object> getData(List<FieldReader<?>> readers) {
     RequestData claimed = requestData.getAndSet(null);
     if (claimed == null) {
       throw new IllegalStateException(
@@ -73,7 +76,7 @@ final class DefaultServerRequestPayload implements ServerRequestPayload {
     try {
       return customReader != null
           ? customReader.apply(readers)
-          : readArgs(readers, claimed.protocol());
+          : readArgs(readers, claimed.protocol(), requestRpcMetadata.getName());
     } finally {
       claimed.release();
     }
@@ -87,21 +90,56 @@ final class DefaultServerRequestPayload implements ServerRequestPayload {
     }
   }
 
-  /** Both server transports frame their arguments identically, so this serves all of them. */
-  private static List<Object> readArgs(List<Reader> readers, TProtocol protocol) {
-    protocol.readStructBegin();
-    List<Object> requestArguments = Collections.emptyList();
-    if (readers != null && !readers.isEmpty()) {
-      requestArguments = new ArrayList<>(readers.size());
-      for (Reader r : readers) {
-        protocol.readFieldBegin();
-        requestArguments.add(r.read(protocol));
+  /** Maximum nesting depth when skipping unknown argument fields; real args nest far less. */
+  private static final int MAX_SKIP_DEPTH = 64;
+
+  /**
+   * Reads the arguments as the fields of an unnamed struct, as C++ does. A field is read into the
+   * parameter whose Field ID and wire type both match it, any other field is skipped within a
+   * bounded depth, and a parameter the request omits takes its default-constructed value. Both
+   * server transports frame their arguments identically, so this serves all of them.
+   */
+  private static List<Object> readArgs(
+      List<FieldReader<?>> readers, TProtocol protocol, String methodName) {
+    int count = readers.size();
+    Object[] values = new Object[count];
+    boolean[] isSet = new boolean[count];
+
+    try {
+      protocol.readStructBegin();
+      while (true) {
+        TField field = protocol.readFieldBegin();
+        if (field.type == TType.STOP) {
+          break;
+        }
+        boolean readSomething = false;
+        for (int i = 0; i < count; i++) {
+          FieldReader<?> reader = readers.get(i);
+          if (reader.getFieldId() == field.id && reader.getFieldType() == field.type) {
+            values[i] = reader.read(protocol);
+            isSet[i] = true;
+            readSomething = true;
+            break;
+          }
+        }
+        if (!readSomething) {
+          TProtocolUtil.skip(protocol, field.type, MAX_SKIP_DEPTH);
+        }
         protocol.readFieldEnd();
       }
+      protocol.readStructEnd();
+      protocol.readMessageEnd();
+    } catch (IndexOutOfBoundsException | NegativeArraySizeException e) {
+      throw new TProtocolException(
+          TProtocolException.INVALID_DATA, "Truncated args for " + methodName, e);
     }
-    protocol.readStructEnd();
-    protocol.readMessageEnd();
-    return requestArguments;
+
+    for (int i = 0; i < count; i++) {
+      if (!isSet[i]) {
+        values[i] = readers.get(i).getDefaultValue();
+      }
+    }
+    return Arrays.asList(values);
   }
 
   @Override

@@ -139,8 +139,8 @@ THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<std::string_view, 16> TStruc
   "pointbuffy"sv,
   "patched_struct"sv,
   "empty_struct"sv,
-  "fbstring"sv,
-  "managed_string_view"sv,
+  "custom_iobuf"sv,
+  "pmr_string"sv,
   "some_error"sv,
 }};
 THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<int16_t, 16> TStructDataStorage<::test::fixtures::python_capi::PrimitiveStruct>::fields_ids = { {
@@ -471,67 +471,67 @@ THRIFT_DATA_MEMBER FOLLY_ATTR_WEAK const std::array<int, 3> TStructDataStorage<:
 namespace detail {
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::test::fixtures::python_capi::MyStruct, false>::bundle() {
-    return ::test::fixtures::python_capi::module_constants::_fbthrift_schema_128b73613a852606_includes();
+    return ::test::fixtures::python_capi::module_constants::_fbthrift_schema_6467107e061db21e_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::test::fixtures::python_capi::MyDataItem, false>::bundle() {
-    return ::test::fixtures::python_capi::module_constants::_fbthrift_schema_128b73613a852606_includes();
+    return ::test::fixtures::python_capi::module_constants::_fbthrift_schema_6467107e061db21e_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::test::fixtures::python_capi::TransitiveDoubler, false>::bundle() {
-    return ::test::fixtures::python_capi::module_constants::_fbthrift_schema_128b73613a852606_includes();
+    return ::test::fixtures::python_capi::module_constants::_fbthrift_schema_6467107e061db21e_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::test::fixtures::python_capi::detail::DoubledPair, false>::bundle() {
-    return ::test::fixtures::python_capi::module_constants::_fbthrift_schema_128b73613a852606_includes();
+    return ::test::fixtures::python_capi::module_constants::_fbthrift_schema_6467107e061db21e_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::test::fixtures::python_capi::StringPair, false>::bundle() {
-    return ::test::fixtures::python_capi::module_constants::_fbthrift_schema_128b73613a852606_includes();
+    return ::test::fixtures::python_capi::module_constants::_fbthrift_schema_6467107e061db21e_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::test::fixtures::python_capi::VapidStruct, false>::bundle() {
-    return ::test::fixtures::python_capi::module_constants::_fbthrift_schema_128b73613a852606_includes();
+    return ::test::fixtures::python_capi::module_constants::_fbthrift_schema_6467107e061db21e_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::test::fixtures::python_capi::PrimitiveStruct, false>::bundle() {
-    return ::test::fixtures::python_capi::module_constants::_fbthrift_schema_128b73613a852606_includes();
+    return ::test::fixtures::python_capi::module_constants::_fbthrift_schema_6467107e061db21e_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::test::fixtures::python_capi::AdaptedFields, false>::bundle() {
-    return ::test::fixtures::python_capi::module_constants::_fbthrift_schema_128b73613a852606_includes();
+    return ::test::fixtures::python_capi::module_constants::_fbthrift_schema_6467107e061db21e_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::test::fixtures::python_capi::ListStruct, false>::bundle() {
-    return ::test::fixtures::python_capi::module_constants::_fbthrift_schema_128b73613a852606_includes();
+    return ::test::fixtures::python_capi::module_constants::_fbthrift_schema_6467107e061db21e_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::test::fixtures::python_capi::SetStruct, false>::bundle() {
-    return ::test::fixtures::python_capi::module_constants::_fbthrift_schema_128b73613a852606_includes();
+    return ::test::fixtures::python_capi::module_constants::_fbthrift_schema_6467107e061db21e_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::test::fixtures::python_capi::MapStruct, false>::bundle() {
-    return ::test::fixtures::python_capi::module_constants::_fbthrift_schema_128b73613a852606_includes();
+    return ::test::fixtures::python_capi::module_constants::_fbthrift_schema_6467107e061db21e_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::test::fixtures::python_capi::ComposeStruct, false>::bundle() {
-    return ::test::fixtures::python_capi::module_constants::_fbthrift_schema_128b73613a852606_includes();
+    return ::test::fixtures::python_capi::module_constants::_fbthrift_schema_6467107e061db21e_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::test::fixtures::python_capi::Shallot, false>::bundle() {
-    return ::test::fixtures::python_capi::module_constants::_fbthrift_schema_128b73613a852606_includes();
+    return ::test::fixtures::python_capi::module_constants::_fbthrift_schema_6467107e061db21e_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::test::fixtures::python_capi::SomeBinary, false>::bundle() {
-    return ::test::fixtures::python_capi::module_constants::_fbthrift_schema_128b73613a852606_includes();
+    return ::test::fixtures::python_capi::module_constants::_fbthrift_schema_6467107e061db21e_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::test::fixtures::python_capi::MyEnum, true>::bundle() {
-    return ::test::fixtures::python_capi::module_constants::_fbthrift_schema_128b73613a852606_includes();
+    return ::test::fixtures::python_capi::module_constants::_fbthrift_schema_6467107e061db21e_includes();
 }
 
 ::folly::Range<const ::std::string_view*> TSchemaAssociation<::test::fixtures::python_capi::NormalDecentEnum, true>::bundle() {
-    return ::test::fixtures::python_capi::module_constants::_fbthrift_schema_128b73613a852606_includes();
+    return ::test::fixtures::python_capi::module_constants::_fbthrift_schema_6467107e061db21e_includes();
 }
 
 } // namespace detail

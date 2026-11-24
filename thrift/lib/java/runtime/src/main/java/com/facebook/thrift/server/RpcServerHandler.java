@@ -26,7 +26,7 @@ import reactor.core.publisher.Mono;
 
 public interface RpcServerHandler {
   default Mono<ServerResponsePayload> singleRequestSingleResponse(ServerRequestPayload payload) {
-    return Mono.error(new UnsupportedOperationException());
+    return Mono.error(new UnknownMethodException(payload.getRequestRpcMetadata().getName()));
   }
 
   default Mono<Void> singleRequestNoResponse(ServerRequestPayload payload) {
@@ -34,13 +34,13 @@ public interface RpcServerHandler {
   }
 
   default Flux<ServerResponsePayload> singleRequestStreamingResponse(ServerRequestPayload payload) {
-    return Flux.error(new UnsupportedOperationException());
+    return Flux.error(new UnknownMethodException(payload.getRequestRpcMetadata().getName()));
   }
 
   // TODO: since D29640861, the corresponding RpcKind is Sink
   default Flux<ServerResponsePayload> streamingRequestStreamingResponse(
       ServerRequestPayload initial, Publisher<ServerRequestPayload> payloads) {
-    return Flux.error(new UnsupportedOperationException());
+    return Flux.error(new UnknownMethodException(initial.getRequestRpcMetadata().getName()));
   }
 
   /**

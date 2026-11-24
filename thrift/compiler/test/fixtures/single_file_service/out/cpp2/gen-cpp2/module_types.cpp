@@ -75,7 +75,7 @@ const ::std::int32_t* Foo::get_value() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]]
 
 void swap([[maybe_unused]] Foo& a, [[maybe_unused]] Foo& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_value, b.__fbthrift_field_value);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_value, b.__fbthrift_field_value);
   swap(a.__isset, b.__isset);
 }
 

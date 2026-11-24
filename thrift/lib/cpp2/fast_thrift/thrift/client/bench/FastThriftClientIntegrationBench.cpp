@@ -25,7 +25,11 @@
  * All use BenchAsyncTransport (mock socket) for isolation from kernel/network.
  */
 
+#include <chrono>
+
+#include <glog/logging.h>
 #include <folly/Benchmark.h>
+#include <folly/Utility.h>
 #include <folly/init/Init.h>
 #include <folly/io/Cursor.h>
 #include <folly/io/IOBuf.h>
@@ -39,8 +43,8 @@
 #include <thrift/lib/cpp/transport/THeader.h>
 #include <thrift/lib/cpp2/async/RocketClientChannel.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameParser.h>
@@ -48,18 +52,21 @@
 #include <thrift/lib/cpp2/fast_thrift/frame/write/FrameWriter.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/handler/FrameLengthEncoderHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/client/common/RocketClientConnection.h>
+#include <thrift/lib/cpp2/fast_thrift/rocket/client/common/RocketClientStreamContext.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/client/handler/RocketClientConnectionErrorHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/client/handler/RocketClientFrameCodecHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/client/handler/RocketClientRequestResponseHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/client/handler/RocketClientSetupFrameHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/client/handler/RocketClientStreamStateHandler.h>
-#include <thrift/lib/cpp2/fast_thrift/thrift/bench/if/gen-cpp2/BenchmarkFastServiceAsyncClient.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/bench/if/gen-cpp2/BenchmarkServiceAsyncClient.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/bench/if/gen-cpp2/BenchmarkServiceFastClient.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/client/ThriftClientAppAdapter.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/client/ThriftClientChannel.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/client/adapter/ThriftClientTransportAdapter.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/client/handler/ThriftClientChecksumHandler.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/client/handler/ThriftClientGracefulDrainHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/client/handler/ThriftClientMetadataPushHandler.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/client/handler/ThriftClientRequestTimeoutHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/transport/TransportHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/transport/bench/BenchAsyncTransport.h>
 #include <thrift/lib/cpp2/protocol/BinaryProtocol.h>
@@ -85,7 +92,7 @@ constexpr size_t kPayloadSize = 4'096;
 
 using ThriftClientType = apache::thrift::Client<BenchmarkService>;
 using FastClientType =
-    apache::thrift::FastClient<BenchmarkFastService, ThriftClientAppAdapter>;
+    apache::thrift::FastClient<BenchmarkService, ThriftClientAppAdapter>;
 
 HANDLER_TAG(frame_length_encoder_handler);
 HANDLER_TAG(rocket_client_frame_codec_handler);
@@ -95,6 +102,8 @@ HANDLER_TAG(rocket_client_connection_error_handler);
 HANDLER_TAG(rocket_client_stream_state_handler);
 HANDLER_TAG(thrift_client_metadata_push_handler);
 HANDLER_TAG(thrift_client_checksum_handler);
+HANDLER_TAG(thrift_client_graceful_drain_handler);
+HANDLER_TAG(thrift_client_request_timeout_handler);
 
 // === Helpers ===
 
@@ -221,13 +230,15 @@ std::unique_ptr<folly::IOBuf> serializeStringResult(const std::string& value) {
 }
 
 std::unique_ptr<rocket::client::RocketClientConnection> createRocketConnection(
-    BenchAsyncTransport* benchTransport, folly::EventBase* evb) {
+    BenchAsyncTransport* benchTransport,
+    folly::EventBase* evb,
+    rocket::client::RocketClientStreamContexts** streamContexts) {
   auto transport = folly::AsyncTransport::UniquePtr(benchTransport);
   auto connection = std::make_unique<rocket::client::RocketClientConnection>();
   connection->transportHandler = apache::thrift::fast_thrift::rocket::client::
       RocketClientConnection::TransportHandler::create(std::move(transport));
-  connection->pipeline =
-      PipelineBuilder<
+  auto pipeline =
+      StaticPipelineBuilder<
           apache::thrift::fast_thrift::rocket::client::RocketClientConnection::
               TransportHandler,
           apache::thrift::fast_thrift::rocket::client::RocketClientAppAdapter,
@@ -262,18 +273,40 @@ std::unique_ptr<rocket::client::RocketClientConnection> createRocketConnection(
                               RocketClientRequestResponseHandler>(
               rocket_client_request_response_handler_tag)
           .build();
+  if (streamContexts != nullptr) {
+    *streamContexts =
+        &pipeline->state<rocket::client::RocketClientStreamContexts>();
+  }
+  connection->pipeline = std::move(pipeline);
   connection->appAdapter->setPipeline(connection->pipeline.get());
   connection->transportHandler->setPipeline(connection->pipeline.get());
   return connection;
 }
 
 // ===================== Callbacks =====================
+#ifdef FAST_THRIFT_BENCHMARK_VALIDATE_CALLBACKS
+size_t requestsStarted = 0;
+size_t requestsCompleted = 0;
+
+class NoopRequestCallback : public apache::thrift::RequestCallback {
+ public:
+  NoopRequestCallback() { ++requestsStarted; }
+  void requestSent() override {}
+  void requestError(apache::thrift::ClientReceiveState&&) override {
+    ++requestsCompleted;
+  }
+  void replyReceived(apache::thrift::ClientReceiveState&&) override {
+    ++requestsCompleted;
+  }
+};
+#else
 class NoopRequestCallback : public apache::thrift::RequestCallback {
  public:
   void requestSent() override {}
   void requestError(apache::thrift::ClientReceiveState&&) override {}
   void replyReceived(apache::thrift::ClientReceiveState&&) override {}
 };
+#endif
 
 // === Fixture 1: Thrift (Client + RocketClientChannel) — baseline ===
 
@@ -305,7 +338,8 @@ struct FastThriftChannelBenchFixture {
 
   void setup() {
     testTransport = new BenchAsyncTransport(&evb);
-    auto rocketConnection = createRocketConnection(testTransport, &evb);
+    auto rocketConnection =
+        createRocketConnection(testTransport, &evb, nullptr);
     // The channel is handed a fully-connected rocket connection and drives it
     // directly (no thrift pipeline / transport adapter).
     auto* transportHandlerPtr = rocketConnection->transportHandler.get();
@@ -320,24 +354,63 @@ struct FastThriftChannelBenchFixture {
   }
 };
 
-struct FastClientBenchFixture {
+// folly::NonCopyableNonMovable deletes copy and move.
+// NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
+struct FastClientBenchFixture : private folly::NonCopyableNonMovable {
   folly::EventBase evb;
   BenchAsyncTransport* testTransport{nullptr};
+  rocket::client::RocketClientStreamContexts* streamContexts{nullptr};
   SimpleBufferAllocator thriftAllocator;
   std::unique_ptr<client::ThriftClientTransportAdapter> transportAdapter;
-  PipelineImpl::Ptr thriftPipeline;
+  PipelineOwner thriftPipeline;
   std::unique_ptr<FastClientType> fastClient;
 
+  // `fastClient` and its app adapter are destroyed first, and the transport
+  // adapter's destructor still reaches the app adapter through the thrift
+  // pipeline. Close the pipeline and detach both adapters first, while all of
+  // them are alive.
+  ~FastClientBenchFixture() {
+    if (thriftPipeline) {
+      thriftPipeline->deactivate();
+      thriftPipeline->close();
+#ifdef FAST_THRIFT_BENCHMARK_VALIDATE_CALLBACKS
+      CHECK_EQ(requestsStarted, requestsCompleted);
+#endif
+    }
+    if (transportAdapter) {
+      transportAdapter->resetPipeline();
+    }
+    if (fastClient) {
+      fastClient->getAppAdapter()->resetPipeline();
+    }
+    thriftPipeline.reset();
+    transportAdapter.reset();
+  }
+
+  void verifyPendingRequests(size_t expected) const {
+    CHECK_EQ(streamContexts->streams.size(), expected);
+#ifdef FAST_THRIFT_BENCHMARK_VALIDATE_CALLBACKS
+    CHECK_EQ(requestsStarted - requestsCompleted, expected);
+#endif
+  }
+
   void setup() {
+#ifdef FAST_THRIFT_BENCHMARK_VALIDATE_CALLBACKS
+    requestsStarted = 0;
+    requestsCompleted = 0;
+#endif
     testTransport = new BenchAsyncTransport(&evb);
-    auto rocketConnection = createRocketConnection(testTransport, &evb);
+    auto rocketConnection =
+        createRocketConnection(testTransport, &evb, &streamContexts);
+    rocket::client::RocketClientConnection::TransportHandler* const
+        transportHandler = rocketConnection->transportHandler.get();
 
     transportAdapter = std::make_unique<client::ThriftClientTransportAdapter>(
         std::move(rocketConnection));
     ThriftClientAppAdapter::Ptr adapter(new ThriftClientAppAdapter(
         static_cast<uint16_t>(apache::thrift::protocol::T_COMPACT_PROTOCOL)));
 
-    thriftPipeline = PipelineBuilder<
+    thriftPipeline = StaticPipelineBuilder<
                          client::ThriftClientTransportAdapter,
                          ThriftClientAppAdapter,
                          SimpleBufferAllocator>()
@@ -347,12 +420,19 @@ struct FastClientBenchFixture {
                          .setAllocator(&thriftAllocator)
                          .addNextInbound<ThriftClientMetadataPushHandler>(
                              thrift_client_metadata_push_handler_tag)
-                         .addNextOutbound<ThriftClientChecksumHandler>(
+                         .addNextDuplex<ThriftClientGracefulDrainHandler>(
+                             thrift_client_graceful_drain_handler_tag)
+                         .addNextDuplex<ThriftClientChecksumHandler>(
                              thrift_client_checksum_handler_tag)
+                         .addNextDuplex<ThriftClientRequestTimeoutHandler>(
+                             thrift_client_request_timeout_handler_tag,
+                             std::chrono::milliseconds{0})
                          .build();
     adapter->setPipeline(thriftPipeline.get());
     transportAdapter->setPipeline(thriftPipeline.get());
+    transportHandler->onConnect();
     fastClient = std::make_unique<FastClientType>(std::move(adapter));
+    CHECK(testTransport->getReadCallback() != nullptr);
 
     // Discard SETUP frame
     fastClient->ping(std::make_unique<NoopRequestCallback>());
@@ -372,6 +452,7 @@ BENCHMARK(Thrift_Request_Ping, iters) {
   for (size_t i = 0; i < iters; ++i) {
     f.thriftClient->ping(std::make_unique<NoopRequestCallback>());
   }
+  suspender.rehire();
 }
 
 BENCHMARK_RELATIVE(FastThriftChannel_Request_Ping, iters) {
@@ -383,6 +464,7 @@ BENCHMARK_RELATIVE(FastThriftChannel_Request_Ping, iters) {
   for (size_t i = 0; i < iters; ++i) {
     f.thriftClient->ping(std::make_unique<NoopRequestCallback>());
   }
+  suspender.rehire();
 }
 
 BENCHMARK_RELATIVE(FastThriftClient_Request_Ping, iters) {
@@ -394,6 +476,8 @@ BENCHMARK_RELATIVE(FastThriftClient_Request_Ping, iters) {
   for (size_t i = 0; i < iters; ++i) {
     f.fastClient->ping(std::make_unique<NoopRequestCallback>());
   }
+  suspender.rehire();
+  f.verifyPendingRequests(iters + 1);
 }
 
 BENCHMARK_DRAW_LINE();
@@ -410,6 +494,7 @@ BENCHMARK(Thrift_Request_Echo, iters) {
     f.thriftClient->echo(
         std::make_unique<NoopRequestCallback>(), "hello world");
   }
+  suspender.rehire();
 }
 
 BENCHMARK_RELATIVE(FastThriftChannel_Request_Echo, iters) {
@@ -422,6 +507,7 @@ BENCHMARK_RELATIVE(FastThriftChannel_Request_Echo, iters) {
     f.thriftClient->echo(
         std::make_unique<NoopRequestCallback>(), "hello world");
   }
+  suspender.rehire();
 }
 
 BENCHMARK_RELATIVE(FastThriftClient_Request_Echo, iters) {
@@ -433,6 +519,8 @@ BENCHMARK_RELATIVE(FastThriftClient_Request_Echo, iters) {
   for (size_t i = 0; i < iters; ++i) {
     f.fastClient->echo(std::make_unique<NoopRequestCallback>(), "hello world");
   }
+  suspender.rehire();
+  f.verifyPendingRequests(iters + 1);
 }
 
 BENCHMARK_DRAW_LINE();
@@ -450,6 +538,7 @@ BENCHMARK(Thrift_Request_SendResponse, iters) {
         std::make_unique<NoopRequestCallback>(),
         static_cast<int64_t>(kPayloadSize));
   }
+  suspender.rehire();
 }
 
 BENCHMARK_RELATIVE(FastThriftChannel_Request_SendResponse, iters) {
@@ -463,6 +552,7 @@ BENCHMARK_RELATIVE(FastThriftChannel_Request_SendResponse, iters) {
         std::make_unique<NoopRequestCallback>(),
         static_cast<int64_t>(kPayloadSize));
   }
+  suspender.rehire();
 }
 
 BENCHMARK_RELATIVE(FastThriftClient_Request_SendResponse, iters) {
@@ -476,6 +566,8 @@ BENCHMARK_RELATIVE(FastThriftClient_Request_SendResponse, iters) {
         std::make_unique<NoopRequestCallback>(),
         static_cast<int64_t>(kPayloadSize));
   }
+  suspender.rehire();
+  f.verifyPendingRequests(iters + 1);
 }
 
 BENCHMARK_DRAW_LINE();
@@ -510,6 +602,7 @@ BENCHMARK(Thrift_Response_Success_Ping, iters) {
   for (size_t i = 0; i < iters; ++i) {
     f.testTransport->injectReadData(std::move(frames[i]));
   }
+  suspender.rehire();
 }
 
 BENCHMARK_RELATIVE(FastThriftChannel_Response_Success_Ping, iters) {
@@ -540,6 +633,7 @@ BENCHMARK_RELATIVE(FastThriftChannel_Response_Success_Ping, iters) {
   for (size_t i = 0; i < iters; ++i) {
     f.testTransport->injectReadData(std::move(frames[i]));
   }
+  suspender.rehire();
 }
 
 BENCHMARK_RELATIVE(FastThriftClient_Response_Success_Ping, iters) {
@@ -570,6 +664,8 @@ BENCHMARK_RELATIVE(FastThriftClient_Response_Success_Ping, iters) {
   for (size_t i = 0; i < iters; ++i) {
     f.testTransport->injectReadData(std::move(frames[i]));
   }
+  suspender.rehire();
+  f.verifyPendingRequests(1);
 }
 
 BENCHMARK_DRAW_LINE();
@@ -605,6 +701,7 @@ BENCHMARK(Thrift_Response_Success_Echo, iters) {
   for (size_t i = 0; i < iters; ++i) {
     f.testTransport->injectReadData(std::move(frames[i]));
   }
+  suspender.rehire();
 }
 
 BENCHMARK_RELATIVE(FastThriftChannel_Response_Success_Echo, iters) {
@@ -636,6 +733,7 @@ BENCHMARK_RELATIVE(FastThriftChannel_Response_Success_Echo, iters) {
   for (size_t i = 0; i < iters; ++i) {
     f.testTransport->injectReadData(std::move(frames[i]));
   }
+  suspender.rehire();
 }
 
 BENCHMARK_RELATIVE(FastThriftClient_Response_Success_Echo, iters) {
@@ -666,6 +764,8 @@ BENCHMARK_RELATIVE(FastThriftClient_Response_Success_Echo, iters) {
   for (size_t i = 0; i < iters; ++i) {
     f.testTransport->injectReadData(std::move(frames[i]));
   }
+  suspender.rehire();
+  f.verifyPendingRequests(1);
 }
 
 BENCHMARK_DRAW_LINE();
@@ -702,6 +802,7 @@ BENCHMARK(Thrift_Response_Success_SendResponse, iters) {
   for (size_t i = 0; i < iters; ++i) {
     f.testTransport->injectReadData(std::move(frames[i]));
   }
+  suspender.rehire();
 }
 
 BENCHMARK_RELATIVE(FastThriftChannel_Response_Success_SendResponse, iters) {
@@ -734,6 +835,7 @@ BENCHMARK_RELATIVE(FastThriftChannel_Response_Success_SendResponse, iters) {
   for (size_t i = 0; i < iters; ++i) {
     f.testTransport->injectReadData(std::move(frames[i]));
   }
+  suspender.rehire();
 }
 
 BENCHMARK_RELATIVE(FastThriftClient_Response_Success_SendResponse, iters) {
@@ -766,6 +868,8 @@ BENCHMARK_RELATIVE(FastThriftClient_Response_Success_SendResponse, iters) {
   for (size_t i = 0; i < iters; ++i) {
     f.testTransport->injectReadData(std::move(frames[i]));
   }
+  suspender.rehire();
+  f.verifyPendingRequests(1);
 }
 
 BENCHMARK_DRAW_LINE();
@@ -801,6 +905,7 @@ BENCHMARK(Thrift_Response_DeclaredException, iters) {
   for (size_t i = 0; i < iters; ++i) {
     f.testTransport->injectReadData(std::move(frames[i]));
   }
+  suspender.rehire();
 }
 
 BENCHMARK_RELATIVE(FastThriftChannel_Response_DeclaredException, iters) {
@@ -832,6 +937,7 @@ BENCHMARK_RELATIVE(FastThriftChannel_Response_DeclaredException, iters) {
   for (size_t i = 0; i < iters; ++i) {
     f.testTransport->injectReadData(std::move(frames[i]));
   }
+  suspender.rehire();
 }
 
 BENCHMARK_RELATIVE(FastThriftClient_Response_DeclaredException, iters) {
@@ -862,6 +968,8 @@ BENCHMARK_RELATIVE(FastThriftClient_Response_DeclaredException, iters) {
   for (size_t i = 0; i < iters; ++i) {
     f.testTransport->injectReadData(std::move(frames[i]));
   }
+  suspender.rehire();
+  f.verifyPendingRequests(1);
 }
 
 BENCHMARK_DRAW_LINE();
@@ -898,6 +1006,7 @@ BENCHMARK(Thrift_Response_UndeclaredException, iters) {
   for (size_t i = 0; i < iters; ++i) {
     f.testTransport->injectReadData(std::move(frames[i]));
   }
+  suspender.rehire();
 }
 
 BENCHMARK_RELATIVE(FastThriftChannel_Response_UndeclaredException, iters) {
@@ -930,6 +1039,7 @@ BENCHMARK_RELATIVE(FastThriftChannel_Response_UndeclaredException, iters) {
   for (size_t i = 0; i < iters; ++i) {
     f.testTransport->injectReadData(std::move(frames[i]));
   }
+  suspender.rehire();
 }
 
 BENCHMARK_RELATIVE(FastThriftClient_Response_UndeclaredException, iters) {
@@ -961,6 +1071,8 @@ BENCHMARK_RELATIVE(FastThriftClient_Response_UndeclaredException, iters) {
   for (size_t i = 0; i < iters; ++i) {
     f.testTransport->injectReadData(std::move(frames[i]));
   }
+  suspender.rehire();
+  f.verifyPendingRequests(1);
 }
 
 BENCHMARK_DRAW_LINE();
@@ -996,6 +1108,7 @@ BENCHMARK(Thrift_Response_ErrorFrame, iters) {
   for (size_t i = 0; i < iters; ++i) {
     f.testTransport->injectReadData(std::move(frames[i]));
   }
+  suspender.rehire();
 }
 
 BENCHMARK_RELATIVE(FastThriftChannel_Response_ErrorFrame, iters) {
@@ -1027,6 +1140,7 @@ BENCHMARK_RELATIVE(FastThriftChannel_Response_ErrorFrame, iters) {
   for (size_t i = 0; i < iters; ++i) {
     f.testTransport->injectReadData(std::move(frames[i]));
   }
+  suspender.rehire();
 }
 
 BENCHMARK_RELATIVE(FastThriftClient_Response_ErrorFrame, iters) {
@@ -1057,6 +1171,8 @@ BENCHMARK_RELATIVE(FastThriftClient_Response_ErrorFrame, iters) {
   for (size_t i = 0; i < iters; ++i) {
     f.testTransport->injectReadData(std::move(frames[i]));
   }
+  suspender.rehire();
+  f.verifyPendingRequests(1);
 }
 
 BENCHMARK_DRAW_LINE();
@@ -1107,6 +1223,7 @@ BENCHMARK(Thrift_Response_Fragmented, iters) {
       f.testTransport->injectReadData(std::move(frag));
     }
   }
+  suspender.rehire();
 }
 
 BENCHMARK_RELATIVE(FastThriftChannel_Response_Fragmented, iters) {
@@ -1153,6 +1270,7 @@ BENCHMARK_RELATIVE(FastThriftChannel_Response_Fragmented, iters) {
       f.testTransport->injectReadData(std::move(frag));
     }
   }
+  suspender.rehire();
 }
 
 BENCHMARK_RELATIVE(FastThriftClient_Response_Fragmented, iters) {
@@ -1198,6 +1316,8 @@ BENCHMARK_RELATIVE(FastThriftClient_Response_Fragmented, iters) {
       f.testTransport->injectReadData(std::move(frag));
     }
   }
+  suspender.rehire();
+  f.verifyPendingRequests(1);
 }
 
 BENCHMARK_DRAW_LINE();
@@ -1237,6 +1357,7 @@ BENCHMARK(Thrift_Roundtrip_HighConcurrency, iters) {
     f.testTransport->injectReadData(prependLengthPrefix(
         createPayloadResponse(streamId, respMeta->clone(), respData->clone())));
   }
+  suspender.rehire();
 }
 
 BENCHMARK_RELATIVE(FastThriftChannel_Roundtrip_HighConcurrency, iters) {
@@ -1265,6 +1386,7 @@ BENCHMARK_RELATIVE(FastThriftChannel_Roundtrip_HighConcurrency, iters) {
     f.testTransport->injectReadData(prependLengthPrefix(
         createPayloadResponse(streamId, respMeta->clone(), respData->clone())));
   }
+  suspender.rehire();
 }
 
 BENCHMARK_RELATIVE(FastThriftClient_Roundtrip_HighConcurrency, iters) {
@@ -1291,6 +1413,8 @@ BENCHMARK_RELATIVE(FastThriftClient_Roundtrip_HighConcurrency, iters) {
     f.testTransport->injectReadData(prependLengthPrefix(
         createPayloadResponse(streamId, respMeta->clone(), respData->clone())));
   }
+  suspender.rehire();
+  f.verifyPendingRequests(kBackground + 1);
 }
 
 BENCHMARK_DRAW_LINE();
@@ -1346,6 +1470,7 @@ BENCHMARK(Thrift_Response_ChainedPayload, iters) {
   for (size_t i = 0; i < iters; ++i) {
     f.testTransport->injectReadData(std::move(frames[i]));
   }
+  suspender.rehire();
 }
 
 BENCHMARK_RELATIVE(FastThriftChannel_Response_ChainedPayload, iters) {
@@ -1397,6 +1522,7 @@ BENCHMARK_RELATIVE(FastThriftChannel_Response_ChainedPayload, iters) {
   for (size_t i = 0; i < iters; ++i) {
     f.testTransport->injectReadData(std::move(frames[i]));
   }
+  suspender.rehire();
 }
 
 BENCHMARK_RELATIVE(FastThriftClient_Response_ChainedPayload, iters) {
@@ -1448,6 +1574,8 @@ BENCHMARK_RELATIVE(FastThriftClient_Response_ChainedPayload, iters) {
   for (size_t i = 0; i < iters; ++i) {
     f.testTransport->injectReadData(std::move(frames[i]));
   }
+  suspender.rehire();
+  f.verifyPendingRequests(1);
 }
 
 } // namespace

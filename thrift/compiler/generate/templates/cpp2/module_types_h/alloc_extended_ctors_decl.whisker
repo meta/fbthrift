@@ -15,7 +15,14 @@
   limitations under the License.
 
 }}{{! -- Derived from module_types_cpp/alloc_extended_ctors.whisker }}
-  explicit {{struct.cpp_underlying_name}}(const allocator_type& alloc){{#if (not struct.cpp_alloc_ctor_default_fields?)}} noexcept{{/if}};
+  {{#if struct.union?}}
+  {{! Inline: containers of these unions build every element through it. }}
+  explicit {{struct.cpp_underlying_name}}(const allocator_type& alloc) noexcept
+      : __fbthrift_alloc(alloc),
+        fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {}
+  {{#else}}
+  explicit {{struct.cpp_underlying_name}}(const allocator_type& alloc){{#if struct.cpp_alloc_ctor_noexcept?}} noexcept{{/if}};
+  {{/if struct.union?}}
   {{#if (not struct.cpp_noncopyable)}}
   explicit {{struct.cpp_underlying_name}}(const {{struct.cpp_underlying_name}}& other, const allocator_type& alloc);
   {{/if (not struct.cpp_noncopyable)}}

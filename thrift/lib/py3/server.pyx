@@ -31,6 +31,7 @@ import logging
 from contextlib import AsyncExitStack
 from pathlib import Path
 import os
+import weakref
 
 from enum import Enum
 from thrift.python.common import Priority, Headers # noqa
@@ -45,7 +46,10 @@ from thrift.python.server_impl.event_handler cimport (
 )
 from thrift.python.server_impl.async_processor import AsyncProcessorFactory as AsyncProcessorFactory_
 from thrift.python.server_impl.async_processor cimport EmptyAsyncProcessorFactory
-from thrift.python.server_impl.python_async_processor cimport PythonAsyncProcessorFactory
+from thrift.python.server_impl.python_async_processor cimport (
+    cPythonAsyncProcessorFactory,
+    PythonAsyncProcessorFactory,
+)
 from thrift.python.server_impl.request_context import ( # noqa
     ClientMetadata,
     ConnectionContext,
@@ -98,6 +102,36 @@ async def run_server(native_serve, address_future, stop_server, server_kind):
     await native_serve
 
 
+def _serve_native(ThriftServer server):
+    with nogil:
+        server.server.get().serve()
+
+
+def run_native_serve(loop, native_serve, owner):
+    """Run native_serve(owner) on the loop's default executor.
+
+    A pool thread holds a finished call's arguments until after the caller
+    resumes. To let the owner die where its last caller drops it, give the
+    executor only a weak reference to the owner. Pass a module-level
+    native_serve: the executor holds the function too, and a closure or bound
+    method would keep the owner alive. A closure over self also forms a
+    reference cycle with the Cython coroutine.
+    """
+    return loop.run_in_executor(
+        None, _run_native_serve_impl, native_serve, weakref.ref(owner)
+    )
+
+
+def _run_native_serve_impl(native_serve, owner_ref):
+    # The caller awaits this call and holds the owner until it returns, so a dead
+    # reference means the caller broke that rule. The local reference ends when this
+    # call returns, before the caller resumes.
+    owner = owner_ref()
+    if owner is None:
+        raise RuntimeError("The serve owner died before its native serve started")
+    native_serve(owner)
+
+
 class SSLPolicy(Enum):
     DISABLED = <int> (SSLPolicy__DISABLED)
     PERMITTED = <int> (SSLPolicy__PERMITTED)
@@ -129,6 +163,7 @@ cdef class _NormalizedServerInput:
 
 
 cdef _NormalizedServerInput _normalize_server_input(object handler):
+    cdef PythonAsyncProcessorFactory factory
     # thrift-python path
     if isinstance(handler, PythonServiceInterface):
         return _NormalizedServerInput(
@@ -136,12 +171,22 @@ cdef _NormalizedServerInput _normalize_server_input(object handler):
             handler,
             PythonAsyncProcessorFactory.create(handler),
         )
+    # thrift-python path: a handler factory whose first product is the control
+    # handler
+    if callable(handler):
+        factory = PythonAsyncProcessorFactory.create_from_handler_factory(handler)
+        return _NormalizedServerInput(
+            b"python", <PythonServiceInterface>factory.handler, factory
+        )
     # thrift-py3 path
     if isinstance(handler, Py3AsyncProcessorFactory):
         return _NormalizedServerInput(b"py3", None, handler)
     if handler is None:
         return _NormalizedServerInput(b"unknown", None, None)
-    raise TypeError("handler must be a ServiceInterface or AsyncProcessorFactory")
+    raise TypeError(
+        "handler must be a ServiceInterface, a callable that returns a "
+        "ServiceInterface, or an AsyncProcessorFactory"
+    )
 
 
 # TODO: move this to thrift/lib/python/server.pyx when no longer referenced by
@@ -158,7 +203,9 @@ cdef class ThriftServer:
 
         self.loop = asyncio.get_event_loop()
         if self.factory is not None:
-            self.server.get().setThreadManagerFromExecutor(get_executor(), b'python_executor')
+            self.server.get().setThreadManagerFromExecutor(
+                self._intake_executor(), b'python_executor'
+            )
             if self.factory._cpp_obj:
                 self.server.get().setInterface(self.factory._cpp_obj)
             else:
@@ -194,13 +241,35 @@ cdef class ThriftServer:
             b"ThriftServer-" + server_input.thrift_version
         )
 
+    def enable_cpu_worker_threads(self, count):
+        """Turns on CPU worker threads for a thrift-python handler and sets how
+        many the server uses.
+
+        Call it before serve(); the last call before serve() wins. A count of
+        one or more gives that many CPU worker threads, and a count below one
+        raises ValueError. A server without a thrift-python handler raises
+        TypeError.
+        """
+        if not isinstance(self.factory, PythonAsyncProcessorFactory):
+            raise TypeError(
+                "Threads need a thrift-python handler. Pass a thrift-python "
+                "ServiceInterface instance or handler factory to the server."
+            )
+        (<PythonAsyncProcessorFactory>self.factory).set_cpu_worker_threads(count)
+
+    cdef cFollyExecutor* _intake_executor(self):
+        # A thrift-python factory supplies the one executor its server uses for
+        # the server's whole life. Other inputs keep the control executor.
+        if isinstance(self.factory, PythonAsyncProcessorFactory) and self.factory._cpp_obj:
+            return (
+                <cPythonAsyncProcessorFactory*>self.factory._cpp_obj.get()
+            ).intakeExecutor()
+        return get_executor()
+
     async def serve(self):
         # This check is only useful for C++-based Thrift servers.
         # TODO(praihan): remove this after migration of C++ services onto extra interfaces
         self.server.get().setAllowCheckUnimplementedExtraInterfaces(False)
-        def _serve():
-            with nogil:
-                self.server.get().serve()
         ownership_context = (
             self.factory
             if isinstance(self.factory, PythonAsyncProcessorFactory)
@@ -210,7 +279,7 @@ cdef class ThriftServer:
             async with AsyncExitStack() as ownership_stack:
                 if ownership_context is not None:
                     await ownership_stack.enter_async_context(ownership_context)
-                native_serve = self.loop.run_in_executor(None, _serve)
+                native_serve = run_native_serve(self.loop, _serve_native, self)
                 await run_server(
                     native_serve,
                     self.address_future,
@@ -244,6 +313,19 @@ cdef class ThriftServer:
     def set_max_requests(self, max_requests):
         self.server.get().setMaxRequests(max_requests)
 
+    def set_max_debug_payload_memory_per_request(self, size):
+        """Set the per-request debug payload byte budget before serving.
+
+        Zero disables debug payload retention without disabling requests.
+        """
+        cdef uint64_t limit
+        if not isinstance(size, int) or isinstance(size, bool):
+            raise TypeError("size must be an integer")
+        if size < 0:
+            raise ValueError("size must be nonnegative")
+        limit = size
+        self.server.get().setMaxDebugPayloadMemoryPerRequest(limit)
+
     def get_max_connections(self):
         return self.server.get().getMaxConnections()
 
@@ -263,6 +345,15 @@ cdef class ThriftServer:
         return self.server.get().getNumIOWorkerThreads()
 
     def get_cpu_worker_threads(self):
+        """Returns the number of CPU worker threads that the server uses: the
+        count from enable_cpu_worker_threads(), or one without a call. A server
+        without a thrift-python handler returns the C++ server's CPU worker
+        setting, as before.
+        """
+        if isinstance(self.factory, PythonAsyncProcessorFactory) and self.factory._cpp_obj:
+            return (
+                <cPythonAsyncProcessorFactory*>self.factory._cpp_obj.get()
+            ).requestedThreadCount()
         return self.server.get().getNumCPUWorkerThreads()
 
     def set_workers_join_timeout(self, timeout):

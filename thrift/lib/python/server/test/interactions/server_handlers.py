@@ -39,6 +39,7 @@ from calculator.thrift_services import (
     SinkOnlyInterface,
 )
 from calculator.thrift_types import CounterSnapshot, NegativeError, Point
+from thrift.py3.server import get_context
 from thrift.python.exceptions import ApplicationError, ApplicationErrorType
 
 # Sentinel `start` for `initializedCounter` that makes the factory raise an
@@ -73,6 +74,9 @@ class CounterHandler(CounterInterface):
 
     async def get(self) -> int:
         return self._value
+
+    async def readHeader(self, key: str) -> str:
+        return get_context().read_headers.get(key, "")
 
     async def reset(self) -> None:
         self._value = 0
@@ -274,60 +278,53 @@ class CalculatorHandler(CalculatorInterface):
         return None
 
 
-# Per-operation delay (seconds) used by the *Slow* handlers below. Making each
-# operation take a non-trivial, observable amount of time is what lets the
-# concurrency tests distinguish concurrent dispatch from serialization: with N
-# in-flight operations against *separate* interactions, the batch finishes in
-# ~one delay if dispatched concurrently, but ~N delays if serialized.
-CONCURRENCY_OP_DELAY: float = 0.3
+class GatedCounterHandler(CounterHandler):
+    """A ``CounterHandler`` whose ``addChecked`` and ``ticks`` wait at
+    ``barrier`` before doing their work."""
 
-
-class SlowCounterHandler(CounterHandler):
-    """A ``CounterHandler`` whose request/response and stream-request methods
-    sleep ``CONCURRENCY_OP_DELAY`` before doing their (instant) work.
-
-    Only the methods the concurrency tests drive are slowed; ``get`` stays fast
-    so post-hoc isolation assertions don't add wall-clock. The sleep yields to
-    the event loop, so concurrent calls to *different* ``SlowCounterHandler``
-    instances overlap when the server dispatches them concurrently."""
-
-    async def add(self, n: int) -> None:
-        await asyncio.sleep(CONCURRENCY_OP_DELAY)
-        await super().add(n)
+    def __init__(
+        self,
+        barrier: asyncio.Barrier,
+        on_terminate: Callable[[], Awaitable[None]] | None = None,
+    ) -> None:
+        super().__init__(on_terminate=on_terminate)
+        self._barrier = barrier
 
     async def addChecked(self, n: int) -> int:
-        await asyncio.sleep(CONCURRENCY_OP_DELAY)
+        await self._barrier.wait()
         return await super().addChecked(n)
 
     async def ticks(self, count: int) -> tuple[int, AsyncIterator[int]]:
-        # Delay the stream *request* (before the initial response), so the test
-        # measures concurrent dispatch of the stream openings themselves.
-        await asyncio.sleep(CONCURRENCY_OP_DELAY)
+        # Gate the stream *request* (before the initial response), so the test
+        # covers concurrent dispatch of the stream openings themselves.
+        await self._barrier.wait()
         return await super().ticks(count)
 
 
-class SlowCalculatorHandler(CalculatorHandler):
-    """A ``CalculatorHandler`` whose interaction-factory methods sleep
-    ``CONCURRENCY_OP_DELAY`` and whose per-session Tiles are
-    ``SlowCounterHandler`` instances, so the concurrency tests can prove the
-    Python server dispatches factory creation, factory-with-initial-response,
-    request/response, and stream requests across separate interactions
-    concurrently rather than serializing them."""
+class GatedCalculatorHandler(CalculatorHandler):
+    """A ``CalculatorHandler`` whose interaction factories, and the
+    ``GatedCounterHandler`` Tiles that ``createCounter`` builds, wait at the
+    test's ``barrier``. A batch of those calls finishes only once
+    ``barrier.parties`` of them are inside the handler at the same time, which
+    proves the server dispatches them concurrently.
 
-    def createCounter(self) -> SlowCounterHandler:
-        return SlowCounterHandler(on_terminate=self._record_counter_termination)
+    ``asyncio.Barrier`` belongs to one event loop. Interactions run on the
+    control handler, whose loop is the test's loop."""
+
+    def __init__(self, barrier: asyncio.Barrier) -> None:
+        super().__init__()
+        self._barrier = barrier
+
+    def createCounter(self) -> GatedCounterHandler:
+        return GatedCounterHandler(
+            self._barrier, on_terminate=self._record_counter_termination
+        )
 
     async def newCounter(self) -> None:
-        await asyncio.sleep(CONCURRENCY_OP_DELAY)
-        return None
+        await self._barrier.wait()
 
     async def initializedCounter(
         self, start: int
     ) -> tuple[CounterHandler, CounterSnapshot]:
-        await asyncio.sleep(CONCURRENCY_OP_DELAY)
-        if start < 0:
-            raise NegativeError(reason=f"refused negative start: {start}")
-        counter = SlowCounterHandler(
-            start=start, on_terminate=self._record_counter_termination
-        )
-        return counter, CounterSnapshot(value=start)
+        await self._barrier.wait()
+        return await super().initializedCounter(start)

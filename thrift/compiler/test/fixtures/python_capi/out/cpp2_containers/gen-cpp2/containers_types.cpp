@@ -142,11 +142,11 @@ folly::fbvector<::test::fixtures::python_capi::fbvector_fbvector_string> Templat
 
 void swap([[maybe_unused]] TemplateLists& a, [[maybe_unused]] TemplateLists& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_std_string, b.__fbthrift_field_std_string);
-  swap(a.__fbthrift_field_deque_string, b.__fbthrift_field_deque_string);
-  swap(a.__fbthrift_field_small_vector_iobuf, b.__fbthrift_field_small_vector_iobuf);
-  swap(a.__fbthrift_field_nested_small_vector, b.__fbthrift_field_nested_small_vector);
-  swap(a.__fbthrift_field_small_vector_tensor, b.__fbthrift_field_small_vector_tensor);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_std_string, b.__fbthrift_field_std_string);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_deque_string, b.__fbthrift_field_deque_string);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_small_vector_iobuf, b.__fbthrift_field_small_vector_iobuf);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_nested_small_vector, b.__fbthrift_field_nested_small_vector);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_small_vector_tensor, b.__fbthrift_field_small_vector_tensor);
   swap(a.__isset, b.__isset);
 }
 
@@ -296,13 +296,13 @@ folly::sorted_vector_set<::std::string> TemplateSets::get_folly_sorted_vector() 
 
 void swap([[maybe_unused]] TemplateSets& a, [[maybe_unused]] TemplateSets& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_std_set, b.__fbthrift_field_std_set);
-  swap(a.__fbthrift_field_std_unordered, b.__fbthrift_field_std_unordered);
-  swap(a.__fbthrift_field_folly_fast, b.__fbthrift_field_folly_fast);
-  swap(a.__fbthrift_field_folly_node, b.__fbthrift_field_folly_node);
-  swap(a.__fbthrift_field_folly_value, b.__fbthrift_field_folly_value);
-  swap(a.__fbthrift_field_folly_vector, b.__fbthrift_field_folly_vector);
-  swap(a.__fbthrift_field_folly_sorted_vector, b.__fbthrift_field_folly_sorted_vector);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_std_set, b.__fbthrift_field_std_set);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_std_unordered, b.__fbthrift_field_std_unordered);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_folly_fast, b.__fbthrift_field_folly_fast);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_folly_node, b.__fbthrift_field_folly_node);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_folly_value, b.__fbthrift_field_folly_value);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_folly_vector, b.__fbthrift_field_folly_vector);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_folly_sorted_vector, b.__fbthrift_field_folly_sorted_vector);
   swap(a.__isset, b.__isset);
 }
 
@@ -452,13 +452,13 @@ folly::sorted_vector_map<::std::string, ::std::string> TemplateMaps::get_folly_s
 
 void swap([[maybe_unused]] TemplateMaps& a, [[maybe_unused]] TemplateMaps& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_std_map, b.__fbthrift_field_std_map);
-  swap(a.__fbthrift_field_std_unordered, b.__fbthrift_field_std_unordered);
-  swap(a.__fbthrift_field_folly_fast, b.__fbthrift_field_folly_fast);
-  swap(a.__fbthrift_field_folly_node, b.__fbthrift_field_folly_node);
-  swap(a.__fbthrift_field_folly_value, b.__fbthrift_field_folly_value);
-  swap(a.__fbthrift_field_folly_vector, b.__fbthrift_field_folly_vector);
-  swap(a.__fbthrift_field_folly_sorted_vector, b.__fbthrift_field_folly_sorted_vector);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_std_map, b.__fbthrift_field_std_map);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_std_unordered, b.__fbthrift_field_std_unordered);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_folly_fast, b.__fbthrift_field_folly_fast);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_folly_node, b.__fbthrift_field_folly_node);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_folly_value, b.__fbthrift_field_folly_value);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_folly_vector, b.__fbthrift_field_folly_vector);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_folly_sorted_vector, b.__fbthrift_field_folly_sorted_vector);
   swap(a.__isset, b.__isset);
 }
 
@@ -527,8 +527,8 @@ std::partial_ordering TWrapped::operator<=>([[maybe_unused]] const TWrapped& rhs
 
 void swap([[maybe_unused]] TWrapped& a, [[maybe_unused]] TWrapped& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_fieldA, b.__fbthrift_field_fieldA);
-  swap(a.__fbthrift_field_fieldB, b.__fbthrift_field_fieldB);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldA, b.__fbthrift_field_fieldA);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldB, b.__fbthrift_field_fieldB);
   swap(a.__isset, b.__isset);
 }
 
@@ -600,7 +600,7 @@ const ::test::fixtures::python_capi::ListOfWrapped& IndirectionA::get_lst() cons
 
 void swap([[maybe_unused]] IndirectionA& a, [[maybe_unused]] IndirectionA& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_lst, b.__fbthrift_field_lst);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_lst, b.__fbthrift_field_lst);
   swap(a.__isset, b.__isset);
 }
 
@@ -678,7 +678,7 @@ const ::test::fixtures::python_capi::VecOfWrapped& IndirectionB::get_lst() const
 
 void swap([[maybe_unused]] IndirectionB& a, [[maybe_unused]] IndirectionB& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_lst, b.__fbthrift_field_lst);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_lst, b.__fbthrift_field_lst);
   swap(a.__isset, b.__isset);
 }
 
@@ -756,7 +756,7 @@ const ::test::fixtures::python_capi::ListOfWrappedAlias& IndirectionC::get_lst()
 
 void swap([[maybe_unused]] IndirectionC& a, [[maybe_unused]] IndirectionC& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_lst, b.__fbthrift_field_lst);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_lst, b.__fbthrift_field_lst);
   swap(a.__isset, b.__isset);
 }
 

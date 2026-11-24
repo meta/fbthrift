@@ -36,8 +36,8 @@
 #include <thrift/lib/cpp2/async/RpcOptions.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/BufferAllocator.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/handler/FrameLengthEncoderHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/client/adapter/RocketClientAppAdapter.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/client/common/RocketClientConnection.h>
@@ -57,7 +57,7 @@
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/handler/ThriftServerSetupHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/util/FastHandlerCallback.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/test/if/gen-cpp2/TestFastService.h>
-#include <thrift/lib/cpp2/fast_thrift/thrift/test/if/gen-cpp2/TestFastServiceAsyncClient.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/test/if/gen-cpp2/TestFastServiceFastClient.h>
 #include <thrift/lib/cpp2/fast_thrift/transport/TransportHandler.h>
 #include <thrift/lib/cpp2/protocol/BinaryProtocol.h>
 #include <thrift/lib/cpp2/protocol/CompactProtocol.h>
@@ -68,9 +68,9 @@ namespace apache::thrift::fast_thrift::thrift::test {
 
 namespace ftt = ::apache::thrift::fast_thrift::thrift;
 
-using apache::thrift::fast_thrift::channel_pipeline::PipelineBuilder;
-using apache::thrift::fast_thrift::channel_pipeline::PipelineImpl;
+using apache::thrift::fast_thrift::channel_pipeline::PipelineOwner;
 using apache::thrift::fast_thrift::channel_pipeline::SimpleBufferAllocator;
+using apache::thrift::fast_thrift::channel_pipeline::StaticPipelineBuilder;
 
 using apache::thrift::fast_thrift::thrift::test::TestFastService;
 
@@ -258,7 +258,6 @@ class TestFastServiceHandler
  */
 struct ServerPipelineConfig {
   uint32_t numCPUThreads;
-  ftt::ChannelPipelineMode pipelineMode;
 };
 
 class FastThriftE2ETest
@@ -283,12 +282,7 @@ class FastThriftE2ETest
     config.enableChecksum = true;
     config.enableCancellation = true;
 
-    if (GetParam().pipelineMode == ftt::ChannelPipelineMode::Static) {
-      server_ = std::make_shared<ftt::FastThriftServer>(std::move(config));
-    } else {
-      server_ =
-          std::make_shared<ftt::DynamicFastThriftServer>(std::move(config));
-    }
+    server_ = std::make_shared<ftt::FastThriftServer>(std::move(config));
     server_->setInterface(handler_);
     configureServer(*server_);
     server_->start();
@@ -360,7 +354,7 @@ class FastThriftE2ETest
       };
 
       connection->pipeline =
-          PipelineBuilder<
+          StaticPipelineBuilder<
               rocket::client::RocketClientConnection::TransportHandler,
               rocket::client::RocketClientAppAdapter,
               SimpleBufferAllocator>()
@@ -400,7 +394,7 @@ class FastThriftE2ETest
               std::move(connection));
 
       clientPipeline_ =
-          PipelineBuilder<
+          StaticPipelineBuilder<
               thrift::client::ThriftClientTransportAdapter,
               thrift::ThriftClientAppAdapter,
               SimpleBufferAllocator>()
@@ -450,7 +444,7 @@ class FastThriftE2ETest
   SimpleBufferAllocator clientAllocator_;
   std::unique_ptr<thrift::client::ThriftClientTransportAdapter>
       clientTransportAdapter_;
-  PipelineImpl::Ptr clientPipeline_;
+  PipelineOwner clientPipeline_;
   std::unique_ptr<ConnectCallback> connectCallback_;
 };
 
@@ -478,7 +472,7 @@ TEST_P(FastThriftE2ETest, ReuseAppAdapterWithNewClient) {
 
 TEST_P(FastThriftE2ETest, Ping) {
   auto client = createFastClient();
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
 
   // coro
   folly::coro::blockingWait(
@@ -507,7 +501,7 @@ TEST_P(FastThriftE2ETest, Ping) {
 
 TEST_P(FastThriftE2ETest, Echo) {
   auto client = createFastClient();
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
 
   // coro
   auto coroResult = folly::coro::blockingWait(
@@ -542,7 +536,7 @@ TEST_P(FastThriftE2ETest, Echo) {
 
 TEST_P(FastThriftE2ETest, Add) {
   auto client = createFastClient();
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
 
   // coro
   auto coroResult = folly::coro::blockingWait(
@@ -574,7 +568,7 @@ TEST_P(FastThriftE2ETest, Add) {
 
 TEST_P(FastThriftE2ETest, TimeoutCancelsRequestAndKeepsConnectionUsable) {
   auto client = createFastClient();
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
   handler_->parkNextEcho();
 
   apache::thrift::RpcOptions opts;
@@ -596,7 +590,7 @@ TEST_P(FastThriftE2ETest, TimeoutCancelsRequestAndKeepsConnectionUsable) {
 
 TEST_P(FastThriftE2ETest, SendResponse) {
   auto client = createFastClient();
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
   constexpr int64_t kResponseSize = 10000;
 
   // coro
@@ -641,7 +635,7 @@ TEST_P(FastThriftE2ETest, SendResponse) {
 // surfaces as a CHECKSUM_MISMATCH RPC error.
 TEST_P(FastThriftE2ETest, ChecksumRoundTrip) {
   auto client = createFastClient();
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
 
   apache::thrift::RpcOptions opts;
   opts.setChecksum(apache::thrift::RpcOptions::Checksum::XXH3_64);
@@ -665,7 +659,7 @@ std::string stampedReadHeader(const apache::thrift::RpcOptions& opts) {
 // FastClient's projection back into the caller's RpcOptions.
 TEST_P(FastThriftE2ETest, ResponseHeaderReachesClientOnSuccess) {
   auto client = createFastClient();
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
 
   apache::thrift::RpcOptions opts;
   auto result = folly::coro::blockingWait(
@@ -683,7 +677,7 @@ TEST_P(FastThriftE2ETest, ResponseHeaderReachesClientOnSuccess) {
 // exception cascade.
 TEST_P(FastThriftE2ETest, ResponseHeaderReachesClientOnDeclaredException) {
   auto client = createFastClient();
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
 
   apache::thrift::RpcOptions opts;
   bool threw = false;
@@ -706,7 +700,7 @@ TEST_P(FastThriftE2ETest, ResponseHeaderReachesClientOnDeclaredException) {
 // concurrent requests would otherwise race on.
 TEST_P(FastThriftE2ETest, ResponseHeaderWithoutRpcOptionsIsDropped) {
   auto client = createFastClient();
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
 
   auto result = folly::coro::blockingWait(
       folly::coro::co_withExecutor(evb, client->co_echo("hello")));
@@ -725,7 +719,7 @@ TEST_P(FastThriftE2ETest, ConcurrentRequestsOnOneConnection) {
   constexpr int kRequests = 200;
 
   auto client = createFastClient();
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
 
   std::vector<folly::SemiFuture<int64_t>> futures;
   futures.reserve(kRequests);
@@ -752,7 +746,7 @@ TEST_P(FastThriftE2ETest, HandlerCompletesOnForeignThread) {
   handler_->setEchoCompletionExecutor(&completionPool);
 
   auto client = createFastClient();
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
 
   constexpr int kRequests = 50;
   // co_echo takes the message by const reference, so it must outlive the
@@ -781,7 +775,7 @@ TEST_P(FastThriftE2ETest, HandlerCompletesOnForeignThread) {
 // for, and it must hold whether or not a CPU pool is in play.
 TEST_P(FastThriftE2ETest, StragglerCompletesAfterConnectionClosed) {
   auto client = createFastClient();
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
 
   handler_->parkNextEcho();
 
@@ -817,7 +811,7 @@ TEST_P(FastThriftE2ETest, StragglerCompletesAfterConnectionClosed) {
 // makes this an A/B rather than an assertion that the pool exists.
 TEST_P(FastThriftE2ETest, EventBaseMethodsBypassCPUPool) {
   auto client = createFastClient();
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
 
   EXPECT_TRUE(
       folly::coro::blockingWait(
@@ -858,7 +852,7 @@ class FastThriftRejectedDispatchTest : public FastThriftE2ETest {
 
 TEST_P(FastThriftRejectedDispatchTest, RejectedEnqueueReportsOverload) {
   auto client = createFastClient();
-  auto* evb = clientThread_->getEventBase();
+  auto evb = clientThread_->getEventBaseKeepAlive();
 
   std::string message;
   try {
@@ -880,37 +874,19 @@ TEST_P(FastThriftRejectedDispatchTest, RejectedEnqueueReportsOverload) {
 INSTANTIATE_TEST_SUITE_P(
     RejectingCPUExecutor,
     FastThriftRejectedDispatchTest,
-    ::testing::Values(
-        ServerPipelineConfig{
-            .numCPUThreads = 0,
-            .pipelineMode = ftt::ChannelPipelineMode::Dynamic}),
+    ::testing::Values(ServerPipelineConfig{.numCPUThreads = 0}),
     [](const auto&) { return "RejectingCPUExecutor"; });
 
 INSTANTIATE_TEST_SUITE_P(
     Inline,
     FastThriftE2ETest,
-    ::testing::Values(
-        ServerPipelineConfig{
-            .numCPUThreads = 0,
-            .pipelineMode = ftt::ChannelPipelineMode::Dynamic}),
+    ::testing::Values(ServerPipelineConfig{.numCPUThreads = 0}),
     [](const auto&) { return "InlineOnIOThread"; });
 
 INSTANTIATE_TEST_SUITE_P(
     CPUPool,
     FastThriftE2ETest,
-    ::testing::Values(
-        ServerPipelineConfig{
-            .numCPUThreads = 4,
-            .pipelineMode = ftt::ChannelPipelineMode::Dynamic}),
+    ::testing::Values(ServerPipelineConfig{.numCPUThreads = 4}),
     [](const auto&) { return "CPUThreadPool"; });
-
-INSTANTIATE_TEST_SUITE_P(
-    StaticPipeline,
-    FastThriftE2ETest,
-    ::testing::Values(
-        ServerPipelineConfig{
-            .numCPUThreads = 0,
-            .pipelineMode = ftt::ChannelPipelineMode::Static}),
-    [](const auto&) { return "StaticPipeline"; });
 
 } // namespace apache::thrift::fast_thrift::thrift::test

@@ -39,6 +39,7 @@ import io.rsocket.Closeable;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
@@ -48,6 +49,9 @@ import reactor.netty.resources.LoopResources;
 
 class ResourcesHolder implements Closeable {
   private static final Logger LOGGER = LoggerFactory.getLogger(ResourcesHolder.class);
+
+  private static final long TICK_MILLIS = 10;
+  private static final int TICKS_PER_WHEEL = 4096;
 
   private final MonoProcessor<Void> onClose = MonoProcessor.create();
 
@@ -105,7 +109,10 @@ class ResourcesHolder implements Closeable {
             .setNameFormat("thrift-timer-%d")
             .build();
 
-    return new HashedWheelTimer(threadFactory);
+    // A timeout fires at most one tick late. One lap covers 4096 x 10 ms ≈ 41 s, so common RPC
+    // timeouts land in their bucket once and are not re-scanned. The worker moves at most
+    // 100,000 new timeouts per tick, so this timer admits up to 10M new timeouts per second.
+    return new HashedWheelTimer(threadFactory, TICK_MILLIS, TimeUnit.MILLISECONDS, TICKS_PER_WHEEL);
   }
 
   private void shutdownHashedWheelTimer() {

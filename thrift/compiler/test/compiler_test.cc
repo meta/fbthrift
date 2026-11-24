@@ -14,15 +14,90 @@
  * limitations under the License.
  */
 
+#include <cstdlib>
 #include <filesystem>
 #include <string>
+#include <vector>
+#include <thrift/compiler/compiler.h>
+#include <thrift/compiler/detail/pluggable_functions.h>
+#include <thrift/compiler/diagnostic.h>
+#include <thrift/compiler/metrics/metrics.h>
+#include <thrift/compiler/sema/sema_context.h>
+#include <thrift/compiler/source_location.h>
 #include <thrift/compiler/test/compiler.h>
 
 #include <fmt/std.h>
 #include <gtest/gtest.h>
 
+using apache::thrift::compiler::compile_with_options;
+using apache::thrift::compiler::diagnostic;
+using apache::thrift::compiler::diagnostic_level;
+using apache::thrift::compiler::diagnostic_params;
+using apache::thrift::compiler::gen_params;
+using apache::thrift::compiler::log_metrics_tag;
+using apache::thrift::compiler::parsing_params;
+using apache::thrift::compiler::sema_params;
+using apache::thrift::compiler::source_manager;
+using apache::thrift::compiler::detail::metrics;
+using apache::thrift::compiler::detail::pluggable_functions;
 using apache::thrift::compiler::test::check_compile;
 using apache::thrift::compiler::test::check_compile_options;
+
+namespace {
+
+std::vector<std::string>& logged_errors() {
+  static std::vector<std::string> errors;
+  return errors;
+}
+
+void capture_logged_errors(metrics& m, const diagnostic_params&) {
+  const auto& errors = m.get(metrics::EventString::ERRORS).get();
+  logged_errors().assign(errors.begin(), errors.end());
+}
+
+// Registered once for the whole binary: pluggable functions can only be set
+// once.
+const bool capture_registered = [] {
+  pluggable_functions().set<log_metrics_tag>(capture_logged_errors);
+  return true;
+}();
+
+} // namespace
+
+TEST(CompilerTest, metrics_include_all_errors) {
+  source_manager smgr;
+  smgr.add_virtual_file("test.thrift", R"(
+    package "facebook.com/thrift/test"
+    struct A {}
+    struct A {}
+    enum A {}
+  )");
+  parsing_params pparams;
+  if (auto* includes = std::getenv("IMPLICIT_INCLUDES")) {
+    pparams.incl_searchpath.emplace_back(includes);
+  }
+  gen_params gparams;
+  gparams.skip_gen = true;
+  logged_errors().clear();
+
+  compile_with_options(
+      pparams,
+      gparams,
+      diagnostic_params{},
+      sema_params{},
+      "test.thrift",
+      smgr);
+
+  const std::vector<std::string> expected{
+      diagnostic(
+          diagnostic_level::error, "redefinition of 'A'", "test.thrift", 4)
+          .str(),
+      diagnostic(
+          diagnostic_level::error, "redefinition of 'A'", "test.thrift", 5)
+          .str(),
+  };
+  EXPECT_EQ(logged_errors(), expected);
+}
 
 // Note: To see a reference on the expected lint message format: see the regex
 // in thrift/compiler/test/compiler.cc
@@ -32,6 +107,109 @@ TEST(CompilerTest, diagnostic_in_last_line) {
     struct S {
       1: i32 i;
       # expected-error: expected integer)");
+}
+
+TEST(CompilerTest, unqualified_imported_types_are_rejected_in_every_context) {
+  const std::map<std::string, std::string> sources = {
+      {"import/types.thrift", R"(
+        package "example.com/import"
+        struct Record { 1: i64 id; }
+        enum Kind { Value = 1 }
+        typedef i64 Id
+        interaction Session { void ping(); }
+      )"},
+      {"types.thrift", R"(
+        include "import/types.thrift"
+        package "example.com/root"
+        typedef Id Alias # expected-error: Type `Id` not defined.
+        struct Uses {
+          1: Record record; # expected-error: Type `Record` not defined.
+          2: Kind kind; # expected-error: Type `Kind` not defined.
+          3: Id id; # expected-error: Type `Id` not defined.
+        }
+        @Record # expected-error: Type `Record` not defined.
+        struct Annotated {}
+        service Api {
+          Record get(); # expected-error: Type `Record` not defined.
+          Session open(); # expected-error: Type `Session` not defined.
+          void call(
+            1: Record record, # expected-error: Type `Record` not defined.
+            2: Kind kind, # expected-error: Type `Kind` not defined.
+            3: Id id, # expected-error: Type `Id` not defined.
+          );
+        }
+      )"},
+  };
+  for (const bool global : {false, true}) {
+    auto options = check_compile_options();
+    options.use_global_resolution = global;
+    check_compile(sources, "types.thrift", {}, options);
+  }
+}
+
+TEST(CompilerTest, qualified_imported_types_remain_valid_in_every_context) {
+  const std::map<std::string, std::string> sources = {
+      {"import/types.thrift", R"(
+        package "example.com/import"
+        struct Record { 1: i64 id; }
+        enum Kind { Value = 1 }
+        typedef i64 Id
+        interaction Session { void ping(); }
+      )"},
+      {"types.thrift", R"(
+        include "import/types.thrift" as imported
+        package "example.com/root"
+        typedef imported.Id Alias
+        struct Uses {
+          1: imported.Record record;
+          2: imported.Kind kind;
+          3: Alias id;
+        }
+        @imported.Record
+        struct Annotated {}
+        service Api {
+          imported.Record get();
+          imported.Session open();
+          void call(
+            1: imported.Record record,
+            2: imported.Kind kind,
+            3: imported.Id id,
+          );
+        }
+      )"},
+  };
+  for (const bool global : {false, true}) {
+    auto options = check_compile_options();
+    options.use_global_resolution = global;
+    check_compile(sources, "types.thrift", {}, options);
+  }
+}
+
+TEST(CompilerTest, metadata_type_strings_require_local_or_qualified_types) {
+  for (const bool global : {false, true}) {
+    for (const bool qualified : {false, true}) {
+      std::map<std::string, std::string> sources;
+      sources["dep/foo.thrift"] = R"(
+        package "example.com/dep"
+        struct Metadata { 1: i32 value; }
+      )";
+      sources["foo.thrift"] =
+          "include \"dep/foo.thrift\" as api\n"
+          "include \"thrift/annotation/internal.thrift\"\n"
+          "package \"example.com/root\"\n"
+          "@internal.InjectMetadataFields{type=\"" +
+          std::string(qualified ? "api.Metadata" : "Metadata") +
+          "\"}\nstruct S {}";
+      if (!qualified) {
+        sources["foo.thrift"] +=
+            " # expected-error@-1: Can not find expected type `Metadata` specified in "
+            "`@internal.InjectMetadataFields` in the current scope. Please check the include.";
+      }
+      auto options = check_compile_options();
+      options.use_global_resolution = global;
+      check_compile(sources, "foo.thrift", {}, options);
+    }
+  }
 }
 
 TEST(CompilerTest, absolute_line_number) {
@@ -934,14 +1112,12 @@ TEST(CompilerTest, deprecated_annotations) {
     @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.type": "std::uint64_t"}}
     typedef i64 T
     # expected-error@21: The annotation cpp.type has been removed. Please use @cpp.Type instead.
-    # expected-warning@21: Unstructured annotation cpp.type/cpp.template on typedef `T` is ignored. Use @cpp.Type instead.
 
     @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.template": "std::deque"}}
     typedef list<i64> U
-    # expected-error@26: The annotation cpp.template has been removed. Please use @cpp.Type instead.
-    # expected-warning@26: Unstructured annotation cpp.type/cpp.template on typedef `U` is ignored. Use @cpp.Type instead.
+    # expected-error@25: The annotation cpp.template has been removed. Please use @cpp.Type instead.
 
-    # This should not produce a warning even though the annotation is currently lowered.
+    # This should not produce a warning.
     @cpp.Type{name = "std::uint64_t"}
     typedef i64 T2
   )");
@@ -2551,6 +2727,48 @@ TEST(CompilerTest, py3_enum_invalid_value_names) {
       {"--gen", "mstch_py3"});
 }
 
+TEST(CompilerTest, py3_arena_field) {
+  check_compile(
+      R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+    struct Foo {
+      @cpp.Arena
+      1: string name;
+        # expected-error@-2: `@cpp.Arena` field `name` is not supported in thrift-py3. Use thrift-python or the `auto_migrate` option. [py3-arena-field-rule]
+      2: string plain;
+    }
+  )",
+      {"--gen", "mstch_py3"});
+}
+
+TEST(CompilerTest, py3_auto_migrate_arena_field) {
+  check_compile(
+      R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+    struct Foo {
+      @cpp.Arena
+      1: string name;
+    }
+  )",
+      {"--gen", "mstch_py3:auto_migrate"});
+}
+
+TEST(CompilerTest, py3_arena_function) {
+  check_compile(
+      R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+    service Svc {
+      @cpp.Arena
+      string process(1: string key);
+        # expected-error@-2: `@cpp.Arena` function `process` is not supported in thrift-py3. Use thrift-python. [py3-arena-function-rule]
+    }
+  )",
+      {"--gen", "mstch_py3:auto_migrate"});
+}
+
 TEST(CompilerTest, py3_invalid_field_names) {
   // TODO: The py3 validator should check @python.Name in addition to py3.name.
   check_compile(
@@ -3157,6 +3375,12 @@ TEST(CompilerTest, cpp_deprecated_terse_write) {
       6: Bar field6;
         # expected-warning@-5: Field with @cpp.Ref annotation should be optional: `field6` (in `Foo`).
     }
+
+    union U {
+      @cpp.DeprecatedTerseWrite
+      1: i32 field1;
+        # expected-error@-2: `@cpp.DeprecatedTerseWrite` cannot be applied to union fields (in `U`).
+    }
   )");
 }
 
@@ -3196,32 +3420,182 @@ TEST(CompilerTest, cpp_deprecated_terse_write_ref) {
   )");
 }
 
-TEST(CompilerTest, cpp_allocator_on_union) {
+TEST(CompilerTest, cpp_use_allocator_on_allocator_unaware_fields) {
   check_compile(R"(
     package "facebook.com/thrift/test"
     include "thrift/annotation/cpp.thrift"
     include "thrift/annotation/thrift.thrift"
 
+    enum Color {
+      RED = 1,
+    }
+    struct Plain {
+      1: string name;
+    }
     @thrift.DeprecatedUnvalidatedAnnotations{
       items = {"cpp.allocator": "MyAlloc"},
     }
-    union Bad {
-      1: i32 field1;
+    struct AllocatorAware {
+      1: string name;
     }
-      # expected-error@-6: `cpp.allocator` does not support union `Bad`
+    @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
+    typedef i32 AllocI32
+    @cpp.Type{name = "folly::IOBuf"}
+    typedef binary IOBuf
+    @cpp.Adapter{name = "::my::Adapter"}
+    typedef Plain AdaptedPlain
 
     @thrift.DeprecatedUnvalidatedAnnotations{
       items = {"cpp.allocator": "MyAlloc"},
     }
-    @cpp.InternalExperimentalAllowAllocatorOnUnion
-    union Allowed {
+    struct Bad {
+      @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
+      1: i64 integer;
+        # expected-error@-2: `cpp.use_allocator` is not supported on field `integer` of type `i64`, which can't take an allocator.
+      @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
+      2: Color color;
+        # expected-error@-2: `cpp.use_allocator` is not supported on field `color` of type `Color`, which can't take an allocator.
+      3: AllocI32 typedef_scalar;
+        # expected-error@-1: `cpp.use_allocator` is not supported on field `typedef_scalar` of type `AllocI32`, which can't take an allocator.
+      @cpp.Ref{type = cpp.RefType.SharedMutable}
+      @cpp.AllowLegacyNonOptionalRef
+      4: AllocI32 shared_scalar;
+        # expected-warning@-3: Field with @cpp.Ref annotation should be optional: `shared_scalar` (in `Bad`).
+        # expected-error@-4: `cpp.use_allocator` is not supported on field `shared_scalar` of type `AllocI32`, which can't take an allocator.
+      @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
+      5: Plain plain;
+        # expected-error@-2: `cpp.use_allocator` is not supported on field `plain`: its type `Plain` has no `cpp.allocator`.
+      @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
+      6: IOBuf iobuf;
+        # expected-error@-2: `cpp.use_allocator` is not supported on `folly::IOBuf` field `iobuf`, which can't take an allocator.
+      @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
+      @cpp.Type{name = "std::unique_ptr<folly::IOBuf>"}
+      7: binary iobuf_ptr;
+        # expected-error@-3: `cpp.use_allocator` is not supported on `folly::IOBuf` field `iobuf_ptr`, which can't take an allocator.
+    }
+
+    @thrift.DeprecatedUnvalidatedAnnotations{
+      items = {"cpp.allocator": "MyAlloc"},
+    }
+    struct Good {
+      @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
+      1: string s;
+      @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
+      2: list<i32> l;
+      @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
+      3: AllocatorAware nested;
+      @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
+      @cpp.Adapter{name = "::my::Adapter"}
+      4: Plain field_adapted;
+      @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
+      5: AdaptedPlain typedef_adapted;
+      6: i64 no_use_allocator;
+    }
+
+    struct NoAllocator {
+      @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
+      1: i64 ignored;
+    }
+  )");
+}
+
+TEST(CompilerTest, cpp_allocator_with_tablebased_serialization) {
+  check_compile(
+      R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+    include "thrift/annotation/thrift.thrift"
+
+    @thrift.DeprecatedUnvalidatedAnnotations{
+      items = {"cpp.allocator": "::std::pmr::polymorphic_allocator<char>"},
+    }
+    struct PmrStruct {
+      @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
+      @cpp.Type{template = "::std::pmr::vector"}
+      1: list<i32> ids;
+    }
+      # expected-error@-8: Allocator-aware type `PmrStruct` is not supported with the `tablebased` option.  [tablebased-allocator-rule]
+
+    @thrift.DeprecatedUnvalidatedAnnotations{
+      items = {"cpp.allocator": "::std::pmr::polymorphic_allocator<char>"},
+    }
+    union PmrUnion {
+      1: i32 id;
+    }
+      # expected-error@-6: Allocator-aware type `PmrUnion` is not supported with the `tablebased` option.  [tablebased-allocator-rule]
+
+    struct Plain {
+      1: string name;
+      2: PlainUnion choice;
+    }
+    union PlainUnion {
+      1: i32 id;
+    }
+  )",
+      {"--gen", "mstch_cpp2:json,tablebased"});
+}
+
+TEST(CompilerTest, cpp_allocator_optional_ref) {
+  check_compile(R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+    include "thrift/annotation/thrift.thrift"
+
+    struct Child {}
+
+    @thrift.DeprecatedUnvalidatedAnnotations{
+      items = {"cpp.allocator": "MyAlloc"},
+    }
+    struct Bad {
+      @cpp.Ref{type = cpp.RefType.SharedMutable}
+      1: optional Child shared;
+        # expected-error@-2: Optional reference field `shared` of allocator-aware type `Bad` is not supported.
+      @cpp.Ref{type = cpp.RefType.Shared}
+      2: optional Child shared_const;
+        # expected-error@-2: Optional reference field `shared_const` of allocator-aware type `Bad` is not supported.
+    }
+
+    @thrift.DeprecatedUnvalidatedAnnotations{
+      items = {"cpp.allocator": "MyAlloc"},
+    }
+    struct Good {
+      @cpp.Ref{type = cpp.RefType.SharedMutable}
+      @cpp.AllowLegacyNonOptionalRef
+      1: Child non_optional;
+        # expected-warning@-3: Field with @cpp.Ref annotation should be optional: `non_optional` (in `Good`).
+      @thrift.Box
+      2: optional Child boxed;
+    }
+
+    struct NoAllocator {
+      @cpp.Ref{type = cpp.RefType.SharedMutable}
+      1: optional Child shared;
+    }
+  )");
+}
+
+TEST(CompilerTest, cpp_allocator_on_union) {
+  check_compile(R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+    include "thrift/annotation/internal.thrift"
+    include "thrift/annotation/thrift.thrift"
+
+    @thrift.DeprecatedUnvalidatedAnnotations{
+      items = {"cpp.allocator": "MyAlloc"},
+    }
+    union Allocated {
+      1: i32 field1;
+    }
+
+    @internal.CppAllocator{name = "MyAlloc"}
+    union StructuredAllocated {
       1: i32 field1;
     }
 
     @thrift.DeprecatedUnvalidatedAnnotations{
       items = {"cpp.allocator": "MyAlloc"},
     }
-    @cpp.InternalExperimentalAllowAllocatorOnUnion
     union Defaulted {
       @thrift.AllowUnsafeUnionFieldCustomDefaultValue
       1: i32 field1 = 8;
@@ -3231,15 +3605,432 @@ TEST(CompilerTest, cpp_allocator_on_union) {
       2: i32 field2 = 8;
         # expected-error@-3: Field `field2` of union `Defaulted` has a default value, which unions don't support.
     }
+  )");
+}
 
-    # Structs are unaffected.
-    @thrift.DeprecatedUnvalidatedAnnotations{
-      items = {"cpp.allocator": "MyAlloc"},
+TEST(CompilerTest, cpp_arena_annotation_scopes) {
+  check_compile(R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+
+    @cpp.Arena
+    typedef string PmrString
+      # expected-error@-2: `@cpp.Arena` is not supported on typedef `PmrString`.
+
+    struct Foo {
+      @cpp.Arena
+      1: list<PmrString> names;
     }
-    struct Good {
-      1: i32 field1;
+
+    @cpp.Arena
+    struct Bar {}
+
+    @cpp.Arena
+    union Baz {}
+
+    service Svc {
+      @cpp.Arena
+      void arenaFunction(
+        @cpp.Arena
+          # expected-error@-1: `Arena` cannot annotate `param`
+        1: string param
+      );
     }
   )");
+}
+
+TEST(CompilerTest, cpp_arena_function) {
+  check_compile(R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+
+    interaction Inter {
+      @cpp.Arena
+      string in_interaction(1: string key);
+        # expected-error@-2: `@cpp.Arena` is not supported on function `in_interaction`.
+    }
+
+    service Svc {
+      @cpp.Arena
+      void param_only(1: i64 id, 2: string key);
+      @cpp.Arena
+      list<string> return_only(1: i64 id);
+      @cpp.Arena
+      oneway void one_way(1: string key);
+        # expected-error@-2: `@cpp.Arena` is not supported on function `one_way`.
+      @cpp.Arena
+      stream<string> streaming(1: string key);
+        # expected-error@-2: `@cpp.Arena` is not supported on function `streaming`.
+      @cpp.Arena
+      Inter, string create_interaction(1: string key);
+        # expected-error@-2: `@cpp.Arena` is not supported on function `create_interaction`.
+      @cpp.Arena
+      @cpp.ProcessInEbThreadUnsafe
+      string event_base(1: string key);
+        # expected-error@-3: `@cpp.Arena` is not supported on function `event_base`.
+    }
+
+    @cpp.FastServer
+    service FastServer {
+      @cpp.Arena
+      string fast_server(1: string key);
+        # expected-error@-2: `@cpp.Arena` is not supported on function `fast_server`.
+    }
+
+    @cpp.FastClient
+    service FastClient {
+      @cpp.Arena
+      string fast_client(1: string key);
+        # expected-error@-2: `@cpp.Arena` is not supported on function `fast_client`.
+    }
+  )");
+}
+
+TEST(CompilerTest, cpp_arena_adapted) {
+  check_compile(R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+
+    @cpp.Adapter{name = "::my::Adapter"}
+    typedef string AdaptedString
+    @cpp.Adapter{}
+      # expected-error@-1: key `name` not found.
+    typedef string Nameless
+
+    struct Foo {
+      @cpp.Arena
+      1: string ok;
+      @cpp.Arena
+      @cpp.Adapter{name = "::my::Adapter"}
+      2: string field_adapter;
+        # expected-error@-3: `@cpp.Arena` is not supported on field `field_adapter`, which is adapted by `::my::Adapter`.
+      @cpp.Arena
+      3: AdaptedString typedef_adapter;
+        # expected-error@-2: `@cpp.Arena` is not supported on field `typedef_adapter`, which is adapted by `::my::Adapter`.
+      @cpp.Arena
+      4: Nameless nameless;
+        # expected-error@-2: `@cpp.Arena` is not supported on adapted field `nameless`.
+    }
+  )");
+}
+
+TEST(CompilerTest, cpp_arena_unsupported_fields) {
+  check_compile(R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+    include "thrift/annotation/thrift.thrift"
+
+    @cpp.Adapter{name = "::my::Adapter"}
+    typedef string AdaptedString
+    @cpp.Type{template = "std::deque"}
+    typedef list<string> Deque
+    @cpp.Type{name = "std::unique_ptr<folly::IOBuf>"}
+    typedef binary IOBufPtr
+    @cpp.Type{name = "folly::IOBuf"}
+    typedef binary IOBuf
+
+    struct Foo {
+      @cpp.Arena
+      1: i32 number;
+        # expected-error@-2: `@cpp.Arena` is not supported on field `number`.
+      @cpp.Arena
+      2: string with_default = "default";
+        # expected-error@-2: `@cpp.Arena` is not supported on field `with_default`.
+      @cpp.Arena
+      @thrift.Box
+      3: optional string boxed;
+        # expected-error@-3: `@cpp.Arena` is not supported on field `boxed`.
+      @cpp.Arena
+      @cpp.Lazy
+      4: list<string> lazy;
+        # expected-error@-3: `@cpp.Arena` is not supported on field `lazy`.
+      @cpp.Arena
+      @cpp.Type{name = "::folly::IOBuf"}
+      5: binary iobuf;
+        # expected-error@-3: `@cpp.Arena` is not supported on field `iobuf`.
+      @cpp.Arena
+      6: list<AdaptedString> adapted_elements;
+        # expected-error@-2: `@cpp.Arena` is not supported on field `adapted_elements`.
+      @cpp.Arena
+      @cpp.Type{template = "std::unordered_map"}
+      7: map<string, Deque> custom;
+      @cpp.Arena
+      8: list<IOBufPtr> iobuf_ptrs;
+        # expected-error@-2: `@cpp.Arena` is not supported on field `iobuf_ptrs`.
+      @cpp.Arena
+      9: map<string, IOBuf> iobufs;
+      @cpp.Arena
+      @cpp.Type{name = "std::string"}
+      10: IOBuf overridden;
+    }
+  )");
+}
+
+TEST(CompilerTest, cpp_allocator_with_frozen) {
+  check_compile(
+      R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/thrift.thrift"
+
+    @thrift.DeprecatedUnvalidatedAnnotations{
+      items = {"cpp.allocator": "::std::pmr::polymorphic_allocator<char>"},
+    }
+    struct PmrStruct {
+      1: string name;
+    }
+      # expected-error@-6: Allocator-aware type `PmrStruct` is not supported with the `frozen` option.  [frozen-allocator-rule]
+
+    struct Plain {
+      1: string name;
+    }
+  )",
+      {"--gen", "mstch_cpp2:frozen"});
+}
+
+TEST(CompilerTest, cpp_allocator_with_frozen2) {
+  check_compile(
+      R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+    include "thrift/annotation/thrift.thrift"
+
+    @thrift.DeprecatedUnvalidatedAnnotations{
+      items = {"cpp.allocator": "::std::pmr::polymorphic_allocator<char>"},
+    }
+    struct PmrStruct {
+      1: string name;
+    }
+      # expected-error@-6: Allocator-aware type `PmrStruct` is not supported with the `frozen2` option unless it has `@cpp.Frozen2Exclude`.  [frozen2-allocator-rule]
+
+    @thrift.DeprecatedUnvalidatedAnnotations{
+      items = {"cpp.allocator": "::std::pmr::polymorphic_allocator<char>"},
+    }
+    union PmrUnion {
+      1: i32 id;
+    }
+      # expected-error@-6: Allocator-aware type `PmrUnion` is not supported with the `frozen2` option unless it has `@cpp.Frozen2Exclude`.  [frozen2-allocator-rule]
+
+    @thrift.DeprecatedUnvalidatedAnnotations{
+      items = {"cpp.allocator": "::std::pmr::polymorphic_allocator<char>"},
+    }
+    @cpp.Frozen2Exclude
+    struct Excluded {
+      1: string name;
+    }
+  )",
+      {"--gen", "mstch_cpp2:frozen2"});
+}
+
+TEST(CompilerTest, cpp_type_on_adapted_typedef) {
+  check_compile(R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+
+    @cpp.Adapter{name = "::my::Adapter"}
+    @cpp.Type{template = "std::unordered_set"}
+    typedef set<string> AdaptedUnorderedSet
+      # expected-warning@-3: At most one of @cpp.Type/@cpp.Adapter can be specified on a definition.
+      # expected-error@-4: `@cpp.Type` cannot be used on adapted typedef `AdaptedUnorderedSet`.
+
+    @cpp.Adapter{name = "::my::Adapter"}
+    typedef set<string> AdaptedSet
+    @cpp.Type{template = "std::unordered_set"}
+    typedef AdaptedSet UnorderedAdaptedSet
+      # expected-error@-2: `@cpp.Type` cannot be used on adapted typedef `UnorderedAdaptedSet`.
+
+    @cpp.Adapter{name = "::my::Adapter"}
+    typedef string AdaptedString
+    @cpp.Type{name = "::folly::fbstring"}
+    typedef AdaptedString FbAdaptedString
+      # expected-error@-2: `@cpp.Type` cannot be used on adapted typedef `FbAdaptedString`.
+
+    @cpp.Adapter{name = "::my::Adapter"}
+    @cpp.Type{name = "::folly::IOBuf"}
+    typedef binary AdaptedIOBuf
+      # expected-warning@-3: At most one of @cpp.Type/@cpp.Adapter can be specified on a definition.
+      # expected-error@-4: `@cpp.Type` cannot be used on adapted typedef `AdaptedIOBuf`.
+
+    @cpp.Type{name = "::folly::IOBuf"}
+    typedef binary IOBuf
+    @cpp.Adapter{name = "::my::Adapter"}
+    typedef IOBuf AdaptedIOBufTypedef
+  )");
+}
+
+TEST(CompilerTest, cpp_type_on_parameter) {
+  check_compile(R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+
+    @cpp.Type{template = "std::deque"}
+    typedef list<string> Deque
+
+    service Svc {
+      void process(
+        @cpp.Type{template = "std::deque"}
+          # expected-error@-1: `Type` cannot annotate `names`
+        1: list<string> names,
+        2: Deque deque,
+      );
+    }
+  )");
+}
+
+TEST(CompilerTest, cpp_arena_struct_level) {
+  check_compile(R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+    include "thrift/annotation/thrift.thrift"
+
+    @cpp.Adapter{name = "::my::Adapter"}
+    typedef string AdaptedString
+
+    # Applies only to the fields that field-level `@cpp.Arena` supports.
+    @cpp.Arena
+    struct Whole {
+      1: string name;
+      2: i32 number;
+      3: string with_default = "default";
+        # expected-error@-1: Field `with_default` of allocator-aware struct `Whole` declares a custom default that its allocator-taking constructors would drop. Remove the default, or annotate the field with `@cpp.AllowCustomDefaultInAllocCtor` to apply it there too.
+      4: AdaptedString adapted;
+      @thrift.Box
+      5: optional string boxed;
+    }
+  )");
+}
+
+TEST(CompilerTest, cpp_arena_struct_members) {
+  check_compile(R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+
+    struct Plain {
+      1: string name;
+    }
+
+    struct Arena {
+      @cpp.Arena
+      1: string name;
+    }
+
+    union ArenaUnion {
+      @cpp.Arena
+      1: string name;
+    }
+
+    struct Members {
+      @cpp.Arena
+      1: Arena arena;
+      @cpp.Arena
+      2: ArenaUnion arena_union;
+      @cpp.Arena
+      3: WholeLater whole_later;
+      @cpp.Arena
+      4: Plain plain;
+        # expected-error@-2: `@cpp.Arena` is not supported on field `plain`.
+    }
+
+    # Applies to the struct and union fields whose types take an allocator.
+    @cpp.Arena
+    struct Whole {
+      1: string name;
+      2: Arena arena;
+      3: ArenaUnion arena_union;
+      4: Plain plain;
+    }
+
+    @cpp.Arena
+    struct WholeLater {
+      1: string name;
+    }
+  )");
+}
+
+TEST(CompilerTest, cpp_arena_union) {
+  check_compile(R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+
+    @cpp.Arena
+    union Whole {
+      1: string name;
+      2: i32 number;
+    }
+  )");
+}
+
+TEST(CompilerTest, cpp_arena_allocator_rules) {
+  check_compile(R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+
+    struct Child {}
+
+    struct Arena {
+      @cpp.Arena
+      1: string name;
+      @cpp.Ref{type = cpp.RefType.Shared}
+      2: optional Child shared;
+        # expected-error@-2: Optional reference field `shared` of allocator-aware type `Arena` is not supported.
+      @cpp.Lazy
+      3: list<i32> lazy;
+        # expected-error@-2: `@cpp.Lazy` is not supported on field `lazy` of allocator-aware struct `Arena`: the allocator-extended copy and move constructors drop the field's serialized data.
+      4: i32 version = 1;
+        # expected-error@-1: Field `version` of allocator-aware struct `Arena` declares a custom default that its allocator-taking constructors would drop. Remove the default, or annotate the field with `@cpp.AllowCustomDefaultInAllocCtor` to apply it there too.
+    }
+  )");
+}
+
+TEST(CompilerTest, cpp_arena_with_declared_allocator) {
+  check_compile(R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+    include "thrift/annotation/internal.thrift"
+    include "thrift/annotation/thrift.thrift"
+
+    @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.allocator": "MyAlloc"}}
+    struct Unstructured {
+      @cpp.Arena
+      1: string name;
+    }
+      # expected-error@-5: `cpp.allocator` is not supported on `Unstructured`, which has `@cpp.Arena` fields.
+
+    @internal.CppAllocator{name = "MyAlloc"}
+    @cpp.Arena
+    union Structured {
+      1: string name;
+    }
+      # expected-error@-5: `@internal.CppAllocator` is not supported on `Structured`, which has `@cpp.Arena` fields.
+
+    @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.allocator_via": "name"}}
+    struct UnstructuredVia {
+      @cpp.Arena
+      1: string name;
+    }
+      # expected-error@-5: `cpp.allocator_via` is not supported on `UnstructuredVia`, which has `@cpp.Arena` fields.
+
+    @internal.CppAllocatorVia{name = "name"}
+    struct StructuredVia {
+      @cpp.Arena
+      1: string name;
+    }
+      # expected-error@-5: `@internal.CppAllocatorVia` is not supported on `StructuredVia`, which has `@cpp.Arena` fields.
+  )");
+}
+
+TEST(CompilerTest, cpp_arena_with_tablebased_serialization) {
+  check_compile(
+      R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+
+    struct Arena {
+      @cpp.Arena
+      1: string name;
+    }
+      # expected-error@-4: Allocator-aware type `Arena` is not supported with the `tablebased` option.  [tablebased-allocator-rule]
+  )",
+      {"--gen", "mstch_cpp2:json,tablebased"});
 }
 
 TEST(CompilerTest, cpp_use_allocator_ref_fields) {
@@ -3264,45 +4055,49 @@ TEST(CompilerTest, cpp_use_allocator_ref_fields) {
       @cpp.Ref{type = cpp.RefType.Unique}
       1: optional AAString unique;
         # expected-warning@-2: @cpp.Ref{type = cpp.RefType.Unique} is deprecated. Please use @thrift.Box annotation instead in `unique`.
-        # expected-error@-3: Reference field `unique` of `cpp.allocator` type `Struct` doesn't support `cpp.use_allocator`.
+        # expected-error@-3: Reference field `unique` of allocator-aware type `Struct` doesn't support `cpp.use_allocator`.
+        # expected-error@-4: Optional reference field `unique` of allocator-aware type `Struct` is not supported.
       @cpp.Ref{type = cpp.RefType.Unique}
       @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
       2: optional string field_annotated_unique;
         # expected-warning@-3: @cpp.Ref{type = cpp.RefType.Unique} is deprecated. Please use @thrift.Box annotation instead in `field_annotated_unique`.
-        # expected-error@-4: Reference field `field_annotated_unique` of `cpp.allocator` type `Struct` doesn't support `cpp.use_allocator`.
+        # expected-error@-4: Reference field `field_annotated_unique` of allocator-aware type `Struct` doesn't support `cpp.use_allocator`.
+        # expected-error@-5: Optional reference field `field_annotated_unique` of allocator-aware type `Struct` is not supported.
       @thrift.InternBox
       3: AAInner intern_boxed;
-        # expected-error@-2: Reference field `intern_boxed` of `cpp.allocator` type `Struct` doesn't support `cpp.use_allocator`.
+        # expected-error@-2: Reference field `intern_boxed` of allocator-aware type `Struct` doesn't support `cpp.use_allocator`.
       @cpp.Ref{type = cpp.RefType.Shared}
       4: optional AAString shared;
+        # expected-error@-2: Optional reference field `shared` of allocator-aware type `Struct` is not supported.
       @cpp.Ref{type = cpp.RefType.SharedMutable}
       5: optional AAString shared_mutable;
+        # expected-error@-2: Optional reference field `shared_mutable` of allocator-aware type `Struct` is not supported.
       @thrift.Box
       6: optional AAString boxed;
-        # expected-error@-2: Reference field `boxed` of `cpp.allocator` type `Struct` doesn't support `cpp.use_allocator`.
+        # expected-error@-2: Reference field `boxed` of allocator-aware type `Struct` doesn't support `cpp.use_allocator`.
       @cpp.Ref{type = cpp.RefType.Unique}
       7: optional string heap_unique;
         # expected-warning@-2: @cpp.Ref{type = cpp.RefType.Unique} is deprecated. Please use @thrift.Box annotation instead in `heap_unique`.
+        # expected-error@-3: Optional reference field `heap_unique` of allocator-aware type `Struct` is not supported.
     }
 
     @thrift.DeprecatedUnvalidatedAnnotations{
       items = {"cpp.allocator": "MyAlloc"},
     }
-    @cpp.InternalExperimentalAllowAllocatorOnUnion
     union Union {
       @cpp.Ref{type = cpp.RefType.Unique}
       1: AAString unique;
-        # expected-error@-2: Reference field `unique` of `cpp.allocator` type `Union` doesn't support `cpp.use_allocator`.
+        # expected-error@-2: Reference field `unique` of allocator-aware type `Union` doesn't support `cpp.use_allocator`.
       @cpp.Ref{type = cpp.RefType.Shared}
       2: AAString shared;
       @cpp.Ref{type = cpp.RefType.SharedMutable}
       3: AAString shared_mutable;
       @thrift.Box
       4: AAString boxed;
-        # expected-error@-2: Reference field `boxed` of `cpp.allocator` type `Union` doesn't support `cpp.use_allocator`.
+        # expected-error@-2: Reference field `boxed` of allocator-aware type `Union` doesn't support `cpp.use_allocator`.
       @thrift.InternBox
       5: AAInner intern_boxed;
-        # expected-error@-2: Reference field `intern_boxed` of `cpp.allocator` type `Union` doesn't support `cpp.use_allocator`.
+        # expected-error@-2: Reference field `intern_boxed` of allocator-aware type `Union` doesn't support `cpp.use_allocator`.
       @cpp.Ref{type = cpp.RefType.Unique}
       6: string heap_unique;
       @thrift.Box
@@ -3323,7 +4118,82 @@ TEST(CompilerTest, cpp_allocator_via_on_union) {
       1: i32 field1;
     }
       # expected-error@-6: `cpp.allocator_via` is not supported on union `Bad`.
-      # expected-error@-7: `cpp.allocator` does not support union `Bad`
+  )");
+}
+
+TEST(CompilerTest, cpp_allocator_annotation_spellings) {
+  check_compile(R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/internal.thrift"
+    include "thrift/annotation/thrift.thrift"
+
+    @internal.CppAllocator{name = "MyAlloc"}
+    @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.allocator": "MyAlloc"}}
+    struct Both {
+      @internal.CppUseAllocator
+      @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
+      1: string s;
+        # expected-error@-3: Both `@internal.CppUseAllocator` and `cpp.use_allocator` are set on `s`. Remove `cpp.use_allocator`.
+    }
+      # expected-error@-8: Both `@internal.CppAllocator` and `cpp.allocator` are set on `Both`. Remove `cpp.allocator`.
+
+    @internal.CppAllocator
+    @internal.CppAllocatorVia{name = ""}
+    struct NoName {
+      1: string s;
+    }
+      # expected-error@-5: `@internal.CppAllocator` on `NoName` needs a non-empty name.
+      # expected-error@-6: `@internal.CppAllocatorVia` on `NoName` needs a non-empty name.
+
+    @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.allocator": ""}}
+    struct EmptyUnstructured {
+      1: string s;
+    }
+      # expected-error@-4: `cpp.allocator` on `EmptyUnstructured` needs a non-empty name.
+  )");
+}
+
+TEST(CompilerTest, cpp_allocator_via) {
+  check_compile(R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+    include "thrift/annotation/thrift.thrift"
+
+    @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.allocator_via": "s"}}
+    struct NoAllocator {
+      @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
+      1: string s;
+    }
+      # expected-error@-5: `cpp.allocator_via` on `NoAllocator` needs `cpp.allocator`.
+
+    @thrift.DeprecatedUnvalidatedAnnotations{
+      items = {"cpp.allocator": "MyAlloc", "cpp.allocator_via": "missing"},
+    }
+    struct UnknownField {
+      @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
+      1: string s;
+    }
+      # expected-error@-7: `cpp.allocator_via` on `UnknownField` names no field `missing`.
+
+    @thrift.DeprecatedUnvalidatedAnnotations{
+      items = {"cpp.allocator": "MyAlloc", "cpp.allocator_via": "s"},
+    }
+    struct RefField {
+      @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
+      @cpp.Ref{type = cpp.RefType.Shared}
+      1: optional string s;
+        # expected-error@-3: Optional reference field `s` of allocator-aware type `RefField` is not supported.
+    }
+      # expected-error@-9: `cpp.allocator_via` on `RefField` names reference field `s`.
+
+    @thrift.DeprecatedUnvalidatedAnnotations{
+      items = {"cpp.allocator": "MyAlloc", "cpp.allocator_via": "renamed"},
+    }
+    struct Good {
+      @thrift.DeprecatedUnvalidatedAnnotations{items = {"cpp.use_allocator": "1"}}
+      @cpp.Name{value = "renamed"}
+      1: string s;
+    }
   )");
 }
 
@@ -3383,7 +4253,7 @@ TEST(CompilerTest, cpp_alloc_ctor_custom_defaults) {
     struct NotAllocated {
       @cpp.AllowCustomDefaultInAllocCtor
       1: i32 field1 = 8;
-        # expected-error@-2: `@cpp.AllowCustomDefaultInAllocCtor` on field `field1` has no effect: it applies only to a field of a `cpp.allocator` struct that declares a default value.
+        # expected-error@-2: `@cpp.AllowCustomDefaultInAllocCtor` on field `field1` has no effect: it applies only to a field of a `cpp.allocator` or `@cpp.Arena` struct that declares a default value.
     }
 
     @thrift.DeprecatedUnvalidatedAnnotations{
@@ -3392,8 +4262,36 @@ TEST(CompilerTest, cpp_alloc_ctor_custom_defaults) {
     struct AllocatedRedundant {
       @cpp.AllowCustomDefaultInAllocCtor
       1: i32 field1;
-        # expected-error@-2: `@cpp.AllowCustomDefaultInAllocCtor` on field `field1` has no effect: it applies only to a field of a `cpp.allocator` struct that declares a default value.
+        # expected-error@-2: `@cpp.AllowCustomDefaultInAllocCtor` on field `field1` has no effect: it applies only to a field of a `cpp.allocator` or `@cpp.Arena` struct that declares a default value.
     }
+  )");
+}
+
+TEST(CompilerTest, cpp_allocator_structured_annotations) {
+  check_compile(R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/internal.thrift"
+
+    @internal.CppUseAllocator
+    typedef i32 AllocI32
+
+    @internal.CppAllocator{name = "MyAlloc"}
+    struct Struct {
+      @internal.CppUseAllocator
+      1: i64 integer;
+        # expected-error@-2: `cpp.use_allocator` is not supported on field `integer` of type `i64`, which can't take an allocator.
+      2: AllocI32 typedef_scalar;
+        # expected-error@-1: `cpp.use_allocator` is not supported on field `typedef_scalar` of type `AllocI32`, which can't take an allocator.
+      @internal.CppUseAllocator
+      3: string s;
+    }
+
+    @internal.CppAllocatorVia{name = "s"}
+    struct ViaWithoutAllocator {
+      @internal.CppUseAllocator
+      1: string s;
+    }
+      # expected-error@-5: `@internal.CppAllocatorVia` on `ViaWithoutAllocator` needs `@internal.CppAllocator`.
   )");
 }
 
@@ -3688,6 +4586,59 @@ TEST(CompilerTest, local_vs_global_resolution_sanity) {
 
     check_compile(name_content_map, "local/foo.thrift", {}, options);
     check_compile(name_content_map, "get_b/foo.thrift", {}, options);
+  }
+}
+
+TEST(CompilerTest, same_basename_imported_typedef_is_not_self_referential) {
+  const std::map<std::string, std::string> sources = {
+      {"import/foo.thrift", R"(
+        package "example.com/import"
+        struct Name { 1: i64 id; }
+        enum Kind { Value = 1 }
+        typedef i64 Id
+      )"},
+      {"foo.thrift", R"(
+        include "import/foo.thrift"
+        package "example.com/root"
+        typedef foo.Name Name
+        typedef foo.Kind Kind
+        typedef foo.Id Id
+        struct Uses { 1: Name name; 2: Kind kind; 3: Id id; }
+      )"},
+  };
+  for (const bool global : {false, true}) {
+    auto options = check_compile_options();
+    options.use_global_resolution = global;
+    check_compile(sources, "foo.thrift", {}, options);
+  }
+}
+
+TEST(CompilerTest, local_forward_type_resolution) {
+  const std::map<std::string, std::string> sources = {
+      {"annotation/types.thrift", R"(
+        package "example.com/repro/annotation"
+        struct Node { 1: string name; }
+        enum Kind { Remote = 1 }
+      )"},
+      {"root.thrift", R"(
+        include "annotation/types.thrift"
+        package "example.com/repro/root"
+      )"},
+      {"schema/types.thrift", R"(
+        include "root.thrift"
+        package "example.com/repro/schema"
+        typedef Node Alias
+        const Alias DEFAULT = Node{id = 1}
+        const Kind DEFAULT_KIND = Kind.Local
+        struct Link { 1: list<Node> nodes; }
+        struct Node { 1: i64 id; 2: optional Link link; }
+        enum Kind { Local = 2 }
+      )"},
+  };
+  for (const bool global : {false, true}) {
+    auto options = check_compile_options();
+    options.use_global_resolution = global;
+    check_compile(sources, "schema/types.thrift", {}, options);
   }
 }
 
@@ -4053,10 +5004,7 @@ TEST(CompilerTest, bidirectional_streaming) {
       )");
 }
 
-// A thrift program called "<scope>.thrift" can implicitly use any definitions
-// of an included thrift program called "<scope>.thrift", without having to
-// specify the scope name, e.g. "foo.Foo" can be used as "Foo" in "foo.thrift".
-TEST(CompilerTest, implicit_scope_addition_with_direct_include) {
+TEST(CompilerTest, unqualified_type_requires_scope_with_direct_include) {
   std::map<std::string, std::string> name_contents_map;
   name_contents_map["a/foo.thrift"] = R"(
     package "facebook.com/thrift/test"
@@ -4070,13 +5018,13 @@ TEST(CompilerTest, implicit_scope_addition_with_direct_include) {
     include "a/foo.thrift"
 
     struct Bar {
-    1: Foo val; # expected-warning@6#original[Foo]#replacement[foo.Foo]@8: Identifier 'Foo' refers to a definition in another thrift program. Use an explicit scoped identifier. [implicit_scope_usage]
+    1: Foo val; # expected-error: Type `Foo` not defined.
     }
   )";
   check_compile(name_contents_map, "b/foo.thrift");
 }
 
-TEST(CompilerTest, implicit_scope_addition_with_multiple_includes) {
+TEST(CompilerTest, unqualified_type_requires_scope_with_multiple_includes) {
   std::map<std::string, std::string> name_contents_map;
   name_contents_map["a/foo.thrift"] = R"(
     package "facebook.com/thrift/test/a"
@@ -4096,11 +5044,11 @@ TEST(CompilerTest, implicit_scope_addition_with_multiple_includes) {
 
   name_contents_map["main/foo.thrift"] = R"(
     package "facebook.com/thrift/test"
-    include "a/foo.thrift" # expected-warning@3#original[]#replacement[as a_foo]@27: Multiple programs named 'foo', please specify an appropriate include alias to disambiguate. [implicit_scope_usage]
+    include "a/foo.thrift"
     include "b/foo.thrift"
 
     struct Bar {
-      1: Foo val; # expected-warning@7#original[Foo]#replacement[a_foo.Foo]@10: Identifier 'Foo' refers to a definition in another thrift program. Use an explicit scoped identifier. [implicit_scope_usage]
+      1: Foo val; # expected-error: Type `Foo` not defined.
     }
   )";
   check_compile(name_contents_map, "main/foo.thrift");
@@ -4610,4 +5558,16 @@ TEST(CompilerTest, ignore_missing_uri_opt_out_with_allow_legacy) {
     # expected-error@-3: Definition `BothAnnotatedStruct` requires a URI: add a non-empty package to the file, or annotate the type with @thrift.Uri. For more details, see https://fburl.com/thrift-uri-add-package
   )",
       {"--extra-validation", "ignore_missing_uri_opt_out,missing_uris=error"});
+}
+
+TEST(CompilerTest, java_exception_cause_field_name) {
+  check_compile(
+      R"(
+    package "facebook.com/thrift/test"
+
+    exception E {
+      1: string cause; # expected-error: Exception 'E' has field 'cause' with Java name 'Cause', which collides with 'Throwable.getCause()', the generated '(..., Throwable cause)' constructor and 'Builder.setCause'; rename the field.
+    }
+      )",
+      {"--gen", "mstch_java"});
 }

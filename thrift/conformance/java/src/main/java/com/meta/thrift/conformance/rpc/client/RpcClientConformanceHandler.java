@@ -23,7 +23,6 @@ import com.facebook.thrift.rsocket.client.RSocketRpcClientFactory;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.util.stream.Collectors;
 import org.apache.thrift.ProtocolId;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.conformance.ClientInstruction;
@@ -53,6 +52,7 @@ import org.apache.thrift.conformance.SinkDeclaredExceptionClientTestResult;
 import org.apache.thrift.conformance.SinkInitialDeclaredExceptionClientInstruction;
 import org.apache.thrift.conformance.SinkInitialDeclaredExceptionClientTestResult;
 import org.apache.thrift.conformance.SinkInitialResponseClientInstruction;
+import org.apache.thrift.conformance.SinkInitialResponseClientTestResult;
 import org.apache.thrift.conformance.SinkServerDeclaredExceptionClientInstruction;
 import org.apache.thrift.conformance.SinkServerDeclaredExceptionClientTestResult;
 import org.apache.thrift.conformance.SinkUndeclaredExceptionClientInstruction;
@@ -225,18 +225,18 @@ public class RpcClientConformanceHandler {
       StreamInitialResponseClientInstruction instruction) {
     return client
         .streamInitialResponse(instruction.getRequest())
-        .collectList()
-        .map(
-            r ->
-                ClientTestResult.fromStreamInitialResponse(
-                    new StreamInitialResponseClientTestResult.Builder()
-                        .setInitialResponse(r.get(0).getFirstResponse())
-                        .setStreamPayloads(
-                            r.stream()
-                                .filter(s -> s.isSetData())
-                                .map(s -> s.getData())
-                                .collect(Collectors.toList()))
-                        .build()));
+        .flatMap(
+            responseAndStream ->
+                responseAndStream
+                    .getStream()
+                    .collectList()
+                    .map(
+                        payloads ->
+                            ClientTestResult.fromStreamInitialResponse(
+                                new StreamInitialResponseClientTestResult.Builder()
+                                    .setInitialResponse(responseAndStream.getFirstResponse())
+                                    .setStreamPayloads(payloads)
+                                    .build())));
   }
 
   public Mono<ClientTestResult> testStreamDeclaredException(
@@ -332,7 +332,18 @@ public class RpcClientConformanceHandler {
 
   public Mono<ClientTestResult> testSinkInitialResponse(
       SinkInitialResponseClientInstruction instruction) {
-    throw new RuntimeException("Not supported");
+    Publisher<Request> publisher = Flux.fromIterable(instruction.getSinkPayloads());
+
+    return client
+        .sinkInitialResponse(instruction.getRequest(), publisher)
+        .collectList()
+        .map(
+            responses ->
+                ClientTestResult.fromSinkInitialResponse(
+                    new SinkInitialResponseClientTestResult.Builder()
+                        .setInitialResponse(responses.get(0).getFirstResponse())
+                        .setFinalResponse(responses.get(responses.size() - 1).getData())
+                        .build()));
   }
 
   public Mono<ClientTestResult> testSinkInitialDeclaredException(
@@ -388,7 +399,7 @@ public class RpcClientConformanceHandler {
         Flux.error(new RuntimeException(instruction.getExceptionMessage()));
 
     return client
-        .sinkDeclaredException(instruction.getRequest(), publisher)
+        .sinkUndeclaredException(instruction.getRequest(), publisher)
         .map(
             _r ->
                 ClientTestResult.fromSinkUndeclaredException(

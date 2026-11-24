@@ -24,6 +24,14 @@ package;
 
 cpp_include "thrift/test/StructsExtra.h"
 
+// Field names that generated member names are built from.
+struct FieldsNamedLikeGeneratedMembers {
+  1: i32 names;
+  2: i32 storage;
+  3: i32 isset;
+  4: i32 class_name;
+}
+
 struct Basic {
   1: i32 def_field;
   @thrift.AllowUnsafeRequiredFieldQualifier

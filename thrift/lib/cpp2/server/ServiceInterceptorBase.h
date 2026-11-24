@@ -25,7 +25,6 @@
 #include <folly/memory/not_null.h>
 
 #include <thrift/lib/cpp/StreamEventHandler.h>
-#include <thrift/lib/cpp2/schema/SyntaxGraph.h>
 #include <thrift/lib/cpp2/server/DecoratorData.h>
 #include <thrift/lib/cpp2/server/DecoratorDataRuntime.h>
 #include <thrift/lib/cpp2/server/LazyDynamicArguments.h>
@@ -36,6 +35,9 @@ namespace apache::thrift {
 
 class IOBufChain;
 class ServiceInterceptorBase;
+namespace syntax_graph {
+class ServiceNode;
+} // namespace syntax_graph
 
 #if FOLLY_HAS_COROUTINES
 

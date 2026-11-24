@@ -115,7 +115,7 @@ class FastThriftServerMetricsTest : public ::testing::Test {
     using T = typename SemiFuture::value_type;
     if constexpr (std::is_void_v<T>) {
       folly::Baton<> baton;
-      auto* evb = clientThread_->getEventBase();
+      auto evb = clientThread_->getEventBaseKeepAlive();
       evb->runInEventBaseThread([&] {
         fn().via(evb)
             .thenValue([&](folly::Unit) { baton.post(); })
@@ -128,7 +128,7 @@ class FastThriftServerMetricsTest : public ::testing::Test {
     } else {
       folly::Baton<> baton;
       T result{};
-      auto* evb = clientThread_->getEventBase();
+      auto evb = clientThread_->getEventBaseKeepAlive();
       evb->runInEventBaseThread([&] {
         fn().via(evb)
             .thenValue([&](T val) {

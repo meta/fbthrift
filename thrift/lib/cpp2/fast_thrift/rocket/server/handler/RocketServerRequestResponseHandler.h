@@ -24,7 +24,6 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/ErrorCode.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/ComposedFrame.h>
@@ -113,9 +112,9 @@ class RocketServerRequestResponseHandler {
     auto frameType = request.frame.type();
 
     // Hot path: the initial REQUEST_RESPONSE frame from the client.
-    if (FOLLY_LIKELY(
-            frameType ==
-            apache::thrift::fast_thrift::frame::FrameType::REQUEST_RESPONSE)) {
+    if (frameType ==
+        apache::thrift::fast_thrift::frame::FrameType::REQUEST_RESPONSE)
+        [[likely]] {
       return ctx.fireRead(std::move(msg));
     }
 
@@ -157,9 +156,15 @@ class RocketServerRequestResponseHandler {
         .streamType =
             apache::thrift::fast_thrift::frame::FrameType::REQUEST_RESPONSE,
     };
-    return ctx.fireWrite(
-        apache::thrift::fast_thrift::channel_pipeline::erase_and_box(
-            std::move(errorResponse)));
+    // On Backpressure the pipeline accepted the ERROR frame. As a read result,
+    // Backpressure would pause reads on the whole connection.
+    if (ctx.fireWrite(
+            apache::thrift::fast_thrift::channel_pipeline::erase_and_box(
+                std::move(errorResponse))) ==
+        apache::thrift::fast_thrift::channel_pipeline::Result::Error) {
+      return apache::thrift::fast_thrift::channel_pipeline::Result::Error;
+    }
+    return apache::thrift::fast_thrift::channel_pipeline::Result::Success;
   }
 
   template <typename Context>
@@ -177,9 +182,9 @@ class RocketServerRequestResponseHandler {
     auto& response = msg.get<RocketResponseMessage>();
 
     // Pattern filter: only act on RR stream responses.
-    if (FOLLY_UNLIKELY(
-            response.streamType !=
-            apache::thrift::fast_thrift::frame::FrameType::REQUEST_RESPONSE)) {
+    if (response.streamType !=
+        apache::thrift::fast_thrift::frame::FrameType::REQUEST_RESPONSE)
+        [[unlikely]] {
       return ctx.fireWrite(std::move(msg));
     }
 
@@ -200,11 +205,5 @@ class RocketServerRequestResponseHandler {
   template <typename Context>
   void onWriteReady(Context& /*ctx*/) noexcept {}
 };
-
-static_assert(
-    apache::thrift::fast_thrift::channel_pipeline::DuplexHandler<
-        RocketServerRequestResponseHandler,
-        apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl>,
-    "RocketServerRequestResponseHandler must satisfy DuplexHandler concept");
 
 } // namespace apache::thrift::fast_thrift::rocket::server::handler

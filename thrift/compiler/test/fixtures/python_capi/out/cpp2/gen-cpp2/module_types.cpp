@@ -257,14 +257,14 @@ const ::std::set<::std::int32_t>& MyStruct::get_intSetty() const& [[FOLLY_ATTR_C
 
 void swap([[maybe_unused]] MyStruct& a, [[maybe_unused]] MyStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_inty, b.__fbthrift_field_inty);
-  swap(a.__fbthrift_field_stringy, b.__fbthrift_field_stringy);
-  swap(a.__fbthrift_field_myItemy, b.__fbthrift_field_myItemy);
-  swap(a.__fbthrift_field_myEnumy, b.__fbthrift_field_myEnumy);
-  swap(a.__fbthrift_field_boulet, b.__fbthrift_field_boulet);
-  swap(a.__fbthrift_field_floatListy, b.__fbthrift_field_floatListy);
-  swap(a.__fbthrift_field_strMappy, b.__fbthrift_field_strMappy);
-  swap(a.__fbthrift_field_intSetty, b.__fbthrift_field_intSetty);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_inty, b.__fbthrift_field_inty);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_stringy, b.__fbthrift_field_stringy);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myItemy, b.__fbthrift_field_myItemy);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myEnumy, b.__fbthrift_field_myEnumy);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_boulet, b.__fbthrift_field_boulet);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_floatListy, b.__fbthrift_field_floatListy);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_strMappy, b.__fbthrift_field_strMappy);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_intSetty, b.__fbthrift_field_intSetty);
   swap(a.__isset, b.__isset);
 }
 
@@ -334,7 +334,7 @@ std::partial_ordering MyDataItem::operator<=>([[maybe_unused]] const MyDataItem&
 
 void swap([[maybe_unused]] MyDataItem& a, [[maybe_unused]] MyDataItem& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_s, b.__fbthrift_field_s);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_s, b.__fbthrift_field_s);
   swap(a.__isset, b.__isset);
 }
 
@@ -452,8 +452,8 @@ std::partial_ordering DoubledPair::operator<=>([[maybe_unused]] const DoubledPai
 
 void swap([[maybe_unused]] DoubledPair& a, [[maybe_unused]] DoubledPair& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_s, b.__fbthrift_field_s);
-  swap(a.__fbthrift_field_x, b.__fbthrift_field_x);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_s, b.__fbthrift_field_s);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_x, b.__fbthrift_field_x);
   swap(a.__isset, b.__isset);
 }
 
@@ -538,8 +538,8 @@ std::partial_ordering StringPair::operator<=>([[maybe_unused]] const StringPair&
 
 void swap([[maybe_unused]] StringPair& a, [[maybe_unused]] StringPair& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_normal, b.__fbthrift_field_normal);
-  swap(a.__fbthrift_field_doubled, b.__fbthrift_field_doubled);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_normal, b.__fbthrift_field_normal);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_doubled, b.__fbthrift_field_doubled);
   swap(a.__isset, b.__isset);
 }
 
@@ -611,8 +611,8 @@ PrimitiveStruct::PrimitiveStruct(const PrimitiveStruct& srcObj) :
           ::apache::thrift::type_class::binary>(srcObj.__fbthrift_field_pointbuffy)),
     __fbthrift_field_patched_struct(srcObj.__fbthrift_field_patched_struct),
     __fbthrift_field_empty_struct(srcObj.__fbthrift_field_empty_struct),
-    __fbthrift_field_fbstring(srcObj.__fbthrift_field_fbstring),
-    __fbthrift_field_managed_string_view(srcObj.__fbthrift_field_managed_string_view),
+    __fbthrift_field_custom_iobuf(srcObj.__fbthrift_field_custom_iobuf),
+    __fbthrift_field_pmr_string(srcObj.__fbthrift_field_pmr_string),
     __fbthrift_field_some_error(srcObj.__fbthrift_field_some_error),
     __isset(srcObj.__isset) {
 }
@@ -650,8 +650,8 @@ PrimitiveStruct::PrimitiveStruct([[maybe_unused]] PrimitiveStruct&& other) noexc
     __fbthrift_field_pointbuffy(std::move(other.__fbthrift_field_pointbuffy)),
     __fbthrift_field_patched_struct(std::move(other.__fbthrift_field_patched_struct)),
     __fbthrift_field_empty_struct(std::move(other.__fbthrift_field_empty_struct)),
-    __fbthrift_field_fbstring(std::move(other.__fbthrift_field_fbstring)),
-    __fbthrift_field_managed_string_view(std::move(other.__fbthrift_field_managed_string_view)),
+    __fbthrift_field_custom_iobuf(std::move(other.__fbthrift_field_custom_iobuf)),
+    __fbthrift_field_pmr_string(std::move(other.__fbthrift_field_pmr_string)),
     __fbthrift_field_some_error(std::move(other.__fbthrift_field_some_error)),
     __isset(other.__isset) {
 }
@@ -670,15 +670,15 @@ PrimitiveStruct& PrimitiveStruct::operator=([[maybe_unused]] PrimitiveStruct&& o
     this->__fbthrift_field_pointbuffy = std::move(other.__fbthrift_field_pointbuffy);
     this->__fbthrift_field_patched_struct = std::move(other.__fbthrift_field_patched_struct);
     this->__fbthrift_field_empty_struct = std::move(other.__fbthrift_field_empty_struct);
-    this->__fbthrift_field_fbstring = std::move(other.__fbthrift_field_fbstring);
-    this->__fbthrift_field_managed_string_view = std::move(other.__fbthrift_field_managed_string_view);
+    this->__fbthrift_field_custom_iobuf = std::move(other.__fbthrift_field_custom_iobuf);
+    this->__fbthrift_field_pmr_string = std::move(other.__fbthrift_field_pmr_string);
     this->__fbthrift_field_some_error = std::move(other.__fbthrift_field_some_error);
     __isset = other.__isset;
     return *this;
 }
 
 
-PrimitiveStruct::PrimitiveStruct(apache::thrift::FragileConstructor, bool booly__arg, ::test::fixtures::python_capi::signed_byte charry__arg, uint16_t shortay__arg, ::std::int32_t inty__arg, uint64_t longy__arg, float floaty__arg, ::apache::thrift::detail::boxed_value_ptr<double> dubby__arg, ::std::unique_ptr<::std::string> stringy__arg, ::std::shared_ptr<const ::std::string> bytey__arg, ::test::fixtures::python_capi::IOBuf buffy__arg, ::test::fixtures::python_capi::IOBufPtr pointbuffy__arg, ::test::fixtures::python_capi::MyStruct patched_struct__arg, ::test::fixtures::python_capi::VapidStruct empty_struct__arg, folly::fbstring fbstring__arg, ::apache::thrift::ManagedStringViewWithConversions managed_string_view__arg, ::test::fixtures::python_capi::SomeError some_error__arg) :
+PrimitiveStruct::PrimitiveStruct(apache::thrift::FragileConstructor, bool booly__arg, ::test::fixtures::python_capi::signed_byte charry__arg, uint16_t shortay__arg, ::std::int32_t inty__arg, uint64_t longy__arg, float floaty__arg, ::apache::thrift::detail::boxed_value_ptr<double> dubby__arg, ::std::unique_ptr<::std::string> stringy__arg, ::std::shared_ptr<const ::std::string> bytey__arg, ::test::fixtures::python_capi::IOBuf buffy__arg, ::test::fixtures::python_capi::IOBufPtr pointbuffy__arg, ::test::fixtures::python_capi::MyStruct patched_struct__arg, ::test::fixtures::python_capi::VapidStruct empty_struct__arg, folly::IOBuf custom_iobuf__arg, ::std::pmr::string pmr_string__arg, ::test::fixtures::python_capi::SomeError some_error__arg) :
     __fbthrift_field_booly(std::move(booly__arg)),
     __fbthrift_field_charry(std::move(charry__arg)),
     __fbthrift_field_shortay(std::move(shortay__arg)),
@@ -692,8 +692,8 @@ PrimitiveStruct::PrimitiveStruct(apache::thrift::FragileConstructor, bool booly_
     __fbthrift_field_pointbuffy(std::move(pointbuffy__arg)),
     __fbthrift_field_patched_struct(std::move(patched_struct__arg)),
     __fbthrift_field_empty_struct(std::move(empty_struct__arg)),
-    __fbthrift_field_fbstring(std::move(fbstring__arg)),
-    __fbthrift_field_managed_string_view(std::move(managed_string_view__arg)),
+    __fbthrift_field_custom_iobuf(std::move(custom_iobuf__arg)),
+    __fbthrift_field_pmr_string(std::move(pmr_string__arg)),
     __fbthrift_field_some_error(std::move(some_error__arg)) { 
   __isset.set(folly::index_constant<0>(), true);
   __isset.set(folly::index_constant<1>(), true);
@@ -724,8 +724,8 @@ void PrimitiveStruct::__fbthrift_clear() {
   this->__fbthrift_field_buffy = apache::thrift::StringTraits<::test::fixtures::python_capi::IOBuf>::fromStringLiteral("");
   this->__fbthrift_field_pointbuffy = apache::thrift::StringTraits<::test::fixtures::python_capi::IOBufPtr>::fromStringLiteral("");
   ::apache::thrift::clear(this->__fbthrift_field_patched_struct);
-  this->__fbthrift_field_fbstring = apache::thrift::StringTraits<folly::fbstring>::fromStringLiteral("");
-  this->__fbthrift_field_managed_string_view = apache::thrift::StringTraits<::apache::thrift::ManagedStringViewWithConversions>::fromStringLiteral("");
+  this->__fbthrift_field_custom_iobuf = apache::thrift::StringTraits<folly::IOBuf>::fromStringLiteral("");
+  this->__fbthrift_field_pmr_string = apache::thrift::StringTraits<::std::pmr::string>::fromStringLiteral("");
   ::apache::thrift::clear(this->__fbthrift_field_some_error);
   __isset = {};
 }
@@ -827,22 +827,22 @@ const ::test::fixtures::python_capi::SomeError& PrimitiveStruct::get_some_error(
 
 void swap([[maybe_unused]] PrimitiveStruct& a, [[maybe_unused]] PrimitiveStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_booly, b.__fbthrift_field_booly);
-  swap(a.__fbthrift_field_charry, b.__fbthrift_field_charry);
-  swap(a.__fbthrift_field_shortay, b.__fbthrift_field_shortay);
-  swap(a.__fbthrift_field_inty, b.__fbthrift_field_inty);
-  swap(a.__fbthrift_field_longy, b.__fbthrift_field_longy);
-  swap(a.__fbthrift_field_floaty, b.__fbthrift_field_floaty);
-  swap(a.__fbthrift_field_dubby, b.__fbthrift_field_dubby);
-  swap(a.__fbthrift_field_stringy, b.__fbthrift_field_stringy);
-  swap(a.__fbthrift_field_bytey, b.__fbthrift_field_bytey);
-  swap(a.__fbthrift_field_buffy, b.__fbthrift_field_buffy);
-  swap(a.__fbthrift_field_pointbuffy, b.__fbthrift_field_pointbuffy);
-  swap(a.__fbthrift_field_patched_struct, b.__fbthrift_field_patched_struct);
-  swap(a.__fbthrift_field_empty_struct, b.__fbthrift_field_empty_struct);
-  swap(a.__fbthrift_field_fbstring, b.__fbthrift_field_fbstring);
-  swap(a.__fbthrift_field_managed_string_view, b.__fbthrift_field_managed_string_view);
-  swap(a.__fbthrift_field_some_error, b.__fbthrift_field_some_error);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_booly, b.__fbthrift_field_booly);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_charry, b.__fbthrift_field_charry);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_shortay, b.__fbthrift_field_shortay);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_inty, b.__fbthrift_field_inty);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_longy, b.__fbthrift_field_longy);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_floaty, b.__fbthrift_field_floaty);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_dubby, b.__fbthrift_field_dubby);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_stringy, b.__fbthrift_field_stringy);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_bytey, b.__fbthrift_field_bytey);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_buffy, b.__fbthrift_field_buffy);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_pointbuffy, b.__fbthrift_field_pointbuffy);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_patched_struct, b.__fbthrift_field_patched_struct);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_empty_struct, b.__fbthrift_field_empty_struct);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_custom_iobuf, b.__fbthrift_field_custom_iobuf);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_pmr_string, b.__fbthrift_field_pmr_string);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_some_error, b.__fbthrift_field_some_error);
   swap(a.__isset, b.__isset);
 }
 
@@ -972,10 +972,10 @@ const ::apache::thrift::type::AnnotationIds& AdaptedFields::get_set_adapted_int(
 
 void swap([[maybe_unused]] AdaptedFields& a, [[maybe_unused]] AdaptedFields& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_adapted_int, b.__fbthrift_field_adapted_int);
-  swap(a.__fbthrift_field_list_adapted_int, b.__fbthrift_field_list_adapted_int);
-  swap(a.__fbthrift_field_set_adapted_int, b.__fbthrift_field_set_adapted_int);
-  swap(a.__fbthrift_field_inline_adapted_int, b.__fbthrift_field_inline_adapted_int);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_adapted_int, b.__fbthrift_field_adapted_int);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_list_adapted_int, b.__fbthrift_field_list_adapted_int);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_set_adapted_int, b.__fbthrift_field_set_adapted_int);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_inline_adapted_int, b.__fbthrift_field_inline_adapted_int);
   swap(a.__isset, b.__isset);
 }
 
@@ -1140,15 +1140,15 @@ const ::std::vector<::test::fixtures::python_capi::IOBufPtr>& ListStruct::get_bu
 
 void swap([[maybe_unused]] ListStruct& a, [[maybe_unused]] ListStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_boolz, b.__fbthrift_field_boolz);
-  swap(a.__fbthrift_field_intz, b.__fbthrift_field_intz);
-  swap(a.__fbthrift_field_stringz, b.__fbthrift_field_stringz);
-  swap(a.__fbthrift_field_encoded, b.__fbthrift_field_encoded);
-  swap(a.__fbthrift_field_uidz, b.__fbthrift_field_uidz);
-  swap(a.__fbthrift_field_matrix, b.__fbthrift_field_matrix);
-  swap(a.__fbthrift_field_ucharz, b.__fbthrift_field_ucharz);
-  swap(a.__fbthrift_field_voxels, b.__fbthrift_field_voxels);
-  swap(a.__fbthrift_field_buf_ptrs, b.__fbthrift_field_buf_ptrs);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_boolz, b.__fbthrift_field_boolz);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_intz, b.__fbthrift_field_intz);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_stringz, b.__fbthrift_field_stringz);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_encoded, b.__fbthrift_field_encoded);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_uidz, b.__fbthrift_field_uidz);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_matrix, b.__fbthrift_field_matrix);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_ucharz, b.__fbthrift_field_ucharz);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_voxels, b.__fbthrift_field_voxels);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_buf_ptrs, b.__fbthrift_field_buf_ptrs);
   swap(a.__isset, b.__isset);
 }
 
@@ -1289,13 +1289,13 @@ const ::std::vector<::std::set<::std::int64_t>>& SetStruct::get_setz() const& [[
 
 void swap([[maybe_unused]] SetStruct& a, [[maybe_unused]] SetStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_enumz, b.__fbthrift_field_enumz);
-  swap(a.__fbthrift_field_intz, b.__fbthrift_field_intz);
-  swap(a.__fbthrift_field_binnaz, b.__fbthrift_field_binnaz);
-  swap(a.__fbthrift_field_encoded, b.__fbthrift_field_encoded);
-  swap(a.__fbthrift_field_uidz, b.__fbthrift_field_uidz);
-  swap(a.__fbthrift_field_charz, b.__fbthrift_field_charz);
-  swap(a.__fbthrift_field_setz, b.__fbthrift_field_setz);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_enumz, b.__fbthrift_field_enumz);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_intz, b.__fbthrift_field_intz);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_binnaz, b.__fbthrift_field_binnaz);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_encoded, b.__fbthrift_field_encoded);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_uidz, b.__fbthrift_field_uidz);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_charz, b.__fbthrift_field_charz);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_setz, b.__fbthrift_field_setz);
   swap(a.__isset, b.__isset);
 }
 
@@ -1495,16 +1495,16 @@ const ::std::map<::test::fixtures::python_capi::ui64, ::std::vector<::test::fixt
 
 void swap([[maybe_unused]] MapStruct& a, [[maybe_unused]] MapStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_enumz, b.__fbthrift_field_enumz);
-  swap(a.__fbthrift_field_intz, b.__fbthrift_field_intz);
-  swap(a.__fbthrift_field_binnaz, b.__fbthrift_field_binnaz);
-  swap(a.__fbthrift_field_encoded, b.__fbthrift_field_encoded);
-  swap(a.__fbthrift_field_flotz, b.__fbthrift_field_flotz);
-  swap(a.__fbthrift_field_map_list, b.__fbthrift_field_map_list);
-  swap(a.__fbthrift_field_list_map, b.__fbthrift_field_list_map);
-  swap(a.__fbthrift_field_fast_list_map, b.__fbthrift_field_fast_list_map);
-  swap(a.__fbthrift_field_buf_map, b.__fbthrift_field_buf_map);
-  swap(a.__fbthrift_field_unsigned_list_map, b.__fbthrift_field_unsigned_list_map);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_enumz, b.__fbthrift_field_enumz);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_intz, b.__fbthrift_field_intz);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_binnaz, b.__fbthrift_field_binnaz);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_encoded, b.__fbthrift_field_encoded);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_flotz, b.__fbthrift_field_flotz);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_map_list, b.__fbthrift_field_map_list);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_list_map, b.__fbthrift_field_list_map);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fast_list_map, b.__fbthrift_field_fast_list_map);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_buf_map, b.__fbthrift_field_buf_map);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_unsigned_list_map, b.__fbthrift_field_unsigned_list_map);
   swap(a.__isset, b.__isset);
 }
 
@@ -1695,16 +1695,16 @@ const ::test::fixtures::python_capi::SerializedError& ComposeStruct::get_serial_
 
 void swap([[maybe_unused]] ComposeStruct& a, [[maybe_unused]] ComposeStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_enum_, b.__fbthrift_field_enum_);
-  swap(a.__fbthrift_field_renamed_, b.__fbthrift_field_renamed_);
-  swap(a.__fbthrift_field_primitive, b.__fbthrift_field_primitive);
-  swap(a.__fbthrift_field_aliased, b.__fbthrift_field_aliased);
-  swap(a.__fbthrift_field_xstruct, b.__fbthrift_field_xstruct);
-  swap(a.__fbthrift_field_xenum, b.__fbthrift_field_xenum);
-  swap(a.__fbthrift_field_serial_struct, b.__fbthrift_field_serial_struct);
-  swap(a.__fbthrift_field_friends, b.__fbthrift_field_friends);
-  swap(a.__fbthrift_field_serial_union, b.__fbthrift_field_serial_union);
-  swap(a.__fbthrift_field_serial_error, b.__fbthrift_field_serial_error);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_enum_, b.__fbthrift_field_enum_);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_renamed_, b.__fbthrift_field_renamed_);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_primitive, b.__fbthrift_field_primitive);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_aliased, b.__fbthrift_field_aliased);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_xstruct, b.__fbthrift_field_xstruct);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_xenum, b.__fbthrift_field_xenum);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_serial_struct, b.__fbthrift_field_serial_struct);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_friends, b.__fbthrift_field_friends);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_serial_union, b.__fbthrift_field_serial_union);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_serial_error, b.__fbthrift_field_serial_error);
   swap(a.__isset, b.__isset);
 }
 
@@ -1814,71 +1814,107 @@ void Shallot::__fbthrift_clear() {
 bool Shallot::__fbthrift_is_empty() const {
   return getType() == Type::__EMPTY__;
 }
+  Shallot& Shallot::operator=(Shallot&& rhs) noexcept {
+    if (this == &rhs) { return *this; }
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+      {
+        __fbthrift_clear();
+        return *this;
+      }
+      case Type::myEnum:
+      {
+        auto value = std::move(rhs.value_.myEnum);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(myEnum_ref(), std::move(value));
+        break;
+      }
+      case Type::myStruct:
+      {
+        auto value = std::move(rhs.value_.myStruct);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(myStruct_ref(), std::move(value));
+        break;
+      }
+      case Type::intSet:
+      {
+        auto value = std::move(rhs.value_.intSet);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(intSet_ref(), std::move(value));
+        break;
+      }
+      case Type::myString:
+      {
+        auto value = std::move(rhs.value_.myString);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(myString_ref(), std::move(value));
+        break;
+      }
+      case Type::doubleList:
+      {
+        auto value = std::move(rhs.value_.doubleList);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(doubleList_ref(), std::move(value));
+        break;
+      }
+      case Type::strMap:
+      {
+        auto value = std::move(rhs.value_.strMap);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(strMap_ref(), std::move(value));
+        break;
+      }
+      case Type::adapted_int:
+      {
+        auto value = std::move(rhs.value_.adapted_int);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(adapted_int_ref(), std::move(value));
+        break;
+      }
+      default:
+      {
+        assert(false);
+        __fbthrift_clear();
+      }
+    }
+    return *this;
+  }
+
   Shallot::Shallot(const Shallot& rhs)
       : fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
     switch (rhs.getType()) {
       case Type::__EMPTY__:
         return;
       case Type::myEnum:
-        set_myEnum(rhs.value_.myEnum);
+        myEnum_ref().emplace(rhs.value_.myEnum);
         break;
       case Type::myStruct:
-        set_myStruct(rhs.value_.myStruct);
+        myStruct_ref().emplace(rhs.value_.myStruct);
         break;
       case Type::intSet:
-        set_intSet(*rhs.value_.intSet);
+        intSet_ref().emplace(*rhs.value_.intSet);
         break;
       case Type::myString:
-        set_myString(rhs.value_.myString);
+        myString_ref().emplace(rhs.value_.myString);
         break;
       case Type::doubleList:
-        set_doubleList(*rhs.value_.doubleList);
+        doubleList_ref().emplace(*rhs.value_.doubleList);
         break;
       case Type::strMap:
-        set_strMap(::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::detail::union_emplace_storage(strMap_ref(), ::apache::thrift::detail::st::copy_field<
           ::apache::thrift::type_class::map<::apache::thrift::type_class::binary, ::apache::thrift::type_class::string>>(rhs.value_.strMap));
         break;
       case Type::adapted_int:
-        set_adapted_int(rhs.value_.adapted_int);
+        adapted_int_ref().emplace(rhs.value_.adapted_int);
         break;
       default:
         assert(false);
     }
   }
 
-    Shallot&Shallot::operator=(const Shallot& rhs) {
+  Shallot& Shallot::operator=(const Shallot& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::myEnum:
-        set_myEnum(rhs.value_.myEnum);
-        break;
-      case Type::myStruct:
-        set_myStruct(rhs.value_.myStruct);
-        break;
-      case Type::intSet:
-        set_intSet(*rhs.value_.intSet);
-        break;
-      case Type::myString:
-        set_myString(rhs.value_.myString);
-        break;
-      case Type::doubleList:
-        set_doubleList(*rhs.value_.doubleList);
-        break;
-      case Type::strMap:
-        set_strMap(::apache::thrift::detail::st::copy_field<
-          ::apache::thrift::type_class::map<::apache::thrift::type_class::binary, ::apache::thrift::type_class::string>>(rhs.value_.strMap));
-        break;
-      case Type::adapted_int:
-        set_adapted_int(rhs.value_.adapted_int);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = Shallot(rhs);
   }
 
 
@@ -2005,20 +2041,58 @@ void SomeBinary::__fbthrift_clear() {
 bool SomeBinary::__fbthrift_is_empty() const {
   return getType() == Type::__EMPTY__;
 }
+  SomeBinary& SomeBinary::operator=(SomeBinary&& rhs) noexcept {
+    if (this == &rhs) { return *this; }
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+      {
+        __fbthrift_clear();
+        return *this;
+      }
+      case Type::iobuf:
+      {
+        auto value = std::move(rhs.value_.iobuf);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(iobuf_ref(), std::move(value));
+        break;
+      }
+      case Type::iobuf_ptr:
+      {
+        auto value = std::move(rhs.value_.iobuf_ptr);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(iobuf_ptr_ref(), std::move(value));
+        break;
+      }
+      case Type::iobufRef:
+      {
+        auto value = std::move(rhs.value_.iobufRef);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(iobufRef_ref(), std::move(value));
+        break;
+      }
+      default:
+      {
+        assert(false);
+        __fbthrift_clear();
+      }
+    }
+    return *this;
+  }
+
   SomeBinary::SomeBinary(const SomeBinary& rhs)
       : fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
     switch (rhs.getType()) {
       case Type::__EMPTY__:
         return;
       case Type::iobuf:
-        set_iobuf(rhs.value_.iobuf);
+        iobuf_ref().emplace(rhs.value_.iobuf);
         break;
       case Type::iobuf_ptr:
-        set_iobuf_ptr(::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::detail::union_emplace_storage(iobuf_ptr_ref(), ::apache::thrift::detail::st::copy_field<
           ::apache::thrift::type_class::binary>(rhs.value_.iobuf_ptr));
         break;
       case Type::iobufRef:
-        set_iobufRef(::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::detail::union_emplace_storage(iobufRef_ref(), ::apache::thrift::detail::st::copy_field<
           ::apache::thrift::type_class::binary>(rhs.value_.iobufRef));
         break;
       default:
@@ -2026,28 +2100,9 @@ bool SomeBinary::__fbthrift_is_empty() const {
     }
   }
 
-    SomeBinary&SomeBinary::operator=(const SomeBinary& rhs) {
+  SomeBinary& SomeBinary::operator=(const SomeBinary& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::iobuf:
-        set_iobuf(rhs.value_.iobuf);
-        break;
-      case Type::iobuf_ptr:
-        set_iobuf_ptr(::apache::thrift::detail::st::copy_field<
-          ::apache::thrift::type_class::binary>(rhs.value_.iobuf_ptr));
-        break;
-      case Type::iobufRef:
-        set_iobufRef(::apache::thrift::detail::st::copy_field<
-          ::apache::thrift::type_class::binary>(rhs.value_.iobufRef));
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = SomeBinary(rhs);
   }
 
 

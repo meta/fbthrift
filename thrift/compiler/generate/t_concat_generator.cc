@@ -16,13 +16,7 @@
 
 #include <thrift/compiler/generate/t_concat_generator.h>
 
-#include <cinttypes>
-#include <cstdio>
-#include <cstring>
 #include <fstream>
-#include <iterator>
-
-#include <openssl/sha.h>
 
 #include <thrift/compiler/generate/t_generator.h>
 
@@ -124,47 +118,6 @@ void t_concat_generator::generate_docstring_comment(
   if (comment_end != "") {
     indent(out) << comment_end;
   }
-}
-
-std::string t_concat_generator::generate_structural_id(
-    const t_structured* tstruct) {
-  // Generate a string that contains all the members' information:
-  // key, name, type and req.
-  vector<std::string> fields_str;
-  constexpr auto delim = ",";
-  for (const auto& field : tstruct->fields()) {
-    std::stringstream ss_field;
-    ss_field << field.id() << delim << field.name() << delim
-             << field.type()->name() << delim << (int)(field.qualifier());
-    fields_str.push_back(ss_field.str());
-  }
-
-  // Sort the vector of keys.
-  std::sort(fields_str.begin(), fields_str.end());
-
-  // Generate a hashable string: each member key is delimited by ":".
-  std::stringstream ss;
-  copy(fields_str.begin(), fields_str.end(), ostream_iterator<string>(ss, ":"));
-  std::string hashable_keys_list = ss.str();
-
-  // Hash the string and generate a portable hash number.
-  unsigned char buf[SHA_DIGEST_LENGTH] = {};
-  SHA1(
-      reinterpret_cast<const unsigned char*>(hashable_keys_list.data()),
-      hashable_keys_list.size(),
-      buf);
-  uint64_t hash = 0;
-  std::memcpy(&hash, &buf, sizeof(hash));
-#if !defined(_WIN32) && __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
-  hash = __builtin_bswap64(hash);
-#endif
-  hash &= 0x7FFFFFFFFFFFFFFFull; // 63 bits
-
-  // Generate a readable number.
-  char structural_id[21];
-  snprintf(structural_id, sizeof(structural_id), "%" PRIu64, hash);
-
-  return structural_id;
 }
 
 } // namespace apache::thrift::compiler

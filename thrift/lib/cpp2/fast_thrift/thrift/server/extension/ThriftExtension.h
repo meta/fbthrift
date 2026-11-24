@@ -19,19 +19,22 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
 
 #include <folly/ExceptionWrapper.h>
-#include <folly/io/async/Request.h>
 
 #include <thrift/lib/cpp2/fast_thrift/thrift/common/ThriftRequestPayloads.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/common/ThriftResponsePayloads.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/Messages.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/ThriftRequestContext.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/extension/ThriftConnectionExtension.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/util/PayloadUtils.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/util/ResponsePayloads.h>
 #include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
 
 namespace apache::thrift::fast_thrift::thrift {
@@ -63,13 +66,6 @@ namespace apache::thrift::fast_thrift::thrift {
 class RequestVerdict {
  public:
   static RequestVerdict proceed() noexcept { return RequestVerdict(); }
-
-  static RequestVerdict proceedWithContext(
-      std::shared_ptr<folly::RequestContext> context) noexcept {
-    RequestVerdict verdict;
-    verdict.context_ = std::move(context);
-    return verdict;
-  }
 
   static RequestVerdict reject(folly::exception_wrapper cause) noexcept {
     return RequestVerdict(std::move(cause));
@@ -110,10 +106,6 @@ class RequestVerdict {
 
   bool appliesBackpressure() const noexcept { return backpressure_; }
 
-  const std::shared_ptr<folly::RequestContext>& context() const noexcept {
-    return context_;
-  }
-
   // Empty unless isRejected().
   const folly::exception_wrapper& cause() const& noexcept { return cause_; }
   folly::exception_wrapper&& cause() && noexcept { return std::move(cause_); }
@@ -124,7 +116,6 @@ class RequestVerdict {
       : cause_(std::move(cause)) {}
 
   folly::exception_wrapper cause_;
-  std::shared_ptr<folly::RequestContext> context_;
   bool backpressure_{false};
 };
 
@@ -138,6 +129,9 @@ class RequestVerdict {
  * base pointer.
  */
 class ThriftRequestView {
+  friend class ThriftRequestMutator;
+  friend class server::compatibility::detail::NativeContextAccess;
+
  public:
   explicit ThriftRequestView(const ThriftServerRequestMessage& request) noexcept
       : request_(request) {}
@@ -228,10 +222,28 @@ class ThriftRequestView {
         !request_.requestContext->getHeaders().empty();
   }
 
+  std::optional<std::reference_wrapper<const ThriftRequestContext::HeaderMap>>
+  requestHeaders() const noexcept {
+    if (request_.requestContext == nullptr) {
+      return std::nullopt;
+    }
+    return std::cref(request_.requestContext->getHeaders());
+  }
+
   // Rocket stream id correlating this request with its response.
   uint32_t streamId() const noexcept { return request_.streamId; }
 
+  const ExtensionSlots* FOLLY_NULLABLE extensionSlots() const noexcept {
+    return request_.requestContext == nullptr
+        ? nullptr
+        : &request_.requestContext->extensionSlots();
+  }
+
   // State published on this request by another installed extension.
+  // `Ext`'s per-request state, or null for responses produced without a
+  // per-request context, such as framework and connection-level responses.
+  // `Ext`'s per-request state, or null for responses produced without a
+  // per-request context, such as framework and connection-level responses.
   template <class Ext>
   typename Ext::RequestState* tryState() const noexcept {
     return request_.requestContext == nullptr
@@ -248,6 +260,12 @@ class ThriftRequestView {
                                  : connection->template tryState<Ext>();
   }
 
+  template <class Ext, class... Args>
+  typename Ext::RequestState& emplaceState(Args&&... args) const {
+    return request_.requestContext->template emplaceState<Ext>(
+        std::forward<Args>(args)...);
+  }
+
  private:
   const ThriftServerRequestMessage& request_;
 };
@@ -261,7 +279,7 @@ class ThriftRequestView {
 class ThriftRequestMutator final : public ThriftRequestView {
  public:
   explicit ThriftRequestMutator(ThriftServerRequestMessage& request) noexcept
-      : ThriftRequestView(request), request_(request) {}
+      : ThriftRequestView(request) {}
 
   // Set (or overwrite) a custom request header seen by downstream extensions
   // and the service.
@@ -270,7 +288,7 @@ class ThriftRequestMutator final : public ThriftRequestView {
   // so an escaping bad_alloc terminates either way. OOM ⇒ terminate is the
   // pipeline-wide contract, not a hazard introduced here.
   void setHeader(std::string key, std::string value) noexcept {
-    request_.requestContext->setHeader(std::move(key), std::move(value));
+    request_.requestContext->setHeaderOwned(std::move(key), std::move(value));
   }
 
   template <class Ext>
@@ -279,23 +297,31 @@ class ThriftRequestMutator final : public ThriftRequestView {
   }
 
   void setResponseHeader(std::string key, std::string value) noexcept {
-    request_.requestContext->setResponseHeader(
-        std::move(key), std::move(value));
+    request_.requestContext->mutableResponseHeaders()[std::move(key)] =
+        std::move(value);
   }
 
- private:
-  ThriftServerRequestMessage& request_;
+  std::optional<std::reference_wrapper<ThriftRequestContext::HeaderMap>>
+  mutableResponseHeaders() noexcept {
+    if (request_.requestContext == nullptr) {
+      return std::nullopt;
+    }
+    return std::ref(request_.requestContext->mutableResponseHeaders());
+  }
 };
 
 /**
  * Read-only view of an outbound response. Header access is only meaningful for
- * a response that has a per-request context behind it: framework-generated
- * responses (parse errors, wrong RPC kind) have none and report empty.
+ * a response that has a per-request context behind it. Responses generated
+ * before request-context construction report empty.
  *
  * Base of ThriftResponseMutator; see ThriftRequestView for the non-virtual
  * destructor rationale.
  */
 class ThriftResponseView {
+  friend class ThriftResponseMutator;
+  friend class server::compatibility::detail::NativeContextAccess;
+
  public:
   explicit ThriftResponseView(
       const ThriftServerResponseMessage& response) noexcept
@@ -307,10 +333,20 @@ class ThriftResponseView {
   ThriftResponseView& operator=(ThriftResponseView&&) = delete;
   ~ThriftResponseView() = default;
 
+  bool isRequestRetiring() const noexcept {
+    return isRequestRetiringResponse(response_.payload);
+  }
+
   // True if this response carries a terminal error frame rather than a normal
   // reply.
   bool isError() const noexcept {
     return response_.payload.is<ThriftErrorPayload>();
+  }
+
+  bool isApplicationError() const noexcept {
+    return response_.payload.is<ThriftInitialResponsePayload>() &&
+        isAppUnknownException(
+               response_.payload.get<ThriftInitialResponsePayload>());
   }
 
   std::string_view methodName() const noexcept {
@@ -359,6 +395,20 @@ class ThriftResponseView {
         !response_.requestContext->getHeaders().empty();
   }
 
+  std::optional<std::reference_wrapper<const ThriftRequestContext::HeaderMap>>
+  requestHeaders() const noexcept {
+    if (response_.requestContext == nullptr) {
+      return std::nullopt;
+    }
+    return std::cref(response_.requestContext->getHeaders());
+  }
+
+  const ExtensionSlots* FOLLY_NULLABLE extensionSlots() const noexcept {
+    return response_.requestContext == nullptr
+        ? nullptr
+        : &response_.requestContext->extensionSlots();
+  }
+
   template <class Ext>
   typename Ext::RequestState* tryState() const noexcept {
     return response_.requestContext == nullptr
@@ -387,7 +437,7 @@ class ThriftResponseView {
 class ThriftResponseMutator final : public ThriftResponseView {
  public:
   explicit ThriftResponseMutator(ThriftServerResponseMessage& response) noexcept
-      : ThriftResponseView(response), response_(response) {}
+      : ThriftResponseView(response) {}
 
   // Set (or overwrite) a custom response header, on the same context the
   // service handler writes its own to. Dropped for a response with no
@@ -398,12 +448,9 @@ class ThriftResponseMutator final : public ThriftResponseView {
     if (response_.requestContext == nullptr) {
       return;
     }
-    response_.requestContext->setResponseHeader(
+    response_.requestContext->setResponseHeaderOwned(
         std::move(key), std::move(value));
   }
-
- private:
-  ThriftServerResponseMessage& response_;
 };
 
 // === Concepts ===
@@ -478,5 +525,8 @@ concept UsesHeaders = requires {
  */
 template <typename H>
 concept HasConnState = requires { typename H::ConnState; };
+
+template <typename H>
+concept HasRequestState = requires { typename H::RequestState; };
 
 } // namespace apache::thrift::fast_thrift::thrift

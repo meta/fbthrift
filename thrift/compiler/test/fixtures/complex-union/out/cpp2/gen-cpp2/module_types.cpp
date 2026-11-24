@@ -97,28 +97,87 @@ void ComplexUnion::__fbthrift_clear() {
 bool ComplexUnion::__fbthrift_is_empty() const {
   return getType() == Type::__EMPTY__;
 }
+  ComplexUnion& ComplexUnion::operator=(ComplexUnion&& rhs) noexcept {
+    if (this == &rhs) { return *this; }
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+      {
+        __fbthrift_clear();
+        return *this;
+      }
+      case Type::intValue:
+      {
+        auto value = std::move(rhs.value_.intValue);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(intValue_ref(), std::move(value));
+        break;
+      }
+      case Type::stringValue:
+      {
+        auto value = std::move(rhs.value_.stringValue);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(stringValue_ref(), std::move(value));
+        break;
+      }
+      case Type::intListValue:
+      {
+        auto value = std::move(rhs.value_.intListValue);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(intListValue_ref(), std::move(value));
+        break;
+      }
+      case Type::stringListValue:
+      {
+        auto value = std::move(rhs.value_.stringListValue);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(stringListValue_ref(), std::move(value));
+        break;
+      }
+      case Type::typedefValue:
+      {
+        auto value = std::move(rhs.value_.typedefValue);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(typedefValue_ref(), std::move(value));
+        break;
+      }
+      case Type::stringRef:
+      {
+        auto value = std::move(rhs.value_.stringRef);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(stringRef_ref(), std::move(value));
+        break;
+      }
+      default:
+      {
+        assert(false);
+        __fbthrift_clear();
+      }
+    }
+    return *this;
+  }
+
   ComplexUnion::ComplexUnion(const ComplexUnion& rhs)
       : fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
     switch (rhs.getType()) {
       case Type::__EMPTY__:
         return;
       case Type::intValue:
-        set_intValue(rhs.value_.intValue);
+        intValue_ref().emplace(rhs.value_.intValue);
         break;
       case Type::stringValue:
-        set_stringValue(rhs.value_.stringValue);
+        stringValue_ref().emplace(rhs.value_.stringValue);
         break;
       case Type::intListValue:
-        set_intListValue(rhs.value_.intListValue);
+        intListValue_ref().emplace(rhs.value_.intListValue);
         break;
       case Type::stringListValue:
-        set_stringListValue(rhs.value_.stringListValue);
+        stringListValue_ref().emplace(rhs.value_.stringListValue);
         break;
       case Type::typedefValue:
-        set_typedefValue(rhs.value_.typedefValue);
+        typedefValue_ref().emplace(rhs.value_.typedefValue);
         break;
       case Type::stringRef:
-        set_stringRef(::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::detail::union_emplace_storage(stringRef_ref(), ::apache::thrift::detail::st::copy_field<
           ::apache::thrift::type_class::string>(rhs.value_.stringRef));
         break;
       default:
@@ -126,36 +185,9 @@ bool ComplexUnion::__fbthrift_is_empty() const {
     }
   }
 
-    ComplexUnion&ComplexUnion::operator=(const ComplexUnion& rhs) {
+  ComplexUnion& ComplexUnion::operator=(const ComplexUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::intValue:
-        set_intValue(rhs.value_.intValue);
-        break;
-      case Type::stringValue:
-        set_stringValue(rhs.value_.stringValue);
-        break;
-      case Type::intListValue:
-        set_intListValue(rhs.value_.intListValue);
-        break;
-      case Type::stringListValue:
-        set_stringListValue(rhs.value_.stringListValue);
-        break;
-      case Type::typedefValue:
-        set_typedefValue(rhs.value_.typedefValue);
-        break;
-      case Type::stringRef:
-        set_stringRef(::apache::thrift::detail::st::copy_field<
-          ::apache::thrift::type_class::string>(rhs.value_.stringRef));
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = ComplexUnion(rhs);
   }
 
 
@@ -228,39 +260,56 @@ void ListUnion::__fbthrift_clear() {
 bool ListUnion::__fbthrift_is_empty() const {
   return getType() == Type::__EMPTY__;
 }
+  ListUnion& ListUnion::operator=(ListUnion&& rhs) noexcept {
+    if (this == &rhs) { return *this; }
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+      {
+        __fbthrift_clear();
+        return *this;
+      }
+      case Type::intListValue:
+      {
+        auto value = std::move(rhs.value_.intListValue);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(intListValue_ref(), std::move(value));
+        break;
+      }
+      case Type::stringListValue:
+      {
+        auto value = std::move(rhs.value_.stringListValue);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(stringListValue_ref(), std::move(value));
+        break;
+      }
+      default:
+      {
+        assert(false);
+        __fbthrift_clear();
+      }
+    }
+    return *this;
+  }
+
   ListUnion::ListUnion(const ListUnion& rhs)
       : fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
     switch (rhs.getType()) {
       case Type::__EMPTY__:
         return;
       case Type::intListValue:
-        set_intListValue(rhs.value_.intListValue);
+        intListValue_ref().emplace(rhs.value_.intListValue);
         break;
       case Type::stringListValue:
-        set_stringListValue(rhs.value_.stringListValue);
+        stringListValue_ref().emplace(rhs.value_.stringListValue);
         break;
       default:
         assert(false);
     }
   }
 
-    ListUnion&ListUnion::operator=(const ListUnion& rhs) {
+  ListUnion& ListUnion::operator=(const ListUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::intListValue:
-        set_intListValue(rhs.value_.intListValue);
-        break;
-      case Type::stringListValue:
-        set_stringListValue(rhs.value_.stringListValue);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = ListUnion(rhs);
   }
 
 
@@ -333,39 +382,56 @@ void DataUnion::__fbthrift_clear() {
 bool DataUnion::__fbthrift_is_empty() const {
   return getType() == Type::__EMPTY__;
 }
+  DataUnion& DataUnion::operator=(DataUnion&& rhs) noexcept {
+    if (this == &rhs) { return *this; }
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+      {
+        __fbthrift_clear();
+        return *this;
+      }
+      case Type::binaryData:
+      {
+        auto value = std::move(rhs.value_.binaryData);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(binaryData_ref(), std::move(value));
+        break;
+      }
+      case Type::stringData:
+      {
+        auto value = std::move(rhs.value_.stringData);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(stringData_ref(), std::move(value));
+        break;
+      }
+      default:
+      {
+        assert(false);
+        __fbthrift_clear();
+      }
+    }
+    return *this;
+  }
+
   DataUnion::DataUnion(const DataUnion& rhs)
       : fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
     switch (rhs.getType()) {
       case Type::__EMPTY__:
         return;
       case Type::binaryData:
-        set_binaryData(rhs.value_.binaryData);
+        binaryData_ref().emplace(rhs.value_.binaryData);
         break;
       case Type::stringData:
-        set_stringData(rhs.value_.stringData);
+        stringData_ref().emplace(rhs.value_.stringData);
         break;
       default:
         assert(false);
     }
   }
 
-    DataUnion&DataUnion::operator=(const DataUnion& rhs) {
+  DataUnion& DataUnion::operator=(const DataUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::binaryData:
-        set_binaryData(rhs.value_.binaryData);
-        break;
-      case Type::stringData:
-        set_stringData(rhs.value_.stringData);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = DataUnion(rhs);
   }
 
 
@@ -471,9 +537,9 @@ const ::cpp2::containerTypedef& Val::get_typedefValue() const& [[FOLLY_ATTR_CLAN
 
 void swap([[maybe_unused]] Val& a, [[maybe_unused]] Val& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_strVal, b.__fbthrift_field_strVal);
-  swap(a.__fbthrift_field_intVal, b.__fbthrift_field_intVal);
-  swap(a.__fbthrift_field_typedefValue, b.__fbthrift_field_typedefValue);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_strVal, b.__fbthrift_field_strVal);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_intVal, b.__fbthrift_field_intVal);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_typedefValue, b.__fbthrift_field_typedefValue);
   swap(a.__isset, b.__isset);
 }
 
@@ -532,39 +598,56 @@ void ValUnion::__fbthrift_clear() {
 bool ValUnion::__fbthrift_is_empty() const {
   return getType() == Type::__EMPTY__;
 }
+  ValUnion& ValUnion::operator=(ValUnion&& rhs) noexcept {
+    if (this == &rhs) { return *this; }
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+      {
+        __fbthrift_clear();
+        return *this;
+      }
+      case Type::v1:
+      {
+        auto value = std::move(rhs.value_.v1);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(v1_ref(), std::move(value));
+        break;
+      }
+      case Type::v2:
+      {
+        auto value = std::move(rhs.value_.v2);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(v2_ref(), std::move(value));
+        break;
+      }
+      default:
+      {
+        assert(false);
+        __fbthrift_clear();
+      }
+    }
+    return *this;
+  }
+
   ValUnion::ValUnion(const ValUnion& rhs)
       : fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
     switch (rhs.getType()) {
       case Type::__EMPTY__:
         return;
       case Type::v1:
-        set_v1(rhs.value_.v1);
+        v1_ref().emplace(rhs.value_.v1);
         break;
       case Type::v2:
-        set_v2(rhs.value_.v2);
+        v2_ref().emplace(rhs.value_.v2);
         break;
       default:
         assert(false);
     }
   }
 
-    ValUnion&ValUnion::operator=(const ValUnion& rhs) {
+  ValUnion& ValUnion::operator=(const ValUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::v1:
-        set_v1(rhs.value_.v1);
-        break;
-      case Type::v2:
-        set_v2(rhs.value_.v2);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = ValUnion(rhs);
   }
 
 
@@ -649,39 +732,56 @@ void VirtualComplexUnion::__fbthrift_clear() {
 bool VirtualComplexUnion::__fbthrift_is_empty() const {
   return getType() == Type::__EMPTY__;
 }
+  VirtualComplexUnion& VirtualComplexUnion::operator=(VirtualComplexUnion&& rhs) noexcept {
+    if (this == &rhs) { return *this; }
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+      {
+        __fbthrift_clear();
+        return *this;
+      }
+      case Type::thingOne:
+      {
+        auto value = std::move(rhs.value_.thingOne);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(thingOne_ref(), std::move(value));
+        break;
+      }
+      case Type::thingTwo:
+      {
+        auto value = std::move(rhs.value_.thingTwo);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(thingTwo_ref(), std::move(value));
+        break;
+      }
+      default:
+      {
+        assert(false);
+        __fbthrift_clear();
+      }
+    }
+    return *this;
+  }
+
   VirtualComplexUnion::VirtualComplexUnion(const VirtualComplexUnion& rhs)
       : fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
     switch (rhs.getType()) {
       case Type::__EMPTY__:
         return;
       case Type::thingOne:
-        set_thingOne(rhs.value_.thingOne);
+        thingOne_ref().emplace(rhs.value_.thingOne);
         break;
       case Type::thingTwo:
-        set_thingTwo(rhs.value_.thingTwo);
+        thingTwo_ref().emplace(rhs.value_.thingTwo);
         break;
       default:
         assert(false);
     }
   }
 
-    VirtualComplexUnion&VirtualComplexUnion::operator=(const VirtualComplexUnion& rhs) {
+  VirtualComplexUnion& VirtualComplexUnion::operator=(const VirtualComplexUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::thingOne:
-        set_thingOne(rhs.value_.thingOne);
-        break;
-      case Type::thingTwo:
-        set_thingTwo(rhs.value_.thingTwo);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = VirtualComplexUnion(rhs);
   }
 
 
@@ -749,7 +849,7 @@ std::partial_ordering NonCopyableStruct::operator<=>([[maybe_unused]] const NonC
 
 void swap([[maybe_unused]] NonCopyableStruct& a, [[maybe_unused]] NonCopyableStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_num, b.__fbthrift_field_num);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_num, b.__fbthrift_field_num);
   swap(a.__isset, b.__isset);
 }
 
@@ -805,6 +905,30 @@ void NonCopyableUnion::__fbthrift_clear() {
 bool NonCopyableUnion::__fbthrift_is_empty() const {
   return getType() == Type::__EMPTY__;
 }
+  NonCopyableUnion& NonCopyableUnion::operator=(NonCopyableUnion&& rhs) noexcept {
+    if (this == &rhs) { return *this; }
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+      {
+        __fbthrift_clear();
+        return *this;
+      }
+      case Type::s:
+      {
+        auto value = std::move(rhs.value_.s);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(s_ref(), std::move(value));
+        break;
+      }
+      default:
+      {
+        assert(false);
+        __fbthrift_clear();
+      }
+    }
+    return *this;
+  }
+
 
 
 bool NonCopyableUnion::operator==(const NonCopyableUnion& rhs) const {

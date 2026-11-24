@@ -15,10 +15,9 @@
   limitations under the License.
 
 }}
+{{#import "lib/docs" as docs}}
 
-  {{#if enum.docs?}}
-#[doc = {{enum.docs}}]
-  {{/if enum.docs?}}
+{{#partial docs.docblock node=enum}}
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash
     {{~ #if enum.serde?}}, ::serde_derive::Serialize, ::serde_derive::Deserialize{{/if ~}}
     {{~ #if enum.program.valuable?}}, ::valuable::Valuable{{/if ~}}
@@ -28,9 +27,7 @@ pub struct {{enum.rust_name}}(pub ::std::primitive::{{enum.rust_underlying_or_i3
 
 impl {{enum.rust_name}} {
   {{#each enum.values as |enum_value|}}
-    {{#if enum_value.docs?}}
-    #[doc = {{enum_value.docs}}]
-    {{/if enum_value.docs?}}
+    {{#partial docs.docblock node=enum_value}}
     pub const {{enum_value.rust_name}}: Self = {{enum.rust_name}}({{enum_value.value}}{{enum.rust_underlying_or_i32}});
   {{/each}}
 }
@@ -84,6 +81,15 @@ impl ::std::default::Default for {{enum.rust_name}} {
     }
 }
 
+  {{#if (not (has_compiler_option? "deprecated_default_enum_min_i32"))}}
+impl ::fbthrift::help::IsEmpty for {{enum.rust_name}} {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.0 == 0
+    }
+}
+
+  {{/if (not (has_compiler_option? "deprecated_default_enum_min_i32"))}}
 impl<'a> ::std::convert::From<&'a {{enum.rust_name}}> for ::std::primitive::{{enum.rust_underlying_or_i32}} {
     #[inline]
     fn from(x: &'a {{enum.rust_name}}) -> Self {

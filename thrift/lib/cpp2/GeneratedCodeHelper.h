@@ -1459,9 +1459,19 @@ std::unique_ptr<folly::IOBuf> encode_stream_payload(T&& _item) {
   res.template get<0>().value = const_cast<T*>(&_item);
   res.setIsSet(0);
 
-  folly::IOBufQueue queue(folly::IOBufQueue::cacheChainLength());
   Protocol prot;
-  prot.setOutput(&queue, res.serializedSizeZC(&prot));
+  const size_t size = res.serializedSizeZC(&prot);
+  // Preallocate small buffer headroom for transports metadata & framing. Cap
+  // the buffer at the writers' growth size: the size is an upper bound, and a
+  // stream can queue many chunks.
+  constexpr size_t kHeadroomBytes = 128;
+  constexpr size_t kMaxBufferBytes = (1 << 14) - 64;
+  auto buf =
+      folly::IOBuf::create(std::min(kHeadroomBytes + size, kMaxBufferBytes));
+  buf->advance(kHeadroomBytes);
+  folly::IOBufQueue queue(folly::IOBufQueue::cacheChainLength());
+  queue.append(std::move(buf));
+  prot.setOutput(&queue, size);
 
   res.write(&prot);
   return std::move(queue).move();
@@ -1616,8 +1626,10 @@ folly::exception_wrapper decode_stream_exception(folly::exception_wrapper ew) {
         DCHECK_EQ(
             folly::to_underlying(payload.metadata.payloadMetadata()->getType()),
             folly::to_underlying(PayloadMetadata::Type::exceptionMetadata));
-        auto& exceptionMetadataBase =
-            payload.metadata.payloadMetadata()->get_exceptionMetadata();
+        auto& exceptionMetadataBase = payload.metadata.payloadMetadata()
+                                          ->exceptionMetadata()
+                                          .as_const()
+                                          .value();
         if (auto exceptionMetadataRef = exceptionMetadataBase.metadata()) {
           if (exceptionMetadataRef->getType() ==
               PayloadExceptionMetadata::Type::declaredException) {

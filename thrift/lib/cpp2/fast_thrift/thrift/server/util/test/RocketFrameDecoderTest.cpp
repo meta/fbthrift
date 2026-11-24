@@ -162,6 +162,43 @@ TEST(FromRocketFrameTest, RequestMetadataBypassesEventBaseAllocator) {
   EXPECT_EQ(allocator.snapshotStats().outstandingAllocations, baseline);
 }
 
+TEST(FromRocketFrameTest, RecycledRequestMetadataCarriesNoStaleFields) {
+  setServerRequestMetadataPoolLimit(4);
+  auto decode = [](apache::thrift::RequestRpcMetadata md) {
+    auto result = fromRocketFrame(
+        makeRequestResponseFrame(
+            /*streamId=*/7, std::move(md), folly::IOBuf::copyBuffer("hello")),
+        apache::thrift::fast_thrift::rocket::server::MetadataProtocol::BINARY,
+        decoderEventBase());
+    EXPECT_TRUE(result.hasValue());
+    return std::move(
+        result->get<ThriftServerRequestResponsePayload>().metadata);
+  };
+
+  auto first = makePopulatedRequestMetadata("Service.first");
+  first.clientTimeoutMs() = 50;
+  first.otherMetadata().ensure()["header"] = "value";
+  first.loadMetric() = "metric";
+  auto decoded = decode(std::move(first));
+  const auto* firstAddress = decoded.get();
+  recycleServerRequestMetadata(decoded);
+  EXPECT_EQ(decoded, nullptr);
+
+  apache::thrift::RequestRpcMetadata second;
+  second.name() = "Service.second";
+  auto reused = decode(second);
+  EXPECT_EQ(reused.get(), firstAddress);
+  EXPECT_EQ(*reused, second);
+  // Unset fields must hold defaults too, not the first request's values.
+  EXPECT_EQ(reused->clientTimeoutMs().value_unchecked(), 0);
+  EXPECT_TRUE(reused->otherMetadata().value_unchecked().empty());
+  EXPECT_TRUE(reused->loadMetric().value_unchecked().empty());
+
+  setServerRequestMetadataPoolLimit(0);
+  recycleServerRequestMetadata(reused);
+  EXPECT_NE(reused, nullptr);
+}
+
 TEST(FromRocketFrameTest, RequestResponseWithNoMetadataYieldsEmptyMetadata) {
   ThriftRequestResponsePayload payload{
       .data = folly::IOBuf::copyBuffer("body"),

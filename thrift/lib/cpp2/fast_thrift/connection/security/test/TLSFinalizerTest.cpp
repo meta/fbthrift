@@ -23,6 +23,7 @@
 #include <array>
 #include <chrono>
 #include <memory>
+#include <vector>
 
 #include <gtest/gtest.h>
 
@@ -30,6 +31,7 @@
 #include <folly/Function.h>
 #include <folly/SocketAddress.h>
 #include <folly/init/Init.h>
+#include <folly/io/IOBuf.h>
 #include <folly/io/async/AsyncSocket.h>
 #include <folly/io/async/AsyncTransport.h>
 #include <folly/io/async/EventBase.h>
@@ -39,8 +41,8 @@
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/BufferAllocator.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/security/common/Messages.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/security/handler/TLSFinalizer.h>
@@ -57,9 +59,9 @@ class CapturingTail {
 
   explicit CapturingTail(OnRead onRead) noexcept : onRead_(std::move(onRead)) {}
 
+  template <typename Context>
   channel_pipeline::Result onRead(
-      channel_pipeline::detail::ContextImpl&,
-      channel_pipeline::TypeErasedBox&& msg) noexcept {
+      Context&, channel_pipeline::TypeErasedBox&& msg) noexcept {
     auto m = msg.take<TLSResponseMessage>();
     if (onRead_) {
       onRead_(std::move(m));
@@ -110,17 +112,13 @@ class TLSFinalizerTest : public ::testing::Test {
   void buildPipeline(CapturingTail::OnRead onRead) {
     tail_ = std::make_unique<CapturingTail>(std::move(onRead));
     evb_->runInEventBaseThreadAndWait([&] {
-      channel_pipeline::PipelineBuilder<
-          TLSFinalizer,
-          CapturingTail,
-          channel_pipeline::SimpleBufferAllocator>
-          builder;
-      builder.setEventBase(evb_)
-          .setHead(&finalizer_)
-          .setTail(tail_.get())
-          .setAllocator(&allocator_);
-      pipeline_ = builder.build();
-      finalizer_.setPipeline(pipeline_.get());
+      pipeline_ =
+          channel_pipeline::StaticPipelineBuilder<TLSFinalizer, CapturingTail>()
+              .setEventBase(evb_)
+              .setHead(&finalizer_)
+              .setTail(tail_.get())
+              .setAllocator(&allocator_)
+              .build();
       pipeline_->activate();
     });
   }
@@ -130,7 +128,7 @@ class TLSFinalizerTest : public ::testing::Test {
   channel_pipeline::SimpleBufferAllocator allocator_;
   TLSFinalizer finalizer_;
   std::unique_ptr<CapturingTail> tail_;
-  channel_pipeline::PipelineImpl::Ptr pipeline_;
+  channel_pipeline::PipelineOwner pipeline_;
 };
 
 // A request driven through the finalizer emerges as a response carrying the
@@ -141,7 +139,7 @@ TEST_F(TLSFinalizerTest, ConvertsRequestToResponse) {
   folly::Baton<> emitted;
   folly::AsyncTransport::UniquePtr captured;
   folly::SocketAddress capturedAddr;
-  std::shared_ptr<const PeerSecurityInfo> capturedPeerSecurity;
+  std::unique_ptr<PeerSecurityInfo> capturedPeerSecurity;
 
   buildPipeline([&](TLSResponseMessage&& resp) noexcept {
     captured = std::move(resp.transport);
@@ -152,8 +150,16 @@ TEST_F(TLSFinalizerTest, ConvertsRequestToResponse) {
 
   folly::AsyncTransport* rawTransport = nullptr;
   const folly::SocketAddress addr{"127.0.0.1", 4321};
-  auto peerSecurity = std::make_shared<const PeerSecurityInfo>(
+  auto peerSecurity = std::make_unique<PeerSecurityInfo>(
       PeerSecurityInfo{.peerCertificate = nullptr, .securityProtocol = "TLS"});
+  auto* expectedPeerSecurity = peerSecurity.get();
+  auto buffer = folly::IOBuf::copyBuffer("captured-ekm");
+  auto* expectedBuffer = buffer.get();
+  std::vector<apache::thrift::detail::EkmInfo> entries;
+  entries.push_back(
+      apache::thrift::detail::EkmInfo{
+          .label = "test", .length = 12, .buf = std::move(buffer)});
+  peerSecurity->capturedEkms.emplace(std::move(entries));
   evb_->runInEventBaseThreadAndWait([&] {
     auto sock = folly::AsyncSocket::newSocket(evb_, makeSocketFd());
     rawTransport = sock.get();
@@ -162,7 +168,7 @@ TEST_F(TLSFinalizerTest, ConvertsRequestToResponse) {
         .clientAddr = addr,
         .tlsParams = nullptr,
         .extension = nullptr,
-        .peerSecurity = peerSecurity,
+        .peerSecurity = std::move(peerSecurity),
         .pendingConnectionPermit = {},
     };
     (void)pipeline_->fireWrite(channel_pipeline::erase_and_box(std::move(req)));
@@ -171,7 +177,11 @@ TEST_F(TLSFinalizerTest, ConvertsRequestToResponse) {
   ASSERT_TRUE(emitted.try_wait_for(std::chrono::seconds{5}));
   EXPECT_EQ(captured.get(), rawTransport); // same transport, moved through
   EXPECT_EQ(capturedAddr, addr);
-  EXPECT_EQ(capturedPeerSecurity, peerSecurity);
+  EXPECT_EQ(capturedPeerSecurity.get(), expectedPeerSecurity);
+  ASSERT_TRUE(capturedPeerSecurity->capturedEkms.has_value());
+  ASSERT_EQ(capturedPeerSecurity->capturedEkms->size(), 1);
+  EXPECT_EQ(
+      capturedPeerSecurity->capturedEkms->front().buf.get(), expectedBuffer);
 
   evb_->runInEventBaseThreadAndWait([&] { captured.reset(); });
 }

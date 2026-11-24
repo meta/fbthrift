@@ -3,13 +3,15 @@
 
 //! Thrift constant definitions for `module`.
 
-#[doc = "Constant foo"]
+/// Constant foo
 pub const FOO: &::std::primitive::str = "foo";
 
-#[doc = "Multi-\nline\nslash comment"]
+/// Multi-
+/// line
+/// slash comment
 pub const BAR: ::std::primitive::i32 = 123;
 
-#[doc = "BIFF has your mail"]
+/// BIFF has your mail
 pub const BIFF: ::std::primitive::i32 = 0;
 
 pub const SHOUTY: ::std::primitive::i32 = 11;

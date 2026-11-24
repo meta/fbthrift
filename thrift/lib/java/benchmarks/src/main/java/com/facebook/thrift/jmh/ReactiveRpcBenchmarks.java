@@ -27,6 +27,7 @@ import com.facebook.thrift.legacy.server.LegacyServerTransportFactory;
 import com.facebook.thrift.util.SPINiftyMetrics;
 import com.facebook.thrift.util.resources.RpcResources;
 import io.netty.channel.unix.DomainSocketAddress;
+import io.netty.handler.ssl.ClientAuth;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
@@ -83,7 +84,10 @@ public class ReactiveRpcBenchmarks {
 
       LegacyServerTransportFactory factory =
           new LegacyServerTransportFactory(
-              new ThriftServerConfig().setSslEnabled(false).setUdsPath("/tmp/jmh.socket"));
+              new ThriftServerConfig()
+                  .setClientAuth(ClientAuth.OPTIONAL)
+                  .setSslEnabled(false)
+                  .setUdsPath("/tmp/jmh.socket"));
       factory.createServerTransport(socketAddress, serverHandler, new SPINiftyMetrics()).block();
       System.out.println("Ping Service started...");
 

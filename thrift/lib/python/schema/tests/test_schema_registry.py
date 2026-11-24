@@ -321,7 +321,7 @@ class SchemaRegistryTest(unittest.TestCase):
         self.assertEqual(kind_field.name, "kind")
         resolved = kind_field.type.true_type
         self.assertIsInstance(resolved.node, EnumNode)  # type: ignore[attr-defined]
-        self.assertEqual(resolved.node.name, "LegacyEnum")  # type: ignore[attr-defined]
+        self.assertEqual(resolved.node.name, "LegacyEnum")
 
     def test_get_definition_by_uri_empty_string_fails(self) -> None:
         registry = SchemaRegistry()

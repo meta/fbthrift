@@ -282,6 +282,7 @@ void TypeSystemBuilder::addType(
     const SerializableStructDefinition& structDef,
     std::optional<SerializableThriftSourceInfo> sourceInfo) {
   detail::validateIdentitiesAreUnique(uri, *structDef.fields());
+  detail::validateTerseFieldsHaveNoCustomDefault(uri, structDef);
 
   detail::DefinitionEntry entry;
   entry.definition.set_structDef(std::move(structDef));

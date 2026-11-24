@@ -42,6 +42,8 @@ template void TccStructTraits<::py3::simple::CustomTypedefFields>::translateFiel
     std::string_view, int16_t&, apache::thrift::protocol::TType&);
 template void TccStructTraits<::py3::simple::AdaptedTypedefFields>::translateFieldName(
     std::string_view, int16_t&, apache::thrift::protocol::TType&);
+template void TccStructTraits<::py3::simple::StringAdaptedUnion>::translateFieldName(
+    std::string_view, int16_t&, apache::thrift::protocol::TType&);
 } // namespace apache::thrift::detail
 
 
@@ -199,7 +201,7 @@ std::partial_ordering SimpleException::operator<=>([[maybe_unused]] const Simple
 
 void swap([[maybe_unused]] SimpleException& a, [[maybe_unused]] SimpleException& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_err_code, b.__fbthrift_field_err_code);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_err_code, b.__fbthrift_field_err_code);
   swap(a.__isset, b.__isset);
 }
 
@@ -285,7 +287,7 @@ const ::py3::simple::IOBufPtr* OptionalRefStruct::get_optional_blob() const& [[F
 
 void swap([[maybe_unused]] OptionalRefStruct& a, [[maybe_unused]] OptionalRefStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_optional_blob, b.__fbthrift_field_optional_blob);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_optional_blob, b.__fbthrift_field_optional_blob);
   swap(a.__isset, b.__isset);
 }
 
@@ -525,18 +527,18 @@ const ::py3::simple::AnEnum* SimpleStruct::get_opt_default_enum() const& [[FOLLY
 
 void swap([[maybe_unused]] SimpleStruct& a, [[maybe_unused]] SimpleStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_is_on, b.__fbthrift_field_is_on);
-  swap(a.__fbthrift_field_tiny_int, b.__fbthrift_field_tiny_int);
-  swap(a.__fbthrift_field_small_int, b.__fbthrift_field_small_int);
-  swap(a.__fbthrift_field_nice_sized_int, b.__fbthrift_field_nice_sized_int);
-  swap(a.__fbthrift_field_big_int, b.__fbthrift_field_big_int);
-  swap(a.__fbthrift_field_real, b.__fbthrift_field_real);
-  swap(a.__fbthrift_field_smaller_real, b.__fbthrift_field_smaller_real);
-  swap(a.__fbthrift_field_something, b.__fbthrift_field_something);
-  swap(a.__fbthrift_field_hidden_field, b.__fbthrift_field_hidden_field);
-  swap(a.__fbthrift_field_opt_default_int, b.__fbthrift_field_opt_default_int);
-  swap(a.__fbthrift_field_opt_default_str, b.__fbthrift_field_opt_default_str);
-  swap(a.__fbthrift_field_opt_default_enum, b.__fbthrift_field_opt_default_enum);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_is_on, b.__fbthrift_field_is_on);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_tiny_int, b.__fbthrift_field_tiny_int);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_small_int, b.__fbthrift_field_small_int);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_nice_sized_int, b.__fbthrift_field_nice_sized_int);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_big_int, b.__fbthrift_field_big_int);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_real, b.__fbthrift_field_real);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_smaller_real, b.__fbthrift_field_smaller_real);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_something, b.__fbthrift_field_something);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_hidden_field, b.__fbthrift_field_hidden_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_opt_default_int, b.__fbthrift_field_opt_default_int);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_opt_default_str, b.__fbthrift_field_opt_default_str);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_opt_default_enum, b.__fbthrift_field_opt_default_enum);
   swap(a.__isset, b.__isset);
 }
 
@@ -651,10 +653,10 @@ const ::std::map<::std::string, ::std::vector<::py3::simple::DeferredTruncationF
 
 void swap([[maybe_unused]] Float32Struct& a, [[maybe_unused]] Float32Struct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_float32, b.__fbthrift_field_float32);
-  swap(a.__fbthrift_field_float64, b.__fbthrift_field_float64);
-  swap(a.__fbthrift_field_float_list, b.__fbthrift_field_float_list);
-  swap(a.__fbthrift_field_float_map, b.__fbthrift_field_float_map);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_float32, b.__fbthrift_field_float32);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_float64, b.__fbthrift_field_float64);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_float_list, b.__fbthrift_field_float_list);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_float_map, b.__fbthrift_field_float_map);
   swap(a.__isset, b.__isset);
 }
 
@@ -756,9 +758,9 @@ bool& IssetInspectionStruct::set_bool_field(bool bool_field_) {
 
 void swap([[maybe_unused]] IssetInspectionStruct& a, [[maybe_unused]] IssetInspectionStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_int_field, b.__fbthrift_field_int_field);
-  swap(a.__fbthrift_field_opt_str_field, b.__fbthrift_field_opt_str_field);
-  swap(a.__fbthrift_field_bool_field, b.__fbthrift_field_bool_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_int_field, b.__fbthrift_field_int_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_opt_str_field, b.__fbthrift_field_opt_str_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_bool_field, b.__fbthrift_field_bool_field);
   swap(a.__isset, b.__isset);
 }
 
@@ -860,9 +862,9 @@ const ::std::unordered_map<::std::int32_t, ::py3::simple::AdaptedTypeDef>& Hidde
 
 void swap([[maybe_unused]] HiddenTypeFieldsStruct& a, [[maybe_unused]] HiddenTypeFieldsStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
-  swap(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
-  swap(a.__fbthrift_field_field3, b.__fbthrift_field_field3);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field3, b.__fbthrift_field_field3);
   swap(a.__isset, b.__isset);
 }
 
@@ -922,33 +924,46 @@ void AdaptedUnion::__fbthrift_clear() {
 bool AdaptedUnion::__fbthrift_is_empty() const {
   return getType() == Type::__EMPTY__;
 }
+  AdaptedUnion& AdaptedUnion::operator=(AdaptedUnion&& rhs) noexcept {
+    if (this == &rhs) { return *this; }
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+      {
+        __fbthrift_clear();
+        return *this;
+      }
+      case Type::best:
+      {
+        auto value = std::move(rhs.value_.best);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(best_ref(), std::move(value));
+        break;
+      }
+      default:
+      {
+        assert(false);
+        __fbthrift_clear();
+      }
+    }
+    return *this;
+  }
+
   AdaptedUnion::AdaptedUnion(const AdaptedUnion& rhs)
       : fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
     switch (rhs.getType()) {
       case Type::__EMPTY__:
         return;
       case Type::best:
-        set_best(rhs.value_.best);
+        best_ref().emplace(rhs.value_.best);
         break;
       default:
         assert(false);
     }
   }
 
-    AdaptedUnion&AdaptedUnion::operator=(const AdaptedUnion& rhs) {
+  AdaptedUnion& AdaptedUnion::operator=(const AdaptedUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::best:
-        set_best(rhs.value_.best);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = AdaptedUnion(rhs);
   }
 
 
@@ -1037,7 +1052,7 @@ std::partial_ordering HiddenException::operator<=>([[maybe_unused]] const Hidden
 
 void swap([[maybe_unused]] HiddenException& a, [[maybe_unused]] HiddenException& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_test, b.__fbthrift_field_test);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_test, b.__fbthrift_field_test);
   swap(a.__isset, b.__isset);
 }
 
@@ -1093,7 +1108,7 @@ ComplexStruct& ComplexStruct::operator=([[maybe_unused]] ComplexStruct&& other) 
 }
 
 
-ComplexStruct::ComplexStruct(apache::thrift::FragileConstructor, ::py3::simple::SimpleStruct structOne__arg, ::py3::simple::SimpleStruct structTwo__arg, ::std::int32_t an_integer__arg, ::std::string name__arg, ::py3::simple::AnEnum an_enum__arg, ::std::string some_bytes__arg, ::std::string from__arg, ::std::string cdef__arg, ::py3::simple::foo_bar bytes_with_cpp_type__arg) :
+ComplexStruct::ComplexStruct(apache::thrift::FragileConstructor, ::py3::simple::SimpleStruct structOne__arg, ::py3::simple::SimpleStruct structTwo__arg, ::std::int32_t an_integer__arg, ::std::string name__arg, ::py3::simple::AnEnum an_enum__arg, ::std::string some_bytes__arg, ::std::string from__arg, ::std::string cdef__arg, ::py3::simple::CustomBuffer bytes_with_cpp_type__arg) :
     __fbthrift_field_structOne(std::move(structOne__arg)),
     __fbthrift_field_structTwo(std::move(structTwo__arg)),
     __fbthrift_field_an_integer(std::move(an_integer__arg)),
@@ -1124,7 +1139,7 @@ void ComplexStruct::__fbthrift_clear() {
   this->__fbthrift_field_some_bytes = apache::thrift::StringTraits<::std::string>::fromStringLiteral("");
   this->__fbthrift_field_from = apache::thrift::StringTraits<::std::string>::fromStringLiteral("");
   this->__fbthrift_field_cdef = apache::thrift::StringTraits<::std::string>::fromStringLiteral("");
-  this->__fbthrift_field_bytes_with_cpp_type = apache::thrift::StringTraits<::py3::simple::foo_bar>::fromStringLiteral("");
+  this->__fbthrift_field_bytes_with_cpp_type = apache::thrift::StringTraits<::py3::simple::CustomBuffer>::fromStringLiteral("");
   __isset = {};
 }
 
@@ -1173,15 +1188,15 @@ const ::py3::simple::SimpleStruct& ComplexStruct::get_structTwo() const& [[FOLLY
 
 void swap([[maybe_unused]] ComplexStruct& a, [[maybe_unused]] ComplexStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_structOne, b.__fbthrift_field_structOne);
-  swap(a.__fbthrift_field_structTwo, b.__fbthrift_field_structTwo);
-  swap(a.__fbthrift_field_an_integer, b.__fbthrift_field_an_integer);
-  swap(a.__fbthrift_field_name, b.__fbthrift_field_name);
-  swap(a.__fbthrift_field_an_enum, b.__fbthrift_field_an_enum);
-  swap(a.__fbthrift_field_some_bytes, b.__fbthrift_field_some_bytes);
-  swap(a.__fbthrift_field_from, b.__fbthrift_field_from);
-  swap(a.__fbthrift_field_cdef, b.__fbthrift_field_cdef);
-  swap(a.__fbthrift_field_bytes_with_cpp_type, b.__fbthrift_field_bytes_with_cpp_type);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_structOne, b.__fbthrift_field_structOne);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_structTwo, b.__fbthrift_field_structTwo);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_an_integer, b.__fbthrift_field_an_integer);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_name, b.__fbthrift_field_name);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_an_enum, b.__fbthrift_field_an_enum);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_some_bytes, b.__fbthrift_field_some_bytes);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_from, b.__fbthrift_field_from);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_cdef, b.__fbthrift_field_cdef);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_bytes_with_cpp_type, b.__fbthrift_field_bytes_with_cpp_type);
   swap(a.__isset, b.__isset);
 }
 
@@ -1249,33 +1264,46 @@ void BinaryUnion::__fbthrift_clear() {
 bool BinaryUnion::__fbthrift_is_empty() const {
   return getType() == Type::__EMPTY__;
 }
+  BinaryUnion& BinaryUnion::operator=(BinaryUnion&& rhs) noexcept {
+    if (this == &rhs) { return *this; }
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+      {
+        __fbthrift_clear();
+        return *this;
+      }
+      case Type::iobuf_val:
+      {
+        auto value = std::move(rhs.value_.iobuf_val);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(iobuf_val_ref(), std::move(value));
+        break;
+      }
+      default:
+      {
+        assert(false);
+        __fbthrift_clear();
+      }
+    }
+    return *this;
+  }
+
   BinaryUnion::BinaryUnion(const BinaryUnion& rhs)
       : fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
     switch (rhs.getType()) {
       case Type::__EMPTY__:
         return;
       case Type::iobuf_val:
-        set_iobuf_val(rhs.value_.iobuf_val);
+        iobuf_val_ref().emplace(rhs.value_.iobuf_val);
         break;
       default:
         assert(false);
     }
   }
 
-    BinaryUnion&BinaryUnion::operator=(const BinaryUnion& rhs) {
+  BinaryUnion& BinaryUnion::operator=(const BinaryUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::iobuf_val:
-        set_iobuf_val(rhs.value_.iobuf_val);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = BinaryUnion(rhs);
   }
 
 
@@ -1342,7 +1370,7 @@ const ::py3::simple::BinaryUnion& BinaryUnionStruct::get_u() const& [[FOLLY_ATTR
 
 void swap([[maybe_unused]] BinaryUnionStruct& a, [[maybe_unused]] BinaryUnionStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_u, b.__fbthrift_field_u);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_u, b.__fbthrift_field_u);
   swap(a.__isset, b.__isset);
 }
 
@@ -1405,7 +1433,7 @@ CustomFields& CustomFields::operator=([[maybe_unused]] CustomFields&& other) noe
 }
 
 
-CustomFields::CustomFields(apache::thrift::FragileConstructor, ::MyType bool_field__arg, ::MyType integer_field__arg, ::MyType double_field__arg, ::MyType string_field__arg, ::MyType binary_field__arg, ::MyType<::std::int32_t> list_field__arg, ::MyType<::std::int32_t> set_field__arg, ::MyType<::std::int32_t, ::std::int32_t> map_field__arg, ::py3::simple::SimpleStruct struct_field__arg) :
+CustomFields::CustomFields(apache::thrift::FragileConstructor, ::MyType bool_field__arg, ::MyType integer_field__arg, ::MyType double_field__arg, std::pmr::string string_field__arg, folly::IOBuf binary_field__arg, ::MyType<::std::int32_t> list_field__arg, ::MyType<::std::int32_t> set_field__arg, ::MyType<::std::int32_t, ::std::int32_t> map_field__arg, ::py3::simple::SimpleStruct struct_field__arg) :
     __fbthrift_field_bool_field(std::move(bool_field__arg)),
     __fbthrift_field_integer_field(std::move(integer_field__arg)),
     __fbthrift_field_double_field(std::move(double_field__arg)),
@@ -1431,8 +1459,8 @@ void CustomFields::__fbthrift_clear() {
   this->__fbthrift_field_bool_field = ::MyType();
   this->__fbthrift_field_integer_field = ::MyType();
   this->__fbthrift_field_double_field = ::MyType();
-  this->__fbthrift_field_string_field = apache::thrift::StringTraits<::MyType>::fromStringLiteral("");
-  this->__fbthrift_field_binary_field = apache::thrift::StringTraits<::MyType>::fromStringLiteral("");
+  this->__fbthrift_field_string_field = apache::thrift::StringTraits<std::pmr::string>::fromStringLiteral("");
+  this->__fbthrift_field_binary_field = apache::thrift::StringTraits<folly::IOBuf>::fromStringLiteral("");
   this->__fbthrift_field_list_field.clear();
   this->__fbthrift_field_set_field.clear();
   this->__fbthrift_field_map_field.clear();
@@ -1510,15 +1538,15 @@ const ::py3::simple::SimpleStruct& CustomFields::get_struct_field() const& [[FOL
 
 void swap([[maybe_unused]] CustomFields& a, [[maybe_unused]] CustomFields& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_bool_field, b.__fbthrift_field_bool_field);
-  swap(a.__fbthrift_field_integer_field, b.__fbthrift_field_integer_field);
-  swap(a.__fbthrift_field_double_field, b.__fbthrift_field_double_field);
-  swap(a.__fbthrift_field_string_field, b.__fbthrift_field_string_field);
-  swap(a.__fbthrift_field_binary_field, b.__fbthrift_field_binary_field);
-  swap(a.__fbthrift_field_list_field, b.__fbthrift_field_list_field);
-  swap(a.__fbthrift_field_set_field, b.__fbthrift_field_set_field);
-  swap(a.__fbthrift_field_map_field, b.__fbthrift_field_map_field);
-  swap(a.__fbthrift_field_struct_field, b.__fbthrift_field_struct_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_bool_field, b.__fbthrift_field_bool_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_integer_field, b.__fbthrift_field_integer_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_double_field, b.__fbthrift_field_double_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_string_field, b.__fbthrift_field_string_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_binary_field, b.__fbthrift_field_binary_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_list_field, b.__fbthrift_field_list_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_set_field, b.__fbthrift_field_set_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_map_field, b.__fbthrift_field_map_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_struct_field, b.__fbthrift_field_struct_field);
   swap(a.__isset, b.__isset);
 }
 
@@ -1542,8 +1570,27 @@ std::string_view CustomTypedefFields::__fbthrift_get_class_name() {
   return apache::thrift::TStructDataStorage<CustomTypedefFields>::name;
 }
 
-CustomTypedefFields::CustomTypedefFields(const CustomTypedefFields&) = default;
-CustomTypedefFields& CustomTypedefFields::operator=(const CustomTypedefFields&) = default;
+CustomTypedefFields::CustomTypedefFields(const CustomTypedefFields& srcObj) :
+    __fbthrift_field_bool_field(srcObj.__fbthrift_field_bool_field),
+    __fbthrift_field_integer_field(srcObj.__fbthrift_field_integer_field),
+    __fbthrift_field_double_field(srcObj.__fbthrift_field_double_field),
+    __fbthrift_field_string_field(srcObj.__fbthrift_field_string_field),
+    __fbthrift_field_binary_field(::apache::thrift::detail::st::copy_field<
+          ::apache::thrift::type_class::binary>(srcObj.__fbthrift_field_binary_field)),
+    __fbthrift_field_list_field(srcObj.__fbthrift_field_list_field),
+    __fbthrift_field_set_field(srcObj.__fbthrift_field_set_field),
+    __fbthrift_field_map_field(srcObj.__fbthrift_field_map_field),
+    __fbthrift_field_struct_field(srcObj.__fbthrift_field_struct_field),
+    __isset(srcObj.__isset) {
+}
+
+static void __fbthrift_swap(CustomTypedefFields& lhs, CustomTypedefFields& rhs) { swap(lhs, rhs); }
+CustomTypedefFields& CustomTypedefFields::operator=(const CustomTypedefFields& other) {
+  CustomTypedefFields tmp(other);
+  __fbthrift_swap(*this, tmp);
+  return *this;
+}
+
 CustomTypedefFields::CustomTypedefFields() :
     __fbthrift_field_bool_field(),
     __fbthrift_field_integer_field(),
@@ -1686,15 +1733,15 @@ const ::py3::simple::CustomStruct& CustomTypedefFields::get_struct_field() const
 
 void swap([[maybe_unused]] CustomTypedefFields& a, [[maybe_unused]] CustomTypedefFields& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_bool_field, b.__fbthrift_field_bool_field);
-  swap(a.__fbthrift_field_integer_field, b.__fbthrift_field_integer_field);
-  swap(a.__fbthrift_field_double_field, b.__fbthrift_field_double_field);
-  swap(a.__fbthrift_field_string_field, b.__fbthrift_field_string_field);
-  swap(a.__fbthrift_field_binary_field, b.__fbthrift_field_binary_field);
-  swap(a.__fbthrift_field_list_field, b.__fbthrift_field_list_field);
-  swap(a.__fbthrift_field_set_field, b.__fbthrift_field_set_field);
-  swap(a.__fbthrift_field_map_field, b.__fbthrift_field_map_field);
-  swap(a.__fbthrift_field_struct_field, b.__fbthrift_field_struct_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_bool_field, b.__fbthrift_field_bool_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_integer_field, b.__fbthrift_field_integer_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_double_field, b.__fbthrift_field_double_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_string_field, b.__fbthrift_field_string_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_binary_field, b.__fbthrift_field_binary_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_list_field, b.__fbthrift_field_list_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_set_field, b.__fbthrift_field_set_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_map_field, b.__fbthrift_field_map_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_struct_field, b.__fbthrift_field_struct_field);
   swap(a.__isset, b.__isset);
 }
 
@@ -1857,15 +1904,15 @@ bool AdaptedTypedefFields::operator==([[maybe_unused]] const AdaptedTypedefField
 
 void swap([[maybe_unused]] AdaptedTypedefFields& a, [[maybe_unused]] AdaptedTypedefFields& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_bool_field, b.__fbthrift_field_bool_field);
-  swap(a.__fbthrift_field_integer_field, b.__fbthrift_field_integer_field);
-  swap(a.__fbthrift_field_double_field, b.__fbthrift_field_double_field);
-  swap(a.__fbthrift_field_string_field, b.__fbthrift_field_string_field);
-  swap(a.__fbthrift_field_binary_field, b.__fbthrift_field_binary_field);
-  swap(a.__fbthrift_field_list_field, b.__fbthrift_field_list_field);
-  swap(a.__fbthrift_field_set_field, b.__fbthrift_field_set_field);
-  swap(a.__fbthrift_field_map_field, b.__fbthrift_field_map_field);
-  swap(a.__fbthrift_field_struct_field, b.__fbthrift_field_struct_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_bool_field, b.__fbthrift_field_bool_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_integer_field, b.__fbthrift_field_integer_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_double_field, b.__fbthrift_field_double_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_string_field, b.__fbthrift_field_string_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_binary_field, b.__fbthrift_field_binary_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_list_field, b.__fbthrift_field_list_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_set_field, b.__fbthrift_field_set_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_map_field, b.__fbthrift_field_map_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_struct_field, b.__fbthrift_field_struct_field);
   swap(a.__isset, b.__isset);
 }
 
@@ -1875,6 +1922,128 @@ static_assert(
         ::apache::thrift::type_class::structure,
         ::py3::simple::SimpleStruct>,
     "inconsistent use of json option");
+
+} // namespace py3::simple
+
+
+namespace apache { namespace thrift {
+
+folly::Range<::py3::simple::StringAdaptedUnion::Type const*> const TEnumTraits<::py3::simple::StringAdaptedUnion::Type>::values = folly::range(TEnumDataStorage<::py3::simple::StringAdaptedUnion::Type>::values);
+folly::Range<std::string_view const*> const TEnumTraits<::py3::simple::StringAdaptedUnion::Type>::names = folly::range(TEnumDataStorage<::py3::simple::StringAdaptedUnion::Type>::names);
+
+bool TEnumTraits<::py3::simple::StringAdaptedUnion::Type>::findName(type value, std::string_view* out) noexcept {
+  return ::apache::thrift::detail::st::enum_find_name(value, out);
+}
+
+bool TEnumTraits<::py3::simple::StringAdaptedUnion::Type>::findValue(std::string_view name, type* out) noexcept {
+  return ::apache::thrift::detail::st::enum_find_value(name, out);
+}
+}} // apache::thrift
+namespace py3::simple {
+
+std::string_view StringAdaptedUnion::__fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord) {
+  if (ord == ::apache::thrift::FieldOrdinal{0}) { return {}; }
+  return apache::thrift::TStructDataStorage<StringAdaptedUnion>::fields_names[folly::to_underlying(ord) - 1];
+}
+std::string_view StringAdaptedUnion::__fbthrift_get_class_name() {
+  return apache::thrift::TStructDataStorage<StringAdaptedUnion>::name;
+}
+
+void StringAdaptedUnion::__fbthrift_destruct() {
+  switch(getType()) {
+    case Type::__EMPTY__:
+      break;
+    case Type::string_field:
+      ::std::destroy_at(::std::addressof(value_.string_field));
+      break;
+    case Type::binary_field:
+      ::std::destroy_at(::std::addressof(value_.binary_field));
+      break;
+    default:
+      assert(false);
+      break;
+  }
+}
+
+void StringAdaptedUnion::__fbthrift_clear() {
+  __fbthrift_destruct();
+  fbthrift_type_ = folly::to_underlying(Type::__EMPTY__);
+}
+
+  StringAdaptedUnion::~StringAdaptedUnion() {
+    __fbthrift_destruct();
+  }
+
+bool StringAdaptedUnion::__fbthrift_is_empty() const {
+  return getType() == Type::__EMPTY__;
+}
+  StringAdaptedUnion& StringAdaptedUnion::operator=(StringAdaptedUnion&& rhs) noexcept {
+    if (this == &rhs) { return *this; }
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+      {
+        __fbthrift_clear();
+        return *this;
+      }
+      case Type::string_field:
+      {
+        auto value = std::move(rhs.value_.string_field);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(string_field_ref(), std::move(value));
+        break;
+      }
+      case Type::binary_field:
+      {
+        auto value = std::move(rhs.value_.binary_field);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(binary_field_ref(), std::move(value));
+        break;
+      }
+      default:
+      {
+        assert(false);
+        __fbthrift_clear();
+      }
+    }
+    return *this;
+  }
+
+  StringAdaptedUnion::StringAdaptedUnion(const StringAdaptedUnion& rhs)
+      : fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+        return;
+      case Type::string_field:
+        string_field_ref().emplace(rhs.value_.string_field);
+        break;
+      case Type::binary_field:
+        binary_field_ref().emplace(rhs.value_.binary_field);
+        break;
+      default:
+        assert(false);
+    }
+  }
+
+  StringAdaptedUnion& StringAdaptedUnion::operator=(const StringAdaptedUnion& rhs) {
+    if (this == &rhs) { return *this; }
+    return *this = StringAdaptedUnion(rhs);
+  }
+
+
+bool StringAdaptedUnion::operator==(const StringAdaptedUnion& rhs) const {
+  return ::apache::thrift::op::detail::UnionEquality{}(*this, rhs);
+}
+
+std::partial_ordering StringAdaptedUnion::operator<=>([[maybe_unused]] const StringAdaptedUnion& rhs) const {
+  return ::apache::thrift::op::compare<StringAdaptedUnion>(*this, rhs);
+}
+
+void swap(StringAdaptedUnion& a, StringAdaptedUnion& b) {
+  StringAdaptedUnion temp(std::move(a));
+  a = std::move(b);
+  b = std::move(temp);
+}
+
 
 } // namespace py3::simple
 
@@ -1890,6 +2059,8 @@ namespace py3::simple { namespace {
   ::apache::thrift::adapt_detail::validateFieldAdapter<::MyAdapter, 7, ::std::set<::std::int32_t>, ::py3::simple::AdaptedTypedefFields>();
   ::apache::thrift::adapt_detail::validateFieldAdapter<::MyAdapter, 8, ::std::map<::std::int32_t, ::std::int32_t>, ::py3::simple::AdaptedTypedefFields>();
   ::apache::thrift::adapt_detail::validateFieldAdapter<::MyAdapter, 9, ::py3::simple::SimpleStruct, ::py3::simple::AdaptedTypedefFields>();
+  ::apache::thrift::adapt_detail::validateFieldAdapter<::apache::thrift::StringTypeAdapter<folly::fbstring>, 1, ::std::string, ::py3::simple::StringAdaptedUnion>();
+  ::apache::thrift::adapt_detail::validateFieldAdapter<::apache::thrift::StringTypeAdapter<folly::fbstring>, 2, ::std::string, ::py3::simple::StringAdaptedUnion>();
   ::apache::thrift::adapt_detail::validateAdapter<Adapter, ::py3::simple::detail::AdaptedUnion>();
 }
 }} // namespace py3::simple

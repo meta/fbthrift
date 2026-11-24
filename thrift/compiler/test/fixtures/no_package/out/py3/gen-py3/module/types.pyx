@@ -29,6 +29,8 @@ from thrift.py3.types cimport (
     set_iter as __set_iter,
     map_iter as __map_iter,
     reference_shared_ptr as __reference_shared_ptr,
+    get_union_field_storage as __get_union_field_storage,
+    get_union_field_cref as __get_union_field_cref,
     get_field_name_by_index as __get_field_name_by_index,
     reset_field as __reset_field,
     translate_cpp_enum_to_python,
@@ -589,13 +591,13 @@ cdef class MyUnion(thrift.py3.types.Union):
         if self.py_value is not None or self.type_int == 0:
             return self.py_value
         elif self.type_int == 1:
-            self.py_value = translate_cpp_enum_to_python(MyEnum, <int>deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_myEnum())
+            self.py_value = translate_cpp_enum_to_python(MyEnum, <int>__get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).myEnum_ref()))
         elif self.type_int == 2:
-            self.py_value = MyStruct._create_FBTHRIFT_ONLY_DO_NOT_USE(make_shared[_module_cbindings.cMyStruct](deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_myStruct()))
+            self.py_value = MyStruct._create_FBTHRIFT_ONLY_DO_NOT_USE(make_shared[_module_cbindings.cMyStruct](__get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).myStruct_ref())))
         elif self.type_int == 3:
-            self.py_value = MyDataItem._create_FBTHRIFT_ONLY_DO_NOT_USE(make_shared[_module_cbindings.cMyDataItem](deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_myDataItem()))
+            self.py_value = MyDataItem._create_FBTHRIFT_ONLY_DO_NOT_USE(make_shared[_module_cbindings.cMyDataItem](__get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).myDataItem_ref())))
         elif self.type_int == 4:
-            self.py_value = Set__float__from_cpp(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_floatSet())
+            self.py_value = Set__float__from_cpp(__get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).floatSet_ref()))
         return self.py_value
 
     cdef _initialize_py(MyUnion self):
@@ -1106,7 +1108,7 @@ cdef class UnionToBeRenamed(thrift.py3.types.Union):
         if self.py_value is not None or self.type_int == 0:
             return self.py_value
         elif self.type_int == 1:
-            self.py_value = deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_reserved_field()
+            self.py_value = __get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).reserved_field_ref())
         return self.py_value
 
     cdef _initialize_py(UnionToBeRenamed self):

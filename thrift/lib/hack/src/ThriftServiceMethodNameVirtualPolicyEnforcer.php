@@ -1,5 +1,4 @@
 <?hh
-// (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
 /*
  * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
@@ -211,7 +210,7 @@ final class ThriftServiceMethodNameVirtualPolicyEnforcer
   ): Awaitable<void> {
     $thrift_context = $context->get(#ThriftPolicyZones);
     if (
-      ThriftServiceMethodNamePrivacyLibRPCPayloadProvider::isEnabledForCurrentRequest()
+      ThriftServiceMethodNamePrivacyLibRPCPayloadProvider::isEnabledForCurrentResponse()
     ) {
       try {
         $asset_xid = $thrift_context?->getXID() ??

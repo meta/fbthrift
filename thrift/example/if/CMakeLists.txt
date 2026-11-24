@@ -12,15 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(EXAMPLE_IF_HOME ${CMAKE_CURRENT_SOURCE_DIR})
-
-# Example to test linking
-thrift_library(
-  "chatroom" #file_name
-  "ChatRoomService;Echo" #services
-  "cpp2" #language
-  "" #options
-  "${EXAMPLE_IF_HOME}" #file_path
-  "${EXAMPLE_IF_HOME}" #output_path
-  "thrift/example/if" #include_prefix
-)
+add_library(chatroom-cpp2)
+thrift_generate(chatroom-cpp2 chatroom.thrift LANGUAGE cpp2
+                SERVICES ChatRoomService Echo)
+target_link_libraries(chatroom-cpp2 PUBLIC thriftcpp2)

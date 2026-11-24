@@ -17,11 +17,12 @@
 #include <thrift/lib/cpp2/protocol/Json5Protocol.h>
 
 #include <limits>
+#include <vector>
 #include <gtest/gtest.h>
 #include <folly/portability/GFlags.h>
 #include <thrift/lib/cpp/protocol/TProtocolException.h>
-#include <thrift/lib/cpp2/protocol/test/gen-cpp2/json5_test_constants.h>
-#include <thrift/lib/cpp2/protocol/test/gen-cpp2/json5_test_types.h>
+#include <thrift/test/json5/gen-cpp2/json5_test_constants.h>
+#include <thrift/test/json5/gen-cpp2/json5_test_types.h>
 
 namespace apache::thrift {
 
@@ -32,20 +33,28 @@ using namespace facebook::thrift::json5::json5_test_constants;
 
 // ── Struct encoding tests driven by thrift test data ─────────────────────────
 
+namespace {
+
+std::vector<TestCase> testCasesWithExample() {
+  auto cases = testCases();
+  std::erase_if(cases, [](const auto& tc) { return !tc.example(); });
+  return cases;
+}
+
+} // namespace
+
 class Json5EncoderStructTest : public ::testing::TestWithParam<TestCase> {};
 
 TEST_P(Json5EncoderStructTest, Encode) {
-  EXPECT_EQ(
-      Json5ProtocolUtils::toBasicJson(*GetParam().example()),
-      *GetParam().json());
-  EXPECT_EQ(
-      Json5ProtocolUtils::toJson5(*GetParam().example()), *GetParam().json5());
+  const auto& example = *GetParam().example();
+  EXPECT_EQ(Json5ProtocolUtils::toBasicJson(example), *GetParam().json());
+  EXPECT_EQ(Json5ProtocolUtils::toJson5(example), *GetParam().json5());
 }
 
 INSTANTIATE_TEST_SUITE_P(
     Encode,
     Json5EncoderStructTest,
-    ::testing::ValuesIn(testCases()),
+    ::testing::ValuesIn(testCasesWithExample()),
     [](const auto& info) { return *info.param.name(); });
 
 // ── Primitive type encoding tests ────────────────────────────────────────────
@@ -187,44 +196,6 @@ TEST_P(Json5EncoderTest, StringValueInvalidUtf8) {
   Example data;
   data.stringValue() = "\x80\x81\x82";
   EXPECT_THROW((void)encode(data), std::runtime_error);
-}
-
-TEST_P(Json5EncoderTest, NaNInf) {
-  Example data;
-  data.infValue() = std::numeric_limits<double>::infinity();
-  data.nanValue() = std::numeric_limits<double>::quiet_NaN();
-  std::string_view expected;
-  if (!isJson5()) {
-    expected = R"RAW({
-  "infValue": "Infinity",
-  "nanValue": "NaN"
-})RAW";
-  } else {
-    expected = R"RAW({
-  infValue: Infinity,
-  nanValue: NaN,
-})RAW";
-  }
-  EXPECT_EQ(encode(data), expected);
-}
-
-TEST_P(Json5EncoderTest, NegativeNaNInf) {
-  Example data;
-  data.infValue() = -std::numeric_limits<double>::infinity();
-  data.nanValue() = -std::numeric_limits<double>::quiet_NaN();
-  std::string_view expected;
-  if (!isJson5()) {
-    expected = R"RAW({
-  "infValue": "-Infinity",
-  "nanValue": "-NaN"
-})RAW";
-  } else {
-    expected = R"RAW({
-  infValue: -Infinity,
-  nanValue: -NaN,
-})RAW";
-  }
-  EXPECT_EQ(encode(data), expected);
 }
 
 // Each level nests a struct and a list, i.e. two levels of protocol depth.

@@ -26,7 +26,7 @@ include "thrift/annotation/thrift.thrift"
 package;
 
 struct Struct {
-  @cpp.Type{name = "TestFileBackedString"}
+  @cpp.Adapter{name = "::apache::thrift::StringTypeAdapter<TestFileBackedString>"}
   1: string str;
   @cpp.Type{name = "folly::IOBuf"}
   2: binary iobuf;

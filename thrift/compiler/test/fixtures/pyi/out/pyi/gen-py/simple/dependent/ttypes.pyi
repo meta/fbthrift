@@ -14,6 +14,7 @@ from thrift.protocol.TProtocol import TProtocolBase
 
 __property__ = property  # sometimes `property` is used as a field name
 
+import simple.transitive.ttypes
 
 UTF8STRINGS: bool
 
@@ -70,3 +71,4 @@ class Item:
     def _to_py_deprecated(self) -> Item: ...
 
 
+ItemColor = simple.transitive.ttypes.Color

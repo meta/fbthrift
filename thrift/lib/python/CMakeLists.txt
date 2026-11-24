@@ -12,38 +12,55 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-find_package(
-  Python3
-  COMPONENTS Interpreter Development
-  REQUIRED)
+find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 
 # Set FOLLY_PYTHON_SITE_PACKAGES for Cython .pxd files
 # (folly.pxd, iobuf.pxd, etc.)
 # These are separate from C++ headers and live in Python site-packages
-#
-# find_file locates a known file, then extract the parent directory.
-# HINTS cover both install locations:
-#   - lib/pythonX.Y/site-packages/ (setup.py install)
-#   - local/lib/pythonX.Y/dist-packages/ (pip --prefix on Debian/Ubuntu)
-set(_folly_py_version "python${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}")
-unset(_folly_pxd_file CACHE)
-find_file(
-  _folly_pxd_file
-  NAMES folly/__init__.pxd
-  HINTS
-    "${FOLLY_PREFIX_DIR}/lib/${_folly_py_version}/site-packages"
-    "${FOLLY_PREFIX_DIR}/lib64/${_folly_py_version}/site-packages"
-    "${FOLLY_PREFIX_DIR}/local/lib/${_folly_py_version}/dist-packages"
-    "${FOLLY_PREFIX_DIR}/local/lib64/${_folly_py_version}/dist-packages"
-    "${FOLLY_PREFIX_DIR}/lib/x86_64-linux-gnu/${_folly_py_version}/site-packages"
-    "${FOLLY_PREFIX_DIR}/lib64/x86_64-linux-gnu/${_folly_py_version}/site-packages"
-    "${FOLLY_PREFIX_DIR}/local/lib/x86_64-linux-gnu/${_folly_py_version}/dist-packages"
-    "${FOLLY_PREFIX_DIR}/local/lib64/x86_64-linux-gnu/${_folly_py_version}/dist-packages"
-  NO_DEFAULT_PATH REQUIRED)
+set(thrift_stage_folly_python "")
+if (TARGET folly_python_bindings)
+  # folly is built in this build, so its Python package is a wheel in folly's
+  # build tree. Unpack it where an install would put it, before anything below
+  # reads it.
+  set(FOLLY_PYTHON_SITE_PACKAGES "${CMAKE_CURRENT_BINARY_DIR}/folly-site-packages")
+  get_target_property(_folly_wheel_dir folly_python_bindings
+                      FOLLY_PYTHON_WHEEL_DIR)
+  add_custom_target(
+    thrift_stage_folly_python
+    COMMAND ${CMAKE_COMMAND} -E rm -rf "${FOLLY_PYTHON_SITE_PACKAGES}"
+    COMMAND
+      ${Python3_EXECUTABLE} -c
+      "import glob, sys, zipfile; zipfile.ZipFile(glob.glob(sys.argv[1] + '/folly-*.whl')[0]).extractall(sys.argv[2])"
+      "${_folly_wheel_dir}" "${FOLLY_PYTHON_SITE_PACKAGES}"
+    COMMENT "Unpacking folly's Python wheel for thrift-python"
+    VERBATIM)
+  add_dependencies(thrift_stage_folly_python folly_python_bindings)
+  set(thrift_stage_folly_python thrift_stage_folly_python)
+else ()
+  # find_file locates a known file, then extract the parent directory.
+  # HINTS cover both install locations:
+  #   - lib/pythonX.Y/site-packages/ (setup.py install)
+  #   - local/lib/pythonX.Y/dist-packages/ (pip --prefix on Debian/Ubuntu)
+  set(_folly_py_version "python${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}")
+  unset(_folly_pxd_file CACHE)
+  find_file(
+    _folly_pxd_file
+    NAMES folly/__init__.pxd
+    HINTS
+      "${FOLLY_PREFIX_DIR}/lib/${_folly_py_version}/site-packages"
+      "${FOLLY_PREFIX_DIR}/lib64/${_folly_py_version}/site-packages"
+      "${FOLLY_PREFIX_DIR}/local/lib/${_folly_py_version}/dist-packages"
+      "${FOLLY_PREFIX_DIR}/local/lib64/${_folly_py_version}/dist-packages"
+      "${FOLLY_PREFIX_DIR}/lib/x86_64-linux-gnu/${_folly_py_version}/site-packages"
+      "${FOLLY_PREFIX_DIR}/lib64/x86_64-linux-gnu/${_folly_py_version}/site-packages"
+      "${FOLLY_PREFIX_DIR}/local/lib/x86_64-linux-gnu/${_folly_py_version}/dist-packages"
+      "${FOLLY_PREFIX_DIR}/local/lib64/x86_64-linux-gnu/${_folly_py_version}/dist-packages"
+    NO_DEFAULT_PATH REQUIRED)
 
-# Extract site-packages directory (two levels up from folly/__init__.pxd)
-get_filename_component(_folly_pkg_dir "${_folly_pxd_file}" DIRECTORY)
-get_filename_component(FOLLY_PYTHON_SITE_PACKAGES "${_folly_pkg_dir}" DIRECTORY)
+  # Extract site-packages directory (two levels up from folly/__init__.pxd)
+  get_filename_component(_folly_pkg_dir "${_folly_pxd_file}" DIRECTORY)
+  get_filename_component(FOLLY_PYTHON_SITE_PACKAGES "${_folly_pkg_dir}" DIRECTORY)
+endif ()
 message(STATUS "FOLLY_PYTHON_SITE_PACKAGES: ${FOLLY_PYTHON_SITE_PACKAGES}")
 
 find_package(Cython 0.28 REQUIRED)
@@ -99,19 +116,29 @@ option(DEBUG_BUILD "Enable debug messages" OFF)
 # =============================================================================
 
 # Libevent: Force static link to embed symbols
-set(LIBEVENT_STATIC_LINK TRUE)
-find_package(Libevent REQUIRED CONFIG)
+if (TARGET event_core_static)
+  # folly fetched libevent, whose own build has no libevent:: targets.
+  set(thrift_python_libevent event_core_static event_extra_static)
+else ()
+  # Like folly, also find a libevent that installed no CMake package config,
+  # such as Homebrew's.
+  set(LIBEVENT_STATIC_LINK TRUE)
+  find_package(LibEvent MODULE REQUIRED)
+  set(thrift_python_libevent ${LIBEVENT_LIB})
+endif ()
 
-# Libiberty: Provides cplus_demangle_v3_callback for folly stack traces
-find_package(Libiberty REQUIRED)
+# Libiberty: Provides cplus_demangle_v3_callback for folly stack traces, when
+# folly found it too
+find_package(Libiberty)
 
 # gflags warning:
 # This section adds explicit dependencies that --whole-archive bypasses.
 # A natural assumption: if libevent and libiberty are here, gflags should be too.
-# gflags is different. It's a transitive dependency (glog depends on gflags).
-# setup.py links glog and gflags as shared libraries. A find_package(gflags) call
-# here would embed static gflags symbols into thrift_python_cpp.so. At runtime,
-# glog loads shared gflags, and duplicate symbols conflict. Do not add gflags.
+# gflags is different. thrift_concurrency and thrift_frozen already link it,
+# and so do folly and glog, which setup.py links as shared libraries. All of
+# them must use the same shared gflags: a static copy in thrift_python_cpp.so
+# would register gflags' flags a second time, and gflags exits. Do not add
+# gflags.
 
 function (log_debug msg)
   if (DEBUG_BUILD)
@@ -184,10 +211,7 @@ function (symlink_dir_recursive src_dir dest_base_dir)
   symlink_dir_contents("${src_dir}" "${dest_base_dir}")
 
   # Find all subdirectories and call symlink_dir_contents for each
-  file(
-    GLOB_RECURSE _all_subdirs
-    LIST_DIRECTORIES true
-    "${src_dir}/*")
+  file(GLOB_RECURSE _all_subdirs LIST_DIRECTORIES true "${src_dir}/*")
 
   foreach (_src_dir ${_all_subdirs})
     if (IS_DIRECTORY "${_src_dir}")
@@ -221,26 +245,35 @@ set(folly_incs
     "$<JOIN:$<TARGET_PROPERTY:Folly::folly,INTERFACE_INCLUDE_DIRECTORIES>,:>")
 set(boost_incs
     "$<JOIN:$<TARGET_PROPERTY:Boost::headers,INTERFACE_INCLUDE_DIRECTORIES>,:>")
-get_target_property(wangle_incs wangle::wangle INTERFACE_INCLUDE_DIRECTORIES)
-get_target_property(glog_include_dirs glog::glog INTERFACE_INCLUDE_DIRECTORIES)
+# Unlike get_target_property(), these include the directories of the targets
+# that each one links, such as the one with the <wangle/wangle-config.h> that a
+# wangle built in this build generates.
+set(wangle_incs
+    "$<JOIN:$<TARGET_PROPERTY:wangle::wangle,INTERFACE_INCLUDE_DIRECTORIES>,:>")
+set(glog_include_dirs
+    "$<JOIN:$<TARGET_PROPERTY:glog::glog,INTERFACE_INCLUDE_DIRECTORIES>,:>")
 
 get_filename_component(python_libname ${Python3_LIBRARIES} NAME)
 
 # Create colon-separated include path for CYTHON_INCLUDE_PATH env var
 # mvfst include directories
 # Derive from cmake targets (found via find_package above) - not hardcoded paths
-get_target_property(mvfst_incs mvfst::mvfst_transport
-                    INTERFACE_INCLUDE_DIRECTORIES)
+set(mvfst_incs
+    "$<JOIN:$<TARGET_PROPERTY:mvfst::mvfst_transport,INTERFACE_INCLUDE_DIRECTORIES>,:>"
+)
 
 set(_all_cython_includes
+    # Folly's headers come first: the Python packages staged in the build
+    # directories below have a folly/executor.h, which is <folly/Executor.h>
+    # on a case-insensitive file system.
+    ${folly_incs}
     # Thrift includes. setup.py is outside CMake's target graph, so the source
     # and build roots have to be listed explicitly.
     ${PROJECT_SOURCE_DIR}
     ${PROJECT_BINARY_DIR}
     ${CMAKE_BINARY_DIR}/thrift/lib
     ${CMAKE_BINARY_DIR}/thrift/lib/cybld
-    # Folly includes (including .pxd files)
-    ${folly_incs}
+    # Folly's .pxd files
     ${FOLLY_PYTHON_SITE_PACKAGES}
     # Boost
     ${boost_incs}
@@ -263,26 +296,26 @@ log_debug("cython_include_path='${cython_include_path}'")
 #####################################################################
 # Library Path Setup
 #####################################################################
-# Auto-discover all library directories from getdeps installed packages
-# This ensures setup.py's find_static_lib() can find ALL libraries
-# in static_lib_names. Use GETDEPS_INSTALL_DIR env var if set (getdeps
-# always sets this), otherwise fall back to deriving from
-# CMAKE_INSTALL_PREFIX (works when CMAKE_INSTALL_PREFIX is in the
-# getdeps installed directory, but NOT when --project-install-prefix
-# overrides it)
-if (DEFINED ENV{GETDEPS_INSTALL_DIR})
-  set(GETDEPS_INSTALL_ROOT "$ENV{GETDEPS_INSTALL_DIR}")
-else ()
-  get_filename_component(GETDEPS_INSTALL_ROOT "${CMAKE_INSTALL_PREFIX}/.."
-                         ABSOLUTE)
-endif ()
-file(GLOB installed_packages "${GETDEPS_INSTALL_ROOT}/*")
+# Library directories for setup.py's link step and for auditwheel: the
+# prefixes of this build's dependencies, which getdeps passes through the
+# CMAKE_PREFIX_PATH environment variable. getdeps' install root also holds
+# other projects' builds of the same libraries, such as a static glog beside
+# this build's shared one, and the linker takes the first directory that has
+# the library.
+set(dep_prefixes ${CMAKE_PREFIX_PATH})
+file(TO_CMAKE_PATH "$ENV{CMAKE_PREFIX_PATH}" env_prefixes)
+list(APPEND dep_prefixes ${env_prefixes})
 
 # All thrift libraries share this directory. thrift_python_cpp is defined below;
 # generator expressions resolve at generate time, so the forward reference is
 # fine.
 set(all_lib_dirs "$<TARGET_FILE_DIR:thrift_python_cpp>")
-foreach (pkg ${installed_packages})
+# Where the shared libraries that setup.py links by name are, which a build
+# that fetched folly has in its own tree rather than under a prefix.
+list(APPEND all_lib_dirs "$<TARGET_FILE_DIR:Folly::folly>"
+     "$<TARGET_FILE_DIR:Folly::folly_python_cpp>"
+     "$<TARGET_FILE_DIR:fmt::fmt>" "$<TARGET_FILE_DIR:glog::glog>")
+foreach (pkg ${dep_prefixes})
   if (EXISTS "${pkg}/lib")
     list(APPEND all_lib_dirs "${pkg}/lib")
   endif ()
@@ -311,8 +344,12 @@ endif ()
 #####################################################################
 # Set default LDFLAGS for setup.py to fix undefined symbol issues
 # --no-as-needed ensures libfolly.so is in NEEDED list even if linker
-# thinks it's not needed
-set(DEFAULT_SETUP_LDFLAGS "-Wl,--no-as-needed")
+# thinks it's not needed. macOS's linker records every library it is given.
+if (APPLE)
+  set(DEFAULT_SETUP_LDFLAGS "")
+else ()
+  set(DEFAULT_SETUP_LDFLAGS "-Wl,--no-as-needed")
+endif ()
 
 # Allow users to override via environment variable (e.g., for custom RPATH)
 if (DEFINED ENV{LDFLAGS})
@@ -375,8 +412,7 @@ foreach (_file "types.pxd" "types.pyx")
   get_filename_component(_target_file "${_src}" NAME)
   message(STATUS "Linking ${_src} to ${_cybld}/thrift/python/_${_target_file}")
   add_custom_command(
-    TARGET create_binding_symlink_python_types
-    PRE_BUILD
+    TARGET create_binding_symlink_python_types PRE_BUILD
     COMMAND ${CMAKE_COMMAND} -E create_symlink "${_src}"
             "${_cybld}/thrift/python/_${_target_file}")
 endforeach ()
@@ -386,8 +422,7 @@ foreach (_file "stream.pxd" "stream.pyx")
   get_filename_component(_target_file "${_src}" NAME)
   message(STATUS "Linking ${_src} to ${_cybld}/thrift/py3/_${_target_file}")
   add_custom_command(
-    TARGET create_binding_symlink_python_types
-    PRE_BUILD
+    TARGET create_binding_symlink_python_types PRE_BUILD
     COMMAND ${CMAKE_COMMAND} -E create_symlink "${_src}"
             "${_cybld}/thrift/py3/_${_target_file}")
 endforeach ()
@@ -454,7 +489,7 @@ add_custom_command(
     ${_lib_dir}/setup.py -v --api-only
   DEPENDS create_binding_symlink_python_types create_binding_symlink_python
           create_binding_symlink_py3 create_binding_symlink_server_impl
-          thriftcpp2
+          thrift_rpc
   WORKING_DIRECTORY ${_cybld}
   COMMENT "Generating Cython API headers")
 
@@ -548,6 +583,7 @@ add_library(
   server/interceptor/PythonServiceInterceptor.cpp
   server/PythonAsyncProcessor.cpp
   server/execution/ExecutionSystem.cpp
+  server/execution/WorkScheduler.cpp
   server/PythonAsyncProcessorFactory.cpp
   server/RequestContextExtractor.cpp
   std_libcpp.cpp
@@ -564,6 +600,13 @@ target_compile_definitions(thrift_python_cpp
                            PRIVATE THRIFT_NO_HTTP_CLIENT_CHANNEL)
 # Workaround for https://github.com/cython/cython/issues/5973
 target_compile_definitions(thrift_python_cpp PRIVATE __PYX_ENUM_CLASS_DECL=)
+# As for setup.py, folly's headers come before the staged folly/executor.h.
+# An installed folly's include directories would otherwise be system ones,
+# which compilers search after "${_cybld}" whatever their order here.
+set_property(TARGET thrift_python_cpp PROPERTY NO_SYSTEM_FROM_IMPORTED ON)
+target_include_directories(
+  thrift_python_cpp BEFORE
+  PRIVATE "$<TARGET_PROPERTY:Folly::folly,INTERFACE_INCLUDE_DIRECTORIES>")
 target_include_directories(thrift_python_cpp PRIVATE "${_cybld}"
                                                      ${Python3_INCLUDE_DIRS})
 # Link strategy:
@@ -575,30 +618,51 @@ target_include_directories(thrift_python_cpp PRIVATE "${_cybld}"
 # TJSONProtocol.cpp)
 # libevent/libiberty: needed for undefined symbols,
 # --allow-multiple-definition handles duplicates
+set(thrift_python_static_libs
+    thrift_rpc
+    thrift_rpc_metadata
+    thrift_annotation
+    thrift_metadata
+    thrift_frozen
+    thrift_protocol
+    thrift_type_rep
+    thrift_type
+    thrift_any_rep
+    thrift_server_debug_info)
+if (APPLE)
+  # ld64 has neither --whole-archive nor --allow-multiple-definition, but
+  # loads each archive given to -force_load whole. thrift_metadata and
+  # thrift_protocol compile some of thrift_rpc's sources too, so they are left
+  # to supply only the objects that something references.
+  set(whole_archive_begin "")
+  set(whole_archive_end "")
+  set(force_loaded_libs ${thrift_python_static_libs})
+  list(REMOVE_ITEM force_loaded_libs thrift_metadata thrift_protocol)
+  foreach (lib IN LISTS force_loaded_libs)
+    target_link_options(thrift_python_cpp PRIVATE
+                        "LINKER:-force_load,$<TARGET_FILE:${lib}>")
+  endforeach ()
+else ()
+  set(whole_archive_begin "-Wl,--whole-archive"
+                          "-Wl,--allow-multiple-definition")
+  set(whole_archive_end "-Wl,--no-whole-archive")
+endif ()
 target_link_libraries(
   thrift_python_cpp
   PUBLIC # Static libs - embed all symbols
-         "-Wl,--whole-archive"
-         "-Wl,--allow-multiple-definition"
-         thriftcpp2
-         rpcmetadata
-         thriftannotation
-         thriftmetadata
-         thriftfrozen2
-         thriftprotocol
-         thrifttyperep
-         thrifttype
-         thriftanyrep
-         serverdbginfo
-         libevent::core
-         libevent::extra
+         ${whole_archive_begin}
+         ${thrift_python_static_libs}
+         ${thrift_python_libevent}
          ${LIBIBERTY_LIBRARIES}
-         "-Wl,--no-whole-archive"
+         ${whole_archive_end}
          # Shared libs - runtime deps (see manifests/folly, manifests/fmt)
          Folly::folly
          Folly::folly_python_cpp
          fmt::fmt
          glog::glog)
+# The interpreter that loads the extensions provides Python's symbols, which
+# macOS's linker otherwise requires at link time.
+target_link_libraries(thrift_python_cpp PRIVATE Python3::Module)
 install(TARGETS thrift_python_cpp EXPORT thrift)
 install(TARGETS thrift_python_cpp DESTINATION ${py_install_dir})
 
@@ -613,17 +677,18 @@ file(MAKE_DIRECTORY "${_cybld}/thrift/python/server_impl")
 file(MAKE_DIRECTORY "${_cybld}/thrift/python/server_impl/execution")
 file(MAKE_DIRECTORY "${_cybld}/thrift/python/server_impl/interceptor")
 
-# For cimport during Cython compilation
+# For cimport during Cython compilation, and the pure Python modules that
+# server.pyx imports from thrift.python.server_impl
 file(GLOB ServerImplFiles "${CMAKE_CURRENT_SOURCE_DIR}/server/*.pxd"
-     "${CMAKE_CURRENT_SOURCE_DIR}/server/*.pyx")
+     "${CMAKE_CURRENT_SOURCE_DIR}/server/*.pyx"
+     "${CMAKE_CURRENT_SOURCE_DIR}/server/*.py")
 
 foreach (_src ${ServerImplFiles})
   get_filename_component(_target_file "${_src}" NAME)
   message(STATUS "Creating server_impl symlink: \
 ${_cybld}/thrift/python/server_impl/${_target_file} -> ${_src}")
   add_custom_command(
-    TARGET create_binding_symlink_server_impl
-    PRE_BUILD
+    TARGET create_binding_symlink_server_impl PRE_BUILD
     COMMAND ${CMAKE_COMMAND} -E create_symlink "${_src}"
             "${_cybld}/thrift/python/server_impl/${_target_file}")
 endforeach ()
@@ -637,8 +702,7 @@ foreach (_src ${ServerImplExecutionFiles})
   message(STATUS "Creating server_impl/execution symlink: \
 ${_cybld}/thrift/python/server_impl/execution/${_target_file} -> ${_src}")
   add_custom_command(
-    TARGET create_binding_symlink_server_impl
-    PRE_BUILD
+    TARGET create_binding_symlink_server_impl PRE_BUILD
     COMMAND ${CMAKE_COMMAND} -E create_symlink "${_src}"
             "${_cybld}/thrift/python/server_impl/execution/${_target_file}")
 endforeach ()
@@ -653,16 +717,24 @@ foreach (_src ${ServerImplInterceptorFiles})
   message(STATUS "Creating server_impl/interceptor symlink: \
 ${_cybld}/thrift/python/server_impl/interceptor/${_target_file} -> ${_src}")
   add_custom_command(
-    TARGET create_binding_symlink_server_impl
-    PRE_BUILD
+    TARGET create_binding_symlink_server_impl PRE_BUILD
     COMMAND ${CMAKE_COMMAND} -E create_symlink "${_src}"
             "${_cybld}/thrift/python/server_impl/interceptor/${_target_file}")
 endforeach ()
 
 #####
-# Generate thrift-python test types
+# Tests follow THRIFT_TESTS. setup.py builds the test extensions, which compile
+# from the test/ symlinks, only when THRIFT_BUILD_TESTS is 1.
 #####
-add_subdirectory(test)
+set(_python_test_bindings)
+if (THRIFT_TESTS)
+  set(_setup_py_build_tests 1)
+  add_subdirectory(test)
+  set(_python_test_bindings create_binding_symlink_test
+                            create_binding_symlink_lib_test)
+else ()
+  set(_setup_py_build_tests 0)
+endif ()
 
 #####
 # Now build everything else in lib/python, including all remaining Cython
@@ -675,11 +747,15 @@ add_custom_target(
           create_binding_symlink_python
           create_binding_symlink_py3
           create_binding_symlink_server_impl
-          create_binding_symlink_lib_test
-          thriftcpp2
+          ${_python_test_bindings}
+          thrift_rpc
           thrift_python_cpp
           thrift_python_types_bindings
   WORKING_DIRECTORY ${_cybld})
+if (thrift_stage_folly_python)
+  add_dependencies(thrift_python_types_bindings thrift_stage_folly_python)
+  add_dependencies(thrift_python_and_py3_bindings thrift_stage_folly_python)
+endif ()
 
 # Copy folly Python bindings into the build directory before wheel creation.
 # Folly doesn't build a wheel yet, so we bundle folly.iobuf, folly.executor,
@@ -696,8 +772,7 @@ if (DEFINED CMAKE_JOB_POOLS)
     set(_setup_py_parallel_jobs "${CMAKE_MATCH_1}")
   endif ()
 endif ()
-if (NOT _setup_py_parallel_jobs
-    AND DEFINED ENV{CMAKE_BUILD_PARALLEL_LEVEL}
+if (NOT _setup_py_parallel_jobs AND DEFINED ENV{CMAKE_BUILD_PARALLEL_LEVEL}
     AND "$ENV{CMAKE_BUILD_PARALLEL_LEVEL}" MATCHES "^[0-9]+$")
   set(_setup_py_parallel_jobs "$ENV{CMAKE_BUILD_PARALLEL_LEVEL}")
 endif ()
@@ -712,21 +787,27 @@ add_custom_command(
     "CXXFLAGS=${CMAKE_CXX_FLAGS}" "CC=${_setup_py_cc}" "CXX=${_setup_py_cxx}"
     "LDFLAGS=${SETUP_LDFLAGS}" "CYTHON_INCLUDE_PATH=${cython_include_path}"
     "LIBRARY_DIRS=${library_dirs_str}"
-    "THRIFT_BUILD_TESTS=${THRIFT_BUILD_TESTS}" ${Python3_EXECUTABLE}
+    "THRIFT_BUILD_TESTS=${_setup_py_build_tests}" ${Python3_EXECUTABLE}
     ${_lib_dir}/setup.py -v build_ext --parallel ${_setup_py_parallel_jobs}
     bdist_wheel --libpython ${python_libname}
   WORKING_DIRECTORY ${_cybld})
 
 # Run auditwheel repair to make the wheel self-contained
 # This bundles .so dependencies and rewrites RPATH to $ORIGIN
-# LD_LIBRARY_PATH tells auditwheel where to find the libraries to bundle
+# LD_LIBRARY_PATH tells auditwheel where to find the libraries to bundle.
+# delocate does the same for macOS, where DYLD_LIBRARY_PATH tells it.
+if (APPLE)
+  set(repair_wheel "DYLD_LIBRARY_PATH=${library_dirs_str}"
+      ${Python3_EXECUTABLE} -m delocate.cmd.delocate_wheel -w)
+else ()
+  set(repair_wheel "LD_LIBRARY_PATH=${library_dirs_str}"
+      ${Python3_EXECUTABLE} -m auditwheel repair --wheel-dir)
+endif ()
 add_custom_command(
   TARGET thrift_python_and_py3_bindings
   COMMAND ${CMAKE_COMMAND} -E make_directory "${_cybld}/dist_self_contained"
-  COMMAND
-    ${CMAKE_COMMAND} -E env "LD_LIBRARY_PATH=${library_dirs_str}"
-    ${Python3_EXECUTABLE} -m auditwheel repair --wheel-dir
-    "${_cybld}/dist_self_contained" "${_cybld}/dist/*.whl"
+  COMMAND ${CMAKE_COMMAND} -E env ${repair_wheel}
+          "${_cybld}/dist_self_contained" "${_cybld}/dist/*.whl"
   WORKING_DIRECTORY ${_cybld})
 
 # Install the self-contained wheel to the install prefix

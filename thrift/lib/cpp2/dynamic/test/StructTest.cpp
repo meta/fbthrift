@@ -24,6 +24,13 @@
 #include <folly/io/IOBuf.h>
 #include <folly/io/IOBufQueue.h>
 #include <thrift/lib/cpp2/protocol/CompactProtocol.h>
+#include <thrift/lib/cpp2/protocol/Object.h>
+
+#include <algorithm>
+#include <cmath>
+#include <cstdint>
+#include <limits>
+#include <vector>
 
 namespace apache::thrift::dynamic {
 namespace {
@@ -233,6 +240,114 @@ TEST_F(StructTest, SerializationWithNullFields) {
   EXPECT_EQ(deserStruct.getField("count")->asI64(), 0);
   EXPECT_FALSE(deserStruct.hasField("active"));
   EXPECT_FALSE(deserStruct.getField("active").has_value());
+}
+
+// Reads the written field ids back without a schema: a terse field written at
+// its intrinsic default deserializes to the same value as a skipped one.
+std::vector<int16_t> writtenFieldIds(const DynamicValue& value) {
+  folly::IOBufQueue bufQueue;
+  CompactProtocolWriter writer;
+  writer.setOutput(&bufQueue);
+  serializeValue(writer, value);
+  const auto object =
+      protocol::parseObject<CompactProtocolReader>(*bufQueue.move());
+  std::vector<int16_t> ids;
+  for (const auto& [id, _] : *object.members()) {
+    ids.push_back(id);
+  }
+  std::sort(ids.begin(), ids.end());
+  return ids;
+}
+
+TEST(StructTerseTest, TerseFieldsAtTheirIntrinsicDefaultAreNotWritten) {
+  constexpr auto kTerse = type_system::PresenceQualifier::TERSE;
+  type_system::TypeSystemBuilder builder;
+  builder.addType(
+      "test.Inner",
+      def::Struct({
+          def::Field(def::Identity(1, "x"), kTerse, TypeIds::I32),
+          def::Field(def::Identity(2, "note"), def::Optional, TypeIds::String),
+      }));
+  builder.addType(
+      "test.WithUnqualified",
+      def::Struct({
+          def::Field(def::Identity(1, "x"), def::AlwaysPresent, TypeIds::I32),
+      }));
+  builder.addType(
+      "test.Terse",
+      def::Struct({
+          def::Field(def::Identity(1, "i"), kTerse, TypeIds::I32),
+          def::Field(def::Identity(2, "d"), kTerse, TypeIds::Double),
+          def::Field(def::Identity(3, "s"), kTerse, TypeIds::String),
+          def::Field(
+              def::Identity(4, "l"), kTerse, TypeIds::list(TypeIds::I32)),
+          def::Field(
+              def::Identity(5, "inner"), kTerse, TypeIds::uri("test.Inner")),
+          def::Field(
+              def::Identity(6, "wu"),
+              kTerse,
+              TypeIds::uri("test.WithUnqualified")),
+          def::Field(def::Identity(7, "a"), kTerse, TypeIds::Any),
+      }));
+  const auto typeSystem = std::move(builder).build();
+  const type_system::TypeRef terseType(
+      typeSystem->getUserDefinedTypeOrThrow("test.Terse").asStruct());
+  const type_system::TypeRef innerType(
+      typeSystem->getUserDefinedTypeOrThrow("test.Inner").asStruct());
+
+  // A struct with an unqualified field, including Any, is never empty
+  const auto defaults = DynamicValue::makeDefault(terseType);
+  EXPECT_EQ(writtenFieldIds(defaults), (std::vector<int16_t>{6, 7}));
+
+  // A terse -0.0 equals 0.0, so `d` is not written. `inner` is written because
+  // its optional `note` is set, even though "" is the default.
+  auto negativeZero = DynamicValue::makeDefault(terseType);
+  negativeZero.asStruct().setField("d", DynamicValue::makeDouble(-0.0));
+  auto inner = DynamicValue::makeDefault(innerType);
+  inner.asStruct().setField("note", DynamicValue::makeString(""));
+  negativeZero.asStruct().setField("inner", std::move(inner));
+  EXPECT_EQ(writtenFieldIds(negativeZero), (std::vector<int16_t>{5, 6, 7}));
+
+  auto nonEmpty = DynamicValue::makeDefault(terseType);
+  nonEmpty.asStruct().setField("i", DynamicValue::makeI32(1));
+  nonEmpty.asStruct().setField(
+      "d", DynamicValue::makeDouble(std::numeric_limits<double>::quiet_NaN()));
+  nonEmpty.asStruct().setField("s", DynamicValue::makeString("a"));
+  nonEmpty.asStruct().getField("l")->asList().push_back(
+      DynamicValue::makeI32(0));
+  EXPECT_EQ(
+      writtenFieldIds(nonEmpty), (std::vector<int16_t>{1, 2, 3, 4, 6, 7}));
+}
+
+// The object model's areEqual treats -0.0 and 0.0 as the same value, so losing
+// the sign of an omitted terse field still round-trips to an equal value.
+TEST(StructTerseTest, TerseNegativeZeroRoundTripsToEqualPositiveZero) {
+  type_system::TypeSystemBuilder builder;
+  builder.addType(
+      "test.TerseDouble",
+      def::Struct({
+          def::Field(
+              def::Identity(1, "d"),
+              type_system::PresenceQualifier::TERSE,
+              TypeIds::Double),
+      }));
+  const auto typeSystem = std::move(builder).build();
+  const type_system::TypeRef type(
+      typeSystem->getUserDefinedTypeOrThrow("test.TerseDouble").asStruct());
+  auto value = DynamicValue::makeDefault(type);
+  value.asStruct().setField("d", DynamicValue::makeDouble(-0.0));
+
+  folly::IOBufQueue bufQueue;
+  CompactProtocolWriter writer;
+  writer.setOutput(&bufQueue);
+  serializeValue(writer, value);
+  const auto buf = bufQueue.move();
+  CompactProtocolReader reader;
+  reader.setInput(buf.get());
+  const auto roundTripped = deserializeValue(reader, type);
+
+  EXPECT_FALSE(std::signbit(roundTripped.asStruct().getField("d")->asDouble()));
+  EXPECT_EQ(roundTripped, value);
 }
 
 TEST_F(StructTest, ClearOptionalField) {

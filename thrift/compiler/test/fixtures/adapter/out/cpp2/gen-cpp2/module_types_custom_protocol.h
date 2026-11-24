@@ -67,7 +67,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -350,7 +349,7 @@ _readField_doubleAdaptedField:
 _readField_adapted_list:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_adapted_list = ::std::vector<::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_adapted_list);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int32_t>, ::apache::thrift::type::list<::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_adapted_list);
     _readState.afterSubobject(iprot);
   }
@@ -366,7 +365,7 @@ _readField_adapted_list:
 _readField_adapted_set:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_adapted_set = ::std::set<::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_adapted_set);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::set<::apache::thrift::type_class::integral>, ::std::set<::std::int32_t>, ::apache::thrift::type::set<::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_adapted_set);
     _readState.afterSubobject(iprot);
   }
@@ -382,7 +381,7 @@ _readField_adapted_set:
 _readField_adapted_map:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_adapted_map = ::std::map<::std::string, ::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_adapted_map);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::string, ::apache::thrift::type_class::integral>, ::std::map<::std::string, ::std::int32_t>, ::apache::thrift::type::map<::apache::thrift::type::string_t, ::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_adapted_map);
     _readState.afterSubobject(iprot);
   }
@@ -398,7 +397,7 @@ _readField_adapted_map:
 _readField_adapted_list_nested:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_adapted_list_nested = ::std::vector<::std::vector<::std::map<::std::int32_t, ::std::int32_t>>>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_adapted_list_nested);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::list<::apache::thrift::type_class::map<::apache::thrift::type_class::integral, ::apache::thrift::type_class::integral>>>, ::std::vector<::std::vector<::std::map<::std::int32_t, ::std::int32_t>>>, ::apache::thrift::type::list<::apache::thrift::type::list<::apache::thrift::type::map<::apache::thrift::type::i32_t, ::apache::thrift::type::i32_t>>>>::read(*iprot, this->__fbthrift_field_adapted_list_nested);
     _readState.afterSubobject(iprot);
   }
@@ -417,7 +416,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -1196,7 +1194,7 @@ _readField_adaptedStructField:
 _readField_structListFieldWithTypedef:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_structListFieldWithTypedef = ::facebook::thrift::test::fixtures::adapter::ListOfFooTypedef();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_structListFieldWithTypedef);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::structure>, ::facebook::thrift::test::fixtures::adapter::ListOfFooTypedef, ::apache::thrift::type::list<::apache::thrift::type::struct_t<::facebook::thrift::test::fixtures::adapter::Foo>>>::read(*iprot, this->__fbthrift_field_structListFieldWithTypedef);
     _readState.afterSubobject(iprot);
   }
@@ -1215,7 +1213,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -1508,7 +1505,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -1635,7 +1631,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -1803,7 +1798,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -1870,6 +1864,8 @@ uint32_t StructWithFieldAdapter::serializedSize(Protocol_ const* prot_) const {
     xfer += prot_->serializedFieldSize("shared_field", apache::thrift::protocol::TType::T_I32, 2);
     if (this->__fbthrift_field_shared_field) {
       xfer += ::apache::thrift::op::serialized_size<false, ::apache::thrift::type::adapted<::my::Adapter1, ::apache::thrift::type::i32_t>>(*prot_, *this->__fbthrift_field_shared_field);
+    } else {
+      xfer += prot_->serializedSizeI32(0);
     }
   }
   if (this->__fbthrift_field_opt_shared_field) {
@@ -1896,6 +1892,8 @@ uint32_t StructWithFieldAdapter::serializedSizeZC(Protocol_ const* prot_) const 
     xfer += prot_->serializedFieldSize("shared_field", apache::thrift::protocol::TType::T_I32, 2);
     if (this->__fbthrift_field_shared_field) {
       xfer += ::apache::thrift::op::serialized_size<false, ::apache::thrift::type::adapted<::my::Adapter1, ::apache::thrift::type::i32_t>>(*prot_, *this->__fbthrift_field_shared_field);
+    } else {
+      xfer += prot_->serializedSizeI32(0);
     }
   }
   if (this->__fbthrift_field_opt_shared_field) {
@@ -1936,6 +1934,8 @@ uint32_t StructWithFieldAdapter::write(Protocol_* prot_) const {
     previousFieldHasValue = true;
     if (this->__fbthrift_field_shared_field) {
       xfer += ::apache::thrift::op::encode<::apache::thrift::type::adapted<::my::Adapter1, ::apache::thrift::type::i32_t>>(*prot_, *this->__fbthrift_field_shared_field);
+    } else {
+      xfer += prot_->writeI32(0);
     }
     xfer += prot_->writeFieldEnd();
   }
@@ -2032,7 +2032,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -2211,7 +2210,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -2323,9 +2321,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
-  _advance_failure:
-  _readState.afterAdvanceFailure(iprot);
 _loop:
   if (_readState.atStop()) {
     goto _end;
@@ -2423,7 +2418,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -2563,7 +2557,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -2828,7 +2821,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -3445,7 +3437,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -4055,7 +4046,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -4323,7 +4313,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -4449,7 +4438,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -4622,7 +4610,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -4818,7 +4805,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -4946,7 +4932,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -5076,7 +5061,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -5205,9 +5189,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
-  _advance_failure:
-  _readState.afterAdvanceFailure(iprot);
 _loop:
   if (_readState.atStop()) {
     goto _end;
@@ -5306,7 +5287,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -5431,7 +5411,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -5543,9 +5522,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
-  _advance_failure:
-  _readState.afterAdvanceFailure(iprot);
 _loop:
   if (_readState.atStop()) {
     goto _end;
@@ -5631,9 +5607,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
-  _advance_failure:
-  _readState.afterAdvanceFailure(iprot);
 _loop:
   if (_readState.atStop()) {
     goto _end;
@@ -5758,7 +5731,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -5935,7 +5907,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -6060,7 +6031,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -6185,7 +6155,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:

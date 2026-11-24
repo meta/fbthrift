@@ -26,7 +26,6 @@
 #include <folly/CPortability.h>
 #include <folly/Likely.h>
 
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Backpressure.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
@@ -174,10 +173,6 @@ class PayloadPrefetchHandler {
     CHECK_LT(replenishThreshold_, capacity_);
   }
 
-  // Detected by makeHandlerNode — registers this handler on the pipeline's
-  // writeReadyList so onWriteReady() fires when the transport drains.
-  channel_pipeline::WriteReadyHook writeReadyHook_;
-
   // HandlerLifecycle
   void handlerAdded(Context& /*ctx*/) noexcept {}
   void handlerRemoved(Context& /*ctx*/) noexcept {}
@@ -306,7 +301,7 @@ class PayloadPrefetchHandler {
     // congested. Absorbing congestion here is safe because demand is bounded to
     // free buffer space — a full ring can only mean the producer delivered past
     // its (now-zero) grant, so refuse rather than overflow.
-    if (FOLLY_UNLIKELY(buffer_.full())) {
+    if (buffer_.full()) [[unlikely]] {
       return channel_pipeline::Result::Error;
     }
     buffer_.push(msg.take<DataMessage>());

@@ -63,7 +63,7 @@ def _threadsafe_cached(fn: _F) -> _F:
 
 @_threadsafe_cached
 def _inspect_impl(cls: type[Any]) -> Any:
-    return cls.__get_reflection__()  # type: ignore[attr-defined]
+    return cls.__get_reflection__()
 
 
 @overload

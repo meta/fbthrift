@@ -63,9 +63,23 @@ public class ExceptionWithStructuredAnnotation extends Exception implements TBas
     setError_codeIsSet(true);
   }
 
+  public ExceptionWithStructuredAnnotation(
+      String message_field,
+      int error_code,
+      java.lang.Throwable cause) {
+    this(message_field, error_code);
+    initCause(cause);
+  }
+
+  public ExceptionWithStructuredAnnotation(java.lang.Throwable cause) {
+    super(cause);
+    this.message_field = cause == null ? null : cause.toString();
+  }
+
   public static class Builder {
     private String message_field;
     private int error_code;
+    private java.lang.Throwable cause;
 
     BitSet __optional_isset = new BitSet(1);
 
@@ -83,11 +97,19 @@ public class ExceptionWithStructuredAnnotation extends Exception implements TBas
       return this;
     }
 
+    public Builder setCause(final java.lang.Throwable cause) {
+      this.cause = cause;
+      return this;
+    }
+
     public ExceptionWithStructuredAnnotation build() {
       ExceptionWithStructuredAnnotation result = new ExceptionWithStructuredAnnotation();
       result.setMessage_field(this.message_field);
       if (__optional_isset.get(__ERROR_CODE_ISSET_ID)) {
         result.setError_code(this.error_code);
+      }
+      if (cause != null) {
+        result.initCause(cause);
       }
       return result;
     }

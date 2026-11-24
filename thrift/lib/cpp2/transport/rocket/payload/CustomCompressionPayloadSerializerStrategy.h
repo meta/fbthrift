@@ -155,6 +155,12 @@ class CustomCompressionPayloadSerializerStrategy final
     return delegate_.unpackBinary(output, cursor);
   }
 
+  template <typename T>
+  FOLLY_ERASE size_t
+  unpackBinary(T& output, const io::IOBufChainCursor& cursor) {
+    return delegate_.unpackBinary(output, cursor);
+  }
+
   FOLLY_ERASE
   std::unique_ptr<folly::IOBuf> compressBuffer(
       std::unique_ptr<folly::IOBuf>&& buffer,

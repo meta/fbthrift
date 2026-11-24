@@ -21,17 +21,20 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <utility>
 
 #include <boost/intrusive_ptr.hpp>
 
 #include <folly/CancellationToken.h>
 #include <folly/container/F14Map.h>
+#include <folly/io/async/Request.h>
 
 #include <folly/CppAttributes.h>
 
 #include <thrift/lib/cpp2/fast_thrift/common/allocator/EvbAllocator.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/MethodMetadata.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/ExtensionSlots.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/ThriftConnContext.h>
 #include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
 
@@ -39,17 +42,46 @@ namespace apache::thrift::fast_thrift::thrift {
 
 // Per-request context. Lives for the duration of one in-flight RPC.
 //
-// Default-constructed empty. The first pipeline handler that needs request
-// state creates the object; subsequent handlers populate their fields as the
-// request traverses the chain.
+// Construction also creates the request's folly::RequestContext. The first
+// pipeline handler that needs request state creates this object; subsequent
+// handlers populate its fields as the request traverses the chain.
 class ThriftRequestContext {
  public:
+  struct Deleter {
+    void operator()(ThriftRequestContext* context) const noexcept {
+      auto* evb = context->eventBase_;
+      if (evb == nullptr || context->thread_ == std::this_thread::get_id()) {
+        delete context;
+      } else {
+        evb->runInEventBaseThread(
+            [context, keepAlive = folly::getKeepAliveToken(evb)] {
+              delete context;
+            });
+      }
+    }
+  };
+
   // Same type as RequestRpcMetadata.otherMetadata, so headers move in with no
   // copy. F14's default hasher/equal are transparent, enabling find() by
   // string_view without building a std::string.
   using HeaderMap = folly::F14NodeMap<std::string, std::string>;
 
-  ThriftRequestContext() = default;
+  explicit ThriftRequestContext(folly::EventBase* eventBase = nullptr)
+      : eventBase_(eventBase) {
+    folly::LocalRequestContextScopeGuard guard;
+    follyRequestContext_ = folly::RequestContext::saveContextLocal();
+  }
+
+  ~ThriftRequestContext() {
+    if (!extensionSlots_.hasOwnedState()) {
+      return;
+    }
+    std::optional<folly::BorrowedRequestContextScopeGuard> guard;
+    extensionSlots_.clearAllOwned([&] {
+      guard.reset();
+      guard.emplace(follyRequestContext_);
+    });
+  }
 
   ThriftRequestContext(const ThriftRequestContext&) = delete;
   ThriftRequestContext& operator=(const ThriftRequestContext&) = delete;
@@ -67,11 +99,14 @@ class ThriftRequestContext {
     return connContext_.get();
   }
 
-  folly::CancellationSource enableCancellation() {
+  const folly::RequestContextHandle& getFollyRequestContext() const noexcept {
+    return follyRequestContext_;
+  }
+
+  void enableCancellation() {
     if (!cancellationSource_.canBeCancelled()) {
       cancellationSource_ = folly::CancellationSource{};
     }
-    return cancellationSource_;
   }
 
   bool isCancellationEnabled() const noexcept {
@@ -101,8 +136,7 @@ class ThriftRequestContext {
       // context. Keep the shared cancellation state alive independently until
       // notification has fully unwound.
       auto source = cancellationSource_;
-      source.requestCancellation();
-      return true;
+      return !source.requestCancellation();
     }
     return false;
   }
@@ -116,7 +150,7 @@ class ThriftRequestContext {
   }
 
   bool isCancellationRequested() const noexcept {
-    return cancellationSource_.getToken().isCancellationRequested();
+    return cancellationSource_.isCancellationRequested();
   }
 
   // Invoked method name (RequestRpcMetadata.name), stamped by
@@ -146,7 +180,7 @@ class ThriftRequestContext {
   // injecting a header for the service to read; the bulk setter above is the
   // one the headers handler uses to move the client's map in wholesale.
   void setHeader(std::string key, std::string value) {
-    headers_[std::move(key)] = std::move(value);
+    setHeaderOwned(std::move(key), std::move(value));
   }
 
   const HeaderMap& getHeaders() const noexcept { return headers_; }
@@ -164,12 +198,14 @@ class ThriftRequestContext {
   // The map is the same type as ResponseRpcMetadata.otherMetadata, so it moves
   // onto the outgoing metadata with no copy or rehash.
   //
-  // Only an initial response carries metadata to put these on. A request
-  // answered by a rocket ERROR frame, or by a setup rejection, has nowhere on
-  // the wire for them and drops them.
+  // Only unary and stream initial responses carry metadata to put these on. A
+  // request answered by a rocket ERROR frame, or by a setup rejection, has
+  // nowhere on the wire for them and drops them.
   void setResponseHeader(std::string key, std::string value) {
-    writeHeaders_[std::move(key)] = std::move(value);
+    setResponseHeaderOwned(std::move(key), std::move(value));
   }
+
+  HeaderMap& mutableResponseHeaders() noexcept { return writeHeaders_; }
 
   // Only reports what is still on the context. Once the response has been
   // handed its headers this reads empty, so it answers "what will this
@@ -216,6 +252,10 @@ class ThriftRequestContext {
     extensionSlots_.install(layout);
   }
 
+  const ExtensionSlots& extensionSlots() const noexcept {
+    return extensionSlots_;
+  }
+
   // `Ext`'s per-request state, or null when `Ext` is not installed on this
   // server. An extension that declares no `RequestState` does not compile here,
   // so asking for a scope an extension does not have is caught at build time
@@ -243,13 +283,37 @@ class ThriftRequestContext {
     extensionSlots_.clearOwned(Ext::kId);
   }
 
+  // Constructs `Ext`'s state in this context, which owns and destroys it.
+  // Unlike `setState`, the extension does not manage the state's lifetime.
+  template <class Ext, class... Args>
+  typename Ext::RequestState& emplaceState(Args&&... args) {
+    return extensionSlots_.template emplace<typename Ext::RequestState>(
+        Ext::kId, std::forward<Args>(args)...);
+  }
+
  private:
+  friend class ThriftRequestMutator;
+  friend class ThriftResponseMutator;
+
+  void setHeaderOwned(std::string&& key, std::string&& value) {
+    headers_[std::move(key)] = std::move(value);
+  }
+
+  void setResponseHeaderOwned(std::string&& key, std::string&& value) {
+    writeHeaders_[std::move(key)] = std::move(value);
+  }
+
   enum class CompletionState : uint8_t {
     Active,
     CancellationRequested,
     Completed,
   };
 
+  // Declared before extension storage so request-owned extension state is
+  // destroyed before the ambient data it may reference.
+  folly::RequestContextHandle follyRequestContext_;
+  folly::EventBase* eventBase_;
+  const std::thread::id thread_ = std::this_thread::get_id();
   boost::intrusive_ptr<ThriftConnContext> connContext_;
   folly::CancellationSource cancellationSource_{
       folly::CancellationSource::invalid()};
@@ -264,10 +328,11 @@ class ThriftRequestContext {
   CompletionState completionState_{CompletionState::Active};
 };
 
-using ThriftRequestContextPtr = std::unique_ptr<ThriftRequestContext>;
+using ThriftRequestContextPtr =
+    std::unique_ptr<ThriftRequestContext, ThriftRequestContext::Deleter>;
 
-inline ThriftRequestContextPtr makeThriftRequestContext(folly::EventBase&) {
-  return std::make_unique<ThriftRequestContext>();
+inline ThriftRequestContextPtr makeThriftRequestContext(folly::EventBase& evb) {
+  return ThriftRequestContextPtr(new ThriftRequestContext(&evb));
 }
 
 } // namespace apache::thrift::fast_thrift::thrift

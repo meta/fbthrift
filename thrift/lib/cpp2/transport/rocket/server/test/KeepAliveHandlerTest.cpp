@@ -16,6 +16,7 @@
 
 #include <folly/io/IOBuf.h>
 #include <folly/portability/GTest.h>
+#include <thrift/lib/cpp2/transport/rocket/framing/test/Util.h>
 #include <thrift/lib/cpp2/transport/rocket/server/detail/KeepAliveHandler.h>
 
 namespace apache::thrift::rocket {
@@ -44,14 +45,21 @@ class TestConnectionAdapter {
 
 using Handler = KeepAliveHandler<HandlerOwner, TestConnectionAdapter>;
 
-TEST(KeepAliveHandlerTest, RespondsWithoutRespondFlag) {
+template <typename Buffer>
+class KeepAliveHandlerTest : public ::testing::Test {};
+using KeepAliveBuffers =
+    ::testing::Types<std::unique_ptr<folly::IOBuf>, IOBufChain>;
+TYPED_TEST_SUITE(KeepAliveHandlerTest, KeepAliveBuffers);
+
+TYPED_TEST(KeepAliveHandlerTest, RespondsWithoutRespondFlag) {
   HandlerOwner owner;
   TestConnectionAdapter<HandlerOwner> connection(owner);
   Handler handler(connection);
   auto data = folly::IOBuf::copyBuffer("payload");
 
-  EXPECT_TRUE(
-      handler.handle(KeepAliveFrame{Flags().respond(true), data->clone()}));
+  EXPECT_TRUE(handler.handle(
+      test::roundTripFrame<TypeParam>(
+          KeepAliveFrame{Flags().respond(true), data->clone()})));
 
   EXPECT_EQ(owner.sent, 1);
   EXPECT_FALSE(owner.respond);
@@ -59,13 +67,14 @@ TEST(KeepAliveHandlerTest, RespondsWithoutRespondFlag) {
   EXPECT_TRUE(folly::IOBufEqualTo()(owner.data, data));
 }
 
-TEST(KeepAliveHandlerTest, DoesNotRespondWithoutRespondFlag) {
+TYPED_TEST(KeepAliveHandlerTest, DoesNotRespondWithoutRespondFlag) {
   HandlerOwner owner;
   TestConnectionAdapter<HandlerOwner> connection(owner);
   Handler handler(connection);
 
   EXPECT_TRUE(handler.handle(
-      KeepAliveFrame{Flags(), folly::IOBuf::copyBuffer("payload")}));
+      test::roundTripFrame<TypeParam>(
+          KeepAliveFrame{Flags(), folly::IOBuf::copyBuffer("payload")})));
 
   EXPECT_EQ(owner.sent, 0);
 }

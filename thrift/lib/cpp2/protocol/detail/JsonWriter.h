@@ -63,6 +63,7 @@
 
 #include <concepts>
 #include <cstdint>
+#include <string>
 #include <string_view>
 #include <folly/io/Cursor.h>
 #include <folly/small_vector.h>
@@ -81,6 +82,8 @@ struct JsonWriterOptions {
   // Write whole-number floating-point values without ".0", like SimpleJSON.
   // They then read back as integers in untyped JSON.
   bool wholeNumberFloatWithoutFraction = false;
+  // Make float notation match SimpleJSON.
+  bool useSimpleJsonFloatNotation = false;
   // Number of spaces per indentation level. indentWidth=0 produces the compact
   // output with no extra whitespace or newlines.
   std::size_t indentWidth = 0;
@@ -122,7 +125,13 @@ class JsonWriter {
   std::uint32_t writeString(std::string_view s);
 
  private:
+  friend class JsonWriterAttorney;
+
   enum class ContainerType : uint8_t { List, Object };
+
+  // Thrift values are never null; only the test transcoder writes null,
+  // through JsonWriterAttorney.
+  std::uint32_t writeNull();
 
   std::uint32_t openContainer(ContainerType type);
   std::uint32_t closeContainer(ContainerType type);
@@ -148,6 +157,9 @@ class JsonWriter {
   // Only used for error detection, e.g., rejecting consecutive object name
   // writes.
   bool lastWrittenValueWasObjectName_ = false;
+
+  // Scratch buffer for escaped strings, reused to keep its capacity.
+  std::string escaped_;
 };
 
 } // namespace apache::thrift::json5::detail

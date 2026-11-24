@@ -497,7 +497,7 @@ TEST(AllocatingParserStrategyTest, testManyTinyFrameWithIncompleteFrame) {
   EXPECT_EQ(frame3.length(), kTestFrameLen3);
 }
 
-#if FOLLY_HAS_MEMORY_RESOURCE
+#if FOLLY_HAS_MEMORY_RESOURCE && defined(__cpp_lib_memory_resource)
 TEST(AllocatingParserStrategyTest, testWithAllocatorFromSharedPtr) {
   char poolBuf[10'000];
   std::pmr::monotonic_buffer_resource pool(poolBuf, sizeof(poolBuf));

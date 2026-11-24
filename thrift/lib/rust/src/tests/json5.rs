@@ -48,20 +48,24 @@ fn accepts_json5_syntax_and_compatibility_scalars() {
     let input = br#"
         {
           // JSON5 comments and identifiers are accepted.
-          numbers: [+1, 0x2a, '3',],
+          numbers: [+1, 0x2a, '3', '-0x2a',],
         }
     "#;
 
     let value: BTreeMap<String, Vec<i64>> =
         json5_protocol::deserialize(&input[..]).expect("valid JSON5");
 
-    assert_eq!(value["numbers"], [1, 42, 3]);
+    assert_eq!(value["numbers"], [1, 42, 3, -42]);
 
     let hex: Vec<i64> = json5_protocol::deserialize(
         "[+0x1, -0x1, 0xdeadbeef, 0x7fffffffffffffff, -0x8000000000000000]",
     )
     .expect("signed and i64-width JSON5 hex integers");
     assert_eq!(hex, [1, -1, 0xdeadbeef, i64::MAX, i64::MIN]);
+    assert!(
+        json5_protocol::deserialize::<i64, _, _>("'0x+1'").is_err(),
+        "hex digits do not permit a sign"
+    );
 
     let infinity: f64 = json5_protocol::deserialize("+Infinity").expect("positive infinity");
     let nan: f64 = json5_protocol::deserialize("+NaN").expect("positive NaN");
@@ -123,6 +127,10 @@ fn serializes_binary_using_utf8_or_base64url_wrapper() {
         .expect("valid padded base64url binary wrapper");
     assert_eq!(utf8, Bytes::from_static(b"hello"));
     assert_eq!(base64url, Bytes::from_static(&[0xff, 0x00]));
+    assert!(
+        json5_protocol::deserialize::<Bytes, _, _>(r#""QQ=""#).is_err(),
+        "base64 padding must be complete when present"
+    );
 }
 
 #[test]
@@ -280,6 +288,10 @@ fn deserializes_empty_collections() {
 fn rejects_malformed_or_excessively_nested_input() {
     let malformed = json5_protocol::deserialize::<Vec<i32>, _, _>("[1,,2]");
     assert!(malformed.is_err(), "malformed JSON5 must be rejected");
+    assert!(
+        json5_protocol::deserialize::<f64, _, _>("'01.5'").is_err(),
+        "quoted floating-point values do not permit leading zeros"
+    );
 
     let nested = format!("{}0{}", "[".repeat(65), "]".repeat(65));
     let too_deep = json5_protocol::deserialize::<i32, _, _>(nested);
@@ -309,6 +321,10 @@ fn rejects_malformed_or_excessively_nested_input() {
 #[test]
 fn rejects_lossy_integer_to_float_conversions() {
     assert!(
+        json5_protocol::deserialize::<f64, _, _>("'9223372036854775808'").is_err(),
+        "a quoted integer outside the i64 range must be rejected for double"
+    );
+    assert!(
         json5_protocol::deserialize::<f32, _, _>("123456789").is_err(),
         "integer precision loss must be rejected for float"
     );
@@ -316,9 +332,20 @@ fn rejects_lossy_integer_to_float_conversions() {
         json5_protocol::deserialize::<f64, _, _>("9007199254740993").is_err(),
         "integer precision loss must be rejected for double"
     );
-    assert!(
-        json5_protocol::deserialize::<f32, _, _>("1e100").is_err(),
-        "finite values must not overflow to infinity"
+    assert_eq!(
+        json5_protocol::deserialize::<f32, _, _>("1e100").expect("valid float"),
+        f32::INFINITY,
+        "values beyond the float range round to infinity"
+    );
+    assert_eq!(
+        json5_protocol::deserialize::<f64, _, _>("-1e400").expect("valid double"),
+        f64::NEG_INFINITY,
+        "values beyond the double range round to infinity"
+    );
+    assert_eq!(
+        json5_protocol::deserialize::<f32, _, _>("'1e400'").expect("valid float"),
+        f32::INFINITY,
+        "quoted values beyond the double range round to infinity"
     );
     assert_eq!(
         json5_protocol::deserialize::<f32, _, _>("1.0000000596046448").expect("valid float"),

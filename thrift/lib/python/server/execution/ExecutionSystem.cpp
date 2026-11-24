@@ -17,6 +17,7 @@
 #include <thrift/lib/python/server/execution/ExecutionSystem.h>
 
 #include <folly/executors/InlineExecutor.h>
+#include <folly/io/async/Request.h>
 
 namespace apache::thrift::python::execution {
 
@@ -66,8 +67,13 @@ void ExecutionSystem::executeOnControl(
         // a worker to take up the work. To prepare for that future, look
         // up the function by method name in today's single shared context.
         auto* selectedHandlerFunction = controlMethods->at(method);
+        // Follow-up work stays on the server's request executor, which the
+        // server joins at destruction in both modes.
+        auto requestExecutor = requestDispatch.getRequestExecutor();
         return std::move(requestDispatch)(
-            selectedHandlerFunction, std::move(launchRequest));
+            selectedHandlerFunction,
+            std::move(requestExecutor),
+            std::move(launchRequest));
       })
       .via(controlExecutor_);
 }
@@ -78,10 +84,16 @@ void ExecutionSystem::executeOnWorker(
       [method = std::move(method),
        requestDispatch = std::move(requestDispatch),
        launchWorkerRequest = launchWorkerRequest_,
+       requestContext = folly::RequestContext::saveContext(),
        this](
           const WorkerHandle& worker,
-          const folly::Executor::KeepAlive<>&,
+          const folly::Executor::KeepAlive<>& workerExecutor,
           std::shared_ptr<WorkerCapacityLease> lease) mutable {
+        // Runs the request under the RequestContext that was current at
+        // hand-off, as a future continuation does on control, and gives the
+        // worker thread its previous context back when the request leaves.
+        folly::RequestContextScopeGuard requestContextGuard{
+            std::move(requestContext)};
         auto* const selectedFunction = getWorkerHandlerFunction(worker, method);
         LaunchRequest launchRequest(
             [lease = std::move(lease),
@@ -94,9 +106,12 @@ void ExecutionSystem::executeOnWorker(
         folly::makeSemiFutureWith(
             [requestDispatch = std::move(requestDispatch),
              selectedFunction = selectedFunction,
+             workerExecutor = workerExecutor,
              launchRequest = std::move(launchRequest)]() mutable {
               return std::move(requestDispatch)(
-                  selectedFunction, std::move(launchRequest));
+                  selectedFunction,
+                  std::move(workerExecutor),
+                  std::move(launchRequest));
             })
             .via(
                 folly::Executor::getKeepAliveToken(
@@ -108,9 +123,9 @@ void ExecutionSystem::executeOnWorker(
 PyObject* ExecutionSystem::getWorkerHandlerFunction(
     const WorkerHandle& worker, const std::string& method) const {
   // Both lookups succeed on every valid path. Each worker binds its table
-  // before it publishes capacity, so work reaches only bound workers. Every
-  // table comes from the same service, so it lists every routed method. And
-  // shutdown clears the tables only after worker teardown.
+  // before it publishes capacity, so work reaches only bound workers. Worker
+  // start rejects a table that lacks a routed method. And shutdown clears the
+  // tables only after worker teardown.
   return workerMethods_.at(worker)->at(method);
 }
 

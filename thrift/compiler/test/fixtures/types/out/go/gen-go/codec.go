@@ -549,15 +549,6 @@ var (
                 NewFunc:            func() any { return NewString_5252() },
             },
     }
-    premadeCodecTypeSpec_module_i32_9314 = &thrift.TypeSpec{
-        FullName: "module.i32_9314",
-        CodecTypedefSpec:
-            &thrift.CodecTypedefSpec{
-                ScopedName:         "module.i32_9314",
-                UnderlyingTypeSpec: premadeCodecTypeSpec_i32,
-                NewFunc:            func() any { return NewI32_9314() },
-            },
-    }
     premadeCodecTypeSpec_module_AllocatorAware = &thrift.TypeSpec{
         FullName: "module.AllocatorAware",
         CodecStructSpec:
@@ -610,6 +601,15 @@ var (
                 ScopedName: "module.StructWithDoubleUnderscores",
                 IsUnion:    false,
                 NewFunc:    func() thrift.Struct { return NewStructWithDoubleUnderscores() },
+            },
+    }
+    premadeCodecTypeSpec_module_i32_9314 = &thrift.TypeSpec{
+        FullName: "module.i32_9314",
+        CodecTypedefSpec:
+            &thrift.CodecTypedefSpec{
+                ScopedName:         "module.i32_9314",
+                UnderlyingTypeSpec: premadeCodecTypeSpec_i32,
+                NewFunc:            func() any { return NewI32_9314() },
             },
     }
     premadeCodecTypeSpec_module_has_bitwise_ops = &thrift.TypeSpec{
@@ -1648,11 +1648,11 @@ var (
                 },
                 {
                     ID:                   7,
-                    WireType:             thrift.I32,
+                    WireType:             thrift.STRING,
                     Name:                 "aa_shared",
                     ReflectIndex:         6,
                     IsOptional:           false,
-                    ValueTypeSpec:        premadeCodecTypeSpec_module_i32_9314,
+                    ValueTypeSpec:        premadeCodecTypeSpec_module_string_5252,
                     MustBeSetToSerialize: false,
                 },
             },
@@ -1928,13 +1928,13 @@ var premadeCodecSpecsMap = func() map[string]*thrift.TypeSpec {
     fbthriftTypeSpecsMap[premadeCodecTypeSpec_module_set_i32_7070.FullName] = premadeCodecTypeSpec_module_set_i32_7070
     fbthriftTypeSpecsMap[premadeCodecTypeSpec_module_map_i32_i32_9565.FullName] = premadeCodecTypeSpec_module_map_i32_i32_9565
     fbthriftTypeSpecsMap[premadeCodecTypeSpec_module_string_5252.FullName] = premadeCodecTypeSpec_module_string_5252
-    fbthriftTypeSpecsMap[premadeCodecTypeSpec_module_i32_9314.FullName] = premadeCodecTypeSpec_module_i32_9314
     fbthriftTypeSpecsMap[premadeCodecTypeSpec_module_AllocatorAware.FullName] = premadeCodecTypeSpec_module_AllocatorAware
     fbthriftTypeSpecsMap[premadeCodecTypeSpec_module_AllocatorAware2.FullName] = premadeCodecTypeSpec_module_AllocatorAware2
     fbthriftTypeSpecsMap[premadeCodecTypeSpec_module_IntTypedef.FullName] = premadeCodecTypeSpec_module_IntTypedef
     fbthriftTypeSpecsMap[premadeCodecTypeSpec_module_UintTypedef.FullName] = premadeCodecTypeSpec_module_UintTypedef
     fbthriftTypeSpecsMap[premadeCodecTypeSpec_module_TypedefStruct.FullName] = premadeCodecTypeSpec_module_TypedefStruct
     fbthriftTypeSpecsMap[premadeCodecTypeSpec_module_StructWithDoubleUnderscores.FullName] = premadeCodecTypeSpec_module_StructWithDoubleUnderscores
+    fbthriftTypeSpecsMap[premadeCodecTypeSpec_module_i32_9314.FullName] = premadeCodecTypeSpec_module_i32_9314
     fbthriftTypeSpecsMap[premadeCodecTypeSpec_module_has_bitwise_ops.FullName] = premadeCodecTypeSpec_module_has_bitwise_ops
     fbthriftTypeSpecsMap[premadeCodecTypeSpec_module_is_unscoped.FullName] = premadeCodecTypeSpec_module_is_unscoped
     return fbthriftTypeSpecsMap

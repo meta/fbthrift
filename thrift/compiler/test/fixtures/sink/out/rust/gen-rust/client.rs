@@ -440,7 +440,15 @@ where
                 sink_processor,
             } = call_sink.await?;
 
-            let initial_response = ();
+            let de = P::deserializer(_initial_response);
+            let res = ::fbthrift::help::async_deserialize_response_envelope::<P, crate::errors::sink_service::MethodReader, S>(de).await?;
+
+            let initial_response = match res {
+                ::std::result::Result::Ok(res) => res,
+                ::std::result::Result::Err(aexn) => {
+                    ::std::result::Result::Err(crate::errors::sink_service::MethodError::ApplicationException(aexn))
+                }
+            }?;
 
             let sink_helper_fn = move |stream: ::futures::stream::BoxStream<'static, ::std::result::Result<
                 crate::types::SinkPayload,
@@ -626,7 +634,15 @@ where
                 sink_processor,
             } = call_sink.await?;
 
-            let initial_response = ();
+            let de = P::deserializer(_initial_response);
+            let res = ::fbthrift::help::async_deserialize_response_envelope::<P, crate::errors::sink_service::MethodThrowReader, S>(de).await?;
+
+            let initial_response = match res {
+                ::std::result::Result::Ok(res) => res,
+                ::std::result::Result::Err(aexn) => {
+                    ::std::result::Result::Err(crate::errors::sink_service::MethodThrowError::ApplicationException(aexn))
+                }
+            }?;
 
             let sink_helper_fn = move |stream: ::futures::stream::BoxStream<'static, ::std::result::Result<
                 crate::types::SinkPayload,
@@ -715,7 +731,15 @@ where
                 sink_processor,
             } = call_sink.await?;
 
-            let initial_response = ();
+            let de = P::deserializer(_initial_response);
+            let res = ::fbthrift::help::async_deserialize_response_envelope::<P, crate::errors::sink_service::MethodSinkThrowReader, S>(de).await?;
+
+            let initial_response = match res {
+                ::std::result::Result::Ok(res) => res,
+                ::std::result::Result::Err(aexn) => {
+                    ::std::result::Result::Err(crate::errors::sink_service::MethodSinkThrowError::ApplicationException(aexn))
+                }
+            }?;
 
             let sink_helper_fn = move |stream: ::futures::stream::BoxStream<'static, ::std::result::Result<
                 crate::types::SinkPayload,
@@ -808,7 +832,15 @@ where
                 sink_processor,
             } = call_sink.await?;
 
-            let initial_response = ();
+            let de = P::deserializer(_initial_response);
+            let res = ::fbthrift::help::async_deserialize_response_envelope::<P, crate::errors::sink_service::MethodFinalThrowReader, S>(de).await?;
+
+            let initial_response = match res {
+                ::std::result::Result::Ok(res) => res,
+                ::std::result::Result::Err(aexn) => {
+                    ::std::result::Result::Err(crate::errors::sink_service::MethodFinalThrowError::ApplicationException(aexn))
+                }
+            }?;
 
             let sink_helper_fn = move |stream: ::futures::stream::BoxStream<'static, ::std::result::Result<
                 crate::types::SinkPayload,
@@ -897,7 +929,15 @@ where
                 sink_processor,
             } = call_sink.await?;
 
-            let initial_response = ();
+            let de = P::deserializer(_initial_response);
+            let res = ::fbthrift::help::async_deserialize_response_envelope::<P, crate::errors::sink_service::MethodBothThrowReader, S>(de).await?;
+
+            let initial_response = match res {
+                ::std::result::Result::Ok(res) => res,
+                ::std::result::Result::Err(aexn) => {
+                    ::std::result::Result::Err(crate::errors::sink_service::MethodBothThrowError::ApplicationException(aexn))
+                }
+            }?;
 
             let sink_helper_fn = move |stream: ::futures::stream::BoxStream<'static, ::std::result::Result<
                 crate::types::SinkPayload,
@@ -990,7 +1030,15 @@ where
                 sink_processor,
             } = call_sink.await?;
 
-            let initial_response = ();
+            let de = P::deserializer(_initial_response);
+            let res = ::fbthrift::help::async_deserialize_response_envelope::<P, crate::errors::sink_service::MethodFastReader, S>(de).await?;
+
+            let initial_response = match res {
+                ::std::result::Result::Ok(res) => res,
+                ::std::result::Result::Err(aexn) => {
+                    ::std::result::Result::Err(crate::errors::sink_service::MethodFastError::ApplicationException(aexn))
+                }
+            }?;
 
             let sink_helper_fn = move |stream: ::futures::stream::BoxStream<'static, ::std::result::Result<
                 crate::types::SinkPayload,

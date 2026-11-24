@@ -93,7 +93,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -341,7 +340,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -617,7 +615,7 @@ _readField_favoriteColor:
 _readField_friends:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_friends = ::std::set<::cpp2::PersonID>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_friends);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::set<::apache::thrift::type_class::integral>, ::std::set<::cpp2::PersonID>, ::apache::thrift::type::set<::apache::thrift::type::i64_t>>::read(*iprot, this->__fbthrift_field_friends);
     _readState.afterSubobject(iprot);
   }
@@ -646,7 +644,7 @@ _readField_bestFriend:
 _readField_petNames:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_petNames = ::std::map<::cpp2::Animal, ::std::string>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_petNames);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::enumeration, ::apache::thrift::type_class::string>, ::std::map<::cpp2::Animal, ::std::string>, ::apache::thrift::type::map<::apache::thrift::type::enum_t<::cpp2::Animal>, ::apache::thrift::type::string_t>>::read(*iprot, this->__fbthrift_field_petNames);
     _readState.afterSubobject(iprot);
   }
@@ -675,7 +673,7 @@ _readField_afraidOfAnimal:
 _readField_vehicles:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_vehicles = ::std::vector<::cpp2::Vehicle>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_vehicles);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::structure>, ::std::vector<::cpp2::Vehicle>, ::apache::thrift::type::list<::apache::thrift::type::struct_t<::cpp2::Vehicle>>>::read(*iprot, this->__fbthrift_field_vehicles);
     _readState.afterSubobject(iprot);
   }
@@ -694,7 +692,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:

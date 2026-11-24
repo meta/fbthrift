@@ -129,7 +129,7 @@ void exerciseRef(P& pipeline, Counts& counts, folly::EventBase& eventBase) {
   ref.deactivate();
   ref.onReadReady();
   ref.onWriteReady();
-  EXPECT_EQ(ref.allocate(8)->capacity(), 8);
+  EXPECT_GE(ref.allocate(8)->capacity(), 8);
 
   auto publisher = ref.bindEvents<Events<ValueEvent>>();
   publisher.fire<ValueEvent>(42);

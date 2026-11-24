@@ -16,6 +16,11 @@
 
 package com.facebook.thrift.legacy.codec;
 
+import static com.facebook.thrift.util.ThriftProtocolConstants.HEADER_FLAGS_NONE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.HEADER_FLAG_SUPPORT_OUT_OF_ORDER;
+import static com.facebook.thrift.util.ThriftProtocolConstants.HEADER_MAGIC;
+import static com.facebook.thrift.util.ThriftProtocolConstants.NORMAL_HEADERS;
+import static com.facebook.thrift.util.ThriftProtocolConstants.PERSISTENT_HEADERS;
 import static com.google.common.base.Verify.verify;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -23,6 +28,7 @@ import com.facebook.thrift.compression.CompressionManager;
 import com.facebook.thrift.metadata.ClientInfo;
 import com.facebook.thrift.protocol.TProtocolType;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.primitives.Ints;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufUtil;
@@ -41,7 +47,6 @@ import reactor.core.Exceptions;
 public final class HeaderTransportCodec extends ChannelDuplexHandler {
   private static final Logger log = LoggerFactory.getLogger(HeaderTransportCodec.class);
 
-  private static final int HEADER_MAGIC = 0x0FFF;
   private static final int ENCODED_INFO_SIZE = 2 * Byte.BYTES;
   private static final int FRAME_HEADER_SIZE =
       Short.BYTES
@@ -51,12 +56,6 @@ public final class HeaderTransportCodec extends ChannelDuplexHandler {
           Integer.BYTES
           + // sequenceId
           Short.BYTES; // header size
-
-  private static final int FLAGS_NONE = 0;
-  private static final int FLAG_SUPPORT_OUT_OF_ORDER = 1;
-
-  private static final int NORMAL_HEADERS = 0x01;
-  private static final int PERSISTENT_HEADERS = 0x02;
 
   private static final long LOG_INTERVAL = 30_000_000_000L; // 30 sec
   private static final AtomicLong logTime = new AtomicLong(0);
@@ -78,7 +77,8 @@ public final class HeaderTransportCodec extends ChannelDuplexHandler {
       ThriftFrame frame = null;
       try {
         if (request.isReadable()) {
-          frame = decodeFrame(context.alloc(), request);
+          boolean untransform = isServer;
+          frame = decodeFrame(context.alloc(), request, untransform);
         }
       } catch (Throwable t) {
         ReferenceCountUtil.safeRelease(request);
@@ -123,17 +123,24 @@ public final class HeaderTransportCodec extends ChannelDuplexHandler {
    * @return the encoded frame data; caller is responsible for releasing this buffer
    */
   private static ByteBuf encodeFrame(ByteBufAllocator alloc, ThriftFrame frame, boolean addHeader) {
+    ByteBuf message = null;
     ByteBuf encodedInfo = null;
     ByteBuf encodedHeaders = null;
     ByteBuf frameHeader = null;
     try {
-      encodedInfo = alloc.buffer(ENCODED_INFO_SIZE);
+      message =
+          CompressionManager.compressForTransforms(
+              frame.getTransforms(), alloc, frame.getMessage());
+
+      encodedInfo = alloc.buffer(ENCODED_INFO_SIZE + frame.getTransforms().size());
 
       // protocol id
       encodedInfo.writeByte(frame.getProtocol().getProtocolId().getValue());
 
-      // number of "transforms" -- no transforms are supported
-      encodedInfo.writeByte(0);
+      writeVarInt32(encodedInfo, frame.getTransforms().size());
+      for (int transform : frame.getTransforms()) {
+        writeVarInt32(encodedInfo, transform);
+      }
 
       encodedHeaders = alloc.buffer();
 
@@ -159,7 +166,9 @@ public final class HeaderTransportCodec extends ChannelDuplexHandler {
 
       // flags
       frameHeader.writeShort(
-          frame.isSupportOutOfOrderResponse() ? FLAG_SUPPORT_OUT_OF_ORDER : FLAGS_NONE);
+          frame.isSupportOutOfOrderResponse()
+              ? HEADER_FLAG_SUPPORT_OUT_OF_ORDER
+              : HEADER_FLAGS_NONE);
 
       // seq id
       frameHeader.writeInt(frame.getSequenceId());
@@ -169,8 +178,12 @@ public final class HeaderTransportCodec extends ChannelDuplexHandler {
 
       return alloc
           .compositeBuffer()
-          .addComponents(true, frameHeader, encodedInfo, encodedHeaders, frame.getMessage());
+          .addComponents(true, frameHeader, encodedInfo, encodedHeaders, message);
     } catch (Throwable t) {
+      if (message != null && message != frame.getMessage() && message.refCnt() > 0) {
+        message.release();
+      }
+
       if (encodedInfo != null && encodedInfo.refCnt() > 0) {
         encodedInfo.release();
       }
@@ -233,6 +246,19 @@ public final class HeaderTransportCodec extends ChannelDuplexHandler {
    */
   @VisibleForTesting
   static ThriftFrame decodeFrame(ByteBufAllocator alloc, ByteBuf buffer) {
+    return decodeFrame(alloc, buffer, true);
+  }
+
+  /**
+   * Decodes the ByteBuf into a HeaderFrame transferring the reference ownership.
+   *
+   * @param buffer buffer to be decoded; reference count ownership is transferred to this method
+   * @param untransform whether to untransform the message before returning. The client pipeline
+   *     defers this to ThriftClientHandler; the frame keeps its wire transforms either way.
+   * @return the decoded frame; caller is responsible for releasing this object
+   */
+  @VisibleForTesting
+  static ThriftFrame decodeFrame(ByteBufAllocator alloc, ByteBuf buffer, boolean untransform) {
     short magic = buffer.readShort();
     verify(magic == HEADER_MAGIC, "Invalid header magic");
 
@@ -240,10 +266,10 @@ public final class HeaderTransportCodec extends ChannelDuplexHandler {
     short flags = buffer.readShort();
     boolean outOfOrderResponse;
     switch (flags) {
-      case FLAGS_NONE:
+      case HEADER_FLAGS_NONE:
         outOfOrderResponse = false;
         break;
-      case FLAG_SUPPORT_OUT_OF_ORDER:
+      case HEADER_FLAG_SUPPORT_OUT_OF_ORDER:
         outOfOrderResponse = true;
         break;
       default:
@@ -284,9 +310,8 @@ public final class HeaderTransportCodec extends ChannelDuplexHandler {
     }
     allHeaders.putAll(persistentHeaders);
 
-    // Apply decompression in reverse order, matching C++ THeader::untransform()
-    for (int i = transforms.length - 1; i >= 0; i--) {
-      buffer = CompressionManager.decompressFromTransform(transforms[i], alloc, buffer);
+    if (untransform) {
+      buffer = CompressionManager.untransform(Ints.asList(transforms), alloc, buffer);
     }
 
     ThriftFrame frame =
@@ -297,7 +322,8 @@ public final class HeaderTransportCodec extends ChannelDuplexHandler {
             persistentHeaders,
             LegacyTransportType.HEADER,
             protocolType,
-            outOfOrderResponse);
+            outOfOrderResponse,
+            Ints.asList(transforms));
 
     return frame;
   }

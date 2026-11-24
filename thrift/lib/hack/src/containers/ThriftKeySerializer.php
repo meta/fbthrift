@@ -1,5 +1,19 @@
 <?hh
-// (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
+/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 <<Oncalls('thrift')>>
 abstract final class ThriftKeySerializer {
@@ -38,26 +52,10 @@ abstract final class ThriftKeySerializer {
 
   public static function deserialize(
     string $bytes,
-    TType $type,
+    TType $_type,
     ThriftStructTypes::TGenericSpec $spec,
   )[write_props]: mixed {
-    return HH\Coeffects\fb\backdoor_from_write_props__DO_NOT_USE(
-      ()[defaults] ==> {
-        if ($type === TType::BOOL) {
-          $transport = new TMemoryBuffer();
-          $transport->write($bytes);
-          $protocol = new TCompactProtocolAccelerated($transport);
-          $byte = 0;
-          $protocol->readByte(inout $byte);
-          return ThriftSerializationHelper::applyAdapterFromThrift(
-            $byte === TCompactProtocolBase::COMPACT_TRUE,
-            $spec,
-          );
-        }
-        return TCompactSerializer::deserializeData($bytes, $spec);
-      },
-      'Thrift key deserialization reads from in-memory compact key bytes.',
-    );
+    return TCompactSerializer::deserializeData($bytes, $spec);
   }
 
   // Use after writeSetBegin/writeMapBegin when the element/key bytes were
@@ -148,10 +146,13 @@ abstract final class ThriftKeySerializer {
     $protocol->writeStructBegin($object->getName());
     foreach (Vec\sort(Vec\keys($object::SPEC)) as $field_id) {
       $fspec = $object::SPEC[$field_id];
-      $field_value = ThriftSerializationHelper::unwrapApplyAdapter(
-        ThriftSerializationHelper::readStructField($object, $fspec),
-        $fspec,
-      );
+      $field_value =
+        ThriftSerializationHelper::readStructField($object, $fspec);
+      if ($field_value === null) {
+        continue;
+      }
+      $field_value =
+        ThriftSerializationHelper::unwrapApplyAdapter($field_value, $fspec);
       if (ThriftSerializationHelper::isFieldEmpty($field_value, $fspec)) {
         continue;
       }

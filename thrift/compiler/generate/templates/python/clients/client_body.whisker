@@ -89,6 +89,7 @@ class Async({{#if extends_service?}}{{!
         return {{program.module_mangle}}__thrift_metadata.gen_metadata_service_{{service.name}}()
     {{/if service.interaction?}}
     {{#each service.supported_functions as |function|}}
+    {{#let client_returns_tuple? = (or function.returns_tuple? (and function.creates_interaction? function.sink_or_stream?))}}
 
     async def {{function.name}}(
         self{{#each function.params.fields as |field|}},
@@ -96,12 +97,13 @@ class Async({{#if extends_service?}}{{!
         *,
         rpc_options: _typing.Optional[RpcOptions] = None,
     ) -> {{!
-        }}{{#if function.returns_tuple?}}_typing.Tuple[{{/if}}{{!
+        }}{{#if client_returns_tuple?}}_typing.Tuple[{{/if}}{{!
         }}{{#if function.creates_interaction?}}{{service.name}}_{{function.created_interaction.name}}.Async{{!
             }}{{#if function.sink_or_stream?}}, {{> types/pep484_return_type}}{{#else if (not function.return_type.void?)}}, {{> types/pep484_return_type}}{{/if}}{{!
         }}{{#else}}{{> types/pep484_return_type}}{{/if function.creates_interaction?}}{{!
-        }}{{#if function.returns_tuple?}}]{{/if}}{{!
+        }}{{#if client_returns_tuple?}}]{{/if}}{{!
     }}:
+        {{#partial m_common.docstring node=function}}
         {{#if function.creates_interaction?}}
         _fbthrift_interaction = self.__fbthrift_create{{function.created_interaction.name}}()
         {{/if function.creates_interaction?}}
@@ -156,7 +158,7 @@ class Async({{#if extends_service?}}{{!
         {{/each}}
         {{#if (and (not function.early_client_return?) (not function.void?))}}
         return {{#if function.creates_interaction?}}_fbthrift_interaction{{/if}}{{!
-          }}{{#if function.returns_tuple?}}, {{/if}}{{!
+          }}{{#if client_returns_tuple?}}, {{/if}}{{!
           }}{{#if function.sink_or_stream?}}_fbthrift_sink_or_stream{{/if}}
         {{/if (and (not function.early_client_return?) (not function.void?))}}
         {{#if function.with_regular_response?}}
@@ -236,6 +238,7 @@ class Sync({{#if extends_service?}}{{!
         *,
         rpc_options: _typing.Optional[RpcOptions] = None,
     ) -> {{> types/pep484_return_type}}:
+        {{#partial m_common.docstring node=function}}
         _fbthrift_resp = self._send_request(
             "{{service.name}}",
             "{{function.name}}",

@@ -242,7 +242,7 @@ struct AllocatorAware {
   6: i32 aa_unique;
   @cpp.Ref{type = cpp.RefType.SharedMutable}
   @cpp.AllowLegacyNonOptionalRef
-  7: i32_9314 aa_shared;
+  7: string_5252 aa_shared;
 }
 
 # Allocator-aware struct with no allocator-aware fields

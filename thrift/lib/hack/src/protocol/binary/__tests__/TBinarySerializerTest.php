@@ -26,13 +26,6 @@ final class TBinarySerializerTest extends WWWTest {
 
   use ClassLevelTest;
 
-  // The knob samples requests in production; pin it off so other cases never
-  // queue a PSP comparison.
-  <<__Override>>
-  public static async function createData(): Awaitable<void> {
-    MockJustKnobs::setBool('thrift/hack:binary_protocol_v2', false);
-  }
-
   // Verifies if two objects of type CountersInformation
   // have the same content (counters value).
   private function checkEqualCounters(
@@ -137,23 +130,7 @@ final class TBinarySerializerTest extends WWWTest {
     expect($deserialized->s)->toEqual($struct->s);
   }
 
-  public static function providerProtocolV2Knob(
-  ): dict<string, shape('enabled' => bool)> {
-    return dict[
-      'protocol v2 comparison off' => shape('enabled' => false),
-      'protocol v2 comparison on' => shape('enabled' => true),
-    ];
-  }
-
-  <<DataProvider('providerProtocolV2Knob')>>
-  public function testPureHackPathsAcrossProtocolV2Knob(bool $enabled): void {
-    MockJustKnobs::setBool('thrift/hack:binary_protocol_v2', $enabled);
-    // shouldCompareProtocolV2() is memoized; earlier cases would otherwise pin
-    // its value.
-    clear_class_memoization(
-      nameof TBinarySerializer,
-      'shouldCompareProtocolV2',
-    );
+  public function testPureHackPathsMatchExtension(): void {
     $struct = CompactTestStruct::withDefaultValues();
     $struct->i1 = 42;
     $struct->b2 = true;

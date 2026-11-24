@@ -16,10 +16,15 @@
 
 #include <thrift/lib/cpp2/type/Tag.h>
 
+#include <cstdint>
 #include <list>
 #include <map>
+#include <memory_resource>
+#include <set>
+#include <string>
 #include <type_traits>
 #include <unordered_set>
+#include <vector>
 
 #include <gtest/gtest.h>
 #include <thrift/lib/cpp2/type/Testing.h>
@@ -171,6 +176,52 @@ static_assert(std::is_same_v<
 static_assert(std::is_same_v<
               list_c,
               decltype(testOverload(cpp_type<TestAdapter, list<enum_c>>{}))>);
+
+// Each string, binary and container level gets the member type of `T`.
+static_assert(std::is_same_v<
+              cpp_pmr_type<std::pmr::string, string_t>,
+              cpp_type<std::pmr::string, string_t>>);
+static_assert(std::is_same_v<
+              cpp_pmr_type<std::pmr::vector<std::pmr::string>, list<string_t>>,
+              cpp_type<
+                  std::pmr::vector<std::pmr::string>,
+                  list<cpp_type<std::pmr::string, string_t>>>>);
+static_assert(std::is_same_v<
+              cpp_pmr_type<
+                  std::pmr::map<std::pmr::string, std::pmr::set<std::int32_t>>,
+                  map<binary_t, set<i32_t>>>,
+              cpp_type<
+                  std::pmr::map<std::pmr::string, std::pmr::set<std::int32_t>>,
+                  map<cpp_type<std::pmr::string, binary_t>,
+                      cpp_type<std::pmr::set<std::int32_t>, set<i32_t>>>>>);
+// Other levels keep their tags.
+static_assert(std::is_same_v<
+              cpp_pmr_type<std::pmr::vector<General>, list<struct_t<General>>>,
+              cpp_type<std::pmr::vector<General>, list<struct_t<General>>>>);
+// A `cpp_type` level is kept if it names the member type, else replaced.
+static_assert(std::is_same_v<
+              cpp_pmr_type<
+                  std::pmr::vector<std::uint32_t>,
+                  list<cpp_type<std::uint32_t, i32_t>>>,
+              cpp_type<
+                  std::pmr::vector<std::uint32_t>,
+                  list<cpp_type<std::uint32_t, i32_t>>>>);
+static_assert(std::is_same_v<
+              cpp_pmr_type<
+                  std::pmr::vector<std::pmr::string>,
+                  list<cpp_type<std::string, string_t>>>,
+              cpp_type<
+                  std::pmr::vector<std::pmr::string>,
+                  list<cpp_type<std::pmr::string, string_t>>>>);
+// A kept level isn't inspected, so it needs no member types.
+struct OpaqueSet {};
+static_assert(std::is_same_v<
+              cpp_pmr_type<
+                  std::pmr::vector<OpaqueSet>,
+                  list<cpp_type<OpaqueSet, set<i32_t>>>>,
+              cpp_type<
+                  std::pmr::vector<OpaqueSet>,
+                  list<cpp_type<OpaqueSet, set<i32_t>>>>>);
 
 static_assert(std::is_same_v<service_c, decltype(testOverload(service_c{}))>);
 static_assert(

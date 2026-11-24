@@ -1,5 +1,4 @@
 <?hh
-// (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
 /*
  * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
@@ -16,7 +15,10 @@
  * limitations under the License.
  */
 
-<<Oncalls('thrift_hack')>>
+<<
+  Oncalls('thrift_hack'),
+  JKBoolDataProvider('thrift/hack:thrift_use_method_metadata_processor'),
+>>
 final class ThriftEventHandlerMetadataTest extends WWWTest {
   public async function testMetadataBackwardCompatibility(): Awaitable<void> {
     $handler = mock(nameof ExampleRootServiceAsyncIf);
@@ -40,6 +42,129 @@ final class ThriftEventHandlerMetadataTest extends WWWTest {
       $input,
       new TCompactProtocol(new TMemoryBuffer()),
       'doNothing',
+    );
+  }
+
+  public async function testMiddleServiceInheritMethodUsesDeclaringServiceName(
+  ): Awaitable<void> {
+    $handler = mock(nameof ExampleMiddleServiceAsyncIf);
+    $handler->mockYield(
+      'sendMiddleRequest',
+      example_ResponseStruct::withDefaultValues(),
+    );
+    $proc = new ExampleMiddleServiceAsyncProcessor($handler);
+
+    // Make the RPC call for doNothing (declared at Root) and verify the name
+    $event_handler_do_nothing =
+      new VerifyNameEventHandler('example_ExampleRootService', 'doNothing');
+    $proc->setEventHandler($event_handler_do_nothing);
+
+    $input = new TCompactProtocol(new TMemoryBuffer());
+    $input->writeRPCMessage(
+      'doNothing',
+      TMessageType::CALL,
+      ExampleRootService_doNothing_args::withDefaultValues(),
+      0,
+    );
+    $_ = await $proc->processAsync(
+      $input,
+      new TCompactProtocol(new TMemoryBuffer()),
+      'doNothing',
+    );
+
+    // Make the RPC call for sendMiddleRequest (declared at Middle) and verify the name
+    $event_handler_send_middle_request = new VerifyNameEventHandler(
+      'example_ExampleMiddleService',
+      'sendMiddleRequest',
+    );
+    $proc = new ExampleMiddleServiceAsyncProcessor($handler);
+    $proc->setEventHandler($event_handler_send_middle_request);
+
+    $input = new TCompactProtocol(new TMemoryBuffer());
+    $input->writeRPCMessage(
+      'sendMiddleRequest',
+      TMessageType::CALL,
+      ExampleMiddleService_sendMiddleRequest_args::withDefaultValues(),
+      0,
+    );
+    $_ = await $proc->processAsync(
+      $input,
+      new TCompactProtocol(new TMemoryBuffer()),
+      'sendMiddleRequest',
+    );
+  }
+
+  public async function testChildServiceInheritMethodUsesDeclaringServiceName(
+  ): Awaitable<void> {
+    $handler = mock(nameof ExampleChildServiceAsyncIf);
+    $handler->mockYield(
+      'sendMiddleRequest',
+      example_ResponseStruct::withDefaultValues(),
+    );
+    $handler->mockYield(
+      'sendChildRequest',
+      example_ResponseStruct::withDefaultValues(),
+    );
+    $proc = new ExampleChildServiceAsyncProcessor($handler);
+
+    // Make the RPC call for doNothing (declared at Root) and verify the name
+    $event_handler_do_nothing =
+      new VerifyNameEventHandler('example_ExampleRootService', 'doNothing');
+    $proc->setEventHandler($event_handler_do_nothing);
+
+    $input = new TCompactProtocol(new TMemoryBuffer());
+    $input->writeRPCMessage(
+      'doNothing',
+      TMessageType::CALL,
+      ExampleRootService_doNothing_args::withDefaultValues(),
+      0,
+    );
+    $_ = await $proc->processAsync(
+      $input,
+      new TCompactProtocol(new TMemoryBuffer()),
+      'doNothing',
+    );
+
+    // Make the RPC call for sendMiddleRequest (declared at Middle) and verify the name
+    $event_handler_send_middle_request = new VerifyNameEventHandler(
+      'example_ExampleMiddleService',
+      'sendMiddleRequest',
+    );
+    $proc = new ExampleChildServiceAsyncProcessor($handler);
+    $proc->setEventHandler($event_handler_send_middle_request);
+
+    $input = new TCompactProtocol(new TMemoryBuffer());
+    $input->writeRPCMessage(
+      'sendMiddleRequest',
+      TMessageType::CALL,
+      ExampleMiddleService_sendMiddleRequest_args::withDefaultValues(),
+      0,
+    );
+    $_ = await $proc->processAsync(
+      $input,
+      new TCompactProtocol(new TMemoryBuffer()),
+      'sendMiddleRequest',
+    );
+
+    // Make the RPC call for sendChildRequest (declared at Child) and verify the name
+    $event_handler_send_child_request = new VerifyNameEventHandler(
+      'example_ExampleChildService',
+      'sendChildRequest',
+    );
+    $proc = new ExampleChildServiceAsyncProcessor($handler);
+    $proc->setEventHandler($event_handler_send_child_request);
+
+    $input = new TCompactProtocol(new TMemoryBuffer());
+    $input->writeRPCMessage(
+      'sendChildRequest',
+      TMessageType::CALL,
+      ExampleChildService_sendChildRequest_args::withDefaultValues(),
+      0,
+    );
+    $_ = await $proc->processAsync(
+      $input,
+      new TCompactProtocol(new TMemoryBuffer()),
+      'sendChildRequest',
     );
   }
 }

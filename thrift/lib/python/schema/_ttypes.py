@@ -47,6 +47,10 @@ T_UTF8 = 16
 T_UTF16 = 17
 T_FLOAT = 19
 
+# The field id from a reader that identifies a field by name alone, as C++
+# ``readFieldBegin`` gives it.
+NO_FIELD_ID = -(2**15)
+
 # C++ ``FLAGS_thrift_protocol_max_depth``: the nesting limit of the readers
 # and of ``skip``.
 PROTOCOL_MAX_DEPTH = 12000

@@ -232,6 +232,43 @@ TEST(ListTest, Equality) {
   EXPECT_FALSE(list1 == list2);
 }
 
+TEST(ListTest, EmptyListsAreEqualWhetherOrNotTheyAllocated) {
+  auto list1 = makeList(makeListType(type_system::TypeSystem::I32()));
+  auto list2 = makeList(makeListType(type_system::TypeSystem::I32()));
+  list2.push_back(DynamicValue::makeI32(1));
+  list2.clear();
+
+  EXPECT_TRUE(list1 == list2);
+  EXPECT_TRUE(list2 == list1);
+}
+
+TEST(ListTest, EmptyNestedListsRequireMatchingTypeIdentity) {
+  auto i32ListType =
+      type_system::TypeRef(makeListType(type_system::TypeSystem::I32()));
+  auto i64ListType =
+      type_system::TypeRef(makeListType(type_system::TypeSystem::I64()));
+
+  for (bool lhsAllocated : {false, true}) {
+    for (bool rhsAllocated : {false, true}) {
+      auto lhs = makeList(makeListType(i32ListType));
+      auto sameType = makeList(makeListType(i32ListType));
+      auto differentType = makeList(makeListType(i64ListType));
+      if (lhsAllocated) {
+        lhs.reserve(1);
+      }
+      if (rhsAllocated) {
+        sameType.reserve(1);
+        differentType.reserve(1);
+      }
+
+      EXPECT_TRUE(lhs == sameType);
+      EXPECT_TRUE(sameType == lhs);
+      EXPECT_FALSE(lhs == differentType);
+      EXPECT_FALSE(differentType == lhs);
+    }
+  }
+}
+
 TEST(ListTest, TypeMismatch) {
   auto list = makeList(makeListType(type_system::TypeSystem::I32()));
 
@@ -336,6 +373,51 @@ TEST(ListTest, OutOfRange) {
 }
 
 // Serialization tests using list<list<i32>>
+
+TEST(ListTest, EmptyListSerializationRoundTrip) {
+  auto listType =
+      type_system::TypeRef(makeListType(type_system::TypeSystem::I32()));
+  auto value = DynamicValue::makeDefault(listType);
+
+  folly::IOBufQueue queue;
+  CompactProtocolWriter writer;
+  writer.setOutput(&queue);
+  serializeValue(writer, value);
+
+  auto buf = queue.move();
+  CompactProtocolReader reader;
+  reader.setInput(buf.get());
+  auto deserialized = deserializeValue(reader, listType);
+
+  EXPECT_TRUE(deserialized.asList().isEmpty());
+  EXPECT_EQ(value.asList(), deserialized.asList());
+  EXPECT_EQ(deserialized.asList(), value.asList());
+  EXPECT_EQ(value, deserialized);
+  EXPECT_EQ(deserialized, value);
+}
+
+TEST(ListTest, EmptyNestedListElementSerializationRoundTrip) {
+  auto innerListType =
+      type_system::TypeRef(makeListType(type_system::TypeSystem::I32()));
+  auto outerListType = type_system::TypeRef(makeListType(innerListType));
+  auto value = DynamicValue::makeDefault(outerListType);
+  value.asList().push_back(DynamicValue::makeDefault(innerListType));
+
+  folly::IOBufQueue queue;
+  CompactProtocolWriter writer;
+  writer.setOutput(&queue);
+  serializeValue(writer, value);
+
+  auto buf = queue.move();
+  CompactProtocolReader reader;
+  reader.setInput(buf.get());
+  auto deserialized = deserializeValue(reader, outerListType);
+
+  ASSERT_EQ(deserialized.asList().size(), 1);
+  EXPECT_TRUE(deserialized.asList()[0].asList().isEmpty());
+  EXPECT_EQ(value, deserialized);
+  EXPECT_EQ(deserialized, value);
+}
 
 TEST(ListTest, SerializationRoundTrip) {
   // Create inner list type: list<i32>

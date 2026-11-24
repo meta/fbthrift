@@ -27,3 +27,14 @@
 {{#pragma ignore-newlines}}
 {{#if field.cpp_ref?}}_REF{{/if field.cpp_ref?}}
 {{/let partial}}
+
+{{! The active member of the union `x`: the smart pointer of a `cpp.ref` field,
+    which the frozen layout of a ref handles even when it is null. }}
+{{#let export partial frozen2_union_field_value |field|}}
+{{#pragma ignore-newlines}}
+  {{#if field.cpp_ref?}}
+::apache::thrift::detail::union_field_storage(x.{{field.cpp_name}}())
+  {{#else}}
+x.{{field.cpp_name}}().value()
+  {{/if field.cpp_ref?}}
+{{/let partial}}

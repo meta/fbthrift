@@ -91,6 +91,15 @@ inline constexpr bool has_subscript_key_v<
     C,
     std::void_t<typename subscript_key_result<C>::type>> = true;
 
+// Strings have push_back. This keeps them out of the list specialization, which
+// would otherwise be ambiguous with the string one.
+template <typename C>
+inline constexpr bool is_char_string_v = false;
+template <typename Alloc>
+inline constexpr bool
+    is_char_string_v<std::basic_string<char, std::char_traits<char>, Alloc>> =
+        true;
+
 template <typename C, typename = void>
 struct Reserver {
   static void reserve(C&, typename C::size_type) {}
@@ -153,9 +162,11 @@ class Cpp2OpsViaOp {
 template <>
 class Cpp2Ops<folly::fbstring>
     : public detail::Cpp2OpsViaOp<folly::fbstring, type::string_t> {};
-template <>
-class Cpp2Ops<std::string>
-    : public detail::Cpp2OpsViaOp<std::string, type::string_t> {};
+template <class Alloc>
+class Cpp2Ops<std::basic_string<char, std::char_traits<char>, Alloc>>
+    : public detail::Cpp2OpsViaOp<
+          std::basic_string<char, std::char_traits<char>, Alloc>,
+          type::string_t> {};
 template <>
 class Cpp2Ops<bool> : public detail::Cpp2OpsViaOp<bool, type::bool_t> {};
 template <>
@@ -178,35 +189,9 @@ template <>
 class Cpp2Ops<float> : public detail::Cpp2OpsViaOp<float, type::float_t> {};
 template <>
 class Cpp2Ops<double> : public detail::Cpp2OpsViaOp<double, type::double_t> {};
-
-// Every enum is an i32 on the wire, whatever its underlying type.
 template <class E>
-class Cpp2Ops<E, typename std::enable_if<std::is_enum<E>::value>::type> {
- public:
-  using Type = E;
-  static constexpr protocol::TType thriftType() { return protocol::T_I32; }
-  template <class Protocol>
-  FOLLY_ALWAYS_INLINE static uint32_t write(Protocol* prot, const Type* value) {
-    const auto val = static_cast<int32_t>(*value);
-    return Cpp2Ops<int32_t>::write(prot, &val);
-  }
-  template <class Protocol>
-  FOLLY_ALWAYS_INLINE static void read(Protocol* prot, Type* value) {
-    int32_t val;
-    Cpp2Ops<int32_t>::read(prot, &val);
-    *value = static_cast<Type>(val);
-  }
-  template <class Protocol>
-  static uint32_t serializedSize(Protocol* prot, const Type* value) {
-    return static_cast<uint32_t>(op::serialized_size<false, type::i32_t>(
-        *prot, static_cast<int32_t>(*value)));
-  }
-  template <class Protocol>
-  static uint32_t serializedSizeZC(Protocol* prot, const Type* value) {
-    return static_cast<uint32_t>(op::serialized_size<true, type::i32_t>(
-        *prot, static_cast<int32_t>(*value)));
-  }
-};
+class Cpp2Ops<E, typename std::enable_if<std::is_enum<E>::value>::type>
+    : public detail::Cpp2OpsViaOp<E, type::enum_t<E>> {};
 
 namespace detail {
 
@@ -278,7 +263,11 @@ uint32_t forEachElement(Protocol* prot, const std::vector<bool>* vec) {
 } // namespace detail
 
 template <class L>
-class Cpp2Ops<L, std::enable_if_t<apache::thrift::detail::has_push_back_v<L>>> {
+class Cpp2Ops<
+    L,
+    std::enable_if_t<
+        apache::thrift::detail::has_push_back_v<L> &&
+        !apache::thrift::detail::is_char_string_v<L>>> {
  private:
   // Need a resize func instead of c.resize(size, defaultElement(C)), because
   // some non-standard vectors do not support resize(size_type, T value = T()).
@@ -440,7 +429,7 @@ class Cpp2Ops<
     using KeyType = typename Type::key_type;
     using PairType = typename std::remove_cv<
         typename std::remove_reference<decltype(*value->begin())>::type>::type;
-    using ValueType = folly::remove_cvref_t<typename PairType::second_type>;
+    using ValueType = std::remove_cvref_t<typename PairType::second_type>;
     uint32_t xfer = 0;
     xfer += prot->writeMapBegin(
         Cpp2Ops<KeyType>::thriftType(),
@@ -461,7 +450,7 @@ class Cpp2Ops<
     // call it data_type.
     using PairType = typename std::remove_cv<
         typename std::remove_reference<decltype(*value->begin())>::type>::type;
-    using ValueType = folly::remove_cvref_t<typename PairType::second_type>;
+    using ValueType = std::remove_cvref_t<typename PairType::second_type>;
     value->clear();
     uint32_t size;
     protocol::TType keytype, valuetype;
@@ -480,7 +469,7 @@ class Cpp2Ops<
     using KeyType = typename Type::key_type;
     using PairType = typename std::remove_cv<
         typename std::remove_reference<decltype(*value->begin())>::type>::type;
-    using ValueType = folly::remove_cvref_t<typename PairType::second_type>;
+    using ValueType = std::remove_cvref_t<typename PairType::second_type>;
     uint32_t xfer = 0;
     xfer += prot->serializedSizeMapBegin(
         Cpp2Ops<KeyType>::thriftType(),
@@ -498,7 +487,7 @@ class Cpp2Ops<
     using KeyType = typename Type::key_type;
     using PairType = typename std::remove_cv<
         typename std::remove_reference<decltype(*value->begin())>::type>::type;
-    using ValueType = folly::remove_cvref_t<typename PairType::second_type>;
+    using ValueType = std::remove_cvref_t<typename PairType::second_type>;
     uint32_t xfer = 0;
     xfer += prot->serializedSizeMapBegin(
         Cpp2Ops<KeyType>::thriftType(),
@@ -539,7 +528,7 @@ class Cpp2Ops<
   }
   template <class Protocol>
   static void read(Protocol* prot, Type* value) {
-    value->readNoXfer(prot);
+    detail::st::private_access::read_no_xfer_fn{}(*value, prot);
   }
   template <class Protocol>
   static uint32_t serializedSize(Protocol* prot, const Type* value) {
@@ -556,7 +545,7 @@ class Cpp2Ops<
     T,
     std::enable_if_t<folly::is_detected_v<detect_indirection_fn_t, T>>> {
  private:
-  using S = folly::remove_cvref_t<
+  using S = std::remove_cvref_t<
       std::invoke_result_t<detail::apply_indirection_fn, T>>;
 
  public:

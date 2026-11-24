@@ -26,8 +26,7 @@
 #include <gtest/gtest.h>
 
 #include <folly/io/async/EventBase.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameLengthParser.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/server/RocketServerEventFactory.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/server/adapter/RocketServerAppAdapter.h>
@@ -37,8 +36,8 @@
 
 namespace apache::thrift::fast_thrift::rocket::server::test {
 
-using channel_pipeline::PipelineBuilder;
 using channel_pipeline::SimpleBufferAllocator;
+using channel_pipeline::StaticPipelineBuilder;
 using transport::test::TestAsyncTransport;
 
 namespace {
@@ -59,7 +58,7 @@ struct ConnectionFixture {
         transport::TransportHandlerT<RocketServerEventFactory>::create(
             std::move(socket));
 
-    auto pipeline = PipelineBuilder<
+    auto pipeline = StaticPipelineBuilder<
                         transport::TransportHandlerT<RocketServerEventFactory>,
                         RocketServerAppAdapter,
                         SimpleBufferAllocator>()

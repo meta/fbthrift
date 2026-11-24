@@ -60,7 +60,7 @@ class _ImmutableMeta(type):
         namespace["__slots__"] = (*namespace.get("__slots__", ()), "_fbthrift__frozen")
 
         cls = super().__new__(mcs, name, bases, namespace)
-        return cls  # type: ignore[return-value]
+        return cls
 
     @staticmethod
     def _setattr(self: Any, name: str, value: Any) -> None:

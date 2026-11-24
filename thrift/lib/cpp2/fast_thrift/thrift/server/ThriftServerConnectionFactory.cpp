@@ -17,10 +17,15 @@
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/ThriftServerConnectionFactory.h>
 
 #include <algorithm>
+#include <exception>
+#include <functional>
 #include <memory>
+#include <new>
+#include <optional>
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
+#include <variant>
 
 #include <folly/io/IOBuf.h>
 #include <folly/logging/xlog.h>
@@ -31,18 +36,11 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineStorage.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/handler/FrameCodecHandler.h>
-#include <thrift/lib/cpp2/fast_thrift/frame/read/AlignedParser.h>
-#include <thrift/lib/cpp2/fast_thrift/frame/read/FrameLengthParser.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/handler/FrameDefragmentationHandler.h>
-#include <thrift/lib/cpp2/fast_thrift/frame/write/handler/FragmentCompletionTracker.h>
-#include <thrift/lib/cpp2/fast_thrift/frame/write/handler/FrameFragmentationHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/handler/FrameLengthEncoderHandler.h>
-#include <thrift/lib/cpp2/fast_thrift/frame/write/handler/IntervalBatchingFrameHandler.h>
-#include <thrift/lib/cpp2/fast_thrift/frame/write/handler/WriteCompletionTracker.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/common/RocketStreamContext.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/common/handler/RocketMetricsHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/server/Event.h>
-#include <thrift/lib/cpp2/fast_thrift/rocket/server/RocketServerEventFactory.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/server/common/RocketServerConnection.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/server/handler/RocketServerKeepAliveHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/server/handler/RocketServerMessageMarshalHandler.h>
@@ -50,11 +48,16 @@
 #include <thrift/lib/cpp2/fast_thrift/rocket/server/handler/RocketServerStreamStateHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/server/handler/RocketServerWriteCompletionHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/common/handler/ThriftMetricsHandler.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/RocketServerPipeline.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/SetupResponseBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/adapter/MetadataAppAdapter.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/adapter/ThriftServerCompositeAppAdapter.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/Event.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/ReadBackpressureArbiter.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/CachedEkmExtension.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/event_handler/Cpp2BridgeExtension.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/handler/ConcurrencyControlHandler.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/handler/ThriftServerBackpressureHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/handler/ThriftServerChecksumHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/handler/ThriftServerCompressionHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/handler/ThriftServerConnectionCloseHandler.h>
@@ -62,7 +65,7 @@
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/handler/ThriftServerRequestLifecycleHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/handler/ThriftServerSetupHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/handler/ThriftServerStreamMuxHandler.h>
-#include <thrift/lib/cpp2/fast_thrift/thrift/server/handler/WriteBufferBackpressureHandler.h>
+#include <thrift/lib/cpp2/server/Cpp2ConnContext.h>
 
 namespace apache::thrift::fast_thrift::thrift::server {
 
@@ -72,135 +75,25 @@ using channel_pipeline::PipelineImpl;
 using channel_pipeline::PipelineOwner;
 using channel_pipeline::SimpleBufferAllocator;
 
-// Both write-path handlers carry their completion tracker. The trackers form a
-// chain — the
-// transport's per-writev completion becomes the batcher's per-batch event,
-// which the fragmenter resolves into the per-frame completion the rocket layer
-// consumes — and each stage's only subscriber is the next one, so a NoOp
-// tracker anywhere strands every event below it with nowhere to go. Both
-// batching aliases inherit their FlushWritesEvent subscription from the
-// tracker, so either backpressure policy still flushes before teardown.
-using ServerBatchingFrameHandler =
-    frame::write::handler::IntervalBatchingFrameHandlerT<
-        frame::write::handler::WriteCompletionTrackerT<
-            rocket::server::RocketServerEventFactory>>;
-using ServerFragmentationFrameHandler =
-    frame::write::handler::FrameFragmentationHandlerT<
-        frame::write::handler::FragmentCompletionTrackerT<
-            rocket::server::RocketServerEventFactory>>;
+template <typename Context>
+using ThriftServerConcurrencyControlHandler =
+    ConcurrencyControlHandler<Context, ThriftServerRequestCompletedEvent>;
 
-// Catch an accidentally disabled fragment completion tracker at the pipeline
-// assembly seam, where it would otherwise strand batch completion events.
-static_assert(
-    !std::same_as<
-        typename ServerFragmentationFrameHandler::SubscribedEvents,
-        channel_pipeline::Events<>>,
-    "the fragmenter is the batcher's only BatchWriteComplete subscriber in "
-    "the server pipeline; a NoOp tracker here would strand it");
-
-HANDLER_TAG(batching_frame_handler);
-HANDLER_TAG(frame_length_encoder_handler);
-HANDLER_TAG(frame_codec_handler);
-HANDLER_TAG(frame_defragmentation_handler);
-HANDLER_TAG(frame_fragmentation_handler);
-HANDLER_TAG(server_write_completion_handler);
-HANDLER_TAG(rocket_server_message_marshal_handler);
-HANDLER_TAG(server_setup_frame_handler);
-HANDLER_TAG(server_keepalive_handler);
-HANDLER_TAG(server_request_response_frame_handler);
-HANDLER_TAG(server_stream_state_handler);
 HANDLER_TAG(thrift_server_request_context_handler);
 HANDLER_TAG(thrift_server_request_lifecycle_handler);
 HANDLER_TAG(thrift_server_compression_handler);
 HANDLER_TAG(thrift_server_checksum_handler);
 HANDLER_TAG(thrift_server_connection_close_handler);
-HANDLER_TAG(write_buffer_backpressure_handler);
+HANDLER_TAG(thrift_server_backpressure_handler);
 HANDLER_TAG(thrift_server_setup_handler);
 HANDLER_TAG(thrift_server_stream_mux_handler);
-
-template <bool WithStats, typename TransportHandler>
-PipelineOwner buildStaticRocketPipeline(
-    const ThriftServerConnectionFactoryConfig& config,
-    SimpleBufferAllocator* allocator,
-    folly::EventBase* evb,
-    TransportHandler* transportHandler,
-    rocket::server::RocketServerAppAdapter* appAdapter,
-    ServerStatsShard* FOLLY_NULLABLE statsShard) {
-  auto builder =
-      channel_pipeline::StaticPipelineBuilder<
-          TransportHandler,
-          rocket::server::RocketServerAppAdapter,
-          SimpleBufferAllocator>()
-          .setEventBase(evb)
-          .setHead(transportHandler)
-          .setTail(appAdapter)
-          .setAllocator(allocator)
-          .template addState<rocket::RocketStreamContexts>()
-          .template addNextOutbound<ServerBatchingFrameHandler>(
-              batching_frame_handler_tag, config.batchingConfig)
-          .template addNextOutbound<
-              frame::write::handler::FrameLengthEncoderHandler>(
-              frame_length_encoder_handler_tag)
-          .template addNextDuplex<frame::handler::FrameCodecHandler>(
-              frame_codec_handler_tag)
-          .template addNextInbound<
-              frame::read::handler::FrameDefragmentationHandler>(
-              frame_defragmentation_handler_tag)
-          .template addNextOutbound<ServerFragmentationFrameHandler>(
-              frame_fragmentation_handler_tag, config.fragmentationConfig)
-          .template addNextDuplex<
-              rocket::server::handler::RocketServerWriteCompletionHandler>(
-              server_write_completion_handler_tag)
-          .template addNextDuplex<
-              rocket::server::handler::RocketServerMessageMarshalHandler>(
-              rocket_server_message_marshal_handler_tag)
-          .template addNextDuplex<
-              rocket::server::handler::RocketServerSetupFrameHandler>(
-              server_setup_frame_handler_tag)
-          .template addNextDuplex<
-              rocket::server::handler::RocketServerKeepAliveHandler>(
-              server_keepalive_handler_tag)
-          .template addNextDuplex<
-              rocket::server::handler::RocketServerRequestResponseHandler>(
-              server_request_response_frame_handler_tag)
-          .template addNextDuplex<
-              rocket::server::handler::RocketServerStreamStateHandler>(
-              server_stream_state_handler_tag, config.enableCancellation);
-  if constexpr (WithStats) {
-    return PipelineOwner(
-        std::move(builder)
-            .template addNextDuplex<
-                RocketMetricsHandler<Direction::Server, ServerStatsShard>>(
-                rocket_metrics_handler_tag, CHECK_NOTNULL(statsShard))
-            .build());
-  } else {
-    return PipelineOwner(std::move(builder).build());
-  }
-}
-
-template <typename TransportHandler>
-PipelineOwner selectStaticRocketStats(
-    const ThriftServerConnectionFactoryConfig& config,
-    SimpleBufferAllocator* allocator,
-    folly::EventBase* evb,
-    TransportHandler* transportHandler,
-    rocket::server::RocketServerAppAdapter* appAdapter,
-    ServerStatsShard* FOLLY_NULLABLE statsShard) {
-  if (statsShard != nullptr) {
-    return buildStaticRocketPipeline<true>(
-        config, allocator, evb, transportHandler, appAdapter, statsShard);
-  }
-  return buildStaticRocketPipeline<false>(
-      config, allocator, evb, transportHandler, appAdapter, statsShard);
-}
+HANDLER_TAG(thrift_server_concurrency_control_handler);
 
 template <bool WithCancellation, bool WithStreamMux, typename Builder>
-PipelineOwner finishStaticThriftPipelineTail(Builder&& builder) {
+PipelineOwner finishStaticThriftPipelineTailImpl(Builder&& builder) {
   if constexpr (WithCancellation && WithStreamMux) {
     return PipelineOwner(
         std::forward<Builder>(builder)
-            .template addNextDuplexTemplate<ThriftServerSetupHandler>(
-                thrift_server_setup_handler_tag)
             .template addNextDuplexTemplate<
                 ThriftServerRequestLifecycleHandler>(
                 thrift_server_request_lifecycle_handler_tag)
@@ -210,8 +103,6 @@ PipelineOwner finishStaticThriftPipelineTail(Builder&& builder) {
   } else if constexpr (WithCancellation) {
     return PipelineOwner(
         std::forward<Builder>(builder)
-            .template addNextDuplexTemplate<ThriftServerSetupHandler>(
-                thrift_server_setup_handler_tag)
             .template addNextDuplexTemplate<
                 ThriftServerRequestLifecycleHandler>(
                 thrift_server_request_lifecycle_handler_tag)
@@ -219,44 +110,64 @@ PipelineOwner finishStaticThriftPipelineTail(Builder&& builder) {
   } else if constexpr (WithStreamMux) {
     return PipelineOwner(
         std::forward<Builder>(builder)
-            .template addNextDuplexTemplate<ThriftServerSetupHandler>(
-                thrift_server_setup_handler_tag)
             .template addNextDuplexTemplate<ThriftServerStreamMuxHandler>(
                 thrift_server_stream_mux_handler_tag)
             .build());
   } else {
-    return PipelineOwner(
-        std::forward<Builder>(builder)
-            .template addNextDuplexTemplate<ThriftServerSetupHandler>(
-                thrift_server_setup_handler_tag)
-            .build());
+    return PipelineOwner(std::forward<Builder>(builder).build());
   }
+}
+
+template <bool WithCancellation, bool WithStreamMux, typename Builder>
+PipelineOwner finishStaticThriftPipelineTail(
+    Builder&& builder, const ThriftServerConnectionFactoryConfig& config) {
+  auto withSetup =
+      std::forward<Builder>(builder)
+          .template addNextDuplexTemplate<ThriftServerSetupHandler>(
+              thrift_server_setup_handler_tag);
+  if (config.requestConcurrencyLimits) {
+    const auto& limits = *config.requestConcurrencyLimits;
+    return finishStaticThriftPipelineTailImpl<WithCancellation, WithStreamMux>(
+        std::move(withSetup)
+            .template addNextDuplexTemplate<
+                ThriftServerConcurrencyControlHandler>(
+                thrift_server_concurrency_control_handler_tag,
+                limits.maxActiveRequests,
+                limits.maxOutstandingRequests,
+                std::ref(*config.concurrencyState)));
+  }
+  return finishStaticThriftPipelineTailImpl<WithCancellation, WithStreamMux>(
+      std::move(withSetup));
 }
 
 template <typename Builder>
 PipelineOwner selectStaticThriftPipelineTail(
-    Builder&& builder, bool enableCancellation, bool enableStreamMux) {
+    Builder&& builder,
+    bool enableCancellation,
+    bool enableStreamMux,
+    const ThriftServerConnectionFactoryConfig& config) {
   if (enableCancellation) {
     if (enableStreamMux) {
       return finishStaticThriftPipelineTail<true, true>(
-          std::forward<Builder>(builder));
+          std::forward<Builder>(builder), config);
     }
     return finishStaticThriftPipelineTail<true, false>(
-        std::forward<Builder>(builder));
+        std::forward<Builder>(builder), config);
   }
   if (enableStreamMux) {
     return finishStaticThriftPipelineTail<false, true>(
-        std::forward<Builder>(builder));
+        std::forward<Builder>(builder), config);
   }
   return finishStaticThriftPipelineTail<false, false>(
-      std::forward<Builder>(builder));
+      std::forward<Builder>(builder), config);
 }
 
 template <bool WithExtensions, typename Builder>
 PipelineOwner finishStaticThriftPipeline(
     Builder&& builder,
     const ThriftServerConnectionFactoryConfig& config,
-    ExtensionStateStore& extensionStates) {
+    ExtensionStateStore& extensionStates,
+    std::optional<channel_pipeline::detail::ErasedStaticHandler>& negotiation) {
   if constexpr (WithExtensions) {
     const bool hasSegments = std::any_of(
         config.thriftPipelineRegistrations.begin(),
@@ -264,7 +175,8 @@ PipelineOwner finishStaticThriftPipeline(
         [](const auto& registration) { return registration.isSegment(); });
     if (hasSegments) {
       std::vector<channel_pipeline::detail::ErasedStaticSegment> segments;
-      segments.reserve(config.thriftPipelineRegistrations.size());
+      segments.reserve(
+          config.thriftPipelineRegistrations.size() + negotiation.has_value());
       for (const auto& registration : config.thriftPipelineRegistrations) {
         if (registration.isSegment()) {
           segments.push_back(registration.makeStaticSegment(extensionStates));
@@ -274,60 +186,65 @@ PipelineOwner finishStaticThriftPipeline(
                   registration.makeStaticHandler(extensionStates)));
         }
       }
+      if (negotiation) {
+        segments.push_back(
+            channel_pipeline::makeErasedStaticHandlerSegment(
+                std::move(*negotiation)));
+      }
       return selectStaticThriftPipelineTail(
           std::forward<Builder>(builder).addStaticSegments(std::move(segments)),
           config.enableCancellation,
-          config.enableStreamMux);
+          config.enableStreamMux,
+          config);
     }
     std::vector<channel_pipeline::detail::ErasedStaticHandler> handlers;
-    handlers.reserve(config.thriftPipelineRegistrations.size());
+    handlers.reserve(
+        config.thriftPipelineRegistrations.size() + negotiation.has_value());
     for (const auto& registration : config.thriftPipelineRegistrations) {
       handlers.push_back(registration.makeStaticHandler(extensionStates));
+    }
+    if (negotiation) {
+      handlers.push_back(std::move(*negotiation));
     }
     return selectStaticThriftPipelineTail(
         std::forward<Builder>(builder).addStaticHandlers(std::move(handlers)),
         config.enableCancellation,
-        config.enableStreamMux);
+        config.enableStreamMux,
+        config);
   } else {
     return selectStaticThriftPipelineTail(
         std::forward<Builder>(builder),
         config.enableCancellation,
-        config.enableStreamMux);
+        config.enableStreamMux,
+        config);
   }
 }
 
-template <bool WithWriteBuffer, bool WithExtensions, typename Builder>
-PipelineOwner addStaticWriteBuffer(
+template <bool WithExtensions, typename Builder>
+PipelineOwner addStaticBackpressure(
     Builder&& builder,
     const ThriftServerConnectionFactoryConfig& config,
     ExtensionStateStore& extensionStates,
+    std::optional<channel_pipeline::detail::ErasedStaticHandler>& negotiation,
     ReadBackpressureArbiter& readBackpressureArbiter) {
-  if constexpr (WithWriteBuffer) {
-    return finishStaticThriftPipeline<WithExtensions>(
-        std::forward<Builder>(builder)
-            .template addNextDuplexTemplate<WriteBufferBackpressureHandler>(
-                write_buffer_backpressure_handler_tag,
-                &readBackpressureArbiter),
-        config,
-        extensionStates);
-  } else {
-    return finishStaticThriftPipeline<WithExtensions>(
-        std::forward<Builder>(builder), config, extensionStates);
-  }
+  return finishStaticThriftPipeline<WithExtensions>(
+      std::forward<Builder>(builder)
+          .template addNextDuplexTemplate<ThriftServerBackpressureHandler>(
+              thrift_server_backpressure_handler_tag, &readBackpressureArbiter),
+      config,
+      extensionStates,
+      negotiation);
 }
 
-template <
-    bool WithChecksum,
-    bool WithWriteBuffer,
-    bool WithExtensions,
-    typename Builder>
+template <bool WithChecksum, bool WithExtensions, typename Builder>
 PipelineOwner addStaticChecksum(
     Builder&& builder,
     const ThriftServerConnectionFactoryConfig& config,
     ExtensionStateStore& extensionStates,
+    std::optional<channel_pipeline::detail::ErasedStaticHandler>& negotiation,
     ReadBackpressureArbiter& readBackpressureArbiter) {
   if constexpr (WithChecksum) {
-    return addStaticWriteBuffer<WithWriteBuffer, WithExtensions>(
+    return addStaticBackpressure<WithExtensions>(
         std::forward<Builder>(builder)
             .template addNextDuplexTemplate<ThriftServerChecksumHandler>(
                 thrift_server_checksum_handler_tag)
@@ -337,9 +254,10 @@ PipelineOwner addStaticChecksum(
                 config.reapTimeout),
         config,
         extensionStates,
+        negotiation,
         readBackpressureArbiter);
   } else {
-    return addStaticWriteBuffer<WithWriteBuffer, WithExtensions>(
+    return addStaticBackpressure<WithExtensions>(
         std::forward<Builder>(builder)
             .template addNextDuplexTemplate<ThriftServerConnectionCloseHandler>(
                 thrift_server_connection_close_handler_tag,
@@ -347,26 +265,25 @@ PipelineOwner addStaticChecksum(
                 config.reapTimeout),
         config,
         extensionStates,
+        negotiation,
         readBackpressureArbiter);
   }
 }
 
-template <
-    bool WithChecksum,
-    bool WithWriteBuffer,
-    bool WithExtensions,
-    typename Builder>
+template <bool WithChecksum, bool WithExtensions, typename Builder>
 PipelineOwner addStaticCompression(
     Builder&& builder,
     const ThriftServerConnectionFactoryConfig& config,
     ExtensionStateStore& extensionStates,
+    std::optional<channel_pipeline::detail::ErasedStaticHandler>& negotiation,
     ReadBackpressureArbiter& readBackpressureArbiter) {
-  return addStaticChecksum<WithChecksum, WithWriteBuffer, WithExtensions>(
+  return addStaticChecksum<WithChecksum, WithExtensions>(
       std::forward<Builder>(builder)
           .template addNextDuplexTemplate<ThriftServerCompressionHandler>(
               thrift_server_compression_handler_tag),
       config,
       extensionStates,
+      negotiation,
       readBackpressureArbiter);
 }
 
@@ -374,7 +291,6 @@ template <
     bool WithStats,
     bool WithHeaders,
     bool WithChecksum,
-    bool WithWriteBuffer,
     bool WithExtensions,
     typename TailAdapter>
 PipelineOwner buildStaticThriftPipeline(
@@ -384,6 +300,7 @@ PipelineOwner buildStaticThriftPipeline(
     SimpleBufferAllocator* allocator,
     boost::intrusive_ptr<ThriftConnContext> connContext,
     ExtensionStateStore& extensionStates,
+    std::optional<channel_pipeline::detail::ErasedStaticHandler>& negotiation,
     const ThriftServerConnectionFactoryConfig& config,
     ServerStatsShard* statsShard) {
   auto builder = channel_pipeline::StaticPipelineBuilder<
@@ -396,7 +313,7 @@ PipelineOwner buildStaticThriftPipeline(
                      .setAllocator(allocator);
   auto& readBackpressureArbiter = connContext->readBackpressureArbiter();
   if constexpr (WithStats) {
-    return addStaticCompression<WithChecksum, WithWriteBuffer, WithExtensions>(
+    return addStaticCompression<WithChecksum, WithExtensions>(
         std::move(builder)
             .template addNextDuplex<
                 ThriftMetricsHandler<Direction::Server, ServerStatsShard>>(
@@ -409,9 +326,10 @@ PipelineOwner buildStaticThriftPipeline(
                 WithHeaders),
         config,
         extensionStates,
+        negotiation,
         readBackpressureArbiter);
   } else {
-    return addStaticCompression<WithChecksum, WithWriteBuffer, WithExtensions>(
+    return addStaticCompression<WithChecksum, WithExtensions>(
         std::move(builder)
             .template addNextDuplexTemplate<ThriftServerRequestContextHandler>(
                 thrift_server_request_context_handler_tag,
@@ -421,6 +339,7 @@ PipelineOwner buildStaticThriftPipeline(
                 WithHeaders),
         config,
         extensionStates,
+        negotiation,
         readBackpressureArbiter);
   }
 }
@@ -429,24 +348,22 @@ template <
     bool WithStats,
     bool WithHeaders,
     bool WithChecksum,
-    bool WithWriteBuffer,
     typename TailAdapter>
 PipelineOwner selectStaticExtensions(
-    bool withExtensions,
+    const ThriftServerConnectionFactoryConfig& config,
     folly::EventBase* evb,
     ThriftServerTransportAdapter* transportAdapter,
     TailAdapter* tailAdapter,
     SimpleBufferAllocator* allocator,
     boost::intrusive_ptr<ThriftConnContext> connContext,
     ExtensionStateStore& extensionStates,
-    const ThriftServerConnectionFactoryConfig& config,
+    std::optional<channel_pipeline::detail::ErasedStaticHandler>& negotiation,
     ServerStatsShard* statsShard) {
-  if (withExtensions) {
+  if (negotiation || !config.thriftPipelineRegistrations.empty()) {
     return buildStaticThriftPipeline<
         WithStats,
         WithHeaders,
         WithChecksum,
-        WithWriteBuffer,
         true>(
         evb,
         transportAdapter,
@@ -454,60 +371,18 @@ PipelineOwner selectStaticExtensions(
         allocator,
         std::move(connContext),
         extensionStates,
+        negotiation,
         config,
         statsShard);
   }
-  return buildStaticThriftPipeline<
-      WithStats,
-      WithHeaders,
-      WithChecksum,
-      WithWriteBuffer,
-      false>(
+  return buildStaticThriftPipeline<WithStats, WithHeaders, WithChecksum, false>(
       evb,
       transportAdapter,
       tailAdapter,
       allocator,
       std::move(connContext),
       extensionStates,
-      config,
-      statsShard);
-}
-
-template <
-    bool WithStats,
-    bool WithHeaders,
-    bool WithChecksum,
-    typename TailAdapter>
-PipelineOwner selectStaticWriteBuffer(
-    const ThriftServerConnectionFactoryConfig& config,
-    folly::EventBase* evb,
-    ThriftServerTransportAdapter* transportAdapter,
-    TailAdapter* tailAdapter,
-    SimpleBufferAllocator* allocator,
-    boost::intrusive_ptr<ThriftConnContext> connContext,
-    ExtensionStateStore& extensionStates,
-    ServerStatsShard* statsShard) {
-  const bool withExtensions = !config.thriftPipelineRegistrations.empty();
-  if (config.enableWriteBufferBackpressure) {
-    return selectStaticExtensions<WithStats, WithHeaders, WithChecksum, true>(
-        withExtensions,
-        evb,
-        transportAdapter,
-        tailAdapter,
-        allocator,
-        std::move(connContext),
-        extensionStates,
-        config,
-        statsShard);
-  }
-  return selectStaticExtensions<WithStats, WithHeaders, WithChecksum, false>(
-      withExtensions,
-      evb,
-      transportAdapter,
-      tailAdapter,
-      allocator,
-      std::move(connContext),
-      extensionStates,
+      negotiation,
       config,
       statsShard);
 }
@@ -521,9 +396,10 @@ PipelineOwner selectStaticChecksum(
     SimpleBufferAllocator* allocator,
     boost::intrusive_ptr<ThriftConnContext> connContext,
     ExtensionStateStore& extensionStates,
+    std::optional<channel_pipeline::detail::ErasedStaticHandler>& negotiation,
     ServerStatsShard* statsShard) {
   if (config.enableChecksum) {
-    return selectStaticWriteBuffer<WithStats, WithHeaders, true>(
+    return selectStaticExtensions<WithStats, WithHeaders, true>(
         config,
         evb,
         transportAdapter,
@@ -531,9 +407,10 @@ PipelineOwner selectStaticChecksum(
         allocator,
         std::move(connContext),
         extensionStates,
+        negotiation,
         statsShard);
   }
-  return selectStaticWriteBuffer<WithStats, WithHeaders, false>(
+  return selectStaticExtensions<WithStats, WithHeaders, false>(
       config,
       evb,
       transportAdapter,
@@ -541,6 +418,7 @@ PipelineOwner selectStaticChecksum(
       allocator,
       std::move(connContext),
       extensionStates,
+      negotiation,
       statsShard);
 }
 
@@ -553,6 +431,7 @@ PipelineOwner selectStaticHeaders(
     SimpleBufferAllocator* allocator,
     boost::intrusive_ptr<ThriftConnContext> connContext,
     ExtensionStateStore& extensionStates,
+    std::optional<channel_pipeline::detail::ErasedStaticHandler>& negotiation,
     ServerStatsShard* statsShard) {
   if (config.enableRequestHeaders) {
     return selectStaticChecksum<WithStats, true>(
@@ -563,6 +442,7 @@ PipelineOwner selectStaticHeaders(
         allocator,
         std::move(connContext),
         extensionStates,
+        negotiation,
         statsShard);
   }
   return selectStaticChecksum<WithStats, false>(
@@ -573,6 +453,7 @@ PipelineOwner selectStaticHeaders(
       allocator,
       std::move(connContext),
       extensionStates,
+      negotiation,
       statsShard);
 }
 
@@ -585,6 +466,7 @@ PipelineOwner selectStaticThriftStats(
     SimpleBufferAllocator* allocator,
     boost::intrusive_ptr<ThriftConnContext> connContext,
     ExtensionStateStore& extensionStates,
+    std::optional<channel_pipeline::detail::ErasedStaticHandler>& negotiation,
     ServerStatsShard* statsShard) {
   if (statsShard != nullptr) {
     return selectStaticHeaders<true>(
@@ -595,6 +477,7 @@ PipelineOwner selectStaticThriftStats(
         allocator,
         std::move(connContext),
         extensionStates,
+        negotiation,
         statsShard);
   }
   return selectStaticHeaders<false>(
@@ -605,6 +488,7 @@ PipelineOwner selectStaticThriftStats(
       allocator,
       std::move(connContext),
       extensionStates,
+      negotiation,
       statsShard);
 }
 } // namespace
@@ -632,6 +516,37 @@ detail::ThriftServerConnectionFactoryT<Mode>::ThriftServerConnectionFactoryT(
       throw std::logic_error(
           "Dynamic thrift pipeline handlers require "
           "DynamicFastThriftServer");
+    }
+  }
+  if (config_.requestConcurrencyLimits && !config_.concurrencyState) {
+    config_.concurrencyState =
+        std::make_shared<ConcurrencyControlStateHolder>();
+  }
+  config_.requiresCachedEkms |= std::any_of(
+      config_.thriftPipelineRegistrations.begin(),
+      config_.thriftPipelineRegistrations.end(),
+      [](const auto& registration) {
+        return registration.requiresCachedEkms();
+      });
+  bool bridgeRegistered = false;
+  bool cachePresent = false;
+  bool cacheRegistered = false;
+  if (config_.connExtensionLayout != nullptr) {
+    const auto* entries = config_.connExtensionLayout->entries();
+    for (std::size_t i = 0; i < config_.connExtensionLayout->entryCount();
+         ++i) {
+      bridgeRegistered |= entries[i].id == Cpp2BridgeExtension::kId;
+      cachePresent |= entries[i].id == CachedEkmExtension::kId;
+      cacheRegistered |= entries[i].id == CachedEkmExtension::kId &&
+          entries[i].deleter != nullptr;
+    }
+  }
+  config_.requiresCachedEkms &= cacheRegistered;
+  if (bridgeRegistered) {
+    config_.requiresCachedEkms = false;
+    if (cachePresent) {
+      config_.connExtensionLayout = std::make_shared<const ExtensionLayout>(
+          withoutCachedEkmExtension(*config_.connExtensionLayout));
     }
   }
   if (!needsComposite_) {
@@ -667,11 +582,52 @@ detail::ThriftServerConnectionFactoryT<Mode>::ThriftServerConnectionFactoryT(
 }
 
 template <ChannelPipelineMode Mode>
+connection::PreStopTLSEkmCapture detail::ThriftServerConnectionFactoryT<
+    Mode>::getPreStopTLSEkmCapture() const noexcept {
+  if (!config_.requiresCachedEkms) {
+    return {};
+  }
+  return connection::PreStopTLSEkmCapture{
+      .owner = nullptr,
+      .capture = +[](void*, const folly::AsyncTransport& transport) {
+        return apache::thrift::detail::populateCachedEkms(transport);
+      }};
+}
+
+template <ChannelPipelineMode Mode>
 ThriftServerConnection
 detail::ThriftServerConnectionFactoryT<Mode>::getConnection(
     folly::AsyncTransport::UniquePtr socket,
     const folly::SocketAddress& clientAddr,
-    const std::shared_ptr<const connection::PeerSecurityInfo>& peerSecurity) {
+    std::unique_ptr<connection::PeerSecurityInfo> peerSecurity) {
+  return getConnectionImpl(
+             std::move(socket),
+             clientAddr,
+             std::move(peerSecurity),
+             EkmAllocationFailure::Propagate)
+      .value();
+}
+
+template <ChannelPipelineMode Mode>
+std::optional<ThriftServerConnection>
+detail::ThriftServerConnectionFactoryT<Mode>::tryGetConnectionForAccept(
+    folly::AsyncTransport::UniquePtr socket,
+    const folly::SocketAddress& clientAddr,
+    std::unique_ptr<connection::PeerSecurityInfo> peerSecurity) {
+  return getConnectionImpl(
+      std::move(socket),
+      clientAddr,
+      std::move(peerSecurity),
+      EkmAllocationFailure::DropConnection);
+}
+
+template <ChannelPipelineMode Mode>
+std::optional<ThriftServerConnection>
+detail::ThriftServerConnectionFactoryT<Mode>::getConnectionImpl(
+    folly::AsyncTransport::UniquePtr socket,
+    const folly::SocketAddress& clientAddr,
+    std::unique_ptr<connection::PeerSecurityInfo> peerSecurity,
+    EkmAllocationFailure onEkmAllocationFailure) {
   boost::intrusive_ptr<ThriftConnContext> connContext{new ThriftConnContext()};
   if (config_.connExtensionLayout != nullptr) {
     connContext->installExtensions(*config_.connExtensionLayout);
@@ -686,6 +642,30 @@ detail::ThriftServerConnectionFactoryT<Mode>::getConnection(
   if (peerSecurity != nullptr) {
     connContext->setPeerCertificate(peerSecurity->peerCertificate);
     connContext->setSecurityProtocol(peerSecurity->securityProtocol);
+  }
+  if (config_.requiresCachedEkms) {
+    try {
+      CachedEkmExtension::ConnState entries;
+      if (peerSecurity != nullptr && peerSecurity->capturedEkms) {
+        entries = std::move(*peerSecurity->capturedEkms);
+      } else {
+        try {
+          entries = apache::thrift::detail::populateCachedEkms(*socket);
+        } catch (const std::bad_alloc&) {
+          throw;
+        } catch (...) {
+          throw connection::CachedEkmCaptureFailure{std::current_exception()};
+        }
+      }
+      auto cache =
+          std::make_unique<CachedEkmExtension::ConnState>(std::move(entries));
+      connContext->adoptState<CachedEkmExtension>(cache.release());
+    } catch (const std::bad_alloc&) {
+      if (onEkmAllocationFailure == EkmAllocationFailure::DropConnection) {
+        return std::nullopt;
+      }
+      throw;
+    }
   }
 
   ThriftServerConnection conn = needsComposite_
@@ -801,35 +781,8 @@ detail::ThriftServerConnectionFactoryT<Mode>::buildCompositeConnection(
       std::move(connContext));
 }
 
-template <ChannelPipelineMode Mode>
-template <transport::Parser ParserT>
-void detail::ThriftServerConnectionFactoryT<Mode>::initializeRocketConnection(
-    folly::AsyncTransport::UniquePtr socket,
-    folly::EventBase* evb,
-    rocket::server::RocketServerConnection& rocketConnection,
-    ServerStatsShard* FOLLY_NULLABLE statsShard) {
-  using TransportHandler = transport::
-      TransportHandlerT<rocket::server::RocketServerEventFactory, ParserT>;
-  typename TransportHandler::Ptr transportHandler =
-      TransportHandler::createWithParser(std::move(socket), ParserT{});
-  PipelineOwner pipeline =
-      buildRocketPipeline<channel_pipeline::pipeline_storage::Medium>(
-          evb,
-          transportHandler.get(),
-          rocketConnection.appAdapter.get(),
-          statsShard);
-  rocketConnection.appAdapter->setPipeline(pipeline.get());
-  transportHandler->setPipeline(pipeline.get());
-
-  if (config_.zeroCopyThreshold > 0) {
-    if (!transportHandler->setZeroCopy(true)) {
-      XLOG(WARN) << "MSG_ZEROCOPY not supported on this socket";
-    }
-    transportHandler->setZeroCopyEnableThreshold(config_.zeroCopyThreshold);
-  }
-  rocketConnection.transportHandler =
-      rocket::server::AnyTransportHandler(std::move(transportHandler));
-  rocketConnection.pipeline = std::move(pipeline);
+void detail::warnZeroCopyNotSupported() {
+  XLOG(WARN) << "MSG_ZEROCOPY not supported on this socket";
 }
 
 template <ChannelPipelineMode Mode>
@@ -859,26 +812,34 @@ detail::ThriftServerConnectionFactoryT<Mode>::buildConnectionImpl(
   conn.tail = std::move(tail);
 
   std::unique_ptr<rocket::server::RocketServerConnection> rocketConnection;
-  std::optional<channel_pipeline::detail::HandlerNode>
-      transportNegotiationHandler;
+  using NegotiationHandler = std::conditional_t<
+      Mode == ChannelPipelineMode::Static,
+      channel_pipeline::detail::ErasedStaticHandler,
+      channel_pipeline::detail::HandlerNode>;
+  std::optional<NegotiationHandler> transportNegotiationHandler;
   if (config_.rocketConnectionBuilder) {
     auto buildResult = config_.rocketConnectionBuilder(
         std::move(socket), clientAddr, statsShard);
     rocketConnection = std::move(buildResult.connection);
-    transportNegotiationHandler =
-        std::move(buildResult.transportNegotiationHandler);
+    if (buildResult.transportNegotiationHandler) {
+      auto* handler = std::get_if<NegotiationHandler>(
+          &*buildResult.transportNegotiationHandler);
+      CHECK(handler) << "RocketServerConnectionBuilder returned a "
+                        "negotiation handler for the wrong pipeline mode";
+      transportNegotiationHandler.emplace(std::move(*handler));
+    }
     CHECK(rocketConnection)
         << "RocketServerConnectionBuilder returned a null connection";
   } else {
-    rocketConnection =
-        std::make_unique<rocket::server::RocketServerConnection>();
-    if (config_.useAlignedParser) {
-      initializeRocketConnection<frame::read::AlignedParser>(
-          std::move(socket), evb, *rocketConnection, statsShard);
-    } else {
-      initializeRocketConnection<frame::read::FrameLengthParser>(
-          std::move(socket), evb, *rocketConnection, statsShard);
-    }
+    rocketConnection = detail::buildRocketServerConnection(
+        std::move(socket),
+        config_,
+        [&](auto* transportHandler,
+            rocket::server::RocketServerAppAdapter* appAdapter) {
+          return buildRocketPipeline<
+              channel_pipeline::pipeline_storage::Medium>(
+              evb, transportHandler, appAdapter, statsShard);
+        });
   }
 
   conn.thriftTransportAdapter = std::make_unique<ThriftServerTransportAdapter>(
@@ -900,16 +861,16 @@ detail::ThriftServerConnectionFactoryT<Mode>::buildConnectionImpl(
       ThriftServerConnectionCloseHandler<channel_pipeline::detail::ContextImpl>;
   using RequestLifecycleHandler = ThriftServerRequestLifecycleHandler<
       channel_pipeline::detail::ContextImpl>;
-  using WriteBufferHandler =
-      WriteBufferBackpressureHandler<channel_pipeline::detail::ContextImpl>;
+  using BackpressureHandler =
+      ThriftServerBackpressureHandler<channel_pipeline::detail::ContextImpl>;
   using SetupHandler =
       ThriftServerSetupHandler<channel_pipeline::detail::ContextImpl>;
   using MuxHandler =
       ThriftServerStreamMuxHandler<channel_pipeline::detail::ContextImpl>;
+  using ConcurrencyHandler = ThriftServerConcurrencyControlHandler<
+      channel_pipeline::detail::ContextImpl>;
   PipelineOwner thriftPipeline;
   if constexpr (Mode == ChannelPipelineMode::Static) {
-    CHECK(!transportNegotiationHandler)
-        << "Static server cannot install a dynamic negotiation handler";
     thriftPipeline = selectStaticThriftStats(
         config_,
         evb,
@@ -918,6 +879,7 @@ detail::ThriftServerConnectionFactoryT<Mode>::buildConnectionImpl(
         &conn.thriftAllocator,
         std::move(connContext),
         conn.extensionStates,
+        transportNegotiationHandler,
         statsShard);
   } else {
     auto& readBackpressureArbiter = connContext->readBackpressureArbiter();
@@ -969,15 +931,13 @@ detail::ThriftServerConnectionFactoryT<Mode>::buildConnectionImpl(
         thrift_server_connection_close_handler_tag,
         config_.drainTimeout,
         config_.reapTimeout);
-    // Write-buffer handler sits between the context handler and the drain
+    // Backpressure handler sits between the context handler and the drain
     // handler. Placed above drain (closer to head) so its inbound
     // Backpressure signal propagates upstream toward the transport, and
-    // outbound responses from the tail traverse drain → write-buffer →
+    // outbound responses from the tail traverse drain → backpressure →
     // head.
-    if (config_.enableWriteBufferBackpressure) {
-      thriftPipelineBuilder.template addNextDuplex<WriteBufferHandler>(
-          write_buffer_backpressure_handler_tag, &readBackpressureArbiter);
-    }
+    thriftPipelineBuilder.template addNextDuplex<BackpressureHandler>(
+        thrift_server_backpressure_handler_tag, &readBackpressureArbiter);
     // Embedder-registered handlers go after all built-ins, in registration
     // order — the first sits closest to the head, the last immediately above
     // the tail adapter. Each factory constructs a fresh per-connection
@@ -999,6 +959,14 @@ detail::ThriftServerConnectionFactoryT<Mode>::buildConnectionImpl(
     // requests.
     thriftPipelineBuilder.template addNextDuplex<SetupHandler>(
         thrift_server_setup_handler_tag);
+    if (config_.requestConcurrencyLimits) {
+      const auto& limits = *config_.requestConcurrencyLimits;
+      thriftPipelineBuilder.template addNextDuplex<ConcurrencyHandler>(
+          thrift_server_concurrency_control_handler_tag,
+          limits.maxActiveRequests,
+          limits.maxOutstandingRequests,
+          std::ref(*config_.concurrencyState));
+    }
     if (config_.enableCancellation) {
       thriftPipelineBuilder.template addNextDuplex<RequestLifecycleHandler>(
           thrift_server_request_lifecycle_handler_tag);
@@ -1032,7 +1000,8 @@ PipelineOwner detail::ThriftServerConnectionFactoryT<Mode>::buildRocketPipeline(
     rocket::server::RocketServerAppAdapter* appAdapter,
     ServerStatsShard* FOLLY_NULLABLE statsShard) {
   if constexpr (Mode == ChannelPipelineMode::Static) {
-    return selectStaticRocketStats(
+    return detail::selectStaticRocketStats<
+        channel_pipeline::NoHandlerOverrides>(
         config_,
         &rocketAllocator_,
         evb,
@@ -1072,11 +1041,13 @@ PipelineOwner detail::ThriftServerConnectionFactoryT<Mode>::buildRocketPipeline(
     // Fragmenter composed with the fragment-completion tracker. It records each
     // frame's streamId on the way down — below this handler the frame is
     // serialized bytes and the stream is no longer recoverable — and fans the
-    // batcher's batch event back out into one completion per original frame. It
-    // is also the only handler that can narrow the batcher's quiescence
-    // verdict, since the frames it is still holding are invisible from below.
+    // batcher's batch event back out into one completion per original frame.
+    //
+    // It holds no frame between writes. While it splits a frame, the fragments
+    // it has not written yet are invisible from below, so it is the only
+    // handler that can narrow the batcher's quiescence verdict.
     builder.template addNextOutbound<ServerFragmentationFrameHandler>(
-        frame_fragmentation_handler_tag, config_.fragmentationConfig);
+        frame_fragmentation_handler_tag);
     builder
         // Restates the fragmenter's frame-layer completion as the rocket
         // layer's own, so nothing above the rocket boundary subscribes to a

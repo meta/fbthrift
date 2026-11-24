@@ -19,6 +19,7 @@
 {{#import "common/types" as types}}
 {{#import "common/metadata" as metadata}}
 {{#partial common.auto_generated}}
+  {{#let function_batches = (array.chunk service.metadata_functions chunk_size=100)}}
 
 package {{service.program.javaPackage}};
 
@@ -41,31 +42,31 @@ import com.facebook.thrift.metadata.ThriftType;
 
 public class {{service.javaCapitalName}}ThriftMetadataHandler implements com.facebook.thrift.server.ThriftMetadataHandler {
 
-    {{#each (array.enumerate service.function_batches) as |batch_index funcs|}}
+  {{#each (array.enumerate function_batches) as |batch_index funcs|}}
     private static void addFunctions_{{batch_index}}(List<ThriftFunction> functions) {
-        {{#each funcs as |func|}}
+    {{#each funcs as |func|}}
         {{#partial metadata.thrift_function func=func}}
-        {{/each}}
-    }
     {{/each}}
+    }
+  {{/each}}
 
     private static final ThriftService THRIFT_SERVICE;
 
-    {{#if (object.notnull? service.extends)}}
+  {{#if (object.notnull? service.extends)}}
     private static final com.facebook.thrift.server.ThriftMetadataHandler PARENT_HANDLER =
         new {{service.extends.java_qualified_name}}ThriftMetadataHandler();
-    {{/if (object.notnull? service.extends)}}
+  {{/if (object.notnull? service.extends)}}
 
     static {
         List<ThriftFunction> functions = new ArrayList<>();
-        {{#each (array.enumerate service.function_batches) as |batch_index funcs|}}
+  {{#each (array.enumerate function_batches) as |batch_index funcs|}}
         addFunctions_{{batch_index}}(functions);
-        {{/each}}
+  {{/each}}
         THRIFT_SERVICE = new ThriftService.Builder()
             .setName("{{service.java_qualified_name}}")
-            {{#if (object.notnull? service.extends)}}
+  {{#if (object.notnull? service.extends)}}
             .setParent("{{service.extends.java_qualified_name}}")
-            {{/if (object.notnull? service.extends)}}
+  {{/if (object.notnull? service.extends)}}
             .setFunctions(functions)
             .build();
     }

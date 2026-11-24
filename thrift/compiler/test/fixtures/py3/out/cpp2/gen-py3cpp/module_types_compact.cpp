@@ -80,4 +80,9 @@ template uint32_t AdaptedTypedefFields::write<>(apache::thrift::CompactProtocolW
 template uint32_t AdaptedTypedefFields::serializedSize<>(apache::thrift::CompactProtocolWriter const*) const;
 template uint32_t AdaptedTypedefFields::serializedSizeZC<>(apache::thrift::CompactProtocolWriter const*) const;
 
+template void StringAdaptedUnion::readNoXfer<>(apache::thrift::CompactProtocolReader*);
+template uint32_t StringAdaptedUnion::write<>(apache::thrift::CompactProtocolWriter*) const;
+template uint32_t StringAdaptedUnion::serializedSize<>(apache::thrift::CompactProtocolWriter const*) const;
+template uint32_t StringAdaptedUnion::serializedSizeZC<>(apache::thrift::CompactProtocolWriter const*) const;
+
 } // namespace py3::simple

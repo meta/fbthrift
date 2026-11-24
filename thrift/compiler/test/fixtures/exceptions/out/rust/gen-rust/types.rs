@@ -463,6 +463,13 @@ impl ::fbthrift::ThriftStruct for self::Serious {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for self::Serious {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.sonnet.is_none()
+    }
+}
+
 impl<P> ::fbthrift::Serialize<P> for self::Serious
 where
     P: ::fbthrift::ProtocolWriter,
@@ -1251,6 +1258,13 @@ impl ::fbthrift::ThriftStruct for self::Banal {
         static FIELDS: &[::fbthrift::Field] = &[
         ];
         FIELDS
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for self::Banal {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        true
     }
 }
 

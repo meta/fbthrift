@@ -37,3 +37,5 @@ Tests in thrift conformance are grouped. There are smoke test and regression tes
 ### Conformance tests
 
 - [Test Suites](testsuite/index.md)
+
+Tests tagged `spec/compatibility/` check for implementation behavior that is not covered by the Thrift spec. See [Implementation Compatibility](../../spec/compatibility/index.md).

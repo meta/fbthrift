@@ -47,6 +47,10 @@ class ServerConfigs;
 
 class RequestsRegistry;
 
+namespace io {
+class IOBufChainCursor;
+}
+
 namespace rocket {
 
 class RocketErrorHandler;
@@ -93,14 +97,28 @@ class RocketSetupProcessor {
   bool validateSetupFrameBasics(
       const SetupFrame& frame, IRocketServerConnection& connection);
 
+  template <typename Cursor>
+  bool readSetup(
+      Cursor& cursor,
+      RequestSetupMetadata& meta,
+      const SetupFrame& frame,
+      IRocketServerConnection& connection);
+
+  template <typename Cursor>
   bool validateProtocolKey(
-      folly::io::Cursor& cursor,
+      Cursor& cursor,
       const SetupFrame& frame,
       IRocketServerConnection& connection);
 
   bool deserializeSetupMetadata(
       RequestSetupMetadata& meta,
       folly::io::Cursor& cursor,
+      const SetupFrame& frame,
+      IRocketServerConnection& connection);
+
+  bool deserializeSetupMetadata(
+      RequestSetupMetadata& meta,
+      io::IOBufChainCursor& cursor,
       const SetupFrame& frame,
       IRocketServerConnection& connection);
 

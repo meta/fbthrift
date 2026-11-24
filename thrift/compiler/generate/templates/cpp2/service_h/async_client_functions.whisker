@@ -23,10 +23,10 @@
   {{#let function_comma = (if function.params.fields? ", " "")}}
   {{#if (not function.sink?)}}{{! includes bidi }}
     {{#if function.legacy_client_methods?}}
-{{#partial glean.function_docblock service=interface function=function}}
+  {{#partial glean.function_annotation service=interface function=function}}
   virtual void {{function.cpp_name}}(std::unique_ptr<apache::thrift::RequestCallback> callback{{function_comma}}{{#partial client.function_param_list function=function}});
     {{/if function.legacy_client_methods?}}
-{{#partial glean.function_docblock service=interface function=function}}
+  {{#partial glean.function_annotation service=interface function=function}}
   {{#if function.virtual_client_methods?}}virtual {{/if}}void {{function.cpp_name}}(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback{{#if function.creates_interaction?}}, const apache::thrift::InteractionHandle& handle{{/if}}{{function_comma}}{{#partial client.function_param_list function=function}});
   {{/if (not function.sink?)}}
  protected:
@@ -35,31 +35,31 @@
   {{#if (not function.sink?)}}
 
     {{#if function.sync_returns_by_outparam?}}
-{{#partial glean.function_docblock service=interface function=function}}
+  {{#partial glean.function_docblock service=interface function=function}}
   {{#if function.virtual_client_methods?}}virtual {{/if}}void sync_{{function.cpp_name}}({{function.cpp_return_type}}& _return{{function_comma}}{{#partial client.function_param_list function=function}});
-{{#partial glean.function_docblock service=interface function=function}}
+  {{#partial glean.function_docblock service=interface function=function}}
   {{#if function.virtual_client_methods?}}virtual {{/if}}void sync_{{function.cpp_name}}(apache::thrift::RpcOptions& rpcOptions, {{function.cpp_return_type}}& _return{{function_comma}}{{#partial client.function_param_list function=function}});
     {{#else}}
-{{#partial glean.function_docblock service=interface function=function}}
+  {{#partial glean.function_docblock service=interface function=function}}
   {{#if function.virtual_client_methods?}}virtual {{/if}}{{#partial client.return_type function=function service=interface}} sync_{{function.cpp_name}}({{#partial client.function_param_list function=function}});
-{{#partial glean.function_docblock service=interface function=function}}
+  {{#partial glean.function_docblock service=interface function=function}}
   {{#if function.virtual_client_methods?}}virtual {{/if}}{{#partial client.return_type function=function service=interface}} sync_{{function.cpp_name}}(apache::thrift::RpcOptions& rpcOptions{{function_comma}}{{#partial client.function_param_list function=function}});
     {{/if function.sync_returns_by_outparam?}}
 
     {{#if (and function.legacy_client_methods? (not function.stream?))}}
-{{#partial glean.function_docblock service=interface function=function}}
+  {{#partial glean.function_docblock service=interface function=function}}
   virtual folly::Future<{{#partial client.return_type_lift_unit function=function service=interface}}> future_{{function.cpp_name}}({{#partial client.function_param_list function=function}});
     {{/if (and function.legacy_client_methods? (not function.stream?))}}
-{{#partial glean.function_docblock service=interface function=function}}
+  {{#partial glean.function_docblock service=interface function=function}}
   {{#if function.virtual_client_methods?}}virtual {{/if}}folly::SemiFuture<{{#partial client.return_type_lift_unit function=function service=interface}}> semifuture_{{function.cpp_name}}({{#partial client.function_param_list function=function}});
     {{#if (and function.legacy_client_methods? (not function.stream?))}}
-{{#partial glean.function_docblock service=interface function=function}}
+  {{#partial glean.function_docblock service=interface function=function}}
   virtual folly::Future<{{#partial client.return_type_lift_unit function=function service=interface}}> future_{{function.cpp_name}}(apache::thrift::RpcOptions& rpcOptions{{function_comma}}{{#partial client.function_param_list function=function}});
     {{/if (and function.legacy_client_methods? (not function.stream?))}}
-{{#partial glean.function_docblock service=interface function=function}}
+  {{#partial glean.function_docblock service=interface function=function}}
   {{#if function.virtual_client_methods?}}virtual {{/if}}folly::SemiFuture<{{#partial client.return_type_lift_unit function=function service=interface}}> semifuture_{{function.cpp_name}}(apache::thrift::RpcOptions& rpcOptions{{function_comma}}{{#partial client.function_param_list function=function}});
     {{#if function.creates_interaction?}}
-{{#partial glean.function_docblock service=interface function=function}}
+  {{#partial glean.function_docblock service=interface function=function}}
   std::pair<
     apache::thrift::Client<{{#if interface.interaction?}}{{parent_service.qualified_name}}{{#else}}{{interface.qualified_name}}{{/if}}>::{{function.created_interaction.cpp_name}},
     folly::SemiFuture<{{#partial client.return_type_no_handle_lift_unit function=function}}>
@@ -68,14 +68,14 @@
     {{#if (and (not function.oneway?) function.legacy_client_methods?)}}
       {{#if function.has_deprecated_header_client_methods}}
         {{#if (not function.stream?)}}
-{{#partial glean.function_docblock service=interface function=function}}
+  {{#partial glean.function_annotation service=interface function=function}}
   virtual folly::Future<std::pair<{{#partial client.return_type_lift_unit function=function service=interface}}, std::unique_ptr<apache::thrift::transport::THeader>>> header_future_{{function.cpp_name}}(apache::thrift::RpcOptions& rpcOptions{{function_comma}}{{#partial client.function_param_list function=function}});
         {{/if (not function.stream?)}}
-{{#partial glean.function_docblock service=interface function=function}}
+  {{#partial glean.function_annotation service=interface function=function}}
   virtual folly::SemiFuture<std::pair<{{#partial client.return_type_lift_unit function=function service=interface}}, std::unique_ptr<apache::thrift::transport::THeader>>> header_semifuture_{{function.cpp_name}}(apache::thrift::RpcOptions& rpcOptions{{function_comma}}{{#partial client.function_param_list function=function}});
       {{/if function.has_deprecated_header_client_methods}}
       {{#if (has_compiler_option? "sync_methods_return_try")}}
-{{#partial glean.function_docblock service=interface function=function}}
+  {{#partial glean.function_docblock service=interface function=function}}
   [[nodiscard]] [[deprecated("To be replaced by new API soon")]] virtual folly::Try<apache::thrift::RpcResponseComplete<{{#partial client.return_type function=function service=interface}}>> sync_complete_{{function.cpp_name}}(
       apache::thrift::RpcOptions&& rpcOptions{{function_comma}} {{#partial client.function_param_list function=function}});
       {{/if (has_compiler_option? "sync_methods_return_try")}}
@@ -85,12 +85,12 @@
   {{!
   Coroutine functions are inline templates to prevent compile time and binary size regression
   }}
-{{#partial glean.function_docblock service=interface function=function}}
+  {{#partial glean.function_docblock service=interface function=function}}
   template <int = 0>
   folly::coro::Task<{{#partial client.return_type function=function service=interface}}> co_{{function.cpp_name}}({{#partial client.function_param_list function=function}}) {
     return co_{{function.cpp_name}}<false>(nullptr{{function_comma}}{{#partial rpc.param_list function=function}});
   }
-{{#partial glean.function_docblock service=interface function=function}}
+  {{#partial glean.function_docblock service=interface function=function}}
   template <int = 0>
   folly::coro::Task<{{#partial client.return_type function=function service=interface}}> co_{{function.cpp_name}}(apache::thrift::RpcOptions& rpcOptions{{function_comma}}{{#partial client.function_param_list function=function}}) {
     return co_{{function.cpp_name}}<true>(&rpcOptions{{function_comma}}{{#partial rpc.param_list function=function}});
@@ -212,53 +212,53 @@
 #endif // FOLLY_HAS_COROUTINES
 
     {{#if (and function.legacy_client_methods? (not function.stream?))}}
-{{#partial glean.function_docblock service=interface function=function}}
+  {{#partial glean.function_annotation service=interface function=function}}
   virtual void {{function.cpp_name}}(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback{{#if function.creates_interaction?}}, const apache::thrift::InteractionHandle& handle{{/if}}{{function_comma}}{{#partial client.function_param_list function=function}});
 
     {{/if (and function.legacy_client_methods? (not function.stream?))}}
   {{#else if function.sink?}}
 #if FOLLY_HAS_COROUTINES
-{{#partial glean.function_docblock service=interface function=function}}
+  {{#partial glean.function_docblock service=interface function=function}}
   folly::coro::Task<{{#partial client.return_type function=function service=interface}}> co_{{function.cpp_name}}({{#partial client.function_param_list function=function}});
-{{#partial glean.function_docblock service=interface function=function}}
+  {{#partial glean.function_docblock service=interface function=function}}
   folly::coro::Task<{{#partial client.return_type function=function service=interface}}> co_{{function.cpp_name}}(apache::thrift::RpcOptions& rpcOptions{{function_comma}}{{#partial client.function_param_list function=function}});
 #endif // FOLLY_HAS_COROUTINES
   {{/if (not function.sink?)}}
 
   {{#if function.cpp_recv_arg?}}
-{{#partial glean.function_docblock service=interface function=function}}
+  {{#partial glean.function_annotation service=interface function=function}}
   static folly::exception_wrapper recv_wrapped_{{function.cpp_name}}({{#partial client.return_type_no_handle function=function}}& _return, ::apache::thrift::ClientReceiveState& state);
     {{#if function.sync_returns_by_outparam?}}
-{{#partial glean.function_docblock service=interface function=function}}
+  {{#partial glean.function_annotation service=interface function=function}}
   static void recv_{{function.cpp_name}}({{#partial client.return_type_no_handle function=function}}& _return, ::apache::thrift::ClientReceiveState& state);
       {{#if function.virtual_client_methods?}}
   // Mock friendly virtual instance method
-{{#partial glean.function_docblock service=interface function=function}}
+  {{#partial glean.function_annotation service=interface function=function}}
   virtual void recv_instance_{{function.cpp_name}}({{#partial client.return_type_no_handle function=function}}& _return, ::apache::thrift::ClientReceiveState& state);
       {{/if function.virtual_client_methods?}}
     {{#else}}
-{{#partial glean.function_docblock service=interface function=function}}
+  {{#partial glean.function_annotation service=interface function=function}}
   static {{#partial client.return_type_no_handle function=function}} recv_{{function.cpp_name}}(::apache::thrift::ClientReceiveState& state);
       {{#if function.virtual_client_methods?}}
   // Mock friendly virtual instance method
-{{#partial glean.function_docblock service=interface function=function}}
+  {{#partial glean.function_annotation service=interface function=function}}
   virtual {{#partial client.return_type_no_handle function=function}} recv_instance_{{function.cpp_name}}(::apache::thrift::ClientReceiveState& state);
       {{/if function.virtual_client_methods?}}
     {{/if function.sync_returns_by_outparam?}}
     {{#if function.virtual_client_methods?}}
-{{#partial glean.function_docblock service=interface function=function}}
+  {{#partial glean.function_annotation service=interface function=function}}
   virtual folly::exception_wrapper recv_instance_wrapped_{{function.cpp_name}}({{#partial client.return_type_no_handle function=function}}& _return, ::apache::thrift::ClientReceiveState& state);
     {{/if function.virtual_client_methods?}}
   {{#else if (not function.oneway?)}}
-{{#partial glean.function_docblock service=interface function=function}}
+  {{#partial glean.function_annotation service=interface function=function}}
   static folly::exception_wrapper recv_wrapped_{{function.cpp_name}}(::apache::thrift::ClientReceiveState& state);
-{{#partial glean.function_docblock service=interface function=function}}
+  {{#partial glean.function_annotation service=interface function=function}}
   static void recv_{{function.cpp_name}}(::apache::thrift::ClientReceiveState& state);
       {{#if function.virtual_client_methods?}}
   // Mock friendly virtual instance method
-{{#partial glean.function_docblock service=interface function=function}}
+  {{#partial glean.function_annotation service=interface function=function}}
   virtual void recv_instance_{{function.cpp_name}}(::apache::thrift::ClientReceiveState& state);
-{{#partial glean.function_docblock service=interface function=function}}
+  {{#partial glean.function_annotation service=interface function=function}}
   virtual folly::exception_wrapper recv_instance_wrapped_{{function.cpp_name}}(::apache::thrift::ClientReceiveState& state);
       {{/if function.virtual_client_methods?}}
   {{/if function.cpp_recv_arg?}}
@@ -277,7 +277,7 @@
 {{#let export partial async_client_functions |interface parent_service| captures |client glean rpc client_functions_not_legacy_interaction_constructor|}}
   {{#each interface.functions as |function|}}
     {{#if function.starts_interaction?}}
-{{#partial glean.function_docblock service=interface function=function}}
+  {{#partial glean.function_docblock service=interface function=function}}
   {{function.created_interaction.name}} {{function.cpp_name}}();
     {{#else}}
 {{#partial client_functions_not_legacy_interaction_constructor interface=interface parent_service=parent_service function=function}}

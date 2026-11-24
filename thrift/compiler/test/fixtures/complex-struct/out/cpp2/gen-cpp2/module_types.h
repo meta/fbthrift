@@ -860,6 +860,16 @@ class MyStructFloatFieldThrowExp final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "MyStructFloatFieldThrowExp";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "myLongField", "MyByteField", "myStringField", "myFloatField"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -1124,7 +1134,6 @@ class MyStructFloatFieldThrowExp final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<MyStructFloatFieldThrowExp>;
   friend void swap(MyStructFloatFieldThrowExp& a, MyStructFloatFieldThrowExp& b);
 };
 
@@ -1147,6 +1156,16 @@ class MyStructMapFloatThrowExp final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "MyStructMapFloatThrowExp";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "myLongField", "mapListOfFloats"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -1311,7 +1330,6 @@ class MyStructMapFloatThrowExp final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<MyStructMapFloatThrowExp>;
   friend void swap(MyStructMapFloatThrowExp& a, MyStructMapFloatThrowExp& b);
 };
 
@@ -1334,6 +1352,16 @@ class MyDataItem final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "MyDataItem";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    ""
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -1389,7 +1417,6 @@ class MyDataItem final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<MyDataItem>;
   friend void swap(MyDataItem& a, MyDataItem& b);
 };
 
@@ -1412,6 +1439,16 @@ class MyStruct final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "MyStruct";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "MyIntField", "MyStringField", "MyDataField", "myEnum", "MyBoolField", "MyByteField", "MyShortField", "MyLongField", "MyDoubleField", "lDouble", "lShort", "lInteger", "lLong", "lString", "lBool", "lByte", "mShortString", "mIntegerString", "mStringMyStruct", "mStringBool", "mIntegerInteger", "mIntegerBool", "sShort", "sMyStruct", "sLong", "sString", "sByte", "mListList"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -2988,7 +3025,6 @@ class MyStruct final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<MyStruct>;
   friend void swap(MyStruct& a, MyStruct& b);
 };
 
@@ -3011,6 +3047,16 @@ class SimpleStruct final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "SimpleStruct";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "age", "name"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -3179,7 +3225,6 @@ class SimpleStruct final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<SimpleStruct>;
   friend void swap(SimpleStruct& a, SimpleStruct& b);
 };
 
@@ -3202,6 +3247,16 @@ class ComplexNestedStruct final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "ComplexNestedStruct";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "setOfSetOfInt", "listofListOfListOfListOfEnum", "listOfListOfMyStruct", "setOfListOfListOfLong", "setOfSetOfsetOfLong", "mapStructListOfListOfLong", "mKeyStructValInt", "listOfMapKeyIntValInt", "listOfMapKeyStrValList", "mapKeySetValLong", "mapKeyListValLong", "mapKeyMapValMap", "mapKeySetValMap", "NestedMaps", "mapKeyIntValList", "mapKeyIntValSet", "mapKeySetValInt", "mapKeyListValSet"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -4270,7 +4325,6 @@ class ComplexNestedStruct final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<ComplexNestedStruct>;
   friend void swap(ComplexNestedStruct& a, ComplexNestedStruct& b);
 };
 
@@ -4293,6 +4347,11 @@ class MyUnion final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "MyUnion";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "myEnum", "myStruct", "myDataItem", "complexNestedStruct", "longValue", "intValue"
+  };
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -4349,53 +4408,7 @@ class MyUnion final  {
 
   MyUnion(const MyUnion& rhs);
 
-  MyUnion& operator=(MyUnion&& rhs) noexcept {
-    if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-      {
-        __fbthrift_clear();
-        return *this;
-      }
-      case Type::myEnum:
-      {
-        set_myEnum(std::move(rhs.value_.myEnum));
-        break;
-      }
-      case Type::myStruct:
-      {
-        set_myStruct(std::move(rhs.value_.myStruct));
-        break;
-      }
-      case Type::myDataItem:
-      {
-        set_myDataItem(std::move(rhs.value_.myDataItem));
-        break;
-      }
-      case Type::complexNestedStruct:
-      {
-        set_complexNestedStruct(std::move(rhs.value_.complexNestedStruct));
-        break;
-      }
-      case Type::longValue:
-      {
-        set_longValue(std::move(rhs.value_.longValue));
-        break;
-      }
-      case Type::intValue:
-      {
-        set_intValue(std::move(rhs.value_.intValue));
-        break;
-      }
-      default:
-      {
-        assert(false);
-        __fbthrift_clear();
-      }
-    }
-    apache::thrift::clear(rhs);
-    return *this;
-  }
+  MyUnion& operator=(MyUnion&& rhs) noexcept;
 
   MyUnion& operator=(const MyUnion& rhs);
 
@@ -4543,6 +4556,7 @@ class MyUnion final  {
 
 
   /** Glean { "field": "myEnum" } */
+  [[deprecated("Use `FOO.myEnum().value()` instead of `FOO.get_myEnum()`")]]
   ::cpp2::MyEnum const& get_myEnum() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::myEnum) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -4551,6 +4565,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "myStruct" } */
+  [[deprecated("Use `FOO.myStruct().value()` instead of `FOO.get_myStruct()`")]]
   ::cpp2::MyStruct const& get_myStruct() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::myStruct) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -4559,6 +4574,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "myDataItem" } */
+  [[deprecated("Use `FOO.myDataItem().value()` instead of `FOO.get_myDataItem()`")]]
   ::cpp2::MyDataItem const& get_myDataItem() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::myDataItem) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -4567,6 +4583,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "complexNestedStruct" } */
+  [[deprecated("Use `FOO.complexNestedStruct().value()` instead of `FOO.get_complexNestedStruct()`")]]
   ::cpp2::ComplexNestedStruct const& get_complexNestedStruct() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::complexNestedStruct) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -4575,6 +4592,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "longValue" } */
+  [[deprecated("Use `FOO.longValue().value()` instead of `FOO.get_longValue()`")]]
   ::std::int64_t const& get_longValue() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::longValue) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -4583,6 +4601,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "intValue" } */
+  [[deprecated("Use `FOO.intValue().value()` instead of `FOO.get_intValue()`")]]
   ::std::int32_t const& get_intValue() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::intValue) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -4866,7 +4885,6 @@ class MyUnion final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<MyUnion>;
   friend void swap(MyUnion& a, MyUnion& b);
 };
 
@@ -4889,6 +4907,16 @@ class defaultStruct final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "defaultStruct";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "myLongDFset", "myLongDF", "portDFset", "portNum", "myBinaryDFset", "myBinary", "myByteDFSet", "myByte", "myDoubleDFset", "myDoubleDFZero", "myDouble", "field3", "myList", "mySet", "simpleStruct", "listStructDFset", "myUnion", "listUnionDFset", "mapNestlistStructDfSet", "mapJavaTypeDFset", "emptyMap", "enumMapDFset"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -6117,7 +6145,6 @@ class defaultStruct final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<defaultStruct>;
   friend void swap(defaultStruct& a, defaultStruct& b);
 };
 
@@ -6140,6 +6167,16 @@ class MyStructTypeDef final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "MyStructTypeDef";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "myLongField", "myLongTypeDef", "myStringField", "myStringTypedef", "myMapField", "myMapTypedef", "myListField", "myListTypedef", "myMapListOfTypeDef"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -6696,7 +6733,6 @@ class MyStructTypeDef final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<MyStructTypeDef>;
   friend void swap(MyStructTypeDef& a, MyStructTypeDef& b);
 };
 
@@ -6719,6 +6755,11 @@ class MyUnionFloatFieldThrowExp final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "MyUnionFloatFieldThrowExp";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "myEnum", "setFloat", "myDataItem", "complexNestedStruct"
+  };
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -6769,43 +6810,7 @@ class MyUnionFloatFieldThrowExp final  {
 
   MyUnionFloatFieldThrowExp(const MyUnionFloatFieldThrowExp& rhs);
 
-  MyUnionFloatFieldThrowExp& operator=(MyUnionFloatFieldThrowExp&& rhs) noexcept {
-    if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-      {
-        __fbthrift_clear();
-        return *this;
-      }
-      case Type::myEnum:
-      {
-        set_myEnum(std::move(rhs.value_.myEnum));
-        break;
-      }
-      case Type::setFloat:
-      {
-        set_setFloat(std::move(rhs.value_.setFloat));
-        break;
-      }
-      case Type::myDataItem:
-      {
-        set_myDataItem(std::move(rhs.value_.myDataItem));
-        break;
-      }
-      case Type::complexNestedStruct:
-      {
-        set_complexNestedStruct(std::move(rhs.value_.complexNestedStruct));
-        break;
-      }
-      default:
-      {
-        assert(false);
-        __fbthrift_clear();
-      }
-    }
-    apache::thrift::clear(rhs);
-    return *this;
-  }
+  MyUnionFloatFieldThrowExp& operator=(MyUnionFloatFieldThrowExp&& rhs) noexcept;
 
   MyUnionFloatFieldThrowExp& operator=(const MyUnionFloatFieldThrowExp& rhs);
 
@@ -6927,6 +6932,7 @@ class MyUnionFloatFieldThrowExp final  {
   }
 
   /** Glean { "field": "myEnum" } */
+  [[deprecated("Use `FOO.myEnum().value()` instead of `FOO.get_myEnum()`")]]
   ::cpp2::MyEnum const& get_myEnum() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::myEnum) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -6935,6 +6941,7 @@ class MyUnionFloatFieldThrowExp final  {
   }
 
   /** Glean { "field": "setFloat" } */
+  [[deprecated("Use `FOO.setFloat().value()` instead of `FOO.get_setFloat()`")]]
   ::std::vector<::std::vector<float>> const& get_setFloat() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::setFloat) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -6943,6 +6950,7 @@ class MyUnionFloatFieldThrowExp final  {
   }
 
   /** Glean { "field": "myDataItem" } */
+  [[deprecated("Use `FOO.myDataItem().value()` instead of `FOO.get_myDataItem()`")]]
   ::cpp2::MyDataItem const& get_myDataItem() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::myDataItem) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -6951,6 +6959,7 @@ class MyUnionFloatFieldThrowExp final  {
   }
 
   /** Glean { "field": "complexNestedStruct" } */
+  [[deprecated("Use `FOO.complexNestedStruct().value()` instead of `FOO.get_complexNestedStruct()`")]]
   ::cpp2::ComplexNestedStruct const& get_complexNestedStruct() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::complexNestedStruct) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -7148,7 +7157,6 @@ class MyUnionFloatFieldThrowExp final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<MyUnionFloatFieldThrowExp>;
   friend void swap(MyUnionFloatFieldThrowExp& a, MyUnionFloatFieldThrowExp& b);
 };
 
@@ -7171,6 +7179,16 @@ class TypeRemapped final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "TypeRemapped";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "lsMap", "ioMap", "BigInteger", "binaryTestBuffer"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -7451,7 +7469,6 @@ class TypeRemapped final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<TypeRemapped>;
   friend void swap(TypeRemapped& a, TypeRemapped& b);
 };
 
@@ -7474,6 +7491,16 @@ class FOLLY_EXPORT emptyXcep : public virtual apache::thrift::TException {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "emptyXcep";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    ""
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -7542,7 +7569,6 @@ class FOLLY_EXPORT emptyXcep : public virtual apache::thrift::TException {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<emptyXcep>;
   friend void swap(emptyXcep& a, emptyXcep& b);
 };
 
@@ -7565,6 +7591,16 @@ class FOLLY_EXPORT reqXcep : public virtual apache::thrift::TException {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "reqXcep";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "message", "errorCode"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -7741,7 +7777,6 @@ class FOLLY_EXPORT reqXcep : public virtual apache::thrift::TException {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<reqXcep>;
   friend void swap(reqXcep& a, reqXcep& b);
 };
 
@@ -7764,6 +7799,16 @@ class FOLLY_EXPORT optXcep : public virtual apache::thrift::TException {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "optXcep";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "message", "errorCode"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -7946,7 +7991,6 @@ class FOLLY_EXPORT optXcep : public virtual apache::thrift::TException {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<optXcep>;
   friend void swap(optXcep& a, optXcep& b);
 };
 
@@ -7969,6 +8013,16 @@ class FOLLY_EXPORT complexException : public virtual apache::thrift::TException 
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "complexException";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "message", "listStrings", "errorEnum", "unionError", "structError", "lsMap"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -8373,7 +8427,6 @@ class FOLLY_EXPORT complexException : public virtual apache::thrift::TException 
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<complexException>;
   friend void swap(complexException& a, complexException& b);
 };
 
@@ -8396,6 +8449,16 @@ class Containers final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "Containers";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "struct_list", "union_list", "enum_list", "struct_set", "union_set", "enum_set", "struct_map", "union_map", "enum_map", "struct_map_2", "union_map_2", "enum_map_2", "list_map", "list_map_2", "set_map", "set_map_2", "map_map", "map_map_2", "list_list_i32", "list_list_struct", "list_set_i32", "list_set_struct", "list_map_i32_i32", "list_map_i32_struct", "list_map_struct_i32", "set_list_i32", "set_list_struct", "set_set_i32", "set_set_struct", "set_map_i32_i32", "set_map_i32_struct", "set_map_struct_i32", "map_i32_map_i32_i32", "map_i32_map_struct_i32", "map_i32_map_i32_struct", "map_i32_map_list_i32_i32", "map_i32_map_list_struct_i32"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -10528,7 +10591,6 @@ class Containers final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<Containers>;
   friend void swap(Containers& a, Containers& b);
 };
 

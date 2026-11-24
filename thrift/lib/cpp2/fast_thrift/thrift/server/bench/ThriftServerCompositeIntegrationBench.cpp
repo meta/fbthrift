@@ -41,8 +41,8 @@
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/BufferAllocator.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/handler/FrameCodecHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameLengthParser.h>
@@ -179,7 +179,7 @@ std::unique_ptr<rocket::server::RocketServerConnection> buildRocketConnection(
       rocket::server::RocketServerEventFactory>::create(std::move(transport));
 
   rocketConn->pipeline =
-      PipelineBuilder<
+      StaticPipelineBuilder<
           transport::TransportHandlerT<
               rocket::server::RocketServerEventFactory>,
           rocket::server::RocketServerAppAdapter,
@@ -233,8 +233,8 @@ struct BareAdapterFixture {
   std::unique_ptr<thrift::server::ThriftServerTransportAdapter>
       transportAdapter;
   BenchAppAdapter::Ptr adapter;
-  PipelineImpl::Ptr thriftPipeline;
   SimpleBufferAllocator thriftAllocator;
+  PipelineOwner thriftPipeline;
 
   void setup() {
     auto rocketConn = buildRocketConnection(&evb, &testTransport);
@@ -246,7 +246,7 @@ struct BareAdapterFixture {
         std::make_unique<thrift::server::ThriftServerTransportAdapter>(
             std::move(rocketConn));
 
-    thriftPipeline = PipelineBuilder<
+    thriftPipeline = StaticPipelineBuilder<
                          thrift::server::ThriftServerTransportAdapter,
                          BenchAppAdapter,
                          SimpleBufferAllocator>()
@@ -290,8 +290,8 @@ struct CompositeFixture {
       transportAdapter;
   std::vector<BenchAppAdapter::Ptr> children;
   thrift::ThriftServerCompositeAppAdapter::Ptr composite;
-  PipelineImpl::Ptr thriftPipeline;
   SimpleBufferAllocator thriftAllocator;
+  PipelineOwner thriftPipeline;
 
   // Builds N children with method names "benchMethod0".."benchMethod{N-1}".
   void setup(size_t numChildren) {
@@ -312,7 +312,7 @@ struct CompositeFixture {
         std::make_unique<thrift::server::ThriftServerTransportAdapter>(
             std::move(rocketConn));
 
-    thriftPipeline = PipelineBuilder<
+    thriftPipeline = StaticPipelineBuilder<
                          thrift::server::ThriftServerTransportAdapter,
                          thrift::ThriftServerCompositeAppAdapter,
                          SimpleBufferAllocator>()

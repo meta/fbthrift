@@ -59,19 +59,25 @@ namespace apache::thrift::fast_thrift::thrift {
 inline void attachResponseHeaders(
     ThriftServerResponseMessage& message) noexcept {
   if (message.requestContext == nullptr ||
-      !message.requestContext->hasResponseHeaders() ||
-      !message.payload.is<ThriftInitialResponsePayload>()) {
+      !message.requestContext->hasResponseHeaders()) {
     return;
   }
-  auto& initialResponse = message.payload.get<ThriftInitialResponsePayload>();
-  if (initialResponse.metadata == nullptr) {
+  apache::thrift::ResponseRpcMetadata* metadata = nullptr;
+  if (message.payload.is<ThriftInitialResponsePayload>()) {
+    metadata =
+        message.payload.get<ThriftInitialResponsePayload>().metadata.get();
+  } else if (message.payload.is<ThriftStreamInitialResponsePayload>()) {
+    metadata = message.payload.get<ThriftStreamInitialResponsePayload>()
+                   .metadata.get();
+  }
+  if (metadata == nullptr) {
     return;
   }
   // Merged, not assigned: a pipeline handler downstream of the adapter writes
   // this same field, and whichever ran second would otherwise drop the other's
   // headers with no error. The empty case still moves, which is the common one.
   auto headers = message.requestContext->extractResponseHeaders();
-  auto otherMetadata = initialResponse.metadata->otherMetadata();
+  auto otherMetadata = metadata->otherMetadata();
   if (!otherMetadata.has_value() || otherMetadata->empty()) {
     otherMetadata = std::move(headers);
     return;
@@ -141,6 +147,23 @@ inline ThriftServerResponseMessage makeUnknownMethodMessage(
       streamId,
       apache::thrift::ResponseRpcErrorCode::UNKNOWN_METHOD,
       std::string("Unknown method: ") + std::string(methodName));
+}
+
+inline bool isAppUnknownException(
+    const ThriftInitialResponsePayload& response) noexcept {
+  if (response.metadata == nullptr ||
+      !response.metadata->payloadMetadata().has_value()) {
+    return false;
+  }
+  const auto& payloadMetadata = *response.metadata->payloadMetadata();
+  if (payloadMetadata.getType() !=
+      apache::thrift::PayloadMetadata::Type::exceptionMetadata) {
+    return false;
+  }
+  const auto& exceptionMetadata = *payloadMetadata.exceptionMetadata();
+  return !exceptionMetadata.metadata().has_value() ||
+      exceptionMetadata.metadata()->getType() ==
+      apache::thrift::PayloadExceptionMetadata::Type::appUnknownException;
 }
 
 // PAYLOAD frame with null data + appUnknownException metadata carrying

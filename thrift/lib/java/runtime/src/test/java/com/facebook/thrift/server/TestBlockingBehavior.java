@@ -26,6 +26,7 @@ import com.facebook.thrift.legacy.server.LegacyServerTransport;
 import com.facebook.thrift.legacy.server.LegacyServerTransportFactory;
 import com.facebook.thrift.legacy.server.testservices.AsyncBlockingTestService;
 import io.airlift.units.Duration;
+import io.netty.handler.ssl.ClientAuth;
 import java.net.SocketAddress;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
@@ -44,7 +45,8 @@ public class TestBlockingBehavior {
             new AsyncBlockingTestService(), Collections.emptyList());
 
     LegacyServerTransportFactory transportFactory =
-        new LegacyServerTransportFactory(new ThriftServerConfig().setSslEnabled(false));
+        new LegacyServerTransportFactory(
+            new ThriftServerConfig().setClientAuth(ClientAuth.OPTIONAL).setSslEnabled(false));
 
     LegacyServerTransport transport = transportFactory.createServerTransport(serverHandler).block();
     Assertions.assertFalse(transport.isDisposed());

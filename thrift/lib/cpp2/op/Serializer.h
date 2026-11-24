@@ -28,7 +28,6 @@
 #include <thrift/lib/cpp2/type/AnyValue.h>
 #include <thrift/lib/cpp2/type/NativeType.h>
 #include <thrift/lib/cpp2/type/Protocol.h>
-#include <thrift/lib/cpp2/type/Runtime.h>
 
 namespace apache::thrift::op {
 
@@ -56,8 +55,6 @@ class Serializer {
   // TODO(afuller): Figure out if appender should really be accepted by r-value,
   // which was copied from the *Protocol::setOutput interface.
   virtual void encode(
-      type::ConstRef value, folly::io::QueueAppender&& appender) const = 0;
-  virtual void encode(
       type::AnyConstRef value, folly::io::QueueAppender&& appender) const = 0;
 
   // Decode a value.
@@ -65,7 +62,6 @@ class Serializer {
   // Throws std::bad_any_cast if the type is not supported.
   // TODO(afuller): Consider accepting a cursor by value, and returning a new˝
   // cursor instead of having one in/out param.
-  virtual void decode(folly::io::Cursor& cursor, type::Ref value) const = 0;
   virtual void decode(
       const type::Type& type,
       folly::io::Cursor& cursor,
@@ -78,9 +74,7 @@ class Serializer {
   }
   template <typename Tag>
   type::native_type<Tag> decode(folly::io::Cursor& cursor) const {
-    type::native_type<Tag> result;
-    decode(cursor, type::Ref::to<Tag>(result));
-    return result;
+    return decode(type::Type::get<Tag>(), cursor).template as<Tag>();
   }
 
  protected:
@@ -101,10 +95,6 @@ class TagSerializer : public Serializer {
 
  public:
   using Base::encode;
-  void encode(
-      type::ConstRef value, folly::io::QueueAppender&& appender) const final {
-    encode(value.as<Tag>(), std::move(appender));
-  }
   void encode(type::AnyConstRef value, folly::io::QueueAppender&& appender)
       const final {
     encode(value.as<Tag>(), std::move(appender));
@@ -113,10 +103,6 @@ class TagSerializer : public Serializer {
       const T& value, folly::io::QueueAppender&& appender) const = 0;
 
   using Base::decode;
-  void decode(folly::io::Cursor& cursor, type::Ref value) const final {
-    checkType(value.type(), type::Type::get<Tag>());
-    decode(cursor, value.mut<Tag>());
-  }
   void decode(
       const type::Type& type,
       folly::io::Cursor& cursor,

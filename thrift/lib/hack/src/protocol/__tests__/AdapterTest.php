@@ -146,6 +146,41 @@ final class AdapterTest extends WWWTest {
     expect($no_adapter)->toBePHPEqual($expected_no_adapter);
   }
 
+  public function testUnionWithAdaptedContainer(): void {
+    $union = AdapterTest\UnionWithAdapters::fromShape(shape(
+      'reversedListField' => vec[1, 2, 3],
+    ));
+    $expected_no_adapter = AdapterTest\UnionWithoutAdapters::fromShape(shape(
+      'reversedListField' => vec[3, 2, 1],
+    ));
+    foreach (vec[true, false] as $disable_hphp_extension) {
+      $serialized =
+        TCompactSerializer::serialize($union, null, $disable_hphp_extension);
+      expect(TCompactSerializer::deserialize(
+        $serialized,
+        AdapterTest\UnionWithAdapters::withDefaultValues(),
+        null,
+        $disable_hphp_extension,
+      ))->toBePHPEqual($union);
+      expect(TCompactSerializer::deserialize(
+        $serialized,
+        AdapterTest\UnionWithoutAdapters::withDefaultValues(),
+      ))->toBePHPEqual($expected_no_adapter);
+
+      $serialized =
+        TBinarySerializer::serialize($union, $disable_hphp_extension);
+      expect(TBinarySerializer::deserialize(
+        $serialized,
+        AdapterTest\UnionWithAdapters::withDefaultValues(),
+        $disable_hphp_extension,
+      ))->toBePHPEqual($union);
+      expect(TBinarySerializer::deserialize(
+        $serialized,
+        AdapterTest\UnionWithoutAdapters::withDefaultValues(),
+      ))->toBePHPEqual($expected_no_adapter);
+    }
+  }
+
   public async function testService(): Awaitable<void> {
     list($client, $_server) = LocalThriftConnection::setup<
       AdapterTest\ServiceClient,

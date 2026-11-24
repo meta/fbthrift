@@ -20,8 +20,9 @@ import static com.facebook.thrift.metadata.ThriftTransportType.HEADER;
 import static com.facebook.thrift.metadata.ThriftTransportType.RSOCKET;
 
 import com.facebook.swift.service.ThriftServerConfig;
-import com.facebook.thrift.legacy.server.ThriftHeaderFrameLengthBasedDecoder;
+import com.facebook.thrift.legacy.server.ThriftHeaderFrameCodec;
 import com.facebook.thrift.metadata.ThriftTransportType;
+import com.facebook.thrift.rsocket.server.RocketDuplexConnection;
 import com.facebook.thrift.rsocket.server.ThriftSocketAcceptor;
 import com.facebook.thrift.server.RpcServerHandler;
 import com.facebook.thrift.server.ServerTransport;
@@ -31,7 +32,6 @@ import com.facebook.thrift.util.RpcServerUtils;
 import com.facebook.thrift.util.SPINiftyMetrics;
 import com.facebook.thrift.util.resources.RpcResources;
 import io.netty.channel.Channel;
-import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.SslContext;
@@ -134,9 +134,7 @@ public class UnifiedServerTransport implements ServerTransport {
               } else {
                 int maxFrameLengthBytes =
                     (int) Math.min(config.getMaxFrameSize().toBytes(), Integer.MAX_VALUE);
-                connection
-                    .addHandlerLast(new ThriftHeaderFrameLengthBasedDecoder(maxFrameLengthBytes))
-                    .addHandlerLast(new LengthFieldPrepender(Integer.BYTES));
+                connection.addHandlerLast(new ThriftHeaderFrameCodec(maxFrameLengthBytes));
                 configureThrift(connection, thrift);
               }
             })
@@ -195,7 +193,7 @@ public class UnifiedServerTransport implements ServerTransport {
         .fragment(MAX_FRAME_SIZE)
         .payloadDecoder(PayloadDecoder.ZERO_COPY)
         .asConnectionAcceptor()
-        .apply(new TcpDuplexConnection("server", connection))
+        .apply(RocketDuplexConnection.wrap(new TcpDuplexConnection("server", connection)))
         .then(Mono.<Void>never())
         .subscribe(connection.disposeSubscriber());
   }

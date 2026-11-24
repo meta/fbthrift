@@ -22,13 +22,18 @@
 
 #include <cstdint>
 #include <folly/io/async/EventBase.h>
+#include <folly/portability/GMock.h>
 #include <folly/portability/GTest.h>
 
+#include <algorithm>
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace apache::thrift::fast_thrift::channel_pipeline::test {
+
+using namespace testing;
 
 class alignas(64) InlineStorageTestHandler : public MockHandler {
  public:
@@ -60,6 +65,126 @@ class alignas(64) InlineStorageTestHandler : public MockHandler {
   std::string value;
 };
 
+// Shared teardown log so tests can assert the relative destruction order of
+// handlers and owned endpoints/allocator.
+inline std::vector<std::string>& teardownLog() {
+  static std::vector<std::string> log;
+  return log;
+}
+
+// Handler that records its destruction in the shared teardown log. Used to
+// prove an owned allocator is destroyed after all handlers.
+class TeardownLoggingHandler : public MockHandler {
+ public:
+  ~TeardownLoggingHandler() { teardownLog().emplace_back("handler"); }
+};
+
+// Owned head endpoint with observable lifetime and constructor-argument
+// capture.
+class OwnedHeadEndpoint {
+ public:
+  OwnedHeadEndpoint() noexcept { onConstructed(); }
+  OwnedHeadEndpoint(int id, std::string name) noexcept
+      : id_(id), name_(std::move(name)) {
+    onConstructed();
+  }
+  explicit OwnedHeadEndpoint(std::unique_ptr<int> token) noexcept
+      : id_(*token) {
+    onConstructed();
+  }
+  ~OwnedHeadEndpoint() {
+    ++destructions;
+    teardownLog().emplace_back("head");
+  }
+
+  Result onWrite(detail::ContextImpl&, TypeErasedBox&&) noexcept {
+    return Result::Success;
+  }
+  void onReadReady() noexcept {}
+  void handlerAdded() noexcept {}
+  void handlerRemoved() noexcept {}
+  void onPipelineActive() noexcept {}
+  void onPipelineInactive() noexcept {}
+
+  int id() const { return id_; }
+  const std::string& name() const { return name_; }
+
+  static void reset() noexcept {
+    constructions = 0;
+    destructions = 0;
+    lastConstructed = nullptr;
+  }
+  static inline std::size_t constructions{0};
+  static inline std::size_t destructions{0};
+  static inline OwnedHeadEndpoint* lastConstructed{nullptr};
+
+ private:
+  void onConstructed() noexcept {
+    ++constructions;
+    lastConstructed = this;
+  }
+  int id_{0};
+  std::string name_;
+};
+
+// Owned tail endpoint with observable lifetime.
+class OwnedTailEndpoint {
+ public:
+  OwnedTailEndpoint() noexcept { ++constructions; }
+  ~OwnedTailEndpoint() {
+    ++destructions;
+    teardownLog().emplace_back("tail");
+  }
+
+  Result onRead(detail::ContextImpl&, TypeErasedBox&&) noexcept {
+    return Result::Success;
+  }
+  void onException(folly::exception_wrapper&&) noexcept {}
+  void onWriteReady() noexcept {}
+  void handlerAdded() noexcept {}
+  void handlerRemoved() noexcept {}
+  void onPipelineActive() noexcept {}
+  void onPipelineInactive() noexcept {}
+
+  static void reset() noexcept {
+    constructions = 0;
+    destructions = 0;
+  }
+  static inline std::size_t constructions{0};
+  static inline std::size_t destructions{0};
+};
+
+// Owned allocator with observable lifetime; counts heap allocations so tests
+// can prove inline co-location performs none.
+class OwnedAllocator {
+ public:
+  OwnedAllocator() noexcept { lastConstructed = this; }
+  ~OwnedAllocator() {
+    ++destructions;
+    teardownLog().emplace_back("allocator");
+  }
+
+  BytesPtr allocate(size_t size) { return folly::IOBuf::create(size); }
+  BytesPtr copyBuffer(const void* data, size_t size) {
+    return folly::IOBuf::copyBuffer(data, size);
+  }
+
+  static void* operator new(std::size_t size) {
+    ++heapAllocations;
+    return ::operator new(size);
+  }
+  static void operator delete(void* ptr) noexcept { ::operator delete(ptr); }
+
+  static void reset() noexcept {
+    heapAllocations = 0;
+    destructions = 0;
+    lastConstructed = nullptr;
+  }
+  static inline std::size_t heapAllocations{0};
+  static inline std::size_t destructions{0};
+  static inline OwnedAllocator* lastConstructed{nullptr};
+};
+
 HANDLER_TAG(codec);
 HANDLER_TAG(thrift);
 HANDLER_TAG(logging);
@@ -69,6 +194,10 @@ class PipelineBuilderTest : public ::testing::Test {
   void SetUp() override {
     MockHandler::resetOrderCounter();
     InlineStorageTestHandler::reset();
+    OwnedHeadEndpoint::reset();
+    OwnedTailEndpoint::reset();
+    OwnedAllocator::reset();
+    teardownLog().clear();
     transport_.reset();
     app_.reset();
     allocator_.reset();
@@ -483,6 +612,44 @@ TEST_F(PipelineBuilderTest, LargeStorageHasNoInlineLimit) {
       17);
 }
 
+TEST_F(PipelineBuilderTest, RejectsMoreThan63Handlers) {
+  EXPECT_THAT(
+      buildPipelineWithHandlers<pipeline_storage::Large>(
+          evb_, transport_, app_, allocator_, 63)
+          ->handlerCount(),
+      Eq(63));
+  EXPECT_THAT(
+      [&] {
+        buildPipelineWithHandlers<pipeline_storage::Large>(
+            evb_, transport_, app_, allocator_, 64);
+      },
+      Throws<std::length_error>());
+}
+
+TEST_F(PipelineBuilderTest, AddErasedHandlerRejectsThe64thHandler) {
+  PipelineBuilder<
+      MockHeadHandler,
+      MockTailHandler,
+      TestAllocator,
+      pipeline_storage::Large>
+      builder;
+  builder.setEventBase(&evb_)
+      .setHead(&transport_)
+      .setTail(&app_)
+      .setAllocator(&allocator_);
+  for (std::size_t i = 0; i < 63; ++i) {
+    builder.addNextDuplex<MockHandler>(static_cast<HandlerId>(i + 1));
+  }
+
+  EXPECT_THAT(
+      [&] {
+        builder.addErasedHandler(
+            detail::makeHandlerNode<MockHandler>(
+                static_cast<HandlerId>(64), std::make_unique<MockHandler>()));
+      },
+      Throws<std::length_error>());
+}
+
 TEST_F(
     PipelineBuilderTest, InlineStorageConstructsHandlerInPipelineAllocation) {
   {
@@ -566,6 +733,208 @@ TEST_F(PipelineBuilderTest, AutomaticStorageUsesMediumThenLarge) {
     EXPECT_EQ(InlineStorageTestHandler::heapAllocations, 17);
   }
   EXPECT_EQ(InlineStorageTestHandler::destructions, 17);
+}
+
+// === Owning setters (emplaceHead / emplaceTail / emplaceAllocator) ===
+
+TEST_F(PipelineBuilderTest, EmplacedHeadIsOwnedAndDestroyedWithPipeline) {
+  {
+    auto pipeline =
+        PipelineBuilder<OwnedHeadEndpoint, MockTailHandler, TestAllocator>()
+            .setEventBase(&evb_)
+            .emplaceHead()
+            .setTail(&app_)
+            .setAllocator(&allocator_)
+            .build();
+
+    ASSERT_NE(pipeline, nullptr);
+    EXPECT_EQ(OwnedHeadEndpoint::constructions, 1);
+    EXPECT_EQ(OwnedHeadEndpoint::destructions, 0);
+  }
+  EXPECT_EQ(OwnedHeadEndpoint::destructions, 1);
+}
+
+TEST_F(PipelineBuilderTest, EmplacedTailIsOwnedAndDestroyedWithPipeline) {
+  {
+    auto pipeline =
+        PipelineBuilder<MockHeadHandler, OwnedTailEndpoint, TestAllocator>()
+            .setEventBase(&evb_)
+            .setHead(&transport_)
+            .emplaceTail()
+            .setAllocator(&allocator_)
+            .build();
+
+    ASSERT_NE(pipeline, nullptr);
+    EXPECT_EQ(OwnedTailEndpoint::constructions, 1);
+    EXPECT_EQ(OwnedTailEndpoint::destructions, 0);
+  }
+  EXPECT_EQ(OwnedTailEndpoint::destructions, 1);
+}
+
+TEST_F(PipelineBuilderTest, EmplacedAllocatorIsOwnedAndDestroyedWithPipeline) {
+  {
+    auto pipeline =
+        PipelineBuilder<MockHeadHandler, MockTailHandler, OwnedAllocator>()
+            .setEventBase(&evb_)
+            .setHead(&transport_)
+            .setTail(&app_)
+            .emplaceAllocator()
+            .build();
+
+    ASSERT_NE(pipeline, nullptr);
+    EXPECT_EQ(OwnedAllocator::destructions, 0);
+  }
+  EXPECT_EQ(OwnedAllocator::destructions, 1);
+}
+
+TEST_F(PipelineBuilderTest, EmplaceForwardsConstructorArguments) {
+  auto pipeline =
+      PipelineBuilder<OwnedHeadEndpoint, MockTailHandler, TestAllocator>()
+          .setEventBase(&evb_)
+          .emplaceHead(42, std::string("codec"))
+          .setTail(&app_)
+          .setAllocator(&allocator_)
+          .build();
+
+  ASSERT_NE(pipeline, nullptr);
+  ASSERT_NE(OwnedHeadEndpoint::lastConstructed, nullptr);
+  EXPECT_EQ(OwnedHeadEndpoint::lastConstructed->id(), 42);
+  EXPECT_EQ(OwnedHeadEndpoint::lastConstructed->name(), "codec");
+}
+
+TEST_F(PipelineBuilderTest, EmplaceForwardsMoveOnlyConstructorArgument) {
+  auto pipeline =
+      PipelineBuilder<OwnedHeadEndpoint, MockTailHandler, TestAllocator>()
+          .setEventBase(&evb_)
+          .emplaceHead(std::make_unique<int>(7))
+          .setTail(&app_)
+          .setAllocator(&allocator_)
+          .build();
+
+  ASSERT_NE(pipeline, nullptr);
+  ASSERT_NE(OwnedHeadEndpoint::lastConstructed, nullptr);
+  EXPECT_EQ(OwnedHeadEndpoint::lastConstructed->id(), 7);
+}
+
+TEST_F(PipelineBuilderTest, EmplaceDecayCopiesDeferredArguments) {
+  PipelineBuilder<OwnedHeadEndpoint, MockTailHandler, TestAllocator> builder;
+  builder.setEventBase(&evb_).setTail(&app_).setAllocator(&allocator_);
+  {
+    std::string value{"owned"};
+    builder.emplaceHead(1, value);
+    value = "changed";
+  }
+
+  auto pipeline = builder.build();
+  ASSERT_NE(OwnedHeadEndpoint::lastConstructed, nullptr);
+  EXPECT_EQ(OwnedHeadEndpoint::lastConstructed->name(), "owned");
+}
+
+TEST_F(PipelineBuilderTest, OwnedAllocatorDestroyedAfterHandlersAndEndpoints) {
+  {
+    auto pipeline =
+        PipelineBuilder<OwnedHeadEndpoint, OwnedTailEndpoint, OwnedAllocator>()
+            .setEventBase(&evb_)
+            .emplaceHead()
+            .emplaceTail()
+            .emplaceAllocator()
+            .addNextDuplex<TeardownLoggingHandler>(codec_tag)
+            .addNextDuplex<TeardownLoggingHandler>(thrift_tag)
+            .build();
+    ASSERT_NE(pipeline, nullptr);
+  }
+
+  const auto& log = teardownLog();
+  ASSERT_FALSE(log.empty());
+  // The allocator must outlive every handler and the head/tail endpoints.
+  EXPECT_EQ(log.back(), "allocator");
+  EXPECT_EQ(std::count(log.begin(), log.end(), "allocator"), 1);
+  EXPECT_EQ(std::count(log.begin(), log.end(), "handler"), 2);
+}
+
+TEST_F(PipelineBuilderTest, MixedOwnedAndExternalComponents) {
+  OwnedAllocator externalAllocator;
+  const auto baselineDestructions = OwnedAllocator::destructions;
+  {
+    auto pipeline =
+        PipelineBuilder<OwnedHeadEndpoint, MockTailHandler, OwnedAllocator>()
+            .setEventBase(&evb_)
+            .emplaceHead()
+            .setTail(&app_)
+            .setAllocator(&externalAllocator)
+            .build();
+    ASSERT_NE(pipeline, nullptr);
+  }
+
+  // Owned head is torn down by the pipeline; the external allocator is not.
+  EXPECT_EQ(OwnedHeadEndpoint::destructions, 1);
+  EXPECT_EQ(OwnedAllocator::destructions, baselineDestructions);
+}
+
+TEST_F(PipelineBuilderTest, SetterAfterEmplaceDropsDeferredConstruction) {
+  OwnedHeadEndpoint externalHead;
+  // Isolate the counters from the external object's own construction.
+  OwnedHeadEndpoint::reset();
+
+  auto pipeline =
+      PipelineBuilder<OwnedHeadEndpoint, MockTailHandler, TestAllocator>()
+          .setEventBase(&evb_)
+          .emplaceHead(99, std::string("dropped"))
+          .setHead(&externalHead)
+          .setTail(&app_)
+          .setAllocator(&allocator_)
+          .build();
+
+  ASSERT_NE(pipeline, nullptr);
+  // Overriding a deferred emplace with an external pointer must not construct
+  // the deferred object at all.
+  EXPECT_EQ(OwnedHeadEndpoint::constructions, 0);
+}
+
+template <typename Storage>
+void runEmplacedHeadLifetimeTest(folly::EventBase& evb, MockTailHandler& tail) {
+  TestAllocator allocator;
+  {
+    auto pipeline = PipelineBuilder<
+                        OwnedHeadEndpoint,
+                        MockTailHandler,
+                        TestAllocator,
+                        Storage>()
+                        .setEventBase(&evb)
+                        .emplaceHead()
+                        .setTail(&tail)
+                        .setAllocator(&allocator)
+                        .build();
+    ASSERT_NE(pipeline, nullptr);
+    EXPECT_EQ(OwnedHeadEndpoint::destructions, 0);
+  }
+  EXPECT_EQ(OwnedHeadEndpoint::destructions, 1);
+}
+
+TEST_F(PipelineBuilderTest, EmplacedHeadLifetimeAcrossStorageFlavors) {
+  runEmplacedHeadLifetimeTest<pipeline_storage::Large>(evb_, app_);
+  OwnedHeadEndpoint::reset();
+  runEmplacedHeadLifetimeTest<pipeline_storage::Small>(evb_, app_);
+  OwnedHeadEndpoint::reset();
+  runEmplacedHeadLifetimeTest<pipeline_storage::Automatic>(evb_, app_);
+}
+
+TEST_F(PipelineBuilderTest, InlineStorageConstructsAllocatorWithoutHeap) {
+  {
+    auto pipeline = PipelineBuilder<
+                        MockHeadHandler,
+                        MockTailHandler,
+                        OwnedAllocator,
+                        pipeline_storage::Small>()
+                        .setEventBase(&evb_)
+                        .setHead(&transport_)
+                        .setTail(&app_)
+                        .emplaceAllocator()
+                        .build();
+    ASSERT_NE(pipeline, nullptr);
+    EXPECT_EQ(OwnedAllocator::heapAllocations, 0);
+  }
+  EXPECT_EQ(OwnedAllocator::destructions, 1);
 }
 
 } // namespace apache::thrift::fast_thrift::channel_pipeline::test

@@ -20,6 +20,7 @@
 // handed out early survives later slots being added.
 
 #include <cstddef>
+#include <memory>
 #include <string>
 #include <utility>
 
@@ -130,6 +131,25 @@ TEST(ExtensionStateStoreTest, SlotsAreDestroyedWithTheStore) {
     store.getOrCreate<Tracked>(live);
     EXPECT_EQ(live, 1);
   }
+  EXPECT_EQ(live, 0);
+}
+
+TEST(ExtensionStateStoreTest, TakeTransfersTheExistingObject) {
+  int live = 0;
+  std::unique_ptr<Tracked> state;
+  {
+    ExtensionStateStore store;
+    auto* original = &store.getOrCreate<Tracked>(live);
+
+    state = store.take<Tracked>();
+
+    EXPECT_EQ(state.get(), original);
+    EXPECT_FALSE(store.contains<Tracked>());
+    EXPECT_EQ(store.size(), 0);
+    EXPECT_EQ(live, 1);
+  }
+  EXPECT_EQ(live, 1);
+  state.reset();
   EXPECT_EQ(live, 0);
 }
 

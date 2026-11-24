@@ -31,12 +31,15 @@
  * and call evb_.loopOnce() to drain the deferred callback.
  *
  * Setup error tests for the bare pipeline below are covered in handler unit
- * tests. RocketServerSetupRejectionTest at the bottom mirrors the production
- * pipeline with the outbound batcher present, where the buffered ERROR frame
- * must reach the socket before close.
+ * tests. RocketServerSetupRejectionTest, after the edge case tests, mirrors
+ * the production pipeline with the outbound batcher present, where the
+ * buffered ERROR frame must reach the socket before close.
  */
 
+#include <concepts>
 #include <cstring>
+#include <optional>
+#include <vector>
 
 #include <gtest/gtest.h>
 
@@ -44,9 +47,10 @@
 #include <folly/io/IOBuf.h>
 #include <folly/io/IOBufQueue.h>
 #include <folly/io/async/EventBase.h>
+#include <folly/portability/GMock.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/ErrorCode.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
@@ -77,9 +81,11 @@
 
 namespace apache::thrift::fast_thrift::rocket::server::test {
 
-using apache::thrift::fast_thrift::channel_pipeline::PipelineBuilder;
-using apache::thrift::fast_thrift::channel_pipeline::PipelineImpl;
+using namespace testing;
+
+using apache::thrift::fast_thrift::channel_pipeline::PipelineOwner;
 using apache::thrift::fast_thrift::channel_pipeline::Result;
+using apache::thrift::fast_thrift::channel_pipeline::StaticPipelineBuilder;
 using apache::thrift::fast_thrift::channel_pipeline::test::TestAllocator;
 using apache::thrift::fast_thrift::transport::test::TestAsyncTransport;
 
@@ -114,7 +120,7 @@ class RocketServerIntegrationTest : public ::testing::Test {
     // Drain any pending write callbacks before destroying the adapter.
     // TestAsyncTransport defers writeSuccess() via runInLoop(), so we
     // must process those callbacks while the pipeline is still alive.
-    evb_.loopOnce();
+    evb_.loopOnce(EVLOOP_NONBLOCK);
 
     if (transportHandler_) {
       transportHandler_->close(folly::exception_wrapper{});
@@ -160,7 +166,7 @@ class RocketServerIntegrationTest : public ::testing::Test {
         });
 
     pipeline_ =
-        PipelineBuilder<
+        StaticPipelineBuilder<
             apache::thrift::fast_thrift::transport::TransportHandlerT<
                 apache::thrift::fast_thrift::transport::
                     NoOpWriteCompleteEventFactory,
@@ -280,7 +286,7 @@ class RocketServerIntegrationTest : public ::testing::Test {
       apache::thrift::fast_thrift::transport::NoOpWriteCompleteEventFactory,
       apache::thrift::fast_thrift::frame::read::FrameLengthParser>::Ptr
       transportHandler_;
-  PipelineImpl::Ptr pipeline_;
+  PipelineOwner pipeline_;
   TestAllocator allocator_;
 
   // Request tracking
@@ -435,7 +441,7 @@ TEST_F(RocketServerIntegrationTest, ResponseFlowsFromAppToSocket) {
   (void)appAdapter_->write(std::move(response));
 
   // Drain the deferred writeSuccess() callback
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto responseFrame = getWrittenFrame();
   ASSERT_NE(responseFrame, nullptr) << "Expected response to be written";
@@ -471,7 +477,7 @@ TEST_F(RocketServerIntegrationTest, ErrorResponseFlowsFromAppToSocket) {
   };
   (void)appAdapter_->write(std::move(response));
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto responseFrame = getWrittenFrame();
   ASSERT_NE(responseFrame, nullptr);
@@ -506,7 +512,7 @@ TEST_F(RocketServerIntegrationTest, ResponseWithMetadata) {
   };
   (void)appAdapter_->write(std::move(response));
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto responseFrame = getWrittenFrame();
   ASSERT_NE(responseFrame, nullptr);
@@ -585,7 +591,7 @@ TEST_F(RocketServerIntegrationTest, ResponseForCompletedStreamFails) {
   };
   (void)appAdapter_->write(std::move(response));
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
   testTransport_->getWrittenData(); // consume the response
 
   RocketResponseMessage duplicate{
@@ -652,7 +658,7 @@ TEST_F(RocketServerIntegrationTest, EmptyPayloadResponse) {
   };
   (void)appAdapter_->write(std::move(response));
 
-  evb_.loopOnce();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
 
   auto responseFrame = getWrittenFrame();
   ASSERT_NE(responseFrame, nullptr);
@@ -700,7 +706,7 @@ class RocketServerSetupRejectionTest : public ::testing::Test {
     transportHandler_ = RejectionTransportHandler::create(std::move(transport));
 
     pipeline_ =
-        PipelineBuilder<
+        StaticPipelineBuilder<
             RejectionTransportHandler,
             rocket::server::RocketServerAppAdapter,
             TestAllocator>()
@@ -737,7 +743,7 @@ class RocketServerSetupRejectionTest : public ::testing::Test {
   // A test that hands the pieces to a RocketServerConnection leaves these
   // empty; that connection owns the teardown from then on.
   void TearDown() override {
-    evb_.loopOnce();
+    evb_.loopOnce(EVLOOP_NONBLOCK);
     if (transportHandler_) {
       transportHandler_->close(folly::exception_wrapper{});
       transportHandler_->resetPipeline();
@@ -777,7 +783,7 @@ class RocketServerSetupRejectionTest : public ::testing::Test {
   rocket::server::RocketServerAppAdapter::Ptr appAdapter_{
       new rocket::server::RocketServerAppAdapter()};
   RejectionTransportHandler::Ptr transportHandler_;
-  PipelineImpl::Ptr pipeline_;
+  PipelineOwner pipeline_;
   TestAllocator allocator_;
 };
 
@@ -848,6 +854,190 @@ TYPED_TEST(RocketServerSetupRejectionTest, DisconnectFlushesBufferedFrames) {
       << "buffered frame was discarded instead of flushed on disconnect";
 
   conn.destroy();
+}
+
+namespace {
+
+constexpr uint32_t kFlushWritesStreamId = 1;
+constexpr uint32_t kInactiveStreamId = 3;
+
+struct CloseSteps {
+  std::optional<Result> flushWritesResult;
+  std::optional<Result> inactiveResult;
+  size_t transportCompletions{0};
+};
+
+/**
+ * Stands where a fragmenter sits, above the batcher. It writes one frame when
+ * FlushWritesEvent arrives and one when the pipeline goes inactive, and counts
+ * transport write completions.
+ */
+class CloseStepWriter {
+ public:
+  explicit CloseStepWriter(CloseSteps* steps) noexcept : steps_(steps) {}
+
+  using PublishedEvents = channel_pipeline::Events<>;
+  using SubscribedEvents =
+      channel_pipeline::Events<FlushWritesEvent, TransportWriteCompleteEvent>;
+
+  template <typename Context>
+  void handlerAdded(Context&) noexcept {}
+
+  template <typename Context>
+  void handlerRemoved(Context&) noexcept {}
+
+  template <typename Context>
+  void onWriteReady(Context&) noexcept {}
+
+  template <typename Context>
+  Result onWrite(Context& ctx, TypeErasedBox&& msg) noexcept {
+    return ctx.fireWrite(std::move(msg));
+  }
+
+  template <typename Context>
+  void onPipelineInactive(Context& ctx) noexcept {
+    steps_->inactiveResult = ctx.fireWrite(makePayload(kInactiveStreamId));
+  }
+
+  template <channel_pipeline::PipelineEvent E, typename Context>
+    requires std::same_as<E, FlushWritesEvent>
+  void on(Context& ctx) noexcept {
+    steps_->flushWritesResult =
+        ctx.fireWrite(makePayload(kFlushWritesStreamId));
+  }
+
+  template <channel_pipeline::PipelineEvent E, typename Context>
+    requires std::same_as<E, TransportWriteCompleteEvent>
+  void on(Context&, const TransportWriteCompleteEvent&) noexcept {
+    ++steps_->transportCompletions;
+  }
+
+ private:
+  static TypeErasedBox makePayload(uint32_t streamId) noexcept {
+    return channel_pipeline::erase_and_box(
+        frame::ComposedFrame{
+            .frameType = frame::FrameType::PAYLOAD,
+            .streamId = streamId,
+            .complete = true,
+            .next = true,
+        });
+  }
+
+  CloseSteps* const steps_;
+};
+
+HANDLER_TAG(close_step_writer);
+
+} // namespace
+
+class RocketServerCloseStepTest : public ::testing::Test {
+ protected:
+  RocketServerCloseStepTest() {
+    auto transport =
+        folly::AsyncTransport::UniquePtr(new TestAsyncTransport(&evb_));
+    testTransport_ = static_cast<TestAsyncTransport*>(transport.get());
+    RejectionTransportHandler::Ptr transportHandler =
+        RejectionTransportHandler::create(std::move(transport));
+
+    auto pipeline =
+        StaticPipelineBuilder<
+            RejectionTransportHandler,
+            rocket::server::RocketServerAppAdapter,
+            TestAllocator>()
+            .setEventBase(&evb_)
+            .setHead(transportHandler.get())
+            .setTail(conn_.appAdapter.get())
+            .setAllocator(&allocator_)
+            .addState<
+                apache::thrift::fast_thrift::rocket::RocketStreamContexts>()
+            .addNextOutbound<TrackedBatcher>(batching_frame_handler_tag)
+            .addNextOutbound<apache::thrift::fast_thrift::frame::write::
+                                 handler::FrameLengthEncoderHandler>(
+                frame_length_encoder_handler_tag)
+            .addNextDuplex<FrameCodecHandler>(frame_codec_handler_tag)
+            .addNextInbound<FrameDefragmentationHandler>(
+                frame_defragmentation_handler_tag)
+            .addNextOutbound<CloseStepWriter>(close_step_writer_tag, &steps_)
+            .addNextDuplex<RocketServerMessageMarshalHandler>(
+                rocket_server_message_marshal_handler_tag)
+            .build();
+
+    conn_.appAdapter->setPipeline(pipeline.get());
+    conn_.appAdapter->setOnWriteReady(
+        [this]() noexcept { ++writeReadyCount_; });
+    transportHandler->setPipeline(pipeline.get());
+    transportHandler->onConnect();
+    conn_.transportHandler = std::move(transportHandler);
+    conn_.pipeline = std::move(pipeline);
+  }
+
+  ~RocketServerCloseStepTest() override {
+    evb_.loopOnce(EVLOOP_NONBLOCK);
+    conn_.destroy();
+  }
+
+  std::vector<uint32_t> writtenStreamIds() {
+    folly::IOBufQueue queue{folly::IOBufQueue::cacheChainLength()};
+    queue.append(testTransport_->getWrittenData());
+    std::vector<uint32_t> streamIds;
+    while (!queue.empty()) {
+      folly::io::Cursor cursor(queue.front());
+      const uint32_t lengthHigh = cursor.read<uint8_t>();
+      const uint32_t lengthLow = cursor.readBE<uint16_t>();
+      queue.trimStart(apache::thrift::fast_thrift::frame::kMetadataLengthSize);
+      streamIds.push_back(
+          apache::thrift::fast_thrift::frame::read::parseFrame(
+              queue.split(lengthHigh << 16 | lengthLow))
+              .streamId());
+    }
+    return streamIds;
+  }
+
+  folly::EventBase evb_;
+  TestAllocator allocator_;
+  CloseSteps steps_;
+  size_t writeReadyCount_{0};
+  TestAsyncTransport* testTransport_{nullptr};
+  rocket::server::RocketServerConnection conn_;
+};
+
+TEST_F(RocketServerCloseStepTest, OnlyTheFlushWritesStepReachesTheSocket) {
+  conn_.disconnect();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+
+  EXPECT_THAT(steps_.flushWritesResult, Optional(Result::Success));
+  EXPECT_THAT(steps_.inactiveResult, Optional(_));
+  EXPECT_THAT(writtenStreamIds(), ElementsAre(kFlushWritesStreamId));
+}
+
+TEST_F(
+    RocketServerCloseStepTest,
+    FlushedBatchDrainsWithoutCompletionOrWriteReady) {
+  EXPECT_THAT(
+      conn_.appAdapter->write(
+          RocketResponseMessage{
+              .frame =
+                  apache::thrift::fast_thrift::frame::ComposedFrame{
+                      .frameType =
+                          apache::thrift::fast_thrift::frame::FrameType::ERROR,
+                      .streamId = 0,
+                      .errorCode = static_cast<uint32_t>(
+                          apache::thrift::fast_thrift::frame::ErrorCode::
+                              CONNECTION_CLOSE),
+                  }}),
+      Eq(Result::Success));
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+  ASSERT_THAT(steps_.transportCompletions, Eq(1));
+  ASSERT_THAT(writeReadyCount_, Eq(1));
+  testTransport_->clearWrittenData();
+
+  conn_.disconnect();
+  evb_.loopOnce(EVLOOP_NONBLOCK);
+
+  EXPECT_THAT(writtenStreamIds(), ElementsAre(kFlushWritesStreamId));
+  EXPECT_THAT(steps_.transportCompletions, Eq(1));
+  EXPECT_THAT(writeReadyCount_, Eq(1));
 }
 
 } // namespace apache::thrift::fast_thrift::rocket::server::test

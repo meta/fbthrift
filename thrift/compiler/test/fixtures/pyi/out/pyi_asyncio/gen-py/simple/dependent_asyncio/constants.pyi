@@ -6,5 +6,6 @@
 #
 import typing as __T
 
+import simple.transitive_asyncio.ttypes
 from simple.dependent_asyncio.ttypes import *
 

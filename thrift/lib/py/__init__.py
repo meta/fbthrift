@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# thrift-python's packages, such as thrift.python, live in another "thrift"
+# directory on sys.path.
+__path__ = __import__("pkgutil").extend_path(__path__, __name__)
 
 # pyrefly: ignore [bad-dunder-all]
 __all__ = ["Thrift", "TSCons"]

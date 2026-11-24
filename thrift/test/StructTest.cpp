@@ -17,6 +17,7 @@
 #include <memory>
 #include <thrift/test/gen-cpp2/structs_terse_types.h>
 #include <thrift/test/gen-cpp2/structs_types.h>
+#include <thrift/test/gen-cpp2/structs_types.tcc>
 
 #include <gtest/gtest.h>
 #include <folly/Traits.h>
@@ -607,10 +608,10 @@ TEST(StructTest, small_sorted_vector) {
   using serializer = apache::thrift::BinarySerializer;
   using Type = HasSmallSortedVector;
   EXPECT_TRUE(
-      (std::is_same<folly::remove_cvref_t<decltype(*Type().set_field())>, Set>::
+      (std::is_same<std::remove_cvref_t<decltype(*Type().set_field())>, Set>::
            value));
   EXPECT_TRUE(
-      (std::is_same<folly::remove_cvref_t<decltype(*Type().map_field())>, Map>::
+      (std::is_same<std::remove_cvref_t<decltype(*Type().map_field())>, Map>::
            value));
 
   Type o;
@@ -939,6 +940,30 @@ TEST(StructTest, has_value) {
     s.int_list_field_ref().reset();
     EXPECT_FALSE(s.int_list_field_ref().has_value());
   }
+}
+
+TEST(StructTest, PrivateFieldAccess) {
+  Basic obj;
+  obj.def_field() = 1;
+  obj.opt_field() = 3;
+  EXPECT_EQ(&struct_private_access::field_storage<1>(obj), &*obj.def_field());
+  EXPECT_EQ(&struct_private_access::field_storage<3>(obj), &*obj.opt_field());
+  EXPECT_TRUE(struct_private_access::field_isset<3>(obj));
+  obj.opt_field().reset();
+  EXPECT_FALSE(struct_private_access::field_isset<3>(obj));
+
+  static_assert(struct_private_access::class_name_v<Basic> == "Basic");
+  static_assert(
+      struct_private_access::field_name_v<Basic, FieldOrdinal{2}> ==
+      "req_field");
+
+  FieldsNamedLikeGeneratedMembers named;
+  named.names() = 1;
+  EXPECT_EQ(struct_private_access::field_storage<1>(named), 1);
+  static_assert(
+      struct_private_access::
+          field_name_v<FieldsNamedLikeGeneratedMembers, FieldOrdinal{1}> ==
+      "names");
 }
 
 } // namespace

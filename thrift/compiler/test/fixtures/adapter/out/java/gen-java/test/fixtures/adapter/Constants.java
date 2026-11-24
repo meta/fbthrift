@@ -66,10 +66,10 @@ public final class Constants {
     public static final List<Byte> CONTAINER_OF_ADAPTED = construct_CONTAINER_OF_ADAPTED();
 
     private static List<Byte> construct_CONTAINER_OF_ADAPTED() {
-        return ImmutableList.<Byte>builder()
-        .add((byte)1)
-        .add((byte)2)
-        .add((byte)3)
-        .build();
+        ImmutableList.Builder<Byte> builder = ImmutableList.builder();
+        builder.add((byte)1);
+        builder.add((byte)2);
+        builder.add((byte)3);
+        return builder.build();
     }
 }

@@ -23,6 +23,8 @@ cdef class FactoriesInterface(ServiceInterface):
     cdef bint _for_cython_interact
     cdef bint _for_cython_interactFast
     cdef bint _for_cython_serialize
+    cdef bint _for_cython_interactWithStream
+    cdef bint _for_cython_interactWithStreamAndInitialResponse
     pass
 
 cdef class PerformInterface(ServiceInterface):

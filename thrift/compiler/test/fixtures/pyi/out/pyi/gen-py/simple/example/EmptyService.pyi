@@ -10,6 +10,7 @@ from thrift import Thrift
 from thrift.protocol.TProtocol import TProtocolBase
 
 import simple.dependent.ttypes
+import simple.transitive.ttypes
 from simple.example.ttypes import *
 
 

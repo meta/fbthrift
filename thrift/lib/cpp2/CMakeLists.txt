@@ -15,91 +15,15 @@
 # Set the cpp2 directory
 set(LIB_CPP2_HOME ${CMAKE_CURRENT_SOURCE_DIR})
 
-thrift_generate(schema/syntax_graph.thrift LANGUAGE cpp2 OPTIONS no_metadata
-                OUT_SOURCES syntax_graph_sources)
-
-thrift_generate(../thrift/any_rep.thrift LANGUAGE cpp2 OPTIONS json no_metadata
-                OUT_SOURCES any_rep_sources)
-
-thrift_generate(../thrift/metadata.thrift LANGUAGE cpp2
-                OUT_SOURCES metadata_sources)
-
-thrift_generate(../thrift/frozen.thrift LANGUAGE cpp2
-                OUT_SOURCES frozen_sources)
-
-thrift_generate(
-  ../thrift/RpcMetadata.thrift
-  LANGUAGE cpp2
-  OPTIONS json no_metadata
-  OUT_SOURCES RpcMetadata_sources)
-
-thrift_generate(
-  ../thrift/RocketUpgrade.thrift
-  LANGUAGE cpp2
-  SERVICES RocketUpgrade
-  OPTIONS no_metadata
-  OUT_SOURCES RocketUpgrade_sources)
-
-thrift_generate(../thrift/id.thrift LANGUAGE cpp2 OPTIONS no_metadata
-                OUT_SOURCES id_sources)
-
-thrift_generate(../thrift/standard.thrift LANGUAGE cpp2 OPTIONS json no_metadata
-                OUT_SOURCES standard_sources)
-
-thrift_generate(../thrift/type_rep.thrift LANGUAGE cpp2 OPTIONS json no_metadata
-                OUT_SOURCES type_rep_sources)
-
-thrift_generate(../thrift/type.thrift LANGUAGE cpp2 OPTIONS no_metadata
-                OUT_SOURCES type_sources)
-
-thrift_generate(
-  ../thrift/serverdbginfo.thrift
-  LANGUAGE cpp2
-  OPTIONS json no_metadata
-  OUT_SOURCES serverdbginfo_sources)
-
-thrift_generate(../thrift/protocol.thrift LANGUAGE cpp2
-                OUT_SOURCES protocol_sources)
-
-thrift_generate(../thrift/protocol_detail.thrift LANGUAGE cpp2
-                OUT_SOURCES protocol_detail_sources)
-
-thrift_generate(../thrift/field_mask.thrift LANGUAGE cpp2 OPTIONS no_metadata
-                OUT_SOURCES field_mask_sources)
-
-thrift_generate(../thrift/record.thrift LANGUAGE cpp2 OPTIONS no_metadata
-                OUT_SOURCES record_sources)
-
-thrift_generate(../thrift/schema.thrift LANGUAGE cpp2 OPTIONS no_metadata
-                OUT_SOURCES schema_sources)
-
-thrift_generate(../thrift/type_id.thrift LANGUAGE cpp2 OPTIONS no_metadata
-                OUT_SOURCES type_id_sources)
-
-thrift_generate(../thrift/type_system.thrift LANGUAGE cpp2 OPTIONS no_metadata
-                OUT_SOURCES type_system_sources)
-
-thrift_generate(
-  ../thrift/service_catalog.thrift
-  LANGUAGE cpp2
-  OPTIONS no_metadata
-  OUT_SOURCES service_catalog_sources)
-
-thrift_generate(
-  ../thrift/thrift_catalog_service.thrift
-  LANGUAGE cpp2
-  SERVICES ThriftCatalogService
-  OPTIONS no_metadata
-  OUT_SOURCES thrift_catalog_service_sources)
-
 if (THRIFT_TESTS)
   add_subdirectory(protocol/test)
+endif ()
+if (THRIFT_BENCHMARKS)
   add_subdirectory(test)
 endif ()
 
 add_library(
-  thriftmetadata
-  ${metadata_sources}
+  thrift_metadata
   gen/module_types_cpp.cpp
   detail/Enum.cpp
   dynamic/SerializableRecord.cpp
@@ -114,29 +38,38 @@ add_library(
   schema/detail/Merge.cpp
   ../thrift/detail/protocol.cpp
   ../thrift/detail/TypeIdAdapter.cpp
-  ../thrift/detail/TypeSystemAdapter.cpp
-  ${protocol_sources}
-  ${protocol_detail_sources}
-  ${type_id_sources}
-  ${type_system_sources}
-  ${schema_sources}
-  ${record_sources}
-  ${syntax_graph_sources}
-  ${service_catalog_sources})
-# For the headers generated for thrifttype and thrifttyperep.
-add_dependencies(thriftmetadata thrifttype)
-target_link_libraries(thriftmetadata PUBLIC Folly::folly thriftprotocol)
-target_link_libraries(thriftmetadata PUBLIC ${thrift_xxhash})
+  ../thrift/detail/TypeSystemAdapter.cpp)
+thrift_generate(thrift_metadata ../thrift/metadata.thrift LANGUAGE cpp2)
+thrift_generate(thrift_metadata ../thrift/protocol.thrift LANGUAGE cpp2)
+thrift_generate(thrift_metadata ../thrift/protocol_detail.thrift LANGUAGE cpp2)
+thrift_generate(thrift_metadata ../thrift/type_id.thrift LANGUAGE cpp2
+                OPTIONS no_metadata)
+thrift_generate(thrift_metadata ../thrift/type_system.thrift LANGUAGE cpp2
+                OPTIONS no_metadata)
+thrift_generate(thrift_metadata ../thrift/schema.thrift LANGUAGE cpp2
+                OPTIONS no_metadata)
+thrift_generate(thrift_metadata ../thrift/record.thrift LANGUAGE cpp2
+                OPTIONS no_metadata)
+thrift_generate(thrift_metadata schema/syntax_graph.thrift LANGUAGE cpp2
+                OPTIONS no_metadata)
+thrift_generate(thrift_metadata ../thrift/service_catalog.thrift LANGUAGE cpp2
+                OPTIONS no_metadata)
+# For the headers generated for thrift_type and thrift_type_rep.
+add_dependencies(thrift_metadata thrift_type)
+target_link_libraries(
+  thrift_metadata PUBLIC Folly::folly thrift_protocol thrift_type_rep
+                         thrift_type thrift_common)
+target_link_libraries(thrift_metadata PUBLIC ${thrift_xxhash})
 # SerializableRecord.cpp includes F14Map and instantiates PrimitiveDatum for
 # every primitive type; on MSVC this exceeds the default COFF section limit.
 if (MSVC)
-  target_compile_options(thriftmetadata PRIVATE /bigobj)
+  target_compile_options(thrift_metadata PRIVATE /bigobj)
 endif ()
 
 add_library(thrift_path dynamic/Path.cpp)
-add_dependencies(thrift_path thriftmetadata thriftprotocol)
-target_link_libraries(thrift_path PUBLIC fmt::fmt Folly::folly thriftmetadata
-                                         thriftprotocol)
+add_dependencies(thrift_path thrift_metadata thrift_protocol)
+target_link_libraries(thrift_path PUBLIC fmt::fmt Folly::folly thrift_metadata
+                                         thrift_protocol)
 
 add_library(
   thrift_dynamic_value
@@ -146,6 +79,7 @@ add_library(
   dynamic/List.cpp
   dynamic/Map.cpp
   dynamic/Set.cpp
+  dynamic/StableCompare.cpp
   dynamic/String.cpp
   dynamic/Struct.cpp
   dynamic/Union.cpp
@@ -170,68 +104,82 @@ add_library(
   dynamic/detail/Datum.cpp
   dynamic/detail/DatumHash.cpp
   # ServiceDescriptor and the SyntaxGraph-backed catalog that builds it use
-  # DynamicValue for annotations, so they layer above thriftmetadata here.
-  # Putting them in thriftmetadata would cycle with thrift_dynamic_value.
+  # DynamicValue for annotations, so they layer above thrift_metadata here.
+  # Putting them in thrift_metadata would cycle with thrift_dynamic_value.
   dynamic/AnnotationValue.cpp
   dynamic/ServiceDescriptor.cpp
   schema/detail/SchemaBackedResolver.cpp
   schema/SyntaxGraph.cpp
   runtime/SchemaRegistry.cpp)
-add_dependencies(thrift_dynamic_value thriftmetadata thriftprotocol thrift_path)
-target_link_libraries(thrift_dynamic_value PUBLIC Folly::folly thriftmetadata
-                                                  thriftprotocol thrift_path)
+add_dependencies(thrift_dynamic_value thrift_metadata thrift_protocol
+                 thrift_path)
+target_link_libraries(thrift_dynamic_value PUBLIC Folly::folly thrift_metadata
+                                                  thrift_protocol thrift_path)
 # dynamic/Map.cpp and ConcreteMap*.cpp instantiate F14Map for every value type;
 # on MSVC this exceeds the default COFF section limit.
 if (MSVC)
   target_compile_options(thrift_dynamic_value PRIVATE /bigobj)
 endif ()
 
-add_library(thriftfrozen2 frozen/Frozen.cpp frozen/FrozenUtil.cpp
-                          frozen/schema/MemorySchema.cpp ${frozen_sources})
-add_dependencies(thriftfrozen2 thriftmetadata)
-target_link_libraries(thriftfrozen2 PUBLIC Folly::folly thriftmetadata
-                                           thriftprotocol glog::glog gflags)
+add_library(thrift_frozen frozen/Frozen.cpp frozen/FrozenUtil.cpp
+                          frozen/schema/MemorySchema.cpp)
+thrift_generate(thrift_frozen ../thrift/frozen.thrift LANGUAGE cpp2)
+add_dependencies(thrift_frozen thrift_metadata)
+target_link_libraries(
+  thrift_frozen PUBLIC Folly::folly thrift_metadata thrift_protocol glog::glog
+                       ${thrift_gflags})
 
-add_library(thrifttyperep ${id_sources} ${standard_sources}
-                          ${type_rep_sources})
-add_dependencies(thrifttyperep thriftannotation)
-target_link_libraries(thrifttyperep PUBLIC Folly::folly thriftannotation)
+add_library(thrift_type_rep)
+thrift_generate(thrift_type_rep ../thrift/id.thrift LANGUAGE cpp2
+                OPTIONS no_metadata)
+thrift_generate(thrift_type_rep ../thrift/standard.thrift LANGUAGE cpp2
+                OPTIONS json no_metadata)
+thrift_generate(thrift_type_rep ../thrift/type_rep.thrift LANGUAGE cpp2
+                OPTIONS json no_metadata)
+add_dependencies(thrift_type_rep thrift_annotation)
+target_link_libraries(thrift_type_rep PUBLIC Folly::folly thrift_annotation)
 
 add_library(
-  thrifttype
-  ${any_rep_sources}
-  ${field_mask_sources}
-  ${type_sources}
+  thrift_type
   ../thrift/TypeToMaskAdapter.cpp
   op/Serializer.cpp
   type/Any.cpp
   type/BaseType.cpp
   type/Protocol.cpp
-  type/Runtime.cpp
   type/Type.cpp
   type/TypeRegistry.cpp
   type/UniversalName.cpp)
-add_dependencies(thrifttype thriftannotation thrifttyperep thriftprotocol)
+thrift_generate(thrift_type ../thrift/any_rep.thrift LANGUAGE cpp2
+                OPTIONS json no_metadata)
+thrift_generate(thrift_type ../thrift/field_mask.thrift LANGUAGE cpp2
+                OPTIONS no_metadata)
+thrift_generate(thrift_type ../thrift/type.thrift LANGUAGE cpp2
+                OPTIONS no_metadata)
+add_dependencies(thrift_type thrift_annotation thrift_type_rep thrift_protocol)
 target_link_libraries(
-  thrifttype PUBLIC common Folly::folly thriftannotation thrifttyperep
-                    thriftprotocol ${thrift_openssl_crypto})
+  thrift_type PUBLIC thrift_common Folly::folly thrift_annotation
+                     thrift_type_rep thrift_protocol ${thrift_openssl_crypto})
 
-# thriftanyrep sources are now compiled into thrifttype to avoid a circular
-# shared library dependency. Keep thriftanyrep as a thin wrapper so that
+# thrift_any_rep sources are now compiled into thrift_type to avoid a circular
+# shared library dependency. Keep thrift_any_rep as a thin wrapper so that
 # existing consumers (e.g. Haskell FFI) that link -lthriftanyrep keep working.
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/thriftanyrep_stub.cpp" "")
-add_library(thriftanyrep "${CMAKE_CURRENT_BINARY_DIR}/thriftanyrep_stub.cpp")
-target_link_libraries(thriftanyrep PUBLIC thrifttype)
+add_library(thrift_any_rep "${CMAKE_CURRENT_BINARY_DIR}/thriftanyrep_stub.cpp")
+target_link_libraries(thrift_any_rep PUBLIC thrift_type)
 
-add_library(rpcmetadata ${RpcMetadata_sources})
-target_link_libraries(rpcmetadata PUBLIC Folly::folly thriftprotocol)
+add_library(thrift_rpc_metadata)
+thrift_generate(thrift_rpc_metadata ../thrift/RpcMetadata.thrift LANGUAGE cpp2
+                OPTIONS json no_metadata)
+target_link_libraries(thrift_rpc_metadata PUBLIC Folly::folly thrift_protocol)
 
-add_library(serverdbginfo ${serverdbginfo_sources})
-thrift_configure_target(serverdbginfo PUBLIC)
-target_link_libraries(serverdbginfo PUBLIC Folly::folly)
+add_library(thrift_server_debug_info)
+thrift_generate(thrift_server_debug_info ../thrift/serverdbginfo.thrift
+                LANGUAGE cpp2 OPTIONS json no_metadata)
+thrift_configure_target(thrift_server_debug_info PUBLIC)
+target_link_libraries(thrift_server_debug_info PUBLIC Folly::folly)
 
 add_library(
-  thriftprotocol
+  thrift_protocol
   protocol/Protocol.cpp
   protocol/BinaryProtocol.cpp
   protocol/CompactProtocol.cpp
@@ -256,6 +204,7 @@ add_library(
   ../cpp/protocol/TProtocolException.cpp
   ../cpp/protocol/TType.cpp
   ../cpp/util/VarintUtils.cpp
+  patch/detail/PatchLogging.cpp
   # Required by protocol/BinaryProtocol.cpp, which instantiates
   # BinaryProtocolReaderBase<io::IOBufChainCursor>.
   IOBufChain.cpp
@@ -266,13 +215,17 @@ add_library(
   detail/Enum.cpp
   # Required by protocol/TableBasedSerializerImpl.h's field-name lookup
   # path (used by the JSON5 protocol), which calls checkFieldIdConflict.
-  gen/module_types_cpp.cpp)
-target_link_libraries(thriftprotocol PUBLIC fmt::fmt Folly::folly glog::glog
-                                            thrift-core)
+  gen/module_types_cpp.cpp
+  pmr/ArenaResource.cpp)
+target_link_libraries(thrift_protocol PUBLIC fmt::fmt Folly::folly glog::glog
+                                             thrift_core)
+# The name an older Thrift installed for thrift::protocol, which
+# thrift_generate() links.
+thrift_add_legacy_name(protocol thrift_protocol)
 
 if (THRIFT_RPC)
   add_library(
-    thriftcpp2
+    thrift_rpc
     FieldRef.cpp
     Flags.cpp
     GeneratedCodeHelper.cpp
@@ -282,6 +235,7 @@ if (THRIFT_RPC)
     async/AsyncProcessorFactory.cpp
     async/AsyncProcessorHelper.cpp
     async/ClientChannel.cpp
+    async/ClientCompressionFlags.cpp
     async/ClientSinkBridge.cpp
     async/ClientStreamBridge.cpp
     async/ClientStreamInterceptorContext.cpp
@@ -335,7 +289,10 @@ if (THRIFT_RPC)
     fast_thrift/common/allocator/EvbAllocator.cpp
     fast_thrift/channel_pipeline/PipelineImpl.cpp
     fast_thrift/channel_pipeline/detail/ContextImpl.cpp
+    fast_thrift/frame/write/FifoStreamQueue.cpp
     fast_thrift/frame/write/FrameWriter.cpp
+    fast_thrift/frame/write/handler/FifoFrameFragmentationHandlerState.cpp
+    fast_thrift/frame/write/handler/YieldingSrptFrameFragmentationHandlerState.cpp
     fast_thrift/thrift/FastThriftAdapterBase.cpp
     fast_thrift/thrift/client/ThriftClientChannel.cpp
     fast_thrift/thrift/client/util/RocketFrameDecoder.cpp
@@ -389,7 +346,6 @@ if (THRIFT_RPC)
     server/ServiceInterceptorControl.cpp
     server/ServiceInterceptorOnDrop.cpp
     server/ServiceInterceptorOnReceived.cpp
-    server/ServiceInterceptorQualifiedName.cpp
     server/ThriftCatalogServerInterface.cpp
     server/ThriftProcessor.cpp
     server/ThriftServer.cpp
@@ -456,95 +412,85 @@ if (THRIFT_RPC)
     util/EmptyAsyncProcessor.cpp
     util/SchemaToMetadata.cpp
     util/ScopedServerInterfaceThread.cpp
-    util/ScopedServerThread.cpp
-    ${RocketUpgrade_sources}
-    ${thrift_catalog_service_sources})
+    util/ScopedServerThread.cpp)
+  thrift_generate(
+    thrift_rpc ../thrift/RocketUpgrade.thrift
+    LANGUAGE cpp2
+    SERVICES RocketUpgrade
+    OPTIONS no_metadata)
+  thrift_generate(
+    thrift_rpc ../thrift/thrift_catalog_service.thrift
+    LANGUAGE cpp2
+    SERVICES ThriftCatalogService
+    OPTIONS no_metadata)
   add_dependencies(
-    thriftcpp2
-    rpcmetadata
-    thriftannotation
-    thriftmetadata
+    thrift_rpc
+    thrift_rpc_metadata
+    thrift_annotation
+    thrift_metadata
     thrift_path
     thrift_dynamic_value
-    thrifttyperep
-    thrifttype
-    thriftanyrep
-    serverdbginfo)
+    thrift_type_rep
+    thrift_type
+    thrift_any_rep
+    thrift_server_debug_info)
 
   target_link_libraries(
-    thriftcpp2
+    thrift_rpc
     PUBLIC fmt::fmt
-           thrift-cpp
-           rpcmetadata
-           thriftannotation
-           thriftmetadata
+           thrift_async
+           thrift_concurrency
+           thrift_transport
+           thrift_rpc_metadata
+           thrift_annotation
+           thrift_metadata
            thrift_path
            thrift_dynamic_value
-           thriftfrozen2
-           thriftprotocol
-           thrifttyperep
-           thrifttype
-           thriftanyrep
-           serverdbginfo
+           thrift_frozen
+           thrift_protocol
+           thrift_type_rep
+           thrift_type
+           thrift_any_rep
+           thrift_server_debug_info
            ${thrift_xxhash})
 
-  add_library(quic_thriftcpp2 server/ThriftQuicServer.cpp)
-  add_dependencies(quic_thriftcpp2 thriftcpp2 mvfst::mvfst_server_async_tran)
-  target_link_libraries(quic_thriftcpp2 PUBLIC thriftcpp2
+  add_library(thrift_rpc_quic server/ThriftQuicServer.cpp)
+  add_dependencies(thrift_rpc_quic thrift_rpc mvfst::mvfst_server_async_tran)
+  target_link_libraries(thrift_rpc_quic PUBLIC thrift_rpc
                                                ${thrift_mvfst_server})
+  thrift_add_alias(thrift_rpc_quic)
 endif () # THRIFT_RPC
-
-# Install includes
-set(THRIFT2_HEADER_DIRS
-    async
-    fast_thrift
-    frozen
-    protocol
-    server
-    transport
-    util)
-install(
-  DIRECTORY ${THRIFT2_HEADER_DIRS}
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/thrift/lib/cpp2
-  FILES_MATCHING
-  PATTERN "*.h"
-  PATTERN "*.tcc")
 
 if (BUILD_SHARED_LIBS)
   set_target_properties(
-    rpcmetadata
-    thriftannotation
-    thriftmetadata
+    thrift_rpc_metadata
+    thrift_annotation
+    thrift_metadata
     thrift_path
     thrift_dynamic_value
-    thriftfrozen2
-    thriftprotocol
-    thrifttyperep
-    thrifttype
-    thriftanyrep
-    serverdbginfo
+    thrift_frozen
+    thrift_protocol
+    thrift_type_rep
+    thrift_type
+    thrift_any_rep
+    thrift_server_debug_info
     PROPERTIES VERSION ${PROJECT_VERSION})
   if (THRIFT_RPC)
-    set_target_properties(thriftcpp2 PROPERTIES VERSION ${PROJECT_VERSION})
+    set_target_properties(thrift_rpc PROPERTIES VERSION ${PROJECT_VERSION})
   endif ()
 endif ()
 
-install(
-  TARGETS rpcmetadata
-          thriftmetadata
-          thrift_path
-          thrift_dynamic_value
-          thriftfrozen2
-          thrifttyperep
-          thrifttype
-          thriftanyrep
-          thriftprotocol
-          serverdbginfo
-  EXPORT fbthrift-exports
-  DESTINATION ${CMAKE_INSTALL_LIBDIR})
+thrift_install_targets(
+  thrift_rpc_metadata
+  thrift_metadata
+  thrift_path
+  thrift_dynamic_value
+  thrift_frozen
+  thrift_type_rep
+  thrift_type
+  thrift_any_rep
+  thrift_protocol
+  thrift_server_debug_info)
 if (THRIFT_RPC)
-  install(
-    TARGETS thriftcpp2
-    EXPORT fbthrift-exports
-    DESTINATION ${CMAKE_INSTALL_LIBDIR})
+  thrift_install_targets(thrift_rpc)
 endif ()

@@ -58,6 +58,8 @@
  * ### Map Fields
  * - Object form: `{"key1": value1, "key2": value2}`
  * - Array form: `[{"key": k1, "value": v1}, {"key": k2, "value": v2}]`
+ * - Struct and container keys must use the array form, since JSON5 member
+ *   names are strings.
  */
 
 #pragma once
@@ -83,6 +85,18 @@
 #include <thrift/lib/cpp2/protocol/detail/JsonReader.h>
 
 namespace apache::thrift::json5::detail {
+
+/**
+ * Resolves enum names and values for Json5ProtocolReader::readEnum when the
+ * enum is only known at runtime (e.g. dynamic Thrift). `findName` returns an
+ * empty string for unknown values.
+ */
+template <typename T>
+concept EnumResolver =
+    requires(const T& resolver, std::int32_t value, std::string_view name) {
+      { resolver.findName(value) } -> std::convertible_to<std::string_view>;
+      { resolver.findValue(name) } -> std::same_as<std::optional<std::int32_t>>;
+    };
 
 /**
  * Json5ProtocolReader provides a Thrift protocol reader interface that parses
@@ -170,6 +184,10 @@ class Json5ProtocolReader final
   template <class Int>
   void readEnum(
       std::int32_t& value, ::apache::thrift::detail::st::enum_find<Int>& map);
+
+  template <EnumResolver Resolver>
+  void readEnum(std::int32_t& value, const Resolver& resolver);
+
   bool peekMap();
   bool peekList();
   bool peekSet();
@@ -216,6 +234,10 @@ class Json5ProtocolReader final
   static std::string takeStringValue(
       Json5Reader::Primitive&& primitive, std::string_view expected);
 
+  // Parses all of `s` as a JSON5 integer that fits in T.
+  template <typename T>
+  static T parseInteger(std::string_view s);
+
   std::int64_t readIntegralValue();
 
   template <std::floating_point T>
@@ -257,18 +279,35 @@ void Json5ProtocolReader::readEnum(EnumType& value) {
 template <class Int>
 void Json5ProtocolReader::readEnum(
     std::int32_t& value, ::apache::thrift::detail::st::enum_find<Int>& map) {
+  struct EnumFindResolver {
+    ::apache::thrift::detail::st::enum_find<Int>& map;
+
+    std::string_view findName(std::int32_t enumValue) const {
+      return map.find_name(Int(enumValue), map).result;
+    }
+    std::optional<std::int32_t> findValue(std::string_view name) const {
+      if (auto r = map.find_value(name, map)) {
+        return std::int32_t(r.result);
+      }
+      return std::nullopt;
+    }
+  };
+  readEnum(value, EnumFindResolver{map});
+}
+
+template <EnumResolver Resolver>
+void Json5ProtocolReader::readEnum(
+    std::int32_t& value, const Resolver& resolver) {
   auto [providedName, providedValue] = readEnumImpl();
   std::string_view localSchemaName;
   std::optional<std::int32_t> localSchemaValue;
 
   if (providedValue.has_value()) {
-    localSchemaName = map.find_name(Int(*providedValue), map).result;
+    localSchemaName = resolver.findName(*providedValue);
   }
 
   if (!providedName.empty()) {
-    if (auto r = map.find_value(providedName, map)) {
-      localSchemaValue = std::int32_t(r.result);
-    }
+    localSchemaValue = resolver.findValue(providedName);
   }
 
   if (providedName.empty() && providedValue.has_value()) {

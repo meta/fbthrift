@@ -1,5 +1,4 @@
 <?hh
-// (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
 /*
  * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
@@ -143,7 +142,7 @@ final class TClientMultiAsyncHandler extends TClientAsyncHandler {
   public async function genWaitSink(int $sequence_id)[zoned_local]: Awaitable<
     (function(HH\AsyncGenerator<null, string, void>): Awaitable<string>),
   > {
-    $results = await Vec\fb\map_and_filter_nulls_async(
+    $results = await Vec\map_and_filter_nulls_async(
       $this->handlers,
       async ($handler)[zoned_local] ==>
         await $handler->genWaitSink($sequence_id),
@@ -154,7 +153,7 @@ final class TClientMultiAsyncHandler extends TClientAsyncHandler {
         async ($result)[zoned_local] ==> await $result($gen),
       );
       foreach ($final_response as $res) {
-        if (!Str\is_empty($res)) {
+        if ($res !== '') {
           return $res;
         }
       }

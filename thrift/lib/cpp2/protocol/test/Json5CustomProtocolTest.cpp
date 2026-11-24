@@ -21,14 +21,15 @@
 #include <cstdint>
 #include <unordered_map>
 #include <vector>
+#include <fmt/format.h>
 #include <gtest/gtest.h>
 #include <folly/json/dynamic.h>
 #include <folly/json/json.h>
-#include <thrift/lib/cpp2/protocol/test/gen-cpp2/json5_test_constants.h>
-#include <thrift/lib/cpp2/protocol/test/gen-cpp2/json5_test_types.h>
-#include <thrift/lib/cpp2/protocol/test/gen-cpp2/json5_test_types_custom_protocol.h>
 #include <thrift/lib/cpp2/type/Tag.h>
 #include <thrift/test/gen-cpp2/References_types.h>
+#include <thrift/test/json5/gen-cpp2/json5_test_constants.h>
+#include <thrift/test/json5/gen-cpp2/json5_test_types.h>
+#include <thrift/test/json5/gen-cpp2/json5_test_types_custom_protocol.h>
 
 namespace apache::thrift {
 
@@ -59,51 +60,59 @@ std::string writeExample(
   return queue.moveAsValue().toString();
 }
 
-} // namespace
-
-// ── Struct decoding tests driven by thrift test data ─────────────────────────
-
-class Json5CustomProtocolDecodeTest
-    : public ::testing::TestWithParam<TestCase> {};
-
-TEST_P(Json5CustomProtocolDecodeTest, DecodeJson) {
-  auto out = readExample(*GetParam().json());
-  EXPECT_EQ(out, *GetParam().example()) << *GetParam().json();
+std::vector<TestCase> testCasesWithExample() {
+  auto cases = testCases();
+  std::erase_if(cases, [](const auto& tc) { return !tc.example(); });
+  return cases;
 }
 
-TEST_P(Json5CustomProtocolDecodeTest, DecodeJson5) {
-  auto out = readExample(*GetParam().json5());
-  EXPECT_EQ(out, *GetParam().example()) << *GetParam().json5();
+} // namespace
+
+// ── Struct tests driven by thrift test data ─────────────────────────────────
+
+class Json5CustomProtocolTest : public ::testing::TestWithParam<TestCase> {};
+class Json5CustomProtocolEncodeTest : public Json5CustomProtocolTest {};
+
+TEST_P(Json5CustomProtocolTest, Decode) {
+  const auto& tc = GetParam();
+  auto json5Options = kJson5Options;
+  json5Options.indentWidth = 2;
+  std::vector<std::string> inputs = {*tc.json(), *tc.json5()};
+  inputs.insert(
+      inputs.end(),
+      tc.additionalInputs()->begin(),
+      tc.additionalInputs()->end());
+  for (const auto& input : inputs) {
+    auto out = readExample(input);
+    EXPECT_EQ(writeExample(out, {.writer = {.indentWidth = 2}}), *tc.json())
+        << input;
+    EXPECT_EQ(writeExample(out, {.writer = json5Options}), *tc.json5())
+        << input;
+    if (tc.example()) {
+      EXPECT_EQ(out, *tc.example()) << input;
+    }
+  }
+}
+
+TEST_P(Json5CustomProtocolEncodeTest, Encode) {
+  const auto& tc = GetParam();
+  auto json5Options = kJson5Options;
+  json5Options.indentWidth = 2;
+  EXPECT_EQ(
+      writeExample(*tc.example(), {.writer = {.indentWidth = 2}}), *tc.json());
+  EXPECT_EQ(writeExample(*tc.example(), {.writer = json5Options}), *tc.json5());
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    Decode,
-    Json5CustomProtocolDecodeTest,
+    Shared,
+    Json5CustomProtocolTest,
     ::testing::ValuesIn(testCases()),
     [](const auto& info) { return *info.param.name(); });
 
-// ── Struct encoding tests driven by thrift test data ─────────────────────────
-
-class Json5CustomProtocolEncodeTest
-    : public ::testing::TestWithParam<TestCase> {};
-
-TEST_P(Json5CustomProtocolEncodeTest, EncodeJson) {
-  auto out =
-      writeExample(*GetParam().example(), {.writer = {.indentWidth = 2}});
-  EXPECT_EQ(out, *GetParam().json());
-}
-
-TEST_P(Json5CustomProtocolEncodeTest, EncodeJson5) {
-  auto opts = kJson5Options;
-  opts.indentWidth = 2;
-  auto out = writeExample(*GetParam().example(), {.writer = opts});
-  EXPECT_EQ(out, *GetParam().json5());
-}
-
 INSTANTIATE_TEST_SUITE_P(
-    Encode,
+    Shared,
     Json5CustomProtocolEncodeTest,
-    ::testing::ValuesIn(testCases()),
+    ::testing::ValuesIn(testCasesWithExample()),
     [](const auto& info) { return *info.param.name(); });
 
 // ── Tests for mapPrimitiveKeysAsMemberNames option
@@ -158,9 +167,13 @@ TEST_F(Json5MapPrimitiveKeysTest, I64AsKey) {
 
 TEST_F(Json5MapPrimitiveKeysTest, BinaryAsKey) {
   Example example;
-  example.binaryAsKey() = {{"?~", 1}};
-  EXPECT_EQ(writeJson(example), R"RAW({"binaryAsKey":{"?~":1}})RAW");
-  EXPECT_EQ(writeJson5(example), R"RAW({binaryAsKey:{"?~":1,},})RAW");
+  example.binaryAsKey() = {{"?~", 1}, {"abcd", 2}, {"\xff", 3}};
+  auto json = writeJson(example);
+  EXPECT_EQ(json, R"RAW({"binaryAsKey":{"P34":1,"YWJjZA":2,"/w":3}})RAW");
+  EXPECT_EQ(Json5ProtocolUtils::fromJson5<Example>(json), example);
+  auto json5 = writeJson5(example);
+  EXPECT_EQ(json5, R"RAW({binaryAsKey:{P34:1,YWJjZA:2,"/w":3,},})RAW");
+  EXPECT_EQ(Json5ProtocolUtils::fromJson5<Example>(json5), example);
 }
 
 TEST_F(Json5MapPrimitiveKeysTest, BinaryAsKeyBase64) {
@@ -191,6 +204,19 @@ TEST_F(Json5MapPrimitiveKeysTest, WholeNumberFloatWithoutFraction) {
       (toJsonImpl<type::map<type::float_t, type::float_t>>(
           {{-3, -3}}, options)),
       R"({"-3":-3})");
+}
+
+TEST_F(Json5MapPrimitiveKeysTest, UseSimpleJsonFloatNotation) {
+  Json5ProtocolWriter::Options options{
+      .writer =
+          {.wholeNumberFloatWithoutFraction = true,
+           .useSimpleJsonFloatNotation = true},
+      .mapPrimitiveKeysAsMemberNames = true};
+  // Same as SimpleJSON, which writes float with fmt::format("{}").
+  EXPECT_EQ(
+      (toJsonImpl<type::map<type::float_t, type::float_t>>(
+          {{16777216, 16777216}}, options)),
+      fmt::format(R"({{"{0}":{0}}})", 16777216.f));
 }
 
 TEST_F(Json5MapPrimitiveKeysTest, StringAndEnumKeysUnchanged) {
@@ -229,25 +255,6 @@ TEST_F(Json5MapPrimitiveKeysTest, MapAsKey) {
       writeJson5(example), R"RAW({mapAsKey:[{key:{"1":2,},value:3,},],})RAW");
 }
 
-// ── Round-trip test for -0.0 (no existing decode coverage for sign bit) ─────
-
-TEST(Json5CustomProtocolExtraTest, NegativeZeroRoundTrip) {
-  Example example;
-  example.doubleValue() = -0.0;
-
-  auto json = writeExample(example, {.writer = {.indentWidth = 2}});
-  auto d1 = readExample(json);
-  EXPECT_TRUE(std::signbit(*d1.doubleValue()));
-  EXPECT_EQ(*d1.doubleValue(), 0.0);
-
-  auto opts = kJson5Options;
-  opts.indentWidth = 2;
-  auto json5 = writeExample(example, {.writer = opts});
-  auto d2 = readExample(json5);
-  EXPECT_TRUE(std::signbit(*d2.doubleValue()));
-  EXPECT_EQ(*d2.doubleValue(), 0.0);
-}
-
 TEST(Json5CustomProtocolExtraTest, CustomBinaryAppendsOnlyNonEmptyValues) {
   struct Binary {
     std::string data;
@@ -276,32 +283,11 @@ TEST(Json5CustomProtocolExtraTest, CustomBinaryAppendsOnlyNonEmptyValues) {
 
 // SimpleJSON writes -0.0 as `-0`.
 TEST(Json5CustomProtocolExtraTest, NegativeZeroInteger) {
-  for (auto json :
-       {R"({"floatValue": -0, "doubleValue": -0})",
-        R"({"floatValue": "-0", "doubleValue": "-0"})",
-        R"({"floatValue": -0x0, "doubleValue": -0x0})",
-        R"({"floatValue": "-0x0", "doubleValue": "-0x0"})"}) {
-    auto example = readExample(json);
-    EXPECT_TRUE(std::signbit(*example.floatValue())) << json;
-    EXPECT_TRUE(std::signbit(*example.doubleValue())) << json;
-  }
-  for (auto json :
-       {R"({"floatValue": 0, "doubleValue": 0})",
-        R"({"floatValue": "0", "doubleValue": "0"})",
-        R"({"floatValue": +0, "doubleValue": +0})"}) {
-    auto example = readExample(json);
-    EXPECT_FALSE(std::signbit(*example.floatValue())) << json;
-    EXPECT_FALSE(std::signbit(*example.doubleValue())) << json;
-  }
   auto firstKey = []<class Tag>(Tag, std::string_view json) {
     return Json5ProtocolUtils::fromJson5<Tag>(json).begin()->first;
   };
   using FloatKeyed = type::map<type::float_t, type::i32_t>;
   using DoubleKeyed = type::map<type::double_t, type::i32_t>;
-  for (auto json : {R"({"-0": 1})", R"({"-0x0": 1})"}) {
-    EXPECT_TRUE(std::signbit(firstKey(FloatKeyed{}, json))) << json;
-    EXPECT_TRUE(std::signbit(firstKey(DoubleKeyed{}, json))) << json;
-  }
   // A value after a non-primitive key, in key/value-array form.
   using ListKeyed = type::map<type::list<type::i32_t>, type::double_t>;
   EXPECT_TRUE(
@@ -312,7 +298,6 @@ TEST(Json5CustomProtocolExtraTest, NegativeZeroInteger) {
               ->second));
   EXPECT_FALSE(std::signbit(firstKey(FloatKeyed{}, R"({"0": 1})")));
   EXPECT_FALSE(std::signbit(firstKey(DoubleKeyed{}, R"({"0": 1})")));
-  EXPECT_EQ(*readExample(R"({"i64Value": -0})").i64Value(), 0);
 }
 
 struct ClassDerivedFromThriftStruct : facebook::thrift::json5::NonFinalStruct {
@@ -331,15 +316,6 @@ TEST(Json5CustomProtocolExtraTest, InternBoxField) {
   auto obj = Json5ProtocolUtils::fromJson5<cpp2::StructuredAnnotation>(
       R"({"intern_box_field": {"field": 1}})");
   EXPECT_EQ(obj.intern_box_field()->field(), 1);
-}
-
-TEST(Json5CustomProtocolExtraTest, NonBmpStringRoundTrip) {
-  // The reader recombines the surrogate pair; the writer emits raw UTF-8
-  // rather than splitting it back into one.
-  auto json =
-      writeExample(readExample(R"RAW({"stringValue": "\ud83d\ude00"})RAW"), {});
-  EXPECT_EQ(json, R"RAW({"stringValue":"😀"})RAW");
-  EXPECT_EQ(*readExample(json).stringValue(), "😀");
 }
 
 // ── Tests for Json5ProtocolWriter::Options ──────────────────────────────────

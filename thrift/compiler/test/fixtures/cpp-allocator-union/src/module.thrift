@@ -34,9 +34,10 @@ typedef list<PmrString> PmrStringList
 @thrift.DeprecatedUnvalidatedAnnotations{
   items = {"cpp.allocator": "::std::pmr::polymorphic_allocator<char>"},
 }
-@cpp.InternalExperimentalAllowAllocatorOnUnion
 union AllocUnion {
   1: PmrString aa_string;
   2: PmrStringList aa_list;
   3: i32 plain_int;
+  @cpp.Ref{type = cpp.RefType.SharedMutable}
+  4: PmrString aa_shared_string;
 }

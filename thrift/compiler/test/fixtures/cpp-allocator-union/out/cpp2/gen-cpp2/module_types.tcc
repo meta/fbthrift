@@ -9,3 +9,6 @@
 #include "thrift/compiler/test/fixtures/cpp-allocator-union/gen-cpp2/module_types.h"
 
 #include <thrift/lib/cpp2/gen/module_types_tcc.h>
+
+namespace test::fixtures::cpp_allocator_union {
+} // namespace test::fixtures::cpp_allocator_union

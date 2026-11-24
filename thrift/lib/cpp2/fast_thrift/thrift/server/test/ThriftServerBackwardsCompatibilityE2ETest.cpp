@@ -30,8 +30,8 @@
 #include <thrift/lib/cpp2/async/RocketClientChannel.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/BufferAllocator.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/ConnectionHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/ConnectionManager.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/handler/FrameCodecHandler.h>
@@ -60,9 +60,8 @@ THRIFT_FLAG_DECLARE_int64(rocket_client_max_version);
 
 namespace apache::thrift::fast_thrift::thrift::server::test {
 
-using apache::thrift::fast_thrift::channel_pipeline::PipelineBuilder;
-using apache::thrift::fast_thrift::channel_pipeline::PipelineImpl;
 using apache::thrift::fast_thrift::channel_pipeline::SimpleBufferAllocator;
+using apache::thrift::fast_thrift::channel_pipeline::StaticPipelineBuilder;
 
 using apache::thrift::fast_thrift::thrift::test::
     BackwardsCompatibilityTestService;
@@ -173,7 +172,7 @@ class ThriftServerBackwardsCompatibilityE2ETest : public ::testing::Test {
     auto& rocketConnRef = transportAdapter->rocketConnection();
 
     rocketConnRef.pipeline =
-        PipelineBuilder<
+        StaticPipelineBuilder<
             transport::TransportHandlerT<
                 rocket::server::RocketServerEventFactory>,
             apache::thrift::fast_thrift::rocket::server::RocketServerAppAdapter,
@@ -218,20 +217,20 @@ class ThriftServerBackwardsCompatibilityE2ETest : public ::testing::Test {
 
     thrift::server::test::TestServerConnection conn;
     conn.serverChannel = serverChannel;
-    conn.thriftPipeline = PipelineBuilder<
-                              thrift::server::ThriftServerTransportAdapter,
-                              thrift::ThriftServerChannel,
-                              SimpleBufferAllocator>()
-                              .setEventBase(evb)
-                              .setHead(transportAdapter.get())
-                              .setTail(serverChannel.get())
-                              .setAllocator(&conn.thriftAllocator)
-                              .addNextDuplex<thrift::ThriftServerSetupHandler<
-                                  channel_pipeline::detail::ContextImpl>>(
-                                  thrift_server_setup_handler_tag)
-                              .build();
+    conn.thriftPipeline =
+        StaticPipelineBuilder<
+            thrift::server::ThriftServerTransportAdapter,
+            thrift::ThriftServerChannel,
+            SimpleBufferAllocator>()
+            .setEventBase(evb)
+            .setHead(transportAdapter.get())
+            .setTail(serverChannel.get())
+            .emplaceAllocator()
+            .addNextDuplexTemplate<thrift::ThriftServerSetupHandler>(
+                thrift_server_setup_handler_tag)
+            .build();
     transportAdapter->setPipeline(conn.thriftPipeline.get());
-    serverChannel->setPipelineRef(*conn.thriftPipeline);
+    serverChannel->setPipelineRef(conn.thriftPipeline.ref());
     serverChannel->setWorker(apache::thrift::Cpp2Worker::createDummy(evb));
     conn.transportAdapter = std::move(transportAdapter);
     // Connection is inert; ConnectionHandler's installer lambda calls
@@ -292,7 +291,7 @@ TEST_F(ThriftServerBackwardsCompatibilityE2ETest, Ping) {
 
   clientThread_->getEventBase()->runInEventBaseThread([&] {
     client->semifuture_ping()
-        .via(clientThread_->getEventBase())
+        .via(clientThread_->getEventBaseKeepAlive())
         .thenValue([&](auto&&) {
           success = true;
           baton.post();
@@ -317,7 +316,7 @@ TEST_F(ThriftServerBackwardsCompatibilityE2ETest, EchoRequestResponse) {
 
   clientThread_->getEventBase()->runInEventBaseThread([&] {
     client->semifuture_echo("hello world")
-        .via(clientThread_->getEventBase())
+        .via(clientThread_->getEventBaseKeepAlive())
         .thenValue([&](std::string response) {
           result = std::move(response);
           baton.post();
@@ -348,7 +347,7 @@ TEST_F(ThriftServerBackwardsCompatibilityE2ETest, IncompatibleVersionRejected) {
 
   clientThread_->getEventBase()->runInEventBaseThread([&] {
     client->semifuture_ping()
-        .via(clientThread_->getEventBase())
+        .via(clientThread_->getEventBaseKeepAlive())
         .thenValue([&](auto&&) { baton.post(); })
         .thenError([&](const folly::exception_wrapper& ew) {
           LOG(INFO) << "ping rejected as expected: " << folly::exceptionStr(ew);
@@ -370,7 +369,7 @@ TEST_F(ThriftServerBackwardsCompatibilityE2ETest, AddNumbers) {
 
   clientThread_->getEventBase()->runInEventBaseThread([&] {
     client->semifuture_add(17, 25)
-        .via(clientThread_->getEventBase())
+        .via(clientThread_->getEventBaseKeepAlive())
         .thenValue([&](int64_t sum) {
           result = sum;
           baton.post();
@@ -392,7 +391,7 @@ TEST_F(ThriftServerBackwardsCompatibilityE2ETest, MultipleRequests) {
 
   clientThread_->getEventBase()->runInEventBaseThread([&] {
     client->semifuture_echo("first")
-        .via(clientThread_->getEventBase())
+        .via(clientThread_->getEventBaseKeepAlive())
         .thenValue([&](std::string response) {
           echo1 = std::move(response);
           baton1.post();
@@ -400,7 +399,7 @@ TEST_F(ThriftServerBackwardsCompatibilityE2ETest, MultipleRequests) {
         .thenError([&](folly::exception_wrapper) { baton1.post(); });
 
     client->semifuture_echo("second")
-        .via(clientThread_->getEventBase())
+        .via(clientThread_->getEventBaseKeepAlive())
         .thenValue([&](std::string response) {
           echo2 = std::move(response);
           baton2.post();
@@ -408,7 +407,7 @@ TEST_F(ThriftServerBackwardsCompatibilityE2ETest, MultipleRequests) {
         .thenError([&](folly::exception_wrapper) { baton2.post(); });
 
     client->semifuture_echo("third")
-        .via(clientThread_->getEventBase())
+        .via(clientThread_->getEventBaseKeepAlive())
         .thenValue([&](std::string response) {
           echo3 = std::move(response);
           baton3.post();
@@ -437,7 +436,7 @@ TEST_F(ThriftServerBackwardsCompatibilityE2ETest, LargeResponse) {
 
   clientThread_->getEventBase()->runInEventBaseThread([&] {
     client->semifuture_sendResponse(kResponseSize)
-        .via(clientThread_->getEventBase())
+        .via(clientThread_->getEventBaseKeepAlive())
         .thenValue([&](std::string response) {
           result = std::move(response);
           baton.post();
@@ -478,7 +477,7 @@ TEST_F(ThriftServerBackwardsCompatibilityE2ECompactMetadataTest, Ping) {
 
   clientThread_->getEventBase()->runInEventBaseThread([&] {
     client->semifuture_ping()
-        .via(clientThread_->getEventBase())
+        .via(clientThread_->getEventBaseKeepAlive())
         .thenValue([&](auto&&) {
           success = true;
           baton.post();
@@ -505,7 +504,7 @@ TEST_F(
 
   clientThread_->getEventBase()->runInEventBaseThread([&] {
     client->semifuture_echo("hello world")
-        .via(clientThread_->getEventBase())
+        .via(clientThread_->getEventBaseKeepAlive())
         .thenValue([&](std::string response) {
           result = std::move(response);
           baton.post();

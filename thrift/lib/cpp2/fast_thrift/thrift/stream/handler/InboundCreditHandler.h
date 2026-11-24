@@ -28,7 +28,7 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/StaticHandlerContext.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/stream/common/Messages.h>
 
 namespace apache::thrift::fast_thrift::thrift::stream {
@@ -96,7 +96,7 @@ class InboundCreditHandler {
     if (!message.payload.is<Payload>()) {
       return ctx.fireWrite(std::move(msg));
     }
-    if (FOLLY_UNLIKELY(credits_ == 0)) {
+    if (credits_ == 0) [[unlikely]] {
       return onCreditExhaustedViolation();
     }
     --credits_;
@@ -140,7 +140,7 @@ class InboundCreditHandler {
   static constexpr uint64_t addSaturating(
       uint64_t credits, uint64_t delta) noexcept {
     const uint64_t sum = credits + delta;
-    if (FOLLY_UNLIKELY(sum < credits)) {
+    if (sum < credits) [[unlikely]] {
       return std::numeric_limits<uint64_t>::max();
     }
     return sum;
@@ -151,14 +151,14 @@ class InboundCreditHandler {
 
 static_assert(
     channel_pipeline::InboundHandler<
-        InboundCreditHandler<channel_pipeline::detail::ContextImpl>,
-        channel_pipeline::detail::ContextImpl>,
+        InboundCreditHandler<channel_pipeline::detail::StaticHandlerContext>,
+        channel_pipeline::detail::StaticHandlerContext>,
     "InboundCreditHandler must satisfy InboundHandler concept");
 
 static_assert(
     channel_pipeline::OutboundHandler<
-        InboundCreditHandler<channel_pipeline::detail::ContextImpl>,
-        channel_pipeline::detail::ContextImpl>,
+        InboundCreditHandler<channel_pipeline::detail::StaticHandlerContext>,
+        channel_pipeline::detail::StaticHandlerContext>,
     "InboundCreditHandler must satisfy OutboundHandler concept");
 
 } // namespace apache::thrift::fast_thrift::thrift::stream

@@ -16,6 +16,7 @@
 
 #include <thrift/lib/cpp2/Flags.h>
 #include <thrift/lib/cpp2/async/ClientBiDiBridge.h>
+#include <thrift/lib/cpp2/async/ClientCompressionFlags.h>
 #include <thrift/lib/cpp2/async/RequestChannel.h>
 #include <thrift/lib/cpp2/transport/core/RpcMetadataPlugins.h>
 

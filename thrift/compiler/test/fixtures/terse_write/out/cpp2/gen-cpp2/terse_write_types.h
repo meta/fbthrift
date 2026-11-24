@@ -408,6 +408,7 @@ namespace apache::thrift::detail::qualifier {
 // BEGIN hash_and_equal_to
 // END hash_and_equal_to
 namespace facebook::thrift::test::fixtures::terse_write {
+/** typedef i32 MyInteger */
 /** Glean {"file": "thrift/compiler/test/fixtures/terse_write/src/terse_write.thrift", "name": "MyInteger", "kind": "typedef" } */
 using MyInteger = ::apache::thrift::adapt_detail::adapted_t<::my::Adapter, ::std::int32_t>;
 
@@ -423,6 +424,16 @@ class MyStruct final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "facebook.com/thrift/test/fixtures/terse_write/MyStruct";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "MyStruct";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    ""
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "terse_write";
@@ -478,7 +489,6 @@ class MyStruct final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<MyStruct>;
   friend void swap(MyStruct& a, MyStruct& b);
 };
 
@@ -502,6 +512,11 @@ class MyUnion final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "facebook.com/thrift/test/fixtures/terse_write/MyUnion";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "MyUnion";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "bool_field", "byte_field", "short_field", "int_field", "long_field", "float_field", "double_field", "string_field", "binary_field", "enum_field", "list_field", "set_field", "map_field", "struct_field"
+  };
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "terse_write";
@@ -582,93 +597,7 @@ class MyUnion final  {
 
   MyUnion(const MyUnion& rhs);
 
-  MyUnion& operator=(MyUnion&& rhs) noexcept {
-    if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-      {
-        __fbthrift_clear();
-        return *this;
-      }
-      case Type::bool_field:
-      {
-        set_bool_field(std::move(rhs.value_.bool_field));
-        break;
-      }
-      case Type::byte_field:
-      {
-        set_byte_field(std::move(rhs.value_.byte_field));
-        break;
-      }
-      case Type::short_field:
-      {
-        set_short_field(std::move(rhs.value_.short_field));
-        break;
-      }
-      case Type::int_field:
-      {
-        set_int_field(std::move(rhs.value_.int_field));
-        break;
-      }
-      case Type::long_field:
-      {
-        set_long_field(std::move(rhs.value_.long_field));
-        break;
-      }
-      case Type::float_field:
-      {
-        set_float_field(std::move(rhs.value_.float_field));
-        break;
-      }
-      case Type::double_field:
-      {
-        set_double_field(std::move(rhs.value_.double_field));
-        break;
-      }
-      case Type::string_field:
-      {
-        set_string_field(std::move(rhs.value_.string_field));
-        break;
-      }
-      case Type::binary_field:
-      {
-        set_binary_field(std::move(rhs.value_.binary_field));
-        break;
-      }
-      case Type::enum_field:
-      {
-        set_enum_field(std::move(rhs.value_.enum_field));
-        break;
-      }
-      case Type::list_field:
-      {
-        set_list_field(std::move(rhs.value_.list_field));
-        break;
-      }
-      case Type::set_field:
-      {
-        set_set_field(std::move(rhs.value_.set_field));
-        break;
-      }
-      case Type::map_field:
-      {
-        set_map_field(std::move(rhs.value_.map_field));
-        break;
-      }
-      case Type::struct_field:
-      {
-        set_struct_field(std::move(rhs.value_.struct_field));
-        break;
-      }
-      default:
-      {
-        assert(false);
-        __fbthrift_clear();
-      }
-    }
-    apache::thrift::clear(rhs);
-    return *this;
-  }
+  MyUnion& operator=(MyUnion&& rhs) noexcept;
 
   MyUnion& operator=(const MyUnion& rhs);
 
@@ -976,6 +905,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "bool_field" } */
+  [[deprecated("Use `FOO.bool_field().value()` instead of `FOO.get_bool_field()`")]]
   bool const& get_bool_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::bool_field) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -984,6 +914,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "byte_field" } */
+  [[deprecated("Use `FOO.byte_field().value()` instead of `FOO.get_byte_field()`")]]
   ::std::int8_t const& get_byte_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::byte_field) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -992,6 +923,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "short_field" } */
+  [[deprecated("Use `FOO.short_field().value()` instead of `FOO.get_short_field()`")]]
   ::std::int16_t const& get_short_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::short_field) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1000,6 +932,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "int_field" } */
+  [[deprecated("Use `FOO.int_field().value()` instead of `FOO.get_int_field()`")]]
   ::std::int32_t const& get_int_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::int_field) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1008,6 +941,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "long_field" } */
+  [[deprecated("Use `FOO.long_field().value()` instead of `FOO.get_long_field()`")]]
   ::std::int64_t const& get_long_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::long_field) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1016,6 +950,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "float_field" } */
+  [[deprecated("Use `FOO.float_field().value()` instead of `FOO.get_float_field()`")]]
   float const& get_float_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::float_field) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1024,6 +959,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "double_field" } */
+  [[deprecated("Use `FOO.double_field().value()` instead of `FOO.get_double_field()`")]]
   double const& get_double_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::double_field) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1032,6 +968,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "string_field" } */
+  [[deprecated("Use `FOO.string_field().value()` instead of `FOO.get_string_field()`")]]
   ::std::string const& get_string_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::string_field) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1040,6 +977,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "binary_field" } */
+  [[deprecated("Use `FOO.binary_field().value()` instead of `FOO.get_binary_field()`")]]
   ::std::string const& get_binary_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::binary_field) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1048,6 +986,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "enum_field" } */
+  [[deprecated("Use `FOO.enum_field().value()` instead of `FOO.get_enum_field()`")]]
   ::facebook::thrift::test::fixtures::terse_write::MyEnum const& get_enum_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::enum_field) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1056,6 +995,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "list_field" } */
+  [[deprecated("Use `FOO.list_field().value()` instead of `FOO.get_list_field()`")]]
   ::std::vector<::std::int16_t> const& get_list_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::list_field) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1064,6 +1004,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "set_field" } */
+  [[deprecated("Use `FOO.set_field().value()` instead of `FOO.get_set_field()`")]]
   ::std::set<::std::int16_t> const& get_set_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::set_field) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1072,6 +1013,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "map_field" } */
+  [[deprecated("Use `FOO.map_field().value()` instead of `FOO.get_map_field()`")]]
   ::std::map<::std::int16_t, ::std::int16_t> const& get_map_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::map_field) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1080,6 +1022,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "struct_field" } */
+  [[deprecated("Use `FOO.struct_field().value()` instead of `FOO.get_struct_field()`")]]
   ::facebook::thrift::test::fixtures::terse_write::MyStruct const& get_struct_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::struct_field) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1707,7 +1650,6 @@ class MyUnion final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<MyUnion>;
   friend void swap(MyUnion& a, MyUnion& b);
 };
 
@@ -1731,6 +1673,16 @@ class MyStructWithCustomDefault final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "facebook.com/thrift/test/fixtures/terse_write/MyStructWithCustomDefault";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "MyStructWithCustomDefault";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "field1"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "terse_write";
@@ -1837,7 +1789,6 @@ class MyStructWithCustomDefault final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<MyStructWithCustomDefault>;
   friend void swap(MyStructWithCustomDefault& a, MyStructWithCustomDefault& b);
 };
 
@@ -1861,6 +1812,16 @@ class StructLevelTerseStruct final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "facebook.com/thrift/test/fixtures/terse_write/StructLevelTerseStruct";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "StructLevelTerseStruct";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "bool_field", "byte_field", "short_field", "int_field", "long_field", "float_field", "double_field", "string_field", "binary_field", "enum_field", "list_field", "set_field", "map_field", "struct_field", "union_field"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "terse_write";
@@ -2519,7 +2480,6 @@ class StructLevelTerseStruct final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<StructLevelTerseStruct>;
   friend void swap(StructLevelTerseStruct& a, StructLevelTerseStruct& b);
 };
 
@@ -2543,6 +2503,16 @@ class FieldLevelTerseStruct final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "facebook.com/thrift/test/fixtures/terse_write/FieldLevelTerseStruct";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "FieldLevelTerseStruct";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "terse_bool_field", "terse_byte_field", "terse_short_field", "terse_int_field", "terse_long_field", "terse_float_field", "terse_double_field", "terse_string_field", "terse_binary_field", "terse_enum_field", "terse_list_field", "terse_set_field", "terse_map_field", "terse_struct_field", "terse_union_field", "bool_field", "byte_field", "short_field", "int_field", "long_field", "float_field", "double_field", "string_field", "binary_field", "enum_field", "list_field", "set_field", "map_field", "struct_field", "union_field"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "terse_write";
@@ -3987,7 +3957,6 @@ class FieldLevelTerseStruct final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<FieldLevelTerseStruct>;
   friend void swap(FieldLevelTerseStruct& a, FieldLevelTerseStruct& b);
 };
 
@@ -4011,6 +3980,16 @@ class AdaptedFields final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "facebook.com/thrift/test/fixtures/terse_write/AdaptedFields";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "AdaptedFields";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "field1", "field2", "field3"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "terse_write";
@@ -4071,108 +4050,126 @@ class AdaptedFields final  {
   bool operator==(const AdaptedFields&) const;
   std::partial_ordering operator<=>(const AdaptedFields&) const;
 
+  /** 1: MyInteger field1 */
   /** Glean { "field": "field1" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::fixtures::terse_write::MyInteger>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<const fbthrift_T&> field1_ref() const& {
     return ::apache::thrift::terse_field_ref<const fbthrift_T&>{this->__fbthrift_field_field1};
   }
 
+  /** 1: MyInteger field1 */
   /** Glean { "field": "field1" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::fixtures::terse_write::MyInteger>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<fbthrift_T&> field1_ref() & {
     return ::apache::thrift::terse_field_ref<fbthrift_T&>{this->__fbthrift_field_field1};
   }
 
+  /** 1: MyInteger field1 */
   /** Glean { "field": "field1" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::fixtures::terse_write::MyInteger>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<fbthrift_T&&> field1_ref() && {
     return ::apache::thrift::terse_field_ref<fbthrift_T&&>{static_cast<fbthrift_T&&>(this->__fbthrift_field_field1)};
   }
 
+  /** 1: MyInteger field1 */
   /** Glean { "field": "field1" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::fixtures::terse_write::MyInteger>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<const fbthrift_T&> field1() const& {
     return ::apache::thrift::terse_field_ref<const fbthrift_T&>{this->__fbthrift_field_field1};
   }
 
+  /** 1: MyInteger field1 */
   /** Glean { "field": "field1" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::fixtures::terse_write::MyInteger>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<fbthrift_T&> field1() & {
     return ::apache::thrift::terse_field_ref<fbthrift_T&>{this->__fbthrift_field_field1};
   }
 
+  /** 1: MyInteger field1 */
   /** Glean { "field": "field1" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::fixtures::terse_write::MyInteger>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<fbthrift_T&&> field1() && {
     return ::apache::thrift::terse_field_ref<fbthrift_T&&>{static_cast<fbthrift_T&&>(this->__fbthrift_field_field1)};
   }
 
+  /** 2: i32 field2 */
   /** Glean { "field": "field2" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter, 2, ::std::int32_t, AdaptedFields>>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<const fbthrift_T&> field2_ref() const& {
     return ::apache::thrift::terse_field_ref<const fbthrift_T&>{this->__fbthrift_field_field2};
   }
 
+  /** 2: i32 field2 */
   /** Glean { "field": "field2" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter, 2, ::std::int32_t, AdaptedFields>>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<fbthrift_T&> field2_ref() & {
     return ::apache::thrift::terse_field_ref<fbthrift_T&>{this->__fbthrift_field_field2};
   }
 
+  /** 2: i32 field2 */
   /** Glean { "field": "field2" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter, 2, ::std::int32_t, AdaptedFields>>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<fbthrift_T&&> field2_ref() && {
     return ::apache::thrift::terse_field_ref<fbthrift_T&&>{static_cast<fbthrift_T&&>(this->__fbthrift_field_field2)};
   }
 
+  /** 2: i32 field2 */
   /** Glean { "field": "field2" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter, 2, ::std::int32_t, AdaptedFields>>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<const fbthrift_T&> field2() const& {
     return ::apache::thrift::terse_field_ref<const fbthrift_T&>{this->__fbthrift_field_field2};
   }
 
+  /** 2: i32 field2 */
   /** Glean { "field": "field2" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter, 2, ::std::int32_t, AdaptedFields>>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<fbthrift_T&> field2() & {
     return ::apache::thrift::terse_field_ref<fbthrift_T&>{this->__fbthrift_field_field2};
   }
 
+  /** 2: i32 field2 */
   /** Glean { "field": "field2" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter, 2, ::std::int32_t, AdaptedFields>>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<fbthrift_T&&> field2() && {
     return ::apache::thrift::terse_field_ref<fbthrift_T&&>{static_cast<fbthrift_T&&>(this->__fbthrift_field_field2)};
   }
 
+  /** 3: MyInteger field3 */
   /** Glean { "field": "field3" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter, 3, ::facebook::thrift::test::fixtures::terse_write::MyInteger, AdaptedFields>>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<const fbthrift_T&> field3_ref() const& {
     return ::apache::thrift::terse_field_ref<const fbthrift_T&>{this->__fbthrift_field_field3};
   }
 
+  /** 3: MyInteger field3 */
   /** Glean { "field": "field3" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter, 3, ::facebook::thrift::test::fixtures::terse_write::MyInteger, AdaptedFields>>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<fbthrift_T&> field3_ref() & {
     return ::apache::thrift::terse_field_ref<fbthrift_T&>{this->__fbthrift_field_field3};
   }
 
+  /** 3: MyInteger field3 */
   /** Glean { "field": "field3" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter, 3, ::facebook::thrift::test::fixtures::terse_write::MyInteger, AdaptedFields>>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<fbthrift_T&&> field3_ref() && {
     return ::apache::thrift::terse_field_ref<fbthrift_T&&>{static_cast<fbthrift_T&&>(this->__fbthrift_field_field3)};
   }
 
+  /** 3: MyInteger field3 */
   /** Glean { "field": "field3" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter, 3, ::facebook::thrift::test::fixtures::terse_write::MyInteger, AdaptedFields>>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<const fbthrift_T&> field3() const& {
     return ::apache::thrift::terse_field_ref<const fbthrift_T&>{this->__fbthrift_field_field3};
   }
 
+  /** 3: MyInteger field3 */
   /** Glean { "field": "field3" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter, 3, ::facebook::thrift::test::fixtures::terse_write::MyInteger, AdaptedFields>>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<fbthrift_T&> field3() & {
     return ::apache::thrift::terse_field_ref<fbthrift_T&>{this->__fbthrift_field_field3};
   }
 
+  /** 3: MyInteger field3 */
   /** Glean { "field": "field3" } */
   template <typename..., typename fbthrift_T = ::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter, 3, ::facebook::thrift::test::fixtures::terse_write::MyInteger, AdaptedFields>>
   FOLLY_ERASE ::apache::thrift::terse_field_ref<fbthrift_T&&> field3() && {
@@ -4192,7 +4189,6 @@ class AdaptedFields final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<AdaptedFields>;
   friend void swap(AdaptedFields& a, AdaptedFields& b);
 };
 
@@ -4216,6 +4212,16 @@ class FOLLY_EXPORT TerseException : public virtual apache::thrift::TException {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "facebook.com/thrift/test/fixtures/terse_write/TerseException";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "TerseException";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "msg"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "terse_write";
@@ -4325,7 +4331,6 @@ class FOLLY_EXPORT TerseException : public virtual apache::thrift::TException {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<TerseException>;
   friend void swap(TerseException& a, TerseException& b);
 };
 

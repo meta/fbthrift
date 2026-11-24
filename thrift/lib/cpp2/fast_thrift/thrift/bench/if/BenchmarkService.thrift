@@ -14,10 +14,13 @@
  * limitations under the License.
  */
 
+include "thrift/annotation/cpp.thrift"
+
 package "facebook.com/thrift/fast_thrift/thrift/bench"
 
 namespace cpp2 apache.thrift.fast_thrift.thrift.bench
 
+@cpp.FastClient
 service BenchmarkService {
   void ping();
 

@@ -553,9 +553,7 @@ size_t writeSet(
   const Set& out = *static_cast<const Set*>(object);
   size_t written = 0;
 
-  if (!folly::is_detected_v<
-          ::apache::thrift::detail::pm::detect_key_compare,
-          Set> &&
+  if (!::apache::thrift::detail::pm::is_ordered_container<Set> &&
       protocolSortKeys != KeyOrder::Unspecified) {
     std::vector<typename Set::const_iterator> iters;
     iters.reserve(out.size());
@@ -588,9 +586,7 @@ size_t writeMap(
         const void* /*valueElem*/)) {
   const Map& out = *static_cast<const Map*>(object);
   size_t written = 0;
-  if (!folly::is_detected_v<
-          ::apache::thrift::detail::pm::detect_key_compare,
-          Map> &&
+  if (!::apache::thrift::detail::pm::is_ordered_container<Map> &&
       protocolSortKeys != KeyOrder::Unspecified) {
     std::vector<typename Map::const_iterator> iters;
     iters.reserve(out.size());

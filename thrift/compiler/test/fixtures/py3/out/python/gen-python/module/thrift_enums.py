@@ -16,6 +16,7 @@ import typing as _std_python_typing
 
 class AnEnum(_fbthrift_python_types.Enum, int):
     NOTSET = 0
+    r"""None = 0"""
     ONE = 1
     TWO = 2
     THREE = 3
@@ -30,7 +31,7 @@ class AnEnum(_fbthrift_python_types.Enum, int):
 
     @staticmethod
     def __get_thrift_definition_key__() -> builtins.bytes:
-        return b"\x6b\xcf\x48\x45\xdf\x75\x1b\xed\x16\x49\xe3\xb3\x49\x2f\xd6\xcf"
+        return b"\x42\x64\x49\x55\x8d\x3d\xf2\xdb\x06\x1d\x01\x97\x49\x04\xa9\xc6"
 
     @staticmethod
     def __get_metadata__() -> _fbthrift_metadata.ThriftMetadata:
@@ -51,8 +52,11 @@ import typing as _std_python_typing
 
 class AnEnumRenamed(_fbthrift_python_types.Enum, int):
     name_ = 0
+    r"""name = 0"""
     value_ = 1
+    r"""value = 1"""
     renamed_ = 2
+    r"""normal = 2"""
     @staticmethod
     def __get_thrift_name__() -> builtins.str:
         return "module.AnEnumRenamed"
@@ -63,7 +67,7 @@ class AnEnumRenamed(_fbthrift_python_types.Enum, int):
 
     @staticmethod
     def __get_thrift_definition_key__() -> builtins.bytes:
-        return b"\xfa\x4f\xf6\x26\x13\x84\xbc\xb2\xeb\x17\xba\x47\x01\xa7\xd5\x5d"
+        return b"\xb2\x95\xd6\x68\x0d\xfd\x95\x63\x12\x35\x4d\xe1\x3f\x05\xdb\x7e"
 
     @staticmethod
     def __get_metadata__() -> _fbthrift_metadata.ThriftMetadata:
@@ -97,7 +101,7 @@ class Flags(_fbthrift_python_types.Flag):
 
     @staticmethod
     def __get_thrift_definition_key__() -> builtins.bytes:
-        return b"\x52\x56\x76\x5a\x1a\xfb\x22\x2a\x55\xac\x4f\xa7\x10\x87\x8f\xe0"
+        return b"\xed\xd3\x57\xae\xb6\x2c\x4b\x1a\x87\x22\xbd\x0d\x6d\x65\x8c\x1c"
 
     @staticmethod
     def __get_metadata__() -> _fbthrift_metadata.ThriftMetadata:

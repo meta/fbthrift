@@ -28,6 +28,7 @@ import com.facebook.thrift.test.rocket.TestService;
 import com.facebook.thrift.util.RpcServerUtils;
 import com.facebook.thrift.util.SPINiftyMetrics;
 import io.airlift.units.Duration;
+import io.netty.handler.ssl.ClientAuth;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import org.junit.jupiter.api.AfterAll;
@@ -69,6 +70,7 @@ public class UnifiedServerTransportFactoryTest {
 
     serverConfig =
         new ThriftServerConfig()
+            .setClientAuth(ClientAuth.OPTIONAL)
             .setSslEnabled(true)
             .setEnableJdkSsl(false)
             .setKeyFile(TestCertificateUtil.getKeyFilePath())
@@ -166,6 +168,7 @@ public class UnifiedServerTransportFactoryTest {
   public void testConfigurationPropagation() {
     ThriftServerConfig customConfig =
         new ThriftServerConfig()
+            .setClientAuth(ClientAuth.OPTIONAL)
             .setSslEnabled(true)
             .setEnableJdkSsl(false)
             .setKeyFile(TestCertificateUtil.getKeyFilePath())
@@ -229,6 +232,7 @@ public class UnifiedServerTransportFactoryTest {
   public void testMultipleFactoriesWithDifferentConfigs() {
     ThriftServerConfig config1 =
         new ThriftServerConfig()
+            .setClientAuth(ClientAuth.OPTIONAL)
             .setSslEnabled(true)
             .setKeyFile(TestCertificateUtil.getKeyFilePath())
             .setCertFile(TestCertificateUtil.getCertFilePath())
@@ -238,6 +242,7 @@ public class UnifiedServerTransportFactoryTest {
 
     ThriftServerConfig config2 =
         new ThriftServerConfig()
+            .setClientAuth(ClientAuth.OPTIONAL)
             .setSslEnabled(true)
             .setKeyFile(TestCertificateUtil.getKeyFilePath())
             .setCertFile(TestCertificateUtil.getCertFilePath())

@@ -30,17 +30,21 @@ namespace {{program.name}}_constants {
 
   {{#each program.consts as |const|}}
     {{#if const.outline_init?}}
-  {{#partial glean.const_docblock const=const}}  {{const.cpp_type}} const& {{const.name}}();
+  {{#partial glean.const_docblock const=const}}
+  {{const.cpp_type}} const& {{const.name}}();
     {{#else if const.generated?}}
       {{! The generated constants check is intended to cover the schema constant, where the _sinit.cpp target has to use external linkage to break a dependency cycle. }}
   FOLLY_EXPORT {{#partial const_value.const_value_type const=const}} {{const.name}}();
     {{#else}}
       {{#if const.type.binary?}}
-  {{#partial glean.const_docblock const=const}}  constexpr ::std::string_view {{const.name}}_{"{{const.rendered_value.value.string_value}}", {{const.rendered_value.value.string_length}}};
+  {{#partial glean.const_docblock const=const}}
+  constexpr ::std::string_view {{const.name}}_{"{{const.rendered_value.value.string_value}}", {{const.rendered_value.value.string_length}}};
       {{#else}}
-  {{#partial glean.const_docblock const=const}}  constexpr {{#partial const_value.const_value_type const=const}} const {{const.name}}_ = {{#partial const_value.primitive value=const.rendered_value}};
+  {{#partial glean.const_docblock const=const}}
+  constexpr {{#partial const_value.const_value_type const=const}} const {{const.name}}_ = {{#partial const_value.primitive value=const.rendered_value}};
       {{/if const.type.binary?}}
-  {{#partial glean.const_docblock const=const}}  constexpr {{#partial const_value.const_value_type const=const}} {{const.name}}() {
+  {{#partial glean.const_docblock const=const}}
+  constexpr {{#partial const_value.const_value_type const=const}} {{const.name}}() {
     return {{const.name}}_;
   }
     {{/if const.outline_init?}}

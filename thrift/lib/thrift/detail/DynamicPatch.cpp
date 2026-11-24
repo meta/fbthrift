@@ -22,6 +22,7 @@
 #include <folly/ScopeGuard.h>
 #include <folly/portability/GFlags.h>
 #include <thrift/lib/cpp/protocol/TProtocolException.h>
+#include <thrift/lib/cpp2/Flags.h>
 #include <thrift/lib/cpp2/op/Clear.h>
 #include <thrift/lib/cpp2/op/Patch.h>
 #include <thrift/lib/cpp2/protocol/Patch.h>
@@ -32,6 +33,11 @@
 #include <thrift/lib/thrift/gen-cpp2/any_patch_types.h>
 
 #include <thrift/lib/cpp2/patch/detail/PatchBadge.h>
+#include <thrift/lib/cpp2/patch/detail/PatchLogging.h>
+
+// Kill switch for rejecting patches `DynamicUnknownPatch` cannot classify
+// (T293821351). Remove once the rejection has rolled out.
+THRIFT_FLAG_DEFINE_bool(dynamic_patch_reject_unclassified_unknown_patch, true);
 
 namespace apache::thrift::protocol {
 using detail::badge;
@@ -60,6 +66,19 @@ createArithmeticPatch(const T& src, const T& dst) {
 
 [[noreturn]] void notImpl() {
   folly::throw_exception<std::runtime_error>("Not implemented");
+}
+
+op::StringPatch toStringPatch(const op::BinaryPatch& binary) {
+  struct Visitor {
+    void assign(const folly::IOBuf& v) { patch.assign(v.to<std::string>()); }
+    void clear() { patch.clear(); }
+    void prepend(const folly::IOBuf& v) { patch.prepend(v.to<std::string>()); }
+    void append(const folly::IOBuf& v) { patch.append(v.to<std::string>()); }
+    op::StringPatch patch;
+  };
+  Visitor v;
+  binary.customVisit(v);
+  return std::move(v.patch);
 }
 
 Value* get_ptr(Object& obj, op::PatchOp op) {
@@ -188,22 +207,20 @@ void convertStringToBinary(ValueList& list) {
 
 void convertStringToBinary(ValueSet& set) {
   ValueSet a;
-  for (auto i : set) {
+  set.eraseInto(set.begin(), set.end(), [&](auto&& i) {
     convertStringToBinary(i);
     a.insert(std::move(i));
-  }
+  });
   set = std::move(a);
 }
 
 void convertStringToBinary(ValueMap& map) {
   ValueMap a;
-  for (const auto& kv : map) {
-    auto k = kv.first;
-    auto v = kv.second;
+  map.eraseInto(map.begin(), map.end(), [&](auto&& k, auto&& v) {
     convertStringToBinary(k);
     convertStringToBinary(v);
     a[std::move(k)] = std::move(v);
-  }
+  });
   map = std::move(a);
 }
 
@@ -1246,8 +1263,8 @@ DynamicListPatch DiffVisitorBase::diffList(
     return patch;
   }
 
-  auto it = std::search(dst.begin(), dst.end(), src.begin(), src.end());
-  if (it != dst.begin()) {
+  if (src.size() > dst.size() ||
+      !std::equal(src.begin(), src.end(), dst.begin())) {
     patch.assign(dst);
     return patch;
   }
@@ -1368,6 +1385,15 @@ static bool maybeEmptyDeprecatedTerseField(const Value& value) {
       notImpl();
   }
 }
+
+static bool canBeStructOrUnionPatch(const Object& patch) {
+  return std::all_of(patch.begin(), patch.end(), [](const auto& field) {
+    const auto patchOp = static_cast<op::PatchOp>(field.first);
+    return patchOp == op::PatchOp::Assign || patchOp == op::PatchOp::Clear ||
+        patchOp == op::PatchOp::PatchPrior ||
+        patchOp == op::PatchOp::PatchAfter;
+  });
+}
 /// @endcond
 
 void DiffVisitorBase::diffElement(
@@ -1461,10 +1487,15 @@ DynamicPatch DiffVisitorBase::diffStructured(
 
   if (src.size() <= 1 && dst.size() <= 1) {
     // If the input contains less or equal to one field, we can't tell whether
-    // it's a struct or an union. We need to use unknown patch here.
-    DynamicUnknownPatch ret;
-    ret.fromObject(badge, patch.toObject());
-    return DynamicPatch{ret};
+    // it's a struct or an union. We need to use unknown patch here, unless a
+    // `diffField` override added an op union patch doesn't have (e.g.
+    // EnsureStruct), which makes it a struct patch.
+    auto obj = patch.toObject();
+    if (canBeStructOrUnionPatch(obj)) {
+      DynamicUnknownPatch ret;
+      ret.fromObject(badge, std::move(obj));
+      return DynamicPatch{ret};
+    }
   }
 
   return DynamicPatch{patch};
@@ -1952,7 +1983,7 @@ void DynamicPatch::merge(Other&& other) {
   if (isPatchTypeAmbiguous() && !other.isPatchTypeAmbiguous()) {
     std::visit(
         [&](auto&& other) {
-          using PatchType = folly::remove_cvref_t<decltype(other)>;
+          using PatchType = std::remove_cvref_t<decltype(other)>;
           get<DynamicUnknownPatch>().checkConvertible<PatchType>();
           *patch_ = detail::createPatchFromObject<PatchType>(
               badge, std::move(*this).toObject());
@@ -1962,7 +1993,7 @@ void DynamicPatch::merge(Other&& other) {
   if (!isPatchTypeAmbiguous() && other.isPatchTypeAmbiguous()) {
     return std::visit(
         [&](auto&& patch) {
-          using PatchType = folly::remove_cvref_t<decltype(patch)>;
+          using PatchType = std::remove_cvref_t<decltype(patch)>;
           other.template get<DynamicUnknownPatch>()
               .template checkConvertible<PatchType>();
           auto tmp = DynamicPatch{detail::createPatchFromObject<PatchType>(
@@ -1979,8 +2010,7 @@ void DynamicPatch::merge(Other&& other) {
   }
   if (std::holds_alternative<op::BinaryPatch>(*patch_) &&
       std::holds_alternative<op::StringPatch>(*other.patch_)) {
-    *patch_ = detail::createPatchFromObject<op::StringPatch>(
-        badge, std::move(*this).toObject());
+    *patch_ = toStringPatch(std::get<op::BinaryPatch>(*patch_));
     return merge(std::forward<Other>(other));
   }
 
@@ -1995,8 +2025,8 @@ void DynamicPatch::merge(Other&& other) {
 
   std::visit(
       [](auto&& l, auto&& r) {
-        using L = folly::remove_cvref_t<decltype(l)>;
-        using R = folly::remove_cvref_t<decltype(r)>;
+        using L = std::remove_cvref_t<decltype(l)>;
+        using R = std::remove_cvref_t<decltype(r)>;
         if constexpr (std::is_same_v<L, R>) {
           if constexpr (requires {
                           l.merge(badge, folly::forward_like<Other>(r));
@@ -2082,18 +2112,21 @@ DynamicPatch DynamicPatch::fromObject(Object obj) {
 }
 
 auto DynamicUnknownPatch::validateAndGetCategory() const -> Category {
-  auto throwExceptionIf = [&](bool b) {
+  auto throwExceptionIf = [&](bool b, std::string_view reason) {
     if (b) {
-      std::runtime_error(
-          "Unclassified unknown patch. "
-          "Either there is a bug in the Unknown Patch implementation "
-          "or the input is incorrect. Patch content: " +
-          debugStringViaEncode(patch_));
+      detail::logUnclassifiedUnknownPatch(reason);
+      if (THRIFT_FLAG(dynamic_patch_reject_unclassified_unknown_patch)) {
+        folly::throw_exception<std::runtime_error>(
+            "Unclassified unknown patch. "
+            "Either there is a bug in the Unknown Patch implementation "
+            "or the input is incorrect. Patch content: " +
+            debugStringViaEncode(base_.patch_));
+      }
     }
   };
 
   auto onlyHasOps = [&](folly::F14FastSet<op::PatchOp> ops) {
-    for (const auto& [k, _] : patch_) {
+    for (const auto& [k, _] : base_.patch_) {
       if (!ops.contains(static_cast<op::PatchOp>(k))) {
         return false;
       }
@@ -2101,21 +2134,29 @@ auto DynamicUnknownPatch::validateAndGetCategory() const -> Category {
     return true;
   };
 
-  if (patch_.empty()) {
+  if (base_.patch_.empty() && !hasDecodedSubPatches()) {
     return Category::EmptyPatch;
   }
 
-  if (auto assign = get_ptr(op::PatchOp::Assign)) {
-    throwExceptionIf(!assign->is_object());
+  if (auto assign = base_.get_ptr(op::PatchOp::Assign)) {
+    throwExceptionIf(!assign->is_object(), "assign_is_not_object");
     return Category::StructuredOrAnyPatch;
   }
 
-  if (onlyHasOps({op::PatchOp::Clear})) {
+  // While sub-patches are decoded they are absent from `patch_`, so the
+  // Clear-only and Remove-only shapes have to rule them out explicitly. The
+  // structured check below needs no such guard: `patch_` then holds at most
+  // `clear`, and the empty case is already handled above. Deliberately does not
+  // call encodeSubPatches() -- patchIfSet asks for the category on every call,
+  // and restoring `patch_` each time would reinstate the quadratic merge.
+  if (!hasDecodedSubPatches() && onlyHasOps({op::PatchOp::Clear})) {
     return Category::ClearPatch;
   }
 
-  if (onlyHasOps({op::PatchOp::Clear, op::PatchOp::Remove})) {
-    throwExceptionIf(!get_ptr(op::PatchOp::Remove)->is_set());
+  if (!hasDecodedSubPatches() &&
+      onlyHasOps({op::PatchOp::Clear, op::PatchOp::Remove})) {
+    throwExceptionIf(
+        !base_.get_ptr(op::PatchOp::Remove)->is_set(), "remove_is_not_set");
     return Category::AssociativeContainerPatch;
   }
 
@@ -2126,20 +2167,22 @@ auto DynamicUnknownPatch::validateAndGetCategory() const -> Category {
     return Category::StructuredPatch;
   }
 
-  throwExceptionIf(true);
+  throwExceptionIf(true, "unexpected_operations");
   return {};
 }
 void DynamicUnknownPatch::throwIncompatibleCategory(
     std::string_view method) const {
+  encodeSubPatches();
   folly::throw_exception<std::runtime_error>(fmt::format(
       "Modifying thrift patch in an incompatible way. operation: {}, patch content: {}",
       method,
-      debugStringViaEncode(patch_)));
+      debugStringViaEncode(base_.patch_)));
 }
 void DynamicUnknownPatch::throwIncompatibleConversion() const {
+  encodeSubPatches();
   folly::throw_exception<std::runtime_error>(fmt::format(
       "Converting thrift patch in an incompatible way. patch content: {}",
-      debugStringViaEncode(patch_)));
+      debugStringViaEncode(base_.patch_)));
 }
 void DynamicUnknownPatch::removeMulti(ValueSet v) {
   if (!isOneOfCategory(
@@ -2149,7 +2192,7 @@ void DynamicUnknownPatch::removeMulti(ValueSet v) {
     throwIncompatibleCategory("remove");
   }
 
-  auto& s = get(op::PatchOp::Remove).ensure_set();
+  auto& s = base_.get(op::PatchOp::Remove).ensure_set();
   v.eraseInto(v.begin(), v.end(), [&](auto&& k) { s.insert(std::move(k)); });
 }
 void DynamicUnknownPatch::assign(Object v) {
@@ -2161,9 +2204,84 @@ void DynamicUnknownPatch::assign(Object v) {
     throwIncompatibleCategory("assign");
   }
 
-  patch_.members()->clear();
-  get(op::PatchOp::Assign).emplace_object(std::move(v));
+  dropSubPatches();
+  base_.patch_.members()->clear();
+  base_.get(op::PatchOp::Assign).emplace_object(std::move(v));
 }
+
+struct DynamicUnknownPatch::SubPatches {
+  folly::F14VectorMap<FieldId, DynamicPatch> prior;
+  folly::F14VectorMap<FieldId, DynamicPatch> after;
+};
+
+DynamicUnknownPatch::DynamicUnknownPatch() = default;
+DynamicUnknownPatch::~DynamicUnknownPatch() = default;
+DynamicUnknownPatch::DynamicUnknownPatch(DynamicUnknownPatch&&) noexcept =
+    default;
+DynamicUnknownPatch& DynamicUnknownPatch::operator=(
+    DynamicUnknownPatch&&) noexcept = default;
+
+// Copies restore `other` first and keep nothing decoded: the decoded maps are a
+// representation of `patch_`, so the copy is complete without them.
+DynamicUnknownPatch::DynamicUnknownPatch(const DynamicUnknownPatch& other)
+    : base_((other.encodeSubPatches(), other.base_)) {}
+
+DynamicUnknownPatch& DynamicUnknownPatch::operator=(
+    const DynamicUnknownPatch& other) {
+  if (this != &other) {
+    other.encodeSubPatches();
+    dropSubPatches();
+    base_ = other.base_;
+  }
+  return *this;
+}
+
+bool DynamicUnknownPatch::hasDecodedSubPatches() const {
+  return subPatches_ &&
+      (!subPatches_->prior.empty() || !subPatches_->after.empty());
+}
+
+void DynamicUnknownPatch::decodeSubPatches() {
+  if (subPatches_) {
+    return;
+  }
+  subPatches_ = std::make_unique<SubPatches>();
+  auto decodeInto = [&](op::PatchOp patchOp, auto& target) {
+    if (auto* ops = base_.get_ptr(patchOp)) {
+      for (auto& [fieldId, fieldPatch] : ops->as_object()) {
+        target.emplace(
+            static_cast<FieldId>(fieldId),
+            DynamicPatch::fromObject(std::move(fieldPatch.as_object())));
+      }
+      base_.patch_.erase(static_cast<FieldId>(patchOp));
+    }
+  };
+  decodeInto(op::PatchOp::PatchPrior, subPatches_->prior);
+  decodeInto(op::PatchOp::PatchAfter, subPatches_->after);
+}
+
+void DynamicUnknownPatch::encodeSubPatches() const {
+  if (!subPatches_) {
+    return;
+  }
+  auto decoded = std::move(subPatches_);
+  auto encodeFrom = [&](op::PatchOp patchOp, auto& source) {
+    if (source.empty()) {
+      return;
+    }
+    auto& ops = base_.get(patchOp).ensure_object();
+    for (auto& [fieldId, fieldPatch] : source) {
+      ops[fieldId].emplace_object(std::move(fieldPatch).toObject());
+    }
+  };
+  encodeFrom(op::PatchOp::PatchPrior, decoded->prior);
+  encodeFrom(op::PatchOp::PatchAfter, decoded->after);
+}
+
+void DynamicUnknownPatch::dropSubPatches() {
+  subPatches_.reset();
+}
+
 void DynamicUnknownPatch::patchIfSet(FieldId id, const DynamicPatch& p) {
   if (!isOneOfCategory(
           {Category::EmptyPatch,
@@ -2172,23 +2290,24 @@ void DynamicUnknownPatch::patchIfSet(FieldId id, const DynamicPatch& p) {
            Category::StructuredPatch})) {
     throwIncompatibleCategory("patchIfSet");
   }
-  if (auto assign = get_ptr(op::PatchOp::Assign)) {
+  if (auto assign = base_.get_ptr(op::PatchOp::Assign)) {
     if (assign->as_object().contains(id)) {
       p.apply(assign->as_object().at(id));
     }
     return;
   }
 
-  // TODO: optimize this
-  DynamicPatch prior{DynamicPatch::fromObject(
-      get(op::PatchOp::PatchPrior).ensure_object()[id].ensure_object())};
-  DynamicPatch after{DynamicPatch::fromObject(
-      get(op::PatchOp::PatchAfter).ensure_object()[id].ensure_object())};
-  prior.merge(after);
+  decodeSubPatches();
+  // `after` applies on top of `prior`, so collapse it down before merging the
+  // incoming patch, which is newer than both. Mirrors
+  // DynamicStructurePatch::patchIfSet.
+  auto& prior = subPatches_->prior[id];
+  if (auto after = subPatches_->after.find(id);
+      after != subPatches_->after.end()) {
+    prior.merge(std::move(after->second));
+    subPatches_->after.erase(after);
+  }
   prior.merge(p);
-  get(op::PatchOp::PatchAfter).ensure_object().erase(id);
-  get(op::PatchOp::PatchPrior).ensure_object()[id].as_object() =
-      prior.toObject();
 }
 void DynamicUnknownPatch::apply(detail::Badge, Value& v) const {
   struct Visitor {
@@ -2309,7 +2428,7 @@ DynamicPatch::applyToSerializedObjectWithoutExtractingMask(
     } else {
       folly::throw_exception_fmt_format<std::runtime_error>(
           "NotImplemented: Applying {} to Object is not implemented",
-          folly::pretty_name<folly::remove_cvref_t<decltype(patch)>>());
+          folly::pretty_name<std::remove_cvref_t<decltype(patch)>>());
     }
   });
 }

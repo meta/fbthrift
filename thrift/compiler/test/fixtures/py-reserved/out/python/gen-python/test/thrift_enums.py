@@ -15,6 +15,7 @@ import typing as _std_python_typing
 
 
 class from_(_fbthrift_python_types.Enum, int):
+    r"""enum from"""
     VALUE = 1
     @staticmethod
     def __get_thrift_name__() -> builtins.str:
@@ -26,7 +27,7 @@ class from_(_fbthrift_python_types.Enum, int):
 
     @staticmethod
     def __get_thrift_definition_key__() -> builtins.bytes:
-        return b"\x6b\xbb\x8d\xf5\x52\x26\xa8\xa1\x50\x17\x6b\x5e\xbf\x4c\x70\x32"
+        return b"\xfd\xe4\xb5\x8e\xdf\x86\x71\x01\xeb\x0e\x81\x15\x3f\x95\x07\xc5"
 
     @staticmethod
     def __get_metadata__() -> _fbthrift_metadata.ThriftMetadata:
@@ -40,6 +41,41 @@ class from_(_fbthrift_python_types.Enum, int):
 
     # pyre-ignore[11]: Annotation `test.ttypes.from` is not defined as a type.
     def _to_py_deprecated(self) -> "test.ttypes.from":
+        return self.value
+import typing as _std_python_typing
+
+
+
+class Mode(_fbthrift_python_types.Enum, int):
+    None_ = 0
+    r"""None = 0"""
+    for_ = 1
+    r"""for = 1"""
+    OK = 2
+    @staticmethod
+    def __get_thrift_name__() -> builtins.str:
+        return "test.Mode"
+
+    @staticmethod
+    def __get_thrift_uri__() -> _std_python_typing.Optional[builtins.str]:
+        return None
+
+    @staticmethod
+    def __get_thrift_definition_key__() -> builtins.bytes:
+        return b"\xa7\x0a\x55\x4a\xd8\x72\xea\xaf\xf8\x92\xef\x72\xbb\x15\x27\xe3"
+
+    @staticmethod
+    def __get_metadata__() -> _fbthrift_metadata.ThriftMetadata:
+        return gen_metadata_enum_Mode()
+
+    def _to_python(self) -> _std_python_typing.Self:
+        return self
+
+    def _to_py3(self) -> _std_python_typing.Self:
+        return self
+
+    # pyre-ignore[11]: Annotation `test.ttypes.Mode` is not defined as a type.
+    def _to_py_deprecated(self) -> "test.ttypes.Mode":
         return self.value
 
 def _fbthrift_gen_metadata_enum_from_(metadata_struct: _fbthrift_metadata.ThriftMetadata) -> _fbthrift_metadata.ThriftMetadata:
@@ -60,6 +96,29 @@ def _fbthrift_gen_metadata_enum_from_(metadata_struct: _fbthrift_metadata.Thrift
 
 def gen_metadata_enum_from_() -> _fbthrift_metadata.ThriftMetadata:
     return _fbthrift_gen_metadata_enum_from_(
+        _fbthrift_metadata.ThriftMetadata(structs={}, enums={}, exceptions={}, services={})
+    )
+
+def _fbthrift_gen_metadata_enum_Mode(metadata_struct: _fbthrift_metadata.ThriftMetadata) -> _fbthrift_metadata.ThriftMetadata:
+    qualified_name = "test.Mode"
+
+    if qualified_name in metadata_struct.enums:
+        return metadata_struct
+    elements = {
+        0: "None",
+        1: "for",
+        2: "OK",
+    }
+    structured_annotations = [
+    ]
+    enum_dict = dict(metadata_struct.enums)
+    enum_dict[qualified_name] = _fbthrift_metadata.ThriftEnum(name=qualified_name, elements=elements, structured_annotations=structured_annotations)
+    new_struct = metadata_struct(enums=enum_dict)
+
+    return new_struct
+
+def gen_metadata_enum_Mode() -> _fbthrift_metadata.ThriftMetadata:
+    return _fbthrift_gen_metadata_enum_Mode(
         _fbthrift_metadata.ThriftMetadata(structs={}, enums={}, exceptions={}, services={})
     )
 

@@ -265,11 +265,13 @@ void {{service.cpp_name}}AppAdapter::process_{{function.cpp_name}}(
           streamId, std::move(data), std::move(requestContext));
       break;
     default:
-      writeResponse(
+      auto response =
           ::apache::thrift::fast_thrift::thrift::makeFrameworkErrorMessage(
               streamId,
               ::apache::thrift::ResponseRpcErrorCode::REQUEST_PARSING_FAILURE,
-              "Unsupported protocol id for fast_thrift server"));
+              "Unsupported protocol id for fast_thrift server");
+      response.requestContext = std::move(requestContext);
+      writeResponse(std::move(response));
       break;
   }
 }
@@ -309,11 +311,13 @@ void {{service.cpp_name}}AppAdapter::process_{{function.cpp_name}}(
           streamId, std::move(data), std::move(requestContext));
       break;
     default:
-      writeResponse(
+      auto response =
           ::apache::thrift::fast_thrift::thrift::makeFrameworkErrorMessage(
               streamId,
               ::apache::thrift::ResponseRpcErrorCode::REQUEST_PARSING_FAILURE,
-              "Unsupported protocol id for fast_thrift server"));
+              "Unsupported protocol id for fast_thrift server");
+      response.requestContext = std::move(requestContext);
+      writeResponse(std::move(response));
       break;
   }
 }

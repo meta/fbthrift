@@ -98,6 +98,11 @@ class FrameLengthParser {
     return drain</*mayResize=*/false>(sink);
   }
 
+  template <typename Sink>
+  channel_pipeline::Result resume(Sink&& sink) noexcept {
+    return drain</*mayResize=*/false>(sink);
+  }
+
   // Routes the queue's own allocations through the pipeline allocator.
   // preallocate consults the factory only when it has to grow, so neither the
   // tail-reuse path nor a frame that fits the current buffer pays for it.
@@ -134,7 +139,7 @@ class FrameLengthParser {
 
         // Reject before growing: an oversized prefix would otherwise make us
         // allocate exactly the size we are about to refuse.
-        if (FOLLY_UNLIKELY(frameLength_ > maxFrameSize_)) {
+        if (frameLength_ > maxFrameSize_) [[unlikely]] {
           return channel_pipeline::Result::Error;
         }
 

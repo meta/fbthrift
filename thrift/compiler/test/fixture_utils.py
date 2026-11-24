@@ -187,7 +187,7 @@ def _parse_fixture_cmd(
           Example:
 
           ```
-          hack: hack:json,typedef,shapes=1 src/module.thrift
+          py3: mstch_py3:inplace_migrate src/module.thrift
           ```
     """
     # Skip commented lines

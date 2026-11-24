@@ -223,10 +223,7 @@ final class LazyAny implements JsonSerializable {
     if ($any->type is nonnull || $any->typeHashPrefixSha2_256 is nonnull) {
       return false;
     }
-    invariant(
-      Str\is_empty($any->data),
-      "Uninitialized Any must not have any data",
-    );
+    invariant($any->data === '', "Uninitialized Any must not have any data");
     return true;
   }
 

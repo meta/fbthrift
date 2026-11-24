@@ -20,6 +20,8 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/EndpointAdapter.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ReadyWaiters.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/StaticPipeline.h>
 
 #include <cstddef>
@@ -31,25 +33,64 @@
 
 namespace apache::thrift::fast_thrift::channel_pipeline {
 
+/** Replaces no handler. See StaticPipelineBuilder::withHandlerOverrides(). */
+struct NoHandlerOverrides {
+  using Tags = std::tuple<>;
+};
+
 namespace detail {
 struct StaticPipelineBuilderRebindTag {};
 
 template <HandlerId Id, typename... Entry>
 inline constexpr bool kStaticHandlerIdUnique = ((Entry::Spec::id != Id) && ...);
+
+template <typename Tags, HandlerId Id>
+inline constexpr bool kOverridesHandler = false;
+
+template <typename... Tag, HandlerId Id>
+inline constexpr bool kOverridesHandler<std::tuple<Tag...>, Id> =
+    ((Tag::id == Id) || ...);
+
+template <typename Tags, typename... Entry>
+inline constexpr bool kOverriddenHandlersBuilt = false;
+
+template <typename... Tag, typename... Entry>
+inline constexpr bool kOverriddenHandlersBuilt<std::tuple<Tag...>, Entry...> =
+    (!kStaticHandlerIdUnique<Tag::id, Entry...> && ...);
 } // namespace detail
 
-/** Builder for a pipeline whose handler types, IDs, and order are fixed. */
+/**
+ * Builder for a pipeline whose handler types, IDs, and order are fixed.
+ *
+ * Rvalue emplace* calls select owning storage. Before lvalue emplace* calls,
+ * enable the corresponding with*Ownership() capability. withBinding() enables
+ * peer composition; event APIs are available by default.
+ *
+ * A pipeline holds at most 63 handlers. Typed handlers, erased handlers and
+ * the handlers inside each segment all count. build() throws
+ * std::length_error for more.
+ */
 template <
     typename HeadHandler,
     typename TailHandler,
     typename Allocator = SimpleBufferAllocator,
     typename StateTuple = std::tuple<>,
     typename StaticHandlerConfig = detail::NoErasedStaticHandlers,
+    typename Overrides = NoHandlerOverrides,
+    typename Policy = detail::StaticPipelinePolicy<>,
     typename... Entry>
 class StaticPipelineBuilder {
   static_assert(BufferAllocator<Allocator>);
 
-  template <typename, typename, typename, typename, typename, typename...>
+  template <
+      typename,
+      typename,
+      typename,
+      typename,
+      typename,
+      typename,
+      typename,
+      typename...>
   friend class StaticPipelineBuilder;
 
  public:
@@ -71,30 +112,116 @@ class StaticPipelineBuilder {
   }
 
   StaticPipelineBuilder& setHead(HeadHandler* head) & noexcept {
-    headHandler_ = head;
+    detail::setExternalEndpoint(headSource_, head);
     return *this;
   }
   StaticPipelineBuilder&& setHead(HeadHandler* head) && noexcept {
-    headHandler_ = head;
+    detail::setExternalEndpoint(headSource_, head);
     return std::move(*this);
   }
 
   StaticPipelineBuilder& setTail(TailHandler* tail) & noexcept {
-    tailHandler_ = tail;
+    detail::setExternalEndpoint(tailSource_, tail);
     return *this;
   }
   StaticPipelineBuilder&& setTail(TailHandler* tail) && noexcept {
-    tailHandler_ = tail;
+    detail::setExternalEndpoint(tailSource_, tail);
     return std::move(*this);
   }
 
   StaticPipelineBuilder& setAllocator(Allocator* allocator) & noexcept {
-    allocator_ = allocator;
+    detail::setExternalEndpoint(allocatorSource_, allocator);
     return *this;
   }
   StaticPipelineBuilder&& setAllocator(Allocator* allocator) && noexcept {
-    allocator_ = allocator;
+    detail::setExternalEndpoint(allocatorSource_, allocator);
     return std::move(*this);
+  }
+
+  auto withHeadOwnership() && {
+    return std::move(*this)
+        .template rebindPolicy<detail::StaticPipelinePolicy<
+            true,
+            Policy::ownTail,
+            Policy::ownAllocator,
+            Policy::enableBinding>>();
+  }
+
+  auto withTailOwnership() && {
+    return std::move(*this)
+        .template rebindPolicy<detail::StaticPipelinePolicy<
+            Policy::ownHead,
+            true,
+            Policy::ownAllocator,
+            Policy::enableBinding>>();
+  }
+
+  auto withAllocatorOwnership() && {
+    return std::move(*this)
+        .template rebindPolicy<detail::StaticPipelinePolicy<
+            Policy::ownHead,
+            Policy::ownTail,
+            true,
+            Policy::enableBinding>>();
+  }
+
+  auto withBinding() && {
+    return std::move(*this)
+        .template rebindPolicy<detail::StaticPipelinePolicy<
+            Policy::ownHead,
+            Policy::ownTail,
+            Policy::ownAllocator,
+            true>>();
+  }
+
+  /**
+   * Construct and own the head endpoint in place from `args`. The pipeline owns
+   * the object, co-located in the single pipeline allocation and destroyed with
+   * the pipeline. Overrides any prior setHead/emplaceHead. Arguments are
+   * decay-copied and the object is constructed at build().
+   */
+  template <typename... Args>
+    requires(Policy::ownHead)
+  StaticPipelineBuilder& emplaceHead(Args&&... args) & {
+    detail::prepareOwnedEndpoint<HeadHandler>(
+        headSource_, std::forward<Args>(args)...);
+    return *this;
+  }
+  template <typename... Args>
+  auto emplaceHead(Args&&... args) && {
+    auto builder = std::move(*this).withHeadOwnership();
+    builder.emplaceHead(std::forward<Args>(args)...);
+    return builder;
+  }
+
+  /** Construct and own the tail endpoint in place. See emplaceHead. */
+  template <typename... Args>
+    requires(Policy::ownTail)
+  StaticPipelineBuilder& emplaceTail(Args&&... args) & {
+    detail::prepareOwnedEndpoint<TailHandler>(
+        tailSource_, std::forward<Args>(args)...);
+    return *this;
+  }
+  template <typename... Args>
+  auto emplaceTail(Args&&... args) && {
+    auto builder = std::move(*this).withTailOwnership();
+    builder.emplaceTail(std::forward<Args>(args)...);
+    return builder;
+  }
+
+  /** Construct and own the allocator in place. See emplaceHead. */
+  template <typename... Args>
+    requires(Policy::ownAllocator)
+  StaticPipelineBuilder& emplaceAllocator(Args&&... args) & {
+    detail::prepareOwnedEndpoint<Allocator>(
+        allocatorSource_, std::forward<Args>(args)...);
+    return *this;
+  }
+  template <typename... Args>
+  auto emplaceAllocator(Args&&... args) && {
+    auto builder = std::move(*this).withAllocatorOwnership();
+    builder.emplaceAllocator(std::forward<Args>(args)...);
+    return builder;
   }
 
   template <typename T, typename... Args>
@@ -113,18 +240,45 @@ class StaticPipelineBuilder {
         TailHandler,
         Allocator,
         NewStateTuple,
-        StaticHandlerConfig>(
+        StaticHandlerConfig,
+        Overrides,
+        Policy>(
         detail::StaticPipelineBuilderRebindTag{},
         eventBase_,
-        headHandler_,
-        tailHandler_,
-        allocator_,
+        std::move(headSource_),
+        std::move(tailSource_),
+        std::move(allocatorSource_),
         std::tuple<>{},
         std::tuple_cat(
             std::move(stateTuple_),
             std::tuple<T>(T(std::forward<Args>(args)...))),
         std::move(staticHandlers_),
         std::move(staticSegments_));
+  }
+
+  /**
+   * Lets `NewOverrides` replace handlers that later addNext*() calls add, so
+   * that a production pipeline can run with other handlers. It must come
+   * before the first addNext*() call, and does not compile after one. A later
+   * call replaces `NewOverrides` instead of adding to it.
+   *
+   * `NewOverrides::Tags` is a `std::tuple` of `HandlerTag` types. For a handler
+   * with one of those tags, the builder calls
+   * `NewOverrides::add(builder, tag, args...)` with the arguments of that
+   * addNext*() call.
+   *
+   * `add()` must add a handler with `tag`, or build() does not compile. It can
+   * add more handlers around that handler, and the builder does not replace
+   * them again. The handlers that `add()` adds are part of the pipeline type,
+   * and `NewOverrides` itself is not.
+   *
+   * build() also does not compile if a tag in `Tags` appears in no addNext*()
+   * call.
+   */
+  template <typename NewOverrides>
+    requires(sizeof...(Entry) == 0)
+  auto withHandlerOverrides() && {
+    return std::move(*this).template rebindOverrides<NewOverrides>();
   }
 
   template <typename H, HandlerId Id, typename... Args>
@@ -189,12 +343,14 @@ class StaticPipelineBuilder {
         Allocator,
         StateTuple,
         Config,
+        Overrides,
+        Policy,
         Entry...>(
         detail::StaticPipelineBuilderRebindTag{},
         eventBase_,
-        headHandler_,
-        tailHandler_,
-        allocator_,
+        std::move(headSource_),
+        std::move(tailSource_),
+        std::move(allocatorSource_),
         std::move(factories_),
         std::move(stateTuple_),
         std::move(handlers),
@@ -215,12 +371,14 @@ class StaticPipelineBuilder {
         Allocator,
         StateTuple,
         Config,
+        Overrides,
+        Policy,
         Entry...>(
         detail::StaticPipelineBuilderRebindTag{},
         eventBase_,
-        headHandler_,
-        tailHandler_,
-        allocator_,
+        std::move(headSource_),
+        std::move(tailSource_),
+        std::move(allocatorSource_),
         std::move(factories_),
         std::move(stateTuple_),
         {},
@@ -228,7 +386,11 @@ class StaticPipelineBuilder {
   }
 
   auto build() && {
+    static_assert(
+        detail::kOverriddenHandlersBuilt<typename Overrides::Tags, Entry...>,
+        "each tag in Overrides::Tags must name a handler of the pipeline");
     validateRequired();
+    validateHandlerCount();
     validateHandlerIds();
     using Impl = detail::StaticPipelineImpl<
         HeadHandler,
@@ -236,12 +398,13 @@ class StaticPipelineBuilder {
         Allocator,
         StateTuple,
         StaticHandlerConfig,
+        Policy,
         typename Entry::Spec...>;
     typename Impl::Ptr pipeline(new Impl(
         eventBase_,
-        headHandler_,
-        tailHandler_,
-        allocator_,
+        std::move(headSource_),
+        std::move(tailSource_),
+        std::move(allocatorSource_),
         std::move(stateTuple_),
         factories_,
         std::move(staticHandlers_),
@@ -257,30 +420,37 @@ class StaticPipelineBuilder {
       HandlerId Id,
       typename... Args>
   auto addHandler(Args&&... args) && {
-    static_assert(
-        detail::kStaticHandlerIdUnique<Id, Entry...>,
-        "static pipeline handler IDs must be unique");
-    using NewEntry =
-        detail::StaticHandlerFactory<H, Id, Direction, std::decay_t<Args>...>;
-    return StaticPipelineBuilder<
-        HeadHandler,
-        TailHandler,
-        Allocator,
-        StateTuple,
-        StaticHandlerConfig,
-        Entry...,
-        NewEntry>(
-        detail::StaticPipelineBuilderRebindTag{},
-        eventBase_,
-        headHandler_,
-        tailHandler_,
-        allocator_,
-        std::tuple_cat(
-            std::move(factories_),
-            std::tuple<NewEntry>(NewEntry(std::forward<Args>(args)...))),
-        std::move(stateTuple_),
-        std::move(staticHandlers_),
-        std::move(staticSegments_));
+    if constexpr (detail::kOverridesHandler<typename Overrides::Tags, Id>) {
+      return std::move(*this).template addOverride<Id>(
+          std::forward<Args>(args)...);
+    } else {
+      static_assert(
+          detail::kStaticHandlerIdUnique<Id, Entry...>,
+          "static pipeline handler IDs must be unique");
+      using NewEntry =
+          detail::StaticHandlerFactory<H, Id, Direction, std::decay_t<Args>...>;
+      return StaticPipelineBuilder<
+          HeadHandler,
+          TailHandler,
+          Allocator,
+          StateTuple,
+          StaticHandlerConfig,
+          Overrides,
+          Policy,
+          Entry...,
+          NewEntry>(
+          detail::StaticPipelineBuilderRebindTag{},
+          eventBase_,
+          std::move(headSource_),
+          std::move(tailSource_),
+          std::move(allocatorSource_),
+          std::tuple_cat(
+              std::move(factories_),
+              std::tuple<NewEntry>(NewEntry(std::forward<Args>(args)...))),
+          std::move(stateTuple_),
+          std::move(staticHandlers_),
+          std::move(staticSegments_));
+    }
   }
 
   template <
@@ -289,44 +459,117 @@ class StaticPipelineBuilder {
       HandlerId Id,
       typename... Args>
   auto addHandlerTemplate(Args&&... args) && {
-    static_assert(
-        detail::kStaticHandlerIdUnique<Id, Entry...>,
-        "static pipeline handler IDs must be unique");
-    using NewEntry = detail::
-        StaticHandlerTemplateFactory<H, Id, Direction, std::decay_t<Args>...>;
+    if constexpr (detail::kOverridesHandler<typename Overrides::Tags, Id>) {
+      return std::move(*this).template addOverride<Id>(
+          std::forward<Args>(args)...);
+    } else {
+      static_assert(
+          detail::kStaticHandlerIdUnique<Id, Entry...>,
+          "static pipeline handler IDs must be unique");
+      using NewEntry = detail::
+          StaticHandlerTemplateFactory<H, Id, Direction, std::decay_t<Args>...>;
+      return StaticPipelineBuilder<
+          HeadHandler,
+          TailHandler,
+          Allocator,
+          StateTuple,
+          StaticHandlerConfig,
+          Overrides,
+          Policy,
+          Entry...,
+          NewEntry>(
+          detail::StaticPipelineBuilderRebindTag{},
+          eventBase_,
+          std::move(headSource_),
+          std::move(tailSource_),
+          std::move(allocatorSource_),
+          std::tuple_cat(
+              std::move(factories_),
+              std::tuple<NewEntry>(NewEntry(std::forward<Args>(args)...))),
+          std::move(stateTuple_),
+          std::move(staticHandlers_),
+          std::move(staticSegments_));
+    }
+  }
+
+  template <typename NewOverrides>
+  auto rebindOverrides() && {
     return StaticPipelineBuilder<
         HeadHandler,
         TailHandler,
         Allocator,
         StateTuple,
         StaticHandlerConfig,
-        Entry...,
-        NewEntry>(
+        NewOverrides,
+        Policy,
+        Entry...>(
         detail::StaticPipelineBuilderRebindTag{},
         eventBase_,
-        headHandler_,
-        tailHandler_,
-        allocator_,
-        std::tuple_cat(
-            std::move(factories_),
-            std::tuple<NewEntry>(NewEntry(std::forward<Args>(args)...))),
+        std::move(headSource_),
+        std::move(tailSource_),
+        std::move(allocatorSource_),
+        std::move(factories_),
         std::move(stateTuple_),
         std::move(staticHandlers_),
         std::move(staticSegments_));
+  }
+
+  template <typename NewPolicy>
+  auto rebindPolicy() && {
+    return StaticPipelineBuilder<
+        HeadHandler,
+        TailHandler,
+        Allocator,
+        StateTuple,
+        StaticHandlerConfig,
+        Overrides,
+        NewPolicy,
+        Entry...>(
+        detail::StaticPipelineBuilderRebindTag{},
+        eventBase_,
+        std::move(headSource_),
+        std::move(tailSource_),
+        std::move(allocatorSource_),
+        std::move(factories_),
+        std::move(stateTuple_),
+        std::move(staticHandlers_),
+        std::move(staticSegments_));
+  }
+
+  // The override adds its handlers through a builder without overrides, so its
+  // own addNext*() calls go through unchanged.
+  template <HandlerId Id, typename... Args>
+  auto addOverride(Args&&... args) && {
+    return Overrides::add(
+               std::move(*this).template rebindOverrides<NoHandlerOverrides>(),
+               HandlerTag<Id>{},
+               std::forward<Args>(args)...)
+        .template rebindOverrides<Overrides>();
   }
 
   void validateRequired() const {
     if (eventBase_ == nullptr) {
       throw std::runtime_error("StaticPipelineBuilder: EventBase is required");
     }
-    if (headHandler_ == nullptr) {
+    if (!headSource_.present()) {
       throw std::runtime_error("StaticPipelineBuilder: head is required");
     }
-    if (tailHandler_ == nullptr) {
+    if (!tailSource_.present()) {
       throw std::runtime_error("StaticPipelineBuilder: tail is required");
     }
-    if (allocator_ == nullptr) {
+    if (!allocatorSource_.present()) {
       throw std::runtime_error("StaticPipelineBuilder: allocator is required");
+    }
+  }
+
+  void validateHandlerCount() const {
+    std::size_t count = sizeof...(Entry) + staticHandlers_.size();
+    for (const auto& segment : staticSegments_) {
+      count += segment.handlerCount();
+    }
+    if (count > detail::kMaxPipelineHandlers) {
+      throw std::length_error(
+          "StaticPipelineBuilder: pipeline handler capacity exceeded");
     }
   }
 
@@ -358,26 +601,26 @@ class StaticPipelineBuilder {
   StaticPipelineBuilder(
       detail::StaticPipelineBuilderRebindTag,
       folly::EventBase* eventBase,
-      HeadHandler* headHandler,
-      TailHandler* tailHandler,
-      Allocator* allocator,
+      detail::EndpointSource&& headSource,
+      detail::EndpointSource&& tailSource,
+      detail::EndpointSource&& allocatorSource,
       std::tuple<Entry...>&& factories,
       StateTuple&& stateTuple,
       std::vector<detail::ErasedStaticHandler>&& staticHandlers,
       std::vector<detail::ErasedStaticSegment>&& staticSegments) noexcept
       : eventBase_(eventBase),
-        headHandler_(headHandler),
-        tailHandler_(tailHandler),
-        allocator_(allocator),
+        headSource_(std::move(headSource)),
+        tailSource_(std::move(tailSource)),
+        allocatorSource_(std::move(allocatorSource)),
         factories_(std::move(factories)),
         stateTuple_(std::move(stateTuple)),
         staticHandlers_(std::move(staticHandlers)),
         staticSegments_(std::move(staticSegments)) {}
 
   folly::EventBase* eventBase_{nullptr};
-  HeadHandler* headHandler_{nullptr};
-  TailHandler* tailHandler_{nullptr};
-  Allocator* allocator_{nullptr};
+  detail::EndpointSource headSource_;
+  detail::EndpointSource tailSource_;
+  detail::EndpointSource allocatorSource_;
   std::tuple<Entry...> factories_;
   StateTuple stateTuple_;
   std::vector<detail::ErasedStaticHandler> staticHandlers_;

@@ -1,0 +1,48 @@
+[manifest]
+name = mcrouter
+fbsource_path = fbcode/mcrouter
+shipit_project = mcrouter
+shipit_fbcode_builder = true
+
+[git]
+repo_url = https://github.com/facebook/mcrouter.git
+
+[dependencies]
+# mcrouter's LZ4 codecs need folly built with LZ4 and use <lz4.h> directly.
+folly = lz4
+lz4
+wangle
+fizz
+fbthrift
+ragel
+gflags
+glog
+boost
+libevent
+openssl
+zlib
+
+[dependencies.os=linux]
+systemd
+
+[shipit.pathmap]
+fbcode/mcrouter/public_tld = .
+fbcode/mcrouter = mcrouter
+
+[shipit.strip]
+^fbcode/mcrouter/(.*/)?facebook/
+
+[build]
+builder = cmake
+
+[build.os=windows]
+builder = nop
+
+[cmake.defines]
+BUILD_SHARED_LIBS=OFF
+
+[cmake.defines.test=on]
+BUILD_TESTS=ON
+
+[cmake.defines.test=off]
+BUILD_TESTS=OFF

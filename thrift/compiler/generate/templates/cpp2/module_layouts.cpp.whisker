@@ -79,7 +79,7 @@ FROZEN_MAXIMIZE({{def.cpp_fullname}},{{!
     switch (type) {
       {{#each def.fields as |field|}}
       case {{def.cpp_fullname}}::Type::{{field.cpp_name}}: {
-        pos = root.layoutField(self, pos, this->{{field.cpp_name}}Field, x.get_{{field.cpp_name}}());
+        pos = root.layoutField(self, pos, this->{{field.cpp_name}}Field, {{#partial module_layouts.frozen2_union_field_value field=field}});
         break;
       }
       {{/each}}
@@ -97,7 +97,7 @@ FROZEN_MAXIMIZE({{def.cpp_fullname}},{{!
     switch (type) {
       {{#each def.fields as |field|}}
       case {{def.cpp_fullname}}::Type::{{field.cpp_name}}: {
-        root.freezeField(self, this->{{field.cpp_name}}Field, x.get_{{field.cpp_name}}());
+        root.freezeField(self, this->{{field.cpp_name}}Field, {{#partial module_layouts.frozen2_union_field_value field=field}});
         break;
       }
       {{/each}}

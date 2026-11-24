@@ -95,7 +95,7 @@ class DefaultPayloadSerializerStrategy final
 
   template <typename T>
   size_t unpackCompact(T& output, const folly::IOBuf* buffer) {
-    if (FOLLY_UNLIKELY(!buffer)) {
+    if (!buffer) [[unlikely]] {
       folly::throw_exception<std::runtime_error>("Underflow");
     }
     CompactProtocolReader reader;
@@ -114,7 +114,7 @@ class DefaultPayloadSerializerStrategy final
 
   template <typename T>
   size_t unpackBinary(T& output, const folly::IOBuf* buffer) {
-    if (FOLLY_UNLIKELY(!buffer)) {
+    if (!buffer) [[unlikely]] {
       folly::throw_exception<std::runtime_error>("Underflow");
     }
     BinaryProtocolReader reader;
@@ -135,6 +135,14 @@ class DefaultPayloadSerializerStrategy final
   size_t unpackBinary(T& output, const IOBufChain& buffer) {
     BinaryProtocolChainReader reader;
     reader.setInput(&buffer);
+    op::decode<type::struct_t<T>>(reader, output);
+    return reader.getCursorPosition();
+  }
+
+  template <typename T>
+  size_t unpackBinary(T& output, const io::IOBufChainCursor& cursor) {
+    BinaryProtocolChainReader reader;
+    reader.setInput(cursor);
     op::decode<type::struct_t<T>>(reader, output);
     return reader.getCursorPosition();
   }

@@ -203,7 +203,7 @@ FOLLY_ERASE bool enum_find_name(
   if constexpr (sz && sz <= 4096) {
     constexpr auto min = folly::to_underlying(TEnumTraits<E>::min());
     constexpr auto max = folly::to_underlying(TEnumTraits<E>::max());
-    constexpr auto gap = max - min;
+    constexpr auto gap = static_cast<int64_t>(max) - static_cast<int64_t>(min);
     if constexpr (gap < 2 * sz || gap < 16) {
       constexpr auto& index = enum_find_name_dense<E>;
       const auto under = folly::to_underlying(value);

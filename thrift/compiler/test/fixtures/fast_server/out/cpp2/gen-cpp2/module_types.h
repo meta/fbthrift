@@ -83,6 +83,16 @@ class DataItem final  {
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "meta.com/thrift/test/fixtures/fast_server/DataItem";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "DataItem";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "id", "name", "value"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -299,7 +309,6 @@ class DataItem final  {
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<DataItem>;
   friend void swap(DataItem& a, DataItem& b);
 };
 
@@ -323,6 +332,16 @@ class FOLLY_EXPORT NotFoundException : public virtual apache::thrift::TException
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "meta.com/thrift/test/fixtures/fast_server/NotFoundException";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "NotFoundException";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "id", "message"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -501,7 +520,6 @@ class FOLLY_EXPORT NotFoundException : public virtual apache::thrift::TException
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<NotFoundException>;
   friend void swap(NotFoundException& a, NotFoundException& b);
 };
 
@@ -525,6 +543,16 @@ class FOLLY_EXPORT PermissionDeniedException : public virtual apache::thrift::TE
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "meta.com/thrift/test/fixtures/fast_server/PermissionDeniedException";
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "PermissionDeniedException";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "user", "reason"
+  };
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
@@ -715,7 +743,6 @@ class FOLLY_EXPORT PermissionDeniedException : public virtual apache::thrift::TE
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 
-  friend class ::apache::thrift::Cpp2Ops<PermissionDeniedException>;
   friend void swap(PermissionDeniedException& a, PermissionDeniedException& b);
 };
 

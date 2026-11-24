@@ -55,19 +55,19 @@ var (
                 PrimitiveType: thrift.CODEC_PRIMITIVE_TYPE_BOOL,
             },
     }
+    premadeCodecTypeSpec_string = &thrift.TypeSpec{
+        FullName: "string",
+        CodecPrimitiveSpec:
+            &thrift.CodecPrimitiveSpec{
+                PrimitiveType: thrift.CODEC_PRIMITIVE_TYPE_STRING,
+            },
+    }
     premadeCodecTypeSpec_set_i32 = &thrift.TypeSpec{
         FullName: "set<i32>",
         CodecSetSpec:
             &thrift.CodecSetSpec{
                 ElementWireType: thrift.I32,
                 ElementTypeSpec: premadeCodecTypeSpec_i32,
-            },
-    }
-    premadeCodecTypeSpec_string = &thrift.TypeSpec{
-        FullName: "string",
-        CodecPrimitiveSpec:
-            &thrift.CodecPrimitiveSpec{
-                PrimitiveType: thrift.CODEC_PRIMITIVE_TYPE_STRING,
             },
     }
     premadeCodecTypeSpec_binary = &thrift.TypeSpec{
@@ -451,6 +451,435 @@ var (
                 "success": 0,
             },
         }
+    premadeStructSpec_reqFactoriesInteractWithStream =
+        &thrift.StructSpec{
+            Name:                 "reqFactoriesInteractWithStream",
+            ScopedName:           "module.reqFactoriesInteractWithStream",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+            },
+            FieldSpecNameToIndex: map[string]int{
+            },
+        }
+    premadeStructSpec_respFactoriesInteractWithStream =
+        &thrift.StructSpec{
+            Name:                 "respFactoriesInteractWithStream",
+            ScopedName:           "module.respFactoriesInteractWithStream",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+            },
+            FieldSpecNameToIndex: map[string]int{
+            },
+        }
+    premadeStructSpec_streamFactoriesInteractWithStream =
+        &thrift.StructSpec{
+            Name:                 "streamFactoriesInteractWithStream",
+            ScopedName:           "module.streamFactoriesInteractWithStream",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+                {
+                    ID:                   0,
+                    WireType:             thrift.I32,
+                    Name:                 "success",
+                    ReflectIndex:         0,
+                    IsOptional:           true,
+                    ValueTypeSpec:        premadeCodecTypeSpec_i32,
+                    MustBeSetToSerialize: true,
+                },
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+                0: 0,
+            },
+            FieldSpecNameToIndex: map[string]int{
+                "success": 0,
+            },
+        }
+    premadeStructSpec_reqFactoriesInteractWithStreamAndInitialResponse =
+        &thrift.StructSpec{
+            Name:                 "reqFactoriesInteractWithStreamAndInitialResponse",
+            ScopedName:           "module.reqFactoriesInteractWithStreamAndInitialResponse",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+            },
+            FieldSpecNameToIndex: map[string]int{
+            },
+        }
+    premadeStructSpec_respFactoriesInteractWithStreamAndInitialResponse =
+        &thrift.StructSpec{
+            Name:                 "respFactoriesInteractWithStreamAndInitialResponse",
+            ScopedName:           "module.respFactoriesInteractWithStreamAndInitialResponse",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+                {
+                    ID:                   0,
+                    WireType:             thrift.I32,
+                    Name:                 "success",
+                    ReflectIndex:         0,
+                    IsOptional:           true,
+                    ValueTypeSpec:        premadeCodecTypeSpec_i32,
+                    MustBeSetToSerialize: true,
+                },
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+                0: 0,
+            },
+            FieldSpecNameToIndex: map[string]int{
+                "success": 0,
+            },
+        }
+    premadeStructSpec_streamFactoriesInteractWithStreamAndInitialResponse =
+        &thrift.StructSpec{
+            Name:                 "streamFactoriesInteractWithStreamAndInitialResponse",
+            ScopedName:           "module.streamFactoriesInteractWithStreamAndInitialResponse",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+                {
+                    ID:                   0,
+                    WireType:             thrift.I32,
+                    Name:                 "success",
+                    ReflectIndex:         0,
+                    IsOptional:           true,
+                    ValueTypeSpec:        premadeCodecTypeSpec_i32,
+                    MustBeSetToSerialize: true,
+                },
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+                0: 0,
+            },
+            FieldSpecNameToIndex: map[string]int{
+                "success": 0,
+            },
+        }
+    premadeStructSpec_reqFactoriesInteractWithSink =
+        &thrift.StructSpec{
+            Name:                 "reqFactoriesInteractWithSink",
+            ScopedName:           "module.reqFactoriesInteractWithSink",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+            },
+            FieldSpecNameToIndex: map[string]int{
+            },
+        }
+    premadeStructSpec_respFactoriesInteractWithSink =
+        &thrift.StructSpec{
+            Name:                 "respFactoriesInteractWithSink",
+            ScopedName:           "module.respFactoriesInteractWithSink",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+            },
+            FieldSpecNameToIndex: map[string]int{
+            },
+        }
+    premadeStructSpec_sinkFactoriesInteractWithSink =
+        &thrift.StructSpec{
+            Name:                 "sinkFactoriesInteractWithSink",
+            ScopedName:           "module.sinkFactoriesInteractWithSink",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+                {
+                    ID:                   0,
+                    WireType:             thrift.I32,
+                    Name:                 "success",
+                    ReflectIndex:         0,
+                    IsOptional:           true,
+                    ValueTypeSpec:        premadeCodecTypeSpec_i32,
+                    MustBeSetToSerialize: true,
+                },
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+                0: 0,
+            },
+            FieldSpecNameToIndex: map[string]int{
+                "success": 0,
+            },
+        }
+    premadeStructSpec_respFinalFactoriesInteractWithSink =
+        &thrift.StructSpec{
+            Name:                 "respFinalFactoriesInteractWithSink",
+            ScopedName:           "module.respFinalFactoriesInteractWithSink",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+                {
+                    ID:                   0,
+                    WireType:             thrift.I32,
+                    Name:                 "success",
+                    ReflectIndex:         0,
+                    IsOptional:           true,
+                    ValueTypeSpec:        premadeCodecTypeSpec_i32,
+                    MustBeSetToSerialize: true,
+                },
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+                0: 0,
+            },
+            FieldSpecNameToIndex: map[string]int{
+                "success": 0,
+            },
+        }
+    premadeStructSpec_reqFactoriesInteractWithSinkAndInitialResponse =
+        &thrift.StructSpec{
+            Name:                 "reqFactoriesInteractWithSinkAndInitialResponse",
+            ScopedName:           "module.reqFactoriesInteractWithSinkAndInitialResponse",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+            },
+            FieldSpecNameToIndex: map[string]int{
+            },
+        }
+    premadeStructSpec_respFactoriesInteractWithSinkAndInitialResponse =
+        &thrift.StructSpec{
+            Name:                 "respFactoriesInteractWithSinkAndInitialResponse",
+            ScopedName:           "module.respFactoriesInteractWithSinkAndInitialResponse",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+                {
+                    ID:                   0,
+                    WireType:             thrift.I32,
+                    Name:                 "success",
+                    ReflectIndex:         0,
+                    IsOptional:           true,
+                    ValueTypeSpec:        premadeCodecTypeSpec_i32,
+                    MustBeSetToSerialize: true,
+                },
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+                0: 0,
+            },
+            FieldSpecNameToIndex: map[string]int{
+                "success": 0,
+            },
+        }
+    premadeStructSpec_sinkFactoriesInteractWithSinkAndInitialResponse =
+        &thrift.StructSpec{
+            Name:                 "sinkFactoriesInteractWithSinkAndInitialResponse",
+            ScopedName:           "module.sinkFactoriesInteractWithSinkAndInitialResponse",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+                {
+                    ID:                   0,
+                    WireType:             thrift.I32,
+                    Name:                 "success",
+                    ReflectIndex:         0,
+                    IsOptional:           true,
+                    ValueTypeSpec:        premadeCodecTypeSpec_i32,
+                    MustBeSetToSerialize: true,
+                },
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+                0: 0,
+            },
+            FieldSpecNameToIndex: map[string]int{
+                "success": 0,
+            },
+        }
+    premadeStructSpec_respFinalFactoriesInteractWithSinkAndInitialResponse =
+        &thrift.StructSpec{
+            Name:                 "respFinalFactoriesInteractWithSinkAndInitialResponse",
+            ScopedName:           "module.respFinalFactoriesInteractWithSinkAndInitialResponse",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+                {
+                    ID:                   0,
+                    WireType:             thrift.I32,
+                    Name:                 "success",
+                    ReflectIndex:         0,
+                    IsOptional:           true,
+                    ValueTypeSpec:        premadeCodecTypeSpec_i32,
+                    MustBeSetToSerialize: true,
+                },
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+                0: 0,
+            },
+            FieldSpecNameToIndex: map[string]int{
+                "success": 0,
+            },
+        }
+    premadeStructSpec_reqFactoriesInteractWithBidi =
+        &thrift.StructSpec{
+            Name:                 "reqFactoriesInteractWithBidi",
+            ScopedName:           "module.reqFactoriesInteractWithBidi",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+            },
+            FieldSpecNameToIndex: map[string]int{
+            },
+        }
+    premadeStructSpec_respFactoriesInteractWithBidi =
+        &thrift.StructSpec{
+            Name:                 "respFactoriesInteractWithBidi",
+            ScopedName:           "module.respFactoriesInteractWithBidi",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+            },
+            FieldSpecNameToIndex: map[string]int{
+            },
+        }
+    premadeStructSpec_streamFactoriesInteractWithBidi =
+        &thrift.StructSpec{
+            Name:                 "streamFactoriesInteractWithBidi",
+            ScopedName:           "module.streamFactoriesInteractWithBidi",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+                {
+                    ID:                   0,
+                    WireType:             thrift.I32,
+                    Name:                 "success",
+                    ReflectIndex:         0,
+                    IsOptional:           true,
+                    ValueTypeSpec:        premadeCodecTypeSpec_i32,
+                    MustBeSetToSerialize: true,
+                },
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+                0: 0,
+            },
+            FieldSpecNameToIndex: map[string]int{
+                "success": 0,
+            },
+        }
+    premadeStructSpec_sinkFactoriesInteractWithBidi =
+        &thrift.StructSpec{
+            Name:                 "sinkFactoriesInteractWithBidi",
+            ScopedName:           "module.sinkFactoriesInteractWithBidi",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+                {
+                    ID:                   0,
+                    WireType:             thrift.I32,
+                    Name:                 "success",
+                    ReflectIndex:         0,
+                    IsOptional:           true,
+                    ValueTypeSpec:        premadeCodecTypeSpec_i32,
+                    MustBeSetToSerialize: true,
+                },
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+                0: 0,
+            },
+            FieldSpecNameToIndex: map[string]int{
+                "success": 0,
+            },
+        }
+    premadeStructSpec_reqFactoriesInteractWithBidiAndInitialResponse =
+        &thrift.StructSpec{
+            Name:                 "reqFactoriesInteractWithBidiAndInitialResponse",
+            ScopedName:           "module.reqFactoriesInteractWithBidiAndInitialResponse",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+            },
+            FieldSpecNameToIndex: map[string]int{
+            },
+        }
+    premadeStructSpec_respFactoriesInteractWithBidiAndInitialResponse =
+        &thrift.StructSpec{
+            Name:                 "respFactoriesInteractWithBidiAndInitialResponse",
+            ScopedName:           "module.respFactoriesInteractWithBidiAndInitialResponse",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+                {
+                    ID:                   0,
+                    WireType:             thrift.I32,
+                    Name:                 "success",
+                    ReflectIndex:         0,
+                    IsOptional:           true,
+                    ValueTypeSpec:        premadeCodecTypeSpec_i32,
+                    MustBeSetToSerialize: true,
+                },
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+                0: 0,
+            },
+            FieldSpecNameToIndex: map[string]int{
+                "success": 0,
+            },
+        }
+    premadeStructSpec_streamFactoriesInteractWithBidiAndInitialResponse =
+        &thrift.StructSpec{
+            Name:                 "streamFactoriesInteractWithBidiAndInitialResponse",
+            ScopedName:           "module.streamFactoriesInteractWithBidiAndInitialResponse",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+                {
+                    ID:                   0,
+                    WireType:             thrift.I32,
+                    Name:                 "success",
+                    ReflectIndex:         0,
+                    IsOptional:           true,
+                    ValueTypeSpec:        premadeCodecTypeSpec_i32,
+                    MustBeSetToSerialize: true,
+                },
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+                0: 0,
+            },
+            FieldSpecNameToIndex: map[string]int{
+                "success": 0,
+            },
+        }
+    premadeStructSpec_sinkFactoriesInteractWithBidiAndInitialResponse =
+        &thrift.StructSpec{
+            Name:                 "sinkFactoriesInteractWithBidiAndInitialResponse",
+            ScopedName:           "module.sinkFactoriesInteractWithBidiAndInitialResponse",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+                {
+                    ID:                   0,
+                    WireType:             thrift.I32,
+                    Name:                 "success",
+                    ReflectIndex:         0,
+                    IsOptional:           true,
+                    ValueTypeSpec:        premadeCodecTypeSpec_i32,
+                    MustBeSetToSerialize: true,
+                },
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+                0: 0,
+            },
+            FieldSpecNameToIndex: map[string]int{
+                "success": 0,
+            },
+        }
     premadeStructSpec_reqPerformFoo =
         &thrift.StructSpec{
             Name:                 "reqPerformFoo",
@@ -676,6 +1105,320 @@ var (
                     ReflectIndex:         0,
                     IsOptional:           true,
                     ValueTypeSpec:        premadeCodecTypeSpec_bool,
+                    MustBeSetToSerialize: true,
+                },
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+                0: 0,
+            },
+            FieldSpecNameToIndex: map[string]int{
+                "success": 0,
+            },
+        }
+    premadeStructSpec_reqMyInteractionFailstream =
+        &thrift.StructSpec{
+            Name:                 "reqMyInteractionFailstream",
+            ScopedName:           "module.reqMyInteractionFailstream",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+            },
+            FieldSpecNameToIndex: map[string]int{
+            },
+        }
+    premadeStructSpec_respMyInteractionFailstream =
+        &thrift.StructSpec{
+            Name:                 "respMyInteractionFailstream",
+            ScopedName:           "module.respMyInteractionFailstream",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+            },
+            FieldSpecNameToIndex: map[string]int{
+            },
+        }
+    premadeStructSpec_streamMyInteractionFailstream =
+        &thrift.StructSpec{
+            Name:                 "streamMyInteractionFailstream",
+            ScopedName:           "module.streamMyInteractionFailstream",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+                {
+                    ID:                   0,
+                    WireType:             thrift.I32,
+                    Name:                 "success",
+                    ReflectIndex:         0,
+                    IsOptional:           true,
+                    ValueTypeSpec:        premadeCodecTypeSpec_i32,
+                    MustBeSetToSerialize: true,
+                },
+                {
+                    ID:                   1,
+                    WireType:             thrift.STRUCT,
+                    Name:                 "boom",
+                    ReflectIndex:         1,
+                    IsOptional:           true,
+                    ValueTypeSpec:        premadeCodecTypeSpec_module_CustomException,
+                    MustBeSetToSerialize: true,
+                },
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+                0: 0,
+                1: 1,
+            },
+            FieldSpecNameToIndex: map[string]int{
+                "success": 0,
+                "boom": 1,
+            },
+        }
+    premadeStructSpec_reqMyInteractionFailstreaminit =
+        &thrift.StructSpec{
+            Name:                 "reqMyInteractionFailstreaminit",
+            ScopedName:           "module.reqMyInteractionFailstreaminit",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+            },
+            FieldSpecNameToIndex: map[string]int{
+            },
+        }
+    premadeStructSpec_respMyInteractionFailstreaminit =
+        &thrift.StructSpec{
+            Name:                 "respMyInteractionFailstreaminit",
+            ScopedName:           "module.respMyInteractionFailstreaminit",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+                {
+                    ID:                   1,
+                    WireType:             thrift.STRUCT,
+                    Name:                 "boom",
+                    ReflectIndex:         0,
+                    IsOptional:           true,
+                    ValueTypeSpec:        premadeCodecTypeSpec_module_CustomException,
+                    MustBeSetToSerialize: true,
+                },
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+                1: 0,
+            },
+            FieldSpecNameToIndex: map[string]int{
+                "boom": 0,
+            },
+        }
+    premadeStructSpec_streamMyInteractionFailstreaminit =
+        &thrift.StructSpec{
+            Name:                 "streamMyInteractionFailstreaminit",
+            ScopedName:           "module.streamMyInteractionFailstreaminit",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+                {
+                    ID:                   0,
+                    WireType:             thrift.I32,
+                    Name:                 "success",
+                    ReflectIndex:         0,
+                    IsOptional:           true,
+                    ValueTypeSpec:        premadeCodecTypeSpec_i32,
+                    MustBeSetToSerialize: true,
+                },
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+                0: 0,
+            },
+            FieldSpecNameToIndex: map[string]int{
+                "success": 0,
+            },
+        }
+    premadeStructSpec_reqMyInteractionFrobnicateWithArg =
+        &thrift.StructSpec{
+            Name:                 "reqMyInteractionFrobnicateWithArg",
+            ScopedName:           "module.reqMyInteractionFrobnicateWithArg",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+                {
+                    ID:                   1,
+                    WireType:             thrift.I32,
+                    Name:                 "arg",
+                    ReflectIndex:         0,
+                    IsOptional:           false,
+                    ValueTypeSpec:        premadeCodecTypeSpec_i32,
+                    MustBeSetToSerialize: false,
+                },
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+                1: 0,
+            },
+            FieldSpecNameToIndex: map[string]int{
+                "arg": 0,
+            },
+        }
+    premadeStructSpec_respMyInteractionFrobnicateWithArg =
+        &thrift.StructSpec{
+            Name:                 "respMyInteractionFrobnicateWithArg",
+            ScopedName:           "module.respMyInteractionFrobnicateWithArg",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+                {
+                    ID:                   0,
+                    WireType:             thrift.I32,
+                    Name:                 "success",
+                    ReflectIndex:         0,
+                    IsOptional:           true,
+                    ValueTypeSpec:        premadeCodecTypeSpec_i32,
+                    MustBeSetToSerialize: true,
+                },
+                {
+                    ID:                   1,
+                    WireType:             thrift.STRUCT,
+                    Name:                 "ex",
+                    ReflectIndex:         1,
+                    IsOptional:           true,
+                    ValueTypeSpec:        premadeCodecTypeSpec_module_CustomException,
+                    MustBeSetToSerialize: true,
+                },
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+                0: 0,
+                1: 1,
+            },
+            FieldSpecNameToIndex: map[string]int{
+                "success": 0,
+                "ex": 1,
+            },
+        }
+    premadeStructSpec_reqMyInteractionStreamWithArg =
+        &thrift.StructSpec{
+            Name:                 "reqMyInteractionStreamWithArg",
+            ScopedName:           "module.reqMyInteractionStreamWithArg",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+                {
+                    ID:                   1,
+                    WireType:             thrift.STRING,
+                    Name:                 "query",
+                    ReflectIndex:         0,
+                    IsOptional:           false,
+                    ValueTypeSpec:        premadeCodecTypeSpec_string,
+                    MustBeSetToSerialize: false,
+                },
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+                1: 0,
+            },
+            FieldSpecNameToIndex: map[string]int{
+                "query": 0,
+            },
+        }
+    premadeStructSpec_respMyInteractionStreamWithArg =
+        &thrift.StructSpec{
+            Name:                 "respMyInteractionStreamWithArg",
+            ScopedName:           "module.respMyInteractionStreamWithArg",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+                {
+                    ID:                   1,
+                    WireType:             thrift.STRUCT,
+                    Name:                 "boom",
+                    ReflectIndex:         0,
+                    IsOptional:           true,
+                    ValueTypeSpec:        premadeCodecTypeSpec_module_CustomException,
+                    MustBeSetToSerialize: true,
+                },
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+                1: 0,
+            },
+            FieldSpecNameToIndex: map[string]int{
+                "boom": 0,
+            },
+        }
+    premadeStructSpec_streamMyInteractionStreamWithArg =
+        &thrift.StructSpec{
+            Name:                 "streamMyInteractionStreamWithArg",
+            ScopedName:           "module.streamMyInteractionStreamWithArg",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+                {
+                    ID:                   0,
+                    WireType:             thrift.I32,
+                    Name:                 "success",
+                    ReflectIndex:         0,
+                    IsOptional:           true,
+                    ValueTypeSpec:        premadeCodecTypeSpec_i32,
+                    MustBeSetToSerialize: true,
+                },
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+                0: 0,
+            },
+            FieldSpecNameToIndex: map[string]int{
+                "success": 0,
+            },
+        }
+    premadeStructSpec_reqMyInteractionFirstAndStream =
+        &thrift.StructSpec{
+            Name:                 "reqMyInteractionFirstAndStream",
+            ScopedName:           "module.reqMyInteractionFirstAndStream",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+            },
+            FieldSpecNameToIndex: map[string]int{
+            },
+        }
+    premadeStructSpec_respMyInteractionFirstAndStream =
+        &thrift.StructSpec{
+            Name:                 "respMyInteractionFirstAndStream",
+            ScopedName:           "module.respMyInteractionFirstAndStream",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+                {
+                    ID:                   0,
+                    WireType:             thrift.I32,
+                    Name:                 "success",
+                    ReflectIndex:         0,
+                    IsOptional:           true,
+                    ValueTypeSpec:        premadeCodecTypeSpec_i32,
+                    MustBeSetToSerialize: true,
+                },
+            },
+            FieldSpecIDToIndex:   map[int16]int{
+                0: 0,
+            },
+            FieldSpecNameToIndex: map[string]int{
+                "success": 0,
+            },
+        }
+    premadeStructSpec_streamMyInteractionFirstAndStream =
+        &thrift.StructSpec{
+            Name:                 "streamMyInteractionFirstAndStream",
+            ScopedName:           "module.streamMyInteractionFirstAndStream",
+            IsUnion:              false,
+            IsException:          false,
+            FieldSpecs:           []thrift.FieldSpec{
+                {
+                    ID:                   0,
+                    WireType:             thrift.I32,
+                    Name:                 "success",
+                    ReflectIndex:         0,
+                    IsOptional:           true,
+                    ValueTypeSpec:        premadeCodecTypeSpec_i32,
                     MustBeSetToSerialize: true,
                 },
             },

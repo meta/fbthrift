@@ -26,9 +26,7 @@ namespace apache::thrift::rocket {
 class FlushManager : private folly::EventBase::LoopCallback,
                      public folly::AsyncTimeout {
  public:
-  using FlushList = boost::intrusive::list<
-      folly::EventBase::LoopCallback,
-      boost::intrusive::constant_time_size<false>>;
+  using FlushList = folly::EventBase::LoopCallbackList;
   explicit FlushManager(folly::EventBase& evb) : evb_(evb) {
     attachEventBase(&evb_);
   }

@@ -24,17 +24,30 @@
 }
     {{/if (and struct.exception? (object.notnull? struct.message_field))}}
 
+    {{#if (not struct.cpp_arena_allocator?)}}
 
 {{struct.cpp_underlying_name}}::~{{struct.cpp_underlying_name}}() {}
+    {{/if (not struct.cpp_arena_allocator?)}}
 
   {{/if struct.is_large?}}
+  {{#if struct.cpp_arena_allocator?}}
+{{struct.cpp_underlying_name}}::~{{struct.cpp_underlying_name}}() {
+  const bool onArena = ::apache::thrift::pmr::isArenaResource(get_allocator());
+    {{#each struct.fields_in_reverse_layout_order as |field|}}
+  if (!onArena || !::apache::thrift::pmr::detail::fieldAllocatesAllMemoryViaMemoryResource<{{struct.cpp_underlying_name}}, ::apache::thrift::field_id<{{field.id}}>>()) {
+    ::std::destroy_at(::std::addressof(this->{{field.cpp_storage_name}}));
+  }
+    {{/each}}
+}
+
+  {{/if struct.cpp_arena_allocator?}}
   {{#if (object.notnull? struct.cpp_allocator)}}
 {{> module_types_cpp/alloc_extended_ctors}}
 
   {{/if (object.notnull? struct.cpp_allocator)}}
   {{#if (not struct.is_eligible_for_constexpr?)}}
 {{struct.cpp_underlying_name}}::{{> module_types_cpp/move_ctor}}
-{{struct.cpp_underlying_name}}& {{struct.cpp_underlying_name}}::operator=([[maybe_unused]] {{struct.cpp_underlying_name}}&& other) noexcept {
+{{struct.cpp_underlying_name}}& {{struct.cpp_underlying_name}}::operator=([[maybe_unused]] {{struct.cpp_underlying_name}}&& other){{#if (not struct.holds_arena_fields?)}} noexcept{{/if}} {
     {{#if struct.lazy_fields?}}
     const auto relaxed = std::memory_order_relaxed;
     __fbthrift_protocol_ = other.__fbthrift_protocol_;
@@ -47,8 +60,17 @@
       return *this;
     }
     {{/if (and (object.notnull? struct.cpp_allocator) struct.cpp_use_allocator_ref_fields?)}}
+    {{#if struct.cpp_arena_allocator?}}
+    const bool canSkipDestroyingOldData = this != &other &&
+        get_allocator() == other.get_allocator() &&
+        ::apache::thrift::pmr::isArenaResource(get_allocator());
+    {{/if struct.cpp_arena_allocator?}}
     {{#each struct.fields_in_layout_order as |field|}}
+      {{#if struct.cpp_arena_allocator?}}
+    ::apache::thrift::pmr::detail::moveAssignField<{{struct.cpp_underlying_name}}, ::apache::thrift::field_id<{{field.id}}>>(this->{{field.cpp_storage_name}}, std::move(other.{{field.cpp_storage_name}}), canSkipDestroyingOldData);
+      {{#else}}
     this->{{field.cpp_storage_name}} = std::move(other.{{field.cpp_storage_name}});
+      {{/if struct.cpp_arena_allocator?}}
       {{#if field.lazy?}}
     {
       const auto isDeserialized = other.__fbthrift_isDeserialized_.{{field.cpp_name}}.load(relaxed);
@@ -68,10 +90,10 @@
 
   {{/if (not struct.is_eligible_for_constexpr?)}}
 
-  {{#if struct.legacy_api?}}
+  {{#if (and struct.legacy_api? (object.eq? null struct.cpp_allocator))}}
 {{> module_types_cpp/fragile_ctor}}
-  {{/if struct.legacy_api?}}
 
+  {{/if (and struct.legacy_api? (object.eq? null struct.cpp_allocator))}}
 void {{struct.cpp_underlying_name}}::__fbthrift_clear() {
   // clear all fields
   {{#each struct.fields as |field|}}

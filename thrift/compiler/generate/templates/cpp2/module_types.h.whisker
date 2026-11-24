@@ -26,6 +26,11 @@
 
 #include <compare>
 #include <thrift/lib/cpp2/gen/module_types_h.h>
+{{#if program.arena_fields?}}
+#include <thrift/lib/cpp2/pmr/ArenaResource.h>
+#include <thrift/lib/cpp2/pmr/Rebind.h>
+#include <thrift/lib/cpp2/pmr/Teardown.h>
+{{/if program.arena_fields?}}
 {{#if (has_compiler_option? "frozen")}}
 #include <thrift/lib/cpp/Frozen.h>
 {{/if (has_compiler_option? "frozen")}}
@@ -90,6 +95,10 @@ struct is_cpp_ref_field_optional<{{struct.cpp_fullname}},::apache::thrift::type:
 template<>
 struct is_cpp_ref_field_terse<{{struct.cpp_fullname}},::apache::thrift::type::field_id<{{field.id}}>> : std::true_type{};
       {{/if field.opt_cpp_ref?}}
+      {{#if (and (object.notnull? struct.cpp_allocator) field.cpp_use_allocator?)}}
+template<>
+struct is_field_using_allocator<{{struct.cpp_fullname}},::apache::thrift::type::field_id<{{field.id}}>> : std::true_type{};
+      {{/if (and (object.notnull? struct.cpp_allocator) field.cpp_use_allocator?)}}
       {{#if field.deprecated_terse_writes_with_non_redundant_custom_default?}}
 template<>
 struct is_deprecated_terse_writes_with_custom_default_field<{{struct.cpp_fullname}},::apache::thrift::type::field_id<{{field.id}}>> : std::true_type{};
@@ -131,6 +140,18 @@ class {{#if def.exception?}}FOLLY_EXPORT {{/if}}{{def.cpp_underlying_name}} {{!
       {{/if (not (string.empty? def.uri))}}
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "{{def.name}}";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    ""{{#each def.fields as |field|}}, "{{field.name}}"{{/each}}
+  };
+      {{#if (not def.union?)}}
+  // Defined in the corresponding .tcc for each field id.
+  template <std::int16_t Id>
+  const auto& __fbthrift_get_field_storage() const;
+  template <std::int16_t Id>
+  bool __fbthrift_get_field_isset() const;
+      {{/if (not def.union?)}}
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "{{program.name}}";
@@ -269,12 +290,14 @@ class {{#if def.exception?}}FOLLY_EXPORT {{/if}}{{def.cpp_underlying_name}} {{!
         {{#else}}
   {{#partial module_types.base_ctor struct=def}}
         {{/if def.is_large?}}
+        {{! The FragileConstructor has no allocator parameter, so it can't build
+            a cpp.allocator struct on a given allocator. }}
+        {{#if (and def.legacy_api? (object.eq? null def.cpp_allocator))}}
 
-        {{#if def.legacy_api?}}
   // FragileConstructor for use in initialization lists only.
   [[deprecated("This constructor is deprecated")]]
   {{def.cpp_underlying_name}}(apache::thrift::FragileConstructor{{#partial module_types.fragile_ctor_param_list struct=def}});
-        {{/if def.legacy_api?}}
+        {{/if (and def.legacy_api? (object.eq? null def.cpp_allocator))}}
 
   {{def.cpp_underlying_name}}({{def.cpp_underlying_name}}&&) {{#if def.is_eligible_for_constexpr?}}= default{{#else}}noexcept{{/if}};
         {{#if (not def.cpp_noncopyable)}}
@@ -289,16 +312,16 @@ class {{#if def.exception?}}FOLLY_EXPORT {{/if}}{{def.cpp_underlying_name}} {{!
 {{> module_types_h/alloc_extended_ctors_decl}}
         {{/if (object.notnull? def.cpp_allocator)}}
 
-  {{def.cpp_underlying_name}}& operator=({{def.cpp_underlying_name}}&&) {{#if def.is_eligible_for_constexpr?}}= default{{#else}}noexcept{{/if}};
+  {{def.cpp_underlying_name}}& operator=({{def.cpp_underlying_name}}&&){{#if def.is_eligible_for_constexpr?}} = default{{#else if (not def.holds_arena_fields?)}} noexcept{{/if}};
         {{#if (not def.cpp_noncopyable)}}
           {{#let use_default = (and (not def.nondefault_copy_ctor_and_assignment?) def.is_eligible_for_constexpr?)}}
   {{def.cpp_underlying_name}}& operator=(const {{def.cpp_underlying_name}}&){{#if use_default}} = default{{/if}};
         {{/if (not def.cpp_noncopyable)}}
         {{#if def.virtual}}
 
-  {{#if (not def.exception?)}}virtual{{/if}} ~{{def.cpp_underlying_name}}() {{#if def.exception?}} override{{/if}}{{#if def.is_large?}};{{#else}}{}{{/if}}
+  {{#if (not def.exception?)}}virtual{{/if}} ~{{def.cpp_underlying_name}}() {{#if def.exception?}} override{{/if}}{{#if (or def.is_large? def.cpp_arena_allocator?)}};{{#else}}{}{{/if}}
 
-        {{#else if def.is_large?}}
+        {{#else if (or def.is_large? def.cpp_arena_allocator?)}}
 
   ~{{def.cpp_underlying_name}}(){{#if def.exception?}} override{{/if}};
 
@@ -360,16 +383,17 @@ class {{#if def.exception?}}FOLLY_EXPORT {{/if}}{{def.cpp_underlying_name}} {{!
   template <class Protocol_>
   void readNoXfer(Protocol_* iprot);
 {{!}}
-      {{#each def.fields as |field|}}
-        {{#if (and field.deprecated_terse_writes? (not field.type.structured?))}}
+      {{#if (not def.union?)}}
+        {{#each def.fields as |field|}}
+          {{#if (and field.deprecated_terse_writes? (or field.cpp_ref? (not field.type.structured?)))}}
 
   bool __fbthrift_should_write_deprecated_terse_field(::folly::tag_t<::apache::thrift::ident::{{field.cpp_name}}>) const {
-    return {{#partial fields.deprecated_terse_has_value field=field struct=def}};
+    return {{#if field.type.structured?}}static_cast<bool>({{/if}}{{#partial fields.deprecated_terse_has_value field=field struct=def}}{{#if field.type.structured?}}){{/if}};
   }
-        {{/if (and field.deprecated_terse_writes? (not field.type.structured?))}}
-      {{/each}}
+          {{/if (and field.deprecated_terse_writes? (or field.cpp_ref? (not field.type.structured?)))}}
+        {{/each}}
+      {{/if (not def.union?)}}
 
-  friend class ::apache::thrift::Cpp2Ops<{{def.cpp_underlying_name}}>;
   friend void swap({{def.cpp_underlying_name}}& a, {{def.cpp_underlying_name}}& b);
       {{#if (has_compiler_option? "tablebased")}}
         {{#if def.union?}}

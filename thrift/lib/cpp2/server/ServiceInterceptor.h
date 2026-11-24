@@ -38,6 +38,23 @@ class ServiceInterceptor : public ServiceInterceptorBase {
   }
 
  public:
+  /**
+   * Called once per request, after the `TProcessorEventHandler`s have run
+   * `preRead` and `postRead` and before the service method.
+   *
+   * `postRead` follows deserialization, so the request body has already been
+   * parsed by the time this runs, and a body that fails to parse ends the
+   * request before it. Nothing here can answer a request pre-parse:
+   * `onRequestReceived` below is the only callback that runs that early, and
+   * it returns void. `preRead` on an event handler is the one hook that can
+   * refuse a request before its body is read.
+   *
+   * That position is a guarantee, not an accident of the server: an
+   * interceptor may share state with an event handler, or back one up, and a
+   * handler that refused the request ends it without any interceptor being
+   * asked. A Rust srserver reaches the same point from its generated handler
+   * rather than from here.
+   */
   virtual folly::coro::Task<std::optional<RequestState>> onRequest(
       ConnectionState*, RequestInfo) {
     co_return std::nullopt;

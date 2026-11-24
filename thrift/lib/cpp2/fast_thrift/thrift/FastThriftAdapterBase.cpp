@@ -30,17 +30,17 @@ FastThriftAdapterBase::handleRequestResponse(
     ThriftResponseMessage&& response, uint16_t protocolId) {
   auto& inbound = response.payload.get<ThriftClientInboundPayloadVariant>();
 
-  if (FOLLY_LIKELY(inbound.is<ThriftInitialResponsePayload>())) {
+  if (inbound.is<ThriftInitialResponsePayload>()) [[likely]] {
     auto& payload = inbound.get<ThriftInitialResponsePayload>();
     DCHECK(payload.metadata != nullptr);
     auto& metadata = *payload.metadata;
 
     auto action = classifyPayloadAction(metadata);
-    if (FOLLY_UNLIKELY(action.hasError())) {
+    if (action.hasError()) [[unlikely]] {
       return folly::makeUnexpected(std::move(action.error()));
     }
 
-    if (FOLLY_UNLIKELY(action.value() == PayloadAction::ExtractAnyException)) {
+    if (action.value() == PayloadAction::ExtractAnyException) [[unlikely]] {
       return folly::makeUnexpected(
           extractAnyException(std::move(payload.data), protocolId));
     }

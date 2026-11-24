@@ -397,7 +397,7 @@ struct ValueHelper<TT, std::enable_if_t<kIsStructured<TT>>> {
   template <typename T>
   static void set(Value& result, T&& value) {
     ObjectWriter writer(&result);
-    op::encode<type::infer_tag<folly::remove_cvref_t<T>>>(
+    op::encode<type::infer_tag<std::remove_cvref_t<T>>>(
         writer, std::forward<T>(value));
   }
 };

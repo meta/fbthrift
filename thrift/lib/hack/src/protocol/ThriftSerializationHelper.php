@@ -16,7 +16,7 @@
  *
  */
 
-use namespace FlibSL\{C, Math, Str, Vec}; // @oss-enable
+use namespace FlibSL\{C, Dict, Math, Str, Vec}; // @oss-enable
 
 /**
  * Generic Protocol Reader and Writer
@@ -52,7 +52,7 @@ abstract final class ThriftSerializationHelper {
         break;
       }
 
-      if ($field_id !== null) {
+      if ($field_id !== null && !$protocol::USES_FIELD_NAMES) {
         // Compact, Binary and JSON:
         // These protocols only encode the field id.
 
@@ -74,13 +74,17 @@ abstract final class ThriftSerializationHelper {
         // This uses the TSPEC to find the field name.
         $field_name = $tspec[$field_id]['var'];
       } else {
-        // SimpleJSON:
-        // This protocol only encodes the field name.
+        // SimpleJSON and JSON5:
+        // These protocols encode the field name; JSON5 can also encode the
+        // field id, with the name or instead of it.
 
         // Versioning:
         // Skip type if there is a mismatch between the tspec and the
         // type that we obtain from the buffer.
-        if (!PHP\array_key_exists($field_name, $object::FIELDMAP)) {
+        $field_id = $field_id is null
+          ? idx($object::FIELDMAP, $field_name)
+          : self::findFieldId($object, $field_name, $field_id);
+        if ($field_id === null) {
           $xfer += $protocol->skip(nullthrows(
             $field_type,
             '$field_type was unexpectedly null in '.__METHOD__,
@@ -89,11 +93,8 @@ abstract final class ThriftSerializationHelper {
           continue;
         }
 
-        // This uses the TFIELDMAP to find the field id.
-        $field_id = $object::FIELDMAP[nullthrows(
-          $field_name,
-          '$field_name was unexpectedly null in '.__METHOD__,
-        )];
+        // This uses the TSPEC to find the field name.
+        $field_name = $tspec[$field_id]['var'];
       }
 
       $tmp = null;
@@ -107,10 +108,10 @@ abstract final class ThriftSerializationHelper {
       );
       $is_field_wrapped = Shapes::idx($tspec[$field_id], 'is_wrapped') ?? false;
 
-      if ($has_type_wrapper && $field_name is nonnull) {
+      if ($has_type_wrapper) {
         $setter_method = "set_".$field_name."_DO_NOT_USE_THRIFT_INTERNAL";
         HH\FIXME\UNSAFE_CAST<mixed, dynamic>($object)->$setter_method($tmp);
-      } else if ($is_field_wrapped && $field_name is nonnull) {
+      } else if ($is_field_wrapped) {
         $getter_method = "get_".$field_name;
         HH\FIXME\UNSAFE_CAST<mixed, HH_FIXME\UNKNOWN_TYPE_FOR_CAST>(
           HH\FIXME\UNSAFE_CAST<mixed, dynamic>($object)->$getter_method(),
@@ -122,6 +123,44 @@ abstract final class ThriftSerializationHelper {
     }
     $xfer += $protocol->readStructEnd();
     return $xfer;
+  }
+
+  /**
+   * The id of the field named by `$name`, `$id` or both; null for an unknown
+   * field. Throws if `$name` and `$id` name different fields.
+   */
+  public static function findFieldId(
+    IThriftStruct $object,
+    ?string $name,
+    ?int $id,
+  )[]: ?int {
+    $id_by_name = idx($object::FIELDMAP, $name);
+    $name_by_id = idx($object::SPEC, $id)['var'] ?? null;
+    if ($name is null && $id is null) {
+      return null;
+    }
+    if ($id is null) {
+      return $id_by_name;
+    }
+    if ($name is null) {
+      return $name_by_id is null ? null : $id;
+    }
+    if ($id_by_name is null && $name_by_id is null) {
+      // Neither is known: a field from a newer schema, skipped like any other.
+      return null;
+    }
+    invariant(
+      ($id_by_name === $id) === ($name_by_id === $name),
+      'FIELDMAP and SPEC disagree on field %s',
+      $name,
+    );
+    if ($id_by_name === $id) {
+      return $id;
+    }
+    throw new TProtocolException(
+      Str\format('Field %s does not have id %d', $name, $id),
+      TProtocolException::INVALID_DATA,
+    );
   }
 
   public static function readStructHelper(
@@ -155,14 +194,15 @@ abstract final class ThriftSerializationHelper {
         // Optimization opportunity: Add a TType of enum and encode that to
         // the tspec to avoid this if statement.
         $val = 0;
-        $xfer += $protocol->readI32(inout $val);
-        if (Shapes::keyExists($tspec, 'enum')) {
-          $enum_class = ArgAssert::isEnumname(
-            HH_FIXME::tryClassToClassname($tspec['enum']),
-          );
-          $object = HH\classname_to_class($enum_class) |> $$::coerce($val);
-        } else {
+        $enum = Shapes::idx($tspec, 'enum');
+        if ($enum is null) {
+          $xfer += $protocol->readI32(inout $val);
           $object = $val;
+        } else {
+          $xfer += $protocol->readEnum($enum, inout $val);
+          $enum_class =
+            ArgAssert::isEnumname(HH_FIXME::tryClassToClassname($enum));
+          $object = HH\classname_to_class($enum_class) |> $$::coerce($val);
         }
         break;
       case TType::I64:
@@ -497,7 +537,11 @@ abstract final class ThriftSerializationHelper {
     IThriftStruct $object,
   )[$protocol::CReadWriteDefault, write_props]: int {
     $xfer = $protocol->writeStructBegin($object->getName());
-    foreach ($object::SPEC as $field_id => $fspec) {
+    $spec = $object::SPEC;
+    if ($protocol->writesFieldsInIdOrder()) {
+      $spec = Dict\sort_by_key($spec);
+    }
+    foreach ($spec as $field_id => $fspec) {
       $field_name = $fspec['var'];
       $field_type = $fspec['type'];
       $field_value = self::readStructField($object, $fspec);
@@ -507,8 +551,7 @@ abstract final class ThriftSerializationHelper {
       }
 
       $xfer += $protocol->writeFieldBegin($field_name, $field_type, $field_id);
-      $xfer +=
-        self::writeStructHelper($protocol, $field_type, $field_value, $fspec);
+      $xfer += self::writeValue($protocol, $field_type, $field_value, $fspec);
       $xfer += $protocol->writeFieldEnd();
     }
     $xfer += $protocol->writeFieldStop();
@@ -523,7 +566,7 @@ abstract final class ThriftSerializationHelper {
     $field_name = Shapes::idx($fspec, 'var') ?? '';
     $is_wrapped = Shapes::idx($fspec, 'is_wrapped', false);
     $is_union_arm = Shapes::idx($fspec, 'union', false);
-    if (($is_wrapped || $is_union_arm) && !Str\is_empty($field_name)) {
+    if (($is_wrapped || $is_union_arm) && $field_name !== '') {
       $getter_method = 'get_'.$field_name;
       // @lint-ignore DYNAMICALLY_INVOKING_TARGETS_CONSIDERED_HARMFUL
       $field_value = HH\FIXME\UNSAFE_CAST<mixed, dynamic>($struct)->$getter_method();
@@ -563,7 +606,7 @@ abstract final class ThriftSerializationHelper {
       case TType::STRING:
       case TType::UTF8:
       case TType::UTF16:
-        return Str\is_empty((string)$field_value);
+        return ((string)$field_value) === '';
       case TType::LST:
       case TType::SET:
       case TType::MAP:
@@ -652,7 +695,25 @@ abstract final class ThriftSerializationHelper {
     return $field_value;
   }
 
+  /**
+   * Writes $object as the thrift type described by $tspec.
+   *
+   * A top-level wrapper and adapter in $tspec are applied first, so $object is
+   * the value Hack code holds and readStructHelper returns.
+   */
   public static function writeStructHelper(
+    TProtocol $protocol,
+    TType $field_type,
+    mixed $object,
+    ThriftStructTypes::TGenericSpec $tspec,
+  )[$protocol::CReadWriteDefault, write_props]: int {
+    $object = self::unwrapApplyAdapter($object, $tspec);
+    return self::writeValue($protocol, $field_type, $object, $tspec);
+  }
+
+  // Field and element values are converted by the caller, since their specs
+  // keep the adapter.
+  private static function writeValue(
     TProtocol $protocol,
     TType $field_type,
     mixed $object,
@@ -673,7 +734,10 @@ abstract final class ThriftSerializationHelper {
         $xfer += $protocol->writeI16((int)$object);
         break;
       case TType::I32:
-        $xfer += $protocol->writeI32((int)$object);
+        $enum = Shapes::idx($tspec, 'enum');
+        $xfer += $enum is null
+          ? $protocol->writeI32((int)$object)
+          : $protocol->writeEnum($enum, (int)$object);
         break;
       case TType::I64:
         $xfer += $protocol->writeI64((int)$object);
@@ -707,7 +771,7 @@ abstract final class ThriftSerializationHelper {
           ) {
             $espec = Shapes::at($tspec, 'elem');
             $iter = self::unwrapApplyAdapter($iter, $espec);
-            $xfer += self::writeStructHelper(
+            $xfer += self::writeValue(
               $protocol,
               Shapes::at($tspec, 'etype'),
               $iter,
@@ -731,8 +795,7 @@ abstract final class ThriftSerializationHelper {
           ) {
             foreach ($object as $elem) {
               $elem = self::unwrapApplyAdapter($elem, $espec);
-              $xfer +=
-                self::writeStructHelper($protocol, $etype, $elem, $espec);
+              $xfer += self::writeValue($protocol, $etype, $elem, $espec);
             }
           } else {
             foreach (
@@ -746,7 +809,7 @@ abstract final class ThriftSerializationHelper {
                 ),
               ) as $key => $iter
             ) {
-              $xfer += self::writeStructHelper(
+              $xfer += self::writeValue(
                 $protocol,
                 $etype,
                 Shapes::at($tspec, 'format') === 'array' ? $key : $iter,
@@ -758,15 +821,26 @@ abstract final class ThriftSerializationHelper {
         $xfer += $protocol->writeSetEnd();
         break;
       case TType::MAP:
-        $xfer += $protocol->writeMapBegin(
-          Shapes::at($tspec, 'ktype'),
-          Shapes::at($tspec, 'vtype'),
-          PHP\count($object),
-        );
+        $ktype = Shapes::at($tspec, 'ktype');
+        $kspec = Shapes::at($tspec, 'key');
+        if (
+          Shapes::keyExists($kspec, 'enum') ||
+          ($ktype === TType::STRING && !Shapes::idx($kspec, 'is_binary', false))
+        ) {
+          $xfer += $protocol->writeMapBeginWithAlternativeKeyForm(
+            $ktype,
+            Shapes::at($tspec, 'vtype'),
+            PHP\count($object),
+          );
+        } else {
+          $xfer += $protocol->writeMapBegin(
+            $ktype,
+            Shapes::at($tspec, 'vtype'),
+            PHP\count($object),
+          );
+        }
         if ($object !== null) {
-          $ktype = Shapes::at($tspec, 'ktype');
           $vtype = Shapes::at($tspec, 'vtype');
-          $kspec = Shapes::at($tspec, 'key');
           $vspec = Shapes::at($tspec, 'val');
           if (
             Shapes::at($tspec, 'format') === 'object_key' &&
@@ -775,10 +849,8 @@ abstract final class ThriftSerializationHelper {
             foreach ($object as $kiter => $viter) {
               $kiter = self::unwrapApplyAdapter($kiter, $kspec);
               $viter = self::unwrapApplyAdapter($viter, $vspec);
-              $xfer +=
-                self::writeStructHelper($protocol, $ktype, $kiter, $kspec);
-              $xfer +=
-                self::writeStructHelper($protocol, $vtype, $viter, $vspec);
+              $xfer += self::writeValue($protocol, $ktype, $kiter, $kspec);
+              $xfer += self::writeValue($protocol, $vtype, $viter, $vspec);
             }
           } else {
             foreach (
@@ -793,10 +865,8 @@ abstract final class ThriftSerializationHelper {
               ) as $kiter => $viter
             ) {
               $viter = self::unwrapApplyAdapter($viter, $vspec);
-              $xfer +=
-                self::writeStructHelper($protocol, $ktype, $kiter, $kspec);
-              $xfer +=
-                self::writeStructHelper($protocol, $vtype, $viter, $vspec);
+              $xfer += self::writeValue($protocol, $ktype, $kiter, $kspec);
+              $xfer += self::writeValue($protocol, $vtype, $viter, $vspec);
             }
           }
         }

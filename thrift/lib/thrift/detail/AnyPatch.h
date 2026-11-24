@@ -79,7 +79,7 @@ struct TypeToPatchMapAdapter {
     s += prot.writeListBegin(protocol::TType::T_STRUCT, map.size());
     for (const auto& [type, patch] : map) {
       s += prot.writeStructBegin(
-          op::get_class_name_v<TypeToPatchInternalDoNotUse>.data());
+          op::get_class_name<TypeToPatchInternalDoNotUse>().data());
       s += prot.writeFieldBegin("type", protocol::TType::T_STRUCT, 1);
       s += op::encode<type::infer_tag<type::Type>>(prot, type);
       s += prot.writeFieldEnd();
@@ -413,6 +413,11 @@ class AnyPatch : public BaseClearPatch<Patch, AnyPatch<Patch>> {
       return;
     }
 
+    // The patched value already has the ensured type, so a different type
+    // replaces it whatever this patch did before.
+    if (data_.ensureAny().has_value()) {
+      clear();
+    }
     data_.ensureAny() = std::move(ensureAny);
   }
 

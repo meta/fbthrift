@@ -12,46 +12,48 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This CMakeLists.txt takes care of building a selection of benchmarks and tests
-# in this folder. Currently, it only builds ProtocolBench with its dependencies.
+# Build the protocol and field-mask benchmarks.
 
-if (NOT THRIFT_BENCHMARKS)
-  return()
-endif ()
-
+add_executable(thrift_ProtocolBench ProtocolBench.cpp
+                                    ../../thrift/detail/protocol.cpp)
 # Generate Thrift files for this benchmark.
-thrift_generate(ProtocolBenchData.thrift LANGUAGE cpp2 OPTIONS frozen2 layouts
-                OUT_SOURCES bench_data_sources)
-
-set(GENERATED_THRIFT_SOURCES ${bench_data_sources})
-set(SOURCE_FILES ProtocolBench.cpp)
-set(ADDITIONAL_SOURCE_FILES ../../thrift/detail/protocol.cpp)
-
-# Generate conformance Thrift files.
+thrift_generate(thrift_ProtocolBench ProtocolBenchData.thrift LANGUAGE cpp2
+                OPTIONS frozen2)
 foreach (conf_name "protocol" "type" "any" "serialization" "patch_data"
                    "conformance")
-  thrift_generate(
-    ../../../conformance/if/${conf_name}.thrift
-    LANGUAGE cpp2
-    OPTIONS frozen2
-    OUT_SOURCES conformance_sources)
-  set(GENERATED_THRIFT_SOURCES ${GENERATED_THRIFT_SOURCES}
-                               ${conformance_sources})
+  thrift_generate(thrift_ProtocolBench
+                  ../../../conformance/if/${conf_name}.thrift LANGUAGE cpp2)
 endforeach ()
+target_link_libraries(
+  thrift_ProtocolBench PRIVATE thrift_frozen thrift_protocol thrift_type
+                               Folly::folly Folly::follybenchmark)
 
-foreach (GENERATED ${GENERATED_THRIFT_SOURCES})
-  set_source_files_properties(${GENERATED} PROPERTIES GENERATED TRUE)
+thrift_install_targets(thrift_ProtocolBench)
+
+add_executable(thrift_FieldNameCacheBench FieldNameCacheBench.cpp)
+thrift_generate(thrift_FieldNameCacheBench FieldNameCacheBench.thrift
+                LANGUAGE cpp2)
+thrift_generate(thrift_FieldNameCacheBench ProtocolBenchData.thrift LANGUAGE cpp2
+                OPTIONS frozen2)
+foreach (conf_name "protocol" "type" "any" "serialization" "patch_data"
+                   "conformance")
+  thrift_generate(thrift_FieldNameCacheBench
+                  ../../../conformance/if/${conf_name}.thrift LANGUAGE cpp2)
 endforeach ()
+target_link_libraries(
+  thrift_FieldNameCacheBench PRIVATE thrift_frozen thrift_protocol thrift_type
+                                    Folly::folly Folly::follybenchmark)
 
-add_executable(ProtocolBench ${SOURCE_FILES} ${ADDITIONAL_SOURCE_FILES}
-                             ${GENERATED_THRIFT_SOURCES})
-find_package(benchmark CONFIG REQUIRED)
-target_link_libraries(ProtocolBench thriftfrozen2 thriftprotocol thrifttype
-                      Folly::folly benchmark::benchmark)
-
-install(
-  TARGETS ProtocolBench
-  EXPORT fbthrift-exports
-  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+add_executable(
+  thrift_FieldMaskBenchmark
+  FieldMaskBenchmark.cpp
+  ../protocol/FieldMask.cpp
+  ../protocol/FieldMaskRef.cpp
+  ../protocol/detail/FieldMask.cpp
+  ../protocol/detail/FieldMaskUtil.cpp
+  ../protocol/detail/Object.cpp)
+thrift_generate(thrift_FieldMaskBenchmark FieldMaskBenchmark.thrift LANGUAGE cpp2
+                OPTIONS no_metadata)
+target_link_libraries(
+  thrift_FieldMaskBenchmark PRIVATE thrift_type thrift_metadata thrift_protocol
+                                   Folly::folly Folly::follybenchmark)

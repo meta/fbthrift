@@ -892,6 +892,8 @@ apache::thrift::ServiceRequestInfoMap FastClientTestServiceServiceInfoHolder::st
      std::nullopt,
      ::apache::thrift::detail::getFunctionNode<::cpp2::test::FastClientTestService>("processData")}},
   };
+  apache::thrift::ServiceRequestInfoMap parentMap = ::cpp2::test::NonFastParentServiceInfoHolder::staticRequestInfoMap();
+  requestInfoMap.insert(std::begin(parentMap), std::end(parentMap));
 
   return requestInfoMap;
 }

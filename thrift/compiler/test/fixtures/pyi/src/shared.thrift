@@ -91,6 +91,7 @@ struct ComplexStruct {
   9: set<string> aset;
   10: dependent.Item item;
   11: i32 from; // reserved word
+  12: dependent.ItemColor color;
 }
 
 union UnionStruct {

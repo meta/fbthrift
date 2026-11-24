@@ -65,8 +65,11 @@ inline bool equal(
         return false;
       }
       return stringContains(
-          *actual.bidiStreamUndeclaredException()->exceptionMessage(),
-          *expected.bidiStreamUndeclaredException()->exceptionMessage());
+                 *actual.bidiStreamUndeclaredException()->exceptionMessage(),
+                 *expected.bidiStreamUndeclaredException()
+                      ->exceptionMessage()) &&
+          *actual.bidiStreamUndeclaredException()->streamPayloads() ==
+          *expected.bidiStreamUndeclaredException()->streamPayloads();
     default:
       return actual == expected;
   }
@@ -82,14 +85,22 @@ inline bool equal(
       auto& actualMsg = *actual.sinkUndeclaredException()->exceptionMessage();
       auto& expectedMsg =
           *expected.sinkUndeclaredException()->exceptionMessage();
-      return actualMsg.find(expectedMsg) != std::string::npos;
+
+      return actualMsg.find(expectedMsg) != std::string::npos &&
+          *actual.sinkUndeclaredException()->request() ==
+          *expected.sinkUndeclaredException()->request();
     }
     case ServerTestResult::Type::bidiSinkUndeclaredException: {
       auto& actualMsg =
           *actual.bidiSinkUndeclaredException()->exceptionMessage();
       auto& expectedMsg =
           *expected.bidiSinkUndeclaredException()->exceptionMessage();
-      return actualMsg.find(expectedMsg) != std::string::npos;
+
+      return actualMsg.find(expectedMsg) != std::string::npos &&
+          *actual.bidiSinkUndeclaredException()->request() ==
+          *expected.bidiSinkUndeclaredException()->request() &&
+          *actual.bidiSinkUndeclaredException()->sinkPayloads() ==
+          *expected.bidiSinkUndeclaredException()->sinkPayloads();
     }
     default:
       return actual == expected;

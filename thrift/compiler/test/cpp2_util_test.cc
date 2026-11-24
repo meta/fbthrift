@@ -18,10 +18,12 @@
 
 #include <algorithm>
 #include <array>
+#include <functional>
 #include <memory>
 #include <random>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include <gmock/gmock.h>
@@ -34,10 +36,13 @@
 #include <thrift/compiler/ast/t_paramlist.h>
 #include <thrift/compiler/ast/t_primitive_type.h>
 #include <thrift/compiler/ast/t_program.h>
+#include <thrift/compiler/ast/t_program_bundle.h>
 #include <thrift/compiler/ast/t_struct.h>
 #include <thrift/compiler/ast/t_type.h>
 #include <thrift/compiler/ast/t_typedef.h>
 #include <thrift/compiler/ast/t_union.h>
+#include <thrift/compiler/diagnostic.h>
+#include <thrift/compiler/parse/parse_ast.h>
 #include <thrift/compiler/source_location.h>
 #include <thrift/compiler/test/gen_testing.h>
 #include <thrift/compiler/test/parser_test_helpers.h>
@@ -300,25 +305,25 @@ TEST(UtilTest, lpt_slit) {
   const std::vector<size_t> in{1, 4, 8, 7, 2, 2, 9, 5, 6, 10, 20, 1, 8};
 
   // split 1
-  auto res1 = cpp2::lpt_split(in, 1, folly::identity);
+  auto res1 = cpp2::lpt_split(in, 1, std::identity{});
   std::vector<std::vector<size_t>> res1_expected{
       {20, 10, 9, 8, 8, 7, 6, 5, 4, 2, 2, 1, 1}};
   EXPECT_EQ(res1, res1_expected);
 
   // split 2
-  auto res2 = cpp2::lpt_split(in, 2, folly::identity);
+  auto res2 = cpp2::lpt_split(in, 2, std::identity{});
   std::vector<std::vector<size_t>> res2_expected = {
       {10, 9, 8, 7, 5, 2, 1}, {20, 8, 6, 4, 2, 1}};
   EXPECT_EQ(res2, res2_expected);
 
   // split 3
-  auto res3 = cpp2::lpt_split(in, 3, folly::identity);
+  auto res3 = cpp2::lpt_split(in, 3, std::identity{});
   std::vector<std::vector<size_t>> res3_expected = {
       {9, 8, 7, 4}, {10, 8, 6, 2, 1}, {20, 5, 2, 1}};
   EXPECT_EQ(res3, res3_expected);
 
   // split 4
-  auto res4 = cpp2::lpt_split(in, 4, folly::identity);
+  auto res4 = cpp2::lpt_split(in, 4, std::identity{});
   std::vector<std::vector<size_t>> res4_expected = {
       {8, 8, 5}, {9, 7, 4, 1}, {10, 6, 2, 2}, {20, 1}};
   EXPECT_EQ(res4, res4_expected);
@@ -559,6 +564,31 @@ TEST(UtilTest, structs_and_typedefs_dependency_graph) {
       FAIL() << "Wrong graph node: " << name;
     }
   }
+}
+
+TEST(UtilTest, arena_struct_field_of_later_arena_struct) {
+  auto source_mgr = source_manager();
+  auto program = dedent_and_parse_to_program(
+      source_mgr,
+      R"(
+    include "thrift/annotation/cpp.thrift"
+
+    @cpp.Arena
+    struct Outer {
+      1: Inner inner;
+    }
+
+    @cpp.Arena
+    struct Inner {
+      1: string name;
+    }
+  )",
+      {},
+      {});
+
+  const t_structured* outer = *program->structured_definitions().begin();
+  ASSERT_EQ(outer->name(), "Outer");
+  EXPECT_TRUE(cpp2::is_arena_field(*outer->get_field_by_id(1)));
 }
 
 } // namespace

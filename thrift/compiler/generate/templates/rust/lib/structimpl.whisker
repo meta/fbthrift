@@ -137,6 +137,24 @@ impl ::fbthrift::ThriftStruct for self::{{structured.rust_name}} {
     }
 }
 
+{{#if (not structured.has_non_optional_and_non_terse_field?)}}
+{{#if structured.has_deprecated_fields?}}
+#[allow(deprecated)]{{! this struct's own deprecated fields are unavoidable here }}
+{{/if structured.has_deprecated_fields?}}
+impl ::fbthrift::help::IsEmpty for self::{{structured.rust_name}} {
+    #[inline]
+    fn is_empty(&self) -> bool {
+  {{#if structured.fields?}}
+    {{#each (array.enumerate structured.fields with_first=true) as |_index field first?|}}
+        {{#if (not first?)}}    && {{/if}}{{#if field.optional?}}self.{{field.rust_name}}.is_none(){{#else if field.has_adapter?}}{{field.adapter_struct_qualified}}::with_thrift_field::<{{structured.rust_name}}, _>(&self.{{field.rust_name}}, {{field.id}}, |value| ::fbthrift::help::Terse(value).is_empty()){{#else}}::fbthrift::help::Terse(&self.{{field.rust_name}}).is_empty(){{/if field.optional?}}
+    {{/each}}
+  {{#else}}
+        true
+  {{/if structured.fields?}}
+    }
+}
+
+{{/if (not structured.has_non_optional_and_non_terse_field?)}}
 {{#if structured.has_deprecated_fields?}}
 #[allow(deprecated)]{{! this struct's own deprecated fields are unavoidable here }}
 {{/if structured.has_deprecated_fields?}}
@@ -160,6 +178,22 @@ where
       {{/if field.has_adapter?}}
             p.write_field_end();
         }
+    {{#else if field.terse?}}
+      {{#if field.has_adapter?}}
+        {{field.adapter_struct_qualified}}::with_thrift_field::<{{structured.rust_name}}, _>(&self.{{field.rust_name}}, {{field.id}}, |value| {
+            if !::fbthrift::help::Terse(value).is_empty() {
+                p.write_field_begin("{{field.name}}", {{#partial types.protocol_ttype type=field.type}}, {{field.id}});
+                {{#partial fields.write field=field}}(value, p);
+                p.write_field_end();
+            }
+        });
+      {{#else}}
+        if !::fbthrift::help::Terse(&self.{{field.rust_name}}).is_empty() {
+            p.write_field_begin("{{field.name}}", {{#partial types.protocol_ttype type=field.type}}, {{field.id}});
+            {{#partial fields.write field=field}}(&self.{{field.rust_name}}, p);
+            p.write_field_end();
+        }
+      {{/if field.has_adapter?}}
     {{#else}}
         p.write_field_begin("{{field.name}}", {{#partial types.protocol_ttype type=field.type}}, {{field.id}});
       {{#if field.has_adapter?}}

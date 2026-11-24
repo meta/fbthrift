@@ -24,9 +24,9 @@ public final class Constants {
     public static final List<test.fixtures.module1.Enum> E1S = construct_E1S();
 
     private static List<test.fixtures.module1.Enum> construct_E1S() {
-        return ImmutableList.<test.fixtures.module1.Enum>builder()
-        .add(test.fixtures.module1.Enum.ONE)
-        .add(test.fixtures.module1.Enum.THREE)
-        .build();
+        ImmutableList.Builder<test.fixtures.module1.Enum> builder = ImmutableList.builder();
+        builder.add(test.fixtures.module1.Enum.ONE);
+        builder.add(test.fixtures.module1.Enum.THREE);
+        return builder.build();
     }
 }

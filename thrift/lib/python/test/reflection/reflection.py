@@ -151,13 +151,13 @@ class InspectSimpleStructTest(unittest.TestCase):
     def test_struct_spec_immutable(self) -> None:
         spec = _inspect_struct(SimpleStruct)
         with self.assertRaises(AttributeError):
-            spec.name = "T"  # type: ignore[misc]
+            spec.name = "T"
 
     def test_field_spec_immutable(self) -> None:
         spec = _inspect_struct(SimpleStruct)
         field = spec.fields[0]
         with self.assertRaises(AttributeError):
-            field.name = "y"  # type: ignore[misc]
+            field.name = "y"
 
     def test_struct_spec_iter(self) -> None:
         name, fields, kind, annotations = inspect(SimpleStruct)
@@ -817,12 +817,12 @@ class SpecImmutabilityTest(unittest.TestCase):
     def test_constant_spec_immutable(self) -> None:
         spec = ConstantSpec(value=42, thrift_type=ThriftType.I32)
         with self.assertRaises(AttributeError):
-            spec.value = 99  # type: ignore[misc]
+            spec.value = 99
 
     def test_list_spec_immutable(self) -> None:
         spec = ListSpec(value=int, thrift_type=ThriftType.I32)
         with self.assertRaises(AttributeError):
-            spec.value = str  # type: ignore[misc]
+            spec.value = str
 
     def test_map_spec_immutable(self) -> None:
         spec = MapSpec(
@@ -832,7 +832,7 @@ class SpecImmutabilityTest(unittest.TestCase):
             value_thrift_type=ThriftType.I64,
         )
         with self.assertRaises(AttributeError):
-            spec.key = int  # type: ignore[misc]
+            spec.key = int
 
     def test_constant_spec_hashable(self) -> None:
         a = ConstantSpec(value=42, thrift_type=ThriftType.I32)

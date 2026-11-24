@@ -30,6 +30,7 @@ import com.facebook.thrift.legacy.server.LegacyServerTransport;
 import com.facebook.thrift.legacy.server.LegacyServerTransportFactory;
 import com.facebook.thrift.legacy.server.testservices.BlockingPingService;
 import io.airlift.units.Duration;
+import io.netty.handler.ssl.ClientAuth;
 import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
@@ -48,7 +49,8 @@ public class TestGeneratedServerHandler {
     PingServiceRpcServerHandler serverHandler =
         new PingServiceRpcServerHandler(new BlockingPingService(), Collections.emptyList());
     LegacyServerTransportFactory transportFactory =
-        new LegacyServerTransportFactory(new ThriftServerConfig().setSslEnabled(false));
+        new LegacyServerTransportFactory(
+            new ThriftServerConfig().setClientAuth(ClientAuth.OPTIONAL).setSslEnabled(false));
     LegacyServerTransport serverTransport =
         transportFactory.createServerTransport(serverHandler).block();
     InetSocketAddress address = (InetSocketAddress) serverTransport.getAddress();

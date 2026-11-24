@@ -28,6 +28,7 @@
 #include <folly/synchronization/Baton.h>
 #include <thrift/lib/cpp2/async/AsyncProcessor.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/BufferAllocator.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
 #include <thrift/lib/cpp2/fast_thrift/common/Stats.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/ConnectionManager.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/SocketOptions.h>
@@ -146,14 +147,12 @@ struct ThriftServerChannelConnection {
   // Tail of the thrift pipeline; outlives the pipeline because the
   // pipeline holds a raw pointer to it.
   std::shared_ptr<ThriftServerChannel> serverChannel;
-  // Buffer allocator used by the thrift pipeline.
-  channel_pipeline::SimpleBufferAllocator thriftAllocator;
   // Head of the thrift pipeline. Owns the
   // rocket::server::RocketServerConnection (transport handler + rocket app
   // adapter + rocket pipeline) via its rocketConnection() member.
   std::unique_ptr<server::ThriftServerTransportAdapter> transportAdapter;
   // Thrift pipeline. Destroyed first among the owned fields here.
-  channel_pipeline::PipelineImpl::Ptr thriftPipeline;
+  channel_pipeline::PipelineOwner thriftPipeline;
   // Stable indirection for the ConnectionHandler-installed close callback.
   // The connection is moved twice (factory return → AnyConnection wrap),
   // so storing the callback as a plain function<> means any reference to
@@ -305,8 +304,7 @@ class FastThriftServerT {
     ThriftServerChannelConnection getConnection(
         folly::AsyncTransport::UniquePtr socket,
         const folly::SocketAddress& /*clientAddr*/,
-        const std::shared_ptr<const connection::PeerSecurityInfo>&
-        /*peerSecurity*/) {
+        std::unique_ptr<connection::PeerSecurityInfo> /*peerSecurity*/) {
       return server_->buildConnection(std::move(socket));
     }
 
@@ -317,7 +315,7 @@ class FastThriftServerT {
   ThriftServerChannelConnection buildConnection(
       folly::AsyncTransport::UniquePtr socket);
 
-  channel_pipeline::PipelineImpl::Ptr buildRocketPipeline(
+  channel_pipeline::PipelineOwner buildRocketPipeline(
       folly::EventBase* evb,
       transport::TransportHandlerT<rocket::server::RocketServerEventFactory>*
           transportHandler,
@@ -360,8 +358,7 @@ using FastThriftChannelServer = FastThriftServerT<NoStats>;
 #include <folly/logging/xlog.h>
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/handler/FrameCodecHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/handler/FrameDefragmentationHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/FragmentationHandlerConfig.h>
@@ -488,38 +485,37 @@ ThriftServerChannelConnection FastThriftServerT<Stats>::buildConnection(
 
   if constexpr (kStatsEnabled) {
     conn.thriftPipeline =
-        channel_pipeline::PipelineBuilder<
+        channel_pipeline::StaticPipelineBuilder<
             server::ThriftServerTransportAdapter,
             ThriftServerChannel,
             channel_pipeline::SimpleBufferAllocator>()
             .setEventBase(evb)
             .setHead(transportAdapter.get())
             .setTail(serverChannel.get())
-            .setAllocator(&conn.thriftAllocator)
+            .emplaceAllocator()
             .template addNextDuplex<
                 ThriftMetricsHandler<Direction::Server, Stats>>(
                 thrift_metrics_handler_tag, stats.get())
-            .template addNextDuplex<ThriftServerSetupHandler<
-                channel_pipeline::detail::ContextImpl>>(
+            .template addNextDuplexTemplate<ThriftServerSetupHandler>(
                 thrift_server_setup_handler_tag)
             .build();
   } else {
-    conn.thriftPipeline = channel_pipeline::PipelineBuilder<
-                              server::ThriftServerTransportAdapter,
-                              ThriftServerChannel,
-                              channel_pipeline::SimpleBufferAllocator>()
-                              .setEventBase(evb)
-                              .setHead(transportAdapter.get())
-                              .setTail(serverChannel.get())
-                              .setAllocator(&conn.thriftAllocator)
-                              .template addNextDuplex<ThriftServerSetupHandler<
-                                  channel_pipeline::detail::ContextImpl>>(
-                                  thrift_server_setup_handler_tag)
-                              .build();
+    conn.thriftPipeline =
+        channel_pipeline::StaticPipelineBuilder<
+            server::ThriftServerTransportAdapter,
+            ThriftServerChannel,
+            channel_pipeline::SimpleBufferAllocator>()
+            .setEventBase(evb)
+            .setHead(transportAdapter.get())
+            .setTail(serverChannel.get())
+            .emplaceAllocator()
+            .template addNextDuplexTemplate<ThriftServerSetupHandler>(
+                thrift_server_setup_handler_tag)
+            .build();
   }
 
   transportAdapter->setPipeline(conn.thriftPipeline.get());
-  serverChannel->setPipelineRef(*conn.thriftPipeline);
+  serverChannel->setPipelineRef(conn.thriftPipeline.ref());
   serverChannel->setWorker(apache::thrift::Cpp2Worker::createDummy(evb));
 
   conn.transportAdapter = std::move(transportAdapter);
@@ -550,57 +546,64 @@ ThriftServerChannelConnection FastThriftServerT<Stats>::buildConnection(
 }
 
 template <typename Stats>
-channel_pipeline::PipelineImpl::Ptr
-FastThriftServerT<Stats>::buildRocketPipeline(
+channel_pipeline::PipelineOwner FastThriftServerT<Stats>::buildRocketPipeline(
     folly::EventBase* evb,
     transport::TransportHandlerT<rocket::server::RocketServerEventFactory>*
         transportHandler,
     rocket::server::RocketServerAppAdapter* appAdapter,
     Stats* stats) {
-  // Single chain for both stats modes. Only addState rebinds the builder
-  // type, so bind through it once and append conditionally from there —
-  // same shape as ThriftServerConnectionFactory::buildRocketPipeline.
-  auto builder = channel_pipeline::PipelineBuilder<
-                     transport::TransportHandlerT<
-                         rocket::server::RocketServerEventFactory>,
-                     rocket::server::RocketServerAppAdapter,
-                     channel_pipeline::SimpleBufferAllocator>()
-                     .setEventBase(evb)
-                     .setHead(transportHandler)
-                     .setTail(appAdapter)
-                     .setAllocator(&rocketAllocator_)
-                     .addState<rocket::RocketStreamContexts>();
-  builder.addNextOutbound<frame::write::handler::BatchingFrameHandlerT<
-      frame::write::handler::NoOpWriteCompletionTracker,
-      rocket::server::FlushWritesEvent>>(batching_frame_handler_tag);
-  builder
-      .addNextOutbound<frame::write::handler::FrameLengthEncoderHandler>(
-          frame_length_encoder_handler_tag)
-      .addNextDuplex<frame::handler::FrameCodecHandler>(frame_codec_handler_tag)
-      .addNextInbound<frame::read::handler::FrameDefragmentationHandler>(
-          frame_defragmentation_handler_tag);
-  builder.addNextOutbound<frame::write::handler::FrameFragmentationHandler>(
-      frame_fragmentation_handler_tag,
-      frame::write::FragmentationHandlerConfig{});
-  builder
-      .addNextDuplex<
-          rocket::server::handler::RocketServerMessageMarshalHandler>(
-          rocket_server_message_marshal_handler_tag)
-      .addNextDuplex<rocket::server::handler::RocketServerSetupFrameHandler>(
-          server_setup_frame_handler_tag)
-      .addNextDuplex<rocket::server::handler::RocketServerKeepAliveHandler>(
-          server_keepalive_handler_tag)
-      .addNextDuplex<rocket::server::handler::RocketServerStreamStateHandler>(
-          server_stream_state_handler_tag)
-      .addNextDuplex<
-          rocket::server::handler::RocketServerRequestResponseHandler>(
-          server_request_response_frame_handler_tag);
+  auto builder =
+      channel_pipeline::StaticPipelineBuilder<
+          transport::TransportHandlerT<
+              rocket::server::RocketServerEventFactory>,
+          rocket::server::RocketServerAppAdapter,
+          channel_pipeline::SimpleBufferAllocator>()
+          .setEventBase(evb)
+          .setHead(transportHandler)
+          .setTail(appAdapter)
+          .setAllocator(&rocketAllocator_)
+          .template addState<rocket::RocketStreamContexts>()
+          .template addNextOutbound<
+              frame::write::handler::BatchingFrameHandlerT<
+                  frame::write::handler::NoOpWriteCompletionTracker,
+                  rocket::server::FlushWritesEvent>>(batching_frame_handler_tag)
+          .template addNextOutbound<
+              frame::write::handler::FrameLengthEncoderHandler>(
+              frame_length_encoder_handler_tag)
+          .template addNextDuplex<frame::handler::FrameCodecHandler>(
+              frame_codec_handler_tag)
+          .template addNextInbound<
+              frame::read::handler::FrameDefragmentationHandler>(
+              frame_defragmentation_handler_tag)
+          .template addNextOutbound<
+              frame::write::handler::FrameFragmentationHandler>(
+              frame_fragmentation_handler_tag,
+              frame::write::FragmentationHandlerConfig{})
+          .template addNextDuplex<
+              rocket::server::handler::RocketServerMessageMarshalHandler>(
+              rocket_server_message_marshal_handler_tag)
+          .template addNextDuplex<
+              rocket::server::handler::RocketServerSetupFrameHandler>(
+              server_setup_frame_handler_tag)
+          .template addNextDuplex<
+              rocket::server::handler::RocketServerKeepAliveHandler>(
+              server_keepalive_handler_tag)
+          .template addNextDuplex<
+              rocket::server::handler::RocketServerStreamStateHandler>(
+              server_stream_state_handler_tag)
+          .template addNextDuplex<
+              rocket::server::handler::RocketServerRequestResponseHandler>(
+              server_request_response_frame_handler_tag);
   if constexpr (kStatsEnabled) {
-    builder
-        .template addNextDuplex<RocketMetricsHandler<Direction::Server, Stats>>(
-            rocket_metrics_handler_tag, stats);
+    return channel_pipeline::PipelineOwner(
+        std::move(builder)
+            .template addNextDuplex<
+                RocketMetricsHandler<Direction::Server, Stats>>(
+                rocket_metrics_handler_tag, stats)
+            .build());
+  } else {
+    return channel_pipeline::PipelineOwner(std::move(builder).build());
   }
-  return builder.build();
 }
 
 template <typename Stats>

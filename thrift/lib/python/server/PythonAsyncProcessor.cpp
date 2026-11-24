@@ -658,9 +658,9 @@ void PythonAsyncProcessor::executeRequest(
           .uncompress();
 
   auto* eb = apache::thrift::detail::ServerRequestHelper::eventBase(request);
-  // This executor keeps the server alive until the follow-up work that holds
-  // it finishes. Use it for callbacks so the server stays alive until that
-  // work ends.
+  // This executor keeps the server alive while follow-up work holds it.
+  // RequestDispatch carries it to the execution system, which chooses the
+  // executor that follow-up work runs on.
   auto executor =
       apache::thrift::detail::ServerRequestHelper::executor(request);
   auto requestData = request.requestData();
@@ -677,14 +677,14 @@ void PythonAsyncProcessor::executeRequest(
     return;
   }
 
-  // The Cython module import in dispatchRequest requires the Python thread.
-  // ExecutionSystem therefore dispatches through the Python Control executor.
+  // The Cython module import in dispatchRequest requires a Python thread, so
+  // ExecutionSystem dispatches on the loop it selected: Control or a Worker.
   executionSystem_->execute(
       ctx->getMethodName(),
       execution::RequestDispatch(
+          std::move(executor),
           [this,
            eb,
-           executor,
            serviceName,
            qualifiedMethodName = function.fullName.c_str(),
            requestData = std::move(requestData),
@@ -696,6 +696,7 @@ void PythonAsyncProcessor::executeRequest(
            rpcKind = kind.value(),
            function = &function](
               PyObject* handlerFunction,
+              const folly::Executor::KeepAlive<>& followUpExecutor,
               execution::LaunchRequest launchRequest) mutable {
             RequestDispatchParameters requestDispatchParameters{
                 .protocol = protocol,
@@ -708,7 +709,7 @@ void PythonAsyncProcessor::executeRequest(
             };
             return dispatchRequest(
                 eb,
-                executor,
+                followUpExecutor,
                 std::move(requestData),
                 std::move(req),
                 std::move(ctxStack),
@@ -980,7 +981,9 @@ folly::SemiFuture<folly::Unit> PythonAsyncProcessor::dispatchRequest(
               eb,
               // The bidi transform invokes Cython after the handler returns.
               // Keep that work on the Python asyncio executor: direct request
-              // channels use a native EventBase as the request executor.
+              // channels use a native EventBase as the request executor. For
+              // the same reason, bidi deliberately ignores the follow-up
+              // executor that dispatch receives.
               executor_,
               ctx,
               nullptr,

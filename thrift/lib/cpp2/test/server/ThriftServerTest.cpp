@@ -24,6 +24,7 @@
 #include <boost/cast.hpp>
 #include <fmt/core.h>
 
+#include <barrier>
 #include <common/services/cpp/security/FizzThriftFactory.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -49,7 +50,6 @@
 #include <folly/io/async/EventBase.h>
 #include <folly/io/async/test/TestSSLServer.h>
 #include <folly/observer/SimpleObservable.h>
-#include <folly/synchronization/test/Barrier.h>
 #include <folly/system/ThreadName.h>
 #include <folly/test/TestUtils.h>
 #include <folly/testing/TestUtil.h>
@@ -802,10 +802,10 @@ TEST(ThriftServer, EnforceEgressMemoryLimit) {
     void echoRequest(
         std::string& ret, std::unique_ptr<std::string> req) override {
       ret = *std::move(req);
-      barrier.wait();
+      barrier.arrive_and_wait();
     }
 
-    folly::test::Barrier barrier{2};
+    std::barrier<> barrier{2};
   };
 
   // Allocate a server.
@@ -870,7 +870,7 @@ TEST(ThriftServer, EnforceEgressMemoryLimit) {
     std::string data(chunkSize, 'a');
     fv.emplace_back(client.semifuture_echoRequest(std::move(data)));
     flushClientWrites();
-    handler->barrier.wait();
+    handler->barrier.arrive_and_wait();
   }
 
   // The client socket should still be open.
@@ -881,7 +881,7 @@ TEST(ThriftServer, EnforceEgressMemoryLimit) {
   // The next response should put us over the egress limit.
   fv.emplace_back(client.semifuture_echoRequest(std::string(chunkSize, 'a')));
   flushClientWrites();
-  handler->barrier.wait();
+  handler->barrier.arrive_and_wait();
 
   // Wait for the connection to drop.
   ASSERT_FALSE(isClientChannelGood(std::chrono::seconds(20)));
@@ -916,10 +916,10 @@ TEST(ThriftServer, SocketWriteTimeout) {
     void echoRequest(
         std::string& _return, std::unique_ptr<std::string>) override {
       _return = std::string(kResponseSize, 'x'); // big response
-      barrier.wait();
+      barrier.arrive_and_wait();
     }
 
-    folly::test::Barrier barrier{2};
+    std::barrier<> barrier{2};
 
    private:
     const size_t kResponseSize = 10ul << 20;
@@ -963,7 +963,7 @@ TEST(ThriftServer, SocketWriteTimeout) {
   for (auto i = 0; i < 10; i++) {
     fv.emplace_back(client.semifuture_echoRequest("ignored"));
     flushClientWrites();
-    handler->barrier.wait();
+    handler->barrier.arrive_and_wait();
   }
 
   // Trigger write timeout on the server
@@ -3327,7 +3327,8 @@ TEST_P(HeaderOrRocket, TaskTimeoutBeforeProcessing) {
           server.setTaskExpireTime(10ms);
           server.setUseClientTimeout(false);
         });
-    auto client = makeClient(runner, folly::getEventBase());
+    auto eventBase = folly::getEventBaseKeepAlive();
+    auto client = makeClient(runner, eventBase.get());
 
     // Make two requests and test that they time out
     for (int i = 0; i < 2; ++i) {
@@ -3486,11 +3487,11 @@ static std::shared_ptr<quic::QuicClientTransport> makeQuicClient(
   return quicClient;
 }
 
-TEST(ThriftServer, RocketOverQuic) {
+static void checkRocketOverQuic(size_t numWorkers) {
   // copied over from TestThriftServerFactory
   std::shared_ptr<apache::thrift::ThriftServer> server =
       std::make_shared<apache::thrift::ThriftQuicServer>();
-  server->setNumIOWorkerThreads(1);
+  server->setNumIOWorkerThreads(numWorkers);
   server->setThreadManagerType(
       apache::thrift::ThriftServer::ThreadManagerType::SIMPLE);
   server->setNumCPUWorkerThreads(1);
@@ -3511,7 +3512,8 @@ TEST(ThriftServer, RocketOverQuic) {
   sslConfig->sessionContext = "ThriftServerTest";
   sslConfig->setNextProtocols({"rs"});
   server->setSSLConfig(std::move(sslConfig));
-  ScopedServerThread sst(std::move(server));
+  ScopedServerThread sst(server);
+  EXPECT_EQ(server->getIOThreadPool()->getAllEventBases().size(), numWorkers);
 
   folly::EventBase base;
   auto port = sst.getAddress()->getPort();
@@ -3519,7 +3521,7 @@ TEST(ThriftServer, RocketOverQuic) {
 
   folly::AsyncTransport::UniquePtr asyncTransport(
       new quic::QuicClientAsyncTransport(
-          makeQuicClient(base, std::move(loopback))));
+          makeQuicClient(base, folly::SocketAddress(loopback))));
 
   TestServiceAsyncClient client(
       RocketClientChannel::newChannel(std::move(asyncTransport)));
@@ -3527,9 +3529,26 @@ TEST(ThriftServer, RocketOverQuic) {
   std::string response;
   client.sync_sendResponse(response, 64);
   EXPECT_EQ(response, "test64");
+
+  auto ctx = makeClientSslContext();
+  ctx->setAdvertisedNextProtocols({"rs"});
+  auto sslSocket = folly::AsyncSSLSocket::newSocket(ctx, &base);
+  sslSocket->connect(nullptr, loopback);
+  TestServiceAsyncClient tcpClient(
+      RocketClientChannel::newChannel(std::move(sslSocket)));
+  tcpClient.sync_sendResponse(response, 64);
+  EXPECT_EQ(response, "test64");
 }
 
-#if FOLLY_HAS_MEMORY_RESOURCE
+TEST(ThriftServer, RocketOverQuic) {
+  checkRocketOverQuic(1);
+}
+
+TEST(ThriftServer, RocketOverQuicAboveWorkerLimit) {
+  checkRocketOverQuic(257);
+}
+
+#if FOLLY_HAS_MEMORY_RESOURCE && defined(__cpp_lib_memory_resource)
 class AccountingMemoryPool : public std::pmr::memory_resource {
  public:
   size_t allocated = 0;

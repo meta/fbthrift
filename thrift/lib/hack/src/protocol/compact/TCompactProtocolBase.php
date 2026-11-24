@@ -101,9 +101,31 @@ abstract class TCompactProtocolBase extends TProtocol {
   protected int $lastFid = 0;
   protected ?int $boolFid = null;
   protected ?bool $boolValue = null;
-  protected vec<vec<int>> $structs = HH\array_mark_legacy(vec[]);
-  protected vec<int> $containers = HH\array_mark_legacy(vec[]);
   protected int $version = self::VERSION;
+  // (state, lastFid) pairs for open structs and containers. Slots are reused
+  // rather than popped, so struct boundaries stop allocating once the stack
+  // has grown. Containers never move lastFid, so one stack covers both.
+  private vec<int> $frames = vec[];
+  private int $sp = 0;
+
+  protected function pushFrame()[write_props]: void {
+    $sp = $this->sp;
+    if ($sp === C\count($this->frames)) {
+      $this->frames[] = $this->state;
+      $this->frames[] = $this->lastFid;
+    } else {
+      $this->frames[$sp] = $this->state;
+      $this->frames[$sp + 1] = $this->lastFid;
+    }
+    $this->sp = $sp + 2;
+  }
+
+  private function popFrame()[write_props]: void {
+    $sp = $this->sp - 2;
+    $this->sp = $sp;
+    $this->state = $this->frames[$sp];
+    $this->lastFid = $this->frames[$sp + 1];
+  }
 
   public function setWriteVersion(int $ver)[write_props]: void {
     $this->version = $ver;
@@ -124,18 +146,36 @@ abstract class TCompactProtocolBase extends TProtocol {
     return ($n >> 1) ^ -($n & 1);
   }
 
+  // Folds the 7-bit groups and their continuation bits into one little-endian
+  // integer and packs it once, instead of building the string a byte at a
+  // time. Negative values encode as their 64-bit two's complement (10 bytes),
+  // which requires the masked (logical) shift below.
   public function getVarint(int $data)[]: string {
-    $out = "";
-    while (true) {
-      if (($data & ~0x7f) === 0) {
-        $out .= PHP\chr($data);
-        break;
-      } else {
-        $out .= PHP\chr(($data & 0xff) | 0x80);
-        $data = $data >> 7;
-      }
+    if (($data & ~0x7f) === 0) {
+      return PHP\chr($data);
     }
-    return $out;
+    $word = 0;
+    $shift = 0;
+    while (($data & ~0x7f) !== 0 && $shift < 64) {
+      $word |= (($data & 0x7f) | 0x80) << $shift;
+      $data = ($data >> 7) & 0x01ffffffffffffff;
+      $shift += 8;
+    }
+    if ($shift === 64) {
+      // 9 or 10 bytes: the first 8 fill the word.
+      return PHP\pack('P', $word).$this->getVarint($data);
+    }
+    $word |= $data << $shift;
+    switch ($shift) {
+      case 8:
+        return PHP\pack('v', $word);
+      case 24:
+        return PHP\pack('V', $word);
+      case 56:
+        return PHP\pack('P', $word);
+      default:
+        return Str\slice(PHP\pack('P', $word), 0, ($shift >> 3) + 1);
+    }
   }
 
   public function writeVarint(int $data)[zoned_shallow]: int {
@@ -144,13 +184,17 @@ abstract class TCompactProtocolBase extends TProtocol {
     return Str\length($out);
   }
 
+  // Most varints are one byte; return before setting up the loop.
   public function readVarint(inout int $result)[zoned_shallow]: int {
-    $idx = 0;
-    $shift = 0;
-    $result = 0;
+    $result = PHP\ord($this->trans_->readAll(1));
+    if ($result < 0x80) {
+      return 1;
+    }
+    $result &= 0x7f;
+    $idx = 1;
+    $shift = 7;
     while (true) {
-      $x = $this->trans_->readAll(1);
-      $byte = PHP\ord($x);
+      $byte = PHP\ord($this->trans_->readAll(1));
       $idx += 1;
       $result |= ($byte & 0x7f) << $shift;
       if (($byte >> 7) === 0) {
@@ -186,7 +230,7 @@ abstract class TCompactProtocolBase extends TProtocol {
 
   <<__Override>>
   public function writeStructBegin(string $_name)[write_props]: int {
-    $this->structs[] = vec[$this->state, $this->lastFid];
+    $this->pushFrame();
     $this->state = self::STATE_FIELD_WRITE;
     $this->lastFid = 0;
     return 0;
@@ -194,20 +238,7 @@ abstract class TCompactProtocolBase extends TProtocol {
 
   <<__Override>>
   public function writeStructEnd()[write_props]: int {
-    $__structs = $this->structs;
-    // Assign empty value into property to avoid
-    // triggering copy-on-write
-    $this->structs = vec[];
-    $old_values = PHP\array_pop(inout $__structs);
-    $this->structs = $__structs;
-    $this->state = HH\FIXME\UNSAFE_NONNULL_CAST<vec<int>>(
-      $old_values,
-      'FIXME[4063] Exposed by typing PHP\array_pop',
-    )[0];
-    $this->lastFid = HH\FIXME\UNSAFE_NONNULL_CAST<vec<int>>(
-      $old_values,
-      'FIXME[4063] Exposed by typing PHP\array_pop',
-    )[1];
+    $this->popFrame();
     return 0;
   }
 
@@ -254,15 +285,14 @@ abstract class TCompactProtocolBase extends TProtocol {
     int $size,
   )[zoned_shallow]: int {
     if ($size <= 14) {
-      $written = $this->writeUByte($size << 4 | self::CTYPES[$etype]);
+      $header = PHP\chr($size << 4 | self::CTYPES[$etype]);
     } else {
-      $written = $this->writeUByte(0xf0 | self::CTYPES[$etype]) +
-        $this->writeVarint($size);
+      $header = PHP\chr(0xf0 | self::CTYPES[$etype]).$this->getVarint($size);
     }
-    $this->containers[] = $this->state;
+    $this->trans_->write($header);
+    $this->pushFrame();
     $this->state = self::STATE_CONTAINER_WRITE;
-
-    return $written;
+    return Str\length($header);
   }
 
   <<__Override>>
@@ -272,28 +302,19 @@ abstract class TCompactProtocolBase extends TProtocol {
     int $size,
   )[zoned_shallow]: int {
     if ($size === 0) {
-      $written = $this->writeByte(0);
+      $header = "\x00";
     } else {
-      $written = $this->writeVarint($size) +
-        $this->writeUByte(
-          self::CTYPES[$key_type] << 4 | self::CTYPES[$val_type],
-        );
+      $header = $this->getVarint($size).
+        PHP\chr(self::CTYPES[$key_type] << 4 | self::CTYPES[$val_type]);
     }
-    $this->containers[] = $this->state;
+    $this->trans_->write($header);
+    $this->pushFrame();
     $this->state = self::STATE_CONTAINER_WRITE;
-    return $written;
+    return Str\length($header);
   }
 
   public function writeCollectionEnd()[write_props]: int {
-    $__containers = $this->containers;
-    // Assign empty value into property to avoid
-    // triggering copy-on-write
-    $this->containers = vec[];
-    $this->state = HH\FIXME\UNSAFE_NONNULL_CAST<int>(
-      PHP\array_pop(inout $__containers),
-      'FIXME[4110] Exposed by typing PHP\array_pop',
-    );
-    $this->containers = $__containers;
+    $this->popFrame();
     return 0;
   }
 
@@ -373,17 +394,14 @@ abstract class TCompactProtocolBase extends TProtocol {
 
   <<__Override>>
   public function writeDouble(float $value)[zoned_shallow]: int {
-    $data = PHP\pack('d', $value);
-    if ($this->version >= self::VERSION_DOUBLE_BE) {
-      $data = PHP\strrev($data);
-    }
-    $this->trans_->write($data);
+    $format = $this->version >= self::VERSION_DOUBLE_BE ? 'E' : 'e';
+    $this->trans_->write(PHP\pack($format, $value));
     return 8;
   }
 
   <<__Override>>
   public function writeFloat(float $value)[zoned_shallow]: int {
-    $this->trans_->write(Str\reverse(PHP\pack('f', $value)));
+    $this->trans_->write(PHP\pack('G', $value));
     return 4;
   }
 
@@ -496,8 +514,8 @@ abstract class TCompactProtocolBase extends TProtocol {
 
   <<__Override>>
   public function readStructBegin(inout ?string $name)[write_props]: int {
-    $name = ''; // unused
-    $this->structs[] = vec[$this->state, $this->lastFid];
+    $name = '';
+    $this->pushFrame();
     $this->state = self::STATE_FIELD_READ;
     $this->lastFid = 0;
     return 0;
@@ -505,20 +523,7 @@ abstract class TCompactProtocolBase extends TProtocol {
 
   <<__Override>>
   public function readStructEnd()[write_props]: int {
-    $__structs = $this->structs;
-    // Assign empty value into property to avoid
-    // triggering copy-on-write
-    $this->structs = vec[];
-    $last = PHP\array_pop(inout $__structs);
-    $this->structs = $__structs;
-    $this->state = HH\FIXME\UNSAFE_NONNULL_CAST<vec<int>>(
-      $last,
-      'FIXME[4063] Exposed by typing PHP\array_pop',
-    )[0];
-    $this->lastFid = HH\FIXME\UNSAFE_NONNULL_CAST<vec<int>>(
-      $last,
-      'FIXME[4063] Exposed by typing PHP\array_pop',
-    )[1];
+    $this->popFrame();
     return 0;
   }
 
@@ -526,16 +531,15 @@ abstract class TCompactProtocolBase extends TProtocol {
     inout ?TType $type,
     inout ?int $size,
   )[zoned_shallow]: int {
-    $sizeType = 0;
-    $result = $this->readUByte(inout $sizeType);
-    $size = $sizeType >> 4;
-    $type = $this->getTType($sizeType);
+    $size_type = PHP\ord($this->trans_->readAll(1));
+    $result = 1;
+    $size = $size_type >> 4;
+    $type = $this->getTType($size_type);
     if ($size === 15) {
       $result += $this->readVarint(inout $size);
     }
-    $this->containers[] = $this->state;
+    $this->pushFrame();
     $this->state = self::STATE_CONTAINER_READ;
-
     return $result;
   }
 
@@ -545,33 +549,23 @@ abstract class TCompactProtocolBase extends TProtocol {
     inout ?TType $val_type,
     inout ?int $size,
   )[zoned_shallow]: int {
-    // TODO (partisan): Remove after refactoring of read methods to not use
-    // inout.
     $size_nonnull = -1;
     $result = $this->readVarint(inout $size_nonnull);
     $size = $size_nonnull;
     $types = 0;
     if ($size > 0) {
-      $result += $this->readUByte(inout $types);
+      $types = PHP\ord($this->trans_->readAll(1));
+      $result += 1;
     }
     $val_type = $this->getTType($types);
     $key_type = $this->getTType($types >> 4);
-    $this->containers[] = $this->state;
+    $this->pushFrame();
     $this->state = self::STATE_CONTAINER_READ;
-
     return $result;
   }
 
   public function readCollectionEnd()[write_props]: int {
-    $__containers = $this->containers;
-    // Assign empty value into property to avoid
-    // triggering copy-on-write
-    $this->containers = vec[];
-    $this->state = HH\FIXME\UNSAFE_NONNULL_CAST<int>(
-      PHP\array_pop(inout $__containers),
-      'FIXME[4110] Exposed by typing PHP\array_pop',
-    );
-    $this->containers = $__containers;
+    $this->popFrame();
     return 0;
   }
 
@@ -650,19 +644,14 @@ abstract class TCompactProtocolBase extends TProtocol {
 
   <<__Override>>
   public function readDouble(inout float $value)[zoned_shallow]: int {
-    $data = $this->trans_->readAll(8);
-    if ($this->version >= self::VERSION_DOUBLE_BE) {
-      $data = PHP\strrev($data);
-    }
-    $arr = PHP\unpack('d', $data);
-    $value = $arr[1] as float;
+    $format = $this->version >= self::VERSION_DOUBLE_BE ? 'E' : 'e';
+    $value = PHP\unpack($format, $this->trans_->readAll(8))[1] as float;
     return 8;
   }
 
   <<__Override>>
   public function readFloat(inout float $value)[zoned_shallow]: int {
-    $arr = PHP\unpack('f', PHP\strrev($this->trans_->readAll(4)));
-    $value = $arr[1] as float;
+    $value = PHP\unpack('G', $this->trans_->readAll(4))[1] as float;
     return 4;
   }
 
@@ -682,145 +671,17 @@ abstract class TCompactProtocolBase extends TProtocol {
     return self::TTYPES[$byte & 0x0f];
   }
 
-  // If we are on a 32bit architecture we have to explicitly deal with
-  // 64-bit twos-complement arithmetic since PHP wants to treat all ints
-  // as signed and any int over 2^31 - 1 as a float
-
-  // Read and write I64 as two 32 bit numbers $hi and $lo
-
   <<__Override>>
   public function readI64(inout int $value)[zoned_shallow]: int {
-    // Read varint from wire
-    $hi = 0;
-    $lo = 0;
-
-    $idx = 0;
-    $shift = 0;
-
-    while (true) {
-      $x = $this->trans_->readAll(1);
-      $byte = PHP\ord($x);
-      $idx += 1;
-      if ($shift < 32) {
-        $lo |= (($byte & 0x7f) << $shift) & 0x00000000ffffffff;
-      }
-      // Shift hi and lo together.
-      if ($shift >= 32) {
-        $hi |= (($byte & 0x7f) << ($shift - 32));
-      } else if ($shift > 24) {
-        $hi |= (($byte & 0x7f) >> ($shift - 24));
-      }
-      if (($byte >> 7) === 0) {
-        break;
-      }
-      $shift += 7;
-    }
-
-    // Now, unzig it.
-    $xorer = 0;
-    if (($lo & 1) !== 0) {
-      $xorer = 0xffffffff;
-    }
-    $lo = ($lo >> 1) & 0x7fffffff;
-    $lo = $lo | (($hi & 1) << 31);
-    $hi = ($hi >> 1) ^ $xorer;
-    $lo = $lo ^ $xorer;
-
-    // Now put $hi and $lo back together
-    $is_neg = $hi < 0;
-
-    // Check for a negative
-    if ($is_neg) {
-      $hi = ~$hi & (int)0xffffffff;
-      $lo = ~$lo & (int)0xffffffff;
-
-      if ($lo === (int)0xffffffff) {
-        $hi++;
-        $lo = 0;
-      } else {
-        $lo++;
-      }
-    }
-
-    // Force 32bit words in excess of 2G to be positive - we deal with sign
-    // explicitly below
-
-    if (($hi & (int)0x80000000) !== 0) {
-      $hi &= (int)0x7fffffff;
-      $hi += 0x80000000;
-    }
-
-    if (($lo & (int)0x80000000) !== 0) {
-      $lo &= (int)0x7fffffff;
-      $lo += 0x80000000;
-    }
-
-    $value = $hi * 4294967296 + $lo;
-
-    if ($is_neg) {
-      $value = 0 - $value;
-    }
-
-    return $idx;
+    $result = $this->readVarint(inout $value);
+    // Logical shift: an i64's zig-zag form can have its top bit set, which an
+    // arithmetic shift would copy down.
+    $value = (($value >> 1) & 0x7fffffffffffffff) ^ -($value & 1);
+    return $result;
   }
 
   <<__Override>>
   public function writeI64(int $value)[zoned_shallow]: int {
-    // If we are in an I32 range, use the easy method below.
-    if (($value > 4294967296) || ($value < -4294967296)) {
-      // Convert $value to $hi and $lo
-      $neg = $value < 0;
-
-      if ($neg) {
-        $value *= -1;
-      }
-
-      $hi = (int)$value >> 32;
-      $lo = (int)$value & 0xffffffff;
-
-      if ($neg) {
-        $hi = ~$hi;
-        $lo = ~$lo;
-        if (($lo & (int)0xffffffff) === (int)0xffffffff) {
-          $lo = 0;
-          $hi++;
-        } else {
-          $lo++;
-        }
-      }
-
-      // Now do the zigging and zagging.
-      $xorer = 0;
-      if ($neg) {
-        $xorer = 0xffffffff;
-      }
-      $lowbit = ($lo >> 31) & 1;
-      $hi = ($hi << 1) | $lowbit;
-      $lo = ($lo << 1);
-      $lo = ($lo ^ $xorer) & 0xffffffff;
-      $hi = ($hi ^ $xorer) & 0xffffffff;
-
-      // now write out the varint, ensuring we shift both hi and lo
-      $out = "";
-      while (true) {
-        if (($lo & ~0x7f) === 0 && $hi === 0) {
-          $out .= PHP\chr($lo);
-          break;
-        } else {
-          $out .= PHP\chr(($lo & 0xff) | 0x80);
-          $lo = $lo >> 7;
-          $lo = $lo | ($hi << 25);
-          $hi = $hi >> 7;
-          // Right shift carries sign, but we don't want it to.
-          $hi = $hi & (127 << 25);
-        }
-      }
-
-      $this->trans_->write($out);
-
-      return Str\length($out);
-    } else {
-      return $this->writeVarint($this->toZigZag($value, 64));
-    }
+    return $this->writeVarint($this->toZigZag($value, 64));
   }
 }

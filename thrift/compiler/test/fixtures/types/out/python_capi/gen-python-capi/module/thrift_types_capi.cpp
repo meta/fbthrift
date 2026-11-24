@@ -2734,7 +2734,7 @@ Extractor<::apache::thrift::python::capi::ComposedStruct<
       cpp.aa_unique_ref(),
       PyTuple_GET_ITEM(fbThriftData, _fbthrift__AllocatorAware__tuple_pos[5]),
       error);
-  Extractor<int32_t>{}.extractInto(
+  Extractor<::apache::thrift::python::capi::FallibleString>{}.extractInto(
       cpp.aa_shared_ref(),
       PyTuple_GET_ITEM(fbThriftData, _fbthrift__AllocatorAware__tuple_pos[6]),
       error);
@@ -2840,7 +2840,7 @@ PyObject* Constructor<::apache::thrift::python::capi::ComposedStruct<
     return nullptr;
   }
   StrongRef _fbthrift__aa_shared(
-    Constructor<int32_t>{}
+    Constructor<::apache::thrift::python::capi::FallibleString>{}
     .constructFrom(val.aa_shared_ref()));
   if (!_fbthrift__aa_shared ||
       setStructField(

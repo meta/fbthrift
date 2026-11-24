@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <folly/logging/xlog.h>
 #include <quic/server/async_tran/QuicAsyncTransportServer.h>
 #include <thrift/lib/cpp2/server/Cpp2Worker.h>
 #include <thrift/lib/cpp2/server/ThriftQuicServer.h>
@@ -81,6 +82,12 @@ void ThriftQuicServer::startAdditionalServers() {
       },
       getQuicTransportSettings());
   auto keepalives = ioThreadPool_->getAllEventBases();
+  if (keepalives.size() > quic::QuicServer::kMaxWorkers) {
+    XLOG(WARNING) << "QuicServer supports at most "
+                  << quic::QuicServer::kMaxWorkers
+                  << " workers; capping requested " << keepalives.size();
+    keepalives.resize(quic::QuicServer::kMaxWorkers);
+  }
   std::vector<folly::EventBase*> evbs(keepalives.size());
   std::transform(
       keepalives.begin(),

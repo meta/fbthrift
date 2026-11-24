@@ -16,8 +16,10 @@
 
 #pragma once
 
+#include <atomic>
 #include <type_traits>
 
+#include <folly/MicroLock.h>
 #include <folly/Optional.h>
 #include <folly/lang/cstring_view.h>
 
@@ -32,6 +34,33 @@
 #include <thrift/lib/thrift/gen-cpp2/type_rep_types_custom_protocol.h>
 
 namespace apache::thrift::type {
+
+class Type;
+
+namespace detail {
+
+// A cache for one named Thrift type tag.
+//
+// Successfully constructed Types are immortal and own their URI.
+class NamedTypeCache {
+ public:
+  const Type& get(BaseType kind, folly::cstring_view uri) {
+    if (auto* value = value_.load(std::memory_order_acquire)) [[likely]] {
+      return *value;
+    }
+    return getSlow(kind, uri);
+  }
+
+ private:
+  FOLLY_EXPORT const Type& getSlow(BaseType kind, folly::cstring_view uri);
+
+  folly::MicroLock mutex_{};
+  std::atomic<const Type*> value_{nullptr};
+};
+
+static_assert(std::is_trivially_destructible_v<NamedTypeCache>);
+
+} // namespace detail
 
 // A class that can represent any concrete Thrift type.
 //
@@ -103,8 +132,14 @@ class Type : public detail::Wrap<TypeStruct> {
   template <typename Tag>
   FOLLY_EXPORT static const Type& get() {
     static_assert(is_concrete_v<Tag>);
-    static const Type& kInst = *new Type(Tag{});
-    return kInst;
+    constexpr bool kIsNamed = is_a_v<Tag, structured_c> || is_a_v<Tag, enum_c>;
+    if constexpr (kIsNamed) {
+      static constinit detail::NamedTypeCache cache{};
+      return cache.get(base_type_v<Tag>, thrift::uri<standard_type<Tag>>());
+    } else {
+      static const Type& kInst = *new Type(Tag{});
+      return kInst;
+    }
   }
   BaseType baseType() const noexcept {
     return static_cast<BaseType>(folly::to_underlying(data_.name()->getType()));
@@ -151,7 +186,7 @@ class Type : public detail::Wrap<TypeStruct> {
   static decltype(auto) getName(T&& result) {
     // The field ids are 1:1 with the associated BaseType.
     using Id = field_id_tag<static_cast<FieldId>(base_type_v<CTag>)>;
-    using Union = folly::remove_cvref_t<decltype(*result.name())>;
+    using Union = std::remove_cvref_t<decltype(*result.name())>;
     return op::get<Id, Union>(*std::forward<T>(result).name());
   }
 

@@ -21,9 +21,7 @@
 #include <folly/logging/xlog.h>
 #include <thrift/lib/cpp/transport/TTransportException.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/ErrorCode.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameViews.h>
@@ -90,9 +88,9 @@ class RocketClientConnectionErrorHandler {
     auto& response = msg.get<RocketResponseMessage>();
 
     // In-process per-request errors are not connection-level ERRORs.
-    if (FOLLY_UNLIKELY(
-            !response.payload.is<
-                apache::thrift::fast_thrift::frame::read::ParsedFrame>())) {
+    if (!response.payload
+             .is<apache::thrift::fast_thrift::frame::read::ParsedFrame>())
+        [[unlikely]] {
       return ctx.fireRead(std::move(msg));
     }
     auto& parsed =
@@ -238,11 +236,5 @@ class RocketClientConnectionErrorHandler {
     return apache::thrift::fast_thrift::channel_pipeline::Result::Error;
   }
 };
-
-static_assert(
-    apache::thrift::fast_thrift::channel_pipeline::InboundHandler<
-        RocketClientConnectionErrorHandler,
-        apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl>,
-    "RocketClientConnectionErrorHandler must satisfy InboundHandler concept");
 
 } // namespace apache::thrift::fast_thrift::rocket::client::handler

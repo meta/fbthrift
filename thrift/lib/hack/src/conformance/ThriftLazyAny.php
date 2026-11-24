@@ -86,7 +86,7 @@ final class ThriftLazyAny implements JsonSerializable {
       $any ==> {
         $any_type = $any->type;
         if ($any_type === null) {
-          if (Str\is_empty($any->data)) {
+          if ($any->data === '') {
             return null;
           } else {
             throw new TApplicationException(
@@ -245,7 +245,6 @@ final class ThriftLazyAny implements JsonSerializable {
         return false;
       case TypeStructureKind::OF_FLOAT:
         return 0.0;
-      case TypeStructureKind::OF_CLASS_PTR:
       case TypeStructureKind::OF_STRING:
         return "";
       case TypeStructureKind::OF_CLASS:

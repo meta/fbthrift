@@ -1,0 +1,973 @@
+/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.facebook.thrift.rsocket.client;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import com.facebook.thrift.client.RpcOptions;
+import com.facebook.thrift.model.StreamResponse;
+import com.facebook.thrift.payload.ClientRequestPayload;
+import com.facebook.thrift.payload.ClientResponsePayload;
+import com.facebook.thrift.protocol.ByteBufTProtocol;
+import com.facebook.thrift.protocol.TProtocolType;
+import com.facebook.thrift.rsocket.util.RocketErrorUtil;
+import com.facebook.thrift.util.ResponseAndStreamBridge;
+import com.facebook.thrift.util.RpcPayloadUtil;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.rsocket.Payload;
+import io.rsocket.RSocket;
+import io.rsocket.RSocketErrorException;
+import io.rsocket.frame.ErrorFrameCodec;
+import io.rsocket.util.ByteBufPayload;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import org.apache.thrift.CodecConfig;
+import org.apache.thrift.CompressionAlgorithm;
+import org.apache.thrift.CompressionConfig;
+import org.apache.thrift.PayloadMetadata;
+import org.apache.thrift.ProtocolId;
+import org.apache.thrift.RequestRpcMetadata;
+import org.apache.thrift.ResponseRpcMetadata;
+import org.apache.thrift.RpcKind;
+import org.apache.thrift.ZstdCompressionCodecConfig;
+import org.apache.thrift.protocol.TField;
+import org.apache.thrift.protocol.TStruct;
+import org.apache.thrift.protocol.TType;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.reactivestreams.Subscription;
+import reactor.core.CoreSubscriber;
+import reactor.core.Disposable;
+import reactor.core.publisher.BaseSubscriber;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Hooks;
+import reactor.core.publisher.Mono;
+import reactor.core.publisher.MonoSink;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
+import reactor.util.context.Context;
+
+class RSocketRpcClientTest {
+
+  private final List<Object> dropped = Collections.synchronizedList(new ArrayList<>());
+
+  @BeforeEach
+  void trackDropped() {
+    Hooks.onErrorDropped(dropped::add);
+    Hooks.onNextDropped(dropped::add);
+  }
+
+  @AfterEach
+  void assertNothingDropped() {
+    Hooks.resetOnErrorDropped();
+    Hooks.resetOnNextDropped();
+
+    assertThat(dropped).isEmpty();
+  }
+
+  private static final RpcOptions ZSTD_OPTIONS =
+      new RpcOptions.Builder()
+          .setCompressionConfig(
+              new CompressionConfig.Builder()
+                  .setCodecConfig(
+                      CodecConfig.fromZstdConfig(new ZstdCompressionCodecConfig.Builder().build()))
+                  .build())
+          .build();
+
+  @Test
+  void singleResponseRequestSendsTheCompressionConfig() {
+    RSocket rsocket = mock(RSocket.class);
+    AtomicReference<Payload> sent = new AtomicReference<>();
+    when(rsocket.requestResponse(any()))
+        .thenAnswer(
+            invocation -> {
+              sent.set(invocation.getArgument(0));
+              return Mono.never();
+            });
+
+    new RSocketRpcClient(rsocket)
+        .singleRequestSingleResponse(
+            requestPayload(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE), ZSTD_OPTIONS)
+        .subscribe();
+
+    RequestRpcMetadata metadata = readMetadata(sent.get());
+
+    assertThat(metadata.getCompression()).isEqualTo(CompressionAlgorithm.ZSTD);
+    assertThat(metadata.getCompressionConfig()).isEqualTo(ZSTD_OPTIONS.getCompressionConfig());
+    sent.get().release();
+  }
+
+  @Test
+  void streamingRequestDoesNotAskForCompressedResponses() {
+    RSocket rsocket = mock(RSocket.class);
+    AtomicReference<Payload> sent = new AtomicReference<>();
+    when(rsocket.requestStream(any()))
+        .thenAnswer(
+            invocation -> {
+              sent.set(invocation.getArgument(0));
+              return Flux.never();
+            });
+
+    new RSocketRpcClient(rsocket)
+        .singleRequestStreamingResponse(
+            requestPayload(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE), ZSTD_OPTIONS)
+        .subscribe();
+
+    RequestRpcMetadata metadata = readMetadata(sent.get());
+
+    assertThat(metadata.getCompression()).isEqualTo(CompressionAlgorithm.ZSTD);
+    assertThat(metadata.getCompressionConfig()).isNull();
+    sent.get().release();
+  }
+
+  @Test
+  void singleResponseDecodesOffEventLoop() {
+    Scheduler scheduler = Schedulers.newSingle("test-offloop");
+
+    try {
+      RSocket rsocket = mock(RSocket.class);
+      when(rsocket.requestResponse(any())).thenReturn(Mono.just(errorResponsePayload()));
+
+      AtomicReference<String> decodeThread = new AtomicReference<>();
+
+      ClientResponsePayload<Object> result =
+          new RSocketRpcClient(rsocket, scheduler)
+              .singleRequestSingleResponse(
+                  requestPayload(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE), null)
+              .doOnNext(ignored -> decodeThread.set(Thread.currentThread().getName()))
+              .block();
+
+      assertThat(result.getException()).hasMessage("boom");
+      assertThat(decodeThread.get().toLowerCase()).contains("offloop");
+    } finally {
+      scheduler.dispose();
+    }
+  }
+
+  @Test
+  void rocketErrorMapsToErrorFrame() {
+    RSocket rsocket = mock(RSocket.class);
+    when(rsocket.requestResponse(any()))
+        .thenReturn(Mono.error(RocketErrorUtil.taskExpired("ping", 5000L)));
+
+    ClientResponsePayload<Object> result =
+        new RSocketRpcClient(rsocket)
+            .singleRequestSingleResponse(
+                requestPayload(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE), null)
+            .block();
+
+    assertThat(result.getException()).hasMessage("Task expired for ping after 5000ms");
+  }
+
+  @Test
+  void singleCancelBeforeSubscribeNeverRequests() {
+    ManualScheduler scheduler = new ManualScheduler();
+    AtomicReference<CoreSubscriber<? super Payload>> downstream = new AtomicReference<>();
+    Mono<Payload> responses =
+        new Mono<Payload>() {
+          @Override
+          public void subscribe(CoreSubscriber<? super Payload> actual) {
+            downstream.set(actual);
+          }
+        };
+
+    RSocket rsocket = mock(RSocket.class);
+    when(rsocket.requestResponse(any())).thenReturn(responses);
+
+    Subscription upstream = mock(Subscription.class);
+    Disposable subscription =
+        new RSocketRpcClient(rsocket, scheduler)
+            .singleRequestSingleResponse(
+                requestPayload(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE), null)
+            .subscribe();
+
+    subscription.dispose();
+    downstream.get().onSubscribe(upstream);
+
+    verify(upstream).cancel();
+    verify(upstream, never()).request(anyLong());
+  }
+
+  @Test
+  void singleCancelWhileQueuedReleasesPayload() {
+    ManualScheduler scheduler = new ManualScheduler();
+    AtomicReference<MonoSink<Payload>> captured = new AtomicReference<>();
+    RSocket rsocket = mock(RSocket.class);
+    when(rsocket.requestResponse(any())).thenAnswer(invocation -> Mono.create(captured::set));
+
+    Payload response = errorResponsePayload();
+    response.retain();
+
+    Disposable subscription =
+        new RSocketRpcClient(rsocket, scheduler)
+            .singleRequestSingleResponse(
+                requestPayload(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE), null)
+            .subscribe();
+
+    captured.get().success(response);
+
+    assertThat(scheduler.tasks).hasSize(1);
+
+    subscription.dispose();
+    scheduler.dispose();
+
+    assertThat(scheduler.tasks).isEmpty();
+    assertThat(response.refCnt()).isEqualTo(1);
+
+    response.release();
+  }
+
+  @Test
+  void singleResponseAfterCancelReleasesPayload() {
+    ManualScheduler scheduler = new ManualScheduler();
+    AtomicReference<CoreSubscriber<? super Payload>> downstream = new AtomicReference<>();
+    Mono<Payload> responses =
+        new Mono<Payload>() {
+          @Override
+          public void subscribe(CoreSubscriber<? super Payload> actual) {
+            downstream.set(actual);
+
+            actual.onSubscribe(
+                new Subscription() {
+                  @Override
+                  public void request(long n) {}
+
+                  @Override
+                  public void cancel() {}
+                });
+          }
+        };
+
+    RSocket rsocket = mock(RSocket.class);
+    when(rsocket.requestResponse(any())).thenReturn(responses);
+
+    Payload response = errorResponsePayload();
+    response.retain();
+
+    Disposable subscription =
+        new RSocketRpcClient(rsocket, scheduler)
+            .singleRequestSingleResponse(
+                requestPayload(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE), null)
+            .subscribe();
+
+    subscription.dispose();
+    downstream.get().onNext(response);
+
+    scheduler.runAll();
+
+    assertThat(response.refCnt()).isEqualTo(1);
+
+    response.release();
+  }
+
+  @Test
+  void singleDecodesWithCapturedScheduler() {
+    ManualScheduler scheduler = new ManualScheduler();
+    AtomicReference<MonoSink<Payload>> captured = new AtomicReference<>();
+    RSocket rsocket = mock(RSocket.class);
+    when(rsocket.requestResponse(any())).thenAnswer(invocation -> Mono.create(captured::set));
+
+    Payload response = errorResponsePayload();
+    response.retain();
+
+    AtomicReference<ClientResponsePayload<Object>> result = new AtomicReference<>();
+    new RSocketRpcClient(rsocket, scheduler)
+        .singleRequestSingleResponse(requestPayload(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE), null)
+        .doOnNext(result::set)
+        .subscribe();
+
+    captured.get().success(response);
+    scheduler.runAll();
+
+    assertThat(result.get().getException()).hasMessage("boom");
+    assertThat(response.refCnt()).isEqualTo(1);
+
+    response.release();
+  }
+
+  @Test
+  void singleImmediateSchedulerDecodesInline() {
+    RSocket rsocket = mock(RSocket.class);
+    when(rsocket.requestResponse(any())).thenReturn(Mono.just(errorResponsePayload()));
+
+    AtomicReference<String> decodeThread = new AtomicReference<>();
+
+    ClientResponsePayload<Object> result =
+        new RSocketRpcClient(rsocket, Schedulers.immediate())
+            .singleRequestSingleResponse(
+                requestPayload(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE), null)
+            .doOnNext(ignored -> decodeThread.set(Thread.currentThread().getName()))
+            .block();
+
+    assertThat(result.getException()).hasMessage("boom");
+    assertThat(decodeThread.get()).isEqualTo(Thread.currentThread().getName());
+  }
+
+  @Test
+  void rocketErrorMapsOnScheduler() {
+    ManualScheduler scheduler = new ManualScheduler();
+    RSocket rsocket = mock(RSocket.class);
+    when(rsocket.requestResponse(any()))
+        .thenReturn(Mono.error(RocketErrorUtil.taskExpired("ping", 5000L)));
+
+    AtomicReference<ClientResponsePayload<Object>> result = new AtomicReference<>();
+    AtomicReference<Throwable> failure = new AtomicReference<>();
+    new RSocketRpcClient(rsocket, scheduler)
+        .singleRequestSingleResponse(requestPayload(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE), null)
+        .subscribe(result::set, failure::set);
+
+    assertThat(scheduler.tasks).hasSize(1);
+    assertThat(result.get()).isNull();
+    assertThat(failure.get()).isNull();
+
+    scheduler.runAll();
+
+    assertThat(result.get().getException()).hasMessage("Task expired for ping after 5000ms");
+    assertThat(failure.get()).isNull();
+  }
+
+  @Test
+  void nonRocketErrorDeliversOnScheduler() {
+    ManualScheduler scheduler = new ManualScheduler();
+    RSocket rsocket = mock(RSocket.class);
+    when(rsocket.requestResponse(any()))
+        .thenReturn(Mono.error(new RuntimeException("transport down")));
+
+    AtomicReference<ClientResponsePayload<Object>> result = new AtomicReference<>();
+    AtomicReference<Throwable> failure = new AtomicReference<>();
+    new RSocketRpcClient(rsocket, scheduler)
+        .singleRequestSingleResponse(requestPayload(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE), null)
+        .subscribe(result::set, failure::set);
+
+    assertThat(scheduler.tasks).hasSize(1);
+    assertThat(result.get()).isNull();
+    assertThat(failure.get()).isNull();
+
+    scheduler.runAll();
+
+    assertThat(result.get()).isNull();
+    assertThat(failure.get()).hasMessage("transport down");
+  }
+
+  @Test
+  void singleDecodeErrorReleasesPayload() {
+    RSocket rsocket = mock(RSocket.class);
+    Payload response = garbageResponsePayload();
+    response.retain();
+    when(rsocket.requestResponse(any())).thenReturn(Mono.just(response));
+
+    assertThatThrownBy(
+        () ->
+            new RSocketRpcClient(rsocket)
+                .singleRequestSingleResponse(
+                    requestPayload(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE), null)
+                .block());
+
+    assertThat(response.refCnt()).isEqualTo(1);
+
+    response.release();
+  }
+
+  @Test
+  void singleCancelDuringDecodeReleasesOnce() throws Exception {
+    ManualScheduler scheduler = new ManualScheduler();
+    AtomicReference<MonoSink<Payload>> captured = new AtomicReference<>();
+    RSocket rsocket = mock(RSocket.class);
+    when(rsocket.requestResponse(any())).thenAnswer(invocation -> Mono.create(captured::set));
+
+    Payload response = errorResponsePayload();
+    response.retain();
+
+    Disposable subscription =
+        new RSocketRpcClient(rsocket, scheduler)
+            .singleRequestSingleResponse(
+                requestPayload(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE), null)
+            .subscribe();
+
+    captured.get().success(response);
+
+    Thread worker = new Thread(scheduler::runAll);
+    worker.start();
+    subscription.dispose();
+    worker.join();
+
+    assertThat(response.refCnt()).isEqualTo(1);
+
+    response.release();
+  }
+
+  @Test
+  void singleScheduleRejectionErrorsAndReleases() {
+    Scheduler scheduler = mock(Scheduler.class);
+    when(scheduler.schedule(any(Runnable.class)))
+        .thenThrow(new RejectedExecutionException("no workers"));
+
+    AtomicReference<MonoSink<Payload>> captured = new AtomicReference<>();
+    RSocket rsocket = mock(RSocket.class);
+    when(rsocket.requestResponse(any())).thenAnswer(invocation -> Mono.create(captured::set));
+
+    Payload response = errorResponsePayload();
+    response.retain();
+
+    AtomicReference<Throwable> failure = new AtomicReference<>();
+    new RSocketRpcClient(rsocket, scheduler)
+        .singleRequestSingleResponse(requestPayload(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE), null)
+        .subscribe(value -> {}, failure::set);
+
+    captured.get().success(response);
+
+    assertThat(failure.get()).hasMessage("no workers");
+    assertThat(response.refCnt()).isEqualTo(1);
+
+    response.release();
+  }
+
+  @Test
+  void singleEmptyResponseCompletesEmpty() {
+    RSocket rsocket = mock(RSocket.class);
+    when(rsocket.requestResponse(any())).thenReturn(Mono.empty());
+
+    ClientResponsePayload<Object> result =
+        new RSocketRpcClient(rsocket)
+            .singleRequestSingleResponse(
+                requestPayload(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE), null)
+            .block();
+
+    assertThat(result).isNull();
+  }
+
+  @Test
+  void streamingResponseDecodesOffEventLoop() {
+    Scheduler scheduler = Schedulers.newSingle("test-offloop");
+
+    try {
+      RSocket rsocket = mock(RSocket.class);
+      when(rsocket.requestStream(any())).thenReturn(Flux.just(errorResponsePayload()));
+
+      AtomicReference<String> decodeThread = new AtomicReference<>();
+
+      List<ClientResponsePayload<Object>> results =
+          new RSocketRpcClient(rsocket, scheduler)
+              .singleRequestStreamingResponse(
+                  requestPayload(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE), null)
+              .doOnNext(
+                  ignored -> decodeThread.compareAndSet(null, Thread.currentThread().getName()))
+              .collectList()
+              .block();
+
+      assertThat(results).hasSize(1);
+      assertThat(results.get(0).getException()).hasMessage("boom");
+      assertThat(decodeThread.get().toLowerCase()).contains("offloop");
+    } finally {
+      scheduler.dispose();
+    }
+  }
+
+  @Test
+  void channelResponseDecodesOffEventLoop() {
+    Scheduler scheduler = Schedulers.newSingle("test-offloop");
+
+    try {
+      RSocket rsocket = mock(RSocket.class);
+      when(rsocket.requestChannel(any())).thenReturn(Flux.just(errorResponsePayload()));
+
+      AtomicReference<String> decodeThread = new AtomicReference<>();
+
+      List<ClientResponsePayload<Object>> results =
+          new RSocketRpcClient(rsocket, scheduler)
+              .streamingRequestStreamingResponse(
+                  Flux.just(requestPayload(RpcKind.BIDIRECTIONAL_STREAM)), null)
+              .doOnNext(
+                  ignored -> decodeThread.compareAndSet(null, Thread.currentThread().getName()))
+              .collectList()
+              .block();
+
+      assertThat(results).hasSize(1);
+      assertThat(results.get(0).getException()).hasMessage("boom");
+      assertThat(decodeThread.get().toLowerCase()).contains("offloop");
+    } finally {
+      scheduler.dispose();
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(Interaction.class)
+  void cancelReleasesQueuedPayloads(Interaction interaction) {
+    ManualScheduler scheduler = new ManualScheduler();
+    RSocket rsocket = mock(RSocket.class);
+    Payload first = errorResponsePayload();
+    Payload queued = errorResponsePayload();
+    first.retain();
+    queued.retain();
+    stubTransport(rsocket, interaction, Flux.just(first, queued));
+
+    Disposable subscription =
+        call(
+                new RSocketRpcClient(rsocket, scheduler),
+                interaction,
+                requestPayload(interactionKind(interaction)))
+            .subscribe();
+
+    subscription.dispose();
+
+    assertThat(scheduler.tasks).hasSize(1);
+
+    scheduler.runAll();
+
+    assertThat(first.refCnt()).isEqualTo(1);
+    assertThat(queued.refCnt()).isEqualTo(1);
+
+    first.release();
+    queued.release();
+  }
+
+  @Test
+  void streamingHoldsAtMostInitialCreditsWithoutDemand() {
+    ManualScheduler scheduler = new ManualScheduler();
+    AtomicInteger created = new AtomicInteger();
+    List<Payload> live = Collections.synchronizedList(new ArrayList<>());
+    Flux<Payload> responses = Flux.range(0, 1000).map(ignored -> admitFrame(live, created));
+
+    RSocket rsocket = mock(RSocket.class);
+    when(rsocket.requestStream(any())).thenReturn(responses);
+
+    Disposable subscription =
+        new RSocketRpcClient(rsocket, scheduler)
+            .singleRequestStreamingResponse(
+                requestPayload(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE), null)
+            .subscribeWith(
+                new BaseSubscriber<ClientResponsePayload<Object>>() {
+                  @Override
+                  protected void hookOnSubscribe(Subscription subscription) {}
+                });
+
+    int admitted = created.get();
+
+    subscription.dispose();
+
+    scheduler.runAll();
+
+    assertThat(admitted).isEqualTo(ResponseAndStreamBridge.INITIAL_CREDITS);
+
+    for (Payload frame : live) {
+      assertThat(frame.refCnt()).isZero();
+    }
+  }
+
+  private static Payload admitFrame(List<Payload> live, AtomicInteger created) {
+    created.incrementAndGet();
+
+    Payload frame = errorResponsePayload();
+    live.add(frame);
+
+    return frame;
+  }
+
+  @ParameterizedTest
+  @EnumSource(Interaction.class)
+  void flagsOffRocketErrorDecodesToErrorFrame(Interaction interaction) {
+    RSocket rsocket = mock(RSocket.class);
+    stubTransport(rsocket, interaction, Flux.error(RocketErrorUtil.taskExpired("ping", 5000L)));
+
+    ClientResponsePayload<Object> result =
+        call(
+                new RSocketRpcClient(rsocket, Schedulers.immediate()),
+                interaction,
+                requestPayload(interactionKind(interaction)))
+            .blockLast();
+
+    assertThat(result.getException()).hasMessage("TASK_EXPIRED");
+  }
+
+  @Test
+  void streamingRocketErrorDecodesToErrorFrame() {
+    RSocket rsocket = mock(RSocket.class);
+    when(rsocket.requestStream(any()))
+        .thenReturn(Flux.error(RocketErrorUtil.taskExpired("ping", 5000L)));
+
+    ClientResponsePayload<Object> result =
+        new RSocketRpcClient(rsocket)
+            .singleRequestStreamingResponse(
+                requestPayload(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE), null)
+            .blockLast();
+
+    assertThat(result.getException()).hasMessage("TASK_EXPIRED");
+  }
+
+  @Test
+  void streamingRocketErrorMappingThrowDeliversBothErrors() {
+    RSocket rsocket = mock(RSocket.class);
+    RSocketErrorException failure = new RSocketErrorException(ErrorFrameCodec.CANCELED, null);
+    when(rsocket.requestStream(any())).thenReturn(Flux.error(failure));
+
+    assertThatThrownBy(
+            () ->
+                new RSocketRpcClient(rsocket)
+                    .singleRequestStreamingResponse(
+                        requestPayload(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE), null)
+                    .blockLast())
+        .satisfies(
+            e -> {
+              assertThat(e).isNotSameAs(failure);
+              // blockLast appends its own "#block terminated" suppressed marker.
+              assertThat(e.getSuppressed()).contains(failure);
+            });
+  }
+
+  @ParameterizedTest
+  @EnumSource(Interaction.class)
+  void flagsOffPassesDemandToTransport(Interaction interaction) {
+    RSocket rsocket = mock(RSocket.class);
+    List<Long> requests = Collections.synchronizedList(new ArrayList<>());
+    List<Payload> live = Collections.synchronizedList(new ArrayList<>());
+    AtomicInteger sent = new AtomicInteger();
+    stubTransport(
+        rsocket,
+        interaction,
+        Flux.create(
+            sink ->
+                sink.onRequest(
+                    n -> {
+                      requests.add(n);
+
+                      while (sent.get() < 3) {
+                        Payload frame = errorResponsePayload();
+                        frame.retain();
+                        live.add(frame);
+                        sent.incrementAndGet();
+                        sink.next(frame);
+                      }
+
+                      sink.complete();
+                    })));
+
+    List<ClientResponsePayload<Object>> received = new ArrayList<>();
+
+    call(
+            new RSocketRpcClient(rsocket, Schedulers.immediate()),
+            interaction,
+            requestPayload(interactionKind(interaction)))
+        .subscribeWith(
+            new BaseSubscriber<ClientResponsePayload<Object>>() {
+              @Override
+              protected void hookOnSubscribe(Subscription subscription) {
+                request(1);
+              }
+
+              @Override
+              protected void hookOnNext(ClientResponsePayload<Object> value) {
+                received.add(value);
+
+                if (received.size() == 1) {
+                  request(2);
+                }
+              }
+            });
+
+    assertThat(requests).containsExactly(1L, 2L);
+    assertThat(received).hasSize(3);
+
+    for (Payload frame : live) {
+      assertThat(frame.refCnt()).isEqualTo(1);
+
+      frame.release();
+    }
+  }
+
+  @Test
+  void singlePropagatesContextToTransport() {
+    AtomicReference<CoreSubscriber<? super Payload>> downstream = new AtomicReference<>();
+    Mono<Payload> responses =
+        new Mono<Payload>() {
+          @Override
+          public void subscribe(CoreSubscriber<? super Payload> actual) {
+            downstream.set(actual);
+
+            actual.onSubscribe(
+                new Subscription() {
+                  @Override
+                  public void request(long n) {}
+
+                  @Override
+                  public void cancel() {}
+                });
+          }
+        };
+
+    RSocket rsocket = mock(RSocket.class);
+    when(rsocket.requestResponse(any())).thenReturn(responses);
+
+    Disposable subscription =
+        new RSocketRpcClient(rsocket)
+            .singleRequestSingleResponse(
+                requestPayload(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE), null)
+            .contextWrite(Context.of("marker", "value"))
+            .subscribe();
+
+    assertThat(downstream.get().currentContext().getOrDefault("marker", "")).isEqualTo("value");
+
+    subscription.dispose();
+  }
+
+  @Test
+  void streamPropagatesContextToTransport() {
+    AtomicReference<CoreSubscriber<? super Payload>> downstream = new AtomicReference<>();
+    Flux<Payload> responses =
+        new Flux<Payload>() {
+          @Override
+          public void subscribe(CoreSubscriber<? super Payload> actual) {
+            downstream.set(actual);
+
+            actual.onSubscribe(
+                new Subscription() {
+                  @Override
+                  public void request(long n) {}
+
+                  @Override
+                  public void cancel() {}
+                });
+          }
+        };
+
+    RSocket rsocket = mock(RSocket.class);
+    when(rsocket.requestStream(any())).thenReturn(responses);
+
+    Disposable subscription =
+        new RSocketRpcClient(rsocket)
+            .singleRequestStreamingResponse(
+                requestPayload(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE), null)
+            .contextWrite(Context.of("marker", "value"))
+            .subscribe();
+
+    assertThat(downstream.get().currentContext().getOrDefault("marker", "")).isEqualTo("value");
+
+    subscription.dispose();
+  }
+
+  @Test
+  void resubscribeDecodesFirstResponseOnOffLoopScheduler() throws Exception {
+    resubscribeDecodesFirstResponsePerSubscription(new ManualScheduler());
+  }
+
+  @Test
+  void resubscribeDecodesFirstResponseInline() throws Exception {
+    resubscribeDecodesFirstResponsePerSubscription(Schedulers.immediate());
+  }
+
+  private void resubscribeDecodesFirstResponsePerSubscription(Scheduler scheduler)
+      throws Exception {
+    RSocket rsocket = mock(RSocket.class);
+    Payload first = structFrame();
+    Payload second = structFrame();
+    first.retain(2);
+    second.retain(2);
+    when(rsocket.requestStream(any())).thenReturn(Flux.just(first, second));
+
+    Flux<ClientResponsePayload<Object>> call =
+        new RSocketRpcClient(rsocket, scheduler)
+            .singleRequestStreamingResponse(
+                firstResponsePayload(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE), null);
+
+    List<Object> firstValues = new ArrayList<>();
+    call.map(RSocketRpcClientTest::decodedData).subscribe(firstValues::add);
+
+    if (scheduler instanceof ManualScheduler) {
+      ((ManualScheduler) scheduler).runAll();
+    }
+
+    List<Object> secondValues = new ArrayList<>();
+    call.map(RSocketRpcClientTest::decodedData).subscribe(secondValues::add);
+
+    if (scheduler instanceof ManualScheduler) {
+      ((ManualScheduler) scheduler).runAll();
+    }
+
+    // A decoder shared across subscriptions would read the second first frame as data.
+    assertThat(firstValues).containsExactly("first", "data");
+    assertThat(secondValues).containsExactly("first", "data");
+    assertThat(first.refCnt()).isEqualTo(1);
+    assertThat(second.refCnt()).isEqualTo(1);
+
+    first.release();
+    second.release();
+  }
+
+  private static Object decodedData(ClientResponsePayload<Object> payload) {
+    Object data = payload.getData();
+
+    if (data instanceof StreamResponse) {
+      StreamResponse<?, ?> response = (StreamResponse<?, ?>) data;
+
+      return response.isSetFirstResponse() ? response.getFirstResponse() : response.getData();
+    }
+
+    return data;
+  }
+
+  private static Payload structFrame() throws Exception {
+    ByteBuf data = Unpooled.buffer();
+    ByteBufTProtocol out = TProtocolType.TCompact.apply(data);
+    out.writeStructBegin(new TStruct());
+    out.writeFieldBegin(new TField("value", TType.STRING, (short) 0));
+    out.writeString("v");
+    out.writeFieldEnd();
+    out.writeFieldStop();
+    out.writeStructEnd();
+
+    return ByteBufPayload.create(data);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static ClientRequestPayload<Object> firstResponsePayload(RpcKind kind) {
+    ClientRequestPayload<Object> payload = mock(ClientRequestPayload.class);
+    when(payload.getDataWriter()).thenReturn(out -> {});
+    when(payload.getResponseReader()).thenReturn(protocol -> "data");
+    when(payload.getFirstResponseReader()).thenReturn(protocol -> "first");
+    when(payload.getExceptionReaders()).thenReturn(Collections.emptyMap());
+    when(payload.getStreamExceptionReaders()).thenReturn(Collections.emptyMap());
+    when(payload.getPersistentHeaders()).thenReturn(Collections.emptyMap());
+    when(payload.getRequestRpcMetadata())
+        .thenReturn(
+            new RequestRpcMetadata.Builder()
+                .setProtocol(ProtocolId.COMPACT)
+                .setName("ping")
+                .setKind(kind)
+                .build());
+
+    return payload;
+  }
+
+  @Test
+  void streamingUsesBoundedWireWindow() throws Exception {
+    ManualScheduler scheduler = new ManualScheduler();
+    AtomicLong initialRequest = new AtomicLong(-1);
+    Flux<Payload> responses =
+        Flux.create(
+            sink ->
+                sink.onRequest(
+                    n -> {
+                      if (initialRequest.compareAndSet(-1, n)) {
+                        sink.complete();
+                      }
+                    }));
+
+    RSocket rsocket = mock(RSocket.class);
+    when(rsocket.requestStream(any())).thenReturn(responses);
+
+    CountDownLatch terminal = new CountDownLatch(1);
+
+    new RSocketRpcClient(rsocket, scheduler)
+        .singleRequestStreamingResponse(
+            requestPayload(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE), null)
+        .subscribe(value -> {}, error -> terminal.countDown(), terminal::countDown);
+
+    scheduler.runAll();
+
+    assertThat(terminal.await(5, TimeUnit.SECONDS)).isTrue();
+
+    // Whatever the downstream wants, the handoff asks the transport for the initial window
+    // up front.
+    assertThat(initialRequest.get()).isEqualTo(ResponseAndStreamBridge.INITIAL_CREDITS);
+  }
+
+  private static Payload garbageResponsePayload() {
+    return ByteBufPayload.create(
+        Unpooled.wrappedBuffer(new byte[] {1, 2, 3}), Unpooled.wrappedBuffer(new byte[] {4, 5, 6}));
+  }
+
+  private static Payload errorResponsePayload() {
+    ResponseRpcMetadata metadata =
+        new ResponseRpcMetadata.Builder()
+            .setPayloadMetadata(
+                PayloadMetadata.fromExceptionMetadata(
+                    RpcPayloadUtil.undeclaredExceptionMetadata("boom", "boom")))
+            .build();
+
+    ByteBuf metadataBuf = Unpooled.buffer();
+    metadata.write0(TProtocolType.TCompact.apply(metadataBuf));
+
+    return ByteBufPayload.create(Unpooled.EMPTY_BUFFER, metadataBuf);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static ClientRequestPayload<Object> requestPayload(RpcKind kind) {
+    ClientRequestPayload<Object> payload = mock(ClientRequestPayload.class);
+    when(payload.getDataWriter()).thenReturn(out -> {});
+    when(payload.getResponseReader()).thenReturn(protocol -> null);
+    when(payload.getExceptionReaders()).thenReturn(Collections.emptyMap());
+    when(payload.getPersistentHeaders()).thenReturn(Collections.emptyMap());
+    when(payload.getRequestRpcMetadata())
+        .thenReturn(
+            new RequestRpcMetadata.Builder()
+                .setProtocol(ProtocolId.COMPACT)
+                .setName("ping")
+                .setKind(kind)
+                .build());
+    return payload;
+  }
+
+  private static RpcKind interactionKind(Interaction interaction) {
+    return interaction == Interaction.STREAM
+        ? RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE
+        : RpcKind.BIDIRECTIONAL_STREAM;
+  }
+
+  private static void stubTransport(
+      RSocket rsocket, Interaction interaction, Flux<Payload> responses) {
+    if (interaction == Interaction.STREAM) {
+      when(rsocket.requestStream(any())).thenReturn(responses);
+    } else {
+      when(rsocket.requestChannel(any())).thenReturn(responses);
+    }
+  }
+
+  private static Flux<ClientResponsePayload<Object>> call(
+      RSocketRpcClient client, Interaction interaction, ClientRequestPayload<Object> request) {
+    if (interaction == Interaction.STREAM) {
+      return client.singleRequestStreamingResponse(request, null);
+    }
+
+    return client.streamingRequestStreamingResponse(Flux.just(request), null);
+  }
+
+  private enum Interaction {
+    STREAM,
+    CHANNEL,
+  }
+
+  private static RequestRpcMetadata readMetadata(Payload payload) {
+    return RequestRpcMetadata.read0(TProtocolType.TCompact.apply(payload.sliceMetadata()));
+  }
+}

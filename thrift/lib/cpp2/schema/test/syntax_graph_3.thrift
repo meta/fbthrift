@@ -27,3 +27,13 @@ struct OtherTestStruct {}
 struct StructWithAny {
   1: any.Any anyField;
 }
+
+@thrift.Uri{value = "meta.com/thrift_test/FloatingPointAnnotation"}
+@thrift.RuntimeAnnotation
+struct FloatingPointAnnotation {
+  1: float f;
+  2: double d;
+}
+
+@FloatingPointAnnotation{f = 1.5, d = 2.5}
+struct StructWithFloatingPointAnnotation {}

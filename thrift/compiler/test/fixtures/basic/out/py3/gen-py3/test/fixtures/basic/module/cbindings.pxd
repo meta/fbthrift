@@ -118,12 +118,16 @@ cdef extern from "thrift/compiler/test/fixtures/basic/gen-cpp2/module_types_cust
         bint operator>=(cMyUnion&)
         cMyUnion__type getType() const
         const cMyEnum& get_myEnum "get_myEnum" () const
+        __union_field_ref[cMyEnum] myEnum_ref "myEnum_ref" ()
         cMyEnum& set_myEnum "set_myEnum" (const cMyEnum&)
         const cMyStruct& get_myStruct "get_myStruct" () const
+        __union_field_ref[cMyStruct] myStruct_ref "myStruct_ref" ()
         cMyStruct& set_myStruct "set_myStruct" (const cMyStruct&)
         const cMyDataItem& get_myDataItem "get_myDataItem" () const
+        __union_field_ref[cMyDataItem] myDataItem_ref "myDataItem_ref" ()
         cMyDataItem& set_myDataItem "set_myDataItem" (const cMyDataItem&)
         const cset[float]& get_floatSet "get_floatSet" () const
+        __union_field_ref[cset[float]] floatSet_ref "floatSet_ref" ()
         cset[float]& set_floatSet "set_floatSet" (const cset[float]&)
 
 
@@ -183,6 +187,7 @@ cdef extern from "thrift/compiler/test/fixtures/basic/gen-cpp2/module_types_cust
         bint operator>=(cUnionToBeRenamed&)
         cUnionToBeRenamed__type getType() const
         const cint32_t& get_reserved_field "get_reserved_field" () const
+        __union_field_ref[cint32_t] reserved_field_ref "reserved_field_ref" ()
         cint32_t& set_reserved_field "set_reserved_field" (const cint32_t&)
 
 cdef extern from "thrift/compiler/test/fixtures/basic/gen-cpp2/module_constants.h" namespace "::test::fixtures::basic":

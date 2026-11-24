@@ -37,6 +37,11 @@ void ClientSinkBridge::ClientDeleter::operator()(ClientSinkBridge* ptr) {
   Deleter::operator()(ptr);
 }
 
+void ClientSinkBridge::ClientReleaseDeleter::operator()(ClientSinkBridge* ptr) {
+  ptr->evb_.reset();
+  Deleter::operator()(ptr);
+}
+
 ClientSinkBridge::ClientSinkBridge(FirstResponseCallback* callback)
     : firstResponseCallback_(callback) {}
 

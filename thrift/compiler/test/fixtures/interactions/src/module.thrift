@@ -34,6 +34,11 @@ interaction MyInteraction {
   i32 frobnicate() throws (1: CustomException ex);
   oneway void ping();
   stream<bool> truthify();
+  stream<i32 throws (1: CustomException boom)> failstream();
+  stream<i32> failstreaminit() throws (1: CustomException boom);
+  i32 frobnicateWithArg(1: i32 arg) throws (1: CustomException ex);
+  stream<i32> streamWithArg(1: string query) throws (1: CustomException boom);
+  i32, stream<i32> firstAndStream();
   set<i32>, sink<string, binary> encode();
 }
 
@@ -67,6 +72,13 @@ service Factories {
   MyInteraction interact(1: i32 arg);
   MyInteractionFast, i32 interactFast();
   SerialInteraction, i32, stream<i32> serialize();
+
+  MyInteraction, stream<i32> interactWithStream();
+  MyInteraction, i32, stream<i32> interactWithStreamAndInitialResponse();
+  MyInteraction, sink<i32, i32> interactWithSink();
+  MyInteraction, i32, sink<i32, i32> interactWithSinkAndInitialResponse();
+  MyInteraction, sink<i32>, stream<i32> interactWithBidi();
+  MyInteraction, i32, sink<i32>, stream<i32> interactWithBidiAndInitialResponse();
 }
 
 service Perform {

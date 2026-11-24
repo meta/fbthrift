@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 # // Temp test command: buck2 test //xplat/thrift/compiler/codemod:add_operational_annotations_test
 # pyre-unsafe
 

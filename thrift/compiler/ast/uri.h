@@ -30,6 +30,12 @@ inline constexpr auto kExceptionMessageUri =
     "facebook.com/thrift/annotation/ExceptionMessage";
 inline constexpr auto kInjectMetadataFieldsUri =
     "facebook.com/thrift/annotation/InjectMetadataFields";
+inline constexpr auto kCppAllocatorUri =
+    "facebook.com/thrift/annotation/CppAllocator";
+inline constexpr auto kCppUseAllocatorUri =
+    "facebook.com/thrift/annotation/CppUseAllocator";
+inline constexpr auto kCppAllocatorViaUri =
+    "facebook.com/thrift/annotation/CppAllocatorVia";
 inline constexpr auto kMixinUri = "facebook.com/thrift/annotation/Mixin";
 inline constexpr auto kReserveIdsUri =
     "facebook.com/thrift/annotation/ReserveIds";
@@ -122,8 +128,7 @@ inline constexpr auto kCppFrozen2ExcludeUri =
     "facebook.com/thrift/annotation/cpp/Frozen2Exclude";
 inline constexpr auto kCppAllowCustomDefaultInAllocCtorUri =
     "facebook.com/thrift/annotation/cpp/AllowCustomDefaultInAllocCtor";
-inline constexpr auto kCppInternalExperimentalAllowAllocatorOnUnionUri =
-    "facebook.com/thrift/annotation/cpp/InternalExperimentalAllowAllocatorOnUnion";
+inline constexpr auto kCppArenaUri = "facebook.com/thrift/annotation/cpp/Arena";
 inline constexpr auto kCppTypeUri = "facebook.com/thrift/annotation/cpp/Type";
 inline constexpr auto kCppNameUri = "facebook.com/thrift/annotation/cpp/Name";
 inline constexpr auto kCppProcessInEbThreadUri =
@@ -168,6 +173,9 @@ inline constexpr auto kJavaUseIntrinsicDefaultUri =
     "facebook.com/thrift/annotation/java/UseIntrinsicDefault";
 inline constexpr auto kJavaBinaryStringUri =
     "facebook.com/thrift/annotation/java/BinaryString";
+inline constexpr auto kJavaOpenEnumUri =
+    "facebook.com/thrift/annotation/java/OpenEnum";
+inline constexpr auto kJavaUtf8Uri = "facebook.com/thrift/annotation/java/Utf8";
 
 // Python:
 inline constexpr auto kPythonAdapterUri =
@@ -204,35 +212,17 @@ inline constexpr auto kHackAdapterUri =
     "facebook.com/thrift/annotation/hack/Adapter";
 inline constexpr auto kHackAttributeUri =
     "facebook.com/thrift/annotation/hack/Attributes";
-inline constexpr auto kHackFieldWrapperUri =
-    "facebook.com/thrift/annotation/hack/FieldWrapper";
 inline constexpr auto kHackNameUri = "facebook.com/thrift/annotation/hack/Name";
 inline constexpr auto kHackNamePrefixUri =
     "facebook.com/thrift/annotation/hack/NamePrefix";
 inline constexpr auto kHackSkipCodegenUri =
     "facebook.com/thrift/annotation/hack/SkipCodegen";
-inline constexpr auto kHackStructAsTraitUri =
-    "facebook.com/thrift/annotation/hack/StructAsTrait";
-inline constexpr auto kHackStructTraitUri =
-    "facebook.com/thrift/annotation/hack/StructTrait";
 inline constexpr auto kHackConstantsClassUri =
     "facebook.com/thrift/annotation/hack/ConstantsClass";
-inline constexpr auto kHackUnionEnumAttributesUri =
-    "facebook.com/thrift/annotation/hack/UnionEnumAttributes";
 inline constexpr auto kHackWrapperUri =
     "facebook.com/thrift/annotation/hack/Wrapper";
-inline constexpr auto kHackModuleInternalUri =
-    "facebook.com/thrift/annotation/hack/ModuleInternal";
-inline constexpr auto kHackGenerateClientMethodsWithHeaders =
-    "facebook.com/thrift/annotation/hack/GenerateClientMethodsWithHeaders";
-inline constexpr auto kHackMigrationBlockingAllowInheritance =
-    "facebook.com/thrift/annotation/hack/MigrationBlockingAllowInheritance";
 inline constexpr auto kHackMigrationBlockingLegacyJSONSerialization =
     "facebook.com/thrift/annotation/hack/MigrationBlockingLegacyJSONSerialization";
-inline constexpr auto kHackFixmeWrongTypeUri =
-    "facebook.com/thrift/annotation/hack/FixmeWrongType";
-inline constexpr auto kHackUnsafeArrayUri =
-    "facebook.com/thrift/annotation/hack/UnsafeArray";
 inline constexpr auto kLegacyOmitPrefixInNameStringUri =
     "facebook.com/thrift/annotation/hack/LegacyOmitPrefixInNameString";
 inline constexpr auto kLegacyAlwaysIncludeNamePrefixInProcessor =

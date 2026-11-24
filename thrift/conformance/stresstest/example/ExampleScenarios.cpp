@@ -334,73 +334,73 @@ THRIFT_STRESS_TEST(Stream5M_20kChunks) {
 THRIFT_STRESS_TEST(StorageRead_4k) {
   StorageReadRequest req;
   req.responseBytes() = 1 << 12;
-  co_await client->co_storageReadEb(req);
+  co_await client->readStorageEb(req);
 }
 
 THRIFT_STRESS_TEST(StorageRead_8k) {
   StorageReadRequest req;
   req.responseBytes() = 1 << 13;
-  co_await client->co_storageReadEb(req);
+  co_await client->readStorageEb(req);
 }
 
 THRIFT_STRESS_TEST(StorageRead_16k) {
   StorageReadRequest req;
   req.responseBytes() = 1 << 14;
-  co_await client->co_storageReadEb(req);
+  co_await client->readStorageEb(req);
 }
 
 THRIFT_STRESS_TEST(StorageRead_32k) {
   StorageReadRequest req;
   req.responseBytes() = 1 << 15;
-  co_await client->co_storageReadEb(req);
+  co_await client->readStorageEb(req);
 }
 
 THRIFT_STRESS_TEST(StorageRead_64k) {
   StorageReadRequest req;
   req.responseBytes() = 1 << 16;
-  co_await client->co_storageReadEb(req);
+  co_await client->readStorageEb(req);
 }
 
 THRIFT_STRESS_TEST(StorageRead_128k) {
   StorageReadRequest req;
   req.responseBytes() = 1 << 17;
-  co_await client->co_storageReadEb(req);
+  co_await client->readStorageEb(req);
 }
 
 THRIFT_STRESS_TEST(StorageRead_256k) {
   StorageReadRequest req;
   req.responseBytes() = 1 << 18;
-  co_await client->co_storageReadEb(req);
+  co_await client->readStorageEb(req);
 }
 
 THRIFT_STRESS_TEST(StorageRead_512k) {
   StorageReadRequest req;
   req.responseBytes() = 1 << 19;
-  co_await client->co_storageReadEb(req);
+  co_await client->readStorageEb(req);
 }
 
 THRIFT_STRESS_TEST(StorageRead_1M) {
   StorageReadRequest req;
   req.responseBytes() = 1 << 20;
-  co_await client->co_storageReadEb(req);
+  co_await client->readStorageEb(req);
 }
 
 THRIFT_STRESS_TEST(StorageRead_2M) {
   StorageReadRequest req;
   req.responseBytes() = 1 << 21;
-  co_await client->co_storageReadEb(req);
+  co_await client->readStorageEb(req);
 }
 
 THRIFT_STRESS_TEST(StorageRead_4M) {
   StorageReadRequest req;
   req.responseBytes() = 1 << 22;
-  co_await client->co_storageReadEb(req);
+  co_await client->readStorageEb(req);
 }
 
 THRIFT_STRESS_TEST(StorageRead_8M) {
   StorageReadRequest req;
   req.responseBytes() = 1 << 23;
-  co_await client->co_storageReadEb(req);
+  co_await client->readStorageEb(req);
 }
 
 THRIFT_STRESS_TEST(StorageWrite_4k) {

@@ -28,11 +28,12 @@ public class FactoriesBlockingReactiveWrapper
     public reactor.core.publisher.Mono<Void> foo() {
         reactor.core.publisher.Mono<Void> _m = reactor.core.publisher.Mono.<Void>create(_sink -> {
             try {
-                reactor.util.context.ContextView _contextView = _sink.contextView();
-                com.facebook.nifty.core.RequestContext
-                    .tryContextView(_contextView)
-                    .ifPresent(com.facebook.nifty.core.RequestContexts::setCurrentContext);
-                _delegate.foo();
+                com.facebook.nifty.core.RequestContext _requestContext =
+                    com.facebook.nifty.core.RequestContext.tryContextView(_sink.contextView()).orElseGet(com.facebook.nifty.core.RequestContexts::tryGetCurrentContext);
+                com.facebook.nifty.core.RequestContextScope.call(_requestContext, () -> {
+                    _delegate.foo();
+                    return null;
+                });
                 _sink.success();
             } catch (Throwable _e) {
                 throw reactor.core.Exceptions.propagate(_e);
@@ -50,11 +51,12 @@ public class FactoriesBlockingReactiveWrapper
     public reactor.core.publisher.Mono<Void> interact(final int arg) {
         reactor.core.publisher.Mono<Void> _m = reactor.core.publisher.Mono.<Void>create(_sink -> {
             try {
-                reactor.util.context.ContextView _contextView = _sink.contextView();
-                com.facebook.nifty.core.RequestContext
-                    .tryContextView(_contextView)
-                    .ifPresent(com.facebook.nifty.core.RequestContexts::setCurrentContext);
-                _delegate.interact(arg);
+                com.facebook.nifty.core.RequestContext _requestContext =
+                    com.facebook.nifty.core.RequestContext.tryContextView(_sink.contextView()).orElseGet(com.facebook.nifty.core.RequestContexts::tryGetCurrentContext);
+                com.facebook.nifty.core.RequestContextScope.call(_requestContext, () -> {
+                    _delegate.interact(arg);
+                    return null;
+                });
                 _sink.success();
             } catch (Throwable _e) {
                 throw reactor.core.Exceptions.propagate(_e);
@@ -72,11 +74,11 @@ public class FactoriesBlockingReactiveWrapper
     public reactor.core.publisher.Mono<Integer> interactFast() {
         reactor.core.publisher.Mono<Integer> _m = reactor.core.publisher.Mono.create(_sink -> {
             try {
-                reactor.util.context.ContextView _contextView = _sink.contextView();
-                com.facebook.nifty.core.RequestContext
-                    .tryContextView(_contextView)
-                    .ifPresent(com.facebook.nifty.core.RequestContexts::setCurrentContext);
-                _sink.success(_delegate.interactFast());
+                com.facebook.nifty.core.RequestContext _requestContext =
+                    com.facebook.nifty.core.RequestContext.tryContextView(_sink.contextView()).orElseGet(com.facebook.nifty.core.RequestContexts::tryGetCurrentContext);
+                _sink.success(com.facebook.nifty.core.RequestContextScope.call(
+                    _requestContext,
+                    () -> _delegate.interactFast()));
             } catch (Throwable _e) {
                 _sink.error(_e);
             }
@@ -90,7 +92,37 @@ public class FactoriesBlockingReactiveWrapper
     }
 
     @java.lang.Override
-    public reactor.core.publisher.Flux<com.facebook.thrift.model.StreamResponse<Integer,Integer>> serialize() {
+    public reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer,Integer>> serialize() {
+        throw new UnsupportedOperationException();
+    }
+
+    @java.lang.Override
+    public reactor.core.publisher.Flux<Integer> interactWithStream() {
+        throw new UnsupportedOperationException();
+    }
+
+    @java.lang.Override
+    public reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer,Integer>> interactWithStreamAndInitialResponse() {
+        throw new UnsupportedOperationException();
+    }
+
+    @java.lang.Override
+    public reactor.core.publisher.Mono<Integer> interactWithSink( org.reactivestreams.Publisher<Integer> payloads) {
+        throw new UnsupportedOperationException();
+    }
+
+    @java.lang.Override
+    public reactor.core.publisher.Flux<com.facebook.thrift.model.StreamResponse<Integer, Integer>> interactWithSinkAndInitialResponse( org.reactivestreams.Publisher<Integer> payloads) {
+        throw new UnsupportedOperationException();
+    }
+
+    @java.lang.Override
+    public reactor.core.publisher.Flux<Integer> interactWithBidi( org.reactivestreams.Publisher<Integer> payloads) {
+        throw new UnsupportedOperationException();
+    }
+
+    @java.lang.Override
+    public reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer, Integer>> interactWithBidiAndInitialResponse( org.reactivestreams.Publisher<Integer> payloads) {
         throw new UnsupportedOperationException();
     }
 
@@ -105,11 +137,11 @@ public class FactoriesBlockingReactiveWrapper
         public reactor.core.publisher.Mono<Integer> frobnicate() {
                 reactor.core.publisher.Mono<Integer> _m = reactor.core.publisher.Mono.create(_sink -> {
                     try {
-                        reactor.util.context.ContextView _contextView = _sink.contextView();
-                        com.facebook.nifty.core.RequestContext
-                            .tryContextView(_contextView)
-                            .ifPresent(com.facebook.nifty.core.RequestContexts::setCurrentContext);
-                        _sink.success(_delegateInteraction.frobnicate());
+                        com.facebook.nifty.core.RequestContext _requestContext =
+                            com.facebook.nifty.core.RequestContext.tryContextView(_sink.contextView()).orElseGet(com.facebook.nifty.core.RequestContexts::tryGetCurrentContext);
+                        _sink.success(com.facebook.nifty.core.RequestContextScope.call(
+                            _requestContext,
+                            () -> _delegateInteraction.frobnicate()));
                     } catch (Throwable _e) {
                         _sink.error(_e);
                     }
@@ -137,11 +169,12 @@ public class FactoriesBlockingReactiveWrapper
 
                 reactor.core.publisher.Mono<Void> _m = reactor.core.publisher.Mono.<Void>create(_sink -> {
                     try {
-                        reactor.util.context.ContextView _contextView = _sink.contextView();
-                        com.facebook.nifty.core.RequestContext
-                            .tryContextView(_contextView)
-                            .ifPresent(com.facebook.nifty.core.RequestContexts::setCurrentContext);
-                        _delegateInteraction.ping();
+                        com.facebook.nifty.core.RequestContext _requestContext =
+                            com.facebook.nifty.core.RequestContext.tryContextView(_sink.contextView()).orElseGet(com.facebook.nifty.core.RequestContexts::tryGetCurrentContext);
+                        com.facebook.nifty.core.RequestContextScope.call(_requestContext, () -> {
+                            _delegateInteraction.ping();
+                            return null;
+                        });
                         _sink.success();
                     } catch (Throwable _e) {
                         throw reactor.core.Exceptions.propagate(_e);
@@ -166,7 +199,60 @@ public class FactoriesBlockingReactiveWrapper
         }
 
         @java.lang.Override
+        public reactor.core.publisher.Mono<Integer> frobnicateWithArg(final int arg) {
+                reactor.core.publisher.Mono<Integer> _m = reactor.core.publisher.Mono.create(_sink -> {
+                    try {
+                        com.facebook.nifty.core.RequestContext _requestContext =
+                            com.facebook.nifty.core.RequestContext.tryContextView(_sink.contextView()).orElseGet(com.facebook.nifty.core.RequestContexts::tryGetCurrentContext);
+                        _sink.success(com.facebook.nifty.core.RequestContextScope.call(
+                            _requestContext,
+                            () -> _delegateInteraction.frobnicateWithArg(arg)));
+                    } catch (Throwable _e) {
+                        _sink.error(_e);
+                    }
+                });
+
+                if (!com.facebook.thrift.util.resources.RpcResources.isForceExecutionOffEventLoop()) {
+                    _m = _m.subscribeOn(com.facebook.thrift.util.resources.RpcResources.getOffLoopScheduler());
+                }
+
+                return _m;
+        }
+
+        @java.lang.Override
+        public reactor.core.publisher.Mono<Integer> frobnicateWithArg(
+        final int arg, RpcOptions rpcOptions) {
+            throw new UnsupportedOperationException();
+        }
+
+        @java.lang.Override
+        public reactor.core.publisher.Mono<ResponseWrapper<Integer>> frobnicateWithArgWrapper(
+        final int arg, RpcOptions rpcOptions) {
+            throw new UnsupportedOperationException();
+        }
+
+        @java.lang.Override
         public reactor.core.publisher.Flux<Boolean> truthify() {
+            throw new UnsupportedOperationException();
+        }
+
+        @java.lang.Override
+        public reactor.core.publisher.Flux<Integer> failstream() {
+            throw new UnsupportedOperationException();
+        }
+
+        @java.lang.Override
+        public reactor.core.publisher.Flux<Integer> failstreaminit() {
+            throw new UnsupportedOperationException();
+        }
+
+        @java.lang.Override
+        public reactor.core.publisher.Flux<Integer> streamWithArg(final String query) {
+            throw new UnsupportedOperationException();
+        }
+
+        @java.lang.Override
+        public reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer,Integer>> firstAndStream() {
             throw new UnsupportedOperationException();
         }
 
@@ -189,11 +275,11 @@ public class FactoriesBlockingReactiveWrapper
         public reactor.core.publisher.Mono<Integer> frobnicate() {
                 reactor.core.publisher.Mono<Integer> _m = reactor.core.publisher.Mono.create(_sink -> {
                     try {
-                        reactor.util.context.ContextView _contextView = _sink.contextView();
-                        com.facebook.nifty.core.RequestContext
-                            .tryContextView(_contextView)
-                            .ifPresent(com.facebook.nifty.core.RequestContexts::setCurrentContext);
-                        _sink.success(_delegateInteraction.frobnicate());
+                        com.facebook.nifty.core.RequestContext _requestContext =
+                            com.facebook.nifty.core.RequestContext.tryContextView(_sink.contextView()).orElseGet(com.facebook.nifty.core.RequestContexts::tryGetCurrentContext);
+                        _sink.success(com.facebook.nifty.core.RequestContextScope.call(
+                            _requestContext,
+                            () -> _delegateInteraction.frobnicate()));
                     } catch (Throwable _e) {
                         _sink.error(_e);
                     }
@@ -221,11 +307,12 @@ public class FactoriesBlockingReactiveWrapper
 
                 reactor.core.publisher.Mono<Void> _m = reactor.core.publisher.Mono.<Void>create(_sink -> {
                     try {
-                        reactor.util.context.ContextView _contextView = _sink.contextView();
-                        com.facebook.nifty.core.RequestContext
-                            .tryContextView(_contextView)
-                            .ifPresent(com.facebook.nifty.core.RequestContexts::setCurrentContext);
-                        _delegateInteraction.ping();
+                        com.facebook.nifty.core.RequestContext _requestContext =
+                            com.facebook.nifty.core.RequestContext.tryContextView(_sink.contextView()).orElseGet(com.facebook.nifty.core.RequestContexts::tryGetCurrentContext);
+                        com.facebook.nifty.core.RequestContextScope.call(_requestContext, () -> {
+                            _delegateInteraction.ping();
+                            return null;
+                        });
                         _sink.success();
                     } catch (Throwable _e) {
                         throw reactor.core.Exceptions.propagate(_e);
@@ -274,11 +361,12 @@ public class FactoriesBlockingReactiveWrapper
 
                 reactor.core.publisher.Mono<Void> _m = reactor.core.publisher.Mono.<Void>create(_sink -> {
                     try {
-                        reactor.util.context.ContextView _contextView = _sink.contextView();
-                        com.facebook.nifty.core.RequestContext
-                            .tryContextView(_contextView)
-                            .ifPresent(com.facebook.nifty.core.RequestContexts::setCurrentContext);
-                        _delegateInteraction.frobnicate();
+                        com.facebook.nifty.core.RequestContext _requestContext =
+                            com.facebook.nifty.core.RequestContext.tryContextView(_sink.contextView()).orElseGet(com.facebook.nifty.core.RequestContexts::tryGetCurrentContext);
+                        com.facebook.nifty.core.RequestContextScope.call(_requestContext, () -> {
+                            _delegateInteraction.frobnicate();
+                            return null;
+                        });
                         _sink.success();
                     } catch (Throwable _e) {
                         throw reactor.core.Exceptions.propagate(_e);

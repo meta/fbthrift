@@ -34,6 +34,18 @@ public class TerseException extends Exception implements TBase, java.io.Serializ
     this.msg = msg;
   }
 
+  public TerseException(
+      String msg,
+      java.lang.Throwable cause) {
+    this(msg);
+    initCause(cause);
+  }
+
+  public TerseException(java.lang.Throwable cause) {
+    super(cause);
+    this.msg = cause == null ? null : cause.toString();
+  }
+
   /**
    * Performs a deep copy on <i>other</i>.
    */

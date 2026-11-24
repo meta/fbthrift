@@ -171,6 +171,13 @@ TEST(EnumTestCpp2, Parse) {
   EXPECT_FALSE(tryParseEnum("BAR_ME3_N2", &e3));
 }
 
+TEST(EnumTestCpp2, WideSpanNames) {
+  EXPECT_STREQ(enumName(MyEnum6::ME6_MIN), "ME6_MIN");
+  EXPECT_STREQ(enumName(MyEnum6::ME6_0), "ME6_0");
+  EXPECT_STREQ(enumName(MyEnum6::ME6_MAX), "ME6_MAX");
+  EXPECT_EQ(enumName(static_cast<MyEnum6>(1)), (const char*)nullptr);
+}
+
 TEST(EnumTestCpp2, Unscoped) {
   using MyEnumUnscopedUnderlying = std::underlying_type_t<MyEnumUnscoped>;
   EXPECT_TRUE((std::is_same<MyEnumUnscopedUnderlying, int>::value));

@@ -756,7 +756,7 @@ void resumeRead() noexcept;  // Resume reading from socket
 
 While return values signal backpressure, handlers often need to **buffer messages**
 and **retry when ready**. The explicit backpressure API provides this capability
-through intrusive list hooks and ready callbacks.
+through ready callbacks.
 
 ### The Problem
 
@@ -769,44 +769,54 @@ operation was accepted but should slow down. The handler has several choices:
 
 Option 3 requires a mechanism to notify the handler when it can resume sending.
 
-### Solution: Write Ready Hooks
+### Solution: Write Ready Callbacks
 
-Handlers that need write ready notifications embed a hook member:
+Any handler with `onWriteReady()` can ask for it with `ctx.awaitWriteReady()`,
+whatever its direction. Every outbound handler has it. An inbound handler that
+answers a request with `ctx.fireWrite()` can add it, and wait when that write
+returns `Backpressure`. When a handler is added, the pipeline finds out at
+compile time whether it has `onWriteReady()`. A handler without it still
+builds, and its `ctx.awaitWriteReady()` does nothing and reports nothing. A
+handler with `onWriteReady()` in another form than
+`void onWriteReady(Context&) noexcept`, or with `onReadReady()` in another form
+than `void onReadReady(Context&) noexcept`, does not build. Registration and
+unregistration cost O(1).
 
-```cpp
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Backpressure.h>
+The build check does not see these forms of a ready callback, so a handler with
+one of them builds even if the pipeline never calls the callback. Its `await`
+call then does nothing:
 
-class BufferingHandler {
- public:
-  // Embed hook as public member — detected at compile time
-  WriteReadyHook writeReadyHook_;
-
-  // ... handler methods
-};
-```
-
-The pipeline automatically detects this hook via `requires` expressions when
-the handler is added, enabling O(1) registration/unregistration.
+- an overloaded callback;
+- a callback that is not public;
+- a template whose constraint rejects the context type;
+- a template whose first template parameter is not a type;
+- a callback that two base classes make ambiguous.
 
 [`detail/ContextImpl.h`](detail/ContextImpl.h) documents the context calls that
 register a handler for `onWriteReady()` and unregister it.
 
 ### Read Backpressure
 
-Read backpressure is handled at the transport level via TCP flow control.
-When a handler returns `Result::Backpressure` from `onRead()`, the transport
-adapter should call `pauseRead()` on the socket. There is no handler-to-handler
-read backpressure signaling — this follows the Netty model where read flow is
-controlled by `setAutoRead(false)` at the transport level.
+Read backpressure reaches the socket through TCP flow control. When a handler
+returns `Result::Backpressure` from `onRead()`, the transport adapter should
+call `pauseRead()` on the socket, as Netty does with `setAutoRead(false)`.
+
+Any handler with `onReadReady()` can wait with `ctx.awaitReadReady()`, whatever
+its direction, for example after its `ctx.fireRead()` returned `Backpressure`.
+Every inbound handler has it, and an outbound handler can add it. The code that
+clears the block calls
+`ctx.pipeline()->onReadReady()`. That read-ready pass wakes every waiting
+handler from the tail toward the head, whatever order they armed in, and then
+the head endpoint. So each handler wakes after the handler that it reads into.
+A handler that still waits after its callback does not stop the pass. A handler
+that arms during the pass wakes in it only if it is below the handler that the
+pass woke last. The pass stops early only when the pipeline closes.
 
 ### Complete Example: Write Buffering Handler
 
 ```cpp
 class WriteBufferingHandler {
  public:
-  // Hook for write ready notifications
-  WriteReadyHook writeReadyHook_;
-
   Result onWrite(Context& ctx, TypeErasedBox&& msg) noexcept {
     // Backpressure has not cleared yet, so buffer the message
     if (ctx.isAwaitingWriteReady()) {
@@ -872,24 +882,28 @@ class WriteBufferingHandler {
 ┌─────────────────────────────────────────────────────────────────┐
 │                         PipelineImpl                            │
 │                                                                 │
-│  ┌─────────────────┐                                           │
-│  │ write_ready_list│                                           │
-│  │  (IntrusiveList)│                                           │
-│  └────────┬────────┘                                           │
-│           │                                                     │
-│           ▼                                                     │
-│  ┌────────────────┐     ┌────────────────┐                     │
-│  │ Handler A hook │────►│ Handler C hook │────► (end)          │
-│  │ (handlerIndex) │     │ (handlerIndex) │                     │
-│  └────────────────┘     └────────────────┘                     │
+│  write ready waiters: one bit per handler index, plus one bit   │
+│  for the head. Index 0 is A, the handler that writes into the   │
+│  head, and D is next to the tail. The head's bit is the extra   │
+│  index N, the handler count.                                    │
+│                                                                 │
+│    handler:  A       B       C       D       head               │
+│    index:    0       1       2       3       4 (N)              │
+│    armed:    1       0       1       0       0                  │
+│                                                                 │
+│  A and C wait. A pass takes the lowest armed bit, A, and then   │
+│  the lowest armed bit above the last bit it took, C.            │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 
 1. Producer registers with `ctx.awaitWriteReady()`
 2. Transport signals `pipeline.onWriteReady()`
 3. The head endpoint consumes the readiness edge before upstream handlers
-4. If the head re-arms its hook, propagation stops for that pass
-5. Each notified producer unregisters with `ctx.cancelAwaitWriteReady()` when done
+4. If the head waits again after its own callback, or after a handler's callback because that handler's write made it wait, the pass stops there and does not notify the tail
+5. Armed handlers wake from the head toward the tail, whatever order they armed in, so each one runs after the handler it writes into
+6. A woken handler that is still armed after its callback waits for a later pass. Unless the head waits again, the pass goes on to the handlers above it and then the tail
+7. A handler that arms during the pass wakes in the same pass only if it is above the handler that the pass woke last
+8. Each notified producer unregisters with `ctx.cancelAwaitWriteReady()` when done
 ```
 
 ### Performance Characteristics
@@ -898,12 +912,12 @@ class WriteBufferingHandler {
 |-----------|------------|
 | `awaitWriteReady()` | O(1) |
 | `cancelAwaitWriteReady()` | O(1) |
-| `onWriteReady()` notification | O(m) where m = registered handlers |
+| `onWriteReady()` notification | O(m) where m = registered handlers: each wake-up finds the next armed handler toward the tail with one bit scan |
 | Handler lookup by ID (`sendRead`, `sendWrite`) | O(1) average |
 
 The O(1) operations are achieved through:
-- **Intrusive lists**: Hooks are embedded in handlers, no allocation on register
-- **Handler index in hooks**: Each hook stores its handler's index for direct lookup
+- **Bit masks**: Registering or unregistering a handler sets or clears one bit in a 64-bit word inside the pipeline, so registration never allocates. The write mask also has a bit for the head, so a pipeline holds at most 63 handlers
+- **Handler index in contexts**: Each context stores its handler's index, which is the handler's bit
 - **Hash table for IDs**: Handler IDs map to indices via open-addressing hash table
 
 ### Design Principles
@@ -911,9 +925,9 @@ The O(1) operations are achieved through:
 | Principle | Implementation |
 |-----------|----------------|
 | **Explicit over implicit** | Handlers choose their backpressure strategy |
-| **Zero allocation** | Intrusive lists, no heap allocation on register |
-| **O(1) operations** | Hash table lookups, intrusive list link/unlink |
-| **Compile-time detection** | Hooks detected via `requires` expressions |
+| **Zero allocation** | Bit masks inside the pipeline, no heap allocation on register |
+| **O(1) operations** | Hash table lookups, bit set/clear |
+| **Compile-time detection** | A handler can wait if it has `onWriteReady()` or `onReadReady()`, whatever its direction |
 | **Handler autonomy** | Each handler decides: drop, error, or buffer |
 
 ---

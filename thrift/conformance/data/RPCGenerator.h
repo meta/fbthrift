@@ -29,5 +29,7 @@ TestSuite createRPCClientExtendedTestSuite();
 // Every request-response client case, common and extended, for a transport
 // like HTTP/2.
 TestSuite createRPCClientRequestResponseTestSuite();
+TestSuite createRPCClientHTTP2TestSuite();
+TestSuite createRPCClientChecksumTestSuite();
 
 } // namespace apache::thrift::conformance::data

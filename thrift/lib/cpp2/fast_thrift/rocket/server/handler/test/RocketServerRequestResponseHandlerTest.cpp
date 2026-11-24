@@ -17,6 +17,7 @@
 #include <gtest/gtest.h>
 
 #include <folly/io/IOBuf.h>
+#include <folly/portability/GMock.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/ErrorCode.h>
@@ -35,6 +36,7 @@ using apache::thrift::fast_thrift::channel_pipeline::Result;
 using apache::thrift::fast_thrift::channel_pipeline::TypeErasedBox;
 using apache::thrift::fast_thrift::frame::ErrorCode;
 using apache::thrift::fast_thrift::frame::FrameType;
+using namespace testing;
 
 namespace {
 
@@ -145,7 +147,7 @@ class MockContext {
 
   Result fireWrite(TypeErasedBox&& msg) noexcept {
     writeMessages_.push_back(std::move(msg));
-    return Result::Success;
+    return writeResult_;
   }
 
   void fireException(folly::exception_wrapper&& e) noexcept {
@@ -155,6 +157,7 @@ class MockContext {
   std::vector<TypeErasedBox>& readMessages() { return readMessages_; }
   std::vector<TypeErasedBox>& writeMessages() { return writeMessages_; }
   bool hasException() const { return static_cast<bool>(exception_); }
+  void setWriteResult(Result result) { writeResult_ = result; }
 
   void reset() {
     readMessages_.clear();
@@ -166,6 +169,7 @@ class MockContext {
   std::vector<TypeErasedBox> readMessages_;
   std::vector<TypeErasedBox> writeMessages_;
   folly::exception_wrapper exception_;
+  Result writeResult_{Result::Success};
 };
 
 } // namespace
@@ -284,6 +288,28 @@ TEST_F(
   EXPECT_EQ(
       static_cast<ErrorCode>(errorMsg.frame.errorCode), ErrorCode::INVALID);
   EXPECT_EQ(errorMsg.streamType, FrameType::REQUEST_RESPONSE);
+}
+
+TEST_F(
+    ServerRequestResponseHandlerTest,
+    Read_UnexpectedRequestNWithBackpressuredError_ReturnsSuccess) {
+  ctx_.setWriteResult(Result::Backpressure);
+
+  EXPECT_THAT(
+      handler_.onRead(
+          ctx_, erase_and_box(makeRequestNRequest(1, /*requestN=*/5))),
+      Eq(Result::Success));
+}
+
+TEST_F(
+    ServerRequestResponseHandlerTest,
+    Read_UnexpectedRequestNWithFailedError_ReturnsError) {
+  ctx_.setWriteResult(Result::Error);
+
+  EXPECT_THAT(
+      handler_.onRead(
+          ctx_, erase_and_box(makeRequestNRequest(1, /*requestN=*/5))),
+      Eq(Result::Error));
 }
 
 // =============================================================================

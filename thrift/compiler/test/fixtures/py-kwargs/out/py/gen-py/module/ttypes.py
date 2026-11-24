@@ -48,7 +48,16 @@ class ThriftEnumWrapper(int):
     return super().__new__(cls, value)
   def __init__(self, enum_class, value):    self.enum_class = enum_class
   def __repr__(self):
-    return self.enum_class.__name__ + '.' + self.enum_class._VALUES_TO_NAMES[self]
+    import keyword
+    name = self.enum_class._VALUES_TO_NAMES[self]
+    if keyword.iskeyword(name):
+      # `E.None` is not valid Python: use the alias defined for such values,
+      # or look the value up by name if it has none.
+      alias = name + '_PY_RESERVED_KEYWORD'
+      if getattr(self.enum_class, alias, None) == self:
+        return self.enum_class.__name__ + '.' + alias
+      return '%s._NAMES_TO_VALUES[%r]' % (self.enum_class.__name__, name)
+    return self.enum_class.__name__ + '.' + name
 
 all_structs = []
 UTF8STRINGS = bool(0) or sys.version_info.major >= 3

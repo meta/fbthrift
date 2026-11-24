@@ -43,27 +43,11 @@ const Cpp2Worker* dummyWorker() {
   return worker.get();
 }
 
-apache::thrift::ClientIdentityHook adaptResolver(
-    const ThriftConnContext& connContext, PeerIdentityResolver resolver) {
-  if (resolver == nullptr) {
-    return nullptr;
-  }
-  // The certificate outlives the connection context's own lifetime by being
-  // shared, and this hook is invoked during construction below, so capturing
-  // the raw pointer is bounded by that call.
-  return [cert = connContext.getPeerCertificate(), resolver](
-             const folly::AsyncTransport* /*transport*/,
-             X509* /*x509*/,
-             const folly::SocketAddress& peerAddress) {
-    return resolver(cert, peerAddress);
-  };
-}
-
 } // namespace
 
 Cpp2ConnContextAdapter::Cpp2ConnContextAdapter(
     boost::intrusive_ptr<ThriftConnContext> connContext,
-    PeerIdentityResolver resolver)
+    const apache::thrift::ClientIdentityHook& clientIdentityHook)
     : ftConnContext_(std::move(connContext)) {
   // Built into the connection's slot rather than held here, so a consumer
   // written against the classic context reads it there for as long as the
@@ -79,7 +63,7 @@ Cpp2ConnContextAdapter::Cpp2ConnContextAdapter(
       // certificate.
       folly::OpenSSLTransportCertificate::tryExtractX509(
           ftConnContext_->getPeerCertificate()),
-      adaptResolver(*ftConnContext_, resolver),
+      clientIdentityHook,
       dummyWorker(),
       /*numServiceInterceptors=*/0);
 
@@ -119,7 +103,7 @@ Cpp2RequestContextAdapter::Cpp2RequestContextAdapter(
     : header_(header),
       requestContext_(requestContext),
       cpp2RequestContext_(&cpp2RequestContext),
-      ambientContext_(std::make_shared<folly::RequestContext>()) {
+      ambientContext_(requestContext.getFollyRequestContext().capture()) {
   apache::thrift::detail::Cpp2RequestContextUnsafeAPI(*cpp2RequestContext_)
       .setBorrowedMethodName(requestContext_.getMethodName());
 
@@ -135,11 +119,9 @@ Cpp2RequestContextAdapter::~Cpp2RequestContextAdapter() {
 
 void Cpp2RequestContextAdapter::captureAmbientContext() noexcept {
   auto* const current = folly::RequestContext::try_get();
-  if (FOLLY_UNLIKELY(current == nullptr)) {
+  if (current == nullptr) [[unlikely]] {
     folly::RequestContext::setContext(ambientContext_);
-    return;
-  }
-  if (FOLLY_UNLIKELY(current != ambientContext_.get())) {
+  } else if (current != ambientContext_.get()) [[unlikely]] {
     ambientContext_ = folly::RequestContext::saveContext();
   }
 }

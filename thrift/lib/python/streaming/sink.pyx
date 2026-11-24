@@ -278,6 +278,11 @@ cdef void server_sink_elem_callback(
     PyObject* userdata,
 ) noexcept:
     wrapped_sink, future = <object> userdata
+    # The future may already be resolved or cancelled (e.g. when the concurrent
+    # sink/stream teardown cancels it) by the time this C++ callback fires;
+    # completing it again would raise asyncio.InvalidStateError.
+    if future.done():
+        return
     if result.hasException():
         future.set_exception(
             # creates ApplicationException

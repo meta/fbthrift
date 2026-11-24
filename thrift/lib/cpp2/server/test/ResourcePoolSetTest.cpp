@@ -203,6 +203,58 @@ TEST(
   EXPECT_TRUE(locked.load());
 }
 
+TEST(ResourcePoolSetTest, ConcurrentNumQueuedDuringLock_ThreadSafetyTest) {
+  // Models fb303 getCounters calling numQueued() on a stats thread while
+  // ThriftServer::setup() calls lock().
+  constexpr int kIterations = 200;
+  constexpr int kNumPools = 32;
+  auto executor = std::make_shared<folly::CPUThreadPoolExecutor>(1);
+
+  for (int iteration = 0; iteration < kIterations; ++iteration) {
+    ResourcePoolSet set;
+    auto addPool = [&](std::optional<ResourcePoolHandle> handle, int index) {
+      auto requestPile = std::make_unique<RoundRobinRequestPile>(
+          RoundRobinRequestPile::Options());
+      auto concurrencyController =
+          std::make_unique<ParallelConcurrencyController>(
+              *requestPile, *executor);
+      if (handle) {
+        set.setResourcePool(
+            *handle,
+            std::move(requestPile),
+            executor,
+            std::move(concurrencyController));
+      } else {
+        set.addResourcePool(
+            fmt::format("pool_{}", index),
+            std::move(requestPile),
+            executor,
+            std::move(concurrencyController),
+            std::nullopt,
+            false);
+      }
+    };
+    addPool(ResourcePoolHandle::defaultSync(), 0);
+    addPool(ResourcePoolHandle::defaultAsync(), 0);
+    for (int i = 0; i < kNumPools; ++i) {
+      addPool(std::nullopt, i);
+    }
+
+    std::atomic<bool> stopFlag{false};
+    folly::Latch startLatch{1};
+    std::thread readerThread([&]() {
+      startLatch.count_down();
+      while (!stopFlag.load(std::memory_order_acquire)) {
+        EXPECT_EQ(set.numQueued(), 0);
+      }
+    });
+    startLatch.wait();
+    set.lock();
+    stopFlag.store(true, std::memory_order_release);
+    readerThread.join();
+  }
+}
+
 // Phase 2: Lock Semantics
 
 TEST(ResourcePoolSetTest, LockSemantics_setResourcePoolAfterLock_throws) {

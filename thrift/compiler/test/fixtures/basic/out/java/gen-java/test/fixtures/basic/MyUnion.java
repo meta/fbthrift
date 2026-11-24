@@ -402,6 +402,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
                     test.fixtures.basic.MyEnum _fbthriftVar0;
                     _fbthriftVar0 = test.fixtures.basic.MyEnum.fromInteger(oprot.readI32());
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _MYSTRUCT:
@@ -409,6 +411,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
                     test.fixtures.basic.MyStruct _fbthriftVar0;
                     _fbthriftVar0 = test.fixtures.basic.MyStruct.read0(oprot);
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _MYDATAITEM:
@@ -416,6 +420,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
                     test.fixtures.basic.MyDataItem _fbthriftVar0;
                     _fbthriftVar0 = test.fixtures.basic.MyDataItem.read0(oprot);
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             case _FLOATSET:
@@ -432,6 +438,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
                         oprot.readSetEnd();
                     }
                     res.value = _fbthriftVar0;
+                } else {
+                    TProtocolUtil.skip(oprot, __field.type);
                 }
                 break;
             default:

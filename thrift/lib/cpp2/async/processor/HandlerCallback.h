@@ -65,7 +65,8 @@ struct CompoundDecoratorAfterCallback
           CompoundDecoratorAfterCallback<T>,
           const T&,
           typename CompoundResponseExtractor<T>::ArgType> {
-  static constexpr auto extractDecoratorArg(const T& result) {
+  static constexpr typename CompoundResponseExtractor<T>::ArgType
+  extractDecoratorArg(const T& result) {
     return CompoundResponseExtractor<T>::extract(result);
   }
 };
@@ -339,6 +340,13 @@ template <typename InteractionIf, typename SinkElement, typename FinalResponse>
 struct InteractionInnerResponseHelper<
     InteractionIf,
     SinkConsumer<SinkElement, FinalResponse>> {
+  using DecoratorArgType = void;
+};
+
+template <typename InteractionIf, typename InputElement, typename OutputElement>
+struct InteractionInnerResponseHelper<
+    InteractionIf,
+    StreamTransformation<InputElement, OutputElement>> {
   using DecoratorArgType = void;
 };
 

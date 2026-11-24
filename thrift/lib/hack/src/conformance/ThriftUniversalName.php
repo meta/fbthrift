@@ -25,10 +25,7 @@ abstract final class ThriftUniversalName {
     string $universal_hash,
     string $prefix,
   )[]: bool {
-    if (
-      (Str\length($universal_hash) < Str\length($prefix)) ||
-      Str\is_empty($prefix)
-    ) {
+    if ((Str\length($universal_hash) < Str\length($prefix)) || $prefix === '') {
       return false;
     }
 
@@ -56,7 +53,7 @@ abstract final class ThriftUniversalName {
     vec<(string, classname<T>)> $entries,
     string $hash_prefix,
   )[]: ?(string, classname<T>) {
-    $start_idx = C\fb\binary_search(
+    $start_idx = C\binary_search(
       $entries,
       $entry ==> Str\compare($entry[0], $hash_prefix) >= 0,
     );

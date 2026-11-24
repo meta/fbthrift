@@ -61,6 +61,13 @@ impl ::std::default::Default for SmallEnum {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for SmallEnum {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.0 == 0
+    }
+}
+
 impl<'a> ::std::convert::From<&'a SmallEnum> for ::std::primitive::i8 {
     #[inline]
     fn from(x: &'a SmallEnum) -> Self {
@@ -214,6 +221,13 @@ impl ::std::default::Default for SignedEnum {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for SignedEnum {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.0 == 0
+    }
+}
+
 impl<'a> ::std::convert::From<&'a SignedEnum> for ::std::primitive::i16 {
     #[inline]
     fn from(x: &'a SignedEnum) -> Self {
@@ -360,6 +374,13 @@ impl ::fbthrift::ThriftEnum for MediumEnum {
 impl ::std::default::Default for MediumEnum {
     fn default() -> Self {
         Self(0)
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for MediumEnum {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.0 == 0
     }
 }
 
@@ -510,6 +531,13 @@ impl ::std::default::Default for LargeEnum {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for LargeEnum {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.0 == 0
+    }
+}
+
 impl<'a> ::std::convert::From<&'a LargeEnum> for ::std::primitive::u32 {
     #[inline]
     fn from(x: &'a LargeEnum) -> Self {
@@ -654,6 +682,13 @@ impl ::fbthrift::ThriftEnum for DefaultEnum {
 impl ::std::default::Default for DefaultEnum {
     fn default() -> Self {
         Self(0)
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for DefaultEnum {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.0 == 0
     }
 }
 

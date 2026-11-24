@@ -104,6 +104,18 @@ abstract class TProtocol {
     int $size,
   )[this::CReadWriteDefault]: int;
 
+  /**
+   * Begins a map whose keys are strings or enums, which `TType` does not tell
+   * apart from binary and i32 keys.
+   */
+  public function writeMapBeginWithAlternativeKeyForm(
+    TType $key_type,
+    TType $val_type,
+    int $size,
+  )[this::CReadWriteDefault]: int {
+    return $this->writeMapBegin($key_type, $val_type, $size);
+  }
+
   public abstract function writeMapEnd()[write_props]: int;
 
   public abstract function writeListBegin(
@@ -144,6 +156,20 @@ abstract class TProtocol {
     return $this->writeString($str);
   }
 
+  public function writesFieldsInIdOrder()[]: bool {
+    return false;
+  }
+
+  /**
+   * `$enum` is the class name of the enum, for protocols that write names.
+   */
+  public function writeEnum(
+    string $enum,
+    int $value,
+  )[this::CReadWriteDefault]: int {
+    return $this->writeI32($value);
+  }
+
   /**
    * Reads the message header
    *
@@ -173,6 +199,13 @@ abstract class TProtocol {
     inout ?TType $field_type,
     inout ?int $field_id,
   )[this::CReadWriteDefault]: int;
+
+  /**
+   * True if `readFieldBegin()` returns a field's name, its id or both, as JSON5
+   * keys `name`, `(1)` and `name (1)` do. The field is then found by either,
+   * and a name and id of different fields is an error.
+   */
+  const bool USES_FIELD_NAMES = false;
 
   public abstract function readFieldEnd()[write_props]: int;
 
@@ -247,6 +280,16 @@ abstract class TProtocol {
   public abstract function readString(
     inout string $str,
   )[this::CReadWriteDefault]: int;
+
+  /**
+   * `$enum` is the class name of the enum, for protocols that read names.
+   */
+  public function readEnum(
+    string $enum,
+    inout int $value,
+  )[this::CReadWriteDefault]: int {
+    return $this->readI32(inout $value);
+  }
 
   public function readBinary(inout string $str)[this::CReadWriteDefault]: int {
     return $this->readString(inout $str);

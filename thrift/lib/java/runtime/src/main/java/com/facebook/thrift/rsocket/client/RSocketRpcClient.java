@@ -28,12 +28,14 @@ import static com.facebook.thrift.util.RpcClientUtils.getUndeclaredException;
 
 import com.facebook.thrift.client.RpcClient;
 import com.facebook.thrift.client.RpcOptions;
+import com.facebook.thrift.compression.CompressionManager;
 import com.facebook.thrift.payload.ClientRequestPayload;
 import com.facebook.thrift.payload.ClientResponsePayload;
 import com.facebook.thrift.payload.Writer;
 import com.facebook.thrift.protocol.ByteBufTProtocol;
 import com.facebook.thrift.protocol.TProtocolType;
 import com.facebook.thrift.util.RpcClientUtils;
+import com.facebook.thrift.util.resources.RpcResources;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
@@ -44,8 +46,11 @@ import io.rsocket.util.ByteBufPayload;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
+import javax.annotation.Nullable;
 import org.apache.thrift.ClientPushMetadata;
+import org.apache.thrift.CodecConfig;
 import org.apache.thrift.CompressionAlgorithm;
+import org.apache.thrift.CompressionConfig;
 import org.apache.thrift.ProtocolId;
 import org.apache.thrift.RequestRpcMetadata;
 import org.apache.thrift.ResponseRpcError;
@@ -59,6 +64,8 @@ import org.slf4j.LoggerFactory;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 public final class RSocketRpcClient implements RpcClient {
   private static final Logger LOG = LoggerFactory.getLogger(RSocketRpcClient.class);
@@ -66,10 +73,21 @@ public final class RSocketRpcClient implements RpcClient {
 
   private final RSocket rsocket;
   private final ByteBufAllocator alloc;
+  private final Scheduler offLoopScheduler;
 
   RSocketRpcClient(final RSocket rsocket) {
+    this(
+        rsocket,
+        RpcResources.isForceClientExecutionOffEventLoop()
+            ? RpcResources.getClientOffLoopScheduler()
+            : Schedulers.immediate());
+  }
+
+  /** An immediate {@code offLoopScheduler} keeps decode on the transport thread. */
+  RSocketRpcClient(final RSocket rsocket, final Scheduler offLoopScheduler) {
     this.rsocket = rsocket;
     this.alloc = ByteBufAllocator.DEFAULT;
+    this.offLoopScheduler = offLoopScheduler;
   }
 
   @Override
@@ -89,24 +107,53 @@ public final class RSocketRpcClient implements RpcClient {
     return rsocket.isDisposed();
   }
 
-  private boolean hasTimeoutSettings(RpcOptions options) {
+  private static boolean hasTimeoutSettings(RpcOptions options) {
     if (options == null) {
       return false;
     }
     return options.getClientTimeoutMs() != null || options.getQueueTimeoutMs() != null;
   }
 
-  private RequestRpcMetadata createMetadataWithTimeouts(
-      RequestRpcMetadata metadata, RpcOptions options) {
-    int clientTimeoutMs = options.getClientTimeoutMs() == null ? 0 : options.getClientTimeoutMs();
-    int queueTimeoutMs = options.getQueueTimeoutMs() == null ? 0 : options.getQueueTimeoutMs();
+  /**
+   * Returns the request metadata with the timeouts and the compression of the options. The request
+   * is compressed when its data is larger than the size limit of the compression config, as in C++.
+   * For a single response, the metadata also carries the compression config, which the server uses
+   * to compress the response. A streaming call does not carry it, because this client does not
+   * decompress stream payloads.
+   */
+  private static RequestRpcMetadata requestMetadata(
+      RequestRpcMetadata metadata, RpcOptions options, int dataSize, boolean singleResponse) {
+    if (options == null) {
+      return metadata;
+    }
+
+    CompressionConfig compressionConfig = options.getCompressionConfig();
+    if (!hasTimeoutSettings(options) && compressionConfig == null) {
+      return metadata;
+    }
+
     RequestRpcMetadata.Builder builder = new RequestRpcMetadata.Builder(metadata);
-    if (clientTimeoutMs != 0) {
-      builder.setClientTimeoutMs(clientTimeoutMs);
+    if (options.getClientTimeoutMs() != null && options.getClientTimeoutMs() != 0) {
+      builder.setClientTimeoutMs(options.getClientTimeoutMs());
     }
-    if (queueTimeoutMs != 0) {
-      builder.setQueueTimeoutMs(queueTimeoutMs);
+    if (options.getQueueTimeoutMs() != null && options.getQueueTimeoutMs() != 0) {
+      builder.setQueueTimeoutMs(options.getQueueTimeoutMs());
     }
+
+    if (compressionConfig != null) {
+      CompressionAlgorithm compression =
+          CompressionManager.algorithmFor(compressionConfig, dataSize);
+      if (compression != CompressionAlgorithm.NONE) {
+        builder.setCompression(compression);
+      }
+
+      // This client cannot decompress a CUSTOM response, so it does not ask for one.
+      CodecConfig codecConfig = compressionConfig.getCodecConfig();
+      if (singleResponse && codecConfig != null && !codecConfig.isSetCustomConfig()) {
+        builder.setCompressionConfig(compressionConfig);
+      }
+    }
+
     return builder.build();
   }
 
@@ -116,28 +163,12 @@ public final class RSocketRpcClient implements RpcClient {
     final ProtocolId protocol = payload.getRequestRpcMetadata().getProtocol();
     final TProtocolType protocolType = TProtocolType.fromProtocolId(protocol);
 
-    return Mono.defer(
-        () -> {
-          Payload rsocketPayload =
-              clientRequestPayloadToRSocketPayload(payload, protocolType, options);
-          try {
-            return rsocket
-                .requestResponse(rsocketPayload)
-                .map(
-                    response ->
-                        rsocketPayloadToClientResponsePayload(payload, response, protocolType))
-                .onErrorResume(
-                    t -> {
-                      if (isRocketError(t)) {
-                        return Mono.just(getErrorFrame(t));
-                      }
-                      return Mono.error(t);
-                    });
-          } catch (Throwable t) {
-            ReferenceCountUtil.safeRelease(rsocketPayload);
-            return Mono.error(t);
-          }
-        });
+    return ResponseHandoff.requestResponse(
+        rsocket,
+        () -> clientRequestPayloadToRSocketPayload(payload, protocolType, options, true),
+        offLoopScheduler,
+        response -> rsocketPayloadToClientResponsePayload(payload, response, protocolType),
+        error -> isRocketError(error) ? getErrorFrame(error) : null);
   }
 
   /**
@@ -151,7 +182,7 @@ public final class RSocketRpcClient implements RpcClient {
    * @param <T>
    * @return ClientResponsePayload
    */
-  private <T> ClientResponsePayload<T> getErrorFrame(Throwable t) {
+  private static <T> ClientResponsePayload<T> getErrorFrame(Throwable t) {
     ResponseRpcError err = decodeRocketError(t);
     if (err == null) {
       // Unreadable frame: report the parse failure rather than letting it replace the server's
@@ -171,7 +202,7 @@ public final class RSocketRpcClient implements RpcClient {
     return Mono.defer(
         () -> {
           Payload rsocketPayload =
-              clientRequestPayloadToRSocketPayload(payload, protocolType, options);
+              clientRequestPayloadToRSocketPayload(payload, protocolType, options, false);
           try {
             return rsocket.fireAndForget(rsocketPayload);
           } catch (Throwable t) {
@@ -181,33 +212,77 @@ public final class RSocketRpcClient implements RpcClient {
         });
   }
 
+  /**
+   * ImmediateScheduler is a singleton (Schedulers.immediate() returns its instance), so identity
+   * against it tells inline decode from the off-loop handoff with no second flag.
+   */
+  private boolean isInline() {
+    return offLoopScheduler == Schedulers.immediate();
+  }
+
+  /** Inline chain: a rocket error maps to an error frame, then each frame decodes inline. */
+  private static <K> Flux<ClientResponsePayload<K>> inlineStream(
+      Flux<Payload> inbound, Function<Payload, ClientResponsePayload<K>> decoder, String name) {
+    return inbound
+        .onErrorResume(
+            t -> {
+              if (isRocketError(t)) {
+                return Flux.just(ByteBufPayload.create(getExceptionString(t, name)));
+              }
+
+              return Flux.error(t);
+            })
+        .map(decoder);
+  }
+
+  /** Maps a terminal error to a last value, or null to deliver the error unchanged. */
+  @Nullable
+  private static <K> ClientResponsePayload<K> rocketErrorValue(
+      Throwable error, Function<Payload, ClientResponsePayload<K>> decoder, String name) {
+    if (!isRocketError(error)) {
+      return null;
+    }
+
+    return decoder.apply(ByteBufPayload.create(getExceptionString(error, name)));
+  }
+
   @Override
   public <T, K> Flux<ClientResponsePayload<K>> singleRequestStreamingResponse(
       ClientRequestPayload<T> payload, RpcOptions options) {
     final ProtocolId protocol = payload.getRequestRpcMetadata().getProtocol();
     final TProtocolType protocolType = TProtocolType.fromProtocolId(protocol);
+    final String name = payload.getRequestRpcMetadata().getName();
+
+    if (isInline()) {
+      // The decoder carries per-stream first-payload state, so each subscription builds its
+      // own, exactly like master.
+      return Flux.defer(
+          () -> {
+            Payload rsocketPayload =
+                clientRequestPayloadToRSocketPayload(payload, protocolType, options, false);
+            Function<Payload, ClientResponsePayload<K>> decoder =
+                new StreamingResponseHandler<>(payload);
+
+            try {
+              return inlineStream(rsocket.requestStream(rsocketPayload), decoder, name);
+            } catch (Throwable t) {
+              ReferenceCountUtil.safeRelease(rsocketPayload);
+              return Flux.error(t);
+            }
+          });
+    }
 
     return Flux.defer(
         () -> {
-          Payload rsocketPayload =
-              clientRequestPayloadToRSocketPayload(payload, protocolType, options);
-          try {
-            return rsocket
-                .requestStream(rsocketPayload)
-                .onErrorResume(
-                    t -> {
-                      if (isRocketError(t)) {
-                        return Flux.just(
-                            ByteBufPayload.create(
-                                getExceptionString(t, payload.getRequestRpcMetadata().getName())));
-                      }
-                      return Flux.error(t);
-                    })
-                .map(new StreamingResponseHandler<>(payload));
-          } catch (Throwable t) {
-            ReferenceCountUtil.safeRelease(rsocketPayload);
-            return Flux.error(t);
-          }
+          Function<Payload, ClientResponsePayload<K>> decoder =
+              new StreamingResponseHandler<>(payload);
+
+          return StreamHandoff.requestStream(
+              rsocket,
+              () -> clientRequestPayloadToRSocketPayload(payload, protocolType, options, false),
+              offLoopScheduler,
+              decoder,
+              error -> rocketErrorValue(error, decoder, name));
         });
   }
 
@@ -228,26 +303,28 @@ public final class RSocketRpcClient implements RpcClient {
                   flux.map(
                           t -> {
                             if (isFirstPayload.compareAndSet(true, false)) {
-                              return clientRequestPayloadToRSocketPayload(t, protocolType, options);
+                              return clientRequestPayloadToRSocketPayload(
+                                  t, protocolType, options, false);
                             } else {
                               return sinkPayloadToRSocketPayload(t, protocolType);
                             }
                           })
                       .doOnDiscard(Payload.class, ReferenceCountUtil::safeRelease);
 
-              return rsocket
-                  .requestChannel(payloadFlux)
-                  .onErrorResume(
-                      t -> {
-                        if (isRocketError(t)) {
-                          return Flux.just(
-                              ByteBufPayload.create(
-                                  getExceptionString(
-                                      t, clientRequestPayload.getRequestRpcMetadata().getName())));
-                        }
-                        return Flux.error(t);
-                      })
-                  .map(new StreamingResponseHandler<>(clientRequestPayload));
+              Function<Payload, ClientResponsePayload<K>> decoder =
+                  new StreamingResponseHandler<>(clientRequestPayload);
+              String name = clientRequestPayload.getRequestRpcMetadata().getName();
+
+              if (isInline()) {
+                return inlineStream(rsocket.requestChannel(payloadFlux), decoder, name);
+              }
+
+              return StreamHandoff.requestChannel(
+                  rsocket,
+                  payloadFlux,
+                  offLoopScheduler,
+                  decoder,
+                  error -> rocketErrorValue(error, decoder, name));
             });
   }
 
@@ -274,7 +351,10 @@ public final class RSocketRpcClient implements RpcClient {
   }
 
   private <T> Payload clientRequestPayloadToRSocketPayload(
-      ClientRequestPayload<T> payload, TProtocolType protocolType, RpcOptions options) {
+      ClientRequestPayload<T> payload,
+      TProtocolType protocolType,
+      RpcOptions options,
+      boolean singleResponse) {
     ByteBuf data = null;
     ByteBuf metadata = null;
     try {
@@ -290,15 +370,12 @@ public final class RSocketRpcClient implements RpcClient {
       in.writeFieldStop();
       in.writeStructEnd();
 
-      final ByteBufTProtocol metadataProtocol = TProtocolType.TCompact.apply(metadata);
-      if (hasTimeoutSettings(options)) {
-        createMetadataWithTimeouts(payload.getRequestRpcMetadata(), options)
-            .write0(metadataProtocol);
-      } else {
-        payload.getRequestRpcMetadata().write0(metadataProtocol);
-      }
+      final RequestRpcMetadata requestMetadata =
+          requestMetadata(
+              payload.getRequestRpcMetadata(), options, data.readableBytes(), singleResponse);
+      requestMetadata.write0(TProtocolType.TCompact.apply(metadata));
 
-      return createPayload(alloc, payload.getRequestRpcMetadata().getCompression(), data, metadata);
+      return createPayload(alloc, requestMetadata.getCompression(), data, metadata);
 
     } catch (Throwable t) {
       if (data != null && data.refCnt() > 0) {
@@ -356,6 +433,7 @@ public final class RSocketRpcClient implements RpcClient {
 
   private <T> ClientResponsePayload<T> rsocketPayloadToClientResponsePayload(
       ClientRequestPayload<T> requestPayload, Payload response, TProtocolType protocolType) {
+    ByteBuf data = null;
     try {
       final ResponseRpcMetadata rpcMetadata = decodePayloadMetadata(response);
 
@@ -365,7 +443,10 @@ public final class RSocketRpcClient implements RpcClient {
             undeclaredException.get(), rpcMetadata, null, false);
       }
 
-      final ByteBufTProtocol out = protocolType.apply(response.sliceData());
+      data =
+          CompressionManager.decompress(
+              rpcMetadata.getCompression(), alloc, response.sliceData().retain());
+      final ByteBufTProtocol out = protocolType.apply(data);
 
       return RpcClientUtils.decodeRSocketPayload(
           requestPayload.getResponseReader(),
@@ -375,6 +456,7 @@ public final class RSocketRpcClient implements RpcClient {
     } catch (Exception e) {
       throw Exceptions.propagate(e);
     } finally {
+      ReferenceCountUtil.safeRelease(data);
       if (response.refCnt() > 0) {
         response.release();
       }

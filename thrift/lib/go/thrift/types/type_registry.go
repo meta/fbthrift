@@ -18,6 +18,7 @@ package types
 
 import (
 	"crypto/sha256"
+	"reflect"
 	"strings"
 	"sync"
 )
@@ -28,12 +29,13 @@ var (
 	typeHash32Registry = make(map[[32]byte]string)
 	typeHash16Registry = make(map[[16]byte]string)
 	typeHash8Registry  = make(map[[8]byte]string)
+	rtypeRegistry      = make(map[reflect.Type]string)
 )
 
 // THIS FUNCTION IS FOR INTERNAL USE ONLY.
 // InternalRegisterType registers a URI + type spec pair for Thrit Any support.
 // This is intended to be called from generated code's init() function.
-func InternalRegisterType(uri string, spec *TypeSpec) {
+func InternalRegisterType(uri string, spec *TypeSpec, rtype reflect.Type) {
 	const thriftURIPrefix = "fbthrift://"
 
 	uri, _ = strings.CutPrefix(uri, thriftURIPrefix)
@@ -51,6 +53,7 @@ func InternalRegisterType(uri string, spec *TypeSpec) {
 	typeHash32Registry[hash32] = uri
 	typeHash16Registry[hash16] = uri
 	typeHash8Registry[hash8] = uri
+	rtypeRegistry[rtype] = uri
 }
 
 // THIS FUNCTION IS FOR INTERNAL USE ONLY.
@@ -89,4 +92,12 @@ func InternalTypeRegistryGetFromHash(hash []byte) (*TypeSpec, bool) {
 
 	res, ok := typeRegistry[uri]
 	return res, ok
+}
+
+// THIS FUNCTION IS FOR INTERNAL USE ONLY.
+// InternalTypeRegistryGetFromReflectType returns the URI for a given reflect type, if it exists.
+func InternalTypeRegistryGetFromReflectType(rtype reflect.Type) string {
+	typeRegistryMu.RLock()
+	defer typeRegistryMu.RUnlock()
+	return rtypeRegistry[rtype]
 }

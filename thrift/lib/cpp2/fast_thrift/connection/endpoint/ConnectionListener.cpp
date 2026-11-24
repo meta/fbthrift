@@ -29,7 +29,7 @@ void ConnectionListener::connectionAccepted(
     const folly::SocketAddress& clientAddr,
     AcceptInfo) noexcept {
   DCHECK(evb_->isInEventBaseThread());
-  if (FOLLY_UNLIKELY(!pipeline_)) {
+  if (!pipeline_) [[unlikely]] {
     folly::netops::close(fd);
     return;
   }
@@ -48,14 +48,14 @@ void ConnectionListener::connectionAccepted(
   }
 
   folly::AsyncTransport::UniquePtr transport(socket.release());
-  const auto result = pipeline_->fireRead(
+  const auto result = pipeline_.fireRead(
       channel_pipeline::erase_and_box(
           ConnectionMessage{
               .transport = std::move(transport),
               .clientAddr = clientAddr,
               .peerSecurity = nullptr,
           }));
-  if (FOLLY_UNLIKELY(result != channel_pipeline::Result::Success)) {
+  if (result != channel_pipeline::Result::Success) [[unlikely]] {
     XLOG_EVERY_MS(WARN, 1000) << "Connection pipeline rejected connection from "
                               << clientAddr.describe();
   }

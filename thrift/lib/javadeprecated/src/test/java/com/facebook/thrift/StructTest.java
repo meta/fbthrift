@@ -22,6 +22,8 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.Is.is;
 
 import com.facebook.thrift.java.test.BigEnum;
+import com.facebook.thrift.java.test.MessageAnnotatedException;
+import com.facebook.thrift.java.test.MyCauseException;
 import com.facebook.thrift.java.test.MySimpleStruct;
 import com.facebook.thrift.java.test.MySimpleUnion;
 import com.facebook.thrift.java.test.SmallEnum;
@@ -219,5 +221,49 @@ public class StructTest {
     assertThat(structMutable.isMyBool(), equalTo(true));
     assertThat(structMutable.getMyDouble(), equalTo(42.42));
     assertThat(structMutable.getMySet().size(), equalTo(3));
+  }
+
+  @Test
+  public void testExceptionCauseConstructor() throws Exception {
+    RuntimeException cause = new RuntimeException("root");
+
+    MyCauseException ex = new MyCauseException("boom", 500, cause);
+
+    assertThat(ex.getCause(), is(cause));
+    assertThat(ex.getMessage(), equalTo("boom"));
+    assertThat(ex.getCode(), equalTo(500));
+  }
+
+  @Test
+  public void testExceptionBuilderCause() throws Exception {
+    RuntimeException cause = new RuntimeException("root");
+
+    MyCauseException ex =
+        new MyCauseException.Builder().setMessage("boom").setCode(500).setCause(cause).build();
+
+    assertThat(ex.getCause(), is(cause));
+    assertThat(ex.getMessage(), equalTo("boom"));
+    assertThat(ex.getCode(), equalTo(500));
+  }
+
+  @Test
+  public void testExceptionCauseOnlyConstructor() throws Exception {
+    RuntimeException cause = new RuntimeException("root");
+
+    MyCauseException ex = new MyCauseException(cause);
+
+    assertThat(ex.getCause(), is(cause));
+    assertThat(ex.getMessage(), equalTo(cause.toString()));
+  }
+
+  @Test
+  public void testExceptionCauseOnlyAnnotatedMessage() throws Exception {
+    RuntimeException cause = new RuntimeException("root");
+
+    MessageAnnotatedException ex = new MessageAnnotatedException(cause);
+
+    assertThat(ex.getCause(), is(cause));
+    assertThat(ex.getReason(), equalTo(cause.toString()));
+    assertThat(ex.getMessage(), equalTo(cause.toString()));
   }
 }

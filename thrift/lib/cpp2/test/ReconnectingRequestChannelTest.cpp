@@ -32,6 +32,7 @@
 #include <thrift/lib/cpp2/async/ReconnectingRequestChannel.h>
 #include <thrift/lib/cpp2/async/RocketClientChannel.h>
 #include <thrift/lib/cpp2/test/e2e/gen-cpp2/TestBiDiService.h>
+#include <thrift/lib/cpp2/test/gen-cpp2/Calculator.h>
 #include <thrift/lib/cpp2/test/gen-cpp2/TestService.h>
 #include <thrift/lib/cpp2/util/ScopedServerInterfaceThread.h>
 
@@ -393,3 +394,89 @@ TEST_F(ReconnectingRequestChannelBiDiTest, BiDiQueuedDuringReconnect) {
   }());
 }
 #endif
+
+namespace {
+
+struct CalculatorHandler : apache::thrift::ServiceHandler<Calculator> {
+  struct AdditionHandler
+      : apache::thrift::ServiceHandler<Calculator>::AdditionIf {
+    void accumulatePrimitive(int32_t) override {}
+  };
+
+  std::unique_ptr<AdditionIf> createAddition() override {
+    return std::make_unique<AdditionHandler>();
+  }
+
+  int32_t addPrimitive(int32_t a, int32_t b) override { return a + b; }
+};
+
+} // namespace
+
+class ReconnectingRequestChannelInteractionTest : public Test {
+ protected:
+  std::unique_ptr<Client<Calculator>> makeClient() {
+    return std::make_unique<Client<Calculator>>(
+        ReconnectingRequestChannel::newChannel(
+            *eb_,
+            [this](
+                folly::EventBase& evb,
+                folly::AsyncSocket::ConnectCallback& cb) {
+              SCOPE_EXIT {
+                cb.connectSuccess();
+              };
+              connections_.push_back(
+                  RocketClientChannel::newChannel(
+                      AsyncSocket::UniquePtr(new AsyncSocket(&evb, address_))));
+              return connections_.back();
+            }));
+  }
+
+  void restartServer() {
+    runner_ = std::make_unique<ScopedServerInterfaceThread>(handler_);
+    address_ = runner_->getAddress();
+  }
+
+  void runPostedTermination() { eb_->loopOnce(); }
+
+  folly::EventBase* eb_{folly::EventBaseManager::get()->getEventBase()};
+  std::shared_ptr<CalculatorHandler> handler_{
+      std::make_shared<CalculatorHandler>()};
+  std::unique_ptr<ScopedServerInterfaceThread> runner_{
+      std::make_unique<ScopedServerInterfaceThread>(handler_)};
+  folly::SocketAddress address_{runner_->getAddress()};
+  std::vector<ReconnectingRequestChannel::ImplPtr> connections_;
+};
+
+TEST_F(
+    ReconnectingRequestChannelInteractionTest,
+    TerminateAfterReconnectKeepsNewConnectionDetachable) {
+  auto client = makeClient();
+  {
+    auto addition = client->createAddition();
+    addition.sync_accumulatePrimitive(1);
+
+    restartServer();
+    EXPECT_THROW(client->sync_addPrimitive(1, 2), TTransportException);
+    EXPECT_EQ(client->sync_addPrimitive(1, 2), 3);
+  }
+  runPostedTermination();
+
+  ASSERT_EQ(connections_.size(), 2);
+  EXPECT_TRUE(connections_.back()->isDetachable());
+}
+
+TEST_F(
+    ReconnectingRequestChannelInteractionTest,
+    TerminateOnDeadConnectionDoesNotReconnect) {
+  auto client = makeClient();
+  {
+    auto addition = client->createAddition();
+    addition.sync_accumulatePrimitive(1);
+
+    restartServer();
+    EXPECT_THROW(client->sync_addPrimitive(1, 2), TTransportException);
+  }
+  runPostedTermination();
+
+  EXPECT_EQ(connections_.size(), 1);
+}

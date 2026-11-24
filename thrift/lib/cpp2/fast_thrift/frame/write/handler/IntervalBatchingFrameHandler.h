@@ -38,10 +38,8 @@
 #include <folly/io/IOBuf.h>
 #include <folly/io/IOBufQueue.h>
 #include <folly/io/async/EventBase.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Backpressure.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/IntervalBatchingHandlerConfig.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/handler/WriteCompletionTracker.h>
@@ -58,8 +56,6 @@ template <
     typename FlushEvent = typename Tracker::FlushWritesEventType>
 class IntervalBatchingFrameHandlerT {
  public:
-  channel_pipeline::WriteReadyHook writeReadyHook_;
-
   explicit IntervalBatchingFrameHandlerT(
       IntervalBatchingHandlerConfig config = {}) noexcept
       : config_(std::move(config)),
@@ -116,12 +112,6 @@ class IntervalBatchingFrameHandlerT {
     ++bufferedWritesCount_;
     tracker_.onWrite();
 
-    // While downstream is backpressured we still buffer, but don't schedule
-    // any flush — onWriteReady will drain when downstream is ready.
-    if (backpressured_) {
-      return channel_pipeline::Result::Backpressure;
-    }
-
     if (wasEmpty) {
       scheduleFlush();
     }
@@ -130,6 +120,9 @@ class IntervalBatchingFrameHandlerT {
       earlyFlush();
     }
 
+    if (backpressured_) {
+      return channel_pipeline::Result::Backpressure;
+    }
     return channel_pipeline::Result::Success;
   }
 
@@ -229,7 +222,7 @@ class IntervalBatchingFrameHandlerT {
   void scheduleDeferredFlush() noexcept { scheduler_.scheduleDeferredFlush(); }
 
   bool needsDeferredFlush() const noexcept {
-    if (bufferedWritesQueue_.empty() || isBackpressured()) {
+    if (bufferedWritesQueue_.empty()) {
       return false;
     }
     return config_.batchingInterval == std::chrono::milliseconds::zero() ||
@@ -308,11 +301,5 @@ class IntervalBatchingFrameHandlerT {
 // don't opt into per-write tracking.
 using IntervalBatchingFrameHandler =
     IntervalBatchingFrameHandlerT<NoOpWriteCompletionTracker>;
-
-static_assert(
-    apache::thrift::fast_thrift::channel_pipeline::OutboundHandler<
-        IntervalBatchingFrameHandler,
-        apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl>,
-    "IntervalBatchingFrameHandler must satisfy OutboundHandler concept");
 
 } // namespace apache::thrift::fast_thrift::frame::write::handler

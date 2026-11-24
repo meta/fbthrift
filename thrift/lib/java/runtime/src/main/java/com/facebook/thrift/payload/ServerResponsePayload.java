@@ -16,8 +16,11 @@
 
 package com.facebook.thrift.payload;
 
+import java.util.Objects;
+import javax.annotation.Nullable;
 import org.apache.thrift.ResponseRpcMetadata;
 import org.apache.thrift.StreamPayloadMetadata;
+import org.apache.thrift.TApplicationException;
 
 public interface ServerResponsePayload {
   /*
@@ -32,6 +35,14 @@ public interface ServerResponsePayload {
 
   boolean isTApplicationException();
 
+  /**
+   * The actual application exception this payload carries, or null for normal responses and
+   * IDL-declared errors. Header transports use the actual object, never header or writer identity,
+   * to decide overload classification. Every implementer forwards or stores it explicitly.
+   */
+  @Nullable
+  TApplicationException getApplicationException();
+
   ResponseRpcMetadata getResponseRpcMetadata();
 
   StreamPayloadMetadata getStreamPayloadMetadata();
@@ -44,19 +55,24 @@ public interface ServerResponsePayload {
       StreamPayloadMetadata streamPayloadMetadata,
       boolean hasStreamingResponse) {
     return new DefaultServerResponsePayload(
-        dataWriter, false, responseRpcMetadata, streamPayloadMetadata, hasStreamingResponse);
+        dataWriter, responseRpcMetadata, streamPayloadMetadata, hasStreamingResponse, null);
   }
 
+  /**
+   * Creates a response carrying a {@link TApplicationException} body. The actual exception is
+   * required: IDL-declared error payloads use {@link #create}, which carries no exception.
+   */
   static ServerResponsePayload createWithTApplicationException(
       Writer tApplicationExceptionWriter,
       ResponseRpcMetadata responseRpcMetadata,
       StreamPayloadMetadata streamPayloadMetadata,
-      boolean hasStreamingResponse) {
+      boolean hasStreamingResponse,
+      TApplicationException applicationException) {
     return new DefaultServerResponsePayload(
         tApplicationExceptionWriter,
-        true,
         responseRpcMetadata,
         streamPayloadMetadata,
-        hasStreamingResponse);
+        hasStreamingResponse,
+        Objects.requireNonNull(applicationException, "applicationException is null"));
   }
 }

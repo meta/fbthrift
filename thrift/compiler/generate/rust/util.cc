@@ -353,21 +353,21 @@ std::string camelcase(const std::string& name) {
   return camel.str();
 }
 
-std::string quote(const std::string& data, bool do_backslash) {
+std::string quote(const std::string& data, bool bytes) {
   std::ostringstream quoted;
-  quoted << '"';
+  quoted << (bytes ? "b\"" : "\"");
 
   for (auto ch : data) {
-    if (ch == '\\') {
-      quoted << "\\\\";
+    if (ch == '\\' || ch == '"') {
+      quoted << '\\' << ch;
     } else if (ch == '\t') {
       quoted << '\\' << 't';
     } else if (ch == '\r') {
       quoted << '\\' << 'r';
     } else if (ch == '\n') {
       quoted << '\\' << 'n';
-    } else if ((do_backslash && ch == '\\') || ch == '"') {
-      quoted << '\\' << ch;
+    } else if (bytes && static_cast<unsigned char>(ch) >= 0x7f) {
+      quoted << fmt::format("\\x{:02x}", static_cast<unsigned char>(ch));
     } else if (ch < '\x7f') {
       quoted << ch;
     } else {

@@ -50,3 +50,24 @@ namespace py thrift.annotation.internal
 struct InjectMetadataFields {
   1: string type;
 }
+
+// Makes a C++ struct or union allocator-aware, using allocator type `name`.
+@scope.Struct
+@scope.Union
+struct CppAllocator {
+  1: string name;
+}
+
+// Constructs the field with the allocator of its `@internal.CppAllocator`
+// struct or union.
+@scope.Field
+@scope.Typedef
+struct CppUseAllocator {}
+
+// Gets the allocator from the field `name` instead of storing it. Needs
+// `@internal.CppAllocator`, and the field must have a `get_allocator()`, so it
+// must be a non-reference `@internal.CppUseAllocator` field.
+@scope.Struct
+struct CppAllocatorVia {
+  1: string name;
+}

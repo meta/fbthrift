@@ -77,6 +77,38 @@ class MyService_MyInteraction(thrift.py3.client.Client):
         rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
     ) -> _test_fixtures_interactions_module_types.ClientBufferedStream__bool: ...
 
+    async def failstream(
+        self,
+        *,
+        rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
+    ) -> _test_fixtures_interactions_module_types.ClientBufferedStream__i32: ...
+
+    async def failstreaminit(
+        self,
+        *,
+        rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
+    ) -> _test_fixtures_interactions_module_types.ClientBufferedStream__i32: ...
+
+    async def frobnicateWithArg(
+        self,
+        arg: int,
+        *,
+        rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
+    ) -> int: ...
+
+    async def streamWithArg(
+        self,
+        query: str,
+        *,
+        rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
+    ) -> _test_fixtures_interactions_module_types.ClientBufferedStream__i32: ...
+
+    async def firstAndStream(
+        self,
+        *,
+        rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
+    ) -> _test_fixtures_interactions_module_types.ResponseAndClientBufferedStream__i32_i32: ...
+
 
 _MyService_MyInteractionFast = _typing.TypeVar('_MyService_MyInteractionFast', bound='MyService_MyInteractionFast')
 
@@ -145,6 +177,18 @@ class Factories(thrift.py3.client.Client):
         rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
     ) -> _test_fixtures_interactions_module_types.ResponseAndClientBufferedStream__i32_i32: ...
 
+    async def interactWithStream(
+        self,
+        *,
+        rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
+    ) -> _test_fixtures_interactions_module_types.ClientBufferedStream__i32: ...
+
+    async def interactWithStreamAndInitialResponse(
+        self,
+        *,
+        rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
+    ) -> _test_fixtures_interactions_module_types.ResponseAndClientBufferedStream__i32_i32: ...
+
 
 
 _PerformT = _typing.TypeVar('_PerformT', bound='Perform')
@@ -187,6 +231,38 @@ class Perform_MyInteraction(thrift.py3.client.Client):
         *,
         rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
     ) -> _test_fixtures_interactions_module_types.ClientBufferedStream__bool: ...
+
+    async def failstream(
+        self,
+        *,
+        rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
+    ) -> _test_fixtures_interactions_module_types.ClientBufferedStream__i32: ...
+
+    async def failstreaminit(
+        self,
+        *,
+        rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
+    ) -> _test_fixtures_interactions_module_types.ClientBufferedStream__i32: ...
+
+    async def frobnicateWithArg(
+        self,
+        arg: int,
+        *,
+        rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
+    ) -> int: ...
+
+    async def streamWithArg(
+        self,
+        query: str,
+        *,
+        rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
+    ) -> _test_fixtures_interactions_module_types.ClientBufferedStream__i32: ...
+
+    async def firstAndStream(
+        self,
+        *,
+        rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
+    ) -> _test_fixtures_interactions_module_types.ResponseAndClientBufferedStream__i32_i32: ...
 
 
 _Perform_MyInteractionFast = _typing.TypeVar('_Perform_MyInteractionFast', bound='Perform_MyInteractionFast')
@@ -264,6 +340,38 @@ class InteractWithShared_MyInteraction(thrift.py3.client.Client):
         *,
         rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
     ) -> _test_fixtures_interactions_module_types.ClientBufferedStream__bool: ...
+
+    async def failstream(
+        self,
+        *,
+        rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
+    ) -> _test_fixtures_interactions_module_types.ClientBufferedStream__i32: ...
+
+    async def failstreaminit(
+        self,
+        *,
+        rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
+    ) -> _test_fixtures_interactions_module_types.ClientBufferedStream__i32: ...
+
+    async def frobnicateWithArg(
+        self,
+        arg: int,
+        *,
+        rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
+    ) -> int: ...
+
+    async def streamWithArg(
+        self,
+        query: str,
+        *,
+        rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
+    ) -> _test_fixtures_interactions_module_types.ClientBufferedStream__i32: ...
+
+    async def firstAndStream(
+        self,
+        *,
+        rpc_options: _typing.Optional[thrift.py3.common.RpcOptions]=None
+    ) -> _test_fixtures_interactions_module_types.ResponseAndClientBufferedStream__i32_i32: ...
 
 
 _InteractWithShared_SharedInteraction = _typing.TypeVar('_InteractWithShared_SharedInteraction', bound='InteractWithShared_SharedInteraction')

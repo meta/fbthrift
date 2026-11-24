@@ -81,7 +81,7 @@ std::partial_ordering ByteAnnotation::operator<=>([[maybe_unused]] const ByteAnn
 
 void swap([[maybe_unused]] ByteAnnotation& a, [[maybe_unused]] ByteAnnotation& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_value, b.__fbthrift_field_value);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_value, b.__fbthrift_field_value);
   swap(a.__isset, b.__isset);
 }
 
@@ -148,7 +148,7 @@ std::partial_ordering Annotated::operator<=>([[maybe_unused]] const Annotated& r
 
 void swap([[maybe_unused]] Annotated& a, [[maybe_unused]] Annotated& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_field, b.__fbthrift_field_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field, b.__fbthrift_field_field);
   swap(a.__isset, b.__isset);
 }
 

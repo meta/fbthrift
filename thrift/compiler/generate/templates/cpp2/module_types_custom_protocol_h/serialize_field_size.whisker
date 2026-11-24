@@ -39,16 +39,18 @@
       {{#else}}
       xfer += ::apache::thrift::adapt_detail::serializedSize<false, {{field.type_tag}}, {{field.cpp_first_adapter}}>(*prot_, {{#if field.cpp_ref?}}*{{/if}}{{#partial fields.member field=field struct=struct}}, [&] {return {{#partial custom_protocol.protocol_methods field=field}}::serializedSize<false>(*prot_, {{#partial custom_protocol.protocol_methods_value field=field struct=struct}});});
       {{/if field.use_op_encode?}}
-      {{#if (or field.type.container? field.type.enum?)}}
+      {{#if field.type.container?}}
     } else {
       xfer += prot_->serializedSize{{#partial custom_protocol.struct_field_type type=type}}Begin({{#partial custom_protocol.container_struct_type type=type}}, 0);
       xfer += prot_->serializedSize{{#partial custom_protocol.struct_field_type type=type}}End();
-      {{/if (or field.type.container? field.type.enum?)}}
-      {{#if field.type.structured?}}
+      {{#else if field.type.structured?}}
     } else {
       xfer += prot_->serializedStructSize("{{field.type.name}}");
       xfer += prot_->serializedSizeStop();
-      {{/if field.type.structured?}}
+      {{#else}}
+    } else {
+      xfer += prot_->serializedSize{{#partial custom_protocol.struct_field_type type=type}}({{#partial custom_protocol.intrinsic_default type=type}});
+      {{/if field.type.container?}}
     }
     {{#else if field.use_op_encode?}}
     xfer += ::apache::thrift::op::serialized_size<false, {{field.type_tag}}>(*prot_, {{#if field.cpp_ref?}}*{{/if}}{{#partial fields.member field=field struct=struct}});

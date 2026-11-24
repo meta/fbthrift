@@ -53,7 +53,7 @@ namespace apache::thrift::fast_thrift::rocket::server {
  *   adapter.setOnError([&](exception_wrapper&& e) noexcept { ... });
  *
  *   // 2. Build rocket pipeline with adapter as tail
- *   auto pipeline = PipelineBuilder<
+ *   auto pipeline = StaticPipelineBuilder<
  *       TransportHandler, RocketServerAppAdapter, Allocator>()
  *       .setHead(transportHandler)
  *       .setTail(&adapter)
@@ -200,7 +200,7 @@ class RocketServerAppAdapter : public folly::DelayedDestruction {
   template <typename Context>
   channel_pipeline::Result onRead(
       Context&, channel_pipeline::TypeErasedBox&& msg) noexcept {
-    if (FOLLY_UNLIKELY(!onRequest_)) {
+    if (!onRequest_) [[unlikely]] {
       return channel_pipeline::Result::Error;
     }
     return onRequest_(std::move(msg));
@@ -211,7 +211,7 @@ class RocketServerAppAdapter : public folly::DelayedDestruction {
    * Forwards to the registered onError callback.
    */
   void onException(folly::exception_wrapper&& e) noexcept {
-    if (FOLLY_UNLIKELY(!onError_)) {
+    if (!onError_) [[unlikely]] {
       return;
     }
     onError_(std::move(e));
@@ -269,7 +269,7 @@ class RocketServerAppAdapter : public folly::DelayedDestruction {
   template <channel_pipeline::PipelineEvent E>
     requires std::same_as<E, RocketWriteCompleteEvent>
   void on(const RocketWriteCompleteEvent& event) noexcept {
-    if (FOLLY_LIKELY(static_cast<bool>(onWriteComplete_))) {
+    if (static_cast<bool>(onWriteComplete_)) [[likely]] {
       onWriteComplete_(event);
     }
   }

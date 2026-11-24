@@ -28,13 +28,17 @@ from typing import ClassVar, Protocol as TypingProtocol
 
 from thrift.lib.python.schema._binary_protocol import BinaryReader, BinaryWriter
 from thrift.lib.python.schema._compact_protocol import CompactReader, CompactWriter
-from thrift.lib.python.schema._simple_json_protocol import SimpleJsonWriter
+from thrift.lib.python.schema._simple_json_protocol import (
+    SimpleJsonReader,
+    SimpleJsonWriter,
+)
 from thrift.lib.python.schema._ttypes import Protocol
 
 
 class ProtocolReader(TypingProtocol):
     """Reads one value from a complete buffer. Containers and structs count
-    toward a nesting limit of ``_ttypes.PROTOCOL_MAX_DEPTH``."""
+    toward a nesting limit of ``_ttypes.PROTOCOL_MAX_DEPTH``. A reader whose
+    protocol omits wire types returns ``T_VOID`` for them."""
 
     protocol: ClassVar[Protocol]
     uses_field_names: ClassVar[bool]
@@ -47,9 +51,10 @@ class ProtocolReader(TypingProtocol):
 
     def read_struct_begin(self) -> None: ...
     def read_struct_end(self) -> None: ...
-    def read_field_begin(self) -> tuple[int, int]:
-        """``(ttype, field_id)``; ``ttype`` is ``T_STOP`` after the last
-        field."""
+    def read_field_begin(self) -> tuple[int, int, str]:
+        """``(ttype, field_id, name)``; ``ttype`` is ``T_STOP`` after the last
+        field. ``name`` is empty unless the reader ``uses_field_names``, and
+        ``field_id`` is ``_ttypes.NO_FIELD_ID`` if the input has only the name."""
         ...
 
     def read_field_end(self) -> None: ...
@@ -131,7 +136,11 @@ def available_backends() -> tuple[Backend, ...]:
     return (
         Backend(
             name="python",
-            readers={Protocol.BINARY: BinaryReader, Protocol.COMPACT: CompactReader},
+            readers={
+                Protocol.BINARY: BinaryReader,
+                Protocol.COMPACT: CompactReader,
+                Protocol.SIMPLE_JSON: SimpleJsonReader,
+            },
             writers={
                 Protocol.BINARY: BinaryWriter,
                 Protocol.COMPACT: CompactWriter,

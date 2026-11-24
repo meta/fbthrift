@@ -9,3 +9,30 @@
 #include "thrift/compiler/test/fixtures/bidi/gen-cpp2/module_types.h"
 
 #include <thrift/lib/cpp2/gen/module_types_tcc.h>
+
+namespace cpp2 {
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& BiDiSinkException::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_message;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool BiDiSinkException::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& BiDiStreamException::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_message;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool BiDiStreamException::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE const auto& BiDiMethodException::__fbthrift_get_field_storage<1>() const {
+  return this->__fbthrift_field_message;
+}
+template <>
+FBTHRIFT_NODEBUG FOLLY_ERASE bool BiDiMethodException::__fbthrift_get_field_isset<1>() const {
+  return this->__isset.get(0);
+}
+} // namespace cpp2

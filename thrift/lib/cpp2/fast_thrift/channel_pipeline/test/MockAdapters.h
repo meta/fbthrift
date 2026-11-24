@@ -46,6 +46,7 @@ class MockHeadHandler {
   using OnWriteWithContextCallback =
       std::function<Result(detail::ContextImpl&, TypeErasedBox&&)>;
   using OnWriteReadyCallback = std::function<void(detail::ContextImpl&)>;
+  using OnReadReadyCallback = std::function<void()>;
   using OnExceptionCallback = std::function<void(folly::exception_wrapper&&)>;
 
   MockHeadHandler() = default;
@@ -88,7 +89,12 @@ class MockHeadHandler {
       onWriteReadyCallback_(ctx);
     }
   }
-  void onReadReady() noexcept { onReadReadyCount_++; }
+  void onReadReady() noexcept {
+    onReadReadyCount_++;
+    if (onReadReadyCallback_) {
+      onReadReadyCallback_();
+    }
+  }
 
   // Configuration
   void setWriteResult(Result result) { writeResult_ = result; }
@@ -101,6 +107,9 @@ class MockHeadHandler {
   }
   void setOnWriteReadyCallback(OnWriteReadyCallback cb) {
     onWriteReadyCallback_ = std::move(cb);
+  }
+  void setOnReadReadyCallback(OnReadReadyCallback cb) {
+    onReadReadyCallback_ = std::move(cb);
   }
 
   void setOnExceptionCallback(OnExceptionCallback cb) {
@@ -131,6 +140,7 @@ class MockHeadHandler {
     onWriteCallback_ = nullptr;
     onWriteWithContextCallback_ = nullptr;
     onWriteReadyCallback_ = nullptr;
+    onReadReadyCallback_ = nullptr;
     onExceptionCallback_ = nullptr;
     handlerAddedCount_ = 0;
     handlerRemovedCount_ = 0;
@@ -150,6 +160,7 @@ class MockHeadHandler {
   OnWriteCallback onWriteCallback_;
   OnWriteWithContextCallback onWriteWithContextCallback_;
   OnWriteReadyCallback onWriteReadyCallback_;
+  OnReadReadyCallback onReadReadyCallback_;
   OnExceptionCallback onExceptionCallback_;
   int handlerAddedCount_{0};
   int handlerRemovedCount_{0};
@@ -195,7 +206,12 @@ class MockTailHandler {
   void onPipelineInactive() noexcept { pipelineInactiveCount_++; }
 
   // TailEndpointHandler ready notification
-  void onWriteReady() noexcept { onWriteReadyCount_++; }
+  void onWriteReady() noexcept {
+    onWriteReadyCount_++;
+    if (onWriteReadyCallback_) {
+      onWriteReadyCallback_();
+    }
+  }
 
   // Configuration
   void setReadResult(Result result) { readResult_ = result; }
@@ -204,6 +220,10 @@ class MockTailHandler {
 
   void setOnExceptionCallback(OnExceptionCallback cb) {
     onExceptionCallback_ = std::move(cb);
+  }
+
+  void setOnWriteReadyCallback(std::function<void()> cb) {
+    onWriteReadyCallback_ = std::move(cb);
   }
 
   // Inspection
@@ -229,6 +249,7 @@ class MockTailHandler {
     pipelineActiveCount_ = 0;
     pipelineInactiveCount_ = 0;
     onWriteReadyCount_ = 0;
+    onWriteReadyCallback_ = nullptr;
   }
 
  private:
@@ -238,11 +259,34 @@ class MockTailHandler {
   Result readResult_{Result::Success};
   OnReadCallback onReadCallback_;
   OnExceptionCallback onExceptionCallback_;
+  std::function<void()> onWriteReadyCallback_;
   int handlerAddedCount_{0};
   int handlerRemovedCount_{0};
   int pipelineActiveCount_{0};
   int pipelineInactiveCount_{0};
   int onWriteReadyCount_{0};
+};
+
+// The context-free observation callbacks can also record static dispatch.
+class StaticMockHeadHandler : public MockHeadHandler {
+ public:
+  template <typename Context>
+  Result onWrite(Context&, TypeErasedBox&& msg) noexcept {
+    return MockHeadHandler::onWrite(inertEndpointContext(), std::move(msg));
+  }
+
+  template <typename Context>
+  void onWriteReady(Context&) noexcept {
+    MockHeadHandler::onWriteReady(inertEndpointContext());
+  }
+};
+
+class StaticMockTailHandler : public MockTailHandler {
+ public:
+  template <typename Context>
+  Result onRead(Context&, TypeErasedBox&& msg) noexcept {
+    return MockTailHandler::onRead(inertEndpointContext(), std::move(msg));
+  }
 };
 
 /**

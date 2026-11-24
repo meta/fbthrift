@@ -18,7 +18,10 @@ import asyncio
 import inspect
 import threading
 from collections.abc import Awaitable, Callable
-from typing import Protocol
+from typing import Protocol, TypeVar
+
+
+_T = TypeVar("_T")
 
 
 class AsyncioWorkerCleanup(Protocol):
@@ -36,6 +39,27 @@ async def _await_initialization(
     initialization: Awaitable[AsyncioWorkerInitializationResult],
 ) -> AsyncioWorkerInitializationResult:
     return await initialization
+
+
+def launch_worker_task(
+    release_lease: Callable[[], None],
+    coroutine_factory: Callable[[], Awaitable[_T]],
+) -> asyncio.Task[_T]:
+    async def run() -> _T:
+        # While the request's first step runs, the scheduler must not assign
+        # this worker more work. Release the lease on the loop's next
+        # iteration, once the request first suspends or finishes, so the worker
+        # can take new work while this request waits.
+        asyncio.get_running_loop().call_soon(release_lease)
+        return await coroutine_factory()
+
+    coroutine = run()
+    task = asyncio.get_running_loop().create_task(coroutine)
+    # The done callback covers a task that ends before its first step runs,
+    # such as one cancelled early. A second release does nothing, because the
+    # releaser only drops its lease reference.
+    task.add_done_callback(lambda _completed_task: release_lease())
+    return task
 
 
 class AsyncioWorker:

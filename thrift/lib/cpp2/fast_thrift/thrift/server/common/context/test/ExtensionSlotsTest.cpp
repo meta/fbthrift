@@ -58,9 +58,18 @@ struct DeltaExtension {
 struct OwnedExtension {
   EXTENSION_ID(owned);
   struct RequestState {
+    explicit RequestState(int value) : value(value) {}
     explicit RequestState(int* destructions) : destructions(destructions) {}
-    ~RequestState() { ++*destructions; }
-    int* destructions;
+    ~RequestState() {
+      ++destructionCount;
+      if (destructions != nullptr) {
+        ++*destructions;
+      }
+    }
+
+    int value{0};
+    int* destructions{nullptr};
+    static inline int destructionCount{0};
   };
 };
 
@@ -121,6 +130,25 @@ TEST(ExtensionSlotsTest, PublishedStateIsFoundAndNotCopied) {
   ASSERT_EQ(found, &owned);
   owned.value = 42;
   EXPECT_EQ(found->value, 42);
+}
+
+TEST(ExtensionSlotsTest, OwnedStateLivesWithSlots) {
+  ExtensionLayoutBuilder builder;
+  builder.addOwned<OwnedExtension::RequestState>(OwnedExtension::kId);
+  const ExtensionLayout layout = std::move(builder).build();
+  OwnedExtension::RequestState::destructionCount = 0;
+
+  {
+    ExtensionSlots slots;
+    slots.install(layout);
+    auto& state =
+        slots.emplace<OwnedExtension::RequestState>(OwnedExtension::kId, 42);
+    EXPECT_EQ(state.value, 42);
+    EXPECT_EQ(
+        slots.find<OwnedExtension::RequestState>(OwnedExtension::kId), &state);
+  }
+
+  EXPECT_EQ(OwnedExtension::RequestState::destructionCount, 1);
 }
 
 TEST(ExtensionSlotsTest, ClearingASlotLeavesNothingToRead) {

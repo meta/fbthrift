@@ -38,6 +38,7 @@ import com.facebook.thrift.server.ServerTransport;
 import com.facebook.thrift.util.RpcServerUtils;
 import com.facebook.thrift.util.TransportType;
 import io.airlift.units.Duration;
+import io.netty.handler.ssl.ClientAuth;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
@@ -390,7 +391,10 @@ public class ClientRuntimeThriftClientTest {
   private static ServerTransport createRSocketServer(RpcServerHandler serverHandler) {
     // RSocket SSL currently assumes a dedicated listener; ALPN negotiation lands separately.
     return new RSocketServerTransportFactory(
-            new ThriftServerConfig().setSslEnabled(true).setEnableJdkSsl(false))
+            new ThriftServerConfig()
+                .setClientAuth(ClientAuth.OPTIONAL)
+                .setSslEnabled(true)
+                .setEnableJdkSsl(false))
         .createServerTransport(serverHandler)
         .block();
   }
@@ -444,7 +448,10 @@ public class ClientRuntimeThriftClientTest {
   private static ServerTransport createServer(
       TransportType transportType, RpcServerHandler serverHandler) {
     return RpcServerUtils.createServerTransport(
-            new ThriftServerConfig().setSslEnabled(false).setEnableJdkSsl(false),
+            new ThriftServerConfig()
+                .setClientAuth(ClientAuth.OPTIONAL)
+                .setSslEnabled(false)
+                .setEnableJdkSsl(false),
             transportType,
             serverHandler)
         .block();

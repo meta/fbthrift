@@ -114,6 +114,23 @@ TEST(AccumulatingTypeSystemTest, IdenticalDefinitionsAreDeduplicated) {
   EXPECT_TRUE(ts.getUserDefinedType("test.thrift/Foo").has_value());
 }
 
+TEST(AccumulatingTypeSystemTest, TerseFieldWithCustomDefaultIsRejected) {
+  auto batch = makeTs("test.thrift/Foo", {{1, "a"}});
+  auto& field = batch.types()
+                    ->at("test.thrift/Foo")
+                    .definition()
+                    ->structDef()
+                    ->fields()
+                    ->at(0);
+  field.presence() = PresenceQualifier::TERSE;
+  field.customDefaultPartialRecord() =
+      SerializableRecord::toThrift(SerializableRecord::Int32(42));
+
+  AccumulatingTypeSystem ts;
+  EXPECT_THROW(ts.addTypes(batch), InvalidTypeError);
+  EXPECT_TRUE(ts.empty());
+}
+
 TEST(AccumulatingTypeSystemTest, UnresolvableReferenceLeavesInstanceUnchanged) {
   AccumulatingTypeSystem ts;
   // Foo references a URI that exists nowhere. Structural validation passes, so

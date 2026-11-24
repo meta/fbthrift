@@ -176,16 +176,14 @@ class PluggableFunction<Ret(Args...)> {
   extern const ::apache::thrift::detail::PluggableFunction<_ret(__VA_ARGS__)> \
       _name
 
-#define THRIFT_PLUGGABLE_FUNC_REGISTER(_ret, _name, ...)                     \
-  FOLLY_STORAGE_CONSTEXPR const ::apache::thrift::detail::PluggableFunction< \
-      _ret(__VA_ARGS__)>                                                     \
-      _name{THRIFT__PLUGGABLE_FUNC_DEFAULT_##_name, #_name, false};          \
+#define THRIFT_PLUGGABLE_FUNC_REGISTER(_ret, _name, ...)                      \
+  const ::apache::thrift::detail::PluggableFunction<_ret(__VA_ARGS__)> _name{ \
+      THRIFT__PLUGGABLE_FUNC_DEFAULT_##_name, #_name, false};                 \
   _ret THRIFT__PLUGGABLE_FUNC_DEFAULT_##_name(__VA_ARGS__)
 
-#define THRIFT_PLUGGABLE_FUNC_REGISTER_ALLOW_LATE_OVERRIDE(_ret, _name, ...) \
-  FOLLY_STORAGE_CONSTEXPR const ::apache::thrift::detail::PluggableFunction< \
-      _ret(__VA_ARGS__)>                                                     \
-      _name{THRIFT__PLUGGABLE_FUNC_DEFAULT_##_name, #_name, true};           \
+#define THRIFT_PLUGGABLE_FUNC_REGISTER_ALLOW_LATE_OVERRIDE(_ret, _name, ...)  \
+  const ::apache::thrift::detail::PluggableFunction<_ret(__VA_ARGS__)> _name{ \
+      THRIFT__PLUGGABLE_FUNC_DEFAULT_##_name, #_name, true};                  \
   _ret THRIFT__PLUGGABLE_FUNC_DEFAULT_##_name(__VA_ARGS__)
 
 #define THRIFT_PLUGGABLE_FUNC_SET(_ret, _name, ...)      \

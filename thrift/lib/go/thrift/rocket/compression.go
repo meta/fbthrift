@@ -22,6 +22,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
+	"sync"
+	"sync/atomic"
 
 	"github.com/facebook/fbthrift/thrift/lib/thrift/rpcmetadata"
 	"github.com/klauspost/compress/zstd"
@@ -82,33 +84,112 @@ func MaybeDecompress(data []byte, compression rpcmetadata.CompressionAlgorithm) 
 // Requests may be compressed by the client after they have been serialized as described in #Request-serialization. If the request was compressed, the compression algorithm must be specified in the request metadata.
 // Reference: https://www.internalfb.com/intern/staticdocs/thrift/docs/fb/server/interface/#request-compression
 func compressZstd(data []byte) ([]byte, error) {
-	return compressZstdWithLevel(data, zstd.SpeedDefault)
+	return compressZstdWithPool(data, zstdEncodersDefault)
 }
 
 func compressZstdLess(data []byte) ([]byte, error) {
-	return compressZstdWithLevel(data, zstd.SpeedFastest)
+	return compressZstdWithPool(data, zstdEncodersLess)
 }
 
 func compressZstdMore(data []byte) ([]byte, error) {
-	return compressZstdWithLevel(data, zstd.SpeedBestCompression)
+	return compressZstdWithPool(data, zstdEncodersMore)
 }
 
-func compressZstdWithLevel(data []byte, level zstd.EncoderLevel) ([]byte, error) {
-	z, err := zstd.NewWriter(nil, zstd.WithEncoderLevel(level), zstd.WithEncoderConcurrency(1))
+// zstdPool reuses zstd encoders or decoders, which are costly to create (an
+// encoder has 0.25 MB to 34 MB of match tables). The hot item is used first:
+// any goroutine can take it and the GC never frees it, so calls that do not
+// overlap never create a new one. Other items go to a sync.Pool, which the GC
+// empties when they are idle.
+type zstdPool[T any] struct {
+	hot  atomic.Pointer[T]
+	pool sync.Pool
+	new  func() (*T, error)
+}
+
+func (p *zstdPool[T]) get() (*T, error) {
+	if z := p.hot.Swap(nil); z != nil {
+		return z, nil
+	}
+	if z, ok := p.pool.Get().(*T); ok {
+		return z, nil
+	}
+	return p.new()
+}
+
+func (p *zstdPool[T]) put(z *T, mayBeHot bool) {
+	if mayBeHot && p.hot.CompareAndSwap(nil, z) {
+		return
+	}
+	p.pool.Put(z)
+}
+
+// zstdPooledWindow is the window of pooled encoders. An encoder keeps a history
+// buffer of twice its window for good: 1 MB with this window, instead of 8 MB
+// (ZSTD_LESS) or 16 MB with the default windows. It allocates the buffer for
+// its first payload larger than one block, or for its first payload at
+// ZSTD_MORE. A payload that fits in the window gets the same bytes as with the
+// default window,
+// because zstd finds no match before the start of the payload. A larger
+// payload gets a new encoder with the default window, which is not pooled.
+// Between calls, an encoder keeps no reference to the caller's slices, only
+// copies of parts of its last payload in its own buffers.
+const zstdPooledWindow = 512 << 10
+
+type zstdEncoderPool struct {
+	zstdPool[zstd.Encoder]
+	level zstd.EncoderLevel
+	// mayBeHot is false for a level whose encoders are too large to keep for
+	// good.
+	mayBeHot bool
+}
+
+func newZstdEncoderPool(level zstd.EncoderLevel, mayBeHot bool) *zstdEncoderPool {
+	p := &zstdEncoderPool{level: level, mayBeHot: mayBeHot}
+	p.new = func() (*zstd.Encoder, error) {
+		return zstd.NewWriter(nil, zstd.WithEncoderLevel(level), zstd.WithEncoderConcurrency(1), zstd.WithWindowSize(zstdPooledWindow))
+	}
+	return p
+}
+
+var (
+	zstdEncodersDefault = newZstdEncoderPool(zstd.SpeedDefault, true)
+	zstdEncodersLess    = newZstdEncoderPool(zstd.SpeedFastest, true)
+	// The best level has 34 MB of match tables.
+	zstdEncodersMore = newZstdEncoderPool(zstd.SpeedBestCompression, false)
+	zstdDecoders     = &zstdPool[zstd.Decoder]{new: func() (*zstd.Decoder, error) {
+		return zstd.NewReader(nil, zstd.WithDecoderConcurrency(1))
+	}}
+)
+
+func compressZstdWithPool(data []byte, encoders *zstdEncoderPool) ([]byte, error) {
+	if len(data) > zstdPooledWindow {
+		z, err := zstd.NewWriter(nil, zstd.WithEncoderLevel(encoders.level), zstd.WithEncoderConcurrency(1))
+		if err != nil {
+			return nil, err
+		}
+		defer z.Close()
+		return z.EncodeAll(data, nil), nil
+	}
+	z, err := encoders.get()
 	if err != nil {
 		return nil, err
 	}
-	defer z.Close()
-	return z.EncodeAll(data, nil), nil
+	out := z.EncodeAll(data, nil)
+	encoders.put(z, encoders.mayBeHot)
+	return out, nil
 }
 
 func decompressZstd(data []byte) ([]byte, error) {
-	z, err := zstd.NewReader(nil, zstd.WithDecoderConcurrency(1))
+	z, err := zstdDecoders.get()
 	if err != nil {
 		return nil, err
 	}
-	defer z.Close()
-	return z.DecodeAll(data, nil)
+	// Since klauspost/compress v1.20.4, DecodeAll keeps no reference to data
+	// or out after it returns, so a pooled decoder does not keep a payload
+	// alive.
+	out, err := z.DecodeAll(data, nil)
+	zstdDecoders.put(z, true)
+	return out, err
 }
 
 func compressZlib(data []byte) ([]byte, error) {

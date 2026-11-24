@@ -37,7 +37,7 @@ folly::Try<std::unique_ptr<folly::IOBuf>> decode_stream_exception(
     folly::exception_wrapper ew) {
   using IOBufTry = folly::Try<std::unique_ptr<folly::IOBuf>>;
   IOBufTry ret;
-  std::move(ew).handle(
+  ew.handle(
       [&ret](apache::thrift::detail::EncodedError& err) {
         ret = IOBufTry(std::move(err.encoded));
       },
@@ -48,8 +48,10 @@ folly::Try<std::unique_ptr<folly::IOBuf>> decode_stream_exception(
         DCHECK_EQ(
             folly::to_underlying(payload.metadata.payloadMetadata()->getType()),
             folly::to_underlying(PayloadMetadata::Type::exceptionMetadata));
-        auto& exceptionMetadataBase =
-            payload.metadata.payloadMetadata()->get_exceptionMetadata();
+        auto& exceptionMetadataBase = payload.metadata.payloadMetadata()
+                                          ->exceptionMetadata()
+                                          .as_const()
+                                          .value();
         if (auto exceptionMetadataRef = exceptionMetadataBase.metadata()) {
           if (exceptionMetadataRef->getType() ==
               PayloadExceptionMetadata::Type::declaredException) {
@@ -88,7 +90,7 @@ folly::Try<std::unique_ptr<folly::IOBuf>> decode_stream_exception(
         ret = IOBufTry(TApplicationException(
             exType, streamRpcError.what_utf8().value_or("")));
       },
-      [](...) {});
+      [&ret, &ew](...) { ret = IOBufTry(ew); });
 
   return ret;
 }

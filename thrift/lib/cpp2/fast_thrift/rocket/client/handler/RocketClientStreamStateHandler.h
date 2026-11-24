@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <glog/logging.h>
 #include <folly/ExceptionWrapper.h>
 #include <folly/lang/Assume.h>
 #include <folly/logging/xlog.h>
@@ -23,7 +24,6 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Handler.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/DirectStreamMap.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameViews.h>
@@ -47,8 +47,8 @@ namespace apache::thrift::fast_thrift::rocket::client::handler {
  *
  * Per-stream state lives in the pipeline-level `RocketClientStreamContexts`
  * state, registered once per connection via
- * `PipelineBuilder::addState<RocketClientStreamContexts>()` and reached here
- * through `ctx.state<RocketClientStreamContexts>()`. This handler owns the
+ * `StaticPipelineBuilder::addState<RocketClientStreamContexts>()` and reached
+ * here through `ctx.state<RocketClientStreamContexts>()`. This handler owns the
  * entry lifecycle (insert on stream-open, erase on terminal) so the other
  * client rocket handlers can share the same map without their own
  * bookkeeping. The pipeline owns the map's lifetime; this handler does not
@@ -81,8 +81,10 @@ class RocketClientStreamStateHandler {
   RocketClientStreamStateHandler() = default;
 
   using PublishedEvents = channel_pipeline::Events<RocketWriteCompleteEvent>;
-  using SubscribedEvents = channel_pipeline::
-      Events<FrameWriteCompleteEvent, RocketCancelRequestEvent>;
+  using SubscribedEvents = channel_pipeline::Events<
+      FrameWriteCompleteEvent,
+      RocketCancelRequestEvent,
+      RocketTerminateStreamEvent>;
 
   // === HandlerLifecycle ===
 
@@ -131,9 +133,9 @@ class RocketClientStreamStateHandler {
     auto& response = msg.get<RocketResponseMessage>();
 
     // Hot path: parsed wire frame.
-    if (FOLLY_LIKELY(
-            response.payload
-                .is<apache::thrift::fast_thrift::frame::read::ParsedFrame>())) {
+    if (response.payload
+            .is<apache::thrift::fast_thrift::frame::read::ParsedFrame>())
+        [[likely]] {
       auto& parsed =
           response.payload
               .get<apache::thrift::fast_thrift::frame::read::ParsedFrame>();
@@ -248,9 +250,8 @@ class RocketClientStreamStateHandler {
         });
 
     auto result = ctx.fireWrite(std::move(msg));
-    if (FOLLY_UNLIKELY(
-            result ==
-            apache::thrift::fast_thrift::channel_pipeline::Result::Error)) {
+    if (result == apache::thrift::fast_thrift::channel_pipeline::Result::Error)
+        [[unlikely]] {
       // Rollback: this request was queued but never reached the wire.
       // Fail it as an unwritten request — matches legacy
       // RocketClient::failAllScheduledWrites semantics. No-op if the
@@ -280,6 +281,18 @@ class RocketClientStreamStateHandler {
   void onWriteReady(Context& /*ctx*/) noexcept {}
 
   // === EventSubscriber ===
+
+  template <channel_pipeline::PipelineEvent E, typename Context>
+    requires std::same_as<E, RocketTerminateStreamEvent>
+  void on(Context& /*ctx*/, const RocketTerminateStreamEvent& event) noexcept {
+    auto it = streams().find(event.streamId);
+    if (it == streams().end()) {
+      return;
+    }
+    DCHECK(!event.response.requestContext);
+    event.response.requestContext = std::move(it->second.requestContext);
+    streams().erase(it);
+  }
 
   template <channel_pipeline::PipelineEvent E, typename Context>
     requires std::same_as<E, FrameWriteCompleteEvent>
@@ -348,7 +361,7 @@ class RocketClientStreamStateHandler {
       XCHECK_LE(++iter, maxIter)
           << "generateStreamId collision loop exceeded live-stream bound";
     } while (hitMaxStreamId_ && streams().contains(id));
-    if (FOLLY_UNLIKELY(id == kMaxStreamId)) {
+    if (id == kMaxStreamId) [[unlikely]] {
       nextStreamId_ = 1;
       hitMaxStreamId_ = true;
     }
@@ -433,8 +446,8 @@ class RocketClientStreamStateHandler {
 
   /**
    * Mechanism: synthesize a RocketResponseError for one stream and route
-   * it inbound via `fireRead`. Skips own onRead via the cached
-   * next-handler pointer in ContextImpl, so the bridge / AppAdapter sees
+   * it inbound via `fireRead`, which starts at the next handler. The bridge or
+   * app adapter sees
    * the error directly and resolves the handler with `ew` — not the
    * generic auto-detach exception that ~TypeErasedPtr would fire.
    *
@@ -474,17 +487,5 @@ class RocketClientStreamStateHandler {
   /// between handlerAdded and handlerRemoved.
   RocketClientStreamContexts* contexts_{nullptr};
 };
-
-static_assert(
-    apache::thrift::fast_thrift::channel_pipeline::DuplexHandler<
-        RocketClientStreamStateHandler,
-        apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl>,
-    "RocketClientStreamStateHandler must satisfy DuplexHandler concept");
-
-static_assert(
-    apache::thrift::fast_thrift::channel_pipeline::TypeEventSubscriber<
-        RocketClientStreamStateHandler,
-        apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl>,
-    "RocketClientStreamStateHandler must satisfy TypeEventSubscriber concept");
 
 } // namespace apache::thrift::fast_thrift::rocket::client::handler

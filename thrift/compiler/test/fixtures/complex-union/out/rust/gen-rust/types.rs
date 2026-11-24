@@ -85,6 +85,13 @@ impl ::std::default::Default for ComplexUnion {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for ComplexUnion {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        ::std::matches!(self, Self::UnknownField(_))
+    }
+}
+
 impl ::fbthrift::GetTType for ComplexUnion {
     const TTYPE: ::fbthrift::TType = ::fbthrift::TType::Struct;
 }
@@ -267,6 +274,13 @@ impl ::std::default::Default for ListUnion {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for ListUnion {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        ::std::matches!(self, Self::UnknownField(_))
+    }
+}
+
 impl ::fbthrift::GetTType for ListUnion {
     const TTYPE: ::fbthrift::TType = ::fbthrift::TType::Struct;
 }
@@ -385,6 +399,13 @@ impl ::fbthrift::metadata::ThriftAnnotations for ListUnion {
 impl ::std::default::Default for DataUnion {
     fn default() -> Self {
         Self::UnknownField(-1)
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for DataUnion {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        ::std::matches!(self, Self::UnknownField(_))
     }
 }
 
@@ -665,6 +686,13 @@ impl ::std::default::Default for ValUnion {
     }
 }
 
+impl ::fbthrift::help::IsEmpty for ValUnion {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        ::std::matches!(self, Self::UnknownField(_))
+    }
+}
+
 impl ::fbthrift::GetTType for ValUnion {
     const TTYPE: ::fbthrift::TType = ::fbthrift::TType::Struct;
 }
@@ -783,6 +811,13 @@ impl ::fbthrift::metadata::ThriftAnnotations for ValUnion {
 impl ::std::default::Default for VirtualComplexUnion {
     fn default() -> Self {
         Self::UnknownField(-1)
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for VirtualComplexUnion {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        ::std::matches!(self, Self::UnknownField(_))
     }
 }
 
@@ -1078,6 +1113,13 @@ impl ::fbthrift::metadata::ThriftAnnotations for NonCopyableStruct {
 impl ::std::default::Default for NonCopyableUnion {
     fn default() -> Self {
         Self::UnknownField(-1)
+    }
+}
+
+impl ::fbthrift::help::IsEmpty for NonCopyableUnion {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        ::std::matches!(self, Self::UnknownField(_))
     }
 }
 

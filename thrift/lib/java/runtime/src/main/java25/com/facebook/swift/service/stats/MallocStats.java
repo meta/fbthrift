@@ -73,9 +73,10 @@ import org.slf4j.LoggerFactory;
  * as {@code system_mem - avail}, so chunk headers and alignment padding are counted as in use
  * rather than as waste.
  *
- * <p>Collection is best effort. If {@code mallinfo2} is unavailable (jemalloc, tcmalloc, musl,
- * non-Linux, or native access denied) or the downcall fails, {@link #getMallocStats()} returns an
- * empty map and logs once. It never throws and never prevents a server from starting.
+ * <p>Collection is best effort. If {@code mallinfo2} is unavailable (tcmalloc, musl, non-Linux, or
+ * native access denied), the downcall fails, or it reports only zeros (as under a preloaded
+ * jemalloc), {@link #getMallocStats()} returns an empty map; a failed downcall is logged once. It
+ * never throws and never prevents a server from starting.
  */
 public class MallocStats {
 

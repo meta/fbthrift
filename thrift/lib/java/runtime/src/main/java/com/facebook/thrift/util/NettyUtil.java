@@ -167,6 +167,15 @@ public final class NettyUtil {
         .build();
   }
 
+  /**
+   * True when the calling thread is a Thrift Netty event-loop thread. Narrower than Reactor's
+   * {@code NonBlocking} marker (which parallel/single schedulers also carry): only threads created
+   * for the Thrift event-loop group count.
+   */
+  public static boolean isThriftEventLoopThread() {
+    return Thread.currentThread() instanceof ThriftEventLoopThread;
+  }
+
   public static void releaseIfByteBufTProtocol(Object o) {
     if (o instanceof ByteBufTProtocol) {
       ByteBufTProtocol b = (ByteBufTProtocol) o;

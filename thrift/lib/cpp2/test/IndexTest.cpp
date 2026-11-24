@@ -29,7 +29,7 @@ int64_t xxh3_64bits(Cursor cursor) {
   return static_cast<int64_t>(hasher);
 }
 
-TEST(xxh3_64bits, test) {
+TEST(Xxh3Test, test) {
   constexpr int64_t kExpected = 5501799519012602454; // 64bits xxh3 of "thrift"
   {
     auto buf = folly::IOBuf::copyBuffer("thrift");

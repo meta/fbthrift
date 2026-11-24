@@ -38,8 +38,8 @@
 #include <thrift/lib/cpp2/Flags.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/BufferAllocator.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/AlignedParser.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/write/handler/FrameLengthEncoderHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/client/adapter/RocketClientAppAdapter.h>
@@ -57,6 +57,7 @@
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/FastThriftServer.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/test/if/gen-cpp2/AlignedParserServer.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/test/if/gen-cpp2/AlignedParserServer.tcc>
+#include <thrift/lib/cpp2/fast_thrift/thrift/test/if/gen-cpp2/AlignedParserServerFastClient.h>
 #include <thrift/lib/cpp2/fast_thrift/transport/TransportHandler.h>
 #include <thrift/lib/cpp2/protocol/BinaryProtocol.h>
 #include <thrift/lib/thrift/gen-cpp2/RpcMetadata_constants.h>
@@ -289,7 +290,7 @@ class FastThriftServerAlignedParserE2ETest : public Test {
       };
 
       connection->pipeline =
-          channel_pipeline::PipelineBuilder<
+          channel_pipeline::StaticPipelineBuilder<
               ClientTransportHandler,
               rocket::client::RocketClientAppAdapter,
               channel_pipeline::SimpleBufferAllocator>()
@@ -324,7 +325,7 @@ class FastThriftServerAlignedParserE2ETest : public Test {
       clientTransportAdapter_ =
           std::make_unique<ClientTransportAdapter>(std::move(connection));
       clientPipeline_ =
-          channel_pipeline::PipelineBuilder<
+          channel_pipeline::StaticPipelineBuilder<
               ClientTransportAdapter,
               ClientAppAdapter,
               channel_pipeline::SimpleBufferAllocator>()
@@ -352,7 +353,7 @@ class FastThriftServerAlignedParserE2ETest : public Test {
   channel_pipeline::SimpleBufferAllocator clientAllocator_;
   std::unique_ptr<FastClientType> client_;
   std::unique_ptr<ClientTransportAdapter> clientTransportAdapter_;
-  channel_pipeline::PipelineImpl::Ptr clientPipeline_;
+  channel_pipeline::PipelineOwner clientPipeline_;
   bool clientTransportIsBufferMovable_{true};
 };
 

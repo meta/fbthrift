@@ -30,7 +30,6 @@
 #include <folly/logging/xlog.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/security/common/Messages.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/security/common/Util.h>
 #include <thrift/lib/cpp2/fast_thrift/security/FizzHandshakeHelper.h>
@@ -61,6 +60,7 @@ namespace fast_security = ::apache::thrift::fast_thrift::security;
  * The aggregate pending-connection handler bounds sockets across the complete
  * TLS pipeline, including handshakes parked here.
  */
+template <typename StaticContext>
 class FizzHandshakeHandler {
  public:
   FizzHandshakeHandler() = default;
@@ -90,7 +90,7 @@ class FizzHandshakeHandler {
 
     auto* asyncSocket =
         dynamic_cast<folly::AsyncSocket*>(incoming.transport.get());
-    if (FOLLY_UNLIKELY(asyncSocket == nullptr)) {
+    if (asyncSocket == nullptr) [[unlikely]] {
       return ctx.fireWrite(
           channel_pipeline::erase_and_box(std::move(incoming)));
     }
@@ -99,8 +99,7 @@ class FizzHandshakeHandler {
     folly::AsyncSocket::UniquePtr socket(asyncSocket);
     auto clientAddr = std::move(incoming.clientAddr);
 
-    if (FOLLY_UNLIKELY(
-            !incoming.tlsParams || !incoming.tlsParams->fizzContext)) {
+    if (!incoming.tlsParams || !incoming.tlsParams->fizzContext) [[unlikely]] {
       // `socket` dies with this scope, so the connection is gone either way —
       // report that rather than Success, which would tell the caller a
       // connection it no longer has is still on its way. A missing fizz
@@ -198,6 +197,9 @@ class FizzHandshakeHandler {
       const folly::SocketAddress& clientAddr,
       std::shared_ptr<const fast_security::TLSParams> tlsParams,
       PendingConnectionPermit permit) noexcept {
+    // A completion can reenter teardown. Release the permit before its state.
+    auto guard = guardPipeline(ctx_);
+    auto pendingPermit = std::move(permit);
     if (ex || !fizzServer) {
       XLOG(DBG3) << "TLS handshake failed for " << clientAddr.describe() << ": "
                  << (ex ? ex.what().toStdString() : std::string("null"));
@@ -206,7 +208,7 @@ class FizzHandshakeHandler {
       }
       return;
     }
-    if (FOLLY_UNLIKELY(!ctx_)) {
+    if (!ctx_) [[unlikely]] {
       // Handler already removed from the pipeline: the handshake landed after
       // teardown began, so there is nowhere to forward it. The transport dies
       // with this callback.
@@ -220,21 +222,18 @@ class FizzHandshakeHandler {
     const auto pskType = fizzServer->getState().pskType();
     const bool negotiatedStopTLS =
         extension && extension->getNegotiatedStopTLS();
-    auto peerSecurity =
-        std::make_shared<const PeerSecurityInfo>(PeerSecurityInfo{
-            .peerCertificate = fizzServer->getState().clientCert(),
-            .securityProtocol = negotiatedStopTLS
-                ? "stopTLS"
-                : fizzServer->getSecurityProtocol(),
-            .sessionResumed =
-                pskType && *pskType == fizz::PskType::Resumption});
+    auto peerSecurity = std::make_unique<PeerSecurityInfo>(PeerSecurityInfo{
+        .peerCertificate = fizzServer->getState().clientCert(),
+        .securityProtocol =
+            negotiatedStopTLS ? "stopTLS" : fizzServer->getSecurityProtocol(),
+        .sessionResumed = pskType && *pskType == fizz::PskType::Resumption});
     TLSRequestMessage upgraded{
         .transport = folly::AsyncTransport::UniquePtr(fizzServer.release()),
         .clientAddr = clientAddr,
         .tlsParams = std::move(tlsParams),
         .extension = std::move(extension),
         .peerSecurity = std::move(peerSecurity),
-        .pendingConnectionPermit = std::move(permit),
+        .pendingConnectionPermit = std::move(pendingPermit),
     };
     auto result =
         ctx_->fireWrite(channel_pipeline::erase_and_box(std::move(upgraded)));
@@ -257,7 +256,7 @@ class FizzHandshakeHandler {
       fast_security::FizzHandshakeHelper*,
       fast_security::FizzHandshakeHelper::UniquePtr>
       inFlight_;
-  channel_pipeline::detail::ContextImpl* ctx_{nullptr};
+  StaticContext* ctx_{nullptr};
   // Set once teardown begins; see onPipelineInactive.
   bool shuttingDown_{false};
 };

@@ -37,6 +37,7 @@ class TSimpleJSONProtocol extends TProtocol {
   private Vector<TSimpleJSONProtocolContext> $contexts;
   private bool $binaryAsBase64;
   private bool $fullPrecisionFloats = false;
+  private bool $rawUTF8Strings = false;
 
   // If the serialized data has just the number,
   // then deserialization breaks as it reaches the end of the string.
@@ -65,6 +66,17 @@ class TSimpleJSONProtocol extends TProtocol {
 
   public function setFullPrecisionFloats(bool $value)[write_props]: this {
     $this->fullPrecisionFloats = $value;
+    return $this;
+  }
+
+  /**
+   * Write well-formed UTF-8 sequences in strings as raw bytes, like the C++,
+   * Python and Rust SimpleJSON protocols, instead of escaping each byte as
+   * \u00XX (which standard JSON readers decode as the code point U+00XX).
+   * Bytes that are not part of a well-formed sequence are still escaped.
+   */
+  public function setRawUTF8Strings(bool $value)[write_props]: this {
+    $this->rawUTF8Strings = $value;
     return $this;
   }
 
@@ -284,7 +296,10 @@ class TSimpleJSONProtocol extends TProtocol {
   }
 
   <<TestsBypassVisibility>>
-  private static function quoteString(string $value)[write_props]: string {
+  private static function quoteString(
+    string $value,
+    bool $raw_utf8 = false,
+  )[write_props]: string {
     $sb = '"';
     $len = Str\length($value);
     for ($i = 0; $i < $len; $i++) {
@@ -315,8 +330,16 @@ class TSimpleJSONProtocol extends TProtocol {
           break;
         default:
           if ($ord < 32 || $ord > 126) {
-            $sb .= '\\u00';
-            $sb .= PHP\bin2hex($c);
+            $utf8_len = $raw_utf8 && $ord > 127
+              ? self::wellFormedUTF8SequenceLength($value, $i, $len)
+              : 0;
+            if ($utf8_len > 0) {
+              $sb .= Str\slice($value, $i, $utf8_len);
+              $i += $utf8_len - 1;
+            } else {
+              $sb .= '\\u00';
+              $sb .= PHP\bin2hex($c);
+            }
           } else {
             $sb .= $c;
           }
@@ -327,12 +350,69 @@ class TSimpleJSONProtocol extends TProtocol {
     return $sb;
   }
 
+  /**
+   * Length of the well-formed UTF-8 sequence starting at offset $i (Unicode
+   * Standard, Table 3-7), or 0 if there is none.
+   */
+  private static function wellFormedUTF8SequenceLength(
+    string $value,
+    int $i,
+    int $len,
+  )[]: int {
+    $lead = PHP\ord($value[$i]);
+    if ($lead >= 0xc2 && $lead <= 0xdf) {
+      $seq_len = 2;
+      $second_min = 0x80;
+      $second_max = 0xbf;
+    } else if ($lead === 0xe0) {
+      $seq_len = 3;
+      $second_min = 0xa0;
+      $second_max = 0xbf;
+    } else if ($lead === 0xed) {
+      $seq_len = 3;
+      $second_min = 0x80;
+      $second_max = 0x9f;
+    } else if ($lead >= 0xe1 && $lead <= 0xef) {
+      $seq_len = 3;
+      $second_min = 0x80;
+      $second_max = 0xbf;
+    } else if ($lead === 0xf0) {
+      $seq_len = 4;
+      $second_min = 0x90;
+      $second_max = 0xbf;
+    } else if ($lead >= 0xf1 && $lead <= 0xf3) {
+      $seq_len = 4;
+      $second_min = 0x80;
+      $second_max = 0xbf;
+    } else if ($lead === 0xf4) {
+      $seq_len = 4;
+      $second_min = 0x80;
+      $second_max = 0x8f;
+    } else {
+      return 0;
+    }
+    if ($i + $seq_len > $len) {
+      return 0;
+    }
+    $second = PHP\ord($value[$i + 1]);
+    if ($second < $second_min || $second > $second_max) {
+      return 0;
+    }
+    for ($k = 2; $k < $seq_len; $k++) {
+      $continuation = PHP\ord($value[$i + $k]);
+      if ($continuation < 0x80 || $continuation > 0xbf) {
+        return 0;
+      }
+    }
+    return $seq_len;
+  }
+
   <<__Override>>
   public function writeString(string $value)[write_props]: int {
     $ctx = $this->getContext();
     $ret = $ctx->writeSeparator();
     $value = (string)$value;
-    $sb = self::quoteString($value);
+    $sb = self::quoteString($value, $this->rawUTF8Strings);
 
     $this->buffer->write($sb);
 

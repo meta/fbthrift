@@ -121,6 +121,66 @@ inline void validateFieldsAreOptional(
 }
 
 /**
+ * Like the Thrift compiler, this only recognizes a partial record for a
+ * structured type as the intrinsic default when it is empty.
+ */
+inline bool isKnownIntrinsicDefault(const SerializableRecordUnion& record) {
+  using Type = SerializableRecordUnion::Type;
+  switch (record.getType()) {
+    case Type::boolDatum:
+      return !*record.boolDatum();
+    case Type::int8Datum:
+      return *record.int8Datum() == 0;
+    case Type::int16Datum:
+      return *record.int16Datum() == 0;
+    case Type::int32Datum:
+      return *record.int32Datum() == 0;
+    case Type::int64Datum:
+      return *record.int64Datum() == 0;
+    case Type::float32Datum:
+      return *record.float32Datum() == 0;
+    case Type::float64Datum:
+      return *record.float64Datum() == 0;
+    case Type::textDatum:
+      return record.textDatum()->empty();
+    case Type::byteArrayDatum:
+      return record.byteArrayDatum()->empty();
+    case Type::fieldSetDatum:
+      return record.fieldSetDatum()->empty();
+    case Type::listDatum:
+      return record.listDatum()->empty();
+    case Type::setDatum:
+      return record.setDatum()->empty();
+    case Type::mapDatum:
+      return record.mapDatum()->empty();
+    case Type::__EMPTY__:
+      return false;
+  }
+  folly::assume_unreachable();
+}
+
+/**
+ * For structs, terse fields must not have a custom default other than the
+ * intrinsic default. Serialization skips a terse field that holds its
+ * intrinsic default, so a field set to it would deserialize to the custom
+ * default instead.
+ */
+inline void validateTerseFieldsHaveNoCustomDefault(
+    UriView uri, const SerializableStructDefinition& structDef) {
+  for (const SerializableFieldDefinition& field : *structDef.fields()) {
+    if (field.presence() == PresenceQualifier::TERSE &&
+        field.customDefaultPartialRecord().has_value() &&
+        !isKnownIntrinsicDefault(*field.customDefaultPartialRecord())) {
+      throw InvalidTypeError(
+          fmt::format(
+              "terse field '{}' cannot have a custom default value in struct '{}'",
+              field.identity()->name(),
+              uri));
+    }
+  }
+}
+
+/**
  * For enums, both enum names AND values must be unique.
  */
 inline void validateEnumMappingsAreUnique(
@@ -161,13 +221,15 @@ inline void validateOpaqueAliasIsNotUserDefined(
 
 /**
  * Runs the appropriate structural validation for a single serializable
- * definition (field/enum uniqueness, union optionality, opaque alias target).
+ * definition (field/enum uniqueness, union optionality, terse field defaults,
+ * opaque alias target).
  */
 inline void validateDefinition(
     UriView uri, const SerializableTypeDefinition& def) {
   switch (def.getType()) {
     case SerializableTypeDefinition::Type::structDef:
       validateIdentitiesAreUnique(uri, *def.structDef()->fields());
+      validateTerseFieldsHaveNoCustomDefault(uri, *def.structDef());
       break;
     case SerializableTypeDefinition::Type::unionDef:
       validateIdentitiesAreUnique(uri, *def.unionDef()->fields());

@@ -82,7 +82,7 @@ std::partial_ordering Mixin1::operator<=>([[maybe_unused]] const Mixin1& rhs) co
 
 void swap([[maybe_unused]] Mixin1& a, [[maybe_unused]] Mixin1& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
   swap(a.__isset, b.__isset);
 }
 
@@ -167,8 +167,8 @@ const ::std::string* Mixin2::get_field2() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUN
 
 void swap([[maybe_unused]] Mixin2& a, [[maybe_unused]] Mixin2& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_m1, b.__fbthrift_field_m1);
-  swap(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_m1, b.__fbthrift_field_m1);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
   swap(a.__isset, b.__isset);
 }
 
@@ -238,7 +238,7 @@ std::partial_ordering Mixin3Base::operator<=>([[maybe_unused]] const Mixin3Base&
 
 void swap([[maybe_unused]] Mixin3Base& a, [[maybe_unused]] Mixin3Base& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_field3, b.__fbthrift_field_field3);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field3, b.__fbthrift_field_field3);
   swap(a.__isset, b.__isset);
 }
 
@@ -328,9 +328,9 @@ const ::cpp2::Mixin3& Foo::get_m3() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
 
 void swap([[maybe_unused]] Foo& a, [[maybe_unused]] Foo& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_field4, b.__fbthrift_field_field4);
-  swap(a.__fbthrift_field_m2, b.__fbthrift_field_m2);
-  swap(a.__fbthrift_field_m3, b.__fbthrift_field_m3);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field4, b.__fbthrift_field_field4);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_m2, b.__fbthrift_field_m2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_m3, b.__fbthrift_field_m3);
   swap(a.__isset, b.__isset);
 }
 

@@ -83,7 +83,7 @@ void ThriftClientChannel::sendRequestInternal(
     std::unique_ptr<folly::IOBuf> /*frameworkMetadata*/) {
   evb_->dcheckIsInEventBaseThread();
 
-  if (FOLLY_UNLIKELY(state_ != State::Open)) {
+  if (state_ != State::Open) [[unlikely]] {
     handleNotOpen(std::move(callbackPtr));
     return;
   }
@@ -126,9 +126,8 @@ void ThriftClientChannel::sendRequestInternal(
   };
 
   auto result = connection_->appAdapter->write(std::move(rocketMsg));
-  if (FOLLY_UNLIKELY(
-          result ==
-          apache::thrift::fast_thrift::channel_pipeline::Result::Error)) {
+  if (result == apache::thrift::fast_thrift::channel_pipeline::Result::Error)
+      [[unlikely]] {
     handleWriteError();
   }
 }
@@ -172,7 +171,7 @@ ThriftClientChannel::onResponse(
         msg) noexcept {
   auto response = msg.take<rocket::RocketResponseMessage>();
   auto ctx = response.requestContext.release_as<ChannelCallbackContext>();
-  if (FOLLY_UNLIKELY(!ctx)) {
+  if (!ctx) [[unlikely]] {
     handleNullContext();
     return apache::thrift::fast_thrift::channel_pipeline::Result::Success;
   }
@@ -181,7 +180,7 @@ ThriftClientChannel::onResponse(
 
   // Per-request error from below (e.g., rocket in-process serialize failure
   // or wire-decode failure). Fail just this callback; channel stays Open.
-  if (FOLLY_UNLIKELY(response.payload.is<rocket::RocketResponseError>())) {
+  if (response.payload.is<rocket::RocketResponseError>()) [[unlikely]] {
     handleResponseError(
         std::move(callback),
         std::move(response.payload.get<rocket::RocketResponseError>().ew));
@@ -206,14 +205,14 @@ void ThriftClientChannel::handleRequestResponse(
   auto decoded = fromRocketFrame(
       std::move(frame),
       apache::thrift::RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE);
-  if (FOLLY_UNLIKELY(!decoded.hasValue())) {
+  if (!decoded.hasValue()) [[unlikely]] {
     handleResponseError(std::move(callback), std::move(decoded.error()));
     return;
   }
 
   auto& inbound = decoded.value();
 
-  if (FOLLY_LIKELY(inbound.is<ThriftInitialResponsePayload>())) {
+  if (inbound.is<ThriftInitialResponsePayload>()) [[likely]] {
     auto& payload = inbound.get<ThriftInitialResponsePayload>();
     DCHECK(payload.metadata != nullptr);
     auto& metadata = *payload.metadata;

@@ -1067,7 +1067,7 @@ class JsonDeserializeErrorTests(unittest.TestCase):
                 "scalar_json5",
                 Protocol.JSON5,
                 b'{"val":"not_an_int","val_list":[1,2,3]}',
-                r"expected integer value",
+                r"invalid number 'not_an_int'",
             ),
             (
                 "container_json",

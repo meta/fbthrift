@@ -66,7 +66,7 @@ _readField_strField:
 _readField_listField:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_listField = ::std::vector<::std::int16_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_listField);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::list<::apache::thrift::type_class::integral>, ::std::vector<::std::int16_t>, ::apache::thrift::type::list<::apache::thrift::type::i16_t>>::read(*iprot, this->__fbthrift_field_listField);
     _readState.afterSubobject(iprot);
   }
@@ -82,7 +82,7 @@ _readField_listField:
 _readField_mapField:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_mapField = ::std::map<::std::string, ::std::int32_t>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_mapField);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::string, ::apache::thrift::type_class::integral>, ::std::map<::std::string, ::std::int32_t>, ::apache::thrift::type::map<::apache::thrift::type::string_t, ::apache::thrift::type::i32_t>>::read(*iprot, this->__fbthrift_field_mapField);
     _readState.afterSubobject(iprot);
   }
@@ -131,7 +131,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -384,7 +383,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -533,7 +531,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -716,7 +713,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -787,12 +783,16 @@ uint32_t CppRef::serializedSize(Protocol_ const* prot_) const {
     xfer += prot_->serializedFieldSize("shared_field", apache::thrift::protocol::TType::T_I32, 1);
     if (this->__fbthrift_field_shared_field) {
       xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::integral, ::std::int32_t, ::apache::thrift::type::i32_t>::serializedSize<false>(*prot_, *this->__fbthrift_field_shared_field);
+    } else {
+      xfer += prot_->serializedSizeI32(0);
     }
   }
   {
     xfer += prot_->serializedFieldSize("shared_const_field", apache::thrift::protocol::TType::T_I32, 2);
     if (this->__fbthrift_field_shared_const_field) {
       xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::integral, ::std::int32_t, ::apache::thrift::type::i32_t>::serializedSize<false>(*prot_, *this->__fbthrift_field_shared_const_field);
+    } else {
+      xfer += prot_->serializedSizeI32(0);
     }
   }
   if (this->__fbthrift_field_opt_shared_field) {
@@ -819,12 +819,16 @@ uint32_t CppRef::serializedSizeZC(Protocol_ const* prot_) const {
     xfer += prot_->serializedFieldSize("shared_field", apache::thrift::protocol::TType::T_I32, 1);
     if (this->__fbthrift_field_shared_field) {
       xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::integral, ::std::int32_t, ::apache::thrift::type::i32_t>::serializedSize<false>(*prot_, *this->__fbthrift_field_shared_field);
+    } else {
+      xfer += prot_->serializedSizeI32(0);
     }
   }
   {
     xfer += prot_->serializedFieldSize("shared_const_field", apache::thrift::protocol::TType::T_I32, 2);
     if (this->__fbthrift_field_shared_const_field) {
       xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::integral, ::std::int32_t, ::apache::thrift::type::i32_t>::serializedSize<false>(*prot_, *this->__fbthrift_field_shared_const_field);
+    } else {
+      xfer += prot_->serializedSizeI32(0);
     }
   }
   if (this->__fbthrift_field_opt_shared_field) {
@@ -862,6 +866,8 @@ uint32_t CppRef::write(Protocol_* prot_) const {
     previousFieldHasValue = true;
     if (this->__fbthrift_field_shared_field) {
       xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::integral, ::std::int32_t, ::apache::thrift::type::i32_t>::write(*prot_, *this->__fbthrift_field_shared_field);
+    } else {
+      xfer += prot_->writeI32(0);
     }
     xfer += prot_->writeFieldEnd();
   }
@@ -871,6 +877,8 @@ uint32_t CppRef::write(Protocol_* prot_) const {
     previousFieldHasValue = true;
     if (this->__fbthrift_field_shared_const_field) {
       xfer += ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::integral, ::std::int32_t, ::apache::thrift::type::i32_t>::write(*prot_, *this->__fbthrift_field_shared_const_field);
+    } else {
+      xfer += prot_->writeI32(0);
     }
     xfer += prot_->writeFieldEnd();
   }

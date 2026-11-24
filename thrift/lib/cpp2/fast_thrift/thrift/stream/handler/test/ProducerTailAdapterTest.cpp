@@ -38,7 +38,7 @@ using channel_pipeline::TypeErasedBox;
 // onRead ignores its context; a stub satisfies the signature.
 struct StubContext {};
 
-using Handler = ProducerTailAdapter<StubContext>;
+using Handler = ProducerTailAdapter;
 
 TypeErasedBox requestN() {
   return erase_and_box(ControlMessage{.payload = RequestN{.n = 1}});

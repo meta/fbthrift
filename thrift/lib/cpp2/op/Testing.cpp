@@ -23,7 +23,6 @@ using type::AnyRef;
 using type::AnyValue;
 using type::BaseType;
 using type::Protocol;
-using type::Ref;
 using type::Type;
 
 const Protocol kFollyToStringProtocol =
@@ -32,23 +31,6 @@ const Protocol kFollyToStringProtocol =
 const type::Protocol& Number1Serializer::getProtocol() const {
   static auto kInst = type::Protocol::fromName(thriftType("Number1"));
   return kInst;
-}
-
-void MultiSerializer::encode(
-    type::ConstRef value, folly::io::QueueAppender&& appender) const {
-  switch (value.type().baseType()) {
-    case BaseType::I32:
-      ++intEncCount;
-      FollyToStringSerializer<type::i32_t>().encode(value, std::move(appender));
-      break;
-    case BaseType::Double:
-      ++dblEncCount;
-      FollyToStringSerializer<type::double_t>().encode(
-          value, std::move(appender));
-      break;
-    default:
-      folly::throw_exception<std::bad_any_cast>();
-  }
 }
 
 void MultiSerializer::encode(
@@ -80,21 +62,6 @@ void MultiSerializer::decode(
     case BaseType::Double:
       ++dblDecCount;
       FollyToStringSerializer<type::double_t>().decode(type, cursor, value);
-      break;
-    default:
-      folly::throw_exception<std::bad_any_cast>();
-  }
-}
-
-void MultiSerializer::decode(folly::io::Cursor& cursor, Ref value) const {
-  switch (value.type().baseType()) {
-    case BaseType::I32:
-      ++intDecCount;
-      FollyToStringSerializer<type::i32_t>().decode(cursor, value);
-      break;
-    case BaseType::Double:
-      ++dblDecCount;
-      FollyToStringSerializer<type::double_t>().decode(cursor, value);
       break;
     default:
       folly::throw_exception<std::bad_any_cast>();

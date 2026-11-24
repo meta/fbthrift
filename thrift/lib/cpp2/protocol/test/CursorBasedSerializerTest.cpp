@@ -844,6 +844,38 @@ TEST(CursorBasedSerializer, CursorReadRemainingEndMany) {
   doCursorReadRemainEndTest(10);
 }
 
+TEST(CursorBasedSerializer, PartialManualReadEndsAtNextField) {
+  Struct s;
+  Stringish inner;
+  inner.string_field() = "foo";
+  s.set_nested_field() =
+      std::vector{std::set{inner}, std::set{inner}, std::set{inner}};
+  s.bool_field() = true;
+
+  StructCursor wrapper(s);
+  auto reader = wrapper.beginRead();
+  auto listReader = reader.beginRead<ident::set_nested_field>();
+  auto setReader = listReader.beginRead();
+  listReader.endRead(std::move(setReader));
+  reader.endRead(std::move(listReader));
+  EXPECT_TRUE(reader.read<ident::bool_field>());
+  wrapper.endRead(std::move(reader));
+}
+
+TEST(CursorBasedSerializer, PartialIteratorReadEndsAtNextField) {
+  Struct s;
+  s.list_field() = {1, 2, 3};
+  s.bool_field() = true;
+
+  StructCursor wrapper(s);
+  auto reader = wrapper.beginRead();
+  auto listReader = reader.beginRead<ident::list_field>();
+  EXPECT_EQ(*listReader.begin(), 1);
+  reader.endRead(std::move(listReader));
+  EXPECT_TRUE(reader.read<ident::bool_field>());
+  wrapper.endRead(std::move(reader));
+}
+
 TEST(CursorBasedSerializer, ConcurrentAccess) {
   EmptyWrapper wrapper;
   auto writer = wrapper.beginWrite();

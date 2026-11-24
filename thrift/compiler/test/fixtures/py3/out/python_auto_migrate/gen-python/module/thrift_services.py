@@ -84,7 +84,7 @@ class SimpleServiceInterface(
 
     @staticmethod
     def __get_thrift_definition_key__() -> bytes:
-        return b"\xa2\x7c\xd9\x9e\x28\xe4\x3f\x9f\x7f\xd6\x3f\x35\xa9\xda\xba\xbf"
+        return b"\x6f\x4d\xd6\xc3\xf1\x4c\xbb\x9f\xe2\xeb\x19\xad\xc3\x66\x97\xa5"
 
     @staticmethod
     def __get_metadata__() -> _fbthrift_metadata.ThriftMetadata:
@@ -240,10 +240,17 @@ class SimpleServiceInterface(
             value = await self.expected_exception()
             return_struct = _fbthrift__module__thrift_types._fbthrift_SimpleService_expected_exception_result()
         except _fbthrift__module__thrift_types.SimpleException as e:
-            return_struct = _fbthrift__module__thrift_types._fbthrift_SimpleService_expected_exception_result(_ex0__se=e)
-            buf = serialize_iobuf(return_struct, protocol)
-            exp = PythonUserException('SimpleException', str(e), buf)
-            raise exp
+            buf = serialize_iobuf(
+                _fbthrift__module__thrift_types._fbthrift_SimpleService_expected_exception_result(
+                    _ex0__se=e,
+                ),
+                protocol,
+            )
+            raise PythonUserException(
+                "SimpleException",
+                str(e),
+                buf,
+            )
         return serialize_iobuf(return_struct, protocol)
 
 
@@ -670,7 +677,7 @@ SimpleServiceInterface,
 
     @staticmethod
     def __get_thrift_definition_key__() -> bytes:
-        return b"\x1c\x3f\xf5\x1c\x04\x46\xb7\x26\xf5\xe1\xc5\xd9\x4a\x51\xfe\x36"
+        return b"\xa4\xb9\x3b\xc2\x72\xc6\x34\xb9\x08\x13\xda\x99\x12\x00\x01\x11"
 
     @staticmethod
     def __get_metadata__() -> _fbthrift_metadata.ThriftMetadata:
@@ -718,7 +725,7 @@ DerivedServiceInterface,
 
     @staticmethod
     def __get_thrift_definition_key__() -> bytes:
-        return b"\xee\x17\x37\x82\x48\x7a\x2a\x84\x39\x27\xaa\xd0\xa5\x53\xbb\x29"
+        return b"\x58\x3a\xb3\xc3\x5e\x59\x08\xb7\xd7\x6f\xc0\xc8\xf8\xbb\x3a\xd4"
 
     @staticmethod
     def __get_metadata__() -> _fbthrift_metadata.ThriftMetadata:

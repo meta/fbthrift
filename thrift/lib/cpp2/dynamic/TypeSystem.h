@@ -1058,6 +1058,13 @@ class StructuredNode : public DefinitionNode {
   TypeRef asRef() const noexcept;
 
   std::span<const FieldDefinition> fields() const noexcept { return fields_; }
+  /**
+   * Handles of all fields, sorted by ascending field ID rather than in the
+   * declaration order of fields().
+   */
+  std::span<const FastFieldHandle> fieldHandlesByIdAscending() const noexcept {
+    return fieldHandlesByIdAscending_;
+  }
   bool isSealed() const noexcept { return isSealed_; }
 
   /**
@@ -1135,6 +1142,7 @@ class StructuredNode : public DefinitionNode {
   std::vector<FieldDefinition> fields_;
   folly::F14FastMap<FieldId, FastFieldHandle> fieldHandleById_;
   folly::F14FastMap<std::string_view, FastFieldHandle> fieldHandleByName_;
+  std::vector<FastFieldHandle> fieldHandlesByIdAscending_;
   StructuredTypeKind structuredTypeKind_;
   bool isSealed_;
   AnnotationsMap annotations_;

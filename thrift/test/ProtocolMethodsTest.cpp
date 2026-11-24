@@ -14,11 +14,63 @@
  * limitations under the License.
  */
 
+#include <string>
+#include <utility>
+
 #include <gtest/gtest.h>
+#include <folly/io/IOBufQueue.h>
+#include <thrift/lib/cpp2/StringTypeAdapter.h>
+#include <thrift/lib/cpp2/op/Encode.h>
 #include <thrift/lib/cpp2/protocol/Serializer.h>
 #include <thrift/test/gen-cpp2/ProtocolMethodsTest_types.h>
 
 using namespace apache::thrift::test;
+
+template <typename Reader, typename Writer, typename Tag>
+void testStringWrapperAdapter() {
+  using Adapter = apache::thrift::StringTypeAdapter<MyString>;
+  using AdaptedTag = apache::thrift::type::adapted<Adapter, Tag>;
+  const auto expected = std::string(256, 'x') + std::string("\n\0", 2);
+  auto source = expected;
+  const auto* storage = source.data();
+  auto adapted = Adapter::fromThrift(std::move(source));
+  EXPECT_EQ(adapted.data(), storage);
+  EXPECT_EQ(Adapter::toThrift(adapted), expected);
+
+  folly::IOBufQueue queue;
+  Writer writer;
+  writer.setOutput(&queue);
+  apache::thrift::op::encode<AdaptedTag>(writer, adapted);
+  auto encoded = queue.move();
+  MyString decoded;
+  decoded.reserve(expected.size());
+  const auto* destinationStorage = decoded.data();
+  Reader reader;
+  reader.setInput(encoded.get());
+  apache::thrift::op::decode<AdaptedTag>(reader, decoded);
+  EXPECT_EQ(decoded.value, expected);
+  EXPECT_EQ(decoded.data(), destinationStorage);
+}
+
+TEST(ProtocolMethodsTest, StringTypeAdapter) {
+  using namespace apache::thrift;
+  testStringWrapperAdapter<
+      CompactProtocolReader,
+      CompactProtocolWriter,
+      type::string_t>();
+  testStringWrapperAdapter<
+      BinaryProtocolReader,
+      BinaryProtocolWriter,
+      type::binary_t>();
+  testStringWrapperAdapter<
+      SimpleJSONProtocolReader,
+      SimpleJSONProtocolWriter,
+      type::string_t>();
+  testStringWrapperAdapter<
+      JSONProtocolReader,
+      JSONProtocolWriter,
+      type::binary_t>();
+}
 
 TEST(ProtocolMethodsTest, roundtrip) {
   MyStruct before;

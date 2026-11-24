@@ -7,21 +7,42 @@
 #[allow(unused_imports)]
 pub(crate) use crate as types;
 
+/// ```thrift
+/// typedef map<i32, i32> MapType
+/// ```
 #[derive(Default, Clone, Debug, PartialEq)]
 pub struct MapType(pub ::sorted_vector_map::SortedVectorMap);
 
+/// ```thrift
+/// typedef binary BinType
+/// ```
 #[derive(Default, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct BinType(pub ::smallvec::SmallVec<[u8; 16]>);
 
+/// ```thrift
+/// typedef double Double
+/// ```
 pub type Double = ::fbthrift::builtin_types::OrderedFloat<f64>;
 
+/// ```thrift
+/// typedef binary BytesType
+/// ```
 #[derive(Default, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct BytesType(pub ::fbthrift::builtin_types::Bytes);
 
+/// ```thrift
+/// typedef binary binary_8247
+/// ```
 pub type binary_8247 = ::smallvec::SmallVec<[u8; 32]>;
 
+/// ```thrift
+/// typedef binary binary_9564
+/// ```
 pub type binary_9564 = ::fbthrift::builtin_types::Bytes;
 
+/// ```thrift
+/// typedef double double_8056
+/// ```
 pub type double_8056 = ::fbthrift::builtin_types::OrderedFloat<f64>;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -43,6 +64,13 @@ pub struct MyStruct {
 impl ::fbthrift::GetTType for MapType {
     const TTYPE: ::fbthrift::TType = <::std::collections::BTreeMap<::std::primitive::i32, ::std::primitive::i32> as ::fbthrift::GetTType>::TTYPE;
     const MAP_KEY_TYPE: ::fbthrift::MapKeyType = <::std::collections::BTreeMap<::std::primitive::i32, ::std::primitive::i32> as ::fbthrift::GetTType>::MAP_KEY_TYPE;
+}
+
+impl ::fbthrift::help::IsEmpty for MapType {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        ::fbthrift::help::Terse(&self.0).is_empty()
+    }
 }
 
 impl<P> ::fbthrift::Serialize<P> for MapType
@@ -70,6 +98,13 @@ impl ::fbthrift::GetTType for BinType {
     const MAP_KEY_TYPE: ::fbthrift::MapKeyType = <::std::vec::Vec<::std::primitive::u8> as ::fbthrift::GetTType>::MAP_KEY_TYPE;
 }
 
+impl ::fbthrift::help::IsEmpty for BinType {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        ::fbthrift::help::Terse(&self.0).is_empty()
+    }
+}
+
 impl<P> ::fbthrift::Serialize<P> for BinType
 where
     P: ::fbthrift::ProtocolWriter,
@@ -93,6 +128,13 @@ where
 impl ::fbthrift::GetTType for BytesType {
     const TTYPE: ::fbthrift::TType = <::std::vec::Vec<::std::primitive::u8> as ::fbthrift::GetTType>::TTYPE;
     const MAP_KEY_TYPE: ::fbthrift::MapKeyType = <::std::vec::Vec<::std::primitive::u8> as ::fbthrift::GetTType>::MAP_KEY_TYPE;
+}
+
+impl ::fbthrift::help::IsEmpty for BytesType {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        ::fbthrift::help::Terse(&self.0).is_empty()
+    }
 }
 
 impl<P> ::fbthrift::Serialize<P> for BytesType

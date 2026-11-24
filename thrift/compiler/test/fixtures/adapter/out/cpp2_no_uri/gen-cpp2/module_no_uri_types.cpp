@@ -68,33 +68,46 @@ void RefUnion::__fbthrift_clear() {
 bool RefUnion::__fbthrift_is_empty() const {
   return getType() == Type::__EMPTY__;
 }
+  RefUnion& RefUnion::operator=(RefUnion&& rhs) noexcept {
+    if (this == &rhs) { return *this; }
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+      {
+        __fbthrift_clear();
+        return *this;
+      }
+      case Type::field1:
+      {
+        auto value = std::move(rhs.value_.field1);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(field1_ref(), std::move(value));
+        break;
+      }
+      default:
+      {
+        assert(false);
+        __fbthrift_clear();
+      }
+    }
+    return *this;
+  }
+
   RefUnion::RefUnion(const RefUnion& rhs)
       : fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
     switch (rhs.getType()) {
       case Type::__EMPTY__:
         return;
       case Type::field1:
-        set_field1(*rhs.value_.field1);
+        field1_ref().emplace(*rhs.value_.field1);
         break;
       default:
         assert(false);
     }
   }
 
-    RefUnion&RefUnion::operator=(const RefUnion& rhs) {
+  RefUnion& RefUnion::operator=(const RefUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::field1:
-        set_field1(*rhs.value_.field1);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = RefUnion(rhs);
   }
 
 

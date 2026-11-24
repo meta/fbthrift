@@ -28,10 +28,14 @@ public class TestEnumOpen extends ThriftEnum<TestEnumOpen> {
 
     private static final Map<Integer, Value> hm = new HashMap<>();
 
-    private static void init() {
+    private static void init0() {
         hm.put(0, new Value(0, "ZERO", ZERO));
         hm.put(1, new Value(1, "ONE", ONE));
         hm.put(2, new Value(2, "TWO", TWO));
+    }
+
+    private static void init() {
+        init0();
         hm.put(UNRECOGNIZED_VALUE, new Value(3, "UNRECOGNIZED", null));
     }
 

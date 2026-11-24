@@ -16,6 +16,8 @@
 
 #pragma once
 
+#include <concepts>
+#include <type_traits>
 #include <utility>
 
 #include <glog/logging.h>
@@ -36,7 +38,7 @@ namespace apache::thrift::fast_thrift::thrift::stream {
  * framework-supplied codec; the non-factory `Stream<T>`
  * (framework->application, client side) is its mirror.
  *
- * The application composes its producer via [[Composer]] in terms of `T`,
+ * The application composes its producer with a typed builder in terms of `T`,
  * without naming the wire protocol. The framework holds the
  * protocol-specialized
  * [[StreamElementEncoder]] and calls `bind()` to collapse the factory into a
@@ -51,11 +53,18 @@ class StreamFactory {
    * handlers to the builder, using the encoder to turn each `T` (and any
    * producer failure) into a wire chunk.
    */
-  using Composer = folly::Function<void(
-      ProducerPipeline::Builder&, const StreamElementEncoder<T>&)>;
-
-  explicit StreamFactory(Composer composer) noexcept
-      : composer_(std::move(composer)) {}
+  template <typename Compose>
+    requires(!std::same_as<std::remove_cvref_t<Compose>, StreamFactory>)
+  explicit StreamFactory(Compose&& compose)
+      : composer_([compose = std::forward<Compose>(compose)](
+                      folly::EventBase* evb,
+                      StreamSink sink,
+                      const StreamElementEncoder<T>& encoder) mutable {
+          return ProducerPipeline::build(
+              evb, std::move(sink), [&](auto builder) {
+                return compose(std::move(builder), encoder);
+              });
+        }) {}
 
   /**
    * Bind the framework's element encoder, yielding the
@@ -68,13 +77,15 @@ class StreamFactory {
     DCHECK(encoder.encodeError != nullptr);
     return ProducerPipeline::ConfigFunc(
         [composer = std::move(composer_), encoder = std::move(encoder)](
-            ProducerPipeline::Builder& builder) mutable {
-          composer(builder, encoder);
+            folly::EventBase* evb, StreamSink sink) mutable {
+          return composer(evb, std::move(sink), encoder);
         });
   }
 
  private:
-  Composer composer_;
+  folly::Function<ProducerPipeline(
+      folly::EventBase*, StreamSink, const StreamElementEncoder<T>&)>
+      composer_;
 };
 
 /**

@@ -21,45 +21,9 @@
 
 namespace apache::thrift::metadata {
 class ThriftConstStruct;
-namespace detail {
-
-class OnlyDefinedInCython;
-
-#ifdef CYTHON_HEX_VERSION
-// for thrift-py3 compatibility.
-class OnlyDefinedInCython {};
-#endif
-
-template <bool b = true>
-void ensureInsideCython() {
-  // The next line won't compile outside Cython. Note we can't check
-  // CYTHON_HEX_VERSION directly here since that violates ODR.
-  std::enable_if_t<b, OnlyDefinedInCython>{};
-}
-
-template <class T>
-class LimitedVector : public std::vector<T> {
- public:
-  decltype(auto) at(std::size_t idx) const {
-    ensureInsideCython();
-    return std::vector<T>::at(idx);
-  }
-
-  decltype(auto) operator[](std::size_t idx) const {
-    ensureInsideCython();
-    return std::vector<T>::operator[](idx);
-  }
-
-  decltype(auto) front() const = delete;
-  decltype(auto) back() const = delete;
-};
-
-} // namespace detail
 
 const ThriftConstStruct* findStructuredAnnotation(
-    const detail::LimitedVector<ThriftConstStruct>& annotations,
-    std::string_view name);
+    const std::vector<ThriftConstStruct>& annotations, std::string_view name);
 const ThriftConstStruct& findStructuredAnnotationOrThrow(
-    const detail::LimitedVector<ThriftConstStruct>& annotations,
-    std::string_view name);
+    const std::vector<ThriftConstStruct>& annotations, std::string_view name);
 } // namespace apache::thrift::metadata

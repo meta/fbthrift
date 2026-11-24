@@ -151,10 +151,10 @@ const ::cpp2::MyDataItem& MyStruct::get_MyDataField() const& [[FOLLY_ATTR_CLANG_
 
 void swap([[maybe_unused]] MyStruct& a, [[maybe_unused]] MyStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_MyIntField, b.__fbthrift_field_MyIntField);
-  swap(a.__fbthrift_field_MyStringField, b.__fbthrift_field_MyStringField);
-  swap(a.__fbthrift_field_MyDataField, b.__fbthrift_field_MyDataField);
-  swap(a.__fbthrift_field_myEnum, b.__fbthrift_field_myEnum);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyIntField, b.__fbthrift_field_MyIntField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyStringField, b.__fbthrift_field_MyStringField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyDataField, b.__fbthrift_field_MyDataField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_myEnum, b.__fbthrift_field_myEnum);
   swap(a.__isset, b.__isset);
 }
 
@@ -260,45 +260,66 @@ void MyUnion::__fbthrift_clear() {
 bool MyUnion::__fbthrift_is_empty() const {
   return getType() == Type::__EMPTY__;
 }
+  MyUnion& MyUnion::operator=(MyUnion&& rhs) noexcept {
+    if (this == &rhs) { return *this; }
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+      {
+        __fbthrift_clear();
+        return *this;
+      }
+      case Type::myEnum:
+      {
+        auto value = std::move(rhs.value_.myEnum);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(myEnum_ref(), std::move(value));
+        break;
+      }
+      case Type::myStruct:
+      {
+        auto value = std::move(rhs.value_.myStruct);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(myStruct_ref(), std::move(value));
+        break;
+      }
+      case Type::myDataItem:
+      {
+        auto value = std::move(rhs.value_.myDataItem);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(myDataItem_ref(), std::move(value));
+        break;
+      }
+      default:
+      {
+        assert(false);
+        __fbthrift_clear();
+      }
+    }
+    return *this;
+  }
+
   MyUnion::MyUnion(const MyUnion& rhs)
       : fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
     switch (rhs.getType()) {
       case Type::__EMPTY__:
         return;
       case Type::myEnum:
-        set_myEnum(rhs.value_.myEnum);
+        myEnum_ref().emplace(rhs.value_.myEnum);
         break;
       case Type::myStruct:
-        set_myStruct(rhs.value_.myStruct);
+        myStruct_ref().emplace(rhs.value_.myStruct);
         break;
       case Type::myDataItem:
-        set_myDataItem(rhs.value_.myDataItem);
+        myDataItem_ref().emplace(rhs.value_.myDataItem);
         break;
       default:
         assert(false);
     }
   }
 
-    MyUnion&MyUnion::operator=(const MyUnion& rhs) {
+  MyUnion& MyUnion::operator=(const MyUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::myEnum:
-        set_myEnum(rhs.value_.myEnum);
-        break;
-      case Type::myStruct:
-        set_myStruct(rhs.value_.myStruct);
-        break;
-      case Type::myDataItem:
-        set_myDataItem(rhs.value_.myDataItem);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = MyUnion(rhs);
   }
 
 

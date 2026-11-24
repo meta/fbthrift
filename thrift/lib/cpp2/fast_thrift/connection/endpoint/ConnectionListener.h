@@ -16,16 +16,14 @@
 
 #pragma once
 
-#include <memory>
 #include <utility>
 
 #include <folly/ExceptionWrapper.h>
 #include <folly/SocketAddress.h>
 #include <folly/io/async/AsyncServerSocket.h>
-#include <folly/io/async/DelayedDestruction.h>
 #include <folly/io/async/EventBase.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/SocketOptions.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/common/Messages.h>
@@ -49,18 +47,13 @@ class ConnectionListener final
   ConnectionListener(ConnectionListener&&) = delete;
   ConnectionListener& operator=(ConnectionListener&&) = delete;
 
-  void setPipeline(channel_pipeline::PipelineImpl* pipeline) noexcept {
+  void setPipeline(channel_pipeline::PipelineRef pipeline) noexcept {
     DCHECK(pipeline);
     DCHECK(!pipeline_) << "setPipeline called twice without resetPipeline";
     pipeline_ = pipeline;
-    pipelineGuard_ =
-        std::make_unique<folly::DelayedDestruction::DestructorGuard>(pipeline);
   }
 
-  void resetPipeline() noexcept {
-    pipeline_ = nullptr;
-    pipelineGuard_.reset();
-  }
+  void resetPipeline() noexcept { pipeline_.reset(); }
 
   void connectionAccepted(
       folly::NetworkSocket fd,
@@ -72,9 +65,9 @@ class ConnectionListener final
   // acceptor must not affect the shared worker pipeline.
   void acceptStopped() noexcept override {}
 
+  template <typename Context>
   channel_pipeline::Result onWrite(
-      channel_pipeline::detail::ContextImpl&,
-      channel_pipeline::TypeErasedBox&&) noexcept {
+      Context&, channel_pipeline::TypeErasedBox&&) noexcept {
     return channel_pipeline::Result::Error;
   }
 
@@ -87,8 +80,7 @@ class ConnectionListener final
  private:
   folly::EventBase* evb_;
   SocketOptions socketOptions_;
-  channel_pipeline::PipelineImpl* pipeline_{nullptr};
-  std::unique_ptr<folly::DelayedDestruction::DestructorGuard> pipelineGuard_;
+  channel_pipeline::PipelineRef pipeline_;
 };
 
 } // namespace apache::thrift::fast_thrift::connection

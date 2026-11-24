@@ -20,6 +20,7 @@
 
 #include <glog/logging.h>
 
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <utility>
@@ -219,7 +220,7 @@ class DirectStreamMap {
     if (n <= kInitialCapacity) {
       return kInitialCapacity;
     }
-    return size_t{1} << (64 - __builtin_clzll(n - 1));
+    return std::bit_ceil(n);
   }
 
   // Circular displacement check: is 'gap' between 'nat' and 'cur'?

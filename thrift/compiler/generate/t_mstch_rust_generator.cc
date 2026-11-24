@@ -20,7 +20,6 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <unordered_set>
 #include <variant>
 
 #include <thrift/common/detail/string.h>
@@ -127,7 +126,7 @@ std::string quoted_rust_doc(const t_named* named_node) {
   }
 
   const auto last = doc.find_last_not_of(whitespace);
-  return quote(doc.substr(first, last - first + 1), true);
+  return quote(doc.substr(first, last - first + 1));
 }
 
 std::string get_type_annotation(const t_named* node) {
@@ -987,6 +986,19 @@ class t_mstch_rust_generator : public t_whisker_generator {
   void fill_validator_visitors(ast_validator&) const override;
   void process_options(const std::map<std::string, std::string>& options) final;
 
+  std::optional<docblock_style> get_docblock_style() const override {
+    return docblock_style::triple_slash_style();
+  }
+
+  bool docblock_includes_definition(const t_named& node) const override {
+    const auto* type = dynamic_cast<const t_type*>(&node);
+    const std::string rust_name =
+        type != nullptr ? type_rust_name(type) : named_rust_name(&node);
+    // A raw identifier such as `r#type` keeps the Thrift name.
+    return (rust_name != node.name() && rust_name != "r#" + node.name()) ||
+        node_has_adapter(node) || has_type_annotation(&node);
+  }
+
  private:
   rust_codegen_options options_;
   // NOTE: these two fields are not initialized/used unless splitting is used
@@ -1052,15 +1064,14 @@ class t_mstch_rust_generator : public t_whisker_generator {
     globals["rust_quote"] = whisker::dsl::make_function(
         "rust_quote",
         [](whisker::dsl::function::context ctx) -> whisker::object {
-          ctx.declare_named_arguments({"escape_backslashes"});
+          ctx.declare_named_arguments({"bytes"});
           ctx.declare_arity(1);
-          std::optional<bool> escape_backslashes = ctx.named_argument<bool>(
-              "escape_backslashes",
+          auto bytes = ctx.named_argument<bool>(
+              "bytes",
               whisker::dsl::function::context::named_argument_presence::
                   optional);
-          return whisker::make::string(quote(
-              ctx.argument<whisker::string>(0),
-              escape_backslashes.value_or(false)));
+          return whisker::make::string(
+              quote(ctx.argument<whisker::string>(0), bytes.value_or(false)));
         });
     return globals;
   }
@@ -1427,6 +1438,16 @@ class t_mstch_rust_generator : public t_whisker_generator {
       }
       return true;
     });
+    def.property(
+        "has_non_optional_and_non_terse_field?", [](const t_structured& self) {
+          for (const auto& field : self.fields()) {
+            if (field.qualifier() != t_field_qualifier::optional &&
+                field.qualifier() != t_field_qualifier::terse) {
+              return true;
+            }
+          }
+          return false;
+        });
     def.property("has_adapter?", &node_has_adapter);
     def.property("adapter_name", [this](const t_structured& self) {
       auto adapter_annotation = find_structured_adapter_annotation(self);
@@ -1592,6 +1613,11 @@ class t_mstch_rust_generator : public t_whisker_generator {
     def.property("extends_fb303?", [](const t_service& self) {
       const t_service* parent = self.extends();
       if (parent == nullptr) {
+        return false;
+      }
+      const std::string self_name = self.get_scoped_name();
+      if (self_name == kFb303FacebookService ||
+          self_name == kFb303CoreBaseService) {
         return false;
       }
       const std::string scoped_name = parent->get_scoped_name();

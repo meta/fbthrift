@@ -21,6 +21,13 @@
 
 #include <thrift/compiler/ast/t_program.h>
 
+namespace apache::thrift::compiler {
+class sema_context;
+class t_exception;
+class t_field;
+class t_structured;
+} // namespace apache::thrift::compiler
+
 namespace apache::thrift::compiler::java {
 
 /**
@@ -54,5 +61,19 @@ std::string quote_java_string(const std::string& unescaped);
  * that package. Example: "foo.bar.baz" -> "foo/bar/baz"
  */
 std::string package_to_path(std::string package);
+
+/** Reports an error for each exception field whose Java name capitalizes to
+ * "Cause". */
+void validate_java_exception_cause_field(
+    sema_context& ctx, const t_exception& ex);
+
+/**
+ * Finds the message target for the generated cause-only constructor: the
+ * `@thrift.ExceptionMessage` field, else the field whose IDL name is
+ * `message`, when its Java type is plain `String`. Returns null when no
+ * field qualifies (adapted, wrapped, binary or non-string types get no
+ * message assignment).
+ */
+const t_field* java_exception_cause_message_field(const t_structured& str);
 
 } // namespace apache::thrift::compiler::java

@@ -274,9 +274,18 @@ DiscriminantLoadSheddingOSS::QueueLoadShedder::checkEnqueue(
 
 void DiscriminantLoadSheddingOSS::QueueLoadShedder::onDequeue(
     const ServerRequest& request) {
+  releaseRequestAccounting(getRequestBytes(request));
+}
+
+void DiscriminantLoadSheddingOSS::QueueLoadShedder::onLimitRejection(
+    size_t requestBytes) {
+  releaseRequestAccounting(requestBytes);
+}
+
+void DiscriminantLoadSheddingOSS::QueueLoadShedder::releaseRequestAccounting(
+    uint64_t requestBytes) {
   if (!opts_.byteThresholds.empty()) {
-    totalQueuedBytes_.fetch_sub(
-        getRequestBytes(request), std::memory_order_relaxed);
+    totalQueuedBytes_.fetch_sub(requestBytes, std::memory_order_relaxed);
   }
   if (!opts_.countThresholds.empty()) {
     totalQueuedRequests_.fetch_sub(1, std::memory_order_relaxed);
@@ -346,6 +355,9 @@ DiscriminantLoadSheddingOSS::QueueLoadShedder::expandForInternalPriorities(
           [queueLoadShedder](const ServerRequest& request) {
             queueLoadShedder->onDequeue(request);
           });
+      pile->setLimitRejectionObserver([queueLoadShedder](size_t requestBytes) {
+        queueLoadShedder->onLimitRejection(requestBytes);
+      });
     }
     return pile;
   }();

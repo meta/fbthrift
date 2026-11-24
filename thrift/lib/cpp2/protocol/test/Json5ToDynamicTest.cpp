@@ -16,6 +16,7 @@
 
 #include <cmath>
 #include <filesystem>
+#include <unordered_set>
 #include <gtest/gtest.h>
 #include <folly/FileUtil.h>
 #include <folly/json.h>

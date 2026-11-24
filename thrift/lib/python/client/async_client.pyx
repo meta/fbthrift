@@ -104,6 +104,9 @@ cdef class AsyncClient:
             raise TypeError(f"{interactionClass} is not a thrift python async client class")
 
         interactionClient = interactionClass()
+        # C++ keeps persistent headers on the channel the interaction shares;
+        # here they live on the client, so the interaction needs its own copy.
+        (<AsyncClient> interactionClient)._persistent_headers = self._persistent_headers
         bridgeFutureWith[unique_ptr[cOmniInteractionClient]](
             (<AsyncClient> interactionClient)._executor,
             createOmniInteractionClient(deref(self._omni_client).getChannelShared(), methodName),

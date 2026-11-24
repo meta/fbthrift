@@ -42,4 +42,10 @@ enum from {
   VALUE = 1,
 }
 
+enum Mode {
+  None = 0,
+  for = 1,
+  OK = 2,
+}
+
 typedef i64 and

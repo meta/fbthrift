@@ -604,32 +604,6 @@ void validate_extends_service_function_name_uniqueness(
   }
 }
 
-// A `@cpp.FastClient`-annotated service may only extend another
-// `@cpp.FastClient`-annotated service: the generated child `FastClient<>`
-// derives from the parent's `FastClient<>` specialization, which only exists
-// when the parent is also annotated.
-void validate_cpp_fast_client_extends(
-    sema_context& ctx, const t_service& node) {
-  if (node.find_structured_annotation_or_null(kCppFastClientUri) == nullptr) {
-    return;
-  }
-  if (node.extends() == nullptr) {
-    return;
-  }
-  if (node.extends()->find_structured_annotation_or_null(kCppFastClientUri) !=
-      nullptr) {
-    return;
-  }
-  ctx.error(
-      node,
-      "Service `{}` is annotated with `@cpp.FastClient` but extends "
-      "service `{}` which is not. Annotate `{}` with `@cpp.FastClient` "
-      "to enable fast client inheritance.",
-      node.name(),
-      node.extends()->get_full_name(),
-      node.extends()->get_full_name());
-}
-
 void validate_throws_exceptions(sema_context& ctx, const t_field& except) {
   auto except_type = except.type()->get_true_type();
   ctx.check(
@@ -754,6 +728,12 @@ void validate_union_field_attributes(sema_context& ctx, const t_union& node) {
       ctx.error(
           field,
           "`@thrift.TerseWrite` cannot be applied to union fields (in `{}`).",
+          node.name());
+    } else if (field.has_structured_annotation(kCppDeprecatedTerseWriteUri)) {
+      ctx.error(
+          field,
+          "`@cpp.DeprecatedTerseWrite` cannot be applied to union fields (in "
+          "`{}`).",
           node.name());
     }
   }
@@ -1418,6 +1398,67 @@ void validate_cpp_field_interceptor_annotation(
   }
 }
 
+// Lowering can't change the C++ type of an adapted field or typedef.
+void report_cpp_arena_on_adapted(
+    sema_context& ctx,
+    std::string_view kind,
+    std::string_view name,
+    const t_const& adapter) {
+  // A nameless adapter gets its own "key `name` not found." error.
+  const t_const_value* adapter_name =
+      adapter.get_value_from_structured_annotation_or_null("name");
+  if (adapter_name != nullptr &&
+      adapter_name->kind() == t_const_value::CV_STRING) {
+    ctx.error(
+        "`@cpp.Arena` is not supported on {} `{}`, which is adapted by `{}`.",
+        kind,
+        name,
+        adapter_name->get_string());
+  } else {
+    ctx.error("`@cpp.Arena` is not supported on adapted {} `{}`.", kind, name);
+  }
+}
+
+void validate_cpp_arena_field(sema_context& ctx, const t_field& field) {
+  if (!field.has_structured_annotation(kCppArenaUri)) {
+    return;
+  }
+  const t_const* adapter =
+      field.find_structured_annotation_or_null(kCppAdapterUri);
+  if (adapter == nullptr) {
+    adapter = t_typedef::get_first_structured_annotation_or_null(
+        &field.type().deref(), kCppAdapterUri);
+  }
+  if (adapter != nullptr) {
+    report_cpp_arena_on_adapted(ctx, "field", field.name(), *adapter);
+    return;
+  }
+  if (!cpp2::is_arena_supported(field)) {
+    ctx.error("`@cpp.Arena` is not supported on field `{}`.", field.name());
+  }
+}
+
+void validate_cpp_arena_typedef(sema_context& ctx, const t_typedef& node) {
+  if (node.has_structured_annotation(kCppArenaUri)) {
+    ctx.error("`@cpp.Arena` is not supported on typedef `{}`.", node.name());
+  }
+}
+
+void validate_cpp_arena_function(sema_context& ctx, const t_function& node) {
+  if (!node.has_structured_annotation(kCppArenaUri)) {
+    return;
+  }
+  const auto* service = dynamic_cast<const t_service*>(ctx.parent());
+  if (service == nullptr ||
+      service->has_structured_annotation(kCppFastServerUri) ||
+      service->has_structured_annotation(kCppFastClientUri) ||
+      node.qualifier() == t_function_qualifier::oneway ||
+      node.sink_or_stream() != nullptr || node.interaction() ||
+      node.has_structured_annotation(kCppProcessInEbThreadUri)) {
+    ctx.error("`@cpp.Arena` is not supported on function `{}`.", node.name());
+  }
+}
+
 // Compiler counterpart of cpp.EnumUnderlyingType that avoids dependency on
 // generated code (see cpp.thrift and t_mstch_cpp2_generator.cc).
 enum class enum_underlying_type {
@@ -1821,54 +1862,12 @@ bool owns_annotations(const t_type_ref& type) {
 
 void validate_custom_cpp_type_annotations(
     sema_context& ctx, const t_named& node) {
-  const bool hasAdapter = node.has_structured_annotation(kCppAdapterUri);
-  bool hasCppType = node.has_unstructured_annotation(
-      {"cpp.type", "cpp2.type", "cpp.template", "cpp2.template"});
-  const bool hasStructuredCppType = node.has_structured_annotation(kCppTypeUri);
-
-  // For user-defined typedefs, unstructured cpp.type/cpp.template is not
-  // supported — only structured @cpp.Type is allowed.
-  if (auto t = dynamic_cast<const t_typedef*>(&node); t && hasCppType) {
-    ctx.warning(
-        "Unstructured annotation cpp.type/cpp.template on typedef `{}` is "
-        "ignored. Use @cpp.Type instead.",
-        node.name());
-  }
-
-  ctx.check(
-      !(hasCppType && hasAdapter),
-      "Definition `{}` cannot have both cpp.type/cpp.template and @cpp.Adapter annotations",
-      node.name());
-
-  // Only source-backed annotations should count as user-provided.
-  auto has_real_annotation = [](const auto& node) {
-    if (!owns_annotations(node.type())) {
-      return false;
-    }
-    std::set<std::string> names{
-        "cpp.type", "cpp2.type", "cpp.template", "cpp2.template"};
-    for (const auto& [k, v] : node.type()->unstructured_annotations()) {
-      if (names.count(k) && v.src_range.begin != source_location{}) {
-        return true;
-      }
-    }
-    return false;
-  };
-
-  bool hasUnnamedCppType = false;
-  if (auto f = dynamic_cast<const t_field*>(&node)) {
-    if (has_real_annotation(*f)) {
-      hasUnnamedCppType = true;
-    }
-  }
-  if (hasAdapter && (hasUnnamedCppType || hasStructuredCppType)) {
+  if (node.has_structured_annotation(kCppAdapterUri) &&
+      node.has_structured_annotation(kCppTypeUri)) {
     // TODO (T169470476): make this an error
     ctx.warning(
-        "At most one of @cpp.Type/@cpp.Adapter/cpp.type/cpp.template can be specified on a definition.");
+        "At most one of @cpp.Type/@cpp.Adapter can be specified on a definition.");
   }
-  ctx.check(
-      hasCppType + hasStructuredCppType + hasUnnamedCppType <= 1,
-      "Duplicate cpp.Type annotation");
 }
 
 void validate_deprecated_annotations(sema_context& ctx, const t_named& node) {
@@ -1923,6 +1922,16 @@ void validate_cpp_type_annotation(sema_context& ctx, const Node& node) {
           "Use thrift/lib/cpp2/SizedContainer.h for size or comparator template parameters.",
           node.name());
     }
+  }
+}
+
+void validate_cpp_type_on_adapted_typedef(
+    sema_context& ctx, const t_typedef& node) {
+  if (node.has_structured_annotation(kCppTypeUri) &&
+      t_typedef::get_first_structured_annotation_or_null(
+          &node, kCppAdapterUri) != nullptr) {
+    ctx.error(
+        "`@cpp.Type` cannot be used on adapted typedef `{}`.", node.name());
   }
 }
 
@@ -2533,7 +2542,6 @@ ast_validator standard_validator() {
   validator.add_interface_visitor(&validate_interface_function_name_uniqueness);
   validator.add_service_visitor(
       &validate_extends_service_function_name_uniqueness);
-  validator.add_service_visitor(&validate_cpp_fast_client_extends);
   validator.add_interaction_visitor(&validate_interaction_nesting);
   validator.add_interaction_visitor(&validate_interaction_annotations);
 
@@ -2561,6 +2569,9 @@ ast_validator standard_validator() {
   validator.add_union_visitor(&validate_union_field_attributes);
   validator.add_exception_visitor(&validate_exception_message_annotation);
   validator.add_field_visitor(&validate_field_id_value);
+  validator.add_field_visitor(&validate_cpp_arena_field);
+  validator.add_typedef_visitor(&validate_cpp_arena_typedef);
+  validator.add_function_visitor(&validate_cpp_arena_function);
   validator.add_field_visitor(&validate_mixin_field_attributes);
   validator.add_field_visitor(&validate_boxed_field_attributes);
   validator.add_field_visitor(&validate_field_default_value);
@@ -2602,10 +2613,10 @@ ast_validator standard_validator() {
   validator.add_function_param_visitor(
       &detail::validate_annotation_scopes<
           detail::scope_check_type::function_parameter>);
-  validator.add_function_param_visitor(&validate_cpp_type_annotation<t_field>);
   validator.add_function_param_visitor(&validate_field_id_value);
 
   validator.add_typedef_visitor(&validate_cpp_type_annotation<t_typedef>);
+  validator.add_typedef_visitor(&validate_cpp_type_on_adapted_typedef);
   validator.add_typedef_visitor(&validate_cpp_type_integer_width<t_typedef>);
   validator.add_typedef_visitor(&validate_py3_enable_cpp_adapter);
   validator.add_typedef_visitor(&deprecate_typedef_type_annotations);

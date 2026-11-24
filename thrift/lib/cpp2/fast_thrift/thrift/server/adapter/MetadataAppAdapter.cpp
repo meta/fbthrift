@@ -67,7 +67,8 @@ MetadataAppAdapter::MetadataAppAdapter(
 }
 
 template <typename Writer>
-void MetadataAppAdapter::writeMetadataResponse(uint32_t streamId) noexcept {
+void MetadataAppAdapter::writeMetadataResponse(
+    uint32_t streamId, ThriftRequestContextPtr requestContext) noexcept {
   GetMetadataPresult presult;
   // Presult holds a pointer to the response; const_cast is safe — write() is
   // logically const, the codegen surface just isn't const-correct.
@@ -75,7 +76,9 @@ void MetadataAppAdapter::writeMetadataResponse(uint32_t streamId) noexcept {
       const_cast<apache::thrift::metadata::ThriftServiceMetadataResponse*>(
           response_.get());
   presult.setIsSet(0, true);
-  writeResponse(makeSuccessResponseMessage<Writer>(streamId, presult));
+  auto response = makeSuccessResponseMessage<Writer>(streamId, presult);
+  response.requestContext = std::move(requestContext);
+  writeResponse(std::move(response));
 }
 
 void MetadataAppAdapter::handleGetThriftServiceMetadata(
@@ -83,22 +86,24 @@ void MetadataAppAdapter::handleGetThriftServiceMetadata(
     uint32_t streamId,
     std::unique_ptr<folly::IOBuf> /*requestData*/,
     apache::thrift::ProtocolId protocol,
-    ThriftRequestContextPtr /*requestContext*/) noexcept {
+    ThriftRequestContextPtr requestContext) noexcept {
   auto* impl = static_cast<MetadataAppAdapter*>(self);
   switch (protocol) {
     case apache::thrift::ProtocolId::COMPACT:
       impl->writeMetadataResponse<apache::thrift::CompactProtocolWriter>(
-          streamId);
+          streamId, std::move(requestContext));
       break;
     case apache::thrift::ProtocolId::BINARY:
       impl->writeMetadataResponse<apache::thrift::BinaryProtocolWriter>(
-          streamId);
+          streamId, std::move(requestContext));
       break;
     default:
-      impl->writeResponse(makeFrameworkErrorMessage(
+      auto response = makeFrameworkErrorMessage(
           streamId,
           apache::thrift::ResponseRpcErrorCode::REQUEST_PARSING_FAILURE,
-          "Unsupported protocol id for getThriftServiceMetadata"));
+          "Unsupported protocol id for getThriftServiceMetadata");
+      response.requestContext = std::move(requestContext);
+      impl->writeResponse(std::move(response));
       break;
   }
 }

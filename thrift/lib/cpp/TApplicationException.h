@@ -324,7 +324,7 @@ struct FOLLY_EXPORT AppServerException : TApplicationException {
 struct FOLLY_EXPORT AppOverloadedException : TApplicationException {
   AppOverloadedException(std::string&& name, std::string&& message)
       : TApplicationException(
-            TApplicationException::UNKNOWN, std::move(message)),
+            TApplicationException::LOADSHEDDING, std::move(message)),
         name_(std::move(name)) {}
   const auto& name() const noexcept { return name_; }
 

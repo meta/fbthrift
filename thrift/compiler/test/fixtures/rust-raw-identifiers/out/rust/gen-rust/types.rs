@@ -12,6 +12,9 @@ pub mod services;
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ThereAreNoPascalCaseKeywords {
     pub r#return: ::std::primitive::bool,
+    /// ```thrift
+    /// 2: bool super
+    /// ```
     pub super_: ::std::primitive::bool,
     // This field forces `..Default::default()` when instantiating this
     // struct, to make code future-proof against new fields added later to

@@ -35,6 +35,13 @@ void validateThriftTypeInfo(const ThriftTypeInfo& type) {
   }
 }
 
+namespace detail {
+bool matchesTypeHashPrefix(folly::StringPiece hash, folly::StringPiece prefix) {
+  return prefix.size() >= static_cast<size_t>(kMinTypeHashBytes) &&
+      type::matchesUniversalHash(hash, prefix);
+}
+} // namespace detail
+
 [[FOLLY_ATTR_GNU_COLD]] ThriftTypeInfo createThriftTypeInfo(
     std::span<folly::cstring_view const> uris,
     type::hash_size_t typeHashBytes) {

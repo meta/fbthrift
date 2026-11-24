@@ -264,8 +264,7 @@ class TProcessorEventHandlerBridgeE2ETest : public ::testing::Test {
                     channel_pipeline::detail::StaticHandlerContext>>(
                 TProcessorEventHandlerBridgeConfig{
                     .handlers = std::move(handlers),
-                    .methodMetadata = server_->getMethodMetadataRegistry(),
-                    .identityResolver = nullptr}));
+                    .methodMetadata = server_->getMethodMetadataRegistry()}));
 
     server_->setInterface(handler_);
     server_->start();
@@ -303,7 +302,7 @@ class TProcessorEventHandlerBridgeE2ETest : public ::testing::Test {
   // EventBase that is already being driven.
   EchoResponse echo(
       apache::thrift::RpcOptions& options, const std::string& message) {
-    auto* evb = clientThread_->getEventBase();
+    auto evb = clientThread_->getEventBaseKeepAlive();
     folly::Baton<> done;
     EchoResponse result;
     folly::exception_wrapper error;
@@ -325,7 +324,7 @@ class TProcessorEventHandlerBridgeE2ETest : public ::testing::Test {
   }
 
   folly::exception_wrapper echoExpectError(const std::string& message) {
-    auto* evb = clientThread_->getEventBase();
+    auto evb = clientThread_->getEventBaseKeepAlive();
     folly::Baton<> done;
     folly::exception_wrapper error;
     evb->runInEventBaseThread([&] {
@@ -350,7 +349,7 @@ class TProcessorEventHandlerBridgeE2ETest : public ::testing::Test {
   }
 
   void pingWith(apache::thrift::RpcOptions& options) {
-    auto* evb = clientThread_->getEventBase();
+    auto evb = clientThread_->getEventBaseKeepAlive();
     folly::Baton<> done;
     folly::exception_wrapper error;
     evb->runInEventBaseThread([&] {

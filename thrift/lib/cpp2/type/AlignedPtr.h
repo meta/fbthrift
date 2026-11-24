@@ -53,7 +53,6 @@ namespace apache::thrift::type::detail {
  *     parameter allows clients to explicitly relax the upper bound on tag bits
  *     that would be provided by `alignof(T)`, potentially at the risk of
  *     abnormal program termination (see validation in code below).
- *     `MaxTagBits` must be a (non-negative) integral value.
  */
 template <
     typename T,
@@ -61,7 +60,6 @@ template <
     size_t MaxTagBits = folly::constexpr_log2(alignof(T))>
 class AlignedPtr {
  public:
-  static_assert(MaxTagBits >= 0, "Invalid MaxTagBits: cannot be negative.");
   static_assert(TagBits > 0, "Invalid TagBits: must be strictly positive.");
   static_assert(
       TagBits <= MaxTagBits,

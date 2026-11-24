@@ -243,12 +243,12 @@ bool Set::ConstIterator::operator==(const ConstIterator& other) const {
 }
 
 bool operator==(const Set& lhs, const Set& rhs) {
-  if (!lhs.impl_ && !rhs.impl_) {
-    return type_system::TypeRef(lhs.setType_)
-        .isEqualIdentityTo(type_system::TypeRef(rhs.setType_));
-  }
   if (!lhs.impl_ || !rhs.impl_) {
-    return false; // One is empty, the other is not
+    // Storage is allocated lazily but kept once the set is emptied, so a
+    // set with storage may still be empty.
+    return lhs.isEmpty() && rhs.isEmpty() &&
+        type_system::TypeRef(lhs.setType_)
+            .isEqualIdentityTo(type_system::TypeRef(rhs.setType_));
   }
   return lhs.impl_->operator==(*rhs.impl_);
 }

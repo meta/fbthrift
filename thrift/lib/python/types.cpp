@@ -1358,6 +1358,45 @@ PyObject* createStructList(int16_t numFields) {
   return createStructContainer<ListContainer>(numFields);
 }
 
+PyObject* FOLLY_NULLABLE fieldCacheGetOrCreate(
+    PyObject* cache, int16_t index, PyObject* owner, FieldValueFactory create) {
+#ifdef Py_GIL_DISABLED
+  auto* cached = static_cast<PyObject*>(_Py_atomic_load_ptr_acquire(
+      &reinterpret_cast<PyTupleObject*>(cache)->ob_item[index]));
+#else
+  PyObject* cached = PyTuple_GET_ITEM(cache, index);
+#endif
+  if (cached != nullptr) {
+    return Py_NewRef(cached);
+  }
+
+  PyObject* value = create(owner, index);
+  if (value == nullptr) {
+    return nullptr;
+  }
+#ifdef Py_GIL_DISABLED
+  PyObject* winner = nullptr;
+  const bool published = _Py_atomic_compare_exchange_ptr(
+      &reinterpret_cast<PyTupleObject*>(cache)->ob_item[index], &winner, value);
+#else
+  PyObject* winner = PyTuple_GET_ITEM(cache, index);
+  const bool published = winner == nullptr;
+  if (published) {
+    PyTuple_SET_ITEM(cache, index, value);
+  }
+#endif
+  if (published) {
+    winner = value;
+  }
+  // Establish the result reference before a discarded value's destructor
+  // can reenter Python.
+  Py_INCREF(winner);
+  if (!published) {
+    Py_DECREF(value);
+  }
+  return winner;
+}
+
 PyObject* createImmutableStructTupleWithDefaultValues(
     const detail::StructInfo& structInfo) {
   return createStructTupleWithDefaultValues(structInfo);

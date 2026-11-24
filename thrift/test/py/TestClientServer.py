@@ -350,8 +350,9 @@ def new_test_class(cls, vars):
         name += class_name_mixin(k, v)
         template += "  {} = {!r}\n".format(k, v)
     template = "class {}(cls, unittest.TestCase):\n".format(name) + template
-    exec(template)
-    return locals()[name]
+    namespace = {"cls": cls}
+    exec(template, globals(), namespace)
+    return namespace[name]
 
 
 def add_test_classes(module):

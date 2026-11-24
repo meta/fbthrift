@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <thrift/lib/cpp2/IOBufChainCursor.h>
 #include <thrift/lib/cpp2/transport/rocket/server/RocketServerConnection.h>
 
 #include <memory>
@@ -401,7 +402,9 @@ void RocketServerConnection::pauseSocketReading() {
   socket_->setReadCB(nullptr);
 }
 
-void RocketServerConnection::handleFrame(std::unique_ptr<folly::IOBuf> frame) {
+template <typename FrameBuffer, typename Cursor>
+void RocketServerConnection::handleFrameImpl(
+    FrameBuffer& frame, Cursor& cursor) {
   DestructorGuard dg(this);
 
   if (state_ != ConnectionState::ALIVE && state_ != ConnectionState::DRAINING) {
@@ -410,7 +413,6 @@ void RocketServerConnection::handleFrame(std::unique_ptr<folly::IOBuf> frame) {
 
   frameHandler_->onBeforeHandleFrame();
 
-  folly::io::Cursor cursor(frame.get());
   const auto streamId = readStreamId(cursor);
   FrameType frameType;
   Flags flags;
@@ -486,8 +488,7 @@ void RocketServerConnection::handleFrame(std::unique_ptr<folly::IOBuf> frame) {
     default: {
       auto iter = streams_.find(streamId);
       if (UNLIKELY(iter == streams_.end())) {
-        handleUntrackedFrame(
-            std::move(frame), streamId, frameType, flags, std::move(cursor));
+        handleUntrackedFrameImpl(frame, streamId, frameType, flags, cursor);
       } else {
         auto& handler = iter->second;
         switch (frameType) {
@@ -526,12 +527,32 @@ void RocketServerConnection::handleFrame(std::unique_ptr<folly::IOBuf> frame) {
   }
 }
 
+void RocketServerConnection::handleFrame(std::unique_ptr<folly::IOBuf> frame) {
+  folly::io::Cursor cursor(frame.get());
+  handleFrameImpl(frame, cursor);
+}
+
 void RocketServerConnection::handleUntrackedFrame(
     std::unique_ptr<folly::IOBuf> frame,
     StreamId streamId,
     FrameType frameType,
     Flags flags,
     folly::io::Cursor cursor) {
+  handleUntrackedFrameImpl(frame, streamId, frameType, flags, cursor);
+}
+
+void RocketServerConnection::handleFrame(IOBufChain frame) {
+  io::IOBufChainCursor cursor(frame);
+  handleFrameImpl(frame, cursor);
+}
+
+template <typename FrameBuffer, typename Cursor>
+void RocketServerConnection::handleUntrackedFrameImpl(
+    FrameBuffer& frame,
+    StreamId streamId,
+    FrameType frameType,
+    Flags flags,
+    Cursor& cursor) {
   switch (frameType) {
     case FrameType::PAYLOAD: {
       auto it = partialRequestFrames_.find(streamId);

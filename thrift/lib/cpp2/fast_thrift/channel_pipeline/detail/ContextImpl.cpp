@@ -27,8 +27,8 @@ ContextImpl::ContextImpl(
     size_t handlerIndex,
     HandlerId handlerId) noexcept
     : pipeline_(pipeline),
-      eventBase_(eventBase),
       allocator_(allocator),
+      eventBase_(eventBase),
       handlerIndex_(handlerIndex),
       handlerId_(handlerId) {}
 
@@ -73,47 +73,37 @@ void ContextImpl::close() noexcept {
 }
 
 void ContextImpl::awaitWriteReady() noexcept {
-  if (pipeline_->isClosed()) {
-    return;
-  }
-  auto* hook = pipeline_->handlerWriteReadyHook(handlerIndex_);
-  if (hook && !hook->hook.is_linked()) {
-    pipeline_->writeReadyList().push_back(*hook);
+  if (!pipeline_->isClosed() && pipeline_->handlesWriteReady(handlerIndex_)) {
+    pipeline_->writeReadyWaiters().arm(handlerIndex_);
   }
 }
 
 void ContextImpl::cancelAwaitWriteReady() noexcept {
-  auto* hook = pipeline_->handlerWriteReadyHook(handlerIndex_);
-  if (hook && hook->hook.is_linked()) {
-    hook->hook.unlink();
+  if (pipeline_->handlesWriteReady(handlerIndex_)) {
+    pipeline_->writeReadyWaiters().cancel(handlerIndex_);
   }
 }
 
 bool ContextImpl::isAwaitingWriteReady() const noexcept {
-  auto* hook = pipeline_->handlerWriteReadyHook(handlerIndex_);
-  return hook && hook->hook.is_linked();
+  return pipeline_->handlesWriteReady(handlerIndex_) &&
+      pipeline_->writeReadyWaiters().isArmed(handlerIndex_);
 }
 
 void ContextImpl::awaitReadReady() noexcept {
-  if (pipeline_->isClosed()) {
-    return;
-  }
-  auto* hook = pipeline_->handlerReadReadyHook(handlerIndex_);
-  if (hook && !hook->hook.is_linked()) {
-    pipeline_->readReadyList().push_back(*hook);
+  if (!pipeline_->isClosed() && pipeline_->handlesReadReady(handlerIndex_)) {
+    pipeline_->readReadyWaiters().arm(handlerIndex_);
   }
 }
 
 void ContextImpl::cancelAwaitReadReady() noexcept {
-  auto* hook = pipeline_->handlerReadReadyHook(handlerIndex_);
-  if (hook && hook->hook.is_linked()) {
-    hook->hook.unlink();
+  if (pipeline_->handlesReadReady(handlerIndex_)) {
+    pipeline_->readReadyWaiters().cancel(handlerIndex_);
   }
 }
 
 bool ContextImpl::isAwaitingReadReady() const noexcept {
-  auto* hook = pipeline_->handlerReadReadyHook(handlerIndex_);
-  return hook && hook->hook.is_linked();
+  return pipeline_->handlesReadReady(handlerIndex_) &&
+      pipeline_->readReadyWaiters().isArmed(handlerIndex_);
 }
 
 } // namespace apache::thrift::fast_thrift::channel_pipeline::detail

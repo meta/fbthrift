@@ -93,7 +93,6 @@ void ConnectionHandler::stopInstallingOnEvb() {
   pipeline_->deactivate();
   listener_.resetPipeline();
   pipeline_.reset();
-  installer_.reset();
 }
 
 void ConnectionHandler::closeAllOnEvb() {

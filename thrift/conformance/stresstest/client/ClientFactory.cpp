@@ -16,6 +16,8 @@
 
 #include <thrift/conformance/stresstest/client/ClientFactory.h>
 #include <thrift/conformance/stresstest/client/FizzStopTLSConnector.h>
+
+#include <stdexcept>
 #include "common/services/cpp/security/FizzThriftFactory.h"
 #include "common/services/cpp/security/SecureThriftUtil.h"
 
@@ -39,6 +41,7 @@
 #include <thrift/lib/cpp2/async/RocketClientChannel.h>
 #include <thrift/lib/cpp2/security/extensions/ThriftParametersClientExtension.h>
 #include <thrift/lib/cpp2/security/extensions/ThriftParametersContext.h>
+#include <thrift/lib/cpp2/transport/rocket/framing/Parser.h>
 
 namespace apache::thrift::stress {
 
@@ -464,8 +467,17 @@ folly::AsyncTransport::UniquePtr createIOUringFizz(
 /* static */ std::unique_ptr<StressTestAsyncClient>
 ClientFactory::createRocketClient(
     folly::EventBase* evb, const ClientConnectionConfig& cfg) {
-  auto chan = RocketClientChannel::newChannel(createSocket(evb, cfg));
+  RocketClientChannelOptions options;
+  options.frameParser =
+      cfg.rocketFrameParser.value_or(THRIFT_FLAG(rocket_frame_parser));
+  if (*options.frameParser == "iobuf_chain" &&
+      cfg.thriftProtocol != protocol::T_BINARY_PROTOCOL) {
+    throw std::invalid_argument(
+        "IOBufChain parsing requires --thrift_protocol=BINARY");
+  }
 
+  auto chan = RocketClientChannel::newChannelWithOptions(
+      createSocket(evb, cfg), std::move(options));
   chan->setProtocolId(cfg.thriftProtocol);
 
   if (cfg.compressionConfigOpt) {
@@ -483,15 +495,27 @@ THRIFT_PLUGGABLE_FUNC_REGISTER(
     ClientRpcStats& stats) {
   std::vector<std::unique_ptr<StressTestClient>> clients;
 
+  auto connectionConfig = cfg.connConfig;
+  connectionConfig.rocketFrameParser =
+      connectionConfig.rocketFrameParser.value_or(
+          THRIFT_FLAG(rocket_frame_parser));
+  const bool chainReads = *connectionConfig.rocketFrameParser == "iobuf_chain";
+
   // Create Thrift clients
   for (size_t connectionIdx = 0; connectionIdx < cfg.numConnectionsPerThread;
        connectionIdx++) {
     std::shared_ptr<StressTestAsyncClient> connection =
-        ClientFactory::createRocketClient(evb, cfg.connConfig);
+        ClientFactory::createRocketClient(evb, connectionConfig);
     for (size_t i = 0; i < cfg.numClientsPerConnection; i++) {
-      clients.emplace_back(
-          std::make_unique<ThriftStressTestClient>(
-              connection, stats, cfg.enableChecksum));
+      if (chainReads) {
+        clients.emplace_back(
+            std::make_unique<ChainThriftStressTestClient>(
+                connection, stats, cfg.enableChecksum));
+      } else {
+        clients.emplace_back(
+            std::make_unique<ThriftStressTestClient>(
+                connection, stats, cfg.enableChecksum));
+      }
     }
   }
   return clients;

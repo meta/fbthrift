@@ -17,6 +17,8 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <limits>
+
 #include <thrift/compiler/whisker/diagnostic.h>
 #include <thrift/compiler/whisker/dsl.h>
 #include <thrift/compiler/whisker/object.h>
@@ -142,6 +144,112 @@ TEST_F(StandardLibraryTest, array_at) {
             "Index '-1' is out of bounds (size is 3).",
             path_to_file,
             1)));
+  }
+}
+
+TEST_F(StandardLibraryTest, array_chunk) {
+  std::optional<std::string> result = render(
+      "{{#let input = (array.of 0 1 2 3 4)}}\n"
+      "{{#let chunks = (array.chunk input chunk_size=2)}}\n"
+      "{{(array.len chunks)}}\n"
+      "{{#each chunks as |chunk|}}[{{#each chunk as |item|}}{{item}}{{/each}}]{{/each}}\n",
+      w::null);
+  ASSERT_TRUE(result.has_value());
+  EXPECT_THAT(diagnostics(), testing::IsEmpty());
+  EXPECT_EQ(*result, "3\n[01][23][4]\n");
+}
+
+TEST_F(StandardLibraryTest, array_chunk_empty) {
+  std::optional<std::string> result = render(
+      "{{#let chunks = (array.chunk (array.of) chunk_size=2)}}\n"
+      "{{(array.len chunks)}}\n"
+      "{{#each chunks as |chunk|}}Unexpected chunk{{/each}}",
+      w::null);
+  ASSERT_TRUE(result.has_value());
+  EXPECT_THAT(diagnostics(), testing::IsEmpty());
+  EXPECT_EQ(*result, "0\n");
+}
+
+TEST_F(StandardLibraryTest, array_chunk_single_chunk) {
+  strict_printable_types(diagnostic_level::info);
+  for (i64 chunk_size : {i64{3}, i64{4}, std::numeric_limits<i64>::max()}) {
+    SCOPED_TRACE(chunk_size);
+    std::optional<std::string> result = render(
+        "{{#let input = (array.of 0 \"foo\" true)}}\n"
+        "{{#let chunks = (array.chunk input chunk_size=chunk_size)}}\n"
+        "{{(array.len chunks)}}\n"
+        "{{(object.eq? chunks (array.of input))}}\n",
+        w::map({{"chunk_size", w::i64(chunk_size)}}));
+    ASSERT_TRUE(result.has_value());
+    EXPECT_THAT(diagnostics(), testing::IsEmpty());
+    EXPECT_EQ(*result, "1\ntrue\n");
+  }
+}
+
+TEST_F(StandardLibraryTest, array_chunk_size_one) {
+  std::optional<std::string> result = render(
+      "{{#each (array.chunk (array.of 0 1 2) chunk_size=1) as |chunk|}}"
+      "[{{#each chunk as |item|}}{{item}}{{/each}}]{{/each}}",
+      w::null);
+  ASSERT_TRUE(result.has_value());
+  EXPECT_THAT(diagnostics(), testing::IsEmpty());
+  EXPECT_EQ(*result, "[0][1][2]");
+}
+
+TEST_F(StandardLibraryTest, array_chunk_exact_multiple) {
+  std::optional<std::string> result = render(
+      "{{#each (array.chunk (array.of 0 1 2 3) chunk_size=2) as |chunk|}}"
+      "[{{#each chunk as |item|}}{{item}}{{/each}}]{{/each}}",
+      w::null);
+  ASSERT_TRUE(result.has_value());
+  EXPECT_THAT(diagnostics(), testing::IsEmpty());
+  EXPECT_EQ(*result, "[01][23]");
+}
+
+TEST_F(StandardLibraryTest, array_chunk_array_view) {
+  std::optional<std::string> result = render(
+      "{{#let input = (array.enumerate (array.of \"a\" \"b\" \"c\"))}}\n"
+      "{{#each (array.enumerate (array.chunk input chunk_size=2)) as |index chunk|}}\n"
+      "{{index}}:{{#each chunk as |item|}} {{(array.at item 0)}}={{(array.at item 1)}}{{/each}}\n"
+      "{{/each}}\n",
+      w::null);
+  ASSERT_TRUE(result.has_value());
+  EXPECT_THAT(diagnostics(), testing::IsEmpty());
+  EXPECT_EQ(*result, "0: 0=a 1=b\n1: 2=c\n");
+}
+
+TEST_F(StandardLibraryTest, array_chunk_invalid_arguments) {
+  struct invalid_case {
+    const char* source;
+    const char* message;
+  };
+  const invalid_case cases[] = {
+      {"{{(array.chunk chunk_size=2)}}", "Expected 1 argument(s) but got 0"},
+      {"{{(array.chunk (array.of) 2)}}", "Expected 1 argument(s) but got 2"},
+      {"{{(array.chunk (array.of))}}", "Missing named argument 'chunk_size'."},
+      {"{{(array.chunk (array.of) chunk_size=2 extra=1)}}",
+       "Unknown named argument(s) provided: extra."},
+      {"{{(array.chunk (array.of) chunk_size=0)}}",
+       "chunk_size must be greater than 0 and a valid array size, but got 0."},
+      {"{{(array.chunk (array.of 1) chunk_size=-1)}}",
+       "chunk_size must be greater than 0 and a valid array size, but got -1."},
+      {"{{(array.chunk null chunk_size=2)}}",
+       "Expected type of argument at index 0 to be `array`"},
+      {"{{(array.chunk 1 chunk_size=2)}}",
+       "Expected type of argument at index 0 to be `array`"},
+      {"{{(array.chunk (array.of) chunk_size=\"2\")}}",
+       "Expected type of named argument 'chunk_size' to be `i64`"},
+      {"{{(array.chunk (array.of) chunk_size=true)}}",
+       "Expected type of named argument 'chunk_size' to be `i64`"},
+  };
+  for (const invalid_case& test_case : cases) {
+    SCOPED_TRACE(test_case.source);
+    std::optional<std::string> result = render(test_case.source, w::null);
+    EXPECT_FALSE(result.has_value());
+    ASSERT_THAT(diagnostics(), testing::SizeIs(1));
+    EXPECT_EQ(diagnostics()[0].level(), diagnostic_level::error);
+    EXPECT_THAT(
+        diagnostics()[0].message(), testing::HasSubstr(test_case.message));
   }
 }
 

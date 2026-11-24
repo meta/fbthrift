@@ -43,8 +43,8 @@
 #include <thrift/lib/cpp2/async/ResponseChannel.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/BufferAllocator.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineBuilder.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/handler/FrameCodecHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameLengthParser.h>
@@ -112,8 +112,6 @@ HANDLER_TAG(thrift_server_request_context_handler);
 HANDLER_TAG(thrift_server_compression_handler);
 HANDLER_TAG(thrift_server_connection_close_handler);
 HANDLER_TAG(thrift_server_setup_handler);
-using ServerSetupHandler =
-    thrift::ThriftServerSetupHandler<channel_pipeline::detail::ContextImpl>;
 
 // =============================================================================
 // Echo AsyncProcessor — synchronously echoes request payload as reply
@@ -319,7 +317,7 @@ std::unique_ptr<rocket::server::RocketServerConnection> buildRocketConnection(
       rocket::server::RocketServerEventFactory>::create(std::move(transport));
 
   rocketConn->pipeline =
-      PipelineBuilder<
+      StaticPipelineBuilder<
           transport::TransportHandlerT<
               rocket::server::RocketServerEventFactory>,
           rocket::server::RocketServerAppAdapter,
@@ -379,8 +377,8 @@ struct ChannelBenchFixture {
       transportAdapter;
   std::shared_ptr<thrift::ThriftServerChannel> serverChannel;
   std::shared_ptr<BenchProcessorFactory<ProcessorT>> processorFactory;
-  PipelineImpl::Ptr thriftPipeline;
   SimpleBufferAllocator thriftAllocator;
+  PipelineOwner thriftPipeline;
 
   void setup() {
     auto rocketConn = buildRocketConnection(&evb, &testTransport);
@@ -394,7 +392,7 @@ struct ChannelBenchFixture {
             std::move(rocketConn));
 
     thriftPipeline =
-        PipelineBuilder<
+        StaticPipelineBuilder<
             thrift::server::ThriftServerTransportAdapter,
             thrift::ThriftServerChannel,
             SimpleBufferAllocator>()
@@ -402,11 +400,12 @@ struct ChannelBenchFixture {
             .setHead(transportAdapter.get())
             .setTail(serverChannel.get())
             .setAllocator(&thriftAllocator)
-            .addNextDuplex<ServerSetupHandler>(thrift_server_setup_handler_tag)
+            .addNextDuplexTemplate<thrift::ThriftServerSetupHandler>(
+                thrift_server_setup_handler_tag)
             .build();
 
     transportAdapter->setPipeline(thriftPipeline.get());
-    serverChannel->setPipelineRef(*thriftPipeline);
+    serverChannel->setPipelineRef(thriftPipeline.ref());
     serverChannel->setWorker(apache::thrift::Cpp2Worker::createDummy(&evb));
 
     auto setupFrame = serialize(
@@ -439,8 +438,8 @@ struct AppAdapterBenchFixture {
   std::unique_ptr<thrift::server::ThriftServerTransportAdapter>
       transportAdapter;
   BenchServerAppAdapter::Ptr adapter;
-  PipelineImpl::Ptr thriftPipeline;
   SimpleBufferAllocator thriftAllocator;
+  PipelineOwner thriftPipeline;
   boost::intrusive_ptr<thrift::ThriftConnContext> connContext;
 
   void setup(bool echo, bool withContextHandlers = false) {
@@ -476,13 +475,7 @@ struct AppAdapterBenchFixture {
         std::make_unique<thrift::server::ThriftServerTransportAdapter>(
             std::move(rocketConn));
 
-    using ReqCtxHandler = thrift::ThriftServerRequestContextHandler<
-        apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl>;
-    using CompressionHandler = thrift::ThriftServerCompressionHandler<
-        apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl>;
-    using ConnectionCloseHandler = thrift::ThriftServerConnectionCloseHandler<
-        apache::thrift::fast_thrift::channel_pipeline::detail::ContextImpl>;
-    using Builder = PipelineBuilder<
+    using Builder = StaticPipelineBuilder<
         thrift::server::ThriftServerTransportAdapter,
         BenchServerAppAdapter,
         SimpleBufferAllocator>;
@@ -496,37 +489,41 @@ struct AppAdapterBenchFixture {
               .qualifiedMethodName = "BenchService.benchMethod",
           });
       connContext = new thrift::ThriftConnContext();
-      thriftPipeline = Builder()
-                           .setEventBase(&evb)
-                           .setHead(transportAdapter.get())
-                           .setTail(adapter.get())
-                           .setAllocator(&thriftAllocator)
-                           .addNextDuplex<CompressionHandler>(
-                               thrift_server_compression_handler_tag)
-                           .addNextDuplex<ConnectionCloseHandler>(
-                               thrift_server_connection_close_handler_tag)
-                           .addNextDuplex<ReqCtxHandler>(
-                               thrift_server_request_context_handler_tag,
-                               /*requestExtensionLayout=*/nullptr,
-                               &methodMetadata,
-                               connContext,
-                               /*enableRequestHeaders=*/false)
-                           .addNextDuplex<ServerSetupHandler>(
-                               thrift_server_setup_handler_tag)
-                           .build();
+      thriftPipeline =
+          Builder()
+              .setEventBase(&evb)
+              .setHead(transportAdapter.get())
+              .setTail(adapter.get())
+              .setAllocator(&thriftAllocator)
+              .addNextDuplexTemplate<thrift::ThriftServerCompressionHandler>(
+                  thrift_server_compression_handler_tag)
+              .addNextDuplexTemplate<
+                  thrift::ThriftServerConnectionCloseHandler>(
+                  thrift_server_connection_close_handler_tag)
+              .addNextDuplexTemplate<thrift::ThriftServerRequestContextHandler>(
+                  thrift_server_request_context_handler_tag,
+                  /*requestExtensionLayout=*/nullptr,
+                  &methodMetadata,
+                  connContext,
+                  /*enableRequestHeaders=*/false)
+              .addNextDuplexTemplate<thrift::ThriftServerSetupHandler>(
+                  thrift_server_setup_handler_tag)
+              .build();
     } else {
-      thriftPipeline = Builder()
-                           .setEventBase(&evb)
-                           .setHead(transportAdapter.get())
-                           .setTail(adapter.get())
-                           .setAllocator(&thriftAllocator)
-                           .addNextDuplex<CompressionHandler>(
-                               thrift_server_compression_handler_tag)
-                           .addNextDuplex<ConnectionCloseHandler>(
-                               thrift_server_connection_close_handler_tag)
-                           .addNextDuplex<ServerSetupHandler>(
-                               thrift_server_setup_handler_tag)
-                           .build();
+      thriftPipeline =
+          Builder()
+              .setEventBase(&evb)
+              .setHead(transportAdapter.get())
+              .setTail(adapter.get())
+              .setAllocator(&thriftAllocator)
+              .addNextDuplexTemplate<thrift::ThriftServerCompressionHandler>(
+                  thrift_server_compression_handler_tag)
+              .addNextDuplexTemplate<
+                  thrift::ThriftServerConnectionCloseHandler>(
+                  thrift_server_connection_close_handler_tag)
+              .addNextDuplexTemplate<thrift::ThriftServerSetupHandler>(
+                  thrift_server_setup_handler_tag)
+              .build();
     }
 
     transportAdapter->setPipeline(thriftPipeline.get());

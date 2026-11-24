@@ -861,10 +861,6 @@ TEST_F(PipelineImplTest, RoundTripEcho) {
  */
 class ContextCachingHandler {
  public:
-  // Intrusive hooks for backpressure signaling (required by pipeline)
-  WriteReadyHook writeReadyHook_;
-  ReadReadyHook readReadyHook_;
-
   explicit ContextCachingHandler(HandlerId targetId) : targetId_(targetId) {}
 
   void handlerAdded(detail::ContextImpl& ctx) noexcept {

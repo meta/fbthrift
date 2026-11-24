@@ -14,29 +14,26 @@
  * limitations under the License.
  */
 
-include "thrift/annotation/compat.thrift"
+include "thrift/annotation/java.thrift"
 
-@compat.Strings
 package "test.dev/thrift/lib/java/test/utf8/pkg"
 
 namespace java.swift com.facebook.thrift.test.utf8.pkg
 
-@compat.Strings{onInvalidUtf8 = compat.CodingErrorAction.Legacy}
 struct TestStructPkg {
   1: string str_field;
 }
 
 struct TestStructReportPkg {
+  @java.Utf8
   1: string str_field;
 }
 
 transient exception TestExceptionPkg {
   1: i32 err_code;
-  @compat.Strings{onInvalidUtf8 = compat.CodingErrorAction.Legacy}
   2: string err_msg;
 }
 
-@compat.Strings{onInvalidUtf8 = compat.CodingErrorAction.Legacy}
 union TestUnionPkg {
   1: string field1;
   2: string field2;

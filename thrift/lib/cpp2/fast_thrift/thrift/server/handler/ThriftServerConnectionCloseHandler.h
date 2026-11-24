@@ -189,11 +189,11 @@ class ThriftServerConnectionCloseHandler {
   // CONNECTION_CLOSE, the latter because the socket is already gone.
   channel_pipeline::Result onRead(
       Context& ctx, channel_pipeline::TypeErasedBox&& msg) noexcept {
-    if (FOLLY_UNLIKELY(state_ != State::Open)) {
+    if (state_ != State::Open) [[unlikely]] {
       return channel_pipeline::Result::Error;
     }
-    if (FOLLY_UNLIKELY(
-            !isRequestWork(msg.get<ThriftServerRequestMessage>().payload))) {
+    if (!isRequestWork(msg.get<ThriftServerRequestMessage>().payload))
+        [[unlikely]] {
       return ctx.fireRead(std::move(msg));
     }
     ++inFlight_;
@@ -211,13 +211,13 @@ class ThriftServerConnectionCloseHandler {
   channel_pipeline::Result onWrite(
       Context& ctx, channel_pipeline::TypeErasedBox&& msg) noexcept {
     DCHECK(state_ != State::Closed) << "no writes expected after Closed";
-    if (FOLLY_UNLIKELY(
-            !isRequestWork(msg.get<ThriftServerResponseMessage>().payload))) {
+    if (!isRequestWork(msg.get<ThriftServerResponseMessage>().payload))
+        [[unlikely]] {
       return ctx.fireWrite(std::move(msg));
     }
     DCHECK_GT(inFlight_, 0u);
     --inFlight_;
-    if (FOLLY_UNLIKELY(state_ == State::ClosedReaping)) {
+    if (state_ == State::ClosedReaping) [[unlikely]] {
       maybeFinalize(ctx);
       return channel_pipeline::Result::Error;
     }
@@ -312,7 +312,7 @@ class ThriftServerConnectionCloseHandler {
             evt.rejection ? makeSetupRejectionMessage(
                                 evt.rejection->code, evt.rejection->reason)
                           : makeConnectionCloseMessage()));
-    if (FOLLY_UNLIKELY(writeResult == channel_pipeline::Result::Error)) {
+    if (writeResult == channel_pipeline::Result::Error) [[unlikely]] {
       // The client will never learn the connection is going away, so there is
       // nothing to drain for and nothing to reap: close outright. In-flight
       // requests are failed — ConnectionClosed clears the adapter's

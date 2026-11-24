@@ -16,22 +16,49 @@
 
 package com.facebook.thrift.rsocket.util;
 
+import static com.facebook.thrift.util.ThriftProtocolConstants.APP_OVERLOADED_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.HEADER_EX;
+import static com.facebook.thrift.util.ThriftProtocolConstants.INJECTED_FAILURE_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.INTERACTION_CONSTRUCTOR_ERROR_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.INTERACTION_ID_UNKNOWN_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.INTERACTION_LOADSHEDDED_APP_OVERLOAD_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.INTERACTION_LOADSHEDDED_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.INTERACTION_LOADSHEDDED_OVERLOAD_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.INTERACTION_LOADSHEDDED_QUEUE_TIMEOUT_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.METHOD_UNKNOWN_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.OVERLOADED_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.QUEUE_OVERLOADED_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.REQUEST_PARSING_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.RESPONSE_TOO_BIG_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.SERVER_QUEUE_TIMEOUT_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.TASK_EXPIRED_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.TENANT_QUOTA_EXCEEDED_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.UNIMPLEMENTED_METHOD_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.UNKNOWN_ERROR_CODE;
+import static com.facebook.thrift.util.ThriftProtocolConstants.WRONG_RPC_KIND_ERROR_CODE;
+
 import com.facebook.thrift.protocol.ProtocolUtil;
+import com.facebook.thrift.server.OverloadedException;
 import com.facebook.thrift.util.resources.RpcResources;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.util.ReferenceCountUtil;
 import io.rsocket.RSocketErrorException;
 import io.rsocket.exceptions.CanceledException;
+import io.rsocket.exceptions.InvalidException;
+import io.rsocket.exceptions.RejectedException;
 import io.rsocket.frame.ErrorFrameCodec;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
+import javax.annotation.Nullable;
 import org.apache.thrift.ResponseRpcError;
 import org.apache.thrift.ResponseRpcErrorCategory;
 import org.apache.thrift.ResponseRpcErrorCode;
 import org.apache.thrift.ResponseRpcMetadata;
+import org.apache.thrift.StreamRpcError;
+import org.apache.thrift.StreamRpcErrorCode;
 import org.apache.thrift.TApplicationException;
 
 /**
@@ -55,33 +82,8 @@ import org.apache.thrift.TApplicationException;
  */
 public final class RocketErrorUtil {
 
-  /** Response header that carries the error code string, as {@code kHeaderEx} does in C++. */
-  public static final String HEADER_EX = "ex";
-
-  private static final String TASK_EXPIRED_NAME = "TASK_EXPIRED";
-
   /** Keeps the {@code what_utf8} length varint to a single byte. See the class javadoc. */
   private static final int MAX_MESSAGE_LENGTH = 127;
-
-  private static final String UNKNOWN_ERROR_CODE = "0";
-  private static final String OVERLOADED_ERROR_CODE = "1";
-  private static final String TASK_EXPIRED_ERROR_CODE = "2";
-  private static final String QUEUE_OVERLOADED_ERROR_CODE = "5";
-  private static final String INJECTED_FAILURE_ERROR_CODE = "14";
-  private static final String SERVER_QUEUE_TIMEOUT_ERROR_CODE = "15";
-  private static final String RESPONSE_TOO_BIG_ERROR_CODE = "17";
-  private static final String WRONG_RPC_KIND_ERROR_CODE = "21";
-  private static final String APP_OVERLOADED_ERROR_CODE = "22";
-  private static final String METHOD_UNKNOWN_ERROR_CODE = "25";
-  private static final String INTERACTION_ID_UNKNOWN_ERROR_CODE = "26";
-  private static final String INTERACTION_CONSTRUCTOR_ERROR_ERROR_CODE = "27";
-  private static final String REQUEST_PARSING_ERROR_CODE = "28";
-  private static final String UNIMPLEMENTED_METHOD_ERROR_CODE = "31";
-  private static final String TENANT_QUOTA_EXCEEDED_ERROR_CODE = "32";
-  private static final String INTERACTION_LOADSHEDDED_ERROR_CODE = "34";
-  private static final String INTERACTION_LOADSHEDDED_QUEUE_TIMEOUT_ERROR_CODE = "35";
-  private static final String INTERACTION_LOADSHEDDED_OVERLOAD_ERROR_CODE = "36";
-  private static final String INTERACTION_LOADSHEDDED_APP_OVERLOAD_ERROR_CODE = "37";
 
   private static final Mapping UNKNOWN_MAPPING =
       new Mapping(TApplicationException.UNKNOWN, UNKNOWN_ERROR_CODE);
@@ -193,15 +195,98 @@ public final class RocketErrorUtil {
    * server, which reports {@code TASK_EXPIRED} in an ERROR frame with the {@code CANCELED} code.
    */
   public static RSocketErrorException taskExpired(String methodName, long timeoutMillis) {
-    String message = String.format("Task expired for %s after %dms", methodName, timeoutMillis);
+    return serverError(
+        ResponseRpcErrorCode.TASK_EXPIRED,
+        String.format("Task expired for %s after %dms", methodName, timeoutMillis));
+  }
+
+  /**
+   * Returns the error a server sends after the first response of a stream, sink or bidi call, like
+   * a response that does not serialize. A peer reads a {@link StreamRpcError} there, in a frame
+   * with the {@code CANCELED} code.
+   */
+  public static RSocketErrorException streamError(StreamRpcErrorCode code, String message) {
+    StreamRpcError error =
+        new StreamRpcError.Builder()
+            .setNameUtf8(code.name())
+            .setWhatUtf8(message == null ? "" : toSafeMessage(message))
+            .setCode(code)
+            .build();
+
+    return new CanceledException(encode(error));
+  }
+
+  /**
+   * Builds the ERROR frame for a failure the server detects outside any handler: the frame code
+   * follows the category, so callers classify it without reading the body. Covers request parsing,
+   * unknown methods, and anything that escapes the response pipeline before the first response.
+   */
+  public static RSocketErrorException serverError(ResponseRpcErrorCode code, String message) {
+    ResponseRpcErrorCategory category = categoryFor(code);
     ResponseRpcError error =
         new ResponseRpcError.Builder()
-            .setNameUtf8(TASK_EXPIRED_NAME)
-            .setWhatUtf8(toSafeMessage(message))
-            .setCategory(ResponseRpcErrorCategory.INTERNAL_ERROR)
-            .setCode(ResponseRpcErrorCode.TASK_EXPIRED)
+            .setNameUtf8(code.name())
+            .setWhatUtf8(message == null ? "" : toSafeMessage(message))
+            .setCategory(category)
+            .setCode(code)
             .build();
-    return new CanceledException(encode(error));
+
+    switch (category) {
+      case INVALID_REQUEST:
+        return new InvalidException(encode(error));
+      case LOADSHEDDING:
+      case SHUTDOWN:
+        return new RejectedException(encode(error));
+      default:
+        return new CanceledException(encode(error));
+    }
+  }
+
+  private static ResponseRpcErrorCategory categoryFor(ResponseRpcErrorCode code) {
+    switch (code) {
+      case REQUEST_PARSING_FAILURE:
+      case WRONG_RPC_KIND:
+      case UNKNOWN_METHOD:
+      case CHECKSUM_MISMATCH:
+      case UNKNOWN_INTERACTION_ID:
+      case UNIMPLEMENTED_METHOD:
+        return ResponseRpcErrorCategory.INVALID_REQUEST;
+      case OVERLOAD:
+      case QUEUE_OVERLOADED:
+      case QUEUE_TIMEOUT:
+      case APP_OVERLOAD:
+      case INTERACTION_LOADSHEDDED:
+      case INTERACTION_LOADSHEDDED_OVERLOAD:
+      case INTERACTION_LOADSHEDDED_APP_OVERLOAD:
+      case INTERACTION_LOADSHEDDED_QUEUE_TIMEOUT:
+        return ResponseRpcErrorCategory.LOADSHEDDING;
+      case SHUTDOWN:
+        return ResponseRpcErrorCategory.SHUTDOWN;
+      default:
+        return ResponseRpcErrorCategory.INTERNAL_ERROR;
+    }
+  }
+
+  /**
+   * Returns the REJECTED error for an overload reason, or null so the serialized body stays the
+   * response. Call it after body serialization so exception hooks run once.
+   */
+  @Nullable
+  public static RSocketErrorException fromApplicationException(
+      @Nullable TApplicationException exception) {
+    if (exception == null) {
+      return null;
+    }
+    switch (OverloadedException.rpcErrorCodeOf(exception)) {
+      case OverloadedException.HOST_OVERLOAD:
+        return serverError(ResponseRpcErrorCode.OVERLOAD, exception.getMessage());
+      case OverloadedException.QUEUE_OVERLOAD:
+        return serverError(ResponseRpcErrorCode.QUEUE_OVERLOADED, exception.getMessage());
+      case OverloadedException.APP_OVERLOAD:
+        return serverError(ResponseRpcErrorCode.APP_OVERLOAD, exception.getMessage());
+      default:
+        return null;
+    }
   }
 
   /**
@@ -256,7 +341,7 @@ public final class RocketErrorUtil {
     return mappingFor(code).exceptionType;
   }
 
-  /** Returns the {@link #HEADER_EX} value for an error code, or null when C++ sends none. */
+  /** Returns the {@code ex} value for an error code, or null when C++ sends none. */
   public static String toErrorCodeHeader(ResponseRpcErrorCode code) {
     return mappingFor(code).errorCode;
   }
@@ -268,8 +353,8 @@ public final class RocketErrorUtil {
   }
 
   /**
-   * Builds the response metadata that travels with a decoded {@link ResponseRpcError}: the {@link
-   * #HEADER_EX} header, and the server load when the error reports it.
+   * Builds the response metadata that travels with a decoded {@link ResponseRpcError}: the {@code
+   * ex} header, and the server load when the error reports it.
    */
   public static ResponseRpcMetadata toResponseMetadata(ResponseRpcError error) {
     ResponseRpcMetadata.Builder builder = new ResponseRpcMetadata.Builder();
@@ -295,6 +380,16 @@ public final class RocketErrorUtil {
   }
 
   private static String encode(ResponseRpcError error) {
+    ByteBuf buffer = RpcResources.getByteBufAllocator().buffer();
+    try {
+      ProtocolUtil.writeCompact(error::write0, buffer);
+      return buffer.toString(StandardCharsets.UTF_8);
+    } finally {
+      ReferenceCountUtil.safeRelease(buffer);
+    }
+  }
+
+  private static String encode(StreamRpcError error) {
     ByteBuf buffer = RpcResources.getByteBufAllocator().buffer();
     try {
       ProtocolUtil.writeCompact(error::write0, buffer);

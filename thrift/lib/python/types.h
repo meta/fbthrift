@@ -107,6 +107,20 @@ PyObject* createStructTupleWithDeprecatedIsset(int16_t numFields);
  */
 PyObject* createStructList(int16_t numFields);
 
+// The converter returns a new reference, or nullptr with a Python exception.
+using FieldValueFactory = PyObject* (*)(PyObject*, int16_t);
+
+/**
+ * Returns a new reference to the cache's value, or nullptr with the converter's
+ * Python exception. The caller must keep `owner` and `cache` alive throughout
+ * the call. Each cache slot changes at most once.
+ *
+ * A cache miss calls the converter, which can run Python code. Another call
+ * can fill the slot before conversion finishes, with or without the GIL.
+ */
+PyObject* FOLLY_NULLABLE fieldCacheGetOrCreate(
+    PyObject* cache, int16_t index, PyObject* owner, FieldValueFactory create);
+
 /**
  * Returns a new "struct tuple" associated with an immutable Thrift struct,
  * all elements initialized with default values.

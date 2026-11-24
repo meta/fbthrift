@@ -16,6 +16,9 @@
 
 #pragma once
 
+#include <new>
+#include <stdexcept>
+
 #include <fmt/core.h>
 #include <folly/Overload.h>
 #include <folly/String.h>
@@ -42,20 +45,38 @@ namespace apache::thrift::rocket {
 class RocketStreamClientCallback;
 
 [[maybe_unused]] FOLLY_ALWAYS_INLINE FrameType
-parseFrameType(folly::IOBuf& frame) noexcept {
+parseFrameType(folly::IOBuf& frame) {
   constexpr size_t kFlagAndFrameSize = sizeof(uint16_t);
   constexpr size_t kStreamIdSize = sizeof(uint32_t);
-  FOLLY_SAFE_DCHECK(
-      frame.computeChainDataLength() >= kFlagAndFrameSize + kStreamIdSize,
-      "frame to small for RSocket Stream Id and Flag - must be at least as long 40-bits long");
-
-  // Use cursor to safely read across IOBuf chain boundaries
   folly::io::Cursor cursor(&frame);
+  if (!cursor.canAdvance(kFlagAndFrameSize + kStreamIdSize)) [[unlikely]] {
+    throw std::out_of_range(
+        "frame to small for RSocket Stream Id and Flag - must be at least as long 40-bits long");
+  }
 
   // Skip the stream ID (4 bytes)
   cursor.skip(kStreamIdSize);
 
   // Read the frame type and flags (2 bytes) in big-endian format
+  uint16_t rawFrameType = cursor.readBE<uint16_t>();
+  return static_cast<FrameType>(rawFrameType >> Flags::kBits);
+}
+
+[[maybe_unused]] FOLLY_ALWAYS_INLINE FrameType
+parseFrameType(const std::unique_ptr<folly::IOBuf>& frame) {
+  return parseFrameType(*frame);
+}
+
+[[maybe_unused]] FOLLY_ALWAYS_INLINE FrameType
+parseFrameType(const IOBufChain& frame) {
+  constexpr size_t kFlagAndFrameSize = sizeof(uint16_t);
+  constexpr size_t kStreamIdSize = sizeof(uint32_t);
+  io::IOBufChainCursor cursor(frame);
+  if (!cursor.canAdvance(kFlagAndFrameSize + kStreamIdSize)) [[unlikely]] {
+    throw std::out_of_range(
+        "frame to small for RSocket Stream Id and Flag - must be at least as long 40-bits long");
+  }
+  cursor.skip(kStreamIdSize);
   uint16_t rawFrameType = cursor.readBE<uint16_t>();
   return static_cast<FrameType>(rawFrameType >> Flags::kBits);
 }
@@ -118,63 +139,82 @@ class IncomingFrameHandler {
         existingStreamFrameHandler_(&existingStreamFrameHandler) {}
 
   void handle(std::unique_ptr<folly::IOBuf>&& frame) {
-    // hexDumpFrame(*frame);
-    auto frameType = parseFrameType(*frame);
-    switch (frameType) {
-      case FrameType::SETUP:
-        handleSetupFrame(std::move(frame));
-        break;
-      case FrameType::REQUEST_RESPONSE:
-        handleFrame<FrameType::REQUEST_RESPONSE>(
-            std::move(frame), requestResponseHandler_);
-        break;
-      case FrameType::REQUEST_STREAM:
-        handleFrame<FrameType::REQUEST_STREAM>(
-            std::move(frame), requestStreamHandler_);
-        break;
-      case FrameType::REQUEST_N:
-        handleFrame<FrameType::REQUEST_N>(
-            std::move(frame), existingStreamFrameHandler_);
-        break;
-      case FrameType::CANCEL:
-        handleFrame<FrameType::CANCEL>(
-            std::move(frame), existingStreamFrameHandler_);
-        break;
-      case FrameType::REQUEST_FNF:
-        handleFrame<FrameType::REQUEST_FNF>(
-            std::move(frame), requestFnfHandler_);
-        break;
-      case FrameType::REQUEST_CHANNEL:
-        handleFrame<FrameType::REQUEST_CHANNEL>(
-            std::move(frame), requestChannelHandler_);
-        break;
-      case FrameType::PAYLOAD:
-        handleFrame<FrameType::PAYLOAD>(
-            std::move(frame), existingStreamFrameHandler_);
-        break;
-      // TODO Add Support for ERROR frame type
-      // case FrameType::ERROR:
-      //   handleFrame<FrameType::ERROR>(std::move(frame),
-      //   existingStreamFrameHandler_); break;
-      case FrameType::METADATA_PUSH:
-        handleFrame<FrameType::METADATA_PUSH>(
-            std::move(frame), metadataPushHandler_);
-        break;
-      case FrameType::KEEPALIVE:
-        handleFrame<FrameType::KEEPALIVE>(std::move(frame), keepAliveHandler_);
-        break;
-      case FrameType::EXT:
-        handleFrame<FrameType::EXT>(
-            std::move(frame), existingStreamFrameHandler_);
-        break;
-      default:
-        hexDumpFrame(*frame);
-        handleUnknownFrame(frameType);
-        break;
+    handleImpl(std::move(frame));
+  }
+
+  void handle(IOBufChain&& frame) { handleImpl(std::move(frame)); }
+
+ private:
+  template <typename FrameBuffer>
+  void handleImpl(FrameBuffer&& frame) {
+    try {
+      auto frameType = parseFrameType(frame);
+      switch (frameType) {
+        case FrameType::SETUP:
+          handleSetupFrame(std::move(frame));
+          break;
+        case FrameType::REQUEST_RESPONSE:
+          handleFrame<FrameType::REQUEST_RESPONSE>(
+              std::move(frame), requestResponseHandler_);
+          break;
+        case FrameType::REQUEST_STREAM:
+          handleFrame<FrameType::REQUEST_STREAM>(
+              std::move(frame), requestStreamHandler_);
+          break;
+        case FrameType::REQUEST_N:
+          handleFrame<FrameType::REQUEST_N>(
+              std::move(frame), existingStreamFrameHandler_);
+          break;
+        case FrameType::CANCEL:
+          handleFrame<FrameType::CANCEL>(
+              std::move(frame), existingStreamFrameHandler_);
+          break;
+        case FrameType::REQUEST_FNF:
+          handleFrame<FrameType::REQUEST_FNF>(
+              std::move(frame), requestFnfHandler_);
+          break;
+        case FrameType::REQUEST_CHANNEL:
+          handleFrame<FrameType::REQUEST_CHANNEL>(
+              std::move(frame), requestChannelHandler_);
+          break;
+        case FrameType::PAYLOAD:
+          handleFrame<FrameType::PAYLOAD>(
+              std::move(frame), existingStreamFrameHandler_);
+          break;
+        // TODO Add Support for ERROR frame type
+        // case FrameType::ERROR:
+        //   handleFrame<FrameType::ERROR>(std::move(frame),
+        //   existingStreamFrameHandler_); break;
+        case FrameType::METADATA_PUSH:
+          handleFrame<FrameType::METADATA_PUSH>(
+              std::move(frame), metadataPushHandler_);
+          break;
+        case FrameType::KEEPALIVE:
+          handleFrame<FrameType::KEEPALIVE>(
+              std::move(frame), keepAliveHandler_);
+          break;
+        case FrameType::EXT:
+          handleFrame<FrameType::EXT>(
+              std::move(frame), existingStreamFrameHandler_);
+          break;
+        default:
+          hexDumpFrame(frame);
+          handleUnknownFrame(frameType);
+          break;
+      }
+    } catch (const std::bad_alloc&) {
+      throw;
+    } catch (const std::exception& ex) {
+      closeInvalidFrame(ex);
     }
   }
 
- private:
+  void closeInvalidFrame(const std::exception& ex) {
+    connection_->close(
+        folly::make_exception_wrapper<RocketException>(
+            ErrorCode::INVALID, ex.what()));
+  }
+
   bool receivedSetupFrame_{false};
   Connection* connection_;
   SetupFrameAcceptor<ConnectionT, ConnectionAdapter, RocketServerHandler>*
@@ -204,18 +244,25 @@ class IncomingFrameHandler {
       RequestChannelCallback,
       RocketServerFrameContext>* existingStreamFrameHandler_;
 
-  FOLLY_ALWAYS_INLINE void hexDumpFrame(folly::IOBuf& frame) const noexcept {
-    // if constexpr (folly::kIsDebug) {
-    XLOG(INFO)
+  template <typename FrameBuffer>
+  void hexDumpFrameImpl(FrameBuffer& frame, size_t frameSize) const {
+    XLOG_EVERY_MS(INFO, 1000)
         << "Handling Frame from: "
         << connection_->getWrappedConnection()->getPeerAddress().describe()
-        << std::endl
-        << folly::hexDump(
-               frame.coalesce().data(), frame.computeChainDataLength());
-    //}
+        << " (" << frameSize << " bytes)\n"
+        << folly::hexDump(frame.coalesce().data(), frameSize);
   }
 
-  void handleSetupFrame(std::unique_ptr<folly::IOBuf> frame) noexcept {
+  void hexDumpFrame(const std::unique_ptr<folly::IOBuf>& frame) const {
+    hexDumpFrameImpl(*frame, frame->computeChainDataLength());
+  }
+
+  void hexDumpFrame(IOBufChain& frame) const {
+    hexDumpFrameImpl(frame, frame.chainLength());
+  }
+
+  template <typename FrameBuffer>
+  void handleSetupFrame(FrameBuffer frame) {
     if (std::exchange(receivedSetupFrame_, true)) {
       XLOG(WARN) << "More than one SETUP frame received";
       connection_->close(
@@ -240,7 +287,7 @@ class IncomingFrameHandler {
 
   bool hasValidSetupFrameState() const noexcept {
     bool valid = true;
-    if (FOLLY_UNLIKELY(receivedSetupFrame_ == false)) {
+    if (receivedSetupFrame_ == false) [[unlikely]] {
       connection_->close(
           folly::make_exception_wrapper<RocketException>(
               ErrorCode::INVALID_SETUP, "First frame must be SETUP frame"));
@@ -287,12 +334,11 @@ class IncomingFrameHandler {
     }
   }
 
-  template <FrameType type, typename Handler>
-  void handleFrame(
-      std::unique_ptr<folly::IOBuf> buffer, Handler* handler) noexcept {
+  template <FrameType type, typename FrameBuffer, typename Handler>
+  void handleFrame(FrameBuffer buffer, Handler* handler) {
     using Traits = frame_util::FrameTypeToTraits_t<type>;
 
-    if (FOLLY_UNLIKELY(receivedSetupFrame_ == false)) {
+    if (receivedSetupFrame_ == false) [[unlikely]] {
       XLOG(DBG4) << "Received frame before setup frame for raw frame type "
                  << frame_util::rawFrameType<type>() << std::endl;
       connection_->close(
@@ -306,7 +352,7 @@ class IncomingFrameHandler {
     auto isInvalidStreamId = Traits::isStreamZeroFrame()
         ? stream_util::isStreamIdNonZero(frame)
         : stream_util::isStreamIdZero(frame);
-    if (FOLLY_UNLIKELY(isInvalidStreamId)) {
+    if (isInvalidStreamId) [[unlikely]] {
       XLOG(DBG4) << "Received frame on invalid stream id for raw frame type "
                  << frame_util::rawFrameType<type>() << " and raw stream id "
                  << stream_util::rawStreamId(frame) << std::endl;

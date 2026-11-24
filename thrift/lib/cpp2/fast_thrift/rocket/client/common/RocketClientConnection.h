@@ -18,7 +18,7 @@
 
 #include <folly/Function.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/BufferAllocator.h>
-#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineImpl.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameLengthParser.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/client/RocketClientEventFactory.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/client/adapter/RocketClientAppAdapter.h>
@@ -31,8 +31,7 @@ namespace apache::thrift::fast_thrift::rocket::client {
  * RocketClientConnectionT — owns the rocket pipeline and its
  * resources for a single client connection.
  *
- * Groups the rocket-layer objects that together form the transport
- * underneath a thrift client pipeline:
+ * Groups the Rocket pipeline and resources for one client connection:
  *
  *   RocketClientAppAdapter → [rocket handlers] → TransportHandler
  *
@@ -75,10 +74,10 @@ struct RocketClientConnectionT {
 
   // Member destruction runs in reverse declaration order. Allocator is
   // referenced by raw pointer from the pipeline, so it must outlive the
-  // pipeline; the endpoints hold DestructorGuards on the pipeline, so they
+  // pipeline; the endpoints hold guards on the pipeline, so they
   // must outlive it as well. Declared accordingly.
   channel_pipeline::SimpleBufferAllocator allocator;
-  channel_pipeline::PipelineImpl::Ptr pipeline;
+  channel_pipeline::PipelineOwner pipeline;
   typename TransportHandler::Ptr transportHandler;
   rocket::RocketTransportLifecycle transportLifecycle;
   rocket::client::RocketClientAppAdapter::Ptr appAdapter{
@@ -134,7 +133,7 @@ struct RocketClientConnectionT {
    * disconnected. Idempotent.
    *
    * Order matters: both endpoints (transport + appAdapter) hold a
-   * DestructorGuard on the pipeline, so the pipeline cannot actually be
+   * guard on the pipeline, so the pipeline cannot actually be
    * destroyed until both call resetPipeline(). After that the pipeline
    * is closed and dropped, then the endpoints themselves.
    */
@@ -157,8 +156,6 @@ struct RocketClientConnectionT {
 
   /**
    * Legacy combined path: disconnect with `e` as the reason, then destroy.
-   * Retained as a shim so the thrift-side bridge can migrate in a
-   * follow-up commit; new callers should use disconnect(ew) + destroy().
    */
   void close(folly::exception_wrapper&& e) noexcept {
     disconnect(std::move(e));

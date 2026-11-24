@@ -63,9 +63,23 @@ public class ExceptionWithPrimitiveField extends Exception implements TBase, jav
     setError_codeIsSet(true);
   }
 
+  public ExceptionWithPrimitiveField(
+      String message,
+      int error_code,
+      java.lang.Throwable cause) {
+    this(message, error_code);
+    initCause(cause);
+  }
+
+  public ExceptionWithPrimitiveField(java.lang.Throwable cause) {
+    super(cause);
+    this.message = cause == null ? null : cause.toString();
+  }
+
   public static class Builder {
     private String message;
     private int error_code;
+    private java.lang.Throwable cause;
 
     BitSet __optional_isset = new BitSet(1);
 
@@ -83,11 +97,19 @@ public class ExceptionWithPrimitiveField extends Exception implements TBase, jav
       return this;
     }
 
+    public Builder setCause(final java.lang.Throwable cause) {
+      this.cause = cause;
+      return this;
+    }
+
     public ExceptionWithPrimitiveField build() {
       ExceptionWithPrimitiveField result = new ExceptionWithPrimitiveField();
       result.setMessage(this.message);
       if (__optional_isset.get(__ERROR_CODE_ISSET_ID)) {
         result.setError_code(this.error_code);
+      }
+      if (cause != null) {
+        result.initCause(cause);
       }
       return result;
     }

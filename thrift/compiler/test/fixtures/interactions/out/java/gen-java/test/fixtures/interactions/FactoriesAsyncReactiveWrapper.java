@@ -40,7 +40,37 @@ public class FactoriesAsyncReactiveWrapper
     }
 
     @java.lang.Override
-    public reactor.core.publisher.Flux<com.facebook.thrift.model.StreamResponse<Integer,Integer>> serialize() {
+    public reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer,Integer>> serialize() {
+        throw new UnsupportedOperationException();
+    }
+
+    @java.lang.Override
+    public reactor.core.publisher.Flux<Integer> interactWithStream() {
+        throw new UnsupportedOperationException();
+    }
+
+    @java.lang.Override
+    public reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer,Integer>> interactWithStreamAndInitialResponse() {
+        throw new UnsupportedOperationException();
+    }
+
+    @java.lang.Override
+    public reactor.core.publisher.Mono<Integer> interactWithSink( org.reactivestreams.Publisher<Integer> payloads) {
+        throw new UnsupportedOperationException();
+    }
+
+    @java.lang.Override
+    public reactor.core.publisher.Flux<com.facebook.thrift.model.StreamResponse<Integer, Integer>> interactWithSinkAndInitialResponse( org.reactivestreams.Publisher<Integer> payloads) {
+        throw new UnsupportedOperationException();
+    }
+
+    @java.lang.Override
+    public reactor.core.publisher.Flux<Integer> interactWithBidi( org.reactivestreams.Publisher<Integer> payloads) {
+        throw new UnsupportedOperationException();
+    }
+
+    @java.lang.Override
+    public reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer, Integer>> interactWithBidiAndInitialResponse( org.reactivestreams.Publisher<Integer> payloads) {
         throw new UnsupportedOperationException();
     }
 
@@ -75,8 +105,41 @@ public class FactoriesAsyncReactiveWrapper
             return com.facebook.thrift.util.FutureUtil.toMono(() -> _delegateInteraction.pingWrapper( rpcOptions));
         }
 
+        public reactor.core.publisher.Mono<Integer> frobnicateWithArg(
+        final int arg) {
+            return com.facebook.thrift.util.FutureUtil.toMono(() -> _delegateInteraction.frobnicateWithArg(arg));
+        }
+
+        public reactor.core.publisher.Mono<Integer> frobnicateWithArg(final int arg, RpcOptions rpcOptions) {
+            return com.facebook.thrift.util.FutureUtil.toMono(() -> _delegateInteraction.frobnicateWithArg(arg, rpcOptions));
+        }
+
+        public reactor.core.publisher.Mono<ResponseWrapper<Integer>> frobnicateWithArgWrapper(final int arg, RpcOptions rpcOptions) {
+            return com.facebook.thrift.util.FutureUtil.toMono(() -> _delegateInteraction.frobnicateWithArgWrapper(arg, rpcOptions));
+        }
+
         @java.lang.Override
         public reactor.core.publisher.Flux<Boolean> truthify() {
+            throw new UnsupportedOperationException();
+        }
+
+        @java.lang.Override
+        public reactor.core.publisher.Flux<Integer> failstream() {
+            throw new UnsupportedOperationException();
+        }
+
+        @java.lang.Override
+        public reactor.core.publisher.Flux<Integer> failstreaminit() {
+            throw new UnsupportedOperationException();
+        }
+
+        @java.lang.Override
+        public reactor.core.publisher.Flux<Integer> streamWithArg(final String query) {
+            throw new UnsupportedOperationException();
+        }
+
+        @java.lang.Override
+        public reactor.core.publisher.Mono<com.facebook.thrift.model.ResponseAndStream<Integer,Integer>> firstAndStream() {
             throw new UnsupportedOperationException();
         }
 

@@ -244,7 +244,7 @@ bool ASimpleStruct::operator==([[maybe_unused]] const ASimpleStruct& rhs) const 
 
 void swap([[maybe_unused]] ASimpleStruct& a, [[maybe_unused]] ASimpleStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_boolField, b.__fbthrift_field_boolField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_boolField, b.__fbthrift_field_boolField);
   swap(a.__isset, b.__isset);
 }
 
@@ -298,7 +298,7 @@ std::partial_ordering ASimpleStructNoexcept::operator<=>([[maybe_unused]] const 
 
 void swap([[maybe_unused]] ASimpleStructNoexcept& a, [[maybe_unused]] ASimpleStructNoexcept& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_boolField, b.__fbthrift_field_boolField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_boolField, b.__fbthrift_field_boolField);
   swap(a.__isset, b.__isset);
 }
 
@@ -487,17 +487,17 @@ const ::std::map<::some::valid::ns::MyEnumA, ::std::string>& MyStruct::get_MyMap
 
 void swap([[maybe_unused]] MyStruct& a, [[maybe_unused]] MyStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_MyBoolField, b.__fbthrift_field_MyBoolField);
-  swap(a.__fbthrift_field_MyIntField, b.__fbthrift_field_MyIntField);
-  swap(a.__fbthrift_field_MyStringField, b.__fbthrift_field_MyStringField);
-  swap(a.__fbthrift_field_MyStringField2, b.__fbthrift_field_MyStringField2);
-  swap(a.__fbthrift_field_MyBinaryField, b.__fbthrift_field_MyBinaryField);
-  swap(a.__fbthrift_field_MyBinaryField2, b.__fbthrift_field_MyBinaryField2);
-  swap(a.__fbthrift_field_MyBinaryField3, b.__fbthrift_field_MyBinaryField3);
-  swap(a.__fbthrift_field_MyBinaryListField4, b.__fbthrift_field_MyBinaryListField4);
-  swap(a.__fbthrift_field_MyMapEnumAndInt, b.__fbthrift_field_MyMapEnumAndInt);
-  swap(a.__fbthrift_field_MyCustomField, b.__fbthrift_field_MyCustomField);
-  swap(a.__fbthrift_field_MyOptCustomField, b.__fbthrift_field_MyOptCustomField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyBoolField, b.__fbthrift_field_MyBoolField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyIntField, b.__fbthrift_field_MyIntField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyStringField, b.__fbthrift_field_MyStringField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyStringField2, b.__fbthrift_field_MyStringField2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyBinaryField, b.__fbthrift_field_MyBinaryField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyBinaryField2, b.__fbthrift_field_MyBinaryField2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyBinaryField3, b.__fbthrift_field_MyBinaryField3);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyBinaryListField4, b.__fbthrift_field_MyBinaryListField4);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyMapEnumAndInt, b.__fbthrift_field_MyMapEnumAndInt);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyCustomField, b.__fbthrift_field_MyCustomField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyOptCustomField, b.__fbthrift_field_MyOptCustomField);
   swap(a.__isset, b.__isset);
 }
 
@@ -556,39 +556,56 @@ void SimpleUnion::__fbthrift_clear() {
 bool SimpleUnion::__fbthrift_is_empty() const {
   return getType() == Type::__EMPTY__;
 }
+  SimpleUnion& SimpleUnion::operator=(SimpleUnion&& rhs) noexcept {
+    if (this == &rhs) { return *this; }
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+      {
+        __fbthrift_clear();
+        return *this;
+      }
+      case Type::intValue:
+      {
+        auto value = std::move(rhs.value_.intValue);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(intValue_ref(), std::move(value));
+        break;
+      }
+      case Type::stringValue:
+      {
+        auto value = std::move(rhs.value_.stringValue);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(stringValue_ref(), std::move(value));
+        break;
+      }
+      default:
+      {
+        assert(false);
+        __fbthrift_clear();
+      }
+    }
+    return *this;
+  }
+
   SimpleUnion::SimpleUnion(const SimpleUnion& rhs)
       : fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
     switch (rhs.getType()) {
       case Type::__EMPTY__:
         return;
       case Type::intValue:
-        set_intValue(rhs.value_.intValue);
+        intValue_ref().emplace(rhs.value_.intValue);
         break;
       case Type::stringValue:
-        set_stringValue(rhs.value_.stringValue);
+        stringValue_ref().emplace(rhs.value_.stringValue);
         break;
       default:
         assert(false);
     }
   }
 
-    SimpleUnion&SimpleUnion::operator=(const SimpleUnion& rhs) {
+  SimpleUnion& SimpleUnion::operator=(const SimpleUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::intValue:
-        set_intValue(rhs.value_.intValue);
-        break;
-      case Type::stringValue:
-        set_stringValue(rhs.value_.stringValue);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = SimpleUnion(rhs);
   }
 
 
@@ -739,197 +756,317 @@ void ComplexUnion::__fbthrift_clear() {
 bool ComplexUnion::__fbthrift_is_empty() const {
   return getType() == Type::__EMPTY__;
 }
+  ComplexUnion& ComplexUnion::operator=(ComplexUnion&& rhs) noexcept {
+    if (this == &rhs) { return *this; }
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+      {
+        __fbthrift_clear();
+        return *this;
+      }
+      case Type::intValue:
+      {
+        auto value = std::move(rhs.value_.intValue);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(intValue_ref(), std::move(value));
+        break;
+      }
+      case Type::opt_intValue:
+      {
+        auto value = std::move(rhs.value_.opt_intValue);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(opt_intValue_ref(), std::move(value));
+        break;
+      }
+      case Type::stringValue:
+      {
+        auto value = std::move(rhs.value_.stringValue);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(stringValue_ref(), std::move(value));
+        break;
+      }
+      case Type::opt_stringValue:
+      {
+        auto value = std::move(rhs.value_.opt_stringValue);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(opt_stringValue_ref(), std::move(value));
+        break;
+      }
+      case Type::intValue2:
+      {
+        auto value = std::move(rhs.value_.intValue2);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(intValue2_ref(), std::move(value));
+        break;
+      }
+      case Type::intValue3:
+      {
+        auto value = std::move(rhs.value_.intValue3);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(intValue3_ref(), std::move(value));
+        break;
+      }
+      case Type::doubelValue:
+      {
+        auto value = std::move(rhs.value_.doubelValue);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(doubelValue_ref(), std::move(value));
+        break;
+      }
+      case Type::boolValue:
+      {
+        auto value = std::move(rhs.value_.boolValue);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(boolValue_ref(), std::move(value));
+        break;
+      }
+      case Type::union_list:
+      {
+        auto value = std::move(rhs.value_.union_list);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(union_list_ref(), std::move(value));
+        break;
+      }
+      case Type::union_set:
+      {
+        auto value = std::move(rhs.value_.union_set);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(union_set_ref(), std::move(value));
+        break;
+      }
+      case Type::union_map:
+      {
+        auto value = std::move(rhs.value_.union_map);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(union_map_ref(), std::move(value));
+        break;
+      }
+      case Type::opt_union_map:
+      {
+        auto value = std::move(rhs.value_.opt_union_map);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(opt_union_map_ref(), std::move(value));
+        break;
+      }
+      case Type::enum_field:
+      {
+        auto value = std::move(rhs.value_.enum_field);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(enum_field_ref(), std::move(value));
+        break;
+      }
+      case Type::enum_container:
+      {
+        auto value = std::move(rhs.value_.enum_container);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(enum_container_ref(), std::move(value));
+        break;
+      }
+      case Type::a_struct:
+      {
+        auto value = std::move(rhs.value_.a_struct);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(a_struct_ref(), std::move(value));
+        break;
+      }
+      case Type::a_set_struct:
+      {
+        auto value = std::move(rhs.value_.a_set_struct);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(a_set_struct_ref(), std::move(value));
+        break;
+      }
+      case Type::a_union:
+      {
+        auto value = std::move(rhs.value_.a_union);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(a_union_ref(), std::move(value));
+        break;
+      }
+      case Type::opt_a_union:
+      {
+        auto value = std::move(rhs.value_.opt_a_union);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(opt_a_union_ref(), std::move(value));
+        break;
+      }
+      case Type::a_union_list:
+      {
+        auto value = std::move(rhs.value_.a_union_list);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(a_union_list_ref(), std::move(value));
+        break;
+      }
+      case Type::a_union_typedef:
+      {
+        auto value = std::move(rhs.value_.a_union_typedef);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(a_union_typedef_ref(), std::move(value));
+        break;
+      }
+      case Type::a_union_typedef_list:
+      {
+        auto value = std::move(rhs.value_.a_union_typedef_list);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(a_union_typedef_list_ref(), std::move(value));
+        break;
+      }
+      case Type::MyBinaryField:
+      {
+        auto value = std::move(rhs.value_.MyBinaryField);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(MyBinaryField_ref(), std::move(value));
+        break;
+      }
+      case Type::MyBinaryField2:
+      {
+        auto value = std::move(rhs.value_.MyBinaryField2);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(MyBinaryField2_ref(), std::move(value));
+        break;
+      }
+      case Type::MyBinaryListField4:
+      {
+        auto value = std::move(rhs.value_.MyBinaryListField4);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(MyBinaryListField4_ref(), std::move(value));
+        break;
+      }
+      case Type::ref_field:
+      {
+        auto value = std::move(rhs.value_.ref_field);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(ref_field_ref(), std::move(value));
+        break;
+      }
+      case Type::ref_field2:
+      {
+        auto value = std::move(rhs.value_.ref_field2);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(ref_field2_ref(), std::move(value));
+        break;
+      }
+      case Type::excp_field:
+      {
+        auto value = std::move(rhs.value_.excp_field);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(excp_field_ref(), std::move(value));
+        break;
+      }
+      case Type::MyCustomField:
+      {
+        auto value = std::move(rhs.value_.MyCustomField);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(MyCustomField_ref(), std::move(value));
+        break;
+      }
+      default:
+      {
+        assert(false);
+        __fbthrift_clear();
+      }
+    }
+    return *this;
+  }
+
   ComplexUnion::ComplexUnion(const ComplexUnion& rhs)
       : fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
     switch (rhs.getType()) {
       case Type::__EMPTY__:
         return;
       case Type::intValue:
-        set_intValue(rhs.value_.intValue);
+        intValue_ref().emplace(rhs.value_.intValue);
         break;
       case Type::opt_intValue:
-        set_opt_intValue(rhs.value_.opt_intValue);
+        opt_intValue_ref().emplace(rhs.value_.opt_intValue);
         break;
       case Type::stringValue:
-        set_stringValue(rhs.value_.stringValue);
+        stringValue_ref().emplace(rhs.value_.stringValue);
         break;
       case Type::opt_stringValue:
-        set_opt_stringValue(rhs.value_.opt_stringValue);
+        opt_stringValue_ref().emplace(rhs.value_.opt_stringValue);
         break;
       case Type::intValue2:
-        set_intValue2(rhs.value_.intValue2);
+        intValue2_ref().emplace(rhs.value_.intValue2);
         break;
       case Type::intValue3:
-        set_intValue3(rhs.value_.intValue3);
+        intValue3_ref().emplace(rhs.value_.intValue3);
         break;
       case Type::doubelValue:
-        set_doubelValue(rhs.value_.doubelValue);
+        doubelValue_ref().emplace(rhs.value_.doubelValue);
         break;
       case Type::boolValue:
-        set_boolValue(rhs.value_.boolValue);
+        boolValue_ref().emplace(rhs.value_.boolValue);
         break;
       case Type::union_list:
-        set_union_list(rhs.value_.union_list);
+        union_list_ref().emplace(rhs.value_.union_list);
         break;
       case Type::union_set:
-        set_union_set(rhs.value_.union_set);
+        union_set_ref().emplace(rhs.value_.union_set);
         break;
       case Type::union_map:
-        set_union_map(rhs.value_.union_map);
+        union_map_ref().emplace(rhs.value_.union_map);
         break;
       case Type::opt_union_map:
-        set_opt_union_map(rhs.value_.opt_union_map);
+        opt_union_map_ref().emplace(rhs.value_.opt_union_map);
         break;
       case Type::enum_field:
-        set_enum_field(rhs.value_.enum_field);
+        enum_field_ref().emplace(rhs.value_.enum_field);
         break;
       case Type::enum_container:
-        set_enum_container(rhs.value_.enum_container);
+        enum_container_ref().emplace(rhs.value_.enum_container);
         break;
       case Type::a_struct:
-        set_a_struct(rhs.value_.a_struct);
+        a_struct_ref().emplace(rhs.value_.a_struct);
         break;
       case Type::a_set_struct:
-        set_a_set_struct(rhs.value_.a_set_struct);
+        a_set_struct_ref().emplace(rhs.value_.a_set_struct);
         break;
       case Type::a_union:
-        set_a_union(rhs.value_.a_union);
+        a_union_ref().emplace(rhs.value_.a_union);
         break;
       case Type::opt_a_union:
-        set_opt_a_union(rhs.value_.opt_a_union);
+        opt_a_union_ref().emplace(rhs.value_.opt_a_union);
         break;
       case Type::a_union_list:
-        set_a_union_list(rhs.value_.a_union_list);
+        a_union_list_ref().emplace(rhs.value_.a_union_list);
         break;
       case Type::a_union_typedef:
-        set_a_union_typedef(rhs.value_.a_union_typedef);
+        a_union_typedef_ref().emplace(rhs.value_.a_union_typedef);
         break;
       case Type::a_union_typedef_list:
-        set_a_union_typedef_list(rhs.value_.a_union_typedef_list);
+        a_union_typedef_list_ref().emplace(rhs.value_.a_union_typedef_list);
         break;
       case Type::MyBinaryField:
-        set_MyBinaryField(rhs.value_.MyBinaryField);
+        MyBinaryField_ref().emplace(rhs.value_.MyBinaryField);
         break;
       case Type::MyBinaryField2:
-        set_MyBinaryField2(rhs.value_.MyBinaryField2);
+        MyBinaryField2_ref().emplace(rhs.value_.MyBinaryField2);
         break;
       case Type::MyBinaryListField4:
-        set_MyBinaryListField4(rhs.value_.MyBinaryListField4);
+        MyBinaryListField4_ref().emplace(rhs.value_.MyBinaryListField4);
         break;
       case Type::ref_field:
-        set_ref_field(::apache::thrift::detail::st::copy_field<
+        ::apache::thrift::detail::union_emplace_storage(ref_field_ref(), ::apache::thrift::detail::st::copy_field<
           ::apache::thrift::type_class::structure>(rhs.value_.ref_field));
         break;
       case Type::ref_field2:
-        set_ref_field2(*rhs.value_.ref_field2);
+        ref_field2_ref().emplace(*rhs.value_.ref_field2);
         break;
       case Type::excp_field:
-        set_excp_field(rhs.value_.excp_field);
+        excp_field_ref().emplace(rhs.value_.excp_field);
         break;
       case Type::MyCustomField:
-        set_MyCustomField(rhs.value_.MyCustomField);
+        MyCustomField_ref().emplace(rhs.value_.MyCustomField);
         break;
       default:
         assert(false);
     }
   }
 
-    ComplexUnion&ComplexUnion::operator=(const ComplexUnion& rhs) {
+  ComplexUnion& ComplexUnion::operator=(const ComplexUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::intValue:
-        set_intValue(rhs.value_.intValue);
-        break;
-      case Type::opt_intValue:
-        set_opt_intValue(rhs.value_.opt_intValue);
-        break;
-      case Type::stringValue:
-        set_stringValue(rhs.value_.stringValue);
-        break;
-      case Type::opt_stringValue:
-        set_opt_stringValue(rhs.value_.opt_stringValue);
-        break;
-      case Type::intValue2:
-        set_intValue2(rhs.value_.intValue2);
-        break;
-      case Type::intValue3:
-        set_intValue3(rhs.value_.intValue3);
-        break;
-      case Type::doubelValue:
-        set_doubelValue(rhs.value_.doubelValue);
-        break;
-      case Type::boolValue:
-        set_boolValue(rhs.value_.boolValue);
-        break;
-      case Type::union_list:
-        set_union_list(rhs.value_.union_list);
-        break;
-      case Type::union_set:
-        set_union_set(rhs.value_.union_set);
-        break;
-      case Type::union_map:
-        set_union_map(rhs.value_.union_map);
-        break;
-      case Type::opt_union_map:
-        set_opt_union_map(rhs.value_.opt_union_map);
-        break;
-      case Type::enum_field:
-        set_enum_field(rhs.value_.enum_field);
-        break;
-      case Type::enum_container:
-        set_enum_container(rhs.value_.enum_container);
-        break;
-      case Type::a_struct:
-        set_a_struct(rhs.value_.a_struct);
-        break;
-      case Type::a_set_struct:
-        set_a_set_struct(rhs.value_.a_set_struct);
-        break;
-      case Type::a_union:
-        set_a_union(rhs.value_.a_union);
-        break;
-      case Type::opt_a_union:
-        set_opt_a_union(rhs.value_.opt_a_union);
-        break;
-      case Type::a_union_list:
-        set_a_union_list(rhs.value_.a_union_list);
-        break;
-      case Type::a_union_typedef:
-        set_a_union_typedef(rhs.value_.a_union_typedef);
-        break;
-      case Type::a_union_typedef_list:
-        set_a_union_typedef_list(rhs.value_.a_union_typedef_list);
-        break;
-      case Type::MyBinaryField:
-        set_MyBinaryField(rhs.value_.MyBinaryField);
-        break;
-      case Type::MyBinaryField2:
-        set_MyBinaryField2(rhs.value_.MyBinaryField2);
-        break;
-      case Type::MyBinaryListField4:
-        set_MyBinaryListField4(rhs.value_.MyBinaryListField4);
-        break;
-      case Type::ref_field:
-        set_ref_field(::apache::thrift::detail::st::copy_field<
-          ::apache::thrift::type_class::structure>(rhs.value_.ref_field));
-        break;
-      case Type::ref_field2:
-        set_ref_field2(*rhs.value_.ref_field2);
-        break;
-      case Type::excp_field:
-        set_excp_field(rhs.value_.excp_field);
-        break;
-      case Type::MyCustomField:
-        set_MyCustomField(rhs.value_.MyCustomField);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = ComplexUnion(rhs);
   }
 
 
@@ -1313,23 +1450,23 @@ const ::std::vector<::some::valid::ns::unionTypeDef>& AnException::get_a_union_t
 
 void swap([[maybe_unused]] AnException& a, [[maybe_unused]] AnException& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_code, b.__fbthrift_field_code);
-  swap(a.__fbthrift_field_req_code, b.__fbthrift_field_req_code);
-  swap(a.__fbthrift_field_message2, b.__fbthrift_field_message2);
-  swap(a.__fbthrift_field_req_message, b.__fbthrift_field_req_message);
-  swap(a.__fbthrift_field_exception_list, b.__fbthrift_field_exception_list);
-  swap(a.__fbthrift_field_exception_set, b.__fbthrift_field_exception_set);
-  swap(a.__fbthrift_field_exception_map, b.__fbthrift_field_exception_map);
-  swap(a.__fbthrift_field_req_exception_map, b.__fbthrift_field_req_exception_map);
-  swap(a.__fbthrift_field_enum_field, b.__fbthrift_field_enum_field);
-  swap(a.__fbthrift_field_enum_container, b.__fbthrift_field_enum_container);
-  swap(a.__fbthrift_field_a_struct, b.__fbthrift_field_a_struct);
-  swap(a.__fbthrift_field_a_set_struct, b.__fbthrift_field_a_set_struct);
-  swap(a.__fbthrift_field_a_union_list, b.__fbthrift_field_a_union_list);
-  swap(a.__fbthrift_field_union_typedef, b.__fbthrift_field_union_typedef);
-  swap(a.__fbthrift_field_a_union_typedef_list, b.__fbthrift_field_a_union_typedef_list);
-  swap(a.__fbthrift_field_MyCustomField, b.__fbthrift_field_MyCustomField);
-  swap(a.__fbthrift_field_MyOptCustomField, b.__fbthrift_field_MyOptCustomField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_code, b.__fbthrift_field_code);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_req_code, b.__fbthrift_field_req_code);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_message2, b.__fbthrift_field_message2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_req_message, b.__fbthrift_field_req_message);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_exception_list, b.__fbthrift_field_exception_list);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_exception_set, b.__fbthrift_field_exception_set);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_exception_map, b.__fbthrift_field_exception_map);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_req_exception_map, b.__fbthrift_field_req_exception_map);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_enum_field, b.__fbthrift_field_enum_field);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_enum_container, b.__fbthrift_field_enum_container);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_a_struct, b.__fbthrift_field_a_struct);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_a_set_struct, b.__fbthrift_field_a_set_struct);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_a_union_list, b.__fbthrift_field_a_union_list);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_union_typedef, b.__fbthrift_field_union_typedef);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_a_union_typedef_list, b.__fbthrift_field_a_union_typedef_list);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyCustomField, b.__fbthrift_field_MyCustomField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyOptCustomField, b.__fbthrift_field_MyOptCustomField);
   swap(a.__isset, b.__isset);
 }
 
@@ -1446,9 +1583,9 @@ std::partial_ordering AnotherException::operator<=>([[maybe_unused]] const Anoth
 
 void swap([[maybe_unused]] AnotherException& a, [[maybe_unused]] AnotherException& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_code, b.__fbthrift_field_code);
-  swap(a.__fbthrift_field_req_code, b.__fbthrift_field_req_code);
-  swap(a.__fbthrift_field_message, b.__fbthrift_field_message);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_code, b.__fbthrift_field_code);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_req_code, b.__fbthrift_field_req_code);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_message, b.__fbthrift_field_message);
   swap(a.__isset, b.__isset);
 }
 
@@ -2105,50 +2242,50 @@ const ::std::map<::std::string, ::std::int32_t>& ContainerStruct::get_fieldAE() 
 
 void swap([[maybe_unused]] ContainerStruct& a, [[maybe_unused]] ContainerStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_fieldA, b.__fbthrift_field_fieldA);
-  swap(a.__fbthrift_field_req_fieldA, b.__fbthrift_field_req_fieldA);
-  swap(a.__fbthrift_field_opt_fieldA, b.__fbthrift_field_opt_fieldA);
-  swap(a.__fbthrift_field_fieldB, b.__fbthrift_field_fieldB);
-  swap(a.__fbthrift_field_req_fieldB, b.__fbthrift_field_req_fieldB);
-  swap(a.__fbthrift_field_opt_fieldB, b.__fbthrift_field_opt_fieldB);
-  swap(a.__fbthrift_field_fieldC, b.__fbthrift_field_fieldC);
-  swap(a.__fbthrift_field_req_fieldC, b.__fbthrift_field_req_fieldC);
-  swap(a.__fbthrift_field_opt_fieldC, b.__fbthrift_field_opt_fieldC);
-  swap(a.__fbthrift_field_fieldD, b.__fbthrift_field_fieldD);
-  swap(a.__fbthrift_field_fieldE, b.__fbthrift_field_fieldE);
-  swap(a.__fbthrift_field_req_fieldE, b.__fbthrift_field_req_fieldE);
-  swap(a.__fbthrift_field_opt_fieldE, b.__fbthrift_field_opt_fieldE);
-  swap(a.__fbthrift_field_fieldF, b.__fbthrift_field_fieldF);
-  swap(a.__fbthrift_field_fieldG, b.__fbthrift_field_fieldG);
-  swap(a.__fbthrift_field_fieldH, b.__fbthrift_field_fieldH);
-  swap(a.__fbthrift_field_fieldI, b.__fbthrift_field_fieldI);
-  swap(a.__fbthrift_field_fieldJ, b.__fbthrift_field_fieldJ);
-  swap(a.__fbthrift_field_fieldK, b.__fbthrift_field_fieldK);
-  swap(a.__fbthrift_field_fieldL, b.__fbthrift_field_fieldL);
-  swap(a.__fbthrift_field_fieldM, b.__fbthrift_field_fieldM);
-  swap(a.__fbthrift_field_fieldN, b.__fbthrift_field_fieldN);
-  swap(a.__fbthrift_field_fieldO, b.__fbthrift_field_fieldO);
-  swap(a.__fbthrift_field_fieldP, b.__fbthrift_field_fieldP);
-  swap(a.__fbthrift_field_fieldQ, b.__fbthrift_field_fieldQ);
-  swap(a.__fbthrift_field_fieldR, b.__fbthrift_field_fieldR);
-  swap(a.__fbthrift_field_req_fieldR, b.__fbthrift_field_req_fieldR);
-  swap(a.__fbthrift_field_opt_fieldR, b.__fbthrift_field_opt_fieldR);
-  swap(a.__fbthrift_field_fieldS, b.__fbthrift_field_fieldS);
-  swap(a.__fbthrift_field_fieldT, b.__fbthrift_field_fieldT);
-  swap(a.__fbthrift_field_fieldU, b.__fbthrift_field_fieldU);
-  swap(a.__fbthrift_field_fieldV, b.__fbthrift_field_fieldV);
-  swap(a.__fbthrift_field_req_fieldV, b.__fbthrift_field_req_fieldV);
-  swap(a.__fbthrift_field_opt_fieldV, b.__fbthrift_field_opt_fieldV);
-  swap(a.__fbthrift_field_fieldW, b.__fbthrift_field_fieldW);
-  swap(a.__fbthrift_field_fieldX, b.__fbthrift_field_fieldX);
-  swap(a.__fbthrift_field_req_fieldX, b.__fbthrift_field_req_fieldX);
-  swap(a.__fbthrift_field_opt_fieldX, b.__fbthrift_field_opt_fieldX);
-  swap(a.__fbthrift_field_fieldY, b.__fbthrift_field_fieldY);
-  swap(a.__fbthrift_field_fieldZ, b.__fbthrift_field_fieldZ);
-  swap(a.__fbthrift_field_fieldAA, b.__fbthrift_field_fieldAA);
-  swap(a.__fbthrift_field_fieldAC, b.__fbthrift_field_fieldAC);
-  swap(a.__fbthrift_field_fieldAD, b.__fbthrift_field_fieldAD);
-  swap(a.__fbthrift_field_fieldAE, b.__fbthrift_field_fieldAE);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldA, b.__fbthrift_field_fieldA);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_req_fieldA, b.__fbthrift_field_req_fieldA);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_opt_fieldA, b.__fbthrift_field_opt_fieldA);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldB, b.__fbthrift_field_fieldB);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_req_fieldB, b.__fbthrift_field_req_fieldB);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_opt_fieldB, b.__fbthrift_field_opt_fieldB);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldC, b.__fbthrift_field_fieldC);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_req_fieldC, b.__fbthrift_field_req_fieldC);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_opt_fieldC, b.__fbthrift_field_opt_fieldC);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldD, b.__fbthrift_field_fieldD);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldE, b.__fbthrift_field_fieldE);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_req_fieldE, b.__fbthrift_field_req_fieldE);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_opt_fieldE, b.__fbthrift_field_opt_fieldE);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldF, b.__fbthrift_field_fieldF);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldG, b.__fbthrift_field_fieldG);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldH, b.__fbthrift_field_fieldH);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldI, b.__fbthrift_field_fieldI);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldJ, b.__fbthrift_field_fieldJ);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldK, b.__fbthrift_field_fieldK);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldL, b.__fbthrift_field_fieldL);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldM, b.__fbthrift_field_fieldM);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldN, b.__fbthrift_field_fieldN);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldO, b.__fbthrift_field_fieldO);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldP, b.__fbthrift_field_fieldP);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldQ, b.__fbthrift_field_fieldQ);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldR, b.__fbthrift_field_fieldR);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_req_fieldR, b.__fbthrift_field_req_fieldR);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_opt_fieldR, b.__fbthrift_field_opt_fieldR);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldS, b.__fbthrift_field_fieldS);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldT, b.__fbthrift_field_fieldT);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldU, b.__fbthrift_field_fieldU);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldV, b.__fbthrift_field_fieldV);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_req_fieldV, b.__fbthrift_field_req_fieldV);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_opt_fieldV, b.__fbthrift_field_opt_fieldV);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldW, b.__fbthrift_field_fieldW);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldX, b.__fbthrift_field_fieldX);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_req_fieldX, b.__fbthrift_field_req_fieldX);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_opt_fieldX, b.__fbthrift_field_opt_fieldX);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldY, b.__fbthrift_field_fieldY);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldZ, b.__fbthrift_field_fieldZ);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldAA, b.__fbthrift_field_fieldAA);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldAC, b.__fbthrift_field_fieldAC);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldAD, b.__fbthrift_field_fieldAD);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_fieldAE, b.__fbthrift_field_fieldAE);
   swap(a.__isset, b.__isset);
 }
 
@@ -2326,10 +2463,10 @@ const ::some::valid::ns::AStruct& MyIncludedStruct::get_ARequiredField() const& 
 
 void swap([[maybe_unused]] MyIncludedStruct& a, [[maybe_unused]] MyIncludedStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_MyIncludedInt, b.__fbthrift_field_MyIncludedInt);
-  swap(a.__fbthrift_field_MyIncludedStruct, b.__fbthrift_field_MyIncludedStruct);
-  swap(a.__fbthrift_field_ARefField, b.__fbthrift_field_ARefField);
-  swap(a.__fbthrift_field_ARequiredField, b.__fbthrift_field_ARequiredField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyIncludedInt, b.__fbthrift_field_MyIncludedInt);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_MyIncludedStruct, b.__fbthrift_field_MyIncludedStruct);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_ARefField, b.__fbthrift_field_ARefField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_ARequiredField, b.__fbthrift_field_ARequiredField);
   swap(a.__isset, b.__isset);
 }
 
@@ -2704,43 +2841,43 @@ const ::some::valid::ns::ContainerStruct& AnnotatedStruct::get_struct_struct() c
 
 void swap([[maybe_unused]] AnnotatedStruct& a, [[maybe_unused]] AnnotatedStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_no_annotation, b.__fbthrift_field_no_annotation);
-  swap(a.__fbthrift_field_cpp_unique_ref, b.__fbthrift_field_cpp_unique_ref);
-  swap(a.__fbthrift_field_cpp2_unique_ref, b.__fbthrift_field_cpp2_unique_ref);
-  swap(a.__fbthrift_field_container_with_ref, b.__fbthrift_field_container_with_ref);
-  swap(a.__fbthrift_field_req_cpp_unique_ref, b.__fbthrift_field_req_cpp_unique_ref);
-  swap(a.__fbthrift_field_req_cpp2_unique_ref, b.__fbthrift_field_req_cpp2_unique_ref);
-  swap(a.__fbthrift_field_req_container_with_ref, b.__fbthrift_field_req_container_with_ref);
-  swap(a.__fbthrift_field_opt_cpp_unique_ref, b.__fbthrift_field_opt_cpp_unique_ref);
-  swap(a.__fbthrift_field_opt_cpp2_unique_ref, b.__fbthrift_field_opt_cpp2_unique_ref);
-  swap(a.__fbthrift_field_opt_container_with_ref, b.__fbthrift_field_opt_container_with_ref);
-  swap(a.__fbthrift_field_ref_type_unique, b.__fbthrift_field_ref_type_unique);
-  swap(a.__fbthrift_field_ref_type_shared, b.__fbthrift_field_ref_type_shared);
-  swap(a.__fbthrift_field_ref_type_const, b.__fbthrift_field_ref_type_const);
-  swap(a.__fbthrift_field_req_ref_type_shared, b.__fbthrift_field_req_ref_type_shared);
-  swap(a.__fbthrift_field_req_ref_type_const, b.__fbthrift_field_req_ref_type_const);
-  swap(a.__fbthrift_field_req_ref_type_unique, b.__fbthrift_field_req_ref_type_unique);
-  swap(a.__fbthrift_field_opt_ref_type_const, b.__fbthrift_field_opt_ref_type_const);
-  swap(a.__fbthrift_field_opt_ref_type_unique, b.__fbthrift_field_opt_ref_type_unique);
-  swap(a.__fbthrift_field_opt_ref_type_shared, b.__fbthrift_field_opt_ref_type_shared);
-  swap(a.__fbthrift_field_base_type, b.__fbthrift_field_base_type);
-  swap(a.__fbthrift_field_list_type, b.__fbthrift_field_list_type);
-  swap(a.__fbthrift_field_set_type, b.__fbthrift_field_set_type);
-  swap(a.__fbthrift_field_map_type, b.__fbthrift_field_map_type);
-  swap(a.__fbthrift_field_map_struct_type, b.__fbthrift_field_map_struct_type);
-  swap(a.__fbthrift_field_iobuf_type, b.__fbthrift_field_iobuf_type);
-  swap(a.__fbthrift_field_iobuf_ptr, b.__fbthrift_field_iobuf_ptr);
-  swap(a.__fbthrift_field_list_i32_template, b.__fbthrift_field_list_i32_template);
-  swap(a.__fbthrift_field_list_string_template, b.__fbthrift_field_list_string_template);
-  swap(a.__fbthrift_field_set_template, b.__fbthrift_field_set_template);
-  swap(a.__fbthrift_field_map_template, b.__fbthrift_field_map_template);
-  swap(a.__fbthrift_field_typedef_list_template, b.__fbthrift_field_typedef_list_template);
-  swap(a.__fbthrift_field_typedef_deque_template, b.__fbthrift_field_typedef_deque_template);
-  swap(a.__fbthrift_field_typedef_set_template, b.__fbthrift_field_typedef_set_template);
-  swap(a.__fbthrift_field_typedef_map_template, b.__fbthrift_field_typedef_map_template);
-  swap(a.__fbthrift_field_iobuf_type_val, b.__fbthrift_field_iobuf_type_val);
-  swap(a.__fbthrift_field_iobuf_ptr_val, b.__fbthrift_field_iobuf_ptr_val);
-  swap(a.__fbthrift_field_struct_struct, b.__fbthrift_field_struct_struct);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_no_annotation, b.__fbthrift_field_no_annotation);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_cpp_unique_ref, b.__fbthrift_field_cpp_unique_ref);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_cpp2_unique_ref, b.__fbthrift_field_cpp2_unique_ref);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_container_with_ref, b.__fbthrift_field_container_with_ref);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_req_cpp_unique_ref, b.__fbthrift_field_req_cpp_unique_ref);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_req_cpp2_unique_ref, b.__fbthrift_field_req_cpp2_unique_ref);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_req_container_with_ref, b.__fbthrift_field_req_container_with_ref);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_opt_cpp_unique_ref, b.__fbthrift_field_opt_cpp_unique_ref);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_opt_cpp2_unique_ref, b.__fbthrift_field_opt_cpp2_unique_ref);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_opt_container_with_ref, b.__fbthrift_field_opt_container_with_ref);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_ref_type_unique, b.__fbthrift_field_ref_type_unique);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_ref_type_shared, b.__fbthrift_field_ref_type_shared);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_ref_type_const, b.__fbthrift_field_ref_type_const);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_req_ref_type_shared, b.__fbthrift_field_req_ref_type_shared);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_req_ref_type_const, b.__fbthrift_field_req_ref_type_const);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_req_ref_type_unique, b.__fbthrift_field_req_ref_type_unique);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_opt_ref_type_const, b.__fbthrift_field_opt_ref_type_const);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_opt_ref_type_unique, b.__fbthrift_field_opt_ref_type_unique);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_opt_ref_type_shared, b.__fbthrift_field_opt_ref_type_shared);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_base_type, b.__fbthrift_field_base_type);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_list_type, b.__fbthrift_field_list_type);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_set_type, b.__fbthrift_field_set_type);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_map_type, b.__fbthrift_field_map_type);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_map_struct_type, b.__fbthrift_field_map_struct_type);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_iobuf_type, b.__fbthrift_field_iobuf_type);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_iobuf_ptr, b.__fbthrift_field_iobuf_ptr);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_list_i32_template, b.__fbthrift_field_list_i32_template);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_list_string_template, b.__fbthrift_field_list_string_template);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_set_template, b.__fbthrift_field_set_template);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_map_template, b.__fbthrift_field_map_template);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_typedef_list_template, b.__fbthrift_field_typedef_list_template);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_typedef_deque_template, b.__fbthrift_field_typedef_deque_template);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_typedef_set_template, b.__fbthrift_field_typedef_set_template);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_typedef_map_template, b.__fbthrift_field_typedef_map_template);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_iobuf_type_val, b.__fbthrift_field_iobuf_type_val);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_iobuf_ptr_val, b.__fbthrift_field_iobuf_ptr_val);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_struct_struct, b.__fbthrift_field_struct_struct);
   swap(a.__isset, b.__isset);
 }
 
@@ -2927,8 +3064,8 @@ const ::std::map<::std::string, ::some::valid::ns::IOBufPtr>& ComplexContainerSt
 
 void swap([[maybe_unused]] ComplexContainerStruct& a, [[maybe_unused]] ComplexContainerStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_map_of_iobufs, b.__fbthrift_field_map_of_iobufs);
-  swap(a.__fbthrift_field_map_of_iobuf_ptrs, b.__fbthrift_field_map_of_iobuf_ptrs);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_map_of_iobufs, b.__fbthrift_field_map_of_iobufs);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_map_of_iobuf_ptrs, b.__fbthrift_field_map_of_iobuf_ptrs);
   swap(a.__isset, b.__isset);
 }
 
@@ -2994,8 +3131,8 @@ double& FloatStruct::set_doubleField(double doubleField_) {
 
 void swap([[maybe_unused]] FloatStruct& a, [[maybe_unused]] FloatStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_floatField, b.__fbthrift_field_floatField);
-  swap(a.__fbthrift_field_doubleField, b.__fbthrift_field_doubleField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_floatField, b.__fbthrift_field_floatField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_doubleField, b.__fbthrift_field_doubleField);
   swap(a.__isset, b.__isset);
 }
 
@@ -3051,39 +3188,56 @@ void FloatUnion::__fbthrift_clear() {
 bool FloatUnion::__fbthrift_is_empty() const {
   return getType() == Type::__EMPTY__;
 }
+  FloatUnion& FloatUnion::operator=(FloatUnion&& rhs) noexcept {
+    if (this == &rhs) { return *this; }
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+      {
+        __fbthrift_clear();
+        return *this;
+      }
+      case Type::floatSide:
+      {
+        auto value = std::move(rhs.value_.floatSide);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(floatSide_ref(), std::move(value));
+        break;
+      }
+      case Type::doubleSide:
+      {
+        auto value = std::move(rhs.value_.doubleSide);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(doubleSide_ref(), std::move(value));
+        break;
+      }
+      default:
+      {
+        assert(false);
+        __fbthrift_clear();
+      }
+    }
+    return *this;
+  }
+
   FloatUnion::FloatUnion(const FloatUnion& rhs)
       : fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
     switch (rhs.getType()) {
       case Type::__EMPTY__:
         return;
       case Type::floatSide:
-        set_floatSide(rhs.value_.floatSide);
+        floatSide_ref().emplace(rhs.value_.floatSide);
         break;
       case Type::doubleSide:
-        set_doubleSide(rhs.value_.doubleSide);
+        doubleSide_ref().emplace(rhs.value_.doubleSide);
         break;
       default:
         assert(false);
     }
   }
 
-    FloatUnion&FloatUnion::operator=(const FloatUnion& rhs) {
+  FloatUnion& FloatUnion::operator=(const FloatUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::floatSide:
-        set_floatSide(rhs.value_.floatSide);
-        break;
-      case Type::doubleSide:
-        set_doubleSide(rhs.value_.doubleSide);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = FloatUnion(rhs);
   }
 
 
@@ -3149,7 +3303,7 @@ std::partial_ordering AllRequiredNoExceptMoveCtrStruct::operator<=>([[maybe_unus
 
 void swap([[maybe_unused]] AllRequiredNoExceptMoveCtrStruct& a, [[maybe_unused]] AllRequiredNoExceptMoveCtrStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_intField, b.__fbthrift_field_intField);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_intField, b.__fbthrift_field_intField);
 }
 
 

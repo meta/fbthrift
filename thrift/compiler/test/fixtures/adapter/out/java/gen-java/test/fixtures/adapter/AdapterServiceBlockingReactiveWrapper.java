@@ -28,11 +28,11 @@ public class AdapterServiceBlockingReactiveWrapper
     public reactor.core.publisher.Mono<test.fixtures.adapter.CountingStruct> count() {
         reactor.core.publisher.Mono<test.fixtures.adapter.CountingStruct> _m = reactor.core.publisher.Mono.create(_sink -> {
             try {
-                reactor.util.context.ContextView _contextView = _sink.contextView();
-                com.facebook.nifty.core.RequestContext
-                    .tryContextView(_contextView)
-                    .ifPresent(com.facebook.nifty.core.RequestContexts::setCurrentContext);
-                _sink.success(_delegate.count());
+                com.facebook.nifty.core.RequestContext _requestContext =
+                    com.facebook.nifty.core.RequestContext.tryContextView(_sink.contextView()).orElseGet(com.facebook.nifty.core.RequestContexts::tryGetCurrentContext);
+                _sink.success(com.facebook.nifty.core.RequestContextScope.call(
+                    _requestContext,
+                    () -> _delegate.count()));
             } catch (Throwable _e) {
                 _sink.error(_e);
             }

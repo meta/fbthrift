@@ -18,14 +18,14 @@ public final class Constants {
     public static final Map<Long, List<String>> TEST_MAP = construct_TEST_MAP();
 
     private static Map<Long, List<String>> construct_TEST_MAP() {
-        return ImmutableMap.<Long, List<String>>builder()
-        .put(0L, ImmutableList.<String>builder()
+        ImmutableMap.Builder<Long, List<String>> builder = ImmutableMap.builder();
+        builder.put(0L, ImmutableList.<String>builder()
         .add("foo")
         .add("bar")
-        .build())
-        .put(1L, ImmutableList.<String>builder()
+        .build());
+        builder.put(1L, ImmutableList.<String>builder()
         .add("baz")
-        .build())
-        .build();
+        .build());
+        return builder.build();
     }
 }

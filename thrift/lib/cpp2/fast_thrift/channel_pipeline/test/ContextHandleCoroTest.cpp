@@ -175,14 +175,14 @@ TEST_P(ContextHandleCoroChainTest, InboundNormalAsyncNormalChain) {
   std::thread::id coroutineThread;
   auto a = std::make_unique<MockHandler>();
   a->setOnRead([&](detail::ContextImpl& ctx, TypeErasedBox&& message) {
-    order.push_back("A");
-    message.get<std::unique_ptr<TraceMessage>>()->trace.push_back("A");
+    order.emplace_back("A");
+    message.get<std::unique_ptr<TraceMessage>>()->trace.emplace_back("A");
     return ctx.fireRead(std::move(message));
   });
   auto b = std::make_unique<MockHandler>();
   b->setOnRead([&](detail::ContextImpl& ctx, TypeErasedBox&& message) {
-    order.push_back("B");
-    message.get<std::unique_ptr<TraceMessage>>()->trace.push_back("B");
+    order.emplace_back("B");
+    message.get<std::unique_ptr<TraceMessage>>()->trace.emplace_back("B");
     completion =
         folly::coro::co_withExecutor(
             executorFor(GetParam()),
@@ -193,12 +193,12 @@ TEST_P(ContextHandleCoroChainTest, InboundNormalAsyncNormalChain) {
   });
   auto c = std::make_unique<MockHandler>();
   c->setOnRead([&](detail::ContextImpl& ctx, TypeErasedBox&& message) {
-    order.push_back("C");
-    message.get<std::unique_ptr<TraceMessage>>()->trace.push_back("C");
+    order.emplace_back("C");
+    message.get<std::unique_ptr<TraceMessage>>()->trace.emplace_back("C");
     return ctx.fireRead(std::move(message));
   });
   tail_.setOnReadCallback([&](TypeErasedBox&& message) {
-    order.push_back("Tail");
+    order.emplace_back("Tail");
     tailTrace = message.get<std::unique_ptr<TraceMessage>>()->trace;
     return Result::Backpressure;
   });
@@ -224,14 +224,14 @@ TEST_P(ContextHandleCoroChainTest, OutboundNormalAsyncNormalChain) {
   std::optional<folly::SemiFuture<Result>> completion;
   auto a = std::make_unique<MockHandler>();
   a->setOnWrite([&](detail::ContextImpl& ctx, TypeErasedBox&& message) {
-    order.push_back("A");
-    message.get<std::unique_ptr<TraceMessage>>()->trace.push_back("A");
+    order.emplace_back("A");
+    message.get<std::unique_ptr<TraceMessage>>()->trace.emplace_back("A");
     return ctx.fireWrite(std::move(message));
   });
   auto b = std::make_unique<MockHandler>();
   b->setOnWrite([&](detail::ContextImpl& ctx, TypeErasedBox&& message) {
-    order.push_back("B");
-    message.get<std::unique_ptr<TraceMessage>>()->trace.push_back("B");
+    order.emplace_back("B");
+    message.get<std::unique_ptr<TraceMessage>>()->trace.emplace_back("B");
     completion =
         folly::coro::co_withExecutor(
             executorFor(GetParam()),
@@ -241,12 +241,12 @@ TEST_P(ContextHandleCoroChainTest, OutboundNormalAsyncNormalChain) {
   });
   auto c = std::make_unique<MockHandler>();
   c->setOnWrite([&](detail::ContextImpl& ctx, TypeErasedBox&& message) {
-    order.push_back("C");
-    message.get<std::unique_ptr<TraceMessage>>()->trace.push_back("C");
+    order.emplace_back("C");
+    message.get<std::unique_ptr<TraceMessage>>()->trace.emplace_back("C");
     return ctx.fireWrite(std::move(message));
   });
   head_.setOnWriteCallback([&](TypeErasedBox&& message) {
-    order.push_back("Head");
+    order.emplace_back("Head");
     headTrace = message.get<std::unique_ptr<TraceMessage>>()->trace;
     return Result::Backpressure;
   });
@@ -272,13 +272,13 @@ TEST_P(ContextHandleCoroChainTest, ExceptionNormalAsyncNormalChain) {
   auto a = std::make_unique<MockHandler>();
   a->setOnException(
       [&](detail::ContextImpl& ctx, folly::exception_wrapper&& exception) {
-        order.push_back("A");
+        order.emplace_back("A");
         ctx.fireException(std::move(exception));
       });
   auto b = std::make_unique<MockHandler>();
   b->setOnException([&](detail::ContextImpl& ctx,
                         folly::exception_wrapper&& exception) {
-    order.push_back("B");
+    order.emplace_back("B");
     completion =
         folly::coro::co_withExecutor(
             executorFor(GetParam()),
@@ -288,11 +288,11 @@ TEST_P(ContextHandleCoroChainTest, ExceptionNormalAsyncNormalChain) {
   auto c = std::make_unique<MockHandler>();
   c->setOnException(
       [&](detail::ContextImpl& ctx, folly::exception_wrapper&& exception) {
-        order.push_back("C");
+        order.emplace_back("C");
         ctx.fireException(std::move(exception));
       });
   tail_.setOnExceptionCallback(
-      [&](folly::exception_wrapper&&) { order.push_back("Tail"); });
+      [&](folly::exception_wrapper&&) { order.emplace_back("Tail"); });
   auto pipeline = buildChain(std::move(a), std::move(b), std::move(c));
 
   eventBase_->runInEventBaseThreadAndWait([&] {
@@ -493,7 +493,7 @@ TEST(ContextHandleDirectAwaitableTest, DroppedFutureKeepsSuspendedFrameAlive) {
     ASSERT_GT(eventBase.getNotificationQueueSize(), 0);
   }
 
-  eventBase.loopOnce();
+  eventBase.loopOnce(EVLOOP_NONBLOCK);
   EXPECT_EQ(tail.readCount(), 1);
 }
 

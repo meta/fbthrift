@@ -48,9 +48,10 @@ struct ConceptSink {
  * and never throws — errors come back as Result::Error.
  *
  * `consume` returns the sink's first non-Success result. Bytes not yet emitted
- * stay buffered for the next call, so Backpressure is resumable. The sink may
- * close the connection re-entrantly, so a parser must not touch itself after a
- * sink call returns non-Success.
+ * stay buffered for `resume`, which emits queued messages without new input.
+ * `resume` returns the first non-Success result, just like `consume`. The sink
+ * may close the connection re-entrantly, so a parser must not touch itself
+ * after a sink call returns non-Success.
  *
  * `setIOBufFactory` is called once, when the transport is given its pipeline,
  * to route buffer allocation through the pipeline's allocator. The factory
@@ -68,6 +69,7 @@ concept Parser = requires(
   {
     parser.consume(len, sink)
   } noexcept -> std::same_as<channel_pipeline::Result>;
+  { parser.resume(sink) } noexcept -> std::same_as<channel_pipeline::Result>;
   { parser.setIOBufFactory(factory) } noexcept;
   { parser.reset() } noexcept;
 };

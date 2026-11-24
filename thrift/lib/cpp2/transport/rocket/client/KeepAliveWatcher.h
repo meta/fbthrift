@@ -52,6 +52,7 @@ class KeepAliveWatcher : public folly::HHWheelTimer::Callback,
   void attachEventBase(folly::EventBase* evb);
 
   void handleKeepaliveFrame(std::unique_ptr<folly::IOBuf> frame);
+  void handleKeepaliveFrame(IOBufChain frame);
 
   void timeoutExpired() noexcept override;
 

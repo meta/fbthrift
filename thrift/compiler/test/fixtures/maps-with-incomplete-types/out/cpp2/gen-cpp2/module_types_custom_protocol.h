@@ -38,7 +38,7 @@ void A::readNoXfer(Protocol_* iprot) {
 _readField_some_map:
   {
     _readState.beforeSubobject(iprot);
-    this->__fbthrift_field_some_map = std::unordered_map<::std::int32_t, ::apache::thrift::test::B>();
+    ::apache::thrift::detail::reset_container_field_for_read(this->__fbthrift_field_some_map);
     ::apache::thrift::detail::pm::protocol_methods<::apache::thrift::type_class::map<::apache::thrift::type_class::integral, ::apache::thrift::type_class::structure>, std::unordered_map<::std::int32_t, ::apache::thrift::test::B>, ::apache::thrift::type::cpp_type<std::unordered_map<::std::int32_t, ::apache::thrift::test::B>, ::apache::thrift::type::map<::apache::thrift::type::i32_t, ::apache::thrift::type::struct_t<::apache::thrift::test::B>>>>::read(*iprot, this->__fbthrift_field_some_map);
     _readState.afterSubobject(iprot);
   }
@@ -57,7 +57,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:
@@ -184,7 +183,6 @@ _end:
 
   return;
 
-  goto _advance_failure; // Avoid compiler warnings about unused labels.
   _advance_failure:
   _readState.afterAdvanceFailure(iprot);
 _loop:

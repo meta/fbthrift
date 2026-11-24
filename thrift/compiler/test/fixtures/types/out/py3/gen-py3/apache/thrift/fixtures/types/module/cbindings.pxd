@@ -811,7 +811,7 @@ cdef extern from "thrift/compiler/test/fixtures/types/gen-cpp2/module_types_cust
         __field_ref[string] aa_string_ref "aa_string_ref" ()
         __field_ref[cint32_t] not_a_container_ref "not_a_container_ref" ()
         unique_ptr[cint32_t] aa_unique_ref "aa_unique_ref" ()
-        shared_ptr[cint32_t] aa_shared_ref "aa_shared_ref" ()
+        shared_ptr[string] aa_shared_ref "aa_shared_ref" ()
 
 
     cdef cppclass cAllocatorAware2 "::apache::thrift::fixtures::types::AllocatorAware2":

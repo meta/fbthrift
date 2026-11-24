@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <concepts>
 #include <functional>
 #include <memory>
 #include <stdexcept>
@@ -48,6 +49,11 @@ using ThriftPipelineHandlerContext = channel_pipeline::detail::ContextImpl;
 using StaticThriftPipelineHandlerContext =
     channel_pipeline::detail::StaticHandlerContext;
 
+template <typename H>
+concept UsesCachedEkms = requires {
+  { H::kUsesCachedEkms } -> std::convertible_to<bool>;
+} && H::kUsesCachedEkms;
+
 /**
  * A per-connection factory that produces a fresh, type-erased handler node for
  * the thrift pipeline. The factory is invoked once per accepted connection when
@@ -69,11 +75,24 @@ class ThriftPipelineHandlerFactory {
   explicit ThriftPipelineHandlerFactory(DynamicFactory dynamicFactory)
       : dynamicFactory_(std::move(dynamicFactory)) {}
 
+  ThriftPipelineHandlerFactory(
+      DynamicFactory dynamicFactory, bool requiresCachedEkms)
+      : dynamicFactory_(std::move(dynamicFactory)),
+        requiresCachedEkms_(requiresCachedEkms) {}
+
  protected:
   ThriftPipelineHandlerFactory(
       DynamicFactory dynamicFactory, StaticFactory staticFactory)
       : dynamicFactory_(std::move(dynamicFactory)),
         staticFactory_(std::move(staticFactory)) {}
+
+  ThriftPipelineHandlerFactory(
+      DynamicFactory dynamicFactory,
+      StaticFactory staticFactory,
+      bool requiresCachedEkms)
+      : dynamicFactory_(std::move(dynamicFactory)),
+        staticFactory_(std::move(staticFactory)),
+        requiresCachedEkms_(requiresCachedEkms) {}
 
  public:
   channel_pipeline::detail::HandlerNode operator()(
@@ -84,6 +103,8 @@ class ThriftPipelineHandlerFactory {
   bool supportsStaticPipeline() const noexcept {
     return static_cast<bool>(staticFactory_);
   }
+
+  bool requiresCachedEkms() const noexcept { return requiresCachedEkms_; }
 
   channel_pipeline::detail::ErasedStaticHandler makeStatic(
       ExtensionStateStore& store) const {
@@ -97,6 +118,7 @@ class ThriftPipelineHandlerFactory {
  private:
   DynamicFactory dynamicFactory_;
   StaticFactory staticFactory_;
+  bool requiresCachedEkms_{false};
 };
 
 class StaticThriftPipelineHandlerFactory final
@@ -106,6 +128,19 @@ class StaticThriftPipelineHandlerFactory final
       DynamicFactory dynamicFactory, StaticFactory staticFactory)
       : ThriftPipelineHandlerFactory(
             std::move(dynamicFactory), std::move(staticFactory)) {
+    if (!supportsStaticPipeline()) {
+      throw std::invalid_argument("Static handler factory must be non-null");
+    }
+  }
+
+  StaticThriftPipelineHandlerFactory(
+      DynamicFactory dynamicFactory,
+      StaticFactory staticFactory,
+      bool requiresCachedEkms)
+      : ThriftPipelineHandlerFactory(
+            std::move(dynamicFactory),
+            std::move(staticFactory),
+            requiresCachedEkms) {
     if (!supportsStaticPipeline()) {
       throw std::invalid_argument("Static handler factory must be non-null");
     }
@@ -146,9 +181,18 @@ class ThriftPipelineSegmentFactory {
 class ThriftPipelineRegistration {
  public:
   explicit ThriftPipelineRegistration(ThriftPipelineHandlerFactory factory)
-      : registration_(std::move(factory)) {}
+      : registration_(std::move(factory)) {
+    requiresCachedEkms_ = std::get<ThriftPipelineHandlerFactory>(registration_)
+                              .requiresCachedEkms();
+  }
   explicit ThriftPipelineRegistration(ThriftPipelineSegmentFactory factory)
       : registration_(std::move(factory)) {}
+  ThriftPipelineRegistration(
+      ThriftPipelineSegmentFactory factory, bool requiresCachedEkms)
+      : registration_(std::move(factory)),
+        requiresCachedEkms_(requiresCachedEkms) {}
+
+  bool requiresCachedEkms() const noexcept { return requiresCachedEkms_; }
 
   bool isSegment() const noexcept {
     return std::holds_alternative<ThriftPipelineSegmentFactory>(registration_);
@@ -190,6 +234,7 @@ class ThriftPipelineRegistration {
  private:
   std::variant<ThriftPipelineHandlerFactory, ThriftPipelineSegmentFactory>
       registration_;
+  bool requiresCachedEkms_{false};
 };
 
 /**
@@ -250,8 +295,11 @@ auto makeThriftPipelineHandlerFactory(
     return channel_pipeline::detail::makeHandlerNode<T>(
         id, std::make_unique<T>(args...));
   };
+  constexpr bool requiresCachedEkms =
+      UsesCachedEkms<T> || UsesCachedEkms<StaticT>;
   if constexpr (std::is_void_v<StaticT>) {
-    return ThriftPipelineHandlerFactory(std::move(dynamicFactory));
+    return ThriftPipelineHandlerFactory(
+        std::move(dynamicFactory), requiresCachedEkms);
   } else {
     static_assert(
         channel_pipeline::
@@ -266,7 +314,9 @@ auto makeThriftPipelineHandlerFactory(
           id, args...);
     };
     return StaticThriftPipelineHandlerFactory(
-        std::move(dynamicFactory), std::move(staticFactory));
+        std::move(dynamicFactory),
+        std::move(staticFactory),
+        requiresCachedEkms);
   }
 }
 

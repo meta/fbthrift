@@ -17,12 +17,16 @@
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/adapter/ThriftServerAppAdapter.h>
 
 #include <algorithm>
+#include <optional>
 #include <utility>
 
+#include <folly/io/async/Request.h>
 #include <folly/logging/xlog.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/event_handler/Cpp2BridgeExtension.h>
 
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/Event.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/ServerAppAdapter.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/util/RequestMetadata.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/util/ResponsePayloads.h>
 
 namespace apache::thrift::fast_thrift::thrift {
@@ -52,6 +56,8 @@ void ThriftServerAppAdapter::setCloseCallback(std::function<void()> cb) {
 void ThriftServerAppAdapter::setPipeline(
     channel_pipeline::PipelineRef pipeline) noexcept {
   DCHECK(pipeline);
+  CHECK(pipeline.eventBase() != nullptr)
+      << "ThriftServerAppAdapter requires a pipeline EventBase";
   pipeline_ = pipeline;
   pipelineGuard_ = pipeline_.guard();
   pipelineActive_ = true;
@@ -85,18 +91,20 @@ void ThriftServerAppAdapter::fireCloseCallback() noexcept {
 
 channel_pipeline::Result ThriftServerAppAdapter::dispatchRequest(
     channel_pipeline::TypeErasedBox&& msg) noexcept {
-  const auto& request = msg.get<ThriftServerRequestMessage>();
+  auto& request = msg.get<ThriftServerRequestMessage>();
   DCHECK(request.streamId != 0) << "Invalid stream ID";
 
   const auto routing = getServerRequestRoutingMetadata(request);
-  if (FOLLY_UNLIKELY(
-          routing.status == ServerRequestRoutingStatus::MissingMetadata)) {
-    handleUnknownMethod(request.streamId, {});
+  if (routing.status == ServerRequestRoutingStatus::MissingMetadata)
+      [[unlikely]] {
+    handleUnknownMethod(
+        request.streamId, {}, std::move(request.requestContext));
     return channel_pipeline::Result::Success;
   }
-  if (FOLLY_UNLIKELY(
-          routing.status == ServerRequestRoutingStatus::UnsupportedRpcKind)) {
-    handleWrongRpcKind(request.streamId, routing.kind);
+  if (routing.status == ServerRequestRoutingStatus::UnsupportedRpcKind)
+      [[unlikely]] {
+    handleWrongRpcKind(
+        request.streamId, routing.kind, std::move(request.requestContext));
     return channel_pipeline::Result::Success;
   }
 
@@ -111,7 +119,8 @@ channel_pipeline::Result ThriftServerAppAdapter::dispatchRequest(
       }
     }
   }
-  handleUnknownMethod(request.streamId, routing.methodName);
+  handleUnknownMethod(
+      request.streamId, routing.methodName, std::move(request.requestContext));
   return channel_pipeline::Result::Success;
 }
 
@@ -161,14 +170,22 @@ bool ThriftServerAppAdapter::hasMethod(std::string_view name) const noexcept {
 }
 
 void ThriftServerAppAdapter::handleWrongRpcKind(
-    uint32_t streamId, apache::thrift::RpcKind kind) noexcept {
+    uint32_t streamId,
+    apache::thrift::RpcKind kind,
+    ThriftRequestContextPtr requestContext) noexcept {
   XLOG(ERR) << "Unsupported RPC kind: " << static_cast<int>(kind);
-  writeResponseOnEventBase(makeWrongRpcKindMessage(streamId, kind));
+  auto response = makeWrongRpcKindMessage(streamId, kind);
+  response.requestContext = std::move(requestContext);
+  writeResponseOnEventBase(std::move(response));
 }
 
 void ThriftServerAppAdapter::handleUnknownMethod(
-    uint32_t streamId, std::string_view methodName) noexcept {
-  writeResponseOnEventBase(makeUnknownMethodMessage(streamId, methodName));
+    uint32_t streamId,
+    std::string_view methodName,
+    ThriftRequestContextPtr requestContext) noexcept {
+  auto response = makeUnknownMethodMessage(streamId, methodName);
+  response.requestContext = std::move(requestContext);
+  writeResponseOnEventBase(std::move(response));
 }
 
 void ThriftServerAppAdapter::writeResponse(
@@ -207,13 +224,17 @@ void ThriftServerAppAdapter::acknowledgeCancellation(
 
 void ThriftServerAppAdapter::acknowledgeCancellationOnEventBase(
     uint32_t streamId, ThriftRequestContextPtr requestContext) noexcept {
-  if (requestContext == nullptr || !requestContext->tryComplete() ||
-      !pipelineActive_) {
-    return;
+  std::optional<server::RequestContextScopeGuard> requestContextGuard;
+  if (requestContext != nullptr) {
+    requestContextGuard.emplace(requestContext.get());
   }
-  pipeline_.bindEvents<PublishedEvents>()
-      .template fire<ThriftServerRequestCompletedEvent>(
-          ThriftServerRequestCompletedEvent{.streamId = streamId});
+  if (requestContext != nullptr && requestContext->tryComplete() &&
+      pipelineActive_) {
+    pipeline_.bindEvents<PublishedEvents>()
+        .template fire<ThriftServerRequestCompletedEvent>(
+            ThriftServerRequestCompletedEvent{.streamId = streamId});
+  }
+  requestContext.reset();
 }
 
 void ThriftServerAppAdapter::writeResponse(
@@ -226,22 +247,28 @@ void ThriftServerAppAdapter::writeResponse(
 
 void ThriftServerAppAdapter::writeResponseOnEventBase(
     ThriftServerResponseMessage&& message) noexcept {
+  std::optional<server::RequestContextScopeGuard> requestContextGuard;
+  if (message.requestContext != nullptr) {
+    requestContextGuard.emplace(message.requestContext.get());
+  }
   // Straggler after force-close (or any post-ConnectionClosed write):
   // the pipeline may already be gone. Drop silently — pipeline_ may
   // be dangling, do NOT dereference.
-  if (FOLLY_UNLIKELY(!pipelineActive_)) {
+  if (!pipelineActive_) [[unlikely]] {
+    message.requestContext.reset();
     return;
   }
-  if (FOLLY_UNLIKELY(!pipeline_)) {
+  if (!pipeline_) [[unlikely]] {
     handleMissingPipeline();
+    message.requestContext.reset();
     return;
   }
-  auto result =
+  const auto result =
       pipeline_.fireWrite(channel_pipeline::erase_and_box(std::move(message)));
   // A failed write means the response can't reach the wire — pipeline
   // is in a broken or torn-down state. Tear down immediately rather
   // than wait for a graceful drain. Idempotent at the pipeline level.
-  if (FOLLY_UNLIKELY(result == channel_pipeline::Result::Error)) {
+  if (result == channel_pipeline::Result::Error) [[unlikely]] {
     pipeline_.deactivate();
   }
 }

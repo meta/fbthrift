@@ -95,8 +95,8 @@ bool NonOrderableStruct::operator==([[maybe_unused]] const NonOrderableStruct& r
 
 void swap([[maybe_unused]] NonOrderableStruct& a, [[maybe_unused]] NonOrderableStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
-  swap(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
   swap(a.__isset, b.__isset);
 }
 
@@ -155,39 +155,56 @@ void NonOrderableUnion::__fbthrift_clear() {
 bool NonOrderableUnion::__fbthrift_is_empty() const {
   return getType() == Type::__EMPTY__;
 }
+  NonOrderableUnion& NonOrderableUnion::operator=(NonOrderableUnion&& rhs) noexcept {
+    if (this == &rhs) { return *this; }
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+      {
+        __fbthrift_clear();
+        return *this;
+      }
+      case Type::int_value:
+      {
+        auto value = std::move(rhs.value_.int_value);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(int_value_ref(), std::move(value));
+        break;
+      }
+      case Type::string_value:
+      {
+        auto value = std::move(rhs.value_.string_value);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(string_value_ref(), std::move(value));
+        break;
+      }
+      default:
+      {
+        assert(false);
+        __fbthrift_clear();
+      }
+    }
+    return *this;
+  }
+
   NonOrderableUnion::NonOrderableUnion(const NonOrderableUnion& rhs)
       : fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
     switch (rhs.getType()) {
       case Type::__EMPTY__:
         return;
       case Type::int_value:
-        set_int_value(rhs.value_.int_value);
+        int_value_ref().emplace(rhs.value_.int_value);
         break;
       case Type::string_value:
-        set_string_value(rhs.value_.string_value);
+        string_value_ref().emplace(rhs.value_.string_value);
         break;
       default:
         assert(false);
     }
   }
 
-    NonOrderableUnion&NonOrderableUnion::operator=(const NonOrderableUnion& rhs) {
+  NonOrderableUnion& NonOrderableUnion::operator=(const NonOrderableUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::int_value:
-        set_int_value(rhs.value_.int_value);
-        break;
-      case Type::string_value:
-        set_string_value(rhs.value_.string_value);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = NonOrderableUnion(rhs);
   }
 
 
@@ -278,8 +295,8 @@ std::partial_ordering OrderableStruct::operator<=>([[maybe_unused]] const Ordera
 
 void swap([[maybe_unused]] OrderableStruct& a, [[maybe_unused]] OrderableStruct& b) {
   using ::std::swap;
-  swap(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
-  swap(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field1, b.__fbthrift_field_field1);
+  ::apache::thrift::detail::swap_field(a.__fbthrift_field_field2, b.__fbthrift_field_field2);
   swap(a.__isset, b.__isset);
 }
 
@@ -338,39 +355,56 @@ void OrderableUnion::__fbthrift_clear() {
 bool OrderableUnion::__fbthrift_is_empty() const {
   return getType() == Type::__EMPTY__;
 }
+  OrderableUnion& OrderableUnion::operator=(OrderableUnion&& rhs) noexcept {
+    if (this == &rhs) { return *this; }
+    switch (rhs.getType()) {
+      case Type::__EMPTY__:
+      {
+        __fbthrift_clear();
+        return *this;
+      }
+      case Type::int_value:
+      {
+        auto value = std::move(rhs.value_.int_value);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(int_value_ref(), std::move(value));
+        break;
+      }
+      case Type::string_value:
+      {
+        auto value = std::move(rhs.value_.string_value);
+        apache::thrift::clear(rhs);
+        ::apache::thrift::detail::union_emplace_storage(string_value_ref(), std::move(value));
+        break;
+      }
+      default:
+      {
+        assert(false);
+        __fbthrift_clear();
+      }
+    }
+    return *this;
+  }
+
   OrderableUnion::OrderableUnion(const OrderableUnion& rhs)
       : fbthrift_type_(folly::to_underlying(Type::__EMPTY__)) {
     switch (rhs.getType()) {
       case Type::__EMPTY__:
         return;
       case Type::int_value:
-        set_int_value(rhs.value_.int_value);
+        int_value_ref().emplace(rhs.value_.int_value);
         break;
       case Type::string_value:
-        set_string_value(rhs.value_.string_value);
+        string_value_ref().emplace(rhs.value_.string_value);
         break;
       default:
         assert(false);
     }
   }
 
-    OrderableUnion&OrderableUnion::operator=(const OrderableUnion& rhs) {
+  OrderableUnion& OrderableUnion::operator=(const OrderableUnion& rhs) {
     if (this == &rhs) { return *this; }
-    switch (rhs.getType()) {
-      case Type::__EMPTY__:
-        __fbthrift_clear();
-        return *this;
-      case Type::int_value:
-        set_int_value(rhs.value_.int_value);
-        break;
-      case Type::string_value:
-        set_string_value(rhs.value_.string_value);
-        break;
-      default:
-        __fbthrift_clear();
-        assert(false);
-    }
-    return *this;
+    return *this = OrderableUnion(rhs);
   }
 
 

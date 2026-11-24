@@ -6,5 +6,8 @@
  */
 #pragma once
 
+#include "thrift/compiler/test/fixtures/fast_client/gen-cpp2/FastAncestor.h"
+#include "thrift/compiler/test/fixtures/fast_client/gen-cpp2/NonFastParent.h"
 #include "thrift/compiler/test/fixtures/fast_client/gen-cpp2/FastClientTestService.h"
 #include "thrift/compiler/test/fixtures/fast_client/gen-cpp2/FastClientTestServiceChild.h"
+#include "thrift/compiler/test/fixtures/fast_client/gen-cpp2/FastClientTestServiceGrandchild.h"

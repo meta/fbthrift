@@ -296,7 +296,7 @@ class ConnectionAdapter {
   void sendFrame(Frame&& frame) {
     auto& evb = connection_->getEventBase();
     auto* handler = connection_->outgoingFrameHandler_.get(evb);
-    if (FOLLY_UNLIKELY(handler == nullptr)) {
+    if (handler == nullptr) [[unlikely]] {
       connection_->outgoingFrameHandler_.emplace(
           evb, evb, connection_->cfg_.getOutgoingFrameHandlerBatchLogSize());
       handler = connection_->outgoingFrameHandler_.get(evb);

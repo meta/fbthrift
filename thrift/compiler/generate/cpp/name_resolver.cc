@@ -17,6 +17,7 @@
 #include <thrift/compiler/generate/cpp/name_resolver.h>
 
 #include <stdexcept>
+#include <string_view>
 #include <typeinfo>
 
 #include <fmt/ranges.h>
@@ -29,23 +30,9 @@
 #include <thrift/compiler/ast/t_struct.h>
 #include <thrift/compiler/ast/t_typedef.h>
 #include <thrift/compiler/ast/uri.h>
+#include <thrift/compiler/generate/cpp/util.h>
 
 namespace apache::thrift::compiler {
-namespace {
-
-const t_type* find_first_type(const t_type& node) {
-  const t_type* result = nullptr;
-  t_typedef::find_type_if(&node, [&result](const t_type* type) {
-    if (cpp_name_resolver::find_type(*type)) {
-      result = type;
-      return true;
-    }
-    return false;
-  });
-  return result;
-}
-
-} // namespace
 
 namespace detail {
 
@@ -63,6 +50,14 @@ std::string gen_template_type(
 }
 
 } // namespace detail
+
+namespace {
+
+std::string gen_rebound_type(std::string_view type) {
+  return fmt::format("::apache::thrift::pmr::Rebind<{}>::type", type);
+}
+
+} // namespace
 
 const std::string& cpp_name_resolver::get_native_type(
     const t_field& field, const t_structured& parent) {
@@ -99,50 +94,16 @@ std::string cpp_name_resolver::gen_field_native_type(
         annotation->get_value_from_structured_annotation("name").get_string();
     // When the field also has @cpp.Type, use that as the base type for the
     // adapter wrapping instead of resolving from the type node.
-    if (auto* cpp_type_annot =
-            field.find_structured_annotation_or_null(kCppTypeUri)) {
-      if (auto* name =
-              cpp_type_annot->get_value_from_structured_annotation_or_null(
-                  "name")) {
-        return gen_adapted_type(
-            &adapter_on_field,
-            field.id(),
-            name->get_string(),
-            parent,
-            qualify_parent);
-      }
-      if (auto* tmpl =
-              cpp_type_annot->get_value_from_structured_annotation_or_null(
-                  "template")) {
-        return gen_adapted_type(
-            &adapter_on_field,
-            field.id(),
-            gen_container_type(
-                type.get_true_type()->as<t_container>(),
-                &cpp_name_resolver::get_native_type,
-                &tmpl->get_string()),
-            parent,
-            qualify_parent);
-      }
+    if (const auto& cpp_type = get_cpp_type(field)) {
+      return gen_adapted_type(
+          &adapter_on_field, field.id(), *cpp_type, parent, qualify_parent);
     }
     return gen_field_type(
         field.id(), type, parent, &adapter_on_field, qualify_parent);
   }
 
-  // Handle @cpp.Type on field.
-  if (auto* annotation =
-          field.find_structured_annotation_or_null(kCppTypeUri)) {
-    if (auto name =
-            annotation->get_value_from_structured_annotation_or_null("name")) {
-      return name->get_string();
-    } else {
-      auto& tmplate =
-          annotation->get_value_from_structured_annotation("template");
-      return gen_container_type(
-          type.get_true_type()->as<t_container>(),
-          &cpp_name_resolver::get_native_type,
-          &tmplate.get_string());
-    }
+  if (const auto& cpp_type = get_cpp_type(field)) {
+    return *cpp_type;
   }
 
   return get_native_type(type);
@@ -247,23 +208,6 @@ const std::string& cpp_name_resolver::get_underlying_type_name(
   // Keep the immediate aliased node here so typedef-local annotations still
   // control the generated using declaration.
   const t_type& type = node.type().deref();
-  const auto* type_name = find_type(node);
-  const auto* tmpl = find_template(node);
-  const bool has_typedef_cpp_type = type_name != nullptr || tmpl != nullptr;
-  auto gen_typedef_cpp_type = [&]() -> std::string {
-    if (type_name != nullptr) {
-      return *type_name;
-    }
-    if (tmpl != nullptr) {
-      if (const auto* container = type.get_true_type()->try_as<t_container>()) {
-        return gen_container_type(
-            *container, &cpp_name_resolver::get_native_type, tmpl);
-      }
-      return *tmpl;
-    }
-    return get_native_type(type);
-  };
-
   if (auto* annotation = find_nontransitive_adapter(node)) {
     if (auto* adapted_type =
             annotation->get_value_from_structured_annotation_or_null(
@@ -273,12 +217,15 @@ const std::string& cpp_name_resolver::get_underlying_type_name(
     const auto& adapter =
         annotation->get_value_from_structured_annotation("name").get_string();
     return detail::get_or_gen(underlying_type_cache_, &node, [&]() {
-      return gen_adapted_type(&adapter, gen_typedef_cpp_type());
+      return gen_adapted_type(&adapter, get_native_type(type));
     });
   }
-  if (has_typedef_cpp_type) {
+  if (const auto* type_name = find_type(node)) {
+    return *type_name;
+  }
+  if (find_template(node)) {
     return detail::get_or_gen(underlying_type_cache_, &node, [&]() {
-      return gen_typedef_cpp_type();
+      return gen_standard_type(node, &cpp_name_resolver::get_native_type);
     });
   }
   return get_native_type(type);
@@ -409,11 +356,6 @@ std::string cpp_name_resolver::gen_unprefixed_namespace(
   return fmt::format("{}", fmt::join(components, "::"));
 }
 
-bool cpp_name_resolver::can_resolve_to_scalar(const t_type& node) {
-  return is_scalar(*node.get_true_type()) || find_first_adapter(node) ||
-      find_first_type(node);
-}
-
 const std::string& cpp_name_resolver::default_template(
     const t_container& ctype) {
   if (ctype.is<t_list>()) {
@@ -477,25 +419,12 @@ const std::string& cpp_name_resolver::default_type(
 
 const std::string* cpp_name_resolver::resolve_cpp_type_name(
     const t_type& node) {
-  const t_typedef* td = node.try_as<t_typedef>();
-  if (const auto* type = find_type(node)) {
-    // For non-adapted user-defined typedefs, use the public namespaced typedef
-    // name instead of the raw @cpp.Type value. The raw value is used in the
-    // typedef's using declaration via get_underlying_type_name. References
-    // to the typedef must use the typedef name to ensure the type resolves
-    // correctly at all usage sites.
-    // For adapted typedefs, fall through — the adapter traversal in
-    // gen_standard_type handles them.
-    if (td == nullptr) {
-      return type;
-    }
-    if (find_first_adapter(node) == nullptr) {
-      return &get_namespaced_name(node);
-    }
+  if (!node.is<t_typedef>()) {
+    return find_type(node);
   }
-  // For non-adapted user-defined typedefs with @cpp.Type{template = "..."},
-  // use the typedef name instead of traversing (which would lose the override).
-  if (td && find_template(node) && find_first_adapter(node) == nullptr) {
+  // References use the typedef name; the @cpp.Type value appears only in the
+  // typedef's using declaration.
+  if (find_type(node) || find_template(node)) {
     return &get_namespaced_name(node);
   }
   return nullptr;
@@ -513,24 +442,10 @@ std::string cpp_name_resolver::gen_standard_type(const t_type& node) {
     return std::string(*resolved);
   }
 
-  if (const auto* ttypedef = node.try_as<t_typedef>()) {
-    // Traverse the typedef when an adapter is present, to get the pre-adapter
-    // standard type. Check the typedef itself for @cpp.Type since without
-    // annotation lowering the annotation stays on the typedef, not the
-    // inner type.
-    if (find_first_adapter(node) != nullptr) {
-      if (const auto* type_name = find_type(node)) {
-        return *type_name;
-      }
-      if (const auto* tmpl = find_template(node)) {
-        if (const auto* container =
-                node.get_true_type()->try_as<t_container>()) {
-          return gen_container_type(
-              *container, &cpp_name_resolver::get_standard_type, tmpl);
-        }
-      }
-      return get_standard_type(*ttypedef->type());
-    }
+  // Traverse an adapted typedef to get the pre-adapter standard type.
+  if (const auto* ttypedef = node.try_as<t_typedef>();
+      ttypedef != nullptr && find_first_adapter(node) != nullptr) {
+    return get_standard_type(*ttypedef->type());
   }
 
   if (is_directly_adapted(node)) {
@@ -540,26 +455,28 @@ std::string cpp_name_resolver::gen_standard_type(const t_type& node) {
   return gen_standard_type(node, &cpp_name_resolver::get_standard_type);
 }
 
-std::string cpp_name_resolver::gen_standard_type(const t_field& node) {
-  const t_type& type = *node.type();
-  if (auto* annotation = node.find_structured_annotation_or_null(kCppTypeUri)) {
-    if (auto name =
+std::optional<std::string> cpp_name_resolver::gen_cpp_type(
+    const t_field& field) {
+  std::optional<std::string> cpp_type;
+  if (const t_const* annotation =
+          field.find_structured_annotation_or_null(kCppTypeUri)) {
+    if (const t_const_value* name =
             annotation->get_value_from_structured_annotation_or_null("name")) {
-      return detail::get_or_gen(field_standard_type_cache_, &node, [&]() {
-        return name->get_string();
-      });
+      cpp_type = name->get_string();
     } else {
-      auto& tmplate =
-          annotation->get_value_from_structured_annotation("template");
-      return detail::get_or_gen(field_standard_type_cache_, &node, [&]() {
-        return gen_container_type(
-            type.get_true_type()->as<t_container>(),
-            &cpp_name_resolver::get_native_type,
-            &tmplate.get_string());
-      });
+      const t_type* true_type = field.type()->get_true_type();
+      assert(true_type != nullptr);
+      cpp_type = gen_container_type(
+          true_type->as<t_container>(),
+          &cpp_name_resolver::get_native_type,
+          &annotation->get_value_from_structured_annotation("template")
+               .get_string());
     }
   }
-  return gen_standard_type(type);
+  if (!cpp2::is_arena_field(field)) {
+    return cpp_type;
+  }
+  return gen_rebound_type(cpp_type.value_or(get_native_type(*field.type())));
 }
 
 std::string cpp_name_resolver::gen_storage_type(
@@ -667,8 +584,6 @@ std::string cpp_name_resolver::gen_type_tag(
   if ((!ignore_cpp_type || type.is<t_typedef>()) &&
       (cpp_name_resolver::find_type(type) ||
        cpp_name_resolver::find_template(type))) {
-    // Use get_standard_type to get the pre-adapter type for adapted typedefs
-    // (e.g., ::folly::IOBuf instead of the adapted typedef name).
     tag = fmt::format(
         "::apache::thrift::type::cpp_type<{}, {}>",
         get_standard_type(type),
@@ -694,13 +609,11 @@ std::string cpp_name_resolver::gen_type_tag(
 
   // TODO(dokwon): Remove allowing both @cpp.Type and @cpp.Adapter on a field
   // once @scope.Transitive bug is fixed.
-  if (field.find_structured_annotation_or_null(kCppTypeUri)) {
-    // Use get_standard_type(field) which resolves the field's @cpp.Type
-    // directly, bypassing the adapter and working for both adapted and
-    // non-adapted fields.
+  if (const auto& cpp_type = get_cpp_type(field)) {
     type_tag = fmt::format(
-        "::apache::thrift::type::cpp_type<{}, {}>",
-        get_standard_type(field),
+        "::apache::thrift::type::{}<{}, {}>",
+        cpp2::is_arena_field(field) ? "cpp_pmr_type" : "cpp_type",
+        *cpp_type,
         gen_type_tag(*field.type(), true));
   } else {
     type_tag = gen_type_tag(*field.type());
