@@ -16,10 +16,13 @@
 
 #include <memory>
 
+#include <folly/ScopeGuard.h>
+#include <folly/logging/xlog.h>
 #include <folly/python/error.h>
 #include <folly/python/import.h>
 #include <thrift/lib/python/server/PythonAsyncProcessor.h>
 #include <thrift/lib/python/server/PythonAsyncProcessorFactory.h>
+#include <thrift/lib/python/server/PythonServiceSchema.h>
 #include <thrift/lib/python/server/python_async_processor_api.h> // @manual
 
 namespace apache::thrift::python {
@@ -32,6 +35,25 @@ void do_python_import() {
   if (!import()) {
     folly::python::handlePythonError(
         "import thrift.python.server_impl.python_async_processor failed");
+  }
+}
+
+// Collects the schema bundles of the service that `handlerClass` implements,
+// from any thread. The class is never released: the shared schema that holds
+// this call lives as long as the process.
+std::vector<std::string> collectSchemaBundles(PyObject* handlerClass) {
+  const PyGILState_STATE gil = PyGILState_Ensure();
+  SCOPE_EXIT {
+    PyGILState_Release(gil);
+  };
+  try {
+    do_python_import();
+    return collectServiceSchemaBundles(handlerClass);
+  } catch (const std::exception& ex) {
+    XLOG(WARNING) << "Cannot collect a thrift-python service's schema; "
+                     "interceptors will not see its arguments: "
+                  << ex.what();
+    return {};
   }
 }
 
@@ -145,6 +167,24 @@ PythonAsyncProcessorFactory::createMethodMetadata() {
   return result;
 }
 
+std::vector<folly::not_null<const syntax_graph::ServiceNode*>>
+PythonAsyncProcessorFactory::getServiceSchemaNodes() {
+  if (const auto* service = serviceSchema_->schema().service()) {
+    return {service};
+  }
+  return {};
+}
+
+bool PythonAsyncProcessorFactory::needsSchemaSource(
+    std::string_view serviceDefinitionKey) {
+  return SharedServiceSchema::needsLoader(serviceDefinitionKey);
+}
+
+std::optional<schema::DefinitionsSchema>
+PythonAsyncProcessorFactory::getServiceSchema() {
+  return serviceSchema_->schema().definitionsSchema();
+}
+
 std::shared_ptr<PythonAsyncProcessorFactory>
 PythonAsyncProcessorFactory::create(
     PyObject* python_server,
@@ -152,7 +192,15 @@ PythonAsyncProcessorFactory::create(
     std::vector<PyObject*> lifecycleFuncs,
     std::shared_ptr<execution::ExecutionSystem> executionSystem,
     folly::Executor::KeepAlive<> controlExecutor,
-    std::string serviceName) {
+    std::string serviceName,
+    PyObject* schemaSource,
+    std::string_view serviceDefinitionKey) {
+  SharedServiceSchema::BundleLoader loadBundles;
+  if (schemaSource != nullptr) {
+    loadBundles = [schemaSource] { return collectSchemaBundles(schemaSource); };
+  }
+  auto serviceSchema = SharedServiceSchema::get(
+      std::move(loadBundles), serviceName, serviceDefinitionKey);
   return std::shared_ptr<PythonAsyncProcessorFactory>(
       new PythonAsyncProcessorFactory(
           python_server,
@@ -160,7 +208,28 @@ PythonAsyncProcessorFactory::create(
           std::move(lifecycleFuncs),
           std::move(executionSystem),
           std::move(controlExecutor),
-          std::move(serviceName)));
+          std::move(serviceName),
+          std::move(serviceSchema)));
 }
+
+PythonAsyncProcessorFactory::PythonAsyncProcessorFactory(
+    PyObject* python_server,
+    FunctionMapType functions,
+    std::vector<PyObject*> lifecycleFuncs,
+    std::shared_ptr<execution::ExecutionSystem> executionSystem,
+    folly::Executor::KeepAlive<> controlExecutor,
+    std::string serviceName,
+    std::shared_ptr<const SharedServiceSchema> serviceSchema)
+    : python_server_(python_server),
+      functions_(std::move(functions)),
+      lifecycleFuncs_(std::move(lifecycleFuncs)),
+      executionSystem_(std::move(executionSystem)),
+      controlExecutor_(std::move(controlExecutor)),
+      intakeExecutorFacade_(
+          execution::IntakeExecutorFacade::create(controlExecutor_)),
+      serviceName_(std::move(serviceName)),
+      serviceSchema_(std::move(serviceSchema)) {}
+
+PythonAsyncProcessorFactory::~PythonAsyncProcessorFactory() = default;
 
 } // namespace apache::thrift::python

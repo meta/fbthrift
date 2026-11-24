@@ -134,6 +134,10 @@ cdef extern from "thrift/lib/python/server/PythonAsyncProcessorFactory.h" namesp
         void setIntakeExecutor(shared_ptr[cFollyExecutor] executor) except +
         void markContextEntered() noexcept
 
+    cdef bint cNeedsSchemaSource "::apache::thrift::python::PythonAsyncProcessorFactory::needsSchemaSource"(
+        string serviceDefinitionKey,
+    )
+
     cdef shared_ptr[cPythonAsyncProcessorFactory] \
         cCreatePythonAsyncProcessorFactory "::apache::thrift::python::PythonAsyncProcessorFactory::create"(
             PyObject* server,
@@ -142,6 +146,8 @@ cdef extern from "thrift/lib/python/server/PythonAsyncProcessorFactory.h" namesp
             shared_ptr[cExecutionSystem] executionSystem,
             cAsyncioExecutor* controlExecutor,
             string serviceName,
+            PyObject* schemaSource,
+            string serviceDefinitionKey,
         ) except +
 
 cdef extern from "thrift/lib/cpp2/async/RpcTypes.h" namespace "::apache::thrift":

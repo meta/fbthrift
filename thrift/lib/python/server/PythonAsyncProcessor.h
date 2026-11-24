@@ -43,6 +43,7 @@ namespace apache::thrift::python {
 
 enum class LifecycleFunc;
 struct HandlerFunc;
+class SharedServiceSchema;
 
 struct RequestDispatchParameters final {
   apache::thrift::ProtocolType protocol;
@@ -177,12 +178,14 @@ class PythonAsyncProcessor : public apache::thrift::GeneratedAsyncProcessorBase,
       const FunctionMapType& functions,
       std::shared_ptr<execution::ExecutionSystem> executionSystem,
       folly::Executor::KeepAlive<> executor,
-      std::string serviceName)
+      std::string serviceName,
+      std::shared_ptr<const SharedServiceSchema> serviceSchema)
       : python_server_(python_server),
         functions_(functions),
         executionSystem_(std::move(executionSystem)),
         executor_(std::move(executor)),
-        serviceName_(std::move(serviceName)) {
+        serviceName_(std::move(serviceName)),
+        serviceSchema_(std::move(serviceSchema)) {
     // Precompute interaction name -> per-session factory so interaction
     // dispatch doesn't linearly scan `functions_` on every request. All entries
     // for a given interaction carry the same factory callable, so first-wins
@@ -321,6 +324,9 @@ class PythonAsyncProcessor : public apache::thrift::GeneratedAsyncProcessorBase,
   std::unordered_map<std::string_view, PyObject*> interactionFactories_;
   folly::Executor::KeepAlive<> executor_;
   std::string serviceName_;
+  // Never null. Built on the first request that has ServiceInterceptors to
+  // run, if one comes; see `SharedServiceSchema`.
+  std::shared_ptr<const SharedServiceSchema> serviceSchema_;
 
   folly::SemiFuture<folly::Unit> handlePythonServerCallback(
       RequestDispatchParameters requestDispatchParameters,

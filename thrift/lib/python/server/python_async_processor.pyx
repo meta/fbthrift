@@ -20,10 +20,11 @@ import sys
 import traceback
 
 from thrift.python.serializer import serialize_iobuf
+from thrift.python.server_impl.schema_bundle import collect_schema_bundles
 from thrift.python.types import ServiceInterface
 
 cimport cython
-from cpython.ref cimport PyObject
+from cpython.ref cimport PyObject, Py_INCREF
 from cython.operator cimport dereference
 from libcpp.map cimport map as cmap
 from libcpp.memory cimport make_unique, make_shared, static_pointer_cast
@@ -446,6 +447,22 @@ cdef int combinedHandler(
         )
     finally:
         PyContextVar_Reset(THRIFT_REQUEST_CONTEXT, reset_token)
+
+cdef api cvector[string] collectServiceSchemaBundles(object handler_class) noexcept with gil:
+    cdef cvector[string] bundles
+    try:
+        for bundle in collect_schema_bundles(handler_class):
+            bundles.push_back(<bytes>bundle)
+    except Exception:
+        # The schema only adds to what the server can do (interceptor
+        # arguments, the schema dump); serve without it.
+        bundles.clear()
+        logger.exception(
+            "Cannot collect the schema of Thrift service handler %s; serving it without one",
+            handler_class.__qualname__,
+        )
+    return bundles
+
 
 cdef api void warnThreadsWithoutFactoryContext() noexcept with gil:
     logger.warning(
@@ -985,6 +1002,21 @@ cdef class PythonAsyncProcessorFactory(AsyncProcessorFactory):
         for lifecycle_func in lifecycleFuncs:
             lifecycle.push_back(<PyObject*>lifecycle_func)
 
+        # Generated interfaces define the key; a handler without one has no
+        # bundles either. The bundles are collected only when the schema is
+        # first built, which a host that dispatches requests itself, through a
+        # factory per request, never does (S731977).
+        cdef PyObject* schemaSource = NULL
+        cdef string serviceDefinitionKey
+        definition_key = getattr(controlHandler, "__get_thrift_definition_key__", None)
+        if definition_key is not None:
+            serviceDefinitionKey = <bytes>definition_key()
+            if cNeedsSchemaSource(serviceDefinitionKey):
+                handler_class = type(controlHandler)
+                # Owned by the shared schema from here on.
+                Py_INCREF(handler_class)
+                schemaSource = <PyObject*>handler_class
+
         cdef cAsyncioExecutor* controlExecutor = get_executor()
         cdef shared_ptr[cExecutionSystem] executionSystem = makeControlOnlyExecutionSystem(
             controlExecutor, <cLaunchControlRequest>launchControlTask, cmove(controlMethods)
@@ -1008,7 +1040,9 @@ cdef class PythonAsyncProcessorFactory(AsyncProcessorFactory):
                 cmove(lifecycle),
                 executionSystem,
                 controlExecutor,
-                <bytes>controlHandler.service_name()))
+                <bytes>controlHandler.service_name(),
+                schemaSource,
+                serviceDefinitionKey))
         return inst
 
     @staticmethod

@@ -21,7 +21,10 @@
 #include <folly/python/import.h>
 #include <thrift/lib/cpp/TApplicationException.h>
 #include <thrift/lib/cpp2/server/Cpp2ConnContext.h>
+#include <thrift/lib/cpp2/server/IOWorkerContext.h>
+#include <thrift/lib/cpp2/server/ServerConfigs.h>
 #include <thrift/lib/python/server/PythonAsyncProcessor.h>
+#include <thrift/lib/python/server/PythonServiceSchema.h>
 #include <thrift/lib/python/server/python_async_processor_api.h> // @manual
 
 namespace apache::thrift::python {
@@ -34,6 +37,15 @@ using InteractionType =
     apache::thrift::AsyncProcessorFactory::MethodMetadata::InteractionType;
 
 namespace {
+
+// The check `HandlerCallbackBase` makes before it runs ServiceInterceptors. A
+// host that dispatches requests itself, without a server, has none.
+bool hasServiceInterceptors(const apache::thrift::Cpp2RequestContext& ctx) {
+  const auto* connCtx = ctx.getConnectionContext();
+  const auto* workerCtx = connCtx ? connCtx->getWorkerContext() : nullptr;
+  const auto* server = workerCtx ? workerCtx->getServerContext() : nullptr;
+  return server && !server->getServiceInterceptors().empty();
+}
 
 void do_python_import() {
   static ::folly::python::import_cache_nocapture import(
@@ -641,6 +653,15 @@ void PythonAsyncProcessor::executeRequest(
             "Thrift Python server only supports Binary and Compact Protocols."),
         kConnectionClosingErrorCode);
     return;
+  }
+
+  // Lets ServiceInterceptors deserialize this method's arguments from the
+  // schema (`RequestInfo::dynamicArguments`). Null when the service's Thrift
+  // library is built without a bundled schema, which interceptors handle. Only
+  // interceptors read it, so without them the schema is not built.
+  if (hasServiceInterceptors(*ctx)) {
+    ctx->setFunctionNode(
+        serviceSchema_->schema().function(ctx->getMethodName()));
   }
 
   const char* serviceName = serviceName_.c_str();

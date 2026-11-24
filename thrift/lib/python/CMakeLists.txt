@@ -585,6 +585,7 @@ add_library(
   server/execution/ExecutionSystem.cpp
   server/execution/WorkScheduler.cpp
   server/PythonAsyncProcessorFactory.cpp
+  server/PythonServiceSchema.cpp
   server/RequestContextExtractor.cpp
   std_libcpp.cpp
   streaming/bidi_stream.cpp

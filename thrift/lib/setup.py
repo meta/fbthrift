@@ -319,6 +319,7 @@ else:
                 "thrift/python/server.pyx",
                 "thrift/python/server/PythonAsyncProcessor.cpp",
                 "thrift/python/server/PythonAsyncProcessorFactory.cpp",
+                "thrift/python/server/PythonServiceSchema.cpp",
                 "thrift/python/server/event_handler.cpp",
                 "thrift/python/server/interceptor/PythonServiceInterceptor.cpp",
                 "thrift/python/std_libcpp.cpp",
