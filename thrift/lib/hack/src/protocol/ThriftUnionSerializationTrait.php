@@ -82,8 +82,13 @@ trait ThriftUnionSerializationTrait implements IThriftStruct {
         // Versioning:
         // Skip type if there is a mismatch between the tspec and the
         // type that we obtain from the buffer.
-        $field_id =
-          ThriftSerializationHelper::findFieldId($this, $field_name, $field_id);
+        $field_id = $field_id is null
+          ? idx($this::FIELDMAP, $field_name)
+          : ThriftSerializationHelper::findFieldId(
+              $this,
+              $field_name,
+              $field_id,
+            );
         if ($field_id === null) {
           $xfer += $protocol->skip($field_type as nonnull);
           $xfer += $protocol->readFieldEnd();

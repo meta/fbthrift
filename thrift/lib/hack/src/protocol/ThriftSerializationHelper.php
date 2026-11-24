@@ -81,7 +81,9 @@ abstract final class ThriftSerializationHelper {
         // Versioning:
         // Skip type if there is a mismatch between the tspec and the
         // type that we obtain from the buffer.
-        $field_id = self::findFieldId($object, $field_name, $field_id);
+        $field_id = $field_id is null
+          ? idx($object::FIELDMAP, $field_name)
+          : self::findFieldId($object, $field_name, $field_id);
         if ($field_id === null) {
           $xfer += $protocol->skip(nullthrows(
             $field_type,
