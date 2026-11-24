@@ -746,7 +746,7 @@ TEST(
   EXPECT_EQ(view.transport(), nullptr);
   EXPECT_EQ(view.peerCertificate(), retained.get());
   EXPECT_EQ(view.peerX509Certificate(), retainedX509.get());
-  EXPECT_EQ(view.peerCommonName(), "retained");
+  EXPECT_TRUE(view.peerCommonName().empty());
   EXPECT_TRUE(view.peerCertReceived());
   EXPECT_EQ(view.securityProtocol(), "TLS1.3");
 

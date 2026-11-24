@@ -104,6 +104,7 @@ class NativeConnectionContextRef {
   peerCertificate() const;
   bool peerCertReceived() const;
   const X509* FOLLY_NULLABLE peerX509Certificate() const;
+  std::string peerCommonName() const;
   void* FOLLY_NULLABLE userData() const;
   void* FOLLY_NULLABLE peerIdentities() const;
   std::string_view securityProtocol() const;
@@ -413,7 +414,7 @@ class ThriftConnectionContextView {
     if constexpr (Backend == ThriftContextBackend::Classic) {
       return classicContext() ? classicContext()->getPeerCommonName() : "";
     } else {
-      return detail::peerCommonName(peerCertificate());
+      return context_.peerCommonName();
     }
   }
   std::string_view securityProtocol() const {

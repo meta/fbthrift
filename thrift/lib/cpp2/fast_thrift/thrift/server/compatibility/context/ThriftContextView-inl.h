@@ -81,6 +81,11 @@ inline const X509* NativeConnectionContextRef::peerX509Certificate() const {
   return view ? view.peerX509Certificate() : nullptr;
 }
 
+inline std::string NativeConnectionContextRef::peerCommonName() const {
+  const ftt::ThriftConnectionView view(context_);
+  return view ? view.peerCommonName() : "";
+}
+
 inline void* NativeConnectionContextRef::userData() const {
   const ftt::ThriftConnectionView view(context_);
   return view ? view.userData() : nullptr;
