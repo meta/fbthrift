@@ -138,8 +138,8 @@ class {{#if def.exception?}}FOLLY_EXPORT {{/if}}{{def.cpp_underlying_name}} {{!
       {{#if (not (string.empty? def.uri))}}
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "{{def.uri}}";
       {{/if (not (string.empty? def.uri))}}
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "{{def.name}}";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {

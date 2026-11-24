@@ -102,8 +102,8 @@ class Fields final  {
   //  used by a static_assert in the corresponding source
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "Fields";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -254,8 +254,8 @@ class FieldsInjectedToEmptyStruct final  {
   //  used by a static_assert in the corresponding source
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "FieldsInjectedToEmptyStruct";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -406,8 +406,8 @@ class FieldsInjectedToStruct final  {
   //  used by a static_assert in the corresponding source
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "FieldsInjectedToStruct";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -618,8 +618,8 @@ class FieldsInjectedWithIncludedStruct final  {
   //  used by a static_assert in the corresponding source
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "FieldsInjectedWithIncludedStruct";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -910,8 +910,8 @@ class FieldsInjectedWithFieldsWithIncludedStruct final  {
   //  used by a static_assert in the corresponding source
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "FieldsInjectedWithFieldsWithIncludedStruct";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {

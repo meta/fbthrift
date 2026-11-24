@@ -619,8 +619,8 @@ class empty_struct final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/empty_struct";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "empty_struct";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -707,8 +707,8 @@ class decorated_struct final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/decorated_struct";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "decorated_struct";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -860,8 +860,8 @@ class ContainerStruct final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/ContainerStruct";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "ContainerStruct";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -1443,8 +1443,8 @@ class CppTypeStruct final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/CppTypeStruct";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "CppTypeStruct";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -1598,8 +1598,8 @@ class VirtualStruct  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/VirtualStruct";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "VirtualStruct";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -1740,8 +1740,8 @@ class MyStructWithForwardRefEnum final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/MyStructWithForwardRefEnum";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "MyStructWithForwardRefEnum";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -1928,8 +1928,8 @@ class TrivialNumeric final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/TrivialNumeric";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "TrivialNumeric";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -2116,8 +2116,8 @@ class TrivialNestedWithDefault final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/TrivialNestedWithDefault";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "TrivialNestedWithDefault";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -2312,8 +2312,8 @@ class ComplexString final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/ComplexString";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "ComplexString";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -2521,8 +2521,8 @@ class ComplexNestedWithDefault final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/ComplexNestedWithDefault";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "ComplexNestedWithDefault";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -2730,8 +2730,8 @@ class MinPadding final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/MinPadding";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "MinPadding";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -3063,8 +3063,8 @@ class MinPaddingWithCustomType final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/MinPaddingWithCustomType";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "MinPaddingWithCustomType";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -3363,8 +3363,8 @@ class MyDataItem final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/MyDataItem";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "MyDataItem";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -3448,8 +3448,8 @@ class MyStruct final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/MyStruct";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "MyStruct";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -3751,8 +3751,8 @@ class Renamed final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/Renaming";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "Renaming";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -3896,8 +3896,8 @@ class AnnotatedTypes final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/AnnotatedTypes";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "AnnotatedTypes";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -4105,8 +4105,8 @@ class ForwardUsageStruct final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/ForwardUsageStruct";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "ForwardUsageStruct";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -4239,8 +4239,8 @@ class ForwardUsageRoot final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/ForwardUsageRoot";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "ForwardUsageRoot";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -4433,8 +4433,8 @@ class ForwardUsageByRef final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/ForwardUsageByRef";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "ForwardUsageByRef";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -4567,8 +4567,8 @@ class IncompleteMap final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/IncompleteMap";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "IncompleteMap";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -4718,8 +4718,8 @@ class IncompleteMapDep final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/IncompleteMapDep";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "IncompleteMapDep";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -4806,8 +4806,8 @@ class CompleteMapDep final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/CompleteMapDep";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "CompleteMapDep";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -4894,8 +4894,8 @@ class CompleteMap final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/CompleteMap";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "CompleteMap";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -5051,8 +5051,8 @@ class IncompleteList final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/IncompleteList";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "IncompleteList";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -5208,8 +5208,8 @@ class IncompleteListDep final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/IncompleteListDep";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "IncompleteListDep";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -5296,8 +5296,8 @@ class CompleteListDep final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/CompleteListDep";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "CompleteListDep";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -5384,8 +5384,8 @@ class CompleteList final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/CompleteList";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "CompleteList";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -5541,8 +5541,8 @@ class AdaptedList final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/AdaptedList";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "AdaptedList";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -5694,8 +5694,8 @@ class AdaptedListDep final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/AdaptedListDep";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "AdaptedListDep";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -5843,8 +5843,8 @@ class DependentAdaptedListDep final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/DependentAdaptedListDep";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "DependentAdaptedListDep";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -5977,8 +5977,8 @@ class DependentAdaptedList final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/DependentAdaptedList";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "DependentAdaptedList";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -6128,8 +6128,8 @@ class AllocatorAware final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/AllocatorAware";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "AllocatorAware";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -6588,8 +6588,8 @@ class AllocatorAware2 final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/AllocatorAware2";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "AllocatorAware2";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -6774,8 +6774,8 @@ class TypedefStruct final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/TypedefStruct";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "TypedefStruct";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -7017,8 +7017,8 @@ class StructWithDoubleUnderscores final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "apache.org/thrift/fixtures/types/StructWithDoubleUnderscores";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "StructWithDoubleUnderscores";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {

@@ -600,8 +600,8 @@ class MyDataItem final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/python_capi/MyDataItem";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "MyDataItem";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -753,8 +753,8 @@ class MyStruct final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/python_capi/MyStruct";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "MyStruct";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -1281,8 +1281,8 @@ class TransitiveDoubler final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/python_capi/TransitiveDoubler";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "TransitiveDoubler";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -1371,8 +1371,8 @@ class DoubledPair final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/python_capi/DoubledPair";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "DoubledPair";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -1575,8 +1575,8 @@ class StringPair final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/python_capi/StringPair";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "StringPair";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -1775,8 +1775,8 @@ class VapidStruct final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/python_capi/EmptyStruct";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "EmptyStruct";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -1863,8 +1863,8 @@ class PrimitiveStruct final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/python_capi/PrimitiveStruct";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "PrimitiveStruct";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -2820,8 +2820,8 @@ class AdaptedFields final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/python_capi/AdaptedFields";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "AdaptedFields";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -3117,8 +3117,8 @@ class ListStruct final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/python_capi/ListStruct";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "ListStruct";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -3722,8 +3722,8 @@ class SetStruct final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/python_capi/SetStruct";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "SetStruct";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -4211,8 +4211,8 @@ class MapStruct final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/python_capi/MapStruct";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "MapStruct";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -4868,8 +4868,8 @@ class ComposeStruct final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/python_capi/ComposeStruct";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "ComposeStruct";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -5483,8 +5483,8 @@ class Shallot final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/python_capi/Onion";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "Onion";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
@@ -6105,8 +6105,8 @@ class SomeBinary final  {
   static constexpr bool __fbthrift_cpp2_gen_json = false;
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "test.dev/fixtures/python_capi/SomeBinary";
-  static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
-  static std::string_view __fbthrift_get_class_name();
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
+  [[FOLLY_ATTR_GNU_PURE]] static std::string_view __fbthrift_get_class_name();
   static constexpr std::string_view __fbthrift_constexpr_class_name = "SomeBinary";
   // Indexed by ordinal.
   static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
