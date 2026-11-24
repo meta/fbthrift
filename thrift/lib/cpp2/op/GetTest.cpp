@@ -53,6 +53,13 @@ FieldId findIdByName(const std::string& name) {
   });
 }
 
+static_assert(
+    std::string_view(op::get_class_name_v<DecodedUri>) == "DecodedUri");
+static_assert(
+    std::string_view(op::get_name_v<DecodedUri, ident::scheme>) == "scheme");
+static_assert(op::get_class_name<DecodedUri>() == "DecodedUri");
+static_assert(op::get_field_name<DecodedUri, type::field_id<1>>() == "scheme");
+
 TEST(GetTest, FindByOrdinal) {
   EXPECT_EQ(findIdByName<DecodedUri>("unknown"), FieldId{});
   EXPECT_EQ(findIdByName<DecodedUri>("scheme"), FieldId{1});

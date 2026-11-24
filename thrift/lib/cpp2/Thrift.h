@@ -139,25 +139,25 @@ struct struct_private_access {
   struct detect_uri<T, std::void_t<decltype(T::__fbthrift_thrift_uri)>>
       : std::true_type {};
 
-  template <typename T, typename Ord>
-  static const folly::StringPiece __fbthrift_get_field_name() {
-    static_assert(
-        1 <= size_t(Ord::value) && size_t(Ord::value) <= num_fields<T>,
-        "Field not found");
-    return T::__fbthrift_get_field_name(Ord::value);
-  }
-
-  template <typename T>
-  static const folly::StringPiece __fbthrift_get_class_name() {
-    return T::__fbthrift_get_class_name();
-  }
-
   template <typename T>
   static constexpr std::string_view class_name_v =
       T::__fbthrift_constexpr_class_name;
   template <typename T, FieldOrdinal Ord>
   static constexpr std::string_view field_name_v =
       T::__fbthrift_constexpr_field_names[folly::to_underlying(Ord)];
+
+  template <typename T, typename Ord>
+  static constexpr folly::StringPiece __fbthrift_get_field_name() {
+    static_assert(
+        1 <= size_t(Ord::value) && size_t(Ord::value) <= num_fields<T>,
+        "Field not found");
+    return field_name_v<T, Ord::value>;
+  }
+
+  template <typename T>
+  static constexpr folly::StringPiece __fbthrift_get_class_name() {
+    return class_name_v<T>;
+  }
 
   // The storage and isset bit of a struct field, without its field_ref.
   template <int16_t Id, typename T>
