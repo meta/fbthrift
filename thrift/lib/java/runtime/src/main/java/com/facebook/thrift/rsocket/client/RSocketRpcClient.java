@@ -35,6 +35,7 @@ import com.facebook.thrift.payload.Writer;
 import com.facebook.thrift.protocol.ByteBufTProtocol;
 import com.facebook.thrift.protocol.TProtocolType;
 import com.facebook.thrift.util.RpcClientUtils;
+import com.facebook.thrift.util.resources.RpcResources;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
@@ -62,6 +63,8 @@ import org.slf4j.LoggerFactory;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 public final class RSocketRpcClient implements RpcClient {
   private static final Logger LOG = LoggerFactory.getLogger(RSocketRpcClient.class);
@@ -69,10 +72,20 @@ public final class RSocketRpcClient implements RpcClient {
 
   private final RSocket rsocket;
   private final ByteBufAllocator alloc;
+  private final Scheduler scheduler;
 
   RSocketRpcClient(final RSocket rsocket) {
+    this(
+        rsocket,
+        RpcResources.isForceClientExecutionOffEventLoop()
+            ? RpcResources.getClientOffLoopScheduler()
+            : Schedulers.immediate());
+  }
+
+  RSocketRpcClient(final RSocket rsocket, final Scheduler scheduler) {
     this.rsocket = rsocket;
     this.alloc = ByteBufAllocator.DEFAULT;
+    this.scheduler = scheduler;
   }
 
   @Override
@@ -148,28 +161,12 @@ public final class RSocketRpcClient implements RpcClient {
     final ProtocolId protocol = payload.getRequestRpcMetadata().getProtocol();
     final TProtocolType protocolType = TProtocolType.fromProtocolId(protocol);
 
-    return Mono.defer(
-        () -> {
-          Payload rsocketPayload =
-              clientRequestPayloadToRSocketPayload(payload, protocolType, options, true);
-          try {
-            return rsocket
-                .requestResponse(rsocketPayload)
-                .map(
-                    response ->
-                        rsocketPayloadToClientResponsePayload(payload, response, protocolType))
-                .onErrorResume(
-                    t -> {
-                      if (isRocketError(t)) {
-                        return Mono.just(getErrorFrame(t));
-                      }
-                      return Mono.error(t);
-                    });
-          } catch (Throwable t) {
-            ReferenceCountUtil.safeRelease(rsocketPayload);
-            return Mono.error(t);
-          }
-        });
+    return ResponseHandoff.requestResponse(
+        rsocket,
+        () -> clientRequestPayloadToRSocketPayload(payload, protocolType, options, true),
+        scheduler,
+        response -> rsocketPayloadToClientResponsePayload(payload, response, protocolType),
+        error -> isRocketError(error) ? getErrorFrame(error) : null);
   }
 
   /**
@@ -183,7 +180,7 @@ public final class RSocketRpcClient implements RpcClient {
    * @param <T>
    * @return ClientResponsePayload
    */
-  private <T> ClientResponsePayload<T> getErrorFrame(Throwable t) {
+  private static <T> ClientResponsePayload<T> getErrorFrame(Throwable t) {
     ResponseRpcError err = decodeRocketError(t);
     if (err == null) {
       // Unreadable frame: report the parse failure rather than letting it replace the server's

@@ -33,8 +33,7 @@ public class MonoPublishingTransformer<T> implements Function<Mono<T>, Mono<T>> 
 
   @Override
   public Mono<T> apply(Mono<T> mono) {
-    if (RpcResources.isForceExecutionOffEventLoop()
-        && RpcResources.isForceClientExecutionOffEventLoop()) {
+    if (RpcResources.isForceClientExecutionOffEventLoop()) {
       return mono.publishOn(RpcResources.getClientOffLoopScheduler());
     } else {
       return mono;
