@@ -240,3 +240,17 @@ void moveAssignField(T& dst, T&& src, bool canSkipDestroyingOldData) {
 }
 
 } // namespace apache::thrift::pmr::detail
+
+namespace apache::thrift::pmr {
+
+/**
+ * True if every field of the Thrift struct or union `T` allocates memory only
+ * from `T`'s memory resource, recursively. Then, on an arena (see
+ * isArenaResource), the destructor of `T` skips all of its fields.
+ */
+template <class T>
+  requires is_thrift_class_v<T>
+inline constexpr bool allocate_all_memory_via_memory_resource_v =
+    detail::structuredOnResource<T>();
+
+} // namespace apache::thrift::pmr

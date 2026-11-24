@@ -237,25 +237,28 @@ static_assert(std::uses_allocator_v<
               ArenaUnion,
               std::pmr::polymorphic_allocator<ArenaUnion>>);
 
-static_assert(pmr::detail::structuredOnResource<Containers>());
-static_assert(pmr::detail::structuredOnResource<HoldsUnions>());
-static_assert(pmr::detail::structuredOnResource<Members>());
-static_assert(pmr::detail::structuredOnResource<ScalarMembers>());
-static_assert(pmr::detail::structuredOnResource<Recursive>());
-static_assert(pmr::detail::structuredOnResource<UsesAllocator>());
-static_assert(pmr::detail::structuredOnResource<WholeUnion>());
-static_assert(!pmr::detail::structuredOnResource<Strings>());
-static_assert(!pmr::detail::structuredOnResource<StructElements>());
-static_assert(!pmr::detail::structuredOnResource<PmrWithoutArena>());
+static_assert(pmr::allocate_all_memory_via_memory_resource_v<Scalars>);
+static_assert(!pmr::allocate_all_memory_via_memory_resource_v<PlainInner>);
+static_assert(pmr::allocate_all_memory_via_memory_resource_v<Containers>);
+static_assert(pmr::allocate_all_memory_via_memory_resource_v<HoldsUnions>);
+static_assert(pmr::allocate_all_memory_via_memory_resource_v<Members>);
+static_assert(pmr::allocate_all_memory_via_memory_resource_v<ScalarMembers>);
+static_assert(pmr::allocate_all_memory_via_memory_resource_v<Recursive>);
+static_assert(pmr::allocate_all_memory_via_memory_resource_v<UsesAllocator>);
+static_assert(pmr::allocate_all_memory_via_memory_resource_v<WholeUnion>);
+static_assert(!pmr::allocate_all_memory_via_memory_resource_v<Strings>);
+static_assert(!pmr::allocate_all_memory_via_memory_resource_v<StructElements>);
+static_assert(!pmr::allocate_all_memory_via_memory_resource_v<PmrWithoutArena>);
+static_assert(!pmr::allocate_all_memory_via_memory_resource_v<
+              UsesAllocatorWithPlainStrings>);
+static_assert(!pmr::allocate_all_memory_via_memory_resource_v<CustomTypes>);
+static_assert(!pmr::allocate_all_memory_via_memory_resource_v<MixedUnion>);
+static_assert(!pmr::allocate_all_memory_via_memory_resource_v<HoldsLazy>);
+static_assert(!pmr::allocate_all_memory_via_memory_resource_v<WithBox>);
+static_assert(!pmr::allocate_all_memory_via_memory_resource_v<UnionWithRef>);
+static_assert(!pmr::allocate_all_memory_via_memory_resource_v<UnionWithBox>);
 static_assert(
-    !pmr::detail::structuredOnResource<UsesAllocatorWithPlainStrings>());
-static_assert(!pmr::detail::structuredOnResource<CustomTypes>());
-static_assert(!pmr::detail::structuredOnResource<MixedUnion>());
-static_assert(!pmr::detail::structuredOnResource<HoldsLazy>());
-static_assert(!pmr::detail::structuredOnResource<WithBox>());
-static_assert(!pmr::detail::structuredOnResource<UnionWithRef>());
-static_assert(!pmr::detail::structuredOnResource<UnionWithBox>());
-static_assert(!pmr::detail::structuredOnResource<HoldsPointerUnions>());
+    !pmr::allocate_all_memory_via_memory_resource_v<HoldsPointerUnions>);
 // A string or container of another type isn't trusted, even if it uses the
 // memory resource.
 struct UserString : std::pmr::string {};
