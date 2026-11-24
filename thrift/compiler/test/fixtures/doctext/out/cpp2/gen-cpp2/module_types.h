@@ -381,6 +381,7 @@ class U final  {
 
   /** i32 field i */
   /** Glean { "field": "i" } */
+  [[deprecated("Use `FOO.i().value()` instead of `FOO.get_i()`")]]
   ::std::int32_t const& get_i() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::i) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -390,6 +391,7 @@ class U final  {
 
   /** string s */
   /** Glean { "field": "s" } */
+  [[deprecated("Use `FOO.s().value()` instead of `FOO.get_s()`")]]
   ::std::string const& get_s() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::s) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();

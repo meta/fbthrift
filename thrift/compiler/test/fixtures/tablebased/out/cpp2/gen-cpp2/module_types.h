@@ -1255,6 +1255,7 @@ class ExampleUnion final  {
   }
 
   /** Glean { "field": "fieldA" } */
+  [[deprecated("Use `FOO.fieldA().value()` instead of `FOO.get_fieldA()`")]]
   ::test::fixtures::tablebased::ContainerStruct const& get_fieldA() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::fieldA) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1263,6 +1264,7 @@ class ExampleUnion final  {
   }
 
   /** Glean { "field": "fieldB" } */
+  [[deprecated("Use `FOO.fieldB().value()` instead of `FOO.get_fieldB()`")]]
   ::test::fixtures::tablebased::TrivialTypesStruct const& get_fieldB() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::fieldB) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();

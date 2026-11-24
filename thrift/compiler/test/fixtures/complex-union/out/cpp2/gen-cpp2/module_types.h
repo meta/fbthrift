@@ -403,6 +403,7 @@ class ComplexUnion final  {
   }
 
   /** Glean { "field": "intValue" } */
+  [[deprecated("Use `FOO.intValue().value()` instead of `FOO.get_intValue()`")]]
   ::std::int64_t const& get_intValue() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::intValue) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -411,6 +412,7 @@ class ComplexUnion final  {
   }
 
   /** Glean { "field": "stringValue" } */
+  [[deprecated("Use `FOO.stringValue().value()` instead of `FOO.get_stringValue()`")]]
   ::std::string const& get_stringValue() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::stringValue) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -419,6 +421,7 @@ class ComplexUnion final  {
   }
 
   /** Glean { "field": "intListValue" } */
+  [[deprecated("Use `FOO.intListValue().value()` instead of `FOO.get_intListValue()`")]]
   ::std::vector<::std::int64_t> const& get_intListValue() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::intListValue) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -427,6 +430,7 @@ class ComplexUnion final  {
   }
 
   /** Glean { "field": "stringListValue" } */
+  [[deprecated("Use `FOO.stringListValue().value()` instead of `FOO.get_stringListValue()`")]]
   ::std::vector<::std::string> const& get_stringListValue() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::stringListValue) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -435,6 +439,7 @@ class ComplexUnion final  {
   }
 
   /** Glean { "field": "typedefValue" } */
+  [[deprecated("Use `FOO.typedefValue().value()` instead of `FOO.get_typedefValue()`")]]
   ::cpp2::containerTypedef const& get_typedefValue() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::typedefValue) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -443,6 +448,7 @@ class ComplexUnion final  {
   }
 
   /** Glean { "field": "stringRef" } */
+  [[deprecated("Use `FOO.stringRef().value()` instead of `FOO.get_stringRef()`")]]
   ::std::unique_ptr<::std::string> const& get_stringRef() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::stringRef) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -875,6 +881,7 @@ class ListUnion final  {
   }
 
   /** Glean { "field": "intListValue" } */
+  [[deprecated("Use `FOO.intListValue().value()` instead of `FOO.get_intListValue()`")]]
   ::std::vector<::std::int64_t> const& get_intListValue() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::intListValue) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -883,6 +890,7 @@ class ListUnion final  {
   }
 
   /** Glean { "field": "stringListValue" } */
+  [[deprecated("Use `FOO.stringListValue().value()` instead of `FOO.get_stringListValue()`")]]
   ::std::vector<::std::string> const& get_stringListValue() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::stringListValue) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1145,6 +1153,7 @@ class DataUnion final  {
 
 
   /** Glean { "field": "binaryData" } */
+  [[deprecated("Use `FOO.binaryData().value()` instead of `FOO.get_binaryData()`")]]
   ::std::string const& get_binaryData() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::binaryData) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1153,6 +1162,7 @@ class DataUnion final  {
   }
 
   /** Glean { "field": "stringData" } */
+  [[deprecated("Use `FOO.stringData().value()` instead of `FOO.get_stringData()`")]]
   ::std::string const& get_stringData() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::stringData) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1669,6 +1679,7 @@ class ValUnion final  {
   }
 
   /** Glean { "field": "v1" } */
+  [[deprecated("Use `FOO.v1().value()` instead of `FOO.get_v1()`")]]
   ::cpp2::Val const& get_v1() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::v1) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1677,6 +1688,7 @@ class ValUnion final  {
   }
 
   /** Glean { "field": "v2" } */
+  [[deprecated("Use `FOO.v2().value()` instead of `FOO.get_v2()`")]]
   ::cpp2::Val const& get_v2() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::v2) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1939,6 +1951,7 @@ class VirtualComplexUnion  {
 
 
   /** Glean { "field": "thingOne" } */
+  [[deprecated("Use `FOO.thingOne().value()` instead of `FOO.get_thingOne()`")]]
   ::std::string const& get_thingOne() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::thingOne) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1947,6 +1960,7 @@ class VirtualComplexUnion  {
   }
 
   /** Glean { "field": "thingTwo" } */
+  [[deprecated("Use `FOO.thingTwo().value()` instead of `FOO.get_thingTwo()`")]]
   ::std::string const& get_thingTwo() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::thingTwo) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -2295,6 +2309,7 @@ class NonCopyableUnion final  {
   }
 
   /** Glean { "field": "s" } */
+  [[deprecated("Use `FOO.s().value()` instead of `FOO.get_s()`")]]
   ::cpp2::NonCopyableStruct const& get_s() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::s) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();

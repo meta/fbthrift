@@ -1314,6 +1314,7 @@ class AdaptedUnion final  {
 
 
   /** Glean { "field": "best" } */
+  [[deprecated("Use `FOO.best().value()` instead of `FOO.get_best()`")]]
   ::std::int16_t const& get_best() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::best) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -3431,6 +3432,7 @@ class BinaryUnion final  {
 
   /** 1: IOBuf iobuf_val */
   /** Glean { "field": "iobuf_val" } */
+  [[deprecated("Use `FOO.iobuf_val().value()` instead of `FOO.get_iobuf_val()`")]]
   ::py3::simple::IOBuf const& get_iobuf_val() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::iobuf_val) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -5562,6 +5564,7 @@ class StringAdaptedUnion final  {
 
   /** 1: StringAdaptedString string_field */
   /** Glean { "field": "string_field" } */
+  [[deprecated("Use `FOO.string_field().value()` instead of `FOO.get_string_field()`")]]
   ::py3::simple::StringAdaptedString const& get_string_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::string_field) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -5571,6 +5574,7 @@ class StringAdaptedUnion final  {
 
   /** 2: StringAdaptedBinary binary_field */
   /** Glean { "field": "binary_field" } */
+  [[deprecated("Use `FOO.binary_field().value()` instead of `FOO.get_binary_field()`")]]
   ::py3::simple::StringAdaptedBinary const& get_binary_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::binary_field) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();

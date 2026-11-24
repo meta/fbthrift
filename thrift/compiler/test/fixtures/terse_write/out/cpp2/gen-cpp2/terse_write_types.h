@@ -905,6 +905,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "bool_field" } */
+  [[deprecated("Use `FOO.bool_field().value()` instead of `FOO.get_bool_field()`")]]
   bool const& get_bool_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::bool_field) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -913,6 +914,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "byte_field" } */
+  [[deprecated("Use `FOO.byte_field().value()` instead of `FOO.get_byte_field()`")]]
   ::std::int8_t const& get_byte_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::byte_field) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -921,6 +923,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "short_field" } */
+  [[deprecated("Use `FOO.short_field().value()` instead of `FOO.get_short_field()`")]]
   ::std::int16_t const& get_short_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::short_field) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -929,6 +932,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "int_field" } */
+  [[deprecated("Use `FOO.int_field().value()` instead of `FOO.get_int_field()`")]]
   ::std::int32_t const& get_int_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::int_field) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -937,6 +941,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "long_field" } */
+  [[deprecated("Use `FOO.long_field().value()` instead of `FOO.get_long_field()`")]]
   ::std::int64_t const& get_long_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::long_field) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -945,6 +950,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "float_field" } */
+  [[deprecated("Use `FOO.float_field().value()` instead of `FOO.get_float_field()`")]]
   float const& get_float_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::float_field) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -953,6 +959,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "double_field" } */
+  [[deprecated("Use `FOO.double_field().value()` instead of `FOO.get_double_field()`")]]
   double const& get_double_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::double_field) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -961,6 +968,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "string_field" } */
+  [[deprecated("Use `FOO.string_field().value()` instead of `FOO.get_string_field()`")]]
   ::std::string const& get_string_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::string_field) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -969,6 +977,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "binary_field" } */
+  [[deprecated("Use `FOO.binary_field().value()` instead of `FOO.get_binary_field()`")]]
   ::std::string const& get_binary_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::binary_field) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -977,6 +986,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "enum_field" } */
+  [[deprecated("Use `FOO.enum_field().value()` instead of `FOO.get_enum_field()`")]]
   ::facebook::thrift::test::fixtures::terse_write::MyEnum const& get_enum_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::enum_field) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -985,6 +995,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "list_field" } */
+  [[deprecated("Use `FOO.list_field().value()` instead of `FOO.get_list_field()`")]]
   ::std::vector<::std::int16_t> const& get_list_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::list_field) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -993,6 +1004,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "set_field" } */
+  [[deprecated("Use `FOO.set_field().value()` instead of `FOO.get_set_field()`")]]
   ::std::set<::std::int16_t> const& get_set_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::set_field) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1001,6 +1013,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "map_field" } */
+  [[deprecated("Use `FOO.map_field().value()` instead of `FOO.get_map_field()`")]]
   ::std::map<::std::int16_t, ::std::int16_t> const& get_map_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::map_field) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1009,6 +1022,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "struct_field" } */
+  [[deprecated("Use `FOO.struct_field().value()` instead of `FOO.get_struct_field()`")]]
   ::facebook::thrift::test::fixtures::terse_write::MyStruct const& get_struct_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::struct_field) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();

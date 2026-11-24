@@ -1338,6 +1338,7 @@ class WholeUnion final  {
 
 
   /** Glean { "field": "names" } */
+  [[deprecated("Use `FOO.names().value()` instead of `FOO.get_names()`")]]
   ::apache::thrift::pmr::Rebind<::std::vector<::std::string>>::type const& get_names() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::names) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1346,6 +1347,7 @@ class WholeUnion final  {
   }
 
   /** Glean { "field": "id" } */
+  [[deprecated("Use `FOO.id().value()` instead of `FOO.get_id()`")]]
   ::std::int64_t const& get_id() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::id) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();

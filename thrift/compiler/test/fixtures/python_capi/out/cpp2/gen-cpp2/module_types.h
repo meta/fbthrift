@@ -5696,6 +5696,7 @@ class Shallot final  {
 
 
   /** Glean { "field": "myEnum" } */
+  [[deprecated("Use `FOO.myEnum().value()` instead of `FOO.get_myEnum()`")]]
   ::test::fixtures::python_capi::MyEnum const& get_myEnum() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::myEnum) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -5704,6 +5705,7 @@ class Shallot final  {
   }
 
   /** Glean { "field": "myStruct" } */
+  [[deprecated("Use `FOO.myStruct().value()` instead of `FOO.get_myStruct()`")]]
   ::test::fixtures::python_capi::PrimitiveStruct const& get_myStruct() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::myStruct) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -5712,6 +5714,7 @@ class Shallot final  {
   }
 
   /** Glean { "field": "intSet" } */
+  [[deprecated("Use `FOO.intSet().value()` instead of `FOO.get_intSet()`")]]
   ::std::set<::std::int64_t> const& get_intSet() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::intSet) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -5720,6 +5723,7 @@ class Shallot final  {
   }
 
   /** Glean { "field": "myString" } */
+  [[deprecated("Use `FOO.myString().value()` instead of `FOO.get_myString()`")]]
   ::std::string const& get_myString() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::myString) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -5728,6 +5732,7 @@ class Shallot final  {
   }
 
   /** Glean { "field": "doubleList" } */
+  [[deprecated("Use `FOO.doubleList().value()` instead of `FOO.get_doubleList()`")]]
   ::std::shared_ptr<const ::std::vector<double>> const& get_doubleList() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::doubleList) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -5736,6 +5741,7 @@ class Shallot final  {
   }
 
   /** Glean { "field": "strMap" } */
+  [[deprecated("Use `FOO.strMap().value()` instead of `FOO.get_strMap()`")]]
   ::std::unique_ptr<::std::map<::std::string, ::std::string>> const& get_strMap() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::strMap) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -5745,6 +5751,7 @@ class Shallot final  {
 
   /** 10: id.ProtocolId adapted_int */
   /** Glean { "field": "adapted_int" } */
+  [[deprecated("Use `FOO.adapted_int().value()` instead of `FOO.get_adapted_int()`")]]
   ::apache::thrift::type::ProtocolId const& get_adapted_int() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::adapted_int) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -6282,6 +6289,7 @@ class SomeBinary final  {
 
   /** 1: IOBuf iobuf */
   /** Glean { "field": "iobuf" } */
+  [[deprecated("Use `FOO.iobuf().value()` instead of `FOO.get_iobuf()`")]]
   ::test::fixtures::python_capi::IOBuf const& get_iobuf() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::iobuf) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -6291,6 +6299,7 @@ class SomeBinary final  {
 
   /** 2: IOBufPtr iobuf_ptr */
   /** Glean { "field": "iobuf_ptr" } */
+  [[deprecated("Use `FOO.iobuf_ptr().value()` instead of `FOO.get_iobuf_ptr()`")]]
   ::test::fixtures::python_capi::IOBufPtr const& get_iobuf_ptr() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::iobuf_ptr) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -6300,6 +6309,7 @@ class SomeBinary final  {
 
   /** 3: IOBuf iobufRef */
   /** Glean { "field": "iobufRef" } */
+  [[deprecated("Use `FOO.iobufRef().value()` instead of `FOO.get_iobufRef()`")]]
   ::std::unique_ptr<::test::fixtures::python_capi::IOBuf> const& get_iobufRef() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::iobufRef) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();

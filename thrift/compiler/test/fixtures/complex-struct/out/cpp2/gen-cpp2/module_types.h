@@ -4556,6 +4556,7 @@ class MyUnion final  {
 
 
   /** Glean { "field": "myEnum" } */
+  [[deprecated("Use `FOO.myEnum().value()` instead of `FOO.get_myEnum()`")]]
   ::cpp2::MyEnum const& get_myEnum() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::myEnum) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -4564,6 +4565,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "myStruct" } */
+  [[deprecated("Use `FOO.myStruct().value()` instead of `FOO.get_myStruct()`")]]
   ::cpp2::MyStruct const& get_myStruct() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::myStruct) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -4572,6 +4574,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "myDataItem" } */
+  [[deprecated("Use `FOO.myDataItem().value()` instead of `FOO.get_myDataItem()`")]]
   ::cpp2::MyDataItem const& get_myDataItem() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::myDataItem) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -4580,6 +4583,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "complexNestedStruct" } */
+  [[deprecated("Use `FOO.complexNestedStruct().value()` instead of `FOO.get_complexNestedStruct()`")]]
   ::cpp2::ComplexNestedStruct const& get_complexNestedStruct() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::complexNestedStruct) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -4588,6 +4592,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "longValue" } */
+  [[deprecated("Use `FOO.longValue().value()` instead of `FOO.get_longValue()`")]]
   ::std::int64_t const& get_longValue() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::longValue) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -4596,6 +4601,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "intValue" } */
+  [[deprecated("Use `FOO.intValue().value()` instead of `FOO.get_intValue()`")]]
   ::std::int32_t const& get_intValue() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::intValue) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -6926,6 +6932,7 @@ class MyUnionFloatFieldThrowExp final  {
   }
 
   /** Glean { "field": "myEnum" } */
+  [[deprecated("Use `FOO.myEnum().value()` instead of `FOO.get_myEnum()`")]]
   ::cpp2::MyEnum const& get_myEnum() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::myEnum) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -6934,6 +6941,7 @@ class MyUnionFloatFieldThrowExp final  {
   }
 
   /** Glean { "field": "setFloat" } */
+  [[deprecated("Use `FOO.setFloat().value()` instead of `FOO.get_setFloat()`")]]
   ::std::vector<::std::vector<float>> const& get_setFloat() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::setFloat) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -6942,6 +6950,7 @@ class MyUnionFloatFieldThrowExp final  {
   }
 
   /** Glean { "field": "myDataItem" } */
+  [[deprecated("Use `FOO.myDataItem().value()` instead of `FOO.get_myDataItem()`")]]
   ::cpp2::MyDataItem const& get_myDataItem() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::myDataItem) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -6950,6 +6959,7 @@ class MyUnionFloatFieldThrowExp final  {
   }
 
   /** Glean { "field": "complexNestedStruct" } */
+  [[deprecated("Use `FOO.complexNestedStruct().value()` instead of `FOO.get_complexNestedStruct()`")]]
   ::cpp2::ComplexNestedStruct const& get_complexNestedStruct() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::complexNestedStruct) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();

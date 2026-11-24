@@ -591,6 +591,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "anInteger" } */
+  [[deprecated("Use `FOO.anInteger().value()` instead of `FOO.get_anInteger()`")]]
   ::std::unique_ptr<::std::int32_t> const& get_anInteger() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::anInteger) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -599,6 +600,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "aString" } */
+  [[deprecated("Use `FOO.aString().value()` instead of `FOO.get_aString()`")]]
   ::std::unique_ptr<::std::string> const& get_aString() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::aString) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -814,6 +816,7 @@ class NonTriviallyDestructibleUnion final  {
   }
 
   /** Glean { "field": "int_field" } */
+  [[deprecated("Use `FOO.int_field().value()` instead of `FOO.get_int_field()`")]]
   ::std::shared_ptr<::std::int32_t> const& get_int_field() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::int_field) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();

@@ -1832,6 +1832,7 @@ class MyUnion final  {
 
 
   /** Glean { "field": "first" } */
+  [[deprecated("Use `FOO.first().value()` instead of `FOO.get_first()`")]]
   ::test::fixtures::basic_structured_annotations::annotated_inline_string const& get_first() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::first) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1840,6 +1841,7 @@ class MyUnion final  {
   }
 
   /** Glean { "field": "second" } */
+  [[deprecated("Use `FOO.second().value()` instead of `FOO.get_second()`")]]
   ::test::fixtures::basic_structured_annotations::annotated_inline_i64 const& get_second() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::second) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();

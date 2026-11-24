@@ -181,6 +181,7 @@ class AllocUnion final  {
 
   /** 1: PmrString aa_string */
   /** Glean { "field": "aa_string" } */
+  [[deprecated("Use `FOO.aa_string().value()` instead of `FOO.get_aa_string()`")]]
   ::test::fixtures::cpp_allocator_union::PmrString const& get_aa_string() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::aa_string) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -190,6 +191,7 @@ class AllocUnion final  {
 
   /** 2: PmrStringList aa_list */
   /** Glean { "field": "aa_list" } */
+  [[deprecated("Use `FOO.aa_list().value()` instead of `FOO.get_aa_list()`")]]
   ::test::fixtures::cpp_allocator_union::PmrStringList const& get_aa_list() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::aa_list) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -198,6 +200,7 @@ class AllocUnion final  {
   }
 
   /** Glean { "field": "plain_int" } */
+  [[deprecated("Use `FOO.plain_int().value()` instead of `FOO.get_plain_int()`")]]
   ::std::int32_t const& get_plain_int() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::plain_int) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -207,6 +210,7 @@ class AllocUnion final  {
 
   /** 4: PmrString aa_shared_string */
   /** Glean { "field": "aa_shared_string" } */
+  [[deprecated("Use `FOO.aa_shared_string().value()` instead of `FOO.get_aa_shared_string()`")]]
   ::std::shared_ptr<::test::fixtures::cpp_allocator_union::PmrString> const& get_aa_shared_string() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::aa_shared_string) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();

@@ -398,6 +398,7 @@ class NonOrderableUnion final  {
 
 
   /** Glean { "field": "int_value" } */
+  [[deprecated("Use `FOO.int_value().value()` instead of `FOO.get_int_value()`")]]
   ::std::int32_t const& get_int_value() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::int_value) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -406,6 +407,7 @@ class NonOrderableUnion final  {
   }
 
   /** Glean { "field": "string_value" } */
+  [[deprecated("Use `FOO.string_value().value()` instead of `FOO.get_string_value()`")]]
   ::std::string const& get_string_value() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::string_value) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -849,6 +851,7 @@ class OrderableUnion final  {
 
 
   /** Glean { "field": "int_value" } */
+  [[deprecated("Use `FOO.int_value().value()` instead of `FOO.get_int_value()`")]]
   ::std::int32_t const& get_int_value() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::int_value) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -857,6 +860,7 @@ class OrderableUnion final  {
   }
 
   /** Glean { "field": "string_value" } */
+  [[deprecated("Use `FOO.string_value().value()` instead of `FOO.get_string_value()`")]]
   ::std::string const& get_string_value() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::string_value) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();

@@ -1724,6 +1724,7 @@ class Baz final  {
 
   /** 1: i32_5137 intField */
   /** Glean { "field": "intField" } */
+  [[deprecated("Use `FOO.intField().value()` instead of `FOO.get_intField()`")]]
   ::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter1, 1, ::facebook::thrift::test::fixtures::adapter::i32_5137, Baz> const& get_intField() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::intField) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1733,6 +1734,7 @@ class Baz final  {
 
   /** 4: SetWithAdapter setField */
   /** Glean { "field": "setField" } */
+  [[deprecated("Use `FOO.setField().value()` instead of `FOO.get_setField()`")]]
   ::facebook::thrift::test::fixtures::adapter::SetWithAdapter const& get_setField() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::setField) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1742,6 +1744,7 @@ class Baz final  {
 
   /** 6: map_string_ListWithElemAdapter_withAdapter_8454 mapField */
   /** Glean { "field": "mapField" } */
+  [[deprecated("Use `FOO.mapField().value()` instead of `FOO.get_mapField()`")]]
   ::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter3, 6, ::facebook::thrift::test::fixtures::adapter::map_string_ListWithElemAdapter_withAdapter_8454, Baz> const& get_mapField() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::mapField) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1751,6 +1754,7 @@ class Baz final  {
 
   /** 8: binary_5673 binaryField */
   /** Glean { "field": "binaryField" } */
+  [[deprecated("Use `FOO.binaryField().value()` instead of `FOO.get_binaryField()`")]]
   ::apache::thrift::adapt_detail::adapted_field_t<::my::Adapter1, 8, ::facebook::thrift::test::fixtures::adapter::binary_5673, Baz> const& get_binaryField() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::binaryField) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -1760,6 +1764,7 @@ class Baz final  {
 
   /** 9: MyI64 longField */
   /** Glean { "field": "longField" } */
+  [[deprecated("Use `FOO.longField().value()` instead of `FOO.get_longField()`")]]
   ::facebook::thrift::test::fixtures::adapter::MyI64 const& get_longField() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::longField) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -6411,6 +6416,7 @@ class ThriftAdaptTestUnion final  {
 
   /** 1: DurationMs delay */
   /** Glean { "field": "delay" } */
+  [[deprecated("Use `FOO.delay().value()` instead of `FOO.get_delay()`")]]
   ::facebook::thrift::test::fixtures::adapter::DurationMs const& get_delay() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::delay) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
@@ -6420,6 +6426,7 @@ class ThriftAdaptTestUnion final  {
 
   /** 2: CustomProtocolType custom */
   /** Glean { "field": "custom" } */
+  [[deprecated("Use `FOO.custom().value()` instead of `FOO.get_custom()`")]]
   ::facebook::thrift::test::fixtures::adapter::CustomProtocolType const& get_custom() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::custom) {
       ::apache::thrift::detail::throw_on_bad_union_field_access();
