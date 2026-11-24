@@ -17,6 +17,7 @@
 package com.facebook.thrift.compression.lz4;
 
 import com.facebook.thrift.compression.ThriftCompressor;
+import com.facebook.thrift.util.CompressionUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.util.ReferenceCountUtil;
@@ -52,7 +53,10 @@ public final class Lz4Compressor implements ThriftCompressor {
       int maxCompressedSize = COMPRESSOR.maxCompressedLength(uncompressedSize);
       int varintLength = varintSize(uncompressedSize);
 
+      data = CompressionUtil.coalesce(allocator, data);
+
       ByteBuf output = allocator.directBuffer(varintLength + maxCompressedSize);
+
       try {
         writeVarint(output, uncompressedSize);
 
@@ -86,7 +90,10 @@ public final class Lz4Compressor implements ThriftCompressor {
       }
       int destLen = (int) uncompressedSize;
 
+      data = CompressionUtil.coalesce(allocator, data);
+
       ByteBuf output = allocator.directBuffer(destLen);
+
       try {
         ByteBuffer source = data.nioBuffer();
         ByteBuffer destination = output.nioBuffer(0, destLen);

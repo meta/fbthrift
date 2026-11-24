@@ -17,6 +17,7 @@
 package com.facebook.thrift.compression.zstd;
 
 import com.facebook.thrift.compression.ThriftCompressor;
+import com.facebook.thrift.util.CompressionUtil;
 import com.github.luben.zstd.Zstd;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
@@ -46,6 +47,8 @@ public final class ZstdCompressor implements ThriftCompressor {
         throw new IllegalArgumentException(
             "ZSTD compressBound failed for input size: " + readableBytes);
       }
+
+      data = CompressionUtil.coalesce(allocator, data);
       ByteBuffer source = toDirectByteBuffer(data);
       ByteBuf output = allocator.directBuffer((int) maxCompressedSize);
       try {
@@ -69,6 +72,7 @@ public final class ZstdCompressor implements ThriftCompressor {
   @Override
   public ByteBuf decompress(ByteBufAllocator allocator, ByteBuf data) {
     try {
+      data = CompressionUtil.coalesce(allocator, data);
       ByteBuffer source = toDirectByteBuffer(data);
       long decompressedSize =
           Zstd.getDirectByteBufferFrameContentSize(source, source.position(), source.remaining());

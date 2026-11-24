@@ -78,6 +78,7 @@ public class CompressionUtil {
       Inflater inflater = new Inflater();
 
       if (supportsByteBuffer()) {
+        in = coalesce(alloc, in);
         return inflateWithByteBuffer(alloc, in, inflater);
       } else {
         return inflateWithByteArray(alloc, in, inflater);
@@ -87,6 +88,48 @@ public class CompressionUtil {
         ReferenceCountUtil.safeRelease(in);
       }
     }
+  }
+
+  /**
+   * Takes ownership of {@code data} and returns a buffer whose readable bytes fit in one NIO
+   * segment: {@code data} itself when the readable range already does, otherwise one direct copy
+   * with the original released. Heap input with one segment is returned as-is; every consumer (Lz4,
+   * Zstd, both Zlib paths, inflate) takes heap without a merge. On success the input is released
+   * (or returned); on exception the caller still owns it.
+   */
+  public static ByteBuf coalesce(ByteBufAllocator alloc, ByteBuf data) {
+    int idx = data.readerIndex();
+    int len = data.readableBytes();
+
+    if (len == 0) {
+      return data;
+    }
+
+    if (data.hasMemoryAddress() || data.nioBufferCount() == 1) {
+      return data;
+    }
+
+    ByteBuffer[] parts = data.nioBuffers(idx, len);
+
+    if (parts.length == 1) {
+      return data;
+    }
+
+    ByteBuf copy = alloc.directBuffer(len);
+
+    try {
+      for (ByteBuffer part : parts) {
+        copy.writeBytes(part);
+      }
+    } catch (Throwable t) {
+      copy.release();
+
+      throw t;
+    }
+
+    data.release();
+
+    return copy;
   }
 
   static boolean supportsByteBuffer() {

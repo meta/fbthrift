@@ -16,8 +16,14 @@
 
 package com.facebook.thrift.compression;
 
+import static com.facebook.thrift.compression.CompressionTestUtil.compositeInput;
+import static com.facebook.thrift.compression.CompressionTestUtil.readAll;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
 import com.facebook.thrift.compression.zstd.ZstdCompressor;
 import io.netty.buffer.ByteBuf;
@@ -445,5 +451,29 @@ class ZstdCompressorTest {
     byte[] truncated = {(byte) 0x28, (byte) 0xB5, (byte) 0x2F, (byte) 0xFD, (byte) 0x00};
     ByteBuf input = Unpooled.wrappedBuffer(truncated);
     assertThatThrownBy(() -> compressor.decompress(allocator, input)).isInstanceOf(Exception.class);
+  }
+
+  @Test
+  void multiSegmentInputNeverMergesToHeap() {
+    byte[] original = new byte[4096];
+    new Random(7).nextBytes(original);
+    ByteBuf input = spy(compositeInput(original));
+
+    ByteBuf compressed = compressor.compress(allocator, input);
+
+    verify(input, never()).nioBuffer();
+    verify(input, never()).nioBuffer(anyInt(), anyInt());
+    assertThat(input.refCnt()).isZero();
+
+    ByteBuf splitCompressed = spy(compositeInput(readAll(compressed)));
+    compressed.release();
+
+    ByteBuf decompressed = compressor.decompress(allocator, splitCompressed);
+
+    verify(splitCompressed, never()).nioBuffer();
+    verify(splitCompressed, never()).nioBuffer(anyInt(), anyInt());
+
+    assertThat(readAll(decompressed)).isEqualTo(original);
+    decompressed.release();
   }
 }

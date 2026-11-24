@@ -17,6 +17,7 @@
 package com.facebook.thrift.compression.zlib;
 
 import com.facebook.thrift.compression.ThriftCompressor;
+import com.facebook.thrift.util.CompressionUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.util.ReferenceCountUtil;
@@ -56,6 +57,7 @@ public final class ZlibCompressor implements ThriftCompressor {
     boolean cached = Thread.currentThread() instanceof FastThreadLocalThread;
     Deflater deflater = cached ? acquireDeflater() : new Deflater();
     try {
+      data = CompressionUtil.coalesce(allocator, data);
       deflater.setInput(data.nioBuffer());
       deflater.finish();
 
@@ -87,6 +89,7 @@ public final class ZlibCompressor implements ThriftCompressor {
     boolean cached = Thread.currentThread() instanceof FastThreadLocalThread;
     Inflater inflater = cached ? acquireInflater() : new Inflater();
     try {
+      data = CompressionUtil.coalesce(allocator, data);
       inflater.setInput(data.nioBuffer());
 
       output = allocator.directBuffer();
