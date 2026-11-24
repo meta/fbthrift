@@ -21,6 +21,7 @@
 #include <boost/intrusive_ptr.hpp>
 
 #include <folly/ExceptionWrapper.h>
+#include <folly/Likely.h>
 #include <folly/io/async/Request.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/event_handler/Cpp2BridgeExtension.h>
 
@@ -33,6 +34,7 @@
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/ThriftConnContext.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/ThriftRequestContext.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/util/PayloadUtils.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/util/RequestMetadata.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/util/ResponsePayloads.h>
 
 namespace apache::thrift::fast_thrift::thrift {
@@ -51,6 +53,8 @@ namespace apache::thrift::fast_thrift::thrift {
  * context (i.e. between ThriftServerTransportAdapter and any handler that
  * sets fields on ThriftRequestContext). Symmetrically, every handler and
  * extension that contributes a response header must sit downstream of it.
+ * A supplied method registry is authoritative: RPCs absent from it are
+ * answered before downstream handlers run.
  */
 template <typename Context>
 class ThriftServerRequestContextHandler {
@@ -108,30 +112,51 @@ class ThriftServerRequestContextHandler {
     if (requestExtensionLayout_ != nullptr) {
       request.requestContext->installExtensions(*requestExtensionLayout_);
     }
+    bool unknownMethod = false;
     auto populateRequestMetadata = [&](auto& payload) {
       auto& metadata = payload.metadata;
-      if (metadata != nullptr && metadata->name().has_value()) {
-        const auto methodName = metadata->name()->view();
-        request.requestContext->setMethodMetadata(
-            methodMetadata_ == nullptr ? nullptr
-                                       : methodMetadata_->find(methodName));
-        request.requestContext->setMethodName(
-            std::move(*metadata->name()).str());
+      if (metadata == nullptr ||
+          !isRequestRpcMetadataValid(*metadata, payload.kRpcKind)) {
+        return false;
       }
-      if (enableRequestHeaders_ && metadata != nullptr &&
-          metadata->otherMetadata().has_value()) {
+      const auto methodName = metadata->name()->view();
+      const auto* method = methodMetadata_ == nullptr
+          ? nullptr
+          : methodMetadata_->find(methodName);
+      request.requestContext->setMethodMetadata(method);
+      unknownMethod = methodMetadata_ != nullptr && method == nullptr;
+      request.requestContext->setMethodName(std::move(*metadata->name()).str());
+      if (enableRequestHeaders_ && metadata->otherMetadata().has_value()) {
         request.requestContext->setHeaders(
             std::move(*metadata->otherMetadata()));
       }
+      return true;
     };
+    bool validMetadata = true;
     if (request.payload.template is<ThriftServerRequestResponsePayload>()) {
-      populateRequestMetadata(
+      validMetadata = populateRequestMetadata(
           request.payload.template get<ThriftServerRequestResponsePayload>());
     } else if (request.payload.template is<ThriftRequestStreamPayload>()) {
-      populateRequestMetadata(
+      validMetadata = populateRequestMetadata(
           request.payload.template get<ThriftRequestStreamPayload>());
     }
     server::RequestContextScopeGuard guard(request.requestContext.get());
+    if (FOLLY_UNLIKELY(!validMetadata)) {
+      auto response = makeFrameworkErrorMessage(
+          request.streamId,
+          apache::thrift::ResponseRpcErrorCode::REQUEST_PARSING_FAILURE,
+          "Invalid metadata object");
+      response.requestContext = std::move(request.requestContext);
+      return ctx.fireWrite(
+          channel_pipeline::erase_and_box(std::move(response)));
+    }
+    if (FOLLY_UNLIKELY(unknownMethod)) {
+      auto response = makeUnknownMethodMessage(
+          request.streamId, request.requestContext->getMethodName());
+      response.requestContext = std::move(request.requestContext);
+      return ctx.fireWrite(
+          channel_pipeline::erase_and_box(std::move(response)));
+    }
     return ctx.fireRead(std::move(msg));
   }
 

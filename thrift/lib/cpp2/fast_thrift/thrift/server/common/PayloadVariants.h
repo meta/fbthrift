@@ -24,7 +24,6 @@
 
 #include <folly/CPortability.h>
 
-#include <thrift/lib/cpp2/fast_thrift/common/allocator/EvbAllocator.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/common/ThriftControlPayloads.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/common/ThriftPayloadVariant.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/common/ThriftRequestPayloads.h>
@@ -130,16 +129,6 @@ class ServerRequestMetadataPool {
 
 } // namespace detail
 
-inline std::unique_ptr<apache::thrift::RequestRpcMetadata>
-makeServerRequestMetadata(folly::EventBase&) {
-  if (serverRequestMetadataPoolLimit().load(std::memory_order_relaxed) != 0) {
-    if (auto metadata = detail::ServerRequestMetadataPool::get().take()) {
-      return metadata;
-    }
-  }
-  return std::make_unique<apache::thrift::RequestRpcMetadata>();
-}
-
 // Returns metadata from makeServerRequestMetadata() to this thread's pool once
 // nothing references it. No-op (the caller frees it) when recycling is off.
 inline void recycleServerRequestMetadata(
@@ -149,13 +138,6 @@ inline void recycleServerRequestMetadata(
   if (limit != 0 && metadata != nullptr) {
     detail::ServerRequestMetadataPool::get().give(metadata, limit);
   }
-}
-
-inline std::unique_ptr<apache::thrift::RequestRpcMetadata>
-makeServerRequestMetadata(
-    folly::EventBase&, apache::thrift::RequestRpcMetadata metadata) {
-  return std::make_unique<apache::thrift::RequestRpcMetadata>(
-      std::move(metadata));
 }
 
 using ThriftServerInboundPayloadVariant = ThriftPayloadVariant<

@@ -534,6 +534,72 @@ TEST_F(ServerStreamStateHandlerTest, IncompleteResponseKeepsStreamActive) {
   EXPECT_TRUE(ctx_.hasActiveStream(1));
 }
 
+TEST_F(
+    ServerStreamStateHandlerTest,
+    ErrorResponseWithUnaryTypeRetiresOnlyFailedStream) {
+  using apache::thrift::fast_thrift::frame::FrameType;
+  for (const bool enableCancellation : {false, true}) {
+    SCOPED_TRACE(enableCancellation);
+    RocketServerStreamStateHandler handler(enableCancellation);
+    MockStreamContext ctx;
+    for (const uint32_t streamId : {1u, 3u}) {
+      RocketRequestMessage request{
+          .frame = parseTestFrame(FrameType::REQUEST_STREAM, streamId)};
+      ASSERT_EQ(
+          handler.onRead(ctx, erase_and_box(std::move(request))),
+          Result::Success);
+    }
+    ASSERT_TRUE(ctx.hasActiveStream(1));
+    ASSERT_TRUE(ctx.hasActiveStream(3));
+
+    RocketResponseMessage response{
+        .frame =
+            apache::thrift::fast_thrift::frame::ComposedFrame{
+                .frameType = FrameType::ERROR,
+                .streamId = 1,
+                .data = copyBuffer("error"),
+            },
+        .streamType = FrameType::REQUEST_RESPONSE,
+    };
+    EXPECT_EQ(
+        handler.onWrite(ctx, erase_and_box(std::move(response))),
+        Result::Success);
+    ASSERT_EQ(ctx.writeMessages().size(), 1);
+    const auto& forwarded = ctx.writeMessages()[0].get<RocketResponseMessage>();
+    EXPECT_EQ(forwarded.frame.frameType, FrameType::ERROR);
+    EXPECT_EQ(forwarded.frame.streamId, 1u);
+    EXPECT_FALSE(ctx.hasActiveStream(1));
+    EXPECT_TRUE(ctx.hasActiveStream(3));
+    EXPECT_EQ(ctx.activeStreamCount(), 1);
+  }
+}
+
+TEST_F(ServerStreamStateHandlerTest, DisabledCancellationForwardsUnaryError) {
+  using apache::thrift::fast_thrift::frame::FrameType;
+  handler_ = RocketServerStreamStateHandler(false);
+  ASSERT_EQ(
+      callOnRead(parseTestFrame(FrameType::REQUEST_RESPONSE, 1)),
+      Result::Success);
+  ASSERT_FALSE(ctx_.hasActiveStream(1));
+
+  RocketResponseMessage response{
+      .frame =
+          apache::thrift::fast_thrift::frame::ComposedFrame{
+              .frameType = FrameType::ERROR,
+              .streamId = 1,
+              .data = copyBuffer("error"),
+          },
+      .streamType = FrameType::REQUEST_RESPONSE,
+  };
+  EXPECT_EQ(callOnWrite(std::move(response)), Result::Success);
+  ASSERT_EQ(ctx_.writeMessages().size(), 1);
+  const auto& forwarded = ctx_.writeMessages()[0].get<RocketResponseMessage>();
+  EXPECT_EQ(forwarded.frame.frameType, FrameType::ERROR);
+  EXPECT_EQ(forwarded.frame.streamId, 1u);
+  EXPECT_EQ(ctx_.activeStreamCount(), 0);
+  EXPECT_EQ(ctx_.streamCapacity(), 0);
+}
+
 TEST_F(ServerStreamStateHandlerTest, ResponseForUnknownStreamReturnsError) {
   RocketResponseMessage response{
       .frame =

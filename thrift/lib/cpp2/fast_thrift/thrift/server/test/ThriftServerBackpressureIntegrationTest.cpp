@@ -33,6 +33,7 @@
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/handler/ThriftServerBackpressureHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/handler/ThriftServerConnectionCloseHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/handler/ThriftServerRequestContextHandler.h>
+#include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
 
 namespace apache::thrift::fast_thrift::thrift::server::test {
 
@@ -73,12 +74,18 @@ auto buildPipeline(
 }
 
 ft::ThriftServerRequestMessage makeRequest(uint32_t streamId) {
+  auto metadata = std::make_unique<apache::thrift::RequestRpcMetadata>();
+  metadata->protocol() = apache::thrift::ProtocolId::BINARY;
+  metadata->name() = "method";
+  metadata->kind() = apache::thrift::RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE;
   return ft::ThriftServerRequestMessage{
       .requestContext = ft::ThriftRequestContextPtr{},
       // A request-opening payload so ThriftServerConnectionCloseHandler counts
       // it as in-flight work (isRequestWork admits only REQUEST_RESPONSE /
       // REQUEST_STREAM); otherwise the paired response underflows the count.
-      .payload = ft::ThriftServerRequestResponsePayload{},
+      .payload =
+          ft::ThriftServerRequestResponsePayload{
+              .metadata = std::move(metadata)},
       .streamId = streamId,
   };
 }

@@ -16,6 +16,8 @@
 
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/handler/ThriftServerRequestContextHandler.h>
 
+#include <array>
+#include <functional>
 #include <memory>
 #include <set>
 #include <vector>
@@ -23,16 +25,27 @@
 #include <gtest/gtest.h>
 
 #include <folly/ExceptionWrapper.h>
+#include <folly/ScopeGuard.h>
 #include <folly/io/IOBuf.h>
 #include <folly/io/async/Request.h>
 
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/HandlerTag.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/StaticPipelineBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/test/MockAdapters.h>
+#include <thrift/lib/cpp2/fast_thrift/frame/ErrorCode.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/adapter/ThriftServerAppAdapter.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/adapter/util/ThriftServerMethodDispatchTable.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/common/ConnectionPayloads.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/common/ExtensionStateStore.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/Messages.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/MethodMetadata.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/ThriftConnContext.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/ThriftRequestContext.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/extension/ThriftExtension.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/extension/ThriftExtensionPipelineHandler.h>
+#include <thrift/lib/cpp2/protocol/CompactProtocol.h>
 #include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
 
 namespace apache::thrift::fast_thrift::thrift {
@@ -42,6 +55,57 @@ namespace {
 using channel_pipeline::erase_and_box;
 using channel_pipeline::Result;
 using channel_pipeline::TypeErasedBox;
+
+HANDLER_TAG(request_context);
+HANDLER_TAG(request_probe);
+
+struct RequestProbe {
+  explicit RequestProbe(int& calls) : calls(calls) {}
+
+  RequestVerdict onRequest(const ThriftRequestView&) noexcept {
+    ++calls;
+    return RequestVerdict::proceed();
+  }
+
+  int& calls;
+};
+
+template <typename Context>
+using RequestProbePipelineHandler =
+    server::ThriftExtensionPipelineHandler<RequestProbe, Context>;
+
+class CountingAppAdapter : public ThriftServerAppAdapter {
+ public:
+  using Ptr = std::unique_ptr<CountingAppAdapter, Destructor>;
+
+  CountingAppAdapter()
+      : ThriftServerAppAdapter(
+            std::make_shared<ThriftServerMethodDispatchTable>(
+                std::vector<ThriftServerMethodDispatchTable::Method>{
+                    {"known", processRequest}, {"method", processRequest}})) {}
+
+  int calls{0};
+
+ private:
+  static Result processRequest(
+      ThriftServerAppAdapter* adapter, TypeErasedBox&&) noexcept {
+    ++static_cast<CountingAppAdapter*>(adapter)->calls;
+    return Result::Success;
+  }
+};
+
+constexpr std::array kInitialRpcKinds{
+    apache::thrift::RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE,
+    apache::thrift::RpcKind::SINGLE_REQUEST_STREAMING_RESPONSE};
+
+std::unique_ptr<apache::thrift::RequestRpcMetadata> makeMetadata(
+    apache::thrift::RpcKind kind) {
+  auto metadata = std::make_unique<apache::thrift::RequestRpcMetadata>();
+  metadata->protocol() = apache::thrift::ProtocolId::COMPACT;
+  metadata->name() = "method";
+  metadata->kind() = kind;
+  return metadata;
+}
 
 class FakeContext {
  public:
@@ -71,7 +135,7 @@ class FakeContext {
   folly::exception_wrapper exception;
 };
 
-ThriftServerRequestMessage makeRequest(uint32_t streamId = 1) {
+ThriftServerRequestMessage makeRequest(uint32_t streamId) {
   ThriftServerRequestMessage req;
   req.streamId = streamId;
   return req;
@@ -88,8 +152,7 @@ ThriftServerRequestMessage makeRequestWithMetadata(
   req.payload =
       ThriftServerInboundPayloadVariant{ThriftServerRequestResponsePayload{
           .data = folly::IOBuf::copyBuffer("body"),
-          .metadata = std::make_unique<apache::thrift::RequestRpcMetadata>(
-              std::move(*metadata))}};
+          .metadata = std::move(metadata)}};
   return req;
 }
 
@@ -126,6 +189,50 @@ const apache::thrift::ResponseRpcMetadata& writtenMetadata(
               .metadata;
 }
 
+void expectMetadataRejection(
+    const FakeContext& ctx,
+    uint32_t streamId,
+    const ThriftConnContext* connection,
+    const folly::RequestContext* callerContext) {
+  EXPECT_TRUE(ctx.forwarded.empty());
+  ASSERT_EQ(ctx.written.size(), 1u);
+  const auto& response = ctx.written.front().get<ThriftServerResponseMessage>();
+  ASSERT_NE(response.requestContext, nullptr);
+  EXPECT_EQ(response.requestContext->getConnectionContext(), connection);
+  EXPECT_TRUE(response.requestContext->getMethodName().empty());
+  EXPECT_EQ(response.requestContext->getMethodMetadata(), nullptr);
+  EXPECT_TRUE(response.requestContext->getHeaders().empty());
+  ASSERT_EQ(ctx.writtenRequestContexts.size(), 1u);
+  EXPECT_EQ(
+      ctx.writtenRequestContexts.front(),
+      response.requestContext->getFollyRequestContext().capture());
+  EXPECT_NE(ctx.writtenRequestContexts.front().get(), callerContext);
+  EXPECT_EQ(folly::RequestContext::try_get(), callerContext);
+
+  ASSERT_TRUE(response.payload.is<ThriftErrorPayload>());
+  const auto& payload = response.payload.get<ThriftErrorPayload>();
+  EXPECT_EQ(payload.streamId, streamId);
+  EXPECT_EQ(
+      payload.errorCode,
+      static_cast<uint32_t>(
+          apache::thrift::fast_thrift::frame::ErrorCode::INVALID));
+  ASSERT_NE(payload.data, nullptr);
+  apache::thrift::CompactProtocolReader reader;
+  reader.setInput(payload.data.get());
+  apache::thrift::ResponseRpcError error;
+  error.read(&reader);
+  ASSERT_TRUE(error.code().has_value());
+  EXPECT_EQ(
+      *error.code(),
+      apache::thrift::ResponseRpcErrorCode::REQUEST_PARSING_FAILURE);
+  ASSERT_TRUE(error.category().has_value());
+  EXPECT_EQ(
+      *error.category(),
+      apache::thrift::ResponseRpcErrorCategory::INVALID_REQUEST);
+  ASSERT_TRUE(error.what_utf8().has_value());
+  EXPECT_EQ(*error.what_utf8(), "Invalid metadata object");
+}
+
 } // namespace
 
 // The context knows which method the request named, copied off the metadata
@@ -134,7 +241,8 @@ TEST(ThriftServerRequestContextHandlerTest, StampsTheMethodName) {
   ThriftServerRequestContextHandler<FakeContext> handler{nullptr};
   FakeContext ctx;
 
-  auto metadata = std::make_unique<apache::thrift::RequestRpcMetadata>();
+  auto metadata =
+      makeMetadata(apache::thrift::RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE);
   metadata->name() = "Service.method";
   auto req = makeRequestWithMetadata(
       *ctx.eventBase(), /*streamId=*/1, std::move(metadata));
@@ -160,7 +268,8 @@ TEST(ThriftServerRequestContextHandlerTest, ResolvesMethodMetadataOnce) {
   ThriftServerRequestContextHandler<FakeContext> handler{nullptr, &methods};
   FakeContext ctx;
 
-  auto metadata = std::make_unique<apache::thrift::RequestRpcMetadata>();
+  auto metadata =
+      makeMetadata(apache::thrift::RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE);
   metadata->name() = "method";
   auto req = makeRequestWithMetadata(
       *ctx.eventBase(), /*streamId=*/1, std::move(metadata));
@@ -196,7 +305,8 @@ TEST(
       boost::intrusive_ptr<ThriftConnContext>{new ThriftConnContext()},
       true};
   FakeContext ctx;
-  auto metadata = std::make_unique<apache::thrift::RequestRpcMetadata>();
+  auto metadata =
+      makeMetadata(apache::thrift::RpcKind::SINGLE_REQUEST_STREAMING_RESPONSE);
   metadata->name() = "stream";
   metadata->otherMetadata().ensure()["request-header"] = "value";
 
@@ -218,44 +328,249 @@ TEST(
 
 TEST(
     ThriftServerRequestContextHandlerTest,
-    StreamControlFramesReuseTheOpenStreamsContext) {
-  ThriftServerRequestContextHandler<FakeContext> handler{nullptr};
+    MissingRegistryMethodRejectsBeforeExtensionsAndApplication) {
+  ThriftServerMethodMetadataRegistry methods;
+  methods.add(
+      ThriftServerMethodMetadata{
+          .serviceName = "Service",
+          .definingServiceName = "Service",
+          .methodName = "known",
+          .qualifiedMethodName = "Service.known"});
+
+  for (const auto kind : kInitialRpcKinds) {
+    SCOPED_TRACE(static_cast<int>(kind));
+    FakeContext ctx;
+    channel_pipeline::test::StaticMockHeadHandler head;
+    head.setOnWriteCallback(
+        [&](TypeErasedBox&& msg) { return ctx.fireWrite(std::move(msg)); });
+    CountingAppAdapter::Ptr adapter{new CountingAppAdapter()};
+    ExtensionStateStore store;
+    int extensionCalls = 0;
+    boost::intrusive_ptr<ThriftConnContext> connection{new ThriftConnContext()};
+    auto pipeline =
+        channel_pipeline::StaticPipelineBuilder<
+            channel_pipeline::test::StaticMockHeadHandler,
+            CountingAppAdapter>()
+            .setEventBase(ctx.eventBase())
+            .setHead(&head)
+            .setTail(adapter.get())
+            .emplaceAllocator()
+            .addNextDuplexTemplate<ThriftServerRequestContextHandler>(
+                request_context_tag, nullptr, &methods, connection, true)
+            .addNextInboundTemplate<RequestProbePipelineHandler>(
+                request_probe_tag, std::ref(store), std::ref(extensionCalls))
+            .build();
+    adapter->setPipeline(pipeline.get());
+    auto resetPipeline = folly::makeGuard([&] { adapter->resetPipeline(); });
+    pipeline->activate();
+    folly::RequestContextScopeGuard callerGuard;
+    auto* const callerContext = folly::RequestContext::try_get();
+    auto metadata = makeMetadata(kind);
+    metadata->otherMetadata().ensure()["request-header"] = "value";
+    auto request = kind == kInitialRpcKinds.front()
+        ? makeRequestWithMetadata(
+              *ctx.eventBase(), /*streamId=*/1, std::move(metadata))
+        : makeStreamRequestWithMetadata(/*streamId=*/1, std::move(metadata));
+
+    EXPECT_EQ(
+        pipeline->fireRead(erase_and_box(std::move(request))), Result::Success);
+
+    EXPECT_EQ(extensionCalls, 0);
+    EXPECT_EQ(adapter->calls, 0);
+    ASSERT_EQ(ctx.written.size(), 1u);
+    const auto& response =
+        ctx.written.front().get<ThriftServerResponseMessage>();
+    ASSERT_NE(response.requestContext, nullptr);
+    EXPECT_EQ(
+        response.requestContext->getConnectionContext(), connection.get());
+    EXPECT_EQ(response.requestContext->getMethodName(), "method");
+    EXPECT_EQ(response.requestContext->getMethodMetadata(), nullptr);
+    ASSERT_NE(response.requestContext->getHeader("request-header"), nullptr);
+    EXPECT_EQ(*response.requestContext->getHeader("request-header"), "value");
+    ASSERT_EQ(ctx.writtenRequestContexts.size(), 1u);
+    EXPECT_EQ(
+        ctx.writtenRequestContexts.front(),
+        response.requestContext->getFollyRequestContext().capture());
+    EXPECT_EQ(folly::RequestContext::try_get(), callerContext);
+    ASSERT_TRUE(response.payload.is<ThriftErrorPayload>());
+    const auto& payload = response.payload.get<ThriftErrorPayload>();
+    EXPECT_EQ(payload.streamId, 1u);
+    ASSERT_NE(payload.data, nullptr);
+    apache::thrift::CompactProtocolReader reader;
+    reader.setInput(payload.data.get());
+    apache::thrift::ResponseRpcError error;
+    error.read(&reader);
+    ASSERT_TRUE(error.code().has_value());
+    EXPECT_EQ(
+        *error.code(), apache::thrift::ResponseRpcErrorCode::UNKNOWN_METHOD);
+    ASSERT_TRUE(error.what_utf8().has_value());
+    EXPECT_EQ(*error.what_utf8(), "Unknown method: method");
+
+    auto knownMetadata = makeMetadata(kind);
+    knownMetadata->name() = "known";
+    auto knownRequest = kind == kInitialRpcKinds.front()
+        ? makeRequestWithMetadata(
+              *ctx.eventBase(), /*streamId=*/3, std::move(knownMetadata))
+        : makeStreamRequestWithMetadata(
+              /*streamId=*/3, std::move(knownMetadata));
+
+    EXPECT_EQ(
+        pipeline->fireRead(erase_and_box(std::move(knownRequest))),
+        Result::Success);
+
+    EXPECT_EQ(extensionCalls, 1);
+    EXPECT_EQ(adapter->calls, 1);
+    EXPECT_EQ(ctx.written.size(), 1u);
+    EXPECT_EQ(folly::RequestContext::try_get(), callerContext);
+  }
+}
+
+TEST(
+    ThriftServerRequestContextHandlerTest,
+    SetupForwardsConnectionWithoutRequestContext) {
+  boost::intrusive_ptr<ThriftConnContext> connection{new ThriftConnContext()};
+  ThriftServerRequestContextHandler<FakeContext> handler{
+      nullptr, nullptr, connection, true};
   FakeContext ctx;
   folly::RequestContextScopeGuard callerGuard;
   auto* const callerContext = folly::RequestContext::try_get();
-  auto request = makeRequest(/*streamId=*/1);
-  request.payload = ThriftRequestNPayload{.streamId = 1, .requestN = 10};
+  auto request = makeRequest(/*streamId=*/0);
+  request.payload = ThriftConnectionSetupPayload{
+      .setup = std::make_unique<ConnectionSetupData>()};
 
   EXPECT_EQ(
       handler.onRead(ctx, erase_and_box(std::move(request))), Result::Success);
 
   ASSERT_EQ(ctx.forwarded.size(), 1u);
+  const auto& forwarded =
+      ctx.forwarded.front().get<ThriftServerRequestMessage>();
+  EXPECT_EQ(forwarded.requestContext, nullptr);
   EXPECT_EQ(
-      ctx.forwarded.front().get<ThriftServerRequestMessage>().requestContext,
-      nullptr);
+      forwarded.payload.get<ThriftConnectionSetupPayload>().setup->connContext,
+      connection.get());
+  EXPECT_TRUE(ctx.written.empty());
   ASSERT_EQ(ctx.forwardedRequestContexts.size(), 1u);
   EXPECT_EQ(ctx.forwardedRequestContexts.front().get(), callerContext);
   EXPECT_EQ(folly::RequestContext::try_get(), callerContext);
 }
 
-// A request whose metadata names no method leaves the context without one,
-// rather than an empty name that reads as if it had been set.
-TEST(ThriftServerRequestContextHandlerTest, NoMethodNameLeavesItEmpty) {
+TEST(
+    ThriftServerRequestContextHandlerTest,
+    StreamControlFramesReuseTheOpenStreamsContext) {
   ThriftServerRequestContextHandler<FakeContext> handler{nullptr};
   FakeContext ctx;
+  folly::RequestContextScopeGuard callerGuard;
+  auto* const callerContext = folly::RequestContext::try_get();
+  std::array payloads{
+      ThriftServerInboundPayloadVariant{
+          ThriftRequestNPayload{.streamId = 1, .requestN = 10}},
+      ThriftServerInboundPayloadVariant{ThriftRequestCancellationPayload{}}};
 
-  auto req = makeRequestWithMetadata(
-      *ctx.eventBase(),
-      /*streamId=*/1,
-      std::make_unique<apache::thrift::RequestRpcMetadata>());
+  for (auto& payload : payloads) {
+    auto request = makeRequest(/*streamId=*/1);
+    request.payload = std::move(payload);
+    EXPECT_EQ(
+        handler.onRead(ctx, erase_and_box(std::move(request))),
+        Result::Success);
+  }
 
-  EXPECT_EQ(
-      handler.onRead(ctx, erase_and_box(std::move(req))), Result::Success);
+  ASSERT_EQ(ctx.forwarded.size(), 2u);
+  ASSERT_EQ(ctx.forwardedRequestContexts.size(), 2u);
+  for (size_t i = 0; i < ctx.forwarded.size(); ++i) {
+    EXPECT_EQ(
+        ctx.forwarded[i].get<ThriftServerRequestMessage>().requestContext,
+        nullptr);
+    EXPECT_EQ(ctx.forwardedRequestContexts[i].get(), callerContext);
+  }
+  EXPECT_TRUE(ctx.written.empty());
+  EXPECT_EQ(folly::RequestContext::try_get(), callerContext);
+}
 
-  ASSERT_EQ(ctx.forwarded.size(), 1);
-  auto& forwarded = ctx.forwarded.front().get<ThriftServerRequestMessage>();
-  ASSERT_NE(forwarded.requestContext, nullptr);
-  EXPECT_TRUE(forwarded.requestContext->getMethodName().empty());
+TEST(
+    ThriftServerRequestContextHandlerTest,
+    InvalidMetadataRejectsBeforeDispatch) {
+  enum class Failure { MissingProtocol, MissingName, MissingKind, WrongKind };
+  constexpr std::array failures{
+      Failure::MissingProtocol,
+      Failure::MissingName,
+      Failure::MissingKind,
+      Failure::WrongKind};
+  ThriftServerMethodMetadataRegistry methods;
+  methods.add(
+      ThriftServerMethodMetadata{
+          .serviceName = "Service",
+          .definingServiceName = "Service",
+          .methodName = "method",
+          .qualifiedMethodName = "Service.method"});
+  boost::intrusive_ptr<ThriftConnContext> connection{new ThriftConnContext()};
+
+  for (const auto kind : kInitialRpcKinds) {
+    SCOPED_TRACE(static_cast<int>(kind));
+    for (const auto failure : failures) {
+      SCOPED_TRACE(static_cast<int>(failure));
+      FakeContext ctx;
+      ThriftServerRequestContextHandler<FakeContext> handler{
+          nullptr, &methods, connection, true};
+      auto metadata = makeMetadata(kind);
+      metadata->otherMetadata().ensure()["request-header"] = "value";
+      switch (failure) {
+        case Failure::MissingProtocol:
+          metadata->protocol().reset();
+          break;
+        case Failure::MissingName:
+          metadata->name().reset();
+          break;
+        case Failure::MissingKind:
+          metadata->kind().reset();
+          break;
+        case Failure::WrongKind:
+          metadata->kind() = kind == kInitialRpcKinds.front()
+              ? kInitialRpcKinds.back()
+              : kInitialRpcKinds.front();
+          break;
+      }
+      auto request = kind == kInitialRpcKinds.front()
+          ? makeRequestWithMetadata(
+                *ctx.eventBase(), /*streamId=*/1, std::move(metadata))
+          : makeStreamRequestWithMetadata(
+                /*streamId=*/1, std::move(metadata));
+      folly::RequestContextScopeGuard callerGuard;
+      auto* const callerContext = folly::RequestContext::try_get();
+
+      EXPECT_EQ(
+          handler.onRead(ctx, erase_and_box(std::move(request))),
+          Result::Success);
+      expectMetadataRejection(ctx, 1, connection.get(), callerContext);
+    }
+  }
+}
+
+TEST(
+    ThriftServerRequestContextHandlerTest,
+    MetadataValidationAcceptsPresentProtocolAndName) {
+  for (const auto kind : kInitialRpcKinds) {
+    SCOPED_TRACE(static_cast<int>(kind));
+    FakeContext ctx;
+    ThriftServerRequestContextHandler<FakeContext> handler{nullptr};
+    auto metadata = makeMetadata(kind);
+    metadata->protocol() = static_cast<apache::thrift::ProtocolId>(123);
+    metadata->name() = "";
+    auto request = kind == kInitialRpcKinds.front()
+        ? makeRequestWithMetadata(
+              *ctx.eventBase(), /*streamId=*/1, std::move(metadata))
+        : makeStreamRequestWithMetadata(/*streamId=*/1, std::move(metadata));
+
+    EXPECT_EQ(
+        handler.onRead(ctx, erase_and_box(std::move(request))),
+        Result::Success);
+
+    ASSERT_EQ(ctx.forwarded.size(), 1u);
+    const auto& forwarded =
+        ctx.forwarded.front().get<ThriftServerRequestMessage>();
+    ASSERT_NE(forwarded.requestContext, nullptr);
+    EXPECT_TRUE(forwarded.requestContext->getMethodName().empty());
+    EXPECT_TRUE(ctx.written.empty());
+  }
 }
 
 TEST(
@@ -283,7 +598,8 @@ TEST(ThriftServerRequestContextHandlerTest, PopulatesConnectionAndHeaders) {
       nullptr, nullptr, connContext, true};
   FakeContext ctx;
 
-  auto metadata = std::make_unique<apache::thrift::RequestRpcMetadata>();
+  auto metadata =
+      makeMetadata(apache::thrift::RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE);
   auto& headers = metadata->otherMetadata().ensure();
   headers["kcb_identity"] = "svc:foo";
   headers["client_identifier"] = "client-123";
@@ -313,7 +629,8 @@ TEST(ThriftServerRequestContextHandlerTest, DisabledHeadersStayInMetadata) {
       false};
   FakeContext ctx;
 
-  auto metadata = std::make_unique<apache::thrift::RequestRpcMetadata>();
+  auto metadata =
+      makeMetadata(apache::thrift::RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE);
   metadata->otherMetadata().ensure()["present"] = "yes";
 
   EXPECT_EQ(
@@ -366,7 +683,8 @@ TEST(ThriftServerRequestContextHandlerTest, EachRequestGetsItsOwnContext) {
 
 TEST(
     ThriftServerRequestContextHandlerTest, StampsMethodNameOntoRequestContext) {
-  auto metadata = std::make_unique<apache::thrift::RequestRpcMetadata>();
+  auto metadata =
+      makeMetadata(apache::thrift::RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE);
   metadata->name() = "Service.method";
 
   ThriftServerRequestContextHandler<FakeContext> handler{nullptr};
@@ -388,7 +706,8 @@ TEST(
 // Routing reads the context-owned name after this handler, so the metadata no
 // longer retains a second allocation.
 TEST(ThriftServerRequestContextHandlerTest, MovesMethodNameOutOfMetadata) {
-  auto metadata = std::make_unique<apache::thrift::RequestRpcMetadata>();
+  auto metadata =
+      makeMetadata(apache::thrift::RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE);
   metadata->name() = "Service.method";
 
   ThriftServerRequestContextHandler<FakeContext> handler{nullptr};
@@ -409,26 +728,24 @@ TEST(ThriftServerRequestContextHandlerTest, MovesMethodNameOutOfMetadata) {
   EXPECT_TRUE(stamped->name()->view().empty());
 }
 
-// A request whose metadata carries no name still gets a context; the name is
-// simply empty.
 TEST(
-    ThriftServerRequestContextHandlerTest, MethodNameEmptyWhenMetadataHasNone) {
-  ThriftServerRequestContextHandler<FakeContext> handler{nullptr};
-  FakeContext ctx;
+    ThriftServerRequestContextHandlerTest,
+    MissingMetadataRejectsBeforeDispatch) {
+  for (const auto kind : kInitialRpcKinds) {
+    SCOPED_TRACE(static_cast<int>(kind));
+    FakeContext ctx;
+    ThriftServerRequestContextHandler<FakeContext> handler{nullptr};
+    auto request = kind == kInitialRpcKinds.front()
+        ? makeRequestWithMetadata(*ctx.eventBase(), /*streamId=*/7, nullptr)
+        : makeStreamRequestWithMetadata(/*streamId=*/7, nullptr);
+    folly::RequestContextScopeGuard callerGuard;
+    auto* const callerContext = folly::RequestContext::try_get();
 
-  EXPECT_EQ(
-      handler.onRead(
-          ctx,
-          erase_and_box(makeRequestWithMetadata(
-              *ctx.eventBase(),
-              /*streamId=*/7,
-              std::make_unique<apache::thrift::RequestRpcMetadata>()))),
-      Result::Success);
-
-  ASSERT_EQ(ctx.forwarded.size(), 1);
-  auto& forwarded = ctx.forwarded.front().get<ThriftServerRequestMessage>();
-  ASSERT_NE(forwarded.requestContext, nullptr);
-  EXPECT_TRUE(forwarded.requestContext->getMethodName().empty());
+    EXPECT_EQ(
+        handler.onRead(ctx, erase_and_box(std::move(request))),
+        Result::Success);
+    expectMetadataRejection(ctx, 7, nullptr, callerContext);
+  }
 }
 
 // The closing half of the handler's job: response headers accumulated on the

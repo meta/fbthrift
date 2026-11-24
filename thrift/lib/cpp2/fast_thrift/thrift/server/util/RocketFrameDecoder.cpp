@@ -22,41 +22,10 @@
 #include <thrift/lib/cpp2/fast_thrift/frame/FrameType.h>
 #include <thrift/lib/cpp2/fast_thrift/frame/read/FrameViews.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/SetupResponseBuilder.h>
-#include <thrift/lib/cpp2/protocol/BinaryProtocol.h>
-#include <thrift/lib/cpp2/protocol/CompactProtocol.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/util/RequestMetadata.h>
 #include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
 
 namespace apache::thrift::fast_thrift::thrift {
-
-namespace {
-
-folly::exception_wrapper deserializeRequestMetadata(
-    const frame::read::ParsedFrame& frame,
-    apache::thrift::RequestRpcMetadata& metadata,
-    rocket::server::MetadataProtocol metadataProtocol) noexcept {
-  if (!frame.hasMetadata() || frame.metadataSize() == 0) {
-    return {};
-  }
-  try {
-    if (metadataProtocol == rocket::server::MetadataProtocol::COMPACT) {
-      apache::thrift::CompactProtocolReader reader;
-      reader.setInput(frame.metadataCursor());
-      metadata.read(&reader);
-    } else {
-      apache::thrift::BinaryProtocolReader reader;
-      reader.setInput(frame.metadataCursor());
-      metadata.read(&reader);
-    }
-  } catch (...) {
-    return folly::make_exception_wrapper<apache::thrift::TApplicationException>(
-        ("Failed to deserialize request metadata: " +
-         folly::exceptionStr(std::current_exception()))
-            .toStdString());
-  }
-  return {};
-}
-
-} // namespace
 
 folly::Expected<ThriftServerInboundPayloadVariant, folly::exception_wrapper>
 fromRocketFrame(

@@ -64,6 +64,8 @@ class ThriftServerAppAdapterFactory {
     return {};
   }
 
+  // Register every dispatched method; servers reject RPCs absent from this
+  // registry before downstream request handlers run.
   virtual void populateMethodMetadata(
       ThriftServerMethodMetadataRegistry& registry) const = 0;
 

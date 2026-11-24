@@ -45,7 +45,9 @@
 #include <folly/ScopeGuard.h>
 #include <folly/SocketAddress.h>
 #include <folly/Synchronized.h>
+#include <folly/Try.h>
 #include <folly/futures/Future.h>
+#include <folly/io/IOBuf.h>
 #include <folly/io/async/AsyncSocket.h>
 #include <folly/io/async/EventBase.h>
 #include <folly/io/async/Request.h>
@@ -63,6 +65,7 @@
 #include <thrift/lib/cpp2/fast_thrift/connection/util/ReusePortBpfProgram.h>
 #include <thrift/lib/cpp2/fast_thrift/security/FizzServerCertConfig.h>
 #include <thrift/lib/cpp2/fast_thrift/security/test/TestCert.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/client/util/ErrorDecoding.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/FastThriftServer.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/extension/ThriftExtension.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/extension/ThriftExtensionPipelineHandler.h>
@@ -74,6 +77,9 @@
 #include <thrift/lib/cpp2/security/extensions/ThriftParametersClientExtension.h>
 #include <thrift/lib/cpp2/security/extensions/ThriftParametersContext.h>
 #include <thrift/lib/cpp2/transport/core/RpcMetadataUtil.h>
+#include <thrift/lib/cpp2/transport/rocket/RocketException.h>
+#include <thrift/lib/cpp2/transport/rocket/payload/PayloadSerializer.h>
+#include <thrift/lib/cpp2/transport/rocket/test/network/ClientServerTestUtil.h>
 #include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
 
 THRIFT_FLAG_DECLARE_bool(rocket_client_binary_rpc_metadata_encoding);
@@ -1662,6 +1668,133 @@ ftt::FastThriftServerConfig makeHeadersConfig() {
   config.enableRequestHeaders = true;
   return config;
 }
+
+class FastThriftServerRpcMetadataTest : public ::testing::TestWithParam<bool> {
+ protected:
+  void SetUp() override {
+    auto config = makeHeadersConfig();
+    config.enableStreamMux = true;
+    server_ = std::make_unique<ftt::FastThriftServer>(std::move(config));
+    server_->setInterface(std::make_shared<TestHandler>());
+    server_->addModule(
+        ftt::FastServerModule("rejecting")
+            .addThriftExtension<RejectingExtension>(&rejections_));
+    server_->start();
+    apache::thrift::RequestSetupMetadata setupMetadata;
+    setupMetadata.minVersion() = 8;
+    setupMetadata.maxVersion() = 10;
+    setupMetadata.encodeMetadataUsingBinary() = false;
+    client_ = std::make_unique<apache::thrift::rocket::test::RocketTestClient>(
+        server_->getAddress(), std::move(setupMetadata));
+  }
+
+  void TearDown() override {
+    client_.reset();
+    server_->stop();
+    server_.reset();
+  }
+
+  apache::thrift::RequestRpcMetadata validMetadata() const {
+    apache::thrift::RequestRpcMetadata metadata;
+    metadata.protocol() = apache::thrift::ProtocolId::COMPACT;
+    metadata.name() = GetParam() ? "streamEchoes" : "add";
+    metadata.kind() = GetParam()
+        ? apache::thrift::RpcKind::SINGLE_REQUEST_STREAMING_RESPONSE
+        : apache::thrift::RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE;
+    return metadata;
+  }
+
+  apache::thrift::rocket::Payload makeRequest(
+      const apache::thrift::RequestRpcMetadata& metadata) {
+    return apache::thrift::rocket::Payload::makeFromMetadataAndData(
+        apache::thrift::rocket::PayloadSerializer::getInstance()->packCompact(
+            metadata),
+        folly::IOBuf::copyBuffer("\0", 1));
+  }
+
+  template <class T>
+  void expectParsingFailure(folly::Try<T>& response) {
+    ASSERT_TRUE(response.hasException());
+    const auto* error =
+        response.exception()
+            .template get_exception<apache::thrift::rocket::RocketException>();
+    ASSERT_NE(error, nullptr);
+    EXPECT_EQ(
+        error->getErrorCode(), apache::thrift::rocket::ErrorCode::INVALID);
+    auto errorCopy = *error;
+    auto data = errorCopy.moveErrorData();
+    ASSERT_NE(data, nullptr);
+    apache::thrift::ResponseRpcError rpcError;
+    apache::thrift::rocket::PayloadSerializer::getInstance()->unpack(
+        rpcError, data.get(), /*useBinary=*/false);
+    EXPECT_EQ(
+        rpcError.code(),
+        apache::thrift::ResponseRpcErrorCode::REQUEST_PARSING_FAILURE);
+    EXPECT_EQ(
+        rpcError.category(),
+        apache::thrift::ResponseRpcErrorCategory::INVALID_REQUEST);
+    auto decoded = ftt::decodeErrorAsResponse(
+        static_cast<uint32_t>(error->getErrorCode()), data.get());
+    ASSERT_TRUE(decoded.hasValue());
+    EXPECT_EQ(
+        decoded->exType,
+        apache::thrift::TApplicationException::UNSUPPORTED_CLIENT_TYPE);
+    EXPECT_EQ(decoded->exCode, ::kRequestParsingErrorCode);
+    EXPECT_EQ(decoded->what, "Invalid metadata object");
+  }
+
+  std::atomic<int> rejections_{0};
+  std::unique_ptr<ftt::FastThriftServer> server_;
+  std::unique_ptr<apache::thrift::rocket::test::RocketTestClient> client_;
+};
+
+TEST_P(
+    FastThriftServerRpcMetadataTest,
+    MalformedMetadataPrecedesRejectingExtension) {
+  std::array<apache::thrift::RequestRpcMetadata, 4> requests{
+      validMetadata(), validMetadata(), validMetadata(), validMetadata()};
+  requests[0].protocol().reset();
+  requests[1].name().reset();
+  requests[2].kind().reset();
+  requests[3].kind() = GetParam()
+      ? apache::thrift::RpcKind::SINGLE_REQUEST_SINGLE_RESPONSE
+      : apache::thrift::RpcKind::SINGLE_REQUEST_STREAMING_RESPONSE;
+
+  for (size_t i = 0; i < requests.size(); ++i) {
+    SCOPED_TRACE(i);
+    if (GetParam()) {
+      auto response = client_->sendRequestStreamSync(makeRequest(requests[i]));
+      expectParsingFailure(response);
+    } else {
+      auto response = client_->sendRequestResponseSync(
+          makeRequest(requests[i]), std::chrono::seconds{5}, nullptr);
+      expectParsingFailure(response);
+    }
+    EXPECT_EQ(rejections_.load(), 0);
+  }
+}
+
+TEST_P(
+    FastThriftServerRpcMetadataTest, ValidMetadataReachesRejectingExtension) {
+  if (GetParam()) {
+    auto response =
+        client_->sendRequestStreamSync(makeRequest(validMetadata()));
+    EXPECT_TRUE(response.hasValue());
+  } else {
+    auto response = client_->sendRequestResponseSync(
+        makeRequest(validMetadata()), std::chrono::seconds{5}, nullptr);
+    EXPECT_TRUE(response.hasValue());
+  }
+  EXPECT_EQ(rejections_.load(), 1);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    RocketFrames,
+    FastThriftServerRpcMetadataTest,
+    ::testing::Values(false, true),
+    [](const ::testing::TestParamInfo<bool>& info) {
+      return info.param ? "InitialStream" : "Unary";
+    });
 
 std::unique_ptr<void, void (*)(void*)> resolveFirstPeerIdentity(
     const folly::AsyncTransport*, X509*, const folly::SocketAddress&) {
