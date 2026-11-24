@@ -23,6 +23,8 @@
 
 #include <gtest/gtest.h>
 
+#if THRIFT_HAS_ARENA_RESOURCE
+
 namespace {
 
 using apache::thrift::pmr::ArenaResource;
@@ -87,3 +89,5 @@ TEST(ArenaResourceTest, AllocatorOverloadChecksTheAllocatorResource) {
 }
 
 } // namespace
+
+#endif // THRIFT_HAS_ARENA_RESOURCE

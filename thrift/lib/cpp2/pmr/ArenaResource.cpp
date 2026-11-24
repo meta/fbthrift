@@ -16,7 +16,7 @@
 
 #include <thrift/lib/cpp2/pmr/ArenaResource.h>
 
-#if FOLLY_HAS_MEMORY_RESOURCE
+#if THRIFT_HAS_ARENA_RESOURCE
 
 #include <typeinfo>
 
@@ -31,4 +31,4 @@ bool isArenaResource(const std::pmr::memory_resource& resource) noexcept {
 
 } // namespace apache::thrift::pmr
 
-#endif // FOLLY_HAS_MEMORY_RESOURCE
+#endif // THRIFT_HAS_ARENA_RESOURCE

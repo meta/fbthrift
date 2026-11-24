@@ -16,10 +16,21 @@
 
 #pragma once
 
+#include <version>
 #include <folly/CPortability.h>
 #include <folly/memory/MemoryResource.h>
 
-#if FOLLY_HAS_MEMORY_RESOURCE
+// Not FOLLY_HAS_MEMORY_RESOURCE alone: Apple's libc++ ships <memory_resource>
+// on OS versions whose libc++ dylib lacks std::pmr (before iOS 17 / macOS 14),
+// which fails at load time. Only the feature-test macro tracks the dylib, so
+// this matches rocket's pmr guards (AllocatingParserStrategy.h).
+#if FOLLY_HAS_MEMORY_RESOURCE && defined(__cpp_lib_memory_resource)
+#define THRIFT_HAS_ARENA_RESOURCE 1
+#else
+#define THRIFT_HAS_ARENA_RESOURCE 0
+#endif
+
+#if THRIFT_HAS_ARENA_RESOURCE
 
 #include <memory_resource>
 
@@ -56,4 +67,4 @@ bool isArenaResource(const std::pmr::polymorphic_allocator<T>& alloc) noexcept {
 
 } // namespace apache::thrift::pmr
 
-#endif // FOLLY_HAS_MEMORY_RESOURCE
+#endif // THRIFT_HAS_ARENA_RESOURCE
