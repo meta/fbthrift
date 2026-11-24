@@ -18,6 +18,7 @@
 
 #include <array>
 #include <barrier>
+#include <memory>
 #include <stdexcept>
 #include <thread>
 #include <vector>
@@ -198,6 +199,20 @@ TEST(TypeTest, NamedTagWrappers) {
 TEST(TypeTest, NamedCacheRejectsInvalidName) {
   EXPECT_THROW(Type::get<struct_t<InvalidNamedType>>(), std::invalid_argument);
   EXPECT_THROW(Type::get<struct_t<InvalidNamedType>>(), std::invalid_argument);
+}
+
+TEST(TypeTest, NamedCacheRetriesAndOwnsUri) {
+  detail::NamedTypeCache cache;
+  EXPECT_THROW(cache.get(BaseType::Struct, "BadName"), std::invalid_argument);
+  const Type* value = nullptr;
+  {
+    std::string uri = "domain.com/my/package/OwnedUri";
+    value = &cache.get(BaseType::Struct, folly::cstring_view(uri.c_str()));
+  }
+  std::unique_ptr<const Type> cleanup(value);
+  EXPECT_EQ(*value, Type::create<struct_c>("domain.com/my/package/OwnedUri"));
+  EXPECT_EQ(
+      value, &cache.get(BaseType::Struct, "domain.com/my/package/OwnedUri"));
 }
 
 TEST(TypeTest, Create) {
