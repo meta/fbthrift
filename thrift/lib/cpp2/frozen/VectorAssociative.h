@@ -33,6 +33,8 @@ class VectorAsSet : public std::vector<V> {
 
  public:
   using Base::Base;
+  using key_type = V;
+
   /**
    * Insert value into the set at unspecified location.
    */

@@ -14,6 +14,11 @@
  * limitations under the License.
  */
 
+#include <initializer_list>
+#include <string>
+#include <type_traits>
+#include <vector>
+
 #include <gtest/gtest.h>
 
 #include <thrift/lib/cpp2/frozen/FrozenTestUtil.h>
@@ -119,6 +124,29 @@ TEST(FrozenVectorTypes, VectorAsHashSet) {
   EXPECT_EQ(1, fdm.count(3));
   EXPECT_EQ(1, fdm.count(7));
   EXPECT_EQ(0, fdm.count(4));
+}
+
+namespace {
+template <class Set>
+Set setFromKeys(std::initializer_list<typename Set::key_type> keys) {
+  static_assert(
+      std::is_same_v<typename Set::key_type, typename Set::value_type>);
+  return Set(keys.begin(), keys.end());
+}
+} // namespace
+
+TEST(FrozenVectorTypes, NativeSetKeyRange) {
+  const std::vector<int> expectedInts{7, 3, 5};
+  EXPECT_EQ(expectedInts, setFromKeys<VectorAsSet<int>>({7, 3, 5}));
+  EXPECT_EQ(expectedInts, setFromKeys<VectorAsHashSet<int>>({7, 3, 5}));
+
+  const std::vector<std::string> expectedStrings{"seven", "three", "five"};
+  EXPECT_EQ(
+      expectedStrings,
+      setFromKeys<VectorAsSet<std::string>>({"seven", "three", "five"}));
+  EXPECT_EQ(
+      expectedStrings,
+      setFromKeys<VectorAsHashSet<std::string>>({"seven", "three", "five"}));
 }
 
 TEST(FrozenVectorTypes, DistinctChecking) {
