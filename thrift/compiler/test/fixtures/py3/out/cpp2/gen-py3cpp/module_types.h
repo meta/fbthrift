@@ -5433,6 +5433,11 @@ class StringAdaptedUnion final  {
   static constexpr bool __fbthrift_cpp2_is_runtime_annotation = false;
   static std::string_view __fbthrift_get_field_name(::apache::thrift::FieldOrdinal ord);
   static std::string_view __fbthrift_get_class_name();
+  static constexpr std::string_view __fbthrift_constexpr_class_name = "StringAdaptedUnion";
+  // Indexed by ordinal.
+  static constexpr std::string_view __fbthrift_constexpr_field_names[] = {
+    "", "string_field", "binary_field"
+  };
   template <class ...>
   FOLLY_ERASE static constexpr std::string_view __fbthrift_get_module_name() noexcept {
     return "module";
