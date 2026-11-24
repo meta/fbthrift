@@ -32,7 +32,7 @@ class {{service.cpp_name}}FastClientInternal {
       folly::exception_wrapper>
   serialize_{{function.cpp_name}}(
       uint16_t protocolId{{#each function.params.fields as |field|}},
-      {{#if field.type.resolves_to_complex_return?}}const {{field.type.cpp_type}}&{{#else}}{{field.type.cpp_type}}{{/if}} p_{{field.cpp_name}}{{/each}});
+      {{#if field.type.resolves_to_complex_return?}}const {{field.cpp_type}}&{{#else}}{{field.cpp_type}}{{/if}} p_{{field.cpp_name}}{{/each}});
 
 {{#if function.return_type.void?}}
   static folly::exception_wrapper

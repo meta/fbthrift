@@ -24,12 +24,12 @@ folly::Expected<
     folly::exception_wrapper>
 {{interface.cpp_name}}FastClientInternal::serialize_{{function.cpp_name}}(
     uint16_t protocolId{{#each function.params.fields as |field|}},
-    {{#if field.type.resolves_to_complex_return?}}const {{field.type.cpp_type}}&{{#else}}{{field.type.cpp_type}}{{/if}} p_{{field.cpp_name}}{{/each}}) {
+    {{#if field.type.resolves_to_complex_return?}}const {{field.cpp_type}}&{{#else}}{{field.cpp_type}}{{/if}} p_{{field.cpp_name}}{{/each}}) {
   return apache::thrift::detail::ac::withProtocolWriter(protocolId, [&](auto&& prot) {
     using ProtocolWriter = std::decay_t<decltype(prot)>;
     {{service_cpp_name}}_{{function.prefixed_name}}_pargs args;
 {{#each (array.enumerate function.params.fields) as |param_index param|}}
-    args.get<{{param_index}}>().value = {{#if param.type.resolves_to_complex_return?}}const_cast<{{param.type.cpp_type}}*>(&p_{{param.cpp_name}}){{#else}}&p_{{param.cpp_name}}{{/if}};
+    args.get<{{param_index}}>().value = {{#if param.type.resolves_to_complex_return?}}const_cast<{{param.cpp_type}}*>(&p_{{param.cpp_name}}){{#else}}&p_{{param.cpp_name}}{{/if}};
 {{/each}}
     return apache::thrift::fast_thrift::thrift::serializeRequest<ProtocolWriter>(
         [&](ProtocolWriter& w) { args.write(&w); },

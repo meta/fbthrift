@@ -18,7 +18,7 @@
 
 {{#let export partial param_type |field|}}
 {{#pragma ignore-newlines}}
-{{#if field.type.resolves_to_complex_return?}}const {{field.type.cpp_type}}&{{#else}}{{field.type.cpp_type}}{{/if}}
+{{#if field.type.resolves_to_complex_return?}}const {{field.cpp_type}}&{{#else}}{{field.cpp_type}}{{/if}}
 {{/let partial}}
 
 {{#let export partial return_type_no_handle |function|}}

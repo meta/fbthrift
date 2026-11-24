@@ -20,46 +20,46 @@
 
   // ---- {{function.name}} ----
 
-  folly::coro::Task<{{#if function.return_type.void?}}void{{#else}}{{function.return_type.cpp_type}}{{/if function.return_type.void?}}> co_{{function.cpp_name}}({{#each (array.enumerate function.params.fields with_last=true) as |i field last?|}}{{#if field.type.resolves_to_complex_return?}}const {{field.type.cpp_type}}&{{#else}}{{field.type.cpp_type}}{{/if}} p_{{field.cpp_name}}{{#if (not last?)}}, {{/if (not last?)}}{{/each}}) {
+  folly::coro::Task<{{#if function.return_type.void?}}void{{#else}}{{function.return_type.cpp_type}}{{/if function.return_type.void?}}> co_{{function.cpp_name}}({{#each (array.enumerate function.params.fields with_last=true) as |i field last?|}}{{#if field.type.resolves_to_complex_return?}}const {{field.cpp_type}}&{{#else}}{{field.cpp_type}}{{/if}} p_{{field.cpp_name}}{{#if (not last?)}}, {{/if (not last?)}}{{/each}}) {
     return co_{{function.cpp_name}}<false>(nullptr{{#each function.params.fields as |field|}}, p_{{field.cpp_name}}{{/each}});
   }
 
-  folly::coro::Task<{{#if function.return_type.void?}}void{{#else}}{{function.return_type.cpp_type}}{{/if function.return_type.void?}}> co_{{function.cpp_name}}(apache::thrift::RpcOptions& rpcOptions{{#each function.params.fields as |field|}}, {{#if field.type.resolves_to_complex_return?}}const {{field.type.cpp_type}}&{{#else}}{{field.type.cpp_type}}{{/if}} p_{{field.cpp_name}}{{/each}}) {
+  folly::coro::Task<{{#if function.return_type.void?}}void{{#else}}{{function.return_type.cpp_type}}{{/if function.return_type.void?}}> co_{{function.cpp_name}}(apache::thrift::RpcOptions& rpcOptions{{#each function.params.fields as |field|}}, {{#if field.type.resolves_to_complex_return?}}const {{field.cpp_type}}&{{#else}}{{field.cpp_type}}{{/if}} p_{{field.cpp_name}}{{/each}}) {
     return co_{{function.cpp_name}}<true>(&rpcOptions{{#each function.params.fields as |field|}}, p_{{field.cpp_name}}{{/each}});
   }
 
 {{#if function.sync_returns_by_outparam?}}
-  void sync_{{function.cpp_name}}({{function.cpp_return_type}}& _return{{#if function.params.fields?}}, {{/if}}{{#each (array.enumerate function.params.fields with_last=true) as |i field last?|}}{{#if field.type.resolves_to_complex_return?}}const {{field.type.cpp_type}}&{{#else}}{{field.type.cpp_type}}{{/if}} p_{{field.cpp_name}}{{#if (not last?)}}, {{/if (not last?)}}{{/each}}) {
+  void sync_{{function.cpp_name}}({{function.cpp_return_type}}& _return{{#if function.params.fields?}}, {{/if}}{{#each (array.enumerate function.params.fields with_last=true) as |i field last?|}}{{#if field.type.resolves_to_complex_return?}}const {{field.cpp_type}}&{{#else}}{{field.cpp_type}}{{/if}} p_{{field.cpp_name}}{{#if (not last?)}}, {{/if (not last?)}}{{/each}}) {
     _return = folly::coro::blockingWait(co_{{function.cpp_name}}({{#each (array.enumerate function.params.fields with_last=true) as |i field last?|}}p_{{field.cpp_name}}{{#if (not last?)}}, {{/if (not last?)}}{{/each}}));
   }
 
-  void sync_{{function.cpp_name}}(apache::thrift::RpcOptions& rpcOptions, {{function.cpp_return_type}}& _return{{#each function.params.fields as |field|}}, {{#if field.type.resolves_to_complex_return?}}const {{field.type.cpp_type}}&{{#else}}{{field.type.cpp_type}}{{/if}} p_{{field.cpp_name}}{{/each}}) {
+  void sync_{{function.cpp_name}}(apache::thrift::RpcOptions& rpcOptions, {{function.cpp_return_type}}& _return{{#each function.params.fields as |field|}}, {{#if field.type.resolves_to_complex_return?}}const {{field.cpp_type}}&{{#else}}{{field.cpp_type}}{{/if}} p_{{field.cpp_name}}{{/each}}) {
     _return = folly::coro::blockingWait(co_{{function.cpp_name}}(rpcOptions{{#each function.params.fields as |field|}}, p_{{field.cpp_name}}{{/each}}));
   }
 {{#else if (not function.return_type.void?)}}
-  {{function.return_type.cpp_type}} sync_{{function.cpp_name}}({{#each (array.enumerate function.params.fields with_last=true) as |i field last?|}}{{#if field.type.resolves_to_complex_return?}}const {{field.type.cpp_type}}&{{#else}}{{field.type.cpp_type}}{{/if}} p_{{field.cpp_name}}{{#if (not last?)}}, {{/if (not last?)}}{{/each}}) {
+  {{function.return_type.cpp_type}} sync_{{function.cpp_name}}({{#each (array.enumerate function.params.fields with_last=true) as |i field last?|}}{{#if field.type.resolves_to_complex_return?}}const {{field.cpp_type}}&{{#else}}{{field.cpp_type}}{{/if}} p_{{field.cpp_name}}{{#if (not last?)}}, {{/if (not last?)}}{{/each}}) {
     return folly::coro::blockingWait(co_{{function.cpp_name}}({{#each (array.enumerate function.params.fields with_last=true) as |i field last?|}}p_{{field.cpp_name}}{{#if (not last?)}}, {{/if (not last?)}}{{/each}}));
   }
 
-  {{function.return_type.cpp_type}} sync_{{function.cpp_name}}(apache::thrift::RpcOptions& rpcOptions{{#each function.params.fields as |field|}}, {{#if field.type.resolves_to_complex_return?}}const {{field.type.cpp_type}}&{{#else}}{{field.type.cpp_type}}{{/if}} p_{{field.cpp_name}}{{/each}}) {
+  {{function.return_type.cpp_type}} sync_{{function.cpp_name}}(apache::thrift::RpcOptions& rpcOptions{{#each function.params.fields as |field|}}, {{#if field.type.resolves_to_complex_return?}}const {{field.cpp_type}}&{{#else}}{{field.cpp_type}}{{/if}} p_{{field.cpp_name}}{{/each}}) {
     return folly::coro::blockingWait(co_{{function.cpp_name}}(rpcOptions{{#each function.params.fields as |field|}}, p_{{field.cpp_name}}{{/each}}));
   }
 {{#else}}
-  void sync_{{function.cpp_name}}({{#each (array.enumerate function.params.fields with_last=true) as |i field last?|}}{{#if field.type.resolves_to_complex_return?}}const {{field.type.cpp_type}}&{{#else}}{{field.type.cpp_type}}{{/if}} p_{{field.cpp_name}}{{#if (not last?)}}, {{/if (not last?)}}{{/each}}) {
+  void sync_{{function.cpp_name}}({{#each (array.enumerate function.params.fields with_last=true) as |i field last?|}}{{#if field.type.resolves_to_complex_return?}}const {{field.cpp_type}}&{{#else}}{{field.cpp_type}}{{/if}} p_{{field.cpp_name}}{{#if (not last?)}}, {{/if (not last?)}}{{/each}}) {
     folly::coro::blockingWait(co_{{function.cpp_name}}({{#each (array.enumerate function.params.fields with_last=true) as |i field last?|}}p_{{field.cpp_name}}{{#if (not last?)}}, {{/if (not last?)}}{{/each}}));
   }
 
-  void sync_{{function.cpp_name}}(apache::thrift::RpcOptions& rpcOptions{{#each function.params.fields as |field|}}, {{#if field.type.resolves_to_complex_return?}}const {{field.type.cpp_type}}&{{#else}}{{field.type.cpp_type}}{{/if}} p_{{field.cpp_name}}{{/each}}) {
+  void sync_{{function.cpp_name}}(apache::thrift::RpcOptions& rpcOptions{{#each function.params.fields as |field|}}, {{#if field.type.resolves_to_complex_return?}}const {{field.cpp_type}}&{{#else}}{{field.cpp_type}}{{/if}} p_{{field.cpp_name}}{{/each}}) {
     folly::coro::blockingWait(co_{{function.cpp_name}}(rpcOptions{{#each function.params.fields as |field|}}, p_{{field.cpp_name}}{{/each}}));
   }
 {{/if function.sync_returns_by_outparam?}}
 
-  void {{function.cpp_name}}(std::unique_ptr<apache::thrift::RequestCallback> callback{{#each function.params.fields as |field|}}, {{#if field.type.resolves_to_complex_return?}}const {{field.type.cpp_type}}&{{#else}}{{field.type.cpp_type}}{{/if}} p_{{field.cpp_name}}{{/each}}) {
+  void {{function.cpp_name}}(std::unique_ptr<apache::thrift::RequestCallback> callback{{#each function.params.fields as |field|}}, {{#if field.type.resolves_to_complex_return?}}const {{field.cpp_type}}&{{#else}}{{field.cpp_type}}{{/if}} p_{{field.cpp_name}}{{/each}}) {
     apache::thrift::RpcOptions defaultOptions;
     {{function.cpp_name}}(defaultOptions, std::move(callback){{#each function.params.fields as |field|}}, p_{{field.cpp_name}}{{/each}});
   }
 
-  void {{function.cpp_name}}(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback{{#each function.params.fields as |field|}}, {{#if field.type.resolves_to_complex_return?}}const {{field.type.cpp_type}}&{{#else}}{{field.type.cpp_type}}{{/if}} p_{{field.cpp_name}}{{/each}}) {
+  void {{function.cpp_name}}(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback{{#each function.params.fields as |field|}}, {{#if field.type.resolves_to_complex_return?}}const {{field.cpp_type}}&{{#else}}{{field.cpp_type}}{{/if}} p_{{field.cpp_name}}{{/each}}) {
     auto serialized = ::{{interface.cpp_qualified_namespace}}::{{interface.cpp_name}}FastClientInternal::serialize_{{function.cpp_name}}(this->adapter_->getProtocolId(){{#each function.params.fields as |field|}}, p_{{field.cpp_name}}{{/each}});
     this->sendRequestResponse(
         rpcOptions,
@@ -132,7 +132,7 @@
 
  private:
   template <bool hasRpcOptions>
-  folly::coro::Task<{{#if function.return_type.void?}}void{{#else}}{{function.return_type.cpp_type}}{{/if function.return_type.void?}}> co_{{function.cpp_name}}(apache::thrift::RpcOptions* rpcOptions{{#each function.params.fields as |field|}}, {{#if field.type.resolves_to_complex_return?}}const {{field.type.cpp_type}}&{{#else}}{{field.type.cpp_type}}{{/if}} p_{{field.cpp_name}}{{/each}}) {
+  folly::coro::Task<{{#if function.return_type.void?}}void{{#else}}{{function.return_type.cpp_type}}{{/if function.return_type.void?}}> co_{{function.cpp_name}}(apache::thrift::RpcOptions* rpcOptions{{#each function.params.fields as |field|}}, {{#if field.type.resolves_to_complex_return?}}const {{field.cpp_type}}&{{#else}}{{field.cpp_type}}{{/if}} p_{{field.cpp_name}}{{/each}}) {
     static apache::thrift::RpcOptions* defaultRpcOptions = new apache::thrift::RpcOptions();
 
     auto serialized = ::{{interface.cpp_qualified_namespace}}::{{interface.cpp_name}}FastClientInternal::serialize_{{function.cpp_name}}(

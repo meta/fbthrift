@@ -19,9 +19,9 @@
 {{#let export partial param_type |field function|}}
 {{#pragma ignore-newlines}}
   {{#if field.type.resolves_to_complex_return?}}
-{{#if function.stack_arguments?}}const {{field.type.cpp_type}}&{{#else}}std::unique_ptr<{{field.type.cpp_type}}>{{/if}}
+{{#if function.stack_arguments?}}const {{field.cpp_type}}&{{#else}}std::unique_ptr<{{field.cpp_type}}>{{/if}}
   {{#else}}
-{{field.type.cpp_type}}
+{{field.cpp_type}}
   {{/if field.type.resolves_to_complex_return?}}
 {{/let partial}}
 

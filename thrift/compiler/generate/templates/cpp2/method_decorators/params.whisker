@@ -23,7 +23,7 @@
 }}
 {{#let export partial param_type |param|}}
 {{#pragma ignore-newlines}}
-apache::thrift::detail::DecoratorArgType<{{param.type.cpp_type}}>::type
+apache::thrift::detail::DecoratorArgType<{{param.cpp_type}}>::type
 {{/let partial}}
 
 {{!

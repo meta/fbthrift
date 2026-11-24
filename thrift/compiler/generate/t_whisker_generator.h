@@ -87,6 +87,11 @@ class whisker_generator_context {
     return it != field_parents_.end() ? it->second : nullptr;
   }
 
+  const t_function* get_param_parent(const t_field* param) const {
+    auto it = param_parents_.find(param);
+    return it != param_parents_.end() ? it->second : nullptr;
+  }
+
   const t_interface* get_function_parent(const t_function* function) const {
     auto it = function_parents_.find(function);
     return it != function_parents_.end() ? it->second : nullptr;
@@ -100,6 +105,10 @@ class whisker_generator_context {
   // Function to parent back-references (i.e. to a function's containing service
   // or interaction)
   std::unordered_map<const t_function*, const t_interface*> function_parents_;
+
+  // Parameter to parent back-references (i.e. to the function whose param
+  // list contains the parameter)
+  std::unordered_map<const t_field*, const t_function*> param_parents_;
 };
 
 /**

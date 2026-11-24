@@ -1168,6 +1168,9 @@ void whisker_generator_context::register_visitors(
       [this](const context&, const t_interface& node) {
         for (const t_function& function : node.functions()) {
           function_parents_[&function] = &node;
+          for (const t_field& param : function.params().fields()) {
+            param_parents_[&param] = &function;
+          }
         }
       });
   visitor.add_structured_definition_visitor(

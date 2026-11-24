@@ -129,6 +129,16 @@ const std::string& cpp_name_resolver::get_native_type(const t_const& cnst) {
   return get_native_type(type);
 }
 
+const std::string& cpp_name_resolver::get_param_type(
+    const t_function& /*function*/, const t_field& param) {
+  return get_native_type(*param.type());
+}
+
+const std::string& cpp_name_resolver::get_param_type_tag(
+    const t_function& /*function*/, const t_field& param) {
+  return get_type_tag(*param.type());
+}
+
 const std::string& cpp_name_resolver::get_return_type(const t_function& fun) {
   // Most functions don't have sinks or streams so handle the common case first.
   if (!fun.sink_or_stream()) {

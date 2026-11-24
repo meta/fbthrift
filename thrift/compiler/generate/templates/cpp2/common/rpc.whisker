@@ -45,8 +45,8 @@ apache::thrift::RpcKind::
 {{#pragma ignore-newlines}}
 typedef apache::thrift::ThriftPresult<false
   {{#each function.params.fields as |field|}}
-, apache::thrift::FieldData<{{field.id}}, {{field.type.type_class}}, {{field.type.cpp_type}}
-*{{#if field.type.use_op_encode?}}, {{field.type.type_tag}}{{/if}}>
+, apache::thrift::FieldData<{{field.id}}, {{field.type.type_class}}, {{field.cpp_type}}
+*{{#if field.type.use_op_encode?}}, {{field.type_tag}}{{/if}}>
   {{/each}}
 > {{service_cpp_name}}_{{function.prefixed_name}}_pargs;
 {{/let partial}}

@@ -1784,6 +1784,9 @@ class t_mstch_cpp2_generator : public t_whisker_generator {
       return whisker::make::i64(field_context->isset_index);
     });
     def.property("cpp_type", [this](const t_field& field) {
+      if (const t_function* function = context().get_param_parent(&field)) {
+        return cpp_context_->resolver().get_param_type(*function, field);
+      }
       return cpp_context_->resolver().get_native_type(
           field, get_structured_parent(field));
     });
@@ -1941,6 +1944,9 @@ class t_mstch_cpp2_generator : public t_whisker_generator {
       }
     });
     def.property("type_tag", [this](const t_field& field) {
+      if (const t_function* function = context().get_param_parent(&field)) {
+        return cpp_context_->resolver().get_param_type_tag(*function, field);
+      }
       return cpp_context_->resolver().get_type_tag(
           field, get_structured_parent(field));
     });

@@ -166,15 +166,15 @@ void {{interface.cpp_name}}AppAdapter::process_{{function.cpp_name}}_run(
     {{#each function.params.fields as |param|}}
       {{#if (not param.type.resolves_to_complex_return?)}}
         {{#if param.type.enum?}}
-    {{param.type.cpp_type}} uarg_{{param.cpp_name}}{static_cast<{{param.type.cpp_type}}>(0)};
+    {{param.cpp_type}} uarg_{{param.cpp_name}}{static_cast<{{param.cpp_type}}>(0)};
         {{#else}}
-    {{param.type.cpp_type}} uarg_{{param.cpp_name}}{0};
+    {{param.cpp_type}} uarg_{{param.cpp_name}}{0};
         {{/if param.type.enum?}}
       {{#else if function.stack_arguments?}}
-    {{param.type.cpp_type}} uarg_{{param.cpp_name}};
+    {{param.cpp_type}} uarg_{{param.cpp_name}};
       {{#else}}
-    std::unique_ptr<{{param.type.cpp_type}}> uarg_{{param.cpp_name}} =
-        std::make_unique<{{param.type.cpp_type}}>();
+    std::unique_ptr<{{param.cpp_type}}> uarg_{{param.cpp_name}} =
+        std::make_unique<{{param.cpp_type}}>();
       {{/if (not param.type.resolves_to_complex_return?)}}
     {{/each}}
 
@@ -323,15 +323,15 @@ void {{interface.cpp_name}}AppAdapter::process_{{function.cpp_name}}_run(
     {{#each function.params.fields as |param|}}
       {{#if (not param.type.resolves_to_complex_return?)}}
         {{#if param.type.enum?}}
-    {{param.type.cpp_type}} uarg_{{param.cpp_name}}{static_cast<{{param.type.cpp_type}}>(0)};
+    {{param.cpp_type}} uarg_{{param.cpp_name}}{static_cast<{{param.cpp_type}}>(0)};
         {{#else}}
-    {{param.type.cpp_type}} uarg_{{param.cpp_name}}{0};
+    {{param.cpp_type}} uarg_{{param.cpp_name}}{0};
         {{/if param.type.enum?}}
       {{#else if function.stack_arguments?}}
-    {{param.type.cpp_type}} uarg_{{param.cpp_name}};
+    {{param.cpp_type}} uarg_{{param.cpp_name}};
       {{#else}}
-    std::unique_ptr<{{param.type.cpp_type}}> uarg_{{param.cpp_name}} =
-        std::make_unique<{{param.type.cpp_type}}>();
+    std::unique_ptr<{{param.cpp_type}}> uarg_{{param.cpp_name}} =
+        std::make_unique<{{param.cpp_type}}>();
       {{/if (not param.type.resolves_to_complex_return?)}}
     {{/each}}
 

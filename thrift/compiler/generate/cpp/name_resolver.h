@@ -78,6 +78,10 @@ class cpp_name_resolver {
   // not just the Thrift function return type but also sink and stream if any.
   const std::string& get_return_type(const t_function& fun);
 
+  // The C++ type of `param`, a parameter of `function`.
+  const std::string& get_param_type(
+      const t_function& function, const t_field& param);
+
   const std::string& get_underlying_type_name(const t_type& node);
   const std::string& get_underlying_type_name(const t_typedef& node);
 
@@ -106,6 +110,10 @@ class cpp_name_resolver {
       return gen_type_tag(node, parent);
     });
   }
+
+  // The type tag of get_param_type(function, param).
+  const std::string& get_param_type_tag(
+      const t_function& function, const t_field& param);
 
   // Returns C++ namespace for the given program.
   const std::string& get_namespace(const t_program& node) {
