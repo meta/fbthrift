@@ -320,6 +320,7 @@ public final class BinaryMapping implements com.facebook.thrift.payload.ThriftSe
                 }
             }
         }
+
         return _fbthriftSize;
     }
 

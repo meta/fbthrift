@@ -127,6 +127,7 @@ public final class TransitiveAdapted implements com.facebook.thrift.payload.Thri
     public long serializedSize() {
         long _fbthriftSize =
             com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
         return _fbthriftSize;
     }
 

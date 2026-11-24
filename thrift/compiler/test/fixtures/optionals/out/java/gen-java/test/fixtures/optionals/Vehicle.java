@@ -361,6 +361,7 @@ public final class Vehicle implements com.facebook.thrift.payload.ThriftSerializ
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.BOOL;
         }
+
         return _fbthriftSize;
     }
 

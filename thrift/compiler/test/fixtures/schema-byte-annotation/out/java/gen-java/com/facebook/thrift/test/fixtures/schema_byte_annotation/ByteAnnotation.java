@@ -174,6 +174,7 @@ public final class ByteAnnotation implements com.facebook.thrift.payload.ThriftS
             com.facebook.thrift.util.ThriftSizes.FIELD_STOP
                 + com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.BYTE;
+
         return _fbthriftSize;
     }
 

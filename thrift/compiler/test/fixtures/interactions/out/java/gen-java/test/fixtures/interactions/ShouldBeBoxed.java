@@ -171,6 +171,7 @@ public final class ShouldBeBoxed implements com.facebook.thrift.payload.ThriftSe
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.sessionId);
         }
+
         return _fbthriftSize;
     }
 

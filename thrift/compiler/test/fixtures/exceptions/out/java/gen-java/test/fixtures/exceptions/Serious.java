@@ -176,6 +176,7 @@ public final class Serious extends org.apache.thrift.TBaseException implements c
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.sonnet);
         }
+
         return _fbthriftSize;
     }
 

@@ -220,6 +220,7 @@ public final class FieldsInjectedToStruct implements com.facebook.thrift.payload
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.injectedField);
         }
+
         return _fbthriftSize;
     }
 

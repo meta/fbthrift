@@ -391,12 +391,14 @@ public final class MyUnionFloatFieldThrowExp implements com.facebook.thrift.payl
         if (this.id != 0 && this.value == null) {
             return 0;
         }
+
         long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
 
         switch (this.id) {
 
         case _MYENUM: {
-            test.fixtures.complex_struct.MyEnum _fbthriftVar0 =
+            test.fixtures.complex_struct.MyEnum
+                _fbthriftVar0 =
                 (test.fixtures.complex_struct.MyEnum) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.ENUM;
@@ -404,7 +406,8 @@ public final class MyUnionFloatFieldThrowExp implements com.facebook.thrift.payl
         }
 
         case _SETFLOAT: {
-            List<List<Float>> _fbthriftVar0 =
+            List<List<Float>>
+                _fbthriftVar0 =
                 (List<List<Float>>) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
@@ -418,7 +421,8 @@ public final class MyUnionFloatFieldThrowExp implements com.facebook.thrift.payl
         }
 
         case _MYDATAITEM: {
-            test.fixtures.complex_struct.MyDataItem _fbthriftVar0 =
+            test.fixtures.complex_struct.MyDataItem
+                _fbthriftVar0 =
                 (test.fixtures.complex_struct.MyDataItem) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             {
@@ -432,7 +436,8 @@ public final class MyUnionFloatFieldThrowExp implements com.facebook.thrift.payl
         }
 
         case _COMPLEXNESTEDSTRUCT: {
-            test.fixtures.complex_struct.ComplexNestedStruct _fbthriftVar0 =
+            test.fixtures.complex_struct.ComplexNestedStruct
+                _fbthriftVar0 =
                 (test.fixtures.complex_struct.ComplexNestedStruct) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             {
@@ -447,6 +452,7 @@ public final class MyUnionFloatFieldThrowExp implements com.facebook.thrift.payl
 
         default:
         }
+
         return _fbthriftSize;
     }
 

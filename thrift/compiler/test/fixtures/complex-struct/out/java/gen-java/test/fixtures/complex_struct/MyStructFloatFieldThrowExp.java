@@ -297,6 +297,7 @@ public final class MyStructFloatFieldThrowExp implements com.facebook.thrift.pay
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.myStringField);
         }
+
         return _fbthriftSize;
     }
 

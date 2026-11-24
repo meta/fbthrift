@@ -263,12 +263,14 @@ public final class ValUnion implements com.facebook.thrift.payload.ThriftSeriali
         if (this.id != 0 && this.value == null) {
             return 0;
         }
+
         long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
 
         switch (this.id) {
 
         case _V1: {
-            test.fixtures.complex_union.Val _fbthriftVar0 =
+            test.fixtures.complex_union.Val
+                _fbthriftVar0 =
                 (test.fixtures.complex_union.Val) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             {
@@ -282,7 +284,8 @@ public final class ValUnion implements com.facebook.thrift.payload.ThriftSeriali
         }
 
         case _V2: {
-            test.fixtures.complex_union.Val _fbthriftVar0 =
+            test.fixtures.complex_union.Val
+                _fbthriftVar0 =
                 (test.fixtures.complex_union.Val) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             {
@@ -297,6 +300,7 @@ public final class ValUnion implements com.facebook.thrift.payload.ThriftSeriali
 
         default:
         }
+
         return _fbthriftSize;
     }
 

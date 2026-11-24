@@ -171,6 +171,7 @@ public final class SinkPayload implements com.facebook.thrift.payload.ThriftSeri
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.content);
         }
+
         return _fbthriftSize;
     }
 

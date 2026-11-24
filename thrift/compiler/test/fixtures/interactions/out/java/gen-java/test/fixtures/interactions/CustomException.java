@@ -170,6 +170,7 @@ public final class CustomException extends org.apache.thrift.TBaseException impl
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.message);
         }
+
         return _fbthriftSize;
     }
 

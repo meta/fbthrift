@@ -529,6 +529,7 @@ public final class MyField implements com.facebook.thrift.payload.ThriftSerializ
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.reqStrValue);
         }
+
         return _fbthriftSize;
     }
 

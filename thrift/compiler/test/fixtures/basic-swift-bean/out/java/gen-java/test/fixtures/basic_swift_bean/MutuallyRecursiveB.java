@@ -221,6 +221,7 @@ public final class MutuallyRecursiveB implements com.facebook.thrift.payload.Thr
                 }
             }
         }
+
         return _fbthriftSize;
     }
 

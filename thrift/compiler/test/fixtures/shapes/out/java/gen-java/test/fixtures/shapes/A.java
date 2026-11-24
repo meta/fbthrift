@@ -171,6 +171,7 @@ public final class A implements com.facebook.thrift.payload.ThriftSerializable {
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.a);
         }
+
         return _fbthriftSize;
     }
 

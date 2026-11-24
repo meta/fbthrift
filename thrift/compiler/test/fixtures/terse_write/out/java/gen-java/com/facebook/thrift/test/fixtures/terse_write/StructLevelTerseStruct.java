@@ -925,6 +925,7 @@ public final class StructLevelTerseStruct implements com.facebook.thrift.payload
                 _fbthriftSize += _fbthriftSize0;
             }
         }
+
         return _fbthriftSize;
     }
 

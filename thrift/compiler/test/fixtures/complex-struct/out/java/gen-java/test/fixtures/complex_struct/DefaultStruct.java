@@ -1608,6 +1608,7 @@ public final class DefaultStruct implements com.facebook.thrift.payload.ThriftSe
                 }
             }
         }
+
         return _fbthriftSize;
     }
 

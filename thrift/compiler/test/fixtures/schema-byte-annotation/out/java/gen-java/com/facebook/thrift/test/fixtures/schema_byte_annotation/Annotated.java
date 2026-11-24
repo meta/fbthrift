@@ -174,6 +174,7 @@ public final class Annotated implements com.facebook.thrift.payload.ThriftSerial
             com.facebook.thrift.util.ThriftSizes.FIELD_STOP
                 + com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.BYTE;
+
         return _fbthriftSize;
     }
 

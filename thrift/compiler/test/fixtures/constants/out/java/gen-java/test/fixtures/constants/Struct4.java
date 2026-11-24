@@ -260,6 +260,7 @@ public final class Struct4 implements com.facebook.thrift.payload.ThriftSerializ
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.BYTE;
         }
+
         return _fbthriftSize;
     }
 

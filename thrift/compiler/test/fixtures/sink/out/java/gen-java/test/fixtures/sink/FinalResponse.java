@@ -171,6 +171,7 @@ public final class FinalResponse implements com.facebook.thrift.payload.ThriftSe
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.content);
         }
+
         return _fbthriftSize;
     }
 

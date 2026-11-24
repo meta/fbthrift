@@ -265,12 +265,14 @@ public final class Union implements com.facebook.thrift.payload.ThriftSerializab
         if (this.id != 0 && this.value == null) {
             return 0;
         }
+
         long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
 
         switch (this.id) {
 
         case _INTVALUE: {
-            long _fbthriftVar0 =
+            long
+                _fbthriftVar0 =
                 (long) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.I64;
@@ -278,7 +280,8 @@ public final class Union implements com.facebook.thrift.payload.ThriftSerializab
         }
 
         case _STRINGVALUE: {
-            String _fbthriftVar0 =
+            String
+                _fbthriftVar0 =
                 (String) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.string(_fbthriftVar0);
@@ -287,6 +290,7 @@ public final class Union implements com.facebook.thrift.payload.ThriftSerializab
 
         default:
         }
+
         return _fbthriftSize;
     }
 

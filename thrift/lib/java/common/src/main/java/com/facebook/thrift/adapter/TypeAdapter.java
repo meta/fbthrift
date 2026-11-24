@@ -72,4 +72,21 @@ public interface TypeAdapter<T, P> extends Adapter<P> {
    * @return Thrift type or an adapted type
    */
   T toThrift(P p);
+
+  /**
+   * Upper bound on the bytes the converted Thrift value writes on Binary and Compact protocols,
+   * without running the conversion. Generated sizing calls this first; a negative return means the
+   * bound is not provided, and the generated code converts with {@link #toThrift} and sizes the
+   * result instead. Must not allocate.
+   *
+   * <p>The fallback conversion result is borrowed: sizing never releases it. Adapters whose
+   * conversion allocates (e.g. a fresh pooled buffer per call) must implement this hook so sizing
+   * never converts.
+   *
+   * @param p Adapted type
+   * @return size bound, or a negative value when not provided
+   */
+  default long serializedSize(P p) {
+    return -1;
+  }
 }

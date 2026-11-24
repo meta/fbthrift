@@ -270,6 +270,7 @@ public final class Struct3 implements com.facebook.thrift.payload.ThriftSerializ
                 }
             }
         }
+
         return _fbthriftSize;
     }
 

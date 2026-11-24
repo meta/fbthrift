@@ -212,6 +212,7 @@ public final class ReqXcep extends org.apache.thrift.TBaseException implements c
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.message);
         }
+
         return _fbthriftSize;
     }
 

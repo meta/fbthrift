@@ -271,12 +271,14 @@ public final class ListUnion implements com.facebook.thrift.payload.ThriftSerial
         if (this.id != 0 && this.value == null) {
             return 0;
         }
+
         long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
 
         switch (this.id) {
 
         case _INTLISTVALUE: {
-            List<Long> _fbthriftVar0 =
+            List<Long>
+                _fbthriftVar0 =
                 (List<Long>) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
@@ -286,7 +288,8 @@ public final class ListUnion implements com.facebook.thrift.payload.ThriftSerial
         }
 
         case _STRINGLISTVALUE: {
-            List<String> _fbthriftVar0 =
+            List<String>
+                _fbthriftVar0 =
                 (List<String>) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize =
@@ -300,6 +303,7 @@ public final class ListUnion implements com.facebook.thrift.payload.ThriftSerial
 
         default:
         }
+
         return _fbthriftSize;
     }
 

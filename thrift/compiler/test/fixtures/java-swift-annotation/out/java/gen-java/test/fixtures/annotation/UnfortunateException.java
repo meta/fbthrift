@@ -217,6 +217,7 @@ public final class UnfortunateException extends org.apache.thrift.TBaseException
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.anSnakeString);
         }
+
         return _fbthriftSize;
     }
 

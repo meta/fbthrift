@@ -307,6 +307,7 @@ public final class Val implements com.facebook.thrift.payload.ThriftSerializable
                 }
             }
         }
+
         return _fbthriftSize;
     }
 

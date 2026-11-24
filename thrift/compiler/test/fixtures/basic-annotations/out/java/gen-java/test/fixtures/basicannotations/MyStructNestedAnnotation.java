@@ -171,6 +171,7 @@ public final class MyStructNestedAnnotation implements com.facebook.thrift.paylo
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.name);
         }
+
         return _fbthriftSize;
     }
 

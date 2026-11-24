@@ -365,6 +365,7 @@ public final class User implements com.facebook.thrift.payload.ThriftSerializabl
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.emailAddress);
         }
+
         return _fbthriftSize;
     }
 

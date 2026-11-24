@@ -236,6 +236,7 @@ public final class StructWithTerseInternBox implements com.facebook.thrift.paylo
                 _fbthriftSize += _fbthriftSize0;
             }
         }
+
         return _fbthriftSize;
     }
 

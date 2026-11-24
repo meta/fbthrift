@@ -176,6 +176,7 @@ public final class ReorderedStruct implements com.facebook.thrift.payload.Thrift
             com.facebook.thrift.util.ThriftSizes.FIELD_STOP
                 + com.facebook.thrift.util.ThriftSizes.FIELD
                     + test.fixtures.adapter.DeclaredAfterStruct.serializedSizeBound();
+
         return _fbthriftSize;
     }
 

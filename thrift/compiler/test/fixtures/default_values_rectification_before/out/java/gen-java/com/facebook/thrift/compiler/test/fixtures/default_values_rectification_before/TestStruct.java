@@ -531,6 +531,7 @@ public final class TestStruct implements com.facebook.thrift.payload.ThriftSeria
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.compiler.test.fixtures.default_values_rectification_before.EmptyStruct.serializedSizeBound();
         }
+
         return _fbthriftSize;
     }
 

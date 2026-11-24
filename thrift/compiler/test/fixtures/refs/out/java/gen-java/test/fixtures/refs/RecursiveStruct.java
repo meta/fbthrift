@@ -196,6 +196,7 @@ public final class RecursiveStruct implements com.facebook.thrift.payload.Thrift
                 }
             }
         }
+
         return _fbthriftSize;
     }
 

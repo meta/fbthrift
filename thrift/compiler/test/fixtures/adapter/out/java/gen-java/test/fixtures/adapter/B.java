@@ -176,6 +176,7 @@ public final class B implements com.facebook.thrift.payload.ThriftSerializable {
             com.facebook.thrift.util.ThriftSizes.FIELD_STOP
                 + com.facebook.thrift.util.ThriftSizes.FIELD
                     + test.fixtures.adapter.A.serializedSizeBound();
+
         return _fbthriftSize;
     }
 

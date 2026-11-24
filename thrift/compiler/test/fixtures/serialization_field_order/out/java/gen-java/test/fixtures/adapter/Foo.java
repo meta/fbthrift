@@ -251,6 +251,7 @@ public final class Foo implements com.facebook.thrift.payload.ThriftSerializable
             com.facebook.thrift.util.ThriftSizes.FIELD_STOP
                 + 3 * (com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.I32);
+
         return _fbthriftSize;
     }
 

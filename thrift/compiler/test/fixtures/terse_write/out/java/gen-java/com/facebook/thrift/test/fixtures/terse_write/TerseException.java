@@ -185,6 +185,7 @@ public final class TerseException extends org.apache.thrift.TBaseException imple
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.msg);
         }
+
         return _fbthriftSize;
     }
 

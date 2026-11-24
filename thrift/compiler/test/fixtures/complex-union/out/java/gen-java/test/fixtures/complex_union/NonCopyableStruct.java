@@ -171,6 +171,7 @@ public final class NonCopyableStruct implements com.facebook.thrift.payload.Thri
             com.facebook.thrift.util.ThriftSizes.FIELD_STOP
                 + com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.I64;
+
         return _fbthriftSize;
     }
 

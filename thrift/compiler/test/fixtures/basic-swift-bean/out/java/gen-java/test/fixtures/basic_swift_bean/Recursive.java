@@ -221,6 +221,7 @@ public final class Recursive implements com.facebook.thrift.payload.ThriftSerial
                 }
             }
         }
+
         return _fbthriftSize;
     }
 

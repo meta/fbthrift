@@ -1662,6 +1662,7 @@ public final class FieldLevelTerseStruct implements com.facebook.thrift.payload.
                 }
             }
         }
+
         return _fbthriftSize;
     }
 

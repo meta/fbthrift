@@ -174,6 +174,7 @@ public final class Person implements com.facebook.thrift.payload.ThriftSerializa
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.name);
         }
+
         return _fbthriftSize;
     }
 

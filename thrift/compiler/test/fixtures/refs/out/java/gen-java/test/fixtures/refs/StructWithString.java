@@ -367,6 +367,7 @@ public final class StructWithString implements com.facebook.thrift.payload.Thrif
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.sharedStringRef);
         }
+
         return _fbthriftSize;
     }
 

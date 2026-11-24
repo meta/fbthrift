@@ -1407,6 +1407,7 @@ public final class MyNomralStruct implements com.facebook.thrift.payload.ThriftS
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.msg9);
         }
+
         return _fbthriftSize;
     }
 

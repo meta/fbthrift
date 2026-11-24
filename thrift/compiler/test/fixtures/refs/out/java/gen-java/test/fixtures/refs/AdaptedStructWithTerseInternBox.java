@@ -236,6 +236,7 @@ public final class AdaptedStructWithTerseInternBox implements com.facebook.thrif
                 _fbthriftSize += _fbthriftSize0;
             }
         }
+
         return _fbthriftSize;
     }
 

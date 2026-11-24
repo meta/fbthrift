@@ -213,6 +213,7 @@ public final class NoEffect implements com.facebook.thrift.payload.ThriftSeriali
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.anSnakeString);
         }
+
         return _fbthriftSize;
     }
 

@@ -224,6 +224,7 @@ public final class BinaryStringStruct implements com.facebook.thrift.payload.Thr
                 _fbthriftSize += com.facebook.thrift.util.ThriftSizes.binary(_fbthriftVar0);
             }
         }
+
         return _fbthriftSize;
     }
 

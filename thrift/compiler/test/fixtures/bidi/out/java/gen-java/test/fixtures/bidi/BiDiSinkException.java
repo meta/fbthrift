@@ -170,6 +170,7 @@ public final class BiDiSinkException extends org.apache.thrift.TBaseException im
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.message);
         }
+
         return _fbthriftSize;
     }
 

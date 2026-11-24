@@ -215,6 +215,7 @@ public final class FieldsInjectedWithFieldsWithIncludedStruct implements com.fac
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.stringField);
         }
+
         return _fbthriftSize;
     }
 

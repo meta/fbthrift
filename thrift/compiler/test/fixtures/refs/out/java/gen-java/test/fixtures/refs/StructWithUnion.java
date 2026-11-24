@@ -278,6 +278,7 @@ public final class StructWithUnion implements com.facebook.thrift.payload.Thrift
                 }
             }
         }
+
         return _fbthriftSize;
     }
 

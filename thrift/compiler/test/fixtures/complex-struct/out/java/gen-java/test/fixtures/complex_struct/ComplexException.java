@@ -489,6 +489,7 @@ public final class ComplexException extends org.apache.thrift.TBaseException imp
                 }
             }
         }
+
         return _fbthriftSize;
     }
 

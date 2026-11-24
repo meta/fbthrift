@@ -175,6 +175,7 @@ public final class InitialException extends org.apache.thrift.TBaseException imp
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.reason);
         }
+
         return _fbthriftSize;
     }
 

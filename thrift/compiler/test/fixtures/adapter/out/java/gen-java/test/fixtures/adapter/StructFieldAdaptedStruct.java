@@ -306,6 +306,7 @@ public final class StructFieldAdaptedStruct implements com.facebook.thrift.paylo
                     + test.fixtures.adapter.AdaptedStruct.serializedSizeBound())
                 + 2 * (com.facebook.thrift.util.ThriftSizes.FIELD
                     + test.fixtures.adapter.DirectlyAdaptedStruct.serializedSizeBound());
+
         return _fbthriftSize;
     }
 

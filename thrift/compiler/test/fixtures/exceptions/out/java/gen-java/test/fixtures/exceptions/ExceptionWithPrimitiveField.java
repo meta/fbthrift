@@ -213,6 +213,7 @@ public final class ExceptionWithPrimitiveField extends org.apache.thrift.TBaseEx
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.message);
         }
+
         return _fbthriftSize;
     }
 

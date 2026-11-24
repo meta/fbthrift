@@ -294,6 +294,7 @@ public final class StructWithBox implements com.facebook.thrift.payload.ThriftSe
                 }
             }
         }
+
         return _fbthriftSize;
     }
 

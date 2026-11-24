@@ -259,6 +259,7 @@ public final class MyStruct implements com.facebook.thrift.payload.ThriftSeriali
                     + test.fixtures.includes.includes.Included.serializedSizeBound())
                 + com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.I64;
+
         return _fbthriftSize;
     }
 

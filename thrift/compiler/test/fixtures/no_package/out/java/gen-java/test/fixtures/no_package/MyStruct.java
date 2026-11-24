@@ -536,6 +536,7 @@ public final class MyStruct implements com.facebook.thrift.payload.ThriftSeriali
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.noHackCodegenField);
         }
+
         return _fbthriftSize;
     }
 

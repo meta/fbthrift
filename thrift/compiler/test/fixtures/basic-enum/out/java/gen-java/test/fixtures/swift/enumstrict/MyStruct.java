@@ -214,6 +214,7 @@ public final class MyStruct implements com.facebook.thrift.payload.ThriftSeriali
             com.facebook.thrift.util.ThriftSizes.FIELD_STOP
                 + 2 * (com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.ENUM);
+
         return _fbthriftSize;
     }
 

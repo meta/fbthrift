@@ -580,6 +580,7 @@ public final class MyStruct implements com.facebook.thrift.payload.ThriftSeriali
                 }
             }
         }
+
         return _fbthriftSize;
     }
 

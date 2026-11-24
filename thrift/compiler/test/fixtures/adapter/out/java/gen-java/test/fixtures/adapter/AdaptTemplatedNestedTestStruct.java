@@ -182,6 +182,7 @@ public final class AdaptTemplatedNestedTestStruct implements com.facebook.thrift
                 }
             }
         }
+
         return _fbthriftSize;
     }
 

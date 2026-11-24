@@ -747,6 +747,7 @@ public final class MyStructTypeDef implements com.facebook.thrift.payload.Thrift
                 }
             }
         }
+
         return _fbthriftSize;
     }
 

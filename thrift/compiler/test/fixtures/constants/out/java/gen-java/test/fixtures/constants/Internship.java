@@ -358,6 +358,7 @@ public final class Internship implements com.facebook.thrift.payload.ThriftSeria
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.school);
         }
+
         return _fbthriftSize;
     }
 

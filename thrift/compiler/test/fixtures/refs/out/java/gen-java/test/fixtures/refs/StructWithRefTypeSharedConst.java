@@ -256,6 +256,7 @@ public final class StructWithRefTypeSharedConst implements com.facebook.thrift.p
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + test.fixtures.refs.Empty.serializedSizeBound();
         }
+
         return _fbthriftSize;
     }
 

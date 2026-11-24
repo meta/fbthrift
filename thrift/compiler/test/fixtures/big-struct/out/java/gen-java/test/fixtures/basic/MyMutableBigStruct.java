@@ -13552,6 +13552,7 @@ public final class MyMutableBigStruct implements com.facebook.thrift.payload.Thr
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.msg257);
         }
+
         return _fbthriftSize;
     }
 

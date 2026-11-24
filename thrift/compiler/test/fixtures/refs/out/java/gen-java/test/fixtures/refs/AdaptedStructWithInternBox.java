@@ -223,6 +223,7 @@ public final class AdaptedStructWithInternBox implements com.facebook.thrift.pay
                 }
             }
         }
+
         return _fbthriftSize;
     }
 

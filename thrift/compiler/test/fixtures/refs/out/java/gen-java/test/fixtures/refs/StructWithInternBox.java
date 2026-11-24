@@ -223,6 +223,7 @@ public final class StructWithInternBox implements com.facebook.thrift.payload.Th
                 }
             }
         }
+
         return _fbthriftSize;
     }
 

@@ -315,6 +315,7 @@ public final class SomeStruct implements com.facebook.thrift.payload.ThriftSeria
                     (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32;
             }
         }
+
         return _fbthriftSize;
     }
 

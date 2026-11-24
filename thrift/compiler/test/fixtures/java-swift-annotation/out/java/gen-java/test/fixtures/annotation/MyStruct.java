@@ -448,6 +448,7 @@ public final class MyStruct implements com.facebook.thrift.payload.ThriftSeriali
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.password);
         }
+
         return _fbthriftSize;
     }
 

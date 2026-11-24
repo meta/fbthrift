@@ -213,6 +213,7 @@ public final class Struct implements com.facebook.thrift.payload.ThriftSerializa
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.second);
         }
+
         return _fbthriftSize;
     }
 

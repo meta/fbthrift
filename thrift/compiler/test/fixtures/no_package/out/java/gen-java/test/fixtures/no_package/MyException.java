@@ -331,6 +331,7 @@ public final class MyException extends org.apache.thrift.TBaseException implemen
                 }
             }
         }
+
         return _fbthriftSize;
     }
 

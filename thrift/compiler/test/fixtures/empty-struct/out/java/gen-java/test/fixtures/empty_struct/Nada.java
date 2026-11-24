@@ -159,12 +159,14 @@ public final class Nada implements com.facebook.thrift.payload.ThriftSerializabl
         if (this.id != 0 && this.value == null) {
             return 0;
         }
+
         long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
 
         switch (this.id) {
 
         default:
         }
+
         return _fbthriftSize;
     }
 

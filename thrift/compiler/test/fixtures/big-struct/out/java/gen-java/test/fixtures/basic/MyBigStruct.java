@@ -12010,6 +12010,7 @@ public final class MyBigStruct implements com.facebook.thrift.payload.ThriftSeri
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.msg257);
         }
+
         return _fbthriftSize;
     }
 

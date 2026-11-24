@@ -3155,6 +3155,7 @@ public final class B implements com.facebook.thrift.payload.ThriftSerializable {
                 }
             }
         }
+
         return _fbthriftSize;
     }
 

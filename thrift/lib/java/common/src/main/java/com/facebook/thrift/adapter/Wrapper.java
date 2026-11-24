@@ -34,4 +34,20 @@ public interface Wrapper<T, P, R> extends Adapter<P> {
    * @return Thrift type or an adapted type
    */
   T toThrift(P p);
+
+  /**
+   * Upper bound on the bytes the converted Thrift value writes on Binary and Compact protocols,
+   * without running the conversion. Generated sizing calls this first; a negative return means the
+   * bound is not provided, and the generated code converts with {@link #toThrift} and sizes the
+   * result instead. Must not allocate.
+   *
+   * <p>{@link #toThrift} must return a borrowed value: sizing never releases the converted value,
+   * so a wrapper whose conversion allocates must implement this hook instead.
+   *
+   * @param p Wrapped type
+   * @return size bound, or a negative value when not provided
+   */
+  default long serializedSize(P p) {
+    return -1;
+  }
 }

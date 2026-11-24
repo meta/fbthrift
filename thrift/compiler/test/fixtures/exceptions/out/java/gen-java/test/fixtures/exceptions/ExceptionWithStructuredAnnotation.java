@@ -218,6 +218,7 @@ public final class ExceptionWithStructuredAnnotation extends org.apache.thrift.T
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.messageField);
         }
+
         return _fbthriftSize;
     }
 

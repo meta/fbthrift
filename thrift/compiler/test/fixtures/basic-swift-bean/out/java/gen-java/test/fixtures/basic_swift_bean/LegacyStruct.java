@@ -213,6 +213,7 @@ public final class LegacyStruct implements com.facebook.thrift.payload.ThriftSer
             com.facebook.thrift.util.ThriftSizes.FIELD_STOP
                 + 2 * (com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.I32);
+
         return _fbthriftSize;
     }
 

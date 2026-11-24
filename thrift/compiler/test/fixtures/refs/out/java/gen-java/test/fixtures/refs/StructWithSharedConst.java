@@ -293,6 +293,7 @@ public final class StructWithSharedConst implements com.facebook.thrift.payload.
                 }
             }
         }
+
         return _fbthriftSize;
     }
 

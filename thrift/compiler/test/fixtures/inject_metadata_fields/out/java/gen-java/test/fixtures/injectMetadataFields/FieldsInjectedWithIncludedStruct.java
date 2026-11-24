@@ -318,6 +318,7 @@ public final class FieldsInjectedWithIncludedStruct implements com.facebook.thri
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.injectedUnstructuredAnnotationField);
         }
+
         return _fbthriftSize;
     }
 

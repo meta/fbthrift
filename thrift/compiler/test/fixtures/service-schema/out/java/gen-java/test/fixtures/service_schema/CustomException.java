@@ -220,6 +220,7 @@ public final class CustomException extends org.apache.thrift.TBaseException impl
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.name);
         }
+
         return _fbthriftSize;
     }
 

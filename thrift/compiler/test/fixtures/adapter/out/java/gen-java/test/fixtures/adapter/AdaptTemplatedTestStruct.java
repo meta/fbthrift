@@ -1245,6 +1245,7 @@ public final class AdaptTemplatedTestStruct implements com.facebook.thrift.paylo
                     (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I64;
             }
         }
+
         return _fbthriftSize;
     }
 

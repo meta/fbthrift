@@ -923,12 +923,14 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
         if (this.id != 0 && this.value == null) {
             return 0;
         }
+
         long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
 
         switch (this.id) {
 
         case _BOOL_FIELD: {
-            boolean _fbthriftVar0 =
+            boolean
+                _fbthriftVar0 =
                 (boolean) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.BOOL;
@@ -936,7 +938,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
         }
 
         case _BYTE_FIELD: {
-            byte _fbthriftVar0 =
+            byte
+                _fbthriftVar0 =
                 (byte) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.BYTE;
@@ -944,7 +947,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
         }
 
         case _SHORT_FIELD: {
-            short _fbthriftVar0 =
+            short
+                _fbthriftVar0 =
                 (short) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.I16;
@@ -952,7 +956,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
         }
 
         case _INT_FIELD: {
-            int _fbthriftVar0 =
+            int
+                _fbthriftVar0 =
                 (int) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.I32;
@@ -960,7 +965,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
         }
 
         case _LONG_FIELD: {
-            long _fbthriftVar0 =
+            long
+                _fbthriftVar0 =
                 (long) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.I64;
@@ -968,7 +974,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
         }
 
         case _FLOAT_FIELD: {
-            float _fbthriftVar0 =
+            float
+                _fbthriftVar0 =
                 (float) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FLOAT;
@@ -976,7 +983,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
         }
 
         case _DOUBLE_FIELD: {
-            double _fbthriftVar0 =
+            double
+                _fbthriftVar0 =
                 (double) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.DOUBLE;
@@ -984,7 +992,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
         }
 
         case _STRING_FIELD: {
-            String _fbthriftVar0 =
+            String
+                _fbthriftVar0 =
                 (String) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.string(_fbthriftVar0);
@@ -992,7 +1001,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
         }
 
         case _BINARY_FIELD: {
-            byte[] _fbthriftVar0 =
+            byte[]
+                _fbthriftVar0 =
                 (byte[]) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.binary(_fbthriftVar0);
@@ -1000,7 +1010,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
         }
 
         case _ENUM_FIELD: {
-            com.facebook.thrift.test.fixtures.terse_write.MyEnum _fbthriftVar0 =
+            com.facebook.thrift.test.fixtures.terse_write.MyEnum
+                _fbthriftVar0 =
                 (com.facebook.thrift.test.fixtures.terse_write.MyEnum) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.ENUM;
@@ -1008,7 +1019,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
         }
 
         case _LIST_FIELD: {
-            List<Short> _fbthriftVar0 =
+            List<Short>
+                _fbthriftVar0 =
                 (List<Short>) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
@@ -1018,7 +1030,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
         }
 
         case _SET_FIELD: {
-            Set<Short> _fbthriftVar0 =
+            Set<Short>
+                _fbthriftVar0 =
                 (Set<Short>) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
@@ -1028,7 +1041,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
         }
 
         case _MAP_FIELD: {
-            Map<Short, Short> _fbthriftVar0 =
+            Map<Short, Short>
+                _fbthriftVar0 =
                 (Map<Short, Short>) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
@@ -1040,7 +1054,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
         }
 
         case _STRUCT_FIELD: {
-            com.facebook.thrift.test.fixtures.terse_write.MyStruct _fbthriftVar0 =
+            com.facebook.thrift.test.fixtures.terse_write.MyStruct
+                _fbthriftVar0 =
                 (com.facebook.thrift.test.fixtures.terse_write.MyStruct) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             {
@@ -1055,6 +1070,7 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
 
         default:
         }
+
         return _fbthriftSize;
     }
 

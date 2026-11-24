@@ -217,6 +217,7 @@ public final class Included implements com.facebook.thrift.payload.ThriftSeriali
                     + com.facebook.thrift.util.ThriftSizes.I64
                 + com.facebook.thrift.util.ThriftSizes.FIELD
                     + test.fixtures.includes.transitive.Foo.serializedSizeBound();
+
         return _fbthriftSize;
     }
 

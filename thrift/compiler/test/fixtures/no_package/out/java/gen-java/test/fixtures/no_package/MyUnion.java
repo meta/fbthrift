@@ -387,12 +387,14 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
         if (this.id != 0 && this.value == null) {
             return 0;
         }
+
         long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
 
         switch (this.id) {
 
         case _MYENUM: {
-            test.fixtures.no_package.MyEnum _fbthriftVar0 =
+            test.fixtures.no_package.MyEnum
+                _fbthriftVar0 =
                 (test.fixtures.no_package.MyEnum) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.ENUM;
@@ -400,7 +402,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
         }
 
         case _MYSTRUCT: {
-            test.fixtures.no_package.MyStruct _fbthriftVar0 =
+            test.fixtures.no_package.MyStruct
+                _fbthriftVar0 =
                 (test.fixtures.no_package.MyStruct) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             {
@@ -414,7 +417,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
         }
 
         case _MYDATAITEM: {
-            test.fixtures.no_package.MyDataItem _fbthriftVar0 =
+            test.fixtures.no_package.MyDataItem
+                _fbthriftVar0 =
                 (test.fixtures.no_package.MyDataItem) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             {
@@ -428,7 +432,8 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
         }
 
         case _FLOATSET: {
-            Set<Float> _fbthriftVar0 =
+            Set<Float>
+                _fbthriftVar0 =
                 (Set<Float>) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
@@ -439,6 +444,7 @@ public final class MyUnion implements com.facebook.thrift.payload.ThriftSerializ
 
         default:
         }
+
         return _fbthriftSize;
     }
 

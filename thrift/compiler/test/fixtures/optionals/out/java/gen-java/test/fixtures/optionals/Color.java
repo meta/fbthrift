@@ -291,6 +291,7 @@ public final class Color implements com.facebook.thrift.payload.ThriftSerializab
             com.facebook.thrift.util.ThriftSizes.FIELD_STOP
                 + 4 * (com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.DOUBLE);
+
         return _fbthriftSize;
     }
 

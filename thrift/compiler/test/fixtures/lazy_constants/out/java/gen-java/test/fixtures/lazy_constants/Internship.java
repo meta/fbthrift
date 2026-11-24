@@ -261,6 +261,7 @@ public final class Internship implements com.facebook.thrift.payload.ThriftSeria
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.ENUM;
         }
+
         return _fbthriftSize;
     }
 

@@ -218,6 +218,7 @@ public final class OptXcep extends org.apache.thrift.TBaseException implements c
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.I32;
         }
+
         return _fbthriftSize;
     }
 

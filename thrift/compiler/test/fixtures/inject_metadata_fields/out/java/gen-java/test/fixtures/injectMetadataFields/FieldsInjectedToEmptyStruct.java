@@ -171,6 +171,7 @@ public final class FieldsInjectedToEmptyStruct implements com.facebook.thrift.pa
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.injectedField);
         }
+
         return _fbthriftSize;
     }
 

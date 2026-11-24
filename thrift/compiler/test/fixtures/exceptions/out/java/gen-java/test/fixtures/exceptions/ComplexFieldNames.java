@@ -225,6 +225,7 @@ public final class ComplexFieldNames extends org.apache.thrift.TBaseException im
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.internalErrorMessage);
         }
+
         return _fbthriftSize;
     }
 

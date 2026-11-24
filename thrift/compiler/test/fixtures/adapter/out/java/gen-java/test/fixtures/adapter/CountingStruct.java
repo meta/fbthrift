@@ -270,6 +270,7 @@ public final class CountingStruct implements com.facebook.thrift.payload.ThriftS
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.regularString);
         }
+
         return _fbthriftSize;
     }
 

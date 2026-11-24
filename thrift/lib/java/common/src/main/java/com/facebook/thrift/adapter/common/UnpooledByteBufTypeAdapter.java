@@ -17,6 +17,7 @@
 package com.facebook.thrift.adapter.common;
 
 import com.facebook.thrift.adapter.TypeAdapter;
+import com.facebook.thrift.util.ThriftSizes;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
@@ -36,5 +37,10 @@ public class UnpooledByteBufTypeAdapter implements TypeAdapter<ByteBuf, ByteBuf>
   @Override
   public ByteBuf toThrift(ByteBuf byteBuf) {
     return byteBuf;
+  }
+
+  @Override
+  public long serializedSize(ByteBuf byteBuf) {
+    return byteBuf == null ? 0 : ThriftSizes.binary(byteBuf.readableBytes());
   }
 }

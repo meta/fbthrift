@@ -213,6 +213,7 @@ public final class SimpleStruct implements com.facebook.thrift.payload.ThriftSer
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.name);
         }
+
         return _fbthriftSize;
     }
 

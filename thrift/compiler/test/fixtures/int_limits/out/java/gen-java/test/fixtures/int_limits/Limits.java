@@ -463,6 +463,7 @@ public final class Limits implements com.facebook.thrift.payload.ThriftSerializa
                     + com.facebook.thrift.util.ThriftSizes.I16)
                 + 2 * (com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.BYTE);
+
         return _fbthriftSize;
     }
 

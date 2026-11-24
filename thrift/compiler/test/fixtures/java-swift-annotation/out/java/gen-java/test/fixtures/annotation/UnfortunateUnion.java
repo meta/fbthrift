@@ -265,12 +265,14 @@ public final class UnfortunateUnion implements com.facebook.thrift.payload.Thrif
         if (this.id != 0 && this.value == null) {
             return 0;
         }
+
         long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
 
         switch (this.id) {
 
         case _AN_SNAKE_STRING: {
-            String _fbthriftVar0 =
+            String
+                _fbthriftVar0 =
                 (String) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.string(_fbthriftVar0);
@@ -278,7 +280,8 @@ public final class UnfortunateUnion implements com.facebook.thrift.payload.Thrif
         }
 
         case _ACAMELI32: {
-            int _fbthriftVar0 =
+            int
+                _fbthriftVar0 =
                 (int) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.I32;
@@ -287,6 +290,7 @@ public final class UnfortunateUnion implements com.facebook.thrift.payload.Thrif
 
         default:
         }
+
         return _fbthriftSize;
     }
 

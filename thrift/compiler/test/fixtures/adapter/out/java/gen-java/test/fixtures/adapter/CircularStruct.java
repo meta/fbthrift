@@ -182,6 +182,7 @@ public final class CircularStruct implements com.facebook.thrift.payload.ThriftS
                 }
             }
         }
+
         return _fbthriftSize;
     }
 

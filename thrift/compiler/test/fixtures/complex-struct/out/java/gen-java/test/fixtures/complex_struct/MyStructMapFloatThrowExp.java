@@ -289,6 +289,7 @@ public final class MyStructMapFloatThrowExp implements com.facebook.thrift.paylo
                 }
             }
         }
+
         return _fbthriftSize;
     }
 

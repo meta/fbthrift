@@ -293,6 +293,7 @@ public final class TerseAdaptedFields implements com.facebook.thrift.payload.Thr
                     (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32;
             }
         }
+
         return _fbthriftSize;
     }
 

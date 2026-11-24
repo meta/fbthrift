@@ -319,12 +319,14 @@ public final class ExampleUnion implements com.facebook.thrift.payload.ThriftSer
         if (this.id != 0 && this.value == null) {
             return 0;
         }
+
         long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
 
         switch (this.id) {
 
         case _STRINGVALUE: {
-            String _fbthriftVar0 =
+            String
+                _fbthriftVar0 =
                 (String) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.string(_fbthriftVar0);
@@ -332,7 +334,8 @@ public final class ExampleUnion implements com.facebook.thrift.payload.ThriftSer
         }
 
         case _INTVALUE: {
-            int _fbthriftVar0 =
+            int
+                _fbthriftVar0 =
                 (int) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.I32;
@@ -340,7 +343,8 @@ public final class ExampleUnion implements com.facebook.thrift.payload.ThriftSer
         }
 
         case _DOUBLEVALUE: {
-            double _fbthriftVar0 =
+            double
+                _fbthriftVar0 =
                 (double) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.DOUBLE;
@@ -349,6 +353,7 @@ public final class ExampleUnion implements com.facebook.thrift.payload.ThriftSer
 
         default:
         }
+
         return _fbthriftSize;
     }
 

@@ -174,6 +174,7 @@ public final class SameNamespaceStruct implements com.facebook.thrift.payload.Th
             com.facebook.thrift.util.ThriftSizes.FIELD_STOP
                 + com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.I64;
+
         return _fbthriftSize;
     }
 

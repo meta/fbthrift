@@ -345,6 +345,7 @@ public final class Foo implements com.facebook.thrift.payload.ThriftSerializable
                     (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32;
             }
         }
+
         return _fbthriftSize;
     }
 

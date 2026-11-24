@@ -171,6 +171,7 @@ public final class CompatibleWithKeywordSink implements com.facebook.thrift.payl
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.sink);
         }
+
         return _fbthriftSize;
     }
 

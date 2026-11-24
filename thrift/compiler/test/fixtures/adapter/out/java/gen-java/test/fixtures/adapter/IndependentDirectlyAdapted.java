@@ -174,6 +174,7 @@ public final class IndependentDirectlyAdapted implements com.facebook.thrift.pay
             com.facebook.thrift.util.ThriftSizes.FIELD_STOP
                 + com.facebook.thrift.util.ThriftSizes.FIELD
                     + com.facebook.thrift.util.ThriftSizes.I32;
+
         return _fbthriftSize;
     }
 

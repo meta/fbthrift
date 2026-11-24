@@ -438,6 +438,7 @@ public final class TypeRemapped implements com.facebook.thrift.payload.ThriftSer
                 _fbthriftSize += com.facebook.thrift.util.ThriftSizes.binary(_fbthriftVar0);
             }
         }
+
         return _fbthriftSize;
     }
 

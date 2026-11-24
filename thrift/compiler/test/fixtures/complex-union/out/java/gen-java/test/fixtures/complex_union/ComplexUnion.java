@@ -487,12 +487,14 @@ public final class ComplexUnion implements com.facebook.thrift.payload.ThriftSer
         if (this.id != 0 && this.value == null) {
             return 0;
         }
+
         long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
 
         switch (this.id) {
 
         case _INTVALUE: {
-            long _fbthriftVar0 =
+            long
+                _fbthriftVar0 =
                 (long) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.I64;
@@ -500,7 +502,8 @@ public final class ComplexUnion implements com.facebook.thrift.payload.ThriftSer
         }
 
         case _STRINGVALUE: {
-            String _fbthriftVar0 =
+            String
+                _fbthriftVar0 =
                 (String) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.string(_fbthriftVar0);
@@ -508,7 +511,8 @@ public final class ComplexUnion implements com.facebook.thrift.payload.ThriftSer
         }
 
         case _INTLISTVALUE: {
-            List<Long> _fbthriftVar0 =
+            List<Long>
+                _fbthriftVar0 =
                 (List<Long>) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
@@ -518,7 +522,8 @@ public final class ComplexUnion implements com.facebook.thrift.payload.ThriftSer
         }
 
         case _STRINGLISTVALUE: {
-            List<String> _fbthriftVar0 =
+            List<String>
+                _fbthriftVar0 =
                 (List<String>) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize =
@@ -531,7 +536,8 @@ public final class ComplexUnion implements com.facebook.thrift.payload.ThriftSer
         }
 
         case _TYPEDEFVALUE: {
-            Map<Short, String> _fbthriftVar0 =
+            Map<Short, String>
+                _fbthriftVar0 =
                 (Map<Short, String>) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.MAP;
@@ -551,7 +557,8 @@ public final class ComplexUnion implements com.facebook.thrift.payload.ThriftSer
         }
 
         case _STRINGREF: {
-            String _fbthriftVar0 =
+            String
+                _fbthriftVar0 =
                 (String) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.string(_fbthriftVar0);
@@ -560,6 +567,7 @@ public final class ComplexUnion implements com.facebook.thrift.payload.ThriftSer
 
         default:
         }
+
         return _fbthriftSize;
     }
 

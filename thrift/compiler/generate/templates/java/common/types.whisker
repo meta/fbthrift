@@ -593,15 +593,23 @@ _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
 for ({{#partial adapted_type type=type.elem_type has_adapter_override=field.hasAdapter?}} _fbthriftVar{{(int.add depth 1)}} :
     _fbthriftVar{{depth}}) {
     {{#if type.elem_type.hasAdapter?}}
-        {{#if (int.lt? depth 1)}}
-{{#partial adapted_boxed_type type=type.elem_type}} _fbthriftVar{{(int.add depth 2)}} =
-        __{{type.elem_type.name}}_Adapter.toThrift(_fbthriftVar{{(int.add depth 1)}});
-    {{#else}}
-{{#partial adapted_boxed_type type=type.elem_type}} _fbthriftVar{{(int.add depth 2)}} =
-        __{{type.elem_type.name}}_Adapter.toThrift(
-            _fbthriftVar{{(int.add depth 1)}});
-    {{/if (int.lt? depth 1)}}
-    {{#partial size_type field=field type=type.elem_type depth=(int.add depth 2)}}
+    if (_fbthriftVar{{(int.add depth 1)}} != null) {
+        long _fbthriftHookSize{{(int.add depth 1)}} =
+            __{{type.elem_type.name}}_Adapter.serializedSize(_fbthriftVar{{(int.add depth 1)}});
+        if (_fbthriftHookSize{{(int.add depth 1)}} >= 0) {
+            _fbthriftSize =
+                com.facebook.thrift.util.ThriftSizes.addSize(
+                    _fbthriftSize, _fbthriftHookSize{{(int.add depth 1)}});
+        } else {
+            {{#partial adapted_boxed_type type=type.elem_type}} _fbthriftVar{{(int.add depth 2)}} =
+                __{{type.elem_type.name}}_Adapter.toThrift(_fbthriftVar{{(int.add depth 1)}});
+            {{#partial size_type field=field type=type.elem_type depth=(int.add depth 2)}}
+        }
+    } else {
+        {{#partial adapted_boxed_type type=type.elem_type}} _fbthriftVar{{(int.add depth 2)}} =
+            __{{type.elem_type.name}}_Adapter.toThrift(_fbthriftVar{{(int.add depth 1)}});
+        {{#partial size_type field=field type=type.elem_type depth=(int.add depth 2)}}
+    }
     {{#else}}
     {{#partial size_type field=field type=type.elem_type depth=(int.add depth 1)}}
     {{/if type.elem_type.hasAdapter?}}
@@ -654,15 +662,23 @@ _fbthriftSize += com.facebook.thrift.util.ThriftSizes.LIST;
 for ({{#partial adapted_type type=type.elem_type has_adapter_override=field.hasAdapter?}} _fbthriftVar{{(int.add depth 1)}} :
     _fbthriftVar{{depth}}) {
     {{#if type.elem_type.hasAdapter?}}
-        {{#if (int.lt? depth 2)}}
-{{#partial adapted_boxed_type type=type.elem_type}} _fbthriftVar{{(int.add depth 2)}} =
-        __{{type.elem_type.name}}_Adapter.toThrift(_fbthriftVar{{(int.add depth 1)}});
-    {{#else}}
-{{#partial adapted_boxed_type type=type.elem_type}} _fbthriftVar{{(int.add depth 2)}} =
-        __{{type.elem_type.name}}_Adapter.toThrift(
-            _fbthriftVar{{(int.add depth 1)}});
-    {{/if (int.lt? depth 2)}}
-    {{#partial size_type field=field type=type.elem_type depth=(int.add depth 2)}}
+    if (_fbthriftVar{{(int.add depth 1)}} != null) {
+        long _fbthriftHookSize{{(int.add depth 1)}} =
+            __{{type.elem_type.name}}_Adapter.serializedSize(_fbthriftVar{{(int.add depth 1)}});
+        if (_fbthriftHookSize{{(int.add depth 1)}} >= 0) {
+            _fbthriftSize =
+                com.facebook.thrift.util.ThriftSizes.addSize(
+                    _fbthriftSize, _fbthriftHookSize{{(int.add depth 1)}});
+        } else {
+            {{#partial adapted_boxed_type type=type.elem_type}} _fbthriftVar{{(int.add depth 2)}} =
+                __{{type.elem_type.name}}_Adapter.toThrift(_fbthriftVar{{(int.add depth 1)}});
+            {{#partial size_type field=field type=type.elem_type depth=(int.add depth 2)}}
+        }
+    } else {
+        {{#partial adapted_boxed_type type=type.elem_type}} _fbthriftVar{{(int.add depth 2)}} =
+            __{{type.elem_type.name}}_Adapter.toThrift(_fbthriftVar{{(int.add depth 1)}});
+        {{#partial size_type field=field type=type.elem_type depth=(int.add depth 2)}}
+    }
     {{#else}}
     {{#partial size_type field=field type=type.elem_type depth=(int.add depth 1)}}
     {{/if type.elem_type.hasAdapter?}}
@@ -736,15 +752,23 @@ for (Map.Entry<{{#partial boxed_type type=type.key_type field_hasAdapter=field.h
         {{#partial boxed_type type=type.key_type field_hasAdapter=field.hasAdapter?}} _fbthriftVar{{(int.add depth 2)}} =
             _fbthriftVar{{(int.add depth 1)}}.getKey();
         {{#if type.key_type.hasAdapter?}}
-            {{#if (int.lt? depth 1)}}
-{{#partial adapted_boxed_type type=type.key_type}} _fbthriftVar{{(int.add depth 3)}} =
-            __{{type.key_type.name}}_Adapter.toThrift(_fbthriftVar{{(int.add depth 2)}});
-    {{#else}}
-{{#partial adapted_boxed_type type=type.key_type}} _fbthriftVar{{(int.add depth 3)}} =
-            __{{type.key_type.name}}_Adapter.toThrift(
-                _fbthriftVar{{(int.add depth 2)}});
-    {{/if (int.lt? depth 1)}}
-        {{#partial size_type field=field type=type.key_type depth=(int.add depth 3)}}
+        if (_fbthriftVar{{(int.add depth 2)}} != null) {
+            long _fbthriftHookSize{{(int.add depth 2)}} =
+                __{{type.key_type.name}}_Adapter.serializedSize(_fbthriftVar{{(int.add depth 2)}});
+            if (_fbthriftHookSize{{(int.add depth 2)}} >= 0) {
+                _fbthriftSize =
+                    com.facebook.thrift.util.ThriftSizes.addSize(
+                        _fbthriftSize, _fbthriftHookSize{{(int.add depth 2)}});
+            } else {
+                {{#partial adapted_boxed_type type=type.key_type}} _fbthriftVar{{(int.add depth 3)}} =
+                    __{{type.key_type.name}}_Adapter.toThrift(_fbthriftVar{{(int.add depth 2)}});
+                {{#partial size_type field=field type=type.key_type depth=(int.add depth 3)}}
+            }
+        } else {
+            {{#partial adapted_boxed_type type=type.key_type}} _fbthriftVar{{(int.add depth 3)}} =
+                __{{type.key_type.name}}_Adapter.toThrift(_fbthriftVar{{(int.add depth 2)}});
+            {{#partial size_type field=field type=type.key_type depth=(int.add depth 3)}}
+        }
         {{#else}}
         {{#partial size_type field=field type=type.key_type depth=(int.add depth 2)}}
         {{/if type.key_type.hasAdapter?}}
@@ -755,15 +779,23 @@ for (Map.Entry<{{#partial boxed_type type=type.key_type field_hasAdapter=field.h
         {{#partial boxed_type type=type.val_type field_hasAdapter=field.hasAdapter?}} _fbthriftVar{{(int.add depth 2)}} =
             _fbthriftVar{{(int.add depth 1)}}.getValue();
         {{#if type.val_type.hasAdapter?}}
-            {{#if (int.lt? depth 1)}}
-{{#partial adapted_boxed_type type=type.val_type}} _fbthriftVar{{(int.add depth 3)}} =
-            __{{type.val_type.name}}_Adapter.toThrift(_fbthriftVar{{(int.add depth 2)}});
-    {{#else}}
-{{#partial adapted_boxed_type type=type.val_type}} _fbthriftVar{{(int.add depth 3)}} =
-            __{{type.val_type.name}}_Adapter.toThrift(
-                _fbthriftVar{{(int.add depth 2)}});
-    {{/if (int.lt? depth 1)}}
-        {{#partial size_type field=field type=type.val_type depth=(int.add depth 3)}}
+        if (_fbthriftVar{{(int.add depth 2)}} != null) {
+            long _fbthriftHookSize{{(int.add depth 2)}} =
+                __{{type.val_type.name}}_Adapter.serializedSize(_fbthriftVar{{(int.add depth 2)}});
+            if (_fbthriftHookSize{{(int.add depth 2)}} >= 0) {
+                _fbthriftSize =
+                    com.facebook.thrift.util.ThriftSizes.addSize(
+                        _fbthriftSize, _fbthriftHookSize{{(int.add depth 2)}});
+            } else {
+                {{#partial adapted_boxed_type type=type.val_type}} _fbthriftVar{{(int.add depth 3)}} =
+                    __{{type.val_type.name}}_Adapter.toThrift(_fbthriftVar{{(int.add depth 2)}});
+                {{#partial size_type field=field type=type.val_type depth=(int.add depth 3)}}
+            }
+        } else {
+            {{#partial adapted_boxed_type type=type.val_type}} _fbthriftVar{{(int.add depth 3)}} =
+                __{{type.val_type.name}}_Adapter.toThrift(_fbthriftVar{{(int.add depth 2)}});
+            {{#partial size_type field=field type=type.val_type depth=(int.add depth 3)}}
+        }
         {{#else}}
         {{#partial size_type field=field type=type.val_type depth=(int.add depth 2)}}
         {{/if type.val_type.hasAdapter?}}

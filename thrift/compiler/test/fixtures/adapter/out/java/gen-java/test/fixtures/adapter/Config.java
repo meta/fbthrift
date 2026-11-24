@@ -174,6 +174,7 @@ public final class Config implements com.facebook.thrift.payload.ThriftSerializa
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.path);
         }
+
         return _fbthriftSize;
     }
 

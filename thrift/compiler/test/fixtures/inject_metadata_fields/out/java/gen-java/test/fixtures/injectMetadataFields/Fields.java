@@ -171,6 +171,7 @@ public final class Fields implements com.facebook.thrift.payload.ThriftSerializa
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.injectedField);
         }
+
         return _fbthriftSize;
     }
 

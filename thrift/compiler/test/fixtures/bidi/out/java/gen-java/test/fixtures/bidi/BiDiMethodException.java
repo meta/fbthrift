@@ -170,6 +170,7 @@ public final class BiDiMethodException extends org.apache.thrift.TBaseException 
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.message);
         }
+
         return _fbthriftSize;
     }
 

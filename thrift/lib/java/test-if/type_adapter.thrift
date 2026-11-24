@@ -56,6 +56,13 @@ typedef binary CopiedByteBuf
 
 @thrift.AllowLegacyTypedefUri
 @java.Adapter{
+  adapterClassName = "com.facebook.thrift.adapter.test.CountingPooledByteBufTypeAdapter",
+  typeClassName = "io.netty.buffer.ByteBuf",
+}
+typedef binary countedPooledByteBuf
+
+@thrift.AllowLegacyTypedefUri
+@java.Adapter{
   adapterClassName = "com.facebook.thrift.adapter.common.UnpooledByteBufTypeAdapter",
   typeClassName = "io.netty.buffer.ByteBuf",
 }
@@ -116,6 +123,13 @@ typedef float adaptedFloat
   typeClassName = "java.lang.String",
 }
 typedef double adaptedDouble
+
+@thrift.AllowLegacyTypedefUri
+@java.Adapter{
+  adapterClassName = "com.facebook.thrift.adapter.test.NullToIntAdapter",
+  typeClassName = "java.lang.Integer",
+}
+typedef i32 nullToInt
 
 @thrift.AllowLegacyTypedefUri
 @java.Adapter{
@@ -559,6 +573,53 @@ struct AdaptedTestStruct {
     adaptedInt,
     map<adaptedShort, quadrupleAdaptedIntList>
   > quadAdaptedMap_field;
+  // NullToIntAdapter maps a null stored value to 42: sizing must count the
+  // converted value, mirroring write0, instead of counting nothing.
+  516: nullToInt nullToIntField;
+  // Field names that collide with sizing locals must still generate
+  // compilable code: every generated local uses a reserved _fbthrift name.
+  @java.Adapter{
+    adapterClassName = "com.facebook.thrift.adapter.test.StringToByteBufTypeAdapter",
+    typeClassName = "io.netty.buffer.ByteBuf",
+  }
+  517: string size;
+  @java.Adapter{
+    adapterClassName = "com.facebook.thrift.adapter.test.StringToByteBufTypeAdapter",
+    typeClassName = "io.netty.buffer.ByteBuf",
+  }
+  518: string hookSize;
+}
+
+// A minimal struct for the null-stored adapter case: sizing must count the
+// converted value exactly, mirroring write0.
+struct NullToIntProbe {
+  1: nullToInt nullToIntField;
+}
+
+// A field whose container adapter and element adapter are both present: the
+// fallback must size elements through the element hook, never by converting.
+struct DoubleAdaptedProbe {
+  @java.Adapter{
+    adapterClassName = "com.facebook.thrift.adapter.test.IdentityListByteBufTypeAdapter",
+    typeClassName = "java.util.List<io.netty.buffer.ByteBuf>",
+  }
+  1: list<countedPooledByteBuf> values;
+}
+
+// A struct whose string field carries a hook-implementing adapter, for sizing tests that prove
+// the hook replaces conversion.
+struct AdapterHookTestStruct {
+  1: string plain_field;
+  @java.Adapter{
+    adapterClassName = "com.facebook.thrift.adapter.test.CountingHookStringAdapter",
+    typeClassName = "java.lang.String",
+  }
+  2: string hooked_field;
+  @java.Adapter{
+    adapterClassName = "com.facebook.thrift.adapter.test.CountingHookStringAdapter",
+    typeClassName = "java.lang.String",
+  }
+  3: optional string opt_hooked_field;
 }
 
 struct AdaptedTestStructWithoutDefaults {
@@ -827,6 +888,18 @@ union AdaptedTestUnion {
     adaptedInt,
     map<adaptedShort, quadrupleAdaptedIntList>
   > quadAdaptedMap_field;
+  // Same collision cover as the struct: the union sizing block must not
+  // redeclare a local from the member name.
+  @java.Adapter{
+    adapterClassName = "com.facebook.thrift.adapter.test.StringToByteBufTypeAdapter",
+    typeClassName = "io.netty.buffer.ByteBuf",
+  }
+  516: string size;
+  @java.Adapter{
+    adapterClassName = "com.facebook.thrift.adapter.test.StringToByteBufTypeAdapter",
+    typeClassName = "io.netty.buffer.ByteBuf",
+  }
+  517: string hookSize;
 }
 
 // Adapted version of TestStruct.

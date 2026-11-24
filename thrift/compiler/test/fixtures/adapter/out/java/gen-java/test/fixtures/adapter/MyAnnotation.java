@@ -216,6 +216,7 @@ public final class MyAnnotation implements com.facebook.thrift.payload.ThriftSer
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.signature);
         }
+
         return _fbthriftSize;
     }
 

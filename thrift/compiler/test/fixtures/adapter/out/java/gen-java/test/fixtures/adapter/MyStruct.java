@@ -225,17 +225,47 @@ public final class MyStruct implements com.facebook.thrift.payload.ThriftSeriali
                     + com.facebook.thrift.util.ThriftSizes.I32;
 
             {
-                Set<String>   _fbthriftVar0 =
-                    __SetWithAdapter_Adapter.toThrift(this.setString);
+                com.facebook.thrift.my.AdaptedSet_2
+                    _fbthriftVar0 = this.setString;
                 if (_fbthriftVar0 != null) {
-                    _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
-                    _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
-                    for (String _fbthriftVar1 :
-                        _fbthriftVar0) {
-                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.string(_fbthriftVar1);
+                    long _fbthriftHookSize = __SetWithAdapter_Adapter.serializedSize(_fbthriftVar0);
+                    if (_fbthriftHookSize >= 0) {
+                        _fbthriftSize =
+                            com.facebook.thrift.util.ThriftSizes.addSize(
+                                com.facebook.thrift.util.ThriftSizes.addSize(
+                                    _fbthriftSize,
+                                    com.facebook.thrift.util.ThriftSizes.FIELD),
+                                _fbthriftHookSize);
+                    } else {
+                        Set<String>   _fbthriftVar1 =
+                            __SetWithAdapter_Adapter.toThrift(_fbthriftVar0);
+                        if (_fbthriftVar1 != null) {
+                            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                            _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
+                            for (String _fbthriftVar2 :
+                                _fbthriftVar1) {
+                                _fbthriftSize +=
+                                    com.facebook.thrift.util.ThriftSizes.string(
+                                        _fbthriftVar2);
+                            }
+                        }
+                    }
+                } else {
+                    Set<String>   _fbthriftVar1 =
+                        __SetWithAdapter_Adapter.toThrift(_fbthriftVar0);
+                    if (_fbthriftVar1 != null) {
+                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
+                        _fbthriftSize += com.facebook.thrift.util.ThriftSizes.SET;
+                        for (String _fbthriftVar2 :
+                            _fbthriftVar1) {
+                            _fbthriftSize +=
+                                com.facebook.thrift.util.ThriftSizes.string(
+                                    _fbthriftVar2);
+                        }
                     }
                 }
             }
+
         return _fbthriftSize;
     }
 

@@ -580,6 +580,7 @@ public final class AdaptTestStruct implements com.facebook.thrift.payload.Thrift
                 _fbthriftSize += com.facebook.thrift.util.ThriftSizes.binary(_fbthriftVar0);
             }
         }
+
         return _fbthriftSize;
     }
 

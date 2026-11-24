@@ -175,6 +175,7 @@ public final class SinkException1 extends org.apache.thrift.TBaseException imple
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.reason);
         }
+
         return _fbthriftSize;
     }
 

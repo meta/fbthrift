@@ -335,6 +335,7 @@ public final class MyExceptionWithMessage extends org.apache.thrift.TBaseExcepti
                 }
             }
         }
+
         return _fbthriftSize;
     }
 

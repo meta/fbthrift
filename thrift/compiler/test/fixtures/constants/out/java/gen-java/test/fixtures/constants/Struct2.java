@@ -336,6 +336,7 @@ public final class Struct2 implements com.facebook.thrift.payload.ThriftSerializ
                     (long) _fbthriftVar0.size() * com.facebook.thrift.util.ThriftSizes.I32;
             }
         }
+
         return _fbthriftSize;
     }
 

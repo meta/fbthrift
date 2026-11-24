@@ -127,6 +127,7 @@ public final class EmptyStruct implements com.facebook.thrift.payload.ThriftSeri
     public long serializedSize() {
         long _fbthriftSize =
             com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
         return _fbthriftSize;
     }
 

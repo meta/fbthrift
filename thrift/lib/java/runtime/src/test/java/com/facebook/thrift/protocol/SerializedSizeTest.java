@@ -20,6 +20,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.facebook.thrift.adapter.test.BooleanToStringTypeAdapter;
+import com.facebook.thrift.adapter.test.CountingHookStringAdapter;
+import com.facebook.thrift.adapter.test.CountingPooledByteBufTypeAdapter;
 import com.facebook.thrift.adapter.test.StringToByteBufTypeAdapter;
 import com.facebook.thrift.adapter.test.Wrapped;
 import com.facebook.thrift.any.Any;
@@ -44,8 +46,11 @@ import com.facebook.thrift.test.RecursiveSizeStruct;
 import com.facebook.thrift.test.TestUnion;
 import com.facebook.thrift.test.adapter.AdaptedTestStruct;
 import com.facebook.thrift.test.adapter.AdaptedTestUnion;
+import com.facebook.thrift.test.adapter.AdapterHookTestStruct;
+import com.facebook.thrift.test.adapter.DoubleAdaptedProbe;
 import com.facebook.thrift.test.adapter.InnerException;
 import com.facebook.thrift.test.adapter.InnerUnion;
+import com.facebook.thrift.test.adapter.NullToIntProbe;
 import com.facebook.thrift.test.adapter.TestEnum;
 import com.facebook.thrift.test.cross.CrossLeaf;
 import com.facebook.thrift.test.terse.AdaptedTerseStruct;
@@ -654,7 +659,10 @@ public class SerializedSizeTest {
     long size = fresh.get().serializedSize();
     long perPass = StringToByteBufTypeAdapter.toThriftCalls;
 
-    assertEquals(2, perPass);
+    // AdaptedTestStruct carries four StringToByteBuf fields (the adapted string
+    // field and its default, plus the size/hookSize collision fields): each
+    // converts once per pass, set or not.
+    assertEquals(4, perPass);
 
     int binaryWritten = writtenBytes(false, fresh.get()::write0);
 
@@ -665,6 +673,90 @@ public class SerializedSizeTest {
     assertEquals(3 * perPass, StringToByteBufTypeAdapter.toThriftCalls);
     assertTrue(size >= binaryWritten);
     assertTrue(size >= compactWritten);
+  }
+
+  @Test
+  public void testAdaptedUnionCollisionMembers() throws Exception {
+    assertSize(
+        "union-size-member",
+        () -> AdaptedTestUnion.fromSize(Unpooled.wrappedBuffer(new byte[] {1, 2, 3})));
+
+    assertSize(
+        "union-hook-size-member",
+        () -> AdaptedTestUnion.fromHookSize(Unpooled.wrappedBuffer(new byte[] {4, 5})));
+  }
+
+  @Test
+  public void testDoubleAdaptedElementsUseHook() throws Exception {
+    Supplier<ThriftSerializable> fresh =
+        () ->
+            new DoubleAdaptedProbe.Builder()
+                .setValues(
+                    Arrays.asList(
+                        Unpooled.wrappedBuffer(new byte[] {1, 2, 3}),
+                        Unpooled.wrappedBuffer(new byte[] {4, 5})))
+                .build();
+
+    CountingPooledByteBufTypeAdapter.toThriftCalls = 0;
+    CountingPooledByteBufTypeAdapter.hookCalls = 0;
+
+    long size = fresh.get().serializedSize();
+
+    // The outer hook answers -1, so sizing falls back; the fallback must size
+    // elements through the element hook instead of converting them.
+    assertEquals(0, CountingPooledByteBufTypeAdapter.toThriftCalls);
+    assertEquals(2, CountingPooledByteBufTypeAdapter.hookCalls);
+    assertTrue(size > 0);
+
+    assertSize("double-adapted-probe", fresh);
+  }
+
+  @Test
+  public void testNullStoredAdapterCountsConvertedValue() throws Exception {
+    // The full struct carries a pre-existing 123-byte hook overcount, so it
+    // bounds but does not equal the walk. The probe struct proves the
+    // null-stored path itself is exact.
+    assertSizeAllowingOvercount("null-to-int-unset", () -> new AdaptedTestStruct.Builder().build());
+
+    assertSizeAllowingOvercount(
+        "null-to-int-set", () -> new AdaptedTestStruct.Builder().setNullToIntField(7).build());
+
+    assertSize("null-to-int-probe-unset", () -> new NullToIntProbe.Builder().build());
+
+    assertSize(
+        "null-to-int-probe-set", () -> new NullToIntProbe.Builder().setNullToIntField(7).build());
+  }
+
+  @Test
+  public void testAdapterHookSizesWithoutConverting() throws Exception {
+    Supplier<ThriftSerializable> fresh =
+        () ->
+            new AdapterHookTestStruct.Builder()
+                .setPlainField("plain")
+                .setHookedField("hooked héllo")
+                .setOptHookedField("opt")
+                .build();
+
+    CountingHookStringAdapter.hookCalls = 0;
+    CountingHookStringAdapter.convertCalls = 0;
+
+    long size = fresh.get().serializedSize();
+
+    assertEquals(2, CountingHookStringAdapter.hookCalls);
+    assertEquals(0, CountingHookStringAdapter.convertCalls);
+
+    int binaryWritten = writtenBytes(false, fresh.get()::write0);
+
+    assertEquals(2, CountingHookStringAdapter.convertCalls);
+
+    int compactWritten = writtenBytes(true, fresh.get()::write0);
+
+    assertEquals(4, CountingHookStringAdapter.convertCalls);
+    assertEquals(2, CountingHookStringAdapter.hookCalls);
+    assertTrue(size >= binaryWritten);
+    assertTrue(size >= compactWritten);
+
+    assertSize("adapter-hook", fresh);
   }
 
   @Test

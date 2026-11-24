@@ -122,6 +122,7 @@ public final class FooStreamEx extends org.apache.thrift.TBaseException implemen
     public long serializedSize() {
         long _fbthriftSize =
             com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
         return _fbthriftSize;
     }
 

@@ -2428,6 +2428,7 @@ public final class ComplexNestedStruct implements com.facebook.thrift.payload.Th
                 }
             }
         }
+
         return _fbthriftSize;
     }
 

@@ -391,6 +391,7 @@ public final class MyMutableStruct implements com.facebook.thrift.payload.Thrift
                 }
             }
         }
+
         return _fbthriftSize;
     }
 

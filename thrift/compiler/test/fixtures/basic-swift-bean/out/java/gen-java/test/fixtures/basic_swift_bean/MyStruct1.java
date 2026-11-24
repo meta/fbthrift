@@ -297,6 +297,7 @@ public final class MyStruct1 implements com.facebook.thrift.payload.ThriftSerial
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.myStringField);
         }
+
         return _fbthriftSize;
     }
 

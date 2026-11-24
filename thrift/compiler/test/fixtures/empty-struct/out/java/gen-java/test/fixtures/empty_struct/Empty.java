@@ -124,6 +124,7 @@ public final class Empty implements com.facebook.thrift.payload.ThriftSerializab
     public long serializedSize() {
         long _fbthriftSize =
             com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
+
         return _fbthriftSize;
     }
 

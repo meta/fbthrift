@@ -171,6 +171,7 @@ public final class InitialResponse implements com.facebook.thrift.payload.Thrift
                     + com.facebook.thrift.util.ThriftSizes.string(
                         this.content);
         }
+
         return _fbthriftSize;
     }
 

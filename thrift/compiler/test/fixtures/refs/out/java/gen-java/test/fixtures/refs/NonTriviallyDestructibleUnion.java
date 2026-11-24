@@ -209,12 +209,14 @@ public final class NonTriviallyDestructibleUnion implements com.facebook.thrift.
         if (this.id != 0 && this.value == null) {
             return 0;
         }
+
         long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
 
         switch (this.id) {
 
         case _INT_FIELD: {
-            int _fbthriftVar0 =
+            int
+                _fbthriftVar0 =
                 (int) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.I32;
@@ -223,6 +225,7 @@ public final class NonTriviallyDestructibleUnion implements com.facebook.thrift.
 
         default:
         }
+
         return _fbthriftSize;
     }
 

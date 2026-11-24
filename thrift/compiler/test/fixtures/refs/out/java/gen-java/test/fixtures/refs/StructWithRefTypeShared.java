@@ -256,6 +256,7 @@ public final class StructWithRefTypeShared implements com.facebook.thrift.payloa
                 com.facebook.thrift.util.ThriftSizes.FIELD
                     + test.fixtures.refs.Empty.serializedSizeBound();
         }
+
         return _fbthriftSize;
     }
 

@@ -922,6 +922,7 @@ public final class MyStruct3 implements com.facebook.thrift.payload.ThriftSerial
                 }
             }
         }
+
         return _fbthriftSize;
     }
 

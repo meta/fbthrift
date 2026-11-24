@@ -263,12 +263,14 @@ public final class VirtualComplexUnion implements com.facebook.thrift.payload.Th
         if (this.id != 0 && this.value == null) {
             return 0;
         }
+
         long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
 
         switch (this.id) {
 
         case _THINGONE: {
-            String _fbthriftVar0 =
+            String
+                _fbthriftVar0 =
                 (String) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.string(_fbthriftVar0);
@@ -276,7 +278,8 @@ public final class VirtualComplexUnion implements com.facebook.thrift.payload.Th
         }
 
         case _THINGTWO: {
-            String _fbthriftVar0 =
+            String
+                _fbthriftVar0 =
                 (String) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.string(_fbthriftVar0);
@@ -285,6 +288,7 @@ public final class VirtualComplexUnion implements com.facebook.thrift.payload.Th
 
         default:
         }
+
         return _fbthriftSize;
     }
 

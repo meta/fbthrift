@@ -351,6 +351,7 @@ public final class Containers implements com.facebook.thrift.payload.ThriftSeria
                 }
             }
         }
+
         return _fbthriftSize;
     }
 

@@ -182,6 +182,7 @@ public final class CircularAdaptee implements com.facebook.thrift.payload.Thrift
                 }
             }
         }
+
         return _fbthriftSize;
     }
 

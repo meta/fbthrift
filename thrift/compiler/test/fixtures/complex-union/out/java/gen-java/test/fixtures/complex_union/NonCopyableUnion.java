@@ -215,12 +215,14 @@ public final class NonCopyableUnion implements com.facebook.thrift.payload.Thrif
         if (this.id != 0 && this.value == null) {
             return 0;
         }
+
         long _fbthriftSize = com.facebook.thrift.util.ThriftSizes.FIELD_STOP;
 
         switch (this.id) {
 
         case _S: {
-            test.fixtures.complex_union.NonCopyableStruct _fbthriftVar0 =
+            test.fixtures.complex_union.NonCopyableStruct
+                _fbthriftVar0 =
                 (test.fixtures.complex_union.NonCopyableStruct) this.value;
             _fbthriftSize += com.facebook.thrift.util.ThriftSizes.FIELD;
             {
@@ -235,6 +237,7 @@ public final class NonCopyableUnion implements com.facebook.thrift.payload.Thrif
 
         default:
         }
+
         return _fbthriftSize;
     }
 

@@ -543,6 +543,7 @@ public final class MyMapping implements com.facebook.thrift.payload.ThriftSerial
                 }
             }
         }
+
         return _fbthriftSize;
     }
 
