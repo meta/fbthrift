@@ -1402,9 +1402,7 @@ struct move_to_unique_ptr_fn {
   }
 
   template <typename T>
-    requires(
-        is_boxed_value_ptr_v<std::remove_cvref_t<T>> &&
-        !std::is_const_v<std::remove_reference_t<T>>)
+    requires union_field_ref<T>::kReleasable
   FOLLY_ERASE auto operator()(union_field_ref<T> ref) const noexcept {
     return ref.release();
   }
@@ -1446,8 +1444,11 @@ constexpr apache::thrift::detail::can_throw_fn can_throw;
 //
 //  Transfer ownership of underlying boxed field to std::unique_ptr.
 //
-//  For a boxed union field, the union is left empty. If the field is not the
-//  active one, returns nullptr and leaves the union unchanged.
+//  Also takes the value of a union field that is boxed or stored as a
+//  std::unique_ptr with the default deleter (unique `cpp.ref`, or `cpp.Type`
+//  such as `std::unique_ptr<folly::IOBuf>`). The union is left empty, even if
+//  the field held a null pointer, which is returned as nullptr. If the field is
+//  not the active one, returns nullptr and leaves the union unchanged.
 //
 //  Example:
 //
@@ -1749,6 +1750,13 @@ class union_field_ref {
   using storage_reference_type = T;
   using storage_value_type = std::remove_reference_t<T>;
 
+  // Whether release() can hand the value over as a
+  // std::unique_ptr<element_type>. A custom deleter is excluded: the result
+  // would have to drop it or change type.
+  static constexpr bool kReleasable = !std::is_const_v<storage_value_type> &&
+      (detail::is_boxed_value_ptr_v<storage_value_type> ||
+       std::is_same_v<storage_value_type, std::unique_ptr<element_type>>);
+
   static_assert(
       std::is_void_v<Allocator> ||
           (!is_cpp_ref_or_boxed::value &&
@@ -1973,15 +1981,20 @@ class union_field_ref {
     return *storage_value_;
   }
 
-  // Clears the union rather than leaving this field active with a null box,
-  // which value() would reject.
+  // Clears the union rather than leaving this field active with a null
+  // pointer, which value() would reject.
   FOLLY_ERASE std::unique_ptr<element_type> release() noexcept
-    requires(detail::is_boxed_value_ptr_v<std::remove_cvref_t<T>>)
+    requires kReleasable
   {
     if (!has_value()) {
       return nullptr;
     }
-    std::unique_ptr<element_type> ptr = storage_value_.release();
+    std::unique_ptr<element_type> ptr;
+    if constexpr (detail::is_boxed_value_ptr_v<storage_value_type>) {
+      ptr = storage_value_.release();
+    } else {
+      ptr = std::move(storage_value_);
+    }
     vtable_.reset(owner_);
     return ptr;
   }

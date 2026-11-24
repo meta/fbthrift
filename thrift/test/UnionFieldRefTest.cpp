@@ -15,7 +15,10 @@
  */
 
 #include <cstddef>
+#include <memory>
 #include <memory_resource>
+#include <string>
+#include <type_traits>
 #include <utility>
 
 #include <gtest/gtest.h>
@@ -117,7 +120,31 @@ static_assert(CanMoveToUniquePtr<decltype(std::declval<Boxed&&>().box())>);
 static_assert(
     !CanMoveToUniquePtr<decltype(std::declval<const Boxed&>().box())>);
 static_assert(!CanMoveToUniquePtr<decltype(std::declval<Boxed&>().str())>);
-static_assert(!CanMoveToUniquePtr<decltype(std::declval<CppRef&>().cppref())>);
+static_assert(CanMoveToUniquePtr<decltype(std::declval<CppRef&>().cppref())>);
+static_assert(CanMoveToUniquePtr<decltype(std::declval<CppRef&&>().cppref())>);
+static_assert(CanMoveToUniquePtr<decltype(std::declval<IOBufPtr&>().buf())>);
+static_assert(
+    !CanMoveToUniquePtr<decltype(std::declval<const CppRef&>().cppref())>);
+static_assert(
+    !CanMoveToUniquePtr<decltype(std::declval<const IOBufPtr&>().buf())>);
+static_assert(
+    !CanMoveToUniquePtr<decltype(std::declval<CppRef&>().shared_mutable())>);
+static_assert(
+    !CanMoveToUniquePtr<decltype(std::declval<CppRef&>().shared_const())>);
+static_assert(!CanMoveToUniquePtr<decltype(std::declval<CppRef&>().str())>);
+static_assert(std::is_same_v<
+              decltype(apache::thrift::move_to_unique_ptr(
+                  std::declval<IOBufPtr&>().buf())),
+              std::unique_ptr<folly::IOBuf>>);
+
+// No generated field has a custom deleter today, so check the constraint on
+// union_field_ref directly.
+struct NoopDeleter {
+  void operator()(int*) const noexcept {}
+};
+static_assert(CanMoveToUniquePtr<union_field_ref<std::unique_ptr<int>&>>);
+static_assert(
+    !CanMoveToUniquePtr<union_field_ref<std::unique_ptr<int, NoopDeleter>&>>);
 
 TEST(UnionFieldTest, move_to_unique_ptr) {
   Boxed s;
@@ -153,6 +180,67 @@ TEST(UnionFieldTest, move_to_unique_ptr_inactive_field) {
   s.str() = "str";
   EXPECT_EQ(apache::thrift::move_to_unique_ptr(s.box()), nullptr);
   EXPECT_EQ(s.str(), "str");
+}
+
+TEST(UnionFieldTest, move_to_unique_ptr_cpp_ref) {
+  CppRef s;
+  s.cppref().emplace().str() = "ref";
+  const CppRef* ref = &*s.cppref();
+
+  std::unique_ptr<CppRef> ptr = apache::thrift::move_to_unique_ptr(s.cppref());
+
+  EXPECT_EQ(ptr.get(), ref);
+  EXPECT_EQ(ptr->str(), "ref");
+  EXPECT_EQ(s.getType(), CppRef::Type::__EMPTY__);
+}
+
+TEST(UnionFieldTest, move_to_unique_ptr_cpp_ref_from_rvalue) {
+  CppRef s;
+  s.cppref().emplace().str() = "ref";
+  const CppRef* ref = &*s.cppref();
+
+  std::unique_ptr<CppRef> ptr =
+      apache::thrift::move_to_unique_ptr(std::move(s).cppref());
+
+  EXPECT_EQ(ptr.get(), ref);
+  EXPECT_EQ(ptr->str(), "ref");
+  // NOLINTNEXTLINE(bugprone-use-after-move)
+  EXPECT_EQ(s.getType(), CppRef::Type::__EMPTY__);
+}
+
+TEST(UnionFieldTest, move_to_unique_ptr_cpp_ref_inactive_field) {
+  CppRef s;
+  EXPECT_EQ(apache::thrift::move_to_unique_ptr(s.cppref()), nullptr);
+  EXPECT_EQ(s.getType(), CppRef::Type::__EMPTY__);
+
+  s.str() = "str";
+  EXPECT_EQ(apache::thrift::move_to_unique_ptr(s.cppref()), nullptr);
+  EXPECT_EQ(s.str(), "str");
+}
+
+TEST(UnionFieldTest, move_to_unique_ptr_null) {
+  CppRef s;
+  s.set_cppref(std::unique_ptr<CppRef>());
+  EXPECT_EQ(apache::thrift::move_to_unique_ptr(s.cppref()), nullptr);
+  EXPECT_EQ(s.getType(), CppRef::Type::__EMPTY__);
+
+  detail::union_emplace_storage(s.box(), detail::boxed_value_ptr<CppRef>());
+  EXPECT_EQ(s.getType(), CppRef::Type::box);
+  EXPECT_EQ(apache::thrift::move_to_unique_ptr(s.box()), nullptr);
+  EXPECT_EQ(s.getType(), CppRef::Type::__EMPTY__);
+}
+
+TEST(UnionFieldTest, move_to_unique_ptr_iobuf) {
+  IOBufPtr s;
+  s.buf().emplace(folly::IOBuf::COPY_BUFFER, "buf");
+  const folly::IOBuf* buf = &*s.buf();
+
+  std::unique_ptr<folly::IOBuf> ptr =
+      apache::thrift::move_to_unique_ptr(s.buf());
+
+  EXPECT_EQ(ptr.get(), buf);
+  EXPECT_EQ(ptr->to<std::string>(), "buf");
+  EXPECT_EQ(s.getType(), IOBufPtr::Type::__EMPTY__);
 }
 
 TEST(UnionFieldTest, operator_assign) {
