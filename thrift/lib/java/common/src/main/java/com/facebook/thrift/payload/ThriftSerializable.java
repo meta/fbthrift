@@ -27,4 +27,12 @@ import org.apache.thrift.protocol.TProtocol;
 @FunctionalInterface
 public interface ThriftSerializable {
   void write0(TProtocol protocol) throws TException;
+
+  /**
+   * Upper-bound serialized size, or -1 when the size is unknown. Generated structs override this;
+   * the default covers hand-written writers with no bound.
+   */
+  default long serializedSize() {
+    return -1;
+  }
 }
