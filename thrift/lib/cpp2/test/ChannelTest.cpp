@@ -86,6 +86,25 @@ TEST(HeaderChannelTrait, PreservesSupportedClientTypes) {
   EXPECT_FALSE(HeaderChannelTrait::isSupportedClient(THRIFT_HTTP2_CLIENT_TYPE));
 }
 
+TEST(HeaderClientChannel, RejectsUnknownClientTypeOnConstruction) {
+  folly::EventBase eventBase;
+  folly::SocketPair socketPair;
+  auto socket = folly::AsyncSocket::newSocket(
+      &eventBase, socketPair.extractNetworkSocket0());
+  HeaderClientChannel::Options options;
+  options.setClientType(THRIFT_UNKNOWN_CLIENT_TYPE);
+
+  try {
+    static_cast<void>(HeaderClientChannel::newChannel(
+        HeaderClientChannel::WithoutRocketUpgrade(),
+        std::move(socket),
+        std::move(options)));
+    FAIL() << "Construction should reject the UNKNOWN client type";
+  } catch (const TApplicationException& ex) {
+    EXPECT_EQ(ex.getType(), TApplicationException::UNSUPPORTED_CLIENT_TYPE);
+  }
+}
+
 unique_ptr<IOBuf> makeTestBufImpl(size_t len) {
   unique_ptr<IOBuf> buf = IOBuf::create(len);
   buf->IOBuf::append(len);
