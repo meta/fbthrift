@@ -12,59 +12,59 @@
 
 namespace cpp2::test {
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& DataItem::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& DataItem::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_id;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool DataItem::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool DataItem::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& DataItem::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& DataItem::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_name;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool DataItem::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool DataItem::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(1);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& DataItem::__fbthrift_get_field_storage<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& DataItem::__fbthrift_get_field_storage<3>() const {
   return this->__fbthrift_field_value;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool DataItem::__fbthrift_get_field_isset<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool DataItem::__fbthrift_get_field_isset<3>() const {
   return this->__isset.get(2);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& NotFoundException::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& NotFoundException::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_id;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool NotFoundException::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool NotFoundException::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& NotFoundException::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& NotFoundException::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_message;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool NotFoundException::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool NotFoundException::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(1);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& PermissionDeniedException::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& PermissionDeniedException::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_user;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool PermissionDeniedException::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool PermissionDeniedException::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& PermissionDeniedException::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& PermissionDeniedException::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_reason;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool PermissionDeniedException::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool PermissionDeniedException::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(1);
 }
 } // namespace cpp2::test

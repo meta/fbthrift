@@ -13,20 +13,20 @@
 namespace facebook::thrift::compiler::test::fixtures::any {
 namespace detail {
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyStruct::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& MyStruct::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_myString;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool MyStruct::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool MyStruct::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 } // namespace detail
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyException::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& MyException::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_myString;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool MyException::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool MyException::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 } // namespace facebook::thrift::compiler::test::fixtures::any

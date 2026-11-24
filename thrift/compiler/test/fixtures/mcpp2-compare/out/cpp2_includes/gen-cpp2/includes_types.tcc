@@ -12,15 +12,15 @@
 
 namespace a::different::ns {
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& AStruct::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& AStruct::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_FieldA;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool AStruct::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool AStruct::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& AStructB::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& AStructB::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_FieldA;
 }
 } // namespace a::different::ns

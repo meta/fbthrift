@@ -12,79 +12,79 @@
 
 namespace cpp2 {
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Fiery::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& Fiery::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_message;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Serious::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& Serious::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_sonnet;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool Serious::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool Serious::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& ComplexFieldNames::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& ComplexFieldNames::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_error_message;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool ComplexFieldNames::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool ComplexFieldNames::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& ComplexFieldNames::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& ComplexFieldNames::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_internal_error_message;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool ComplexFieldNames::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool ComplexFieldNames::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(1);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& CustomFieldNames::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& CustomFieldNames::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_error_message;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool CustomFieldNames::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool CustomFieldNames::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& CustomFieldNames::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& CustomFieldNames::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_internal_error_message;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool CustomFieldNames::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool CustomFieldNames::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(1);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& ExceptionWithPrimitiveField::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& ExceptionWithPrimitiveField::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_message;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool ExceptionWithPrimitiveField::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool ExceptionWithPrimitiveField::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& ExceptionWithPrimitiveField::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& ExceptionWithPrimitiveField::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_error_code;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool ExceptionWithPrimitiveField::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool ExceptionWithPrimitiveField::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(1);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& ExceptionWithStructuredAnnotation::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& ExceptionWithStructuredAnnotation::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_message_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool ExceptionWithStructuredAnnotation::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool ExceptionWithStructuredAnnotation::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& ExceptionWithStructuredAnnotation::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& ExceptionWithStructuredAnnotation::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_error_code;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool ExceptionWithStructuredAnnotation::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool ExceptionWithStructuredAnnotation::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(1);
 }
 } // namespace cpp2

@@ -12,19 +12,19 @@
 
 namespace facebook::thrift::test::fixtures::service_schema {
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& CustomException::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& CustomException::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_name;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool CustomException::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool CustomException::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& CustomException::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& CustomException::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_result;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool CustomException::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool CustomException::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(1);
 }
 } // namespace facebook::thrift::test::fixtures::service_schema

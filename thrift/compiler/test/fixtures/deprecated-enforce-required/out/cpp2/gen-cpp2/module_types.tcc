@@ -12,7 +12,7 @@
 
 namespace cpp2 {
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Foo::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& Foo::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_bar;
 }
 } // namespace cpp2

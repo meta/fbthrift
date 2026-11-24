@@ -12,863 +12,863 @@
 
 namespace test_cpp2::cpp_reflection {
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structA::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structA::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_a;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structA::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structA::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structA::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structA::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_b;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structA::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structA::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(1);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structB::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structB::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_c;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structB::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structB::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structB::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structB::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_d;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structB::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structB::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(1);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_a;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structC::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structC::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_b;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structC::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structC::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(1);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<3>() const {
   return this->__fbthrift_field_c;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structC::__fbthrift_get_field_isset<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structC::__fbthrift_get_field_isset<3>() const {
   return this->__isset.get(2);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<4>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<4>() const {
   return this->__fbthrift_field_d;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structC::__fbthrift_get_field_isset<4>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structC::__fbthrift_get_field_isset<4>() const {
   return this->__isset.get(3);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<5>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<5>() const {
   return this->__fbthrift_field_e;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structC::__fbthrift_get_field_isset<5>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structC::__fbthrift_get_field_isset<5>() const {
   return this->__isset.get(4);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<6>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<6>() const {
   return this->__fbthrift_field_f;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structC::__fbthrift_get_field_isset<6>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structC::__fbthrift_get_field_isset<6>() const {
   return this->__isset.get(5);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<7>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<7>() const {
   return this->__fbthrift_field_g;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structC::__fbthrift_get_field_isset<7>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structC::__fbthrift_get_field_isset<7>() const {
   return this->__isset.get(6);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<8>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<8>() const {
   return this->__fbthrift_field_h;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structC::__fbthrift_get_field_isset<8>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structC::__fbthrift_get_field_isset<8>() const {
   return this->__isset.get(7);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<9>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<9>() const {
   return this->__fbthrift_field_i;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structC::__fbthrift_get_field_isset<9>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structC::__fbthrift_get_field_isset<9>() const {
   return this->__isset.get(8);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<10>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<10>() const {
   return this->__fbthrift_field_j;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structC::__fbthrift_get_field_isset<10>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structC::__fbthrift_get_field_isset<10>() const {
   return this->__isset.get(9);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<11>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<11>() const {
   return this->__fbthrift_field_j1;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structC::__fbthrift_get_field_isset<11>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structC::__fbthrift_get_field_isset<11>() const {
   return this->__isset.get(10);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<12>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<12>() const {
   return this->__fbthrift_field_j2;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structC::__fbthrift_get_field_isset<12>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structC::__fbthrift_get_field_isset<12>() const {
   return this->__isset.get(11);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<13>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<13>() const {
   return this->__fbthrift_field_j3;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structC::__fbthrift_get_field_isset<13>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structC::__fbthrift_get_field_isset<13>() const {
   return this->__isset.get(12);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<14>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<14>() const {
   return this->__fbthrift_field_k;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structC::__fbthrift_get_field_isset<14>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structC::__fbthrift_get_field_isset<14>() const {
   return this->__isset.get(13);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<15>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<15>() const {
   return this->__fbthrift_field_k1;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structC::__fbthrift_get_field_isset<15>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structC::__fbthrift_get_field_isset<15>() const {
   return this->__isset.get(14);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<16>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<16>() const {
   return this->__fbthrift_field_k2;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structC::__fbthrift_get_field_isset<16>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structC::__fbthrift_get_field_isset<16>() const {
   return this->__isset.get(15);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<17>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<17>() const {
   return this->__fbthrift_field_k3;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structC::__fbthrift_get_field_isset<17>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structC::__fbthrift_get_field_isset<17>() const {
   return this->__isset.get(16);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<18>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<18>() const {
   return this->__fbthrift_field_l;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structC::__fbthrift_get_field_isset<18>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structC::__fbthrift_get_field_isset<18>() const {
   return this->__isset.get(17);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<19>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<19>() const {
   return this->__fbthrift_field_l1;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structC::__fbthrift_get_field_isset<19>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structC::__fbthrift_get_field_isset<19>() const {
   return this->__isset.get(18);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<20>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<20>() const {
   return this->__fbthrift_field_l2;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structC::__fbthrift_get_field_isset<20>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structC::__fbthrift_get_field_isset<20>() const {
   return this->__isset.get(19);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<21>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<21>() const {
   return this->__fbthrift_field_l3;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structC::__fbthrift_get_field_isset<21>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structC::__fbthrift_get_field_isset<21>() const {
   return this->__isset.get(20);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<22>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<22>() const {
   return this->__fbthrift_field_m1;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structC::__fbthrift_get_field_isset<22>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structC::__fbthrift_get_field_isset<22>() const {
   return this->__isset.get(21);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<23>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<23>() const {
   return this->__fbthrift_field_m2;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structC::__fbthrift_get_field_isset<23>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structC::__fbthrift_get_field_isset<23>() const {
   return this->__isset.get(22);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<24>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<24>() const {
   return this->__fbthrift_field_m3;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structC::__fbthrift_get_field_isset<24>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structC::__fbthrift_get_field_isset<24>() const {
   return this->__isset.get(23);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<25>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<25>() const {
   return this->__fbthrift_field_n1;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structC::__fbthrift_get_field_isset<25>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structC::__fbthrift_get_field_isset<25>() const {
   return this->__isset.get(24);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<26>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<26>() const {
   return this->__fbthrift_field_n2;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structC::__fbthrift_get_field_isset<26>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structC::__fbthrift_get_field_isset<26>() const {
   return this->__isset.get(25);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<27>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<27>() const {
   return this->__fbthrift_field_n3;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structC::__fbthrift_get_field_isset<27>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structC::__fbthrift_get_field_isset<27>() const {
   return this->__isset.get(26);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<28>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<28>() const {
   return this->__fbthrift_field_o1;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structC::__fbthrift_get_field_isset<28>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structC::__fbthrift_get_field_isset<28>() const {
   return this->__isset.get(27);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<29>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<29>() const {
   return this->__fbthrift_field_o2;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structC::__fbthrift_get_field_isset<29>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structC::__fbthrift_get_field_isset<29>() const {
   return this->__isset.get(28);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<30>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& structC::__fbthrift_get_field_storage<30>() const {
   return this->__fbthrift_field_o3;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool structC::__fbthrift_get_field_isset<30>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool structC::__fbthrift_get_field_isset<30>() const {
   return this->__isset.get(29);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct1::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct1::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_field0;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct1::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct1::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_field1;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct1::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct1::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct1::__fbthrift_get_field_storage<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct1::__fbthrift_get_field_storage<3>() const {
   return this->__fbthrift_field_field2;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct1::__fbthrift_get_field_isset<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct1::__fbthrift_get_field_isset<3>() const {
   return this->__isset.get(1);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct1::__fbthrift_get_field_storage<4>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct1::__fbthrift_get_field_storage<4>() const {
   return this->__fbthrift_field_field3;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct1::__fbthrift_get_field_storage<5>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct1::__fbthrift_get_field_storage<5>() const {
   return this->__fbthrift_field_field4;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct1::__fbthrift_get_field_isset<5>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct1::__fbthrift_get_field_isset<5>() const {
   return this->__isset.get(2);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct1::__fbthrift_get_field_storage<6>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct1::__fbthrift_get_field_storage<6>() const {
   return this->__fbthrift_field_field5;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct1::__fbthrift_get_field_isset<6>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct1::__fbthrift_get_field_isset<6>() const {
   return this->__isset.get(3);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct2::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct2::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_fieldA;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct2::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct2::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct2::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct2::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_fieldB;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct2::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct2::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(1);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct2::__fbthrift_get_field_storage<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct2::__fbthrift_get_field_storage<3>() const {
   return this->__fbthrift_field_fieldC;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct2::__fbthrift_get_field_isset<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct2::__fbthrift_get_field_isset<3>() const {
   return this->__isset.get(2);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct2::__fbthrift_get_field_storage<4>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct2::__fbthrift_get_field_storage<4>() const {
   return this->__fbthrift_field_fieldD;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct2::__fbthrift_get_field_isset<4>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct2::__fbthrift_get_field_isset<4>() const {
   return this->__isset.get(3);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct2::__fbthrift_get_field_storage<5>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct2::__fbthrift_get_field_storage<5>() const {
   return this->__fbthrift_field_fieldE;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct2::__fbthrift_get_field_isset<5>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct2::__fbthrift_get_field_isset<5>() const {
   return this->__isset.get(4);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct2::__fbthrift_get_field_storage<6>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct2::__fbthrift_get_field_storage<6>() const {
   return this->__fbthrift_field_fieldF;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct2::__fbthrift_get_field_isset<6>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct2::__fbthrift_get_field_isset<6>() const {
   return this->__isset.get(5);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct2::__fbthrift_get_field_storage<7>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct2::__fbthrift_get_field_storage<7>() const {
   return this->__fbthrift_field_fieldG;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct2::__fbthrift_get_field_isset<7>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct2::__fbthrift_get_field_isset<7>() const {
   return this->__isset.get(6);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_fieldA;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_fieldB;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(1);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<3>() const {
   return this->__fbthrift_field_fieldC;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<3>() const {
   return this->__isset.get(2);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<4>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<4>() const {
   return this->__fbthrift_field_fieldD;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<4>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<4>() const {
   return this->__isset.get(3);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<5>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<5>() const {
   return this->__fbthrift_field_fieldE;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<5>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<5>() const {
   return this->__isset.get(4);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<6>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<6>() const {
   return this->__fbthrift_field_fieldF;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<6>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<6>() const {
   return this->__isset.get(5);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<7>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<7>() const {
   return this->__fbthrift_field_fieldG;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<7>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<7>() const {
   return this->__isset.get(6);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<8>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<8>() const {
   return this->__fbthrift_field_fieldH;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<8>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<8>() const {
   return this->__isset.get(7);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<9>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<9>() const {
   return this->__fbthrift_field_fieldI;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<9>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<9>() const {
   return this->__isset.get(8);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<10>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<10>() const {
   return this->__fbthrift_field_fieldJ;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<10>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<10>() const {
   return this->__isset.get(9);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<11>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<11>() const {
   return this->__fbthrift_field_fieldK;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<11>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<11>() const {
   return this->__isset.get(10);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<12>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<12>() const {
   return this->__fbthrift_field_fieldL;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<12>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<12>() const {
   return this->__isset.get(11);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<13>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<13>() const {
   return this->__fbthrift_field_fieldM;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<13>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<13>() const {
   return this->__isset.get(12);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<14>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<14>() const {
   return this->__fbthrift_field_fieldN;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<14>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<14>() const {
   return this->__isset.get(13);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<15>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<15>() const {
   return this->__fbthrift_field_fieldO;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<15>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<15>() const {
   return this->__isset.get(14);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<16>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<16>() const {
   return this->__fbthrift_field_fieldP;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<16>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<16>() const {
   return this->__isset.get(15);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<17>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<17>() const {
   return this->__fbthrift_field_fieldQ;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<17>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<17>() const {
   return this->__isset.get(16);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<18>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct3::__fbthrift_get_field_storage<18>() const {
   return this->__fbthrift_field_fieldR;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<18>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct3::__fbthrift_get_field_isset<18>() const {
   return this->__isset.get(17);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct4::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct4::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_field0;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct4::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct4::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_field1;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct4::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct4::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct4::__fbthrift_get_field_storage<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct4::__fbthrift_get_field_storage<3>() const {
   return this->__fbthrift_field_field2;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct4::__fbthrift_get_field_isset<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct4::__fbthrift_get_field_isset<3>() const {
   return this->__isset.get(1);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct4::__fbthrift_get_field_storage<6>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct4::__fbthrift_get_field_storage<6>() const {
   return this->__fbthrift_field_field3;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct5::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct5::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_field0;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct5::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct5::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_field1;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct5::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct5::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct5::__fbthrift_get_field_storage<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct5::__fbthrift_get_field_storage<3>() const {
   return this->__fbthrift_field_field2;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct5::__fbthrift_get_field_isset<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct5::__fbthrift_get_field_isset<3>() const {
   return this->__isset.get(1);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct5::__fbthrift_get_field_storage<4>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct5::__fbthrift_get_field_storage<4>() const {
   return this->__fbthrift_field_field3;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct5::__fbthrift_get_field_isset<4>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct5::__fbthrift_get_field_isset<4>() const {
   return this->__isset.get(2);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct5::__fbthrift_get_field_storage<5>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct5::__fbthrift_get_field_storage<5>() const {
   return this->__fbthrift_field_field4;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct5::__fbthrift_get_field_isset<5>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct5::__fbthrift_get_field_isset<5>() const {
   return this->__isset.get(3);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct_binary::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct_binary::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_bi;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct_binary::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct_binary::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& dep_A_struct::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& dep_A_struct::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_b;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool dep_A_struct::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool dep_A_struct::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& dep_A_struct::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& dep_A_struct::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_c;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool dep_A_struct::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool dep_A_struct::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(1);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& dep_A_struct::__fbthrift_get_field_storage<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& dep_A_struct::__fbthrift_get_field_storage<3>() const {
   return this->__fbthrift_field_i_a;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool dep_A_struct::__fbthrift_get_field_isset<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool dep_A_struct::__fbthrift_get_field_isset<3>() const {
   return this->__isset.get(2);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& dep_B_struct::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& dep_B_struct::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_b;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool dep_B_struct::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool dep_B_struct::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& dep_B_struct::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& dep_B_struct::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_c;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool dep_B_struct::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool dep_B_struct::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(1);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& dep_B_struct::__fbthrift_get_field_storage<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& dep_B_struct::__fbthrift_get_field_storage<3>() const {
   return this->__fbthrift_field_i_a;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool dep_B_struct::__fbthrift_get_field_isset<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool dep_B_struct::__fbthrift_get_field_isset<3>() const {
   return this->__isset.get(2);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& annotated::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& annotated::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_a;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool annotated::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool annotated::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_get;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_getter;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(1);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<3>() const {
   return this->__fbthrift_field_lists;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<3>() const {
   return this->__isset.get(2);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<4>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<4>() const {
   return this->__fbthrift_field_maps;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<4>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<4>() const {
   return this->__isset.get(3);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<5>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<5>() const {
   return this->__fbthrift_field_name;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<5>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<5>() const {
   return this->__isset.get(4);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<6>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<6>() const {
   return this->__fbthrift_field_name_to_value;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<6>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<6>() const {
   return this->__isset.get(5);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<7>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<7>() const {
   return this->__fbthrift_field_names;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<7>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<7>() const {
   return this->__isset.get(6);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<8>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<8>() const {
   return this->__fbthrift_field_prefix_tree;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<8>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<8>() const {
   return this->__isset.get(7);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<9>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<9>() const {
   return this->__fbthrift_field_sets;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<9>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<9>() const {
   return this->__isset.get(8);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<10>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<10>() const {
   return this->__fbthrift_field_setter;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<10>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<10>() const {
   return this->__isset.get(9);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<11>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<11>() const {
   return this->__fbthrift_field_str;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<11>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<11>() const {
   return this->__isset.get(10);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<12>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<12>() const {
   return this->__fbthrift_field_strings;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<12>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<12>() const {
   return this->__isset.get(11);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<13>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<13>() const {
   return this->__fbthrift_field_type;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<13>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<13>() const {
   return this->__isset.get(12);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<14>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<14>() const {
   return this->__fbthrift_field_value;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<14>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<14>() const {
   return this->__isset.get(13);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<15>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<15>() const {
   return this->__fbthrift_field_value_to_name;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<15>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<15>() const {
   return this->__isset.get(14);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<16>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<16>() const {
   return this->__fbthrift_field_values;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<16>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<16>() const {
   return this->__isset.get(15);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<17>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<17>() const {
   return this->__fbthrift_field_id;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<17>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<17>() const {
   return this->__isset.get(16);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<18>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<18>() const {
   return this->__fbthrift_field_ids;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<18>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<18>() const {
   return this->__isset.get(17);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<19>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<19>() const {
   return this->__fbthrift_field_descriptor;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<19>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<19>() const {
   return this->__isset.get(18);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<20>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<20>() const {
   return this->__fbthrift_field_descriptors;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<20>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<20>() const {
   return this->__isset.get(19);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<21>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<21>() const {
   return this->__fbthrift_field_key;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<21>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<21>() const {
   return this->__isset.get(20);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<22>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<22>() const {
   return this->__fbthrift_field_keys;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<22>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<22>() const {
   return this->__isset.get(21);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<23>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<23>() const {
   return this->__fbthrift_field_annotation;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<23>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<23>() const {
   return this->__isset.get(22);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<24>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<24>() const {
   return this->__fbthrift_field_annotations;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<24>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<24>() const {
   return this->__isset.get(23);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<25>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<25>() const {
   return this->__fbthrift_field_member;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<25>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<25>() const {
   return this->__isset.get(24);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<26>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<26>() const {
   return this->__fbthrift_field_members;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<26>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<26>() const {
   return this->__isset.get(25);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<27>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<27>() const {
   return this->__fbthrift_field_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<27>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<27>() const {
   return this->__isset.get(26);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<28>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& struct_with_special_names::__fbthrift_get_field_storage<28>() const {
   return this->__fbthrift_field_fields;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<28>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool struct_with_special_names::__fbthrift_get_field_isset<28>() const {
   return this->__isset.get(27);
 }
 } // namespace test_cpp2::cpp_reflection

@@ -12,43 +12,43 @@
 
 namespace apache::thrift::test {
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& User::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& User::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_id;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool User::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool User::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& User::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& User::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_name;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool User::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool User::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(1);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& User::__fbthrift_get_field_storage<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& User::__fbthrift_get_field_storage<3>() const {
   return this->__fbthrift_field_full_name;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool User::__fbthrift_get_field_isset<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool User::__fbthrift_get_field_isset<3>() const {
   return this->__isset.get(2);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& User::__fbthrift_get_field_storage<4>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& User::__fbthrift_get_field_storage<4>() const {
   return this->__fbthrift_field_email;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool User::__fbthrift_get_field_isset<4>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool User::__fbthrift_get_field_isset<4>() const {
   return this->__isset.get(3);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& User::__fbthrift_get_field_storage<5>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& User::__fbthrift_get_field_storage<5>() const {
   return this->__fbthrift_field_email_address;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool User::__fbthrift_get_field_isset<5>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool User::__fbthrift_get_field_isset<5>() const {
   return this->__isset.get(4);
 }
 } // namespace apache::thrift::test

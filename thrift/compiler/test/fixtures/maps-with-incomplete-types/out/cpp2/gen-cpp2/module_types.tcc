@@ -12,19 +12,19 @@
 
 namespace apache::thrift::test {
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& A::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& A::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_some_map;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool A::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool A::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& B::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& B::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool B::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool B::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 } // namespace apache::thrift::test

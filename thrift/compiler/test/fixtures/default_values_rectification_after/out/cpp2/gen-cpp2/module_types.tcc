@@ -12,67 +12,67 @@
 
 namespace facebook::thrift::compiler::test::fixtures::default_values_rectification_after {
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& TestStruct::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& TestStruct::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_unqualified_int_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool TestStruct::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool TestStruct::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& TestStruct::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& TestStruct::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_unqualified_bool_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool TestStruct::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool TestStruct::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(1);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& TestStruct::__fbthrift_get_field_storage<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& TestStruct::__fbthrift_get_field_storage<3>() const {
   return this->__fbthrift_field_unqualified_list_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool TestStruct::__fbthrift_get_field_isset<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool TestStruct::__fbthrift_get_field_isset<3>() const {
   return this->__isset.get(2);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& TestStruct::__fbthrift_get_field_storage<4>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& TestStruct::__fbthrift_get_field_storage<4>() const {
   return this->__fbthrift_field_unqualified_struct_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool TestStruct::__fbthrift_get_field_isset<4>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool TestStruct::__fbthrift_get_field_isset<4>() const {
   return this->__isset.get(3);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& TestStruct::__fbthrift_get_field_storage<5>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& TestStruct::__fbthrift_get_field_storage<5>() const {
   return this->__fbthrift_field_optional_int_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool TestStruct::__fbthrift_get_field_isset<5>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool TestStruct::__fbthrift_get_field_isset<5>() const {
   return this->__isset.get(4);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& TestStruct::__fbthrift_get_field_storage<6>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& TestStruct::__fbthrift_get_field_storage<6>() const {
   return this->__fbthrift_field_optional_bool_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool TestStruct::__fbthrift_get_field_isset<6>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool TestStruct::__fbthrift_get_field_isset<6>() const {
   return this->__isset.get(5);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& TestStruct::__fbthrift_get_field_storage<7>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& TestStruct::__fbthrift_get_field_storage<7>() const {
   return this->__fbthrift_field_optional_list_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool TestStruct::__fbthrift_get_field_isset<7>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool TestStruct::__fbthrift_get_field_isset<7>() const {
   return this->__isset.get(6);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& TestStruct::__fbthrift_get_field_storage<8>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& TestStruct::__fbthrift_get_field_storage<8>() const {
   return this->__fbthrift_field_optional_struct_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool TestStruct::__fbthrift_get_field_isset<8>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool TestStruct::__fbthrift_get_field_isset<8>() const {
   return this->__isset.get(7);
 }
 } // namespace facebook::thrift::compiler::test::fixtures::default_values_rectification_after

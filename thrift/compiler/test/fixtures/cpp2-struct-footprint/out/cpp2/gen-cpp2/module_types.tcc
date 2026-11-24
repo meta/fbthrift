@@ -12,27 +12,27 @@
 
 namespace cpp2_struct_footprint {
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& SimpleStruct::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& SimpleStruct::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool SimpleStruct::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool SimpleStruct::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& ComplexStruct::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& ComplexStruct::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_nested;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool ComplexStruct::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool ComplexStruct::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& ExStruct::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& ExStruct::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_message;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool ExStruct::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool ExStruct::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 } // namespace cpp2_struct_footprint

@@ -12,19 +12,19 @@
 
 namespace facebook::thrift::test::fixtures::schema_byte_annotation {
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& ByteAnnotation::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& ByteAnnotation::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_value;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool ByteAnnotation::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool ByteAnnotation::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Annotated::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& Annotated::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool Annotated::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool Annotated::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 } // namespace facebook::thrift::test::fixtures::schema_byte_annotation

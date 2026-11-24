@@ -12,35 +12,35 @@
 
 namespace module2 {
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Struct::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& Struct::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_first;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool Struct::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool Struct::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Struct::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& Struct::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_second;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool Struct::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool Struct::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(1);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& BigStruct::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& BigStruct::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_s;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool BigStruct::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool BigStruct::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& BigStruct::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& BigStruct::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_id;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool BigStruct::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool BigStruct::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(1);
 }
 } // namespace module2

@@ -37,14 +37,6 @@
 static_assert(
     FOLLY_CPLUSPLUS >= 202002L, "Thrift must be built with C++20 or later.");
 
-// Keeps trivial accessors out of debug info. Generated code instantiates them
-// per field, and each instantiation would otherwise add its full name.
-#if __has_cpp_attribute(gnu::nodebug)
-#define FBTHRIFT_NODEBUG [[gnu::nodebug]]
-#else
-#define FBTHRIFT_NODEBUG
-#endif
-
 namespace apache::thrift {
 
 namespace detail {
@@ -161,11 +153,12 @@ struct struct_private_access {
 
   // The storage and isset bit of a struct field, without its field_ref.
   template <int16_t Id, typename T>
-  FBTHRIFT_NODEBUG FOLLY_ERASE static const auto& field_storage(const T& t) {
+  [[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE static const auto& field_storage(
+      const T& t) {
     return t.template __fbthrift_get_field_storage<Id>();
   }
   template <int16_t Id, typename T>
-  FBTHRIFT_NODEBUG FOLLY_ERASE static bool field_isset(const T& t) {
+  [[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE static bool field_isset(const T& t) {
     return t.template __fbthrift_get_field_isset<Id>();
   }
 

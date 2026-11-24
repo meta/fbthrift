@@ -12,243 +12,243 @@
 
 namespace cpp2 {
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyField::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& MyField::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_opt_value;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyField::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& MyField::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_value;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyField::__fbthrift_get_field_storage<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& MyField::__fbthrift_get_field_storage<3>() const {
   return this->__fbthrift_field_req_value;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyField::__fbthrift_get_field_storage<4>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& MyField::__fbthrift_get_field_storage<4>() const {
   return this->__fbthrift_field_opt_enum_value;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyField::__fbthrift_get_field_storage<5>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& MyField::__fbthrift_get_field_storage<5>() const {
   return this->__fbthrift_field_enum_value;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyField::__fbthrift_get_field_storage<6>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& MyField::__fbthrift_get_field_storage<6>() const {
   return this->__fbthrift_field_req_enum_value;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyField::__fbthrift_get_field_storage<7>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& MyField::__fbthrift_get_field_storage<7>() const {
   return this->__fbthrift_field_opt_str_value;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyField::__fbthrift_get_field_storage<8>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& MyField::__fbthrift_get_field_storage<8>() const {
   return this->__fbthrift_field_str_value;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyField::__fbthrift_get_field_storage<9>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& MyField::__fbthrift_get_field_storage<9>() const {
   return this->__fbthrift_field_req_str_value;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyStruct::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& MyStruct::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_opt_ref;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyStruct::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& MyStruct::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_ref;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& MyStruct::__fbthrift_get_field_storage<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& MyStruct::__fbthrift_get_field_storage<3>() const {
   return this->__fbthrift_field_req_ref;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithUnion::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithUnion::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_u;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithUnion::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithUnion::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_aDouble;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithUnion::__fbthrift_get_field_storage<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithUnion::__fbthrift_get_field_storage<3>() const {
   return this->__fbthrift_field_f;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool StructWithUnion::__fbthrift_get_field_isset<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool StructWithUnion::__fbthrift_get_field_isset<3>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& RecursiveStruct::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& RecursiveStruct::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_mes;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool RecursiveStruct::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool RecursiveStruct::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithContainers::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithContainers::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_list_ref;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithContainers::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithContainers::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_set_ref;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithContainers::__fbthrift_get_field_storage<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithContainers::__fbthrift_get_field_storage<3>() const {
   return this->__fbthrift_field_map_ref;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithContainers::__fbthrift_get_field_storage<4>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithContainers::__fbthrift_get_field_storage<4>() const {
   return this->__fbthrift_field_list_ref_unique;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithContainers::__fbthrift_get_field_storage<5>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithContainers::__fbthrift_get_field_storage<5>() const {
   return this->__fbthrift_field_set_ref_shared;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithContainers::__fbthrift_get_field_storage<6>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithContainers::__fbthrift_get_field_storage<6>() const {
   return this->__fbthrift_field_list_ref_shared_const;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithSharedConst::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithSharedConst::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_opt_shared_const;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithSharedConst::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithSharedConst::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_shared_const;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithSharedConst::__fbthrift_get_field_storage<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithSharedConst::__fbthrift_get_field_storage<3>() const {
   return this->__fbthrift_field_req_shared_const;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithRef::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithRef::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_def_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithRef::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithRef::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_opt_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithRef::__fbthrift_get_field_storage<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithRef::__fbthrift_get_field_storage<3>() const {
   return this->__fbthrift_field_req_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithBox::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithBox::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_a;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithBox::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithBox::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_b;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithBox::__fbthrift_get_field_storage<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithBox::__fbthrift_get_field_storage<3>() const {
   return this->__fbthrift_field_c;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithInternBox::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithInternBox::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_field1;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool StructWithInternBox::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool StructWithInternBox::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithInternBox::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithInternBox::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_field2;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool StructWithInternBox::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool StructWithInternBox::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(1);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithTerseInternBox::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithTerseInternBox::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_field1;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithTerseInternBox::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithTerseInternBox::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_field2;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& AdaptedStructWithInternBox::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& AdaptedStructWithInternBox::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_field1;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool AdaptedStructWithInternBox::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool AdaptedStructWithInternBox::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& AdaptedStructWithInternBox::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& AdaptedStructWithInternBox::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_field2;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool AdaptedStructWithInternBox::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool AdaptedStructWithInternBox::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(1);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& AdaptedStructWithTerseInternBox::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& AdaptedStructWithTerseInternBox::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_field1;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& AdaptedStructWithTerseInternBox::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& AdaptedStructWithTerseInternBox::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_field2;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithRefTypeUnique::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithRefTypeUnique::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_def_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithRefTypeUnique::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithRefTypeUnique::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_opt_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithRefTypeUnique::__fbthrift_get_field_storage<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithRefTypeUnique::__fbthrift_get_field_storage<3>() const {
   return this->__fbthrift_field_req_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithRefTypeShared::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithRefTypeShared::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_def_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithRefTypeShared::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithRefTypeShared::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_opt_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithRefTypeShared::__fbthrift_get_field_storage<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithRefTypeShared::__fbthrift_get_field_storage<3>() const {
   return this->__fbthrift_field_req_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithRefTypeSharedConst::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithRefTypeSharedConst::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_def_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithRefTypeSharedConst::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithRefTypeSharedConst::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_opt_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithRefTypeSharedConst::__fbthrift_get_field_storage<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithRefTypeSharedConst::__fbthrift_get_field_storage<3>() const {
   return this->__fbthrift_field_req_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithRefAndAnnotCppNoexceptMoveCtor::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithRefAndAnnotCppNoexceptMoveCtor::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_def_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithString::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithString::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_def_unique_string_ref;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithString::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithString::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_def_shared_string_ref;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithString::__fbthrift_get_field_storage<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithString::__fbthrift_get_field_storage<3>() const {
   return this->__fbthrift_field_def_shared_string_const_ref;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithString::__fbthrift_get_field_storage<4>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithString::__fbthrift_get_field_storage<4>() const {
   return this->__fbthrift_field_unique_string_ref;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithString::__fbthrift_get_field_storage<5>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithString::__fbthrift_get_field_storage<5>() const {
   return this->__fbthrift_field_shared_string_ref;
 }
 } // namespace cpp2

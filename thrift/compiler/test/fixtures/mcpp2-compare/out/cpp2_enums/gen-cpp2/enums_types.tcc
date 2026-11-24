@@ -12,11 +12,11 @@
 
 namespace facebook::ns::qwerty {
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& SomeStruct::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& SomeStruct::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_fieldA;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool SomeStruct::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool SomeStruct::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 } // namespace facebook::ns::qwerty

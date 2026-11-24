@@ -12,67 +12,67 @@
 
 namespace cpp2 {
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& InitialResponse::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& InitialResponse::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_content;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool InitialResponse::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool InitialResponse::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& FinalResponse::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& FinalResponse::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_content;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool FinalResponse::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool FinalResponse::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& SinkPayload::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& SinkPayload::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_content;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool SinkPayload::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool SinkPayload::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& CompatibleWithKeywordSink::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& CompatibleWithKeywordSink::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_sink;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool CompatibleWithKeywordSink::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool CompatibleWithKeywordSink::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& InitialException::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& InitialException::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_reason;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool InitialException::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool InitialException::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& SinkException1::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& SinkException1::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_reason;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool SinkException1::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool SinkException1::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& SinkException2::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& SinkException2::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_reason;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool SinkException2::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool SinkException2::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StreamItem::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StreamItem::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_content;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool StreamItem::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool StreamItem::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 } // namespace cpp2

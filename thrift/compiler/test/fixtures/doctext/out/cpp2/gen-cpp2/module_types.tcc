@@ -12,19 +12,19 @@
 
 namespace cpp2 {
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& A::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& A::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_useless_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool A::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool A::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Bang::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& Bang::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_message;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool Bang::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool Bang::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 } // namespace cpp2

@@ -32,12 +32,12 @@ namespace {{struct.extra_namespace}} {
       {{/if (object.notnull? struct.extra_namespace)}}
       {{#each struct.fields as |field|}}
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& {{struct.cpp_underlying_name}}::__fbthrift_get_field_storage<{{field.id}}>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& {{struct.cpp_underlying_name}}::__fbthrift_get_field_storage<{{field.id}}>() const {
   return this->{{#partial fields.field_value field=field}};
 }
         {{#if field.has_isset?}}
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool {{struct.cpp_underlying_name}}::__fbthrift_get_field_isset<{{field.id}}>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool {{struct.cpp_underlying_name}}::__fbthrift_get_field_isset<{{field.id}}>() const {
   return this->__isset.get({{field.isset_index}});
 }
         {{/if field.has_isset?}}

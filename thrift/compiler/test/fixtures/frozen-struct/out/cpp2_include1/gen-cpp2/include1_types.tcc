@@ -12,19 +12,19 @@
 
 namespace some::ns {
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& IncludedA::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& IncludedA::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_i32Field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool IncludedA::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool IncludedA::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& IncludedA::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& IncludedA::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_strField;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool IncludedA::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool IncludedA::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(1);
 }
 } // namespace some::ns

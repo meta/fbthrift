@@ -12,127 +12,127 @@
 
 namespace facebook::thrift::test::fixtures::encode {
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Foo::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& Foo::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool Foo::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool Foo::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Bar::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& Bar::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_list_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool Bar::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool Bar::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Baz::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& Baz::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_list_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool Baz::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool Baz::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Baz::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& Baz::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_nested_list_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool Baz::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool Baz::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(1);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& OpEncodeStruct::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& OpEncodeStruct::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_int_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool OpEncodeStruct::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool OpEncodeStruct::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& OpEncodeStruct::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& OpEncodeStruct::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_enum_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool OpEncodeStruct::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool OpEncodeStruct::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(1);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& OpEncodeStruct::__fbthrift_get_field_storage<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& OpEncodeStruct::__fbthrift_get_field_storage<3>() const {
   return this->__fbthrift_field_foo_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool OpEncodeStruct::__fbthrift_get_field_isset<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool OpEncodeStruct::__fbthrift_get_field_isset<3>() const {
   return this->__isset.get(2);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& OpEncodeStruct::__fbthrift_get_field_storage<4>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& OpEncodeStruct::__fbthrift_get_field_storage<4>() const {
   return this->__fbthrift_field_adapted_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool OpEncodeStruct::__fbthrift_get_field_isset<4>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool OpEncodeStruct::__fbthrift_get_field_isset<4>() const {
   return this->__isset.get(3);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& OpEncodeStruct::__fbthrift_get_field_storage<5>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& OpEncodeStruct::__fbthrift_get_field_storage<5>() const {
   return this->__fbthrift_field_list_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool OpEncodeStruct::__fbthrift_get_field_isset<5>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool OpEncodeStruct::__fbthrift_get_field_isset<5>() const {
   return this->__isset.get(4);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& OpEncodeStruct::__fbthrift_get_field_storage<6>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& OpEncodeStruct::__fbthrift_get_field_storage<6>() const {
   return this->__fbthrift_field_list_shared_ptr_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& OpEncodeStruct::__fbthrift_get_field_storage<7>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& OpEncodeStruct::__fbthrift_get_field_storage<7>() const {
   return this->__fbthrift_field_list_cpp_type_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool OpEncodeStruct::__fbthrift_get_field_isset<7>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool OpEncodeStruct::__fbthrift_get_field_isset<7>() const {
   return this->__isset.get(5);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& OpEncodeStruct::__fbthrift_get_field_storage<8>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& OpEncodeStruct::__fbthrift_get_field_storage<8>() const {
   return this->__fbthrift_field_set_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool OpEncodeStruct::__fbthrift_get_field_isset<8>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool OpEncodeStruct::__fbthrift_get_field_isset<8>() const {
   return this->__isset.get(6);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& OpEncodeStruct::__fbthrift_get_field_storage<9>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& OpEncodeStruct::__fbthrift_get_field_storage<9>() const {
   return this->__fbthrift_field_map_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool OpEncodeStruct::__fbthrift_get_field_isset<9>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool OpEncodeStruct::__fbthrift_get_field_isset<9>() const {
   return this->__isset.get(7);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& OpEncodeStruct::__fbthrift_get_field_storage<10>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& OpEncodeStruct::__fbthrift_get_field_storage<10>() const {
   return this->__fbthrift_field_nested_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool OpEncodeStruct::__fbthrift_get_field_isset<10>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool OpEncodeStruct::__fbthrift_get_field_isset<10>() const {
   return this->__isset.get(8);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& OpEncodeStruct::__fbthrift_get_field_storage<11>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& OpEncodeStruct::__fbthrift_get_field_storage<11>() const {
   return this->__fbthrift_field_bar_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool OpEncodeStruct::__fbthrift_get_field_isset<11>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool OpEncodeStruct::__fbthrift_get_field_isset<11>() const {
   return this->__isset.get(9);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& OpEncodeStruct::__fbthrift_get_field_storage<12>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& OpEncodeStruct::__fbthrift_get_field_storage<12>() const {
   return this->__fbthrift_field_adapted_list_field;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool OpEncodeStruct::__fbthrift_get_field_isset<12>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool OpEncodeStruct::__fbthrift_get_field_isset<12>() const {
   return this->__isset.get(10);
 }
 } // namespace facebook::thrift::test::fixtures::encode

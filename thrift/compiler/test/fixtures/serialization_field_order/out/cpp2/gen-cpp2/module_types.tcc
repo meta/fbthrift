@@ -12,51 +12,51 @@
 
 namespace cpp2 {
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Foo::__fbthrift_get_field_storage<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& Foo::__fbthrift_get_field_storage<3>() const {
   return this->__fbthrift_field_field1;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool Foo::__fbthrift_get_field_isset<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool Foo::__fbthrift_get_field_isset<3>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Foo::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& Foo::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_field2;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool Foo::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool Foo::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(1);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Foo::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& Foo::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_field3;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool Foo::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool Foo::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(2);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Foo2::__fbthrift_get_field_storage<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& Foo2::__fbthrift_get_field_storage<3>() const {
   return this->__fbthrift_field_field1;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool Foo2::__fbthrift_get_field_isset<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool Foo2::__fbthrift_get_field_isset<3>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Foo2::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& Foo2::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_field2;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool Foo2::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool Foo2::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(1);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& Foo2::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& Foo2::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_field3;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool Foo2::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool Foo2::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(2);
 }
 } // namespace cpp2

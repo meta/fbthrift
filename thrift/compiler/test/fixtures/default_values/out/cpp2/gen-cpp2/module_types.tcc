@@ -12,171 +12,171 @@
 
 namespace facebook::thrift::compiler::test::fixtures::default_values {
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& TrivialStruct::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& TrivialStruct::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_int_value;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool TrivialStruct::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool TrivialStruct::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& TrivialStructWithDefault::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& TrivialStructWithDefault::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_int_value_1;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool TrivialStructWithDefault::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool TrivialStructWithDefault::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& TrivialStructWithDefault::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& TrivialStructWithDefault::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_int_value_2;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool TrivialStructWithDefault::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool TrivialStructWithDefault::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(1);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithNoCustomDefaultValues::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithNoCustomDefaultValues::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_unqualified_integer;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool StructWithNoCustomDefaultValues::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool StructWithNoCustomDefaultValues::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithNoCustomDefaultValues::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithNoCustomDefaultValues::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_optional_integer;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool StructWithNoCustomDefaultValues::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool StructWithNoCustomDefaultValues::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(1);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithNoCustomDefaultValues::__fbthrift_get_field_storage<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithNoCustomDefaultValues::__fbthrift_get_field_storage<3>() const {
   return this->__fbthrift_field_required_integer;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithNoCustomDefaultValues::__fbthrift_get_field_storage<4>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithNoCustomDefaultValues::__fbthrift_get_field_storage<4>() const {
   return this->__fbthrift_field_unqualified_struct;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool StructWithNoCustomDefaultValues::__fbthrift_get_field_isset<4>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool StructWithNoCustomDefaultValues::__fbthrift_get_field_isset<4>() const {
   return this->__isset.get(2);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithNoCustomDefaultValues::__fbthrift_get_field_storage<5>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithNoCustomDefaultValues::__fbthrift_get_field_storage<5>() const {
   return this->__fbthrift_field_optional_struct;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool StructWithNoCustomDefaultValues::__fbthrift_get_field_isset<5>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool StructWithNoCustomDefaultValues::__fbthrift_get_field_isset<5>() const {
   return this->__isset.get(3);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithNoCustomDefaultValues::__fbthrift_get_field_storage<6>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithNoCustomDefaultValues::__fbthrift_get_field_storage<6>() const {
   return this->__fbthrift_field_required_struct;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithCustomDefaultValues::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithCustomDefaultValues::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_unqualified_integer;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool StructWithCustomDefaultValues::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool StructWithCustomDefaultValues::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithCustomDefaultValues::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithCustomDefaultValues::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_optional_integer;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool StructWithCustomDefaultValues::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool StructWithCustomDefaultValues::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(1);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithCustomDefaultValues::__fbthrift_get_field_storage<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithCustomDefaultValues::__fbthrift_get_field_storage<3>() const {
   return this->__fbthrift_field_required_integer;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithCustomDefaultValues::__fbthrift_get_field_storage<4>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithCustomDefaultValues::__fbthrift_get_field_storage<4>() const {
   return this->__fbthrift_field_unqualified_struct;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool StructWithCustomDefaultValues::__fbthrift_get_field_isset<4>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool StructWithCustomDefaultValues::__fbthrift_get_field_isset<4>() const {
   return this->__isset.get(2);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithCustomDefaultValues::__fbthrift_get_field_storage<5>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithCustomDefaultValues::__fbthrift_get_field_storage<5>() const {
   return this->__fbthrift_field_optional_struct;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool StructWithCustomDefaultValues::__fbthrift_get_field_isset<5>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool StructWithCustomDefaultValues::__fbthrift_get_field_isset<5>() const {
   return this->__isset.get(3);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithCustomDefaultValues::__fbthrift_get_field_storage<6>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithCustomDefaultValues::__fbthrift_get_field_storage<6>() const {
   return this->__fbthrift_field_required_struct;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithCustomDefaultValues::__fbthrift_get_field_storage<7>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithCustomDefaultValues::__fbthrift_get_field_storage<7>() const {
   return this->__fbthrift_field_struct_with_default_unspecified;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool StructWithCustomDefaultValues::__fbthrift_get_field_isset<7>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool StructWithCustomDefaultValues::__fbthrift_get_field_isset<7>() const {
   return this->__isset.get(4);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithCustomDefaultValues::__fbthrift_get_field_storage<8>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithCustomDefaultValues::__fbthrift_get_field_storage<8>() const {
   return this->__fbthrift_field_struct_with_default_specified;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool StructWithCustomDefaultValues::__fbthrift_get_field_isset<8>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool StructWithCustomDefaultValues::__fbthrift_get_field_isset<8>() const {
   return this->__isset.get(5);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithCollectionDefaultValues::__fbthrift_get_field_storage<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithCollectionDefaultValues::__fbthrift_get_field_storage<1>() const {
   return this->__fbthrift_field_list_with_list_value;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool StructWithCollectionDefaultValues::__fbthrift_get_field_isset<1>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool StructWithCollectionDefaultValues::__fbthrift_get_field_isset<1>() const {
   return this->__isset.get(0);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithCollectionDefaultValues::__fbthrift_get_field_storage<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithCollectionDefaultValues::__fbthrift_get_field_storage<2>() const {
   return this->__fbthrift_field_set_with_list_value;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool StructWithCollectionDefaultValues::__fbthrift_get_field_isset<2>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool StructWithCollectionDefaultValues::__fbthrift_get_field_isset<2>() const {
   return this->__isset.get(1);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithCollectionDefaultValues::__fbthrift_get_field_storage<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithCollectionDefaultValues::__fbthrift_get_field_storage<3>() const {
   return this->__fbthrift_field_map_with_map_value;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool StructWithCollectionDefaultValues::__fbthrift_get_field_isset<3>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool StructWithCollectionDefaultValues::__fbthrift_get_field_isset<3>() const {
   return this->__isset.get(2);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithCollectionDefaultValues::__fbthrift_get_field_storage<4>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithCollectionDefaultValues::__fbthrift_get_field_storage<4>() const {
   return this->__fbthrift_field_list_with_map_value;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool StructWithCollectionDefaultValues::__fbthrift_get_field_isset<4>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool StructWithCollectionDefaultValues::__fbthrift_get_field_isset<4>() const {
   return this->__isset.get(3);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithCollectionDefaultValues::__fbthrift_get_field_storage<5>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithCollectionDefaultValues::__fbthrift_get_field_storage<5>() const {
   return this->__fbthrift_field_set_with_map_value;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool StructWithCollectionDefaultValues::__fbthrift_get_field_isset<5>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool StructWithCollectionDefaultValues::__fbthrift_get_field_isset<5>() const {
   return this->__isset.get(4);
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE const auto& StructWithCollectionDefaultValues::__fbthrift_get_field_storage<6>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE const auto& StructWithCollectionDefaultValues::__fbthrift_get_field_storage<6>() const {
   return this->__fbthrift_field_map_with_list_value;
 }
 template <>
-FBTHRIFT_NODEBUG FOLLY_ERASE bool StructWithCollectionDefaultValues::__fbthrift_get_field_isset<6>() const {
+[[FOLLY_ATTR_GNU_NODEBUG]] FOLLY_ERASE bool StructWithCollectionDefaultValues::__fbthrift_get_field_isset<6>() const {
   return this->__isset.get(5);
 }
 } // namespace facebook::thrift::compiler::test::fixtures::default_values
