@@ -24,6 +24,7 @@
 #include <fmt/format.h>
 #include <folly/Exception.h>
 #include <folly/json.h>
+#include <folly/lang/Exception.h>
 #include <thrift/lib/cpp2/protocol/detail/JsonUtils.h>
 
 namespace apache::thrift::json5::detail {
@@ -57,7 +58,12 @@ std::uint32_t JsonWriter::appendComma() {
 }
 
 char JsonWriter::back() {
-  return out_.value().tail<folly::io::CursorAccess::PRIVATE>(1).read<char>();
+  folly::io::RWPrivateCursor head(out_.value());
+  const folly::IOBuf* last = head.currentBuffer()->prev();
+  if (last->length() == 0) {
+    folly::terminate_with<std::logic_error>("last output buffer is empty");
+  }
+  return last->tail()[-1];
 }
 
 char JsonWriter::getOpenBracket(ContainerType type) {
