@@ -19,6 +19,7 @@ package com.facebook.thrift.util;
 import com.facebook.thrift.util.resources.RpcResources;
 import java.util.function.Function;
 import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Scheduler;
 
 /**
  * If processing is forced off the event loop this publish the events from a flux on a different
@@ -33,8 +34,15 @@ public class FluxPublishingTransformer<T> implements Function<Flux<T>, Flux<T>> 
 
   @Override
   public Flux<T> apply(Flux<T> flux) {
-    if (RpcResources.isForceExecutionOffEventLoop()) {
-      return flux.publishOn(RpcResources.getOffLoopScheduler());
+    if (RpcResources.isForceClientExecutionOffEventLoop()) {
+      Scheduler scheduler = RpcResources.getClientOffLoopScheduler();
+
+      // The limitRate shields the wire from the publishOn prefetch: rsocket-java sends the
+      // REQUEST_STREAM / REQUEST_CHANNEL frame with the first requestN it sees, so the
+      // prefetch would otherwise replace the 1 + STREAM_WINDOW window the bridge applies.
+      return flux.limitRate(
+              ResponseAndStreamBridge.INITIAL_CREDITS, ResponseAndStreamBridge.REFILL_CREDITS)
+          .publishOn(scheduler, ResponseAndStreamBridge.INITIAL_CREDITS);
     } else {
       return flux;
     }

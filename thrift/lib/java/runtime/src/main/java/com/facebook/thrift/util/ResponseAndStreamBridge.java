@@ -52,7 +52,13 @@ public final class ResponseAndStreamBridge {
    * against this window, and the wire sees refills only as items arrive, long after the first
    * payload settles.
    */
-  static final int STREAM_WINDOW = 100;
+  public static final int STREAM_WINDOW = 100;
+
+  /** Initial outstanding window: one credit for the first response plus data credits. */
+  public static final int INITIAL_CREDITS = 1 + STREAM_WINDOW;
+
+  /** Refill paced on consumption: requested per this many decoded elements. */
+  public static final int REFILL_CREDITS = STREAM_WINDOW / 2;
 
   /**
    * Bridges the raw decoded stream into the user-facing holder.
@@ -104,7 +110,7 @@ public final class ResponseAndStreamBridge {
     return Mono.defer(
         () ->
             responses
-                .limitRate(1 + STREAM_WINDOW, STREAM_WINDOW / 2)
+                .limitRate(INITIAL_CREDITS, REFILL_CREDITS)
                 .switchOnFirst(
                     (firstSignal, rest) -> {
                       if (firstSignal.hasValue()) {

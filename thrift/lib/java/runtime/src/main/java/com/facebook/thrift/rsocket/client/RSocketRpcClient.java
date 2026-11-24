@@ -46,6 +46,7 @@ import io.rsocket.util.ByteBufPayload;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
+import javax.annotation.Nullable;
 import org.apache.thrift.ClientPushMetadata;
 import org.apache.thrift.CodecConfig;
 import org.apache.thrift.CompressionAlgorithm;
@@ -72,7 +73,7 @@ public final class RSocketRpcClient implements RpcClient {
 
   private final RSocket rsocket;
   private final ByteBufAllocator alloc;
-  private final Scheduler scheduler;
+  private final Scheduler offLoopScheduler;
 
   RSocketRpcClient(final RSocket rsocket) {
     this(
@@ -82,10 +83,11 @@ public final class RSocketRpcClient implements RpcClient {
             : Schedulers.immediate());
   }
 
-  RSocketRpcClient(final RSocket rsocket, final Scheduler scheduler) {
+  /** An immediate {@code offLoopScheduler} keeps decode on the transport thread. */
+  RSocketRpcClient(final RSocket rsocket, final Scheduler offLoopScheduler) {
     this.rsocket = rsocket;
     this.alloc = ByteBufAllocator.DEFAULT;
-    this.scheduler = scheduler;
+    this.offLoopScheduler = offLoopScheduler;
   }
 
   @Override
@@ -164,7 +166,7 @@ public final class RSocketRpcClient implements RpcClient {
     return ResponseHandoff.requestResponse(
         rsocket,
         () -> clientRequestPayloadToRSocketPayload(payload, protocolType, options, true),
-        scheduler,
+        offLoopScheduler,
         response -> rsocketPayloadToClientResponsePayload(payload, response, protocolType),
         error -> isRocketError(error) ? getErrorFrame(error) : null);
   }
@@ -210,33 +212,77 @@ public final class RSocketRpcClient implements RpcClient {
         });
   }
 
+  /**
+   * ImmediateScheduler is a singleton (Schedulers.immediate() returns its instance), so identity
+   * against it tells inline decode from the off-loop handoff with no second flag.
+   */
+  private boolean isInline() {
+    return offLoopScheduler == Schedulers.immediate();
+  }
+
+  /** Inline chain: a rocket error maps to an error frame, then each frame decodes inline. */
+  private static <K> Flux<ClientResponsePayload<K>> inlineStream(
+      Flux<Payload> inbound, Function<Payload, ClientResponsePayload<K>> decoder, String name) {
+    return inbound
+        .onErrorResume(
+            t -> {
+              if (isRocketError(t)) {
+                return Flux.just(ByteBufPayload.create(getExceptionString(t, name)));
+              }
+
+              return Flux.error(t);
+            })
+        .map(decoder);
+  }
+
+  /** Maps a terminal error to a last value, or null to deliver the error unchanged. */
+  @Nullable
+  private static <K> ClientResponsePayload<K> rocketErrorValue(
+      Throwable error, Function<Payload, ClientResponsePayload<K>> decoder, String name) {
+    if (!isRocketError(error)) {
+      return null;
+    }
+
+    return decoder.apply(ByteBufPayload.create(getExceptionString(error, name)));
+  }
+
   @Override
   public <T, K> Flux<ClientResponsePayload<K>> singleRequestStreamingResponse(
       ClientRequestPayload<T> payload, RpcOptions options) {
     final ProtocolId protocol = payload.getRequestRpcMetadata().getProtocol();
     final TProtocolType protocolType = TProtocolType.fromProtocolId(protocol);
+    final String name = payload.getRequestRpcMetadata().getName();
+
+    if (isInline()) {
+      // The decoder carries per-stream first-payload state, so each subscription builds its
+      // own, exactly like master.
+      return Flux.defer(
+          () -> {
+            Payload rsocketPayload =
+                clientRequestPayloadToRSocketPayload(payload, protocolType, options, false);
+            Function<Payload, ClientResponsePayload<K>> decoder =
+                new StreamingResponseHandler<>(payload);
+
+            try {
+              return inlineStream(rsocket.requestStream(rsocketPayload), decoder, name);
+            } catch (Throwable t) {
+              ReferenceCountUtil.safeRelease(rsocketPayload);
+              return Flux.error(t);
+            }
+          });
+    }
 
     return Flux.defer(
         () -> {
-          Payload rsocketPayload =
-              clientRequestPayloadToRSocketPayload(payload, protocolType, options, false);
-          try {
-            return rsocket
-                .requestStream(rsocketPayload)
-                .onErrorResume(
-                    t -> {
-                      if (isRocketError(t)) {
-                        return Flux.just(
-                            ByteBufPayload.create(
-                                getExceptionString(t, payload.getRequestRpcMetadata().getName())));
-                      }
-                      return Flux.error(t);
-                    })
-                .map(new StreamingResponseHandler<>(payload));
-          } catch (Throwable t) {
-            ReferenceCountUtil.safeRelease(rsocketPayload);
-            return Flux.error(t);
-          }
+          Function<Payload, ClientResponsePayload<K>> decoder =
+              new StreamingResponseHandler<>(payload);
+
+          return StreamHandoff.requestStream(
+              rsocket,
+              () -> clientRequestPayloadToRSocketPayload(payload, protocolType, options, false),
+              offLoopScheduler,
+              decoder,
+              error -> rocketErrorValue(error, decoder, name));
         });
   }
 
@@ -265,19 +311,20 @@ public final class RSocketRpcClient implements RpcClient {
                           })
                       .doOnDiscard(Payload.class, ReferenceCountUtil::safeRelease);
 
-              return rsocket
-                  .requestChannel(payloadFlux)
-                  .onErrorResume(
-                      t -> {
-                        if (isRocketError(t)) {
-                          return Flux.just(
-                              ByteBufPayload.create(
-                                  getExceptionString(
-                                      t, clientRequestPayload.getRequestRpcMetadata().getName())));
-                        }
-                        return Flux.error(t);
-                      })
-                  .map(new StreamingResponseHandler<>(clientRequestPayload));
+              Function<Payload, ClientResponsePayload<K>> decoder =
+                  new StreamingResponseHandler<>(clientRequestPayload);
+              String name = clientRequestPayload.getRequestRpcMetadata().getName();
+
+              if (isInline()) {
+                return inlineStream(rsocket.requestChannel(payloadFlux), decoder, name);
+              }
+
+              return StreamHandoff.requestChannel(
+                  rsocket,
+                  payloadFlux,
+                  offLoopScheduler,
+                  decoder,
+                  error -> rocketErrorValue(error, decoder, name));
             });
   }
 
