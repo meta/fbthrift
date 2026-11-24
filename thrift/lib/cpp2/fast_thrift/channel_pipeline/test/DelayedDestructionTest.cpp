@@ -340,21 +340,37 @@ TEST_F(DelayedDestructionTest, HandlerRemovedCanAccessPipeline) {
 }
 
 TEST_F(DelayedDestructionTest, HandlerRemovedCalledOnceEvenWithNestedClose) {
-  auto handler1 = std::make_unique<MockHandler>();
-  auto handler2 = std::make_unique<MockHandler>();
+  for (const bool deferredDestruction : {false, true}) {
+    SCOPED_TRACE(deferredDestruction);
+    int firstRemoved = 0;
+    int secondRemoved = 0;
+    bool removalCompleted = false;
+    auto handler1 = std::make_unique<MockHandler>();
+    auto handler2 = std::make_unique<MockHandler>();
+    handler1->setHandlerRemoved([&](detail::ContextImpl&) { ++firstRemoved; });
+    handler2->setHandlerRemoved([&](detail::ContextImpl& ctx) {
+      ++secondRemoved;
+      ctx.pipeline()->close();
+      ctx.pipeline()->onWriteReady();
+      removalCompleted = true;
+    });
 
-  // Handler2's handlerRemoved tries to call close() again
-  handler2->setHandlerRemoved([](detail::ContextImpl& ctx) {
-    ctx.pipeline()->close(); // Should be no-op
-  });
+    auto pipeline =
+        buildTwoHandlerPipeline(std::move(handler1), std::move(handler2));
+    if (deferredDestruction) {
+      folly::DelayedDestructionBase::DestructorGuard guard(pipeline.get());
+      pipeline.reset();
+      EXPECT_EQ(firstRemoved, 0);
+      EXPECT_EQ(secondRemoved, 0);
+      EXPECT_FALSE(removalCompleted);
+    } else {
+      pipeline->close();
+    }
 
-  auto pipeline =
-      buildTwoHandlerPipeline(std::move(handler1), std::move(handler2));
-  pipeline->close();
-
-  // Each handler's handlerRemoved should be called exactly once
-  EXPECT_EQ(handler1_ptr_->handlerRemovedCount(), 1);
-  EXPECT_EQ(handler2_ptr_->handlerRemovedCount(), 1);
+    EXPECT_EQ(firstRemoved, 1);
+    EXPECT_EQ(secondRemoved, 1);
+    EXPECT_TRUE(removalCompleted);
+  }
 }
 
 // ==================== Ready Notification Safety ====================

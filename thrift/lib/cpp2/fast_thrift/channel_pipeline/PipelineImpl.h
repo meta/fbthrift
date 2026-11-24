@@ -513,15 +513,12 @@ class alignas(detail::ContextImpl) PipelineImpl
   // Called via DelayedDestruction when guardCount reaches zero.
   ~PipelineImpl() override;
 
-  // Override to ensure handlers are cleaned up before destruction.
-  // Called by DelayedDestruction::destroy() when safe to destruct.
-  // Note: We do NOT call callHandlerRemoved() here because it uses
-  // DestructorGuard which would trigger infinite recursion.
-  // Instead, close() is responsible for calling handlerRemoved.
+  // Releasing a temporary guard can re-enter while handlerRemoved() runs.
   void onDelayedDestroy(bool delayed) override {
-    if (delayed && !getDestroyPending()) {
+    if (destroying_ || (delayed && !getDestroyPending())) {
       return;
     }
+    destroying_ = true;
     if (state_ != State::Closed) {
       state_ = State::Closed;
       writeReadyWaiters_.clear();
@@ -644,6 +641,7 @@ class alignas(detail::ContextImpl) PipelineImpl
   detail::ContextImpl* lastCtx_{nullptr};
 
   State state_{State::Inactive};
+  bool destroying_{false};
 
   // Handlers awaiting write/read ready notifications, by handler index.
   // Handlers self-register via ctx.awaitWriteReady()/ctx.awaitReadReady().
