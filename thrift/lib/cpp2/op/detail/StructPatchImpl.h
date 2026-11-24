@@ -44,6 +44,19 @@ auto BaseEnsurePatch<Patch, Derived>::patchImpl() -> patch_type& {
 }
 
 template <class Patch, class Derived>
+bool BaseEnsurePatch<Patch, Derived>::empty() const {
+  bool b = true;
+  op::for_each_ordinal<T>([&](auto id) {
+    using Id = decltype(id);
+    if constexpr (!apache::thrift::detail::is_shared_ptr_v<
+                      op::get_field_ref<T, Id>>) {
+      b = b && !this->modifies<Id>();
+    }
+  });
+  return b;
+}
+
+template <class Patch, class Derived>
 void BaseEnsurePatch<Patch, Derived>::apply(T& val) const {
   return customVisit(Applier{val});
 }

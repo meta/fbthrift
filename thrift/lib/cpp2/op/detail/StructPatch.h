@@ -302,17 +302,7 @@ class BaseEnsurePatch : public BaseClearPatch<Patch, Derived> {
   }
 
   /// Returns if the patch is no-op.
-  bool empty() const {
-    bool b = true;
-    op::for_each_ordinal<T>([&](auto id) {
-      using Id = decltype(id);
-      if constexpr (!apache::thrift::detail::is_shared_ptr_v<
-                        op::get_field_ref<T, Id>>) {
-        b = b && !this->modifies<Id>();
-      }
-    });
-    return b;
-  }
+  bool empty() const;
 
   /// Remove the given field. This is only valid for optional fields.
   template <typename Id>
