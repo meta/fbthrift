@@ -413,6 +413,11 @@ class AnyPatch : public BaseClearPatch<Patch, AnyPatch<Patch>> {
       return;
     }
 
+    // The patched value already has the ensured type, so a different type
+    // replaces it whatever this patch did before.
+    if (data_.ensureAny().has_value()) {
+      clear();
+    }
     data_.ensureAny() = std::move(ensureAny);
   }
 
