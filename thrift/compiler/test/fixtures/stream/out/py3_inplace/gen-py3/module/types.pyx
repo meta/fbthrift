@@ -29,6 +29,8 @@ from thrift.py3.types cimport (
     set_iter as __set_iter,
     map_iter as __map_iter,
     reference_shared_ptr as __reference_shared_ptr,
+    get_union_field_storage as __get_union_field_storage,
+    get_union_field_cref as __get_union_field_cref,
     get_field_name_by_index as __get_field_name_by_index,
     reset_field as __reset_field,
     translate_cpp_enum_to_python,

@@ -29,6 +29,8 @@ from thrift.py3.types cimport (
     set_iter as __set_iter,
     map_iter as __map_iter,
     reference_shared_ptr as __reference_shared_ptr,
+    get_union_field_storage as __get_union_field_storage,
+    get_union_field_cref as __get_union_field_cref,
     get_field_name_by_index as __get_field_name_by_index,
     reset_field as __reset_field,
     translate_cpp_enum_to_python,
@@ -1127,7 +1129,7 @@ cdef class BinaryUnion(thrift.py3.types.Union):
         if self.py_value is not None or self.type_int == 0:
             return self.py_value
         elif self.type_int == 1:
-            self.py_value = _fbthrift_iobuf.from_unique_ptr(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_iobuf_val().clone())
+            self.py_value = _fbthrift_iobuf.from_unique_ptr(__get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).iobuf_val_ref()).clone())
         return self.py_value
 
     cdef _initialize_py(BinaryUnion self):
@@ -1912,9 +1914,9 @@ cdef class StringAdaptedUnion(thrift.py3.types.Union):
         if self.py_value is not None or self.type_int == 0:
             return self.py_value
         elif self.type_int == 1:
-            self.py_value = bytes(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_string_field()).decode('UTF-8')
+            self.py_value = bytes(__get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).string_field_ref())).decode('UTF-8')
         elif self.type_int == 2:
-            self.py_value = (<const char*>deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_binary_field().data())[:deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_binary_field().size()]
+            self.py_value = (<const char*>__get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).binary_field_ref()).data())[:__get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).binary_field_ref()).size()]
         return self.py_value
 
     cdef _initialize_py(StringAdaptedUnion self):

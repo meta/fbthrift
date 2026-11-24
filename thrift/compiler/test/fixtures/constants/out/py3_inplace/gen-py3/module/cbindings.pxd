@@ -159,8 +159,10 @@ cdef extern from "thrift/compiler/test/fixtures/constants/gen-cpp2/module_types_
         bint operator>=(cunion1&)
         cunion1__type getType() const
         const cint32_t& get_i "get_i" () const
+        __union_field_ref[cint32_t] i_ref "i_ref" ()
         cint32_t& set_i "set_i" (const cint32_t&)
         const double& get_d "get_d" () const
+        __union_field_ref[double] d_ref "d_ref" ()
         double& set_d "set_d" (const double&)
 
     cdef enum class cunion2__type "::cpp2::union2::Type":
@@ -181,12 +183,16 @@ cdef extern from "thrift/compiler/test/fixtures/constants/gen-cpp2/module_types_
         bint operator>=(cunion2&)
         cunion2__type getType() const
         const cint32_t& get_i "get_i" () const
+        __union_field_ref[cint32_t] i_ref "i_ref" ()
         cint32_t& set_i "set_i" (const cint32_t&)
         const double& get_d "get_d" () const
+        __union_field_ref[double] d_ref "d_ref" ()
         double& set_d "set_d" (const double&)
         const cstruct1& get_s "get_s" () const
+        __union_field_ref[cstruct1] s_ref "s_ref" ()
         cstruct1& set_s "set_s" (const cstruct1&)
         const cunion1& get_u "get_u" () const
+        __union_field_ref[cunion1] u_ref "u_ref" ()
         cunion1& set_u "set_u" (const cunion1&)
 
 cdef extern from "thrift/compiler/test/fixtures/constants/gen-cpp2/module_constants.h" namespace "::cpp2":

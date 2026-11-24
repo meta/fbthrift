@@ -684,36 +684,49 @@ deref(c_inst).set_{{field.py_name}}(deref((<{{#partial cython_python_type type=f
 {{/let partial}}
 
 
+{{! The value of the active union field, as a const reference. }}
+{{#let partial union_field_value |field| captures |cpp_obj|}}
+{{#pragma ignore-newlines}}
+__get_union_field_cref(deref(self.{{#partial cpp_obj}}).{{field.py_name}}_ref())
+{{/let partial}}
+
+{{! The storage of the active union field: for a reference field, its possibly
+    null smart pointer. }}
+{{#let partial union_field_storage |field| captures |cpp_obj|}}
+{{#pragma ignore-newlines}}
+__get_union_field_storage(deref(self.{{#partial cpp_obj}}).{{field.py_name}}_ref())
+{{/let partial}}
+
 {{! Helper for cython_union_getter: retrieves non-reference union field value. }}
-{{#let partial union_getter_non_reference_value |field| captures |cpp_obj python_type cython_python_type cython_cpp_type container_from_cpp|}}
+{{#let partial union_getter_non_reference_value |field| captures |union_field_value python_type cython_python_type cython_cpp_type container_from_cpp|}}
 {{#pragma ignore-newlines}}
   {{#let type=field.type}}
-{{#if type.bool?}}<bint>(deref(self.{{#partial cpp_obj}}).get_{{field.py_name}}())
-{{#else if type.string?}}bytes(deref(self.{{#partial cpp_obj}}).get_{{field.py_name}}()).decode('UTF-8')
-{{#else if field.type_iobuf?}}_fbthrift_iobuf.from_unique_ptr(deref(self.{{#partial cpp_obj}}).get_{{field.py_name}}().clone())
-{{#else if field.type_flexibleBinary?}}(<const char*>deref(self.{{#partial cpp_obj}}).get_{{field.py_name}}().data())[:deref(self.{{#partial cpp_obj}}).get_{{field.py_name}}().size()]
-{{#else if type.enum?}}translate_cpp_enum_to_python({{#partial python_type type=type}}, <int>deref(self.{{#partial cpp_obj}}).get_{{field.py_name}}())
-{{#else if type.structured?}}{{#partial cython_python_type type=type}}._create_FBTHRIFT_ONLY_DO_NOT_USE(make_shared[{{#partial cython_cpp_type type=type}}](deref(self.{{#partial cpp_obj}}).get_{{field.py_name}}()))
-{{#else if type.container?}}{{#partial container_from_cpp type=type}}(deref(self.{{#partial cpp_obj}}).get_{{field.py_name}}())
-{{#else}}deref(self.{{#partial cpp_obj}}).get_{{field.py_name}}()
+{{#if type.bool?}}<bint>({{#partial union_field_value field=field}})
+{{#else if type.string?}}bytes({{#partial union_field_value field=field}}).decode('UTF-8')
+{{#else if field.type_iobuf?}}_fbthrift_iobuf.from_unique_ptr({{#partial union_field_value field=field}}.clone())
+{{#else if field.type_flexibleBinary?}}(<const char*>{{#partial union_field_value field=field}}.data())[:{{#partial union_field_value field=field}}.size()]
+{{#else if type.enum?}}translate_cpp_enum_to_python({{#partial python_type type=type}}, <int>{{#partial union_field_value field=field}})
+{{#else if type.structured?}}{{#partial cython_python_type type=type}}._create_FBTHRIFT_ONLY_DO_NOT_USE(make_shared[{{#partial cython_cpp_type type=type}}]({{#partial union_field_value field=field}}))
+{{#else if type.container?}}{{#partial container_from_cpp type=type}}({{#partial union_field_value field=field}})
+{{#else}}{{#partial union_field_value field=field}}
 {{/if type.bool?}}
 {{/let partial}}
 
 {{! Included on Cython unions to retrieve the current value of the union and
     stick it in the self.py_value variable. }}
-{{#let export partial cython_union_getter |field| captures |cpp_obj cython_python_type container_from_cpp union_getter_non_reference_value cython_cpp_type_resolved|}}
+{{#let export partial cython_union_getter |field| captures |cpp_obj cython_python_type container_from_cpp union_getter_non_reference_value union_field_storage cython_cpp_type_resolved|}}
   {{#if field.reference?}}
-if not deref(self.{{#partial cpp_obj}}).get_{{field.py_name}}():
+if not {{#partial union_field_storage field=field}}:
     self.py_value = None
 else:
     {{#if field.type.container?}}
-    self.py_value = {{#partial container_from_cpp type=field.type}}(deref(deref(self.{{#partial cpp_obj}}).get_{{field.py_name}}()))
+    self.py_value = {{#partial container_from_cpp type=field.type}}(deref({{#partial union_field_storage field=field}}))
     {{#else}}
     {{! Use an aliasing constructor since the object we're returning is still
         managed by the top-level object, possible via a unique_ptr }}
     self.py_value = {{#partial cython_python_type type=field.type}}._create_FBTHRIFT_ONLY_DO_NOT_USE(__reference_shared_ptr[{{!
       }}{{#partial cython_cpp_type_resolved type=field.type enable_custom_type_overrides=false}}]({{!
-      }}deref(deref(self.{{#partial cpp_obj}}).get_{{field.py_name}}()), self.{{#partial cpp_obj}}))
+      }}deref({{#partial union_field_storage field=field}}), self.{{#partial cpp_obj}}))
     {{/if field.type.container?}}
   {{#else}}
 self.py_value = {{#partial union_getter_non_reference_value field=field}}

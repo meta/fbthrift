@@ -71,8 +71,10 @@ cdef extern from "thrift/compiler/test/fixtures/refs/gen-cpp2/module_types_custo
         bint operator>=(cMyUnion&)
         cMyUnion__type getType() const
         const unique_ptr[cint32_t]& get_anInteger "get_anInteger" () const
+        __union_field_ref[unique_ptr[cint32_t]] anInteger_ref "anInteger_ref" ()
         unique_ptr[cint32_t]& set_anInteger "set_anInteger" (const cint32_t&)
         const unique_ptr[string]& get_aString "get_aString" () const
+        __union_field_ref[unique_ptr[string]] aString_ref "aString_ref" ()
         unique_ptr[string]& set_aString "set_aString" (const string&)
 
     cdef enum class cNonTriviallyDestructibleUnion__type "::cpp2::NonTriviallyDestructibleUnion::Type":
@@ -90,6 +92,7 @@ cdef extern from "thrift/compiler/test/fixtures/refs/gen-cpp2/module_types_custo
         bint operator>=(cNonTriviallyDestructibleUnion&)
         cNonTriviallyDestructibleUnion__type getType() const
         const shared_ptr[cint32_t]& get_int_field "get_int_field" () const
+        __union_field_ref[shared_ptr[cint32_t]] int_field_ref "int_field_ref" ()
         shared_ptr[cint32_t]& set_int_field "set_int_field" (const cint32_t&)
 
 

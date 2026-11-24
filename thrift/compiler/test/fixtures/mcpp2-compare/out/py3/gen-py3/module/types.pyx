@@ -29,6 +29,8 @@ from thrift.py3.types cimport (
     set_iter as __set_iter,
     map_iter as __map_iter,
     reference_shared_ptr as __reference_shared_ptr,
+    get_union_field_storage as __get_union_field_storage,
+    get_union_field_cref as __get_union_field_cref,
     get_field_name_by_index as __get_field_name_by_index,
     reset_field as __reset_field,
     translate_cpp_enum_to_python,
@@ -727,9 +729,9 @@ cdef class SimpleUnion(thrift.py3.types.Union):
         if self.py_value is not None or self.type_int == 0:
             return self.py_value
         elif self.type_int == 7:
-            self.py_value = deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_intValue()
+            self.py_value = __get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).intValue_ref())
         elif self.type_int == 2:
-            self.py_value = bytes(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_stringValue()).decode('UTF-8')
+            self.py_value = bytes(__get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).stringValue_ref())).decode('UTF-8')
         return self.py_value
 
     cdef _initialize_py(SimpleUnion self):
@@ -1380,67 +1382,67 @@ cdef class ComplexUnion(thrift.py3.types.Union):
         if self.py_value is not None or self.type_int == 0:
             return self.py_value
         elif self.type_int == 1:
-            self.py_value = deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_intValue()
+            self.py_value = __get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).intValue_ref())
         elif self.type_int == 201:
-            self.py_value = deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_opt_intValue()
+            self.py_value = __get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).opt_intValue_ref())
         elif self.type_int == 3:
-            self.py_value = bytes(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_stringValue()).decode('UTF-8')
+            self.py_value = bytes(__get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).stringValue_ref())).decode('UTF-8')
         elif self.type_int == 203:
-            self.py_value = bytes(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_opt_stringValue()).decode('UTF-8')
+            self.py_value = bytes(__get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).opt_stringValue_ref())).decode('UTF-8')
         elif self.type_int == 4:
-            self.py_value = deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_intValue2()
+            self.py_value = __get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).intValue2_ref())
         elif self.type_int == 6:
-            self.py_value = deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_intValue3()
+            self.py_value = __get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).intValue3_ref())
         elif self.type_int == 7:
-            self.py_value = deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_doubelValue()
+            self.py_value = __get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).doubelValue_ref())
         elif self.type_int == 8:
-            self.py_value = <bint>(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_boolValue())
+            self.py_value = <bint>(__get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).boolValue_ref()))
         elif self.type_int == 9:
-            self.py_value = List__i32__from_cpp(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_union_list())
+            self.py_value = List__i32__from_cpp(__get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).union_list_ref()))
         elif self.type_int == 10:
-            self.py_value = Set__i64__from_cpp(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_union_set())
+            self.py_value = Set__i64__from_cpp(__get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).union_set_ref()))
         elif self.type_int == 11:
-            self.py_value = Map__string_i32__from_cpp(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_union_map())
+            self.py_value = Map__string_i32__from_cpp(__get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).union_map_ref()))
         elif self.type_int == 211:
-            self.py_value = Map__string_i32__from_cpp(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_opt_union_map())
+            self.py_value = Map__string_i32__from_cpp(__get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).opt_union_map_ref()))
         elif self.type_int == 12:
-            self.py_value = translate_cpp_enum_to_python(MyEnumA, <int>deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_enum_field())
+            self.py_value = translate_cpp_enum_to_python(MyEnumA, <int>__get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).enum_field_ref()))
         elif self.type_int == 13:
-            self.py_value = List__MyEnumA__from_cpp(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_enum_container())
+            self.py_value = List__MyEnumA__from_cpp(__get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).enum_container_ref()))
         elif self.type_int == 14:
-            self.py_value = MyStruct._create_FBTHRIFT_ONLY_DO_NOT_USE(make_shared[_module_cbindings.cMyStruct](deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_a_struct()))
+            self.py_value = MyStruct._create_FBTHRIFT_ONLY_DO_NOT_USE(make_shared[_module_cbindings.cMyStruct](__get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).a_struct_ref())))
         elif self.type_int == 15:
-            self.py_value = Set__MyStruct__from_cpp(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_a_set_struct())
+            self.py_value = Set__MyStruct__from_cpp(__get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).a_set_struct_ref()))
         elif self.type_int == 16:
-            self.py_value = SimpleUnion._create_FBTHRIFT_ONLY_DO_NOT_USE(make_shared[_module_cbindings.cSimpleUnion](deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_a_union()))
+            self.py_value = SimpleUnion._create_FBTHRIFT_ONLY_DO_NOT_USE(make_shared[_module_cbindings.cSimpleUnion](__get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).a_union_ref())))
         elif self.type_int == 216:
-            self.py_value = SimpleUnion._create_FBTHRIFT_ONLY_DO_NOT_USE(make_shared[_module_cbindings.cSimpleUnion](deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_opt_a_union()))
+            self.py_value = SimpleUnion._create_FBTHRIFT_ONLY_DO_NOT_USE(make_shared[_module_cbindings.cSimpleUnion](__get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).opt_a_union_ref())))
         elif self.type_int == 17:
-            self.py_value = List__SimpleUnion__from_cpp(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_a_union_list())
+            self.py_value = List__SimpleUnion__from_cpp(__get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).a_union_list_ref()))
         elif self.type_int == 18:
-            self.py_value = Set__SimpleUnion__from_cpp(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_a_union_typedef())
+            self.py_value = Set__SimpleUnion__from_cpp(__get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).a_union_typedef_ref()))
         elif self.type_int == 19:
-            self.py_value = List__Set__SimpleUnion__from_cpp(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_a_union_typedef_list())
+            self.py_value = List__Set__SimpleUnion__from_cpp(__get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).a_union_typedef_list_ref()))
         elif self.type_int == 20:
-            self.py_value = deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_MyBinaryField()
+            self.py_value = __get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).MyBinaryField_ref())
         elif self.type_int == 21:
-            self.py_value = deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_MyBinaryField2()
+            self.py_value = __get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).MyBinaryField2_ref())
         elif self.type_int == 23:
-            self.py_value = List__binary__from_cpp(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_MyBinaryListField4())
+            self.py_value = List__binary__from_cpp(__get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).MyBinaryListField4_ref()))
         elif self.type_int == 24:
-            if not deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_ref_field():
+            if not __get_union_field_storage(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).ref_field_ref()):
                 self.py_value = None
             else:
-                self.py_value = MyStruct._create_FBTHRIFT_ONLY_DO_NOT_USE(__reference_shared_ptr[_module_cbindings.cMyStruct](deref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_ref_field()), self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE))
+                self.py_value = MyStruct._create_FBTHRIFT_ONLY_DO_NOT_USE(__reference_shared_ptr[_module_cbindings.cMyStruct](deref(__get_union_field_storage(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).ref_field_ref())), self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE))
         elif self.type_int == 25:
-            if not deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_ref_field2():
+            if not __get_union_field_storage(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).ref_field2_ref()):
                 self.py_value = None
             else:
-                self.py_value = MyStruct._create_FBTHRIFT_ONLY_DO_NOT_USE(__reference_shared_ptr[_module_cbindings.cMyStruct](deref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_ref_field2()), self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE))
+                self.py_value = MyStruct._create_FBTHRIFT_ONLY_DO_NOT_USE(__reference_shared_ptr[_module_cbindings.cMyStruct](deref(__get_union_field_storage(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).ref_field2_ref())), self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE))
         elif self.type_int == 26:
-            self.py_value = AnException._create_FBTHRIFT_ONLY_DO_NOT_USE(make_shared[_module_cbindings.cAnException](deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_excp_field()))
+            self.py_value = AnException._create_FBTHRIFT_ONLY_DO_NOT_USE(make_shared[_module_cbindings.cAnException](__get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).excp_field_ref())))
         elif self.type_int == 27:
-            self.py_value = _fbthrift_iobuf.from_unique_ptr(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_MyCustomField().clone())
+            self.py_value = _fbthrift_iobuf.from_unique_ptr(__get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).MyCustomField_ref()).clone())
         return self.py_value
 
     cdef _initialize_py(ComplexUnion self):
@@ -3294,9 +3296,9 @@ cdef class FloatUnion(thrift.py3.types.Union):
         if self.py_value is not None or self.type_int == 0:
             return self.py_value
         elif self.type_int == 1:
-            self.py_value = deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_floatSide()
+            self.py_value = __get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).floatSide_ref())
         elif self.type_int == 2:
-            self.py_value = deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).get_doubleSide()
+            self.py_value = __get_union_field_cref(deref(self._cpp_obj_FBTHRIFT_ONLY_DO_NOT_USE).doubleSide_ref())
         return self.py_value
 
     cdef _initialize_py(FloatUnion self):

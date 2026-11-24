@@ -449,6 +449,7 @@ cdef extern from "thrift/compiler/test/fixtures/py3/gen-py3cpp/module_types_cust
         cBinaryUnion(const cBinaryUnion&) except +
         cBinaryUnion__type getType() const
         const _fbthrift_iobuf.cIOBuf& get_iobuf_val "get_iobuf_val" () const
+        __union_field_ref[_fbthrift_iobuf.cIOBuf] iobuf_val_ref "iobuf_val_ref" ()
         _fbthrift_iobuf.cIOBuf& set_iobuf_val "set_iobuf_val" (const _fbthrift_iobuf.cIOBuf&)
 
 
@@ -521,8 +522,10 @@ cdef extern from "thrift/compiler/test/fixtures/py3/gen-py3cpp/module_types_cust
         bint operator>=(cStringAdaptedUnion&)
         cStringAdaptedUnion__type getType() const
         const _py3_simple_StringAdaptedString& get_string_field "get_string_field" () const
+        __union_field_ref[_py3_simple_StringAdaptedString] string_field_ref "string_field_ref" ()
         _py3_simple_StringAdaptedString& set_string_field "set_string_field" (const _py3_simple_StringAdaptedString&)
         const _py3_simple_StringAdaptedBinary& get_binary_field "get_binary_field" () const
+        __union_field_ref[_py3_simple_StringAdaptedBinary] binary_field_ref "binary_field_ref" ()
         _py3_simple_StringAdaptedBinary& set_binary_field "set_binary_field" (const _py3_simple_StringAdaptedBinary&)
 
 cdef extern from "thrift/compiler/test/fixtures/py3/gen-py3cpp/module_constants.h" namespace "::py3::simple":
