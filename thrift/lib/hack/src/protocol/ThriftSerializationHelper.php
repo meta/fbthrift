@@ -789,7 +789,13 @@ abstract final class ThriftSerializationHelper {
         if ($object !== null) {
           $etype = Shapes::at($tspec, 'etype');
           $espec = Shapes::at($tspec, 'elem');
-          if (
+          if ($protocol->writesKeysInStableOrder()) {
+            foreach (
+              ThriftStableOrder::sortedSetElements($tspec, $object) as $elem
+            ) {
+              $xfer += self::writeValue($protocol, $etype, $elem, $espec);
+            }
+          } else if (
             Shapes::at($tspec, 'format') === 'object_key' &&
             $object is ThriftSet<_>
           ) {
@@ -842,7 +848,15 @@ abstract final class ThriftSerializationHelper {
         if ($object !== null) {
           $vtype = Shapes::at($tspec, 'vtype');
           $vspec = Shapes::at($tspec, 'val');
-          if (
+          if ($protocol->writesKeysInStableOrder()) {
+            foreach (
+              ThriftStableOrder::sortedMapEntries($tspec, $object) as
+                list($kiter, $viter)
+            ) {
+              $xfer += self::writeValue($protocol, $ktype, $kiter, $kspec);
+              $xfer += self::writeValue($protocol, $vtype, $viter, $vspec);
+            }
+          } else if (
             Shapes::at($tspec, 'format') === 'object_key' &&
             $object is ThriftMap<_, _>
           ) {

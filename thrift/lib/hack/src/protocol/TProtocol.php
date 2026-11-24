@@ -160,6 +160,10 @@ abstract class TProtocol {
     return false;
   }
 
+  public function writesKeysInStableOrder()[]: bool {
+    return false;
+  }
+
   /**
    * `$enum` is the class name of the enum, for protocols that write names.
    */

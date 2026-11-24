@@ -405,6 +405,21 @@ final class ThriftSerializationHelperTest
       ),
     ));
   }
+
+  public function testKeyOrder(): void {
+    $example = facebook\thrift\json5\Example::fromShape(shape(
+      'stringAsKey' => dict['b' => '1', 'a' => '2'],
+      'i32SetValue' => keyset[3, 1, 2],
+    ));
+
+    $transport = new TMemoryBuffer();
+    ThriftSerializationHelper::writeStruct(
+      new ThriftSerializationHelperTestStableOrderProtocol($transport),
+      $example,
+    );
+    expect($transport->getBuffer())
+      ->toEqual('{"stringAsKey":{"a":"2","b":"1"},"i32SetValue":[1,2,3]}');
+  }
 }
 
 final class ThriftSerializationHelperTestIdOrderProtocol
@@ -478,5 +493,13 @@ final class ThriftSerializationHelperTestFieldIdProtocol
       $field_id = (int)$match['id'];
     }
     return $result;
+  }
+}
+
+final class ThriftSerializationHelperTestStableOrderProtocol
+  extends TSimpleJSONProtocol {
+  <<__Override>>
+  public function writesKeysInStableOrder()[]: bool {
+    return true;
   }
 }
