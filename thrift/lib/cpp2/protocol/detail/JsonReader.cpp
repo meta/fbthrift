@@ -452,9 +452,8 @@ Json5Reader::Token Json5Reader::peekToken() {
 
 // -- strings and identifiers ----------------------------------------------
 
-std::string Json5Reader::parseString(char quote) {
+void Json5Reader::parseString(char quote, std::string& result) {
   folly::io::Cursor start = cursor();
-  std::string result;
   // OR of every input byte copied as is; bit 7 is set if any was non-ASCII.
   unsigned char rawBytesOr = 0;
   auto appendRaw = [&](char ch) {
@@ -482,7 +481,7 @@ std::string Json5Reader::parseString(char quote) {
       if ((rawBytesOr & 0x80) != 0) {
         validateUtf8(start.readFixedString(cursor() - start - 1));
       }
-      return result;
+      return;
     }
     if (c == '\n' || c == '\r') {
       throwParseError("unescaped newline in string");
@@ -536,10 +535,16 @@ std::string Json5Reader::parseString(char quote) {
 
 std::string Json5Reader::readObjectName() {
   std::string name;
+  readObjectName(name);
+  return name;
+}
+
+void Json5Reader::readObjectName(std::string& name) {
   char c = peekChar();
   if (c == '"' || c == '\'') {
     cursor().skip(1);
-    name = parseString(c);
+    name.clear();
+    parseString(c, name);
   } else if (isIdentifierStart(c)) {
     name = cursor().readWhile(isIdentifierPart);
   } else {
@@ -547,7 +552,6 @@ std::string Json5Reader::readObjectName() {
   }
   skipWhitespaceAndComments();
   consume(':');
-  return name;
 }
 
 // -- numbers --------------------------------------------------------------
@@ -594,7 +598,7 @@ Json5Reader::Primitive Json5Reader::readPrimitive(
 
   if (c == '"' || c == '\'') {
     cursor().skip(1);
-    result = parseString(c);
+    parseString(c, result.emplace<std::string>());
   } else if (isNumberStart(c)) {
     result = parseNumber(cursor(), precision);
   } else if (isIdentifierStart(c)) {

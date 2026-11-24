@@ -150,6 +150,8 @@ class Json5Reader final {
 
   /** Reads and returns the next object key name. */
   std::string readObjectName();
+  /** Like readObjectName(), but reads into `name`, reusing its capacity. */
+  void readObjectName(std::string& name);
 
   /** Consumes the opening bracket of an array. */
   void readListBegin() { consume('['), ++depth_; }
@@ -173,7 +175,8 @@ class Json5Reader final {
   char readChar();
   void consume(char c);
 
-  std::string parseString(char quote);
+  // Appends the string after its opening `quote` to `result`.
+  void parseString(char quote, std::string& result);
 
   // Parses a JSON5 number at `cursor`, leaving trailing characters unread.
   static Primitive parseNumber(

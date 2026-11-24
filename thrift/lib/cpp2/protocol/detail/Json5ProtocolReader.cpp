@@ -220,11 +220,11 @@ void Json5ProtocolReader::readFieldBegin(
   }
 
   fieldType = protocol::T_VOID;
-  if (auto objectName = reader_.readObjectName(); isIdentifier(objectName)) {
-    name = std::move(objectName);
+  reader_.readObjectName(name);
+  if (isIdentifier(name)) {
     fieldId = std::numeric_limits<std::int16_t>::min();
   } else {
-    auto parsed = parseIdentifierString<std::int16_t>(objectName);
+    auto parsed = parseIdentifierString<std::int16_t>(name);
     name = std::move(parsed.name);
     fieldId = parsed.value.value_or(std::numeric_limits<std::int16_t>::min());
   }
