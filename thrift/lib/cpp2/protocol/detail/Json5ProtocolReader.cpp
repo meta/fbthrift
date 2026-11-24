@@ -229,8 +229,7 @@ void Json5ProtocolReader::readFieldBegin(
     fieldId = parsed.value.value_or(std::numeric_limits<std::int16_t>::min());
   }
 
-  if (reader_.peekToken() == Json5Reader::Token::Primitive &&
-      folly::io::Cursor(reader_.getCursor()).read<char>() == 'n') {
+  if (reader_.peekChar() == 'n') {
     // Skip fields with null value
     [[maybe_unused]] bool isNull =
         std::holds_alternative<std::monostate>(reader_.readPrimitive());

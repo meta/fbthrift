@@ -148,6 +148,9 @@ class Json5Reader final {
   static Primitive parseNumber(
       std::string_view str, FloatingPointPrecision precision);
 
+  /** Returns the next character without consuming it, or '\0' at the end. */
+  [[nodiscard]] char peekChar();
+
   /** Reads and returns the next object key name. */
   std::string readObjectName();
   /** Like readObjectName(), but reads into `name`, reusing its capacity. */
@@ -171,7 +174,6 @@ class Json5Reader final {
   bool skipComment();
   bool skipUnicodeSpace();
   void skipWhitespaceAndComments();
-  char peekChar();
   char readChar();
   void consume(char c);
 
