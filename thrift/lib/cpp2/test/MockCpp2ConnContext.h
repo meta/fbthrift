@@ -17,7 +17,7 @@
 #pragma once
 
 #include <folly/io/async/ssl/BasicTransportCertificate.h>
-#include <folly/io/async/test/MockAsyncTransport.h>
+#include <folly/io/async/testing/MockAsyncTransport.h>
 #include <thrift/lib/cpp2/server/Cpp2ConnContext.h>
 
 namespace apache::thrift::test {
