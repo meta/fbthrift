@@ -357,6 +357,49 @@ TEST(AnyRegistryTest, StdProtocol) {
   EXPECT_EQ(cregistry.load<protocol::Value>(any), value);
 }
 
+TEST(AnyRegistryTest, GeneratedRegistrationMetadata) {
+  AnyRegistry registry;
+  FollyToStringSerializer<int> intCodec;
+  auto type = testThriftType({"int", "Int", "Integer"});
+  type.typeHashBytes() = 17;
+  const auto expectedType = type;
+  {
+    auto typeCopy = type;
+    EXPECT_TRUE(
+        registry.registerType(typeid(int), std::move(typeCopy), {&intCodec}));
+  }
+  EXPECT_EQ(type, expectedType);
+  EXPECT_EQ(registry.getTypeUri<int>(), thriftType("int"));
+  EXPECT_EQ(
+      registry.getSerializerByUri(
+          thriftType("Integer"), kFollyToStringProtocol),
+      &intCodec);
+  auto any = registry.store(3, kFollyToStringProtocol);
+  ASSERT_TRUE(any.typeHashPrefixSha2_256());
+  EXPECT_EQ(any.typeHashPrefixSha2_256()->size(), 17);
+  EXPECT_EQ(registry.load<int>(any), 3);
+}
+
+TEST(AnyRegistryTest, GeneratedRegistrationPartialFailure) {
+  AnyRegistry registry;
+  FollyToStringSerializer<int> firstCodec;
+  FollyToStringSerializer<int> duplicateCodec;
+  Number1Serializer lastCodec;
+  const auto type = testThriftType("int");
+  bool registered = false;
+  {
+    auto typeCopy = type;
+    registered = registry.registerType(
+        typeid(int),
+        std::move(typeCopy),
+        {&firstCodec, &duplicateCodec, &lastCodec});
+  }
+  ASSERT_FALSE(registered);
+  EXPECT_EQ(registry.getSerializer<int>(kFollyToStringProtocol), &firstCodec);
+  EXPECT_EQ(
+      registry.getSerializer<int>(Number1Serializer::kProtocol), &lastCodec);
+}
+
 TEST(AnyRegistryTest, Generated) {
   // Double register fails with a runtime error.
   EXPECT_THROW(

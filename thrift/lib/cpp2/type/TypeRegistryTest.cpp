@@ -80,6 +80,52 @@ TEST(TypeRegistry, Register) {
   EXPECT_EQ(treg.store(treg.load(any), test::kFollyToStringProtocol), any);
 }
 
+class TrackedSerializer : public test::FollyToStringSerializer<double_t> {
+ public:
+  explicit TrackedSerializer(unsigned& destroyed, bool failProtocol = false)
+      : destroyed_(&destroyed), failProtocol_(failProtocol) {}
+
+  ~TrackedSerializer() override { ++*destroyed_; }
+
+  const Protocol& getProtocol() const override {
+    if (failProtocol_) {
+      throw std::runtime_error("serializer protocol failure");
+    }
+    return test::kFollyToStringProtocol;
+  }
+
+ private:
+  unsigned* destroyed_;
+  bool failProtocol_;
+};
+
+TEST(TypeRegistry, OwnedSerializerLifetime) {
+  unsigned destroyed = 0;
+  {
+    TypeRegistry registry;
+    EXPECT_TRUE(registry.registerSerializer(
+        std::make_unique<TrackedSerializer>(destroyed), Type::get<double_t>()));
+    EXPECT_FALSE(registry.registerSerializer(
+        std::make_unique<TrackedSerializer>(destroyed), Type::get<double_t>()));
+    EXPECT_EQ(destroyed, 0);
+  }
+  EXPECT_EQ(destroyed, 2);
+}
+
+TEST(TypeRegistry, OwnedSerializerFailure) {
+  unsigned destroyed = 0;
+  {
+    TypeRegistry registry;
+    EXPECT_THROW(
+        registry.registerSerializer(
+            std::make_unique<TrackedSerializer>(destroyed, true),
+            Type::get<double_t>()),
+        std::runtime_error);
+    EXPECT_EQ(destroyed, 0);
+  }
+  EXPECT_EQ(destroyed, 1);
+}
+
 TEST(TypeRegistry, Registered) {
   TypeRegistry treg;
   EXPECT_FALSE(treg.isRegistered(Type::get<double_t>()));
