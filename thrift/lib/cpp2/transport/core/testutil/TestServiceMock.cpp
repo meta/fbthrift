@@ -78,17 +78,17 @@ void TestServiceMock::headers() {
   header->setHeader("header_from_server", "1");
 
   auto keyValue = header->getHeaders();
-  if (keyValue.find("unexpected_exception") != keyValue.end()) {
+  if (keyValue.contains("unexpected_exception")) {
     throw std::runtime_error("unexpected exception");
   }
 
-  if (keyValue.find("expected_exception") != keyValue.end()) {
+  if (keyValue.contains("expected_exception")) {
     TestServiceException exception;
     *exception.message() = "expected exception";
     throw exception;
   }
 
-  if (keyValue.find("header_from_client") == keyValue.end() ||
+  if (!keyValue.contains("header_from_client") ||
       keyValue.find("header_from_client")->second != "2") {
     TestServiceException exception;
     *exception.message() = "Expected key/value, foo:bar, is missing";
