@@ -18,6 +18,7 @@
 
 #include <gtest/gtest.h>
 
+#include <folly/Utility.h>
 #include <thrift/conformance/cpp2/Any.h>
 #include <thrift/conformance/cpp2/Testing.h>
 #include <thrift/lib/cpp2/protocol/Object.h>
@@ -395,6 +396,30 @@ TEST(AnyRegistryTest, GeneratedRegistrationPartialFailure) {
         {&firstCodec, &duplicateCodec, &lastCodec});
   }
   ASSERT_FALSE(registered);
+  EXPECT_EQ(registry.getSerializer<int>(kFollyToStringProtocol), &firstCodec);
+  EXPECT_EQ(
+      registry.getSerializer<int>(Number1Serializer::kProtocol), &lastCodec);
+}
+
+TEST(AnyRegistryTest, GeneratedRegistrationFailureMessage) {
+  AnyRegistry registry;
+  FollyToStringSerializer<int> firstCodec;
+  FollyToStringSerializer<int> duplicateCodec;
+  Number1Serializer lastCodec;
+  const auto type = testThriftType("int");
+  ASSERT_FALSE(
+      detail::registerGeneratedStructImpl(
+          registry,
+          typeid(int),
+          folly::copy(type),
+          {&firstCodec, &duplicateCodec, &lastCodec}));
+  std::string errorMessage;
+  try {
+    detail::throwGeneratedStructRegistrationError(registry, type);
+  } catch (const std::runtime_error& error) {
+    errorMessage = error.what();
+  }
+  EXPECT_EQ(errorMessage, "Could not register: " + thriftType("int"));
   EXPECT_EQ(registry.getSerializer<int>(kFollyToStringProtocol), &firstCodec);
   EXPECT_EQ(
       registry.getSerializer<int>(Number1Serializer::kProtocol), &lastCodec);
