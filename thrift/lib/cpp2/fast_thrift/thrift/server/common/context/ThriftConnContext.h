@@ -35,6 +35,7 @@
 
 #include <thrift/lib/cpp2/fast_thrift/rocket/common/TypeErasedPtr.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/ReadBackpressureArbiter.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/CachedEkmExtension.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/ExtensionSlots.h>
 #include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
 
@@ -127,6 +128,19 @@ class ThriftConnContext : public boost::intrusive_ref_counter<
   // proved — by then this reports a plaintext socket.
   const folly::AsyncTransport* getTransport() const noexcept {
     return transport_;
+  }
+
+  std::unique_ptr<folly::IOBuf> getCachedEkm(
+      folly::StringPiece label, uint16_t length) const {
+    const auto* cache = tryState<CachedEkmExtension>();
+    if (cache != nullptr) {
+      for (const auto& ekm : *cache) {
+        if (ekm.label == label && ekm.length == length) {
+          return ekm.buf != nullptr ? ekm.buf->clone() : nullptr;
+        }
+      }
+    }
+    return nullptr;
   }
 
   // Opaque per-connection slot. The deleter runs at connection close.

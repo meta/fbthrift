@@ -222,14 +222,11 @@ class FizzHandshakeHandler {
     const auto pskType = fizzServer->getState().pskType();
     const bool negotiatedStopTLS =
         extension && extension->getNegotiatedStopTLS();
-    auto peerSecurity =
-        std::make_shared<const PeerSecurityInfo>(PeerSecurityInfo{
-            .peerCertificate = fizzServer->getState().clientCert(),
-            .securityProtocol = negotiatedStopTLS
-                ? "stopTLS"
-                : fizzServer->getSecurityProtocol(),
-            .sessionResumed =
-                pskType && *pskType == fizz::PskType::Resumption});
+    auto peerSecurity = std::make_unique<PeerSecurityInfo>(PeerSecurityInfo{
+        .peerCertificate = fizzServer->getState().clientCert(),
+        .securityProtocol =
+            negotiatedStopTLS ? "stopTLS" : fizzServer->getSecurityProtocol(),
+        .sessionResumed = pskType && *pskType == fizz::PskType::Resumption});
     TLSRequestMessage upgraded{
         .transport = folly::AsyncTransport::UniquePtr(fizzServer.release()),
         .clientAddr = clientAddr,

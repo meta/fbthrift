@@ -17,8 +17,10 @@
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/ThriftServerConnectionFactory.h>
 
 #include <algorithm>
+#include <exception>
 #include <functional>
 #include <memory>
+#include <new>
 #include <optional>
 #include <stdexcept>
 #include <type_traits>
@@ -52,6 +54,8 @@
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/adapter/ThriftServerCompositeAppAdapter.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/Event.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/ReadBackpressureArbiter.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/CachedEkmExtension.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/event_handler/Cpp2BridgeExtension.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/handler/ConcurrencyControlHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/handler/ThriftServerBackpressureHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/handler/ThriftServerChecksumHandler.h>
@@ -61,6 +65,7 @@
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/handler/ThriftServerRequestLifecycleHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/handler/ThriftServerSetupHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/handler/ThriftServerStreamMuxHandler.h>
+#include <thrift/lib/cpp2/server/Cpp2ConnContext.h>
 
 namespace apache::thrift::fast_thrift::thrift::server {
 
@@ -517,6 +522,33 @@ detail::ThriftServerConnectionFactoryT<Mode>::ThriftServerConnectionFactoryT(
     config_.concurrencyState =
         std::make_shared<ConcurrencyControlStateHolder>();
   }
+  config_.requiresCachedEkms |= std::any_of(
+      config_.thriftPipelineRegistrations.begin(),
+      config_.thriftPipelineRegistrations.end(),
+      [](const auto& registration) {
+        return registration.requiresCachedEkms();
+      });
+  bool bridgeRegistered = false;
+  bool cachePresent = false;
+  bool cacheRegistered = false;
+  if (config_.connExtensionLayout != nullptr) {
+    const auto* entries = config_.connExtensionLayout->entries();
+    for (std::size_t i = 0; i < config_.connExtensionLayout->entryCount();
+         ++i) {
+      bridgeRegistered |= entries[i].id == Cpp2BridgeExtension::kId;
+      cachePresent |= entries[i].id == CachedEkmExtension::kId;
+      cacheRegistered |= entries[i].id == CachedEkmExtension::kId &&
+          entries[i].deleter != nullptr;
+    }
+  }
+  config_.requiresCachedEkms &= cacheRegistered;
+  if (bridgeRegistered) {
+    config_.requiresCachedEkms = false;
+    if (cachePresent) {
+      config_.connExtensionLayout = std::make_shared<const ExtensionLayout>(
+          withoutCachedEkmExtension(*config_.connExtensionLayout));
+    }
+  }
   if (!needsComposite_) {
     return;
   }
@@ -550,11 +582,52 @@ detail::ThriftServerConnectionFactoryT<Mode>::ThriftServerConnectionFactoryT(
 }
 
 template <ChannelPipelineMode Mode>
+connection::PreStopTLSEkmCapture detail::ThriftServerConnectionFactoryT<
+    Mode>::getPreStopTLSEkmCapture() const noexcept {
+  if (!config_.requiresCachedEkms) {
+    return {};
+  }
+  return connection::PreStopTLSEkmCapture{
+      .owner = nullptr,
+      .capture = +[](void*, const folly::AsyncTransport& transport) {
+        return apache::thrift::detail::populateCachedEkms(transport);
+      }};
+}
+
+template <ChannelPipelineMode Mode>
 ThriftServerConnection
 detail::ThriftServerConnectionFactoryT<Mode>::getConnection(
     folly::AsyncTransport::UniquePtr socket,
     const folly::SocketAddress& clientAddr,
-    const std::shared_ptr<const connection::PeerSecurityInfo>& peerSecurity) {
+    std::unique_ptr<connection::PeerSecurityInfo> peerSecurity) {
+  return getConnectionImpl(
+             std::move(socket),
+             clientAddr,
+             std::move(peerSecurity),
+             EkmAllocationFailure::Propagate)
+      .value();
+}
+
+template <ChannelPipelineMode Mode>
+std::optional<ThriftServerConnection>
+detail::ThriftServerConnectionFactoryT<Mode>::tryGetConnectionForAccept(
+    folly::AsyncTransport::UniquePtr socket,
+    const folly::SocketAddress& clientAddr,
+    std::unique_ptr<connection::PeerSecurityInfo> peerSecurity) {
+  return getConnectionImpl(
+      std::move(socket),
+      clientAddr,
+      std::move(peerSecurity),
+      EkmAllocationFailure::DropConnection);
+}
+
+template <ChannelPipelineMode Mode>
+std::optional<ThriftServerConnection>
+detail::ThriftServerConnectionFactoryT<Mode>::getConnectionImpl(
+    folly::AsyncTransport::UniquePtr socket,
+    const folly::SocketAddress& clientAddr,
+    std::unique_ptr<connection::PeerSecurityInfo> peerSecurity,
+    EkmAllocationFailure onEkmAllocationFailure) {
   boost::intrusive_ptr<ThriftConnContext> connContext{new ThriftConnContext()};
   if (config_.connExtensionLayout != nullptr) {
     connContext->installExtensions(*config_.connExtensionLayout);
@@ -569,6 +642,30 @@ detail::ThriftServerConnectionFactoryT<Mode>::getConnection(
   if (peerSecurity != nullptr) {
     connContext->setPeerCertificate(peerSecurity->peerCertificate);
     connContext->setSecurityProtocol(peerSecurity->securityProtocol);
+  }
+  if (config_.requiresCachedEkms) {
+    try {
+      CachedEkmExtension::ConnState entries;
+      if (peerSecurity != nullptr && peerSecurity->capturedEkms) {
+        entries = std::move(*peerSecurity->capturedEkms);
+      } else {
+        try {
+          entries = apache::thrift::detail::populateCachedEkms(*socket);
+        } catch (const std::bad_alloc&) {
+          throw;
+        } catch (...) {
+          throw connection::CachedEkmCaptureFailure{std::current_exception()};
+        }
+      }
+      auto cache =
+          std::make_unique<CachedEkmExtension::ConnState>(std::move(entries));
+      connContext->adoptState<CachedEkmExtension>(cache.release());
+    } catch (const std::bad_alloc&) {
+      if (onEkmAllocationFailure == EkmAllocationFailure::DropConnection) {
+        return std::nullopt;
+      }
+      throw;
+    }
   }
 
   ThriftServerConnection conn = needsComposite_

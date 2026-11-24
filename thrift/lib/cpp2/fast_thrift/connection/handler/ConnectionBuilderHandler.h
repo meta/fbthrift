@@ -16,7 +16,9 @@
 
 #pragma once
 
+#include <concepts>
 #include <memory>
+#include <optional>
 #include <utility>
 
 #include <folly/ExceptionWrapper.h>
@@ -25,6 +27,7 @@
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/TypeErasedBox.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/ConnectionFactory.h>
 #include <thrift/lib/cpp2/fast_thrift/connection/common/Messages.h>
+#include <thrift/lib/cpp2/fast_thrift/connection/security/common/Util.h>
 
 namespace apache::thrift::fast_thrift::connection {
 
@@ -55,9 +58,40 @@ class ConnectionBuilderHandler {
   channel_pipeline::Result onRead(
       Context& ctx, channel_pipeline::TypeErasedBox&& msg) noexcept {
     auto ready = msg.take<ConnectionMessage>();
-    auto conn = factory_.getConnection(
-        std::move(ready.transport), ready.clientAddr, ready.peerSecurity);
-    return ctx.fireRead(channel_pipeline::erase_and_box(std::move(conn)));
+    try {
+      if constexpr (requires {
+                      {
+                        factory_.tryGetConnectionForAccept(
+                            std::move(ready.transport),
+                            ready.clientAddr,
+                            std::move(ready.peerSecurity))
+                      }
+                      -> std::same_as<std::optional<FactoryConnectionType<F>>>;
+                    }) {
+        auto conn = factory_.tryGetConnectionForAccept(
+            std::move(ready.transport),
+            ready.clientAddr,
+            std::move(ready.peerSecurity));
+        if (!conn) [[unlikely]] {
+          // The factory dropped the socket. Do not forward or log it.
+          return channel_pipeline::Result::Success;
+        }
+        return ctx.fireRead(channel_pipeline::erase_and_box(std::move(*conn)));
+      } else {
+        auto conn = factory_.getConnection(
+            std::move(ready.transport),
+            ready.clientAddr,
+            std::move(ready.peerSecurity));
+        return ctx.fireRead(channel_pipeline::erase_and_box(std::move(conn)));
+      }
+    } catch (const CachedEkmCaptureFailure& failure) {
+      security::fireConnectionFailure(
+          &ctx,
+          folly::exception_wrapper(failure.cause),
+          failure.what(),
+          ready.clientAddr);
+      return channel_pipeline::Result::Error;
+    }
   }
 
   template <typename Context>

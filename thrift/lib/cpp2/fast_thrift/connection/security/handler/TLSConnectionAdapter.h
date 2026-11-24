@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <memory>
 #include <utility>
 
 #include <folly/ExceptionWrapper.h>
@@ -44,7 +45,7 @@ class TLSConnectionAdapter {
       void*,
       folly::AsyncTransport::UniquePtr,
       folly::SocketAddress,
-      std::shared_ptr<const PeerSecurityInfo>) noexcept;
+      std::unique_ptr<PeerSecurityInfo>) noexcept;
   // Dispatches an exception raised inside the pipeline back to the owner.
   using ExceptionFn = void (*)(void*, folly::exception_wrapper&&) noexcept;
 

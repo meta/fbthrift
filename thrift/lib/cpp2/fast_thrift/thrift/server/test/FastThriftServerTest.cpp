@@ -67,6 +67,7 @@
 #include <thrift/lib/cpp2/fast_thrift/security/test/TestCert.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/client/util/ErrorDecoding.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/FastThriftServer.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/CachedEkmExtension.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/extension/ThriftExtension.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/extension/ThriftExtensionPipelineHandler.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/framework/FastServerModule.h>
@@ -2397,6 +2398,44 @@ TEST(FastThriftServerSharedPoolTest, RoundTripWithEmbedderPool) {
   ASSERT_TRUE(done.try_wait_for(std::chrono::seconds{10}));
   EXPECT_EQ(sum, 42);
   evb->runInEventBaseThreadAndWait([&] { client.reset(); });
+}
+
+struct CacheRequiredExtension {
+  static constexpr bool kUsesCachedEkms = true;
+  ftt::RequestVerdict onRequest(const ftt::ThriftRequestView&) noexcept {
+    return ftt::RequestVerdict::proceed();
+  }
+};
+
+TEST(
+    FastThriftServerConnContextTest,
+    PreregisteredCacheIsPublishedBeforeAcceptWithoutRequests) {
+  folly::Baton<> accepted;
+  std::atomic<bool> cachePublished{false};
+  ftt::FastThriftServer server(makeLoopbackConfig());
+  server.setInterface(std::make_shared<TestHandler>());
+  server.registerExtension<ftt::CachedEkmExtension>();
+  server.addModule(
+      ftt::StaticFastServerModule("cached_ekms")
+          .addThriftExtension<CacheRequiredExtension>());
+  server.setOnConnectionAccepted([&](ftt::ThriftConnContext* context) {
+    cachePublished.store(
+        context != nullptr &&
+        context->tryState<ftt::CachedEkmExtension>() != nullptr);
+    accepted.post();
+  });
+  server.start();
+
+  folly::ScopedEventBaseThread clientThread;
+  auto* eventBase = clientThread.getEventBase();
+  std::shared_ptr<folly::AsyncSocket> socket;
+  eventBase->runInEventBaseThreadAndWait([&] {
+    socket = folly::AsyncSocket::newSocket(eventBase, server.getAddress());
+  });
+  EXPECT_TRUE(accepted.try_wait_for(std::chrono::seconds{5}));
+  EXPECT_TRUE(cachePublished.load());
+  eventBase->runInEventBaseThreadAndWait([&] { socket.reset(); });
+  server.stop();
 }
 
 // The per-connection context carries the peer address captured when the socket

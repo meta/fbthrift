@@ -251,6 +251,7 @@ class FastServerModuleT {
    * it the extension would read empty.
    */
   bool requiresHeaders() const { return requiresHeaders_; }
+  bool requiresCachedEkms() const noexcept { return requiresCachedEkms_; }
 
   using RequestStateRegistration = void (*)(ExtensionLayoutBuilder&);
 
@@ -286,7 +287,9 @@ class FastServerModuleT {
   template <typename MakeFactory>
   FastServerModuleT& addFactory(MakeFactory&& makeFactory) {
     auto id = server::deriveThriftPipelineHandlerId(name_, factories_.size());
-    factories_.push_back(std::forward<MakeFactory>(makeFactory)(id));
+    auto factory = std::forward<MakeFactory>(makeFactory)(id);
+    requiresCachedEkms_ |= factory.requiresCachedEkms();
+    factories_.push_back(std::move(factory));
     return *this;
   }
 
@@ -295,6 +298,7 @@ class FastServerModuleT {
   std::vector<RequestStateRegistration> requestStateRegistrations_;
   std::vector<PendingConnectionCallbacks> pendingConnectionCallbacks_;
   bool requiresHeaders_{false};
+  bool requiresCachedEkms_{false};
 };
 
 } // namespace module_detail
@@ -323,11 +327,13 @@ class StaticFastServerModule {
                 id,
                 std::tuple<std::decay_t<Args>...>(
                     std::forward<Args>(args)...)})),
-        requiresHeaders_ || UsesHeaders<H>);
+        requiresHeaders_ || UsesHeaders<H>,
+        requiresCachedEkms_ || server::UsesCachedEkms<H>);
   }
 
   const std::string& name() const noexcept { return name_; }
   bool requiresHeaders() const noexcept { return requiresHeaders_; }
+  bool requiresCachedEkms() const noexcept { return requiresCachedEkms_; }
 
   std::vector<FastServerModule::PendingConnectionCallbacks>
   pendingConnectionCallbacks() const {
@@ -352,7 +358,8 @@ class StaticFastServerModule {
             },
             [state](ExtensionStateStore& store) {
               return state->makeStatic(store);
-            }));
+            }),
+        requiresCachedEkms_);
   }
 
  private:
@@ -360,14 +367,19 @@ class StaticFastServerModule {
   friend class StaticFastServerModule;
 
   StaticFastServerModule(
-      std::string name, std::tuple<Entry...> entries, bool requiresHeaders)
+      std::string name,
+      std::tuple<Entry...> entries,
+      bool requiresHeaders,
+      bool requiresCachedEkms)
       : name_(std::move(name)),
         entries_(std::move(entries)),
-        requiresHeaders_(requiresHeaders) {}
+        requiresHeaders_(requiresHeaders),
+        requiresCachedEkms_(requiresCachedEkms) {}
 
   std::string name_;
   std::tuple<Entry...> entries_;
   bool requiresHeaders_{false};
+  bool requiresCachedEkms_{false};
 };
 
 StaticFastServerModule(std::string) -> StaticFastServerModule<>;

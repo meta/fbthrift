@@ -16,11 +16,16 @@
 
 #pragma once
 
+#include <exception>
 #include <memory>
+#include <optional>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include <folly/SocketAddress.h>
 #include <folly/io/async/AsyncTransport.h>
+#include <thrift/lib/cpp2/server/Cpp2ConnContext.h>
 
 namespace apache::thrift::fast_thrift::connection {
 
@@ -31,7 +36,7 @@ namespace apache::thrift::fast_thrift::connection {
 // transport with a plaintext one that can report neither. Null on a connection
 // that negotiated no security.
 //
-// Held behind a shared_ptr so the messages carrying it stay inside the
+// Held behind a unique_ptr so the messages carrying it stay inside the
 // pipeline's inline-message budget; the allocation is once per handshake.
 struct PeerSecurityInfo {
   std::shared_ptr<const folly::AsyncTransportCertificate> peerCertificate;
@@ -40,6 +45,26 @@ struct PeerSecurityInfo {
   // the fields above it can only be read off the fizz session, so it is
   // snapshotted here at the same moment rather than derived later.
   bool sessionResumed{false};
+  // Present even when the provider returned no entries.
+  std::optional<std::vector<apache::thrift::detail::EkmInfo>> capturedEkms{};
+};
+
+struct PreStopTLSEkmCapture {
+  using Capture = std::vector<apache::thrift::detail::EkmInfo> (*)(
+      void*, const folly::AsyncTransport&);
+
+  // Borrowed owner; must outlive the TLS pipeline.
+  void* owner{nullptr};
+  Capture capture{nullptr};
+};
+
+struct CachedEkmCaptureFailure final : std::exception {
+  explicit CachedEkmCaptureFailure(std::exception_ptr error) noexcept
+      : cause(std::move(error)) {}
+
+  const char* what() const noexcept override { return "EKM capture failed"; }
+
+  std::exception_ptr cause;
 };
 
 // Single message type that flows through the acceptance pipeline. Each
@@ -51,7 +76,7 @@ struct PeerSecurityInfo {
 struct ConnectionMessage {
   folly::AsyncTransport::UniquePtr transport;
   folly::SocketAddress clientAddr;
-  std::shared_ptr<const PeerSecurityInfo> peerSecurity;
+  std::unique_ptr<PeerSecurityInfo> peerSecurity;
 };
 
 } // namespace apache::thrift::fast_thrift::connection

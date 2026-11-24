@@ -17,12 +17,16 @@
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/ThriftServerConnectionFactory.h>
 
 #include <memory>
+#include <new>
+#include <stdexcept>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 #include <vector>
 
 #include <gtest/gtest.h>
+#include <folly/io/IOBuf.h>
 #include <folly/io/async/EventBase.h>
 #include <folly/logging/LogCategory.h>
 #include <folly/logging/LogMessage.h>
@@ -37,7 +41,49 @@
 #include <thrift/lib/cpp2/fast_thrift/rocket/common/RocketTransportLifecycle.h>
 #include <thrift/lib/cpp2/fast_thrift/rocket/server/RocketServerEventFactory.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/RocketServerPipeline.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/CachedEkmExtension.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/event_handler/Cpp2BridgeExtension.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/event_handler/Cpp2ContextAdapter.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/extension/ThriftConnectionExtension.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/extension/ThriftExtensionPipelineHandler.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/framework/FastServerModule.h>
 #include <thrift/lib/cpp2/fast_thrift/transport/test/TestAsyncTransport.h>
+#include <thrift/lib/cpp2/server/Cpp2ConnContext.h>
+
+namespace {
+struct EkmCaptureProbe {
+  int captures{0};
+  int adapters{0};
+  bool failCapture{false};
+  bool failCaptureAllocation{false};
+};
+EkmCaptureProbe* ekmCaptureProbe = nullptr;
+constexpr folly::StringPiece kFactoryEkmLabel{"factory-ekm"};
+constexpr uint16_t kFactoryEkmLength = 32;
+} // namespace
+
+namespace apache::thrift::detail {
+THRIFT_PLUGGABLE_FUNC_SET_TEST(
+    std::vector<EkmInfo>, populateCachedEkms, const folly::AsyncTransport&) {
+  if (ekmCaptureProbe == nullptr) {
+    return {};
+  }
+  ++ekmCaptureProbe->captures;
+  if (ekmCaptureProbe->failCaptureAllocation) {
+    throw std::bad_alloc{};
+  }
+  if (ekmCaptureProbe->failCapture) {
+    throw std::runtime_error("test EKM capture failure");
+  }
+  std::vector<EkmInfo> entries;
+  entries.push_back(
+      EkmInfo{
+          .label = kFactoryEkmLabel.str(),
+          .length = kFactoryEkmLength,
+          .buf = folly::IOBuf::copyBuffer("captured-ekm")});
+  return entries;
+}
+} // namespace apache::thrift::detail
 
 namespace apache::thrift::fast_thrift::thrift::server::test {
 namespace {
@@ -128,6 +174,301 @@ ThriftServerConnectionFactoryConfig makeConfig() {
   ThriftServerConnectionFactoryConfig config;
   config.handler = std::make_shared<TestAppAdapterFactory>();
   return config;
+}
+
+class EkmCheckingAdapterFactory final : public ThriftServerAppAdapterFactory {
+ public:
+  EkmCheckingAdapterFactory(EkmCaptureProbe& probe, int expectedCaptures)
+      : probe_(probe), expectedCaptures_(expectedCaptures) {}
+
+  ThriftServerAppAdapter::Ptr getAppAdapter(
+      std::shared_ptr<ThriftServerAppAdapterFactory>) override {
+    ++probe_.adapters;
+    EXPECT_EQ(probe_.captures, expectedCaptures_);
+    return ThriftServerAppAdapter::Ptr{new ThriftServerAppAdapter()};
+  }
+
+  void populateMethodMetadata(
+      ThriftServerMethodMetadataRegistry&) const override {}
+
+ private:
+  EkmCaptureProbe& probe_;
+  int expectedCaptures_;
+};
+
+struct RequiresEkmExtension {
+  static constexpr bool kUsesCachedEkms = true;
+  RequestVerdict onRequest(const ThriftRequestView&) noexcept {
+    return RequestVerdict::proceed();
+  }
+};
+
+class EkmFactoryTest : public ::testing::Test {
+ protected:
+  void SetUp() override { ekmCaptureProbe = &probe_; }
+  void TearDown() override { ekmCaptureProbe = nullptr; }
+
+  ThriftServerConnectionFactoryConfig cacheConfig(int expectedCaptures) {
+    auto config = makeConfig();
+    config.handler =
+        std::make_shared<EkmCheckingAdapterFactory>(probe_, expectedCaptures);
+    config.requiresCachedEkms = true;
+    ExtensionLayoutBuilder builder;
+    builder.addOwned<CachedEkmExtension::ConnState>(CachedEkmExtension::kId);
+    config.connExtensionLayout =
+        std::make_shared<const ExtensionLayout>(std::move(builder).build());
+    return config;
+  }
+
+  folly::EventBase eventBase_;
+  EkmCaptureProbe probe_;
+  const folly::SocketAddress address_{"127.0.0.1", 4321};
+};
+
+template <typename Factory>
+class BridgeEkmFactoryTest : public EkmFactoryTest {};
+
+using BridgeEkmFactoryTypes = ::testing::
+    Types<ThriftServerConnectionFactory, DynamicThriftServerConnectionFactory>;
+TYPED_TEST_SUITE(BridgeEkmFactoryTest, BridgeEkmFactoryTypes);
+
+TYPED_TEST(BridgeEkmFactoryTest, BridgeOwnsCacheDespiteNativeRequirement) {
+  for (const bool preregisterNativeCache : {false, true}) {
+    SCOPED_TRACE(preregisterNativeCache);
+    const int capturesBefore = this->probe_.captures;
+    const int adaptersBefore = this->probe_.adapters;
+    auto config = this->cacheConfig(capturesBefore);
+    ExtensionLayoutBuilder builder;
+    builder.add(Cpp2BridgeExtension::kId);
+    if (preregisterNativeCache) {
+      builder.addOwned<CachedEkmExtension::ConnState>(CachedEkmExtension::kId);
+    }
+    config.connExtensionLayout =
+        std::make_shared<const ExtensionLayout>(std::move(builder).build());
+    auto module = StaticFastServerModule("bridge_cache_requirement")
+                      .addThriftExtension<RequiresEkmExtension>();
+    config.thriftPipelineRegistrations.push_back(
+        std::move(module).registration());
+    TypeParam factory(std::move(config));
+
+    EXPECT_EQ(factory.getPreStopTLSEkmCapture().capture, nullptr);
+    auto connection = factory.getConnection(
+        makeTransport(this->eventBase_), this->address_, nullptr);
+    EXPECT_EQ(this->probe_.captures, capturesBefore);
+    EXPECT_EQ(this->probe_.adapters, adaptersBefore + 1);
+    EXPECT_TRUE(connection.connContext->extensionSlots().installed(
+        Cpp2BridgeExtension::kId));
+    EXPECT_FALSE(connection.connContext->extensionSlots().installed(
+        CachedEkmExtension::kId));
+    EXPECT_EQ(
+        connection.connContext->template tryState<CachedEkmExtension>(),
+        nullptr);
+    EXPECT_EQ(
+        connection.connContext->getCachedEkm(
+            kFactoryEkmLabel, kFactoryEkmLength),
+        nullptr);
+
+    Cpp2ConnContextAdapter bridge(connection.connContext, {});
+    EXPECT_EQ(this->probe_.captures, capturesBefore + 1);
+    const ThriftConnectionView view(*connection.connContext);
+    const std::string_view label(
+        kFactoryEkmLabel.data(), kFactoryEkmLabel.size());
+    auto cached = view.cachedEkm(label, kFactoryEkmLength);
+    ASSERT_NE(cached, nullptr);
+    EXPECT_EQ(cached->to<std::string>(), "captured-ekm");
+    bridge.connectionClosed();
+    EXPECT_EQ(bridge.get().getTransport(), nullptr);
+    auto closed = view.cachedEkm(label, kFactoryEkmLength);
+    ASSERT_NE(closed, nullptr);
+    EXPECT_EQ(closed->data(), cached->data());
+    EXPECT_EQ(this->probe_.captures, capturesBefore + 1);
+  }
+}
+
+TEST_F(EkmFactoryTest, CapturesBeforeAdapterConstructionWithoutRequests) {
+  ThriftServerConnectionFactory factory(cacheConfig(1));
+  auto connection =
+      factory.getConnection(makeTransport(eventBase_), address_, nullptr);
+
+  EXPECT_EQ(probe_.captures, 1);
+  EXPECT_EQ(probe_.adapters, 1);
+  auto cached =
+      connection.connContext->getCachedEkm(kFactoryEkmLabel, kFactoryEkmLength);
+  ASSERT_NE(cached, nullptr);
+  EXPECT_EQ(cached->to<std::string>(), "captured-ekm");
+}
+
+TEST_F(EkmFactoryTest, NoRequirementSkipsCaptureAndCacheStorage) {
+  auto config = cacheConfig(0);
+  config.requiresCachedEkms = false;
+  ThriftServerConnectionFactory factory(std::move(config));
+  auto connection =
+      factory.getConnection(makeTransport(eventBase_), address_, nullptr);
+
+  EXPECT_EQ(probe_.captures, 0);
+  EXPECT_EQ(probe_.adapters, 1);
+  EXPECT_EQ(connection.connContext->tryState<CachedEkmExtension>(), nullptr);
+  EXPECT_EQ(factory.getPreStopTLSEkmCapture().capture, nullptr);
+}
+
+TEST_F(EkmFactoryTest, FactoryCaptureIsAdoptedWithoutAnotherExport) {
+  ThriftServerConnectionFactory factory(cacheConfig(1));
+  auto socket = makeTransport(eventBase_);
+  auto capture = factory.getPreStopTLSEkmCapture();
+  ASSERT_NE(capture.capture, nullptr);
+  auto peer = std::make_unique<connection::PeerSecurityInfo>();
+  peer->securityProtocol = "stopTLS";
+  peer->capturedEkms.emplace(capture.capture(capture.owner, *socket));
+  auto* original = peer->capturedEkms->front().buf.get();
+  auto connection =
+      factory.getConnection(std::move(socket), address_, std::move(peer));
+
+  EXPECT_EQ(probe_.captures, 1);
+  EXPECT_EQ(probe_.adapters, 1);
+  const auto* cache = connection.connContext->tryState<CachedEkmExtension>();
+  ASSERT_NE(cache, nullptr);
+  ASSERT_NE(cache->begin(), cache->end());
+  EXPECT_EQ(cache->begin()->buf.get(), original);
+  EXPECT_EQ(connection.connContext->getSecurityProtocol(), "stopTLS");
+}
+
+TEST_F(EkmFactoryTest, CapturedEmptyCacheIsNotRecaptured) {
+  ThriftServerConnectionFactory factory(cacheConfig(0));
+  auto peer = std::make_unique<connection::PeerSecurityInfo>();
+  peer->capturedEkms.emplace();
+  auto connection = factory.getConnection(
+      makeTransport(eventBase_), address_, std::move(peer));
+
+  EXPECT_EQ(probe_.captures, 0);
+  EXPECT_EQ(probe_.adapters, 1);
+  const auto* cache = connection.connContext->tryState<CachedEkmExtension>();
+  ASSERT_NE(cache, nullptr);
+  EXPECT_EQ(cache->begin(), cache->end());
+}
+
+TEST_F(EkmFactoryTest, BorrowedCacheSlotDoesNotEnableCapture) {
+  ExtensionLayoutBuilder builder;
+  builder.add(CachedEkmExtension::kId);
+  auto config = cacheConfig(0);
+  config.connExtensionLayout =
+      std::make_shared<const ExtensionLayout>(std::move(builder).build());
+  ThriftServerConnectionFactory factory(std::move(config));
+  auto connection =
+      factory.getConnection(makeTransport(eventBase_), address_, nullptr);
+
+  EXPECT_EQ(probe_.captures, 0);
+  EXPECT_TRUE(connection.connContext->extensionSlots().installed(
+      CachedEkmExtension::kId));
+  EXPECT_EQ(connection.connContext->tryState<CachedEkmExtension>(), nullptr);
+  EXPECT_EQ(factory.getPreStopTLSEkmCapture().capture, nullptr);
+}
+
+TEST_F(EkmFactoryTest, ExtensionRequirementNeedsExplicitCacheRegistration) {
+  for (const bool registerCache : {false, true}) {
+    SCOPED_TRACE(registerCache);
+    const int expectedCaptures = probe_.captures + (registerCache ? 1 : 0);
+    auto config = cacheConfig(expectedCaptures);
+    if (!registerCache) {
+      config.connExtensionLayout.reset();
+    }
+    config.requiresCachedEkms = false;
+    auto registration = makeThriftExtensionHandlerFactory<RequiresEkmExtension>(
+        channel_pipeline::fnv1a_hash("test_cache_extension"));
+    EXPECT_TRUE(registration.requiresCachedEkms());
+    config.thriftPipelineRegistrations.emplace_back(std::move(registration));
+    ThriftServerConnectionFactory factory(std::move(config));
+    auto connection =
+        factory.getConnection(makeTransport(eventBase_), address_, nullptr);
+
+    EXPECT_EQ(probe_.captures, expectedCaptures);
+    EXPECT_EQ(
+        connection.connContext->extensionSlots().installed(
+            CachedEkmExtension::kId),
+        registerCache);
+    EXPECT_EQ(
+        connection.connContext->tryState<CachedEkmExtension>() != nullptr,
+        registerCache);
+    EXPECT_EQ(
+        factory.getPreStopTLSEkmCapture().capture != nullptr, registerCache);
+  }
+}
+
+TEST_F(EkmFactoryTest, TypedSegmentRequirementDoesNotRegisterNativeCache) {
+  auto config = cacheConfig(0);
+  config.connExtensionLayout.reset();
+  config.requiresCachedEkms = false;
+  auto module = StaticFastServerModule("test_cache_segment")
+                    .addThriftExtension<RequiresEkmExtension>();
+  EXPECT_TRUE(module.requiresCachedEkms());
+  auto registration = std::move(module).registration();
+  EXPECT_TRUE(registration.requiresCachedEkms());
+  config.thriftPipelineRegistrations.push_back(std::move(registration));
+  ThriftServerConnectionFactory factory(std::move(config));
+  auto connection =
+      factory.getConnection(makeTransport(eventBase_), address_, nullptr);
+
+  EXPECT_EQ(probe_.captures, 0);
+  EXPECT_FALSE(connection.connContext->extensionSlots().installed(
+      CachedEkmExtension::kId));
+  EXPECT_EQ(connection.connContext->tryState<CachedEkmExtension>(), nullptr);
+  EXPECT_EQ(factory.getPreStopTLSEkmCapture().capture, nullptr);
+}
+
+TEST_F(EkmFactoryTest, DynamicRawRequirementDoesNotRegisterNativeCache) {
+  using Adapter = ThriftExtensionPipelineHandler<
+      RequiresEkmExtension,
+      ThriftPipelineHandlerContext>;
+  auto config = cacheConfig(0);
+  config.connExtensionLayout.reset();
+  config.requiresCachedEkms = false;
+  auto registration = ThriftPipelineHandlerFactory(
+      [](ExtensionStateStore& store) {
+        return channel_pipeline::detail::makeHandlerNode<Adapter>(
+            channel_pipeline::fnv1a_hash("test_dynamic_cache_extension"),
+            std::make_unique<Adapter>(store));
+      },
+      true);
+  EXPECT_TRUE(registration.requiresCachedEkms());
+  config.thriftPipelineRegistrations.emplace_back(std::move(registration));
+  DynamicThriftServerConnectionFactory factory(std::move(config));
+  auto connection =
+      factory.getConnection(makeTransport(eventBase_), address_, nullptr);
+
+  EXPECT_EQ(probe_.captures, 0);
+  EXPECT_FALSE(connection.connContext->extensionSlots().installed(
+      CachedEkmExtension::kId));
+  EXPECT_EQ(connection.connContext->tryState<CachedEkmExtension>(), nullptr);
+  EXPECT_EQ(factory.getPreStopTLSEkmCapture().capture, nullptr);
+}
+
+TEST_F(EkmFactoryTest, CaptureFailurePreventsAdapterConstruction) {
+  ThriftServerConnectionFactory factory(cacheConfig(1));
+  probe_.failCapture = true;
+  EXPECT_THROW(
+      factory.getConnection(makeTransport(eventBase_), address_, nullptr),
+      connection::CachedEkmCaptureFailure);
+  EXPECT_EQ(probe_.captures, 1);
+  EXPECT_EQ(probe_.adapters, 0);
+}
+
+TEST_F(EkmFactoryTest, AcceptDropsConnectionOnCaptureAllocationFailure) {
+  ThriftServerConnectionFactory factory(cacheConfig(3));
+  probe_.failCaptureAllocation = true;
+
+  EXPECT_FALSE(factory.tryGetConnectionForAccept(
+      makeTransport(eventBase_), address_, nullptr));
+  EXPECT_THROW(
+      factory.getConnection(makeTransport(eventBase_), address_, nullptr),
+      std::bad_alloc);
+  EXPECT_EQ(probe_.captures, 2);
+  EXPECT_EQ(probe_.adapters, 0);
+
+  probe_.failCaptureAllocation = false;
+  auto connection = factory.tryGetConnectionForAccept(
+      makeTransport(eventBase_), address_, nullptr);
+  ASSERT_TRUE(connection);
+  EXPECT_EQ(probe_.adapters, 1);
+  EXPECT_NE(connection->connContext->tryState<CachedEkmExtension>(), nullptr);
 }
 
 TEST(ThriftServerConnectionFactoryTest, DefaultBuildsNativeRocketTransport) {

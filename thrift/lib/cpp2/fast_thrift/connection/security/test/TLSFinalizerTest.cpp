@@ -23,6 +23,7 @@
 #include <array>
 #include <chrono>
 #include <memory>
+#include <vector>
 
 #include <gtest/gtest.h>
 
@@ -30,6 +31,7 @@
 #include <folly/Function.h>
 #include <folly/SocketAddress.h>
 #include <folly/init/Init.h>
+#include <folly/io/IOBuf.h>
 #include <folly/io/async/AsyncSocket.h>
 #include <folly/io/async/AsyncTransport.h>
 #include <folly/io/async/EventBase.h>
@@ -137,7 +139,7 @@ TEST_F(TLSFinalizerTest, ConvertsRequestToResponse) {
   folly::Baton<> emitted;
   folly::AsyncTransport::UniquePtr captured;
   folly::SocketAddress capturedAddr;
-  std::shared_ptr<const PeerSecurityInfo> capturedPeerSecurity;
+  std::unique_ptr<PeerSecurityInfo> capturedPeerSecurity;
 
   buildPipeline([&](TLSResponseMessage&& resp) noexcept {
     captured = std::move(resp.transport);
@@ -148,8 +150,16 @@ TEST_F(TLSFinalizerTest, ConvertsRequestToResponse) {
 
   folly::AsyncTransport* rawTransport = nullptr;
   const folly::SocketAddress addr{"127.0.0.1", 4321};
-  auto peerSecurity = std::make_shared<const PeerSecurityInfo>(
+  auto peerSecurity = std::make_unique<PeerSecurityInfo>(
       PeerSecurityInfo{.peerCertificate = nullptr, .securityProtocol = "TLS"});
+  auto* expectedPeerSecurity = peerSecurity.get();
+  auto buffer = folly::IOBuf::copyBuffer("captured-ekm");
+  auto* expectedBuffer = buffer.get();
+  std::vector<apache::thrift::detail::EkmInfo> entries;
+  entries.push_back(
+      apache::thrift::detail::EkmInfo{
+          .label = "test", .length = 12, .buf = std::move(buffer)});
+  peerSecurity->capturedEkms.emplace(std::move(entries));
   evb_->runInEventBaseThreadAndWait([&] {
     auto sock = folly::AsyncSocket::newSocket(evb_, makeSocketFd());
     rawTransport = sock.get();
@@ -158,7 +168,7 @@ TEST_F(TLSFinalizerTest, ConvertsRequestToResponse) {
         .clientAddr = addr,
         .tlsParams = nullptr,
         .extension = nullptr,
-        .peerSecurity = peerSecurity,
+        .peerSecurity = std::move(peerSecurity),
         .pendingConnectionPermit = {},
     };
     (void)pipeline_->fireWrite(channel_pipeline::erase_and_box(std::move(req)));
@@ -167,7 +177,11 @@ TEST_F(TLSFinalizerTest, ConvertsRequestToResponse) {
   ASSERT_TRUE(emitted.try_wait_for(std::chrono::seconds{5}));
   EXPECT_EQ(captured.get(), rawTransport); // same transport, moved through
   EXPECT_EQ(capturedAddr, addr);
-  EXPECT_EQ(capturedPeerSecurity, peerSecurity);
+  EXPECT_EQ(capturedPeerSecurity.get(), expectedPeerSecurity);
+  ASSERT_TRUE(capturedPeerSecurity->capturedEkms.has_value());
+  ASSERT_EQ(capturedPeerSecurity->capturedEkms->size(), 1);
+  EXPECT_EQ(
+      capturedPeerSecurity->capturedEkms->front().buf.get(), expectedBuffer);
 
   evb_->runInEventBaseThreadAndWait([&] { captured.reset(); });
 }

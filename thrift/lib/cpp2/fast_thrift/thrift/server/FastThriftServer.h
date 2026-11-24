@@ -72,6 +72,7 @@ class FastThriftServerBase::FastThriftServerT : public FastThriftServerBase {
   void addModule(module_detail::FastServerModuleT<ModuleMode> serverModule) {
     auto name = serverModule.name();
     const bool requiresHeaders = serverModule.requiresHeaders();
+    const bool requiresCachedEkms = serverModule.requiresCachedEkms();
     auto callbacks = serverModule.pendingConnectionCallbacks();
     const auto& requestStateRegistrations =
         serverModule.requestStateRegistrations();
@@ -84,6 +85,7 @@ class FastThriftServerBase::FastThriftServerT : public FastThriftServerBase {
     addModuleRegistrations(
         std::move(name),
         requiresHeaders,
+        requiresCachedEkms,
         std::move(callbacks),
         requestStateRegistrations,
         std::move(registrations));
@@ -93,12 +95,14 @@ class FastThriftServerBase::FastThriftServerT : public FastThriftServerBase {
   void addModule(StaticFastServerModule<Entry...> serverModule) {
     auto name = serverModule.name();
     const bool requiresHeaders = serverModule.requiresHeaders();
+    const bool requiresCachedEkms = serverModule.requiresCachedEkms();
     auto pendingConnectionCallbacks = serverModule.pendingConnectionCallbacks();
     std::vector<server::ThriftPipelineRegistration> registrations;
     registrations.push_back(std::move(serverModule).registration());
     addModuleRegistrations(
         std::move(name),
         requiresHeaders,
+        requiresCachedEkms,
         std::move(pendingConnectionCallbacks),
         {},
         std::move(registrations));

@@ -66,6 +66,7 @@ inline channel_pipeline::PipelineOwner buildTLSConnectionPipeline(
         tlsParamsObserver,
     uint32_t maxPendingConnectionsPerWorker,
     tls_pipeline::TLSStatsShard* stats,
+    PreStopTLSEkmCapture capture,
     void* owner,
     tls_handler::TLSConnectionAdapter::ResolvedFn onResolved,
     tls_handler::TLSConnectionAdapter::ExceptionFn onException) {
@@ -81,7 +82,7 @@ inline channel_pipeline::PipelineOwner buildTLSConnectionPipeline(
                      .addState<tls_pipeline::PendingConnectionState>(
                          maxPendingConnectionsPerWorker)
                      .addNextDuplexTemplate<tls_handler::StopTLSV1Handler>(
-                         tls_inner_stoptls_v1_tag)
+                         tls_inner_stoptls_v1_tag, capture)
                      .addNextDuplexTemplate<tls_handler::FizzHandshakeHandler>(
                          tls_inner_fizz_handshake_tag);
 
@@ -173,17 +174,34 @@ class ConnectionTLSHandler {
           tlsParamsObserver,
       uint32_t maxPendingConnectionsPerWorker,
       tls_pipeline::TLSStatsShard* stats = nullptr)
+      : ConnectionTLSHandler(
+            evb,
+            sslPolicy,
+            std::move(tlsParamsObserver),
+            maxPendingConnectionsPerWorker,
+            stats,
+            PreStopTLSEkmCapture{}) {}
+
+  ConnectionTLSHandler(
+      folly::EventBase& evb,
+      fast_security::SSLPolicy sslPolicy,
+      folly::observer::Observer<std::shared_ptr<const fast_security::TLSParams>>
+          tlsParamsObserver,
+      uint32_t maxPendingConnectionsPerWorker,
+      tls_pipeline::TLSStatsShard* stats,
+      PreStopTLSEkmCapture capture)
       : innerPipeline_(buildTLSConnectionPipeline(
             evb,
             sslPolicy,
             std::move(tlsParamsObserver),
             maxPendingConnectionsPerWorker,
             stats,
+            capture,
             this,
             [](void* self,
                folly::AsyncTransport::UniquePtr transport,
                folly::SocketAddress clientAddr,
-               std::shared_ptr<const PeerSecurityInfo> peerSecurity) noexcept {
+               std::unique_ptr<PeerSecurityInfo> peerSecurity) noexcept {
               return static_cast<ConnectionTLSHandler*>(self)->onResolved(
                   std::move(transport),
                   std::move(clientAddr),
@@ -262,7 +280,7 @@ class ConnectionTLSHandler {
   channel_pipeline::Result onResolved(
       folly::AsyncTransport::UniquePtr transport,
       folly::SocketAddress clientAddr,
-      std::shared_ptr<const PeerSecurityInfo> peerSecurity) noexcept {
+      std::unique_ptr<PeerSecurityInfo> peerSecurity) noexcept {
     if (!outerCtx_) [[unlikely]] {
       return channel_pipeline::Result::Success;
     }

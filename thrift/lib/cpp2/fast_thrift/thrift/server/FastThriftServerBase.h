@@ -623,6 +623,7 @@ class FastThriftServerBase {
   void addModuleRegistrations(
       std::string name,
       bool requiresHeaders,
+      bool requiresCachedEkms,
       std::vector<FastServerModule::PendingConnectionCallbacks>
           pendingConnectionCallbacks,
       const std::vector<FastServerModule::RequestStateRegistration>&
@@ -638,6 +639,7 @@ class FastThriftServerBase {
   // Embedder-registered thrift pipeline handler factories, in registration
   // order. Copied into the per-connection factory config at start().
   std::vector<server::ThriftPipelineRegistration> thriftPipelineRegistrations_;
+  bool requiresCachedEkms_{false};
   server::TProcessorEventHandlers eventHandlers_;
   apache::thrift::ClientIdentityHook clientIdentityHook_;
   server::RocketServerConnectionBuilder rocketConnectionBuilder_;

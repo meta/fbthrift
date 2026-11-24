@@ -627,7 +627,7 @@ StaticThriftPipelineHandlerFactory makeThriftExtensionHandlerFactory(
         id, store, args...);
   };
   return StaticThriftPipelineHandlerFactory(
-      std::move(dynamicFactory), std::move(staticFactory));
+      std::move(dynamicFactory), std::move(staticFactory), UsesCachedEkms<H>);
 }
 
 } // namespace apache::thrift::fast_thrift::thrift::server

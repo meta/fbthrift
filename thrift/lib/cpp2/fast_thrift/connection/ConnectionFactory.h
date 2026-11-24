@@ -71,13 +71,15 @@ concept ConnectionFactory =
         F& f,
         folly::AsyncTransport::UniquePtr socket,
         const folly::SocketAddress& clientAddr,
-        const std::shared_ptr<const PeerSecurityInfo>& peerSecurity) {
-      { f.getConnection(std::move(socket), clientAddr, peerSecurity) };
+        std::unique_ptr<PeerSecurityInfo> peerSecurity) {
+      {
+        f.getConnection(std::move(socket), clientAddr, std::move(peerSecurity))
+      };
     } &&
     Connection<std::decay_t<decltype(std::declval<F&>().getConnection(
         std::declval<folly::AsyncTransport::UniquePtr>(),
         std::declval<const folly::SocketAddress&>(),
-        std::declval<const std::shared_ptr<const PeerSecurityInfo>&>()))>>;
+        std::declval<std::unique_ptr<PeerSecurityInfo>>()))>>;
 
 /**
  * The connection type produced by a given factory.
@@ -87,6 +89,6 @@ using FactoryConnectionType =
     std::decay_t<decltype(std::declval<F&>().getConnection(
         std::declval<folly::AsyncTransport::UniquePtr>(),
         std::declval<const folly::SocketAddress&>(),
-        std::declval<const std::shared_ptr<const PeerSecurityInfo>&>()))>;
+        std::declval<std::unique_ptr<PeerSecurityInfo>>()))>;
 
 } // namespace apache::thrift::fast_thrift::connection

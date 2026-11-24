@@ -96,6 +96,8 @@ struct ThriftServerConnectionFactoryConfig {
   std::shared_ptr<const ExtensionLayout> requestExtensionLayout;
   std::shared_ptr<const ThriftServerMethodMetadataRegistry> methodMetadata;
 
+  bool requiresCachedEkms{false};
+
   // When true, populate each request's ThriftRequestContext with the inbound
   // custom headers (RequestRpcMetadata.otherMetadata).
   bool enableRequestHeaders{false};
@@ -173,9 +175,25 @@ class ThriftServerConnectionFactoryT {
   ThriftServerConnection getConnection(
       folly::AsyncTransport::UniquePtr socket,
       const folly::SocketAddress& clientAddr,
-      const std::shared_ptr<const connection::PeerSecurityInfo>& peerSecurity);
+      std::unique_ptr<connection::PeerSecurityInfo> peerSecurity);
+
+  // An empty result means the socket was dropped after EKM allocation failed.
+  std::optional<ThriftServerConnection> tryGetConnectionForAccept(
+      folly::AsyncTransport::UniquePtr socket,
+      const folly::SocketAddress& clientAddr,
+      std::unique_ptr<connection::PeerSecurityInfo> peerSecurity);
+
+  connection::PreStopTLSEkmCapture getPreStopTLSEkmCapture() const noexcept;
 
  private:
+  enum class EkmAllocationFailure { Propagate, DropConnection };
+
+  std::optional<ThriftServerConnection> getConnectionImpl(
+      folly::AsyncTransport::UniquePtr socket,
+      const folly::SocketAddress& clientAddr,
+      std::unique_ptr<connection::PeerSecurityInfo> peerSecurity,
+      EkmAllocationFailure onEkmAllocationFailure);
+
   // Builds the rocket pipeline (TransportHandler ... RocketServerAppAdapter).
   // Same shape as the legacy FastThriftServer::buildRocketPipeline; lives
   // here because the factory owns the shared rocket allocator.

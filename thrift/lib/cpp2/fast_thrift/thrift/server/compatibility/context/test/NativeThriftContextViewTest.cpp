@@ -17,28 +17,71 @@
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/compatibility/context/NativeThriftContextView.h>
 
 #include <array>
+#include <cstdint>
 #include <memory>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 #include <gtest/gtest.h>
 
+#include <folly/io/IOBuf.h>
 #include <folly/io/async/EventBase.h>
 #include <folly/io/async/ssl/BasicTransportCertificate.h>
 #include <folly/io/async/test/MockAsyncTransport.h>
 #include <folly/portability/GMock.h>
 #include <folly/portability/OpenSSL.h>
+#include <thrift/lib/cpp2/PluggableFunction.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/CachedEkmExtension.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/ExtensionSlots.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/ThriftConnContext.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/ThriftRequestContext.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/event_handler/Cpp2BridgeExtension.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/event_handler/Cpp2ContextAdapter.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/extension/ThriftConnectionExtension.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/extension/ThriftExtension.h>
+#include <thrift/lib/cpp2/server/Cpp2ConnContext.h>
+
+namespace {
+constexpr auto kLegacyPositiveEkmLabel = "legacy_cache_positive";
+constexpr auto kLegacyNegativeEkmLabel = "legacy_cache_negative";
+constexpr std::uint16_t kLegacyEkmLength = 16;
+} // namespace
+
+namespace apache::thrift::detail {
+THRIFT_PLUGGABLE_FUNC_SET_TEST(
+    std::vector<EkmInfo>, populateCachedEkms, const folly::AsyncTransport&) {
+  std::vector<EkmInfo> entries;
+  entries.push_back(
+      EkmInfo{
+          .label = kLegacyPositiveEkmLabel,
+          .length = kLegacyEkmLength,
+          .buf = folly::IOBuf::copyBuffer(std::string(kLegacyEkmLength, 'k'))});
+  entries.push_back(
+      EkmInfo{
+          .label = kLegacyNegativeEkmLabel,
+          .length = kLegacyEkmLength,
+          .buf = nullptr});
+  return entries;
+}
+} // namespace apache::thrift::detail
 
 namespace apache::thrift::fast_thrift::thrift::server::compatibility {
 namespace {
+
+class NoExporterTransport : public folly::test::MockAsyncTransport {
+ public:
+  std::unique_ptr<folly::IOBuf> getExportedKeyingMaterial(
+      folly::StringPiece,
+      std::unique_ptr<folly::IOBuf>,
+      uint16_t) const override {
+    ADD_FAILURE() << "Cache lookup exported keying material";
+    return nullptr;
+  }
+};
 
 struct LookupState {
   explicit LookupState(int value) : LookupState(value, nullptr) {}
@@ -745,6 +788,126 @@ TEST(NativeThriftContextViewTest, LiveCertificateExceptionsPropagate) {
   context.setTransport(nullptr);
   EXPECT_EQ(view.peerCertificate(), nullptr);
   EXPECT_TRUE(view.peerCommonName().empty());
+}
+
+TEST(
+    NativeThriftContextViewTest,
+    LegacyCacheDelegationSurvivesCloseAndStopsWhenBridgeIsRemoved) {
+  const auto layout = [] {
+    ExtensionLayoutBuilder builder;
+    builder.add(Cpp2BridgeExtension::kId);
+    builder.addOwned<StateExtension::ConnState>(StateExtension::kId);
+    return std::move(builder).build();
+  }();
+  int destructions = 0;
+  boost::intrusive_ptr<ThriftConnContext> connection{new ThriftConnContext()};
+  connection->installExtensions(layout);
+  connection->adoptState<StateExtension>(new LookupState(1, &destructions));
+  const ThriftConnectionContextView view(connection.get());
+  const auto copy = view;
+  EXPECT_EQ(view.cachedEkm(kLegacyPositiveEkmLabel, kLegacyEkmLength), nullptr);
+  testing::NiceMock<NoExporterTransport> transport;
+  ON_CALL(transport, getLocalAddress(testing::_))
+      .WillByDefault([](folly::SocketAddress* address) {
+        *address = folly::SocketAddress("127.0.0.1", 1234);
+      });
+  connection->setTransport(&transport);
+  std::unique_ptr<folly::IOBuf> clone;
+  {
+    Cpp2ConnContextAdapter bridge(connection, {});
+    EXPECT_FALSE(
+        connection->extensionSlots().installed(CachedEkmExtension::kId));
+    EXPECT_EQ(
+        connection->getCachedEkm(kLegacyPositiveEkmLabel, kLegacyEkmLength),
+        nullptr);
+    auto legacy =
+        bridge.get().getCachedEkm(kLegacyPositiveEkmLabel, kLegacyEkmLength);
+    ASSERT_NE(legacy, nullptr);
+    for (const auto& candidate : std::array{view, copy}) {
+      auto cached =
+          candidate.cachedEkm(kLegacyPositiveEkmLabel, kLegacyEkmLength);
+      ASSERT_NE(cached, nullptr);
+      EXPECT_EQ(cached->data(), legacy->data());
+      EXPECT_EQ(cached->to<std::string>(), std::string(kLegacyEkmLength, 'k'));
+      EXPECT_EQ(
+          candidate.cachedEkm(kLegacyNegativeEkmLabel, kLegacyEkmLength),
+          nullptr);
+      EXPECT_EQ(
+          candidate.cachedEkm("missing-label", kLegacyEkmLength), nullptr);
+      EXPECT_EQ(
+          candidate.cachedEkm(kLegacyPositiveEkmLabel, kLegacyEkmLength + 1),
+          nullptr);
+    }
+    bridge.connectionClosed();
+    connection->setTransport(nullptr);
+    EXPECT_EQ(bridge.get().getTransport(), nullptr);
+    clone = copy.cachedEkm(kLegacyPositiveEkmLabel, kLegacyEkmLength);
+    ASSERT_NE(clone, nullptr);
+    EXPECT_EQ(clone->data(), legacy->data());
+  }
+  EXPECT_EQ(connection->tryState<Cpp2BridgeExtension>(), nullptr);
+  EXPECT_EQ(view.cachedEkm(kLegacyPositiveEkmLabel, kLegacyEkmLength), nullptr);
+  connection.reset();
+  EXPECT_EQ(destructions, 1);
+  EXPECT_EQ(clone->to<std::string>(), std::string(kLegacyEkmLength, 'k'));
+}
+
+TEST(
+    NativeThriftContextViewTest,
+    CachedEkmClonesSurviveConnectionReleaseAndViewsBorrowStorage) {
+  constexpr auto label = "native_cache_test";
+  constexpr auto negativeLabel = "negative_native_cache_test";
+  constexpr std::uint16_t length = 16;
+  const std::string binding(length, 'k');
+  const auto layout = [] {
+    ExtensionLayoutBuilder builder;
+    builder.addOwned<CachedEkmExtension::ConnState>(CachedEkmExtension::kId);
+    builder.addOwned<StateExtension::ConnState>(StateExtension::kId);
+    return std::move(builder).build();
+  }();
+  int destructions = 0;
+  boost::intrusive_ptr<ThriftConnContext> connection{new ThriftConnContext()};
+  connection->installExtensions(layout);
+  connection->adoptState<StateExtension>(new LookupState(1, &destructions));
+  const ThriftConnectionContextView view(connection.get());
+  const auto copy = view;
+  EXPECT_EQ(view.cachedEkm(label, length), nullptr);
+
+  std::vector<apache::thrift::detail::EkmInfo> entries;
+  entries.push_back(
+      apache::thrift::detail::EkmInfo{
+          .label = label,
+          .length = length,
+          .buf = folly::IOBuf::copyBuffer(binding)});
+  entries.push_back(
+      apache::thrift::detail::EkmInfo{
+          .label = negativeLabel, .length = length, .buf = nullptr});
+  const auto* capturedData = entries.front().buf->data();
+  auto cache =
+      std::make_unique<CachedEkmExtension::ConnState>(std::move(entries));
+  connection->adoptState<CachedEkmExtension>(cache.release());
+  auto clone = copy.cachedEkm(label, length);
+  ASSERT_NE(clone, nullptr);
+  EXPECT_EQ(clone->data(), capturedData);
+  EXPECT_EQ(copy.cachedEkm(negativeLabel, length), nullptr);
+  EXPECT_EQ(copy.cachedEkm("missing-label", length), nullptr);
+  EXPECT_EQ(copy.cachedEkm(label, length + 1), nullptr);
+
+  folly::EventBase eventBase;
+  auto request = makeThriftRequestContext(eventBase);
+  request->setConnectionContext(connection);
+  connection.reset();
+  EXPECT_EQ(destructions, 0);
+  const ThriftRequestContextView requestView(request.get());
+  auto requestClone = requestView.connectionContext().cachedEkm(label, length);
+  ASSERT_NE(requestClone, nullptr);
+  EXPECT_EQ(requestClone->data(), capturedData);
+  request.reset();
+
+  EXPECT_EQ(destructions, 1);
+  EXPECT_EQ(clone->to<std::string>(), binding);
+  EXPECT_EQ(requestClone->to<std::string>(), binding);
+  EXPECT_EQ(clone->data(), requestClone->data());
 }
 
 } // namespace

@@ -116,6 +116,11 @@ inline const ftt::ExtensionSlots* NativeConnectionContextRef::extensionSlots()
   return ftt::ThriftConnectionView(context_).extensionSlots();
 }
 
+inline std::unique_ptr<folly::IOBuf> NativeConnectionContextRef::cachedEkm(
+    std::string_view label, uint16_t length) const {
+  return ftt::ThriftConnectionView(context_).cachedEkm(label, length);
+}
+
 inline NativeRequestContextRef::NativeRequestContextRef(
     ftt::ThriftRequestContext* context) noexcept
     : context_{.context = context} {}

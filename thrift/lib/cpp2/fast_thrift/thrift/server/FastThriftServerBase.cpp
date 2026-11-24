@@ -40,6 +40,7 @@
 #include <thrift/lib/cpp2/fast_thrift/security/FizzServerContextBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/ThriftServerConnectionFactory.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/adapter/MetadataAppAdapter.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/CachedEkmExtension.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/event_handler/TProcessorEventHandlerBridge.h>
 #include <thrift/lib/cpp2/schema/detail/Merge.h>
 
@@ -280,6 +281,7 @@ void detail::FastThriftServerBase::addNativeThriftPipelineHandlersImpl(
   thriftPipelineRegistrations_.reserve(
       thriftPipelineRegistrations_.size() + factories.size());
   for (auto& factory : factories) {
+    requiresCachedEkms_ |= factory.requiresCachedEkms();
     thriftPipelineRegistrations_.emplace_back(std::move(factory));
   }
 }
@@ -329,6 +331,7 @@ void detail::FastThriftServerBase::addServerEventHandler(
 void detail::FastThriftServerBase::addModuleRegistrations(
     std::string name,
     bool requiresHeaders,
+    bool requiresCachedEkms,
     std::vector<FastServerModule::PendingConnectionCallbacks>
         pendingConnectionCallbacks,
     const std::vector<FastServerModule::RequestStateRegistration>&
@@ -380,6 +383,7 @@ void detail::FastThriftServerBase::addModuleRegistrations(
   // Claim the name only once the splice succeeded, so a throwing splice does
   // not leave the name permanently reserved against a retry.
   moduleNames_.insert(std::move(name));
+  requiresCachedEkms_ |= requiresCachedEkms;
 }
 void detail::FastThriftServerBase::setOnConnectionAccepted(
     OnConnectionAcceptedFn cb) {
@@ -661,8 +665,20 @@ void detail::FastThriftServerBase::start() {
   // the per-connection ThriftConnContext via ThriftServerConnection.
   // Frozen here: every extension has registered by now, and both layouts are
   // shared unchanged by every connection and request from this point on.
-  connExtensionLayout_ = std::make_shared<const ExtensionLayout>(
-      std::move(connExtensionBuilder_).build());
+  auto connectionLayout = std::move(connExtensionBuilder_).build();
+  const bool requiresNativeCachedEkms =
+      requiresCachedEkms_ && !hasClassicEventHandlers;
+  if (hasClassicEventHandlers) {
+    const auto* entries = connectionLayout.entries();
+    for (std::size_t i = 0; i < connectionLayout.entryCount(); ++i) {
+      if (entries[i].id == CachedEkmExtension::kId) {
+        connectionLayout = withoutCachedEkmExtension(connectionLayout);
+        break;
+      }
+    }
+  }
+  connExtensionLayout_ =
+      std::make_shared<const ExtensionLayout>(std::move(connectionLayout));
   requestExtensionLayout_ = std::make_shared<const ExtensionLayout>(
       std::move(requestExtensionBuilder_).build());
 
@@ -680,6 +696,7 @@ void detail::FastThriftServerBase::start() {
       .connExtensionLayout = connExtensionLayout_,
       .requestExtensionLayout = requestExtensionLayout_,
       .methodMetadata = methodMetadataRegistry_,
+      .requiresCachedEkms = requiresNativeCachedEkms,
       .enableRequestHeaders = config_.enableRequestHeaders,
       .enableChecksum = config_.enableChecksum,
       .enableCancellation = config_.enableCancellation,

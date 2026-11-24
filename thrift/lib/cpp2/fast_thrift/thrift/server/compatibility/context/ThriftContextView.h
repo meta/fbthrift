@@ -109,6 +109,8 @@ class NativeConnectionContextRef {
   std::string_view securityProtocol() const;
   std::optional<std::string_view> clientHostname() const;
   const apache::thrift::ClientMetadata* FOLLY_NULLABLE clientMetadata() const;
+  std::unique_ptr<folly::IOBuf> cachedEkm(
+      std::string_view label, uint16_t length) const;
   const apache::thrift::fast_thrift::thrift::ExtensionSlots* FOLLY_NULLABLE
   extensionSlots() const noexcept;
 
@@ -463,7 +465,7 @@ class ThriftConnectionContextView {
                 folly::StringPiece(label.data(), label.size()), length)
           : nullptr;
     } else {
-      return nullptr;
+      return context_.cachedEkm(label, length);
     }
   }
 

@@ -17,6 +17,7 @@
 #pragma once
 
 #include <cstdint>
+#include <new>
 #include <optional>
 #include <utility>
 
@@ -59,6 +60,9 @@ template <typename StaticContext>
 class StopTLSV1Handler {
  public:
   StopTLSV1Handler() = default;
+
+  explicit StopTLSV1Handler(PreStopTLSEkmCapture capture) noexcept
+      : capture_(capture) {}
 
   ~StopTLSV1Handler() = default;
 
@@ -104,6 +108,32 @@ class StopTLSV1Handler {
           channel_pipeline::erase_and_box(std::move(incoming)));
     }
 
+    if (capture_.capture != nullptr) {
+      try {
+        if (incoming.peerSecurity == nullptr) {
+          incoming.peerSecurity = std::make_unique<PeerSecurityInfo>();
+        }
+        if (!incoming.peerSecurity->capturedEkms.has_value()) {
+          incoming.peerSecurity->capturedEkms.emplace(
+              capture_.capture(capture_.owner, *fizzPtr));
+        }
+      } catch (const std::bad_alloc&) {
+        incoming.transport.reset();
+        // Consume the failed handshake without triggering allocating logs.
+        return channel_pipeline::Result::Success;
+      } catch (...) {
+        auto exception = folly::exception_wrapper(folly::current_exception());
+        auto clientAddr = std::move(incoming.clientAddr);
+        incoming.transport.reset();
+        incoming.peerSecurity.reset();
+        if (!shuttingDown_) {
+          fireConnectionFailure(
+              ctx_, exception, "EKM capture failed", clientAddr);
+        }
+        return channel_pipeline::Result::Error;
+      }
+    }
+
     (void)incoming.transport.release();
     fizz::server::AsyncFizzServer::UniquePtr fizzServer(fizzPtr);
     auto clientAddr = std::move(incoming.clientAddr);
@@ -120,7 +150,11 @@ class StopTLSV1Handler {
         std::move(fizzServer),
         stopTLSTimeout,
         [this](util::StopTLSHelper* h) noexcept { inFlight_.erase(h); },
-        [this, clientAddr, extension, peerSecurity, permit = std::move(permit)](
+        [this,
+         clientAddr,
+         extension,
+         peerSecurity = std::move(peerSecurity),
+         permit = std::move(permit)](
             folly::AsyncTransport::UniquePtr plaintext,
             const folly::exception_wrapper& ex) mutable noexcept {
           onStopTLSComplete(
@@ -128,7 +162,7 @@ class StopTLSV1Handler {
               ex,
               clientAddr,
               extension,
-              peerSecurity,
+              std::move(peerSecurity),
               std::move(permit));
         }));
     auto* raw = helper.get();
@@ -188,7 +222,7 @@ class StopTLSV1Handler {
       const folly::SocketAddress& clientAddr,
       std::shared_ptr<apache::thrift::ThriftParametersServerExtension>
           extension,
-      std::shared_ptr<const PeerSecurityInfo> peerSecurity,
+      std::unique_ptr<PeerSecurityInfo> peerSecurity,
       PendingConnectionPermit permit) noexcept {
     auto guard = guardPipeline(ctx_);
     auto pendingPermit = std::move(permit);
@@ -237,6 +271,7 @@ class StopTLSV1Handler {
   folly::F14FastMap<util::StopTLSHelper*, util::StopTLSHelper::UniquePtr>
       inFlight_;
   StaticContext* ctx_{nullptr};
+  PreStopTLSEkmCapture capture_;
   // Set once teardown begins; see onPipelineInactive.
   bool shuttingDown_{false};
 };

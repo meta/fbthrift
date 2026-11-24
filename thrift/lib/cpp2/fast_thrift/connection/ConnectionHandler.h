@@ -303,6 +303,10 @@ void ConnectionHandler::setConnectionFactory(
   if (sslPolicy_ == fast_security::SSLPolicy::DISABLED) {
     addLimit(std::move(builder));
   } else {
+    PreStopTLSEkmCapture capture;
+    if constexpr (requires { factory.getPreStopTLSEkmCapture(); }) {
+      capture = factory.getPreStopTLSEkmCapture();
+    }
     addLimit(
         std::move(builder)
             .template addNextDuplexTemplate<handler::ConnectionTLSHandler>(
@@ -311,7 +315,8 @@ void ConnectionHandler::setConnectionFactory(
                 sslPolicy_,
                 tlsParamsObserver_,
                 socketOptions_.maxPendingConnectionsPerWorker,
-                tlsShard_));
+                tlsShard_,
+                capture));
   }
   listener_.setPipeline(pipeline_.get());
   pipeline_->activate();

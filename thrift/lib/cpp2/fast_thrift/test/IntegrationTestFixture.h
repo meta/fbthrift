@@ -106,8 +106,7 @@ class TestServerConnectionFactory {
   TestServerConnection getConnection(
       folly::AsyncTransport::UniquePtr socket,
       const folly::SocketAddress& clientAddr,
-      const std::shared_ptr<
-          const apache::thrift::fast_thrift::connection::PeerSecurityInfo>&
+      std::unique_ptr<apache::thrift::fast_thrift::connection::PeerSecurityInfo>
           peerSecurity);
 
  private:

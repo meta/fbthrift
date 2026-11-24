@@ -78,7 +78,7 @@ class TestConnectionFactory {
   TestConnection getConnection(
       folly::AsyncTransport::UniquePtr socket,
       const folly::SocketAddress& /*clientAddr*/,
-      const std::shared_ptr<const PeerSecurityInfo>& /*peerSecurity*/) {
+      std::unique_ptr<PeerSecurityInfo> /*peerSecurity*/) {
     return TestConnection{
         .transport = std::move(socket),
         .closeCount = closeCount_,

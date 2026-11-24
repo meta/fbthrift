@@ -31,6 +31,7 @@
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/SetupResponseBuilder.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/ConnectionPayloads.h>
 #include <thrift/lib/cpp2/fast_thrift/thrift/server/common/context/ThriftConnContext.h>
+#include <thrift/lib/cpp2/fast_thrift/thrift/server/event_handler/Cpp2BridgeExtension.h>
 #include <thrift/lib/thrift/gen-cpp2/RpcMetadata_types.h>
 
 namespace apache::thrift::fast_thrift::thrift {
@@ -173,6 +174,19 @@ class ThriftConnectionView {
   bool peerCertReceived() const noexcept {
     // @lint-ignore NULLSAFECLANG nullable-dereference
     return connContext_->peerCertReceived();
+  }
+
+  std::unique_ptr<folly::IOBuf> cachedEkm(
+      std::string_view label, uint16_t length) const {
+    if (connContext_ == nullptr) {
+      return nullptr;
+    }
+    const folly::StringPiece key(label.data(), label.size());
+    if (const auto* bridge =
+            connContext_->tryState<server::Cpp2BridgeExtension>()) {
+      return bridge->getCachedEkm(key, length);
+    }
+    return connContext_->getCachedEkm(key, length);
   }
 
   const folly::AsyncTransport* FOLLY_NULLABLE transport() const noexcept {
