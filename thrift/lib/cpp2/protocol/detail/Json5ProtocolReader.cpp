@@ -219,11 +219,14 @@ void Json5ProtocolReader::readFieldBegin(
     return;
   }
 
-  {
-    auto parsed = parseIdentifierString<std::int16_t>(reader_.readObjectName());
+  fieldType = protocol::T_VOID;
+  if (auto objectName = reader_.readObjectName(); isIdentifier(objectName)) {
+    name = std::move(objectName);
+    fieldId = std::numeric_limits<std::int16_t>::min();
+  } else {
+    auto parsed = parseIdentifierString<std::int16_t>(objectName);
     name = std::move(parsed.name);
     fieldId = parsed.value.value_or(std::numeric_limits<std::int16_t>::min());
-    fieldType = protocol::T_VOID;
   }
 
   if (reader_.peekToken() == Json5Reader::Token::Primitive &&
