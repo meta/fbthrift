@@ -167,7 +167,7 @@ RR without cancellation bypasses `RocketStreamContexts`.
    PAYLOAD frames
 4. **Response Routing**: Forwards `RocketResponseMessage` from the app layer
    to the framing layer
-5. **Transactional Rollback**: Re-adds streams if write fails after removal
+5. **No Write-Failure Rollback**: Streams stay removed if the write fails; no retry
 
 ## Message Types
 
@@ -246,7 +246,7 @@ struct RocketResponseMessage {
 │ 1. Validate streamId is active           │
 │ 2. If complete, remove stream            │
 │ 3. Forward RocketResponseMessage         │
-│ 4. Roll back removal if write fails      │
+│ 4. No rollback on write failure          │
 └─────────┬────────────────────────────────┘
           │
           ▼
