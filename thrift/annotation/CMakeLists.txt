@@ -24,7 +24,7 @@ foreach (
   scope
   thrift)
   thrift_generate(thrift_annotation ${name}.thrift LANGUAGE cpp2
-                  OPTIONS templates no_metadata)
+                  OPTIONS no_metadata)
 endforeach ()
 
 thrift_install_targets(thrift_annotation)
