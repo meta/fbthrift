@@ -10,9 +10,9 @@
 #include <thrift/lib/cpp2/gen/client_cpp.h>
 
 namespace test::fixtures::cpp_arena {
-typedef apache::thrift::ThriftPresult<false, apache::thrift::FieldData<1, ::apache::thrift::type_class::string, ::std::string*>, apache::thrift::FieldData<2, ::apache::thrift::type_class::structure, ::test::fixtures::cpp_arena::WholeStruct*>, apache::thrift::FieldData<3, ::apache::thrift::type_class::structure, ::test::fixtures::cpp_arena::Inner*>> ArenaService_process_pargs;
+typedef apache::thrift::ThriftPresult<false, apache::thrift::FieldData<1, ::apache::thrift::type_class::string, ::apache::thrift::pmr::Rebind<::std::string>::type*>, apache::thrift::FieldData<2, ::apache::thrift::type_class::structure, ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type*>, apache::thrift::FieldData<3, ::apache::thrift::type_class::structure, ::test::fixtures::cpp_arena::Inner*>> ArenaService_process_pargs;
 typedef apache::thrift::ThriftPresult<true, apache::thrift::FieldData<0, ::apache::thrift::type_class::string, ::std::string*>> ArenaService_process_presult;
-typedef apache::thrift::ThriftPresult<false, apache::thrift::FieldData<1, ::apache::thrift::type_class::string, ::std::string*>> ArenaService_processOnStack_pargs;
+typedef apache::thrift::ThriftPresult<false, apache::thrift::FieldData<1, ::apache::thrift::type_class::string, ::apache::thrift::pmr::Rebind<::std::string>::type*>> ArenaService_processOnStack_pargs;
 typedef apache::thrift::ThriftPresult<true, apache::thrift::FieldData<0, ::apache::thrift::type_class::string, ::std::string*>> ArenaService_processOnStack_presult;
 typedef apache::thrift::ThriftPresult<false, apache::thrift::FieldData<1, ::apache::thrift::type_class::string, ::std::string*>> ArenaService_plain_pargs;
 typedef apache::thrift::ThriftPresult<true, apache::thrift::FieldData<0, ::apache::thrift::type_class::string, ::std::string*>> ArenaService_plain_presult;
@@ -52,12 +52,12 @@ void apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::fbthrift
 
 
 
-void apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::process(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::string& p_name, const ::test::fixtures::cpp_arena::WholeStruct& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner) {
+void apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::process(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name, const ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner) {
   ::apache::thrift::RpcOptions rpcOptions;
   process(rpcOptions, std::move(callback), p_name, p_whole, p_inner);
 }
 
-void apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::process(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::string& p_name, const ::test::fixtures::cpp_arena::WholeStruct& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner) {
+void apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::process(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name, const ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner) {
   auto [ctx, header] = processCtx(&rpcOptions);
   if (ctx != nullptr) {
     auto argsAsRefs = std::tie(p_name, p_whole, p_inner);
@@ -67,12 +67,12 @@ void apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::process(
   fbthrift_serialize_and_send_process(rpcOptions, std::move(header), contextStack, std::move(wrappedCallback), p_name, p_whole, p_inner);
 }
 
-apache::thrift::SerializedRequest apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::fbthrift_serialize_process(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::std::string& p_name, const ::test::fixtures::cpp_arena::WholeStruct& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner) {
+apache::thrift::SerializedRequest apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::fbthrift_serialize_process(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name, const ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner) {
   return apache::thrift::detail::ac::withProtocolWriter(apache::thrift::GeneratedAsyncClient::getChannel()->getProtocolId(), [&](auto&& prot) {
     using ProtocolWriter = std::decay_t<decltype(prot)>;
     ::test::fixtures::cpp_arena::ArenaService_process_pargs args;
-    args.get<0>().value = const_cast<::std::string*>(&p_name);
-    args.get<1>().value = const_cast<::test::fixtures::cpp_arena::WholeStruct*>(&p_whole);
+    args.get<0>().value = const_cast<::apache::thrift::pmr::Rebind<::std::string>::type*>(&p_name);
+    args.get<1>().value = const_cast<::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type*>(&p_whole);
     args.get<2>().value = const_cast<::test::fixtures::cpp_arena::Inner*>(&p_inner);
     const auto sizer = [&](ProtocolWriter* p) { return args.serializedSizeZC(p); };
     const auto writer = [&](ProtocolWriter* p) { args.write(p); };
@@ -89,7 +89,7 @@ apache::thrift::SerializedRequest apache::thrift::Client<::test::fixtures::cpp_a
   });
 }
 
-void apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::fbthrift_serialize_and_send_process(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const ::std::string& p_name, const ::test::fixtures::cpp_arena::WholeStruct& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner, bool stealRpcOptions) {
+void apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::fbthrift_serialize_and_send_process(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name, const ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner, bool stealRpcOptions) {
   apache::thrift::SerializedRequest request = fbthrift_serialize_process(rpcOptions, *header, contextStack, p_name, p_whole, p_inner);
   channel_->compressRequest(request, rpcOptions, *header);
   std::unique_ptr<folly::IOBuf> interceptorFrameworkMetadata = nullptr;
@@ -124,12 +124,12 @@ std::pair<::apache::thrift::ContextStack::UniquePtr, std::shared_ptr<::apache::t
   return {std::move(ctx), std::move(header)};
 }
 
-void apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::sync_process(::std::string& _return, const ::std::string& p_name, const ::test::fixtures::cpp_arena::WholeStruct& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner) {
+void apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::sync_process(::std::string& _return, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name, const ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner) {
   ::apache::thrift::RpcOptions rpcOptions;
   sync_process(rpcOptions, _return, p_name, p_whole, p_inner);
 }
 
-void apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::sync_process(apache::thrift::RpcOptions& rpcOptions, ::std::string& _return, const ::std::string& p_name, const ::test::fixtures::cpp_arena::WholeStruct& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner) {
+void apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::sync_process(apache::thrift::RpcOptions& rpcOptions, ::std::string& _return, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name, const ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner) {
   apache::thrift::ClientReceiveState returnState;
   apache::thrift::ClientSyncCallback<false> callback(&returnState);
   auto channel = apache::thrift::GeneratedAsyncClient::getChannelShared();
@@ -168,7 +168,7 @@ void apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::sync_pro
 
 
 template <typename CallbackType>
-folly::SemiFuture<::std::string> apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::fbthrift_semifuture_process(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_name, const ::test::fixtures::cpp_arena::WholeStruct& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner) {
+folly::SemiFuture<::std::string> apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::fbthrift_semifuture_process(apache::thrift::RpcOptions& rpcOptions, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name, const ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner) {
   using CallbackHelper = apache::thrift::detail::FutureCallbackHelper<::std::string>;
   folly::Promise<CallbackHelper::PromiseResult> promise;
   auto semifuture = promise.getSemiFuture();
@@ -193,27 +193,27 @@ folly::SemiFuture<::std::string> apache::thrift::Client<::test::fixtures::cpp_ar
   return std::move(semifuture).deferValue(CallbackHelper::processClientInterceptorsAndExtractResult);
 }
 
-folly::Future<::std::string> apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::future_process(const ::std::string& p_name, const ::test::fixtures::cpp_arena::WholeStruct& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner) {
+folly::Future<::std::string> apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::future_process(const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name, const ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner) {
   ::apache::thrift::RpcOptions rpcOptions;
   return future_process(rpcOptions, p_name, p_whole, p_inner);
 }
 
-folly::Future<::std::string> apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::future_process(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_name, const ::test::fixtures::cpp_arena::WholeStruct& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner) {
+folly::Future<::std::string> apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::future_process(apache::thrift::RpcOptions& rpcOptions, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name, const ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner) {
   using CallbackType = apache::thrift::FutureCallback<::std::string>;
   return fbthrift_semifuture_process<CallbackType>(rpcOptions, p_name, p_whole, p_inner).toUnsafeFuture();
 }
 
-folly::SemiFuture<::std::string> apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::semifuture_process(const ::std::string& p_name, const ::test::fixtures::cpp_arena::WholeStruct& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner) {
+folly::SemiFuture<::std::string> apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::semifuture_process(const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name, const ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner) {
   ::apache::thrift::RpcOptions rpcOptions;
   return semifuture_process(rpcOptions, p_name, p_whole, p_inner);
 }
 
-folly::SemiFuture<::std::string> apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::semifuture_process(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_name, const ::test::fixtures::cpp_arena::WholeStruct& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner) {
+folly::SemiFuture<::std::string> apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::semifuture_process(apache::thrift::RpcOptions& rpcOptions, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name, const ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner) {
   using CallbackType = apache::thrift::SemiFutureCallback<::std::string>;
   return fbthrift_semifuture_process<CallbackType>(rpcOptions, p_name, p_whole, p_inner);
 }
 
-void apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::process(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, const ::std::string& p_name, const ::test::fixtures::cpp_arena::WholeStruct& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner) {
+void apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::process(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name, const ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner) {
   process(std::make_unique<apache::thrift::FunctionReplyCallback>(std::move(callback)), p_name, p_whole, p_inner);
 }
 
@@ -246,12 +246,12 @@ folly::exception_wrapper apache::thrift::Client<::test::fixtures::cpp_arena::Are
   return recv_wrapped_process(_return, state);
 }
 
-void apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::processOnStack(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::string& p_name) {
+void apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::processOnStack(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name) {
   ::apache::thrift::RpcOptions rpcOptions;
   processOnStack(rpcOptions, std::move(callback), p_name);
 }
 
-void apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::processOnStack(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::string& p_name) {
+void apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::processOnStack(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name) {
   auto [ctx, header] = processOnStackCtx(&rpcOptions);
   if (ctx != nullptr) {
     auto argsAsRefs = std::tie(p_name);
@@ -261,11 +261,11 @@ void apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::processO
   fbthrift_serialize_and_send_processOnStack(rpcOptions, std::move(header), contextStack, std::move(wrappedCallback), p_name);
 }
 
-apache::thrift::SerializedRequest apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::fbthrift_serialize_processOnStack(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::std::string& p_name) {
+apache::thrift::SerializedRequest apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::fbthrift_serialize_processOnStack(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name) {
   return apache::thrift::detail::ac::withProtocolWriter(apache::thrift::GeneratedAsyncClient::getChannel()->getProtocolId(), [&](auto&& prot) {
     using ProtocolWriter = std::decay_t<decltype(prot)>;
     ::test::fixtures::cpp_arena::ArenaService_processOnStack_pargs args;
-    args.get<0>().value = const_cast<::std::string*>(&p_name);
+    args.get<0>().value = const_cast<::apache::thrift::pmr::Rebind<::std::string>::type*>(&p_name);
     const auto sizer = [&](ProtocolWriter* p) { return args.serializedSizeZC(p); };
     const auto writer = [&](ProtocolWriter* p) { args.write(p); };
     return apache::thrift::preprocessSendT<ProtocolWriter>(
@@ -281,7 +281,7 @@ apache::thrift::SerializedRequest apache::thrift::Client<::test::fixtures::cpp_a
   });
 }
 
-void apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::fbthrift_serialize_and_send_processOnStack(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const ::std::string& p_name, bool stealRpcOptions) {
+void apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::fbthrift_serialize_and_send_processOnStack(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name, bool stealRpcOptions) {
   apache::thrift::SerializedRequest request = fbthrift_serialize_processOnStack(rpcOptions, *header, contextStack, p_name);
   channel_->compressRequest(request, rpcOptions, *header);
   std::unique_ptr<folly::IOBuf> interceptorFrameworkMetadata = nullptr;
@@ -316,12 +316,12 @@ std::pair<::apache::thrift::ContextStack::UniquePtr, std::shared_ptr<::apache::t
   return {std::move(ctx), std::move(header)};
 }
 
-void apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::sync_processOnStack(::std::string& _return, const ::std::string& p_name) {
+void apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::sync_processOnStack(::std::string& _return, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name) {
   ::apache::thrift::RpcOptions rpcOptions;
   sync_processOnStack(rpcOptions, _return, p_name);
 }
 
-void apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::sync_processOnStack(apache::thrift::RpcOptions& rpcOptions, ::std::string& _return, const ::std::string& p_name) {
+void apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::sync_processOnStack(apache::thrift::RpcOptions& rpcOptions, ::std::string& _return, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name) {
   apache::thrift::ClientReceiveState returnState;
   apache::thrift::ClientSyncCallback<false> callback(&returnState);
   auto channel = apache::thrift::GeneratedAsyncClient::getChannelShared();
@@ -360,7 +360,7 @@ void apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::sync_pro
 
 
 template <typename CallbackType>
-folly::SemiFuture<::std::string> apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::fbthrift_semifuture_processOnStack(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_name) {
+folly::SemiFuture<::std::string> apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::fbthrift_semifuture_processOnStack(apache::thrift::RpcOptions& rpcOptions, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name) {
   using CallbackHelper = apache::thrift::detail::FutureCallbackHelper<::std::string>;
   folly::Promise<CallbackHelper::PromiseResult> promise;
   auto semifuture = promise.getSemiFuture();
@@ -385,27 +385,27 @@ folly::SemiFuture<::std::string> apache::thrift::Client<::test::fixtures::cpp_ar
   return std::move(semifuture).deferValue(CallbackHelper::processClientInterceptorsAndExtractResult);
 }
 
-folly::Future<::std::string> apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::future_processOnStack(const ::std::string& p_name) {
+folly::Future<::std::string> apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::future_processOnStack(const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name) {
   ::apache::thrift::RpcOptions rpcOptions;
   return future_processOnStack(rpcOptions, p_name);
 }
 
-folly::Future<::std::string> apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::future_processOnStack(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_name) {
+folly::Future<::std::string> apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::future_processOnStack(apache::thrift::RpcOptions& rpcOptions, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name) {
   using CallbackType = apache::thrift::FutureCallback<::std::string>;
   return fbthrift_semifuture_processOnStack<CallbackType>(rpcOptions, p_name).toUnsafeFuture();
 }
 
-folly::SemiFuture<::std::string> apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::semifuture_processOnStack(const ::std::string& p_name) {
+folly::SemiFuture<::std::string> apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::semifuture_processOnStack(const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name) {
   ::apache::thrift::RpcOptions rpcOptions;
   return semifuture_processOnStack(rpcOptions, p_name);
 }
 
-folly::SemiFuture<::std::string> apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::semifuture_processOnStack(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_name) {
+folly::SemiFuture<::std::string> apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::semifuture_processOnStack(apache::thrift::RpcOptions& rpcOptions, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name) {
   using CallbackType = apache::thrift::SemiFutureCallback<::std::string>;
   return fbthrift_semifuture_processOnStack<CallbackType>(rpcOptions, p_name);
 }
 
-void apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::processOnStack(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, const ::std::string& p_name) {
+void apache::thrift::Client<::test::fixtures::cpp_arena::ArenaService>::processOnStack(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name) {
   processOnStack(std::make_unique<apache::thrift::FunctionReplyCallback>(std::move(callback)), p_name);
 }
 

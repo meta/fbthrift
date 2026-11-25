@@ -29,7 +29,7 @@ std::vector<std::reference_wrapper<apache::thrift::ServiceMethodDecoratorBase>> 
 
 
 void apache::thrift::ServiceHandler<::test::fixtures::cpp_arena::ArenaService>::fbthrift_execute_decorators_before_process(
-  apache::thrift::Cpp2RequestContext& requestCtx, apache::thrift::detail::DecoratorArgType<::std::string>::type p_name, apache::thrift::detail::DecoratorArgType<::test::fixtures::cpp_arena::WholeStruct>::type p_whole, apache::thrift::detail::DecoratorArgType<::test::fixtures::cpp_arena::Inner>::type p_inner) {
+  apache::thrift::Cpp2RequestContext& requestCtx, apache::thrift::detail::DecoratorArgType<::apache::thrift::pmr::Rebind<::std::string>::type>::type p_name, apache::thrift::detail::DecoratorArgType<::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type>::type p_whole, apache::thrift::detail::DecoratorArgType<::test::fixtures::cpp_arena::Inner>::type p_inner) {
   std::for_each(fbthrift_methodDecorators_.begin(), fbthrift_methodDecorators_.end(), [&](auto& decorator) {
     ServiceMethodDecoratorBase::BeforeParams beforeParams{detail::Cpp2RequestContextUnsafeAPI(requestCtx).getDecoratorDataMutable()};
     decorator->before_process(std::move(beforeParams), p_name, p_whole, p_inner);
@@ -45,7 +45,7 @@ void apache::thrift::ServiceHandler<::test::fixtures::cpp_arena::ArenaService>::
 }
 
 void apache::thrift::ServiceHandler<::test::fixtures::cpp_arena::ArenaService>::fbthrift_execute_decorators_before_processOnStack(
-  apache::thrift::Cpp2RequestContext& requestCtx, apache::thrift::detail::DecoratorArgType<::std::string>::type p_name) {
+  apache::thrift::Cpp2RequestContext& requestCtx, apache::thrift::detail::DecoratorArgType<::apache::thrift::pmr::Rebind<::std::string>::type>::type p_name) {
   std::for_each(fbthrift_methodDecorators_.begin(), fbthrift_methodDecorators_.end(), [&](auto& decorator) {
     ServiceMethodDecoratorBase::BeforeParams beforeParams{detail::Cpp2RequestContextUnsafeAPI(requestCtx).getDecoratorDataMutable()};
     decorator->before_processOnStack(std::move(beforeParams), p_name);
@@ -96,16 +96,16 @@ std::optional<std::reference_wrapper<apache::thrift::ServiceRequestInfoMap const
 // Method 'process'
 //
 
-void apache::thrift::ServiceHandler<::test::fixtures::cpp_arena::ArenaService>::process(::std::string& /*_return*/, std::unique_ptr<::std::string> /*name*/, std::unique_ptr<::test::fixtures::cpp_arena::WholeStruct> /*whole*/, std::unique_ptr<::test::fixtures::cpp_arena::Inner> /*inner*/) {
+void apache::thrift::ServiceHandler<::test::fixtures::cpp_arena::ArenaService>::process(::std::string& /*_return*/, std::unique_ptr<::apache::thrift::pmr::Rebind<::std::string>::type> /*name*/, std::unique_ptr<::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type> /*whole*/, std::unique_ptr<::test::fixtures::cpp_arena::Inner> /*inner*/) {
   apache::thrift::detail::si::throw_app_exn_unimplemented("process");
 }
 
-void apache::thrift::ServiceHandler<::test::fixtures::cpp_arena::ArenaService>::sync_process(::std::string& _return, std::unique_ptr<::std::string> p_name, std::unique_ptr<::test::fixtures::cpp_arena::WholeStruct> p_whole, std::unique_ptr<::test::fixtures::cpp_arena::Inner> p_inner) {
+void apache::thrift::ServiceHandler<::test::fixtures::cpp_arena::ArenaService>::sync_process(::std::string& _return, std::unique_ptr<::apache::thrift::pmr::Rebind<::std::string>::type> p_name, std::unique_ptr<::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type> p_whole, std::unique_ptr<::test::fixtures::cpp_arena::Inner> p_inner) {
   return process(_return, std::move(p_name), std::move(p_whole), std::move(p_inner));
 }
 
 folly::SemiFuture<std::unique_ptr<::std::string>>
-apache::thrift::ServiceHandler<::test::fixtures::cpp_arena::ArenaService>::semifuture_process(std::unique_ptr<::std::string> p_name, std::unique_ptr<::test::fixtures::cpp_arena::WholeStruct> p_whole, std::unique_ptr<::test::fixtures::cpp_arena::Inner> p_inner) {
+apache::thrift::ServiceHandler<::test::fixtures::cpp_arena::ArenaService>::semifuture_process(std::unique_ptr<::apache::thrift::pmr::Rebind<::std::string>::type> p_name, std::unique_ptr<::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type> p_whole, std::unique_ptr<::test::fixtures::cpp_arena::Inner> p_inner) {
   auto expected{apache::thrift::detail::si::InvocationType::SemiFuture};
   __fbthrift_invocation_process.compare_exchange_strong(
       expected,
@@ -117,7 +117,7 @@ apache::thrift::ServiceHandler<::test::fixtures::cpp_arena::ArenaService>::semif
 }
 
 folly::Future<std::unique_ptr<::std::string>>
-apache::thrift::ServiceHandler<::test::fixtures::cpp_arena::ArenaService>::future_process(std::unique_ptr<::std::string> p_name, std::unique_ptr<::test::fixtures::cpp_arena::WholeStruct> p_whole, std::unique_ptr<::test::fixtures::cpp_arena::Inner> p_inner) {
+apache::thrift::ServiceHandler<::test::fixtures::cpp_arena::ArenaService>::future_process(std::unique_ptr<::apache::thrift::pmr::Rebind<::std::string>::type> p_name, std::unique_ptr<::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type> p_whole, std::unique_ptr<::test::fixtures::cpp_arena::Inner> p_inner) {
   auto expected{apache::thrift::detail::si::InvocationType::Future};
   __fbthrift_invocation_process.compare_exchange_strong(
       expected,
@@ -130,18 +130,18 @@ apache::thrift::ServiceHandler<::test::fixtures::cpp_arena::ArenaService>::futur
 
 #if FOLLY_HAS_COROUTINES
 folly::coro::Task<std::unique_ptr<::std::string>>
-apache::thrift::ServiceHandler<::test::fixtures::cpp_arena::ArenaService>::co_process(std::unique_ptr<::std::string> p_name, std::unique_ptr<::test::fixtures::cpp_arena::WholeStruct> p_whole, std::unique_ptr<::test::fixtures::cpp_arena::Inner> p_inner) {
+apache::thrift::ServiceHandler<::test::fixtures::cpp_arena::ArenaService>::co_process(std::unique_ptr<::apache::thrift::pmr::Rebind<::std::string>::type> p_name, std::unique_ptr<::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type> p_whole, std::unique_ptr<::test::fixtures::cpp_arena::Inner> p_inner) {
   auto expected{apache::thrift::detail::si::InvocationType::Coro};
   __fbthrift_invocation_process.compare_exchange_strong(
       expected,
       apache::thrift::detail::si::InvocationType::Future,
       std::memory_order_relaxed);
   folly::throw_exception(apache::thrift::detail::si::UnimplementedCoroMethod::
-                             withCapturedArgs<std::unique_ptr<::std::string> /*name*/, std::unique_ptr<::test::fixtures::cpp_arena::WholeStruct> /*whole*/, std::unique_ptr<::test::fixtures::cpp_arena::Inner> /*inner*/>(std::move(p_name), std::move(p_whole), std::move(p_inner)));
+                             withCapturedArgs<std::unique_ptr<::apache::thrift::pmr::Rebind<::std::string>::type> /*name*/, std::unique_ptr<::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type> /*whole*/, std::unique_ptr<::test::fixtures::cpp_arena::Inner> /*inner*/>(std::move(p_name), std::move(p_whole), std::move(p_inner)));
 }
 
 folly::coro::Task<std::unique_ptr<::std::string>> apache::thrift::ServiceHandler<::test::fixtures::cpp_arena::ArenaService>::co_process(
-    apache::thrift::RequestParams /* params */, std::unique_ptr<::std::string> p_name, std::unique_ptr<::test::fixtures::cpp_arena::WholeStruct> p_whole, std::unique_ptr<::test::fixtures::cpp_arena::Inner> p_inner) {
+    apache::thrift::RequestParams /* params */, std::unique_ptr<::apache::thrift::pmr::Rebind<::std::string>::type> p_name, std::unique_ptr<::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type> p_whole, std::unique_ptr<::test::fixtures::cpp_arena::Inner> p_inner) {
   auto expected{apache::thrift::detail::si::InvocationType::CoroParam};
   __fbthrift_invocation_process.compare_exchange_strong(
       expected,
@@ -152,7 +152,7 @@ folly::coro::Task<std::unique_ptr<::std::string>> apache::thrift::ServiceHandler
 #endif // FOLLY_HAS_COROUTINES
 
 void apache::thrift::ServiceHandler<::test::fixtures::cpp_arena::ArenaService>::async_tm_process(
-    apache::thrift::HandlerCallbackPtr<std::unique_ptr<::std::string>> callback, std::unique_ptr<::std::string> p_name, std::unique_ptr<::test::fixtures::cpp_arena::WholeStruct> p_whole, std::unique_ptr<::test::fixtures::cpp_arena::Inner> p_inner) {
+    apache::thrift::HandlerCallbackPtr<std::unique_ptr<::std::string>> callback, std::unique_ptr<::apache::thrift::pmr::Rebind<::std::string>::type> p_name, std::unique_ptr<::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type> p_whole, std::unique_ptr<::test::fixtures::cpp_arena::Inner> p_inner) {
   // It's possible the coroutine versions will delegate to a future-based
   // version. If that happens, we need the RequestParams arguments to be
   // available to the future through the thread-local backchannel, so we create
@@ -231,7 +231,7 @@ determineInvocationType:
     }
 #if FOLLY_HAS_COROUTINES
   } catch (apache::thrift::detail::si::UnimplementedCoroMethod& ex) {
-    std::tie(p_name, p_whole, p_inner) = std::move(ex).restoreArgs<std::unique_ptr<::std::string> /*name*/, std::unique_ptr<::test::fixtures::cpp_arena::WholeStruct> /*whole*/, std::unique_ptr<::test::fixtures::cpp_arena::Inner> /*inner*/>();
+    std::tie(p_name, p_whole, p_inner) = std::move(ex).restoreArgs<std::unique_ptr<::apache::thrift::pmr::Rebind<::std::string>::type> /*name*/, std::unique_ptr<::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type> /*whole*/, std::unique_ptr<::test::fixtures::cpp_arena::Inner> /*inner*/>();
     goto determineInvocationType;
 #endif // FOLLY_HAS_COROUTINES
   } catch (...) {
@@ -246,16 +246,16 @@ determineInvocationType:
 // Method 'processOnStack'
 //
 
-void apache::thrift::ServiceHandler<::test::fixtures::cpp_arena::ArenaService>::processOnStack(::std::string& /*_return*/, const ::std::string& /*name*/) {
+void apache::thrift::ServiceHandler<::test::fixtures::cpp_arena::ArenaService>::processOnStack(::std::string& /*_return*/, const ::apache::thrift::pmr::Rebind<::std::string>::type& /*name*/) {
   apache::thrift::detail::si::throw_app_exn_unimplemented("processOnStack");
 }
 
-void apache::thrift::ServiceHandler<::test::fixtures::cpp_arena::ArenaService>::sync_processOnStack(::std::string& _return, const ::std::string& p_name) {
+void apache::thrift::ServiceHandler<::test::fixtures::cpp_arena::ArenaService>::sync_processOnStack(::std::string& _return, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name) {
   return processOnStack(_return, p_name);
 }
 
 folly::SemiFuture<::std::string>
-apache::thrift::ServiceHandler<::test::fixtures::cpp_arena::ArenaService>::semifuture_processOnStack(const ::std::string& p_name) {
+apache::thrift::ServiceHandler<::test::fixtures::cpp_arena::ArenaService>::semifuture_processOnStack(const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name) {
   auto expected{apache::thrift::detail::si::InvocationType::SemiFuture};
   __fbthrift_invocation_processOnStack.compare_exchange_strong(
       expected,
@@ -267,7 +267,7 @@ apache::thrift::ServiceHandler<::test::fixtures::cpp_arena::ArenaService>::semif
 }
 
 folly::Future<::std::string>
-apache::thrift::ServiceHandler<::test::fixtures::cpp_arena::ArenaService>::future_processOnStack(const ::std::string& p_name) {
+apache::thrift::ServiceHandler<::test::fixtures::cpp_arena::ArenaService>::future_processOnStack(const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name) {
   auto expected{apache::thrift::detail::si::InvocationType::Future};
   __fbthrift_invocation_processOnStack.compare_exchange_strong(
       expected,
@@ -280,7 +280,7 @@ apache::thrift::ServiceHandler<::test::fixtures::cpp_arena::ArenaService>::futur
 
 #if FOLLY_HAS_COROUTINES
 folly::coro::Task<::std::string>
-apache::thrift::ServiceHandler<::test::fixtures::cpp_arena::ArenaService>::co_processOnStack(const ::std::string& p_name) {
+apache::thrift::ServiceHandler<::test::fixtures::cpp_arena::ArenaService>::co_processOnStack(const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name) {
   auto expected{apache::thrift::detail::si::InvocationType::Coro};
   __fbthrift_invocation_processOnStack.compare_exchange_strong(
       expected,
@@ -292,7 +292,7 @@ apache::thrift::ServiceHandler<::test::fixtures::cpp_arena::ArenaService>::co_pr
 }
 
 folly::coro::Task<::std::string> apache::thrift::ServiceHandler<::test::fixtures::cpp_arena::ArenaService>::co_processOnStack(
-    apache::thrift::RequestParams /* params */, const ::std::string& p_name) {
+    apache::thrift::RequestParams /* params */, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name) {
   auto expected{apache::thrift::detail::si::InvocationType::CoroParam};
   __fbthrift_invocation_processOnStack.compare_exchange_strong(
       expected,
@@ -303,7 +303,7 @@ folly::coro::Task<::std::string> apache::thrift::ServiceHandler<::test::fixtures
 #endif // FOLLY_HAS_COROUTINES
 
 void apache::thrift::ServiceHandler<::test::fixtures::cpp_arena::ArenaService>::async_tm_processOnStack(
-    apache::thrift::HandlerCallbackPtr<::std::string> callback, const ::std::string& p_name) {
+    apache::thrift::HandlerCallbackPtr<::std::string> callback, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name) {
   // It's possible the coroutine versions will delegate to a future-based
   // version. If that happens, we need the RequestParams arguments to be
   // available to the future through the thread-local backchannel, so we create
@@ -549,9 +549,9 @@ determineInvocationType:
 
 namespace test::fixtures::cpp_arena {
 
-void ArenaServiceSvNull::process(::std::string& /*_return*/, std::unique_ptr<::std::string> /*name*/, std::unique_ptr<::test::fixtures::cpp_arena::WholeStruct> /*whole*/, std::unique_ptr<::test::fixtures::cpp_arena::Inner> /*inner*/) {}
+void ArenaServiceSvNull::process(::std::string& /*_return*/, std::unique_ptr<::apache::thrift::pmr::Rebind<::std::string>::type> /*name*/, std::unique_ptr<::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type> /*whole*/, std::unique_ptr<::test::fixtures::cpp_arena::Inner> /*inner*/) {}
 
-void ArenaServiceSvNull::processOnStack(::std::string& /*_return*/, const ::std::string& /*name*/) {}
+void ArenaServiceSvNull::processOnStack(::std::string& /*_return*/, const ::apache::thrift::pmr::Rebind<::std::string>::type& /*name*/) {}
 
 void ArenaServiceSvNull::plain(::std::string& /*_return*/, std::unique_ptr<::std::string> /*name*/) {}
 

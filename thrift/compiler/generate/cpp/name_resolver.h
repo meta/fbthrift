@@ -219,6 +219,10 @@ class cpp_name_resolver {
   std::unordered_map<const t_field*, std::string> field_reference_type_cache_;
   // Sinks are not reused, so are sufficient for use as keys
   std::unordered_map<const t_sink*, std::string> bidi_cache_;
+  // The types and type tags that `@cpp.Arena` on a function gives, apart from
+  // those of the same Thrift types elsewhere.
+  std::unordered_map<const t_type*, std::string> rebound_type_cache_;
+  std::unordered_map<const t_type*, std::string> pmr_type_tag_cache_;
 
   // The C++ type that `@cpp.Type` and `@cpp.Arena` on `field` give it; nullopt
   // if neither applies.
@@ -300,6 +304,11 @@ class cpp_name_resolver {
   std::string gen_type_tag(const t_type&, bool ignore_cpp_type = false);
   std::string gen_type_tag(const t_field&, const t_structured&);
   std::string gen_reference_type(const t_field& node);
+
+  // The PMR C++ type, and its type tag, that `@cpp.Arena` on a function gives a
+  // value of `type`.
+  const std::string& get_rebound_type(const t_type& type);
+  const std::string& get_pmr_type_tag(const t_type& type);
 
   const std::string& resolve(type_resolve_fn resolve_fn, const t_type& node) {
     return (this->*resolve_fn)(node);

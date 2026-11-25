@@ -778,3 +778,26 @@ TEST_F(CppNameResolverTest, arena_custom_types) {
           "::apache::thrift::type::cpp_type<::path::to::Deque, "
           "::apache::thrift::type::list<::apache::thrift::type::string_t>>>>");
 }
+
+TEST_F(CppNameResolverTest, arena_function_params) {
+  t_struct inner(&program_, "Inner");
+  t_function fun(&program_, t_type_ref(t_primitive_type::t_void()), "fun");
+  fun.add_structured_annotation(arena_builder(program_).make());
+  const t_field& name =
+      fun.params().create_field(t_primitive_type::t_string(), "name", 1);
+  const t_field& id =
+      fun.params().create_field(t_primitive_type::t_i64(), "id", 2);
+  const t_field& plain = fun.params().create_field(inner, "inner", 3);
+
+  const std::string rebound =
+      "::apache::thrift::pmr::Rebind<::std::string>::type";
+  EXPECT_EQ(resolver_.get_param_type(fun, name), rebound);
+  EXPECT_EQ(
+      resolver_.get_param_type_tag(fun, name),
+      "::apache::thrift::type::cpp_pmr_type<" + rebound +
+          ", ::apache::thrift::type::string_t>");
+  EXPECT_EQ(resolver_.get_param_type(fun, id), "::std::int64_t");
+  EXPECT_EQ(
+      resolver_.get_param_type_tag(fun, id), "::apache::thrift::type::i64_t");
+  EXPECT_EQ(resolver_.get_param_type(fun, plain), "::path::to::Inner");
+}

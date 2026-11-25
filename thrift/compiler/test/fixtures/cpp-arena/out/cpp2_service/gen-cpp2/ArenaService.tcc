@@ -11,9 +11,9 @@
 #include <thrift/lib/cpp2/gen/service_tcc.h>
 
 namespace test::fixtures::cpp_arena {
-typedef apache::thrift::ThriftPresult<false, apache::thrift::FieldData<1, ::apache::thrift::type_class::string, ::std::string*>, apache::thrift::FieldData<2, ::apache::thrift::type_class::structure, ::test::fixtures::cpp_arena::WholeStruct*>, apache::thrift::FieldData<3, ::apache::thrift::type_class::structure, ::test::fixtures::cpp_arena::Inner*>> ArenaService_process_pargs;
+typedef apache::thrift::ThriftPresult<false, apache::thrift::FieldData<1, ::apache::thrift::type_class::string, ::apache::thrift::pmr::Rebind<::std::string>::type*>, apache::thrift::FieldData<2, ::apache::thrift::type_class::structure, ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type*>, apache::thrift::FieldData<3, ::apache::thrift::type_class::structure, ::test::fixtures::cpp_arena::Inner*>> ArenaService_process_pargs;
 typedef apache::thrift::ThriftPresult<true, apache::thrift::FieldData<0, ::apache::thrift::type_class::string, ::std::string*>> ArenaService_process_presult;
-typedef apache::thrift::ThriftPresult<false, apache::thrift::FieldData<1, ::apache::thrift::type_class::string, ::std::string*>> ArenaService_processOnStack_pargs;
+typedef apache::thrift::ThriftPresult<false, apache::thrift::FieldData<1, ::apache::thrift::type_class::string, ::apache::thrift::pmr::Rebind<::std::string>::type*>> ArenaService_processOnStack_pargs;
 typedef apache::thrift::ThriftPresult<true, apache::thrift::FieldData<0, ::apache::thrift::type_class::string, ::std::string*>> ArenaService_processOnStack_presult;
 typedef apache::thrift::ThriftPresult<false, apache::thrift::FieldData<1, ::apache::thrift::type_class::string, ::std::string*>> ArenaService_plain_pargs;
 typedef apache::thrift::ThriftPresult<true, apache::thrift::FieldData<0, ::apache::thrift::type_class::string, ::std::string*>> ArenaService_plain_presult;
@@ -57,8 +57,8 @@ void ArenaServiceAsyncProcessor::executeRequest_process(
   // so async calls don't accidentally use it
   iface_->setRequestContext(nullptr);
   struct ArgsState {
-    std::unique_ptr<::std::string> uarg_name = std::make_unique<::std::string>();
-    std::unique_ptr<::test::fixtures::cpp_arena::WholeStruct> uarg_whole = std::make_unique<::test::fixtures::cpp_arena::WholeStruct>();
+    std::unique_ptr<::apache::thrift::pmr::Rebind<::std::string>::type> uarg_name = std::make_unique<::apache::thrift::pmr::Rebind<::std::string>::type>();
+    std::unique_ptr<::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type> uarg_whole = std::make_unique<::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type>();
     std::unique_ptr<::test::fixtures::cpp_arena::Inner> uarg_inner = std::make_unique<::test::fixtures::cpp_arena::Inner>();
     ArenaService_process_pargs pargs() {
       ArenaService_process_pargs args;
@@ -245,7 +245,7 @@ void ArenaServiceAsyncProcessor::executeRequest_processOnStack(
   // so async calls don't accidentally use it
   iface_->setRequestContext(nullptr);
   struct ArgsState {
-    ::std::string uarg_name;
+    ::apache::thrift::pmr::Rebind<::std::string>::type uarg_name;
     ArenaService_processOnStack_pargs pargs() {
       ArenaService_processOnStack_pargs args;
       args.get<0>().value = &uarg_name;

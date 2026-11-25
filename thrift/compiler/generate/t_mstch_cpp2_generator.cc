@@ -1137,6 +1137,19 @@ class t_mstch_cpp2_generator : public t_whisker_generator {
             return cpp2::has_arena_fields(*strct);
           });
     });
+    def.property("arena_functions?", [](const t_program& self) {
+      return std::any_of(
+          self.services().begin(),
+          self.services().end(),
+          [](const t_service* service) {
+            return std::any_of(
+                service->functions().begin(),
+                service->functions().end(),
+                [](const t_function& function) {
+                  return function.has_structured_annotation(kCppArenaUri);
+                });
+          });
+    });
     def.property("frozen_packed?", [this](const t_program&) {
       return get_compiler_option("frozen") == "packed";
     });

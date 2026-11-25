@@ -130,13 +130,32 @@ const std::string& cpp_name_resolver::get_native_type(const t_const& cnst) {
 }
 
 const std::string& cpp_name_resolver::get_param_type(
-    const t_function& /*function*/, const t_field& param) {
-  return get_native_type(*param.type());
+    const t_function& function, const t_field& param) {
+  const t_type& type = *param.type();
+  return cpp2::is_arena_param(function, param) ? get_rebound_type(type)
+                                               : get_native_type(type);
 }
 
 const std::string& cpp_name_resolver::get_param_type_tag(
-    const t_function& /*function*/, const t_field& param) {
-  return get_type_tag(*param.type());
+    const t_function& function, const t_field& param) {
+  const t_type& type = *param.type();
+  return cpp2::is_arena_param(function, param) ? get_pmr_type_tag(type)
+                                               : get_type_tag(type);
+}
+
+const std::string& cpp_name_resolver::get_rebound_type(const t_type& type) {
+  return detail::get_or_gen(rebound_type_cache_, &type, [&] {
+    return gen_rebound_type(get_native_type(type));
+  });
+}
+
+const std::string& cpp_name_resolver::get_pmr_type_tag(const t_type& type) {
+  return detail::get_or_gen(pmr_type_tag_cache_, &type, [&] {
+    return fmt::format(
+        "::apache::thrift::type::cpp_pmr_type<{}, {}>",
+        get_rebound_type(type),
+        get_type_tag(type));
+  });
 }
 
 const std::string& cpp_name_resolver::get_return_type(const t_function& fun) {

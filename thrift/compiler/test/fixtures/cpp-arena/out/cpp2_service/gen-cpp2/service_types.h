@@ -9,6 +9,9 @@
 
 #include <compare>
 #include <thrift/lib/cpp2/gen/module_types_h.h>
+#include <thrift/lib/cpp2/pmr/ArenaResource.h>
+#include <thrift/lib/cpp2/pmr/Rebind.h>
+#include <thrift/lib/cpp2/pmr/Teardown.h>
 #include "thrift/compiler/test/fixtures/cpp-arena/src/gen-cpp2/module_types.h"
 
 // BEGIN declare_enums
