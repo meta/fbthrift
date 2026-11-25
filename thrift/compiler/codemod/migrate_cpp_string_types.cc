@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 
-#include <cctype>
 #include <map>
 #include <set>
 #include <string>
-#include <string_view>
 
 #include <thrift/compiler/ast/ast_visitor.h>
 #include <thrift/compiler/ast/t_program_bundle.h>
 #include <thrift/compiler/codemod/codemod.h>
 #include <thrift/compiler/codemod/file_manager.h>
+#include <thrift/compiler/sema/string_cpp_type.h>
 
 using apache::thrift::compiler::const_ast_visitor;
+using apache::thrift::compiler::is_supported_string_cpp_type;
 using apache::thrift::compiler::kCppAdapterUri;
 using apache::thrift::compiler::kCppTypeUri;
 using apache::thrift::compiler::kPythonPy3EnableCppAdapterUri;
@@ -42,42 +42,6 @@ using apache::thrift::compiler::t_typedef;
 namespace codemod = apache::thrift::compiler::codemod;
 
 namespace {
-
-// Matches C++ tokens without joining identifiers or separated ':' tokens.
-bool is_supported_string_cpp_type(std::string_view name) {
-  auto consume = [&](std::string_view token) {
-    while (!name.empty() &&
-           std::isspace(static_cast<unsigned char>(name.front()))) {
-      name.remove_prefix(1);
-    }
-    if (!name.starts_with(token)) {
-      return false;
-    }
-    name.remove_prefix(token.size());
-    return true;
-  };
-  consume("::");
-  bool matched;
-  if (consume("folly")) {
-    matched = consume("::") && consume("IOBuf");
-  } else if (consume("apache")) {
-    matched = consume("::") && consume("thrift") && consume("::") &&
-        consume("IOBufChain");
-  } else if (consume("std") && consume("::")) {
-    if (consume("pmr")) {
-      matched = consume("::") && consume("string");
-    } else {
-      matched = consume("unique_ptr") && consume("<");
-      consume("::");
-      matched = matched && consume("folly") && consume("::") &&
-          consume("IOBuf") && consume(">");
-    }
-  } else {
-    matched = false;
-  }
-  consume("");
-  return matched && name.empty();
-}
 
 const t_const* direct_cpp_type(const t_named& node) {
   for (const t_const& annotation : node.structured_annotations()) {
