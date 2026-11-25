@@ -144,7 +144,7 @@ public final class SinkPayloadSubscriber extends BaseSubscriber<Payload> {
    * <p>Runtime-internal: read by the RSocket server transport.
    */
   public Flux<Payload> sinkPayloads() {
-    return window(tapSinkCredit(buffer.asFlux()));
+    return window(tapSinkCredit(buffer.asFlux()), WINDOW);
   }
 
   /**
@@ -153,14 +153,14 @@ public final class SinkPayloadSubscriber extends BaseSubscriber<Payload> {
    * <p>Runtime-internal: read by the RSocket server transport.
    */
   public Flux<Payload> bidiSinkPayloads() {
-    return window(tapSinkCredit(buffer.asFlux()).doOnCancel(this::cancel));
+    return window(tapSinkCredit(buffer.asFlux()).doOnCancel(this::cancel), WINDOW);
   }
 
   /**
    * Reports the reader demand this subscriber forwards to the peer as REQUEST_N, with the n
    * actually requested, to the listener the sink dispatch put in the Context. The amounts are the
    * window's own (the initial window after the first response, then each refill), never the
-   * reader's: the prefetch operator between the reader and this tap caps them.
+   * reader's: the window between the reader and this tap caps them.
    */
   private Flux<Payload> tapSinkCredit(Flux<Payload> sinkPayloads) {
     return Flux.deferContextual(
@@ -179,15 +179,15 @@ public final class SinkPayloadSubscriber extends BaseSubscriber<Payload> {
   }
 
   /**
-   * Holds the reader's demand and cancel until the first response is queued, then gives credits in
-   * a window that refills as the reader reads, on the scheduler of this subscriber. The end of the
-   * call cancels the window, which releases what it holds, and then fails the reader unless the
-   * call ended normally; only a completing other source makes takeUntilOther cancel its source.
+   * Holds the reader's demand and cancel until the first response is queued, then hands the sink
+   * payloads to the reader through an owned window that refills as the reader reads, on the
+   * scheduler of this subscriber. The end of the call cancels the window, which releases what it
+   * holds, and then fails the reader unless the call ended normally; only a completing other source
+   * makes takeUntilOther cancel its source.
    */
-  private Flux<Payload> window(Flux<Payload> sinkPayloads) {
-    return sinkPayloads
-        .delaySubscription(firstResponse.asMono())
-        .publishOn(scheduler, WINDOW)
+  private Flux<Payload> window(Flux<Payload> sinkPayloads, int prefetch) {
+    return SinkHandoff.read(
+            sinkPayloads.delaySubscription(firstResponse.asMono()), scheduler, prefetch)
         .takeUntilOther(callEnd.asMono())
         .concatWith(
             Mono.defer(

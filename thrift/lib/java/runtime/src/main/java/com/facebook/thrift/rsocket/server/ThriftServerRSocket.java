@@ -43,6 +43,7 @@ import com.facebook.thrift.server.UnknownMethodException;
 import com.facebook.thrift.util.FluxFirstResponseTimeoutTransformer;
 import com.facebook.thrift.util.MonoTimeoutTransformer;
 import com.facebook.thrift.util.NettyNiftyRequestContext;
+import com.facebook.thrift.util.ReactorHooks;
 import com.facebook.thrift.util.ResponseBuffers;
 import com.facebook.thrift.util.RpcServerUtils;
 import com.facebook.thrift.util.resources.RpcResources;
@@ -85,6 +86,11 @@ import reactor.core.scheduler.Schedulers;
 
 public class ThriftServerRSocket implements RSocket {
   private static final Logger LOGGER = LoggerFactory.getLogger(ThriftServerRSocket.class);
+
+  // Drops on the call-end race bypass the discard hooks, so the global hook releases them.
+  static {
+    ReactorHooks.init();
+  }
 
   private static final ThriftServerConfig DEFAULT_CONFIG =
       new ThriftServerConfig().setClientAuth(ClientAuth.OPTIONAL);

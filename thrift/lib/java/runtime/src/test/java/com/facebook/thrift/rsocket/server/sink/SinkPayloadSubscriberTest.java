@@ -31,6 +31,7 @@ import io.rsocket.Payload;
 import io.rsocket.util.ByteBufPayload;
 import java.nio.channels.ClosedChannelException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CancellationException;
@@ -41,6 +42,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.LongConsumer;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Subscription;
@@ -242,6 +244,77 @@ public class SinkPayloadSubscriberTest {
     StepVerifier.create(subscriber.bidiSinkPayloads()).verifyError(CancellationException.class);
   }
 
+  @Test
+  public void peerErrorThenCancelReleasesQueuedOnImmediate() throws Exception {
+    assertPeerErrorThenCancelReleasesQueued(Schedulers.immediate());
+  }
+
+  @Test
+  public void peerErrorThenCancelReleasesQueuedOffLoop() throws Exception {
+    assertPeerErrorThenCancelReleasesQueued(RpcResources.getOffLoopScheduler());
+  }
+
+  @Test
+  public void secondBidiReaderFailsFirstReaderKeepsReading() {
+    SinkPayloadSubscriber subscriber = subscribe(Schedulers.immediate());
+    sendFirstResponse(subscriber);
+
+    subscriber.bidiSinkPayloads().doOnNext(ReferenceCountUtil::release).subscribe();
+
+    List<CountedPayload> first = sendCounted(3);
+    assertReleasedOnce(first);
+
+    StepVerifier.create(subscriber.bidiSinkPayloads()).verifyError(IllegalStateException.class);
+
+    assertFalse(peer.cancelled.get());
+
+    List<CountedPayload> second = sendCounted(2);
+    assertReleasedOnce(second);
+
+    peer.complete();
+    subscriber.end(SignalType.CANCEL);
+  }
+
+  private void assertPeerErrorThenCancelReleasesQueued(Scheduler scheduler) throws Exception {
+    SinkPayloadSubscriber subscriber = subscribe(scheduler);
+    sendFirstResponse(subscriber);
+
+    IdleReader reader = subscriber.sinkPayloads().subscribeWith(new IdleReader());
+
+    CountedPayload queued = new CountedPayload();
+    peer.send(queued);
+    peer.fail(new ClosedChannelException());
+
+    reader.dispose();
+    subscriber.end(SignalType.CANCEL);
+
+    assertTrue(queued.awaitRelease(5, TimeUnit.SECONDS), "queued payload not released on cancel");
+    assertReleasedOnce(queued);
+  }
+
+  private List<CountedPayload> sendCounted(int sends) {
+    List<CountedPayload> payloads = new ArrayList<>();
+
+    for (int i = 0; i < sends; i++) {
+      CountedPayload payload = new CountedPayload();
+      payloads.add(payload);
+      peer.send(payload);
+    }
+
+    return payloads;
+  }
+
+  static void assertReleasedOnce(CountedPayload payload) {
+    assertEquals(0, payload.refCnt(), "sink payload not released");
+    assertEquals(1, payload.releases(), "sink payload not released exactly once");
+  }
+
+  static void assertReleasedOnce(List<CountedPayload> payloads) {
+    for (CountedPayload payload : payloads) {
+      assertReleasedOnce(payload);
+    }
+  }
+
   private SinkPayloadSubscriber subscribe(Scheduler scheduler) {
     SinkPayloadSubscriber subscriber = new SinkPayloadSubscriber(scheduler);
     peer.flux().subscribe(subscriber);
@@ -341,7 +414,7 @@ public class SinkPayloadSubscriberTest {
     }
     subscriber.sinkPayloads().subscribeWith(new IdleReader()).dispose();
 
-    queued.awaitRelease();
+    assertTrue(queued.awaitRelease(5, TimeUnit.SECONDS));
     subscriber.end(SignalType.CANCEL);
 
     assertEquals(1, queued.refCnt());
@@ -366,8 +439,8 @@ public class SinkPayloadSubscriberTest {
     subscriber.end(SignalType.CANCEL);
     subscriber.onNext(late);
 
-    queued.awaitRelease();
-    late.awaitRelease();
+    assertTrue(queued.awaitRelease(5, TimeUnit.SECONDS));
+    assertTrue(late.awaitRelease(5, TimeUnit.SECONDS));
     assertTrue(reader.awaitError() instanceof CancellationException);
     assertEquals(1, queued.refCnt());
     assertEquals(1, late.refCnt());
@@ -387,7 +460,7 @@ public class SinkPayloadSubscriberTest {
   }
 
   /** A reader that never requests, so the window holds the sink payloads it prefetched. */
-  private static final class IdleReader extends BaseSubscriber<Payload> {
+  static final class IdleReader extends BaseSubscriber<Payload> {
     private final CompletableFuture<Throwable> error = new CompletableFuture<>();
 
     @Override
@@ -411,18 +484,26 @@ public class SinkPayloadSubscriberTest {
    * A sink payload that a test can wait on until another thread releases it: the window may discard
    * its queue on the off-loop scheduler, after the cancel returns.
    */
-  private static final class CountedPayload extends AbstractReferenceCounted implements Payload {
+  static final class CountedPayload extends AbstractReferenceCounted implements Payload {
     private final ByteBuf data = Unpooled.wrappedBuffer(new byte[] {1});
     private final CountDownLatch released = new CountDownLatch(1);
+    private final AtomicInteger releases = new AtomicInteger();
 
-    void awaitRelease() throws InterruptedException {
-      assertTrue(released.await(5, TimeUnit.SECONDS));
+    boolean awaitRelease(long timeout, TimeUnit unit) throws InterruptedException {
+      return released.await(timeout, unit);
+    }
+
+    int releases() {
+      return releases.get();
     }
 
     @Override
     public boolean release() {
+      boolean freed = super.release();
+      releases.incrementAndGet();
       released.countDown();
-      return super.release();
+
+      return freed;
     }
 
     @Override
