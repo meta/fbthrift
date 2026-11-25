@@ -353,7 +353,7 @@ struct BenchmarkFixture {
     transportHandlerPtr->onConnect();
 
     // Drive event loop and discard SETUP frame
-    evb.loopOnce();
+    evb.loopOnce(EVLOOP_NONBLOCK);
     testTransport->getWrittenData();
   }
 };
@@ -450,7 +450,7 @@ struct AppAdapterBenchFixture : private folly::NonCopyableNonMovable {
 
     // Connect transport and discard SETUP frame
     transportHandler->onConnect();
-    evb.loopOnce();
+    evb.loopOnce(EVLOOP_NONBLOCK);
     testTransport->getWrittenData();
   }
 };
@@ -593,7 +593,7 @@ BENCHMARK_RELATIVE(FastThriftWithChannel_Request_MinimalMetadata, iters) {
         std::move(callbacks[i]),
         nullptr);
 
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
   }
 }
 
@@ -606,7 +606,7 @@ BENCHMARK_RELATIVE(FastThriftWithAppAdapter_Request_MinimalMetadata, iters) {
   suspender.dismiss();
   for (size_t i = 0; i < iters; ++i) {
     fixture.client.sendBenchRequest(payloadTemplate->clone());
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
   }
 }
 
@@ -690,7 +690,7 @@ BENCHMARK_RELATIVE(FastThriftWithChannel_Request_WithHeaders, iters) {
         std::move(callbacks[i]),
         nullptr);
 
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
   }
 }
 
@@ -703,7 +703,7 @@ BENCHMARK_RELATIVE(FastThriftWithAppAdapter_Request_WithHeaders, iters) {
   suspender.dismiss();
   for (size_t i = 0; i < iters; ++i) {
     fixture.client.sendBenchRequest(payloadTemplate->clone());
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
   }
 }
 
@@ -815,7 +815,7 @@ BENCHMARK_RELATIVE(FastThriftWithChannel_Response_Success, iters) {
         BenchRequestCallback::Ptr(callbacks[i]),
         nullptr);
 
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
 
     auto written = fixture.testTransport->getWrittenData();
     auto parsed = parseWrittenFrame(std::move(written));
@@ -855,7 +855,7 @@ BENCHMARK_RELATIVE(FastThriftWithAppAdapter_Response_Success, iters) {
 
   for (size_t i = 0; i < iters; ++i) {
     fixture.client.sendBenchRequest(requestPayloadTemplate->clone());
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
     auto written = fixture.testTransport->getWrittenData();
     auto parsed = parseWrittenFrame(std::move(written));
     streamIds.push_back(parsed.streamId());
@@ -986,7 +986,7 @@ BENCHMARK_RELATIVE(FastThriftWithChannel_Response_UndeclaredException, iters) {
         BenchRequestCallback::Ptr(callbacks[i]),
         nullptr);
 
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
 
     auto written = fixture.testTransport->getWrittenData();
     auto parsed = parseWrittenFrame(std::move(written));
@@ -1027,7 +1027,7 @@ BENCHMARK_RELATIVE(
 
   for (size_t i = 0; i < iters; ++i) {
     fixture.client.sendBenchRequest(requestPayloadTemplate->clone());
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
     auto written = fixture.testTransport->getWrittenData();
     auto parsed = parseWrittenFrame(std::move(written));
     streamIds.push_back(parsed.streamId());
@@ -1158,7 +1158,7 @@ BENCHMARK_RELATIVE(FastThriftWithChannel_Response_DeclaredException, iters) {
         BenchRequestCallback::Ptr(callbacks[i]),
         nullptr);
 
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
 
     auto written = fixture.testTransport->getWrittenData();
     auto parsed = parseWrittenFrame(std::move(written));
@@ -1198,7 +1198,7 @@ BENCHMARK_RELATIVE(FastThriftWithAppAdapter_Response_DeclaredException, iters) {
 
   for (size_t i = 0; i < iters; ++i) {
     fixture.client.sendBenchRequest(requestPayloadTemplate->clone());
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
     auto written = fixture.testTransport->getWrittenData();
     auto parsed = parseWrittenFrame(std::move(written));
     streamIds.push_back(parsed.streamId());
@@ -1328,7 +1328,7 @@ BENCHMARK_RELATIVE(FastThriftWithChannel_Response_ErrorFrame, iters) {
         BenchRequestCallback::Ptr(callbacks[i]),
         nullptr);
 
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
 
     auto written = fixture.testTransport->getWrittenData();
     auto parsed = parseWrittenFrame(std::move(written));
@@ -1365,7 +1365,7 @@ BENCHMARK_RELATIVE(FastThriftWithAppAdapter_Response_ErrorFrame, iters) {
 
   for (size_t i = 0; i < iters; ++i) {
     fixture.client.sendBenchRequest(requestPayloadTemplate->clone());
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
     auto written = fixture.testTransport->getWrittenData();
     auto parsed = parseWrittenFrame(std::move(written));
     streamIds.push_back(parsed.streamId());
@@ -1516,7 +1516,7 @@ BENCHMARK_RELATIVE(FastThriftWithChannel_Response_Fragmented, iters) {
         BenchRequestCallback::Ptr(callbacks[i]),
         nullptr);
 
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
 
     auto written = fixture.testTransport->getWrittenData();
     auto parsed = parseWrittenFrame(std::move(written));
@@ -1577,7 +1577,7 @@ BENCHMARK_RELATIVE(FastThriftWithAppAdapter_Response_Fragmented, iters) {
 
   for (size_t i = 0; i < iters; ++i) {
     fixture.client.sendBenchRequest(requestPayloadTemplate->clone());
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
     auto written = fixture.testTransport->getWrittenData();
     auto parsed = parseWrittenFrame(std::move(written));
     streamIds.push_back(parsed.streamId());
@@ -1741,7 +1741,7 @@ BENCHMARK_RELATIVE(FastThriftWithChannel_Response_HighConcurrency, iters) {
         BenchRequestCallback::Ptr(callbacks[i]),
         nullptr);
 
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
 
     auto written = fixture.testTransport->getWrittenData();
     auto parsed = parseWrittenFrame(std::move(written));
@@ -1786,7 +1786,7 @@ BENCHMARK_RELATIVE(FastThriftWithAppAdapter_Response_HighConcurrency, iters) {
 
   for (size_t i = 0; i < actualIters; ++i) {
     fixture.client.sendBenchRequest(requestPayloadTemplate->clone());
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
     auto written = fixture.testTransport->getWrittenData();
     auto parsed = parseWrittenFrame(std::move(written));
     streamIds.push_back(parsed.streamId());
@@ -1919,7 +1919,7 @@ BENCHMARK_RELATIVE(FastThriftWithChannel_Request_ChainedPayload, iters) {
         std::move(callbacks[i]),
         nullptr);
 
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
   }
 }
 
@@ -1948,7 +1948,7 @@ BENCHMARK_RELATIVE(FastThriftWithAppAdapter_Request_ChainedPayload, iters) {
 
   for (size_t i = 0; i < iters; ++i) {
     fixture.client.sendBenchRequest(createChainedPayload());
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
   }
 }
 

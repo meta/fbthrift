@@ -349,7 +349,7 @@ struct FastThriftChannelBenchFixture {
 
     // Discard SETUP frame
     thriftClient->ping(std::make_unique<NoopRequestCallback>());
-    evb.loopOnce();
+    evb.loopOnce(EVLOOP_NONBLOCK);
     testTransport->getWrittenData();
   }
 };
@@ -436,7 +436,7 @@ struct FastClientBenchFixture : private folly::NonCopyableNonMovable {
 
     // Discard SETUP frame
     fastClient->ping(std::make_unique<NoopRequestCallback>());
-    evb.loopOnce();
+    evb.loopOnce(EVLOOP_NONBLOCK);
     testTransport->getWrittenData();
   }
 };
@@ -615,7 +615,7 @@ BENCHMARK_RELATIVE(FastThriftChannel_Response_Success_Ping, iters) {
   for (size_t i = 0; i < iters; ++i) {
     std::unique_ptr<folly::IOBuf> written;
     f.thriftClient->ping(std::make_unique<NoopRequestCallback>());
-    f.evb.loopOnce();
+    f.evb.loopOnce(EVLOOP_NONBLOCK);
     written = f.testTransport->getWrittenData();
     streamIds.push_back(parseWrittenFrame(std::move(written)).streamId());
   }
@@ -646,7 +646,7 @@ BENCHMARK_RELATIVE(FastThriftClient_Response_Success_Ping, iters) {
   for (size_t i = 0; i < iters; ++i) {
     std::unique_ptr<folly::IOBuf> written;
     f.fastClient->ping(std::make_unique<NoopRequestCallback>());
-    f.evb.loopOnce();
+    f.evb.loopOnce(EVLOOP_NONBLOCK);
     written = f.testTransport->getWrittenData();
     streamIds.push_back(parseWrittenFrame(std::move(written)).streamId());
   }
@@ -715,7 +715,7 @@ BENCHMARK_RELATIVE(FastThriftChannel_Response_Success_Echo, iters) {
     std::unique_ptr<folly::IOBuf> written;
     f.thriftClient->echo(
         std::make_unique<NoopRequestCallback>(), "hello world");
-    f.evb.loopOnce();
+    f.evb.loopOnce(EVLOOP_NONBLOCK);
     written = f.testTransport->getWrittenData();
     streamIds.push_back(parseWrittenFrame(std::move(written)).streamId());
   }
@@ -746,7 +746,7 @@ BENCHMARK_RELATIVE(FastThriftClient_Response_Success_Echo, iters) {
   for (size_t i = 0; i < iters; ++i) {
     std::unique_ptr<folly::IOBuf> written;
     f.fastClient->echo(std::make_unique<NoopRequestCallback>(), "hello world");
-    f.evb.loopOnce();
+    f.evb.loopOnce(EVLOOP_NONBLOCK);
     written = f.testTransport->getWrittenData();
     streamIds.push_back(parseWrittenFrame(std::move(written)).streamId());
   }
@@ -817,7 +817,7 @@ BENCHMARK_RELATIVE(FastThriftChannel_Response_Success_SendResponse, iters) {
     f.thriftClient->sendResponse(
         std::make_unique<NoopRequestCallback>(),
         static_cast<int64_t>(kPayloadSize));
-    f.evb.loopOnce();
+    f.evb.loopOnce(EVLOOP_NONBLOCK);
     written = f.testTransport->getWrittenData();
     streamIds.push_back(parseWrittenFrame(std::move(written)).streamId());
   }
@@ -850,7 +850,7 @@ BENCHMARK_RELATIVE(FastThriftClient_Response_Success_SendResponse, iters) {
     f.fastClient->sendResponse(
         std::make_unique<NoopRequestCallback>(),
         static_cast<int64_t>(kPayloadSize));
-    f.evb.loopOnce();
+    f.evb.loopOnce(EVLOOP_NONBLOCK);
     written = f.testTransport->getWrittenData();
     streamIds.push_back(parseWrittenFrame(std::move(written)).streamId());
   }
@@ -919,7 +919,7 @@ BENCHMARK_RELATIVE(FastThriftChannel_Response_DeclaredException, iters) {
     std::unique_ptr<folly::IOBuf> written;
     f.thriftClient->echo(
         std::make_unique<NoopRequestCallback>(), "hello world");
-    f.evb.loopOnce();
+    f.evb.loopOnce(EVLOOP_NONBLOCK);
     written = f.testTransport->getWrittenData();
     streamIds.push_back(parseWrittenFrame(std::move(written)).streamId());
   }
@@ -950,7 +950,7 @@ BENCHMARK_RELATIVE(FastThriftClient_Response_DeclaredException, iters) {
   for (size_t i = 0; i < iters; ++i) {
     std::unique_ptr<folly::IOBuf> written;
     f.fastClient->echo(std::make_unique<NoopRequestCallback>(), "hello world");
-    f.evb.loopOnce();
+    f.evb.loopOnce(EVLOOP_NONBLOCK);
     written = f.testTransport->getWrittenData();
     streamIds.push_back(parseWrittenFrame(std::move(written)).streamId());
   }
@@ -1020,7 +1020,7 @@ BENCHMARK_RELATIVE(FastThriftChannel_Response_UndeclaredException, iters) {
     std::unique_ptr<folly::IOBuf> written;
     f.thriftClient->echo(
         std::make_unique<NoopRequestCallback>(), "hello world");
-    f.evb.loopOnce();
+    f.evb.loopOnce(EVLOOP_NONBLOCK);
     written = f.testTransport->getWrittenData();
     streamIds.push_back(parseWrittenFrame(std::move(written)).streamId());
   }
@@ -1052,7 +1052,7 @@ BENCHMARK_RELATIVE(FastThriftClient_Response_UndeclaredException, iters) {
   for (size_t i = 0; i < iters; ++i) {
     std::unique_ptr<folly::IOBuf> written;
     f.fastClient->echo(std::make_unique<NoopRequestCallback>(), "hello world");
-    f.evb.loopOnce();
+    f.evb.loopOnce(EVLOOP_NONBLOCK);
     written = f.testTransport->getWrittenData();
     streamIds.push_back(parseWrittenFrame(std::move(written)).streamId());
   }
@@ -1122,7 +1122,7 @@ BENCHMARK_RELATIVE(FastThriftChannel_Response_ErrorFrame, iters) {
     std::unique_ptr<folly::IOBuf> written;
     f.thriftClient->echo(
         std::make_unique<NoopRequestCallback>(), "hello world");
-    f.evb.loopOnce();
+    f.evb.loopOnce(EVLOOP_NONBLOCK);
     written = f.testTransport->getWrittenData();
     streamIds.push_back(parseWrittenFrame(std::move(written)).streamId());
   }
@@ -1153,7 +1153,7 @@ BENCHMARK_RELATIVE(FastThriftClient_Response_ErrorFrame, iters) {
   for (size_t i = 0; i < iters; ++i) {
     std::unique_ptr<folly::IOBuf> written;
     f.fastClient->echo(std::make_unique<NoopRequestCallback>(), "hello world");
-    f.evb.loopOnce();
+    f.evb.loopOnce(EVLOOP_NONBLOCK);
     written = f.testTransport->getWrittenData();
     streamIds.push_back(parseWrittenFrame(std::move(written)).streamId());
   }
@@ -1237,7 +1237,7 @@ BENCHMARK_RELATIVE(FastThriftChannel_Response_Fragmented, iters) {
     std::unique_ptr<folly::IOBuf> written;
     f.thriftClient->echo(
         std::make_unique<NoopRequestCallback>(), "hello world");
-    f.evb.loopOnce();
+    f.evb.loopOnce(EVLOOP_NONBLOCK);
     written = f.testTransport->getWrittenData();
     streamIds.push_back(parseWrittenFrame(std::move(written)).streamId());
   }
@@ -1283,7 +1283,7 @@ BENCHMARK_RELATIVE(FastThriftClient_Response_Fragmented, iters) {
   for (size_t i = 0; i < iters; ++i) {
     std::unique_ptr<folly::IOBuf> written;
     f.fastClient->echo(std::make_unique<NoopRequestCallback>(), "hello world");
-    f.evb.loopOnce();
+    f.evb.loopOnce(EVLOOP_NONBLOCK);
     written = f.testTransport->getWrittenData();
     streamIds.push_back(parseWrittenFrame(std::move(written)).streamId());
   }
@@ -1369,7 +1369,7 @@ BENCHMARK_RELATIVE(FastThriftChannel_Roundtrip_HighConcurrency, iters) {
   for (size_t i = 0; i < kBackground; ++i) {
     f.thriftClient->echo(
         std::make_unique<NoopRequestCallback>(), "hello world");
-    f.evb.loopOnce();
+    f.evb.loopOnce(EVLOOP_NONBLOCK);
     f.testTransport->getWrittenData();
   }
 
@@ -1380,7 +1380,7 @@ BENCHMARK_RELATIVE(FastThriftChannel_Roundtrip_HighConcurrency, iters) {
   for (size_t i = 0; i < iters; ++i) {
     f.thriftClient->echo(
         std::make_unique<NoopRequestCallback>(), "hello world");
-    f.evb.loopOnce();
+    f.evb.loopOnce(EVLOOP_NONBLOCK);
     auto written = f.testTransport->getWrittenData();
     auto streamId = parseWrittenFrame(std::move(written)).streamId();
     f.testTransport->injectReadData(prependLengthPrefix(
@@ -1397,7 +1397,7 @@ BENCHMARK_RELATIVE(FastThriftClient_Roundtrip_HighConcurrency, iters) {
   constexpr size_t kBackground = 1000;
   for (size_t i = 0; i < kBackground; ++i) {
     f.fastClient->echo(std::make_unique<NoopRequestCallback>(), "hello world");
-    f.evb.loopOnce();
+    f.evb.loopOnce(EVLOOP_NONBLOCK);
     f.testTransport->getWrittenData();
   }
 
@@ -1407,7 +1407,7 @@ BENCHMARK_RELATIVE(FastThriftClient_Roundtrip_HighConcurrency, iters) {
   suspender.dismiss();
   for (size_t i = 0; i < iters; ++i) {
     f.fastClient->echo(std::make_unique<NoopRequestCallback>(), "hello world");
-    f.evb.loopOnce();
+    f.evb.loopOnce(EVLOOP_NONBLOCK);
     auto written = f.testTransport->getWrittenData();
     auto streamId = parseWrittenFrame(std::move(written)).streamId();
     f.testTransport->injectReadData(prependLengthPrefix(
@@ -1485,7 +1485,7 @@ BENCHMARK_RELATIVE(FastThriftChannel_Response_ChainedPayload, iters) {
     f.thriftClient->sendResponse(
         std::make_unique<NoopRequestCallback>(),
         static_cast<int64_t>(kPayloadSize));
-    f.evb.loopOnce();
+    f.evb.loopOnce(EVLOOP_NONBLOCK);
     written = f.testTransport->getWrittenData();
     streamIds.push_back(parseWrittenFrame(std::move(written)).streamId());
   }
@@ -1537,7 +1537,7 @@ BENCHMARK_RELATIVE(FastThriftClient_Response_ChainedPayload, iters) {
     f.fastClient->sendResponse(
         std::make_unique<NoopRequestCallback>(),
         static_cast<int64_t>(kPayloadSize));
-    f.evb.loopOnce();
+    f.evb.loopOnce(EVLOOP_NONBLOCK);
     written = f.testTransport->getWrittenData();
     streamIds.push_back(parseWrittenFrame(std::move(written)).streamId());
   }

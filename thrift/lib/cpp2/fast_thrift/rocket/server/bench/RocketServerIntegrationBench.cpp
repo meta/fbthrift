@@ -219,7 +219,7 @@ struct BenchmarkFixture {
 
     // Inject SETUP frame to bring pipeline into ready state
     injectFrame(createSetupFrame());
-    evb.loopOnce();
+    evb.loopOnce(EVLOOP_NONBLOCK);
   }
 
   void injectFrame(std::unique_ptr<folly::IOBuf> frame) {
@@ -247,7 +247,7 @@ BENCHMARK(Rocket_Server_Request, iters) {
 
   for (size_t i = 0; i < iters; ++i) {
     fixture.injectFrame(std::move(requests[i]));
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
   }
 }
 
@@ -266,7 +266,7 @@ BENCHMARK(Rocket_Server_Response_Payload, iters) {
   for (uint32_t i = 0; i < iters; ++i) {
     fixture.injectFrame(
         createRequestResponseFrame(i * 2 + 1, makePayloadData(10)));
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
   }
   fixture.testTransport->clearWrittenData();
 
@@ -293,7 +293,7 @@ BENCHMARK(Rocket_Server_Response_Payload, iters) {
 
   for (size_t i = 0; i < iters; ++i) {
     (void)fixture.appAdapter->write(std::move(responses[i]));
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
   }
 }
 
@@ -306,7 +306,7 @@ BENCHMARK(Rocket_Server_Response_Error, iters) {
   for (uint32_t i = 0; i < iters; ++i) {
     fixture.injectFrame(
         createRequestResponseFrame(i * 2 + 1, makePayloadData(10)));
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
   }
   fixture.testTransport->clearWrittenData();
 
@@ -332,7 +332,7 @@ BENCHMARK(Rocket_Server_Response_Error, iters) {
 
   for (size_t i = 0; i < iters; ++i) {
     (void)fixture.appAdapter->write(std::move(responses[i]));
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
   }
 }
 
@@ -411,7 +411,7 @@ BENCHMARK(Rocket_Server_SetupFrame, iters) {
 
     // Measure SETUP frame validation
     fixture.injectFrame(std::move(setupFrame));
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
   }
 }
 
@@ -439,7 +439,7 @@ BENCHMARK(Rocket_Server_RequestResponse_RoundTrip, iters) {
   for (size_t i = 0; i < iters; ++i) {
     // Inbound: inject request
     fixture.injectFrame(std::move(requests[i]));
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
 
     // Outbound: send response
     server::RocketResponseMessage resp{
@@ -455,7 +455,7 @@ BENCHMARK(Rocket_Server_RequestResponse_RoundTrip, iters) {
             },
     };
     (void)fixture.appAdapter->write(std::move(resp));
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
 
     fixture.testTransport->clearWrittenData();
   }

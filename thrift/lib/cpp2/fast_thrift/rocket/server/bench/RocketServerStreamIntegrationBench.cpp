@@ -227,7 +227,7 @@ struct BenchmarkFixture {
 
     // Inject SETUP frame to bring pipeline into ready state
     injectFrame(createSetupFrame());
-    evb.loopOnce();
+    evb.loopOnce(EVLOOP_NONBLOCK);
   }
 
   void injectFrame(std::unique_ptr<folly::IOBuf> frame) {
@@ -255,7 +255,7 @@ BENCHMARK(Rocket_Server_Stream_Request, iters) {
 
   for (size_t i = 0; i < iters; ++i) {
     fixture.injectFrame(std::move(requests[i]));
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
   }
 }
 
@@ -274,7 +274,7 @@ BENCHMARK(Rocket_Server_Stream_RequestN, iters) {
   for (size_t i = 0; i < iters; ++i) {
     fixture.injectFrame(
         createRequestStreamFrame(i * 2 + 1, 1, makePayloadData(10)));
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
   }
   fixture.testTransport->clearWrittenData();
 
@@ -289,7 +289,7 @@ BENCHMARK(Rocket_Server_Stream_RequestN, iters) {
 
   for (size_t i = 0; i < iters; ++i) {
     fixture.injectFrame(std::move(requestNFrames[i]));
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
   }
 }
 
@@ -308,7 +308,7 @@ BENCHMARK(Rocket_Server_Stream_Payload, iters) {
   for (size_t i = 0; i < iters; ++i) {
     fixture.injectFrame(
         createRequestStreamFrame(i * 2 + 1, kHighCredits, makePayloadData(10)));
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
   }
   fixture.testTransport->clearWrittenData();
 
@@ -337,7 +337,7 @@ BENCHMARK(Rocket_Server_Stream_Payload, iters) {
 
   for (size_t i = 0; i < iters; ++i) {
     (void)fixture.appAdapter->write(std::move(responses[i]));
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
   }
 }
 
@@ -356,7 +356,7 @@ BENCHMARK(Rocket_Server_Stream_PayloadComplete, iters) {
   for (size_t i = 0; i < iters; ++i) {
     fixture.injectFrame(
         createRequestStreamFrame(i * 2 + 1, kHighCredits, makePayloadData(10)));
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
   }
   fixture.testTransport->clearWrittenData();
 
@@ -385,7 +385,7 @@ BENCHMARK(Rocket_Server_Stream_PayloadComplete, iters) {
 
   for (size_t i = 0; i < iters; ++i) {
     (void)fixture.appAdapter->write(std::move(responses[i]));
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
   }
 }
 
@@ -415,11 +415,11 @@ BENCHMARK(Rocket_Server_Stream_RoundTrip, iters) {
 
     // Inbound: inject REQUEST_STREAM
     fixture.injectFrame(std::move(requests[i]));
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
 
     // Inbound: inject REQUEST_N to grant credits for the response
     fixture.injectFrame(createRequestNFrame(streamId, 1));
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
 
     // Outbound: send non-terminal PAYLOAD
     server::RocketResponseMessage payloadResp{
@@ -436,7 +436,7 @@ BENCHMARK(Rocket_Server_Stream_RoundTrip, iters) {
             apache::thrift::fast_thrift::frame::FrameType::REQUEST_STREAM,
     };
     (void)fixture.appAdapter->write(std::move(payloadResp));
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
 
     // Outbound: send terminal PAYLOAD (complete)
     server::RocketResponseMessage completeResp{
@@ -453,7 +453,7 @@ BENCHMARK(Rocket_Server_Stream_RoundTrip, iters) {
             apache::thrift::fast_thrift::frame::FrameType::REQUEST_STREAM,
     };
     (void)fixture.appAdapter->write(std::move(completeResp));
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
 
     fixture.testTransport->clearWrittenData();
   }

@@ -226,7 +226,7 @@ struct BenchmarkFixture {
     transportHandler->onConnect();
 
     // Drive event loop and discard SETUP frame
-    evb.loopOnce();
+    evb.loopOnce(EVLOOP_NONBLOCK);
     testTransport->getWrittenData();
   }
 
@@ -254,7 +254,7 @@ BENCHMARK(Rocket_Request, iters) {
 
   for (size_t i = 0; i < iters; ++i) {
     (void)fixture.appAdapter->write(std::move(requests[i]));
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
   }
 }
 
@@ -275,7 +275,7 @@ BENCHMARK(Rocket_Response_Payload, iters) {
   for (uint32_t i = 0; i < iters; ++i) {
     auto request = createRocketRequest(10);
     (void)fixture.appAdapter->write(std::move(request));
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
     streamIds.push_back(i * 2 + 1);
   }
   fixture.testTransport->clearWrittenData();
@@ -292,7 +292,7 @@ BENCHMARK(Rocket_Response_Payload, iters) {
 
   for (size_t i = 0; i < iters; ++i) {
     fixture.injectFrame(std::move(responses[i]));
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
   }
 }
 
@@ -307,7 +307,7 @@ BENCHMARK(Rocket_Response_StreamError, iters) {
   for (uint32_t i = 0; i < iters; ++i) {
     auto request = createRocketRequest(10);
     (void)fixture.appAdapter->write(std::move(request));
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
     streamIds.push_back(i * 2 + 1);
   }
   fixture.testTransport->clearWrittenData();
@@ -326,7 +326,7 @@ BENCHMARK(Rocket_Response_StreamError, iters) {
 
   for (size_t i = 0; i < iters; ++i) {
     fixture.injectFrame(std::move(responses[i]));
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
   }
 }
 
@@ -403,7 +403,7 @@ BENCHMARK(Rocket_SetupFrame, iters) {
 
     // This triggers start which sends SETUP frame
     fixture.transportHandler->onConnect();
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
 
     folly::doNotOptimizeAway(fixture.testTransport->getWrittenData());
   }
@@ -434,7 +434,7 @@ BENCHMARK(Rocket_ConnectionError, iters) {
     innerSuspender.dismiss();
 
     fixture.injectFrame(std::move(errorFrame));
-    fixture.evb.loopOnce();
+    fixture.evb.loopOnce(EVLOOP_NONBLOCK);
   }
 }
 
