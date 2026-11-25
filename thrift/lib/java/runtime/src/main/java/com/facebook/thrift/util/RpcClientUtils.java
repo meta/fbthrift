@@ -21,6 +21,7 @@ import static org.apache.thrift.Constants.K_ROCKET_PROTOCOL_KEY;
 
 import com.facebook.thrift.client.ClientBuilder;
 import com.facebook.thrift.client.ThriftClientConfig;
+import com.facebook.thrift.compression.CompressionManager;
 import com.facebook.thrift.legacy.codec.LegacyTransportType;
 import com.facebook.thrift.metadata.ThriftTransportType;
 import com.facebook.thrift.model.StreamResponse;
@@ -32,6 +33,7 @@ import com.facebook.thrift.protocol.ByteBufTProtocol;
 import com.facebook.thrift.protocol.TProtocolType;
 import com.facebook.thrift.util.resources.RpcResources;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.epoll.Epoll;
@@ -49,6 +51,7 @@ import io.netty.handler.ssl.ApplicationProtocolConfig;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
+import io.netty.util.ReferenceCountUtil;
 import io.netty.util.internal.PlatformDependent;
 import io.rsocket.Payload;
 import io.rsocket.core.RSocketConnector;
@@ -60,10 +63,12 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 import javax.validation.constraints.NotNull;
+import org.apache.thrift.CompressionAlgorithm;
 import org.apache.thrift.PayloadExceptionMetadata;
 import org.apache.thrift.PayloadMetadata;
 import org.apache.thrift.RequestSetupMetadata;
@@ -233,7 +238,110 @@ public final class RpcClientUtils {
   }
 
   /**
-   * Decodes RSocket Stream Payload to ClientResponsePayload using ClientRequestPayload
+   * Decodes RSocket Stream Payload to ClientResponsePayload using ClientRequestPayload.
+   * Decompresses the frame with the compression of the metadata when one is set.
+   *
+   * @param alloc: allocator for the decompressed frame
+   * @param requestPayload: ClientRequestPayload
+   * @param payload: Response payload
+   * @param streamPayloadMetadata: Stream metadata
+   * @return: ClientResponsePayload with decoded data
+   */
+  public static <T, K> ClientResponsePayload<K> decodeStreamPayload(
+      final ByteBufAllocator alloc,
+      final ClientRequestPayload<T> requestPayload,
+      final Payload payload,
+      final StreamPayloadMetadata streamPayloadMetadata,
+      final ResponseRpcMetadata responseRpcMetadata,
+      final boolean isFirstResponse) {
+
+    CompressionAlgorithm compression =
+        isFirstResponse
+            ? responseRpcMetadata.getCompression()
+            : streamPayloadMetadata.getCompression();
+
+    ClientResponsePayload<K> response;
+    ByteBuf decompressed = null;
+
+    try {
+      ByteBuf data;
+
+      if (compression == null || compression == CompressionAlgorithm.NONE) {
+        data = payload.sliceData();
+      } else {
+        decompressed =
+            CompressionManager.decompress(compression, alloc, payload.sliceData().retain());
+        data = decompressed;
+      }
+
+      if (!data.isReadable()) {
+        return ClientResponsePayload.createEmptyStreamingResult(
+            responseRpcMetadata, streamPayloadMetadata);
+      }
+
+      int startIndex = data.readerIndex();
+
+      TProtocolType tProtocolType =
+          TProtocolType.fromProtocolId(requestPayload.getRequestRpcMetadata().getProtocol());
+      final ByteBufTProtocol protocol = tProtocolType.apply(data);
+      protocol.readStructBegin();
+      TField field = protocol.readFieldBegin();
+
+      if (field.id == 0) {
+        K streamResponse;
+
+        if (isFirstResponse) {
+          streamResponse =
+              (K)
+                  StreamResponse.fromFirstResponse(
+                      field.type != 0
+                          ? requestPayload.getFirstResponseReader().read(protocol)
+                          : new Object());
+        } else {
+          streamResponse =
+              (K) StreamResponse.fromData(requestPayload.getResponseReader().read(protocol));
+        }
+
+        response =
+            ClientResponsePayload.createResult(
+                streamResponse, responseRpcMetadata, streamPayloadMetadata, true);
+      } else {
+        @SuppressWarnings("rawtypes")
+        Reader exceptionReader =
+            isFirstResponse
+                ? requestPayload.getExceptionReaders().get(field.id)
+                : requestPayload.getStreamExceptionReaders().get(field.id);
+        Exception exception;
+
+        // Parse undefined exception as TApplicationException
+        if (exceptionReader == null) {
+          exception =
+              new TApplicationException(
+                  field.type == TType.STRING
+                      ? protocol.readString()
+                      : data.toString(
+                          startIndex, data.writerIndex() - startIndex, StandardCharsets.UTF_8));
+        } else {
+          exception = (Exception) exceptionReader.read(protocol);
+        }
+
+        response =
+            ClientResponsePayload.createException(
+                exception, responseRpcMetadata, streamPayloadMetadata, true);
+      }
+
+      protocol.readFieldEnd();
+      protocol.readStructEnd();
+    } finally {
+      ReferenceCountUtil.safeRelease(decompressed);
+    }
+
+    return response;
+  }
+
+  /**
+   * Decodes RSocket Stream Payload to ClientResponsePayload using ClientRequestPayload.
+   * Decompressed buffers are allocated with {@code RpcResources.getByteBufAllocator()}.
    *
    * @param requestPayload: ClientRequestPayload
    * @param payload: Response payload
@@ -246,60 +354,13 @@ public final class RpcClientUtils {
       final StreamPayloadMetadata streamPayloadMetadata,
       final ResponseRpcMetadata responseRpcMetadata,
       final boolean isFirstResponse) {
-
-    ClientResponsePayload<K> response;
-    ByteBuf data = payload.sliceData();
-
-    if (!data.isReadable()) {
-      return ClientResponsePayload.createEmptyStreamingResult(
-          responseRpcMetadata, streamPayloadMetadata);
-    }
-
-    TProtocolType tProtocolType =
-        TProtocolType.fromProtocolId(requestPayload.getRequestRpcMetadata().getProtocol());
-    final ByteBufTProtocol protocol = tProtocolType.apply(data);
-    protocol.readStructBegin();
-    TField field = protocol.readFieldBegin();
-
-    if (field.id == 0) {
-      K streamResponse;
-      if (isFirstResponse) {
-        streamResponse =
-            (K)
-                StreamResponse.fromFirstResponse(
-                    field.type != 0
-                        ? requestPayload.getFirstResponseReader().read(protocol)
-                        : new Object());
-      } else {
-        streamResponse =
-            (K) StreamResponse.fromData(requestPayload.getResponseReader().read(protocol));
-      }
-      response =
-          ClientResponsePayload.createResult(
-              streamResponse, responseRpcMetadata, streamPayloadMetadata, true);
-    } else {
-      @SuppressWarnings("rawtypes")
-      Reader exceptionReader =
-          isFirstResponse
-              ? requestPayload.getExceptionReaders().get(field.id)
-              : requestPayload.getStreamExceptionReaders().get(field.id);
-      Exception exception;
-      // Parse undefined exception as TApplicationException
-      if (exceptionReader == null) {
-        exception =
-            new TApplicationException(
-                field.type == TType.STRING ? protocol.readString() : payload.getDataUtf8());
-      } else {
-        exception = (Exception) exceptionReader.read(protocol);
-      }
-      response =
-          ClientResponsePayload.createException(
-              exception, responseRpcMetadata, streamPayloadMetadata, true);
-    }
-
-    protocol.readFieldEnd();
-    protocol.readStructEnd();
-    return response;
+    return decodeStreamPayload(
+        RpcResources.getByteBufAllocator(),
+        requestPayload,
+        payload,
+        streamPayloadMetadata,
+        responseRpcMetadata,
+        isFirstResponse);
   }
 
   /**

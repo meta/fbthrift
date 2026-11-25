@@ -30,8 +30,10 @@ import com.facebook.swift.service.ThriftServerConfig;
 import com.facebook.thrift.client.RpcClientFactory;
 import com.facebook.thrift.client.RpcOptions;
 import com.facebook.thrift.client.ThriftClientConfig;
+import com.facebook.thrift.model.ResponseAndStream;
 import com.facebook.thrift.rsocket.server.TestServiceHandler;
 import com.facebook.thrift.server.RpcServerHandler;
+import com.facebook.thrift.test.rocket.InitialTestResponse;
 import com.facebook.thrift.test.rocket.TestException;
 import com.facebook.thrift.test.rocket.TestRequest;
 import com.facebook.thrift.test.rocket.TestResponse;
@@ -48,6 +50,7 @@ import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import javax.annotation.Nullable;
 import org.apache.thrift.CodecConfig;
 import org.apache.thrift.CompressionConfig;
 import org.apache.thrift.ProtocolId;
@@ -260,25 +263,10 @@ public class UnifiedServerTransportTest {
    */
   @Test
   public void testRSocketRoundTripWithCompression() throws Exception {
-    transport =
-        UnifiedServerTransport.createNewInstance(
-                serverAddress, rpcServerHandler, serverConfig, new SPINiftyMetrics())
-            .block();
-    assertNotNull(transport);
-    client =
-        TestService.Reactive.clientBuilder()
-            .setProtocolId(ProtocolId.COMPACT)
-            .build(createRSocketClientFactory(), serverAddress);
+    startRSocketClient();
+
     String text = Strings.repeat("compressible ", 1000);
-    RpcOptions options =
-        new RpcOptions.Builder()
-            .setCompressionConfig(
-                new CompressionConfig.Builder()
-                    .setCodecConfig(
-                        CodecConfig.fromZstdConfig(
-                            new ZstdCompressionCodecConfig.Builder().build()))
-                    .build())
-            .build();
+    RpcOptions options = zstdOptions(null);
 
     Mono<TestResponse> response =
         client.requestResponse(
@@ -287,6 +275,68 @@ public class UnifiedServerTransportTest {
     StepVerifier.create(response)
         .assertNext(resp -> assertEquals(text, resp.getStrField()))
         .verifyComplete();
+  }
+
+  /** A Rocket client that asks for ZSTD responses decodes a compressed stream from the server. */
+  @Test
+  public void testRSocketStreamRoundTripWithCompression() throws Exception {
+    startRSocketClient();
+
+    String text = Strings.repeat("compressible ", 1000);
+    RpcOptions options = zstdOptions(null);
+
+    Flux<TestResponse> response =
+        client.streamResponse(
+            new TestRequest.Builder().setIntField(1).setStrField(text).build(), options);
+
+    StepVerifier.create(response.collectList())
+        .assertNext(
+            responses -> {
+              assertEquals(10, responses.size());
+
+              for (int i = 0; i < responses.size(); i++) {
+                assertEquals(1 + i, responses.get(i).getIntField());
+                assertEquals(text + i, responses.get(i).getStrField());
+              }
+            })
+        .verifyComplete();
+  }
+
+  /**
+   * A Rocket client with a mid size limit decodes an uncompressed first response plus compressed
+   * stream items from the server.
+   */
+  @Test
+  public void testRSocketStreamRoundTripWithPerFrameSizeLimit() throws Exception {
+    startRSocketClient();
+
+    String text = Strings.repeat("compressible ", 1000);
+    RpcOptions options = zstdOptions(64L);
+
+    ResponseAndStream<InitialTestResponse, TestResponse> holder =
+        client
+            .streamInitialResponse(
+                new TestRequest.Builder().setIntField(1).setStrField(text).build(), options)
+            .block();
+    assertNotNull(holder);
+
+    try {
+      assertEquals(100, holder.getFirstResponse().getIntField());
+
+      StepVerifier.create(holder.getStream().collectList())
+          .assertNext(
+              responses -> {
+                assertEquals(10, responses.size());
+
+                for (int i = 0; i < responses.size(); i++) {
+                  assertEquals(1 + i, responses.get(i).getIntField());
+                  assertEquals(text + i, responses.get(i).getStrField());
+                }
+              })
+          .verifyComplete();
+    } finally {
+      holder.dispose();
+    }
   }
 
   private RpcServerHandler neverRespondingHandler() {
@@ -1772,5 +1822,31 @@ public class UnifiedServerTransportTest {
         .setDisableReconnectingClient(true)
         .setThriftClientConfig(clientConfig)
         .build();
+  }
+
+  private void startRSocketClient() throws Exception {
+    transport =
+        UnifiedServerTransport.createNewInstance(
+                serverAddress, rpcServerHandler, serverConfig, new SPINiftyMetrics())
+            .block();
+    assertNotNull(transport);
+
+    client =
+        TestService.Reactive.clientBuilder()
+            .setProtocolId(ProtocolId.COMPACT)
+            .build(createRSocketClientFactory(), serverAddress);
+  }
+
+  private static RpcOptions zstdOptions(@Nullable Long sizeLimit) {
+    CompressionConfig.Builder config =
+        new CompressionConfig.Builder()
+            .setCodecConfig(
+                CodecConfig.fromZstdConfig(new ZstdCompressionCodecConfig.Builder().build()));
+
+    if (sizeLimit != null) {
+      config.setCompressionSizeLimit(sizeLimit);
+    }
+
+    return new RpcOptions.Builder().setCompressionConfig(config.build()).build();
   }
 }

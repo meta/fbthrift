@@ -29,6 +29,7 @@ import com.facebook.thrift.client.RpcOptions;
 import com.facebook.thrift.model.StreamResponse;
 import com.facebook.thrift.payload.ClientRequestPayload;
 import com.facebook.thrift.payload.ClientResponsePayload;
+import com.facebook.thrift.payload.Reader;
 import com.facebook.thrift.protocol.ByteBufTProtocol;
 import com.facebook.thrift.protocol.TProtocolType;
 import com.facebook.thrift.rsocket.util.PayloadUtil;
@@ -38,12 +39,14 @@ import com.facebook.thrift.util.RpcPayloadUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
+import io.netty.util.ReferenceCountUtil;
 import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import io.rsocket.RSocketErrorException;
 import io.rsocket.frame.ErrorFrameCodec;
 import io.rsocket.util.ByteBufPayload;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -52,6 +55,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
 import org.apache.thrift.CodecConfig;
 import org.apache.thrift.CompressionAlgorithm;
 import org.apache.thrift.CompressionConfig;
@@ -70,11 +74,14 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscription;
 import reactor.core.CoreSubscriber;
 import reactor.core.Disposable;
+import reactor.core.Exceptions;
 import reactor.core.publisher.BaseSubscriber;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Hooks;
@@ -135,7 +142,7 @@ class RSocketRpcClientTest {
   }
 
   @Test
-  void streamingRequestDoesNotAskForCompressedResponses() {
+  void streamingRequestSendsTheCompressionConfig() {
     RSocket rsocket = mock(RSocket.class);
     AtomicReference<Payload> sent = new AtomicReference<>();
     when(rsocket.requestStream(any()))
@@ -150,11 +157,39 @@ class RSocketRpcClientTest {
             requestPayload(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE), ZSTD_OPTIONS)
         .subscribe();
 
-    RequestRpcMetadata metadata = readMetadata(sent.get());
+    try {
+      RequestRpcMetadata metadata = readMetadata(sent.get());
 
-    assertThat(metadata.getCompression()).isEqualTo(CompressionAlgorithm.ZSTD);
-    assertThat(metadata.getCompressionConfig()).isNull();
-    sent.get().release();
+      assertThat(metadata.getCompression()).isEqualTo(CompressionAlgorithm.ZSTD);
+      assertThat(metadata.getCompressionConfig()).isEqualTo(ZSTD_OPTIONS.getCompressionConfig());
+    } finally {
+      sent.get().release();
+    }
+  }
+
+  @Test
+  void onewayRequestDoesNotSendTheCompressionConfig() {
+    RSocket rsocket = mock(RSocket.class);
+    AtomicReference<Payload> sent = new AtomicReference<>();
+    when(rsocket.fireAndForget(any()))
+        .thenAnswer(
+            invocation -> {
+              sent.set(invocation.getArgument(0));
+              return Mono.empty();
+            });
+
+    new RSocketRpcClient(rsocket)
+        .singleRequestNoResponse(requestPayload(RpcKind.SINGLE_REQUEST_NO_RESPONSE), ZSTD_OPTIONS)
+        .block();
+
+    try {
+      RequestRpcMetadata metadata = readMetadata(sent.get());
+
+      assertThat(metadata.getCompression()).isEqualTo(CompressionAlgorithm.ZSTD);
+      assertThat(metadata.getCompressionConfig()).isNull();
+    } finally {
+      sent.get().release();
+    }
   }
 
   @Test
@@ -182,7 +217,8 @@ class RSocketRpcClientTest {
 
       RequestRpcMetadata firstMetadata = readMetadata(frames.get(0));
       assertThat(firstMetadata.getCompression()).isEqualTo(CompressionAlgorithm.ZSTD);
-      assertThat(firstMetadata.getCompressionConfig()).isNull();
+      assertThat(firstMetadata.getCompressionConfig())
+          .isEqualTo(ZSTD_OPTIONS.getCompressionConfig());
 
       assertSinkFrameDecompressesTo(frames.get(1), "frame-1");
       assertSinkFrameDecompressesTo(frames.get(2), "frame-2");
@@ -601,6 +637,61 @@ class RSocketRpcClientTest {
     } finally {
       scheduler.dispose();
     }
+  }
+
+  @ParameterizedTest
+  @MethodSource("streamCompressionCases")
+  void streamDecodesPerFrameCompression(
+      Interaction interaction, CompressionAlgorithm firstCompression, boolean offLoop)
+      throws Exception {
+    Payload first = streamFrame("first", firstCompression, true);
+    Payload item = streamFrame("item", CompressionAlgorithm.ZSTD, false);
+
+    RSocket rsocket = mock(RSocket.class);
+    stubTransport(rsocket, interaction, Flux.just(first, item));
+
+    Scheduler scheduler =
+        offLoop ? Schedulers.newSingle("test-stream-compression") : Schedulers.immediate();
+
+    try {
+      List<Object> values =
+          call(
+                  new RSocketRpcClient(rsocket, scheduler),
+                  interaction,
+                  stringStreamPayload(interactionKind(interaction)))
+              .map(RSocketRpcClientTest::decodedData)
+              .collectList()
+              .block();
+
+      assertThat(values).containsExactly("first", "item");
+      assertThat(first.refCnt()).isZero();
+      assertThat(item.refCnt()).isZero();
+    } finally {
+      if (offLoop) {
+        scheduler.dispose();
+      }
+    }
+  }
+
+  @Test
+  void streamingCustomCompressionFailsWithoutLeak() throws Exception {
+    Payload first = streamFrame("first", null, true);
+    Payload second = rawStreamFrame("second", CompressionAlgorithm.CUSTOM, false);
+
+    RSocket rsocket = mock(RSocket.class);
+    when(rsocket.requestStream(any())).thenReturn(Flux.just(first, second));
+
+    assertThatThrownBy(
+            () ->
+                new RSocketRpcClient(rsocket, Schedulers.immediate())
+                    .singleRequestStreamingResponse(
+                        stringStreamPayload(RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE), null)
+                    .collectList()
+                    .block())
+        .isInstanceOf(UnsupportedOperationException.class);
+
+    assertThat(first.refCnt()).isZero();
+    assertThat(second.refCnt()).isZero();
   }
 
   @ParameterizedTest
@@ -1113,6 +1204,91 @@ class RSocketRpcClientTest {
     when(payload.getDataWriter()).thenReturn(out -> out.writeString(text));
 
     return payload;
+  }
+
+  private static ClientRequestPayload<Object> stringStreamPayload(RpcKind kind) {
+    ClientRequestPayload<Object> payload = requestPayload(kind);
+
+    Reader<Object> stringReader = TProtocol::readString;
+    when(payload.getResponseReader()).thenReturn(stringReader);
+    when(payload.getFirstResponseReader()).thenReturn(stringReader);
+
+    return payload;
+  }
+
+  private static Payload streamFrame(String text, CompressionAlgorithm compression, boolean first)
+      throws Exception {
+    ByteBuf data = Unpooled.buffer();
+    ByteBuf metadata = Unpooled.buffer();
+
+    try {
+      writeStreamFrame(text, compression, first, data, metadata);
+
+      return PayloadUtil.createPayload(ByteBufAllocator.DEFAULT, compression, data, metadata);
+    } catch (Throwable t) {
+      ReferenceCountUtil.safeRelease(data);
+      ReferenceCountUtil.safeRelease(metadata);
+
+      throw Exceptions.propagate(t);
+    }
+  }
+
+  private static Payload rawStreamFrame(
+      String text, CompressionAlgorithm compression, boolean first) throws Exception {
+    ByteBuf data = Unpooled.buffer();
+    ByteBuf metadata = Unpooled.buffer();
+
+    try {
+      writeStreamFrame(text, compression, first, data, metadata);
+
+      return ByteBufPayload.create(data, metadata);
+    } catch (Throwable t) {
+      ReferenceCountUtil.safeRelease(data);
+      ReferenceCountUtil.safeRelease(metadata);
+
+      throw Exceptions.propagate(t);
+    }
+  }
+
+  private static void writeStreamFrame(
+      String text, CompressionAlgorithm compression, boolean first, ByteBuf data, ByteBuf metadata)
+      throws Exception {
+    ByteBufTProtocol out = TProtocolType.TCompact.apply(data);
+    out.writeStructBegin(new TStruct());
+    out.writeFieldBegin(new TField("value", TType.STRING, (short) 0));
+    out.writeString(text);
+    out.writeFieldEnd();
+    out.writeFieldStop();
+    out.writeStructEnd();
+
+    ByteBufTProtocol metadataOut = TProtocolType.TCompact.apply(metadata);
+
+    if (first) {
+      ResponseRpcMetadata rpcMetadata =
+          compression == null
+              ? new ResponseRpcMetadata.Builder().build()
+              : new ResponseRpcMetadata.Builder().setCompression(compression).build();
+      rpcMetadata.write0(metadataOut);
+    } else {
+      StreamPayloadMetadata streamMetadata =
+          compression == null
+              ? new StreamPayloadMetadata.Builder().build()
+              : new StreamPayloadMetadata.Builder().setCompression(compression).build();
+      streamMetadata.write0(metadataOut);
+    }
+  }
+
+  private static Stream<Arguments> streamCompressionCases() {
+    List<Arguments> cases = new ArrayList<>();
+
+    for (Interaction interaction : Interaction.values()) {
+      for (CompressionAlgorithm firstCompression : Arrays.asList(null, CompressionAlgorithm.ZSTD)) {
+        cases.add(Arguments.of(interaction, firstCompression, false));
+        cases.add(Arguments.of(interaction, firstCompression, true));
+      }
+    }
+
+    return cases.stream();
   }
 
   private static CompressionConfig zstdConfig(long sizeLimit) {

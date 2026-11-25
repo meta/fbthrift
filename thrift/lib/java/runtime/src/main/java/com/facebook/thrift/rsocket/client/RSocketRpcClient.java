@@ -117,12 +117,11 @@ public final class RSocketRpcClient implements RpcClient {
   /**
    * Returns the request metadata with the timeouts and the compression of the options. The request
    * is compressed when its data is larger than the size limit of the compression config, as in C++.
-   * For a single response, the metadata also carries the compression config, which the server uses
-   * to compress the response. A streaming call does not carry it, because this client does not
-   * decompress stream payloads.
+   * When {@code expectResponse} is true and the codec is not {@code customConfig}, the metadata
+   * carries {@code compressionConfig} so the server compresses responses.
    */
   private static RequestRpcMetadata requestMetadata(
-      RequestRpcMetadata metadata, RpcOptions options, int dataSize, boolean singleResponse) {
+      RequestRpcMetadata metadata, RpcOptions options, int dataSize, boolean expectResponse) {
     if (options == null) {
       return metadata;
     }
@@ -149,7 +148,7 @@ public final class RSocketRpcClient implements RpcClient {
 
       // This client cannot decompress a CUSTOM response, so it does not ask for one.
       CodecConfig codecConfig = compressionConfig.getCodecConfig();
-      if (singleResponse && codecConfig != null && !codecConfig.isSetCustomConfig()) {
+      if (expectResponse && codecConfig != null && !codecConfig.isSetCustomConfig()) {
         builder.setCompressionConfig(compressionConfig);
       }
     }
@@ -259,9 +258,9 @@ public final class RSocketRpcClient implements RpcClient {
       return Flux.defer(
           () -> {
             Payload rsocketPayload =
-                clientRequestPayloadToRSocketPayload(payload, protocolType, options, false);
+                clientRequestPayloadToRSocketPayload(payload, protocolType, options, true);
             Function<Payload, ClientResponsePayload<K>> decoder =
-                new StreamingResponseHandler<>(payload);
+                new StreamingResponseHandler<>(alloc, payload);
 
             try {
               return inlineStream(rsocket.requestStream(rsocketPayload), decoder, name);
@@ -275,11 +274,11 @@ public final class RSocketRpcClient implements RpcClient {
     return Flux.defer(
         () -> {
           Function<Payload, ClientResponsePayload<K>> decoder =
-              new StreamingResponseHandler<>(payload);
+              new StreamingResponseHandler<>(alloc, payload);
 
           return StreamHandoff.requestStream(
               rsocket,
-              () -> clientRequestPayloadToRSocketPayload(payload, protocolType, options, false),
+              () -> clientRequestPayloadToRSocketPayload(payload, protocolType, options, true),
               offLoopScheduler,
               decoder,
               error -> rocketErrorValue(error, decoder, name));
@@ -304,7 +303,7 @@ public final class RSocketRpcClient implements RpcClient {
                           t -> {
                             if (isFirstPayload.compareAndSet(true, false)) {
                               return clientRequestPayloadToRSocketPayload(
-                                  t, protocolType, options, false);
+                                  t, protocolType, options, true);
                             } else {
                               return sinkPayloadToRSocketPayload(t, protocolType, options);
                             }
@@ -312,7 +311,7 @@ public final class RSocketRpcClient implements RpcClient {
                       .doOnDiscard(Payload.class, ReferenceCountUtil::safeRelease);
 
               Function<Payload, ClientResponsePayload<K>> decoder =
-                  new StreamingResponseHandler<>(clientRequestPayload);
+                  new StreamingResponseHandler<>(alloc, clientRequestPayload);
               String name = clientRequestPayload.getRequestRpcMetadata().getName();
 
               if (isInline()) {
@@ -354,7 +353,7 @@ public final class RSocketRpcClient implements RpcClient {
       ClientRequestPayload<T> payload,
       TProtocolType protocolType,
       RpcOptions options,
-      boolean singleResponse) {
+      boolean expectResponse) {
     ByteBuf data = null;
     ByteBuf metadata = null;
     try {
@@ -372,7 +371,7 @@ public final class RSocketRpcClient implements RpcClient {
 
       final RequestRpcMetadata requestMetadata =
           requestMetadata(
-              payload.getRequestRpcMetadata(), options, data.readableBytes(), singleResponse);
+              payload.getRequestRpcMetadata(), options, data.readableBytes(), expectResponse);
       requestMetadata.write0(TProtocolType.TCompact.apply(metadata));
 
       return createPayload(alloc, requestMetadata.getCompression(), data, metadata);
@@ -478,10 +477,13 @@ public final class RSocketRpcClient implements RpcClient {
   private static class StreamingResponseHandler<T, K>
       implements Function<Payload, ClientResponsePayload<K>> {
 
+    private final ByteBufAllocator alloc;
     private final ClientRequestPayload<T> requestPayload;
     private boolean isFirstPayload = true;
 
-    private StreamingResponseHandler(ClientRequestPayload<T> requestPayload) {
+    private StreamingResponseHandler(
+        ByteBufAllocator alloc, ClientRequestPayload<T> requestPayload) {
+      this.alloc = alloc;
       this.requestPayload = requestPayload;
     }
 
@@ -508,7 +510,12 @@ public final class RSocketRpcClient implements RpcClient {
         }
         ClientResponsePayload<K> responsePayload =
             RpcClientUtils.decodeStreamPayload(
-                requestPayload, response, streamPayloadMetadata, rpcMetadata, isFirstPayload);
+                alloc,
+                requestPayload,
+                response,
+                streamPayloadMetadata,
+                rpcMetadata,
+                isFirstPayload);
         isFirstPayload = false;
         return responsePayload;
       } catch (Exception e) {

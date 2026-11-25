@@ -91,11 +91,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
+import org.apache.thrift.CodecConfig;
+import org.apache.thrift.CompressionConfig;
 import org.apache.thrift.ProtocolId;
 import org.apache.thrift.RequestRpcMetadata;
 import org.apache.thrift.RpcKind;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
+import org.apache.thrift.ZstdCompressionCodecConfig;
 import org.apache.thrift.protocol.TField;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.protocol.TStruct;
@@ -2072,6 +2075,44 @@ public class ExtendedPingStreamIntegrationTest {
 
     Assertions.assertEquals(
         Arrays.asList("NEXT", "REQUEST_N", "NEXT", "NEXT", "COMPLETE"), frames.fromServer);
+  }
+
+  @Test
+  public void generatedBidiRoundTripWithCompression() throws Exception {
+    String text = String.join("", Collections.nCopies(500, "a"));
+
+    RpcServerHandler echo =
+        bidiHandler(
+            (args, sinkElements) ->
+                Mono.just(
+                    ResponseAndStream.of(
+                        ServerStreams.NO_FIRST_RESPONSE,
+                        sinkElements.map(element -> pingResponse(text + element.getRequest())))));
+
+    RpcClient client = channelClient(startChannelServer(echo), new FrameLog());
+
+    RpcOptions options =
+        new RpcOptions.Builder()
+            .setCompressionConfig(
+                new CompressionConfig.Builder()
+                    .setCodecConfig(
+                        CodecConfig.fromZstdConfig(
+                            new ZstdCompressionCodecConfig.Builder().build()))
+                    .setCompressionSizeLimit(64L)
+                    .build())
+            .build();
+
+    StepVerifier.create(
+            client.streamingRequestStreamingResponse(
+                Flux.just(
+                    channelRequest(RpcKind.BIDIRECTIONAL_STREAM, pingArgsWriter(text)),
+                    channelRequest(RpcKind.BIDIRECTIONAL_STREAM, sinkPayloadWriter(text + "a")),
+                    channelRequest(RpcKind.BIDIRECTIONAL_STREAM, sinkPayloadWriter(text + "b"))),
+                options))
+        .expectNextCount(1)
+        .assertNext(element -> Assertions.assertEquals(text + text + "a", finalResponse(element)))
+        .assertNext(element -> Assertions.assertEquals(text + text + "b", finalResponse(element)))
+        .verifyComplete();
   }
 
   @Test

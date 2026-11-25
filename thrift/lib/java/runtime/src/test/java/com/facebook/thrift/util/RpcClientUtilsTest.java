@@ -21,25 +21,33 @@ import static com.facebook.thrift.util.NettyUtil.TransportType.IO_URING;
 import static com.facebook.thrift.util.NettyUtil.TransportType.NIO;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 import com.facebook.thrift.client.ThriftClientConfig;
+import com.facebook.thrift.compression.CompressionManager;
 import com.facebook.thrift.example.ping.CustomException;
 import com.facebook.thrift.example.ping.PingResponse;
 import com.facebook.thrift.model.StreamResponse;
 import com.facebook.thrift.payload.ClientRequestPayload;
 import com.facebook.thrift.payload.ClientResponsePayload;
 import com.facebook.thrift.payload.Reader;
+import com.facebook.thrift.payload.Writer;
 import com.facebook.thrift.protocol.ByteBufTProtocol;
 import com.facebook.thrift.protocol.TProtocolType;
 import com.facebook.thrift.util.resources.RpcResources;
 import com.google.common.collect.ImmutableMap;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.epoll.EpollDomainSocketChannel;
 import io.netty.channel.epoll.EpollSocketChannel;
@@ -51,12 +59,18 @@ import io.netty.channel.uring.IoUringDomainSocketChannel;
 import io.netty.channel.uring.IoUringSocketChannel;
 import io.netty.handler.ssl.SslContext;
 import io.netty.util.internal.PlatformDependent;
+import io.rsocket.Payload;
+import io.rsocket.util.ByteBufPayload;
 import io.rsocket.util.DefaultPayload;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.apache.thrift.CompressionAlgorithm;
 import org.apache.thrift.PayloadAppUnknownExceptionMetdata;
 import org.apache.thrift.PayloadDeclaredExceptionMetadata;
 import org.apache.thrift.PayloadExceptionMetadata;
@@ -381,6 +395,160 @@ public class RpcClientUtilsTest {
   }
 
   @Test
+  public void testDecodeFirstStreamPayloadCompressed() throws Exception {
+    ByteBufAllocator backing = RpcResources.getByteBufAllocator();
+    List<ByteBuf> allocated = new ArrayList<>();
+    ByteBufAllocator alloc = mock(ByteBufAllocator.class);
+    when(alloc.directBuffer(anyInt()))
+        .thenAnswer(
+            invocation -> {
+              ByteBuf buffer = backing.directBuffer(invocation.getArgument(0));
+              allocated.add(buffer);
+
+              return buffer;
+            });
+
+    ByteBuf data =
+        binaryUnionField(
+            backing,
+            new TField("pingResponse", TType.STRUCT, (short) 0),
+            out -> new PingResponse.Builder().setResponse("foo").build().write0(out));
+
+    Payload payload = compressedPayload(backing, data);
+    ResponseRpcMetadata metadata =
+        new ResponseRpcMetadata.Builder().setCompression(CompressionAlgorithm.ZSTD).build();
+
+    StreamResponse<PingResponse, PingResponse> actual;
+
+    try {
+      actual =
+          (StreamResponse)
+              RpcClientUtils.decodeStreamPayload(
+                      alloc,
+                      requestPayload,
+                      payload,
+                      StreamPayloadMetadata.defaultInstance(),
+                      metadata,
+                      true)
+                  .getData();
+    } finally {
+      payload.release();
+    }
+
+    assertEquals("foo", actual.getFirstResponse().getResponse());
+    assertEquals(1, allocated.size());
+
+    for (ByteBuf buffer : allocated) {
+      assertEquals(0, buffer.refCnt());
+    }
+  }
+
+  @Test
+  public void testDecodeStreamPayloadCompressed() throws Exception {
+    ByteBufAllocator alloc = RpcResources.getByteBufAllocator();
+
+    ByteBuf data =
+        binaryUnionField(
+            alloc,
+            new TField("pingResponse", TType.STRUCT, (short) 0),
+            out -> new PingResponse.Builder().setResponse("foo").build().write0(out));
+
+    Payload payload = compressedPayload(alloc, data);
+    StreamPayloadMetadata metadata =
+        new StreamPayloadMetadata.Builder().setCompression(CompressionAlgorithm.ZSTD).build();
+
+    ClientResponsePayload response;
+
+    try {
+      response =
+          RpcClientUtils.decodeStreamPayload(
+              alloc,
+              requestPayload,
+              payload,
+              metadata,
+              ResponseRpcMetadata.defaultInstance(),
+              false);
+    } finally {
+      payload.release();
+    }
+
+    StreamResponse<PingResponse, PingResponse> actual = (StreamResponse) response.getData();
+
+    assertEquals("foo", actual.getData().getResponse());
+  }
+
+  @Test
+  public void testCompressedStreamExceptionResponse() throws Exception {
+    ByteBufAllocator alloc = RpcResources.getByteBufAllocator();
+
+    ByteBuf data =
+        binaryUnionField(
+            alloc,
+            new TField("ex", TType.STRUCT, (short) 1),
+            out -> new CustomException.Builder().setMessage("foo").build().write0(out));
+
+    Payload payload = compressedPayload(alloc, data);
+    StreamPayloadMetadata metadata =
+        new StreamPayloadMetadata.Builder().setCompression(CompressionAlgorithm.ZSTD).build();
+
+    ClientResponsePayload actual;
+
+    try {
+      actual =
+          RpcClientUtils.decodeStreamPayload(
+              alloc,
+              requestPayload,
+              payload,
+              metadata,
+              ResponseRpcMetadata.defaultInstance(),
+              false);
+    } finally {
+      payload.release();
+    }
+
+    assertInstanceOf(CustomException.class, actual.getException());
+    assertEquals("foo", actual.getException().getMessage());
+  }
+
+  @Test
+  public void testCompressedUndefinedExceptionResponse() {
+    ClientRequestPayload<PingResponse> requestPayload =
+        ClientRequestPayload.create(
+            "test",
+            null,
+            reader,
+            reader,
+            Collections.emptyMap(),
+            Collections.emptyMap(),
+            new RequestRpcMetadata.Builder().setProtocol(ProtocolId.BINARY).build(),
+            Collections.emptyMap());
+
+    ByteBufAllocator alloc = RpcResources.getByteBufAllocator();
+    ByteBuf raw = Unpooled.wrappedBuffer("Undefined exception".getBytes(StandardCharsets.UTF_8));
+
+    Payload payload = compressedPayload(alloc, raw);
+    StreamPayloadMetadata metadata =
+        new StreamPayloadMetadata.Builder().setCompression(CompressionAlgorithm.ZSTD).build();
+
+    ClientResponsePayload<PingResponse> actual;
+
+    try {
+      actual =
+          RpcClientUtils.decodeStreamPayload(
+              alloc,
+              requestPayload,
+              payload,
+              metadata,
+              ResponseRpcMetadata.defaultInstance(),
+              false);
+    } finally {
+      payload.release();
+    }
+
+    assertEquals("Undefined exception", actual.getException().getMessage());
+  }
+
+  @Test
   public void tesDecodeSinglePayload() {
     ByteBufTProtocol protocol = TProtocolType.TBinary.apply(Unpooled.buffer());
     protocol.writeStructBegin(new TStruct());
@@ -478,5 +646,30 @@ public class RpcClientUtilsTest {
 
   private static boolean isMacos() {
     return System.getProperty("os.name").startsWith("Mac");
+  }
+
+  private static Payload compressedPayload(ByteBufAllocator alloc, ByteBuf data) {
+    ByteBuf compressed = CompressionManager.compress(CompressionAlgorithm.ZSTD, alloc, data);
+
+    return ByteBufPayload.create(compressed, Unpooled.EMPTY_BUFFER);
+  }
+
+  private static ByteBuf binaryUnionField(ByteBufAllocator alloc, TField field, Writer value) {
+    ByteBuf data = alloc.buffer();
+
+    try {
+      ByteBufTProtocol out = TProtocolType.TBinary.apply(data);
+      out.writeStructBegin(new TStruct());
+      out.writeFieldBegin(field);
+      value.write(out);
+      out.writeFieldEnd();
+      out.writeStructEnd();
+
+      return data;
+    } catch (Throwable t) {
+      data.release();
+
+      throw Exceptions.propagate(t);
+    }
   }
 }
