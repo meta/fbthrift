@@ -431,6 +431,19 @@ TEST_F(CppNameResolverTest, sink) {
       "::path::to::Foo>");
 }
 
+TEST_F(CppNameResolverTest, return_type_tag) {
+  t_typedef adapted(&program_, "MyBool", t_primitive_type::t_bool());
+  adapted.add_structured_annotation(
+      gen::adapter_builder(program_, "cpp").make("MyAdapter"));
+  t_function fun(&program_, t_type_ref(adapted), "fun");
+
+  EXPECT_EQ(resolver_.get_return_type(fun), "::path::to::MyBool");
+  EXPECT_EQ(
+      resolver_.get_return_type_tag(fun),
+      "::apache::thrift::type::adapted<"
+      "MyAdapter, ::apache::thrift::type::bool_t>");
+}
+
 TEST_F(CppNameResolverTest, storage_type) {
   t_struct strct(&program_, "Foo");
   auto cpp_ref = gen::cpp_ref_builder(program_);

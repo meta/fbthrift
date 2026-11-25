@@ -2006,6 +2006,9 @@ class t_mstch_cpp2_generator : public t_whisker_generator {
     def.property("cpp_return_type", [&](const t_function& f) -> std::string {
       return cpp_context_->resolver().get_return_type(f);
     });
+    def.property("cpp_return_type_tag", [&](const t_function& f) {
+      return cpp_context_->resolver().get_return_type_tag(f);
+    });
 
     // Specifies if the generated recv_* functions have an additional argument
     // representing the return value.

@@ -115,6 +115,10 @@ class cpp_name_resolver {
   const std::string& get_param_type_tag(
       const t_function& function, const t_field& param);
 
+  // The type tag of get_return_type(function), for a function without a sink
+  // or stream.
+  const std::string& get_return_type_tag(const t_function& function);
+
   // Returns C++ namespace for the given program.
   const std::string& get_namespace(const t_program& node) {
     return detail::get_or_gen(

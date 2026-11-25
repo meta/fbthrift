@@ -57,10 +57,10 @@ folly::SemiFuture<{{#partial server.return_type_lift_unit function=function serv
           {{/if function.void?}}
         {{#else}}
           {{#if function.stack_arguments?}}
-  {{function.return_type.cpp_type}} ret;
+  {{function.cpp_return_type}} ret;
   sync_{{function.cpp_name}}(ret{{function_comma}}{{#partial server.param_list_move function=function}});
           {{#else}}
-  auto ret = std::make_unique<{{function.return_type.cpp_type}}>();
+  auto ret = std::make_unique<{{function.cpp_return_type}}>();
   sync_{{function.cpp_name}}(*ret{{function_comma}}{{#partial server.param_list_move function=function}});
           {{/if function.stack_arguments?}}
   return folly::makeSemiFuture(std::move(ret));
@@ -195,7 +195,7 @@ determineInvocationType:
 #endif // FOLLY_HAS_COROUTINES
       case apache::thrift::detail::si::InvocationType::Sync: {
         {{#if function.sync_returns_by_outparam?}}
-        {{function.return_type.cpp_type}} _return;
+        {{function.cpp_return_type}} _return;
         sync_{{function.cpp_name}}(_return{{function_comma}}{{#partial server.param_list_move function=function}});
         callback->result(std::move(_return));
         {{#else if function.void?}}

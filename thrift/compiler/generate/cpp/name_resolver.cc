@@ -59,6 +59,12 @@ std::string gen_rebound_type(std::string_view type) {
 
 } // namespace
 
+const std::string& cpp_name_resolver::get_return_type_tag(
+    const t_function& function) {
+  assert(function.sink_or_stream() == nullptr);
+  return get_type_tag(*function.return_type());
+}
+
 const std::string& cpp_name_resolver::get_native_type(
     const t_field& field, const t_structured& parent) {
   return detail::get_or_gen(field_type_cache_, &field, [&]() {

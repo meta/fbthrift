@@ -29,7 +29,7 @@
 {{#pragma ignore-newlines}}
 {{#if function.creates_interaction?}}apache::thrift::TileAndResponse<apache::thrift::ServiceHandler<{{service.qualified_name}}>::{{function.created_interaction.cpp_name}}If, {{/if}}
   {{#if (and function.return_type.resolves_to_complex_return? (not function.sink_or_stream?))}}
-{{#if function.stack_arguments?}}{{function.cpp_return_type}}{{#else}}std::unique_ptr<{{function.return_type.cpp_type}}>{{/if}}
+{{#if function.stack_arguments?}}{{function.cpp_return_type}}{{#else}}std::unique_ptr<{{function.cpp_return_type}}>{{/if}}
   {{#else}}
 {{function.cpp_return_type}}
   {{/if (and function.return_type.resolves_to_complex_return? (not function.sink_or_stream?))}}

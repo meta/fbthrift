@@ -70,7 +70,7 @@ typedef apache::thrift::ThriftPResultStream<
     apache::thrift::ThriftPresult<true{{#partial server.field_data_return type=function.stream.elem_type}}{{#each function.stream.exceptions as |exc|}}{{#partial server.field_data_throws field=exc}}{{/each}}>
     > {{service_cpp_name}}_{{function.prefixed_name}}_presult;
   {{#else if (not function.oneway?)}}
-typedef apache::thrift::ThriftPresult<true{{#partial server.field_data_return type=function.return_type}}{{#each function.exceptions as |exc|}}{{#partial server.field_data_throws field=exc}}{{/each}}> {{service_cpp_name}}_{{function.prefixed_name}}_presult;
+typedef apache::thrift::ThriftPresult<true{{#if (not function.return_type.void?)}}, apache::thrift::FieldData<0, {{function.return_type.type_class}}, {{function.cpp_return_type}}*{{#if function.return_type.use_op_encode?}}, {{function.cpp_return_type_tag}}{{/if}}>{{/if}}{{#each function.exceptions as |exc|}}{{#partial server.field_data_throws field=exc}}{{/each}}> {{service_cpp_name}}_{{function.prefixed_name}}_presult;
   {{/if function.bidirectional_stream?}}
 {{/let partial}}
 
