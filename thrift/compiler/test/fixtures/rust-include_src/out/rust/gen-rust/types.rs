@@ -7,6 +7,10 @@
 #[allow(unused_imports)]
 pub(crate) use crate as types;
 
+include!("impl_my_things.rs");
+
+include!("my/other/thing.rs");
+
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct MyStruct {
     pub foo: ::std::primitive::i32,
