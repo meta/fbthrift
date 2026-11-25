@@ -99,6 +99,19 @@ T parseNumberOrThrow(std::string_view str) {
   return *result;
 }
 
+// Like parseNumberOrThrow<std::uint64_t>, without its overhead for the digits
+// of most integers: up to 19 digits cannot overflow.
+std::uint64_t parseDecimalMagnitude(std::string_view digits) {
+  if (digits.size() > std::numeric_limits<std::uint64_t>::digits10) {
+    return parseNumberOrThrow<std::uint64_t>(digits);
+  }
+  std::uint64_t magnitude = 0;
+  for (char digit : digits) {
+    magnitude = magnitude * 10 + (digit - '0');
+  }
+  return magnitude;
+}
+
 std::uint64_t parseHexMagnitude(std::string_view str) {
   uint64_t uval = 0;
   auto [ptr, ec] =
@@ -276,8 +289,7 @@ Json5Reader::Primitive parseNumberPrefix(
     if (digits.front() == '+' || digits.front() == '-') {
       digits.remove_prefix(1);
     }
-    return makeInteger(
-        sign < 0, parseNumberOrThrow<std::uint64_t>(digits), numStr);
+    return makeInteger(sign < 0, parseDecimalMagnitude(digits), numStr);
   }
   if (precision == Single) {
     return parseNumberOrThrow<float>(numStr);
