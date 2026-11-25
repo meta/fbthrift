@@ -524,6 +524,39 @@ TEST(StandardValidatorTest, CppTypeNameOnContainer) {
   )");
 }
 
+TEST(StandardValidatorTest, CppTypeNameOnString) {
+  check_compile(R"(
+    package "facebook.com/thrift/test"
+    include "thrift/annotation/cpp.thrift"
+
+    @cpp.Type{name = "folly::fbstring"}
+    typedef string FbString
+    # expected-error@-2: `@cpp.Type{name="folly::fbstring"}` is not allowed on string or binary type `FbString`; use `@cpp.Adapter{name="::apache::thrift::StringTypeAdapter<folly::fbstring>"}` instead.
+
+    @cpp.Type{name = "::folly::IOBuf"}
+    typedef binary IOBuf
+
+    struct S {
+      @cpp.Type{name = "std::string_view"}
+      1: string view;
+      # expected-error@-2: `@cpp.Type{name="std::string_view"}` is not allowed on string or binary type `view`; use `@cpp.Adapter{name="::apache::thrift::StringTypeAdapter<std::string_view>"}` instead.
+
+      @cpp.Type{name = "folly::IO Buf"}
+      2: IOBuf aliased;
+      # expected-error@-2: `@cpp.Type{name="folly::IO Buf"}` is not allowed on string or binary type `aliased`; use `@cpp.Adapter{name="::apache::thrift::StringTypeAdapter<folly::IO Buf>"}` instead.
+
+      @cpp.Type{name = "std::pmr::string"}
+      3: string pmr;
+
+      @cpp.Type{name = "std::unique_ptr< ::folly::IOBuf >"}
+      4: binary iobuf_ptr;
+
+      @cpp.Type{name = "apache::thrift::IOBufChain"}
+      5: binary chain;
+    }
+  )");
+}
+
 TEST(StandardValidatorTest, FieldLevelAssignOnlyPatchOnlyEffectiveOnMap) {
   check_compile(R"(
     package "facebook.com/thrift/test"
