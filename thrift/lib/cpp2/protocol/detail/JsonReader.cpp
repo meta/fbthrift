@@ -593,31 +593,37 @@ Json5Reader::Primitive Json5Reader::parseNumber(
 
 Json5Reader::Primitive Json5Reader::readPrimitive(
     FloatingPointPrecision precision) {
-  char c = peekChar();
-  Primitive result;
-
-  if (c == '"' || c == '\'') {
-    cursor().skip(1);
-    parseString(c, result.emplace<std::string>());
-  } else if (isNumberStart(c)) {
-    result = parseNumber(cursor(), precision);
-  } else if (isIdentifierStart(c)) {
-    std::string word = cursor().readWhile(isIdentifierPart);
-    if (word == "null") {
-      result = std::monostate{};
-    } else if (word == "true") {
-      result = true;
-    } else if (word == "false") {
-      result = false;
-    } else {
-      throwParseError(fmt::format("unexpected identifier '{}'", word));
-    }
-  } else {
-    throwParseError(fmt::format("expected value, got '{}'", c));
-  }
-
+  auto result = parsePrimitive(precision);
   expectCommaOrEnd();
   return result;
+}
+
+Json5Reader::Primitive Json5Reader::parsePrimitive(
+    FloatingPointPrecision precision) {
+  char c = peekChar();
+  if (c == '"' || c == '\'') {
+    cursor().skip(1);
+    Primitive result;
+    parseString(c, result.emplace<std::string>());
+    return result;
+  }
+  if (isNumberStart(c)) {
+    return parseNumber(cursor(), precision);
+  }
+  if (isIdentifierStart(c)) {
+    std::string word = cursor().readWhile(isIdentifierPart);
+    if (word == "null") {
+      return std::monostate{};
+    }
+    if (word == "true") {
+      return true;
+    }
+    if (word == "false") {
+      return false;
+    }
+    throwParseError(fmt::format("unexpected identifier '{}'", word));
+  }
+  throwParseError(fmt::format("expected value, got '{}'", c));
 }
 
 } // namespace apache::thrift::json5::detail

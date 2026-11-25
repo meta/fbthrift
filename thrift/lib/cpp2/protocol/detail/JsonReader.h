@@ -180,6 +180,9 @@ class Json5Reader final {
   // Appends the string after its opening `quote` to `result`.
   void parseString(char quote, std::string& result);
 
+  // Like readPrimitive, without consuming the comma after the value.
+  Primitive parsePrimitive(FloatingPointPrecision precision);
+
   // Parses a JSON5 number at `cursor`, leaving trailing characters unread.
   static Primitive parseNumber(
       folly::io::Cursor& cursor, FloatingPointPrecision precision);
