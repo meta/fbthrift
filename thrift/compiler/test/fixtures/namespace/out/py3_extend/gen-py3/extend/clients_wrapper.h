@@ -11,7 +11,7 @@
 #else
 #include <thrift/compiler/test/fixtures/namespace/gen-cpp2/extend_clients.h>
 #endif
-#include <thrift/compiler/test/fixtures/namespace/gen-py3/hsmodule/clients_wrapper.h>
+#include <gen-py3/hsmodule/clients_wrapper.h>
 
 #include <folly/futures/Future.h>
 #include <folly/futures/Promise.h>

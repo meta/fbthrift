@@ -11,7 +11,7 @@
 #else
 #include <thrift/compiler/test/fixtures/namespace/gen-cpp2/extend_handlers.h>
 #endif
-#include <thrift/compiler/test/fixtures/namespace/gen-py3/hsmodule/services_wrapper.h>
+#include <gen-py3/hsmodule/services_wrapper.h>
 #include <folly/python/futures.h>
 #include <Python.h>
 

@@ -87,25 +87,6 @@ def _add_option_to_generator_spec(
     return f"{generator_spec}:{option_string}"
 
 
-def _should_build_included_files_recursively(generator_spec: str) -> bool:
-    """
-    Returns whether the thrift compiler should build all included thrift files
-    recursively, for the given generator spec string.
-    """
-    # TODO: (yuhanhao) T41937765 When using generators that use
-    # `mstch_objects` in recursive mode, if included thrift file
-    # contains const structs or const union, generator will attempt to
-    # de-reference a nullptr in `mstch_const_value::const_struct()`.
-    # This is a hack before this is resolved.
-    return not (
-        "cpp2" in generator_spec
-        or "schema" in generator_spec
-        or "mstch_java" in generator_spec
-        or "mstch_python" in generator_spec
-        or "-ast" in generator_spec
-    )
-
-
 def parse_fixture_cmds(
     repo_root_dir_abspath: Path,
     fixture_name: str,
@@ -218,9 +199,6 @@ def _parse_fixture_cmd(
             "-I",
             repo_root_dir_abspath,
         ]
-        if _should_build_included_files_recursively(generator_spec):
-            base_args.append("-r")
-
         base_args += [
             "-o",
             fixture_output_root_dir_abspath / cmd_name,
