@@ -115,7 +115,7 @@ class JsonWriter {
 
   std::uint32_t writeFloat(float f) { return writeFloatingPoint(f); }
   std::uint32_t writeDouble(double d) { return writeFloatingPoint(d); }
-  std::uint32_t writeBool(bool b) { return writeIntegral(b); }
+  std::uint32_t writeBool(bool b);
   std::uint32_t writeByte(std::int8_t i) { return writeIntegral(i); }
   std::uint32_t writeI16(std::int16_t i) { return writeIntegral(i); }
   std::uint32_t writeI32(std::int32_t i) { return writeIntegral(i); }

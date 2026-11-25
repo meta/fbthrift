@@ -203,11 +203,17 @@ std::uint32_t JsonWriter::writeIntegral(std::integral auto t) {
   return n;
 }
 
-template std::uint32_t JsonWriter::writeIntegral(bool);
 template std::uint32_t JsonWriter::writeIntegral(std::int8_t);
 template std::uint32_t JsonWriter::writeIntegral(std::int16_t);
 template std::uint32_t JsonWriter::writeIntegral(std::int32_t);
 template std::uint32_t JsonWriter::writeIntegral(std::int64_t);
+
+std::uint32_t JsonWriter::writeBool(bool b) {
+  std::uint32_t n = beginValue();
+  auto s = b ? folly::StringPiece("true") : folly::StringPiece("false");
+  out_.value().push(s);
+  return n + static_cast<std::uint32_t>(s.size()) + appendComma();
+}
 
 // -- strings ----------------------------------------------------------
 
