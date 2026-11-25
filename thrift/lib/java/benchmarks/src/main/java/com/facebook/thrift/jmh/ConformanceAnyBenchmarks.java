@@ -44,7 +44,8 @@ public class ConformanceAnyBenchmarks {
                 "-Dio.netty.buffer.checkBounds=false",
                 "-Dio.netty.buffer.checkAccessible=false",
                 "-Dio.netty.allocator.directMemoryCacheAlignment=8",
-                "-Dthrift.force-execution-off-eventloop=false")
+                "-Dthrift.force-execution-off-eventloop=false",
+                "-Dthrift.force-client-execution-off-eventloop=false")
             .build();
     new Runner(opt).run();
   }
