@@ -39,12 +39,12 @@ bool JsonWriter::inContainer(ContainerType type) const {
 std::uint32_t JsonWriter::appendNewlineAndIndent() {
   std::uint32_t n = 0;
   if (options_.indentWidth > 0) {
-    out_.value().write('\n');
+    out_.write('\n');
     n += 1;
     size_t spaces = containerStack_.size() * options_.indentWidth;
-    out_.value().ensure(spaces);
-    memset(out_.value().writableData(), ' ', spaces);
-    out_.value().append(spaces);
+    out_.ensure(spaces);
+    memset(out_.writableData(), ' ', spaces);
+    out_.append(spaces);
     n += spaces;
   }
   return n;
@@ -52,14 +52,14 @@ std::uint32_t JsonWriter::appendNewlineAndIndent() {
 
 std::uint32_t JsonWriter::appendComma() {
   if (!containerStack_.empty()) {
-    out_.value().write(',');
+    out_.write(',');
     return 1;
   }
   return 0;
 }
 
 char JsonWriter::back() {
-  folly::io::RWPrivateCursor head(out_.value());
+  folly::io::RWPrivateCursor head(out_);
   const folly::IOBuf* last = head.currentBuffer()->prev();
   if (last->length() == 0) {
     folly::terminate_with<std::logic_error>("last output buffer is empty");
@@ -111,7 +111,7 @@ std::uint32_t JsonWriter::openContainer(ContainerType type) {
   std::uint32_t n = 0;
   n += beginValue();
   containerStack_.push_back(type);
-  out_.value().write(getOpenBracket(type));
+  out_.write(getOpenBracket(type));
   n += 1;
   return n;
 }
@@ -129,13 +129,13 @@ std::uint32_t JsonWriter::closeContainer(ContainerType type) {
   std::int64_t n = 0;
   containerStack_.pop_back();
   if (!trailingComma(type) && back() == ',') {
-    out_.value().trimEnd(1);
+    out_.trimEnd(1);
     n -= 1;
   }
   if (back() != getOpenBracket(type)) {
     n += appendNewlineAndIndent();
   }
-  out_.value().write(getCloseBracket(type));
+  out_.write(getCloseBracket(type));
   n += 1;
   n += appendComma();
   return n;
@@ -152,12 +152,12 @@ std::uint32_t JsonWriter::writeFloatingPoint(T t) {
     auto sp = std::signbit(t) ? folly::StringPiece("-NaN")
                               : folly::StringPiece("NaN");
     n += sp.size();
-    out_.value().push(sp);
+    out_.push(sp);
   } else if (std::isinf(t)) {
     auto sp = t > 0 ? folly::StringPiece("Infinity")
                     : folly::StringPiece("-Infinity");
     n += sp.size();
-    out_.value().push(sp);
+    out_.push(sp);
   } else {
     fmt::memory_buffer buf;
     fmt::format_to(fmt::appender(buf), FMT_COMPILE("{}"), t);
@@ -183,7 +183,7 @@ std::uint32_t JsonWriter::writeFloatingPoint(T t) {
       buf.push_back('.');
       buf.push_back('0');
     }
-    out_.value().push(folly::StringPiece(formatted()));
+    out_.push(folly::StringPiece(formatted()));
     n += buf.size();
   }
   n += appendComma();
@@ -196,11 +196,11 @@ template std::uint32_t JsonWriter::writeFloatingPoint(double);
 std::uint32_t JsonWriter::writeIntegral(std::integral auto t) {
   std::uint32_t n = beginValue();
   // Formats straight into the output, with room for a sign and all digits.
-  out_.value().ensure(std::numeric_limits<decltype(t)>::digits10 + 2);
-  auto* begin = reinterpret_cast<char*>(out_.value().writableData());
+  out_.ensure(std::numeric_limits<decltype(t)>::digits10 + 2);
+  auto* begin = reinterpret_cast<char*>(out_.writableData());
   const auto size = static_cast<std::uint32_t>(
       fmt::format_to(begin, FMT_COMPILE("{}"), t) - begin);
-  out_.value().append(size);
+  out_.append(size);
   return n + size + appendComma();
 }
 
@@ -212,7 +212,7 @@ template std::uint32_t JsonWriter::writeIntegral(std::int64_t);
 std::uint32_t JsonWriter::writeBool(bool b) {
   std::uint32_t n = beginValue();
   auto s = b ? folly::StringPiece("true") : folly::StringPiece("false");
-  out_.value().push(s);
+  out_.push(s);
   return n + static_cast<std::uint32_t>(s.size()) + appendComma();
 }
 
@@ -220,15 +220,15 @@ std::uint32_t JsonWriter::writeBool(bool b) {
 
 std::uint32_t JsonWriter::writeQuotedString(std::string_view s) {
   if (isAsciiWithNothingToEscape(s)) {
-    out_.value().write('"');
-    out_.value().push(folly::StringPiece(s));
-    out_.value().write('"');
+    out_.write('"');
+    out_.push(folly::StringPiece(s));
+    out_.write('"');
     return static_cast<std::uint32_t>(s.size() + 2);
   }
   static const folly::json::serialization_opts kOpts{.validate_utf8 = true};
   escaped_.clear();
   folly::json::escapeString(s, escaped_, kOpts);
-  out_.value().push(folly::StringPiece(escaped_));
+  out_.push(folly::StringPiece(escaped_));
   return static_cast<std::uint32_t>(escaped_.size());
 }
 
@@ -243,11 +243,11 @@ std::uint32_t JsonWriter::writeObjectName(std::string_view s) {
   n += appendNewlineAndIndent();
   if (isIdentifier(s, /*allowDollarSign=*/true)) {
     if (!options_.unquoteObjectName) {
-      out_.value().write('"');
+      out_.write('"');
     }
-    out_.value().push(folly::StringPiece(s));
+    out_.push(folly::StringPiece(s));
     if (!options_.unquoteObjectName) {
-      out_.value().write('"');
+      out_.write('"');
       n += 2;
     }
     n += s.size();
@@ -255,7 +255,7 @@ std::uint32_t JsonWriter::writeObjectName(std::string_view s) {
     n += writeQuotedString(s);
   }
   auto sep = options_.indentWidth > 0 ? ": " : ":";
-  out_.value().push(folly::StringPiece(sep));
+  out_.push(folly::StringPiece(sep));
   n += strlen(sep);
   return n;
 }
@@ -271,7 +271,7 @@ std::uint32_t JsonWriter::writeString(std::string_view s) {
 std::uint32_t JsonWriter::writeNull() {
   std::uint32_t n = 0;
   n += beginValue();
-  out_.value().push(folly::StringPiece("null"));
+  out_.push(folly::StringPiece("null"));
   n += 4;
   n += appendComma();
   return n;

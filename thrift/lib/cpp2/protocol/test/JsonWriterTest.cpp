@@ -422,10 +422,5 @@ TEST_P(JsonWriterTest, NanInf) {
   }
 }
 
-TEST_P(JsonWriterTest, NoSetOutput) {
-  JsonWriter writer(options());
-  EXPECT_THROW(writer.writeObjectBegin(), std::exception);
-}
-
 } // namespace
 } // namespace apache::thrift::json5::detail

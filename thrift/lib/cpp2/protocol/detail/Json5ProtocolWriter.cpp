@@ -72,7 +72,7 @@ bool isPrintableUtf8(std::string_view str) {
 } // namespace
 
 void Json5ProtocolWriter::setOutput(folly::IOBufQueue* queue, size_t growth) {
-  writer_.setOutput(folly::io::QueueAppender(queue, growth));
+  writer_.setOutput(queue, growth);
 }
 
 void Json5ProtocolWriter::setOutput(folly::io::QueueAppender&& output) {

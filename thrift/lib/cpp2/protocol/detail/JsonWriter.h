@@ -103,6 +103,9 @@ class JsonWriter {
   void setOutput(folly::io::QueueAppender&& output) {
     out_ = std::move(output);
   }
+  void setOutput(folly::IOBufQueue* queue, std::size_t growth) {
+    out_.reset(queue, growth);
+  }
 
   std::uint32_t writeListBegin() { return openContainer(ContainerType::List); }
   std::uint32_t writeListEnd() { return closeContainer(ContainerType::List); }
@@ -151,7 +154,7 @@ class JsonWriter {
   std::uint32_t writeQuotedString(std::string_view s);
 
   JsonWriterOptions options_;
-  std::optional<folly::io::QueueAppender> out_;
+  folly::io::QueueAppender out_{nullptr, 0};
   folly::small_vector<ContainerType, 4> containerStack_;
 
   // Only used for error detection, e.g., rejecting consecutive object name
