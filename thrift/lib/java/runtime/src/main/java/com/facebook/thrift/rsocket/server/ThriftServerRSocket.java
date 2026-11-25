@@ -540,10 +540,14 @@ public class ThriftServerRSocket implements RSocket {
         throwIfOverloaded(responsePayload);
       }
 
-      metadata = alloc.buffer();
-      serializeStreamMetadata(responsePayload, metadata);
+      CompressionAlgorithm compression =
+          CompressionManager.algorithmFor(
+              requestPayload.getRequestRpcMetadata().getCompressionConfig(), data.readableBytes());
 
-      return createPayload(alloc, null, data, metadata);
+      metadata = alloc.buffer();
+      serializeStreamMetadata(responsePayload, compression, metadata);
+
+      return createPayload(alloc, compression, data, metadata);
     } catch (Throwable t) {
       if (data != null && data.refCnt() > 0) {
         data.release();
@@ -772,12 +776,27 @@ public class ThriftServerRSocket implements RSocket {
   }
 
   private static void serializeStreamMetadata(
-      ServerResponsePayload responsePayload, ByteBuf metadata) {
+      ServerResponsePayload responsePayload, CompressionAlgorithm compression, ByteBuf metadata) {
     if (responsePayload.getResponseRpcMetadata() != null) {
-      ProtocolUtil.writeCompact(responsePayload.getResponseRpcMetadata()::write0, metadata);
+      ResponseRpcMetadata responseMetadata =
+          withCompression(responsePayload.getResponseRpcMetadata(), compression);
+
+      ProtocolUtil.writeCompact(responseMetadata::write0, metadata);
     } else {
-      ProtocolUtil.writeCompact(responsePayload.getStreamPayloadMetadata()::write0, metadata);
+      StreamPayloadMetadata streamMetadata =
+          withStreamCompression(responsePayload.getStreamPayloadMetadata(), compression);
+
+      ProtocolUtil.writeCompact(streamMetadata::write0, metadata);
     }
+  }
+
+  private static StreamPayloadMetadata withStreamCompression(
+      StreamPayloadMetadata metadata, CompressionAlgorithm compression) {
+    if (compression == CompressionAlgorithm.NONE) {
+      return metadata;
+    }
+
+    return new StreamPayloadMetadata.Builder(metadata).setCompression(compression).build();
   }
 
   private static void serializeResponse(

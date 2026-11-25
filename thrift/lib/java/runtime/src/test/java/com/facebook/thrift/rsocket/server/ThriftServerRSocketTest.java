@@ -192,27 +192,39 @@ public class ThriftServerRSocketTest {
   }
 
   private TestResponse getTestResponse(ProtocolId protocolId, Payload response) {
-    TProtocol protocol = TProtocolType.fromProtocolId(protocolId).apply(response.data());
+    return readTestResponse(protocolId, response.data());
+  }
+
+  private static TestResponse readTestResponse(ProtocolId protocolId, ByteBuf data) {
+    TProtocol protocol = TProtocolType.fromProtocolId(protocolId).apply(data);
     TField field = protocol.readFieldBegin();
+
     assertEquals(0, field.id);
     assertEquals(TType.STRUCT, field.type);
     protocol.readStructBegin();
-    TestResponse testResponse = TestResponse.read0(protocol);
+
+    TestResponse result = TestResponse.read0(protocol);
     protocol.readStructEnd();
 
-    return testResponse;
+    return result;
   }
 
   private InitialTestResponse getInitialTestResponse(ProtocolId protocolId, Payload response) {
-    TProtocol protocol = TProtocolType.fromProtocolId(protocolId).apply(response.data());
+    return readInitialTestResponse(protocolId, response.data());
+  }
+
+  private static InitialTestResponse readInitialTestResponse(ProtocolId protocolId, ByteBuf data) {
+    TProtocol protocol = TProtocolType.fromProtocolId(protocolId).apply(data);
     TField field = protocol.readFieldBegin();
+
     assertEquals(0, field.id);
     assertEquals(TType.STRUCT, field.type);
     protocol.readStructBegin();
-    InitialTestResponse initialResponse = InitialTestResponse.read0(protocol);
+
+    InitialTestResponse result = InitialTestResponse.read0(protocol);
     protocol.readStructEnd();
 
-    return initialResponse;
+    return result;
   }
 
   private TestRequest createTestRequest(int intField, String strField) {
@@ -984,6 +996,297 @@ public class ThriftServerRSocketTest {
             CodecConfig.fromZstdConfig(new ZstdCompressionCodecConfig.Builder().build()))
         .setCompressionSizeLimit(sizeLimit)
         .build();
+  }
+
+  @Test
+  public void testStreamResponsesUseTheCompressionConfigOfTheRequest() {
+    this.protocolId = ProtocolId.COMPACT;
+
+    RequestRpcMetadata requestMetadata =
+        new RequestRpcMetadata.Builder(
+                createRequestRpcMetadata(
+                    "streamInitialResponse", RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE))
+            .setCompressionConfig(zstdConfig(0L))
+            .build();
+
+    Payload request = createPayload(requestMetadata, 0, "foo");
+
+    StepVerifier.create(rocket.requestStream(request))
+        .assertNext(
+            first -> {
+              try {
+                assertEquals(
+                    CompressionAlgorithm.ZSTD, getResponseMetadata(first).getCompression());
+
+                assertEquals(100, getCompressedInitialTestResponse(first).getIntField());
+              } finally {
+                first.release();
+              }
+            })
+        .assertNext(
+            item -> {
+              try {
+                assertEquals(CompressionAlgorithm.ZSTD, getStreamMetadata(item).getCompression());
+
+                TestResponse result = getCompressedTestResponse(item);
+
+                assertEquals(0, result.getIntField());
+                assertEquals("foo0", result.getStrField());
+              } finally {
+                item.release();
+              }
+            })
+        .assertNext(
+            item -> {
+              try {
+                assertEquals(CompressionAlgorithm.ZSTD, getStreamMetadata(item).getCompression());
+
+                TestResponse result = getCompressedTestResponse(item);
+
+                assertEquals(1, result.getIntField());
+                assertEquals("foo1", result.getStrField());
+              } finally {
+                item.release();
+              }
+            })
+        .thenCancel()
+        .verify();
+  }
+
+  @Test
+  public void testStreamResponsesBelowTheSizeLimitAreNotCompressed() {
+    this.protocolId = ProtocolId.COMPACT;
+
+    RequestRpcMetadata requestMetadata =
+        new RequestRpcMetadata.Builder(
+                createRequestRpcMetadata(
+                    "streamResponse", RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE))
+            .setCompressionConfig(zstdConfig(1_000_000L))
+            .build();
+
+    Payload request = createPayload(requestMetadata, 0, "foo");
+
+    StepVerifier.create(rocket.requestStream(request))
+        .assertNext(
+            first -> {
+              try {
+                assertNull(getResponseMetadata(first).getCompression());
+                assertDataIsEmpty(first);
+              } finally {
+                first.release();
+              }
+            })
+        .assertNext(
+            item -> {
+              try {
+                assertNull(getStreamMetadata(item).getCompression());
+
+                TestResponse result = getTestResponse(requestMetadata, item);
+
+                assertEquals(0, result.getIntField());
+                assertEquals("foo0", result.getStrField());
+              } finally {
+                item.release();
+              }
+            })
+        .thenCancel()
+        .verify();
+  }
+
+  @Test
+  public void testStreamFramesUseTheSizeLimitPerFrame() {
+    this.protocolId = ProtocolId.COMPACT;
+
+    RequestRpcMetadata requestMetadata =
+        new RequestRpcMetadata.Builder(
+                createRequestRpcMetadata(
+                    "streamResponse", RpcKind.SINGLE_REQUEST_STREAMING_RESPONSE))
+            .setCompressionConfig(zstdConfig(1L))
+            .build();
+
+    Payload request = createPayload(requestMetadata, 0, "foo");
+
+    StepVerifier.create(rocket.requestStream(request))
+        .assertNext(
+            first -> {
+              try {
+                assertNull(getResponseMetadata(first).getCompression());
+                assertDataIsEmpty(first);
+              } finally {
+                first.release();
+              }
+            })
+        .assertNext(
+            item -> {
+              try {
+                assertEquals(CompressionAlgorithm.ZSTD, getStreamMetadata(item).getCompression());
+
+                TestResponse result = getCompressedTestResponse(item);
+
+                assertEquals(0, result.getIntField());
+                assertEquals("foo0", result.getStrField());
+              } finally {
+                item.release();
+              }
+            })
+        .thenCancel()
+        .verify();
+  }
+
+  @Test
+  public void testSinkResponsesUseTheCompressionConfigOfTheRequest() {
+    TestResponse finalResponse =
+        new TestResponse.Builder().setIntField(7).setStrField("done").build();
+    RpcServerHandler handler =
+        channelHandler(
+            (initial, sinkPayloads) ->
+                Flux.just(firstResponse(), testResponseItem(finalResponse, initial)));
+
+    StepVerifier.create(channelWithCompression(handler, RpcKind.SINK, Flux.never(), zstdConfig(0L)))
+        .assertNext(
+            first -> {
+              try {
+                assertEquals(
+                    CompressionAlgorithm.ZSTD, getResponseMetadata(first).getCompression());
+
+                assertDecompressedDataIsEmpty(first);
+              } finally {
+                first.release();
+              }
+            })
+        .assertNext(
+            last -> {
+              try {
+                assertEquals(CompressionAlgorithm.ZSTD, getStreamMetadata(last).getCompression());
+
+                TestResponse result = getCompressedTestResponse(last);
+
+                assertEquals(7, result.getIntField());
+                assertEquals("done", result.getStrField());
+              } finally {
+                last.release();
+              }
+            })
+        .verifyComplete();
+  }
+
+  @Test
+  public void testBidiResponsesUseTheCompressionConfigOfTheRequest() {
+    TestResponse firstItem = new TestResponse.Builder().setIntField(3).setStrField("a").build();
+    TestResponse secondItem = new TestResponse.Builder().setIntField(4).setStrField("b").build();
+    RpcServerHandler handler =
+        channelHandler(
+            (initial, sinkPayloads) ->
+                Flux.just(
+                    firstResponse(),
+                    testResponseItem(firstItem, initial),
+                    testResponseItem(secondItem, initial)));
+
+    StepVerifier.create(
+            channelWithCompression(
+                handler, RpcKind.BIDIRECTIONAL_STREAM, Flux.never(), zstdConfig(0L)))
+        .assertNext(
+            first -> {
+              try {
+                assertEquals(
+                    CompressionAlgorithm.ZSTD, getResponseMetadata(first).getCompression());
+
+                assertDecompressedDataIsEmpty(first);
+              } finally {
+                first.release();
+              }
+            })
+        .assertNext(
+            item -> {
+              try {
+                assertEquals(CompressionAlgorithm.ZSTD, getStreamMetadata(item).getCompression());
+
+                TestResponse result = getCompressedTestResponse(item);
+
+                assertEquals(3, result.getIntField());
+                assertEquals("a", result.getStrField());
+              } finally {
+                item.release();
+              }
+            })
+        .assertNext(
+            item -> {
+              try {
+                assertEquals(CompressionAlgorithm.ZSTD, getStreamMetadata(item).getCompression());
+
+                TestResponse result = getCompressedTestResponse(item);
+
+                assertEquals(4, result.getIntField());
+                assertEquals("b", result.getStrField());
+              } finally {
+                item.release();
+              }
+            })
+        .verifyComplete();
+  }
+
+  private static ServerResponsePayload testResponseItem(
+      TestResponse response, ServerRequestPayload request) {
+    return ServerResponsePayload.create(
+        protocol -> {
+          protocol.writeFieldBegin(RpcPayloadUtil.STRUCT_FIELD);
+          response.write0(protocol);
+          protocol.writeFieldEnd();
+          protocol.writeFieldStop();
+        },
+        null,
+        RpcPayloadUtil.streamPayloadMetadata(request),
+        true);
+  }
+
+  private Flux<Payload> channelWithCompression(
+      RpcServerHandler handler, RpcKind kind, Flux<Payload> sink, CompressionConfig config) {
+    this.protocolId = ProtocolId.COMPACT;
+
+    RequestRpcMetadata requestMetadata =
+        new RequestRpcMetadata.Builder(createRequestRpcMetadata("channel", kind))
+            .setCompressionConfig(config)
+            .build();
+    Payload setup = createPayload(requestMetadata, 0, "setup");
+
+    return new ThriftServerRSocket(handler, alloc)
+        .requestChannel(Flux.concat(Flux.just(setup), sink));
+  }
+
+  private ByteBuf decompressResponseData(Payload response) {
+    return CompressionManager.decompress(
+        CompressionAlgorithm.ZSTD, alloc, response.sliceData().retain());
+  }
+
+  private TestResponse getCompressedTestResponse(Payload response) {
+    ByteBuf data = decompressResponseData(response);
+
+    try {
+      return readTestResponse(protocolId, data);
+    } finally {
+      data.release();
+    }
+  }
+
+  private InitialTestResponse getCompressedInitialTestResponse(Payload response) {
+    ByteBuf data = decompressResponseData(response);
+
+    try {
+      return readInitialTestResponse(protocolId, data);
+    } finally {
+      data.release();
+    }
+  }
+
+  private void assertDecompressedDataIsEmpty(Payload response) {
+    ByteBuf data = decompressResponseData(response);
+
+    try {
+      assertEquals(1, data.readableBytes());
+      assertEquals(0, data.readByte());
+    } finally {
+      data.release();
+    }
   }
 
   private void checkRequestResponseDeclaredException(
