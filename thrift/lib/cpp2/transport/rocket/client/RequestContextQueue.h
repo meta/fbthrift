@@ -18,27 +18,30 @@
 
 #include <vector>
 
+#include <folly/CppAttributes.h>
 #include <folly/ExceptionWrapper.h>
 #include <folly/Likely.h>
 
 #include <thrift/lib/cpp2/transport/rocket/client/RequestContext.h>
 
+/*
+  T185092424: the combination of Xcode 15.1-15.3 and boost 1.77 - 1.79
+  causes a memory corruption bug in rrContextBuckets_ where buckets
+  are initialized as non-empty, which results in walking a null pointer
+  during construction. Disable optimisation until either Xcode 16 or
+  boost 1.80 is available.
+*/
+#ifdef __APPLE__
+#define FBTHRIFT_OPTNONE_IF_APPLE FOLLY_ATTR_CLANG_OPTNONE
+#else
+#define FBTHRIFT_OPTNONE_IF_APPLE
+#endif // __APPLE__
+
 namespace apache::thrift::rocket {
 
 class RequestContextQueue {
  public:
-  /*
-    T185092424: the combination of Xcode 15.1-15.3 and boost 1.77 - 1.79
-    causes a memory corruption bug in rrContextBuckets_ where buckets
-    are initialized as non-empty, which results in walking a null pointer
-    during construction. Disable optimisation until either Xcode 16 or
-    boost 1.80 is available.
-  */
-#ifdef __APPLE__
-  RequestContextQueue() __attribute__((optnone)) = default;
-#else
-  RequestContextQueue() = default;
-#endif // __APPLE__
+  [[FBTHRIFT_OPTNONE_IF_APPLE]] RequestContextQueue() = default;
 
   ~RequestContextQueue() {
     DCHECK(writeScheduledQueue_.empty());
