@@ -856,3 +856,16 @@ func TestSimpleJSONV2ReadEmptyContainers(t *testing.T) {
 		require.NoError(t, p.ReadStructEnd())
 	})
 }
+
+func TestSimpleJSONProtocolBadContainerSize(t *testing.T) {
+	for _, input := range []string{`[10,-1]`, `[10,1000000000]`} {
+		_, _, err := NewSimpleJSONFormat(bytes.NewBufferString(input)).ReadListBegin()
+		require.Error(t, err, input)
+		_, _, err = NewSimpleJSONFormat(bytes.NewBufferString(input)).ReadSetBegin()
+		require.Error(t, err, input)
+	}
+	for _, input := range []string{`[8,10,-1]`, `[8,10,1000000000]`} {
+		_, _, _, err := NewSimpleJSONFormat(bytes.NewBufferString(input)).ReadMapBegin()
+		require.Error(t, err, input)
+	}
+}

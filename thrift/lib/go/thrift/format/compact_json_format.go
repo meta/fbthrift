@@ -322,7 +322,10 @@ func (p *compactJSONFormat) ReadMapBegin() (types.Type /* kType */, types.Type /
 	if err != nil {
 		return 0, 0, 0, err
 	}
-	size := int(size64)
+	size, err := p.checkContainerSize(size64)
+	if err != nil {
+		return 0, 0, 0, err
+	}
 
 	_, err = p.ParseObjectStart()
 	return kType, vType, size, err
@@ -490,8 +493,11 @@ func (p *compactJSONFormat) ParseElemListBegin() (elemType types.Type, size int,
 		return elemType, size, err
 	}
 	nSize, err2 := p.ReadI64()
-	size = int(nSize)
-	return elemType, size, err2
+	if err2 != nil {
+		return elemType, 0, err2
+	}
+	size, err = p.checkContainerSize(nSize)
+	return elemType, size, err
 }
 
 func (p *compactJSONFormat) TypeIdToString(fieldType types.Type) (string, error) {

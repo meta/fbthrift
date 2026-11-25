@@ -411,7 +411,10 @@ func (p *simpleJSONFormat) ReadMapBegin() (types.Type /* kType */, types.Type /*
 
 	// read size
 	size64, err := p.ReadI64()
-	size := int(size64)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+	size, err := p.checkContainerSize(size64)
 	return kType, vType, size, err
 }
 
@@ -1152,8 +1155,28 @@ func (p *simpleJSONFormat) ParseElemListBegin() (elemType types.Type, size int, 
 		return elemType, size, err
 	}
 	nSize, err2 := p.ReadI64()
-	size = int(nSize)
-	return elemType, size, err2
+	if err2 != nil {
+		return elemType, 0, err2
+	}
+	size, err = p.checkContainerSize(nSize)
+	return elemType, size, err
+}
+
+// checkContainerSize validates a container size read off the wire before
+// callers use it to preallocate. Every element takes at least one byte of
+// input, so a size larger than the unread input cannot be valid.
+func (p *simpleJSONFormat) checkContainerSize(size int64) (int, error) {
+	if size < 0 {
+		err := fmt.Errorf("Negative container size %d", size)
+		return 0, types.NewProtocolExceptionWithType(types.NEGATIVE_SIZE, err)
+	}
+	if r, ok := p.buffer.(types.ReadSizer); ok {
+		if size > int64(p.reader.Buffered()+r.Len()) {
+			err := fmt.Errorf("Container size %d exceeds remaining input", size)
+			return 0, types.NewProtocolExceptionWithType(types.SIZE_LIMIT, err)
+		}
+	}
+	return int(size), nil
 }
 
 func (p *simpleJSONFormat) ParseListEnd() error {
