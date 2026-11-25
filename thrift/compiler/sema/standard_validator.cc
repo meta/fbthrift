@@ -57,6 +57,7 @@
 #include <thrift/compiler/sema/explicit_include_validator.h>
 #include <thrift/compiler/sema/reserved_identifier.h>
 #include <thrift/compiler/sema/resolution_mismatch.h>
+#include <thrift/compiler/sema/string_cpp_type.h>
 
 namespace apache::thrift::compiler {
 
@@ -1935,6 +1936,100 @@ void validate_cpp_type_on_adapted_typedef(
   }
 }
 
+void validate_cpp_type_string_on_node(
+    sema_context& ctx, const t_named& node, const t_type& type) {
+  const t_type* true_type = type.get_true_type();
+  if (!true_type || !true_type->is_string_or_binary()) {
+    return;
+  }
+  if (const auto* annot =
+          node.find_structured_annotation_or_null(kCppTypeUri)) {
+    if (const auto* name =
+            annot->get_value_from_structured_annotation_or_null("name")) {
+      ctx.check(
+          is_supported_string_cpp_type(name->get_string()),
+          node,
+          R"(`@cpp.Type{{name="{}"}}` is not allowed on string or binary type `{}`; use `@cpp.Adapter{{name="::apache::thrift::StringTypeAdapter<{}>"}}` instead.)",
+          name->get_string(),
+          node.name(),
+          name->get_string());
+    }
+  }
+}
+
+void validate_cpp_string_types(sema_context& ctx, const t_program& program) {
+  const_ast_visitor visitor;
+  std::unordered_set<const t_named*> checked;
+  auto validate_type = [&](const t_type& type, auto& recurse) -> void {
+    if (!checked.insert(&type).second) {
+      return;
+    }
+    validate_cpp_type_string_on_node(ctx, type, type);
+    if (const auto* list = type.try_as<t_list>()) {
+      recurse(*list->elem_type(), recurse);
+    } else if (const auto* set = type.try_as<t_set>()) {
+      recurse(*set->elem_type(), recurse);
+    } else if (const auto* map = type.try_as<t_map>()) {
+      recurse(*map->key_type(), recurse);
+      recurse(*map->val_type(), recurse);
+    } else if (const auto* td = type.try_as<t_typedef>()) {
+      recurse(*td->type(), recurse);
+    } else if (const auto* structured = type.try_as<t_structured>()) {
+      for (const auto& field : structured->fields()) {
+        if (field.type().resolved()) {
+          if (checked.insert(&field).second) {
+            validate_cpp_type_string_on_node(ctx, field, *field.type());
+          }
+          recurse(*field.type(), recurse);
+        }
+      }
+    } else if (const auto* interface = type.try_as<t_interface>()) {
+      if (const auto* service = type.try_as<t_service>()) {
+        if (const auto* base = service->extends()) {
+          recurse(*base, recurse);
+        }
+      }
+      for (const auto& function : interface->functions()) {
+        visitor(function);
+      }
+    }
+  };
+  auto validate_ref = [&](const t_type_ref& type) {
+    if (type.resolved()) {
+      validate_type(*type, validate_type);
+    }
+  };
+  auto validate_field = [&](const t_field& field) {
+    if (field.type().resolved() && checked.insert(&field).second) {
+      validate_cpp_type_string_on_node(ctx, field, *field.type());
+      validate_ref(field.type());
+    }
+  };
+  visitor.add_field_visitor(validate_field);
+  visitor.add_service_visitor([&](const t_service& node) {
+    if (const auto* base = node.extends()) {
+      validate_type(*base, validate_type);
+    }
+  });
+  visitor.add_function_param_visitor(validate_field);
+  visitor.add_thrown_exception_visitor(validate_field);
+  visitor.add_typedef_visitor(
+      [&](const t_typedef& type) { validate_type(type, validate_type); });
+  visitor.add_const_visitor(
+      [&](const t_const& node) { validate_ref(node.type_ref()); });
+  visitor.add_function_visitor([&](const t_function& node) {
+    validate_ref(node.return_type());
+    validate_ref(node.interaction());
+  });
+  visitor.add_sink_visitor([&](const t_sink& node) {
+    validate_ref(node.elem_type());
+    validate_ref(node.final_response_type());
+  });
+  visitor.add_stream_visitor(
+      [&](const t_stream& node) { validate_ref(node.elem_type()); });
+  visitor(program);
+}
+
 template <typename T>
 constexpr int cpp_integer_type_bit_width() {
   return std::numeric_limits<T>::digits + std::numeric_limits<T>::is_signed;
@@ -2534,6 +2629,7 @@ ast_validator standard_validator() {
   validator.add_program_visitor(&validate_duplicate_namespaces);
   validator.add_program_visitor(&validate_python_namespaces);
   validator.add_program_visitor(&validate_program_package);
+  validator.add_program_visitor(&validate_cpp_string_types);
   validator.add_program_visitor(&detail::validate_annotation_scopes<>);
 
   validator.add_root_definition_visitor(&detail::validate_annotation_scopes<>);

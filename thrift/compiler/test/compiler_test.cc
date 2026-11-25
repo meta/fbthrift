@@ -3760,7 +3760,7 @@ TEST(CompilerTest, cpp_arena_unsupported_fields) {
       @cpp.Arena
       9: map<string, IOBuf> iobufs;
       @cpp.Arena
-      @cpp.Type{name = "std::string"}
+      @cpp.Type{name = "std::pmr::string"}
       10: IOBuf overridden;
     }
   )");
@@ -3840,9 +3840,9 @@ TEST(CompilerTest, cpp_type_on_adapted_typedef) {
 
     @cpp.Adapter{name = "::my::Adapter"}
     typedef string AdaptedString
-    @cpp.Type{name = "::folly::fbstring"}
-    typedef AdaptedString FbAdaptedString
-      # expected-error@-2: `@cpp.Type` cannot be used on adapted typedef `FbAdaptedString`.
+    @cpp.Type{name = "::std::pmr::string"}
+    typedef AdaptedString PmrAdaptedString
+      # expected-error@-2: `@cpp.Type` cannot be used on adapted typedef `PmrAdaptedString`.
 
     @cpp.Adapter{name = "::my::Adapter"}
     @cpp.Type{name = "::folly::IOBuf"}
