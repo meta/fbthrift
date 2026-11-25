@@ -448,7 +448,7 @@ class OwnedStaticTail {
 // in the single pipeline allocation rather than separately heap-allocated.
 class OwnedStaticAllocator {
  public:
-  OwnedStaticAllocator() noexcept { lastConstructed = this; }
+  OwnedStaticAllocator() noexcept = default;
   OwnedStaticAllocator(const OwnedStaticAllocator&) = delete;
   OwnedStaticAllocator& operator=(const OwnedStaticAllocator&) = delete;
   OwnedStaticAllocator(OwnedStaticAllocator&&) = delete;
@@ -472,11 +472,9 @@ class OwnedStaticAllocator {
   static void reset() noexcept {
     heapAllocations = 0;
     destructions = 0;
-    lastConstructed = nullptr;
   }
   static inline std::size_t heapAllocations{0};
   static inline std::size_t destructions{0};
-  [[maybe_unused]] static inline OwnedStaticAllocator* lastConstructed{nullptr};
 };
 
 class DestructionCountingHandler {
