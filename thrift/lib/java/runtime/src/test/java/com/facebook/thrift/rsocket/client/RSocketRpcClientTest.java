@@ -26,14 +26,17 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.facebook.thrift.client.RpcOptions;
+import com.facebook.thrift.client.SinkErrors;
 import com.facebook.thrift.model.StreamResponse;
 import com.facebook.thrift.payload.ClientRequestPayload;
 import com.facebook.thrift.payload.ClientResponsePayload;
 import com.facebook.thrift.payload.Reader;
 import com.facebook.thrift.protocol.ByteBufTProtocol;
 import com.facebook.thrift.protocol.TProtocolType;
+import com.facebook.thrift.rsocket.util.MetadataUtil;
 import com.facebook.thrift.rsocket.util.PayloadUtil;
 import com.facebook.thrift.rsocket.util.RocketErrorUtil;
+import com.facebook.thrift.test.rocket.TestServerException;
 import com.facebook.thrift.util.ResponseAndStreamBridge;
 import com.facebook.thrift.util.RpcPayloadUtil;
 import io.netty.buffer.ByteBuf;
@@ -1072,6 +1075,44 @@ class RSocketRpcClientTest {
     // Whatever the downstream wants, the handoff asks the transport for the initial window
     // up front.
     assertThat(initialRequest.get()).isEqualTo(ResponseAndStreamBridge.INITIAL_CREDITS);
+  }
+
+  @Test
+  void sinkErrorFrameCarriesExceptionMetadata() throws Exception {
+    RSocket rsocket = mock(RSocket.class);
+    List<Payload> sent = new ArrayList<>();
+    when(rsocket.requestChannel(any()))
+        .thenAnswer(
+            invocation -> {
+              Publisher<Payload> outbound = invocation.getArgument(0);
+              return Flux.from(outbound).doOnNext(sent::add).thenMany(Flux.<Payload>empty());
+            });
+
+    ClientRequestPayload<Object> first = requestPayload(RpcKind.SINK);
+    ClientRequestPayload<Object> error =
+        SinkErrors.sinkError(first, new TestServerException("boom"), (short) 1);
+
+    new RSocketRpcClient(rsocket, Schedulers.immediate())
+        .streamingRequestStreamingResponse(
+            Flux.just(first, requestPayload(RpcKind.SINK), error), RpcOptions.EMPTY)
+        .blockLast();
+
+    assertThat(sent).hasSize(3);
+
+    try {
+      assertThat(MetadataUtil.decodeStreamingPayloadMetadata(sent.get(1)).getPayloadMetadata())
+          .isNull();
+
+      assertThat(
+              MetadataUtil.decodeStreamingPayloadMetadata(sent.get(2))
+                  .getPayloadMetadata()
+                  .getExceptionMetadata()
+                  .getMetadata()
+                  .isSetDeclaredException())
+          .isTrue();
+    } finally {
+      sent.forEach(Payload::release);
+    }
   }
 
   private static Payload garbageResponsePayload() {

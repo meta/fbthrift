@@ -137,7 +137,7 @@ public final class RpcPayloadUtil {
                 PayloadMetadata.fromExceptionMetadata(
                     new PayloadExceptionMetadataBase.Builder()
                         .setWhatUtf8(applicationException.getMessage())
-                        .setMetadata(serverBlamedAppUnknownException())
+                        .setMetadata(appUnknownException(ErrorBlame.SERVER))
                         .build()))
             .setOtherMetadata(inbound)
             .build(),
@@ -245,10 +245,16 @@ public final class RpcPayloadUtil {
    * @param what the message of the original exception; can be null
    */
   public static PayloadExceptionMetadataBase undeclaredExceptionMetadata(String name, String what) {
+    return undeclaredExceptionMetadata(name, what, ErrorBlame.SERVER);
+  }
+
+  /** Exception metadata for an undeclared failure with the caller's blame. */
+  public static PayloadExceptionMetadataBase undeclaredExceptionMetadata(
+      String name, String what, ErrorBlame blame) {
     return new PayloadExceptionMetadataBase.Builder()
         .setNameUtf8(name)
         .setWhatUtf8(what)
-        .setMetadata(serverBlamedAppUnknownException())
+        .setMetadata(appUnknownException(blame))
         .build();
   }
 
@@ -407,11 +413,10 @@ public final class RpcPayloadUtil {
     };
   }
 
-  private static PayloadExceptionMetadata serverBlamedAppUnknownException() {
+  private static PayloadExceptionMetadata appUnknownException(ErrorBlame blame) {
     return PayloadExceptionMetadata.fromAppUnknownException(
         new PayloadAppUnknownExceptionMetdata.Builder()
-            .setErrorClassification(
-                new ErrorClassification.Builder().setBlame(ErrorBlame.SERVER).build())
+            .setErrorClassification(new ErrorClassification.Builder().setBlame(blame).build())
             .build());
   }
 

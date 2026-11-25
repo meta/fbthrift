@@ -437,16 +437,22 @@ public class FactoriesReactiveClient
                     _metadata,
                     java.util.Collections.emptyMap());
 
-            reactor.core.publisher.Flux<com.facebook.thrift.payload.ClientRequestPayload<Integer>> _sink =
-              reactor.core.publisher.Mono.just(_crp).concatWith(reactor.core.publisher.Flux.from(payloads)
-                .map(_p -> com.facebook.thrift.payload.ClientRequestPayload.create(
+            reactor.core.publisher.Flux<com.facebook.thrift.payload.ClientRequestPayload<Integer>> _sinkPayloads =
+              reactor.core.publisher.Flux.from(payloads)
+                .map(_p -> com.facebook.thrift.payload.ClientRequestPayload.<Integer>create(
                     "Factories",
                     _createinteractWithSinkSinkWriter(_p),
                     _interactWithSink_READER,
                     _interactWithSink_EXCEPTION_READERS,
                     _interactWithSink_STREAM_EXCEPTION_READERS,
                     _metadata,
-                    java.util.Collections.emptyMap())));
+                    java.util.Collections.emptyMap()));
+
+            reactor.core.publisher.Flux<com.facebook.thrift.payload.ClientRequestPayload<Integer>> _sink =
+              reactor.core.publisher.Mono.just(_crp)
+                  .concatWith(
+                      com.facebook.thrift.client.SinkErrors.withSinkError(
+                          _crp, _sinkPayloads, null));
 
             return _rpc
                 .streamingRequestStreamingResponse(_sink, rpcOptions)
@@ -511,9 +517,9 @@ public class FactoriesReactiveClient
                     _metadata,
                     java.util.Collections.emptyMap());
 
-            reactor.core.publisher.Flux<com.facebook.thrift.payload.ClientRequestPayload<Integer>> _sink =
-              reactor.core.publisher.Mono.just(_crp).concatWith(reactor.core.publisher.Flux.from(payloads)
-                .map(_p -> com.facebook.thrift.payload.ClientRequestPayload.create(
+            reactor.core.publisher.Flux<com.facebook.thrift.payload.ClientRequestPayload<Integer>> _sinkPayloads =
+              reactor.core.publisher.Flux.from(payloads)
+                .map(_p -> com.facebook.thrift.payload.ClientRequestPayload.<Integer>create(
                     "Factories",
                     _createinteractWithSinkAndInitialResponseSinkWriter(_p),
                     _interactWithSinkAndInitialResponse_READER,
@@ -521,7 +527,13 @@ public class FactoriesReactiveClient
                     _interactWithSinkAndInitialResponse_EXCEPTION_READERS,
                     _interactWithSinkAndInitialResponse_STREAM_EXCEPTION_READERS,
                     _metadata,
-                    java.util.Collections.emptyMap())));
+                    java.util.Collections.emptyMap()));
+
+            reactor.core.publisher.Flux<com.facebook.thrift.payload.ClientRequestPayload<Integer>> _sink =
+              reactor.core.publisher.Mono.just(_crp)
+                  .concatWith(
+                      com.facebook.thrift.client.SinkErrors.withSinkError(
+                          _crp, _sinkPayloads, null));
 
             return _rpc
                 .streamingRequestStreamingResponse(_sink, rpcOptions)

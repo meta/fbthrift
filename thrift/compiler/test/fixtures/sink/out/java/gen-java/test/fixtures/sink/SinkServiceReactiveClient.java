@@ -143,16 +143,22 @@ public class SinkServiceReactiveClient
                     _metadata,
                     java.util.Collections.emptyMap());
 
-            reactor.core.publisher.Flux<com.facebook.thrift.payload.ClientRequestPayload<test.fixtures.sink.FinalResponse>> _sink =
-              reactor.core.publisher.Mono.just(_crp).concatWith(reactor.core.publisher.Flux.from(payloads)
-                .map(_p -> com.facebook.thrift.payload.ClientRequestPayload.create(
+            reactor.core.publisher.Flux<com.facebook.thrift.payload.ClientRequestPayload<test.fixtures.sink.FinalResponse>> _sinkPayloads =
+              reactor.core.publisher.Flux.from(payloads)
+                .map(_p -> com.facebook.thrift.payload.ClientRequestPayload.<test.fixtures.sink.FinalResponse>create(
                     "SinkService",
                     _createmethodSinkWriter(_p),
                     _method_READER,
                     _method_EXCEPTION_READERS,
                     _method_STREAM_EXCEPTION_READERS,
                     _metadata,
-                    java.util.Collections.emptyMap())));
+                    java.util.Collections.emptyMap()));
+
+            reactor.core.publisher.Flux<com.facebook.thrift.payload.ClientRequestPayload<test.fixtures.sink.FinalResponse>> _sink =
+              reactor.core.publisher.Mono.just(_crp)
+                  .concatWith(
+                      com.facebook.thrift.client.SinkErrors.withSinkError(
+                          _crp, _sinkPayloads, null));
 
             return _rpc
                 .streamingRequestStreamingResponse(_sink, rpcOptions)
@@ -217,9 +223,9 @@ public class SinkServiceReactiveClient
                     _metadata,
                     java.util.Collections.emptyMap());
 
-            reactor.core.publisher.Flux<com.facebook.thrift.payload.ClientRequestPayload<test.fixtures.sink.FinalResponse>> _sink =
-              reactor.core.publisher.Mono.just(_crp).concatWith(reactor.core.publisher.Flux.from(payloads)
-                .map(_p -> com.facebook.thrift.payload.ClientRequestPayload.create(
+            reactor.core.publisher.Flux<com.facebook.thrift.payload.ClientRequestPayload<test.fixtures.sink.FinalResponse>> _sinkPayloads =
+              reactor.core.publisher.Flux.from(payloads)
+                .map(_p -> com.facebook.thrift.payload.ClientRequestPayload.<test.fixtures.sink.FinalResponse>create(
                     "SinkService",
                     _createmethodAndReponseSinkWriter(_p),
                     _methodAndReponse_READER,
@@ -227,7 +233,13 @@ public class SinkServiceReactiveClient
                     _methodAndReponse_EXCEPTION_READERS,
                     _methodAndReponse_STREAM_EXCEPTION_READERS,
                     _metadata,
-                    java.util.Collections.emptyMap())));
+                    java.util.Collections.emptyMap()));
+
+            reactor.core.publisher.Flux<com.facebook.thrift.payload.ClientRequestPayload<test.fixtures.sink.FinalResponse>> _sink =
+              reactor.core.publisher.Mono.just(_crp)
+                  .concatWith(
+                      com.facebook.thrift.client.SinkErrors.withSinkError(
+                          _crp, _sinkPayloads, null));
 
             return _rpc
                 .streamingRequestStreamingResponse(_sink, rpcOptions)
@@ -289,16 +301,22 @@ public class SinkServiceReactiveClient
                     _metadata,
                     java.util.Collections.emptyMap());
 
-            reactor.core.publisher.Flux<com.facebook.thrift.payload.ClientRequestPayload<test.fixtures.sink.FinalResponse>> _sink =
-              reactor.core.publisher.Mono.just(_crp).concatWith(reactor.core.publisher.Flux.from(payloads)
-                .map(_p -> com.facebook.thrift.payload.ClientRequestPayload.create(
+            reactor.core.publisher.Flux<com.facebook.thrift.payload.ClientRequestPayload<test.fixtures.sink.FinalResponse>> _sinkPayloads =
+              reactor.core.publisher.Flux.from(payloads)
+                .map(_p -> com.facebook.thrift.payload.ClientRequestPayload.<test.fixtures.sink.FinalResponse>create(
                     "SinkService",
                     _createmethodThrowSinkWriter(_p),
                     _methodThrow_READER,
                     _methodThrow_EXCEPTION_READERS,
                     _methodThrow_STREAM_EXCEPTION_READERS,
                     _metadata,
-                    java.util.Collections.emptyMap())));
+                    java.util.Collections.emptyMap()));
+
+            reactor.core.publisher.Flux<com.facebook.thrift.payload.ClientRequestPayload<test.fixtures.sink.FinalResponse>> _sink =
+              reactor.core.publisher.Mono.just(_crp)
+                  .concatWith(
+                      com.facebook.thrift.client.SinkErrors.withSinkError(
+                          _crp, _sinkPayloads, null));
 
             return _rpc
                 .streamingRequestStreamingResponse(_sink, rpcOptions)
@@ -337,6 +355,14 @@ public class SinkServiceReactiveClient
     };
   }
 
+  private static Short _sinkErrorFieldIdmethodSinkThrow(Throwable _e) {
+    if (_e instanceof test.fixtures.sink.SinkException1) {
+      return (short) 1;
+    }
+
+    return null;
+  }
+
   private static final com.facebook.thrift.payload.Reader _methodSinkThrow_READER = Readers.wrap(test.fixtures.sink.FinalResponse.asReader());
 
 
@@ -361,16 +387,22 @@ public class SinkServiceReactiveClient
                     _metadata,
                     java.util.Collections.emptyMap());
 
-            reactor.core.publisher.Flux<com.facebook.thrift.payload.ClientRequestPayload<test.fixtures.sink.FinalResponse>> _sink =
-              reactor.core.publisher.Mono.just(_crp).concatWith(reactor.core.publisher.Flux.from(payloads)
-                .map(_p -> com.facebook.thrift.payload.ClientRequestPayload.create(
+            reactor.core.publisher.Flux<com.facebook.thrift.payload.ClientRequestPayload<test.fixtures.sink.FinalResponse>> _sinkPayloads =
+              reactor.core.publisher.Flux.from(payloads)
+                .map(_p -> com.facebook.thrift.payload.ClientRequestPayload.<test.fixtures.sink.FinalResponse>create(
                     "SinkService",
                     _createmethodSinkThrowSinkWriter(_p),
                     _methodSinkThrow_READER,
                     _methodSinkThrow_EXCEPTION_READERS,
                     _methodSinkThrow_STREAM_EXCEPTION_READERS,
                     _metadata,
-                    java.util.Collections.emptyMap())));
+                    java.util.Collections.emptyMap()));
+
+            reactor.core.publisher.Flux<com.facebook.thrift.payload.ClientRequestPayload<test.fixtures.sink.FinalResponse>> _sink =
+              reactor.core.publisher.Mono.just(_crp)
+                  .concatWith(
+                      com.facebook.thrift.client.SinkErrors.withSinkError(
+                          _crp, _sinkPayloads, _e -> _sinkErrorFieldIdmethodSinkThrow(_e)));
 
             return _rpc
                 .streamingRequestStreamingResponse(_sink, rpcOptions)
@@ -433,16 +465,22 @@ public class SinkServiceReactiveClient
                     _metadata,
                     java.util.Collections.emptyMap());
 
-            reactor.core.publisher.Flux<com.facebook.thrift.payload.ClientRequestPayload<test.fixtures.sink.FinalResponse>> _sink =
-              reactor.core.publisher.Mono.just(_crp).concatWith(reactor.core.publisher.Flux.from(payloads)
-                .map(_p -> com.facebook.thrift.payload.ClientRequestPayload.create(
+            reactor.core.publisher.Flux<com.facebook.thrift.payload.ClientRequestPayload<test.fixtures.sink.FinalResponse>> _sinkPayloads =
+              reactor.core.publisher.Flux.from(payloads)
+                .map(_p -> com.facebook.thrift.payload.ClientRequestPayload.<test.fixtures.sink.FinalResponse>create(
                     "SinkService",
                     _createmethodFinalThrowSinkWriter(_p),
                     _methodFinalThrow_READER,
                     _methodFinalThrow_EXCEPTION_READERS,
                     _methodFinalThrow_STREAM_EXCEPTION_READERS,
                     _metadata,
-                    java.util.Collections.emptyMap())));
+                    java.util.Collections.emptyMap()));
+
+            reactor.core.publisher.Flux<com.facebook.thrift.payload.ClientRequestPayload<test.fixtures.sink.FinalResponse>> _sink =
+              reactor.core.publisher.Mono.just(_crp)
+                  .concatWith(
+                      com.facebook.thrift.client.SinkErrors.withSinkError(
+                          _crp, _sinkPayloads, null));
 
             return _rpc
                 .streamingRequestStreamingResponse(_sink, rpcOptions)
@@ -481,6 +519,14 @@ public class SinkServiceReactiveClient
     };
   }
 
+  private static Short _sinkErrorFieldIdmethodBothThrow(Throwable _e) {
+    if (_e instanceof test.fixtures.sink.SinkException1) {
+      return (short) 1;
+    }
+
+    return null;
+  }
+
   private static final com.facebook.thrift.payload.Reader _methodBothThrow_READER = Readers.wrap(test.fixtures.sink.FinalResponse.asReader());
 
 
@@ -505,16 +551,22 @@ public class SinkServiceReactiveClient
                     _metadata,
                     java.util.Collections.emptyMap());
 
-            reactor.core.publisher.Flux<com.facebook.thrift.payload.ClientRequestPayload<test.fixtures.sink.FinalResponse>> _sink =
-              reactor.core.publisher.Mono.just(_crp).concatWith(reactor.core.publisher.Flux.from(payloads)
-                .map(_p -> com.facebook.thrift.payload.ClientRequestPayload.create(
+            reactor.core.publisher.Flux<com.facebook.thrift.payload.ClientRequestPayload<test.fixtures.sink.FinalResponse>> _sinkPayloads =
+              reactor.core.publisher.Flux.from(payloads)
+                .map(_p -> com.facebook.thrift.payload.ClientRequestPayload.<test.fixtures.sink.FinalResponse>create(
                     "SinkService",
                     _createmethodBothThrowSinkWriter(_p),
                     _methodBothThrow_READER,
                     _methodBothThrow_EXCEPTION_READERS,
                     _methodBothThrow_STREAM_EXCEPTION_READERS,
                     _metadata,
-                    java.util.Collections.emptyMap())));
+                    java.util.Collections.emptyMap()));
+
+            reactor.core.publisher.Flux<com.facebook.thrift.payload.ClientRequestPayload<test.fixtures.sink.FinalResponse>> _sink =
+              reactor.core.publisher.Mono.just(_crp)
+                  .concatWith(
+                      com.facebook.thrift.client.SinkErrors.withSinkError(
+                          _crp, _sinkPayloads, _e -> _sinkErrorFieldIdmethodBothThrow(_e)));
 
             return _rpc
                 .streamingRequestStreamingResponse(_sink, rpcOptions)
@@ -577,16 +629,22 @@ public class SinkServiceReactiveClient
                     _metadata,
                     java.util.Collections.emptyMap());
 
-            reactor.core.publisher.Flux<com.facebook.thrift.payload.ClientRequestPayload<test.fixtures.sink.FinalResponse>> _sink =
-              reactor.core.publisher.Mono.just(_crp).concatWith(reactor.core.publisher.Flux.from(payloads)
-                .map(_p -> com.facebook.thrift.payload.ClientRequestPayload.create(
+            reactor.core.publisher.Flux<com.facebook.thrift.payload.ClientRequestPayload<test.fixtures.sink.FinalResponse>> _sinkPayloads =
+              reactor.core.publisher.Flux.from(payloads)
+                .map(_p -> com.facebook.thrift.payload.ClientRequestPayload.<test.fixtures.sink.FinalResponse>create(
                     "SinkService",
                     _createmethodFastSinkWriter(_p),
                     _methodFast_READER,
                     _methodFast_EXCEPTION_READERS,
                     _methodFast_STREAM_EXCEPTION_READERS,
                     _metadata,
-                    java.util.Collections.emptyMap())));
+                    java.util.Collections.emptyMap()));
+
+            reactor.core.publisher.Flux<com.facebook.thrift.payload.ClientRequestPayload<test.fixtures.sink.FinalResponse>> _sink =
+              reactor.core.publisher.Mono.just(_crp)
+                  .concatWith(
+                      com.facebook.thrift.client.SinkErrors.withSinkError(
+                          _crp, _sinkPayloads, null));
 
             return _rpc
                 .streamingRequestStreamingResponse(_sink, rpcOptions)

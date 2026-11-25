@@ -51,6 +51,7 @@ import org.apache.thrift.ClientPushMetadata;
 import org.apache.thrift.CodecConfig;
 import org.apache.thrift.CompressionAlgorithm;
 import org.apache.thrift.CompressionConfig;
+import org.apache.thrift.PayloadMetadata;
 import org.apache.thrift.ProtocolId;
 import org.apache.thrift.RequestRpcMetadata;
 import org.apache.thrift.ResponseRpcError;
@@ -412,7 +413,8 @@ public final class RSocketRpcClient implements RpcClient {
       // clientRequestPayloadToRSocketPayload) uses RequestRpcMetadata
       // to establish the RPC. The compression field must be set on
       // StreamPayloadMetadata to match the actual compression applied
-      // by createPayload.
+      // by createPayload. A publisher failure rides as the terminal
+      // frame with its exception metadata.
       final CompressionConfig config = options == null ? null : options.getCompressionConfig();
       final CompressionAlgorithm compression =
           config == null
@@ -421,6 +423,11 @@ public final class RSocketRpcClient implements RpcClient {
 
       final ByteBufTProtocol metadataProtocol = TProtocolType.TCompact.apply(metadata);
       StreamPayloadMetadata.Builder streamMetadataBuilder = new StreamPayloadMetadata.Builder();
+      PayloadMetadata errorMetadata = payload.getSinkErrorMetadata();
+
+      if (errorMetadata != null) {
+        streamMetadataBuilder.setPayloadMetadata(errorMetadata);
+      }
 
       if (compression != null && compression != CompressionAlgorithm.NONE) {
         streamMetadataBuilder.setCompression(compression);

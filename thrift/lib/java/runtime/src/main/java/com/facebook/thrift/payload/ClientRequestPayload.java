@@ -18,6 +18,7 @@ package com.facebook.thrift.payload;
 
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.thrift.PayloadMetadata;
 import org.apache.thrift.RequestRpcMetadata;
 
 @SuppressWarnings("rawtypes")
@@ -37,6 +38,14 @@ public interface ClientRequestPayload<T> {
   RequestRpcMetadata getRequestRpcMetadata();
 
   Map<String, String> getPersistentHeaders();
+
+  /**
+   * Exception metadata for a terminal sink frame carrying a publisher failure, or null for a normal
+   * payload. The transport sets it as the frame's payload metadata.
+   */
+  default PayloadMetadata getSinkErrorMetadata() {
+    return null;
+  }
 
   @SuppressWarnings("unused")
   default ClientRequestPayload<T> withAdditionalHeader(Map<String, String> additionalHeader) {

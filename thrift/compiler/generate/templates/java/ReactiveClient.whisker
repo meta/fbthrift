@@ -368,6 +368,18 @@ public class {{service.javaCapitalName}}ReactiveClient {{#if (object.notnull? se
     };
   }
 
+  {{#if func.sink_exceptions?}}
+  private static Short _sinkErrorFieldId{{func.java_name}}(Throwable _e) {
+    {{#each func.sink.exceptions as |field|}}
+    if (_e instanceof {{#partial types.java_type type=field.type has_adapter_override=field.hasAdapter?}}) {
+      return (short) {{field.id}};
+    }
+
+    {{/each}}
+    return null;
+  }
+
+  {{/if func.sink_exceptions?}}
   private static final com.facebook.thrift.payload.Reader _{{func.java_name}}_READER = {{!
     }}{{#if func.void?}}Readers.voidReader(){{#else}}{{#partial types.type_reader type=func.sink.final_response_type}}{{/if func.void?}};
 
@@ -399,9 +411,9 @@ public class {{service.javaCapitalName}}ReactiveClient {{#if (object.notnull? se
                     _metadata,
                     java.util.Collections.emptyMap());
 
-            reactor.core.publisher.Flux<com.facebook.thrift.payload.ClientRequestPayload<{{#partial types.boxed_type type=func.sink.final_response_type field_hasAdapter=false}}>> _sink =
-              reactor.core.publisher.Mono.just(_crp).concatWith(reactor.core.publisher.Flux.from(payloads)
-                .map(_p -> com.facebook.thrift.payload.ClientRequestPayload.create(
+            reactor.core.publisher.Flux<com.facebook.thrift.payload.ClientRequestPayload<{{#partial types.boxed_type type=func.sink.final_response_type field_hasAdapter=false}}>> _sinkPayloads =
+              reactor.core.publisher.Flux.from(payloads)
+                .map(_p -> com.facebook.thrift.payload.ClientRequestPayload.<{{#partial types.boxed_type type=func.sink.final_response_type field_hasAdapter=false}}>create(
                     "{{service.name}}",
                     _create{{func.java_name}}SinkWriter(_p),
                     _{{func.java_name}}_READER,{{#if func.sink_has_first_response?}}
@@ -409,7 +421,13 @@ public class {{service.javaCapitalName}}ReactiveClient {{#if (object.notnull? se
                     _{{func.java_name}}_EXCEPTION_READERS,
                     _{{func.java_name}}_STREAM_EXCEPTION_READERS,
                     _metadata,
-                    java.util.Collections.emptyMap())));
+                    java.util.Collections.emptyMap()));
+
+            reactor.core.publisher.Flux<com.facebook.thrift.payload.ClientRequestPayload<{{#partial types.boxed_type type=func.sink.final_response_type field_hasAdapter=false}}>> _sink =
+              reactor.core.publisher.Mono.just(_crp)
+                  .concatWith(
+                      com.facebook.thrift.client.SinkErrors.withSinkError(
+                          _crp, _sinkPayloads, {{#if func.sink_exceptions?}}_e -> _sinkErrorFieldId{{func.java_name}}(_e){{#else}}null{{/if}}));
 
             return _rpc
                 .streamingRequestStreamingResponse(_sink, rpcOptions)
