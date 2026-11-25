@@ -446,6 +446,7 @@ public class ThriftServerRSocket implements RSocket {
       SinkPayloadSubscriber sinkSubscriber,
       Flux<Payload> sinkPayloads) {
     RequestRpcMetadata requestRpcMetadata = request.getRequestRpcMetadata();
+    RpcKind kind = requestRpcMetadata.getKind();
     Flux<ServerRequestPayload> decodedSinkPayloads =
         sinkPayloads.map(
             sinkPayload ->
@@ -474,6 +475,7 @@ public class ThriftServerRSocket implements RSocket {
                     () ->
                         serverError(
                             ResponseRpcErrorCode.UNKNOWN, "Call ended without a first response")))
+            .transform(sinkSubscriber.dropResponsesAfterChunkTimeout())
             .map(
                 responsePayload ->
                     handleStreamResponse(
@@ -485,9 +487,11 @@ public class ThriftServerRSocket implements RSocket {
             .onErrorMap(
                 e -> !isThriftFrame(e) && sinkSubscriber.responsesSent() == 0,
                 ThriftServerRSocket::toServerError)
+            .transform(sinkSubscriber.mapFailuresAfterChunkTimeout(kind))
             .onErrorMap(
                 e -> !(e instanceof RSocketErrorException) && sinkSubscriber.responsesSent() > 0,
-                ThriftServerRSocket::toStreamError);
+                ThriftServerRSocket::toStreamError)
+            .transform(sinkSubscriber.endWithChunkTimeoutError(kind));
 
     return sinkSubscriber.startSinkAfterFirstResponse(encoded);
   }

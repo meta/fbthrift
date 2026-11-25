@@ -103,8 +103,6 @@ java2/ThriftRPCServerTest/InteractionConstructorTest/Success.InteractionConstruc
 java2/ThriftRPCServerTest/InteractionFactoryFunctionPersistsStateTest/Success.InteractionFactoryFunctionPersistsStateTest
 java2/ThriftRPCServerTest/InteractionFactoryFunctionTerminationTest/Success.InteractionFactoryFunctionTerminationTest
 java2/ThriftRPCServerTest/InteractionFactoryFunctionTest/Success.InteractionFactoryFunctionTest
-# Java server has no sink chunk timer
-java2/ThriftRPCServerTest/SinkChunkTimeout/Success.SinkChunkTimeoutTest
 
 # Java client does not implement bidi
 java2/ThriftRPCClientTest/Bidi*

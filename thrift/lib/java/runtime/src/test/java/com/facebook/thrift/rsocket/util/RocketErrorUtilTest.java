@@ -16,6 +16,7 @@
 
 package com.facebook.thrift.rsocket.util;
 
+import static com.facebook.thrift.rsocket.util.RocketErrorUtil.chunkTimeoutError;
 import static com.facebook.thrift.rsocket.util.RocketErrorUtil.decodeRocketError;
 import static com.facebook.thrift.rsocket.util.RocketErrorUtil.isRocketError;
 import static com.facebook.thrift.rsocket.util.RocketErrorUtil.taskExpired;
@@ -29,7 +30,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.facebook.thrift.protocol.ProtocolUtil;
 import com.facebook.thrift.server.OverloadedException;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.rsocket.RSocketErrorException;
 import io.rsocket.exceptions.CanceledException;
 import io.rsocket.exceptions.RejectedException;
@@ -44,6 +48,9 @@ import org.apache.thrift.ResponseRpcError;
 import org.apache.thrift.ResponseRpcErrorCategory;
 import org.apache.thrift.ResponseRpcErrorCode;
 import org.apache.thrift.ResponseRpcMetadata;
+import org.apache.thrift.RpcKind;
+import org.apache.thrift.StreamRpcError;
+import org.apache.thrift.StreamRpcErrorCode;
 import org.apache.thrift.TApplicationException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -57,6 +64,37 @@ public class RocketErrorUtilTest {
     RSocketErrorException exception = taskExpired("someMethod", 5000L);
     assertEquals(ErrorFrameCodec.CANCELED, exception.errorCode());
     assertTrue(isRocketError(exception));
+  }
+
+  @Test
+  public void testChunkTimeoutErrorUsesApplicationErrorForSink() {
+    RSocketErrorException exception = chunkTimeoutError(RpcKind.SINK);
+
+    assertEquals(ErrorFrameCodec.APPLICATION_ERROR, exception.errorCode());
+    assertChunkTimeoutBody(exception);
+  }
+
+  @Test
+  public void testChunkTimeoutErrorUsesCanceledForBidi() {
+    RSocketErrorException exception = chunkTimeoutError(RpcKind.BIDIRECTIONAL_STREAM);
+
+    assertEquals(ErrorFrameCodec.CANCELED, exception.errorCode());
+    assertChunkTimeoutBody(exception);
+  }
+
+  /** Asserts an ERROR body carrying a CHUNK_TIMEOUT stream error. */
+  private static void assertChunkTimeoutBody(RSocketErrorException exception) {
+    ByteBuf buffer =
+        Unpooled.wrappedBuffer(exception.getMessage().getBytes(StandardCharsets.UTF_8));
+
+    try {
+      StreamRpcError error = ProtocolUtil.readCompact(StreamRpcError::read0, buffer);
+
+      assertEquals(StreamRpcErrorCode.CHUNK_TIMEOUT, error.getCode());
+      assertEquals("Sink chunk timeout", error.getWhatUtf8());
+    } finally {
+      buffer.release();
+    }
   }
 
   @Test

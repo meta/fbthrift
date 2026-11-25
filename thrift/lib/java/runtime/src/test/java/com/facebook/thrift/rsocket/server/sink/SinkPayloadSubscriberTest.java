@@ -18,9 +18,12 @@ package com.facebook.thrift.rsocket.server.sink;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.facebook.thrift.server.sink.SinkChunkTimeoutException;
+import com.facebook.thrift.server.sink.SinkOptions;
 import com.facebook.thrift.util.resources.RpcResources;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
@@ -32,6 +35,7 @@ import io.rsocket.util.ByteBufPayload;
 import java.nio.channels.ClosedChannelException;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CancellationException;
@@ -43,8 +47,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.LongConsumer;
 import org.junit.jupiter.api.Test;
+import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import reactor.core.publisher.BaseSubscriber;
 import reactor.core.publisher.Flux;
@@ -58,6 +66,10 @@ import reactor.util.context.Context;
 
 public class SinkPayloadSubscriberTest {
   private final Peer peer = new Peer();
+  private final ManualTimer timer = new ManualTimer();
+  private final AtomicLong clock = new AtomicLong();
+  private final ChunkTimeout chunkTimeout =
+      new ChunkTimeout(() -> timer, Schedulers.immediate(), clock::get);
 
   @Test
   public void endReleasesTheSinkPayloadsThatNoReaderTook() {
@@ -116,6 +128,16 @@ public class SinkPayloadSubscriberTest {
   @Test
   public void anAbnormalEndReleasesWhatAnIdleReaderHoldsOffTheEventLoop() throws Exception {
     assertAnAbnormalEndReleasesWhatTheReaderHolds(RpcResources.getOffLoopScheduler());
+  }
+
+  @Test
+  public void aChunkTimeoutReleasesWhatAnIdleReaderHoldsOnTheEventLoop() throws Exception {
+    assertAChunkTimeoutReleasesWhatTheReaderHolds(Schedulers.immediate());
+  }
+
+  @Test
+  public void aChunkTimeoutReleasesWhatAnIdleReaderHoldsOffTheEventLoop() throws Exception {
+    assertAChunkTimeoutReleasesWhatTheReaderHolds(RpcResources.getOffLoopScheduler());
   }
 
   @Test
@@ -275,56 +297,425 @@ public class SinkPayloadSubscriberTest {
     subscriber.end(SignalType.CANCEL);
   }
 
-  private void assertPeerErrorThenCancelReleasesQueued(Scheduler scheduler) throws Exception {
-    SinkPayloadSubscriber subscriber = subscribe(scheduler);
+  @Test
+  public void bufferSizeSetsTheCreditWindow() {
+    SinkPayloadSubscriber subscriber = subscribe(Schedulers.immediate());
+    SinkOptions options = SinkOptions.builder().bufferSize(256).build();
+
+    StepVerifier.create(
+            subscriber
+                .sinkPayloads()
+                .contextWrite(Context.of(SinkPayloadSubscriber.SINK_OPTIONS, options)))
+        .expectSubscription()
+        .then(() -> sendFirstResponse(subscriber))
+        .then(() -> subscriber.end(SignalType.ON_COMPLETE))
+        .verifyComplete();
+
+    assertEquals(Arrays.asList(1L, 256L), peer.credits);
+  }
+
+  @Test
+  public void chunkTimeoutFailsTheReaderAndSignalsTheResponses() {
+    SinkPayloadSubscriber subscriber = manualSubscriber();
+    SinkOptions options = SinkOptions.builder().chunkTimeout(Duration.ofSeconds(1)).build();
+    AtomicBoolean signalled = new AtomicBoolean();
+
+    Flux.never()
+        .transform(subscriber.dropResponsesAfterChunkTimeout())
+        .doOnComplete(() -> signalled.set(true))
+        .subscribe();
+
+    StepVerifier.create(
+            subscriber
+                .sinkPayloads()
+                .contextWrite(Context.of(SinkPayloadSubscriber.SINK_OPTIONS, options))
+                .doOnNext(ReferenceCountUtil::release))
+        .then(() -> sendFirstResponse(subscriber))
+        .then(this::expirePastDelay)
+        .verifyError(SinkChunkTimeoutException.class);
+
+    assertTrue(chunkTimeout.hasTimedOut());
+    assertTrue(signalled.get());
+  }
+
+  @Test
+  public void chunkArrivingDuringTheGrantCountsAgainstIt() {
+    SinkPayloadSubscriber subscriber =
+        new SinkPayloadSubscriber(Schedulers.immediate(), chunkTimeout);
+    SinkOptions options =
+        SinkOptions.builder().bufferSize(1).chunkTimeout(Duration.ofSeconds(1)).build();
+
+    // The peer answers every grant with a chunk on the granting thread: the watchdog must count
+    // the grant before the request goes out, or the chunk clamps at zero and the grant idles.
+    AtomicReference<Subscriber<? super Payload>> downstream = new AtomicReference<>();
+    Publisher<Payload> inbound =
+        s -> {
+          downstream.set(s);
+
+          s.onSubscribe(
+              new Subscription() {
+                @Override
+                public void request(long n) {
+                  downstream.get().onNext(payload());
+                }
+
+                @Override
+                public void cancel() {}
+              });
+        };
+    inbound.subscribe(subscriber);
+
+    Payload setup = subscriber.setup();
+    setup.release();
+
+    StepVerifier.create(
+            subscriber
+                .sinkPayloads()
+                .contextWrite(Context.of(SinkPayloadSubscriber.SINK_OPTIONS, options))
+                .doOnNext(ReferenceCountUtil::release),
+            0)
+        .then(() -> sendFirstResponse(subscriber))
+        .then(this::expirePastDelay)
+        .thenRequest(1)
+        .expectNextCount(1)
+        .then(() -> downstream.get().onComplete())
+        .then(() -> subscriber.end(SignalType.ON_COMPLETE))
+        .verifyComplete();
+
+    assertFalse(chunkTimeout.hasTimedOut());
+  }
+
+  @Test
+  public void rejectedSecondReaderLeavesTheFirstWatchdogWatching() throws Exception {
+    SinkPayloadSubscriber subscriber = manualSubscriber();
+    SinkOptions options = SinkOptions.builder().chunkTimeout(Duration.ofSeconds(1)).build();
+    CompletableFuture<Throwable> rejected = new CompletableFuture<>();
+
+    StepVerifier.create(
+            subscriber
+                .sinkPayloads()
+                .contextWrite(Context.of(SinkPayloadSubscriber.SINK_OPTIONS, options))
+                .doOnNext(ReferenceCountUtil::release))
+        .then(() -> sendFirstResponse(subscriber))
+        .then(
+            () ->
+                subscriber
+                    .sinkPayloads()
+                    .contextWrite(Context.of(SinkPayloadSubscriber.SINK_OPTIONS, options))
+                    .subscribe(v -> {}, rejected::complete))
+        .then(() -> assertEquals(Arrays.asList(1L, 100L), peer.credits))
+        .then(this::expireAllPastDelay)
+        .verifyError(SinkChunkTimeoutException.class);
+
+    assertNotNull(rejected.get(5, TimeUnit.SECONDS));
+    assertTrue(chunkTimeout.hasTimedOut());
+  }
+
+  @Test
+  public void aReaderThatCancelsEarlyFreesTheSinkForALaterReader() {
+    SinkPayloadSubscriber subscriber = manualSubscriber();
+    SinkOptions options = SinkOptions.builder().chunkTimeout(Duration.ofSeconds(1)).build();
+
+    subscriber
+        .sinkPayloads()
+        .contextWrite(Context.of(SinkPayloadSubscriber.SINK_OPTIONS, options))
+        .subscribe()
+        .dispose();
+
+    StepVerifier.create(
+            subscriber
+                .sinkPayloads()
+                .contextWrite(Context.of(SinkPayloadSubscriber.SINK_OPTIONS, options))
+                .doOnNext(ReferenceCountUtil::release))
+        .then(() -> sendFirstResponse(subscriber))
+        .then(
+            () -> {
+              peer.send(payload());
+              peer.send(payload());
+              peer.complete();
+            })
+        .expectNextCount(2)
+        .verifyComplete();
+
+    assertFalse(chunkTimeout.hasTimedOut());
+  }
+
+  @Test
+  public void peerCompleteAfterCreditCompletesWithoutTimeout() {
+    SinkPayloadSubscriber subscriber = manualSubscriber();
+    SinkOptions options = SinkOptions.builder().chunkTimeout(Duration.ofSeconds(1)).build();
+
+    StepVerifier.create(
+            subscriber
+                .sinkPayloads()
+                .contextWrite(Context.of(SinkPayloadSubscriber.SINK_OPTIONS, options))
+                .doOnNext(ReferenceCountUtil::release))
+        .then(() -> sendFirstResponse(subscriber))
+        .then(
+            () -> {
+              peer.send(payload());
+              peer.complete();
+            })
+        .expectNextCount(1)
+        .verifyComplete();
+
+    assertFalse(chunkTimeout.hasTimedOut());
+    assertTrue(timer.timeout.isCancelled());
+  }
+
+  @Test
+  public void zeroTimeoutArmsNoTimer() {
+    SinkPayloadSubscriber subscriber = manualSubscriber();
+
+    StepVerifier.create(subscriber.sinkPayloads().doOnNext(ReferenceCountUtil::release))
+        .then(() -> sendFirstResponse(subscriber))
+        .then(
+            () -> {
+              peer.send(payload());
+              peer.complete();
+            })
+        .expectNextCount(1)
+        .verifyComplete();
+
+    assertEquals(0, timer.created);
+    assertFalse(chunkTimeout.hasTimedOut());
+  }
+
+  @Test
+  public void anExhaustedWindowStandsDownThenRearmsOnDemand() {
+    SinkPayloadSubscriber subscriber = manualSubscriber();
+    SinkOptions options =
+        SinkOptions.builder().bufferSize(1).chunkTimeout(Duration.ofSeconds(1)).build();
+
+    StepVerifier.create(
+            subscriber
+                .sinkPayloads()
+                .contextWrite(Context.of(SinkPayloadSubscriber.SINK_OPTIONS, options))
+                .doOnNext(ReferenceCountUtil::release),
+            0)
+        .expectSubscription()
+        .then(() -> sendFirstResponse(subscriber))
+        .then(() -> peer.send(payload()))
+        .then(this::expirePastDelay)
+        .then(() -> assertFalse(chunkTimeout.hasTimedOut()))
+        .thenRequest(1)
+        .expectNextCount(1)
+        .then(() -> assertEquals(2, timer.created))
+        .then(() -> peer.complete())
+        .verifyComplete();
+
+    assertFalse(chunkTimeout.hasTimedOut());
+  }
+
+  @Test
+  public void theApplicationNearestTheSinkWins() {
+    SinkPayloadSubscriber subscriber = subscribe(Schedulers.immediate());
+    SinkOptions outer = SinkOptions.builder().bufferSize(7).build();
+    SinkOptions inner = SinkOptions.builder().bufferSize(9).build();
+
+    StepVerifier.create(outer.applyTo(inner.applyTo(subscriber.sinkPayloads())))
+        .expectSubscription()
+        .then(() -> sendFirstResponse(subscriber))
+        .then(() -> subscriber.end(SignalType.ON_COMPLETE))
+        .verifyComplete();
+
+    assertEquals(Arrays.asList(1L, 9L), peer.credits);
+  }
+
+  @Test
+  public void chunkTimeoutStillReportsTheGrantedWindow() {
+    SinkPayloadSubscriber subscriber = manualSubscriber();
+    SinkOptions options = SinkOptions.builder().chunkTimeout(Duration.ofSeconds(1)).build();
+    List<Long> fired = new CopyOnWriteArrayList<>();
+
+    StepVerifier.create(
+            subscriber
+                .sinkPayloads()
+                .contextWrite(Context.of(SinkPayloadSubscriber.SINK_OPTIONS, options))
+                .contextWrite(
+                    Context.of(
+                        SinkPayloadSubscriber.SINK_CREDIT_LISTENER, (LongConsumer) fired::add))
+                .doOnNext(ReferenceCountUtil::release))
+        .then(() -> sendFirstResponse(subscriber))
+        .then(this::expirePastDelay)
+        .verifyError(SinkChunkTimeoutException.class);
+
+    assertEquals(Collections.singletonList(100L), fired);
+  }
+
+  @Test
+  public void theReaderFailsBeforeTheResponsesEnd() {
+    DelayHoldingScheduler scheduler = new DelayHoldingScheduler();
+    SinkPayloadSubscriber subscriber =
+        new SinkPayloadSubscriber(
+            Schedulers.immediate(), new ChunkTimeout(() -> timer, scheduler, clock::get));
+    SinkOptions options = SinkOptions.builder().chunkTimeout(Duration.ofSeconds(1)).build();
+    List<String> events = new CopyOnWriteArrayList<>();
+
+    attach(subscriber);
+    recordTheEndOfTheResponses(subscriber, events);
+
+    StepVerifier.create(
+            subscriber
+                .sinkPayloads()
+                .contextWrite(Context.of(SinkPayloadSubscriber.SINK_OPTIONS, options))
+                .doOnError(e -> events.add("reader failed")))
+        .then(() -> sendFirstResponse(subscriber))
+        .then(this::expirePastDelay)
+        .verifyError(SinkChunkTimeoutException.class);
+
+    // The backstop is still queued, so the reader's own terminal ended the responses.
+    assertEquals(Arrays.asList("reader failed", "responses ended"), events);
+    assertEquals(1, scheduler.delayed.size());
+  }
+
+  @Test
+  public void theBackstopEndsTheResponsesWhileTheReaderIsWithheld() {
+    DelayHoldingScheduler scheduler = new DelayHoldingScheduler();
+    SinkPayloadSubscriber subscriber =
+        new SinkPayloadSubscriber(
+            Schedulers.immediate(), new ChunkTimeout(() -> timer, scheduler, clock::get));
+    SinkOptions options = SinkOptions.builder().chunkTimeout(Duration.ofSeconds(1)).build();
+    List<String> events = new CopyOnWriteArrayList<>();
+
+    attach(subscriber);
+    recordTheEndOfTheResponses(subscriber, events);
+
+    StepVerifier.create(
+            subscriber
+                .sinkPayloads()
+                .contextWrite(Context.of(SinkPayloadSubscriber.SINK_OPTIONS, options))
+                .doOnError(
+                    e -> {
+                      events.add("reader failed");
+                      scheduler.runDelayed();
+                      events.add("reader resumed");
+                    }))
+        .then(() -> sendFirstResponse(subscriber))
+        .then(this::expirePastDelay)
+        .verifyError(SinkChunkTimeoutException.class);
+
+    assertEquals(Arrays.asList("reader failed", "responses ended", "reader resumed"), events);
+  }
+
+  @Test
+  public void peerErrorAfterCreditStopsTheArmedWatchdog() {
+    SinkPayloadSubscriber subscriber = manualSubscriber();
+    SinkOptions options = SinkOptions.builder().chunkTimeout(Duration.ofSeconds(1)).build();
+
+    StepVerifier.create(
+            subscriber
+                .sinkPayloads()
+                .contextWrite(Context.of(SinkPayloadSubscriber.SINK_OPTIONS, options))
+                .doOnNext(ReferenceCountUtil::release))
+        .then(() -> sendFirstResponse(subscriber))
+        .then(() -> peer.fail(new ClosedChannelException()))
+        .then(this::expirePastDelay)
+        .verifyError(ClosedChannelException.class);
+
+    assertFalse(chunkTimeout.hasTimedOut());
+    assertTrue(timer.timeout.isCancelled());
+  }
+
+  @Test
+  public void readerCancelAfterCreditStopsTheArmedWatchdog() {
+    SinkPayloadSubscriber subscriber = manualSubscriber();
+    SinkOptions options = SinkOptions.builder().chunkTimeout(Duration.ofSeconds(1)).build();
+
+    StepVerifier.create(
+            subscriber
+                .sinkPayloads()
+                .contextWrite(Context.of(SinkPayloadSubscriber.SINK_OPTIONS, options))
+                .doOnNext(ReferenceCountUtil::release))
+        .then(() -> sendFirstResponse(subscriber))
+        .thenCancel()
+        .verify();
+
+    expirePastDelay();
+
+    assertFalse(chunkTimeout.hasTimedOut());
+    assertTrue(timer.timeout.isCancelled());
+    assertFalse(peer.cancelled.get());
+  }
+
+  @Test
+  public void callCancelAfterCreditStopsTheArmedWatchdog() {
+    SinkPayloadSubscriber subscriber = manualSubscriber();
+    SinkOptions options = SinkOptions.builder().chunkTimeout(Duration.ofSeconds(1)).build();
+
+    StepVerifier.create(
+            subscriber
+                .sinkPayloads()
+                .contextWrite(Context.of(SinkPayloadSubscriber.SINK_OPTIONS, options))
+                .doOnNext(ReferenceCountUtil::release))
+        .then(() -> sendFirstResponse(subscriber))
+        .then(() -> subscriber.end(SignalType.CANCEL))
+        .then(this::expirePastDelay)
+        .verifyError(CancellationException.class);
+
+    assertFalse(chunkTimeout.hasTimedOut());
+    assertTrue(timer.timeout.isCancelled());
+  }
+
+  @Test
+  public void abnormalEndAfterCreditStopsTheArmedWatchdog() {
+    SinkPayloadSubscriber subscriber = manualSubscriber();
+    SinkOptions options = SinkOptions.builder().chunkTimeout(Duration.ofSeconds(1)).build();
+
+    StepVerifier.create(
+            subscriber
+                .sinkPayloads()
+                .contextWrite(Context.of(SinkPayloadSubscriber.SINK_OPTIONS, options))
+                .doOnNext(ReferenceCountUtil::release))
+        .then(() -> sendFirstResponse(subscriber))
+        .then(() -> subscriber.end(SignalType.ON_ERROR))
+        .then(this::expirePastDelay)
+        .verifyError(CancellationException.class);
+
+    assertFalse(chunkTimeout.hasTimedOut());
+    assertTrue(timer.timeout.isCancelled());
+  }
+
+  @Test
+  public void aReaderAfterTheCallEndedSendsNoCredit() {
+    SinkPayloadSubscriber subscriber = manualSubscriber();
+    SinkOptions options = SinkOptions.builder().chunkTimeout(Duration.ofSeconds(1)).build();
+
     sendFirstResponse(subscriber);
-
-    IdleReader reader = subscriber.sinkPayloads().subscribeWith(new IdleReader());
-
-    CountedPayload queued = new CountedPayload();
-    peer.send(queued);
-    peer.fail(new ClosedChannelException());
-
-    reader.dispose();
     subscriber.end(SignalType.CANCEL);
 
-    assertTrue(queued.awaitRelease(5, TimeUnit.SECONDS), "queued payload not released on cancel");
-    assertReleasedOnce(queued);
-  }
+    StepVerifier.create(
+            subscriber
+                .sinkPayloads()
+                .contextWrite(Context.of(SinkPayloadSubscriber.SINK_OPTIONS, options)))
+        .verifyError(CancellationException.class);
 
-  private List<CountedPayload> sendCounted(int sends) {
-    List<CountedPayload> payloads = new ArrayList<>();
-
-    for (int i = 0; i < sends; i++) {
-      CountedPayload payload = new CountedPayload();
-      payloads.add(payload);
-      peer.send(payload);
-    }
-
-    return payloads;
-  }
-
-  static void assertReleasedOnce(CountedPayload payload) {
-    assertEquals(0, payload.refCnt(), "sink payload not released");
-    assertEquals(1, payload.releases(), "sink payload not released exactly once");
-  }
-
-  static void assertReleasedOnce(List<CountedPayload> payloads) {
-    for (CountedPayload payload : payloads) {
-      assertReleasedOnce(payload);
-    }
+    assertEquals(Collections.singletonList(1L), peer.credits);
+    assertEquals(0, timer.created);
   }
 
   private SinkPayloadSubscriber subscribe(Scheduler scheduler) {
     SinkPayloadSubscriber subscriber = new SinkPayloadSubscriber(scheduler);
+    attach(subscriber);
+
+    return subscriber;
+  }
+
+  private SinkPayloadSubscriber manualSubscriber() {
+    SinkPayloadSubscriber subscriber =
+        new SinkPayloadSubscriber(Schedulers.immediate(), chunkTimeout);
+    attach(subscriber);
+
+    return subscriber;
+  }
+
+  private void attach(SinkPayloadSubscriber subscriber) {
     peer.flux().subscribe(subscriber);
 
     Payload setup = payload();
     peer.send(setup);
     assertSame(setup, subscriber.setup());
     setup.release();
-
-    return subscriber;
   }
 
   private void assertAnEarlyReaderGetsItsCredit(Scheduler scheduler) {
@@ -448,6 +839,95 @@ public class SinkPayloadSubscriberTest {
     late.release();
   }
 
+  /**
+   * A reader without demand leaves a sink payload in the window's queue. A chunk timeout releases
+   * that payload and a sink payload that arrives after the timeout, and fails the reader.
+   */
+  private void assertAChunkTimeoutReleasesWhatTheReaderHolds(Scheduler scheduler)
+      throws InterruptedException {
+    CountedPayload queued = new CountedPayload();
+    queued.retain();
+    CountedPayload late = new CountedPayload();
+    late.retain();
+
+    ChunkTimeout timeout = new ChunkTimeout(() -> timer, Schedulers.immediate(), clock::get);
+    SinkPayloadSubscriber subscriber = new SinkPayloadSubscriber(scheduler, timeout);
+    attach(subscriber);
+    sendFirstResponse(subscriber);
+
+    SinkOptions options = SinkOptions.builder().chunkTimeout(Duration.ofSeconds(1)).build();
+    IdleReader reader =
+        subscriber
+            .sinkPayloads()
+            .contextWrite(Context.of(SinkPayloadSubscriber.SINK_OPTIONS, options))
+            .subscribeWith(new IdleReader());
+
+    peer.send(queued);
+    expirePastDelay();
+    subscriber.onNext(late);
+
+    assertTrue(queued.awaitRelease(5, TimeUnit.SECONDS));
+    assertTrue(late.awaitRelease(5, TimeUnit.SECONDS));
+
+    assertTrue(reader.awaitError() instanceof SinkChunkTimeoutException);
+    assertEquals(1, queued.refCnt());
+    assertEquals(1, late.refCnt());
+    assertEquals(1, queued.releases());
+    assertEquals(1, late.releases());
+
+    queued.release();
+    late.release();
+  }
+
+  private void assertPeerErrorThenCancelReleasesQueued(Scheduler scheduler) throws Exception {
+    SinkPayloadSubscriber subscriber = subscribe(scheduler);
+    sendFirstResponse(subscriber);
+
+    IdleReader reader = subscriber.sinkPayloads().subscribeWith(new IdleReader());
+
+    CountedPayload queued = new CountedPayload();
+    peer.send(queued);
+    peer.fail(new ClosedChannelException());
+
+    reader.dispose();
+    subscriber.end(SignalType.CANCEL);
+
+    assertTrue(queued.awaitRelease(5, TimeUnit.SECONDS), "queued payload not released on cancel");
+    assertReleasedOnce(queued);
+  }
+
+  private List<CountedPayload> sendCounted(int sends) {
+    List<CountedPayload> payloads = new ArrayList<>();
+
+    for (int i = 0; i < sends; i++) {
+      CountedPayload payload = new CountedPayload();
+      payloads.add(payload);
+      peer.send(payload);
+    }
+
+    return payloads;
+  }
+
+  static void assertReleasedOnce(CountedPayload payload) {
+    assertEquals(0, payload.refCnt(), "sink payload not released");
+    assertEquals(1, payload.releases(), "sink payload not released exactly once");
+  }
+
+  static void assertReleasedOnce(List<CountedPayload> payloads) {
+    for (CountedPayload payload : payloads) {
+      assertReleasedOnce(payload);
+    }
+  }
+
+  /** Records when the responses end: the transport cuts them here on a chunk timeout. */
+  private static void recordTheEndOfTheResponses(
+      SinkPayloadSubscriber subscriber, List<String> events) {
+    Flux.never()
+        .transform(subscriber.dropResponsesAfterChunkTimeout())
+        .doOnComplete(() -> events.add("responses ended"))
+        .subscribe();
+  }
+
   /** Queues a first response the way the responder does, which starts the sink. */
   private static void sendFirstResponse(SinkPayloadSubscriber subscriber) {
     subscriber
@@ -457,6 +937,21 @@ public class SinkPayloadSubscriberTest {
 
   private static Payload payload() {
     return ByteBufPayload.create(ByteBufAllocator.DEFAULT.buffer().writeByte(1));
+  }
+
+  /** Moves the clock past the 1-second test timeout, then fires the armed timer. */
+  private void expirePastDelay() {
+    clock.addAndGet(TimeUnit.SECONDS.toNanos(2));
+    timer.expire();
+  }
+
+  /**
+   * Moves the clock past the 1-second test timeout, then fires every timer the test armed: with two
+   * readers only the live watchdog's timer still runs, and a stopped one skips its fire.
+   */
+  private void expireAllPastDelay() {
+    clock.addAndGet(TimeUnit.SECONDS.toNanos(2));
+    timer.timeouts.forEach(ManualTimer.ManualTimeout::expire);
   }
 
   /** A reader that never requests, so the window holds the sink payloads it prefetched. */

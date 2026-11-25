@@ -20,6 +20,7 @@ import com.facebook.thrift.client.ResponseWrapper;
 import com.facebook.thrift.client.RpcOptions;
 import com.facebook.thrift.model.ResponseAndStream;
 import com.facebook.thrift.model.StreamResponse;
+import com.facebook.thrift.server.sink.SinkOptions;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -253,19 +254,44 @@ public class RpcServerReactiveHandler implements RPCConformanceService.Reactive 
 
   @Override
   public Mono<Response> sinkChunkTimeout(Request request, Publisher<Request> publisher) {
-    // The Java server has no sink chunk timer, so this case reads like a basic sink and stays
-    // nonconforming.
-    return Flux.from(publisher)
-        .collectList()
+    List<Request> received = new CopyOnWriteArrayList<>();
+
+    SinkOptions options =
+        SinkOptions.builder()
+            .chunkTimeout(Duration.ofMillis(instruction.getSinkChunkTimeout().getChunkTimeoutMs()))
+            .build();
+
+    return options
+        .applyTo(publisher)
+        .doOnNext(received::add)
+        .then(Mono.just(instruction.getSinkChunkTimeout().getFinalResponse()))
         .map(
-            received -> {
+            finalResponse -> {
               record(
                   ServerTestResult.fromSinkChunkTimeout(
                       new SinkChunkTimeoutServerTestResult.Builder()
                           .setRequest(request)
                           .setSinkPayloads(received)
                           .build()));
-              return instruction.getSinkChunkTimeout().getFinalResponse();
+              return finalResponse;
+            })
+        .onErrorResume(
+            TApplicationException.class,
+            e -> {
+              if (e.getType() != TApplicationException.TIMEOUT) {
+                return Mono.error(e);
+              }
+
+              record(
+                  ServerTestResult.fromSinkChunkTimeout(
+                      new SinkChunkTimeoutServerTestResult.Builder()
+                          .setRequest(request)
+                          .setSinkPayloads(received)
+                          .setChunkTimeoutException(true)
+                          .build()));
+
+              // The transport already sent the timeout ERROR, so this final is dropped.
+              return Mono.just(instruction.getSinkChunkTimeout().getFinalResponse());
             });
   }
 

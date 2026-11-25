@@ -44,6 +44,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.util.ReferenceCountUtil;
 import io.rsocket.RSocketErrorException;
+import io.rsocket.exceptions.ApplicationErrorException;
 import io.rsocket.exceptions.CanceledException;
 import io.rsocket.exceptions.InvalidException;
 import io.rsocket.exceptions.RejectedException;
@@ -57,6 +58,7 @@ import org.apache.thrift.ResponseRpcError;
 import org.apache.thrift.ResponseRpcErrorCategory;
 import org.apache.thrift.ResponseRpcErrorCode;
 import org.apache.thrift.ResponseRpcMetadata;
+import org.apache.thrift.RpcKind;
 import org.apache.thrift.StreamRpcError;
 import org.apache.thrift.StreamRpcErrorCode;
 import org.apache.thrift.TApplicationException;
@@ -206,6 +208,22 @@ public final class RocketErrorUtil {
    * with the {@code CANCELED} code.
    */
   public static RSocketErrorException streamError(StreamRpcErrorCode code, String message) {
+    return new CanceledException(streamErrorBody(code, message));
+  }
+
+  /**
+   * Returns the error a server sends when the sink of a sink or bidi call stalls: the body is a
+   * CHUNK_TIMEOUT {@link StreamRpcError} either way, but a sink carries it in an APPLICATION_ERROR
+   * frame while a bidi call carries it in a CANCELED one.
+   */
+  public static RSocketErrorException chunkTimeoutError(RpcKind kind) {
+    String body = streamErrorBody(StreamRpcErrorCode.CHUNK_TIMEOUT, "Sink chunk timeout");
+
+    return kind == RpcKind.SINK ? new ApplicationErrorException(body) : new CanceledException(body);
+  }
+
+  /** Encodes a {@link StreamRpcError} body for an ERROR frame. */
+  private static String streamErrorBody(StreamRpcErrorCode code, String message) {
     StreamRpcError error =
         new StreamRpcError.Builder()
             .setNameUtf8(code.name())
@@ -213,7 +231,7 @@ public final class RocketErrorUtil {
             .setCode(code)
             .build();
 
-    return new CanceledException(encode(error));
+    return encode(error);
   }
 
   /**
