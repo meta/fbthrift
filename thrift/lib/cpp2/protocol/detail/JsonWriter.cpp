@@ -18,6 +18,7 @@
 
 #include <cmath>
 #include <cstring>
+#include <limits>
 #include <string>
 #include <type_traits>
 #include <fmt/compile.h>
@@ -193,14 +194,14 @@ template std::uint32_t JsonWriter::writeFloatingPoint(float);
 template std::uint32_t JsonWriter::writeFloatingPoint(double);
 
 std::uint32_t JsonWriter::writeIntegral(std::integral auto t) {
-  std::uint32_t n = 0;
-  n += beginValue();
-  char buf[24];
-  auto s = std::string_view(buf, fmt::format_to(buf, FMT_COMPILE("{}"), t));
-  out_.value().push(folly::StringPiece(s));
-  n += s.size();
-  n += appendComma();
-  return n;
+  std::uint32_t n = beginValue();
+  // Formats straight into the output, with room for a sign and all digits.
+  out_.value().ensure(std::numeric_limits<decltype(t)>::digits10 + 2);
+  auto* begin = reinterpret_cast<char*>(out_.value().writableData());
+  const auto size = static_cast<std::uint32_t>(
+      fmt::format_to(begin, FMT_COMPILE("{}"), t) - begin);
+  out_.value().append(size);
+  return n + size + appendComma();
 }
 
 template std::uint32_t JsonWriter::writeIntegral(std::int8_t);
