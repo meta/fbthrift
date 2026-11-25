@@ -667,6 +667,19 @@ static size_t readVarint(int64_t& value, VarintBytes<int64_t> bytes) {
 }
 #endif
 
+// Reads a varint in place if the buffer holds the longest one, else a byte at a
+// time.
+template <typename T, class Cursor>
+FOLLY_ALWAYS_INLINE void readVarintAfterPairs(Cursor& c, T& value) {
+  constexpr size_t kMaxVarintBytes = util::detail::kVarintMaxBytes<T>;
+  if (c.length() >= kMaxVarintBytes) {
+    c.skipNoAdvance(
+        readVarint(value, VarintBytes<T>(c.data(), kMaxVarintBytes)));
+  } else {
+    util::detail::readVarintSlow(c, value);
+  }
+}
+
 // Function used with data types that are decoded from compacted zigzag
 template <class Cursor, typename T>
 static inline void readEncodedArithmeticVector(
@@ -716,12 +729,12 @@ static inline void readEncodedArithmeticVector(
       if constexpr (sizeof(T) == 2) {
         // Need to finish consuming current input buffer
         int32_t value;
-        util::detail::readVarintSlow(c, value);
+        readVarintAfterPairs(c, value);
         outputPtr[i] = (int16_t)util::detail::zigzagToSignedInt(value);
       } else {
         // Need to finish consuming current input buffer
         T value;
-        util::detail::readVarintSlow(c, value);
+        readVarintAfterPairs(c, value);
         outputPtr[i] = util::detail::zigzagToSignedInt(value);
       }
       ++i;
