@@ -1,0 +1,6 @@
+cpp_transport: py:cpp_transport src/cpp_transport/module.thrift
+future: py:future src/future/test.thrift
+hidden: py:json src/hidden/module.thrift
+kwargs: py src/kwargs/module.thrift
+sort_keys: py:sort_keys src/sort_keys/module.thrift
+service_fuzzer: py src/service_fuzzer/module.thrift

@@ -1,0 +1,3 @@
+deprecated_clear: mstch_cpp2:deprecated_clear src/deprecated_clear/module.thrift
+deprecated_enforce_required: mstch_cpp2:deprecated_enforce_required src/deprecated_enforce_required/module.thrift
+deprecated_public_required_fields: mstch_cpp2:deprecated_public_required_fields src/deprecated_public_required_fields/module.thrift

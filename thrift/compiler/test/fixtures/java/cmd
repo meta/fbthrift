@@ -1,0 +1,6 @@
+swift_annotation: mstch_java src/swift_annotation/module.thrift
+swift_int_enum: mstch_java src/swift_int_enum/module.thrift
+typedef: mstch_java src/typedef/module.thrift
+swift_bean: mstch_java src/swift_bean/module.thrift
+lazy_constants: mstch_java src/lazy_constants/module.thrift
+shapes: mstch_java src/shapes/module.thrift

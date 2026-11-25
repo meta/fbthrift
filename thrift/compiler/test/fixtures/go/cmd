@@ -1,0 +1,4 @@
+service: mstch_go src/service/module.thrift
+typedef_module0: mstch_go src/typedef/module0.thrift
+typedef_module1: mstch_go src/typedef/module1.thrift
+typedef_module2: mstch_go src/typedef/module2.thrift

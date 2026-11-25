@@ -1,0 +1,2 @@
+enum_from_string: cocoa src/enum_from_string/module.thrift
+reserved_properties_prefix: cocoa src/reserved_properties_prefix/module.thrift

@@ -1,0 +1,11 @@
+annotations: mstch_rust src/annotations/module.thrift
+default_enum_zero: mstch_rust src/default_enum_zero/module.thrift
+enum_type: mstch_rust src/enum_type/module.thrift
+extra_derives: mstch_rust src/extra_derives/mod.thrift
+fb303: mstch_rust src/fb303/module.thrift
+include_srcs: mstch_rust:types_include_srcs=impl_my_things.rs:my/other/thing.rs src/include_srcs/module.thrift
+newtype_typedef: mstch_rust src/newtype_typedef/module.thrift
+serde: mstch_rust:serde src/serde/mod.thrift
+raw_identifiers: mstch_rust src/raw_identifiers/mod.thrift
+request_context: mstch_rust src/request_context/module.thrift
+skip_none_serialization: mstch_rust:serde,skip_none_serialization src/skip_none_serialization/module.thrift
