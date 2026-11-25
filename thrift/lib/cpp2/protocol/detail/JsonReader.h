@@ -180,6 +180,7 @@ class Json5Reader final {
   bool skipComment();
   bool skipUnicodeSpace();
   void skipWhitespaceAndComments();
+  void skipWhitespaceAndCommentsLoop();
   char readChar();
   void consume(char c);
 

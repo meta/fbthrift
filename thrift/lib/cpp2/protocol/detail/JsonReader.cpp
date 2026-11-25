@@ -24,6 +24,7 @@
 #include <utility>
 
 #include <fmt/core.h>
+#include <folly/CPortability.h>
 #include <folly/Conv.h>
 #include <folly/Range.h>
 #include <folly/String.h>
@@ -408,15 +409,19 @@ bool Json5Reader::skipUnicodeSpace() {
   return true;
 }
 
-void Json5Reader::skipWhitespaceAndComments() {
+FOLLY_ALWAYS_INLINE void Json5Reader::skipWhitespaceAndComments() {
   // This runs after every token, and in compact JSON nothing follows most of
   // them, so check the one byte that would have to start whitespace or a
-  // comment (ASCII space, '/', or the lead byte of a Unicode space) before
-  // paying for the loop below.
+  // comment (ASCII space, '/', or the lead byte of a Unicode space) inline,
+  // before calling the loop.
   const char c = peekChar();
   if (!isAsciiSpace(c) && c != '/' && static_cast<unsigned char>(c) < 0x80) {
     return;
   }
+  skipWhitespaceAndCommentsLoop();
+}
+
+FOLLY_NOINLINE void Json5Reader::skipWhitespaceAndCommentsLoop() {
   do {
     cursor().skipWhile(isAsciiSpace);
     // Loop to handle adjacent comments, e.g. `/*a*//*b*/`.
