@@ -306,7 +306,7 @@ public final class RSocketRpcClient implements RpcClient {
                               return clientRequestPayloadToRSocketPayload(
                                   t, protocolType, options, false);
                             } else {
-                              return sinkPayloadToRSocketPayload(t, protocolType);
+                              return sinkPayloadToRSocketPayload(t, protocolType, options);
                             }
                           })
                       .doOnDiscard(Payload.class, ReferenceCountUtil::safeRelease);
@@ -391,17 +391,20 @@ public final class RSocketRpcClient implements RpcClient {
   }
 
   private <T> Payload sinkPayloadToRSocketPayload(
-      ClientRequestPayload<T> payload, TProtocolType protocolType) {
+      ClientRequestPayload<T> payload, TProtocolType protocolType, RpcOptions options) {
     ByteBuf data = null;
     ByteBuf metadata = null;
+
     try {
       data = alloc.buffer();
       metadata = alloc.buffer();
 
       final ByteBufTProtocol in = protocolType.apply(data);
       in.writeStructBegin(PARAMETERS_STRUCT);
+
       final Writer writer = payload.getDataWriter();
       writer.write(in);
+
       in.writeFieldStop();
       in.writeStructEnd();
 
@@ -411,12 +414,19 @@ public final class RSocketRpcClient implements RpcClient {
       // to establish the RPC. The compression field must be set on
       // StreamPayloadMetadata to match the actual compression applied
       // by createPayload.
-      final CompressionAlgorithm compression = payload.getRequestRpcMetadata().getCompression();
+      final CompressionConfig config = options == null ? null : options.getCompressionConfig();
+      final CompressionAlgorithm compression =
+          config == null
+              ? payload.getRequestRpcMetadata().getCompression()
+              : CompressionManager.algorithmFor(config, data.readableBytes());
+
       final ByteBufTProtocol metadataProtocol = TProtocolType.TCompact.apply(metadata);
       StreamPayloadMetadata.Builder streamMetadataBuilder = new StreamPayloadMetadata.Builder();
+
       if (compression != null && compression != CompressionAlgorithm.NONE) {
         streamMetadataBuilder.setCompression(compression);
       }
+
       streamMetadataBuilder.build().write0(metadataProtocol);
 
       return createPayload(alloc, compression, data, metadata);
@@ -424,9 +434,11 @@ public final class RSocketRpcClient implements RpcClient {
       if (data != null && data.refCnt() > 0) {
         data.release();
       }
+
       if (metadata != null && metadata.refCnt() > 0) {
         metadata.release();
       }
+
       throw Exceptions.propagate(t);
     }
   }
