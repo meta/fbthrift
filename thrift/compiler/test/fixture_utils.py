@@ -212,6 +212,7 @@ def _parse_fixture_cmd(
 
         base_args = [
             thrift_bin_path,
+            "-no-log-metrics",
             "-I",
             fixture_dir_abspath,
             "-I",

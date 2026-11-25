@@ -86,7 +86,7 @@ Options:
   -v[erbose]  Verbose mode
   -r[ecurse]  Also generate included files
   -debug      Parse debug trace to stdout
-  -no-log-metircs
+  -no-log-metrics
               Do not log metrics.
   --allow-neg-keys
               Allow negative field keys (IGNORED: always true).
