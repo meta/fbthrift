@@ -459,7 +459,22 @@ template Json5ProtocolReader::IdentifierReadResult<std::int16_t>
 // ============================================================================
 
 std::string Json5ProtocolReader::readStringValue() {
-  return takeStringValue(readPrimitiveOrMapKey(), "string");
+  std::string out;
+  readStringValue(out);
+  return out;
+}
+
+void Json5ProtocolReader::readStringValue(std::string& out) {
+  if (containerStack_.inObjectMapExpectingKey()) {
+    reader_.readObjectName(out);
+    containerStack_.toggleExpectingKeyValue();
+    return;
+  }
+  beginReadValue();
+  if (!reader_.tryReadString(out)) {
+    out = takeStringValue(reader_.readPrimitive(), "string");
+  }
+  endReadValue();
 }
 
 namespace {

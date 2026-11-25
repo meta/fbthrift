@@ -156,6 +156,12 @@ class Json5Reader final {
   /** Like readObjectName(), but reads into `name`, reusing its capacity. */
   void readObjectName(std::string& name);
 
+  /**
+   * If the next value is a string, reads it into `out`, reusing its capacity,
+   * and returns true. Otherwise returns false and consumes nothing.
+   */
+  bool tryReadString(std::string& out);
+
   /** Consumes the opening bracket of an array. */
   void readListBegin() { consume('['), ++depth_; }
 

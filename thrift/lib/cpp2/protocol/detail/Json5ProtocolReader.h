@@ -158,7 +158,11 @@ class Json5ProtocolReader final
 
   template <typename StrType>
   void readString(StrType& str) {
-    str = readStringValue();
+    if constexpr (std::is_same_v<StrType, std::string>) {
+      readStringValue(str);
+    } else {
+      str = readStringValue();
+    }
   }
   template <typename StrType>
   void readBinary(StrType& str) {
@@ -244,6 +248,7 @@ class Json5ProtocolReader final
   T readFloatingPointValue();
 
   std::string readStringValue();
+  void readStringValue(std::string& out);
   std::string readBinaryValue();
   // `encoding` is "utf-8", "base64" or "base64url".
   static std::string decodeBinary(

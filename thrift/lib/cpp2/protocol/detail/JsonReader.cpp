@@ -566,6 +566,18 @@ void Json5Reader::readObjectName(std::string& name) {
   consume(':');
 }
 
+bool Json5Reader::tryReadString(std::string& out) {
+  const char c = peekChar();
+  if (c != '"' && c != '\'') {
+    return false;
+  }
+  cursor().skip(1);
+  out.clear();
+  parseString(c, out);
+  expectCommaOrEnd();
+  return true;
+}
+
 // -- numbers --------------------------------------------------------------
 
 Json5Reader::Primitive Json5Reader::parseNumber(
