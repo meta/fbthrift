@@ -25,11 +25,7 @@
 
 #include <folly/CppAttributes.h>
 
-#if defined(__GNUC__) || defined(__clang__)
-#define PIPELINE_HOT_PATH __attribute__((flatten))
-#else
-#define PIPELINE_HOT_PATH
-#endif
+#define PIPELINE_HOT_PATH [[FOLLY_ATTR_GNU_FLATTEN]]
 
 // After close(), handlers have been removed and the head/tail raw pointers
 // may dangle (their owning structs can be destroyed without nulling our
