@@ -28,7 +28,7 @@
 #include <folly/coro/Sleep.h>
 #include <folly/io/async/AsyncSocket.h>
 #include <folly/io/async/EventBase.h>
-#include <folly/io/async/test/TestSSLServer.h>
+#include <folly/io/async/testing/TestSSLServer.h>
 #include <folly/stop_watch.h>
 #include <folly/test/TestUtils.h>
 #include <thrift/lib/cpp2/async/HeaderClientChannel.h>

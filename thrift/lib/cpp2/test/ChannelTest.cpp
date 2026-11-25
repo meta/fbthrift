@@ -26,7 +26,7 @@
 #include <folly/io/async/AsyncTransport.h>
 #include <folly/io/async/EventBase.h>
 #include <folly/io/async/test/SocketPair.h>
-#include <folly/io/async/test/TestSSLServer.h>
+#include <folly/io/async/testing/TestSSLServer.h>
 #include <folly/lang/Bits.h>
 #include <folly/testing/TestUtil.h>
 #include <thrift/lib/cpp2/SerializationSwitch.h>

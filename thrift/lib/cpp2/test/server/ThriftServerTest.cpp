@@ -48,7 +48,7 @@
 #include <folly/io/async/AsyncSocketException.h>
 #include <folly/io/async/AsyncTransport.h>
 #include <folly/io/async/EventBase.h>
-#include <folly/io/async/test/TestSSLServer.h>
+#include <folly/io/async/testing/TestSSLServer.h>
 #include <folly/observer/SimpleObservable.h>
 #include <folly/system/ThreadName.h>
 #include <folly/test/TestUtils.h>
