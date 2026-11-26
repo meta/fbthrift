@@ -140,9 +140,9 @@ public final class CompressionManager {
     CompressionAlgorithm algorithm;
     try {
       algorithm = fromTTransform(transformId);
-    } catch (RuntimeException e) {
+    } catch (Throwable t) {
       ReferenceCountUtil.safeRelease(data);
-      throw e;
+      throw t;
     }
 
     return decompress(algorithm, allocator, data);
@@ -185,9 +185,9 @@ public final class CompressionManager {
       CompressionAlgorithm algorithm, ByteBuf data) {
     try {
       return getCompressor(algorithm);
-    } catch (RuntimeException e) {
+    } catch (Throwable t) {
       ReferenceCountUtil.safeRelease(data);
-      throw e;
+      throw t;
     }
   }
 

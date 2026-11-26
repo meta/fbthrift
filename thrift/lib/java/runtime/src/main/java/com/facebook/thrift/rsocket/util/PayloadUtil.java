@@ -19,8 +19,10 @@ package com.facebook.thrift.rsocket.util;
 import com.facebook.thrift.compression.CompressionManager;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
+import io.netty.util.ReferenceCountUtil;
 import io.rsocket.Payload;
 import io.rsocket.util.ByteBufPayload;
+import java.util.function.BiFunction;
 import org.apache.thrift.CompressionAlgorithm;
 
 public final class PayloadUtil {
@@ -28,19 +30,46 @@ public final class PayloadUtil {
 
   /**
    * Creates a Payload, compressing data if a compression algorithm is specified. Takes ownership of
-   * the data buffer (it will be released if compression occurs).
+   * both buffers: the Payload owns them on success, and both are released on failure.
    */
   public static Payload createPayload(
       final ByteBufAllocator alloc,
       final CompressionAlgorithm algorithm,
       final ByteBuf data,
       final ByteBuf metadata) {
-    ByteBuf payloadData = CompressionManager.compress(algorithm, alloc, data);
-    return ByteBufPayload.create(payloadData, metadata);
+    return createPayload(alloc, algorithm, data, metadata, ByteBufPayload::create);
   }
 
+  static Payload createPayload(
+      final ByteBufAllocator alloc,
+      final CompressionAlgorithm algorithm,
+      final ByteBuf data,
+      final ByteBuf metadata,
+      final BiFunction<ByteBuf, ByteBuf, Payload> factory) {
+    ByteBuf payloadData = null;
+
+    try {
+      payloadData = CompressionManager.compress(algorithm, alloc, data);
+      return factory.apply(payloadData, metadata);
+    } catch (Throwable t) {
+      ReferenceCountUtil.safeRelease(payloadData);
+      ReferenceCountUtil.safeRelease(metadata);
+      throw t;
+    }
+  }
+
+  /**
+   * Creates an uncompressed Payload. Takes ownership of both buffers: the Payload owns them on
+   * success, and both are released on failure.
+   */
   public static Payload createPayload(final ByteBuf data, final ByteBuf metadata) {
-    return ByteBufPayload.create(data, metadata);
+    try {
+      return ByteBufPayload.create(data, metadata);
+    } catch (Throwable t) {
+      ReferenceCountUtil.safeRelease(data);
+      ReferenceCountUtil.safeRelease(metadata);
+      throw t;
+    }
   }
 
   /**

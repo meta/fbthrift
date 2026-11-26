@@ -375,18 +375,23 @@ public final class RSocketRpcClient implements RpcClient {
               payload.getRequestRpcMetadata(), options, data.readableBytes(), expectResponse);
       requestMetadata.write0(TProtocolType.TCompact.apply(metadata));
 
-      return createPayload(alloc, requestMetadata.getCompression(), data, metadata);
+      ByteBuf d = data;
+      ByteBuf m = metadata;
 
+      data = null;
+      metadata = null;
+
+      return createPayload(alloc, requestMetadata.getCompression(), d, m);
     } catch (Throwable t) {
+      throw Exceptions.propagate(t);
+    } finally {
       if (data != null && data.refCnt() > 0) {
-        data.release();
+        ReferenceCountUtil.safeRelease(data);
       }
 
       if (metadata != null && metadata.refCnt() > 0) {
-        metadata.release();
+        ReferenceCountUtil.safeRelease(metadata);
       }
-
-      throw Exceptions.propagate(t);
     }
   }
 
@@ -435,17 +440,23 @@ public final class RSocketRpcClient implements RpcClient {
 
       streamMetadataBuilder.build().write0(metadataProtocol);
 
-      return createPayload(alloc, compression, data, metadata);
+      ByteBuf d = data;
+      ByteBuf m = metadata;
+
+      data = null;
+      metadata = null;
+
+      return createPayload(alloc, compression, d, m);
     } catch (Throwable t) {
+      throw Exceptions.propagate(t);
+    } finally {
       if (data != null && data.refCnt() > 0) {
-        data.release();
+        ReferenceCountUtil.safeRelease(data);
       }
 
       if (metadata != null && metadata.refCnt() > 0) {
-        metadata.release();
+        ReferenceCountUtil.safeRelease(metadata);
       }
-
-      throw Exceptions.propagate(t);
     }
   }
 

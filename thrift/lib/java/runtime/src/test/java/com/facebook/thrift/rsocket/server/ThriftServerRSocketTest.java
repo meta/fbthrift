@@ -20,6 +20,9 @@ import static com.facebook.thrift.rsocket.util.RocketErrorUtil.decodeRocketError
 import static com.facebook.thrift.rsocket.util.RocketErrorUtil.isRocketError;
 import static com.facebook.thrift.rsocket.util.RocketErrorUtil.toApplicationException;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.AdditionalAnswers.delegatesTo;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.facebook.nifty.core.NiftyConnectionContext;
 import com.facebook.nifty.core.RequestContext;
@@ -51,6 +54,7 @@ import com.facebook.thrift.test.rocket.TestResponse;
 import com.facebook.thrift.test.rocket.TestServerException;
 import com.facebook.thrift.test.rocket.TestService;
 import com.facebook.thrift.util.NettyNiftyRequestContext;
+import com.facebook.thrift.util.NettyUtil;
 import com.facebook.thrift.util.RpcPayloadUtil;
 import com.facebook.thrift.util.TestResponseWriters;
 import com.facebook.thrift.util.TestResponseWriters.CountingAllocator;
@@ -61,13 +65,17 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.CompositeByteBuf;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.buffer.Unpooled;
 import io.netty.util.ReferenceCountUtil;
 import io.rsocket.Payload;
 import io.rsocket.RSocketErrorException;
 import io.rsocket.exceptions.ApplicationErrorException;
 import io.rsocket.frame.ErrorFrameCodec;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -3273,5 +3281,56 @@ public class ThriftServerRSocketTest {
     TProtocol out = TProtocolType.fromProtocolId(protocolId).apply(buf);
     writer.write(out);
     return buf;
+  }
+
+  @Test
+  public void testThrowingWriterReleasesResponseData() throws Exception {
+    List<ByteBuf> allocated = new ArrayList<>();
+    ByteBufAllocator recording = mock(ByteBufAllocator.class, delegatesTo(alloc));
+
+    when(recording.directBuffer())
+        .thenAnswer(
+            invocation -> {
+              ByteBuf buf = PooledByteBufAllocator.DEFAULT.directBuffer();
+              allocated.add(buf);
+              return buf;
+            });
+
+    Writer writer =
+        out -> {
+          NettyUtil.releaseIfByteBufTProtocol(out);
+          throw new TException("boom");
+        };
+
+    ServerResponsePayload response =
+        new DefaultServerResponsePayload(
+            writer, new ResponseRpcMetadata.Builder().build(), null, false, null);
+
+    RequestRpcMetadata metadata =
+        new RequestRpcMetadata.Builder()
+            .setProtocol(ProtocolId.BINARY)
+            .setName("m")
+            .setKind(RpcKind.SINGLE_REQUEST_SINGLE_RESPONSE)
+            .build();
+    ServerRequestPayload request =
+        ServerRequestPayload.create(readers -> Collections.emptyList(), metadata, null);
+
+    Method handle =
+        ThriftServerRSocket.class.getDeclaredMethod(
+            "handleResponse",
+            ByteBufAllocator.class,
+            ServerRequestPayload.class,
+            ServerResponsePayload.class);
+    handle.setAccessible(true);
+
+    try {
+      handle.invoke(null, recording, request, response);
+      fail("handle must propagate the writer failure");
+    } catch (InvocationTargetException expected) {
+      assertTrue(expected.getCause().getMessage().contains("boom"));
+    }
+
+    assertEquals(1, allocated.size());
+    assertEquals(0, allocated.get(0).refCnt());
   }
 }

@@ -50,8 +50,10 @@ public final class ZlibCompressor implements ThriftCompressor {
   public ByteBuf compress(ByteBufAllocator allocator, ByteBuf data) {
     ByteBuf output = null;
     boolean cached = Thread.currentThread() instanceof FastThreadLocalThread;
-    Deflater deflater = cached ? acquireDeflater() : new Deflater();
+    Deflater deflater = null;
+
     try {
+      deflater = cached ? acquireDeflater() : new Deflater();
       byte[] input = ByteBufUtil.getBytes(data, data.readerIndex(), data.readableBytes(), false);
       deflater.setInput(input);
       deflater.finish();
@@ -68,10 +70,13 @@ public final class ZlibCompressor implements ThriftCompressor {
       throw exception;
     } finally {
       ReferenceCountUtil.safeRelease(data);
-      if (cached) {
-        deflater.reset();
-      } else {
-        deflater.end();
+
+      if (deflater != null) {
+        if (cached) {
+          deflater.reset();
+        } else {
+          deflater.end();
+        }
       }
     }
   }
@@ -80,8 +85,10 @@ public final class ZlibCompressor implements ThriftCompressor {
   public ByteBuf decompress(ByteBufAllocator allocator, ByteBuf data) {
     ByteBuf output = null;
     boolean cached = Thread.currentThread() instanceof FastThreadLocalThread;
-    Inflater inflater = cached ? acquireInflater() : new Inflater();
+    Inflater inflater = null;
+
     try {
+      inflater = cached ? acquireInflater() : new Inflater();
       byte[] input = ByteBufUtil.getBytes(data, data.readerIndex(), data.readableBytes(), false);
       inflater.setInput(input);
 
@@ -103,10 +110,13 @@ public final class ZlibCompressor implements ThriftCompressor {
       throw exception;
     } finally {
       ReferenceCountUtil.safeRelease(data);
-      if (cached) {
-        inflater.reset();
-      } else {
-        inflater.end();
+
+      if (inflater != null) {
+        if (cached) {
+          inflater.reset();
+        } else {
+          inflater.end();
+        }
       }
     }
   }
