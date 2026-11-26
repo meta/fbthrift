@@ -17,18 +17,23 @@
 #pragma once
 
 #include <folly/CppAttributes.h>
+#include <folly/Executor.h>
 #include <folly/io/async/DelayedDestruction.h>
 #include <folly/io/async/DelayedDestructionBase.h>
 #include <folly/io/async/EventBase.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/BufferAllocator.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/EndpointAdapter.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/EvbExecutionDomain.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Event.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineRef.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/PipelineStorage.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ContextImpl.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/HandlerNode.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/ReadyWaiters.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/detail/TypedContext.h>
+
+#include <glog/logging.h>
 
 #include <algorithm>
 #include <cstddef>
@@ -39,6 +44,7 @@
 #include <stdexcept>
 #include <tuple>
 #include <type_traits>
+#include <typeinfo>
 #include <utility>
 #include <vector>
 
@@ -51,6 +57,13 @@ namespace detail {
 class HeapPipelineImpl;
 template <std::size_t MaxHandlers>
 class InlinePipelineImpl;
+
+using HandlerNodeBase = HandlerNode;
+
+constexpr std::size_t alignPipelineStorage(
+    std::size_t size, std::size_t alignment) noexcept {
+  return (size + alignment - 1) & ~(alignment - 1);
+}
 
 /**
  * Describes how to construct and destroy a pipeline-owned endpoint (head/tail)
@@ -152,30 +165,106 @@ void prepareOwnedEndpoint(EndpointSource& src, Args&&... args) {
       [](void* p) noexcept { delete static_cast<T*>(p); }};
   src.ops = &kOps;
 }
+
+struct ExecutionDomainOps {
+  const std::type_info& type;
+  std::size_t size;
+  std::size_t alignment;
+  void (*construct)(void* storage, void* source);
+  void (*destroy)(void*) noexcept;
+};
+
+struct ExecutionDomainSource {
+  const ExecutionDomainOps& ops;
+  void* object;
+};
+
+template <ExecutionDomain D>
+ExecutionDomainSource executionDomainSource(
+    std::type_identity_t<D>&& domain) noexcept {
+  static const ExecutionDomainOps ops{
+      typeid(D),
+      sizeof(D),
+      alignof(D),
+      [](void* storage, void* source) {
+        std::construct_at(
+            static_cast<D*>(storage), std::move(*static_cast<D*>(source)));
+      },
+      [](void* domain) noexcept { std::destroy_at(static_cast<D*>(domain)); }};
+  return {ops, std::addressof(domain)};
+}
+
+class OwnedExecutionDomain {
+ public:
+  OwnedExecutionDomain(ExecutionDomainSource source, void* storage)
+      : storage_(storage), ops_(&source.ops) {
+    ops_->construct(storage_, source.object);
+  }
+
+  OwnedExecutionDomain(const OwnedExecutionDomain&) = delete;
+  OwnedExecutionDomain& operator=(const OwnedExecutionDomain&) = delete;
+  OwnedExecutionDomain(OwnedExecutionDomain&&) = delete;
+  OwnedExecutionDomain& operator=(OwnedExecutionDomain&&) = delete;
+
+  ~OwnedExecutionDomain() { ops_->destroy(storage_); }
+
+  folly::EventBase* eventBase() const noexcept {
+    if (ops_->type == typeid(EvbExecutionDomain)) {
+      return static_cast<const EvbExecutionDomain*>(storage_)->getExecutor();
+    }
+    return nullptr;
+  }
+
+  void* get(const std::type_info& type) const noexcept {
+    CHECK(type == ops_->type)
+        << "Context execution domain type does not match pipeline";
+    return storage_;
+  }
+
+ private:
+  void* storage_;
+  const ExecutionDomainOps* ops_;
+};
 } // namespace detail
 
-/**
- * PipelineImpl is the concrete implementation of the Pipeline concept.
- *
- * The pipeline owns all handlers and their contexts. It provides:
- * - Fire from head/tail: fireRead/fireWrite to start the chain
- * - Fire to specific handler: sendRead/sendWrite by handler ID
- * - Context lookup: context(id) to get a handler's context
- * - Head/Tail integration: Routes to head and tail endpoint adapters
- * - Backpressure tracking: Tracks which handlers have pending ready callbacks
- *
- * Handlers are stored in a contiguous array for cache friendliness.
- * Contexts are stored in parallel (one per handler).
- *
- * Inherits from DelayedDestruction for safe async cleanup. This ensures the
- * pipeline is not destroyed while handler callbacks are executing. All methods
- * that invoke callbacks use DestructorGuard to defer destruction.
- */
+/** Shared dynamic dispatch, context storage and lifecycle implementation. */
 class alignas(detail::ContextImpl) PipelineImpl
     : public folly::DelayedDestruction {
  public:
-  using Ptr = folly::DelayedDestructionUniquePtr<PipelineImpl>;
   using Guard = folly::DelayedDestruction::DestructorGuard;
+  using Ptr = folly::DelayedDestructionUniquePtr<PipelineImpl>;
+
+  template <typename Storage, typename HandlerContainer>
+  static Ptr create(
+      folly::EventBase* eventBase,
+      HandlerContainer&& handlers,
+      detail::EndpointSource headHandler,
+      detail::EndpointSource tailHandler,
+      detail::EndpointSource allocator) {
+    return createImpl<Storage>(
+        detail::executionDomainSource<EvbExecutionDomain>(
+            EvbExecutionDomain(*CHECK_NOTNULL(eventBase))),
+        std::forward<HandlerContainer>(handlers),
+        std::move(headHandler),
+        std::move(tailHandler),
+        std::move(allocator));
+  }
+
+  folly::EventBase* eventBase() const noexcept;
+
+  template <ExecutionDomain D = EvbExecutionDomain>
+  D& executionDomain() noexcept {
+    return *static_cast<D*>(contextExecutionDomain(typeid(D)));
+  }
+
+  template <ExecutionDomain D = EvbExecutionDomain>
+  const D& executionDomain() const noexcept {
+    return *static_cast<const D*>(contextExecutionDomain(typeid(D)));
+  }
+
+  template <typename EventSet>
+    requires kIsEventSet<EventSet>
+  EventPublisherHandle<EventSet> bindEvents() noexcept;
 
   /**
    * Pipeline lifecycle state.
@@ -198,14 +287,6 @@ class alignas(detail::ContextImpl) PipelineImpl
     Active,
     Closed,
   };
-
-  template <typename Storage, typename HandlerContainer>
-  static Ptr create(
-      folly::EventBase* eventBase,
-      HandlerContainer&& handlers,
-      detail::EndpointSource headHandler,
-      detail::EndpointSource tailHandler,
-      detail::EndpointSource allocator);
 
   // Non-copyable
   PipelineImpl(const PipelineImpl&) = delete;
@@ -258,9 +339,6 @@ class alignas(detail::ContextImpl) PipelineImpl
     fireTypeEvent(eventKey<E>(), &payload);
   }
 
-  template <typename EventSet>
-    requires kIsEventSet<EventSet>
-  EventPublisherHandle<EventSet> bindEvents() noexcept;
   BoundEventRoute bindEvent(EventKey key) noexcept;
   void fireBoundEvent(BoundEventRoute route, const void* payload) noexcept;
 
@@ -418,11 +496,6 @@ class alignas(detail::ContextImpl) PipelineImpl
    */
   BytesPtr takeOwnership(OwnedBuffer buffer) noexcept;
 
-  /**
-   * Get the EventBase this pipeline runs on.
-   */
-  folly::EventBase* eventBase() const noexcept { return eventBase_; }
-
   /** Return whether the pipeline has completed handler removal. */
   bool isClosed() const noexcept { return state_ == State::Closed; }
 
@@ -502,12 +575,22 @@ class alignas(detail::ContextImpl) PipelineImpl
   }
 
  protected:
+  struct Allocation {
+    std::size_t extraBytes;
+    std::size_t alignment;
+  };
+
+  static void* operator new(std::size_t size, Allocation allocation);
+  static void operator delete(void* ptr, Allocation) noexcept;
+  static void operator delete(void* ptr) noexcept;
+
   PipelineImpl(
-      folly::EventBase* eventBase,
+      detail::ExecutionDomainSource domain,
+      void* domainStorage,
       std::size_t handlerCount,
       void* headHandler,
       void* tailHandler,
-      void* allocator) noexcept;
+      void* allocator);
 
   // Protected destructor - must use destroy() or Ptr for cleanup.
   // Called via DelayedDestruction when guardCount reaches zero.
@@ -529,6 +612,18 @@ class alignas(detail::ContextImpl) PipelineImpl
   }
 
  private:
+  template <typename Storage, typename HandlerContainer>
+  static Ptr createImpl(
+      detail::ExecutionDomainSource domain,
+      HandlerContainer&& handlers,
+      detail::EndpointSource headHandler,
+      detail::EndpointSource tailHandler,
+      detail::EndpointSource allocator);
+
+  void* contextExecutionDomain(
+      const std::type_info& requestedType) const noexcept;
+  folly::EventBase* contextEventBase() const noexcept;
+
   detail::ReadyWaiters& writeReadyWaiters() noexcept {
     return writeReadyWaiters_;
   }
@@ -549,6 +644,12 @@ class alignas(detail::ContextImpl) PipelineImpl
     std::size_t subscriberCount{0};
   };
 
+  void initializeEndpointAllocator(void* allocator) noexcept {
+    allocator_ = allocator;
+    headCtx_.allocator_ = allocator;
+    tailCtx_.allocator_ = allocator;
+  }
+
   TypeEventSlot* findTypeEventSlot(EventKey key) noexcept;
   void fireTypeEvent(EventKey key, const void* payload) noexcept;
   const void* FOLLY_NULLABLE bindTypeEvent(EventKey key) noexcept;
@@ -564,7 +665,7 @@ class alignas(detail::ContextImpl) PipelineImpl
   size_t lookupHandler(HandlerId handlerId) const noexcept;
 
   void initializeStorageViews(
-      std::span<detail::HandlerNode> handlers,
+      std::span<detail::HandlerNodeBase> handlers,
       std::span<detail::ContextImpl> contexts,
       std::span<HandlerIndexEntry> handlerMap) noexcept;
   void linkTypeEventLists() noexcept;
@@ -577,11 +678,12 @@ class alignas(detail::ContextImpl) PipelineImpl
   void callHandlerRemovedImpl() noexcept;
   void propagatePipelineState() noexcept;
 
-  // Validate a bind peer: non-empty and sharing this pipeline's EventBase.
   void checkBindPeer(PipelineRef peer) const noexcept;
 
-  folly::EventBase* eventBase_;
-  std::span<detail::HandlerNode> handlers_;
+  // The domain outlives contexts, owned endpoints, and bound peers.
+  detail::OwnedExecutionDomain domain_;
+
+  std::span<detail::HandlerNodeBase> handlers_;
   std::span<detail::ContextImpl> contexts_;
   std::span<HandlerIndexEntry> handlerMap_;
   detail::ContextImpl headCtx_;
@@ -631,12 +733,12 @@ class alignas(detail::ContextImpl) PipelineImpl
   // Cached entry-point dispatch for fireRead/fireWrite hot paths.
   // Points directly to the read-entry/write-entry handler's function pointer,
   // eliminating the vector index on the entry path.
-  detail::HandlerNode::OnReadFn firstReadFn_{nullptr};
-  detail::HandlerNode::OnExceptionFn firstExceptionFn_{nullptr};
+  detail::HandlerNodeBase::OnReadFn firstReadFn_{nullptr};
+  detail::HandlerNodeBase::OnExceptionFn firstExceptionFn_{nullptr};
   void* firstHandler_{nullptr};
   detail::ContextImpl* firstCtx_{nullptr};
 
-  detail::HandlerNode::OnWriteFn lastWriteFn_{nullptr};
+  detail::HandlerNodeBase::OnWriteFn lastWriteFn_{nullptr};
   void* lastHandler_{nullptr};
   detail::ContextImpl* lastCtx_{nullptr};
 
@@ -711,33 +813,76 @@ class alignas(detail::ContextImpl) PipelineImpl
 
   // ContextImpl needs access to ready waiters for registration
   friend class detail::ContextImpl;
-  template <typename EventSet>
-  friend class EventPublisherHandle;
 };
 
 namespace detail {
 
 class HeapPipelineImpl final : public PipelineImpl {
+  using Base = PipelineImpl;
+  using Base::allocator_;
+  using Base::contexts_;
+  using Base::handlerMap_;
+  using Base::handlers_;
+  using Base::headHandler_;
+  using Base::initializeEndpointAllocator;
+  using Base::initializeStorageViews;
+  using Base::ownedAllocator_;
+  using Base::ownedAllocatorDeleter_;
+  using Base::ownedHead_;
+  using Base::ownedHeadDeleter_;
+  using Base::ownedTail_;
+  using Base::ownedTailDeleter_;
+  using Base::tailHandler_;
+  using typename Base::HandlerIndexEntry;
+
  public:
-  HeapPipelineImpl(
-      folly::EventBase* eventBase,
-      std::vector<HandlerNode> handlers,
+  static HeapPipelineImpl* create(
+      ExecutionDomainSource domain,
+      std::vector<HandlerNodeBase> handlers,
       EndpointSource headHandler,
       EndpointSource tailHandler,
-      EndpointSource allocator)
+      EndpointSource allocator) {
+    const auto domainOffset =
+        alignPipelineStorage(sizeof(HeapPipelineImpl), domain.ops.alignment);
+    const auto alignment =
+        std::max(alignof(HeapPipelineImpl), domain.ops.alignment);
+    return new (Allocation{
+        domainOffset + domain.ops.size - sizeof(HeapPipelineImpl), alignment})
+        HeapPipelineImpl(
+            domain,
+            std::move(handlers),
+            std::move(headHandler),
+            std::move(tailHandler),
+            std::move(allocator),
+            domainOffset);
+  }
+
+ private:
+  HeapPipelineImpl(
+      ExecutionDomainSource domain,
+      std::vector<HandlerNodeBase> handlers,
+      EndpointSource headHandler,
+      EndpointSource tailHandler,
+      EndpointSource allocator,
+      std::size_t domainOffset)
       : PipelineImpl(
-            eventBase,
+            domain,
+            reinterpret_cast<std::byte*>(this) + domainOffset,
             handlers.size(),
-            resolveHeapEndpoint(headHandler),
-            resolveHeapEndpoint(tailHandler),
-            resolveHeapEndpoint(allocator)),
+            headHandler.external,
+            tailHandler.external,
+            allocator.external),
         handlerStorage_(std::move(handlers)) {
+    headHandler_ = resolveHeapEndpoint(headHandler);
     recordOwnedHeapEndpoint(
         ownedHead_, ownedHeadDeleter_, headHandler, headHandler_);
+    tailHandler_ = resolveHeapEndpoint(tailHandler);
     recordOwnedHeapEndpoint(
         ownedTail_, ownedTailDeleter_, tailHandler, tailHandler_);
+    auto* resolvedAllocator = resolveHeapEndpoint(allocator);
     recordOwnedHeapEndpoint(
-        ownedAllocator_, ownedAllocatorDeleter_, allocator, allocator_);
+        ownedAllocator_, ownedAllocatorDeleter_, allocator, resolvedAllocator);
+    initializeEndpointAllocator(resolvedAllocator);
     for (auto& handler : handlerStorage_) {
       if (const auto* constructionOps = handler.pendingConstructionOps()) {
         constructionOps->constructHeap(handler);
@@ -748,7 +893,7 @@ class HeapPipelineImpl final : public PipelineImpl {
     handlerIndexStorage_.reserve(handlerStorage_.size());
     for (std::size_t i = 0; i < handlerStorage_.size(); ++i) {
       contextStorage_.emplace_back(
-          this, eventBase, allocator_, i, handlerStorage_[i].handlerId);
+          this, allocator_, i, handlerStorage_[i].handlerId);
       handlerIndexStorage_.emplace_back(handlerStorage_[i].handlerId, i);
     }
     contextStorage_.shrink_to_fit();
@@ -758,7 +903,6 @@ class HeapPipelineImpl final : public PipelineImpl {
         handlerStorage_, contextStorage_, handlerIndexStorage_);
   }
 
- private:
   // Resolve an endpoint source to an object pointer: the external pointer, or a
   // freshly heap-constructed owned object.
   static void* resolveHeapEndpoint(EndpointSource& src) {
@@ -778,16 +922,29 @@ class HeapPipelineImpl final : public PipelineImpl {
     }
   }
 
-  std::vector<HandlerNode> handlerStorage_;
+  std::vector<HandlerNodeBase> handlerStorage_;
   std::vector<ContextImpl> contextStorage_;
   std::vector<HandlerIndexEntry> handlerIndexStorage_;
 };
 
 template <std::size_t MaxHandlers>
-class alignas(ContextImpl) InlinePipelineImpl final : public PipelineImpl {
-  struct Allocation {
-    std::size_t extraBytes;
-  };
+class InlinePipelineImpl final : public PipelineImpl {
+  using Base = PipelineImpl;
+  using Base::allocator_;
+  using Base::contexts_;
+  using Base::handlerMap_;
+  using Base::handlers_;
+  using Base::headHandler_;
+  using Base::initializeEndpointAllocator;
+  using Base::initializeStorageViews;
+  using Base::ownedAllocator_;
+  using Base::ownedAllocatorDeleter_;
+  using Base::ownedHead_;
+  using Base::ownedHeadDeleter_;
+  using Base::ownedTail_;
+  using Base::ownedTailDeleter_;
+  using Base::tailHandler_;
+  using typename Base::HandlerIndexEntry;
 
   struct Layout {
     std::size_t handlersOffset;
@@ -799,13 +956,15 @@ class alignas(ContextImpl) InlinePipelineImpl final : public PipelineImpl {
     std::size_t headOffset;
     std::size_t tailOffset;
     std::size_t allocatorOffset;
+    std::size_t domainOffset;
     std::size_t allocationSize;
+    std::size_t alignment;
   };
 
  public:
   template <typename HandlerContainer>
   static InlinePipelineImpl* create(
-      folly::EventBase* eventBase,
+      ExecutionDomainSource domain,
       HandlerContainer&& handlers,
       EndpointSource headHandler,
       EndpointSource tailHandler,
@@ -817,10 +976,12 @@ class alignas(ContextImpl) InlinePipelineImpl final : public PipelineImpl {
         std::forward<HandlerContainer>(handlers),
         headHandler,
         tailHandler,
-        allocator);
-    return new (Allocation{layout.allocationSize - sizeof(InlinePipelineImpl)})
+        allocator,
+        domain.ops);
+    return new (Allocation{
+        layout.allocationSize - sizeof(InlinePipelineImpl), layout.alignment})
         InlinePipelineImpl(
-            eventBase,
+            domain,
             std::forward<HandlerContainer>(handlers),
             std::move(headHandler),
             std::move(tailHandler),
@@ -839,31 +1000,18 @@ class alignas(ContextImpl) InlinePipelineImpl final : public PipelineImpl {
   InlinePipelineImpl(InlinePipelineImpl&&) = delete;
   InlinePipelineImpl& operator=(InlinePipelineImpl&&) = delete;
 
-  static void* operator new(std::size_t size, Allocation allocation) {
-    return ::operator new(
-        size + allocation.extraBytes,
-        std::align_val_t{alignof(InlinePipelineImpl)});
-  }
-
-  static void operator delete(void* ptr, Allocation) noexcept {
-    ::operator delete(ptr, std::align_val_t{alignof(InlinePipelineImpl)});
-  }
-
-  static void operator delete(void* ptr) noexcept {
-    ::operator delete(ptr, std::align_val_t{alignof(InlinePipelineImpl)});
-  }
-
  private:
   template <typename HandlerContainer>
   InlinePipelineImpl(
-      folly::EventBase* eventBase,
+      ExecutionDomainSource domain,
       HandlerContainer&& sourceHandlers,
       EndpointSource headHandler,
       EndpointSource tailHandler,
       EndpointSource allocator,
       Layout layout)
       : PipelineImpl(
-            eventBase,
+            domain,
+            reinterpret_cast<std::byte*>(this) + layout.domainOffset,
             sourceHandlers.size(),
             endpointBasePtr(this, headHandler, layout.headOffset),
             endpointBasePtr(this, tailHandler, layout.tailOffset),
@@ -883,7 +1031,7 @@ class alignas(ContextImpl) InlinePipelineImpl final : public PipelineImpl {
         ownedAllocator_,
         ownedAllocatorDeleter_);
     auto* handlerData =
-        reinterpret_cast<HandlerNode*>(bytes + layout.handlersOffset);
+        reinterpret_cast<HandlerNodeBase*>(bytes + layout.handlersOffset);
     auto* contextData =
         reinterpret_cast<ContextImpl*>(bytes + layout.contextsOffset);
     auto* handlerIndexData =
@@ -902,19 +1050,14 @@ class alignas(ContextImpl) InlinePipelineImpl final : public PipelineImpl {
         ++handlersConstructed;
         if (const auto* constructionOps =
                 handlerData[i].pendingConstructionOps()) {
-          inlineHandlerOffset =
-              alignUp(inlineHandlerOffset, constructionOps->alignment);
+          inlineHandlerOffset = alignPipelineStorage(
+              inlineHandlerOffset, constructionOps->alignment);
           constructionOps->constructInline(
               handlerData[i], bytes + inlineHandlerOffset);
           inlineHandlerOffset += constructionOps->size;
         }
         std::construct_at(
-            contextData + i,
-            this,
-            eventBase,
-            allocator_,
-            i,
-            handlerData[i].handlerId);
+            contextData + i, this, allocator_, i, handlerData[i].handlerId);
         ++contextsConstructed;
         std::construct_at(handlerIndexData + i, handlerData[i].handlerId, i);
         ++handlerIndexesConstructed;
@@ -929,14 +1072,9 @@ class alignas(ContextImpl) InlinePipelineImpl final : public PipelineImpl {
       throw;
     }
     initializeStorageViews(
-        std::span<HandlerNode>{handlerData, count},
+        std::span<HandlerNodeBase>{handlerData, count},
         std::span<ContextImpl>{contextData, count},
         std::span<HandlerIndexEntry>{handlerIndexData, count});
-  }
-
-  static constexpr std::size_t alignUp(
-      std::size_t size, std::size_t alignment) noexcept {
-    return (size + alignment - 1) & ~(alignment - 1);
   }
 
   // Base pointer for an endpoint: its reserved slot inside this allocation when
@@ -967,37 +1105,39 @@ class alignas(ContextImpl) InlinePipelineImpl final : public PipelineImpl {
       const HandlerContainer& handlers,
       const EndpointSource& headHandler,
       const EndpointSource& tailHandler,
-      const EndpointSource& allocator) noexcept {
+      const EndpointSource& allocator,
+      const ExecutionDomainOps& domain) noexcept {
     const auto handlerCount = handlers.size();
-    const auto handlersOffset =
-        alignUp(sizeof(InlinePipelineImpl), alignof(HandlerNode));
-    const auto contextsOffset = alignUp(
-        handlersOffset + handlerCount * sizeof(HandlerNode),
+    const auto handlersOffset = alignPipelineStorage(
+        sizeof(InlinePipelineImpl), alignof(HandlerNodeBase));
+    const auto contextsOffset = alignPipelineStorage(
+        handlersOffset + handlerCount * sizeof(HandlerNodeBase),
         alignof(ContextImpl));
-    const auto handlerIndexOffset = alignUp(
+    const auto handlerIndexOffset = alignPipelineStorage(
         contextsOffset + handlerCount * sizeof(ContextImpl),
         alignof(HandlerIndexEntry));
     const auto inlineHandlersOffset =
         handlerIndexOffset + handlerCount * sizeof(HandlerIndexEntry);
     auto allocationSize = inlineHandlersOffset;
-    for (const auto& handler : handlers) {
-      if (const auto* storageOps = handler.pendingConstructionOps()) {
-        allocationSize = alignUp(allocationSize, storageOps->alignment);
-        allocationSize += storageOps->size;
-      }
-    }
-    const auto reserve = [&allocationSize](const EndpointSource& src) {
-      std::size_t offset = 0;
-      if (src.ops) {
-        allocationSize = alignUp(allocationSize, src.ops->alignment);
-        offset = allocationSize;
-        allocationSize += src.ops->size;
-      }
+    auto alignment = alignof(InlinePipelineImpl);
+    const auto reserve = [&](std::size_t size, std::size_t objectAlignment) {
+      alignment = std::max(alignment, objectAlignment);
+      const auto offset = alignPipelineStorage(allocationSize, objectAlignment);
+      allocationSize = offset + size;
       return offset;
     };
-    const auto headOffset = reserve(headHandler);
-    const auto tailOffset = reserve(tailHandler);
-    const auto allocatorOffset = reserve(allocator);
+    for (const auto& handler : handlers) {
+      if (const auto* storageOps = handler.pendingConstructionOps()) {
+        reserve(storageOps->size, storageOps->alignment);
+      }
+    }
+    const auto reserveEndpoint = [&](const EndpointSource& src) {
+      return src.ops ? reserve(src.ops->size, src.ops->alignment) : 0;
+    };
+    const auto headOffset = reserveEndpoint(headHandler);
+    const auto tailOffset = reserveEndpoint(tailHandler);
+    const auto allocatorOffset = reserveEndpoint(allocator);
+    const auto domainOffset = reserve(domain.size, domain.alignment);
     return {
         handlersOffset,
         contextsOffset,
@@ -1006,15 +1146,34 @@ class alignas(ContextImpl) InlinePipelineImpl final : public PipelineImpl {
         headOffset,
         tailOffset,
         allocatorOffset,
-        allocationSize};
+        domainOffset,
+        allocationSize,
+        alignment};
   }
 };
+
+template <typename HandlerContainer>
+std::vector<HandlerNodeBase> makeHeapHandlerStorage(
+    HandlerContainer&& handlers) {
+  if constexpr (std::same_as<
+                    std::remove_cvref_t<HandlerContainer>,
+                    std::vector<HandlerNodeBase>>) {
+    return std::forward<HandlerContainer>(handlers);
+  } else {
+    std::vector<HandlerNodeBase> result;
+    result.reserve(handlers.size());
+    for (auto& handler : handlers) {
+      result.push_back(std::move(handler));
+    }
+    return result;
+  }
+}
 
 } // namespace detail
 
 template <typename Storage, typename HandlerContainer>
-PipelineImpl::Ptr PipelineImpl::create(
-    folly::EventBase* eventBase,
+PipelineImpl::Ptr PipelineImpl::createImpl(
+    detail::ExecutionDomainSource domain,
     HandlerContainer&& handlers,
     detail::EndpointSource headHandler,
     detail::EndpointSource tailHandler,
@@ -1024,43 +1183,45 @@ PipelineImpl::Ptr PipelineImpl::create(
       "Storage must be a pipeline_storage flavor");
   if constexpr (std::same_as<Storage, pipeline_storage::Automatic>) {
     if (handlers.size() <= pipeline_storage::Small::maxHandlers) {
-      return create<pipeline_storage::Small>(
-          eventBase,
+      return createImpl<pipeline_storage::Small>(
+          domain,
           std::forward<HandlerContainer>(handlers),
           std::move(headHandler),
           std::move(tailHandler),
           std::move(allocator));
     }
     if (handlers.size() <= pipeline_storage::Medium::maxHandlers) {
-      return create<pipeline_storage::Medium>(
-          eventBase,
+      return createImpl<pipeline_storage::Medium>(
+          domain,
           std::forward<HandlerContainer>(handlers),
           std::move(headHandler),
           std::move(tailHandler),
           std::move(allocator));
     }
-    std::vector<detail::HandlerNode> heapHandlers;
+    std::vector<detail::HandlerNodeBase> heapHandlers;
     heapHandlers.reserve(handlers.size());
     for (auto& handler : handlers) {
       heapHandlers.push_back(std::move(handler));
     }
-    return create<pipeline_storage::Large>(
-        eventBase,
+    return createImpl<pipeline_storage::Large>(
+        domain,
         std::move(heapHandlers),
         std::move(headHandler),
         std::move(tailHandler),
         std::move(allocator));
   } else if constexpr (std::same_as<Storage, pipeline_storage::Large>) {
-    return Ptr(new detail::HeapPipelineImpl(
-        eventBase,
-        std::forward<HandlerContainer>(handlers),
-        std::move(headHandler),
-        std::move(tailHandler),
-        std::move(allocator)));
+    return Ptr(
+        detail::HeapPipelineImpl::create(
+            domain,
+            detail::makeHeapHandlerStorage(
+                std::forward<HandlerContainer>(handlers)),
+            std::move(headHandler),
+            std::move(tailHandler),
+            std::move(allocator)));
   } else {
     return Ptr(
         detail::InlinePipelineImpl<Storage::maxHandlers>::create(
-            eventBase,
+            domain,
             std::forward<HandlerContainer>(handlers),
             std::move(headHandler),
             std::move(tailHandler),

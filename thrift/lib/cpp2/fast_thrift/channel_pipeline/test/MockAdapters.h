@@ -30,7 +30,7 @@ namespace apache::thrift::fast_thrift::channel_pipeline::test {
 // mutable context state; this instance is shared across all callers.
 inline detail::ContextImpl& inertEndpointContext() noexcept {
   /* library-local */ static detail::ContextImpl context(
-      nullptr, nullptr, nullptr, 0, 0);
+      nullptr, nullptr, 0, 0);
   return context;
 }
 

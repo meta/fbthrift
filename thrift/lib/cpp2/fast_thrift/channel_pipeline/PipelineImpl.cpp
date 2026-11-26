@@ -24,6 +24,7 @@
 #include <optional>
 
 #include <folly/CppAttributes.h>
+#include <folly/Memory.h>
 
 #define PIPELINE_HOT_PATH [[FOLLY_ATTR_GNU_FLATTEN]]
 
@@ -110,21 +111,51 @@ PipelineImpl::~PipelineImpl() {
   }
 }
 
+void* PipelineImpl::operator new(std::size_t size, Allocation allocation) {
+  if (auto* storage = folly::aligned_malloc(
+          size + allocation.extraBytes, allocation.alignment)) {
+    return storage;
+  }
+  throw std::bad_alloc();
+}
+
+void PipelineImpl::operator delete(void* ptr, Allocation) noexcept {
+  folly::aligned_free(ptr);
+}
+
+void PipelineImpl::operator delete(void* ptr) noexcept {
+  folly::aligned_free(ptr);
+}
+
 PipelineImpl::PipelineImpl(
-    folly::EventBase* eventBase,
+    detail::ExecutionDomainSource domain,
+    void* domainStorage,
     std::size_t handlerCount,
     void* headHandler,
     void* tailHandler,
-    void* allocator) noexcept
-    : eventBase_(eventBase),
-      headCtx_(this, eventBase, allocator, handlerCount, 0),
-      tailCtx_(this, eventBase, allocator, handlerCount, 0),
+    void* allocator)
+    : domain_(domain, domainStorage),
+      headCtx_(this, allocator, handlerCount, 0),
+      tailCtx_(this, allocator, handlerCount, 0),
       headHandler_(headHandler),
       tailHandler_(tailHandler),
       allocator_(allocator) {}
 
+void* PipelineImpl::contextExecutionDomain(
+    const std::type_info& requestedType) const noexcept {
+  return domain_.get(requestedType);
+}
+
+folly::EventBase* PipelineImpl::eventBase() const noexcept {
+  return domain_.eventBase();
+}
+
+folly::EventBase* PipelineImpl::contextEventBase() const noexcept {
+  return eventBase();
+}
+
 void PipelineImpl::initializeStorageViews(
-    std::span<detail::HandlerNode> handlers,
+    std::span<detail::HandlerNodeBase> handlers,
     std::span<detail::ContextImpl> contexts,
     std::span<HandlerIndexEntry> handlerMap) noexcept {
   handlers_ = handlers;
@@ -135,7 +166,8 @@ void PipelineImpl::initializeStorageViews(
 
   // Wire up cached dispatch pointers.
   // Each context caches direct function pointers to the next/prev handler,
-  // eliminating the per-hop round-trip through PipelineImpl on the hot path.
+  // eliminating the per-hop round-trip through PipelineImpl on the hot
+  // path.
   //
   // Fixed direction: reads flow 0→N→terminal, writes flow N→0→terminal
   for (size_t i = 0; i < N; ++i) {
@@ -636,7 +668,7 @@ void PipelineImpl::checkBindPeer(PipelineRef peer) const noexcept {
   // Same-EventBase is a simplification: a crossing is a direct, same-thread
   // call. Executor hops across the seam will be supported later; until then we
   // enforce a shared EventBase.
-  CHECK_EQ(peer.eventBase(), eventBase_)
+  CHECK_EQ(peer.eventBase(), eventBase())
       << "bind requires the peer to share this pipeline's EventBase";
 }
 

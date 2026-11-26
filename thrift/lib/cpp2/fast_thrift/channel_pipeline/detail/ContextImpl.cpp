@@ -22,15 +22,22 @@ namespace apache::thrift::fast_thrift::channel_pipeline::detail {
 
 ContextImpl::ContextImpl(
     PipelineImpl* pipeline,
-    folly::EventBase* eventBase,
     void* allocator,
     size_t handlerIndex,
     HandlerId handlerId) noexcept
     : pipeline_(pipeline),
       allocator_(allocator),
-      eventBase_(eventBase),
       handlerIndex_(handlerIndex),
       handlerId_(handlerId) {}
+
+void* ContextImpl::getExecutionDomain(
+    const std::type_info& requestedType) const noexcept {
+  return CHECK_NOTNULL(pipeline_)->contextExecutionDomain(requestedType);
+}
+
+folly::EventBase* ContextImpl::eventBase() const noexcept {
+  return pipeline_ == nullptr ? nullptr : pipeline_->contextEventBase();
+}
 
 void ContextImpl::activate() noexcept {
   // onPipelineActive is propagated via PipelineImpl::activate() which

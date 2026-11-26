@@ -19,11 +19,13 @@
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
+#include <typeinfo>
 
 #include <folly/CPortability.h>
 #include <folly/io/async/EventBase.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/BufferAllocator.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/EvbExecutionDomain.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Event.h>
 
 namespace apache::thrift::fast_thrift::channel_pipeline {
@@ -41,7 +43,7 @@ namespace detail {
  * - Fire methods to propagate messages to next handlers
  * - Access to the owning pipeline
  * - Buffer allocation
- * - EventBase access
+ * - Shared pipeline access
  *
  * Contexts are strictly owned by PipelineImpl and share its lifetime.
  * They do not need independent delayed destruction - the pipeline's
@@ -49,18 +51,23 @@ namespace detail {
  */
 class alignas(64) ContextImpl {
  public:
+  // The default handler boundary uses EvbExecutionDomain. Other domains use
+  // TypedContext, while all pipelines keep these same concrete records.
+  using ExecutionDomainType = EvbExecutionDomain;
+
+  ContextImpl& impl() noexcept { return *this; }
+  const ContextImpl& impl() const noexcept { return *this; }
+
   /**
    * Constructs a context for a handler at the given index.
    *
    * @param pipeline The owning pipeline
-   * @param event_base The EventBase this pipeline runs on
    * @param allocator The buffer allocator to use
    * @param handler_index The index of this handler in the pipeline
    * @param handler_id The unique ID for this handler
    */
   ContextImpl(
       PipelineImpl* pipeline,
-      folly::EventBase* eventBase,
       void* allocator,
       size_t handlerIndex,
       HandlerId handlerId) noexcept;
@@ -167,6 +174,17 @@ class alignas(64) ContextImpl {
    */
   PipelineImpl* pipeline() const noexcept { return pipeline_; }
 
+  /**
+   * Returns this pipeline's native domain after checking the requested type.
+   * Raw lookup callers name non-default domains explicitly.
+   */
+  template <ExecutionDomain D = EvbExecutionDomain>
+  D& executionDomain() const noexcept {
+    return *static_cast<D*>(getExecutionDomain(typeid(D)));
+  }
+
+  folly::EventBase* eventBase() const noexcept;
+
   // === Buffer allocation ===
 
   /**
@@ -187,13 +205,6 @@ class alignas(64) ContextImpl {
    * Ownership is consumed even when allocation fails.
    */
   BytesPtr takeOwnership(OwnedBuffer buffer) noexcept;
-
-  // === Event loop access ===
-
-  /**
-   * Returns the EventBase this pipeline runs on.
-   */
-  folly::EventBase* eventBase() const noexcept { return eventBase_; }
 
   // === Lifecycle ===
 
@@ -272,12 +283,13 @@ class alignas(64) ContextImpl {
   size_t handlerIndex() const noexcept { return handlerIndex_; }
 
   /**
-   * Raw storage for a persistent stateful view, initialized after context
-   * storage and pipeline state are finalized. It shares the context's lifetime.
+   * Raw storage for a persistent state or domain view, initialized after
+   * context storage is finalized. It shares the context's lifetime.
    */
   void* typedViewStorage() noexcept { return &typedViewStorage_; }
 
  private:
+  void* getExecutionDomain(const std::type_info& requestedType) const noexcept;
   void fireTypeEvent(EventKey key, const void* payload) noexcept;
   void fireTypeEventFromRoute(
       std::size_t routeIndex, EventKey key, const void* payload) noexcept;
@@ -298,7 +310,6 @@ class alignas(64) ContextImpl {
 
   void* allocator_; // Type-erased BufferAllocator
   void* pipelineState_{nullptr}; // Type-erased pipeline-level state
-  folly::EventBase* eventBase_;
   size_t handlerIndex_;
   HandlerId handlerId_;
 
