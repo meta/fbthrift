@@ -25,9 +25,9 @@ namespace apache::thrift::detail::qualifier {
 // BEGIN hash_and_equal_to
 // END hash_and_equal_to
 namespace cpp2 {
-/** Glean {"file": "thrift/compiler/test/fixtures/includes/src/service.thrift", "name": "IncludesIncluded", "kind": "typedef" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/includes/src/service.thrift", "name": "IncludesIncluded", "kind": "typedef" } */
 using IncludesIncluded = ::cpp2::Included;
-/** Glean {"file": "thrift/compiler/test/fixtures/includes/src/service.thrift", "name": "IncludesTransitiveFoo", "kind": "typedef" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/includes/src/service.thrift", "name": "IncludesTransitiveFoo", "kind": "typedef" } */
 using IncludesTransitiveFoo = ::cpp2::TransitiveFoo;
 
 } // namespace cpp2

@@ -53,14 +53,16 @@ struct is_field_using_allocator<::test::fixtures::cpp_allocator_via::AllocatorVi
 // BEGIN hash_and_equal_to
 // END hash_and_equal_to
 namespace test::fixtures::cpp_allocator_via {
+/* Glean {"file": "thrift/compiler/test/fixtures/cpp-allocator/src/via/module.thrift", "name": "PmrString", "kind": "typedef" } */
+
 /** typedef string PmrString */
-/** Glean {"file": "thrift/compiler/test/fixtures/cpp-allocator/src/via/module.thrift", "name": "PmrString", "kind": "typedef" } */
 using PmrString = ::std::pmr::string;
+/* Glean {"file": "thrift/compiler/test/fixtures/cpp-allocator/src/via/module.thrift", "name": "PmrStringList", "kind": "typedef" } */
+
 /** typedef list<PmrString> PmrStringList */
-/** Glean {"file": "thrift/compiler/test/fixtures/cpp-allocator/src/via/module.thrift", "name": "PmrStringList", "kind": "typedef" } */
 using PmrStringList = ::std::pmr::vector<::test::fixtures::cpp_allocator_via::PmrString>;
 
-/** Glean {"file": "thrift/compiler/test/fixtures/cpp-allocator/src/via/module.thrift", "name": "AllocatorVia", "kind": "struct" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/cpp-allocator/src/via/module.thrift", "name": "AllocatorVia", "kind": "struct" } */
 class AllocatorVia final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -144,139 +146,151 @@ class AllocatorVia final  {
   bool operator==(const AllocatorVia&) const;
   std::partial_ordering operator<=>(const AllocatorVia&) const;
 
+  /* Glean { "field": "aa_string" } */
+
   /** 1: PmrString aa_string */
-  /** Glean { "field": "aa_string" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::cpp_allocator_via::PmrString>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> aa_string_ref() const& {
     return {this->__fbthrift_field_aa_string, __isset.at(0), __isset.bit(0)};
   }
 
+  /* Glean { "field": "aa_string" } */
+
   /** 1: PmrString aa_string */
-  /** Glean { "field": "aa_string" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::cpp_allocator_via::PmrString>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> aa_string_ref() & {
     return {this->__fbthrift_field_aa_string, __isset.at(0), __isset.bit(0)};
   }
 
+  /* Glean { "field": "aa_string" } */
+
   /** 1: PmrString aa_string */
-  /** Glean { "field": "aa_string" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::cpp_allocator_via::PmrString>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> aa_string_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_aa_string), __isset.at(0), __isset.bit(0)};
   }
 
+  /* Glean { "field": "aa_string" } */
+
   /** 1: PmrString aa_string */
-  /** Glean { "field": "aa_string" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::cpp_allocator_via::PmrString>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> aa_string() const& {
     return {this->__fbthrift_field_aa_string, __isset.at(0), __isset.bit(0)};
   }
 
+  /* Glean { "field": "aa_string" } */
+
   /** 1: PmrString aa_string */
-  /** Glean { "field": "aa_string" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::cpp_allocator_via::PmrString>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> aa_string() & {
     return {this->__fbthrift_field_aa_string, __isset.at(0), __isset.bit(0)};
   }
 
+  /* Glean { "field": "aa_string" } */
+
   /** 1: PmrString aa_string */
-  /** Glean { "field": "aa_string" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::cpp_allocator_via::PmrString>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> aa_string() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_aa_string), __isset.at(0), __isset.bit(0)};
   }
 
+  /* Glean { "field": "aa_list" } */
+
   /** 2: PmrStringList aa_list */
-  /** Glean { "field": "aa_list" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::cpp_allocator_via::PmrStringList>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> aa_list_ref() const& {
     return {this->__fbthrift_field_aa_list, __isset.at(1), __isset.bit(1)};
   }
 
+  /* Glean { "field": "aa_list" } */
+
   /** 2: PmrStringList aa_list */
-  /** Glean { "field": "aa_list" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::cpp_allocator_via::PmrStringList>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> aa_list_ref() & {
     return {this->__fbthrift_field_aa_list, __isset.at(1), __isset.bit(1)};
   }
 
+  /* Glean { "field": "aa_list" } */
+
   /** 2: PmrStringList aa_list */
-  /** Glean { "field": "aa_list" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::cpp_allocator_via::PmrStringList>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> aa_list_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_aa_list), __isset.at(1), __isset.bit(1)};
   }
 
+  /* Glean { "field": "aa_list" } */
+
   /** 2: PmrStringList aa_list */
-  /** Glean { "field": "aa_list" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::cpp_allocator_via::PmrStringList>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> aa_list() const& {
     return {this->__fbthrift_field_aa_list, __isset.at(1), __isset.bit(1)};
   }
 
+  /* Glean { "field": "aa_list" } */
+
   /** 2: PmrStringList aa_list */
-  /** Glean { "field": "aa_list" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::cpp_allocator_via::PmrStringList>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> aa_list() & {
     return {this->__fbthrift_field_aa_list, __isset.at(1), __isset.bit(1)};
   }
 
+  /* Glean { "field": "aa_list" } */
+
   /** 2: PmrStringList aa_list */
-  /** Glean { "field": "aa_list" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::cpp_allocator_via::PmrStringList>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> aa_list() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_aa_list), __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "plain_int" } */
+  /* Glean { "field": "plain_int" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> plain_int_ref() const& {
     return {this->__fbthrift_field_plain_int, __isset.at(2), __isset.bit(2)};
   }
 
-  /** Glean { "field": "plain_int" } */
+  /* Glean { "field": "plain_int" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> plain_int_ref() & {
     return {this->__fbthrift_field_plain_int, __isset.at(2), __isset.bit(2)};
   }
 
-  /** Glean { "field": "plain_int" } */
+  /* Glean { "field": "plain_int" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> plain_int_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_plain_int), __isset.at(2), __isset.bit(2)};
   }
 
-  /** Glean { "field": "plain_int" } */
+  /* Glean { "field": "plain_int" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> plain_int() const& {
     return {this->__fbthrift_field_plain_int, __isset.at(2), __isset.bit(2)};
   }
 
-  /** Glean { "field": "plain_int" } */
+  /* Glean { "field": "plain_int" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> plain_int() & {
     return {this->__fbthrift_field_plain_int, __isset.at(2), __isset.bit(2)};
   }
 
-  /** Glean { "field": "plain_int" } */
+  /* Glean { "field": "plain_int" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> plain_int() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_plain_int), __isset.at(2), __isset.bit(2)};
   }
 
-  /** Glean { "field": "aa_string" } */
+  /* Glean { "field": "aa_string" } */
   [[deprecated("Use `FOO.aa_string().value()` instead of `FOO.get_aa_string()`")]]
   const ::test::fixtures::cpp_allocator_via::PmrString& get_aa_string() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return __fbthrift_field_aa_string;
   }
 
-  /** Glean { "field": "aa_string" } */
+  /* Glean { "field": "aa_string" } */
   [[deprecated("Use `FOO.aa_string().value()` instead of `FOO.get_aa_string()`")]]
   ::test::fixtures::cpp_allocator_via::PmrString get_aa_string() && {
     return static_cast<::test::fixtures::cpp_allocator_via::PmrString&&>(__fbthrift_field_aa_string);
   }
 
-  /** Glean { "field": "aa_string" } */
+  /* Glean { "field": "aa_string" } */
   template <typename T_AllocatorVia_aa_string_struct_setter = ::test::fixtures::cpp_allocator_via::PmrString>
   [[deprecated("Use `FOO.aa_string() = BAR` instead of `FOO.set_aa_string(BAR)`")]]
   ::test::fixtures::cpp_allocator_via::PmrString& set_aa_string(T_AllocatorVia_aa_string_struct_setter&& aa_string_) {
@@ -284,15 +298,15 @@ class AllocatorVia final  {
     return __fbthrift_field_aa_string;
   }
 
-  /** Glean { "field": "aa_list" } */
+  /* Glean { "field": "aa_list" } */
   [[deprecated("Use `FOO.aa_list().value()` instead of `FOO.get_aa_list()`")]]
   const ::test::fixtures::cpp_allocator_via::PmrStringList& get_aa_list() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]];
 
-  /** Glean { "field": "aa_list" } */
+  /* Glean { "field": "aa_list" } */
   [[deprecated("Use `FOO.aa_list().value()` instead of `FOO.get_aa_list()`")]]
   ::test::fixtures::cpp_allocator_via::PmrStringList get_aa_list() &&;
 
-  /** Glean { "field": "aa_list" } */
+  /* Glean { "field": "aa_list" } */
   template <typename T_AllocatorVia_aa_list_struct_setter = ::test::fixtures::cpp_allocator_via::PmrStringList>
   [[deprecated("Use `FOO.aa_list() = BAR` instead of `FOO.set_aa_list(BAR)`")]]
   ::test::fixtures::cpp_allocator_via::PmrStringList& set_aa_list(T_AllocatorVia_aa_list_struct_setter&& aa_list_) {
@@ -300,11 +314,11 @@ class AllocatorVia final  {
     return __fbthrift_field_aa_list;
   }
 
-  /** Glean { "field": "plain_int" } */
+  /* Glean { "field": "plain_int" } */
   [[deprecated("Use `FOO.plain_int().value()` instead of `FOO.get_plain_int()`")]]
   ::std::int32_t get_plain_int() const;
 
-  /** Glean { "field": "plain_int" } */
+  /* Glean { "field": "plain_int" } */
   [[deprecated("Use `FOO.plain_int() = BAR` instead of `FOO.set_plain_int(BAR)`")]]
   ::std::int32_t& set_plain_int(::std::int32_t plain_int_);
 

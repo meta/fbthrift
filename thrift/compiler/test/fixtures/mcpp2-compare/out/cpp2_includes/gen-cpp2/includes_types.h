@@ -31,7 +31,7 @@ APACHE_THRIFT_DEFINE_ACCESSOR(FieldA);
 // BEGIN declare_enums
 namespace a::different::ns {
 
-/** Glean {"file": "thrift/compiler/test/fixtures/mcpp2-compare/src/includes.thrift", "name": "AnEnum", "kind": "enum" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/mcpp2-compare/src/includes.thrift", "name": "AnEnum", "kind": "enum" } */
 enum class AnEnum {
   FIELDA = 2,
   FIELDB = 4,
@@ -92,10 +92,10 @@ namespace apache::thrift::detail::qualifier {
 // BEGIN hash_and_equal_to
 // END hash_and_equal_to
 namespace a::different::ns {
-/** Glean {"file": "thrift/compiler/test/fixtures/mcpp2-compare/src/includes.thrift", "name": "IncludedInt64", "kind": "typedef" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/mcpp2-compare/src/includes.thrift", "name": "IncludedInt64", "kind": "typedef" } */
 using IncludedInt64 = ::std::int64_t;
 
-/** Glean {"file": "thrift/compiler/test/fixtures/mcpp2-compare/src/includes.thrift", "name": "AStruct", "kind": "struct" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/mcpp2-compare/src/includes.thrift", "name": "AStruct", "kind": "struct" } */
 class AStruct final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -165,47 +165,47 @@ class AStruct final  {
   bool operator==(const AStruct&) const;
   std::partial_ordering operator<=>(const AStruct&) const;
 
-  /** Glean { "field": "FieldA" } */
+  /* Glean { "field": "FieldA" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> FieldA_ref() const& {
     return {this->__fbthrift_field_FieldA, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "FieldA" } */
+  /* Glean { "field": "FieldA" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> FieldA_ref() & {
     return {this->__fbthrift_field_FieldA, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "FieldA" } */
+  /* Glean { "field": "FieldA" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> FieldA_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_FieldA), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "FieldA" } */
+  /* Glean { "field": "FieldA" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> FieldA() const& {
     return {this->__fbthrift_field_FieldA, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "FieldA" } */
+  /* Glean { "field": "FieldA" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> FieldA() & {
     return {this->__fbthrift_field_FieldA, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "FieldA" } */
+  /* Glean { "field": "FieldA" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> FieldA() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_FieldA), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "FieldA" } */
+  /* Glean { "field": "FieldA" } */
   [[deprecated("Use `FOO.FieldA().value()` instead of `FOO.get_FieldA()`")]]
   ::std::int32_t get_FieldA() const;
 
-  /** Glean { "field": "FieldA" } */
+  /* Glean { "field": "FieldA" } */
   [[deprecated("Use `FOO.FieldA() = BAR` instead of `FOO.set_FieldA(BAR)`")]]
   ::std::int32_t& set_FieldA(::std::int32_t FieldA_);
 
@@ -233,7 +233,7 @@ unsigned long AStruct::read(Protocol_* iprot) {
 }
 
 
-/** Glean {"file": "thrift/compiler/test/fixtures/mcpp2-compare/src/includes.thrift", "name": "AStructB", "kind": "struct" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/mcpp2-compare/src/includes.thrift", "name": "AStructB", "kind": "struct" } */
 class AStructB final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -302,42 +302,42 @@ class AStructB final  {
 
   bool operator==(const AStructB&) const;
   std::partial_ordering operator<=>(const AStructB&) const;
-  /** Glean { "field": "FieldA" } */
+  /* Glean { "field": "FieldA" } */
   FOLLY_ERASE ::std::shared_ptr<const ::a::different::ns::AStruct>& FieldA_ref() & {
     return __fbthrift_field_FieldA;
   }
 
-  /** Glean { "field": "FieldA" } */
+  /* Glean { "field": "FieldA" } */
   FOLLY_ERASE const ::std::shared_ptr<const ::a::different::ns::AStruct>& FieldA_ref() const& {
     return __fbthrift_field_FieldA;
   }
 
-  /** Glean { "field": "FieldA" } */
+  /* Glean { "field": "FieldA" } */
   FOLLY_ERASE ::std::shared_ptr<const ::a::different::ns::AStruct>&& FieldA_ref() && {
     return static_cast<::std::shared_ptr<const ::a::different::ns::AStruct>&&>(__fbthrift_field_FieldA);
   }
 
-  /** Glean { "field": "FieldA" } */
+  /* Glean { "field": "FieldA" } */
   FOLLY_ERASE const ::std::shared_ptr<const ::a::different::ns::AStruct>&& FieldA_ref() const&& {
     return static_cast<const ::std::shared_ptr<const ::a::different::ns::AStruct>&&>(__fbthrift_field_FieldA);
   }
 
-  /** Glean { "field": "FieldA" } */
+  /* Glean { "field": "FieldA" } */
   FOLLY_ERASE ::std::shared_ptr<const ::a::different::ns::AStruct>& FieldA() & {
     return __fbthrift_field_FieldA;
   }
 
-  /** Glean { "field": "FieldA" } */
+  /* Glean { "field": "FieldA" } */
   FOLLY_ERASE const ::std::shared_ptr<const ::a::different::ns::AStruct>& FieldA() const& {
     return __fbthrift_field_FieldA;
   }
 
-  /** Glean { "field": "FieldA" } */
+  /* Glean { "field": "FieldA" } */
   FOLLY_ERASE ::std::shared_ptr<const ::a::different::ns::AStruct>&& FieldA() && {
     return static_cast<::std::shared_ptr<const ::a::different::ns::AStruct>&&>(__fbthrift_field_FieldA);
   }
 
-  /** Glean { "field": "FieldA" } */
+  /* Glean { "field": "FieldA" } */
   FOLLY_ERASE const ::std::shared_ptr<const ::a::different::ns::AStruct>&& FieldA() const&& {
     return static_cast<const ::std::shared_ptr<const ::a::different::ns::AStruct>&&>(__fbthrift_field_FieldA);
   }

@@ -30,7 +30,7 @@ APACHE_THRIFT_DEFINE_ACCESSOR(MyStringField);
 // BEGIN declare_enums
 namespace cpp2 {
 
-/** Glean {"file": "thrift/compiler/test/fixtures/basic-stack-arguments/src/module.thrift", "name": "MyEnum", "kind": "enum" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/basic-stack-arguments/src/module.thrift", "name": "MyEnum", "kind": "enum" } */
 enum class MyEnum {
   MyValue1 = 0,
   MyValue2 = 1,
@@ -91,7 +91,7 @@ namespace apache::thrift::detail::qualifier {
 // END hash_and_equal_to
 namespace cpp2 {
 
-/** Glean {"file": "thrift/compiler/test/fixtures/basic-stack-arguments/src/module.thrift", "name": "MyStruct", "kind": "struct" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/basic-stack-arguments/src/module.thrift", "name": "MyStruct", "kind": "struct" } */
 class MyStruct final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -167,99 +167,99 @@ class MyStruct final  {
   bool operator==(const MyStruct&) const;
   std::partial_ordering operator<=>(const MyStruct&) const;
 
-  /** Glean { "field": "MyIntField" } */
+  /* Glean { "field": "MyIntField" } */
   template <typename..., typename fbthrift_T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> MyIntField_ref() const& {
     return {this->__fbthrift_field_MyIntField, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "MyIntField" } */
+  /* Glean { "field": "MyIntField" } */
   template <typename..., typename fbthrift_T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> MyIntField_ref() & {
     return {this->__fbthrift_field_MyIntField, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "MyIntField" } */
+  /* Glean { "field": "MyIntField" } */
   template <typename..., typename fbthrift_T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> MyIntField_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_MyIntField), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "MyIntField" } */
+  /* Glean { "field": "MyIntField" } */
   template <typename..., typename fbthrift_T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> MyIntField() const& {
     return {this->__fbthrift_field_MyIntField, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "MyIntField" } */
+  /* Glean { "field": "MyIntField" } */
   template <typename..., typename fbthrift_T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> MyIntField() & {
     return {this->__fbthrift_field_MyIntField, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "MyIntField" } */
+  /* Glean { "field": "MyIntField" } */
   template <typename..., typename fbthrift_T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> MyIntField() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_MyIntField), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "MyStringField" } */
+  /* Glean { "field": "MyStringField" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> MyStringField_ref() const& {
     return {this->__fbthrift_field_MyStringField, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "MyStringField" } */
+  /* Glean { "field": "MyStringField" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> MyStringField_ref() & {
     return {this->__fbthrift_field_MyStringField, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "MyStringField" } */
+  /* Glean { "field": "MyStringField" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> MyStringField_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_MyStringField), __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "MyStringField" } */
+  /* Glean { "field": "MyStringField" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> MyStringField() const& {
     return {this->__fbthrift_field_MyStringField, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "MyStringField" } */
+  /* Glean { "field": "MyStringField" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> MyStringField() & {
     return {this->__fbthrift_field_MyStringField, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "MyStringField" } */
+  /* Glean { "field": "MyStringField" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> MyStringField() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_MyStringField), __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "MyIntField" } */
+  /* Glean { "field": "MyIntField" } */
   [[deprecated("Use `FOO.MyIntField().value()` instead of `FOO.get_MyIntField()`")]]
   ::std::int64_t get_MyIntField() const;
 
-  /** Glean { "field": "MyIntField" } */
+  /* Glean { "field": "MyIntField" } */
   [[deprecated("Use `FOO.MyIntField() = BAR` instead of `FOO.set_MyIntField(BAR)`")]]
   ::std::int64_t& set_MyIntField(::std::int64_t MyIntField_);
 
-  /** Glean { "field": "MyStringField" } */
+  /* Glean { "field": "MyStringField" } */
   [[deprecated("Use `FOO.MyStringField().value()` instead of `FOO.get_MyStringField()`")]]
   const ::std::string& get_MyStringField() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return __fbthrift_field_MyStringField;
   }
 
-  /** Glean { "field": "MyStringField" } */
+  /* Glean { "field": "MyStringField" } */
   [[deprecated("Use `FOO.MyStringField().value()` instead of `FOO.get_MyStringField()`")]]
   ::std::string get_MyStringField() && {
     return static_cast<::std::string&&>(__fbthrift_field_MyStringField);
   }
 
-  /** Glean { "field": "MyStringField" } */
+  /* Glean { "field": "MyStringField" } */
   template <typename T_MyStruct_MyStringField_struct_setter = ::std::string>
   [[deprecated("Use `FOO.MyStringField() = BAR` instead of `FOO.set_MyStringField(BAR)`")]]
   ::std::string& set_MyStringField(T_MyStruct_MyStringField_struct_setter&& MyStringField_) {

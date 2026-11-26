@@ -52,35 +52,35 @@ class Client<::cpp2::test::NonFastParent> : public ::cpp2::test::FastAncestorAsy
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "meta.com/thrift/test/fixtures/fast_client/NonFastParent";
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "NonFastParent", "function": "parentEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "NonFastParent", "function": "parentEcho"} */
   virtual void parentEcho(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::string& p_message);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "NonFastParent", "function": "parentEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "NonFastParent", "function": "parentEcho"} */
   virtual void parentEcho(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::string& p_message);
  protected:
   void fbthrift_serialize_and_send_parentEcho(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const ::std::string& p_message, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "NonFastParent", "function": "parentEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "NonFastParent", "function": "parentEcho"} */
   virtual void sync_parentEcho(::std::string& _return, const ::std::string& p_message);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "NonFastParent", "function": "parentEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "NonFastParent", "function": "parentEcho"} */
   virtual void sync_parentEcho(apache::thrift::RpcOptions& rpcOptions, ::std::string& _return, const ::std::string& p_message);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "NonFastParent", "function": "parentEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "NonFastParent", "function": "parentEcho"} */
   virtual folly::Future<::std::string> future_parentEcho(const ::std::string& p_message);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "NonFastParent", "function": "parentEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "NonFastParent", "function": "parentEcho"} */
   virtual folly::SemiFuture<::std::string> semifuture_parentEcho(const ::std::string& p_message);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "NonFastParent", "function": "parentEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "NonFastParent", "function": "parentEcho"} */
   virtual folly::Future<::std::string> future_parentEcho(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_message);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "NonFastParent", "function": "parentEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "NonFastParent", "function": "parentEcho"} */
   virtual folly::SemiFuture<::std::string> semifuture_parentEcho(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_message);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "NonFastParent", "function": "parentEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "NonFastParent", "function": "parentEcho"} */
   template <int = 0>
   folly::coro::Task<::std::string> co_parentEcho(const ::std::string& p_message) {
     return co_parentEcho<false>(nullptr, p_message);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "NonFastParent", "function": "parentEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "NonFastParent", "function": "parentEcho"} */
   template <int = 0>
   folly::coro::Task<::std::string> co_parentEcho(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_message) {
     return co_parentEcho<true>(&rpcOptions, p_message);
@@ -154,18 +154,18 @@ class Client<::cpp2::test::NonFastParent> : public ::cpp2::test::FastAncestorAsy
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "NonFastParent", "function": "parentEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "NonFastParent", "function": "parentEcho"} */
   virtual void parentEcho(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, const ::std::string& p_message);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "NonFastParent", "function": "parentEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "NonFastParent", "function": "parentEcho"} */
   static folly::exception_wrapper recv_wrapped_parentEcho(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "NonFastParent", "function": "parentEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "NonFastParent", "function": "parentEcho"} */
   static void recv_parentEcho(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "NonFastParent", "function": "parentEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "NonFastParent", "function": "parentEcho"} */
   virtual void recv_instance_parentEcho(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "NonFastParent", "function": "parentEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "NonFastParent", "function": "parentEcho"} */
   virtual folly::exception_wrapper recv_instance_wrapped_parentEcho(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_parentEcho(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::std::string& p_message);

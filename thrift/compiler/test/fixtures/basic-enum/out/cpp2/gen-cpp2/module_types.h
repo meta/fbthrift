@@ -30,24 +30,24 @@ APACHE_THRIFT_DEFINE_ACCESSOR(myBigEnum);
 // BEGIN declare_enums
 namespace test::fixtures::enumstrict {
 
-/** Glean {"file": "thrift/compiler/test/fixtures/basic-enum/src/module.thrift", "name": "EmptyEnum", "kind": "enum" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/basic-enum/src/module.thrift", "name": "EmptyEnum", "kind": "enum" } */
 enum class EmptyEnum {
 };
 
-/** Glean {"file": "thrift/compiler/test/fixtures/basic-enum/src/module.thrift", "name": "MyEnum", "kind": "enum" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/basic-enum/src/module.thrift", "name": "MyEnum", "kind": "enum" } */
 enum class MyEnum {
   ONE = 1,
   TWO = 2,
 };
 
-/** Glean {"file": "thrift/compiler/test/fixtures/basic-enum/src/module.thrift", "name": "MyUseIntrinsicDefaultEnum", "kind": "enum" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/basic-enum/src/module.thrift", "name": "MyUseIntrinsicDefaultEnum", "kind": "enum" } */
 enum class MyUseIntrinsicDefaultEnum {
   ZERO = 0,
   ONE = 1,
   TWO = 2,
 };
 
-/** Glean {"file": "thrift/compiler/test/fixtures/basic-enum/src/module.thrift", "name": "MyBigEnum", "kind": "enum" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/basic-enum/src/module.thrift", "name": "MyBigEnum", "kind": "enum" } */
 enum class MyBigEnum {
   UNKNOWN = 0,
   ONE = 1,
@@ -231,7 +231,7 @@ namespace apache::thrift::detail::qualifier {
 // END hash_and_equal_to
 namespace test::fixtures::enumstrict {
 
-/** Glean {"file": "thrift/compiler/test/fixtures/basic-enum/src/module.thrift", "name": "MyStruct", "kind": "struct" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/basic-enum/src/module.thrift", "name": "MyStruct", "kind": "struct" } */
 class MyStruct final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -307,91 +307,91 @@ class MyStruct final  {
   bool operator==(const MyStruct&) const;
   std::partial_ordering operator<=>(const MyStruct&) const;
 
-  /** Glean { "field": "myEnum" } */
+  /* Glean { "field": "myEnum" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::enumstrict::MyEnum>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> myEnum_ref() const& {
     return {this->__fbthrift_field_myEnum, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "myEnum" } */
+  /* Glean { "field": "myEnum" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::enumstrict::MyEnum>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> myEnum_ref() & {
     return {this->__fbthrift_field_myEnum, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "myEnum" } */
+  /* Glean { "field": "myEnum" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::enumstrict::MyEnum>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> myEnum_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_myEnum), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "myEnum" } */
+  /* Glean { "field": "myEnum" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::enumstrict::MyEnum>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> myEnum() const& {
     return {this->__fbthrift_field_myEnum, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "myEnum" } */
+  /* Glean { "field": "myEnum" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::enumstrict::MyEnum>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> myEnum() & {
     return {this->__fbthrift_field_myEnum, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "myEnum" } */
+  /* Glean { "field": "myEnum" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::enumstrict::MyEnum>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> myEnum() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_myEnum), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "myBigEnum" } */
+  /* Glean { "field": "myBigEnum" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::enumstrict::MyBigEnum>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> myBigEnum_ref() const& {
     return {this->__fbthrift_field_myBigEnum, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "myBigEnum" } */
+  /* Glean { "field": "myBigEnum" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::enumstrict::MyBigEnum>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> myBigEnum_ref() & {
     return {this->__fbthrift_field_myBigEnum, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "myBigEnum" } */
+  /* Glean { "field": "myBigEnum" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::enumstrict::MyBigEnum>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> myBigEnum_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_myBigEnum), __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "myBigEnum" } */
+  /* Glean { "field": "myBigEnum" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::enumstrict::MyBigEnum>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> myBigEnum() const& {
     return {this->__fbthrift_field_myBigEnum, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "myBigEnum" } */
+  /* Glean { "field": "myBigEnum" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::enumstrict::MyBigEnum>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> myBigEnum() & {
     return {this->__fbthrift_field_myBigEnum, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "myBigEnum" } */
+  /* Glean { "field": "myBigEnum" } */
   template <typename..., typename fbthrift_T = ::test::fixtures::enumstrict::MyBigEnum>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> myBigEnum() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_myBigEnum), __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "myEnum" } */
+  /* Glean { "field": "myEnum" } */
   [[deprecated("Use `FOO.myEnum().value()` instead of `FOO.get_myEnum()`")]]
   ::test::fixtures::enumstrict::MyEnum get_myEnum() const;
 
-  /** Glean { "field": "myEnum" } */
+  /* Glean { "field": "myEnum" } */
   [[deprecated("Use `FOO.myEnum() = BAR` instead of `FOO.set_myEnum(BAR)`")]]
   ::test::fixtures::enumstrict::MyEnum& set_myEnum(::test::fixtures::enumstrict::MyEnum myEnum_);
 
-  /** Glean { "field": "myBigEnum" } */
+  /* Glean { "field": "myBigEnum" } */
   [[deprecated("Use `FOO.myBigEnum().value()` instead of `FOO.get_myBigEnum()`")]]
   ::test::fixtures::enumstrict::MyBigEnum get_myBigEnum() const;
 
-  /** Glean { "field": "myBigEnum" } */
+  /* Glean { "field": "myBigEnum" } */
   [[deprecated("Use `FOO.myBigEnum() = BAR` instead of `FOO.set_myBigEnum(BAR)`")]]
   ::test::fixtures::enumstrict::MyBigEnum& set_myBigEnum(::test::fixtures::enumstrict::MyBigEnum myBigEnum_);
 

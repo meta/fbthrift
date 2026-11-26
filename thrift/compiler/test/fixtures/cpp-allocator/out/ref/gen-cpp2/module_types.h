@@ -48,7 +48,7 @@ struct is_field_using_allocator<::test::fixtures::cpp_allocator_ref::FieldUseAll
 // END hash_and_equal_to
 namespace test::fixtures::cpp_allocator_ref {
 
-/** Glean {"file": "thrift/compiler/test/fixtures/cpp-allocator/src/ref/module.thrift", "name": "Child", "kind": "struct" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/cpp-allocator/src/ref/module.thrift", "name": "Child", "kind": "struct" } */
 class Child final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -125,47 +125,47 @@ class Child final  {
   bool operator==(const Child&) const;
   std::partial_ordering operator<=>(const Child&) const;
 
-  /** Glean { "field": "value" } */
+  /* Glean { "field": "value" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> value_ref() const& {
     return {this->__fbthrift_field_value, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "value" } */
+  /* Glean { "field": "value" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> value_ref() & {
     return {this->__fbthrift_field_value, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "value" } */
+  /* Glean { "field": "value" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> value_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_value), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "value" } */
+  /* Glean { "field": "value" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> value() const& {
     return {this->__fbthrift_field_value, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "value" } */
+  /* Glean { "field": "value" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> value() & {
     return {this->__fbthrift_field_value, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "value" } */
+  /* Glean { "field": "value" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> value() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_value), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "value" } */
+  /* Glean { "field": "value" } */
   [[deprecated("Use `FOO.value().value()` instead of `FOO.get_value()`")]]
   ::std::int32_t get_value() const;
 
-  /** Glean { "field": "value" } */
+  /* Glean { "field": "value" } */
   [[deprecated("Use `FOO.value() = BAR` instead of `FOO.set_value(BAR)`")]]
   ::std::int32_t& set_value(::std::int32_t value_);
 
@@ -193,7 +193,7 @@ unsigned long Child::read(Protocol_* iprot) {
 }
 
 
-/** Glean {"file": "thrift/compiler/test/fixtures/cpp-allocator/src/ref/module.thrift", "name": "FieldUseAllocatorRef", "kind": "struct" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/cpp-allocator/src/ref/module.thrift", "name": "FieldUseAllocatorRef", "kind": "struct" } */
 class FieldUseAllocatorRef final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -268,42 +268,42 @@ class FieldUseAllocatorRef final  {
 
   bool operator==(const FieldUseAllocatorRef&) const;
   std::partial_ordering operator<=>(const FieldUseAllocatorRef&) const;
-  /** Glean { "field": "child" } */
+  /* Glean { "field": "child" } */
   FOLLY_ERASE ::std::shared_ptr<::test::fixtures::cpp_allocator_ref::Child>& child_ref() & {
     return __fbthrift_field_child;
   }
 
-  /** Glean { "field": "child" } */
+  /* Glean { "field": "child" } */
   FOLLY_ERASE const ::std::shared_ptr<::test::fixtures::cpp_allocator_ref::Child>& child_ref() const& {
     return __fbthrift_field_child;
   }
 
-  /** Glean { "field": "child" } */
+  /* Glean { "field": "child" } */
   FOLLY_ERASE ::std::shared_ptr<::test::fixtures::cpp_allocator_ref::Child>&& child_ref() && {
     return static_cast<::std::shared_ptr<::test::fixtures::cpp_allocator_ref::Child>&&>(__fbthrift_field_child);
   }
 
-  /** Glean { "field": "child" } */
+  /* Glean { "field": "child" } */
   FOLLY_ERASE const ::std::shared_ptr<::test::fixtures::cpp_allocator_ref::Child>&& child_ref() const&& {
     return static_cast<const ::std::shared_ptr<::test::fixtures::cpp_allocator_ref::Child>&&>(__fbthrift_field_child);
   }
 
-  /** Glean { "field": "child" } */
+  /* Glean { "field": "child" } */
   FOLLY_ERASE ::std::shared_ptr<::test::fixtures::cpp_allocator_ref::Child>& child() & {
     return __fbthrift_field_child;
   }
 
-  /** Glean { "field": "child" } */
+  /* Glean { "field": "child" } */
   FOLLY_ERASE const ::std::shared_ptr<::test::fixtures::cpp_allocator_ref::Child>& child() const& {
     return __fbthrift_field_child;
   }
 
-  /** Glean { "field": "child" } */
+  /* Glean { "field": "child" } */
   FOLLY_ERASE ::std::shared_ptr<::test::fixtures::cpp_allocator_ref::Child>&& child() && {
     return static_cast<::std::shared_ptr<::test::fixtures::cpp_allocator_ref::Child>&&>(__fbthrift_field_child);
   }
 
-  /** Glean { "field": "child" } */
+  /* Glean { "field": "child" } */
   FOLLY_ERASE const ::std::shared_ptr<::test::fixtures::cpp_allocator_ref::Child>&& child() const&& {
     return static_cast<const ::std::shared_ptr<::test::fixtures::cpp_allocator_ref::Child>&&>(__fbthrift_field_child);
   }

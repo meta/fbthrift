@@ -46,39 +46,39 @@ class Client<::cpp2::HeaderClientMethodsAnnotationOnFunction> : public apache::t
   }
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
   virtual void echo(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::cpp2::EchoRequest& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
   virtual void echo(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::cpp2::EchoRequest& p_request);
  protected:
   void fbthrift_serialize_and_send_echo(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const ::cpp2::EchoRequest& p_request, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
   virtual void sync_echo(::cpp2::EchoResponse& _return, const ::cpp2::EchoRequest& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
   virtual void sync_echo(apache::thrift::RpcOptions& rpcOptions, ::cpp2::EchoResponse& _return, const ::cpp2::EchoRequest& p_request);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
   virtual folly::Future<::cpp2::EchoResponse> future_echo(const ::cpp2::EchoRequest& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
   virtual folly::SemiFuture<::cpp2::EchoResponse> semifuture_echo(const ::cpp2::EchoRequest& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
   virtual folly::Future<::cpp2::EchoResponse> future_echo(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::EchoRequest& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
   virtual folly::SemiFuture<::cpp2::EchoResponse> semifuture_echo(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::EchoRequest& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
   virtual folly::Future<std::pair<::cpp2::EchoResponse, std::unique_ptr<apache::thrift::transport::THeader>>> header_future_echo(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::EchoRequest& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
   virtual folly::SemiFuture<std::pair<::cpp2::EchoResponse, std::unique_ptr<apache::thrift::transport::THeader>>> header_semifuture_echo(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::EchoRequest& p_request);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
   template <int = 0>
   folly::coro::Task<::cpp2::EchoResponse> co_echo(const ::cpp2::EchoRequest& p_request) {
     return co_echo<false>(nullptr, p_request);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
   template <int = 0>
   folly::coro::Task<::cpp2::EchoResponse> co_echo(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::EchoRequest& p_request) {
     return co_echo<true>(&rpcOptions, p_request);
@@ -152,18 +152,18 @@ class Client<::cpp2::HeaderClientMethodsAnnotationOnFunction> : public apache::t
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
   virtual void echo(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, const ::cpp2::EchoRequest& p_request);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
   static folly::exception_wrapper recv_wrapped_echo(::cpp2::EchoResponse& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
   static void recv_echo(::cpp2::EchoResponse& _return, ::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
   virtual void recv_instance_echo(::cpp2::EchoResponse& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo"} */
   virtual folly::exception_wrapper recv_instance_wrapped_echo(::cpp2::EchoResponse& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_echo(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::cpp2::EchoRequest& p_request);
@@ -173,35 +173,35 @@ class Client<::cpp2::HeaderClientMethodsAnnotationOnFunction> : public apache::t
   template <typename CallbackType>
   folly::SemiFuture<::cpp2::EchoResponse> fbthrift_semifuture_echo(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::EchoRequest& p_request);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo_2"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo_2"} */
   virtual void echo_2(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::cpp2::EchoRequest& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo_2"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo_2"} */
   virtual void echo_2(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::cpp2::EchoRequest& p_request);
  protected:
   void fbthrift_serialize_and_send_echo_2(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const ::cpp2::EchoRequest& p_request, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo_2"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo_2"} */
   virtual void sync_echo_2(::cpp2::EchoResponse& _return, const ::cpp2::EchoRequest& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo_2"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo_2"} */
   virtual void sync_echo_2(apache::thrift::RpcOptions& rpcOptions, ::cpp2::EchoResponse& _return, const ::cpp2::EchoRequest& p_request);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo_2"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo_2"} */
   virtual folly::Future<::cpp2::EchoResponse> future_echo_2(const ::cpp2::EchoRequest& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo_2"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo_2"} */
   virtual folly::SemiFuture<::cpp2::EchoResponse> semifuture_echo_2(const ::cpp2::EchoRequest& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo_2"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo_2"} */
   virtual folly::Future<::cpp2::EchoResponse> future_echo_2(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::EchoRequest& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo_2"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo_2"} */
   virtual folly::SemiFuture<::cpp2::EchoResponse> semifuture_echo_2(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::EchoRequest& p_request);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo_2"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo_2"} */
   template <int = 0>
   folly::coro::Task<::cpp2::EchoResponse> co_echo_2(const ::cpp2::EchoRequest& p_request) {
     return co_echo_2<false>(nullptr, p_request);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo_2"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo_2"} */
   template <int = 0>
   folly::coro::Task<::cpp2::EchoResponse> co_echo_2(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::EchoRequest& p_request) {
     return co_echo_2<true>(&rpcOptions, p_request);
@@ -275,18 +275,18 @@ class Client<::cpp2::HeaderClientMethodsAnnotationOnFunction> : public apache::t
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo_2"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo_2"} */
   virtual void echo_2(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, const ::cpp2::EchoRequest& p_request);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo_2"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo_2"} */
   static folly::exception_wrapper recv_wrapped_echo_2(::cpp2::EchoResponse& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo_2"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo_2"} */
   static void recv_echo_2(::cpp2::EchoResponse& _return, ::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo_2"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo_2"} */
   virtual void recv_instance_echo_2(::cpp2::EchoResponse& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo_2"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "service": "HeaderClientMethodsAnnotationOnFunction", "function": "echo_2"} */
   virtual folly::exception_wrapper recv_instance_wrapped_echo_2(::cpp2::EchoResponse& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_echo_2(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::cpp2::EchoRequest& p_request);

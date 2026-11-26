@@ -44,11 +44,12 @@ namespace apache::thrift::detail::qualifier {
 // BEGIN hash_and_equal_to
 // END hash_and_equal_to
 namespace facebook::thrift::test::iobuf_chain {
+/* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "name": "IOBufChainBinary", "kind": "typedef" } */
+
 /** typedef binary IOBufChainBinary */
-/** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "name": "IOBufChainBinary", "kind": "typedef" } */
 using IOBufChainBinary = ::apache::thrift::IOBufChain;
 
-/** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "name": "Data", "kind": "struct" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "name": "Data", "kind": "struct" } */
 class Data final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -125,97 +126,103 @@ class Data final  {
   bool operator==(const Data&) const;
   std::partial_ordering operator<=>(const Data&) const;
 
+  /* Glean { "field": "payload" } */
+
   /** 1: IOBufChainBinary payload */
-  /** Glean { "field": "payload" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::iobuf_chain::IOBufChainBinary>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> payload_ref() const& {
     return {this->__fbthrift_field_payload, __isset.at(0), __isset.bit(0)};
   }
 
+  /* Glean { "field": "payload" } */
+
   /** 1: IOBufChainBinary payload */
-  /** Glean { "field": "payload" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::iobuf_chain::IOBufChainBinary>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> payload_ref() & {
     return {this->__fbthrift_field_payload, __isset.at(0), __isset.bit(0)};
   }
 
+  /* Glean { "field": "payload" } */
+
   /** 1: IOBufChainBinary payload */
-  /** Glean { "field": "payload" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::iobuf_chain::IOBufChainBinary>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> payload_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_payload), __isset.at(0), __isset.bit(0)};
   }
 
+  /* Glean { "field": "payload" } */
+
   /** 1: IOBufChainBinary payload */
-  /** Glean { "field": "payload" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::iobuf_chain::IOBufChainBinary>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> payload() const& {
     return {this->__fbthrift_field_payload, __isset.at(0), __isset.bit(0)};
   }
 
+  /* Glean { "field": "payload" } */
+
   /** 1: IOBufChainBinary payload */
-  /** Glean { "field": "payload" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::iobuf_chain::IOBufChainBinary>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> payload() & {
     return {this->__fbthrift_field_payload, __isset.at(0), __isset.bit(0)};
   }
 
+  /* Glean { "field": "payload" } */
+
   /** 1: IOBufChainBinary payload */
-  /** Glean { "field": "payload" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::iobuf_chain::IOBufChainBinary>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> payload() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_payload), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "text" } */
+  /* Glean { "field": "text" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> text_ref() const& {
     return {this->__fbthrift_field_text, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "text" } */
+  /* Glean { "field": "text" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> text_ref() & {
     return {this->__fbthrift_field_text, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "text" } */
+  /* Glean { "field": "text" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> text_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_text), __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "text" } */
+  /* Glean { "field": "text" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> text() const& {
     return {this->__fbthrift_field_text, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "text" } */
+  /* Glean { "field": "text" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> text() & {
     return {this->__fbthrift_field_text, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "text" } */
+  /* Glean { "field": "text" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> text() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_text), __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "payload" } */
+  /* Glean { "field": "payload" } */
   [[deprecated("Use `FOO.payload().value()` instead of `FOO.get_payload()`")]]
   const ::facebook::thrift::test::iobuf_chain::IOBufChainBinary& get_payload() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return __fbthrift_field_payload;
   }
 
-  /** Glean { "field": "payload" } */
+  /* Glean { "field": "payload" } */
   [[deprecated("Use `FOO.payload().value()` instead of `FOO.get_payload()`")]]
   ::facebook::thrift::test::iobuf_chain::IOBufChainBinary get_payload() && {
     return static_cast<::facebook::thrift::test::iobuf_chain::IOBufChainBinary&&>(__fbthrift_field_payload);
   }
 
-  /** Glean { "field": "payload" } */
+  /* Glean { "field": "payload" } */
   template <typename T_Data_payload_struct_setter = ::facebook::thrift::test::iobuf_chain::IOBufChainBinary>
   [[deprecated("Use `FOO.payload() = BAR` instead of `FOO.set_payload(BAR)`")]]
   ::facebook::thrift::test::iobuf_chain::IOBufChainBinary& set_payload(T_Data_payload_struct_setter&& payload_) {
@@ -223,19 +230,19 @@ class Data final  {
     return __fbthrift_field_payload;
   }
 
-  /** Glean { "field": "text" } */
+  /* Glean { "field": "text" } */
   [[deprecated("Use `FOO.text().value()` instead of `FOO.get_text()`")]]
   const ::std::string& get_text() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return __fbthrift_field_text;
   }
 
-  /** Glean { "field": "text" } */
+  /* Glean { "field": "text" } */
   [[deprecated("Use `FOO.text().value()` instead of `FOO.get_text()`")]]
   ::std::string get_text() && {
     return static_cast<::std::string&&>(__fbthrift_field_text);
   }
 
-  /** Glean { "field": "text" } */
+  /* Glean { "field": "text" } */
   template <typename T_Data_text_struct_setter = ::std::string>
   [[deprecated("Use `FOO.text() = BAR` instead of `FOO.set_text(BAR)`")]]
   ::std::string& set_text(T_Data_text_struct_setter&& text_) {

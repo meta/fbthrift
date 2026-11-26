@@ -54,8 +54,9 @@ namespace apache::thrift::detail::qualifier {
 namespace facebook::thrift::compiler::test::fixtures::any {
 
 namespace detail {
+/* Glean {"file": "thrift/compiler/test/fixtures/any/src/module.thrift", "name": "MyStruct", "kind": "struct" } */
+
 /** struct MyStruct */
-/** Glean {"file": "thrift/compiler/test/fixtures/any/src/module.thrift", "name": "MyStruct", "kind": "struct" } */
 class MyStruct final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -128,55 +129,55 @@ class MyStruct final  {
   bool operator==(const MyStruct&) const;
   std::partial_ordering operator<=>(const MyStruct&) const;
 
-  /** Glean { "field": "myString" } */
+  /* Glean { "field": "myString" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> myString_ref() const& {
     return {this->__fbthrift_field_myString, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "myString" } */
+  /* Glean { "field": "myString" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> myString_ref() & {
     return {this->__fbthrift_field_myString, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "myString" } */
+  /* Glean { "field": "myString" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> myString_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_myString), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "myString" } */
+  /* Glean { "field": "myString" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> myString() const& {
     return {this->__fbthrift_field_myString, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "myString" } */
+  /* Glean { "field": "myString" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> myString() & {
     return {this->__fbthrift_field_myString, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "myString" } */
+  /* Glean { "field": "myString" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> myString() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_myString), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "myString" } */
+  /* Glean { "field": "myString" } */
   [[deprecated("Use `FOO.myString().value()` instead of `FOO.get_myString()`")]]
   const ::std::string& get_myString() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return __fbthrift_field_myString;
   }
 
-  /** Glean { "field": "myString" } */
+  /* Glean { "field": "myString" } */
   [[deprecated("Use `FOO.myString().value()` instead of `FOO.get_myString()`")]]
   ::std::string get_myString() && {
     return static_cast<::std::string&&>(__fbthrift_field_myString);
   }
 
-  /** Glean { "field": "myString" } */
+  /* Glean { "field": "myString" } */
   template <typename T_MyStruct_myString_struct_setter = ::std::string>
   [[deprecated("Use `FOO.myString() = BAR` instead of `FOO.set_myString(BAR)`")]]
   ::std::string& set_myString(T_MyStruct_myString_struct_setter&& myString_) {
@@ -211,7 +212,7 @@ unsigned long MyStruct::read(Protocol_* iprot) {
 using MyStruct = ::apache::thrift::adapt_detail::adapted_t<::my::Adapter1, ::facebook::thrift::compiler::test::fixtures::any::detail::MyStruct>;
 
 
-/** Glean {"file": "thrift/compiler/test/fixtures/any/src/module.thrift", "name": "MyUnion", "kind": "union" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/any/src/module.thrift", "name": "MyUnion", "kind": "union" } */
 class MyUnion final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -285,7 +286,7 @@ class MyUnion final  {
   bool operator==(const MyUnion&) const;
   std::partial_ordering operator<=>(const MyUnion&) const;
 
-  /** Glean { "field": "myString" } */
+  /* Glean { "field": "myString" } */
   template <typename... A> requires (sizeof...(A) == 0)
   ::std::string& set_myString(::std::string const &t) {
     using T0 = ::std::string;
@@ -296,7 +297,7 @@ class MyUnion final  {
     return value_.myString;
   }
 
-  /** Glean { "field": "myString" } */
+  /* Glean { "field": "myString" } */
   template <typename... A> requires (sizeof...(A) == 0)
   ::std::string& set_myString(::std::string&& t) {
     using T0 = ::std::string;
@@ -307,7 +308,7 @@ class MyUnion final  {
     return value_.myString;
   }
 
-  /** Glean { "field": "myString" } */
+  /* Glean { "field": "myString" } */
   template<typename... T, typename = ::apache::thrift::safe_overload_t<::std::string, T...>> ::std::string& set_myString(T&&... t) {
     __fbthrift_clear();
     ::new (std::addressof(value_.myString)) ::std::string(std::forward<T>(t)...);
@@ -316,7 +317,7 @@ class MyUnion final  {
   }
 
 
-  /** Glean { "field": "myString" } */
+  /* Glean { "field": "myString" } */
   [[deprecated("Use `FOO.myString().value()` instead of `FOO.get_myString()`")]]
   ::std::string const& get_myString() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::myString) {
@@ -336,35 +337,35 @@ class MyUnion final  {
     return std::move(value_.myString);
   }
 
-  /** Glean { "field": "myString" } */
+  /* Glean { "field": "myString" } */
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::union_field_ref<const T&> myString_ref() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.myString, fbthrift_type_, folly::to_underlying(Type::myString), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "myString" } */
+  /* Glean { "field": "myString" } */
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::union_field_ref<T&> myString_ref() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.myString, fbthrift_type_, folly::to_underlying(Type::myString), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "myString" } */
+  /* Glean { "field": "myString" } */
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::union_field_ref<T&&> myString_ref() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {std::move(value_.myString), fbthrift_type_, folly::to_underlying(Type::myString), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "myString" } */
+  /* Glean { "field": "myString" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<const ::std::string&> myString() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.myString, fbthrift_type_, folly::to_underlying(Type::myString), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "myString" } */
+  /* Glean { "field": "myString" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<::std::string&> myString() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.myString, fbthrift_type_, folly::to_underlying(Type::myString), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "myString" } */
+  /* Glean { "field": "myString" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<::std::string&&> myString() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {std::move(value_.myString), fbthrift_type_, folly::to_underlying(Type::myString), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
@@ -397,7 +398,7 @@ unsigned long MyUnion::read(Protocol_* iprot) {
 }
 
 
-/** Glean {"file": "thrift/compiler/test/fixtures/any/src/module.thrift", "name": "MyException", "kind": "exception" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/any/src/module.thrift", "name": "MyException", "kind": "exception" } */
 class FOLLY_EXPORT MyException : public virtual apache::thrift::TException {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -476,55 +477,55 @@ class FOLLY_EXPORT MyException : public virtual apache::thrift::TException {
   bool operator==(const MyException&) const;
   std::partial_ordering operator<=>(const MyException&) const;
 
-  /** Glean { "field": "myString" } */
+  /* Glean { "field": "myString" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> myString_ref() const& {
     return {this->__fbthrift_field_myString, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "myString" } */
+  /* Glean { "field": "myString" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> myString_ref() & {
     return {this->__fbthrift_field_myString, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "myString" } */
+  /* Glean { "field": "myString" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> myString_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_myString), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "myString" } */
+  /* Glean { "field": "myString" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> myString() const& {
     return {this->__fbthrift_field_myString, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "myString" } */
+  /* Glean { "field": "myString" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> myString() & {
     return {this->__fbthrift_field_myString, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "myString" } */
+  /* Glean { "field": "myString" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> myString() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_myString), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "myString" } */
+  /* Glean { "field": "myString" } */
   [[deprecated("Use `FOO.myString().value()` instead of `FOO.get_myString()`")]]
   const ::std::string& get_myString() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return __fbthrift_field_myString;
   }
 
-  /** Glean { "field": "myString" } */
+  /* Glean { "field": "myString" } */
   [[deprecated("Use `FOO.myString().value()` instead of `FOO.get_myString()`")]]
   ::std::string get_myString() && {
     return static_cast<::std::string&&>(__fbthrift_field_myString);
   }
 
-  /** Glean { "field": "myString" } */
+  /* Glean { "field": "myString" } */
   template <typename T_MyException_myString_struct_setter = ::std::string>
   [[deprecated("Use `FOO.myString() = BAR` instead of `FOO.set_myString(BAR)`")]]
   ::std::string& set_myString(T_MyException_myString_struct_setter&& myString_) {

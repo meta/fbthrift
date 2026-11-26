@@ -50,43 +50,51 @@ class Client<::facebook::thrift::test::fixtures::docblocks::Documented> : public
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "facebook.com/thrift/test/fixtures/docblocks/Documented";
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "escapes"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "escapes"} */
   virtual void escapes(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::string& p_text);
-  /** Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "escapes"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "escapes"} */
   virtual void escapes(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::string& p_text);
  protected:
   void fbthrift_serialize_and_send_escapes(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const ::std::string& p_text, bool stealRpcOptions = false);
  public:
 
-  /** Ends *\/ early. */
-  /** Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "escapes"} */
-  virtual ::std::int32_t sync_escapes(const ::std::string& p_text);
-  /** Ends *\/ early. */
-  /** Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "escapes"} */
-  virtual ::std::int32_t sync_escapes(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_text);
+  /* Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "escapes"} */
 
   /** Ends *\/ early. */
-  /** Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "escapes"} */
+  virtual ::std::int32_t sync_escapes(const ::std::string& p_text);
+  /* Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "escapes"} */
+
+  /** Ends *\/ early. */
+  virtual ::std::int32_t sync_escapes(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_text);
+
+  /* Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "escapes"} */
+
+  /** Ends *\/ early. */
   virtual folly::Future<::std::int32_t> future_escapes(const ::std::string& p_text);
+  /* Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "escapes"} */
+
   /** Ends *\/ early. */
-  /** Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "escapes"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_escapes(const ::std::string& p_text);
+  /* Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "escapes"} */
+
   /** Ends *\/ early. */
-  /** Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "escapes"} */
   virtual folly::Future<::std::int32_t> future_escapes(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_text);
+  /* Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "escapes"} */
+
   /** Ends *\/ early. */
-  /** Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "escapes"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_escapes(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_text);
 
 #if FOLLY_HAS_COROUTINES
+  /* Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "escapes"} */
+
   /** Ends *\/ early. */
-  /** Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "escapes"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_escapes(const ::std::string& p_text) {
     return co_escapes<false>(nullptr, p_text);
   }
+  /* Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "escapes"} */
+
   /** Ends *\/ early. */
-  /** Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "escapes"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_escapes(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_text) {
     return co_escapes<true>(&rpcOptions, p_text);
@@ -160,18 +168,18 @@ class Client<::facebook::thrift::test::fixtures::docblocks::Documented> : public
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "escapes"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "escapes"} */
   virtual void escapes(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, const ::std::string& p_text);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "escapes"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "escapes"} */
   static folly::exception_wrapper recv_wrapped_escapes(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "escapes"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "escapes"} */
   static ::std::int32_t recv_escapes(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "escapes"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "escapes"} */
   virtual ::std::int32_t recv_instance_escapes(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "escapes"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "escapes"} */
   virtual folly::exception_wrapper recv_instance_wrapped_escapes(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_escapes(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::std::string& p_text);
@@ -181,43 +189,51 @@ class Client<::facebook::thrift::test::fixtures::docblocks::Documented> : public
   template <typename CallbackType>
   folly::SemiFuture<::std::int32_t> fbthrift_semifuture_escapes(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_text);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "renamed"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "renamed"} */
   virtual void cpp_renamed(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "renamed"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "renamed"} */
   virtual void cpp_renamed(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_cpp_renamed(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** void renamed() */
-  /** Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "renamed"} */
-  virtual void sync_cpp_renamed();
-  /** void renamed() */
-  /** Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "renamed"} */
-  virtual void sync_cpp_renamed(apache::thrift::RpcOptions& rpcOptions);
+  /* Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "renamed"} */
 
   /** void renamed() */
-  /** Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "renamed"} */
+  virtual void sync_cpp_renamed();
+  /* Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "renamed"} */
+
+  /** void renamed() */
+  virtual void sync_cpp_renamed(apache::thrift::RpcOptions& rpcOptions);
+
+  /* Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "renamed"} */
+
+  /** void renamed() */
   virtual folly::Future<folly::Unit> future_cpp_renamed();
+  /* Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "renamed"} */
+
   /** void renamed() */
-  /** Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "renamed"} */
   virtual folly::SemiFuture<folly::Unit> semifuture_cpp_renamed();
+  /* Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "renamed"} */
+
   /** void renamed() */
-  /** Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "renamed"} */
   virtual folly::Future<folly::Unit> future_cpp_renamed(apache::thrift::RpcOptions& rpcOptions);
+  /* Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "renamed"} */
+
   /** void renamed() */
-  /** Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "renamed"} */
   virtual folly::SemiFuture<folly::Unit> semifuture_cpp_renamed(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
+  /* Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "renamed"} */
+
   /** void renamed() */
-  /** Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "renamed"} */
   template <int = 0>
   folly::coro::Task<void> co_cpp_renamed() {
     return co_cpp_renamed<false>(nullptr);
   }
+  /* Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "renamed"} */
+
   /** void renamed() */
-  /** Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "renamed"} */
   template <int = 0>
   folly::coro::Task<void> co_cpp_renamed(apache::thrift::RpcOptions& rpcOptions) {
     return co_cpp_renamed<true>(&rpcOptions);
@@ -291,18 +307,18 @@ class Client<::facebook::thrift::test::fixtures::docblocks::Documented> : public
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "renamed"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "renamed"} */
   virtual void cpp_renamed(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "renamed"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "renamed"} */
   static folly::exception_wrapper recv_wrapped_cpp_renamed(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "renamed"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "renamed"} */
   static void recv_cpp_renamed(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "renamed"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "renamed"} */
   virtual void recv_instance_cpp_renamed(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "renamed"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift", "service": "Documented", "function": "renamed"} */
   virtual folly::exception_wrapper recv_instance_wrapped_cpp_renamed(::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_cpp_renamed(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);

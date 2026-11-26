@@ -64,29 +64,29 @@ class LegacyPerforms final : public apache::thrift::InteractionHandle {
     return "DecoratedService";
   }
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "LegacyPerforms", "function": "perform"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "LegacyPerforms", "function": "perform"} */
   void perform(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_perform(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "LegacyPerforms", "function": "perform"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "LegacyPerforms", "function": "perform"} */
   void sync_perform();
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "LegacyPerforms", "function": "perform"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "LegacyPerforms", "function": "perform"} */
   void sync_perform(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "LegacyPerforms", "function": "perform"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "LegacyPerforms", "function": "perform"} */
   folly::SemiFuture<folly::Unit> semifuture_perform();
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "LegacyPerforms", "function": "perform"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "LegacyPerforms", "function": "perform"} */
   folly::SemiFuture<folly::Unit> semifuture_perform(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "LegacyPerforms", "function": "perform"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "LegacyPerforms", "function": "perform"} */
   template <int = 0>
   folly::coro::Task<void> co_perform() {
     return co_perform<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "LegacyPerforms", "function": "perform"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "LegacyPerforms", "function": "perform"} */
   template <int = 0>
   folly::coro::Task<void> co_perform(apache::thrift::RpcOptions& rpcOptions) {
     return co_perform<true>(&rpcOptions);
@@ -161,9 +161,9 @@ class LegacyPerforms final : public apache::thrift::InteractionHandle {
 #endif // FOLLY_HAS_COROUTINES
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "LegacyPerforms", "function": "perform"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "LegacyPerforms", "function": "perform"} */
   static folly::exception_wrapper recv_wrapped_perform(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "LegacyPerforms", "function": "perform"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "LegacyPerforms", "function": "perform"} */
   static void recv_perform(::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_perform(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -182,29 +182,29 @@ class EchoInteraction final : public apache::thrift::InteractionHandle {
     return "DecoratedService";
   }
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "EchoInteraction", "function": "interactionEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "EchoInteraction", "function": "interactionEcho"} */
   void interactionEcho(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::string& p_text);
  protected:
   void fbthrift_serialize_and_send_interactionEcho(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const ::std::string& p_text, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "EchoInteraction", "function": "interactionEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "EchoInteraction", "function": "interactionEcho"} */
   void sync_interactionEcho(::std::string& _return, const ::std::string& p_text);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "EchoInteraction", "function": "interactionEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "EchoInteraction", "function": "interactionEcho"} */
   void sync_interactionEcho(apache::thrift::RpcOptions& rpcOptions, ::std::string& _return, const ::std::string& p_text);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "EchoInteraction", "function": "interactionEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "EchoInteraction", "function": "interactionEcho"} */
   folly::SemiFuture<::std::string> semifuture_interactionEcho(const ::std::string& p_text);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "EchoInteraction", "function": "interactionEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "EchoInteraction", "function": "interactionEcho"} */
   folly::SemiFuture<::std::string> semifuture_interactionEcho(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_text);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "EchoInteraction", "function": "interactionEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "EchoInteraction", "function": "interactionEcho"} */
   template <int = 0>
   folly::coro::Task<::std::string> co_interactionEcho(const ::std::string& p_text) {
     return co_interactionEcho<false>(nullptr, p_text);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "EchoInteraction", "function": "interactionEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "EchoInteraction", "function": "interactionEcho"} */
   template <int = 0>
   folly::coro::Task<::std::string> co_interactionEcho(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_text) {
     return co_interactionEcho<true>(&rpcOptions, p_text);
@@ -279,9 +279,9 @@ class EchoInteraction final : public apache::thrift::InteractionHandle {
 #endif // FOLLY_HAS_COROUTINES
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "EchoInteraction", "function": "interactionEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "EchoInteraction", "function": "interactionEcho"} */
   static folly::exception_wrapper recv_wrapped_interactionEcho(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "EchoInteraction", "function": "interactionEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "EchoInteraction", "function": "interactionEcho"} */
   static void recv_interactionEcho(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_interactionEcho(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::std::string& p_text);
@@ -293,37 +293,37 @@ class EchoInteraction final : public apache::thrift::InteractionHandle {
  public:
 };
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "createLegacyPerforms"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "createLegacyPerforms"} */
   LegacyPerforms createLegacyPerforms();
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "noop"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "noop"} */
   virtual void noop(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "noop"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "noop"} */
   virtual void noop(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_noop(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "noop"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "noop"} */
   virtual void sync_noop();
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "noop"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "noop"} */
   virtual void sync_noop(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "noop"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "noop"} */
   virtual folly::Future<folly::Unit> future_noop();
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "noop"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "noop"} */
   virtual folly::SemiFuture<folly::Unit> semifuture_noop();
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "noop"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "noop"} */
   virtual folly::Future<folly::Unit> future_noop(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "noop"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "noop"} */
   virtual folly::SemiFuture<folly::Unit> semifuture_noop(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "noop"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "noop"} */
   template <int = 0>
   folly::coro::Task<void> co_noop() {
     return co_noop<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "noop"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "noop"} */
   template <int = 0>
   folly::coro::Task<void> co_noop(apache::thrift::RpcOptions& rpcOptions) {
     return co_noop<true>(&rpcOptions);
@@ -397,18 +397,18 @@ class EchoInteraction final : public apache::thrift::InteractionHandle {
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "noop"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "noop"} */
   virtual void noop(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "noop"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "noop"} */
   static folly::exception_wrapper recv_wrapped_noop(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "noop"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "noop"} */
   static void recv_noop(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "noop"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "noop"} */
   virtual void recv_instance_noop(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "noop"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "noop"} */
   virtual folly::exception_wrapper recv_instance_wrapped_noop(::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_noop(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -418,35 +418,35 @@ class EchoInteraction final : public apache::thrift::InteractionHandle {
   template <typename CallbackType>
   folly::SemiFuture<folly::Unit> fbthrift_semifuture_noop(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echo"} */
   virtual void echo(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::string& p_text);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echo"} */
   virtual void echo(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::string& p_text);
  protected:
   void fbthrift_serialize_and_send_echo(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const ::std::string& p_text, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echo"} */
   virtual void sync_echo(::std::string& _return, const ::std::string& p_text);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echo"} */
   virtual void sync_echo(apache::thrift::RpcOptions& rpcOptions, ::std::string& _return, const ::std::string& p_text);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echo"} */
   virtual folly::Future<::std::string> future_echo(const ::std::string& p_text);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echo"} */
   virtual folly::SemiFuture<::std::string> semifuture_echo(const ::std::string& p_text);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echo"} */
   virtual folly::Future<::std::string> future_echo(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_text);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echo"} */
   virtual folly::SemiFuture<::std::string> semifuture_echo(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_text);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echo"} */
   template <int = 0>
   folly::coro::Task<::std::string> co_echo(const ::std::string& p_text) {
     return co_echo<false>(nullptr, p_text);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echo"} */
   template <int = 0>
   folly::coro::Task<::std::string> co_echo(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_text) {
     return co_echo<true>(&rpcOptions, p_text);
@@ -520,18 +520,18 @@ class EchoInteraction final : public apache::thrift::InteractionHandle {
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echo"} */
   virtual void echo(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, const ::std::string& p_text);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echo"} */
   static folly::exception_wrapper recv_wrapped_echo(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echo"} */
   static void recv_echo(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echo"} */
   virtual void recv_instance_echo(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echo"} */
   virtual folly::exception_wrapper recv_instance_wrapped_echo(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_echo(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::std::string& p_text);
@@ -541,35 +541,35 @@ class EchoInteraction final : public apache::thrift::InteractionHandle {
   template <typename CallbackType>
   folly::SemiFuture<::std::string> fbthrift_semifuture_echo(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_text);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "increment"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "increment"} */
   virtual void increment(std::unique_ptr<apache::thrift::RequestCallback> callback, ::std::int64_t p_num);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "increment"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "increment"} */
   virtual void increment(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, ::std::int64_t p_num);
  protected:
   void fbthrift_serialize_and_send_increment(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, ::std::int64_t p_num, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "increment"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "increment"} */
   virtual ::std::int64_t sync_increment(::std::int64_t p_num);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "increment"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "increment"} */
   virtual ::std::int64_t sync_increment(apache::thrift::RpcOptions& rpcOptions, ::std::int64_t p_num);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "increment"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "increment"} */
   virtual folly::Future<::std::int64_t> future_increment(::std::int64_t p_num);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "increment"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "increment"} */
   virtual folly::SemiFuture<::std::int64_t> semifuture_increment(::std::int64_t p_num);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "increment"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "increment"} */
   virtual folly::Future<::std::int64_t> future_increment(apache::thrift::RpcOptions& rpcOptions, ::std::int64_t p_num);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "increment"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "increment"} */
   virtual folly::SemiFuture<::std::int64_t> semifuture_increment(apache::thrift::RpcOptions& rpcOptions, ::std::int64_t p_num);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "increment"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "increment"} */
   template <int = 0>
   folly::coro::Task<::std::int64_t> co_increment(::std::int64_t p_num) {
     return co_increment<false>(nullptr, p_num);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "increment"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "increment"} */
   template <int = 0>
   folly::coro::Task<::std::int64_t> co_increment(apache::thrift::RpcOptions& rpcOptions, ::std::int64_t p_num) {
     return co_increment<true>(&rpcOptions, p_num);
@@ -643,18 +643,18 @@ class EchoInteraction final : public apache::thrift::InteractionHandle {
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "increment"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "increment"} */
   virtual void increment(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, ::std::int64_t p_num);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "increment"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "increment"} */
   static folly::exception_wrapper recv_wrapped_increment(::std::int64_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "increment"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "increment"} */
   static ::std::int64_t recv_increment(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "increment"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "increment"} */
   virtual ::std::int64_t recv_instance_increment(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "increment"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "increment"} */
   virtual folly::exception_wrapper recv_instance_wrapped_increment(::std::int64_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_increment(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, ::std::int64_t p_num);
@@ -664,35 +664,35 @@ class EchoInteraction final : public apache::thrift::InteractionHandle {
   template <typename CallbackType>
   folly::SemiFuture<::std::int64_t> fbthrift_semifuture_increment(apache::thrift::RpcOptions& rpcOptions, ::std::int64_t p_num);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "sum"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "sum"} */
   virtual void sum(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::vector<::std::int64_t>& p_nums);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "sum"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "sum"} */
   virtual void sum(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::vector<::std::int64_t>& p_nums);
  protected:
   void fbthrift_serialize_and_send_sum(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const ::std::vector<::std::int64_t>& p_nums, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "sum"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "sum"} */
   virtual ::std::int64_t sync_sum(const ::std::vector<::std::int64_t>& p_nums);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "sum"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "sum"} */
   virtual ::std::int64_t sync_sum(apache::thrift::RpcOptions& rpcOptions, const ::std::vector<::std::int64_t>& p_nums);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "sum"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "sum"} */
   virtual folly::Future<::std::int64_t> future_sum(const ::std::vector<::std::int64_t>& p_nums);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "sum"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "sum"} */
   virtual folly::SemiFuture<::std::int64_t> semifuture_sum(const ::std::vector<::std::int64_t>& p_nums);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "sum"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "sum"} */
   virtual folly::Future<::std::int64_t> future_sum(apache::thrift::RpcOptions& rpcOptions, const ::std::vector<::std::int64_t>& p_nums);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "sum"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "sum"} */
   virtual folly::SemiFuture<::std::int64_t> semifuture_sum(apache::thrift::RpcOptions& rpcOptions, const ::std::vector<::std::int64_t>& p_nums);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "sum"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "sum"} */
   template <int = 0>
   folly::coro::Task<::std::int64_t> co_sum(const ::std::vector<::std::int64_t>& p_nums) {
     return co_sum<false>(nullptr, p_nums);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "sum"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "sum"} */
   template <int = 0>
   folly::coro::Task<::std::int64_t> co_sum(apache::thrift::RpcOptions& rpcOptions, const ::std::vector<::std::int64_t>& p_nums) {
     return co_sum<true>(&rpcOptions, p_nums);
@@ -766,18 +766,18 @@ class EchoInteraction final : public apache::thrift::InteractionHandle {
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "sum"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "sum"} */
   virtual void sum(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, const ::std::vector<::std::int64_t>& p_nums);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "sum"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "sum"} */
   static folly::exception_wrapper recv_wrapped_sum(::std::int64_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "sum"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "sum"} */
   static ::std::int64_t recv_sum(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "sum"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "sum"} */
   virtual ::std::int64_t recv_instance_sum(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "sum"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "sum"} */
   virtual folly::exception_wrapper recv_instance_wrapped_sum(::std::int64_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_sum(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::std::vector<::std::int64_t>& p_nums);
@@ -787,35 +787,35 @@ class EchoInteraction final : public apache::thrift::InteractionHandle {
   template <typename CallbackType>
   folly::SemiFuture<::std::int64_t> fbthrift_semifuture_sum(apache::thrift::RpcOptions& rpcOptions, const ::std::vector<::std::int64_t>& p_nums);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "withStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "withStruct"} */
   virtual void withStruct(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::cpp2::Request& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "withStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "withStruct"} */
   virtual void withStruct(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::cpp2::Request& p_request);
  protected:
   void fbthrift_serialize_and_send_withStruct(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const ::cpp2::Request& p_request, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "withStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "withStruct"} */
   virtual void sync_withStruct(::cpp2::Response& _return, const ::cpp2::Request& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "withStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "withStruct"} */
   virtual void sync_withStruct(apache::thrift::RpcOptions& rpcOptions, ::cpp2::Response& _return, const ::cpp2::Request& p_request);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "withStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "withStruct"} */
   virtual folly::Future<::cpp2::Response> future_withStruct(const ::cpp2::Request& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "withStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "withStruct"} */
   virtual folly::SemiFuture<::cpp2::Response> semifuture_withStruct(const ::cpp2::Request& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "withStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "withStruct"} */
   virtual folly::Future<::cpp2::Response> future_withStruct(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::Request& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "withStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "withStruct"} */
   virtual folly::SemiFuture<::cpp2::Response> semifuture_withStruct(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::Request& p_request);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "withStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "withStruct"} */
   template <int = 0>
   folly::coro::Task<::cpp2::Response> co_withStruct(const ::cpp2::Request& p_request) {
     return co_withStruct<false>(nullptr, p_request);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "withStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "withStruct"} */
   template <int = 0>
   folly::coro::Task<::cpp2::Response> co_withStruct(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::Request& p_request) {
     return co_withStruct<true>(&rpcOptions, p_request);
@@ -889,18 +889,18 @@ class EchoInteraction final : public apache::thrift::InteractionHandle {
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "withStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "withStruct"} */
   virtual void withStruct(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, const ::cpp2::Request& p_request);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "withStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "withStruct"} */
   static folly::exception_wrapper recv_wrapped_withStruct(::cpp2::Response& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "withStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "withStruct"} */
   static void recv_withStruct(::cpp2::Response& _return, ::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "withStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "withStruct"} */
   virtual void recv_instance_withStruct(::cpp2::Response& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "withStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "withStruct"} */
   virtual folly::exception_wrapper recv_instance_wrapped_withStruct(::cpp2::Response& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_withStruct(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::cpp2::Request& p_request);
@@ -910,35 +910,35 @@ class EchoInteraction final : public apache::thrift::InteractionHandle {
   template <typename CallbackType>
   folly::SemiFuture<::cpp2::Response> fbthrift_semifuture_withStruct(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::Request& p_request);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "multiParam"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "multiParam"} */
   virtual void multiParam(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::string& p_text, ::std::int64_t p_num, const ::cpp2::Request& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "multiParam"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "multiParam"} */
   virtual void multiParam(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::string& p_text, ::std::int64_t p_num, const ::cpp2::Request& p_request);
  protected:
   void fbthrift_serialize_and_send_multiParam(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const ::std::string& p_text, ::std::int64_t p_num, const ::cpp2::Request& p_request, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "multiParam"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "multiParam"} */
   virtual void sync_multiParam(::cpp2::Response& _return, const ::std::string& p_text, ::std::int64_t p_num, const ::cpp2::Request& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "multiParam"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "multiParam"} */
   virtual void sync_multiParam(apache::thrift::RpcOptions& rpcOptions, ::cpp2::Response& _return, const ::std::string& p_text, ::std::int64_t p_num, const ::cpp2::Request& p_request);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "multiParam"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "multiParam"} */
   virtual folly::Future<::cpp2::Response> future_multiParam(const ::std::string& p_text, ::std::int64_t p_num, const ::cpp2::Request& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "multiParam"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "multiParam"} */
   virtual folly::SemiFuture<::cpp2::Response> semifuture_multiParam(const ::std::string& p_text, ::std::int64_t p_num, const ::cpp2::Request& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "multiParam"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "multiParam"} */
   virtual folly::Future<::cpp2::Response> future_multiParam(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_text, ::std::int64_t p_num, const ::cpp2::Request& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "multiParam"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "multiParam"} */
   virtual folly::SemiFuture<::cpp2::Response> semifuture_multiParam(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_text, ::std::int64_t p_num, const ::cpp2::Request& p_request);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "multiParam"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "multiParam"} */
   template <int = 0>
   folly::coro::Task<::cpp2::Response> co_multiParam(const ::std::string& p_text, ::std::int64_t p_num, const ::cpp2::Request& p_request) {
     return co_multiParam<false>(nullptr, p_text, p_num, p_request);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "multiParam"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "multiParam"} */
   template <int = 0>
   folly::coro::Task<::cpp2::Response> co_multiParam(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_text, ::std::int64_t p_num, const ::cpp2::Request& p_request) {
     return co_multiParam<true>(&rpcOptions, p_text, p_num, p_request);
@@ -1012,18 +1012,18 @@ class EchoInteraction final : public apache::thrift::InteractionHandle {
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "multiParam"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "multiParam"} */
   virtual void multiParam(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, const ::std::string& p_text, ::std::int64_t p_num, const ::cpp2::Request& p_request);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "multiParam"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "multiParam"} */
   static folly::exception_wrapper recv_wrapped_multiParam(::cpp2::Response& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "multiParam"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "multiParam"} */
   static void recv_multiParam(::cpp2::Response& _return, ::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "multiParam"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "multiParam"} */
   virtual void recv_instance_multiParam(::cpp2::Response& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "multiParam"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "multiParam"} */
   virtual folly::exception_wrapper recv_instance_wrapped_multiParam(::cpp2::Response& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_multiParam(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::std::string& p_text, ::std::int64_t p_num, const ::cpp2::Request& p_request);
@@ -1033,34 +1033,34 @@ class EchoInteraction final : public apache::thrift::InteractionHandle {
   template <typename CallbackType>
   folly::SemiFuture<::cpp2::Response> fbthrift_semifuture_multiParam(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_text, ::std::int64_t p_num, const ::cpp2::Request& p_request);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echoInteraction"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echoInteraction"} */
   void echoInteraction(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const apache::thrift::InteractionHandle& handle);
  protected:
   void fbthrift_serialize_and_send_echoInteraction(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const apache::thrift::InteractionHandle& handle, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echoInteraction"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echoInteraction"} */
   apache::thrift::Client<::cpp2::DecoratedService>::EchoInteraction sync_echoInteraction();
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echoInteraction"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echoInteraction"} */
   apache::thrift::Client<::cpp2::DecoratedService>::EchoInteraction sync_echoInteraction(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echoInteraction"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echoInteraction"} */
   folly::SemiFuture<apache::thrift::Client<::cpp2::DecoratedService>::EchoInteraction> semifuture_echoInteraction();
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echoInteraction"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echoInteraction"} */
   folly::SemiFuture<apache::thrift::Client<::cpp2::DecoratedService>::EchoInteraction> semifuture_echoInteraction(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echoInteraction"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echoInteraction"} */
   std::pair<
     apache::thrift::Client<::cpp2::DecoratedService>::EchoInteraction,
     folly::SemiFuture<folly::Unit>
   > eager_semifuture_echoInteraction(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echoInteraction"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echoInteraction"} */
   template <int = 0>
   folly::coro::Task<apache::thrift::Client<::cpp2::DecoratedService>::EchoInteraction> co_echoInteraction() {
     return co_echoInteraction<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echoInteraction"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echoInteraction"} */
   template <int = 0>
   folly::coro::Task<apache::thrift::Client<::cpp2::DecoratedService>::EchoInteraction> co_echoInteraction(apache::thrift::RpcOptions& rpcOptions) {
     return co_echoInteraction<true>(&rpcOptions);
@@ -1137,9 +1137,9 @@ class EchoInteraction final : public apache::thrift::InteractionHandle {
 #endif // FOLLY_HAS_COROUTINES
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echoInteraction"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echoInteraction"} */
   static folly::exception_wrapper recv_wrapped_echoInteraction(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echoInteraction"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService", "function": "echoInteraction"} */
   static void recv_echoInteraction(::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_echoInteraction(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -1192,35 +1192,35 @@ class Client<::cpp2::UndecoratedService> : public apache::thrift::GeneratedAsync
   }
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "noop"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "noop"} */
   virtual void noop(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "noop"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "noop"} */
   virtual void noop(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_noop(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "noop"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "noop"} */
   virtual void sync_noop();
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "noop"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "noop"} */
   virtual void sync_noop(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "noop"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "noop"} */
   virtual folly::Future<folly::Unit> future_noop();
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "noop"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "noop"} */
   virtual folly::SemiFuture<folly::Unit> semifuture_noop();
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "noop"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "noop"} */
   virtual folly::Future<folly::Unit> future_noop(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "noop"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "noop"} */
   virtual folly::SemiFuture<folly::Unit> semifuture_noop(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "noop"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "noop"} */
   template <int = 0>
   folly::coro::Task<void> co_noop() {
     return co_noop<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "noop"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "noop"} */
   template <int = 0>
   folly::coro::Task<void> co_noop(apache::thrift::RpcOptions& rpcOptions) {
     return co_noop<true>(&rpcOptions);
@@ -1294,18 +1294,18 @@ class Client<::cpp2::UndecoratedService> : public apache::thrift::GeneratedAsync
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "noop"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "noop"} */
   virtual void noop(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "noop"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "noop"} */
   static folly::exception_wrapper recv_wrapped_noop(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "noop"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "noop"} */
   static void recv_noop(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "noop"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "noop"} */
   virtual void recv_instance_noop(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "noop"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "noop"} */
   virtual folly::exception_wrapper recv_instance_wrapped_noop(::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_noop(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -1315,35 +1315,35 @@ class Client<::cpp2::UndecoratedService> : public apache::thrift::GeneratedAsync
   template <typename CallbackType>
   folly::SemiFuture<folly::Unit> fbthrift_semifuture_noop(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "echo"} */
   virtual void echo(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::string& p_text);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "echo"} */
   virtual void echo(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::string& p_text);
  protected:
   void fbthrift_serialize_and_send_echo(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const ::std::string& p_text, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "echo"} */
   virtual void sync_echo(::std::string& _return, const ::std::string& p_text);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "echo"} */
   virtual void sync_echo(apache::thrift::RpcOptions& rpcOptions, ::std::string& _return, const ::std::string& p_text);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "echo"} */
   virtual folly::Future<::std::string> future_echo(const ::std::string& p_text);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "echo"} */
   virtual folly::SemiFuture<::std::string> semifuture_echo(const ::std::string& p_text);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "echo"} */
   virtual folly::Future<::std::string> future_echo(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_text);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "echo"} */
   virtual folly::SemiFuture<::std::string> semifuture_echo(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_text);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "echo"} */
   template <int = 0>
   folly::coro::Task<::std::string> co_echo(const ::std::string& p_text) {
     return co_echo<false>(nullptr, p_text);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "echo"} */
   template <int = 0>
   folly::coro::Task<::std::string> co_echo(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_text) {
     return co_echo<true>(&rpcOptions, p_text);
@@ -1417,18 +1417,18 @@ class Client<::cpp2::UndecoratedService> : public apache::thrift::GeneratedAsync
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "echo"} */
   virtual void echo(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, const ::std::string& p_text);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "echo"} */
   static folly::exception_wrapper recv_wrapped_echo(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "echo"} */
   static void recv_echo(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "echo"} */
   virtual void recv_instance_echo(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "echo"} */
   virtual folly::exception_wrapper recv_instance_wrapped_echo(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_echo(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::std::string& p_text);
@@ -1438,35 +1438,35 @@ class Client<::cpp2::UndecoratedService> : public apache::thrift::GeneratedAsync
   template <typename CallbackType>
   folly::SemiFuture<::std::string> fbthrift_semifuture_echo(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_text);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "increment"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "increment"} */
   virtual void increment(std::unique_ptr<apache::thrift::RequestCallback> callback, ::std::int64_t p_num);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "increment"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "increment"} */
   virtual void increment(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, ::std::int64_t p_num);
  protected:
   void fbthrift_serialize_and_send_increment(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, ::std::int64_t p_num, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "increment"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "increment"} */
   virtual ::std::int64_t sync_increment(::std::int64_t p_num);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "increment"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "increment"} */
   virtual ::std::int64_t sync_increment(apache::thrift::RpcOptions& rpcOptions, ::std::int64_t p_num);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "increment"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "increment"} */
   virtual folly::Future<::std::int64_t> future_increment(::std::int64_t p_num);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "increment"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "increment"} */
   virtual folly::SemiFuture<::std::int64_t> semifuture_increment(::std::int64_t p_num);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "increment"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "increment"} */
   virtual folly::Future<::std::int64_t> future_increment(apache::thrift::RpcOptions& rpcOptions, ::std::int64_t p_num);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "increment"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "increment"} */
   virtual folly::SemiFuture<::std::int64_t> semifuture_increment(apache::thrift::RpcOptions& rpcOptions, ::std::int64_t p_num);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "increment"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "increment"} */
   template <int = 0>
   folly::coro::Task<::std::int64_t> co_increment(::std::int64_t p_num) {
     return co_increment<false>(nullptr, p_num);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "increment"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "increment"} */
   template <int = 0>
   folly::coro::Task<::std::int64_t> co_increment(apache::thrift::RpcOptions& rpcOptions, ::std::int64_t p_num) {
     return co_increment<true>(&rpcOptions, p_num);
@@ -1540,18 +1540,18 @@ class Client<::cpp2::UndecoratedService> : public apache::thrift::GeneratedAsync
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "increment"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "increment"} */
   virtual void increment(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, ::std::int64_t p_num);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "increment"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "increment"} */
   static folly::exception_wrapper recv_wrapped_increment(::std::int64_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "increment"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "increment"} */
   static ::std::int64_t recv_increment(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "increment"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "increment"} */
   virtual ::std::int64_t recv_instance_increment(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "increment"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "increment"} */
   virtual folly::exception_wrapper recv_instance_wrapped_increment(::std::int64_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_increment(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, ::std::int64_t p_num);
@@ -1561,35 +1561,35 @@ class Client<::cpp2::UndecoratedService> : public apache::thrift::GeneratedAsync
   template <typename CallbackType>
   folly::SemiFuture<::std::int64_t> fbthrift_semifuture_increment(apache::thrift::RpcOptions& rpcOptions, ::std::int64_t p_num);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "sum"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "sum"} */
   virtual void sum(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::vector<::std::int64_t>& p_nums);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "sum"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "sum"} */
   virtual void sum(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::vector<::std::int64_t>& p_nums);
  protected:
   void fbthrift_serialize_and_send_sum(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const ::std::vector<::std::int64_t>& p_nums, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "sum"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "sum"} */
   virtual ::std::int64_t sync_sum(const ::std::vector<::std::int64_t>& p_nums);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "sum"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "sum"} */
   virtual ::std::int64_t sync_sum(apache::thrift::RpcOptions& rpcOptions, const ::std::vector<::std::int64_t>& p_nums);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "sum"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "sum"} */
   virtual folly::Future<::std::int64_t> future_sum(const ::std::vector<::std::int64_t>& p_nums);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "sum"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "sum"} */
   virtual folly::SemiFuture<::std::int64_t> semifuture_sum(const ::std::vector<::std::int64_t>& p_nums);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "sum"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "sum"} */
   virtual folly::Future<::std::int64_t> future_sum(apache::thrift::RpcOptions& rpcOptions, const ::std::vector<::std::int64_t>& p_nums);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "sum"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "sum"} */
   virtual folly::SemiFuture<::std::int64_t> semifuture_sum(apache::thrift::RpcOptions& rpcOptions, const ::std::vector<::std::int64_t>& p_nums);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "sum"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "sum"} */
   template <int = 0>
   folly::coro::Task<::std::int64_t> co_sum(const ::std::vector<::std::int64_t>& p_nums) {
     return co_sum<false>(nullptr, p_nums);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "sum"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "sum"} */
   template <int = 0>
   folly::coro::Task<::std::int64_t> co_sum(apache::thrift::RpcOptions& rpcOptions, const ::std::vector<::std::int64_t>& p_nums) {
     return co_sum<true>(&rpcOptions, p_nums);
@@ -1663,18 +1663,18 @@ class Client<::cpp2::UndecoratedService> : public apache::thrift::GeneratedAsync
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "sum"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "sum"} */
   virtual void sum(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, const ::std::vector<::std::int64_t>& p_nums);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "sum"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "sum"} */
   static folly::exception_wrapper recv_wrapped_sum(::std::int64_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "sum"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "sum"} */
   static ::std::int64_t recv_sum(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "sum"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "sum"} */
   virtual ::std::int64_t recv_instance_sum(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "sum"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "sum"} */
   virtual folly::exception_wrapper recv_instance_wrapped_sum(::std::int64_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_sum(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::std::vector<::std::int64_t>& p_nums);
@@ -1684,35 +1684,35 @@ class Client<::cpp2::UndecoratedService> : public apache::thrift::GeneratedAsync
   template <typename CallbackType>
   folly::SemiFuture<::std::int64_t> fbthrift_semifuture_sum(apache::thrift::RpcOptions& rpcOptions, const ::std::vector<::std::int64_t>& p_nums);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "withStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "withStruct"} */
   virtual void withStruct(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::cpp2::Request& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "withStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "withStruct"} */
   virtual void withStruct(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::cpp2::Request& p_request);
  protected:
   void fbthrift_serialize_and_send_withStruct(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const ::cpp2::Request& p_request, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "withStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "withStruct"} */
   virtual void sync_withStruct(::cpp2::Response& _return, const ::cpp2::Request& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "withStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "withStruct"} */
   virtual void sync_withStruct(apache::thrift::RpcOptions& rpcOptions, ::cpp2::Response& _return, const ::cpp2::Request& p_request);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "withStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "withStruct"} */
   virtual folly::Future<::cpp2::Response> future_withStruct(const ::cpp2::Request& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "withStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "withStruct"} */
   virtual folly::SemiFuture<::cpp2::Response> semifuture_withStruct(const ::cpp2::Request& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "withStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "withStruct"} */
   virtual folly::Future<::cpp2::Response> future_withStruct(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::Request& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "withStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "withStruct"} */
   virtual folly::SemiFuture<::cpp2::Response> semifuture_withStruct(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::Request& p_request);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "withStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "withStruct"} */
   template <int = 0>
   folly::coro::Task<::cpp2::Response> co_withStruct(const ::cpp2::Request& p_request) {
     return co_withStruct<false>(nullptr, p_request);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "withStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "withStruct"} */
   template <int = 0>
   folly::coro::Task<::cpp2::Response> co_withStruct(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::Request& p_request) {
     return co_withStruct<true>(&rpcOptions, p_request);
@@ -1786,18 +1786,18 @@ class Client<::cpp2::UndecoratedService> : public apache::thrift::GeneratedAsync
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "withStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "withStruct"} */
   virtual void withStruct(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, const ::cpp2::Request& p_request);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "withStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "withStruct"} */
   static folly::exception_wrapper recv_wrapped_withStruct(::cpp2::Response& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "withStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "withStruct"} */
   static void recv_withStruct(::cpp2::Response& _return, ::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "withStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "withStruct"} */
   virtual void recv_instance_withStruct(::cpp2::Response& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "withStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "withStruct"} */
   virtual folly::exception_wrapper recv_instance_wrapped_withStruct(::cpp2::Response& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_withStruct(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::cpp2::Request& p_request);
@@ -1807,35 +1807,35 @@ class Client<::cpp2::UndecoratedService> : public apache::thrift::GeneratedAsync
   template <typename CallbackType>
   folly::SemiFuture<::cpp2::Response> fbthrift_semifuture_withStruct(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::Request& p_request);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "multiParam"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "multiParam"} */
   virtual void multiParam(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::string& p_text, ::std::int64_t p_num, const ::cpp2::Request& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "multiParam"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "multiParam"} */
   virtual void multiParam(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::string& p_text, ::std::int64_t p_num, const ::cpp2::Request& p_request);
  protected:
   void fbthrift_serialize_and_send_multiParam(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const ::std::string& p_text, ::std::int64_t p_num, const ::cpp2::Request& p_request, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "multiParam"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "multiParam"} */
   virtual void sync_multiParam(::cpp2::Response& _return, const ::std::string& p_text, ::std::int64_t p_num, const ::cpp2::Request& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "multiParam"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "multiParam"} */
   virtual void sync_multiParam(apache::thrift::RpcOptions& rpcOptions, ::cpp2::Response& _return, const ::std::string& p_text, ::std::int64_t p_num, const ::cpp2::Request& p_request);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "multiParam"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "multiParam"} */
   virtual folly::Future<::cpp2::Response> future_multiParam(const ::std::string& p_text, ::std::int64_t p_num, const ::cpp2::Request& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "multiParam"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "multiParam"} */
   virtual folly::SemiFuture<::cpp2::Response> semifuture_multiParam(const ::std::string& p_text, ::std::int64_t p_num, const ::cpp2::Request& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "multiParam"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "multiParam"} */
   virtual folly::Future<::cpp2::Response> future_multiParam(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_text, ::std::int64_t p_num, const ::cpp2::Request& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "multiParam"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "multiParam"} */
   virtual folly::SemiFuture<::cpp2::Response> semifuture_multiParam(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_text, ::std::int64_t p_num, const ::cpp2::Request& p_request);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "multiParam"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "multiParam"} */
   template <int = 0>
   folly::coro::Task<::cpp2::Response> co_multiParam(const ::std::string& p_text, ::std::int64_t p_num, const ::cpp2::Request& p_request) {
     return co_multiParam<false>(nullptr, p_text, p_num, p_request);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "multiParam"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "multiParam"} */
   template <int = 0>
   folly::coro::Task<::cpp2::Response> co_multiParam(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_text, ::std::int64_t p_num, const ::cpp2::Request& p_request) {
     return co_multiParam<true>(&rpcOptions, p_text, p_num, p_request);
@@ -1909,18 +1909,18 @@ class Client<::cpp2::UndecoratedService> : public apache::thrift::GeneratedAsync
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "multiParam"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "multiParam"} */
   virtual void multiParam(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, const ::std::string& p_text, ::std::int64_t p_num, const ::cpp2::Request& p_request);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "multiParam"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "multiParam"} */
   static folly::exception_wrapper recv_wrapped_multiParam(::cpp2::Response& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "multiParam"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "multiParam"} */
   static void recv_multiParam(::cpp2::Response& _return, ::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "multiParam"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "multiParam"} */
   virtual void recv_instance_multiParam(::cpp2::Response& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "multiParam"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "multiParam"} */
   virtual folly::exception_wrapper recv_instance_wrapped_multiParam(::cpp2::Response& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_multiParam(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::std::string& p_text, ::std::int64_t p_num, const ::cpp2::Request& p_request);
@@ -1930,35 +1930,35 @@ class Client<::cpp2::UndecoratedService> : public apache::thrift::GeneratedAsync
   template <typename CallbackType>
   folly::SemiFuture<::cpp2::Response> fbthrift_semifuture_multiParam(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_text, ::std::int64_t p_num, const ::cpp2::Request& p_request);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "adaptedRequest"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "adaptedRequest"} */
   virtual void adaptedRequest(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::cpp2::AdaptedRequest& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "adaptedRequest"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "adaptedRequest"} */
   virtual void adaptedRequest(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::cpp2::AdaptedRequest& p_request);
  protected:
   void fbthrift_serialize_and_send_adaptedRequest(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const ::cpp2::AdaptedRequest& p_request, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "adaptedRequest"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "adaptedRequest"} */
   virtual void sync_adaptedRequest(::cpp2::Response& _return, const ::cpp2::AdaptedRequest& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "adaptedRequest"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "adaptedRequest"} */
   virtual void sync_adaptedRequest(apache::thrift::RpcOptions& rpcOptions, ::cpp2::Response& _return, const ::cpp2::AdaptedRequest& p_request);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "adaptedRequest"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "adaptedRequest"} */
   virtual folly::Future<::cpp2::Response> future_adaptedRequest(const ::cpp2::AdaptedRequest& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "adaptedRequest"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "adaptedRequest"} */
   virtual folly::SemiFuture<::cpp2::Response> semifuture_adaptedRequest(const ::cpp2::AdaptedRequest& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "adaptedRequest"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "adaptedRequest"} */
   virtual folly::Future<::cpp2::Response> future_adaptedRequest(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::AdaptedRequest& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "adaptedRequest"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "adaptedRequest"} */
   virtual folly::SemiFuture<::cpp2::Response> semifuture_adaptedRequest(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::AdaptedRequest& p_request);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "adaptedRequest"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "adaptedRequest"} */
   template <int = 0>
   folly::coro::Task<::cpp2::Response> co_adaptedRequest(const ::cpp2::AdaptedRequest& p_request) {
     return co_adaptedRequest<false>(nullptr, p_request);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "adaptedRequest"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "adaptedRequest"} */
   template <int = 0>
   folly::coro::Task<::cpp2::Response> co_adaptedRequest(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::AdaptedRequest& p_request) {
     return co_adaptedRequest<true>(&rpcOptions, p_request);
@@ -2032,18 +2032,18 @@ class Client<::cpp2::UndecoratedService> : public apache::thrift::GeneratedAsync
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "adaptedRequest"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "adaptedRequest"} */
   virtual void adaptedRequest(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, const ::cpp2::AdaptedRequest& p_request);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "adaptedRequest"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "adaptedRequest"} */
   static folly::exception_wrapper recv_wrapped_adaptedRequest(::cpp2::Response& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "adaptedRequest"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "adaptedRequest"} */
   static void recv_adaptedRequest(::cpp2::Response& _return, ::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "adaptedRequest"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "adaptedRequest"} */
   virtual void recv_instance_adaptedRequest(::cpp2::Response& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "adaptedRequest"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService", "function": "adaptedRequest"} */
   virtual folly::exception_wrapper recv_instance_wrapped_adaptedRequest(::cpp2::Response& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_adaptedRequest(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::cpp2::AdaptedRequest& p_request);
@@ -2090,35 +2090,35 @@ class Client<::cpp2::DecoratedService_ExtendsUndecoratedService> : public ::cpp2
   }
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService", "function": "extension"} */
   virtual void extension(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService", "function": "extension"} */
   virtual void extension(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_extension(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService", "function": "extension"} */
   virtual void sync_extension();
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService", "function": "extension"} */
   virtual void sync_extension(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService", "function": "extension"} */
   virtual folly::Future<folly::Unit> future_extension();
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService", "function": "extension"} */
   virtual folly::SemiFuture<folly::Unit> semifuture_extension();
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService", "function": "extension"} */
   virtual folly::Future<folly::Unit> future_extension(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService", "function": "extension"} */
   virtual folly::SemiFuture<folly::Unit> semifuture_extension(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService", "function": "extension"} */
   template <int = 0>
   folly::coro::Task<void> co_extension() {
     return co_extension<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService", "function": "extension"} */
   template <int = 0>
   folly::coro::Task<void> co_extension(apache::thrift::RpcOptions& rpcOptions) {
     return co_extension<true>(&rpcOptions);
@@ -2192,18 +2192,18 @@ class Client<::cpp2::DecoratedService_ExtendsUndecoratedService> : public ::cpp2
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService", "function": "extension"} */
   virtual void extension(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService", "function": "extension"} */
   static folly::exception_wrapper recv_wrapped_extension(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService", "function": "extension"} */
   static void recv_extension(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService", "function": "extension"} */
   virtual void recv_instance_extension(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService", "function": "extension"} */
   virtual folly::exception_wrapper recv_instance_wrapped_extension(::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_extension(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -2250,35 +2250,35 @@ class Client<::cpp2::DecoratedService_ExtendsDecoratedService> : public ::cpp2::
   }
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsDecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsDecoratedService", "function": "extension"} */
   virtual void extension(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsDecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsDecoratedService", "function": "extension"} */
   virtual void extension(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_extension(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsDecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsDecoratedService", "function": "extension"} */
   virtual void sync_extension();
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsDecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsDecoratedService", "function": "extension"} */
   virtual void sync_extension(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsDecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsDecoratedService", "function": "extension"} */
   virtual folly::Future<folly::Unit> future_extension();
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsDecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsDecoratedService", "function": "extension"} */
   virtual folly::SemiFuture<folly::Unit> semifuture_extension();
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsDecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsDecoratedService", "function": "extension"} */
   virtual folly::Future<folly::Unit> future_extension(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsDecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsDecoratedService", "function": "extension"} */
   virtual folly::SemiFuture<folly::Unit> semifuture_extension(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsDecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsDecoratedService", "function": "extension"} */
   template <int = 0>
   folly::coro::Task<void> co_extension() {
     return co_extension<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsDecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsDecoratedService", "function": "extension"} */
   template <int = 0>
   folly::coro::Task<void> co_extension(apache::thrift::RpcOptions& rpcOptions) {
     return co_extension<true>(&rpcOptions);
@@ -2352,18 +2352,18 @@ class Client<::cpp2::DecoratedService_ExtendsDecoratedService> : public ::cpp2::
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsDecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsDecoratedService", "function": "extension"} */
   virtual void extension(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsDecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsDecoratedService", "function": "extension"} */
   static folly::exception_wrapper recv_wrapped_extension(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsDecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsDecoratedService", "function": "extension"} */
   static void recv_extension(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsDecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsDecoratedService", "function": "extension"} */
   virtual void recv_instance_extension(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsDecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsDecoratedService", "function": "extension"} */
   virtual folly::exception_wrapper recv_instance_wrapped_extension(::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_extension(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -2410,35 +2410,35 @@ class Client<::cpp2::UndecoratedService_ExtendsDecoratedService> : public ::cpp2
   }
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService_ExtendsDecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService_ExtendsDecoratedService", "function": "extension"} */
   virtual void extension(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService_ExtendsDecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService_ExtendsDecoratedService", "function": "extension"} */
   virtual void extension(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_extension(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService_ExtendsDecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService_ExtendsDecoratedService", "function": "extension"} */
   virtual void sync_extension();
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService_ExtendsDecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService_ExtendsDecoratedService", "function": "extension"} */
   virtual void sync_extension(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService_ExtendsDecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService_ExtendsDecoratedService", "function": "extension"} */
   virtual folly::Future<folly::Unit> future_extension();
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService_ExtendsDecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService_ExtendsDecoratedService", "function": "extension"} */
   virtual folly::SemiFuture<folly::Unit> semifuture_extension();
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService_ExtendsDecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService_ExtendsDecoratedService", "function": "extension"} */
   virtual folly::Future<folly::Unit> future_extension(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService_ExtendsDecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService_ExtendsDecoratedService", "function": "extension"} */
   virtual folly::SemiFuture<folly::Unit> semifuture_extension(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService_ExtendsDecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService_ExtendsDecoratedService", "function": "extension"} */
   template <int = 0>
   folly::coro::Task<void> co_extension() {
     return co_extension<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService_ExtendsDecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService_ExtendsDecoratedService", "function": "extension"} */
   template <int = 0>
   folly::coro::Task<void> co_extension(apache::thrift::RpcOptions& rpcOptions) {
     return co_extension<true>(&rpcOptions);
@@ -2512,18 +2512,18 @@ class Client<::cpp2::UndecoratedService_ExtendsDecoratedService> : public ::cpp2
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService_ExtendsDecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService_ExtendsDecoratedService", "function": "extension"} */
   virtual void extension(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService_ExtendsDecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService_ExtendsDecoratedService", "function": "extension"} */
   static folly::exception_wrapper recv_wrapped_extension(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService_ExtendsDecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService_ExtendsDecoratedService", "function": "extension"} */
   static void recv_extension(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService_ExtendsDecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService_ExtendsDecoratedService", "function": "extension"} */
   virtual void recv_instance_extension(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService_ExtendsDecoratedService", "function": "extension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "UndecoratedService_ExtendsDecoratedService", "function": "extension"} */
   virtual folly::exception_wrapper recv_instance_wrapped_extension(::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_extension(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -2570,35 +2570,35 @@ class Client<::cpp2::DecoratedService_ExtendsUndecoratedService_ExtendsDecorated
   }
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService_ExtendsDecoratedService", "function": "secondExtension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService_ExtendsDecoratedService", "function": "secondExtension"} */
   virtual void secondExtension(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::string& p_input);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService_ExtendsDecoratedService", "function": "secondExtension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService_ExtendsDecoratedService", "function": "secondExtension"} */
   virtual void secondExtension(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::string& p_input);
  protected:
   void fbthrift_serialize_and_send_secondExtension(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const ::std::string& p_input, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService_ExtendsDecoratedService", "function": "secondExtension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService_ExtendsDecoratedService", "function": "secondExtension"} */
   virtual void sync_secondExtension(::std::string& _return, const ::std::string& p_input);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService_ExtendsDecoratedService", "function": "secondExtension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService_ExtendsDecoratedService", "function": "secondExtension"} */
   virtual void sync_secondExtension(apache::thrift::RpcOptions& rpcOptions, ::std::string& _return, const ::std::string& p_input);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService_ExtendsDecoratedService", "function": "secondExtension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService_ExtendsDecoratedService", "function": "secondExtension"} */
   virtual folly::Future<::std::string> future_secondExtension(const ::std::string& p_input);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService_ExtendsDecoratedService", "function": "secondExtension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService_ExtendsDecoratedService", "function": "secondExtension"} */
   virtual folly::SemiFuture<::std::string> semifuture_secondExtension(const ::std::string& p_input);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService_ExtendsDecoratedService", "function": "secondExtension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService_ExtendsDecoratedService", "function": "secondExtension"} */
   virtual folly::Future<::std::string> future_secondExtension(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_input);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService_ExtendsDecoratedService", "function": "secondExtension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService_ExtendsDecoratedService", "function": "secondExtension"} */
   virtual folly::SemiFuture<::std::string> semifuture_secondExtension(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_input);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService_ExtendsDecoratedService", "function": "secondExtension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService_ExtendsDecoratedService", "function": "secondExtension"} */
   template <int = 0>
   folly::coro::Task<::std::string> co_secondExtension(const ::std::string& p_input) {
     return co_secondExtension<false>(nullptr, p_input);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService_ExtendsDecoratedService", "function": "secondExtension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService_ExtendsDecoratedService", "function": "secondExtension"} */
   template <int = 0>
   folly::coro::Task<::std::string> co_secondExtension(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_input) {
     return co_secondExtension<true>(&rpcOptions, p_input);
@@ -2672,18 +2672,18 @@ class Client<::cpp2::DecoratedService_ExtendsUndecoratedService_ExtendsDecorated
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService_ExtendsDecoratedService", "function": "secondExtension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService_ExtendsDecoratedService", "function": "secondExtension"} */
   virtual void secondExtension(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, const ::std::string& p_input);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService_ExtendsDecoratedService", "function": "secondExtension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService_ExtendsDecoratedService", "function": "secondExtension"} */
   static folly::exception_wrapper recv_wrapped_secondExtension(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService_ExtendsDecoratedService", "function": "secondExtension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService_ExtendsDecoratedService", "function": "secondExtension"} */
   static void recv_secondExtension(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService_ExtendsDecoratedService", "function": "secondExtension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService_ExtendsDecoratedService", "function": "secondExtension"} */
   virtual void recv_instance_secondExtension(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService_ExtendsDecoratedService", "function": "secondExtension"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/method_decorators/src/module.thrift", "service": "DecoratedService_ExtendsUndecoratedService_ExtendsDecoratedService", "function": "secondExtension"} */
   virtual folly::exception_wrapper recv_instance_wrapped_secondExtension(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_secondExtension(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::std::string& p_input);

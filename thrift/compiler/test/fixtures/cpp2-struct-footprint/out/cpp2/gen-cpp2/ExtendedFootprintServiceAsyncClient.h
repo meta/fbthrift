@@ -50,35 +50,35 @@ class Client<::cpp2_struct_footprint::ExtendedFootprintService> : public ::cpp2_
   }
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "ExtendedFootprintService", "function": "getComplexMap"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "ExtendedFootprintService", "function": "getComplexMap"} */
   virtual void getComplexMap(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "ExtendedFootprintService", "function": "getComplexMap"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "ExtendedFootprintService", "function": "getComplexMap"} */
   virtual void getComplexMap(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_getComplexMap(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "ExtendedFootprintService", "function": "getComplexMap"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "ExtendedFootprintService", "function": "getComplexMap"} */
   virtual void sync_getComplexMap(::std::map<::std::int32_t, ::std::vector<::cpp2_struct_footprint::ComplexStruct>>& _return);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "ExtendedFootprintService", "function": "getComplexMap"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "ExtendedFootprintService", "function": "getComplexMap"} */
   virtual void sync_getComplexMap(apache::thrift::RpcOptions& rpcOptions, ::std::map<::std::int32_t, ::std::vector<::cpp2_struct_footprint::ComplexStruct>>& _return);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "ExtendedFootprintService", "function": "getComplexMap"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "ExtendedFootprintService", "function": "getComplexMap"} */
   virtual folly::Future<::std::map<::std::int32_t, ::std::vector<::cpp2_struct_footprint::ComplexStruct>>> future_getComplexMap();
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "ExtendedFootprintService", "function": "getComplexMap"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "ExtendedFootprintService", "function": "getComplexMap"} */
   virtual folly::SemiFuture<::std::map<::std::int32_t, ::std::vector<::cpp2_struct_footprint::ComplexStruct>>> semifuture_getComplexMap();
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "ExtendedFootprintService", "function": "getComplexMap"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "ExtendedFootprintService", "function": "getComplexMap"} */
   virtual folly::Future<::std::map<::std::int32_t, ::std::vector<::cpp2_struct_footprint::ComplexStruct>>> future_getComplexMap(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "ExtendedFootprintService", "function": "getComplexMap"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "ExtendedFootprintService", "function": "getComplexMap"} */
   virtual folly::SemiFuture<::std::map<::std::int32_t, ::std::vector<::cpp2_struct_footprint::ComplexStruct>>> semifuture_getComplexMap(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "ExtendedFootprintService", "function": "getComplexMap"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "ExtendedFootprintService", "function": "getComplexMap"} */
   template <int = 0>
   folly::coro::Task<::std::map<::std::int32_t, ::std::vector<::cpp2_struct_footprint::ComplexStruct>>> co_getComplexMap() {
     return co_getComplexMap<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "ExtendedFootprintService", "function": "getComplexMap"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "ExtendedFootprintService", "function": "getComplexMap"} */
   template <int = 0>
   folly::coro::Task<::std::map<::std::int32_t, ::std::vector<::cpp2_struct_footprint::ComplexStruct>>> co_getComplexMap(apache::thrift::RpcOptions& rpcOptions) {
     return co_getComplexMap<true>(&rpcOptions);
@@ -152,18 +152,18 @@ class Client<::cpp2_struct_footprint::ExtendedFootprintService> : public ::cpp2_
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "ExtendedFootprintService", "function": "getComplexMap"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "ExtendedFootprintService", "function": "getComplexMap"} */
   virtual void getComplexMap(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "ExtendedFootprintService", "function": "getComplexMap"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "ExtendedFootprintService", "function": "getComplexMap"} */
   static folly::exception_wrapper recv_wrapped_getComplexMap(::std::map<::std::int32_t, ::std::vector<::cpp2_struct_footprint::ComplexStruct>>& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "ExtendedFootprintService", "function": "getComplexMap"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "ExtendedFootprintService", "function": "getComplexMap"} */
   static void recv_getComplexMap(::std::map<::std::int32_t, ::std::vector<::cpp2_struct_footprint::ComplexStruct>>& _return, ::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "ExtendedFootprintService", "function": "getComplexMap"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "ExtendedFootprintService", "function": "getComplexMap"} */
   virtual void recv_instance_getComplexMap(::std::map<::std::int32_t, ::std::vector<::cpp2_struct_footprint::ComplexStruct>>& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "ExtendedFootprintService", "function": "getComplexMap"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "ExtendedFootprintService", "function": "getComplexMap"} */
   virtual folly::exception_wrapper recv_instance_wrapped_getComplexMap(::std::map<::std::int32_t, ::std::vector<::cpp2_struct_footprint::ComplexStruct>>& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_getComplexMap(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);

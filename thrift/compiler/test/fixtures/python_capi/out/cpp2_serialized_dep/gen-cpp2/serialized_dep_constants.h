@@ -11,7 +11,7 @@
 #include "thrift/compiler/test/fixtures/python_capi/gen-cpp2/serialized_dep_types.h"
 
 namespace test::fixtures::python_capi {
-/** Glean {"file": "thrift/compiler/test/fixtures/python_capi/src/serialized_dep.thrift"} */
+/* Glean {"file": "thrift/compiler/test/fixtures/python_capi/src/serialized_dep.thrift"} */
 namespace serialized_dep_constants {
 
   FOLLY_EXPORT ::std::string_view _fbthrift_schema_54caba11ffb78daa();

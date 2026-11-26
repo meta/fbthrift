@@ -11,7 +11,7 @@
 #include "thrift/compiler/test/fixtures/runtime-annotations/gen-cpp2/module_types.h"
 
 namespace facebook::thrift::test::fixtures::runtime_annotations {
-/** Glean {"file": "thrift/compiler/test/fixtures/runtime-annotations/src/module.thrift"} */
+/* Glean {"file": "thrift/compiler/test/fixtures/runtime-annotations/src/module.thrift"} */
 namespace module_constants {
 
   FOLLY_EXPORT ::std::string_view _fbthrift_schema_b8e7fffe843113b9();

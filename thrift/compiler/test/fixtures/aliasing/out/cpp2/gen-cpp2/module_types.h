@@ -46,7 +46,7 @@ namespace apache::thrift::detail::qualifier {
 // END hash_and_equal_to
 namespace facebook::thrift::compiler::test::fixtures::aliasing {
 
-/** Glean {"file": "thrift/compiler/test/fixtures/aliasing/src/module.thrift", "name": "Foo", "kind": "struct" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/aliasing/src/module.thrift", "name": "Foo", "kind": "struct" } */
 class Foo final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -120,87 +120,87 @@ class Foo final  {
   bool operator==(const Foo&) const;
   std::partial_ordering operator<=>(const Foo&) const;
 
-  /** Glean { "field": "other_foo" } */
+  /* Glean { "field": "other_foo" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::compiler::test::fixtures::aliasing::other::Foo>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> other_foo_ref() const& {
     return {this->__fbthrift_field_other_foo, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "other_foo" } */
+  /* Glean { "field": "other_foo" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::compiler::test::fixtures::aliasing::other::Foo>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> other_foo_ref() & {
     return {this->__fbthrift_field_other_foo, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "other_foo" } */
+  /* Glean { "field": "other_foo" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::compiler::test::fixtures::aliasing::other::Foo>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> other_foo_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_other_foo), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "other_foo" } */
+  /* Glean { "field": "other_foo" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::compiler::test::fixtures::aliasing::other::Foo>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> other_foo() const& {
     return {this->__fbthrift_field_other_foo, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "other_foo" } */
+  /* Glean { "field": "other_foo" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::compiler::test::fixtures::aliasing::other::Foo>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> other_foo() & {
     return {this->__fbthrift_field_other_foo, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "other_foo" } */
+  /* Glean { "field": "other_foo" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::compiler::test::fixtures::aliasing::other::Foo>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> other_foo() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_other_foo), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "yet_another_foo" } */
+  /* Glean { "field": "yet_another_foo" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::compiler::test::fixtures::aliasing::not_module::Foo>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> yet_another_foo_ref() const& {
     return {this->__fbthrift_field_yet_another_foo, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "yet_another_foo" } */
+  /* Glean { "field": "yet_another_foo" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::compiler::test::fixtures::aliasing::not_module::Foo>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> yet_another_foo_ref() & {
     return {this->__fbthrift_field_yet_another_foo, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "yet_another_foo" } */
+  /* Glean { "field": "yet_another_foo" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::compiler::test::fixtures::aliasing::not_module::Foo>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> yet_another_foo_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_yet_another_foo), __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "yet_another_foo" } */
+  /* Glean { "field": "yet_another_foo" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::compiler::test::fixtures::aliasing::not_module::Foo>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> yet_another_foo() const& {
     return {this->__fbthrift_field_yet_another_foo, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "yet_another_foo" } */
+  /* Glean { "field": "yet_another_foo" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::compiler::test::fixtures::aliasing::not_module::Foo>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> yet_another_foo() & {
     return {this->__fbthrift_field_yet_another_foo, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "yet_another_foo" } */
+  /* Glean { "field": "yet_another_foo" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::compiler::test::fixtures::aliasing::not_module::Foo>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> yet_another_foo() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_yet_another_foo), __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "other_foo" } */
+  /* Glean { "field": "other_foo" } */
   [[deprecated("Use `FOO.other_foo().value()` instead of `FOO.get_other_foo()`")]]
   const ::facebook::thrift::compiler::test::fixtures::aliasing::other::Foo& get_other_foo() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]];
 
-  /** Glean { "field": "other_foo" } */
+  /* Glean { "field": "other_foo" } */
   [[deprecated("Use `FOO.other_foo().value()` instead of `FOO.get_other_foo()`")]]
   ::facebook::thrift::compiler::test::fixtures::aliasing::other::Foo get_other_foo() &&;
 
-  /** Glean { "field": "other_foo" } */
+  /* Glean { "field": "other_foo" } */
   template <typename T_Foo_other_foo_struct_setter = ::facebook::thrift::compiler::test::fixtures::aliasing::other::Foo>
   [[deprecated("Use `FOO.other_foo() = BAR` instead of `FOO.set_other_foo(BAR)`")]]
   ::facebook::thrift::compiler::test::fixtures::aliasing::other::Foo& set_other_foo(T_Foo_other_foo_struct_setter&& other_foo_) {
@@ -208,15 +208,15 @@ class Foo final  {
     return __fbthrift_field_other_foo;
   }
 
-  /** Glean { "field": "yet_another_foo" } */
+  /* Glean { "field": "yet_another_foo" } */
   [[deprecated("Use `FOO.yet_another_foo().value()` instead of `FOO.get_yet_another_foo()`")]]
   const ::facebook::thrift::compiler::test::fixtures::aliasing::not_module::Foo& get_yet_another_foo() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]];
 
-  /** Glean { "field": "yet_another_foo" } */
+  /* Glean { "field": "yet_another_foo" } */
   [[deprecated("Use `FOO.yet_another_foo().value()` instead of `FOO.get_yet_another_foo()`")]]
   ::facebook::thrift::compiler::test::fixtures::aliasing::not_module::Foo get_yet_another_foo() &&;
 
-  /** Glean { "field": "yet_another_foo" } */
+  /* Glean { "field": "yet_another_foo" } */
   template <typename T_Foo_yet_another_foo_struct_setter = ::facebook::thrift::compiler::test::fixtures::aliasing::not_module::Foo>
   [[deprecated("Use `FOO.yet_another_foo() = BAR` instead of `FOO.set_yet_another_foo(BAR)`")]]
   ::facebook::thrift::compiler::test::fixtures::aliasing::not_module::Foo& set_yet_another_foo(T_Foo_yet_another_foo_struct_setter&& yet_another_foo_) {

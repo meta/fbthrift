@@ -57,35 +57,35 @@ class Client<::cpp2::test::FastClientTestService> : public ::cpp2::test::NonFast
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "meta.com/thrift/test/fixtures/fast_client/FastClientTestService";
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "ping"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "ping"} */
   virtual void ping(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "ping"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "ping"} */
   virtual void ping(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_ping(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "ping"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "ping"} */
   virtual void sync_ping();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "ping"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "ping"} */
   virtual void sync_ping(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "ping"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "ping"} */
   virtual folly::Future<folly::Unit> future_ping();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "ping"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "ping"} */
   virtual folly::SemiFuture<folly::Unit> semifuture_ping();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "ping"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "ping"} */
   virtual folly::Future<folly::Unit> future_ping(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "ping"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "ping"} */
   virtual folly::SemiFuture<folly::Unit> semifuture_ping(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "ping"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "ping"} */
   template <int = 0>
   folly::coro::Task<void> co_ping() {
     return co_ping<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "ping"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "ping"} */
   template <int = 0>
   folly::coro::Task<void> co_ping(apache::thrift::RpcOptions& rpcOptions) {
     return co_ping<true>(&rpcOptions);
@@ -159,18 +159,18 @@ class Client<::cpp2::test::FastClientTestService> : public ::cpp2::test::NonFast
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "ping"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "ping"} */
   virtual void ping(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "ping"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "ping"} */
   static folly::exception_wrapper recv_wrapped_ping(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "ping"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "ping"} */
   static void recv_ping(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "ping"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "ping"} */
   virtual void recv_instance_ping(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "ping"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "ping"} */
   virtual folly::exception_wrapper recv_instance_wrapped_ping(::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_ping(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -180,35 +180,35 @@ class Client<::cpp2::test::FastClientTestService> : public ::cpp2::test::NonFast
   template <typename CallbackType>
   folly::SemiFuture<folly::Unit> fbthrift_semifuture_ping(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "echo"} */
   virtual void echo(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::string& p_message);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "echo"} */
   virtual void echo(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::string& p_message);
  protected:
   void fbthrift_serialize_and_send_echo(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const ::std::string& p_message, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "echo"} */
   virtual void sync_echo(::std::string& _return, const ::std::string& p_message);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "echo"} */
   virtual void sync_echo(apache::thrift::RpcOptions& rpcOptions, ::std::string& _return, const ::std::string& p_message);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "echo"} */
   virtual folly::Future<::std::string> future_echo(const ::std::string& p_message);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "echo"} */
   virtual folly::SemiFuture<::std::string> semifuture_echo(const ::std::string& p_message);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "echo"} */
   virtual folly::Future<::std::string> future_echo(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_message);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "echo"} */
   virtual folly::SemiFuture<::std::string> semifuture_echo(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_message);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "echo"} */
   template <int = 0>
   folly::coro::Task<::std::string> co_echo(const ::std::string& p_message) {
     return co_echo<false>(nullptr, p_message);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "echo"} */
   template <int = 0>
   folly::coro::Task<::std::string> co_echo(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_message) {
     return co_echo<true>(&rpcOptions, p_message);
@@ -282,18 +282,18 @@ class Client<::cpp2::test::FastClientTestService> : public ::cpp2::test::NonFast
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "echo"} */
   virtual void echo(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, const ::std::string& p_message);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "echo"} */
   static folly::exception_wrapper recv_wrapped_echo(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "echo"} */
   static void recv_echo(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "echo"} */
   virtual void recv_instance_echo(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "echo"} */
   virtual folly::exception_wrapper recv_instance_wrapped_echo(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_echo(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::std::string& p_message);
@@ -303,35 +303,35 @@ class Client<::cpp2::test::FastClientTestService> : public ::cpp2::test::NonFast
   template <typename CallbackType>
   folly::SemiFuture<::std::string> fbthrift_semifuture_echo(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_message);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "add"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "add"} */
   virtual void add(std::unique_ptr<apache::thrift::RequestCallback> callback, ::std::int32_t p_a, ::std::int32_t p_b);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "add"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "add"} */
   virtual void add(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, ::std::int32_t p_a, ::std::int32_t p_b);
  protected:
   void fbthrift_serialize_and_send_add(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, ::std::int32_t p_a, ::std::int32_t p_b, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "add"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "add"} */
   virtual ::std::int32_t sync_add(::std::int32_t p_a, ::std::int32_t p_b);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "add"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "add"} */
   virtual ::std::int32_t sync_add(apache::thrift::RpcOptions& rpcOptions, ::std::int32_t p_a, ::std::int32_t p_b);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "add"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "add"} */
   virtual folly::Future<::std::int32_t> future_add(::std::int32_t p_a, ::std::int32_t p_b);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "add"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "add"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_add(::std::int32_t p_a, ::std::int32_t p_b);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "add"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "add"} */
   virtual folly::Future<::std::int32_t> future_add(apache::thrift::RpcOptions& rpcOptions, ::std::int32_t p_a, ::std::int32_t p_b);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "add"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "add"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_add(apache::thrift::RpcOptions& rpcOptions, ::std::int32_t p_a, ::std::int32_t p_b);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "add"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "add"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_add(::std::int32_t p_a, ::std::int32_t p_b) {
     return co_add<false>(nullptr, p_a, p_b);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "add"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "add"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_add(apache::thrift::RpcOptions& rpcOptions, ::std::int32_t p_a, ::std::int32_t p_b) {
     return co_add<true>(&rpcOptions, p_a, p_b);
@@ -405,18 +405,18 @@ class Client<::cpp2::test::FastClientTestService> : public ::cpp2::test::NonFast
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "add"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "add"} */
   virtual void add(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, ::std::int32_t p_a, ::std::int32_t p_b);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "add"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "add"} */
   static folly::exception_wrapper recv_wrapped_add(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "add"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "add"} */
   static ::std::int32_t recv_add(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "add"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "add"} */
   virtual ::std::int32_t recv_instance_add(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "add"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "add"} */
   virtual folly::exception_wrapper recv_instance_wrapped_add(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_add(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, ::std::int32_t p_a, ::std::int32_t p_b);
@@ -426,35 +426,35 @@ class Client<::cpp2::test::FastClientTestService> : public ::cpp2::test::NonFast
   template <typename CallbackType>
   folly::SemiFuture<::std::int32_t> fbthrift_semifuture_add(apache::thrift::RpcOptions& rpcOptions, ::std::int32_t p_a, ::std::int32_t p_b);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "getData"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "getData"} */
   virtual void getData(std::unique_ptr<apache::thrift::RequestCallback> callback, ::std::int32_t p_id);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "getData"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "getData"} */
   virtual void getData(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, ::std::int32_t p_id);
  protected:
   void fbthrift_serialize_and_send_getData(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, ::std::int32_t p_id, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "getData"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "getData"} */
   virtual void sync_getData(::cpp2::test::DataItem& _return, ::std::int32_t p_id);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "getData"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "getData"} */
   virtual void sync_getData(apache::thrift::RpcOptions& rpcOptions, ::cpp2::test::DataItem& _return, ::std::int32_t p_id);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "getData"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "getData"} */
   virtual folly::Future<::cpp2::test::DataItem> future_getData(::std::int32_t p_id);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "getData"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "getData"} */
   virtual folly::SemiFuture<::cpp2::test::DataItem> semifuture_getData(::std::int32_t p_id);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "getData"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "getData"} */
   virtual folly::Future<::cpp2::test::DataItem> future_getData(apache::thrift::RpcOptions& rpcOptions, ::std::int32_t p_id);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "getData"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "getData"} */
   virtual folly::SemiFuture<::cpp2::test::DataItem> semifuture_getData(apache::thrift::RpcOptions& rpcOptions, ::std::int32_t p_id);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "getData"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "getData"} */
   template <int = 0>
   folly::coro::Task<::cpp2::test::DataItem> co_getData(::std::int32_t p_id) {
     return co_getData<false>(nullptr, p_id);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "getData"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "getData"} */
   template <int = 0>
   folly::coro::Task<::cpp2::test::DataItem> co_getData(apache::thrift::RpcOptions& rpcOptions, ::std::int32_t p_id) {
     return co_getData<true>(&rpcOptions, p_id);
@@ -528,18 +528,18 @@ class Client<::cpp2::test::FastClientTestService> : public ::cpp2::test::NonFast
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "getData"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "getData"} */
   virtual void getData(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, ::std::int32_t p_id);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "getData"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "getData"} */
   static folly::exception_wrapper recv_wrapped_getData(::cpp2::test::DataItem& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "getData"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "getData"} */
   static void recv_getData(::cpp2::test::DataItem& _return, ::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "getData"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "getData"} */
   virtual void recv_instance_getData(::cpp2::test::DataItem& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "getData"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "getData"} */
   virtual folly::exception_wrapper recv_instance_wrapped_getData(::cpp2::test::DataItem& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_getData(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, ::std::int32_t p_id);
@@ -549,35 +549,35 @@ class Client<::cpp2::test::FastClientTestService> : public ::cpp2::test::NonFast
   template <typename CallbackType>
   folly::SemiFuture<::cpp2::test::DataItem> fbthrift_semifuture_getData(apache::thrift::RpcOptions& rpcOptions, ::std::int32_t p_id);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "processData"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "processData"} */
   virtual void processData(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::cpp2::test::DataItem& p_item, ::cpp2::test::StatusCode p_status);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "processData"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "processData"} */
   virtual void processData(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::cpp2::test::DataItem& p_item, ::cpp2::test::StatusCode p_status);
  protected:
   void fbthrift_serialize_and_send_processData(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const ::cpp2::test::DataItem& p_item, ::cpp2::test::StatusCode p_status, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "processData"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "processData"} */
   virtual bool sync_processData(const ::cpp2::test::DataItem& p_item, ::cpp2::test::StatusCode p_status);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "processData"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "processData"} */
   virtual bool sync_processData(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::test::DataItem& p_item, ::cpp2::test::StatusCode p_status);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "processData"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "processData"} */
   virtual folly::Future<bool> future_processData(const ::cpp2::test::DataItem& p_item, ::cpp2::test::StatusCode p_status);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "processData"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "processData"} */
   virtual folly::SemiFuture<bool> semifuture_processData(const ::cpp2::test::DataItem& p_item, ::cpp2::test::StatusCode p_status);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "processData"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "processData"} */
   virtual folly::Future<bool> future_processData(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::test::DataItem& p_item, ::cpp2::test::StatusCode p_status);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "processData"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "processData"} */
   virtual folly::SemiFuture<bool> semifuture_processData(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::test::DataItem& p_item, ::cpp2::test::StatusCode p_status);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "processData"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "processData"} */
   template <int = 0>
   folly::coro::Task<bool> co_processData(const ::cpp2::test::DataItem& p_item, ::cpp2::test::StatusCode p_status) {
     return co_processData<false>(nullptr, p_item, p_status);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "processData"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "processData"} */
   template <int = 0>
   folly::coro::Task<bool> co_processData(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::test::DataItem& p_item, ::cpp2::test::StatusCode p_status) {
     return co_processData<true>(&rpcOptions, p_item, p_status);
@@ -651,18 +651,18 @@ class Client<::cpp2::test::FastClientTestService> : public ::cpp2::test::NonFast
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "processData"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "processData"} */
   virtual void processData(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, const ::cpp2::test::DataItem& p_item, ::cpp2::test::StatusCode p_status);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "processData"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "processData"} */
   static folly::exception_wrapper recv_wrapped_processData(bool& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "processData"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "processData"} */
   static bool recv_processData(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "processData"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "processData"} */
   virtual bool recv_instance_processData(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "processData"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestService", "function": "processData"} */
   virtual folly::exception_wrapper recv_instance_wrapped_processData(bool& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_processData(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::cpp2::test::DataItem& p_item, ::cpp2::test::StatusCode p_status);

@@ -11,7 +11,7 @@
 #include "thrift/compiler/test/fixtures/cpp-allocator/gen-cpp2/module_types.h"
 
 namespace test::fixtures::cpp_allocator_via {
-/** Glean {"file": "thrift/compiler/test/fixtures/cpp-allocator/src/via/module.thrift"} */
+/* Glean {"file": "thrift/compiler/test/fixtures/cpp-allocator/src/via/module.thrift"} */
 namespace module_constants {
 
   FOLLY_EXPORT ::std::string_view _fbthrift_schema_84bfeedeeeab0bcc();

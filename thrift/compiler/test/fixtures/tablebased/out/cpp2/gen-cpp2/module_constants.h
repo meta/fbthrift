@@ -11,7 +11,7 @@
 #include "thrift/compiler/test/fixtures/tablebased/gen-cpp2/module_types.h"
 
 namespace test::fixtures::tablebased {
-/** Glean {"file": "thrift/compiler/test/fixtures/tablebased/src/module.thrift"} */
+/* Glean {"file": "thrift/compiler/test/fixtures/tablebased/src/module.thrift"} */
 namespace module_constants {
 
   FOLLY_EXPORT ::std::string_view _fbthrift_schema_ef6860959277f327();

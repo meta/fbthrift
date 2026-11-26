@@ -11,11 +11,12 @@
 #include "thrift/compiler/test/fixtures/basic-annotations/gen-cpp2/module_types.h"
 
 namespace cpp2 {
-/** Glean {"file": "thrift/compiler/test/fixtures/basic-annotations/src/module.thrift"} */
+/* Glean {"file": "thrift/compiler/test/fixtures/basic-annotations/src/module.thrift"} */
 namespace module_constants {
 
+  /* Glean {"constant": "myStruct"} */
+
   /** const MyStruct myStruct */
-  /** Glean {"constant": "myStruct"} */
   ::cpp2::YourStruct const& myStruct();
 
   FOLLY_EXPORT ::std::string_view _fbthrift_schema_8e9bb0eac1256f47();

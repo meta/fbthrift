@@ -45,7 +45,7 @@ namespace apache::thrift::detail::qualifier {
 // END hash_and_equal_to
 namespace cpp2 {
 
-/** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "name": "EchoRequest", "kind": "struct" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "name": "EchoRequest", "kind": "struct" } */
 class EchoRequest final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -117,55 +117,55 @@ class EchoRequest final  {
   bool operator==(const EchoRequest&) const;
   std::partial_ordering operator<=>(const EchoRequest&) const;
 
-  /** Glean { "field": "text" } */
+  /* Glean { "field": "text" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> text_ref() const& {
     return {this->__fbthrift_field_text, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "text" } */
+  /* Glean { "field": "text" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> text_ref() & {
     return {this->__fbthrift_field_text, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "text" } */
+  /* Glean { "field": "text" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> text_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_text), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "text" } */
+  /* Glean { "field": "text" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> text() const& {
     return {this->__fbthrift_field_text, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "text" } */
+  /* Glean { "field": "text" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> text() & {
     return {this->__fbthrift_field_text, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "text" } */
+  /* Glean { "field": "text" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> text() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_text), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "text" } */
+  /* Glean { "field": "text" } */
   [[deprecated("Use `FOO.text().value()` instead of `FOO.get_text()`")]]
   const ::std::string& get_text() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return __fbthrift_field_text;
   }
 
-  /** Glean { "field": "text" } */
+  /* Glean { "field": "text" } */
   [[deprecated("Use `FOO.text().value()` instead of `FOO.get_text()`")]]
   ::std::string get_text() && {
     return static_cast<::std::string&&>(__fbthrift_field_text);
   }
 
-  /** Glean { "field": "text" } */
+  /* Glean { "field": "text" } */
   template <typename T_EchoRequest_text_struct_setter = ::std::string>
   [[deprecated("Use `FOO.text() = BAR` instead of `FOO.set_text(BAR)`")]]
   ::std::string& set_text(T_EchoRequest_text_struct_setter&& text_) {
@@ -197,7 +197,7 @@ unsigned long EchoRequest::read(Protocol_* iprot) {
 }
 
 
-/** Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "name": "EchoResponse", "kind": "struct" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/client-methods/src/module.thrift", "name": "EchoResponse", "kind": "struct" } */
 class EchoResponse final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -269,55 +269,55 @@ class EchoResponse final  {
   bool operator==(const EchoResponse&) const;
   std::partial_ordering operator<=>(const EchoResponse&) const;
 
-  /** Glean { "field": "text" } */
+  /* Glean { "field": "text" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> text_ref() const& {
     return {this->__fbthrift_field_text, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "text" } */
+  /* Glean { "field": "text" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> text_ref() & {
     return {this->__fbthrift_field_text, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "text" } */
+  /* Glean { "field": "text" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> text_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_text), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "text" } */
+  /* Glean { "field": "text" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> text() const& {
     return {this->__fbthrift_field_text, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "text" } */
+  /* Glean { "field": "text" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> text() & {
     return {this->__fbthrift_field_text, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "text" } */
+  /* Glean { "field": "text" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> text() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_text), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "text" } */
+  /* Glean { "field": "text" } */
   [[deprecated("Use `FOO.text().value()` instead of `FOO.get_text()`")]]
   const ::std::string& get_text() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return __fbthrift_field_text;
   }
 
-  /** Glean { "field": "text" } */
+  /* Glean { "field": "text" } */
   [[deprecated("Use `FOO.text().value()` instead of `FOO.get_text()`")]]
   ::std::string get_text() && {
     return static_cast<::std::string&&>(__fbthrift_field_text);
   }
 
-  /** Glean { "field": "text" } */
+  /* Glean { "field": "text" } */
   template <typename T_EchoResponse_text_struct_setter = ::std::string>
   [[deprecated("Use `FOO.text() = BAR` instead of `FOO.set_text(BAR)`")]]
   ::std::string& set_text(T_EchoResponse_text_struct_setter&& text_) {

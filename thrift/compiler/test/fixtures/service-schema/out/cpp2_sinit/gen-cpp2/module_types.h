@@ -32,7 +32,7 @@ APACHE_THRIFT_DEFINE_ACCESSOR(result);
 // BEGIN declare_enums
 namespace facebook::thrift::test::fixtures::service_schema {
 
-/** Glean {"file": "thrift/compiler/test/fixtures/service-schema/src/module.thrift", "name": "Result", "kind": "enum" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/service-schema/src/module.thrift", "name": "Result", "kind": "enum" } */
 enum class Result {
   OK = 0,
   SO_SO = 1,
@@ -96,7 +96,7 @@ namespace apache::thrift::detail::qualifier {
 // END hash_and_equal_to
 namespace facebook::thrift::test::fixtures::service_schema {
 
-/** Glean {"file": "thrift/compiler/test/fixtures/service-schema/src/module.thrift", "name": "CustomException", "kind": "exception" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/service-schema/src/module.thrift", "name": "CustomException", "kind": "exception" } */
 class FOLLY_EXPORT CustomException : public virtual apache::thrift::TException {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -179,91 +179,91 @@ class FOLLY_EXPORT CustomException : public virtual apache::thrift::TException {
   bool operator==(const CustomException&) const;
   std::partial_ordering operator<=>(const CustomException&) const;
 
-  /** Glean { "field": "name" } */
+  /* Glean { "field": "name" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> name_ref() const& {
     return {this->__fbthrift_field_name, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "name" } */
+  /* Glean { "field": "name" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> name_ref() & {
     return {this->__fbthrift_field_name, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "name" } */
+  /* Glean { "field": "name" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> name_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_name), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "name" } */
+  /* Glean { "field": "name" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> name() const& {
     return {this->__fbthrift_field_name, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "name" } */
+  /* Glean { "field": "name" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> name() & {
     return {this->__fbthrift_field_name, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "name" } */
+  /* Glean { "field": "name" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> name() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_name), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "result" } */
+  /* Glean { "field": "result" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::fixtures::service_schema::Result>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> result_ref() const& {
     return {this->__fbthrift_field_result, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "result" } */
+  /* Glean { "field": "result" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::fixtures::service_schema::Result>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> result_ref() & {
     return {this->__fbthrift_field_result, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "result" } */
+  /* Glean { "field": "result" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::fixtures::service_schema::Result>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> result_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_result), __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "result" } */
+  /* Glean { "field": "result" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::fixtures::service_schema::Result>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> result() const& {
     return {this->__fbthrift_field_result, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "result" } */
+  /* Glean { "field": "result" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::fixtures::service_schema::Result>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> result() & {
     return {this->__fbthrift_field_result, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "result" } */
+  /* Glean { "field": "result" } */
   template <typename..., typename fbthrift_T = ::facebook::thrift::test::fixtures::service_schema::Result>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> result() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_result), __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "name" } */
+  /* Glean { "field": "name" } */
   [[deprecated("Use `FOO.name().value()` instead of `FOO.get_name()`")]]
   const ::std::string& get_name() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return __fbthrift_field_name;
   }
 
-  /** Glean { "field": "name" } */
+  /* Glean { "field": "name" } */
   [[deprecated("Use `FOO.name().value()` instead of `FOO.get_name()`")]]
   ::std::string get_name() && {
     return static_cast<::std::string&&>(__fbthrift_field_name);
   }
 
-  /** Glean { "field": "name" } */
+  /* Glean { "field": "name" } */
   template <typename T_CustomException_name_struct_setter = ::std::string>
   [[deprecated("Use `FOO.name() = BAR` instead of `FOO.set_name(BAR)`")]]
   ::std::string& set_name(T_CustomException_name_struct_setter&& name_) {
@@ -271,11 +271,11 @@ class FOLLY_EXPORT CustomException : public virtual apache::thrift::TException {
     return __fbthrift_field_name;
   }
 
-  /** Glean { "field": "result" } */
+  /* Glean { "field": "result" } */
   [[deprecated("Use `FOO.result().value()` instead of `FOO.get_result()`")]]
   ::facebook::thrift::test::fixtures::service_schema::Result get_result() const;
 
-  /** Glean { "field": "result" } */
+  /* Glean { "field": "result" } */
   [[deprecated("Use `FOO.result() = BAR` instead of `FOO.set_result(BAR)`")]]
   ::facebook::thrift::test::fixtures::service_schema::Result& set_result(::facebook::thrift::test::fixtures::service_schema::Result result_);
 

@@ -58,29 +58,29 @@ class BoxedInteraction final : public apache::thrift::InteractionHandle {
     return "BoxService";
   }
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxedInteraction", "function": "getABox"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxedInteraction", "function": "getABox"} */
   void getABox(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_getABox(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxedInteraction", "function": "getABox"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxedInteraction", "function": "getABox"} */
   void sync_getABox(::cpp2::ShouldBeBoxed& _return);
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxedInteraction", "function": "getABox"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxedInteraction", "function": "getABox"} */
   void sync_getABox(apache::thrift::RpcOptions& rpcOptions, ::cpp2::ShouldBeBoxed& _return);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxedInteraction", "function": "getABox"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxedInteraction", "function": "getABox"} */
   folly::SemiFuture<::cpp2::ShouldBeBoxed> semifuture_getABox();
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxedInteraction", "function": "getABox"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxedInteraction", "function": "getABox"} */
   folly::SemiFuture<::cpp2::ShouldBeBoxed> semifuture_getABox(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxedInteraction", "function": "getABox"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxedInteraction", "function": "getABox"} */
   template <int = 0>
   folly::coro::Task<::cpp2::ShouldBeBoxed> co_getABox() {
     return co_getABox<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxedInteraction", "function": "getABox"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxedInteraction", "function": "getABox"} */
   template <int = 0>
   folly::coro::Task<::cpp2::ShouldBeBoxed> co_getABox(apache::thrift::RpcOptions& rpcOptions) {
     return co_getABox<true>(&rpcOptions);
@@ -155,9 +155,9 @@ class BoxedInteraction final : public apache::thrift::InteractionHandle {
 #endif // FOLLY_HAS_COROUTINES
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxedInteraction", "function": "getABox"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxedInteraction", "function": "getABox"} */
   static folly::exception_wrapper recv_wrapped_getABox(::cpp2::ShouldBeBoxed& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxedInteraction", "function": "getABox"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxedInteraction", "function": "getABox"} */
   static void recv_getABox(::cpp2::ShouldBeBoxed& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_getABox(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -169,34 +169,34 @@ class BoxedInteraction final : public apache::thrift::InteractionHandle {
  public:
 };
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxService", "function": "getABoxSession"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxService", "function": "getABoxSession"} */
   void getABoxSession(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const apache::thrift::InteractionHandle& handle, const ::cpp2::ShouldBeBoxed& p_req);
  protected:
   void fbthrift_serialize_and_send_getABoxSession(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const apache::thrift::InteractionHandle& handle, const ::cpp2::ShouldBeBoxed& p_req, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxService", "function": "getABoxSession"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxService", "function": "getABoxSession"} */
   std::pair<apache::thrift::Client<::cpp2::BoxService>::BoxedInteraction, ::cpp2::ShouldBeBoxed> sync_getABoxSession(const ::cpp2::ShouldBeBoxed& p_req);
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxService", "function": "getABoxSession"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxService", "function": "getABoxSession"} */
   std::pair<apache::thrift::Client<::cpp2::BoxService>::BoxedInteraction, ::cpp2::ShouldBeBoxed> sync_getABoxSession(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::ShouldBeBoxed& p_req);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxService", "function": "getABoxSession"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxService", "function": "getABoxSession"} */
   folly::SemiFuture<std::pair<apache::thrift::Client<::cpp2::BoxService>::BoxedInteraction, ::cpp2::ShouldBeBoxed>> semifuture_getABoxSession(const ::cpp2::ShouldBeBoxed& p_req);
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxService", "function": "getABoxSession"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxService", "function": "getABoxSession"} */
   folly::SemiFuture<std::pair<apache::thrift::Client<::cpp2::BoxService>::BoxedInteraction, ::cpp2::ShouldBeBoxed>> semifuture_getABoxSession(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::ShouldBeBoxed& p_req);
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxService", "function": "getABoxSession"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxService", "function": "getABoxSession"} */
   std::pair<
     apache::thrift::Client<::cpp2::BoxService>::BoxedInteraction,
     folly::SemiFuture<::cpp2::ShouldBeBoxed>
   > eager_semifuture_getABoxSession(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::ShouldBeBoxed& p_req);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxService", "function": "getABoxSession"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxService", "function": "getABoxSession"} */
   template <int = 0>
   folly::coro::Task<std::pair<apache::thrift::Client<::cpp2::BoxService>::BoxedInteraction, ::cpp2::ShouldBeBoxed>> co_getABoxSession(const ::cpp2::ShouldBeBoxed& p_req) {
     return co_getABoxSession<false>(nullptr, p_req);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxService", "function": "getABoxSession"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxService", "function": "getABoxSession"} */
   template <int = 0>
   folly::coro::Task<std::pair<apache::thrift::Client<::cpp2::BoxService>::BoxedInteraction, ::cpp2::ShouldBeBoxed>> co_getABoxSession(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::ShouldBeBoxed& p_req) {
     return co_getABoxSession<true>(&rpcOptions, p_req);
@@ -272,9 +272,9 @@ class BoxedInteraction final : public apache::thrift::InteractionHandle {
 #endif // FOLLY_HAS_COROUTINES
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxService", "function": "getABoxSession"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxService", "function": "getABoxSession"} */
   static folly::exception_wrapper recv_wrapped_getABoxSession(::cpp2::ShouldBeBoxed& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxService", "function": "getABoxSession"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/module.thrift", "service": "BoxService", "function": "getABoxSession"} */
   static ::cpp2::ShouldBeBoxed recv_getABoxSession(::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_getABoxSession(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::cpp2::ShouldBeBoxed& p_req);

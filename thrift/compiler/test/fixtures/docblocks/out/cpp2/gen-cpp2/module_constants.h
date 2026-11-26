@@ -11,14 +11,16 @@
 #include "thrift/compiler/test/fixtures/docblocks/gen-cpp2/module_types.h"
 
 namespace facebook::thrift::test::fixtures::docblocks {
-/** Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift"} */
+/* Glean {"file": "thrift/compiler/test/fixtures/docblocks/src/module.thrift"} */
 namespace module_constants {
 
+  /* Glean {"constant": "ESCAPED"} */
+
   /** Ends *\/ early. */
-  /** Glean {"constant": "ESCAPED"} */
   constexpr ::std::int32_t const ESCAPED_ = static_cast<::std::int32_t>(1);
+  /* Glean {"constant": "ESCAPED"} */
+
   /** Ends *\/ early. */
-  /** Glean {"constant": "ESCAPED"} */
   constexpr ::std::int32_t ESCAPED() {
     return ESCAPED_;
   }

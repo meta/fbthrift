@@ -47,35 +47,35 @@ class Client<::cpp2::test::FastAncestor> : public apache::thrift::GeneratedAsync
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "meta.com/thrift/test/fixtures/fast_client/FastAncestor";
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastAncestor", "function": "ancestorEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastAncestor", "function": "ancestorEcho"} */
   virtual void ancestorEcho(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::string& p_message);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastAncestor", "function": "ancestorEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastAncestor", "function": "ancestorEcho"} */
   virtual void ancestorEcho(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::string& p_message);
  protected:
   void fbthrift_serialize_and_send_ancestorEcho(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const ::std::string& p_message, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastAncestor", "function": "ancestorEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastAncestor", "function": "ancestorEcho"} */
   virtual void sync_ancestorEcho(::std::string& _return, const ::std::string& p_message);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastAncestor", "function": "ancestorEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastAncestor", "function": "ancestorEcho"} */
   virtual void sync_ancestorEcho(apache::thrift::RpcOptions& rpcOptions, ::std::string& _return, const ::std::string& p_message);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastAncestor", "function": "ancestorEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastAncestor", "function": "ancestorEcho"} */
   virtual folly::Future<::std::string> future_ancestorEcho(const ::std::string& p_message);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastAncestor", "function": "ancestorEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastAncestor", "function": "ancestorEcho"} */
   virtual folly::SemiFuture<::std::string> semifuture_ancestorEcho(const ::std::string& p_message);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastAncestor", "function": "ancestorEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastAncestor", "function": "ancestorEcho"} */
   virtual folly::Future<::std::string> future_ancestorEcho(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_message);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastAncestor", "function": "ancestorEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastAncestor", "function": "ancestorEcho"} */
   virtual folly::SemiFuture<::std::string> semifuture_ancestorEcho(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_message);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastAncestor", "function": "ancestorEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastAncestor", "function": "ancestorEcho"} */
   template <int = 0>
   folly::coro::Task<::std::string> co_ancestorEcho(const ::std::string& p_message) {
     return co_ancestorEcho<false>(nullptr, p_message);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastAncestor", "function": "ancestorEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastAncestor", "function": "ancestorEcho"} */
   template <int = 0>
   folly::coro::Task<::std::string> co_ancestorEcho(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_message) {
     return co_ancestorEcho<true>(&rpcOptions, p_message);
@@ -149,18 +149,18 @@ class Client<::cpp2::test::FastAncestor> : public apache::thrift::GeneratedAsync
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastAncestor", "function": "ancestorEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastAncestor", "function": "ancestorEcho"} */
   virtual void ancestorEcho(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, const ::std::string& p_message);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastAncestor", "function": "ancestorEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastAncestor", "function": "ancestorEcho"} */
   static folly::exception_wrapper recv_wrapped_ancestorEcho(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastAncestor", "function": "ancestorEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastAncestor", "function": "ancestorEcho"} */
   static void recv_ancestorEcho(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastAncestor", "function": "ancestorEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastAncestor", "function": "ancestorEcho"} */
   virtual void recv_instance_ancestorEcho(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastAncestor", "function": "ancestorEcho"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastAncestor", "function": "ancestorEcho"} */
   virtual folly::exception_wrapper recv_instance_wrapped_ancestorEcho(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_ancestorEcho(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::std::string& p_message);

@@ -11,7 +11,7 @@
 #include "thrift/compiler/test/fixtures/terse_write/gen-cpp2/deprecated_terse_write_types.h"
 
 namespace facebook::thrift::test::fixtures::terse_write::deprecated {
-/** Glean {"file": "thrift/compiler/test/fixtures/terse_write/src/deprecated_terse_write.thrift"} */
+/* Glean {"file": "thrift/compiler/test/fixtures/terse_write/src/deprecated_terse_write.thrift"} */
 namespace deprecated_terse_write_constants {
 
   FOLLY_EXPORT ::std::string_view _fbthrift_schema_f5a4a1c289e19280();

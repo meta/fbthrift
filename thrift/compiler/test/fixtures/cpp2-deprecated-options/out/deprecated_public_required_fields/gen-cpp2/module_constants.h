@@ -11,7 +11,7 @@
 #include "thrift/compiler/test/fixtures/cpp2-deprecated-options/gen-cpp2/module_types.h"
 
 namespace cpp2 {
-/** Glean {"file": "thrift/compiler/test/fixtures/cpp2-deprecated-options/src/deprecated_public_required_fields/module.thrift"} */
+/* Glean {"file": "thrift/compiler/test/fixtures/cpp2-deprecated-options/src/deprecated_public_required_fields/module.thrift"} */
 namespace module_constants {
 
   FOLLY_EXPORT ::std::string_view _fbthrift_schema_44436c92d888d63b();

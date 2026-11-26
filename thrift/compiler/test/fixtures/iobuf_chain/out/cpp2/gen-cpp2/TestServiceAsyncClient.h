@@ -50,35 +50,35 @@ class Client<::facebook::thrift::test::iobuf_chain::TestService> : public apache
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "facebook.com/thrift/test/iobuf_chain/TestService";
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "ping"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "ping"} */
   virtual void ping(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "ping"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "ping"} */
   virtual void ping(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_ping(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "ping"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "ping"} */
   virtual void sync_ping();
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "ping"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "ping"} */
   virtual void sync_ping(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "ping"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "ping"} */
   virtual folly::Future<folly::Unit> future_ping();
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "ping"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "ping"} */
   virtual folly::SemiFuture<folly::Unit> semifuture_ping();
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "ping"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "ping"} */
   virtual folly::Future<folly::Unit> future_ping(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "ping"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "ping"} */
   virtual folly::SemiFuture<folly::Unit> semifuture_ping(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "ping"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "ping"} */
   template <int = 0>
   folly::coro::Task<void> co_ping() {
     return co_ping<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "ping"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "ping"} */
   template <int = 0>
   folly::coro::Task<void> co_ping(apache::thrift::RpcOptions& rpcOptions) {
     return co_ping<true>(&rpcOptions);
@@ -152,18 +152,18 @@ class Client<::facebook::thrift::test::iobuf_chain::TestService> : public apache
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "ping"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "ping"} */
   virtual void ping(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "ping"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "ping"} */
   static folly::exception_wrapper recv_wrapped_ping(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "ping"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "ping"} */
   static void recv_ping(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "ping"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "ping"} */
   virtual void recv_instance_ping(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "ping"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "ping"} */
   virtual folly::exception_wrapper recv_instance_wrapped_ping(::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_ping(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -173,35 +173,35 @@ class Client<::facebook::thrift::test::iobuf_chain::TestService> : public apache
   template <typename CallbackType>
   folly::SemiFuture<folly::Unit> fbthrift_semifuture_ping(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echo"} */
   virtual void echo(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::facebook::thrift::test::iobuf_chain::Data& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echo"} */
   virtual void echo(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::facebook::thrift::test::iobuf_chain::Data& p_request);
  protected:
   void fbthrift_serialize_and_send_echo(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const ::facebook::thrift::test::iobuf_chain::Data& p_request, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echo"} */
   virtual void sync_echo(::facebook::thrift::test::iobuf_chain::Data& _return, const ::facebook::thrift::test::iobuf_chain::Data& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echo"} */
   virtual void sync_echo(apache::thrift::RpcOptions& rpcOptions, ::facebook::thrift::test::iobuf_chain::Data& _return, const ::facebook::thrift::test::iobuf_chain::Data& p_request);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echo"} */
   virtual folly::Future<::facebook::thrift::test::iobuf_chain::Data> future_echo(const ::facebook::thrift::test::iobuf_chain::Data& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echo"} */
   virtual folly::SemiFuture<::facebook::thrift::test::iobuf_chain::Data> semifuture_echo(const ::facebook::thrift::test::iobuf_chain::Data& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echo"} */
   virtual folly::Future<::facebook::thrift::test::iobuf_chain::Data> future_echo(apache::thrift::RpcOptions& rpcOptions, const ::facebook::thrift::test::iobuf_chain::Data& p_request);
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echo"} */
   virtual folly::SemiFuture<::facebook::thrift::test::iobuf_chain::Data> semifuture_echo(apache::thrift::RpcOptions& rpcOptions, const ::facebook::thrift::test::iobuf_chain::Data& p_request);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echo"} */
   template <int = 0>
   folly::coro::Task<::facebook::thrift::test::iobuf_chain::Data> co_echo(const ::facebook::thrift::test::iobuf_chain::Data& p_request) {
     return co_echo<false>(nullptr, p_request);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echo"} */
   template <int = 0>
   folly::coro::Task<::facebook::thrift::test::iobuf_chain::Data> co_echo(apache::thrift::RpcOptions& rpcOptions, const ::facebook::thrift::test::iobuf_chain::Data& p_request) {
     return co_echo<true>(&rpcOptions, p_request);
@@ -275,18 +275,18 @@ class Client<::facebook::thrift::test::iobuf_chain::TestService> : public apache
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echo"} */
   virtual void echo(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, const ::facebook::thrift::test::iobuf_chain::Data& p_request);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echo"} */
   static folly::exception_wrapper recv_wrapped_echo(::facebook::thrift::test::iobuf_chain::Data& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echo"} */
   static void recv_echo(::facebook::thrift::test::iobuf_chain::Data& _return, ::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echo"} */
   virtual void recv_instance_echo(::facebook::thrift::test::iobuf_chain::Data& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echo"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echo"} */
   virtual folly::exception_wrapper recv_instance_wrapped_echo(::facebook::thrift::test::iobuf_chain::Data& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_echo(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::facebook::thrift::test::iobuf_chain::Data& p_request);
@@ -296,35 +296,35 @@ class Client<::facebook::thrift::test::iobuf_chain::TestService> : public apache
   template <typename CallbackType>
   folly::SemiFuture<::facebook::thrift::test::iobuf_chain::Data> fbthrift_semifuture_echo(apache::thrift::RpcOptions& rpcOptions, const ::facebook::thrift::test::iobuf_chain::Data& p_request);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echoBinary"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echoBinary"} */
   virtual void echoBinary(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::facebook::thrift::test::iobuf_chain::IOBufChainBinary& p_data);
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echoBinary"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echoBinary"} */
   virtual void echoBinary(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::facebook::thrift::test::iobuf_chain::IOBufChainBinary& p_data);
  protected:
   void fbthrift_serialize_and_send_echoBinary(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const ::facebook::thrift::test::iobuf_chain::IOBufChainBinary& p_data, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echoBinary"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echoBinary"} */
   virtual void sync_echoBinary(::facebook::thrift::test::iobuf_chain::IOBufChainBinary& _return, const ::facebook::thrift::test::iobuf_chain::IOBufChainBinary& p_data);
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echoBinary"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echoBinary"} */
   virtual void sync_echoBinary(apache::thrift::RpcOptions& rpcOptions, ::facebook::thrift::test::iobuf_chain::IOBufChainBinary& _return, const ::facebook::thrift::test::iobuf_chain::IOBufChainBinary& p_data);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echoBinary"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echoBinary"} */
   virtual folly::Future<::facebook::thrift::test::iobuf_chain::IOBufChainBinary> future_echoBinary(const ::facebook::thrift::test::iobuf_chain::IOBufChainBinary& p_data);
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echoBinary"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echoBinary"} */
   virtual folly::SemiFuture<::facebook::thrift::test::iobuf_chain::IOBufChainBinary> semifuture_echoBinary(const ::facebook::thrift::test::iobuf_chain::IOBufChainBinary& p_data);
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echoBinary"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echoBinary"} */
   virtual folly::Future<::facebook::thrift::test::iobuf_chain::IOBufChainBinary> future_echoBinary(apache::thrift::RpcOptions& rpcOptions, const ::facebook::thrift::test::iobuf_chain::IOBufChainBinary& p_data);
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echoBinary"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echoBinary"} */
   virtual folly::SemiFuture<::facebook::thrift::test::iobuf_chain::IOBufChainBinary> semifuture_echoBinary(apache::thrift::RpcOptions& rpcOptions, const ::facebook::thrift::test::iobuf_chain::IOBufChainBinary& p_data);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echoBinary"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echoBinary"} */
   template <int = 0>
   folly::coro::Task<::facebook::thrift::test::iobuf_chain::IOBufChainBinary> co_echoBinary(const ::facebook::thrift::test::iobuf_chain::IOBufChainBinary& p_data) {
     return co_echoBinary<false>(nullptr, p_data);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echoBinary"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echoBinary"} */
   template <int = 0>
   folly::coro::Task<::facebook::thrift::test::iobuf_chain::IOBufChainBinary> co_echoBinary(apache::thrift::RpcOptions& rpcOptions, const ::facebook::thrift::test::iobuf_chain::IOBufChainBinary& p_data) {
     return co_echoBinary<true>(&rpcOptions, p_data);
@@ -398,18 +398,18 @@ class Client<::facebook::thrift::test::iobuf_chain::TestService> : public apache
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echoBinary"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echoBinary"} */
   virtual void echoBinary(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, const ::facebook::thrift::test::iobuf_chain::IOBufChainBinary& p_data);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echoBinary"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echoBinary"} */
   static folly::exception_wrapper recv_wrapped_echoBinary(::facebook::thrift::test::iobuf_chain::IOBufChainBinary& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echoBinary"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echoBinary"} */
   static void recv_echoBinary(::facebook::thrift::test::iobuf_chain::IOBufChainBinary& _return, ::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echoBinary"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echoBinary"} */
   virtual void recv_instance_echoBinary(::facebook::thrift::test::iobuf_chain::IOBufChainBinary& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echoBinary"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift", "service": "TestService", "function": "echoBinary"} */
   virtual folly::exception_wrapper recv_instance_wrapped_echoBinary(::facebook::thrift::test::iobuf_chain::IOBufChainBinary& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_echoBinary(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::facebook::thrift::test::iobuf_chain::IOBufChainBinary& p_data);

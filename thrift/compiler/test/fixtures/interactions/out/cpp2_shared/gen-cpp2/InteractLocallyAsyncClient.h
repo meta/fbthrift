@@ -59,29 +59,29 @@ class SharedInteraction final : public apache::thrift::InteractionHandle {
     return "InteractLocally";
   }
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "init"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "init"} */
   void init(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_init(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "init"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "init"} */
   ::std::int32_t sync_init();
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "init"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "init"} */
   ::std::int32_t sync_init(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "init"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "init"} */
   folly::SemiFuture<::std::int32_t> semifuture_init();
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "init"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "init"} */
   folly::SemiFuture<::std::int32_t> semifuture_init(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "init"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "init"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_init() {
     return co_init<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "init"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "init"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_init(apache::thrift::RpcOptions& rpcOptions) {
     return co_init<true>(&rpcOptions);
@@ -156,9 +156,9 @@ class SharedInteraction final : public apache::thrift::InteractionHandle {
 #endif // FOLLY_HAS_COROUTINES
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "init"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "init"} */
   static folly::exception_wrapper recv_wrapped_init(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "init"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "init"} */
   static ::std::int32_t recv_init(::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_init(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -168,29 +168,29 @@ class SharedInteraction final : public apache::thrift::InteractionHandle {
   template <typename CallbackType>
   folly::SemiFuture<::std::int32_t> fbthrift_semifuture_init(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "do_something"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "do_something"} */
   void do_something(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_do_something(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "do_something"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "do_something"} */
   void sync_do_something(::thrift::shared_interactions::DoSomethingResult& _return);
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "do_something"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "do_something"} */
   void sync_do_something(apache::thrift::RpcOptions& rpcOptions, ::thrift::shared_interactions::DoSomethingResult& _return);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "do_something"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "do_something"} */
   folly::SemiFuture<::thrift::shared_interactions::DoSomethingResult> semifuture_do_something();
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "do_something"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "do_something"} */
   folly::SemiFuture<::thrift::shared_interactions::DoSomethingResult> semifuture_do_something(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "do_something"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "do_something"} */
   template <int = 0>
   folly::coro::Task<::thrift::shared_interactions::DoSomethingResult> co_do_something() {
     return co_do_something<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "do_something"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "do_something"} */
   template <int = 0>
   folly::coro::Task<::thrift::shared_interactions::DoSomethingResult> co_do_something(apache::thrift::RpcOptions& rpcOptions) {
     return co_do_something<true>(&rpcOptions);
@@ -265,9 +265,9 @@ class SharedInteraction final : public apache::thrift::InteractionHandle {
 #endif // FOLLY_HAS_COROUTINES
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "do_something"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "do_something"} */
   static folly::exception_wrapper recv_wrapped_do_something(::thrift::shared_interactions::DoSomethingResult& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "do_something"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "do_something"} */
   static void recv_do_something(::thrift::shared_interactions::DoSomethingResult& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_do_something(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -277,29 +277,29 @@ class SharedInteraction final : public apache::thrift::InteractionHandle {
   template <typename CallbackType>
   folly::SemiFuture<::thrift::shared_interactions::DoSomethingResult> fbthrift_semifuture_do_something(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "tear_down"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "tear_down"} */
   void tear_down(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_tear_down(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "tear_down"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "tear_down"} */
   void sync_tear_down();
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "tear_down"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "tear_down"} */
   void sync_tear_down(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "tear_down"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "tear_down"} */
   folly::SemiFuture<folly::Unit> semifuture_tear_down();
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "tear_down"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "tear_down"} */
   folly::SemiFuture<folly::Unit> semifuture_tear_down(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "tear_down"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "tear_down"} */
   template <int = 0>
   folly::coro::Task<void> co_tear_down() {
     return co_tear_down<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "tear_down"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "tear_down"} */
   template <int = 0>
   folly::coro::Task<void> co_tear_down(apache::thrift::RpcOptions& rpcOptions) {
     return co_tear_down<true>(&rpcOptions);
@@ -374,9 +374,9 @@ class SharedInteraction final : public apache::thrift::InteractionHandle {
 #endif // FOLLY_HAS_COROUTINES
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "tear_down"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "tear_down"} */
   static folly::exception_wrapper recv_wrapped_tear_down(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "tear_down"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "SharedInteraction", "function": "tear_down"} */
   static void recv_tear_down(::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_tear_down(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -388,7 +388,7 @@ class SharedInteraction final : public apache::thrift::InteractionHandle {
  public:
 };
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "InteractLocally", "function": "createSharedInteraction"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/interactions/src/shared.thrift", "service": "InteractLocally", "function": "createSharedInteraction"} */
   SharedInteraction createSharedInteraction();
 };
 

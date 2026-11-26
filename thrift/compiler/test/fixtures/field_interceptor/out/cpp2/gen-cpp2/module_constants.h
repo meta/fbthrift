@@ -11,7 +11,7 @@
 #include "thrift/compiler/test/fixtures/field_interceptor/gen-cpp2/module_types.h"
 
 namespace facebook::thrift::test::fixtures::field_interceptor {
-/** Glean {"file": "thrift/compiler/test/fixtures/field_interceptor/src/module.thrift"} */
+/* Glean {"file": "thrift/compiler/test/fixtures/field_interceptor/src/module.thrift"} */
 namespace module_constants {
 
   FOLLY_EXPORT ::std::string_view _fbthrift_schema_70c3d947cfda90b1();

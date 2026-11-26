@@ -50,35 +50,35 @@ class Client<::facebook::thrift::test::fixtures::adapter::Service> : public apac
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "facebook.com/thrift/test/fixtures/adapter/Service";
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/adapter/src/module.thrift", "service": "Service", "function": "func"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/adapter/src/module.thrift", "service": "Service", "function": "func"} */
   virtual void func(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::facebook::thrift::test::fixtures::adapter::StringWithAdapter_7208& p_arg1, const ::facebook::thrift::test::fixtures::adapter::StringWithCppAdapter& p_arg2, const ::facebook::thrift::test::fixtures::adapter::Foo& p_arg3);
-  /** Glean {"file": "thrift/compiler/test/fixtures/adapter/src/module.thrift", "service": "Service", "function": "func"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/adapter/src/module.thrift", "service": "Service", "function": "func"} */
   virtual void func(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::facebook::thrift::test::fixtures::adapter::StringWithAdapter_7208& p_arg1, const ::facebook::thrift::test::fixtures::adapter::StringWithCppAdapter& p_arg2, const ::facebook::thrift::test::fixtures::adapter::Foo& p_arg3);
  protected:
   void fbthrift_serialize_and_send_func(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const ::facebook::thrift::test::fixtures::adapter::StringWithAdapter_7208& p_arg1, const ::facebook::thrift::test::fixtures::adapter::StringWithCppAdapter& p_arg2, const ::facebook::thrift::test::fixtures::adapter::Foo& p_arg3, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/adapter/src/module.thrift", "service": "Service", "function": "func"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/adapter/src/module.thrift", "service": "Service", "function": "func"} */
   virtual ::facebook::thrift::test::fixtures::adapter::MyI32_4873 sync_func(const ::facebook::thrift::test::fixtures::adapter::StringWithAdapter_7208& p_arg1, const ::facebook::thrift::test::fixtures::adapter::StringWithCppAdapter& p_arg2, const ::facebook::thrift::test::fixtures::adapter::Foo& p_arg3);
-  /** Glean {"file": "thrift/compiler/test/fixtures/adapter/src/module.thrift", "service": "Service", "function": "func"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/adapter/src/module.thrift", "service": "Service", "function": "func"} */
   virtual ::facebook::thrift::test::fixtures::adapter::MyI32_4873 sync_func(apache::thrift::RpcOptions& rpcOptions, const ::facebook::thrift::test::fixtures::adapter::StringWithAdapter_7208& p_arg1, const ::facebook::thrift::test::fixtures::adapter::StringWithCppAdapter& p_arg2, const ::facebook::thrift::test::fixtures::adapter::Foo& p_arg3);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/adapter/src/module.thrift", "service": "Service", "function": "func"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/adapter/src/module.thrift", "service": "Service", "function": "func"} */
   virtual folly::Future<::facebook::thrift::test::fixtures::adapter::MyI32_4873> future_func(const ::facebook::thrift::test::fixtures::adapter::StringWithAdapter_7208& p_arg1, const ::facebook::thrift::test::fixtures::adapter::StringWithCppAdapter& p_arg2, const ::facebook::thrift::test::fixtures::adapter::Foo& p_arg3);
-  /** Glean {"file": "thrift/compiler/test/fixtures/adapter/src/module.thrift", "service": "Service", "function": "func"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/adapter/src/module.thrift", "service": "Service", "function": "func"} */
   virtual folly::SemiFuture<::facebook::thrift::test::fixtures::adapter::MyI32_4873> semifuture_func(const ::facebook::thrift::test::fixtures::adapter::StringWithAdapter_7208& p_arg1, const ::facebook::thrift::test::fixtures::adapter::StringWithCppAdapter& p_arg2, const ::facebook::thrift::test::fixtures::adapter::Foo& p_arg3);
-  /** Glean {"file": "thrift/compiler/test/fixtures/adapter/src/module.thrift", "service": "Service", "function": "func"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/adapter/src/module.thrift", "service": "Service", "function": "func"} */
   virtual folly::Future<::facebook::thrift::test::fixtures::adapter::MyI32_4873> future_func(apache::thrift::RpcOptions& rpcOptions, const ::facebook::thrift::test::fixtures::adapter::StringWithAdapter_7208& p_arg1, const ::facebook::thrift::test::fixtures::adapter::StringWithCppAdapter& p_arg2, const ::facebook::thrift::test::fixtures::adapter::Foo& p_arg3);
-  /** Glean {"file": "thrift/compiler/test/fixtures/adapter/src/module.thrift", "service": "Service", "function": "func"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/adapter/src/module.thrift", "service": "Service", "function": "func"} */
   virtual folly::SemiFuture<::facebook::thrift::test::fixtures::adapter::MyI32_4873> semifuture_func(apache::thrift::RpcOptions& rpcOptions, const ::facebook::thrift::test::fixtures::adapter::StringWithAdapter_7208& p_arg1, const ::facebook::thrift::test::fixtures::adapter::StringWithCppAdapter& p_arg2, const ::facebook::thrift::test::fixtures::adapter::Foo& p_arg3);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/adapter/src/module.thrift", "service": "Service", "function": "func"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/adapter/src/module.thrift", "service": "Service", "function": "func"} */
   template <int = 0>
   folly::coro::Task<::facebook::thrift::test::fixtures::adapter::MyI32_4873> co_func(const ::facebook::thrift::test::fixtures::adapter::StringWithAdapter_7208& p_arg1, const ::facebook::thrift::test::fixtures::adapter::StringWithCppAdapter& p_arg2, const ::facebook::thrift::test::fixtures::adapter::Foo& p_arg3) {
     return co_func<false>(nullptr, p_arg1, p_arg2, p_arg3);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/adapter/src/module.thrift", "service": "Service", "function": "func"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/adapter/src/module.thrift", "service": "Service", "function": "func"} */
   template <int = 0>
   folly::coro::Task<::facebook::thrift::test::fixtures::adapter::MyI32_4873> co_func(apache::thrift::RpcOptions& rpcOptions, const ::facebook::thrift::test::fixtures::adapter::StringWithAdapter_7208& p_arg1, const ::facebook::thrift::test::fixtures::adapter::StringWithCppAdapter& p_arg2, const ::facebook::thrift::test::fixtures::adapter::Foo& p_arg3) {
     return co_func<true>(&rpcOptions, p_arg1, p_arg2, p_arg3);
@@ -152,18 +152,18 @@ class Client<::facebook::thrift::test::fixtures::adapter::Service> : public apac
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/adapter/src/module.thrift", "service": "Service", "function": "func"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/adapter/src/module.thrift", "service": "Service", "function": "func"} */
   virtual void func(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, const ::facebook::thrift::test::fixtures::adapter::StringWithAdapter_7208& p_arg1, const ::facebook::thrift::test::fixtures::adapter::StringWithCppAdapter& p_arg2, const ::facebook::thrift::test::fixtures::adapter::Foo& p_arg3);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/adapter/src/module.thrift", "service": "Service", "function": "func"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/adapter/src/module.thrift", "service": "Service", "function": "func"} */
   static folly::exception_wrapper recv_wrapped_func(::facebook::thrift::test::fixtures::adapter::MyI32_4873& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/adapter/src/module.thrift", "service": "Service", "function": "func"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/adapter/src/module.thrift", "service": "Service", "function": "func"} */
   static ::facebook::thrift::test::fixtures::adapter::MyI32_4873 recv_func(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/adapter/src/module.thrift", "service": "Service", "function": "func"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/adapter/src/module.thrift", "service": "Service", "function": "func"} */
   virtual ::facebook::thrift::test::fixtures::adapter::MyI32_4873 recv_instance_func(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/adapter/src/module.thrift", "service": "Service", "function": "func"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/adapter/src/module.thrift", "service": "Service", "function": "func"} */
   virtual folly::exception_wrapper recv_instance_wrapped_func(::facebook::thrift::test::fixtures::adapter::MyI32_4873& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_func(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::facebook::thrift::test::fixtures::adapter::StringWithAdapter_7208& p_arg1, const ::facebook::thrift::test::fixtures::adapter::StringWithCppAdapter& p_arg2, const ::facebook::thrift::test::fixtures::adapter::Foo& p_arg3);

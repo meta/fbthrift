@@ -129,7 +129,7 @@ namespace apache::thrift::detail::qualifier {
 // END hash_and_equal_to
 namespace test::fixtures::python_capi {
 
-/** Glean {"file": "thrift/compiler/test/fixtures/python_capi/src/serialized_dep.thrift", "name": "SerializedStruct", "kind": "struct" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/python_capi/src/serialized_dep.thrift", "name": "SerializedStruct", "kind": "struct" } */
 class SerializedStruct final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -214,163 +214,163 @@ class SerializedStruct final  {
   bool operator==(const SerializedStruct&) const;
   std::partial_ordering operator<=>(const SerializedStruct&) const;
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> s_ref() const& {
     return {this->__fbthrift_field_s, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> s_ref() & {
     return {this->__fbthrift_field_s, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> s_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_s), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> s() const& {
     return {this->__fbthrift_field_s, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> s() & {
     return {this->__fbthrift_field_s, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> s() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_s), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "i" } */
+  /* Glean { "field": "i" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> i_ref() const& {
     return {this->__fbthrift_field_i, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "i" } */
+  /* Glean { "field": "i" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> i_ref() & {
     return {this->__fbthrift_field_i, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "i" } */
+  /* Glean { "field": "i" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> i_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_i), __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "i" } */
+  /* Glean { "field": "i" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> i() const& {
     return {this->__fbthrift_field_i, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "i" } */
+  /* Glean { "field": "i" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> i() & {
     return {this->__fbthrift_field_i, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "i" } */
+  /* Glean { "field": "i" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> i() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_i), __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<const fbthrift_T&> os_ref() const& {
     return {this->__fbthrift_field_os, __isset.at(2), __isset.bit(2)};
   }
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&> os_ref() & {
     return {this->__fbthrift_field_os, __isset.at(2), __isset.bit(2)};
   }
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&&> os_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_os), __isset.at(2), __isset.bit(2)};
   }
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<const fbthrift_T&> os() const& {
     return {this->__fbthrift_field_os, __isset.at(2), __isset.bit(2)};
   }
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&> os() & {
     return {this->__fbthrift_field_os, __isset.at(2), __isset.bit(2)};
   }
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&&> os() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_os), __isset.at(2), __isset.bit(2)};
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::required_field_ref<const fbthrift_T&> rs_ref() const& {
     return ::apache::thrift::required_field_ref<const fbthrift_T&>{this->__fbthrift_field_rs};
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::required_field_ref<fbthrift_T&> rs_ref() & {
     return ::apache::thrift::required_field_ref<fbthrift_T&>{this->__fbthrift_field_rs};
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::required_field_ref<fbthrift_T&&> rs_ref() && {
     return ::apache::thrift::required_field_ref<fbthrift_T&&>{static_cast<fbthrift_T&&>(this->__fbthrift_field_rs)};
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::required_field_ref<const fbthrift_T&> rs() const& {
     return ::apache::thrift::required_field_ref<const fbthrift_T&>{this->__fbthrift_field_rs};
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::required_field_ref<fbthrift_T&> rs() & {
     return ::apache::thrift::required_field_ref<fbthrift_T&>{this->__fbthrift_field_rs};
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::required_field_ref<fbthrift_T&&> rs() && {
     return ::apache::thrift::required_field_ref<fbthrift_T&&>{static_cast<fbthrift_T&&>(this->__fbthrift_field_rs)};
   }
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   [[deprecated("Use `FOO.s().value()` instead of `FOO.get_s()`")]]
   const ::std::string& get_s() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return __fbthrift_field_s;
   }
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   [[deprecated("Use `FOO.s().value()` instead of `FOO.get_s()`")]]
   ::std::string get_s() && {
     return static_cast<::std::string&&>(__fbthrift_field_s);
   }
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   template <typename T_SerializedStruct_s_struct_setter = ::std::string>
   [[deprecated("Use `FOO.s() = BAR` instead of `FOO.set_s(BAR)`")]]
   ::std::string& set_s(T_SerializedStruct_s_struct_setter&& s_) {
@@ -378,25 +378,25 @@ class SerializedStruct final  {
     return __fbthrift_field_s;
   }
 
-  /** Glean { "field": "i" } */
+  /* Glean { "field": "i" } */
   [[deprecated("Use `FOO.i().value()` instead of `FOO.get_i()`")]]
   ::std::int32_t get_i() const;
 
-  /** Glean { "field": "i" } */
+  /* Glean { "field": "i" } */
   [[deprecated("Use `FOO.i() = BAR` instead of `FOO.set_i(BAR)`")]]
   ::std::int32_t& set_i(::std::int32_t i_);
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   [[deprecated("Use `FOO.os().value()` instead of `FOO.get_os()`")]]
   const ::std::string* get_os() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]];
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   [[deprecated("Use `FOO.os().value()` instead of `FOO.get_os()`")]]
   ::std::string* get_os() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]];
 
   ::std::string* get_os() && = delete;
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   template <typename T_SerializedStruct_os_struct_setter = ::std::string>
   [[deprecated("Use `FOO.os() = BAR` instead of `FOO.set_os(BAR)`")]]
   ::std::string& set_os(T_SerializedStruct_os_struct_setter&& os_) {
@@ -404,19 +404,19 @@ class SerializedStruct final  {
     return __fbthrift_field_os;
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   [[deprecated("Use `FOO.rs().value()` instead of `FOO.get_rs()`")]]
   const ::std::string& get_rs() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return __fbthrift_field_rs;
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   [[deprecated("Use `FOO.rs().value()` instead of `FOO.get_rs()`")]]
   ::std::string get_rs() && {
     return static_cast<::std::string&&>(__fbthrift_field_rs);
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   template <typename T_SerializedStruct_rs_struct_setter = ::std::string>
   [[deprecated("Use `FOO.rs() = BAR` instead of `FOO.set_rs(BAR)`")]]
   ::std::string& set_rs(T_SerializedStruct_rs_struct_setter&& rs_) {
@@ -448,7 +448,7 @@ unsigned long SerializedStruct::read(Protocol_* iprot) {
 }
 
 
-/** Glean {"file": "thrift/compiler/test/fixtures/python_capi/src/serialized_dep.thrift", "name": "SerializedUnion", "kind": "union" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/python_capi/src/serialized_dep.thrift", "name": "SerializedUnion", "kind": "union" } */
 class SerializedUnion final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -526,7 +526,7 @@ class SerializedUnion final  {
   bool operator==(const SerializedUnion&) const;
   std::partial_ordering operator<=>(const SerializedUnion&) const;
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   template <typename... A> requires (sizeof...(A) == 0)
   ::std::string& set_s(::std::string const &t) {
     using T0 = ::std::string;
@@ -537,7 +537,7 @@ class SerializedUnion final  {
     return value_.s;
   }
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   template <typename... A> requires (sizeof...(A) == 0)
   ::std::string& set_s(::std::string&& t) {
     using T0 = ::std::string;
@@ -548,7 +548,7 @@ class SerializedUnion final  {
     return value_.s;
   }
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   template<typename... T, typename = ::apache::thrift::safe_overload_t<::std::string, T...>> ::std::string& set_s(T&&... t) {
     __fbthrift_clear();
     ::new (std::addressof(value_.s)) ::std::string(std::forward<T>(t)...);
@@ -557,7 +557,7 @@ class SerializedUnion final  {
   }
 
 
-  /** Glean { "field": "i" } */
+  /* Glean { "field": "i" } */
   template <typename... A> requires (sizeof...(A) == 0)
   ::std::int32_t& set_i(::std::int32_t t = ::std::int32_t()) {
     using T0 = ::std::int32_t;
@@ -569,7 +569,7 @@ class SerializedUnion final  {
   }
 
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   [[deprecated("Use `FOO.s().value()` instead of `FOO.get_s()`")]]
   ::std::string const& get_s() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::s) {
@@ -578,7 +578,7 @@ class SerializedUnion final  {
     return value_.s;
   }
 
-  /** Glean { "field": "i" } */
+  /* Glean { "field": "i" } */
   [[deprecated("Use `FOO.i().value()` instead of `FOO.get_i()`")]]
   ::std::int32_t const& get_i() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::i) {
@@ -609,67 +609,67 @@ class SerializedUnion final  {
     return std::move(value_.i);
   }
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::union_field_ref<const T&> s_ref() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.s, fbthrift_type_, folly::to_underlying(Type::s), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::union_field_ref<T&> s_ref() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.s, fbthrift_type_, folly::to_underlying(Type::s), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::union_field_ref<T&&> s_ref() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {std::move(value_.s), fbthrift_type_, folly::to_underlying(Type::s), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<const ::std::string&> s() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.s, fbthrift_type_, folly::to_underlying(Type::s), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<::std::string&> s() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.s, fbthrift_type_, folly::to_underlying(Type::s), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<::std::string&&> s() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {std::move(value_.s), fbthrift_type_, folly::to_underlying(Type::s), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
-  /** Glean { "field": "i" } */
+  /* Glean { "field": "i" } */
   template <typename..., typename T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::union_field_ref<const T&> i_ref() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.i, fbthrift_type_, folly::to_underlying(Type::i), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "i" } */
+  /* Glean { "field": "i" } */
   template <typename..., typename T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::union_field_ref<T&> i_ref() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.i, fbthrift_type_, folly::to_underlying(Type::i), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "i" } */
+  /* Glean { "field": "i" } */
   template <typename..., typename T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::union_field_ref<T&&> i_ref() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {std::move(value_.i), fbthrift_type_, folly::to_underlying(Type::i), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "i" } */
+  /* Glean { "field": "i" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<const ::std::int32_t&> i() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.i, fbthrift_type_, folly::to_underlying(Type::i), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "i" } */
+  /* Glean { "field": "i" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<::std::int32_t&> i() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.i, fbthrift_type_, folly::to_underlying(Type::i), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "i" } */
+  /* Glean { "field": "i" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<::std::int32_t&&> i() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {std::move(value_.i), fbthrift_type_, folly::to_underlying(Type::i), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
@@ -702,7 +702,7 @@ unsigned long SerializedUnion::read(Protocol_* iprot) {
 }
 
 
-/** Glean {"file": "thrift/compiler/test/fixtures/python_capi/src/serialized_dep.thrift", "name": "SerializedError", "kind": "exception" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/python_capi/src/serialized_dep.thrift", "name": "SerializedError", "kind": "exception" } */
 class FOLLY_EXPORT SerializedError : public virtual apache::thrift::TException {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -789,127 +789,127 @@ class FOLLY_EXPORT SerializedError : public virtual apache::thrift::TException {
   bool operator==(const SerializedError&) const;
   std::partial_ordering operator<=>(const SerializedError&) const;
 
-  /** Glean { "field": "msg" } */
+  /* Glean { "field": "msg" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> msg_ref() const& {
     return {this->__fbthrift_field_msg, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "msg" } */
+  /* Glean { "field": "msg" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> msg_ref() & {
     return {this->__fbthrift_field_msg, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "msg" } */
+  /* Glean { "field": "msg" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> msg_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_msg), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "msg" } */
+  /* Glean { "field": "msg" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> msg() const& {
     return {this->__fbthrift_field_msg, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "msg" } */
+  /* Glean { "field": "msg" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> msg() & {
     return {this->__fbthrift_field_msg, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "msg" } */
+  /* Glean { "field": "msg" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> msg() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_msg), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<const fbthrift_T&> os_ref() const& {
     return {this->__fbthrift_field_os, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&> os_ref() & {
     return {this->__fbthrift_field_os, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&&> os_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_os), __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<const fbthrift_T&> os() const& {
     return {this->__fbthrift_field_os, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&> os() & {
     return {this->__fbthrift_field_os, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&&> os() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_os), __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::required_field_ref<const fbthrift_T&> rs_ref() const& {
     return ::apache::thrift::required_field_ref<const fbthrift_T&>{this->__fbthrift_field_rs};
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::required_field_ref<fbthrift_T&> rs_ref() & {
     return ::apache::thrift::required_field_ref<fbthrift_T&>{this->__fbthrift_field_rs};
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::required_field_ref<fbthrift_T&&> rs_ref() && {
     return ::apache::thrift::required_field_ref<fbthrift_T&&>{static_cast<fbthrift_T&&>(this->__fbthrift_field_rs)};
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::required_field_ref<const fbthrift_T&> rs() const& {
     return ::apache::thrift::required_field_ref<const fbthrift_T&>{this->__fbthrift_field_rs};
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::required_field_ref<fbthrift_T&> rs() & {
     return ::apache::thrift::required_field_ref<fbthrift_T&>{this->__fbthrift_field_rs};
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::required_field_ref<fbthrift_T&&> rs() && {
     return ::apache::thrift::required_field_ref<fbthrift_T&&>{static_cast<fbthrift_T&&>(this->__fbthrift_field_rs)};
   }
 
-  /** Glean { "field": "msg" } */
+  /* Glean { "field": "msg" } */
   [[deprecated("Use `FOO.msg().value()` instead of `FOO.get_msg()`")]]
   const ::std::string& get_msg() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return __fbthrift_field_msg;
   }
 
-  /** Glean { "field": "msg" } */
+  /* Glean { "field": "msg" } */
   [[deprecated("Use `FOO.msg().value()` instead of `FOO.get_msg()`")]]
   ::std::string get_msg() && {
     return static_cast<::std::string&&>(__fbthrift_field_msg);
   }
 
-  /** Glean { "field": "msg" } */
+  /* Glean { "field": "msg" } */
   template <typename T_SerializedError_msg_struct_setter = ::std::string>
   [[deprecated("Use `FOO.msg() = BAR` instead of `FOO.set_msg(BAR)`")]]
   ::std::string& set_msg(T_SerializedError_msg_struct_setter&& msg_) {
@@ -917,17 +917,17 @@ class FOLLY_EXPORT SerializedError : public virtual apache::thrift::TException {
     return __fbthrift_field_msg;
   }
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   [[deprecated("Use `FOO.os().value()` instead of `FOO.get_os()`")]]
   const ::std::string* get_os() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]];
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   [[deprecated("Use `FOO.os().value()` instead of `FOO.get_os()`")]]
   ::std::string* get_os() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]];
 
   ::std::string* get_os() && = delete;
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   template <typename T_SerializedError_os_struct_setter = ::std::string>
   [[deprecated("Use `FOO.os() = BAR` instead of `FOO.set_os(BAR)`")]]
   ::std::string& set_os(T_SerializedError_os_struct_setter&& os_) {
@@ -935,19 +935,19 @@ class FOLLY_EXPORT SerializedError : public virtual apache::thrift::TException {
     return __fbthrift_field_os;
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   [[deprecated("Use `FOO.rs().value()` instead of `FOO.get_rs()`")]]
   const ::std::string& get_rs() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return __fbthrift_field_rs;
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   [[deprecated("Use `FOO.rs().value()` instead of `FOO.get_rs()`")]]
   ::std::string get_rs() && {
     return static_cast<::std::string&&>(__fbthrift_field_rs);
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   template <typename T_SerializedError_rs_struct_setter = ::std::string>
   [[deprecated("Use `FOO.rs() = BAR` instead of `FOO.set_rs(BAR)`")]]
   ::std::string& set_rs(T_SerializedError_rs_struct_setter&& rs_) {
@@ -983,7 +983,7 @@ unsigned long SerializedError::read(Protocol_* iprot) {
 }
 
 
-/** Glean {"file": "thrift/compiler/test/fixtures/python_capi/src/serialized_dep.thrift", "name": "MarshalStruct", "kind": "struct" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/python_capi/src/serialized_dep.thrift", "name": "MarshalStruct", "kind": "struct" } */
 class MarshalStruct final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -1068,163 +1068,163 @@ class MarshalStruct final  {
   bool operator==(const MarshalStruct&) const;
   std::partial_ordering operator<=>(const MarshalStruct&) const;
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> s_ref() const& {
     return {this->__fbthrift_field_s, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> s_ref() & {
     return {this->__fbthrift_field_s, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> s_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_s), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> s() const& {
     return {this->__fbthrift_field_s, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> s() & {
     return {this->__fbthrift_field_s, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> s() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_s), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "i" } */
+  /* Glean { "field": "i" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> i_ref() const& {
     return {this->__fbthrift_field_i, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "i" } */
+  /* Glean { "field": "i" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> i_ref() & {
     return {this->__fbthrift_field_i, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "i" } */
+  /* Glean { "field": "i" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> i_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_i), __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "i" } */
+  /* Glean { "field": "i" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> i() const& {
     return {this->__fbthrift_field_i, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "i" } */
+  /* Glean { "field": "i" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> i() & {
     return {this->__fbthrift_field_i, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "i" } */
+  /* Glean { "field": "i" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> i() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_i), __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<const fbthrift_T&> os_ref() const& {
     return {this->__fbthrift_field_os, __isset.at(2), __isset.bit(2)};
   }
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&> os_ref() & {
     return {this->__fbthrift_field_os, __isset.at(2), __isset.bit(2)};
   }
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&&> os_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_os), __isset.at(2), __isset.bit(2)};
   }
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<const fbthrift_T&> os() const& {
     return {this->__fbthrift_field_os, __isset.at(2), __isset.bit(2)};
   }
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&> os() & {
     return {this->__fbthrift_field_os, __isset.at(2), __isset.bit(2)};
   }
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&&> os() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_os), __isset.at(2), __isset.bit(2)};
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::required_field_ref<const fbthrift_T&> rs_ref() const& {
     return ::apache::thrift::required_field_ref<const fbthrift_T&>{this->__fbthrift_field_rs};
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::required_field_ref<fbthrift_T&> rs_ref() & {
     return ::apache::thrift::required_field_ref<fbthrift_T&>{this->__fbthrift_field_rs};
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::required_field_ref<fbthrift_T&&> rs_ref() && {
     return ::apache::thrift::required_field_ref<fbthrift_T&&>{static_cast<fbthrift_T&&>(this->__fbthrift_field_rs)};
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::required_field_ref<const fbthrift_T&> rs() const& {
     return ::apache::thrift::required_field_ref<const fbthrift_T&>{this->__fbthrift_field_rs};
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::required_field_ref<fbthrift_T&> rs() & {
     return ::apache::thrift::required_field_ref<fbthrift_T&>{this->__fbthrift_field_rs};
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::required_field_ref<fbthrift_T&&> rs() && {
     return ::apache::thrift::required_field_ref<fbthrift_T&&>{static_cast<fbthrift_T&&>(this->__fbthrift_field_rs)};
   }
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   [[deprecated("Use `FOO.s().value()` instead of `FOO.get_s()`")]]
   const ::std::string& get_s() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return __fbthrift_field_s;
   }
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   [[deprecated("Use `FOO.s().value()` instead of `FOO.get_s()`")]]
   ::std::string get_s() && {
     return static_cast<::std::string&&>(__fbthrift_field_s);
   }
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   template <typename T_MarshalStruct_s_struct_setter = ::std::string>
   [[deprecated("Use `FOO.s() = BAR` instead of `FOO.set_s(BAR)`")]]
   ::std::string& set_s(T_MarshalStruct_s_struct_setter&& s_) {
@@ -1232,25 +1232,25 @@ class MarshalStruct final  {
     return __fbthrift_field_s;
   }
 
-  /** Glean { "field": "i" } */
+  /* Glean { "field": "i" } */
   [[deprecated("Use `FOO.i().value()` instead of `FOO.get_i()`")]]
   ::std::int32_t get_i() const;
 
-  /** Glean { "field": "i" } */
+  /* Glean { "field": "i" } */
   [[deprecated("Use `FOO.i() = BAR` instead of `FOO.set_i(BAR)`")]]
   ::std::int32_t& set_i(::std::int32_t i_);
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   [[deprecated("Use `FOO.os().value()` instead of `FOO.get_os()`")]]
   const ::std::string* get_os() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]];
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   [[deprecated("Use `FOO.os().value()` instead of `FOO.get_os()`")]]
   ::std::string* get_os() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]];
 
   ::std::string* get_os() && = delete;
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   template <typename T_MarshalStruct_os_struct_setter = ::std::string>
   [[deprecated("Use `FOO.os() = BAR` instead of `FOO.set_os(BAR)`")]]
   ::std::string& set_os(T_MarshalStruct_os_struct_setter&& os_) {
@@ -1258,19 +1258,19 @@ class MarshalStruct final  {
     return __fbthrift_field_os;
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   [[deprecated("Use `FOO.rs().value()` instead of `FOO.get_rs()`")]]
   const ::std::string& get_rs() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return __fbthrift_field_rs;
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   [[deprecated("Use `FOO.rs().value()` instead of `FOO.get_rs()`")]]
   ::std::string get_rs() && {
     return static_cast<::std::string&&>(__fbthrift_field_rs);
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   template <typename T_MarshalStruct_rs_struct_setter = ::std::string>
   [[deprecated("Use `FOO.rs() = BAR` instead of `FOO.set_rs(BAR)`")]]
   ::std::string& set_rs(T_MarshalStruct_rs_struct_setter&& rs_) {
@@ -1302,7 +1302,7 @@ unsigned long MarshalStruct::read(Protocol_* iprot) {
 }
 
 
-/** Glean {"file": "thrift/compiler/test/fixtures/python_capi/src/serialized_dep.thrift", "name": "MarshalUnion", "kind": "union" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/python_capi/src/serialized_dep.thrift", "name": "MarshalUnion", "kind": "union" } */
 class MarshalUnion final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -1380,7 +1380,7 @@ class MarshalUnion final  {
   bool operator==(const MarshalUnion&) const;
   std::partial_ordering operator<=>(const MarshalUnion&) const;
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   template <typename... A> requires (sizeof...(A) == 0)
   ::std::string& set_s(::std::string const &t) {
     using T0 = ::std::string;
@@ -1391,7 +1391,7 @@ class MarshalUnion final  {
     return value_.s;
   }
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   template <typename... A> requires (sizeof...(A) == 0)
   ::std::string& set_s(::std::string&& t) {
     using T0 = ::std::string;
@@ -1402,7 +1402,7 @@ class MarshalUnion final  {
     return value_.s;
   }
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   template<typename... T, typename = ::apache::thrift::safe_overload_t<::std::string, T...>> ::std::string& set_s(T&&... t) {
     __fbthrift_clear();
     ::new (std::addressof(value_.s)) ::std::string(std::forward<T>(t)...);
@@ -1411,7 +1411,7 @@ class MarshalUnion final  {
   }
 
 
-  /** Glean { "field": "i" } */
+  /* Glean { "field": "i" } */
   template <typename... A> requires (sizeof...(A) == 0)
   ::std::int32_t& set_i(::std::int32_t t = ::std::int32_t()) {
     using T0 = ::std::int32_t;
@@ -1423,7 +1423,7 @@ class MarshalUnion final  {
   }
 
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   [[deprecated("Use `FOO.s().value()` instead of `FOO.get_s()`")]]
   ::std::string const& get_s() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::s) {
@@ -1432,7 +1432,7 @@ class MarshalUnion final  {
     return value_.s;
   }
 
-  /** Glean { "field": "i" } */
+  /* Glean { "field": "i" } */
   [[deprecated("Use `FOO.i().value()` instead of `FOO.get_i()`")]]
   ::std::int32_t const& get_i() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::i) {
@@ -1463,67 +1463,67 @@ class MarshalUnion final  {
     return std::move(value_.i);
   }
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::union_field_ref<const T&> s_ref() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.s, fbthrift_type_, folly::to_underlying(Type::s), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::union_field_ref<T&> s_ref() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.s, fbthrift_type_, folly::to_underlying(Type::s), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::union_field_ref<T&&> s_ref() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {std::move(value_.s), fbthrift_type_, folly::to_underlying(Type::s), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<const ::std::string&> s() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.s, fbthrift_type_, folly::to_underlying(Type::s), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<::std::string&> s() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.s, fbthrift_type_, folly::to_underlying(Type::s), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "s" } */
+  /* Glean { "field": "s" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<::std::string&&> s() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {std::move(value_.s), fbthrift_type_, folly::to_underlying(Type::s), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
-  /** Glean { "field": "i" } */
+  /* Glean { "field": "i" } */
   template <typename..., typename T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::union_field_ref<const T&> i_ref() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.i, fbthrift_type_, folly::to_underlying(Type::i), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "i" } */
+  /* Glean { "field": "i" } */
   template <typename..., typename T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::union_field_ref<T&> i_ref() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.i, fbthrift_type_, folly::to_underlying(Type::i), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "i" } */
+  /* Glean { "field": "i" } */
   template <typename..., typename T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::union_field_ref<T&&> i_ref() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {std::move(value_.i), fbthrift_type_, folly::to_underlying(Type::i), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "i" } */
+  /* Glean { "field": "i" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<const ::std::int32_t&> i() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.i, fbthrift_type_, folly::to_underlying(Type::i), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "i" } */
+  /* Glean { "field": "i" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<::std::int32_t&> i() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.i, fbthrift_type_, folly::to_underlying(Type::i), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "i" } */
+  /* Glean { "field": "i" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<::std::int32_t&&> i() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {std::move(value_.i), fbthrift_type_, folly::to_underlying(Type::i), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
@@ -1556,7 +1556,7 @@ unsigned long MarshalUnion::read(Protocol_* iprot) {
 }
 
 
-/** Glean {"file": "thrift/compiler/test/fixtures/python_capi/src/serialized_dep.thrift", "name": "MarshalError", "kind": "exception" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/python_capi/src/serialized_dep.thrift", "name": "MarshalError", "kind": "exception" } */
 class FOLLY_EXPORT MarshalError : public virtual apache::thrift::TException {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -1643,127 +1643,127 @@ class FOLLY_EXPORT MarshalError : public virtual apache::thrift::TException {
   bool operator==(const MarshalError&) const;
   std::partial_ordering operator<=>(const MarshalError&) const;
 
-  /** Glean { "field": "msg" } */
+  /* Glean { "field": "msg" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> msg_ref() const& {
     return {this->__fbthrift_field_msg, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "msg" } */
+  /* Glean { "field": "msg" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> msg_ref() & {
     return {this->__fbthrift_field_msg, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "msg" } */
+  /* Glean { "field": "msg" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> msg_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_msg), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "msg" } */
+  /* Glean { "field": "msg" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> msg() const& {
     return {this->__fbthrift_field_msg, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "msg" } */
+  /* Glean { "field": "msg" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> msg() & {
     return {this->__fbthrift_field_msg, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "msg" } */
+  /* Glean { "field": "msg" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> msg() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_msg), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<const fbthrift_T&> os_ref() const& {
     return {this->__fbthrift_field_os, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&> os_ref() & {
     return {this->__fbthrift_field_os, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&&> os_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_os), __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<const fbthrift_T&> os() const& {
     return {this->__fbthrift_field_os, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&> os() & {
     return {this->__fbthrift_field_os, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&&> os() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_os), __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::required_field_ref<const fbthrift_T&> rs_ref() const& {
     return ::apache::thrift::required_field_ref<const fbthrift_T&>{this->__fbthrift_field_rs};
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::required_field_ref<fbthrift_T&> rs_ref() & {
     return ::apache::thrift::required_field_ref<fbthrift_T&>{this->__fbthrift_field_rs};
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::required_field_ref<fbthrift_T&&> rs_ref() && {
     return ::apache::thrift::required_field_ref<fbthrift_T&&>{static_cast<fbthrift_T&&>(this->__fbthrift_field_rs)};
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::required_field_ref<const fbthrift_T&> rs() const& {
     return ::apache::thrift::required_field_ref<const fbthrift_T&>{this->__fbthrift_field_rs};
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::required_field_ref<fbthrift_T&> rs() & {
     return ::apache::thrift::required_field_ref<fbthrift_T&>{this->__fbthrift_field_rs};
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::required_field_ref<fbthrift_T&&> rs() && {
     return ::apache::thrift::required_field_ref<fbthrift_T&&>{static_cast<fbthrift_T&&>(this->__fbthrift_field_rs)};
   }
 
-  /** Glean { "field": "msg" } */
+  /* Glean { "field": "msg" } */
   [[deprecated("Use `FOO.msg().value()` instead of `FOO.get_msg()`")]]
   const ::std::string& get_msg() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return __fbthrift_field_msg;
   }
 
-  /** Glean { "field": "msg" } */
+  /* Glean { "field": "msg" } */
   [[deprecated("Use `FOO.msg().value()` instead of `FOO.get_msg()`")]]
   ::std::string get_msg() && {
     return static_cast<::std::string&&>(__fbthrift_field_msg);
   }
 
-  /** Glean { "field": "msg" } */
+  /* Glean { "field": "msg" } */
   template <typename T_MarshalError_msg_struct_setter = ::std::string>
   [[deprecated("Use `FOO.msg() = BAR` instead of `FOO.set_msg(BAR)`")]]
   ::std::string& set_msg(T_MarshalError_msg_struct_setter&& msg_) {
@@ -1771,17 +1771,17 @@ class FOLLY_EXPORT MarshalError : public virtual apache::thrift::TException {
     return __fbthrift_field_msg;
   }
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   [[deprecated("Use `FOO.os().value()` instead of `FOO.get_os()`")]]
   const ::std::string* get_os() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]];
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   [[deprecated("Use `FOO.os().value()` instead of `FOO.get_os()`")]]
   ::std::string* get_os() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]];
 
   ::std::string* get_os() && = delete;
 
-  /** Glean { "field": "os" } */
+  /* Glean { "field": "os" } */
   template <typename T_MarshalError_os_struct_setter = ::std::string>
   [[deprecated("Use `FOO.os() = BAR` instead of `FOO.set_os(BAR)`")]]
   ::std::string& set_os(T_MarshalError_os_struct_setter&& os_) {
@@ -1789,19 +1789,19 @@ class FOLLY_EXPORT MarshalError : public virtual apache::thrift::TException {
     return __fbthrift_field_os;
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   [[deprecated("Use `FOO.rs().value()` instead of `FOO.get_rs()`")]]
   const ::std::string& get_rs() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return __fbthrift_field_rs;
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   [[deprecated("Use `FOO.rs().value()` instead of `FOO.get_rs()`")]]
   ::std::string get_rs() && {
     return static_cast<::std::string&&>(__fbthrift_field_rs);
   }
 
-  /** Glean { "field": "rs" } */
+  /* Glean { "field": "rs" } */
   template <typename T_MarshalError_rs_struct_setter = ::std::string>
   [[deprecated("Use `FOO.rs() = BAR` instead of `FOO.set_rs(BAR)`")]]
   ::std::string& set_rs(T_MarshalError_rs_struct_setter&& rs_) {

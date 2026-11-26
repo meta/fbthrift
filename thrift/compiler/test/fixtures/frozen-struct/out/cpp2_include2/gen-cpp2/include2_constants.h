@@ -11,7 +11,7 @@
 #include "thrift/compiler/test/fixtures/frozen-struct/gen-cpp2/include2_types.h"
 
 namespace some::ns {
-/** Glean {"file": "thrift/compiler/test/fixtures/frozen-struct/src/include2.thrift"} */
+/* Glean {"file": "thrift/compiler/test/fixtures/frozen-struct/src/include2.thrift"} */
 namespace include2_constants {
 
   FOLLY_EXPORT ::std::string_view _fbthrift_schema_d308ed85ba51182();

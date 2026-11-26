@@ -70,29 +70,29 @@ class Calculator final : public apache::thrift::InteractionHandle {
     return "FootprintTestService";
   }
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "Calculator", "function": "add"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "Calculator", "function": "add"} */
   void add(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, ::std::int32_t p_a, ::std::int32_t p_b);
  protected:
   void fbthrift_serialize_and_send_add(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, ::std::int32_t p_a, ::std::int32_t p_b, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "Calculator", "function": "add"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "Calculator", "function": "add"} */
   ::std::int32_t sync_add(::std::int32_t p_a, ::std::int32_t p_b);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "Calculator", "function": "add"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "Calculator", "function": "add"} */
   ::std::int32_t sync_add(apache::thrift::RpcOptions& rpcOptions, ::std::int32_t p_a, ::std::int32_t p_b);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "Calculator", "function": "add"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "Calculator", "function": "add"} */
   folly::SemiFuture<::std::int32_t> semifuture_add(::std::int32_t p_a, ::std::int32_t p_b);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "Calculator", "function": "add"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "Calculator", "function": "add"} */
   folly::SemiFuture<::std::int32_t> semifuture_add(apache::thrift::RpcOptions& rpcOptions, ::std::int32_t p_a, ::std::int32_t p_b);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "Calculator", "function": "add"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "Calculator", "function": "add"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_add(::std::int32_t p_a, ::std::int32_t p_b) {
     return co_add<false>(nullptr, p_a, p_b);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "Calculator", "function": "add"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "Calculator", "function": "add"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_add(apache::thrift::RpcOptions& rpcOptions, ::std::int32_t p_a, ::std::int32_t p_b) {
     return co_add<true>(&rpcOptions, p_a, p_b);
@@ -167,9 +167,9 @@ class Calculator final : public apache::thrift::InteractionHandle {
 #endif // FOLLY_HAS_COROUTINES
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "Calculator", "function": "add"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "Calculator", "function": "add"} */
   static folly::exception_wrapper recv_wrapped_add(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "Calculator", "function": "add"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "Calculator", "function": "add"} */
   static ::std::int32_t recv_add(::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_add(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, ::std::int32_t p_a, ::std::int32_t p_b);
@@ -181,35 +181,35 @@ class Calculator final : public apache::thrift::InteractionHandle {
  public:
 };
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "processIOBuf"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "processIOBuf"} */
   virtual void processIOBuf(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::cpp2_struct_footprint::IOBuf& p_buf, const ::cpp2_struct_footprint::IOBufPtr& p_ptr, ::cpp2_struct_footprint::I32Alias p_alias);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "processIOBuf"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "processIOBuf"} */
   virtual void processIOBuf(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::cpp2_struct_footprint::IOBuf& p_buf, const ::cpp2_struct_footprint::IOBufPtr& p_ptr, ::cpp2_struct_footprint::I32Alias p_alias);
  protected:
   void fbthrift_serialize_and_send_processIOBuf(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const ::cpp2_struct_footprint::IOBuf& p_buf, const ::cpp2_struct_footprint::IOBufPtr& p_ptr, ::cpp2_struct_footprint::I32Alias p_alias, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "processIOBuf"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "processIOBuf"} */
   virtual void sync_processIOBuf(const ::cpp2_struct_footprint::IOBuf& p_buf, const ::cpp2_struct_footprint::IOBufPtr& p_ptr, ::cpp2_struct_footprint::I32Alias p_alias);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "processIOBuf"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "processIOBuf"} */
   virtual void sync_processIOBuf(apache::thrift::RpcOptions& rpcOptions, const ::cpp2_struct_footprint::IOBuf& p_buf, const ::cpp2_struct_footprint::IOBufPtr& p_ptr, ::cpp2_struct_footprint::I32Alias p_alias);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "processIOBuf"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "processIOBuf"} */
   virtual folly::Future<folly::Unit> future_processIOBuf(const ::cpp2_struct_footprint::IOBuf& p_buf, const ::cpp2_struct_footprint::IOBufPtr& p_ptr, ::cpp2_struct_footprint::I32Alias p_alias);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "processIOBuf"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "processIOBuf"} */
   virtual folly::SemiFuture<folly::Unit> semifuture_processIOBuf(const ::cpp2_struct_footprint::IOBuf& p_buf, const ::cpp2_struct_footprint::IOBufPtr& p_ptr, ::cpp2_struct_footprint::I32Alias p_alias);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "processIOBuf"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "processIOBuf"} */
   virtual folly::Future<folly::Unit> future_processIOBuf(apache::thrift::RpcOptions& rpcOptions, const ::cpp2_struct_footprint::IOBuf& p_buf, const ::cpp2_struct_footprint::IOBufPtr& p_ptr, ::cpp2_struct_footprint::I32Alias p_alias);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "processIOBuf"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "processIOBuf"} */
   virtual folly::SemiFuture<folly::Unit> semifuture_processIOBuf(apache::thrift::RpcOptions& rpcOptions, const ::cpp2_struct_footprint::IOBuf& p_buf, const ::cpp2_struct_footprint::IOBufPtr& p_ptr, ::cpp2_struct_footprint::I32Alias p_alias);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "processIOBuf"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "processIOBuf"} */
   template <int = 0>
   folly::coro::Task<void> co_processIOBuf(const ::cpp2_struct_footprint::IOBuf& p_buf, const ::cpp2_struct_footprint::IOBufPtr& p_ptr, ::cpp2_struct_footprint::I32Alias p_alias) {
     return co_processIOBuf<false>(nullptr, p_buf, p_ptr, p_alias);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "processIOBuf"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "processIOBuf"} */
   template <int = 0>
   folly::coro::Task<void> co_processIOBuf(apache::thrift::RpcOptions& rpcOptions, const ::cpp2_struct_footprint::IOBuf& p_buf, const ::cpp2_struct_footprint::IOBufPtr& p_ptr, ::cpp2_struct_footprint::I32Alias p_alias) {
     return co_processIOBuf<true>(&rpcOptions, p_buf, p_ptr, p_alias);
@@ -283,18 +283,18 @@ class Calculator final : public apache::thrift::InteractionHandle {
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "processIOBuf"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "processIOBuf"} */
   virtual void processIOBuf(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, const ::cpp2_struct_footprint::IOBuf& p_buf, const ::cpp2_struct_footprint::IOBufPtr& p_ptr, ::cpp2_struct_footprint::I32Alias p_alias);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "processIOBuf"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "processIOBuf"} */
   static folly::exception_wrapper recv_wrapped_processIOBuf(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "processIOBuf"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "processIOBuf"} */
   static void recv_processIOBuf(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "processIOBuf"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "processIOBuf"} */
   virtual void recv_instance_processIOBuf(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "processIOBuf"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "processIOBuf"} */
   virtual folly::exception_wrapper recv_instance_wrapped_processIOBuf(::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_processIOBuf(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::cpp2_struct_footprint::IOBuf& p_buf, const ::cpp2_struct_footprint::IOBufPtr& p_ptr, ::cpp2_struct_footprint::I32Alias p_alias);
@@ -304,35 +304,35 @@ class Calculator final : public apache::thrift::InteractionHandle {
   template <typename CallbackType>
   folly::SemiFuture<folly::Unit> fbthrift_semifuture_processIOBuf(apache::thrift::RpcOptions& rpcOptions, const ::cpp2_struct_footprint::IOBuf& p_buf, const ::cpp2_struct_footprint::IOBufPtr& p_ptr, ::cpp2_struct_footprint::I32Alias p_alias);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStruct"} */
   virtual void getStruct(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStruct"} */
   virtual void getStruct(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_getStruct(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStruct"} */
   virtual void sync_getStruct(::cpp2_struct_footprint::SimpleStruct& _return);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStruct"} */
   virtual void sync_getStruct(apache::thrift::RpcOptions& rpcOptions, ::cpp2_struct_footprint::SimpleStruct& _return);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStruct"} */
   virtual folly::Future<::cpp2_struct_footprint::SimpleStruct> future_getStruct();
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStruct"} */
   virtual folly::SemiFuture<::cpp2_struct_footprint::SimpleStruct> semifuture_getStruct();
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStruct"} */
   virtual folly::Future<::cpp2_struct_footprint::SimpleStruct> future_getStruct(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStruct"} */
   virtual folly::SemiFuture<::cpp2_struct_footprint::SimpleStruct> semifuture_getStruct(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStruct"} */
   template <int = 0>
   folly::coro::Task<::cpp2_struct_footprint::SimpleStruct> co_getStruct() {
     return co_getStruct<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStruct"} */
   template <int = 0>
   folly::coro::Task<::cpp2_struct_footprint::SimpleStruct> co_getStruct(apache::thrift::RpcOptions& rpcOptions) {
     return co_getStruct<true>(&rpcOptions);
@@ -406,18 +406,18 @@ class Calculator final : public apache::thrift::InteractionHandle {
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStruct"} */
   virtual void getStruct(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStruct"} */
   static folly::exception_wrapper recv_wrapped_getStruct(::cpp2_struct_footprint::SimpleStruct& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStruct"} */
   static void recv_getStruct(::cpp2_struct_footprint::SimpleStruct& _return, ::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStruct"} */
   virtual void recv_instance_getStruct(::cpp2_struct_footprint::SimpleStruct& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStruct"} */
   virtual folly::exception_wrapper recv_instance_wrapped_getStruct(::cpp2_struct_footprint::SimpleStruct& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_getStruct(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -427,35 +427,35 @@ class Calculator final : public apache::thrift::InteractionHandle {
   template <typename CallbackType>
   folly::SemiFuture<::cpp2_struct_footprint::SimpleStruct> fbthrift_semifuture_getStruct(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStruct"} */
   virtual void setStruct(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::cpp2_struct_footprint::SimpleStruct& p_input);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStruct"} */
   virtual void setStruct(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::cpp2_struct_footprint::SimpleStruct& p_input);
  protected:
   void fbthrift_serialize_and_send_setStruct(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const ::cpp2_struct_footprint::SimpleStruct& p_input, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStruct"} */
   virtual void sync_setStruct(const ::cpp2_struct_footprint::SimpleStruct& p_input);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStruct"} */
   virtual void sync_setStruct(apache::thrift::RpcOptions& rpcOptions, const ::cpp2_struct_footprint::SimpleStruct& p_input);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStruct"} */
   virtual folly::Future<folly::Unit> future_setStruct(const ::cpp2_struct_footprint::SimpleStruct& p_input);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStruct"} */
   virtual folly::SemiFuture<folly::Unit> semifuture_setStruct(const ::cpp2_struct_footprint::SimpleStruct& p_input);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStruct"} */
   virtual folly::Future<folly::Unit> future_setStruct(apache::thrift::RpcOptions& rpcOptions, const ::cpp2_struct_footprint::SimpleStruct& p_input);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStruct"} */
   virtual folly::SemiFuture<folly::Unit> semifuture_setStruct(apache::thrift::RpcOptions& rpcOptions, const ::cpp2_struct_footprint::SimpleStruct& p_input);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStruct"} */
   template <int = 0>
   folly::coro::Task<void> co_setStruct(const ::cpp2_struct_footprint::SimpleStruct& p_input) {
     return co_setStruct<false>(nullptr, p_input);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStruct"} */
   template <int = 0>
   folly::coro::Task<void> co_setStruct(apache::thrift::RpcOptions& rpcOptions, const ::cpp2_struct_footprint::SimpleStruct& p_input) {
     return co_setStruct<true>(&rpcOptions, p_input);
@@ -529,18 +529,18 @@ class Calculator final : public apache::thrift::InteractionHandle {
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStruct"} */
   virtual void setStruct(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, const ::cpp2_struct_footprint::SimpleStruct& p_input);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStruct"} */
   static folly::exception_wrapper recv_wrapped_setStruct(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStruct"} */
   static void recv_setStruct(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStruct"} */
   virtual void recv_instance_setStruct(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStruct"} */
   virtual folly::exception_wrapper recv_instance_wrapped_setStruct(::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_setStruct(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::cpp2_struct_footprint::SimpleStruct& p_input);
@@ -550,35 +550,35 @@ class Calculator final : public apache::thrift::InteractionHandle {
   template <typename CallbackType>
   folly::SemiFuture<folly::Unit> fbthrift_semifuture_setStruct(apache::thrift::RpcOptions& rpcOptions, const ::cpp2_struct_footprint::SimpleStruct& p_input);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStructList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStructList"} */
   virtual void setStructList(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::vector<::cpp2_struct_footprint::SimpleStruct>& p_items);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStructList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStructList"} */
   virtual void setStructList(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::vector<::cpp2_struct_footprint::SimpleStruct>& p_items);
  protected:
   void fbthrift_serialize_and_send_setStructList(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const ::std::vector<::cpp2_struct_footprint::SimpleStruct>& p_items, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStructList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStructList"} */
   virtual void sync_setStructList(const ::std::vector<::cpp2_struct_footprint::SimpleStruct>& p_items);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStructList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStructList"} */
   virtual void sync_setStructList(apache::thrift::RpcOptions& rpcOptions, const ::std::vector<::cpp2_struct_footprint::SimpleStruct>& p_items);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStructList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStructList"} */
   virtual folly::Future<folly::Unit> future_setStructList(const ::std::vector<::cpp2_struct_footprint::SimpleStruct>& p_items);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStructList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStructList"} */
   virtual folly::SemiFuture<folly::Unit> semifuture_setStructList(const ::std::vector<::cpp2_struct_footprint::SimpleStruct>& p_items);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStructList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStructList"} */
   virtual folly::Future<folly::Unit> future_setStructList(apache::thrift::RpcOptions& rpcOptions, const ::std::vector<::cpp2_struct_footprint::SimpleStruct>& p_items);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStructList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStructList"} */
   virtual folly::SemiFuture<folly::Unit> semifuture_setStructList(apache::thrift::RpcOptions& rpcOptions, const ::std::vector<::cpp2_struct_footprint::SimpleStruct>& p_items);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStructList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStructList"} */
   template <int = 0>
   folly::coro::Task<void> co_setStructList(const ::std::vector<::cpp2_struct_footprint::SimpleStruct>& p_items) {
     return co_setStructList<false>(nullptr, p_items);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStructList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStructList"} */
   template <int = 0>
   folly::coro::Task<void> co_setStructList(apache::thrift::RpcOptions& rpcOptions, const ::std::vector<::cpp2_struct_footprint::SimpleStruct>& p_items) {
     return co_setStructList<true>(&rpcOptions, p_items);
@@ -652,18 +652,18 @@ class Calculator final : public apache::thrift::InteractionHandle {
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStructList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStructList"} */
   virtual void setStructList(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, const ::std::vector<::cpp2_struct_footprint::SimpleStruct>& p_items);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStructList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStructList"} */
   static folly::exception_wrapper recv_wrapped_setStructList(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStructList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStructList"} */
   static void recv_setStructList(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStructList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStructList"} */
   virtual void recv_instance_setStructList(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStructList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "setStructList"} */
   virtual folly::exception_wrapper recv_instance_wrapped_setStructList(::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_setStructList(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::std::vector<::cpp2_struct_footprint::SimpleStruct>& p_items);
@@ -673,35 +673,35 @@ class Calculator final : public apache::thrift::InteractionHandle {
   template <typename CallbackType>
   folly::SemiFuture<folly::Unit> fbthrift_semifuture_setStructList(apache::thrift::RpcOptions& rpcOptions, const ::std::vector<::cpp2_struct_footprint::SimpleStruct>& p_items);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStructList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStructList"} */
   virtual void getStructList(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStructList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStructList"} */
   virtual void getStructList(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_getStructList(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStructList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStructList"} */
   virtual void sync_getStructList(::std::vector<::cpp2_struct_footprint::SimpleStruct>& _return);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStructList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStructList"} */
   virtual void sync_getStructList(apache::thrift::RpcOptions& rpcOptions, ::std::vector<::cpp2_struct_footprint::SimpleStruct>& _return);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStructList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStructList"} */
   virtual folly::Future<::std::vector<::cpp2_struct_footprint::SimpleStruct>> future_getStructList();
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStructList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStructList"} */
   virtual folly::SemiFuture<::std::vector<::cpp2_struct_footprint::SimpleStruct>> semifuture_getStructList();
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStructList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStructList"} */
   virtual folly::Future<::std::vector<::cpp2_struct_footprint::SimpleStruct>> future_getStructList(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStructList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStructList"} */
   virtual folly::SemiFuture<::std::vector<::cpp2_struct_footprint::SimpleStruct>> semifuture_getStructList(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStructList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStructList"} */
   template <int = 0>
   folly::coro::Task<::std::vector<::cpp2_struct_footprint::SimpleStruct>> co_getStructList() {
     return co_getStructList<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStructList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStructList"} */
   template <int = 0>
   folly::coro::Task<::std::vector<::cpp2_struct_footprint::SimpleStruct>> co_getStructList(apache::thrift::RpcOptions& rpcOptions) {
     return co_getStructList<true>(&rpcOptions);
@@ -775,18 +775,18 @@ class Calculator final : public apache::thrift::InteractionHandle {
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStructList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStructList"} */
   virtual void getStructList(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStructList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStructList"} */
   static folly::exception_wrapper recv_wrapped_getStructList(::std::vector<::cpp2_struct_footprint::SimpleStruct>& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStructList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStructList"} */
   static void recv_getStructList(::std::vector<::cpp2_struct_footprint::SimpleStruct>& _return, ::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStructList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStructList"} */
   virtual void recv_instance_getStructList(::std::vector<::cpp2_struct_footprint::SimpleStruct>& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStructList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getStructList"} */
   virtual folly::exception_wrapper recv_instance_wrapped_getStructList(::std::vector<::cpp2_struct_footprint::SimpleStruct>& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_getStructList(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -796,35 +796,35 @@ class Calculator final : public apache::thrift::InteractionHandle {
   template <typename CallbackType>
   folly::SemiFuture<::std::vector<::cpp2_struct_footprint::SimpleStruct>> fbthrift_semifuture_getStructList(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getNestedContainer"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getNestedContainer"} */
   virtual void getNestedContainer(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getNestedContainer"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getNestedContainer"} */
   virtual void getNestedContainer(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_getNestedContainer(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getNestedContainer"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getNestedContainer"} */
   virtual void sync_getNestedContainer(::std::map<::std::string, ::std::vector<::cpp2_struct_footprint::SimpleStruct>>& _return);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getNestedContainer"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getNestedContainer"} */
   virtual void sync_getNestedContainer(apache::thrift::RpcOptions& rpcOptions, ::std::map<::std::string, ::std::vector<::cpp2_struct_footprint::SimpleStruct>>& _return);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getNestedContainer"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getNestedContainer"} */
   virtual folly::Future<::std::map<::std::string, ::std::vector<::cpp2_struct_footprint::SimpleStruct>>> future_getNestedContainer();
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getNestedContainer"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getNestedContainer"} */
   virtual folly::SemiFuture<::std::map<::std::string, ::std::vector<::cpp2_struct_footprint::SimpleStruct>>> semifuture_getNestedContainer();
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getNestedContainer"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getNestedContainer"} */
   virtual folly::Future<::std::map<::std::string, ::std::vector<::cpp2_struct_footprint::SimpleStruct>>> future_getNestedContainer(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getNestedContainer"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getNestedContainer"} */
   virtual folly::SemiFuture<::std::map<::std::string, ::std::vector<::cpp2_struct_footprint::SimpleStruct>>> semifuture_getNestedContainer(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getNestedContainer"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getNestedContainer"} */
   template <int = 0>
   folly::coro::Task<::std::map<::std::string, ::std::vector<::cpp2_struct_footprint::SimpleStruct>>> co_getNestedContainer() {
     return co_getNestedContainer<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getNestedContainer"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getNestedContainer"} */
   template <int = 0>
   folly::coro::Task<::std::map<::std::string, ::std::vector<::cpp2_struct_footprint::SimpleStruct>>> co_getNestedContainer(apache::thrift::RpcOptions& rpcOptions) {
     return co_getNestedContainer<true>(&rpcOptions);
@@ -898,18 +898,18 @@ class Calculator final : public apache::thrift::InteractionHandle {
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getNestedContainer"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getNestedContainer"} */
   virtual void getNestedContainer(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getNestedContainer"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getNestedContainer"} */
   static folly::exception_wrapper recv_wrapped_getNestedContainer(::std::map<::std::string, ::std::vector<::cpp2_struct_footprint::SimpleStruct>>& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getNestedContainer"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getNestedContainer"} */
   static void recv_getNestedContainer(::std::map<::std::string, ::std::vector<::cpp2_struct_footprint::SimpleStruct>>& _return, ::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getNestedContainer"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getNestedContainer"} */
   virtual void recv_instance_getNestedContainer(::std::map<::std::string, ::std::vector<::cpp2_struct_footprint::SimpleStruct>>& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getNestedContainer"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getNestedContainer"} */
   virtual folly::exception_wrapper recv_instance_wrapped_getNestedContainer(::std::map<::std::string, ::std::vector<::cpp2_struct_footprint::SimpleStruct>>& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_getNestedContainer(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -919,35 +919,35 @@ class Calculator final : public apache::thrift::InteractionHandle {
   template <typename CallbackType>
   folly::SemiFuture<::std::map<::std::string, ::std::vector<::cpp2_struct_footprint::SimpleStruct>>> fbthrift_semifuture_getNestedContainer(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefStruct"} */
   virtual void getTypedefStruct(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefStruct"} */
   virtual void getTypedefStruct(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_getTypedefStruct(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefStruct"} */
   virtual void sync_getTypedefStruct(::cpp2_struct_footprint::MyStruct& _return);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefStruct"} */
   virtual void sync_getTypedefStruct(apache::thrift::RpcOptions& rpcOptions, ::cpp2_struct_footprint::MyStruct& _return);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefStruct"} */
   virtual folly::Future<::cpp2_struct_footprint::MyStruct> future_getTypedefStruct();
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefStruct"} */
   virtual folly::SemiFuture<::cpp2_struct_footprint::MyStruct> semifuture_getTypedefStruct();
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefStruct"} */
   virtual folly::Future<::cpp2_struct_footprint::MyStruct> future_getTypedefStruct(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefStruct"} */
   virtual folly::SemiFuture<::cpp2_struct_footprint::MyStruct> semifuture_getTypedefStruct(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefStruct"} */
   template <int = 0>
   folly::coro::Task<::cpp2_struct_footprint::MyStruct> co_getTypedefStruct() {
     return co_getTypedefStruct<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefStruct"} */
   template <int = 0>
   folly::coro::Task<::cpp2_struct_footprint::MyStruct> co_getTypedefStruct(apache::thrift::RpcOptions& rpcOptions) {
     return co_getTypedefStruct<true>(&rpcOptions);
@@ -1021,18 +1021,18 @@ class Calculator final : public apache::thrift::InteractionHandle {
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefStruct"} */
   virtual void getTypedefStruct(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefStruct"} */
   static folly::exception_wrapper recv_wrapped_getTypedefStruct(::cpp2_struct_footprint::MyStruct& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefStruct"} */
   static void recv_getTypedefStruct(::cpp2_struct_footprint::MyStruct& _return, ::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefStruct"} */
   virtual void recv_instance_getTypedefStruct(::cpp2_struct_footprint::MyStruct& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefStruct"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefStruct"} */
   virtual folly::exception_wrapper recv_instance_wrapped_getTypedefStruct(::cpp2_struct_footprint::MyStruct& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_getTypedefStruct(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -1042,35 +1042,35 @@ class Calculator final : public apache::thrift::InteractionHandle {
   template <typename CallbackType>
   folly::SemiFuture<::cpp2_struct_footprint::MyStruct> fbthrift_semifuture_getTypedefStruct(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefList"} */
   virtual void getTypedefList(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefList"} */
   virtual void getTypedefList(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_getTypedefList(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefList"} */
   virtual void sync_getTypedefList(::cpp2_struct_footprint::StructList& _return);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefList"} */
   virtual void sync_getTypedefList(apache::thrift::RpcOptions& rpcOptions, ::cpp2_struct_footprint::StructList& _return);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefList"} */
   virtual folly::Future<::cpp2_struct_footprint::StructList> future_getTypedefList();
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefList"} */
   virtual folly::SemiFuture<::cpp2_struct_footprint::StructList> semifuture_getTypedefList();
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefList"} */
   virtual folly::Future<::cpp2_struct_footprint::StructList> future_getTypedefList(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefList"} */
   virtual folly::SemiFuture<::cpp2_struct_footprint::StructList> semifuture_getTypedefList(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefList"} */
   template <int = 0>
   folly::coro::Task<::cpp2_struct_footprint::StructList> co_getTypedefList() {
     return co_getTypedefList<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefList"} */
   template <int = 0>
   folly::coro::Task<::cpp2_struct_footprint::StructList> co_getTypedefList(apache::thrift::RpcOptions& rpcOptions) {
     return co_getTypedefList<true>(&rpcOptions);
@@ -1144,18 +1144,18 @@ class Calculator final : public apache::thrift::InteractionHandle {
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefList"} */
   virtual void getTypedefList(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefList"} */
   static folly::exception_wrapper recv_wrapped_getTypedefList(::cpp2_struct_footprint::StructList& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefList"} */
   static void recv_getTypedefList(::cpp2_struct_footprint::StructList& _return, ::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefList"} */
   virtual void recv_instance_getTypedefList(::cpp2_struct_footprint::StructList& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefList"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getTypedefList"} */
   virtual folly::exception_wrapper recv_instance_wrapped_getTypedefList(::cpp2_struct_footprint::StructList& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_getTypedefList(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -1165,35 +1165,35 @@ class Calculator final : public apache::thrift::InteractionHandle {
   template <typename CallbackType>
   folly::SemiFuture<::cpp2_struct_footprint::StructList> fbthrift_semifuture_getTypedefList(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getUnion"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getUnion"} */
   virtual void getUnion(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getUnion"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getUnion"} */
   virtual void getUnion(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_getUnion(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getUnion"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getUnion"} */
   virtual void sync_getUnion(::cpp2_struct_footprint::TestUnion& _return);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getUnion"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getUnion"} */
   virtual void sync_getUnion(apache::thrift::RpcOptions& rpcOptions, ::cpp2_struct_footprint::TestUnion& _return);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getUnion"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getUnion"} */
   virtual folly::Future<::cpp2_struct_footprint::TestUnion> future_getUnion();
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getUnion"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getUnion"} */
   virtual folly::SemiFuture<::cpp2_struct_footprint::TestUnion> semifuture_getUnion();
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getUnion"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getUnion"} */
   virtual folly::Future<::cpp2_struct_footprint::TestUnion> future_getUnion(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getUnion"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getUnion"} */
   virtual folly::SemiFuture<::cpp2_struct_footprint::TestUnion> semifuture_getUnion(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getUnion"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getUnion"} */
   template <int = 0>
   folly::coro::Task<::cpp2_struct_footprint::TestUnion> co_getUnion() {
     return co_getUnion<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getUnion"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getUnion"} */
   template <int = 0>
   folly::coro::Task<::cpp2_struct_footprint::TestUnion> co_getUnion(apache::thrift::RpcOptions& rpcOptions) {
     return co_getUnion<true>(&rpcOptions);
@@ -1267,18 +1267,18 @@ class Calculator final : public apache::thrift::InteractionHandle {
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getUnion"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getUnion"} */
   virtual void getUnion(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getUnion"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getUnion"} */
   static folly::exception_wrapper recv_wrapped_getUnion(::cpp2_struct_footprint::TestUnion& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getUnion"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getUnion"} */
   static void recv_getUnion(::cpp2_struct_footprint::TestUnion& _return, ::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getUnion"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getUnion"} */
   virtual void recv_instance_getUnion(::cpp2_struct_footprint::TestUnion& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getUnion"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getUnion"} */
   virtual folly::exception_wrapper recv_instance_wrapped_getUnion(::cpp2_struct_footprint::TestUnion& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_getUnion(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -1288,34 +1288,34 @@ class Calculator final : public apache::thrift::InteractionHandle {
   template <typename CallbackType>
   folly::SemiFuture<::cpp2_struct_footprint::TestUnion> fbthrift_semifuture_getUnion(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getCalculator"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getCalculator"} */
   void getCalculator(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const apache::thrift::InteractionHandle& handle);
  protected:
   void fbthrift_serialize_and_send_getCalculator(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const apache::thrift::InteractionHandle& handle, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getCalculator"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getCalculator"} */
   apache::thrift::Client<::cpp2_struct_footprint::FootprintTestService>::Calculator sync_getCalculator();
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getCalculator"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getCalculator"} */
   apache::thrift::Client<::cpp2_struct_footprint::FootprintTestService>::Calculator sync_getCalculator(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getCalculator"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getCalculator"} */
   folly::SemiFuture<apache::thrift::Client<::cpp2_struct_footprint::FootprintTestService>::Calculator> semifuture_getCalculator();
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getCalculator"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getCalculator"} */
   folly::SemiFuture<apache::thrift::Client<::cpp2_struct_footprint::FootprintTestService>::Calculator> semifuture_getCalculator(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getCalculator"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getCalculator"} */
   std::pair<
     apache::thrift::Client<::cpp2_struct_footprint::FootprintTestService>::Calculator,
     folly::SemiFuture<folly::Unit>
   > eager_semifuture_getCalculator(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getCalculator"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getCalculator"} */
   template <int = 0>
   folly::coro::Task<apache::thrift::Client<::cpp2_struct_footprint::FootprintTestService>::Calculator> co_getCalculator() {
     return co_getCalculator<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getCalculator"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getCalculator"} */
   template <int = 0>
   folly::coro::Task<apache::thrift::Client<::cpp2_struct_footprint::FootprintTestService>::Calculator> co_getCalculator(apache::thrift::RpcOptions& rpcOptions) {
     return co_getCalculator<true>(&rpcOptions);
@@ -1392,9 +1392,9 @@ class Calculator final : public apache::thrift::InteractionHandle {
 #endif // FOLLY_HAS_COROUTINES
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getCalculator"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getCalculator"} */
   static folly::exception_wrapper recv_wrapped_getCalculator(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getCalculator"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "getCalculator"} */
   static void recv_getCalculator(::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_getCalculator(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -1404,31 +1404,31 @@ class Calculator final : public apache::thrift::InteractionHandle {
   template <typename CallbackType>
   folly::SemiFuture<apache::thrift::Client<::cpp2_struct_footprint::FootprintTestService>::Calculator> fbthrift_semifuture_getCalculator(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamStructs"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamStructs"} */
   virtual void streamStructs(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamStructs"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamStructs"} */
   virtual void streamStructs(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_streamStructs(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::StreamClientCallback* callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamStructs"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamStructs"} */
   virtual apache::thrift::ClientBufferedStream<::cpp2_struct_footprint::SimpleStruct> sync_streamStructs();
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamStructs"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamStructs"} */
   virtual apache::thrift::ClientBufferedStream<::cpp2_struct_footprint::SimpleStruct> sync_streamStructs(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamStructs"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamStructs"} */
   virtual folly::SemiFuture<apache::thrift::ClientBufferedStream<::cpp2_struct_footprint::SimpleStruct>> semifuture_streamStructs();
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamStructs"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamStructs"} */
   virtual folly::SemiFuture<apache::thrift::ClientBufferedStream<::cpp2_struct_footprint::SimpleStruct>> semifuture_streamStructs(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamStructs"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamStructs"} */
   template <int = 0>
   folly::coro::Task<apache::thrift::ClientBufferedStream<::cpp2_struct_footprint::SimpleStruct>> co_streamStructs() {
     return co_streamStructs<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamStructs"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamStructs"} */
   template <int = 0>
   folly::coro::Task<apache::thrift::ClientBufferedStream<::cpp2_struct_footprint::SimpleStruct>> co_streamStructs(apache::thrift::RpcOptions& rpcOptions) {
     return co_streamStructs<true>(&rpcOptions);
@@ -1511,14 +1511,14 @@ class Calculator final : public apache::thrift::InteractionHandle {
 #endif // FOLLY_HAS_COROUTINES
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamStructs"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamStructs"} */
   static folly::exception_wrapper recv_wrapped_streamStructs(apache::thrift::ClientBufferedStream<::cpp2_struct_footprint::SimpleStruct>& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamStructs"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamStructs"} */
   static apache::thrift::ClientBufferedStream<::cpp2_struct_footprint::SimpleStruct> recv_streamStructs(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamStructs"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamStructs"} */
   virtual apache::thrift::ClientBufferedStream<::cpp2_struct_footprint::SimpleStruct> recv_instance_streamStructs(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamStructs"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamStructs"} */
   virtual folly::exception_wrapper recv_instance_wrapped_streamStructs(apache::thrift::ClientBufferedStream<::cpp2_struct_footprint::SimpleStruct>& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_streamStructs(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -1528,31 +1528,31 @@ class Calculator final : public apache::thrift::InteractionHandle {
   template <typename CallbackType>
   folly::SemiFuture<apache::thrift::ClientBufferedStream<::cpp2_struct_footprint::SimpleStruct>> fbthrift_semifuture_streamStructs(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkInitial"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkInitial"} */
   virtual void streamWithSinkInitial(std::unique_ptr<apache::thrift::RequestCallback> callback, ::std::int32_t p_input);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkInitial"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkInitial"} */
   virtual void streamWithSinkInitial(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, ::std::int32_t p_input);
  protected:
   void fbthrift_serialize_and_send_streamWithSinkInitial(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::StreamClientCallback* callback, ::std::int32_t p_input, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkInitial"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkInitial"} */
   virtual apache::thrift::ResponseAndClientBufferedStream<::cpp2_struct_footprint::Struct1,::cpp2_struct_footprint::SimpleStruct> sync_streamWithSinkInitial(::std::int32_t p_input);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkInitial"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkInitial"} */
   virtual apache::thrift::ResponseAndClientBufferedStream<::cpp2_struct_footprint::Struct1,::cpp2_struct_footprint::SimpleStruct> sync_streamWithSinkInitial(apache::thrift::RpcOptions& rpcOptions, ::std::int32_t p_input);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkInitial"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkInitial"} */
   virtual folly::SemiFuture<apache::thrift::ResponseAndClientBufferedStream<::cpp2_struct_footprint::Struct1,::cpp2_struct_footprint::SimpleStruct>> semifuture_streamWithSinkInitial(::std::int32_t p_input);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkInitial"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkInitial"} */
   virtual folly::SemiFuture<apache::thrift::ResponseAndClientBufferedStream<::cpp2_struct_footprint::Struct1,::cpp2_struct_footprint::SimpleStruct>> semifuture_streamWithSinkInitial(apache::thrift::RpcOptions& rpcOptions, ::std::int32_t p_input);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkInitial"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkInitial"} */
   template <int = 0>
   folly::coro::Task<apache::thrift::ResponseAndClientBufferedStream<::cpp2_struct_footprint::Struct1,::cpp2_struct_footprint::SimpleStruct>> co_streamWithSinkInitial(::std::int32_t p_input) {
     return co_streamWithSinkInitial<false>(nullptr, p_input);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkInitial"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkInitial"} */
   template <int = 0>
   folly::coro::Task<apache::thrift::ResponseAndClientBufferedStream<::cpp2_struct_footprint::Struct1,::cpp2_struct_footprint::SimpleStruct>> co_streamWithSinkInitial(apache::thrift::RpcOptions& rpcOptions, ::std::int32_t p_input) {
     return co_streamWithSinkInitial<true>(&rpcOptions, p_input);
@@ -1635,14 +1635,14 @@ class Calculator final : public apache::thrift::InteractionHandle {
 #endif // FOLLY_HAS_COROUTINES
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkInitial"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkInitial"} */
   static folly::exception_wrapper recv_wrapped_streamWithSinkInitial(apache::thrift::ResponseAndClientBufferedStream<::cpp2_struct_footprint::Struct1,::cpp2_struct_footprint::SimpleStruct>& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkInitial"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkInitial"} */
   static apache::thrift::ResponseAndClientBufferedStream<::cpp2_struct_footprint::Struct1,::cpp2_struct_footprint::SimpleStruct> recv_streamWithSinkInitial(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkInitial"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkInitial"} */
   virtual apache::thrift::ResponseAndClientBufferedStream<::cpp2_struct_footprint::Struct1,::cpp2_struct_footprint::SimpleStruct> recv_instance_streamWithSinkInitial(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkInitial"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkInitial"} */
   virtual folly::exception_wrapper recv_instance_wrapped_streamWithSinkInitial(apache::thrift::ResponseAndClientBufferedStream<::cpp2_struct_footprint::Struct1,::cpp2_struct_footprint::SimpleStruct>& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_streamWithSinkInitial(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, ::std::int32_t p_input);
@@ -1652,31 +1652,31 @@ class Calculator final : public apache::thrift::InteractionHandle {
   template <typename CallbackType>
   folly::SemiFuture<apache::thrift::ResponseAndClientBufferedStream<::cpp2_struct_footprint::Struct1,::cpp2_struct_footprint::SimpleStruct>> fbthrift_semifuture_streamWithSinkInitial(apache::thrift::RpcOptions& rpcOptions, ::std::int32_t p_input);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkException"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkException"} */
   virtual void streamWithSinkException(std::unique_ptr<apache::thrift::RequestCallback> callback, ::std::int32_t p_input);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkException"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkException"} */
   virtual void streamWithSinkException(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, ::std::int32_t p_input);
  protected:
   void fbthrift_serialize_and_send_streamWithSinkException(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::StreamClientCallback* callback, ::std::int32_t p_input, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkException"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkException"} */
   virtual apache::thrift::ResponseAndClientBufferedStream<::cpp2_struct_footprint::Struct1,::cpp2_struct_footprint::SimpleStruct> sync_streamWithSinkException(::std::int32_t p_input);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkException"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkException"} */
   virtual apache::thrift::ResponseAndClientBufferedStream<::cpp2_struct_footprint::Struct1,::cpp2_struct_footprint::SimpleStruct> sync_streamWithSinkException(apache::thrift::RpcOptions& rpcOptions, ::std::int32_t p_input);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkException"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkException"} */
   virtual folly::SemiFuture<apache::thrift::ResponseAndClientBufferedStream<::cpp2_struct_footprint::Struct1,::cpp2_struct_footprint::SimpleStruct>> semifuture_streamWithSinkException(::std::int32_t p_input);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkException"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkException"} */
   virtual folly::SemiFuture<apache::thrift::ResponseAndClientBufferedStream<::cpp2_struct_footprint::Struct1,::cpp2_struct_footprint::SimpleStruct>> semifuture_streamWithSinkException(apache::thrift::RpcOptions& rpcOptions, ::std::int32_t p_input);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkException"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkException"} */
   template <int = 0>
   folly::coro::Task<apache::thrift::ResponseAndClientBufferedStream<::cpp2_struct_footprint::Struct1,::cpp2_struct_footprint::SimpleStruct>> co_streamWithSinkException(::std::int32_t p_input) {
     return co_streamWithSinkException<false>(nullptr, p_input);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkException"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkException"} */
   template <int = 0>
   folly::coro::Task<apache::thrift::ResponseAndClientBufferedStream<::cpp2_struct_footprint::Struct1,::cpp2_struct_footprint::SimpleStruct>> co_streamWithSinkException(apache::thrift::RpcOptions& rpcOptions, ::std::int32_t p_input) {
     return co_streamWithSinkException<true>(&rpcOptions, p_input);
@@ -1759,14 +1759,14 @@ class Calculator final : public apache::thrift::InteractionHandle {
 #endif // FOLLY_HAS_COROUTINES
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkException"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkException"} */
   static folly::exception_wrapper recv_wrapped_streamWithSinkException(apache::thrift::ResponseAndClientBufferedStream<::cpp2_struct_footprint::Struct1,::cpp2_struct_footprint::SimpleStruct>& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkException"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkException"} */
   static apache::thrift::ResponseAndClientBufferedStream<::cpp2_struct_footprint::Struct1,::cpp2_struct_footprint::SimpleStruct> recv_streamWithSinkException(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkException"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkException"} */
   virtual apache::thrift::ResponseAndClientBufferedStream<::cpp2_struct_footprint::Struct1,::cpp2_struct_footprint::SimpleStruct> recv_instance_streamWithSinkException(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkException"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp2-struct-footprint/src/module.thrift", "service": "FootprintTestService", "function": "streamWithSinkException"} */
   virtual folly::exception_wrapper recv_instance_wrapped_streamWithSinkException(apache::thrift::ResponseAndClientBufferedStream<::cpp2_struct_footprint::Struct1,::cpp2_struct_footprint::SimpleStruct>& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_streamWithSinkException(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, ::std::int32_t p_input);

@@ -11,37 +11,37 @@
 #include "thrift/compiler/test/fixtures/schema-byte-annotation/gen-cpp2/module_types.h"
 
 namespace facebook::thrift::test::fixtures::schema_byte_annotation {
-/** Glean {"file": "thrift/compiler/test/fixtures/schema-byte-annotation/src/module.thrift"} */
+/* Glean {"file": "thrift/compiler/test/fixtures/schema-byte-annotation/src/module.thrift"} */
 namespace module_constants {
 
-  /** Glean {"constant": "kNegativeByte"} */
+  /* Glean {"constant": "kNegativeByte"} */
   constexpr ::std::int8_t const kNegativeByte_ = static_cast<::std::int8_t>(-7);
-  /** Glean {"constant": "kNegativeByte"} */
+  /* Glean {"constant": "kNegativeByte"} */
   constexpr ::std::int8_t kNegativeByte() {
     return kNegativeByte_;
   }
 
-  /** Glean {"constant": "kMaxByte"} */
+  /* Glean {"constant": "kMaxByte"} */
   constexpr ::std::int8_t const kMaxByte_ = static_cast<::std::int8_t>(127);
-  /** Glean {"constant": "kMaxByte"} */
+  /* Glean {"constant": "kMaxByte"} */
   constexpr ::std::int8_t kMaxByte() {
     return kMaxByte_;
   }
 
-  /** Glean {"constant": "kMinByte"} */
+  /* Glean {"constant": "kMinByte"} */
   constexpr ::std::int8_t const kMinByte_ = static_cast<::std::int8_t>(-128);
-  /** Glean {"constant": "kMinByte"} */
+  /* Glean {"constant": "kMinByte"} */
   constexpr ::std::int8_t kMinByte() {
     return kMinByte_;
   }
 
-  /** Glean {"constant": "kStructConst"} */
+  /* Glean {"constant": "kStructConst"} */
   ::facebook::thrift::test::fixtures::schema_byte_annotation::ByteAnnotation const& kStructConst();
 
-  /** Glean {"constant": "kByteList"} */
+  /* Glean {"constant": "kByteList"} */
   ::std::vector<::std::int8_t> const& kByteList();
 
-  /** Glean {"constant": "kByteMap"} */
+  /* Glean {"constant": "kByteMap"} */
   ::std::map<::std::int8_t, ::std::int8_t> const& kByteMap();
 
   FOLLY_EXPORT ::std::string_view _fbthrift_schema_b403d3612cd2ec8c();

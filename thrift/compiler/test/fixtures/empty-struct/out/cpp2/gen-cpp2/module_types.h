@@ -35,7 +35,7 @@ namespace apache::thrift::detail::qualifier {
 // END hash_and_equal_to
 namespace cpp2 {
 
-/** Glean {"file": "thrift/compiler/test/fixtures/empty-struct/src/module.thrift", "name": "Empty", "kind": "struct" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/empty-struct/src/module.thrift", "name": "Empty", "kind": "struct" } */
 class Empty final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -122,7 +122,7 @@ unsigned long Empty::read(Protocol_* iprot) {
 }
 
 
-/** Glean {"file": "thrift/compiler/test/fixtures/empty-struct/src/module.thrift", "name": "Nada", "kind": "union" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/empty-struct/src/module.thrift", "name": "Nada", "kind": "union" } */
 class Nada final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;

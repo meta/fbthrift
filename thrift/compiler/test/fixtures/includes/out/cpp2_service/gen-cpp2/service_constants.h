@@ -11,10 +11,10 @@
 #include "thrift/compiler/test/fixtures/includes/gen-cpp2/service_types.h"
 
 namespace cpp2 {
-/** Glean {"file": "thrift/compiler/test/fixtures/includes/src/service.thrift"} */
+/* Glean {"file": "thrift/compiler/test/fixtures/includes/src/service.thrift"} */
 namespace service_constants {
 
-  /** Glean {"constant": "IncludedConstant2"} */
+  /* Glean {"constant": "IncludedConstant2"} */
   ::cpp2::Included const& IncludedConstant2();
 
   FOLLY_EXPORT ::std::string_view _fbthrift_schema_73bb65f39cae2410();

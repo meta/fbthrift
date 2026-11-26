@@ -11,7 +11,7 @@
 #include "thrift/compiler/test/fixtures/iobuf_chain/gen-cpp2/module_types.h"
 
 namespace facebook::thrift::test::iobuf_chain {
-/** Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift"} */
+/* Glean {"file": "thrift/compiler/test/fixtures/iobuf_chain/src/module.thrift"} */
 namespace module_constants {
 
   FOLLY_EXPORT ::std::string_view _fbthrift_schema_97881021ce2dc96();

@@ -11,7 +11,7 @@
 #include "thrift/compiler/test/fixtures/fast_client/gen-cpp2/module_types.h"
 
 namespace cpp2::test {
-/** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift"} */
+/* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift"} */
 namespace module_constants {
 
   FOLLY_EXPORT ::std::string_view _fbthrift_schema_fa926054822dcba();

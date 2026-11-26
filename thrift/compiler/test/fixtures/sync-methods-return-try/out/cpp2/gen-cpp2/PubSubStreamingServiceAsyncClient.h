@@ -51,34 +51,34 @@ class Client<::cpp2::PubSubStreamingService> : public apache::thrift::GeneratedA
   }
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "returnstream"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "returnstream"} */
   virtual void returnstream(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::cpp2::StreamItem& p_from, const ::cpp2::StreamItem& p_to);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "returnstream"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "returnstream"} */
   virtual void returnstream(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::cpp2::StreamItem& p_from, const ::cpp2::StreamItem& p_to);
  protected:
   void fbthrift_serialize_and_send_returnstream(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::StreamClientCallback* callback, const ::cpp2::StreamItem& p_from, const ::cpp2::StreamItem& p_to, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "returnstream"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "returnstream"} */
   virtual apache::thrift::ClientBufferedStream<::cpp2::StreamItem> sync_returnstream(const ::cpp2::StreamItem& p_from, const ::cpp2::StreamItem& p_to);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "returnstream"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "returnstream"} */
   virtual apache::thrift::ClientBufferedStream<::cpp2::StreamItem> sync_returnstream(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::StreamItem& p_from, const ::cpp2::StreamItem& p_to);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "returnstream"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "returnstream"} */
   virtual folly::SemiFuture<apache::thrift::ClientBufferedStream<::cpp2::StreamItem>> semifuture_returnstream(const ::cpp2::StreamItem& p_from, const ::cpp2::StreamItem& p_to);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "returnstream"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "returnstream"} */
   virtual folly::SemiFuture<apache::thrift::ClientBufferedStream<::cpp2::StreamItem>> semifuture_returnstream(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::StreamItem& p_from, const ::cpp2::StreamItem& p_to);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "returnstream"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "returnstream"} */
   [[nodiscard]] [[deprecated("To be replaced by new API soon")]] virtual folly::Try<apache::thrift::RpcResponseComplete<apache::thrift::ClientBufferedStream<::cpp2::StreamItem>>> sync_complete_returnstream(
       apache::thrift::RpcOptions&& rpcOptions,  const ::cpp2::StreamItem& p_from, const ::cpp2::StreamItem& p_to);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "returnstream"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "returnstream"} */
   template <int = 0>
   folly::coro::Task<apache::thrift::ClientBufferedStream<::cpp2::StreamItem>> co_returnstream(const ::cpp2::StreamItem& p_from, const ::cpp2::StreamItem& p_to) {
     return co_returnstream<false>(nullptr, p_from, p_to);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "returnstream"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "returnstream"} */
   template <int = 0>
   folly::coro::Task<apache::thrift::ClientBufferedStream<::cpp2::StreamItem>> co_returnstream(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::StreamItem& p_from, const ::cpp2::StreamItem& p_to) {
     return co_returnstream<true>(&rpcOptions, p_from, p_to);
@@ -161,14 +161,14 @@ class Client<::cpp2::PubSubStreamingService> : public apache::thrift::GeneratedA
 #endif // FOLLY_HAS_COROUTINES
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "returnstream"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "returnstream"} */
   static folly::exception_wrapper recv_wrapped_returnstream(apache::thrift::ClientBufferedStream<::cpp2::StreamItem>& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "returnstream"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "returnstream"} */
   static apache::thrift::ClientBufferedStream<::cpp2::StreamItem> recv_returnstream(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "returnstream"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "returnstream"} */
   virtual apache::thrift::ClientBufferedStream<::cpp2::StreamItem> recv_instance_returnstream(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "returnstream"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "returnstream"} */
   virtual folly::exception_wrapper recv_instance_wrapped_returnstream(apache::thrift::ClientBufferedStream<::cpp2::StreamItem>& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_returnstream(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::cpp2::StreamItem& p_from, const ::cpp2::StreamItem& p_to);
@@ -178,34 +178,34 @@ class Client<::cpp2::PubSubStreamingService> : public apache::thrift::GeneratedA
   template <typename CallbackType>
   folly::SemiFuture<apache::thrift::ClientBufferedStream<::cpp2::StreamItem>> fbthrift_semifuture_returnstream(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::StreamItem& p_from, const ::cpp2::StreamItem& p_to);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "streamthrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "streamthrows"} */
   virtual void streamthrows(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::cpp2::StreamItem& p_foo);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "streamthrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "streamthrows"} */
   virtual void streamthrows(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::cpp2::StreamItem& p_foo);
  protected:
   void fbthrift_serialize_and_send_streamthrows(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::StreamClientCallback* callback, const ::cpp2::StreamItem& p_foo, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "streamthrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "streamthrows"} */
   virtual apache::thrift::ClientBufferedStream<::cpp2::StreamItem> sync_streamthrows(const ::cpp2::StreamItem& p_foo);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "streamthrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "streamthrows"} */
   virtual apache::thrift::ClientBufferedStream<::cpp2::StreamItem> sync_streamthrows(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::StreamItem& p_foo);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "streamthrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "streamthrows"} */
   virtual folly::SemiFuture<apache::thrift::ClientBufferedStream<::cpp2::StreamItem>> semifuture_streamthrows(const ::cpp2::StreamItem& p_foo);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "streamthrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "streamthrows"} */
   virtual folly::SemiFuture<apache::thrift::ClientBufferedStream<::cpp2::StreamItem>> semifuture_streamthrows(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::StreamItem& p_foo);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "streamthrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "streamthrows"} */
   [[nodiscard]] [[deprecated("To be replaced by new API soon")]] virtual folly::Try<apache::thrift::RpcResponseComplete<apache::thrift::ClientBufferedStream<::cpp2::StreamItem>>> sync_complete_streamthrows(
       apache::thrift::RpcOptions&& rpcOptions,  const ::cpp2::StreamItem& p_foo);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "streamthrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "streamthrows"} */
   template <int = 0>
   folly::coro::Task<apache::thrift::ClientBufferedStream<::cpp2::StreamItem>> co_streamthrows(const ::cpp2::StreamItem& p_foo) {
     return co_streamthrows<false>(nullptr, p_foo);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "streamthrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "streamthrows"} */
   template <int = 0>
   folly::coro::Task<apache::thrift::ClientBufferedStream<::cpp2::StreamItem>> co_streamthrows(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::StreamItem& p_foo) {
     return co_streamthrows<true>(&rpcOptions, p_foo);
@@ -288,14 +288,14 @@ class Client<::cpp2::PubSubStreamingService> : public apache::thrift::GeneratedA
 #endif // FOLLY_HAS_COROUTINES
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "streamthrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "streamthrows"} */
   static folly::exception_wrapper recv_wrapped_streamthrows(apache::thrift::ClientBufferedStream<::cpp2::StreamItem>& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "streamthrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "streamthrows"} */
   static apache::thrift::ClientBufferedStream<::cpp2::StreamItem> recv_streamthrows(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "streamthrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "streamthrows"} */
   virtual apache::thrift::ClientBufferedStream<::cpp2::StreamItem> recv_instance_streamthrows(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "streamthrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "streamthrows"} */
   virtual folly::exception_wrapper recv_instance_wrapped_streamthrows(apache::thrift::ClientBufferedStream<::cpp2::StreamItem>& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_streamthrows(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::cpp2::StreamItem& p_foo);
@@ -305,34 +305,34 @@ class Client<::cpp2::PubSubStreamingService> : public apache::thrift::GeneratedA
   template <typename CallbackType>
   folly::SemiFuture<apache::thrift::ClientBufferedStream<::cpp2::StreamItem>> fbthrift_semifuture_streamthrows(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::StreamItem& p_foo);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows"} */
   virtual void servicethrows(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::cpp2::StreamItem& p_foo);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows"} */
   virtual void servicethrows(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::cpp2::StreamItem& p_foo);
  protected:
   void fbthrift_serialize_and_send_servicethrows(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::StreamClientCallback* callback, const ::cpp2::StreamItem& p_foo, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows"} */
   virtual apache::thrift::ClientBufferedStream<::cpp2::StreamItem> sync_servicethrows(const ::cpp2::StreamItem& p_foo);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows"} */
   virtual apache::thrift::ClientBufferedStream<::cpp2::StreamItem> sync_servicethrows(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::StreamItem& p_foo);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows"} */
   virtual folly::SemiFuture<apache::thrift::ClientBufferedStream<::cpp2::StreamItem>> semifuture_servicethrows(const ::cpp2::StreamItem& p_foo);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows"} */
   virtual folly::SemiFuture<apache::thrift::ClientBufferedStream<::cpp2::StreamItem>> semifuture_servicethrows(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::StreamItem& p_foo);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows"} */
   [[nodiscard]] [[deprecated("To be replaced by new API soon")]] virtual folly::Try<apache::thrift::RpcResponseComplete<apache::thrift::ClientBufferedStream<::cpp2::StreamItem>>> sync_complete_servicethrows(
       apache::thrift::RpcOptions&& rpcOptions,  const ::cpp2::StreamItem& p_foo);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows"} */
   template <int = 0>
   folly::coro::Task<apache::thrift::ClientBufferedStream<::cpp2::StreamItem>> co_servicethrows(const ::cpp2::StreamItem& p_foo) {
     return co_servicethrows<false>(nullptr, p_foo);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows"} */
   template <int = 0>
   folly::coro::Task<apache::thrift::ClientBufferedStream<::cpp2::StreamItem>> co_servicethrows(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::StreamItem& p_foo) {
     return co_servicethrows<true>(&rpcOptions, p_foo);
@@ -415,14 +415,14 @@ class Client<::cpp2::PubSubStreamingService> : public apache::thrift::GeneratedA
 #endif // FOLLY_HAS_COROUTINES
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows"} */
   static folly::exception_wrapper recv_wrapped_servicethrows(apache::thrift::ClientBufferedStream<::cpp2::StreamItem>& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows"} */
   static apache::thrift::ClientBufferedStream<::cpp2::StreamItem> recv_servicethrows(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows"} */
   virtual apache::thrift::ClientBufferedStream<::cpp2::StreamItem> recv_instance_servicethrows(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows"} */
   virtual folly::exception_wrapper recv_instance_wrapped_servicethrows(apache::thrift::ClientBufferedStream<::cpp2::StreamItem>& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_servicethrows(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::cpp2::StreamItem& p_foo);
@@ -432,34 +432,34 @@ class Client<::cpp2::PubSubStreamingService> : public apache::thrift::GeneratedA
   template <typename CallbackType>
   folly::SemiFuture<apache::thrift::ClientBufferedStream<::cpp2::StreamItem>> fbthrift_semifuture_servicethrows(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::StreamItem& p_foo);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows2"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows2"} */
   virtual void servicethrows2(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::cpp2::StreamItem& p_foo);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows2"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows2"} */
   virtual void servicethrows2(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::cpp2::StreamItem& p_foo);
  protected:
   void fbthrift_serialize_and_send_servicethrows2(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::StreamClientCallback* callback, const ::cpp2::StreamItem& p_foo, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows2"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows2"} */
   virtual apache::thrift::ClientBufferedStream<::cpp2::StreamItem> sync_servicethrows2(const ::cpp2::StreamItem& p_foo);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows2"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows2"} */
   virtual apache::thrift::ClientBufferedStream<::cpp2::StreamItem> sync_servicethrows2(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::StreamItem& p_foo);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows2"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows2"} */
   virtual folly::SemiFuture<apache::thrift::ClientBufferedStream<::cpp2::StreamItem>> semifuture_servicethrows2(const ::cpp2::StreamItem& p_foo);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows2"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows2"} */
   virtual folly::SemiFuture<apache::thrift::ClientBufferedStream<::cpp2::StreamItem>> semifuture_servicethrows2(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::StreamItem& p_foo);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows2"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows2"} */
   [[nodiscard]] [[deprecated("To be replaced by new API soon")]] virtual folly::Try<apache::thrift::RpcResponseComplete<apache::thrift::ClientBufferedStream<::cpp2::StreamItem>>> sync_complete_servicethrows2(
       apache::thrift::RpcOptions&& rpcOptions,  const ::cpp2::StreamItem& p_foo);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows2"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows2"} */
   template <int = 0>
   folly::coro::Task<apache::thrift::ClientBufferedStream<::cpp2::StreamItem>> co_servicethrows2(const ::cpp2::StreamItem& p_foo) {
     return co_servicethrows2<false>(nullptr, p_foo);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows2"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows2"} */
   template <int = 0>
   folly::coro::Task<apache::thrift::ClientBufferedStream<::cpp2::StreamItem>> co_servicethrows2(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::StreamItem& p_foo) {
     return co_servicethrows2<true>(&rpcOptions, p_foo);
@@ -542,14 +542,14 @@ class Client<::cpp2::PubSubStreamingService> : public apache::thrift::GeneratedA
 #endif // FOLLY_HAS_COROUTINES
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows2"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows2"} */
   static folly::exception_wrapper recv_wrapped_servicethrows2(apache::thrift::ClientBufferedStream<::cpp2::StreamItem>& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows2"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows2"} */
   static apache::thrift::ClientBufferedStream<::cpp2::StreamItem> recv_servicethrows2(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows2"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows2"} */
   virtual apache::thrift::ClientBufferedStream<::cpp2::StreamItem> recv_instance_servicethrows2(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows2"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "servicethrows2"} */
   virtual folly::exception_wrapper recv_instance_wrapped_servicethrows2(apache::thrift::ClientBufferedStream<::cpp2::StreamItem>& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_servicethrows2(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::cpp2::StreamItem& p_foo);
@@ -559,34 +559,34 @@ class Client<::cpp2::PubSubStreamingService> : public apache::thrift::GeneratedA
   template <typename CallbackType>
   folly::SemiFuture<apache::thrift::ClientBufferedStream<::cpp2::StreamItem>> fbthrift_semifuture_servicethrows2(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::StreamItem& p_foo);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "boththrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "boththrows"} */
   virtual void boththrows(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::cpp2::StreamItem& p_foo);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "boththrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "boththrows"} */
   virtual void boththrows(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::cpp2::StreamItem& p_foo);
  protected:
   void fbthrift_serialize_and_send_boththrows(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::StreamClientCallback* callback, const ::cpp2::StreamItem& p_foo, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "boththrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "boththrows"} */
   virtual apache::thrift::ClientBufferedStream<::cpp2::StreamItem> sync_boththrows(const ::cpp2::StreamItem& p_foo);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "boththrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "boththrows"} */
   virtual apache::thrift::ClientBufferedStream<::cpp2::StreamItem> sync_boththrows(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::StreamItem& p_foo);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "boththrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "boththrows"} */
   virtual folly::SemiFuture<apache::thrift::ClientBufferedStream<::cpp2::StreamItem>> semifuture_boththrows(const ::cpp2::StreamItem& p_foo);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "boththrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "boththrows"} */
   virtual folly::SemiFuture<apache::thrift::ClientBufferedStream<::cpp2::StreamItem>> semifuture_boththrows(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::StreamItem& p_foo);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "boththrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "boththrows"} */
   [[nodiscard]] [[deprecated("To be replaced by new API soon")]] virtual folly::Try<apache::thrift::RpcResponseComplete<apache::thrift::ClientBufferedStream<::cpp2::StreamItem>>> sync_complete_boththrows(
       apache::thrift::RpcOptions&& rpcOptions,  const ::cpp2::StreamItem& p_foo);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "boththrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "boththrows"} */
   template <int = 0>
   folly::coro::Task<apache::thrift::ClientBufferedStream<::cpp2::StreamItem>> co_boththrows(const ::cpp2::StreamItem& p_foo) {
     return co_boththrows<false>(nullptr, p_foo);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "boththrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "boththrows"} */
   template <int = 0>
   folly::coro::Task<apache::thrift::ClientBufferedStream<::cpp2::StreamItem>> co_boththrows(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::StreamItem& p_foo) {
     return co_boththrows<true>(&rpcOptions, p_foo);
@@ -669,14 +669,14 @@ class Client<::cpp2::PubSubStreamingService> : public apache::thrift::GeneratedA
 #endif // FOLLY_HAS_COROUTINES
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "boththrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "boththrows"} */
   static folly::exception_wrapper recv_wrapped_boththrows(apache::thrift::ClientBufferedStream<::cpp2::StreamItem>& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "boththrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "boththrows"} */
   static apache::thrift::ClientBufferedStream<::cpp2::StreamItem> recv_boththrows(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "boththrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "boththrows"} */
   virtual apache::thrift::ClientBufferedStream<::cpp2::StreamItem> recv_instance_boththrows(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "boththrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "boththrows"} */
   virtual folly::exception_wrapper recv_instance_wrapped_boththrows(apache::thrift::ClientBufferedStream<::cpp2::StreamItem>& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_boththrows(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::cpp2::StreamItem& p_foo);
@@ -686,34 +686,34 @@ class Client<::cpp2::PubSubStreamingService> : public apache::thrift::GeneratedA
   template <typename CallbackType>
   folly::SemiFuture<apache::thrift::ClientBufferedStream<::cpp2::StreamItem>> fbthrift_semifuture_boththrows(apache::thrift::RpcOptions& rpcOptions, const ::cpp2::StreamItem& p_foo);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamstreamthrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamstreamthrows"} */
   virtual void responseandstreamstreamthrows(std::unique_ptr<apache::thrift::RequestCallback> callback, ::std::int32_t p_foo);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamstreamthrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamstreamthrows"} */
   virtual void responseandstreamstreamthrows(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, ::std::int32_t p_foo);
  protected:
   void fbthrift_serialize_and_send_responseandstreamstreamthrows(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::StreamClientCallback* callback, ::std::int32_t p_foo, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamstreamthrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamstreamthrows"} */
   virtual apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t> sync_responseandstreamstreamthrows(::std::int32_t p_foo);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamstreamthrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamstreamthrows"} */
   virtual apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t> sync_responseandstreamstreamthrows(apache::thrift::RpcOptions& rpcOptions, ::std::int32_t p_foo);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamstreamthrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamstreamthrows"} */
   virtual folly::SemiFuture<apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t>> semifuture_responseandstreamstreamthrows(::std::int32_t p_foo);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamstreamthrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamstreamthrows"} */
   virtual folly::SemiFuture<apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t>> semifuture_responseandstreamstreamthrows(apache::thrift::RpcOptions& rpcOptions, ::std::int32_t p_foo);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamstreamthrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamstreamthrows"} */
   [[nodiscard]] [[deprecated("To be replaced by new API soon")]] virtual folly::Try<apache::thrift::RpcResponseComplete<apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t>>> sync_complete_responseandstreamstreamthrows(
       apache::thrift::RpcOptions&& rpcOptions,  ::std::int32_t p_foo);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamstreamthrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamstreamthrows"} */
   template <int = 0>
   folly::coro::Task<apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t>> co_responseandstreamstreamthrows(::std::int32_t p_foo) {
     return co_responseandstreamstreamthrows<false>(nullptr, p_foo);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamstreamthrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamstreamthrows"} */
   template <int = 0>
   folly::coro::Task<apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t>> co_responseandstreamstreamthrows(apache::thrift::RpcOptions& rpcOptions, ::std::int32_t p_foo) {
     return co_responseandstreamstreamthrows<true>(&rpcOptions, p_foo);
@@ -796,14 +796,14 @@ class Client<::cpp2::PubSubStreamingService> : public apache::thrift::GeneratedA
 #endif // FOLLY_HAS_COROUTINES
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamstreamthrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamstreamthrows"} */
   static folly::exception_wrapper recv_wrapped_responseandstreamstreamthrows(apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t>& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamstreamthrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamstreamthrows"} */
   static apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t> recv_responseandstreamstreamthrows(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamstreamthrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamstreamthrows"} */
   virtual apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t> recv_instance_responseandstreamstreamthrows(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamstreamthrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamstreamthrows"} */
   virtual folly::exception_wrapper recv_instance_wrapped_responseandstreamstreamthrows(apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t>& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_responseandstreamstreamthrows(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, ::std::int32_t p_foo);
@@ -813,34 +813,34 @@ class Client<::cpp2::PubSubStreamingService> : public apache::thrift::GeneratedA
   template <typename CallbackType>
   folly::SemiFuture<apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t>> fbthrift_semifuture_responseandstreamstreamthrows(apache::thrift::RpcOptions& rpcOptions, ::std::int32_t p_foo);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamservicethrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamservicethrows"} */
   virtual void responseandstreamservicethrows(std::unique_ptr<apache::thrift::RequestCallback> callback, ::std::int32_t p_foo);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamservicethrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamservicethrows"} */
   virtual void responseandstreamservicethrows(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, ::std::int32_t p_foo);
  protected:
   void fbthrift_serialize_and_send_responseandstreamservicethrows(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::StreamClientCallback* callback, ::std::int32_t p_foo, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamservicethrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamservicethrows"} */
   virtual apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t> sync_responseandstreamservicethrows(::std::int32_t p_foo);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamservicethrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamservicethrows"} */
   virtual apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t> sync_responseandstreamservicethrows(apache::thrift::RpcOptions& rpcOptions, ::std::int32_t p_foo);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamservicethrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamservicethrows"} */
   virtual folly::SemiFuture<apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t>> semifuture_responseandstreamservicethrows(::std::int32_t p_foo);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamservicethrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamservicethrows"} */
   virtual folly::SemiFuture<apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t>> semifuture_responseandstreamservicethrows(apache::thrift::RpcOptions& rpcOptions, ::std::int32_t p_foo);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamservicethrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamservicethrows"} */
   [[nodiscard]] [[deprecated("To be replaced by new API soon")]] virtual folly::Try<apache::thrift::RpcResponseComplete<apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t>>> sync_complete_responseandstreamservicethrows(
       apache::thrift::RpcOptions&& rpcOptions,  ::std::int32_t p_foo);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamservicethrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamservicethrows"} */
   template <int = 0>
   folly::coro::Task<apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t>> co_responseandstreamservicethrows(::std::int32_t p_foo) {
     return co_responseandstreamservicethrows<false>(nullptr, p_foo);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamservicethrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamservicethrows"} */
   template <int = 0>
   folly::coro::Task<apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t>> co_responseandstreamservicethrows(apache::thrift::RpcOptions& rpcOptions, ::std::int32_t p_foo) {
     return co_responseandstreamservicethrows<true>(&rpcOptions, p_foo);
@@ -923,14 +923,14 @@ class Client<::cpp2::PubSubStreamingService> : public apache::thrift::GeneratedA
 #endif // FOLLY_HAS_COROUTINES
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamservicethrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamservicethrows"} */
   static folly::exception_wrapper recv_wrapped_responseandstreamservicethrows(apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t>& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamservicethrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamservicethrows"} */
   static apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t> recv_responseandstreamservicethrows(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamservicethrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamservicethrows"} */
   virtual apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t> recv_instance_responseandstreamservicethrows(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamservicethrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamservicethrows"} */
   virtual folly::exception_wrapper recv_instance_wrapped_responseandstreamservicethrows(apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t>& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_responseandstreamservicethrows(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, ::std::int32_t p_foo);
@@ -940,34 +940,34 @@ class Client<::cpp2::PubSubStreamingService> : public apache::thrift::GeneratedA
   template <typename CallbackType>
   folly::SemiFuture<apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t>> fbthrift_semifuture_responseandstreamservicethrows(apache::thrift::RpcOptions& rpcOptions, ::std::int32_t p_foo);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamboththrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamboththrows"} */
   virtual void responseandstreamboththrows(std::unique_ptr<apache::thrift::RequestCallback> callback, ::std::int32_t p_foo);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamboththrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamboththrows"} */
   virtual void responseandstreamboththrows(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, ::std::int32_t p_foo);
  protected:
   void fbthrift_serialize_and_send_responseandstreamboththrows(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::StreamClientCallback* callback, ::std::int32_t p_foo, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamboththrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamboththrows"} */
   virtual apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t> sync_responseandstreamboththrows(::std::int32_t p_foo);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamboththrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamboththrows"} */
   virtual apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t> sync_responseandstreamboththrows(apache::thrift::RpcOptions& rpcOptions, ::std::int32_t p_foo);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamboththrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamboththrows"} */
   virtual folly::SemiFuture<apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t>> semifuture_responseandstreamboththrows(::std::int32_t p_foo);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamboththrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamboththrows"} */
   virtual folly::SemiFuture<apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t>> semifuture_responseandstreamboththrows(apache::thrift::RpcOptions& rpcOptions, ::std::int32_t p_foo);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamboththrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamboththrows"} */
   [[nodiscard]] [[deprecated("To be replaced by new API soon")]] virtual folly::Try<apache::thrift::RpcResponseComplete<apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t>>> sync_complete_responseandstreamboththrows(
       apache::thrift::RpcOptions&& rpcOptions,  ::std::int32_t p_foo);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamboththrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamboththrows"} */
   template <int = 0>
   folly::coro::Task<apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t>> co_responseandstreamboththrows(::std::int32_t p_foo) {
     return co_responseandstreamboththrows<false>(nullptr, p_foo);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamboththrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamboththrows"} */
   template <int = 0>
   folly::coro::Task<apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t>> co_responseandstreamboththrows(apache::thrift::RpcOptions& rpcOptions, ::std::int32_t p_foo) {
     return co_responseandstreamboththrows<true>(&rpcOptions, p_foo);
@@ -1050,14 +1050,14 @@ class Client<::cpp2::PubSubStreamingService> : public apache::thrift::GeneratedA
 #endif // FOLLY_HAS_COROUTINES
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamboththrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamboththrows"} */
   static folly::exception_wrapper recv_wrapped_responseandstreamboththrows(apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t>& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamboththrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamboththrows"} */
   static apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t> recv_responseandstreamboththrows(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamboththrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamboththrows"} */
   virtual apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t> recv_instance_responseandstreamboththrows(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamboththrows"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/sync-methods-return-try/src/module.thrift", "service": "PubSubStreamingService", "function": "responseandstreamboththrows"} */
   virtual folly::exception_wrapper recv_instance_wrapped_responseandstreamboththrows(apache::thrift::ResponseAndClientBufferedStream<::cpp2::StreamItem,::std::int32_t>& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_responseandstreamboththrows(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, ::std::int32_t p_foo);

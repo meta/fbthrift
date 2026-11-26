@@ -39,7 +39,7 @@ namespace apache::thrift::detail::qualifier {
 // END hash_and_equal_to
 namespace test::namespace_from_package::module {
 
-/** Glean {"file": "thrift/compiler/test/fixtures/namespace_from_package/src/module.thrift", "name": "Foo", "kind": "struct" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/namespace_from_package/src/module.thrift", "name": "Foo", "kind": "struct" } */
 class Foo final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -110,47 +110,47 @@ class Foo final  {
   bool operator==(const Foo&) const;
   std::partial_ordering operator<=>(const Foo&) const;
 
-  /** Glean { "field": "MyInt" } */
+  /* Glean { "field": "MyInt" } */
   template <typename..., typename fbthrift_T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> MyInt_ref() const& {
     return {this->__fbthrift_field_MyInt, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "MyInt" } */
+  /* Glean { "field": "MyInt" } */
   template <typename..., typename fbthrift_T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> MyInt_ref() & {
     return {this->__fbthrift_field_MyInt, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "MyInt" } */
+  /* Glean { "field": "MyInt" } */
   template <typename..., typename fbthrift_T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> MyInt_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_MyInt), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "MyInt" } */
+  /* Glean { "field": "MyInt" } */
   template <typename..., typename fbthrift_T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> MyInt() const& {
     return {this->__fbthrift_field_MyInt, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "MyInt" } */
+  /* Glean { "field": "MyInt" } */
   template <typename..., typename fbthrift_T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> MyInt() & {
     return {this->__fbthrift_field_MyInt, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "MyInt" } */
+  /* Glean { "field": "MyInt" } */
   template <typename..., typename fbthrift_T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> MyInt() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_MyInt), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "MyInt" } */
+  /* Glean { "field": "MyInt" } */
   [[deprecated("Use `FOO.MyInt().value()` instead of `FOO.get_MyInt()`")]]
   ::std::int64_t get_MyInt() const;
 
-  /** Glean { "field": "MyInt" } */
+  /* Glean { "field": "MyInt" } */
   [[deprecated("Use `FOO.MyInt() = BAR` instead of `FOO.set_MyInt(BAR)`")]]
   ::std::int64_t& set_MyInt(::std::int64_t MyInt_);
 

@@ -71,10 +71,10 @@ namespace apache::thrift::detail::qualifier {
 // BEGIN hash_and_equal_to
 // END hash_and_equal_to
 namespace cpp2 {
-/** Glean {"file": "thrift/compiler/test/fixtures/mixin/src/module.thrift", "name": "Mixin3", "kind": "typedef" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/mixin/src/module.thrift", "name": "Mixin3", "kind": "typedef" } */
 using Mixin3 = ::cpp2::Mixin3Base;
 
-/** Glean {"file": "thrift/compiler/test/fixtures/mixin/src/module.thrift", "name": "Mixin1", "kind": "struct" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/mixin/src/module.thrift", "name": "Mixin1", "kind": "struct" } */
 class Mixin1 final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -146,55 +146,55 @@ class Mixin1 final  {
   bool operator==(const Mixin1&) const;
   std::partial_ordering operator<=>(const Mixin1&) const;
 
-  /** Glean { "field": "field1" } */
+  /* Glean { "field": "field1" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> field1_ref() const& {
     return {this->__fbthrift_field_field1, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "field1" } */
+  /* Glean { "field": "field1" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> field1_ref() & {
     return {this->__fbthrift_field_field1, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "field1" } */
+  /* Glean { "field": "field1" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> field1_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_field1), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "field1" } */
+  /* Glean { "field": "field1" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> field1() const& {
     return {this->__fbthrift_field_field1, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "field1" } */
+  /* Glean { "field": "field1" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> field1() & {
     return {this->__fbthrift_field_field1, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "field1" } */
+  /* Glean { "field": "field1" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> field1() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_field1), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "field1" } */
+  /* Glean { "field": "field1" } */
   [[deprecated("Use `FOO.field1().value()` instead of `FOO.get_field1()`")]]
   const ::std::string& get_field1() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return __fbthrift_field_field1;
   }
 
-  /** Glean { "field": "field1" } */
+  /* Glean { "field": "field1" } */
   [[deprecated("Use `FOO.field1().value()` instead of `FOO.get_field1()`")]]
   ::std::string get_field1() && {
     return static_cast<::std::string&&>(__fbthrift_field_field1);
   }
 
-  /** Glean { "field": "field1" } */
+  /* Glean { "field": "field1" } */
   template <typename T_Mixin1_field1_struct_setter = ::std::string>
   [[deprecated("Use `FOO.field1() = BAR` instead of `FOO.set_field1(BAR)`")]]
   ::std::string& set_field1(T_Mixin1_field1_struct_setter&& field1_) {
@@ -226,7 +226,7 @@ unsigned long Mixin1::read(Protocol_* iprot) {
 }
 
 
-/** Glean {"file": "thrift/compiler/test/fixtures/mixin/src/module.thrift", "name": "Mixin2", "kind": "struct" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/mixin/src/module.thrift", "name": "Mixin2", "kind": "struct" } */
 class Mixin2 final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -302,73 +302,73 @@ class Mixin2 final  {
   bool operator==(const Mixin2&) const;
   std::partial_ordering operator<=>(const Mixin2&) const;
 
-  /** Glean { "field": "m1" } */
+  /* Glean { "field": "m1" } */
   template <typename..., typename fbthrift_T = ::cpp2::Mixin1>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> m1_ref() const& {
     return {this->__fbthrift_field_m1, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "m1" } */
+  /* Glean { "field": "m1" } */
   template <typename..., typename fbthrift_T = ::cpp2::Mixin1>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> m1_ref() & {
     return {this->__fbthrift_field_m1, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "m1" } */
+  /* Glean { "field": "m1" } */
   template <typename..., typename fbthrift_T = ::cpp2::Mixin1>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> m1_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_m1), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "m1" } */
+  /* Glean { "field": "m1" } */
   template <typename..., typename fbthrift_T = ::cpp2::Mixin1>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> m1() const& {
     return {this->__fbthrift_field_m1, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "m1" } */
+  /* Glean { "field": "m1" } */
   template <typename..., typename fbthrift_T = ::cpp2::Mixin1>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> m1() & {
     return {this->__fbthrift_field_m1, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "m1" } */
+  /* Glean { "field": "m1" } */
   template <typename..., typename fbthrift_T = ::cpp2::Mixin1>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> m1() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_m1), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "field2" } */
+  /* Glean { "field": "field2" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<const fbthrift_T&> field2_ref() const& {
     return {this->__fbthrift_field_field2, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "field2" } */
+  /* Glean { "field": "field2" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&> field2_ref() & {
     return {this->__fbthrift_field_field2, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "field2" } */
+  /* Glean { "field": "field2" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&&> field2_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_field2), __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "field2" } */
+  /* Glean { "field": "field2" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<const fbthrift_T&> field2() const& {
     return {this->__fbthrift_field_field2, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "field2" } */
+  /* Glean { "field": "field2" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&> field2() & {
     return {this->__fbthrift_field_field2, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "field2" } */
+  /* Glean { "field": "field2" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&&> field2() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_field2), __isset.at(1), __isset.bit(1)};
@@ -386,15 +386,15 @@ class Mixin2 final  {
   [[deprecated("field1_ref() is deprecated, use field1() instead.")]]
   FOLLY_ERASE auto field1_ref() const&& { return std::move(*this).field1(); }
 
-  /** Glean { "field": "m1" } */
+  /* Glean { "field": "m1" } */
   [[deprecated("Use `FOO.m1().value()` instead of `FOO.get_m1()`")]]
   const ::cpp2::Mixin1& get_m1() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]];
 
-  /** Glean { "field": "m1" } */
+  /* Glean { "field": "m1" } */
   [[deprecated("Use `FOO.m1().value()` instead of `FOO.get_m1()`")]]
   ::cpp2::Mixin1 get_m1() &&;
 
-  /** Glean { "field": "m1" } */
+  /* Glean { "field": "m1" } */
   template <typename T_Mixin2_m1_struct_setter = ::cpp2::Mixin1>
   [[deprecated("Use `FOO.m1() = BAR` instead of `FOO.set_m1(BAR)`")]]
   ::cpp2::Mixin1& set_m1(T_Mixin2_m1_struct_setter&& m1_) {
@@ -402,17 +402,17 @@ class Mixin2 final  {
     return __fbthrift_field_m1;
   }
 
-  /** Glean { "field": "field2" } */
+  /* Glean { "field": "field2" } */
   [[deprecated("Use `FOO.field2().value()` instead of `FOO.get_field2()`")]]
   const ::std::string* get_field2() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]];
 
-  /** Glean { "field": "field2" } */
+  /* Glean { "field": "field2" } */
   [[deprecated("Use `FOO.field2().value()` instead of `FOO.get_field2()`")]]
   ::std::string* get_field2() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]];
 
   ::std::string* get_field2() && = delete;
 
-  /** Glean { "field": "field2" } */
+  /* Glean { "field": "field2" } */
   template <typename T_Mixin2_field2_struct_setter = ::std::string>
   [[deprecated("Use `FOO.field2() = BAR` instead of `FOO.set_field2(BAR)`")]]
   ::std::string& set_field2(T_Mixin2_field2_struct_setter&& field2_) {
@@ -444,7 +444,7 @@ unsigned long Mixin2::read(Protocol_* iprot) {
 }
 
 
-/** Glean {"file": "thrift/compiler/test/fixtures/mixin/src/module.thrift", "name": "Mixin3Base", "kind": "struct" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/mixin/src/module.thrift", "name": "Mixin3Base", "kind": "struct" } */
 class Mixin3Base final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -516,55 +516,55 @@ class Mixin3Base final  {
   bool operator==(const Mixin3Base&) const;
   std::partial_ordering operator<=>(const Mixin3Base&) const;
 
-  /** Glean { "field": "field3" } */
+  /* Glean { "field": "field3" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> field3_ref() const& {
     return {this->__fbthrift_field_field3, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "field3" } */
+  /* Glean { "field": "field3" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> field3_ref() & {
     return {this->__fbthrift_field_field3, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "field3" } */
+  /* Glean { "field": "field3" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> field3_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_field3), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "field3" } */
+  /* Glean { "field": "field3" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> field3() const& {
     return {this->__fbthrift_field_field3, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "field3" } */
+  /* Glean { "field": "field3" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> field3() & {
     return {this->__fbthrift_field_field3, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "field3" } */
+  /* Glean { "field": "field3" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> field3() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_field3), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "field3" } */
+  /* Glean { "field": "field3" } */
   [[deprecated("Use `FOO.field3().value()` instead of `FOO.get_field3()`")]]
   const ::std::string& get_field3() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return __fbthrift_field_field3;
   }
 
-  /** Glean { "field": "field3" } */
+  /* Glean { "field": "field3" } */
   [[deprecated("Use `FOO.field3().value()` instead of `FOO.get_field3()`")]]
   ::std::string get_field3() && {
     return static_cast<::std::string&&>(__fbthrift_field_field3);
   }
 
-  /** Glean { "field": "field3" } */
+  /* Glean { "field": "field3" } */
   template <typename T_Mixin3Base_field3_struct_setter = ::std::string>
   [[deprecated("Use `FOO.field3() = BAR` instead of `FOO.set_field3(BAR)`")]]
   ::std::string& set_field3(T_Mixin3Base_field3_struct_setter&& field3_) {
@@ -596,7 +596,7 @@ unsigned long Mixin3Base::read(Protocol_* iprot) {
 }
 
 
-/** Glean {"file": "thrift/compiler/test/fixtures/mixin/src/module.thrift", "name": "Foo", "kind": "struct" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/mixin/src/module.thrift", "name": "Foo", "kind": "struct" } */
 class Foo final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -676,109 +676,109 @@ class Foo final  {
   bool operator==(const Foo&) const;
   std::partial_ordering operator<=>(const Foo&) const;
 
-  /** Glean { "field": "field4" } */
+  /* Glean { "field": "field4" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> field4_ref() const& {
     return {this->__fbthrift_field_field4, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "field4" } */
+  /* Glean { "field": "field4" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> field4_ref() & {
     return {this->__fbthrift_field_field4, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "field4" } */
+  /* Glean { "field": "field4" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> field4_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_field4), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "field4" } */
+  /* Glean { "field": "field4" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> field4() const& {
     return {this->__fbthrift_field_field4, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "field4" } */
+  /* Glean { "field": "field4" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> field4() & {
     return {this->__fbthrift_field_field4, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "field4" } */
+  /* Glean { "field": "field4" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> field4() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_field4), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "m2" } */
+  /* Glean { "field": "m2" } */
   template <typename..., typename fbthrift_T = ::cpp2::Mixin2>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> m2_ref() const& {
     return {this->__fbthrift_field_m2, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "m2" } */
+  /* Glean { "field": "m2" } */
   template <typename..., typename fbthrift_T = ::cpp2::Mixin2>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> m2_ref() & {
     return {this->__fbthrift_field_m2, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "m2" } */
+  /* Glean { "field": "m2" } */
   template <typename..., typename fbthrift_T = ::cpp2::Mixin2>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> m2_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_m2), __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "m2" } */
+  /* Glean { "field": "m2" } */
   template <typename..., typename fbthrift_T = ::cpp2::Mixin2>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> m2() const& {
     return {this->__fbthrift_field_m2, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "m2" } */
+  /* Glean { "field": "m2" } */
   template <typename..., typename fbthrift_T = ::cpp2::Mixin2>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> m2() & {
     return {this->__fbthrift_field_m2, __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "m2" } */
+  /* Glean { "field": "m2" } */
   template <typename..., typename fbthrift_T = ::cpp2::Mixin2>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> m2() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_m2), __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "m3" } */
+  /* Glean { "field": "m3" } */
   template <typename..., typename fbthrift_T = ::cpp2::Mixin3>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> m3_ref() const& {
     return {this->__fbthrift_field_m3, __isset.at(2), __isset.bit(2)};
   }
 
-  /** Glean { "field": "m3" } */
+  /* Glean { "field": "m3" } */
   template <typename..., typename fbthrift_T = ::cpp2::Mixin3>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> m3_ref() & {
     return {this->__fbthrift_field_m3, __isset.at(2), __isset.bit(2)};
   }
 
-  /** Glean { "field": "m3" } */
+  /* Glean { "field": "m3" } */
   template <typename..., typename fbthrift_T = ::cpp2::Mixin3>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> m3_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_m3), __isset.at(2), __isset.bit(2)};
   }
 
-  /** Glean { "field": "m3" } */
+  /* Glean { "field": "m3" } */
   template <typename..., typename fbthrift_T = ::cpp2::Mixin3>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> m3() const& {
     return {this->__fbthrift_field_m3, __isset.at(2), __isset.bit(2)};
   }
 
-  /** Glean { "field": "m3" } */
+  /* Glean { "field": "m3" } */
   template <typename..., typename fbthrift_T = ::cpp2::Mixin3>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> m3() & {
     return {this->__fbthrift_field_m3, __isset.at(2), __isset.bit(2)};
   }
 
-  /** Glean { "field": "m3" } */
+  /* Glean { "field": "m3" } */
   template <typename..., typename fbthrift_T = ::cpp2::Mixin3>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> m3() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_m3), __isset.at(2), __isset.bit(2)};
@@ -832,19 +832,19 @@ class Foo final  {
   [[deprecated("field3_ref() is deprecated, use field3() instead.")]]
   FOLLY_ERASE auto field3_ref() const&& { return std::move(*this).field3(); }
 
-  /** Glean { "field": "field4" } */
+  /* Glean { "field": "field4" } */
   [[deprecated("Use `FOO.field4().value()` instead of `FOO.get_field4()`")]]
   const ::std::string& get_field4() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return __fbthrift_field_field4;
   }
 
-  /** Glean { "field": "field4" } */
+  /* Glean { "field": "field4" } */
   [[deprecated("Use `FOO.field4().value()` instead of `FOO.get_field4()`")]]
   ::std::string get_field4() && {
     return static_cast<::std::string&&>(__fbthrift_field_field4);
   }
 
-  /** Glean { "field": "field4" } */
+  /* Glean { "field": "field4" } */
   template <typename T_Foo_field4_struct_setter = ::std::string>
   [[deprecated("Use `FOO.field4() = BAR` instead of `FOO.set_field4(BAR)`")]]
   ::std::string& set_field4(T_Foo_field4_struct_setter&& field4_) {
@@ -852,15 +852,15 @@ class Foo final  {
     return __fbthrift_field_field4;
   }
 
-  /** Glean { "field": "m2" } */
+  /* Glean { "field": "m2" } */
   [[deprecated("Use `FOO.m2().value()` instead of `FOO.get_m2()`")]]
   const ::cpp2::Mixin2& get_m2() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]];
 
-  /** Glean { "field": "m2" } */
+  /* Glean { "field": "m2" } */
   [[deprecated("Use `FOO.m2().value()` instead of `FOO.get_m2()`")]]
   ::cpp2::Mixin2 get_m2() &&;
 
-  /** Glean { "field": "m2" } */
+  /* Glean { "field": "m2" } */
   template <typename T_Foo_m2_struct_setter = ::cpp2::Mixin2>
   [[deprecated("Use `FOO.m2() = BAR` instead of `FOO.set_m2(BAR)`")]]
   ::cpp2::Mixin2& set_m2(T_Foo_m2_struct_setter&& m2_) {
@@ -868,15 +868,15 @@ class Foo final  {
     return __fbthrift_field_m2;
   }
 
-  /** Glean { "field": "m3" } */
+  /* Glean { "field": "m3" } */
   [[deprecated("Use `FOO.m3().value()` instead of `FOO.get_m3()`")]]
   const ::cpp2::Mixin3& get_m3() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]];
 
-  /** Glean { "field": "m3" } */
+  /* Glean { "field": "m3" } */
   [[deprecated("Use `FOO.m3().value()` instead of `FOO.get_m3()`")]]
   ::cpp2::Mixin3 get_m3() &&;
 
-  /** Glean { "field": "m3" } */
+  /* Glean { "field": "m3" } */
   template <typename T_Foo_m3_struct_setter = ::cpp2::Mixin3>
   [[deprecated("Use `FOO.m3() = BAR` instead of `FOO.set_m3(BAR)`")]]
   ::cpp2::Mixin3& set_m3(T_Foo_m3_struct_setter&& m3_) {

@@ -11,7 +11,7 @@
 #include "thrift/compiler/test/fixtures/emptiable/gen-cpp2/simple_types.h"
 
 namespace apache::thrift::test {
-/** Glean {"file": "thrift/compiler/test/fixtures/emptiable/src/simple.thrift"} */
+/* Glean {"file": "thrift/compiler/test/fixtures/emptiable/src/simple.thrift"} */
 namespace simple_constants {
 
   FOLLY_EXPORT ::std::string_view _fbthrift_schema_5293884d7bbe94c2();

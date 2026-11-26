@@ -52,35 +52,35 @@ class Client<::cpp2::test::FastClientTestServiceChild> : public ::cpp2::test::Fa
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "meta.com/thrift/test/fixtures/fast_client/FastClientTestServiceChild";
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
   virtual void greet(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::string& p_name);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
   virtual void greet(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::string& p_name);
  protected:
   void fbthrift_serialize_and_send_greet(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const ::std::string& p_name, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
   virtual void sync_greet(::std::string& _return, const ::std::string& p_name);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
   virtual void sync_greet(apache::thrift::RpcOptions& rpcOptions, ::std::string& _return, const ::std::string& p_name);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
   virtual folly::Future<::std::string> future_greet(const ::std::string& p_name);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
   virtual folly::SemiFuture<::std::string> semifuture_greet(const ::std::string& p_name);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
   virtual folly::Future<::std::string> future_greet(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_name);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
   virtual folly::SemiFuture<::std::string> semifuture_greet(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_name);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
   template <int = 0>
   folly::coro::Task<::std::string> co_greet(const ::std::string& p_name) {
     return co_greet<false>(nullptr, p_name);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
   template <int = 0>
   folly::coro::Task<::std::string> co_greet(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_name) {
     return co_greet<true>(&rpcOptions, p_name);
@@ -154,18 +154,18 @@ class Client<::cpp2::test::FastClientTestServiceChild> : public ::cpp2::test::Fa
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
   virtual void greet(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, const ::std::string& p_name);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
   static folly::exception_wrapper recv_wrapped_greet(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
   static void recv_greet(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
   virtual void recv_instance_greet(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fast_client/src/module.thrift", "service": "FastClientTestServiceChild", "function": "greet"} */
   virtual folly::exception_wrapper recv_instance_wrapped_greet(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_greet(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::std::string& p_name);

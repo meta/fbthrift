@@ -75,8 +75,9 @@ namespace apache::thrift::detail::qualifier {
 // END hash_and_equal_to
 namespace apache::thrift::test {
 
+/* Glean {"file": "thrift/compiler/test/fixtures/deprecated/src/module.thrift", "name": "User", "kind": "struct" } */
+
 /** Example struct demonstrating @thrift.Deprecated annotation on fields. */
-/** Glean {"file": "thrift/compiler/test/fixtures/deprecated/src/module.thrift", "name": "User", "kind": "struct" } */
 class User final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -165,231 +166,243 @@ class User final  {
   bool operator==(const User&) const;
   std::partial_ordering operator<=>(const User&) const;
 
-  /** Glean { "field": "id" } */
+  /* Glean { "field": "id" } */
   template <typename..., typename fbthrift_T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> id_ref() const& {
     return {this->__fbthrift_field_id, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "id" } */
+  /* Glean { "field": "id" } */
   template <typename..., typename fbthrift_T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> id_ref() & {
     return {this->__fbthrift_field_id, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "id" } */
+  /* Glean { "field": "id" } */
   template <typename..., typename fbthrift_T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> id_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_id), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "id" } */
+  /* Glean { "field": "id" } */
   template <typename..., typename fbthrift_T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> id() const& {
     return {this->__fbthrift_field_id, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "id" } */
+  /* Glean { "field": "id" } */
   template <typename..., typename fbthrift_T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> id() & {
     return {this->__fbthrift_field_id, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "id" } */
+  /* Glean { "field": "id" } */
   template <typename..., typename fbthrift_T = ::std::int64_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> id() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_id), __isset.at(0), __isset.bit(0)};
   }
 
+  /* Glean { "field": "name" } */
+
   /** @deprecated Use 'full_name' instead */
-  /** Glean { "field": "name" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("Use 'full_name' instead")]]
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> name_ref() const& {
     return {this->__fbthrift_field_name, __isset.at(1), __isset.bit(1)};
   }
 
+  /* Glean { "field": "name" } */
+
   /** @deprecated Use 'full_name' instead */
-  /** Glean { "field": "name" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("Use 'full_name' instead")]]
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> name_ref() & {
     return {this->__fbthrift_field_name, __isset.at(1), __isset.bit(1)};
   }
 
+  /* Glean { "field": "name" } */
+
   /** @deprecated Use 'full_name' instead */
-  /** Glean { "field": "name" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("Use 'full_name' instead")]]
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> name_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_name), __isset.at(1), __isset.bit(1)};
   }
 
+  /* Glean { "field": "name" } */
+
   /** @deprecated Use 'full_name' instead */
-  /** Glean { "field": "name" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("Use 'full_name' instead")]]
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> name() const& {
     return {this->__fbthrift_field_name, __isset.at(1), __isset.bit(1)};
   }
 
+  /* Glean { "field": "name" } */
+
   /** @deprecated Use 'full_name' instead */
-  /** Glean { "field": "name" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("Use 'full_name' instead")]]
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> name() & {
     return {this->__fbthrift_field_name, __isset.at(1), __isset.bit(1)};
   }
 
+  /* Glean { "field": "name" } */
+
   /** @deprecated Use 'full_name' instead */
-  /** Glean { "field": "name" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("Use 'full_name' instead")]]
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> name() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_name), __isset.at(1), __isset.bit(1)};
   }
 
-  /** Glean { "field": "full_name" } */
+  /* Glean { "field": "full_name" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> full_name_ref() const& {
     return {this->__fbthrift_field_full_name, __isset.at(2), __isset.bit(2)};
   }
 
-  /** Glean { "field": "full_name" } */
+  /* Glean { "field": "full_name" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> full_name_ref() & {
     return {this->__fbthrift_field_full_name, __isset.at(2), __isset.bit(2)};
   }
 
-  /** Glean { "field": "full_name" } */
+  /* Glean { "field": "full_name" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> full_name_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_full_name), __isset.at(2), __isset.bit(2)};
   }
 
-  /** Glean { "field": "full_name" } */
+  /* Glean { "field": "full_name" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> full_name() const& {
     return {this->__fbthrift_field_full_name, __isset.at(2), __isset.bit(2)};
   }
 
-  /** Glean { "field": "full_name" } */
+  /* Glean { "field": "full_name" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> full_name() & {
     return {this->__fbthrift_field_full_name, __isset.at(2), __isset.bit(2)};
   }
 
-  /** Glean { "field": "full_name" } */
+  /* Glean { "field": "full_name" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> full_name() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_full_name), __isset.at(2), __isset.bit(2)};
   }
 
+  /* Glean { "field": "email" } */
+
   /** @deprecated This field is no longer used */
-  /** Glean { "field": "email" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("This field is no longer used")]]
   FOLLY_ERASE ::apache::thrift::optional_field_ref<const fbthrift_T&> email_ref() const& {
     return {this->__fbthrift_field_email, __isset.at(3), __isset.bit(3)};
   }
 
+  /* Glean { "field": "email" } */
+
   /** @deprecated This field is no longer used */
-  /** Glean { "field": "email" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("This field is no longer used")]]
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&> email_ref() & {
     return {this->__fbthrift_field_email, __isset.at(3), __isset.bit(3)};
   }
 
+  /* Glean { "field": "email" } */
+
   /** @deprecated This field is no longer used */
-  /** Glean { "field": "email" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("This field is no longer used")]]
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&&> email_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_email), __isset.at(3), __isset.bit(3)};
   }
 
+  /* Glean { "field": "email" } */
+
   /** @deprecated This field is no longer used */
-  /** Glean { "field": "email" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("This field is no longer used")]]
   FOLLY_ERASE ::apache::thrift::optional_field_ref<const fbthrift_T&> email() const& {
     return {this->__fbthrift_field_email, __isset.at(3), __isset.bit(3)};
   }
 
+  /* Glean { "field": "email" } */
+
   /** @deprecated This field is no longer used */
-  /** Glean { "field": "email" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("This field is no longer used")]]
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&> email() & {
     return {this->__fbthrift_field_email, __isset.at(3), __isset.bit(3)};
   }
 
+  /* Glean { "field": "email" } */
+
   /** @deprecated This field is no longer used */
-  /** Glean { "field": "email" } */
   template <typename..., typename fbthrift_T = ::std::string>
   [[deprecated("This field is no longer used")]]
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&&> email() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_email), __isset.at(3), __isset.bit(3)};
   }
 
-  /** Glean { "field": "email_address" } */
+  /* Glean { "field": "email_address" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<const fbthrift_T&> email_address_ref() const& {
     return {this->__fbthrift_field_email_address, __isset.at(4), __isset.bit(4)};
   }
 
-  /** Glean { "field": "email_address" } */
+  /* Glean { "field": "email_address" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&> email_address_ref() & {
     return {this->__fbthrift_field_email_address, __isset.at(4), __isset.bit(4)};
   }
 
-  /** Glean { "field": "email_address" } */
+  /* Glean { "field": "email_address" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&&> email_address_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_email_address), __isset.at(4), __isset.bit(4)};
   }
 
-  /** Glean { "field": "email_address" } */
+  /* Glean { "field": "email_address" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<const fbthrift_T&> email_address() const& {
     return {this->__fbthrift_field_email_address, __isset.at(4), __isset.bit(4)};
   }
 
-  /** Glean { "field": "email_address" } */
+  /* Glean { "field": "email_address" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&> email_address() & {
     return {this->__fbthrift_field_email_address, __isset.at(4), __isset.bit(4)};
   }
 
-  /** Glean { "field": "email_address" } */
+  /* Glean { "field": "email_address" } */
   template <typename..., typename fbthrift_T = ::std::string>
   FOLLY_ERASE ::apache::thrift::optional_field_ref<fbthrift_T&&> email_address() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_email_address), __isset.at(4), __isset.bit(4)};
   }
 
-  /** Glean { "field": "id" } */
+  /* Glean { "field": "id" } */
   [[deprecated("Use `FOO.id().value()` instead of `FOO.get_id()`")]]
   ::std::int64_t get_id() const;
 
-  /** Glean { "field": "id" } */
+  /* Glean { "field": "id" } */
   [[deprecated("Use `FOO.id() = BAR` instead of `FOO.set_id(BAR)`")]]
   ::std::int64_t& set_id(::std::int64_t id_);
 
-  /** Glean { "field": "name" } */
+  /* Glean { "field": "name" } */
   [[deprecated("Use `FOO.name().value()` instead of `FOO.get_name()`")]]
   const ::std::string& get_name() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return __fbthrift_field_name;
   }
 
-  /** Glean { "field": "name" } */
+  /* Glean { "field": "name" } */
   [[deprecated("Use `FOO.name().value()` instead of `FOO.get_name()`")]]
   ::std::string get_name() && {
     return static_cast<::std::string&&>(__fbthrift_field_name);
   }
 
-  /** Glean { "field": "name" } */
+  /* Glean { "field": "name" } */
   template <typename T_User_name_struct_setter = ::std::string>
   [[deprecated("Use `FOO.name() = BAR` instead of `FOO.set_name(BAR)`")]]
   ::std::string& set_name(T_User_name_struct_setter&& name_) {
@@ -397,19 +410,19 @@ class User final  {
     return __fbthrift_field_name;
   }
 
-  /** Glean { "field": "full_name" } */
+  /* Glean { "field": "full_name" } */
   [[deprecated("Use `FOO.full_name().value()` instead of `FOO.get_full_name()`")]]
   const ::std::string& get_full_name() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return __fbthrift_field_full_name;
   }
 
-  /** Glean { "field": "full_name" } */
+  /* Glean { "field": "full_name" } */
   [[deprecated("Use `FOO.full_name().value()` instead of `FOO.get_full_name()`")]]
   ::std::string get_full_name() && {
     return static_cast<::std::string&&>(__fbthrift_field_full_name);
   }
 
-  /** Glean { "field": "full_name" } */
+  /* Glean { "field": "full_name" } */
   template <typename T_User_full_name_struct_setter = ::std::string>
   [[deprecated("Use `FOO.full_name() = BAR` instead of `FOO.set_full_name(BAR)`")]]
   ::std::string& set_full_name(T_User_full_name_struct_setter&& full_name_) {
@@ -417,17 +430,17 @@ class User final  {
     return __fbthrift_field_full_name;
   }
 
-  /** Glean { "field": "email" } */
+  /* Glean { "field": "email" } */
   [[deprecated("Use `FOO.email().value()` instead of `FOO.get_email()`")]]
   const ::std::string* get_email() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]];
 
-  /** Glean { "field": "email" } */
+  /* Glean { "field": "email" } */
   [[deprecated("Use `FOO.email().value()` instead of `FOO.get_email()`")]]
   ::std::string* get_email() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]];
 
   ::std::string* get_email() && = delete;
 
-  /** Glean { "field": "email" } */
+  /* Glean { "field": "email" } */
   template <typename T_User_email_struct_setter = ::std::string>
   [[deprecated("Use `FOO.email() = BAR` instead of `FOO.set_email(BAR)`")]]
   ::std::string& set_email(T_User_email_struct_setter&& email_) {
@@ -435,17 +448,17 @@ class User final  {
     return __fbthrift_field_email;
   }
 
-  /** Glean { "field": "email_address" } */
+  /* Glean { "field": "email_address" } */
   [[deprecated("Use `FOO.email_address().value()` instead of `FOO.get_email_address()`")]]
   const ::std::string* get_email_address() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]];
 
-  /** Glean { "field": "email_address" } */
+  /* Glean { "field": "email_address" } */
   [[deprecated("Use `FOO.email_address().value()` instead of `FOO.get_email_address()`")]]
   ::std::string* get_email_address() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]];
 
   ::std::string* get_email_address() && = delete;
 
-  /** Glean { "field": "email_address" } */
+  /* Glean { "field": "email_address" } */
   template <typename T_User_email_address_struct_setter = ::std::string>
   [[deprecated("Use `FOO.email_address() = BAR` instead of `FOO.set_email_address(BAR)`")]]
   ::std::string& set_email_address(T_User_email_address_struct_setter&& email_address_) {
@@ -477,8 +490,9 @@ unsigned long User::read(Protocol_* iprot) {
 }
 
 
+/* Glean {"file": "thrift/compiler/test/fixtures/deprecated/src/module.thrift", "name": "ExampleUnion", "kind": "union" } */
+
 /** Example union with deprecated field. */
-/** Glean {"file": "thrift/compiler/test/fixtures/deprecated/src/module.thrift", "name": "ExampleUnion", "kind": "union" } */
 class ExampleUnion final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -560,7 +574,7 @@ class ExampleUnion final  {
   bool operator==(const ExampleUnion&) const;
   std::partial_ordering operator<=>(const ExampleUnion&) const;
 
-  /** Glean { "field": "stringValue" } */
+  /* Glean { "field": "stringValue" } */
   template <typename... A> requires (sizeof...(A) == 0)
   ::std::string& set_stringValue(::std::string const &t) {
     using T0 = ::std::string;
@@ -571,7 +585,7 @@ class ExampleUnion final  {
     return value_.stringValue;
   }
 
-  /** Glean { "field": "stringValue" } */
+  /* Glean { "field": "stringValue" } */
   template <typename... A> requires (sizeof...(A) == 0)
   ::std::string& set_stringValue(::std::string&& t) {
     using T0 = ::std::string;
@@ -582,7 +596,7 @@ class ExampleUnion final  {
     return value_.stringValue;
   }
 
-  /** Glean { "field": "stringValue" } */
+  /* Glean { "field": "stringValue" } */
   template<typename... T, typename = ::apache::thrift::safe_overload_t<::std::string, T...>> ::std::string& set_stringValue(T&&... t) {
     __fbthrift_clear();
     ::new (std::addressof(value_.stringValue)) ::std::string(std::forward<T>(t)...);
@@ -591,7 +605,7 @@ class ExampleUnion final  {
   }
 
 
-  /** Glean { "field": "intValue" } */
+  /* Glean { "field": "intValue" } */
   template <typename... A> requires (sizeof...(A) == 0)
   ::std::int32_t& set_intValue(::std::int32_t t = ::std::int32_t()) {
     using T0 = ::std::int32_t;
@@ -603,7 +617,7 @@ class ExampleUnion final  {
   }
 
 
-  /** Glean { "field": "doubleValue" } */
+  /* Glean { "field": "doubleValue" } */
   template <typename... A> requires (sizeof...(A) == 0)
   double& set_doubleValue(double t = double()) {
     using T0 = double;
@@ -615,7 +629,7 @@ class ExampleUnion final  {
   }
 
 
-  /** Glean { "field": "stringValue" } */
+  /* Glean { "field": "stringValue" } */
   [[deprecated("Use `FOO.stringValue().value()` instead of `FOO.get_stringValue()`")]]
   ::std::string const& get_stringValue() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::stringValue) {
@@ -624,7 +638,7 @@ class ExampleUnion final  {
     return value_.stringValue;
   }
 
-  /** Glean { "field": "intValue" } */
+  /* Glean { "field": "intValue" } */
   [[deprecated("Use `FOO.intValue().value()` instead of `FOO.get_intValue()`")]]
   ::std::int32_t const& get_intValue() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::intValue) {
@@ -633,7 +647,7 @@ class ExampleUnion final  {
     return value_.intValue;
   }
 
-  /** Glean { "field": "doubleValue" } */
+  /* Glean { "field": "doubleValue" } */
   [[deprecated("Use `FOO.doubleValue().value()` instead of `FOO.get_doubleValue()`")]]
   double const& get_doubleValue() const [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     if (getType() != Type::doubleValue) {
@@ -675,105 +689,105 @@ class ExampleUnion final  {
     return std::move(value_.doubleValue);
   }
 
-  /** Glean { "field": "stringValue" } */
+  /* Glean { "field": "stringValue" } */
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::union_field_ref<const T&> stringValue_ref() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.stringValue, fbthrift_type_, folly::to_underlying(Type::stringValue), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "stringValue" } */
+  /* Glean { "field": "stringValue" } */
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::union_field_ref<T&> stringValue_ref() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.stringValue, fbthrift_type_, folly::to_underlying(Type::stringValue), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "stringValue" } */
+  /* Glean { "field": "stringValue" } */
   template <typename..., typename T = ::std::string>
   FOLLY_ERASE ::apache::thrift::union_field_ref<T&&> stringValue_ref() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {std::move(value_.stringValue), fbthrift_type_, folly::to_underlying(Type::stringValue), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "stringValue" } */
+  /* Glean { "field": "stringValue" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<const ::std::string&> stringValue() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.stringValue, fbthrift_type_, folly::to_underlying(Type::stringValue), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "stringValue" } */
+  /* Glean { "field": "stringValue" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<::std::string&> stringValue() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.stringValue, fbthrift_type_, folly::to_underlying(Type::stringValue), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "stringValue" } */
+  /* Glean { "field": "stringValue" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<::std::string&&> stringValue() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {std::move(value_.stringValue), fbthrift_type_, folly::to_underlying(Type::stringValue), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
-  /** Glean { "field": "intValue" } */
+  /* Glean { "field": "intValue" } */
   template <typename..., typename T = ::std::int32_t>
   [[deprecated("Use stringValue instead")]]
   FOLLY_ERASE ::apache::thrift::union_field_ref<const T&> intValue_ref() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.intValue, fbthrift_type_, folly::to_underlying(Type::intValue), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "intValue" } */
+  /* Glean { "field": "intValue" } */
   template <typename..., typename T = ::std::int32_t>
   [[deprecated("Use stringValue instead")]]
   FOLLY_ERASE ::apache::thrift::union_field_ref<T&> intValue_ref() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.intValue, fbthrift_type_, folly::to_underlying(Type::intValue), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "intValue" } */
+  /* Glean { "field": "intValue" } */
   template <typename..., typename T = ::std::int32_t>
   [[deprecated("Use stringValue instead")]]
   FOLLY_ERASE ::apache::thrift::union_field_ref<T&&> intValue_ref() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {std::move(value_.intValue), fbthrift_type_, folly::to_underlying(Type::intValue), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "intValue" } */
+  /* Glean { "field": "intValue" } */
   [[deprecated("Use stringValue instead")]]
   FOLLY_ERASE ::apache::thrift::union_field_ref<const ::std::int32_t&> intValue() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.intValue, fbthrift_type_, folly::to_underlying(Type::intValue), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "intValue" } */
+  /* Glean { "field": "intValue" } */
   [[deprecated("Use stringValue instead")]]
   FOLLY_ERASE ::apache::thrift::union_field_ref<::std::int32_t&> intValue() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.intValue, fbthrift_type_, folly::to_underlying(Type::intValue), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "intValue" } */
+  /* Glean { "field": "intValue" } */
   [[deprecated("Use stringValue instead")]]
   FOLLY_ERASE ::apache::thrift::union_field_ref<::std::int32_t&&> intValue() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {std::move(value_.intValue), fbthrift_type_, folly::to_underlying(Type::intValue), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
-  /** Glean { "field": "doubleValue" } */
+  /* Glean { "field": "doubleValue" } */
   template <typename..., typename T = double>
   FOLLY_ERASE ::apache::thrift::union_field_ref<const T&> doubleValue_ref() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.doubleValue, fbthrift_type_, folly::to_underlying(Type::doubleValue), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "doubleValue" } */
+  /* Glean { "field": "doubleValue" } */
   template <typename..., typename T = double>
   FOLLY_ERASE ::apache::thrift::union_field_ref<T&> doubleValue_ref() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.doubleValue, fbthrift_type_, folly::to_underlying(Type::doubleValue), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "doubleValue" } */
+  /* Glean { "field": "doubleValue" } */
   template <typename..., typename T = double>
   FOLLY_ERASE ::apache::thrift::union_field_ref<T&&> doubleValue_ref() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {std::move(value_.doubleValue), fbthrift_type_, folly::to_underlying(Type::doubleValue), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "doubleValue" } */
+  /* Glean { "field": "doubleValue" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<const double&> doubleValue() const& [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.doubleValue, fbthrift_type_, folly::to_underlying(Type::doubleValue), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "doubleValue" } */
+  /* Glean { "field": "doubleValue" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<double&> doubleValue() & [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {value_.doubleValue, fbthrift_type_, folly::to_underlying(Type::doubleValue), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }
 
-  /** Glean { "field": "doubleValue" } */
+  /* Glean { "field": "doubleValue" } */
   FOLLY_ERASE ::apache::thrift::union_field_ref<double&&> doubleValue() && [[FOLLY_ATTR_CLANG_LIFETIMEBOUND]] {
     return {std::move(value_.doubleValue), fbthrift_type_, folly::to_underlying(Type::doubleValue), this, ::apache::thrift::detail::union_field_ref_owner_vtable_for<decltype(*this)>};
   }

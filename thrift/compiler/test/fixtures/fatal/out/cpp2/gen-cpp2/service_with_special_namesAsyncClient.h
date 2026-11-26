@@ -48,35 +48,35 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
   }
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "get"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "get"} */
   virtual void get(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "get"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "get"} */
   virtual void get(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_get(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "get"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "get"} */
   virtual ::std::int32_t sync_get();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "get"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "get"} */
   virtual ::std::int32_t sync_get(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "get"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "get"} */
   virtual folly::Future<::std::int32_t> future_get();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "get"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "get"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_get();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "get"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "get"} */
   virtual folly::Future<::std::int32_t> future_get(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "get"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "get"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_get(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "get"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "get"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_get() {
     return co_get<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "get"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "get"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_get(apache::thrift::RpcOptions& rpcOptions) {
     return co_get<true>(&rpcOptions);
@@ -150,18 +150,18 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "get"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "get"} */
   virtual void get(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "get"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "get"} */
   static folly::exception_wrapper recv_wrapped_get(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "get"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "get"} */
   static ::std::int32_t recv_get(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "get"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "get"} */
   virtual ::std::int32_t recv_instance_get(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "get"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "get"} */
   virtual folly::exception_wrapper recv_instance_wrapped_get(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_get(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -171,35 +171,35 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
   template <typename CallbackType>
   folly::SemiFuture<::std::int32_t> fbthrift_semifuture_get(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "getter"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "getter"} */
   virtual void getter(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "getter"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "getter"} */
   virtual void getter(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_getter(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "getter"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "getter"} */
   virtual ::std::int32_t sync_getter();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "getter"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "getter"} */
   virtual ::std::int32_t sync_getter(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "getter"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "getter"} */
   virtual folly::Future<::std::int32_t> future_getter();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "getter"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "getter"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_getter();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "getter"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "getter"} */
   virtual folly::Future<::std::int32_t> future_getter(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "getter"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "getter"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_getter(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "getter"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "getter"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_getter() {
     return co_getter<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "getter"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "getter"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_getter(apache::thrift::RpcOptions& rpcOptions) {
     return co_getter<true>(&rpcOptions);
@@ -273,18 +273,18 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "getter"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "getter"} */
   virtual void getter(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "getter"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "getter"} */
   static folly::exception_wrapper recv_wrapped_getter(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "getter"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "getter"} */
   static ::std::int32_t recv_getter(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "getter"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "getter"} */
   virtual ::std::int32_t recv_instance_getter(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "getter"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "getter"} */
   virtual folly::exception_wrapper recv_instance_wrapped_getter(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_getter(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -294,35 +294,35 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
   template <typename CallbackType>
   folly::SemiFuture<::std::int32_t> fbthrift_semifuture_getter(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "lists"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "lists"} */
   virtual void lists(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "lists"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "lists"} */
   virtual void lists(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_lists(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "lists"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "lists"} */
   virtual ::std::int32_t sync_lists();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "lists"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "lists"} */
   virtual ::std::int32_t sync_lists(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "lists"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "lists"} */
   virtual folly::Future<::std::int32_t> future_lists();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "lists"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "lists"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_lists();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "lists"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "lists"} */
   virtual folly::Future<::std::int32_t> future_lists(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "lists"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "lists"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_lists(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "lists"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "lists"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_lists() {
     return co_lists<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "lists"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "lists"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_lists(apache::thrift::RpcOptions& rpcOptions) {
     return co_lists<true>(&rpcOptions);
@@ -396,18 +396,18 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "lists"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "lists"} */
   virtual void lists(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "lists"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "lists"} */
   static folly::exception_wrapper recv_wrapped_lists(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "lists"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "lists"} */
   static ::std::int32_t recv_lists(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "lists"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "lists"} */
   virtual ::std::int32_t recv_instance_lists(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "lists"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "lists"} */
   virtual folly::exception_wrapper recv_instance_wrapped_lists(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_lists(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -417,35 +417,35 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
   template <typename CallbackType>
   folly::SemiFuture<::std::int32_t> fbthrift_semifuture_lists(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "maps"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "maps"} */
   virtual void maps(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "maps"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "maps"} */
   virtual void maps(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_maps(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "maps"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "maps"} */
   virtual ::std::int32_t sync_maps();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "maps"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "maps"} */
   virtual ::std::int32_t sync_maps(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "maps"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "maps"} */
   virtual folly::Future<::std::int32_t> future_maps();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "maps"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "maps"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_maps();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "maps"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "maps"} */
   virtual folly::Future<::std::int32_t> future_maps(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "maps"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "maps"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_maps(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "maps"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "maps"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_maps() {
     return co_maps<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "maps"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "maps"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_maps(apache::thrift::RpcOptions& rpcOptions) {
     return co_maps<true>(&rpcOptions);
@@ -519,18 +519,18 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "maps"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "maps"} */
   virtual void maps(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "maps"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "maps"} */
   static folly::exception_wrapper recv_wrapped_maps(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "maps"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "maps"} */
   static ::std::int32_t recv_maps(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "maps"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "maps"} */
   virtual ::std::int32_t recv_instance_maps(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "maps"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "maps"} */
   virtual folly::exception_wrapper recv_instance_wrapped_maps(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_maps(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -540,35 +540,35 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
   template <typename CallbackType>
   folly::SemiFuture<::std::int32_t> fbthrift_semifuture_maps(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name"} */
   virtual void name(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name"} */
   virtual void name(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_name(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name"} */
   virtual ::std::int32_t sync_name();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name"} */
   virtual ::std::int32_t sync_name(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name"} */
   virtual folly::Future<::std::int32_t> future_name();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_name();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name"} */
   virtual folly::Future<::std::int32_t> future_name(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_name(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_name() {
     return co_name<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_name(apache::thrift::RpcOptions& rpcOptions) {
     return co_name<true>(&rpcOptions);
@@ -642,18 +642,18 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name"} */
   virtual void name(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name"} */
   static folly::exception_wrapper recv_wrapped_name(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name"} */
   static ::std::int32_t recv_name(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name"} */
   virtual ::std::int32_t recv_instance_name(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name"} */
   virtual folly::exception_wrapper recv_instance_wrapped_name(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_name(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -663,35 +663,35 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
   template <typename CallbackType>
   folly::SemiFuture<::std::int32_t> fbthrift_semifuture_name(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name_to_value"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name_to_value"} */
   virtual void name_to_value(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name_to_value"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name_to_value"} */
   virtual void name_to_value(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_name_to_value(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name_to_value"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name_to_value"} */
   virtual ::std::int32_t sync_name_to_value();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name_to_value"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name_to_value"} */
   virtual ::std::int32_t sync_name_to_value(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name_to_value"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name_to_value"} */
   virtual folly::Future<::std::int32_t> future_name_to_value();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name_to_value"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name_to_value"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_name_to_value();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name_to_value"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name_to_value"} */
   virtual folly::Future<::std::int32_t> future_name_to_value(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name_to_value"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name_to_value"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_name_to_value(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name_to_value"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name_to_value"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_name_to_value() {
     return co_name_to_value<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name_to_value"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name_to_value"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_name_to_value(apache::thrift::RpcOptions& rpcOptions) {
     return co_name_to_value<true>(&rpcOptions);
@@ -765,18 +765,18 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name_to_value"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name_to_value"} */
   virtual void name_to_value(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name_to_value"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name_to_value"} */
   static folly::exception_wrapper recv_wrapped_name_to_value(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name_to_value"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name_to_value"} */
   static ::std::int32_t recv_name_to_value(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name_to_value"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name_to_value"} */
   virtual ::std::int32_t recv_instance_name_to_value(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name_to_value"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "name_to_value"} */
   virtual folly::exception_wrapper recv_instance_wrapped_name_to_value(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_name_to_value(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -786,35 +786,35 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
   template <typename CallbackType>
   folly::SemiFuture<::std::int32_t> fbthrift_semifuture_name_to_value(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "names"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "names"} */
   virtual void names(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "names"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "names"} */
   virtual void names(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_names(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "names"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "names"} */
   virtual ::std::int32_t sync_names();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "names"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "names"} */
   virtual ::std::int32_t sync_names(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "names"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "names"} */
   virtual folly::Future<::std::int32_t> future_names();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "names"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "names"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_names();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "names"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "names"} */
   virtual folly::Future<::std::int32_t> future_names(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "names"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "names"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_names(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "names"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "names"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_names() {
     return co_names<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "names"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "names"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_names(apache::thrift::RpcOptions& rpcOptions) {
     return co_names<true>(&rpcOptions);
@@ -888,18 +888,18 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "names"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "names"} */
   virtual void names(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "names"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "names"} */
   static folly::exception_wrapper recv_wrapped_names(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "names"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "names"} */
   static ::std::int32_t recv_names(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "names"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "names"} */
   virtual ::std::int32_t recv_instance_names(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "names"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "names"} */
   virtual folly::exception_wrapper recv_instance_wrapped_names(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_names(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -909,35 +909,35 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
   template <typename CallbackType>
   folly::SemiFuture<::std::int32_t> fbthrift_semifuture_names(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "prefix_tree"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "prefix_tree"} */
   virtual void prefix_tree(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "prefix_tree"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "prefix_tree"} */
   virtual void prefix_tree(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_prefix_tree(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "prefix_tree"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "prefix_tree"} */
   virtual ::std::int32_t sync_prefix_tree();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "prefix_tree"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "prefix_tree"} */
   virtual ::std::int32_t sync_prefix_tree(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "prefix_tree"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "prefix_tree"} */
   virtual folly::Future<::std::int32_t> future_prefix_tree();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "prefix_tree"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "prefix_tree"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_prefix_tree();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "prefix_tree"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "prefix_tree"} */
   virtual folly::Future<::std::int32_t> future_prefix_tree(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "prefix_tree"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "prefix_tree"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_prefix_tree(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "prefix_tree"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "prefix_tree"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_prefix_tree() {
     return co_prefix_tree<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "prefix_tree"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "prefix_tree"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_prefix_tree(apache::thrift::RpcOptions& rpcOptions) {
     return co_prefix_tree<true>(&rpcOptions);
@@ -1011,18 +1011,18 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "prefix_tree"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "prefix_tree"} */
   virtual void prefix_tree(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "prefix_tree"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "prefix_tree"} */
   static folly::exception_wrapper recv_wrapped_prefix_tree(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "prefix_tree"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "prefix_tree"} */
   static ::std::int32_t recv_prefix_tree(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "prefix_tree"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "prefix_tree"} */
   virtual ::std::int32_t recv_instance_prefix_tree(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "prefix_tree"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "prefix_tree"} */
   virtual folly::exception_wrapper recv_instance_wrapped_prefix_tree(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_prefix_tree(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -1032,35 +1032,35 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
   template <typename CallbackType>
   folly::SemiFuture<::std::int32_t> fbthrift_semifuture_prefix_tree(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "sets"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "sets"} */
   virtual void sets(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "sets"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "sets"} */
   virtual void sets(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_sets(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "sets"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "sets"} */
   virtual ::std::int32_t sync_sets();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "sets"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "sets"} */
   virtual ::std::int32_t sync_sets(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "sets"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "sets"} */
   virtual folly::Future<::std::int32_t> future_sets();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "sets"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "sets"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_sets();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "sets"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "sets"} */
   virtual folly::Future<::std::int32_t> future_sets(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "sets"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "sets"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_sets(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "sets"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "sets"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_sets() {
     return co_sets<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "sets"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "sets"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_sets(apache::thrift::RpcOptions& rpcOptions) {
     return co_sets<true>(&rpcOptions);
@@ -1134,18 +1134,18 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "sets"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "sets"} */
   virtual void sets(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "sets"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "sets"} */
   static folly::exception_wrapper recv_wrapped_sets(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "sets"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "sets"} */
   static ::std::int32_t recv_sets(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "sets"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "sets"} */
   virtual ::std::int32_t recv_instance_sets(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "sets"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "sets"} */
   virtual folly::exception_wrapper recv_instance_wrapped_sets(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_sets(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -1155,35 +1155,35 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
   template <typename CallbackType>
   folly::SemiFuture<::std::int32_t> fbthrift_semifuture_sets(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "setter"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "setter"} */
   virtual void setter(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "setter"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "setter"} */
   virtual void setter(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_setter(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "setter"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "setter"} */
   virtual ::std::int32_t sync_setter();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "setter"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "setter"} */
   virtual ::std::int32_t sync_setter(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "setter"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "setter"} */
   virtual folly::Future<::std::int32_t> future_setter();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "setter"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "setter"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_setter();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "setter"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "setter"} */
   virtual folly::Future<::std::int32_t> future_setter(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "setter"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "setter"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_setter(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "setter"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "setter"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_setter() {
     return co_setter<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "setter"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "setter"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_setter(apache::thrift::RpcOptions& rpcOptions) {
     return co_setter<true>(&rpcOptions);
@@ -1257,18 +1257,18 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "setter"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "setter"} */
   virtual void setter(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "setter"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "setter"} */
   static folly::exception_wrapper recv_wrapped_setter(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "setter"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "setter"} */
   static ::std::int32_t recv_setter(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "setter"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "setter"} */
   virtual ::std::int32_t recv_instance_setter(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "setter"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "setter"} */
   virtual folly::exception_wrapper recv_instance_wrapped_setter(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_setter(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -1278,35 +1278,35 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
   template <typename CallbackType>
   folly::SemiFuture<::std::int32_t> fbthrift_semifuture_setter(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "str"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "str"} */
   virtual void str(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "str"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "str"} */
   virtual void str(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_str(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "str"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "str"} */
   virtual ::std::int32_t sync_str();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "str"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "str"} */
   virtual ::std::int32_t sync_str(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "str"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "str"} */
   virtual folly::Future<::std::int32_t> future_str();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "str"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "str"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_str();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "str"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "str"} */
   virtual folly::Future<::std::int32_t> future_str(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "str"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "str"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_str(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "str"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "str"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_str() {
     return co_str<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "str"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "str"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_str(apache::thrift::RpcOptions& rpcOptions) {
     return co_str<true>(&rpcOptions);
@@ -1380,18 +1380,18 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "str"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "str"} */
   virtual void str(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "str"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "str"} */
   static folly::exception_wrapper recv_wrapped_str(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "str"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "str"} */
   static ::std::int32_t recv_str(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "str"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "str"} */
   virtual ::std::int32_t recv_instance_str(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "str"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "str"} */
   virtual folly::exception_wrapper recv_instance_wrapped_str(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_str(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -1401,35 +1401,35 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
   template <typename CallbackType>
   folly::SemiFuture<::std::int32_t> fbthrift_semifuture_str(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "strings"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "strings"} */
   virtual void strings(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "strings"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "strings"} */
   virtual void strings(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_strings(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "strings"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "strings"} */
   virtual ::std::int32_t sync_strings();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "strings"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "strings"} */
   virtual ::std::int32_t sync_strings(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "strings"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "strings"} */
   virtual folly::Future<::std::int32_t> future_strings();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "strings"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "strings"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_strings();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "strings"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "strings"} */
   virtual folly::Future<::std::int32_t> future_strings(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "strings"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "strings"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_strings(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "strings"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "strings"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_strings() {
     return co_strings<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "strings"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "strings"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_strings(apache::thrift::RpcOptions& rpcOptions) {
     return co_strings<true>(&rpcOptions);
@@ -1503,18 +1503,18 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "strings"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "strings"} */
   virtual void strings(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "strings"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "strings"} */
   static folly::exception_wrapper recv_wrapped_strings(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "strings"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "strings"} */
   static ::std::int32_t recv_strings(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "strings"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "strings"} */
   virtual ::std::int32_t recv_instance_strings(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "strings"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "strings"} */
   virtual folly::exception_wrapper recv_instance_wrapped_strings(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_strings(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -1524,35 +1524,35 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
   template <typename CallbackType>
   folly::SemiFuture<::std::int32_t> fbthrift_semifuture_strings(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "type"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "type"} */
   virtual void type(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "type"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "type"} */
   virtual void type(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_type(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "type"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "type"} */
   virtual ::std::int32_t sync_type();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "type"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "type"} */
   virtual ::std::int32_t sync_type(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "type"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "type"} */
   virtual folly::Future<::std::int32_t> future_type();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "type"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "type"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_type();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "type"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "type"} */
   virtual folly::Future<::std::int32_t> future_type(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "type"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "type"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_type(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "type"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "type"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_type() {
     return co_type<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "type"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "type"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_type(apache::thrift::RpcOptions& rpcOptions) {
     return co_type<true>(&rpcOptions);
@@ -1626,18 +1626,18 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "type"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "type"} */
   virtual void type(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "type"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "type"} */
   static folly::exception_wrapper recv_wrapped_type(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "type"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "type"} */
   static ::std::int32_t recv_type(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "type"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "type"} */
   virtual ::std::int32_t recv_instance_type(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "type"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "type"} */
   virtual folly::exception_wrapper recv_instance_wrapped_type(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_type(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -1647,35 +1647,35 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
   template <typename CallbackType>
   folly::SemiFuture<::std::int32_t> fbthrift_semifuture_type(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value"} */
   virtual void value(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value"} */
   virtual void value(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_value(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value"} */
   virtual ::std::int32_t sync_value();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value"} */
   virtual ::std::int32_t sync_value(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value"} */
   virtual folly::Future<::std::int32_t> future_value();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_value();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value"} */
   virtual folly::Future<::std::int32_t> future_value(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_value(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_value() {
     return co_value<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_value(apache::thrift::RpcOptions& rpcOptions) {
     return co_value<true>(&rpcOptions);
@@ -1749,18 +1749,18 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value"} */
   virtual void value(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value"} */
   static folly::exception_wrapper recv_wrapped_value(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value"} */
   static ::std::int32_t recv_value(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value"} */
   virtual ::std::int32_t recv_instance_value(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value"} */
   virtual folly::exception_wrapper recv_instance_wrapped_value(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_value(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -1770,35 +1770,35 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
   template <typename CallbackType>
   folly::SemiFuture<::std::int32_t> fbthrift_semifuture_value(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value_to_name"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value_to_name"} */
   virtual void value_to_name(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value_to_name"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value_to_name"} */
   virtual void value_to_name(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_value_to_name(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value_to_name"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value_to_name"} */
   virtual ::std::int32_t sync_value_to_name();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value_to_name"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value_to_name"} */
   virtual ::std::int32_t sync_value_to_name(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value_to_name"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value_to_name"} */
   virtual folly::Future<::std::int32_t> future_value_to_name();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value_to_name"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value_to_name"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_value_to_name();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value_to_name"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value_to_name"} */
   virtual folly::Future<::std::int32_t> future_value_to_name(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value_to_name"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value_to_name"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_value_to_name(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value_to_name"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value_to_name"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_value_to_name() {
     return co_value_to_name<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value_to_name"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value_to_name"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_value_to_name(apache::thrift::RpcOptions& rpcOptions) {
     return co_value_to_name<true>(&rpcOptions);
@@ -1872,18 +1872,18 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value_to_name"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value_to_name"} */
   virtual void value_to_name(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value_to_name"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value_to_name"} */
   static folly::exception_wrapper recv_wrapped_value_to_name(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value_to_name"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value_to_name"} */
   static ::std::int32_t recv_value_to_name(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value_to_name"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value_to_name"} */
   virtual ::std::int32_t recv_instance_value_to_name(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value_to_name"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "value_to_name"} */
   virtual folly::exception_wrapper recv_instance_wrapped_value_to_name(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_value_to_name(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -1893,35 +1893,35 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
   template <typename CallbackType>
   folly::SemiFuture<::std::int32_t> fbthrift_semifuture_value_to_name(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "values"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "values"} */
   virtual void values(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "values"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "values"} */
   virtual void values(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_values(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "values"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "values"} */
   virtual ::std::int32_t sync_values();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "values"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "values"} */
   virtual ::std::int32_t sync_values(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "values"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "values"} */
   virtual folly::Future<::std::int32_t> future_values();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "values"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "values"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_values();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "values"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "values"} */
   virtual folly::Future<::std::int32_t> future_values(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "values"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "values"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_values(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "values"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "values"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_values() {
     return co_values<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "values"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "values"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_values(apache::thrift::RpcOptions& rpcOptions) {
     return co_values<true>(&rpcOptions);
@@ -1995,18 +1995,18 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "values"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "values"} */
   virtual void values(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "values"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "values"} */
   static folly::exception_wrapper recv_wrapped_values(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "values"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "values"} */
   static ::std::int32_t recv_values(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "values"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "values"} */
   virtual ::std::int32_t recv_instance_values(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "values"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "values"} */
   virtual folly::exception_wrapper recv_instance_wrapped_values(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_values(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -2016,35 +2016,35 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
   template <typename CallbackType>
   folly::SemiFuture<::std::int32_t> fbthrift_semifuture_values(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "id"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "id"} */
   virtual void id(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "id"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "id"} */
   virtual void id(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_id(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "id"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "id"} */
   virtual ::std::int32_t sync_id();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "id"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "id"} */
   virtual ::std::int32_t sync_id(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "id"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "id"} */
   virtual folly::Future<::std::int32_t> future_id();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "id"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "id"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_id();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "id"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "id"} */
   virtual folly::Future<::std::int32_t> future_id(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "id"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "id"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_id(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "id"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "id"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_id() {
     return co_id<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "id"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "id"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_id(apache::thrift::RpcOptions& rpcOptions) {
     return co_id<true>(&rpcOptions);
@@ -2118,18 +2118,18 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "id"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "id"} */
   virtual void id(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "id"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "id"} */
   static folly::exception_wrapper recv_wrapped_id(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "id"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "id"} */
   static ::std::int32_t recv_id(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "id"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "id"} */
   virtual ::std::int32_t recv_instance_id(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "id"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "id"} */
   virtual folly::exception_wrapper recv_instance_wrapped_id(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_id(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -2139,35 +2139,35 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
   template <typename CallbackType>
   folly::SemiFuture<::std::int32_t> fbthrift_semifuture_id(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "ids"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "ids"} */
   virtual void ids(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "ids"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "ids"} */
   virtual void ids(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_ids(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "ids"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "ids"} */
   virtual ::std::int32_t sync_ids();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "ids"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "ids"} */
   virtual ::std::int32_t sync_ids(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "ids"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "ids"} */
   virtual folly::Future<::std::int32_t> future_ids();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "ids"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "ids"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_ids();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "ids"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "ids"} */
   virtual folly::Future<::std::int32_t> future_ids(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "ids"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "ids"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_ids(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "ids"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "ids"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_ids() {
     return co_ids<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "ids"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "ids"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_ids(apache::thrift::RpcOptions& rpcOptions) {
     return co_ids<true>(&rpcOptions);
@@ -2241,18 +2241,18 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "ids"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "ids"} */
   virtual void ids(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "ids"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "ids"} */
   static folly::exception_wrapper recv_wrapped_ids(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "ids"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "ids"} */
   static ::std::int32_t recv_ids(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "ids"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "ids"} */
   virtual ::std::int32_t recv_instance_ids(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "ids"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "ids"} */
   virtual folly::exception_wrapper recv_instance_wrapped_ids(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_ids(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -2262,35 +2262,35 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
   template <typename CallbackType>
   folly::SemiFuture<::std::int32_t> fbthrift_semifuture_ids(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptor"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptor"} */
   virtual void descriptor(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptor"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptor"} */
   virtual void descriptor(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_descriptor(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptor"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptor"} */
   virtual ::std::int32_t sync_descriptor();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptor"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptor"} */
   virtual ::std::int32_t sync_descriptor(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptor"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptor"} */
   virtual folly::Future<::std::int32_t> future_descriptor();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptor"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptor"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_descriptor();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptor"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptor"} */
   virtual folly::Future<::std::int32_t> future_descriptor(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptor"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptor"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_descriptor(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptor"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptor"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_descriptor() {
     return co_descriptor<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptor"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptor"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_descriptor(apache::thrift::RpcOptions& rpcOptions) {
     return co_descriptor<true>(&rpcOptions);
@@ -2364,18 +2364,18 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptor"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptor"} */
   virtual void descriptor(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptor"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptor"} */
   static folly::exception_wrapper recv_wrapped_descriptor(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptor"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptor"} */
   static ::std::int32_t recv_descriptor(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptor"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptor"} */
   virtual ::std::int32_t recv_instance_descriptor(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptor"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptor"} */
   virtual folly::exception_wrapper recv_instance_wrapped_descriptor(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_descriptor(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -2385,35 +2385,35 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
   template <typename CallbackType>
   folly::SemiFuture<::std::int32_t> fbthrift_semifuture_descriptor(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptors"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptors"} */
   virtual void descriptors(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptors"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptors"} */
   virtual void descriptors(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_descriptors(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptors"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptors"} */
   virtual ::std::int32_t sync_descriptors();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptors"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptors"} */
   virtual ::std::int32_t sync_descriptors(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptors"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptors"} */
   virtual folly::Future<::std::int32_t> future_descriptors();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptors"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptors"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_descriptors();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptors"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptors"} */
   virtual folly::Future<::std::int32_t> future_descriptors(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptors"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptors"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_descriptors(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptors"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptors"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_descriptors() {
     return co_descriptors<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptors"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptors"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_descriptors(apache::thrift::RpcOptions& rpcOptions) {
     return co_descriptors<true>(&rpcOptions);
@@ -2487,18 +2487,18 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptors"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptors"} */
   virtual void descriptors(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptors"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptors"} */
   static folly::exception_wrapper recv_wrapped_descriptors(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptors"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptors"} */
   static ::std::int32_t recv_descriptors(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptors"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptors"} */
   virtual ::std::int32_t recv_instance_descriptors(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptors"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "descriptors"} */
   virtual folly::exception_wrapper recv_instance_wrapped_descriptors(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_descriptors(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -2508,35 +2508,35 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
   template <typename CallbackType>
   folly::SemiFuture<::std::int32_t> fbthrift_semifuture_descriptors(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "key"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "key"} */
   virtual void key(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "key"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "key"} */
   virtual void key(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_key(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "key"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "key"} */
   virtual ::std::int32_t sync_key();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "key"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "key"} */
   virtual ::std::int32_t sync_key(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "key"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "key"} */
   virtual folly::Future<::std::int32_t> future_key();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "key"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "key"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_key();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "key"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "key"} */
   virtual folly::Future<::std::int32_t> future_key(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "key"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "key"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_key(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "key"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "key"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_key() {
     return co_key<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "key"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "key"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_key(apache::thrift::RpcOptions& rpcOptions) {
     return co_key<true>(&rpcOptions);
@@ -2610,18 +2610,18 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "key"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "key"} */
   virtual void key(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "key"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "key"} */
   static folly::exception_wrapper recv_wrapped_key(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "key"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "key"} */
   static ::std::int32_t recv_key(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "key"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "key"} */
   virtual ::std::int32_t recv_instance_key(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "key"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "key"} */
   virtual folly::exception_wrapper recv_instance_wrapped_key(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_key(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -2631,35 +2631,35 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
   template <typename CallbackType>
   folly::SemiFuture<::std::int32_t> fbthrift_semifuture_key(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "keys"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "keys"} */
   virtual void keys(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "keys"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "keys"} */
   virtual void keys(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_keys(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "keys"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "keys"} */
   virtual ::std::int32_t sync_keys();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "keys"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "keys"} */
   virtual ::std::int32_t sync_keys(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "keys"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "keys"} */
   virtual folly::Future<::std::int32_t> future_keys();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "keys"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "keys"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_keys();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "keys"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "keys"} */
   virtual folly::Future<::std::int32_t> future_keys(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "keys"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "keys"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_keys(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "keys"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "keys"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_keys() {
     return co_keys<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "keys"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "keys"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_keys(apache::thrift::RpcOptions& rpcOptions) {
     return co_keys<true>(&rpcOptions);
@@ -2733,18 +2733,18 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "keys"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "keys"} */
   virtual void keys(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "keys"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "keys"} */
   static folly::exception_wrapper recv_wrapped_keys(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "keys"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "keys"} */
   static ::std::int32_t recv_keys(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "keys"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "keys"} */
   virtual ::std::int32_t recv_instance_keys(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "keys"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "keys"} */
   virtual folly::exception_wrapper recv_instance_wrapped_keys(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_keys(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -2754,35 +2754,35 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
   template <typename CallbackType>
   folly::SemiFuture<::std::int32_t> fbthrift_semifuture_keys(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotation"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotation"} */
   virtual void annotation(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotation"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotation"} */
   virtual void annotation(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_annotation(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotation"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotation"} */
   virtual ::std::int32_t sync_annotation();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotation"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotation"} */
   virtual ::std::int32_t sync_annotation(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotation"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotation"} */
   virtual folly::Future<::std::int32_t> future_annotation();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotation"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotation"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_annotation();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotation"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotation"} */
   virtual folly::Future<::std::int32_t> future_annotation(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotation"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotation"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_annotation(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotation"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotation"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_annotation() {
     return co_annotation<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotation"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotation"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_annotation(apache::thrift::RpcOptions& rpcOptions) {
     return co_annotation<true>(&rpcOptions);
@@ -2856,18 +2856,18 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotation"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotation"} */
   virtual void annotation(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotation"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotation"} */
   static folly::exception_wrapper recv_wrapped_annotation(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotation"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotation"} */
   static ::std::int32_t recv_annotation(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotation"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotation"} */
   virtual ::std::int32_t recv_instance_annotation(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotation"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotation"} */
   virtual folly::exception_wrapper recv_instance_wrapped_annotation(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_annotation(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -2877,35 +2877,35 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
   template <typename CallbackType>
   folly::SemiFuture<::std::int32_t> fbthrift_semifuture_annotation(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotations"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotations"} */
   virtual void annotations(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotations"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotations"} */
   virtual void annotations(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_annotations(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotations"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotations"} */
   virtual ::std::int32_t sync_annotations();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotations"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotations"} */
   virtual ::std::int32_t sync_annotations(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotations"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotations"} */
   virtual folly::Future<::std::int32_t> future_annotations();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotations"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotations"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_annotations();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotations"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotations"} */
   virtual folly::Future<::std::int32_t> future_annotations(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotations"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotations"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_annotations(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotations"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotations"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_annotations() {
     return co_annotations<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotations"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotations"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_annotations(apache::thrift::RpcOptions& rpcOptions) {
     return co_annotations<true>(&rpcOptions);
@@ -2979,18 +2979,18 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotations"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotations"} */
   virtual void annotations(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotations"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotations"} */
   static folly::exception_wrapper recv_wrapped_annotations(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotations"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotations"} */
   static ::std::int32_t recv_annotations(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotations"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotations"} */
   virtual ::std::int32_t recv_instance_annotations(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotations"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "annotations"} */
   virtual folly::exception_wrapper recv_instance_wrapped_annotations(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_annotations(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -3000,35 +3000,35 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
   template <typename CallbackType>
   folly::SemiFuture<::std::int32_t> fbthrift_semifuture_annotations(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "member"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "member"} */
   virtual void member(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "member"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "member"} */
   virtual void member(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_member(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "member"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "member"} */
   virtual ::std::int32_t sync_member();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "member"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "member"} */
   virtual ::std::int32_t sync_member(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "member"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "member"} */
   virtual folly::Future<::std::int32_t> future_member();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "member"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "member"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_member();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "member"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "member"} */
   virtual folly::Future<::std::int32_t> future_member(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "member"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "member"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_member(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "member"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "member"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_member() {
     return co_member<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "member"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "member"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_member(apache::thrift::RpcOptions& rpcOptions) {
     return co_member<true>(&rpcOptions);
@@ -3102,18 +3102,18 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "member"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "member"} */
   virtual void member(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "member"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "member"} */
   static folly::exception_wrapper recv_wrapped_member(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "member"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "member"} */
   static ::std::int32_t recv_member(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "member"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "member"} */
   virtual ::std::int32_t recv_instance_member(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "member"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "member"} */
   virtual folly::exception_wrapper recv_instance_wrapped_member(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_member(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -3123,35 +3123,35 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
   template <typename CallbackType>
   folly::SemiFuture<::std::int32_t> fbthrift_semifuture_member(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "members"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "members"} */
   virtual void members(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "members"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "members"} */
   virtual void members(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_members(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "members"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "members"} */
   virtual ::std::int32_t sync_members();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "members"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "members"} */
   virtual ::std::int32_t sync_members(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "members"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "members"} */
   virtual folly::Future<::std::int32_t> future_members();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "members"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "members"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_members();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "members"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "members"} */
   virtual folly::Future<::std::int32_t> future_members(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "members"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "members"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_members(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "members"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "members"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_members() {
     return co_members<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "members"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "members"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_members(apache::thrift::RpcOptions& rpcOptions) {
     return co_members<true>(&rpcOptions);
@@ -3225,18 +3225,18 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "members"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "members"} */
   virtual void members(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "members"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "members"} */
   static folly::exception_wrapper recv_wrapped_members(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "members"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "members"} */
   static ::std::int32_t recv_members(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "members"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "members"} */
   virtual ::std::int32_t recv_instance_members(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "members"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "members"} */
   virtual folly::exception_wrapper recv_instance_wrapped_members(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_members(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -3246,35 +3246,35 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
   template <typename CallbackType>
   folly::SemiFuture<::std::int32_t> fbthrift_semifuture_members(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "field"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "field"} */
   virtual void field(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "field"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "field"} */
   virtual void field(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_field(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "field"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "field"} */
   virtual ::std::int32_t sync_field();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "field"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "field"} */
   virtual ::std::int32_t sync_field(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "field"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "field"} */
   virtual folly::Future<::std::int32_t> future_field();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "field"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "field"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_field();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "field"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "field"} */
   virtual folly::Future<::std::int32_t> future_field(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "field"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "field"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_field(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "field"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "field"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_field() {
     return co_field<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "field"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "field"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_field(apache::thrift::RpcOptions& rpcOptions) {
     return co_field<true>(&rpcOptions);
@@ -3348,18 +3348,18 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "field"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "field"} */
   virtual void field(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "field"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "field"} */
   static folly::exception_wrapper recv_wrapped_field(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "field"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "field"} */
   static ::std::int32_t recv_field(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "field"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "field"} */
   virtual ::std::int32_t recv_instance_field(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "field"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "field"} */
   virtual folly::exception_wrapper recv_instance_wrapped_field(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_field(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);
@@ -3369,35 +3369,35 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
   template <typename CallbackType>
   folly::SemiFuture<::std::int32_t> fbthrift_semifuture_field(apache::thrift::RpcOptions& rpcOptions);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "fields"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "fields"} */
   virtual void fields(std::unique_ptr<apache::thrift::RequestCallback> callback);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "fields"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "fields"} */
   virtual void fields(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback);
  protected:
   void fbthrift_serialize_and_send_fields(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "fields"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "fields"} */
   virtual ::std::int32_t sync_fields();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "fields"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "fields"} */
   virtual ::std::int32_t sync_fields(apache::thrift::RpcOptions& rpcOptions);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "fields"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "fields"} */
   virtual folly::Future<::std::int32_t> future_fields();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "fields"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "fields"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_fields();
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "fields"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "fields"} */
   virtual folly::Future<::std::int32_t> future_fields(apache::thrift::RpcOptions& rpcOptions);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "fields"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "fields"} */
   virtual folly::SemiFuture<::std::int32_t> semifuture_fields(apache::thrift::RpcOptions& rpcOptions);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "fields"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "fields"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_fields() {
     return co_fields<false>(nullptr);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "fields"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "fields"} */
   template <int = 0>
   folly::coro::Task<::std::int32_t> co_fields(apache::thrift::RpcOptions& rpcOptions) {
     return co_fields<true>(&rpcOptions);
@@ -3471,18 +3471,18 @@ class Client<::test_cpp2::cpp_reflection::service_with_special_names> : public a
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "fields"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "fields"} */
   virtual void fields(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "fields"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "fields"} */
   static folly::exception_wrapper recv_wrapped_fields(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "fields"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "fields"} */
   static ::std::int32_t recv_fields(::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "fields"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "fields"} */
   virtual ::std::int32_t recv_instance_fields(::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "fields"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/fatal/src/module.thrift", "service": "service_with_special_names", "function": "fields"} */
   virtual folly::exception_wrapper recv_instance_wrapped_fields(::std::int32_t& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_fields(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack);

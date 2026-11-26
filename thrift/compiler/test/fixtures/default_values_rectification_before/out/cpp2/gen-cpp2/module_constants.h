@@ -11,7 +11,7 @@
 #include "thrift/compiler/test/fixtures/default_values_rectification_before/gen-cpp2/module_types.h"
 
 namespace facebook::thrift::compiler::test::fixtures::default_values_rectification_before {
-/** Glean {"file": "thrift/compiler/test/fixtures/default_values_rectification_before/src/module.thrift"} */
+/* Glean {"file": "thrift/compiler/test/fixtures/default_values_rectification_before/src/module.thrift"} */
 namespace module_constants {
 
   FOLLY_EXPORT ::std::string_view _fbthrift_schema_57b13ee68b0c69f5();

@@ -11,7 +11,7 @@
 #include "thrift/compiler/test/fixtures/use_op_encode/gen-cpp2/module_types.h"
 
 namespace facebook::thrift::compiler::test {
-/** Glean {"file": "thrift/compiler/test/fixtures/use_op_encode/src/module.thrift"} */
+/* Glean {"file": "thrift/compiler/test/fixtures/use_op_encode/src/module.thrift"} */
 namespace module_constants {
 
   FOLLY_EXPORT ::std::string_view _fbthrift_schema_bad599ed570b9240();

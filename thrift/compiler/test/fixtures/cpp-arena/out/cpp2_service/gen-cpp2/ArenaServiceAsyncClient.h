@@ -50,35 +50,35 @@ class Client<::test::fixtures::cpp_arena::ArenaService> : public apache::thrift:
   static constexpr folly::cstring_view __fbthrift_thrift_uri = "facebook.com/thrift/test/fixtures/cpp_arena/ArenaService";
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "process"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "process"} */
   virtual void process(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name, const ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "process"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "process"} */
   virtual void process(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name, const ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner);
  protected:
   void fbthrift_serialize_and_send_process(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name, const ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "process"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "process"} */
   virtual void sync_process(::std::string& _return, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name, const ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "process"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "process"} */
   virtual void sync_process(apache::thrift::RpcOptions& rpcOptions, ::std::string& _return, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name, const ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "process"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "process"} */
   virtual folly::Future<::std::string> future_process(const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name, const ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "process"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "process"} */
   virtual folly::SemiFuture<::std::string> semifuture_process(const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name, const ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "process"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "process"} */
   virtual folly::Future<::std::string> future_process(apache::thrift::RpcOptions& rpcOptions, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name, const ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "process"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "process"} */
   virtual folly::SemiFuture<::std::string> semifuture_process(apache::thrift::RpcOptions& rpcOptions, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name, const ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "process"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "process"} */
   template <int = 0>
   folly::coro::Task<::std::string> co_process(const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name, const ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner) {
     return co_process<false>(nullptr, p_name, p_whole, p_inner);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "process"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "process"} */
   template <int = 0>
   folly::coro::Task<::std::string> co_process(apache::thrift::RpcOptions& rpcOptions, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name, const ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner) {
     return co_process<true>(&rpcOptions, p_name, p_whole, p_inner);
@@ -152,18 +152,18 @@ class Client<::test::fixtures::cpp_arena::ArenaService> : public apache::thrift:
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "process"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "process"} */
   virtual void process(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name, const ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "process"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "process"} */
   static folly::exception_wrapper recv_wrapped_process(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "process"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "process"} */
   static void recv_process(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "process"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "process"} */
   virtual void recv_instance_process(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "process"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "process"} */
   virtual folly::exception_wrapper recv_instance_wrapped_process(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_process(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name, const ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner);
@@ -173,35 +173,35 @@ class Client<::test::fixtures::cpp_arena::ArenaService> : public apache::thrift:
   template <typename CallbackType>
   folly::SemiFuture<::std::string> fbthrift_semifuture_process(apache::thrift::RpcOptions& rpcOptions, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name, const ::apache::thrift::pmr::Rebind<::test::fixtures::cpp_arena::WholeStruct>::type& p_whole, const ::test::fixtures::cpp_arena::Inner& p_inner);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "processOnStack"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "processOnStack"} */
   virtual void processOnStack(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "processOnStack"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "processOnStack"} */
   virtual void processOnStack(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name);
  protected:
   void fbthrift_serialize_and_send_processOnStack(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "processOnStack"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "processOnStack"} */
   virtual void sync_processOnStack(::std::string& _return, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "processOnStack"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "processOnStack"} */
   virtual void sync_processOnStack(apache::thrift::RpcOptions& rpcOptions, ::std::string& _return, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "processOnStack"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "processOnStack"} */
   virtual folly::Future<::std::string> future_processOnStack(const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "processOnStack"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "processOnStack"} */
   virtual folly::SemiFuture<::std::string> semifuture_processOnStack(const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "processOnStack"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "processOnStack"} */
   virtual folly::Future<::std::string> future_processOnStack(apache::thrift::RpcOptions& rpcOptions, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "processOnStack"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "processOnStack"} */
   virtual folly::SemiFuture<::std::string> semifuture_processOnStack(apache::thrift::RpcOptions& rpcOptions, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "processOnStack"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "processOnStack"} */
   template <int = 0>
   folly::coro::Task<::std::string> co_processOnStack(const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name) {
     return co_processOnStack<false>(nullptr, p_name);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "processOnStack"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "processOnStack"} */
   template <int = 0>
   folly::coro::Task<::std::string> co_processOnStack(apache::thrift::RpcOptions& rpcOptions, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name) {
     return co_processOnStack<true>(&rpcOptions, p_name);
@@ -275,18 +275,18 @@ class Client<::test::fixtures::cpp_arena::ArenaService> : public apache::thrift:
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "processOnStack"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "processOnStack"} */
   virtual void processOnStack(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "processOnStack"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "processOnStack"} */
   static folly::exception_wrapper recv_wrapped_processOnStack(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "processOnStack"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "processOnStack"} */
   static void recv_processOnStack(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "processOnStack"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "processOnStack"} */
   virtual void recv_instance_processOnStack(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "processOnStack"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "processOnStack"} */
   virtual folly::exception_wrapper recv_instance_wrapped_processOnStack(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_processOnStack(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name);
@@ -296,35 +296,35 @@ class Client<::test::fixtures::cpp_arena::ArenaService> : public apache::thrift:
   template <typename CallbackType>
   folly::SemiFuture<::std::string> fbthrift_semifuture_processOnStack(apache::thrift::RpcOptions& rpcOptions, const ::apache::thrift::pmr::Rebind<::std::string>::type& p_name);
  public:
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "plain"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "plain"} */
   virtual void plain(std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::string& p_name);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "plain"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "plain"} */
   virtual void plain(apache::thrift::RpcOptions& rpcOptions, std::unique_ptr<apache::thrift::RequestCallback> callback, const ::std::string& p_name);
  protected:
   void fbthrift_serialize_and_send_plain(apache::thrift::RpcOptions& rpcOptions, std::shared_ptr<apache::thrift::transport::THeader> header, apache::thrift::ContextStack* contextStack, apache::thrift::RequestClientCallback::Ptr callback, const ::std::string& p_name, bool stealRpcOptions = false);
  public:
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "plain"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "plain"} */
   virtual void sync_plain(::std::string& _return, const ::std::string& p_name);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "plain"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "plain"} */
   virtual void sync_plain(apache::thrift::RpcOptions& rpcOptions, ::std::string& _return, const ::std::string& p_name);
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "plain"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "plain"} */
   virtual folly::Future<::std::string> future_plain(const ::std::string& p_name);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "plain"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "plain"} */
   virtual folly::SemiFuture<::std::string> semifuture_plain(const ::std::string& p_name);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "plain"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "plain"} */
   virtual folly::Future<::std::string> future_plain(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_name);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "plain"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "plain"} */
   virtual folly::SemiFuture<::std::string> semifuture_plain(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_name);
 
 #if FOLLY_HAS_COROUTINES
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "plain"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "plain"} */
   template <int = 0>
   folly::coro::Task<::std::string> co_plain(const ::std::string& p_name) {
     return co_plain<false>(nullptr, p_name);
   }
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "plain"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "plain"} */
   template <int = 0>
   folly::coro::Task<::std::string> co_plain(apache::thrift::RpcOptions& rpcOptions, const ::std::string& p_name) {
     return co_plain<true>(&rpcOptions, p_name);
@@ -398,18 +398,18 @@ class Client<::test::fixtures::cpp_arena::ArenaService> : public apache::thrift:
  public:
 #endif // FOLLY_HAS_COROUTINES
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "plain"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "plain"} */
   virtual void plain(folly::Function<void (::apache::thrift::ClientReceiveState&&)> callback, const ::std::string& p_name);
 
 
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "plain"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "plain"} */
   static folly::exception_wrapper recv_wrapped_plain(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "plain"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "plain"} */
   static void recv_plain(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
   // Mock friendly virtual instance method
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "plain"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "plain"} */
   virtual void recv_instance_plain(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
-  /** Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "plain"} */
+  /* Glean {"file": "thrift/compiler/test/fixtures/cpp-arena/src/service.thrift", "service": "ArenaService", "function": "plain"} */
   virtual folly::exception_wrapper recv_instance_wrapped_plain(::std::string& _return, ::apache::thrift::ClientReceiveState& state);
  private:
   apache::thrift::SerializedRequest fbthrift_serialize_plain(const RpcOptions& rpcOptions, apache::thrift::transport::THeader& header, apache::thrift::ContextStack* contextStack, const ::std::string& p_name);

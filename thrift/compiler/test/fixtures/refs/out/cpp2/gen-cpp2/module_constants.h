@@ -11,19 +11,19 @@
 #include "thrift/compiler/test/fixtures/refs/gen-cpp2/module_types.h"
 
 namespace cpp2 {
-/** Glean {"file": "thrift/compiler/test/fixtures/refs/src/module.thrift"} */
+/* Glean {"file": "thrift/compiler/test/fixtures/refs/src/module.thrift"} */
 namespace module_constants {
 
-  /** Glean {"constant": "kStructWithRef"} */
+  /* Glean {"constant": "kStructWithRef"} */
   ::cpp2::StructWithRef const& kStructWithRef();
 
-  /** Glean {"constant": "kStructWithRefTypeUnique"} */
+  /* Glean {"constant": "kStructWithRefTypeUnique"} */
   ::cpp2::StructWithRefTypeUnique const& kStructWithRefTypeUnique();
 
-  /** Glean {"constant": "kStructWithRefTypeShared"} */
+  /* Glean {"constant": "kStructWithRefTypeShared"} */
   ::cpp2::StructWithRefTypeShared const& kStructWithRefTypeShared();
 
-  /** Glean {"constant": "kStructWithRefTypeSharedConst"} */
+  /* Glean {"constant": "kStructWithRefTypeSharedConst"} */
   ::cpp2::StructWithRefTypeSharedConst const& kStructWithRefTypeSharedConst();
 
   FOLLY_EXPORT ::std::string_view _fbthrift_schema_e47beb0f6367ade7();

@@ -25,28 +25,28 @@ APACHE_THRIFT_DEFINE_ACCESSOR(fieldA);
 // BEGIN declare_enums
 namespace facebook::ns::qwerty {
 
-/** Glean {"file": "thrift/compiler/test/fixtures/mcpp2-compare/src/enums.thrift", "name": "AnEnumA", "kind": "enum" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/mcpp2-compare/src/enums.thrift", "name": "AnEnumA", "kind": "enum" } */
 enum class AnEnumA {
   FIELDA = 0,
 };
 
-/** Glean {"file": "thrift/compiler/test/fixtures/mcpp2-compare/src/enums.thrift", "name": "AnEnumB", "kind": "enum" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/mcpp2-compare/src/enums.thrift", "name": "AnEnumB", "kind": "enum" } */
 enum class AnEnumB {
   FIELDA = 0,
   FIELDB = 2,
 };
 
-/** Glean {"file": "thrift/compiler/test/fixtures/mcpp2-compare/src/enums.thrift", "name": "AnEnumC", "kind": "enum" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/mcpp2-compare/src/enums.thrift", "name": "AnEnumC", "kind": "enum" } */
 enum class AnEnumC {
   FIELDC = 0,
 };
 
-/** Glean {"file": "thrift/compiler/test/fixtures/mcpp2-compare/src/enums.thrift", "name": "AnEnumD", "kind": "enum" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/mcpp2-compare/src/enums.thrift", "name": "AnEnumD", "kind": "enum" } */
 enum class AnEnumD {
   FIELDD = 0,
 };
 
-/** Glean {"file": "thrift/compiler/test/fixtures/mcpp2-compare/src/enums.thrift", "name": "AnEnumE", "kind": "enum" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/mcpp2-compare/src/enums.thrift", "name": "AnEnumE", "kind": "enum" } */
 enum class AnEnumE {
   FIELDA = 0,
 };
@@ -238,7 +238,7 @@ namespace apache::thrift::detail::qualifier {
 // END hash_and_equal_to
 namespace facebook::ns::qwerty {
 
-/** Glean {"file": "thrift/compiler/test/fixtures/mcpp2-compare/src/enums.thrift", "name": "SomeStruct", "kind": "struct" } */
+/* Glean {"file": "thrift/compiler/test/fixtures/mcpp2-compare/src/enums.thrift", "name": "SomeStruct", "kind": "struct" } */
 class SomeStruct final  {
  private:
   friend struct ::apache::thrift::detail::st::struct_private_access;
@@ -308,47 +308,47 @@ class SomeStruct final  {
   bool operator==(const SomeStruct&) const;
   std::partial_ordering operator<=>(const SomeStruct&) const;
 
-  /** Glean { "field": "fieldA" } */
+  /* Glean { "field": "fieldA" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> fieldA_ref() const& {
     return {this->__fbthrift_field_fieldA, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "fieldA" } */
+  /* Glean { "field": "fieldA" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> fieldA_ref() & {
     return {this->__fbthrift_field_fieldA, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "fieldA" } */
+  /* Glean { "field": "fieldA" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> fieldA_ref() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_fieldA), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "fieldA" } */
+  /* Glean { "field": "fieldA" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<const fbthrift_T&> fieldA() const& {
     return {this->__fbthrift_field_fieldA, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "fieldA" } */
+  /* Glean { "field": "fieldA" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&> fieldA() & {
     return {this->__fbthrift_field_fieldA, __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "fieldA" } */
+  /* Glean { "field": "fieldA" } */
   template <typename..., typename fbthrift_T = ::std::int32_t>
   FOLLY_ERASE ::apache::thrift::field_ref<fbthrift_T&&> fieldA() && {
     return {static_cast<fbthrift_T&&>(this->__fbthrift_field_fieldA), __isset.at(0), __isset.bit(0)};
   }
 
-  /** Glean { "field": "fieldA" } */
+  /* Glean { "field": "fieldA" } */
   [[deprecated("Use `FOO.fieldA().value()` instead of `FOO.get_fieldA()`")]]
   ::std::int32_t get_fieldA() const;
 
-  /** Glean { "field": "fieldA" } */
+  /* Glean { "field": "fieldA" } */
   [[deprecated("Use `FOO.fieldA() = BAR` instead of `FOO.set_fieldA(BAR)`")]]
   ::std::int32_t& set_fieldA(::std::int32_t fieldA_);
 
