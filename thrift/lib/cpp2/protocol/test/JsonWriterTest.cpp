@@ -115,8 +115,7 @@ TEST_P(JsonWriterTest, EmptyContainers) {
   }
 }
 
-// Growth 1 puts each written byte in its own buffer, so closing the outer list
-// trims a comma that is alone in its buffer.
+// Growth 1 puts each written byte in its own buffer.
 TEST_P(JsonWriterTest, CallerQueueWithOneByteBuffers) {
   folly::IOBufQueue queue;
   queue.append(folly::IOBuf::copyBuffer("head"));
@@ -129,16 +128,6 @@ TEST_P(JsonWriterTest, CallerQueueWithOneByteBuffers) {
   w.writeListEnd();
   w.writeListEnd();
   EXPECT_EQ(queue.move()->toString(), isJson5() ? "head[1,[],]" : "head[1,[]]");
-}
-
-TEST_P(JsonWriterTest, ClosingAfterCallerAppendsEmptyBufferTerminates) {
-  folly::IOBufQueue queue;
-  JsonWriter w(compactOptions());
-  w.setOutput(folly::io::QueueAppender(&queue, 16));
-  w.writeListBegin();
-  w.writeI32(1);
-  queue.append(folly::IOBuf::create(0));
-  EXPECT_DEATH(w.writeListEnd(), "last output buffer is empty");
 }
 
 TEST_P(JsonWriterTest, PrimitiveTypes) {

@@ -24,9 +24,9 @@
 #include <type_traits>
 #include <fmt/compile.h>
 #include <fmt/format.h>
+#include <folly/CPortability.h>
 #include <folly/Exception.h>
 #include <folly/json.h>
-#include <folly/lang/Exception.h>
 #include <thrift/lib/cpp2/protocol/detail/JsonUtils.h>
 
 namespace apache::thrift::json5::detail {
@@ -51,21 +51,18 @@ std::uint32_t JsonWriter::appendNewlineAndIndent() {
   return n;
 }
 
-std::uint32_t JsonWriter::appendComma() {
-  if (!containerStack_.empty()) {
-    out_.write(',');
-    return 1;
+// Inline, like beginValue and endValue, so that each scalar writer keeps the
+// output position in registers across the comma and the value.
+FOLLY_ALWAYS_INLINE std::uint32_t JsonWriter::writePendingComma() {
+  if (!commaPending_) {
+    return 0;
   }
-  return 0;
+  out_.write(',');
+  return 1;
 }
 
-char JsonWriter::back() {
-  folly::io::RWPrivateCursor head(out_);
-  const folly::IOBuf* last = head.currentBuffer()->prev();
-  if (last->length() == 0) {
-    folly::terminate_with<std::logic_error>("last output buffer is empty");
-  }
-  return last->tail()[-1];
+FOLLY_ALWAYS_INLINE void JsonWriter::endValue() {
+  commaPending_ = true;
 }
 
 char JsonWriter::getOpenBracket(ContainerType type) {
@@ -92,12 +89,13 @@ bool JsonWriter::trailingComma(ContainerType type) const {
 }
 
 // Called before writing any JSON value to insert indentation if needed.
-std::uint32_t JsonWriter::beginValue() {
+FOLLY_ALWAYS_INLINE std::uint32_t JsonWriter::beginValue() {
   std::uint32_t n = 0;
   if (inContainer(ContainerType::List)) {
     // Only add indentation when writing value in a list. Why? If it's in a
     // object, we should indent when writing object name, not when writing
     // object value.
+    n += writePendingComma();
     n += appendNewlineAndIndent();
   } else if (inContainer(ContainerType::Object)) {
     CHECK_THROW(lastWrittenValueWasObjectName_, std::runtime_error);
@@ -114,6 +112,7 @@ std::uint32_t JsonWriter::openContainer(ContainerType type) {
   containerStack_.push_back(type);
   out_.write(getOpenBracket(type));
   n += 1;
+  commaPending_ = false;
   return n;
 }
 
@@ -125,20 +124,19 @@ std::uint32_t JsonWriter::closeContainer(ContainerType type) {
   // is expected first).
   CHECK_THROW(!lastWrittenValueWasObjectName_, std::runtime_error);
 
-  CHECK_THROW(
-      back() == ',' || back() == getOpenBracket(type), std::logic_error);
-  std::int64_t n = 0;
+  std::uint32_t n = 0;
+  const bool empty = !commaPending_;
   containerStack_.pop_back();
-  if (!trailingComma(type) && back() == ',') {
-    out_.trimEnd(1);
-    n -= 1;
-  }
-  if (back() != getOpenBracket(type)) {
+  if (!empty) {
+    if (trailingComma(type)) {
+      out_.write(',');
+      n += 1;
+    }
     n += appendNewlineAndIndent();
   }
   out_.write(getCloseBracket(type));
   n += 1;
-  n += appendComma();
+  endValue();
   return n;
 }
 
@@ -187,7 +185,7 @@ std::uint32_t JsonWriter::writeFloatingPoint(T t) {
     out_.push(folly::StringPiece(formatted()));
     n += buf.size();
   }
-  n += appendComma();
+  endValue();
   return n;
 }
 
@@ -202,7 +200,8 @@ std::uint32_t JsonWriter::writeIntegral(std::integral auto t) {
   const auto size = static_cast<std::uint32_t>(
       fmt::format_to(begin, FMT_COMPILE("{}"), t) - begin);
   out_.append(size);
-  return n + size + appendComma();
+  endValue();
+  return n + size;
 }
 
 template std::uint32_t JsonWriter::writeIntegral(std::int8_t);
@@ -214,7 +213,8 @@ std::uint32_t JsonWriter::writeBool(bool b) {
   std::uint32_t n = beginValue();
   auto s = b ? folly::StringPiece("true") : folly::StringPiece("false");
   out_.push(s);
-  return n + static_cast<std::uint32_t>(s.size()) + appendComma();
+  endValue();
+  return n + static_cast<std::uint32_t>(s.size());
 }
 
 // -- strings ----------------------------------------------------------
@@ -241,6 +241,7 @@ std::uint32_t JsonWriter::writeObjectName(std::string_view s) {
 
   std::uint32_t n = 0;
   lastWrittenValueWasObjectName_ = true;
+  n += writePendingComma();
   n += appendNewlineAndIndent();
   const std::string_view sep = options_.indentWidth > 0 ? ": " : ":";
   if (!isIdentifier(s, /*allowDollarSign=*/true)) {
@@ -270,7 +271,7 @@ std::uint32_t JsonWriter::writeString(std::string_view s) {
   std::uint32_t n = 0;
   n += beginValue();
   n += writeQuotedString(s);
-  n += appendComma();
+  endValue();
   return n;
 }
 
@@ -279,7 +280,7 @@ std::uint32_t JsonWriter::writeNull() {
   n += beginValue();
   out_.push(folly::StringPiece("null"));
   n += 4;
-  n += appendComma();
+  endValue();
   return n;
 }
 

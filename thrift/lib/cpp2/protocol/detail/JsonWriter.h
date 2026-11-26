@@ -145,8 +145,9 @@ class JsonWriter {
 
   bool inContainer(ContainerType type) const;
   std::uint32_t beginValue();
-  std::uint32_t appendComma();
-  char back();
+  // Writes the comma that separates the next value from the previous one.
+  std::uint32_t writePendingComma();
+  void endValue();
   bool trailingComma(ContainerType) const;
   static char getOpenBracket(ContainerType);
   static char getCloseBracket(ContainerType);
@@ -160,6 +161,12 @@ class JsonWriter {
   // Only used for error detection, e.g., rejecting consecutive object name
   // writes.
   bool lastWrittenValueWasObjectName_ = false;
+
+  // Whether a value was written since the innermost open container was
+  // opened, so a comma goes before its next value or object name, or before
+  // its closing bracket if trailing commas are on. Also set by top-level
+  // values, where nothing reads it.
+  bool commaPending_ = false;
 
   // Scratch buffer for escaped strings, reused to keep its capacity.
   std::string escaped_;
