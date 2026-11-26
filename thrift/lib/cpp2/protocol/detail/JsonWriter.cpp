@@ -16,6 +16,7 @@
 
 #include <thrift/lib/cpp2/protocol/detail/JsonWriter.h>
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <limits>
@@ -241,23 +242,28 @@ std::uint32_t JsonWriter::writeObjectName(std::string_view s) {
   std::uint32_t n = 0;
   lastWrittenValueWasObjectName_ = true;
   n += appendNewlineAndIndent();
-  if (isIdentifier(s, /*allowDollarSign=*/true)) {
-    if (!options_.unquoteObjectName) {
-      out_.write('"');
-    }
-    out_.push(folly::StringPiece(s));
-    if (!options_.unquoteObjectName) {
-      out_.write('"');
-      n += 2;
-    }
-    n += s.size();
-  } else {
+  const std::string_view sep = options_.indentWidth > 0 ? ": " : ":";
+  if (!isIdentifier(s, /*allowDollarSign=*/true)) {
     n += writeQuotedString(s);
+    out_.push(folly::StringPiece(sep));
+    return n + static_cast<std::uint32_t>(sep.size());
   }
-  auto sep = options_.indentWidth > 0 ? ": " : ":";
-  out_.push(folly::StringPiece(sep));
-  n += strlen(sep);
-  return n;
+  // Member names are short, so write the name and separator into one
+  // reserved range rather than appending each piece.
+  const bool quoted = !options_.unquoteObjectName;
+  const std::size_t size = s.size() + (quoted ? 2 : 0) + sep.size();
+  out_.ensure(size);
+  char* p = reinterpret_cast<char*>(out_.writableData());
+  if (quoted) {
+    *p++ = '"';
+  }
+  p = std::copy(s.begin(), s.end(), p);
+  if (quoted) {
+    *p++ = '"';
+  }
+  std::copy(sep.begin(), sep.end(), p);
+  out_.append(size);
+  return n + static_cast<std::uint32_t>(size);
 }
 
 std::uint32_t JsonWriter::writeString(std::string_view s) {
