@@ -17,18 +17,34 @@
 #include <thrift/lib/cpp2/protocol/detail/JsonUtils.h>
 
 #include <algorithm>
+#include <array>
 
 namespace apache::thrift::json5::detail {
+
+namespace {
+// Whether each byte can be part of an identifier: one lookup per byte instead
+// of a chain of range comparisons.
+constexpr std::array<bool, 256> makeIdentifierCharTable(bool allowDollarSign) {
+  std::array<bool, 256> table{};
+  for (int c = 0; c < 256; ++c) {
+    table[c] = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+        (c >= '0' && c <= '9') || c == '_' || (allowDollarSign && c == '$');
+  }
+  return table;
+}
+constexpr auto kIdentifierChars = makeIdentifierCharTable(false);
+constexpr auto kIdentifierCharsWithDollarSign = makeIdentifierCharTable(true);
+} // namespace
 
 bool isIdentifier(std::string_view sv, bool allowDollarSign) {
   if (sv.empty() || (sv[0] >= '0' && sv[0] <= '9')) {
     return false;
   }
-  auto isIdentifierChar = [allowDollarSign](char c) {
-    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
-        (c >= '0' && c <= '9') || c == '_' || (allowDollarSign && c == '$');
-  };
-  return std::all_of(sv.begin(), sv.end(), isIdentifierChar);
+  const auto& table =
+      allowDollarSign ? kIdentifierCharsWithDollarSign : kIdentifierChars;
+  return std::all_of(sv.begin(), sv.end(), [&table](char c) {
+    return table[static_cast<unsigned char>(c)];
+  });
 }
 
 bool isAsciiWithNothingToEscape(std::string_view s) {
