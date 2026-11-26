@@ -17,10 +17,11 @@
 #include <thrift/lib/cpp2/protocol/detail/JsonReader.h>
 
 #include <algorithm>
+#include <array>
 #include <charconv>
 #include <cstdint>
-#include <iterator>
 #include <limits>
+#include <span>
 #include <utility>
 
 #include <fmt/core.h>
@@ -29,6 +30,7 @@
 #include <folly/Range.h>
 #include <folly/String.h>
 #include <folly/Unicode.h>
+#include <folly/algorithm/simd/find_first_of.h>
 #include <thrift/lib/cpp/protocol/TProtocolException.h>
 
 namespace apache::thrift::json5::detail {
@@ -180,26 +182,23 @@ void decodeUnicodeEscape(folly::io::Cursor& cursor, std::string& out) {
   folly::appendCodePointToUtf8(codePoint, out);
 }
 
+template <char Quote>
+constexpr std::array<char, 4> kStringSpecials = {Quote, '\\', '\n', '\r'};
+
+template <char Quote>
+constexpr folly::simd::composite_finder_first_of<
+    folly::simd::default_vector_finder_first_of,
+    folly::simd::default_scalar_finder_first_of>
+    kStringSpecialFinder{kStringSpecials<Quote>};
+
 // Returns the leading bytes that can be copied into the string as is:
 // everything before the closing `quote`, a backslash, `\n` or `\r`.
 folly::ByteRange findCopyableRange(folly::ByteRange bytes, char quote) {
-  const unsigned char q = quote;
-  auto isSpecial = [q](unsigned char b) {
-    return b == q || b == '\\' || b == '\n' || b == '\r';
-  };
-  // Most strings (member names, enum names) are short, and a plain loop finds
-  // their end faster than the setup of the vectorized search below.
-  constexpr std::size_t kShortSize = 16;
-  const folly::ByteRange prefix = bytes.subpiece(0, kShortSize);
-  const auto end = std::find_if(prefix.begin(), prefix.end(), isSpecial);
-  if (end != prefix.end() || prefix.size() == bytes.size()) {
-    return {bytes.begin(), end};
-  }
-  const unsigned char specials[] = {q, '\\', '\n', '\r'};
-  const std::size_t pos =
-      bytes.subpiece(kShortSize).find_first_of({specials, std::end(specials)});
-  return pos == folly::ByteRange::npos ? bytes
-                                       : bytes.subpiece(0, kShortSize + pos);
+  const std::span input(
+      reinterpret_cast<const char*>(bytes.data()), bytes.size());
+  const std::size_t size = quote == '"' ? kStringSpecialFinder<'"'>(input)
+                                        : kStringSpecialFinder<'\''>(input);
+  return bytes.subpiece(0, size);
 }
 
 bool isNumberPart(char c) {
