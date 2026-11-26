@@ -19,6 +19,7 @@ package com.facebook.thrift.util;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.facebook.thrift.adapter.TypeAdapter;
 import com.facebook.thrift.payload.ThriftSerializable;
 import com.facebook.thrift.protocol.ByteBufTBinaryProtocol;
 import com.facebook.thrift.protocol.ByteBufTCompactProtocol;
@@ -328,6 +329,340 @@ public class ThriftSizesTest {
 
     assertEquals(-1, ThriftSizes.structs(unknown));
     assertEquals(-1, new UnknownSize().serializedSize());
+  }
+
+  @Test
+  public void testAddAdaptedStringFieldHook() {
+    HookStringAdapter adapter = new HookStringAdapter(ThriftSizes.string("hey"));
+
+    long size = ThriftSizes.addAdaptedStringField(10, "hey", adapter);
+
+    assertEquals(
+        ThriftSizes.addSize(ThriftSizes.addSize(10, ThriftSizes.FIELD), ThriftSizes.string("hey")),
+        size);
+    assertEquals(1, adapter.hookCalls);
+    assertEquals(0, adapter.convertCalls);
+  }
+
+  @Test
+  public void testAddAdaptedStringFieldFallback() {
+    HookStringAdapter adapter = new HookStringAdapter(-1);
+
+    long size = ThriftSizes.addAdaptedStringField(10, "hey", adapter);
+
+    assertEquals(
+        ThriftSizes.addSize(ThriftSizes.addSize(10, ThriftSizes.FIELD), ThriftSizes.string("hey")),
+        size);
+    assertEquals(1, adapter.hookCalls);
+    assertEquals(1, adapter.convertCalls);
+  }
+
+  @Test
+  public void testAddAdaptedStringFieldNullToValue() {
+    HookStringAdapter adapter = new HookStringAdapter(-1);
+    adapter.nullMapping = "yo";
+
+    long size = ThriftSizes.addAdaptedStringField(10, null, adapter);
+
+    assertEquals(
+        ThriftSizes.addSize(ThriftSizes.addSize(10, ThriftSizes.FIELD), ThriftSizes.string("yo")),
+        size);
+    assertEquals(0, adapter.hookCalls);
+    assertEquals(1, adapter.convertCalls);
+  }
+
+  @Test
+  public void testAddAdaptedStringFieldNullToNull() {
+    HookStringAdapter adapter = new HookStringAdapter(-1);
+
+    long size = ThriftSizes.addAdaptedStringField(10, null, adapter);
+
+    assertEquals(10, size);
+    assertEquals(0, adapter.hookCalls);
+    assertEquals(1, adapter.convertCalls);
+  }
+
+  @Test
+  public void testAddAdaptedStringFieldSaturates() {
+    HookStringAdapter adapter = new HookStringAdapter(Long.MAX_VALUE);
+
+    long size = ThriftSizes.addAdaptedStringField(10, "hey", adapter);
+
+    assertEquals(Long.MAX_VALUE, size);
+    assertEquals(0, adapter.convertCalls);
+  }
+
+  @Test
+  public void testAddAdaptedBinaryFieldHook() {
+    HookBinaryAdapter adapter = new HookBinaryAdapter(12);
+
+    long size = ThriftSizes.addAdaptedBinaryField(10, "hey", adapter);
+
+    assertEquals(ThriftSizes.addSize(ThriftSizes.addSize(10, ThriftSizes.FIELD), 12), size);
+    assertEquals(1, adapter.hookCalls);
+    assertEquals(0, adapter.convertCalls);
+  }
+
+  @Test
+  public void testAddAdaptedBinaryFieldFallback() {
+    HookBinaryAdapter adapter = new HookBinaryAdapter(-1);
+
+    long size = ThriftSizes.addAdaptedBinaryField(10, "hey", adapter);
+
+    assertEquals(
+        ThriftSizes.addSize(
+            ThriftSizes.addSize(10, ThriftSizes.FIELD), ThriftSizes.binary(new byte[] {1, 2, 3})),
+        size);
+    assertEquals(1, adapter.convertCalls);
+  }
+
+  @Test
+  public void testAddAdaptedBinaryFieldSaturates() {
+    HookBinaryAdapter adapter = new HookBinaryAdapter(Long.MAX_VALUE);
+
+    long size = ThriftSizes.addAdaptedBinaryField(10, "hey", adapter);
+
+    assertEquals(Long.MAX_VALUE, size);
+    assertEquals(0, adapter.convertCalls);
+  }
+
+  @Test
+  public void testAddAdaptedStructFieldHook() {
+    HookStructAdapter adapter = new HookStructAdapter(7);
+
+    long size = ThriftSizes.addAdaptedStructField(10, "hey", adapter);
+
+    assertEquals(ThriftSizes.addSize(ThriftSizes.addSize(10, ThriftSizes.FIELD), 7), size);
+    assertEquals(1, adapter.hookCalls);
+    assertEquals(0, adapter.convertCalls);
+  }
+
+  @Test
+  public void testAddAdaptedStructFieldUnknownSize() {
+    HookStructAdapter adapter = new HookStructAdapter(7);
+
+    long size = ThriftSizes.addAdaptedStructField(-1, "hey", adapter);
+
+    assertEquals(-1, size);
+    assertEquals(0, adapter.hookCalls);
+    assertEquals(0, adapter.convertCalls);
+  }
+
+  @Test
+  public void testAddAdaptedStructFieldConvertedUnknown() {
+    HookStructAdapter adapter = new HookStructAdapter(-1);
+    adapter.structResult = new UnknownSize();
+
+    long size = ThriftSizes.addAdaptedStructField(10, "hey", adapter);
+
+    assertEquals(-1, size);
+    assertEquals(1, adapter.convertCalls);
+  }
+
+  @Test
+  public void testAddAdaptedStructFieldConvertedKnown() {
+    HookStructAdapter adapter = new HookStructAdapter(-1);
+    adapter.structResult = new FixedSize(7);
+
+    long size = ThriftSizes.addAdaptedStructField(10, "hey", adapter);
+
+    assertEquals(ThriftSizes.addSize(ThriftSizes.addSize(10, ThriftSizes.FIELD), 7), size);
+    assertEquals(1, adapter.convertCalls);
+  }
+
+  @Test
+  public void testAddAdaptedStructFieldNullToNull() {
+    HookStructAdapter adapter = new HookStructAdapter(-1);
+
+    long size = ThriftSizes.addAdaptedStructField(10, null, adapter);
+
+    assertEquals(10, size);
+    assertEquals(0, adapter.hookCalls);
+    assertEquals(1, adapter.convertCalls);
+  }
+
+  @Test
+  public void testAdaptedStringListHooked() {
+    HookStringAdapter adapter = new HookStringAdapter(5);
+    List<String> indexed = Arrays.asList("a", "bb");
+    List<String> sequential = new LinkedList<>(indexed);
+
+    assertEquals(10, ThriftSizes.adaptedStringList(indexed, adapter));
+    assertEquals(10, ThriftSizes.adaptedStringList(sequential, adapter));
+    assertEquals(0, ThriftSizes.adaptedStringList(Collections.emptyList(), adapter));
+    assertEquals(4, adapter.hookCalls);
+    assertEquals(0, adapter.convertCalls);
+  }
+
+  @Test
+  public void testAdaptedStringListConverted() {
+    HookStringAdapter adapter = new HookStringAdapter(-1);
+
+    long size = ThriftSizes.adaptedStringList(Arrays.asList("a", "bb"), adapter);
+
+    assertEquals(ThriftSizes.addSize(ThriftSizes.string("a"), ThriftSizes.string("bb")), size);
+    assertEquals(2, adapter.convertCalls);
+  }
+
+  @Test
+  public void testAdaptedStringListSaturates() {
+    HookStringAdapter adapter = new HookStringAdapter(Long.MAX_VALUE);
+
+    long size = ThriftSizes.adaptedStringList(Arrays.asList("a", "bb"), adapter);
+
+    assertEquals(Long.MAX_VALUE, size);
+  }
+
+  @Test
+  public void testAdaptedStrings() {
+    HookStringAdapter adapter = new HookStringAdapter(5);
+
+    assertEquals(10, ThriftSizes.adaptedStrings(new HashSet<>(Arrays.asList("a", "bb")), adapter));
+    assertEquals(0, ThriftSizes.adaptedStrings(Collections.emptySet(), adapter));
+    assertEquals(0, adapter.convertCalls);
+  }
+
+  @Test
+  public void testAdaptedBinaryList() {
+    HookBinaryAdapter adapter = new HookBinaryAdapter(9);
+
+    assertEquals(18, ThriftSizes.adaptedBinaryList(Arrays.asList("a", "bb"), adapter));
+    assertEquals(0, ThriftSizes.adaptedBinaryList(Collections.emptyList(), adapter));
+    assertEquals(0, adapter.convertCalls);
+  }
+
+  @Test
+  public void testAdaptedBinaries() {
+    HookBinaryAdapter adapter = new HookBinaryAdapter(-1);
+
+    long size = ThriftSizes.adaptedBinaries(Collections.singletonList("hey"), adapter);
+
+    assertEquals(ThriftSizes.binary(new byte[] {1, 2, 3}), size);
+    assertEquals(1, adapter.convertCalls);
+  }
+
+  @Test
+  public void testAdaptedStructList() {
+    HookStructAdapter adapter = new HookStructAdapter(-1);
+    adapter.structResult = new FixedSize(7);
+
+    assertEquals(14, ThriftSizes.adaptedStructList(Arrays.asList("a", "bb"), adapter));
+    assertEquals(
+        14, ThriftSizes.adaptedStructList(new LinkedList<>(Arrays.asList("a", "bb")), adapter));
+    assertEquals(0, ThriftSizes.adaptedStructList(Collections.emptyList(), adapter));
+    assertEquals(4, adapter.convertCalls);
+  }
+
+  @Test
+  public void testAdaptedStructListUnknown() {
+    HookStructAdapter adapter = new HookStructAdapter(-1);
+    adapter.structResult = new UnknownSize();
+
+    long size = ThriftSizes.adaptedStructList(Collections.singletonList("a"), adapter);
+
+    assertEquals(-1, size);
+  }
+
+  @Test
+  public void testAdaptedStructs() {
+    HookStructAdapter adapter = new HookStructAdapter(7);
+
+    assertEquals(14, ThriftSizes.adaptedStructs(Arrays.asList("a", "bb"), adapter));
+    assertEquals(0, adapter.convertCalls);
+
+    HookStructAdapter fallback = new HookStructAdapter(-1);
+    fallback.structResult = new UnknownSize();
+
+    assertEquals(-1, ThriftSizes.adaptedStructs(Collections.singletonList("a"), fallback));
+  }
+
+  private static final class HookStringAdapter implements TypeAdapter<String, String> {
+    private final long hookResult;
+    private int hookCalls;
+    private int convertCalls;
+    private String nullMapping;
+
+    HookStringAdapter(long hookResult) {
+      this.hookResult = hookResult;
+    }
+
+    @Override
+    public String fromThrift(String value) {
+      return value;
+    }
+
+    @Override
+    public String toThrift(String value) {
+      convertCalls++;
+
+      return value == null ? nullMapping : value;
+    }
+
+    @Override
+    public long serializedSize(String value) {
+      hookCalls++;
+
+      return hookResult;
+    }
+  }
+
+  private static final class HookBinaryAdapter implements TypeAdapter<ByteBuf, String> {
+    private final long hookResult;
+    private int hookCalls;
+    private int convertCalls;
+
+    HookBinaryAdapter(long hookResult) {
+      this.hookResult = hookResult;
+    }
+
+    @Override
+    public String fromThrift(ByteBuf value) {
+      return value.toString(StandardCharsets.UTF_8);
+    }
+
+    @Override
+    public ByteBuf toThrift(String value) {
+      convertCalls++;
+
+      return value == null ? null : Unpooled.wrappedBuffer(new byte[] {1, 2, 3});
+    }
+
+    @Override
+    public long serializedSize(String value) {
+      hookCalls++;
+
+      return hookResult;
+    }
+  }
+
+  private static final class HookStructAdapter implements TypeAdapter<ThriftSerializable, String> {
+    private final long hookResult;
+    private int hookCalls;
+    private int convertCalls;
+    private ThriftSerializable structResult;
+
+    HookStructAdapter(long hookResult) {
+      this.hookResult = hookResult;
+    }
+
+    @Override
+    public String fromThrift(ThriftSerializable value) {
+      return "";
+    }
+
+    @Override
+    public ThriftSerializable toThrift(String value) {
+      convertCalls++;
+
+      return structResult;
+    }
+
+    @Override
+    public long serializedSize(String value) {
+      hookCalls++;
+
+      return hookResult;
+    }
   }
 
   private static final class FixedSize implements ThriftSerializable {

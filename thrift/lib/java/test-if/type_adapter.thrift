@@ -18,6 +18,7 @@ namespace java.swift com.facebook.thrift.test.adapter
 
 include "thrift/annotation/java.thrift"
 include "thrift/annotation/thrift.thrift"
+include "thrift/lib/java/test-common/test_common.thrift"
 include "thrift/lib/thrift/any.thrift"
 
 @thrift.Experimental
@@ -240,6 +241,11 @@ typedef data CopiedByteBufData
 @thrift.AllowLegacyTypedefUri
 typedef CopiedByteBufData NestedBinTypeDef
 
+// A plain string typedef with no adapter: a field-level adapter on it must size
+// through the single-adapter helper, proving typedef transparency.
+@thrift.AllowLegacyTypedefUri
+typedef string plainString
+
 @thrift.AllowLegacyTypedefUri
 @java.Adapter{
   adapterClassName = 'com.facebook.thrift.adapter.test.GenericTypeAdapter',
@@ -390,6 +396,15 @@ struct TestStruct {
   514: list<list<list<list<i32>>>> quadAdapted_field;
   515: map<i32, map<i16, list<list<list<list<i32>>>>>> quadAdaptedMap_field;
 }
+
+// A struct typedef with an adapter: fields of it must size through the
+// single-adapter struct helper.
+@thrift.AllowLegacyTypedefUri
+@java.Adapter{
+  adapterClassName = "com.facebook.thrift.adapter.test.SmallStructToStringAdapter",
+  typeClassName = "java.lang.String",
+}
+typedef test_common.SmallStruct adaptedSmallStruct
 
 // Adapted version of TestStruct.
 struct AdaptedTestStruct {
@@ -627,6 +642,27 @@ struct AdapterHookTestStruct {
     typeClassName = "java.lang.String",
   }
   3: optional string opt_hooked_field;
+}
+
+// A field-level adapter on a plain typedef: sizing must route through the
+// single-adapter helper, calling the hook once and never converting.
+struct FieldAdaptedTypedefHolder {
+  @java.Adapter{
+    adapterClassName = "com.facebook.thrift.adapter.test.CountingHookStringAdapter",
+    typeClassName = "java.lang.String",
+  }
+  1: plainString value;
+}
+
+// Adapted containers and an adapted struct field: sizing must route through the
+// single-adapter element and struct helpers.
+struct AdaptedHelperHolder {
+  1: list<adaptedString> stringList_field;
+  2: set<adaptedString> stringSet_field;
+  3: list<maxBoundString> saturatedList_field;
+  4: list<adaptedSmallStruct> structList_field;
+  5: adaptedSmallStruct struct_field;
+  6: optional adaptedSmallStruct opt_struct_field;
 }
 
 struct AdaptedTestStructWithoutDefaults {

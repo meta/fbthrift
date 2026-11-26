@@ -16,6 +16,7 @@
 
 package com.facebook.thrift.util;
 
+import com.facebook.thrift.adapter.TypeAdapter;
 import com.facebook.thrift.payload.ThriftSerializable;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
@@ -162,6 +163,248 @@ public final class ThriftSizes {
     }
 
     return size;
+  }
+
+  /**
+   * Adds one adapted string field: the hook bounds the stored value, else converts and sizes the
+   * result. A null stored value converts too, mirroring the generated fallback; a null result adds
+   * nothing.
+   */
+  public static <P> long addAdaptedStringField(long size, P value, TypeAdapter<String, P> adapter) {
+    if (value != null) {
+      long hookSize = adapter.serializedSize(value);
+
+      if (hookSize >= 0) {
+        return addSize(addSize(size, FIELD), hookSize);
+      }
+    }
+
+    String converted = adapter.toThrift(value);
+
+    if (converted == null) {
+      return size;
+    }
+
+    return addSize(addSize(size, FIELD), string(converted));
+  }
+
+  /**
+   * Adds one adapted binary field: the hook bounds the stored value, else converts and sizes the
+   * result. A null stored value converts too, mirroring the generated fallback; a null result adds
+   * nothing.
+   */
+  public static <P> long addAdaptedBinaryField(
+      long size, P value, TypeAdapter<ByteBuf, P> adapter) {
+    if (value != null) {
+      long hookSize = adapter.serializedSize(value);
+
+      if (hookSize >= 0) {
+        return addSize(addSize(size, FIELD), hookSize);
+      }
+    }
+
+    ByteBuf converted = adapter.toThrift(value);
+
+    if (converted == null) {
+      return size;
+    }
+
+    return addSize(addSize(size, FIELD), binary(converted));
+  }
+
+  /**
+   * Adds one adapted struct field: the hook bounds the stored value, else converts and sizes the
+   * result. Returns -1 when the running size or the converted size is unknown, so the caller falls
+   * back to an unbounded buffer. A null stored value converts too, mirroring the generated
+   * fallback; a null result adds nothing.
+   */
+  public static <P> long addAdaptedStructField(
+      long size, P value, TypeAdapter<? extends ThriftSerializable, P> adapter) {
+    if (size < 0) {
+      return -1;
+    }
+
+    if (value != null) {
+      long hookSize = adapter.serializedSize(value);
+
+      if (hookSize >= 0) {
+        return addSize(addSize(size, FIELD), hookSize);
+      }
+    }
+
+    ThriftSerializable converted = adapter.toThrift(value);
+
+    if (converted == null) {
+      return size;
+    }
+
+    long convertedSize = converted.serializedSize();
+
+    if (convertedSize < 0) {
+      return -1;
+    }
+
+    return addSize(addSize(size, FIELD), convertedSize);
+  }
+
+  /**
+   * Upper bound for a list of adapted strings: one hook-first element size per element. Lists with
+   * random access iterate by index; the rest iterate in order.
+   */
+  public static <P> long adaptedStringList(List<P> values, TypeAdapter<String, P> adapter) {
+    long size = 0;
+
+    if (values instanceof RandomAccess) {
+      for (int i = 0, n = values.size(); i < n; i++) {
+        size = addSize(size, adaptedStringElement(values.get(i), adapter));
+      }
+    } else {
+      for (P value : values) {
+        size = addSize(size, adaptedStringElement(value, adapter));
+      }
+    }
+
+    return size;
+  }
+
+  /** Upper bound for a collection of adapted strings: one hook-first element size per element. */
+  public static <P> long adaptedStrings(Collection<P> values, TypeAdapter<String, P> adapter) {
+    long size = 0;
+
+    for (P value : values) {
+      size = addSize(size, adaptedStringElement(value, adapter));
+    }
+
+    return size;
+  }
+
+  /**
+   * Upper bound for a list of adapted binaries: one hook-first element size per element. Lists with
+   * random access iterate by index; the rest iterate in order.
+   */
+  public static <P> long adaptedBinaryList(List<P> values, TypeAdapter<ByteBuf, P> adapter) {
+    long size = 0;
+
+    if (values instanceof RandomAccess) {
+      for (int i = 0, n = values.size(); i < n; i++) {
+        size = addSize(size, adaptedBinaryElement(values.get(i), adapter));
+      }
+    } else {
+      for (P value : values) {
+        size = addSize(size, adaptedBinaryElement(value, adapter));
+      }
+    }
+
+    return size;
+  }
+
+  /** Upper bound for a collection of adapted binaries: one hook-first element size per element. */
+  public static <P> long adaptedBinaries(Collection<P> values, TypeAdapter<ByteBuf, P> adapter) {
+    long size = 0;
+
+    for (P value : values) {
+      size = addSize(size, adaptedBinaryElement(value, adapter));
+    }
+
+    return size;
+  }
+
+  /**
+   * Upper bound for a list of adapted structs: one hook-first element size per element. Returns -1
+   * when any element is -1, so the caller falls back to an unbounded buffer. Lists with random
+   * access iterate by index; the rest iterate in order.
+   */
+  public static <P> long adaptedStructList(
+      List<P> values, TypeAdapter<? extends ThriftSerializable, P> adapter) {
+    long size = 0;
+
+    if (values instanceof RandomAccess) {
+      for (int i = 0, n = values.size(); i < n; i++) {
+        long element = adaptedStructElement(values.get(i), adapter);
+
+        if (element < 0) {
+          return -1;
+        }
+
+        size = addSize(size, element);
+      }
+    } else {
+      for (P value : values) {
+        long element = adaptedStructElement(value, adapter);
+
+        if (element < 0) {
+          return -1;
+        }
+
+        size = addSize(size, element);
+      }
+    }
+
+    return size;
+  }
+
+  /**
+   * Upper bound for a collection of adapted structs: one hook-first element size per element.
+   * Returns -1 when any element is -1, so the caller falls back to an unbounded buffer.
+   */
+  public static <P> long adaptedStructs(
+      Collection<P> values, TypeAdapter<? extends ThriftSerializable, P> adapter) {
+    long size = 0;
+
+    for (P value : values) {
+      long element = adaptedStructElement(value, adapter);
+
+      if (element < 0) {
+        return -1;
+      }
+
+      size = addSize(size, element);
+    }
+
+    return size;
+  }
+
+  private static <P> long adaptedStringElement(P value, TypeAdapter<String, P> adapter) {
+    if (value != null) {
+      long hookSize = adapter.serializedSize(value);
+
+      if (hookSize >= 0) {
+        return hookSize;
+      }
+    }
+
+    // No null check on the converted value: the generated element walk sizes it
+    // unconditionally, so a null converts to the same failure either way.
+    return string(adapter.toThrift(value));
+  }
+
+  private static <P> long adaptedBinaryElement(P value, TypeAdapter<ByteBuf, P> adapter) {
+    if (value != null) {
+      long hookSize = adapter.serializedSize(value);
+
+      if (hookSize >= 0) {
+        return hookSize;
+      }
+    }
+
+    // No null check on the converted value: the generated element walk sizes it
+    // unconditionally, so a null converts to the same failure either way.
+    return binary(adapter.toThrift(value));
+  }
+
+  private static <P> long adaptedStructElement(
+      P value, TypeAdapter<? extends ThriftSerializable, P> adapter) {
+    if (value != null) {
+      long hookSize = adapter.serializedSize(value);
+
+      if (hookSize >= 0) {
+        return hookSize;
+      }
+    }
+
+    // No null check on the converted value: the generated element walk sizes it
+    // unconditionally, so a null converts to the same failure either way.
+    return adapter.toThrift(value).serializedSize();
   }
 
   /**

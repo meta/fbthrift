@@ -479,31 +479,17 @@ public final class Baz implements com.facebook.thrift.payload.ThriftSerializable
         case _SETFIELD: {
             com.facebook.thrift.my.AdaptedSet_2 _fbthriftVar0 =
                 (com.facebook.thrift.my.AdaptedSet_2) this.value;
-            if (_fbthriftVar0 != null) {
-                long _fbthriftHookSize = __SetWithAdapter_Adapter.serializedSize(_fbthriftVar0);
-                if (_fbthriftHookSize >= 0) {
-                    _fbthriftSize =
+            long _fbthriftHookSize =
+                _fbthriftVar0 != null
+                    ? __SetWithAdapter_Adapter.serializedSize(_fbthriftVar0)
+                    : -1;
+            if (_fbthriftHookSize >= 0) {
+                _fbthriftSize =
+                    com.facebook.thrift.util.ThriftSizes.addSize(
                         com.facebook.thrift.util.ThriftSizes.addSize(
-                            com.facebook.thrift.util.ThriftSizes.addSize(
-                                _fbthriftSize,
-                                com.facebook.thrift.util.ThriftSizes.FIELD),
-                            _fbthriftHookSize);
-                } else {
-                    Set<String>   _fbthriftVar1 =
-                        __SetWithAdapter_Adapter.toThrift(_fbthriftVar0);
-                    if (_fbthriftVar1 != null) {
-                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
-                            com.facebook.thrift.util.ThriftSizes.FIELD);
-                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
-                            com.facebook.thrift.util.ThriftSizes.SET);
-                        for (String _fbthriftVar2 :
-                            _fbthriftVar1) {
-                            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
-                                com.facebook.thrift.util.ThriftSizes.string(
-                                    _fbthriftVar2));
-                        }
-                    }
-                }
+                            _fbthriftSize,
+                            com.facebook.thrift.util.ThriftSizes.FIELD),
+                        _fbthriftHookSize);
             } else {
                 Set<String>   _fbthriftVar1 =
                     __SetWithAdapter_Adapter.toThrift(_fbthriftVar0);
@@ -526,106 +512,17 @@ public final class Baz implements com.facebook.thrift.payload.ThriftSerializable
         case _MAPFIELD: {
             com.facebook.thrift.my.AdaptedMap_string_ListWithElemAdapter_withAdapter_8454_3 _fbthriftVar0 =
                 (com.facebook.thrift.my.AdaptedMap_string_ListWithElemAdapter_withAdapter_8454_3) this.value;
-            if (_fbthriftVar0 != null) {
-                long _fbthriftHookSize = _mapField_Adapter.serializedSize(_fbthriftVar0);
-                if (_fbthriftHookSize >= 0) {
-                    _fbthriftSize =
+            long _fbthriftHookSize =
+                _fbthriftVar0 != null
+                    ? _mapField_Adapter.serializedSize(_fbthriftVar0)
+                    : -1;
+            if (_fbthriftHookSize >= 0) {
+                _fbthriftSize =
+                    com.facebook.thrift.util.ThriftSizes.addSize(
                         com.facebook.thrift.util.ThriftSizes.addSize(
-                            com.facebook.thrift.util.ThriftSizes.addSize(
-                                _fbthriftSize,
-                                com.facebook.thrift.util.ThriftSizes.FIELD),
-                            _fbthriftHookSize);
-                } else {
-                    Map<String, com.facebook.thrift.my.AdaptedList_2>   _fbthriftVar1 =
-                        _mapField_Adapter.toThrift(_fbthriftVar0);
-                    if (_fbthriftVar1 != null) {
-                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
-                            com.facebook.thrift.util.ThriftSizes.FIELD);
-                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
-                            com.facebook.thrift.util.ThriftSizes.MAP);
-                        for (Map.Entry<String, com.facebook.thrift.my.AdaptedList_2> _fbthriftVar2 :
-                            _fbthriftVar1.entrySet()) {
-                            {
-                                String _fbthriftVar3 =
-                                    _fbthriftVar2.getKey();
-                                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
-                                    com.facebook.thrift.util.ThriftSizes.string(
-                                        _fbthriftVar3));
-                            }
-                            {
-                                com.facebook.thrift.my.AdaptedList_2 _fbthriftVar3 =
-                                    _fbthriftVar2.getValue();
-                                if (_fbthriftVar3 != null) {
-                                    long _fbthriftHookSize3 =
-                                        __ListWithElemAdapter_withAdapter_2312_Adapter.serializedSize(_fbthriftVar3);
-                                    if (_fbthriftHookSize3 >= 0) {
-                                        _fbthriftSize =
-                                            com.facebook.thrift.util.ThriftSizes.addSize(
-                                                _fbthriftSize, _fbthriftHookSize3);
-                                    } else {
-                                        List<com.facebook.thrift.my.AdaptedString_1> _fbthriftVar4 =
-                                            __ListWithElemAdapter_withAdapter_2312_Adapter.toThrift(_fbthriftVar3);
-                                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
-                                            com.facebook.thrift.util.ThriftSizes.LIST);
-                                        for (com.facebook.thrift.my.AdaptedString_1 _fbthriftVar5 :
-                                            _fbthriftVar4) {
-                                            if (_fbthriftVar5 != null) {
-                                                long _fbthriftHookSize5 =
-                                                    __StringWithAdapter_Adapter.serializedSize(_fbthriftVar5);
-                                                if (_fbthriftHookSize5 >= 0) {
-                                                    _fbthriftSize =
-                                                        com.facebook.thrift.util.ThriftSizes.addSize(
-                                                            _fbthriftSize, _fbthriftHookSize5);
-                                                } else {
-                                                    String _fbthriftVar6 =
-                                                        __StringWithAdapter_Adapter.toThrift(_fbthriftVar5);
-                                                    _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
-                                                        com.facebook.thrift.util.ThriftSizes.string(
-                                                            _fbthriftVar6));
-                                                }
-                                            } else {
-                                                String _fbthriftVar6 =
-                                                    __StringWithAdapter_Adapter.toThrift(_fbthriftVar5);
-                                                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
-                                                    com.facebook.thrift.util.ThriftSizes.string(
-                                                        _fbthriftVar6));
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    List<com.facebook.thrift.my.AdaptedString_1> _fbthriftVar4 =
-                                        __ListWithElemAdapter_withAdapter_2312_Adapter.toThrift(_fbthriftVar3);
-                                    _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
-                                        com.facebook.thrift.util.ThriftSizes.LIST);
-                                    for (com.facebook.thrift.my.AdaptedString_1 _fbthriftVar5 :
-                                        _fbthriftVar4) {
-                                        if (_fbthriftVar5 != null) {
-                                            long _fbthriftHookSize5 =
-                                                __StringWithAdapter_Adapter.serializedSize(_fbthriftVar5);
-                                            if (_fbthriftHookSize5 >= 0) {
-                                                _fbthriftSize =
-                                                    com.facebook.thrift.util.ThriftSizes.addSize(
-                                                        _fbthriftSize, _fbthriftHookSize5);
-                                            } else {
-                                                String _fbthriftVar6 =
-                                                    __StringWithAdapter_Adapter.toThrift(_fbthriftVar5);
-                                                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
-                                                    com.facebook.thrift.util.ThriftSizes.string(
-                                                        _fbthriftVar6));
-                                            }
-                                        } else {
-                                            String _fbthriftVar6 =
-                                                __StringWithAdapter_Adapter.toThrift(_fbthriftVar5);
-                                            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
-                                                com.facebook.thrift.util.ThriftSizes.string(
-                                                    _fbthriftVar6));
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                            _fbthriftSize,
+                            com.facebook.thrift.util.ThriftSizes.FIELD),
+                        _fbthriftHookSize);
             } else {
                 Map<String, com.facebook.thrift.my.AdaptedList_2>   _fbthriftVar1 =
                     _mapField_Adapter.toThrift(_fbthriftVar0);
@@ -646,43 +543,14 @@ public final class Baz implements com.facebook.thrift.payload.ThriftSerializable
                         {
                             com.facebook.thrift.my.AdaptedList_2 _fbthriftVar3 =
                                 _fbthriftVar2.getValue();
-                            if (_fbthriftVar3 != null) {
-                                long _fbthriftHookSize3 =
-                                    __ListWithElemAdapter_withAdapter_2312_Adapter.serializedSize(_fbthriftVar3);
-                                if (_fbthriftHookSize3 >= 0) {
-                                    _fbthriftSize =
-                                        com.facebook.thrift.util.ThriftSizes.addSize(
-                                            _fbthriftSize, _fbthriftHookSize3);
-                                } else {
-                                    List<com.facebook.thrift.my.AdaptedString_1> _fbthriftVar4 =
-                                        __ListWithElemAdapter_withAdapter_2312_Adapter.toThrift(_fbthriftVar3);
-                                    _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
-                                        com.facebook.thrift.util.ThriftSizes.LIST);
-                                    for (com.facebook.thrift.my.AdaptedString_1 _fbthriftVar5 :
-                                        _fbthriftVar4) {
-                                        if (_fbthriftVar5 != null) {
-                                            long _fbthriftHookSize5 =
-                                                __StringWithAdapter_Adapter.serializedSize(_fbthriftVar5);
-                                            if (_fbthriftHookSize5 >= 0) {
-                                                _fbthriftSize =
-                                                    com.facebook.thrift.util.ThriftSizes.addSize(
-                                                        _fbthriftSize, _fbthriftHookSize5);
-                                            } else {
-                                                String _fbthriftVar6 =
-                                                    __StringWithAdapter_Adapter.toThrift(_fbthriftVar5);
-                                                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
-                                                    com.facebook.thrift.util.ThriftSizes.string(
-                                                        _fbthriftVar6));
-                                            }
-                                        } else {
-                                            String _fbthriftVar6 =
-                                                __StringWithAdapter_Adapter.toThrift(_fbthriftVar5);
-                                            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
-                                                com.facebook.thrift.util.ThriftSizes.string(
-                                                    _fbthriftVar6));
-                                        }
-                                    }
-                                }
+                            long _fbthriftHookSize3 =
+                                _fbthriftVar3 != null
+                                    ? __ListWithElemAdapter_withAdapter_2312_Adapter.serializedSize(_fbthriftVar3)
+                                    : -1;
+                            if (_fbthriftHookSize3 >= 0) {
+                                _fbthriftSize =
+                                    com.facebook.thrift.util.ThriftSizes.addSize(
+                                        _fbthriftSize, _fbthriftHookSize3);
                             } else {
                                 List<com.facebook.thrift.my.AdaptedString_1> _fbthriftVar4 =
                                     __ListWithElemAdapter_withAdapter_2312_Adapter.toThrift(_fbthriftVar3);
@@ -690,20 +558,14 @@ public final class Baz implements com.facebook.thrift.payload.ThriftSerializable
                                     com.facebook.thrift.util.ThriftSizes.LIST);
                                 for (com.facebook.thrift.my.AdaptedString_1 _fbthriftVar5 :
                                     _fbthriftVar4) {
-                                    if (_fbthriftVar5 != null) {
-                                        long _fbthriftHookSize5 =
-                                            __StringWithAdapter_Adapter.serializedSize(_fbthriftVar5);
-                                        if (_fbthriftHookSize5 >= 0) {
-                                            _fbthriftSize =
-                                                com.facebook.thrift.util.ThriftSizes.addSize(
-                                                    _fbthriftSize, _fbthriftHookSize5);
-                                        } else {
-                                            String _fbthriftVar6 =
-                                                __StringWithAdapter_Adapter.toThrift(_fbthriftVar5);
-                                            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
-                                                com.facebook.thrift.util.ThriftSizes.string(
-                                                    _fbthriftVar6));
-                                        }
+                                    long _fbthriftHookSize5 =
+                                        _fbthriftVar5 != null
+                                            ? __StringWithAdapter_Adapter.serializedSize(_fbthriftVar5)
+                                            : -1;
+                                    if (_fbthriftHookSize5 >= 0) {
+                                        _fbthriftSize =
+                                            com.facebook.thrift.util.ThriftSizes.addSize(
+                                                _fbthriftSize, _fbthriftHookSize5);
                                     } else {
                                         String _fbthriftVar6 =
                                             __StringWithAdapter_Adapter.toThrift(_fbthriftVar5);
@@ -723,35 +585,8 @@ public final class Baz implements com.facebook.thrift.payload.ThriftSerializable
         case _BINARYFIELD: {
             com.facebook.thrift.my.AdaptedBinary_5673_1 _fbthriftVar0 =
                 (com.facebook.thrift.my.AdaptedBinary_5673_1) this.value;
-            if (_fbthriftVar0 != null) {
-                long _fbthriftHookSize = _binaryField_Adapter.serializedSize(_fbthriftVar0);
-                if (_fbthriftHookSize >= 0) {
-                    _fbthriftSize =
-                        com.facebook.thrift.util.ThriftSizes.addSize(
-                            com.facebook.thrift.util.ThriftSizes.addSize(
-                                _fbthriftSize,
-                                com.facebook.thrift.util.ThriftSizes.FIELD),
-                            _fbthriftHookSize);
-                } else {
-                    io.netty.buffer.ByteBuf   _fbthriftVar1 =
-                        _binaryField_Adapter.toThrift(_fbthriftVar0);
-                    if (_fbthriftVar1 != null) {
-                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
-                            com.facebook.thrift.util.ThriftSizes.FIELD);
-                        _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
-                            com.facebook.thrift.util.ThriftSizes.binary(_fbthriftVar1));
-                    }
-                }
-            } else {
-                io.netty.buffer.ByteBuf   _fbthriftVar1 =
-                    _binaryField_Adapter.toThrift(_fbthriftVar0);
-                if (_fbthriftVar1 != null) {
-                    _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
-                        com.facebook.thrift.util.ThriftSizes.FIELD);
-                    _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
-                        com.facebook.thrift.util.ThriftSizes.binary(_fbthriftVar1));
-                }
-            }
+            _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addAdaptedBinaryField(_fbthriftSize,
+                _fbthriftVar0, _binaryField_Adapter);
             break;
         }
 

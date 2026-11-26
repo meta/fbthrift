@@ -483,25 +483,17 @@ _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
         this.{{field.javaName}};
     {{#if field.terse?}}
     {{#if (or field.type.binary? field.type.isBinaryString? (and field.type.java_type? field.type.binary?))}}
-    if (_fbthriftVar0 != null) {
-        long _fbthriftHookSize = {{#if field.hasWrapper?}}_{{field.javaName}}_Wrapper{{#else}}{{#if field.hasFieldAdapter?}}_{{field.javaName}}_Adapter{{#else}}__{{field.type.name}}_Adapter{{/if}}{{/if field.hasWrapper?}}.serializedSize(_fbthriftVar0);
-        if (_fbthriftHookSize >= 0) {
-            _fbthriftSize =
+    long _fbthriftHookSize =
+        _fbthriftVar0 != null
+            ? {{#if field.hasWrapper?}}_{{field.javaName}}_Wrapper{{#else}}{{#if field.hasFieldAdapter?}}_{{field.javaName}}_Adapter{{#else}}__{{field.type.name}}_Adapter{{/if}}{{/if field.hasWrapper?}}.serializedSize(_fbthriftVar0)
+            : -1;
+    if (_fbthriftHookSize >= 0) {
+        _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.addSize(
                 com.facebook.thrift.util.ThriftSizes.addSize(
-                    com.facebook.thrift.util.ThriftSizes.addSize(
-                        _fbthriftSize,
-                        com.facebook.thrift.util.ThriftSizes.FIELD),
-                    _fbthriftHookSize);
-        } else {
-            {{#partial types.adapted_field_boxed_type type=field.type field_hasAdapter=field.hasAdapter?}} _fbthriftVar1 =
-                {{#partial field_helpers.to_thrift_start field=field}}_fbthriftVar0{{#partial field_helpers.to_thrift_end field=field}};
-            java.util.Objects.requireNonNull(_fbthriftVar1, "{{field.javaName}} must not be null");
-            if (!com.facebook.thrift.util.IntrinsicDefaults.isDefault(_fbthriftVar1)) {
-                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
-                    com.facebook.thrift.util.ThriftSizes.FIELD);
-                {{#partial types.size_type field=field type=field.type depth=1}}
-            }
-        }
+                    _fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD),
+                _fbthriftHookSize);
     } else {
         {{#partial types.adapted_field_boxed_type type=field.type field_hasAdapter=field.hasAdapter?}} _fbthriftVar1 =
             {{#partial field_helpers.to_thrift_start field=field}}_fbthriftVar0{{#partial field_helpers.to_thrift_end field=field}};
@@ -529,24 +521,26 @@ _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
     {{/if field.type.structured?}}
     {{/if (or field.type.binary? field.type.isBinaryString? (and field.type.java_type? field.type.binary?))}}
     {{#else}}
-    if (_fbthriftVar0 != null) {
-        long _fbthriftHookSize = {{#if field.hasWrapper?}}_{{field.javaName}}_Wrapper{{#else}}{{#if field.hasFieldAdapter?}}_{{field.javaName}}_Adapter{{#else}}__{{field.type.name}}_Adapter{{/if}}{{/if field.hasWrapper?}}.serializedSize(_fbthriftVar0);
-        if (_fbthriftHookSize >= 0) {
-            _fbthriftSize =
+    {{#if (and (not field.hasWrapper?) (not field.type.java_type?) (or (and field.type.string? (not field.type.isBinaryString?)) (or field.type.binary? field.type.isBinaryString?) field.type.structured?) (or (and field.hasFieldAdapter? (not field.type.hasAdapter?)) (and (not field.hasFieldAdapter?) field.type.hasAdapter? field.type.lastAdapter?)))}}
+    _fbthriftSize = com.facebook.thrift.util.ThriftSizes.{{#if (and field.type.string? (not field.type.isBinaryString?))}}addAdaptedStringField{{#else}}{{#if (or field.type.binary? field.type.isBinaryString?)}}addAdaptedBinaryField{{#else}}addAdaptedStructField{{/if}}{{/if}}(_fbthriftSize,
+        _fbthriftVar0, {{#if field.hasFieldAdapter?}}_{{field.javaName}}_Adapter{{#else}}__{{field.type.name}}_Adapter{{/if}});
+    {{#if field.type.structured?}}
+    if (_fbthriftSize < 0) {
+        return -1;
+    }
+    {{/if field.type.structured?}}
+    {{#else}}
+    long _fbthriftHookSize =
+        _fbthriftVar0 != null
+            ? {{#if field.hasWrapper?}}_{{field.javaName}}_Wrapper{{#else}}{{#if field.hasFieldAdapter?}}_{{field.javaName}}_Adapter{{#else}}__{{field.type.name}}_Adapter{{/if}}{{/if field.hasWrapper?}}.serializedSize(_fbthriftVar0)
+            : -1;
+    if (_fbthriftHookSize >= 0) {
+        _fbthriftSize =
+            com.facebook.thrift.util.ThriftSizes.addSize(
                 com.facebook.thrift.util.ThriftSizes.addSize(
-                    com.facebook.thrift.util.ThriftSizes.addSize(
-                        _fbthriftSize,
-                        com.facebook.thrift.util.ThriftSizes.FIELD),
-                    _fbthriftHookSize);
-        } else {
-            {{#partial types.adapted_field_boxed_type type=field.type field_hasAdapter=field.hasAdapter?}} _fbthriftVar1 =
-                {{#partial field_helpers.to_thrift_start field=field}}_fbthriftVar0{{#partial field_helpers.to_thrift_end field=field}};
-            if (_fbthriftVar1 != null) {
-                _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
-                    com.facebook.thrift.util.ThriftSizes.FIELD);
-                {{#partial types.size_type field=field type=field.type depth=1}}
-            }
-        }
+                    _fbthriftSize,
+                    com.facebook.thrift.util.ThriftSizes.FIELD),
+                _fbthriftHookSize);
     } else {
         {{#partial types.adapted_field_boxed_type type=field.type field_hasAdapter=field.hasAdapter?}} _fbthriftVar1 =
             {{#partial field_helpers.to_thrift_start field=field}}_fbthriftVar0{{#partial field_helpers.to_thrift_end field=field}};
@@ -556,6 +550,7 @@ _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
             {{#partial types.size_type field=field type=field.type depth=1}}
         }
     }
+    {{/if (and (not field.hasWrapper?) (not field.type.java_type?) (or (and field.type.string? (not field.type.isBinaryString?)) (or field.type.binary? field.type.isBinaryString?) field.type.structured?) (or (and field.hasFieldAdapter? (not field.type.hasAdapter?)) (and (not field.hasFieldAdapter?) field.type.hasAdapter? field.type.lastAdapter?)))}}
     {{/if field.terse?}}
 }
 {{/let partial}}
@@ -669,25 +664,17 @@ public long serializedSize() {
         {{#if field.terse?}}
         {{#if field.hasAdapterOrWrapper?}}
         {{#if (or field.type.binary? field.type.isBinaryString? (and field.type.java_type? field.type.binary?))}}
-        if (_fbthriftVar0 != null) {
-            long _fbthriftHookSize = {{#if field.hasWrapper?}}_{{field.javaName}}_Wrapper{{#else}}{{#if field.hasFieldAdapter?}}_{{field.javaName}}_Adapter{{#else}}__{{field.type.name}}_Adapter{{/if}}{{/if field.hasWrapper?}}.serializedSize(_fbthriftVar0);
-            if (_fbthriftHookSize >= 0) {
-                _fbthriftSize =
+        long _fbthriftHookSize =
+            _fbthriftVar0 != null
+                ? {{#if field.hasWrapper?}}_{{field.javaName}}_Wrapper{{#else}}{{#if field.hasFieldAdapter?}}_{{field.javaName}}_Adapter{{#else}}__{{field.type.name}}_Adapter{{/if}}{{/if field.hasWrapper?}}.serializedSize(_fbthriftVar0)
+                : -1;
+        if (_fbthriftHookSize >= 0) {
+            _fbthriftSize =
+                com.facebook.thrift.util.ThriftSizes.addSize(
                     com.facebook.thrift.util.ThriftSizes.addSize(
-                        com.facebook.thrift.util.ThriftSizes.addSize(
-                            _fbthriftSize,
-                            com.facebook.thrift.util.ThriftSizes.FIELD),
-                        _fbthriftHookSize);
-            } else {
-                {{#partial types.adapted_field_boxed_type type=field.type field_hasAdapter=field.hasAdapter?}} _fbthriftVar1 =
-                    {{#partial field_helpers.to_thrift_start field=field}}_fbthriftVar0{{#partial field_helpers.to_thrift_end field=field}};
-                java.util.Objects.requireNonNull(_fbthriftVar1, "{{field.javaName}} must not be null");
-                if (!com.facebook.thrift.util.IntrinsicDefaults.isDefault(_fbthriftVar1)) {
-                  _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
-                      com.facebook.thrift.util.ThriftSizes.FIELD);
-                  {{#partial types.size_type field=field type=field.type depth=1}}
-                }
-            }
+                        _fbthriftSize,
+                        com.facebook.thrift.util.ThriftSizes.FIELD),
+                    _fbthriftHookSize);
         } else {
             {{#partial types.adapted_field_boxed_type type=field.type field_hasAdapter=field.hasAdapter?}} _fbthriftVar1 =
                 {{#partial field_helpers.to_thrift_start field=field}}_fbthriftVar0{{#partial field_helpers.to_thrift_end field=field}};
@@ -717,24 +704,26 @@ public long serializedSize() {
         {{/if field.hasAdapterOrWrapper?}}
         {{#else}}
         {{#if field.hasAdapterOrWrapper?}}
-        if (_fbthriftVar0 != null) {
-            long _fbthriftHookSize = {{#if field.hasWrapper?}}_{{field.javaName}}_Wrapper{{#else}}{{#if field.hasFieldAdapter?}}_{{field.javaName}}_Adapter{{#else}}__{{field.type.name}}_Adapter{{/if}}{{/if field.hasWrapper?}}.serializedSize(_fbthriftVar0);
-            if (_fbthriftHookSize >= 0) {
-                _fbthriftSize =
+        {{#if (and (not field.hasWrapper?) (not field.type.java_type?) (or (and field.type.string? (not field.type.isBinaryString?)) (or field.type.binary? field.type.isBinaryString?) field.type.structured?) (or (and field.hasFieldAdapter? (not field.type.hasAdapter?)) (and (not field.hasFieldAdapter?) field.type.hasAdapter? field.type.lastAdapter?)))}}
+    _fbthriftSize = com.facebook.thrift.util.ThriftSizes.{{#if (and field.type.string? (not field.type.isBinaryString?))}}addAdaptedStringField{{#else}}{{#if (or field.type.binary? field.type.isBinaryString?)}}addAdaptedBinaryField{{#else}}addAdaptedStructField{{/if}}{{/if}}(_fbthriftSize,
+        _fbthriftVar0, {{#if field.hasFieldAdapter?}}_{{field.javaName}}_Adapter{{#else}}__{{field.type.name}}_Adapter{{/if}});
+        {{#if field.type.structured?}}
+    if (_fbthriftSize < 0) {
+        return -1;
+    }
+        {{/if field.type.structured?}}
+        {{#else}}
+        long _fbthriftHookSize =
+            _fbthriftVar0 != null
+                ? {{#if field.hasWrapper?}}_{{field.javaName}}_Wrapper{{#else}}{{#if field.hasFieldAdapter?}}_{{field.javaName}}_Adapter{{#else}}__{{field.type.name}}_Adapter{{/if}}{{/if field.hasWrapper?}}.serializedSize(_fbthriftVar0)
+                : -1;
+        if (_fbthriftHookSize >= 0) {
+            _fbthriftSize =
+                com.facebook.thrift.util.ThriftSizes.addSize(
                     com.facebook.thrift.util.ThriftSizes.addSize(
-                        com.facebook.thrift.util.ThriftSizes.addSize(
-                            _fbthriftSize,
-                            com.facebook.thrift.util.ThriftSizes.FIELD),
-                        _fbthriftHookSize);
-            } else {
-                {{#partial types.adapted_field_boxed_type type=field.type field_hasAdapter=field.hasAdapter?}} _fbthriftVar1 =
-                    {{#partial field_helpers.to_thrift_start field=field}}_fbthriftVar0{{#partial field_helpers.to_thrift_end field=field}};
-                if (_fbthriftVar1 != null) {
-                    _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
-                        com.facebook.thrift.util.ThriftSizes.FIELD);
-                    {{#partial types.size_type field=field type=field.type depth=1}}
-                }
-            }
+                        _fbthriftSize,
+                        com.facebook.thrift.util.ThriftSizes.FIELD),
+                    _fbthriftHookSize);
         } else {
             {{#partial types.adapted_field_boxed_type type=field.type field_hasAdapter=field.hasAdapter?}} _fbthriftVar1 =
                 {{#partial field_helpers.to_thrift_start field=field}}_fbthriftVar0{{#partial field_helpers.to_thrift_end field=field}};
@@ -744,6 +733,7 @@ public long serializedSize() {
                 {{#partial types.size_type field=field type=field.type depth=1}}
             }
         }
+        {{/if (and (not field.hasWrapper?) (not field.type.java_type?) (or (and field.type.string? (not field.type.isBinaryString?)) (or field.type.binary? field.type.isBinaryString?) field.type.structured?) (or (and field.hasFieldAdapter? (not field.type.hasAdapter?)) (and (not field.hasFieldAdapter?) field.type.hasAdapter? field.type.lastAdapter?)))}}
         {{#else}}
         _fbthriftSize = com.facebook.thrift.util.ThriftSizes.addSize(_fbthriftSize,
             com.facebook.thrift.util.ThriftSizes.FIELD);

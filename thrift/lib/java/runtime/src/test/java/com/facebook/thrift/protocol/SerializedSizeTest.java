@@ -44,10 +44,12 @@ import com.facebook.thrift.test.OptionalBoundLeaf;
 import com.facebook.thrift.test.Pet;
 import com.facebook.thrift.test.RecursiveSizeStruct;
 import com.facebook.thrift.test.TestUnion;
+import com.facebook.thrift.test.adapter.AdaptedHelperHolder;
 import com.facebook.thrift.test.adapter.AdaptedTestStruct;
 import com.facebook.thrift.test.adapter.AdaptedTestUnion;
 import com.facebook.thrift.test.adapter.AdapterHookTestStruct;
 import com.facebook.thrift.test.adapter.DoubleAdaptedProbe;
+import com.facebook.thrift.test.adapter.FieldAdaptedTypedefHolder;
 import com.facebook.thrift.test.adapter.InnerException;
 import com.facebook.thrift.test.adapter.InnerUnion;
 import com.facebook.thrift.test.adapter.MaxBoundHolder;
@@ -81,6 +83,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
@@ -776,6 +779,43 @@ public class SerializedSizeTest {
     assertTrue(size >= compactWritten);
 
     assertSize("adapter-hook", fresh);
+  }
+
+  @Test
+  public void testFieldAdaptedTypedefHolder() throws Exception {
+    Supplier<ThriftSerializable> fresh =
+        () -> new FieldAdaptedTypedefHolder.Builder().setValue("hi").build();
+
+    CountingHookStringAdapter.hookCalls = 0;
+    CountingHookStringAdapter.convertCalls = 0;
+
+    long size = fresh.get().serializedSize();
+
+    assertEquals(1, CountingHookStringAdapter.hookCalls);
+    assertEquals(0, CountingHookStringAdapter.convertCalls);
+    assertTrue(size > 0);
+
+    assertSize("field-adapted-typedef", fresh);
+  }
+
+  @Test
+  public void testAdaptedHelperHolder() throws Exception {
+    Supplier<ThriftSerializable> fresh =
+        () ->
+            new AdaptedHelperHolder.Builder()
+                .setStringListField(Arrays.asList(utf8Buffer("a"), utf8Buffer("bb")))
+                .setStringSetField(new HashSet<>(Collections.singletonList(utf8Buffer("c"))))
+                .setSaturatedListField(Arrays.asList("x", "yy"))
+                .setStructListField(Arrays.asList("s1", "s2"))
+                .setStructField("s3")
+                .setOptStructField("s4")
+                .build();
+
+    long size = fresh.get().serializedSize();
+
+    assertEquals(Long.MAX_VALUE, size);
+
+    assertSizeAllowingOvercount("adapted-helper-holder", fresh);
   }
 
   @Test

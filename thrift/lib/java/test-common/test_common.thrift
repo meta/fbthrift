@@ -38,3 +38,9 @@ enum TestEnumOpen {
   ONE = 1,
   TWO = 2,
 }
+
+// A minimal struct for adapter tests that need a struct Thrift type.
+struct SmallStruct {
+  1: string name;
+  2: i32 value;
+}
