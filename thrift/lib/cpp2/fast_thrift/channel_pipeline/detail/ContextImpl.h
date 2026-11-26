@@ -325,7 +325,7 @@ class alignas(64) ContextImpl {
 
   // TypedContext reads pipelineState_ to expose the compile-time-typed
   // state<T>() accessor.
-  template <typename StateTuple>
+  template <typename StateTuple, ExecutionDomain D>
   friend class TypedContext;
 };
 

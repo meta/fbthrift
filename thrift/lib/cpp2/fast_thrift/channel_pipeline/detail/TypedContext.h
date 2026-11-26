@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <concepts>
 #include <cstddef>
 #include <new>
 #include <tuple>
@@ -38,10 +39,12 @@ template <typename T, typename... Ts>
 struct TupleHasType<std::tuple<Ts...>, T>
     : std::disjunction<std::is_same<T, Ts>...> {};
 
-/** Adds compile-time-checked pipeline state to a stable context view. */
-template <typename StateTuple>
+/** Adds compile-time-checked state and a native domain to a stable view. */
+template <typename StateTuple, ExecutionDomain D = EvbExecutionDomain>
 class TypedContext {
  public:
+  using ExecutionDomainType = D;
+
   explicit TypedContext(ContextImpl& ctx) noexcept : ctx_(&ctx) {}
 
   operator ContextImpl&() const noexcept { return *ctx_; }
@@ -77,6 +80,10 @@ class TypedContext {
     return ctx_->pipeline();
   }
 
+  FOLLY_ALWAYS_INLINE D& executionDomain() const noexcept {
+    return ctx_->template executionDomain<D>();
+  }
+
   FOLLY_ALWAYS_INLINE BytesPtr allocate(size_t size) const noexcept {
     return ctx_->allocate(size);
   }
@@ -91,8 +98,10 @@ class TypedContext {
     return ctx_->takeOwnership(buffer);
   }
 
-  FOLLY_ALWAYS_INLINE folly::EventBase* eventBase() const noexcept {
-    return ctx_->eventBase();
+  FOLLY_ALWAYS_INLINE folly::EventBase* eventBase() const noexcept
+    requires std::same_as<D, EvbExecutionDomain>
+  {
+    return pipeline() ? executionDomain().getExecutor() : nullptr;
   }
 
   FOLLY_ALWAYS_INLINE void close() const noexcept { return ctx_->close(); }
@@ -146,23 +155,23 @@ class TypedContext {
   template <typename T>
     requires TupleHasType<StateTuple, T>::value
   FOLLY_ALWAYS_INLINE T& state() const noexcept {
-    return std::get<T>(*static_cast<StateTuple*>(ctx_->pipelineState_));
+    return std::get<T>(*static_cast<StateTuple*>(this->ctx_->pipelineState_));
   }
 
  private:
   ContextImpl* const ctx_;
 };
 
-template <typename StateTuple>
+template <typename StateTuple, ExecutionDomain D = EvbExecutionDomain>
 using ContextFor = std::conditional_t<
-    std::tuple_size_v<StateTuple> == 0,
+    std::tuple_size_v<StateTuple> == 0 && std::same_as<D, EvbExecutionDomain>,
     ContextImpl,
-    TypedContext<StateTuple>>;
+    TypedContext<StateTuple, D>>;
 
-template <typename StateTuple>
+template <typename StateTuple, ExecutionDomain D = EvbExecutionDomain>
 FOLLY_ALWAYS_INLINE void initTypedView(ContextImpl& ctx) noexcept {
-  if constexpr (std::tuple_size_v<StateTuple> > 0) {
-    using View = TypedContext<StateTuple>;
+  using View = ContextFor<StateTuple, D>;
+  if constexpr (!std::same_as<View, ContextImpl>) {
     static_assert(sizeof(View) == sizeof(void*));
     static_assert(alignof(View) <= alignof(void*));
     static_assert(std::is_standard_layout_v<View>);
@@ -171,14 +180,14 @@ FOLLY_ALWAYS_INLINE void initTypedView(ContextImpl& ctx) noexcept {
   }
 }
 
-template <typename StateTuple>
-FOLLY_ALWAYS_INLINE ContextFor<StateTuple>& contextFor(
+template <typename StateTuple, ExecutionDomain D = EvbExecutionDomain>
+FOLLY_ALWAYS_INLINE ContextFor<StateTuple, D>& contextFor(
     ContextImpl& ctx) noexcept {
-  if constexpr (std::tuple_size_v<StateTuple> == 0) {
+  using View = ContextFor<StateTuple, D>;
+  if constexpr (std::same_as<View, ContextImpl>) {
     return ctx;
   } else {
-    auto& view = *std::launder(
-        reinterpret_cast<TypedContext<StateTuple>*>(ctx.typedViewStorage()));
+    auto& view = *std::launder(reinterpret_cast<View*>(ctx.typedViewStorage()));
     folly::assume(&view.impl() == &ctx);
     return view;
   }

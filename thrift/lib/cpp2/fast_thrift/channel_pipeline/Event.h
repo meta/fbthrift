@@ -15,6 +15,7 @@
  */
 
 #pragma once
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/EvbExecutionDomain.h>
 
 #include <array>
 #include <concepts>
@@ -125,6 +126,13 @@ struct TypeEventSubscription {
   EventKey key{nullptr};
   TypeEventDispatchFn thunk{nullptr};
 };
+
+template <ExecutionDomain D>
+using TypeEventDispatchFnT = TypeEventDispatchFn;
+template <ExecutionDomain D>
+using TypeEventDispatchT = TypeEventDispatch;
+template <ExecutionDomain D>
+using TypeEventSubscriptionT = TypeEventSubscription;
 
 template <PipelineEvent... Evs>
 constexpr std::array<EventKey, sizeof...(Evs)> eventKeys(Events<Evs...>) {

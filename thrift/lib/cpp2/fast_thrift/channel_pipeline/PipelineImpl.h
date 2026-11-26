@@ -58,8 +58,6 @@ class HeapPipelineImpl;
 template <std::size_t MaxHandlers>
 class InlinePipelineImpl;
 
-using HandlerNodeBase = HandlerNode;
-
 constexpr std::size_t alignPipelineStorage(
     std::size_t size, std::size_t alignment) noexcept {
   return (size + alignment - 1) & ~(alignment - 1);
@@ -234,16 +232,40 @@ class alignas(detail::ContextImpl) PipelineImpl
   using Guard = folly::DelayedDestruction::DestructorGuard;
   using Ptr = folly::DelayedDestructionUniquePtr<PipelineImpl>;
 
+  template <typename Storage, typename HandlerContainer, ExecutionDomain D>
+    requires(
+        std::same_as<D, std::remove_cvref_t<D>> &&
+        std::same_as<
+            typename std::remove_cvref_t<HandlerContainer>::value_type,
+            detail::HandlerNodeT<D>>)
+  static Ptr create(
+      D&& domain,
+      HandlerContainer&& handlers,
+      detail::EndpointSource headHandler,
+      detail::EndpointSource tailHandler,
+      detail::EndpointSource allocator) {
+    Ptr pipeline = createImpl<Storage>(
+        detail::executionDomainSource<D>(std::forward<D>(domain)),
+        std::forward<HandlerContainer>(handlers),
+        std::move(headHandler),
+        std::move(tailHandler),
+        std::move(allocator));
+    pipeline->initializeTypedViews<std::tuple<>, D>();
+    return pipeline;
+  }
+
   template <typename Storage, typename HandlerContainer>
+    requires std::same_as<
+        typename std::remove_cvref_t<HandlerContainer>::value_type,
+        detail::HandlerNodeT<EvbExecutionDomain>>
   static Ptr create(
       folly::EventBase* eventBase,
       HandlerContainer&& handlers,
       detail::EndpointSource headHandler,
       detail::EndpointSource tailHandler,
       detail::EndpointSource allocator) {
-    return createImpl<Storage>(
-        detail::executionDomainSource<EvbExecutionDomain>(
-            EvbExecutionDomain(*CHECK_NOTNULL(eventBase))),
+    return create<Storage>(
+        EvbExecutionDomain(*CHECK_NOTNULL(eventBase)),
         std::forward<HandlerContainer>(handlers),
         std::move(headHandler),
         std::move(tailHandler),
@@ -619,6 +641,15 @@ class alignas(detail::ContextImpl) PipelineImpl
       detail::EndpointSource headHandler,
       detail::EndpointSource tailHandler,
       detail::EndpointSource allocator);
+
+  template <typename StateTuple, ExecutionDomain D>
+  void initializeTypedViews() noexcept {
+    detail::initTypedView<StateTuple, D>(headCtx_);
+    for (auto& ctx : contexts_) {
+      detail::initTypedView<StateTuple, D>(ctx);
+    }
+    detail::initTypedView<StateTuple, D>(tailCtx_);
+  }
 
   void* contextExecutionDomain(
       const std::type_info& requestedType) const noexcept;

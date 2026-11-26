@@ -34,14 +34,21 @@
 
 namespace apache::thrift::fast_thrift::channel_pipeline::detail {
 
-struct HandlerNode;
+struct HandlerNodeBase;
+template <ExecutionDomain D>
+struct HandlerNodeT;
+
+using HandlerNode = HandlerNodeT<EvbExecutionDomain>;
 
 struct HandlerConstructionOps {
   std::size_t size;
   std::size_t alignment;
-  void (*constructInline)(HandlerNode&, void*);
-  void (*constructHeap)(HandlerNode&);
+  void (*constructInline)(HandlerNodeBase&, void*);
+  void (*constructHeap)(HandlerNodeBase&);
 };
+
+template <ExecutionDomain D>
+using HandlerConstructionOpsT = HandlerConstructionOps;
 
 /**
  * HandlerNode stores a type-erased handler with function pointers for dispatch.
@@ -58,7 +65,7 @@ struct HandlerConstructionOps {
  * Before build(), a deferred handler stores its construction operations in
  * `handlerPtr`; a finalized node always has `handlerPtr == owner.get()`.
  */
-struct HandlerNode {
+struct HandlerNodeBase {
   // Handler identification
   HandlerId handlerId{0};
 
@@ -109,8 +116,8 @@ struct HandlerNode {
   bool handlesReadReady{false};
 
   // Move-only with explicit move constructor to nullify moved-from object
-  HandlerNode() = default;
-  ~HandlerNode() = default;
+  HandlerNodeBase() = default;
+  ~HandlerNodeBase() = default;
 
   const HandlerConstructionOps* pendingConstructionOps() const noexcept {
     if (handlerPtr == owner.get()) {
@@ -118,7 +125,7 @@ struct HandlerNode {
     }
     return static_cast<const HandlerConstructionOps*>(handlerPtr);
   }
-  HandlerNode(HandlerNode&& other) noexcept
+  HandlerNodeBase(HandlerNodeBase&& other) noexcept
       : handlerId(other.handlerId),
         handlerPtr(other.handlerPtr),
         owner(std::move(other.owner)),
@@ -156,7 +163,7 @@ struct HandlerNode {
     other.handlesReadReady = false;
   }
 
-  HandlerNode& operator=(HandlerNode&& other) noexcept {
+  HandlerNodeBase& operator=(HandlerNodeBase&& other) noexcept {
     if (this != &other) {
       handlerId = other.handlerId;
       handlerPtr = other.handlerPtr;
@@ -198,12 +205,32 @@ struct HandlerNode {
     return *this;
   }
 
-  HandlerNode(const HandlerNode&) = delete;
-  HandlerNode& operator=(const HandlerNode&) = delete;
+  HandlerNodeBase(const HandlerNodeBase&) = delete;
+  HandlerNodeBase& operator=(const HandlerNodeBase&) = delete;
 };
 
-template <typename H, typename E, bool Endpoint, typename StateTuple>
-inline constexpr TypeEventDispatchFn kTypeSubThunk =
+template <ExecutionDomain D>
+struct HandlerNodeT : HandlerNodeBase {
+  using ExecutionDomainType = D;
+
+  HandlerNodeT() = default;
+  ~HandlerNodeT() = default;
+  HandlerNodeT(HandlerNodeT&&) noexcept = default;
+  HandlerNodeT& operator=(HandlerNodeT&&) noexcept = default;
+  HandlerNodeT(const HandlerNodeT&) = delete;
+  HandlerNodeT& operator=(const HandlerNodeT&) = delete;
+};
+
+static_assert(sizeof(HandlerNode) == sizeof(HandlerNodeBase));
+static_assert(alignof(HandlerNode) == alignof(HandlerNodeBase));
+
+template <
+    typename H,
+    typename E,
+    bool Endpoint,
+    typename StateTuple,
+    ExecutionDomain D = EvbExecutionDomain>
+inline constexpr TypeEventDispatchFnT<D> kTypeSubThunk =
     +[](void* h, ContextImpl* ctx, const void* payload) noexcept {
       if constexpr (Endpoint) {
         if constexpr (std::is_void_v<typename E::Payload>) {
@@ -213,7 +240,7 @@ inline constexpr TypeEventDispatchFn kTypeSubThunk =
               *static_cast<const typename E::Payload*>(payload));
         }
       } else {
-        decltype(auto) c = contextFor<StateTuple>(*ctx);
+        decltype(auto) c = contextFor<StateTuple, D>(*ctx);
         if constexpr (std::is_void_v<typename E::Payload>) {
           static_cast<H*>(h)->template on<E>(c);
         } else {
@@ -223,20 +250,35 @@ inline constexpr TypeEventDispatchFn kTypeSubThunk =
       }
     };
 
+template <
+    ExecutionDomain D,
+    typename H,
+    bool Endpoint,
+    typename StateTuple,
+    PipelineEvent... Evs>
+constexpr std::array<TypeEventSubscriptionT<D>, sizeof...(Evs)>
+makeTypeSubscriptionsT(Events<Evs...>) {
+  return {TypeEventSubscriptionT<D>{
+      eventKey<Evs>(), kTypeSubThunk<H, Evs, Endpoint, StateTuple, D>}...};
+}
+
 template <typename H, bool Endpoint, typename StateTuple, PipelineEvent... Evs>
-constexpr std::array<TypeEventSubscription, sizeof...(Evs)>
-makeTypeSubscriptions(Events<Evs...>) {
-  return {TypeEventSubscription{
-      eventKey<Evs>(), kTypeSubThunk<H, Evs, Endpoint, StateTuple>}...};
+constexpr auto makeTypeSubscriptions(Events<Evs...> events) {
+  return makeTypeSubscriptionsT<EvbExecutionDomain, H, Endpoint, StateTuple>(
+      events);
 }
 
 template <typename H>
 inline constexpr auto kHandlerPublishedEventKeys =
     eventKeys(typename H::PublishedEvents{});
 
-template <typename H, bool Endpoint, typename StateTuple = std::tuple<>>
+template <
+    typename H,
+    bool Endpoint,
+    typename StateTuple = std::tuple<>,
+    ExecutionDomain D = EvbExecutionDomain>
 inline constexpr auto kHandlerTypeSubscriptions =
-    makeTypeSubscriptions<H, Endpoint, StateTuple>(
+    makeTypeSubscriptionsT<D, H, Endpoint, StateTuple>(
         typename H::SubscribedEvents{});
 
 /**
@@ -256,19 +298,18 @@ inline constexpr auto kHandlerTypeSubscriptions =
  * @param handler Unique pointer to the handler instance
  * @return A fully initialized HandlerNode
  */
-template <typename H, typename StateTuple = std::tuple<>>
-HandlerNode makeHandlerNode(HandlerId handlerId, std::unique_ptr<H> handler) {
-  // The context a handler receives in every callback: the bare ContextImpl for
-  // a stateless pipeline (zero overhead, unchanged), otherwise the
-  // pipeline-stable TypedContext<StateTuple> that exposes the
-  // compile-time-typed state<T>(). Concept checks are evaluated against this
-  // type. `contextFor` returns a stable reference in both cases (the typed view
-  // is a persistent per-context object, not a per-call temporary), so state is
-  // reachable from every callback and a handler may cache the reference (e.g.
-  // in handlerAdded) for deferred use.
-  using Ctx = ContextFor<StateTuple>;
+template <
+    typename H,
+    typename StateTuple = std::tuple<>,
+    ExecutionDomain D = EvbExecutionDomain>
+  requires HandlerLifecycle<H, ContextFor<StateTuple, D>>
+HandlerNodeT<D> makeHandlerNode(
+    HandlerId handlerId, std::unique_ptr<H> handler) {
+  static_assert(sizeof(HandlerNodeT<D>) == sizeof(HandlerNodeBase));
+  static_assert(alignof(HandlerNodeT<D>) == alignof(HandlerNodeBase));
+  using Ctx = ContextFor<StateTuple, D>;
 
-  HandlerNode node;
+  HandlerNodeT<D> node;
   node.handlerId = handlerId;
   node.handlerPtr = handler.get();
   node.owner = std::unique_ptr<void, void (*)(void*)>(
@@ -276,31 +317,31 @@ HandlerNode makeHandlerNode(HandlerId handlerId, std::unique_ptr<H> handler) {
 
   // Lifecycle methods - always present (required by HandlerLifecycle concept)
   node.handlerAddedFn = [](void* h, ContextImpl& ctx) noexcept {
-    decltype(auto) c = contextFor<StateTuple>(ctx);
+    decltype(auto) c = contextFor<StateTuple, D>(ctx);
     static_cast<H*>(h)->handlerAdded(c);
   };
 
   node.handlerRemovedFn = [](void* h, ContextImpl& ctx) noexcept {
-    decltype(auto) c = contextFor<StateTuple>(ctx);
+    decltype(auto) c = contextFor<StateTuple, D>(ctx);
     static_cast<H*>(h)->handlerRemoved(c);
   };
 
   // Inbound methods - check if handler satisfies InboundHandler
   if constexpr (InboundHandler<H, Ctx>) {
     node.onPipelineActiveFn = [](void* h, ContextImpl& ctx) noexcept {
-      decltype(auto) c = contextFor<StateTuple>(ctx);
+      decltype(auto) c = contextFor<StateTuple, D>(ctx);
       static_cast<H*>(h)->onPipelineActive(c);
     };
 
     node.onReadFn =
         [](void* h, ContextImpl& ctx, TypeErasedBox&& msg) noexcept -> Result {
-      decltype(auto) c = contextFor<StateTuple>(ctx);
+      decltype(auto) c = contextFor<StateTuple, D>(ctx);
       return static_cast<H*>(h)->onRead(c, std::move(msg));
     };
 
     node.onExceptionFn =
         [](void* h, ContextImpl& ctx, folly::exception_wrapper&& e) noexcept {
-          decltype(auto) c = contextFor<StateTuple>(ctx);
+          decltype(auto) c = contextFor<StateTuple, D>(ctx);
           static_cast<H*>(h)->onException(c, std::move(e));
         };
   } else {
@@ -324,12 +365,12 @@ HandlerNode makeHandlerNode(HandlerId handlerId, std::unique_ptr<H> handler) {
   if constexpr (OutboundHandler<H, Ctx>) {
     node.onWriteFn =
         [](void* h, ContextImpl& ctx, TypeErasedBox&& msg) noexcept -> Result {
-      decltype(auto) c = contextFor<StateTuple>(ctx);
+      decltype(auto) c = contextFor<StateTuple, D>(ctx);
       return static_cast<H*>(h)->onWrite(c, std::move(msg));
     };
 
     node.onPipelineInactiveFn = [](void* h, ContextImpl& ctx) noexcept {
-      decltype(auto) c = contextFor<StateTuple>(ctx);
+      decltype(auto) c = contextFor<StateTuple, D>(ctx);
       static_cast<H*>(h)->onPipelineInactive(c);
     };
   } else {
@@ -348,7 +389,7 @@ HandlerNode makeHandlerNode(HandlerId handlerId, std::unique_ptr<H> handler) {
   checkReadyCallbacks<H, Ctx>();
   if constexpr (WriteReadyHandler<H, Ctx>) {
     node.onWriteReadyFn = [](void* h, ContextImpl& ctx) noexcept {
-      decltype(auto) c = contextFor<StateTuple>(ctx);
+      decltype(auto) c = contextFor<StateTuple, D>(ctx);
       static_cast<H*>(h)->onWriteReady(c);
     };
     node.handlesWriteReady = true;
@@ -360,7 +401,7 @@ HandlerNode makeHandlerNode(HandlerId handlerId, std::unique_ptr<H> handler) {
 
   if constexpr (ReadReadyHandler<H, Ctx>) {
     node.onReadReadyFn = [](void* h, ContextImpl& ctx) noexcept {
-      decltype(auto) c = contextFor<StateTuple>(ctx);
+      decltype(auto) c = contextFor<StateTuple, D>(ctx);
       static_cast<H*>(h)->onReadReady(c);
     };
     node.handlesReadReady = true;
@@ -387,9 +428,9 @@ HandlerNode makeHandlerNode(HandlerId handlerId, std::unique_ptr<H> handler) {
         "every event; signal events omit payload");
     if constexpr (TypeEventSubscriber<H, Ctx>) {
       node.typeSubscriptions =
-          kHandlerTypeSubscriptions<H, /*Endpoint=*/false, StateTuple>.data();
+          kHandlerTypeSubscriptions<H, /*Endpoint=*/false, StateTuple, D>.data();
       node.typeSubscriptionCount =
-          kHandlerTypeSubscriptions<H, /*Endpoint=*/false, StateTuple>.size();
+          kHandlerTypeSubscriptions<H, /*Endpoint=*/false, StateTuple, D>.size();
     }
   }
 
@@ -409,8 +450,23 @@ decltype(auto) forwardStoredHandlerArg(StoredHandlerArg<Arg>& arg) {
   return std::move(arg);
 }
 
-template <typename H, typename StateTuple = std::tuple<>, typename... Args>
-HandlerNode makeInlineHandlerNode(HandlerId handlerId, Args&&... args) {
+template <typename H>
+void setHandlerPointer(HandlerNodeBase& node, H* handler) noexcept {
+  node.handlerPtr = handler;
+}
+
+template <typename H, ExecutionDomain D>
+void setHandlerPointer(HandlerNodeT<D>& node, H* handler) noexcept {
+  setHandlerPointer(static_cast<HandlerNodeBase&>(node), handler);
+}
+
+template <
+    ExecutionDomain D,
+    typename H,
+    typename StateTuple = std::tuple<>,
+    typename... Args>
+  requires HandlerLifecycle<H, ContextFor<StateTuple, D>>
+HandlerNodeT<D> makeInlineHandlerNodeT(HandlerId handlerId, Args&&... args) {
   static_assert(
       alignof(H) <= alignof(ContextImpl),
       "Inline pipeline handler alignment exceeds pipeline alignment");
@@ -419,7 +475,8 @@ HandlerNode makeInlineHandlerNode(HandlerId handlerId, Args&&... args) {
   // Construction is deferred until build(), so own decay-copied arguments.
   // Callers requiring reference semantics must pass std::ref/std::cref and
   // keep the referenced object alive for the pipeline's lifetime.
-  auto node = makeHandlerNode<H, StateTuple>(handlerId, std::unique_ptr<H>{});
+  auto node =
+      makeHandlerNode<H, StateTuple, D>(handlerId, std::unique_ptr<H>{});
   if constexpr (sizeof...(Args) != 0) {
     auto storedArgs = std::make_unique<ArgsTuple>(
         storeHandlerArg<Args>(std::forward<Args>(args))...);
@@ -431,7 +488,7 @@ HandlerNode makeInlineHandlerNode(HandlerId handlerId, Args&&... args) {
   static constexpr HandlerConstructionOps kConstructionOps{
       sizeof(H),
       alignof(H),
-      [](HandlerNode& node, void* storage) {
+      [](HandlerNodeBase& node, void* storage) {
         auto* handler = [&] {
           if constexpr (sizeof...(Args) == 0) {
             return std::construct_at(static_cast<H*>(storage));
@@ -452,7 +509,7 @@ HandlerNode makeInlineHandlerNode(HandlerId handlerId, Args&&... args) {
             +[](void* p) noexcept { std::destroy_at(static_cast<H*>(p)); });
         node.handlerPtr = handler;
       },
-      [](HandlerNode& node) {
+      [](HandlerNodeBase& node) {
         auto handler = [&] {
           if constexpr (sizeof...(Args) == 0) {
             return std::make_unique<H>();
@@ -474,6 +531,13 @@ HandlerNode makeInlineHandlerNode(HandlerId handlerId, Args&&... args) {
       }};
   node.handlerPtr = const_cast<HandlerConstructionOps*>(&kConstructionOps);
   return node;
+}
+
+template <typename H, typename StateTuple = std::tuple<>, typename... Args>
+  requires HandlerLifecycle<H, ContextFor<StateTuple, EvbExecutionDomain>>
+HandlerNode makeInlineHandlerNode(HandlerId handlerId, Args&&... args) {
+  return makeInlineHandlerNodeT<EvbExecutionDomain, H, StateTuple>(
+      handlerId, std::forward<Args>(args)...);
 }
 
 } // namespace apache::thrift::fast_thrift::channel_pipeline::detail

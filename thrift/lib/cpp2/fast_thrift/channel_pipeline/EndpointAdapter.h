@@ -18,6 +18,7 @@
 
 #include <folly/ExceptionWrapper.h>
 #include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Common.h>
+#include <thrift/lib/cpp2/fast_thrift/channel_pipeline/Event.h>
 
 namespace apache::thrift::fast_thrift::channel_pipeline {
 
