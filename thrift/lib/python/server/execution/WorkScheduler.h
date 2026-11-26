@@ -108,8 +108,8 @@ class WorkScheduler final : public folly::Executor,
   void addAsynchronousWorkWithPriority(
       AsynchronousWork workItem, int8_t priority);
 
-  void add(folly::Func workItem) override;
-  void addWithPriority(folly::Func workItem, int8_t priority) override;
+  void add(folly::Func closure) override;
+  void addWithPriority(folly::Func closure, int8_t priority) override;
   uint8_t getNumPriorities() const override { return 2; }
 
  private:

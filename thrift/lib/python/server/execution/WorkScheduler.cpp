@@ -93,25 +93,33 @@ void WorkScheduler::addAsynchronousWorkWithPriority(
   enqueue(std::move(workItem), workPriorityFor(priority));
 }
 
-void WorkScheduler::add(folly::Func workItem) {
-  addWithPriority(std::move(workItem), folly::Executor::MID_PRI);
+namespace {
+
+// A plain closure becomes a work item that runs it on the item's assigned
+// Worker.
+WorkScheduler::AsynchronousWork workItemFor(folly::Func closure) {
+  return [closure = std::move(closure)](
+             const WorkerHandle&,
+             const folly::Executor::KeepAlive<>& executor,
+             std::shared_ptr<WorkerCapacityLease> lease) mutable {
+    // While this worker runs the closure, the scheduler must not assign it
+    // more, or new work would queue behind this work instead of reaching an
+    // idle worker. The lease holds that capacity. A task on the same worker
+    // takes the lease and runs on a later turn, after closure() returns or
+    // throws, so the capacity returns only once the work ends.
+    executor->add([lease = std::move(lease)] {});
+    closure();
+  };
 }
 
-void WorkScheduler::addWithPriority(folly::Func workItem, int8_t priority) {
-  addAsynchronousWorkWithPriority(
-      [workItem = std::move(workItem)](
-          WorkerHandle,
-          const folly::Executor::KeepAlive<>& executor,
-          std::shared_ptr<WorkerCapacityLease> lease) mutable {
-        // While this worker runs the work, the scheduler must not assign it
-        // more, or new work would queue behind this work instead of reaching
-        // an idle worker. The lease holds that capacity. A task on the same
-        // worker takes the lease and runs on a later turn, after workItem()
-        // returns or throws, so the capacity returns only once the work ends.
-        executor->add([lease = std::move(lease)] {});
-        workItem();
-      },
-      priority);
+} // namespace
+
+void WorkScheduler::add(folly::Func closure) {
+  addWithPriority(std::move(closure), folly::Executor::MID_PRI);
+}
+
+void WorkScheduler::addWithPriority(folly::Func closure, int8_t priority) {
+  addAsynchronousWorkWithPriority(workItemFor(std::move(closure)), priority);
 }
 
 WorkScheduler::WorkPriority WorkScheduler::workPriorityFor(int8_t priority) {
